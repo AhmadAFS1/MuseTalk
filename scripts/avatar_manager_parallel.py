@@ -11,9 +11,9 @@ from musetalk.utils.face_parsing import FaceParsing
 from musetalk.utils.utils import load_all_model
 from musetalk.utils.audio_processor import AudioProcessor
 from transformers import WhisperModel
-from scripts.realtime_inference import Avatar
+from scripts.api_avatar import APIAvatar  # ✅ Use new API-friendly class
 from scripts.concurrent_gpu_manager import GPUMemoryManager
-from scripts.avatar_cache import AvatarCache  # ✅ Import the cache
+from scripts.avatar_cache import AvatarCache
 
 
 class ParallelAvatarManager:
@@ -25,39 +25,34 @@ class ParallelAvatarManager:
     """
     
     def __init__(self, args, max_concurrent_inferences=3):
-        """
-        Args:
-            max_concurrent_inferences: How many inferences can run simultaneously
-                                      (limited by GPU VRAM)
-        """
         self.args = args
         self.device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
         
         # GPU memory manager
         self.gpu_memory = GPUMemoryManager(total_memory_gb=24, reserved_gb=6)
         
-        # ✅ Smart avatar cache (replaces simple dict)
+        # Smart avatar cache
         self.avatar_cache = AvatarCache(
-            max_cached_avatars=5,      # Max 5 avatars in VRAM
-            ttl_seconds=300,           # Unload after 5 min inactivity
-            max_memory_mb=6000,        # Max 6GB for avatars
-            cleanup_interval=60        # Check every minute
+            max_cached_avatars=5,
+            ttl_seconds=300,
+            max_memory_mb=6000,
+            cleanup_interval=60
         )
         
-        # Thread pool for parallel inference
+        # Thread pool
         self.executor = ThreadPoolExecutor(max_workers=max_concurrent_inferences)
         
         # Request tracking
         self.active_requests = {}
         self.request_lock = threading.Lock()
         
-        # Load models ONCE (shared across all requests)
+        # Load models ONCE
         self._init_models()
         
-        # Model access lock (critical for thread-safety)
+        # Model access lock
         self.model_lock = threading.Lock()
         
-        # ✅ Start cache cleanup thread
+        # Start cache cleanup
         self.avatar_cache.start_cleanup()
     
     def _init_models(self):
@@ -94,52 +89,39 @@ class ParallelAvatarManager:
         print("✅ Models loaded!")
     
     def _get_or_load_avatar(self, avatar_id, batch_size):
-        """
-        ✅ Get avatar from cache, or load from disk if not cached.
-        This replaces the old _load_avatar method.
-        """
-        # Try cache first
+        """Get avatar from cache or load from disk"""
         avatar = self.avatar_cache.get(avatar_id)
         
         if avatar is not None:
-            return avatar  # Cache hit!
+            return avatar
         
-        # Cache miss - check if exists on disk
         if not self._avatar_exists(avatar_id):
             raise ValueError(f"Avatar {avatar_id} not found. Run preparation first.")
         
-        # Load from disk
         print(f"📂 Loading avatar {avatar_id} from disk...")
         
-        # Inject globals for Avatar class
-        global vae, unet, pe, fp, args
-        vae = self.vae
-        unet = self.unet
-        pe = self.pe
-        fp = self.fp
-        args = self.args
-        
-        avatar = Avatar(
+        # ✅ Create APIAvatar with explicit parameters (no globals!)
+        avatar = APIAvatar(
             avatar_id=avatar_id,
-            video_path="",  # Will load from saved materials
+            video_path="",  # Not used when preparation=False
             bbox_shift=0,
             batch_size=batch_size,
-            preparation=False  # ✅ NO preparation, just load existing
+            vae=self.vae,
+            unet=self.unet,
+            pe=self.pe,
+            fp=self.fp,
+            args=self.args,
+            preparation=False,  # Load existing materials only
+            force_recreate=False
         )
         
-        # Estimate memory usage (empirical - adjust based on your testing)
         memory_usage_mb = 500
-        
-        # ✅ Add to cache (handles LRU eviction automatically)
         self.avatar_cache.put(avatar_id, avatar, memory_usage_mb)
         
         return avatar
     
     def prepare_avatar(self, avatar_id, video_path, bbox_shift=0, batch_size=20, force_recreate=False):
-        """
-        ✅ NEW: Prepare avatar (one-time operation).
-        Saves materials to disk but does NOT load into VRAM.
-        """
+        """Prepare avatar (one-time operation)"""
         exists = self._avatar_exists(avatar_id)
         
         if exists and not force_recreate:
@@ -148,66 +130,44 @@ class ParallelAvatarManager:
         
         print(f"🔨 Preparing avatar {avatar_id}...")
         
-        # Inject globals
-        global vae, unet, pe, fp, args
-        vae = self.vae
-        unet = self.unet
-        pe = self.pe
-        fp = self.fp
-        args = self.args
-        
-        # Create avatar with preparation=True
-        avatar = Avatar(
+        # ✅ Create APIAvatar with preparation=True
+        avatar = APIAvatar(
             avatar_id=avatar_id,
             video_path=video_path,
             bbox_shift=bbox_shift if self.args.version == "v1" else 0,
             batch_size=batch_size,
-            preparation=True  # ✅ Run full preparation
+            vae=self.vae,
+            unet=self.unet,
+            pe=self.pe,
+            fp=self.fp,
+            args=self.args,
+            preparation=True,  # Prepare materials
+            force_recreate=force_recreate
         )
         
         print(f"✅ Avatar {avatar_id} prepared and saved to disk")
-        
-        # Note: We do NOT add to cache here
-        # It will be loaded on-demand during first inference
     
     def _inference_worker(self, request_id, avatar_id, audio_path, batch_size, output_name, fps):
-        """
-        Worker function that runs in thread pool.
-        Uses GPU memory budgeting to allow parallel execution.
-        """
+        """Worker function for inference"""
         print(f"🎬 [{request_id}] Starting inference for {avatar_id}")
         
         try:
-            # Allocate GPU memory budget
             with self.gpu_memory.allocate(batch_size):
-                
-                # ✅ Get avatar (from cache or load from disk)
                 avatar = self._get_or_load_avatar(avatar_id, batch_size)
                 
-                # Inject globals (protected by model_lock during inference)
-                global vae, unet, pe, fp, args, audio_processor, whisper, timesteps
-                
-                # CRITICAL: Lock model access during inference
-                # This ensures PyTorch operations don't conflict
+                # ✅ Pass models explicitly (no globals!)
                 with self.model_lock:
-                    vae = self.vae
-                    unet = self.unet
-                    pe = self.pe
-                    fp = self.fp
-                    args = self.args
-                    audio_processor = self.audio_processor
-                    whisper = self.whisper
-                    timesteps = self.timesteps
-                    
-                    # Run inference
                     avatar.inference(
                         audio_path=audio_path,
+                        audio_processor=self.audio_processor,
+                        whisper=self.whisper,
+                        timesteps=self.timesteps,
+                        device=self.device,
                         out_vid_name=output_name or f"{avatar_id}_{uuid.uuid4().hex[:8]}",
                         fps=fps,
                         skip_save_images=False
                     )
                 
-                # Determine output path
                 if self.args.version == "v15":
                     output_path = f"./results/{self.args.version}/avatars/{avatar_id}/vid_output/{output_name}.mp4"
                 else:
@@ -224,19 +184,14 @@ class ParallelAvatarManager:
             return {'success': False, 'error': str(e)}
     
     def generate_async(self, avatar_id, audio_path, batch_size=2, output_name=None, fps=25, callback=None):
-        """
-        Submit inference request (non-blocking).
-        Returns immediately with request_id.
-        """
+        """Submit inference request (non-blocking)"""
         request_id = f"gen_{uuid.uuid4().hex[:8]}"
         
-        # Submit to thread pool
         future = self.executor.submit(
             self._inference_worker,
             request_id, avatar_id, audio_path, batch_size, output_name, fps
         )
         
-        # Track request
         with self.request_lock:
             self.active_requests[request_id] = {
                 'avatar_id': avatar_id,
@@ -244,7 +199,6 @@ class ParallelAvatarManager:
                 'future': future
             }
         
-        # Optional callback when complete
         if callback:
             future.add_done_callback(lambda f: callback(request_id, f.result()))
         
@@ -252,7 +206,7 @@ class ParallelAvatarManager:
         return request_id
     
     def _avatar_exists(self, avatar_id):
-        """Check if avatar prepared on disk"""
+        """Check if avatar exists on disk"""
         if self.args.version == "v15":
             path = f"./results/{self.args.version}/avatars/{avatar_id}/latents.pt"
         else:
@@ -260,10 +214,7 @@ class ParallelAvatarManager:
         return os.path.exists(path)
     
     def evict_avatar(self, avatar_id):
-        """
-        ✅ NEW: Manually evict an avatar from cache (frees VRAM).
-        Avatar still exists on disk.
-        """
+        """Manually evict avatar from cache"""
         return self.avatar_cache.evict(avatar_id, reason="Manual eviction")
     
     def get_request_status(self, request_id):
@@ -278,36 +229,29 @@ class ParallelAvatarManager:
             if future.done():
                 try:
                     result = future.result()
-                    return {
-                        'status': 'completed',
-                        'result': result
-                    }
+                    return {'status': 'completed', 'result': result}
                 except Exception as e:
-                    return {
-                        'status': 'failed',
-                        'error': str(e)
-                    }
+                    return {'status': 'failed', 'error': str(e)}
             else:
                 return {'status': 'processing'}
     
     def get_stats(self):
-        """✅ UPDATED: Get comprehensive statistics"""
+        """Get comprehensive statistics"""
         gpu_stats = self.gpu_memory.get_stats()
         cache_stats = self.avatar_cache.get_stats()
         
         with self.request_lock:
-            active_count = len([r for r in self.active_requests.values() 
-                               if not r['future'].done()])
+            active_count = len([r for r in self.active_requests.values() if not r['future'].done()])
         
         return {
             'gpu': gpu_stats,
-            'cache': cache_stats,  # ✅ Now includes cache info
+            'cache': cache_stats,
             'active_requests': active_count,
             'total_requests': len(self.active_requests)
         }
     
     def shutdown(self):
-        """✅ NEW: Graceful shutdown"""
+        """Graceful shutdown"""
         print("🛑 Shutting down...")
         self.avatar_cache.stop_cleanup()
         self.avatar_cache.clear_all()
