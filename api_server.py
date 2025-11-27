@@ -255,18 +255,20 @@ async def generate_video(
         raise HTTPException(status_code=503, detail="Manager not initialized")
     
     try:
-        # Save uploaded audio
+        # Save uploaded audio to temp location
         upload_dir = Path("./uploads/audio")
         upload_dir.mkdir(parents=True, exist_ok=True)
         
-        audio_path = upload_dir / f"{uuid.uuid4().hex}_{audio_file.filename}"
+        import uuid
+        audio_filename = f"{uuid.uuid4().hex}_{audio_file.filename}"
+        audio_path = upload_dir / audio_filename
         
         with audio_path.open("wb") as buffer:
             shutil.copyfileobj(audio_file.file, buffer)
         
         print(f"📥 Uploaded audio: {audio_path}")
         
-        # Submit generation request (async)
+        # ✅ PRE-CHECK: This will raise ValueError if avatar doesn't exist
         request_id = manager.generate_async(
             avatar_id=avatar_id,
             audio_path=str(audio_path),
@@ -278,13 +280,19 @@ async def generate_video(
         return {
             "status": "queued",
             "request_id": request_id,
-            "message": "Generation request submitted"
+            "avatar_id": avatar_id,
+            "message": f"Video generation queued. Check status at /generate/{request_id}/status"
         }
     
     except ValueError as e:
+        # ✅ Catch avatar not found errors
         raise HTTPException(status_code=404, detail=str(e))
+    
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"❌ Error queuing generation: {error_trace}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @app.get("/generate/{request_id}/status")
 async def get_generation_status(request_id: str):

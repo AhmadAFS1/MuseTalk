@@ -93,6 +93,10 @@ class ParallelAvatarManager:
         avatar = self.avatar_cache.get(avatar_id)
         
         if avatar is not None:
+            # ✅ FIX: Update batch_size even for cached avatars
+            if avatar.batch_size != batch_size:
+                print(f"🔄 Updating batch_size for {avatar_id}: {avatar.batch_size} → {batch_size}")
+                avatar.batch_size = batch_size
             return avatar
         
         if not self._avatar_exists(avatar_id):
@@ -100,18 +104,18 @@ class ParallelAvatarManager:
         
         print(f"📂 Loading avatar {avatar_id} from disk...")
         
-        # ✅ Create APIAvatar with explicit parameters (no globals!)
+        # Create APIAvatar with explicit parameters
         avatar = APIAvatar(
             avatar_id=avatar_id,
-            video_path="",  # Not used when preparation=False
+            video_path="",
             bbox_shift=0,
-            batch_size=batch_size,
+            batch_size=batch_size,  # Use requested batch_size
             vae=self.vae,
             unet=self.unet,
             pe=self.pe,
             fp=self.fp,
             args=self.args,
-            preparation=False,  # Load existing materials only
+            preparation=False,
             force_recreate=False
         )
         
@@ -185,6 +189,14 @@ class ParallelAvatarManager:
     
     def generate_async(self, avatar_id, audio_path, batch_size=2, output_name=None, fps=25, callback=None):
         """Submit inference request (non-blocking)"""
+        
+        # ✅ PRE-FLIGHT CHECK: Verify avatar exists before queuing
+        if not self._avatar_exists(avatar_id):
+            raise ValueError(
+                f"Avatar '{avatar_id}' not found. "
+                f"Please prepare it first using POST /avatars/prepare"
+            )
+        
         request_id = f"gen_{uuid.uuid4().hex[:8]}"
         
         future = self.executor.submit(
