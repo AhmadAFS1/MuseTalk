@@ -5,11 +5,13 @@ from pathlib import Path
 from typing import Optional
 import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import shutil
 import uuid
+import asyncio
+import json
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -293,6 +295,105 @@ async def generate_video(
         error_trace = traceback.format_exc()
         print(f"❌ Error queuing generation: {error_trace}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.post("/generate/stream")
+async def generate_video_streaming(
+    avatar_id: str,
+    audio_file: UploadFile = File(...),
+    batch_size: int = 2,
+    fps: int = 15,
+    chunk_duration: int = 2  # seconds per chunk
+):
+    """
+    Generate video with streaming chunks.
+    Returns Server-Sent Events (SSE) stream.
+    """
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+    
+    try:
+        # Save audio
+        upload_dir = Path("./uploads/audio")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        audio_filename = f"{uuid.uuid4().hex}_{audio_file.filename}"
+        audio_path = upload_dir / audio_filename
+        
+        with audio_path.open("wb") as buffer:
+            shutil.copyfileobj(audio_file.file, buffer)
+        
+        # Verify avatar exists
+        if not manager._avatar_exists(avatar_id):
+            raise HTTPException(404, f"Avatar '{avatar_id}' not found")
+        
+        # Start streaming generation
+        async def event_generator():
+            """Generate SSE events for each chunk"""
+            try:
+                # Get avatar
+                avatar = manager._get_or_load_avatar(avatar_id, batch_size)
+                
+                # Stream chunks
+                for chunk_data in avatar.inference_streaming(
+                    audio_path=str(audio_path),
+                    audio_processor=manager.audio_processor,
+                    whisper=manager.whisper,
+                    timesteps=manager.timesteps,
+                    device=manager.device,
+                    fps=fps,
+                    chunk_duration_seconds=chunk_duration
+                ):
+                    # Send chunk metadata
+                    event_data = {
+                        'type': 'chunk',
+                        'chunk_index': chunk_data['chunk_index'],
+                        'total_chunks': chunk_data['total_chunks'],
+                        'chunk_url': f"/chunks/{avatar_id}/{os.path.basename(chunk_data['chunk_path'])}",
+                        'duration': chunk_data['duration_seconds']
+                    }
+                    
+                    yield f"data: {json.dumps(event_data)}\n\n"
+                    await asyncio.sleep(0.01)  # Prevent blocking
+                
+                # Send completion event
+                yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+            
+            except Exception as e:
+                error_data = {'type': 'error', 'message': str(e)}
+                yield f"data: {json.dumps(error_data)}\n\n"
+        
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no"
+            }
+        )
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/chunks/{avatar_id}/{chunk_filename}")
+async def download_chunk(avatar_id: str, chunk_filename: str):
+    """Download a specific video chunk"""
+    # ✅ ADD THIS CHECK
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+    
+    if manager.args.version == "v15":
+        chunk_path = f"./results/{manager.args.version}/avatars/{avatar_id}/chunks/{chunk_filename}"
+    else:
+        chunk_path = f"./results/avatars/{avatar_id}/chunks/{chunk_filename}"
+    
+    if not os.path.exists(chunk_path):
+        raise HTTPException(status_code=404, detail="Chunk not found")
+    
+    return FileResponse(
+        chunk_path,
+        media_type="video/mp4",
+        headers={"Accept-Ranges": "bytes"}
+    )
 
 @app.get("/generate/{request_id}/status")
 async def get_generation_status(request_id: str):

@@ -415,3 +415,128 @@ class APIAvatar:
         
         print(f"✅ Video saved: {output_vid}")
         return output_vid
+
+    @torch.no_grad()
+    def inference_streaming(self, audio_path, audio_processor, whisper, timesteps, device, 
+                            out_vid_name=None, fps=25, chunk_duration_seconds=2):
+        """
+        Stream video chunks as they're generated.
+        
+        Args:
+            chunk_duration_seconds: Duration of each chunk (e.g., 2 seconds)
+        
+        Yields:
+            dict with 'chunk_path', 'chunk_index', 'total_chunks'
+        """
+        os.makedirs(f"{self.avatar_path}/tmp", exist_ok=True)
+        os.makedirs(f"{self.avatar_path}/chunks", exist_ok=True)
+        
+        # Process audio
+        weight_dtype = self.unet.model.dtype
+        whisper_input_features, librosa_length = audio_processor.get_audio_feature(
+            audio_path, weight_dtype=weight_dtype
+        )
+        
+        whisper_chunks = audio_processor.get_whisper_chunk(
+            whisper_input_features, device, weight_dtype, whisper,
+            librosa_length, fps=fps,
+            audio_padding_length_left=self.args.audio_padding_length_left,
+            audio_padding_length_right=self.args.audio_padding_length_right,
+        )
+        
+        video_num = len(whisper_chunks)
+        frames_per_chunk = int(chunk_duration_seconds * fps)
+        total_chunks = int(np.ceil(video_num / frames_per_chunk))
+        
+        # Generate frames and create chunks
+        gen = datagen(whisper_chunks, self.input_latent_list_cycle, self.batch_size)
+        frame_buffer = []
+        chunk_index = 0
+        frame_idx = 0
+        
+        for whisper_batch, latent_batch in gen:
+            # Generate batch
+            audio_feature_batch = self.pe(whisper_batch.to(device))
+            latent_batch = latent_batch.to(device=device, dtype=self.unet.model.dtype)
+            
+            pred_latents = self.unet.model(
+                latent_batch, timesteps,
+                encoder_hidden_states=audio_feature_batch
+            ).sample
+            
+            pred_latents = pred_latents.to(device=device, dtype=self.vae.vae.dtype)
+            recon = self.vae.decode_latents(pred_latents)
+            
+            # Process each frame
+            for res_frame in recon:
+                # Blend frame
+                bbox = self.coord_list_cycle[frame_idx % len(self.coord_list_cycle)]
+                ori_frame = self.frame_list_cycle[frame_idx % len(self.frame_list_cycle)].copy()
+                x1, y1, x2, y2 = bbox
+                
+                res_frame_resized = cv2.resize(res_frame.astype(np.uint8), (x2 - x1, y2 - y1))
+                mask = self.mask_list_cycle[frame_idx % len(self.mask_list_cycle)]
+                mask_crop_box = self.mask_coords_list_cycle[frame_idx % len(self.mask_coords_list_cycle)]
+                
+                combine_frame = get_image_blending(ori_frame, res_frame_resized, bbox, mask, mask_crop_box)
+                frame_buffer.append(combine_frame)
+                frame_idx += 1
+                
+                # When buffer reaches chunk size, create video chunk
+                if len(frame_buffer) >= frames_per_chunk or frame_idx >= video_num:
+                    chunk_path = self._create_chunk(
+                        frame_buffer, chunk_index, audio_path, fps,
+                        start_frame=chunk_index * frames_per_chunk,
+                        total_frames=video_num
+                    )
+                    
+                    yield {
+                        'chunk_path': chunk_path,
+                        'chunk_index': chunk_index,
+                        'total_chunks': total_chunks,
+                        'duration_seconds': len(frame_buffer) / fps
+                    }
+                    
+                    frame_buffer = []
+                    chunk_index += 1
+        
+        # Cleanup
+        shutil.rmtree(f"{self.avatar_path}/tmp", ignore_errors=True)
+
+    def _create_chunk(self, frames, chunk_index, audio_path, fps, start_frame, total_frames):
+        """Create a video chunk from frames"""
+        chunk_dir = f"{self.avatar_path}/chunks/chunk_{chunk_index:04d}"
+        os.makedirs(chunk_dir, exist_ok=True)
+        
+        # Save frames
+        for i, frame in enumerate(frames):
+            cv2.imwrite(f"{chunk_dir}/{i:08d}.png", frame)
+        
+        # Create video from frames
+        chunk_video = f"{chunk_dir}/video.mp4"
+        cmd = (
+            f"ffmpeg -y -v quiet -r {fps} -f image2 "
+            f"-i {chunk_dir}/%08d.png "
+            f"-vcodec libx264 -vf format=yuv420p -crf 23 "
+            f"{chunk_video}"
+        )
+        os.system(cmd)
+        
+        # Extract audio segment
+        start_time = start_frame / fps
+        duration = len(frames) / fps
+        
+        chunk_with_audio = f"{self.avatar_path}/chunks/chunk_{chunk_index:04d}.mp4"
+        cmd_audio = (
+            f"ffmpeg -y -v quiet "
+            f"-ss {start_time} -t {duration} -i {audio_path} "
+            f"-i {chunk_video} "
+            f"-c:v copy -c:a aac "
+            f"{chunk_with_audio}"
+        )
+        os.system(cmd_audio)
+        
+        # Cleanup temp files
+        shutil.rmtree(chunk_dir)
+        
+        return chunk_with_audio
