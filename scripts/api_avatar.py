@@ -16,6 +16,7 @@ import queue
 import time
 import json
 import sys
+from pathlib import Path
 
 from musetalk.utils.preprocessing import get_landmark_and_bbox, read_imgs
 from musetalk.utils.blending import get_image_prepare_material, get_image_blending
@@ -418,18 +419,25 @@ class APIAvatar:
 
     @torch.no_grad()
     def inference_streaming(self, audio_path, audio_processor, whisper, timesteps, device, 
-                            out_vid_name=None, fps=25, chunk_duration_seconds=2):
+                            fps=25, chunk_duration_seconds=2, chunk_output_dir=None):
         """
         Stream video chunks as they're generated.
         
         Args:
-            chunk_duration_seconds: Duration of each chunk (e.g., 2 seconds)
-        
-        Yields:
-            dict with 'chunk_path', 'chunk_index', 'total_chunks'
+            chunk_output_dir: Custom directory for chunks (enables multi-user isolation)
         """
+        
+        # ✅ Use custom directory if provided, else use avatar-specific default
+        if chunk_output_dir:
+            chunk_dir = Path(chunk_output_dir)
+        else:
+            chunk_dir = Path(self.avatar_path) / "chunks"
+        
+        chunk_dir.mkdir(parents=True, exist_ok=True)
+        
+        print(f"🎬 Streaming to: {chunk_dir}")
+        
         os.makedirs(f"{self.avatar_path}/tmp", exist_ok=True)
-        os.makedirs(f"{self.avatar_path}/chunks", exist_ok=True)
         
         # Process audio
         weight_dtype = self.unet.model.dtype
@@ -485,9 +493,13 @@ class APIAvatar:
                 # When buffer reaches chunk size, create video chunk
                 if len(frame_buffer) >= frames_per_chunk or frame_idx >= video_num:
                     chunk_path = self._create_chunk(
-                        frame_buffer, chunk_index, audio_path, fps,
+                        frames=frame_buffer, 
+                        chunk_index=chunk_index, 
+                        audio_path=audio_path, 
+                        fps=fps,
                         start_frame=chunk_index * frames_per_chunk,
-                        total_frames=video_num
+                        total_frames=video_num,
+                        output_path=str(chunk_dir / f"chunk_{chunk_index:04d}.mp4")
                     )
                     
                     yield {
@@ -503,7 +515,7 @@ class APIAvatar:
         # Cleanup
         shutil.rmtree(f"{self.avatar_path}/tmp", ignore_errors=True)
 
-    def _create_chunk(self, frames, chunk_index, audio_path, fps, start_frame, total_frames):
+    def _create_chunk(self, frames, chunk_index, audio_path, fps, start_frame, total_frames, output_path):
         """Create a video chunk from frames"""
         chunk_dir = f"{self.avatar_path}/chunks/chunk_{chunk_index:04d}"
         os.makedirs(chunk_dir, exist_ok=True)
@@ -526,17 +538,16 @@ class APIAvatar:
         start_time = start_frame / fps
         duration = len(frames) / fps
         
-        chunk_with_audio = f"{self.avatar_path}/chunks/chunk_{chunk_index:04d}.mp4"
         cmd_audio = (
             f"ffmpeg -y -v quiet "
             f"-ss {start_time} -t {duration} -i {audio_path} "
             f"-i {chunk_video} "
             f"-c:v copy -c:a aac "
-            f"{chunk_with_audio}"
+            f"{output_path}"
         )
         os.system(cmd_audio)
         
         # Cleanup temp files
         shutil.rmtree(chunk_dir)
         
-        return chunk_with_audio
+        return output_path

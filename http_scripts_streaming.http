@@ -16,7 +16,7 @@ Content-Type: video/mp4
 
 ###
 
-### Stream Long Video (4th_message_long.mpga - 25 seconds, ~13 chunks)
+### Stream Long Video (returns request_id in events)
 POST http://localhost:8000/generate/stream?avatar_id=test_avatar&batch_size=2&fps=15&chunk_duration=2
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
@@ -26,8 +26,6 @@ Content-Type: audio/mpeg
 
 < ./data/audio/4th_message_long.mpga
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
-
-###
 
 ###
 
@@ -83,8 +81,14 @@ Content-Type: audio/wav
 
 ###
 
-### Download Specific Chunk (replace chunk filename)
-GET http://localhost:8000/chunks/test_avatar/chunk_0000.mp4
+### Download chunk (UPDATE request_id from SSE response!)
+# Example: GET http://localhost:8000/chunks/test_avatar_req_a1b2c3d4/chunk_0000.mp4
+GET http://localhost:8000/chunks/test_avatar_req_XXXXXXXX/chunk_0000.mp4
+
+###
+
+### Force cleanup all chunks (admin)
+GET http://localhost:8000/chunks/cleanup
 
 ###
 

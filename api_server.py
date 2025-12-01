@@ -12,6 +12,12 @@ import shutil
 import uuid
 import asyncio
 import json
+import re
+import aiofiles
+from datetime import datetime, timedelta
+
+# Persistent cleanup tracking
+CLEANUP_DB = Path("chunks/.cleanup_queue.json")
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -114,6 +120,46 @@ async def shutdown_event():
     if manager:
         manager.shutdown()
     print("👋 MuseTalk API Server stopped")
+
+@app.on_event("startup")
+async def start_cleanup_worker():
+    """Background task to cleanup old chunks"""
+    
+    async def cleanup_loop():
+        while True:
+            await asyncio.sleep(60)  # Check every minute
+            
+            if not CLEANUP_DB.exists():
+                continue
+            
+            async with aiofiles.open(CLEANUP_DB, 'r') as f:
+                queue = json.loads(await f.read())
+            
+            now = datetime.now()
+            cleaned = []
+            
+            for chunk_dir_str, cleanup_time_str in queue.items():
+                cleanup_time = datetime.fromisoformat(cleanup_time_str)
+                
+                if now >= cleanup_time:
+                    chunk_dir = Path(chunk_dir_str)
+                    if chunk_dir.exists():
+                        try:
+                            shutil.rmtree(chunk_dir)
+                            print(f"🗑️  Cleaned: {chunk_dir.name}")
+                            cleaned.append(chunk_dir_str)
+                        except Exception as e:
+                            print(f"⚠️  Cleanup failed: {chunk_dir.name} - {e}")
+            
+            # Update queue
+            if cleaned:
+                for key in cleaned:
+                    del queue[key]
+                
+                async with aiofiles.open(CLEANUP_DB, 'w') as f:
+                    await f.write(json.dumps(queue, indent=2))
+    
+    asyncio.create_task(cleanup_loop())
 
 # ============================================================================
 # Health Check
@@ -302,97 +348,100 @@ async def generate_video_streaming(
     audio_file: UploadFile = File(...),
     batch_size: int = 2,
     fps: int = 15,
-    chunk_duration: int = 2  # seconds per chunk
+    chunk_duration: int = 2
 ):
-    """
-    Generate video with streaming chunks.
-    Returns Server-Sent Events (SSE) stream.
-    """
     if manager is None:
         raise HTTPException(status_code=503, detail="Manager not initialized")
     
-    try:
-        # Save audio
-        upload_dir = Path("./uploads/audio")
-        upload_dir.mkdir(parents=True, exist_ok=True)
-        
-        audio_filename = f"{uuid.uuid4().hex}_{audio_file.filename}"
-        audio_path = upload_dir / audio_filename
-        
-        with audio_path.open("wb") as buffer:
-            shutil.copyfileobj(audio_file.file, buffer)
-        
-        # Verify avatar exists
-        if not manager._avatar_exists(avatar_id):
-            raise HTTPException(404, f"Avatar '{avatar_id}' not found")
-        
-        # Start streaming generation
-        async def event_generator():
-            """Generate SSE events for each chunk"""
-            try:
-                # Get avatar
-                avatar = manager._get_or_load_avatar(avatar_id, batch_size)
-                
-                # Stream chunks
-                for chunk_data in avatar.inference_streaming(
-                    audio_path=str(audio_path),
-                    audio_processor=manager.audio_processor,
-                    whisper=manager.whisper,
-                    timesteps=manager.timesteps,
-                    device=manager.device,
-                    fps=fps,
-                    chunk_duration_seconds=chunk_duration
-                ):
-                    # Send chunk metadata
-                    event_data = {
-                        'type': 'chunk',
-                        'chunk_index': chunk_data['chunk_index'],
-                        'total_chunks': chunk_data['total_chunks'],
-                        'chunk_url': f"/chunks/{avatar_id}/{os.path.basename(chunk_data['chunk_path'])}",
-                        'duration': chunk_data['duration_seconds']
-                    }
-                    
-                    yield f"data: {json.dumps(event_data)}\n\n"
-                    await asyncio.sleep(0.01)  # Prevent blocking
-                
-                # Send completion event
-                yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+    # Generate unique request ID
+    request_id = f"{avatar_id}_req_{uuid.uuid4().hex[:8]}"
+    
+    # Create request-specific chunk directory
+    chunk_dir = Path("chunks") / request_id
+    chunk_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Save audio
+    upload_dir = Path("uploads/audio")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    audio_path = upload_dir / f"{request_id}.{audio_file.filename.split('.')[-1]}"
+    
+    with audio_path.open("wb") as buffer:
+        shutil.copyfileobj(audio_file.file, buffer)
+    
+    async def event_generator():
+        try:
+            avatar = manager._get_or_load_avatar(avatar_id, batch_size)
             
-            except Exception as e:
-                error_data = {'type': 'error', 'message': str(e)}
-                yield f"data: {json.dumps(error_data)}\n\n"
+            # ✅ FIX: Pass custom chunk directory
+            for chunk_data in avatar.inference_streaming(
+                audio_path=str(audio_path),
+                audio_processor=manager.audio_processor,
+                whisper=manager.whisper,
+                timesteps=manager.timesteps,
+                device=manager.device,
+                fps=fps,
+                chunk_duration_seconds=chunk_duration,
+                chunk_output_dir=str(chunk_dir)  # ← Custom directory
+            ):
+                event_data = {
+                    'event': 'chunk',
+                    'index': chunk_data['chunk_index'],
+                    'url': f"/chunks/{request_id}/chunk_{chunk_data['chunk_index']:04d}.mp4",
+                    'duration': chunk_data['duration_seconds']
+                }
+                yield f"data: {json.dumps(event_data)}\n\n"
+                await asyncio.sleep(0.01)
+            
+            yield f"data: {json.dumps({'event': 'complete'})}\n\n"
         
-        return StreamingResponse(
-            event_generator(),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache",
-                "X-Accel-Buffering": "no"
-            }
-        )
+        except Exception as e:
+            yield f"data: {json.dumps({'event': 'error', 'message': str(e)})}\n\n"
+        finally:
+            if audio_path.exists():
+                audio_path.unlink()
+            await schedule_cleanup(chunk_dir, delay_seconds=3600)
     
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
-@app.get("/chunks/{avatar_id}/{chunk_filename}")
-async def download_chunk(avatar_id: str, chunk_filename: str):
-    """Download a specific video chunk"""
-    # ✅ ADD THIS CHECK
-    if manager is None:
-        raise HTTPException(status_code=503, detail="Manager not initialized")
+@app.get("/chunks/{request_id}/{chunk_filename}")
+async def download_chunk(request_id: str, chunk_filename: str):
+    """Download a specific video chunk with security validation"""
     
-    if manager.args.version == "v15":
-        chunk_path = f"./results/{manager.args.version}/avatars/{avatar_id}/chunks/{chunk_filename}"
-    else:
-        chunk_path = f"./results/avatars/{avatar_id}/chunks/{chunk_filename}"
+    # Validate request_id format (prevent path traversal)
+    if not re.match(r'^[a-z0-9_]+_req_[a-f0-9]{8}$', request_id):
+        raise HTTPException(status_code=400, detail="Invalid request_id format")
     
-    if not os.path.exists(chunk_path):
-        raise HTTPException(status_code=404, detail="Chunk not found")
+    # Validate chunk filename
+    if not re.match(r'^chunk_\d{4}\.mp4$', chunk_filename):
+        raise HTTPException(status_code=400, detail="Invalid chunk filename")
+    
+    # Construct and validate path
+    chunk_path = Path("chunks") / request_id / chunk_filename
+    
+    # Prevent path traversal attacks
+    try:
+        chunk_path = chunk_path.resolve()
+        chunks_base = Path("chunks").resolve()
+        if not str(chunk_path).startswith(str(chunks_base)):
+            raise HTTPException(status_code=403, detail="Access denied")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid path")
+    
+    if not chunk_path.exists():
+        raise HTTPException(status_code=404, detail=f"Chunk not found: {chunk_filename}")
+    
+    # Check file integrity
+    file_size = chunk_path.stat().st_size
+    if file_size < 1024:  # Less than 1KB is suspicious
+        raise HTTPException(status_code=500, detail="Chunk file corrupted")
     
     return FileResponse(
         chunk_path,
         media_type="video/mp4",
-        headers={"Accept-Ranges": "bytes"}
+        headers={
+            "Content-Disposition": f'inline; filename="{chunk_filename}"',
+            "Cache-Control": "public, max-age=3600"
+        }
     )
 
 @app.get("/generate/{request_id}/status")
@@ -456,6 +505,31 @@ async def get_cache_stats():
     
     stats = manager.get_stats()
     return stats['cache']
+
+# ============================================================================
+# Utility Functions
+# ============================================================================
+
+async def schedule_cleanup(chunk_dir: Path, delay_seconds: int = 3600):
+    """Schedule cleanup of chunk directory"""
+    cleanup_time = (datetime.now() + timedelta(seconds=delay_seconds)).isoformat()
+    
+    # Load existing queue
+    if CLEANUP_DB.exists():
+        async with aiofiles.open(CLEANUP_DB, 'r') as f:
+            queue = json.loads(await f.read())
+    else:
+        queue = {}
+    
+    # Add to queue
+    queue[str(chunk_dir)] = cleanup_time
+    
+    # Save queue
+    CLEANUP_DB.parent.mkdir(exist_ok=True)
+    async with aiofiles.open(CLEANUP_DB, 'w') as f:
+        await f.write(json.dumps(queue, indent=2))
+    
+    print(f"🗑️  Scheduled cleanup: {chunk_dir.name} at {cleanup_time}")
 
 # ============================================================================
 # Main Entry Point
