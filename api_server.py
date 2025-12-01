@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import shutil
@@ -173,6 +173,566 @@ async def root():
         "service": "MuseTalk Real-Time API",
         "version": "1.0.0"
     }
+
+@app.get("/ui", response_class=HTMLResponse)
+async def streaming_interface():
+    """Interactive streaming upload interface (Gradio-like)"""
+    
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>MuseTalk Streaming Interface</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                padding: 20px;
+            }
+            
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                background: #fff;
+                border-radius: 16px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                overflow: hidden;
+            }
+            
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 30px;
+                text-align: center;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+                margin-bottom: 10px;
+            }
+            
+            .header p {
+                font-size: 1.1rem;
+                opacity: 0.9;
+            }
+            
+            .content {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 30px;
+                padding: 30px;
+            }
+            
+            @media (max-width: 968px) {
+                .content {
+                    grid-template-columns: 1fr;
+                }
+            }
+            
+            .panel {
+                background: #f8f9fa;
+                padding: 25px;
+                border-radius: 12px;
+                border: 1px solid #e0e0e0;
+            }
+            
+            .panel h2 {
+                color: #333;
+                margin-bottom: 20px;
+                font-size: 1.5rem;
+                border-bottom: 3px solid #667eea;
+                padding-bottom: 10px;
+            }
+            
+            .form-group {
+                margin-bottom: 20px;
+            }
+            
+            label {
+                display: block;
+                margin-bottom: 8px;
+                font-weight: 600;
+                color: #555;
+            }
+            
+            input[type="text"],
+            input[type="number"],
+            select {
+                width: 100%;
+                padding: 12px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 1rem;
+                transition: border-color 0.3s;
+            }
+            
+            input[type="text"]:focus,
+            input[type="number"]:focus,
+            select:focus {
+                outline: none;
+                border-color: #667eea;
+            }
+            
+            input[type="file"] {
+                width: 100%;
+                padding: 12px;
+                border: 2px dashed #667eea;
+                border-radius: 8px;
+                background: white;
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+            
+            input[type="file"]:hover {
+                background: #f0f4ff;
+            }
+            
+            .btn {
+                width: 100%;
+                padding: 15px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 1.1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform 0.2s, box-shadow 0.2s;
+                margin-top: 10px;
+            }
+            
+            .btn:hover:not(:disabled) {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            }
+            
+            .btn:disabled {
+                background: #ccc;
+                cursor: not-allowed;
+            }
+            
+            .status-box {
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                border-left: 4px solid #667eea;
+                margin-bottom: 20px;
+            }
+            
+            .status-box h3 {
+                color: #667eea;
+                margin-bottom: 10px;
+            }
+            
+            .progress-bar {
+                width: 100%;
+                height: 30px;
+                background: #e0e0e0;
+                border-radius: 15px;
+                overflow: hidden;
+                margin: 15px 0;
+                position: relative;
+            }
+            
+            .progress-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #667eea, #764ba2);
+                transition: width 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-weight: 600;
+            }
+            
+            .chunk-list {
+                max-height: 300px;
+                overflow-y: auto;
+                margin-top: 15px;
+            }
+            
+            .chunk-item {
+                background: #f8f9fa;
+                padding: 12px;
+                margin: 8px 0;
+                border-radius: 8px;
+                border-left: 4px solid #4CAF50;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                animation: slideIn 0.3s ease;
+            }
+            
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateX(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+            
+            .chunk-item a {
+                color: #667eea;
+                text-decoration: none;
+                font-weight: 600;
+                padding: 5px 10px;
+                border-radius: 5px;
+                transition: background 0.2s;
+            }
+            
+            .chunk-item a:hover {
+                background: #e0e7ff;
+            }
+            
+            video {
+                width: 100%;
+                border-radius: 8px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                background: #000;
+            }
+            
+            .video-controls {
+                display: flex;
+                gap: 10px;
+                margin-top: 15px;
+            }
+            
+            .video-controls button {
+                flex: 1;
+                padding: 10px;
+                background: #667eea;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+                transition: background 0.2s;
+            }
+            
+            .video-controls button:hover {
+                background: #5568d3;
+            }
+            
+            .video-controls button:disabled {
+                background: #ccc;
+                cursor: not-allowed;
+            }
+            
+            .hidden {
+                display: none;
+            }
+            
+            .spinner {
+                border: 3px solid #f3f3f3;
+                border-top: 3px solid #667eea;
+                border-radius: 50%;
+                width: 20px;
+                height: 20px;
+                animation: spin 1s linear infinite;
+                display: inline-block;
+                margin-right: 10px;
+            }
+            
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎬 MuseTalk Streaming Interface</h1>
+                <p>Upload audio and watch your avatar come to life in real-time</p>
+            </div>
+            
+            <div class="content">
+                <!-- Left Panel: Upload Form -->
+                <div class="panel">
+                    <h2>📤 Upload & Configure</h2>
+                    
+                    <form id="uploadForm">
+                        <div class="form-group">
+                            <label for="avatar_id">🎭 Avatar ID</label>
+                            <input type="text" id="avatar_id" value="test_avatar" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="audio_file">🎵 Audio File</label>
+                            <input type="file" id="audio_file" accept="audio/*,.mpga,.wav,.mp3" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="fps">🎞️ Frame Rate (FPS)</label>
+                            <select id="fps">
+                                <option value="15">15 fps (Fast)</option>
+                                <option value="20">20 fps (Balanced)</option>
+                                <option value="25">25 fps (High Quality)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="chunk_duration">⏱️ Chunk Duration (seconds)</label>
+                            <input type="number" id="chunk_duration" value="2" min="1" max="5" step="0.5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="batch_size">🔢 Batch Size</label>
+                            <select id="batch_size">
+                                <option value="2" selected>2 (Recommended)</option>
+                                <option value="4">4 (Faster)</option>
+                                <option value="8">8 (Fastest)</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn" id="submitBtn">
+                            🚀 Start Generation
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Right Panel: Progress & Video -->
+                <div class="panel">
+                    <h2>📊 Progress & Preview</h2>
+                    
+                    <div class="status-box">
+                        <h3 id="statusText">Ready to start</h3>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress" style="width: 0%">0%</div>
+                        </div>
+                        <p id="statusDetail">Upload an audio file to begin</p>
+                    </div>
+                    
+                    <div id="chunksSection" class="hidden">
+                        <h3 style="margin-bottom: 10px;">📦 Generated Chunks</h3>
+                        <div class="chunk-list" id="chunkList"></div>
+                    </div>
+                    
+                    <div id="videoSection" class="hidden">
+                        <h3 style="margin-bottom: 10px;">🎥 Live Preview</h3>
+                        <video id="player" controls autoplay></video>
+                        <div class="video-controls">
+                            <button id="prevBtn" disabled>⏮️ Previous</button>
+                            <button id="nextBtn" disabled>Next ⏭️</button>
+                            <button id="fullPlayerBtn" disabled>🎬 Full Player</button>
+                        </div>
+                        <p id="videoInfo" style="margin-top: 10px; text-align: center; color: #666;"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            // State management
+            let state = {
+                chunks: [],
+                currentChunk: 0,
+                requestId: '',
+                totalChunks: 0,
+                isStreaming: false
+            };
+            
+            // DOM elements
+            const form = document.getElementById('uploadForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const statusText = document.getElementById('statusText');
+            const statusDetail = document.getElementById('statusDetail');
+            const progress = document.getElementById('progress');
+            const chunkList = document.getElementById('chunkList');
+            const chunksSection = document.getElementById('chunksSection');
+            const videoSection = document.getElementById('videoSection');
+            const player = document.getElementById('player');
+            const videoInfo = document.getElementById('videoInfo');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const fullPlayerBtn = document.getElementById('fullPlayerBtn');
+            
+            // Form submission
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Reset state
+                state = { chunks: [], currentChunk: 0, requestId: '', totalChunks: 0, isStreaming: true };
+                chunkList.innerHTML = '';
+                chunksSection.classList.add('hidden');
+                videoSection.classList.add('hidden');
+                
+                // Update UI
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner"></span>Processing...';
+                statusText.textContent = 'Uploading audio...';
+                statusDetail.textContent = 'Please wait while we process your file';
+                progress.style.width = '0%';
+                progress.textContent = '0%';
+                
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('audio_file', document.getElementById('audio_file').files[0]);
+                
+                const params = new URLSearchParams({
+                    avatar_id: document.getElementById('avatar_id').value,
+                    batch_size: document.getElementById('batch_size').value,
+                    fps: document.getElementById('fps').value,
+                    chunk_duration: document.getElementById('chunk_duration').value
+                });
+                
+                try {
+                    const response = await fetch(`/generate/stream?${params}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    statusText.textContent = 'Generating video chunks...';
+                    statusDetail.textContent = 'Streaming in progress';
+                    chunksSection.classList.remove('hidden');
+                    
+                    // Read SSE stream
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\\n\\n');
+                        buffer = lines.pop();
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const data = JSON.parse(line.slice(6));
+                                handleSSEEvent(data);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    statusText.textContent = '❌ Error occurred';
+                    statusDetail.textContent = error.message;
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '🚀 Start Generation';
+                }
+            });
+            
+            // Handle SSE events
+            function handleSSEEvent(data) {
+                if (data.event === 'chunk') {
+                    state.chunks.push(data.url);
+                    state.requestId = data.url.split('/')[2];
+                    state.totalChunks = data.total_chunks || state.chunks.length;
+                    
+                    // Update progress
+                    const percent = Math.round((state.chunks.length / state.totalChunks) * 100);
+                    progress.style.width = percent + '%';
+                    progress.textContent = percent + '%';
+                    
+                    statusText.textContent = `Chunk ${state.chunks.length} of ${state.totalChunks}`;
+                    statusDetail.textContent = `Processing... ${state.chunks.length}/${state.totalChunks} chunks ready`;
+                    
+                    // Add to chunk list
+                    const chunkDiv = document.createElement('div');
+                    chunkDiv.className = 'chunk-item';
+                    chunkDiv.innerHTML = `
+                        <span>✅ Chunk ${data.index + 1}</span>
+                        <a href="${data.url}" target="_blank">Download</a>
+                    `;
+                    chunkList.appendChild(chunkDiv);
+                    
+                    // Auto-play first chunk
+                    if (state.chunks.length === 1) {
+                        videoSection.classList.remove('hidden');
+                        playChunk(0);
+                    }
+                    
+                    // Update buttons
+                    updateVideoControls();
+                }
+                else if (data.event === 'complete') {
+                    state.isStreaming = false;
+                    statusText.textContent = '✅ Generation Complete!';
+                    statusDetail.textContent = `All ${state.chunks.length} chunks generated successfully`;
+                    progress.style.width = '100%';
+                    progress.textContent = '100%';
+                    
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '🚀 Start Generation';
+                    
+                    fullPlayerBtn.disabled = false;
+                }
+                else if (data.event === 'error') {
+                    statusText.textContent = '❌ Error';
+                    statusDetail.textContent = data.message;
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '🚀 Start Generation';
+                }
+            }
+            
+            // Video playback functions
+            function playChunk(index) {
+                if (index < 0 || index >= state.chunks.length) return;
+                
+                state.currentChunk = index;
+                player.src = state.chunks[index];
+                player.play();
+                videoInfo.textContent = `Playing chunk ${index + 1} of ${state.chunks.length}`;
+                
+                updateVideoControls();
+            }
+            
+            function updateVideoControls() {
+                prevBtn.disabled = state.currentChunk === 0;
+                nextBtn.disabled = state.currentChunk >= state.chunks.length - 1;
+            }
+            
+            // Event listeners
+            prevBtn.addEventListener('click', () => playChunk(state.currentChunk - 1));
+            nextBtn.addEventListener('click', () => playChunk(state.currentChunk + 1));
+            fullPlayerBtn.addEventListener('click', () => {
+                window.open(`/player/${state.requestId}`, '_blank');
+            });
+            
+            // Auto-advance to next chunk
+            player.addEventListener('ended', () => {
+                if (state.currentChunk < state.chunks.length - 1) {
+                    playChunk(state.currentChunk + 1);
+                } else if (state.isStreaming) {
+                    // Wait for next chunk if still streaming
+                    videoInfo.textContent = 'Waiting for next chunk...';
+                    const checkInterval = setInterval(() => {
+                        if (state.chunks.length > state.currentChunk + 1) {
+                            clearInterval(checkInterval);
+                            playChunk(state.currentChunk + 1);
+                        } else if (!state.isStreaming) {
+                            clearInterval(checkInterval);
+                            videoInfo.textContent = 'All chunks played!';
+                        }
+                    }, 500);
+                } else {
+                    videoInfo.textContent = '✅ All chunks played!';
+                }
+            });
+        </script>
+    </body>
+    </html>
+    """
+    
+    return HTMLResponse(content=html_content)
 
 @app.get("/health")
 async def health_check():
@@ -484,6 +1044,205 @@ async def download_result(request_id: str):
         media_type="video/mp4",
         filename=os.path.basename(output_path)
     )
+
+@app.get("/player/{request_id}", response_class=HTMLResponse)
+async def video_player(request_id: str):
+    """Serve HTML video player for a streaming session"""
+    
+    # Validate request_id
+    if not re.match(r'^[a-z0-9_]+_req_[a-f0-9]{8}$', request_id):
+        raise HTTPException(status_code=400, detail="Invalid request_id")
+    
+    # Check if chunks exist
+    chunk_dir = Path("chunks") / request_id
+    if not chunk_dir.exists():
+        raise HTTPException(status_code=404, detail="Streaming session not found")
+    
+    # Get all chunks
+    chunks = sorted(chunk_dir.glob("chunk_*.mp4"))
+    chunk_urls = [f"/chunks/{request_id}/{chunk.name}" for chunk in chunks]
+    
+    # Generate HTML with video player
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Video Player - {request_id}</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 50px auto;
+                background: #1a1a1a;
+                color: #fff;
+            }}
+            h1 {{
+                text-align: center;
+                color: #4CAF50;
+            }}
+            #video-container {{
+                position: relative;
+                margin: 20px 0;
+            }}
+            video {{
+                width: 100%;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            }}
+            #controls {{
+                display: flex;
+                gap: 10px;
+                margin-top: 10px;
+            }}
+            button {{
+                padding: 10px 20px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+            }}
+            button:hover {{
+                background: #45a049;
+            }}
+            button:disabled {{
+                background: #666;
+                cursor: not-allowed;
+            }}
+            #info {{
+                background: #2a2a2a;
+                padding: 15px;
+                border-radius: 4px;
+                margin-top: 20px;
+            }}
+            .chunk-list {{
+                max-height: 200px;
+                overflow-y: auto;
+                background: #333;
+                padding: 10px;
+                border-radius: 4px;
+                margin-top: 10px;
+            }}
+            .chunk-item {{
+                padding: 5px;
+                cursor: pointer;
+                border-bottom: 1px solid #444;
+            }}
+            .chunk-item:hover {{
+                background: #444;
+            }}
+            .chunk-item.active {{
+                background: #4CAF50;
+                color: white;
+            }}
+        </style>
+    </head>
+    <body>
+        <h1>🎥 Video Player</h1>
+        <p style="text-align: center; color: #888;">Session: {request_id}</p>
+        
+        <div id="video-container">
+            <video id="player" controls autoplay>
+                <source src="{chunk_urls[0] if chunk_urls else ''}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        
+        <div id="controls">
+            <button id="prev-btn" onclick="playPrevious()">⏮️ Previous Chunk</button>
+            <button id="next-btn" onclick="playNext()">Next Chunk ⏭️</button>
+            <button onclick="playAll()">▶️ Play All Sequentially</button>
+            <button onclick="downloadAll()">⬇️ Download All</button>
+        </div>
+        
+        <div id="info">
+            <strong>Current Chunk:</strong> <span id="current-chunk">1</span> / <span id="total-chunks">{len(chunks)}</span>
+            <br>
+            <strong>Duration:</strong> <span id="duration">--:--</span>
+            <div class="chunk-list" id="chunk-list"></div>
+        </div>
+        
+        <script>
+            const chunks = {json.dumps(chunk_urls)};
+            let currentChunkIndex = 0;
+            const player = document.getElementById('player');
+            
+            // Update UI
+            function updateUI() {{
+                document.getElementById('current-chunk').textContent = currentChunkIndex + 1;
+                document.getElementById('prev-btn').disabled = currentChunkIndex === 0;
+                document.getElementById('next-btn').disabled = currentChunkIndex === chunks.length - 1;
+                
+                // Update chunk list
+                const chunkList = document.getElementById('chunk-list');
+                chunkList.innerHTML = chunks.map((url, i) => `
+                    <div class="chunk-item ${{i === currentChunkIndex ? 'active' : ''}}" 
+                         onclick="playChunk(${{i}})">
+                        Chunk ${{i + 1}}: ${{url.split('/').pop()}}
+                    </div>
+                `).join('');
+            }}
+            
+            // Play specific chunk
+            function playChunk(index) {{
+                if (index < 0 || index >= chunks.length) return;
+                currentChunkIndex = index;
+                player.src = chunks[index];
+                player.play();
+                updateUI();
+            }}
+            
+            // Navigation
+            function playNext() {{
+                playChunk(currentChunkIndex + 1);
+            }}
+            
+            function playPrevious() {{
+                playChunk(currentChunkIndex - 1);
+            }}
+            
+            // Auto-play next chunk when current ends
+            player.addEventListener('ended', () => {{
+                if (currentChunkIndex < chunks.length - 1) {{
+                    playNext();
+                }}
+            }});
+            
+            // Play all chunks sequentially
+            function playAll() {{
+                playChunk(0);
+            }}
+            
+            // Download all chunks
+            function downloadAll() {{
+                chunks.forEach((url, i) => {{
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `chunk_${{String(i).padStart(4, '0')}}.mp4`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }});
+            }}
+            
+            // Update duration
+            player.addEventListener('loadedmetadata', () => {{
+                const duration = player.duration;
+                const mins = Math.floor(duration / 60);
+                const secs = Math.floor(duration % 60);
+                document.getElementById('duration').textContent = 
+                    `${{String(mins).padStart(2, '0')}}:${{String(secs).padStart(2, '0')}}`;
+            }});
+            
+            // Initialize
+            updateUI();
+        </script>
+    </body>
+    </html>
+    """
+    
+    return HTMLResponse(content=html_content)
 
 # ============================================================================
 # Statistics Endpoints
