@@ -516,25 +516,27 @@ class APIAvatar:
         shutil.rmtree(f"{self.avatar_path}/tmp", ignore_errors=True)
 
     def _create_chunk(self, frames, chunk_index, audio_path, fps, start_frame, total_frames, output_path):
-        """Create a video chunk from frames"""
+        """Create a video chunk from frames (OPTIMIZED VERSION)"""
+        
         chunk_dir = f"{self.avatar_path}/chunks/chunk_{chunk_index:04d}"
         os.makedirs(chunk_dir, exist_ok=True)
         
-        # Save frames
+        # Save frames (unavoidable for FFmpeg)
         for i, frame in enumerate(frames):
             cv2.imwrite(f"{chunk_dir}/{i:08d}.png", frame)
         
-        # Create video from frames
+        # ✅ FIX 1: Use faster FFmpeg preset
         chunk_video = f"{chunk_dir}/video.mp4"
         cmd = (
             f"ffmpeg -y -v quiet -r {fps} -f image2 "
             f"-i {chunk_dir}/%08d.png "
-            f"-vcodec libx264 -vf format=yuv420p -crf 23 "
+            f"-vcodec libx264 -preset ultrafast "  # ← Changed from default
+            f"-vf format=yuv420p -crf 28 "  # ← Slightly higher CRF (smaller file)
             f"{chunk_video}"
         )
         os.system(cmd)
         
-        # Extract audio segment
+        # ✅ FIX 2: Use stream copy for audio (faster than re-encoding)
         start_time = start_frame / fps
         duration = len(frames) / fps
         
@@ -542,7 +544,7 @@ class APIAvatar:
             f"ffmpeg -y -v quiet "
             f"-ss {start_time} -t {duration} -i {audio_path} "
             f"-i {chunk_video} "
-            f"-c:v copy -c:a aac "
+            f"-c:v copy -c:a copy "  # ← Changed from -c:a aac
             f"{output_path}"
         )
         os.system(cmd_audio)
