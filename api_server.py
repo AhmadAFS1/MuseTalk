@@ -333,6 +333,36 @@ async def streaming_interface():
                 margin-bottom: 10px;
             }
             
+            /* ✨ NEW: Time stats container */
+            .time-stats {
+                display: flex;
+                justify-content: space-between;
+                margin: 10px 0;
+                padding: 10px;
+                background: #f8f9fa;
+                border-radius: 6px;
+                font-size: 0.9rem;
+            }
+            
+            .time-stat {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .time-stat-label {
+                color: #666;
+                font-size: 0.8rem;
+                margin-bottom: 4px;
+            }
+            
+            .time-stat-value {
+                color: #667eea;
+                font-weight: 700;
+                font-size: 1.2rem;
+                font-family: 'Courier New', monospace;
+            }
+            
             .progress-bar {
                 width: 100%;
                 height: 30px;
@@ -509,8 +539,25 @@ async def streaming_interface():
                     
                     <div class="status-box">
                         <h3 id="statusText">Ready to start</h3>
+                        
+                        <!-- ✨ NEW: Time Statistics -->
+                        <div class="time-stats" id="timeStats" style="display: none;">
+                            <div class="time-stat">
+                                <span class="time-stat-label">⏱️ Elapsed</span>
+                                <span class="time-stat-value" id="elapsedTime">00:00</span>
+                            </div>
+                            <div class="time-stat">
+                                <span class="time-stat-label">⚡ Speed</span>
+                                <span class="time-stat-value" id="processingSpeed">--</span>
+                            </div>
+                            <div class="time-stat">
+                                <span class="time-stat-label">🎯 ETA</span>
+                                <span class="time-stat-value" id="estimatedTime">--</span>
+                            </div>
+                        </div>
+                        
                         <div class="progress-bar">
-                            <div class="progress-fill" id="progress" style="width: 0%">0%</div>
+                            <div class="progress-fill" id="progress" style="width: 0%">0%</</div>
                         </div>
                         <p id="statusDetail">Upload an audio file to begin</p>
                     </div>
@@ -541,7 +588,9 @@ async def streaming_interface():
                 currentChunk: 0,
                 requestId: '',
                 totalChunks: 0,
-                isStreaming: false
+                isStreaming: false,
+                startTime: null,
+                elapsedTimer: null
             };
             
             // DOM elements
@@ -558,16 +607,77 @@ async def streaming_interface():
             const prevBtn = document.getElementById('prevBtn');
             const nextBtn = document.getElementById('nextBtn');
             const fullPlayerBtn = document.getElementById('fullPlayerBtn');
+            const timeStats = document.getElementById('timeStats');
+            const elapsedTime = document.getElementById('elapsedTime');
+            const processingSpeed = document.getElementById('processingSpeed');
+            const estimatedTime = document.getElementById('estimatedTime');
+            
+            // ✨ NEW: Format time as MM:SS
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+            
+            // ✨ NEW: Update elapsed time display
+            function updateElapsedTime() {
+                if (!state.startTime) return;
+                
+                const elapsed = (Date.now() - state.startTime) / 1000;
+                elapsedTime.textContent = formatTime(elapsed);
+                
+                // Calculate processing speed (chunks per second)
+                if (state.chunks.length > 0) {
+                    const speed = state.chunks.length / elapsed;
+                    processingSpeed.textContent = speed.toFixed(2) + ' c/s';
+                    
+                    // Calculate ETA
+                    if (state.totalChunks > 0 && speed > 0) {
+                        const remaining = state.totalChunks - state.chunks.length;
+                        const eta = remaining / speed;
+                        estimatedTime.textContent = formatTime(eta);
+                    }
+                }
+            }
+            
+            // ✨ NEW: Start timer
+            function startTimer() {
+                state.startTime = Date.now();
+                timeStats.style.display = 'flex';
+                
+                // Update every second
+                state.elapsedTimer = setInterval(updateElapsedTime, 1000);
+            }
+            
+            // ✨ NEW: Stop timer
+            function stopTimer() {
+                if (state.elapsedTimer) {
+                    clearInterval(state.elapsedTimer);
+                    state.elapsedTimer = null;
+                }
+            }
             
             // Form submission
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
                 // Reset state
-                state = { chunks: [], currentChunk: 0, requestId: '', totalChunks: 0, isStreaming: true };
+                state = { 
+                    chunks: [], 
+                    currentChunk: 0, 
+                    requestId: '', 
+                    totalChunks: 0, 
+                    isStreaming: true,
+                    startTime: null,
+                    elapsedTimer: null
+                };
                 chunkList.innerHTML = '';
                 chunksSection.classList.add('hidden');
                 videoSection.classList.add('hidden');
+                timeStats.style.display = 'none';
+                elapsedTime.textContent = '00:00';
+                processingSpeed.textContent = '--';
+                estimatedTime.textContent = '--';
                 
                 // Update UI
                 submitBtn.disabled = true;
@@ -598,6 +708,9 @@ async def streaming_interface():
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                     
+                    // ✨ Start timer when generation begins
+                    startTimer();
+                    
                     statusText.textContent = 'Generating video chunks...';
                     statusDetail.textContent = 'Streaming in progress';
                     chunksSection.classList.remove('hidden');
@@ -623,6 +736,7 @@ async def streaming_interface():
                         }
                     }
                 } catch (error) {
+                    stopTimer();
                     statusText.textContent = '❌ Error occurred';
                     statusDetail.textContent = error.message;
                     submitBtn.disabled = false;
@@ -664,11 +778,17 @@ async def streaming_interface():
                     updateVideoControls();
                 }
                 else if (data.event === 'complete') {
+                    stopTimer();
                     state.isStreaming = false;
+                    
+                    const totalTime = (Date.now() - state.startTime) / 1000;
                     statusText.textContent = '✅ Generation Complete!';
-                    statusDetail.textContent = `All ${state.chunks.length} chunks generated successfully`;
+                    statusDetail.textContent = `All ${state.chunks.length} chunks generated in ${formatTime(totalTime)}`;
                     progress.style.width = '100%';
                     progress.textContent = '100%';
+                    
+                    // Show final stats
+                    estimatedTime.textContent = '00:00';
                     
                     submitBtn.disabled = false;
                     submitBtn.textContent = '🚀 Start Generation';
@@ -676,6 +796,7 @@ async def streaming_interface():
                     fullPlayerBtn.disabled = false;
                 }
                 else if (data.event === 'error') {
+                    stopTimer();
                     statusText.textContent = '❌ Error';
                     statusDetail.textContent = data.message;
                     submitBtn.disabled = false;
