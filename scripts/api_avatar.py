@@ -516,38 +516,50 @@ class APIAvatar:
         shutil.rmtree(f"{self.avatar_path}/tmp", ignore_errors=True)
 
     def _create_chunk(self, frames, chunk_index, audio_path, fps, start_frame, total_frames, output_path):
-        """Create a video chunk from frames (OPTIMIZED VERSION)"""
+        """Create a video chunk from frames with audio (FIXED VERSION)"""
         
         chunk_dir = f"{self.avatar_path}/chunks/chunk_{chunk_index:04d}"
         os.makedirs(chunk_dir, exist_ok=True)
         
-        # Save frames (unavoidable for FFmpeg)
+        # Save frames
         for i, frame in enumerate(frames):
             cv2.imwrite(f"{chunk_dir}/{i:08d}.png", frame)
         
-        # ✅ FIX 1: Use faster FFmpeg preset
+        # Step 1: Create video from frames (no audio)
         chunk_video = f"{chunk_dir}/video.mp4"
-        cmd = (
+        cmd_video = (
             f"ffmpeg -y -v quiet -r {fps} -f image2 "
             f"-i {chunk_dir}/%08d.png "
-            f"-vcodec libx264 -preset ultrafast "  # ← Changed from default
-            f"-vf format=yuv420p -crf 28 "  # ← Slightly higher CRF (smaller file)
+            f"-vcodec libx264 -preset ultrafast "
+            f"-vf format=yuv420p -crf 28 "
             f"{chunk_video}"
         )
-        os.system(cmd)
+        os.system(cmd_video)
         
-        # ✅ FIX 2: Use stream copy for audio (faster than re-encoding)
+        # Step 2: Extract audio segment from source
         start_time = start_frame / fps
         duration = len(frames) / fps
         
-        cmd_audio = (
+        chunk_audio = f"{chunk_dir}/audio.aac"
+        cmd_extract_audio = (
             f"ffmpeg -y -v quiet "
-            f"-ss {start_time} -t {duration} -i {audio_path} "
+            f"-ss {start_time} -t {duration} "
+            f"-i {audio_path} "
+            f"-vn -acodec aac -b:a 128k "  # ← Extract audio only
+            f"{chunk_audio}"
+        )
+        os.system(cmd_extract_audio)
+        
+        # Step 3: Combine video + audio
+        cmd_combine = (
+            f"ffmpeg -y -v quiet "
             f"-i {chunk_video} "
-            f"-c:v copy -c:a copy "  # ← Changed from -c:a aac
+            f"-i {chunk_audio} "
+            f"-c:v copy -c:a copy "  # ← Now both streams exist
+            f"-shortest "  # ← Stop at shortest stream (handles edge cases)
             f"{output_path}"
         )
-        os.system(cmd_audio)
+        os.system(cmd_combine)
         
         # Cleanup temp files
         shutil.rmtree(chunk_dir)
