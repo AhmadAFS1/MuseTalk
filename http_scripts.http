@@ -17,7 +17,7 @@ Content-Type: video/mp4
 ###
 
 ### Generate a Video (response-2.mpga)
-POST http://localhost:8000/generate?avatar_id=test_avatar&batch_size=12&fps=25
+POST http://localhost:8000/generate?avatar_id=test_avatar&batch_size=2&fps=15
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -30,7 +30,7 @@ Content-Type: audio/mpeg
 ###
 
 ### Generate a Video (2nd_message.mpga)
-POST http://localhost:8000/generate?avatar_id=test_avatar&batch_size=2&fps=25
+POST http://localhost:8000/generate?avatar_id=test_avatar&batch_size=2&fps=15
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -43,7 +43,7 @@ Content-Type: audio/mpeg
 ###
 
 ### Generate a Video (3rd_message.mpga)
-POST http://localhost:8000/generate?avatar_id=test_avatar&batch_size=2&fps=25
+POST http://localhost:8000/generate?avatar_id=test_avatar&batch_size=2&fps=15
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -56,7 +56,7 @@ Content-Type: audio/mpeg
 ###
 
 ### Generate a Video (4th_message_long.mpga)
-POST http://localhost:8000/generate?avatar_id=test_avatar&batch_size=4&fps=15
+POST http://localhost:8000/generate?avatar_id=test_avatar&batch_size=2&fps=15
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -69,7 +69,7 @@ Content-Type: audio/mpeg
 ###
 
 ### Generate a Video (eng.wav)
-POST http://localhost:8000/generate?avatar_id=test_avatar&batch_size=2&fps=25
+POST http://localhost:8000/generate?avatar_id=test_avatar&batch_size=2&fps=15
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
