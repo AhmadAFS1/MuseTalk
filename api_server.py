@@ -541,7 +541,7 @@ async def streaming_interface():
                     
                     <div id="videoSection" class="hidden">
                         <h3 style="margin-bottom: 10px;">🎥 Live Preview</h3>
-                        <video id="videoPlayer" autoplay muted></video>
+                        <video id="videoPlayer" autoplay></video>
                         <p id="videoInfo" style="margin-top: 10px; text-align: center; color: #666;">Waiting for chunks...</p>
                     </div>
                 </div>
