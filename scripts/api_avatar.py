@@ -427,8 +427,13 @@ class APIAvatar:
             chunk_output_dir: Custom directory for chunks (enables multi-user isolation)
         """
         
+        # ═══════════════════════════════════════════════════════════
+        # TIMING: Request received
+        # ═══════════════════════════════════════════════════════════
+        request_start = time.time()
         print(f"\n{'='*60}")
         print(f"🎬 STARTING STREAMING GENERATION")
+        print(f"⏰ Request received at: {time.strftime('%H:%M:%S.{}'.format(int((request_start % 1) * 1000)))}")
         print(f"{'='*60}")
         
         # ✅ Use custom directory if provided, else use avatar-specific default
@@ -445,6 +450,9 @@ class APIAvatar:
         os.makedirs(tmp_dir, exist_ok=True)
         print(f"📁 Temp directory: {tmp_dir}")
         
+        setup_elapsed = time.time() - request_start
+        print(f"⏱️  Setup complete ({setup_elapsed:.3f}s)")
+        
         # ═══════════════════════════════════════════════════════════
         # PHASE 1: AUDIO PROCESSING
         # ═══════════════════════════════════════════════════════════
@@ -457,18 +465,23 @@ class APIAvatar:
         weight_dtype = self.unet.model.dtype
         
         print(f"⚙️  Extracting audio features (dtype: {weight_dtype})...")
+        feature_extract_start = time.time()
         whisper_input_features, librosa_length = audio_processor.get_audio_feature(
             audio_path, weight_dtype=weight_dtype
         )
-        print(f"✓ Audio features extracted (librosa_length: {librosa_length})")
+        feature_extract_elapsed = time.time() - feature_extract_start
+        print(f"✓ Audio features extracted (librosa_length: {librosa_length}, took {feature_extract_elapsed:.3f}s)")
         
         print(f"⚙️  Creating whisper chunks (fps: {fps})...")
+        whisper_chunk_start = time.time()
         whisper_chunks = audio_processor.get_whisper_chunk(
             whisper_input_features, device, weight_dtype, whisper,
             librosa_length, fps=fps,
             audio_padding_length_left=self.args.audio_padding_length_left,
             audio_padding_length_right=self.args.audio_padding_length_right,
         )
+        whisper_chunk_elapsed = time.time() - whisper_chunk_start
+        print(f"✓ Whisper chunks created ({whisper_chunk_elapsed:.3f}s)")
         
         audio_elapsed = time.time() - audio_start
         video_num = len(whisper_chunks)
@@ -498,6 +511,7 @@ class APIAvatar:
         total_batches = int(np.ceil(video_num / self.batch_size))
         
         print(f"⚙️  Starting generation loop (batch_size: {self.batch_size}, total_batches: {total_batches})")
+        print(f"⏱️  Time to first frame generation: {generation_start - request_start:.3f}s")
         
         for whisper_batch, latent_batch in gen:
             # Generate batch (no per-batch logging)
@@ -537,6 +551,11 @@ class APIAvatar:
                     print(f"    📊 Buffer size: {len(frame_buffer)} frames")
                     print(f"    📊 Progress: {frame_idx}/{video_num} frames ({frame_idx/video_num*100:.1f}%)")
                     
+                    # Track time to first chunk
+                    if chunk_index == 0:
+                        time_to_first_chunk = time.time() - request_start
+                        print(f"    ⏱️  Time to first chunk: {time_to_first_chunk:.3f}s")
+                    
                     chunk_start = time.time()
                     chunk_path = self._create_chunk(
                         frames=frame_buffer, 
@@ -570,6 +589,7 @@ class APIAvatar:
         # FINAL SUMMARY
         # ═══════════════════════════════════════════════════════════
         total_elapsed = time.time() - generation_start
+        request_total_elapsed = time.time() - request_start
         
         print(f"\n{'='*60}")
         print(f"✅ STREAMING GENERATION COMPLETE")
@@ -577,6 +597,7 @@ class APIAvatar:
         print(f"📊 Total frames generated: {frame_idx}")
         print(f"📊 Total chunks created: {chunk_index}")
         print(f"⏱️  Total generation time: {total_elapsed:.2f}s")
+        print(f"⏱️  Total request time: {request_total_elapsed:.2f}s")
         print(f"⚡ Average FPS: {frame_idx/total_elapsed:.2f}")
         print(f"📁 Output directory: {chunk_dir}")
         print(f"{'='*60}\n")
