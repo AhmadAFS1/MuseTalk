@@ -176,7 +176,7 @@ async def root():
 
 @app.get("/ui", response_class=HTMLResponse)
 async def streaming_interface():
-    """Interactive streaming upload interface (Gradio-like)"""
+    """Streaming interface with instant chunk playback (zero buffering)"""
     
     html_content = """
     <!DOCTYPE html>
@@ -333,7 +333,6 @@ async def streaming_interface():
                 margin-bottom: 10px;
             }
             
-            /* ✨ NEW: Time stats container */
             .time-stats {
                 display: flex;
                 justify-content: space-between;
@@ -426,38 +425,12 @@ async def streaming_interface():
                 background: #e0e7ff;
             }
             
-            video {
+            #videoPlayer {
                 width: 100%;
                 border-radius: 8px;
                 box-shadow: 0 10px 30px rgba(0,0,0,0.2);
                 background: #000;
-            }
-            
-            .video-controls {
-                display: flex;
-                gap: 10px;
-                margin-top: 15px;
-            }
-            
-            .video-controls button {
-                flex: 1;
-                padding: 10px;
-                background: #667eea;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                font-weight: 600;
-                transition: background 0.2s;
-            }
-            
-            .video-controls button:hover {
-                background: #5568d3;
-            }
-            
-            .video-controls button:disabled {
-                background: #ccc;
-                cursor: not-allowed;
+                display: block;
             }
             
             .hidden {
@@ -489,7 +462,7 @@ async def streaming_interface():
             </div>
             
             <div class="content">
-                <!-- Left Panel: Upload Form -->
+                <!-- Left Panel -->
                 <div class="panel">
                     <h2>📤 Upload & Configure</h2>
                     
@@ -509,7 +482,7 @@ async def streaming_interface():
                             <select id="fps">
                                 <option value="15">15 fps (Fast)</option>
                                 <option value="20">20 fps (Balanced)</option>
-                                <option value="25">25 fps (High Quality)</option>
+                                <option value="25" selected>25 fps (High Quality)</option>
                             </select>
                         </div>
                         
@@ -533,14 +506,13 @@ async def streaming_interface():
                     </form>
                 </div>
                 
-                <!-- Right Panel: Progress & Video -->
+                <!-- Right Panel -->
                 <div class="panel">
                     <h2>📊 Progress & Preview</h2>
                     
                     <div class="status-box">
                         <h3 id="statusText">Ready to start</h3>
                         
-                        <!-- ✨ NEW: Time Statistics -->
                         <div class="time-stats" id="timeStats" style="display: none;">
                             <div class="time-stat">
                                 <span class="time-stat-label">⏱️ Elapsed</span>
@@ -557,7 +529,7 @@ async def streaming_interface():
                         </div>
                         
                         <div class="progress-bar">
-                            <div class="progress-fill" id="progress" style="width: 0%">0%</</div>
+                            <div class="progress-fill" id="progress" style="width: 0%">0%</div>
                         </div>
                         <p id="statusDetail">Upload an audio file to begin</p>
                     </div>
@@ -569,20 +541,14 @@ async def streaming_interface():
                     
                     <div id="videoSection" class="hidden">
                         <h3 style="margin-bottom: 10px;">🎥 Live Preview</h3>
-                        <video id="player" controls autoplay></video>
-                        <div class="video-controls">
-                            <button id="prevBtn" disabled>⏮️ Previous</button>
-                            <button id="nextBtn" disabled>Next ⏭️</button>
-                            <button id="fullPlayerBtn" disabled>🎬 Full Player</button>
-                        </div>
-                        <p id="videoInfo" style="margin-top: 10px; text-align: center; color: #666;"></p>
+                        <video id="videoPlayer" autoplay muted></video>
+                        <p id="videoInfo" style="margin-top: 10px; text-align: center; color: #666;">Waiting for chunks...</p>
                     </div>
                 </div>
             </div>
         </div>
         
         <script>
-            // State management
             let state = {
                 chunks: [],
                 currentChunk: 0,
@@ -590,10 +556,10 @@ async def streaming_interface():
                 totalChunks: 0,
                 isStreaming: false,
                 startTime: null,
-                elapsedTimer: null
+                elapsedTimer: null,
+                fps: 25
             };
             
-            // DOM elements
             const form = document.getElementById('uploadForm');
             const submitBtn = document.getElementById('submitBtn');
             const statusText = document.getElementById('statusText');
@@ -602,36 +568,136 @@ async def streaming_interface():
             const chunkList = document.getElementById('chunkList');
             const chunksSection = document.getElementById('chunksSection');
             const videoSection = document.getElementById('videoSection');
-            const player = document.getElementById('player');
+            const videoPlayer = document.getElementById('videoPlayer');
             const videoInfo = document.getElementById('videoInfo');
-            const prevBtn = document.getElementById('prevBtn');
-            const nextBtn = document.getElementById('nextBtn');
-            const fullPlayerBtn = document.getElementById('fullPlayerBtn');
             const timeStats = document.getElementById('timeStats');
             const elapsedTime = document.getElementById('elapsedTime');
             const processingSpeed = document.getElementById('processingSpeed');
             const estimatedTime = document.getElementById('estimatedTime');
             
-            // ✨ NEW: Format time as MM:SS
+            // ✅ ZERO-BUFFERING CHUNK PLAYER
+            class InstantChunkPlayer {
+                constructor(videoElement) {
+                    this.video = videoElement;
+                    this.chunkQueue = [];
+                    this.blobCache = new Map(); // Cache blob URLs
+                    this.currentIndex = 0;
+                    this.isPlaying = false;
+                    this.isPreloading = false;
+                }
+                
+                async addChunk(chunkUrl) {
+                    console.log(`📥 Adding chunk ${this.chunkQueue.length + 1}: ${chunkUrl}`);
+                    
+                    // Add to queue
+                    this.chunkQueue.push(chunkUrl);
+                    
+                    // Preload immediately (don't wait for previous chunk)
+                    this.preloadChunk(chunkUrl);
+                    
+                    // Start playing if not already playing
+                    if (!this.isPlaying) {
+                        await this.playNext();
+                    }
+                }
+                
+                async preloadChunk(chunkUrl) {
+                    if (this.blobCache.has(chunkUrl)) {
+                        return; // Already preloaded
+                    }
+                    
+                    try {
+                        console.log(`⬇️  Preloading: ${chunkUrl}`);
+                        const response = await fetch(chunkUrl);
+                        const blob = await response.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        
+                        this.blobCache.set(chunkUrl, blobUrl);
+                        console.log(`✅ Preloaded: ${chunkUrl} → ${blobUrl}`);
+                    } catch (err) {
+                        console.error(`❌ Failed to preload ${chunkUrl}:`, err);
+                    }
+                }
+                
+                async playNext() {
+                    if (this.currentIndex >= this.chunkQueue.length) {
+                        this.isPlaying = false;
+                        console.log('✅ All chunks played');
+                        videoInfo.textContent = '✅ All chunks played!';
+                        return;
+                    }
+                    
+                    this.isPlaying = true;
+                    const chunkUrl = this.chunkQueue[this.currentIndex];
+                    
+                    // Wait for chunk to be preloaded
+                    while (!this.blobCache.has(chunkUrl)) {
+                        console.log(`⏳ Waiting for preload: ${chunkUrl}`);
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                    
+                    const blobUrl = this.blobCache.get(chunkUrl);
+                    console.log(`▶️  Playing chunk ${this.currentIndex + 1}/${this.chunkQueue.length}: ${blobUrl}`);
+                    
+                    // ✅ INSTANT SWITCH - Use preloaded blob URL
+                    this.video.src = blobUrl;
+                    this.video.load(); // Force immediate load
+                    
+                    try {
+                        await this.video.play();
+                        videoInfo.textContent = `Playing chunk ${this.currentIndex + 1} of ${this.chunkQueue.length}`;
+                    } catch (e) {
+                        console.warn('Play prevented:', e);
+                    }
+                    
+                    // Preload next 2 chunks aggressively
+                    if (this.currentIndex + 1 < this.chunkQueue.length) {
+                        this.preloadChunk(this.chunkQueue[this.currentIndex + 1]);
+                    }
+                    if (this.currentIndex + 2 < this.chunkQueue.length) {
+                        this.preloadChunk(this.chunkQueue[this.currentIndex + 2]);
+                    }
+                    
+                    // When chunk ends, play next immediately
+                    this.video.onended = () => {
+                        console.log(`✅ Chunk ${this.currentIndex + 1} finished`);
+                        this.currentIndex++;
+                        this.playNext();
+                    };
+                }
+                
+                reset() {
+                    // Cleanup blob URLs
+                    for (const blobUrl of this.blobCache.values()) {
+                        URL.revokeObjectURL(blobUrl);
+                    }
+                    
+                    this.chunkQueue = [];
+                    this.blobCache.clear();
+                    this.currentIndex = 0;
+                    this.isPlaying = false;
+                    this.video.src = '';
+                }
+            }
+            
+            let chunkPlayer = new InstantChunkPlayer(videoPlayer);
+            
             function formatTime(seconds) {
                 const mins = Math.floor(seconds / 60);
                 const secs = Math.floor(seconds % 60);
                 return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
             }
             
-            // ✨ NEW: Update elapsed time display
             function updateElapsedTime() {
                 if (!state.startTime) return;
                 
                 const elapsed = (Date.now() - state.startTime) / 1000;
                 elapsedTime.textContent = formatTime(elapsed);
                 
-                // Calculate processing speed (chunks per second)
                 if (state.chunks.length > 0) {
                     const speed = state.chunks.length / elapsed;
                     processingSpeed.textContent = speed.toFixed(2) + ' c/s';
                     
-                    // Calculate ETA
                     if (state.totalChunks > 0 && speed > 0) {
                         const remaining = state.totalChunks - state.chunks.length;
                         const eta = remaining / speed;
@@ -640,16 +706,12 @@ async def streaming_interface():
                 }
             }
             
-            // ✨ NEW: Start timer
             function startTimer() {
                 state.startTime = Date.now();
                 timeStats.style.display = 'flex';
-                
-                // Update every second
                 state.elapsedTimer = setInterval(updateElapsedTime, 1000);
             }
             
-            // ✨ NEW: Stop timer
             function stopTimer() {
                 if (state.elapsedTimer) {
                     clearInterval(state.elapsedTimer);
@@ -657,11 +719,9 @@ async def streaming_interface():
                 }
             }
             
-            // Form submission
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
-                // Reset state
                 state = { 
                     chunks: [], 
                     currentChunk: 0, 
@@ -669,32 +729,30 @@ async def streaming_interface():
                     totalChunks: 0, 
                     isStreaming: true,
                     startTime: null,
-                    elapsedTimer: null
+                    elapsedTimer: null,
+                    fps: parseInt(document.getElementById('fps').value)
                 };
+                
                 chunkList.innerHTML = '';
                 chunksSection.classList.add('hidden');
                 videoSection.classList.add('hidden');
                 timeStats.style.display = 'none';
-                elapsedTime.textContent = '00:00';
-                processingSpeed.textContent = '--';
-                estimatedTime.textContent = '--';
                 
-                // Update UI
+                chunkPlayer.reset();
+                
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="spinner"></span>Processing...';
                 statusText.textContent = 'Uploading audio...';
-                statusDetail.textContent = 'Please wait while we process your file';
                 progress.style.width = '0%';
                 progress.textContent = '0%';
                 
-                // Prepare form data
                 const formData = new FormData();
                 formData.append('audio_file', document.getElementById('audio_file').files[0]);
                 
                 const params = new URLSearchParams({
                     avatar_id: document.getElementById('avatar_id').value,
                     batch_size: document.getElementById('batch_size').value,
-                    fps: document.getElementById('fps').value,
+                    fps: state.fps,
                     chunk_duration: document.getElementById('chunk_duration').value
                 });
                 
@@ -708,14 +766,11 @@ async def streaming_interface():
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                     
-                    // ✨ Start timer when generation begins
                     startTimer();
-                    
                     statusText.textContent = 'Generating video chunks...';
-                    statusDetail.textContent = 'Streaming in progress';
                     chunksSection.classList.remove('hidden');
+                    videoSection.classList.remove('hidden');
                     
-                    // Read SSE stream
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
                     let buffer = '';
@@ -731,7 +786,7 @@ async def streaming_interface():
                         for (const line of lines) {
                             if (line.startsWith('data: ')) {
                                 const data = JSON.parse(line.slice(6));
-                                handleSSEEvent(data);
+                                await handleSSEEvent(data);
                             }
                         }
                     }
@@ -744,14 +799,12 @@ async def streaming_interface():
                 }
             });
             
-            // Handle SSE events
-            function handleSSEEvent(data) {
+            async function handleSSEEvent(data) {
                 if (data.event === 'chunk') {
                     state.chunks.push(data.url);
                     state.requestId = data.url.split('/')[2];
                     state.totalChunks = data.total_chunks || state.chunks.length;
                     
-                    // Update progress
                     const percent = Math.round((state.chunks.length / state.totalChunks) * 100);
                     progress.style.width = percent + '%';
                     progress.textContent = percent + '%';
@@ -759,7 +812,6 @@ async def streaming_interface():
                     statusText.textContent = `Chunk ${state.chunks.length} of ${state.totalChunks}`;
                     statusDetail.textContent = `Processing... ${state.chunks.length}/${state.totalChunks} chunks ready`;
                     
-                    // Add to chunk list
                     const chunkDiv = document.createElement('div');
                     chunkDiv.className = 'chunk-item';
                     chunkDiv.innerHTML = `
@@ -768,14 +820,8 @@ async def streaming_interface():
                     `;
                     chunkList.appendChild(chunkDiv);
                     
-                    // Auto-play first chunk
-                    if (state.chunks.length === 1) {
-                        videoSection.classList.remove('hidden');
-                        playChunk(0);
-                    }
-                    
-                    // Update buttons
-                    updateVideoControls();
+                    // ✅ Add to instant player
+                    await chunkPlayer.addChunk(data.url);
                 }
                 else if (data.event === 'complete') {
                     stopTimer();
@@ -787,13 +833,8 @@ async def streaming_interface():
                     progress.style.width = '100%';
                     progress.textContent = '100%';
                     
-                    // Show final stats
-                    estimatedTime.textContent = '00:00';
-                    
                     submitBtn.disabled = false;
                     submitBtn.textContent = '🚀 Start Generation';
-                    
-                    fullPlayerBtn.disabled = false;
                 }
                 else if (data.event === 'error') {
                     stopTimer();
@@ -803,51 +844,6 @@ async def streaming_interface():
                     submitBtn.textContent = '🚀 Start Generation';
                 }
             }
-            
-            // Video playback functions
-            function playChunk(index) {
-                if (index < 0 || index >= state.chunks.length) return;
-                
-                state.currentChunk = index;
-                player.src = state.chunks[index];
-                player.play();
-                videoInfo.textContent = `Playing chunk ${index + 1} of ${state.chunks.length}`;
-                
-                updateVideoControls();
-            }
-            
-            function updateVideoControls() {
-                prevBtn.disabled = state.currentChunk === 0;
-                nextBtn.disabled = state.currentChunk >= state.chunks.length - 1;
-            }
-            
-            // Event listeners
-            prevBtn.addEventListener('click', () => playChunk(state.currentChunk - 1));
-            nextBtn.addEventListener('click', () => playChunk(state.currentChunk + 1));
-            fullPlayerBtn.addEventListener('click', () => {
-                window.open(`/player/${state.requestId}`, '_blank');
-            });
-            
-            // Auto-advance to next chunk
-            player.addEventListener('ended', () => {
-                if (state.currentChunk < state.chunks.length - 1) {
-                    playChunk(state.currentChunk + 1);
-                } else if (state.isStreaming) {
-                    // Wait for next chunk if still streaming
-                    videoInfo.textContent = 'Waiting for next chunk...';
-                    const checkInterval = setInterval(() => {
-                        if (state.chunks.length > state.currentChunk + 1) {
-                            clearInterval(checkInterval);
-                            playChunk(state.currentChunk + 1);
-                        } else if (!state.isStreaming) {
-                            clearInterval(checkInterval);
-                            videoInfo.textContent = 'All chunks played!';
-                        }
-                    }, 500);
-                } else {
-                    videoInfo.textContent = '✅ All chunks played!';
-                }
-            });
         </script>
     </body>
     </html>
