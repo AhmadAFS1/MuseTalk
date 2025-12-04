@@ -275,7 +275,7 @@ class APIAvatar:
             
             # Get corresponding original frame and bbox
             bbox = self.coord_list_cycle[self.idx % len(self.coord_list_cycle)]
-            ori_frame = self.frame_list_cycle[self.idx % len(self.frame_list_cycle)].copy()
+            ori_frame = self.frame_list_cycle[self.idx % len(self.coord_list_cycle)].copy()
             x1, y1, x2, y2 = bbox
             
             # Resize result frame to bbox size
@@ -427,24 +427,42 @@ class APIAvatar:
             chunk_output_dir: Custom directory for chunks (enables multi-user isolation)
         """
         
+        print(f"\n{'='*60}")
+        print(f"🎬 STARTING STREAMING GENERATION")
+        print(f"{'='*60}")
+        
         # ✅ Use custom directory if provided, else use avatar-specific default
         if chunk_output_dir:
             chunk_dir = Path(chunk_output_dir)
+            print(f"📁 Custom output directory: {chunk_dir}")
         else:
             chunk_dir = Path(self.avatar_path) / "chunks"
+            print(f"📁 Default output directory: {chunk_dir}")
         
         chunk_dir.mkdir(parents=True, exist_ok=True)
         
-        print(f"🎬 Streaming to: {chunk_dir}")
+        tmp_dir = f"{self.avatar_path}/tmp"
+        os.makedirs(tmp_dir, exist_ok=True)
+        print(f"📁 Temp directory: {tmp_dir}")
         
-        os.makedirs(f"{self.avatar_path}/tmp", exist_ok=True)
+        # ═══════════════════════════════════════════════════════════
+        # PHASE 1: AUDIO PROCESSING
+        # ═══════════════════════════════════════════════════════════
+        print(f"\n{'─'*60}")
+        print(f"🎙️  PHASE 1: Audio Processing")
+        print(f"{'─'*60}")
+        print(f"📄 Audio file: {audio_path}")
         
-        # Process audio
+        audio_start = time.time()
         weight_dtype = self.unet.model.dtype
+        
+        print(f"⚙️  Extracting audio features (dtype: {weight_dtype})...")
         whisper_input_features, librosa_length = audio_processor.get_audio_feature(
             audio_path, weight_dtype=weight_dtype
         )
+        print(f"✓ Audio features extracted (librosa_length: {librosa_length})")
         
+        print(f"⚙️  Creating whisper chunks (fps: {fps})...")
         whisper_chunks = audio_processor.get_whisper_chunk(
             whisper_input_features, device, weight_dtype, whisper,
             librosa_length, fps=fps,
@@ -452,21 +470,40 @@ class APIAvatar:
             audio_padding_length_right=self.args.audio_padding_length_right,
         )
         
+        audio_elapsed = time.time() - audio_start
         video_num = len(whisper_chunks)
         frames_per_chunk = int(chunk_duration_seconds * fps)
         total_chunks = int(np.ceil(video_num / frames_per_chunk))
         
-        # Generate frames and create chunks
+        print(f"✓ Audio processing complete ({audio_elapsed:.2f}s)")
+        print(f"📊 Total frames: {video_num}")
+        print(f"📊 Frames per chunk: {frames_per_chunk}")
+        print(f"📊 Expected chunks: {total_chunks}")
+        print(f"📊 Chunk duration: {chunk_duration_seconds}s")
+        print(f"📊 Total duration: {video_num/fps:.2f}s")
+        
+        # ═══════════════════════════════════════════════════════════
+        # PHASE 2: FRAME GENERATION
+        # ═══════════════════════════════════════════════════════════
+        print(f"\n{'─'*60}")
+        print(f"🎨 PHASE 2: Frame Generation & Streaming")
+        print(f"{'─'*60}")
+        
         gen = datagen(whisper_chunks, self.input_latent_list_cycle, self.batch_size)
         frame_buffer = []
         chunk_index = 0
         frame_idx = 0
         
+        generation_start = time.time()
+        total_batches = int(np.ceil(video_num / self.batch_size))
+        
+        print(f"⚙️  Starting generation loop (batch_size: {self.batch_size}, total_batches: {total_batches})")
+        
         for whisper_batch, latent_batch in gen:
-            # Generate batch
+            # Generate batch (no per-batch logging)
             audio_feature_batch = self.pe(whisper_batch.to(device))
-            latent_batch = latent_batch.to(device=device, dtype=self.unet.model.dtype)
             
+            latent_batch = latent_batch.to(device=device, dtype=self.unet.model.dtype)
             pred_latents = self.unet.model(
                 latent_batch, timesteps,
                 encoder_hidden_states=audio_feature_batch
@@ -490,8 +527,17 @@ class APIAvatar:
                 frame_buffer.append(combine_frame)
                 frame_idx += 1
                 
-                # When buffer reaches chunk size, create video chunk
+                # ═══════════════════════════════════════════════════════════
+                # PHASE 3: CHUNK CREATION (when buffer is full)
+                # ═══════════════════════════════════════════════════════════
                 if len(frame_buffer) >= frames_per_chunk or frame_idx >= video_num:
+                    print(f"\n  {'─'*56}")
+                    print(f"  📦 CREATING CHUNK {chunk_index + 1}/{total_chunks}")
+                    print(f"  {'─'*56}")
+                    print(f"    📊 Buffer size: {len(frame_buffer)} frames")
+                    print(f"    📊 Progress: {frame_idx}/{video_num} frames ({frame_idx/video_num*100:.1f}%)")
+                    
+                    chunk_start = time.time()
                     chunk_path = self._create_chunk(
                         frames=frame_buffer, 
                         chunk_index=chunk_index, 
@@ -501,31 +547,60 @@ class APIAvatar:
                         total_frames=video_num,
                         output_path=str(chunk_dir / f"chunk_{chunk_index:04d}.mp4")
                     )
+                    chunk_elapsed = time.time() - chunk_start
                     
-                    yield {
+                    chunk_info = {
                         'chunk_path': chunk_path,
                         'chunk_index': chunk_index,
                         'total_chunks': total_chunks,
-                        'duration_seconds': len(frame_buffer) / fps
+                        'duration_seconds': len(frame_buffer) / fps,
+                        'creation_time': chunk_elapsed
                     }
+                    
+                    print(f"    ✅ Chunk created: {chunk_path}")
+                    print(f"    ⏱️  Creation time: {chunk_elapsed:.2f}s")
+                    print(f"    🎬 Duration: {chunk_info['duration_seconds']:.2f}s")
+                    
+                    yield chunk_info
                     
                     frame_buffer = []
                     chunk_index += 1
         
+        # ═══════════════════════════════════════════════════════════
+        # FINAL SUMMARY
+        # ═══════════════════════════════════════════════════════════
+        total_elapsed = time.time() - generation_start
+        
+        print(f"\n{'='*60}")
+        print(f"✅ STREAMING GENERATION COMPLETE")
+        print(f"{'='*60}")
+        print(f"📊 Total frames generated: {frame_idx}")
+        print(f"📊 Total chunks created: {chunk_index}")
+        print(f"⏱️  Total generation time: {total_elapsed:.2f}s")
+        print(f"⚡ Average FPS: {frame_idx/total_elapsed:.2f}")
+        print(f"📁 Output directory: {chunk_dir}")
+        print(f"{'='*60}\n")
+        
         # Cleanup
-        shutil.rmtree(f"{self.avatar_path}/tmp", ignore_errors=True)
+        print(f"🧹 Cleaning up temp directory: {tmp_dir}")
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
     def _create_chunk(self, frames, chunk_index, audio_path, fps, start_frame, total_frames, output_path):
-        """Create a video chunk from frames with audio (FIXED VERSION)"""
+        """Create a video chunk from frames with audio (with detailed logging)"""
         
         chunk_dir = f"{self.avatar_path}/chunks/chunk_{chunk_index:04d}"
         os.makedirs(chunk_dir, exist_ok=True)
         
-        # Save frames
+        print(f"      🔨 Saving {len(frames)} frames to disk...")
+        save_start = time.time()
         for i, frame in enumerate(frames):
             cv2.imwrite(f"{chunk_dir}/{i:08d}.png", frame)
+        save_elapsed = time.time() - save_start
+        print(f"      ✓ Frames saved ({save_elapsed:.2f}s)")
         
         # Step 1: Create video from frames (no audio)
+        print(f"      🎥 Creating video from frames...")
+        video_start = time.time()
         chunk_video = f"{chunk_dir}/video.mp4"
         cmd_video = (
             f"ffmpeg -y -v quiet -r {fps} -f image2 "
@@ -535,33 +610,44 @@ class APIAvatar:
             f"{chunk_video}"
         )
         os.system(cmd_video)
+        video_elapsed = time.time() - video_start
+        print(f"      ✓ Video created ({video_elapsed:.2f}s)")
         
         # Step 2: Extract audio segment from source
         start_time = start_frame / fps
         duration = len(frames) / fps
         
+        print(f"      🎵 Extracting audio segment (start: {start_time:.2f}s, duration: {duration:.2f}s)...")
+        audio_start = time.time()
         chunk_audio = f"{chunk_dir}/audio.aac"
         cmd_extract_audio = (
             f"ffmpeg -y -v quiet "
             f"-ss {start_time} -t {duration} "
             f"-i {audio_path} "
-            f"-vn -acodec aac -b:a 128k "  # ← Extract audio only
+            f"-vn -acodec aac -b:a 128k "
             f"{chunk_audio}"
         )
         os.system(cmd_extract_audio)
+        audio_elapsed = time.time() - audio_start
+        print(f"      ✓ Audio extracted ({audio_elapsed:.2f}s)")
         
         # Step 3: Combine video + audio
+        print(f"      🔗 Combining video + audio...")
+        combine_start = time.time()
         cmd_combine = (
             f"ffmpeg -y -v quiet "
             f"-i {chunk_video} "
             f"-i {chunk_audio} "
-            f"-c:v copy -c:a copy "  # ← Now both streams exist
-            f"-shortest "  # ← Stop at shortest stream (handles edge cases)
+            f"-c:v copy -c:a copy "
+            f"-shortest "
             f"{output_path}"
         )
         os.system(cmd_combine)
+        combine_elapsed = time.time() - combine_start
+        print(f"      ✓ Combined ({combine_elapsed:.2f}s)")
         
         # Cleanup temp files
+        print(f"      🧹 Cleaning up temp chunk directory...")
         shutil.rmtree(chunk_dir)
         
         return output_path
