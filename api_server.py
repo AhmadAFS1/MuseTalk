@@ -1407,6 +1407,46 @@ async def schedule_cleanup(chunk_dir: Path, delay_seconds: int = 3600):
     
     print(f"🗑️  Scheduled cleanup: {chunk_dir.name} at {cleanup_time}")
 
+def cleanup_old_chunks():
+    """Cleanup expired chunks (safe version with error handling)"""
+    if not CLEANUP_DB.exists():
+        return
+    
+    try:
+        with open(CLEANUP_DB, 'r') as f:
+            cleanup_queue = json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        cleanup_queue = {}
+    
+    now = datetime.now()
+    to_remove = []
+    
+    for chunk_path, expire_time_str in cleanup_queue.items():
+        expire_time = datetime.fromisoformat(expire_time_str)
+        
+        if now >= expire_time:
+            chunk_dir = Path(chunk_path)
+            
+            # ✅ Check if exists before deleting
+            if chunk_dir.exists():
+                try:
+                    shutil.rmtree(chunk_dir)
+                    print(f"🗑️  Cleaned up: {chunk_path}")
+                except Exception as e:
+                    print(f"⚠️  Failed to delete {chunk_path}: {e}")
+            else:
+                print(f"ℹ️  Already deleted: {chunk_path}")
+            
+            to_remove.append(chunk_path)
+    
+    # Remove from queue
+    for path in to_remove:
+        del cleanup_queue[path]
+    
+    # Save updated queue
+    with open(CLEANUP_DB, 'w') as f:
+        json.dump(cleanup_queue, f, indent=2)
+
 # ============================================================================
 # Main Entry Point
 # ============================================================================
