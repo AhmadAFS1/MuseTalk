@@ -607,68 +607,89 @@ class APIAvatar:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     def _create_chunk(self, frames, chunk_index, audio_path, fps, start_frame, total_frames, output_path):
-        """Create a video chunk from frames with audio (with detailed logging)"""
+        """Create fMP4 fragment for MSE streaming (zero-copy encoding)"""
+        import subprocess
+        import tempfile
         
-        chunk_dir = f"{self.avatar_path}/chunks/chunk_{chunk_index:04d}"
-        os.makedirs(chunk_dir, exist_ok=True)
+        chunk_start_time = time.time()
         
-        print(f"      🔨 Saving {len(frames)} frames to disk...")
-        save_start = time.time()
-        for i, frame in enumerate(frames):
-            cv2.imwrite(f"{chunk_dir}/{i:08d}.png", frame)
-        save_elapsed = time.time() - save_start
-        print(f"      ✓ Frames saved ({save_elapsed:.2f}s)")
-        
-        # Step 1: Create video from frames (no audio)
-        print(f"      🎥 Creating video from frames...")
-        video_start = time.time()
-        chunk_video = f"{chunk_dir}/video.mp4"
-        cmd_video = (
-            f"ffmpeg -y -v quiet -r {fps} -f image2 "
-            f"-i {chunk_dir}/%08d.png "
-            f"-vcodec libx264 -preset ultrafast "
-            f"-vf format=yuv420p -crf 28 "
-            f"{chunk_video}"
-        )
-        os.system(cmd_video)
-        video_elapsed = time.time() - video_start
-        print(f"      ✓ Video created ({video_elapsed:.2f}s)")
-        
-        # Step 2: Extract audio segment from source
+        # Calculate audio timing
         start_time = start_frame / fps
         duration = len(frames) / fps
         
-        print(f"      🎵 Extracting audio segment (start: {start_time:.2f}s, duration: {duration:.2f}s)...")
-        audio_start = time.time()
-        chunk_audio = f"{chunk_dir}/audio.aac"
-        cmd_extract_audio = (
-            f"ffmpeg -y -v quiet "
-            f"-ss {start_time} -t {duration} "
-            f"-i {audio_path} "
-            f"-vn -acodec aac -b:a 128k "
-            f"{chunk_audio}"
-        )
-        os.system(cmd_extract_audio)
-        audio_elapsed = time.time() - audio_start
-        print(f"      ✓ Audio extracted ({audio_elapsed:.2f}s)")
+        print(f"      🔨 Creating fMP4 fragment {chunk_index} ({len(frames)} frames)...")
         
-        # Step 3: Combine video + audio
-        print(f"      🔗 Combining video + audio...")
-        combine_start = time.time()
-        cmd_combine = (
-            f"ffmpeg -y -v quiet "
-            f"-i {chunk_video} "
-            f"-i {chunk_audio} "
-            f"-c:v copy -c:a copy "
-            f"-shortest "
-            f"{output_path}"
-        )
-        os.system(cmd_combine)
-        combine_elapsed = time.time() - combine_start
-        print(f"      ✓ Combined ({combine_elapsed:.2f}s)")
+        # Use pipes to avoid disk I/O for frames
+        height, width = frames[0].shape[:2]
         
-        # Cleanup temp files
-        print(f"      🧹 Cleaning up temp chunk directory...")
-        shutil.rmtree(chunk_dir)
+        # ✅ SINGLE-PASS ENCODING: Video + Audio together (no temp files)
+        ffmpeg_cmd = [
+            'ffmpeg', '-y',
+            # Video input (from stdin)
+            '-f', 'rawvideo',
+            '-vcodec', 'rawvideo',
+            '-s', f'{width}x{height}',
+            '-pix_fmt', 'bgr24',
+            '-r', str(fps),
+            '-i', '-',
+            # Audio input (extract segment)
+            '-ss', str(start_time),
+            '-t', str(duration),
+            '-i', audio_path,
+            # Video encoding
+            '-c:v', 'libx264',
+            '-preset', 'ultrafast',
+            '-tune', 'zerolatency',
+            '-crf', '28',
+            '-pix_fmt', 'yuv420p',
+            # Audio encoding
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            '-ar', '44100',
+            # ✅ CRITICAL: fMP4 flags for MSE
+            '-movflags', 'frag_keyframe+empty_moov+default_base_moof+faststart',
+            '-frag_duration', str(int(duration * 1000000)),  # Microseconds
+            '-f', 'mp4',
+            output_path
+        ]
         
-        return output_path
+        try:
+            # Start FFmpeg process
+            proc = subprocess.Popen(
+                ffmpeg_cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE
+            )
+            
+            # Write frames to stdin
+            for frame in frames:
+                proc.stdin.write(frame.tobytes())
+            
+            proc.stdin.close()
+            
+            # Wait for completion
+            returncode = proc.wait()
+            
+            if returncode != 0:
+                stderr = proc.stderr.read().decode('utf-8', errors='ignore')
+                print(f"      ❌ FFmpeg error (code {returncode}):")
+                print(f"      {stderr[-500:]}")  # Last 500 chars
+                raise RuntimeError(f"FFmpeg failed: {stderr[-200:]}")
+            
+            # Verify output
+            if not Path(output_path).exists():
+                raise RuntimeError("Output file not created")
+            
+            file_size = Path(output_path).stat().st_size
+            if file_size < 1024:
+                raise RuntimeError(f"Output file too small: {file_size} bytes")
+            
+            elapsed = time.time() - chunk_start_time
+            print(f"      ✅ fMP4 fragment created ({file_size/1024:.1f}KB, {elapsed:.2f}s)")
+            
+            return output_path
+        
+        except Exception as e:
+            print(f"      ❌ Chunk creation failed: {e}")
+            raise
