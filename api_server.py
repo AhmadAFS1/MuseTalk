@@ -378,39 +378,88 @@ async def generate_video_streaming(
     
     async def event_generator():
         try:
+            # Get avatar from cache/disk
             avatar = manager._get_or_load_avatar(avatar_id, batch_size)
             
-            # ✅ FIX: Pass custom chunk directory
-            for chunk_data in avatar.inference_streaming(
-                audio_path=str(audio_path),
-                audio_processor=manager.audio_processor,
-                whisper=manager.whisper,
-                timesteps=manager.timesteps,
-                device=manager.device,
-                fps=fps,
-                chunk_duration_seconds=chunk_duration,
-                chunk_output_dir=str(chunk_dir)  # ← Custom directory
-            ):
-                event_data = {
-                    'event': 'chunk',
-                    'index': chunk_data['chunk_index'],
-                    'url': f"/chunks/{request_id}/chunk_{chunk_data['chunk_index']:04d}.mp4",
-                    'total_chunks': chunk_data.get('total_chunks', 0),  # ← ADD THIS LINE
-                    'duration': chunk_data['duration_seconds']
-                }
-                yield f"data: {json.dumps(event_data)}\n\n"
-                await asyncio.sleep(0)  # ← Change from 0.01 to 0 for instant flush
+            chunk_count = 0
             
-            yield f"data: {json.dumps({'event': 'complete'})}\n\n"
+            # ✅ CRITICAL: Wrap the synchronous generator in an executor
+            loop = asyncio.get_event_loop()
+            
+            def sync_generator():
+                """Run the synchronous generator in a thread"""
+                for chunk_info in avatar.inference_streaming(
+                    audio_path=str(audio_path),
+                    audio_processor=manager.audio_processor,
+                    whisper=manager.whisper,
+                    timesteps=manager.timesteps,
+                    device=manager.device,
+                    fps=fps,
+                    chunk_duration_seconds=chunk_duration,
+                    chunk_output_dir=str(chunk_dir)
+                ):
+                    yield chunk_info
+            
+            # ✅ Process chunks asynchronously
+            gen = sync_generator()
+            
+            while True:
+                try:
+                    # Get next chunk from sync generator (non-blocking)
+                    chunk_info = await loop.run_in_executor(None, lambda: next(gen, None))
+                    
+                    if chunk_info is None:
+                        break
+                    
+                    # Construct public URL for chunk
+                    chunk_filename = Path(chunk_info['chunk_path']).name
+                    chunk_url = f"/chunks/{request_id}/{chunk_filename}"
+                    
+                    # Create event data
+                    event_data = {
+                        'event': 'chunk',
+                        'index': chunk_info['chunk_index'],
+                        'url': chunk_url,
+                        'total_chunks': chunk_info['total_chunks'],
+                        'duration': chunk_info['duration_seconds'],
+                        'creation_time': chunk_info['creation_time']
+                    }
+                    
+                    # ✅ FORCE IMMEDIATE FLUSH
+                    yield f"data: {json.dumps(event_data)}\n\n"
+                    
+                    # ✅ Critical: Give control to event loop to flush
+                    await asyncio.sleep(0.001)  # 1ms delay forces flush
+                    
+                    chunk_count += 1
+                    print(f"    🚀 Sent chunk {chunk_count} to client")
+                    
+                except StopIteration:
+                    break
+            
+            # Send completion event
+            yield f"data: {json.dumps({'event': 'complete', 'total_chunks': chunk_count})}\n\n"
         
         except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"❌ Streaming error: {error_detail}")
             yield f"data: {json.dumps({'event': 'error', 'message': str(e)})}\n\n"
+        
         finally:
-            if audio_path.exists():
-                audio_path.unlink()
+            # Schedule cleanup
             await schedule_cleanup(chunk_dir, delay_seconds=3600)
     
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    # ✅ CRITICAL: Add headers to prevent buffering
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+            "Connection": "keep-alive"
+        }
+    )
 
 @app.get("/chunks/{request_id}/{chunk_filename}")
 async def download_chunk(request_id: str, chunk_filename: str):
