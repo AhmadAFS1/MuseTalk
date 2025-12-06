@@ -120,6 +120,95 @@ def get_streaming_ui_html() -> str:
             background: #f0f4ff;
         }
         
+        .batch-info {
+            margin-top: 8px;
+            padding: 10px;
+            background: #e0e7ff;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        
+        .batch-info strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .batch-info .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+        }
+        
+        .batch-info .label {
+            color: #666;
+        }
+        
+        .batch-info .value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .batch-info .value.good {
+            color: #4CAF50;
+        }
+        
+        .batch-info .value.warn {
+            color: #FF9800;
+        }
+        
+        .batch-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .batch-option {
+            position: relative;
+        }
+        
+        .batch-option input[type="radio"] {
+            display: none;
+        }
+        
+        .batch-option label {
+            display: block;
+            padding: 15px 10px;
+            text-align: center;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .batch-option label:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .batch-option input[type="radio"]:checked + label {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+            font-weight: 700;
+        }
+        
+        .batch-option .batch-label {
+            display: block;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+        
+        .batch-option .batch-meta {
+            display: block;
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+        
         .btn {
             width: 100%;
             padding: 15px;
@@ -210,7 +299,6 @@ def get_streaming_ui_html() -> str:
         .chunk-list {
             max-height: 300px;
             overflow-y: auto;
-            margin-top: 15px;
         }
         
         .chunk-item {
@@ -316,12 +404,56 @@ def get_streaming_ui_html() -> str:
                     </div>
                     
                     <div class="form-group">
-                        <label for="batch_size">🔢 Batch Size</label>
-                        <select id="batch_size">
-                            <option value="2" selected>2 (Recommended)</option>
-                            <option value="4">4 (Faster)</option>
-                            <option value="8">8 (Fastest)</option>
-                        </select>
+                        <label>🔢 Batch Size (GPU Memory vs Concurrency)</label>
+                        <div class="batch-options">
+                            <div class="batch-option">
+                                <input type="radio" name="batch_size" id="batch_1" value="1">
+                                <label for="batch_1">
+                                    <span class="batch-label">1</span>
+                                    <span class="batch-meta">2GB<br>9 users</span>
+                                </label>
+                            </div>
+                            <div class="batch-option">
+                                <input type="radio" name="batch_size" id="batch_2" value="2" checked>
+                                <label for="batch_2">
+                                    <span class="batch-label">2</span>
+                                    <span class="batch-meta">3.5GB<br>5 users</span>
+                                </label>
+                            </div>
+                            <div class="batch-option">
+                                <input type="radio" name="batch_size" id="batch_4" value="4">
+                                <label for="batch_4">
+                                    <span class="batch-label">4</span>
+                                    <span class="batch-meta">6GB<br>3 users</span>
+                                </label>
+                            </div>
+                            <div class="batch-option">
+                                <input type="radio" name="batch_size" id="batch_8" value="8">
+                                <label for="batch_8">
+                                    <span class="batch-label">8</span>
+                                    <span class="batch-meta">10GB<br>1 user</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="batch-info" id="batchInfo">
+                            <strong>📊 Batch Size 2 (Recommended)</strong>
+                            <div class="metric">
+                                <span class="label">VRAM per request:</span>
+                                <span class="value">3.5 GB</span>
+                            </div>
+                            <div class="metric">
+                                <span class="label">Max concurrent users:</span>
+                                <span class="value good">5 streams</span>
+                            </div>
+                            <div class="metric">
+                                <span class="label">Speed per chunk (2s):</span>
+                                <span class="value">~2.1 seconds</span>
+                            </div>
+                            <div class="metric">
+                                <span class="label">Best for:</span>
+                                <span class="value">Balanced speed & capacity</span>
+                            </div>
+                        </div>
                     </div>
                     
                     <button type="submit" class="btn" id="submitBtn">
@@ -372,7 +504,77 @@ def get_streaming_ui_html() -> str:
         </div>
     </div>
     
-        <script>
+    <script>
+        // Batch size configurations
+        const batchConfigs = {
+            1: {
+                vram: '2.0 GB',
+                maxConcurrent: '9 streams',
+                speed: '~3.3 seconds',
+                chunkSpeed: 110,
+                bestFor: 'Maximum concurrency (mobile apps)',
+                recommendation: '✅ Best for many users'
+            },
+            2: {
+                vram: '3.5 GB',
+                maxConcurrent: '5 streams',
+                speed: '~2.1 seconds',
+                chunkSpeed: 70,
+                bestFor: 'Balanced speed & capacity',
+                recommendation: '✅ Recommended default'
+            },
+            4: {
+                vram: '6.0 GB',
+                maxConcurrent: '3 streams',
+                speed: '~1.4 seconds',
+                chunkSpeed: 45,
+                bestFor: 'Faster generation',
+                recommendation: '⚡ Very fast per-stream'
+            },
+            8: {
+                vram: '10.0 GB',
+                maxConcurrent: '1 stream',
+                speed: '~0.9 seconds',
+                chunkSpeed: 30,
+                bestFor: 'Maximum speed (single user)',
+                recommendation: '⚠️ Only 1 concurrent user'
+            }
+        };
+        
+        // Update batch info when selection changes
+        document.querySelectorAll('input[name="batch_size"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                updateBatchInfo(this.value);
+            });
+        });
+        
+        function updateBatchInfo(batchSize) {
+            const config = batchConfigs[batchSize];
+            const batchInfo = document.getElementById('batchInfo');
+            
+            const concurrentClass = parseInt(batchSize) <= 2 ? 'good' : 'warn';
+            
+            batchInfo.innerHTML = `
+                <strong>📊 Batch Size ${batchSize} ${config.recommendation ? '- ' + config.recommendation : ''}</strong>
+                <div class="metric">
+                    <span class="label">VRAM per request:</span>
+                    <span class="value">${config.vram}</span>
+                </div>
+                <div class="metric">
+                    <span class="label">Max concurrent users:</span>
+                    <span class="value ${concurrentClass}">${config.maxConcurrent}</span>
+                </div>
+                <div class="metric">
+                    <span class="label">Speed per chunk (2s):</span>
+                    <span class="value">${config.speed}</span>
+                </div>
+                <div class="metric">
+                    <span class="label">Best for:</span>
+                    <span class="value">${config.bestFor}</span>
+                </div>
+            `;
+        }
+        
         let state = {
             chunks: [],
             requestId: '',
@@ -532,9 +734,11 @@ def get_streaming_ui_html() -> str:
             const formData = new FormData();
             formData.append('audio_file', document.getElementById('audio_file').files[0]);
             
+            const batchSize = document.querySelector('input[name="batch_size"]:checked').value;
+            
             const params = new URLSearchParams({
                 avatar_id: document.getElementById('avatar_id').value,
-                batch_size: document.getElementById('batch_size').value,
+                batch_size: batchSize,
                 fps: state.fps,
                 chunk_duration: document.getElementById('chunk_duration').value
             });
@@ -550,7 +754,7 @@ def get_streaming_ui_html() -> str:
                 }
                 
                 startTimer();
-                statusText.textContent = 'Generating video chunks...';
+                statusText.textContent = 'Generating video chunks (batch_size=' + batchSize + ')...';
                 chunksSection.classList.remove('hidden');
                 videoSection.classList.remove('hidden');
                 

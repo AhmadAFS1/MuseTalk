@@ -111,7 +111,7 @@ async def startup_event():
     )
     
     # Initialize manager
-    manager = ParallelAvatarManager(args, max_concurrent_inferences=3)
+    manager = ParallelAvatarManager(args, max_concurrent_inferences=5)
     
     print("✅ MuseTalk API Server ready!")
 
@@ -376,18 +376,26 @@ async def generate_video_streaming(
     with audio_path.open("wb") as buffer:
         shutil.copyfileobj(audio_file.file, buffer)
     
-    async def event_generator():
+    # ✅ Get event loop BEFORE creating thread
+    main_loop = asyncio.get_event_loop()
+    
+    # ✅ Create async queue for chunk communication
+    chunk_queue = asyncio.Queue()
+    
+    # ✅ Worker function that runs in ThreadPoolExecutor
+    def streaming_worker():
+        """
+        Runs in thread pool - allows up to 5 concurrent streaming requests.
+        """
         try:
-            # Get avatar from cache/disk
-            avatar = manager._get_or_load_avatar(avatar_id, batch_size)
+            print(f"🎬 [{request_id}] Starting streaming generation")
             
-            chunk_count = 0
-            
-            # ✅ CRITICAL: Wrap the synchronous generator in an executor
-            loop = asyncio.get_event_loop()
-            
-            def sync_generator():
-                """Run the synchronous generator in a thread"""
+            # ✅ Allocate GPU memory (blocks if not enough)
+            with manager.gpu_memory.allocate(batch_size):
+                # Get avatar from cache/disk
+                avatar = manager._get_or_load_avatar(avatar_id, batch_size)
+                
+                # ✅ Generate chunks (no model_lock needed - handled by gpu_memory.allocate)
                 for chunk_info in avatar.inference_streaming(
                     audio_path=str(audio_path),
                     audio_processor=manager.audio_processor,
@@ -398,66 +406,116 @@ async def generate_video_streaming(
                     chunk_duration_seconds=chunk_duration,
                     chunk_output_dir=str(chunk_dir)
                 ):
-                    yield chunk_info
+                    # ✅ Put chunk in async queue (thread-safe with correct loop)
+                    asyncio.run_coroutine_threadsafe(
+                        chunk_queue.put(chunk_info),
+                        main_loop  # ✅ Use the captured loop reference
+                    ).result()  # ✅ Wait for it to be queued
             
-            # ✅ Process chunks asynchronously
-            gen = sync_generator()
+            # Signal completion
+            asyncio.run_coroutine_threadsafe(
+                chunk_queue.put({'event': 'complete'}),
+                main_loop
+            ).result()
             
-            while True:
-                try:
-                    # Get next chunk from sync generator (non-blocking)
-                    chunk_info = await loop.run_in_executor(None, lambda: next(gen, None))
-                    
-                    if chunk_info is None:
-                        break
-                    
-                    # Construct public URL for chunk
-                    chunk_filename = Path(chunk_info['chunk_path']).name
-                    chunk_url = f"/chunks/{request_id}/{chunk_filename}"
-                    
-                    # Create event data
-                    event_data = {
-                        'event': 'chunk',
-                        'index': chunk_info['chunk_index'],
-                        'url': chunk_url,
-                        'total_chunks': chunk_info['total_chunks'],
-                        'duration': chunk_info['duration_seconds'],
-                        'creation_time': chunk_info['creation_time']
-                    }
-                    
-                    # ✅ FORCE IMMEDIATE FLUSH
-                    yield f"data: {json.dumps(event_data)}\n\n"
-                    
-                    # ✅ Critical: Give control to event loop to flush
-                    await asyncio.sleep(0.001)  # 1ms delay forces flush
-                    
-                    chunk_count += 1
-                    print(f"    🚀 Sent chunk {chunk_count} to client")
-                    
-                except StopIteration:
-                    break
-            
-            # Send completion event
-            yield f"data: {json.dumps({'event': 'complete', 'total_chunks': chunk_count})}\n\n"
+            print(f"✅ [{request_id}] Streaming generation complete")
         
         except Exception as e:
             import traceback
             error_detail = traceback.format_exc()
-            print(f"❌ Streaming error: {error_detail}")
+            print(f"❌ [{request_id}] Error: {error_detail}")
+            
+            # Put error in queue
+            try:
+                asyncio.run_coroutine_threadsafe(
+                    chunk_queue.put({'event': 'error', 'message': str(e)}),
+                    main_loop
+                ).result(timeout=1.0)
+            except Exception:
+                pass  # Queue might be closed
+    
+    # ✅ Submit to ThreadPoolExecutor (enables parallelism!)
+    future = main_loop.run_in_executor(manager.executor, streaming_worker)
+    
+    # ✅ Track this streaming request
+    manager.active_requests[request_id] = {
+        'avatar_id': avatar_id,
+        'status': 'streaming',
+        'future': future,
+        'type': 'stream'
+    }
+    
+    print(f"📥 [{request_id}] Queued for streaming (active requests: {len(manager.active_requests)})")
+    
+    # ✅ Event generator that reads from queue
+    async def event_generator():
+        try:
+            chunk_count = 0
+            
+            # ✅ Read chunks from queue as they arrive
+            while True:
+                # Wait for next chunk or completion
+                chunk_info = await chunk_queue.get()
+                
+                # Check for completion
+                if chunk_info.get('event') == 'complete':
+                    yield f"data: {json.dumps({'event': 'complete', 'total_chunks': chunk_count})}\n\n"
+                    break
+                
+                # Check for error
+                if chunk_info.get('event') == 'error':
+                    yield f"data: {json.dumps(chunk_info)}\n\n"
+                    break
+                
+                # Normal chunk - construct public URL
+                chunk_filename = Path(chunk_info['chunk_path']).name
+                chunk_url = f"/chunks/{request_id}/{chunk_filename}"
+                
+                event_data = {
+                    'event': 'chunk',
+                    'index': chunk_info['chunk_index'],
+                    'url': chunk_url,
+                    'total_chunks': chunk_info['total_chunks'],
+                    'duration': chunk_info['duration_seconds'],
+                    'creation_time': chunk_info['creation_time']
+                }
+                
+                # ✅ Yield immediately
+                yield f"data: {json.dumps(event_data)}\n\n"
+                
+                chunk_count += 1
+                print(f"    📤 [{request_id}] Sent chunk {chunk_count} to client")
+        
+        except asyncio.CancelledError:
+            print(f"⚠️ [{request_id}] Client disconnected")
+            # Cancel the worker if client disconnects
+            future.cancel()
+        
+        except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"❌ [{request_id}] Event generator error: {error_detail}")
             yield f"data: {json.dumps({'event': 'error', 'message': str(e)})}\n\n"
         
         finally:
             # Schedule cleanup
             await schedule_cleanup(chunk_dir, delay_seconds=3600)
+            
+            # Update request status
+            if request_id in manager.active_requests:
+                manager.active_requests[request_id]['status'] = 'completed'
+            
+            print(f"🏁 [{request_id}] Stream ended")
     
-    # ✅ CRITICAL: Add headers to prevent buffering
+    # ✅ Return streaming response
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  # Disable nginx buffering
-            "Connection": "keep-alive"
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*"  # ✅ Add CORS for mobile
         }
     )
 
