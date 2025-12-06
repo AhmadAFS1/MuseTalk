@@ -392,6 +392,7 @@ def get_streaming_ui_html() -> str:
                     <div class="form-group">
                         <label for="fps">🎞️ Frame Rate (FPS)</label>
                         <select id="fps">
+                        <option value="10" selected>10 fps (Fastest)</option>
                             <option value="15" selected>15 fps (Fast)</option>
                             <option value="20">20 fps (Balanced)</option>
                             <option value="25">25 fps (High Quality)</option>
