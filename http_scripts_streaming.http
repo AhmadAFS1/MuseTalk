@@ -4,7 +4,7 @@ GET http://localhost:8000/health
 ###
 
 ### Prepare Avatar (Required First Time)
-POST http://localhost:8000/avatars/prepare?avatar_id=test_avatar&batch_size=2&bbox_shift=5
+POST http://87.205.21.33:44091/avatars/prepare?avatar_id=test_avatar&batch_size=8&bbox_shift=5
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -17,7 +17,7 @@ Content-Type: video/mp4
 ###
 
 ### Stream Long Video (returns request_id in events)
-POST http://localhost:8000/generate/stream?avatar_id=test_avatar&batch_size=2&fps=15&chunk_duration=2
+POST http://87.205.21.33:44091/generate/stream?avatar_id=test_avatar&batch_size=8&fps=10&chunk_duration=2
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
