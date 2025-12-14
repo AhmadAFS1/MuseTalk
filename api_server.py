@@ -16,7 +16,9 @@ import re
 import aiofiles
 from datetime import datetime, timedelta
 from templates.streaming_ui import streaming_ui_endpoint
-
+from templates.mobile_player import mobile_player_endpoint
+from templates.session_player import get_session_player_html  # ✅ ADD THIS
+from scripts.session_manager import SessionManager
 
 # Persistent cleanup tracking
 CLEANUP_DB = Path("chunks/.cleanup_queue.json")
@@ -80,6 +82,7 @@ app.add_middleware(
 # ============================================================================
 
 manager: Optional[ParallelAvatarManager] = None
+session_manager: Optional[SessionManager] = None  # ✅ NEW
 
 # ============================================================================
 # Startup/Shutdown Events
@@ -88,7 +91,7 @@ manager: Optional[ParallelAvatarManager] = None
 @app.on_event("startup")
 async def startup_event():
     """Initialize the avatar manager on startup"""
-    global manager
+    global manager, session_manager
     
     print("🚀 Starting MuseTalk API Server...")
     
@@ -112,6 +115,10 @@ async def startup_event():
     
     # Initialize manager
     manager = ParallelAvatarManager(args, max_concurrent_inferences=5)
+    
+    # ✅ Initialize session manager
+    session_manager = SessionManager(session_ttl_seconds=3600)
+    session_manager.start_cleanup()
     
     print("✅ MuseTalk API Server ready!")
 
@@ -290,6 +297,30 @@ async def delete_avatar(avatar_id: str):
         "evicted_from_cache": evicted,
         "message": f"Avatar {avatar_id} evicted from cache (still on disk)"
     }
+
+@app.get("/avatars/{avatar_id}/video")
+async def get_avatar_placeholder_video(avatar_id: str):
+    """
+    Serve the original avatar video as placeholder.
+    This loops continuously until audio is uploaded.
+    """
+    # Hardcoded for testing - use the specific uploaded video
+    video_file = Path("uploads/videos/test_avatar_ai_test_default_moving_vid.mp4")
+    
+    if not video_file.exists():
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Placeholder video not found at {video_file}"
+        )
+    
+    return FileResponse(
+        video_file,
+        media_type="video/mp4",
+        headers={
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "public, max-age=3600"
+        }
+    )
 
 # ============================================================================
 # Generation Endpoints
@@ -799,6 +830,316 @@ async def video_player(request_id: str):
     """
     
     return HTMLResponse(content=html_content)
+
+@app.get("/player/mobile", response_class=HTMLResponse)
+async def mobile_player(session_id: str = None):
+    """
+    Minimal embeddable player for mobile apps.
+    Each session gets isolated streaming via unique session_id.
+    """
+    return await mobile_player_endpoint(session_id)
+
+# ============================================================================
+# Session Management Endpoints (NEW)
+# ============================================================================
+
+@app.post("/sessions/create")
+async def create_session(
+    avatar_id: str,
+    user_id: Optional[str] = None,
+    batch_size: int = 2,
+    fps: int = 15,
+    chunk_duration: int = 2
+):
+    """
+    Create a new streaming session for a user.
+    Returns session_id and player URL.
+    
+    **Mobile App Flow:**
+    1. Call this endpoint when user opens chat
+    2. Get session_id and player_url
+    3. Load player_url in WebView
+    4. Send audio via /sessions/{session_id}/stream
+    """
+    if session_manager is None:
+        raise HTTPException(status_code=503, detail="Session manager not initialized")
+    
+    # Verify avatar exists
+    if not manager._avatar_exists(avatar_id):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Avatar '{avatar_id}' not found. Please prepare it first."
+        )
+    
+    session = await session_manager.create_session(
+        avatar_id=avatar_id,
+        user_id=user_id,
+        batch_size=batch_size,
+        fps=fps,
+        chunk_duration=chunk_duration
+    )
+    
+    return {
+        'session_id': session.session_id,
+        'player_url': f'/player/session/{session.session_id}',
+        'avatar_id': avatar_id,
+        'user_id': user_id,
+        'config': {
+            'batch_size': batch_size,
+            'fps': fps,
+            'chunk_duration': chunk_duration
+        },
+        'expires_in_seconds': session_manager.session_ttl
+    }
+
+
+@app.post("/sessions/{session_id}/stream")
+async def session_stream(
+    session_id: str,
+    audio_file: UploadFile = File(...)
+):
+    """
+    Start streaming for an existing session.
+    This replaces the need for postMessage - just upload audio directly.
+    
+    **Mobile App Flow:**
+    1. User records audio
+    2. POST audio to this endpoint
+    3. WebView automatically receives chunks via SSE
+    """
+    if session_manager is None or manager is None:
+        raise HTTPException(status_code=503, detail="Services not initialized")
+    
+    # Get session
+    session = await session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    
+    # Check if already streaming
+    if session.active_stream is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Session already streaming (request_id: {session.active_stream})"
+        )
+    
+    # Generate request ID
+    request_id = f"{session.avatar_id}_req_{uuid.uuid4().hex[:8]}"
+    session.active_stream = request_id
+    
+    # Save audio
+    upload_dir = Path("uploads/audio")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    audio_path = upload_dir / f"{request_id}.{audio_file.filename.split('.')[-1]}"
+    
+    with audio_path.open("wb") as buffer:
+        shutil.copyfileobj(audio_file.file, buffer)
+    
+    # Create chunk directory
+    chunk_dir = Path("chunks") / request_id
+    chunk_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Get event loop
+    main_loop = asyncio.get_event_loop()
+    
+    # Worker function
+    def streaming_worker():
+        try:
+            print(f"🎬 [{request_id}] Starting streaming for session {session_id}")
+            
+            with manager.gpu_memory.allocate(session.batch_size):
+                avatar = manager._get_or_load_avatar(session.avatar_id, session.batch_size)
+                
+                for chunk_info in avatar.inference_streaming(
+                    audio_path=str(audio_path),
+                    audio_processor=manager.audio_processor,
+                    whisper=manager.whisper,
+                    timesteps=manager.timesteps,
+                    device=manager.device,
+                    fps=session.fps,
+                    chunk_duration_seconds=session.chunk_duration,
+                    chunk_output_dir=str(chunk_dir)
+                ):
+                    # Put chunk in session queue
+                    asyncio.run_coroutine_threadsafe(
+                        session.chunk_queue.put(chunk_info),
+                        main_loop
+                    ).result()
+            
+            # Signal completion
+            asyncio.run_coroutine_threadsafe(
+                session.chunk_queue.put({'event': 'complete'}),
+                main_loop
+            ).result()
+            
+            print(f"✅ [{request_id}] Streaming complete")
+        
+        except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"❌ [{request_id}] Error: {error_detail}")
+            
+            try:
+                asyncio.run_coroutine_threadsafe(
+                    session.chunk_queue.put({'event': 'error', 'message': str(e)}),
+                    main_loop
+                ).result(timeout=1.0)
+            except Exception:
+                pass
+        
+        finally:
+            # Clear active stream
+            session.active_stream = None
+    
+    # Submit to executor
+    future = main_loop.run_in_executor(manager.executor, streaming_worker)
+    
+    # Track request
+    manager.active_requests[request_id] = {
+        'avatar_id': session.avatar_id,
+        'status': 'streaming',
+        'future': future,
+        'type': 'session_stream',
+        'session_id': session_id
+    }
+    
+    return {
+        'request_id': request_id,
+        'session_id': session_id,
+        'status': 'streaming',
+        'message': 'Stream started. WebView will receive chunks automatically.'
+    }
+
+
+@app.get("/sessions/{session_id}/events")
+async def session_events(session_id: str):
+    """
+    SSE endpoint for WebView to receive chunks.
+    This is called automatically by the player - not by your app.
+    """
+    if session_manager is None:
+        raise HTTPException(status_code=503, detail="Session manager not initialized")
+    
+    session = await session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    async def event_generator():
+        try:
+            chunk_count = 0
+            
+            while True:
+                # Wait for next chunk
+                chunk_info = await session.chunk_queue.get()
+                
+                # Check for completion
+                if chunk_info.get('event') == 'complete':
+                    yield f"data: {json.dumps({'event': 'complete', 'total_chunks': chunk_count})}\n\n"
+                    break
+                
+                # Check for error
+                if chunk_info.get('event') == 'error':
+                    yield f"data: {json.dumps(chunk_info)}\n\n"
+                    break
+                
+                # Normal chunk
+                chunk_filename = Path(chunk_info['chunk_path']).name
+                request_id = chunk_info['chunk_path'].split('/')[-2]  # Extract from path
+                chunk_url = f"/chunks/{request_id}/{chunk_filename}"
+                
+                event_data = {
+                    'event': 'chunk',
+                    'index': chunk_info['chunk_index'],
+                    'url': chunk_url,
+                    'total_chunks': chunk_info['total_chunks'],
+                    'duration': chunk_info['duration_seconds'],
+                    'creation_time': chunk_info['creation_time']
+                }
+                
+                yield f"data: {json.dumps(event_data)}\n\n"
+                
+                chunk_count += 1
+                print(f"    📤 [{session_id}] Sent chunk {chunk_count} to client")
+        
+        except asyncio.CancelledError:
+            print(f"⚠️ [{session_id}] Client disconnected")
+        
+        except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"❌ [{session_id}] Event generator error: {error_detail}")
+            yield f"data: {json.dumps({'event': 'error', 'message': str(e)})}\n\n"
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*"
+        }
+    )
+
+
+@app.get("/sessions/{session_id}/status")
+async def get_session_status(session_id: str):
+    """Get session status"""
+    if session_manager is None:
+        raise HTTPException(status_code=503, detail="Session manager not initialized")
+    
+    session = await session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    return {
+        'session_id': session.session_id,
+        'avatar_id': session.avatar_id,
+        'user_id': session.user_id,
+        'active_stream': session.active_stream,
+        'created_at': session.created_at,
+        'last_activity': session.last_activity,
+        'age_seconds': time.time() - session.created_at,
+        'idle_seconds': time.time() - session.last_activity
+    }
+
+
+@app.delete("/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a session (call when user closes chat)"""
+    if session_manager is None:
+        raise HTTPException(status_code=503, detail="Session manager not initialized")
+    
+    deleted = await session_manager.delete_session(session_id)
+    
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    return {'status': 'deleted', 'session_id': session_id}
+
+
+@app.get("/sessions/stats")
+async def get_session_stats():
+    """Get all session statistics"""
+    if session_manager is None:
+        raise HTTPException(status_code=503, detail="Session manager not initialized")
+    
+    return session_manager.get_stats()
+
+
+@app.get("/player/session/{session_id}", response_class=HTMLResponse)
+async def session_player(session_id: str):
+    """
+    Simplified player that auto-connects to session.
+    No postMessage needed - just load in WebView and upload audio to /sessions/{session_id}/stream
+    """
+    if session_manager is None:
+        raise HTTPException(status_code=503, detail="Session manager not initialized")
+    
+    session = await session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    
+    return HTMLResponse(content=get_session_player_html(session))
 
 # ============================================================================
 # Statistics Endpoints
