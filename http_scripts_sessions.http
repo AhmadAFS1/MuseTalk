@@ -1,0 +1,329 @@
+### Health Check
+GET http://localhost:8000/health
+
+###
+
+### Get System Stats
+GET http://localhost:8000/stats
+
+###
+
+### Get Session Stats
+GET http://localhost:8000/sessions/stats
+
+###
+
+### Get Cache Stats
+GET http://localhost:8000/stats/cache
+
+###
+
+# ============================================================================
+# SESSION-BASED STREAMING WORKFLOW
+# ============================================================================
+
+### Step 1: Create a Session for User 1
+POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=user1&batch_size=8&fps=15&chunk_duration=2
+
+###
+
+### Step 1b: Create a Session for User 2 (concurrent test)
+POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=user2&batch_size=2&fps=15&chunk_duration=2
+
+###
+
+### Step 1c: Create a Session for User 3 (concurrent test)
+POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=user3&batch_size=2&fps=15&chunk_duration=2
+
+###
+
+### Step 2: Open Player in Browser
+# After creating session, copy the session_id from response
+# Then open this URL in browser:
+# http://localhost:8000/player/session/{session_id}
+# 
+# Example:
+# http://localhost:8000/player/session/abc123xyz456
+#
+# The player will auto-connect and wait for audio
+
+###
+###http://localhost:8001/player/session/--ZBpEe9zfGCkBLC_BtcGg
+### Step 3: Send Audio to Session (response-2.mpga)
+# Replace {session_id} with actual session_id from Step 1
+POST http://localhost:8000/sessions/h6wHGmQsq8KVYJp_DZpLlw/stream
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="response-2.mpga"
+Content-Type: audio/mpeg
+
+< ./data/audio/response-2.mpga
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### Step 3b: Send 2nd Audio to Same Session
+POST http://localhost:8000/sessions/--ZBpEe9zfGCkBLC_BtcGg/stream
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="2nd_message.mpga"
+Content-Type: audio/mpeg
+
+< ./data/audio/2nd_message.mpga
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### Step 3c: Send 3rd Audio (eng.wav)
+POST http://localhost:8000/sessions/abc123xyz456/stream
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="eng.wav"
+Content-Type: audio/wav
+
+< ./data/audio/eng.wav
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### Check Session Status
+GET http://localhost:8000/sessions/abc123xyz456/status
+
+###
+
+### Delete Session (cleanup)
+DELETE http://localhost:8000/sessions/abc123xyz456
+
+###
+
+# ============================================================================
+# MULTI-USER CONCURRENT TEST
+# ============================================================================
+
+### USER 1: Create Session
+POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=alice&batch_size=2&fps=15
+
+###
+
+### USER 1: Stream Audio (response-2.mpga)
+POST http://localhost:8000/sessions/[USER1_SESSION_ID]/stream
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="response-2.mpga"
+Content-Type: audio/mpeg
+
+< ./data/audio/response-2.mpga
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### USER 2: Create Session
+POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=bob&batch_size=2&fps=15
+
+###
+
+### USER 2: Stream Audio (2nd_message.mpga)
+POST http://localhost:8000/sessions/[USER2_SESSION_ID]/stream
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="2nd_message.mpga"
+Content-Type: audio/mpeg
+
+< ./data/audio/2nd_message.mpga
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### USER 3: Create Session
+POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=charlie&batch_size=2&fps=15
+
+###
+
+### USER 3: Stream Audio (eng.wav)
+POST http://localhost:8000/sessions/[USER3_SESSION_ID]/stream
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="eng.wav"
+Content-Type: audio/wav
+
+< ./data/audio/eng.wav
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### Check All Session Stats
+GET http://localhost:8000/sessions/stats
+
+###
+
+# ============================================================================
+# TESTING DIFFERENT CONFIGURATIONS
+# ============================================================================
+
+### Low Latency Config (batch_size=1, fps=10, chunk=1s)
+POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=mobile_user&batch_size=1&fps=10&chunk_duration=1
+
+###
+
+### High Quality Config (batch_size=4, fps=25, chunk=2s)
+POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=desktop_user&batch_size=4&fps=25&chunk_duration=2
+
+###
+
+### Balanced Config (batch_size=2, fps=15, chunk=2s) - RECOMMENDED
+POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=balanced_user&batch_size=2&fps=15&chunk_duration=2
+
+###
+
+# ============================================================================
+# ERROR HANDLING TESTS
+# ============================================================================
+
+### Test: Invalid Avatar ID
+POST http://localhost:8000/sessions/create?avatar_id=nonexistent_avatar&user_id=test
+
+###
+
+### Test: Invalid Session ID
+GET http://localhost:8000/sessions/invalid_session_id/status
+
+###
+
+### Test: Stream to Non-Existent Session
+POST http://localhost:8000/sessions/nonexistent123/stream
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="test.mp3"
+Content-Type: audio/mpeg
+
+< ./data/audio/response-2.mpga
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### Test: Double Stream (should fail if already streaming)
+# First stream
+POST http://localhost:8000/sessions/abc123xyz456/stream
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="response-2.mpga"
+Content-Type: audio/mpeg
+
+< ./data/audio/response-2.mpga
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+# Immediately try to stream again (should get 409 Conflict)
+POST http://localhost:8000/sessions/abc123xyz456/stream
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="2nd_message.mpga"
+Content-Type: audio/mpeg
+
+< ./data/audio/2nd_message.mpga
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+# ============================================================================
+# UI ACCESS
+# ============================================================================
+
+### Open Streaming UI (Web Interface)
+GET http://localhost:8000/ui
+
+###
+
+### Open API Documentation
+GET http://localhost:8000/docs
+
+###
+
+### Open Mobile Player (without session - will create one)
+GET http://localhost:8000/player/mobile
+
+###
+
+### Open Mobile Player (with specific session)
+GET http://localhost:8000/player/mobile?session_id=abc123xyz456
+
+###
+
+### Open Session Player (after creating session)
+# Replace {session_id} with actual session_id
+GET http://localhost:8000/player/session/abc123xyz456
+
+###
+
+# ============================================================================
+# CLEANUP & MAINTENANCE
+# ============================================================================
+
+### View All Active Sessions
+GET http://localhost:8000/sessions/stats
+
+###
+
+### Delete Specific Session
+DELETE http://localhost:8000/sessions/abc123xyz456
+
+###
+
+### Check GPU Memory Usage
+GET http://localhost:8000/stats
+
+###
+
+### List Prepared Avatars
+GET http://localhost:8000/avatars/list
+
+###
+
+### Evict Avatar from Cache (free VRAM)
+DELETE http://localhost:8000/avatars/test_avatar
+
+###
+
+# ============================================================================
+# NOTES & TIPS
+# ============================================================================
+
+# 1. WORKFLOW SUMMARY:
+#    a) Create session → Get session_id
+#    b) Open player URL in browser
+#    c) Upload audio to session
+#    d) Video auto-streams to browser
+#
+# 2. SESSION IDs:
+#    - Copy from "session_id" in create response
+#    - Replace {session_id} or abc123xyz456 in URLs
+#
+# 3. PLAYER URLs:
+#    - Web UI: http://localhost:8000/ui
+#    - Session Player: http://localhost:8000/player/session/{session_id}
+#    - Mobile Player: http://localhost:8000/player/mobile
+#
+# 4. MULTI-USER:
+#    - Each session is isolated
+#    - Up to 5 concurrent streams (batch_size=2)
+#    - Sessions auto-expire after 1 hour
+#
+# 5. AUDIO FILES:
+#    - Supported: .mp3, .mpga, .wav, .m4a
+#    - Located in: ./data/audio/
+#
+# 6. BATCH SIZE GUIDE:
+#    - 1 = Max concurrency (9 users, 2GB each)
+#    - 2 = Balanced (5 users, 3.5GB each) ← RECOMMENDED
+#    - 4 = Fast (3 users, 6GB each)
+#    - 8 = Fastest (1 user, 10GB)
