@@ -51,7 +51,7 @@ POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=user3&b
 ###http://localhost:8001/player/session/--ZBpEe9zfGCkBLC_BtcGg
 ### Step 3: Send Audio to Session (response-2.mpga)
 # Replace {session_id} with actual session_id from Step 1
-POST http://localhost:8000/sessions/Z91PCu0Xl8LSVFU3c2t1dg/stream
+POST http://localhost:8000/sessions/4IeD4xwNrMipMGufn9kKtw/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -63,8 +63,47 @@ Content-Type: audio/mpeg
 
 ###
 
+### Step 3: Send Audio to Session (with 1.5s trailing silence)
+POST http://localhost:8000/sessions/hWr4yi3v2GBjq5FB4z8ZzQ/stream?trailing_silence=1.5
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="response-2.mpga"
+Content-Type: audio/mpeg
+
+< ./data/audio/response-2.mpga
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### Step 3b: Send 2nd Audio (with default 1s trailing silence)
+POST http://localhost:8000/sessions/4IeD4xwNrMipMGufn9kKtw/stream?trailing_silence=5.0
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="2nd_message.mpga"
+Content-Type: audio/mpeg
+
+< ./data/audio/2nd_message.mpga
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### Step 3c: No trailing silence (instant cutoff)
+POST http://localhost:8000/sessions/hWr4yi3v2GBjq5FB4z8ZzQ/stream?trailing_silence=0
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="4th_message_long.mpga"
+Content-Type: audio/mpeg
+
+< ./data/audio/4th_message_long.mpga
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
 ### Step 3b: Send 2nd Audio to Same Session
-POST http://localhost:8000/sessions/_fqXAETDZDn2sHzoj_Jj4Q/stream
+POST http://localhost:8000/sessions/hWr4yi3v2GBjq5FB4z8ZzQ/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -75,7 +114,7 @@ Content-Type: audio/mpeg
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
 
 ### Step 3b: Send 2nd Audio to Same Session
-POST http://localhost:8000/sessions/_fqXAETDZDn2sHzoj_Jj4Q/stream
+POST http://localhost:8000/sessions/hWr4yi3v2GBjq5FB4z8ZzQ/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
