@@ -95,15 +95,8 @@ def get_session_player_html(session) -> str:
         const streamVideo = document.getElementById('streamVideo');
         const statusOverlay = document.getElementById('statusOverlay');
         
-        let mediaSource = null;
-        let sourceBuffer = null;
-        let pendingChunks = [];
-        let isAppending = false;
-        let isFirstChunk = true;
-        let streamingStarted = false;
-        let totalChunks = 0;
-        let receivedChunks = 0;
-        let allChunksReceived = false;
+        // ✅ STATE: Reset completely between streams
+        let currentStream = null;  // Track active stream state
         
         // Load placeholder video
         placeholderVideo.src = `/avatars/${{AVATAR_ID}}/video`;
@@ -152,76 +145,78 @@ def get_session_player_html(session) -> str:
             }}
         }}
         
-        function resetStreamVideo() {{
-            console.log('🔄 Resetting stream video');
+        function cleanupStream(stream) {{
+            console.log('🧹 Cleaning up stream');
             
-            // Clean up MediaSource
-            if (mediaSource) {{
-                if (mediaSource.readyState === 'open') {{
+            if (stream.mediaSource) {{
+                if (stream.mediaSource.readyState === 'open') {{
                     try {{
-                        mediaSource.endOfStream();
+                        stream.mediaSource.endOfStream();
                     }} catch (e) {{
                         console.warn('Error ending stream:', e);
                     }}
                 }}
                 
-                // Revoke object URL to free memory
-                if (streamVideo.src) {{
+                // Revoke object URL
+                if (streamVideo.src && streamVideo.src.startsWith('blob:')) {{
                     URL.revokeObjectURL(streamVideo.src);
                 }}
-                
-                mediaSource = null;
             }}
             
-            sourceBuffer = null;
+            // Reset video element
             streamVideo.src = '';
             streamVideo.load();
-            
-            // Reset state
-            pendingChunks = [];
-            isAppending = false;
-            isFirstChunk = true;
-            streamingStarted = false;
-            totalChunks = 0;
-            receivedChunks = 0;
-            allChunksReceived = false;
             
             showPlaceholderVideo();
         }}
         
-        function initMediaSource() {{
-            console.log('🎬 Initializing MediaSource');
+        function createNewStream() {{
+            console.log('🎬 Creating new stream');
             
-            if (mediaSource) {{
-                resetStreamVideo();
+            // ✅ CRITICAL: Clean up previous stream
+            if (currentStream) {{
+                cleanupStream(currentStream);
             }}
             
-            streamingStarted = true;
+            // ✅ Create fresh state for this stream
+            currentStream = {{
+                mediaSource: null,
+                sourceBuffer: null,
+                pendingChunks: [],
+                isAppending: false,
+                isFirstChunk: true,
+                totalChunks: 0,
+                receivedChunks: 0,
+                allChunksReceived: false
+            }};
             
-            mediaSource = new MediaSource();
-            const objectURL = URL.createObjectURL(mediaSource);
+            // Initialize MediaSource
+            currentStream.mediaSource = new MediaSource();
+            const objectURL = URL.createObjectURL(currentStream.mediaSource);
             streamVideo.src = objectURL;
             
-            mediaSource.addEventListener('sourceopen', () => {{
+            currentStream.mediaSource.addEventListener('sourceopen', () => {{
                 console.log('✅ MediaSource opened');
                 
                 try {{
-                    sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
-                    sourceBuffer.mode = 'sequence';
+                    currentStream.sourceBuffer = currentStream.mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+                    currentStream.sourceBuffer.mode = 'sequence';
                     
-                    sourceBuffer.addEventListener('updateend', () => {{
+                    currentStream.sourceBuffer.addEventListener('updateend', () => {{
                         console.log('✅ Chunk appended successfully');
-                        isAppending = false;
+                        currentStream.isAppending = false;
                         
-                        // Try to append next chunk
+                        // Process next chunk
                         processNextChunk();
                         
-                        // If all chunks received and processed, end the stream
-                        if (allChunksReceived && pendingChunks.length === 0 && !sourceBuffer.updating) {{
+                        // End stream if all chunks processed
+                        if (currentStream.allChunksReceived && 
+                            currentStream.pendingChunks.length === 0 && 
+                            !currentStream.sourceBuffer.updating) {{
                             console.log('🏁 All chunks processed, ending stream');
-                            if (mediaSource.readyState === 'open') {{
+                            if (currentStream.mediaSource.readyState === 'open') {{
                                 try {{
-                                    mediaSource.endOfStream();
+                                    currentStream.mediaSource.endOfStream();
                                     console.log('✅ Stream ended gracefully');
                                 }} catch (e) {{
                                     console.warn('Error ending stream:', e);
@@ -230,10 +225,10 @@ def get_session_player_html(session) -> str:
                         }}
                     }});
                     
-                    sourceBuffer.addEventListener('error', (e) => {{
+                    currentStream.sourceBuffer.addEventListener('error', (e) => {{
                         console.error('❌ SourceBuffer error:', e);
                         updateStatus('❌ Playback error', true);
-                        setTimeout(resetStreamVideo, 2000);
+                        setTimeout(() => cleanupStream(currentStream), 2000);
                     }});
                     
                     console.log('✅ SourceBuffer created (mode=sequence)');
@@ -246,44 +241,49 @@ def get_session_player_html(session) -> str:
                 }}
             }});
             
-            mediaSource.addEventListener('sourceended', () => {{
+            currentStream.mediaSource.addEventListener('sourceended', () => {{
                 console.log('📺 MediaSource ended event');
             }});
             
-            mediaSource.addEventListener('error', (e) => {{
+            currentStream.mediaSource.addEventListener('error', (e) => {{
                 console.error('❌ MediaSource error:', e);
                 updateStatus('❌ Stream error', true);
-                setTimeout(resetStreamVideo, 2000);
+                setTimeout(() => cleanupStream(currentStream), 2000);
             }});
+            
+            return currentStream;
         }}
         
         function processNextChunk() {{
-            if (isAppending || pendingChunks.length === 0 || !sourceBuffer) {{
+            if (!currentStream || 
+                currentStream.isAppending || 
+                currentStream.pendingChunks.length === 0 || 
+                !currentStream.sourceBuffer) {{
                 return;
             }}
             
-            if (sourceBuffer.updating) {{
+            if (currentStream.sourceBuffer.updating) {{
                 console.log('⏳ SourceBuffer still updating, waiting...');
                 return;
             }}
             
-            isAppending = true;
-            const chunk = pendingChunks.shift();
+            currentStream.isAppending = true;
+            const chunk = currentStream.pendingChunks.shift();
             
-            console.log('⚡ Appending chunk (' + pendingChunks.length + ' remaining in queue)');
+            console.log('⚡ Appending chunk (' + currentStream.pendingChunks.length + ' remaining in queue)');
             
             try {{
-                // Append the chunk FIRST
-                sourceBuffer.appendBuffer(chunk);
+                // Append chunk
+                currentStream.sourceBuffer.appendBuffer(chunk);
                 
-                // CRITICAL: Auto-play IMMEDIATELY on first chunk (EXACT match to streaming_ui.py)
-                if (isFirstChunk) {{
-                    isFirstChunk = false;
+                // Auto-play on first chunk
+                if (currentStream.isFirstChunk) {{
+                    currentStream.isFirstChunk = false;
                     
                     // Switch to stream video
                     showStreamVideo();
                     
-                    // Start playback immediately (streaming_ui.py does this INSIDE the try block)
+                    // Start playback
                     streamVideo.play().then(() => {{
                         console.log('▶️ Playback started (first chunk)');
                         updateStatus('Playing...', false);
@@ -302,11 +302,11 @@ def get_session_player_html(session) -> str:
                 }}
             }} catch (e) {{
                 console.error('❌ Failed to append chunk:', e);
-                isAppending = false;
+                currentStream.isAppending = false;
                 updateStatus('❌ Chunk error', true);
                 
                 // Try to recover
-                if (pendingChunks.length > 0) {{
+                if (currentStream.pendingChunks.length > 0) {{
                     console.log('🔄 Retrying next chunk...');
                     setTimeout(processNextChunk, 100);
                 }}
@@ -314,35 +314,30 @@ def get_session_player_html(session) -> str:
         }}
         
         // Stream video events
-        streamVideo.addEventListener('playing', () => {{
-            console.log('▶️ Stream actually playing');
-        }});
-        
-        streamVideo.addEventListener('waiting', () => {{
-            console.log('⏸️ Stream buffering...');
-        }});
-        
         streamVideo.addEventListener('ended', () => {{
             console.log('⏹️ Stream video ended');
             updateStatus('✅ Complete', false);
-            setTimeout(resetStreamVideo, 2000);
+            // ✅ DON'T reset immediately - wait for next audio
+            setTimeout(() => {{
+                if (currentStream && currentStream.allChunksReceived) {{
+                    cleanupStream(currentStream);
+                    currentStream = null;
+                }}
+            }}, 2000);
         }});
         
         streamVideo.addEventListener('error', (e) => {{
-            if (!streamingStarted) {{
-                return;
-            }}
+            if (!currentStream) return;
             
             const error = streamVideo.error;
             if (error) {{
                 console.error('❌ Stream video error - Code:', error.code);
                 updateStatus('❌ Playback error', true);
-                setTimeout(resetStreamVideo, 2000);
+                setTimeout(() => {{
+                    cleanupStream(currentStream);
+                    currentStream = null;
+                }}, 2000);
             }}
-        }});
-        
-        placeholderVideo.addEventListener('error', (e) => {{
-            console.warn('⚠️ Placeholder video error (non-critical)');
         }});
         
         async function connectToSession() {{
@@ -356,17 +351,18 @@ def get_session_player_html(session) -> str:
                     console.log('📨 SSE event:', data.event, data);
                     
                     if (data.event === 'chunk') {{
-                        totalChunks = data.total_chunks;
-                        receivedChunks++;
-                        
-                        // Initialize MediaSource on first chunk
-                        if (!mediaSource) {{
-                            initMediaSource();
-                            // Wait a bit for MediaSource to be ready
+                        // ✅ CRITICAL: Create new stream on first chunk
+                        if (!currentStream || currentStream.allChunksReceived) {{
+                            console.log('🎬 New audio stream detected - creating fresh MediaSource');
+                            currentStream = createNewStream();
+                            // Wait for MediaSource to be ready
                             await new Promise(resolve => setTimeout(resolve, 100));
                         }}
                         
-                        updateStatus('Loading ' + receivedChunks + '/' + totalChunks, false);
+                        currentStream.totalChunks = data.total_chunks;
+                        currentStream.receivedChunks++;
+                        
+                        updateStatus('Loading ' + currentStream.receivedChunks + '/' + currentStream.totalChunks, false);
                         
                         try {{
                             console.log('📥 Fetching chunk ' + (data.index + 1) + ':', data.url);
@@ -376,10 +372,10 @@ def get_session_player_html(session) -> str:
                             const arrayBuffer = await response.arrayBuffer();
                             console.log('✅ Chunk ' + (data.index + 1) + ' fetched (' + (arrayBuffer.byteLength / 1024).toFixed(1) + ' KB)');
                             
-                            pendingChunks.push(arrayBuffer);
+                            currentStream.pendingChunks.push(arrayBuffer);
                             
                             // Try to process if SourceBuffer is ready
-                            if (sourceBuffer && !sourceBuffer.updating) {{
+                            if (currentStream.sourceBuffer && !currentStream.sourceBuffer.updating) {{
                                 processNextChunk();
                             }}
                         }} catch (error) {{
@@ -389,16 +385,19 @@ def get_session_player_html(session) -> str:
                     }}
                     else if (data.event === 'complete') {{
                         console.log('✅ Stream complete - all chunks sent');
-                        allChunksReceived = true;
-                        eventSource.close();
-                        
-                        // Try to end stream if all chunks are processed
-                        if (sourceBuffer && !sourceBuffer.updating && pendingChunks.length === 0) {{
-                            if (mediaSource && mediaSource.readyState === 'open') {{
-                                try {{
-                                    mediaSource.endOfStream();
-                                }} catch (e) {{
-                                    console.warn('Error ending stream:', e);
+                        if (currentStream) {{
+                            currentStream.allChunksReceived = true;
+                            
+                            // Try to end stream if all chunks are processed
+                            if (currentStream.sourceBuffer && 
+                                !currentStream.sourceBuffer.updating && 
+                                currentStream.pendingChunks.length === 0) {{
+                                if (currentStream.mediaSource && currentStream.mediaSource.readyState === 'open') {{
+                                    try {{
+                                        currentStream.mediaSource.endOfStream();
+                                    }} catch (e) {{
+                                        console.warn('Error ending stream:', e);
+                                    }}
                                 }}
                             }}
                         }}
@@ -406,14 +405,16 @@ def get_session_player_html(session) -> str:
                     else if (data.event === 'error') {{
                         console.error('❌ Stream error:', data.message);
                         updateStatus('❌ ' + data.message, true);
-                        eventSource.close();
-                        setTimeout(resetStreamVideo, 2000);
+                        if (currentStream) {{
+                            cleanupStream(currentStream);
+                            currentStream = null;
+                        }}
                     }}
                 }});
                 
                 eventSource.addEventListener('error', (e) => {{
                     console.warn('⚠️ SSE connection error');
-                    eventSource.close();
+                    // ✅ DON'T close - allow reconnection
                 }});
                 
                 eventSource.addEventListener('open', () => {{
