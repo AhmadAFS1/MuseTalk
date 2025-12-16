@@ -23,7 +23,7 @@ GET http://localhost:8000/stats/cache
 # ============================================================================
 
 ### Step 1: Create a Session for User 1
-POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=user1&batch_size=8&fps=15&chunk_duration=2
+POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=user1&batch_size=8&fps=10&chunk_duration=2
 
 ###
 
@@ -51,7 +51,7 @@ POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=user3&b
 ###http://localhost:8001/player/session/--ZBpEe9zfGCkBLC_BtcGg
 ### Step 3: Send Audio to Session (response-2.mpga)
 # Replace {session_id} with actual session_id from Step 1
-POST http://localhost:8000/sessions/h6wHGmQsq8KVYJp_DZpLlw/stream
+POST http://localhost:8000/sessions/Z91PCu0Xl8LSVFU3c2t1dg/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -64,7 +64,7 @@ Content-Type: audio/mpeg
 ###
 
 ### Step 3b: Send 2nd Audio to Same Session
-POST http://localhost:8000/sessions/--ZBpEe9zfGCkBLC_BtcGg/stream
+POST http://localhost:8000/sessions/_fqXAETDZDn2sHzoj_Jj4Q/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -74,10 +74,21 @@ Content-Type: audio/mpeg
 < ./data/audio/2nd_message.mpga
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
 
+### Step 3b: Send 2nd Audio to Same Session
+POST http://localhost:8000/sessions/_fqXAETDZDn2sHzoj_Jj4Q/stream
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="2nd_message.mpga"
+Content-Type: audio/mpeg
+
+< ./data/audio/4th_message_long.mpga
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
 ###
 
 ### Step 3c: Send 3rd Audio (eng.wav)
-POST http://localhost:8000/sessions/abc123xyz456/stream
+POST http://localhost:8000/sessions/Z91PCu0Xl8LSVFU3c2t1dg/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -275,7 +286,7 @@ GET http://localhost:8000/sessions/stats
 ###
 
 ### Delete Specific Session
-DELETE http://localhost:8000/sessions/abc123xyz456
+DELETE http://localhost:8000/sessions/Z91PCu0Xl8LSVFU3c2t1dg
 
 ###
 
