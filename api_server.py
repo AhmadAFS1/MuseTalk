@@ -284,18 +284,59 @@ async def list_avatars():
     return {"avatars": avatars}
 
 @app.delete("/avatars/{avatar_id}")
-async def delete_avatar(avatar_id: str):
-    """Delete an avatar from cache and optionally from disk"""
+async def delete_avatar(avatar_id: str, from_disk: bool = False):
+    """
+    Delete an avatar from cache and optionally from disk.
+    
+    Args:
+        avatar_id: Avatar identifier
+        from_disk: If True, permanently delete from disk (WARNING: irreversible!)
+    """
     if manager is None:
         raise HTTPException(status_code=503, detail="Manager not initialized")
     
-    # Evict from cache
-    evicted = manager.evict_avatar(avatar_id)
+    # 1. Evict from cache first
+    evicted_from_cache = manager.evict_avatar(avatar_id)
+    
+    deleted_from_disk = False
+    disk_path = None
+    
+    # 2. Delete from disk if requested
+    if from_disk:
+        if manager.args.version == "v15":
+            avatar_dir = Path(f"./results/{manager.args.version}/avatars/{avatar_id}")
+        else:
+            avatar_dir = Path(f"./results/avatars/{avatar_id}")
+        
+        if avatar_dir.exists():
+            try:
+                import shutil
+                shutil.rmtree(avatar_dir)
+                deleted_from_disk = True
+                disk_path = str(avatar_dir)
+                print(f"🗑️  Deleted avatar from disk: {disk_path}")
+            except Exception as e:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to delete from disk: {str(e)}"
+                )
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Avatar {avatar_id} not found on disk"
+            )
     
     return {
         "status": "success",
-        "evicted_from_cache": evicted,
-        "message": f"Avatar {avatar_id} evicted from cache (still on disk)"
+        "avatar_id": avatar_id,
+        "evicted_from_cache": evicted_from_cache,
+        "deleted_from_disk": deleted_from_disk,
+        "disk_path": disk_path,
+        "message": (
+            f"Avatar {avatar_id} permanently deleted"
+            if deleted_from_disk
+            else f"Avatar {avatar_id} evicted from cache (still on disk)"
+        )
     }
 
 @app.get("/avatars/{avatar_id}/video")
