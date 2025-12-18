@@ -112,5 +112,10 @@ DELETE http://localhost:8000/avatars/test_avatar
 
 ###
 
+### Delete Avatar from Cache AND Disk (PERMANENT)
+DELETE http://localhost:8000/avatars/test_avatar?from_disk=true
+
+###
+
 ### API Documentation (open in browser)
 GET http://localhost:8000/docs

@@ -129,7 +129,19 @@ class APIAvatar:
         os.makedirs(self.video_out_path, exist_ok=True)
         os.makedirs(self.mask_out_path, exist_ok=True)
         
+        # ✅ NEW: Save input video for playback
+        input_video_path = f"{self.avatar_path}/input_video.mp4"
+        if os.path.isfile(self.video_path):
+            # Copy video file
+            shutil.copy2(self.video_path, input_video_path)
+            print(f"📹 Saved input video: {input_video_path}")
+        elif os.path.isdir(self.video_path):
+            # Convert image directory to video (for consistency)
+            print(f"📹 Converting image directory to video...")
+            self._convert_images_to_video(self.video_path, input_video_path, fps=25)
+        
         # Save avatar info
+        self.avatar_info['input_video_path'] = input_video_path  # ✅ Track input video
         with open(self.avatar_info_path, "w") as f:
             json.dump(self.avatar_info, f)
         
@@ -140,7 +152,34 @@ class APIAvatar:
         self._process_frames()
         
         print(f"✅ Avatar {self.avatar_id} preparation complete")
-    
+
+    def _convert_images_to_video(self, image_dir, output_path, fps=25):
+        """Convert image directory to video file"""
+        import subprocess
+        
+        # Get first image to determine resolution
+        images = sorted([f for f in os.listdir(image_dir) if f.endswith('.png')])
+        if not images:
+            raise ValueError(f"No images found in {image_dir}")
+        
+        first_image = cv2.imread(os.path.join(image_dir, images[0]))
+        height, width = first_image.shape[:2]
+        
+        # Use FFmpeg to create video from images
+        cmd = [
+            'ffmpeg', '-y',
+            '-framerate', str(fps),
+            '-pattern_type', 'glob',
+            '-i', f"{image_dir}/*.png",
+            '-c:v', 'libx264',
+            '-pix_fmt', 'yuv420p',
+            '-crf', '23',
+            output_path
+        ]
+        
+        subprocess.run(cmd, check=True, capture_output=True)
+        print(f"✅ Created video from images: {output_path}")
+
     def _extract_frames(self):
         """Extract frames from video or copy from directory"""
         if os.path.isfile(self.video_path):

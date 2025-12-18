@@ -18,6 +18,11 @@ GET http://localhost:8000/stats/cache
 
 ###
 
+### Get Avatar's Input Video (for testing)
+GET http://localhost:8000/avatars/test_avatar/video
+
+###
+
 # ============================================================================
 # SESSION-BASED STREAMING WORKFLOW
 # ============================================================================
@@ -51,7 +56,7 @@ POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=user3&b
 ###http://localhost:8001/player/session/--ZBpEe9zfGCkBLC_BtcGg
 ### Step 3: Send Audio to Session (response-2.mpga)
 # Replace {session_id} with actual session_id from Step 1
-POST http://localhost:8000/sessions/4IeD4xwNrMipMGufn9kKtw/stream
+POST http://localhost:8000/sessions/uayeCE8Mrpo3QITwR827iw/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -90,7 +95,7 @@ Content-Type: audio/mpeg
 ###
 
 ### Step 3c: No trailing silence (instant cutoff)
-POST http://localhost:8000/sessions/hWr4yi3v2GBjq5FB4z8ZzQ/stream?trailing_silence=0
+POST http://localhost:8000/sessions/uayeCE8Mrpo3QITwR827iw/stream?trailing_silence=0
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW

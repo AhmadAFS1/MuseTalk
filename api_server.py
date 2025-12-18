@@ -340,26 +340,42 @@ async def delete_avatar(avatar_id: str, from_disk: bool = False):
     }
 
 @app.get("/avatars/{avatar_id}/video")
-async def get_avatar_placeholder_video(avatar_id: str):
+async def get_avatar_video(avatar_id: str):
     """
-    Serve the original avatar video as placeholder.
+    Serve the avatar's input video as placeholder.
     This loops continuously until audio is uploaded.
     """
-    # Hardcoded for testing - use the specific uploaded video
-    video_file = Path("uploads/videos/test_avatar_ai_test_default_moving_vid.mp4")
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
     
-    if not video_file.exists():
+    # Construct path to input video
+    if manager.args.version == "v15":
+        video_path = Path(f"./results/{manager.args.version}/avatars/{avatar_id}/input_video.mp4")
+    else:
+        video_path = Path(f"./results/avatars/{avatar_id}/input_video.mp4")
+    
+    # Check if video exists
+    if not video_path.exists():
         raise HTTPException(
             status_code=404, 
-            detail=f"Placeholder video not found at {video_file}"
+            detail=f"Input video not found for avatar '{avatar_id}'. Avatar may need re-preparation."
+        )
+    
+    # Verify file integrity
+    file_size = video_path.stat().st_size
+    if file_size < 1024:  # Less than 1KB
+        raise HTTPException(
+            status_code=500,
+            detail=f"Input video for '{avatar_id}' is corrupted. Please re-prepare avatar."
         )
     
     return FileResponse(
-        video_file,
+        video_path,
         media_type="video/mp4",
         headers={
             "Accept-Ranges": "bytes",
-            "Cache-Control": "public, max-age=3600"
+            "Cache-Control": "public, max-age=3600",
+            "Content-Disposition": f'inline; filename="{avatar_id}_input.mp4"'
         }
     )
 
