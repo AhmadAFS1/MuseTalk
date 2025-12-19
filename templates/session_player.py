@@ -173,12 +173,88 @@ def get_session_player_html(session) -> str:
                 }}
             }}
 
-            // Revoke blob URL if we used one
             if (streamVideo.src && streamVideo.src.startsWith('blob:')) {{
                 try {{ URL.revokeObjectURL(streamVideo.src); }} catch (_) {{}}
             }}
 
             showPlaceholderVideo();
+        }}
+
+        // NEW: wait until playback is actually finished (or clearly stuck at end)
+        function waitForPlaybackToFinishAndSwapBack(stream) {{
+            if (!stream || stream.switchedBack) return;
+
+            // Defensive: clear any prior timer from older streams
+            if (backToPlaceholderTimer) {{
+                clearTimeout(backToPlaceholderTimer);
+                backToPlaceholderTimer = null;
+            }}
+
+            const start = performance.now();
+            const MAX_WAIT_MS = 15000;      // upper bound per stream to avoid getting stuck forever
+            const POLL_MS = 200;
+            const END_EPS = 0.15;           // seconds tolerance near end
+
+            const isAtBufferedEnd = () => {{
+                try {{
+                    const ct = streamVideo.currentTime;
+                    const b = streamVideo.buffered;
+                    if (!b || b.length === 0) return false;
+                    const end = b.end(b.length - 1);
+                    return (end - ct) <= END_EPS;
+                }} catch (_) {{
+                    return false;
+                }}
+            }};
+
+            const isAtDurationEnd = () => {{
+                const d = streamVideo.duration;
+                if (!Number.isFinite(d) || d <= 0) return false;
+                return (d - streamVideo.currentTime) <= END_EPS;
+            }};
+
+            const tick = () => {{
+                // Stream changed while we were waiting
+                if (currentStream !== stream || stream.switchedBack) return;
+
+                // Best case: proper ended signal
+                if (streamVideo.ended) {{
+                    console.log('🏁 streamVideo.ended=true -> back to placeholder');
+                    stream.switchedBack = true;
+                    cleanupStream(stream);
+                    currentStream = null;
+                    updateStatus('Ready - waiting for audio', false);
+                    return;
+                }}
+
+                // If we are at the end of buffer/duration and not actively playing, treat as finished.
+                const atEnd = isAtBufferedEnd() || isAtDurationEnd();
+                const notReallyPlaying = streamVideo.paused || streamVideo.readyState < 3;
+
+                if (atEnd && notReallyPlaying) {{
+                    console.log('🏁 reached end of buffered media (ended may not fire) -> back to placeholder');
+                    stream.switchedBack = true;
+                    cleanupStream(stream);
+                    currentStream = null;
+                    updateStatus('Ready - waiting for audio', false);
+                    return;
+                }}
+
+                // Safety valve: if weird browser state prevents ended, don’t swap early,
+                // but also don’t hang forever.
+                if ((performance.now() - start) > MAX_WAIT_MS) {{
+                    console.warn('⏱️ timeout waiting for playback end -> back to placeholder');
+                    stream.switchedBack = true;
+                    cleanupStream(stream);
+                    currentStream = null;
+                    updateStatus('Ready - waiting for audio', false);
+                    return;
+                }}
+
+                backToPlaceholderTimer = setTimeout(tick, POLL_MS);
+            }};
+
+            backToPlaceholderTimer = setTimeout(tick, POLL_MS);
         }}
 
         function createNewStream() {{
@@ -197,10 +273,10 @@ def get_session_player_html(session) -> str:
                 totalChunks: 0,
                 receivedChunks: 0,
                 allChunksReceived: false,
-                switchedBack: false
+                switchedBack: false,
+                eosSignaled: false   // NEW
             }};
 
-            // ✅ if playback naturally ends, immediately return to base video
             streamVideo.onended = () => {{
                 console.log('🏁 streamVideo ended -> back to placeholder');
                 if (currentStream && !currentStream.switchedBack) {{
@@ -213,7 +289,6 @@ def get_session_player_html(session) -> str:
                 }}
             }};
 
-            // (optional but useful)
             streamVideo.onerror = () => {{
                 console.warn('⚠️ streamVideo error -> back to placeholder');
                 if (currentStream && !currentStream.switchedBack) {{
@@ -241,28 +316,24 @@ def get_session_player_html(session) -> str:
                         currentStream.isAppending = false;
                         processNextChunk();
 
-                        // ✅ when complete + no pending, end MSE and schedule fallback swap-back
-                        if (currentStream.allChunksReceived &&
+                        // When all appended: signal EOS, but DO NOT swap back yet.
+                        if (currentStream &&
+                            !currentStream.eosSignaled &&
+                            currentStream.allChunksReceived &&
                             currentStream.pendingChunks.length === 0 &&
                             !currentStream.sourceBuffer.updating &&
                             currentStream.mediaSource.readyState === 'open') {{
+
                             try {{
                                 currentStream.mediaSource.endOfStream();
+                                currentStream.eosSignaled = true;
+                                console.log('✅ endOfStream signaled (waiting for playback to finish)');
                             }} catch (e) {{
                                 console.warn('Error ending stream:', e);
                             }}
 
-                            // Some browsers never fire 'ended' for MSE; force swap back.
-                            if (backToPlaceholderTimer) clearTimeout(backToPlaceholderTimer);
-                            backToPlaceholderTimer = setTimeout(() => {{
-                                if (currentStream && !currentStream.switchedBack) {{
-                                    console.log('⏱️ fallback -> back to placeholder');
-                                    currentStream.switchedBack = true;
-                                    cleanupStream(currentStream);
-                                    currentStream = null;
-                                    updateStatus('Ready - waiting for audio', false);
-                                }}
-                            }}, 400);
+                            // NEW: wait until video truly finishes (ended/buffer end)
+                            waitForPlaybackToFinishAndSwapBack(currentStream);
                         }}
                     }});
 
