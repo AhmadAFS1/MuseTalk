@@ -1,27 +1,29 @@
-@SESSION_ID = yb7LGSruzNryHEl9OnoBrg
+#@BASE_URL = http://localhost:8000 
+@BASE_URL = http://158.51.110.52:28100
+@SESSION_ID = kBMBJrwvbje8-y7Htn7GKQ
 
 ### Health Check
-GET http://localhost:8000/health
+GET {{BASE_URL}}/health
 
 ###
 
 ### Get System Stats
-GET http://localhost:8000/stats
+GET {{BASE_URL}}/stats
 
 ###
 
 ### Get Session Stats
-GET http://localhost:8000/sessions/stats
+GET {{BASE_URL}}/sessions/stats
 
 ###
 
 ### Get Cache Stats
-GET http://localhost:8000/stats/cache
+GET {{BASE_URL}}/stats/cache
 
 ###
 
 ### Get Avatar's Input Video (for testing)
-GET http://localhost:8000/avatars/test_avatar/video
+GET {{BASE_URL}}/avatars/test_avatar/video
 
 ###
 
@@ -30,17 +32,17 @@ GET http://localhost:8000/avatars/test_avatar/video
 # ============================================================================
 
 ### Step 1: Create a Session for User 1
-POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=user1&batch_size=8&fps=10&chunk_duration=2
+POST {{BASE_URL}}/sessions/create?avatar_id=test_avatar&user_id=user1&batch_size=8&fps=10&chunk_duration=2
 
 ###
 
 ### Step 1b: Create a Session for User 2 (concurrent test)
-POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=user2&batch_size=2&fps=15&chunk_duration=2
+POST {{BASE_URL}}/sessions/create?avatar_id=test_avatar&user_id=user2&batch_size=2&fps=15&chunk_duration=2
 
 ###
 
 ### Step 1c: Create a Session for User 3 (concurrent test)
-POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=user3&batch_size=2&fps=15&chunk_duration=2
+POST {{BASE_URL}}/sessions/create?avatar_id=test_avatar&user_id=user3&batch_size=2&fps=15&chunk_duration=2
 
 ###
 
@@ -58,7 +60,7 @@ POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=user3&b
 ###http://localhost:8001/player/session/--ZBpEe9zfGCkBLC_BtcGg
 ### Step 3: Send Audio to Session (response-2.mpga)
 # Replace {session_id} with actual session_id from Step 1
-POST http://localhost:8000/sessions/{{SESSION_ID}}/stream
+POST {{BASE_URL}}/sessions/{{SESSION_ID}}/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -71,7 +73,7 @@ Content-Type: audio/mpeg
 ###
 
 ### Step 3: Send Audio to Session (with 1.5s trailing silence)
-POST http://localhost:8000/sessions/{{SESSION_ID}}/stream?trailing_silence=1.5
+POST {{BASE_URL}}/sessions/{{SESSION_ID}}/stream?trailing_silence=1.5
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -84,7 +86,7 @@ Content-Type: audio/mpeg
 ###
 
 ### Step 3b: Send 2nd Audio (with default 1s trailing silence)
-POST http://localhost:8000/sessions/{{SESSION_ID}}/stream?trailing_silence=5.0
+POST {{BASE_URL}}/sessions/{{SESSION_ID}}/stream?trailing_silence=5.0
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -97,7 +99,7 @@ Content-Type: audio/mpeg
 ###
 
 ### Step 3c: No trailing silence (instant cutoff)
-POST http://localhost:8000/sessions/{{SESSION_ID}}/stream?trailing_silence=0
+POST {{BASE_URL}}/sessions/{{SESSION_ID}}/stream?trailing_silence=0
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -110,7 +112,7 @@ Content-Type: audio/mpeg
 ###
 
 ### Step 3b: Send 2nd Audio to Same Session
-POST http://localhost:8000/sessions/{{SESSION_ID}}/stream
+POST {{BASE_URL}}/sessions/{{SESSION_ID}}/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -121,7 +123,7 @@ Content-Type: audio/mpeg
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
 
 ### Step 3b: Send 2nd Audio to Same Session
-POST http://localhost:8000/sessions/{{SESSION_ID}}/stream
+POST {{BASE_URL}}/sessions/{{SESSION_ID}}/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -134,7 +136,7 @@ Content-Type: audio/mpeg
 ###
 
 ### Step 3c: Send 3rd Audio (eng.wav)
-POST http://localhost:8000/sessions/{{SESSION_ID}}/stream
+POST {{BASE_URL}}/sessions/{{SESSION_ID}}/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -147,12 +149,12 @@ Content-Type: audio/wav
 ###
 
 ### Check Session Status
-GET http://localhost:8000/sessions/abc123xyz456/status
+GET {{BASE_URL}}/sessions/abc123xyz456/status
 
 ###
 
 ### Delete Session (cleanup)
-DELETE http://localhost:8000/sessions/abc123xyz456
+DELETE {{BASE_URL}}/sessions/abc123xyz456
 
 ###
 
@@ -161,12 +163,12 @@ DELETE http://localhost:8000/sessions/abc123xyz456
 # ============================================================================
 
 ### USER 1: Create Session
-POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=alice&batch_size=2&fps=15
+POST {{BASE_URL}}/sessions/create?avatar_id=test_avatar&user_id=alice&batch_size=2&fps=15
 
 ###
 
 ### USER 1: Stream Audio (response-2.mpga)
-POST http://localhost:8000/sessions/[USER1_SESSION_ID]/stream
+POST {{BASE_URL}}/sessions/[USER1_SESSION_ID]/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -179,12 +181,12 @@ Content-Type: audio/mpeg
 ###
 
 ### USER 2: Create Session
-POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=bob&batch_size=2&fps=15
+POST {{BASE_URL}}/sessions/create?avatar_id=test_avatar&user_id=bob&batch_size=2&fps=15
 
 ###
 
 ### USER 2: Stream Audio (2nd_message.mpga)
-POST http://localhost:8000/sessions/[USER2_SESSION_ID]/stream
+POST {{BASE_URL}}/sessions/[USER2_SESSION_ID]/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -197,12 +199,12 @@ Content-Type: audio/mpeg
 ###
 
 ### USER 3: Create Session
-POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=charlie&batch_size=2&fps=15
+POST {{BASE_URL}}/sessions/create?avatar_id=test_avatar&user_id=charlie&batch_size=2&fps=15
 
 ###
 
 ### USER 3: Stream Audio (eng.wav)
-POST http://localhost:8000/sessions/[USER3_SESSION_ID]/stream
+POST {{BASE_URL}}/sessions/[USER3_SESSION_ID]/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -215,7 +217,7 @@ Content-Type: audio/wav
 ###
 
 ### Check All Session Stats
-GET http://localhost:8000/sessions/stats
+GET {{BASE_URL}}/sessions/stats
 
 ###
 
@@ -224,17 +226,17 @@ GET http://localhost:8000/sessions/stats
 # ============================================================================
 
 ### Low Latency Config (batch_size=1, fps=10, chunk=1s)
-POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=mobile_user&batch_size=1&fps=10&chunk_duration=1
+POST {{BASE_URL}}/sessions/create?avatar_id=test_avatar&user_id=mobile_user&batch_size=1&fps=10&chunk_duration=1
 
 ###
 
 ### High Quality Config (batch_size=4, fps=25, chunk=2s)
-POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=desktop_user&batch_size=4&fps=25&chunk_duration=2
+POST {{BASE_URL}}/sessions/create?avatar_id=test_avatar&user_id=desktop_user&batch_size=4&fps=25&chunk_duration=2
 
 ###
 
 ### Balanced Config (batch_size=2, fps=15, chunk=2s) - RECOMMENDED
-POST http://localhost:8000/sessions/create?avatar_id=test_avatar&user_id=balanced_user&batch_size=2&fps=15&chunk_duration=2
+POST {{BASE_URL}}/sessions/create?avatar_id=test_avatar&user_id=balanced_user&batch_size=2&fps=15&chunk_duration=2
 
 ###
 
