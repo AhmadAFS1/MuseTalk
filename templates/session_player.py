@@ -93,8 +93,6 @@ def get_session_player_html(session) -> str:
     <script>
         const SESSION_ID = '{session.session_id}';
         const AVATAR_ID = '{session.avatar_id}';
-
-        // ✅ Ensure we always hit the same origin/port that served this HTML
         const API_ORIGIN = window.location.origin;
 
         const placeholderVideo = document.getElementById('placeholderVideo');
@@ -102,6 +100,7 @@ def get_session_player_html(session) -> str:
         const statusOverlay = document.getElementById('statusOverlay');
 
         let currentStream = null;
+        let backToPlaceholderTimer = null;
 
         // ✅ Dynamic placeholder video (per avatar)
         placeholderVideo.src = `${{API_ORIGIN}}/avatars/${{AVATAR_ID}}/video?v=${{Date.now()}}`;
@@ -140,6 +139,16 @@ def get_session_player_html(session) -> str:
 
         function showPlaceholderVideo() {{
             console.log('📺 Switching to placeholder video');
+
+            // ✅ clear stream video so the last decoded frame cannot "stick"
+            try {{
+                streamVideo.pause();
+                streamVideo.removeAttribute('src');
+                streamVideo.load();
+            }} catch (e) {{
+                console.warn('Failed to reset streamVideo:', e);
+            }}
+
             streamVideo.style.display = 'none';
             placeholderVideo.style.display = 'block';
 
@@ -151,22 +160,23 @@ def get_session_player_html(session) -> str:
         function cleanupStream(stream) {{
             console.log('🧹 Cleaning up stream');
 
-            if (stream.mediaSource) {{
-                if (stream.mediaSource.readyState === 'open') {{
-                    try {{
-                        stream.mediaSource.endOfStream();
-                    }} catch (e) {{
-                        console.warn('Error ending stream:', e);
-                    }}
-                }}
+            if (backToPlaceholderTimer) {{
+                clearTimeout(backToPlaceholderTimer);
+                backToPlaceholderTimer = null;
+            }}
 
-                if (streamVideo.src && streamVideo.src.startsWith('blob:')) {{
-                    URL.revokeObjectURL(streamVideo.src);
+            if (stream?.mediaSource && stream.mediaSource.readyState === 'open') {{
+                try {{
+                    stream.mediaSource.endOfStream();
+                }} catch (e) {{
+                    console.warn('Error ending stream:', e);
                 }}
             }}
 
-            streamVideo.src = '';
-            streamVideo.load();
+            // Revoke blob URL if we used one
+            if (streamVideo.src && streamVideo.src.startsWith('blob:')) {{
+                try {{ URL.revokeObjectURL(streamVideo.src); }} catch (_) {{}}
+            }}
 
             showPlaceholderVideo();
         }}
@@ -186,7 +196,33 @@ def get_session_player_html(session) -> str:
                 isFirstChunk: true,
                 totalChunks: 0,
                 receivedChunks: 0,
-                allChunksReceived: false
+                allChunksReceived: false,
+                switchedBack: false
+            }};
+
+            // ✅ if playback naturally ends, immediately return to base video
+            streamVideo.onended = () => {{
+                console.log('🏁 streamVideo ended -> back to placeholder');
+                if (currentStream && !currentStream.switchedBack) {{
+                    currentStream.switchedBack = true;
+                    cleanupStream(currentStream);
+                    currentStream = null;
+                    updateStatus('Ready - waiting for audio', false);
+                }} else {{
+                    showPlaceholderVideo();
+                }}
+            }};
+
+            // (optional but useful)
+            streamVideo.onerror = () => {{
+                console.warn('⚠️ streamVideo error -> back to placeholder');
+                if (currentStream && !currentStream.switchedBack) {{
+                    currentStream.switchedBack = true;
+                    cleanupStream(currentStream);
+                    currentStream = null;
+                }} else {{
+                    showPlaceholderVideo();
+                }}
             }};
 
             currentStream.mediaSource = new MediaSource();
@@ -205,6 +241,7 @@ def get_session_player_html(session) -> str:
                         currentStream.isAppending = false;
                         processNextChunk();
 
+                        // ✅ when complete + no pending, end MSE and schedule fallback swap-back
                         if (currentStream.allChunksReceived &&
                             currentStream.pendingChunks.length === 0 &&
                             !currentStream.sourceBuffer.updating &&
@@ -214,6 +251,18 @@ def get_session_player_html(session) -> str:
                             }} catch (e) {{
                                 console.warn('Error ending stream:', e);
                             }}
+
+                            // Some browsers never fire 'ended' for MSE; force swap back.
+                            if (backToPlaceholderTimer) clearTimeout(backToPlaceholderTimer);
+                            backToPlaceholderTimer = setTimeout(() => {{
+                                if (currentStream && !currentStream.switchedBack) {{
+                                    console.log('⏱️ fallback -> back to placeholder');
+                                    currentStream.switchedBack = true;
+                                    cleanupStream(currentStream);
+                                    currentStream = null;
+                                    updateStatus('Ready - waiting for audio', false);
+                                }}
+                            }}, 400);
                         }}
                     }});
 
@@ -222,7 +271,6 @@ def get_session_player_html(session) -> str:
                         updateStatus('❌ Playback error', true);
                     }});
 
-                    // Process any chunks already queued
                     processNextChunk();
                 }} catch (e) {{
                     console.error('❌ Error creating SourceBuffer:', e);
