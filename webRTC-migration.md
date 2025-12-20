@@ -29,6 +29,7 @@ Add WebRTC support alongside existing SSE streaming by introducing a parallel se
   - POST /webrtc/sessions/{session_id}/offer (SDP offer -> answer)
   - POST /webrtc/sessions/{session_id}/ice (ICE candidate exchange)
   - GET  /webrtc/player/{session_id}
+- WebRTC session routes should mirror existing `/sessions` payloads and defaults to keep client integration consistent.
 - Session metadata should include WebRTC state (peer connection, ICE status, codec selection).
 - Session configuration should include an idle/default video reference for fallback playback.
 - Configuration inputs for STUN/TURN (env or config file) without affecting SSE flows.
@@ -39,6 +40,7 @@ Add WebRTC support alongside existing SSE streaming by introducing a parallel se
 - Live playback: frames are rendered as they arrive; audio and video stay in sync.
 - Live end: when the stream finishes or errors, the player returns to the idle loop within a short grace period.
 - Reconnect: if the peer connection drops, the player attempts a limited reconnect; on failure, it falls back to idle.
+- Autoplay policy: same as current MSE player (click-to-play required), use playsinline for iOS.
 
 ## Concrete change notes (by class/module)
 - api_server.py: add `/webrtc/...` endpoints for create/offer/ice/player; wire to a WebRTC session manager; keep existing SSE endpoints unchanged.
@@ -77,8 +79,6 @@ Add WebRTC support alongside existing SSE streaming by introducing a parallel se
 - Autoplay and audio policy constraints on iOS can block playback without user interaction.
 
 ## Open questions
-- Which WebRTC stack is preferred (aiortc vs external media server like Janus/mediasoup)?
-- Which codecs should be prioritized (H264 vs VP8; Opus for audio)?
 - Do we need authentication/authorization for signaling endpoints?
 - What should be the default idle video source (static mp4, looped avatar, or configurable per avatar)?
 
@@ -87,3 +87,29 @@ Add WebRTC support alongside existing SSE streaming by introducing a parallel se
 - Keep SSE as a parallel path for migration and fallback.
 - Default to H264 baseline video and Opus audio for widest device compatibility, especially iOS.
 - Plan to revisit a dedicated media server (Janus/mediasoup) only if concurrency or routing needs exceed aiortc capacity.
+
+## aiortc dependencies and server config (plain language)
+- aiortc: the Python library that provides WebRTC server support inside FastAPI.
+- TLS/HTTPS: WebRTC requires secure origins in browsers, so the API must be served over HTTPS in production.
+- STUN server: helps clients discover their public network address; required for most networks.
+- TURN server: relays traffic when direct peer-to-peer fails (common on mobile networks); needed for reliable iOS/Android connectivity.
+- Codec support: enable H264 (video) and Opus (audio); these are the most compatible across devices.
+
+## Implementation spec (MVP decisions)
+- WebRTC session APIs use the same payloads and defaults as current `/sessions` endpoints.
+- Client behavior matches the MSE player, including click-to-play for autoplay compliance.
+- Encoding settings: fps = 10, H264 software encoding, bitrate set to a stable default (tune after initial tests).
+- Audio sample rate: use source/default settings (no resampling unless required).
+
+## Infrastructure config (proposal)
+- Development: use a public STUN server (example: `stun:stun.l.google.com:19302`) to validate connectivity.
+- Production: deploy a TURN server (coturn) and require it as a fallback for mobile networks.
+- TLS: terminate HTTPS at the API or a reverse proxy so WebRTC negotiation works on iOS Safari and WebViews.
+- Config surface: `WEBRTC_STUN_URLS`, `WEBRTC_TURN_URLS`, `WEBRTC_TURN_USER`, `WEBRTC_TURN_PASS`.
+
+## Media pipeline definition (proposal)
+- Idle mode: a looped default video is served continuously to the WebRTC video track.
+- Live mode: when audio is uploaded to `/webrtc/sessions/{session_id}/stream`, inference emits raw frames (and audio if available) directly into WebRTC tracks.
+- Track design: implement `VideoStreamTrack` backed by an async queue (pull frames), and optionally an `AudioStreamTrack` backed by audio buffers.
+- Timing: timestamp frames using `fps` pacing; drop or skip frames if the queue backs up to keep latency low.
+- Transition: on live start, switch the video track source from idle to live; on live end, return to idle after a short grace period.
