@@ -107,6 +107,11 @@ Add WebRTC support alongside existing SSE streaming by introducing a parallel se
 - TLS: terminate HTTPS at the API or a reverse proxy so WebRTC negotiation works on iOS Safari and WebViews.
 - Config surface: `WEBRTC_STUN_URLS`, `WEBRTC_TURN_URLS`, `WEBRTC_TURN_USER`, `WEBRTC_TURN_PASS`.
 
+## Local vs production 
+- Local dev: running `api_server.py` is usually enough. WebRTC can work without TURN on the same network or when NAT is permissive.
+- Production/mobile users: TURN is often required for reliable connections on iOS/Android cellular networks.
+- HTTPS is required by browsers for WebRTC in production, so plan for TLS even if local dev works over HTTP.
+
 ## Media pipeline definition (proposal)
 - Idle mode: a looped default video is served continuously to the WebRTC video track.
 - Live mode: when audio is uploaded to `/webrtc/sessions/{session_id}/stream`, inference emits raw frames (and audio if available) directly into WebRTC tracks.
