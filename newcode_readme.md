@@ -12,6 +12,8 @@ A comprehensive guide to understanding the backend flow of the MuseTalk Real-Tim
 - [Core Components](#core-components)
 - [API Flow: Prepare an Avatar](#api-flow-prepare-an-avatar)
 - [API Flow: Generate a Video](#api-flow-generate-a-video)
+- [API Flow: Session Streaming](#api-flow-session-streaming)
+- [Session API Reference](#session-api-reference)
 - [Component Deep Dive](#component-deep-dive)
 - [Memory Management](#memory-management)
 - [Performance Optimizations](#performance-optimizations)
@@ -119,6 +121,14 @@ Manages GPU memory budget to prevent OOM errors during concurrent inference.
 - Context manager for safe allocation/release.
 - Blocking allocation when memory insufficient.
 
+### 6. **[session_manager.py](scripts/session_manager.py)** - Session Orchestration
+Manages per-user streaming sessions for real-time chunk delivery.
+
+**Key Features:**
+- Per-session chunk queues for SSE delivery.
+- Session TTL tracking and background cleanup.
+- Active stream tracking to prevent duplicate streams.
+
 ---
 
 ## 🎬 API Flow: Prepare an Avatar
@@ -170,6 +180,108 @@ fps: 25
 2. **Avatar Retrieval**: Loads the avatar from cache or disk.
 3. **Inference**: Generates video frames conditioned on audio embeddings.
 4. **Video Composition**: Combines frames and audio into a final video.
+
+---
+
+## 📡 API Flow: Session Streaming
+
+This flow powers the Call-Annie style experience: a persistent WebView player that receives live chunks while your app uploads audio to a session.
+
+### High-Level Flow
+
+1. **Create a Session**: `POST /sessions/create` returns `session_id` and a `player_url`.
+2. **Load the Player**: Your app opens `player_url` (WebView or browser). The player connects to SSE events.
+3. **Stream Audio**: Your app uploads audio to `POST /sessions/{session_id}/stream`.
+4. **Chunk Delivery**: The server emits chunk events over SSE and the player auto-plays them.
+5. **Cleanup**: Sessions expire after TTL or are deleted explicitly.
+
+### SSE Event Payloads
+
+Each SSE event is JSON and includes one of:
+
+- `{"event": "chunk", "url": "/chunks/{request_id}/chunk_0001.mp4", "index": 0, "total_chunks": 20, "duration": 2, "creation_time": "..."}`
+- `{"event": "complete", "total_chunks": 20}`
+- `{"event": "error", "message": "..." }`
+
+---
+
+## 🧾 Session API Reference
+
+### Create Session
+```http
+POST /sessions/create?avatar_id=test_avatar&user_id=user_123&batch_size=2&fps=15&chunk_duration=2
+```
+
+**Response**
+```json
+{
+  "session_id": "s0m3s3ss10n",
+  "player_url": "/player/session/s0m3s3ss10n",
+  "avatar_id": "test_avatar",
+  "user_id": "user_123",
+  "config": {
+    "batch_size": 2,
+    "fps": 15,
+    "chunk_duration": 2
+  },
+  "expires_in_seconds": 3600
+}
+```
+
+### Start Session Stream (Upload Audio)
+```http
+POST /sessions/{session_id}/stream
+Content-Type: multipart/form-data
+
+audio_file: [binary audio file]
+```
+
+Notes:
+- Only one active stream is allowed per session. A second call returns 409 while streaming.
+
+**Response**
+```json
+{
+  "request_id": "test_avatar_req_ab12cd34",
+  "session_id": "s0m3s3ss10n",
+  "status": "streaming",
+  "message": "Stream started. WebView will receive chunks automatically."
+}
+```
+
+### Receive Streaming Events (SSE)
+```http
+GET /sessions/{session_id}/events
+```
+
+The player consumes this endpoint directly to receive chunks as they are generated.
+
+### Session Status
+```http
+GET /sessions/{session_id}/status
+```
+
+### Delete Session
+```http
+DELETE /sessions/{session_id}
+```
+
+### Session Statistics
+```http
+GET /sessions/stats
+```
+
+### Session Player (WebView)
+```http
+GET /player/session/{session_id}
+```
+
+This HTML player auto-connects to the session SSE stream and plays chunks as they arrive.
+
+### Minimal Mobile Player (Optional)
+```http
+GET /player/mobile?session_id={session_id}
+```
 
 ---
 
@@ -227,7 +339,10 @@ MuseTalk/
 │   ├── avatar_manager_parallel.py     # Orchestration layer
 │   ├── avatar_cache.py                # Smart caching
 │   ├── concurrent_gpu_manager.py      # Memory management
+│   ├── session_manager.py             # Session tracking and cleanup
 │   └── realtime_inference.py          # Original CLI version
+├── templates/
+│   ├── session_player.py              # Session player HTML
 ├── uploads/                           # Temporary uploads
 ├── results/                           # Outputs
 └── models/                            # Pre-trained weights
