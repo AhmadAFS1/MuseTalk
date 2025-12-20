@@ -52,15 +52,16 @@ Add WebRTC support alongside existing SSE streaming by introducing a parallel se
 - scripts/avatar_cache.py: likely no functional change, but monitor cache hit/miss impact when streaming continuously.
 
 ## Action items
-[ ] Choose the WebRTC stack and signaling style (aiortc vs external media server; custom signaling vs WHIP/WHEP) and document tradeoffs.
+[ ] Use `aiortc` for the WebRTC stack (decision made) and document signaling details and tradeoffs.
 [ ] Define the new WebRTC API surface and response shapes (separate from SSE), including auth/headers if needed.
-[ ] Implement a WebRTC session manager that mirrors SSE session lifecycle but stores peer connections and tracks.
+[ ] Implement a WebRTC session manager that mirrors SSE session lifecycle but stores peer connections and media tracks.
 [ ] Build server media tracks that push generated frames and audio buffers into WebRTC (with timestamps for A/V sync).
 [ ] Add a WebRTC player template/page that negotiates the connection and plays the stream.
-[ ] Implement idle/default playback behavior when no chunks are available (looped video or idle frames).
+[ ] Implement idle/default playback behavior when no live stream is active (looped video or idle frames).
 [ ] Set codec preferences for cross-device support (H264 baseline for iOS; Opus for audio where supported).
 [ ] Handle mobile autoplay restrictions (playsinline, user gesture gating, muted-start fallback).
 [ ] Wire STUN/TURN config and document required deployment steps for NAT traversal.
+[ ] Document WebRTC dependencies here (no `requirements.txt` changes yet): `aiortc`, `av`, `aioice`.
 [ ] Update docs with a parallel WebRTC workflow and a migration guide that compares SSE vs WebRTC.
 [ ] Add monitoring/logging for per-session latency, ICE failures, and resource usage.
 
@@ -113,6 +114,7 @@ Add WebRTC support alongside existing SSE streaming by introducing a parallel se
 - HTTPS is required by browsers for WebRTC in production, so plan for TLS even if local dev works over HTTP.
 
 ## Media pipeline definition (proposal)
+- Single PeerConnection with one MediaStream containing two tracks (video + audio). This keeps audio and video together for the client while preserving WebRTC's track model.
 - Idle mode: a looped default video is served continuously to the WebRTC video track.
 - Live mode: when audio is uploaded to `/webrtc/sessions/{session_id}/stream`, inference emits raw frames (and audio if available) directly into WebRTC tracks.
 - Track design: implement `VideoStreamTrack` backed by an async queue (pull frames), and optionally an `AudioStreamTrack` backed by audio buffers.
