@@ -1,0 +1,48 @@
+@BASE_URL = http://localhost:8000
+@AVATAR_ID = test_avatar
+@SESSION_ID = REPLACE_ME
+@OFFER_SDP = REPLACE_ME
+@ICE_CANDIDATE = REPLACE_ME
+@ICE_SDP_MID = 0
+@ICE_SDP_MLINE_INDEX = 0
+
+### Health Check
+GET {{BASE_URL}}/health
+
+###
+
+### Create WebRTC Session
+POST {{BASE_URL}}/webrtc/sessions/create?avatar_id={{AVATAR_ID}}&user_id=user1
+
+###
+
+### Open WebRTC Player in Browser (manual step)
+# http://localhost:8000/webrtc/player/{session_id}
+
+###
+
+### WebRTC Offer -> Answer (paste SDP from client)
+POST {{BASE_URL}}/webrtc/sessions/{{SESSION_ID}}/offer
+Content-Type: application/json
+
+{
+  "sdp": "{{OFFER_SDP}}",
+  "type": "offer"
+}
+
+###
+
+### Send ICE Candidate (paste candidate from client)
+POST {{BASE_URL}}/webrtc/sessions/{{SESSION_ID}}/ice
+Content-Type: application/json
+
+{
+  "candidate": "{{ICE_CANDIDATE}}",
+  "sdpMid": "{{ICE_SDP_MID}}",
+  "sdpMLineIndex": {{ICE_SDP_MLINE_INDEX}}
+}
+
+###
+
+### Delete WebRTC Session
+DELETE {{BASE_URL}}/webrtc/sessions/{{SESSION_ID}}

@@ -18,7 +18,17 @@ from datetime import datetime, timedelta
 from templates.streaming_ui import streaming_ui_endpoint
 from templates.mobile_player import mobile_player_endpoint
 from templates.session_player import get_session_player_html  # ✅ ADD THIS
+from templates.webrtc_player import get_webrtc_player_html
 from scripts.session_manager import SessionManager
+try:
+    from scripts.webrtc_manager import WebRTCSessionManager, build_rtc_configuration
+    WEBRTC_AVAILABLE = True
+    WEBRTC_IMPORT_ERROR = None
+except ImportError as exc:
+    WebRTCSessionManager = None
+    build_rtc_configuration = None
+    WEBRTC_AVAILABLE = False
+    WEBRTC_IMPORT_ERROR = str(exc)
 
 # Persistent cleanup tracking
 CLEANUP_DB = Path("chunks/.cleanup_queue.json")
@@ -58,6 +68,15 @@ class StatsResponse(BaseModel):
     active_requests: int
     total_requests: int
 
+class WebRTCOffer(BaseModel):
+    sdp: str
+    type: str
+
+class WebRTCIceCandidate(BaseModel):
+    candidate: Optional[str] = None
+    sdpMid: Optional[str] = None
+    sdpMLineIndex: Optional[int] = None
+
 # ============================================================================
 # Initialize FastAPI App
 # ============================================================================
@@ -83,15 +102,20 @@ app.add_middleware(
 
 manager: Optional[ParallelAvatarManager] = None
 session_manager: Optional[SessionManager] = None  # ✅ NEW
+webrtc_session_manager: Optional["WebRTCSessionManager"] = None
+webrtc_ice_servers: list[dict] = []
 
 # ============================================================================
 # Startup/Shutdown Events
 # ============================================================================
 
+def _parse_ice_urls(raw: str) -> list[str]:
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize the avatar manager on startup"""
-    global manager, session_manager
+    global manager, session_manager, webrtc_session_manager, webrtc_ice_servers
     
     print("🚀 Starting MuseTalk API Server...")
     
@@ -119,15 +143,54 @@ async def startup_event():
     # ✅ Initialize session manager
     session_manager = SessionManager(session_ttl_seconds=3600)
     session_manager.start_cleanup()
+
+    if WEBRTC_AVAILABLE:
+        stun_urls = _parse_ice_urls(
+            os.getenv("WEBRTC_STUN_URLS", "stun:stun.l.google.com:19302")
+        )
+        turn_urls = _parse_ice_urls(os.getenv("WEBRTC_TURN_URLS", ""))
+        turn_user = os.getenv("WEBRTC_TURN_USER")
+        turn_pass = os.getenv("WEBRTC_TURN_PASS")
+
+        rtc_config = build_rtc_configuration(
+            stun_urls=stun_urls or None,
+            turn_urls=turn_urls or None,
+            turn_user=turn_user,
+            turn_pass=turn_pass,
+        )
+
+        webrtc_ice_servers = []
+        if stun_urls:
+            webrtc_ice_servers.append({"urls": stun_urls})
+        if turn_urls:
+            entry = {"urls": turn_urls}
+            if turn_user:
+                entry["username"] = turn_user
+            if turn_pass:
+                entry["credential"] = turn_pass
+            webrtc_ice_servers.append(entry)
+
+        webrtc_session_manager = WebRTCSessionManager(
+            session_ttl_seconds=3600,
+            rtc_config=rtc_config,
+            ice_servers=webrtc_ice_servers,
+        )
+        webrtc_session_manager.start_cleanup()
+    else:
+        print(f"WebRTC disabled (missing deps): {WEBRTC_IMPORT_ERROR}")
     
     print("✅ MuseTalk API Server ready!")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global manager
+    global manager, webrtc_session_manager
     if manager:
         manager.shutdown()
+    if webrtc_session_manager:
+        sessions = list(webrtc_session_manager.sessions.keys())
+        for session_id in sessions:
+            await webrtc_session_manager.delete_session(session_id)
     print("👋 MuseTalk API Server stopped")
 
 @app.on_event("startup")
@@ -339,6 +402,12 @@ async def delete_avatar(avatar_id: str, from_disk: bool = False):
         )
     }
 
+def _resolve_avatar_video_path(avatar_id: str) -> Path:
+    if manager.args.version == "v15":
+        return Path(f"./results/{manager.args.version}/avatars/{avatar_id}/input_video.mp4")
+    return Path(f"./results/avatars/{avatar_id}/input_video.mp4")
+
+
 @app.get("/avatars/{avatar_id}/video")
 async def get_avatar_video(avatar_id: str):
     """
@@ -347,12 +416,8 @@ async def get_avatar_video(avatar_id: str):
     """
     if manager is None:
         raise HTTPException(status_code=503, detail="Manager not initialized")
-    
-    # Construct path to input video
-    if manager.args.version == "v15":
-        video_path = Path(f"./results/{manager.args.version}/avatars/{avatar_id}/input_video.mp4")
-    else:
-        video_path = Path(f"./results/avatars/{avatar_id}/input_video.mp4")
+
+    video_path = _resolve_avatar_video_path(avatar_id)
     
     # Check if video exists
     if not video_path.exists():
@@ -1197,6 +1262,156 @@ async def session_player(session_id: str):
         raise HTTPException(status_code=404, detail="Session not found or expired")
     
     return HTMLResponse(content=get_session_player_html(session))
+
+# ============================================================================
+# WebRTC Session Endpoints (NEW)
+# ============================================================================
+
+def _require_webrtc():
+    if not WEBRTC_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail=f"WebRTC dependencies missing: {WEBRTC_IMPORT_ERROR}"
+        )
+    if webrtc_session_manager is None:
+        raise HTTPException(status_code=503, detail="WebRTC session manager not initialized")
+
+
+async def _wait_for_ice_gathering(pc) -> None:
+    if pc.iceGatheringState == "complete":
+        return
+
+    done = asyncio.Event()
+
+    @pc.on("icegatheringstatechange")
+    def on_ice_gathering_state_change():
+        if pc.iceGatheringState == "complete":
+            done.set()
+
+    await done.wait()
+
+
+@app.post("/webrtc/sessions/create")
+async def create_webrtc_session(
+    avatar_id: str,
+    user_id: Optional[str] = None,
+):
+    """
+    Create a new WebRTC session for a user.
+    Returns session_id and player URL.
+    """
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    _require_webrtc()
+
+    if not manager._avatar_exists(avatar_id):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Avatar '{avatar_id}' not found. Please prepare it first."
+        )
+
+    video_path = _resolve_avatar_video_path(avatar_id)
+    if not video_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Input video not found for avatar '{avatar_id}'."
+        )
+    if video_path.stat().st_size < 1024:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Input video for '{avatar_id}' is corrupted. Please re-prepare avatar."
+        )
+
+    session = await webrtc_session_manager.create_session(
+        avatar_id=avatar_id,
+        user_id=user_id,
+        idle_video_path=str(video_path)
+    )
+
+    return {
+        "session_id": session.session_id,
+        "player_url": f"/webrtc/player/{session.session_id}",
+        "avatar_id": avatar_id,
+        "user_id": user_id,
+        "ice_servers": session.ice_servers,
+        "expires_in_seconds": webrtc_session_manager.session_ttl
+    }
+
+
+@app.post("/webrtc/sessions/{session_id}/offer")
+async def webrtc_offer(session_id: str, offer: WebRTCOffer):
+    """
+    Exchange SDP offer for answer.
+    """
+    _require_webrtc()
+
+    session = await webrtc_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+
+    from aiortc import RTCSessionDescription
+
+    await session.pc.setRemoteDescription(
+        RTCSessionDescription(sdp=offer.sdp, type=offer.type)
+    )
+    if session.idle_sender is None and session.idle_track is not None:
+        session.idle_sender = session.pc.addTrack(session.idle_track)
+    answer = await session.pc.createAnswer()
+    await session.pc.setLocalDescription(answer)
+    await _wait_for_ice_gathering(session.pc)
+
+    return {
+        "sdp": session.pc.localDescription.sdp,
+        "type": session.pc.localDescription.type
+    }
+
+
+@app.post("/webrtc/sessions/{session_id}/ice")
+async def webrtc_ice(session_id: str, ice: WebRTCIceCandidate):
+    """
+    Receive ICE candidates from client.
+    """
+    _require_webrtc()
+
+    session = await webrtc_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+
+    if ice.candidate:
+        from aiortc.sdp import candidate_from_sdp
+        candidate = candidate_from_sdp(ice.candidate)
+        candidate.sdpMid = ice.sdpMid
+        candidate.sdpMLineIndex = ice.sdpMLineIndex
+        await session.pc.addIceCandidate(candidate)
+    else:
+        await session.pc.addIceCandidate(None)
+
+    return {"status": "ok"}
+
+
+@app.delete("/webrtc/sessions/{session_id}")
+async def delete_webrtc_session(session_id: str):
+    _require_webrtc()
+
+    deleted = await webrtc_session_manager.delete_session(session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"status": "deleted", "session_id": session_id}
+
+
+@app.get("/webrtc/player/{session_id}", response_class=HTMLResponse)
+async def webrtc_player(session_id: str):
+    """
+    WebRTC player that connects to a session and plays the idle stream.
+    """
+    _require_webrtc()
+
+    session = await webrtc_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+
+    return HTMLResponse(content=get_webrtc_player_html(session))
 
 # ============================================================================
 # Statistics Endpoints
