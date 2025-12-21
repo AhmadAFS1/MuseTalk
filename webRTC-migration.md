@@ -108,6 +108,16 @@ Add WebRTC support alongside existing SSE streaming by introducing a parallel se
 - TLS: terminate HTTPS at the API or a reverse proxy so WebRTC negotiation works on iOS Safari and WebViews.
 - Config surface: `WEBRTC_STUN_URLS`, `WEBRTC_TURN_URLS`, `WEBRTC_TURN_USER`, `WEBRTC_TURN_PASS`.
 
+## Hosting / port mapping notes (Vast.ai example)
+- WebRTC media uses random UDP ports, not the HTTP port.
+- Keep TCP open for API/SSH (ex: TCP 8000 mapped to a public port like `36961`).
+- Open a UDP port range (ex: `40000-40100`) and restrict the OS ephemeral range to match:
+  - `sudo sysctl -w net.ipv4.ip_local_port_range="40000 40100"`
+- Use the mapped TCP port for all HTTP requests and player URLs:
+  - `POST http://<public-ip>:<tcp-port>/webrtc/sessions/create?...`
+  - `http://<public-ip>:<tcp-port>/webrtc/player/{session_id}`
+- UDP ports are not part of the URL; they are used by ICE behind the scenes.
+
 ## Local vs production 
 - Local dev: running `api_server.py` is usually enough. WebRTC can work without TURN on the same network or when NAT is permissive.
 - Production/mobile users: TURN is often required for reliable connections on iOS/Android cellular networks.
