@@ -56,6 +56,80 @@ class LiveVideoStreamTrack(VideoStreamTrack):
         super().stop()
 
 
+class SwitchableVideoStreamTrack(VideoStreamTrack):
+    """
+    Single video track that switches between idle frames and live frames.
+    Avoids replaceTrack issues by always producing frames.
+    """
+
+    def __init__(self, idle_video_path: str, fps: float = 10.0, max_queue: int = 30):
+        super().__init__()
+        self._fps = fps
+        self._frame_time = 1.0 / float(self._fps)
+        self._queue: asyncio.Queue = asyncio.Queue(maxsize=max_queue)
+        self._idle = IdleVideoStreamTrack(idle_video_path, fps=fps)
+        self._live_active = False
+        self._last_ts = None
+        self._closed = False
+
+    def start_live(self) -> None:
+        self._live_active = True
+
+    def end_live(self) -> None:
+        self._live_active = False
+        # Clear any buffered live frames so we return to idle immediately.
+        try:
+            while True:
+                self._queue.get_nowait()
+        except asyncio.QueueEmpty:
+            pass
+
+    async def push_bgr_frame(self, frame_bgr) -> None:
+        if self._closed:
+            return
+        if self._queue.full():
+            try:
+                self._queue.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+        frame = av.VideoFrame.from_ndarray(frame_bgr, format="bgr24").reformat(format="yuv420p")
+        await self._queue.put(frame)
+
+    async def recv(self):
+        if self._closed:
+            raise asyncio.CancelledError()
+
+        if self._last_ts is None:
+            self._last_ts = time.time()
+        else:
+            now = time.time()
+            wait = self._frame_time - (now - self._last_ts)
+            if wait > 0:
+                await asyncio.sleep(wait)
+            self._last_ts = time.time()
+
+        frame = None
+        if self._live_active:
+            try:
+                frame = self._queue.get_nowait()
+            except asyncio.QueueEmpty:
+                frame = None
+
+        if frame is None:
+            frame = self._idle.read_frame()
+
+        pts, time_base = await self.next_timestamp()
+        frame.pts = pts
+        frame.time_base = time_base
+        return frame
+
+    def stop(self) -> None:
+        self._closed = True
+        if self._idle is not None:
+            self._idle.stop()
+        super().stop()
+
+
 class SilenceAudioStreamTrack(MediaStreamTrack):
     """
     Simple silence audio source to keep the audio m-line alive until real audio is available.
@@ -112,6 +186,15 @@ class IdleVideoStreamTrack(VideoStreamTrack):
             self._container.close()
         self._open_container()
 
+    def read_frame(self):
+        try:
+            frame = next(self._frame_iter)
+        except StopIteration:
+            self._reset_container()
+            frame = next(self._frame_iter)
+
+        return frame.reformat(format="yuv420p")
+
     async def recv(self):
         if self._last_ts is None:
             self._last_ts = time.time()
@@ -122,13 +205,7 @@ class IdleVideoStreamTrack(VideoStreamTrack):
                 await asyncio.sleep(wait)
             self._last_ts = time.time()
 
-        try:
-            frame = next(self._frame_iter)
-        except StopIteration:
-            self._reset_container()
-            frame = next(self._frame_iter)
-
-        frame = frame.reformat(format="yuv420p")
+        frame = self.read_frame()
         pts, time_base = await self.next_timestamp()
         frame.pts = pts
         frame.time_base = time_base
@@ -139,3 +216,7 @@ class IdleVideoStreamTrack(VideoStreamTrack):
             self._container.close()
             self._container = None
         super().stop()
+
+    def reset(self) -> None:
+        """Restart the container/iterator (used when reattaching)."""
+        self._reset_container()

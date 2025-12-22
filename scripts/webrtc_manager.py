@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 
 from aiortc import RTCPeerConnection, RTCConfiguration, RTCIceServer, RTCRtpSender
 
-from scripts.webrtc_tracks import IdleVideoStreamTrack, LiveVideoStreamTrack, SilenceAudioStreamTrack
+from scripts.webrtc_tracks import SwitchableVideoStreamTrack, SilenceAudioStreamTrack
 
 
 def build_rtc_configuration(
@@ -38,10 +38,8 @@ class WebRTCSession:
     batch_size: int = 2
     chunk_duration: int = 2
     pc: Optional[RTCPeerConnection] = None
-    idle_track: Optional[IdleVideoStreamTrack] = None
+    idle_track: Optional[SwitchableVideoStreamTrack] = None
     idle_sender: Optional[RTCRtpSender] = None
-    live_track: Optional[LiveVideoStreamTrack] = None
-    live_sender: Optional[RTCRtpSender] = None
     audio_sender: Optional[RTCRtpSender] = None
     silence_audio_track: Optional[SilenceAudioStreamTrack] = None
     audio_player: Optional[object] = None  # MediaPlayer instance, kept generic to avoid import here
@@ -95,7 +93,7 @@ class WebRTCSessionManager:
     ) -> WebRTCSession:
         session_id = secrets.token_urlsafe(16)
         pc = RTCPeerConnection(self.rtc_config)
-        idle_track = IdleVideoStreamTrack(idle_video_path)
+        idle_track = SwitchableVideoStreamTrack(idle_video_path, fps=fps)
         silence_audio = SilenceAudioStreamTrack()
 
         session = WebRTCSession(
@@ -108,8 +106,6 @@ class WebRTCSessionManager:
             pc=pc,
             idle_track=idle_track,
             idle_sender=None,
-            live_track=None,
-            live_sender=None,
             active_stream=None,
             silence_audio_track=silence_audio,
             ice_servers=self.ice_servers,
@@ -143,8 +139,6 @@ class WebRTCSessionManager:
 
         if session.idle_track is not None:
             session.idle_track.stop()
-        if session.live_track is not None:
-            session.live_track.stop()
         if session.audio_sender and session.audio_sender.track:
             session.audio_sender.track.stop()
         if session.silence_audio_track:

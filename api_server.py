@@ -22,7 +22,6 @@ from templates.webrtc_player import get_webrtc_player_html
 from scripts.session_manager import SessionManager
 try:
     from scripts.webrtc_manager import WebRTCSessionManager, build_rtc_configuration
-    from scripts.webrtc_tracks import LiveVideoStreamTrack
     from aiortc.contrib.media import MediaPlayer
     WEBRTC_AVAILABLE = True
     WEBRTC_IMPORT_ERROR = None
@@ -1437,10 +1436,8 @@ async def webrtc_stream(
     if session.idle_sender is None:
         raise HTTPException(status_code=500, detail="WebRTC sender not initialized")
 
-    # Prepare live track and swap it in
-    session.live_track = LiveVideoStreamTrack(fps=session.fps)
-    session.idle_sender.replaceTrack(session.live_track)
-    session.live_sender = session.idle_sender
+    # Switch the unified track into live mode
+    session.idle_track.start_live()
 
     # Prepare audio track from the uploaded file
     # Do not stop the existing sender track before replace; stopping can end the transceiver.
@@ -1477,7 +1474,7 @@ async def webrtc_stream(
     def frame_callback(frame_bgr, frame_idx, total_frames):
         try:
             asyncio.run_coroutine_threadsafe(
-                session.live_track.push_bgr_frame(frame_bgr),
+                session.idle_track.push_bgr_frame(frame_bgr),
                 main_loop
             )
         except Exception as e:
@@ -1485,14 +1482,8 @@ async def webrtc_stream(
 
     def cleanup_to_idle():
         session.active_stream = None
-        if session.idle_sender and session.idle_track:
-            try:
-                session.idle_sender.replaceTrack(session.idle_track)
-            except Exception as e:
-                print(f"⚠️ [{request_id}] failed to switch back to idle track: {e}")
-        if session.live_track:
-            session.live_track.stop()
-            session.live_track = None
+        if session.idle_track:
+            session.idle_track.end_live()
         if session.audio_sender and session.audio_sender.track:
             session.audio_sender.track.stop()
             session.audio_sender = None
