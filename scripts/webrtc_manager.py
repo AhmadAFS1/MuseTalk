@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 
 from aiortc import RTCPeerConnection, RTCConfiguration, RTCIceServer, RTCRtpSender
 
-from scripts.webrtc_tracks import IdleVideoStreamTrack
+from scripts.webrtc_tracks import IdleVideoStreamTrack, LiveVideoStreamTrack
 
 
 def build_rtc_configuration(
@@ -34,9 +34,17 @@ class WebRTCSession:
     user_id: Optional[str] = None
     created_at: float = field(default_factory=time.time)
     last_activity: float = field(default_factory=time.time)
+    fps: int = 10
+    batch_size: int = 2
+    chunk_duration: int = 2
     pc: Optional[RTCPeerConnection] = None
     idle_track: Optional[IdleVideoStreamTrack] = None
     idle_sender: Optional[RTCRtpSender] = None
+    live_track: Optional[LiveVideoStreamTrack] = None
+    live_sender: Optional[RTCRtpSender] = None
+    audio_sender: Optional[RTCRtpSender] = None
+    audio_player: Optional[object] = None  # MediaPlayer instance, kept generic to avoid import here
+    active_stream: Optional[str] = None
     ice_servers: List[dict] = field(default_factory=list)
 
     def is_expired(self, ttl_seconds: int = 3600) -> bool:
@@ -80,6 +88,9 @@ class WebRTCSessionManager:
         avatar_id: str,
         idle_video_path: str,
         user_id: Optional[str] = None,
+        fps: int = 10,
+        batch_size: int = 2,
+        chunk_duration: int = 2,
     ) -> WebRTCSession:
         session_id = secrets.token_urlsafe(16)
         pc = RTCPeerConnection(self.rtc_config)
@@ -89,9 +100,15 @@ class WebRTCSessionManager:
             session_id=session_id,
             avatar_id=avatar_id,
             user_id=user_id,
+            fps=fps,
+            batch_size=batch_size,
+            chunk_duration=chunk_duration,
             pc=pc,
             idle_track=idle_track,
             idle_sender=None,
+            live_track=None,
+            live_sender=None,
+            active_stream=None,
             ice_servers=self.ice_servers,
         )
 
@@ -123,6 +140,12 @@ class WebRTCSessionManager:
 
         if session.idle_track is not None:
             session.idle_track.stop()
+        if session.live_track is not None:
+            session.live_track.stop()
+        if session.audio_sender and session.audio_sender.track:
+            session.audio_sender.track.stop()
+        if session.audio_player and hasattr(session.audio_player, "stop"):
+            session.audio_player.stop()
         if session.pc is not None:
             await session.pc.close()
 

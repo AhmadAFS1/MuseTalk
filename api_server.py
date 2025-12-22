@@ -22,6 +22,8 @@ from templates.webrtc_player import get_webrtc_player_html
 from scripts.session_manager import SessionManager
 try:
     from scripts.webrtc_manager import WebRTCSessionManager, build_rtc_configuration
+    from scripts.webrtc_tracks import LiveVideoStreamTrack
+    from aiortc.contrib.media import MediaPlayer
     WEBRTC_AVAILABLE = True
     WEBRTC_IMPORT_ERROR = None
 except ImportError as exc:
@@ -1295,6 +1297,9 @@ async def _wait_for_ice_gathering(pc) -> None:
 async def create_webrtc_session(
     avatar_id: str,
     user_id: Optional[str] = None,
+    fps: int = 10,
+    batch_size: int = 2,
+    chunk_duration: int = 2,
 ):
     """
     Create a new WebRTC session for a user.
@@ -1326,7 +1331,10 @@ async def create_webrtc_session(
     session = await webrtc_session_manager.create_session(
         avatar_id=avatar_id,
         user_id=user_id,
-        idle_video_path=str(video_path)
+        idle_video_path=str(video_path),
+        fps=fps,
+        batch_size=batch_size,
+        chunk_duration=chunk_duration,
     )
 
     return {
@@ -1335,7 +1343,12 @@ async def create_webrtc_session(
         "avatar_id": avatar_id,
         "user_id": user_id,
         "ice_servers": session.ice_servers,
-        "expires_in_seconds": webrtc_session_manager.session_ttl
+        "expires_in_seconds": webrtc_session_manager.session_ttl,
+        "config": {
+            "fps": fps,
+            "batch_size": batch_size,
+            "chunk_duration": chunk_duration,
+        }
     }
 
 
@@ -1388,6 +1401,137 @@ async def webrtc_ice(session_id: str, ice: WebRTCIceCandidate):
         await session.pc.addIceCandidate(None)
 
     return {"status": "ok"}
+
+
+@app.post("/webrtc/sessions/{session_id}/stream")
+async def webrtc_stream(
+    session_id: str,
+    audio_file: UploadFile = File(...),
+):
+    """
+    Start live streaming for a WebRTC session.
+    Uses the same audio upload as SSE, but pushes frames into the WebRTC track.
+    """
+    _require_webrtc()
+
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    session = await webrtc_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+
+    if session.active_stream is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Session already streaming (request_id: {session.active_stream})"
+        )
+
+    # Ensure sender exists (idle track added during offer handling)
+    if session.idle_sender is None and session.idle_track is not None:
+        session.idle_sender = session.pc.addTrack(session.idle_track)
+
+    if session.idle_sender is None:
+        raise HTTPException(status_code=500, detail="WebRTC sender not initialized")
+
+    # Prepare live track and swap it in
+    session.live_track = LiveVideoStreamTrack(fps=session.fps)
+    session.idle_sender.replaceTrack(session.live_track)
+    session.live_sender = session.idle_sender
+
+    # Prepare audio track from the uploaded file
+    if session.audio_sender and session.audio_sender.track:
+        session.audio_sender.track.stop()
+    if session.audio_player and hasattr(session.audio_player, "stop"):
+        session.audio_player.stop()
+
+    request_id = f"{session.avatar_id}_webrtc_{uuid.uuid4().hex[:8]}"
+    session.active_stream = request_id
+
+    upload_dir = Path("uploads/audio")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    audio_path = upload_dir / f"{request_id}.{audio_file.filename.split('.')[-1]}"
+
+    with audio_path.open("wb") as buffer:
+        shutil.copyfileobj(audio_file.file, buffer)
+
+    # Attach audio player/track
+    audio_player = MediaPlayer(str(audio_path))
+    session.audio_player = audio_player
+    if audio_player.audio:
+        session.audio_sender = session.pc.addTrack(audio_player.audio)
+
+    main_loop = asyncio.get_event_loop()
+
+    def frame_callback(frame_bgr, frame_idx, total_frames):
+        try:
+            asyncio.run_coroutine_threadsafe(
+                session.live_track.push_bgr_frame(frame_bgr),
+                main_loop
+            )
+        except Exception as e:
+            print(f"⚠️ [{request_id}] frame_callback error: {e}")
+
+    def cleanup_to_idle():
+        session.active_stream = None
+        if session.idle_sender and session.idle_track:
+            try:
+                session.idle_sender.replaceTrack(session.idle_track)
+            except Exception as e:
+                print(f"⚠️ [{request_id}] failed to switch back to idle track: {e}")
+        if session.live_track:
+            session.live_track.stop()
+            session.live_track = None
+        if session.audio_sender and session.audio_sender.track:
+            session.audio_sender.track.stop()
+            session.audio_sender = None
+        if session.audio_player and hasattr(session.audio_player, "stop"):
+            session.audio_player.stop()
+            session.audio_player = None
+
+    def streaming_worker():
+        try:
+            print(f"🎬 [{request_id}] Starting WebRTC streaming for session {session_id}")
+            with manager.gpu_memory.allocate(session.batch_size):
+                avatar = manager._get_or_load_avatar(session.avatar_id, session.batch_size)
+                # Run streaming without chunk files; push frames to live track.
+                for _ in avatar.inference_streaming(
+                    audio_path=str(audio_path),
+                    audio_processor=manager.audio_processor,
+                    whisper=manager.whisper,
+                    timesteps=manager.timesteps,
+                    device=manager.device,
+                    fps=session.fps,
+                    chunk_duration_seconds=session.chunk_duration,
+                    chunk_output_dir=None,
+                    frame_callback=frame_callback,
+                    emit_chunks=False,
+                ):
+                    pass
+            print(f"✅ [{request_id}] WebRTC streaming complete")
+        except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"❌ [{request_id}] WebRTC streaming error: {error_detail}")
+        finally:
+            cleanup_to_idle()
+
+    # Kick off background worker
+    future = main_loop.run_in_executor(manager.executor, streaming_worker)
+    manager.active_requests[request_id] = {
+        'avatar_id': session.avatar_id,
+        'status': 'streaming',
+        'future': future,
+        'type': 'webrtc_stream',
+        'session_id': session_id
+    }
+
+    return {
+        "request_id": request_id,
+        "session_id": session_id,
+        "status": "streaming",
+        "message": "WebRTC stream started. Player will switch to live."
+    }
 
 
 @app.delete("/webrtc/sessions/{session_id}")

@@ -1,10 +1,58 @@
 import asyncio
 import time
-
 from typing import Optional
 
 import av
 from aiortc import VideoStreamTrack
+
+
+class LiveVideoStreamTrack(VideoStreamTrack):
+    """
+    Video track fed by pushed frames (e.g., inference output).
+    """
+
+    def __init__(self, fps: float = 10.0, max_queue: int = 30):
+        super().__init__()
+        self._fps = fps
+        self._frame_time = 1.0 / float(self._fps)
+        self._queue: asyncio.Queue = asyncio.Queue(maxsize=max_queue)
+        self._last_ts = None
+        self._closed = False
+
+    async def push_bgr_frame(self, frame_bgr) -> None:
+        if self._closed:
+            return
+        # Drop the oldest frame if the queue is full to keep latency low.
+        if self._queue.full():
+            try:
+                self._queue.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+        frame = av.VideoFrame.from_ndarray(frame_bgr, format="bgr24").reformat(format="yuv420p")
+        await self._queue.put(frame)
+
+    async def recv(self):
+        if self._closed:
+            raise asyncio.CancelledError()
+
+        if self._last_ts is None:
+            self._last_ts = time.time()
+        else:
+            now = time.time()
+            wait = self._frame_time - (now - self._last_ts)
+            if wait > 0:
+                await asyncio.sleep(wait)
+            self._last_ts = time.time()
+
+        frame = await self._queue.get()
+        pts, time_base = await self.next_timestamp()
+        frame.pts = pts
+        frame.time_base = time_base
+        return frame
+
+    def stop(self) -> None:
+        self._closed = True
+        super().stop()
 
 
 class IdleVideoStreamTrack(VideoStreamTrack):

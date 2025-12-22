@@ -457,8 +457,19 @@ class APIAvatar:
         return output_vid
 
     @torch.no_grad()
-    def inference_streaming(self, audio_path, audio_processor, whisper, timesteps, device, 
-                            fps=25, chunk_duration_seconds=2, chunk_output_dir=None):
+    def inference_streaming(
+        self,
+        audio_path,
+        audio_processor,
+        whisper,
+        timesteps,
+        device,
+        fps=25,
+        chunk_duration_seconds=2,
+        chunk_output_dir=None,
+        frame_callback=None,
+        emit_chunks=True,
+    ):
         """
         Stream video chunks as they're generated.
         
@@ -482,8 +493,8 @@ class APIAvatar:
         else:
             chunk_dir = Path(self.avatar_path) / "chunks"
             print(f"📁 Default output directory: {chunk_dir}")
-        
-        chunk_dir.mkdir(parents=True, exist_ok=True)
+        if emit_chunks:
+            chunk_dir.mkdir(parents=True, exist_ok=True)
         
         tmp_dir = f"{self.avatar_path}/tmp"
         os.makedirs(tmp_dir, exist_ok=True)
@@ -579,6 +590,12 @@ class APIAvatar:
                 combine_frame = get_image_blending(ori_frame, res_frame_resized, bbox, mask, mask_crop_box)
                 frame_buffer.append(combine_frame)
                 frame_idx += 1
+
+                if frame_callback is not None:
+                    try:
+                        frame_callback(combine_frame, frame_idx, video_num)
+                    except Exception as callback_err:
+                        print(f"⚠️ frame_callback error: {callback_err}")
                 
                 # ═══════════════════════════════════════════════════════════
                 # PHASE 3: CHUNK CREATION (when buffer is full)
@@ -595,31 +612,34 @@ class APIAvatar:
                         time_to_first_chunk = time.time() - request_start
                         print(f"    ⏱️  Time to first chunk: {time_to_first_chunk:.3f}s")
                     
-                    chunk_start = time.time()
-                    chunk_path = self._create_chunk(
-                        frames=frame_buffer, 
-                        chunk_index=chunk_index, 
-                        audio_path=audio_path, 
-                        fps=fps,
-                        start_frame=chunk_index * frames_per_chunk,
-                        total_frames=video_num,
-                        output_path=str(chunk_dir / f"chunk_{chunk_index:04d}.mp4")
-                    )
-                    chunk_elapsed = time.time() - chunk_start
-                    
-                    chunk_info = {
-                        'chunk_path': chunk_path,
-                        'chunk_index': chunk_index,
-                        'total_chunks': total_chunks,
-                        'duration_seconds': len(frame_buffer) / fps,
-                        'creation_time': chunk_elapsed
-                    }
-                    
-                    print(f"    ✅ Chunk created: {chunk_path}")
-                    print(f"    ⏱️  Creation time: {chunk_elapsed:.2f}s")
-                    print(f"    🎬 Duration: {chunk_info['duration_seconds']:.2f}s")
-                    
-                    yield chunk_info
+                    if emit_chunks:
+                        chunk_start = time.time()
+                        chunk_path = self._create_chunk(
+                            frames=frame_buffer, 
+                            chunk_index=chunk_index, 
+                            audio_path=audio_path, 
+                            fps=fps,
+                            start_frame=chunk_index * frames_per_chunk,
+                            total_frames=video_num,
+                            output_path=str(chunk_dir / f"chunk_{chunk_index:04d}.mp4")
+                        )
+                        chunk_elapsed = time.time() - chunk_start
+                        
+                        chunk_info = {
+                            'chunk_path': chunk_path,
+                            'chunk_index': chunk_index,
+                            'total_chunks': total_chunks,
+                            'duration_seconds': len(frame_buffer) / fps,
+                            'creation_time': chunk_elapsed
+                        }
+                        
+                        print(f"    ✅ Chunk created: {chunk_path}")
+                        print(f"    ⏱️  Creation time: {chunk_elapsed:.2f}s")
+                        print(f"    🎬 Duration: {chunk_info['duration_seconds']:.2f}s")
+                        
+                        yield chunk_info
+                    else:
+                        print(f"    🚀 Streaming {len(frame_buffer)} frames to live track (no chunk file)")
                     
                     frame_buffer = []
                     chunk_index += 1
