@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 
 from aiortc import RTCPeerConnection, RTCConfiguration, RTCIceServer, RTCRtpSender
 
-from scripts.webrtc_tracks import IdleVideoStreamTrack, LiveVideoStreamTrack
+from scripts.webrtc_tracks import IdleVideoStreamTrack, LiveVideoStreamTrack, SilenceAudioStreamTrack
 
 
 def build_rtc_configuration(
@@ -43,6 +43,7 @@ class WebRTCSession:
     live_track: Optional[LiveVideoStreamTrack] = None
     live_sender: Optional[RTCRtpSender] = None
     audio_sender: Optional[RTCRtpSender] = None
+    silence_audio_track: Optional[SilenceAudioStreamTrack] = None
     audio_player: Optional[object] = None  # MediaPlayer instance, kept generic to avoid import here
     active_stream: Optional[str] = None
     ice_servers: List[dict] = field(default_factory=list)
@@ -95,6 +96,7 @@ class WebRTCSessionManager:
         session_id = secrets.token_urlsafe(16)
         pc = RTCPeerConnection(self.rtc_config)
         idle_track = IdleVideoStreamTrack(idle_video_path)
+        silence_audio = SilenceAudioStreamTrack()
 
         session = WebRTCSession(
             session_id=session_id,
@@ -109,6 +111,7 @@ class WebRTCSessionManager:
             live_track=None,
             live_sender=None,
             active_stream=None,
+            silence_audio_track=silence_audio,
             ice_servers=self.ice_servers,
         )
 
@@ -144,6 +147,8 @@ class WebRTCSessionManager:
             session.live_track.stop()
         if session.audio_sender and session.audio_sender.track:
             session.audio_sender.track.stop()
+        if session.silence_audio_track:
+            session.silence_audio_track.stop()
         if session.audio_player and hasattr(session.audio_player, "stop"):
             session.audio_player.stop()
         if session.pc is not None:

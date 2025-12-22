@@ -1370,6 +1370,9 @@ async def webrtc_offer(session_id: str, offer: WebRTCOffer):
     )
     if session.idle_sender is None and session.idle_track is not None:
         session.idle_sender = session.pc.addTrack(session.idle_track)
+    # Ensure an audio sender exists so the audio m-line stays active.
+    if session.audio_sender is None and session.silence_audio_track is not None:
+        session.audio_sender = session.pc.addTrack(session.silence_audio_track)
     answer = await session.pc.createAnswer()
     await session.pc.setLocalDescription(answer)
     await _wait_for_ice_gathering(session.pc)
@@ -1440,8 +1443,7 @@ async def webrtc_stream(
     session.live_sender = session.idle_sender
 
     # Prepare audio track from the uploaded file
-    if session.audio_sender and session.audio_sender.track:
-        session.audio_sender.track.stop()
+    # Do not stop the existing sender track before replace; stopping can end the transceiver.
     if session.audio_player and hasattr(session.audio_player, "stop"):
         session.audio_player.stop()
 
@@ -1459,7 +1461,16 @@ async def webrtc_stream(
     audio_player = MediaPlayer(str(audio_path))
     session.audio_player = audio_player
     if audio_player.audio:
-        session.audio_sender = session.pc.addTrack(audio_player.audio)
+        if session.audio_sender:
+            session.audio_sender.replaceTrack(audio_player.audio)
+        else:
+            session.audio_sender = session.pc.addTrack(audio_player.audio)
+    else:
+        session.audio_player = None
+        raise HTTPException(
+            status_code=500,
+            detail="Audio track could not be created from uploaded file (unsupported codec/format?)"
+        )
 
     main_loop = asyncio.get_event_loop()
 

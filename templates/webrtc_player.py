@@ -127,6 +127,8 @@ def get_webrtc_player_html(session) -> str:
             updateStatus('Connecting...');
 
             pc = new RTCPeerConnection({{ iceServers: ICE_SERVERS }});
+            remoteVideo.muted = false;
+            remoteVideo.volume = 1.0;
 
             pc.ontrack = (event) => {{
                 if (event.streams && event.streams[0]) {{

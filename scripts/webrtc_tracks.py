@@ -1,9 +1,10 @@
 import asyncio
 import time
+import fractions
 from typing import Optional
 
 import av
-from aiortc import VideoStreamTrack
+from aiortc import VideoStreamTrack, MediaStreamTrack
 
 
 class LiveVideoStreamTrack(VideoStreamTrack):
@@ -53,6 +54,32 @@ class LiveVideoStreamTrack(VideoStreamTrack):
     def stop(self) -> None:
         self._closed = True
         super().stop()
+
+
+class SilenceAudioStreamTrack(MediaStreamTrack):
+    """
+    Simple silence audio source to keep the audio m-line alive until real audio is available.
+    """
+
+    kind = "audio"
+
+    def __init__(self, sample_rate: int = 48000, samples: int = 960):
+        super().__init__()
+        self.sample_rate = sample_rate
+        self.samples = samples
+        self._timestamp = 0
+        self._frame_time = self.samples / float(self.sample_rate)
+
+    async def recv(self):
+        await asyncio.sleep(self._frame_time)
+        frame = av.AudioFrame(format="s16", layout="mono", samples=self.samples)
+        for p in frame.planes:
+            p.update(b"\x00" * p.buffer_size)
+        frame.pts = self._timestamp
+        frame.sample_rate = self.sample_rate
+        frame.time_base = fractions.Fraction(1, self.sample_rate)
+        self._timestamp += self.samples
+        return frame
 
 
 class IdleVideoStreamTrack(VideoStreamTrack):
