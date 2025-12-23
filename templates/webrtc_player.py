@@ -70,12 +70,30 @@ def get_webrtc_player_html(session) -> str:
         .error {{
             color: #ff5555;
         }}
+
+        .debug-overlay {{
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            padding: 8px 10px;
+            border-radius: 8px;
+            z-index: 20;
+            max-width: 90%;
+            white-space: pre;
+        }}
     </style>
 </head>
 <body>
     <div class="video-container">
         <video id="remoteVideo" playsinline webkit-playsinline autoplay></video>
-        <div class="status-overlay button" id="statusOverlay">Tap to start</div>
+        <audio id="remoteAudio" autoplay></audio>
+        <div class="status-overlay button" id="statusOverlay">Tap to start (enable audio)</div>
+        <div class="debug-overlay" id="debugOverlay">debug: idle</div>
     </div>
 
     <script>
@@ -84,10 +102,16 @@ def get_webrtc_player_html(session) -> str:
         const ICE_SERVERS = {ice_servers};
 
         const remoteVideo = document.getElementById('remoteVideo');
+        const remoteAudio = document.getElementById('remoteAudio');
         const statusOverlay = document.getElementById('statusOverlay');
+        const debugOverlay = document.getElementById('debugOverlay');
 
         let pc = null;
         let started = false;
+        let audioUnlocked = false;
+        let remoteStream = null;
+        let lastAudioBytes = null;
+        let lastAudioTs = null;
 
         function updateStatus(message, isError = false, isButton = false) {{
             statusOverlay.textContent = message;
@@ -108,6 +132,10 @@ def get_webrtc_player_html(session) -> str:
             statusOverlay.classList.add('hidden');
         }}
 
+        function setDebug(lines) {{
+            debugOverlay.textContent = lines.join('\\n');
+        }}
+
         async function sendIceCandidate(candidate) {{
             if (!candidate) return;
             await fetch(`${{API_ORIGIN}}/webrtc/sessions/${{SESSION_ID}}/ice`, {{
@@ -121,18 +149,66 @@ def get_webrtc_player_html(session) -> str:
             }});
         }}
 
+        async function unlockAudio() {{
+            try {{
+                const vStream = remoteVideo.srcObject;
+                remoteVideo.pause();
+                remoteVideo.srcObject = null;
+                remoteVideo.srcObject = vStream;
+
+                const aStream = remoteAudio.srcObject;
+                remoteAudio.pause();
+                remoteAudio.srcObject = null;
+                remoteAudio.srcObject = aStream;
+
+                remoteVideo.muted = false;
+                remoteVideo.volume = 1.0;
+                remoteAudio.muted = false;
+                remoteAudio.volume = 1.0;
+                await remoteVideo.play();
+                await remoteAudio.play();
+                audioUnlocked = true;
+                hideStatus();
+            }} catch (err) {{
+                updateStatus('Tap to start (enable audio)', false, true);
+            }}
+        }}
+
         async function start() {{
             if (started) return;
             started = true;
             updateStatus('Connecting...');
+            setDebug(['debug: connecting']);
 
             pc = new RTCPeerConnection({{ iceServers: ICE_SERVERS }});
-            remoteVideo.muted = false;
+            remoteStream = new MediaStream();
+            remoteVideo.srcObject = remoteStream;
+            // Audio is unlocked via user gesture before calling start().
+            remoteVideo.muted = !audioUnlocked;
             remoteVideo.volume = 1.0;
+            remoteAudio.muted = !audioUnlocked;
+            remoteAudio.volume = 1.0;
 
             pc.ontrack = (event) => {{
-                if (event.streams && event.streams[0]) {{
-                    remoteVideo.srcObject = event.streams[0];
+                if (event.track && event.track.kind === 'video') {{
+                    if (!remoteStream) {{
+                        remoteStream = new MediaStream();
+                        remoteVideo.srcObject = remoteStream;
+                    }}
+                    if (!remoteStream.getTracks().includes(event.track)) {{
+                        remoteStream.addTrack(event.track);
+                    }}
+                    return;
+                }}
+
+                if (event.track && event.track.kind === 'audio') {{
+                    const audioStream = new MediaStream([event.track]);
+                    remoteAudio.srcObject = audioStream;
+                    if (!audioUnlocked) {{
+                        updateStatus('Tap to start (enable audio)', false, true);
+                    }} else {{
+                        remoteAudio.play().catch(() => {{}});
+                    }}
                 }}
             }};
 
@@ -147,6 +223,7 @@ def get_webrtc_player_html(session) -> str:
                 if (state === 'failed' || state === 'disconnected') {{
                     updateStatus('Connection lost', true, true);
                     started = false;
+                    audioUnlocked = false;
                 }}
             }};
 
@@ -173,26 +250,80 @@ def get_webrtc_player_html(session) -> str:
 
             const answer = await resp.json();
             await pc.setRemoteDescription(answer);
-
-            try {{
-                await remoteVideo.play();
-                hideStatus();
-            }} catch (err) {{
-                updateStatus('Tap to play', false, true);
-            }}
+            hideStatus();
         }}
 
-        statusOverlay.addEventListener('click', () => {{
-            if (!started) {{
-                start().catch(() => updateStatus('Failed to connect', true, true));
-            }} else {{
-                remoteVideo.play().then(hideStatus).catch(() => {{
-                    updateStatus('Tap to play', false, true);
-                }});
-            }}
-        }});
+        async function updateDebugStats() {{
+            if (!pc) return;
+            const lines = [];
+            lines.push('pc: ' + pc.connectionState + ' / ice: ' + pc.iceConnectionState);
+            const vTracks = remoteVideo.srcObject ? remoteVideo.srcObject.getVideoTracks().length : 0;
+            const aTracks = remoteAudio.srcObject ? remoteAudio.srcObject.getAudioTracks().length : 0;
+            lines.push('tracks: video=' + vTracks + ' audio=' + aTracks);
 
-        start().catch(() => updateStatus('Failed to connect', true, true));
+            try {{
+                const stats = await pc.getStats();
+                let audioReport = null;
+                stats.forEach(r => {{
+                    if (r.type === 'inbound-rtp' && (r.kind === 'audio' || r.mediaType === 'audio')) {{
+                        audioReport = r;
+                    }}
+                }});
+                if (audioReport) {{
+                    const bytes = audioReport.bytesReceived || 0;
+                    const packets = audioReport.packetsReceived || 0;
+                    let kbps = 'n/a';
+                    const now = Date.now();
+                    if (lastAudioBytes !== null && lastAudioTs !== null) {{
+                        const deltaBytes = bytes - lastAudioBytes;
+                        const deltaMs = now - lastAudioTs;
+                        if (deltaMs > 0) {{
+                            kbps = ((deltaBytes * 8) / deltaMs).toFixed(1);
+                        }}
+                    }}
+                    lastAudioBytes = bytes;
+                    lastAudioTs = now;
+                    lines.push('audio bytes: ' + bytes + ' pkts: ' + packets + ' kbps: ' + kbps);
+                    if (audioReport.jitter !== undefined) {{
+                        lines.push('audio jitter: ' + audioReport.jitter);
+                    }}
+                }} else {{
+                    lines.push('audio inbound: none');
+                }}
+            }} catch (err) {{
+                lines.push('stats error: ' + err);
+            }}
+
+            setDebug(lines);
+        }}
+
+        let lastTapMs = 0;
+        function handleTap() {{
+            const now = Date.now();
+            if (now - lastTapMs < 350) {{
+                return;
+            }}
+            lastTapMs = now;
+            if (!started) {{
+                // Unlock audio in the user gesture before async negotiation.
+                audioUnlocked = true;
+                remoteVideo.muted = false;
+                remoteVideo.volume = 1.0;
+                remoteAudio.muted = false;
+                remoteAudio.volume = 1.0;
+                remoteVideo.play().catch(() => {{}});
+                remoteAudio.play().catch(() => {{}});
+                start().catch(() => updateStatus('Failed to connect', true, true));
+                return;
+            }}
+            unlockAudio();
+        }}
+
+        statusOverlay.addEventListener('pointerdown', handleTap);
+        statusOverlay.addEventListener('click', handleTap);
+
+        updateStatus('Tap to start (enable audio)', false, true);
+        setInterval(updateDebugStats, 2000);
 
         window.addEventListener('beforeunload', () => {{
             if (pc) {{

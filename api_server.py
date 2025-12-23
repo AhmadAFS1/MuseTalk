@@ -1439,10 +1439,10 @@ async def webrtc_stream(
     # Switch the unified track into live mode
     session.idle_track.start_live()
 
-    # Prepare audio track from the uploaded file
-    # Do not stop the existing sender track before replace; stopping can end the transceiver.
+    # Stop previous audio player if any
     if session.audio_player and hasattr(session.audio_player, "stop"):
         session.audio_player.stop()
+        session.audio_player = None
 
     request_id = f"{session.avatar_id}_webrtc_{uuid.uuid4().hex[:8]}"
     session.active_stream = request_id
@@ -1454,20 +1454,16 @@ async def webrtc_stream(
     with audio_path.open("wb") as buffer:
         shutil.copyfileobj(audio_file.file, buffer)
 
-    # Attach audio player/track
-    audio_player = MediaPlayer(str(audio_path))
-    session.audio_player = audio_player
-    if audio_player.audio:
-        if session.audio_sender:
-            session.audio_sender.replaceTrack(audio_player.audio)
-        else:
-            session.audio_sender = session.pc.addTrack(audio_player.audio)
+    # ✅ Use custom FileAudioStreamTrack instead of MediaPlayer
+    audio_track = FileAudioStreamTrack(str(audio_path))
+    session.audio_player = audio_track  # Store reference to stop later
+    
+    if session.audio_sender:
+        session.audio_sender.replaceTrack(audio_track)
+        print(f"🔊 [{request_id}] Replaced audio track with FileAudioStreamTrack: {audio_path.name}")
     else:
-        session.audio_player = None
-        raise HTTPException(
-            status_code=500,
-            detail="Audio track could not be created from uploaded file (unsupported codec/format?)"
-        )
+        session.audio_sender = session.pc.addTrack(audio_track)
+        print(f"🔊 [{request_id}] Added FileAudioStreamTrack: {audio_path.name}")
 
     main_loop = asyncio.get_event_loop()
 
@@ -1484,19 +1480,12 @@ async def webrtc_stream(
         session.active_stream = None
         if session.idle_track:
             session.idle_track.end_live()
-        if session.audio_sender and session.audio_sender.track:
-            session.audio_sender.track.stop()
-            session.audio_sender = None
-        if session.audio_player and hasattr(session.audio_player, "stop"):
-            session.audio_player.stop()
-            session.audio_player = None
 
     def streaming_worker():
         try:
             print(f"🎬 [{request_id}] Starting WebRTC streaming for session {session_id}")
             with manager.gpu_memory.allocate(session.batch_size):
                 avatar = manager._get_or_load_avatar(session.avatar_id, session.batch_size)
-                # Run streaming without chunk files; push frames to live track.
                 for _ in avatar.inference_streaming(
                     audio_path=str(audio_path),
                     audio_processor=manager.audio_processor,
@@ -1518,7 +1507,6 @@ async def webrtc_stream(
         finally:
             cleanup_to_idle()
 
-    # Kick off background worker
     future = main_loop.run_in_executor(manager.executor, streaming_worker)
     manager.active_requests[request_id] = {
         'avatar_id': session.avatar_id,
