@@ -13,6 +13,8 @@ A comprehensive guide to understanding the backend flow of the MuseTalk Real-Tim
 - [API Flow: Prepare an Avatar](#api-flow-prepare-an-avatar)
 - [API Flow: Generate a Video](#api-flow-generate-a-video)
 - [API Flow: Session Streaming](#api-flow-session-streaming)
+- [API Flow: WebRTC Streaming](#api-flow-webrtc-streaming)
+- [WebRTC Implementation](#webrtc-implementation)
 - [Session API Reference](#session-api-reference)
 - [Component Deep Dive](#component-deep-dive)
 - [Memory Management](#memory-management)
@@ -205,6 +207,66 @@ Each SSE event is JSON and includes one of:
 
 ---
 
+## 📡 API Flow: WebRTC Streaming
+
+WebRTC runs in parallel to SSE/MSE and provides lower-latency playback with direct media tracks. The server uses `aiortc` and keeps an idle loop playing until live audio arrives.
+
+### High-Level Flow
+
+1. **Create WebRTC Session**: `POST /webrtc/sessions/create` returns `session_id`, `player_url`, and `ice_servers`.
+2. **Open the WebRTC Player**: `GET /webrtc/player/{session_id}` loads the HTML player which performs SDP offer/answer + ICE exchange.
+3. **Stream Audio**: `POST /webrtc/sessions/{session_id}/stream` uploads audio; the server pushes live frames into the WebRTC video track.
+4. **Idle ↔ Live Switching**: the video track stays alive and switches between idle video frames and live inference frames.
+5. **Cleanup**: sessions close on TTL or explicit delete.
+
+### WebRTC Endpoints (summary)
+
+```http
+POST /webrtc/sessions/create?avatar_id=test_avatar&user_id=user_123
+POST /webrtc/sessions/{session_id}/offer
+POST /webrtc/sessions/{session_id}/ice
+POST /webrtc/sessions/{session_id}/stream
+GET  /webrtc/player/{session_id}
+DELETE /webrtc/sessions/{session_id}
+```
+
+---
+
+## 🧠 WebRTC Implementation
+
+### 1) WebRTC Session Manager (`scripts/webrtc_manager.py`)
+
+- Builds `RTCConfiguration` from `WEBRTC_STUN_URLS` / `WEBRTC_TURN_URLS` and exposes `ice_servers` to the client.
+- Each session stores a peer connection, a switchable video track, a silence audio track, senders, and timestamps.
+- Background cleanup evicts expired sessions; connection `closed` triggers immediate teardown.
+
+### 2) WebRTC Tracks (`scripts/webrtc_tracks.py`)
+
+- **`SwitchableVideoStreamTrack`**: single video track that always emits frames. It plays idle frames by default, and switches to live frames when `start_live()` is called. `end_live()` drains the queue and falls back to idle without replacing the track.
+- **`IdleVideoStreamTrack`**: loops the prepared avatar MP4 via PyAV and outputs `yuv420p` frames at the configured FPS.
+- **`SilenceAudioStreamTrack`**: emits 20 ms silent audio frames to keep the audio m-line alive during idle.
+- **`SyncedAudioStreamTrack`**: high-quality audio path used for live streaming. It converts audio to PCM (FFmpeg + soxr if available), preloads into memory, and paces frames using PTS timing. Playback begins when `signal_start()` is called, allowing a small prebuffer so audio aligns with the first live video frames.
+
+Other tracks (`LiveVideoStreamTrack`, `FileAudioStreamTrack`, `ToneAudioStreamTrack`) exist for debugging/experiments but are not used in the current WebRTC flow.
+
+### 3) WebRTC Player (`templates/webrtc_player.py`)
+
+- Creates an `RTCPeerConnection` using the session’s ICE servers.
+- Adds `recvonly` transceivers for video and audio.
+- Uses a separate `<audio>` element plus WebAudio routing to avoid Safari autoplay issues.
+- Requires a user tap to start audio (Safari policy).
+- Includes a debug overlay (getStats) showing audio bytes/packets and ICE state.
+
+### 4) WebRTC Endpoints (`api_server.py`)
+
+- **Create** (`/webrtc/sessions/create`): validates avatar, resolves idle MP4, and initializes a WebRTC session with ICE servers.
+- **Offer** (`/webrtc/sessions/{id}/offer`): sets remote description, attaches the video + silence-audio tracks, creates an answer, and waits for ICE gathering.
+- **ICE** (`/webrtc/sessions/{id}/ice`): adds incoming ICE candidates.
+- **Stream** (`/webrtc/sessions/{id}/stream`): saves the audio file, creates `SyncedAudioStreamTrack`, signals audio start a few frames before the first live video frame, and pushes live frames into `SwitchableVideoStreamTrack`.
+- **Player** (`/webrtc/player/{id}`): returns the HTML player.
+
+---
+
 ## 🧾 Session API Reference
 
 ### Create Session
@@ -340,9 +402,12 @@ MuseTalk/
 │   ├── avatar_cache.py                # Smart caching
 │   ├── concurrent_gpu_manager.py      # Memory management
 │   ├── session_manager.py             # Session tracking and cleanup
+│   ├── webrtc_manager.py              # WebRTC session manager
+│   ├── webrtc_tracks.py               # WebRTC tracks (video + audio)
 │   └── realtime_inference.py          # Original CLI version
 ├── templates/
 │   ├── session_player.py              # Session player HTML
+│   ├── webrtc_player.py               # WebRTC player HTML
 ├── uploads/                           # Temporary uploads
 ├── results/                           # Outputs
 └── models/                            # Pre-trained weights
