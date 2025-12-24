@@ -1522,7 +1522,7 @@ async def webrtc_stream(
         print(f"⚠️ Could not probe source audio: {e}")
 
     # ✅ Use the improved track
-    audio_track = SyncedAudioStreamTrack(str(audio_path))
+    audio_track = SyncedAudioStreamTrack(str(audio_path), sync_clock=session.sync_clock)
     session.audio_player = audio_track  # Store reference to stop later
     
     if session.audio_sender:

@@ -24,6 +24,34 @@ from aiortc.mediastreams import MediaStreamError
 # Video Tracks
 # ============================================================================
 
+class VideoSyncClock:
+    def __init__(self, source_fps: float):
+        self.source_fps = float(source_fps) if source_fps > 0 else 1.0
+        self.source_frames = 0
+        self.active = False
+        self.started = asyncio.Event()
+
+    def reset(self) -> None:
+        self.source_frames = 0
+        self.active = True
+        self.started.clear()
+
+    def deactivate(self) -> None:
+        self.active = False
+        self.started.set()
+
+    def mark_started(self) -> None:
+        if self.active and not self.started.is_set():
+            self.started.set()
+
+    def add_frames(self, frames: int) -> None:
+        if self.active and frames > 0:
+            self.source_frames += frames
+
+    def video_time(self) -> float:
+        return self.source_frames / self.source_fps
+
+
 class IdleVideoStreamTrack(VideoStreamTrack):
     """
     Loops a local MP4 file as a WebRTC video track.
@@ -148,6 +176,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         source_fps: float = 10.0,
         output_fps: Optional[float] = None,
         max_queue: int = 30,
+        sync_clock: Optional[VideoSyncClock] = None,
     ):
         super().__init__()
         self._source_fps = float(source_fps)
@@ -165,6 +194,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._last_live_frame = None
         self._last_ts = None
         self._closed = False
+        self._sync_clock = sync_clock
 
     def _reset_source_timing(self) -> None:
         self._source_accum = 1.0
@@ -178,12 +208,14 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
 
     def _pop_live_frames(self, steps: int):
         frame = None
+        popped = 0
         for _ in range(max(steps, 0)):
             try:
                 frame = self._queue.get_nowait()
+                popped += 1
             except asyncio.QueueEmpty:
                 break
-        return frame
+        return frame, popped
 
     def _advance_idle_frame(self, steps: int):
         if steps <= 0 and self._last_idle_frame is not None:
@@ -199,6 +231,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._live_active = True
         self._last_live_frame = None
         self._reset_source_timing()
+        if self._sync_clock:
+            self._sync_clock.reset()
 
     def end_live(self) -> None:
         self._live_active = False
@@ -209,6 +243,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             pass
         self._last_live_frame = None
         self._reset_source_timing()
+        if self._sync_clock:
+            self._sync_clock.deactivate()
 
     async def push_bgr_frame(self, frame_bgr) -> None:
         if self._closed:
@@ -238,10 +274,14 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         frame = None
         if self._live_active:
             if advance_frames > 0:
-                next_frame = self._pop_live_frames(advance_frames)
+                next_frame, popped = self._pop_live_frames(advance_frames)
                 if next_frame is not None:
                     self._last_live_frame = next_frame
+                    if self._sync_clock:
+                        self._sync_clock.add_frames(popped)
             frame = self._last_live_frame
+            if self._sync_clock and self._last_live_frame is not None:
+                self._sync_clock.mark_started()
 
         if frame is None:
             frame = self._advance_idle_frame(advance_frames)
@@ -374,6 +414,7 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
         samples_per_frame: int = 960,  # 20ms at 48kHz - optimal for Opus
         use_stereo: bool = False,
         use_ffmpeg_convert: bool = True,  # Use FFmpeg for high-quality conversion
+        sync_clock: Optional[VideoSyncClock] = None,
     ):
         super().__init__()
         self._original_audio_path = audio_path
@@ -384,6 +425,21 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
         self._channels = 2 if use_stereo else 1
         self._layout = "stereo" if use_stereo else "mono"
         self._use_ffmpeg = use_ffmpeg_convert
+        self._sync_clock = sync_clock
+        try:
+            self._max_audio_lead = max(
+                0.0,
+                float(os.getenv("WEBRTC_AUDIO_MAX_LEAD_SECONDS", "0.08"))
+            )
+        except ValueError:
+            self._max_audio_lead = 0.08
+        try:
+            self._max_audio_lag = max(
+                0.0,
+                float(os.getenv("WEBRTC_AUDIO_MAX_LAG_SECONDS", "0.12"))
+            )
+        except ValueError:
+            self._max_audio_lag = 0.12
         
         self._timestamp = 0
         self._started = asyncio.Event()
@@ -556,6 +612,18 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
             
         return result
 
+    def _skip_audio_frames(self, frame_count: int) -> None:
+        if frame_count <= 0:
+            return
+        skip_samples = frame_count * self._samples_per_frame
+        skip_bytes = skip_samples * self._bytes_per_sample * self._channels
+        self._read_position = min(len(self._audio_samples), self._read_position + skip_bytes)
+        self._timestamp += skip_samples
+        self._frames_sent += frame_count
+        if self._read_position >= len(self._audio_samples) and not self._eof:
+            self._eof = True
+            print(f"🔊 Audio EOF after {self._frames_sent} frames (skip)")
+
     async def recv(self):
         if self._stopped:
             raise MediaStreamError("Track stopped")
@@ -565,6 +633,11 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
             await asyncio.wait_for(self._started.wait(), timeout=60.0)
         except asyncio.TimeoutError:
             raise MediaStreamError("Timeout waiting for start signal")
+        if self._sync_clock is not None:
+            try:
+                await asyncio.wait_for(self._sync_clock.started.wait(), timeout=60.0)
+            except asyncio.TimeoutError:
+                raise MediaStreamError("Timeout waiting for video start signal")
 
         # Load audio on first recv
         if not self._fully_loaded:
@@ -581,6 +654,17 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
             elif sleep_time < -0.05:
                 if self._frames_sent % 50 == 0:
                     print(f"⚠️ Audio {-sleep_time*1000:.1f}ms behind")
+
+        if self._sync_clock is not None:
+            video_time = self._sync_clock.video_time()
+            audio_time = self._frames_sent * self._frame_duration
+            drift = audio_time - video_time
+            if drift > self._max_audio_lead:
+                await asyncio.sleep(drift - self._max_audio_lead)
+            elif drift < -self._max_audio_lag:
+                skip_frames = int(((-drift) - self._max_audio_lag) / self._frame_duration)
+                if skip_frames > 0:
+                    self._skip_audio_frames(skip_frames)
 
         # Get audio samples
         audio_bytes = self._get_samples(self._samples_per_frame)

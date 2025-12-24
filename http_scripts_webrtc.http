@@ -1,8 +1,10 @@
 @BASE_URL = http://195.142.145.66:12774
 @AVATAR_ID = test_avatar
 @FPS = 10
-@PLAYBACK_FPS = 20
-@SESSION_ID = rFiZRlwBtjYRkrgpV4SBWw
+@PLAYBACK_FPS = 15
+@BATCH_SIZE = 8
+@CHUNK_DURATION = 2
+@SESSION_ID = xHP6rmMxHr0RcVKGPcrlbQ
 @OFFER_SDP = REPLACE_ME
 @ICE_CANDIDATE = REPLACE_ME
 @ICE_SDP_MID = 0
@@ -14,7 +16,7 @@ GET {{BASE_URL}}/health
 ###
 
 ### Create WebRTC Session
-POST {{BASE_URL}}/webrtc/sessions/create?avatar_id={{AVATAR_ID}}&user_id=user1&fps={{FPS}}&playback_fps={{PLAYBACK_FPS}}
+POST {{BASE_URL}}/webrtc/sessions/create?avatar_id={{AVATAR_ID}}&user_id=user1&fps={{FPS}}&playback_fps={{PLAYBACK_FPS}}&batch_size={{BATCH_SIZE}}&chunk_duration={{CHUNK_DURATION}}
 
 ###
 

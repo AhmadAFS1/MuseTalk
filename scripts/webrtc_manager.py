@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 
 from aiortc import RTCPeerConnection, RTCConfiguration, RTCIceServer, RTCRtpSender
 
-from scripts.webrtc_tracks import SwitchableVideoStreamTrack, SilenceAudioStreamTrack
+from scripts.webrtc_tracks import SwitchableVideoStreamTrack, SilenceAudioStreamTrack, VideoSyncClock
 
 
 def build_rtc_configuration(
@@ -46,6 +46,7 @@ class WebRTCSession:
     audio_player: Optional[object] = None  # MediaPlayer instance, kept generic to avoid import here
     active_stream: Optional[str] = None
     ice_servers: List[dict] = field(default_factory=list)
+    sync_clock: Optional[VideoSyncClock] = None
 
     def is_expired(self, ttl_seconds: int = 3600) -> bool:
         return (time.time() - self.last_activity) > ttl_seconds
@@ -97,10 +98,12 @@ class WebRTCSessionManager:
             playback_fps = fps
         session_id = secrets.token_urlsafe(16)
         pc = RTCPeerConnection(self.rtc_config)
+        sync_clock = VideoSyncClock(fps)
         idle_track = SwitchableVideoStreamTrack(
             idle_video_path,
             source_fps=fps,
             output_fps=playback_fps,
+            sync_clock=sync_clock,
         )
         silence_audio = SilenceAudioStreamTrack()
 
@@ -118,6 +121,7 @@ class WebRTCSessionManager:
             active_stream=None,
             silence_audio_track=silence_audio,
             ice_servers=self.ice_servers,
+            sync_clock=sync_clock,
         )
 
         @pc.on("connectionstatechange")
