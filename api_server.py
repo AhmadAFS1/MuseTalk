@@ -14,6 +14,8 @@ import asyncio
 import json
 import re
 import aiofiles
+import time  # ✅ Add this if not present
+import av  # ✅ ADD THIS - needed for audio probing
 from datetime import datetime, timedelta
 from templates.streaming_ui import streaming_ui_endpoint
 from templates.mobile_player import mobile_player_endpoint
@@ -22,12 +24,15 @@ from templates.webrtc_player import get_webrtc_player_html
 from scripts.session_manager import SessionManager
 try:
     from scripts.webrtc_manager import WebRTCSessionManager, build_rtc_configuration
+    from scripts.webrtc_tracks import SyncedAudioStreamTrack  # ✅ ADD SyncedAudioStreamTrack
     from aiortc.contrib.media import MediaPlayer
     WEBRTC_AVAILABLE = True
     WEBRTC_IMPORT_ERROR = None
 except ImportError as exc:
     WebRTCSessionManager = None
     build_rtc_configuration = None
+    FileAudioStreamTrack = None
+    SyncedAudioStreamTrack = None  # ✅ ADD THIS
     WEBRTC_AVAILABLE = False
     WEBRTC_IMPORT_ERROR = str(exc)
 
@@ -1367,13 +1372,22 @@ async def webrtc_offer(session_id: str, offer: WebRTCOffer):
     await session.pc.setRemoteDescription(
         RTCSessionDescription(sdp=offer.sdp, type=offer.type)
     )
+    
     if session.idle_sender is None and session.idle_track is not None:
         session.idle_sender = session.pc.addTrack(session.idle_track)
-    # Ensure an audio sender exists so the audio m-line stays active.
+    
     if session.audio_sender is None and session.silence_audio_track is not None:
         session.audio_sender = session.pc.addTrack(session.silence_audio_track)
+    
     answer = await session.pc.createAnswer()
     await session.pc.setLocalDescription(answer)
+    
+    # ✅ Log the SDP to check audio codec parameters
+    print(f"🔊 SDP Answer audio lines:")
+    for line in session.pc.localDescription.sdp.split('\n'):
+        if 'audio' in line.lower() or 'opus' in line.lower() or 'a=fmtp' in line:
+            print(f"    {line.strip()}")
+    
     await _wait_for_ice_gathering(session.pc)
 
     return {
@@ -1413,6 +1427,7 @@ async def webrtc_stream(
     """
     Start live streaming for a WebRTC session.
     Uses the same audio upload as SSE, but pushes frames into the WebRTC track.
+    Audio is synced with video generation.
     """
     _require_webrtc()
 
@@ -1454,21 +1469,46 @@ async def webrtc_stream(
     with audio_path.open("wb") as buffer:
         shutil.copyfileobj(audio_file.file, buffer)
 
-    # ✅ Use custom FileAudioStreamTrack instead of MediaPlayer
-    audio_track = FileAudioStreamTrack(str(audio_path))
+    # ✅ Debug: Check source audio quality
+    try:
+        probe_container = av.open(str(audio_path))
+        audio_stream = probe_container.streams.audio[0]
+        print(f"🔊 [{request_id}] Source audio: {audio_stream.sample_rate}Hz, "
+              f"{audio_stream.layout.name}, {audio_stream.format.name}, "
+              f"codec={audio_stream.codec_context.name}, "
+              f"bitrate={audio_stream.codec_context.bit_rate or 'unknown'}")
+        probe_container.close()
+    except Exception as e:
+        print(f"⚠️ Could not probe source audio: {e}")
+
+    # ✅ Use the improved track
+    audio_track = SyncedAudioStreamTrack(str(audio_path))
     session.audio_player = audio_track  # Store reference to stop later
     
     if session.audio_sender:
         session.audio_sender.replaceTrack(audio_track)
-        print(f"🔊 [{request_id}] Replaced audio track with FileAudioStreamTrack: {audio_path.name}")
+        print(f"🔊 [{request_id}] Replaced audio track with SyncedAudioStreamTrack: {audio_path.name}")
     else:
         session.audio_sender = session.pc.addTrack(audio_track)
-        print(f"🔊 [{request_id}] Added FileAudioStreamTrack: {audio_path.name}")
+        print(f"🔊 [{request_id}] Added SyncedAudioStreamTrack: {audio_path.name}")
 
     main_loop = asyncio.get_event_loop()
+    
+    # ✅ Track if we've signaled audio start
+    audio_started = False
+    audio_prebuffer_frames = 5  # Signal audio ~100ms before first video frame
 
     def frame_callback(frame_bgr, frame_idx, total_frames):
+        nonlocal audio_started
         try:
+            # ✅ Signal audio slightly ahead of video
+            if not audio_started and frame_idx >= audio_prebuffer_frames:
+                audio_started = True
+                asyncio.run_coroutine_threadsafe(
+                    _signal_audio_start(audio_track),
+                    main_loop
+                )
+            
             asyncio.run_coroutine_threadsafe(
                 session.idle_track.push_bgr_frame(frame_bgr),
                 main_loop
@@ -1480,6 +1520,12 @@ async def webrtc_stream(
         session.active_stream = None
         if session.idle_track:
             session.idle_track.end_live()
+        # Stop the synced audio track
+        if session.audio_player and hasattr(session.audio_player, "stop"):
+            session.audio_player.stop()
+        # Switch back to silence track
+        if session.audio_sender and session.silence_audio_track:
+            session.audio_sender.replaceTrack(session.silence_audio_track)
 
     def streaming_worker():
         try:
@@ -1522,6 +1568,11 @@ async def webrtc_stream(
         "status": "streaming",
         "message": "WebRTC stream started. Player will switch to live."
     }
+
+
+async def _signal_audio_start(audio_track: "SyncedAudioStreamTrack"):
+    """Helper to signal audio start from the main event loop"""
+    audio_track.signal_start()
 
 
 @app.delete("/webrtc/sessions/{session_id}")

@@ -1,12 +1,91 @@
+"""
+WebRTC media tracks for MuseTalk.
+
+Classes:
+- Video tracks: IdleVideoStreamTrack, SwitchableVideoStreamTrack, LiveVideoStreamTrack
+- Audio tracks: SilenceAudioStreamTrack, SyncedAudioStreamTrack
+"""
+
 import asyncio
 import fractions
-import math
+import os
+import subprocess
+import tempfile
 import time
-from array import array
+from pathlib import Path
 from typing import Optional
 
 import av
 from aiortc import VideoStreamTrack, MediaStreamTrack
+from aiortc.mediastreams import MediaStreamError
+
+
+# ============================================================================
+# Video Tracks
+# ============================================================================
+
+class IdleVideoStreamTrack(VideoStreamTrack):
+    """
+    Loops a local MP4 file as a WebRTC video track.
+    """
+
+    def __init__(self, video_path: str, fps: Optional[float] = None):
+        super().__init__()
+        self.video_path = video_path
+        self._fps = fps
+        self._frame_time = None
+        self._last_ts = None
+        self._container = None
+        self._stream = None
+        self._frame_iter = None
+        self._open_container()
+
+    def _open_container(self) -> None:
+        self._container = av.open(self.video_path)
+        self._stream = self._container.streams.video[0]
+        if self._fps is None:
+            rate = self._stream.average_rate
+            self._fps = float(rate) if rate else 25.0
+        self._frame_time = 1.0 / float(self._fps)
+        self._frame_iter = self._container.decode(self._stream)
+
+    def _reset_container(self) -> None:
+        if self._container is not None:
+            self._container.close()
+        self._open_container()
+
+    def read_frame(self):
+        try:
+            frame = next(self._frame_iter)
+        except StopIteration:
+            self._reset_container()
+            frame = next(self._frame_iter)
+        return frame.reformat(format="yuv420p")
+
+    async def recv(self):
+        if self._last_ts is None:
+            self._last_ts = time.time()
+        else:
+            now = time.time()
+            wait = self._frame_time - (now - self._last_ts)
+            if wait > 0:
+                await asyncio.sleep(wait)
+            self._last_ts = time.time()
+
+        frame = self.read_frame()
+        pts, time_base = await self.next_timestamp()
+        frame.pts = pts
+        frame.time_base = time_base
+        return frame
+
+    def stop(self) -> None:
+        if self._container is not None:
+            self._container.close()
+            self._container = None
+        super().stop()
+
+    def reset(self) -> None:
+        self._reset_container()
 
 
 class LiveVideoStreamTrack(VideoStreamTrack):
@@ -25,7 +104,6 @@ class LiveVideoStreamTrack(VideoStreamTrack):
     async def push_bgr_frame(self, frame_bgr) -> None:
         if self._closed:
             return
-        # Drop the oldest frame if the queue is full to keep latency low.
         if self._queue.full():
             try:
                 self._queue.get_nowait()
@@ -79,7 +157,6 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
 
     def end_live(self) -> None:
         self._live_active = False
-        # Clear any buffered live frames so we return to idle immediately.
         try:
             while True:
                 self._queue.get_nowait()
@@ -132,9 +209,13 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         super().stop()
 
 
+# ============================================================================
+# Audio Tracks
+# ============================================================================
+
 class SilenceAudioStreamTrack(MediaStreamTrack):
     """
-    Simple silence audio source to keep the audio m-line alive until real audio is available.
+    Silence audio source to keep the audio m-line alive until real audio is available.
     """
 
     kind = "audio"
@@ -158,308 +239,309 @@ class SilenceAudioStreamTrack(MediaStreamTrack):
         return frame
 
 
-class ToneAudioStreamTrack(MediaStreamTrack):
+def _convert_audio_with_ffmpeg(
+    input_path: str,
+    sample_rate: int = 48000,
+    channels: int = 1,
+) -> str:
     """
-    Generate a simple sine tone for debugging audio playback.
+    Convert audio to optimal format for WebRTC using FFmpeg.
+    
+    Uses high-quality resampling (soxr) and outputs raw PCM s16le.
+    Returns path to the converted WAV file.
+    """
+    input_path = Path(input_path)
+    
+    # Create output path in same directory
+    output_path = input_path.parent / f"{input_path.stem}_webrtc.wav"
+    
+    # Build FFmpeg command with high-quality settings
+    cmd = [
+        "ffmpeg",
+        "-y",  # Overwrite output
+        "-i", str(input_path),
+        # High-quality resampling
+        "-af", f"aresample=resampler=soxr:precision=33:dither_method=triangular",
+        "-ar", str(sample_rate),  # Sample rate
+        "-ac", str(channels),  # Channels
+        "-sample_fmt", "s16",  # 16-bit signed
+        "-c:a", "pcm_s16le",  # PCM codec
+        "-f", "wav",  # WAV container
+        str(output_path)
+    ]
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        if result.returncode != 0:
+            print(f"⚠️ FFmpeg warning: {result.stderr}")
+            # Try simpler command without soxr
+            cmd_simple = [
+                "ffmpeg",
+                "-y",
+                "-i", str(input_path),
+                "-ar", str(sample_rate),
+                "-ac", str(channels),
+                "-c:a", "pcm_s16le",
+                "-f", "wav",
+                str(output_path)
+            ]
+            result = subprocess.run(cmd_simple, capture_output=True, text=True, timeout=60)
+            
+            if result.returncode != 0:
+                raise RuntimeError(f"FFmpeg failed: {result.stderr}")
+        
+        print(f"🔊 FFmpeg converted: {input_path.name} -> {output_path.name}")
+        return str(output_path)
+        
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("FFmpeg timed out")
+    except FileNotFoundError:
+        raise RuntimeError("FFmpeg not found. Please install ffmpeg.")
+
+
+class SyncedAudioStreamTrack(MediaStreamTrack):
+    """
+    High-quality audio track synced with video generation.
+    
+    Features:
+    - Uses FFmpeg for high-quality resampling (soxr)
+    - Pre-loads entire audio into memory
+    - PTS-based timing for accurate sync
+    - Optimal format for Opus encoding (48kHz, mono, s16)
     """
 
     kind = "audio"
 
     def __init__(
         self,
-        frequency: float = 440.0,
+        audio_path: str,
         sample_rate: int = 48000,
-        samples: int = 960,
-        amplitude: float = 0.3,
+        samples_per_frame: int = 960,  # 20ms at 48kHz - optimal for Opus
+        use_stereo: bool = False,
+        use_ffmpeg_convert: bool = True,  # Use FFmpeg for high-quality conversion
     ):
         super().__init__()
-        self.frequency = frequency
-        self.sample_rate = sample_rate
-        self.samples = samples
-        self.amplitude = amplitude
-        self._timestamp = 0
-        self._frame_time = samples / sample_rate
-
-    async def recv(self):
-        # Wait to simulate real-time audio pacing
-        await asyncio.sleep(self._frame_time)
-
-        # Create audio frame
-        frame = av.AudioFrame(format="s16", layout="mono", samples=self.samples)
-        frame.sample_rate = self.sample_rate
-
-        # Generate sine wave
-        tone = array("h")
-        for i in range(self.samples):
-            sample_index = self._timestamp + i
-            t = sample_index / self.sample_rate
-            value = int(self.amplitude * 32767 * math.sin(2 * math.pi * self.frequency * t))
-            tone.append(value)
-
-        # Copy samples to frame buffer
-        frame.planes[0].update(tone.tobytes())
-
-        # Set timing
-        frame.pts = self._timestamp
-        frame.time_base = fractions.Fraction(1, self.sample_rate)
-
-        self._timestamp += self.samples
-        return frame
-
-
-class IdleVideoStreamTrack(VideoStreamTrack):
-    """
-    Loops a local MP4 file as a WebRTC video track.
-    """
-
-    def __init__(self, video_path: str, fps: Optional[float] = None):
-        super().__init__()
-        self.video_path = video_path
-        self._fps = fps
-        self._frame_time = None
-        self._last_ts = None
-        self._container = None
-        self._stream = None
-        self._frame_iter = None
-        self._open_container()
-
-    def _open_container(self) -> None:
-        self._container = av.open(self.video_path)
-        self._stream = self._container.streams.video[0]
-        if self._fps is None:
-            rate = self._stream.average_rate
-            self._fps = float(rate) if rate else 25.0
-        self._frame_time = 1.0 / float(self._fps)
-        self._frame_iter = self._container.decode(self._stream)
-
-    def _reset_container(self) -> None:
-        if self._container is not None:
-            self._container.close()
-        self._open_container()
-
-    def read_frame(self):
-        try:
-            frame = next(self._frame_iter)
-        except StopIteration:
-            self._reset_container()
-            frame = next(self._frame_iter)
-
-        return frame.reformat(format="yuv420p")
-
-    async def recv(self):
-        if self._last_ts is None:
-            self._last_ts = time.time()
-        else:
-            now = time.time()
-            wait = self._frame_time - (now - self._last_ts)
-            if wait > 0:
-                await asyncio.sleep(wait)
-            self._last_ts = time.time()
-
-        frame = self.read_frame()
-        pts, time_base = await self.next_timestamp()
-        frame.pts = pts
-        frame.time_base = time_base
-        return frame
-
-    def stop(self) -> None:
-        if self._container is not None:
-            self._container.close()
-            self._container = None
-        super().stop()
-
-    def reset(self) -> None:
-        """Restart the container/iterator (used when reattaching)."""
-        self._reset_container()
-
-
-class FileAudioStreamTrack(MediaStreamTrack):
-    """
-    Audio track that reads from a file with proper WebRTC timing.
-    Unlike MediaPlayer, this ensures the audio is paced correctly for WebRTC.
-    """
-
-    kind = "audio"
-
-    def __init__(self, audio_path: str, sample_rate: int = 48000, samples_per_frame: int = 960):
-        super().__init__()
-        self.audio_path = audio_path
-        self.sample_rate = sample_rate
-        self.samples_per_frame = samples_per_frame
-        self._timestamp = 0
-        self._frame_time = samples_per_frame / sample_rate
-        self._container = None
-        self._resampler = None
-        self._audio_fifo = []
-        self._finished = False
-        self._open_container()
-
-    def _open_container(self):
-        try:
-            self._container = av.open(self.audio_path)
-            self._stream = self._container.streams.audio[0]
-            # Resampler to convert to 48kHz mono s16
-            self._resampler = av.audio.resampler.AudioResampler(
-                format='s16',
-                layout='mono',
-                rate=self.sample_rate
-            )
-            self._decoder = self._container.decode(self._stream)
-        except Exception as e:
-            print(f"⚠️ FileAudioStreamTrack: Failed to open {self.audio_path}: {e}")
-            self._finished = True
-
-    def _read_samples(self, num_samples: int) -> bytes:
-        """Read exactly num_samples from the audio file."""
-        result = b""
-        bytes_needed = num_samples * 2  # s16 = 2 bytes per sample
-
-        # First, drain from FIFO buffer
-        while self._audio_fifo and len(result) < bytes_needed:
-            chunk = self._audio_fifo.pop(0)
-            result += chunk
-
-        # If we still need more, decode from file
-        while len(result) < bytes_needed and not self._finished:
-            try:
-                frame = next(self._decoder)
-                resampled = self._resampler.resample(frame)
-                for rf in resampled:
-                    if rf is not None:
-                        # Get raw bytes from the frame
-                        data = bytes(rf.planes[0])
-                        result += data
-            except StopIteration:
-                self._finished = True
-                break
-            except Exception as e:
-                print(f"⚠️ FileAudioStreamTrack decode error: {e}")
-                self._finished = True
-                break
-
-        # If we have more than needed, put excess back in FIFO
-        if len(result) > bytes_needed:
-            self._audio_fifo.insert(0, result[bytes_needed:])
-            result = result[:bytes_needed]
-
-        # Pad with silence if we don't have enough
-        if len(result) < bytes_needed:
-            result += b'\x00' * (bytes_needed - len(result))
-
-        return result
-
-    async def recv(self):
-        await asyncio.sleep(self._frame_time)
-
-        # Read samples from file
-        audio_data = self._read_samples(self.samples_per_frame)
-
-        # Create frame
-        frame = av.AudioFrame(format='s16', layout='mono', samples=self.samples_per_frame)
-        frame.sample_rate = self.sample_rate
-        frame.planes[0].update(audio_data)
-        frame.pts = self._timestamp
-        frame.time_base = fractions.Fraction(1, self.sample_rate)
-
-        self._timestamp += self.samples_per_frame
-        return frame
-
-    def stop(self):
-        if self._container:
-            self._container.close()
-            self._container = None
-        super().stop()
-
-
-class SyncedAudioStreamTrack(MediaStreamTrack):
-    """
-    Audio track that stays in sync with video by:
-    1. Waiting for video generation to start before playing audio
-    2. Using a frame-based timing approach matching video FPS
-    """
-
-    kind = "audio"
-
-    def __init__(self, audio_path: str, sample_rate: int = 48000, samples_per_frame: int = 960):
-        super().__init__()
+        self._original_audio_path = audio_path
         self._audio_path = audio_path
         self._sample_rate = sample_rate
         self._samples_per_frame = samples_per_frame
-        self._frame_duration = samples_per_frame / sample_rate  # ~20ms per frame
+        self._frame_duration = samples_per_frame / sample_rate
+        self._channels = 2 if use_stereo else 1
+        self._layout = "stereo" if use_stereo else "mono"
+        self._use_ffmpeg = use_ffmpeg_convert
+        
         self._timestamp = 0
-        self._started = asyncio.Event()  # Wait for video to signal start
+        self._started = asyncio.Event()
         self._stopped = False
-        self._container = None
-        self._resampler = None
-        self._audio_buffer = b""
-        self._bytes_per_sample = 2  # s16
-        self._channels = 1
-        self._start_time = None
+        self._bytes_per_sample = 2  # s16 = 2 bytes
+        self._start_time: Optional[float] = None
         self._frames_sent = 0
+        self._eof = False
+        
+        # Pre-decoded audio buffer
+        self._audio_samples: bytes = b""
+        self._read_position = 0
+        self._fully_loaded = False
+        self._load_lock = asyncio.Lock()
+        
+        # Converted file path (for cleanup)
+        self._converted_path: Optional[str] = None
+        
+        # Debug info
+        self._source_info = {}
 
     def signal_start(self):
         """Called when first video frame is generated - starts audio playback"""
         self._start_time = time.time()
         self._started.set()
+        print(f"🔊 SyncedAudioStreamTrack: Started at {self._start_time:.3f}")
 
-    def _open_container(self):
-        if self._container is not None:
+    async def _load_audio_async(self):
+        """Load and decode entire audio file into memory"""
+        if self._fully_loaded:
             return
-        self._container = av.open(self._audio_path)
-        self._audio_stream = self._container.streams.audio[0]
-        self._resampler = av.AudioResampler(
-            format="s16",
-            layout="mono",
-            rate=self._sample_rate,
-        )
+            
+        async with self._load_lock:
+            if self._fully_loaded:
+                return
+            
+            loop = asyncio.get_event_loop()
+            
+            # Convert with FFmpeg first (in thread pool)
+            if self._use_ffmpeg:
+                try:
+                    self._converted_path = await loop.run_in_executor(
+                        None,
+                        _convert_audio_with_ffmpeg,
+                        self._original_audio_path,
+                        self._sample_rate,
+                        self._channels
+                    )
+                    self._audio_path = self._converted_path
+                except Exception as e:
+                    print(f"⚠️ FFmpeg conversion failed, falling back to PyAV: {e}")
+                    self._audio_path = self._original_audio_path
+            
+            # Load the (converted) audio
+            self._audio_samples = await loop.run_in_executor(None, self._load_pcm_audio)
+            self._fully_loaded = True
+            
+            duration_ms = len(self._audio_samples) / (self._bytes_per_sample * self._channels) / self._sample_rate * 1000
+            print(f"🔊 Audio loaded: {len(self._audio_samples)} bytes, {duration_ms:.0f}ms, "
+                  f"{self._channels}ch @ {self._sample_rate}Hz")
 
-    def _read_samples(self, num_samples: int) -> bytes:
-        """Read and resample audio data"""
-        needed_bytes = num_samples * self._bytes_per_sample * self._channels
+    def _load_pcm_audio(self) -> bytes:
+        """
+        Load audio file. If it's a WAV file from FFmpeg, read raw PCM.
+        Otherwise, decode with PyAV.
+        """
+        audio_path = Path(self._audio_path)
         
-        while len(self._audio_buffer) < needed_bytes:
-            try:
-                packet = next(self._container.demux(self._audio_stream))
-                for frame in packet.decode():
-                    resampled = self._resampler.resample(frame)
-                    for rf in resampled:
-                        self._audio_buffer += bytes(rf.planes[0])
-            except (StopIteration, av.error.EOFError):
-                # End of file - pad with silence
-                silence_needed = needed_bytes - len(self._audio_buffer)
-                self._audio_buffer += b"\x00" * silence_needed
-                break
+        # Check if it's our converted WAV file
+        if audio_path.suffix.lower() == '.wav' and '_webrtc' in audio_path.stem:
+            return self._load_wav_pcm()
+        else:
+            return self._decode_with_pyav()
 
-        result = self._audio_buffer[:needed_bytes]
-        self._audio_buffer = self._audio_buffer[needed_bytes:]
+    def _load_wav_pcm(self) -> bytes:
+        """Load raw PCM from WAV file (faster than decoding)"""
+        import wave
+        
+        try:
+            with wave.open(self._audio_path, 'rb') as wf:
+                # Verify format
+                if wf.getsampwidth() != 2:
+                    print(f"⚠️ WAV sample width is {wf.getsampwidth()}, expected 2")
+                if wf.getframerate() != self._sample_rate:
+                    print(f"⚠️ WAV sample rate is {wf.getframerate()}, expected {self._sample_rate}")
+                if wf.getnchannels() != self._channels:
+                    print(f"⚠️ WAV channels is {wf.getnchannels()}, expected {self._channels}")
+                
+                self._source_info = {
+                    'sample_rate': wf.getframerate(),
+                    'channels': wf.getnchannels(),
+                    'format': 's16le',
+                    'codec': 'pcm',
+                    'source': 'ffmpeg_converted'
+                }
+                print(f"🔊 Source (FFmpeg WAV): {self._source_info}")
+                
+                # Read all frames
+                data = wf.readframes(wf.getnframes())
+                print(f"🔊 Loaded {len(data)} bytes from WAV")
+                return data
+                
+        except Exception as e:
+            print(f"⚠️ WAV load failed, falling back to PyAV: {e}")
+            return self._decode_with_pyav()
+
+    def _decode_with_pyav(self) -> bytes:
+        """Decode audio file with PyAV (fallback)"""
+        result = bytearray()
+        
+        try:
+            container = av.open(self._audio_path)
+            audio_stream = container.streams.audio[0]
+            
+            self._source_info = {
+                'sample_rate': audio_stream.sample_rate,
+                'channels': audio_stream.layout.channels,
+                'format': str(audio_stream.format.name),
+                'codec': audio_stream.codec_context.name,
+                'source': 'pyav'
+            }
+            print(f"🔊 Source (PyAV): {self._source_info}")
+            
+            # Create resampler
+            resampler = av.AudioResampler(
+                format="s16",
+                layout=self._layout,
+                rate=self._sample_rate,
+            )
+            
+            # Decode all frames
+            for packet in container.demux(audio_stream):
+                for frame in packet.decode():
+                    resampled_frames = resampler.resample(frame)
+                    for rf in resampled_frames:
+                        if rf is not None:
+                            result.extend(bytes(rf.planes[0]))
+            
+            # Flush resampler
+            flushed_frames = resampler.resample(None)
+            for rf in flushed_frames:
+                if rf is not None:
+                    result.extend(bytes(rf.planes[0]))
+            
+            container.close()
+            print(f"🔊 Decoded {len(result)} bytes with PyAV")
+            
+        except Exception as e:
+            print(f"⚠️ Audio decode error: {e}")
+            import traceback
+            traceback.print_exc()
+            
+        return bytes(result)
+
+    def _get_samples(self, num_samples: int) -> bytes:
+        """Get samples from pre-loaded buffer"""
+        bytes_per_frame = num_samples * self._bytes_per_sample * self._channels
+        
+        if self._read_position + bytes_per_frame <= len(self._audio_samples):
+            result = self._audio_samples[self._read_position:self._read_position + bytes_per_frame]
+            self._read_position += bytes_per_frame
+        else:
+            remaining = self._audio_samples[self._read_position:]
+            padding_needed = bytes_per_frame - len(remaining)
+            result = remaining + (b"\x00" * padding_needed)
+            self._read_position = len(self._audio_samples)
+            if not self._eof:
+                self._eof = True
+                print(f"🔊 Audio EOF after {self._frames_sent} frames")
+            
         return result
 
     async def recv(self):
         if self._stopped:
             raise MediaStreamError("Track stopped")
 
-        # Wait for video to start before playing audio
+        # Wait for start signal
         try:
-            await asyncio.wait_for(self._started.wait(), timeout=30.0)
+            await asyncio.wait_for(self._started.wait(), timeout=60.0)
         except asyncio.TimeoutError:
-            raise MediaStreamError("Timeout waiting for video start")
+            raise MediaStreamError("Timeout waiting for start signal")
 
-        self._open_container()
+        # Load audio on first recv
+        if not self._fully_loaded:
+            await self._load_audio_async()
 
-        # Calculate expected time for this frame
-        expected_time = self._start_time + (self._frames_sent * self._frame_duration)
-        now = time.time()
-        
-        # Sleep to maintain proper timing (don't send frames too fast)
-        sleep_time = expected_time - now
-        if sleep_time > 0:
-            await asyncio.sleep(sleep_time)
+        # PTS-based timing
+        if self._start_time is not None:
+            target_time = self._start_time + (self._frames_sent * self._frame_duration)
+            now = time.time()
+            sleep_time = target_time - now
+            
+            if sleep_time > 0.002:
+                await asyncio.sleep(sleep_time)
+            elif sleep_time < -0.05:
+                if self._frames_sent % 50 == 0:
+                    print(f"⚠️ Audio {-sleep_time*1000:.1f}ms behind")
 
-        # Read audio samples
-        audio_bytes = self._read_samples(self._samples_per_frame)
+        # Get audio samples
+        audio_bytes = self._get_samples(self._samples_per_frame)
 
         # Create frame
-        frame = av.AudioFrame(format="s16", layout="mono", samples=self._samples_per_frame)
+        frame = av.AudioFrame(
+            format="s16",
+            layout=self._layout,
+            samples=self._samples_per_frame
+        )
         frame.planes[0].update(audio_bytes)
         frame.pts = self._timestamp
         frame.sample_rate = self._sample_rate
@@ -472,10 +554,15 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
 
     def stop(self):
         self._stopped = True
-        self._started.set()  # Unblock any waiting recv()
-        if self._container:
+        self._started.set()
+        self._audio_samples = b""
+        
+        # Cleanup converted file
+        if self._converted_path and os.path.exists(self._converted_path):
             try:
-                self._container.close()
-            except Exception:
-                pass
-            self._container = None
+                os.remove(self._converted_path)
+                print(f"🧹 Cleaned up converted audio: {self._converted_path}")
+            except Exception as e:
+                print(f"⚠️ Failed to cleanup {self._converted_path}: {e}")
+        
+        print(f"🔊 SyncedAudioStreamTrack stopped after {self._frames_sent} frames")

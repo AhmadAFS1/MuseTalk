@@ -34,7 +34,7 @@ class ParallelAvatarManager:
         # Smart avatar cache
         self.avatar_cache = AvatarCache(
             max_cached_avatars=5,
-            ttl_seconds=300,
+            ttl_seconds=3600,
             max_memory_mb=6000,
             cleanup_interval=60
         )
