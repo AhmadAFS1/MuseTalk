@@ -15,6 +15,7 @@ import json
 import re
 import aiofiles
 import time  # ✅ Add this if not present
+import threading
 import av  # ✅ ADD THIS - needed for audio probing
 from datetime import datetime, timedelta
 from templates.streaming_ui import streaming_ui_endpoint
@@ -117,6 +118,42 @@ webrtc_ice_servers: list[dict] = []
 
 def _parse_ice_urls(raw: str) -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _start_cpu_logger(label: str, interval_seconds: float):
+    if interval_seconds <= 0:
+        return None
+    stop_event = threading.Event()
+    cpu_count = os.cpu_count() or 1
+    last_wall = time.time()
+    last_cpu = time.process_time()
+
+    def _run():
+        nonlocal last_wall, last_cpu
+        while not stop_event.wait(interval_seconds):
+            now_wall = time.time()
+            now_cpu = time.process_time()
+            delta_wall = now_wall - last_wall
+            delta_cpu = now_cpu - last_cpu
+            last_wall = now_wall
+            last_cpu = now_cpu
+            if delta_wall <= 0:
+                continue
+            cpu_percent = (delta_cpu / delta_wall) * 100.0
+            cpu_percent_total = cpu_percent / cpu_count
+            try:
+                load1, load5, load15 = os.getloadavg()
+                load_text = f" loadavg={load1:.2f},{load5:.2f},{load15:.2f}"
+            except (AttributeError, OSError):
+                load_text = ""
+            print(
+                f"🧮 CPU[{label}] proc={cpu_percent:.1f}% "
+                f"total={cpu_percent_total:.1f}%{load_text}"
+            )
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    return stop_event.set
 
 @app.on_event("startup")
 async def startup_event():
@@ -1302,6 +1339,7 @@ async def create_webrtc_session(
     avatar_id: str,
     user_id: Optional[str] = None,
     fps: int = 10,
+    playback_fps: Optional[int] = None,
     batch_size: int = 2,
     chunk_duration: int = 2,
 ):
@@ -1337,6 +1375,7 @@ async def create_webrtc_session(
         user_id=user_id,
         idle_video_path=str(video_path),
         fps=fps,
+        playback_fps=playback_fps,
         batch_size=batch_size,
         chunk_duration=chunk_duration,
     )
@@ -1350,6 +1389,7 @@ async def create_webrtc_session(
         "expires_in_seconds": webrtc_session_manager.session_ttl,
         "config": {
             "fps": fps,
+            "playback_fps": playback_fps or fps,
             "batch_size": batch_size,
             "chunk_duration": chunk_duration,
         }
@@ -1496,7 +1536,11 @@ async def webrtc_stream(
     
     # ✅ Track if we've signaled audio start
     audio_started = False
-    audio_prebuffer_frames = 5  # Signal audio ~100ms before first video frame
+    try:
+        prebuffer_seconds = float(os.getenv("WEBRTC_AUDIO_PREBUFFER_SECONDS", "0.2"))
+    except ValueError:
+        prebuffer_seconds = 0.2
+    audio_prebuffer_frames = max(0, int(round(prebuffer_seconds * max(session.fps, 1))))
 
     def frame_callback(frame_bgr, frame_idx, total_frames):
         nonlocal audio_started
@@ -1528,6 +1572,12 @@ async def webrtc_stream(
             session.audio_sender.replaceTrack(session.silence_audio_track)
 
     def streaming_worker():
+        cpu_log_interval = 0.0
+        try:
+            cpu_log_interval = float(os.getenv("WEBRTC_CPU_LOG_INTERVAL", "2"))
+        except ValueError:
+            cpu_log_interval = 0.0
+        cpu_logger_stop = _start_cpu_logger(f"webrtc:{session_id}", cpu_log_interval)
         try:
             print(f"🎬 [{request_id}] Starting WebRTC streaming for session {session_id}")
             with manager.gpu_memory.allocate(session.batch_size):
@@ -1551,6 +1601,8 @@ async def webrtc_stream(
             error_detail = traceback.format_exc()
             print(f"❌ [{request_id}] WebRTC streaming error: {error_detail}")
         finally:
+            if cpu_logger_stop:
+                cpu_logger_stop()
             cleanup_to_idle()
 
     future = main_loop.run_in_executor(manager.executor, streaming_worker)

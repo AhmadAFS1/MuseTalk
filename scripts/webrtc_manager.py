@@ -35,6 +35,7 @@ class WebRTCSession:
     created_at: float = field(default_factory=time.time)
     last_activity: float = field(default_factory=time.time)
     fps: int = 10
+    playback_fps: int = 10
     batch_size: int = 2
     chunk_duration: int = 2
     pc: Optional[RTCPeerConnection] = None
@@ -88,12 +89,19 @@ class WebRTCSessionManager:
         idle_video_path: str,
         user_id: Optional[str] = None,
         fps: int = 10,
+        playback_fps: Optional[int] = None,
         batch_size: int = 2,
         chunk_duration: int = 2,
     ) -> WebRTCSession:
+        if playback_fps is None:
+            playback_fps = fps
         session_id = secrets.token_urlsafe(16)
         pc = RTCPeerConnection(self.rtc_config)
-        idle_track = SwitchableVideoStreamTrack(idle_video_path, fps=fps)
+        idle_track = SwitchableVideoStreamTrack(
+            idle_video_path,
+            source_fps=fps,
+            output_fps=playback_fps,
+        )
         silence_audio = SilenceAudioStreamTrack()
 
         session = WebRTCSession(
@@ -101,6 +109,7 @@ class WebRTCSessionManager:
             avatar_id=avatar_id,
             user_id=user_id,
             fps=fps,
+            playback_fps=playback_fps,
             batch_size=batch_size,
             chunk_duration=chunk_duration,
             pc=pc,

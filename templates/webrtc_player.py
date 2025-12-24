@@ -3,6 +3,8 @@ import json
 
 def get_webrtc_player_html(session) -> str:
     ice_servers = json.dumps(session.ice_servers or [])
+    source_fps = getattr(session, "fps", 10)
+    playback_fps = getattr(session, "playback_fps", source_fps)
 
     return f"""
 <!DOCTYPE html>
@@ -100,6 +102,8 @@ def get_webrtc_player_html(session) -> str:
         const SESSION_ID = '{session.session_id}';
         const API_ORIGIN = window.location.origin;
         const ICE_SERVERS = {ice_servers};
+        const SOURCE_FPS = {source_fps};
+        const PLAYBACK_FPS = {playback_fps};
 
         const remoteVideo = document.getElementById('remoteVideo');
         const remoteAudio = document.getElementById('remoteAudio');
@@ -114,6 +118,8 @@ def get_webrtc_player_html(session) -> str:
         let audioSourceNode = null;
         let lastAudioBytes = null;
         let lastAudioTs = null;
+        let lastVideoFrames = null;
+        let lastVideoTs = null;
 
         function updateStatus(message, isError = false, isButton = false) {{
             statusOverlay.textContent = message;
@@ -287,6 +293,7 @@ def get_webrtc_player_html(session) -> str:
             const vTracks = remoteVideo.srcObject ? remoteVideo.srcObject.getVideoTracks().length : 0;
             const aTracks = remoteAudio.srcObject ? remoteAudio.srcObject.getAudioTracks().length : 0;
             lines.push('tracks: video=' + vTracks + ' audio=' + aTracks);
+            lines.push('fps target: src=' + SOURCE_FPS + ' out=' + PLAYBACK_FPS);
             if (audioContext) {{
                 lines.push('audioContext: ' + audioContext.state);
                 lines.push('audioRoute: ' + (audioSourceNode ? 'webaudio' : 'none'));
@@ -295,11 +302,36 @@ def get_webrtc_player_html(session) -> str:
             try {{
                 const stats = await pc.getStats();
                 let audioReport = null;
+                let videoReport = null;
                 stats.forEach(r => {{
                     if (r.type === 'inbound-rtp' && (r.kind === 'audio' || r.mediaType === 'audio')) {{
                         audioReport = r;
                     }}
+                    if (r.type === 'inbound-rtp' && (r.kind === 'video' || r.mediaType === 'video')) {{
+                        videoReport = r;
+                    }}
                 }});
+                if (videoReport) {{
+                    const now = Date.now();
+                    let fps = null;
+                    if (typeof videoReport.framesPerSecond === 'number') {{
+                        fps = videoReport.framesPerSecond;
+                    }} else {{
+                        const frames = videoReport.framesDecoded ?? videoReport.framesReceived ?? 0;
+                        if (lastVideoFrames !== null && lastVideoTs !== null) {{
+                            const deltaFrames = frames - lastVideoFrames;
+                            const deltaMs = now - lastVideoTs;
+                            if (deltaMs > 0) {{
+                                fps = (deltaFrames * 1000) / deltaMs;
+                            }}
+                        }}
+                        lastVideoFrames = frames;
+                        lastVideoTs = now;
+                    }}
+                    lines.push('video fps: ' + (fps !== null ? fps.toFixed(1) : 'n/a'));
+                }} else {{
+                    lines.push('video fps: n/a');
+                }}
                 if (audioReport) {{
                     const bytes = audioReport.bytesReceived || 0;
                     const packets = audioReport.packetsReceived || 0;

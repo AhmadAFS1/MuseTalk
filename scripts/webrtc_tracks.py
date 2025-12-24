@@ -142,18 +142,63 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
     Avoids replaceTrack issues by always producing frames.
     """
 
-    def __init__(self, idle_video_path: str, fps: float = 10.0, max_queue: int = 30):
+    def __init__(
+        self,
+        idle_video_path: str,
+        source_fps: float = 10.0,
+        output_fps: Optional[float] = None,
+        max_queue: int = 30,
+    ):
         super().__init__()
-        self._fps = fps
-        self._frame_time = 1.0 / float(self._fps)
+        self._source_fps = float(source_fps)
+        self._output_fps = float(output_fps) if output_fps is not None else self._source_fps
+        if self._output_fps <= 0:
+            self._output_fps = self._source_fps
+        self._frame_time = 1.0 / float(self._output_fps)
+        # Track how often to advance source frames vs output frames.
+        self._source_step = self._source_fps / self._output_fps
+        self._source_accum = 1.0
         self._queue: asyncio.Queue = asyncio.Queue(maxsize=max_queue)
-        self._idle = IdleVideoStreamTrack(idle_video_path, fps=fps)
+        self._idle = IdleVideoStreamTrack(idle_video_path, fps=source_fps)
         self._live_active = False
+        self._last_idle_frame = None
+        self._last_live_frame = None
         self._last_ts = None
         self._closed = False
 
+    def _reset_source_timing(self) -> None:
+        self._source_accum = 1.0
+
+    def _advance_source(self) -> int:
+        self._source_accum += self._source_step
+        advance = int(self._source_accum)
+        if advance > 0:
+            self._source_accum -= advance
+        return advance
+
+    def _pop_live_frames(self, steps: int):
+        frame = None
+        for _ in range(max(steps, 0)):
+            try:
+                frame = self._queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+        return frame
+
+    def _advance_idle_frame(self, steps: int):
+        if steps <= 0 and self._last_idle_frame is not None:
+            return self._last_idle_frame
+        steps = max(1, steps)
+        frame = self._last_idle_frame
+        for _ in range(steps):
+            frame = self._idle.read_frame()
+        self._last_idle_frame = frame
+        return frame
+
     def start_live(self) -> None:
         self._live_active = True
+        self._last_live_frame = None
+        self._reset_source_timing()
 
     def end_live(self) -> None:
         self._live_active = False
@@ -162,6 +207,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                 self._queue.get_nowait()
         except asyncio.QueueEmpty:
             pass
+        self._last_live_frame = None
+        self._reset_source_timing()
 
     async def push_bgr_frame(self, frame_bgr) -> None:
         if self._closed:
@@ -187,15 +234,17 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                 await asyncio.sleep(wait)
             self._last_ts = time.time()
 
+        advance_frames = self._advance_source()
         frame = None
         if self._live_active:
-            try:
-                frame = self._queue.get_nowait()
-            except asyncio.QueueEmpty:
-                frame = None
+            if advance_frames > 0:
+                next_frame = self._pop_live_frames(advance_frames)
+                if next_frame is not None:
+                    self._last_live_frame = next_frame
+            frame = self._last_live_frame
 
         if frame is None:
-            frame = self._idle.read_frame()
+            frame = self._advance_idle_frame(advance_frames)
 
         pts, time_base = await self.next_timestamp()
         frame.pts = pts
