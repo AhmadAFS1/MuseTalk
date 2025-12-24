@@ -237,17 +237,22 @@ DELETE /webrtc/sessions/{session_id}
 ### 1) WebRTC Session Manager (`scripts/webrtc_manager.py`)
 
 - Builds `RTCConfiguration` from `WEBRTC_STUN_URLS` / `WEBRTC_TURN_URLS` and exposes `ice_servers` to the client.
-- Each session stores a peer connection, a switchable video track, a silence audio track, senders, and timestamps.
+- Each session stores a peer connection, a switchable video track, a silence audio track, senders, timestamps, and a shared sync clock for audio alignment.
 - Background cleanup evicts expired sessions; connection `closed` triggers immediate teardown.
 
 ### 2) WebRTC Tracks (`scripts/webrtc_tracks.py`)
 
-- **`SwitchableVideoStreamTrack`**: single video track that always emits frames. It plays idle frames by default, and switches to live frames when `start_live()` is called. `end_live()` drains the queue and falls back to idle without replacing the track.
+- **`SwitchableVideoStreamTrack`**: single video track that always emits frames. It plays idle frames by default, and switches to live frames when `start_live()` is called. `end_live()` drains the queue and falls back to idle without replacing the track. It also supports a higher `playback_fps` by duplicating source frames.
 - **`IdleVideoStreamTrack`**: loops the prepared avatar MP4 via PyAV and outputs `yuv420p` frames at the configured FPS.
 - **`SilenceAudioStreamTrack`**: emits 20 ms silent audio frames to keep the audio m-line alive during idle.
-- **`SyncedAudioStreamTrack`**: high-quality audio path used for live streaming. It converts audio to PCM (FFmpeg + soxr if available), preloads into memory, and paces frames using PTS timing. Playback begins when `signal_start()` is called, allowing a small prebuffer so audio aligns with the first live video frames.
+- **`VideoSyncClock`**: shared clock driven by live video frames. It tracks source-frame time so audio can align to real video progress (not just wall-clock time).
+- **`SyncedAudioStreamTrack`**: high-quality audio path used for live streaming. It converts audio to PCM (FFmpeg + soxr if available), preloads into memory, and paces frames using PTS timing. Playback begins when `signal_start()` is called and waits for the video clock to start. It then throttles or skips audio to stay within drift bounds (lead/lag).
 
 Other tracks (`LiveVideoStreamTrack`, `FileAudioStreamTrack`, `ToneAudioStreamTrack`) exist for debugging/experiments but are not used in the current WebRTC flow.
+Audio sync knobs (env vars):
+- `WEBRTC_AUDIO_PREBUFFER_SECONDS`: delay before audio starts (default `0.2`).
+- `WEBRTC_AUDIO_MAX_LEAD_SECONDS`: max audio lead before it sleeps (default `0.08`).
+- `WEBRTC_AUDIO_MAX_LAG_SECONDS`: max audio lag before it skips frames (default `0.12`).
 
 ### 3) WebRTC Player (`templates/webrtc_player.py`)
 
@@ -262,7 +267,7 @@ Other tracks (`LiveVideoStreamTrack`, `FileAudioStreamTrack`, `ToneAudioStreamTr
 - **Create** (`/webrtc/sessions/create`): validates avatar, resolves idle MP4, and initializes a WebRTC session with ICE servers.
 - **Offer** (`/webrtc/sessions/{id}/offer`): sets remote description, attaches the video + silence-audio tracks, creates an answer, and waits for ICE gathering.
 - **ICE** (`/webrtc/sessions/{id}/ice`): adds incoming ICE candidates.
-- **Stream** (`/webrtc/sessions/{id}/stream`): saves the audio file, creates `SyncedAudioStreamTrack`, signals audio start a few frames before the first live video frame, and pushes live frames into `SwitchableVideoStreamTrack`.
+- **Stream** (`/webrtc/sessions/{id}/stream`): saves the audio file, creates `SyncedAudioStreamTrack` tied to the session's `VideoSyncClock`, signals audio start after a small prebuffer, and pushes live frames into `SwitchableVideoStreamTrack`. The audio track then stays aligned to actual video progress.
 - **Player** (`/webrtc/player/{id}`): returns the HTML player.
 
 ---
