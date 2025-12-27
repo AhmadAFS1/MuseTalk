@@ -76,6 +76,45 @@ Notes:
 
 ---
 
+## Start/Stop coturn (host install)
+
+### Find and stop a running coturn process
+```bash
+# Find the PID
+ps -ef | grep -i 'turnserver\|coturn' | grep -v grep
+# or:
+pgrep -af turnserver
+pgrep -af coturn
+
+# Stop it
+sudo kill <PID>
+# If it won't stop:
+sudo kill -9 <PID>
+```
+
+### Start coturn with a config file
+```bash
+sudo turnserver -c /workspace/turnserver.conf
+# or repo helper:
+sudo ./scripts/run_turnserver.sh
+```
+
+### If coturn runs as a systemd service
+```bash
+sudo systemctl stop coturn
+sudo systemctl start coturn
+sudo systemctl restart coturn
+```
+
+### If coturn runs in Docker
+```bash
+docker ps | grep -i coturn
+docker stop coturn
+docker start coturn
+```
+
+---
+
 ## Firewall / Security Group ports
 Open these on the host (or cloud firewall):
 - UDP 3478 (TURN)
