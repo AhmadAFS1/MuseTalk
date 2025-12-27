@@ -145,6 +145,18 @@ Server-side sync knobs (env vars):
 - `WEBRTC_AUDIO_MAX_LEAD_SECONDS` (default `0.08`)
 - `WEBRTC_AUDIO_MAX_LAG_SECONDS` (default `0.12`)
 
+Reference setup: 20 FPS / 20 FPS playback (batch_size=8 on 8GB GPU)
+```
+POST /webrtc/sessions/create?avatar_id=test_avatar&user_id=user1&fps=20&playback_fps=20&batch_size=8&chunk_duration=2
+
+export WEBRTC_TURN_URLS="turn:195.142.145.66:12885?transport=udp,turn:195.142.145.66:12964?transport=tcp"
+export WEBRTC_TURN_USER="webrtc"
+export WEBRTC_TURN_PASS="CHANGE_THIS_PASSWORD"
+export WEBRTC_AUDIO_PREBUFFER_SECONDS=0.15
+# optional: force relay-only
+export WEBRTC_STUN_URLS=""
+```
+
 ---
 
 ## Common Errors
