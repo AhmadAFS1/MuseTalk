@@ -192,3 +192,29 @@ This ensures media always flows through TURN.
 TURN relays all media traffic, so bandwidth costs apply.
 - Expect roughly 0.5 to 1 GB per hour per stream at 720p.
 - Hosted TURN charges per GB; self-hosting charges bandwidth from your cloud provider.
+
+### copy and paste below 
+cat << 'EOF' > turnserver.conf
+realm=96.28.173.248
+external-ip=96.28.173.248/172.17.0.2
+
+listening-ip=0.0.0.0
+relay-ip=172.17.0.2
+
+listening-port=3478
+alt-listening-port=443
+
+min-port=40000
+max-port=40100
+
+lt-cred-mech
+user=webrtc:CHANGE_THIS_PASSWORD
+
+# optional: silence cli warning
+cli-password=adminpass
+
+log-file=stdout
+simple-log
+no-tls
+no-dtls
+EOF
