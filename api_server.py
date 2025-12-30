@@ -27,6 +27,7 @@ try:
     from scripts.webrtc_manager import WebRTCSessionManager, build_rtc_configuration
     from scripts.webrtc_tracks import SyncedAudioStreamTrack  # ✅ ADD SyncedAudioStreamTrack
     from aiortc.contrib.media import MediaPlayer
+    from aiortc import RTCRtpSender
     WEBRTC_AVAILABLE = True
     WEBRTC_IMPORT_ERROR = None
 except ImportError as exc:
@@ -34,8 +35,87 @@ except ImportError as exc:
     build_rtc_configuration = None
     FileAudioStreamTrack = None
     SyncedAudioStreamTrack = None  # ✅ ADD THIS
+    RTCRtpSender = None
     WEBRTC_AVAILABLE = False
     WEBRTC_IMPORT_ERROR = str(exc)
+
+# ============================================================================
+# WebRTC codec preferences (NVENC-first H.264)
+# ============================================================================
+
+WEBRTC_H264_ENCODER = os.getenv("WEBRTC_H264_ENCODER", "h264_nvenc")
+WEBRTC_H264_MAXBITRATE = int(os.getenv("WEBRTC_H264_MAXBITRATE", "6000000"))
+WEBRTC_H264_FRAMERATE = int(os.getenv("WEBRTC_H264_FRAMERATE", "30"))
+
+
+def enable_h264_nvenc():
+    """
+    Patch aiortc's H.264 encoder selection to prefer NVENC (with fallback).
+    Keeps bitrate/framerate bounded and uses low-latency presets.
+    """
+    try:
+        import fractions
+        import av
+        import aiortc.codecs.h264 as h264
+    except Exception as exc:  # pragma: no cover - optional dependency path
+        print(f"⚠️ NVENC patch skipped (aiortc/av missing): {exc}")
+        return
+
+    def create_encoder_context(codec_name: str, width: int, height: int, bitrate: int):
+        # Try NVENC first, then the requested codec_name, then libx264.
+        prefs = [WEBRTC_H264_ENCODER, codec_name, "libx264"]
+        last_err = None
+        for name in prefs:
+            if not name:
+                continue
+            try:
+                codec = av.CodecContext.create(name, "w")
+                codec.width = width
+                codec.height = height
+                codec.bit_rate = min(WEBRTC_H264_MAXBITRATE, bitrate)
+                codec.pix_fmt = "yuv420p"
+                codec.framerate = fractions.Fraction(WEBRTC_H264_FRAMERATE, 1)
+                codec.time_base = fractions.Fraction(1, WEBRTC_H264_FRAMERATE)
+                codec.options = {
+                    "preset": "p2",          # low-latency preset on NVENC
+                    "tune": "ll",
+                    "bf": "0",               # no B-frames for WebRTC
+                    "rc": "cbr_ld_hq",
+                    "maxrate": str(codec.bit_rate),
+                    "bufsize": str(codec.bit_rate * 2),
+                    "g": str(WEBRTC_H264_FRAMERATE * 2),
+                }
+                codec.open()
+                # aiortc treats these names as "buffering" encoders
+                return codec, name in ("h264_omx", "h264_nvenc")
+            except Exception as err:
+                last_err = err
+                continue
+        raise last_err or RuntimeError("No H.264 encoder found")
+
+    h264.create_encoder_context = create_encoder_context
+    h264.MAX_BITRATE = WEBRTC_H264_MAXBITRATE
+    print(f"🎞️ WebRTC H.264 encoder set to {WEBRTC_H264_ENCODER}")
+
+
+def prefer_h264(pc):
+    """Force H.264 preference on the PeerConnection if available."""
+    if RTCRtpSender is None:
+        return
+    try:
+        codecs = RTCRtpSender.getCapabilities("video").codecs
+        h264_codecs = [c for c in codecs if c.mimeType.lower() == "video/h264"]
+        if not h264_codecs:
+            return
+        for transceiver in pc.getTransceivers():
+            if transceiver.kind == "video":
+                transceiver.setCodecPreferences(h264_codecs)
+    except Exception as exc:
+        print(f"⚠️ prefer_h264 failed: {exc}")
+
+# Apply NVENC preference at import time if WebRTC is enabled
+if WEBRTC_AVAILABLE:
+    enable_h264_nvenc()
 
 # Persistent cleanup tracking
 CLEANUP_DB = Path("chunks/.cleanup_queue.json")
@@ -1415,6 +1495,7 @@ async def webrtc_offer(session_id: str, offer: WebRTCOffer):
     
     if session.idle_sender is None and session.idle_track is not None:
         session.idle_sender = session.pc.addTrack(session.idle_track)
+        prefer_h264(session.pc)
     
     if session.audio_sender is None and session.silence_audio_track is not None:
         session.audio_sender = session.pc.addTrack(session.silence_audio_track)
