@@ -195,11 +195,11 @@ TURN relays all media traffic, so bandwidth costs apply.
 
 ### copy and paste below 
 cat << 'EOF' > turnserver.conf
-realm=96.28.173.248
-external-ip=96.28.173.248/172.17.0.2
+realm=37.41.28.10
+external-ip=37.41.28.10/172.17.0.4 
 
 listening-ip=0.0.0.0
-relay-ip=172.17.0.2
+relay-ip=172.17.0.4 
 
 listening-port=3478
 alt-listening-port=443
@@ -218,3 +218,6 @@ simple-log
 no-tls
 no-dtls
 EOF
+
+##install command: 
+sudo apt-get update && sudo apt-get install -y coturn
