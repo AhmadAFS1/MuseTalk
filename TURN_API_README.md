@@ -34,3 +34,6 @@ bash scripts/run_api_server.sh
 Notes:
 - If you change IP/port mappings or password, update both `turnserver.conf` and the env vars.
 - On new machines, reinstall deps: `bash scripts/install_webrtc_deps.sh`.
+
+## kill server like: 
+sudo pkill turnserver
