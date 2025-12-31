@@ -1,6 +1,7 @@
 @BASE_URL = http://37.41.28.10:42470 
 @AVATAR_ID = test_avatar
-@FPS = 10
+@PLAYBACK_FPS = 30
+@MUSE_FPS = 10
 @SEGMENT_DURATION = 2
 @PART_DURATION = 0.2
 @BATCH_SIZE = 2
@@ -12,7 +13,7 @@ GET {{BASE_URL}}/health
 ###
 
 ### Create HLS Session (idle-only)
-POST {{BASE_URL}}/hls/sessions/create?avatar_id={{AVATAR_ID}}&fps={{FPS}}&batch_size={{BATCH_SIZE}}&segment_duration={{SEGMENT_DURATION}}&part_duration={{PART_DURATION}}
+POST {{BASE_URL}}/hls/sessions/create?avatar_id={{AVATAR_ID}}&playback_fps={{PLAYBACK_FPS}}&musetalk_fps={{MUSE_FPS}}&batch_size={{BATCH_SIZE}}&segment_duration={{SEGMENT_DURATION}}&part_duration={{PART_DURATION}}
 
 ###
 

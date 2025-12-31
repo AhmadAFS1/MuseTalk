@@ -22,14 +22,14 @@ New API surface (parallel to /sessions)
 All endpoints below are new and independent from existing session and WebRTC routes.
 
 1) Create HLS Session
-POST /hls/sessions/create?avatar_id=...&user_id=...&fps=10&batch_size=2&segment_duration=1&part_duration=0.2
+POST /hls/sessions/create?avatar_id=...&user_id=...&playback_fps=30&musetalk_fps=10&batch_size=2&segment_duration=1&part_duration=0.2
 Response:
 {
   "session_id": "...",
   "player_url": "/hls/player/{session_id}",
   "manifest_url": "/hls/sessions/{session_id}/index.m3u8",
   "expires_in_seconds": 3600,
-  "config": {"fps": 10, "segment_duration": 1, "part_duration": 0.2}
+  "config": {"playback_fps": 30, "musetalk_fps": 10, "batch_size": 2, "segment_duration": 1, "part_duration": 0.2}
 }
 
 2) Start HLS Stream (upload audio)
@@ -188,6 +188,8 @@ Config knobs (proposed)
 - HLS_WINDOW_SEGMENTS (default 6)
 - HLS_OUTPUT_DIR (default results/hls)
 - HLS_USE_LL (true/false)
+- HLS_PLAYBACK_FPS (idle playback rate)
+- HLS_MUSETALK_FPS (lip-sync generation rate)
 
 Backward compatibility
 - Existing /player/session and /webrtc endpoints remain unchanged.

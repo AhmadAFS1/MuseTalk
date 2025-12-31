@@ -1423,7 +1423,8 @@ async def create_hls_session(
     avatar_id: str,
     user_id: Optional[str] = None,
     batch_size: int = 2,
-    fps: Optional[int] = None,
+    playback_fps: Optional[int] = None,
+    musetalk_fps: Optional[int] = None,
     segment_duration: float = 2.0,
     part_duration: Optional[float] = None,
 ):
@@ -1459,7 +1460,8 @@ async def create_hls_session(
         idle_video_path=str(video_path),
         user_id=user_id,
         batch_size=batch_size,
-        fps=fps,
+        playback_fps=playback_fps,
+        musetalk_fps=musetalk_fps,
         segment_duration=segment_duration,
         part_duration=part_duration,
     )
@@ -1473,7 +1475,8 @@ async def create_hls_session(
         "expires_in_seconds": hls_session_manager.session_ttl,
         "config": {
             "batch_size": batch_size,
-            "fps": fps,
+            "playback_fps": playback_fps,
+            "musetalk_fps": musetalk_fps,
             "segment_duration": segment_duration,
             "part_duration": part_duration,
         }
@@ -1536,7 +1539,8 @@ async def hls_session_status(session_id: str):
         "segment_duration": session.segment_duration,
         "part_duration": session.part_duration,
         "batch_size": session.batch_size,
-        "fps": session.fps,
+        "playback_fps": session.playback_fps,
+        "musetalk_fps": session.musetalk_fps,
         "status": session.status,
     }
 

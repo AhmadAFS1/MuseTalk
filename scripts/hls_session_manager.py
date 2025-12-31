@@ -20,7 +20,8 @@ class HlsSession:
     manifest_path: Path = field(default_factory=Path)
     segment_dir: Path = field(default_factory=Path)
     batch_size: int = 2
-    fps: Optional[int] = None
+    playback_fps: Optional[int] = None
+    musetalk_fps: Optional[int] = None
     segment_duration: float = 2.0
     part_duration: Optional[float] = None
     status: str = "idle"
@@ -36,7 +37,7 @@ def _generate_idle_hls(
     video_path: Path,
     output_dir: Path,
     segment_duration: float,
-    fps: Optional[int] = None,
+    playback_fps: Optional[int] = None,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     segments_dir = output_dir / "segments"
@@ -49,12 +50,12 @@ def _generate_idle_hls(
         "-i", str(video_path),
     ]
 
-    if fps and fps > 0:
-        ffmpeg_cmd += ["-r", str(fps)]
+    if playback_fps and playback_fps > 0:
+        ffmpeg_cmd += ["-r", str(playback_fps)]
 
     gop_opts = []
-    if fps and fps > 0:
-        gop = max(1, int(round(fps * segment_duration)))
+    if playback_fps and playback_fps > 0:
+        gop = max(1, int(round(playback_fps * segment_duration)))
         gop_opts = [
             "-g", str(gop),
             "-keyint_min", str(gop),
@@ -125,7 +126,8 @@ class HlsSessionManager:
         idle_video_path: str,
         user_id: Optional[str] = None,
         batch_size: int = 2,
-        fps: Optional[int] = None,
+        playback_fps: Optional[int] = None,
+        musetalk_fps: Optional[int] = None,
         segment_duration: float = 2.0,
         part_duration: Optional[float] = None,
     ) -> HlsSession:
@@ -143,7 +145,8 @@ class HlsSessionManager:
             manifest_path=manifest_path,
             segment_dir=segment_dir,
             batch_size=batch_size,
-            fps=fps,
+            playback_fps=playback_fps,
+            musetalk_fps=musetalk_fps,
             segment_duration=segment_duration,
             part_duration=part_duration,
         )
@@ -156,7 +159,7 @@ class HlsSessionManager:
             Path(idle_video_path),
             output_dir,
             segment_duration,
-            fps,
+            playback_fps,
         )
 
         print(f"✅ Created HLS session: {session_id} (avatar: {avatar_id}, user: {user_id})")
@@ -191,6 +194,11 @@ class HlsSessionManager:
                     "avatar_id": s.avatar_id,
                     "age_seconds": time.time() - s.created_at,
                     "idle_seconds": time.time() - s.last_activity,
+                    "batch_size": s.batch_size,
+                    "playback_fps": s.playback_fps,
+                    "musetalk_fps": s.musetalk_fps,
+                    "segment_duration": s.segment_duration,
+                    "part_duration": s.part_duration,
                     "status": s.status,
                 }
                 for s in self.sessions.values()
