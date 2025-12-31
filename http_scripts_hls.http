@@ -1,0 +1,54 @@
+@BASE_URL = http://37.41.28.10:42470 
+@AVATAR_ID = test_avatar
+@FPS = 10
+@SEGMENT_DURATION = 2
+@PART_DURATION = 0.2
+@BATCH_SIZE = 2
+@SESSION_ID = qGilYNiNgbGHqUWXWqyy0w
+
+### Health Check
+GET {{BASE_URL}}/health
+
+###
+
+### Create HLS Session (idle-only)
+POST {{BASE_URL}}/hls/sessions/create?avatar_id={{AVATAR_ID}}&fps={{FPS}}&batch_size={{BATCH_SIZE}}&segment_duration={{SEGMENT_DURATION}}&part_duration={{PART_DURATION}}
+
+###
+
+### Open HLS Player in Browser (manual step)
+# {{BASE_URL}}/hls/player/{{SESSION_ID}}
+
+###
+
+### Fetch HLS Manifest
+GET {{BASE_URL}}/hls/sessions/{{SESSION_ID}}/index.m3u8
+
+###
+
+### Fetch a Segment (update segment name from playlist)
+GET {{BASE_URL}}/hls/sessions/{{SESSION_ID}}/segments/seg_000000.m4s
+
+###
+
+### HLS Session Status
+GET {{BASE_URL}}/hls/sessions/{{SESSION_ID}}/status
+
+###
+
+### Delete HLS Session
+DELETE {{BASE_URL}}/hls/sessions/{{SESSION_ID}}
+
+###
+
+### Start HLS Stream with Audio (NOT IMPLEMENTED YET)
+# This endpoint will be added when live chunk appending is implemented.
+POST {{BASE_URL}}/hls/sessions/{{SESSION_ID}}/stream
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="eng.wav"
+Content-Type: audio/wav
+
+< ./data/audio/eng.wav
+------WebKitFormBoundary7MA4YWxkTrZu0gW--

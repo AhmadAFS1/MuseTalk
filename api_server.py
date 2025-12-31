@@ -21,8 +21,10 @@ from datetime import datetime, timedelta
 from templates.streaming_ui import streaming_ui_endpoint
 from templates.mobile_player import mobile_player_endpoint
 from templates.session_player import get_session_player_html  # ✅ ADD THIS
+from templates.hls_player import get_hls_player_html
 from templates.webrtc_player import get_webrtc_player_html
 from scripts.session_manager import SessionManager
+from scripts.hls_session_manager import HlsSessionManager
 try:
     from scripts.webrtc_manager import WebRTCSessionManager, build_rtc_configuration
     from scripts.webrtc_tracks import SyncedAudioStreamTrack  # ✅ ADD SyncedAudioStreamTrack
@@ -201,6 +203,7 @@ app.add_middleware(
 # ============================================================================
 
 manager: Optional[ParallelAvatarManager] = None
+hls_session_manager: Optional[HlsSessionManager] = None
 session_manager: Optional[SessionManager] = None  # ✅ NEW
 webrtc_session_manager: Optional["WebRTCSessionManager"] = None
 webrtc_ice_servers: list[dict] = []
@@ -251,7 +254,7 @@ def _start_cpu_logger(label: str, interval_seconds: float):
 @app.on_event("startup")
 async def startup_event():
     """Initialize the avatar manager on startup"""
-    global manager, session_manager, webrtc_session_manager, webrtc_ice_servers
+    global manager, session_manager, hls_session_manager, webrtc_session_manager, webrtc_ice_servers
     
     print("🚀 Starting MuseTalk API Server...")
     
@@ -279,6 +282,9 @@ async def startup_event():
     # ✅ Initialize session manager
     session_manager = SessionManager(session_ttl_seconds=3600)
     session_manager.start_cleanup()
+
+    hls_session_manager = HlsSessionManager(session_ttl_seconds=3600)
+    hls_session_manager.start_cleanup()
 
     if WEBRTC_AVAILABLE:
         stun_urls = _parse_ice_urls(
@@ -320,13 +326,17 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global manager, webrtc_session_manager
+    global manager, webrtc_session_manager, hls_session_manager
     if manager:
         manager.shutdown()
     if webrtc_session_manager:
         sessions = list(webrtc_session_manager.sessions.keys())
         for session_id in sessions:
             await webrtc_session_manager.delete_session(session_id)
+    if hls_session_manager:
+        sessions = list(hls_session_manager.sessions.keys())
+        for session_id in sessions:
+            await hls_session_manager.delete_session(session_id)
     print("👋 MuseTalk API Server stopped")
 
 @app.on_event("startup")
@@ -1398,6 +1408,194 @@ async def session_player(session_id: str):
         raise HTTPException(status_code=404, detail="Session not found or expired")
     
     return HTMLResponse(content=get_session_player_html(session))
+
+# ============================================================================
+# HLS Session Endpoints (NEW)
+# ============================================================================
+
+def _require_hls():
+    if hls_session_manager is None:
+        raise HTTPException(status_code=503, detail="HLS session manager not initialized")
+
+
+@app.post("/hls/sessions/create")
+async def create_hls_session(
+    avatar_id: str,
+    user_id: Optional[str] = None,
+    batch_size: int = 2,
+    fps: Optional[int] = None,
+    segment_duration: float = 2.0,
+    part_duration: Optional[float] = None,
+):
+    """
+    Create a new HLS session for idle playback.
+    Returns session_id, player_url, and manifest_url.
+    """
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    _require_hls()
+
+    if not manager._avatar_exists(avatar_id):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Avatar '{avatar_id}' not found. Please prepare it first."
+        )
+
+    video_path = _resolve_avatar_video_path(avatar_id)
+    if not video_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Input video not found for avatar '{avatar_id}'."
+        )
+    if video_path.stat().st_size < 1024:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Input video for '{avatar_id}' is corrupted. Please re-prepare avatar."
+        )
+
+    session = await hls_session_manager.create_session(
+        avatar_id=avatar_id,
+        idle_video_path=str(video_path),
+        user_id=user_id,
+        batch_size=batch_size,
+        fps=fps,
+        segment_duration=segment_duration,
+        part_duration=part_duration,
+    )
+
+    return {
+        "session_id": session.session_id,
+        "player_url": f"/hls/player/{session.session_id}",
+        "manifest_url": f"/hls/sessions/{session.session_id}/index.m3u8",
+        "avatar_id": avatar_id,
+        "user_id": user_id,
+        "expires_in_seconds": hls_session_manager.session_ttl,
+        "config": {
+            "batch_size": batch_size,
+            "fps": fps,
+            "segment_duration": segment_duration,
+            "part_duration": part_duration,
+        }
+    }
+
+
+@app.get("/hls/sessions/{session_id}/index.m3u8")
+async def hls_manifest(session_id: str):
+    _require_hls()
+    session = await hls_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    if not session.manifest_path.exists():
+        raise HTTPException(status_code=404, detail="HLS manifest not found")
+
+    return FileResponse(
+        session.manifest_path,
+        media_type="application/vnd.apple.mpegurl",
+        headers={"Cache-Control": "no-cache"}
+    )
+
+
+@app.get("/hls/sessions/{session_id}/segments/{segment_name}")
+async def hls_segment(session_id: str, segment_name: str):
+    _require_hls()
+    session = await hls_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+
+    safe_name = Path(segment_name).name
+    if safe_name != segment_name:
+        raise HTTPException(status_code=400, detail="Invalid segment name")
+
+    segment_path = session.segment_dir / safe_name
+    if not segment_path.exists():
+        raise HTTPException(status_code=404, detail="Segment not found")
+
+    return FileResponse(
+        segment_path,
+        media_type="video/mp4",
+        headers={"Cache-Control": "no-cache"}
+    )
+
+
+@app.get("/hls/sessions/{session_id}/status")
+async def hls_session_status(session_id: str):
+    _require_hls()
+    session = await hls_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+
+    return {
+        "session_id": session.session_id,
+        "avatar_id": session.avatar_id,
+        "user_id": session.user_id,
+        "created_at": session.created_at,
+        "last_activity": session.last_activity,
+        "age_seconds": time.time() - session.created_at,
+        "idle_seconds": time.time() - session.last_activity,
+        "segment_duration": session.segment_duration,
+        "part_duration": session.part_duration,
+        "batch_size": session.batch_size,
+        "fps": session.fps,
+        "status": session.status,
+    }
+
+
+@app.delete("/hls/sessions/{session_id}")
+async def delete_hls_session(session_id: str):
+    _require_hls()
+    deleted = await hls_session_manager.delete_session(session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"status": "deleted", "session_id": session_id}
+
+
+@app.get("/hls/sessions/stats")
+async def hls_session_stats():
+    _require_hls()
+    return hls_session_manager.get_stats()
+
+
+@app.get("/hls/player/{session_id}", response_class=HTMLResponse)
+async def hls_player(session_id: str):
+    _require_hls()
+    session = await hls_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    return HTMLResponse(content=get_hls_player_html(session))
+
+
+@app.get("/hls/sessions/{session_id}/{asset_name}")
+async def hls_asset(session_id: str, asset_name: str):
+    """
+    Serve HLS init/segment assets referenced directly by the playlist.
+    """
+    _require_hls()
+    session = await hls_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+
+    safe_name = Path(asset_name).name
+    if safe_name != asset_name:
+        raise HTTPException(status_code=400, detail="Invalid asset name")
+
+    if safe_name == "init.mp4":
+        asset_path = session.output_dir / safe_name
+    elif safe_name.endswith(".m4s"):
+        asset_path = session.segment_dir / safe_name
+        if not asset_path.exists():
+            asset_path = session.output_dir / safe_name
+    else:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    if not asset_path.exists():
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    return FileResponse(
+        asset_path,
+        media_type="video/mp4",
+        headers={"Cache-Control": "no-cache"}
+    )
 
 # ============================================================================
 # WebRTC Session Endpoints (NEW)
