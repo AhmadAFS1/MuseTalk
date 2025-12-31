@@ -19,12 +19,16 @@ class HlsSession:
     output_dir: Path = field(default_factory=Path)
     manifest_path: Path = field(default_factory=Path)
     segment_dir: Path = field(default_factory=Path)
+    live_manifest_path: Path = field(default_factory=Path)
+    live_sequence: int = 0
     batch_size: int = 2
     playback_fps: Optional[int] = None
     musetalk_fps: Optional[int] = None
     segment_duration: float = 2.0
     part_duration: Optional[float] = None
     status: str = "idle"
+    active_stream: Optional[str] = None
+    live_ready: bool = False
 
     def is_expired(self, ttl_seconds: int = 3600) -> bool:
         return (time.time() - self.last_activity) > ttl_seconds
@@ -135,6 +139,7 @@ class HlsSessionManager:
         output_dir = self.base_dir / session_id
         segment_dir = output_dir / "segments"
         manifest_path = output_dir / "index.m3u8"
+        live_manifest_path = output_dir / "live.m3u8"
 
         session = HlsSession(
             session_id=session_id,
@@ -144,6 +149,7 @@ class HlsSessionManager:
             output_dir=output_dir,
             manifest_path=manifest_path,
             segment_dir=segment_dir,
+            live_manifest_path=live_manifest_path,
             batch_size=batch_size,
             playback_fps=playback_fps,
             musetalk_fps=musetalk_fps,
@@ -184,6 +190,49 @@ class HlsSessionManager:
         print(f"🗑️  Deleted HLS session: {session_id} (user: {session.user_id})")
         return True
 
+    def start_live_playlist(self, session: HlsSession) -> None:
+        session.live_sequence = 0
+        session.status = "streaming"
+        session.live_ready = False
+
+        # Remove previous live chunks if they exist.
+        for path in session.segment_dir.glob("chunk_*"):
+            try:
+                path.unlink()
+            except OSError:
+                pass
+
+        target_duration = max(1, int(round(session.segment_duration)))
+        lines = [
+            "#EXTM3U",
+            "#EXT-X-VERSION:3",
+            f"#EXT-X-TARGETDURATION:{target_duration}",
+            "#EXT-X-PLAYLIST-TYPE:EVENT",
+            "#EXT-X-INDEPENDENT-SEGMENTS",
+            "#EXT-X-MEDIA-SEQUENCE:0",
+        ]
+
+        session.output_dir.mkdir(parents=True, exist_ok=True)
+        with session.live_manifest_path.open("w") as handle:
+            handle.write("\n".join(lines))
+            handle.write("\n")
+
+    def append_live_segment(self, session: HlsSession, segment_name: str, duration: float) -> None:
+        if not session.live_ready:
+            session.live_ready = True
+        with session.live_manifest_path.open("a") as handle:
+            handle.write(f"#EXTINF:{duration:.6f},\n")
+            handle.write(f"segments/{segment_name}\n")
+        session.live_sequence += 1
+
+    def finish_live_playlist(self, session: HlsSession) -> None:
+        if not session.live_manifest_path.exists():
+            return
+        with session.live_manifest_path.open("a") as handle:
+            handle.write("#EXT-X-ENDLIST\n")
+        session.status = "idle"
+        session.live_ready = False
+
     def get_stats(self) -> dict:
         return {
             "total_sessions": len(self.sessions),
@@ -200,6 +249,7 @@ class HlsSessionManager:
                     "segment_duration": s.segment_duration,
                     "part_duration": s.part_duration,
                     "status": s.status,
+                    "active_stream": s.active_stream,
                 }
                 for s in self.sessions.values()
             ],

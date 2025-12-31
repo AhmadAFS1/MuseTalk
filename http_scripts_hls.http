@@ -5,7 +5,7 @@
 @SEGMENT_DURATION = 2
 @PART_DURATION = 0.2
 @BATCH_SIZE = 2
-@SESSION_ID = qGilYNiNgbGHqUWXWqyy0w
+@SESSION_ID = p2z5UIBUlbQjFoi-oKPh6w
 
 ### Health Check
 GET {{BASE_URL}}/health
@@ -27,6 +27,11 @@ GET {{BASE_URL}}/hls/sessions/{{SESSION_ID}}/index.m3u8
 
 ###
 
+### Fetch HLS Live Manifest (during stream)
+GET {{BASE_URL}}/hls/sessions/{{SESSION_ID}}/live.m3u8
+
+###
+
 ### Fetch a Segment (update segment name from playlist)
 GET {{BASE_URL}}/hls/sessions/{{SESSION_ID}}/segments/seg_000000.m4s
 
@@ -42,8 +47,7 @@ DELETE {{BASE_URL}}/hls/sessions/{{SESSION_ID}}
 
 ###
 
-### Start HLS Stream with Audio (NOT IMPLEMENTED YET)
-# This endpoint will be added when live chunk appending is implemented.
+### Start HLS Stream with Audio
 POST {{BASE_URL}}/hls/sessions/{{SESSION_ID}}/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
@@ -51,5 +55,5 @@ Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0g
 Content-Disposition: form-data; name="audio_file"; filename="eng.wav"
 Content-Type: audio/wav
 
-< ./data/audio/eng.wav
+< ./data/audio/ai-assistant.mpga
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--

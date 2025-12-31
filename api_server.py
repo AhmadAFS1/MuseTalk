@@ -1499,6 +1499,22 @@ async def hls_manifest(session_id: str):
     )
 
 
+@app.get("/hls/sessions/{session_id}/live.m3u8")
+async def hls_live_manifest(session_id: str):
+    _require_hls()
+    session = await hls_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    if not session.live_manifest_path.exists():
+        raise HTTPException(status_code=404, detail="Live HLS manifest not found")
+
+    return FileResponse(
+        session.live_manifest_path,
+        media_type="application/vnd.apple.mpegurl",
+        headers={"Cache-Control": "no-cache"}
+    )
+
+
 @app.get("/hls/sessions/{session_id}/segments/{segment_name}")
 async def hls_segment(session_id: str, segment_name: str):
     _require_hls()
@@ -1514,9 +1530,10 @@ async def hls_segment(session_id: str, segment_name: str):
     if not segment_path.exists():
         raise HTTPException(status_code=404, detail="Segment not found")
 
+    media_type = "video/MP2T" if segment_path.suffix.lower() == ".ts" else "video/mp4"
     return FileResponse(
         segment_path,
-        media_type="video/mp4",
+        media_type=media_type,
         headers={"Cache-Control": "no-cache"}
     )
 
@@ -1542,6 +1559,8 @@ async def hls_session_status(session_id: str):
         "playback_fps": session.playback_fps,
         "musetalk_fps": session.musetalk_fps,
         "status": session.status,
+        "live_ready": session.live_ready,
+        "active_stream": session.active_stream,
     }
 
 
@@ -1567,6 +1586,93 @@ async def hls_player(session_id: str):
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found or expired")
     return HTMLResponse(content=get_hls_player_html(session))
+
+
+@app.post("/hls/sessions/{session_id}/stream")
+async def hls_stream(
+    session_id: str,
+    audio_file: UploadFile = File(...),
+):
+    """
+    Start live HLS streaming for a session by generating chunked TS segments.
+    """
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    _require_hls()
+    session = await hls_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+
+    if session.active_stream is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Session already streaming (request_id: {session.active_stream})"
+        )
+
+    request_id = f"{session.avatar_id}_hls_{uuid.uuid4().hex[:8]}"
+    session.active_stream = request_id
+    session.status = "streaming"
+
+    upload_dir = Path("uploads/audio")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    audio_path = upload_dir / f"{request_id}.{audio_file.filename.split('.')[-1]}"
+
+    with audio_path.open("wb") as buffer:
+        shutil.copyfileobj(audio_file.file, buffer)
+
+    hls_session_manager.start_live_playlist(session)
+
+    # Use musetalk_fps if set, otherwise fall back to playback fps or 15.
+    generation_fps = session.musetalk_fps or session.playback_fps or 15
+
+    def streaming_worker():
+        try:
+            print(f"🎬 [{request_id}] Starting HLS streaming for session {session_id}")
+            with manager.gpu_memory.allocate(session.batch_size):
+                avatar = manager._get_or_load_avatar(session.avatar_id, session.batch_size)
+                for chunk_info in avatar.inference_streaming(
+                    audio_path=str(audio_path),
+                    audio_processor=manager.audio_processor,
+                    whisper=manager.whisper,
+                    timesteps=manager.timesteps,
+                    device=manager.device,
+                    fps=generation_fps,
+                    chunk_duration_seconds=session.segment_duration,
+                    chunk_output_dir=str(session.segment_dir),
+                    frame_callback=None,
+                    emit_chunks=True,
+                    chunk_ext=".ts",
+                ):
+                    segment_name = Path(chunk_info["chunk_path"]).name
+                    duration = chunk_info.get("duration_seconds") or session.segment_duration
+                    hls_session_manager.append_live_segment(session, segment_name, duration)
+            print(f"✅ [{request_id}] HLS streaming complete")
+        except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"❌ [{request_id}] HLS streaming error: {error_detail}")
+        finally:
+            hls_session_manager.finish_live_playlist(session)
+            session.active_stream = None
+
+    main_loop = asyncio.get_event_loop()
+    future = main_loop.run_in_executor(manager.executor, streaming_worker)
+    manager.active_requests[request_id] = {
+        'avatar_id': session.avatar_id,
+        'status': 'streaming',
+        'future': future,
+        'type': 'hls_stream',
+        'session_id': session_id
+    }
+
+    return {
+        "request_id": request_id,
+        "session_id": session_id,
+        "status": "streaming",
+        "manifest_url": f"/hls/sessions/{session_id}/live.m3u8",
+        "message": "HLS stream started."
+    }
 
 
 @app.get("/hls/sessions/{session_id}/{asset_name}")
