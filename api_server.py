@@ -46,6 +46,8 @@ except ImportError as exc:
 WEBRTC_H264_ENCODER = os.getenv("WEBRTC_H264_ENCODER", "h264_nvenc")
 WEBRTC_H264_MAXBITRATE = int(os.getenv("WEBRTC_H264_MAXBITRATE", "6000000"))
 WEBRTC_H264_FRAMERATE = int(os.getenv("WEBRTC_H264_FRAMERATE", "30"))
+WEBRTC_H264_STRICT = os.getenv("WEBRTC_H264_STRICT", "0").lower() in ("1", "true", "yes")
+_h264_caps_logged = False
 
 
 def enable_h264_nvenc():
@@ -86,11 +88,18 @@ def enable_h264_nvenc():
                     "g": str(WEBRTC_H264_FRAMERATE * 2),
                 }
                 codec.open()
+                print(f"🎞️ WebRTC H.264 encoder selected: {name}")
                 # aiortc treats these names as "buffering" encoders
                 return codec, name in ("h264_omx", "h264_nvenc")
             except Exception as err:
+                if name == WEBRTC_H264_ENCODER:
+                    print(f"⚠️ WebRTC H.264 encoder {name} unavailable: {err}")
                 last_err = err
                 continue
+        if WEBRTC_H264_STRICT and WEBRTC_H264_ENCODER:
+            raise RuntimeError(
+                f"Strict H.264 encoder {WEBRTC_H264_ENCODER} unavailable: {last_err}"
+            )
         raise last_err or RuntimeError("No H.264 encoder found")
 
     h264.create_encoder_context = create_encoder_context
@@ -106,6 +115,10 @@ def prefer_h264(pc):
         codecs = RTCRtpSender.getCapabilities("video").codecs
         h264_codecs = [c for c in codecs if c.mimeType.lower() == "video/h264"]
         if not h264_codecs:
+            global _h264_caps_logged
+            if not _h264_caps_logged:
+                _h264_caps_logged = True
+                print("⚠️ WebRTC H.264 not in sender capabilities; falling back to VP8/VP9.")
             return
         for transceiver in pc.getTransceivers():
             if transceiver.kind == "video":
@@ -1572,9 +1585,6 @@ async def webrtc_stream(
     if session.idle_sender is None:
         raise HTTPException(status_code=500, detail="WebRTC sender not initialized")
 
-    # Switch the unified track into live mode
-    session.idle_track.start_live()
-
     # Stop previous audio player if any
     if session.audio_player and hasattr(session.audio_player, "stop"):
         session.audio_player.stop()
@@ -1615,24 +1625,47 @@ async def webrtc_stream(
 
     main_loop = asyncio.get_event_loop()
     
-    # ✅ Track if we've signaled audio start
+    # ✅ Track if we've signaled audio start / started live video
     audio_started = False
+    live_started = False
     try:
         prebuffer_seconds = float(os.getenv("WEBRTC_AUDIO_PREBUFFER_SECONDS", "0.2"))
     except ValueError:
         prebuffer_seconds = 0.2
     audio_prebuffer_frames = max(0, int(round(prebuffer_seconds * max(session.fps, 1))))
+    try:
+        video_prebuffer_seconds = float(os.getenv("WEBRTC_VIDEO_PREBUFFER_SECONDS", "0"))
+    except ValueError:
+        video_prebuffer_seconds = 0.0
+    video_prebuffer_frames_env = os.getenv("WEBRTC_VIDEO_PREBUFFER_FRAMES")
+    if video_prebuffer_frames_env:
+        try:
+            video_prebuffer_frames = int(video_prebuffer_frames_env)
+        except ValueError:
+            video_prebuffer_frames = 0
+    else:
+        video_prebuffer_frames = int(round(video_prebuffer_seconds * max(session.fps, 1)))
+    video_prebuffer_frames = max(0, video_prebuffer_frames)
+    queue_max = getattr(getattr(session.idle_track, "_queue", None), "maxsize", 0) or 0
+    if queue_max > 0 and video_prebuffer_frames > queue_max:
+        print(f"⚠️ WebRTC video prebuffer {video_prebuffer_frames} > queue {queue_max}; clamping.")
+        video_prebuffer_frames = queue_max
+    if video_prebuffer_frames > 0:
+        print(f"🎞️ WebRTC video prebuffer: {video_prebuffer_frames} frames")
+    audio_start_frames = max(audio_prebuffer_frames, video_prebuffer_frames)
 
     def frame_callback(frame_bgr, frame_idx, total_frames):
-        nonlocal audio_started
+        nonlocal audio_started, live_started
         try:
-            # ✅ Signal audio slightly ahead of video
-            if not audio_started and frame_idx >= audio_prebuffer_frames:
+            if not live_started:
+                threshold = video_prebuffer_frames if video_prebuffer_frames > 0 else 1
+                if frame_idx >= threshold or frame_idx >= total_frames:
+                    live_started = True
+                    main_loop.call_soon_threadsafe(session.idle_track.start_live)
+            # ✅ Signal audio after video prebuffer is ready
+            if live_started and not audio_started and frame_idx >= audio_start_frames:
                 audio_started = True
-                asyncio.run_coroutine_threadsafe(
-                    _signal_audio_start(audio_track),
-                    main_loop
-                )
+                asyncio.run_coroutine_threadsafe(_signal_audio_start(audio_track), main_loop)
             
             asyncio.run_coroutine_threadsafe(
                 session.idle_track.push_bgr_frame(frame_bgr),
@@ -1676,6 +1709,8 @@ async def webrtc_stream(
                     emit_chunks=False,
                 ):
                     pass
+            # Signal that generation is complete so playback can finish naturally
+            session.idle_track.signal_generation_complete()
             print(f"✅ [{request_id}] WebRTC streaming complete")
         except Exception as e:
             import traceback
