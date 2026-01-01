@@ -150,6 +150,26 @@ Phase B: LL-HLS (lower latency)
   - others: use hls.js (MSE) as fallback
 - Keep a small buffer for smoothness (1-2 seconds).
 
+HLS player behavior (detailed)
+- Two stacked video elements: one for idle playback, one for live playback. Idle stays visible until live is actually playing to avoid black flashes and first-frame freezes.
+- Idle path:
+  - Load `/hls/sessions/{id}/index.m3u8` into the idle video on page load.
+  - Idle video is muted, looped, and autoplays (subject to user-gesture policy).
+- Live path:
+  - When the server reports `status=streaming`, the player preloads `/hls/sessions/{id}/live.m3u8` into the live video in the background.
+  - Once the live video emits `playing`, the player cross-fades to the live layer and pauses the idle video.
+  - If streaming ends, the player fades back to idle after the live video `ended` event.
+- Player polling:
+  - Poll `/hls/sessions/{id}/status` ~800–1500ms to detect stream start/end.
+  - Switch to live only when `live_ready` is true (first live segment written).
+  - Show "Preparing live..." while live is generating but not yet ready.
+- Autoplay / user activation:
+  - Initial tap enables audio and playback (iOS and mobile browsers require a user gesture).
+  - After activation, live playback is unmuted; idle remains muted.
+- Buffering UI:
+  - "Buffering..." shown only for the active layer; idle remains visible.
+  - Avoid destroying the idle player during live transitions; keep it ready for smooth return.
+
 Encoding details
 Recommended base settings for compatibility:
 - Video: H.264 (AVC), yuv420p, baseline/main profile
