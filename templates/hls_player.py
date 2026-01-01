@@ -38,6 +38,19 @@ def get_hls_player_html(session) -> str:
             background: #000;
         }}
 
+        .video-layer {{
+            transition: opacity 0.25s ease;
+        }}
+
+        .video-layer.hidden {{
+            opacity: 0;
+            pointer-events: none;
+        }}
+
+        .video-layer.visible {{
+            opacity: 1;
+        }}
+
         .status {{
             position: absolute;
             bottom: 16px;
@@ -64,8 +77,9 @@ def get_hls_player_html(session) -> str:
     </style>
 </head>
 <body>
-    <div class="video-container">
-        <video id="hlsVideo" playsinline webkit-playsinline autoplay muted></video>
+    <div class="video-container" id="videoContainer">
+        <video id="idleVideo" class="video-layer visible" playsinline webkit-playsinline autoplay muted></video>
+        <video id="liveVideo" class="video-layer hidden" playsinline webkit-playsinline autoplay muted></video>
         <div class="status button" id="status">Loading...</div>
     </div>
 
@@ -74,12 +88,21 @@ def get_hls_player_html(session) -> str:
         const idleManifestUrl = '{manifest_url}';
         const liveManifestUrl = '{manifest_url}'.replace('index.m3u8', 'live.m3u8');
         const statusUrl = '{manifest_url}'.replace('/index.m3u8', '/status');
-        const video = document.getElementById('hlsVideo');
+        const container = document.getElementById('videoContainer');
+        const idleVideo = document.getElementById('idleVideo');
+        const liveVideo = document.getElementById('liveVideo');
         const status = document.getElementById('status');
         let currentMode = 'idle';
-        let hls = null;
+        let idleHls = null;
+        let liveHls = null;
         let started = false;
         let userActivated = false;
+        let livePrepared = false;
+
+        idleVideo.loop = true;
+        idleVideo.muted = true;
+        idleVideo.volume = 0;
+        liveVideo.loop = false;
 
         function showStatus(text, isButton = false) {{
             status.textContent = text;
@@ -95,8 +118,8 @@ def get_hls_player_html(session) -> str:
             status.classList.add('hidden');
         }}
 
-        function attemptPlay() {{
-            const playPromise = video.play();
+        function attemptPlay(targetVideo) {{
+            const playPromise = targetVideo.play();
             if (playPromise && playPromise.catch) {{
                 playPromise
                     .then(() => {{
@@ -116,75 +139,153 @@ def get_hls_player_html(session) -> str:
             }}
         }}
 
-        function loadManifest(url, autoPlay = false) {{
-            if (hls) {{
-                hls.destroy();
-                hls = null;
+        function setLayer(mode) {{
+            if (mode === 'live') {{
+                liveVideo.classList.remove('hidden');
+                liveVideo.classList.add('visible');
+                idleVideo.classList.remove('visible');
+                idleVideo.classList.add('hidden');
+            }} else {{
+                idleVideo.classList.remove('hidden');
+                idleVideo.classList.add('visible');
+                liveVideo.classList.remove('visible');
+                liveVideo.classList.add('hidden');
             }}
-            if (video.canPlayType('application/vnd.apple.mpegurl')) {{
-                video.src = url;
-                video.load();
-                if (autoPlay) {{
-                    attemptPlay();
+        }}
+
+        function destroyLive() {{
+            if (liveHls) {{
+                liveHls.destroy();
+                liveHls = null;
+            }}
+            liveVideo.removeAttribute('src');
+            liveVideo.load();
+            livePrepared = false;
+        }}
+
+        function attachHls(videoEl, url, config, onReady) {{
+            if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {{
+                videoEl.src = url;
+                videoEl.load();
+                if (onReady) {{
+                    onReady();
                 }}
-                return;
+                return null;
             }}
 
             if (window.Hls && Hls.isSupported()) {{
-                hls = new Hls({{ lowLatencyMode: true }});
-                hls.loadSource(url);
-                hls.attachMedia(video);
-                if (autoPlay) {{
-                    attemptPlay();
+                const instance = new Hls(config);
+                instance.loadSource(url);
+                instance.attachMedia(videoEl);
+                if (onReady) {{
+                    instance.on(Hls.Events.MANIFEST_PARSED, () => {{
+                        onReady();
+                    }});
                 }}
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {{
-                    if (autoPlay) {{
-                        attemptPlay();
-                    }}
-                }});
-                hls.on(Hls.Events.ERROR, (_, data) => {{
+                instance.on(Hls.Events.ERROR, (_, data) => {{
                     if (data && data.fatal) {{
                         showStatus('HLS error', true);
                     }}
                 }});
-                return;
+                return instance;
             }}
 
             showStatus('HLS not supported', true);
+            return null;
+        }}
+
+        function loadIdle(autoPlay = false) {{
+            if (idleHls) {{
+                idleHls.destroy();
+                idleHls = null;
+            }}
+            idleHls = attachHls(
+                idleVideo,
+                idleManifestUrl,
+                {{ lowLatencyMode: false }},
+                () => {{
+                    if (autoPlay) {{
+                        attemptPlay(idleVideo);
+                    }}
+                }}
+            );
+            if (autoPlay && idleVideo.canPlayType('application/vnd.apple.mpegurl')) {{
+                attemptPlay(idleVideo);
+            }}
+        }}
+
+        function prepareLive() {{
+            if (livePrepared) return;
+            livePrepared = true;
+
+            if (liveHls) {{
+                liveHls.destroy();
+                liveHls = null;
+            }}
+
+            liveHls = attachHls(
+                liveVideo,
+                liveManifestUrl,
+                {{
+                    lowLatencyMode: false,
+                    liveSyncDurationCount: 1,
+                    liveMaxLatencyDurationCount: 3,
+                    maxBufferLength: 2,
+                    backBufferLength: 0,
+                }},
+                () => {{
+                    if (userActivated) {{
+                        attemptPlay(liveVideo);
+                    }}
+                }}
+            );
+
+            if (userActivated && liveVideo.canPlayType('application/vnd.apple.mpegurl')) {{
+                attemptPlay(liveVideo);
+            }}
         }}
 
         function setMode(mode) {{
             if (mode === currentMode) return;
             currentMode = mode;
-            video.loop = mode === 'idle';
             if (!userActivated) {{
                 showStatus('Tap to start', true);
             }} else {{
                 showStatus(mode === 'live' ? 'Live streaming' : 'Idle');
             }}
-            loadManifest(mode === 'live' ? liveManifestUrl : idleManifestUrl, userActivated);
+            if (mode === 'live') {{
+                prepareLive();
+            }} else {{
+                setLayer('idle');
+                idleVideo.loop = true;
+                attemptPlay(idleVideo);
+            }}
         }}
 
         function handleTap() {{
             if (!userActivated) {{
                 userActivated = true;
-                video.muted = false;
-                video.volume = 1.0;
+                liveVideo.muted = false;
+                liveVideo.volume = 1.0;
             }}
             if (!started) {{
                 started = true;
-                loadManifest(currentMode === 'live' ? liveManifestUrl : idleManifestUrl, true);
-                attemptPlay();
+                loadIdle(true);
+                if (currentMode === 'live') {{
+                    prepareLive();
+                }}
+                attemptPlay(currentMode === 'live' ? liveVideo : idleVideo);
                 return;
             }}
-            attemptPlay();
+            attemptPlay(currentMode === 'live' ? liveVideo : idleVideo);
         }}
 
         status.addEventListener('pointerdown', handleTap);
         status.addEventListener('click', handleTap);
         status.addEventListener('touchstart', handleTap);
-        video.addEventListener('pointerdown', handleTap);
-        video.addEventListener('click', handleTap);
+        container.addEventListener('pointerdown', handleTap);
+        container.addEventListener('click', handleTap);
+        container.addEventListener('touchstart', handleTap);
 
         document.addEventListener('pointerdown', handleTap, {{ once: true }});
 
@@ -194,43 +295,76 @@ def get_hls_player_html(session) -> str:
                 if (!resp.ok) return;
                 const data = await resp.json();
                 if (data.status === 'streaming' && data.live_ready) {{
+                    prepareLive();
                     setMode('live');
                 }} else if (data.status === 'streaming' && currentMode === 'idle') {{
                     showStatus('Preparing live...');
+                }} else if (data.status !== 'streaming' && currentMode === 'live') {{
+                    showStatus('Finishing...');
                 }}
             }} catch (_) {{
                 // Ignore polling failures.
             }}
         }}
 
-        video.addEventListener('playing', () => {{
+        idleVideo.addEventListener('playing', () => {{
+            if (currentMode === 'idle') {{
+                hideStatus();
+            }}
+        }});
+
+        idleVideo.addEventListener('waiting', () => {{
+            if (currentMode === 'idle') {{
+                showStatus(userActivated ? 'Buffering...' : 'Tap to start', !userActivated);
+            }}
+        }});
+
+        liveVideo.addEventListener('playing', () => {{
+            if (currentMode !== 'live') {{
+                currentMode = 'live';
+            }}
+            setLayer('live');
+            idleVideo.pause();
             hideStatus();
         }});
 
-        video.addEventListener('canplay', () => {{
-            if (userActivated) {{
-                attemptPlay();
-            }}
-        }});
-
-        video.addEventListener('waiting', () => {{
-            if (userActivated) {{
-                showStatus('Buffering...');
-            }} else {{
-                showStatus('Tap to start', true);
-            }}
-        }});
-
-        video.addEventListener('ended', () => {{
+        liveVideo.addEventListener('waiting', () => {{
             if (currentMode === 'live') {{
-                setMode('idle');
+                showStatus('Buffering...');
             }}
         }});
 
-        video.loop = true;
+        liveVideo.addEventListener('ended', () => {{
+            if (currentMode === 'live') {{
+                setLayer('idle');
+                idleVideo.loop = true;
+                attemptPlay(idleVideo);
+                currentMode = 'idle';
+                destroyLive();
+            }}
+        }});
+
+        liveVideo.addEventListener('stalled', () => {{
+            if (currentMode === 'live') {{
+                showStatus('Buffering...');
+            }}
+        }});
+
+        idleVideo.addEventListener('canplay', () => {{
+            if (userActivated && currentMode === 'idle') {{
+                attemptPlay(idleVideo);
+            }}
+        }});
+
+        liveVideo.addEventListener('canplay', () => {{
+            if (userActivated && currentMode === 'live') {{
+                attemptPlay(liveVideo);
+            }}
+        }});
+
         showStatus('Tap to start', true);
-        loadManifest(idleManifestUrl, false);
-        setInterval(pollStatus, 1500);
+        loadIdle(false);
+        setInterval(pollStatus, 800);
     </script>
 </body>
 </html>

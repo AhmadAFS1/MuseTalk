@@ -141,7 +141,7 @@ Phase B: LL-HLS (lower latency)
   - index.m3u8
   - segments/seg_000001.m4s
   - parts/part_000001_000003.m4s
-- Keep a fixed window size (eg 6-12 segments) and delete older segments.
+ - Keep a fixed window size (eg 6-12 segments) and delete older segments.
 
 5) Player implementation
 - templates/hls_player.py
@@ -172,11 +172,14 @@ ffmpeg -y \
   -i {audio_path} \
   -c:v libx264 -profile:v main -g {GOP} -keyint_min {GOP} -sc_threshold 0 -pix_fmt yuv420p \
   -c:a aac -b:a 128k -ar 48000 \
-  -f hls -hls_time 1 -hls_part_size 0.2 \
-  -hls_flags independent_segments+append_list+omit_endlist+program_date_time \
+  -f hls -hls_time 1 -hls_part_duration 0.2 \
+  -hls_playlist_type event -hls_list_size 0 \
+  -hls_flags independent_segments+program_date_time+split_by_time \
   -hls_segment_type fmp4 \
-  -hls_segment_filename {out_dir}/segments/seg_%06d.m4s \
-  {out_dir}/index.m3u8
+  -hls_fmp4_init_filename init.mp4 \
+  -hls_segment_filename {out_dir}/segments/live_seg_%06d.m4s \
+  -hls_part_filename {out_dir}/parts/live_part_%06d.m4s \
+  {out_dir}/live.m3u8
 
 Notes:
 - Keep GOP = fps to align keyframes with segment boundaries.
@@ -190,6 +193,19 @@ Config knobs (proposed)
 - HLS_USE_LL (true/false)
 - HLS_PLAYBACK_FPS (idle playback rate)
 - HLS_MUSETALK_FPS (lip-sync generation rate)
+
+LL-HLS conversion (required changes)
+LL-HLS conversion (required changes)
+- Ensure FFmpeg supports LL-HLS (`hls_part_duration` / `hls_part_filename`). Check with `ffmpeg -h muxer=hls`. Ubuntu 22.04's default FFmpeg 4.4 does not expose these options.
+- Use a persistent HLS segmenter per stream (one ffmpeg process) fed by raw frames; avoid per-chunk encoding because it resets timestamps and stalls LL playback.
+- Output CMAF fMP4 with an init segment (`-hls_segment_type fmp4` + `-hls_fmp4_init_filename init.mp4`) so the playlist includes `EXT-X-MAP`. Parts must be pure moof/mdat fragments, not self-initializing MP4s.
+- Emit real segments (~1s) plus parts (200–400ms) via `-hls_time` and `-hls_part_duration`, with GOP aligned to segment duration to keep keyframes on segment boundaries.
+- Keep live outputs separate from idle assets (distinct filenames/dirs) to prevent clobbering idle playback.
+- Let the segmenter write the playlist; don’t hand-build `live.m3u8` when using LL-HLS. This ensures `EXT-X-PART`, `EXT-X-PRELOAD-HINT`, and `EXT-X-SERVER-CONTROL` tags are consistent.
+- Delivery (`api_server.py`): serve `init.mp4`, segments, and parts with correct MIME types; no-cache playlists; allow normal caching for media; blocking reload is optional (Safari uses it, hls.js does not).
+- Player (`templates/hls_player.py`): enable hls.js low-latency mode and keep the buffer small; switch to live only after the live playlist has at least one part/segment; switch back to idle after live ends.
+- Encoding parity: keep audio rate (48k) and codec settings consistent between idle and live to avoid decoder resets or silent stalls.
+- Validation: confirm `live.m3u8` contains `EXT-X-MAP`, `EXT-X-PART`, `EXT-X-SERVER-CONTROL`, and `EXT-X-PRELOAD-HINT`; verify parts arrive before full segments; measure end-to-end latency.
 
 Backward compatibility
 - Existing /player/session and /webrtc endpoints remain unchanged.
