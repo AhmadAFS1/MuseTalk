@@ -86,7 +86,7 @@ def get_hls_player_html(session) -> str:
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
     <script>
         const idleManifestUrl = '{manifest_url}';
-        const liveManifestUrl = '{manifest_url}'.replace('index.m3u8', 'live.m3u8');
+        const liveManifestBaseUrl = '{manifest_url}'.replace('index.m3u8', 'live.m3u8');
         const statusUrl = '{manifest_url}'.replace('/index.m3u8', '/status');
         const container = document.getElementById('videoContainer');
         const idleVideo = document.getElementById('idleVideo');
@@ -98,6 +98,8 @@ def get_hls_player_html(session) -> str:
         let started = false;
         let userActivated = false;
         let livePrepared = false;
+        let liveManifestUrl = liveManifestBaseUrl;
+        let currentStreamId = null;
 
         idleVideo.loop = true;
         idleVideo.muted = true;
@@ -161,6 +163,16 @@ def get_hls_player_html(session) -> str:
             liveVideo.removeAttribute('src');
             liveVideo.load();
             livePrepared = false;
+        }}
+
+        function setLiveStreamId(streamId) {{
+            if (!streamId || streamId === currentStreamId) {{
+                return false;
+            }}
+            currentStreamId = streamId;
+            liveManifestUrl = liveManifestBaseUrl + '?stream_id=' + encodeURIComponent(streamId);
+            destroyLive();
+            return true;
         }}
 
         function attachHls(videoEl, url, config, onReady) {{
@@ -246,7 +258,7 @@ def get_hls_player_html(session) -> str:
         }}
 
         function setMode(mode) {{
-            if (mode === currentMode) return;
+            if (mode === currentMode && !(mode === 'live' && !livePrepared)) return;
             currentMode = mode;
             if (!userActivated) {{
                 showStatus('Tap to start', true);
@@ -295,9 +307,11 @@ def get_hls_player_html(session) -> str:
                 if (!resp.ok) return;
                 const data = await resp.json();
                 if (data.status === 'streaming' && data.live_ready) {{
+                    setLiveStreamId(data.active_stream);
                     prepareLive();
                     setMode('live');
                 }} else if (data.status === 'streaming' && currentMode === 'idle') {{
+                    setLiveStreamId(data.active_stream);
                     showStatus('Preparing live...');
                 }} else if (data.status !== 'streaming' && currentMode === 'live') {{
                     showStatus('Finishing...');

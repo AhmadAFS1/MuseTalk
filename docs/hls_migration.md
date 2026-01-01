@@ -156,7 +156,7 @@ HLS player behavior (detailed)
   - Load `/hls/sessions/{id}/index.m3u8` into the idle video on page load.
   - Idle video is muted, looped, and autoplays (subject to user-gesture policy).
 - Live path:
-  - When the server reports `status=streaming`, the player preloads `/hls/sessions/{id}/live.m3u8` into the live video in the background.
+  - When the server reports `status=streaming`, the player preloads `/hls/sessions/{id}/live.m3u8?stream_id={active_stream}` into the live video in the background (cache-busting per stream).
   - Once the live video emits `playing`, the player cross-fades to the live layer and pauses the idle video.
   - If streaming ends, the player fades back to idle after the live video `ended` event.
 - Player polling:
@@ -169,6 +169,15 @@ HLS player behavior (detailed)
 - Buffering UI:
   - "Buffering..." shown only for the active layer; idle remains visible.
   - Avoid destroying the idle player during live transitions; keep it ready for smooth return.
+
+Live queue + cleanup behavior
+- Each live stream writes to its own segment namespace: `segments/{active_stream}/chunk_0000.ts`, etc. This avoids stale playback state when multiple `/hls/sessions/{id}/stream` calls happen over time.
+- The live playlist (`live.m3u8`) points to the per-stream segment path. The player receives the current `active_stream` from `/status` and appends it as `?stream_id=` to force a fresh playlist fetch.
+- Live segments are **not** reused across streams. The server sets `Cache-Control: no-store` on `chunk_*.ts` to prevent clients from caching old live chunks.
+- Cleanup:
+  - Per-stream segment directories remain until the session is deleted.
+  - Deleting the HLS session removes the entire `results/hls/{session_id}` directory.
+  - Optional optimization (not required): remove old `segments/{old_stream_id}` folders after a stream finishes to cap disk usage.
 
 Encoding details
 Recommended base settings for compatibility:

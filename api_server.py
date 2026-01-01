@@ -1515,26 +1515,26 @@ async def hls_live_manifest(session_id: str):
     )
 
 
-@app.get("/hls/sessions/{session_id}/segments/{segment_name}")
+@app.get("/hls/sessions/{session_id}/segments/{segment_name:path}")
 async def hls_segment(session_id: str, segment_name: str):
     _require_hls()
     session = await hls_session_manager.get_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found or expired")
 
-    safe_name = Path(segment_name).name
-    if safe_name != segment_name:
+    segment_path = (session.segment_dir / segment_name).resolve()
+    segment_root = session.segment_dir.resolve()
+    if segment_root not in segment_path.parents and segment_path != segment_root:
         raise HTTPException(status_code=400, detail="Invalid segment name")
-
-    segment_path = session.segment_dir / safe_name
     if not segment_path.exists():
         raise HTTPException(status_code=404, detail="Segment not found")
 
     media_type = "video/MP2T" if segment_path.suffix.lower() == ".ts" else "video/mp4"
+    cache_control = "no-store" if segment_path.name.startswith("chunk_") else "no-cache"
     return FileResponse(
         segment_path,
         media_type=media_type,
-        headers={"Cache-Control": "no-cache"}
+        headers={"Cache-Control": cache_control}
     )
 
 
@@ -1613,6 +1613,8 @@ async def hls_stream(
     request_id = f"{session.avatar_id}_hls_{uuid.uuid4().hex[:8]}"
     session.active_stream = request_id
     session.status = "streaming"
+    live_segment_dir = session.segment_dir / request_id
+    live_segment_dir.mkdir(parents=True, exist_ok=True)
 
     upload_dir = Path("uploads/audio")
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -1639,12 +1641,16 @@ async def hls_stream(
                     device=manager.device,
                     fps=generation_fps,
                     chunk_duration_seconds=session.segment_duration,
-                    chunk_output_dir=str(session.segment_dir),
+                    chunk_output_dir=str(live_segment_dir),
                     frame_callback=None,
                     emit_chunks=True,
                     chunk_ext=".ts",
                 ):
-                    segment_name = Path(chunk_info["chunk_path"]).name
+                    segment_path = Path(chunk_info["chunk_path"])
+                    try:
+                        segment_name = segment_path.relative_to(session.segment_dir).as_posix()
+                    except ValueError:
+                        segment_name = segment_path.name
                     duration = chunk_info.get("duration_seconds") or session.segment_duration
                     hls_session_manager.append_live_segment(session, segment_name, duration)
             print(f"✅ [{request_id}] HLS streaming complete")
