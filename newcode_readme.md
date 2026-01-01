@@ -344,6 +344,9 @@ GET /player/session/{session_id}
 ```
 
 This HTML player auto-connects to the session SSE stream and plays chunks as they arrive.
+Platform note:
+- Use `/player/session/{session_id}` for Android (Chrome/WebView).
+- Use `/hls/player/{session_id}` for iOS (Safari/WKWebView).
 
 ### Minimal Mobile Player (Optional)
 ```http

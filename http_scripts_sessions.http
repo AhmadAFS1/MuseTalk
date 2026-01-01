@@ -1,6 +1,6 @@
-@BASE_URL = http://localhost:8000 
+@BASE_URL = http://120.238.149.205:27912
 #@BASE_URL = http://158.51.110.52:28100
-@SESSION_ID = RAK_t6BAImb1sm9bn6azIA
+@SESSION_ID = MXpv8mj20-y7pmK-Q3vnig
 
 ### Health Check
 GET {{BASE_URL}}/health
@@ -32,7 +32,7 @@ GET {{BASE_URL}}/avatars/test_avatar/video
 # ============================================================================
 
 ### Step 1: Create a Session for User 1
-POST {{BASE_URL}}/sessions/create?avatar_id=test_avatar&user_id=user1&batch_size=8&fps=25&chunk_duration=2
+POST {{BASE_URL}}/sessions/create?avatar_id=test_avatar&user_id=user1&batch_size=6&fps=25&chunk_duration=2
 
 ###
 
