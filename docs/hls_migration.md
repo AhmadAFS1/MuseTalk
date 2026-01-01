@@ -170,6 +170,18 @@ HLS player behavior (detailed)
   - "Buffering..." shown only for the active layer; idle remains visible.
   - Avoid destroying the idle player during live transitions; keep it ready for smooth return.
 
+Idle continuity (resume head)
+- Goal: when returning from live to idle, resume idle at the logical head position instead of restarting at 0.
+- Capture idle head on live start:
+  - `idleAnchorTime = idleVideo.currentTime`
+  - `idleAnchorWallTime = performance.now()`
+- On live end, compute the resume point:
+  - `elapsed = (performance.now() - idleAnchorWallTime) / 1000`
+  - `resumeTime = (idleAnchorTime + elapsed) % idleDuration`
+  - Seek idle video to `resumeTime` before showing it (wait for `loadedmetadata` and `canplay`).
+- Optional alternative: keep the idle video playing muted in the background while live is active, then simply reveal it on return. This avoids seeking but costs extra bandwidth.
+- Track `idleDuration` from `idleVideo.duration` (fall back to 0 if not known yet). For short idle loops, modulo wrap will be obvious; consider longer idle loops for smoother continuity.
+
 Live queue + cleanup behavior
 - Each live stream writes to its own segment namespace: `segments/{active_stream}/chunk_0000.ts`, etc. This avoids stale playback state when multiple `/hls/sessions/{id}/stream` calls happen over time.
 - The live playlist (`live.m3u8`) points to the per-stream segment path. The player receives the current `active_stream` from `/status` and appends it as `?stream_id=` to force a fresh playlist fetch.

@@ -100,6 +100,9 @@ def get_hls_player_html(session) -> str:
         let livePrepared = false;
         let liveManifestUrl = liveManifestBaseUrl;
         let currentStreamId = null;
+        let idleAnchorTime = 0;
+        let idleAnchorWallTime = 0;
+        let idleDuration = 0;
 
         idleVideo.loop = true;
         idleVideo.muted = true;
@@ -163,6 +166,45 @@ def get_hls_player_html(session) -> str:
             liveVideo.removeAttribute('src');
             liveVideo.load();
             livePrepared = false;
+        }}
+
+        function markIdleAnchor() {{
+            idleAnchorTime = idleVideo.currentTime || 0;
+            idleAnchorWallTime = performance.now();
+        }}
+
+        function computeIdleResumeTime() {{
+            if (!idleDuration || idleDuration <= 0) {{
+                return null;
+            }}
+            const elapsed = (performance.now() - idleAnchorWallTime) / 1000;
+            const resumeTime = (idleAnchorTime + elapsed) % idleDuration;
+            return Number.isFinite(resumeTime) ? resumeTime : null;
+        }}
+
+        function resumeIdlePlayback() {{
+            const resumeTime = computeIdleResumeTime();
+            const startIdle = () => {{
+                setLayer('idle');
+                idleVideo.loop = true;
+                attemptPlay(idleVideo);
+                currentMode = 'idle';
+            }};
+            if (resumeTime === null) {{
+                startIdle();
+                return;
+            }}
+            const onSeeked = () => {{
+                idleVideo.removeEventListener('seeked', onSeeked);
+                startIdle();
+            }};
+            idleVideo.addEventListener('seeked', onSeeked, {{ once: true }});
+            try {{
+                idleVideo.currentTime = resumeTime;
+            }} catch (_) {{
+                idleVideo.removeEventListener('seeked', onSeeked);
+                startIdle();
+            }}
         }}
 
         function setLiveStreamId(streamId) {{
@@ -327,6 +369,12 @@ def get_hls_player_html(session) -> str:
             }}
         }});
 
+        idleVideo.addEventListener('loadedmetadata', () => {{
+            if (idleVideo.duration && Number.isFinite(idleVideo.duration)) {{
+                idleDuration = idleVideo.duration;
+            }}
+        }});
+
         idleVideo.addEventListener('waiting', () => {{
             if (currentMode === 'idle') {{
                 showStatus(userActivated ? 'Buffering...' : 'Tap to start', !userActivated);
@@ -337,6 +385,7 @@ def get_hls_player_html(session) -> str:
             if (currentMode !== 'live') {{
                 currentMode = 'live';
             }}
+            markIdleAnchor();
             setLayer('live');
             idleVideo.pause();
             hideStatus();
@@ -350,10 +399,7 @@ def get_hls_player_html(session) -> str:
 
         liveVideo.addEventListener('ended', () => {{
             if (currentMode === 'live') {{
-                setLayer('idle');
-                idleVideo.loop = true;
-                attemptPlay(idleVideo);
-                currentMode = 'idle';
+                resumeIdlePlayback();
                 destroyLive();
             }}
         }});
