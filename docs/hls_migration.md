@@ -22,14 +22,14 @@ New API surface (parallel to /sessions)
 All endpoints below are new and independent from existing session and WebRTC routes.
 
 1) Create HLS Session
-POST /hls/sessions/create?avatar_id=...&user_id=...&fps=10&batch_size=2&segment_duration=1&part_duration=0.2
+POST /hls/sessions/create?avatar_id=...&user_id=...&playback_fps=30&musetalk_fps=10&batch_size=2&segment_duration=1&part_duration=0.2
 Response:
 {
   "session_id": "...",
   "player_url": "/hls/player/{session_id}",
   "manifest_url": "/hls/sessions/{session_id}/index.m3u8",
   "expires_in_seconds": 3600,
-  "config": {"fps": 10, "segment_duration": 1, "part_duration": 0.2}
+  "config": {"playback_fps": 30, "musetalk_fps": 10, "batch_size": 2, "segment_duration": 1, "part_duration": 0.2}
 }
 
 2) Start HLS Stream (upload audio)
@@ -141,7 +141,7 @@ Phase B: LL-HLS (lower latency)
   - index.m3u8
   - segments/seg_000001.m4s
   - parts/part_000001_000003.m4s
-- Keep a fixed window size (eg 6-12 segments) and delete older segments.
+ - Keep a fixed window size (eg 6-12 segments) and delete older segments.
 
 5) Player implementation
 - templates/hls_player.py
@@ -149,6 +149,47 @@ Phase B: LL-HLS (lower latency)
   - iOS: video.src = manifest
   - others: use hls.js (MSE) as fallback
 - Keep a small buffer for smoothness (1-2 seconds).
+
+HLS player behavior (detailed)
+- Two stacked video elements: one for idle playback, one for live playback. Idle stays visible until live is actually playing to avoid black flashes and first-frame freezes.
+- Idle path:
+  - Load `/hls/sessions/{id}/index.m3u8` into the idle video on page load.
+  - Idle video is muted, looped, and autoplays (subject to user-gesture policy).
+- Live path:
+  - When the server reports `status=streaming`, the player preloads `/hls/sessions/{id}/live.m3u8?stream_id={active_stream}` into the live video in the background (cache-busting per stream).
+  - Once the live video emits `playing`, the player cross-fades to the live layer and pauses the idle video.
+  - If streaming ends, the player fades back to idle after the live video `ended` event.
+- Player polling:
+  - Poll `/hls/sessions/{id}/status` ~800–1500ms to detect stream start/end.
+  - Switch to live only when `live_ready` is true (first live segment written).
+  - Show "Preparing live..." while live is generating but not yet ready.
+- Autoplay / user activation:
+  - Initial tap enables audio and playback (iOS and mobile browsers require a user gesture).
+  - After activation, live playback is unmuted; idle remains muted.
+- Buffering UI:
+  - "Buffering..." shown only for the active layer; idle remains visible.
+  - Avoid destroying the idle player during live transitions; keep it ready for smooth return.
+
+Idle continuity (resume head)
+- Goal: when returning from live to idle, resume idle at the logical head position instead of restarting at 0.
+- Capture idle head on live start:
+  - `idleAnchorTime = idleVideo.currentTime`
+  - `idleAnchorWallTime = performance.now()`
+- On live end, compute the resume point:
+  - `elapsed = (performance.now() - idleAnchorWallTime) / 1000`
+  - `resumeTime = (idleAnchorTime + elapsed) % idleDuration`
+  - Seek idle video to `resumeTime` before showing it (wait for `loadedmetadata` and `canplay`).
+- Optional alternative: keep the idle video playing muted in the background while live is active, then simply reveal it on return. This avoids seeking but costs extra bandwidth.
+- Track `idleDuration` from `idleVideo.duration` (fall back to 0 if not known yet). For short idle loops, modulo wrap will be obvious; consider longer idle loops for smoother continuity.
+
+Live queue + cleanup behavior
+- Each live stream writes to its own segment namespace: `segments/{active_stream}/chunk_0000.ts`, etc. This avoids stale playback state when multiple `/hls/sessions/{id}/stream` calls happen over time.
+- The live playlist (`live.m3u8`) points to the per-stream segment path. The player receives the current `active_stream` from `/status` and appends it as `?stream_id=` to force a fresh playlist fetch.
+- Live segments are **not** reused across streams. The server sets `Cache-Control: no-store` on `chunk_*.ts` to prevent clients from caching old live chunks.
+- Cleanup:
+  - Per-stream segment directories remain until the session is deleted.
+  - Deleting the HLS session removes the entire `results/hls/{session_id}` directory.
+  - Optional optimization (not required): remove old `segments/{old_stream_id}` folders after a stream finishes to cap disk usage.
 
 Encoding details
 Recommended base settings for compatibility:
@@ -172,11 +213,14 @@ ffmpeg -y \
   -i {audio_path} \
   -c:v libx264 -profile:v main -g {GOP} -keyint_min {GOP} -sc_threshold 0 -pix_fmt yuv420p \
   -c:a aac -b:a 128k -ar 48000 \
-  -f hls -hls_time 1 -hls_part_size 0.2 \
-  -hls_flags independent_segments+append_list+omit_endlist+program_date_time \
+  -f hls -hls_time 1 -hls_part_duration 0.2 \
+  -hls_playlist_type event -hls_list_size 0 \
+  -hls_flags independent_segments+program_date_time+split_by_time \
   -hls_segment_type fmp4 \
-  -hls_segment_filename {out_dir}/segments/seg_%06d.m4s \
-  {out_dir}/index.m3u8
+  -hls_fmp4_init_filename init.mp4 \
+  -hls_segment_filename {out_dir}/segments/live_seg_%06d.m4s \
+  -hls_part_filename {out_dir}/parts/live_part_%06d.m4s \
+  {out_dir}/live.m3u8
 
 Notes:
 - Keep GOP = fps to align keyframes with segment boundaries.
@@ -188,6 +232,21 @@ Config knobs (proposed)
 - HLS_WINDOW_SEGMENTS (default 6)
 - HLS_OUTPUT_DIR (default results/hls)
 - HLS_USE_LL (true/false)
+- HLS_PLAYBACK_FPS (idle playback rate)
+- HLS_MUSETALK_FPS (lip-sync generation rate)
+
+LL-HLS conversion (required changes)
+LL-HLS conversion (required changes)
+- Ensure FFmpeg supports LL-HLS (`hls_part_duration` / `hls_part_filename`). Check with `ffmpeg -h muxer=hls`. Ubuntu 22.04's default FFmpeg 4.4 does not expose these options.
+- Use a persistent HLS segmenter per stream (one ffmpeg process) fed by raw frames; avoid per-chunk encoding because it resets timestamps and stalls LL playback.
+- Output CMAF fMP4 with an init segment (`-hls_segment_type fmp4` + `-hls_fmp4_init_filename init.mp4`) so the playlist includes `EXT-X-MAP`. Parts must be pure moof/mdat fragments, not self-initializing MP4s.
+- Emit real segments (~1s) plus parts (200–400ms) via `-hls_time` and `-hls_part_duration`, with GOP aligned to segment duration to keep keyframes on segment boundaries.
+- Keep live outputs separate from idle assets (distinct filenames/dirs) to prevent clobbering idle playback.
+- Let the segmenter write the playlist; don’t hand-build `live.m3u8` when using LL-HLS. This ensures `EXT-X-PART`, `EXT-X-PRELOAD-HINT`, and `EXT-X-SERVER-CONTROL` tags are consistent.
+- Delivery (`api_server.py`): serve `init.mp4`, segments, and parts with correct MIME types; no-cache playlists; allow normal caching for media; blocking reload is optional (Safari uses it, hls.js does not).
+- Player (`templates/hls_player.py`): enable hls.js low-latency mode and keep the buffer small; switch to live only after the live playlist has at least one part/segment; switch back to idle after live ends.
+- Encoding parity: keep audio rate (48k) and codec settings consistent between idle and live to avoid decoder resets or silent stalls.
+- Validation: confirm `live.m3u8` contains `EXT-X-MAP`, `EXT-X-PART`, `EXT-X-SERVER-CONTROL`, and `EXT-X-PRELOAD-HINT`; verify parts arrive before full segments; measure end-to-end latency.
 
 Backward compatibility
 - Existing /player/session and /webrtc endpoints remain unchanged.

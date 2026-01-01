@@ -1,10 +1,12 @@
-@BASE_URL = http://37.41.28.10:42470 
+@BASE_URL = http://120.238.149.205:27912
 @AVATAR_ID = test_avatar
-@FPS = 30
-@SEGMENT_DURATION = 2
+@PLAYBACK_FPS = 30
+@MUSE_FPS = 10
+@SEGMENT_DURATION = 1
 @PART_DURATION = 0.2
 @BATCH_SIZE = 2
-@SESSION_ID = CY8bqmw_ByHxBxbLhjcRMQ
+@SESSION_ID = 9mCMQ6LdBKyRa08uVd9DAA
+
 
 ### Health Check
 GET {{BASE_URL}}/health
@@ -12,7 +14,7 @@ GET {{BASE_URL}}/health
 ###
 
 ### Create HLS Session (idle-only)
-POST {{BASE_URL}}/hls/sessions/create?avatar_id={{AVATAR_ID}}&fps={{FPS}}&batch_size={{BATCH_SIZE}}&segment_duration={{SEGMENT_DURATION}}&part_duration={{PART_DURATION}}
+POST {{BASE_URL}}/hls/sessions/create?avatar_id={{AVATAR_ID}}&playback_fps={{PLAYBACK_FPS}}&musetalk_fps={{MUSE_FPS}}&batch_size={{BATCH_SIZE}}&segment_duration={{SEGMENT_DURATION}}&part_duration={{PART_DURATION}}
 
 ###
 
@@ -23,6 +25,11 @@ POST {{BASE_URL}}/hls/sessions/create?avatar_id={{AVATAR_ID}}&fps={{FPS}}&batch_
 
 ### Fetch HLS Manifest
 GET {{BASE_URL}}/hls/sessions/{{SESSION_ID}}/index.m3u8
+
+###
+
+### Fetch HLS Live Manifest (during stream)
+GET {{BASE_URL}}/hls/sessions/{{SESSION_ID}}/live.m3u8
 
 ###
 
@@ -41,8 +48,7 @@ DELETE {{BASE_URL}}/hls/sessions/{{SESSION_ID}}
 
 ###
 
-### Start HLS Stream with Audio (NOT IMPLEMENTED YET)
-# This endpoint will be added when live chunk appending is implemented.
+### Start HLS Stream with Audio
 POST {{BASE_URL}}/hls/sessions/{{SESSION_ID}}/stream
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
@@ -50,5 +56,5 @@ Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0g
 Content-Disposition: form-data; name="audio_file"; filename="eng.wav"
 Content-Type: audio/wav
 
-< ./data/audio/eng.wav
+< ./data/audio/ai-assistant.mpga
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--

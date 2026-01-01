@@ -469,6 +469,7 @@ class APIAvatar:
         chunk_output_dir=None,
         frame_callback=None,
         emit_chunks=True,
+        chunk_ext=".mp4",
     ):
         """
         Stream video chunks as they're generated.
@@ -621,7 +622,7 @@ class APIAvatar:
                             fps=fps,
                             start_frame=chunk_index * frames_per_chunk,
                             total_frames=video_num,
-                            output_path=str(chunk_dir / f"chunk_{chunk_index:04d}.mp4")
+                            output_path=str(chunk_dir / f"chunk_{chunk_index:04d}{chunk_ext}")
                         )
                         chunk_elapsed = time.time() - chunk_start
                         
@@ -666,17 +667,22 @@ class APIAvatar:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     def _create_chunk(self, frames, chunk_index, audio_path, fps, start_frame, total_frames, output_path):
-        """Create fMP4 fragment for MSE streaming (zero-copy encoding)"""
+        """Create an encoded chunk (fMP4 for MSE or TS for HLS)."""
         import subprocess
-        import tempfile
         
         chunk_start_time = time.time()
         
         # Calculate audio timing
         start_time = start_frame / fps
         duration = len(frames) / fps
-        
-        print(f"      🔨 Creating fMP4 fragment {chunk_index} ({len(frames)} frames)...")
+
+        output_suffix = Path(output_path).suffix.lower()
+        use_mpegts = output_suffix == ".ts"
+
+        if use_mpegts:
+            print(f"      🔨 Creating TS segment {chunk_index} ({len(frames)} frames)...")
+        else:
+            print(f"      🔨 Creating fMP4 fragment {chunk_index} ({len(frames)} frames)...")
         
         # Use pipes to avoid disk I/O for frames
         height, width = frames[0].shape[:2]
@@ -695,22 +701,45 @@ class APIAvatar:
             '-ss', str(start_time),
             '-t', str(duration),
             '-i', audio_path,
-            # Video encoding
-            '-c:v', 'libx264',
-            '-preset', 'ultrafast',
-            '-tune', 'zerolatency',
-            '-crf', '28',
-            '-pix_fmt', 'yuv420p',
-            # Audio encoding
-            '-c:a', 'aac',
-            '-b:a', '128k',
-            '-ar', '44100',
-            # ✅ CRITICAL: fMP4 flags for MSE
-            '-movflags', 'frag_keyframe+empty_moov+default_base_moof+faststart',
-            '-frag_duration', str(int(duration * 1000000)),  # Microseconds
-            '-f', 'mp4',
-            output_path
         ]
+
+        if use_mpegts:
+            gop = max(1, len(frames))
+            ffmpeg_cmd += [
+                # Video encoding
+                '-c:v', 'libx264',
+                '-preset', 'ultrafast',
+                '-tune', 'zerolatency',
+                '-crf', '28',
+                '-pix_fmt', 'yuv420p',
+                '-g', str(gop),
+                '-keyint_min', str(gop),
+                '-sc_threshold', '0',
+                # Audio encoding
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-ar', '48000',
+                '-f', 'mpegts',
+                output_path
+            ]
+        else:
+            ffmpeg_cmd += [
+                # Video encoding
+                '-c:v', 'libx264',
+                '-preset', 'ultrafast',
+                '-tune', 'zerolatency',
+                '-crf', '28',
+                '-pix_fmt', 'yuv420p',
+                # Audio encoding
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-ar', '44100',
+                # ✅ CRITICAL: fMP4 flags for MSE
+                '-movflags', 'frag_keyframe+empty_moov+default_base_moof+faststart',
+                '-frag_duration', str(int(duration * 1000000)),  # Microseconds
+                '-f', 'mp4',
+                output_path
+            ]
         
         try:
             # Start FFmpeg process
