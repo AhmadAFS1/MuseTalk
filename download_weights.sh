@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export HF_HUB_ENABLE_HF_TRANSFER=0
+
 # Set the checkpoints directory
 CheckpointsDir="models"
 
@@ -11,7 +13,7 @@ mkdir -p models/musetalk models/musetalkV15 models/syncnet models/dwpose models/
 pip install gdown
 
 # Set HuggingFace mirror endpoint
-export HF_ENDPOINT=https://hf-mirror.com
+export HF_ENDPOINT=https://huggingface.co
 
 # Download MuseTalk V1.0 weights
 huggingface-cli download TMElyralab/MuseTalk \
