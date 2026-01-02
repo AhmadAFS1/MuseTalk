@@ -70,6 +70,7 @@ class APIAvatar:
         self.mask_out_path = f"{self.avatar_path}/mask"
         self.mask_coords_path = f"{self.avatar_path}/mask_coords.pkl"
         self.avatar_info_path = f"{self.avatar_path}/avator_info.json"
+        self._idle_frame_cache: list[np.ndarray] | None = None
         
         self.avatar_info = {
             "avatar_id": avatar_id,
@@ -456,6 +457,34 @@ class APIAvatar:
         print(f"✅ Video saved: {output_vid}")
         return output_vid
 
+    def _get_idle_frames(self, max_frames: int = 24) -> list:
+        """
+        Load and cache idle video frames for smooth transitions.
+        Returns up to max_frames frames (BGR) or an empty list on failure.
+        """
+        if self._idle_frame_cache is not None:
+            return self._idle_frame_cache
+
+        frames: list[np.ndarray] = []
+        try:
+            video_path = Path(self.video_path)
+            if not video_path.exists() or not video_path.is_file():
+                return []
+
+            cap = cv2.VideoCapture(str(video_path))
+            while len(frames) < max_frames:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                frames.append(frame)
+            cap.release()
+        except Exception as exc:
+            print(f"⚠️ Failed to load idle frames: {exc}")
+            frames = []
+
+        self._idle_frame_cache = frames
+        return frames
+
     @torch.no_grad()
     def inference_streaming(
         self,
@@ -545,6 +574,23 @@ class APIAvatar:
         print(f"📊 Expected chunks: {total_chunks}")
         print(f"📊 Chunk duration: {chunk_duration_seconds}s")
         print(f"📊 Total duration: {video_num/fps:.2f}s")
+
+        # Preload idle frames for automatic tail crossfade (no API changes)
+        idle_frames = self._get_idle_frames(
+            max_frames=max(8, min(24, int(fps * 0.8)))
+        )
+        crossfade_tail_frames = 0
+        if emit_chunks and idle_frames:
+            # Aim for ~0.3s fade, clamped to available frames and chunk size
+            crossfade_tail_frames = max(4, int(fps * 0.15))
+            crossfade_tail_frames = min(
+                crossfade_tail_frames,
+                len(idle_frames),
+                frames_per_chunk - 1 if frames_per_chunk > 1 else crossfade_tail_frames
+            )
+            print(f"🎚️  Crossfade enabled: {crossfade_tail_frames} frames into idle video")
+        else:
+            print("🎚️  Crossfade disabled (no idle frames available)")
         
         # ═══════════════════════════════════════════════════════════
         # PHASE 2: FRAME GENERATION
@@ -615,15 +661,29 @@ class APIAvatar:
                     
                     if emit_chunks:
                         chunk_start = time.time()
-                        chunk_path = self._create_chunk(
-                            frames=frame_buffer, 
-                            chunk_index=chunk_index, 
-                            audio_path=audio_path, 
-                            fps=fps,
-                            start_frame=chunk_index * frames_per_chunk,
-                            total_frames=video_num,
-                            output_path=str(chunk_dir / f"chunk_{chunk_index:04d}{chunk_ext}")
-                        )
+                        is_final_chunk = frame_idx >= video_num
+                        if is_final_chunk and crossfade_tail_frames > 0:
+                            chunk_path = self._create_crossfade_chunk(
+                                frames=frame_buffer,
+                                idle_frames=idle_frames,
+                                fade_frames=crossfade_tail_frames,
+                                chunk_index=chunk_index,
+                                audio_path=audio_path,
+                                fps=fps,
+                                start_frame=chunk_index * frames_per_chunk,
+                                total_frames=video_num,
+                                output_path=str(chunk_dir / f"chunk_{chunk_index:04d}{chunk_ext}")
+                            )
+                        else:
+                            chunk_path = self._create_chunk(
+                                frames=frame_buffer, 
+                                chunk_index=chunk_index, 
+                                audio_path=audio_path,
+                                fps=fps,
+                                start_frame=chunk_index * frames_per_chunk,
+                                total_frames=video_num,
+                                output_path=str(chunk_dir / f"chunk_{chunk_index:04d}{chunk_ext}")
+                            )
                         chunk_elapsed = time.time() - chunk_start
                         
                         chunk_info = {
@@ -665,6 +725,65 @@ class APIAvatar:
         # Cleanup
         print(f"🧹 Cleaning up temp directory: {tmp_dir}")
         shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    def _create_crossfade_chunk(
+        self,
+        frames: list,
+        idle_frames: list,
+        fade_frames: int,
+        chunk_index: int,
+        audio_path: str,
+        fps: int,
+        start_frame: int,
+        total_frames: int,
+        output_path: str,
+    ):
+        """Blend the tail of talking frames into idle frames for a seamless handoff."""
+        if not frames or not idle_frames or fade_frames <= 0:
+            return self._create_chunk(
+                frames=frames,
+                chunk_index=chunk_index,
+                audio_path=audio_path,
+                fps=fps,
+                start_frame=start_frame,
+                total_frames=total_frames,
+                output_path=output_path,
+            )
+
+        fade_frames = min(fade_frames, len(frames), len(idle_frames))
+        keep_count = max(0, len(frames) - fade_frames)
+        final_frames: list[np.ndarray] = []
+
+        if keep_count > 0:
+            final_frames.extend(frames[:keep_count])
+
+        for i in range(fade_frames):
+            alpha = (i + 1) / (fade_frames + 1)
+            eased_alpha = 1 - (1 - alpha) ** 2  # ease-out
+            talk_frame = frames[keep_count + i] if (keep_count + i) < len(frames) else frames[-1]
+            idle_frame = idle_frames[i % len(idle_frames)]
+
+            if talk_frame.shape != idle_frame.shape:
+                idle_frame = cv2.resize(idle_frame, (talk_frame.shape[1], talk_frame.shape[0]))
+
+            blended = cv2.addWeighted(
+                talk_frame.astype(np.float32), 1.0 - eased_alpha,
+                idle_frame.astype(np.float32), eased_alpha,
+                0
+            ).astype(np.uint8)
+            final_frames.append(blended)
+
+        print(f"      🔀 Crossfade: {keep_count} talk frames + {fade_frames} blended frames")
+
+        return self._create_chunk(
+            frames=final_frames,
+            chunk_index=chunk_index,
+            audio_path=audio_path,
+            fps=fps,
+            start_frame=start_frame,
+            total_frames=total_frames,
+            output_path=output_path,
+        )
 
     def _create_chunk(self, frames, chunk_index, audio_path, fps, start_frame, total_frames, output_path):
         """Create an encoded chunk (fMP4 for MSE or TS for HLS)."""

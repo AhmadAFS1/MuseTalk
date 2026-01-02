@@ -207,6 +207,23 @@ def get_hls_player_html(session) -> str:
             }}
         }}
 
+        async function transitionToIdle() {{
+            // Start idle playback first, then fade layers to avoid a black flash.
+            return new Promise((resolve) => {{
+                const onIdlePlaying = () => {{
+                    idleVideo.removeEventListener('playing', onIdlePlaying);
+                    setLayer('idle');
+                    // Keep live video around briefly to avoid gap while opacity transitions
+                    setTimeout(() => destroyLive(), 150);
+                    resolve();
+                }};
+
+                idleVideo.addEventListener('playing', onIdlePlaying, {{ once: true }});
+                resumeIdlePlayback();
+                attemptPlay(idleVideo);
+            }});
+        }}
+
         function setLiveStreamId(streamId) {{
             if (!streamId || streamId === currentStreamId) {{
                 return false;
@@ -399,8 +416,7 @@ def get_hls_player_html(session) -> str:
 
         liveVideo.addEventListener('ended', () => {{
             if (currentMode === 'live') {{
-                resumeIdlePlayback();
-                destroyLive();
+                transitionToIdle();
             }}
         }});
 
