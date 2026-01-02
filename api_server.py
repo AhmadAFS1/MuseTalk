@@ -1394,6 +1394,32 @@ async def get_session_stats():
     return session_manager.get_stats()
 
 
+@app.get("/sessions/live")
+async def get_live_sessions():
+    """List all live sessions across SSE, HLS, and WebRTC"""
+    if (
+        session_manager is None
+        and hls_session_manager is None
+        and (not WEBRTC_AVAILABLE or webrtc_session_manager is None)
+    ):
+        raise HTTPException(status_code=503, detail="Session managers not initialized")
+
+    session_streams = session_manager.get_live_sessions() if session_manager else []
+    hls_streams = hls_session_manager.get_live_sessions() if hls_session_manager else []
+    webrtc_streams = (
+        webrtc_session_manager.get_live_sessions()
+        if WEBRTC_AVAILABLE and webrtc_session_manager is not None
+        else []
+    )
+
+    return {
+        "total_live": len(session_streams) + len(hls_streams) + len(webrtc_streams),
+        "session_streams": session_streams,
+        "hls_streams": hls_streams,
+        "webrtc_streams": webrtc_streams,
+    }
+
+
 @app.get("/player/session/{session_id}", response_class=HTMLResponse)
 async def session_player(session_id: str):
     """
@@ -2182,5 +2208,7 @@ if __name__ == "__main__":
         "api_server:app",
         host=args.host,
         port=args.port,
-        reload=args.reload
+        reload=args.reload,
+        access_log=False,      # Suppress per-request access logs
+        log_level="error",     # Only emit errors from Uvicorn
     )

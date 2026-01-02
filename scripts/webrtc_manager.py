@@ -162,3 +162,24 @@ class WebRTCSessionManager:
             await session.pc.close()
 
         return True
+
+    def get_live_sessions(self) -> list[dict]:
+        """Return only WebRTC sessions that are actively streaming"""
+        now = time.time()
+        return [
+            {
+                "session_id": s.session_id,
+                "user_id": s.user_id,
+                "avatar_id": s.avatar_id,
+                "active_stream": s.active_stream,
+                "age_seconds": now - s.created_at,
+                "idle_seconds": now - s.last_activity,
+                "fps": s.fps,
+                "playback_fps": s.playback_fps,
+                "chunk_duration": s.chunk_duration,
+                "batch_size": s.batch_size,
+                "player_url": f"/webrtc/player/{s.session_id}",
+            }
+            for s in self.sessions.values()
+            if s.active_stream is not None
+        ]

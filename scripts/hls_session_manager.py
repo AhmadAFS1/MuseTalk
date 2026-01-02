@@ -254,3 +254,27 @@ class HlsSessionManager:
                 for s in self.sessions.values()
             ],
         }
+
+    def get_live_sessions(self) -> list[dict]:
+        """Return only HLS sessions currently streaming"""
+        now = time.time()
+        return [
+            {
+                "session_id": s.session_id,
+                "user_id": s.user_id,
+                "avatar_id": s.avatar_id,
+                "age_seconds": now - s.created_at,
+                "idle_seconds": now - s.last_activity,
+                "batch_size": s.batch_size,
+                "playback_fps": s.playback_fps,
+                "musetalk_fps": s.musetalk_fps,
+                "segment_duration": s.segment_duration,
+                "part_duration": s.part_duration,
+                "status": s.status,
+                "active_stream": s.active_stream,
+                "live_manifest": f"/hls/sessions/{s.session_id}/live.m3u8",
+                "player_url": f"/hls/player/{s.session_id}",
+            }
+            for s in self.sessions.values()
+            if s.status == "streaming" or s.active_stream is not None
+        ]
