@@ -21,6 +21,24 @@ This guide explains how to use the HLS session API from a React Native app. It c
 
 ---
 
+## 0) Prepare the avatar (one-time)
+
+Before creating HLS sessions, prepare an avatar from a source video. This is a one-time operation per `avatar_id`.
+
+```http
+POST /avatars/prepare?avatar_id=test_avatar&batch_size=20&bbox_shift=0
+Content-Type: multipart/form-data
+```
+
+Form field name must be `video_file`.
+
+Notes:
+- `batch_size` here is for preparation only; HLS streaming uses its own `batch_size`.
+- `bbox_shift` is optional; adjust if the face crop feels too tight/loose.
+- To re-run preparation, pass `force_recreate=true`.
+
+---
+
 ## 1) Create an HLS session
 
 ```http
