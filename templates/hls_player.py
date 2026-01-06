@@ -39,7 +39,7 @@ def get_hls_player_html(session) -> str:
         }}
 
         .video-layer {{
-            transition: opacity 0.25s ease;
+            transition: none;
         }}
 
         .video-layer.hidden {{
@@ -48,6 +48,22 @@ def get_hls_player_html(session) -> str:
         }}
 
         .video-layer.visible {{
+            opacity: 1;
+        }}
+
+        .frame-hold {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 5;
+        }}
+
+        .frame-hold.visible {{
             opacity: 1;
         }}
 
@@ -80,6 +96,7 @@ def get_hls_player_html(session) -> str:
     <div class="video-container" id="videoContainer">
         <video id="idleVideo" class="video-layer visible" playsinline webkit-playsinline autoplay muted></video>
         <video id="liveVideo" class="video-layer hidden" playsinline webkit-playsinline autoplay muted></video>
+        <canvas id="holdCanvas" class="frame-hold"></canvas>
         <div class="status button" id="status">Loading...</div>
     </div>
 
@@ -91,6 +108,8 @@ def get_hls_player_html(session) -> str:
         const container = document.getElementById('videoContainer');
         const idleVideo = document.getElementById('idleVideo');
         const liveVideo = document.getElementById('liveVideo');
+        const holdCanvas = document.getElementById('holdCanvas');
+        const holdCtx = holdCanvas.getContext('2d');
         const status = document.getElementById('status');
         let currentMode = 'idle';
         let idleHls = null;
@@ -98,11 +117,15 @@ def get_hls_player_html(session) -> str:
         let started = false;
         let userActivated = false;
         let livePrepared = false;
+        let liveRevealPending = false;
+        let liveRevealInFlight = false;
+        let liveRevealed = false;
         let liveManifestUrl = liveManifestBaseUrl;
         let currentStreamId = null;
         let idleAnchorTime = 0;
         let idleAnchorWallTime = 0;
         let idleDuration = 0;
+        const LIVE_PREBUFFER_SECONDS = 0.75;
 
         idleVideo.loop = true;
         idleVideo.muted = true;
@@ -166,6 +189,9 @@ def get_hls_player_html(session) -> str:
             liveVideo.removeAttribute('src');
             liveVideo.load();
             livePrepared = false;
+            liveRevealPending = false;
+            liveRevealInFlight = false;
+            liveRevealed = false;
         }}
 
         function markIdleAnchor() {{
@@ -182,46 +208,155 @@ def get_hls_player_html(session) -> str:
             return Number.isFinite(resumeTime) ? resumeTime : null;
         }}
 
-        function resumeIdlePlayback() {{
-            const resumeTime = computeIdleResumeTime();
-            const startIdle = () => {{
-                setLayer('idle');
-                idleVideo.loop = true;
-                attemptPlay(idleVideo);
-                currentMode = 'idle';
-            }};
-            if (resumeTime === null) {{
-                startIdle();
-                return;
-            }}
-            const onSeeked = () => {{
-                idleVideo.removeEventListener('seeked', onSeeked);
-                startIdle();
-            }};
-            idleVideo.addEventListener('seeked', onSeeked, {{ once: true }});
-            try {{
-                idleVideo.currentTime = resumeTime;
-            }} catch (_) {{
-                idleVideo.removeEventListener('seeked', onSeeked);
-                startIdle();
+        function resizeHoldCanvas() {{
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const width = Math.max(1, Math.floor(rect.width * dpr));
+            const height = Math.max(1, Math.floor(rect.height * dpr));
+            if (holdCanvas.width !== width || holdCanvas.height !== height) {{
+                holdCanvas.width = width;
+                holdCanvas.height = height;
             }}
         }}
 
-        async function transitionToIdle() {{
-            // Start idle playback first, then fade layers to avoid a black flash.
-            return new Promise((resolve) => {{
-                const onIdlePlaying = () => {{
-                    idleVideo.removeEventListener('playing', onIdlePlaying);
-                    setLayer('idle');
-                    // Keep live video around briefly to avoid gap while opacity transitions
-                    setTimeout(() => destroyLive(), 150);
-                    resolve();
-                }};
+        function drawFrameToHold(videoEl) {{
+            if (!holdCtx) return false;
+            const vw = videoEl.videoWidth;
+            const vh = videoEl.videoHeight;
+            if (!vw || !vh) return false;
 
-                idleVideo.addEventListener('playing', onIdlePlaying, {{ once: true }});
-                resumeIdlePlayback();
-                attemptPlay(idleVideo);
+            resizeHoldCanvas();
+            const cw = holdCanvas.width;
+            const ch = holdCanvas.height;
+            const scale = Math.min(cw / vw, ch / vh);
+            const drawW = vw * scale;
+            const drawH = vh * scale;
+            const offsetX = (cw - drawW) / 2;
+            const offsetY = (ch - drawH) / 2;
+
+            holdCtx.fillStyle = '#000';
+            holdCtx.fillRect(0, 0, cw, ch);
+            holdCtx.drawImage(videoEl, offsetX, offsetY, drawW, drawH);
+            return true;
+        }}
+
+        function showHoldFrame(videoEl) {{
+            const painted = drawFrameToHold(videoEl);
+            if (painted) {{
+                holdCanvas.classList.add('visible');
+            }}
+            return painted;
+        }}
+
+        function hideHoldFrame() {{
+            holdCanvas.classList.remove('visible');
+        }}
+
+        function captureHoldFrame(videoEl) {{
+            if (showHoldFrame(videoEl)) {{
+                return Promise.resolve(true);
+            }}
+            if (videoEl.requestVideoFrameCallback) {{
+                return new Promise((resolve) => {{
+                    videoEl.requestVideoFrameCallback(() => {{
+                        resolve(showHoldFrame(videoEl));
+                    }});
+                }});
+            }}
+            return Promise.resolve(false);
+        }}
+
+        function waitForVideoFrame(videoEl, timeoutMs = 1200) {{
+            return new Promise((resolve) => {{
+                let done = false;
+                const finish = (result) => {{
+                    if (done) return;
+                    done = true;
+                    cleanup();
+                    resolve(result);
+                }};
+                const onPlaying = () => finish(true);
+                const onTimeUpdate = () => finish(true);
+                const cleanup = () => {{
+                    clearTimeout(timer);
+                    videoEl.removeEventListener('playing', onPlaying);
+                    videoEl.removeEventListener('timeupdate', onTimeUpdate);
+                }};
+                const timer = setTimeout(() => finish(false), timeoutMs);
+
+                if (videoEl.requestVideoFrameCallback) {{
+                    videoEl.requestVideoFrameCallback(() => finish(true));
+                }}
+                videoEl.addEventListener('playing', onPlaying, {{ once: true }});
+                videoEl.addEventListener('timeupdate', onTimeUpdate, {{ once: true }});
             }});
+        }}
+
+        function getBufferedAheadSeconds(videoEl) {{
+            const buffered = videoEl.buffered;
+            if (!buffered || buffered.length === 0) {{
+                return 0;
+            }}
+            const time = videoEl.currentTime;
+            for (let i = 0; i < buffered.length; i++) {{
+                if (time >= buffered.start(i) && time <= buffered.end(i)) {{
+                    return buffered.end(i) - time;
+                }}
+            }}
+            return buffered.end(buffered.length - 1) - time;
+        }}
+
+        async function revealLive() {{
+            if (liveRevealed || !liveRevealPending) return;
+            await waitForVideoFrame(liveVideo, 1200);
+            if (!liveRevealPending) return;
+            liveRevealPending = false;
+            liveRevealed = true;
+            currentMode = 'live';
+            markIdleAnchor();
+            setLayer('live');
+            idleVideo.pause();
+            hideHoldFrame();
+            hideStatus();
+        }}
+
+        function maybeRevealLive() {{
+            if (!liveRevealPending || liveRevealed || liveRevealInFlight) return;
+            const bufferedAhead = getBufferedAheadSeconds(liveVideo);
+            if (bufferedAhead < LIVE_PREBUFFER_SECONDS) {{
+                return;
+            }}
+            liveRevealInFlight = true;
+            revealLive().finally(() => {{
+                liveRevealInFlight = false;
+            }});
+        }}
+
+        async function primeIdlePlayback() {{
+            const resumeTime = computeIdleResumeTime();
+            if (resumeTime !== null) {{
+                try {{
+                    idleVideo.currentTime = resumeTime;
+                }} catch (_) {{
+                    // Ignore seek failures; fall back to current time.
+                }}
+            }}
+            idleVideo.loop = true;
+            attemptPlay(idleVideo);
+            await waitForVideoFrame(idleVideo, 1200);
+        }}
+
+        async function transitionToIdle() {{
+            if (currentMode !== 'live') return;
+            liveRevealPending = false;
+            liveRevealInFlight = false;
+            liveRevealed = false;
+            await captureHoldFrame(liveVideo);
+            await primeIdlePlayback();
+            setLayer('idle');
+            currentMode = 'idle';
+            hideHoldFrame();
+            setTimeout(() => destroyLive(), 150);
         }}
 
         function setLiveStreamId(streamId) {{
@@ -288,6 +423,8 @@ def get_hls_player_html(session) -> str:
         function prepareLive() {{
             if (livePrepared) return;
             livePrepared = true;
+            liveRevealPending = true;
+            liveRevealed = false;
 
             if (liveHls) {{
                 liveHls.destroy();
@@ -317,20 +454,30 @@ def get_hls_player_html(session) -> str:
         }}
 
         function setMode(mode) {{
-            if (mode === currentMode && !(mode === 'live' && !livePrepared)) return;
+            if (mode === 'live') {{
+                if (currentMode === 'live' && livePrepared) {{
+                    return;
+                }}
+                if (!userActivated) {{
+                    showStatus('Tap to start', true);
+                }} else {{
+                    showStatus('Preparing live...');
+                }}
+                prepareLive();
+                maybeRevealLive();
+                return;
+            }}
+
+            if (mode === currentMode) return;
             currentMode = mode;
             if (!userActivated) {{
                 showStatus('Tap to start', true);
             }} else {{
-                showStatus(mode === 'live' ? 'Live streaming' : 'Idle');
+                showStatus('Idle');
             }}
-            if (mode === 'live') {{
-                prepareLive();
-            }} else {{
-                setLayer('idle');
-                idleVideo.loop = true;
-                attemptPlay(idleVideo);
-            }}
+            setLayer('idle');
+            idleVideo.loop = true;
+            attemptPlay(idleVideo);
         }}
 
         function handleTap() {{
@@ -345,10 +492,10 @@ def get_hls_player_html(session) -> str:
                 if (currentMode === 'live') {{
                     prepareLive();
                 }}
-                attemptPlay(currentMode === 'live' ? liveVideo : idleVideo);
+                attemptPlay(liveRevealPending || currentMode === 'live' ? liveVideo : idleVideo);
                 return;
             }}
-            attemptPlay(currentMode === 'live' ? liveVideo : idleVideo);
+            attemptPlay(liveRevealPending || currentMode === 'live' ? liveVideo : idleVideo);
         }}
 
         status.addEventListener('pointerdown', handleTap);
@@ -367,7 +514,6 @@ def get_hls_player_html(session) -> str:
                 const data = await resp.json();
                 if (data.status === 'streaming' && data.live_ready) {{
                     setLiveStreamId(data.active_stream);
-                    prepareLive();
                     setMode('live');
                 }} else if (data.status === 'streaming' && currentMode === 'idle') {{
                     setLiveStreamId(data.active_stream);
@@ -381,7 +527,7 @@ def get_hls_player_html(session) -> str:
         }}
 
         idleVideo.addEventListener('playing', () => {{
-            if (currentMode === 'idle') {{
+            if (currentMode === 'idle' && !liveRevealPending) {{
                 hideStatus();
             }}
         }});
@@ -399,13 +545,7 @@ def get_hls_player_html(session) -> str:
         }});
 
         liveVideo.addEventListener('playing', () => {{
-            if (currentMode !== 'live') {{
-                currentMode = 'live';
-            }}
-            markIdleAnchor();
-            setLayer('live');
-            idleVideo.pause();
-            hideStatus();
+            maybeRevealLive();
         }});
 
         liveVideo.addEventListener('waiting', () => {{
@@ -433,13 +573,24 @@ def get_hls_player_html(session) -> str:
         }});
 
         liveVideo.addEventListener('canplay', () => {{
-            if (userActivated && currentMode === 'live') {{
+            if (userActivated && liveRevealPending) {{
                 attemptPlay(liveVideo);
             }}
+            maybeRevealLive();
+        }});
+
+        liveVideo.addEventListener('timeupdate', () => {{
+            maybeRevealLive();
+        }});
+
+        liveVideo.addEventListener('progress', () => {{
+            maybeRevealLive();
         }});
 
         showStatus('Tap to start', true);
         loadIdle(false);
+        resizeHoldCanvas();
+        window.addEventListener('resize', resizeHoldCanvas);
         setInterval(pollStatus, 800);
     </script>
 </body>
