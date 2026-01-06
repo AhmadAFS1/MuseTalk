@@ -167,6 +167,37 @@ Idle continuity (resume head)
 - Optional alternative: keep the idle video playing muted in the background while live is active, then simply reveal it on return. This avoids seeking but costs extra bandwidth.
 - Track `idleDuration` from `idleVideo.duration` (fall back to 0 if not known yet). For short idle loops, modulo wrap will be obvious; consider longer idle loops for smoother continuity.
 
+Potential enhancement: align live start to idle head (proposal)
+Goal
+- Start live chunk generation at an offset that matches the current idle playback head, so the base frame continuity is preserved when talking begins.
+
+Why this needs client input
+- The server does not know the client's true idle playback time (autoplay delays, buffering, user gesture timing).
+- A client-provided timestamp is required for accurate alignment.
+
+Client side (React Native WebView bridge)
+- Add a WebView -> RN message that reports `idleVideo.currentTime`.
+- Either request on-demand (right before /stream) or push periodically.
+- Use the most recent `idle_time` when calling `/hls/sessions/{id}/stream`.
+
+Server side (API surface)
+- Add an optional query param or form field, e.g. `start_offset_seconds` (default 0).
+- Keep it backward-compatible: if missing, behave as today.
+
+Generation side (api_avatar.py)
+- Apply the same offset to both:
+  - latent selection (`datagen(..., delay_frame=offset_frames)`), and
+  - background frame/mask selection (start `frame_idx` at `offset_frames` or rotate the cycle lists).
+- `offset_frames = round(start_offset_seconds * generation_fps)`, use modulo by list length.
+
+Crossfade and idle frames
+- If using tail crossfade, consider offsetting the idle frame cache to the same head so the blend matches.
+
+Pitfalls
+- Idle HLS is forward-loop, while the avatar cycle is ping-pong; perfect long-run alignment is not possible.
+- If frame lists and latent lists are different lengths (skipped bboxes), offsets must be applied carefully to keep mouth and base frame aligned.
+- If playback_fps != musetalk_fps, the offset is approximate; prefer matching fps for best continuity.
+
 Live queue + cleanup behavior
 - Each live stream writes to its own segment namespace: `segments/{active_stream}/chunk_0000.ts`, etc. This avoids stale playback state when multiple `/hls/sessions/{id}/stream` calls happen over time.
 - The live playlist (`live.m3u8`) points to the per-stream segment path. The player receives the current `active_stream` from `/status` and appends it as `?stream_id=` to force a fresh playlist fetch.
