@@ -127,6 +127,45 @@ def get_hls_player_html(session) -> str:
         let idleDuration = 0;
         const LIVE_PREBUFFER_SECONDS = 0.75;
 
+        function postToHost(payload) {{
+            if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {{
+                try {{
+                    window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+                }} catch (_) {{
+                    // Ignore postMessage failures.
+                }}
+            }}
+        }}
+
+        function getIdleTimePayload() {{
+            const idleTime = Number.isFinite(idleVideo.currentTime) ? idleVideo.currentTime : 0;
+            const duration = Number.isFinite(idleDuration) ? idleDuration : (idleVideo.duration || 0);
+            return {{
+                type: 'idle_time',
+                idle_time: idleTime,
+                idle_duration: duration,
+                mode: currentMode,
+            }};
+        }}
+
+        function handleHostMessage(event) {{
+            let data = event && event.data !== undefined ? event.data : event;
+            if (typeof data === 'string') {{
+                try {{
+                    data = JSON.parse(data);
+                }} catch (_) {{
+                    if (data !== 'get_idle_time') {{
+                        return;
+                    }}
+                    data = {{ type: 'get_idle_time' }};
+                }}
+            }}
+            if (!data || data.type !== 'get_idle_time') {{
+                return;
+            }}
+            postToHost(getIdleTimePayload());
+        }}
+
         idleVideo.loop = true;
         idleVideo.muted = true;
         idleVideo.volume = 0;
@@ -506,6 +545,12 @@ def get_hls_player_html(session) -> str:
         container.addEventListener('touchstart', handleTap);
 
         document.addEventListener('pointerdown', handleTap, {{ once: true }});
+        if (window.addEventListener) {{
+            window.addEventListener('message', handleHostMessage);
+        }}
+        if (document && document.addEventListener) {{
+            document.addEventListener('message', handleHostMessage);
+        }}
 
         async function pollStatus() {{
             try {{

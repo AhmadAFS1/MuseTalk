@@ -499,12 +499,14 @@ class APIAvatar:
         frame_callback=None,
         emit_chunks=True,
         chunk_ext=".mp4",
+        start_offset_seconds: float = 0.0,
     ):
         """
         Stream video chunks as they're generated.
         
         Args:
             chunk_output_dir: Custom directory for chunks (enables multi-user isolation)
+            start_offset_seconds: Optional offset into the avatar frame cycle (seconds)
         """
         
         # ═══════════════════════════════════════════════════════════
@@ -599,7 +601,27 @@ class APIAvatar:
         print(f"🎨 PHASE 2: Frame Generation & Streaming")
         print(f"{'─'*60}")
         
-        gen = datagen(whisper_chunks, self.input_latent_list_cycle, self.batch_size)
+        offset_seconds = 0.0
+        if start_offset_seconds:
+            try:
+                offset_seconds = float(start_offset_seconds)
+            except (TypeError, ValueError):
+                offset_seconds = 0.0
+        if not (offset_seconds == offset_seconds) or offset_seconds in (float("inf"), float("-inf")):
+            offset_seconds = 0.0
+        if offset_seconds < 0:
+            offset_seconds = 0.0
+
+        start_offset_frames = int(round(offset_seconds * fps)) if offset_seconds > 0 else 0
+        if start_offset_frames:
+            print(f"INFO: start_offset_frames={start_offset_frames} ({offset_seconds:.2f}s)")
+
+        gen = datagen(
+            whisper_chunks,
+            self.input_latent_list_cycle,
+            self.batch_size,
+            delay_frame=start_offset_frames,
+        )
         frame_buffer = []
         chunk_index = 0
         frame_idx = 0
@@ -626,13 +648,14 @@ class APIAvatar:
             # Process each frame
             for res_frame in recon:
                 # Blend frame
-                bbox = self.coord_list_cycle[frame_idx % len(self.coord_list_cycle)]
-                ori_frame = self.frame_list_cycle[frame_idx % len(self.frame_list_cycle)].copy()
+                cycle_index = frame_idx + start_offset_frames
+                bbox = self.coord_list_cycle[cycle_index % len(self.coord_list_cycle)]
+                ori_frame = self.frame_list_cycle[cycle_index % len(self.frame_list_cycle)].copy()
                 x1, y1, x2, y2 = bbox
                 
                 res_frame_resized = cv2.resize(res_frame.astype(np.uint8), (x2 - x1, y2 - y1))
-                mask = self.mask_list_cycle[frame_idx % len(self.mask_list_cycle)]
-                mask_crop_box = self.mask_coords_list_cycle[frame_idx % len(self.mask_coords_list_cycle)]
+                mask = self.mask_list_cycle[cycle_index % len(self.mask_list_cycle)]
+                mask_crop_box = self.mask_coords_list_cycle[cycle_index % len(self.mask_coords_list_cycle)]
                 
                 combine_frame = get_image_blending(ori_frame, res_frame_resized, bbox, mask, mask_crop_box)
                 frame_buffer.append(combine_frame)

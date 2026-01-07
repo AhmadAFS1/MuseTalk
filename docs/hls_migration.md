@@ -40,7 +40,7 @@ Response:
 }
 
 2) Start HLS Stream (upload audio)
-POST /hls/sessions/{session_id}/stream
+POST /hls/sessions/{session_id}/stream?start_offset_seconds=5.12
 - multipart/form-data: audio_file
 Response mirrors /sessions/stream semantics.
 
@@ -181,7 +181,7 @@ Client side (React Native WebView bridge)
 - Use the most recent `idle_time` when calling `/hls/sessions/{id}/stream`.
 
 Server side (API surface)
-- Add an optional query param or form field, e.g. `start_offset_seconds` (default 0).
+- Add an optional query param or form field, e.g. `start_offset_seconds` (default 0). (Implemented as a query param on `/hls/sessions/{id}/stream`.)
 - Keep it backward-compatible: if missing, behave as today.
 
 Generation side (api_avatar.py)

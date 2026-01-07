@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 from typing import Optional
 import uvicorn
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Query
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -1618,6 +1618,7 @@ async def hls_player(session_id: str):
 async def hls_stream(
     session_id: str,
     audio_file: UploadFile = File(...),
+    start_offset_seconds: Optional[float] = Query(None),
 ):
     """
     Start live HLS streaming for a session by generating chunked TS segments.
@@ -1653,6 +1654,16 @@ async def hls_stream(
 
     # Use musetalk_fps if set, otherwise fall back to playback fps or 15.
     generation_fps = session.musetalk_fps or session.playback_fps or 15
+    offset_seconds = 0.0
+    if start_offset_seconds is not None:
+        try:
+            offset_seconds = float(start_offset_seconds)
+        except (TypeError, ValueError):
+            offset_seconds = 0.0
+    if not (offset_seconds == offset_seconds) or offset_seconds in (float("inf"), float("-inf")):
+        offset_seconds = 0.0
+    if offset_seconds < 0:
+        offset_seconds = 0.0
 
     def streaming_worker():
         try:
@@ -1671,6 +1682,7 @@ async def hls_stream(
                     frame_callback=None,
                     emit_chunks=True,
                     chunk_ext=".ts",
+                    start_offset_seconds=offset_seconds,
                 ):
                     segment_path = Path(chunk_info["chunk_path"])
                     try:
