@@ -43,6 +43,7 @@ Response:
 POST /hls/sessions/{session_id}/stream?start_offset_seconds=5.12
 - multipart/form-data: audio_file
 Response mirrors /sessions/stream semantics.
+Note: `start_offset_seconds` is expressed in idle playback seconds; the server scales it by `playback_fps / musetalk_fps` before generation.
 
 3) HLS Manifest
 GET /hls/sessions/{session_id}/index.m3u8
@@ -182,13 +183,14 @@ Client side (React Native WebView bridge)
 
 Server side (API surface)
 - Add an optional query param or form field, e.g. `start_offset_seconds` (default 0). (Implemented as a query param on `/hls/sessions/{id}/stream`.)
+- Interpret the value as idle playback time; scale to generation time using `playback_fps / musetalk_fps`.
 - Keep it backward-compatible: if missing, behave as today.
 
 Generation side (api_avatar.py)
 - Apply the same offset to both:
   - latent selection (`datagen(..., delay_frame=offset_frames)`), and
   - background frame/mask selection (start `frame_idx` at `offset_frames` or rotate the cycle lists).
-- `offset_frames = round(start_offset_seconds * generation_fps)`, use modulo by list length.
+- `offset_frames = round(adjusted_offset_seconds * generation_fps)` after scaling in the API layer.
 
 Crossfade and idle frames
 - If using tail crossfade, consider offsetting the idle frame cache to the same head so the blend matches.
