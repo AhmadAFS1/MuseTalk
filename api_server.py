@@ -12,6 +12,7 @@ import shutil
 import uuid
 import asyncio
 import json
+import pickle
 import re
 import aiofiles
 import time  # ✅ Add this if not present
@@ -50,6 +51,53 @@ WEBRTC_H264_MAXBITRATE = int(os.getenv("WEBRTC_H264_MAXBITRATE", "6000000"))
 WEBRTC_H264_FRAMERATE = int(os.getenv("WEBRTC_H264_FRAMERATE", "30"))
 WEBRTC_H264_STRICT = os.getenv("WEBRTC_H264_STRICT", "0").lower() in ("1", "true", "yes")
 _h264_caps_logged = False
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on")
+
+
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
+def _env_optional_float(name: str) -> Optional[float]:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
+# ============================================================================
+# HLS timing controls
+# ============================================================================
+
+HLS_SERVER_TIMING = _env_bool("HLS_SERVER_TIMING", True)
+HLS_LIVE_STARTUP_SECONDS = _env_optional_float("HLS_LIVE_STARTUP_SECONDS")
+HLS_LIVE_STARTUP_SEGMENTS = _env_int("HLS_LIVE_STARTUP_SEGMENTS", 3)
+HLS_LIVE_PREBUFFER_SECONDS = _env_float("HLS_LIVE_PREBUFFER_SECONDS", 0.0)
 
 
 def enable_h264_nvenc():
@@ -1444,6 +1492,89 @@ def _require_hls():
         raise HTTPException(status_code=503, detail="HLS session manager not initialized")
 
 
+def _resolve_avatar_coords_path(avatar_id: str) -> Path:
+    if manager and manager.args.version == "v15":
+        return Path(f"./results/{manager.args.version}/avatars/{avatar_id}/coords.pkl")
+    return Path(f"./results/avatars/{avatar_id}/coords.pkl")
+
+
+def _load_avatar_cycle_frames(avatar_id: str) -> Optional[int]:
+    coords_path = _resolve_avatar_coords_path(avatar_id)
+    if not coords_path.exists():
+        return None
+    try:
+        with coords_path.open("rb") as handle:
+            coords = pickle.load(handle)
+        return len(coords) if coords else None
+    except (OSError, pickle.UnpicklingError):
+        return None
+
+
+def _get_manifest_duration_seconds(manifest_path: Path) -> Optional[float]:
+    try:
+        total = 0.0
+        with manifest_path.open("r") as handle:
+            for line in handle:
+                if line.startswith("#EXTINF:"):
+                    value = line.split(":", 1)[1].split(",", 1)[0].strip()
+                    total += float(value)
+        return total if total > 0 else None
+    except (OSError, ValueError):
+        return None
+
+
+def _get_expected_hls_startup_delay(segment_duration: float) -> float:
+    if HLS_LIVE_STARTUP_SECONDS is not None:
+        return max(0.0, HLS_LIVE_STARTUP_SECONDS)
+    delay = max(0.0, segment_duration) * max(0, HLS_LIVE_STARTUP_SEGMENTS)
+    delay += max(0.0, HLS_LIVE_PREBUFFER_SECONDS)
+    return delay
+
+
+def _compute_server_timing_offset(
+    session,
+    generation_fps: float,
+    playback_fps: Optional[float],
+) -> dict:
+    idle_duration = session.idle_duration_seconds or 0.0
+    expected_delay = _get_expected_hls_startup_delay(session.segment_duration)
+    if idle_duration <= 0:
+        return {
+            "offset_seconds": 0.0,
+            "offset_frames": 0,
+            "idle_elapsed_seconds": 0.0,
+            "idle_at_reveal_seconds": 0.0,
+            "expected_delay_seconds": expected_delay,
+            "timing_source": "server",
+            "reason": "idle_duration_unknown",
+        }
+
+    idle_elapsed = (time.monotonic() - session.idle_start_monotonic) % idle_duration
+    idle_at_reveal = (idle_elapsed + expected_delay) % idle_duration
+    cycle_frames = session.idle_cycle_frames or 0
+
+    offset_frames = 0
+    offset_seconds = 0.0
+    if cycle_frames > 0 and generation_fps > 0:
+        offset_frames = int(round((idle_at_reveal / idle_duration) * cycle_frames)) % cycle_frames
+        offset_seconds = offset_frames / generation_fps
+    else:
+        offset_seconds = idle_at_reveal
+        if playback_fps and generation_fps and playback_fps > 0:
+            offset_seconds = idle_at_reveal * (generation_fps / playback_fps)
+        if generation_fps > 0:
+            offset_frames = int(round(offset_seconds * generation_fps))
+
+    return {
+        "offset_seconds": offset_seconds,
+        "offset_frames": offset_frames,
+        "idle_elapsed_seconds": idle_elapsed,
+        "idle_at_reveal_seconds": idle_at_reveal,
+        "expected_delay_seconds": expected_delay,
+        "timing_source": "server",
+    }
+
+
 @app.post("/hls/sessions/create")
 async def create_hls_session(
     avatar_id: str,
@@ -1453,6 +1584,7 @@ async def create_hls_session(
     musetalk_fps: Optional[int] = None,
     segment_duration: float = 2.0,
     part_duration: Optional[float] = None,
+    hls_server_timing: Optional[bool] = None,
 ):
     """
     Create a new HLS session for idle playback.
@@ -1481,6 +1613,8 @@ async def create_hls_session(
             detail=f"Input video for '{avatar_id}' is corrupted. Please re-prepare avatar."
         )
 
+    resolved_hls_server_timing = HLS_SERVER_TIMING if hls_server_timing is None else hls_server_timing
+
     session = await hls_session_manager.create_session(
         avatar_id=avatar_id,
         idle_video_path=str(video_path),
@@ -1490,6 +1624,7 @@ async def create_hls_session(
         musetalk_fps=musetalk_fps,
         segment_duration=segment_duration,
         part_duration=part_duration,
+        hls_server_timing=resolved_hls_server_timing,
     )
 
     return {
@@ -1505,6 +1640,7 @@ async def create_hls_session(
             "musetalk_fps": musetalk_fps,
             "segment_duration": segment_duration,
             "part_duration": part_duration,
+            "hls_server_timing": resolved_hls_server_timing,
         }
     }
 
@@ -1571,6 +1707,13 @@ async def hls_session_status(session_id: str):
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found or expired")
 
+    idle_elapsed = None
+    if session.idle_duration_seconds and session.idle_duration_seconds > 0:
+        idle_elapsed = (
+            (time.monotonic() - session.idle_start_monotonic)
+            % session.idle_duration_seconds
+        )
+
     return {
         "session_id": session.session_id,
         "avatar_id": session.avatar_id,
@@ -1579,6 +1722,12 @@ async def hls_session_status(session_id: str):
         "last_activity": session.last_activity,
         "age_seconds": time.time() - session.created_at,
         "idle_seconds": time.time() - session.last_activity,
+        "idle_start_wall_time": session.idle_start_wall_time,
+        "idle_duration_seconds": session.idle_duration_seconds,
+        "idle_elapsed_seconds": idle_elapsed,
+        "idle_cycle_frames": session.idle_cycle_frames,
+        "timing_source": session.timing_source,
+        "hls_server_timing": session.hls_server_timing,
         "segment_duration": session.segment_duration,
         "part_duration": session.part_duration,
         "batch_size": session.batch_size,
@@ -1654,22 +1803,65 @@ async def hls_stream(
 
     # Use musetalk_fps if set, otherwise fall back to playback fps or 15.
     generation_fps = session.musetalk_fps or session.playback_fps or 15
-    offset_seconds = 0.0
-    if start_offset_seconds is not None:
-        try:
-            offset_seconds = float(start_offset_seconds)
-        except (TypeError, ValueError):
-            offset_seconds = 0.0
+    timing_debug = None
+    if session.idle_duration_seconds is None:
+        session.idle_duration_seconds = _get_manifest_duration_seconds(session.manifest_path)
+    use_server_timing = (
+        session.hls_server_timing
+        if session.hls_server_timing is not None
+        else HLS_SERVER_TIMING
+    )
+    if use_server_timing:
+        if session.idle_cycle_frames is None:
+            session.idle_cycle_frames = _load_avatar_cycle_frames(session.avatar_id)
+        timing_debug = _compute_server_timing_offset(
+            session=session,
+            generation_fps=float(generation_fps),
+            playback_fps=session.playback_fps,
+        )
+        offset_seconds = timing_debug["offset_seconds"]
+        session.timing_source = "server"
+        if start_offset_seconds is not None:
+            try:
+                timing_debug["client_offset_seconds"] = float(start_offset_seconds)
+            except (TypeError, ValueError):
+                timing_debug["client_offset_seconds"] = None
+    else:
+        offset_seconds = 0.0
+        if start_offset_seconds is not None:
+            try:
+                offset_seconds = float(start_offset_seconds)
+            except (TypeError, ValueError):
+                offset_seconds = 0.0
+        if session.playback_fps and generation_fps and session.playback_fps > 0:
+            offset_seconds = offset_seconds * (generation_fps / session.playback_fps)
+        session.timing_source = "client" if start_offset_seconds is not None else "default"
+        timing_debug = {
+            "offset_seconds": offset_seconds,
+            "offset_frames": int(round(offset_seconds * generation_fps)) if generation_fps else 0,
+            "timing_source": session.timing_source,
+        }
+
+    offset_sanitized = False
     if not (offset_seconds == offset_seconds) or offset_seconds in (float("inf"), float("-inf")):
         offset_seconds = 0.0
+        offset_sanitized = True
     if offset_seconds < 0:
         offset_seconds = 0.0
+        offset_sanitized = True
+    if timing_debug is not None and offset_sanitized:
+        timing_debug["offset_seconds"] = offset_seconds
+        timing_debug["offset_frames"] = (
+            int(round(offset_seconds * generation_fps)) if generation_fps else 0
+        )
 
     def streaming_worker():
         try:
             print(f"🎬 [{request_id}] Starting HLS streaming for session {session_id}")
             with manager.gpu_memory.allocate(session.batch_size):
                 avatar = manager._get_or_load_avatar(session.avatar_id, session.batch_size)
+                if session.idle_cycle_frames is None and hasattr(avatar, "input_latent_list_cycle"):
+                    session.idle_cycle_frames = len(avatar.input_latent_list_cycle)
                 for chunk_info in avatar.inference_streaming(
                     audio_path=str(audio_path),
                     audio_processor=manager.audio_processor,
@@ -1715,7 +1907,8 @@ async def hls_stream(
         "session_id": session_id,
         "status": "streaming",
         "manifest_url": f"/hls/sessions/{session_id}/live.m3u8",
-        "message": "HLS stream started."
+        "message": "HLS stream started.",
+        "timing": timing_debug,
     }
 
 

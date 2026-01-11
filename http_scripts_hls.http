@@ -1,12 +1,14 @@
-@BASE_URL = http://199.126.134.31:33002
+@BASE_URL = http://218.207.160.205:15546
 @AVATAR_ID = test_avatar
 @PLAYBACK_FPS = 30
-@MUSE_FPS = 10
+@MUSE_FPS = 15
 @SEGMENT_DURATION = 1
 @PART_DURATION = 0
 @BATCH_SIZE = 1
-@SESSION_ID = u6UmR0W1boZdpFAC54e5BA
+@SESSION_ID = rJOKM2miIR9oJ9VCM7KNkg
 @START_OFFSET_SECONDS = 0
+@HLS_SERVER_TIMING = true
+# start_offset_seconds is ignored when hls_server_timing=true (default).
 
 
 ### Health Check
@@ -15,7 +17,7 @@ GET {{BASE_URL}}/health
 ###
 
 ### Create HLS Session (idle-only)
-POST {{BASE_URL}}/hls/sessions/create?avatar_id={{AVATAR_ID}}&playback_fps={{PLAYBACK_FPS}}&musetalk_fps={{MUSE_FPS}}&batch_size={{BATCH_SIZE}}&segment_duration={{SEGMENT_DURATION}}&part_duration={{PART_DURATION}}
+POST {{BASE_URL}}/hls/sessions/create?avatar_id={{AVATAR_ID}}&playback_fps={{PLAYBACK_FPS}}&musetalk_fps={{MUSE_FPS}}&batch_size={{BATCH_SIZE}}&segment_duration={{SEGMENT_DURATION}}&part_duration={{PART_DURATION}}&hls_server_timing={{HLS_SERVER_TIMING}}
 
 ###
 
@@ -62,7 +64,7 @@ Content-Type: audio/wav
 
 ###
 
-### Start HLS Stream with Audio (with idle offset)
+### Start HLS Stream with Audio (client offset; only when HLS_SERVER_TIMING=false)
 POST {{BASE_URL}}/hls/sessions/{{SESSION_ID}}/stream?start_offset_seconds={{START_OFFSET_SECONDS}}
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 

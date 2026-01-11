@@ -26,9 +26,15 @@ class HlsSession:
     musetalk_fps: Optional[int] = None
     segment_duration: float = 2.0
     part_duration: Optional[float] = None
+    hls_server_timing: Optional[bool] = None
     status: str = "idle"
     active_stream: Optional[str] = None
     live_ready: bool = False
+    idle_start_monotonic: float = field(default_factory=time.monotonic)
+    idle_start_wall_time: float = field(default_factory=time.time)
+    idle_duration_seconds: Optional[float] = None
+    idle_cycle_frames: Optional[int] = None
+    timing_source: str = "server"
 
     def is_expired(self, ttl_seconds: int = 3600) -> bool:
         return (time.time() - self.last_activity) > ttl_seconds
@@ -100,6 +106,20 @@ def _generate_idle_hls(
     return manifest_path
 
 
+def _get_hls_manifest_duration(manifest_path: Path) -> Optional[float]:
+    """Sum EXTINF durations to estimate total VOD length."""
+    try:
+        total = 0.0
+        with manifest_path.open("r") as handle:
+            for line in handle:
+                if line.startswith("#EXTINF:"):
+                    value = line.split(":", 1)[1].split(",", 1)[0].strip()
+                    total += float(value)
+        return total if total > 0 else None
+    except (OSError, ValueError):
+        return None
+
+
 class HlsSessionManager:
     def __init__(self, session_ttl_seconds: int = 3600, base_dir: str = "results/hls"):
         self.sessions: Dict[str, HlsSession] = {}
@@ -134,6 +154,7 @@ class HlsSessionManager:
         musetalk_fps: Optional[int] = None,
         segment_duration: float = 2.0,
         part_duration: Optional[float] = None,
+        hls_server_timing: Optional[bool] = None,
     ) -> HlsSession:
         session_id = secrets.token_urlsafe(16)
         output_dir = self.base_dir / session_id
@@ -155,6 +176,7 @@ class HlsSessionManager:
             musetalk_fps=musetalk_fps,
             segment_duration=segment_duration,
             part_duration=part_duration,
+            hls_server_timing=hls_server_timing,
         )
 
         async with self.lock:
@@ -167,6 +189,11 @@ class HlsSessionManager:
             segment_duration,
             playback_fps,
         )
+
+        session.idle_duration_seconds = _get_hls_manifest_duration(manifest_path)
+        session.idle_start_monotonic = time.monotonic()
+        session.idle_start_wall_time = time.time()
+        session.timing_source = "server"
 
         print(f"✅ Created HLS session: {session_id} (avatar: {avatar_id}, user: {user_id})")
         return session
@@ -248,6 +275,7 @@ class HlsSessionManager:
                     "musetalk_fps": s.musetalk_fps,
                     "segment_duration": s.segment_duration,
                     "part_duration": s.part_duration,
+                    "hls_server_timing": s.hls_server_timing,
                     "status": s.status,
                     "active_stream": s.active_stream,
                 }
@@ -270,6 +298,7 @@ class HlsSessionManager:
                 "musetalk_fps": s.musetalk_fps,
                 "segment_duration": s.segment_duration,
                 "part_duration": s.part_duration,
+                "hls_server_timing": s.hls_server_timing,
                 "status": s.status,
                 "active_stream": s.active_stream,
                 "live_manifest": f"/hls/sessions/{s.session_id}/live.m3u8",

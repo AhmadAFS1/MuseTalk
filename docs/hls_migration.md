@@ -29,14 +29,14 @@ New API surface (parallel to /sessions)
 All endpoints below are new and independent from existing session and WebRTC routes.
 
 1) Create HLS Session
-POST /hls/sessions/create?avatar_id=...&user_id=...&playback_fps=30&musetalk_fps=10&batch_size=2&segment_duration=1&part_duration=0.2
+POST /hls/sessions/create?avatar_id=...&user_id=...&playback_fps=30&musetalk_fps=10&batch_size=2&segment_duration=1&part_duration=0.2&hls_server_timing=true
 Response:
 {
   "session_id": "...",
   "player_url": "/hls/player/{session_id}",
   "manifest_url": "/hls/sessions/{session_id}/index.m3u8",
   "expires_in_seconds": 3600,
-  "config": {"playback_fps": 30, "musetalk_fps": 10, "batch_size": 2, "segment_duration": 1, "part_duration": 0.2}
+  "config": {"playback_fps": 30, "musetalk_fps": 10, "batch_size": 2, "segment_duration": 1, "part_duration": 0.2, "hls_server_timing": true}
 }
 
 2) Start HLS Stream (upload audio)
@@ -207,8 +207,8 @@ Goal
 
 Design overview
 - Track the idle loop timeline on the server using a monotonic clock.
-- Compute the current idle position at stream start and map it to the avatar cycle.
-- Pass the computed offset to generation as frames (or seconds at generation fps).
+- Estimate the live reveal time (HLS startup delay) and compute the idle position at that future moment.
+- Map that idle position to the avatar cycle and pass the offset into generation.
 
 Data model additions (HlsSession)
 - `idle_start_monotonic`: monotonic time when idle loop is considered to start (time.monotonic()).
@@ -225,14 +225,18 @@ Implementation steps
    - Set `idle_start_monotonic = time.monotonic()` and `idle_start_wall_time = time.time()`.
 
 2) Stream start (`/hls/sessions/{id}/stream`)
-   - Compute the idle head time:
+   - Compute the expected live startup delay (no idle freeze):
+     - `expected_delay = HLS_LIVE_STARTUP_SECONDS` if set, otherwise  
+       `segment_duration * HLS_LIVE_STARTUP_SEGMENTS + HLS_LIVE_PREBUFFER_SECONDS` (default: 3 segments).
+   - Compute the idle head at reveal time:
      - `idle_elapsed = (time.monotonic() - idle_start_monotonic) % idle_duration_seconds`
+     - `idle_at_reveal = (idle_elapsed + expected_delay) % idle_duration_seconds`
      - If `idle_duration_seconds` is unknown/0, fall back to `0.0`.
    - Map to a generation offset:
      - Preferred (frame-accurate):  
-       `offset_frames = round((idle_elapsed / idle_duration_seconds) * idle_cycle_frames) % idle_cycle_frames`
+       `offset_frames = round((idle_at_reveal / idle_duration_seconds) * idle_cycle_frames) % idle_cycle_frames`
      - Fallback (fps-based):  
-       `offset_seconds_gen = idle_elapsed * (generation_fps / playback_fps)`  
+       `offset_seconds_gen = idle_at_reveal * (generation_fps / playback_fps)`  
        `offset_frames = round(offset_seconds_gen * generation_fps)`
    - Pass offset to generation:
      - Either add `start_offset_frames` to the generation API, or convert to seconds:
@@ -241,7 +245,8 @@ Implementation steps
 3) API response metadata (debugging)
    - Include in `/stream` response:
      - `server_offset_seconds`, `server_offset_frames`
-     - `idle_elapsed_seconds`, `idle_duration_seconds`
+     - `idle_elapsed_seconds`, `idle_at_reveal_seconds`, `expected_delay_seconds`
+     - `idle_duration_seconds`
      - `timing_source: "server"`
 
 4) Status endpoint (debugging + optional client alignment)
@@ -254,7 +259,8 @@ Implementation steps
    - Or emit `EXT-X-PROGRAM-DATE-TIME` in the idle playlist and derive current time from playlist dates.
 
 Compatibility and rollout
-- Keep `start_offset_seconds` accepted for now, but ignore it when `HLS_SERVER_TIMING=true`.
+- Keep `start_offset_seconds` accepted for now, but ignore it when server timing is enabled.
+- Allow per-session override via `hls_server_timing` on `/hls/sessions/create`.
 - Log any client-sent offset for comparison with server offsets.
 - Provide a rollback toggle to use client timing if server duration/frames are missing.
 
@@ -322,6 +328,9 @@ Config knobs (proposed)
 - HLS_USE_LL (true/false)
 - HLS_PLAYBACK_FPS (idle playback rate)
 - HLS_MUSETALK_FPS (lip-sync generation rate)
+- HLS_SERVER_TIMING (true/false)
+- HLS_LIVE_STARTUP_SECONDS (override expected live startup delay)
+- HLS_LIVE_STARTUP_SEGMENTS (default 3; used when HLS_LIVE_STARTUP_SECONDS unset)
 - HLS_LIVE_PREBUFFER_SECONDS (player reveal gate; currently hardcoded to ~0.75s)
 
 LL-HLS conversion (required changes)
