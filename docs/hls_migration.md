@@ -200,6 +200,75 @@ Pitfalls
 - If frame lists and latent lists are different lengths (skipped bboxes), offsets must be applied carefully to keep mouth and base frame aligned.
 - If playback_fps != musetalk_fps, the offset is approximate; prefer matching fps for best continuity.
 
+Server-authoritative timing plan (proposed)
+Goal
+- Make `/hls/sessions/{id}/stream` compute the start offset on the server (no WebView bridge or client-sent idle time).
+- Keep idle -> live transitions consistent across devices, with optional client-side alignment for tighter sync.
+
+Design overview
+- Track the idle loop timeline on the server using a monotonic clock.
+- Compute the current idle position at stream start and map it to the avatar cycle.
+- Pass the computed offset to generation as frames (or seconds at generation fps).
+
+Data model additions (HlsSession)
+- `idle_start_monotonic`: monotonic time when idle loop is considered to start (time.monotonic()).
+- `idle_start_wall_time`: wall-clock time for debugging/optional client alignment (time.time()).
+- `idle_duration_seconds`: duration of the idle loop in seconds (from idle video or HLS manifest).
+- `idle_cycle_frames`: frame count of the avatar cycle used for generation (from avatar preprocessed data).
+- `timing_source`: `"server"` or `"client"` (optional, for logging/debug).
+
+Implementation steps
+1) Session creation (after idle HLS generation)
+   - Compute `idle_duration_seconds`:
+     - Prefer ffprobe on the idle video, or sum `#EXTINF` durations from `index.m3u8`.
+   - Cache `idle_cycle_frames` from the avatar data (length of the cycle used in `datagen`).
+   - Set `idle_start_monotonic = time.monotonic()` and `idle_start_wall_time = time.time()`.
+
+2) Stream start (`/hls/sessions/{id}/stream`)
+   - Compute the idle head time:
+     - `idle_elapsed = (time.monotonic() - idle_start_monotonic) % idle_duration_seconds`
+     - If `idle_duration_seconds` is unknown/0, fall back to `0.0`.
+   - Map to a generation offset:
+     - Preferred (frame-accurate):  
+       `offset_frames = round((idle_elapsed / idle_duration_seconds) * idle_cycle_frames) % idle_cycle_frames`
+     - Fallback (fps-based):  
+       `offset_seconds_gen = idle_elapsed * (generation_fps / playback_fps)`  
+       `offset_frames = round(offset_seconds_gen * generation_fps)`
+   - Pass offset to generation:
+     - Either add `start_offset_frames` to the generation API, or convert to seconds:
+       `start_offset_seconds = offset_frames / generation_fps`.
+
+3) API response metadata (debugging)
+   - Include in `/stream` response:
+     - `server_offset_seconds`, `server_offset_frames`
+     - `idle_elapsed_seconds`, `idle_duration_seconds`
+     - `timing_source: "server"`
+
+4) Status endpoint (debugging + optional client alignment)
+   - Add to `/hls/sessions/{id}/status`:
+     - `idle_start_wall_time`, `idle_elapsed_seconds`, `idle_duration_seconds`, `timing_source`
+
+5) Optional client-side alignment (for tighter sync)
+   - On client load, seek idle playback to:
+     - `idle_position = (Date.now()/1000 - idle_start_wall_time) % idle_duration_seconds`
+   - Or emit `EXT-X-PROGRAM-DATE-TIME` in the idle playlist and derive current time from playlist dates.
+
+Compatibility and rollout
+- Keep `start_offset_seconds` accepted for now, but ignore it when `HLS_SERVER_TIMING=true`.
+- Log any client-sent offset for comparison with server offsets.
+- Provide a rollback toggle to use client timing if server duration/frames are missing.
+
+Edge cases
+- Unknown `idle_duration_seconds`: use `0.0` offset and log a warning.
+- If the avatar cycle is ping-pong, prefer `idle_cycle_frames` mapping to avoid fps mismatch drift.
+- If playback_fps != musetalk_fps, prefer cycle-based mapping or keep fps matched for best continuity.
+
+Testing and validation
+- Unit test the offset mapping (idle_elapsed -> offset_frames) across multiple durations.
+- Integration test: start stream at known idle times (1s, 3s, 5s) and verify first chunk matches expected cycle position.
+- Long-run test: idle loop for multiple minutes, then start stream and confirm no significant drift.
+- Observability: log `idle_elapsed`, `offset_frames`, and `timing_source` per stream request.
+
 Live queue + cleanup behavior
 - Each live stream writes to its own segment namespace: `segments/{active_stream}/chunk_0000.ts`, etc. This avoids stale playback state when multiple `/hls/sessions/{id}/stream` calls happen over time.
 - The live playlist (`live.m3u8`) points to the per-stream segment path. The player receives the current `active_stream` from `/status` and appends it as `?stream_id=` to force a fresh playlist fetch.
