@@ -13,6 +13,8 @@ A comprehensive guide to understanding the backend flow of the MuseTalk Real-Tim
 - [API Flow: Prepare an Avatar](#api-flow-prepare-an-avatar)
 - [API Flow: Generate a Video](#api-flow-generate-a-video)
 - [API Flow: Session Streaming](#api-flow-session-streaming)
+- [API Flow: HLS Streaming](#api-flow-hls-streaming)
+- [HLS Player & Sync](#hls-player--sync)
 - [API Flow: WebRTC Streaming](#api-flow-webrtc-streaming)
 - [WebRTC Implementation](#webrtc-implementation)
 - [Session API Reference](#session-api-reference)
@@ -204,6 +206,81 @@ Each SSE event is JSON and includes one of:
 - `{"event": "chunk", "url": "/chunks/{request_id}/chunk_0001.mp4", "index": 0, "total_chunks": 20, "duration": 2, "creation_time": "..."}`
 - `{"event": "complete", "total_chunks": 20}`
 - `{"event": "error", "message": "..." }`
+
+---
+
+## 📺 API Flow: HLS Streaming
+
+This flow powers the iOS HLS path: a persistent HLS player that loops idle and switches to live segments when audio is uploaded.
+
+### High-Level Flow
+
+1. **Create HLS Session**: `POST /hls/sessions/create` returns `session_id`, `player_url`, and `manifest_url`.
+2. **Load HLS Player**: Your app opens `/hls/player/{session_id}` (Safari/WKWebView) or loads the manifest directly.
+3. **Stream Audio**: `POST /hls/sessions/{session_id}/stream` uploads audio and triggers chunk generation.
+4. **Live Playback**: The server appends `.ts` segments to `live.m3u8`; the player reveals live once it has buffered enough.
+5. **Return to Idle**: When live ends, the player holds the last live frame and then resumes idle at a continuity point.
+
+### HLS Endpoints (summary)
+
+```http
+POST /hls/sessions/create?avatar_id=test_avatar&playback_fps=30&musetalk_fps=10&batch_size=2&segment_duration=1&part_duration=0&hls_server_timing=true
+GET  /hls/sessions/{session_id}/index.m3u8
+GET  /hls/sessions/{session_id}/live.m3u8
+POST /hls/sessions/{session_id}/stream
+GET  /hls/sessions/{session_id}/status
+GET  /hls/player/{session_id}
+DELETE /hls/sessions/{session_id}
+```
+
+Notes:
+- `hls_server_timing` is per-session; if true, the server computes offsets without client input.
+- `start_offset_seconds` on `/stream` is only used when `hls_server_timing=false`.
+
+---
+
+## 🎛️ HLS Player & Sync
+
+This section explains how the HLS player keeps idle and live head positions aligned when switching.
+
+### Player Architecture (`templates/hls_player.py`)
+
+- **Dual video layers**: idle (VOD playlist) + live (event playlist).
+- **Hold-frame canvas**: captures the last live frame to avoid flicker during transitions.
+- **Reveal gate**: live is only shown after a decoded frame and a minimum buffered lead (`LIVE_PREBUFFER_SECONDS`).
+- **Idle continuity**: on live end, the player seeks idle to a continuity point before swapping layers.
+
+### Server-Authoritative Timing (No Idle Freeze)
+
+To avoid a visible jump while still letting idle play, the server computes the offset for the *expected live reveal time*:
+
+1. **Session init**
+   - Record `idle_start_monotonic` and `idle_start_wall_time`.
+   - Compute `idle_duration_seconds` from the idle HLS manifest.
+   - Cache `idle_cycle_frames` from the avatar cycle.
+2. **Stream start**
+   - `expected_delay = segment_duration * HLS_LIVE_STARTUP_SEGMENTS + HLS_LIVE_PREBUFFER_SECONDS`
+   - `idle_elapsed = (now - idle_start_monotonic) % idle_duration_seconds`
+   - `idle_at_reveal = (idle_elapsed + expected_delay) % idle_duration_seconds`
+   - Map to cycle frames:  
+     `offset_frames = round((idle_at_reveal / idle_duration_seconds) * idle_cycle_frames)`
+   - Convert to generation time:  
+     `start_offset_seconds = offset_frames / generation_fps`
+3. **Generation**
+   - The offset is passed into `inference_streaming`, aligning the first visible live frame to the idle head at reveal time.
+
+### Per-Session Override
+
+- `hls_server_timing=true` (default): server computes offsets.
+- `hls_server_timing=false`: client can send `start_offset_seconds`.
+- The `/stream` response includes a `timing` object for debugging.
+- `/hls/sessions/{id}/status` exposes `idle_duration_seconds`, `idle_elapsed_seconds`, and `hls_server_timing`.
+
+### Caveats
+
+- The avatar cycle is ping-pong, while idle HLS loops forward; perfect long-run alignment is not possible.
+- If `idle_duration_seconds` is unknown, the offset falls back to `0.0`.
+- When `playback_fps != musetalk_fps`, offsets are approximate; match FPS for best continuity.
 
 ---
 
@@ -410,11 +487,13 @@ MuseTalk/
 │   ├── avatar_cache.py                # Smart caching
 │   ├── concurrent_gpu_manager.py      # Memory management
 │   ├── session_manager.py             # Session tracking and cleanup
+│   ├── hls_session_manager.py         # HLS session + playlist manager
 │   ├── webrtc_manager.py              # WebRTC session manager
 │   ├── webrtc_tracks.py               # WebRTC tracks (video + audio)
 │   └── realtime_inference.py          # Original CLI version
 ├── templates/
 │   ├── session_player.py              # Session player HTML
+│   ├── hls_player.py                  # HLS player HTML
 │   ├── webrtc_player.py               # WebRTC player HTML
 ├── uploads/                           # Temporary uploads
 ├── results/                           # Outputs

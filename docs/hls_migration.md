@@ -38,6 +38,8 @@ Response:
   "expires_in_seconds": 3600,
   "config": {"playback_fps": 30, "musetalk_fps": 10, "batch_size": 2, "segment_duration": 1, "part_duration": 0.2, "hls_server_timing": true}
 }
+Notes:
+- `hls_server_timing` is a per-session override for server-authoritative timing (defaults to env `HLS_SERVER_TIMING`).
 
 2) Start HLS Stream (upload audio)
 POST /hls/sessions/{session_id}/stream?start_offset_seconds=5.12
