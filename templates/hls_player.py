@@ -38,8 +38,10 @@ def get_hls_player_html(session) -> str:
             background: #000;
         }}
 
+        /* ── FIX 1: CSS crossfade on video layers ── */
         .video-layer {{
-            transition: none;
+            transition: opacity 0.20s ease-in-out;
+            will-change: opacity;
         }}
 
         .video-layer.hidden {{
@@ -61,6 +63,9 @@ def get_hls_player_html(session) -> str:
             pointer-events: none;
             opacity: 0;
             z-index: 5;
+            /* ── FIX 1b: smooth hold-frame fade-out ── */
+            transition: opacity 0.22s ease-in-out;
+            will-change: opacity;
         }}
 
         .frame-hold.visible {{
@@ -94,8 +99,9 @@ def get_hls_player_html(session) -> str:
 </head>
 <body>
     <div class="video-container" id="videoContainer">
-        <video id="idleVideo" class="video-layer visible" playsinline webkit-playsinline autoplay muted></video>
-        <video id="liveVideo" class="video-layer hidden" playsinline webkit-playsinline autoplay muted></video>
+        <!-- FIX 2: fixed z-index stacking – idle=1, live=2, hold canvas=5 -->
+        <video id="idleVideo" class="video-layer visible" style="z-index:1" playsinline webkit-playsinline autoplay muted></video>
+        <video id="liveVideo" class="video-layer hidden" style="z-index:2" playsinline webkit-playsinline autoplay muted></video>
         <canvas id="holdCanvas" class="frame-hold"></canvas>
         <div class="status button" id="status">Loading...</div>
     </div>
@@ -110,7 +116,7 @@ def get_hls_player_html(session) -> str:
         const liveVideo = document.getElementById('liveVideo');
         const holdCanvas = document.getElementById('holdCanvas');
         const holdCtx = holdCanvas.getContext('2d');
-        const status = document.getElementById('status');
+        const statusEl = document.getElementById('status');
         let currentMode = 'idle';
         let idleHls = null;
         let liveHls = null;
@@ -125,15 +131,18 @@ def get_hls_player_html(session) -> str:
         let idleAnchorTime = 0;
         let idleAnchorWallTime = 0;
         let idleDuration = 0;
-        const LIVE_PREBUFFER_SECONDS = 0.75;
+
+        /* ── FIX 3: higher prebuffer to prevent immediate stall after reveal ── */
+        const LIVE_PREBUFFER_SECONDS = 1.2;
+
+        /* Crossfade timing – matches CSS transition duration */
+        const CROSSFADE_MS = 220;
 
         function postToHost(payload) {{
             if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {{
                 try {{
                     window.ReactNativeWebView.postMessage(JSON.stringify(payload));
-                }} catch (_) {{
-                    // Ignore postMessage failures.
-                }}
+                }} catch (_) {{}}
             }}
         }}
 
@@ -154,15 +163,11 @@ def get_hls_player_html(session) -> str:
                 try {{
                     data = JSON.parse(data);
                 }} catch (_) {{
-                    if (data !== 'get_idle_time') {{
-                        return;
-                    }}
+                    if (data !== 'get_idle_time') return;
                     data = {{ type: 'get_idle_time' }};
                 }}
             }}
-            if (!data || data.type !== 'get_idle_time') {{
-                return;
-            }}
+            if (!data || data.type !== 'get_idle_time') return;
             postToHost(getIdleTimePayload());
         }}
 
@@ -172,59 +177,60 @@ def get_hls_player_html(session) -> str:
         liveVideo.loop = false;
 
         function showStatus(text, isButton = false) {{
-            status.textContent = text;
-            status.classList.remove('hidden');
-            if (isButton) {{
-                status.classList.add('button');
-            }} else {{
-                status.classList.remove('button');
-            }}
+            statusEl.textContent = text;
+            statusEl.classList.remove('hidden');
+            if (isButton) statusEl.classList.add('button');
+            else statusEl.classList.remove('button');
         }}
 
         function hideStatus() {{
-            status.classList.add('hidden');
+            statusEl.classList.add('hidden');
         }}
 
         function attemptPlay(targetVideo) {{
-            const playPromise = targetVideo.play();
-            if (playPromise && playPromise.catch) {{
-                playPromise
-                    .then(() => {{
-                        hideStatus();
-                    }})
-                    .catch((err) => {{
-                        if (err && err.name === 'NotAllowedError') {{
-                            showStatus('Tap to start', true);
-                            return;
-                        }}
-                        if (userActivated) {{
-                            showStatus('Buffering...');
-                        }} else {{
-                            showStatus('Tap to start', true);
-                        }}
-                    }});
+            const p = targetVideo.play();
+            if (p && p.catch) {{
+                p.then(() => hideStatus())
+                 .catch((err) => {{
+                    if (err && err.name === 'NotAllowedError') {{
+                        showStatus('Tap to start', true);
+                        return;
+                    }}
+                    showStatus(userActivated ? 'Buffering...' : 'Tap to start', !userActivated);
+                }});
             }}
         }}
 
+        /* ════════════════════════════════════════════════════════════
+         * FIX 4 – setLayer: CSS opacity handles the crossfade.
+         * Keep both videos playing during the transition; pause
+         * the hidden one only after the CSS transition completes.
+         * ════════════════════════════════════════════════════════════ */
         function setLayer(mode) {{
             if (mode === 'live') {{
                 liveVideo.classList.remove('hidden');
                 liveVideo.classList.add('visible');
-                idleVideo.classList.remove('visible');
-                idleVideo.classList.add('hidden');
+                /* Delay hiding idle until the crossfade is done */
+                setTimeout(() => {{
+                    if (currentMode === 'live') {{
+                        idleVideo.classList.remove('visible');
+                        idleVideo.classList.add('hidden');
+                    }}
+                }}, CROSSFADE_MS + 40);
             }} else {{
                 idleVideo.classList.remove('hidden');
                 idleVideo.classList.add('visible');
-                liveVideo.classList.remove('visible');
-                liveVideo.classList.add('hidden');
+                setTimeout(() => {{
+                    if (currentMode === 'idle') {{
+                        liveVideo.classList.remove('visible');
+                        liveVideo.classList.add('hidden');
+                    }}
+                }}, CROSSFADE_MS + 40);
             }}
         }}
 
         function destroyLive() {{
-            if (liveHls) {{
-                liveHls.destroy();
-                liveHls = null;
-            }}
+            if (liveHls) {{ liveHls.destroy(); liveHls = null; }}
             liveVideo.removeAttribute('src');
             liveVideo.load();
             livePrepared = false;
@@ -239,9 +245,7 @@ def get_hls_player_html(session) -> str:
         }}
 
         function computeIdleResumeTime() {{
-            if (!idleDuration || idleDuration <= 0) {{
-                return null;
-            }}
+            if (!idleDuration || idleDuration <= 0) return null;
             const elapsed = (performance.now() - idleAnchorWallTime) / 1000;
             const resumeTime = (idleAnchorTime + elapsed) % idleDuration;
             return Number.isFinite(resumeTime) ? resumeTime : null;
@@ -250,11 +254,11 @@ def get_hls_player_html(session) -> str:
         function resizeHoldCanvas() {{
             const rect = container.getBoundingClientRect();
             const dpr = window.devicePixelRatio || 1;
-            const width = Math.max(1, Math.floor(rect.width * dpr));
-            const height = Math.max(1, Math.floor(rect.height * dpr));
-            if (holdCanvas.width !== width || holdCanvas.height !== height) {{
-                holdCanvas.width = width;
-                holdCanvas.height = height;
+            const w = Math.max(1, Math.floor(rect.width * dpr));
+            const h = Math.max(1, Math.floor(rect.height * dpr));
+            if (holdCanvas.width !== w || holdCanvas.height !== h) {{
+                holdCanvas.width = w;
+                holdCanvas.height = h;
             }}
         }}
 
@@ -263,7 +267,6 @@ def get_hls_player_html(session) -> str:
             const vw = videoEl.videoWidth;
             const vh = videoEl.videoHeight;
             if (!vw || !vh) return false;
-
             resizeHoldCanvas();
             const cw = holdCanvas.width;
             const ch = holdCanvas.height;
@@ -272,7 +275,6 @@ def get_hls_player_html(session) -> str:
             const drawH = vh * scale;
             const offsetX = (cw - drawW) / 2;
             const offsetY = (ch - drawH) / 2;
-
             holdCtx.fillStyle = '#000';
             holdCtx.fillRect(0, 0, cw, ch);
             holdCtx.drawImage(videoEl, offsetX, offsetY, drawW, drawH);
@@ -280,11 +282,9 @@ def get_hls_player_html(session) -> str:
         }}
 
         function showHoldFrame(videoEl) {{
-            const painted = drawFrameToHold(videoEl);
-            if (painted) {{
-                holdCanvas.classList.add('visible');
-            }}
-            return painted;
+            const ok = drawFrameToHold(videoEl);
+            if (ok) holdCanvas.classList.add('visible');
+            return ok;
         }}
 
         function hideHoldFrame() {{
@@ -292,116 +292,130 @@ def get_hls_player_html(session) -> str:
         }}
 
         function captureHoldFrame(videoEl) {{
-            if (showHoldFrame(videoEl)) {{
-                return Promise.resolve(true);
-            }}
+            if (showHoldFrame(videoEl)) return Promise.resolve(true);
             if (videoEl.requestVideoFrameCallback) {{
                 return new Promise((resolve) => {{
-                    videoEl.requestVideoFrameCallback(() => {{
-                        resolve(showHoldFrame(videoEl));
-                    }});
+                    videoEl.requestVideoFrameCallback(() => resolve(showHoldFrame(videoEl)));
                 }});
             }}
             return Promise.resolve(false);
         }}
 
-        function waitForVideoFrame(videoEl, timeoutMs = 1200) {{
+        /* ════════════════════════════════════════════════════════════
+         * FIX 5 – waitForVideoFrame: use requestVideoFrameCallback
+         * (fires after decode + composite) with rAF fallback
+         * ════════════════════════════════════════════════════════════ */
+        function waitForVideoFrame(videoEl, timeoutMs = 1500) {{
             return new Promise((resolve) => {{
                 let done = false;
                 const finish = (result) => {{
                     if (done) return;
                     done = true;
-                    cleanup();
-                    resolve(result);
-                }};
-                const onPlaying = () => finish(true);
-                const onTimeUpdate = () => finish(true);
-                const cleanup = () => {{
                     clearTimeout(timer);
-                    videoEl.removeEventListener('playing', onPlaying);
-                    videoEl.removeEventListener('timeupdate', onTimeUpdate);
+                    resolve(result);
                 }};
                 const timer = setTimeout(() => finish(false), timeoutMs);
 
                 if (videoEl.requestVideoFrameCallback) {{
                     videoEl.requestVideoFrameCallback(() => finish(true));
+                }} else {{
+                    const onTU = () => {{
+                        videoEl.removeEventListener('timeupdate', onTU);
+                        requestAnimationFrame(() => finish(true));
+                    }};
+                    videoEl.addEventListener('timeupdate', onTU);
                 }}
-                videoEl.addEventListener('playing', onPlaying, {{ once: true }});
-                videoEl.addEventListener('timeupdate', onTimeUpdate, {{ once: true }});
             }});
         }}
 
         function getBufferedAheadSeconds(videoEl) {{
-            const buffered = videoEl.buffered;
-            if (!buffered || buffered.length === 0) {{
-                return 0;
+            const buf = videoEl.buffered;
+            if (!buf || buf.length === 0) return 0;
+            const t = videoEl.currentTime;
+            for (let i = 0; i < buf.length; i++) {{
+                if (t >= buf.start(i) && t <= buf.end(i)) return buf.end(i) - t;
             }}
-            const time = videoEl.currentTime;
-            for (let i = 0; i < buffered.length; i++) {{
-                if (time >= buffered.start(i) && time <= buffered.end(i)) {{
-                    return buffered.end(i) - time;
-                }}
-            }}
-            return buffered.end(buffered.length - 1) - time;
+            return buf.end(buf.length - 1) - t;
         }}
 
+        /* ════════════════════════════════════════════════════════════
+         * FIX 6 – revealLive: keep idle running during crossfade,
+         * pause only after CSS transition finishes
+         * ════════════════════════════════════════════════════════════ */
         async function revealLive() {{
             if (liveRevealed || !liveRevealPending) return;
-            await waitForVideoFrame(liveVideo, 1200);
+            await waitForVideoFrame(liveVideo, 1500);
             if (!liveRevealPending) return;
             liveRevealPending = false;
             liveRevealed = true;
             currentMode = 'live';
             markIdleAnchor();
+            liveVideo.muted = false;
+            liveVideo.volume = 1.0;
             setLayer('live');
-            idleVideo.pause();
+            /* Don't pause idle until the crossfade is over */
+            setTimeout(() => {{
+                if (currentMode === 'live') idleVideo.pause();
+            }}, CROSSFADE_MS + 60);
             hideHoldFrame();
             hideStatus();
         }}
 
         function maybeRevealLive() {{
             if (!liveRevealPending || liveRevealed || liveRevealInFlight) return;
-            const bufferedAhead = getBufferedAheadSeconds(liveVideo);
-            if (bufferedAhead < LIVE_PREBUFFER_SECONDS) {{
-                return;
-            }}
+            const buffered = getBufferedAheadSeconds(liveVideo);
+            if (buffered < LIVE_PREBUFFER_SECONDS) return;
             liveRevealInFlight = true;
-            revealLive().finally(() => {{
-                liveRevealInFlight = false;
-            }});
+            revealLive().finally(() => {{ liveRevealInFlight = false; }});
         }}
 
         async function primeIdlePlayback() {{
             const resumeTime = computeIdleResumeTime();
             if (resumeTime !== null) {{
-                try {{
-                    idleVideo.currentTime = resumeTime;
-                }} catch (_) {{
-                    // Ignore seek failures; fall back to current time.
-                }}
+                try {{ idleVideo.currentTime = resumeTime; }} catch (_) {{}}
             }}
             idleVideo.loop = true;
             attemptPlay(idleVideo);
             await waitForVideoFrame(idleVideo, 1200);
         }}
 
+        /* ════════════════════════════════════════════════════════════
+         * FIX 7 – transitionToIdle: hold canvas acts as an opaque
+         * bridge. Idle is primed underneath, then the hold canvas
+         * fades out via CSS transition (not instant hide).
+         * ════════════════════════════════════════════════════════════ */
         async function transitionToIdle() {{
             if (currentMode !== 'live') return;
             liveRevealPending = false;
             liveRevealInFlight = false;
             liveRevealed = false;
+
+            /* 1) Capture last live frame → hold canvas (opaque, covers everything) */
+            holdCanvas.style.zIndex = '8';
             await captureHoldFrame(liveVideo);
-            await primeIdlePlayback();
-            setLayer('idle');
+
+            /* 2) Swap video layers BEHIND the opaque hold canvas (invisible to user) */
+            idleVideo.classList.remove('hidden');
+            idleVideo.classList.add('visible');
+            liveVideo.classList.remove('visible');
+            liveVideo.classList.add('hidden');
             currentMode = 'idle';
+
+            /* 3) Start idle playback and wait for an actual painted frame */
+            await primeIdlePlayback();
+
+            /* 4) Now idle is rendering – fade out the hold canvas via CSS transition */
             hideHoldFrame();
-            setTimeout(() => destroyLive(), 150);
+
+            /* 5) After the CSS fade completes, reset hold z-index and destroy live */
+            setTimeout(() => {{
+                holdCanvas.style.zIndex = '5';
+                destroyLive();
+            }}, CROSSFADE_MS + 60);
         }}
 
         function setLiveStreamId(streamId) {{
-            if (!streamId || streamId === currentStreamId) {{
-                return false;
-            }}
+            if (!streamId || streamId === currentStreamId) return false;
             currentStreamId = streamId;
             liveManifestUrl = liveManifestBaseUrl + '?stream_id=' + encodeURIComponent(streamId);
             destroyLive();
@@ -412,48 +426,28 @@ def get_hls_player_html(session) -> str:
             if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {{
                 videoEl.src = url;
                 videoEl.load();
-                if (onReady) {{
-                    onReady();
-                }}
+                if (onReady) onReady();
                 return null;
             }}
-
             if (window.Hls && Hls.isSupported()) {{
-                const instance = new Hls(config);
-                instance.loadSource(url);
-                instance.attachMedia(videoEl);
-                if (onReady) {{
-                    instance.on(Hls.Events.MANIFEST_PARSED, () => {{
-                        onReady();
-                    }});
-                }}
-                instance.on(Hls.Events.ERROR, (_, data) => {{
-                    if (data && data.fatal) {{
-                        showStatus('HLS error', true);
-                    }}
+                const inst = new Hls(config);
+                inst.loadSource(url);
+                inst.attachMedia(videoEl);
+                if (onReady) inst.on(Hls.Events.MANIFEST_PARSED, () => onReady());
+                inst.on(Hls.Events.ERROR, (_, data) => {{
+                    if (data && data.fatal) showStatus('HLS error', true);
                 }});
-                return instance;
+                return inst;
             }}
-
             showStatus('HLS not supported', true);
             return null;
         }}
 
         function loadIdle(autoPlay = false) {{
-            if (idleHls) {{
-                idleHls.destroy();
-                idleHls = null;
-            }}
-            idleHls = attachHls(
-                idleVideo,
-                idleManifestUrl,
-                {{ lowLatencyMode: false }},
-                () => {{
-                    if (autoPlay) {{
-                        attemptPlay(idleVideo);
-                    }}
-                }}
-            );
+            if (idleHls) {{ idleHls.destroy(); idleHls = null; }}
+            idleHls = attachHls(idleVideo, idleManifestUrl, {{ lowLatencyMode: false }}, () => {{
+                if (autoPlay) attemptPlay(idleVideo);
+            }});
             if (autoPlay && idleVideo.canPlayType('application/vnd.apple.mpegurl')) {{
                 attemptPlay(idleVideo);
             }}
@@ -464,29 +458,16 @@ def get_hls_player_html(session) -> str:
             livePrepared = true;
             liveRevealPending = true;
             liveRevealed = false;
-
-            if (liveHls) {{
-                liveHls.destroy();
-                liveHls = null;
-            }}
-
-            liveHls = attachHls(
-                liveVideo,
-                liveManifestUrl,
-                {{
-                    lowLatencyMode: false,
-                    liveSyncDurationCount: 1,
-                    liveMaxLatencyDurationCount: 3,
-                    maxBufferLength: 2,
-                    backBufferLength: 0,
-                }},
-                () => {{
-                    if (userActivated) {{
-                        attemptPlay(liveVideo);
-                    }}
-                }}
-            );
-
+            if (liveHls) {{ liveHls.destroy(); liveHls = null; }}
+            liveHls = attachHls(liveVideo, liveManifestUrl, {{
+                lowLatencyMode: false,
+                liveSyncDurationCount: 1,
+                liveMaxLatencyDurationCount: 3,
+                maxBufferLength: 2,
+                backBufferLength: 0,
+            }}, () => {{
+                if (userActivated) attemptPlay(liveVideo);
+            }});
             if (userActivated && liveVideo.canPlayType('application/vnd.apple.mpegurl')) {{
                 attemptPlay(liveVideo);
             }}
@@ -494,26 +475,15 @@ def get_hls_player_html(session) -> str:
 
         function setMode(mode) {{
             if (mode === 'live') {{
-                if (currentMode === 'live' && livePrepared) {{
-                    return;
-                }}
-                if (!userActivated) {{
-                    showStatus('Tap to start', true);
-                }} else {{
-                    showStatus('Preparing live...');
-                }}
+                if (currentMode === 'live' && livePrepared) return;
+                showStatus(userActivated ? 'Preparing live...' : 'Tap to start', !userActivated);
                 prepareLive();
                 maybeRevealLive();
                 return;
             }}
-
             if (mode === currentMode) return;
             currentMode = mode;
-            if (!userActivated) {{
-                showStatus('Tap to start', true);
-            }} else {{
-                showStatus('Idle');
-            }}
+            showStatus(userActivated ? 'Idle' : 'Tap to start', !userActivated);
             setLayer('idle');
             idleVideo.loop = true;
             attemptPlay(idleVideo);
@@ -528,35 +498,37 @@ def get_hls_player_html(session) -> str:
             if (!started) {{
                 started = true;
                 loadIdle(true);
-                if (currentMode === 'live') {{
-                    prepareLive();
-                }}
+                if (currentMode === 'live') prepareLive();
                 attemptPlay(liveRevealPending || currentMode === 'live' ? liveVideo : idleVideo);
                 return;
             }}
             attemptPlay(liveRevealPending || currentMode === 'live' ? liveVideo : idleVideo);
         }}
 
-        status.addEventListener('pointerdown', handleTap);
-        status.addEventListener('click', handleTap);
-        status.addEventListener('touchstart', handleTap);
+        statusEl.addEventListener('pointerdown', handleTap);
+        statusEl.addEventListener('click', handleTap);
+        statusEl.addEventListener('touchstart', handleTap);
         container.addEventListener('pointerdown', handleTap);
         container.addEventListener('click', handleTap);
         container.addEventListener('touchstart', handleTap);
-
         document.addEventListener('pointerdown', handleTap, {{ once: true }});
-        if (window.addEventListener) {{
-            window.addEventListener('message', handleHostMessage);
-        }}
-        if (document && document.addEventListener) {{
-            document.addEventListener('message', handleHostMessage);
-        }}
+        if (window.addEventListener) window.addEventListener('message', handleHostMessage);
+        if (document && document.addEventListener) document.addEventListener('message', handleHostMessage);
 
+        /* ════════════════════════════════════════════════════════════
+         * FIX 8 – pollStatus: read idle_duration_seconds from server
+         * for accurate resume-time calculation
+         * ════════════════════════════════════════════════════════════ */
         async function pollStatus() {{
             try {{
                 const resp = await fetch(statusUrl, {{ cache: 'no-store' }});
                 if (!resp.ok) return;
                 const data = await resp.json();
+
+                if (data.idle_duration_seconds && data.idle_duration_seconds > 0) {{
+                    idleDuration = data.idle_duration_seconds;
+                }}
+
                 if (data.status === 'streaming' && data.live_ready) {{
                     setLiveStreamId(data.active_stream);
                     setMode('live');
@@ -566,71 +538,42 @@ def get_hls_player_html(session) -> str:
                 }} else if (data.status !== 'streaming' && currentMode === 'live') {{
                     showStatus('Finishing...');
                 }}
-            }} catch (_) {{
-                // Ignore polling failures.
-            }}
+            }} catch (_) {{}}
         }}
 
         idleVideo.addEventListener('playing', () => {{
-            if (currentMode === 'idle' && !liveRevealPending) {{
-                hideStatus();
-            }}
+            if (currentMode === 'idle' && !liveRevealPending) hideStatus();
         }});
 
         idleVideo.addEventListener('loadedmetadata', () => {{
             if (idleVideo.duration && Number.isFinite(idleVideo.duration)) {{
-                idleDuration = idleVideo.duration;
+                if (!idleDuration || idleDuration <= 0) idleDuration = idleVideo.duration;
             }}
         }});
 
         idleVideo.addEventListener('waiting', () => {{
-            if (currentMode === 'idle') {{
-                showStatus(userActivated ? 'Buffering...' : 'Tap to start', !userActivated);
-            }}
+            if (currentMode === 'idle') showStatus(userActivated ? 'Buffering...' : 'Tap to start', !userActivated);
         }});
 
-        liveVideo.addEventListener('playing', () => {{
-            maybeRevealLive();
-        }});
-
+        liveVideo.addEventListener('playing', () => maybeRevealLive());
         liveVideo.addEventListener('waiting', () => {{
-            if (currentMode === 'live') {{
-                showStatus('Buffering...');
-            }}
+            if (currentMode === 'live') showStatus('Buffering...');
         }});
-
         liveVideo.addEventListener('ended', () => {{
-            if (currentMode === 'live') {{
-                transitionToIdle();
-            }}
+            if (currentMode === 'live') transitionToIdle();
         }});
-
         liveVideo.addEventListener('stalled', () => {{
-            if (currentMode === 'live') {{
-                showStatus('Buffering...');
-            }}
+            if (currentMode === 'live') showStatus('Buffering...');
         }});
-
         idleVideo.addEventListener('canplay', () => {{
-            if (userActivated && currentMode === 'idle') {{
-                attemptPlay(idleVideo);
-            }}
+            if (userActivated && currentMode === 'idle') attemptPlay(idleVideo);
         }});
-
         liveVideo.addEventListener('canplay', () => {{
-            if (userActivated && liveRevealPending) {{
-                attemptPlay(liveVideo);
-            }}
+            if (userActivated && liveRevealPending) attemptPlay(liveVideo);
             maybeRevealLive();
         }});
-
-        liveVideo.addEventListener('timeupdate', () => {{
-            maybeRevealLive();
-        }});
-
-        liveVideo.addEventListener('progress', () => {{
-            maybeRevealLive();
-        }});
+        liveVideo.addEventListener('timeupdate', () => maybeRevealLive());
+        liveVideo.addEventListener('progress', () => maybeRevealLive());
 
         showStatus('Tap to start', true);
         loadIdle(false);
