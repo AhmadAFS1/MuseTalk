@@ -38,10 +38,9 @@ def get_hls_player_html(session) -> str:
             background: #000;
         }}
 
-        /* ── FIX 1: CSS crossfade on video layers ── */
+        /* No crossfade – instant swap */
         .video-layer {{
-            transition: opacity 0.20s ease-in-out;
-            will-change: opacity;
+            transition: none;
         }}
 
         .video-layer.hidden {{
@@ -63,9 +62,7 @@ def get_hls_player_html(session) -> str:
             pointer-events: none;
             opacity: 0;
             z-index: 5;
-            /* ── FIX 1b: smooth hold-frame fade-out ── */
-            transition: opacity 0.22s ease-in-out;
-            will-change: opacity;
+            transition: none;
         }}
 
         .frame-hold.visible {{
@@ -99,7 +96,6 @@ def get_hls_player_html(session) -> str:
 </head>
 <body>
     <div class="video-container" id="videoContainer">
-        <!-- FIX 2: fixed z-index stacking – idle=1, live=2, hold canvas=5 -->
         <video id="idleVideo" class="video-layer visible" style="z-index:1" playsinline webkit-playsinline autoplay muted></video>
         <video id="liveVideo" class="video-layer hidden" style="z-index:2" playsinline webkit-playsinline autoplay muted></video>
         <canvas id="holdCanvas" class="frame-hold"></canvas>
@@ -132,11 +128,7 @@ def get_hls_player_html(session) -> str:
         let idleAnchorWallTime = 0;
         let idleDuration = 0;
 
-        /* ── FIX 3: higher prebuffer to prevent immediate stall after reveal ── */
         const LIVE_PREBUFFER_SECONDS = 1.2;
-
-        /* Crossfade timing – matches CSS transition duration */
-        const CROSSFADE_MS = 220;
 
         function postToHost(payload) {{
             if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {{
@@ -201,31 +193,18 @@ def get_hls_player_html(session) -> str:
             }}
         }}
 
-        /* ════════════════════════════════════════════════════════════
-         * FIX 4 – setLayer: CSS opacity handles the crossfade.
-         * Keep both videos playing during the transition; pause
-         * the hidden one only after the CSS transition completes.
-         * ════════════════════════════════════════════════════════════ */
+        /* Instant layer swap – no crossfade */
         function setLayer(mode) {{
             if (mode === 'live') {{
                 liveVideo.classList.remove('hidden');
                 liveVideo.classList.add('visible');
-                /* Delay hiding idle until the crossfade is done */
-                setTimeout(() => {{
-                    if (currentMode === 'live') {{
-                        idleVideo.classList.remove('visible');
-                        idleVideo.classList.add('hidden');
-                    }}
-                }}, CROSSFADE_MS + 40);
+                idleVideo.classList.remove('visible');
+                idleVideo.classList.add('hidden');
             }} else {{
                 idleVideo.classList.remove('hidden');
                 idleVideo.classList.add('visible');
-                setTimeout(() => {{
-                    if (currentMode === 'idle') {{
-                        liveVideo.classList.remove('visible');
-                        liveVideo.classList.add('hidden');
-                    }}
-                }}, CROSSFADE_MS + 40);
+                liveVideo.classList.remove('visible');
+                liveVideo.classList.add('hidden');
             }}
         }}
 
@@ -301,10 +280,8 @@ def get_hls_player_html(session) -> str:
             return Promise.resolve(false);
         }}
 
-        /* ════════════════════════════════════════════════════════════
-         * FIX 5 – waitForVideoFrame: use requestVideoFrameCallback
-         * (fires after decode + composite) with rAF fallback
-         * ════════════════════════════════════════════════════════════ */
+        /* waitForVideoFrame: use requestVideoFrameCallback for
+           accurate "frame is painted" detection */
         function waitForVideoFrame(videoEl, timeoutMs = 1500) {{
             return new Promise((resolve) => {{
                 let done = false;
@@ -338,10 +315,6 @@ def get_hls_player_html(session) -> str:
             return buf.end(buf.length - 1) - t;
         }}
 
-        /* ════════════════════════════════════════════════════════════
-         * FIX 6 – revealLive: keep idle running during crossfade,
-         * pause only after CSS transition finishes
-         * ════════════════════════════════════════════════════════════ */
         async function revealLive() {{
             if (liveRevealed || !liveRevealPending) return;
             await waitForVideoFrame(liveVideo, 1500);
@@ -353,10 +326,7 @@ def get_hls_player_html(session) -> str:
             liveVideo.muted = false;
             liveVideo.volume = 1.0;
             setLayer('live');
-            /* Don't pause idle until the crossfade is over */
-            setTimeout(() => {{
-                if (currentMode === 'live') idleVideo.pause();
-            }}, CROSSFADE_MS + 60);
+            idleVideo.pause();
             hideHoldFrame();
             hideStatus();
         }}
@@ -379,39 +349,36 @@ def get_hls_player_html(session) -> str:
             await waitForVideoFrame(idleVideo, 1200);
         }}
 
-        /* ════════════════════════════════════════════════════════════
-         * FIX 7 – transitionToIdle: hold canvas acts as an opaque
-         * bridge. Idle is primed underneath, then the hold canvas
-         * fades out via CSS transition (not instant hide).
-         * ════════════════════════════════════════════════════════════ */
+        /* transitionToIdle: hold canvas bridges the gap.
+         * 1) Capture last live frame on canvas (opaque, z-index 8)
+         * 2) Swap layers behind canvas (user can't see)
+         * 3) Prime idle, wait for painted frame
+         * 4) Remove hold canvas instantly
+         */
         async function transitionToIdle() {{
             if (currentMode !== 'live') return;
             liveRevealPending = false;
             liveRevealInFlight = false;
             liveRevealed = false;
 
-            /* 1) Capture last live frame → hold canvas (opaque, covers everything) */
+            /* 1) Capture last live frame */
             holdCanvas.style.zIndex = '8';
             await captureHoldFrame(liveVideo);
 
-            /* 2) Swap video layers BEHIND the opaque hold canvas (invisible to user) */
+            /* 2) Swap layers behind the hold canvas */
             idleVideo.classList.remove('hidden');
             idleVideo.classList.add('visible');
             liveVideo.classList.remove('visible');
             liveVideo.classList.add('hidden');
             currentMode = 'idle';
 
-            /* 3) Start idle playback and wait for an actual painted frame */
+            /* 3) Prime idle and wait for a real painted frame */
             await primeIdlePlayback();
 
-            /* 4) Now idle is rendering – fade out the hold canvas via CSS transition */
+            /* 4) Idle is now rendering – remove hold canvas */
             hideHoldFrame();
-
-            /* 5) After the CSS fade completes, reset hold z-index and destroy live */
-            setTimeout(() => {{
-                holdCanvas.style.zIndex = '5';
-                destroyLive();
-            }}, CROSSFADE_MS + 60);
+            holdCanvas.style.zIndex = '5';
+            destroyLive();
         }}
 
         function setLiveStreamId(streamId) {{
@@ -515,10 +482,6 @@ def get_hls_player_html(session) -> str:
         if (window.addEventListener) window.addEventListener('message', handleHostMessage);
         if (document && document.addEventListener) document.addEventListener('message', handleHostMessage);
 
-        /* ════════════════════════════════════════════════════════════
-         * FIX 8 – pollStatus: read idle_duration_seconds from server
-         * for accurate resume-time calculation
-         * ════════════════════════════════════════════════════════════ */
         async function pollStatus() {{
             try {{
                 const resp = await fetch(statusUrl, {{ cache: 'no-store' }});
