@@ -500,6 +500,7 @@ class APIAvatar:
         emit_chunks=True,
         chunk_ext=".mp4",
         start_offset_seconds: float = 0.0,
+        cancel_event=None,
     ):
         """
         Stream video chunks as they're generated.
@@ -531,9 +532,29 @@ class APIAvatar:
         tmp_dir = f"{self.avatar_path}/tmp"
         os.makedirs(tmp_dir, exist_ok=True)
         print(f"📁 Temp directory: {tmp_dir}")
+
+        tmp_cleaned = False
+
+        def cleanup_tmp_dir():
+            nonlocal tmp_cleaned
+            if tmp_cleaned:
+                return
+            tmp_cleaned = True
+            print(f"🧹 Cleaning up temp directory: {tmp_dir}")
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+        def cancel_requested(stage: str) -> bool:
+            if cancel_event is None or not cancel_event.is_set():
+                return False
+            print(f"⚠️  Streaming generation cancelled during {stage}")
+            cleanup_tmp_dir()
+            return True
         
         setup_elapsed = time.time() - request_start
         print(f"⏱️  Setup complete ({setup_elapsed:.3f}s)")
+
+        if cancel_requested("setup"):
+            return
         
         # ═══════════════════════════════════════════════════════════
         # PHASE 1: AUDIO PROCESSING
@@ -545,6 +566,9 @@ class APIAvatar:
         
         audio_start = time.time()
         weight_dtype = self.unet.model.dtype
+
+        if cancel_requested("audio feature extraction"):
+            return
         
         print(f"⚙️  Extracting audio features (dtype: {weight_dtype})...")
         feature_extract_start = time.time()
@@ -553,6 +577,9 @@ class APIAvatar:
         )
         feature_extract_elapsed = time.time() - feature_extract_start
         print(f"✓ Audio features extracted (librosa_length: {librosa_length}, took {feature_extract_elapsed:.3f}s)")
+
+        if cancel_requested("whisper chunk creation"):
+            return
         
         print(f"⚙️  Creating whisper chunks (fps: {fps})...")
         whisper_chunk_start = time.time()
@@ -632,7 +659,13 @@ class APIAvatar:
         print(f"⚙️  Starting generation loop (batch_size: {self.batch_size}, total_batches: {total_batches})")
         print(f"⏱️  Time to first frame generation: {generation_start - request_start:.3f}s")
         
-        for whisper_batch, latent_batch in gen:
+        for batch_index, (whisper_batch, latent_batch) in enumerate(gen, start=1):
+            if cancel_requested("generation loop"):
+                return
+
+            if batch_index == 1 or batch_index % 8 == 0 or batch_index == total_batches:
+                print(f"    🔁 Batch {batch_index}/{total_batches} in progress")
+
             # Generate batch (no per-batch logging)
             audio_feature_batch = self.pe(whisper_batch.to(device))
             
@@ -647,6 +680,9 @@ class APIAvatar:
             
             # Process each frame
             for res_frame in recon:
+                if cancel_requested("frame processing"):
+                    return
+
                 # Blend frame
                 cycle_index = frame_idx + start_offset_frames
                 bbox = self.coord_list_cycle[cycle_index % len(self.coord_list_cycle)]
@@ -683,6 +719,9 @@ class APIAvatar:
                         print(f"    ⏱️  Time to first chunk: {time_to_first_chunk:.3f}s")
                     
                     if emit_chunks:
+                        if cancel_requested("chunk creation"):
+                            return
+
                         chunk_start = time.time()
                         is_final_chunk = frame_idx >= video_num
                         if is_final_chunk and crossfade_tail_frames > 0:
@@ -745,9 +784,7 @@ class APIAvatar:
         print(f"📁 Output directory: {chunk_dir}")
         print(f"{'='*60}\n")
         
-        # Cleanup
-        print(f"🧹 Cleaning up temp directory: {tmp_dir}")
-        shutil.rmtree(tmp_dir, ignore_errors=True)
+        cleanup_tmp_dir()
 
     def _create_crossfade_chunk(
         self,
@@ -832,6 +869,8 @@ class APIAvatar:
         # ✅ SINGLE-PASS ENCODING: Video + Audio together (no temp files)
         ffmpeg_cmd = [
             'ffmpeg', '-y',
+            '-v', 'error',
+            '-nostats',
             # Video input (from stdin)
             '-f', 'rawvideo',
             '-vcodec', 'rawvideo',
@@ -889,7 +928,7 @@ class APIAvatar:
                 ffmpeg_cmd,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE
+                stderr=subprocess.DEVNULL
             )
             
             # Write frames to stdin
@@ -899,13 +938,14 @@ class APIAvatar:
             proc.stdin.close()
             
             # Wait for completion
-            returncode = proc.wait()
+            try:
+                returncode = proc.wait(timeout=120)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                raise RuntimeError("FFmpeg chunk encode timed out after 120s")
             
             if returncode != 0:
-                stderr = proc.stderr.read().decode('utf-8', errors='ignore')
-                print(f"      ❌ FFmpeg error (code {returncode}):")
-                print(f"      {stderr[-500:]}")  # Last 500 chars
-                raise RuntimeError(f"FFmpeg failed: {stderr[-200:]}")
+                raise RuntimeError(f"FFmpeg failed with exit code {returncode}")
             
             # Verify output
             if not Path(output_path).exists():
@@ -916,7 +956,7 @@ class APIAvatar:
                 raise RuntimeError(f"Output file too small: {file_size} bytes")
             
             elapsed = time.time() - chunk_start_time
-            print(f"      ✅ fMP4 fragment created ({file_size/1024:.1f}KB, {elapsed:.2f}s)")
+            print(f"      ✅ Segment created ({file_size/1024:.1f}KB, {elapsed:.2f}s)")
             
             return output_path
         

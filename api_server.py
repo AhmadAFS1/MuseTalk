@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Query
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import shutil
@@ -1670,8 +1670,15 @@ async def hls_live_manifest(session_id: str):
     if not session.live_manifest_path.exists():
         raise HTTPException(status_code=404, detail="Live HLS manifest not found")
 
-    return FileResponse(
-        session.live_manifest_path,
+    # Return a text snapshot instead of FileResponse because the playlist file
+    # is actively appended during streaming.
+    try:
+        playlist_text = session.live_manifest_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read live manifest: {exc}")
+
+    return Response(
+        content=playlist_text,
         media_type="application/vnd.apple.mpegurl",
         headers={"Cache-Control": "no-cache"}
     )
@@ -1739,9 +1746,77 @@ async def hls_session_status(session_id: str):
     }
 
 
+def _pop_managed_request(request_id: Optional[str]) -> Optional[dict]:
+    if manager is None or not request_id:
+        return None
+    with manager.request_lock:
+        return manager.active_requests.pop(request_id, None)
+
+
+def _mark_request_delete_when_done(request_id: Optional[str]) -> None:
+    if manager is None or not request_id:
+        return
+    with manager.request_lock:
+        req = manager.active_requests.get(request_id)
+        if req is not None:
+            req["delete_session_when_done"] = True
+
+
+async def _cancel_managed_request(request_id: Optional[str], wait_timeout: float = 15.0) -> bool:
+    if manager is None or not request_id:
+        return True
+
+    with manager.request_lock:
+        req = manager.active_requests.get(request_id)
+        if req is None:
+            return True
+        req["status"] = "cancelling"
+        cancel_event = req.get("cancel_event")
+        future = req.get("future")
+
+    if cancel_event is not None:
+        cancel_event.set()
+
+    if future is None:
+        _pop_managed_request(request_id)
+        return True
+
+    if future.cancel():
+        _pop_managed_request(request_id)
+        return True
+
+    try:
+        await asyncio.wait_for(asyncio.shield(future), timeout=wait_timeout)
+        return True
+    except asyncio.TimeoutError:
+        return False
+    except Exception:
+        return True
+
+
 @app.delete("/hls/sessions/{session_id}")
 async def delete_hls_session(session_id: str):
     _require_hls()
+    session = await hls_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if session.active_stream is not None:
+        session.delete_requested = True
+        session.cancel_requested = True
+        session.status = "cancelling"
+        cancelled = await _cancel_managed_request(session.active_stream, wait_timeout=15.0)
+        if not cancelled:
+            _mark_request_delete_when_done(session.active_stream)
+            return JSONResponse(
+                status_code=202,
+                content={
+                    "status": "cancellation_requested",
+                    "session_id": session_id,
+                    "request_id": session.active_stream,
+                },
+            )
+
     deleted = await hls_session_manager.delete_session(session_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -1855,6 +1930,9 @@ async def hls_stream(
             int(round(offset_seconds * generation_fps)) if generation_fps else 0
         )
 
+    main_loop = asyncio.get_event_loop()
+    cancel_event = threading.Event()
+
     def streaming_worker():
         try:
             print(f"🎬 [{request_id}] Starting HLS streaming for session {session_id}")
@@ -1875,6 +1953,7 @@ async def hls_stream(
                     emit_chunks=True,
                     chunk_ext=".ts",
                     start_offset_seconds=offset_seconds,
+                    cancel_event=cancel_event,
                 ):
                     segment_path = Path(chunk_info["chunk_path"])
                     try:
@@ -1891,16 +1970,33 @@ async def hls_stream(
         finally:
             hls_session_manager.finish_live_playlist(session)
             session.active_stream = None
+            session.cancel_requested = False
 
-    main_loop = asyncio.get_event_loop()
+            req = _pop_managed_request(request_id)
+            delete_when_done = False
+            if req is not None:
+                delete_when_done = req.get("delete_session_when_done", False)
+            elif session.delete_requested:
+                delete_when_done = True
+
+            if delete_when_done:
+                session.delete_requested = False
+                asyncio.run_coroutine_threadsafe(
+                    hls_session_manager.delete_session(session_id),
+                    main_loop,
+                )
+
     future = main_loop.run_in_executor(manager.executor, streaming_worker)
-    manager.active_requests[request_id] = {
-        'avatar_id': session.avatar_id,
-        'status': 'streaming',
-        'future': future,
-        'type': 'hls_stream',
-        'session_id': session_id
-    }
+    with manager.request_lock:
+        manager.active_requests[request_id] = {
+            'avatar_id': session.avatar_id,
+            'status': 'streaming',
+            'future': future,
+            'type': 'hls_stream',
+            'session_id': session_id,
+            'cancel_event': cancel_event,
+            'delete_session_when_done': False,
+        }
 
     return {
         "request_id": request_id,

@@ -1,4 +1,4 @@
-@BASE_URL = http://218.207.160.205:15546
+@BASE_URL = http://localhost:8000
 @AVATAR_ID = test_avatar
 @PLAYBACK_FPS = 30
 @MUSE_FPS = 15
@@ -13,6 +13,9 @@
 
 ### Health Check
 GET {{BASE_URL}}/health
+
+###
+GET {{BASE_URL}}/stats
 
 ###
 

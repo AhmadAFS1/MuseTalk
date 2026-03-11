@@ -30,6 +30,8 @@ class HlsSession:
     status: str = "idle"
     active_stream: Optional[str] = None
     live_ready: bool = False
+    delete_requested: bool = False
+    cancel_requested: bool = False
     idle_start_monotonic: float = field(default_factory=time.monotonic)
     idle_start_wall_time: float = field(default_factory=time.time)
     idle_duration_seconds: Optional[float] = None
@@ -139,7 +141,7 @@ class HlsSessionManager:
             async with self.lock:
                 expired = [
                     sid for sid, session in self.sessions.items()
-                    if session.is_expired(self.session_ttl)
+                    if session.is_expired(self.session_ttl) and session.active_stream is None
                 ]
             for sid in expired:
                 await self.delete_session(sid)

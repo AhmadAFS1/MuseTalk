@@ -45,6 +45,8 @@ class ParallelAvatarManager:
         # Request tracking
         self.active_requests = {}
         self.request_lock = threading.Lock()
+        self.avatar_load_locks = {}
+        self.avatar_load_locks_lock = threading.Lock()
         
         # Load models ONCE
         self._init_models()
@@ -101,28 +103,46 @@ class ParallelAvatarManager:
         
         if not self._avatar_exists(avatar_id):
             raise ValueError(f"Avatar {avatar_id} not found. Run preparation first.")
-        
-        print(f"📂 Loading avatar {avatar_id} from disk...")
-        
-        # Create APIAvatar with explicit parameters
-        avatar = APIAvatar(
-            avatar_id=avatar_id,
-            video_path="",
-            bbox_shift=0,
-            batch_size=batch_size,  # Use requested batch_size
-            vae=self.vae,
-            unet=self.unet,
-            pe=self.pe,
-            fp=self.fp,
-            args=self.args,
-            preparation=False,
-            force_recreate=False
-        )
-        
-        memory_usage_mb = 500
-        self.avatar_cache.put(avatar_id, avatar, memory_usage_mb)
-        
-        return avatar
+
+        with self._get_avatar_load_lock(avatar_id):
+            # Another request may have loaded the avatar while we were waiting.
+            avatar = self.avatar_cache.get(avatar_id)
+            if avatar is not None:
+                if avatar.batch_size != batch_size:
+                    print(f"🔄 Updating batch_size for {avatar_id}: {avatar.batch_size} → {batch_size}")
+                    avatar.batch_size = batch_size
+                return avatar
+
+            print(f"📂 Loading avatar {avatar_id} from disk...")
+            
+            # Create APIAvatar with explicit parameters
+            avatar = APIAvatar(
+                avatar_id=avatar_id,
+                video_path="",
+                bbox_shift=0,
+                batch_size=batch_size,  # Use requested batch_size
+                vae=self.vae,
+                unet=self.unet,
+                pe=self.pe,
+                fp=self.fp,
+                args=self.args,
+                preparation=False,
+                force_recreate=False
+            )
+            
+            memory_usage_mb = 500
+            self.avatar_cache.put(avatar_id, avatar, memory_usage_mb)
+            
+            return avatar
+
+    def _get_avatar_load_lock(self, avatar_id):
+        """Return a per-avatar lock so cold loads only happen once."""
+        with self.avatar_load_locks_lock:
+            lock = self.avatar_load_locks.get(avatar_id)
+            if lock is None:
+                lock = threading.Lock()
+                self.avatar_load_locks[avatar_id] = lock
+            return lock
     
     def prepare_avatar(self, avatar_id, video_path, bbox_shift=0, batch_size=20, force_recreate=False):
         """Prepare avatar (one-time operation)"""
