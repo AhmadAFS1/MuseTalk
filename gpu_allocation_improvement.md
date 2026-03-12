@@ -231,6 +231,83 @@ Conclusion:
 - `concurrency=3` is beyond the practical realtime limit of the current HLS scheduler settings
 - the next optimization target is not just raw speed, but also queueing policy and fairness under contention
 
+### March 12 post chunk-boundary and encode-path measurements
+
+After the later March 12 scheduler fix, the backend was retested again.
+
+The two relevant changes were:
+
+1. the shared HLS scheduler now flushes exact chunk boundaries instead of occasionally handing an oversized frame buffer to one encode task
+2. HLS chunk encoding now prefers NVENC with fallback to `libx264`, which reduces CPU-side encode pressure where NVENC is available
+
+These runs used the current `load_test.py` defaults plus `batch_size=4`:
+
+- `segment_duration=1.0`
+- `playback_fps=30`
+- `musetalk_fps=15`
+- `batch_size=4`
+
+#### `concurrency=1`
+
+Observed metrics:
+
+1. `live_ready` was about 1.53 seconds.
+2. Average segment interval was about 0.81 seconds.
+3. Maximum segment interval was about 1.08 seconds.
+4. Total wall time was about 15.0 seconds.
+
+Interpretation:
+
+- single-stream HLS is now comfortably inside the 1-second segment target envelope
+- time to first visible live output is materially improved
+- the system no longer shows single-stream throttling under this test profile
+
+Conclusion:
+
+- `concurrency=1` is now operationally healthy for realtime HLS under the tested settings
+
+#### `concurrency=2`
+
+Observed metrics:
+
+1. `live_ready` averaged about 2.35 seconds.
+2. Average segment interval was about 1.62 seconds.
+3. Maximum segment interval was about 2.16 seconds.
+4. Total wall time was about 29.2 seconds.
+
+Interpretation:
+
+- both streams complete cleanly and become live quickly
+- average cadence is much better than the earlier scheduler-era baseline
+- the run is near the current throttling threshold, because max interval slightly exceeds the 2.0-second alert threshold for 1-second segments
+
+Conclusion:
+
+- `concurrency=2` is now practically usable
+- `concurrency=2` is not yet comfortably inside the realtime safety margin
+
+#### `concurrency=3`
+
+Observed metrics:
+
+1. `live_ready` averaged about 2.89 seconds.
+2. Average segment interval was about 2.43 seconds.
+3. Maximum segment interval was about 2.74 seconds.
+4. Total wall time was about 44.4 seconds.
+5. All three sessions completed without failures.
+
+Interpretation:
+
+- fairness is materially better than the earlier starved-session behavior
+- the scheduler can keep all three sessions moving
+- however, chunk cadence is now clearly beyond the realtime target
+
+Conclusion:
+
+- `concurrency=3` is functionally supported in the sense that all jobs complete
+- `concurrency=3` is still throttled for realtime HLS
+- the next optimization target is three-way shared-load cadence, not basic correctness
+
 #### Updated performance conclusion
 
 The new HLS scheduler clearly improved:
@@ -239,13 +316,13 @@ The new HLS scheduler clearly improved:
 2. startup consistency
 3. ability to complete concurrent jobs without obvious worker corruption
 
-But the measurements still show:
+But the latest measurements now show a more nuanced picture:
 
-1. single-stream cadence is slower than realtime
-2. two-stream cadence is much slower than realtime
-3. three-stream fairness degrades badly
+1. single-stream cadence is healthy under the tested 1-second segment profile
+2. two-stream cadence is close to realtime, but still near the throttle threshold
+3. three-stream behavior is much better than before, but still too slow for a clean realtime claim
 
-So the system has moved from "broken under concurrency" to "functionally stable but still throughput-limited."
+So the system has moved from "broken under concurrency" to "healthy at one stream, close at two, and still throughput-limited at three."
 
 ### Final investigative conclusion
 

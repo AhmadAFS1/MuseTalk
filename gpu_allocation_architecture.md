@@ -471,7 +471,13 @@ GPU Memory Usage (batch_size=2):
 
 ### Observed Symptom
 
-During load testing, **GPU utilization hits 100% and segment delivery slows down even at concurrency=1**. At concurrency=2 with `batch_size=2`, throttling is severe despite low VRAM usage. This indicates a **compute-bound bottleneck**, not a memory bottleneck.
+Earlier load testing showed **GPU utilization hitting 100% and segment delivery slowing down even at concurrency=1**. After the shared HLS scheduler work and the later chunk-boundary / encode-path fixes, the current picture is better:
+
+- `concurrency=1` is now healthy under the latest test profile
+- `concurrency=2` is close to realtime but still near the throttle threshold
+- `concurrency=3` still shows clear throughput throttling
+
+This remains a **compute-bound bottleneck**, not a memory bottleneck, but the bottleneck now appears mainly under shared load rather than in the single-stream baseline.
 
 ### Root Cause Diagram
 
@@ -718,6 +724,8 @@ Combined:  [batch 4 (2×A + 2×B)][batch 4][batch 4][batch 4]
 2. **Background Frame Blending**: Runs blending in parallel with inference.
 3. **Batch Processing**: Processes multiple frames simultaneously.
 4. **Float16 Inference**: Reduces memory usage by 50%.
+5. **Strict Chunk Boundary Slicing**: Prevents oversized HLS segments when the shared scheduler compose buffer crosses a segment boundary.
+6. **NVENC-First HLS Encoding**: Prefers hardware-backed HLS chunk encoding, with `libx264` fallback when NVENC is unavailable.
 
 ---
 
@@ -748,6 +756,13 @@ python load_test.py --base-url http://localhost:8000 \
 | `--musetalk-fps` | `15` | MuseTalk generation FPS |
 | `--batch-size` | `2` | Inference batch size |
 
+Latest validated throughput runs used:
+
+- `--segment-duration 1.0`
+- `--playback-fps 30`
+- `--musetalk-fps 15`
+- `--batch-size 4`
+
 ### What the Load Test Measures
 
 For each concurrency level the test:
@@ -777,6 +792,25 @@ For each concurrency level the test:
 | `avg_segment_interval_s` | ≤ `segment_duration` × 1.2 | > `segment_duration` × 1.5 |
 | `max_segment_interval_s` | ≤ `segment_duration` × 2.0 | > `segment_duration` × 2.0 |
 | `avg_time_to_live_ready_s` | < 5s | > 10s |
+
+### Latest Validated Results (March 12, 2026)
+
+Using:
+
+- `segment_duration=1.0`
+- `playback_fps=30`
+- `musetalk_fps=15`
+- `batch_size=4`
+
+Observed results:
+
+| Concurrency | Completed | Avg `live_ready` | Avg segment interval | Max segment interval | Wall time | Interpretation |
+|-------------|-----------|------------------|----------------------|----------------------|-----------|----------------|
+| `1` | `1/1` | `1.53s` | `0.81s` | `1.08s` | `15.0s` | Healthy |
+| `2` | `2/2` | `2.35s` | `1.62s` | `2.16s` | `29.2s` | Near realtime, slight throttle alert |
+| `3` | `3/3` | `2.89s` | `2.43s` | `2.74s` | `44.4s` | Throttled |
+
+These runs are materially better than the earlier scheduler-era baseline and show that the backend is now healthy for one stream, close for two streams, and still overloaded at three concurrent streams.
 
 ### Adding GPU Monitoring
 

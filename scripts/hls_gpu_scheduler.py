@@ -445,31 +445,32 @@ class HLSGPUStreamScheduler:
         latent_batch = torch.cat(latent_slices, dim=0)
 
         with self.manager.gpu_memory.allocate(lease_batch_size):
-            copy_started_at = time.time()
-            audio_inputs = whisper_batch.to(self.manager.device, non_blocking=True)
-            latent_batch = latent_batch.to(
-                device=self.manager.device,
-                dtype=self.manager.unet.model.dtype,
-                non_blocking=True,
-            )
-            copy_finished_at = time.time()
+            with torch.inference_mode():
+                copy_started_at = time.time()
+                audio_inputs = whisper_batch.to(self.manager.device, non_blocking=True)
+                latent_batch = latent_batch.to(
+                    device=self.manager.device,
+                    dtype=self.manager.unet.model.dtype,
+                    non_blocking=True,
+                )
+                copy_finished_at = time.time()
 
-            pe_started_at = time.time()
-            audio_feature_batch = self.manager.pe(audio_inputs)
-            pe_finished_at = time.time()
+                pe_started_at = time.time()
+                audio_feature_batch = self.manager.pe(audio_inputs)
+                pe_finished_at = time.time()
 
-            unet_started_at = time.time()
-            pred_latents = self.manager.unet.model(
-                latent_batch,
-                self.manager.timesteps,
-                encoder_hidden_states=audio_feature_batch,
-            ).sample
-            unet_finished_at = time.time()
+                unet_started_at = time.time()
+                pred_latents = self.manager.unet.model(
+                    latent_batch,
+                    self.manager.timesteps,
+                    encoder_hidden_states=audio_feature_batch,
+                ).sample
+                unet_finished_at = time.time()
 
-            vae_started_at = time.time()
-            pred_latents = pred_latents.to(device=self.manager.device, dtype=self.manager.vae.vae.dtype)
-            recon = self.manager.vae.decode_latents(pred_latents)
-            vae_finished_at = time.time()
+                vae_started_at = time.time()
+                pred_latents = pred_latents.to(device=self.manager.device, dtype=self.manager.vae.vae.dtype)
+                recon = self.manager.vae.decode_latents(pred_latents)
+                vae_finished_at = time.time()
 
         batch_finished_at = time.time()
         assembly_s = assembly_finished_at - batch_started_at
@@ -567,14 +568,21 @@ class HLSGPUStreamScheduler:
             and job.next_compose_sequence >= job.compose_sequence
             and job.frame_buffer
         ):
-            self._dispatch_encode(job)
+            self._dispatch_encode(job, force_flush=True)
 
-    def _dispatch_encode(self, job: HLSStreamJob) -> None:
+    def _dispatch_encode(self, job: HLSStreamJob, force_flush: bool = False) -> None:
         if not job.frame_buffer:
             return
+        if not force_flush and len(job.frame_buffer) < job.frames_per_chunk:
+            return
 
-        frames = job.frame_buffer
-        job.frame_buffer = []
+        if force_flush:
+            take = len(job.frame_buffer)
+        else:
+            take = min(len(job.frame_buffer), job.frames_per_chunk)
+
+        frames = job.frame_buffer[:take]
+        del job.frame_buffer[:take]
         chunk_index = job.chunk_index
         job.chunk_index += 1
         start_frame = chunk_index * job.frames_per_chunk

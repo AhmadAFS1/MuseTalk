@@ -17,10 +17,83 @@ import time
 import json
 import sys
 from pathlib import Path
+import subprocess
 
 from musetalk.utils.preprocessing import get_landmark_and_bbox, read_imgs
 from musetalk.utils.blending import get_image_prepare_material, get_image_blending
 from musetalk.utils.utils import datagen
+
+
+def _build_ffmpeg_chunk_cmd(
+    *,
+    width: int,
+    height: int,
+    fps: int,
+    audio_path: str,
+    start_time: float,
+    duration: float,
+    output_path: str,
+    encoder: str,
+):
+    output_suffix = Path(output_path).suffix.lower()
+    use_mpegts = output_suffix == ".ts"
+    ffmpeg_cmd = [
+        "ffmpeg", "-y",
+        "-v", "error",
+        "-nostats",
+        "-f", "rawvideo",
+        "-vcodec", "rawvideo",
+        "-s", f"{width}x{height}",
+        "-pix_fmt", "bgr24",
+        "-r", str(fps),
+        "-i", "-",
+        "-ss", str(start_time),
+        "-t", str(duration),
+        "-i", audio_path,
+    ]
+
+    if encoder == "h264_nvenc":
+        video_opts = [
+            "-c:v", "h264_nvenc",
+            "-preset", os.getenv("HLS_CHUNK_ENCODER_PRESET", "p1"),
+            "-tune", os.getenv("HLS_CHUNK_ENCODER_TUNE", "ull"),
+            "-rc", "constqp",
+            "-qp", os.getenv("HLS_CHUNK_ENCODER_QP", "28"),
+            "-pix_fmt", "yuv420p",
+        ]
+    else:
+        video_opts = [
+            "-c:v", "libx264",
+            "-preset", os.getenv("HLS_CHUNK_ENCODER_PRESET", "ultrafast"),
+            "-tune", "zerolatency",
+            "-crf", os.getenv("HLS_CHUNK_ENCODER_CRF", "28"),
+            "-pix_fmt", "yuv420p",
+        ]
+
+    if use_mpegts:
+        gop = max(1, int(round(fps * duration)))
+        ffmpeg_cmd += video_opts + [
+            "-g", str(gop),
+            "-keyint_min", str(gop),
+            "-sc_threshold", "0",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-ar", "48000",
+            "-f", "mpegts",
+            output_path,
+        ]
+    else:
+        ffmpeg_cmd += video_opts + [
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-ar", "44100",
+            "-movflags", "frag_keyframe+empty_moov+default_base_moof+faststart",
+            "-frag_duration", str(int(duration * 1000000)),
+            "-f", "mp4",
+            output_path,
+        ]
+
+    return ffmpeg_cmd
 
 
 @torch.no_grad()
@@ -862,11 +935,8 @@ class APIAvatar:
 
     def _create_chunk(self, frames, chunk_index, audio_path, fps, start_frame, total_frames, output_path):
         """Create an encoded chunk (fMP4 for MSE or TS for HLS)."""
-        import subprocess
-        
         chunk_start_time = time.time()
-        
-        # Calculate audio timing
+
         start_time = start_frame / fps
         duration = len(frames) / fps
 
@@ -878,103 +948,71 @@ class APIAvatar:
         else:
             print(f"      🔨 Creating fMP4 fragment {chunk_index} ({len(frames)} frames)...")
         
-        # Use pipes to avoid disk I/O for frames
         height, width = frames[0].shape[:2]
-        
-        # ✅ SINGLE-PASS ENCODING: Video + Audio together (no temp files)
-        ffmpeg_cmd = [
-            'ffmpeg', '-y',
-            '-v', 'error',
-            '-nostats',
-            # Video input (from stdin)
-            '-f', 'rawvideo',
-            '-vcodec', 'rawvideo',
-            '-s', f'{width}x{height}',
-            '-pix_fmt', 'bgr24',
-            '-r', str(fps),
-            '-i', '-',
-            # Audio input (extract segment)
-            '-ss', str(start_time),
-            '-t', str(duration),
-            '-i', audio_path,
-        ]
+        preferred_encoder = os.getenv("HLS_CHUNK_VIDEO_ENCODER", "h264_nvenc").strip() or "h264_nvenc"
+        encoders_to_try = [preferred_encoder]
+        if preferred_encoder != "libx264":
+            encoders_to_try.append("libx264")
 
-        if use_mpegts:
-            gop = max(1, len(frames))
-            ffmpeg_cmd += [
-                # Video encoding
-                '-c:v', 'libx264',
-                '-preset', 'ultrafast',
-                '-tune', 'zerolatency',
-                '-crf', '28',
-                '-pix_fmt', 'yuv420p',
-                '-g', str(gop),
-                '-keyint_min', str(gop),
-                '-sc_threshold', '0',
-                # Audio encoding
-                '-c:a', 'aac',
-                '-b:a', '128k',
-                '-ar', '48000',
-                '-f', 'mpegts',
-                output_path
-            ]
-        else:
-            ffmpeg_cmd += [
-                # Video encoding
-                '-c:v', 'libx264',
-                '-preset', 'ultrafast',
-                '-tune', 'zerolatency',
-                '-crf', '28',
-                '-pix_fmt', 'yuv420p',
-                # Audio encoding
-                '-c:a', 'aac',
-                '-b:a', '128k',
-                '-ar', '44100',
-                # ✅ CRITICAL: fMP4 flags for MSE
-                '-movflags', 'frag_keyframe+empty_moov+default_base_moof+faststart',
-                '-frag_duration', str(int(duration * 1000000)),  # Microseconds
-                '-f', 'mp4',
-                output_path
-            ]
-        
-        try:
-            # Start FFmpeg process
-            proc = subprocess.Popen(
-                ffmpeg_cmd,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+        last_error = None
+        for encoder in encoders_to_try:
+            ffmpeg_cmd = _build_ffmpeg_chunk_cmd(
+                width=width,
+                height=height,
+                fps=fps,
+                audio_path=audio_path,
+                start_time=start_time,
+                duration=duration,
+                output_path=output_path,
+                encoder=encoder,
             )
-            
-            # Write frames to stdin
-            for frame in frames:
-                proc.stdin.write(frame.tobytes())
-            
-            proc.stdin.close()
-            
-            # Wait for completion
+            proc = None
             try:
-                returncode = proc.wait(timeout=120)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                raise RuntimeError("FFmpeg chunk encode timed out after 120s")
-            
-            if returncode != 0:
-                raise RuntimeError(f"FFmpeg failed with exit code {returncode}")
-            
-            # Verify output
-            if not Path(output_path).exists():
-                raise RuntimeError("Output file not created")
-            
-            file_size = Path(output_path).stat().st_size
-            if file_size < 1024:
-                raise RuntimeError(f"Output file too small: {file_size} bytes")
-            
-            elapsed = time.time() - chunk_start_time
-            print(f"      ✅ Segment created ({file_size/1024:.1f}KB, {elapsed:.2f}s)")
-            
-            return output_path
-        
-        except Exception as e:
-            print(f"      ❌ Chunk creation failed: {e}")
-            raise
+                proc = subprocess.Popen(
+                    ffmpeg_cmd,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+
+                for frame in frames:
+                    proc.stdin.write(frame.tobytes())
+
+                proc.stdin.close()
+
+                try:
+                    returncode = proc.wait(timeout=120)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    raise RuntimeError(f"FFmpeg chunk encode timed out after 120s using {encoder}")
+
+                if returncode != 0:
+                    raise RuntimeError(f"FFmpeg failed with exit code {returncode} using {encoder}")
+                if not Path(output_path).exists():
+                    raise RuntimeError(f"Output file not created using {encoder}")
+
+                file_size = Path(output_path).stat().st_size
+                if file_size < 1024:
+                    raise RuntimeError(f"Output file too small using {encoder}: {file_size} bytes")
+
+                elapsed = time.time() - chunk_start_time
+                print(f"      ✅ Segment created with {encoder} ({file_size/1024:.1f}KB, {elapsed:.2f}s)")
+                return output_path
+            except Exception as exc:
+                last_error = exc
+                try:
+                    if proc is not None and proc.poll() is None:
+                        proc.kill()
+                except OSError:
+                    pass
+                try:
+                    Path(output_path).unlink(missing_ok=True)
+                except OSError:
+                    pass
+                if encoder != encoders_to_try[-1]:
+                    print(f"      ⚠️ Encoder {encoder} failed, retrying with fallback: {exc}")
+                    continue
+                print(f"      ❌ Chunk creation failed: {exc}")
+                raise
+
+        raise last_error or RuntimeError("Chunk creation failed without a reported error")
