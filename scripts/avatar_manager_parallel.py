@@ -28,8 +28,14 @@ class ParallelAvatarManager:
         self.args = args
         self.device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
         
+        max_live_generations = max(1, int(os.getenv("LIVE_MAX_CONCURRENT_GENERATIONS", "1")))
+
         # GPU memory manager
-        self.gpu_memory = GPUMemoryManager(total_memory_gb=24, reserved_gb=6)
+        self.gpu_memory = GPUMemoryManager(
+            total_memory_gb=24,
+            reserved_gb=6,
+            max_live_generations=max_live_generations,
+        )
         
         # Smart avatar cache
         self.avatar_cache = AvatarCache(

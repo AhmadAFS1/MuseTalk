@@ -249,6 +249,7 @@ class HlsSessionManager:
     def append_live_segment(self, session: HlsSession, segment_name: str, duration: float) -> None:
         if not session.live_ready:
             session.live_ready = True
+        session.status = "streaming"
         with session.live_manifest_path.open("a") as handle:
             handle.write(f"#EXTINF:{duration:.6f},\n")
             handle.write(f"segments/{segment_name}\n")

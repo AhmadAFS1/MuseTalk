@@ -492,13 +492,15 @@ def get_hls_player_html(session) -> str:
                     idleDuration = data.idle_duration_seconds;
                 }}
 
-                if (data.status === 'streaming' && data.live_ready) {{
+                const hasActiveLive = Boolean(data.active_stream);
+
+                if (hasActiveLive && data.live_ready) {{
                     setLiveStreamId(data.active_stream);
                     setMode('live');
-                }} else if (data.status === 'streaming' && currentMode === 'idle') {{
+                }} else if (hasActiveLive && currentMode === 'idle') {{
                     setLiveStreamId(data.active_stream);
                     showStatus('Preparing live...');
-                }} else if (data.status !== 'streaming' && currentMode === 'live') {{
+                }} else if (!hasActiveLive && currentMode === 'live') {{
                     showStatus('Finishing...');
                 }}
             }} catch (_) {{}}

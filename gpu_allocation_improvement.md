@@ -9,7 +9,7 @@ This document describes:
 3. The most robust architecture to fix it.
 4. A phased implementation plan, from immediate hardening to a production-grade design.
 
-The goal is not just to "stop leaks". The goal is to make HLS, SSE, and WebRTC streaming predictable under load so the backend can support the maximum safe number of simultaneous users on a single GPU, and later scale across multiple GPUs or hosts.
+The goal is not just to "stop leaks". The goal is to make HLS and SSE streaming predictable under load so the backend can support the maximum safe number of simultaneous users on a single GPU, and later scale across multiple GPUs or hosts. WebRTC exists in the codebase, but it is not the current optimization focus.
 
 ## Executive Summary
 
@@ -90,6 +90,26 @@ Conclusion:
 - the system had both a lifecycle problem and a throughput problem.
 - fixing delete/cancel behavior was necessary, but not sufficient.
 
+### Second round of changes already implemented
+
+The next structural change was to remove the old HLS model of "one GPU-driving worker thread per stream".
+
+The following changes are now implemented:
+
+1. HLS streaming now uses a shared scheduler in `scripts/hls_gpu_scheduler.py`.
+2. Audio preparation for HLS jobs runs in a dedicated prep pool instead of the main request thread.
+3. GPU generation for HLS jobs is driven by a single scheduler thread that batches work across active HLS streams.
+4. HLS chunk encoding now runs in a separate encode worker pool instead of blocking the GPU-driving loop.
+5. HLS requests now move through explicit states such as `preparing`, `queued`, `generating`, and `streaming`.
+6. HLS queue pressure is now exposed through scheduler stats and can reject new streams only when the scheduler queue is full.
+7. Streaming scratch space is now request-scoped instead of shared per avatar.
+
+Conclusion:
+
+- HLS no longer oversubscribes the GPU by launching one independent live generation loop per stream.
+- CPU encode work is now separated from GPU generation work.
+- The backend now has a foundation for true multi-session HLS scheduling rather than blind thread-level concurrency.
+
 ### What `concurrency=4` proved
 
 Observed behavior after the cleanup fixes:
@@ -117,6 +137,7 @@ Conclusion:
 - the backend was not frozen in the strict sense.
 - 100 percent GPU utilization during this phase is expected.
 - if the client still looked frozen at first frame, the issue was likely live-start buffering or slow time-to-next-chunk, not immediate worker death.
+- after the scheduler change, `concurrency=2` should be evaluated again against shared-batch throughput, not against the old per-request-thread design.
 
 ### What `concurrency=1` proved
 
@@ -137,6 +158,95 @@ Conclusion:
 
 That means concurrency tuning alone cannot solve the problem. Even one stream needs optimization or a different operational target.
 
+### March 12 scheduler-era measurements
+
+After the shared HLS scheduler was introduced, the backend was retested with:
+
+- `segment_duration=2.0`
+- `musetalk_fps=12`
+- `batch_size=4`
+
+These results are materially better than the older baseline, but still not at a healthy realtime target.
+
+#### `concurrency=1`
+
+Observed metrics:
+
+1. `live_ready` was about 5.17 seconds.
+2. Average segment interval was about 4.09 seconds.
+3. Maximum segment interval was about 4.22 seconds.
+4. Total wall time was about 37.0 seconds.
+
+Interpretation:
+
+- this is a major improvement over the earlier single-stream baseline
+- however, with `segment_duration=2.0`, the target cadence is still roughly one segment every 2 seconds
+- the observed cadence is still about 2x slower than the realtime target
+
+Conclusion:
+
+- the new scheduler improves first-chunk readiness and overall completion time
+- but even the improved single-stream path remains throughput-limited
+
+#### `concurrency=2`
+
+Observed metrics:
+
+1. `live_ready` averaged about 11.07 seconds.
+2. Average segment interval was about 7.52 seconds.
+3. Maximum segment interval was about 8.01 seconds.
+4. Total wall time was about 72.9 seconds.
+
+Interpretation:
+
+- both streams completed cleanly
+- scheduler fairness is good enough that both sessions make progress
+- but throughput collapses under shared load and is still far from realtime
+
+Conclusion:
+
+- `concurrency=2` is functionally supported in the sense that both jobs complete
+- `concurrency=2` is not yet operationally healthy for realtime HLS
+
+#### `concurrency=3`
+
+Observed metrics:
+
+1. `live_ready` averaged about 29.41 seconds.
+2. Two sessions became live in about 8 to 9 seconds.
+3. One session starved and did not become live until about 71.15 seconds.
+4. Average segment interval was about 6.26 seconds.
+5. Maximum segment interval was about 7.49 seconds.
+6. Total wall time was about 103.8 seconds.
+
+Interpretation:
+
+- the scheduler can eventually complete three jobs
+- fairness is not strong enough under three-way contention
+- tail latency becomes unacceptable
+- one late job can wait a very long time before receiving enough shared GPU service to become live
+
+Conclusion:
+
+- `concurrency=3` is beyond the practical realtime limit of the current HLS scheduler settings
+- the next optimization target is not just raw speed, but also queueing policy and fairness under contention
+
+#### Updated performance conclusion
+
+The new HLS scheduler clearly improved:
+
+1. lifecycle safety
+2. startup consistency
+3. ability to complete concurrent jobs without obvious worker corruption
+
+But the measurements still show:
+
+1. single-stream cadence is slower than realtime
+2. two-stream cadence is much slower than realtime
+3. three-stream fairness degrades badly
+
+So the system has moved from "broken under concurrency" to "functionally stable but still throughput-limited."
+
 ### Final investigative conclusion
 
 The current system has two different capacity limits:
@@ -152,17 +262,22 @@ The load tests proved that realtime throughput capacity is the stricter limit.
 
 ### 1. HLS delete does not cancel live work
 
-Current behavior:
+Original behavior:
 
 - `DELETE /hls/sessions/{session_id}` calls `hls_session_manager.delete_session(session_id)`.
 - `delete_session()` removes the session object and deletes the output directory.
 - The inference worker started by `/hls/sessions/{session_id}/stream` keeps running in the executor.
 
-Impact:
+Impact before the fix:
 
 - Old jobs continue running after the user thinks they are gone.
 - GPU logical usage remains allocated.
 - The next load test starts with stale work already active.
+
+Current status:
+
+- materially improved
+- delete now requests cancellation first and can defer final deletion until the stream has unwound
 
 Relevant files:
 
@@ -216,16 +331,20 @@ Relevant file:
 
 ### 5. Shared temp directory per avatar
 
-`APIAvatar.inference_streaming()` uses:
+Original behavior:
 
 - `tmp_dir = f"{self.avatar_path}/tmp"`
 
 That path is shared by all concurrent requests for the same avatar.
 
-Impact:
+Impact before the fix:
 
 - One request can delete temp files that another request still expects.
 - Cleanup and partial writes can race.
+
+Current status:
+
+- fixed for streaming paths by request-scoped scratch directories
 
 Relevant file:
 
@@ -241,10 +360,17 @@ Impact:
 - Hard to cancel by session id.
 - Hard to expose progress, last heartbeat, stall detection, or cleanup state.
 
+Current status:
+
+- improved for HLS
+- HLS request lifecycle is now more explicit and HLS stats expose scheduler state
+- still incomplete as a unified cross-protocol request registry
+
 Relevant files:
 
 - `api_server.py`
 - `scripts/avatar_manager_parallel.py`
+- `scripts/hls_gpu_scheduler.py`
 
 ## What This Is Not
 
@@ -735,7 +861,7 @@ Expected result:
 
 Status:
 
-- partially completed
+- completed
 
 Implemented during this investigation:
 
@@ -744,12 +870,13 @@ Implemented during this investigation:
 3. cooperative cancellation checks in `inference_streaming()`
 4. per-avatar load locks
 5. improved progress logging
+6. request-scoped scratch directories for streaming
+7. stronger HLS request reaping through completion callbacks
 
 Still remaining in Phase 0:
 
-1. request-specific scratch directories
-2. stronger request reaping and observability
-3. explicit live-generation admission control
+1. unify lifecycle tracking further across HLS and SSE
+2. add richer per-request observability and timing data
 
 ## Phase 0.5: Single-stream profiling and realtime target validation
 
@@ -761,6 +888,7 @@ Why this phase is required:
 
 - the system is already slower than realtime at `concurrency=1`
 - concurrency tuning without single-stream profiling will misdiagnose the bottleneck
+- the new scheduler improved completion behavior, but the current cadence numbers still show a large gap between functional completion and realtime viability
 
 Files:
 
@@ -824,6 +952,23 @@ Changes:
 8. Reject or queue excess live HLS starts instead of relying only on VRAM accounting.
 9. Move all request scratch work to request-specific directories.
 
+Status:
+
+- partially completed
+
+Implemented during this investigation:
+
+1. SSE live generation now has explicit compute-slot backpressure.
+2. HLS no longer uses one executor thread per live stream.
+3. HLS now uses a shared GPU scheduler with:
+   - one scheduler thread
+   - a prep worker pool
+   - a separate encode worker pool
+4. HLS starts are now admitted through a bounded scheduler queue instead of direct GPU-thread fan-out.
+5. HLS stats now expose scheduler queue depth, per-job progress, pending encodes, and last-progress age.
+6. HLS session state now explicitly progresses through `preparing`, `queued`, `generating`, and `streaming`.
+7. Request scratch work is isolated per stream.
+
 Expected result:
 
 - better visibility
@@ -832,8 +977,8 @@ Expected result:
 
 Important note:
 
-- based on current measurements, this phase should likely enforce a live-generation cap lower than the memory budget would suggest
-- memory admission and throughput admission should be treated as separate controls
+- based on current measurements, memory admission and throughput admission must remain separate controls
+- the new HLS scheduler is the correct architectural direction, but it still needs measurement and tuning before claiming safe two-stream realtime capacity
 
 ## Phase 2: API server and GPU worker split
 
@@ -986,6 +1131,14 @@ Planned changes:
 5. Ensure all cleanup happens in `finally`.
 6. Report chunk encode and generation timings.
 
+## `scripts/hls_gpu_scheduler.py`
+
+1. Own shared HLS GPU scheduling.
+2. Batch work across active HLS sessions up to a bounded combined batch size.
+3. Separate prep work from GPU generation work.
+4. Separate TS encode work from GPU generation work.
+5. Report scheduler queue and job progress statistics.
+
 ## `scripts/concurrent_gpu_manager.py`
 
 Planned changes:
@@ -1108,6 +1261,10 @@ Based on the full debugging cycle so far:
 
 1. The original orphan-worker problem was real and required lifecycle fixes.
 2. Those fixes were necessary, but they did not solve realtime throughput.
-3. The backend still appears to be slower than realtime even for a single HLS stream.
-4. Therefore the next engineering priority is not more concurrency. It is single-stream throughput profiling and explicit admission control.
-5. The system should not attempt to support higher user counts until one live stream can reliably meet the realtime target.
+3. The HLS path no longer runs one GPU-driving thread per stream; it now uses a shared scheduler plus separate encode workers.
+4. That new scheduler materially improved startup behavior and completion reliability.
+5. The backend is still slower than realtime even for a single HLS stream under the current tuned settings.
+6. `concurrency=2` can now complete, but not at healthy realtime chunk cadence.
+7. `concurrency=3` reveals fairness problems and unacceptable tail latency.
+8. Therefore the next engineering priority is profiling and tuning the shared scheduler path, not blind increases in concurrency.
+9. The system should not claim higher user counts until the shared HLS scheduler can reliably meet the realtime target.

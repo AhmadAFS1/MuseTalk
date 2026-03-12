@@ -485,6 +485,17 @@ class APIAvatar:
         self._idle_frame_cache = frames
         return frames
 
+    def compose_frame(self, res_frame, cycle_index: int):
+        """Blend a decoded face frame back into the avatar frame cycle."""
+        bbox = self.coord_list_cycle[cycle_index % len(self.coord_list_cycle)]
+        ori_frame = self.frame_list_cycle[cycle_index % len(self.frame_list_cycle)].copy()
+        x1, y1, x2, y2 = bbox
+
+        res_frame_resized = cv2.resize(res_frame.astype(np.uint8), (x2 - x1, y2 - y1))
+        mask = self.mask_list_cycle[cycle_index % len(self.mask_list_cycle)]
+        mask_crop_box = self.mask_coords_list_cycle[cycle_index % len(self.mask_coords_list_cycle)]
+        return get_image_blending(ori_frame, res_frame_resized, bbox, mask, mask_crop_box)
+
     @torch.no_grad()
     def inference_streaming(
         self,
@@ -501,6 +512,7 @@ class APIAvatar:
         chunk_ext=".mp4",
         start_offset_seconds: float = 0.0,
         cancel_event=None,
+        scratch_dir=None,
     ):
         """
         Stream video chunks as they're generated.
@@ -529,9 +541,12 @@ class APIAvatar:
         if emit_chunks:
             chunk_dir.mkdir(parents=True, exist_ok=True)
         
-        tmp_dir = f"{self.avatar_path}/tmp"
+        if scratch_dir:
+            tmp_dir = str(Path(scratch_dir))
+        else:
+            tmp_dir = f"{self.avatar_path}/tmp"
         os.makedirs(tmp_dir, exist_ok=True)
-        print(f"📁 Temp directory: {tmp_dir}")
+        print(f"📁 Scratch directory: {tmp_dir}")
 
         tmp_cleaned = False
 
@@ -540,7 +555,7 @@ class APIAvatar:
             if tmp_cleaned:
                 return
             tmp_cleaned = True
-            print(f"🧹 Cleaning up temp directory: {tmp_dir}")
+            print(f"🧹 Cleaning up scratch directory: {tmp_dir}")
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
         def cancel_requested(stage: str) -> bool:

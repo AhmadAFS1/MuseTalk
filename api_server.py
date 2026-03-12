@@ -26,6 +26,7 @@ from templates.hls_player import get_hls_player_html
 from templates.webrtc_player import get_webrtc_player_html
 from scripts.session_manager import SessionManager
 from scripts.hls_session_manager import HlsSessionManager
+from scripts.hls_gpu_scheduler import HLSGPUStreamScheduler
 try:
     from scripts.webrtc_manager import WebRTCSessionManager, build_rtc_configuration
     from scripts.webrtc_tracks import SyncedAudioStreamTrack  # ✅ ADD SyncedAudioStreamTrack
@@ -253,6 +254,7 @@ app.add_middleware(
 manager: Optional[ParallelAvatarManager] = None
 hls_session_manager: Optional[HlsSessionManager] = None
 session_manager: Optional[SessionManager] = None  # ✅ NEW
+hls_stream_scheduler: Optional[HLSGPUStreamScheduler] = None
 webrtc_session_manager: Optional["WebRTCSessionManager"] = None
 webrtc_ice_servers: list[dict] = []
 
@@ -302,7 +304,7 @@ def _start_cpu_logger(label: str, interval_seconds: float):
 @app.on_event("startup")
 async def startup_event():
     """Initialize the avatar manager on startup"""
-    global manager, session_manager, hls_session_manager, webrtc_session_manager, webrtc_ice_servers
+    global manager, session_manager, hls_session_manager, hls_stream_scheduler, webrtc_session_manager, webrtc_ice_servers
     
     print("🚀 Starting MuseTalk API Server...")
     
@@ -333,6 +335,15 @@ async def startup_event():
 
     hls_session_manager = HlsSessionManager(session_ttl_seconds=3600)
     hls_session_manager.start_cleanup()
+    hls_stream_scheduler = HLSGPUStreamScheduler(
+        manager=manager,
+        hls_session_manager=hls_session_manager,
+        max_combined_batch_size=_env_int("HLS_SCHEDULER_MAX_BATCH", 8),
+        prep_workers=_env_int("HLS_PREP_WORKERS", 2),
+        encode_workers=_env_int("HLS_ENCODE_WORKERS", 2),
+        max_pending_jobs=_env_int("HLS_MAX_PENDING_JOBS", 16),
+    )
+    hls_stream_scheduler.start()
 
     if WEBRTC_AVAILABLE:
         stun_urls = _parse_ice_urls(
@@ -374,7 +385,9 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global manager, webrtc_session_manager, hls_session_manager
+    global manager, webrtc_session_manager, hls_session_manager, hls_stream_scheduler
+    if hls_stream_scheduler:
+        hls_stream_scheduler.shutdown()
     if manager:
         manager.shutdown()
     if webrtc_session_manager:
@@ -723,11 +736,25 @@ async def generate_video_streaming(
     with audio_path.open("wb") as buffer:
         shutil.copyfileobj(audio_file.file, buffer)
     
+    if not manager.gpu_memory.try_acquire_compute_slot(request_id, "sse_stream"):
+        audio_path.unlink(missing_ok=True)
+        shutil.rmtree(chunk_dir, ignore_errors=True)
+        compute_stats = manager.gpu_memory.get_stats().get("compute", {})
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "message": "Live generation capacity reached. Retry later.",
+                "compute": compute_stats,
+            },
+        )
+
     # ✅ Get event loop BEFORE creating thread
     main_loop = asyncio.get_event_loop()
     
     # ✅ Create async queue for chunk communication
     chunk_queue = asyncio.Queue()
+    cancel_event = threading.Event()
+    scratch_dir = Path("chunks") / "_scratch" / request_id
     
     # ✅ Worker function that runs in ThreadPoolExecutor
     def streaming_worker():
@@ -751,7 +778,9 @@ async def generate_video_streaming(
                     device=manager.device,
                     fps=fps,
                     chunk_duration_seconds=chunk_duration,
-                    chunk_output_dir=str(chunk_dir)
+                    chunk_output_dir=str(chunk_dir),
+                    cancel_event=cancel_event,
+                    scratch_dir=str(scratch_dir),
                 ):
                     # ✅ Put chunk in async queue (thread-safe with correct loop)
                     asyncio.run_coroutine_threadsafe(
@@ -780,17 +809,29 @@ async def generate_video_streaming(
                 ).result(timeout=1.0)
             except Exception:
                 pass  # Queue might be closed
+        finally:
+            manager.gpu_memory.release_compute_slot(request_id)
+            with manager.request_lock:
+                manager.active_requests.pop(request_id, None)
     
     # ✅ Submit to ThreadPoolExecutor (enables parallelism!)
-    future = main_loop.run_in_executor(manager.executor, streaming_worker)
+    try:
+        future = main_loop.run_in_executor(manager.executor, streaming_worker)
+    except Exception:
+        manager.gpu_memory.release_compute_slot(request_id)
+        audio_path.unlink(missing_ok=True)
+        shutil.rmtree(chunk_dir, ignore_errors=True)
+        raise
     
     # ✅ Track this streaming request
-    manager.active_requests[request_id] = {
-        'avatar_id': avatar_id,
-        'status': 'streaming',
-        'future': future,
-        'type': 'stream'
-    }
+    with manager.request_lock:
+        manager.active_requests[request_id] = {
+            'avatar_id': avatar_id,
+            'status': 'streaming',
+            'future': future,
+            'type': 'stream',
+            'cancel_event': cancel_event,
+        }
     
     print(f"📥 [{request_id}] Queued for streaming (active requests: {len(manager.active_requests)})")
     
@@ -836,6 +877,7 @@ async def generate_video_streaming(
         except asyncio.CancelledError:
             print(f"⚠️ [{request_id}] Client disconnected")
             # Cancel the worker if client disconnects
+            cancel_event.set()
             future.cancel()
         
         except Exception as e:
@@ -847,11 +889,6 @@ async def generate_video_streaming(
         finally:
             # Schedule cleanup
             await schedule_cleanup(chunk_dir, delay_seconds=3600)
-            
-            # Update request status
-            if request_id in manager.active_requests:
-                manager.active_requests[request_id]['status'] = 'completed'
-            
             print(f"🏁 [{request_id}] Stream ended")
     
     # ✅ Return streaming response
@@ -1240,7 +1277,6 @@ async def session_stream(
     
     # Generate request ID
     request_id = f"{session.avatar_id}_req_{uuid.uuid4().hex[:8]}"
-    session.active_stream = request_id
     
     # Save audio
     upload_dir = Path("uploads/audio")
@@ -1253,9 +1289,24 @@ async def session_stream(
     # Create chunk directory
     chunk_dir = Path("chunks") / request_id
     chunk_dir.mkdir(parents=True, exist_ok=True)
+
+    if not manager.gpu_memory.try_acquire_compute_slot(request_id, "session_stream"):
+        audio_path.unlink(missing_ok=True)
+        shutil.rmtree(chunk_dir, ignore_errors=True)
+        compute_stats = manager.gpu_memory.get_stats().get("compute", {})
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "message": "Live generation capacity reached. Retry later.",
+                "compute": compute_stats,
+            },
+        )
     
     # Get event loop
     main_loop = asyncio.get_event_loop()
+    cancel_event = threading.Event()
+    scratch_dir = Path("chunks") / "_scratch" / request_id
+    session.active_stream = request_id
     
     # Worker function
     def streaming_worker():
@@ -1273,7 +1324,9 @@ async def session_stream(
                     device=manager.device,
                     fps=session.fps,
                     chunk_duration_seconds=session.chunk_duration,
-                    chunk_output_dir=str(chunk_dir)
+                    chunk_output_dir=str(chunk_dir),
+                    cancel_event=cancel_event,
+                    scratch_dir=str(scratch_dir),
                 ):
                     # Put chunk in session queue
                     asyncio.run_coroutine_threadsafe(
@@ -1305,18 +1358,30 @@ async def session_stream(
         finally:
             # Clear active stream
             session.active_stream = None
+            manager.gpu_memory.release_compute_slot(request_id)
+            with manager.request_lock:
+                manager.active_requests.pop(request_id, None)
     
     # Submit to executor
-    future = main_loop.run_in_executor(manager.executor, streaming_worker)
+    try:
+        future = main_loop.run_in_executor(manager.executor, streaming_worker)
+    except Exception:
+        session.active_stream = None
+        manager.gpu_memory.release_compute_slot(request_id)
+        audio_path.unlink(missing_ok=True)
+        shutil.rmtree(chunk_dir, ignore_errors=True)
+        raise
     
     # Track request
-    manager.active_requests[request_id] = {
-        'avatar_id': session.avatar_id,
-        'status': 'streaming',
-        'future': future,
-        'type': 'session_stream',
-        'session_id': session_id
-    }
+    with manager.request_lock:
+        manager.active_requests[request_id] = {
+            'avatar_id': session.avatar_id,
+            'status': 'streaming',
+            'future': future,
+            'type': 'session_stream',
+            'session_id': session_id,
+            'cancel_event': cancel_event,
+        }
     
     return {
         'request_id': request_id,
@@ -1378,6 +1443,10 @@ async def session_events(session_id: str):
         
         except asyncio.CancelledError:
             print(f"⚠️ [{session_id}] Client disconnected")
+            if session.active_stream:
+                req = manager.active_requests.get(session.active_stream)
+                if req is not None and req.get("cancel_event") is not None:
+                    req["cancel_event"].set()
         
         except Exception as e:
             import traceback
@@ -1773,6 +1842,7 @@ async def _cancel_managed_request(request_id: Optional[str], wait_timeout: float
         req["status"] = "cancelling"
         cancel_event = req.get("cancel_event")
         future = req.get("future")
+        cooperative_only = req.get("cooperative_only", False)
 
     if cancel_event is not None:
         cancel_event.set()
@@ -1781,7 +1851,7 @@ async def _cancel_managed_request(request_id: Optional[str], wait_timeout: float
         _pop_managed_request(request_id)
         return True
 
-    if future.cancel():
+    if not cooperative_only and future.cancel():
         _pop_managed_request(request_id)
         return True
 
@@ -1826,7 +1896,10 @@ async def delete_hls_session(session_id: str):
 @app.get("/hls/sessions/stats")
 async def hls_session_stats():
     _require_hls()
-    return hls_session_manager.get_stats()
+    stats = hls_session_manager.get_stats()
+    if hls_stream_scheduler is not None:
+        stats["scheduler"] = hls_stream_scheduler.get_stats()
+    return stats
 
 
 @app.get("/hls/player/{session_id}", response_class=HTMLResponse)
@@ -1847,7 +1920,7 @@ async def hls_stream(
     """
     Start live HLS streaming for a session by generating chunked TS segments.
     """
-    if manager is None:
+    if manager is None or hls_stream_scheduler is None:
         raise HTTPException(status_code=503, detail="Manager not initialized")
 
     _require_hls()
@@ -1862,8 +1935,6 @@ async def hls_stream(
         )
 
     request_id = f"{session.avatar_id}_hls_{uuid.uuid4().hex[:8]}"
-    session.active_stream = request_id
-    session.status = "streaming"
     live_segment_dir = session.segment_dir / request_id
     live_segment_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1874,7 +1945,9 @@ async def hls_stream(
     with audio_path.open("wb") as buffer:
         shutil.copyfileobj(audio_file.file, buffer)
 
+    session.active_stream = request_id
     hls_session_manager.start_live_playlist(session)
+    session.status = "preparing"
 
     # Use musetalk_fps if set, otherwise fall back to playback fps or 15.
     generation_fps = session.musetalk_fps or session.playback_fps or 15
@@ -1932,78 +2005,66 @@ async def hls_stream(
 
     main_loop = asyncio.get_event_loop()
     cancel_event = threading.Event()
-
-    def streaming_worker():
-        try:
-            print(f"🎬 [{request_id}] Starting HLS streaming for session {session_id}")
-            with manager.gpu_memory.allocate(session.batch_size):
-                avatar = manager._get_or_load_avatar(session.avatar_id, session.batch_size)
-                if session.idle_cycle_frames is None and hasattr(avatar, "input_latent_list_cycle"):
-                    session.idle_cycle_frames = len(avatar.input_latent_list_cycle)
-                for chunk_info in avatar.inference_streaming(
-                    audio_path=str(audio_path),
-                    audio_processor=manager.audio_processor,
-                    whisper=manager.whisper,
-                    timesteps=manager.timesteps,
-                    device=manager.device,
-                    fps=generation_fps,
-                    chunk_duration_seconds=session.segment_duration,
-                    chunk_output_dir=str(live_segment_dir),
-                    frame_callback=None,
-                    emit_chunks=True,
-                    chunk_ext=".ts",
-                    start_offset_seconds=offset_seconds,
-                    cancel_event=cancel_event,
-                ):
-                    segment_path = Path(chunk_info["chunk_path"])
-                    try:
-                        segment_name = segment_path.relative_to(session.segment_dir).as_posix()
-                    except ValueError:
-                        segment_name = segment_path.name
-                    duration = chunk_info.get("duration_seconds") or session.segment_duration
-                    hls_session_manager.append_live_segment(session, segment_name, duration)
-            print(f"✅ [{request_id}] HLS streaming complete")
-        except Exception as e:
-            import traceback
-            error_detail = traceback.format_exc()
-            print(f"❌ [{request_id}] HLS streaming error: {error_detail}")
-        finally:
-            hls_session_manager.finish_live_playlist(session)
-            session.active_stream = None
-            session.cancel_requested = False
-
-            req = _pop_managed_request(request_id)
-            delete_when_done = False
-            if req is not None:
-                delete_when_done = req.get("delete_session_when_done", False)
-            elif session.delete_requested:
-                delete_when_done = True
-
-            if delete_when_done:
-                session.delete_requested = False
-                asyncio.run_coroutine_threadsafe(
-                    hls_session_manager.delete_session(session_id),
-                    main_loop,
-                )
-
-    future = main_loop.run_in_executor(manager.executor, streaming_worker)
+    completion_future = main_loop.create_future()
     with manager.request_lock:
         manager.active_requests[request_id] = {
             'avatar_id': session.avatar_id,
-            'status': 'streaming',
-            'future': future,
+            'status': 'preparing',
+            'future': completion_future,
             'type': 'hls_stream',
             'session_id': session_id,
             'cancel_event': cancel_event,
             'delete_session_when_done': False,
+            'cooperative_only': True,
         }
+
+    def _on_hls_request_done(_future):
+        req = _pop_managed_request(request_id)
+        delete_when_done = False
+        if req is not None:
+            delete_when_done = req.get("delete_session_when_done", False)
+        elif session.delete_requested:
+            delete_when_done = True
+
+        if delete_when_done:
+            session.delete_requested = False
+            asyncio.create_task(hls_session_manager.delete_session(session_id))
+
+    completion_future.add_done_callback(_on_hls_request_done)
+
+    accepted = hls_stream_scheduler.submit_stream(
+        session=session,
+        request_id=request_id,
+        audio_path=str(audio_path),
+        generation_fps=generation_fps,
+        start_offset_seconds=offset_seconds,
+        cancel_event=cancel_event,
+        completion_future=completion_future,
+        main_loop=main_loop,
+    )
+    if not accepted:
+        with manager.request_lock:
+            manager.active_requests.pop(request_id, None)
+        session.active_stream = None
+        session.cancel_requested = False
+        session.status = "idle"
+        audio_path.unlink(missing_ok=True)
+        shutil.rmtree(live_segment_dir, ignore_errors=True)
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "message": "HLS scheduler queue is full. Retry later.",
+                "scheduler": hls_stream_scheduler.get_stats(),
+            },
+        )
+    session.status = "queued"
 
     return {
         "request_id": request_id,
         "session_id": session_id,
-        "status": "streaming",
+        "status": "queued",
         "manifest_url": f"/hls/sessions/{session_id}/live.m3u8",
-        "message": "HLS stream started.",
+        "message": "HLS stream queued.",
         "timing": timing_debug,
     }
 
@@ -2416,8 +2477,11 @@ async def get_stats():
     """Get system statistics"""
     if manager is None:
         raise HTTPException(status_code=503, detail="Manager not initialized")
-    
-    return manager.get_stats()
+
+    stats = manager.get_stats()
+    if hls_stream_scheduler is not None:
+        stats["hls_scheduler"] = hls_stream_scheduler.get_stats()
+    return stats
 
 @app.get("/stats/cache")
 async def get_cache_stats():
