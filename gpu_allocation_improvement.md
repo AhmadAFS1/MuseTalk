@@ -308,6 +308,69 @@ Conclusion:
 - `concurrency=3` is still throttled for realtime HLS
 - the next optimization target is three-way shared-load cadence, not basic correctness
 
+#### `concurrency=4`
+
+Observed metrics:
+
+1. `live_ready` averaged about 3.36 seconds.
+2. Average segment interval was about 3.26 seconds.
+3. Maximum segment interval was about 3.72 seconds.
+4. Total wall time was about 59.7 seconds.
+5. All four sessions completed without failures.
+
+Interpretation:
+
+- startup fairness remains acceptable, since all four sessions became live in about 2.6 to 4.2 seconds
+- steady-state cadence is now far beyond the 1-second target
+- this continues to look less like a startup problem and more like a fixed aggregate throughput ceiling being shared across more sessions
+
+Conclusion:
+
+- `concurrency=4` is functionally reliable, but not operationally healthy for realtime HLS
+- `concurrency=4` is useful as a scheduler-fairness and shared-batch stress case, not a production target under current settings
+
+#### `concurrency=5`
+
+Observed metrics:
+
+1. `live_ready` averaged about 4.12 seconds.
+2. Average segment interval was about 4.11 seconds.
+3. Maximum segment interval was about 4.71 seconds.
+4. Total wall time was about 76.6 seconds.
+5. All five sessions completed without failures.
+
+Interpretation:
+
+- the scheduler can still bring all five sessions live without failures
+- startup latency is still manageable, but steady-state delivery is now roughly 4x slower than the 1-second segment target
+- additional concurrency is mainly time-slicing the same saturated throughput budget instead of materially increasing total realtime capacity
+
+Conclusion:
+
+- `concurrency=5` is beyond the current practical live capacity of one GPU under these settings
+- the remaining challenge is now raw aggregate throughput, not lifecycle robustness
+
+#### `concurrency=6`
+
+Observed metrics:
+
+1. `live_ready` averaged about 4.85 seconds.
+2. Average segment interval was about 4.94 seconds.
+3. Maximum segment interval was about 5.39 seconds.
+4. Total wall time was about 90.8 seconds.
+5. All six sessions completed without failures.
+
+Interpretation:
+
+- the system remains stable enough to complete all sessions, which is a major lifecycle win compared with the older failure modes
+- however, the segment cadence shows the backend is now deeply throughput-limited
+- each additional concurrent stream adds little realtime capacity and mostly stretches completion time
+
+Conclusion:
+
+- `concurrency=6` confirms the scheduler is robust but the single-GPU throughput ceiling has been exceeded by a wide margin
+- meaningful gains beyond `concurrency=2` or `3` will require better aggregate GPU throughput, not just higher admission counts
+
 #### Updated performance conclusion
 
 The new HLS scheduler clearly improved:
@@ -321,8 +384,9 @@ But the latest measurements now show a more nuanced picture:
 1. single-stream cadence is healthy under the tested 1-second segment profile
 2. two-stream cadence is close to realtime, but still near the throttle threshold
 3. three-stream behavior is much better than before, but still too slow for a clean realtime claim
+4. four-, five-, and six-stream runs now complete reliably, but they are clearly operating in a heavily throttled regime
 
-So the system has moved from "broken under concurrency" to "healthy at one stream, close at two, and still throughput-limited at three."
+So the system has moved from "broken under concurrency" to "healthy at one stream, close at two, and throughput-limited from three streams onward."
 
 ### Final investigative conclusion
 

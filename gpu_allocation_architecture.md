@@ -763,6 +763,8 @@ Latest validated throughput runs used:
 - `--musetalk-fps 15`
 - `--batch-size 4`
 
+Server-side shared-batch sizing is controlled by the `HLS_SCHEDULER_MAX_BATCH` environment variable. This is read when the backend starts, so change it before launching the API server and restart the server after editing it.
+
 ### What the Load Test Measures
 
 For each concurrency level the test:
@@ -793,7 +795,7 @@ For each concurrency level the test:
 | `max_segment_interval_s` | ≤ `segment_duration` × 2.0 | > `segment_duration` × 2.0 |
 | `avg_time_to_live_ready_s` | < 5s | > 10s |
 
-### Latest Validated Results (March 12, 2026)
+### Latest Validated Results (March 13, 2026)
 
 Using:
 
@@ -809,8 +811,11 @@ Observed results:
 | `1` | `1/1` | `1.53s` | `0.81s` | `1.08s` | `15.0s` | Healthy |
 | `2` | `2/2` | `2.35s` | `1.62s` | `2.16s` | `29.2s` | Near realtime, slight throttle alert |
 | `3` | `3/3` | `2.89s` | `2.43s` | `2.74s` | `44.4s` | Throttled |
+| `4` | `4/4` | `3.36s` | `3.26s` | `3.72s` | `59.7s` | Heavily throttled |
+| `5` | `5/5` | `4.12s` | `4.11s` | `4.71s` | `76.6s` | Saturated |
+| `6` | `6/6` | `4.85s` | `4.94s` | `5.39s` | `90.8s` | Deeply saturated |
 
-These runs are materially better than the earlier scheduler-era baseline and show that the backend is now healthy for one stream, close for two streams, and still overloaded at three concurrent streams.
+These runs are materially better than the earlier scheduler-era baseline and show that the backend is now healthy for one stream, close for two streams, and overloaded from three concurrent streams onward. Higher concurrency is now mostly a stability test rather than a realtime-capacity test.
 
 ### Adding GPU Monitoring
 
