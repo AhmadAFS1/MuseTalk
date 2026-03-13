@@ -803,6 +803,8 @@ Using:
 - `playback_fps=30`
 - `musetalk_fps=15`
 - `batch_size=4`
+- `LIVE_MAX_CONCURRENT_GENERATIONS=6`
+- `HLS_SCHEDULER_MAX_BATCH=20`
 
 Observed results:
 
@@ -816,6 +818,33 @@ Observed results:
 | `6` | `6/6` | `4.85s` | `4.94s` | `5.39s` | `90.8s` | Deeply saturated |
 
 These runs are materially better than the earlier scheduler-era baseline and show that the backend is now healthy for one stream, close for two streams, and overloaded from three concurrent streams onward. Higher concurrency is now mostly a stability test rather than a realtime-capacity test.
+
+### High-Concurrency `batch_size=2` Follow-Up (March 13, 2026)
+
+These higher-concurrency runs used:
+
+- `segment_duration=1.0`
+- `playback_fps=30`
+- `musetalk_fps=15`
+- `batch_size=2`
+- `LIVE_MAX_CONCURRENT_GENERATIONS=9`
+- `HLS_SCHEDULER_MAX_BATCH=20`
+
+Observed results:
+
+| Concurrency | Batch Size | Avg `live_ready` | Avg segment interval | Max segment interval | Wall time | Interpretation |
+|-------------|------------|------------------|----------------------|----------------------|-----------|----------------|
+| `4` | `2` | `4.67s` | `3.21s` | `3.79s` | `59.2s` | Heavily throttled |
+| `6` | `2` | `5.50s` | `4.90s` | `5.72s` | `90.3s` | Deeply saturated |
+| `7` | `2` | `19.07s` | `5.74s` | `7.04s` | `120.0s` | Startup fairness collapse |
+| `8` | `2` | `6.63s` | `6.58s` | `7.70s` | `123.0s` | Deeply saturated |
+
+Key takeaways:
+
+- dropping per-stream `batch_size` from `4` to `2` did not materially change aggregate throughput at `concurrency=4` or `6`
+- this suggests the current shared HLS path is limited more by aggregate GPU/model throughput and scheduler fill strategy than by the per-stream batch size alone
+- smaller per-stream batches may improve flexibility and admission headroom, but they do not by themselves create more realtime capacity
+- at `concurrency=7`, startup fairness degrades sharply even though all sessions still complete, which points to scheduler behavior under overload as a separate issue from steady-state throughput
 
 ### Adding GPU Monitoring
 

@@ -371,6 +371,96 @@ Conclusion:
 - `concurrency=6` confirms the scheduler is robust but the single-GPU throughput ceiling has been exceeded by a wide margin
 - meaningful gains beyond `concurrency=2` or `3` will require better aggregate GPU throughput, not just higher admission counts
 
+#### High-concurrency follow-up with `batch_size=2`
+
+Follow-up run settings:
+
+1. `LIVE_MAX_CONCURRENT_GENERATIONS=9`
+2. `HLS_SCHEDULER_MAX_BATCH=20`
+3. `musetalk_fps=15`
+4. `segment_duration=1.0`
+
+#### `concurrency=4` with `batch_size=2`
+
+Observed metrics:
+
+1. `live_ready` averaged about 4.67 seconds.
+2. Average segment interval was about 3.21 seconds.
+3. Maximum segment interval was about 3.79 seconds.
+4. Total wall time was about 59.2 seconds.
+5. All four sessions completed without failures.
+
+Comparison against the earlier `batch_size=4` run at the same concurrency:
+
+1. `avg_segment_interval_s` stayed essentially flat (`3.21s` vs `3.26s`).
+2. `wall_time_s` stayed essentially flat (`59.2s` vs `59.7s`).
+3. `live_ready` was worse at `batch_size=2` (`4.67s` vs `3.36s`).
+
+Interpretation:
+
+- smaller per-stream batches do not improve aggregate throughput at `concurrency=4`
+- they may slightly hurt startup time under the current scheduler behavior
+- steady-state delivery remains governed by the same shared throughput ceiling
+
+#### `concurrency=6` with `batch_size=2`
+
+Observed metrics:
+
+1. `live_ready` averaged about 5.50 seconds.
+2. Average segment interval was about 4.90 seconds.
+3. Maximum segment interval was about 5.72 seconds.
+4. Total wall time was about 90.3 seconds.
+5. All six sessions completed without failures.
+
+Comparison against the earlier `batch_size=4` run at the same concurrency:
+
+1. `avg_segment_interval_s` stayed essentially flat (`4.90s` vs `4.94s`).
+2. `wall_time_s` stayed essentially flat (`90.3s` vs `90.8s`).
+3. `live_ready` was slightly worse at `batch_size=2`, but not dramatically so.
+
+Interpretation:
+
+- this strongly suggests per-stream `batch_size` is no longer the dominant limiter in the shared HLS path
+- aggregate throughput appears capped elsewhere, most likely in the shared GPU/model path rather than in the per-stream slice size
+- smaller per-stream batches may still be useful because they reduce per-job footprint and can improve flexibility, even if they do not increase realtime capacity by themselves
+
+#### `concurrency=7` with `batch_size=2`
+
+Observed metrics:
+
+1. `live_ready` averaged about 19.07 seconds.
+2. Average segment interval was about 5.74 seconds.
+3. Maximum segment interval was about 7.04 seconds.
+4. Total wall time was about 120.0 seconds.
+5. All seven sessions completed without failures.
+
+Interpretation:
+
+- this is the first run where startup latency degrades catastrophically rather than merely linearly
+- the scheduler still completes all sessions, but first-live fairness is now unstable under overload
+- by this point the system is operating far outside the realtime envelope
+
+#### `concurrency=8` with `batch_size=2`
+
+Observed metrics:
+
+1. `live_ready` averaged about 6.63 seconds.
+2. Average segment interval was about 6.58 seconds.
+3. Maximum segment interval was about 7.70 seconds.
+4. Total wall time was about 123.0 seconds.
+5. All eight sessions completed without failures.
+
+Interpretation:
+
+- startup latency is better than the `concurrency=7` outlier, but steady-state cadence is worse
+- this suggests heavily overloaded startup behavior is still sensitive to queue order and timing, even though aggregate throughput degradation remains monotonic
+- eight sessions are now clearly a stability-only stress case, not a realistic live serving target
+
+Important scheduler implication:
+
+- with `HLS_SCHEDULER_MAX_BATCH=20`, `batch_size=2`, and `concurrency=7` or `8`, one scheduler pass only contributes `14` to `16` frames if every job gets a single slice, still leaving some nominal headroom under the shared batch cap
+- if throughput remains almost flat while that headroom exists, the next optimization target is likely better shared-batch filling and model throughput, not simply pushing per-stream batch size higher
+
 #### Updated performance conclusion
 
 The new HLS scheduler clearly improved:
@@ -384,7 +474,9 @@ But the latest measurements now show a more nuanced picture:
 1. single-stream cadence is healthy under the tested 1-second segment profile
 2. two-stream cadence is close to realtime, but still near the throttle threshold
 3. three-stream behavior is much better than before, but still too slow for a clean realtime claim
-4. four-, five-, and six-stream runs now complete reliably, but they are clearly operating in a heavily throttled regime
+4. four-, five-, six-, seven-, and eight-stream runs now complete reliably, but they are clearly operating in a heavily throttled regime
+5. reducing per-stream `batch_size` from `4` to `2` at `concurrency=4` and `6` does not materially change aggregate throughput under the current shared scheduler settings
+6. at `concurrency=7` and above, startup fairness becomes unstable in addition to the steady-state throughput collapse
 
 So the system has moved from "broken under concurrency" to "healthy at one stream, close at two, and throughput-limited from three streams onward."
 
