@@ -85,6 +85,8 @@ class HLSGPUStreamScheduler:
         manager,
         hls_session_manager,
         max_combined_batch_size: int = 8,
+        startup_slice_size: int = 2,
+        aggressive_fill_max_active_jobs: int = 4,
         prep_workers: int = 2,
         compose_workers: int = 2,
         encode_workers: int = 2,
@@ -93,6 +95,8 @@ class HLSGPUStreamScheduler:
         self.manager = manager
         self.hls_session_manager = hls_session_manager
         self.max_combined_batch_size = max(1, int(max_combined_batch_size))
+        self.startup_slice_size = max(1, int(startup_slice_size))
+        self.aggressive_fill_max_active_jobs = max(0, int(aggressive_fill_max_active_jobs))
         self.max_pending_jobs = max(1, int(max_pending_jobs))
         self.prep_executor = ThreadPoolExecutor(max_workers=max(1, int(prep_workers)))
         self.compose_executor = ThreadPoolExecutor(max_workers=max(1, int(compose_workers)))
@@ -113,6 +117,8 @@ class HLSGPUStreamScheduler:
         print(
             "🎛️  HLS GPU scheduler started "
             f"(max_combined_batch_size={self.max_combined_batch_size}, "
+            f"startup_slice_size={self.startup_slice_size}, "
+            f"aggressive_fill_max_active_jobs={self.aggressive_fill_max_active_jobs}, "
             f"compose_workers={self.compose_executor._max_workers}, "
             f"encode_workers={self.encode_executor._max_workers})"
         )
@@ -166,6 +172,11 @@ class HLSGPUStreamScheduler:
                 "queued_or_active_jobs": len(self.jobs),
                 "preparing_jobs": len(self.preparing_requests),
                 "max_combined_batch_size": self.max_combined_batch_size,
+                "startup_slice_size": self.startup_slice_size,
+                "aggressive_fill_max_active_jobs": self.aggressive_fill_max_active_jobs,
+                "startup_pending_jobs": len(
+                    [job for job in self.jobs.values() if self._is_startup_job(job)]
+                ),
                 "compose_workers": self.compose_executor._max_workers,
                 "encode_workers": self.encode_executor._max_workers,
                 "jobs": [
@@ -179,6 +190,7 @@ class HLSGPUStreamScheduler:
                         "total_chunks": job.total_chunks,
                         "pending_composes": len(job.compose_tasks),
                         "pending_encodes": len(job.encode_tasks),
+                        "startup_pending": self._is_startup_job(job),
                         "cancel_requested": job.cancel_event.is_set(),
                         "last_progress_age_s": round(time.time() - job.last_progress_at, 3),
                         "prep_total_s": round(job.prep_total_s, 3),
@@ -354,6 +366,8 @@ class HLSGPUStreamScheduler:
         while True:
             self._drain_completed_composes()
             self._drain_completed_encodes()
+            self._finalize_ready_jobs()
+            self._finalize_cancelled_jobs()
 
             with self.condition:
                 if self.stop_event.is_set() and not self.jobs and not self.preparing_requests:
@@ -374,44 +388,129 @@ class HLSGPUStreamScheduler:
 
             self._drain_completed_composes()
             self._drain_completed_encodes()
+            self._finalize_ready_jobs()
+            self._finalize_cancelled_jobs()
 
     def _select_jobs_locked(self):
-        ready_jobs = []
+        jobs = self._ordered_schedulable_jobs_locked()
+        if not jobs:
+            return []
+
+        allocations: Dict[str, int] = {}
         total_batch = 0
+
+        startup_jobs = [job for job in jobs if self._is_startup_job(job)]
+        warmed_jobs = [job for job in jobs if not self._is_startup_job(job)]
+
+        if startup_jobs:
+            total_batch = self._allocate_round(
+                jobs=startup_jobs,
+                allocations=allocations,
+                total_batch=total_batch,
+                slice_cap=self.startup_slice_size,
+            )
+
+        if total_batch < self.max_combined_batch_size and warmed_jobs:
+            total_batch = self._allocate_round(
+                jobs=warmed_jobs,
+                allocations=allocations,
+                total_batch=total_batch,
+                slice_cap=None,
+            )
+
+        if (
+            total_batch < self.max_combined_batch_size
+            and not startup_jobs
+            and warmed_jobs
+            and len(warmed_jobs) <= self.aggressive_fill_max_active_jobs
+        ):
+            total_batch = self._fill_remaining_capacity(
+                jobs=warmed_jobs,
+                allocations=allocations,
+                total_batch=total_batch,
+            )
+
+        return [
+            (job, allocations[job.request_id])
+            for job in jobs
+            if allocations.get(job.request_id, 0) > 0
+        ]
+
+    def _ordered_schedulable_jobs_locked(self) -> list[HLSStreamJob]:
         jobs = list(self.jobs.values())
         if not jobs:
-            return ready_jobs
+            return []
 
+        ordered_jobs: list[HLSStreamJob] = []
         count = len(jobs)
         start_idx = self.selection_cursor % count
         self.selection_cursor = (start_idx + 1) % count
 
         for offset in range(count):
             job = jobs[(start_idx + offset) % count]
-            if job.finalized:
-                continue
-            if job.cancel_event.is_set() and not job.encode_tasks:
-                ready_jobs.append((job, 0))
+            if job.finalized or job.cancel_event.is_set():
                 continue
             if job.generation_done or job.current_frame_idx >= job.total_frames:
                 continue
 
-            remaining_frames = job.total_frames - job.current_frame_idx
+            remaining_frames = self._remaining_frames(job)
             if remaining_frames <= 0:
                 job.generation_done = True
                 continue
+            ordered_jobs.append(job)
 
+        return ordered_jobs
+
+    def _allocate_round(
+        self,
+        jobs: list[HLSStreamJob],
+        allocations: Dict[str, int],
+        total_batch: int,
+        slice_cap: Optional[int],
+    ) -> int:
+        for job in jobs:
             capacity_left = self.max_combined_batch_size - total_batch
             if capacity_left <= 0:
+                break
+            remaining_frames = self._remaining_frames(job, allocations)
+            if remaining_frames <= 0:
                 continue
-
-            take = min(job.batch_size, remaining_frames, capacity_left)
+            per_turn_cap = job.batch_size if slice_cap is None else min(job.batch_size, slice_cap)
+            take = min(per_turn_cap, remaining_frames, capacity_left)
             if take <= 0:
                 continue
-            ready_jobs.append((job, take))
+            allocations[job.request_id] = allocations.get(job.request_id, 0) + take
             total_batch += take
+        return total_batch
 
-        return ready_jobs
+    def _fill_remaining_capacity(
+        self,
+        jobs: list[HLSStreamJob],
+        allocations: Dict[str, int],
+        total_batch: int,
+    ) -> int:
+        if not jobs:
+            return total_batch
+
+        while total_batch < self.max_combined_batch_size:
+            made_progress = False
+            for job in jobs:
+                capacity_left = self.max_combined_batch_size - total_batch
+                if capacity_left <= 0:
+                    break
+                remaining_frames = self._remaining_frames(job, allocations)
+                if remaining_frames <= 0:
+                    continue
+                take = min(job.batch_size, remaining_frames, capacity_left)
+                if take <= 0:
+                    continue
+                allocations[job.request_id] = allocations.get(job.request_id, 0) + take
+                total_batch += take
+                made_progress = True
+            if not made_progress:
+                break
+
+        return total_batch
 
     def _run_generation_batch(self, selected) -> None:
         selected = [(job, take) for job, take in selected if take > 0 and not job.cancel_event.is_set()]
@@ -751,6 +850,17 @@ class HLSGPUStreamScheduler:
             req = self.manager.active_requests.get(request_id)
             if req is not None:
                 req["status"] = status
+
+    @staticmethod
+    def _is_startup_job(job: HLSStreamJob) -> bool:
+        return job.first_chunk_appended_at is None
+
+    @staticmethod
+    def _remaining_frames(job: HLSStreamJob, allocations: Optional[Dict[str, int]] = None) -> int:
+        already_allocated = 0
+        if allocations is not None:
+            already_allocated = allocations.get(job.request_id, 0)
+        return max(0, job.total_frames - job.current_frame_idx - already_allocated)
 
     @staticmethod
     def _safe_avg(total: float, count: int) -> float:

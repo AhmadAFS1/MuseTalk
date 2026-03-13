@@ -844,7 +844,41 @@ Key takeaways:
 - dropping per-stream `batch_size` from `4` to `2` did not materially change aggregate throughput at `concurrency=4` or `6`
 - this suggests the current shared HLS path is limited more by aggregate GPU/model throughput and scheduler fill strategy than by the per-stream batch size alone
 - smaller per-stream batches may improve flexibility and admission headroom, but they do not by themselves create more realtime capacity
-- at `concurrency=7`, startup fairness degrades sharply even though all sessions still complete, which points to scheduler behavior under overload as a separate issue from steady-state throughput
+- at `concurrency=7`, startup fairness degraded sharply in the original run even though all sessions still completed, which pointed to scheduler behavior under overload as a separate issue from steady-state throughput
+
+### Scheduler Tuning Follow-Up (March 13, 2026)
+
+A later `concurrency=7` rerun kept:
+
+- `segment_duration=1.0`
+- `playback_fps=30`
+- `musetalk_fps=15`
+- `batch_size=2`
+- `LIVE_MAX_CONCURRENT_GENERATIONS=9`
+- `HLS_SCHEDULER_MAX_BATCH=20`
+
+and added the startup-first / limited-steady-state-fill scheduler tuning.
+
+Observed result:
+
+| Concurrency | Batch Size | Avg `live_ready` | Avg segment interval | Max segment interval | Wall time | Interpretation |
+|-------------|------------|------------------|----------------------|----------------------|-----------|----------------|
+| `7` | `2` | `6.04s` | `5.80s` | `6.91s` | `106.7s` | Better startup, similar steady-state throughput |
+
+Why it sped up:
+
+- startup jobs were given an explicit fairness slice before warmed jobs could consume the rest of the GPU turn
+- warmed jobs were prevented from over-consuming multiple slices per turn once the active set was large
+
+What improved:
+
+- `avg_time_to_live_ready_s` improved sharply versus the earlier `19.07s` result
+- `wall_time_s` improved from `120.0s` to `106.7s`
+- `max_segment_interval_s` improved slightly
+
+What did not improve much:
+
+- `avg_segment_interval_s` stayed roughly flat, which indicates that steady-state throughput is still mostly constrained by aggregate GPU/model throughput rather than scheduler policy alone
 
 ### Adding GPU Monitoring
 

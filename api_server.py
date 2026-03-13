@@ -339,6 +339,8 @@ async def startup_event():
         manager=manager,
         hls_session_manager=hls_session_manager,
         max_combined_batch_size=_env_int("HLS_SCHEDULER_MAX_BATCH", 8),
+        startup_slice_size=_env_int("HLS_SCHEDULER_STARTUP_SLICE_SIZE", 2),
+        aggressive_fill_max_active_jobs=_env_int("HLS_SCHEDULER_AGGRESSIVE_FILL_MAX_ACTIVE_JOBS", 4),
         prep_workers=_env_int("HLS_PREP_WORKERS", 2),
         compose_workers=_env_int("HLS_COMPOSE_WORKERS", 2),
         encode_workers=_env_int("HLS_ENCODE_WORKERS", 2),

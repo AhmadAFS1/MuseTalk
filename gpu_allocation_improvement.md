@@ -440,6 +440,37 @@ Interpretation:
 - the scheduler still completes all sessions, but first-live fairness is now unstable under overload
 - by this point the system is operating far outside the realtime envelope
 
+#### `concurrency=7` with `batch_size=2` after scheduler tuning
+
+Follow-up run settings:
+
+1. `LIVE_MAX_CONCURRENT_GENERATIONS=9`
+2. `HLS_SCHEDULER_MAX_BATCH=20`
+3. startup-fairness scheduling enabled
+4. limited aggressive fill for warmed streams enabled
+
+Observed metrics:
+
+1. `live_ready` averaged about 6.04 seconds.
+2. Average segment interval was about 5.80 seconds.
+3. Maximum segment interval was about 6.91 seconds.
+4. Total wall time was about 106.7 seconds.
+5. All seven sessions completed without failures.
+
+Comparison against the earlier `concurrency=7` `batch_size=2` run:
+
+1. `avg_time_to_live_ready_s` improved dramatically (`19.07s` -> `6.04s`).
+2. `wall_time_s` improved materially (`120.0s` -> `106.7s`).
+3. `max_segment_interval_s` improved slightly (`7.04s` -> `6.91s`).
+4. `avg_segment_interval_s` became slightly worse (`5.74s` -> `5.80s`), so steady-state throughput did not materially improve.
+
+Interpretation:
+
+- the scheduler tuning clearly improved startup fairness and reduced total completion time
+- the startup speedup came from giving not-yet-live jobs a small fairness slice before warmed streams can consume the rest of a scheduler turn
+- the newer warmed-stream cap also reduced the worst burstiness somewhat, which helped `max_segment_interval_s`
+- however, the steady-state cadence remained almost unchanged, which confirms that scheduler policy is no longer the main determinant of aggregate throughput at this load
+
 #### `concurrency=8` with `batch_size=2`
 
 Observed metrics:
@@ -476,7 +507,8 @@ But the latest measurements now show a more nuanced picture:
 3. three-stream behavior is much better than before, but still too slow for a clean realtime claim
 4. four-, five-, six-, seven-, and eight-stream runs now complete reliably, but they are clearly operating in a heavily throttled regime
 5. reducing per-stream `batch_size` from `4` to `2` at `concurrency=4` and `6` does not materially change aggregate throughput under the current shared scheduler settings
-6. at `concurrency=7` and above, startup fairness becomes unstable in addition to the steady-state throughput collapse
+6. at `concurrency=7` and above, startup fairness can become unstable without scheduler tuning, but the newer startup-first scheduler materially improves first-live latency and total wall time
+7. even after that tuning, steady-state segment cadence remains the dominant bottleneck at high concurrency
 
 So the system has moved from "broken under concurrency" to "healthy at one stream, close at two, and throughput-limited from three streams onward."
 
