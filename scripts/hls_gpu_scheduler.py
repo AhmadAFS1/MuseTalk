@@ -99,8 +99,31 @@ class HLSGPUStreamScheduler:
         self.aggressive_fill_max_active_jobs = max(0, int(aggressive_fill_max_active_jobs))
         self.max_pending_jobs = max(1, int(max_pending_jobs))
         self.prep_executor = ThreadPoolExecutor(max_workers=max(1, int(prep_workers)))
-        self.compose_executor = ThreadPoolExecutor(max_workers=max(1, int(compose_workers)))
-        self.encode_executor = ThreadPoolExecutor(max_workers=max(1, int(encode_workers)))
+
+        # Scale compose workers: cv2/numpy release the GIL for heavy ops.
+        # At 8 streams producing 32 frames/tick, 2 workers creates a queue.
+        cpu_count = os.cpu_count() or 8
+        effective_compose = max(
+            6,
+            int(compose_workers),
+            min(10, cpu_count // 2),
+        )
+        self.compose_executor = ThreadPoolExecutor(
+            max_workers=effective_compose,
+            thread_name_prefix="hls-compose",
+        )
+
+        # Encode: each stream has its own persistent ffmpeg pipe,
+        # but the submit_frames calls still need thread workers.
+        effective_encode = max(
+            6,
+            int(encode_workers),
+            min(10, cpu_count // 2),
+        )
+        self.encode_executor = ThreadPoolExecutor(
+            max_workers=effective_encode,
+            thread_name_prefix="hls-encode",
+        )
         self.lock = threading.Lock()
         self.condition = threading.Condition(self.lock)
         self.stop_event = threading.Event()
@@ -402,6 +425,7 @@ class HLSGPUStreamScheduler:
         startup_jobs = [job for job in jobs if self._is_startup_job(job)]
         warmed_jobs = [job for job in jobs if not self._is_startup_job(job)]
 
+        # --- Round 1: startup jobs get a small initial slice ---
         if startup_jobs:
             total_batch = self._allocate_round(
                 jobs=startup_jobs,
@@ -410,6 +434,7 @@ class HLSGPUStreamScheduler:
                 slice_cap=self.startup_slice_size,
             )
 
+        # --- Round 2: warmed jobs get their per-job batch_size ---
         if total_batch < self.max_combined_batch_size and warmed_jobs:
             total_batch = self._allocate_round(
                 jobs=warmed_jobs,
@@ -418,17 +443,20 @@ class HLSGPUStreamScheduler:
                 slice_cap=None,
             )
 
-        if (
-            total_batch < self.max_combined_batch_size
-            and not startup_jobs
-            and warmed_jobs
-            and len(warmed_jobs) <= self.aggressive_fill_max_active_jobs
-        ):
-            total_batch = self._fill_remaining_capacity(
-                jobs=warmed_jobs,
-                allocations=allocations,
-                total_batch=total_batch,
-            )
+        # --- Round 3: ALWAYS fill remaining GPU capacity ---
+        # OLD: skipped when len(warmed_jobs) > aggressive_fill_max_active_jobs
+        # At 8 streams with batch_size=2 and max_batch=8, Round 2 could only
+        # fit 4 jobs (8/2=4). The other 4 jobs got NOTHING. And even those 4
+        # jobs couldn't get extra frames because this guard blocked Round 3.
+        # Now we always fill, regardless of how many jobs are active.
+        if total_batch < self.max_combined_batch_size:
+            all_schedulable = startup_jobs + warmed_jobs
+            if all_schedulable:
+                total_batch = self._fill_remaining_capacity(
+                    jobs=all_schedulable,
+                    allocations=allocations,
+                    total_batch=total_batch,
+                )
 
         return [
             (job, allocations[job.request_id])
@@ -882,10 +910,15 @@ class HLSGPUStreamScheduler:
 
     @staticmethod
     def _memory_bucket(batch_size: int) -> int:
-        if batch_size <= 1:
-            return 1
-        if batch_size <= 2:
-            return 2
-        if batch_size <= 4:
-            return 4
-        return 8
+        """
+        Returns a lease size for gpu_memory.allocate().
+        
+        IMPORTANT: This is NOT the GPU batch size. The actual forward pass
+        processes `total_batch` frames regardless of this value.
+        
+        This is a slot count against the memory manager's semaphore pool.
+        The HLS scheduler is the SOLE user of the GPU loop — it runs one
+        batch at a time sequentially. So it only ever needs 1 slot.
+        Requesting more than the pool has causes a permanent deadlock.
+        """
+        return 1
