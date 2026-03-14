@@ -880,6 +880,35 @@ What did not improve much:
 
 - `avg_segment_interval_s` stayed roughly flat, which indicates that steady-state throughput is still mostly constrained by aggregate GPU/model throughput rather than scheduler policy alone
 
+### Lower-FPS Profile Follow-Up (March 14, 2026)
+
+These runs kept the shared HLS scheduler setup but lowered the requested stream FPS:
+
+- `segment_duration=1.0`
+- `playback_fps=24`
+- `musetalk_fps=12`
+- `batch_size=2`
+- `LIVE_MAX_CONCURRENT_GENERATIONS=9`
+- `HLS_SCHEDULER_MAX_BATCH=20`
+
+Observed results:
+
+| Concurrency | Batch Size | Avg `live_ready` | Avg segment interval | Max segment interval | Wall time | Interpretation |
+|-------------|------------|------------------|----------------------|----------------------|-----------|----------------|
+| `1` | `2` | `1.51s` | `0.63s` | `1.02s` | `11.4s` | Healthy |
+| `4` | `2` | `3.38s` | `2.56s` | `3.17s` | `46.8s` | Throttled, but better than 15 fps profile |
+| `5` | `2` | `3.65s` | `3.26s` | `4.27s` | `60.9s` | Heavily throttled |
+| `6` | `2` | `4.25s` | `3.97s` | `5.32s` | `73.8s` | Deeply saturated, but improved |
+| `7` | `2` | `4.88s` | `4.57s` | `6.08s` | `85.0s` | Better startup and cadence than 15 fps profile |
+| `8` | `2` | `5.31s` | `5.24s` | `7.13s` | `98.7s` | Still saturated, but materially faster than 15 fps profile |
+
+Key takeaways:
+
+- lowering `musetalk_fps` from `15` to `12` reduces per-stream frame demand by about 20%, and the measured wall time and segment cadence improve by roughly that amount as well
+- the backend still appears to operate near the same aggregate generation ceiling, so the lower-FPS profile helps mainly by asking the model to generate fewer frames per second
+- this is a useful product lever: lower requested generation FPS can materially improve concurrency without any code changes
+- however, even this lower-FPS profile remains throttled from `concurrency=4+`, so it shifts the bottleneck rather than removing it
+
 ### Adding GPU Monitoring
 
 To correlate throttling with GPU metrics, add `nvidia-smi` polling to the load test. See the `poll_gpu_stats` helper below for sampling `utilization.gpu` and `memory.used` during each stage, and include `gpu_peak_util_pct`, `gpu_avg_util_pct`, and `gpu_peak_mem_mb` in the `StageReport`.

@@ -487,6 +487,40 @@ Interpretation:
 - this suggests heavily overloaded startup behavior is still sensitive to queue order and timing, even though aggregate throughput degradation remains monotonic
 - eight sessions are now clearly a stability-only stress case, not a realistic live serving target
 
+#### Lower-FPS follow-up: `playback_fps=24`, `musetalk_fps=12`, `batch_size=2`
+
+Follow-up run settings:
+
+1. `segment_duration=1.0`
+2. `playback_fps=24`
+3. `musetalk_fps=12`
+4. `batch_size=2`
+5. `LIVE_MAX_CONCURRENT_GENERATIONS=9`
+6. `HLS_SCHEDULER_MAX_BATCH=20`
+
+Observed metrics:
+
+1. `concurrency=1`: `live_ready=1.51s`, `avg_segment_interval=0.63s`, `max_segment_interval=1.02s`, `wall_time=11.4s`
+2. `concurrency=4`: `live_ready=3.38s`, `avg_segment_interval=2.56s`, `max_segment_interval=3.17s`, `wall_time=46.8s`
+3. `concurrency=5`: `live_ready=3.65s`, `avg_segment_interval=3.26s`, `max_segment_interval=4.27s`, `wall_time=60.9s`
+4. `concurrency=6`: `live_ready=4.25s`, `avg_segment_interval=3.97s`, `max_segment_interval=5.32s`, `wall_time=73.8s`
+5. `concurrency=7`: `live_ready=4.88s`, `avg_segment_interval=4.57s`, `max_segment_interval=6.08s`, `wall_time=85.0s`
+6. `concurrency=8`: `live_ready=5.31s`, `avg_segment_interval=5.24s`, `max_segment_interval=7.13s`, `wall_time=98.7s`
+
+Comparison against the earlier `playback_fps=30`, `musetalk_fps=15`, `batch_size=2` profile:
+
+1. `concurrency=4` improved from `3.21s` to `2.56s` average segment interval and from `59.2s` to `46.8s` wall time.
+2. `concurrency=6` improved from `4.90s` to `3.97s` average segment interval and from `90.3s` to `73.8s` wall time.
+3. `concurrency=7` improved from `5.80s` to `4.57s` average segment interval and from `106.7s` to `85.0s` wall time.
+4. `concurrency=8` improved from `6.58s` to `5.24s` average segment interval and from `123.0s` to `98.7s` wall time.
+
+Interpretation:
+
+- lowering generation load from `15 fps` to `12 fps` materially improves startup latency, cadence, and total wall time across all tested concurrencies
+- the gain is roughly proportional to the reduced per-stream frame demand, which is consistent with the backend still operating near the same aggregate generation ceiling
+- this profile feels faster because each stream asks the model for fewer frames per second, not because the underlying shared GPU path suddenly became much faster
+- even with the lower-FPS profile, `concurrency=4+` remains throttled for 1-second HLS segments, so the change improves headroom but does not remove the core throughput bottleneck
+
 Important scheduler implication:
 
 - with `HLS_SCHEDULER_MAX_BATCH=20`, `batch_size=2`, and `concurrency=7` or `8`, one scheduler pass only contributes `14` to `16` frames if every job gets a single slice, still leaving some nominal headroom under the shared batch cap
@@ -509,6 +543,7 @@ But the latest measurements now show a more nuanced picture:
 5. reducing per-stream `batch_size` from `4` to `2` at `concurrency=4` and `6` does not materially change aggregate throughput under the current shared scheduler settings
 6. at `concurrency=7` and above, startup fairness can become unstable without scheduler tuning, but the newer startup-first scheduler materially improves first-live latency and total wall time
 7. even after that tuning, steady-state segment cadence remains the dominant bottleneck at high concurrency
+8. lowering `musetalk_fps` from `15` to `12` with `playback_fps=24` materially improves high-concurrency behavior, but mainly by reducing per-stream work rather than by changing the backend's aggregate throughput ceiling
 
 So the system has moved from "broken under concurrency" to "healthy at one stream, close at two, and throughput-limited from three streams onward."
 
