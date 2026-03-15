@@ -517,6 +517,29 @@ Eight streams:  1704 frames / 99.7s = 17.1 fps
 Ratio: 0.91x — aggregate throughput is nearly identical
 ```
 
+Latest follow-up result at the current best `24/12`, `concurrency=8`, `batch_size=2` profile:
+
+```json
+{
+  "avg_time_to_live_ready_s": 8.035,
+  "avg_segment_interval_s": 5.126,
+  "max_segment_interval_s": 5.362,
+  "wall_time_s": 93.9,
+  "gpu": {
+    "avg_util_pct": 36.9,
+    "peak_util_pct": 100.0,
+    "peak_memory_used_mb": 12237.0
+  }
+}
+```
+
+This is a real improvement in wall time and jitter, but it still implies the same basic aggregate ceiling:
+
+- `96 / 5.126 = 18.7 fps` effective throughput
+- `1704 / 93.9 = 18.1 fps` wall-time throughput
+
+So the newer work improved overhead and stability, but it did not fundamentally move the hardware throughput limit.
+
 This means:
 - At `musetalk_fps=12`: 1 stream needs 12 fps (GPU can sustain), 8 streams need 96 fps (5.3x deficit)
 - At `musetalk_fps=6`:  1 stream needs 6 fps (easy), 8 streams need 48 fps (2.7x deficit)
@@ -556,8 +579,157 @@ Note: The HLS scheduler now batches frames from multiple streams into a single G
 | 5 | **NVENC concurrent session limit** | ffmpeg encode | 🟡 High | Fallback works, persistent encoder planned |
 | 6 | **Python GIL contention between CUDA calls** | `avatar_manager_parallel.py` | 🟠 Medium | Mitigated by single scheduler thread |
 | 7 | **No compute-aware admission control** | `concurrent_gpu_manager.py` | 🟠 Medium | Planned |
-| 8 | **torch.compile broken** | `avatar_manager_parallel.py` | 🟡 High | Blocked by .dtype/.parameters() issues |
+| 8 | **`torch.compile` is environment-sensitive** | `avatar_manager_parallel.py` | 🟡 High | Safer fallback implemented; throughput gain still unproven |
 
 ### Cause 1: Hardware Throughput Ceiling
 
-The RTX 3090 produces ~18-20 fps of MuseTalk output regardless of batch size or scheduler configuration. Larger batches improve per-tick efficiency (bs=32 is only 1.75x slower than bs=8 but processes
+The RTX 3090 produces ~18-20 fps of MuseTalk output regardless of batch size or scheduler configuration. Larger batches improve per-tick efficiency, but they do not change the basic ceiling enough to make high-concurrency HLS realtime.
+
+The latest `batch_size=2` vs `batch_size=4` comparison at `concurrency=8` reinforces the same conclusion:
+
+```json
+{
+  "batch_size_2": {
+    "avg_segment_interval_s": 5.126,
+    "max_segment_interval_s": 5.362,
+    "wall_time_s": 93.9
+  },
+  "batch_size_4": {
+    "avg_segment_interval_s": 5.108,
+    "max_segment_interval_s": 5.424,
+    "wall_time_s": 94.0
+  }
+}
+```
+
+That result is effectively flat. Under the current scheduler, larger per-stream batches no longer unlock a new throughput regime.
+
+### Cause 2: `_memory_bucket` Deadlock
+
+This was a real scheduler bug, and it is fixed.
+
+Originally:
+
+- `_memory_bucket(batch_size)` could return large lease sizes
+- the GPU memory manager only had a small fixed logical pool
+- a scheduler batch requesting a lease larger than the pool would block forever before generation started
+
+That is why some earlier runs produced zero segments with no obvious application-level exception.
+
+Current state:
+
+- `_memory_bucket()` returns `1`
+- the HLS scheduler only takes one minimal lease per generation turn
+- this removed the deadlock and made larger combined scheduler batches viable again
+
+### Cause 3: Fill Guard / Utilization Loss
+
+The older scheduler had a high-concurrency guard that stopped filling the remaining batch budget once too many jobs were active. In practice this left GPU capacity unused exactly when concurrency was highest.
+
+Current state:
+
+- the scheduler now keeps filling remaining capacity
+- this improved wall time and reduced worst-case jitter
+- however, it still did not move the system outside the same `18-20 fps` aggregate ceiling
+
+### Cause 4: `batch_size` Is No Longer a Primary Lever
+
+At lower concurrency, per-stream `batch_size` mattered more. At current high-concurrency HLS loads, the scheduler is already aggregating enough work that raising individual stream `batch_size` has little effect.
+
+Practical conclusion:
+
+- keep `batch_size=2` as the default
+- do not expect `batch_size=4` to materially improve `concurrency=8`
+- treat larger `batch_size` mainly as a fairness and latency tradeoff, not as a throughput unlock
+
+### Cause 5: NVENC Concurrent Session Limit
+
+The current live HLS encode path still creates many short-lived ffmpeg jobs using `h264_nvenc`. Under enough overlap, ffmpeg can exit before Python finishes writing raw frames, which appears in logs as:
+
+- `[Errno 32] Broken pipe`
+
+What is happening:
+
+- Python writes frames to ffmpeg stdin
+- ffmpeg exits early when the NVENC encoder cannot be acquired or initialized cleanly
+- the code retries with `libx264`
+- the fallback succeeds, but it is slower and increases tail latency
+
+This does not explain the 18-20 fps model ceiling by itself, but it does explain chunk-encode noise and some of the wall-time and jitter penalties at higher concurrency.
+
+### Cause 6: Python / Pipeline Burstiness
+
+Average GPU utilization can look moderate even when the pipeline is clearly overloaded.
+
+Example older run at `concurrency=5`:
+
+```json
+{
+  "avg_time_to_live_ready_s": 6.097,
+  "avg_segment_interval_s": 3.222,
+  "wall_time_s": 60.3,
+  "gpu": {
+    "avg_util_pct": 40.83,
+    "peak_util_pct": 100.0,
+    "peak_memory_used_mb": 12520.0
+  }
+}
+```
+
+Interpretation:
+
+- the pipeline is bursty: prep, GPU batch, compose, encode, wait, repeat
+- `peak_util_pct=100` shows the GPU still saturates at important moments
+- average utilization is diluted by non-GPU stages and idle gaps
+- VRAM still is not the first limit being hit
+
+### Cause 7: No Compute-Aware Admission Control
+
+The current HLS stack can accept enough simultaneous work to push every stream into a throttled regime. Memory-based admission is not the same thing as throughput-based admission.
+
+What is still missing:
+
+- a measured per-node generation budget
+- admission based on active `musetalk_fps` demand
+- a clear policy for queueing or rejecting new starts when the steady-state budget would be exceeded
+
+This matters even more under real user traffic, because staggered arrivals reduce burst pain but do not change the steady-state GPU ceiling once multiple streams are active.
+
+### Cause 8: `torch.compile` Is Still Environment-Sensitive
+
+`torch.compile` remains the most promising software-only way to raise the current throughput ceiling, but it is not yet a guaranteed win on every runtime stack.
+
+What was fixed:
+
+- dtype values are now captured before compilation
+- duplicate compile calls were removed
+- failed compile warmup restores the eager models instead of leaving broken compiled modules installed
+- compiled HLS execution uses `torch.no_grad()`
+
+What is still true:
+
+- some environments still fail during compile warmup with errors such as `Inference tensors do not track version counter`
+- compile success remains sensitive to the exact PyTorch + CUDA + diffusers combination
+- throughput gains still need to be measured on the target machine
+
+So `torch.compile` is no longer a correctness blocker, but it is still an unstable optimization until validated end-to-end.
+
+### Startup Latency Is Its Own Bottleneck
+
+Recent runs also made it clear that startup delay and steady-state cadence are separate problems.
+
+When stream count rises, time-to-first-video rises because each stream must pass through:
+
+1. session creation / idle-HLS preparation
+2. audio prep and feature extraction
+3. scheduler queue wait
+4. compose and first-chunk encode
+5. browser startup after the first live chunk exists
+
+That is why a system can show moderate average GPU usage and still have poor `avg_time_to_live_ready_s`.
+
+This also explains why staggered-arrival tests are important:
+
+- they are more realistic than synchronized bursts
+- they often look better at startup
+- but they do not change the steady-state aggregate GPU ceiling once the active streams overlap

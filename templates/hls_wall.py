@@ -109,6 +109,61 @@ def get_hls_wall_html() -> str:
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 14px;
         }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        .metric-card {
+            background: rgba(15,23,42,0.72);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px;
+            display: grid;
+            gap: 4px;
+        }
+        .metric-label {
+            color: var(--muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .metric-sub {
+            color: var(--muted);
+            font-size: 12px;
+        }
+        .section-title {
+            margin: 0 0 12px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .metrics-layout {
+            display: grid;
+            gap: 14px;
+        }
+        .job-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .job-table th,
+        .job-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            vertical-align: top;
+        }
+        .job-table th {
+            color: var(--muted);
+            font-weight: 600;
+        }
+        .muted {
+            color: var(--muted);
+        }
         .card {
             background: rgba(15,23,42,0.7);
             border: 1px solid var(--border);
@@ -183,11 +238,24 @@ def get_hls_wall_html() -> str:
             </div>
         </div>
         <div class="panel">
+            <div class="metrics-layout">
+                <div>
+                    <div class="section-title">Live Metrics</div>
+                    <div id="metricsGrid" class="metrics-grid"></div>
+                </div>
+                <div>
+                    <div class="section-title">Scheduler Jobs</div>
+                    <div id="jobTableWrap" class="code">No live scheduler jobs yet.</div>
+                </div>
+            </div>
+        </div>
+        <div class="panel">
             <div id="sessionGrid" class="empty">Create a group to populate the wall.</div>
         </div>
     </div>
     <script>
         let currentGroup = null;
+        let autoRefreshTimer = null;
         const byId = (id) => document.getElementById(id);
         const initialGroupMatch = window.location.pathname.match(/^\\/hls\\/groups\\/([^/]+)\\/wall$/);
         const initialGroupId = initialGroupMatch ? initialGroupMatch[1] : null;
@@ -214,23 +282,234 @@ Status API: GET ${location.origin}/hls/groups/${currentGroup.group_id}
 Delete API: DELETE ${location.origin}/hls/groups/${currentGroup.group_id}`;
         }
 
+        function getSessionStatusClass(status) {
+            const value = String(status || "created").toLowerCase();
+            if (value === "failed" || value === "error") return "status err";
+            if (value === "streaming" || value === "completed" || value === "live") return "status ok";
+            if (value === "starting" || value === "queued" || value === "preparing") return "status warn";
+            return "status";
+        }
+
+        function buildSessionCard(session) {
+            const card = document.createElement("div");
+            card.className = "card";
+            card.dataset.sessionId = session.session_id;
+
+            const header = document.createElement("div");
+            header.className = "card-header";
+
+            const idSpan = document.createElement("span");
+            idSpan.textContent = session.session_id;
+
+            const statusSpan = document.createElement("span");
+            statusSpan.className = getSessionStatusClass(session.status);
+            statusSpan.dataset.role = "session-status";
+            statusSpan.textContent = session.status || "created";
+
+            header.appendChild(idSpan);
+            header.appendChild(statusSpan);
+
+            const frame = document.createElement("iframe");
+            frame.src = session.player_url;
+            frame.allow = "autoplay";
+            frame.loading = "eager";
+
+            card.appendChild(header);
+            card.appendChild(frame);
+            return card;
+        }
+
         function renderSessions() {
             const container = byId("sessionGrid");
-            if (!currentGroup || !currentGroup.sessions || currentGroup.sessions.length === 0) {
+            const sessions = currentGroup && currentGroup.sessions ? currentGroup.sessions : [];
+            if (sessions.length === 0) {
                 container.className = "empty";
-                container.innerHTML = "Create a group to populate the wall.";
+                container.textContent = "Create a group to populate the wall.";
                 return;
             }
+
             container.className = "grid";
-            container.innerHTML = currentGroup.sessions.map((session) => `
-                <div class="card">
-                    <div class="card-header">
-                        <span>${session.session_id}</span>
-                        <span class="status">${session.status || "created"}</span>
-                    </div>
-                    <iframe src="${session.player_url}" allow="autoplay"></iframe>
+            const existingCards = new Map(
+                Array.from(container.querySelectorAll(".card[data-session-id]")).map((card) => [card.dataset.sessionId, card])
+            );
+
+            const nextCards = [];
+            for (const session of sessions) {
+                let card = existingCards.get(session.session_id);
+                if (!card) {
+                    card = buildSessionCard(session);
+                } else {
+                    const statusEl = card.querySelector('[data-role="session-status"]');
+                    if (statusEl) {
+                        statusEl.className = getSessionStatusClass(session.status);
+                        statusEl.textContent = session.status || "created";
+                    }
+                    const frame = card.querySelector("iframe");
+                    if (frame && frame.getAttribute("src") !== session.player_url) {
+                        frame.setAttribute("src", session.player_url);
+                    }
+                    existingCards.delete(session.session_id);
+                }
+                nextCards.push(card);
+            }
+
+            for (const staleCard of existingCards.values()) {
+                staleCard.remove();
+            }
+
+            let needsReplace = container.children.length !== nextCards.length;
+            if (!needsReplace) {
+                for (let i = 0; i < nextCards.length; i += 1) {
+                    if (container.children[i] !== nextCards[i]) {
+                        needsReplace = true;
+                        break;
+                    }
+                }
+            }
+
+            if (needsReplace) {
+                container.replaceChildren(...nextCards);
+            }
+        }
+
+        function formatNum(value, digits = 1, suffix = "") {
+            if (value === null || value === undefined || Number.isNaN(Number(value))) {
+                return "n/a";
+            }
+            return `${Number(value).toFixed(digits)}${suffix}`;
+        }
+
+        function renderMetricCards(metrics) {
+            const el = byId("metricsGrid");
+            const cards = [
+                {
+                    label: "GPU Util",
+                    value: formatNum(metrics.gpuUtil, 1, "%"),
+                    sub: `Peak unknown on wall; current live sample`,
+                },
+                {
+                    label: "VRAM Used",
+                    value: metrics.gpuMemGb,
+                    sub: `${metrics.gpuMemMb} / ${metrics.gpuTotalGb}`,
+                },
+                {
+                    label: "GPU Temp",
+                    value: formatNum(metrics.gpuTemp, 0, "C"),
+                    sub: `Power ${formatNum(metrics.gpuPower, 0, "W")}`,
+                },
+                {
+                    label: "HLS Jobs",
+                    value: String(metrics.hlsJobs ?? 0),
+                    sub: `Preparing ${metrics.preparingJobs ?? 0}, startup ${metrics.startupJobs ?? 0}`,
+                },
+                {
+                    label: "Sessions",
+                    value: String(metrics.totalSessions ?? 0),
+                    sub: `Streaming ${metrics.streamingSessions ?? 0}`,
+                },
+                {
+                    label: "GPU Lease",
+                    value: metrics.leaseGb,
+                    sub: `Slots ${metrics.slotsInUse ?? 0}/${metrics.maxSlots ?? 0}`,
+                },
+                {
+                    label: "Compose / Encode",
+                    value: `${metrics.composeWorkers ?? 0} / ${metrics.encodeWorkers ?? 0}`,
+                    sub: `worker pools`,
+                },
+                {
+                    label: "Cache",
+                    value: String(metrics.cachedAvatars ?? 0),
+                    sub: `hit rate ${metrics.cacheHitRate ?? "n/a"}`,
+                },
+            ];
+
+            el.innerHTML = cards.map((card) => `
+                <div class="metric-card">
+                    <div class="metric-label">${card.label}</div>
+                    <div class="metric-value">${card.value}</div>
+                    <div class="metric-sub">${card.sub}</div>
                 </div>
             `).join("");
+        }
+
+        function renderJobTable(jobs) {
+            const wrap = byId("jobTableWrap");
+            if (!jobs || jobs.length === 0) {
+                wrap.textContent = "No live scheduler jobs yet.";
+                return;
+            }
+            const rows = jobs.slice(0, 8).map((job) => `
+                <tr>
+                    <td>${job.request_id}</td>
+                    <td>${job.current_frame_idx}/${job.total_frames}</td>
+                    <td>${formatNum(job.time_to_first_chunk_s, 2, "s")}</td>
+                    <td>${formatNum(job.avg_gpu_batch_s, 3, "s")}</td>
+                    <td>${formatNum(job.avg_compose_s, 3, "s")}</td>
+                    <td>${formatNum(job.avg_encode_s, 3, "s")}</td>
+                    <td>${job.pending_composes}/${job.pending_encodes}</td>
+                </tr>
+            `).join("");
+            wrap.innerHTML = `
+                <table class="job-table">
+                    <thead>
+                        <tr>
+                            <th>Request</th>
+                            <th>Frames</th>
+                            <th>First Chunk</th>
+                            <th>GPU Batch</th>
+                            <th>Compose</th>
+                            <th>Encode</th>
+                            <th>Pending</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        async function refreshMetrics() {
+            try {
+                const [liveGpuResp, statsResp, hlsStatsResp] = await Promise.all([
+                    fetch("/stats/gpu-live"),
+                    fetch("/stats"),
+                    fetch("/hls/sessions/stats"),
+                ]);
+                const liveGpu = await liveGpuResp.json();
+                const stats = await statsResp.json();
+                const hlsStats = await hlsStatsResp.json();
+
+                const scheduler = hlsStats.scheduler || stats.hls_scheduler || {};
+                const sessions = hlsStats.sessions || [];
+                const streamingSessions = sessions.filter((s) => s.status === "streaming" || s.active_stream).length;
+                const gpuLease = stats.gpu || {};
+                const compute = gpuLease.compute || {};
+                const cache = stats.cache || {};
+
+                renderMetricCards({
+                    gpuUtil: liveGpu.gpu_util_pct,
+                    gpuMemGb: `${formatNum(liveGpu.memory_used_gb, 2, "GB")}`,
+                    gpuMemMb: `${formatNum(liveGpu.memory_used_mb, 0, "MB")}`,
+                    gpuTotalGb: formatNum(liveGpu.memory_total_gb, 2, "GB"),
+                    gpuTemp: liveGpu.temperature_c,
+                    gpuPower: liveGpu.power_draw_w,
+                    hlsJobs: scheduler.queued_or_active_jobs,
+                    preparingJobs: scheduler.preparing_jobs ?? scheduler.prep_queue_depth,
+                    startupJobs: scheduler.startup_pending_jobs,
+                    totalSessions: hlsStats.total_sessions,
+                    streamingSessions,
+                    leaseGb: `${formatNum(gpuLease.current_usage_gb, 2, "GB")}`,
+                    slotsInUse: compute.slots_in_use,
+                    maxSlots: compute.max_live_generations,
+                    composeWorkers: scheduler.compose_workers,
+                    encodeWorkers: scheduler.encode_workers,
+                    cachedAvatars: cache.cached_avatars,
+                    cacheHitRate: cache.hit_rate,
+                });
+                renderJobTable(scheduler.jobs || []);
+            } catch (err) {
+                byId("metricsGrid").innerHTML = `<div class="metric-card"><div class="metric-label">Metrics</div><div class="metric-value">n/a</div><div class="metric-sub">${String(err)}</div></div>`;
+            }
         }
 
         async function createGroup() {
@@ -281,19 +560,23 @@ Delete API: DELETE ${location.origin}/hls/groups/${currentGroup.group_id}`;
             await refreshGroup();
         }
 
-        async function refreshGroup() {
+        async function refreshGroup(silent = false) {
             const groupId = currentGroup ? currentGroup.group_id : initialGroupId;
             if (!groupId) return;
             const response = await fetch(`/hls/groups/${groupId}`);
             const data = await response.json();
             if (!response.ok) {
-                setStatus(data.detail ? JSON.stringify(data.detail) : "Failed to refresh group.", "err");
+                if (!silent) {
+                    setStatus(data.detail ? JSON.stringify(data.detail) : "Failed to refresh group.", "err");
+                }
                 return;
             }
             currentGroup = data;
             renderEndpoints();
             renderSessions();
-            setStatus(`Refreshed group ${data.group_id}.`, "ok");
+            if (!silent) {
+                setStatus(`Refreshed group ${data.group_id}.`, "ok");
+            }
         }
 
         async function deleteGroup() {
@@ -316,10 +599,17 @@ Delete API: DELETE ${location.origin}/hls/groups/${currentGroup.group_id}`;
 
         byId("createBtn").addEventListener("click", createGroup);
         byId("startBtn").addEventListener("click", startAll);
-        byId("refreshBtn").addEventListener("click", refreshGroup);
+        byId("refreshBtn").addEventListener("click", () => refreshGroup(false));
         byId("deleteBtn").addEventListener("click", deleteGroup);
+        refreshMetrics();
+        autoRefreshTimer = setInterval(() => {
+            refreshMetrics();
+            if (currentGroup || initialGroupId) {
+                refreshGroup(true);
+            }
+        }, 2000);
         if (initialGroupId) {
-            refreshGroup();
+            refreshGroup(true);
         }
     </script>
 </body>

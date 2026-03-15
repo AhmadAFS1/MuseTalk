@@ -14,6 +14,7 @@ import asyncio
 import json
 import pickle
 import re
+import subprocess
 import aiofiles
 import time  # ✅ Add this if not present
 import threading
@@ -80,6 +81,84 @@ def _env_float(name: str, default: float) -> float:
         return float(value)
     except ValueError:
         return default
+
+
+def _sample_live_gpu_stats(gpu_index: int = 0) -> dict:
+    if shutil.which("nvidia-smi") is None:
+        return {
+            "available": False,
+            "reason": "nvidia-smi not found",
+            "gpu_index": gpu_index,
+        }
+
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "-i",
+                str(gpu_index),
+                "--query-gpu=utilization.gpu,utilization.memory,memory.used,memory.total,temperature.gpu,power.draw",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+    except Exception as exc:
+        return {
+            "available": False,
+            "reason": str(exc),
+            "gpu_index": gpu_index,
+        }
+
+    if result.returncode != 0:
+        return {
+            "available": False,
+            "reason": result.stderr.strip() or f"nvidia-smi exited with {result.returncode}",
+            "gpu_index": gpu_index,
+        }
+
+    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if not lines:
+        return {
+            "available": False,
+            "reason": "nvidia-smi returned no rows",
+            "gpu_index": gpu_index,
+        }
+
+    parts = [part.strip() for part in lines[0].split(",")]
+    if len(parts) != 6:
+        return {
+            "available": False,
+            "reason": f"unexpected nvidia-smi format: {lines[0]}",
+            "gpu_index": gpu_index,
+        }
+
+    def _to_float(value: str):
+        value = value.strip()
+        if value.upper() == "N/A":
+            return None
+        try:
+            return float(value)
+        except ValueError:
+            return None
+
+    memory_used_mb = _to_float(parts[2])
+    memory_total_mb = _to_float(parts[3])
+    return {
+        "available": True,
+        "gpu_index": gpu_index,
+        "ts": round(time.time(), 3),
+        "gpu_util_pct": _to_float(parts[0]),
+        "memory_util_pct": _to_float(parts[1]),
+        "memory_used_mb": memory_used_mb,
+        "memory_total_mb": memory_total_mb,
+        "memory_used_gb": round(memory_used_mb / 1024, 2) if memory_used_mb is not None else None,
+        "memory_total_gb": round(memory_total_mb / 1024, 2) if memory_total_mb is not None else None,
+        "temperature_c": _to_float(parts[4]),
+        "power_draw_w": _to_float(parts[5]),
+    }
 
 
 def _env_optional_float(name: str) -> Optional[float]:
@@ -2692,6 +2771,15 @@ async def get_stats():
     if hls_stream_scheduler is not None:
         stats["hls_scheduler"] = hls_stream_scheduler.get_stats()
     return stats
+
+
+@app.get("/stats/gpu-live")
+async def get_live_gpu_stats():
+    """Get live GPU utilization and hardware metrics from nvidia-smi."""
+    gpu_index = 0
+    if manager is not None:
+        gpu_index = int(getattr(getattr(manager, "args", None), "gpu_id", 0) or 0)
+    return _sample_live_gpu_stats(gpu_index)
 
 @app.get("/stats/cache")
 async def get_cache_stats():

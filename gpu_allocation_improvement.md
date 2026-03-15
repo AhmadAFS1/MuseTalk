@@ -705,6 +705,118 @@ But the latest measurements now show a more nuanced picture:
 9. raising `max_combined_batch_size` from 8/20 to 32 with the `_memory_bucket=1` fix eliminates the scheduler deadlock and allows all 8 streams to complete, but does not increase raw GPU throughput because UNet forward pass time scales sub-linearly with batch size (bs=32 is only ~1.75x slower than bs=8, but processes 4x more frames — net gain in per-tick frames but not enough to close the 5x deficit)
 10. the aggregate GPU throughput ceiling of ~18-20 fps is a hardware constant of the RTX 3090 running MuseTalk's PE+UNet+VAE pipeline at float16 precision; only model-level optimizations (torch.compile, TensorRT) or hardware changes can meaningfully increase this
 
+### March 15 follow-up: best current `concurrency=8` result with live GPU metrics
+
+After the later scheduler cleanup, latent tensorization, idle-HLS caching, and GPU instrumentation work, the current best `24/12`, `concurrency=8`, `batch_size=2` run looks like this:
+
+```json
+{
+  "concurrency": 8,
+  "completed": 8,
+  "failed": 0,
+  "avg_time_to_live_ready_s": 8.035,
+  "avg_segment_interval_s": 5.126,
+  "max_segment_interval_s": 5.362,
+  "wall_time_s": 93.9,
+  "gpu": {
+    "samples": 92,
+    "avg_util_pct": 36.9,
+    "peak_util_pct": 100.0,
+    "avg_memory_used_mb": 11389.3,
+    "peak_memory_used_mb": 12237.0,
+    "avg_memory_util_pct": 14.36,
+    "peak_memory_util_pct": 63.0
+  }
+}
+```
+
+Interpretation:
+
+1. this is a real improvement over the earlier `24/12`, `concurrency=8` runs that were landing closer to `99-118s` wall time with worse tail jitter
+2. the largest win is reduced worst-case cadence jitter (`max_segment_interval_s` improved materially)
+3. `avg_segment_interval_s=5.126` implies effective aggregate generation throughput of roughly `96 / 5.126 = 18.7 fps`
+4. that is slightly better than the earlier `~18.3 fps`, but it is still inside the same overall `18-20 fps` hardware ceiling band
+5. the result is therefore best interpreted as an overhead/jitter reduction, not a step-change in raw model throughput
+
+GPU interpretation:
+
+1. `peak_util_pct=100` confirms the GPU still saturates during important parts of the run
+2. `avg_util_pct=36.9` does not mean the GPU is not the bottleneck; the average includes prep, encode, manifest updates, and idle gaps between compute bursts
+3. `peak_memory_used_mb=12237` leaves large VRAM headroom on a 24GB card, so VRAM remains a secondary limit here
+4. low average VRAM-controller utilization also supports the conclusion that the system is compute-bursty, not memory-capacity-bound
+
+### `batch_size=2` vs `batch_size=4` at `concurrency=8`
+
+The latest controlled comparison continues to show that `batch_size` is no longer a meaningful lever at high concurrency under the current scheduler:
+
+```json
+{
+  "batch_size": 2,
+  "avg_time_to_live_ready_s": 8.035,
+  "avg_segment_interval_s": 5.126,
+  "max_segment_interval_s": 5.362,
+  "wall_time_s": 93.9
+}
+```
+
+```json
+{
+  "batch_size": 4,
+  "avg_time_to_live_ready_s": 8.163,
+  "avg_segment_interval_s": 5.108,
+  "max_segment_interval_s": 5.424,
+  "wall_time_s": 94.0
+}
+```
+
+Interpretation:
+
+1. `avg_segment_interval_s` is effectively flat
+2. startup is slightly worse at `batch_size=4`
+3. `wall_time_s` is identical within normal run-to-run noise
+4. the scheduler is already assembling enough total work per GPU turn that larger per-stream batches do not unlock a new throughput regime
+
+Conclusion:
+
+- keep `batch_size=2` as the default HLS setting for now
+- do not expect `batch_size=4` to materially improve `concurrency=8` throughput
+- focus future effort on model-path acceleration, encode-path cleanup, and startup-path overhead instead
+
+### Startup latency vs steady-state cadence
+
+One important lesson from the March 15 runs is that startup latency and steady-state cadence are different bottlenecks.
+
+Example older run at `concurrency=5`:
+
+```json
+{
+  "concurrency": 5,
+  "avg_time_to_live_ready_s": 6.097,
+  "avg_segment_interval_s": 3.222,
+  "max_segment_interval_s": 4.154,
+  "wall_time_s": 60.3,
+  "gpu": {
+    "avg_util_pct": 40.83,
+    "peak_util_pct": 100.0,
+    "avg_memory_used_mb": 10818.6,
+    "peak_memory_used_mb": 12520.0
+  }
+}
+```
+
+What this means:
+
+1. startup delay rises with concurrency before VRAM becomes a problem
+2. a moderate average GPU utilization does not imply the startup path is healthy
+3. `peak_util_pct=100` together with modest average utilization is the signature of a bursty pipeline: prep, GPU batch, compose, encode, wait, repeat
+4. the browser cannot begin playback until the first live chunk exists, so prep time, scheduler queue time, and first-chunk encode time all directly inflate `avg_time_to_live_ready_s`
+
+The practical diagnostic rule is:
+
+1. high `avg_time_to_live_ready_s` plus moderate average GPU usage usually means startup-pipeline contention
+2. high `avg_segment_interval_s` with 100% utilization peaks usually means shared compute saturation
+3. high memory usage near the device limit would indicate actual VRAM pressure, but that is not what the current runs show
+
 ### Final investigative conclusion
 
 The current system has two different capacity limits:
@@ -883,29 +995,33 @@ Relevant files:
 - `scripts/api_avatar.py` (chunk creation)
 - `scripts/hls_gpu_scheduler.py` (encode dispatch)
 
-### 9. `torch.compile` integration is broken
+### 9. `torch.compile` remains environment-sensitive, but the integration is safer now
 
-Attempts to use `torch.compile` for 2-3x UNet/VAE speedup encountered:
+The original `torch.compile` attempt was broken for three concrete reasons:
 
-1. `torch.compile(module)` returns a callable wrapper, not an `nn.Module`.
-2. Code throughout the pipeline accesses `.dtype` and `.parameters()` on the compiled object, which fails.
-3. `compile_models()` was called twice (in `_init_models()` and `__init__`).
+1. `torch.compile(module)` returns a callable wrapper, not a normal `nn.Module`
+2. code throughout the pipeline accessed `.dtype` and `.parameters()` on the compiled object
+3. `compile_models()` was called twice
+
+Those structural issues have now been addressed:
+
+1. dtype values are stored separately before compilation
+2. the duplicate compile call has been removed
+3. the HLS path uses saved dtype references instead of asking the compiled wrapper for them
+4. warmup failures restore the original eager models instead of leaving broken compiled modules active
+5. compiled execution now uses `torch.no_grad()` instead of `torch.inference_mode()` in the HLS generation path
+
+Current status:
+
+- the compile path no longer fails in an unsafe way
+- failed warmup should now fall back to eager execution rather than crashing the first live request
+- however, the current PyTorch + diffusers stack is still sensitive, and warmup failures such as `Inference tensors do not track version counter` remain possible on some environments
 
 Impact:
 
-- Server crashes on startup when `MUSETALK_COMPILE=1`.
-- The largest available throughput improvement (2-3x) is currently inaccessible.
-
-To properly fix:
-
-1. Save `unet_dtype` and `vae_dtype` before compilation.
-2. Store them as instance attributes (`self.unet_dtype`, `self.vae_dtype`).
-3. Compile the full module, not submodules: `torch.compile(self.vae.vae)`, not `torch.compile(self.vae.vae.decoder)`.
-4. Audit all `.dtype` and `.parameters()` access sites in `hls_gpu_scheduler.py`, `avatar_manager_parallel.py`, and `api_avatar.py`.
-5. Replace with the saved dtype attributes.
-6. Add batch padding to fixed sizes (4, 8, 16, 32) to prevent `torch.compile` recompilation on every new shape.
-7. Warmup all expected batch sizes during startup.
-8. Call `compile_models()` exactly once, after `_init_models()`.
+- `torch.compile` is no longer a correctness blocker
+- it is still not a guaranteed throughput win on every machine
+- it remains the most promising software-only path to increase the `18-20 fps` ceiling, but it must be validated on the exact target runtime stack
 
 Relevant files:
 
@@ -960,6 +1076,18 @@ Single stream:  213 frames / 11.4s wall = 18.7 fps
 Eight streams:  1704 frames / 99.7s wall = 17.1 fps
 Ratio: 0.91x — nearly identical aggregate throughput
 ```
+
+Updated March 15 reference point:
+
+```
+Eight streams (improved run): 1704 frames / 93.9s wall = 18.1 fps
+Effective cadence-based estimate: 96 demanded fps / 5.126s interval = 18.7 fps
+```
+
+This reinforces the same conclusion:
+
+- the system can still be improved around the edges
+- but the overall aggregate generation ceiling remains in the same `18-20 fps` band
 
 The batch size affects per-tick latency but not aggregate throughput in a meaningful way:
 
