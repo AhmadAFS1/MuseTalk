@@ -447,7 +447,9 @@ Delete API: DELETE ${location.origin}/hls/groups/${currentGroup.group_id}`;
                     <td>${formatNum(job.avg_gpu_batch_s, 3, "s")}</td>
                     <td>${formatNum(job.avg_compose_s, 3, "s")}</td>
                     <td>${formatNum(job.avg_encode_s, 3, "s")}</td>
-                    <td>${job.pending_composes}/${job.pending_encodes}</td>
+                    <td>${job.frame_buffer_len}/${job.frames_per_chunk} <span class="muted">(max ${job.max_frame_buffer_len})</span></td>
+                    <td>${job.pending_composes}/${job.pending_encodes} <span class="muted">(max ${job.max_pending_composes}/${job.max_pending_encodes})</span></td>
+                    <td>${formatNum(job.post_generation_drain_s, 2, "s")}</td>
                 </tr>
             `).join("");
             wrap.innerHTML = `
@@ -460,7 +462,9 @@ Delete API: DELETE ${location.origin}/hls/groups/${currentGroup.group_id}`;
                             <th>GPU Batch</th>
                             <th>Compose</th>
                             <th>Encode</th>
+                            <th>Buffer</th>
                             <th>Pending</th>
+                            <th>Drain</th>
                         </tr>
                     </thead>
                     <tbody>${rows}</tbody>

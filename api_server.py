@@ -427,6 +427,8 @@ async def startup_event():
         compose_workers=_env_int("HLS_COMPOSE_WORKERS", 2),
         encode_workers=_env_int("HLS_ENCODE_WORKERS", 2),
         max_pending_jobs=_env_int("HLS_MAX_PENDING_JOBS", 16),
+        startup_chunk_duration_seconds=_env_float("HLS_STARTUP_CHUNK_DURATION_SECONDS", 0.5),
+        startup_chunk_count=_env_int("HLS_STARTUP_CHUNK_COUNT", 1),
     )
     hls_stream_scheduler.start()
 
@@ -2272,16 +2274,11 @@ async def stream_hls_group(
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="audio_file is empty")
 
-    results = []
-    started = 0
-    failed = 0
-    for session_id in group["session_ids"]:
+    async def _start_one(session_id: str) -> dict:
         session = await hls_session_manager.get_session(session_id)
         if session is None:
-            failed += 1
-            results.append({"session_id": session_id, "status": "missing"})
             group["session_statuses"][session_id] = "missing"
-            continue
+            return {"session_id": session_id, "status": "missing"}
         try:
             result = await _start_hls_stream_for_session(
                 session,
@@ -2289,14 +2286,19 @@ async def stream_hls_group(
                 audio_filename=audio_file.filename or "audio.bin",
                 start_offset_seconds=start_offset_seconds,
             )
-            started += 1
-            results.append(result)
             group["session_statuses"][session_id] = "queued"
+            return result
         except HTTPException as exc:
-            failed += 1
             detail = exc.detail if isinstance(exc.detail, str) else json.dumps(exc.detail)
-            results.append({"session_id": session_id, "status": "error", "detail": detail})
             group["session_statuses"][session_id] = "error"
+            return {"session_id": session_id, "status": "error", "detail": detail}
+        except Exception as exc:
+            group["session_statuses"][session_id] = "error"
+            return {"session_id": session_id, "status": "error", "detail": str(exc)}
+
+    results = await asyncio.gather(*[_start_one(session_id) for session_id in group["session_ids"]])
+    started = sum(1 for result in results if result.get("status") == "queued")
+    failed = len(results) - started
 
     return {
         "group_id": group_id,

@@ -3,6 +3,7 @@ import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 import uuid
+import numpy as np
 import torch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -108,6 +109,7 @@ class ParallelAvatarManager:
         print("✅ Models loaded!")
         
         self.compile_models()
+        self._warm_runtime_paths()
     
     def compile_models(self):
         """Compile UNet + VAE for 2-3x throughput on RTX 3090."""
@@ -193,6 +195,30 @@ class ParallelAvatarManager:
 
         self.models_compiled = True
         print("✅ Model compilation complete")
+
+    def _warm_runtime_paths(self):
+        """Warm Whisper and PE paths so the first live HLS request pays less cold-start cost."""
+        if os.getenv("MUSETALK_WARM_RUNTIME", "1").strip().lower() not in {"1", "true", "yes", "on"}:
+            print("ℹ️  runtime warmup disabled (set MUSETALK_WARM_RUNTIME=1 to enable)")
+            return
+
+        try:
+            print("🔧 Warming audio + Whisper runtime path...")
+            dummy_audio = np.zeros(16000, dtype=np.float32)
+            input_features = self.audio_processor.feature_extractor(
+                dummy_audio,
+                return_tensors="pt",
+                sampling_rate=16000,
+            ).input_features.to(device=self.device, dtype=self.unet_dtype)
+            with torch.no_grad():
+                _ = self.whisper.encoder(input_features, output_hidden_states=True).hidden_states
+                dummy_audio_batch = torch.randn(1, 50, 384, device=self.device, dtype=self.unet_dtype)
+                _ = self.pe(dummy_audio_batch)
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            print("✅ Audio + Whisper warmup complete")
+        except Exception as exc:
+            print(f"⚠️  Audio + Whisper warmup failed: {exc}")
     
     def _get_or_load_avatar(self, avatar_id, batch_size):
         """Get avatar from cache or load from disk"""

@@ -24,6 +24,8 @@ class HLSStreamJob:
     whisper_chunks: object
     total_frames: int
     frames_per_chunk: int
+    startup_chunk_frames: int
+    startup_chunk_count: int
     total_chunks: int
     start_offset_frames: int
     cancel_event: threading.Event
@@ -35,21 +37,28 @@ class HLSStreamJob:
     composed_frame_idx: int = 0
     chunk_index: int = 0
     frame_buffer: list = field(default_factory=list)
+    max_frame_buffer_len: int = 0
     generation_done: bool = False
+    generation_done_at: Optional[float] = None
     finalized: bool = False
+    finalized_at: Optional[float] = None
     last_progress_at: float = field(default_factory=time.time)
     compose_tasks: Dict[int, object] = field(default_factory=dict)
     composed_batches: Dict[int, dict] = field(default_factory=dict)
     compose_sequence: int = 0
     next_compose_sequence: int = 0
+    max_pending_composes: int = 0
     encode_tasks: Dict[int, object] = field(default_factory=dict)
     encoded_chunks: Dict[int, dict] = field(default_factory=dict)
     next_append_chunk_index: int = 0
+    max_pending_encodes: int = 0
     error_message: Optional[str] = None
     submitted_at: float = field(default_factory=time.time)
     prep_started_at: float = 0.0
     queued_at: float = 0.0
     prep_total_s: float = 0.0
+    prep_queue_wait_s: float = 0.0
+    prep_work_s: float = 0.0
     avatar_load_s: float = 0.0
     audio_feature_s: float = 0.0
     whisper_chunk_s: float = 0.0
@@ -66,10 +75,15 @@ class HLSStreamJob:
     compose_total_s: float = 0.0
     compose_queue_wait_total_s: float = 0.0
     compose_batch_count: int = 0
+    max_compose_queue_wait_s: float = 0.0
+    max_compose_s: float = 0.0
     chunks_encoded: int = 0
     encode_queue_wait_total_s: float = 0.0
     encode_total_s: float = 0.0
+    max_encode_queue_wait_s: float = 0.0
+    max_encode_s: float = 0.0
     chunks_appended: int = 0
+    encoded_frame_cursor: int = 0
 
 
 class HLSGPUStreamScheduler:
@@ -91,6 +105,8 @@ class HLSGPUStreamScheduler:
         compose_workers: int = 2,
         encode_workers: int = 2,
         max_pending_jobs: int = 16,
+        startup_chunk_duration_seconds: float = 0.5,
+        startup_chunk_count: int = 1,
     ):
         self.manager = manager
         self.hls_session_manager = hls_session_manager
@@ -98,6 +114,8 @@ class HLSGPUStreamScheduler:
         self.startup_slice_size = max(1, int(startup_slice_size))
         self.aggressive_fill_max_active_jobs = max(0, int(aggressive_fill_max_active_jobs))
         self.max_pending_jobs = max(1, int(max_pending_jobs))
+        self.startup_chunk_duration_seconds = max(0.0, float(startup_chunk_duration_seconds))
+        self.startup_chunk_count = max(0, int(startup_chunk_count))
         self.prep_executor = ThreadPoolExecutor(max_workers=max(1, int(prep_workers)))
 
         # Scale compose workers: cv2/numpy release the GIL for heavy ops.
@@ -141,6 +159,8 @@ class HLSGPUStreamScheduler:
             "🎛️  HLS GPU scheduler started "
             f"(max_combined_batch_size={self.max_combined_batch_size}, "
             f"startup_slice_size={self.startup_slice_size}, "
+            f"startup_chunk_duration_seconds={self.startup_chunk_duration_seconds:.2f}, "
+            f"startup_chunk_count={self.startup_chunk_count}, "
             f"aggressive_fill_max_active_jobs={self.aggressive_fill_max_active_jobs}, "
             f"compose_workers={self.compose_executor._max_workers}, "
             f"encode_workers={self.encode_executor._max_workers})"
@@ -197,6 +217,8 @@ class HLSGPUStreamScheduler:
                 "prep_queue_depth": len(self.preparing_requests),
                 "max_combined_batch_size": self.max_combined_batch_size,
                 "startup_slice_size": self.startup_slice_size,
+                "startup_chunk_duration_seconds": self.startup_chunk_duration_seconds,
+                "startup_chunk_count": self.startup_chunk_count,
                 "aggressive_fill_max_active_jobs": self.aggressive_fill_max_active_jobs,
                 "startup_pending_jobs": len(
                     [job for job in self.jobs.values() if self._is_startup_job(job)]
@@ -212,12 +234,26 @@ class HLSGPUStreamScheduler:
                         "composed_frame_idx": job.composed_frame_idx,
                         "chunk_index": job.chunk_index,
                         "total_chunks": job.total_chunks,
+                        "frame_buffer_len": len(job.frame_buffer),
+                        "frames_per_chunk": job.frames_per_chunk,
+                        "startup_chunk_frames": job.startup_chunk_frames,
+                        "startup_chunk_count": job.startup_chunk_count,
+                        "frames_until_next_chunk": max(0, self._next_chunk_target_frames(job) - len(job.frame_buffer)),
+                        "frame_buffer_fill_pct": round(
+                            (len(job.frame_buffer) / job.frames_per_chunk) if job.frames_per_chunk else 0.0,
+                            3,
+                        ),
+                        "max_frame_buffer_len": job.max_frame_buffer_len,
                         "pending_composes": len(job.compose_tasks),
                         "pending_encodes": len(job.encode_tasks),
+                        "max_pending_composes": job.max_pending_composes,
+                        "max_pending_encodes": job.max_pending_encodes,
                         "startup_pending": self._is_startup_job(job),
                         "cancel_requested": job.cancel_event.is_set(),
                         "last_progress_age_s": round(time.time() - job.last_progress_at, 3),
                         "prep_total_s": round(job.prep_total_s, 3),
+                        "prep_queue_wait_s": round(job.prep_queue_wait_s, 3),
+                        "prep_work_s": round(job.prep_work_s, 3),
                         "avatar_load_s": round(job.avatar_load_s, 3),
                         "audio_feature_s": round(job.audio_feature_s, 3),
                         "whisper_chunk_s": round(job.whisper_chunk_s, 3),
@@ -232,8 +268,13 @@ class HLSGPUStreamScheduler:
                         "avg_vae_s": round(self._safe_avg(job.vae_total_s, job.gpu_batch_count), 4),
                         "avg_compose_queue_wait_s": round(self._safe_avg(job.compose_queue_wait_total_s, job.compose_batch_count), 4),
                         "avg_compose_s": round(self._safe_avg(job.compose_total_s, job.compose_batch_count), 4),
+                        "max_compose_queue_wait_s": round(job.max_compose_queue_wait_s, 4),
+                        "max_compose_s": round(job.max_compose_s, 4),
                         "avg_encode_queue_wait_s": round(self._safe_avg(job.encode_queue_wait_total_s, job.chunks_encoded), 4),
                         "avg_encode_s": round(self._safe_avg(job.encode_total_s, job.chunks_encoded), 4),
+                        "max_encode_queue_wait_s": round(job.max_encode_queue_wait_s, 4),
+                        "max_encode_s": round(job.max_encode_s, 4),
+                        "post_generation_drain_s": round(self._post_generation_drain_s(job), 4),
                     }
                     for job in self.jobs.values()
                 ],
@@ -267,18 +308,12 @@ class HLSGPUStreamScheduler:
 
             weight_dtype = getattr(self.manager, "unet_dtype", torch.float16)
             audio_feature_start = time.time()
-            whisper_input_features, librosa_length = self.manager.audio_processor.get_audio_feature(
+            whisper_input_features, _librosa_length = self.manager.audio_processor.get_audio_feature(
                 audio_path, weight_dtype=weight_dtype
             )
             audio_feature_s = time.time() - audio_feature_start
             if whisper_input_features is None:
                 raise RuntimeError("Audio feature extraction failed")
-
-            if cancel_event.is_set():
-                self._finish_before_enqueue(
-                    request_id, session, audio_path, completion_future, main_loop, "cancelled"
-                )
-                return
 
             whisper_chunk_start = time.time()
             whisper_chunks = self.manager.audio_processor.get_whisper_chunk(
@@ -286,16 +321,29 @@ class HLSGPUStreamScheduler:
                 self.manager.device,
                 weight_dtype,
                 self.manager.whisper,
-                librosa_length,
+                _librosa_length,
                 fps=generation_fps,
                 audio_padding_length_left=self.manager.args.audio_padding_length_left,
                 audio_padding_length_right=self.manager.args.audio_padding_length_right,
-            ).detach().cpu()
+            ).detach().cpu().contiguous()
             whisper_chunk_s = time.time() - whisper_chunk_start
+
+            if cancel_event.is_set():
+                self._finish_before_enqueue(
+                    request_id, session, audio_path, completion_future, main_loop, "cancelled"
+                )
+                return
 
             total_frames = int(len(whisper_chunks))
             frames_per_chunk = max(1, int(round(session.segment_duration * generation_fps)))
-            total_chunks = int(math.ceil(total_frames / frames_per_chunk)) if total_frames > 0 else 0
+            startup_chunk_frames = self._startup_chunk_frames(frames_per_chunk, generation_fps)
+            startup_chunk_count = self.startup_chunk_count if startup_chunk_frames < frames_per_chunk else 0
+            total_chunks = self._estimate_total_chunks(
+                total_frames=total_frames,
+                frames_per_chunk=frames_per_chunk,
+                startup_chunk_frames=startup_chunk_frames,
+                startup_chunk_count=startup_chunk_count,
+            )
             start_offset_frames = int(round(max(0.0, float(start_offset_seconds)) * generation_fps))
 
             idle_frames = avatar._get_idle_frames(max_frames=max(8, min(24, int(generation_fps * 0.8))))
@@ -321,6 +369,8 @@ class HLSGPUStreamScheduler:
                 whisper_chunks=whisper_chunks,
                 total_frames=total_frames,
                 frames_per_chunk=frames_per_chunk,
+                startup_chunk_frames=startup_chunk_frames,
+                startup_chunk_count=startup_chunk_count,
                 total_chunks=total_chunks,
                 start_offset_frames=start_offset_frames,
                 cancel_event=cancel_event,
@@ -332,6 +382,8 @@ class HLSGPUStreamScheduler:
                 prep_started_at=prep_started_at,
                 queued_at=queued_at,
                 prep_total_s=queued_at - submitted_at,
+                prep_queue_wait_s=prep_started_at - submitted_at,
+                prep_work_s=queued_at - prep_started_at,
                 avatar_load_s=avatar_load_s,
                 audio_feature_s=audio_feature_s,
                 whisper_chunk_s=whisper_chunk_s,
@@ -350,7 +402,8 @@ class HLSGPUStreamScheduler:
             print(
                 f"🎛️  [{request_id}] queued for shared HLS GPU scheduler "
                 f"(frames={total_frames}, chunks={total_chunks}, batch_size={job.batch_size}, "
-                f"prep={job.prep_total_s:.2f}s)"
+                f"prep={job.prep_total_s:.2f}s, prep_wait={job.prep_queue_wait_s:.2f}s, "
+                f"prep_work={job.prep_work_s:.2f}s)"
             )
         except Exception as exc:
             print(f"❌ [{request_id}] HLS prep failed: {exc}")
@@ -438,7 +491,15 @@ class HLSGPUStreamScheduler:
                 slice_cap=self.startup_slice_size,
             )
 
-        # --- Round 2: warmed jobs get their per-job batch_size ---
+        # --- Round 2: finish startup jobs to their first chunk target where possible ---
+        if total_batch < self.max_combined_batch_size and startup_jobs:
+            total_batch = self._allocate_startup_priority_round(
+                jobs=startup_jobs,
+                allocations=allocations,
+                total_batch=total_batch,
+            )
+
+        # --- Round 3: warmed jobs get their per-job batch_size ---
         if total_batch < self.max_combined_batch_size and warmed_jobs:
             total_batch = self._allocate_round(
                 jobs=warmed_jobs,
@@ -447,7 +508,7 @@ class HLSGPUStreamScheduler:
                 slice_cap=None,
             )
 
-        # --- Round 3: ALWAYS fill remaining GPU capacity ---
+        # --- Round 4: ALWAYS fill remaining GPU capacity ---
         # OLD: skipped when len(warmed_jobs) > aggressive_fill_max_active_jobs
         # At 8 streams with batch_size=2 and max_batch=8, Round 2 could only
         # fit 4 jobs (8/2=4). The other 4 jobs got NOTHING. And even those 4
@@ -542,6 +603,29 @@ class HLSGPUStreamScheduler:
             if not made_progress:
                 break
 
+        return total_batch
+
+    def _allocate_startup_priority_round(
+        self,
+        jobs: list[HLSStreamJob],
+        allocations: Dict[str, int],
+        total_batch: int,
+    ) -> int:
+        for job in jobs:
+            capacity_left = self.max_combined_batch_size - total_batch
+            if capacity_left <= 0:
+                break
+            remaining_frames = self._remaining_frames(job, allocations)
+            if remaining_frames <= 0:
+                continue
+            frames_to_first_chunk = self._frames_until_startup_chunk(job, allocations)
+            if frames_to_first_chunk <= 0:
+                continue
+            take = min(frames_to_first_chunk, remaining_frames, capacity_left)
+            if take <= 0:
+                continue
+            allocations[job.request_id] = allocations.get(job.request_id, 0) + take
+            total_batch += take
         return total_batch
 
     def _run_generation_batch(self, selected) -> None:
@@ -666,6 +750,8 @@ class HLSGPUStreamScheduler:
                 self._dispatch_compose_batch(job, batch_frames, start_frame_idx)
             if job.current_frame_idx >= job.total_frames:
                 job.generation_done = True
+                if job.generation_done_at is None:
+                    job.generation_done_at = time.time()
             job.batch_assembly_total_s += assembly_s
             job.gpu_copy_total_s += copy_s
             job.pe_total_s += pe_s
@@ -697,6 +783,7 @@ class HLSGPUStreamScheduler:
 
         future = self.compose_executor.submit(compose_batch)
         job.compose_tasks[compose_sequence] = future
+        job.max_pending_composes = max(job.max_pending_composes, len(job.compose_tasks))
 
     def _drain_completed_composes(self) -> None:
         for job in list(self.jobs.values()):
@@ -709,6 +796,14 @@ class HLSGPUStreamScheduler:
                     job.compose_batch_count += 1
                     job.compose_queue_wait_total_s += compose_info.get("queue_wait_s", 0.0)
                     job.compose_total_s += compose_info.get("compose_time", 0.0)
+                    job.max_compose_queue_wait_s = max(
+                        job.max_compose_queue_wait_s,
+                        compose_info.get("queue_wait_s", 0.0),
+                    )
+                    job.max_compose_s = max(
+                        job.max_compose_s,
+                        compose_info.get("compose_time", 0.0),
+                    )
                     job.composed_batches[compose_sequence] = compose_info
                 except Exception as exc:
                     job.error_message = str(exc)
@@ -733,8 +828,9 @@ class HLSGPUStreamScheduler:
                 job.frame_buffer.append(frame)
                 job.composed_frame_idx += 1
                 job.last_progress_at = time.time()
+                job.max_frame_buffer_len = max(job.max_frame_buffer_len, len(job.frame_buffer))
 
-                while len(job.frame_buffer) >= job.frames_per_chunk:
+                while len(job.frame_buffer) >= self._next_chunk_target_frames(job):
                     self._dispatch_encode(job)
 
         if (
@@ -749,19 +845,21 @@ class HLSGPUStreamScheduler:
     def _dispatch_encode(self, job: HLSStreamJob, force_flush: bool = False) -> None:
         if not job.frame_buffer:
             return
-        if not force_flush and len(job.frame_buffer) < job.frames_per_chunk:
+        target_frames = self._next_chunk_target_frames(job)
+        if not force_flush and len(job.frame_buffer) < target_frames:
             return
 
         if force_flush:
             take = len(job.frame_buffer)
         else:
-            take = min(len(job.frame_buffer), job.frames_per_chunk)
+            take = min(len(job.frame_buffer), target_frames)
 
         frames = job.frame_buffer[:take]
         del job.frame_buffer[:take]
         chunk_index = job.chunk_index
         job.chunk_index += 1
-        start_frame = chunk_index * job.frames_per_chunk
+        start_frame = job.encoded_frame_cursor
+        job.encoded_frame_cursor += len(frames)
         total_frames = job.total_frames
         fps = job.generation_fps
         audio_path = job.audio_path
@@ -804,6 +902,7 @@ class HLSGPUStreamScheduler:
 
         future = self.encode_executor.submit(encode_chunk)
         job.encode_tasks[chunk_index] = future
+        job.max_pending_encodes = max(job.max_pending_encodes, len(job.encode_tasks))
 
     def _drain_completed_encodes(self) -> None:
         for job in list(self.jobs.values()):
@@ -816,6 +915,14 @@ class HLSGPUStreamScheduler:
                     job.chunks_encoded += 1
                     job.encode_queue_wait_total_s += chunk_info.get("queue_wait_s", 0.0)
                     job.encode_total_s += chunk_info.get("creation_time", 0.0)
+                    job.max_encode_queue_wait_s = max(
+                        job.max_encode_queue_wait_s,
+                        chunk_info.get("queue_wait_s", 0.0),
+                    )
+                    job.max_encode_s = max(
+                        job.max_encode_s,
+                        chunk_info.get("creation_time", 0.0),
+                    )
                     job.encoded_chunks[chunk_index] = chunk_info
                 except Exception as exc:
                     job.error_message = str(exc)
@@ -882,6 +989,7 @@ class HLSGPUStreamScheduler:
             return
 
         job.finalized = True
+        job.finalized_at = time.time()
         with self.condition:
             self.jobs.pop(job.request_id, None)
             self.condition.notify_all()
@@ -899,13 +1007,19 @@ class HLSGPUStreamScheduler:
 
         print(
             f"🎛️  [{job.request_id}] HLS scheduler finished with status={status} "
-            f"(prep={job.prep_total_s:.2f}s, queue={self._queue_wait_s(job):.2f}s, "
+            f"(prep={job.prep_total_s:.2f}s, prep_wait={job.prep_queue_wait_s:.2f}s, "
+            f"prep_work={job.prep_work_s:.2f}s, queue={self._queue_wait_s(job):.2f}s, "
             f"first_chunk={self._time_to_first_chunk_s(job):.2f}s, "
             f"avg_gpu_batch={self._safe_avg(job.gpu_batch_total_s, job.gpu_batch_count):.3f}s, "
             f"avg_compose_wait={self._safe_avg(job.compose_queue_wait_total_s, job.compose_batch_count):.3f}s, "
             f"avg_compose={self._safe_avg(job.compose_total_s, job.compose_batch_count):.3f}s, "
             f"avg_encode_wait={self._safe_avg(job.encode_queue_wait_total_s, job.chunks_encoded):.3f}s, "
             f"avg_encode={self._safe_avg(job.encode_total_s, job.chunks_encoded):.3f}s, "
+            f"max_buffer={job.max_frame_buffer_len}/{job.frames_per_chunk}, "
+            f"max_pending={job.max_pending_composes}/{job.max_pending_encodes}, "
+            f"max_compose_wait={job.max_compose_queue_wait_s:.3f}s, "
+            f"max_encode_wait={job.max_encode_queue_wait_s:.3f}s, "
+            f"post_gen_drain={self._post_generation_drain_s(job):.3f}s, "
             f"chunks={job.chunks_appended})"
         )
 
@@ -956,6 +1070,57 @@ class HLSGPUStreamScheduler:
         if job.first_chunk_appended_at is None:
             return 0.0
         return max(0.0, job.first_chunk_appended_at - job.submitted_at)
+
+    @staticmethod
+    def _next_chunk_target_frames(job: HLSStreamJob) -> int:
+        if job.chunk_index < job.startup_chunk_count and job.startup_chunk_frames > 0:
+            return job.startup_chunk_frames
+        return job.frames_per_chunk
+
+    @staticmethod
+    def _frames_until_startup_chunk(job: HLSStreamJob, allocations: Optional[Dict[str, int]] = None) -> int:
+        if job.startup_chunk_count <= 0 or job.first_chunk_appended_at is not None:
+            return 0
+        already_allocated = allocations.get(job.request_id, 0) if allocations is not None else 0
+        return max(0, job.startup_chunk_frames - job.current_frame_idx - already_allocated)
+
+    @staticmethod
+    def _post_generation_drain_s(job: HLSStreamJob) -> float:
+        if job.generation_done_at is None:
+            return 0.0
+        end_time = job.finalized_at or time.time()
+        return max(0.0, end_time - job.generation_done_at)
+
+    def _startup_chunk_frames(self, steady_chunk_frames: int, generation_fps: int) -> int:
+        if self.startup_chunk_count <= 0 or self.startup_chunk_duration_seconds <= 0:
+            return steady_chunk_frames
+        startup_frames = max(1, int(round(self.startup_chunk_duration_seconds * generation_fps)))
+        return min(steady_chunk_frames, startup_frames)
+
+    @staticmethod
+    def _estimate_total_chunks(
+        *,
+        total_frames: int,
+        frames_per_chunk: int,
+        startup_chunk_frames: int,
+        startup_chunk_count: int,
+    ) -> int:
+        if total_frames <= 0:
+            return 0
+        if startup_chunk_count <= 0 or startup_chunk_frames >= frames_per_chunk:
+            return int(math.ceil(total_frames / frames_per_chunk))
+
+        remaining_frames = total_frames
+        chunk_count = 0
+        for _ in range(startup_chunk_count):
+            if remaining_frames <= 0:
+                break
+            take = min(startup_chunk_frames, remaining_frames)
+            remaining_frames -= take
+            chunk_count += 1
+        if remaining_frames > 0:
+            chunk_count += int(math.ceil(remaining_frames / frames_per_chunk))
+        return chunk_count
 
     @staticmethod
     def _memory_bucket(batch_size: int) -> int:
