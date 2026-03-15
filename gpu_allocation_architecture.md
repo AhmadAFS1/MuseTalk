@@ -738,3 +738,79 @@ The concrete mitigation plan now lives in `gpu_allocation_improvement.md`:
 
 - HLS tuning cheat sheet for the current env vars
 - a dedicated startup-optimization phase focused on partial prep, first-chunk priority, warm paths, and adaptive prep admission
+
+### March 15 Persistent Encoder Experiment
+
+The next major experiment replaced per-segment ffmpeg spawning with a continuous per-request ffmpeg process.
+
+What changed:
+
+1. HLS generation fed frames into a persistent encoder instead of creating one ffmpeg process per segment.
+2. A simple NVENC session pool was added so overflow streams would start on `libx264` instead of crashing.
+3. Additional scheduler metrics were added for frame-buffer depth, pending compose/encode work, and post-generation drain time.
+
+What this experiment proved:
+
+1. It did **not** materially improve the steady-state throughput ceiling on the RTX 3090.
+2. After the serving-layer fixes, a representative `concurrency=8`, `24/12`, `batch_size=2` run landed back around:
+   - `avg_segment_interval_s ≈ 5.223`
+   - `wall_time_s ≈ 96.3`
+   - `avg_time_to_live_ready_s ≈ 8.733`
+3. Therefore the old hypothesis "per-segment ffmpeg spawn is the main cause of the `concurrency=8` ceiling" is not supported by the latest measurements.
+
+Interpretation:
+
+- the encode path still matters
+- NVENC session handling still matters
+- but the primary throughput ceiling is still elsewhere in the pipeline
+
+### Why the HLS Player Regressed
+
+This experiment also introduced an important HLS correctness lesson: backend throughput work and player work should be separated.
+
+The backend **was** generating media:
+
+1. scheduler logs reported `first chunk ready`
+2. jobs completed with `chunks=4` or `chunks=5`
+3. ffmpeg produced a valid `live.m3u8`
+
+But the browser could still sit forever at `Preparing live...`.
+
+The failure mode was a serving / player-state mismatch:
+
+1. The new persistent ffmpeg path wrote playlist entries like `chunk_0000.ts`.
+2. The actual files lived under nested request-specific directories such as `segments/{request_id}/chunk_0000.ts`.
+3. Until the API serving layer rewrote or resolved those paths, the player could not fetch the segment assets.
+4. After that was fixed, short streams could still complete and reset session state before the iframe cleanly revealed live.
+5. Additional reveal-gating changes then made the wall/player state machine too fragile to trust for backend benchmarking.
+
+Practical conclusion:
+
+- if the player says `Preparing live...` forever, that does **not** mean chunks were never generated
+- it can also mean the live playlist, segment path mapping, or player reveal logic regressed
+
+### NVENC Pool And Metric Caveat
+
+The persistent encoder work still produced two useful findings.
+
+First:
+
+1. A persistent per-stream NVENC design can exhaust encoder resources at `concurrency=8`.
+2. An NVENC session pool avoids the `OpenEncodeSessionEx failed` / `No capable devices found` failure mode.
+3. Overflow `libx264` fallback can increase CPU pressure, so it is a stability fix, not a throughput fix.
+
+Second:
+
+1. `avg_encode` in scheduler logs is no longer directly comparable to the older per-segment path.
+2. Under the persistent path it measures frame submission / queue behavior into one long-lived ffmpeg process, not true per-segment encode duration.
+
+### Current Recommendation
+
+At the current state of the codebase:
+
+1. Treat the persistent encoder experiment as informative but not yet production-ready.
+2. Freeze or revert player / serving changes to the last known-good UI behavior before continuing throughput work.
+3. Keep future optimization passes focused on backend-only bottlenecks first:
+   - prep
+   - compose
+   - model-path speed

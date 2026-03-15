@@ -2204,6 +2204,97 @@ That design gives you:
 - cleaner load testing
 - a real path to multi-GPU scale
 
+## March 15 Persistent Encoder And Player Findings
+
+This section captures the latest experimental cycle after the startup-path refactor.
+
+### What was tested
+
+The HLS path was refactored to use a continuous per-request ffmpeg process instead of spawning ffmpeg once per segment.
+
+Related changes and observations:
+
+1. A persistent encoder path was introduced for HLS.
+2. An NVENC session pool was added so overflow streams would start on `libx264` instead of failing hard.
+3. Additional HLS wall and scheduler instrumentation was added to inspect first-chunk timing, buffer depth, encode backlog, and tail drain.
+
+### What the experiment proved
+
+The persistent encoder path did **not** materially improve steady-state throughput on the RTX 3090.
+
+Representative `concurrency=8`, `playback_fps=24`, `musetalk_fps=12`, `batch_size=2` result after the manifest/path fixes:
+
+```json
+{
+  "avg_time_to_live_ready_s": 8.733,
+  "avg_segment_interval_s": 5.223,
+  "max_segment_interval_s": 5.521,
+  "wall_time_s": 96.3,
+  "gpu": {
+    "avg_util_pct": 33.05,
+    "peak_util_pct": 100.0,
+    "peak_memory_used_mb": 12221.0
+  }
+}
+```
+
+Interpretation:
+
+1. This is effectively back in the same `~5.1s-5.3s` segment cadence band as before.
+2. Therefore per-segment ffmpeg spawn overhead was not the main reason for the current `concurrency=8` throttle ceiling.
+3. The deeper bottlenecks are still prep cost, scheduler turn cost, CPU compose, and the aggregate model-throughput ceiling.
+
+### What broke during the experiment
+
+The backend was still generating chunks, but the browser player stopped behaving reliably.
+
+What actually happened:
+
+1. The persistent ffmpeg path wrote a valid `live.m3u8`, but the playlist entries no longer matched the nested on-disk segment paths until the API serving layer was patched.
+2. After that serving fix, the wall/player could still get stuck at `Preparing live...` because short streams completed before the player revealed live.
+3. Additional player-side reveal gating changes then made the iframe state machine fragile enough that the wall became untrustworthy for evaluating backend throughput.
+
+Important clarification:
+
+- "chunks are not being generated" was a false signal.
+- backend logs showed `first chunk ready` and final `chunks=4` / `chunks=5` style completion lines.
+- the real issue was player / session-state handling after the recent HLS changes.
+
+### NVENC pool conclusion
+
+The NVENC session pool was still a useful correctness finding:
+
+1. Persistent per-stream NVENC can exhaust encoder resources under `concurrency=8`.
+2. Limiting long-lived NVENC sessions avoids the `OpenEncodeSessionEx failed` / `No capable devices found` failure mode.
+3. However, falling overflow streams back to `libx264` can increase CPU pressure and does not solve the main throughput ceiling by itself.
+
+### Metric interpretation warning
+
+After the persistent encoder refactor, `avg_encode` in scheduler logs is no longer directly comparable to the older per-segment path.
+
+Reason:
+
+1. The old path measured per-segment encode task duration.
+2. The persistent path measures frame submission / queue behavior into one long-lived ffmpeg process.
+
+So the new `avg_encode` should not be used as proof that true encode cost collapsed.
+
+### Current practical status
+
+The current recommendation is:
+
+1. Freeze or revert the recent player / live-HLS serving experiments to the last known-good UI state before doing more throughput work.
+2. Keep throughput experiments backend-only whenever possible.
+3. Treat the persistent encoder experiment as informative, but not yet production-ready.
+4. Focus the next optimization pass on:
+   - startup prep structure
+   - CPU compose cost
+   - model-path speed
+
+This is not square one. The experiment ruled out one major hypothesis:
+
+- per-segment ffmpeg spawning is **not** the primary reason `concurrency=8` remains throttled on the RTX 3090.
+
 ## Current Bottom Line
 
 Based on the full debugging cycle so far:
@@ -2220,4 +2311,5 @@ Based on the full debugging cycle so far:
 10. The `_memory_bucket` deadlock was fixed by returning 1, enabling 8-stream completion.
 11. The aggregate GPU throughput ceiling of ~18-20 fps is a hardware constant of the RTX 3090.
 12. Achieving 8-stream parity with single-stream speed requires either model-level optimization (torch.compile/TensorRT) or reducing per-stream frame demand (lower musetalk_fps).
-13. The most practical near-term path to 8-stream parity is: `torch.compile` (2-3x) + `musetalk_fps=6` (halved demand) + persistent encoder (no NVENC broken pipes).
+13. The persistent encoder experiment improved understanding of the pipeline, but did not materially improve steady-state throughput.
+14. The most practical near-term path to 8-stream parity remains: model-path acceleration (`torch.compile` / TensorRT or equivalent) + lower per-stream frame demand + backend-only pipeline optimization that does not destabilize the HLS player.
