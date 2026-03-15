@@ -2295,6 +2295,117 @@ This is not square one. The experiment ruled out one major hypothesis:
 
 - per-segment ffmpeg spawning is **not** the primary reason `concurrency=8` remains throttled on the RTX 3090.
 
+## March 15 Post-Revert Throughput Plan
+
+After reverting the player and serving experiments, the HLS browser path is back to generating and exposing live chunks correctly. The remaining problem is backend cadence: under concurrent load, the system still produces live media too slowly to stay ahead of playback, so the browser buffer drains.
+
+Operational rule:
+
+- if `avg_segment_interval_s > segment_duration`, buffering is inevitable
+- player tuning can smooth presentation, but it cannot remove a backend cadence deficit
+
+### Ranked bottlenecks after revert
+
+#### 1. CPU compose cost is the highest-confidence software bottleneck
+
+The compose hot path in `scripts/api_avatar.py` and `musetalk/utils/blending.py` still performs expensive per-frame work:
+
+- full frame copy
+- `cv2.resize(...)` on each frame
+- PIL conversion of the base frame and talking ROI
+- masked paste / blend
+- conversion back to NumPy
+
+Recent scheduler timing has shown `avg_compose` in the same general range as `avg_gpu_batch`, while compose queue wait remains low. That means the work itself is expensive, not merely underprovisioned.
+
+Current recommendation:
+
+1. Rewrite compose to stay NumPy / OpenCV only.
+2. Operate only on the ROI instead of rebuilding full PIL images.
+3. Reuse precomputed mask arrays and crop coordinates directly.
+4. Treat more compose workers only as a temporary queueing tool, not as the real fix.
+
+#### 2. Whisper prep still competes with live generation on the same GPU
+
+`scripts/hls_gpu_scheduler.py` still performs full audio feature extraction and full Whisper prompt generation during `_prepare_job(...)`.
+
+`musetalk/utils/audio_processor.py` still runs `whisper.encoder(...)` on the main generation GPU.
+
+That means concurrent stream starts can steal GPU time from streams that are already live.
+
+Current recommendation:
+
+1. Prepare only enough audio / Whisper prompts for the first chunk or two.
+2. Continue the rest of prep in the background after the stream is admitted.
+3. If startup interference remains severe, move Whisper prep to CPU or a separate GPU path.
+
+#### 3. PE is still paid every scheduler turn
+
+The shared HLS scheduler still runs `self.manager.pe(audio_inputs)` inside every generation batch.
+
+Once Whisper prompts are known, PE output is deterministic and can be precomputed.
+
+Current recommendation:
+
+1. Precompute PE outputs during prep or just-in-time chunk staging.
+2. Feed the scheduler precomputed PE tensors instead of raw Whisper prompts.
+3. Re-measure `avg_gpu_batch` after PE is removed from the live loop.
+
+#### 4. Batch assembly still has Python and copy overhead
+
+The scheduler still builds latent index lists in Python, concatenates tensors on CPU, and copies assembled batches to GPU every turn.
+
+Current recommendation:
+
+1. Reduce Python-side latent index construction.
+2. Use more contiguous tensor gathering for latent cycles.
+3. Pin or stage frequently reused CPU tensors where practical.
+4. Measure whether assembly and copy time fall after these changes.
+
+#### 5. VAE decode forces an immediate GPU-to-CPU sync
+
+`musetalk/models/vae.py` still converts decoded batches immediately to CPU NumPy arrays.
+
+That forces synchronization and locks the current architecture into CPU compose.
+
+Current recommendation:
+
+1. Keep this as a later, larger refactor.
+2. If compose optimization alone is not enough, evaluate keeping decoded tensors on GPU longer and moving more of compose off CPU.
+
+#### 6. Per-chunk ffmpeg remains overhead, but it is not the first thing to chase
+
+The reverted baseline still spawns ffmpeg per segment. That cost is real, but the earlier persistent-encoder experiment showed it was not the primary reason for the `~5.2s` steady-state segment cadence on the RTX 3090.
+
+Current recommendation:
+
+1. Do not make player / serving changes the primary focus right now.
+2. Revisit encode architecture only after compose and prep competition are addressed.
+
+### Recommended implementation order
+
+1. Optimize CPU compose in `scripts/api_avatar.py` and `musetalk/utils/blending.py`.
+2. Stop full upfront GPU Whisper prep from competing with live generation.
+3. Precompute PE outputs so the live scheduler pays less per turn.
+4. Tighten scheduler batch assembly and copy overhead.
+5. Re-test `torch.compile` or a newer PyTorch / CUDA stack only after the above are measured.
+6. Consider GPU-side compose / decode retention only if the simpler wins are not enough.
+
+### What to avoid in the next cycle
+
+1. Do not reopen HLS player or manifest experiments while backend throughput is still the limiting factor.
+2. Do not assume more compose or encode workers will materially change the ceiling when queue wait is already low.
+3. Do not expect `batch_size` tuning alone to remove buffering at `concurrency=8`.
+4. Do not treat VRAM headroom as evidence that the machine has more realtime throughput available.
+
+### Short operational read
+
+At the moment, the safest mental model is:
+
+- the browser buffers because the backend is producing live media too slowly
+- the biggest remaining software opportunity is CPU compose plus GPU prep contention
+- player tuning can improve perceived smoothness, but not remove a backend cadence deficit
+
 ## Current Bottom Line
 
 Based on the full debugging cycle so far:

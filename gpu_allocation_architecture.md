@@ -814,3 +814,24 @@ At the current state of the codebase:
    - prep
    - compose
    - model-path speed
+
+### March 15 Post-Revert Optimization Direction
+
+After reverting the player and serving experiments, the HLS browser path is back to generating live chunks correctly. The remaining problem is buffering under concurrent load, which means the backend is still producing live media slower than playback consumes it.
+
+The ranked backend focus areas are now:
+
+1. **CPU compose cost** in `scripts/api_avatar.py` and `musetalk/utils/blending.py`
+2. **GPU Whisper prep contention** in `scripts/hls_gpu_scheduler.py` and `musetalk/utils/audio_processor.py`
+3. **Repeated PE work** inside the live scheduler
+4. **Scheduler batch assembly / copy overhead**
+5. **Later architectural work** such as keeping decoded VAE output on GPU longer
+
+Practical rule:
+
+- if `avg_segment_interval_s > segment_duration`, the player will eventually buffer
+- therefore the next throughput cycle should remain backend-only until cadence improves measurably
+
+The detailed file-level plan now lives in `gpu_allocation_improvement.md` under:
+
+- `March 15 Post-Revert Throughput Plan`
