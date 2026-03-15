@@ -94,19 +94,77 @@ def get_image(image, face, face_box, upper_boundary_ratio=0.5, expand=1.5, mode=
 
 
 def get_image_blending(image, face, face_box, mask_array, crop_box):
-    body = Image.fromarray(image[:,:,::-1])
-    face = Image.fromarray(face[:,:,::-1])
+    """
+    Blend a resized talking-face ROI back into the avatar frame.
+
+    The original implementation converted the whole frame and ROI to PIL for
+    every output frame. That adds significant CPU overhead on the live HLS hot
+    path. This version keeps the operation in NumPy/OpenCV space while
+    preserving the same masked-paste semantics.
+    """
+    if image is None or face is None:
+        return image
 
     x, y, x1, y1 = face_box
     x_s, y_s, x_e, y_e = crop_box
-    face_large = body.crop(crop_box)
+    height, width = image.shape[:2]
 
-    mask_image = Image.fromarray(mask_array)
-    mask_image = mask_image.convert("L")
-    face_large.paste(face, (x-x_s, y-y_s, x1-x_s, y1-y_s))
-    body.paste(face_large, crop_box[:2], mask_image)
-    body = np.array(body)
-    return body[:,:,::-1]
+    crop_w = max(0, x_e - x_s)
+    crop_h = max(0, y_e - y_s)
+    if crop_w <= 0 or crop_h <= 0:
+        return image
+
+    clip_x0 = max(0, x_s)
+    clip_y0 = max(0, y_s)
+    clip_x1 = min(width, x_e)
+    clip_y1 = min(height, y_e)
+    if clip_x0 >= clip_x1 or clip_y0 >= clip_y1:
+        return image
+
+    mask_x0 = clip_x0 - x_s
+    mask_y0 = clip_y0 - y_s
+    mask_x1 = mask_x0 + (clip_x1 - clip_x0)
+    mask_y1 = mask_y0 + (clip_y1 - clip_y0)
+
+    base_roi = image[clip_y0:clip_y1, clip_x0:clip_x1]
+    overlay_roi = base_roi.copy()
+
+    full_face_x0 = x - x_s
+    full_face_y0 = y - y_s
+    full_face_x1 = full_face_x0 + face.shape[1]
+    full_face_y1 = full_face_y0 + face.shape[0]
+
+    place_x0 = max(mask_x0, full_face_x0)
+    place_y0 = max(mask_y0, full_face_y0)
+    place_x1 = min(mask_x1, full_face_x1)
+    place_y1 = min(mask_y1, full_face_y1)
+
+    if place_x0 < place_x1 and place_y0 < place_y1:
+        dst_x0 = place_x0 - mask_x0
+        dst_y0 = place_y0 - mask_y0
+        dst_x1 = place_x1 - mask_x0
+        dst_y1 = place_y1 - mask_y0
+
+        src_x0 = place_x0 - full_face_x0
+        src_y0 = place_y0 - full_face_y0
+        src_x1 = place_x1 - full_face_x0
+        src_y1 = place_y1 - full_face_y0
+
+        overlay_roi[dst_y0:dst_y1, dst_x0:dst_x1] = face[src_y0:src_y1, src_x0:src_x1]
+
+    mask_roi = mask_array[mask_y0:mask_y1, mask_x0:mask_x1]
+    if mask_roi.ndim == 3:
+        mask_roi = mask_roi[:, :, 0]
+
+    alpha = mask_roi.astype(np.float32) / 255.0
+    alpha = alpha[:, :, None]
+    blended_roi = (
+        overlay_roi.astype(np.float32) * alpha
+        + base_roi.astype(np.float32) * (1.0 - alpha)
+    ).astype(np.uint8)
+
+    image[clip_y0:clip_y1, clip_x0:clip_x1] = blended_roi
+    return image
 
 
 def get_image_prepare_material(image, face_box, upper_boundary_ratio=0.5, expand=1.5, fp=None, mode="raw"):

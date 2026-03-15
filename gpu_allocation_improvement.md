@@ -1128,10 +1128,40 @@ Eight streams (improved run): 1704 frames / 93.9s wall = 18.1 fps
 Effective cadence-based estimate: 96 demanded fps / 5.126s interval = 18.7 fps
 ```
 
+Latest March 15 post-compose / PE refactor reference point:
+
+```json
+{
+  "concurrency": 8,
+  "avg_time_to_live_ready_s": 3.282,
+  "avg_segment_interval_s": 2.301,
+  "max_segment_interval_s": 3.521,
+  "wall_time_s": 44.4,
+  "gpu": {
+    "avg_util_pct": 75.18,
+    "peak_util_pct": 100.0,
+    "avg_memory_used_mb": 8998.2,
+    "peak_memory_used_mb": 10588.0
+  }
+}
+```
+
+Representative scheduler-finished lines from that same run:
+
+```text
+avg_gpu_batch ~= 0.73s to 0.81s
+avg_compose ~= 0.12s to 0.14s
+avg_encode ~= 0.47s to 0.68s
+first_chunk ~= 2.04s to 3.67s
+post_gen_drain ~= 0.64s to 3.56s
+```
+
+This is the first run in the current HLS architecture that clearly breaks out of the older `~5.1-5.2s` interval band. The compose rewrite and CPU-side PE precompute materially improved both startup and steady-state cadence on the RTX 3090.
+
 This reinforces the same conclusion:
 
 - the system can still be improved around the edges
-- but the overall aggregate generation ceiling remains in the same `18-20 fps` band
+- however, the old `18-20 fps` aggregate ceiling estimate is now clearly stale for the current code path and must be re-measured from the new baseline before being treated as authoritative
 
 The batch size affects per-tick latency but not aggregate throughput in a meaningful way:
 
@@ -2290,6 +2320,52 @@ The current recommendation is:
    - startup prep structure
    - CPU compose cost
    - model-path speed
+
+### March 15 refactor result update
+
+After the backend-only compose and PE refactor, the RTX 3090 produced a much better `concurrency=8`, `24/12`, `batch_size=2` run:
+
+```json
+{
+  "avg_time_to_live_ready_s": 3.282,
+  "avg_segment_interval_s": 2.301,
+  "max_segment_interval_s": 3.521,
+  "wall_time_s": 44.4,
+  "gpu": {
+    "avg_util_pct": 75.18,
+    "peak_util_pct": 100.0,
+    "avg_memory_used_mb": 8998.2,
+    "peak_memory_used_mb": 10588.0
+  }
+}
+```
+
+Relative to the prior reverted-baseline result around:
+
+- `avg_time_to_live_ready_s ≈ 8.733`
+- `avg_segment_interval_s ≈ 5.223`
+- `wall_time_s ≈ 96.3`
+
+this is a major step forward:
+
+1. startup became roughly 2.7x faster
+2. steady-state cadence became roughly 2.3x better
+3. wall time became roughly 2.2x better
+4. average GPU utilization rose sharply, which indicates the GPU is being fed much more consistently
+
+Representative server-side scheduler timings for the same run:
+
+- `avg_gpu_batch ≈ 0.727s to 0.813s`
+- `avg_compose ≈ 0.122s to 0.140s`
+- `avg_encode ≈ 0.466s to 0.681s`
+- `first_chunk ≈ 2.04s to 3.67s`
+
+Interpretation:
+
+1. The old compose implementation was a real bottleneck.
+2. Repeated PE work inside the live GPU loop was also a real bottleneck.
+3. The current system is still technically throttled at `concurrency=8`, but it is now in a much healthier regime.
+4. The next bottleneck investigation should be based on this new baseline, not the older `~5.2s` interval runs.
 
 This is not square one. The experiment ruled out one major hypothesis:
 

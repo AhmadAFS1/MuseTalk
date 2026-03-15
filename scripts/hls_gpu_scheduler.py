@@ -21,7 +21,7 @@ class HLSStreamJob:
     chunk_output_dir: Path
     generation_fps: int
     batch_size: int
-    whisper_chunks: object
+    conditioning_chunks: object
     total_frames: int
     frames_per_chunk: int
     startup_chunk_frames: int
@@ -131,8 +131,8 @@ class HLSGPUStreamScheduler:
             thread_name_prefix="hls-compose",
         )
 
-        # Encode: each stream has its own persistent ffmpeg pipe,
-        # but the submit_frames calls still need thread workers.
+        # Encode runs in worker threads because each ready chunk still performs
+        # ffmpeg work off the main GPU scheduler loop.
         effective_encode = max(
             6,
             int(encode_workers),
@@ -149,6 +149,7 @@ class HLSGPUStreamScheduler:
         self.jobs: Dict[str, HLSStreamJob] = {}
         self.preparing_requests: set[str] = set()
         self.selection_cursor = 0
+        self._cpu_pe_cache: Dict[tuple[int, str], torch.Tensor] = {}
 
     def start(self) -> None:
         if self.scheduler_thread is not None:
@@ -326,6 +327,7 @@ class HLSGPUStreamScheduler:
                 audio_padding_length_left=self.manager.args.audio_padding_length_left,
                 audio_padding_length_right=self.manager.args.audio_padding_length_right,
             ).detach().cpu().contiguous()
+            conditioning_chunks = self._apply_positional_encoding_cpu(whisper_chunks)
             whisper_chunk_s = time.time() - whisper_chunk_start
 
             if cancel_event.is_set():
@@ -334,7 +336,7 @@ class HLSGPUStreamScheduler:
                 )
                 return
 
-            total_frames = int(len(whisper_chunks))
+            total_frames = int(len(conditioning_chunks))
             frames_per_chunk = max(1, int(round(session.segment_duration * generation_fps)))
             startup_chunk_frames = self._startup_chunk_frames(frames_per_chunk, generation_fps)
             startup_chunk_count = self.startup_chunk_count if startup_chunk_frames < frames_per_chunk else 0
@@ -366,7 +368,7 @@ class HLSGPUStreamScheduler:
                 chunk_output_dir=session.segment_dir / request_id,
                 generation_fps=generation_fps,
                 batch_size=max(1, int(session.batch_size)),
-                whisper_chunks=whisper_chunks,
+                conditioning_chunks=conditioning_chunks,
                 total_frames=total_frames,
                 frames_per_chunk=frames_per_chunk,
                 startup_chunk_frames=startup_chunk_frames,
@@ -638,24 +640,31 @@ class HLSGPUStreamScheduler:
         total_batch = sum(take for _, take in selected)
         lease_batch_size = self._memory_bucket(total_batch)
 
-        whisper_slices = []
+        conditioning_slices = []
         latent_slices = []
 
         for job, take in selected:
             if job.first_scheduled_at is None:
                 job.first_scheduled_at = batch_started_at
-            whisper_slices.append(job.whisper_chunks[job.current_frame_idx: job.current_frame_idx + take])
-            latent_cycle = getattr(job.avatar, "input_latent_cycle_tensor", None)
+            conditioning_slices.append(
+                job.conditioning_chunks[job.current_frame_idx: job.current_frame_idx + take]
+            )
+            latent_cycle = getattr(
+                job.avatar,
+                "input_latent_cycle_batch_tensor",
+                getattr(job.avatar, "input_latent_cycle_tensor", None),
+            )
             if isinstance(latent_cycle, torch.Tensor):
                 cycle_len = latent_cycle.shape[0]
-                latent_indices = [
-                    (job.start_offset_frames + job.current_frame_idx + rel_index) % cycle_len
-                    for rel_index in range(take)
-                ]
-                latent_index_tensor = torch.tensor(
-                    latent_indices,
-                    device=latent_cycle.device,
-                    dtype=torch.long,
+                start_index = job.start_offset_frames + job.current_frame_idx
+                latent_index_tensor = (
+                    torch.arange(
+                        start_index,
+                        start_index + take,
+                        device=latent_cycle.device,
+                        dtype=torch.long,
+                    )
+                    % cycle_len
                 )
                 gathered_latents = latent_cycle.index_select(0, latent_index_tensor)
                 if gathered_latents.dim() == 5 and gathered_latents.shape[1] == 1:
@@ -673,7 +682,7 @@ class HLSGPUStreamScheduler:
             job.scheduler_turns += 1
 
         assembly_finished_at = time.time()
-        whisper_batch = torch.cat(whisper_slices, dim=0)
+        conditioning_batch = torch.cat(conditioning_slices, dim=0)
         latent_batch = torch.cat(latent_slices, dim=0)
 
         actual_batch = total_batch
@@ -690,17 +699,17 @@ class HLSGPUStreamScheduler:
 
         if padded_batch > actual_batch:
             pad_n = padded_batch - actual_batch
-            whisper_batch = torch.cat([whisper_batch, whisper_batch[:pad_n]], dim=0)
+            conditioning_batch = torch.cat([conditioning_batch, conditioning_batch[:pad_n]], dim=0)
             latent_batch = torch.cat([latent_batch, latent_batch[:pad_n]], dim=0)
 
         with self.manager.gpu_memory.allocate(lease_batch_size):
             runtime_context = torch.no_grad if getattr(self.manager, "models_compiled", False) else torch.inference_mode
             with runtime_context():
                 copy_started_at = time.time()
-                audio_inputs = whisper_batch.to(self.manager.device, non_blocking=True)
-                # Use the whisper_batch dtype (already correct from prep)
-                # instead of self.manager.unet.model.dtype which may fail on compiled model
-                target_dtype = audio_inputs.dtype
+                audio_feature_batch = conditioning_batch.to(self.manager.device, non_blocking=True)
+                # Use the prepared conditioning dtype instead of asking the
+                # compiled model wrapper for dtype metadata.
+                target_dtype = audio_feature_batch.dtype
                 latent_batch = latent_batch.to(
                     device=self.manager.device,
                     dtype=target_dtype,
@@ -708,9 +717,8 @@ class HLSGPUStreamScheduler:
                 )
                 copy_finished_at = time.time()
 
-                pe_started_at = time.time()
-                audio_feature_batch = self.manager.pe(audio_inputs)
-                pe_finished_at = time.time()
+                pe_started_at = copy_finished_at
+                pe_finished_at = copy_finished_at
 
                 unet_started_at = time.time()
                 pred_latents = self.manager.unet.model(
@@ -1121,6 +1129,25 @@ class HLSGPUStreamScheduler:
         if remaining_frames > 0:
             chunk_count += int(math.ceil(remaining_frames / frames_per_chunk))
         return chunk_count
+
+    def _apply_positional_encoding_cpu(self, audio_prompts: torch.Tensor) -> torch.Tensor:
+        if not isinstance(audio_prompts, torch.Tensor) or audio_prompts.dim() != 3:
+            return audio_prompts
+
+        pe_buffer = getattr(self.manager.pe, "pe", None)
+        if pe_buffer is None:
+            return audio_prompts
+
+        cache_key = (audio_prompts.shape[1], str(audio_prompts.dtype))
+        pe_slice = self._cpu_pe_cache.get(cache_key)
+        if pe_slice is None:
+            pe_slice = pe_buffer[:, :audio_prompts.shape[1], :].detach().to(
+                device="cpu",
+                dtype=audio_prompts.dtype,
+            ).contiguous()
+            self._cpu_pe_cache[cache_key] = pe_slice
+
+        return (audio_prompts + pe_slice).contiguous()
 
     @staticmethod
     def _memory_bucket(batch_size: int) -> int:

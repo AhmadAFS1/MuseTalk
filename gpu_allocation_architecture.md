@@ -540,6 +540,35 @@ This is a real improvement in wall time and jitter, but it still implies the sam
 
 So the newer work improved overhead and stability, but it did not fundamentally move the hardware throughput limit.
 
+Latest March 15 post-compose / PE refactor result on the same profile:
+
+```json
+{
+  "avg_time_to_live_ready_s": 3.282,
+  "avg_segment_interval_s": 2.301,
+  "max_segment_interval_s": 3.521,
+  "wall_time_s": 44.4,
+  "gpu": {
+    "avg_util_pct": 75.18,
+    "peak_util_pct": 100.0,
+    "peak_memory_used_mb": 10588.0
+  }
+}
+```
+
+Representative scheduler timings from that run:
+
+- `avg_gpu_batch ≈ 0.727s to 0.813s`
+- `avg_compose ≈ 0.122s to 0.140s`
+- `avg_encode ≈ 0.466s to 0.681s`
+- `first_chunk ≈ 2.04s to 3.67s`
+
+Interpretation:
+
+- the compose rewrite and CPU-side PE precompute materially improved startup and steady-state cadence
+- the previous `~5.1-5.2s` interval band is no longer the active baseline
+- the old aggregate `18-20 fps` ceiling estimate now needs to be recalculated against the new code path before it is treated as a hard constant
+
 This means:
 - At `musetalk_fps=12`: 1 stream needs 12 fps (GPU can sustain), 8 streams need 96 fps (5.3x deficit)
 - At `musetalk_fps=6`:  1 stream needs 6 fps (easy), 8 streams need 48 fps (2.7x deficit)
@@ -757,6 +786,11 @@ What this experiment proved:
    - `wall_time_s ≈ 96.3`
    - `avg_time_to_live_ready_s ≈ 8.733`
 3. Therefore the old hypothesis "per-segment ffmpeg spawn is the main cause of the `concurrency=8` ceiling" is not supported by the latest measurements.
+
+Important later update:
+
+- after reverting the player experiments and then refactoring CPU compose plus PE handling in the scheduler, the current best `concurrency=8` run improved to `avg_segment_interval_s ≈ 2.301` and `wall_time_s ≈ 44.4`
+- so the persistent encoder experiment remains a valid negative result, but it is no longer the latest performance baseline
 
 Interpretation:
 

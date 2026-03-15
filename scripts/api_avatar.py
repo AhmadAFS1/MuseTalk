@@ -153,6 +153,7 @@ class APIAvatar:
             "bbox_shift": bbox_shift,
             "version": args.version
         }
+        self._cpu_pe_cache = {}
         
         # Initialize avatar
         self.init(preparation, force_recreate)
@@ -168,6 +169,35 @@ class APIAvatar:
             tensor = tensor.unsqueeze(1)
         self.input_latent_list_cycle = tensor.contiguous()
         self.input_latent_cycle_tensor = self.input_latent_list_cycle
+        if self.input_latent_cycle_tensor.dim() == 5 and self.input_latent_cycle_tensor.shape[1] == 1:
+            self.input_latent_cycle_batch_tensor = self.input_latent_cycle_tensor.squeeze(1).contiguous()
+        else:
+            self.input_latent_cycle_batch_tensor = self.input_latent_cycle_tensor
+
+    def apply_positional_encoding_cpu(self, audio_prompts: torch.Tensor) -> torch.Tensor:
+        """
+        Apply positional encoding on CPU and cache the constant PE slice.
+
+        The PE stage is just an additive buffer, so there is no need to pay for
+        it repeatedly on the live GPU loop.
+        """
+        if not isinstance(audio_prompts, torch.Tensor) or audio_prompts.dim() != 3:
+            return audio_prompts
+
+        pe_buffer = getattr(self.pe, "pe", None)
+        if pe_buffer is None:
+            return audio_prompts
+
+        cache_key = (audio_prompts.shape[1], str(audio_prompts.dtype))
+        pe_slice = self._cpu_pe_cache.get(cache_key)
+        if pe_slice is None:
+            pe_slice = pe_buffer[:, :audio_prompts.shape[1], :].detach().to(
+                device="cpu",
+                dtype=audio_prompts.dtype,
+            ).contiguous()
+            self._cpu_pe_cache[cache_key] = pe_slice
+
+        return (audio_prompts + pe_slice).contiguous()
     
     def init(self, preparation, force_recreate):
         """Initialize avatar - prepare or load existing materials"""
@@ -402,21 +432,10 @@ class APIAvatar:
             except queue.Empty:
                 continue
             
-            # Get corresponding original frame and bbox
-            bbox = self.coord_list_cycle[self.idx % len(self.coord_list_cycle)]
-            ori_frame = self.frame_list_cycle[self.idx % len(self.coord_list_cycle)].copy()
-            x1, y1, x2, y2 = bbox
-            
-            # Resize result frame to bbox size
             try:
-                res_frame = cv2.resize(res_frame.astype(np.uint8), (x2 - x1, y2 - y1))
-            except:
+                combine_frame = self.compose_frame(res_frame, self.idx)
+            except Exception:
                 continue
-            
-            # Blend with mask
-            mask = self.mask_list_cycle[self.idx % len(self.mask_list_cycle)]
-            mask_crop_box = self.mask_coords_list_cycle[self.idx % len(self.mask_coords_list_cycle)]
-            combine_frame = get_image_blending(ori_frame, res_frame, bbox, mask, mask_crop_box)
             
             # Save frame if needed
             if not skip_save_images:
@@ -460,12 +479,13 @@ class APIAvatar:
             fps=fps,
             audio_padding_length_left=self.args.audio_padding_length_left,
             audio_padding_length_right=self.args.audio_padding_length_right,
-        )
+        ).detach().cpu().contiguous()
+        conditioning_chunks = self.apply_positional_encoding_cpu(whisper_chunks)
         
         print(f"   Audio processing took {(time.time() - start_time) * 1000:.0f}ms")
         
         # Setup frame processing
-        video_num = len(whisper_chunks)
+        video_num = len(conditioning_chunks)
         res_frame_queue = queue.Queue()
         self.idx = 0
         
@@ -477,7 +497,7 @@ class APIAvatar:
         process_thread.start()
         
         # Generate frames batch by batch
-        gen = datagen(whisper_chunks, self.input_latent_list_cycle, self.batch_size)
+        gen = datagen(conditioning_chunks, self.input_latent_list_cycle, self.batch_size)
         start_time = time.time()
         
         for whisper_batch, latent_batch in tqdm(
@@ -485,8 +505,13 @@ class APIAvatar:
             total=int(np.ceil(float(video_num) / self.batch_size)),
             desc="Generating frames"
         ):
-            # Encode audio features
-            audio_feature_batch = self.pe(whisper_batch.to(device))
+            # Positional encoding was precomputed on CPU; only copy the final
+            # conditioning states needed by the UNet batch.
+            audio_feature_batch = whisper_batch.to(
+                device=device,
+                dtype=self.unet_dtype,
+                non_blocking=True,
+            )
             latent_batch = latent_batch.to(device=device, dtype=self.unet_dtype)
             
             # Run UNet
@@ -580,7 +605,9 @@ class APIAvatar:
         ori_frame = self.frame_list_cycle[cycle_index % len(self.frame_list_cycle)].copy()
         x1, y1, x2, y2 = bbox
 
-        res_frame_resized = cv2.resize(res_frame.astype(np.uint8), (x2 - x1, y2 - y1))
+        if res_frame.dtype != np.uint8:
+            res_frame = res_frame.astype(np.uint8)
+        res_frame_resized = cv2.resize(res_frame, (x2 - x1, y2 - y1))
         mask = self.mask_list_cycle[cycle_index % len(self.mask_list_cycle)]
         mask_crop_box = self.mask_coords_list_cycle[cycle_index % len(self.mask_coords_list_cycle)]
         return get_image_blending(ori_frame, res_frame_resized, bbox, mask, mask_crop_box)
@@ -692,12 +719,13 @@ class APIAvatar:
             librosa_length, fps=fps,
             audio_padding_length_left=self.args.audio_padding_length_left,
             audio_padding_length_right=self.args.audio_padding_length_right,
-        )
+        ).detach().cpu().contiguous()
+        conditioning_chunks = self.apply_positional_encoding_cpu(whisper_chunks)
         whisper_chunk_elapsed = time.time() - whisper_chunk_start
         print(f"✓ Whisper chunks created ({whisper_chunk_elapsed:.3f}s)")
         
         audio_elapsed = time.time() - audio_start
-        video_num = len(whisper_chunks)
+        video_num = len(conditioning_chunks)
         frames_per_chunk = int(chunk_duration_seconds * fps)
         total_chunks = int(np.ceil(video_num / frames_per_chunk))
         
@@ -748,7 +776,7 @@ class APIAvatar:
             print(f"INFO: start_offset_frames={start_offset_frames} ({offset_seconds:.2f}s)")
 
         gen = datagen(
-            whisper_chunks,
+            conditioning_chunks,
             self.input_latent_list_cycle,
             self.batch_size,
             delay_frame=start_offset_frames,
@@ -771,7 +799,11 @@ class APIAvatar:
                 print(f"    🔁 Batch {batch_index}/{total_batches} in progress")
 
             # Generate batch (no per-batch logging)
-            audio_feature_batch = self.pe(whisper_batch.to(device))
+            audio_feature_batch = whisper_batch.to(
+                device=device,
+                dtype=self.unet_dtype,
+                non_blocking=True,
+            )
             
             latent_batch = latent_batch.to(device=device, dtype=self.unet_dtype)
             pred_latents = self.unet.model(
@@ -787,17 +819,8 @@ class APIAvatar:
                 if cancel_requested("frame processing"):
                     return
 
-                # Blend frame
                 cycle_index = frame_idx + start_offset_frames
-                bbox = self.coord_list_cycle[cycle_index % len(self.coord_list_cycle)]
-                ori_frame = self.frame_list_cycle[cycle_index % len(self.frame_list_cycle)].copy()
-                x1, y1, x2, y2 = bbox
-                
-                res_frame_resized = cv2.resize(res_frame.astype(np.uint8), (x2 - x1, y2 - y1))
-                mask = self.mask_list_cycle[cycle_index % len(self.mask_list_cycle)]
-                mask_crop_box = self.mask_coords_list_cycle[cycle_index % len(self.mask_coords_list_cycle)]
-                
-                combine_frame = get_image_blending(ori_frame, res_frame_resized, bbox, mask, mask_crop_box)
+                combine_frame = self.compose_frame(res_frame, cycle_index)
                 frame_buffer.append(combine_frame)
                 frame_idx += 1
 
