@@ -19,6 +19,7 @@ A comprehensive guide to understanding the backend flow of the MuseTalk Real-Tim
 - [Component Deep Dive](#component-deep-dive)
 - [Memory Management](#memory-management)
 - [GPU Throttling Analysis](#gpu-throttling-analysis)
+- [HLS Scheduler Deep Dive](#hls-scheduler-deep-dive)
 - [Performance Optimizations](#performance-optimizations)
 - [Load Testing](#load-testing)
 - [File Structure](#file-structure)
@@ -97,6 +98,7 @@ Manages all avatars, coordinates GPU resources, and handles concurrent inference
 - Thread pool for parallel inference.
 - Integration with `AvatarCache` and `GPUMemoryManager`.
 - Request tracking and status management.
+- Per-avatar load locks to prevent duplicate cold loads.
 
 ### 3. **[api_avatar.py](scripts/api_avatar.py)** - Avatar Processing Engine
 A **completely rewritten** version of [`realtime_inference.py`](scripts/realtime_inference.py), designed for server/API usage without user prompts.
@@ -125,6 +127,8 @@ Manages GPU memory budget to prevent OOM errors during concurrent inference.
 - Context manager for safe allocation/release.
 - Blocking allocation when memory insufficient.
 
+**Important Note:** The HLS scheduler bypasses this module's lease system by using `_memory_bucket=1`. The scheduler runs one batch at a time in a serial loop and only needs a single minimal lease. The full memory manager remains relevant for SSE and non-HLS inference paths.
+
 ### 6. **[session_manager.py](scripts/session_manager.py)** - Session Orchestration
 Manages per-user streaming sessions for real-time chunk delivery.
 
@@ -132,6 +136,16 @@ Manages per-user streaming sessions for real-time chunk delivery.
 - Per-session chunk queues for SSE delivery.
 - Session TTL tracking and background cleanup.
 - Active stream tracking to prevent duplicate streams.
+
+### 7. **[hls_gpu_scheduler.py](scripts/hls_gpu_scheduler.py)** - HLS GPU Stream Scheduler
+The shared GPU scheduler that batches work across all active HLS streams.
+
+**Key Features:**
+- Single scheduler thread drives all HLS generation.
+- Batches frames from multiple streams into one GPU forward pass.
+- Separate prep, compose, and encode worker pools.
+- Startup fairness: new streams get a small initial slice before warmed streams.
+- Round 3 fill: always fills remaining GPU capacity across all schedulable jobs.
 
 ---
 
@@ -465,6 +479,20 @@ GPU Memory Usage (batch_size=2):
 └── Total: ~8.5GB
 ```
 
+### VRAM Budget for Batched HLS Scheduling (RTX 3090, 24GB)
+```
+Model weights (UNet+VAE+PE+Whisper):    ~2.5GB (always resident)
+Avatar cache (1-3 loaded avatars):       ~1-2GB
+PyTorch allocator overhead:              ~1GB
+Available for batch activations:         ~18-19GB
+
+Per-frame activation cost during UNet+VAE forward pass: ~250-400MB
+Max safe combined batch size: 18GB ÷ 0.35GB ≈ 48-52 frames
+
+Current default max_combined_batch_size=32 uses ~11GB for activations.
+This leaves ~7-8GB of headroom for avatar cache and overhead.
+```
+
 ---
 
 ## 🔥 GPU Throttling Analysis
@@ -478,6 +506,21 @@ Earlier load testing showed **GPU utilization hitting 100% and segment delivery 
 - `concurrency=3` still shows clear throughput throttling
 
 This remains a **compute-bound bottleneck**, not a memory bottleneck, but the bottleneck now appears mainly under shared load rather than in the single-stream baseline.
+
+### The Hardware Throughput Ceiling
+
+The RTX 3090 produces approximately **18-20 frames per second** of MuseTalk output (PE + UNet + VAE combined at float16 precision). This has been validated empirically:
+
+```
+Single stream:   213 frames / 11.4s = 18.7 fps
+Eight streams:  1704 frames / 99.7s = 17.1 fps
+Ratio: 0.91x — aggregate throughput is nearly identical
+```
+
+This means:
+- At `musetalk_fps=12`: 1 stream needs 12 fps (GPU can sustain), 8 streams need 96 fps (5.3x deficit)
+- At `musetalk_fps=6`:  1 stream needs 6 fps (easy), 8 streams need 48 fps (2.7x deficit)
+- At `musetalk_fps=3`:  1 stream needs 3 fps (trivial), 8 streams need 24 fps (1.3x deficit)
 
 ### Root Cause Diagram
 
@@ -500,450 +543,21 @@ This remains a **compute-bound bottleneck**, not a memory bottleneck, but the bo
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+Note: The HLS scheduler now batches frames from multiple streams into a single GPU forward pass, which is materially better than the per-thread serialization shown above. However, aggregate throughput is still bounded by the UNet+VAE compute cost per frame.
+
 ### Root Causes (Ranked by Impact)
 
-| # | Cause | Component | Severity |
-|---|-------|-----------|----------|
-| 1 | **Single CUDA stream serialization** | `avatar_manager_parallel.py` | 🔴 Critical |
-| 2 | **batch_size=2 under-utilizes GPU SMs** | `api_avatar.py` | 🔴 Critical |
-| 3 | **Python GIL contention between CUDA calls** | `avatar_manager_parallel.py` | 🟡 High |
-| 4 | **No compute-aware admission control** | `concurrent_gpu_manager.py` | 🟡 High |
-| 5 | **Many sequential GPU kernels per frame** | `api_avatar.py` | 🟠 Medium |
-
-### Cause 1: Single CUDA Stream Serialization
-
-`ParallelAvatarManager` uses a **ThreadPoolExecutor** for inference. However, all CUDA operations submitted from any thread execute on the **default CUDA stream**, which is serial. Two threads submitting GPU work don't run in parallel — they queue behind each other.
-
-```
-ThreadPoolExecutor (looks parallel)
-├── Thread 1: session_A inference → CUDA kernels ──┐
-├── Thread 2: session_B inference → CUDA kernels ──┤
-│                                                   │
-│   Reality on GPU:                                 ▼
-│   [A kernel 1][A kernel 2][B kernel 1][B kernel 2]  ← serial
-```
-
-**Impact**: At concurrency=2, wall time nearly doubles. GPU shows 100% because it is constantly busy with small operations plus Python overhead between them, but no actual parallelism occurs.
-
-### Cause 2: Small Batch Size Under-Utilizes GPU
-
-At `batch_size=2`, each UNet/VAE forward pass processes only 2 frames. Modern GPUs have thousands of CUDA cores; a batch of 2 leaves most streaming multiprocessors (SMs) idle during each kernel, but the per-kernel launch overhead and memory transfer costs are still paid in full.
-
-```
-GPU SM Utilization at Various Batch Sizes:
-├── batch_size=2:  ~15-25% SM occupancy per kernel
-├── batch_size=4:  ~30-50% SM occupancy per kernel
-├── batch_size=8:  ~60-80% SM occupancy per kernel
-└── batch_size=16: ~85-95% SM occupancy per kernel
-```
-
-The paradox: GPU utilization reads 100% (always busy), but **throughput is low** because each kernel is inefficient.
-
-### Cause 3: Python GIL Contention
-
-Between every CUDA kernel launch, the Python Global Interpreter Lock (GIL) must be acquired to set up the next operation. With a ThreadPoolExecutor, multiple inference threads contend for the GIL, adding latency between GPU operations.
-
-```
-Thread 1: [CUDA kernel]──[acquire GIL]──[Python setup]──[release GIL]──[CUDA kernel]
-Thread 2:                 [wait GIL ↓ ]──[acquire GIL]──[Python setup]──[release GIL]──[wait GIL]
-                          └─ wasted time ─┘
-```
-
-### Cause 4: Memory Gate Without Compute Gate
-
-`GPUMemoryManager` tracks VRAM allocation but has **no concept of compute budget**. When VRAM is available, it admits concurrent requests. But each admitted request adds more serialized GPU work, driving utilization to 100% without improving throughput.
-
-```
-GPUMemoryManager check: "8GB free? Admit both sessions!"
-                              ↓
-GPU reality: both sessions serialize on the same stream
-                              ↓
-Result: 100% utilization, ~0% parallelism
-```
-
-### Cause 5: Per-Frame Sequential Pipeline
-
-Each frame goes through a multi-step pipeline where each step waits for the previous one:
-
-```
-Per-frame pipeline (all sequential on GPU):
-┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-│ Whisper embed │──▶│  UNet fwd    │──▶│  VAE decode  │──▶│  Face blend  │
-│   (~2ms)      │   │  (~15ms)     │   │   (~5ms)     │   │   (~3ms)     │
-└──────────────┘   └──────────────┘   └──────────────┘   └──────────────┘
-                                                                    │
-                                                          ~25ms per frame
-                                                          × 15 fps = 375ms/s
-                                                          Only 2.67× realtime
-```
-
-At `batch_size=2`, ~8 batch iterations are required per 1-second segment. Each iteration has pipeline stall points where the GPU waits for Python to set up the next step.
-
-### HLS Streaming Amplification
-
-For HLS streaming specifically, the problem compounds:
-
-```
-Per 1-second HLS segment (at 15fps, batch_size=2):
-├── 15 frames ÷ 2 per batch = ~8 batch iterations
-├── Each iteration: Whisper + UNet + VAE + Blend = ~25ms × 2 frames
-├── Plus Python overhead between batches: ~5ms × 8 = 40ms
-├── Total GPU time: ~240ms per segment
-│
-│   With 2 concurrent sessions (serialized):
-├── Total GPU time: ~480ms per 1-second segment
-├── Segment delivery interval: 480ms (just under real-time!)
-└── Any additional overhead → segments arrive LATE → throttling
-```
-
----
-
-### Recommended Fixes
-
-#### Fix 1: Inference Compute Semaphore (P0 — Quick Win)
-
-Add a compute-aware semaphore so only one session runs GPU inference at a time. This prevents GPU thrashing from context switching and actually improves throughput under contention.
-
-**File:** `scripts/concurrent_gpu_manager.py`
-
-```python
-import asyncio
-import threading
-
-class GPUMemoryManager:
-    def __init__(self, ...):
-        # ...existing memory tracking...
-
-        # Compute semaphore: limit concurrent GPU inference
-        self._max_concurrent_inference = 1  # start with 1, tune up if headroom
-        self._inference_semaphore = threading.Semaphore(self._max_concurrent_inference)
-        self._async_inference_semaphore = asyncio.Semaphore(self._max_concurrent_inference)
-
-    def acquire_inference_slot(self) -> bool:
-        """Block until an inference slot is available (sync context)."""
-        return self._inference_semaphore.acquire(timeout=120)
-
-    def release_inference_slot(self):
-        self._inference_semaphore.release()
-
-    async def acquire_inference_slot_async(self):
-        """Await until an inference slot is available (async context)."""
-        await self._async_inference_semaphore.acquire()
-
-    def release_inference_slot_async(self):
-        self._async_inference_semaphore.release()
-```
-
-**Usage in `avatar_manager_parallel.py`:**
-```python
-await self.gpu_manager.acquire_inference_slot_async()
-try:
-    result = await loop.run_in_executor(self._executor, self._run_inference, ...)
-finally:
-    self.gpu_manager.release_inference_slot_async()
-```
-
-#### Fix 2: Increase Effective Batch Size (P0 — Biggest Throughput Win)
-
-Increase the default batch size from 2 to 4–8. This is the single highest-impact change.
-
-```
-Throughput improvement (approximate):
-├── batch_size=2:  ~2.7× realtime (barely keeps up)
-├── batch_size=4:  ~4.5× realtime (comfortable headroom)
-├── batch_size=8:  ~6.0× realtime (supports 2 concurrent sessions)
-└── batch_size=16: ~7.5× realtime (diminishing returns)
-```
-
-For concurrent sessions, dynamically scale batch size based on available VRAM:
-
-```python
-def _get_effective_batch_size(self) -> int:
-    """Scale batch size based on available VRAM."""
-    free_mem = self.gpu_manager.get_free_memory_mb()
-    return min(int(free_mem / 1500), 8)  # ~1.5GB per batch unit
-```
-
-#### Fix 3: Dedicated CUDA Streams (P1 — Advanced)
-
-Create per-session CUDA streams to overlap memory transfers with compute:
-
-```python
-import torch
-
-class GPUMemoryManager:
-    def __init__(self, ...):
-        # ...existing code...
-        self._cuda_streams = [torch.cuda.Stream() for _ in range(2)]
-        self._stream_idx = 0
-
-    def get_cuda_stream(self) -> torch.cuda.Stream:
-        stream = self._cuda_streams[self._stream_idx % len(self._cuda_streams)]
-        self._stream_idx += 1
-        return stream
-```
-
-In the inference path:
-```python
-cuda_stream = gpu_manager.get_cuda_stream()
-with torch.cuda.stream(cuda_stream):
-    result = unet(latents, timesteps, encoder_hidden_states)
-    frames = vae.decode(result)
-cuda_stream.synchronize()
-```
-
-#### Fix 4: Cross-Session Batch Aggregation (P1 — Best Scaling)
-
-Instead of each session running `batch_size=2` independently, aggregate frames from multiple sessions into a single larger batch:
-
-```
-Current (serialized, small batches):
-Session A: [batch 2][batch 2][batch 2][batch 2] → Session B: [batch 2][batch 2][batch 2][batch 2]
-
-Proposed (aggregated):
-Combined:  [batch 4 (2×A + 2×B)][batch 4][batch 4][batch 4]
-           ↓                                         ↓
-     Better SM utilization                  Half the iterations
-```
-
-#### Fix Priority Matrix
-
-| Priority | Fix | Effort | Throughput Impact | Latency Impact |
-|----------|-----|--------|-------------------|----------------|
-| 🔴 P0 | Increase `batch_size` to 4–8 | Trivial | +70–120% | Slight increase per-segment |
-| 🔴 P0 | Inference semaphore | Low | Prevents thrashing | Queues instead of contends |
-| 🟡 P1 | Cross-session batch aggregation | Medium | +100–200% at concurrency≥2 | Amortized |
-| 🟡 P1 | Dedicated CUDA streams | Medium | +20–40% overlap | Reduced stalls |
-| 🟢 P2 | ProcessPoolExecutor (bypass GIL) | High | +10–15% | Complex to implement |
-
----
-
-## ⚡ Performance Optimizations
-
-1. **Cyclic Frame Lists**: Smooths first/last frame transitions.
-2. **Background Frame Blending**: Runs blending in parallel with inference.
-3. **Batch Processing**: Processes multiple frames simultaneously.
-4. **Float16 Inference**: Reduces memory usage by 50%.
-5. **Strict Chunk Boundary Slicing**: Prevents oversized HLS segments when the shared scheduler compose buffer crosses a segment boundary.
-6. **NVENC-First HLS Encoding**: Prefers hardware-backed HLS chunk encoding, with `libx264` fallback when NVENC is unavailable.
-
----
-
-## 🧪 Load Testing
-
-### Running the Load Test
-
-```bash
-python load_test.py --base-url http://localhost:8000 \
-                    --avatar-id test_avatar \
-                    --audio-file ./data/audio/ai-assistant.mpga \
-                    --ramp 1,2,3,4,5,6 \
-                    --hold-seconds 120
-```
-
-### CLI Options
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--base-url` | `http://localhost:8000` | API server URL |
-| `--avatar-id` | `test_avatar` | Pre-prepared avatar ID |
-| `--audio-file` | `./data/audio/ai-assistant.mpga` | Audio file to stream |
-| `--concurrency` | (none) | Single-stage shortcut; overrides `--ramp` |
-| `--ramp` | `1,2,3,4,5` | Comma-separated concurrency levels |
-| `--hold-seconds` | `30` | Cool-down seconds between stages |
-| `--segment-duration` | `1.0` | HLS segment duration in seconds |
-| `--playback-fps` | `30` | Player-side FPS |
-| `--musetalk-fps` | `15` | MuseTalk generation FPS |
-| `--batch-size` | `2` | Inference batch size |
-
-Latest validated throughput runs used:
-
-- `--segment-duration 1.0`
-- `--playback-fps 30`
-- `--musetalk-fps 15`
-- `--batch-size 4`
-
-Server-side shared-batch sizing is controlled by the `HLS_SCHEDULER_MAX_BATCH` environment variable. This is read when the backend starts, so change it before launching the API server and restart the server after editing it.
-
-### What the Load Test Measures
-
-For each concurrency level the test:
-1. Creates N HLS sessions simultaneously.
-2. Uploads audio to all sessions at the same instant (coordinated start).
-3. Polls session status and fetches `.ts` segments from `live.m3u8`.
-4. Records per-session metrics: create latency, stream start latency, time to `live_ready`, segment fetch intervals.
-5. Detects throttling when `max_segment_interval > 2 × segment_duration`.
-
-### Interpreting Results
-
-```json
-{
-  "concurrency": 2,
-  "completed": 2,
-  "failed": 0,
-  "avg_time_to_live_ready_s": 3.456,
-  "avg_segment_interval_s": 1.234,
-  "max_segment_interval_s": 2.891,
-  "wall_time_s": 45.2,
-  "errors": []
-}
-```
-
-| Metric | Healthy | Throttled |
-|--------|---------|-----------|
-| `avg_segment_interval_s` | ≤ `segment_duration` × 1.2 | > `segment_duration` × 1.5 |
-| `max_segment_interval_s` | ≤ `segment_duration` × 2.0 | > `segment_duration` × 2.0 |
-| `avg_time_to_live_ready_s` | < 5s | > 10s |
-
-### Latest Validated Results (March 13, 2026)
-
-Using:
-
-- `segment_duration=1.0`
-- `playback_fps=30`
-- `musetalk_fps=15`
-- `batch_size=4`
-- `LIVE_MAX_CONCURRENT_GENERATIONS=6`
-- `HLS_SCHEDULER_MAX_BATCH=20`
-
-Observed results:
-
-| Concurrency | Completed | Avg `live_ready` | Avg segment interval | Max segment interval | Wall time | Interpretation |
-|-------------|-----------|------------------|----------------------|----------------------|-----------|----------------|
-| `1` | `1/1` | `1.53s` | `0.81s` | `1.08s` | `15.0s` | Healthy |
-| `2` | `2/2` | `2.35s` | `1.62s` | `2.16s` | `29.2s` | Near realtime, slight throttle alert |
-| `3` | `3/3` | `2.89s` | `2.43s` | `2.74s` | `44.4s` | Throttled |
-| `4` | `4/4` | `3.36s` | `3.26s` | `3.72s` | `59.7s` | Heavily throttled |
-| `5` | `5/5` | `4.12s` | `4.11s` | `4.71s` | `76.6s` | Saturated |
-| `6` | `6/6` | `4.85s` | `4.94s` | `5.39s` | `90.8s` | Deeply saturated |
-
-These runs are materially better than the earlier scheduler-era baseline and show that the backend is now healthy for one stream, close for two streams, and overloaded from three concurrent streams onward. Higher concurrency is now mostly a stability test rather than a realtime-capacity test.
-
-### High-Concurrency `batch_size=2` Follow-Up (March 13, 2026)
-
-These higher-concurrency runs used:
-
-- `segment_duration=1.0`
-- `playback_fps=30`
-- `musetalk_fps=15`
-- `batch_size=2`
-- `LIVE_MAX_CONCURRENT_GENERATIONS=9`
-- `HLS_SCHEDULER_MAX_BATCH=20`
-
-Observed results:
-
-| Concurrency | Batch Size | Avg `live_ready` | Avg segment interval | Max segment interval | Wall time | Interpretation |
-|-------------|------------|------------------|----------------------|----------------------|-----------|----------------|
-| `4` | `2` | `4.67s` | `3.21s` | `3.79s` | `59.2s` | Heavily throttled |
-| `6` | `2` | `5.50s` | `4.90s` | `5.72s` | `90.3s` | Deeply saturated |
-| `7` | `2` | `19.07s` | `5.74s` | `7.04s` | `120.0s` | Startup fairness collapse |
-| `8` | `2` | `6.63s` | `6.58s` | `7.70s` | `123.0s` | Deeply saturated |
-
-Key takeaways:
-
-- dropping per-stream `batch_size` from `4` to `2` did not materially change aggregate throughput at `concurrency=4` or `6`
-- this suggests the current shared HLS path is limited more by aggregate GPU/model throughput and scheduler fill strategy than by the per-stream batch size alone
-- smaller per-stream batches may improve flexibility and admission headroom, but they do not by themselves create more realtime capacity
-- at `concurrency=7`, startup fairness degraded sharply in the original run even though all sessions still completed, which pointed to scheduler behavior under overload as a separate issue from steady-state throughput
-
-### Scheduler Tuning Follow-Up (March 13, 2026)
-
-A later `concurrency=7` rerun kept:
-
-- `segment_duration=1.0`
-- `playback_fps=30`
-- `musetalk_fps=15`
-- `batch_size=2`
-- `LIVE_MAX_CONCURRENT_GENERATIONS=9`
-- `HLS_SCHEDULER_MAX_BATCH=20`
-
-and added the startup-first / limited-steady-state-fill scheduler tuning.
-
-Observed result:
-
-| Concurrency | Batch Size | Avg `live_ready` | Avg segment interval | Max segment interval | Wall time | Interpretation |
-|-------------|------------|------------------|----------------------|----------------------|-----------|----------------|
-| `7` | `2` | `6.04s` | `5.80s` | `6.91s` | `106.7s` | Better startup, similar steady-state throughput |
-
-Why it sped up:
-
-- startup jobs were given an explicit fairness slice before warmed jobs could consume the rest of the GPU turn
-- warmed jobs were prevented from over-consuming multiple slices per turn once the active set was large
-
-What improved:
-
-- `avg_time_to_live_ready_s` improved sharply versus the earlier `19.07s` result
-- `wall_time_s` improved from `120.0s` to `106.7s`
-- `max_segment_interval_s` improved slightly
-
-What did not improve much:
-
-- `avg_segment_interval_s` stayed roughly flat, which indicates that steady-state throughput is still mostly constrained by aggregate GPU/model throughput rather than scheduler policy alone
-
-### Lower-FPS Profile Follow-Up (March 14, 2026)
-
-These runs kept the shared HLS scheduler setup but lowered the requested stream FPS:
-
-- `segment_duration=1.0`
-- `playback_fps=24`
-- `musetalk_fps=12`
-- `batch_size=2`
-- `LIVE_MAX_CONCURRENT_GENERATIONS=9`
-- `HLS_SCHEDULER_MAX_BATCH=20`
-
-Observed results:
-
-| Concurrency | Batch Size | Avg `live_ready` | Avg segment interval | Max segment interval | Wall time | Interpretation |
-|-------------|------------|------------------|----------------------|----------------------|-----------|----------------|
-| `1` | `2` | `1.51s` | `0.63s` | `1.02s` | `11.4s` | Healthy |
-| `4` | `2` | `3.38s` | `2.56s` | `3.17s` | `46.8s` | Throttled, but better than 15 fps profile |
-| `5` | `2` | `3.65s` | `3.26s` | `4.27s` | `60.9s` | Heavily throttled |
-| `6` | `2` | `4.25s` | `3.97s` | `5.32s` | `73.8s` | Deeply saturated, but improved |
-| `7` | `2` | `4.88s` | `4.57s` | `6.08s` | `85.0s` | Better startup and cadence than 15 fps profile |
-| `8` | `2` | `5.31s` | `5.24s` | `7.13s` | `98.7s` | Still saturated, but materially faster than 15 fps profile |
-
-Key takeaways:
-
-- lowering `musetalk_fps` from `15` to `12` reduces per-stream frame demand by about 20%, and the measured wall time and segment cadence improve by roughly that amount as well
-- the backend still appears to operate near the same aggregate generation ceiling, so the lower-FPS profile helps mainly by asking the model to generate fewer frames per second
-- this is a useful product lever: lower requested generation FPS can materially improve concurrency without any code changes
-- however, even this lower-FPS profile remains throttled from `concurrency=4+`, so it shifts the bottleneck rather than removing it
-
-### Adding GPU Monitoring
-
-To correlate throttling with GPU metrics, add `nvidia-smi` polling to the load test. See the `poll_gpu_stats` helper below for sampling `utilization.gpu` and `memory.used` during each stage, and include `gpu_peak_util_pct`, `gpu_avg_util_pct`, and `gpu_peak_mem_mb` in the `StageReport`.
-
----
-
-## 📁 File Structure
-
-```
-MuseTalk/
-├── api_server.py                      # FastAPI application
-├── load_test.py                       # HLS concurrent session load tester
-├── scripts/
-│   ├── api_avatar.py                  # API-friendly avatar
-│   ├── avatar_manager_parallel.py     # Orchestration layer
-│   ├── avatar_cache.py                # Smart caching
-│   ├── concurrent_gpu_manager.py      # Memory management
-│   ├── session_manager.py             # Session tracking and cleanup
-│   ├── hls_session_manager.py         # HLS session + playlist manager
-│   ├── webrtc_manager.py              # WebRTC session manager
-│   ├── webrtc_tracks.py               # WebRTC tracks (video + audio)
-│   └── realtime_inference.py          # Original CLI version
-├── templates/
-│   ├── session_player.py              # Session player HTML
-│   ├── hls_player.py                  # HLS player HTML
-│   ├── webrtc_player.py               # WebRTC player HTML
-├── uploads/                           # Temporary uploads
-├── results/                           # Outputs
-└── models/                            # Pre-trained weights
-```
-
----
-
-## 🔗 References
-
-- **Original MuseTalk:** [realtime_inference.py](scripts/realtime_inference.py)
-- **Technical Report:** https://arxiv.org/abs/2410.10122
-- **Model Weights:** https://huggingface.co/TMElyralab/MuseTalk
+| # | Cause | Component | Severity | Status |
+|---|-------|-----------|----------|--------|
+| 1 | **Hardware throughput ceiling (~18-20 fps)** | UNet + VAE | 🔴 Critical | Hardware limit |
+| 2 | **`_memory_bucket` deadlock at high batch sizes** | `hls_gpu_scheduler.py` | 🔴 Critical | ✅ Fixed (returns 1) |
+| 3 | **Round 3 fill guard blocking GPU utilization** | `hls_gpu_scheduler.py` | 🔴 Critical | ✅ Fixed (always fills) |
+| 4 | **batch_size=2 under-utilizes GPU SMs** | `api_avatar.py` | 🟡 High | Mitigated by scheduler batching |
+| 5 | **NVENC concurrent session limit** | ffmpeg encode | 🟡 High | Fallback works, persistent encoder planned |
+| 6 | **Python GIL contention between CUDA calls** | `avatar_manager_parallel.py` | 🟠 Medium | Mitigated by single scheduler thread |
+| 7 | **No compute-aware admission control** | `concurrent_gpu_manager.py` | 🟠 Medium | Planned |
+| 8 | **torch.compile broken** | `avatar_manager_parallel.py` | 🟡 High | Blocked by .dtype/.parameters() issues |
+
+### Cause 1: Hardware Throughput Ceiling
+
+The RTX 3090 produces ~18-20 fps of MuseTalk output regardless of batch size or scheduler configuration. Larger batches improve per-tick efficiency (bs=32 is only 1.75x slower than bs=8 but processes

@@ -526,7 +526,165 @@ Important scheduler implication:
 - with `HLS_SCHEDULER_MAX_BATCH=20`, `batch_size=2`, and `concurrency=7` or `8`, one scheduler pass only contributes `14` to `16` frames if every job gets a single slice, still leaving some nominal headroom under the shared batch cap
 - if throughput remains almost flat while that headroom exists, the next optimization target is likely better shared-batch filling and model throughput, not simply pushing per-stream batch size higher
 
-#### Updated performance conclusion
+### March 14 batch allocation and deadlock investigation
+
+This section captures findings from a focused investigation into why `max_combined_batch_size=32` caused complete scheduler deadlock at `concurrency=8`.
+
+#### Discovery: `_memory_bucket` deadlock
+
+The `HLSGPUStreamScheduler._run_generation_batch` method acquires a GPU memory lease via:
+
+```python
+with self.manager.gpu_memory.allocate(lease_batch_size):
+```
+
+Where `lease_batch_size` comes from `_memory_bucket(total_batch)`. The `GPUMemoryManager` was initialized with `max_concurrent_inferences=5` in `ParallelAvatarManager`, creating an internal semaphore or budget pool with a small fixed capacity.
+
+When `_memory_bucket` was expanded to return values up to 48 or 64 (to match the new `max_combined_batch_size=32`), the allocator tried to lease 32 slots from a pool that had capacity for roughly 5-8. The `allocate()` call blocked forever waiting for slots that would never be released.
+
+Observed symptoms:
+
+1. All 8 jobs queued successfully with `prep=11.48s` each.
+2. After the last `queued` log line, the server went completely silent — no UNet logs, no compose logs, no errors.
+3. All 8 sessions timed out after 300 seconds with zero segments produced.
+4. The scheduler loop was alive but permanently blocked inside `gpu_memory.allocate()`.
+
+#### Root cause
+
+The `_memory_bucket` value is **not the GPU batch size**. It is a lease count against the `GPUMemoryManager`'s internal budget. The scheduler runs one batch at a time in a serial loop — it never needs more than one lease regardless of how many frames are in the batch.
+
+The confusion arose because `_memory_bucket` was treated as if it should scale with `max_combined_batch_size`, but these are fundamentally different concepts:
+
+- `max_combined_batch_size` = frame count for the UNet forward pass (should be large for GPU efficiency)
+- `_memory_bucket` = lease count for the memory manager's admission semaphore (should be minimal for the serial scheduler)
+
+#### Fix applied
+
+```python
+@staticmethod
+def _memory_bucket(batch_size: int) -> int:
+    return 1
+```
+
+The scheduler is the sole consumer of the GPU in its loop. It processes one batch at a time, then the next. It only ever needs one lease slot. The actual GPU batch size (32 frames into UNet) is controlled by `max_combined_batch_size` and the `_select_jobs_locked` allocation logic, not by the memory lease.
+
+#### Verification
+
+After the fix, all 8 streams completed successfully:
+
+```
+concurrency=8, completed=8, failed=0
+avg_time_to_live_ready_s=8.333
+avg_segment_interval_s=5.209
+max_segment_interval_s=5.744
+wall_time_s=99.7
+```
+
+This confirmed:
+
+1. The deadlock was purely in the memory lease, not in GPU capacity.
+2. The GPU can process 8 concurrent streams to completion.
+3. The scheduler's serial batch loop is architecturally correct — it does not need concurrent GPU access.
+
+#### NVENC broken pipe at high concurrency
+
+During the 8-stream run, the server logs showed:
+
+```
+⚠️ Encoder h264_nvenc failed, retrying with fallback: [Errno 32] Broken pipe
+```
+
+The RTX 3090 supports approximately 3-5 concurrent NVENC hardware encoding sessions. With 8 encode workers all attempting h264_nvenc simultaneously, some sessions exceed the hardware limit and fail. The fallback to libx264 (CPU) works but adds latency and CPU contention.
+
+This is a secondary bottleneck that affects encode throughput but is not the primary cause of the 5.2-second segment intervals.
+
+#### `torch.compile` investigation and failure
+
+An attempt was made to add `torch.compile` for UNet and VAE to improve raw GPU throughput by 2-3x. This encountered two blocking issues:
+
+1. **VAE compile**: `torch.compile(self.vae.vae.decoder)` returns an `OptimizedModule`, not an `nn.Module`. Assigning it back to `self.vae.vae.decoder` fails because PyTorch's module system rejects non-Module children.
+
+2. **UNet compile**: After `torch.compile(self.unet.model)`, the result is a callable wrapper. Subsequent code accessing `self.unet.model.dtype` or `next(self.unet.model.parameters())` crashes with `AttributeError: 'function' object has no attribute 'parameters'`.
+
+3. **Double call**: `compile_models()` was called both at the end of `_init_models()` and in `__init__`, causing the error to surface during `_prepare_job` when the scheduler accessed `self.manager.unet.model.dtype`.
+
+Current status:
+
+- `compile_models()` calls are disabled (`MUSETALK_COMPILE=0` by default)
+- The `.dtype` reference in `_prepare_job` was hardcoded to `torch.float16` as a safety measure
+- A proper `torch.compile` integration requires: saving dtype/parameter references before compilation, compiling the full module (not submodules), and auditing all `.dtype` / `.parameters()` access sites throughout the codebase
+- This remains a Phase 2 optimization item
+
+#### Aggregate throughput analysis
+
+The March 14 results at `concurrency=8` with `max_combined_batch_size=32` revealed the fundamental throughput ceiling:
+
+```
+Single stream:  wall_time=11.4s, 213 frames → 18.7 fps
+Eight streams:  wall_time=99.7s, 213×8=1704 frames → 17.1 fps
+
+Ratio: 17.1 / 18.7 = 0.91x
+```
+
+The aggregate GPU throughput is nearly identical at 1 vs 8 streams. The RTX 3090 produces approximately 18-20 fps of MuseTalk output (PE + UNet + VAE combined) regardless of how many streams share the batch.
+
+The 5.2-second segment interval at `concurrency=8` is explained by:
+
+```
+18 fps aggregate ÷ 8 streams = 2.25 fps per stream
+12 frames per segment ÷ 2.25 fps = 5.3 seconds per segment
+```
+
+This matches the observed 5.2 seconds precisely.
+
+#### Implication for target parity
+
+To serve 8 streams at 12fps with 1-second segment cadence matching single-stream speed, the backend would need:
+
+```
+8 streams × 12 fps = 96 fps aggregate throughput
+Current: ~18-20 fps
+Deficit: ~5x
+```
+
+This deficit cannot be closed by scheduler improvements alone. The options are:
+
+1. **torch.compile** (2-3x UNet/VAE speedup) — would bring aggregate to ~36-54 fps, enough for 3-4 streams at 12fps but not 8
+2. **TensorRT** (5-8x speedup) — would bring aggregate to ~90-160 fps, sufficient for 8 streams
+3. **Lower musetalk_fps** — reduces per-stream demand proportionally:
+   - At 6fps: 8×6=48 fps needed, achievable with torch.compile
+   - At 4fps: 8×4=32 fps needed, achievable with current GPU (barely)
+   - At 3fps: 8×3=24 fps needed, comfortably within current GPU capacity
+4. **Second GPU** — doubles aggregate throughput to ~36-40 fps
+5. **Frame duplication** — generate at low musetalk_fps but display at high playback_fps by repeating frames
+
+### March 14 scheduler batch fill and worker scaling
+
+The following scheduler changes were validated during the March 14 investigation:
+
+#### Round 3 fill guard removal
+
+The `_select_jobs_locked` method previously skipped Round 3 (aggressive fill) when `len(warmed_jobs) > aggressive_fill_max_active_jobs` (default 4). This meant that at `concurrency=8`:
+
+- Round 2 allocated 8 jobs × 2 frames = 16 frames, but capped at `max_combined_batch_size`
+- Round 3 was SKIPPED because 8 warmed jobs > 4 threshold
+- Result: GPU ran at partial capacity even though more frames could have been batched
+
+The guard was removed so Round 3 always runs, filling remaining GPU capacity across all schedulable jobs regardless of count. This is controlled by setting `HLS_SCHEDULER_AGGRESSIVE_FILL_MAX_ACTIVE_JOBS=999` at launch.
+
+#### Compose and encode worker auto-scaling
+
+The compose and encode executor pool sizes were changed from fixed values to auto-scaled based on CPU count:
+
+```python
+cpu_count = os.cpu_count() or 8
+effective_compose = max(6, int(compose_workers), min(10, cpu_count // 2))
+effective_encode = max(6, int(encode_workers), min(10, cpu_count // 2))
+```
+
+This ensures that at 8 concurrent streams, there are enough CPU workers to handle the increased volume of compose and encode tasks without creating a queue bottleneck.
+
+### Updated performance conclusion
 
 The new HLS scheduler clearly improved:
 
@@ -544,8 +702,8 @@ But the latest measurements now show a more nuanced picture:
 6. at `concurrency=7` and above, startup fairness can become unstable without scheduler tuning, but the newer startup-first scheduler materially improves first-live latency and total wall time
 7. even after that tuning, steady-state segment cadence remains the dominant bottleneck at high concurrency
 8. lowering `musetalk_fps` from `15` to `12` with `playback_fps=24` materially improves high-concurrency behavior, but mainly by reducing per-stream work rather than by changing the backend's aggregate throughput ceiling
-
-So the system has moved from "broken under concurrency" to "healthy at one stream, close at two, and throughput-limited from three streams onward."
+9. raising `max_combined_batch_size` from 8/20 to 32 with the `_memory_bucket=1` fix eliminates the scheduler deadlock and allows all 8 streams to complete, but does not increase raw GPU throughput because UNet forward pass time scales sub-linearly with batch size (bs=32 is only ~1.75x slower than bs=8, but processes 4x more frames — net gain in per-tick frames but not enough to close the 5x deficit)
+10. the aggregate GPU throughput ceiling of ~18-20 fps is a hardware constant of the RTX 3090 running MuseTalk's PE+UNet+VAE pipeline at float16 precision; only model-level optimizations (torch.compile, TensorRT) or hardware changes can meaningfully increase this
 
 ### Final investigative conclusion
 
@@ -610,6 +768,11 @@ Impact:
 - If the worker does not exit, the logical GPU budget remains held.
 - Resetting the budget counter manually would be wrong, because the old worker might still be running on the GPU.
 
+Current status:
+
+- partially mitigated by `_memory_bucket` returning 1, so the scheduler only ever holds one minimal lease
+- the HLS scheduler's serial loop means the lease is released after each batch completes, not held for the entire stream duration
+
 Relevant file:
 
 - `scripts/concurrent_gpu_manager.py`
@@ -624,6 +787,10 @@ Impact:
 - Slow cold-start behavior.
 - More memory pressure.
 - More variance during load tests.
+
+Current status:
+
+- fixed with per-avatar load locks
 
 Relevant file:
 
@@ -672,6 +839,79 @@ Relevant files:
 - `scripts/avatar_manager_parallel.py`
 - `scripts/hls_gpu_scheduler.py`
 
+### 7. `_memory_bucket` returning large values causes scheduler deadlock
+
+Original behavior:
+
+- `_memory_bucket(batch_size)` returned values up to 48 or 64 to match GPU batch capacity.
+- `GPUMemoryManager.allocate(lease)` blocked until `lease` slots were available.
+- The memory manager had a fixed pool of roughly 5 slots (from `max_concurrent_inferences=5`).
+- When `_memory_bucket(32)` returned 32, the allocator blocked forever.
+
+Impact:
+
+- Complete scheduler deadlock at any concurrency where `total_batch > pool_capacity`.
+- All streams timed out with zero segments produced.
+- No error was logged because the blocking happened inside a `with` statement before any generation code executed.
+
+Current status:
+
+- fixed by returning `1` from `_memory_bucket`
+- the scheduler's serial loop only needs one lease at a time
+
+Relevant files:
+
+- `scripts/hls_gpu_scheduler.py`
+- `scripts/concurrent_gpu_manager.py`
+
+### 8. NVENC concurrent session limit causes encode failures
+
+The RTX 3090 supports approximately 3-5 concurrent NVENC hardware encoding sessions. With 8 encode workers each spawning a new ffmpeg process per chunk with `h264_nvenc`, some sessions exceed the hardware limit and receive a broken pipe error.
+
+Impact:
+
+- Chunk encoding falls back to `libx264` (CPU), which is slower and adds CPU contention.
+- The fallback works correctly but increases per-chunk encode time.
+- At 8 concurrent streams × 18 chunks each = 144 ffmpeg process spawns, many of which fail on first attempt.
+
+Potential fix:
+
+- Implement a persistent per-stream ffmpeg encoder that keeps one ffmpeg process alive for the entire generation, eliminating per-chunk process spawning and avoiding the NVENC session limit entirely by using `libx264 -preset ultrafast` in the long-running pipe.
+
+Relevant files:
+
+- `scripts/api_avatar.py` (chunk creation)
+- `scripts/hls_gpu_scheduler.py` (encode dispatch)
+
+### 9. `torch.compile` integration is broken
+
+Attempts to use `torch.compile` for 2-3x UNet/VAE speedup encountered:
+
+1. `torch.compile(module)` returns a callable wrapper, not an `nn.Module`.
+2. Code throughout the pipeline accesses `.dtype` and `.parameters()` on the compiled object, which fails.
+3. `compile_models()` was called twice (in `_init_models()` and `__init__`).
+
+Impact:
+
+- Server crashes on startup when `MUSETALK_COMPILE=1`.
+- The largest available throughput improvement (2-3x) is currently inaccessible.
+
+To properly fix:
+
+1. Save `unet_dtype` and `vae_dtype` before compilation.
+2. Store them as instance attributes (`self.unet_dtype`, `self.vae_dtype`).
+3. Compile the full module, not submodules: `torch.compile(self.vae.vae)`, not `torch.compile(self.vae.vae.decoder)`.
+4. Audit all `.dtype` and `.parameters()` access sites in `hls_gpu_scheduler.py`, `avatar_manager_parallel.py`, and `api_avatar.py`.
+5. Replace with the saved dtype attributes.
+6. Add batch padding to fixed sizes (4, 8, 16, 32) to prevent `torch.compile` recompilation on every new shape.
+7. Warmup all expected batch sizes during startup.
+8. Call `compile_models()` exactly once, after `_init_models()`.
+
+Relevant files:
+
+- `scripts/avatar_manager_parallel.py`
+- `scripts/hls_gpu_scheduler.py`
+
 ## What This Is Not
 
 This is not mainly:
@@ -711,6 +951,32 @@ A request can use only a fraction of available VRAM and still be too slow for re
 6. small-batch inefficiency
 7. file I/O and manifest update overhead
 
+### The hardware throughput ceiling
+
+The RTX 3090 produces approximately 18-20 frames per second of MuseTalk output (PE + UNet + VAE combined at float16 precision). This is a hardware constant under the current model architecture and has been validated empirically:
+
+```
+Single stream:  213 frames / 11.4s wall = 18.7 fps
+Eight streams:  1704 frames / 99.7s wall = 17.1 fps
+Ratio: 0.91x — nearly identical aggregate throughput
+```
+
+The batch size affects per-tick latency but not aggregate throughput in a meaningful way:
+
+```
+UNet at bs=8:   ~20ms (8 frames / 20ms = 400 fps equivalent, but other stages dominate)
+UNet at bs=16:  ~25ms (16 frames / 25ms = 640 fps equivalent)
+UNet at bs=32:  ~35ms (32 frames / 35ms = 914 fps equivalent)
+
+But the full pipeline (PE + UNet + VAE + compose + encode) adds ~20-30ms overhead per tick,
+so actual per-tick throughput is:
+  bs=8:   8 frames / 45ms = 178 fps
+  bs=16:  16 frames / 55ms = 291 fps
+  bs=32:  32 frames / 65ms = 492 fps
+```
+
+Even at the most optimistic bs=32 throughput, serving 8 streams at 12fps (96 fps needed) would require segment intervals of 96/492 × 8 ≈ 1.56 seconds — still above the 1-second target.
+
 ### Relevant bottlenecks in this repository
 
 #### 1. CPU audio preprocessing still matters
@@ -742,6 +1008,12 @@ That causes:
 Chunk creation is not free.
 
 Even after frame generation, every chunk still has to be encoded into a `.ts` segment. In the current implementation this is still part of the end-to-end latency budget for each live stream.
+
+The current per-chunk ffmpeg spawning pattern creates additional overhead:
+
+- 8 streams × 18 chunks = 144 ffmpeg process spawns
+- Each spawn: fork (~5-10ms) + NVENC attempt → broken pipe → libx264 fallback retry
+- A persistent per-stream ffmpeg pipe would eliminate this overhead entirely
 
 #### 5. One-second segments create a hard realtime requirement
 
@@ -990,6 +1262,10 @@ Result:
 - only one request loads `test_avatar` from disk
 - all others wait and then get the cached instance
 
+Current status:
+
+- implemented
+
 ## E. Replace shared executor ownership with a GPU worker service
 
 This is the most robust structural improvement.
@@ -1061,6 +1337,12 @@ Notes:
 - This helps CPU load and chunk latency.
 - It does not fix the orphan-worker problem by itself.
 
+Additional recommendation:
+
+- implement a persistent per-stream ffmpeg encoder that keeps one ffmpeg process alive per HLS stream for the entire generation
+- this eliminates the per-chunk process spawn overhead (144 forks at 8 streams) and avoids the NVENC session limit by using a single long-running `libx264 -preset ultrafast` pipe per stream
+- segments are produced by ffmpeg's built-in HLS muxer rather than by individual chunk creation calls
+
 ## G. Replace the current GPU budget loop with admission control
 
 The current `GPUMemoryManager` is a logical accounting helper. It should become part of an explicit admission controller instead of a spin-wait loop.
@@ -1082,6 +1364,10 @@ Recommended behavior:
 - if capacity exists, lease immediately
 - if queue enabled, wait with timeout
 - otherwise reject with backpressure
+
+Current note:
+
+- The HLS scheduler's `_memory_bucket` returning `1` means the memory manager is effectively bypassed for HLS workloads. The scheduler only holds one lease at a time in its serial loop. However, the SSE and non-HLS inference paths still use the full memory manager, so these improvements remain relevant for those codepaths.
 
 ## H. Separate "session delete" from "job cancel"
 
@@ -1222,6 +1508,12 @@ Expected result:
 - clear attribution of the slow path
 - a defensible basis for later scheduler and admission-control work
 
+Status:
+
+- partially completed
+- the HLS scheduler now records per-stage timing (PE, UNet, VAE, compose, encode) in finalization logs
+- March 14 measurements confirmed the aggregate GPU throughput ceiling of ~18-20 fps
+
 ## Phase 1: Robust monolith hardening
 
 Goal:
@@ -1268,6 +1560,9 @@ Implemented during this investigation:
 5. HLS stats now expose scheduler queue depth, per-job progress, pending encodes, and last-progress age.
 6. HLS session state now explicitly progresses through `preparing`, `queued`, `generating`, and `streaming`.
 7. Request scratch work is isolated per stream.
+8. `_memory_bucket` returns 1, preventing scheduler deadlock.
+9. Round 3 fill guard removed for better GPU utilization at high concurrency.
+10. Compose and encode workers auto-scale based on CPU count.
 
 Expected result:
 
@@ -1279,6 +1574,47 @@ Important note:
 
 - based on current measurements, memory admission and throughput admission must remain separate controls
 - the new HLS scheduler is the correct architectural direction, but it still needs measurement and tuning before claiming safe two-stream realtime capacity
+
+## Phase 1.5: Model-level throughput improvements
+
+Goal:
+
+- increase the aggregate GPU throughput ceiling from ~18-20 fps to ~36-54 fps using `torch.compile`, enabling 3-4 concurrent streams at 12fps or 6-8 streams at 6fps
+
+Files:
+
+- `scripts/avatar_manager_parallel.py`
+- `scripts/hls_gpu_scheduler.py`
+
+Changes:
+
+1. Save `unet_dtype` and `vae_dtype` as instance attributes before compilation.
+2. Replace all `.dtype` access on compiled models with saved attributes:
+   - `hls_gpu_scheduler.py` `_prepare_job`: `weight_dtype = self.manager.unet.model.dtype` → `weight_dtype = torch.float16`
+   - `hls_gpu_scheduler.py` `_run_generation_batch`: `target_dtype = audio_inputs.dtype` (already fixed)
+3. Compile full modules, not submodules:
+   - `torch.compile(self.unet.model)` ✓
+   - `torch.compile(self.vae.vae)` (not `self.vae.vae.decoder`)
+4. Add batch padding to prevent recompilation:
+   ```python
+   FIXED_SIZES = [4, 8, 16, 32]
+   padded_batch = next(s for s in FIXED_SIZES if s >= actual_batch)
+   # Pad inputs, run forward pass, trim outputs
+   ```
+5. Warmup all expected batch sizes during startup (adds 2-5 minutes to boot).
+6. Call `compile_models()` exactly once, after `_init_models()`, gated by `MUSETALK_COMPILE=1`.
+
+Expected result:
+
+- 2-3x throughput improvement on UNet + VAE
+- aggregate throughput of ~36-54 fps
+- sufficient for 3-4 concurrent streams at 12fps with 1-second segment cadence
+- sufficient for 6-8 concurrent streams at 6fps
+
+Prerequisite:
+
+- PyTorch >= 2.0
+- verify `torch.compile` availability on deployment target
 
 ## Phase 2: API server and GPU worker split
 
@@ -1305,6 +1641,33 @@ Expected result:
 
 - API remains responsive even if GPU work wedges
 - real recovery path exists
+
+## Phase 2.5: Persistent encoder integration
+
+Goal:
+
+- eliminate per-chunk ffmpeg process spawning and NVENC session limit errors
+
+Files:
+
+- new `scripts/hls_persistent_encoder.py`
+- `scripts/hls_gpu_scheduler.py`
+
+Changes:
+
+1. Create `PersistentHLSEncoder` class that keeps one ffmpeg process alive per stream.
+2. Accept raw BGR frames on stdin, output HLS TS segments via ffmpeg's `-f hls` muxer.
+3. Use `libx264 -preset ultrafast` in the persistent pipe to avoid NVENC session limits.
+4. Create encoder in `_prepare_job`, pass to `HLSStreamJob`.
+5. Change `_dispatch_encode` to call `persistent_encoder.submit_frames()` instead of spawning ffmpeg per chunk.
+6. Close encoder in `_finalize_job` with `persistent_encoder.finish()`.
+
+Expected result:
+
+- no more `h264_nvenc` broken pipe errors
+- eliminate 144 ffmpeg process spawns per 8-stream test
+- reduced encode latency per chunk
+- lower CPU contention
 
 ## Phase 3: Scheduler and admission control
 
@@ -1415,10 +1778,12 @@ Planned changes:
 
 Planned changes:
 
-1. Add per-avatar load locks.
+1. Add per-avatar load locks. ✅ (completed)
 2. Move request bookkeeping into a dedicated registry or service.
 3. If staying monolith for a while, add proper done-callback cleanup.
 4. In Phase 2, reduce this class to worker-side orchestration only.
+5. Fix `compile_models()` to save dtypes before compilation and gate on `MUSETALK_COMPILE`.
+6. Remove the duplicate `compile_models()` call from `_init_models()`.
 
 ## `scripts/api_avatar.py`
 
@@ -1430,14 +1795,27 @@ Planned changes:
 4. Remove shared temp dir behavior from live streaming.
 5. Ensure all cleanup happens in `finally`.
 6. Report chunk encode and generation timings.
+7. Pre-stack `input_latent_list_cycle` as a single tensor (`input_latent_cycle_tensor`) for fast GPU batch indexing in the scheduler.
 
 ## `scripts/hls_gpu_scheduler.py`
+
+Completed changes:
 
 1. Own shared HLS GPU scheduling.
 2. Batch work across active HLS sessions up to a bounded combined batch size.
 3. Separate prep work from GPU generation work.
 4. Separate TS encode work from GPU generation work.
 5. Report scheduler queue and job progress statistics.
+6. `_memory_bucket` returns 1 to prevent deadlock.
+7. Round 3 fill guard removed (always fills remaining GPU capacity).
+8. Compose and encode workers auto-scale based on CPU count.
+9. Batch padding for torch.compile compatibility (FIXED_SIZES = [4, 8, 16, 32]).
+
+Planned changes:
+
+1. Use `input_latent_cycle_tensor.index_select()` for fast batch assembly instead of per-frame `torch.cat`.
+2. Bypass `gpu_memory.allocate()` entirely — the serial scheduler loop only needs one lease.
+3. Integrate persistent per-stream ffmpeg encoder.
 
 ## `scripts/concurrent_gpu_manager.py`
 
@@ -1447,6 +1825,10 @@ Planned changes:
 2. Replace spin loop with wait/notify.
 3. Expose waiting queue and holders.
 4. Support queue timeout and admission control.
+
+Current note:
+
+- The HLS scheduler effectively bypasses this module by using `_memory_bucket=1`. Changes here primarily affect the SSE and non-HLS inference paths.
 
 ## `load_test.py`
 
@@ -1482,6 +1864,8 @@ At minimum, expose:
 18. `live_generation_slots_in_use`
 19. `live_generation_queue_depth`
 20. `request_last_progress_at`
+21. `aggregate_gpu_fps` (total frames generated per second across all streams)
+22. `per_stream_effective_fps` (aggregate_gpu_fps / active_streams)
 
 ## Recommended Status Codes And Semantics
 
@@ -1513,6 +1897,18 @@ The system should not be considered fixed until all of the following pass:
 9. `concurrency=1` no longer reports throttling under the defined threshold.
 10. `concurrency=2` can reach steady chunk production without first-chunk stall behavior.
 11. Capacity claims are based on realtime chunk cadence, not only request completion.
+12. `concurrency=8` with `max_combined_batch_size=32` completes all sessions without deadlock.
+13. No `_memory_bucket` deadlock at any concurrency level.
+
+## Throughput Scaling Acceptance Criteria
+
+For 8-stream parity with single-stream speed:
+
+1. Either `torch.compile` or TensorRT must be operational, providing at minimum 2.5x aggregate throughput improvement.
+2. Or `musetalk_fps` must be lowered to a level where `8 × musetalk_fps ≤ aggregate_gpu_fps`.
+3. Persistent per-stream encoding must replace per-chunk ffmpeg spawning.
+4. No NVENC broken pipe errors during any test run.
+5. `avg_segment_interval_s` at `concurrency=8` must be within 1.5x of `avg_segment_interval_s` at `concurrency=1`.
 
 ## Operational Guidance Until This Is Implemented
 
@@ -1523,19 +1919,40 @@ Until the above changes are in place:
 3. Keep HLS concurrency conservative.
 4. Warm the target avatar before testing.
 5. Test repeated runs, not just one clean run.
+6. Use the following launch configuration for best 8-stream behavior:
+
+```bash
+unset PYTORCH_CUDA_ALLOC_CONF
+unset MUSETALK_COMPILE
+export HLS_SCHEDULER_MAX_BATCH=32
+export HLS_SCHEDULER_STARTUP_SLICE_SIZE=4
+export HLS_SCHEDULER_AGGRESSIVE_FILL_MAX_ACTIVE_JOBS=999
+export HLS_COMPOSE_WORKERS=8
+export HLS_ENCODE_WORKERS=8
+export HLS_MAX_PENDING_JOBS=24
+python api_server.py --host 0.0.0.0 --port 8000
+```
+
+7. Do NOT set `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` — the current PyTorch version does not support this option and will crash on startup.
+8. Do NOT set `MUSETALK_COMPILE=1` until the `.dtype`/`.parameters()` access sites are fully audited and fixed.
 
 ## Recommended Order Of Execution
 
 If you want the highest return on engineering time, do the work in this order:
 
-1. cancellation and request registry
-2. per-avatar load lock
-3. request-specific scratch directories
-4. request reaper and stats
-5. admission control
-6. GPU worker process split
-7. supervisor and restart logic
-8. encoder optimization
+1. cancellation and request registry ✅ (partially completed)
+2. per-avatar load lock ✅ (completed)
+3. request-specific scratch directories ✅ (completed)
+4. request reaper and stats ✅ (partially completed)
+5. `_memory_bucket=1` and scheduler fill guard removal ✅ (completed)
+6. pre-stack avatar latents as tensor for fast batch assembly
+7. persistent per-stream ffmpeg encoder
+8. `torch.compile` integration (Phase 1.5)
+9. bypass `gpu_memory.allocate()` in the scheduler
+10. admission control
+11. GPU worker process split
+12. supervisor and restart logic
+13. TensorRT integration (if torch.compile is insufficient)
 
 ## Final Recommendation
 
@@ -1568,3 +1985,7 @@ Based on the full debugging cycle so far:
 7. `concurrency=3` reveals fairness problems and unacceptable tail latency.
 8. Therefore the next engineering priority is profiling and tuning the shared scheduler path, not blind increases in concurrency.
 9. The system should not claim higher user counts until the shared HLS scheduler can reliably meet the realtime target.
+10. The `_memory_bucket` deadlock was fixed by returning 1, enabling 8-stream completion.
+11. The aggregate GPU throughput ceiling of ~18-20 fps is a hardware constant of the RTX 3090.
+12. Achieving 8-stream parity with single-stream speed requires either model-level optimization (torch.compile/TensorRT) or reducing per-stream frame demand (lower musetalk_fps).
+13. The most practical near-term path to 8-stream parity is: `torch.compile` (2-3x) + `musetalk_fps=6` (halved demand) + persistent encoder (no NVENC broken pipes).

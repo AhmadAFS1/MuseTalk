@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import os
 import secrets
 import shutil
 import subprocess
@@ -122,6 +124,39 @@ def _get_hls_manifest_duration(manifest_path: Path) -> Optional[float]:
         return None
 
 
+def _idle_cache_key(video_path: Path, segment_duration: float, playback_fps: Optional[int]) -> str:
+    stat = video_path.stat()
+    payload = "|".join(
+        [
+            str(video_path.resolve()),
+            str(stat.st_size),
+            str(stat.st_mtime_ns),
+            f"{segment_duration:.6f}",
+            str(playback_fps or 0),
+        ]
+    )
+    return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def _link_or_copy_file(src: Path, dst: Path) -> None:
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        os.link(src, dst)
+    except OSError:
+        shutil.copy2(src, dst)
+
+
+def _copytree_linking(src_dir: Path, dst_dir: Path) -> None:
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    for path in src_dir.rglob("*"):
+        rel_path = path.relative_to(src_dir)
+        target_path = dst_dir / rel_path
+        if path.is_dir():
+            target_path.mkdir(parents=True, exist_ok=True)
+        else:
+            _link_or_copy_file(path, target_path)
+
+
 class HlsSessionManager:
     def __init__(self, session_ttl_seconds: int = 3600, base_dir: str = "results/hls"):
         self.sessions: Dict[str, HlsSession] = {}
@@ -130,6 +165,10 @@ class HlsSessionManager:
         self.cleanup_task = None
         self.base_dir = Path(base_dir)
         self.base_dir.mkdir(parents=True, exist_ok=True)
+        self.idle_cache_dir = self.base_dir / "_idle_cache"
+        self.idle_cache_dir.mkdir(parents=True, exist_ok=True)
+        self.idle_cache_locks: Dict[str, asyncio.Lock] = {}
+        self.idle_cache_locks_lock = asyncio.Lock()
 
     def start_cleanup(self) -> None:
         if self.cleanup_task is None:
@@ -145,6 +184,49 @@ class HlsSessionManager:
                 ]
             for sid in expired:
                 await self.delete_session(sid)
+
+    async def _get_idle_cache_lock(self, cache_key: str) -> asyncio.Lock:
+        async with self.idle_cache_locks_lock:
+            lock = self.idle_cache_locks.get(cache_key)
+            if lock is None:
+                lock = asyncio.Lock()
+                self.idle_cache_locks[cache_key] = lock
+            return lock
+
+    async def _materialize_idle_hls(
+        self,
+        idle_video_path: str,
+        output_dir: Path,
+        segment_duration: float,
+        playback_fps: Optional[int],
+    ) -> None:
+        video_path = Path(idle_video_path)
+        cache_key = _idle_cache_key(video_path, segment_duration, playback_fps)
+        cache_dir = self.idle_cache_dir / cache_key
+        manifest_path = cache_dir / "index.m3u8"
+        cache_lock = await self._get_idle_cache_lock(cache_key)
+
+        async with cache_lock:
+            if not manifest_path.exists():
+                temp_dir = self.idle_cache_dir / f"{cache_key}.tmp-{secrets.token_hex(4)}"
+                if temp_dir.exists():
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                try:
+                    await asyncio.to_thread(
+                        _generate_idle_hls,
+                        video_path,
+                        temp_dir,
+                        segment_duration,
+                        playback_fps,
+                    )
+                    if cache_dir.exists():
+                        shutil.rmtree(cache_dir, ignore_errors=True)
+                    temp_dir.replace(cache_dir)
+                finally:
+                    if temp_dir.exists():
+                        shutil.rmtree(temp_dir, ignore_errors=True)
+
+        await asyncio.to_thread(_copytree_linking, cache_dir, output_dir)
 
     async def create_session(
         self,
@@ -184,9 +266,8 @@ class HlsSessionManager:
         async with self.lock:
             self.sessions[session_id] = session
 
-        await asyncio.to_thread(
-            _generate_idle_hls,
-            Path(idle_video_path),
+        await self._materialize_idle_hls(
+            idle_video_path,
             output_dir,
             segment_duration,
             playback_fps,
@@ -266,6 +347,9 @@ class HlsSessionManager:
     def get_stats(self) -> dict:
         return {
             "total_sessions": len(self.sessions),
+            "idle_cache_entries": len(
+                [path for path in self.idle_cache_dir.iterdir() if path.is_dir()]
+            ),
             "sessions": [
                 {
                     "session_id": s.session_id,

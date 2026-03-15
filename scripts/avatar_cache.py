@@ -167,6 +167,8 @@ class AvatarCache:
         # Clear any GPU tensors
         if hasattr(avatar_instance, 'input_latent_list_cycle'):
             del avatar_instance.input_latent_list_cycle
+        if hasattr(avatar_instance, 'input_latent_cycle_tensor'):
+            del avatar_instance.input_latent_cycle_tensor
         
         # Force garbage collection
         import gc

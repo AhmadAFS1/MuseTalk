@@ -27,6 +27,11 @@ class ParallelAvatarManager:
     def __init__(self, args, max_concurrent_inferences=3):
         self.args = args
         self.device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
+        self.models_compiled = False
+        self.unet_dtype = torch.float16
+        self.vae_dtype = torch.float16
+        self.eager_unet_model = None
+        self.eager_vae_model = None
         
         max_live_generations = max(1, int(os.getenv("LIVE_MAX_CONCURRENT_GENERATIONS", "1")))
 
@@ -77,9 +82,15 @@ class ParallelAvatarManager:
         self.pe = self.pe.half().to(self.device)
         self.vae.vae = self.vae.vae.half().to(self.device)
         self.unet.model = self.unet.model.half().to(self.device)
+        self.eager_unet_model = self.unet.model
+        self.eager_vae_model = self.vae.vae
+        self.unet_dtype = self.unet.model.dtype
+        self.vae_dtype = self.vae.vae.dtype
+        self.unet.model_dtype = self.unet_dtype
+        self.vae.runtime_dtype = self.vae_dtype
         
         self.audio_processor = AudioProcessor(feature_extractor_path=self.args.whisper_dir)
-        weight_dtype = self.unet.model.dtype
+        weight_dtype = self.unet_dtype
         self.whisper = WhisperModel.from_pretrained(self.args.whisper_dir)
         self.whisper = self.whisper.to(device=self.device, dtype=weight_dtype).eval()
         self.whisper.requires_grad_(False)
@@ -95,6 +106,93 @@ class ParallelAvatarManager:
         self.timesteps = torch.tensor([0], device=self.device)
         
         print("✅ Models loaded!")
+        
+        self.compile_models()
+    
+    def compile_models(self):
+        """Compile UNet + VAE for 2-3x throughput on RTX 3090."""
+        if os.environ.get("MUSETALK_COMPILE", "0") != "1":
+            print("ℹ️  torch.compile disabled (set MUSETALK_COMPILE=1 to enable)")
+            return
+
+        if not hasattr(torch, 'compile'):
+            print("⚠️  torch.compile requires PyTorch >= 2.0")
+            return
+
+        if self.models_compiled:
+            print("ℹ️  torch.compile already applied")
+            return
+
+        print("🔧 Compiling UNet + VAE (first run will be slow)...")
+
+        # Save references before compiling because compiled wrappers may not
+        # expose dtype/parameter helpers consistently across PyTorch builds.
+        unet_dtype = self.unet_dtype
+        vae_dtype = self.vae_dtype
+        eager_unet_model = self.eager_unet_model or self.unet.model
+        eager_vae_model = self.eager_vae_model or self.vae.vae
+        compile_ok = False
+
+        # Compile UNet — the main forward pass, biggest impact
+        try:
+            self.unet.model = torch.compile(
+                eager_unet_model,
+                mode="max-autotune",
+                fullgraph=False,
+            )
+            print("   ✅ UNet compiled")
+            compile_ok = True
+        except Exception as e:
+            print(f"   ⚠️ UNet compile failed: {e}")
+
+        # Compile VAE — compile the whole vae.vae, not just .decoder
+        try:
+            self.vae.vae = torch.compile(
+                eager_vae_model,
+                mode="max-autotune",
+                fullgraph=False,
+            )
+            print("   ✅ VAE compiled")
+            compile_ok = True
+        except Exception as e:
+            print(f"   ⚠️ VAE compile failed: {e}")
+
+        if not compile_ok:
+            print("⚠️ No models compiled successfully; continuing in eager mode")
+            self.unet.model = eager_unet_model
+            self.vae.vae = eager_vae_model
+            self.models_compiled = False
+            return
+
+        # Warmup — use saved dtypes since .parameters() may not work on compiled modules
+        print("🔧 Warming up compiled models...")
+        warmup_failed = False
+        for bs in [8, 16, 32]:
+            try:
+                with torch.no_grad():
+                    dw = torch.randn(bs, 50, 384, device=self.device, dtype=unet_dtype)
+                    dl = torch.randn(bs, 4, 32, 32, device=self.device, dtype=unet_dtype)
+                    af = self.pe(dw)
+                    pred = self.unet.model(dl, self.timesteps, encoder_hidden_states=af).sample
+                    _ = self.vae.decode_latents(pred.to(dtype=vae_dtype))
+                torch.cuda.synchronize()
+                torch.cuda.empty_cache()
+                print(f"   ✅ Warmup bs={bs}")
+            except Exception as e:
+                print(f"   ⚠️ Warmup bs={bs}: {e}")
+                torch.cuda.empty_cache()
+                warmup_failed = True
+                break
+
+        if warmup_failed:
+            print("⚠️ torch.compile warmup failed; restoring eager models")
+            self.unet.model = eager_unet_model
+            self.vae.vae = eager_vae_model
+            self.models_compiled = False
+            return
+
+        self.models_compiled = True
+        print("✅ Model compilation complete")
     
     def _get_or_load_avatar(self, avatar_id, batch_size):
         """Get avatar from cache or load from disk"""

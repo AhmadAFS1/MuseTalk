@@ -25,6 +25,8 @@ class VAE():
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.vae.to(self.device)
+        #below line has been added
+        self.runtime_dtype = torch.float16 if use_float16 else torch.float32
 
         if use_float16:
             self.vae = self.vae.half()
@@ -47,6 +49,9 @@ class VAE():
         mask_tensor[mask_tensor< 0.5] = 0
         mask_tensor[mask_tensor>= 0.5] = 1
         return mask_tensor
+
+    def _vae_dtype(self):
+        return getattr(self, "runtime_dtype", getattr(self.vae, "dtype", torch.float32))
             
     def preprocess_img(self,img_name,half_mask=False):
         """
@@ -77,7 +82,7 @@ class VAE():
         x = self.transform(x)
         
         x = x.unsqueeze(0) # [1, 3, 256, 256] torch tensor
-        x = x.to(self.vae.device)
+        x = x.to(self.device)
 
         return x
 
@@ -89,7 +94,7 @@ class VAE():
         :return: The encoded latent variables.
         """
         with torch.no_grad():
-            init_latent_dist = self.vae.encode(image.to(self.vae.dtype)).latent_dist
+            init_latent_dist = self.vae.encode(image.to(self._vae_dtype())).latent_dist
         init_latents = self.scaling_factor * init_latent_dist.sample()
         return init_latents
     
@@ -100,7 +105,7 @@ class VAE():
         :return: A NumPy array representing the decoded image.
         """
         latents = (1/  self.scaling_factor) * latents
-        image = self.vae.decode(latents.to(self.vae.dtype)).sample
+        image = self.vae.decode(latents.to(self._vae_dtype())).sample
         image = (image / 2 + 0.5).clamp(0, 1)
         image = image.detach().cpu().permute(0, 2, 3, 1).float().numpy()
         image = (image * 255).round().astype("uint8")

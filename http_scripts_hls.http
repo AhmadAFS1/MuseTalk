@@ -5,7 +5,7 @@
 @SEGMENT_DURATION = 2
 @PART_DURATION = 0
 @BATCH_SIZE = 2
-@SESSION_ID = _KamirZazqJstJ8HhoJ_Ag
+@SESSION_ID = -azBYcu3L2uH9x1USMmuEA
 @START_OFFSET_SECONDS = 0
 @HLS_SERVER_TIMING = true
 # start_offset_seconds is ignored when hls_server_timing=true (default).
@@ -26,6 +26,44 @@ POST {{BASE_URL}}/hls/sessions/create?avatar_id={{AVATAR_ID}}&playback_fps={{PLA
 
 ### Open HLS Player in Browser (manual step)
 # {{BASE_URL}}/hls/player/{{SESSION_ID}}
+
+###
+
+### Open Multi-Session HLS Lab In Browser
+# {{BASE_URL}}/hls/lab
+
+###
+
+### Create HLS Group (multiple sessions at once)
+POST {{BASE_URL}}/hls/groups/create?avatar_id={{AVATAR_ID}}&count=6&playback_fps={{PLAYBACK_FPS}}&musetalk_fps={{MUSE_FPS}}&batch_size={{BATCH_SIZE}}&segment_duration={{SEGMENT_DURATION}}&part_duration={{PART_DURATION}}&hls_server_timing={{HLS_SERVER_TIMING}}
+
+###
+
+### Get HLS Group
+GET {{BASE_URL}}/hls/groups/REPLACE_GROUP_ID
+
+###
+
+### Open HLS Group Wall In Browser
+# {{BASE_URL}}/hls/groups/REPLACE_GROUP_ID/wall
+
+###
+
+### Start All Sessions In Group With One Audio Upload
+POST {{BASE_URL}}/hls/groups/REPLACE_GROUP_ID/stream
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audio_file"; filename="eng.wav"
+Content-Type: audio/wav
+
+< ./data/audio/ai-assistant.mpga
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### Delete HLS Group
+DELETE {{BASE_URL}}/hls/groups/REPLACE_GROUP_ID
 
 ###
 

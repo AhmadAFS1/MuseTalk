@@ -23,6 +23,7 @@ from templates.streaming_ui import streaming_ui_endpoint
 from templates.mobile_player import mobile_player_endpoint
 from templates.session_player import get_session_player_html  # ✅ ADD THIS
 from templates.hls_player import get_hls_player_html
+from templates.hls_wall import get_hls_wall_html
 from templates.webrtc_player import get_webrtc_player_html
 from scripts.session_manager import SessionManager
 from scripts.hls_session_manager import HlsSessionManager
@@ -257,6 +258,8 @@ session_manager: Optional[SessionManager] = None  # ✅ NEW
 hls_stream_scheduler: Optional[HLSGPUStreamScheduler] = None
 webrtc_session_manager: Optional["WebRTCSessionManager"] = None
 webrtc_ice_servers: list[dict] = []
+hls_group_lock = threading.Lock()
+hls_groups: dict[str, dict] = {}
 
 # ============================================================================
 # Startup/Shutdown Events
@@ -1825,6 +1828,30 @@ def _pop_managed_request(request_id: Optional[str]) -> Optional[dict]:
         return manager.active_requests.pop(request_id, None)
 
 
+def _build_hls_group_response(group: dict) -> dict:
+    sessions_payload = []
+    for session_id in group["session_ids"]:
+        sessions_payload.append(
+            {
+                "session_id": session_id,
+                "player_url": f"/hls/player/{session_id}",
+                "status_url": f"/hls/sessions/{session_id}/status",
+                "manifest_url": f"/hls/sessions/{session_id}/index.m3u8",
+                "status": group.get("session_statuses", {}).get(session_id, "created"),
+            }
+        )
+    return {
+        "group_id": group["group_id"],
+        "avatar_id": group["avatar_id"],
+        "created_at": group["created_at"],
+        "count": len(group["session_ids"]),
+        "config": group["config"],
+        "sessions": sessions_payload,
+        "wall_url": f"/hls/groups/{group['group_id']}/wall",
+        "stream_all_url": f"/hls/groups/{group['group_id']}/stream",
+    }
+
+
 def _mark_request_delete_when_done(request_id: Optional[str]) -> None:
     if manager is None or not request_id:
         return
@@ -1867,69 +1894,15 @@ async def _cancel_managed_request(request_id: Optional[str], wait_timeout: float
         return True
 
 
-@app.delete("/hls/sessions/{session_id}")
-async def delete_hls_session(session_id: str):
-    _require_hls()
-    session = await hls_session_manager.get_session(session_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    if session.active_stream is not None:
-        session.delete_requested = True
-        session.cancel_requested = True
-        session.status = "cancelling"
-        cancelled = await _cancel_managed_request(session.active_stream, wait_timeout=15.0)
-        if not cancelled:
-            _mark_request_delete_when_done(session.active_stream)
-            return JSONResponse(
-                status_code=202,
-                content={
-                    "status": "cancellation_requested",
-                    "session_id": session_id,
-                    "request_id": session.active_stream,
-                },
-            )
-
-    deleted = await hls_session_manager.delete_session(session_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Session not found")
-    return {"status": "deleted", "session_id": session_id}
-
-
-@app.get("/hls/sessions/stats")
-async def hls_session_stats():
-    _require_hls()
-    stats = hls_session_manager.get_stats()
-    if hls_stream_scheduler is not None:
-        stats["scheduler"] = hls_stream_scheduler.get_stats()
-    return stats
-
-
-@app.get("/hls/player/{session_id}", response_class=HTMLResponse)
-async def hls_player(session_id: str):
-    _require_hls()
-    session = await hls_session_manager.get_session(session_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Session not found or expired")
-    return HTMLResponse(content=get_hls_player_html(session))
-
-
-@app.post("/hls/sessions/{session_id}/stream")
-async def hls_stream(
-    session_id: str,
-    audio_file: UploadFile = File(...),
-    start_offset_seconds: Optional[float] = Query(None),
+async def _start_hls_stream_for_session(
+    session,
+    *,
+    audio_bytes: bytes,
+    audio_filename: str,
+    start_offset_seconds: Optional[float],
 ):
-    """
-    Start live HLS streaming for a session by generating chunked TS segments.
-    """
     if manager is None or hls_stream_scheduler is None:
         raise HTTPException(status_code=503, detail="Manager not initialized")
-
-    _require_hls()
-    session = await hls_session_manager.get_session(session_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Session not found or expired")
 
     if session.active_stream is not None:
         raise HTTPException(
@@ -1943,16 +1916,14 @@ async def hls_stream(
 
     upload_dir = Path("uploads/audio")
     upload_dir.mkdir(parents=True, exist_ok=True)
-    audio_path = upload_dir / f"{request_id}.{audio_file.filename.split('.')[-1]}"
-
-    with audio_path.open("wb") as buffer:
-        shutil.copyfileobj(audio_file.file, buffer)
+    suffix = Path(audio_filename or "audio.bin").suffix or ".bin"
+    audio_path = upload_dir / f"{request_id}{suffix}"
+    audio_path.write_bytes(audio_bytes)
 
     session.active_stream = request_id
     hls_session_manager.start_live_playlist(session)
     session.status = "preparing"
 
-    # Use musetalk_fps if set, otherwise fall back to playback fps or 15.
     generation_fps = session.musetalk_fps or session.playback_fps or 15
     timing_debug = None
     if session.idle_duration_seconds is None:
@@ -2015,7 +1986,7 @@ async def hls_stream(
             'status': 'preparing',
             'future': completion_future,
             'type': 'hls_stream',
-            'session_id': session_id,
+            'session_id': session.session_id,
             'cancel_event': cancel_event,
             'delete_session_when_done': False,
             'cooperative_only': True,
@@ -2031,7 +2002,7 @@ async def hls_stream(
 
         if delete_when_done:
             session.delete_requested = False
-            asyncio.create_task(hls_session_manager.delete_session(session_id))
+            asyncio.create_task(hls_session_manager.delete_session(session.session_id))
 
     completion_future.add_done_callback(_on_hls_request_done)
 
@@ -2064,12 +2035,248 @@ async def hls_stream(
 
     return {
         "request_id": request_id,
-        "session_id": session_id,
+        "session_id": session.session_id,
         "status": "queued",
-        "manifest_url": f"/hls/sessions/{session_id}/live.m3u8",
+        "manifest_url": f"/hls/sessions/{session.session_id}/live.m3u8",
         "message": "HLS stream queued.",
         "timing": timing_debug,
     }
+
+
+@app.delete("/hls/sessions/{session_id}")
+async def delete_hls_session(session_id: str):
+    _require_hls()
+    session = await hls_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if session.active_stream is not None:
+        session.delete_requested = True
+        session.cancel_requested = True
+        session.status = "cancelling"
+        cancelled = await _cancel_managed_request(session.active_stream, wait_timeout=15.0)
+        if not cancelled:
+            _mark_request_delete_when_done(session.active_stream)
+            return JSONResponse(
+                status_code=202,
+                content={
+                    "status": "cancellation_requested",
+                    "session_id": session_id,
+                    "request_id": session.active_stream,
+                },
+            )
+
+    deleted = await hls_session_manager.delete_session(session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"status": "deleted", "session_id": session_id}
+
+
+@app.get("/hls/sessions/stats")
+async def hls_session_stats():
+    _require_hls()
+    stats = hls_session_manager.get_stats()
+    if hls_stream_scheduler is not None:
+        stats["scheduler"] = hls_stream_scheduler.get_stats()
+    return stats
+
+
+@app.get("/hls/player/{session_id}", response_class=HTMLResponse)
+async def hls_player(session_id: str):
+    _require_hls()
+    session = await hls_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    return HTMLResponse(content=get_hls_player_html(session))
+
+
+@app.get("/hls/lab", response_class=HTMLResponse)
+async def hls_lab():
+    _require_hls()
+    return HTMLResponse(content=get_hls_wall_html())
+
+
+@app.post("/hls/groups/create")
+async def create_hls_group(
+    avatar_id: str,
+    count: int = 4,
+    user_id: Optional[str] = None,
+    batch_size: int = 2,
+    playback_fps: Optional[int] = None,
+    musetalk_fps: Optional[int] = None,
+    segment_duration: float = 2.0,
+    part_duration: Optional[float] = None,
+    hls_server_timing: Optional[bool] = None,
+):
+    _require_hls()
+    if count < 1 or count > 12:
+        raise HTTPException(status_code=400, detail="count must be between 1 and 12")
+
+    group_id = uuid.uuid4().hex[:10]
+    session_ids = []
+    session_statuses = {}
+    for _ in range(count):
+        session_payload = await create_hls_session(
+            avatar_id=avatar_id,
+            user_id=user_id,
+            batch_size=batch_size,
+            playback_fps=playback_fps,
+            musetalk_fps=musetalk_fps,
+            segment_duration=segment_duration,
+            part_duration=part_duration,
+            hls_server_timing=hls_server_timing,
+        )
+        session_id = session_payload["session_id"]
+        session_ids.append(session_id)
+        session_statuses[session_id] = "created"
+
+    group = {
+        "group_id": group_id,
+        "avatar_id": avatar_id,
+        "created_at": time.time(),
+        "session_ids": session_ids,
+        "session_statuses": session_statuses,
+        "config": {
+            "count": count,
+            "batch_size": batch_size,
+            "playback_fps": playback_fps,
+            "musetalk_fps": musetalk_fps,
+            "segment_duration": segment_duration,
+            "part_duration": part_duration,
+            "hls_server_timing": hls_server_timing,
+        },
+    }
+    with hls_group_lock:
+        hls_groups[group_id] = group
+
+    return _build_hls_group_response(group)
+
+
+@app.get("/hls/groups/{group_id}")
+async def get_hls_group(group_id: str):
+    _require_hls()
+    with hls_group_lock:
+        group = hls_groups.get(group_id)
+    if group is None:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    refreshed_statuses = {}
+    for session_id in group["session_ids"]:
+        session = await hls_session_manager.get_session(session_id)
+        refreshed_statuses[session_id] = session.status if session is not None else "missing"
+    group["session_statuses"] = refreshed_statuses
+    return _build_hls_group_response(group)
+
+
+@app.get("/hls/groups/{group_id}/wall", response_class=HTMLResponse)
+async def hls_group_wall(group_id: str):
+    _require_hls()
+    with hls_group_lock:
+        if group_id not in hls_groups:
+            raise HTTPException(status_code=404, detail="Group not found")
+    return HTMLResponse(content=get_hls_wall_html())
+
+
+@app.post("/hls/groups/{group_id}/stream")
+async def stream_hls_group(
+    group_id: str,
+    audio_file: UploadFile = File(...),
+    start_offset_seconds: Optional[float] = Query(None),
+):
+    _require_hls()
+    with hls_group_lock:
+        group = hls_groups.get(group_id)
+    if group is None:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    audio_bytes = await audio_file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="audio_file is empty")
+
+    results = []
+    started = 0
+    failed = 0
+    for session_id in group["session_ids"]:
+        session = await hls_session_manager.get_session(session_id)
+        if session is None:
+            failed += 1
+            results.append({"session_id": session_id, "status": "missing"})
+            group["session_statuses"][session_id] = "missing"
+            continue
+        try:
+            result = await _start_hls_stream_for_session(
+                session,
+                audio_bytes=audio_bytes,
+                audio_filename=audio_file.filename or "audio.bin",
+                start_offset_seconds=start_offset_seconds,
+            )
+            started += 1
+            results.append(result)
+            group["session_statuses"][session_id] = "queued"
+        except HTTPException as exc:
+            failed += 1
+            detail = exc.detail if isinstance(exc.detail, str) else json.dumps(exc.detail)
+            results.append({"session_id": session_id, "status": "error", "detail": detail})
+            group["session_statuses"][session_id] = "error"
+
+    return {
+        "group_id": group_id,
+        "started": started,
+        "failed": failed,
+        "results": results,
+    }
+
+
+@app.delete("/hls/groups/{group_id}")
+async def delete_hls_group(group_id: str):
+    _require_hls()
+    with hls_group_lock:
+        group = hls_groups.pop(group_id, None)
+    if group is None:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    deleted_sessions = []
+    errors = []
+    for session_id in group["session_ids"]:
+        try:
+            await delete_hls_session(session_id)
+            deleted_sessions.append(session_id)
+        except HTTPException as exc:
+            errors.append({"session_id": session_id, "detail": exc.detail})
+
+    return {
+        "group_id": group_id,
+        "deleted_sessions": deleted_sessions,
+        "errors": errors,
+    }
+
+
+@app.post("/hls/sessions/{session_id}/stream")
+async def hls_stream(
+    session_id: str,
+    audio_file: UploadFile = File(...),
+    start_offset_seconds: Optional[float] = Query(None),
+):
+    """
+    Start live HLS streaming for a session by generating chunked TS segments.
+    """
+    if manager is None or hls_stream_scheduler is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    _require_hls()
+    session = await hls_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    audio_bytes = await audio_file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="audio_file is empty")
+
+    return await _start_hls_stream_for_session(
+        session,
+        audio_bytes=audio_bytes,
+        audio_filename=audio_file.filename or "audio.bin",
+        start_offset_seconds=start_offset_seconds,
+    )
 
 
 @app.get("/hls/sessions/{session_id}/{asset_name}")

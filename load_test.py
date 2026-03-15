@@ -13,6 +13,7 @@ import argparse
 import asyncio
 import json
 import logging
+import shutil
 import signal
 import time
 from contextlib import suppress
@@ -60,6 +61,7 @@ class StageReport:
     concurrency: int = 0
     sessions: list = field(default_factory=list)
     gpu_peak_util: float = 0.0
+    gpu_samples: list = field(default_factory=list)
     wall_time_s: float = 0.0
 
     def summary(self) -> dict:
@@ -80,6 +82,9 @@ class StageReport:
             if completed
             else 0.0
         )
+        gpu_util_values = [sample["gpu_util_pct"] for sample in self.gpu_samples]
+        gpu_mem_values = [sample["memory_used_mb"] for sample in self.gpu_samples]
+        gpu_mem_pct_values = [sample["memory_util_pct"] for sample in self.gpu_samples]
         return {
             "concurrency": self.concurrency,
             "completed": len(completed),
@@ -88,8 +93,114 @@ class StageReport:
             "avg_segment_interval_s": round(avg_seg, 3),
             "max_segment_interval_s": round(max_seg, 3),
             "wall_time_s": round(self.wall_time_s, 1),
+            "gpu": {
+                "samples": len(self.gpu_samples),
+                "avg_util_pct": round(sum(gpu_util_values) / len(gpu_util_values), 2)
+                if gpu_util_values else 0.0,
+                "peak_util_pct": round(max(gpu_util_values), 2)
+                if gpu_util_values else 0.0,
+                "avg_memory_used_mb": round(sum(gpu_mem_values) / len(gpu_mem_values), 1)
+                if gpu_mem_values else 0.0,
+                "peak_memory_used_mb": round(max(gpu_mem_values), 1)
+                if gpu_mem_values else 0.0,
+                "avg_memory_util_pct": round(sum(gpu_mem_pct_values) / len(gpu_mem_pct_values), 2)
+                if gpu_mem_pct_values else 0.0,
+                "peak_memory_util_pct": round(max(gpu_mem_pct_values), 2)
+                if gpu_mem_pct_values else 0.0,
+            },
             "errors": [e for s in self.sessions for e in s.errors],
         }
+
+    def detail(self) -> dict:
+        return {
+            "summary": self.summary(),
+            "gpu_samples": self.gpu_samples,
+            "sessions": [
+                {
+                    "session_id": s.session_id,
+                    "create_latency_s": round(s.create_latency_s, 3),
+                    "stream_start_latency_s": round(s.stream_start_latency_s, 3),
+                    "time_to_live_ready_s": round(s.time_to_live_ready_s, 3),
+                    "total_segments_fetched": s.total_segments_fetched,
+                    "avg_segment_interval_s": round(s.avg_segment_interval, 3),
+                    "max_segment_interval_s": round(s.max_segment_interval, 3),
+                    "stream_completed": s.stream_completed,
+                    "errors": s.errors,
+                }
+                for s in self.sessions
+            ],
+        }
+
+
+async def collect_gpu_sample(gpu_index: int) -> Optional[dict]:
+    if shutil.which("nvidia-smi") is None:
+        return None
+
+    proc = await asyncio.create_subprocess_exec(
+        "nvidia-smi",
+        "-i",
+        str(gpu_index),
+        "--query-gpu=utilization.gpu,utilization.memory,memory.used,memory.total",
+        "--format=csv,noheader,nounits",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await proc.communicate()
+    if proc.returncode != 0:
+        logger.warning("GPU sampling failed: %s", stderr.decode("utf-8", errors="ignore").strip())
+        return None
+
+    line = stdout.decode("utf-8", errors="ignore").strip().splitlines()
+    if not line:
+        return None
+
+    parts = [part.strip() for part in line[0].split(",")]
+    if len(parts) != 4:
+        return None
+
+    gpu_util = float(parts[0])
+    mem_util = float(parts[1])
+    mem_used = float(parts[2])
+    mem_total = float(parts[3])
+    return {
+        "ts": round(time.time(), 3),
+        "gpu_index": gpu_index,
+        "gpu_util_pct": gpu_util,
+        "memory_util_pct": mem_util,
+        "memory_used_mb": mem_used,
+        "memory_total_mb": mem_total,
+    }
+
+
+async def gpu_monitor_loop(
+    report: StageReport,
+    gpu_index: int,
+    sample_interval_s: float,
+    log_interval_s: float,
+    stop_event: asyncio.Event,
+) -> None:
+    last_log_monotonic = 0.0
+    while not stop_event.is_set():
+        sample = await collect_gpu_sample(gpu_index)
+        if sample is not None:
+            report.gpu_samples.append(sample)
+            report.gpu_peak_util = max(report.gpu_peak_util, sample["gpu_util_pct"])
+            if log_interval_s > 0:
+                now = time.monotonic()
+                if now - last_log_monotonic >= log_interval_s:
+                    logger.info(
+                        "GPU[%d] util=%.1f%% mem=%.1f%% used=%.0f/%.0fMB",
+                        gpu_index,
+                        sample["gpu_util_pct"],
+                        sample["memory_util_pct"],
+                        sample["memory_used_mb"],
+                        sample["memory_total_mb"],
+                    )
+                    last_log_monotonic = now
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=sample_interval_s)
+        except asyncio.TimeoutError:
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -119,6 +230,17 @@ async def wait_for_start_or_shutdown(
             await task
 
     return start_task in done and start_event.is_set()
+
+
+async def sleep_or_shutdown(delay_s: float, shutdown_event: asyncio.Event) -> bool:
+    """Sleep for delay_s unless shutdown is requested first."""
+    if delay_s <= 0:
+        return True
+    try:
+        await asyncio.wait_for(shutdown_event.wait(), timeout=delay_s)
+        return False
+    except asyncio.TimeoutError:
+        return True
 
 
 async def delete_hls_session(
@@ -154,10 +276,15 @@ async def run_session(
     batch_size: int,
     start_event: asyncio.Event,
     shutdown_event: asyncio.Event,
+    create_delay_s: float = 0.0,
 ):
     """Full lifecycle: create → wait for go signal → stream → poll → fetch segments → cleanup."""
     if shutdown_event.is_set():
         metrics.errors.append("aborted before session creation")
+        return
+
+    if not await sleep_or_shutdown(create_delay_s, shutdown_event):
+        metrics.errors.append("aborted before staggered session create")
         return
 
     # --- 1) Create session ---------------------------------------------------
@@ -246,6 +373,10 @@ async def run_session(
                 continue
 
             session_status = status.get("status", "")
+            if session_status in {"error", "failed", "cancelled", "rejected"}:
+                metrics.errors.append(f"terminal status: {session_status}")
+                logger.warning("Session %s ended with terminal status %s", sid, session_status)
+                break
 
             # Detect live_ready transition
             if not live_ready and status.get("live_ready"):
@@ -331,14 +462,32 @@ async def run_stage(
     musetalk_fps: int,
     batch_size: int,
     shutdown_event: asyncio.Event,
+    stagger_seconds: float = 0.0,
+    gpu_index: int = 0,
+    gpu_sample_interval_s: float = 1.0,
+    gpu_log_interval_s: float = 5.0,
 ) -> StageReport:
     """Run `concurrency` sessions in parallel, return aggregated report."""
 
     report = StageReport(concurrency=concurrency)
     start_event = asyncio.Event()
+    gpu_stop_event = asyncio.Event()
+    gpu_monitor_task = None
 
     timeout = aiohttp.ClientTimeout(total=600)
     async with aiohttp.ClientSession(timeout=timeout) as http:
+        if gpu_sample_interval_s > 0 and shutil.which("nvidia-smi") is not None:
+            gpu_monitor_task = asyncio.create_task(
+                gpu_monitor_loop(
+                    report=report,
+                    gpu_index=gpu_index,
+                    sample_interval_s=gpu_sample_interval_s,
+                    log_interval_s=gpu_log_interval_s,
+                    stop_event=gpu_stop_event,
+                )
+            )
+        elif gpu_sample_interval_s > 0:
+            logger.warning("nvidia-smi not found; GPU metrics disabled for this stage")
         metrics_list = [SessionMetrics() for _ in range(concurrency)]
         tasks = [
             asyncio.create_task(
@@ -354,33 +503,44 @@ async def run_stage(
                     batch_size=batch_size,
                     start_event=start_event,
                     shutdown_event=shutdown_event,
+                    create_delay_s=index * stagger_seconds,
                 )
             )
-            for m in metrics_list
+            for index, m in enumerate(metrics_list)
         ]
 
-        # Give all sessions time to create, then fire simultaneously
-        try:
-            await asyncio.wait_for(shutdown_event.wait(), timeout=2.0)
-        except asyncio.TimeoutError:
-            pass
+        if stagger_seconds > 0:
+            logger.info(
+                "=== STAGE %d: Staggering %d streams every %.2fs ===",
+                concurrency,
+                concurrency,
+                stagger_seconds,
+            )
+            start_event.set()
+        else:
+            # Give all sessions time to create, then fire simultaneously.
+            try:
+                await asyncio.wait_for(shutdown_event.wait(), timeout=2.0)
+            except asyncio.TimeoutError:
+                pass
 
-        if shutdown_event.is_set():
-            logger.warning("Shutdown requested before stage %d started", concurrency)
-            for task in tasks:
-                if not task.done():
-                    task.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
-            report.sessions = metrics_list
-            return report
+            if shutdown_event.is_set():
+                logger.warning("Shutdown requested before stage %d started", concurrency)
+                for task in tasks:
+                    if not task.done():
+                        task.cancel()
+                await asyncio.gather(*tasks, return_exceptions=True)
+                report.sessions = metrics_list
+                return report
 
-        logger.info(
-            "=== STAGE %d: Firing %d streams simultaneously ===",
-            concurrency,
-            concurrency,
-        )
+            logger.info(
+                "=== STAGE %d: Firing %d streams simultaneously ===",
+                concurrency,
+                concurrency,
+            )
+            start_event.set()
+
         t_stage = time.monotonic()
-        start_event.set()
 
         shutdown_task = asyncio.create_task(shutdown_event.wait())
         try:
@@ -408,6 +568,10 @@ async def run_stage(
             shutdown_task.cancel()
             with suppress(asyncio.CancelledError):
                 await shutdown_task
+            gpu_stop_event.set()
+            if gpu_monitor_task is not None:
+                with suppress(asyncio.CancelledError):
+                    await gpu_monitor_task
 
         report.wall_time_s = time.monotonic() - t_stage
         report.sessions = metrics_list
@@ -449,6 +613,7 @@ async def main(args: argparse.Namespace):
     else:
         ramp_levels = [int(x) for x in args.ramp.split(",")]
     results = []
+    detailed_results = []
 
     for level in ramp_levels:
         if shutdown_event.is_set():
@@ -469,9 +634,14 @@ async def main(args: argparse.Namespace):
             musetalk_fps=args.musetalk_fps,
             batch_size=args.batch_size,
             shutdown_event=shutdown_event,
+            stagger_seconds=args.stagger_seconds,
+            gpu_index=args.gpu_index,
+            gpu_sample_interval_s=args.gpu_sample_interval,
+            gpu_log_interval_s=args.gpu_log_interval,
         )
         summary = report.summary()
         results.append(summary)
+        detailed_results.append(report.detail())
 
         logger.info("\n--- Stage %d Results ---", level)
         logger.info(json.dumps(summary, indent=2))
@@ -516,6 +686,9 @@ async def main(args: argparse.Namespace):
     report_path = Path("load_test_report.json")
     report_path.write_text(json.dumps(results, indent=2))
     logger.info("Report written to %s", report_path)
+    detail_path = Path("load_test_report_detailed.json")
+    detail_path.write_text(json.dumps(detailed_results, indent=2))
+    logger.info("Detailed report written to %s", detail_path)
 
 
 def parse_args() -> argparse.Namespace:
@@ -539,6 +712,25 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--playback-fps", type=int, default=30)
     p.add_argument("--musetalk-fps", type=int, default=15)
     p.add_argument("--batch-size", type=int, default=2)
+    p.add_argument(
+        "--stagger-seconds",
+        type=float,
+        default=0.0,
+        help="Delay between session arrivals. 0 preserves simultaneous burst behavior.",
+    )
+    p.add_argument("--gpu-index", type=int, default=0, help="GPU index to sample with nvidia-smi")
+    p.add_argument(
+        "--gpu-sample-interval",
+        type=float,
+        default=1.0,
+        help="Seconds between GPU samples. Set 0 to disable GPU sampling.",
+    )
+    p.add_argument(
+        "--gpu-log-interval",
+        type=float,
+        default=5.0,
+        help="Seconds between GPU log lines. Set 0 to disable periodic GPU logs.",
+    )
     return p.parse_args()
 
 

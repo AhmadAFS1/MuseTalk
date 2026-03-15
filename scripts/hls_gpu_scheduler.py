@@ -194,6 +194,7 @@ class HLSGPUStreamScheduler:
             return {
                 "queued_or_active_jobs": len(self.jobs),
                 "preparing_jobs": len(self.preparing_requests),
+                "prep_queue_depth": len(self.preparing_requests),
                 "max_combined_batch_size": self.max_combined_batch_size,
                 "startup_slice_size": self.startup_slice_size,
                 "aggressive_fill_max_active_jobs": self.aggressive_fill_max_active_jobs,
@@ -217,6 +218,9 @@ class HLSGPUStreamScheduler:
                         "cancel_requested": job.cancel_event.is_set(),
                         "last_progress_age_s": round(time.time() - job.last_progress_at, 3),
                         "prep_total_s": round(job.prep_total_s, 3),
+                        "avatar_load_s": round(job.avatar_load_s, 3),
+                        "audio_feature_s": round(job.audio_feature_s, 3),
+                        "whisper_chunk_s": round(job.whisper_chunk_s, 3),
                         "queue_wait_s": round(self._queue_wait_s(job), 3),
                         "time_to_first_chunk_s": round(self._time_to_first_chunk_s(job), 3),
                         "scheduler_turns": job.scheduler_turns,
@@ -258,10 +262,10 @@ class HLSGPUStreamScheduler:
             avatar_load_start = time.time()
             avatar = self.manager._get_or_load_avatar(session.avatar_id, session.batch_size)
             avatar_load_s = time.time() - avatar_load_start
-            if session.idle_cycle_frames is None and hasattr(avatar, "input_latent_list_cycle"):
-                session.idle_cycle_frames = len(avatar.input_latent_list_cycle)
+            if session.idle_cycle_frames is None and hasattr(avatar, "input_latent_cycle_tensor"):
+                session.idle_cycle_frames = len(avatar.input_latent_cycle_tensor)
 
-            weight_dtype = self.manager.unet.model.dtype
+            weight_dtype = getattr(self.manager, "unet_dtype", torch.float16)
             audio_feature_start = time.time()
             whisper_input_features, librosa_length = self.manager.audio_processor.get_audio_feature(
                 audio_path, weight_dtype=weight_dtype
@@ -557,10 +561,27 @@ class HLSGPUStreamScheduler:
             if job.first_scheduled_at is None:
                 job.first_scheduled_at = batch_started_at
             whisper_slices.append(job.whisper_chunks[job.current_frame_idx: job.current_frame_idx + take])
-            for rel_index in range(take):
-                cycle_index = job.start_offset_frames + job.current_frame_idx + rel_index
-                latent_index = cycle_index % len(job.avatar.input_latent_list_cycle)
-                latent_slices.append(job.avatar.input_latent_list_cycle[latent_index])
+            latent_cycle = getattr(job.avatar, "input_latent_cycle_tensor", None)
+            if isinstance(latent_cycle, torch.Tensor):
+                cycle_len = latent_cycle.shape[0]
+                latent_indices = [
+                    (job.start_offset_frames + job.current_frame_idx + rel_index) % cycle_len
+                    for rel_index in range(take)
+                ]
+                latent_index_tensor = torch.tensor(
+                    latent_indices,
+                    device=latent_cycle.device,
+                    dtype=torch.long,
+                )
+                gathered_latents = latent_cycle.index_select(0, latent_index_tensor)
+                if gathered_latents.dim() == 5 and gathered_latents.shape[1] == 1:
+                    gathered_latents = gathered_latents.squeeze(1)
+                latent_slices.append(gathered_latents)
+            else:
+                for rel_index in range(take):
+                    cycle_index = job.start_offset_frames + job.current_frame_idx + rel_index
+                    latent_index = cycle_index % len(job.avatar.input_latent_list_cycle)
+                    latent_slices.append(job.avatar.input_latent_list_cycle[latent_index])
             job.last_progress_at = time.time()
             if not job.session.live_ready:
                 job.session.status = "generating"
@@ -571,13 +592,34 @@ class HLSGPUStreamScheduler:
         whisper_batch = torch.cat(whisper_slices, dim=0)
         latent_batch = torch.cat(latent_slices, dim=0)
 
+        actual_batch = total_batch
+
+        # Pad to compile-friendly size to avoid torch.compile recompilation
+        FIXED_SIZES = [4, 8, 16, 32]
+        padded_batch = actual_batch
+        for size in FIXED_SIZES:
+            if size >= actual_batch:
+                padded_batch = size
+                break
+        else:
+            padded_batch = actual_batch  # larger than 32, don't pad
+
+        if padded_batch > actual_batch:
+            pad_n = padded_batch - actual_batch
+            whisper_batch = torch.cat([whisper_batch, whisper_batch[:pad_n]], dim=0)
+            latent_batch = torch.cat([latent_batch, latent_batch[:pad_n]], dim=0)
+
         with self.manager.gpu_memory.allocate(lease_batch_size):
-            with torch.inference_mode():
+            runtime_context = torch.no_grad if getattr(self.manager, "models_compiled", False) else torch.inference_mode
+            with runtime_context():
                 copy_started_at = time.time()
                 audio_inputs = whisper_batch.to(self.manager.device, non_blocking=True)
+                # Use the whisper_batch dtype (already correct from prep)
+                # instead of self.manager.unet.model.dtype which may fail on compiled model
+                target_dtype = audio_inputs.dtype
                 latent_batch = latent_batch.to(
                     device=self.manager.device,
-                    dtype=self.manager.unet.model.dtype,
+                    dtype=target_dtype,
                     non_blocking=True,
                 )
                 copy_finished_at = time.time()
@@ -595,9 +637,16 @@ class HLSGPUStreamScheduler:
                 unet_finished_at = time.time()
 
                 vae_started_at = time.time()
-                pred_latents = pred_latents.to(device=self.manager.device, dtype=self.manager.vae.vae.dtype)
+                pred_latents = pred_latents.to(
+                    device=self.manager.device,
+                    dtype=getattr(self.manager, "vae_dtype", pred_latents.dtype),
+                )
                 recon = self.manager.vae.decode_latents(pred_latents)
                 vae_finished_at = time.time()
+
+        # After VAE decode, trim padding
+        if padded_batch > actual_batch:
+            recon = recon[:actual_batch]
 
         batch_finished_at = time.time()
         assembly_s = assembly_finished_at - batch_started_at

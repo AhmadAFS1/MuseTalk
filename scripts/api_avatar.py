@@ -128,6 +128,8 @@ class APIAvatar:
         self.pe = pe
         self.fp = fp
         self.args = args
+        self.unet_dtype = getattr(unet, "model_dtype", getattr(getattr(unet, "model", None), "dtype", torch.float16))
+        self.vae_dtype = getattr(vae, "runtime_dtype", getattr(getattr(vae, "vae", None), "dtype", torch.float16))
         
         # Setup paths based on version
         if args.version == "v15":
@@ -154,6 +156,18 @@ class APIAvatar:
         
         # Initialize avatar
         self.init(preparation, force_recreate)
+
+    def _finalize_latent_cycle(self) -> None:
+        """Normalize latent storage to a contiguous tensor for fast indexing."""
+        latents = self.input_latent_list_cycle
+        if isinstance(latents, torch.Tensor):
+            tensor = latents
+        else:
+            tensor = torch.stack(latents, dim=0)
+        if tensor.dim() == 4:
+            tensor = tensor.unsqueeze(1)
+        self.input_latent_list_cycle = tensor.contiguous()
+        self.input_latent_cycle_tensor = self.input_latent_list_cycle
     
     def init(self, preparation, force_recreate):
         """Initialize avatar - prepare or load existing materials"""
@@ -348,6 +362,7 @@ class APIAvatar:
         with open(self.coords_path, 'wb') as f:
             pickle.dump(self.coord_list_cycle, f)
         
+        self._finalize_latent_cycle()
         torch.save(self.input_latent_list_cycle, self.latents_out_path)
     
     def _load_existing_materials(self):
@@ -356,6 +371,7 @@ class APIAvatar:
         
         # Load latents
         self.input_latent_list_cycle = torch.load(self.latents_out_path)
+        self._finalize_latent_cycle()
         
         # Load coordinates
         with open(self.coords_path, 'rb') as f:
@@ -429,7 +445,7 @@ class APIAvatar:
         
         # Extract audio features
         start_time = time.time()
-        weight_dtype = self.unet.model.dtype
+        weight_dtype = self.unet_dtype
         
         whisper_input_features, librosa_length = audio_processor.get_audio_feature(
             audio_path, weight_dtype=weight_dtype
@@ -471,7 +487,7 @@ class APIAvatar:
         ):
             # Encode audio features
             audio_feature_batch = self.pe(whisper_batch.to(device))
-            latent_batch = latent_batch.to(device=device, dtype=self.unet.model.dtype)
+            latent_batch = latent_batch.to(device=device, dtype=self.unet_dtype)
             
             # Run UNet
             pred_latents = self.unet.model(
@@ -481,7 +497,7 @@ class APIAvatar:
             ).sample
             
             # Decode latents
-            pred_latents = pred_latents.to(device=device, dtype=self.vae.vae.dtype)
+            pred_latents = pred_latents.to(device=device, dtype=self.vae_dtype)
             recon = self.vae.decode_latents(pred_latents)
             
             # Queue result frames
@@ -653,7 +669,7 @@ class APIAvatar:
         print(f"📄 Audio file: {audio_path}")
         
         audio_start = time.time()
-        weight_dtype = self.unet.model.dtype
+        weight_dtype = self.unet_dtype
 
         if cancel_requested("audio feature extraction"):
             return
@@ -757,13 +773,13 @@ class APIAvatar:
             # Generate batch (no per-batch logging)
             audio_feature_batch = self.pe(whisper_batch.to(device))
             
-            latent_batch = latent_batch.to(device=device, dtype=self.unet.model.dtype)
+            latent_batch = latent_batch.to(device=device, dtype=self.unet_dtype)
             pred_latents = self.unet.model(
                 latent_batch, timesteps,
                 encoder_hidden_states=audio_feature_batch
             ).sample
             
-            pred_latents = pred_latents.to(device=device, dtype=self.vae.vae.dtype)
+            pred_latents = pred_latents.to(device=device, dtype=self.vae_dtype)
             recon = self.vae.decode_latents(pred_latents)
             
             # Process each frame
@@ -972,7 +988,7 @@ class APIAvatar:
                     ffmpeg_cmd,
                     stdin=subprocess.PIPE,
                     stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
+                    stderr=subprocess.PIPE,
                 )
 
                 for frame in frames:
@@ -987,7 +1003,16 @@ class APIAvatar:
                     raise RuntimeError(f"FFmpeg chunk encode timed out after 120s using {encoder}")
 
                 if returncode != 0:
-                    raise RuntimeError(f"FFmpeg failed with exit code {returncode} using {encoder}")
+                    stderr_tail = ""
+                    if proc.stderr is not None:
+                        try:
+                            stderr_tail = proc.stderr.read().decode("utf-8", errors="ignore")[-400:]
+                        except Exception:
+                            stderr_tail = ""
+                    detail = f": {stderr_tail}" if stderr_tail else ""
+                    raise RuntimeError(
+                        f"FFmpeg failed with exit code {returncode} using {encoder}{detail}"
+                    )
                 if not Path(output_path).exists():
                     raise RuntimeError(f"Output file not created using {encoder}")
 
