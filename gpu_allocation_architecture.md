@@ -869,3 +869,35 @@ Practical rule:
 The detailed file-level plan now lives in `gpu_allocation_improvement.md` under:
 
 - `March 15 Post-Revert Throughput Plan`
+
+### March 15 priority status snapshot
+
+That plan has now progressed enough that the current status is worth recording explicitly:
+
+| Priority | Status | Architectural implication |
+| --- | --- | --- |
+| 1. CPU compose optimization | ✅ Major pass complete | The ROI-only NumPy/OpenCV compose refactor materially reduced CPU-side frame assembly cost. Compose is no longer the dominant hot-path bottleneck. |
+| 2. GPU Whisper prep contention | 🟡 Partially complete | HLS jobs now prepare only an initial conditioning window and backfill the rest in the background. This improved startup behavior, but Whisper encode still competes on the main GPU. |
+| 3. PE precompute | ✅ Complete for current design | PE is no longer paid inside every live scheduler turn. |
+| 4. Scheduler assembly / copy overhead | 🟡 Partial, low payoff so far | Tensorization and pinned/staging buffers are in place, but the latest scheduler logs still show `avg_gpu_batch ≈ 0.788-0.791s`, so this is not currently the dominant remaining lever. |
+| 5. Model-path acceleration | ⏳ Not complete | This is now the highest-value remaining software target. The current architecture is increasingly limited by GPU turn cadence rather than CPU compose or queueing. |
+| 6. Keep decoded output on GPU longer | ⏳ Not complete | `musetalk/models/vae.py` still forces an immediate CPU handoff, so this remains a larger future architectural option. |
+
+Current measured state on the RTX 3090, using warm-cache `concurrency=8`, `playback_fps=24`, `musetalk_fps=12`, `batch_size=2`:
+
+- `avg_time_to_live_ready_s ≈ 3.1-3.4`
+- `avg_segment_interval_s ≈ 2.35-2.40`
+- `wall_time_s ≈ 44.2-44.5`
+- `avg GPU util ≈ 70-77%`
+
+Current architectural interpretation:
+
+1. The major March 15 gains came from removing CPU compose cost and removing PE from the live loop.
+2. Incremental conditioning prep improved startup pressure but did not materially change the steady-state cadence ceiling.
+3. Later scheduler staging-buffer work was safe but did not produce a clear additional throughput win.
+4. The current backend is now mainly constrained by the GPU-side turn cadence of the UNet + VAE path, plus whatever per-turn overhead still remains around that path.
+
+Therefore the next backend-only optimization step should be:
+
+1. model-path acceleration (`torch.compile` or runtime-stack upgrade)
+2. only then, if still needed, larger architectural work around VAE decode / GPU-side compose retention

@@ -167,12 +167,18 @@ class APIAvatar:
             tensor = torch.stack(latents, dim=0)
         if tensor.dim() == 4:
             tensor = tensor.unsqueeze(1)
-        self.input_latent_list_cycle = tensor.contiguous()
+        tensor = tensor.contiguous()
+        if tensor.device.type == "cpu" and torch.cuda.is_available():
+            tensor = tensor.pin_memory()
+        self.input_latent_list_cycle = tensor
         self.input_latent_cycle_tensor = self.input_latent_list_cycle
         if self.input_latent_cycle_tensor.dim() == 5 and self.input_latent_cycle_tensor.shape[1] == 1:
-            self.input_latent_cycle_batch_tensor = self.input_latent_cycle_tensor.squeeze(1).contiguous()
+            batch_tensor = self.input_latent_cycle_tensor.squeeze(1).contiguous()
         else:
-            self.input_latent_cycle_batch_tensor = self.input_latent_cycle_tensor
+            batch_tensor = self.input_latent_cycle_tensor
+        if batch_tensor.device.type == "cpu" and torch.cuda.is_available() and not batch_tensor.is_pinned():
+            batch_tensor = batch_tensor.pin_memory()
+        self.input_latent_cycle_batch_tensor = batch_tensor
 
     def apply_positional_encoding_cpu(self, audio_prompts: torch.Tensor) -> torch.Tensor:
         """

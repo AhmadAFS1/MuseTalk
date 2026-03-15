@@ -2474,6 +2474,32 @@ Current recommendation:
 3. Do not expect `batch_size` tuning alone to remove buffering at `concurrency=8`.
 4. Do not treat VRAM headroom as evidence that the machine has more realtime throughput available.
 
+### March 15 priority status update
+
+The original post-revert priorities have now been partially executed. The current scoreboard is:
+
+| Priority | Status | Current read |
+| --- | --- | --- |
+| 1. CPU compose optimization | ✅ Major pass complete | This was the biggest measured win. `avg_compose` dropped from roughly `~1.1s` to about `~0.145s`, and the `concurrency=8` cadence improved from the older `~5.2s` band to the newer `~2.3-2.4s` band. |
+| 2. Stop Whisper prep from stealing GPU time | 🟡 Partially complete | Conditioning prep is now incremental and backfilled in the background, which improved startup behavior and reduced up-front prep pressure. Whisper encode still uses the main GPU, so this priority is improved but not fully solved. |
+| 3. Precompute PE | ✅ Complete for current architecture | PE was removed from the live GPU loop and moved into CPU-side prep. This was a real contributor to the large March 15 throughput gain. |
+| 4. Reduce scheduler assembly / copy overhead | 🟡 Partial, low measured impact so far | Latent tensorization, pinned tensors, and staging buffers are now in place. The most recent measurements did not show a clear additional reduction in `avg_gpu_batch`, so this path no longer looks like the next step-change. |
+| 5. Revisit model acceleration | ⏳ Not complete | This is now the best remaining software lever. `torch.compile` is still environment-sensitive on the current stack, but model-path acceleration is the next highest-value target. |
+| 6. Keep decode / composition off CPU longer | ⏳ Not complete | `musetalk/models/vae.py` still converts decoded output straight to CPU NumPy. This remains a larger architectural refactor to consider only after model acceleration is measured. |
+
+Current interpretation after the latest warm `concurrency=8`, `24/12`, `batch_size=2` runs:
+
+- `avg_segment_interval_s` is now stable in the `~2.35-2.40s` range
+- `avg_time_to_live_ready_s` is now stable in the `~3.1-3.4s` range
+- `wall_time_s` is now stable around `~44.2-44.5s`
+- the system is still throttled, but it is no longer in the old overloaded `~5.2s` cadence regime
+
+Most important current conclusion:
+
+- the backend is no longer primarily limited by CPU compose
+- the remaining bottleneck is mostly **GPU turn cadence / model-path throughput**
+- therefore the next engineering priority should be **Priority 5**, not more player work and not more compose tuning
+
 ### Short operational read
 
 At the moment, the safest mental model is:

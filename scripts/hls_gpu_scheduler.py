@@ -157,6 +157,7 @@ class HLSGPUStreamScheduler:
         self.preparing_requests: set[str] = set()
         self.selection_cursor = 0
         self._cpu_pe_cache: Dict[tuple[int, str], torch.Tensor] = {}
+        self._cpu_staging_cache: Dict[tuple, tuple[torch.Tensor, torch.Tensor]] = {}
 
     def start(self) -> None:
         if self.scheduler_thread is not None:
@@ -376,6 +377,7 @@ class HLSGPUStreamScheduler:
                 conditioning_chunks = torch.empty(
                     (total_frames,) + tuple(initial_conditioning.shape[1:]),
                     dtype=initial_conditioning.dtype,
+                    pin_memory=torch.cuda.is_available(),
                 )
                 conditioning_chunks[:initial_ready_frames].copy_(initial_conditioning)
             else:
@@ -752,17 +754,50 @@ class HLSGPUStreamScheduler:
         batch_started_at = time.time()
         total_batch = sum(take for _, take in selected)
         lease_batch_size = self._memory_bucket(total_batch)
-
-        conditioning_slices = []
-        latent_slices = []
+        actual_batch = total_batch
 
         for job, take in selected:
             if job.first_scheduled_at is None:
                 job.first_scheduled_at = batch_started_at
+            job.last_progress_at = time.time()
+            if not job.session.live_ready:
+                job.session.status = "generating"
+            self._set_request_status(job.request_id, "running")
+            job.scheduler_turns += 1
+
+        # Pad to compile-friendly size to avoid torch.compile recompilation
+        FIXED_SIZES = [4, 8, 16, 32]
+        padded_batch = actual_batch
+        for size in FIXED_SIZES:
+            if size >= actual_batch:
+                padded_batch = size
+                break
+        else:
+            padded_batch = actual_batch  # larger than 32, don't pad
+
+        conditioning_shape = tuple(selected[0][0].conditioning_chunks.shape[1:])
+        latent_cycle = getattr(
+            selected[0][0].avatar,
+            "input_latent_cycle_batch_tensor",
+            getattr(selected[0][0].avatar, "input_latent_cycle_tensor", None),
+        )
+        if not isinstance(latent_cycle, torch.Tensor):
+            raise RuntimeError("Expected latent cycle tensor for scheduler batch assembly")
+        latent_shape = tuple(latent_cycle.shape[1:])
+        staging_conditioning, staging_latents = self._get_staging_buffers(
+            conditioning_shape=conditioning_shape,
+            conditioning_dtype=selected[0][0].conditioning_chunks.dtype,
+            latent_shape=latent_shape,
+            latent_dtype=latent_cycle.dtype,
+            batch_size=padded_batch,
+        )
+
+        offset = 0
+        for job, take in selected:
             with job.conditioning_lock:
-                conditioning_slices.append(
-                    job.conditioning_chunks[job.current_frame_idx: job.current_frame_idx + take]
-                )
+                conditioning_slice = job.conditioning_chunks[job.current_frame_idx: job.current_frame_idx + take]
+            staging_conditioning[offset: offset + take].copy_(conditioning_slice)
+
             latent_cycle = getattr(
                 job.avatar,
                 "input_latent_cycle_batch_tensor",
@@ -783,38 +818,19 @@ class HLSGPUStreamScheduler:
                 gathered_latents = latent_cycle.index_select(0, latent_index_tensor)
                 if gathered_latents.dim() == 5 and gathered_latents.shape[1] == 1:
                     gathered_latents = gathered_latents.squeeze(1)
-                latent_slices.append(gathered_latents)
+                staging_latents[offset: offset + take].copy_(gathered_latents)
             else:
-                for rel_index in range(take):
-                    cycle_index = job.start_offset_frames + job.current_frame_idx + rel_index
-                    latent_index = cycle_index % len(job.avatar.input_latent_list_cycle)
-                    latent_slices.append(job.avatar.input_latent_list_cycle[latent_index])
-            job.last_progress_at = time.time()
-            if not job.session.live_ready:
-                job.session.status = "generating"
-            self._set_request_status(job.request_id, "running")
-            job.scheduler_turns += 1
-
-        assembly_finished_at = time.time()
-        conditioning_batch = torch.cat(conditioning_slices, dim=0)
-        latent_batch = torch.cat(latent_slices, dim=0)
-
-        actual_batch = total_batch
-
-        # Pad to compile-friendly size to avoid torch.compile recompilation
-        FIXED_SIZES = [4, 8, 16, 32]
-        padded_batch = actual_batch
-        for size in FIXED_SIZES:
-            if size >= actual_batch:
-                padded_batch = size
-                break
-        else:
-            padded_batch = actual_batch  # larger than 32, don't pad
+                raise RuntimeError("Expected latent cycle tensor for scheduler batch assembly")
+            offset += take
 
         if padded_batch > actual_batch:
             pad_n = padded_batch - actual_batch
-            conditioning_batch = torch.cat([conditioning_batch, conditioning_batch[:pad_n]], dim=0)
-            latent_batch = torch.cat([latent_batch, latent_batch[:pad_n]], dim=0)
+            staging_conditioning[actual_batch:padded_batch].copy_(staging_conditioning[:pad_n])
+            staging_latents[actual_batch:padded_batch].copy_(staging_latents[:pad_n])
+
+        assembly_finished_at = time.time()
+        conditioning_batch = staging_conditioning[:padded_batch]
+        latent_batch = staging_latents[:padded_batch]
 
         with self.manager.gpu_memory.allocate(lease_batch_size):
             runtime_context = torch.no_grad if getattr(self.manager, "models_compiled", False) else torch.inference_mode
@@ -1245,6 +1261,40 @@ class HLSGPUStreamScheduler:
         if remaining_frames > 0:
             chunk_count += int(math.ceil(remaining_frames / frames_per_chunk))
         return chunk_count
+
+    def _get_staging_buffers(
+        self,
+        *,
+        conditioning_shape: tuple[int, ...],
+        conditioning_dtype: torch.dtype,
+        latent_shape: tuple[int, ...],
+        latent_dtype: torch.dtype,
+        batch_size: int,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        cache_key = (
+            batch_size,
+            conditioning_shape,
+            str(conditioning_dtype),
+            latent_shape,
+            str(latent_dtype),
+        )
+        buffers = self._cpu_staging_cache.get(cache_key)
+        if buffers is None:
+            pin_memory = torch.cuda.is_available()
+            buffers = (
+                torch.empty(
+                    (batch_size,) + conditioning_shape,
+                    dtype=conditioning_dtype,
+                    pin_memory=pin_memory,
+                ),
+                torch.empty(
+                    (batch_size,) + latent_shape,
+                    dtype=latent_dtype,
+                    pin_memory=pin_memory,
+                ),
+            )
+            self._cpu_staging_cache[cache_key] = buffers
+        return buffers
 
     def _apply_positional_encoding_cpu(self, audio_prompts: torch.Tensor) -> torch.Tensor:
         if not isinstance(audio_prompts, torch.Tensor) or audio_prompts.dim() != 3:
