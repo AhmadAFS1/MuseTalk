@@ -22,6 +22,8 @@ class HLSStreamJob:
     generation_fps: int
     batch_size: int
     conditioning_chunks: object
+    conditioning_ready_frames: int
+    conditioning_complete: bool
     total_frames: int
     frames_per_chunk: int
     startup_chunk_frames: int
@@ -84,6 +86,7 @@ class HLSStreamJob:
     max_encode_s: float = 0.0
     chunks_appended: int = 0
     encoded_frame_cursor: int = 0
+    conditioning_lock: object = field(default_factory=threading.Lock, repr=False)
 
 
 class HLSGPUStreamScheduler:
@@ -117,6 +120,10 @@ class HLSGPUStreamScheduler:
         self.startup_chunk_duration_seconds = max(0.0, float(startup_chunk_duration_seconds))
         self.startup_chunk_count = max(0, int(startup_chunk_count))
         self.prep_executor = ThreadPoolExecutor(max_workers=max(1, int(prep_workers)))
+        self.backfill_executor = ThreadPoolExecutor(
+            max_workers=max(1, min(2, int(prep_workers))),
+            thread_name_prefix="hls-backfill",
+        )
 
         # Scale compose workers: cv2/numpy release the GIL for heavy ops.
         # At 8 streams producing 32 frames/tick, 2 workers creates a queue.
@@ -174,6 +181,7 @@ class HLSGPUStreamScheduler:
         if self.scheduler_thread is not None:
             self.scheduler_thread.join(timeout=10)
         self.prep_executor.shutdown(wait=False, cancel_futures=True)
+        self.backfill_executor.shutdown(wait=False, cancel_futures=True)
         self.compose_executor.shutdown(wait=False, cancel_futures=True)
         self.encode_executor.shutdown(wait=False, cancel_futures=True)
         print("🎛️  HLS GPU scheduler stopped")
@@ -239,6 +247,8 @@ class HLSGPUStreamScheduler:
                         "frames_per_chunk": job.frames_per_chunk,
                         "startup_chunk_frames": job.startup_chunk_frames,
                         "startup_chunk_count": job.startup_chunk_count,
+                        "conditioning_ready_frames": job.conditioning_ready_frames,
+                        "conditioning_complete": job.conditioning_complete,
                         "frames_until_next_chunk": max(0, self._next_chunk_target_frames(job) - len(job.frame_buffer)),
                         "frame_buffer_fill_pct": round(
                             (len(job.frame_buffer) / job.frames_per_chunk) if job.frames_per_chunk else 0.0,
@@ -317,7 +327,7 @@ class HLSGPUStreamScheduler:
                 raise RuntimeError("Audio feature extraction failed")
 
             whisper_chunk_start = time.time()
-            whisper_chunks = self.manager.audio_processor.get_whisper_chunk(
+            whisper_feature, total_frames = self.manager.audio_processor.encode_whisper_feature(
                 whisper_input_features,
                 self.manager.device,
                 weight_dtype,
@@ -326,8 +336,7 @@ class HLSGPUStreamScheduler:
                 fps=generation_fps,
                 audio_padding_length_left=self.manager.args.audio_padding_length_left,
                 audio_padding_length_right=self.manager.args.audio_padding_length_right,
-            ).detach().cpu().contiguous()
-            conditioning_chunks = self._apply_positional_encoding_cpu(whisper_chunks)
+            )
             whisper_chunk_s = time.time() - whisper_chunk_start
 
             if cancel_event.is_set():
@@ -336,7 +345,6 @@ class HLSGPUStreamScheduler:
                 )
                 return
 
-            total_frames = int(len(conditioning_chunks))
             frames_per_chunk = max(1, int(round(session.segment_duration * generation_fps)))
             startup_chunk_frames = self._startup_chunk_frames(frames_per_chunk, generation_fps)
             startup_chunk_count = self.startup_chunk_count if startup_chunk_frames < frames_per_chunk else 0
@@ -347,6 +355,31 @@ class HLSGPUStreamScheduler:
                 startup_chunk_count=startup_chunk_count,
             )
             start_offset_frames = int(round(max(0.0, float(start_offset_seconds)) * generation_fps))
+            initial_ready_frames = self._initial_conditioning_frames(
+                total_frames=total_frames,
+                frames_per_chunk=frames_per_chunk,
+                startup_chunk_frames=startup_chunk_frames,
+                startup_chunk_count=startup_chunk_count,
+            )
+
+            if initial_ready_frames > 0:
+                initial_prompts = self.manager.audio_processor.build_audio_prompts(
+                    whisper_feature=whisper_feature,
+                    num_frames=total_frames,
+                    fps=generation_fps,
+                    audio_padding_length_left=self.manager.args.audio_padding_length_left,
+                    audio_padding_length_right=self.manager.args.audio_padding_length_right,
+                    start_frame=0,
+                    end_frame=initial_ready_frames,
+                )
+                initial_conditioning = self._apply_positional_encoding_cpu(initial_prompts)
+                conditioning_chunks = torch.empty(
+                    (total_frames,) + tuple(initial_conditioning.shape[1:]),
+                    dtype=initial_conditioning.dtype,
+                )
+                conditioning_chunks[:initial_ready_frames].copy_(initial_conditioning)
+            else:
+                conditioning_chunks = torch.empty((0, 0, 0), dtype=torch.float32)
 
             idle_frames = avatar._get_idle_frames(max_frames=max(8, min(24, int(generation_fps * 0.8))))
             crossfade_tail_frames = 0
@@ -369,6 +402,8 @@ class HLSGPUStreamScheduler:
                 generation_fps=generation_fps,
                 batch_size=max(1, int(session.batch_size)),
                 conditioning_chunks=conditioning_chunks,
+                conditioning_ready_frames=initial_ready_frames,
+                conditioning_complete=initial_ready_frames >= total_frames,
                 total_frames=total_frames,
                 frames_per_chunk=frames_per_chunk,
                 startup_chunk_frames=startup_chunk_frames,
@@ -401,9 +436,17 @@ class HLSGPUStreamScheduler:
                 self._finalize_job(job, "completed")
                 return
 
+            if not job.conditioning_complete:
+                self.backfill_executor.submit(
+                    self._backfill_conditioning_chunks,
+                    job,
+                    whisper_feature,
+                )
+
             print(
                 f"🎛️  [{request_id}] queued for shared HLS GPU scheduler "
                 f"(frames={total_frames}, chunks={total_chunks}, batch_size={job.batch_size}, "
+                f"ready={job.conditioning_ready_frames}, "
                 f"prep={job.prep_total_s:.2f}s, prep_wait={job.prep_queue_wait_s:.2f}s, "
                 f"prep_work={job.prep_work_s:.2f}s)"
             )
@@ -443,6 +486,72 @@ class HLSGPUStreamScheduler:
             Path(audio_path).unlink(missing_ok=True)
         except OSError:
             pass
+
+    def _initial_conditioning_frames(
+        self,
+        *,
+        total_frames: int,
+        frames_per_chunk: int,
+        startup_chunk_frames: int,
+        startup_chunk_count: int,
+    ) -> int:
+        if total_frames <= 0:
+            return 0
+
+        initial_frames = frames_per_chunk * 2
+        if startup_chunk_count > 0 and startup_chunk_frames > 0:
+            initial_frames = (startup_chunk_frames * startup_chunk_count) + frames_per_chunk
+
+        return min(total_frames, max(frames_per_chunk, initial_frames))
+
+    def _backfill_conditioning_chunks(self, job: HLSStreamJob, whisper_feature: torch.Tensor) -> None:
+        try:
+            block_frames = max(job.frames_per_chunk, self.max_combined_batch_size * 2)
+            next_frame = job.conditioning_ready_frames
+
+            while next_frame < job.total_frames:
+                if job.cancel_event.is_set() or job.finalized:
+                    return
+
+                end_frame = min(job.total_frames, next_frame + block_frames)
+                prompts = self.manager.audio_processor.build_audio_prompts(
+                    whisper_feature=whisper_feature,
+                    num_frames=job.total_frames,
+                    fps=job.generation_fps,
+                    audio_padding_length_left=self.manager.args.audio_padding_length_left,
+                    audio_padding_length_right=self.manager.args.audio_padding_length_right,
+                    start_frame=next_frame,
+                    end_frame=end_frame,
+                )
+                conditioning = self._apply_positional_encoding_cpu(prompts)
+                expected_frames = end_frame - next_frame
+                if len(conditioning) != expected_frames:
+                    raise RuntimeError(
+                        f"conditioning backfill size mismatch: expected {expected_frames}, got {len(conditioning)}"
+                    )
+
+                with job.conditioning_lock:
+                    job.conditioning_chunks[next_frame:end_frame].copy_(conditioning)
+                    job.conditioning_ready_frames = end_frame
+                    if end_frame >= job.total_frames:
+                        job.conditioning_complete = True
+
+                next_frame = end_frame
+                with self.condition:
+                    self.condition.notify_all()
+
+            with job.conditioning_lock:
+                job.conditioning_complete = True
+            with self.condition:
+                self.condition.notify_all()
+        except Exception as exc:
+            job.error_message = f"conditioning backfill failed: {exc}"
+            with job.conditioning_lock:
+                job.conditioning_complete = True
+            with self.condition:
+                self.condition.notify_all()
+            print(f"❌ [{job.request_id}] conditioning backfill failed: {exc}")
+            traceback.print_exc()
 
     def _run_loop(self) -> None:
         while True:
@@ -545,12 +654,16 @@ class HLSGPUStreamScheduler:
             job = jobs[(start_idx + offset) % count]
             if job.finalized or job.cancel_event.is_set():
                 continue
-            if job.generation_done or job.current_frame_idx >= job.total_frames:
+            if job.generation_done:
+                continue
+            if job.current_frame_idx >= job.total_frames:
+                job.generation_done = True
+                if job.generation_done_at is None:
+                    job.generation_done_at = time.time()
                 continue
 
             remaining_frames = self._remaining_frames(job)
             if remaining_frames <= 0:
-                job.generation_done = True
                 continue
             ordered_jobs.append(job)
 
@@ -646,9 +759,10 @@ class HLSGPUStreamScheduler:
         for job, take in selected:
             if job.first_scheduled_at is None:
                 job.first_scheduled_at = batch_started_at
-            conditioning_slices.append(
-                job.conditioning_chunks[job.current_frame_idx: job.current_frame_idx + take]
-            )
+            with job.conditioning_lock:
+                conditioning_slices.append(
+                    job.conditioning_chunks[job.current_frame_idx: job.current_frame_idx + take]
+                )
             latent_cycle = getattr(
                 job.avatar,
                 "input_latent_cycle_batch_tensor",
@@ -1059,7 +1173,9 @@ class HLSGPUStreamScheduler:
         already_allocated = 0
         if allocations is not None:
             already_allocated = allocations.get(job.request_id, 0)
-        return max(0, job.total_frames - job.current_frame_idx - already_allocated)
+        with job.conditioning_lock:
+            available_frames = job.total_frames if job.conditioning_complete else job.conditioning_ready_frames
+        return max(0, available_frames - job.current_frame_idx - already_allocated)
 
     @staticmethod
     def _safe_avg(total: float, count: int) -> float:

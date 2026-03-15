@@ -45,6 +45,35 @@ class AudioProcessor:
         audio_padding_length_left=2,
         audio_padding_length_right=2,
     ):
+        whisper_feature, num_frames = self.encode_whisper_feature(
+            whisper_input_features=whisper_input_features,
+            device=device,
+            weight_dtype=weight_dtype,
+            whisper=whisper,
+            librosa_length=librosa_length,
+            fps=fps,
+            audio_padding_length_left=audio_padding_length_left,
+            audio_padding_length_right=audio_padding_length_right,
+        )
+        return self.build_audio_prompts(
+            whisper_feature=whisper_feature,
+            num_frames=num_frames,
+            fps=fps,
+            audio_padding_length_left=audio_padding_length_left,
+            audio_padding_length_right=audio_padding_length_right,
+        )
+
+    def encode_whisper_feature(
+        self,
+        whisper_input_features,
+        device,
+        weight_dtype,
+        whisper,
+        librosa_length,
+        fps=25,
+        audio_padding_length_left=2,
+        audio_padding_length_right=2,
+    ):
         audio_feature_length_per_frame = 2 * (audio_padding_length_left + audio_padding_length_right + 1)
         whisper_feature = []
         # Process multiple 30s mel input features
@@ -74,8 +103,35 @@ class AudioProcessor:
             torch.zeros_like(whisper_feature[:, :padding_nums * 3 * audio_padding_length_right])
         ], 1)
 
+        return whisper_feature.detach().cpu().contiguous(), num_frames
+
+    def build_audio_prompts(
+        self,
+        whisper_feature,
+        num_frames,
+        fps=25,
+        audio_padding_length_left=2,
+        audio_padding_length_right=2,
+        start_frame=0,
+        end_frame=None,
+    ):
+        audio_feature_length_per_frame = 2 * (audio_padding_length_left + audio_padding_length_right + 1)
+        fps = int(fps)
+        audio_fps = 50
+        whisper_idx_multiplier = audio_fps / fps
+
+        if end_frame is None:
+            end_frame = num_frames
+        start_frame = max(0, int(start_frame))
+        end_frame = min(int(end_frame), int(num_frames))
+        if end_frame <= start_frame:
+            return torch.empty(
+                (0, audio_feature_length_per_frame * whisper_feature.shape[2], whisper_feature.shape[3]),
+                dtype=whisper_feature.dtype,
+            )
+
         audio_prompts = []
-        for frame_index in range(num_frames):
+        for frame_index in range(start_frame, end_frame):
             try:
                 audio_index = math.floor(frame_index * whisper_idx_multiplier)
                 audio_clip = whisper_feature[:, audio_index: audio_index + audio_feature_length_per_frame]
@@ -89,6 +145,12 @@ class AudioProcessor:
                 print(f"frame_index: {frame_index}, audio_index: {audio_index}-{audio_index + audio_feature_length_per_frame}")
                 exit()
 
+        if not audio_prompts:
+            return torch.empty(
+                (0, audio_feature_length_per_frame * whisper_feature.shape[2], whisper_feature.shape[3]),
+                dtype=whisper_feature.dtype,
+            )
+
         audio_prompts = torch.cat(audio_prompts, dim=0)  # T, 10, 5, 384
         audio_prompts = rearrange(audio_prompts, 'b c h w -> b (c h) w')
         return audio_prompts
@@ -99,4 +161,3 @@ if __name__ == "__main__":
     audio_feature, librosa_feature_length = audio_processor.get_audio_feature(wav_path)
     print("Audio Feature shape:", audio_feature.shape)
     print("librosa_feature_length:", librosa_feature_length)
-
