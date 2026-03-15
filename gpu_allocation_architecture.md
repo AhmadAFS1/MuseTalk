@@ -733,3 +733,8 @@ This also explains why staggered-arrival tests are important:
 - they are more realistic than synchronized bursts
 - they often look better at startup
 - but they do not change the steady-state aggregate GPU ceiling once the active streams overlap
+
+The concrete mitigation plan now lives in `gpu_allocation_improvement.md`:
+
+- HLS tuning cheat sheet for the current env vars
+- a dedicated startup-optimization phase focused on partial prep, first-chunk priority, warm paths, and adaptive prep admission

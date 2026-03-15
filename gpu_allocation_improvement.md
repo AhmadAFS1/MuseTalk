@@ -817,6 +817,50 @@ The practical diagnostic rule is:
 2. high `avg_segment_interval_s` with 100% utilization peaks usually means shared compute saturation
 3. high memory usage near the device limit would indicate actual VRAM pressure, but that is not what the current runs show
 
+### HLS tuning cheat sheet
+
+These are the HLS env vars that have been actively tuned during the March 2026 investigation, along with what they actually do in the current codebase.
+
+| Env var | Current meaning | Real impact on throughput | Current recommendation |
+|---|---|---|---|
+| `MUSETALK_COMPILE=1` | Enables `torch.compile` warmup for UNet + VAE in `avatar_manager_parallel.py` | Potentially the only knob here that can raise the raw model-throughput ceiling | Worth benchmarking, but treat as environment-sensitive and validate on the exact runtime stack |
+| `HLS_SCHEDULER_MAX_BATCH=32` | Caps the total combined frame batch the shared HLS scheduler can process in one GPU turn | Real throughput/fairness lever; too low wastes GPU opportunity, too high increases per-turn latency and jitter | `20-32` is the practical range; `32` is a sensible upper bound for the current scheduler |
+| `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4` | Controls the first-round allocation for startup jobs | Limited by each stream's `batch_size`, so it does little when `batch_size=2` | Leave at `2`; values above the stream `batch_size` do not help |
+| `HLS_SCHEDULER_AGGRESSIVE_FILL_MAX_ACTIVE_JOBS=999` | Historical guard controlling whether the scheduler refilled remaining capacity | No longer materially affects behavior because the current scheduler always fills remaining capacity | Ignore for now; effectively a no-op |
+| `HLS_COMPOSE_WORKERS=8` | Thread pool size for CPU-side frame composition | Can reduce compose queueing, but does not change the model-throughput ceiling | Use only if compose queue wait is elevated; `6-8` is reasonable, more can oversubscribe CPU |
+| `HLS_ENCODE_WORKERS=8` | Thread pool size for encode submission work | Can reduce encode queueing, but can also increase ffmpeg / NVENC contention | Use only if encode queue wait is elevated; `6-8` is reasonable, but not a primary throughput lever |
+| `HLS_MAX_PENDING_JOBS=24` | Caps how many HLS jobs can be preparing or queued before rejecting new starts | Does not improve throughput; only changes backlog behavior | Treat as a queueing/admission knob, not a speed knob |
+
+Important caveats:
+
+1. `HLS_SCHEDULER_MAX_BATCH` is a combined frame-count cap, not GB of VRAM
+2. `HLS_SCHEDULER_STARTUP_SLICE_SIZE` is capped by per-stream `batch_size`, so it cannot force a `batch_size=2` stream to take `4` frames in the first round
+3. `HLS_SCHEDULER_AGGRESSIVE_FILL_MAX_ACTIVE_JOBS` is still exposed in logs/stats, but the current scheduling loop no longer uses it to block fill behavior
+4. `HLS_COMPOSE_WORKERS` and `HLS_ENCODE_WORKERS` are queue-management knobs; they are not substitutes for raising the actual PE + UNet + VAE throughput ceiling
+
+Recommended baseline startup command for current testing:
+
+```bash
+export HLS_SCHEDULER_MAX_BATCH=32
+export HLS_COMPOSE_WORKERS=6
+export HLS_ENCODE_WORKERS=6
+python api_server.py --host 0.0.0.0 --port 8000
+```
+
+Recommended compile test variant:
+
+```bash
+export MUSETALK_COMPILE=1
+export HLS_SCHEDULER_MAX_BATCH=32
+python api_server.py --host 0.0.0.0 --port 8000
+```
+
+Do not expect the following to materially improve current `24/12`, `concurrency=8`, `batch_size=2` throughput by themselves:
+
+- `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
+- `HLS_SCHEDULER_AGGRESSIVE_FILL_MAX_ACTIVE_JOBS=999`
+- larger pending-job caps
+
 ### Final investigative conclusion
 
 The current system has two different capacity limits:
@@ -1702,6 +1746,66 @@ Important note:
 
 - based on current measurements, memory admission and throughput admission must remain separate controls
 - the new HLS scheduler is the correct architectural direction, but it still needs measurement and tuning before claiming safe two-stream realtime capacity
+
+## Phase 1.5: Startup-path optimization
+
+Goal:
+
+- reduce `avg_time_to_live_ready_s` under realistic concurrent HLS starts without making steady-state throughput worse
+
+Why this phase is required:
+
+- current high-concurrency startup delay is coming from prep contention, scheduler queueing, and first-chunk compose/encode
+- synchronized starts amplify this, but even staggered real-user arrivals still pay the same startup pipeline cost
+- raising thread counts alone is unlikely to solve this and may simply create more contention
+
+Files:
+
+- `scripts/hls_gpu_scheduler.py`
+- `scripts/api_avatar.py`
+- `scripts/hls_session_manager.py`
+- `scripts/avatar_manager_parallel.py`
+- `load_test.py`
+
+Planned changes:
+
+1. **Partial prep for first-live only**
+   - prepare only enough audio/Whisper chunks for the first `1-2` HLS segments up front
+   - enqueue the stream as soon as first-live data is ready
+   - continue preparing the remaining audio/chunks in the background
+
+2. **Explicit first-chunk priority**
+   - give new streams a dedicated path to reach first generated chunk quickly
+   - prioritize first compose/encode work over later chunks from already-live streams
+
+3. **Warm paths for common avatars**
+   - keep common avatars warm in cache
+   - keep idle HLS assets cached
+   - optionally maintain a small pool of pre-created HLS sessions for common demos / test avatars
+
+4. **Adaptive prep admission**
+   - do not let prep jobs stampede the same shared resources when the live scheduler is already saturated
+   - gate new prep based on current live load, not just queue depth
+
+5. **Separate prep compute if needed**
+   - if startup still harms active streams, consider moving Whisper prep to CPU or a separate GPU path
+   - this is a tradeoff: slightly slower isolated prep may still produce better user experience overall if it stops harming already-live sessions
+
+6. **Improve startup benchmarking**
+   - continue using burst tests, but add staggered and mid-call injection modes as first-class startup benchmarks
+   - evaluate startup separately from steady-state cadence
+
+What not to do first:
+
+1. blindly raise `HLS_PREP_WORKERS`
+2. keep increasing compose/encode workers without queue evidence
+3. expect `batch_size` changes to solve startup delay
+
+Expected result:
+
+- substantially faster time-to-first-video under concurrent starts
+- less competition between "new stream startup" and "existing stream steady-state"
+- a more realistic match to actual user traffic, where arrivals are staggered rather than perfectly synchronized
 
 ## Phase 1.5: Model-level throughput improvements
 
