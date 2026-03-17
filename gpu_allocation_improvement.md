@@ -2484,7 +2484,7 @@ The original post-revert priorities have now been partially executed. The curren
 | 2. Stop Whisper prep from stealing GPU time | 🟡 Partially complete | Conditioning prep is now incremental and backfilled in the background, which improved startup behavior and reduced up-front prep pressure. Whisper encode still uses the main GPU, so this priority is improved but not fully solved. |
 | 3. Precompute PE | ✅ Complete for current architecture | PE was removed from the live GPU loop and moved into CPU-side prep. This was a real contributor to the large March 15 throughput gain. |
 | 4. Reduce scheduler assembly / copy overhead | 🟡 Partial, low measured impact so far | Latent tensorization, pinned tensors, and staging buffers are now in place. The most recent measurements did not show a clear additional reduction in `avg_gpu_batch`, so this path no longer looks like the next step-change. |
-| 5. Revisit model acceleration | ⏳ Not complete | This is now the best remaining software lever. `torch.compile` is still environment-sensitive on the current stack, but model-path acceleration is the next highest-value target. |
+| 5. Revisit model acceleration | 🟡 Partially complete | `torch.compile` integration is now working in a safer per-module form, and compiled model-path throughput materially improved the warm-cache `concurrency=8` result. This is no longer speculative, but it is not fully solved yet because the system is still slightly above the realtime threshold and compile remains stack-sensitive. |
 | 6. Keep decode / composition off CPU longer | ⏳ Not complete | `musetalk/models/vae.py` still converts decoded output straight to CPU NumPy. This remains a larger architectural refactor to consider only after model acceleration is measured. |
 
 Current interpretation after the latest warm `concurrency=8`, `24/12`, `batch_size=2` runs:
@@ -2499,6 +2499,60 @@ Most important current conclusion:
 - the backend is no longer primarily limited by CPU compose
 - the remaining bottleneck is mostly **GPU turn cadence / model-path throughput**
 - therefore the next engineering priority should be **Priority 5**, not more player work and not more compose tuning
+
+### March 17 compile integration update
+
+A dedicated `torch.compile` refactor was completed in `scripts/avatar_manager_parallel.py` and `musetalk/models/vae.py` with three important changes:
+
+1. **Per-module compile fallback** instead of all-or-nothing restore. A bad VAE compile no longer forces the UNet back to eager.
+2. **Safer compile defaults** (`reduce-overhead` first) plus explicit warmup and traceback logging.
+3. **VAE tensor decode warmup path** so compile warmup no longer depends on the CPU/NumPy conversion path.
+
+An additional March 17 bug was found and fixed during validation:
+
+1. the initial UNet warmup used a dummy latent tensor with **4 channels**
+2. the MuseTalk UNet actually expects **8 input channels**
+3. this caused the first compile attempt to fail during warmup at `conv_in`
+4. after switching the warmup tensor to use the model's real `in_channels`, the UNet warmup no longer failed immediately
+
+Measured impact on the RTX 3090 after the compile integration:
+
+- previous warm-cache reference point:
+  - `avg_segment_interval_s ≈ 2.35-2.40`
+  - `avg_time_to_live_ready_s ≈ 3.1-3.4`
+  - `wall_time_s ≈ 44.2-44.5`
+  - `avg_gpu_batch ≈ 0.788-0.791s`
+- March 17 compile-enabled runs:
+  - run 1:
+    - `avg_time_to_live_ready_s = 3.670`
+    - `avg_segment_interval_s = 2.062`
+    - `max_segment_interval_s = 3.562`
+    - `wall_time_s = 39.1`
+    - `avg_gpu_util = 86.72%`
+  - run 2:
+    - `avg_time_to_live_ready_s = 3.455`
+    - `avg_segment_interval_s = 2.076`
+    - `max_segment_interval_s = 3.106`
+    - `wall_time_s = 39.2`
+    - `avg_gpu_util = 86.7%`
+- server-side scheduler logs during the compile-enabled run:
+  - `avg_gpu_batch ≈ 0.691s`
+  - `avg_compose ≈ 0.154-0.158s`
+  - `avg_encode ≈ 0.770-0.806s`
+
+Current March 17 interpretation:
+
+1. compile **did** improve throughput; it was not a no-op
+2. `avg_gpu_batch` improved by about `12%` (`~0.79s -> ~0.69s`)
+3. `avg_segment_interval_s` improved by about `13%` (`~2.38s -> ~2.07s`)
+4. `wall_time_s` improved by about `11-12%` (`~44.3s -> ~39.1s`)
+5. the system is still slightly throttled because the current pipeline still needs about **3 scheduler turns per segment**, and the tail still includes meaningful encode cost and jitter
+
+This changes the practical status of Priority 5:
+
+- model-path acceleration is now **partially validated**
+- the remaining gap is no longer "make compile work at all"
+- the remaining gap is "reduce the next exposed bottlenecks after compile", especially scheduler-turn math and encode/tail jitter
 
 ### Short operational read
 
@@ -2522,7 +2576,7 @@ Based on the full debugging cycle so far:
 8. Therefore the next engineering priority is profiling and tuning the shared scheduler path, not blind increases in concurrency.
 9. The system should not claim higher user counts until the shared HLS scheduler can reliably meet the realtime target.
 10. The `_memory_bucket` deadlock was fixed by returning 1, enabling 8-stream completion.
-11. The aggregate GPU throughput ceiling of ~18-20 fps is a hardware constant of the RTX 3090.
-12. Achieving 8-stream parity with single-stream speed requires either model-level optimization (torch.compile/TensorRT) or reducing per-stream frame demand (lower musetalk_fps).
+11. The earlier `~18-20 fps` aggregate ceiling estimate is now stale; the March 17 compile-enabled runs show the current tuned stack can materially exceed the older post-revert baseline.
+12. Achieving stable 8-stream realtime still requires either more model-path throughput, fewer turns per segment, or less encode/tail jitter.
 13. The persistent encoder experiment improved understanding of the pipeline, but did not materially improve steady-state throughput.
-14. The most practical near-term path to 8-stream parity remains: model-path acceleration (`torch.compile` / TensorRT or equivalent) + lower per-stream frame demand + backend-only pipeline optimization that does not destabilize the HLS player.
+14. The most practical near-term path to 8-stream parity remains: deeper model-path acceleration (`torch.compile` refinement / TensorRT or equivalent) + lower per-stream frame demand + backend-only pipeline optimization that does not destabilize the HLS player.

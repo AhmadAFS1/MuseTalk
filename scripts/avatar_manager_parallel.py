@@ -1,6 +1,7 @@
 import os
 import sys
 import threading
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 import uuid
 import numpy as np
@@ -29,6 +30,8 @@ class ParallelAvatarManager:
         self.args = args
         self.device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
         self.models_compiled = False
+        self.unet_compiled = False
+        self.vae_compiled = False
         self.unet_dtype = torch.float16
         self.vae_dtype = torch.float16
         self.eager_unet_model = None
@@ -79,14 +82,31 @@ class ParallelAvatarManager:
             unet_config=self.args.unet_config,
             device=self.device
         )
-        
-        self.pe = self.pe.half().to(self.device)
-        self.vae.vae = self.vae.vae.half().to(self.device)
-        self.unet.model = self.unet.model.half().to(self.device)
+
+        if torch.cuda.is_available():
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+            torch.backends.cudnn.benchmark = True
+        if hasattr(torch, "set_float32_matmul_precision"):
+            torch.set_float32_matmul_precision("high")
+
+        self.pe = self.pe.half().to(self.device).eval()
+        self.pe.requires_grad_(False)
+        self.vae.vae = self.vae.vae.half().to(self.device).eval()
+        self.vae.vae.requires_grad_(False)
+        self.unet.model = self.unet.model.half().to(self.device).eval()
+        self.unet.model.requires_grad_(False)
         self.eager_unet_model = self.unet.model
         self.eager_vae_model = self.vae.vae
         self.unet_dtype = self.unet.model.dtype
         self.vae_dtype = self.vae.vae.dtype
+        self.unet_in_channels = int(
+            getattr(
+                getattr(self.unet.model, "config", None),
+                "in_channels",
+                getattr(getattr(self.unet.model, "conv_in", None), "in_channels", 8),
+            )
+        )
         self.unet.model_dtype = self.unet_dtype
         self.vae.runtime_dtype = self.vae_dtype
         
@@ -110,10 +130,136 @@ class ParallelAvatarManager:
         
         self.compile_models()
         self._warm_runtime_paths()
-    
+
+    @staticmethod
+    def _env_enabled(name, default="1"):
+        value = os.getenv(name, default).strip().lower()
+        return value not in {"0", "false", "no", "off"}
+
+    def _compile_mode_candidates(self, module_name):
+        raw_modes = (
+            os.getenv(f"MUSETALK_COMPILE_{module_name.upper()}_MODES")
+            or os.getenv("MUSETALK_COMPILE_MODES")
+            or os.getenv("MUSETALK_COMPILE_MODE")
+            or "reduce-overhead,max-autotune"
+        )
+        candidates = []
+        seen = set()
+        for token in raw_modes.split(","):
+            mode = token.strip()
+            if not mode:
+                continue
+            normalized = mode.lower()
+            if normalized in {"default", "none"}:
+                normalized = "default"
+            if normalized in seen:
+                continue
+            candidates.append(normalized)
+            seen.add(normalized)
+        if not candidates:
+            candidates.append("reduce-overhead")
+        return candidates
+
+    def _compile_warmup_batches(self):
+        raw_batches = os.getenv("MUSETALK_COMPILE_WARMUP_BATCHES", "4,8,16,32")
+        batches = []
+        seen = set()
+        for token in raw_batches.split(","):
+            token = token.strip()
+            if not token:
+                continue
+            try:
+                batch = max(1, int(token))
+            except ValueError:
+                continue
+            if batch in seen:
+                continue
+            batches.append(batch)
+            seen.add(batch)
+        return batches or [4, 8, 16, 32]
+
+    def _log_compile_failure(self, label, mode, exc):
+        mode_label = "default" if mode == "default" else mode
+        print(
+            f"   ⚠️ {label} compile failed ({mode_label}): "
+            f"{type(exc).__name__}: {exc!r}"
+        )
+        if self._env_enabled("MUSETALK_COMPILE_TRACEBACK", "0"):
+            traceback.print_exc()
+
+    def _compile_module_with_fallback(self, label, module, fullgraph=False):
+        for mode in self._compile_mode_candidates(label):
+            try:
+                kwargs = {"fullgraph": fullgraph}
+                if mode != "default":
+                    kwargs["mode"] = mode
+                compiled = torch.compile(module, **kwargs)
+                print(f"   ✅ {label} compiled ({'default' if mode == 'default' else mode})")
+                return compiled, mode
+            except Exception as exc:
+                self._log_compile_failure(label, mode, exc)
+                if hasattr(torch, "_dynamo"):
+                    torch._dynamo.reset()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+        return module, None
+
+    def _warm_compiled_unet(self, batches):
+        print("🔧 Warming compiled UNet...")
+        for bs in batches:
+            try:
+                with torch.no_grad():
+                    dw = torch.randn(bs, 50, 384, device=self.device, dtype=self.unet_dtype)
+                    dl = torch.randn(
+                        bs,
+                        self.unet_in_channels,
+                        32,
+                        32,
+                        device=self.device,
+                        dtype=self.unet_dtype,
+                    )
+                    af = self.pe(dw)
+                    _ = self.unet.model(
+                        dl,
+                        self.timesteps,
+                        encoder_hidden_states=af,
+                    ).sample
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+                    torch.cuda.empty_cache()
+                print(f"   ✅ UNet warmup bs={bs}")
+            except Exception as exc:
+                print(f"   ⚠️ UNet warmup bs={bs}: {type(exc).__name__}: {exc!r}")
+                if self._env_enabled("MUSETALK_COMPILE_TRACEBACK", "0"):
+                    traceback.print_exc()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                return False
+        return True
+
+    def _warm_compiled_vae(self, batches):
+        print("🔧 Warming compiled VAE...")
+        for bs in batches:
+            try:
+                with torch.no_grad():
+                    latents = torch.randn(bs, 4, 32, 32, device=self.device, dtype=self.vae_dtype)
+                    _ = self.vae.decode_latents_tensor(latents)
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+                    torch.cuda.empty_cache()
+                print(f"   ✅ VAE warmup bs={bs}")
+            except Exception as exc:
+                print(f"   ⚠️ VAE warmup bs={bs}: {type(exc).__name__}: {exc!r}")
+                if self._env_enabled("MUSETALK_COMPILE_TRACEBACK", "0"):
+                    traceback.print_exc()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                return False
+        return True
+
     def compile_models(self):
-        """Compile UNet + VAE for 2-3x throughput on RTX 3090."""
-        if os.environ.get("MUSETALK_COMPILE", "0") != "1":
+        """Compile UNet and VAE with per-module fallback instead of all-or-nothing restore."""
+        if not self._env_enabled("MUSETALK_COMPILE", "0"):
             print("ℹ️  torch.compile disabled (set MUSETALK_COMPILE=1 to enable)")
             return
 
@@ -121,80 +267,63 @@ class ParallelAvatarManager:
             print("⚠️  torch.compile requires PyTorch >= 2.0")
             return
 
-        if self.models_compiled:
+        if self.unet_compiled or self.vae_compiled:
             print("ℹ️  torch.compile already applied")
             return
 
-        print("🔧 Compiling UNet + VAE (first run will be slow)...")
+        print("🔧 Compiling UNet + VAE with per-module fallback (first run will be slow)...")
 
-        # Save references before compiling because compiled wrappers may not
-        # expose dtype/parameter helpers consistently across PyTorch builds.
-        unet_dtype = self.unet_dtype
-        vae_dtype = self.vae_dtype
         eager_unet_model = self.eager_unet_model or self.unet.model
         eager_vae_model = self.eager_vae_model or self.vae.vae
-        compile_ok = False
+        warmup_batches = self._compile_warmup_batches()
+        if hasattr(torch, "_dynamo"):
+            torch._dynamo.reset()
 
-        # Compile UNet — the main forward pass, biggest impact
-        try:
-            self.unet.model = torch.compile(
-                eager_unet_model,
-                mode="max-autotune",
+        if self._env_enabled("MUSETALK_COMPILE_UNET", "1"):
+            compiled_unet, unet_mode = self._compile_module_with_fallback(
+                label="UNet",
+                module=eager_unet_model,
                 fullgraph=False,
             )
-            print("   ✅ UNet compiled")
-            compile_ok = True
-        except Exception as e:
-            print(f"   ⚠️ UNet compile failed: {e}")
+            if unet_mode is not None:
+                self.unet.model = compiled_unet
+                self.unet_compiled = self._warm_compiled_unet(warmup_batches)
+                if not self.unet_compiled:
+                    print("⚠️ UNet compile warmup failed; restoring eager UNet")
+                    self.unet.model = eager_unet_model
+            else:
+                self.unet.model = eager_unet_model
+        else:
+            print("ℹ️  UNet compile disabled (set MUSETALK_COMPILE_UNET=1 to enable)")
 
-        # Compile VAE — compile the whole vae.vae, not just .decoder
-        try:
-            self.vae.vae = torch.compile(
-                eager_vae_model,
-                mode="max-autotune",
+        if self._env_enabled("MUSETALK_COMPILE_VAE", "1"):
+            compiled_vae, vae_mode = self._compile_module_with_fallback(
+                label="VAE",
+                module=eager_vae_model,
                 fullgraph=False,
             )
-            print("   ✅ VAE compiled")
-            compile_ok = True
-        except Exception as e:
-            print(f"   ⚠️ VAE compile failed: {e}")
+            if vae_mode is not None:
+                self.vae.vae = compiled_vae
+                self.vae_compiled = self._warm_compiled_vae(warmup_batches)
+                if not self.vae_compiled:
+                    print("⚠️ VAE compile warmup failed; restoring eager VAE")
+                    self.vae.vae = eager_vae_model
+            else:
+                self.vae.vae = eager_vae_model
+        else:
+            print("ℹ️  VAE compile disabled (set MUSETALK_COMPILE_VAE=1 to enable)")
 
-        if not compile_ok:
+        self.models_compiled = self.unet_compiled or self.vae_compiled
+
+        if self.models_compiled:
+            compiled_parts = []
+            if self.unet_compiled:
+                compiled_parts.append("UNet")
+            if self.vae_compiled:
+                compiled_parts.append("VAE")
+            print(f"✅ Model compilation complete ({', '.join(compiled_parts)})")
+        else:
             print("⚠️ No models compiled successfully; continuing in eager mode")
-            self.unet.model = eager_unet_model
-            self.vae.vae = eager_vae_model
-            self.models_compiled = False
-            return
-
-        # Warmup — use saved dtypes since .parameters() may not work on compiled modules
-        print("🔧 Warming up compiled models...")
-        warmup_failed = False
-        for bs in [8, 16, 32]:
-            try:
-                with torch.no_grad():
-                    dw = torch.randn(bs, 50, 384, device=self.device, dtype=unet_dtype)
-                    dl = torch.randn(bs, 4, 32, 32, device=self.device, dtype=unet_dtype)
-                    af = self.pe(dw)
-                    pred = self.unet.model(dl, self.timesteps, encoder_hidden_states=af).sample
-                    _ = self.vae.decode_latents(pred.to(dtype=vae_dtype))
-                torch.cuda.synchronize()
-                torch.cuda.empty_cache()
-                print(f"   ✅ Warmup bs={bs}")
-            except Exception as e:
-                print(f"   ⚠️ Warmup bs={bs}: {e}")
-                torch.cuda.empty_cache()
-                warmup_failed = True
-                break
-
-        if warmup_failed:
-            print("⚠️ torch.compile warmup failed; restoring eager models")
-            self.unet.model = eager_unet_model
-            self.vae.vae = eager_vae_model
-            self.models_compiled = False
-            return
-
-        self.models_compiled = True
-        print("✅ Model compilation complete")
 
     def _warm_runtime_paths(self):
         """Warm Whisper and PE paths so the first live HLS request pays less cold-start cost."""

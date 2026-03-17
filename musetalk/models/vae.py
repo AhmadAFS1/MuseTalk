@@ -104,12 +104,29 @@ class VAE():
         :param latents: The latent variables to decode.
         :return: A NumPy array representing the decoded image.
         """
-        latents = (1/  self.scaling_factor) * latents
-        image = self.vae.decode(latents.to(self._vae_dtype())).sample
-        image = (image / 2 + 0.5).clamp(0, 1)
+        image = self.decode_latents_tensor(latents)
+        
+    #latents = (1/  self.scaling_factor) * latents
+       # image = self.vae.decode(latents.to(self._vae_dtype())).sample
+       # image = (image / 2 + 0.5).clamp(0, 1)
+       
+
         image = image.detach().cpu().permute(0, 2, 3, 1).float().numpy()
         image = (image * 255).round().astype("uint8")
         image = image[...,::-1] # RGB to BGR
+        return image
+    ##below function is added
+    def decode_latents_tensor(self, latents):
+        """
+        Decode latent variables into an image tensor on the active device.
+
+        This is useful for torch.compile warmup and any future GPU-side
+        postprocessing experiments, while `decode_latents()` remains the
+        legacy NumPy conversion path used by the current pipeline.
+        """
+        latents = (1 / self.scaling_factor) * latents
+        image = self.vae.decode(latents.to(self._vae_dtype())).sample
+        image = (image / 2 + 0.5).clamp(0, 1)
         return image
     
     def get_latents_for_unet(self,img):

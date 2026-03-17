@@ -880,7 +880,7 @@ That plan has now progressed enough that the current status is worth recording e
 | 2. GPU Whisper prep contention | 🟡 Partially complete | HLS jobs now prepare only an initial conditioning window and backfill the rest in the background. This improved startup behavior, but Whisper encode still competes on the main GPU. |
 | 3. PE precompute | ✅ Complete for current design | PE is no longer paid inside every live scheduler turn. |
 | 4. Scheduler assembly / copy overhead | 🟡 Partial, low payoff so far | Tensorization and pinned/staging buffers are in place, but the latest scheduler logs still show `avg_gpu_batch ≈ 0.788-0.791s`, so this is not currently the dominant remaining lever. |
-| 5. Model-path acceleration | ⏳ Not complete | This is now the highest-value remaining software target. The current architecture is increasingly limited by GPU turn cadence rather than CPU compose or queueing. |
+| 5. Model-path acceleration | 🟡 Partially complete | `torch.compile` is now integrated in a safer per-module form and has produced a real measured throughput gain on the RTX 3090. This is no longer hypothetical, but it is not fully complete because the pipeline still misses the strict realtime target at `concurrency=8`. |
 | 6. Keep decoded output on GPU longer | ⏳ Not complete | `musetalk/models/vae.py` still forces an immediate CPU handoff, so this remains a larger future architectural option. |
 
 Current measured state on the RTX 3090, using warm-cache `concurrency=8`, `playback_fps=24`, `musetalk_fps=12`, `batch_size=2`:
@@ -901,3 +901,55 @@ Therefore the next backend-only optimization step should be:
 
 1. model-path acceleration (`torch.compile` or runtime-stack upgrade)
 2. only then, if still needed, larger architectural work around VAE decode / GPU-side compose retention
+
+### March 17 compile validation update
+
+The Priority 5 work was continued on March 17 with a direct refactor of the compile path in `scripts/avatar_manager_parallel.py` and a supporting VAE tensor-decode helper in `musetalk/models/vae.py`.
+
+Architectural changes:
+
+1. UNet and VAE compile independently, instead of using an all-or-nothing restore path.
+2. The compile manager now tries safer modes first (`reduce-overhead`) and emits real tracebacks when warmup fails.
+3. Warmup for the VAE now runs through a tensor-returning decode path instead of the older NumPy conversion path.
+
+A concrete compile bug was also identified and fixed during validation:
+
+1. the first UNet warmup used a dummy latent tensor shaped like `[bs, 4, 32, 32]`
+2. the MuseTalk UNet actually expects **8** input channels because the runtime input is a concatenation of masked and reference latents
+3. this caused the original March 17 compile warmup failure at `conv_in`
+4. after switching the warmup tensor to use the model's actual `in_channels`, the UNet warmup no longer failed immediately
+
+Measured March 17 effect on the RTX 3090, using warm-cache `concurrency=8`, `playback_fps=24`, `musetalk_fps=12`, `batch_size=2`:
+
+- pre-compile reference point:
+  - `avg_time_to_live_ready_s ≈ 3.1-3.4`
+  - `avg_segment_interval_s ≈ 2.35-2.40`
+  - `wall_time_s ≈ 44.2-44.5`
+  - `avg_gpu_batch ≈ 0.788-0.791s`
+- compile-enabled runs:
+  - run 1:
+    - `avg_time_to_live_ready_s = 3.670`
+    - `avg_segment_interval_s = 2.062`
+    - `max_segment_interval_s = 3.562`
+    - `wall_time_s = 39.1`
+  - run 2:
+    - `avg_time_to_live_ready_s = 3.455`
+    - `avg_segment_interval_s = 2.076`
+    - `max_segment_interval_s = 3.106`
+    - `wall_time_s = 39.2`
+- compile-enabled server-side scheduler metrics:
+  - `avg_gpu_batch ≈ 0.691s`
+  - `avg_compose ≈ 0.154-0.158s`
+  - `avg_encode ≈ 0.770-0.806s`
+
+Architectural interpretation after the March 17 compile tests:
+
+1. `torch.compile` **did** improve the actual model-path throughput.
+2. The most direct signal is `avg_gpu_batch`, which improved from about `~0.79s` to about `~0.69s`.
+3. Because the pipeline still effectively needs about **3 scheduler turns per segment**, the segment cadence improved but remained slightly above the strict `2.0s` realtime threshold.
+4. This means the bottleneck has shifted again: compose is already cheap, compile improved the model path, and the next exposed constraints are scheduler-turn math plus encode/tail jitter.
+
+Updated implication for the roadmap:
+
+1. Priority 5 should now be treated as **partially complete and validated**, not merely speculative.
+2. The next iteration should focus on either reducing turns-per-segment or trimming the encode/tail cost now that the compiled UNet path is faster.
