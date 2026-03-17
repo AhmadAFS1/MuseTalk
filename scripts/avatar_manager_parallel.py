@@ -48,9 +48,9 @@ class ParallelAvatarManager:
         
         # Smart avatar cache
         self.avatar_cache = AvatarCache(
-            max_cached_avatars=5,
-            ttl_seconds=3600,
-            max_memory_mb=6000,
+            max_cached_avatars=self._env_int("AVATAR_CACHE_MAX_AVATARS", 0),
+            ttl_seconds=self._env_int("AVATAR_CACHE_TTL_SECONDS", 3600),
+            max_memory_mb=self._env_float("AVATAR_CACHE_MAX_MEMORY_MB", 6000),
             cleanup_interval=60
         )
         
@@ -71,6 +71,20 @@ class ParallelAvatarManager:
         
         # Start cache cleanup
         self.avatar_cache.start_cleanup()
+
+    @staticmethod
+    def _env_int(name, default):
+        try:
+            return int(os.getenv(name, str(default)))
+        except (TypeError, ValueError):
+            return int(default)
+
+    @staticmethod
+    def _env_float(name, default):
+        try:
+            return float(os.getenv(name, str(default)))
+        except (TypeError, ValueError):
+            return float(default)
     
     def _init_models(self):
         """Load models once"""
@@ -389,10 +403,20 @@ class ParallelAvatarManager:
                 force_recreate=False
             )
             
-            memory_usage_mb = 500
+            memory_usage_mb = self._estimate_avatar_cache_memory_mb(avatar)
             self.avatar_cache.put(avatar_id, avatar, memory_usage_mb)
             
             return avatar
+
+    def _estimate_avatar_cache_memory_mb(self, avatar):
+        if hasattr(avatar, "estimate_memory_usage_mb"):
+            try:
+                estimated_mb = float(avatar.estimate_memory_usage_mb())
+                if estimated_mb > 0:
+                    return estimated_mb
+            except Exception as exc:
+                print(f"⚠️  Failed to estimate avatar cache footprint for {getattr(avatar, 'avatar_id', 'unknown')}: {exc}")
+        return 500.0
 
     def _get_avatar_load_lock(self, avatar_id):
         """Return a per-avatar lock so cold loads only happen once."""

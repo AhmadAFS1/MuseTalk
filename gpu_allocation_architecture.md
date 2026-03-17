@@ -953,3 +953,49 @@ Updated implication for the roadmap:
 
 1. Priority 5 should now be treated as **partially complete and validated**, not merely speculative.
 2. The next iteration should focus on either reducing turns-per-segment or trimming the encode/tail cost now that the compiled UNet path is faster.
+
+### March 17 scheduler policy update
+
+The scheduler was then refactored again so the allocation loop spends spare GPU capacity on the jobs that are closest to emitting their next HLS chunk, instead of only distributing equal warmed-job slices. This is a policy change in `scripts/hls_gpu_scheduler.py`, not a model-path change.
+
+Measured effect on the RTX 3090, again using warm-cache `concurrency=8`, `playback_fps=24`, `musetalk_fps=12`, `batch_size=2`:
+
+- compile-enabled reference point:
+  - `avg_time_to_live_ready_s ≈ 3.46-3.67`
+  - `avg_segment_interval_s ≈ 2.06-2.08`
+  - `wall_time_s ≈ 39.1-39.2`
+  - `avg_gpu_batch ≈ 0.691s`
+- post scheduler-policy runs:
+  - run 1:
+    - `avg_time_to_live_ready_s = 3.598`
+    - `avg_segment_interval_s = 1.944`
+    - `max_segment_interval_s = 3.030`
+    - `wall_time_s = 38.5`
+  - run 2:
+    - `avg_time_to_live_ready_s = 3.458`
+    - `avg_segment_interval_s = 1.984`
+    - `max_segment_interval_s = 3.039`
+    - `wall_time_s = 38.2`
+- representative server-side scheduler timings after the policy change:
+  - `avg_gpu_batch ≈ 0.675-0.676s`
+  - `avg_compose ≈ 0.085-0.097s`
+  - `avg_encode ≈ 0.583-0.609s`
+
+Architectural interpretation after the scheduler-policy change:
+
+1. This was another real throughput win, not noise.
+2. The average HLS cadence at `concurrency=8` is now essentially at the realtime boundary for 1-second segments.
+3. The system is no longer mainly failing on average throughput; it is now mainly failing on **worst-case latency spikes**.
+4. Those spikes line up with:
+   - late-stream startup skew / prep skew
+   - encode and tail jitter
+
+### Latest priority order
+
+The current backend optimization order is now:
+
+1. **Reduce late-stream startup skew** in `scripts/hls_gpu_scheduler.py` and `musetalk/utils/audio_processor.py`
+2. **Reduce encode / tail jitter** in `scripts/api_avatar.py`
+3. **Re-tune shared batch throughput** around the compiled path in `scripts/hls_gpu_scheduler.py`
+4. **Continue model-path acceleration** only if the above still leaves a material gap
+5. **Only then consider larger architectural work** to keep decoded output on GPU longer in `musetalk/models/vae.py`

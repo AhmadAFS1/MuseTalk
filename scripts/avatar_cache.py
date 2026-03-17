@@ -26,20 +26,20 @@ class AvatarCache:
     """
     
     def __init__(self, 
-                 max_cached_avatars=5,
+                 max_cached_avatars=0,
                  ttl_seconds=300,  # 5 minutes default
                  max_memory_mb=8000,  # 8GB max for avatars
                  cleanup_interval=60):  # Check every minute
         """
         Args:
-            max_cached_avatars: Maximum number of avatars in memory
+            max_cached_avatars: Maximum number of avatars in memory (0 = unlimited)
             ttl_seconds: Time-to-live (unload after this many seconds of inactivity)
-            max_memory_mb: Maximum memory for avatar cache
+            max_memory_mb: Maximum memory for avatar cache (0 = unlimited)
             cleanup_interval: How often to run cleanup (seconds)
         """
-        self.max_cached_avatars = max_cached_avatars
+        self.max_cached_avatars = max(0, int(max_cached_avatars))
         self.ttl_seconds = ttl_seconds
-        self.max_memory_mb = max_memory_mb
+        self.max_memory_mb = max(0.0, float(max_memory_mb))
         self.cleanup_interval = cleanup_interval
         
         # OrderedDict for LRU behavior
@@ -127,8 +127,11 @@ class AvatarCache:
             current_memory = sum(c.memory_usage_mb for c in self.cache.values())
             
             # Evict LRU if over limits
-            while (len(self.cache) >= self.max_cached_avatars or 
-                   current_memory + memory_usage_mb > self.max_memory_mb):
+            while self._would_exceed_limits(
+                cached_count=len(self.cache),
+                current_memory_mb=current_memory,
+                incoming_memory_mb=memory_usage_mb,
+            ):
                 if not self.cache:
                     break
                 # Pop oldest (first item in OrderedDict)
@@ -150,6 +153,11 @@ class AvatarCache:
             self.stats['loads'] += 1
             
             print(f"📦 Cached avatar: {avatar_id} ({memory_usage_mb:.1f}MB, total: {len(self.cache)})")
+
+    def _would_exceed_limits(self, *, cached_count: int, current_memory_mb: float, incoming_memory_mb: float) -> bool:
+        over_count = self.max_cached_avatars > 0 and cached_count >= self.max_cached_avatars
+        over_memory = self.max_memory_mb > 0 and (current_memory_mb + incoming_memory_mb) > self.max_memory_mb
+        return over_count or over_memory
     
     def evict(self, avatar_id, reason="Manual eviction"):
         """Manually evict an avatar from cache"""
@@ -164,11 +172,23 @@ class AvatarCache:
     
     def _cleanup_avatar(self, avatar_instance):
         """Clean up avatar resources"""
-        # Clear any GPU tensors
-        if hasattr(avatar_instance, 'input_latent_list_cycle'):
-            del avatar_instance.input_latent_list_cycle
-        if hasattr(avatar_instance, 'input_latent_cycle_tensor'):
-            del avatar_instance.input_latent_cycle_tensor
+        heavy_attrs = (
+            'input_latent_list_cycle',
+            'input_latent_cycle_tensor',
+            'input_latent_cycle_batch_tensor',
+            'frame_list_cycle',
+            'mask_list_cycle',
+            'coord_list_cycle',
+            'mask_coords_list_cycle',
+            '_idle_frame_cache',
+            '_cpu_pe_cache',
+        )
+        for attr in heavy_attrs:
+            if hasattr(avatar_instance, attr):
+                try:
+                    delattr(avatar_instance, attr)
+                except Exception:
+                    pass
         
         # Force garbage collection
         import gc
@@ -196,8 +216,9 @@ class AvatarCache:
             
             return {
                 'cached_avatars': len(self.cache),
+                'max_cached_avatars': self.max_cached_avatars if self.max_cached_avatars > 0 else None,
                 'total_memory_mb': total_memory,
-                'max_memory_mb': self.max_memory_mb,
+                'max_memory_mb': self.max_memory_mb if self.max_memory_mb > 0 else None,
                 'hit_rate': f"{hit_rate:.2%}",
                 **self.stats,
                 'avatars': [

@@ -180,6 +180,62 @@ class APIAvatar:
             batch_tensor = batch_tensor.pin_memory()
         self.input_latent_cycle_batch_tensor = batch_tensor
 
+    @staticmethod
+    def _tensor_storage_nbytes(tensor: torch.Tensor) -> int:
+        if not isinstance(tensor, torch.Tensor):
+            return 0
+        try:
+            return int(tensor.untyped_storage().nbytes())
+        except Exception:
+            return int(tensor.element_size() * tensor.numel())
+
+    @staticmethod
+    def _numpy_sequence_nbytes(values) -> int:
+        if not values:
+            return 0
+        total = 0
+        for value in values:
+            if isinstance(value, np.ndarray):
+                total += int(value.nbytes)
+        return total
+
+    def estimate_memory_usage_bytes(self) -> int:
+        """
+        Estimate the RAM footprint of the loaded avatar materials.
+
+        The cache uses this to budget avatars by the actual prepared materials
+        in memory instead of assuming every avatar costs the same amount.
+        """
+        total = 0
+        seen_tensor_storages = set()
+
+        for attr in ("input_latent_cycle_tensor", "input_latent_cycle_batch_tensor"):
+            tensor = getattr(self, attr, None)
+            if not isinstance(tensor, torch.Tensor):
+                continue
+            try:
+                storage_ptr = tensor.untyped_storage().data_ptr()
+            except Exception:
+                storage_ptr = tensor.data_ptr()
+            if storage_ptr in seen_tensor_storages:
+                continue
+            seen_tensor_storages.add(storage_ptr)
+            total += self._tensor_storage_nbytes(tensor)
+
+        total += self._numpy_sequence_nbytes(getattr(self, "frame_list_cycle", None))
+        total += self._numpy_sequence_nbytes(getattr(self, "mask_list_cycle", None))
+        total += self._numpy_sequence_nbytes(getattr(self, "_idle_frame_cache", None))
+
+        coord_list = getattr(self, "coord_list_cycle", None) or []
+        mask_coord_list = getattr(self, "mask_coords_list_cycle", None) or []
+        total += len(coord_list) * 4 * 8
+        total += len(mask_coord_list) * 4 * 8
+
+        return int(total)
+
+    def estimate_memory_usage_mb(self) -> float:
+        return self.estimate_memory_usage_bytes() / (1024 * 1024)
+
     def apply_positional_encoding_cpu(self, audio_prompts: torch.Tensor) -> torch.Tensor:
         """
         Apply positional encoding on CPU and cache the constant PE slice.

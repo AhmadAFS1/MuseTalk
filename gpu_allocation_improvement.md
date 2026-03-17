@@ -2554,6 +2554,54 @@ This changes the practical status of Priority 5:
 - the remaining gap is no longer "make compile work at all"
 - the remaining gap is "reduce the next exposed bottlenecks after compile", especially scheduler-turn math and encode/tail jitter
 
+### March 17 scheduler policy update
+
+After the compile-enabled baseline was established, the HLS scheduler allocation policy in `scripts/hls_gpu_scheduler.py` was refactored again so spare GPU capacity is used to finish jobs that are closest to emitting their next HLS chunk, instead of only spreading small equal slices across all warmed streams.
+
+Measured impact on the RTX 3090, using warm-cache `concurrency=8`, `playback_fps=24`, `musetalk_fps=12`, `batch_size=2`:
+
+- previous compile-enabled reference point:
+  - `avg_time_to_live_ready_s ≈ 3.46-3.67`
+  - `avg_segment_interval_s ≈ 2.06-2.08`
+  - `wall_time_s ≈ 39.1-39.2`
+  - `avg_gpu_batch ≈ 0.691s`
+- post scheduler-policy runs:
+  - run 1:
+    - `avg_time_to_live_ready_s = 3.598`
+    - `avg_segment_interval_s = 1.944`
+    - `max_segment_interval_s = 3.030`
+    - `wall_time_s = 38.5`
+    - `avg_gpu_util = 82.53%`
+  - run 2:
+    - `avg_time_to_live_ready_s = 3.458`
+    - `avg_segment_interval_s = 1.984`
+    - `max_segment_interval_s = 3.039`
+    - `wall_time_s = 38.2`
+    - `avg_gpu_util = 84.75%`
+- representative server-side scheduler timings after the scheduler-policy change:
+  - `avg_gpu_batch ≈ 0.675-0.676s`
+  - `avg_compose ≈ 0.085-0.097s`
+  - `avg_encode ≈ 0.583-0.609s`
+
+Interpretation:
+
+1. The scheduler policy refactor produced another real win on top of `torch.compile`.
+2. Average segment cadence is now at or just under the strict 1-second-segment realtime target for `concurrency=8`.
+3. The remaining warning is now mostly about **worst-case spikes**, not the average path.
+4. The next exposed bottlenecks are now:
+   - late-stream startup / prep skew
+   - chunk encode and tail jitter
+
+### Current next priorities
+
+With the March 17 scheduler-policy change in place, the latest backend priority order is:
+
+1. **Reduce late-stream startup skew** in `scripts/hls_gpu_scheduler.py` and `musetalk/utils/audio_processor.py`
+2. **Reduce encode / tail jitter** in `scripts/api_avatar.py`
+3. **Retune shared batch throughput** around the compiled path (`HLS_SCHEDULER_MAX_BATCH` and related scheduling behavior)
+4. **Continue model-path acceleration** in `scripts/avatar_manager_parallel.py` only if the above still leaves a gap
+5. **Consider larger GPU-native architecture work** in `musetalk/models/vae.py` only after the lower-risk backend steps are exhausted
+
 ### Short operational read
 
 At the moment, the safest mental model is:
