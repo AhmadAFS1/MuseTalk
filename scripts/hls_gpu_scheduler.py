@@ -621,12 +621,22 @@ class HLSGPUStreamScheduler:
                 slice_cap=None,
             )
 
-        # --- Round 4: ALWAYS fill remaining GPU capacity ---
-        # OLD: skipped when len(warmed_jobs) > aggressive_fill_max_active_jobs
-        # At 8 streams with batch_size=2 and max_batch=8, Round 2 could only
-        # fit 4 jobs (8/2=4). The other 4 jobs got NOTHING. And even those 4
-        # jobs couldn't get extra frames because this guard blocked Round 3.
-        # Now we always fill, regardless of how many jobs are active.
+        # --- Round 4: finish the jobs that are closest to emitting a chunk ---
+        # The hot path bottleneck is no longer compose; it is how many GPU
+        # turns a stream needs before it can emit the next HLS chunk. Giving
+        # every warmed job the same tiny slice keeps many jobs perpetually
+        # "almost ready". This round spends any spare capacity first on the
+        # jobs that can finish their next chunk with the fewest extra frames.
+        if total_batch < self.max_combined_batch_size:
+            all_schedulable = startup_jobs + warmed_jobs
+            if all_schedulable:
+                total_batch = self._allocate_chunk_completion_round(
+                    jobs=all_schedulable,
+                    allocations=allocations,
+                    total_batch=total_batch,
+                )
+
+        # --- Round 5: ALWAYS fill any remaining GPU capacity fairly ---
         if total_batch < self.max_combined_batch_size:
             all_schedulable = startup_jobs + warmed_jobs
             if all_schedulable:
@@ -722,6 +732,62 @@ class HLSGPUStreamScheduler:
 
         return total_batch
 
+    def _allocate_chunk_completion_round(
+        self,
+        jobs: list[HLSStreamJob],
+        allocations: Dict[str, int],
+        total_batch: int,
+    ) -> int:
+        if not jobs:
+            return total_batch
+
+        while total_batch < self.max_combined_batch_size:
+            capacity_left = self.max_combined_batch_size - total_batch
+            ranked_jobs = self._chunk_priority_jobs(jobs, allocations)
+            if not ranked_jobs:
+                break
+
+            chosen_job = None
+            chosen_take = 0
+            fallback_job = None
+            fallback_take = 0
+
+            for job in ranked_jobs:
+                remaining_frames = self._remaining_frames(job, allocations)
+                if remaining_frames <= 0:
+                    continue
+
+                frames_to_next_chunk = self._frames_until_next_chunk(job, allocations)
+                if frames_to_next_chunk <= 0:
+                    continue
+
+                take = min(frames_to_next_chunk, remaining_frames, capacity_left)
+                if take <= 0:
+                    continue
+
+                if fallback_job is None:
+                    fallback_job = job
+                    fallback_take = take
+
+                # Greedily finish the cheapest next chunk that fits in the
+                # remaining batch budget. This reduces the number of turns a
+                # stream needs before its next segment can be emitted.
+                if frames_to_next_chunk <= capacity_left:
+                    chosen_job = job
+                    chosen_take = take
+                    break
+
+            if chosen_job is None:
+                if fallback_job is None or fallback_take <= 0:
+                    break
+                chosen_job = fallback_job
+                chosen_take = fallback_take
+
+            allocations[chosen_job.request_id] = allocations.get(chosen_job.request_id, 0) + chosen_take
+            total_batch += chosen_take
+
+        return total_batch
+
     def _allocate_startup_priority_round(
         self,
         jobs: list[HLSStreamJob],
@@ -744,6 +810,34 @@ class HLSGPUStreamScheduler:
             allocations[job.request_id] = allocations.get(job.request_id, 0) + take
             total_batch += take
         return total_batch
+
+    def _chunk_priority_jobs(
+        self,
+        jobs: list[HLSStreamJob],
+        allocations: Dict[str, int],
+    ) -> list[HLSStreamJob]:
+        ranked: list[tuple[int, int, int, float, HLSStreamJob]] = []
+        for ordinal, job in enumerate(jobs):
+            remaining_frames = self._remaining_frames(job, allocations)
+            if remaining_frames <= 0:
+                continue
+
+            frames_to_next_chunk = self._frames_until_next_chunk(job, allocations)
+            if frames_to_next_chunk <= 0:
+                continue
+
+            ranked.append(
+                (
+                    0 if self._is_startup_job(job) else 1,
+                    frames_to_next_chunk,
+                    -self._generated_unencoded_frames(job, allocations),
+                    job.last_progress_at,
+                    job,
+                )
+            )
+
+        ranked.sort(key=lambda item: (item[0], item[1], item[2], item[3]))
+        return [job for *_unused, job in ranked]
 
     def _run_generation_batch(self, selected) -> None:
         selected = [(job, take) for job, take in selected if take > 0 and not job.cancel_event.is_set()]
@@ -1223,6 +1317,15 @@ class HLSGPUStreamScheduler:
             return 0
         already_allocated = allocations.get(job.request_id, 0) if allocations is not None else 0
         return max(0, job.startup_chunk_frames - job.current_frame_idx - already_allocated)
+
+    @staticmethod
+    def _generated_unencoded_frames(job: HLSStreamJob, allocations: Optional[Dict[str, int]] = None) -> int:
+        already_allocated = allocations.get(job.request_id, 0) if allocations is not None else 0
+        return max(0, (job.current_frame_idx - job.encoded_frame_cursor) + already_allocated)
+
+    @classmethod
+    def _frames_until_next_chunk(cls, job: HLSStreamJob, allocations: Optional[Dict[str, int]] = None) -> int:
+        return max(0, cls._next_chunk_target_frames(job) - cls._generated_unencoded_frames(job, allocations))
 
     @staticmethod
     def _post_generation_drain_s(job: HLSStreamJob) -> float:
