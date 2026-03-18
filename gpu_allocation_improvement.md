@@ -2592,13 +2592,64 @@ Interpretation:
    - late-stream startup / prep skew
    - chunk encode and tail jitter
 
+### March 18 shared-batch retuning update
+
+The next backend-only experiment on March 18 was to make larger combined scheduler batch sizes first-class shapes instead of leaving everything above `32` in the "allowed but not specifically compile-warmed" path.
+
+Changes:
+
+1. `scripts/hls_gpu_scheduler.py` no longer stops its fixed padded batch sizes at `[4, 8, 16, 32]`.
+2. The scheduler now extends those fixed shapes from `HLS_SCHEDULER_MAX_BATCH`, so `48` becomes a real compile-friendly target instead of an ad-hoc actual-batch shape.
+3. `scripts/avatar_manager_parallel.py` now mirrors that logic in the default `MUSETALK_COMPILE_WARMUP_BATCHES` path, so the compile warmup and the scheduler agree on the same larger shapes.
+
+Measured effect on the RTX 3090 using warm-cache `concurrency=8`, `playback_fps=24`, `musetalk_fps=12`:
+
+- previous `HLS_SCHEDULER_MAX_BATCH=32`, `batch_size=4` reference:
+  - `avg_time_to_live_ready_s = 3.652`
+  - `avg_segment_interval_s = 2.034`
+  - `max_segment_interval_s = 3.183`
+  - `wall_time_s = 38.9`
+- March 18 `HLS_SCHEDULER_MAX_BATCH=48`, `batch_size=4`:
+  - `avg_time_to_live_ready_s = 4.648`
+  - `avg_segment_interval_s = 1.965`
+  - `max_segment_interval_s = 3.129`
+  - `wall_time_s = 39.1`
+- best observed March 18 near-pass run with the same `HLS_SCHEDULER_MAX_BATCH=48`, `batch_size=4` settings:
+  - `avg_time_to_live_ready_s = 4.897`
+  - `avg_segment_interval_s = 1.921`
+  - `max_segment_interval_s = 2.046`
+  - `wall_time_s = 38.5`
+- previous `HLS_SCHEDULER_MAX_BATCH=32`, `batch_size=8` reference:
+  - `avg_time_to_live_ready_s = 3.682`
+  - `avg_segment_interval_s = 1.891`
+  - `max_segment_interval_s = 4.557`
+  - `wall_time_s = 37.6`
+- March 18 `HLS_SCHEDULER_MAX_BATCH=48`, `batch_size=8`:
+  - `avg_time_to_live_ready_s = 4.650`
+  - `avg_segment_interval_s = 1.881`
+  - `max_segment_interval_s = 4.095`
+  - `wall_time_s = 37.5`
+- GPU memory impact at `HLS_SCHEDULER_MAX_BATCH=48`:
+  - `peak_memory_used_mb ≈ 22.3-22.5 GB`
+
+Interpretation:
+
+1. Raising the **total combined scheduler batch** from `32` to `48` produced another real steady-state throughput gain.
+2. The gain is clearest in the `batch_size=4` comparison: `avg_segment_interval_s` improved from `2.034` to `1.965`, which puts the 8-stream average essentially at the realtime boundary for 1-second segments.
+3. The larger combined batch does **not** automatically improve startup. `avg_time_to_live_ready_s` became worse because each scheduler turn is now heavier and later jobs can wait longer before their first productive turn.
+4. Increasing per-stream `batch_size` is still a fairness tradeoff, not a pure speed knob. Higher request `batch_size` can improve the average by letting some streams grab larger slices, while still making late or unlucky streams worse.
+5. `HLS_SCHEDULER_MAX_BATCH=48` now looks viable on the RTX 3090, but it pushes VRAM very close to the wall. `64` should be treated as risky until proven otherwise on this exact stack.
+6. The best observed `batch_size=4` run was effectively a near-pass. `max_segment_interval_s = 2.046` is only `46ms` over the warning threshold, which means the system is now capable of getting very close to clean 8-stream realtime behavior on average.
+7. Identical `HLS_SCHEDULER_MAX_BATCH=48`, `batch_size=4` runs can still vary in `max_segment_interval_s` because the extra 16-frame chunk-completion budget gets distributed differently depending on tiny startup and queue-order differences. The average path stays similar, but one unlucky stream can still miss a favorable turn and become the worst-case outlier.
+8. A strong next experiment is inferred from these results: keep `HLS_SCHEDULER_MAX_BATCH=48`, but return request `batch_size` to `2` to see whether the larger total batch can be kept while restoring better fairness and startup spread.
+
 ### Current next priorities
 
-With the March 17 scheduler-policy change in place, the latest backend priority order is:
+With the March 18 shared-batch retuning results in place, the latest backend priority order is:
 
-1. **Reduce late-stream startup skew** in `scripts/hls_gpu_scheduler.py` and `musetalk/utils/audio_processor.py`
-2. **Reduce encode / tail jitter** in `scripts/api_avatar.py`
-3. **Retune shared batch throughput** around the compiled path (`HLS_SCHEDULER_MAX_BATCH` and related scheduling behavior)
+1. **Retune shared batch throughput** around the compiled path (`HLS_SCHEDULER_MAX_BATCH`, fixed scheduler shapes, and request `batch_size` fairness)
+2. **Reduce late-stream startup skew** in `scripts/hls_gpu_scheduler.py` and `musetalk/utils/audio_processor.py`
+3. **Reduce encode / tail jitter** in `scripts/api_avatar.py`
 4. **Continue model-path acceleration** in `scripts/avatar_manager_parallel.py` only if the above still leaves a gap
 5. **Consider larger GPU-native architecture work** in `musetalk/models/vae.py` only after the lower-risk backend steps are exhausted
 
@@ -2607,7 +2658,7 @@ With the March 17 scheduler-policy change in place, the latest backend priority 
 At the moment, the safest mental model is:
 
 - the browser buffers because the backend is producing live media too slowly
-- the biggest remaining software opportunity is CPU compose plus GPU prep contention
+- the biggest remaining software opportunity is now **shared scheduler batch retuning plus startup-skew cleanup**
 - player tuning can improve perceived smoothness, but not remove a backend cadence deficit
 
 ## Current Bottom Line
@@ -2625,6 +2676,7 @@ Based on the full debugging cycle so far:
 9. The system should not claim higher user counts until the shared HLS scheduler can reliably meet the realtime target.
 10. The `_memory_bucket` deadlock was fixed by returning 1, enabling 8-stream completion.
 11. The earlier `~18-20 fps` aggregate ceiling estimate is now stale; the March 17 compile-enabled runs show the current tuned stack can materially exceed the older post-revert baseline.
-12. Achieving stable 8-stream realtime still requires either more model-path throughput, fewer turns per segment, or less encode/tail jitter.
+12. Achieving stable 8-stream realtime still requires either better shared-batch utilization, less startup skew, fewer turns per segment, or less encode/tail jitter.
 13. The persistent encoder experiment improved understanding of the pipeline, but did not materially improve steady-state throughput.
-14. The most practical near-term path to 8-stream parity remains: deeper model-path acceleration (`torch.compile` refinement / TensorRT or equivalent) + lower per-stream frame demand + backend-only pipeline optimization that does not destabilize the HLS player.
+14. The March 18 `HLS_SCHEDULER_MAX_BATCH=48` retune materially improved the 8-stream average again, bringing `concurrency=8` much closer to effective realtime on average even though startup spread remains worse.
+15. The most practical near-term path to 8-stream parity now appears to be: keep the compiled path, keep larger combined scheduler batches, and recover fairness/stability by tuning request `batch_size` and startup behavior rather than assuming bigger per-stream slices are universally better.

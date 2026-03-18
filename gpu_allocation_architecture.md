@@ -990,12 +990,67 @@ Architectural interpretation after the scheduler-policy change:
    - late-stream startup skew / prep skew
    - encode and tail jitter
 
+### March 18 shared-batch retuning update
+
+The next architectural experiment was to treat larger combined scheduler batches as first-class compiled shapes instead of leaving everything above `32` in the "legal but not specially warmed" path.
+
+What changed:
+
+1. `scripts/hls_gpu_scheduler.py` now extends its fixed padded batch sizes beyond `[4, 8, 16, 32]` based on `HLS_SCHEDULER_MAX_BATCH`.
+2. `scripts/avatar_manager_parallel.py` mirrors that same logic in the default compile warmup shape list, so the runtime and the compile warmup no longer disagree about higher scheduler batch sizes.
+3. This makes `48` a real compile-friendly combined batch target instead of an ad-hoc actual-batch shape.
+
+Measured effect on the RTX 3090, using warm-cache `concurrency=8`, `playback_fps=24`, `musetalk_fps=12`:
+
+- `HLS_SCHEDULER_MAX_BATCH=32`, `batch_size=4`:
+  - `avg_time_to_live_ready_s = 3.652`
+  - `avg_segment_interval_s = 2.034`
+  - `max_segment_interval_s = 3.183`
+  - `wall_time_s = 38.9`
+- `HLS_SCHEDULER_MAX_BATCH=48`, `batch_size=4`:
+  - `avg_time_to_live_ready_s = 4.648`
+  - `avg_segment_interval_s = 1.965`
+  - `max_segment_interval_s = 3.129`
+  - `wall_time_s = 39.1`
+- best observed near-pass run with the same `HLS_SCHEDULER_MAX_BATCH=48`, `batch_size=4` settings:
+  - `avg_time_to_live_ready_s = 4.897`
+  - `avg_segment_interval_s = 1.921`
+  - `max_segment_interval_s = 2.046`
+  - `wall_time_s = 38.5`
+- `HLS_SCHEDULER_MAX_BATCH=32`, `batch_size=8`:
+  - `avg_time_to_live_ready_s = 3.682`
+  - `avg_segment_interval_s = 1.891`
+  - `max_segment_interval_s = 4.557`
+  - `wall_time_s = 37.6`
+- `HLS_SCHEDULER_MAX_BATCH=48`, `batch_size=8`:
+  - `avg_time_to_live_ready_s = 4.650`
+  - `avg_segment_interval_s = 1.881`
+  - `max_segment_interval_s = 4.095`
+  - `wall_time_s = 37.5`
+
+Observed resource effect:
+
+- `peak_memory_used_mb ≈ 22.3-22.5 GB`
+
+Architectural interpretation after the March 18 retune:
+
+1. Raising the **total combined scheduler batch** from `32` to `48` is another genuine throughput lever.
+2. The most meaningful gain is in the `batch_size=4` comparison, where the 8-stream average improved from `2.034s` to `1.965s`. This puts the average 8-stream cadence effectively at the realtime boundary for 1-second segments.
+3. The cost is startup spread: `avg_time_to_live_ready_s` became worse because each scheduler turn is heavier, so later jobs wait longer for their first high-value turn.
+4. This result reinforces an important architectural distinction:
+   - larger **total combined batch** can raise the shared throughput ceiling
+   - larger per-stream **request `batch_size`** is still mainly a fairness tradeoff, not a universal speed win
+5. `48` looks viable on the RTX 3090, but it also pushes VRAM close to the wall, so `64` should be treated as risky until explicitly validated.
+6. The fastest observed `batch_size=4` run shows that the retuned scheduler can get extremely close to 8-stream realtime while keeping the average cadence under `1.93s`; the remaining failure mode is now mostly worst-case variance, not average throughput.
+7. That variance is expected in the current design: with `HLS_SCHEDULER_MAX_BATCH=48` and request `batch_size=4`, the fair warmed round consumes `32` frames and the remaining `16` frames are assigned by the chunk-completion heuristic. Small prep/order differences can therefore change which stream gets the final push to the next chunk boundary.
+8. The next clean test is an inference from these results: keep `HLS_SCHEDULER_MAX_BATCH=48`, but return request `batch_size` to `2` and measure whether the larger combined batch can be preserved while recovering better startup and fairness.
+
 ### Latest priority order
 
 The current backend optimization order is now:
 
-1. **Reduce late-stream startup skew** in `scripts/hls_gpu_scheduler.py` and `musetalk/utils/audio_processor.py`
-2. **Reduce encode / tail jitter** in `scripts/api_avatar.py`
-3. **Re-tune shared batch throughput** around the compiled path in `scripts/hls_gpu_scheduler.py`
+1. **Re-tune shared batch throughput** around the compiled path in `scripts/hls_gpu_scheduler.py`
+2. **Reduce late-stream startup skew** in `scripts/hls_gpu_scheduler.py` and `musetalk/utils/audio_processor.py`
+3. **Reduce encode / tail jitter** in `scripts/api_avatar.py`
 4. **Continue model-path acceleration** only if the above still leaves a material gap
 5. **Only then consider larger architectural work** to keep decoded output on GPU longer in `musetalk/models/vae.py`

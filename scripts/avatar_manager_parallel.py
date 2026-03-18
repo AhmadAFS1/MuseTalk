@@ -85,6 +85,47 @@ class ParallelAvatarManager:
             return float(os.getenv(name, str(default)))
         except (TypeError, ValueError):
             return float(default)
+
+    @staticmethod
+    def _parse_batch_size_list(raw):
+        values = []
+        seen = set()
+        for token in raw.split(","):
+            token = token.strip()
+            if not token:
+                continue
+            try:
+                value = max(1, int(token))
+            except ValueError:
+                continue
+            if value in seen:
+                continue
+            values.append(value)
+            seen.add(value)
+        values.sort()
+        return values
+
+    @classmethod
+    def _default_compile_shape_batches(cls):
+        override = os.getenv("HLS_SCHEDULER_FIXED_BATCH_SIZES", "").strip()
+        if override:
+            parsed = cls._parse_batch_size_list(override)
+            if parsed:
+                return parsed
+
+        values = [4, 8, 16, 32]
+        try:
+            max_batch = max(32, int(os.getenv("HLS_SCHEDULER_MAX_BATCH", "32")))
+        except (TypeError, ValueError):
+            max_batch = 32
+
+        if max_batch > 32:
+            rounded_upper = ((max_batch + 15) // 16) * 16
+            next_size = 48
+            while next_size <= rounded_upper:
+                values.append(next_size)
+                next_size += 16
+        return values
     
     def _init_models(self):
         """Load models once"""
@@ -175,22 +216,12 @@ class ParallelAvatarManager:
         return candidates
 
     def _compile_warmup_batches(self):
-        raw_batches = os.getenv("MUSETALK_COMPILE_WARMUP_BATCHES", "4,8,16,32")
-        batches = []
-        seen = set()
-        for token in raw_batches.split(","):
-            token = token.strip()
-            if not token:
-                continue
-            try:
-                batch = max(1, int(token))
-            except ValueError:
-                continue
-            if batch in seen:
-                continue
-            batches.append(batch)
-            seen.add(batch)
-        return batches or [4, 8, 16, 32]
+        raw_batches = os.getenv("MUSETALK_COMPILE_WARMUP_BATCHES")
+        if raw_batches is None:
+            return self._default_compile_shape_batches()
+
+        batches = self._parse_batch_size_list(raw_batches)
+        return batches or self._default_compile_shape_batches()
 
     def _log_compile_failure(self, label, mode, exc):
         mode_label = "default" if mode == "default" else mode

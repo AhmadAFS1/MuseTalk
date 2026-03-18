@@ -158,6 +158,7 @@ class HLSGPUStreamScheduler:
         self.selection_cursor = 0
         self._cpu_pe_cache: Dict[tuple[int, str], torch.Tensor] = {}
         self._cpu_staging_cache: Dict[tuple, tuple[torch.Tensor, torch.Tensor]] = {}
+        self.fixed_batch_sizes = self._resolve_fixed_batch_sizes(self.max_combined_batch_size)
 
     def start(self) -> None:
         if self.scheduler_thread is not None:
@@ -167,6 +168,7 @@ class HLSGPUStreamScheduler:
         print(
             "🎛️  HLS GPU scheduler started "
             f"(max_combined_batch_size={self.max_combined_batch_size}, "
+            f"fixed_batch_sizes={self.fixed_batch_sizes}, "
             f"startup_slice_size={self.startup_slice_size}, "
             f"startup_chunk_duration_seconds={self.startup_chunk_duration_seconds:.2f}, "
             f"startup_chunk_count={self.startup_chunk_count}, "
@@ -860,9 +862,8 @@ class HLSGPUStreamScheduler:
             job.scheduler_turns += 1
 
         # Pad to compile-friendly size to avoid torch.compile recompilation
-        FIXED_SIZES = [4, 8, 16, 32]
         padded_batch = actual_batch
-        for size in FIXED_SIZES:
+        for size in self.fixed_batch_sizes:
             if size >= actual_batch:
                 padded_batch = size
                 break
@@ -1432,3 +1433,43 @@ class HLSGPUStreamScheduler:
         Requesting more than the pool has causes a permanent deadlock.
         """
         return 1
+
+    @staticmethod
+    def _parse_batch_size_list(raw: str) -> list[int]:
+        values: list[int] = []
+        seen = set()
+        for token in raw.split(","):
+            token = token.strip()
+            if not token:
+                continue
+            try:
+                value = max(1, int(token))
+            except ValueError:
+                continue
+            if value in seen:
+                continue
+            values.append(value)
+            seen.add(value)
+        values.sort()
+        return values
+
+    @classmethod
+    def _resolve_fixed_batch_sizes(cls, max_combined_batch_size: int) -> list[int]:
+        override = os.getenv("HLS_SCHEDULER_FIXED_BATCH_SIZES", "").strip()
+        if override:
+            parsed = cls._parse_batch_size_list(override)
+            if parsed:
+                return parsed
+
+        # Keep the original compile-friendly buckets and, when the configured
+        # combined batch exceeds 32, extend them in 16-frame increments so
+        # 48/64-size turns stay on known shapes instead of falling back to
+        # ad-hoc actual-batch recompilation.
+        values = [4, 8, 16, 32]
+        if max_combined_batch_size > 32:
+            rounded_upper = ((int(max_combined_batch_size) + 15) // 16) * 16
+            next_size = 48
+            while next_size <= rounded_upper:
+                values.append(next_size)
+                next_size += 16
+        return values
