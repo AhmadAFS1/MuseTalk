@@ -1194,3 +1194,89 @@ Architectural takeaway:
 - If those refactors still do not break the current `~2.0 avg / ~3.0 max` band, the product choice becomes clearer:
   - accept lower per-stream demand such as `musetalk_fps=10`, or
   - pursue a larger architectural change beyond the current HLS chunking path.
+
+### March 19 encode-path architecture update
+
+Two more backend refactors were completed and measured on the clean sparse-shape `max_batch=48` baseline:
+
+1. reusable per-request AAC sidecars so chunk creation could use `audio=copy`
+2. cached compose-state / batched compose work so CPU blend geometry and alpha preparation were not recomputed frame by frame
+
+Architectural result:
+
+1. Both changes were active in the logs.
+2. Neither produced a new sustained throughput tier.
+3. The system still stayed in the same practical band:
+   - `avg_segment_interval_s ≈ 2.00-2.04`
+   - `max_segment_interval_s ≈ 3.07-3.12`
+   - `avg_time_to_live_ready_s ≈ 3.89-3.91`
+
+Representative measured scheduler metrics:
+
+- `avg_batch=48.0/48.0`
+- `avg_gpu_batch≈0.98-1.02s`
+- `avg_compose≈0.18-0.23s`
+- `avg_encode≈0.94-1.03s`
+- `avg_encode_wait≈0.001s`
+
+Architectural read:
+
+1. The shared scheduler is already saturating the chosen `48`-frame ceiling.
+2. The encode worker pool is not the main limiter by itself.
+3. The cost is now best understood as actual segment encode work plus remaining per-chunk pipeline overhead, with CPU compose still a secondary contributor.
+
+### March 19 Option A architecture outcome
+
+Option A was the proposed refactor to replace subprocess-per-chunk encode/mux with a true in-process PyAV path.
+
+What was verified in the real runtime:
+
+1. PyAV is installed and usable in `/content/py310`.
+2. CPU codecs such as `libx264` and `aac` can open in-process.
+3. `h264_nvenc` is not viable through this path in the current runtime because actual open / encode attempts fail, surfacing as `NotImplementedError: avcodec_open2(h264_nvenc)`.
+
+Architectural implication:
+
+1. A true in-process encoder would force this backend onto CPU `libx264`.
+2. That would move the system away from the current NVENC-assisted design and likely make throughput worse.
+3. Therefore Option A was investigated and ruled out for this machine/runtime instead of being fully landed.
+
+### March 19 Option B architecture outcome
+
+Option B was the persistent per-stream `ffmpeg` segmenter using NVENC for steady-state chunks.
+
+What happened during the real `concurrency=8` runs:
+
+1. The persistent path did work for some segments and logged `persistent-h264_nvenc`.
+2. But the architecture held one long-lived NVENC-backed encoder process per stream.
+3. At `8` concurrent streams, that exhausted encoder resources and caused:
+   - `OpenEncodeSessionEx failed: out of memory (10)`
+   - `No capable devices found`
+   - `Broken pipe`
+4. Runs also showed very large encode-submit delays in this mode, with some jobs reaching:
+   - `avg_encode_submit_wait≈7-9s`
+   - `max_encode_submit_wait≈15-16s`
+
+Architectural implication:
+
+1. Persistent per-stream NVENC is not a viable architecture for the `8`-stream target on this GPU/runtime.
+2. The design consumes the scarce resource the system is already closest to exhausting: active NVENC encoder sessions.
+3. The experiment reduced uncertainty, but it was rolled back as the default path.
+4. The stable launch config now explicitly keeps:
+   - `HLS_PERSISTENT_SEGMENTER=0`
+
+### Updated architectural conclusion after Option A / Option B
+
+These experiments narrow the architecture search space substantially:
+
+1. Simply raising scheduler capacity above `48` is not the answer.
+2. A true in-process NVENC encode path is blocked in the current runtime.
+3. A persistent per-stream NVENC design is not viable at `concurrency=8`.
+4. The remaining bottleneck is therefore not best framed as scheduler underfill or AAC re-encode overhead.
+5. The remaining ceiling is the cost of steady-state segment production itself under the current HLS architecture.
+
+Practical architectural consequence:
+
+1. Keep `HLS_SCHEDULER_MAX_BATCH=48` as the normal ceiling.
+2. Keep `HLS_PERSISTENT_SEGMENTER=0` as the normal operating mode.
+3. Treat the remaining work as a harder encode-architecture problem, not a batch-size or worker-count problem.

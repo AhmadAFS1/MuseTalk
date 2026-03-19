@@ -2834,3 +2834,85 @@ Operational takeaway:
 - Keep the sparse compile / scheduler shape set.
 - Stop treating request `batch_size` sweeps as a primary optimization path.
 - The next meaningful speed work should move into `scripts/api_avatar.py` and then back into `scripts/hls_gpu_scheduler.py`, not into more env-var permutations.
+
+### March 19 encode-path refactor outcome update
+
+Two additional steady-state throughput refactors were completed and measured on the clean `max_batch=48` baseline:
+
+1. A reusable per-request AAC sidecar path was added so chunk creation could try `audio=copy` instead of re-encoding AAC every segment.
+2. A compose-state cache / batched compose path was added so the CPU compose step could reuse precomputed mask alpha and geometry instead of rebuilding it frame by frame.
+
+Important result:
+
+1. These refactors were real and were exercised in the logs with lines such as:
+   - `Prepared reusable AAC sidecar`
+   - `Segment created with ... + aac-copy`
+2. However, the practical throughput band still stayed around:
+   - `avg_segment_interval_s ≈ 2.00-2.04`
+   - `max_segment_interval_s ≈ 3.07-3.12`
+   - `avg_time_to_live_ready_s ≈ 3.89-3.91`
+3. Therefore AAC re-encode was not the dominant bottleneck, and the compose-cache refactor also did not produce a step-change improvement by itself.
+
+Representative scheduler metrics from these clean runs:
+
+- `avg_batch=48.0/48.0`
+- `avg_gpu_batch≈0.98-1.02s`
+- `avg_compose≈0.18-0.23s`
+- `avg_encode≈0.94-1.03s`
+- `avg_encode_wait≈0.001s`
+
+Interpretation:
+
+1. The shared scheduler is already filling the `48`-frame ceiling in the important runs.
+2. Encode worker queue wait by itself is small.
+3. The expensive part is still the actual segment encode work, with CPU compose remaining secondary but non-trivial.
+
+### March 19 Option A feasibility check
+
+The next proposed large refactor was a true in-process encode / mux path using PyAV instead of spawning `ffmpeg` per chunk.
+
+What was verified in the real runtime:
+
+1. PyAV is installed in the `/content/py310` environment.
+2. `libx264` and `aac` can be opened in-process.
+3. `h264_nvenc` fails when actually opening / encoding in this runtime, with the practical blocker surfacing as `NotImplementedError: avcodec_open2(h264_nvenc)`.
+
+Practical conclusion:
+
+1. A true in-process encoder path would force the system onto CPU `libx264` instead of NVENC.
+2. That would likely make the steady-state throughput worse, not better.
+3. Therefore Option A was investigated but **not** landed as the main path for this machine/runtime.
+
+### March 19 Option B persistent NVENC segmenter result
+
+A second large refactor was completed to test a persistent per-stream `ffmpeg` segmenter path for steady-state TS chunks while keeping the normal startup chunk behavior.
+
+What happened during the real `concurrency=8` runs:
+
+1. The persistent path did work for some chunks and logged `persistent-h264_nvenc`.
+2. But keeping one long-lived NVENC-backed encoder process per stream exhausted encoder resources under `8` concurrent streams.
+3. The failure mode was explicit in the logs:
+   - `OpenEncodeSessionEx failed: out of memory (10)`
+   - `No capable devices found`
+   - `Broken pipe`
+4. The runs also showed very large encode submit delays for some jobs, for example:
+   - `avg_encode_submit_wait≈7-9s`
+   - `max_encode_submit_wait≈15-16s`
+
+Practical conclusion:
+
+1. A persistent per-stream NVENC segmenter is **not viable** for the `8`-stream target on this hardware/runtime.
+2. The experiment was still useful because it removed doubt about one major architecture option.
+3. The persistent segmenter was then disabled by default, and the stable start config now explicitly uses:
+   - `HLS_PERSISTENT_SEGMENTER=0`
+
+### Updated practical conclusion after the Option A / Option B experiments
+
+1. `HLS_SCHEDULER_MAX_BATCH=48` remains the best practical ceiling found so far.
+2. Increasing the scheduler cap above `48` was already worse in testing and should not be reopened as the main path.
+3. A true in-process NVENC path is blocked in this runtime.
+4. A persistent per-stream NVENC segmenter is ruled out for `concurrency=8` on this GPU.
+5. The search space is therefore narrower now:
+   - scheduler underfill is no longer the primary explanation
+   - AAC re-encode is no longer the primary explanation
+   - the remaining ceiling is dominated by steady-state segment encode cost plus the surrounding chunk pipeline overhead
