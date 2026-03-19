@@ -597,6 +597,13 @@ class HLSGPUStreamScheduler:
         startup_jobs = [job for job in jobs if self._is_startup_job(job)]
         warmed_jobs = [job for job in jobs if not self._is_startup_job(job)]
 
+        # MUST-KEEP STARTUP FAIRNESS LOGIC:
+        # These first two rounds are the change that compressed the old
+        # "1/2/3/4/5s" live_ready wave into a much tighter startup band where
+        # most streams become live at roughly the same time.
+        #
+        # Round 1 gives startup jobs an initial slice before warmed jobs are
+        # considered at all.
         # --- Round 1: startup jobs get a small initial slice ---
         if startup_jobs:
             total_batch = self._allocate_round(
@@ -606,6 +613,10 @@ class HLSGPUStreamScheduler:
                 slice_cap=self.startup_slice_size,
             )
 
+        # MUST-KEEP STARTUP FAIRNESS LOGIC:
+        # Round 2 spends remaining budget on startup jobs again so they can
+        # finish their first chunk before warmed jobs absorb the batch. This is
+        # the main reason live_ready became much more even across sessions.
         # --- Round 2: finish startup jobs to their first chunk target where possible ---
         if total_batch < self.max_combined_batch_size and startup_jobs:
             total_batch = self._allocate_startup_priority_round(
@@ -796,6 +807,10 @@ class HLSGPUStreamScheduler:
         allocations: Dict[str, int],
         total_batch: int,
     ) -> int:
+        # MUST-KEEP STARTUP FAIRNESS HELPER:
+        # This helper is the "finish the first chunk first" pass. If we roll
+        # back other experiments, this is one of the pieces to keep so startup
+        # does not spread back into a long convoy.
         for job in jobs:
             capacity_left = self.max_combined_batch_size - total_batch
             if capacity_left <= 0:
