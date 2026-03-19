@@ -1054,3 +1054,143 @@ The current backend optimization order is now:
 3. **Reduce encode / tail jitter** in `scripts/api_avatar.py`
 4. **Continue model-path acceleration** only if the above still leaves a material gap
 5. **Only then consider larger architectural work** to keep decoded output on GPU longer in `musetalk/models/vae.py`
+
+### March 19 validation and architectural read
+
+The March 18 near-pass result is intentionally preserved above:
+
+- `HLS_SCHEDULER_MAX_BATCH=48`
+- request `batch_size=4`
+- `avg_segment_interval_s = 1.921`
+- `max_segment_interval_s = 2.046`
+
+That run remains architecturally important because it proves the current design can occasionally land very close to the target. The March 19 work was aimed at learning whether that near-pass could be made stable, and whether the remaining gap was mostly queue fairness, compile-shape waste, or a deeper pipeline limit.
+
+March 19 changes:
+
+1. `scripts/hls_gpu_scheduler.py` was refactored so encodes are staged through a scheduler-managed pending queue instead of being submitted immediately in compose-arrival order.
+2. That queue adds:
+   - startup `chunk 0` priority
+   - lag-aware ordering
+   - explicit tracking of encode submit wait vs thread-pool queue wait
+3. `scripts/hls_gpu_scheduler.py` and `scripts/avatar_manager_parallel.py` were also briefly expanded so `24` and `40` became default compile-friendly shapes in addition to `4,8,16,32,48`.
+
+Architectural result of the `24/40` shape expansion:
+
+- with:
+  - `MUSETALK_COMPILE_WARMUP_BATCHES=4,8,16,24,32,40,48`
+  - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16,24,32,40,48`
+  - `MUSETALK_COMPILE_MODE=reduce-overhead`
+- the process often sat in the `~23.4-24.1 GB` VRAM band before streams even started
+- peak VRAM reached about `24.2 GB`
+- but the throughput band did **not** materially improve
+
+Architectural interpretation:
+
+1. The added intermediary shapes appear to have increased startup-resident compile / CUDA-graph / workspace memory.
+2. The expanded shape set did **not** produce a durable new throughput tier.
+3. Therefore the default shape expansion was rolled back, and the sparse normal operating set is again:
+   - `MUSETALK_COMPILE_WARMUP_BATCHES=4,8,16,32,48`
+   - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16,32,48`
+
+Representative clean March 19 runs after rolling back to the sparse shape set:
+
+- `batch_size=4`:
+  - `avg_time_to_live_ready_s = 4.018`
+  - `avg_segment_interval_s = 1.986`
+  - `max_segment_interval_s = 3.027`
+  - `wall_time_s = 38.5`
+- `batch_size=2`:
+  - `avg_time_to_live_ready_s = 4.018`
+  - `avg_segment_interval_s = 1.985`
+  - `max_segment_interval_s = 3.096`
+  - `wall_time_s = 38.9`
+- later `batch_size=4` clean run:
+  - `avg_time_to_live_ready_s = 4.659`
+  - `avg_segment_interval_s = 1.980`
+  - `max_segment_interval_s = 3.064`
+  - `wall_time_s = 38.4`
+
+Recurring March 19 startup pattern:
+
+- first stream `live_ready` around `~3s`
+- next wave around `~4s`
+- final wave around `~5s`
+
+Architectural interpretation after the March 19 clean runs:
+
+1. The system is no longer failing because of a bad compile-shape configuration.
+2. The system is no longer primarily constrained by VRAM headroom in the clean sparse-shape mode.
+3. The encode fairness / backlog refactor did not materially shift the observed throughput band.
+4. Request `batch_size=2` vs `4` also no longer produces a material difference in the final band.
+5. Therefore the remaining limit is best understood as an **architectural startup convoy / first-segment delivery ceiling** on a saturated single-GPU pipeline, not a small policy bug.
+6. In practical terms, the clean March 19 stack still stabilizes around:
+   - `avg_segment_interval_s ≈ 1.98`
+   - `max_segment_interval_s ≈ 3.0`
+   - `avg_time_to_live_ready_s ≈ 4.0-4.7`
+
+### Updated architectural conclusion
+
+The roadmap should now be read this way:
+
+1. The March 18 near-pass remains a real and preserved milestone.
+2. However, repeated clean March 19 runs show that the current architecture does not sustain that near-pass reliably.
+3. Additional environment tuning around request `batch_size`, worker counts, or intermediary compile shapes is no longer yielding step-change improvements.
+4. If strict `12 fps` on one 24 GB GPU must remain the product target, the next meaningful work is a deeper startup-path redesign:
+   - smaller or special-cased first chunk
+   - dedicated first-segment fast path / reservation
+   - direct measurement of first-segment delay contributors
+5. If practical realtime behavior is more important than strict `12 fps`, lowering `musetalk_fps` to `10` or `8` is now the highest-ROI way to create real headroom.
+
+### March 19 scripts-folder architectural audit
+
+A full audit of every file under `scripts/` was completed to identify which modules are actually on the live HLS throughput path.
+
+Architecturally active HLS path:
+
+- `api_server.py`
+- `scripts/avatar_manager_parallel.py`
+- `scripts/hls_session_manager.py`
+- `scripts/hls_gpu_scheduler.py`
+- `scripts/api_avatar.py`
+
+Architecturally secondary or irrelevant to the current HLS throttle:
+
+- `scripts/avatar_cache.py` -> cold-start / cache behavior, not steady-state live throughput
+- `scripts/concurrent_gpu_manager.py` -> admission control and lease bookkeeping; not the current pacing bottleneck because the HLS scheduler uses one lease per turn
+- `scripts/session_manager.py` -> legacy non-HLS session path
+- `scripts/webrtc_manager.py` and `scripts/webrtc_tracks.py` -> separate transport and buffering architecture
+- `scripts/realtime_inference.py`, `scripts/inference.py`, and `scripts/preprocess.py` -> reference, offline, or preprocessing paths
+
+Architectural bottleneck read from the audit:
+
+1. The HLS stack is now best understood as a three-stage steady-state bottleneck:
+   - a single shared GPU generation loop in `scripts/hls_gpu_scheduler.py`
+   - CPU-side per-frame compose in `scripts/api_avatar.py`
+   - CPU/process-side per-chunk encode / mux in `scripts/api_avatar.py`
+2. `HLS_SCHEDULER_MAX_BATCH=48` was a real breakpoint because it gave the scheduler a meaningful chunk-completion budget after the fair warmed round.
+3. However, pushing higher than `48` does not automatically create a new throughput tier, because the scheduler still allocates warmed work in per-job `batch_size` slices before spending any remaining capacity.
+4. This means larger max batch values only help when there is enough useful backlog for later completion / fill rounds to consume, and they can become worse if the heavier turns increase cadence cost more than they increase useful completed work.
+
+Updated architectural priority order:
+
+1. **Refactor chunk encoding** in `scripts/api_avatar.py`.
+   - The current HLS path still pays fresh `ffmpeg` bootstrap, audio seek, AAC encode, and TS mux setup for every chunk.
+   - This is now the highest-confidence steady-state throughput target.
+2. **Reduce CPU compose cost** in `scripts/api_avatar.py`.
+   - `compose_frame()` remains a per-frame copy / resize / blend operation on CPU.
+   - This is the next most likely place to free steady-state headroom.
+3. **Refactor scheduler burst usage** in `scripts/hls_gpu_scheduler.py`.
+   - Larger combined batch ceilings should be paired with logic that can spend spare capacity above request `batch_size` more effectively once every active stream has its fair minimum slice.
+4. **Add better batch-stop instrumentation** in `scripts/hls_gpu_scheduler.py`.
+   - The scheduler should expose why a turn stopped growing and how often actual batch sizes land at each point in the shape ladder.
+5. **Only then re-open worker-count tuning**.
+   - Worker pools may still matter, but the audit suggests they are downstream of the larger steady-state costs above.
+
+Architectural takeaway:
+
+- The next meaningful optimization cycle should shift away from env-level batch / worker experimentation.
+- The highest-ROI code changes now live first in `scripts/api_avatar.py`, then in `scripts/hls_gpu_scheduler.py`.
+- If those refactors still do not break the current `~2.0 avg / ~3.0 max` band, the product choice becomes clearer:
+  - accept lower per-stream demand such as `musetalk_fps=10`, or
+  - pursue a larger architectural change beyond the current HLS chunking path.
