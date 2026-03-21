@@ -76,6 +76,16 @@ Observed result at `concurrency=8`, `batch_size=4`, `playback_fps=24`, `musetalk
 
 So latent-cycle residency was another reasonable selective-GPU experiment, but it also failed to materially improve throughput or startup. That means the next branch should stop assuming selective residency is the main answer.
 
+We also tested explicit SDPA attention-path tuning and rolled that back as a throughput change.
+
+Observed result across repeated `concurrency=8`, `batch_size=4`, `playback_fps=24`, `musetalk_fps=12` runs:
+
+- `avg_segment_interval_s` stayed in the same familiar `~1.97-2.04s` band
+- `max_segment_interval_s` stayed in the same familiar `~3.10-3.22s` band
+- `avg_time_to_live_ready_s` stayed in the same familiar `~4.15-4.77s` band
+
+So the SDPA branch was another reasonable model-path experiment, but it also failed to materially improve throughput. That means the selective/incremental PyTorch-path branch is now sufficiently exhausted, and the next serious move should be the larger backend-acceleration path in `model_optimization_plan.md`.
+
 ## What Should Not Go On GPU Yet
 
 These are not the next target:
@@ -123,94 +133,102 @@ Success gate:
 - no visual regressions
 - peak VRAM remains comfortably below the cliff
 
-### Phase 1: Explicit SDPA Attention Path
+### Phase 1: Hand Off To The Backend Acceleration Plan
 
 Goal:
 
-- ensure UNet uses the best attention path this runtime supports
+- move from the exhausted small-optimization branch to the larger backend-acceleration branch
+
+Files:
+
+- `model_optimization_plan.md`
+- `scripts/benchmark_pipeline.py`
+
+Work:
+
+- run the baseline benchmark from `model_optimization_plan.md`
+- confirm the true UNet / VAE / transfer breakdown before backend integration
+- use that as the entrypoint into TensorRT or ONNX Runtime work
+
+Why first:
+
+- the smaller model/GPU-path experiments have now all failed to create a meaningful throughput shift
+- this is the cleanest way to stop guessing and move to the next class of optimization
+- it matches the current recommendation in the broader planning doc
+
+### Phase 2: TensorRT For UNet
+
+Goal:
+
+- accelerate the highest-upside remaining model component using a new backend
 
 Files:
 
 - `musetalk/models/unet.py`
 - `scripts/avatar_manager_parallel.py`
+- `scripts/tensorrt_export.py`
+- `scripts/trt_runtime.py`
 
 Work:
 
-- verify the current attention processor
-- explicitly enable the best SDPA-based path available
-- benchmark before and after so we know whether the attention-path change moves `avg_gpu_batch`
+- export and benchmark a TensorRT UNet path
+- integrate it with runtime fallback
+- measure whether it finally shifts the throughput ceiling
 
-Why first:
+Why second:
 
-- worthwhile model-side optimization
-- lower risk than another direct output-path or compose-path experiment
-- unlike the recent selective-residency experiments, this path has not already been invalidated end to end
+- this is now the highest-upside remaining path after the smaller PyTorch-path experiments failed
+- it is a cleaner escalation than more risky output-path changes inside the current runtime
 
-### Phase 2: VAE Output Boundary
+### Phase 3: TensorRT For VAE
 
 Goal:
 
-- reduce the cost of the decode-to-CPU handoff
+- accelerate the second major model component if UNet TensorRT alone is not enough
 
 Files:
 
 - `musetalk/models/vae.py`
-- `scripts/hls_gpu_scheduler.py`
+- `scripts/avatar_manager_parallel.py`
+- `scripts/tensorrt_export.py`
+- `scripts/trt_runtime.py`
 
 Work:
 
-- perform more formatting on GPU before transfer
-- keep the stable output path easy to revert to
-
-Why second:
-
-- still a valid model-path target
-- but earlier output-path changes already showed regression risk
-
-### Phase 3: GPU Compose
-
-Goal:
-
-- move the compose path closer to the model path if the earlier phases still do not move throughput enough
-
-Files:
-
-- `scripts/api_avatar.py`
-- `musetalk/utils/blending.py`
-
-Work:
-
-- prototype a GPU-native resize/blend path
-- keep a safe CPU fallback because this path has visual-regression risk
+- export and benchmark a TensorRT VAE decoder path
+- integrate it with runtime fallback
+- measure whether combined backend acceleration creates real headroom
 
 Why third:
 
-- larger upside than repeating more selective-residency experiments
-- still riskier than the earlier model-path work, so it stays behind them
+- still cleaner than another fragile output/composite rewrite
+- remains a higher-upside branch than revisiting rolled-back selective-residency ideas
 
-### Phase 4: Revisit Vectorized Audio Prompt Building Only If New Profiling Supports It
+### Phase 4: ONNX Runtime Fallback
 
 Goal:
 
-- reconsider prompt-path optimization only after later phases are measured
+- keep a second backend-acceleration path ready if TensorRT export/runtime integration gets blocked
 
 Files:
 
-- `musetalk/utils/audio_processor.py`
+- `scripts/onnx_export.py`
+- `scripts/ort_runtime.py`
+- `scripts/avatar_manager_parallel.py`
 - `scripts/hls_gpu_scheduler.py`
 
 Work:
 
-- only retry if deeper timings show prompt construction is still material after the higher-confidence changes
-- keep it behind a feature flag if it is retried
-- do not treat it as an active throughput win without new evidence
+- export ONNX models
+- wire a runtime path with fallback
+- benchmark against PyTorch and TensorRT
 
 Why fourth:
 
-- the direct experiment did not improve throughput
-- it is no longer the current lead optimization branch
+- it is the practical fallback behind the preferred TensorRT path
+- it still has more remaining upside than returning to the rolled-back small-model-path experiments
 
-### Phase 5: Revisit GPU-Resident Conditioning Only If New Evidence Supports It
+### Phase 5: VAE Output Boundary Only If Backend Acceleration Still Leaves A Gap
 
 Goal:
 
@@ -233,7 +251,7 @@ Caution:
 - the direct experiment was already reverted once
 - it should not return as a default path without clearly better evidence
 
-### Phase 6: Revisit GPU-Resident Latent Cycles Only If New Evidence Supports It
+### Phase 6: GPU Compose Only If Backend Acceleration Still Leaves A Gap
 
 Goal:
 
@@ -255,30 +273,30 @@ Caution:
 - the direct experiment was already reverted once
 - it did not improve either throughput or startup fairness
 
-### Phase 7: Decision Point
+### Phase 7: Revisit Rolled-Back Small Experiments Only If New Profiling Creates A Stronger Case
 
-If Phases 1 through 6 still do not move throughput enough, then escalate to the larger architecture path:
+If Phases 1 through 6 still do not move throughput enough, only then reconsider the rolled-back small experiments with fresh evidence:
 
-- TensorRT
-- ONNX Runtime
+- vectorized audio prompts
+- GPU-resident conditioning
+- GPU-resident latent cycles
 
 ## Priority Order
 
-1. explicit SDPA attention optimization
-2. VAE output-boundary refinement
-3. GPU compose after the lower-risk model-path work
-4. revisit vectorized audio prompt building only if later evidence justifies it
-5. revisit GPU-resident conditioning only if later evidence justifies it
-6. revisit GPU-resident latent cycles only if later evidence justifies it
-7. only then consider the larger acceleration branch
+1. baseline benchmark from `model_optimization_plan.md`
+2. TensorRT for UNet
+3. TensorRT for VAE
+4. ONNX Runtime fallback
+5. VAE output-boundary work only if backend acceleration still leaves a gap
+6. GPU compose only if backend acceleration still leaves a gap
+7. revisit the rolled-back small experiments only if new profiling justifies it
 
 ## Bottom Line
 
 The next model/GPU optimization push should be:
 
-- **selective**
-- **memory-aware**
+- **backend-focused**
+- **benchmark-driven**
 - **reversible**
 
-We are not trying to move the whole pipeline onto GPU at once.
-We are trying to remove the **highest-confidence hot-path waste first**, then selectively keep the right small tensors on GPU only when the measurements support it.
+We already tried the highest-confidence small PyTorch-path adjustments and they did not move the mission enough. The next push should therefore be a larger backend acceleration branch, starting with the benchmark and TensorRT path in `model_optimization_plan.md`.

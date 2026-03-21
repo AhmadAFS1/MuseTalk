@@ -4,6 +4,11 @@
 
 - **FP16**: ✅ Already active — no further gains here
 - **torch.compile reduce-overhead**: ✅ Already active
+- **Smaller model/GPU-path experiments**: ✅ Tested and exhausted enough to justify escalation
+  - GPU-resident conditioning: tested, failed, reverted
+  - vectorized audio prompts: tested, failed, reverted
+  - GPU-resident latent cycles: tested, failed, reverted
+  - explicit SDPA attention tuning: tested, failed, reverted
 - **Target**: 8 concurrent HLS streams at 12fps (96 frames/s) on a single 24GB GPU
 - **Current throughput**: ~96 frames/s at 100% GPU utilization (zero headroom)
 - **Goal**: Reduce per-frame GPU time by 2–3× to create headroom
@@ -13,6 +18,8 @@ This document covers two implementation paths:
 2. **ONNX Runtime with CUDA EP** (medium impact, 1.5–2× expected speedup)
 
 Both are preceded by a mandatory benchmarking step to establish precise baselines.
+
+This document is now the active next branch because the smaller in-architecture PyTorch-path refactors did not materially move the familiar `~2.0 avg / ~3.1 max` throttle band.
 
 ---
 
