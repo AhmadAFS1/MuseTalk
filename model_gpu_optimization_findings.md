@@ -73,6 +73,26 @@ Conclusion:
 - but it did **not** materially improve throughput or startup behavior for the current HLS mission
 - it should not remain the current first-priority performance bet in this branch either
 
+The later GPU-resident latent-cycle experiment was also tested and then rolled back.
+
+Observed result at `concurrency=8`, `batch_size=4`, `playback_fps=24`, `musetalk_fps=12`:
+
+- run 1:
+  - `avg_segment_interval_s = 1.971`
+  - `max_segment_interval_s = 3.143`
+  - `avg_time_to_live_ready_s = 4.774`
+- run 2:
+  - `avg_segment_interval_s = 1.99`
+  - `max_segment_interval_s = 3.119`
+  - `avg_time_to_live_ready_s = 4.774`
+
+Conclusion:
+
+- keeping avatar latent cycles on GPU did **not** produce a meaningful throughput shift
+- it also did **not** repair the startup wave
+- repeated latent gather/staging cost is therefore not the dominant limiter by itself
+- this experiment is now rolled back and should not remain the current top priority either
+
 ## Active Runtime Path
 
 ### Root Entry Points
@@ -187,6 +207,7 @@ In `scripts/hls_gpu_scheduler.py`:
 - the padded batch is then copied to GPU
 
 Even though batching is working well, there is still repeated host-side assembly around every GPU turn.
+However, the direct GPU-latent-residency experiment did not materially move end-to-end throughput, so this staging cost is probably not the dominant limiter by itself.
 
 ### 3. VAE Output Boundary Still Forces A CPU Round Trip
 
@@ -250,39 +271,26 @@ unless those dependencies are intentionally added later.
 
 ## Priority List
 
-### Priority 1: Keep Avatar Latent Cycles On GPU
+### Priority 1: Explicitly Optimize The UNet Attention Path
 
 Why this is first:
 
-- the scheduler currently gathers latents from CPU-resident avatar tensors
-- latent cycles are relatively small compared with total available VRAM
-- this is still the strongest remaining selective-residency target that has not already failed a throughput test
-
-Target files:
-
-- `scripts/api_avatar.py`
-- `scripts/hls_gpu_scheduler.py`
-
-### Priority 2: Explicitly Optimize The UNet Attention Path
-
-Why this is next:
-
 - the runtime supports SDPA
 - the UNet loader does not explicitly force the best available attention processor
-- this is the cleanest remaining model-level optimization that has not already been tested indirectly
+- this is now the cleanest remaining model-level optimization that has not already been invalidated by an end-to-end throughput test
 
 Target files:
 
 - `musetalk/models/unet.py`
 - `scripts/avatar_manager_parallel.py`
 
-### Priority 3: Rework The VAE Output Boundary
+### Priority 2: Rework The VAE Output Boundary
 
-Why this matters:
+Why this is next:
 
 - current decode returns CPU NumPy immediately
 - some output formatting could happen before the transfer
-- a larger future step would keep decoded ROIs on GPU long enough for GPU compose
+- this remains one of the clearest model-path boundaries that has not yet been conclusively invalidated
 
 Target files:
 
@@ -290,20 +298,20 @@ Target files:
 - `scripts/hls_gpu_scheduler.py`
 - `scripts/api_avatar.py`
 
-### Priority 4: GPU Compose
+### Priority 3: GPU Compose
 
 Why this matters:
 
-- it could be a meaningful win
-- but it is riskier because it touches visual correctness
-- it should come after the lower-risk latent/model-path improvements
+- it could still be a meaningful win
+- it is riskier because it touches visual correctness
+- after the recent failed selective-residency experiments, this is now the next major architecture-side lever rather than a fallback behind latent residency
 
 Target files:
 
 - `scripts/api_avatar.py`
 - `musetalk/utils/blending.py`
 
-### Priority 5: Revisit Vectorized Audio Prompt Building Only If New Profiling Supports It
+### Priority 4: Revisit Vectorized Audio Prompt Building Only If New Profiling Supports It
 
 Why this is now later:
 
@@ -314,6 +322,19 @@ Why this is now later:
 Target files:
 
 - `musetalk/utils/audio_processor.py`
+- `scripts/hls_gpu_scheduler.py`
+
+### Priority 5: Revisit GPU-Resident Latent Cycles Only If New Evidence Supports It
+
+Why this is later:
+
+- the direct experiment did not improve throughput
+- it did not fix the startup wave either
+- it should only be reconsidered if future profiling shows a materially different operating point or a better residency design
+
+Target files:
+
+- `scripts/api_avatar.py`
 - `scripts/hls_gpu_scheduler.py`
 
 ### Priority 6: Revisit GPU-Resident Conditioning Only If Later Evidence Supports It
@@ -345,10 +366,10 @@ Based on the current code and prior experiments, these are lower-value next step
 
 If we want the strongest remaining model/GPU-focused branch to try, the best sequence is:
 
-1. GPU-resident avatar latent cycles
-2. explicit SDPA attention optimization
-3. VAE output-boundary refinement
-4. GPU compose only after the lower-risk model-path work
+1. explicit SDPA attention optimization
+2. VAE output-boundary refinement
+3. GPU compose after the lower-risk model-path work
+4. revisit the rolled-back selective-residency experiments only if future profiling gives us a stronger case
 
 That is the highest-confidence model/GPU optimization path left in the current codebase.
 
@@ -357,5 +378,6 @@ That is the highest-confidence model/GPU optimization path left in the current c
 - The startup-fairness scheduler logic in `scripts/hls_gpu_scheduler.py` should still be preserved.
 - The current findings do **not** say encode/publish overhead is solved; only that the best remaining *model/GPU* gains are elsewhere first.
 - Vectorized audio-prompt building was also a useful experiment, but it did not produce a meaningful throughput shift for the current 8-stream HLS target and should not be treated as an active win.
+- GPU-resident latent cycles were also a useful experiment, but they did not produce a meaningful throughput shift for the current 8-stream HLS target and should not be treated as an active win either.
 - GPU-resident conditioning was a useful experiment, but it is now a documented dead end for the current branch unless later evidence gives us a stronger reason to revisit it.
 - This file is intended to be the reference document for the next implementation phase.

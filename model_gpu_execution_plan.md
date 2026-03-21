@@ -61,6 +61,21 @@ Observed result at `concurrency=8`, `batch_size=4`, `playback_fps=24`, `musetalk
 
 So that refactor was valid as a cleanup, but it did not materially improve throughput or startup. We are not treating it as the active lead bet anymore either.
 
+We also tested GPU-resident latent cycles and rolled that back as a throughput change.
+
+Observed result at `concurrency=8`, `batch_size=4`, `playback_fps=24`, `musetalk_fps=12`:
+
+- run 1:
+  - `avg_segment_interval_s = 1.971`
+  - `max_segment_interval_s = 3.143`
+  - `avg_time_to_live_ready_s = 4.774`
+- run 2:
+  - `avg_segment_interval_s = 1.99`
+  - `max_segment_interval_s = 3.119`
+  - `avg_time_to_live_ready_s = 4.774`
+
+So latent-cycle residency was another reasonable selective-GPU experiment, but it also failed to materially improve throughput or startup. That means the next branch should stop assuming selective residency is the main answer.
+
 ## What Should Not Go On GPU Yet
 
 These are not the next target:
@@ -108,30 +123,7 @@ Success gate:
 - no visual regressions
 - peak VRAM remains comfortably below the cliff
 
-### Phase 1: GPU-Resident Latent Cycles
-
-Goal:
-
-- stop gathering avatar latents from CPU every generation turn
-
-Files:
-
-- `scripts/api_avatar.py`
-- `scripts/hls_gpu_scheduler.py`
-
-Work:
-
-- keep latent cycle tensors on GPU for active avatars
-- remove the repeated CPU gather and staging path in scheduler assembly
-- keep a cap and fallback so active-avatar residency does not turn into uncontrolled VRAM growth
-
-Why first:
-
-- latent cycles are still a good selective-residency target
-- this avoids repeating either of the two recent experiments that already failed to move throughput
-- it is still one of the clearest remaining per-turn staging costs in the scheduler path
-
-### Phase 2: Explicit SDPA Attention Path
+### Phase 1: Explicit SDPA Attention Path
 
 Goal:
 
@@ -146,13 +138,15 @@ Work:
 
 - verify the current attention processor
 - explicitly enable the best SDPA-based path available
+- benchmark before and after so we know whether the attention-path change moves `avg_gpu_batch`
 
-Why second:
+Why first:
 
 - worthwhile model-side optimization
 - lower risk than another direct output-path or compose-path experiment
+- unlike the recent selective-residency experiments, this path has not already been invalidated end to end
 
-### Phase 3: VAE Output Boundary
+### Phase 2: VAE Output Boundary
 
 Goal:
 
@@ -168,10 +162,31 @@ Work:
 - perform more formatting on GPU before transfer
 - keep the stable output path easy to revert to
 
-Why third:
+Why second:
 
 - still a valid model-path target
 - but earlier output-path changes already showed regression risk
+
+### Phase 3: GPU Compose
+
+Goal:
+
+- move the compose path closer to the model path if the earlier phases still do not move throughput enough
+
+Files:
+
+- `scripts/api_avatar.py`
+- `musetalk/utils/blending.py`
+
+Work:
+
+- prototype a GPU-native resize/blend path
+- keep a safe CPU fallback because this path has visual-regression risk
+
+Why third:
+
+- larger upside than repeating more selective-residency experiments
+- still riskier than the earlier model-path work, so it stays behind them
 
 ### Phase 4: Revisit Vectorized Audio Prompt Building Only If New Profiling Supports It
 
@@ -218,22 +233,44 @@ Caution:
 - the direct experiment was already reverted once
 - it should not return as a default path without clearly better evidence
 
-### Phase 6: Decision Point
+### Phase 6: Revisit GPU-Resident Latent Cycles Only If New Evidence Supports It
 
-If Phases 1 through 5 still do not move throughput enough, then escalate to the larger architecture path:
+Goal:
 
-- GPU compose
+- reconsider latent residency only after earlier phases are measured
+
+Files:
+
+- `scripts/api_avatar.py`
+- `scripts/hls_gpu_scheduler.py`
+
+Work:
+
+- only retry if later profiling shows a materially different opportunity
+- keep it behind a feature flag if it is ever retried
+- do not treat it as an active throughput win without new evidence
+
+Caution:
+
+- the direct experiment was already reverted once
+- it did not improve either throughput or startup fairness
+
+### Phase 7: Decision Point
+
+If Phases 1 through 6 still do not move throughput enough, then escalate to the larger architecture path:
+
 - TensorRT
 - ONNX Runtime
 
 ## Priority Order
 
-1. GPU-resident latent cycles
-2. explicit SDPA attention optimization
-3. VAE output-boundary refinement
+1. explicit SDPA attention optimization
+2. VAE output-boundary refinement
+3. GPU compose after the lower-risk model-path work
 4. revisit vectorized audio prompt building only if later evidence justifies it
 5. revisit GPU-resident conditioning only if later evidence justifies it
-6. only then consider the larger acceleration branch
+6. revisit GPU-resident latent cycles only if later evidence justifies it
+7. only then consider the larger acceleration branch
 
 ## Bottom Line
 
