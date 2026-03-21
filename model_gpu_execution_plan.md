@@ -51,6 +51,16 @@ Observed result at `concurrency=8`, `batch_size=4`, `playback_fps=24`, `musetalk
 
 So we are not treating GPU-resident conditioning as Phase 1 anymore. It remains a possible later revisit, not the current lead bet.
 
+We also tested vectorized audio-prompt building and rolled it back as a throughput change.
+
+Observed result at `concurrency=8`, `batch_size=4`, `playback_fps=24`, `musetalk_fps=12`:
+
+- `avg_segment_interval_s = 2.0`
+- `max_segment_interval_s = 3.225`
+- `avg_time_to_live_ready_s = 4.772`
+
+So that refactor was valid as a cleanup, but it did not materially improve throughput or startup. We are not treating it as the active lead bet anymore either.
+
 ## What Should Not Go On GPU Yet
 
 These are not the next target:
@@ -98,29 +108,7 @@ Success gate:
 - no visual regressions
 - peak VRAM remains comfortably below the cliff
 
-### Phase 1: Vectorized Audio Prompt Building
-
-Goal:
-
-- remove the Python loop in `build_audio_prompts()`
-
-Files:
-
-- `musetalk/utils/audio_processor.py`
-
-Work:
-
-- replace per-frame slicing with a tensorized sliding-window or gather path
-- reduce CPU orchestration before generation starts
-- keep the implementation easy to benchmark against the current path
-
-Why first:
-
-- it attacks a clear active inefficiency that touches every request
-- it does not carry the startup regression risk we just saw with GPU-resident conditioning
-- it gives us better information about whether conditioning should ever be revisited on GPU
-
-### Phase 2: GPU-Resident Latent Cycles
+### Phase 1: GPU-Resident Latent Cycles
 
 Goal:
 
@@ -135,13 +123,15 @@ Work:
 
 - keep latent cycle tensors on GPU for active avatars
 - remove the repeated CPU gather and staging path in scheduler assembly
+- keep a cap and fallback so active-avatar residency does not turn into uncontrolled VRAM growth
 
-Why second:
+Why first:
 
 - latent cycles are still a good selective-residency target
-- this avoids repeating the exact conditioning experiment that already failed
+- this avoids repeating either of the two recent experiments that already failed to move throughput
+- it is still one of the clearest remaining per-turn staging costs in the scheduler path
 
-### Phase 3: Explicit SDPA Attention Path
+### Phase 2: Explicit SDPA Attention Path
 
 Goal:
 
@@ -157,12 +147,12 @@ Work:
 - verify the current attention processor
 - explicitly enable the best SDPA-based path available
 
-Why third:
+Why second:
 
 - worthwhile model-side optimization
 - lower risk than another direct output-path or compose-path experiment
 
-### Phase 4: VAE Output Boundary
+### Phase 3: VAE Output Boundary
 
 Goal:
 
@@ -178,10 +168,32 @@ Work:
 - perform more formatting on GPU before transfer
 - keep the stable output path easy to revert to
 
-Why fourth:
+Why third:
 
 - still a valid model-path target
 - but earlier output-path changes already showed regression risk
+
+### Phase 4: Revisit Vectorized Audio Prompt Building Only If New Profiling Supports It
+
+Goal:
+
+- reconsider prompt-path optimization only after later phases are measured
+
+Files:
+
+- `musetalk/utils/audio_processor.py`
+- `scripts/hls_gpu_scheduler.py`
+
+Work:
+
+- only retry if deeper timings show prompt construction is still material after the higher-confidence changes
+- keep it behind a feature flag if it is retried
+- do not treat it as an active throughput win without new evidence
+
+Why fourth:
+
+- the direct experiment did not improve throughput
+- it is no longer the current lead optimization branch
 
 ### Phase 5: Revisit GPU-Resident Conditioning Only If New Evidence Supports It
 
@@ -216,10 +228,10 @@ If Phases 1 through 5 still do not move throughput enough, then escalate to the 
 
 ## Priority Order
 
-1. vectorized audio prompt building
-2. GPU-resident latent cycles
-3. explicit SDPA attention optimization
-4. VAE output-boundary refinement
+1. GPU-resident latent cycles
+2. explicit SDPA attention optimization
+3. VAE output-boundary refinement
+4. revisit vectorized audio prompt building only if later evidence justifies it
 5. revisit GPU-resident conditioning only if later evidence justifies it
 6. only then consider the larger acceleration branch
 
