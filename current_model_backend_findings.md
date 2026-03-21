@@ -9,7 +9,7 @@ This document captures the current findings from a repo-wide throughput review f
 - the inference-side model code under `musetalk/`
 - the root entrypoints that actually drive live streaming
 
-It is separate from `model_optimization_plan.md`, which is a broader implementation-planning document.
+It is separate from `current_model_backend_acceleration_plan.md`, which is a broader implementation-planning document.
 
 ## Bottom Line
 

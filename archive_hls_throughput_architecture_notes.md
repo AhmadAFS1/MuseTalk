@@ -763,7 +763,7 @@ This also explains why staggered-arrival tests are important:
 - they often look better at startup
 - but they do not change the steady-state aggregate GPU ceiling once the active streams overlap
 
-The concrete mitigation plan now lives in `gpu_allocation_improvement.md`:
+The concrete mitigation plan now lives in `archive_hls_throughput_experiment_history.md`:
 
 - HLS tuning cheat sheet for the current env vars
 - a dedicated startup-optimization phase focused on partial prep, first-chunk priority, warm paths, and adaptive prep admission
@@ -866,7 +866,7 @@ Practical rule:
 - if `avg_segment_interval_s > segment_duration`, the player will eventually buffer
 - therefore the next throughput cycle should remain backend-only until cadence improves measurably
 
-The detailed file-level plan now lives in `gpu_allocation_improvement.md` under:
+The detailed file-level plan now lives in `archive_hls_throughput_experiment_history.md` under:
 
 - `March 15 Post-Revert Throughput Plan`
 

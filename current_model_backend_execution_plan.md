@@ -84,7 +84,7 @@ Observed result across repeated `concurrency=8`, `batch_size=4`, `playback_fps=2
 - `max_segment_interval_s` stayed in the same familiar `~3.10-3.22s` band
 - `avg_time_to_live_ready_s` stayed in the same familiar `~4.15-4.77s` band
 
-So the SDPA branch was another reasonable model-path experiment, but it also failed to materially improve throughput. That means the selective/incremental PyTorch-path branch is now sufficiently exhausted, and the next serious move should be the larger backend-acceleration path in `model_optimization_plan.md`.
+So the SDPA branch was another reasonable model-path experiment, but it also failed to materially improve throughput. That means the selective/incremental PyTorch-path branch is now sufficiently exhausted, and the next serious move should be the larger backend-acceleration path in `current_model_backend_acceleration_plan.md`.
 
 We now also have a clean isolated model-path benchmark from `scripts/benchmark_pipeline.py`.
 
@@ -156,12 +156,12 @@ Goal:
 
 Files:
 
-- `model_optimization_plan.md`
+- `current_model_backend_acceleration_plan.md`
 - `scripts/benchmark_pipeline.py`
 
 Work:
 
-- run the baseline benchmark from `model_optimization_plan.md`
+- run the baseline benchmark from `current_model_backend_acceleration_plan.md`
 - confirm the true UNet / VAE / transfer breakdown before backend integration
 - use that as the entrypoint into TensorRT or ONNX Runtime work
 
@@ -299,7 +299,7 @@ If Phases 1 through 6 still do not move throughput enough, only then reconsider 
 
 ## Priority Order
 
-1. baseline benchmark from `model_optimization_plan.md`
+1. baseline benchmark from `current_model_backend_acceleration_plan.md`
 2. TensorRT for VAE
 3. TensorRT for UNet
 4. ONNX Runtime fallback
