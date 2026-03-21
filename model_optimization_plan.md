@@ -10,7 +10,8 @@
   - GPU-resident latent cycles: tested, failed, reverted
   - explicit SDPA attention tuning: tested, failed, reverted
 - **Target**: 8 concurrent HLS streams at 12fps (96 frames/s) on a single 24GB GPU
-- **Current throughput**: ~96 frames/s at 100% GPU utilization (zero headroom)
+- **Latest model-path benchmark**: ~51.0 fps best throughput at `batch_size=16`
+- **Latest implied ceiling at 8 concurrent streams**: ~6.4 fps per stream before HLS/compose/encode overhead
 - **Goal**: Reduce per-frame GPU time by 2–3× to create headroom
 
 This document covers two implementation paths:
@@ -20,6 +21,8 @@ This document covers two implementation paths:
 Both are preceded by a mandatory benchmarking step to establish precise baselines.
 
 This document is now the active next branch because the smaller in-architecture PyTorch-path refactors did not materially move the familiar `~2.0 avg / ~3.1 max` throttle band.
+
+The latest benchmark also changed the backend priority order: the VAE path is now the first model component to accelerate, not the UNet, because VAE decode dominates the measured model-path time.
 
 ---
 
@@ -48,6 +51,38 @@ This document is now the active next branch because the smaller in-architecture 
 
 **Run this first before any optimization.** It measures exact per-component timing
 so you know where time is spent and can verify improvements.
+
+### Latest benchmark result
+
+Measured with the current PyTorch path:
+
+- best throughput: `51.0 fps` at `batch_size=16`
+- max sustainable fps per stream at `8` concurrent: `6.4 fps`
+
+Summary table from the latest run:
+
+| Batch Size | PE(ms) | UNet(ms) | VAE GPU(ms) | Xfer(ms) | VAE Full(ms) | Throughput |
+|------------|--------|----------|-------------|----------|--------------|------------|
+| 4          | 0.02   | 22.46    | 63.14       | 0.95     | 65.32        | 45.6 fps   |
+| 8          | 0.02   | 36.06    | 124.36      | 2.47     | 127.72       | 48.8 fps   |
+| 16         | 0.02   | 63.09    | 245.03      | 5.69     | 250.91       | 51.0 fps   |
+| 24         | 0.03   | 93.23    | 366.46      | 14.88    | 379.82       | 50.7 fps   |
+| 32         | 0.02   | 117.92   | 494.24      | 15.75    | 519.56       | 50.2 fps   |
+| 40         | 0.02   | 150.72   | 637.64      | 20.30    | 644.81       | 50.3 fps   |
+| 48         | 0.02   | 186.41   | 767.74      | 28.70    | 764.67       | 50.5 fps   |
+
+Interpretation:
+
+- the current PyTorch model path cannot reach the `96 fps` needed for `8 x 12 fps` streams
+- VAE decode is the dominant model-side cost
+- PE cost is negligible
+- transfer cost exists, but it is much smaller than VAE decode
+
+That means the backend-acceleration priority should now be:
+
+1. TensorRT for VAE
+2. TensorRT for UNet
+3. ONNX Runtime fallback if TensorRT is blocked
 
 ### Script
 
@@ -232,6 +267,27 @@ python -m scripts.benchmark_pipeline
 ```
 
 Save the output. You will compare against it after each optimization.
+
+### Current repo command
+
+The benchmark script now exists at [`scripts/benchmark_pipeline.py`](/content/MuseTalk/scripts/benchmark_pipeline.py).
+
+Use this exact command:
+
+```bash
+cd /content/MuseTalk
+/content/py310/bin/python scripts/benchmark_pipeline.py \
+  --batch-sizes 4,8,16,24,32,40,48 \
+  --warmup 20 \
+  --iters 50 \
+  --output-json benchmark_pipeline_results.json
+```
+
+Important:
+
+- stop `api_server.py` first so the benchmark has enough free GPU memory
+- this benchmark isolates the model path and transfer costs
+- after that, use `load_test.py` separately to verify whether backend changes improve the real HLS system end to end
 
 ---
 

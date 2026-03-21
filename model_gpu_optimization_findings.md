@@ -115,6 +115,31 @@ Conclusion:
 - it also did **not** restore the better startup clustering
 - this experiment is now rolled back and should not remain the current top priority either
 
+We now also have a clean baseline benchmark for the isolated model path from `scripts/benchmark_pipeline.py`.
+
+Observed result:
+
+- best throughput: `51.0 fps` at `batch_size=16`
+- max sustainable fps per stream at `8` concurrent: `6.4 fps`
+
+Key timing breakdown from that benchmark:
+
+- `batch_size=16`
+  - `PE = 0.02 ms`
+  - `UNet = 63.09 ms`
+  - `VAE Full = 250.91 ms`
+- `batch_size=48`
+  - `PE = 0.02 ms`
+  - `UNet = 186.41 ms`
+  - `VAE Full = 764.67 ms`
+
+Conclusion:
+
+- the current PyTorch model path alone cannot reach the `96 fps` needed for `8 x 12 fps`
+- the model/backend path is therefore a hard ceiling, not just an HLS delivery problem
+- VAE decode is the dominant model-side bottleneck by a wide margin
+- the backend acceleration priority should now start with VAE, then UNet
+
 ## Active Runtime Path
 
 ### Root Entry Points
@@ -288,41 +313,13 @@ That experiment has now been tested and rolled back, so the next serious path is
 
 ## Priority List
 
-### Priority 1: Baseline Benchmark For Backend Acceleration
+### Priority 1: TensorRT For VAE
 
 Why this is first:
 
-- the smaller model/GPU-path experiments have now been tested enough to show they are not moving the mission
-- we should measure the pure model-path baseline cleanly before escalating to a new backend
-- this is the correct handoff into `model_optimization_plan.md`
-
-Target files:
-
-- `scripts/benchmark_pipeline.py`
-- `model_optimization_plan.md`
-
-### Priority 2: TensorRT For UNet
-
-Why this is next:
-
-- the smaller in-architecture refactors did not create headroom
-- UNet remains the highest-upside model component to accelerate
-- this is the first major backend-level branch with real remaining upside
-
-Target files:
-
-- `musetalk/models/unet.py`
-- `scripts/avatar_manager_parallel.py`
-- `scripts/tensorrt_export.py`
-- `scripts/trt_runtime.py`
-
-### Priority 3: TensorRT For VAE
-
-Why this matters:
-
-- VAE is the next most obvious model backend target after UNet
-- it may be worthwhile if UNet TensorRT alone is not enough
-- it is still a cleaner escalation path than another selective-residency retry
+- the benchmark is now done
+- VAE decode is the dominant model-side cost by a wide margin
+- this is the highest-upside backend acceleration branch left
 
 Target files:
 
@@ -331,12 +328,27 @@ Target files:
 - `scripts/tensorrt_export.py`
 - `scripts/trt_runtime.py`
 
-### Priority 4: ONNX Runtime Fallback
+### Priority 2: TensorRT For UNet
 
-Why this is now later:
+Why this is next:
 
-- this is the backup acceleration path if TensorRT export/runtime integration gets blocked
-- it still has more real upside left than repeating more small PyTorch-path tweaks
+- UNet is still a meaningful part of the model path
+- but the benchmark showed it is materially smaller than VAE
+- it should follow the VAE branch, not lead it
+
+Target files:
+
+- `musetalk/models/unet.py`
+- `scripts/avatar_manager_parallel.py`
+- `scripts/tensorrt_export.py`
+- `scripts/trt_runtime.py`
+
+### Priority 3: ONNX Runtime Fallback
+
+Why this matters:
+
+- this is the backup backend path if TensorRT is blocked
+- it still has more remaining upside than returning to the smaller rolled-back PyTorch-path tweaks
 
 Target files:
 
@@ -345,7 +357,7 @@ Target files:
 - `scripts/avatar_manager_parallel.py`
 - `scripts/hls_gpu_scheduler.py`
 
-### Priority 5: Rework The VAE Output Boundary Only If Backend Acceleration Still Leaves A Gap
+### Priority 4: Rework The VAE Output Boundary Only If Backend Acceleration Still Leaves A Gap
 
 Why this is later:
 
@@ -359,7 +371,7 @@ Target files:
 - `scripts/hls_gpu_scheduler.py`
 - `scripts/api_avatar.py`
 
-### Priority 6: GPU Compose Only If Backend Acceleration Still Leaves A Gap
+### Priority 5: GPU Compose Only If Backend Acceleration Still Leaves A Gap
 
 Why this is later:
 
@@ -388,11 +400,10 @@ Based on the current code and prior experiments, these are lower-value next step
 
 If we want the strongest remaining model/GPU-focused branch to try, the best sequence is:
 
-1. baseline benchmark from `model_optimization_plan.md`
+1. TensorRT for VAE
 2. TensorRT for UNet
-3. TensorRT for VAE
-4. ONNX Runtime fallback if TensorRT is blocked
-5. only after that, revisit VAE-output or GPU-compose follow-on work
+3. ONNX Runtime fallback if TensorRT is blocked
+4. only after that, revisit VAE-output or GPU-compose follow-on work
 
 That is the highest-confidence remaining model/GPU acceleration path left in the current codebase.
 
@@ -404,4 +415,5 @@ That is the highest-confidence remaining model/GPU acceleration path left in the
 - GPU-resident latent cycles were also a useful experiment, but they did not produce a meaningful throughput shift for the current 8-stream HLS target and should not be treated as an active win either.
 - GPU-resident conditioning was a useful experiment, but it is now a documented dead end for the current branch unless later evidence gives us a stronger reason to revisit it.
 - Explicit SDPA attention tuning was also a useful experiment, but it did not produce a meaningful throughput shift for the current 8-stream HLS target and is now rolled back as well.
+- The isolated model-path benchmark was the key turning point: it showed that the current PyTorch path tops out around `51 fps`, which means the backend/model path itself must change before the HLS system can ever reach the `96 fps` mission target.
 - This file is intended to be the reference document for the next implementation phase.

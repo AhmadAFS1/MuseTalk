@@ -49,6 +49,51 @@ python load_test.py \
   --hold-seconds 120
 ```
 
+## Baseline Benchmark Command
+
+Run this before the TensorRT / ONNX branch.
+
+Important:
+
+- stop `api_server.py` first so the benchmark can own GPU memory
+- this is a model-path benchmark, not a replacement for `load_test.py`
+
+```bash
+cd /content/MuseTalk
+/content/py310/bin/python scripts/benchmark_pipeline.py \
+  --batch-sizes 4,8,16,24,32,40,48 \
+  --warmup 20 \
+  --iters 50 \
+  --output-json benchmark_pipeline_results.json
+```
+
+This writes:
+
+- `benchmark_pipeline_results.json`
+
+and prints the per-batch timings for:
+
+- positional encoding
+- UNet
+- VAE decode
+- GPU to CPU transfer
+- total pipeline throughput
+
+## Latest Benchmark Result
+
+Latest isolated model-path result from `scripts/benchmark_pipeline.py`:
+
+- best throughput: `51.0 fps` at `batch_size=16`
+- max sustainable fps per stream at `8` concurrent: `6.4 fps`
+
+Most important interpretation:
+
+- this is below the `96 fps` needed for `8 x 12 fps`
+- so the current PyTorch model path is a hard ceiling before HLS compose/encode overhead is even added
+- VAE decode is the dominant model-side bottleneck
+
+That is why the next serious branch is now backend acceleration, with VAE first.
+
 ## What To Verify On Startup
 
 Look for these lines in the server logs:
