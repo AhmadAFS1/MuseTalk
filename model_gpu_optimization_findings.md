@@ -40,6 +40,25 @@ This means the best remaining model/GPU opportunities are mostly about:
 - removing repeated host-to-device copies
 - vectorizing CPU orchestration that still sits around the model path
 
+## Recent Experiment Update
+
+The direct GPU-resident conditioning experiment was tested in the shared HLS scheduler and then reverted.
+
+Observed result at `concurrency=8`, `batch_size=4`, `playback_fps=24`, `musetalk_fps=12`:
+
+- steady-state throughput stayed in the familiar band at about `1.961-1.965s` average segment interval
+- tail latency stayed in the familiar band at about `3.08-3.21s` max segment interval
+- startup fairness got worse:
+  - one stream came live at about `3.0s`
+  - the rest clustered around `5.0s`
+  - `avg_time_to_live_ready_s` regressed to about `4.78s`
+
+Conclusion:
+
+- GPU-resident conditioning did **not** create a meaningful throughput gain
+- it did **hurt** the startup behavior that the startup-first scheduler path had improved
+- it should not remain the first optimization priority in the current branch
+
 ## Active Runtime Path
 
 ### Root Entry Points
@@ -217,19 +236,17 @@ unless those dependencies are intentionally added later.
 
 ## Priority List
 
-### Priority 1: Keep Conditioning Chunks On GPU
+### Priority 1: Vectorize Audio Prompt Building
 
 Why this is first:
 
-- conditioning is currently built on CPU and copied to GPU every turn
-- per-request conditioning memory is modest enough to make GPU residency realistic
-- it directly reduces repeated H2D overhead in the hot path
+- `build_audio_prompts()` is still a Python loop over frames
+- this overhead scales badly with concurrency and touches every request before generation
+- it is a cleaner next target than GPU-resident conditioning, which already regressed startup fairness when tested
 
 Target files:
 
-- `scripts/hls_gpu_scheduler.py`
 - `musetalk/utils/audio_processor.py`
-- `scripts/avatar_manager_parallel.py`
 
 ### Priority 2: Keep Avatar Latent Cycles On GPU
 
@@ -244,32 +261,20 @@ Target files:
 - `scripts/api_avatar.py`
 - `scripts/hls_gpu_scheduler.py`
 
-### Priority 3: Vectorize Audio Prompt Building
-
-Why this matters:
-
-- `build_audio_prompts()` is still a Python loop over frames
-- this is exactly the kind of overhead that scales poorly as concurrency rises
-- it should become a tensorized sliding-window/gather operation
-
-Target file:
-
-- `musetalk/utils/audio_processor.py`
-
-### Priority 4: Explicitly Optimize The UNet Attention Path
+### Priority 3: Explicitly Optimize The UNet Attention Path
 
 Why this matters:
 
 - the runtime supports SDPA
 - the UNet loader does not explicitly force the best available attention processor
-- this is the cleanest model-level optimization after data residency improvements
+- this is the cleanest model-level optimization after the prompt-path and latent-residency work
 
 Target files:
 
 - `musetalk/models/unet.py`
 - `scripts/avatar_manager_parallel.py`
 
-### Priority 5: Rework The VAE Output Boundary
+### Priority 4: Rework The VAE Output Boundary
 
 Why this matters:
 
@@ -283,18 +288,32 @@ Target files:
 - `scripts/hls_gpu_scheduler.py`
 - `scripts/api_avatar.py`
 
-### Priority 6: GPU Compose
+### Priority 5: GPU Compose
 
-Why this is later:
+Why this matters:
 
 - it could be a meaningful win
 - but it is riskier because it touches visual correctness
-- it should come after the lower-risk data-residency improvements
+- it should come after the lower-risk prompt/model-path improvements
 
 Target files:
 
 - `scripts/api_avatar.py`
 - `musetalk/utils/blending.py`
+
+### Priority 6: Revisit GPU-Resident Conditioning Only If Later Evidence Supports It
+
+Why this is later:
+
+- the direct experiment already failed to improve throughput
+- it regressed startup fairness and was reverted
+- it should only be reconsidered after prompt-vectorization and other lower-risk changes if fresh measurements justify another try
+
+Target files:
+
+- `scripts/hls_gpu_scheduler.py`
+- `musetalk/utils/audio_processor.py`
+- `scripts/avatar_manager_parallel.py`
 
 ## What Not To Prioritize
 
@@ -312,10 +331,10 @@ Based on the current code and prior experiments, these are lower-value next step
 
 If we want the strongest remaining model/GPU-focused branch to try, the best sequence is:
 
-1. GPU-resident `conditioning_chunks`
+1. tensorized `build_audio_prompts()`
 2. GPU-resident avatar latent cycles
-3. tensorized `build_audio_prompts()`
-4. explicit SDPA attention optimization
+3. explicit SDPA attention optimization
+4. VAE output-boundary refinement
 
 That is the highest-confidence model/GPU optimization path left in the current codebase.
 
@@ -323,4 +342,5 @@ That is the highest-confidence model/GPU optimization path left in the current c
 
 - The startup-fairness scheduler logic in `scripts/hls_gpu_scheduler.py` should still be preserved.
 - The current findings do **not** say encode/publish overhead is solved; only that the best remaining *model/GPU* gains are elsewhere first.
+- GPU-resident conditioning was a useful experiment, but it is now a documented dead end for the current branch unless later evidence gives us a stronger reason to revisit it.
 - This file is intended to be the reference document for the next implementation phase.

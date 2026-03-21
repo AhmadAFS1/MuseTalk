@@ -93,3 +93,4 @@ export HLS_PERSISTENT_SEGMENTER=1
 - The compose-cache / batched-compose refactor is also real, but it did not create a new sustained throughput tier by itself.
 - A true in-process PyAV encoder path was investigated and ruled out for this runtime because `h264_nvenc` cannot be used there as a viable replacement for the current `ffmpeg` path.
 - The persistent NVENC segmenter experiment was useful diagnostically, but it exhausted encoder sessions at `concurrency=8`, so this file keeps it disabled by default.
+- The later GPU-resident conditioning experiment was reverted. It did not improve steady-state throughput and regressed startup fairness toward a `~3s` first stream / `~5s` rest-of-wave pattern, so it is not part of the stable launch config.
