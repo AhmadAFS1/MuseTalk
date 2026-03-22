@@ -179,6 +179,46 @@ observation rather than a full benchmark record.
 
 Still, that observation is fully plausible given the current pipeline design.
 
+## Isolated Model Benchmark On The Threadripper Server
+
+The most useful follow-up check on March 22, 2026 was to run the isolated
+PyTorch model-path benchmark on the slower Threadripper server itself.
+
+Observed result from `scripts/benchmark_pipeline.py`:
+
+- best throughput: `51.1 fps` at `batch_size=32`
+- max sustainable fps per stream at `8` concurrent: `6.4`
+
+Per-batch summary:
+
+| Batch size | UNet (ms) | VAE full (ms) | FPS |
+|---|---:|---:|---:|
+| 4 | 22.35 | 65.04 | 45.8 |
+| 8 | 36.31 | 128.00 | 48.7 |
+| 16 | 63.74 | 253.34 | 50.5 |
+| 24 | 95.91 | 381.29 | 50.3 |
+| 32 | 119.92 | 505.75 | 51.1 |
+| 40 | 153.15 | 638.95 | 50.5 |
+| 48 | 178.51 | 764.93 | 50.9 |
+
+Practical meaning:
+
+- the isolated PyTorch model path on the Threadripper server is effectively in
+  the same performance tier as the earlier `~50.9-51.0 fps` benchmark results
+- UNet and VAE timings look normal for the current stable stack
+- the raw model path is therefore **not** the main explanation for the
+  cross-server difference seen in `load_test.py`
+
+This is one of the strongest pieces of evidence in the whole investigation,
+because it separates:
+
+1. raw GPU/model throughput
+2. end-to-end HLS delivery throughput
+
+The model benchmark staying normal while the live HLS load test is slower means
+the gap is much more likely in the host-side pipeline after or around model
+inference.
+
 ## Likely Reason For Cross-Server Variability
 
 The current explanation with the strongest support is:
@@ -329,6 +369,8 @@ Current best explanation:
 
 - the current MuseTalk HLS path still depends materially on CPU-side compose and
   encode work
+- the isolated PyTorch model benchmark on the Threadripper server still lands at
+  about `51.1 fps`, which means the raw model path is healthy there
 - the prepared avatar is large enough to make that CPU work expensive
 - the Threadripper server likely loses on host-side pipeline behavior, not on
   raw GPU inference

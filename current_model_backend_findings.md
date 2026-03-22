@@ -586,4 +586,5 @@ That is the highest-confidence remaining model/GPU acceleration path left in the
 - GPU-resident conditioning was a useful experiment, but it is now a documented dead end for the current branch unless later evidence gives us a stronger reason to revisit it.
 - Explicit SDPA attention tuning was also a useful experiment, but it did not produce a meaningful throughput shift for the current 8-stream HLS target and is now rolled back as well.
 - The isolated model-path benchmark was the key turning point: it showed that the current PyTorch path tops out around `51 fps`, which means the backend/model path itself must change before the HLS system can ever reach the `96 fps` mission target.
+- A later March 22, 2026 benchmark on the slower Threadripper server reproduced the same model tier at about `51.1 fps`, which strongly suggests the cross-server performance gap is not in raw UNet/VAE inference. The difference is more likely in the host-side HLS path around compose, encode, queueing, and CPU/memory behavior.
 - This file is intended to be the reference document for the next implementation phase.
