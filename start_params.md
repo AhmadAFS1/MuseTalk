@@ -35,6 +35,70 @@ export HLS_PERSISTENT_SEGMENTER=0
 python api_server.py --host 0.0.0.0 --port 8000
 ```
 
+## Threadripper Variant
+
+This is the current best-known start block for the large-core Threadripper host investigated on March 22, 2026.
+
+Why this variant exists:
+
+- the shared HLS path is still partly CPU-bound on compose + encode
+- the Threadripper box improved with a modest worker increase
+- a more aggressive increase regressed startup and worst-case segment timing again
+
+Current recommendation for that machine:
+
+- prefer `HLS_PREP_WORKERS=12`
+- prefer `HLS_COMPOSE_WORKERS=10`
+- prefer `HLS_ENCODE_WORKERS=10`
+- do **not** assume higher worker counts are always better
+
+Copy/paste block:
+
+```bash
+unset PYTORCH_CUDA_ALLOC_CONF
+
+export MUSETALK_COMPILE=1
+export MUSETALK_COMPILE_UNET=1
+export MUSETALK_COMPILE_VAE=1
+export MUSETALK_COMPILE_MODE=reduce-overhead
+export MUSETALK_COMPILE_TRACEBACK=1
+export MUSETALK_COMPILE_WARMUP_BATCHES=4,8,16,32,48
+export MUSETALK_WARM_RUNTIME=1
+
+export AVATAR_CACHE_MAX_AVATARS=0
+export AVATAR_CACHE_MAX_MEMORY_MB=12000
+export AVATAR_CACHE_TTL_SECONDS=3600
+
+export HLS_SCHEDULER_MAX_BATCH=48
+export HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16,32,48
+export HLS_SCHEDULER_STARTUP_SLICE_SIZE=4
+export HLS_SCHEDULER_AGGRESSIVE_FILL_MAX_ACTIVE_JOBS=999
+export HLS_STARTUP_CHUNK_DURATION_SECONDS=0.5
+export HLS_STARTUP_CHUNK_COUNT=1
+export HLS_PREP_WORKERS=12
+export HLS_COMPOSE_WORKERS=10
+export HLS_ENCODE_WORKERS=10
+export HLS_MAX_PENDING_JOBS=24
+export HLS_CHUNK_VIDEO_ENCODER=h264_nvenc
+export HLS_PERSISTENT_SEGMENTER=0
+
+python api_server.py --host 0.0.0.0 --port 8000
+```
+
+Known caution from the same server:
+
+- `HLS_PREP_WORKERS=16`
+- `HLS_COMPOSE_WORKERS=12`
+- `HLS_ENCODE_WORKERS=12`
+
+looked more aggressive on paper, but regressed `avg_time_to_live_ready_s` and `max_segment_interval_s`.
+
+## Full Param Reference
+
+The full current explanation of what each launch param actually does now lives in:
+
+- [`current_start_param_reference.md`](./current_start_param_reference.md)
+
 ## Matching Load Test Command
 
 ```bash
@@ -216,15 +280,20 @@ If those appear, the new chunk audio-copy path is active.
 
 ## Experimental Toggle
 
-`HLS_PERSISTENT_SEGMENTER` is currently disabled by default for the 8-stream NVENC target.
+`HLS_PERSISTENT_SEGMENTER` is kept here as a legacy experimental toggle from the earlier persistent-NVENC work.
 
-Why:
+Historical reason it stayed disabled:
 
 - the persistent segmenter holds NVENC sessions open
 - at 8 concurrent streams this can exceed the GPU encoder session limit
 - that caused `OpenEncodeSessionEx failed: out of memory (10)` and `Broken pipe` failures in testing
 
-If you explicitly want to experiment with it again, set:
+Current code-state caveat:
+
+- the current live code path does **not** appear to read this env var anymore
+- so changing it today should be treated as documentation/history, not an active tuning lever
+
+If that persistent segmenter path is ever reintroduced, the old experimental toggle would be:
 
 ```bash
 export HLS_PERSISTENT_SEGMENTER=1
