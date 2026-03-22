@@ -94,6 +94,108 @@ Most important interpretation:
 
 That is why the next serious branch is now backend acceleration, with VAE first.
 
+## Current Backend Branch State
+
+Repo status today:
+
+- VAE TensorRT runtime wiring is in the codebase
+- VAE TensorRT export script is in the codebase
+- local TensorRT packages are now installed:
+  - `torch-tensorrt==1.4.0`
+  - `tensorrt_bindings==8.6.1`
+  - `tensorrt_libs==8.6.1`
+- repo-root compatibility shim `tensorrt.py` is now in the codebase so local repo scripts can import TensorRT in this environment
+- VAE engine has now been exported:
+  - `models/tensorrt/vae_decoder_trt.ts`
+  - `models/tensorrt/vae_decoder_trt_meta.json`
+  - compile time was about `807.4s`
+  - engine size is about `141 MB`
+- backend-active benchmark attempt happened, but it fell back to PyTorch
+- no backend-active `load_test.py` run has happened yet
+
+So the branch crossed the first milestone by producing an engine, but the current environment still did **not** deliver a real TensorRT throughput result. The attempted benchmark fell back to PyTorch, and a stricter re-export then showed this environment is blocked on unsupported operators.
+
+## Current TensorRT Export State
+
+Current VAE export history:
+
+- earlier export attempts failed through the old full-graph path
+- after the exporter was patched to use the narrower decoder-only TorchScript path, the next export succeeded
+- successful result:
+  - `models/tensorrt/vae_decoder_trt.ts`
+  - `models/tensorrt/vae_decoder_trt_meta.json`
+  - compile time: about `807.4s`
+  - saved size: about `141 MB`
+
+Practical meaning:
+
+- install is no longer the blocker
+- export is no longer the only blocker
+- the current environment is now the blocker
+- the attempted benchmark still landed at about `50.9 fps`, which is effectively the same as the old PyTorch baseline
+- there is still no trustworthy backend-active throughput result yet
+
+One extra log clarification:
+
+- the TensorFlow `TF-TRT Warning: Could not find TensorRT` messages are noisy and are **not** the current blocker for the MuseTalk scripts
+
+Current recommendation:
+
+- do **not** switch the stable server start script to TensorRT on this environment
+- keep the stable start config on the normal PyTorch VAE path for now
+- move the next TensorRT attempt into a separate dedicated environment
+
+If a future separate TensorRT environment becomes ready to test, the server config there will need to change from the stable baseline. In particular:
+
+- `MUSETALK_TRT_ENABLED=1`
+- `MUSETALK_VAE_BACKEND=trt`
+- `MUSETALK_COMPILE_VAE=0`
+
+## Current Environment Failure Record
+
+Benchmark attempt with TensorRT requested:
+
+- backend activation failed with:
+  - `Unknown type name '__torch__.torch.classes.tensorrt.Engine'`
+- benchmark log showed:
+  - `VAE decode backend: pytorch`
+- resulting throughput stayed in the same familiar band:
+  - best throughput: `50.9 fps`
+  - max sustainable fps per stream at `8` concurrent: `6.4 fps`
+
+After loader fixes, strict full re-export failed on unsupported operators:
+
+- `aten::scaled_dot_product_attention`
+- `aten::group_norm`
+
+So the current environment should now be treated as blocked for this VAE TensorRT branch.
+
+## Previous Test Commands
+
+Benchmark the model path with the TensorRT VAE backend active:
+
+```bash
+cd /content/MuseTalk
+MUSETALK_TRT_ENABLED=1 \
+MUSETALK_VAE_BACKEND=trt \
+MUSETALK_COMPILE_VAE=0 \
+/content/py310/bin/python scripts/benchmark_pipeline.py \
+  --batch-sizes 4,8,16,24,32,40,48 \
+  --warmup 20 \
+  --iters 50 \
+  --output-json benchmark_pipeline_trt_vae.json
+```
+
+If a future separate TensorRT environment improves materially, then start the server there with:
+
+```bash
+export MUSETALK_TRT_ENABLED=1
+export MUSETALK_VAE_BACKEND=trt
+export MUSETALK_COMPILE_VAE=0
+```
+
+and rerun the normal HLS `load_test.py`.
+
 ## What To Verify On Startup
 
 Look for these lines in the server logs:

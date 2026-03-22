@@ -101,6 +101,106 @@ Most important breakdown:
 
 So the backend-acceleration order needs to change. The next serious branch should now start with VAE acceleration, not UNet.
 
+## Current State
+
+The VAE-first backend branch is now partly implemented in code, but not yet activated in practice.
+
+What is done:
+
+- VAE decode backend hook exists in `musetalk/models/vae.py`
+- startup/runtime wiring exists in `scripts/avatar_manager_parallel.py`
+- backend loader exists in `scripts/trt_runtime.py`
+- export script exists in `scripts/tensorrt_export.py`
+- benchmark path is backend-aware in `scripts/benchmark_pipeline.py`
+
+What is now also done locally:
+
+- `torch-tensorrt==1.4.0` is installed
+- `tensorrt_bindings==8.6.1` is installed
+- `tensorrt_libs==8.6.1` is installed
+- repo-root compatibility shim `tensorrt.py` exists so local repo scripts can import `tensorrt` in this environment
+
+What is still not done yet:
+
+- no benchmark has been run with an active TensorRT VAE backend
+- no `load_test.py` run has been done with an active TensorRT VAE backend
+
+What is now done:
+
+- VAE TensorRT engine export succeeded
+- exported artifact:
+  - `models/tensorrt/vae_decoder_trt.ts`
+- metadata artifact:
+  - `models/tensorrt/vae_decoder_trt_meta.json`
+- reported compile time was about `807.4s`
+- saved engine size is about `141 MB`
+
+That means this branch did reach engine export, but it still has **not** reached a trustworthy runtime-validated TensorRT VAE path on the current environment.
+
+## Current Next Step
+
+The current blocker is no longer installation.
+
+The current missing validation is runtime proof:
+
+- a benchmark attempt was run with TensorRT requested
+- but backend activation failed and the benchmark fell back to PyTorch VAE
+- throughput therefore stayed unchanged at about `50.9 fps`
+- after the runtime loader was patched, the exporter was tightened to require a full TRT compile
+- that full compile then failed on unsupported operators in the current stack:
+  - `aten::scaled_dot_product_attention`
+  - `aten::group_norm`
+
+So the branch status is now:
+
+- repo-side wiring: done
+- backend packages: installed
+- engine artifact: exported once, but not trustworthy for validation
+- runtime acceleration: not reliably activatable on the current environment
+- throughput result: unchanged because the attempted TRT benchmark actually ran on PyTorch fallback
+
+That means we should now treat the **current environment** TensorRT VAE branch as blocked and move to the next execution branch:
+
+- create a separate TensorRT-focused environment
+- retry export and runtime validation there
+- only then reconsider a backend-active benchmark and `load_test.py`
+
+## Separate Environment Immediate Next Step
+
+The first setup attempt for `/content/py310_trt_exp` is no longer theoretical.
+We now know the immediate blockers and the next exact move.
+
+What happened:
+
+- the venv was created successfully
+- the first validation import failed because `torch` had not been installed yet
+- the first real install attempt then failed on disk pressure:
+  - `OSError: [Errno 28] No space left on device`
+- a later unpinned backend install attempt also tried to pull the latest
+  `torch-tensorrt 2.10.0` family and `tensorrt-cu13`
+
+So the immediate next execution step is now:
+
+1. delete the half-installed `/content/py310_trt_exp`
+2. clear `/root/.cache/pip`
+3. recreate the venv
+4. install the new backend stack with `--no-cache-dir`
+5. pin the backend family explicitly
+
+Current recommended install family for the retry:
+
+- `torch==2.5.1`
+- `torchvision==0.20.1`
+- `torchaudio==2.5.1`
+- `cu121`
+- `torch-tensorrt==2.5.0`
+
+What not to do on the retry:
+
+- do not run unpinned `pip install torch-tensorrt tensorrt`
+- do not proceed to MuseTalk runtime dependency installation before the backend
+  import validation succeeds
+
 ## What Should Not Go On GPU Yet
 
 These are not the next target:
@@ -189,6 +289,16 @@ Work:
 - export and benchmark a TensorRT VAE decoder path
 - integrate it with runtime fallback
 - measure whether it finally shifts the throughput ceiling
+
+Current status:
+
+- runtime fallback integration: done
+- export script scaffolding: done
+- backend packages: installed
+- actual successful engine export: happened once in the current environment
+- runtime activation on the current environment: failed
+- strict full compile on the current environment: blocked by unsupported operators
+- backend-active benchmark / load-test validation: still pending in a **separate** TensorRT-focused environment
 
 Why second:
 

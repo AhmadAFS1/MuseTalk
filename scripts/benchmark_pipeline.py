@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import os
+import signal
 import sys
 import time
 from pathlib import Path
@@ -15,6 +16,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from musetalk.utils.utils import load_all_model
+from scripts.trt_runtime import load_vae_trt_decoder
 
 
 logger = logging.getLogger("benchmark_pipeline")
@@ -22,6 +24,36 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
+
+
+class BenchmarkInterrupted(RuntimeError):
+    pass
+
+
+_INTERRUPTED = False
+
+
+def _signal_name(signum: int) -> str:
+    try:
+        return signal.Signals(signum).name
+    except Exception:
+        return str(signum)
+
+
+def _handle_interrupt(signum, _frame):
+    global _INTERRUPTED
+    _INTERRUPTED = True
+    raise KeyboardInterrupt(f"Received {_signal_name(signum)}")
+
+
+def install_signal_handlers() -> None:
+    signal.signal(signal.SIGINT, _handle_interrupt)
+    signal.signal(signal.SIGTERM, _handle_interrupt)
+
+
+def check_interrupted() -> None:
+    if _INTERRUPTED:
+        raise BenchmarkInterrupted("Benchmark interrupted by user request")
 
 
 def env_enabled(name: str, default: str = "0") -> bool:
@@ -133,6 +165,7 @@ def measure_ms(fn, iters: int, device: torch.device, runtime_context) -> Tuple[f
     start = time.perf_counter()
     with runtime_context():
         for _ in range(iters):
+            check_interrupted()
             last = fn()
     synchronize(device)
     elapsed_ms = (time.perf_counter() - start) * 1000.0 / max(1, iters)
@@ -154,6 +187,7 @@ def default_unet_config_path() -> str:
 
 
 def benchmark_pipeline(args) -> dict:
+    check_interrupted()
     device = resolve_device(args.device)
     configure_runtime(device)
     if device.type == "cuda":
@@ -179,13 +213,19 @@ def benchmark_pipeline(args) -> dict:
     vae.vae = vae.vae.half().to(device).eval()
     vae.vae.requires_grad_(False)
     vae.runtime_dtype = vae.vae.dtype
+    vae_backend = load_vae_trt_decoder(
+        device=device,
+        scaling_factor=vae.scaling_factor,
+    )
+    vae.set_decode_backend(vae_backend)
     unet.model = unet.model.half().to(device).eval()
     unet.model.requires_grad_(False)
 
     compiled_unet_mode = None
     compiled_vae_mode = None
     unet.model, compiled_unet_mode = maybe_compile_module("UNET", unet.model)
-    vae.vae, compiled_vae_mode = maybe_compile_module("VAE", vae.vae)
+    if not vae.has_decode_backend():
+        vae.vae, compiled_vae_mode = maybe_compile_module("VAE", vae.vae)
     runtime_context = torch.no_grad if (compiled_unet_mode or compiled_vae_mode) else torch.inference_mode
 
     timesteps = torch.tensor([0], device=device)
@@ -206,6 +246,7 @@ def benchmark_pipeline(args) -> dict:
         "compile_enabled": env_enabled("MUSETALK_COMPILE", "0"),
         "compiled_unet_mode": compiled_unet_mode,
         "compiled_vae_mode": compiled_vae_mode,
+        "vae_decode_backend": vae.get_decode_backend_name(),
         "unet_dtype": str(unet.model.dtype),
         "vae_dtype": str(vae.vae.dtype),
         "batch_sizes": batch_sizes,
@@ -218,12 +259,17 @@ def benchmark_pipeline(args) -> dict:
 
     logger.info("UNet dtype: %s", metadata["unet_dtype"])
     logger.info("VAE dtype: %s", metadata["vae_dtype"])
+    logger.info("VAE decode backend: %s", metadata["vae_decode_backend"])
     logger.info("UNet compile mode: %s", compiled_unet_mode or "eager")
-    logger.info("VAE compile mode: %s", compiled_vae_mode or "eager")
+    if vae.has_decode_backend():
+        logger.info("VAE compile mode: skipped (%s backend active)", vae.get_decode_backend_name())
+    else:
+        logger.info("VAE compile mode: %s", compiled_vae_mode or "eager")
 
     results = []
 
     for bs in batch_sizes:
+        check_interrupted()
         logger.info("Benchmarking batch size %d", bs)
         raw_audio = torch.randn(bs, 50, 384, device=device, dtype=unet.model.dtype)
         latent_batch = torch.randn(
@@ -248,6 +294,7 @@ def benchmark_pipeline(args) -> dict:
             torch.cuda.reset_peak_memory_stats(device)
 
         for _ in range(args.warmup):
+            check_interrupted()
             with runtime_context():
                 conditioned = pe(raw_audio)
                 pred_latents = unet.model(
@@ -396,13 +443,21 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    install_signal_handlers()
     parser = build_parser()
     args = parser.parse_args()
     args.batch_sizes = parse_batch_sizes(args.batch_sizes)
     if not args.batch_sizes:
         parser.error("No valid batch sizes were provided.")
 
-    summary = benchmark_pipeline(args)
+    try:
+        summary = benchmark_pipeline(args)
+    except KeyboardInterrupt:
+        logger.warning("Benchmark interrupted by Ctrl+C; stopping immediately")
+        return 130
+    except BenchmarkInterrupted:
+        logger.warning("Benchmark interrupted; stopping immediately")
+        return 130
 
     logger.info("")
     logger.info("=== Summary Table ===")

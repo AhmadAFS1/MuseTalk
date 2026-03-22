@@ -140,6 +140,176 @@ Conclusion:
 - VAE decode is the dominant model-side bottleneck by a wide margin
 - the backend acceleration priority should now start with VAE, then UNet
 
+Current backend-branch state:
+
+- the repo now has a VAE backend hook, a TensorRT runtime loader, a TensorRT export script, and a repo-local TensorRT import shim
+- `torch-tensorrt==1.4.0` is installed
+- `tensorrt_bindings==8.6.1` and `tensorrt_libs==8.6.1` are installed
+- the current-environment TensorRT branch has now been tested far enough to show that it is **blocked on this stack**
+- a previous exported VAE engine artifact exists at:
+  - `models/tensorrt/vae_decoder_trt.ts`
+  - `models/tensorrt/vae_decoder_trt_meta.json`
+- but that earlier artifact should now be treated as **stale / untrusted** for performance validation
+- there is still **no successful backend-active benchmark result**
+- and there is still **no successful backend-active `load_test.py` result**
+
+## Backend Refactor Work Completed
+
+The following repo-side changes are now in place for the VAE-first backend branch:
+
+- `scripts/benchmark_pipeline.py`
+  - created as the isolated model-path benchmark
+  - later updated to understand backend-aware VAE decode
+  - later updated to stop cleanly on `Ctrl+C`
+- `musetalk/models/vae.py`
+  - backend hook added for alternate VAE decode backends
+  - original PyTorch decode path preserved as the fallback path
+- `scripts/avatar_manager_parallel.py`
+  - startup/runtime wiring added so the manager can attach a VAE backend when one exists
+  - VAE compile is skipped when an accelerated backend is active
+- `scripts/trt_runtime.py`
+  - added as the runtime loader for a pre-exported TensorRT VAE decoder
+- `scripts/tensorrt_export.py`
+  - added as the export/build script for TensorRT backend artifacts
+  - later patched to be compatible with the locally installed `torch-tensorrt==1.4.0`
+- `tensorrt.py`
+  - added at repo root as a compatibility shim because the NVIDIA wheel installs `tensorrt_bindings`, while `torch_tensorrt` imports `tensorrt`
+
+This means the **repo integration work is materially done** for the VAE-first TensorRT branch,
+but the current environment still does not provide a reliable end-to-end TensorRT VAE path.
+
+## Current TensorRT Installation State
+
+The current local environment now has:
+
+- Python `3.10`
+- `torch 2.0.1+cu117`
+- `torch-tensorrt==1.4.0`
+- `tensorrt_bindings==8.6.1`
+- `tensorrt_libs==8.6.1`
+
+Important clarification:
+
+- the TensorFlow `TF-TRT Warning: Could not find TensorRT` lines that appear in logs are still noise from TensorFlow imports
+- they are **not** the current blocker for our MuseTalk scripts
+
+## Export History And Current Status
+
+First export attempt:
+
+- `torchscript` IR failed with:
+  - `UnsupportedNodeError: function definitions aren't supported`
+- `default` IR failed with the same unsupported-node error
+- `dynamo_compile` progressed farther and built a TensorRT engine internally
+- but FX2TRT conversion then failed on a convolution path with:
+  - `RuntimeError: linear convolution_34 has bias of type <class 'tensorrt_bindings.tensorrt.ITensor'>, Expect Optional[Tensor]`
+- after that, the compile result was not a TorchScript module
+- and `torch-tensorrt 1.4.0` does not expose `torch_tensorrt.save(...)`
+
+What changed after that:
+
+- the exporter was patched to avoid the full `AutoencoderKL.decode(...)` graph
+- the VAE wrapper now exports the narrower:
+  - `post_quant_conv`
+  - `decoder`
+  - output normalization
+- the exporter now prefers the older TorchScript-specific `torch_tensorrt.ts.compile(...)` route that matches the local `1.4.0` stack
+- the exporter now saves via `torch.jit.save(...)` when it gets a TorchScript module
+
+Second export attempt:
+
+- compile finished successfully with `ir=torchscript`
+- reported compile time: `807.4s`
+- saved artifact:
+  - `models/tensorrt/vae_decoder_trt.ts`
+  - size: about `141.0 MB`
+- metadata artifact:
+  - `models/tensorrt/vae_decoder_trt_meta.json`
+
+Runtime validation attempt after that export:
+
+- the benchmark tried to activate the TensorRT VAE backend
+- backend activation failed with:
+  - `Unknown type name '__torch__.torch.classes.tensorrt.Engine'`
+- the benchmark then fell back to PyTorch VAE
+- benchmark log explicitly showed:
+  - `VAE decode backend: pytorch`
+- resulting throughput stayed in the same familiar band:
+  - best throughput: `50.9 fps`
+  - max sustainable fps per stream at `8` concurrent: `6.4 fps`
+
+What changed after that:
+
+- the runtime loader was patched to explicitly import and register `torch_tensorrt` before `torch.jit.load(...)`
+- the runtime loader was patched to honor exported batch-range metadata instead of warming up with batch `1`
+- the exporter was patched to require **full** TorchScript TRT compilation instead of saving a mixed TRT/PyTorch hybrid
+
+Current full-compile result on the current environment:
+
+- full re-export now fails honestly with unsupported operators:
+  - `aten::scaled_dot_product_attention`
+  - `aten::group_norm`
+- when TorchScript full compile fails, the fallback `dynamo_compile` path still hits the old FX2TRT convolution/bias error
+- so the current `torch 2.0.1 + torch-tensorrt 1.4.0 + TensorRT 8.6.1` environment cannot currently produce a trustworthy full TensorRT VAE engine for this graph
+
+Current practical conclusion:
+
+- the benchmark with supposed TRT active did **not** improve throughput, because it actually ran on PyTorch fallback
+- the stricter exporter now shows the current environment is blocked by framework/operator support, not just a small integration bug
+- the next serious step is therefore a **separate TensorRT-focused environment**, not more patching on the current baseline environment
+
+## Separate TensorRT Environment Attempt Update
+
+The first alternate-environment setup attempt has now also produced concrete
+findings.
+
+What happened:
+
+- `/content/py310_trt_exp` was created successfully
+- the first import check failed with:
+  - `ModuleNotFoundError: No module named 'torch'`
+- that specific failure was expected because the venv had been created but the
+  backend stack had not been installed yet
+
+What happened next:
+
+- a first install attempt targeted:
+  - `torch==2.5.1`
+  - `torchvision==0.20.1`
+  - `torchaudio==2.5.1`
+  - `cu121`
+- the install failed before completion with:
+  - `OSError: [Errno 28] No space left on device`
+
+What we measured on the machine immediately after:
+
+- free disk space was only about `2.7G`
+- `/root/.cache/pip` was about `6.1G`
+- the half-installed `/content/py310_trt_exp` was about `4.0G`
+
+We also learned one more important packaging lesson:
+
+- an unpinned `pip install torch-tensorrt tensorrt` in the new env tried to
+  select:
+  - `torch-tensorrt 2.10.0`
+  - a newer `torch` family
+  - `tensorrt-cu13`
+- that is **not** the intended family for this branch and should not be used as
+  the next attempt
+
+Current conclusion from the alternate-env setup attempt:
+
+- the first alternate-env attempt is blocked first by storage pressure
+- the next attempt must use `--no-cache-dir`
+- the next attempt must use a **pinned** Torch-TensorRT family instead of the
+  latest unpinned packages
+- the current recommended retry is:
+  - `torch 2.5.1`
+  - `torchvision 0.20.1`
+  - `torchaudio 2.5.1`
+  - `cu121`
+  - `torch-tensorrt 2.5.0`
+
 ## Active Runtime Path
 
 ### Root Entry Points

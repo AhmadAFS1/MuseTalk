@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image
 import os
 
+
 class VAE():
     """
     VAE (Variational Autoencoder) class for image processing.
@@ -38,6 +39,8 @@ class VAE():
         self.transform = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         self._resized_img = resized_img
         self._mask_tensor = self.get_mask_tensor()
+        self._decode_backend = None
+        self._decode_backend_name = "pytorch"
         
     def get_mask_tensor(self):
         """
@@ -52,6 +55,20 @@ class VAE():
 
     def _vae_dtype(self):
         return getattr(self, "runtime_dtype", getattr(self.vae, "dtype", torch.float32))
+
+    def set_decode_backend(self, backend):
+        self._decode_backend = backend
+        self._decode_backend_name = getattr(backend, "name", "pytorch") if backend is not None else "pytorch"
+
+    def clear_decode_backend(self):
+        self._decode_backend = None
+        self._decode_backend_name = "pytorch"
+
+    def has_decode_backend(self):
+        return self._decode_backend is not None
+
+    def get_decode_backend_name(self):
+        return self._decode_backend_name
             
     def preprocess_img(self,img_name,half_mask=False):
         """
@@ -124,6 +141,16 @@ class VAE():
         postprocessing experiments, while `decode_latents()` remains the
         legacy NumPy conversion path used by the current pipeline.
         """
+        # Backend-aware path added for accelerated VAE decode experiments.
+        # The original MuseTalk PyTorch decode path remains directly below
+        # and is still the default fallback when no backend is attached.
+        if self._decode_backend is not None:
+            return self._decode_backend.decode(
+                latents=latents,
+                scaling_factor=self.scaling_factor,
+                output_dtype=self._vae_dtype(),
+            )
+
         latents = (1 / self.scaling_factor) * latents
         image = self.vae.decode(latents.to(self._vae_dtype())).sample
         image = (image / 2 + 0.5).clamp(0, 1)

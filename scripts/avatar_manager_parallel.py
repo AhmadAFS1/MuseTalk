@@ -16,6 +16,7 @@ from transformers import WhisperModel
 from scripts.api_avatar import APIAvatar  # ✅ Use new API-friendly class
 from scripts.concurrent_gpu_manager import GPUMemoryManager
 from scripts.avatar_cache import AvatarCache
+from scripts.trt_runtime import load_vae_trt_decoder
 
 
 class ParallelAvatarManager:
@@ -164,6 +165,16 @@ class ParallelAvatarManager:
         )
         self.unet.model_dtype = self.unet_dtype
         self.vae.runtime_dtype = self.vae_dtype
+        self.vae_backend = load_vae_trt_decoder(
+            device=self.device,
+            scaling_factor=self.vae.scaling_factor,
+        )
+        self.vae.set_decode_backend(self.vae_backend)
+        self.vae_decode_backend_name = self.vae.get_decode_backend_name()
+        if self.vae.has_decode_backend():
+            print(f"✅ VAE decode backend active: {self.vae_decode_backend_name}")
+        else:
+            print("ℹ️  VAE decode backend: PyTorch")
         
         self.audio_processor = AudioProcessor(feature_extractor_path=self.args.whisper_dir)
         weight_dtype = self.unet_dtype
@@ -341,7 +352,13 @@ class ParallelAvatarManager:
         else:
             print("ℹ️  UNet compile disabled (set MUSETALK_COMPILE_UNET=1 to enable)")
 
-        if self._env_enabled("MUSETALK_COMPILE_VAE", "1"):
+        if self.vae.has_decode_backend():
+            print(
+                "ℹ️  VAE compile skipped "
+                f"({self.vae.get_decode_backend_name()} decode backend active)"
+            )
+            self.vae_compiled = False
+        elif self._env_enabled("MUSETALK_COMPILE_VAE", "1"):
             compiled_vae, vae_mode = self._compile_module_with_fallback(
                 label="VAE",
                 module=eager_vae_model,
