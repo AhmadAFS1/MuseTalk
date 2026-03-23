@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "device": "cuda:0",
+    "torch_version": "2.0.1+cu117",
+    "torch_cuda_version": "11.7",
+    "cuda_available": true,
+    "compile_enabled": false,
+    "compiled_unet_mode": null,
+    "compiled_vae_mode": null,
+    "vae_decode_backend": "pytorch",
+    "unet_dtype": "torch.float16",
+    "vae_dtype": "torch.float16",
+    "batch_sizes": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "warmup": 5,
+    "iters": 20,
+    "unet_model_path": "models/musetalkV15/unet.pth",
+    "unet_config": "models/musetalkV15/musetalk.json",
+    "vae_type": "sd-vae"
+  },
+  "results": [
+    {
+      "batch_size": 1,
+      "pe_ms": 0.02,
+      "unet_ms": 23.13,
+      "vae_decode_ms": 16.82,
+      "transfer_ms": 0.27,
+      "vae_full_path_ms": 18.96,
+      "pipeline_total_ms": 42.1,
+      "decomposed_total_ms": 40.24,
+      "frames_per_sec": 23.8,
+      "peak_allocated_mb": 1976.0,
+      "peak_reserved_mb": 2754.0
+    },
+    {
+      "batch_size": 2,
+      "pe_ms": 0.02,
+      "unet_ms": 23.3,
+      "vae_decode_ms": 33.67,
+      "transfer_ms": 0.51,
+      "vae_full_path_ms": 34.72,
+      "pipeline_total_ms": 58.04,
+      "decomposed_total_ms": 57.5,
+      "frames_per_sec": 34.5,
+      "peak_allocated_mb": 2072.6,
+      "peak_reserved_mb": 2886.0
+    },
+    {
+      "batch_size": 4,
+      "pe_ms": 0.02,
+      "unet_ms": 24.15,
+      "vae_decode_ms": 63.4,
+      "transfer_ms": 1.01,
+      "vae_full_path_ms": 64.89,
+      "pipeline_total_ms": 89.07,
+      "decomposed_total_ms": 88.59,
+      "frames_per_sec": 44.9,
+      "peak_allocated_mb": 2330.7,
+      "peak_reserved_mb": 3278.0
+    },
+    {
+      "batch_size": 8,
+      "pe_ms": 0.03,
+      "unet_ms": 39.75,
+      "vae_decode_ms": 124.81,
+      "transfer_ms": 2.08,
+      "vae_full_path_ms": 127.52,
+      "pipeline_total_ms": 167.29,
+      "decomposed_total_ms": 166.67,
+      "frames_per_sec": 47.8,
+      "peak_allocated_mb": 2845.7,
+      "peak_reserved_mb": 4052.0
+    }
+  ],
+  "best": {
+    "batch_size": 8,
+    "pe_ms": 0.03,
+    "unet_ms": 39.75,
+    "vae_decode_ms": 124.81,
+    "transfer_ms": 2.08,
+    "vae_full_path_ms": 127.52,
+    "pipeline_total_ms": 167.29,
+    "decomposed_total_ms": 166.67,
+    "frames_per_sec": 47.8,
+    "peak_allocated_mb": 2845.7,
+    "peak_reserved_mb": 4052.0
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "pytorch_shape": [
+    4,
+    3,
+    256,
+    256
+  ],
+  "pytorch_dtype": "torch.float16",
+  "pytorch_min": 0.0,
+  "pytorch_max": 0.9814453125,
+  "pytorch_mean": 0.24853515625,
+  "trt_shape": [
+    4,
+    3,
+    256,
+    256
+  ],
+  "trt_dtype": "torch.float16",
+  "trt_min": 0.0,
+  "trt_max": 0.982421875,
+  "trt_mean": 0.248779296875,
+  "mae": 0.0005082475836388767,
+  "max_abs": 0.009765625,
+  "outputs": {
+    "pytorch_face": "/content/MuseTalk/tmp/vae_stagewise_backend_validation_bs4/pytorch_face.png",
+    "trt_face": "/content/MuseTalk/tmp/vae_stagewise_backend_validation_bs4/trt_face.png",
+    "abs_diff": "/content/MuseTalk/tmp/vae_stagewise_backend_validation_bs4/abs_diff.png"
+  },
+  "avatar_id": "test_avatar",
+  "backend": "trt_stagewise",
+  "trt_dir": "/content/MuseTalk/models/tensorrt_altenv_bs32",
+  "batch_size": 4
+}

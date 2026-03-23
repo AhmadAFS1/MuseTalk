@@ -10,24 +10,41 @@
   - GPU-resident latent cycles: tested, failed, reverted
   - explicit SDPA attention tuning: tested, failed, reverted
 - **Target**: 8 concurrent HLS streams at 12fps (96 frames/s) on a single 24GB GPU
-- **Latest model-path benchmark**: ~51.0 fps best throughput at `batch_size=16`
+- **Latest stable PyTorch model-path benchmark**: ~51.1 fps best throughput at `batch_size=32`
 - **Latest implied ceiling at 8 concurrent streams**: ~6.4 fps per stream before HLS/compose/encode overhead
+- **Latest broad TRT VAE benchmark**: ~61.3 fps best throughput at `batch_size=32`
+- **Latest TRT implied ceiling at 8 concurrent streams**: ~7.7 fps per stream before HLS/compose/encode overhead
+- **Critical correctness status**: current active TRT VAE artifact is visually broken and should be treated as untrusted for lip-sync validation
 - **Goal**: Reduce per-frame GPU time by 2–3× to create headroom
 - **Current backend branch state**:
   - VAE TensorRT runtime hook: implemented
   - VAE TensorRT export script: implemented
-  - TensorRT packages installed locally: partially done
-    - `torch-tensorrt==1.4.0`
-    - `tensorrt_bindings==8.6.1`
-    - `tensorrt_libs==8.6.1`
+  - old current-environment TensorRT stack: blocked / untrusted
   - ONNX packages installed locally: not yet
-  - Exported VAE engine artifact: produced
-    - `models/tensorrt/vae_decoder_trt.ts`
-    - `models/tensorrt/vae_decoder_trt_meta.json`
-    - compile time about `807.4s`
-    - engine size about `141 MB`
-  - Backend-active benchmark attempt on the current environment: yes, but it fell back to PyTorch
-  - Backend-active `load_test.py` run: not yet
+  - alternate-env backend stack: validated
+    - `/content/py310_trt_exp`
+    - `torch==2.5.1`
+    - `torch-tensorrt==2.5.0`
+    - `tensorrt==10.3.0`
+  - Active exported VAE engine artifact: produced in alternate env
+    - `models/tensorrt_altenv_bs32/vae_decoder_trt.ts`
+    - `models/tensorrt_altenv_bs32/vae_decoder_trt_meta.json`
+    - batch range `[4, 48]`
+    - opt batch `16`
+    - engine size about `132 MB`
+  - Runtime load validation in the alternate env: yes
+  - Matched isolated benchmark in the alternate env: yes
+    - batch set `[4, 8, 16, 32, 48]`
+    - best throughput `61.3 fps` at `batch_size=32`
+    - broad PyTorch best on same batch set: `51.1 fps`
+  - Backend-active `load_test.py` run: yes, first single-stream HLS smoke test
+    completed
+    - eager UNet + TRT VAE
+    - `concurrency=1`
+    - `batch_size=4`
+    - `avg_time_to_live_ready_s=3.015`
+    - `avg_segment_interval_s=0.196`
+    - `max_segment_interval_s=1.512`
 
 This document covers two implementation paths:
 1. **TensorRT compilation** (highest impact, 2–3× expected speedup)
@@ -42,10 +59,87 @@ The latest benchmark also changed the backend priority order: the VAE path is no
 Important current interpretation:
 
 - the repo-side VAE TensorRT refactor is now structurally in place
-- the first VAE TensorRT engine export has now succeeded
-- but the current environment still cannot reliably activate a trustworthy full TensorRT VAE runtime path
-- the attempted benchmark in the current environment fell back to PyTorch and stayed at the same `~50.9 fps` ceiling
-- the next real milestone is now: build a **separate TensorRT-focused environment**, then retry export, runtime activation, and benchmarking there
+- the original current-environment branch is still blocked and should not be
+  trusted for validation
+- the separate TensorRT-focused environment is now technically valid for:
+  - export
+  - runtime loading
+  - backend-active benchmark execution
+  - HLS `api_server.py` startup with TRT active
+- the current validated end-to-end runtime shape is:
+  - eager UNet
+  - TRT VAE
+- compiled UNet + TRT VAE is still unstable under live HLS generation on this
+  machine because the first generation batch failed during CUDA graph capture
+  with `CUDNN_STATUS_INTERNAL_ERROR_DEVICE_ALLOCATION_FAILED`
+- the full broad-batch isolated benchmark is no longer missing
+- the current active broad-batch TRT artifact is now known to be visually wrong
+  - HLS `/wall` output shows a flat gray talking-face ROI
+  - direct A/B decode checks show the TRT engine output is already wrong before
+    blend
+  - wrapper math in `scripts/tensorrt_export.py` still matches the PyTorch VAE
+    path when run in pure PyTorch
+- the TRT tooling now includes a correctness gate path:
+  - `scripts/validate_vae_backend.py`
+  - `scripts/validate_vae_trt_inmemory.py`
+  - `scripts/inspect_vae_trt_stages.py`
+  - post-export validation metadata in `scripts/tensorrt_export.py`
+  - runtime enforcement option via `MUSETALK_TRT_REQUIRE_VALIDATION=1`
+- current post-patch validation still fails against the active broad-batch
+  artifact with MAE about `0.3408`
+- a newer exact-batch FP16 TorchScript export also fails with effectively the
+  same validation result:
+  - artifact dir: `models/tensorrt_fp16_bs4`
+  - batch range: `[4, 4]`
+  - validation MAE: about `0.340751`
+- a later in-memory compiled TRT check now confirms the error is present before
+  any save/load boundary:
+  - batch size `4`
+  - precision `fp16`
+  - in-memory TRT output range `0.3989..0.5342`, mean `0.4714`
+  - MAE about `0.3407516`
+- a later stage-by-stage decoder inspection localizes the first bad region to
+  `decoder_mid_block`
+  - `scale_post_quant`: exact match
+  - `decoder_conv_in`: exact match
+  - `decoder_mid_block`: first bad stage, MAE about `0.4712`
+  - `output_normalize`: exact match when fed the same pre-normalized tensor
+- the next real milestone is now:
+  - restore functional correctness before trusting any TRT throughput win
+  - then revisit whether the remaining gap still requires a larger branch
+
+Current acceleration-plan implication:
+
+- “make the dynamic profile narrower” is no longer enough by itself
+- the next branch has to isolate and fix correctness in the **decoder mid-block
+  TRT path**, while still aiming for an FP16-first deployment shape
+
+Acceleration-plan update:
+
+- that correctness branch has now produced a first working runtime path:
+  - backend: `trt_stagewise`
+  - implementation: `scripts/trt_runtime.py`
+  - strategy:
+    - exact-batch decoder stages
+    - per-batch runtime cache
+    - `native_group_norm` kept on the PyTorch side during stage compilation
+- first end-to-end validation at `batch_size=4` is now close to PyTorch:
+  - report:
+    - `tmp/vae_stagewise_backend_validation_bs4/report.json`
+  - MAE:
+    - `0.0005082`
+  - max abs:
+    - `0.0097656`
+
+Current implication for acceleration work:
+
+- stop treating the old saved-engine VAE TRT artifacts as the only TRT option
+- the new stagewise backend has now cleared its first visual HLS checkpoint at
+  `batch_size=4`
+- benchmark the new stagewise backend next
+- then validate the larger scheduler buckets
+- if its speedup survives while preserving visual correctness, it becomes the
+  right acceleration path to push into HLS testing
 
 ## Current Repo Changes
 
@@ -85,26 +179,26 @@ Earlier failures included:
 - after that, the compiled object was not a TorchScript module
 - and `torch-tensorrt 1.4.0` does not provide `torch_tensorrt.save(...)`
 
-After the exporter was patched:
+After the exporter was patched again for the newer alternate env:
 
-- the VAE export path was narrowed to the decoder-only graph
-- the exporter switched to the older TorchScript-specific TRT route that better matches `torch-tensorrt 1.4.0`
-- the next VAE export run succeeded
-- final result:
-  - `models/tensorrt/vae_decoder_trt.ts`
-  - `models/tensorrt/vae_decoder_trt_meta.json`
-  - compile time: about `807.4s`
-  - saved engine size: about `141 MB`
+- old `dynamo_compile` naming was normalized to `dynamo`
+- the save path was fixed so `torch_tensorrt.save(...)` receives example inputs
+  when the compiled result is a `torch.fx.GraphModule`
+- the successful VAE export run then used:
+  - `--components vae`
+  - `--batch-sizes 4,8,16,32,48`
+  - output dir `models/tensorrt_altenv_bs32`
 
 Current interpretation:
 
-- package installation is no longer the only blocker
+- package installation is no longer the blocker
 - initial VAE export is no longer the blocker
-- the current runtime stack is now the blocker:
-  - the benchmark attempt fell back to PyTorch because backend activation failed
-  - after loader fixes, strict full compile on this stack failed on unsupported operators
-- so the next missing proof is not “one more benchmark on this env”
-- it is “a separate TensorRT-focused environment that can compile and load this graph cleanly”
+- runtime loading is no longer the blocker in the alternate env
+- the benchmark proof is now in hand
+- the current open question is no longer just throughput
+- the active TRT artifact is currently **not visually correct**
+- current TRT speed wins should therefore be treated as performance-only until
+  the decode output matches the PyTorch VAE path again
 
 ## Current Environment Failure Record
 
@@ -128,58 +222,42 @@ After runtime-loader fixes:
 
 Practical result:
 
-- the current `torch 2.0.1 + torch-tensorrt 1.4.0 + TensorRT 8.6.1` stack should now be treated as **blocked for this VAE TensorRT branch**
-- the previously saved `vae_decoder_trt.ts` artifact should be treated as **stale / not trustworthy for performance validation**
+- the current `torch 2.0.1 + torch-tensorrt 1.4.0 + TensorRT 8.6.1` stack
+  should still be treated as **blocked for this VAE TensorRT branch**
+- the older `models/tensorrt/vae_decoder_trt.ts` artifact should still be
+  treated as **stale / not trustworthy for performance validation**
+- the newer `models/tensorrt_altenv_bs32/vae_decoder_trt.ts` artifact is now
+  the active one for validation work
 
 ## Separate Environment Setup Update
 
-The first attempt to create the alternate TensorRT environment has now happened.
+The alternate TensorRT environment is now established and usable for the next
+validation phase.
 
-Observed status:
+Observed current status:
 
-- `/content/py310_trt_exp` was created successfully
-- the first import test failed with:
-  - `ModuleNotFoundError: No module named 'torch'`
-- that import failure was simply because the new venv had not yet completed a
-  torch install
+- `/content/py310_trt_exp` imports the backend stack correctly
+- the minimal export/runtime dependency set is installed there
+- the VAE export succeeds there
+- runtime loading succeeds there with fallback disabled
+- the matched isolated TRT benchmark has already completed there
+  - best throughput `61.3 fps` on batch set `[4, 8, 16, 32, 48]`
+  - still far below the `96 fps` goal
 
-The first real install attempt then targeted:
+Important still-true packaging lesson:
 
-- `torch==2.5.1`
-- `torchvision==0.20.1`
-- `torchaudio==2.5.1`
-- `cu121`
-
-That attempt failed with:
-
-- `OSError: [Errno 28] No space left on device`
-
-Measured machine state after that:
-
-- free space: about `2.7G`
-- `/root/.cache/pip`: about `6.1G`
-- half-installed `/content/py310_trt_exp`: about `4.0G`
-
-We also now have one more concrete packaging lesson:
-
-- an unpinned `pip install torch-tensorrt tensorrt` in the new env attempted to
-  pull:
-  - `torch-tensorrt 2.10.0`
-  - a newer `torch` family
-  - `tensorrt-cu13`
-- that is not the intended compatibility family for this branch
+- keep the backend family pinned
+- do **not** use unpinned `pip install torch-tensorrt tensorrt`
 
 Current alternate-env recommendation:
 
-- clear disk pressure first
-- recreate `/content/py310_trt_exp`
-- install with `--no-cache-dir`
-- use the pinned retry family:
-  - `torch 2.5.1`
-  - `torchvision 0.20.1`
-  - `torchaudio 2.5.1`
-  - `cu121`
-  - `torch-tensorrt 2.5.0`
+- keep using `/content/py310_trt_exp` for TRT-only work
+- keep using the active artifact dir `models/tensorrt_altenv_bs32`
+- keep the TRT env on the now-validated pinned HLS dependency family
+- keep UNet compile disabled for the current TRT HLS validation path
+- do **not** use the current active TRT artifact for visual-quality signoff
+- treat the current broad-batch engine as untrusted until correctness is fixed
+- only after that revisit encoder fallback and higher-concurrency HLS testing
 
 ---
 
@@ -211,12 +289,12 @@ so you know where time is spent and can verify improvements.
 
 ### Latest benchmark result
 
-Measured with the current PyTorch path:
+Measured with the current broad PyTorch baseline:
 
-- best throughput: `51.0 fps` at `batch_size=16`
+- best throughput: `51.1 fps` at `batch_size=32`
 - max sustainable fps per stream at `8` concurrent: `6.4 fps`
 
-Summary table from the latest run:
+Summary table from an earlier representative PyTorch run:
 
 | Batch Size | PE(ms) | UNet(ms) | VAE GPU(ms) | Xfer(ms) | VAE Full(ms) | Throughput |
 |------------|--------|----------|-------------|----------|--------------|------------|
@@ -456,11 +534,22 @@ Important:
 
 The installation picture has changed since this plan was first written.
 
-What is already installed locally:
+Stable env `/content/py310`:
 
 - `torch-tensorrt==1.4.0`
 - `tensorrt_bindings==8.6.1`
 - `tensorrt_libs==8.6.1`
+- still blocked for trustworthy TRT runtime use with this VAE path
+
+Alternate env `/content/py310_trt_exp`:
+
+- `torch==2.5.1`
+- `torchvision==0.20.1`
+- `torchaudio==2.5.1`
+- `torch-tensorrt==2.5.0`
+- `tensorrt==10.3.0`
+- successful VAE export and load are already validated there
+- matched isolated benchmark is already validated there
 
 What is still true:
 
@@ -497,9 +586,14 @@ The repo now has a real implementation at `scripts/tensorrt_export.py`.
 
 Important current status:
 
-- the exporter has already been patched for the local `torch-tensorrt==1.4.0` API shape
-- but the VAE export is still blocked by graph conversion/runtime compatibility
-- so this section should now be read as the branch design plus reference logic, not as proof that export is already succeeding
+- the exporter has already been patched for both:
+  - the older local `torch-tensorrt==1.4.0` shape
+  - the newer alternate-env `dynamo` + save path behavior
+- the VAE export now succeeds in `/content/py310_trt_exp`
+- the active validation artifact is:
+  - `models/tensorrt_altenv_bs32/vae_decoder_trt.ts`
+- so this section should now be read as reference logic plus branch history,
+  not as the current blocker
 
 ```python
 # filepath: /content/MuseTalk/scripts/tensorrt_export.py

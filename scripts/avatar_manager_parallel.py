@@ -168,6 +168,7 @@ class ParallelAvatarManager:
         self.vae_backend = load_vae_trt_decoder(
             device=self.device,
             scaling_factor=self.vae.scaling_factor,
+            vae_module=self.vae.vae,
         )
         self.vae.set_decode_backend(self.vae_backend)
         self.vae_decode_backend_name = self.vae.get_decode_backend_name()

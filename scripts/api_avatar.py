@@ -19,9 +19,39 @@ import sys
 from pathlib import Path
 import subprocess
 
-from musetalk.utils.preprocessing import get_landmark_and_bbox, read_imgs
+# from musetalk.utils.preprocessing import get_landmark_and_bbox, read_imgs
+# Added code: avoid importing the heavy preprocessing stack at module import
+# time. `mmpose` is only needed when we actually prepare a new avatar; loading
+# an existing avatar should not require those dependencies just to start the
+# server.
 from musetalk.utils.blending import get_image_prepare_material, get_image_blending
 from musetalk.utils.utils import datagen
+
+# Added code: cache ffmpeg encoder capability checks so the HLS path does not
+# repeatedly retry a known-broken encoder on every segment.
+_FFMPEG_ENCODER_SUPPORT = {}
+_FFMPEG_ENCODER_SUPPORT_LOCK = threading.Lock()
+_FFMPEG_ENCODER_UNAVAILABLE_WARNED = set()
+
+
+def _read_imgs_local(img_list):
+    """Added code: lightweight image loader for existing prepared avatars."""
+    frames = []
+    print('reading images...')
+    for img_path in tqdm(img_list):
+        frame = cv2.imread(img_path)
+        frames.append(frame)
+    return frames
+
+
+def _get_landmark_and_bbox_lazy(img_list, upperbondrange=0):
+    """
+    Added code: import preprocessing lazily so `api_server.py` can start
+    without `mmpose` when only existing avatars are being loaded.
+    """
+    from musetalk.utils.preprocessing import get_landmark_and_bbox
+
+    return get_landmark_and_bbox(img_list, upperbondrange)
 
 
 def _build_ffmpeg_chunk_cmd(
@@ -37,8 +67,9 @@ def _build_ffmpeg_chunk_cmd(
 ):
     output_suffix = Path(output_path).suffix.lower()
     use_mpegts = output_suffix == ".ts"
+    ffmpeg_bin = os.getenv("HLS_FFMPEG_BIN", "ffmpeg").strip() or "ffmpeg"
     ffmpeg_cmd = [
-        "ffmpeg", "-y",
+        ffmpeg_bin, "-y",
         "-v", "error",
         "-nostats",
         "-f", "rawvideo",
@@ -94,6 +125,76 @@ def _build_ffmpeg_chunk_cmd(
         ]
 
     return ffmpeg_cmd
+
+
+def _set_ffmpeg_encoder_support(encoder: str, supported: bool, detail: str = ""):
+    """Added code: remember the latest encoder health result for this process."""
+    with _FFMPEG_ENCODER_SUPPORT_LOCK:
+        _FFMPEG_ENCODER_SUPPORT[encoder] = (supported, detail)
+
+
+def _warn_ffmpeg_encoder_unavailable_once(encoder: str, detail: str = ""):
+    """Added code: keep the unsupported-encoder warning readable."""
+    with _FFMPEG_ENCODER_SUPPORT_LOCK:
+        if encoder in _FFMPEG_ENCODER_UNAVAILABLE_WARNED:
+            return
+        _FFMPEG_ENCODER_UNAVAILABLE_WARNED.add(encoder)
+    detail_text = f": {detail}" if detail else ""
+    print(
+        f"      ⚠️ Encoder {encoder} is unavailable in this process, "
+        f"using libx264 instead{detail_text}"
+    )
+
+
+def _probe_ffmpeg_encoder(encoder: str):
+    """
+    Added code: run a tiny ffmpeg smoke test once per process so we can avoid
+    repeatedly attempting an encoder that is unavailable on this machine.
+    """
+    if encoder == "libx264":
+        return True, ""
+
+    with _FFMPEG_ENCODER_SUPPORT_LOCK:
+        cached = _FFMPEG_ENCODER_SUPPORT.get(encoder)
+    if cached is not None:
+        return cached
+
+    ffmpeg_bin = os.getenv("HLS_FFMPEG_BIN", "ffmpeg").strip() or "ffmpeg"
+    probe_cmd = [
+        ffmpeg_bin,
+        "-hide_banner",
+        "-v", "error",
+        "-f", "lavfi",
+        "-i", "color=c=black:size=64x64:rate=1",
+        "-frames:v", "1",
+        "-vf", "format=yuv420p",
+        "-an",
+        "-c:v", encoder,
+        "-f", "null",
+        "-",
+    ]
+    try:
+        result = subprocess.run(
+            probe_cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=20,
+        )
+    except Exception as exc:
+        detail = f"probe raised {type(exc).__name__}: {exc}"
+        _set_ffmpeg_encoder_support(encoder, False, detail)
+        return False, detail
+
+    if result.returncode == 0:
+        _set_ffmpeg_encoder_support(encoder, True, "")
+        return True, ""
+
+    detail = ""
+    if result.stderr:
+        detail = result.stderr.decode("utf-8", errors="ignore").strip()
+    _set_ffmpeg_encoder_support(encoder, False, detail)
+    return False, detail
 
 
 @torch.no_grad()
@@ -392,7 +493,9 @@ class APIAvatar:
         input_img_list = sorted(glob.glob(os.path.join(self.full_imgs_path, '*.png')))
         
         print("🔍 Detecting faces and landmarks...")
-        coord_list, frame_list = get_landmark_and_bbox(input_img_list, self.bbox_shift)
+        coord_list, frame_list = _get_landmark_and_bbox_lazy(
+            input_img_list, self.bbox_shift
+        )
         
         print("🧠 Encoding latents...")
         input_latent_list = []
@@ -471,7 +574,7 @@ class APIAvatar:
         
         # Load frames
         input_img_list = sorted(glob.glob(os.path.join(self.full_imgs_path, '*.png')))
-        self.frame_list_cycle = read_imgs(input_img_list)
+        self.frame_list_cycle = _read_imgs_local(input_img_list)
         
         # Load mask coordinates
         with open(self.mask_coords_path, 'rb') as f:
@@ -479,7 +582,7 @@ class APIAvatar:
         
         # Load masks
         input_mask_list = sorted(glob.glob(os.path.join(self.mask_out_path, '*.png')))
-        self.mask_list_cycle = read_imgs(input_mask_list)
+        self.mask_list_cycle = _read_imgs_local(input_mask_list)
         
         print(f"✅ Loaded {len(self.frame_list_cycle)} frames")
     
@@ -1051,6 +1154,11 @@ class APIAvatar:
         
         height, width = frames[0].shape[:2]
         preferred_encoder = os.getenv("HLS_CHUNK_VIDEO_ENCODER", "h264_nvenc").strip() or "h264_nvenc"
+        if preferred_encoder != "libx264":
+            encoder_ok, encoder_detail = _probe_ffmpeg_encoder(preferred_encoder)
+            if not encoder_ok:
+                _warn_ffmpeg_encoder_unavailable_once(preferred_encoder, encoder_detail)
+                preferred_encoder = "libx264"
         encoders_to_try = [preferred_encoder]
         if preferred_encoder != "libx264":
             encoders_to_try.append("libx264")
@@ -1095,6 +1203,8 @@ class APIAvatar:
                         except Exception:
                             stderr_tail = ""
                     detail = f": {stderr_tail}" if stderr_tail else ""
+                    if encoder != "libx264":
+                        _set_ffmpeg_encoder_support(encoder, False, stderr_tail)
                     raise RuntimeError(
                         f"FFmpeg failed with exit code {returncode} using {encoder}{detail}"
                     )

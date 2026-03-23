@@ -143,14 +143,14 @@ and prints the per-batch timings for:
 - GPU to CPU transfer
 - total pipeline throughput
 
-## Latest Benchmark Result
+## Latest Stable PyTorch Baseline
 
-Latest isolated model-path result from `scripts/benchmark_pipeline.py`:
+Latest stable-env isolated model-path baseline from `scripts/benchmark_pipeline.py`:
 
-- best throughput: `51.0 fps` at `batch_size=16`
+- best throughput: `51.1 fps` at `batch_size=32`
 - max sustainable fps per stream at `8` concurrent: `6.4 fps`
 
-Most important interpretation:
+Most important interpretation of the stable PyTorch baseline:
 
 - this is below the `96 fps` needed for `8 x 12 fps`
 - so the current PyTorch model path is a hard ceiling before HLS compose/encode overhead is even added
@@ -162,121 +162,562 @@ That is why the next serious branch is now backend acceleration, with VAE first.
 
 Repo status today:
 
-- VAE TensorRT runtime wiring is in the codebase
-- VAE TensorRT export script is in the codebase
-- local TensorRT packages are now installed:
-  - `torch-tensorrt==1.4.0`
-  - `tensorrt_bindings==8.6.1`
-  - `tensorrt_libs==8.6.1`
-- repo-root compatibility shim `tensorrt.py` is now in the codebase so local repo scripts can import TensorRT in this environment
-- VAE engine has now been exported:
-  - `models/tensorrt/vae_decoder_trt.ts`
-  - `models/tensorrt/vae_decoder_trt_meta.json`
-  - compile time was about `807.4s`
-  - engine size is about `141 MB`
-- backend-active benchmark attempt happened, but it fell back to PyTorch
-- no backend-active `load_test.py` run has happened yet
-
-So the branch crossed the first milestone by producing an engine, but the current environment still did **not** deliver a real TensorRT throughput result. The attempted benchmark fell back to PyTorch, and a stricter re-export then showed this environment is blocked on unsupported operators.
-
-## Current TensorRT Export State
-
-Current VAE export history:
-
-- earlier export attempts failed through the old full-graph path
-- after the exporter was patched to use the narrower decoder-only TorchScript path, the next export succeeded
-- successful result:
-  - `models/tensorrt/vae_decoder_trt.ts`
-  - `models/tensorrt/vae_decoder_trt_meta.json`
-  - compile time: about `807.4s`
-  - saved size: about `141 MB`
+- keep the stable HLS server launch block above pointed at `/content/py310`
+- `/content/py310` is still the stable PyTorch server env
+- `/content/py310` is still **not** TRT-ready
+  - `torch_tensorrt` import fails there
+  - `tensorrt` import fails there
+- the successful TRT work now lives in `/content/py310_trt_exp`
+  - `torch==2.5.1`
+  - `torch-tensorrt==2.5.0`
+  - `tensorrt==10.3.0`
+- the first successful TRT VAE artifact in the alternate env was:
+  - `/content/MuseTalk/models/tensorrt_altenv/vae_decoder_trt.ts`
+  - `/content/MuseTalk/models/tensorrt_altenv/vae_decoder_trt_meta.json`
+  - batch range `[1, 8]`
+  - opt batch `4`
+- the newer broad-batch TRT VAE artifact is now the active validation one:
+  - `/content/MuseTalk/models/tensorrt_altenv_bs32/vae_decoder_trt.ts`
+  - `/content/MuseTalk/models/tensorrt_altenv_bs32/vae_decoder_trt_meta.json`
+  - batch range `[4, 48]`
+  - opt batch `16`
+- runtime loading has been validated there with fallback disabled
+- backend-active benchmarking has also been validated there
 
 Practical meaning:
 
-- install is no longer the blocker
-- export is no longer the only blocker
-- the current environment is now the blocker
-- the attempted benchmark still landed at about `50.9 fps`, which is effectively the same as the old PyTorch baseline
-- there is still no trustworthy backend-active throughput result yet
+- VAE TensorRT conversion is now real
+- the broad-batch TRT VAE engine is now materially faster than the old PyTorch
+  baseline on the same `4..48` batch range
+- but it is still only validated in the alternate env
+- do **not** point the stable `/content/py310` server at the TRT artifact yet
 
-One extra log clarification:
+## Current TensorRT Validation State
 
-- the TensorFlow `TF-TRT Warning: Could not find TensorRT` messages are noisy and are **not** the current blocker for the MuseTalk scripts
+Current active broad-batch TRT benchmark:
 
-Current recommendation:
+- file:
+  - `benchmark_pipeline_trt_vae_bs32.json`
+- batch set:
+  - `[4, 8, 16, 32, 48]`
+- best throughput:
+  - `61.3 fps` at `batch_size=32`
+- implied model-path ceiling at `8` concurrent:
+  - about `7.7 fps/stream`
 
-- do **not** switch the stable server start script to TensorRT on this environment
-- keep the stable start config on the normal PyTorch VAE path for now
-- move the next TensorRT attempt into a separate dedicated environment
+Broad PyTorch comparison:
 
-If a future separate TensorRT environment becomes ready to test, the server config there will need to change from the stable baseline. In particular:
+- file:
+  - `benchmark_pipeline_results.json`
+- best throughput:
+  - `51.1 fps` at `batch_size=32`
 
-- `MUSETALK_TRT_ENABLED=1`
-- `MUSETALK_VAE_BACKEND=trt`
-- `MUSETALK_COMPILE_VAE=0`
+Most important measured deltas:
 
-## Current Environment Failure Record
+- `batch_size=4`
+  - throughput: `45.8 -> 53.4 fps`
+  - VAE full path: `65.04 -> 51.36 ms`
+- `batch_size=16`
+  - throughput: `50.5 -> 60.2 fps`
+  - VAE full path: `253.34 -> 197.75 ms`
+- `batch_size=32`
+  - throughput: `51.1 -> 61.3 fps`
+  - VAE full path: `505.75 -> 396.20 ms`
+- `batch_size=48`
+  - throughput: `50.9 -> 61.2 fps`
+  - VAE full path: `764.93 -> 596.55 ms`
 
-Benchmark attempt with TensorRT requested:
+Practical meaning:
 
-- backend activation failed with:
-  - `Unknown type name '__torch__.torch.classes.tensorrt.Engine'`
-- benchmark log showed:
-  - `VAE decode backend: pytorch`
-- resulting throughput stayed in the same familiar band:
-  - best throughput: `50.9 fps`
-  - max sustainable fps per stream at `8` concurrent: `6.4 fps`
+- the broad-batch TRT VAE backend is now a **material** improvement
+- the isolated model-path gain is about `+16.6%` to `+20.2%` across `4..48`
+- but it is still far short of the `96 fps` target for `8 x 12 fps`
+- this has now crossed the first HLS `api_server.py` startup milestone in
+  `/content/py310_trt_exp`
+- the first backend-active HLS `load_test.py` run has now completed
+- current end-to-end validation is for **eager UNet + TRT VAE**
+- it is **not** yet proof that the full HLS goal is solved
 
-After loader fixes, strict full re-export failed on unsupported operators:
+## Critical Correctness Update
 
-- `aten::scaled_dot_product_attention`
-- `aten::group_norm`
+The current active TRT VAE artifact is now **functionally broken** for visual
+output and should be treated as **untrusted** for lip-sync validation or
+production demos.
 
-So the current environment should now be treated as blocked for this VAE TensorRT branch.
+Observed regression:
 
-## Previous Test Commands
+- the talking-face ROI in HLS `/wall` output is replaced by a flat gray mask
+- this happens after switching the VAE decode path to the exported TensorRT
+  engine in `models/tensorrt_altenv_bs32`
 
-Benchmark the model path with the TensorRT VAE backend active:
+What has now been validated:
+
+- the problem is **not** the avatar masks or prepared avatar materials
+- the problem is **not** `get_image_blending(...)` in
+  `musetalk/utils/blending.py`
+- the problem is **not** the wrapper math in
+  `scripts/tensorrt_export.py` when run in pure PyTorch
+- the current broken output is already present in the decoded face patch before
+  it is blended back into the avatar frame
+
+Representative A/B checks against the PyTorch VAE path:
+
+- cached/avatar latent decode:
+  - PyTorch face output: range `0..250`, mean `63.2`
+  - TRT face output: range `104..136`, mean `120.2`
+  - mean absolute error: about `87.1`
+- real UNet-predicted latent decode:
+  - PyTorch face output: range `0..236`, mean `116.6`
+  - TRT face output: range `93..150`, mean `120.3`
+  - mean absolute error: about `53.3`
+- export-wrapper control test in pure PyTorch:
+  - mean absolute error: about `5.3e-05`
+  - max absolute error: about `0.0022`
+
+Practical meaning:
+
+- the `61.3 fps` TRT benchmark is still useful as a raw speed datapoint
+- but the current TRT artifact is **not decision-grade**
+- do **not** treat the current TRT branch as visually validated
+- use the stable PyTorch VAE path for any real lip-sync or avatar-quality check
+  until this correctness regression is fixed
+- direct post-patch validation in `/content/py310_trt_exp` still fails against
+  the current active broad-batch artifact:
+  - `python scripts/validate_vae_backend.py --avatar-id test_avatar --trt-dir ./models/tensorrt_altenv_bs32`
+  - PyTorch output range: `0.0..0.9814`, mean `0.2485`
+  - TRT output range: `0.3989..0.5337`, mean `0.4714`
+  - MAE: about `0.3408`
+- a newer exact-batch FP16 export also now fails the same way:
+  - artifact dir: `models/tensorrt_fp16_bs4`
+  - export shape: batch `[4, 4]`
+  - save path: `torchscript`
+  - compile: passed
+  - save: passed
+  - validation: failed
+  - MAE: about `0.340751`
+- practical meaning:
+  - the gray-mask bug is **not** just a broad dynamic `[4..48]` profile issue
+  - the bug still reproduces with an exact `batch_size=4` FP16 TRT VAE
+  - the current evidence now points more strongly at the FP16 TRT VAE
+    compile/runtime behavior itself
+- a later in-memory TRT compile check now confirms the fault is already present
+  before save/load:
+  - `python scripts/validate_vae_trt_inmemory.py --avatar-id test_avatar --batch-size 4 --precision fp16`
+  - PyTorch output range: `0.0..0.9814`, mean `0.2485`
+  - TRT in-memory output range: `0.3989..0.5342`, mean `0.4714`
+  - MAE: about `0.3407516`
+- a later stage-by-stage decoder check now localizes the first bad region:
+  - `python scripts/inspect_vae_trt_stages.py --avatar-id test_avatar --batch-size 4 --precision fp16`
+  - first bad stage: `decoder_mid_block`
+  - `scale_post_quant` and `decoder_conv_in` still match exactly
+  - `output_normalize` also matches exactly when given the same input
+  - practical meaning:
+    - the fault is in the decoder core, not the final output clamp/scale
+
+Current TRT guardrails now added in code:
+
+- `scripts/validate_vae_backend.py` is now reusable as a correctness checker,
+  not just a one-off script
+- `scripts/validate_vae_trt_inmemory.py` compares PyTorch vs TRT output before
+  any save/load boundary
+- `scripts/inspect_vae_trt_stages.py` localizes the first divergent decoder
+  stage under TRT
+- `scripts/tensorrt_export.py` now supports post-export VAE validation metadata
+  with:
+  - `--validate-avatar-id`
+  - `--validate-batch-size`
+  - `--validate-max-mae`
+  - `--require-valid-vae`
+- `scripts/trt_runtime.py` now supports:
+  - `MUSETALK_TRT_REQUIRE_VALIDATION=1`
+  - this refuses to activate artifacts that are missing validation metadata or
+    are explicitly marked invalid
+
+Recommended correctness gate before any future TRT HLS run:
 
 ```bash
 cd /content/MuseTalk
-MUSETALK_TRT_ENABLED=1 \
-MUSETALK_VAE_BACKEND=trt \
-MUSETALK_COMPILE_VAE=0 \
-/content/py310/bin/python scripts/benchmark_pipeline.py \
-  --batch-sizes 4,8,16,24,32,40,48 \
-  --warmup 20 \
-  --iters 50 \
-  --output-json benchmark_pipeline_trt_vae.json
+source /content/py310_trt_exp/bin/activate
+python scripts/validate_vae_backend.py \
+  --avatar-id test_avatar \
+  --trt-dir ./models/tensorrt_altenv_bs32 \
+  --output-dir ./tmp/vae_backend_validation_current
 ```
 
-If a future separate TensorRT environment improves materially, then start the server there with:
+## Current Next-Step Plan
+
+The correctness-first branch has now produced the first TRT path that appears
+to work visually on real HLS output.
+
+Planned sequence:
+
+1. Keep treating the monolithic TRT artifact path as broken.
+   - the broad-batch artifact is still gray-mask broken
+   - the exact `batch_size=4` FP16 artifact is also broken
+2. Use the new stagewise TRT backend as the active repair branch.
+   - backend name: `trt_stagewise`
+   - exact-batch decoder stages compiled independently
+   - `native_group_norm` kept on the PyTorch side inside each compiled stage
+3. Validate stagewise correctness on real cached latents before wider HLS use.
+   - `batch_size=4` is now validated
+   - report: `tmp/vae_stagewise_backend_validation_bs4/report.json`
+   - full-image MAE: `0.000508`
+   - output range now matches PyTorch instead of collapsing to gray
+4. The first HLS `/wall` visual check with `trt_stagewise` is now encouraging.
+   - real mouth output is visible again instead of the gray ROI collapse
+   - this was seen on the stagewise `batch_size=4` server configuration
+5. Next expand that validation to larger scheduler buckets (`8`, `16`, `32`, `48`)
+   and benchmark throughput before widening the live HLS config.
+6. Only if stagewise TRT stays visually correct and still faster than PyTorch
+   should it replace the PyTorch VAE path for the normal shared-batch HLS setup.
+
+Target outcome:
+
+- visual output that matches the PyTorch VAE path closely
+- runtime still materially faster than the current PyTorch decode path
+- only then resume end-to-end HLS throughput validation
+
+## Stagewise TRT Update
+
+The first real correctness fix is now in the repo:
+
+- `scripts/trt_runtime.py`
+  - added `trt_stagewise` VAE backend
+  - compiles exact-batch decoder stages on demand and caches them by batch size
+  - uses `native_group_norm` PyTorch fallback inside stagewise TRT compilation
+- `scripts/inspect_vae_trt_stages.py`
+  - stage-local correctness probes now show:
+    - `decoder_mid_block`: fixed with `native_group_norm`, MAE `0.00419`
+    - `decoder_up_block_0`: MAE `0.01746`
+    - `decoder_postprocess`: MAE `0.000489`
+- `scripts/validate_vae_backend.py`
+  - now accepts `--backend`
+  - stagewise validation at `batch_size=4` succeeded:
+    - backend: `trt_stagewise`
+    - MAE: `0.000508`
+    - max abs: `0.00977`
+    - report: `tmp/vae_stagewise_backend_validation_bs4/report.json`
+
+Current interpretation:
+
+- the old saved-engine TRT path is still untrusted for visuals
+- the new stagewise in-memory TRT backend is the first path that looks
+  PyTorch-correct enough to continue testing
+- a later real `/wall` check now also appears visually good at the validated
+  `batch_size=4` setup
+- so the stagewise branch has crossed the first “looks right on the avatar”
+  milestone, not just the synthetic decode-validation milestone
+
+## Current Environment Split
+
+Stable env `/content/py310`:
+
+- keep using this for the stable HLS server path
+- keep the launch block at the top of this file unchanged for now
+- do **not** expect TRT-backed server runs to work here yet
+
+Alternate env `/content/py310_trt_exp`:
+
+- validated for:
+  - export
+  - runtime load
+  - isolated benchmark
+  - HLS `api_server.py` startup with TRT VAE active
+- current HLS server startup is now validated there for existing prepared
+  avatars
+- WebRTC is still disabled there until `aiortc` is installed
+- avatar preparation inside this env is still not the validated path
+  - the live workaround is a lazy preprocessing import in
+    `scripts/api_avatar.py`
+  - that lets the server load already-prepared avatars without forcing the
+    `mmpose` stack at startup
+
+## Current Benchmark Commands
+
+Re-run the active broad-batch TRT benchmark if needed:
 
 ```bash
-export MUSETALK_TRT_ENABLED=1
-export MUSETALK_VAE_BACKEND=trt
-export MUSETALK_COMPILE_VAE=0
+cd /content/MuseTalk
+source /content/py310_trt_exp/bin/activate
+MUSETALK_TRT_ENABLED=1 \
+MUSETALK_VAE_BACKEND=trt \
+MUSETALK_TRT_FALLBACK=0 \
+MUSETALK_TRT_DIR=/content/MuseTalk/models/tensorrt_altenv_bs32 \
+MUSETALK_COMPILE_VAE=0 \
+python scripts/benchmark_pipeline.py \
+  --batch-sizes 4,8,16,32,48 \
+  --warmup 5 \
+  --iters 20 \
+  --output-json benchmark_pipeline_trt_vae_bs32.json
 ```
 
-and rerun the normal HLS `load_test.py`.
+Current recommendation:
+
+- do **not** try to run TRT from `/content/py310`
+- use `scripts/setup_trt_experiment_env.sh --install-server-deps` to recreate
+  the validated TRT HLS env cleanly
+- use the old broad-batch `trt` backend only for performance/debug comparisons
+- use the new `trt_stagewise` backend for current visual HLS verification
+- even with the improvement, expect more acceleration work to still be needed
+  after that
+- if you want runtime safety against visually broken TRT artifacts, add:
+
+```bash
+export MUSETALK_TRT_REQUIRE_VALIDATION=1
+```
+
+## Experimental TRT VAE `api_server.py` Start
+
+This is the launch shape to use the exported TRT VAE artifact in the alternate
+environment for **debugging and performance experiments only**.
+
+Important current warning:
+
+- the active broad-batch TRT VAE artifact currently produces a gray-mask face
+  ROI in visual output
+- this server block is therefore **not** the recommended path for lip-sync
+  validation right now
+- keep using the stable PyTorch VAE path for any visual-quality signoff
+
+Current validated dependency rule:
+
+- keep the TRT env on the pinned package family that now works for HLS:
+  - `numpy==1.23.5`
+  - `opencv-python==4.9.0.80`
+  - `huggingface_hub==0.30.2`
+- do **not** pull unpinned server/UI packages into the TRT env
+  - the earlier drift to `numpy 2.2.6`, `gradio 6.9.0`, and
+    `huggingface_hub 1.7.2` broke OpenCV imports and the `transformers`
+    dependency family
+- `scripts/setup_trt_experiment_env.sh --install-server-deps` now installs the
+  validated HLS/api_server dependency set without bringing in `gradio` or
+  `moviepy`
+
+Current validated startup result:
+
+- `api_server.py` now starts successfully in `/content/py310_trt_exp`
+- logs confirm:
+  - `VAE decode backend active: tensorrt`
+  - HLS scheduler started with `max_combined_batch_size=48`
+- WebRTC still reports:
+  - `WebRTC disabled (missing deps): No module named 'aiortc'`
+
+Important runtime clarification:
+
+- the current **validated** end-to-end HLS runtime shape is:
+  - UNet in eager PyTorch
+  - VAE decode in TensorRT
+- a later server run with compiled UNet + TRT VAE did start successfully, but
+  the first HLS generation batch failed inside CUDA graph capture with:
+  - `CUDNN_STATUS_INTERNAL_ERROR_DEVICE_ALLOCATION_FAILED`
+  - `CUDA error: operation failed due to a previous error during capture`
+- for current HLS validation, keep UNet compile disabled
+
+Important batching note:
+
+- the active broad-batch TRT VAE engine now supports combined batch range
+  `[4, 48]`
+- that means this server block can now mirror the stable shared HLS batch
+  buckets for a fairer TRT-vs-PyTorch validation
+- the engine's current metadata is:
+  - artifact dir: `/content/MuseTalk/models/tensorrt_altenv_bs32`
+  - batch range: `[4, 48]`
+  - opt batch: `16`
+
+Copy/paste block:
+
+```bash
+cd /content/MuseTalk
+source /content/py310_trt_exp/bin/activate
+
+unset PYTORCH_CUDA_ALLOC_CONF
+
+export MUSETALK_COMPILE=0
+export MUSETALK_COMPILE_UNET=0
+export MUSETALK_COMPILE_VAE=0
+export MUSETALK_WARM_RUNTIME=1
+
+export MUSETALK_TRT_ENABLED=1
+export MUSETALK_VAE_BACKEND=trt
+export MUSETALK_TRT_FALLBACK=0
+export MUSETALK_TRT_DIR=/content/MuseTalk/models/tensorrt_altenv_bs32
+
+export AVATAR_CACHE_MAX_AVATARS=0
+export AVATAR_CACHE_MAX_MEMORY_MB=12000
+export AVATAR_CACHE_TTL_SECONDS=3600
+
+export HLS_SCHEDULER_MAX_BATCH=48
+export HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16,32,48
+export HLS_SCHEDULER_STARTUP_SLICE_SIZE=4
+export HLS_SCHEDULER_AGGRESSIVE_FILL_MAX_ACTIVE_JOBS=999
+export HLS_STARTUP_CHUNK_DURATION_SECONDS=0.5
+export HLS_STARTUP_CHUNK_COUNT=1
+export HLS_PREP_WORKERS=8
+export HLS_COMPOSE_WORKERS=8
+export HLS_ENCODE_WORKERS=8
+export HLS_MAX_PENDING_JOBS=24
+export HLS_CHUNK_VIDEO_ENCODER=h264_nvenc
+export HLS_PERSISTENT_SEGMENTER=0
+
+python api_server.py --host 0.0.0.0 --port 8000
+```
+
+If the server starts correctly with TRT active, the startup logs should show:
+
+- `VAE decode backend active: tensorrt`
+- `torch.compile disabled (set MUSETALK_COMPILE=1 to enable)`
+- scheduler settings consistent with:
+  - `max_combined_batch_size=48`
+  - `fixed_batch_sizes=[4, 8, 16, 32, 48]`
+
+## Current Working Stagewise TRT `api_server.py` Start
+
+This is the current best visual-validation startup shape for TRT in the
+alternate env.
+
+Current known-good characteristics:
+
+- backend: `trt_stagewise`
+- UNet: eager PyTorch
+- VAE: stagewise TRT with `native_group_norm` kept on the PyTorch side
+- scheduler: fixed `batch_size=4`
+- current visual result:
+  - real mouth motion appears again on HLS `/wall`
+  - the earlier gray ROI collapse is not visible in the current wall check
+
+Current important caveats:
+
+- this is the visually repaired path, **not** the broad-batch throughput path
+- it is currently validated at `batch_size=4`
+- larger buckets still need direct validation and benchmarking
+
+Copy/paste block:
+
+```bash
+cd /content/MuseTalk
+source /content/py310_trt_exp/bin/activate
+
+unset PYTORCH_CUDA_ALLOC_CONF
+
+export MUSETALK_COMPILE=0
+export MUSETALK_COMPILE_UNET=0
+export MUSETALK_COMPILE_VAE=0
+export MUSETALK_WARM_RUNTIME=1
+
+export MUSETALK_TRT_ENABLED=1
+export MUSETALK_VAE_BACKEND=trt_stagewise
+export MUSETALK_TRT_FALLBACK=0
+export MUSETALK_TRT_STAGEWISE_TORCH_EXECUTED_OPS=native_group_norm
+export MUSETALK_TRT_STAGEWISE_TORCH_STAGES=
+
+export AVATAR_CACHE_MAX_AVATARS=0
+export AVATAR_CACHE_MAX_MEMORY_MB=12000
+export AVATAR_CACHE_TTL_SECONDS=3600
+
+export HLS_SCHEDULER_MAX_BATCH=4
+export HLS_SCHEDULER_FIXED_BATCH_SIZES=4
+export HLS_SCHEDULER_STARTUP_SLICE_SIZE=4
+export HLS_SCHEDULER_AGGRESSIVE_FILL_MAX_ACTIVE_JOBS=999
+export HLS_STARTUP_CHUNK_DURATION_SECONDS=0.5
+export HLS_STARTUP_CHUNK_COUNT=1
+export HLS_PREP_WORKERS=8
+export HLS_COMPOSE_WORKERS=8
+export HLS_ENCODE_WORKERS=8
+export HLS_MAX_PENDING_JOBS=24
+
+export HLS_CHUNK_VIDEO_ENCODER=libx264
+export HLS_PERSISTENT_SEGMENTER=0
+
+python api_server.py --host 0.0.0.0 --port 8000
+```
+
+Look for these lines in the startup logs:
+
+- `VAE decode backend active: trt_stagewise`
+- `torch.compile disabled (set MUSETALK_COMPILE=1 to enable)`
+- scheduler settings consistent with:
+  - `max_combined_batch_size=4`
+  - `fixed_batch_sizes=[4]`
 
 ## What To Verify On Startup
 
 Look for these lines in the server logs:
 
 - `fixed_batch_sizes=[4, 8, 16, 32, 48]`
-- `encode_workers=8`
-- `UNet warmup bs=4, 8, 16, 32, 48`
-- `VAE warmup bs=4, 8, 16, 32, 48`
+- `VAE decode backend active: tensorrt`
+- `torch.compile disabled (set MUSETALK_COMPILE=1 to enable)`
+- `WebRTC disabled (missing deps): No module named 'aiortc'`
 
-## What To Verify During The Refactor Test
+## What To Verify During TRT Benchmarking
 
-For the current audio-sidecar / chunk-encode refactor, look for:
+Look for these lines in the benchmark/runtime logs:
 
-- `Prepared reusable AAC sidecar`
-- `Segment created with ... + aac-copy`
+- `TensorRT VAE backend is active`
+- `VAE decode backend: tensorrt`
 
-If those appear, the new chunk audio-copy path is active.
+If you instead see `VAE decode backend: pytorch`, the TRT artifact did not
+activate in that process.
+
+## Current Backend-Active HLS Result
+
+The first full end-to-end HLS load test with the broad-batch TRT VAE artifact
+has now completed in `/content/py310_trt_exp`.
+
+Current saved result:
+
+- file:
+  - `load_test_report.json`
+- server shape:
+  - eager UNet
+  - TRT VAE
+  - existing prepared avatar: `test_avatar`
+- client settings:
+  - `concurrency=1`
+  - `batch_size=4`
+  - `hold_seconds=10`
+- measured result:
+  - `completed=1`
+  - `failed=0`
+  - `avg_time_to_live_ready_s=3.015`
+  - `avg_segment_interval_s=0.196`
+  - `max_segment_interval_s=1.512`
+
+Important caveat:
+
+- this shows the **full HLS generation path executes** with TRT active
+- but it is **not** yet a clean higher-concurrency throughput result because
+  ffmpeg repeatedly failed to open `h264_nvenc` and fell back to CPU
+  `libx264`
+- observed encoder failure included:
+  - `OpenEncodeSessionEx failed: unsupported device (2)`
+  - `No capable devices found`
+  - repeated `Broken pipe` retries before fallback
+- and the current active TRT VAE artifact is now known to be visually wrong
+  for avatar output, with the talking-face ROI collapsing into a gray mask
+
+Practical meaning:
+
+- TRT VAE is now validated past the isolated benchmark and into real HLS output
+- the next meaningful load-test step is to fix or deliberately account for the
+  encoder fallback before reading too much into `5`- or `6`-stream results
+- separate from that, the current active TRT VAE artifact is now known to be
+  visually wrong and should not be treated as a valid avatar-output result
+
+## Current Stagewise HLS Visual Result
+
+A later HLS `/wall` run with the new `trt_stagewise` backend now appears
+visually correct on the avatar:
+
+- the mouth region is no longer replaced by the old flat gray ROI
+- real lip output is visible again across the wall tiles
+- this result lines up with the strong `batch_size=4` decode validation in
+  `tmp/vae_stagewise_backend_validation_bs4/report.json`
+
+Current honest caveat:
+
+- this is the first visual success signal, not the final throughput verdict
+- stagewise throughput and larger-batch correctness are still the next required
+  measurements
 
 ## Experimental Toggle
 

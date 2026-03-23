@@ -216,6 +216,7 @@ def benchmark_pipeline(args) -> dict:
     vae_backend = load_vae_trt_decoder(
         device=device,
         scaling_factor=vae.scaling_factor,
+        vae_module=vae.vae,
     )
     vae.set_decode_backend(vae_backend)
     unet.model = unet.model.half().to(device).eval()

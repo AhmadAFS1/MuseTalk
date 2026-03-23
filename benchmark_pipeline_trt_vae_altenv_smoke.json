@@ -1,0 +1,50 @@
+{
+  "metadata": {
+    "device": "cuda:0",
+    "torch_version": "2.5.1+cu121",
+    "torch_cuda_version": "12.1",
+    "cuda_available": true,
+    "compile_enabled": false,
+    "compiled_unet_mode": null,
+    "compiled_vae_mode": null,
+    "vae_decode_backend": "tensorrt",
+    "unet_dtype": "torch.float16",
+    "vae_dtype": "torch.float16",
+    "batch_sizes": [
+      4
+    ],
+    "warmup": 1,
+    "iters": 1,
+    "unet_model_path": "models/musetalkV15/unet.pth",
+    "unet_config": "models/musetalkV15/musetalk.json",
+    "vae_type": "sd-vae"
+  },
+  "results": [
+    {
+      "batch_size": 4,
+      "pe_ms": 0.13,
+      "unet_ms": 27.57,
+      "vae_decode_ms": 49.07,
+      "transfer_ms": 1.09,
+      "vae_full_path_ms": 51.21,
+      "pipeline_total_ms": 78.91,
+      "decomposed_total_ms": 77.86,
+      "frames_per_sec": 50.7,
+      "peak_allocated_mb": 1890.3,
+      "peak_reserved_mb": 2650.0
+    }
+  ],
+  "best": {
+    "batch_size": 4,
+    "pe_ms": 0.13,
+    "unet_ms": 27.57,
+    "vae_decode_ms": 49.07,
+    "transfer_ms": 1.09,
+    "vae_full_path_ms": 51.21,
+    "pipeline_total_ms": 78.91,
+    "decomposed_total_ms": 77.86,
+    "frames_per_sec": 50.7,
+    "peak_allocated_mb": 1890.3,
+    "peak_reserved_mb": 2650.0
+  }
+}

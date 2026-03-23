@@ -1,0 +1,42 @@
+{
+  "avatar_id": "test_avatar",
+  "batch_size": 4,
+  "precision": "fp16",
+  "fail_mae": 0.05,
+  "torch_executed_ops": [
+    "native_group_norm"
+  ],
+  "requested_stages": [
+    "decoder_mid_block"
+  ],
+  "first_bad_stage": null,
+  "stages": [
+    {
+      "stage": "decoder_mid_block",
+      "pytorch_shape": [
+        4,
+        512,
+        32,
+        32
+      ],
+      "pytorch_dtype": "torch.float16",
+      "pytorch_min": -20.484375,
+      "pytorch_max": 24.25,
+      "pytorch_mean": 0.12322998046875,
+      "trt_shape": [
+        4,
+        512,
+        32,
+        32
+      ],
+      "trt_dtype": "torch.float16",
+      "trt_min": -20.484375,
+      "trt_max": 24.265625,
+      "trt_mean": 0.123291015625,
+      "mae": 0.0041903164237737656,
+      "max_abs": 0.109375,
+      "compile_failed": false,
+      "passed": true
+    }
+  ]
+}

@@ -11,7 +11,7 @@ SCRIPT_NAME="$(basename "$0")"
 PYTHON_BIN="${PYTHON_BIN:-python3.10}"
 VENV_PATH="${VENV_PATH:-/content/py310_trt_exp}"
 REPO_ROOT="${REPO_ROOT:-/content/MuseTalk}"
-ARTIFACT_DIR="${ARTIFACT_DIR:-/content/MuseTalk/models/tensorrt_altenv}"
+ARTIFACT_DIR="${ARTIFACT_DIR:-/content/MuseTalk/models/tensorrt_altenv_bs32}"
 RUNTIME_REQUIREMENTS="${RUNTIME_REQUIREMENTS:-}"
 PIP_CACHE_DIR="${PIP_CACHE_DIR:-$HOME/.cache/pip}"
 
@@ -22,9 +22,32 @@ TORCH_TENSORRT_VERSION="${TORCH_TENSORRT_VERSION:-2.5.0}"
 PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu121}"
 NVIDIA_EXTRA_INDEX_URL="${NVIDIA_EXTRA_INDEX_URL:-https://pypi.nvidia.com}"
 
+NUMPY_VERSION="${NUMPY_VERSION:-1.23.5}"
+OPENCV_VERSION="${OPENCV_VERSION:-4.9.0.80}"
+DIFFUSERS_VERSION="${DIFFUSERS_VERSION:-0.30.2}"
+TRANSFORMERS_VERSION="${TRANSFORMERS_VERSION:-4.39.2}"
+TOKENIZERS_VERSION="${TOKENIZERS_VERSION:-0.15.2}"
+ACCELERATE_VERSION="${ACCELERATE_VERSION:-0.28.0}"
+HUGGINGFACE_HUB_VERSION="${HUGGINGFACE_HUB_VERSION:-0.30.2}"
+EINOPS_VERSION="${EINOPS_VERSION:-0.8.1}"
+SAFETENSORS_VERSION="${SAFETENSORS_VERSION:-0.7.0}"
+PILLOW_VERSION="${PILLOW_VERSION:-11.3.0}"
+
+FASTAPI_VERSION="${FASTAPI_VERSION:-0.135.1}"
+UVICORN_VERSION="${UVICORN_VERSION:-0.42.0}"
+AIOHTTP_VERSION="${AIOHTTP_VERSION:-3.13.3}"
+SOUNDFILE_VERSION="${SOUNDFILE_VERSION:-0.12.1}"
+LIBROSA_VERSION="${LIBROSA_VERSION:-0.11.0}"
+IMAGEIO_VERSION="${IMAGEIO_VERSION:-2.37.3}"
+OMEGACONF_VERSION="${OMEGACONF_VERSION:-2.3.0}"
+FFMPEG_PYTHON_VERSION="${FFMPEG_PYTHON_VERSION:-0.2.0}"
+AIOFILES_VERSION="${AIOFILES_VERSION:-24.1.0}"
+AV_VERSION="${AV_VERSION:-17.0.0}"
+
 CLEAN=0
 CLEAR_PIP_CACHE=0
 INSTALL_RUNTIME_DEPS=0
+INSTALL_SERVER_DEPS=0
 
 log() {
   printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
@@ -48,6 +71,7 @@ Options:
   --artifact-dir PATH        TensorRT artifact output dir (default: $ARTIFACT_DIR)
   --python-bin PATH          Python 3.10 interpreter to use (default: $PYTHON_BIN)
   --runtime-requirements P   Requirements file for optional runtime deps
+  --install-server-deps      Install the pinned HLS/api_server dependency set
   --install-runtime-deps     Install repo runtime deps after backend validation
   --clean                    Remove an existing venv at --venv-path first
   --clear-pip-cache          Remove the pip cache dir before installing
@@ -60,10 +84,13 @@ Environment overrides:
   TORCH_TENSORRT_VERSION     Default: $TORCH_TENSORRT_VERSION
   PYTORCH_INDEX_URL          Default: $PYTORCH_INDEX_URL
   NVIDIA_EXTRA_INDEX_URL     Default: $NVIDIA_EXTRA_INDEX_URL
+  NUMPY_VERSION              Default: $NUMPY_VERSION
+  OPENCV_VERSION             Default: $OPENCV_VERSION
+  HUGGINGFACE_HUB_VERSION    Default: $HUGGINGFACE_HUB_VERSION
 
 Examples:
   $SCRIPT_NAME --clean --clear-pip-cache
-  $SCRIPT_NAME --clean --install-runtime-deps
+  $SCRIPT_NAME --clean --install-server-deps
   VENV_PATH=/content/py310_trt_exp_alt $SCRIPT_NAME --clean
 EOF
 }
@@ -101,6 +128,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --install-runtime-deps)
       INSTALL_RUNTIME_DEPS=1
+      shift
+      ;;
+    --install-server-deps)
+      INSTALL_SERVER_DEPS=1
       shift
       ;;
     --clean)
@@ -184,11 +215,28 @@ log "Installing torch-tensorrt pinned stack"
   --extra-index-url "$NVIDIA_EXTRA_INDEX_URL" \
   "torch-tensorrt==$TORCH_TENSORRT_VERSION"
 
+log "Installing pinned export + benchmark dependencies"
+"$VENV_PYTHON" -m pip install --no-cache-dir \
+  "numpy==$NUMPY_VERSION" \
+  "opencv-python==$OPENCV_VERSION" \
+  "diffusers==$DIFFUSERS_VERSION" \
+  "transformers==$TRANSFORMERS_VERSION" \
+  "tokenizers==$TOKENIZERS_VERSION" \
+  "accelerate==$ACCELERATE_VERSION" \
+  "huggingface_hub==$HUGGINGFACE_HUB_VERSION" \
+  "einops==$EINOPS_VERSION" \
+  "safetensors==$SAFETENSORS_VERSION" \
+  "pillow==$PILLOW_VERSION"
+
 log "Validating backend imports and CUDA registration"
 "$VENV_PYTHON" - <<'PY'
 import torch
 import torch_tensorrt
 import tensorrt
+import cv2
+import diffusers
+import transformers
+import huggingface_hub
 
 if not torch.cuda.is_available():
     raise RuntimeError("torch.cuda.is_available() returned False")
@@ -200,13 +248,62 @@ print("torch", torch.__version__)
 print("torch.cuda", torch.version.cuda)
 print("torch_tensorrt", torch_tensorrt.__version__)
 print("tensorrt", tensorrt.__version__)
+print("cv2", cv2.__version__)
+print("diffusers", diffusers.__version__)
+print("transformers", transformers.__version__)
+print("huggingface_hub", huggingface_hub.__version__)
 print("cuda_device", device_name)
 print("engine_class", engine_class)
 PY
 
+if [[ $INSTALL_SERVER_DEPS -eq 1 ]]; then
+  log "Installing pinned HLS/api_server dependency set"
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "fastapi==$FASTAPI_VERSION" \
+    "uvicorn==$UVICORN_VERSION" \
+    "aiohttp==$AIOHTTP_VERSION" \
+    "soundfile==$SOUNDFILE_VERSION" \
+    "librosa==$LIBROSA_VERSION" \
+    "imageio[ffmpeg]==$IMAGEIO_VERSION" \
+    "omegaconf==$OMEGACONF_VERSION" \
+    "ffmpeg-python==$FFMPEG_PYTHON_VERSION" \
+    "aiofiles==$AIOFILES_VERSION" \
+    "av==$AV_VERSION"
+
+  log "Validating HLS/api_server import path"
+  "$VENV_PYTHON" - <<'PY'
+import numpy
+import cv2
+import fastapi
+import uvicorn
+import aiohttp
+import soundfile
+import librosa
+import imageio
+import omegaconf
+import ffmpeg
+import aiofiles
+import av
+import api_server
+
+print("numpy", numpy.__version__)
+print("cv2", cv2.__version__)
+print("fastapi", fastapi.__version__)
+print("uvicorn", uvicorn.__version__)
+print("aiohttp", aiohttp.__version__)
+print("soundfile", soundfile.__version__)
+print("librosa", librosa.__version__)
+print("imageio", imageio.__version__)
+print("omegaconf", omegaconf.__version__)
+print("av", av.__version__)
+print("api_server import OK")
+PY
+fi
+
 if [[ $INSTALL_RUNTIME_DEPS -eq 1 ]]; then
   [[ -f "$RUNTIME_REQUIREMENTS" ]] || die "Runtime requirements file not found: $RUNTIME_REQUIREMENTS"
   log "Installing MuseTalk runtime dependencies from: $RUNTIME_REQUIREMENTS"
+  log "Warning: full requirements are broader than the validated TRT HLS stack"
   "$VENV_PYTHON" -m pip install --no-cache-dir -r "$RUNTIME_REQUIREMENTS"
 else
   log "Skipping runtime dependency install. Use --install-runtime-deps to include repo requirements."
@@ -218,5 +315,9 @@ printf 'Next steps:\n'
 printf '  source %s/bin/activate\n' "$VENV_PATH"
 printf '  python scripts/tensorrt_export.py ...\n'
 printf '  python scripts/benchmark_pipeline.py ...\n'
+if [[ $INSTALL_SERVER_DEPS -eq 1 ]]; then
+  printf '  python api_server.py --host 0.0.0.0 --port 8000\n'
+  printf '  # Current validated HLS runtime shape: eager UNet + TRT VAE (leave MUSETALK_COMPILE=0)\n'
+fi
 printf '\n'
 printf 'TensorRT artifacts should be kept under: %s\n' "$ARTIFACT_DIR"

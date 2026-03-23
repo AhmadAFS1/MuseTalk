@@ -1,0 +1,154 @@
+{
+  "avatar_id": "test_avatar",
+  "batch_size": 4,
+  "precision": "fp16",
+  "fail_mae": 0.05,
+  "torch_executed_ops": [
+    "native_group_norm"
+  ],
+  "requested_stages": [
+    "decoder_postprocess",
+    "decoder_up_block_0",
+    "decoder_up_block_1",
+    "decoder_up_block_2",
+    "decoder_up_block_3"
+  ],
+  "first_bad_stage": "decoder_up_block_1",
+  "stages": [
+    {
+      "stage": "decoder_up_block_0",
+      "pytorch_shape": [
+        4,
+        512,
+        64,
+        64
+      ],
+      "pytorch_dtype": "torch.float16",
+      "pytorch_min": -99.4375,
+      "pytorch_max": 89.5625,
+      "pytorch_mean": 1.6142578125,
+      "trt_shape": [
+        4,
+        512,
+        64,
+        64
+      ],
+      "trt_dtype": "torch.float16",
+      "trt_min": -99.0625,
+      "trt_max": 89.3125,
+      "trt_mean": 1.615234375,
+      "mae": 0.017463207244873047,
+      "max_abs": 0.8125,
+      "compile_failed": false,
+      "passed": true
+    },
+    {
+      "stage": "decoder_up_block_1",
+      "pytorch_shape": [
+        4,
+        512,
+        128,
+        128
+      ],
+      "pytorch_dtype": "torch.float16",
+      "pytorch_min": -385.25,
+      "pytorch_max": 356.25,
+      "pytorch_mean": 0.67529296875,
+      "trt_shape": [
+        4,
+        512,
+        128,
+        128
+      ],
+      "trt_dtype": "torch.float16",
+      "trt_min": -386.0,
+      "trt_max": 357.0,
+      "trt_mean": 0.67529296875,
+      "mae": 0.06646186113357544,
+      "max_abs": 2.25,
+      "compile_failed": false,
+      "passed": false
+    },
+    {
+      "stage": "decoder_up_block_2",
+      "pytorch_shape": [
+        4,
+        256,
+        256,
+        256
+      ],
+      "pytorch_dtype": "torch.float16",
+      "pytorch_min": -2734.0,
+      "pytorch_max": 2054.0,
+      "pytorch_mean": -0.369384765625,
+      "trt_shape": [
+        4,
+        256,
+        256,
+        256
+      ],
+      "trt_dtype": "torch.float16",
+      "trt_min": -2738.0,
+      "trt_max": 2054.0,
+      "trt_mean": -0.369384765625,
+      "mae": 0.08252778649330139,
+      "max_abs": 12.0,
+      "compile_failed": false,
+      "passed": false
+    },
+    {
+      "stage": "decoder_up_block_3",
+      "pytorch_shape": [
+        4,
+        128,
+        256,
+        256
+      ],
+      "pytorch_dtype": "torch.float16",
+      "pytorch_min": -8336.0,
+      "pytorch_max": 6532.0,
+      "pytorch_mean": -7.88671875,
+      "trt_shape": [
+        4,
+        128,
+        256,
+        256
+      ],
+      "trt_dtype": "torch.float16",
+      "trt_min": -8336.0,
+      "trt_max": 6528.0,
+      "trt_mean": -7.88671875,
+      "mae": 0.03470318764448166,
+      "max_abs": 16.0,
+      "compile_failed": false,
+      "passed": true
+    },
+    {
+      "stage": "decoder_postprocess",
+      "pytorch_shape": [
+        4,
+        3,
+        256,
+        256
+      ],
+      "pytorch_dtype": "torch.float16",
+      "pytorch_min": -1.025390625,
+      "pytorch_max": 0.962890625,
+      "pytorch_mean": -0.5029296875,
+      "trt_shape": [
+        4,
+        3,
+        256,
+        256
+      ],
+      "trt_dtype": "torch.float16",
+      "trt_min": -1.0263671875,
+      "trt_max": 0.9638671875,
+      "trt_mean": -0.5029296875,
+      "mae": 0.0004885804955847561,
+      "max_abs": 0.00390625,
+      "compile_failed": false,
+      "passed": true
+    }
+  ]
+}

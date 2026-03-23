@@ -1,0 +1,106 @@
+{
+  "metadata": {
+    "device": "cuda:0",
+    "torch_version": "2.5.1+cu121",
+    "torch_cuda_version": "12.1",
+    "cuda_available": true,
+    "compile_enabled": false,
+    "compiled_unet_mode": null,
+    "compiled_vae_mode": null,
+    "vae_decode_backend": "tensorrt",
+    "unet_dtype": "torch.float16",
+    "vae_dtype": "torch.float16",
+    "batch_sizes": [
+      4,
+      8,
+      16,
+      32,
+      48
+    ],
+    "warmup": 5,
+    "iters": 20,
+    "unet_model_path": "models/musetalkV15/unet.pth",
+    "unet_config": "models/musetalkV15/musetalk.json",
+    "vae_type": "sd-vae"
+  },
+  "results": [
+    {
+      "batch_size": 4,
+      "pe_ms": 0.03,
+      "unet_ms": 23.47,
+      "vae_decode_ms": 50.57,
+      "transfer_ms": 0.89,
+      "vae_full_path_ms": 51.36,
+      "pipeline_total_ms": 74.85,
+      "decomposed_total_ms": 74.96,
+      "frames_per_sec": 53.4,
+      "peak_allocated_mb": 1890.3,
+      "peak_reserved_mb": 2650.0
+    },
+    {
+      "batch_size": 8,
+      "pe_ms": 0.03,
+      "unet_ms": 38.85,
+      "vae_decode_ms": 98.86,
+      "transfer_ms": 1.78,
+      "vae_full_path_ms": 100.36,
+      "pipeline_total_ms": 139.24,
+      "decomposed_total_ms": 139.51,
+      "frames_per_sec": 57.5,
+      "peak_allocated_mb": 1949.4,
+      "peak_reserved_mb": 2650.0
+    },
+    {
+      "batch_size": 16,
+      "pe_ms": 0.03,
+      "unet_ms": 67.98,
+      "vae_decode_ms": 194.29,
+      "transfer_ms": 5.32,
+      "vae_full_path_ms": 197.75,
+      "pipeline_total_ms": 265.75,
+      "decomposed_total_ms": 267.61,
+      "frames_per_sec": 60.2,
+      "peak_allocated_mb": 2082.7,
+      "peak_reserved_mb": 2612.0
+    },
+    {
+      "batch_size": 32,
+      "pe_ms": 0.03,
+      "unet_ms": 126.17,
+      "vae_decode_ms": 389.45,
+      "transfer_ms": 13.07,
+      "vae_full_path_ms": 396.2,
+      "pipeline_total_ms": 522.4,
+      "decomposed_total_ms": 528.72,
+      "frames_per_sec": 61.3,
+      "peak_allocated_mb": 2349.9,
+      "peak_reserved_mb": 2846.0
+    },
+    {
+      "batch_size": 48,
+      "pe_ms": 0.03,
+      "unet_ms": 188.07,
+      "vae_decode_ms": 586.8,
+      "transfer_ms": 17.93,
+      "vae_full_path_ms": 596.55,
+      "pipeline_total_ms": 784.65,
+      "decomposed_total_ms": 792.82,
+      "frames_per_sec": 61.2,
+      "peak_allocated_mb": 2617.7,
+      "peak_reserved_mb": 3314.0
+    }
+  ],
+  "best": {
+    "batch_size": 32,
+    "pe_ms": 0.03,
+    "unet_ms": 126.17,
+    "vae_decode_ms": 389.45,
+    "transfer_ms": 13.07,
+    "vae_full_path_ms": 396.2,
+    "pipeline_total_ms": 522.4,
+    "decomposed_total_ms": 528.72,
+    "frames_per_sec": 61.3,
+    "peak_allocated_mb": 2349.9,
+    "peak_reserved_mb": 2846.0
+  }
+}
