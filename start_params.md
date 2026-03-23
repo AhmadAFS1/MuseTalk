@@ -718,6 +718,23 @@ Current honest caveat:
 - this is the first visual success signal, not the final throughput verdict
 - stagewise throughput and larger-batch correctness are still the next required
   measurements
+- a later real `load_test.py` run on the same stagewise path at
+  `concurrency=8`, `batch_size=4`, `playback_fps=24`, `musetalk_fps=12`,
+  `hold_seconds=30` now shows materially improved live HLS behavior:
+  - `completed=8`
+  - `failed=0`
+  - `avg_time_to_live_ready_s=1.631`
+  - `avg_segment_interval_s=1.769`
+  - `max_segment_interval_s=2.524`
+  - GPU average util about `83.76%`, peak about `96%`
+  - GPU memory stayed around `6742 MB`
+- practical meaning of that stagewise `concurrency=8` run:
+  - startup/live-ready behavior is far better than the older `~4-5s` band
+  - steady-state segment pacing is also better than the earlier stable PyTorch
+    `~1.97-2.04s avg / ~3.10-3.22s max` band
+  - but the run still technically trips the existing throttling rule because
+    `max_segment_interval_s` stayed above the `2.0s` threshold
+  - so this is strong progress, not final mission-complete proof yet
 
 ## Experimental Toggle
 

@@ -344,6 +344,15 @@ Concrete implementation update:
    - `decoder_postprocess`: MAE `0.000489`
 4. current next implementation plan:
    - treat the first `batch_size=4` `/wall` result as visually repaired
+   - record the first `concurrency=8` stagewise HLS result at the same bucket:
+     - `completed=8`
+     - `avg_time_to_live_ready_s=1.631`
+     - `avg_segment_interval_s=1.769`
+     - `max_segment_interval_s=2.524`
+     - interpretation:
+       - much better startup and better steady-state pacing than the earlier
+         stable PyTorch band
+       - still technically throttled by the current `2.0s` max-interval rule
    - validate `trt_stagewise` on `batch_size=8`, `16`, `32`, `48`
    - benchmark its throughput against the PyTorch VAE path
    - if it stays correct and faster, widen it into real HLS testing

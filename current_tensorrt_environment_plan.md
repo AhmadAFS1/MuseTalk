@@ -300,6 +300,23 @@ New stagewise runtime update in this alternate env:
   - so the alternate env now has both:
     - metric validation at `batch_size=4`
     - and a first user-visible wall validation at the same bucket
+- a later stagewise HLS `load_test.py` run in this same env now also produced
+  the first encouraging `concurrency=8` result:
+  - `batch_size=4`
+  - `playback_fps=24`
+  - `musetalk_fps=12`
+  - `hold_seconds=30`
+  - `completed=8`
+  - `failed=0`
+  - `avg_time_to_live_ready_s=1.631`
+  - `avg_segment_interval_s=1.769`
+  - `max_segment_interval_s=2.524`
+  - GPU average util about `83.76%`, peak about `96%`
+  - GPU memory stayed around `6742 MB`
+  - practical meaning:
+    - the repaired stagewise path is no longer just a synthetic decode fix
+    - it now has a promising real `concurrency=8` HLS result too
+    - but it still remains slightly above the repo's throttling threshold
 
 ## Core Principle
 

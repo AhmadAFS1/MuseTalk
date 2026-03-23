@@ -563,6 +563,22 @@ Current interpretation:
   stagewise path at the same `batch_size=4` setup
 - that is the first user-visible confirmation that the repair is not only
   synthetic or metric-based
+- a later real `load_test.py` run on that same stagewise path at
+  `concurrency=8`, `batch_size=4`, `playback_fps=24`, `musetalk_fps=12`,
+  `hold_seconds=30` now also shows a strong end-to-end improvement:
+  - `completed=8`
+  - `failed=0`
+  - `avg_time_to_live_ready_s=1.631`
+  - `avg_segment_interval_s=1.769`
+  - `max_segment_interval_s=2.524`
+  - GPU average util about `83.76%`, peak about `96%`
+  - GPU memory stayed around `6742 MB`
+- practical meaning:
+  - the gray-mask fix did not immediately collapse runtime behavior
+  - stagewise TRT at `batch_size=4` now looks promising both visually and in
+    the first real `concurrency=8` HLS run
+  - but it is still slightly throttled by the repo's current threshold because
+    `max_segment_interval_s` remains above `2.0s`
 - the next risk is no longer “is it gray?” but:
   - does stagewise TRT remain correct at larger batches?
   - and is it still fast enough to justify runtime adoption?

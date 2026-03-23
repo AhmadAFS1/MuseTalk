@@ -136,6 +136,12 @@ Current implication for acceleration work:
 - stop treating the old saved-engine VAE TRT artifacts as the only TRT option
 - the new stagewise backend has now cleared its first visual HLS checkpoint at
   `batch_size=4`
+- the same stagewise path now also has a promising real `concurrency=8`
+  `load_test.py` result:
+  - `avg_time_to_live_ready_s=1.631`
+  - `avg_segment_interval_s=1.769`
+  - `max_segment_interval_s=2.524`
+  - `completed=8/8`
 - benchmark the new stagewise backend next
 - then validate the larger scheduler buckets
 - if its speedup survives while preserving visual correctness, it becomes the
