@@ -699,6 +699,77 @@ That means the actual optimization work belongs in code under `musetalk/`, not i
 
 ## Current Hot Bottlenecks
 
+### 0. The Current 8-Stream Story Is Host-Pipeline Backpressure, Partially Recovered
+
+The severe regression that triggered the host-side refactor showed:
+
+- `avg_time_to_live_ready_s = 3.469`
+- `avg_segment_interval_s = 3.622`
+- `max_segment_interval_s = 6.137`
+- `avg GPU util = 37.2%`
+
+After the first host-pipeline refactor slice landed, a later `concurrency=8`
+run recovered to:
+
+- `avg_time_to_live_ready_s = 1.760`
+- `avg_segment_interval_s = 1.733`
+- `max_segment_interval_s = 2.535`
+- `avg GPU util = 82.06%`
+
+Later March 24 ramp testing then clarified the current capacity band:
+
+- `concurrency=6`
+  - `avg_time_to_live_ready_s = 1.342`
+  - `avg_segment_interval_s = 1.294`
+  - `max_segment_interval_s = 2.032`
+  - `avg GPU util = 83.84%`
+- `concurrency=7`
+  - `avg_time_to_live_ready_s = 1.508`
+  - `avg_segment_interval_s = 1.516`
+  - `max_segment_interval_s = 2.530`
+  - `avg GPU util = 84.83%`
+- repeated `concurrency=8`
+  - `avg_time_to_live_ready_s = 1.569-1.760`
+  - `avg_segment_interval_s = 1.733-1.736`
+  - `max_segment_interval_s = 2.524-2.535`
+  - `avg GPU util = 82.06-83.64%`
+
+That changes the current interpretation again:
+
+- the repaired `trt_stagewise` VAE path is no longer the main blocker by itself
+- the live HLS path can recover strongly when host-side prep work is improved
+- the current remaining bottleneck is still dominated by host-side prep /
+  compose / encode / queueing behavior
+- the first host-pipeline slice is validated, but the tail is still slightly
+  above the current throttling threshold
+- `concurrency=6` is now the first practical realtime milestone on this branch
+  even though the strict `load_test.py` warning still trips by about `32ms`
+  on the worst interval
+- `concurrency=7` and `concurrency=8` are now clearly in the same batch-4
+  saturation band, which is why they look so similar in aggregate metrics
+
+### 1. Request Prep Is Still Too Front-Loaded And Sequential
+
+In `scripts/hls_gpu_scheduler.py`:
+
+- `_prepare_job()` loads the avatar
+- extracts audio features
+- runs Whisper feature encode
+- builds prompts
+- applies positional encoding
+- allocates and fills the initial conditioning tensor
+- only then queues the job for the shared GPU loop
+
+This means a large amount of CPU work still has to finish before the GPU
+scheduler can even start serving a request.
+
+Current update:
+
+- the first refactor slice now overlaps avatar load with audio feature
+  extraction
+- idle-frame preload also overlaps with conditioning setup
+- this area is no longer purely serial, but it is still a primary hotspot
+
 ### 1. Audio Prompt Construction Is Still Too CPU-Centric
 
 In `musetalk/utils/audio_processor.py`:
@@ -712,6 +783,13 @@ This is one of the clearest remaining optimization opportunities because it adds
 - GPU to CPU transfer
 - Python loop overhead
 - extra CPU tensor manipulation before the scheduler even starts using the prompts
+
+Current update:
+
+- the first refactor slice now batches Whisper segment encoding and vectorizes
+  prompt construction
+- that change is now part of the active working branch and should no longer be
+  treated as only a failed standalone experiment
 
 ### 2. Scheduler Batch Assembly Still Pays Repeated CPU Staging Cost
 
@@ -737,7 +815,23 @@ In `musetalk/models/vae.py`:
 
 That means we are still paying a full host handoff right after decode.
 
-### 4. Compose Is Still CPU/OpenCV
+### 4. Avatar Cache Miss Load Is Still Too Expensive
+
+In `scripts/api_avatar.py`:
+
+- `_load_existing_materials()` reads all cached frames serially
+- then reads all masks serially
+- this happens on cache miss before the stream can become live
+
+This is a strong multicore refactor target because `cv2.imread`-style work is
+much easier to parallelize safely than the GPU model path.
+
+Current update:
+
+- the first refactor slice now parallelizes frame / mask loading on cache miss
+- this cost is improved, but not eliminated
+
+### 5. Compose Is Still CPU/OpenCV
 
 In `scripts/api_avatar.py` and `musetalk/utils/blending.py`:
 
@@ -747,7 +841,7 @@ In `scripts/api_avatar.py` and `musetalk/utils/blending.py`:
 
 This is not strictly “model math,” but it is still one of the largest remaining non-encode costs after the model step.
 
-### 5. Encode Still Spawns A Fresh `ffmpeg` Per Chunk
+### 6. Encode Still Spawns A Fresh `ffmpeg` Per Chunk
 
 In `scripts/api_avatar.py`:
 
@@ -756,6 +850,17 @@ In `scripts/api_avatar.py`:
 - the chunk is encoded and muxed from scratch
 
 This is still expensive, but it is more of a pipeline/encode bottleneck than a pure model/GPU bottleneck.
+
+### 7. Live Serving Still Has Duplicated Orchestration Paths
+
+In `api_server.py`:
+
+- HLS has a shared GPU scheduler path
+- older direct streaming and session routes still run `avatar.inference_streaming(...)`
+  inside `manager.executor`
+
+That duplication makes the throughput problem harder to solve because the repo
+still has more than one live-generation architecture.
 
 ## Runtime Capability Findings
 
@@ -781,7 +886,31 @@ That experiment has now been tested and rolled back, so the next serious path is
 
 ## Priority List
 
-### Priority 1: TensorRT For VAE
+### Priority 1: Host-Side HLS Pipeline Refactor
+
+Why this is first now:
+
+- the repaired stagewise TRT backend appears visually correct enough to keep moving
+- the latest poor 8-stream run shows the GPU is now underfed
+- the next gains are more likely to come from prep / compose / encode refactors
+  than from another immediate model export branch
+
+Target files:
+
+- `scripts/hls_gpu_scheduler.py`
+- `scripts/api_avatar.py`
+- `musetalk/utils/audio_processor.py`
+- `api_server.py`
+
+Work:
+
+- parallelize HLS prep
+- reduce cache-miss load cost
+- replace per-chunk `ffmpeg` spawn with a persistent encode path
+- refactor compose to use cores more effectively
+- converge duplicated live-serving paths on the shared scheduler
+
+### Priority 2: TensorRT For VAE / UNet Follow-On Only After Host Refactor
 
 Why this is first:
 
@@ -796,7 +925,7 @@ Target files:
 - `scripts/tensorrt_export.py`
 - `scripts/trt_runtime.py`
 
-### Priority 2: TensorRT For UNet
+### Priority 3: TensorRT For UNet
 
 Why this is next:
 
@@ -811,7 +940,7 @@ Target files:
 - `scripts/tensorrt_export.py`
 - `scripts/trt_runtime.py`
 
-### Priority 3: ONNX Runtime Fallback
+### Priority 4: ONNX Runtime Fallback
 
 Why this matters:
 
@@ -825,7 +954,7 @@ Target files:
 - `scripts/avatar_manager_parallel.py`
 - `scripts/hls_gpu_scheduler.py`
 
-### Priority 4: Rework The VAE Output Boundary Only If Backend Acceleration Still Leaves A Gap
+### Priority 5: Rework The VAE Output Boundary Only If Backend Acceleration Still Leaves A Gap
 
 Why this is later:
 
@@ -839,7 +968,7 @@ Target files:
 - `scripts/hls_gpu_scheduler.py`
 - `scripts/api_avatar.py`
 
-### Priority 5: GPU Compose Only If Backend Acceleration Still Leaves A Gap
+### Priority 6: GPU Compose Only If Backend Acceleration Still Leaves A Gap
 
 Why this is later:
 
@@ -858,6 +987,7 @@ Based on the current code and prior experiments, these are lower-value next step
 
 - pushing `HLS_SCHEDULER_MAX_BATCH` above `48`
 - more worker-count tuning
+- more aggressive thread-pool caps as the primary strategy
 - more startup-slice tuning
 - changing `scripts/session_manager.py`
 - changing WebRTC files for this HLS mission
@@ -866,20 +996,25 @@ Based on the current code and prior experiments, these are lower-value next step
 
 ## Practical Recommendation
 
-If we want the strongest remaining model/GPU-focused branch to try, the best sequence is:
+If we want the strongest remaining throughput branch to try, the best sequence is:
 
-1. TensorRT for VAE
-2. TensorRT for UNet
+1. host-side HLS pipeline refactor
+2. then revisit TensorRT for UNet or another backend step
 3. ONNX Runtime fallback if TensorRT is blocked
 4. only after that, revisit VAE-output or GPU-compose follow-on work
 
-That is the highest-confidence remaining model/GPU acceleration path left in the current codebase.
+That is the highest-confidence remaining throughput path left in the current codebase.
 
 ## Notes
 
 - The startup-fairness scheduler logic in `scripts/hls_gpu_scheduler.py` should still be preserved.
-- The current findings do **not** say encode/publish overhead is solved; only that the best remaining *model/GPU* gains are elsewhere first.
-- Vectorized audio-prompt building was also a useful experiment, but it did not produce a meaningful throughput shift for the current 8-stream HLS target and should not be treated as an active win.
+- The current findings do **not** say encode/publish overhead is solved.
+- The latest Threadripper run actually strengthens the case that host-side
+  HLS prep / compose / encode are now the current lead bottlenecks.
+- The earlier standalone vectorized-audio-prompt experiment was not a meaningful
+  win by itself, but the later broader host-pipeline refactor that combined
+  vectorized prompt construction, batched Whisper handling, and concurrent prep
+  clearly helped recover the live HLS path and is now part of the active branch.
 - GPU-resident latent cycles were also a useful experiment, but they did not produce a meaningful throughput shift for the current 8-stream HLS target and should not be treated as an active win either.
 - GPU-resident conditioning was a useful experiment, but it is now a documented dead end for the current branch unless later evidence gives us a stronger reason to revisit it.
 - Explicit SDPA attention tuning was also a useful experiment, but it did not produce a meaningful throughput shift for the current 8-stream HLS target and is now rolled back as well.

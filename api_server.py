@@ -1,5 +1,12 @@
 import os
 import sys
+
+# Local modification: this differs from the original MuseTalk code.
+# It applies early CPU thread-pool tuning before heavier imports happen.
+from scripts.runtime_cpu_tuning import apply_cpu_tuning_early, apply_cpu_tuning_runtime
+
+apply_cpu_tuning_early("api_server")
+
 import argparse
 from pathlib import Path
 from typing import Optional
@@ -269,6 +276,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from scripts.avatar_manager_parallel import ParallelAvatarManager
 from argparse import Namespace
+
+# Local modification: this differs from the original MuseTalk code.
+# It reapplies runtime CPU tuning after the server runtime stack is imported.
+apply_cpu_tuning_runtime("api_server")
 
 # ============================================================================
 # Pydantic Models (Request/Response schemas)

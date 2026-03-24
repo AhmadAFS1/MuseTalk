@@ -1,4 +1,11 @@
 import os
+
+# Local modification: this differs from the original MuseTalk code.
+# This local branch applies CPU tuning hooks to the preprocess entrypoint.
+from runtime_cpu_tuning import apply_cpu_tuning_early, apply_cpu_tuning_runtime
+
+apply_cpu_tuning_early("scripts.preprocess")
+
 import argparse
 import subprocess
 import torch
@@ -13,6 +20,10 @@ from musetalk.utils.face_detection import FaceAlignment,LandmarksType
 from mmpose.apis import inference_topdown, init_model
 from mmpose.structures import merge_data_samples
 import sys
+
+# Local modification: this differs from the original MuseTalk code.
+# Runtime CPU tuning is re-applied after imports for consistency with local runs.
+apply_cpu_tuning_runtime("scripts.preprocess")
 
 def fast_check_ffmpeg():
     try:

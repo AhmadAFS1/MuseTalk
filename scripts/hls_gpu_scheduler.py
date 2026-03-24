@@ -120,6 +120,19 @@ class HLSGPUStreamScheduler:
         self.startup_chunk_duration_seconds = max(0.0, float(startup_chunk_duration_seconds))
         self.startup_chunk_count = max(0, int(startup_chunk_count))
         self.prep_executor = ThreadPoolExecutor(max_workers=max(1, int(prep_workers)))
+        # Local modification: this differs from the original MuseTalk code.
+        # Prep now has a second executor so adjacent subtasks can overlap.
+        prep_subtask_workers = max(
+            2,
+            min(
+                max(1, os.cpu_count() or 8),
+                max(2, int(prep_workers) * 2),
+            ),
+        )
+        self.prep_subtask_executor = ThreadPoolExecutor(
+            max_workers=prep_subtask_workers,
+            thread_name_prefix="hls-prep-subtask",
+        )
         self.backfill_executor = ThreadPoolExecutor(
             max_workers=max(1, min(2, int(prep_workers))),
             thread_name_prefix="hls-backfill",
@@ -184,6 +197,7 @@ class HLSGPUStreamScheduler:
         if self.scheduler_thread is not None:
             self.scheduler_thread.join(timeout=10)
         self.prep_executor.shutdown(wait=False, cancel_futures=True)
+        self.prep_subtask_executor.shutdown(wait=False, cancel_futures=True)
         self.backfill_executor.shutdown(wait=False, cancel_futures=True)
         self.compose_executor.shutdown(wait=False, cancel_futures=True)
         self.encode_executor.shutdown(wait=False, cancel_futures=True)
@@ -314,18 +328,30 @@ class HLSGPUStreamScheduler:
                 )
                 return
 
-            avatar_load_start = time.time()
-            avatar = self.manager._get_or_load_avatar(session.avatar_id, session.batch_size)
-            avatar_load_s = time.time() - avatar_load_start
+            weight_dtype = getattr(self.manager, "unet_dtype", torch.float16)
+
+            # Local modification: this differs from the original MuseTalk code.
+            # Avatar load and audio feature extraction are prepared in parallel.
+            avatar_future = self.prep_subtask_executor.submit(
+                self._timed_call,
+                self.manager._get_or_load_avatar,
+                session.avatar_id,
+                session.batch_size,
+            )
+            audio_feature_future = self.prep_subtask_executor.submit(
+                self._timed_call,
+                self.manager.audio_processor.get_audio_feature,
+                audio_path,
+                0,
+                weight_dtype,
+            )
+
+            avatar, avatar_load_s = avatar_future.result()
+            (whisper_input_features, _librosa_length), audio_feature_s = audio_feature_future.result()
+
             if session.idle_cycle_frames is None and hasattr(avatar, "input_latent_cycle_tensor"):
                 session.idle_cycle_frames = len(avatar.input_latent_cycle_tensor)
 
-            weight_dtype = getattr(self.manager, "unet_dtype", torch.float16)
-            audio_feature_start = time.time()
-            whisper_input_features, _librosa_length = self.manager.audio_processor.get_audio_feature(
-                audio_path, weight_dtype=weight_dtype
-            )
-            audio_feature_s = time.time() - audio_feature_start
             if whisper_input_features is None:
                 raise RuntimeError("Audio feature extraction failed")
 
@@ -365,6 +391,15 @@ class HLSGPUStreamScheduler:
                 startup_chunk_count=startup_chunk_count,
             )
 
+            idle_frame_target = max(8, min(24, int(generation_fps * 0.8)))
+            # Local modification: this differs from the original MuseTalk code.
+            # Idle-frame preparation overlaps with conditioning setup during prep.
+            idle_frames_future = self.prep_subtask_executor.submit(
+                self._timed_call,
+                avatar._get_idle_frames,
+                idle_frame_target,
+            )
+
             if initial_ready_frames > 0:
                 initial_prompts = self.manager.audio_processor.build_audio_prompts(
                     whisper_feature=whisper_feature,
@@ -385,7 +420,7 @@ class HLSGPUStreamScheduler:
             else:
                 conditioning_chunks = torch.empty((0, 0, 0), dtype=torch.float32)
 
-            idle_frames = avatar._get_idle_frames(max_frames=max(8, min(24, int(generation_fps * 0.8))))
+            idle_frames, _idle_frame_s = idle_frames_future.result()
             crossfade_tail_frames = 0
             if idle_frames:
                 crossfade_tail_frames = max(4, int(generation_fps * 0.15))
@@ -466,6 +501,14 @@ class HLSGPUStreamScheduler:
                 "failed",
                 error_message=str(exc),
             )
+
+    @staticmethod
+    # Local modification: this differs from the original MuseTalk code.
+    # Small helper used to parallelize prep work while still reporting timings.
+    def _timed_call(fn, *args, **kwargs):
+        started_at = time.time()
+        result = fn(*args, **kwargs)
+        return result, time.time() - started_at
 
     def _finish_before_enqueue(
         self,

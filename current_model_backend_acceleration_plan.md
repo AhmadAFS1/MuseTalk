@@ -6,7 +6,7 @@
 - **torch.compile reduce-overhead**: ✅ Already active
 - **Smaller model/GPU-path experiments**: ✅ Tested and exhausted enough to justify escalation
   - GPU-resident conditioning: tested, failed, reverted
-  - vectorized audio prompts: tested, failed, reverted
+  - standalone vectorized audio prompts: tested in isolation, not enough alone
   - GPU-resident latent cycles: tested, failed, reverted
   - explicit SDPA attention tuning: tested, failed, reverted
 - **Target**: 8 concurrent HLS streams at 12fps (96 frames/s) on a single 24GB GPU
@@ -14,8 +14,24 @@
 - **Latest implied ceiling at 8 concurrent streams**: ~6.4 fps per stream before HLS/compose/encode overhead
 - **Latest broad TRT VAE benchmark**: ~61.3 fps best throughput at `batch_size=32`
 - **Latest TRT implied ceiling at 8 concurrent streams**: ~7.7 fps per stream before HLS/compose/encode overhead
-- **Critical correctness status**: current active TRT VAE artifact is visually broken and should be treated as untrusted for lip-sync validation
+- **Critical correctness status**:
+  - old monolithic TRT VAE artifacts remain visually broken / untrusted
+  - current repaired `trt_stagewise` path appears visually functional at the
+    validated `batch_size=4` setup
 - **Goal**: Reduce per-frame GPU time by 2–3× to create headroom
+- **Latest HLS reality check**: the repaired `trt_stagewise` path now appears
+  visually functional enough for continued testing
+  - the poor Threadripper `8`-stream run (`avg_segment_interval_s=3.622`,
+    `avg GPU util=37.2%`) showed the GPU was being underfed by the host pipeline
+  - the first multithreaded host-pipeline refactor slice then recovered the
+    path to:
+    - `avg_time_to_live_ready_s=1.760`
+    - `avg_segment_interval_s=1.733`
+    - `max_segment_interval_s=2.535`
+    - `avg GPU util ~= 82.06%`
+  - practical meaning:
+    - the model/backend side is no longer the only story
+    - but the host-side refactor branch is now clearly paying off too
 - **Current backend branch state**:
   - VAE TensorRT runtime hook: implemented
   - VAE TensorRT export script: implemented
@@ -113,6 +129,15 @@ Current acceleration-plan implication:
 - “make the dynamic profile narrower” is no longer enough by itself
 - the next branch has to isolate and fix correctness in the **decoder mid-block
   TRT path**, while still aiming for an FP16-first deployment shape
+- the next implementation phase for throughput should not be another blind
+  CPU-thread-cap experiment
+- the next throughput-oriented refactor should focus on:
+  - shared HLS prep parallelism
+  - avatar cache-miss loading
+  - persistent encode
+  - compose / queueing behavior
+- the first slice of that host-side refactor is now in code and already
+  appears to have materially recovered the live HLS path
 
 Acceleration-plan update:
 
@@ -142,6 +167,34 @@ Current implication for acceleration work:
   - `avg_segment_interval_s=1.769`
   - `max_segment_interval_s=2.524`
   - `completed=8/8`
+- a later `concurrency=8` run after the first host-side multithreaded refactor
+  slice landed stayed in the same healthy band while recovering strongly from
+  the earlier CPU-starved regression:
+  - `avg_time_to_live_ready_s=1.760`
+  - `avg_segment_interval_s=1.733`
+  - `max_segment_interval_s=2.535`
+  - `completed=8/8`
+  - `avg GPU util ~= 82.06%`
+- later March 24 ramp testing clarified the current live-HLS capacity shape:
+  - `concurrency=6`
+    - `avg_time_to_live_ready_s=1.342`
+    - `avg_segment_interval_s=1.294`
+    - `max_segment_interval_s=2.032`
+    - `avg GPU util ~= 83.84%`
+    - practical meaning:
+      - this is the first practical realtime milestone on the current branch
+      - the strict load-test warning remains only because the worst interval is
+        about `32ms` above threshold
+  - `concurrency=7`
+    - `avg_segment_interval_s=1.516`
+    - `max_segment_interval_s=2.530`
+  - repeated `concurrency=8`
+    - `avg_segment_interval_s=1.733-1.736`
+    - `max_segment_interval_s=2.524-2.535`
+    - practical meaning:
+      - `7` and `8` now behave like the same batch-4 saturation regime
+      - the next throughput gains are more likely to come from tail-latency
+        reductions than from simply dropping one stream
 - benchmark the new stagewise backend next
 - then validate the larger scheduler buckets
 - if its speedup survives while preserving visual correctness, it becomes the

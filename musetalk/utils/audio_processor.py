@@ -22,15 +22,34 @@ class AudioProcessor:
         segments = [librosa_output[i:i + segment_length] for i in range(0, len(librosa_output), segment_length)]
 
         features = []
-        for segment in segments:
-            audio_feature = self.feature_extractor(
-                segment,
+        try:
+            # Local modification: this differs from the original MuseTalk code.
+            # We batch segment feature extraction to reduce per-segment Python overhead.
+            # Batch feature extraction so long audios do not pay Python overhead
+            # and extractor setup cost once per 30s segment.
+            audio_features = self.feature_extractor(
+                segments,
                 return_tensors="pt",
-                sampling_rate=sampling_rate
+                sampling_rate=sampling_rate,
             ).input_features
             if weight_dtype is not None:
-                audio_feature = audio_feature.to(dtype=weight_dtype)
-            features.append(audio_feature)
+                audio_features = audio_features.to(dtype=weight_dtype)
+            features = list(audio_features.split(1, dim=0))
+        except Exception:
+            # Local modification: this differs from the original MuseTalk code.
+            # Keep the original per-segment behavior as a compatibility fallback.
+            # Keep the older per-segment path as a compatibility fallback for
+            # any environment where batched extraction behaves differently.
+            features = []
+            for segment in segments:
+                audio_feature = self.feature_extractor(
+                    segment,
+                    return_tensors="pt",
+                    sampling_rate=sampling_rate
+                ).input_features
+                if weight_dtype is not None:
+                    audio_feature = audio_feature.to(dtype=weight_dtype)
+                features.append(audio_feature)
 
         return features, len(librosa_output)
 
@@ -75,15 +94,28 @@ class AudioProcessor:
         audio_padding_length_right=2,
     ):
         audio_feature_length_per_frame = 2 * (audio_padding_length_left + audio_padding_length_right + 1)
-        whisper_feature = []
-        # Process multiple 30s mel input features
-        for input_feature in whisper_input_features:
-            input_feature = input_feature.to(device).to(weight_dtype)
-            audio_feats = whisper.encoder(input_feature, output_hidden_states=True).hidden_states
-            audio_feats = torch.stack(audio_feats, dim=2)
-            whisper_feature.append(audio_feats)
+        whisper_feature_parts = []
+        encode_batch_size = max(1, int(os.getenv("MUSETALK_WHISPER_SEGMENT_BATCH_SIZE", "4")))
 
-        whisper_feature = torch.cat(whisper_feature, dim=1)
+        # Local modification: this differs from the original MuseTalk code.
+        # Multiple 30s mel chunks are encoded in small batches to improve throughput.
+        # Process multiple 30s mel input features in small encoder batches so
+        # longer audio clips do less host-side scheduling and keep the GPU fed.
+        for start in range(0, len(whisper_input_features), encode_batch_size):
+            feature_batch = whisper_input_features[start:start + encode_batch_size]
+            batched_input = torch.cat(feature_batch, dim=0).to(device=device, dtype=weight_dtype)
+            audio_feats = whisper.encoder(batched_input, output_hidden_states=True).hidden_states
+            audio_feats = torch.stack(audio_feats, dim=2).contiguous()
+            if audio_feats.shape[0] > 1:
+                audio_feats = audio_feats.reshape(
+                    1,
+                    audio_feats.shape[0] * audio_feats.shape[1],
+                    audio_feats.shape[2],
+                    audio_feats.shape[3],
+                )
+            whisper_feature_parts.append(audio_feats)
+
+        whisper_feature = torch.cat(whisper_feature_parts, dim=1)
         # Trim the last segment to remove padding
         sr = 16000
         audio_fps = 50
@@ -130,30 +162,31 @@ class AudioProcessor:
                 dtype=whisper_feature.dtype,
             )
 
-        audio_prompts = []
-        for frame_index in range(start_frame, end_frame):
-            try:
-                audio_index = math.floor(frame_index * whisper_idx_multiplier)
-                audio_clip = whisper_feature[:, audio_index: audio_index + audio_feature_length_per_frame]
-                assert audio_clip.shape[1] == audio_feature_length_per_frame
-                audio_prompts.append(audio_clip)
-            except Exception as e:
-                print(f"Error occurred: {e}")
-                print(f"whisper_feature.shape: {whisper_feature.shape}")
-                print(f"audio_clip.shape: {audio_clip.shape}")
-                print(f"num frames: {num_frames}, fps: {fps}, whisper_idx_multiplier: {whisper_idx_multiplier}")
-                print(f"frame_index: {frame_index}, audio_index: {audio_index}-{audio_index + audio_feature_length_per_frame}")
-                exit()
-
-        if not audio_prompts:
-            return torch.empty(
-                (0, audio_feature_length_per_frame * whisper_feature.shape[2], whisper_feature.shape[3]),
-                dtype=whisper_feature.dtype,
-            )
-
-        audio_prompts = torch.cat(audio_prompts, dim=0)  # T, 10, 5, 384
+        # Local modification: this differs from the original MuseTalk code.
+        # Prompt windows are gathered with tensor indexing instead of a Python frame loop.
+        feature_source = whisper_feature[0].contiguous()
+        frame_indices = torch.arange(
+            start_frame,
+            end_frame,
+            device=feature_source.device,
+            dtype=torch.long,
+        )
+        audio_indices = torch.div(frame_indices * audio_fps, fps, rounding_mode='floor')
+        window_offsets = torch.arange(
+            audio_feature_length_per_frame,
+            device=feature_source.device,
+            dtype=torch.long,
+        )
+        gather_indices = (audio_indices[:, None] + window_offsets[None, :]).reshape(-1)
+        audio_prompts = feature_source.index_select(0, gather_indices)
+        audio_prompts = audio_prompts.reshape(
+            end_frame - start_frame,
+            audio_feature_length_per_frame,
+            feature_source.shape[1],
+            feature_source.shape[2],
+        )
         audio_prompts = rearrange(audio_prompts, 'b c h w -> b (c h) w')
-        return audio_prompts
+        return audio_prompts.contiguous()
 
 if __name__ == "__main__":
     audio_processor = AudioProcessor()

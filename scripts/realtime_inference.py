@@ -1,5 +1,12 @@
 import argparse
 import os
+
+# Local modification: this differs from the original MuseTalk code.
+# This local branch applies CPU tuning hooks to the realtime inference entrypoint.
+from runtime_cpu_tuning import apply_cpu_tuning_early, apply_cpu_tuning_runtime
+
+apply_cpu_tuning_early("scripts.realtime_inference")
+
 from omegaconf import OmegaConf
 import numpy as np
 import cv2
@@ -24,6 +31,10 @@ import threading
 import queue
 import time
 import subprocess
+
+# Local modification: this differs from the original MuseTalk code.
+# Runtime CPU tuning is re-applied after imports for consistency with local runs.
+apply_cpu_tuning_runtime("scripts.realtime_inference")
 
 
 def fast_check_ffmpeg():

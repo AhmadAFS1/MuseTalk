@@ -9,6 +9,9 @@ import glob
 import pickle
 import cv2
 import numpy as np
+# Local modification: this differs from the original MuseTalk code.
+# Avatar materials can now be loaded with a thread pool instead of only serial IO.
+from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 import shutil
 import threading
@@ -34,14 +37,52 @@ _FFMPEG_ENCODER_SUPPORT_LOCK = threading.Lock()
 _FFMPEG_ENCODER_UNAVAILABLE_WARNED = set()
 
 
-def _read_imgs_local(img_list):
-    """Added code: lightweight image loader for existing prepared avatars."""
-    frames = []
-    print('reading images...')
-    for img_path in tqdm(img_list):
-        frame = cv2.imread(img_path)
-        frames.append(frame)
-    return frames
+# Local modification: this differs from the original MuseTalk code.
+# Avatar image/mask loading uses a configurable worker-count heuristic.
+def _avatar_io_workers(item_count: int) -> int:
+    try:
+        override = int(os.getenv("MUSETALK_AVATAR_LOAD_WORKERS", "0"))
+    except (TypeError, ValueError):
+        override = 0
+
+    if override > 0:
+        return max(1, min(override, item_count))
+
+    cpu_count = os.cpu_count() or 4
+    if item_count <= 16:
+        return 1
+    return max(1, min(12, cpu_count // 4 or 1, item_count))
+
+
+def _read_img_required(img_path: str):
+    frame = cv2.imread(img_path)
+    if frame is None:
+        raise FileNotFoundError(f"Failed to read image: {img_path}")
+    return frame
+
+
+def _load_pickle_local(path):
+    with open(path, 'rb') as f:
+        return pickle.load(f)
+
+
+# Local modification: this differs from the original MuseTalk code.
+# Existing prepared avatar frames and masks can be read in parallel.
+def _read_imgs_local(img_list, label="images", max_workers=None):
+    """Added code: parallel image loader for existing prepared avatars."""
+    if not img_list:
+        return []
+
+    workers = max_workers or _avatar_io_workers(len(img_list))
+    print(f"reading {label}...")
+    if workers <= 1:
+        frames = []
+        for img_path in tqdm(img_list):
+            frames.append(_read_img_required(img_path))
+        return frames
+
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="avatar-io") as executor:
+        return list(tqdm(executor.map(_read_img_required, img_list), total=len(img_list)))
 
 
 def _get_landmark_and_bbox_lazy(img_list, upperbondrange=0):
@@ -563,26 +604,38 @@ class APIAvatar:
     def _load_existing_materials(self):
         """Load pre-processed avatar materials from disk"""
         print(f"📂 Loading avatar materials for {self.avatar_id}...")
-        
-        # Load latents
-        self.input_latent_list_cycle = torch.load(self.latents_out_path)
-        self._finalize_latent_cycle()
-        
-        # Load coordinates
-        with open(self.coords_path, 'rb') as f:
-            self.coord_list_cycle = pickle.load(f)
-        
-        # Load frames
+
         input_img_list = sorted(glob.glob(os.path.join(self.full_imgs_path, '*.png')))
-        self.frame_list_cycle = _read_imgs_local(input_img_list)
-        
-        # Load mask coordinates
-        with open(self.mask_coords_path, 'rb') as f:
-            self.mask_coords_list_cycle = pickle.load(f)
-        
-        # Load masks
         input_mask_list = sorted(glob.glob(os.path.join(self.mask_out_path, '*.png')))
-        self.mask_list_cycle = _read_imgs_local(input_mask_list)
+        image_workers = _avatar_io_workers(len(input_img_list) + len(input_mask_list) + 3)
+        per_image_pool_workers = max(1, image_workers // 2)
+
+        # Local modification: this differs from the original MuseTalk code.
+        # Latents, coords, frames, and masks are loaded concurrently on cache miss.
+        with ThreadPoolExecutor(max_workers=image_workers, thread_name_prefix="avatar-load") as executor:
+            latents_future = executor.submit(torch.load, self.latents_out_path)
+            coords_future = executor.submit(_load_pickle_local, self.coords_path)
+            mask_coords_future = executor.submit(_load_pickle_local, self.mask_coords_path)
+            frame_list_future = executor.submit(
+                _read_imgs_local,
+                input_img_list,
+                "frames",
+                per_image_pool_workers,
+            )
+            mask_list_future = executor.submit(
+                _read_imgs_local,
+                input_mask_list,
+                "masks",
+                per_image_pool_workers,
+            )
+
+            self.input_latent_list_cycle = latents_future.result()
+            self.coord_list_cycle = coords_future.result()
+            self.mask_coords_list_cycle = mask_coords_future.result()
+            self.frame_list_cycle = frame_list_future.result()
+            self.mask_list_cycle = mask_list_future.result()
+
+        self._finalize_latent_cycle()
         
         print(f"✅ Loaded {len(self.frame_list_cycle)} frames")
     

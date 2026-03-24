@@ -1,4 +1,11 @@
 import os
+
+# Local modification: this differs from the original MuseTalk code.
+# This local branch applies CPU tuning hooks to the offline inference entrypoint.
+from runtime_cpu_tuning import apply_cpu_tuning_early, apply_cpu_tuning_runtime
+
+apply_cpu_tuning_early("scripts.inference")
+
 import cv2
 import math
 import copy
@@ -19,6 +26,10 @@ from musetalk.utils.face_parsing import FaceParsing
 from musetalk.utils.audio_processor import AudioProcessor
 from musetalk.utils.utils import get_file_type, get_video_fps, datagen, load_all_model
 from musetalk.utils.preprocessing import get_landmark_and_bbox, read_imgs, coord_placeholder
+
+# Local modification: this differs from the original MuseTalk code.
+# Runtime CPU tuning is re-applied after imports for consistency with local runs.
+apply_cpu_tuning_runtime("scripts.inference")
 
 def fast_check_ffmpeg():
     try:

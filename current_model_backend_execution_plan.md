@@ -595,20 +595,123 @@ If Phases 1 through 6 still do not move throughput enough, only then reconsider 
 
 ## Priority Order
 
-1. decide whether the measured VAE-only TRT gain is worth extending
-2. TensorRT for UNet or another larger backend step
-3. TensorRT for VAE in `api_server.py` only if a later benchmark justifies it
+1. host-side HLS pipeline refactor
+2. then TensorRT for UNet or another larger backend step
+3. TensorRT for VAE follow-on only if a later benchmark justifies it
 4. ONNX Runtime fallback
 5. VAE output-boundary work only if backend acceleration still leaves a gap
 6. GPU compose only if backend acceleration still leaves a gap
 7. revisit the rolled-back small experiments only if new profiling justifies it
 
+## Execution-Plan Correction: March 23 CPU/HLS Shift
+
+The latest Threadripper HLS load tests changed the next implementation branch.
+
+The current active `trt_stagewise` VAE path appears visually functional enough
+to continue experimentation, but the latest poor `8`-stream run showed:
+
+- `avg_time_to_live_ready_s = 3.469`
+- `avg_segment_interval_s = 3.622`
+- `max_segment_interval_s = 6.137`
+- `avg GPU util = 37.2%`
+
+That means the GPU is underfed. So before another major model/backend branch,
+the next implementation phase should now be a host-side HLS pipeline refactor.
+
+### Phase 0: Host-Side HLS Pipeline Refactor
+
+Goal:
+
+- create real headroom by reducing CPU-side backpressure around the shared GPU
+  scheduler
+
+Files:
+
+- `scripts/hls_gpu_scheduler.py`
+- `scripts/api_avatar.py`
+- `musetalk/utils/audio_processor.py`
+- `api_server.py`
+
+Work:
+
+- parallelize `_prepare_job()` so avatar load and audio-side prep are not
+  front-loaded as one long serial block
+- reduce avatar cache-miss cost by parallel or lazy frame/mask loading
+- replace per-chunk `ffmpeg` spawn with a persistent encoder / segmenter path
+- refactor compose so more CPU cores can work without just increasing thread
+  contention
+- converge the older direct live-streaming routes onto the shared scheduler
+  model where practical
+
+Why first:
+
+- the latest regression is no longer explained by model throughput alone
+- current live HLS behavior is dominated by prep / compose / encode /
+  queueing behavior
+- another backend export will not fix a GPU that is already waiting for work
+
+Current implementation status:
+
+- first refactor slice now landed:
+  - `musetalk/utils/audio_processor.py`
+    - batched feature-extractor path
+    - batched Whisper-segment encode path
+    - vectorized prompt construction
+  - `scripts/hls_gpu_scheduler.py`
+    - concurrent avatar load + audio feature extraction in `_prepare_job()`
+    - overlapped idle-frame preload
+  - `scripts/api_avatar.py`
+    - parallel cache-miss frame/mask loading
+- first measured `concurrency=8` result after that slice:
+  - `avg_time_to_live_ready_s=1.760`
+  - `avg_segment_interval_s=1.733`
+  - `max_segment_interval_s=2.535`
+  - `avg GPU util ~= 82.06%`
+  - practical meaning:
+    - this refactor direction is validated
+    - the severe GPU-underfed regression is largely recovered
+    - the remaining work is now about shaving the tail, not rescuing a broken path
+- later March 24 ramp results now clarify the next milestone:
+  - `concurrency=6`
+    - `avg_time_to_live_ready_s=1.342`
+    - `avg_segment_interval_s=1.294`
+    - `max_segment_interval_s=2.032`
+    - practical meaning:
+      - this is the first practical realtime milestone on the current branch
+      - the warning threshold is only missed by about `32ms`
+  - `concurrency=7`
+    - `avg_segment_interval_s=1.516`
+    - `max_segment_interval_s=2.530`
+  - repeated `concurrency=8`
+    - `avg_segment_interval_s=1.733-1.736`
+    - `max_segment_interval_s=2.524-2.535`
+    - practical meaning:
+      - `7` and `8` are now in the same batch-4 saturation band
+      - the next gains should come from lowering tail latency, not expecting a
+        different scheduler regime automatically at `7`
+- still pending inside Phase 0:
+  - persistent encode pipeline
+  - deeper compose refactor
+  - convergence of older direct live-serving paths
+
 ## Bottom Line
 
-The next model/GPU optimization push should be:
+The next implementation push should be:
 
-- **backend-focused**
+- **host-pipeline-focused first**
 - **benchmark-driven**
 - **reversible**
 
-We already tried the highest-confidence small PyTorch-path adjustments and they did not move the mission enough. The benchmark then showed the current PyTorch model path tops out around `51 fps`, with VAE as the dominant cost. The alternate-env VAE TensorRT benchmark is now complete and shows a real but still insufficient gain, so the next push should only continue if we are willing to tackle a larger backend step than the current VAE-only swap.
+We already proved that the repaired TRT path can materially improve the model
+side, but the latest Threadripper HLS runs now show the GPU waiting on the host
+pipeline. So the next serious branch should not be "more thread caps" and it
+should not immediately be "another export first." It should be a host-side HLS
+pipeline refactor, followed by another backend branch only after that refactor
+is measured.
+
+That measurement is now partially in: the first host-pipeline slice recovered
+the path from the `3.469 / 3.622 / 6.137` regression band back to about
+`1.760 / 1.733 / 2.535`, and the later March 24 ramp results now show a
+practical `concurrency=6` realtime milestone with `1.294 / 2.032` cadence.
+So the right next move is still to continue Phase 0, not to pivot away from it
+yet.

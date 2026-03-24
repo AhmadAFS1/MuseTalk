@@ -8,6 +8,12 @@ import time
 from pathlib import Path
 from typing import List, Tuple
 
+# Local modification: this differs from the original MuseTalk code.
+# Benchmark entrypoint now applies the local CPU tuning hooks used in this repo.
+from runtime_cpu_tuning import apply_cpu_tuning_early, apply_cpu_tuning_runtime
+
+apply_cpu_tuning_early("scripts.benchmark_pipeline")
+
 import torch
 
 
@@ -17,6 +23,10 @@ if str(ROOT) not in sys.path:
 
 from musetalk.utils.utils import load_all_model
 from scripts.trt_runtime import load_vae_trt_decoder
+
+# Local modification: this differs from the original MuseTalk code.
+# Runtime CPU tuning is re-applied after imports so benchmarking matches server behavior.
+apply_cpu_tuning_runtime("scripts.benchmark_pipeline")
 
 
 logger = logging.getLogger("benchmark_pipeline")

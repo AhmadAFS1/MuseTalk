@@ -590,8 +590,58 @@ Current important caveats:
 - this is the visually repaired path, **not** the broad-batch throughput path
 - it is currently validated at `batch_size=4`
 - larger buckets still need direct validation and benchmarking
+- CPU thread-pool tuning is now available but the latest Threadripper HLS runs
+  showed that the current aggressive helper-driven profiles can make the live
+  path much worse
+- earlier poor `8`-stream reality check that motivated the host-side refactor:
+  - `avg_time_to_live_ready_s = 3.469`
+  - `avg_segment_interval_s = 3.622`
+  - `max_segment_interval_s = 6.137`
+  - `avg GPU util = 37.2%`
+- latest post-refactor `8`-stream reality check:
+  - `avg_time_to_live_ready_s = 1.760`
+  - `avg_segment_interval_s = 1.733`
+  - `max_segment_interval_s = 2.535`
+  - `avg GPU util = 82.06%`
+- latest March 24 ramp clarification:
+  - `concurrency=6`
+    - `avg_time_to_live_ready_s = 1.342`
+    - `avg_segment_interval_s = 1.294`
+    - `max_segment_interval_s = 2.032`
+    - `avg GPU util = 83.84%`
+  - `concurrency=7`
+    - `avg_time_to_live_ready_s = 1.508`
+    - `avg_segment_interval_s = 1.516`
+    - `max_segment_interval_s = 2.530`
+    - `avg GPU util = 84.83%`
+  - repeated `concurrency=8`
+    - `avg_time_to_live_ready_s = 1.569-1.760`
+    - `avg_segment_interval_s = 1.733-1.736`
+    - `max_segment_interval_s = 2.524-2.535`
+    - `avg GPU util = 82.06-83.64%`
+- current interpretation:
+  - the first multithreaded host-pipeline refactor slice materially recovered throughput
+  - the GPU is no longer obviously starving the way it was in the bad run
+  - the path is back in the healthy near-threshold band
+  - `concurrency=6` is now the first practical realtime milestone on this branch
+    even though the strict load-test warning still trips by about `32ms`
+  - `concurrency=7` and `concurrency=8` are now in the same batch-4 saturation
+    regime, so they look much closer than you would expect from the raw stream count
+  - do **not** treat `MUSETALK_CPU_TUNING=1` as the current default for HLS
+  - keep CPU tuning disabled for the stable baseline while continuing the host pipeline refactor
 
-Copy/paste block:
+Current CPU-tuning helper coverage:
+
+- helper module:
+  - `scripts/runtime_cpu_tuning.py`
+- wired entrypoints:
+  - `api_server.py`
+  - `scripts/benchmark_pipeline.py`
+  - `scripts/inference.py`
+  - `scripts/realtime_inference.py`
+  - `scripts/preprocess.py`
+
+Current stable baseline block (recommended after the first host-side refactor slice):
 
 ```bash
 cd /content/MuseTalk
@@ -603,6 +653,12 @@ export MUSETALK_COMPILE=0
 export MUSETALK_COMPILE_UNET=0
 export MUSETALK_COMPILE_VAE=0
 export MUSETALK_WARM_RUNTIME=1
+unset MUSETALK_CPU_TUNING
+unset MUSETALK_CPU_THREADS
+unset MUSETALK_CPU_INTEROP_THREADS
+unset MUSETALK_CPU_CV2_THREADS
+unset MUSETALK_CPU_NUMA_NODE
+unset MUSETALK_CPU_AFFINITY
 
 export MUSETALK_TRT_ENABLED=1
 export MUSETALK_VAE_BACKEND=trt_stagewise
@@ -626,18 +682,85 @@ export HLS_ENCODE_WORKERS=8
 export HLS_MAX_PENDING_JOBS=24
 
 export HLS_CHUNK_VIDEO_ENCODER=libx264
+export HLS_CHUNK_ENCODER_PRESET=ultrafast
+unset HLS_CHUNK_ENCODER_TUNE
+unset HLS_CHUNK_ENCODER_QP
+export HLS_CHUNK_ENCODER_CRF=28
 export HLS_PERSISTENT_SEGMENTER=0
+
+export MUSETALK_WHISPER_SEGMENT_BATCH_SIZE=4
+export MUSETALK_AVATAR_LOAD_WORKERS=8
 
 python api_server.py --host 0.0.0.0 --port 8000
 ```
 
-Look for these lines in the startup logs:
+Experimental CPU-tuning block (implemented, but not current default):
+
+```bash
+export MUSETALK_CPU_TUNING=1
+export MUSETALK_CPU_THREADS=4
+export MUSETALK_CPU_INTEROP_THREADS=2
+export MUSETALK_CPU_CV2_THREADS=1
+# Optional:
+# export MUSETALK_CPU_NUMA_NODE=0
+# export MUSETALK_CPU_AFFINITY=0-15
+```
+
+Look for these lines in the startup logs if you intentionally test the helper:
 
 - `VAE decode backend active: trt_stagewise`
 - `torch.compile disabled (set MUSETALK_COMPILE=1 to enable)`
+- `CPU tuning enabled for api_server: threads=4, interop=2, cv2=1`
+- `CPU runtime tuning active for api_server: ...`
 - scheduler settings consistent with:
   - `max_combined_batch_size=4`
   - `fixed_batch_sizes=[4]`
+
+If CPU tuning is revisited later, change only one knob at a time:
+
+- `MUSETALK_CPU_THREADS=4 -> 6 -> 8`
+- `MUSETALK_CPU_INTEROP_THREADS=2 -> 3 -> 4`
+- keep `MUSETALK_CPU_CV2_THREADS=1` unless measurements show compose/prep
+  improving without tail-latency regressions
+
+Current host-side refactor order:
+
+1. parallelize shared HLS prep in `scripts/hls_gpu_scheduler.py`
+2. reduce avatar cache-miss cost in `scripts/api_avatar.py`
+3. replace per-chunk `ffmpeg` spawn with a persistent encode path
+4. refactor compose to use CPU cores more effectively
+5. consolidate older direct streaming paths onto the shared scheduler model
+
+Current code status:
+
+- the first refactor slice is now implemented:
+  - batched audio feature extraction / Whisper segment encode
+  - vectorized audio prompt construction
+  - concurrent HLS prep subtasks
+  - parallel avatar cache-miss frame/mask loading
+- latest measured `concurrency=8` result after that slice:
+  - `completed=8/8`
+  - `avg_time_to_live_ready_s=1.760`
+  - `avg_segment_interval_s=1.733`
+  - `max_segment_interval_s=2.535`
+  - `avg GPU util ~= 82.06%`
+- latest measured practical realtime milestone:
+  - `concurrency=6`
+  - `completed=6/6`
+  - `avg_time_to_live_ready_s=1.342`
+  - `avg_segment_interval_s=1.294`
+  - `max_segment_interval_s=2.032`
+  - `avg GPU util ~= 83.84%`
+- persistent encode is **not** implemented yet in this branch
+
+New optional tuning knobs for the first refactor slice:
+
+- `MUSETALK_WHISPER_SEGMENT_BATCH_SIZE`
+  - default: `4`
+  - controls how many 30s Whisper mel segments are encoded together
+- `MUSETALK_AVATAR_LOAD_WORKERS`
+  - default: auto
+  - caps parallel avatar frame/mask read workers during cache-miss load
 
 ## What To Verify On Startup
 
@@ -772,3 +895,47 @@ export HLS_PERSISTENT_SEGMENTER=1
 - The later GPU-resident latent-cycle experiment was also rolled back as a throughput change. Across repeated `concurrency=8`, `playback_fps=24`, `musetalk_fps=12` runs it stayed in the same familiar band at about `avg_segment_interval_s = 1.97-1.99`, `max_segment_interval_s = 3.12-3.14`, and `avg_time_to_live_ready_s = 4.774`, so it is not part of the stable launch config either.
 - The later explicit SDPA attention-path experiment was also rolled back as a throughput change. Across repeated `concurrency=8`, `playback_fps=24`, `musetalk_fps=12` runs it stayed in the same familiar band at about `avg_segment_interval_s = 1.97-2.04`, `max_segment_interval_s = 3.10-3.22`, and `avg_time_to_live_ready_s = 4.15-4.77`, so it is not part of the stable launch config either.
 - These stable start params were still the correct way to run all of those recent small-model-path experiments. Those tests did not need extra start flags beyond any code-default toggles, so the failed results are still valid evidence.
+
+
+LATEST RUN after the TEnsor changes on vae: 
+cd /content/MuseTalk
+source /content/py310_trt_exp/bin/activate
+
+unset PYTORCH_CUDA_ALLOC_CONF
+
+export MUSETALK_COMPILE=0
+export MUSETALK_COMPILE_UNET=0
+export MUSETALK_COMPILE_VAE=0
+export MUSETALK_WARM_RUNTIME=1
+
+export MUSETALK_TRT_ENABLED=1
+export MUSETALK_VAE_BACKEND=trt_stagewise
+export MUSETALK_TRT_FALLBACK=0
+export MUSETALK_TRT_STAGEWISE_TORCH_EXECUTED_OPS=native_group_norm
+export MUSETALK_TRT_STAGEWISE_TORCH_STAGES=
+
+export AVATAR_CACHE_MAX_AVATARS=0
+export AVATAR_CACHE_MAX_MEMORY_MB=12000
+export AVATAR_CACHE_TTL_SECONDS=3600
+
+export HLS_SCHEDULER_MAX_BATCH=4
+export HLS_SCHEDULER_FIXED_BATCH_SIZES=4
+export HLS_SCHEDULER_STARTUP_SLICE_SIZE=4
+export HLS_SCHEDULER_AGGRESSIVE_FILL_MAX_ACTIVE_JOBS=999
+export HLS_STARTUP_CHUNK_DURATION_SECONDS=0.5
+export HLS_STARTUP_CHUNK_COUNT=1
+export HLS_PREP_WORKERS=8
+export HLS_COMPOSE_WORKERS=8
+export HLS_ENCODE_WORKERS=8
+export HLS_MAX_PENDING_JOBS=24
+
+export HLS_CHUNK_VIDEO_ENCODER=libx264
+export HLS_CHUNK_ENCODER_PRESET=ultrafast
+unset HLS_CHUNK_ENCODER_TUNE
+unset HLS_CHUNK_ENCODER_QP
+export HLS_CHUNK_ENCODER_CRF=28
+export HLS_PERSISTENT_SEGMENTER=0
+
+python api_server.py --host 0.0.0.0 --port 8000
+
+LATEST: 

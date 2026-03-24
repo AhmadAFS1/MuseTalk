@@ -317,6 +317,63 @@ New stagewise runtime update in this alternate env:
     - the repaired stagewise path is no longer just a synthetic decode fix
     - it now has a promising real `concurrency=8` HLS result too
     - but it still remains slightly above the repo's throttling threshold
+- later Threadripper HLS runs in this same alternate env then exposed the next
+  real bottleneck:
+  - the GPU became underfed by the host pipeline
+  - one representative poor `concurrency=8` run showed:
+    - `avg_time_to_live_ready_s=3.469`
+    - `avg_segment_interval_s=3.622`
+    - `max_segment_interval_s=6.137`
+    - `avg GPU util ~= 37.2%`
+  - practical meaning:
+    - the alternate TRT environment is no longer blocked mainly by VAE decode
+      correctness at `batch_size=4`
+    - the next implementation branch inside this env should be host-side HLS
+      pipeline refactoring, not another blind CPU-thread-cap experiment
+    - the highest-value next refactors are:
+      - parallelize shared HLS prep in `scripts/hls_gpu_scheduler.py`
+      - reduce avatar cache-miss cost in `scripts/api_avatar.py`
+      - replace per-chunk `ffmpeg` spawn with a persistent encode path
+      - refactor compose to use adjacent CPU cores more effectively
+      - consolidate older direct live-serving paths in `api_server.py`
+- the first host-side multithreaded refactor slice has now landed in this same
+  alternate env:
+  - batched audio feature extraction / Whisper segment encode
+  - vectorized prompt construction
+  - concurrent HLS prep subtasks
+  - parallel avatar cache-miss frame / mask loading
+- first measured `concurrency=8` result after that slice:
+  - `avg_time_to_live_ready_s=1.760`
+  - `avg_segment_interval_s=1.733`
+  - `max_segment_interval_s=2.535`
+  - `avg GPU util ~= 82.06%`
+  - `completed=8/8`
+  - practical meaning:
+    - the host-side refactor branch is validated inside the alternate TRT env
+    - the severe CPU-starved regression is largely recovered
+    - the path is still slightly throttled, so persistent encode / compose
+      follow-on work is still justified
+- later March 24 ramp results in this same env now show:
+  - `concurrency=6`
+    - `avg_time_to_live_ready_s=1.342`
+    - `avg_segment_interval_s=1.294`
+    - `max_segment_interval_s=2.032`
+    - `avg GPU util ~= 83.84%`
+    - practical meaning:
+      - this is the first practical realtime milestone for the repaired
+        stagewise branch on this box
+      - the warning threshold is only missed by about `32ms`
+  - `concurrency=7`
+    - `avg_time_to_live_ready_s=1.508`
+    - `avg_segment_interval_s=1.516`
+    - `max_segment_interval_s=2.530`
+  - repeated `concurrency=8`
+    - `avg_time_to_live_ready_s=1.569-1.760`
+    - `avg_segment_interval_s=1.733-1.736`
+    - `max_segment_interval_s=2.524-2.535`
+    - practical meaning:
+      - `7` and `8` are now in the same batch-4 saturation band
+      - the remaining work is mainly about shrinking tail jitter
 
 ## Core Principle
 
