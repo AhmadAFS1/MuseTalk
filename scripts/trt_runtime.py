@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import pickle
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -161,8 +162,49 @@ def _parse_csv_env(name: str, default: str = "") -> list[str]:
     return [token.strip() for token in raw.split(",") if token.strip()]
 
 
+def _parse_positive_int_list(raw: str) -> list[int]:
+    parsed: list[int] = []
+    seen: set[int] = set()
+    for token in raw.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        value = int(token)
+        if value <= 0 or value in seen:
+            continue
+        seen.add(value)
+        parsed.append(value)
+    return parsed
+
+
 def _stagewise_torch_stage_names() -> set[str]:
     return set(_parse_csv_env("MUSETALK_TRT_STAGEWISE_TORCH_STAGES", ""))
+
+
+def _stagewise_warmup_batches() -> list[int]:
+    # Local modification: this differs from the original MuseTalk code.
+    # Warm the exact live batch buckets at startup so the first real request
+    # does not pay the compile penalty for newly enabled stagewise shapes.
+    explicit = os.getenv("MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES", "").strip()
+    if explicit:
+        parsed = _parse_positive_int_list(explicit)
+        if parsed:
+            return parsed
+
+    fixed_sizes = os.getenv("HLS_SCHEDULER_FIXED_BATCH_SIZES", "").strip()
+    if fixed_sizes:
+        parsed = _parse_positive_int_list(fixed_sizes)
+        if parsed:
+            return parsed
+
+    max_batch = os.getenv("HLS_SCHEDULER_MAX_BATCH", "").strip()
+    if max_batch:
+        try:
+            return [max(1, int(max_batch))]
+        except Exception:
+            pass
+
+    return [4]
 
 
 def _stagewise_workspace_gb() -> float:
@@ -405,8 +447,44 @@ class StagewiseTrtVaeDecodeBackend:
             torch.cuda.synchronize(self.device)
 
     @torch.no_grad()
-    def warmup(self) -> None:
-        self._ensure_batch(4)
+    def warmup(self, batch_sizes: Optional[list[int]] = None) -> None:
+        # Local modification: this differs from the original MuseTalk code.
+        # Startup warmup now follows the configured live bucket sizes and logs
+        # visible progress so batch compiles do not look like a silent freeze.
+        resolved_batches = batch_sizes or _stagewise_warmup_batches()
+        resolved_batches = [max(1, int(batch)) for batch in resolved_batches]
+        if not resolved_batches:
+            resolved_batches = [4]
+
+        warmup_started_at = torch.cuda.Event(enable_timing=True) if self.device.type == "cuda" else None
+        warmup_finished_at = torch.cuda.Event(enable_timing=True) if self.device.type == "cuda" else None
+
+        print(f"🔥 Stagewise TRT warmup batches: {resolved_batches}")
+
+        total_wall_started_at = time.time()
+        for batch_size in resolved_batches:
+            compile_started_at = time.time()
+            already_ready = batch_size in self.compiled_by_batch
+            if already_ready:
+                print(f"   ♻️  Stagewise TRT batch={batch_size} already warm")
+                continue
+
+            print(f"   🔥 Warming stagewise TRT batch={batch_size}...")
+            if warmup_started_at is not None and warmup_finished_at is not None:
+                warmup_started_at.record()
+            self._ensure_batch(batch_size)
+            if warmup_started_at is not None and warmup_finished_at is not None:
+                warmup_finished_at.record()
+                torch.cuda.synchronize(self.device)
+                elapsed_s = warmup_started_at.elapsed_time(warmup_finished_at) / 1000.0
+            else:
+                elapsed_s = time.time() - compile_started_at
+            print(f"   ✅ Stagewise TRT batch={batch_size} ready in {elapsed_s:.2f}s")
+
+        print(
+            "✅ Stagewise TRT warmup complete "
+            f"(batches={resolved_batches}, total={time.time() - total_wall_started_at:.2f}s)"
+        )
 
     @torch.no_grad()
     def decode(

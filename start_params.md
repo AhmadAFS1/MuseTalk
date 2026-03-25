@@ -619,6 +619,17 @@ Current important caveats:
     - `avg_segment_interval_s = 1.733-1.736`
     - `max_segment_interval_s = 2.524-2.535`
     - `avg GPU util = 82.06-83.64%`
+  - later 64-core worker-scale check (`prep/compose/encode = 12/12/12`)
+    - `concurrency=8`
+      - `avg_time_to_live_ready_s = 1.823`
+      - `avg_segment_interval_s = 1.827`
+      - `max_segment_interval_s = 2.533`
+      - `avg GPU util = 76.83%`
+    - `concurrency=10`
+      - `avg_time_to_live_ready_s = 1.812`
+      - `avg_segment_interval_s = 2.251`
+      - `max_segment_interval_s = 3.531`
+      - `avg GPU util = 80.33%`
 - current interpretation:
   - the first multithreaded host-pipeline refactor slice materially recovered throughput
   - the GPU is no longer obviously starving the way it was in the bad run
@@ -627,6 +638,9 @@ Current important caveats:
     even though the strict load-test warning still trips by about `32ms`
   - `concurrency=7` and `concurrency=8` are now in the same batch-4 saturation
     regime, so they look much closer than you would expect from the raw stream count
+  - the later 64-core `12/12/12` worker test did **not** create a new throughput tier
+  - keep the `8/8/8` worker profile as the current stable baseline until the
+    next encode/compose refactor slices are measured
   - do **not** treat `MUSETALK_CPU_TUNING=1` as the current default for HLS
   - keep CPU tuning disabled for the stable baseline while continuing the host pipeline refactor
 
@@ -716,6 +730,38 @@ Look for these lines in the startup logs if you intentionally test the helper:
   - `max_combined_batch_size=4`
   - `fixed_batch_sizes=[4]`
 
+Batch-size note for future `bs8` testing:
+
+- the current live backend is `MUSETALK_VAE_BACKEND=trt_stagewise`
+- `trt_stagewise` is **not** the old serialized TRT engine workflow
+- the older serialized/exported TRT path from `scripts/tensorrt_export.py` does
+  require explicit `--batch-sizes ...` coverage if you want an engine or
+  metadata range that includes `8`
+- the current `trt_stagewise` backend instead compiles exact batch sizes on
+  demand and caches them at runtime in `scripts/trt_runtime.py`
+- practical meaning:
+  - moving from live `batch_size=4` to live `batch_size=8` does **not** require
+    recreating a reusable VAE TRT artifact if you stay on `trt_stagewise`
+  - it **does** require correctness validation and ideally a warmup before real
+    HLS benchmarking, because stagewise warmup currently precompiles `batch=4`
+    first and `batch=8` may otherwise compile on first live use
+- current validation command for that gate:
+
+```bash
+cd /content/MuseTalk
+source /content/py310_trt_exp/bin/activate
+
+python scripts/validate_vae_backend.py \
+  --avatar-id test_avatar \
+  --backend trt_stagewise \
+  --batch-size 8 \
+  --output-dir ./tmp/vae_backend_validation_bs8
+```
+
+- if the backend is changed back to serialized `trt` / `tensorrt` artifacts
+  later, rerun export with `8` included in `--batch-sizes ...` before expecting
+  that path to support live `bs8`
+
 If CPU tuning is revisited later, change only one knob at a time:
 
 - `MUSETALK_CPU_THREADS=4 -> 6 -> 8`
@@ -727,9 +773,10 @@ Current host-side refactor order:
 
 1. parallelize shared HLS prep in `scripts/hls_gpu_scheduler.py`
 2. reduce avatar cache-miss cost in `scripts/api_avatar.py`
-3. replace per-chunk `ffmpeg` spawn with a persistent encode path
+3. pre-encode request audio once and reuse `-c:a copy` during chunk muxing
 4. refactor compose to use CPU cores more effectively
-5. consolidate older direct streaming paths onto the shared scheduler model
+5. replace per-chunk `ffmpeg` spawn with a bounded shared encode architecture
+6. consolidate older direct streaming paths onto the shared scheduler model
 
 Current code status:
 
@@ -752,6 +799,17 @@ Current code status:
   - `max_segment_interval_s=2.032`
   - `avg GPU util ~= 83.84%`
 - persistent encode is **not** implemented yet in this branch
+- reusable AAC sidecar prep is now implemented for the shared HLS path:
+  - `scripts/api_avatar.py`
+    - prepares a per-request AAC sidecar
+    - chunk ffmpeg jobs now try `audio=copy` first and fall back to per-chunk
+      AAC encode if needed
+  - `scripts/hls_gpu_scheduler.py`
+    - prepares the sidecar during HLS prep
+    - tracks sidecar prep time in scheduler logs
+    - cleans up the sidecar with the request lifecycle
+  - this slice has passed targeted smoke validation but has not yet been
+    re-benchmarked end-to-end in `load_test.py` during this turn
 
 New optional tuning knobs for the first refactor slice:
 
@@ -761,6 +819,10 @@ New optional tuning knobs for the first refactor slice:
 - `MUSETALK_AVATAR_LOAD_WORKERS`
   - default: auto
   - caps parallel avatar frame/mask read workers during cache-miss load
+- `HLS_CHUNK_PREPARE_AUDIO_SIDECAR`
+  - default: enabled
+  - prepares a reusable AAC sidecar once per request so chunk muxing can try
+    `-c:a copy`
 
 ## What To Verify On Startup
 
@@ -896,8 +958,94 @@ export HLS_PERSISTENT_SEGMENTER=1
 - The later explicit SDPA attention-path experiment was also rolled back as a throughput change. Across repeated `concurrency=8`, `playback_fps=24`, `musetalk_fps=12` runs it stayed in the same familiar band at about `avg_segment_interval_s = 1.97-2.04`, `max_segment_interval_s = 3.10-3.22`, and `avg_time_to_live_ready_s = 4.15-4.77`, so it is not part of the stable launch config either.
 - These stable start params were still the correct way to run all of those recent small-model-path experiments. Those tests did not need extra start flags beyond any code-default toggles, so the failed results are still valid evidence.
 
+## Experimental `bs8` Branch Notes
 
-LATEST RUN after the TEnsor changes on vae: 
+The current default production-like baseline in this file is still the moderate
+`bs4` HLS profile. A later March 25 experiment widened the live scheduler to
+exercise the repaired `trt_stagewise` backend at `bs8`.
+
+Important config notes from that experiment:
+
+- `HLS_SCHEDULER_STARTUP_SLICE_SIZE` expects a single integer, not a list
+- the earlier scratch command `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4,8` was
+  malformed and should not be reused
+- forcing `HLS_SCHEDULER_FIXED_BATCH_SIZES=8` made even low-concurrency turns
+  pad to `8`, which increased resident VRAM sharply
+- the safer follow-up experiment is to allow both live buckets:
+  - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8`
+  - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
+
+Observed March 25 `bs8` results:
+
+- `concurrency=1`, `batch_size=8`
+  - `avg_time_to_live_ready_s=1.006`
+  - `avg_segment_interval_s=0.192`
+  - `max_segment_interval_s=0.509`
+  - `avg GPU util ~= 41.14%`
+  - `avg GPU memory used ~= 13742 MB`
+- `concurrency=8`, `batch_size=8`
+  - `avg_time_to_live_ready_s=1.947`
+  - `avg_segment_interval_s=1.513`
+  - `max_segment_interval_s=2.531`
+  - `wall_time_s=28.4`
+  - `avg GPU util ~= 82.87%`
+  - `avg GPU memory used ~= 13821 MB`
+- later widened `max_batch=16` branch on the same date produced the current
+  best average-throughput `concurrency=8` result so far:
+  - server-side shape:
+    - `HLS_SCHEDULER_MAX_BATCH=16`
+    - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16`
+    - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
+    - `HLS_PREP_WORKERS=8`
+    - `HLS_COMPOSE_WORKERS=8`
+    - `HLS_ENCODE_WORKERS=8`
+    - `HLS_MAX_PENDING_JOBS=24`
+    - `HLS_CHUNK_VIDEO_ENCODER=libx264`
+    - `HLS_CHUNK_ENCODER_PRESET=ultrafast`
+    - `HLS_CHUNK_ENCODER_CRF=28`
+    - `MUSETALK_WHISPER_SEGMENT_BATCH_SIZE=4`
+    - `MUSETALK_AVATAR_LOAD_WORKERS=8`
+  - measured run:
+    - `concurrency=8`
+    - request `batch_size=8`
+    - `avg_time_to_live_ready_s=2.197`
+    - `avg_segment_interval_s=1.408`
+    - `max_segment_interval_s=2.525`
+    - `wall_time_s=26.4`
+    - `avg GPU util ~= 85.21%`
+    - `avg GPU memory used ~= 23922 MB`
+  - same server branch with request `batch_size=4`:
+    - `avg_time_to_live_ready_s=2.199`
+    - `avg_segment_interval_s=1.423`
+    - `max_segment_interval_s=2.046`
+    - `wall_time_s=26.4`
+    - `avg GPU util ~= 85.79%`
+    - `avg GPU memory used ~= 23922 MB`
+
+Interpretation:
+
+- this was better than the familiar `bs4` `concurrency=8` band on steady-state
+  pacing and total wall time
+- it did **not** materially improve the stubborn tail, because
+  `max_segment_interval_s` stayed around `2.53s`
+- it is therefore a promising throughput branch, but not yet a replacement for
+  the stable default launch block in this file
+- the widened `max_batch=16` branch now improves that story further:
+  - request `batch_size=8` is the new best **average-throughput** result on the
+    current branch
+  - request `batch_size=4` on the same widened server shape still has the
+    better tail (`2.046s` vs `2.525s`)
+  - practical meaning:
+    - `batch_size=8` is currently the best throughput-oriented choice on this
+      widened scheduler branch
+    - `batch_size=4` remains the more tail-friendly choice on the same branch
+  - important caution:
+    - this branch is running very close to the 24 GB VRAM ceiling at about
+      `23922 MB`, so it should not warm additional large buckets casually
+
+Recommended experimental `bs8` startup block:
+
+```bash
 cd /content/MuseTalk
 source /content/py310_trt_exp/bin/activate
 
@@ -918,8 +1066,8 @@ export AVATAR_CACHE_MAX_AVATARS=0
 export AVATAR_CACHE_MAX_MEMORY_MB=12000
 export AVATAR_CACHE_TTL_SECONDS=3600
 
-export HLS_SCHEDULER_MAX_BATCH=4
-export HLS_SCHEDULER_FIXED_BATCH_SIZES=4
+export HLS_SCHEDULER_MAX_BATCH=16
+export HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16
 export HLS_SCHEDULER_STARTUP_SLICE_SIZE=4
 export HLS_SCHEDULER_AGGRESSIVE_FILL_MAX_ACTIVE_JOBS=999
 export HLS_STARTUP_CHUNK_DURATION_SECONDS=0.5
@@ -928,6 +1076,7 @@ export HLS_PREP_WORKERS=8
 export HLS_COMPOSE_WORKERS=8
 export HLS_ENCODE_WORKERS=8
 export HLS_MAX_PENDING_JOBS=24
+export MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16
 
 export HLS_CHUNK_VIDEO_ENCODER=libx264
 export HLS_CHUNK_ENCODER_PRESET=ultrafast
@@ -936,6 +1085,8 @@ unset HLS_CHUNK_ENCODER_QP
 export HLS_CHUNK_ENCODER_CRF=28
 export HLS_PERSISTENT_SEGMENTER=0
 
-python api_server.py --host 0.0.0.0 --port 8000
+export MUSETALK_WHISPER_SEGMENT_BATCH_SIZE=4
+export MUSETALK_AVATAR_LOAD_WORKERS=8
 
-LATEST: 
+python api_server.py --host 0.0.0.0 --port 8000
+```

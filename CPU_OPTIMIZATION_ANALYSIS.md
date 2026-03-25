@@ -209,6 +209,50 @@ Later March 24 ramp results tightened the interpretation further:
   - `avg_segment_interval_s = 1.733-1.736`
   - `max_segment_interval_s = 2.524-2.535`
   - `avg GPU util = 82.06-83.64%`
+- later 64-core worker-scale check (`prep/compose/encode = 12/12/12`)
+  - `concurrency=8`
+    - `avg_time_to_live_ready_s = 1.823`
+    - `avg_segment_interval_s = 1.827`
+    - `max_segment_interval_s = 2.533`
+    - `avg GPU util = 76.83%`
+  - `concurrency=10`
+    - `avg_time_to_live_ready_s = 1.812`
+    - `avg_segment_interval_s = 2.251`
+    - `max_segment_interval_s = 3.531`
+    - `avg GPU util = 80.33%`
+- later widened live `bs8` scheduler experiment on March 25
+  - `concurrency=8`, `batch_size=8`
+    - `avg_time_to_live_ready_s = 1.947`
+    - `avg_segment_interval_s = 1.513`
+    - `max_segment_interval_s = 2.531`
+    - `wall_time_s = 28.4`
+    - `avg GPU util = 82.87%`
+    - `avg GPU memory used ~= 13821 MB`
+  - important nuance:
+    - this first `bs8` run forced `fixed_batch_sizes=[8]`, so even
+      low-concurrency turns padded to `8` and VRAM jumped sharply
+    - the better follow-up config should prefer mixed `4,8` buckets instead
+- later widened `max_batch=16` branch on March 25
+  - server-side shape:
+    - `HLS_SCHEDULER_MAX_BATCH=16`
+    - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16`
+    - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
+    - workers still `8/8/8`
+  - request `batch_size=8`
+    - `avg_time_to_live_ready_s = 2.197`
+    - `avg_segment_interval_s = 1.408`
+    - `max_segment_interval_s = 2.525`
+    - `wall_time_s = 26.4`
+    - `avg GPU util = 85.21%`
+    - `avg GPU memory used ~= 23922 MB`
+  - same server branch with request `batch_size=4`
+    - `avg_segment_interval_s = 1.423`
+    - `max_segment_interval_s = 2.046`
+  - interpretation:
+    - widening the total scheduler batch budget is now producing the best
+      average throughput observed so far on this branch
+    - the remaining issue is no longer whether the GPU can be filled, but how
+      to avoid hurting tail fairness while operating close to the VRAM ceiling
 
 Compared with the earlier severe regression:
 
@@ -230,6 +274,15 @@ Interpretation:
   because the shared HLS scheduler is still operating on the same `batch_size=4`
   regime, so the extra stream mostly affects fairness/tail behavior rather than
   changing the GPU batch shape
+- widening the live scheduler to `bs8` now appears to escape some of that
+  batch-4 ceiling on average throughput, but it does not solve the tail by
+  itself
+- widening the total scheduler batch budget to `16` strengthens that result
+  further and sets the current average-throughput record at `concurrency=8`
+- pushing the worker pools up to `12/12/12` on the 64-core host did **not**
+  create a new throughput tier and actually reduced average GPU utilization
+- worker-count scaling is therefore no longer the main lever; the next gains
+  should come from the encode and compose structure instead
 - but the tail is still slightly above the current `2.0s` throttling line, so
   persistent encode and later compose refactors still matter
 
@@ -258,6 +311,28 @@ Current hot path in `scripts/hls_gpu_scheduler.py` is too sequential:
 - audio decode / feature extraction
 - Whisper encode
 - prompt construction
+
+### Phase 1.5: Reuse Request Audio Across Chunk Encodes
+
+The next landed host-side slice is to stop re-encoding AAC inside every chunk.
+
+Current update:
+
+- `scripts/api_avatar.py` now supports a reusable AAC sidecar and will try
+  `-c:a copy` during chunk muxing before falling back to per-chunk AAC encode
+- `scripts/hls_gpu_scheduler.py` now prepares that sidecar during HLS prep and
+  cleans it up with the request lifecycle
+
+Why it matters:
+
+- the previous chunk path paid audio encode cost repeatedly inside every ffmpeg
+  subprocess
+- this slice removes one of the clearest remaining CPU costs in the hot path
+
+Status:
+
+- targeted smoke validation passed
+- end-to-end `load_test.py` measurement is still pending after this slice
 - positional-encoding staging
 - initial conditioning allocation
 
@@ -325,6 +400,13 @@ Best refactor direction:
 - keep batching, but evaluate a bounded process pool for compose
 - or move compose to coarser batched work units so Python overhead drops
 - do not start by increasing thread counts blindly
+
+Current update:
+
+- the compose path now caches per-cycle blend geometry and alpha so the live
+  hot path stops recomputing the same ROI setup every frame
+- this is a smaller structural improvement than a future process-pool compose
+  branch, but it is already landed and mechanically validated
 
 Why fourth:
 

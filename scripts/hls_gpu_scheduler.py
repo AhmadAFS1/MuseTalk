@@ -33,6 +33,7 @@ class HLSStreamJob:
     cancel_event: threading.Event
     completion_future: object
     main_loop: object
+    audio_copy_path: Optional[str] = None
     idle_frames: list = field(default_factory=list)
     crossfade_tail_frames: int = 0
     current_frame_idx: int = 0
@@ -63,6 +64,7 @@ class HLSStreamJob:
     prep_work_s: float = 0.0
     avatar_load_s: float = 0.0
     audio_feature_s: float = 0.0
+    audio_copy_prep_s: float = 0.0
     whisper_chunk_s: float = 0.0
     first_scheduled_at: Optional[float] = None
     first_chunk_appended_at: Optional[float] = None
@@ -321,14 +323,17 @@ class HLSGPUStreamScheduler:
         submitted_at: float,
     ) -> None:
         prep_started_at = time.time()
+        audio_copy_candidate_path = str((session.segment_dir / request_id) / "chunk_audio.m4a")
+        audio_copy_path = None
         try:
             if cancel_event.is_set():
                 self._finish_before_enqueue(
-                    request_id, session, audio_path, completion_future, main_loop, "cancelled"
+                    request_id, session, audio_path, audio_copy_candidate_path, completion_future, main_loop, "cancelled"
                 )
                 return
 
             weight_dtype = getattr(self.manager, "unet_dtype", torch.float16)
+            from scripts.api_avatar import prepare_chunk_audio_copy_source
 
             # Local modification: this differs from the original MuseTalk code.
             # Avatar load and audio feature extraction are prepared in parallel.
@@ -345,9 +350,20 @@ class HLSGPUStreamScheduler:
                 0,
                 weight_dtype,
             )
+            audio_copy_future = self.prep_subtask_executor.submit(
+                self._timed_call,
+                prepare_chunk_audio_copy_source,
+                audio_path,
+                audio_copy_candidate_path,
+            )
 
             avatar, avatar_load_s = avatar_future.result()
             (whisper_input_features, _librosa_length), audio_feature_s = audio_feature_future.result()
+            audio_copy_prep_s = 0.0
+            try:
+                audio_copy_path, audio_copy_prep_s = audio_copy_future.result()
+            except Exception as audio_copy_exc:
+                print(f"⚠️  [{request_id}] reusable AAC sidecar unavailable: {audio_copy_exc}")
 
             if session.idle_cycle_frames is None and hasattr(avatar, "input_latent_cycle_tensor"):
                 session.idle_cycle_frames = len(avatar.input_latent_cycle_tensor)
@@ -370,7 +386,7 @@ class HLSGPUStreamScheduler:
 
             if cancel_event.is_set():
                 self._finish_before_enqueue(
-                    request_id, session, audio_path, completion_future, main_loop, "cancelled"
+                    request_id, session, audio_path, audio_copy_path, completion_future, main_loop, "cancelled"
                 )
                 return
 
@@ -437,6 +453,7 @@ class HLSGPUStreamScheduler:
                 session=session,
                 avatar=avatar,
                 audio_path=audio_path,
+                audio_copy_path=audio_copy_path,
                 chunk_output_dir=session.segment_dir / request_id,
                 generation_fps=generation_fps,
                 batch_size=max(1, int(session.batch_size)),
@@ -462,6 +479,7 @@ class HLSGPUStreamScheduler:
                 prep_work_s=queued_at - prep_started_at,
                 avatar_load_s=avatar_load_s,
                 audio_feature_s=audio_feature_s,
+                audio_copy_prep_s=audio_copy_prep_s,
                 whisper_chunk_s=whisper_chunk_s,
             )
 
@@ -487,7 +505,7 @@ class HLSGPUStreamScheduler:
                 f"(frames={total_frames}, chunks={total_chunks}, batch_size={job.batch_size}, "
                 f"ready={job.conditioning_ready_frames}, "
                 f"prep={job.prep_total_s:.2f}s, prep_wait={job.prep_queue_wait_s:.2f}s, "
-                f"prep_work={job.prep_work_s:.2f}s)"
+                f"prep_work={job.prep_work_s:.2f}s, audio_copy={job.audio_copy_prep_s:.2f}s)"
             )
         except Exception as exc:
             print(f"❌ [{request_id}] HLS prep failed: {exc}")
@@ -496,6 +514,7 @@ class HLSGPUStreamScheduler:
                 request_id,
                 session,
                 audio_path,
+                audio_copy_path or audio_copy_candidate_path,
                 completion_future,
                 main_loop,
                 "failed",
@@ -515,6 +534,7 @@ class HLSGPUStreamScheduler:
         request_id: str,
         session,
         audio_path: str,
+        audio_copy_path: Optional[str],
         completion_future,
         main_loop,
         status: str,
@@ -533,6 +553,11 @@ class HLSGPUStreamScheduler:
             Path(audio_path).unlink(missing_ok=True)
         except OSError:
             pass
+        if audio_copy_path:
+            try:
+                Path(audio_copy_path).unlink(missing_ok=True)
+            except OSError:
+                pass
 
     def _initial_conditioning_frames(
         self,
@@ -1154,6 +1179,7 @@ class HLSGPUStreamScheduler:
         total_frames = job.total_frames
         fps = job.generation_fps
         audio_path = job.audio_path
+        audio_copy_path = job.audio_copy_path
         output_path = str(job.chunk_output_dir / f"chunk_{chunk_index:04d}.ts")
         is_final_chunk = (start_frame + len(frames)) >= total_frames
         encode_submitted_at = time.time()
@@ -1167,6 +1193,7 @@ class HLSGPUStreamScheduler:
                     fade_frames=job.crossfade_tail_frames,
                     chunk_index=chunk_index,
                     audio_path=audio_path,
+                    audio_copy_path=audio_copy_path,
                     fps=fps,
                     start_frame=start_frame,
                     total_frames=total_frames,
@@ -1177,6 +1204,7 @@ class HLSGPUStreamScheduler:
                     frames=frames,
                     chunk_index=chunk_index,
                     audio_path=audio_path,
+                    audio_copy_path=audio_copy_path,
                     fps=fps,
                     start_frame=start_frame,
                     total_frames=total_frames,
@@ -1295,11 +1323,17 @@ class HLSGPUStreamScheduler:
             Path(job.audio_path).unlink(missing_ok=True)
         except OSError:
             pass
+        if job.audio_copy_path:
+            try:
+                Path(job.audio_copy_path).unlink(missing_ok=True)
+            except OSError:
+                pass
 
         print(
             f"🎛️  [{job.request_id}] HLS scheduler finished with status={status} "
             f"(prep={job.prep_total_s:.2f}s, prep_wait={job.prep_queue_wait_s:.2f}s, "
-            f"prep_work={job.prep_work_s:.2f}s, queue={self._queue_wait_s(job):.2f}s, "
+            f"prep_work={job.prep_work_s:.2f}s, audio_copy={job.audio_copy_prep_s:.2f}s, "
+            f"queue={self._queue_wait_s(job):.2f}s, "
             f"first_chunk={self._time_to_first_chunk_s(job):.2f}s, "
             f"avg_gpu_batch={self._safe_avg(job.gpu_batch_total_s, job.gpu_batch_count):.3f}s, "
             f"avg_compose_wait={self._safe_avg(job.compose_queue_wait_total_s, job.compose_batch_count):.3f}s, "

@@ -1,7 +1,6 @@
 from PIL import Image
 import numpy as np
 import cv2
-import copy
 
 
 def get_crop_box(box, expand):
@@ -102,43 +101,59 @@ def get_image_blending(image, face, face_box, mask_array, crop_box):
     path. This version keeps the operation in NumPy/OpenCV space while
     preserving the same masked-paste semantics.
     """
-    if image is None or face is None:
-        return image
+    plan = prepare_image_blending_plan(image.shape if image is not None else None, face_box, mask_array, crop_box)
+    return get_image_blending_with_plan(image, face, plan)
 
-    x, y, x1, y1 = face_box
-    x_s, y_s, x_e, y_e = crop_box
-    height, width = image.shape[:2]
+
+def prepare_image_blending_plan(image_shape, face_box, mask_array, crop_box):
+    """
+    Precompute the static blending geometry for one avatar-cycle frame.
+
+    The avatar frame size, bbox, crop box, and soft mask do not change during
+    live generation, so this data can be cached once and reused for every
+    composed frame in that cycle position.
+    """
+    if image_shape is None or mask_array is None:
+        return None
+
+    x, y, x1, y1 = [int(v) for v in face_box]
+    x_s, y_s, x_e, y_e = [int(v) for v in crop_box]
+    height, width = image_shape[:2]
+
+    face_w = max(0, x1 - x)
+    face_h = max(0, y1 - y)
+    if face_w <= 0 or face_h <= 0:
+        return None
 
     crop_w = max(0, x_e - x_s)
     crop_h = max(0, y_e - y_s)
     if crop_w <= 0 or crop_h <= 0:
-        return image
+        return None
 
     clip_x0 = max(0, x_s)
     clip_y0 = max(0, y_s)
     clip_x1 = min(width, x_e)
     clip_y1 = min(height, y_e)
     if clip_x0 >= clip_x1 or clip_y0 >= clip_y1:
-        return image
+        return None
 
     mask_x0 = clip_x0 - x_s
     mask_y0 = clip_y0 - y_s
     mask_x1 = mask_x0 + (clip_x1 - clip_x0)
     mask_y1 = mask_y0 + (clip_y1 - clip_y0)
 
-    base_roi = image[clip_y0:clip_y1, clip_x0:clip_x1]
-    overlay_roi = base_roi.copy()
-
     full_face_x0 = x - x_s
     full_face_y0 = y - y_s
-    full_face_x1 = full_face_x0 + face.shape[1]
-    full_face_y1 = full_face_y0 + face.shape[0]
+    full_face_x1 = full_face_x0 + face_w
+    full_face_y1 = full_face_y0 + face_h
 
     place_x0 = max(mask_x0, full_face_x0)
     place_y0 = max(mask_y0, full_face_y0)
     place_x1 = min(mask_x1, full_face_x1)
     place_y1 = min(mask_y1, full_face_y1)
 
+    overlay_dst_slice = None
+    face_src_slice = None
     if place_x0 < place_x1 and place_y0 < place_y1:
         dst_x0 = place_x0 - mask_x0
         dst_y0 = place_y0 - mask_y0
@@ -150,20 +165,47 @@ def get_image_blending(image, face, face_box, mask_array, crop_box):
         src_x1 = place_x1 - full_face_x0
         src_y1 = place_y1 - full_face_y0
 
-        overlay_roi[dst_y0:dst_y1, dst_x0:dst_x1] = face[src_y0:src_y1, src_x0:src_x1]
+        overlay_dst_slice = (slice(dst_y0, dst_y1), slice(dst_x0, dst_x1))
+        face_src_slice = (slice(src_y0, src_y1), slice(src_x0, src_x1))
 
     mask_roi = mask_array[mask_y0:mask_y1, mask_x0:mask_x1]
     if mask_roi.ndim == 3:
         mask_roi = mask_roi[:, :, 0]
+    mask_roi = np.ascontiguousarray(mask_roi)
+    alpha = (mask_roi.astype(np.float32) / 255.0)[:, :, None]
 
-    alpha = mask_roi.astype(np.float32) / 255.0
-    alpha = alpha[:, :, None]
+    return {
+        "face_size": (face_w, face_h),
+        "clip_slice": (slice(clip_y0, clip_y1), slice(clip_x0, clip_x1)),
+        "overlay_dst_slice": overlay_dst_slice,
+        "face_src_slice": face_src_slice,
+        "alpha": alpha,
+    }
+
+
+def get_image_blending_with_plan(image, face, plan):
+    """Apply a precomputed blending plan to one resized talking-face frame."""
+    if image is None or face is None or plan is None:
+        return image
+
+    clip_y_slice, clip_x_slice = plan["clip_slice"]
+    base_roi = image[clip_y_slice, clip_x_slice]
+    overlay_roi = base_roi.copy()
+
+    overlay_dst_slice = plan["overlay_dst_slice"]
+    face_src_slice = plan["face_src_slice"]
+    if overlay_dst_slice is not None and face_src_slice is not None:
+        dst_y_slice, dst_x_slice = overlay_dst_slice
+        src_y_slice, src_x_slice = face_src_slice
+        overlay_roi[dst_y_slice, dst_x_slice] = face[src_y_slice, src_x_slice]
+
+    alpha = plan["alpha"]
     blended_roi = (
         overlay_roi.astype(np.float32) * alpha
         + base_roi.astype(np.float32) * (1.0 - alpha)
     ).astype(np.uint8)
 
-    image[clip_y0:clip_y1, clip_x0:clip_x1] = blended_roi
+    image[clip_y_slice, clip_x_slice] = blended_roi
     return image
 
 

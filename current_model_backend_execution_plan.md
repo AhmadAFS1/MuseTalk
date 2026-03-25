@@ -353,7 +353,18 @@ Concrete implementation update:
        - much better startup and better steady-state pacing than the earlier
          stable PyTorch band
        - still technically throttled by the current `2.0s` max-interval rule
+   - important runtime distinction for wider buckets:
+     - the active `trt_stagewise` backend does **not** require a regenerated
+       reusable TRT artifact just to test `batch_size=8`
+     - it compiles and caches exact batch sizes at runtime in
+       `scripts/trt_runtime.py`
+     - the old serialized TRT export workflow **does** still require explicit
+       `--batch-sizes ...` coverage if we ever switch back to that backend
    - validate `trt_stagewise` on `batch_size=8`, `16`, `32`, `48`
+     - first concrete gate for `bs8`:
+       - `python scripts/validate_vae_backend.py --avatar-id test_avatar --backend trt_stagewise --batch-size 8 --output-dir ./tmp/vae_backend_validation_bs8`
+     - after correctness passes, warm the stagewise runtime at `bs8` before
+       using a widened HLS scheduler config in live load tests
    - benchmark its throughput against the PyTorch VAE path
    - if it stays correct and faster, widen it into real HLS testing
 5. once the widened stagewise buckets pass validation:
@@ -689,10 +700,85 @@ Current implementation status:
       - `7` and `8` are now in the same batch-4 saturation band
       - the next gains should come from lowering tail latency, not expecting a
         different scheduler regime automatically at `7`
+- later 64-core worker-scale check (`prep/compose/encode = 12/12/12`)
+  - `concurrency=8`
+    - `avg_segment_interval_s=1.827`
+    - `max_segment_interval_s=2.533`
+    - `avg GPU util ~= 76.83%`
+  - `concurrency=10`
+    - `avg_segment_interval_s=2.251`
+    - `max_segment_interval_s=3.531`
+    - `avg GPU util ~= 80.33%`
+  - practical meaning:
+    - the larger worker profile did **not** create a new tier on the 64-core box
+    - keep the `8/8/8` worker baseline and move the next effort into encode /
+      compose structure instead
+- later first widened live `bs8` scheduler experiment on March 25:
+  - `concurrency=1`, `batch_size=8`
+    - `avg_time_to_live_ready_s=1.006`
+    - `avg_segment_interval_s=0.192`
+    - `avg GPU memory used ~= 13742 MB`
+  - `concurrency=8`, `batch_size=8`
+    - `avg_time_to_live_ready_s=1.947`
+    - `avg_segment_interval_s=1.513`
+    - `max_segment_interval_s=2.531`
+    - `wall_time_s=28.4`
+    - `avg GPU util ~= 82.87%`
+    - `avg GPU memory used ~= 13821 MB`
+  - practical meaning:
+    - this is the first sign that widening the live stagewise bucket can
+      materially improve steady-state pacing
+    - the tail still stayed around `2.53s`, so this is not a full solution yet
+    - the first test forced `fixed_batch_sizes=[8]`, which is too blunt for the
+      long-term config because even small turns pad to `8`
+    - the next live config to measure should be:
+      - `HLS_SCHEDULER_MAX_BATCH=8`
+      - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8`
+      - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
+- later widened `max_batch=16` branch on March 25 set the current best
+  `concurrency=8` average-throughput result:
+  - server-side shape:
+    - `HLS_SCHEDULER_MAX_BATCH=16`
+    - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16`
+    - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
+    - workers still `8/8/8`
+  - request `batch_size=8`
+    - `avg_time_to_live_ready_s=2.197`
+    - `avg_segment_interval_s=1.408`
+    - `max_segment_interval_s=2.525`
+    - `wall_time_s=26.4`
+    - `avg GPU util ~= 85.21%`
+    - `avg GPU memory used ~= 23922 MB`
+  - same server branch with request `batch_size=4`
+    - `avg_segment_interval_s=1.423`
+    - `max_segment_interval_s=2.046`
+    - `wall_time_s=26.4`
+  - practical meaning:
+    - the widened total batch budget is real and beneficial
+    - request `batch_size=8` is the new best average-throughput point
+    - request `batch_size=4` keeps the better tail on the same branch
+    - the next implementation work should now assume the branch is GPU-dense
+      enough and focus on shrinking tail latency without losing the new average
+      throughput gain
 - still pending inside Phase 0:
-  - persistent encode pipeline
+  - deeper encode pipeline work beyond audio-sidecar reuse
   - deeper compose refactor
   - convergence of older direct live-serving paths
+
+Current implementation update:
+
+- the next host-side slice now landed in code:
+  - `scripts/api_avatar.py`
+    - reusable AAC sidecar prep
+    - chunk muxing attempts `-c:a copy` first, then falls back to inline AAC
+    - compose now reuses a cached per-cycle blending plan
+  - `musetalk/utils/blending.py`
+    - cached blend-plan helpers now hold static crop geometry and alpha
+  - `scripts/hls_gpu_scheduler.py`
+    - sidecar prep overlaps with HLS request prep
+    - sidecar cleanup follows request cleanup
+- this slice has passed targeted smoke validation, but `load_test.py`
+  confirmation is still pending after it
 
 ## Bottom Line
 

@@ -733,6 +733,61 @@ Later March 24 ramp testing then clarified the current capacity band:
   - `avg_segment_interval_s = 1.733-1.736`
   - `max_segment_interval_s = 2.524-2.535`
   - `avg GPU util = 82.06-83.64%`
+- later 64-core worker-scale check (`prep/compose/encode = 12/12/12`)
+  - `concurrency=8`
+    - `avg_time_to_live_ready_s = 1.823`
+    - `avg_segment_interval_s = 1.827`
+    - `max_segment_interval_s = 2.533`
+    - `avg GPU util = 76.83%`
+  - `concurrency=10`
+    - `avg_time_to_live_ready_s = 1.812`
+    - `avg_segment_interval_s = 2.251`
+    - `max_segment_interval_s = 3.531`
+    - `avg GPU util = 80.33%`
+- later first widened live `bs8` scheduler experiment on March 25
+  - `concurrency=1`, `batch_size=8`
+    - `avg_time_to_live_ready_s = 1.006`
+    - `avg_segment_interval_s = 0.192`
+    - `max_segment_interval_s = 0.509`
+    - `avg GPU util = 41.14%`
+    - `avg GPU memory used ~= 13742 MB`
+  - `concurrency=8`, `batch_size=8`
+    - `avg_time_to_live_ready_s = 1.947`
+    - `avg_segment_interval_s = 1.513`
+    - `max_segment_interval_s = 2.531`
+    - `wall_time_s = 28.4`
+    - `avg GPU util = 82.87%`
+    - `avg GPU memory used ~= 13821 MB`
+  - important config note:
+    - this first run used a forced `fixed_batch_sizes=[8]` shape, which raised
+      VRAM sharply even at low concurrency
+    - the safer follow-up branch should prefer `fixed_batch_sizes=[4, 8]`
+      with `startup_slice_size=4`
+- later widened `max_batch=16` branch on March 25 set a new current
+  `concurrency=8` average-throughput record:
+  - server-side shape:
+    - `HLS_SCHEDULER_MAX_BATCH=16`
+    - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16`
+    - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
+    - `HLS_PREP_WORKERS=8`
+    - `HLS_COMPOSE_WORKERS=8`
+    - `HLS_ENCODE_WORKERS=8`
+    - `HLS_MAX_PENDING_JOBS=24`
+    - `HLS_CHUNK_VIDEO_ENCODER=libx264`
+  - request `batch_size=8`
+    - `avg_time_to_live_ready_s = 2.197`
+    - `avg_segment_interval_s = 1.408`
+    - `max_segment_interval_s = 2.525`
+    - `wall_time_s = 26.4`
+    - `avg GPU util = 85.21%`
+    - `avg GPU memory used ~= 23922 MB`
+  - same server branch with request `batch_size=4`
+    - `avg_time_to_live_ready_s = 2.199`
+    - `avg_segment_interval_s = 1.423`
+    - `max_segment_interval_s = 2.046`
+    - `wall_time_s = 26.4`
+    - `avg GPU util = 85.79%`
+    - `avg GPU memory used ~= 23922 MB`
 
 That changes the current interpretation again:
 
@@ -747,6 +802,22 @@ That changes the current interpretation again:
   on the worst interval
 - `concurrency=7` and `concurrency=8` are now clearly in the same batch-4
   saturation band, which is why they look so similar in aggregate metrics
+- increasing worker counts to `12/12/12` on the 64-core host did **not**
+  produce a new throughput tier, which means the remaining tail is structural
+  rather than a simple lack-of-threads problem
+- widening the live scheduler to `bs8` now looks promising for steady-state
+  throughput and VRAM utilization, but not yet for tail latency
+- that means the next likely win is a hybrid bucket plan (`4,8`) plus more
+  compose / encode tail cleanup, not blindly forcing every turn to pad to `8`
+- widening the live scheduler further to `max_batch=16` now pushes that even
+  farther:
+  - request `batch_size=8` is the current best average-throughput setting at
+    `concurrency=8`
+  - request `batch_size=4` on the same widened branch still has the better
+    tail, which means fairness / chunk-completion behavior is still the main
+    limiter once the average cadence improves
+  - the branch is now operating very close to the 24 GB VRAM ceiling, so
+    additional warmed buckets should be treated carefully
 
 ### 1. Request Prep Is Still Too Front-Loaded And Sequential
 
@@ -841,6 +912,15 @@ In `scripts/api_avatar.py` and `musetalk/utils/blending.py`:
 
 This is not strictly “model math,” but it is still one of the largest remaining non-encode costs after the model step.
 
+Current update:
+
+- the compose path now precomputes one cached blending plan per avatar-cycle
+  frame
+- that cache stores the static crop geometry and soft alpha once so live
+  compose no longer repeats the same mask/ROI setup every frame
+- this slice has passed targeted behavior validation, but end-to-end
+  `load_test.py` confirmation is still pending after it
+
 ### 6. Encode Still Spawns A Fresh `ffmpeg` Per Chunk
 
 In `scripts/api_avatar.py`:
@@ -850,6 +930,14 @@ In `scripts/api_avatar.py`:
 - the chunk is encoded and muxed from scratch
 
 This is still expensive, but it is more of a pipeline/encode bottleneck than a pure model/GPU bottleneck.
+
+Current update:
+
+- the shared HLS path now prepares one reusable AAC sidecar per request
+- chunk muxing now tries `audio=copy` first and only falls back to inline AAC
+  encode if copy-mode fails
+- the remaining encode bottleneck is therefore more about process-per-chunk
+  overhead than about repeated audio transcoding specifically
 
 ### 7. Live Serving Still Has Duplicated Orchestration Paths
 

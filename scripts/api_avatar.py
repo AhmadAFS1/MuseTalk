@@ -27,7 +27,12 @@ import subprocess
 # time. `mmpose` is only needed when we actually prepare a new avatar; loading
 # an existing avatar should not require those dependencies just to start the
 # server.
-from musetalk.utils.blending import get_image_prepare_material, get_image_blending
+from musetalk.utils.blending import (
+    get_image_prepare_material,
+    get_image_blending,
+    get_image_blending_with_plan,
+    prepare_image_blending_plan,
+)
 from musetalk.utils.utils import datagen
 
 # Added code: cache ffmpeg encoder capability checks so the HLS path does not
@@ -35,6 +40,65 @@ from musetalk.utils.utils import datagen
 _FFMPEG_ENCODER_SUPPORT = {}
 _FFMPEG_ENCODER_SUPPORT_LOCK = threading.Lock()
 _FFMPEG_ENCODER_UNAVAILABLE_WARNED = set()
+_NVENC_ONLY_PRESETS = {
+    "p1",
+    "p2",
+    "p3",
+    "p4",
+    "p5",
+    "p6",
+    "p7",
+    "ll",
+    "llhq",
+    "llhp",
+    "lossless",
+    "losslesshp",
+    "hq",
+    "hp",
+    "bd",
+}
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() not in {"0", "false", "no", "off", ""}
+
+
+def _env_text(name: str) -> str:
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return ""
+    return raw_value.strip()
+
+
+def _resolve_nvenc_preset() -> str:
+    # Local modification: this differs from the original MuseTalk code.
+    # Allow NVENC tuning without leaking NVENC-only presets into libx264.
+    return _env_text("HLS_CHUNK_NVENC_PRESET") or _env_text("HLS_CHUNK_ENCODER_PRESET") or "p1"
+
+
+def _resolve_nvenc_tune() -> str:
+    return _env_text("HLS_CHUNK_NVENC_TUNE") or _env_text("HLS_CHUNK_ENCODER_TUNE") or "ull"
+
+
+def _resolve_nvenc_qp() -> str:
+    return _env_text("HLS_CHUNK_NVENC_QP") or _env_text("HLS_CHUNK_ENCODER_QP") or "28"
+
+
+def _resolve_x264_preset() -> str:
+    explicit = _env_text("HLS_CHUNK_X264_PRESET")
+    if explicit:
+        return explicit
+    legacy = _env_text("HLS_CHUNK_ENCODER_PRESET")
+    if legacy and legacy.lower() not in _NVENC_ONLY_PRESETS:
+        return legacy
+    return "ultrafast"
+
+
+def _resolve_x264_crf() -> str:
+    return _env_text("HLS_CHUNK_X264_CRF") or _env_text("HLS_CHUNK_ENCODER_CRF") or "28"
 
 
 # Local modification: this differs from the original MuseTalk code.
@@ -101,6 +165,7 @@ def _build_ffmpeg_chunk_cmd(
     height: int,
     fps: int,
     audio_path: str,
+    copy_audio: bool,
     start_time: float,
     duration: float,
     output_path: str,
@@ -124,21 +189,36 @@ def _build_ffmpeg_chunk_cmd(
         "-i", audio_path,
     ]
 
+    if copy_audio:
+        audio_opts = ["-c:a", "copy"]
+    elif use_mpegts:
+        audio_opts = [
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-ar", "48000",
+        ]
+    else:
+        audio_opts = [
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-ar", "44100",
+        ]
+
     if encoder == "h264_nvenc":
         video_opts = [
             "-c:v", "h264_nvenc",
-            "-preset", os.getenv("HLS_CHUNK_ENCODER_PRESET", "p1"),
-            "-tune", os.getenv("HLS_CHUNK_ENCODER_TUNE", "ull"),
+            "-preset", _resolve_nvenc_preset(),
+            "-tune", _resolve_nvenc_tune(),
             "-rc", "constqp",
-            "-qp", os.getenv("HLS_CHUNK_ENCODER_QP", "28"),
+            "-qp", _resolve_nvenc_qp(),
             "-pix_fmt", "yuv420p",
         ]
     else:
         video_opts = [
             "-c:v", "libx264",
-            "-preset", os.getenv("HLS_CHUNK_ENCODER_PRESET", "ultrafast"),
+            "-preset", _resolve_x264_preset(),
             "-tune", "zerolatency",
-            "-crf", os.getenv("HLS_CHUNK_ENCODER_CRF", "28"),
+            "-crf", _resolve_x264_crf(),
             "-pix_fmt", "yuv420p",
         ]
 
@@ -148,17 +228,12 @@ def _build_ffmpeg_chunk_cmd(
             "-g", str(gop),
             "-keyint_min", str(gop),
             "-sc_threshold", "0",
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-ar", "48000",
+        ] + audio_opts + [
             "-f", "mpegts",
             output_path,
         ]
     else:
-        ffmpeg_cmd += video_opts + [
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-ar", "44100",
+        ffmpeg_cmd += video_opts + audio_opts + [
             "-movflags", "frag_keyframe+empty_moov+default_base_moof+faststart",
             "-frag_duration", str(int(duration * 1000000)),
             "-f", "mp4",
@@ -166,6 +241,74 @@ def _build_ffmpeg_chunk_cmd(
         ]
 
     return ffmpeg_cmd
+
+
+# Local modification: this differs from the original MuseTalk code.
+# The HLS path can pre-encode request audio once and then reuse it with
+# `-c:a copy` instead of paying AAC encode cost per chunk.
+def prepare_chunk_audio_copy_source(audio_path: str, output_path: str | None = None) -> str | None:
+    if not _env_flag("HLS_CHUNK_PREPARE_AUDIO_SIDECAR", True):
+        return None
+
+    source_path = Path(audio_path)
+    if not source_path.exists():
+        return None
+
+    if output_path is None:
+        output_path = str(source_path.with_suffix(".chunk_audio.m4a"))
+    sidecar_path = Path(output_path)
+    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        if sidecar_path.exists() and sidecar_path.stat().st_size > 1024:
+            return str(sidecar_path)
+    except OSError:
+        pass
+
+    ffmpeg_bin = os.getenv("HLS_FFMPEG_BIN", "ffmpeg").strip() or "ffmpeg"
+    ffmpeg_cmd = [
+        ffmpeg_bin,
+        "-y",
+        "-v",
+        "error",
+        "-nostats",
+        "-i",
+        str(source_path),
+        "-vn",
+        "-c:a",
+        "aac",
+        "-b:a",
+        os.getenv("HLS_CHUNK_AUDIO_BITRATE", "128k"),
+        "-ar",
+        os.getenv("HLS_CHUNK_AUDIO_SAMPLE_RATE", "48000"),
+        "-ac",
+        "2",
+        str(sidecar_path),
+    ]
+    result = subprocess.run(
+        ffmpeg_cmd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        stderr_tail = (result.stderr or "").strip()[-400:]
+        detail = f": {stderr_tail}" if stderr_tail else ""
+        raise RuntimeError(f"Failed to prepare reusable AAC sidecar{detail}")
+
+    if not sidecar_path.exists():
+        raise RuntimeError("AAC sidecar was not created")
+
+    try:
+        file_size = sidecar_path.stat().st_size
+    except OSError as exc:
+        raise RuntimeError(f"Failed to stat AAC sidecar: {exc}") from exc
+    if file_size < 1024:
+        raise RuntimeError(f"AAC sidecar too small: {file_size} bytes")
+
+    print(f"🎵 Prepared reusable AAC sidecar ({file_size/1024:.1f}KB)")
+    return str(sidecar_path)
 
 
 def _set_ffmpeg_encoder_support(encoder: str, supported: bool, detail: str = ""):
@@ -288,6 +431,7 @@ class APIAvatar:
         self.mask_coords_path = f"{self.avatar_path}/mask_coords.pkl"
         self.avatar_info_path = f"{self.avatar_path}/avator_info.json"
         self._idle_frame_cache: list[np.ndarray] | None = None
+        self._compose_plan_cycle = []
         
         self.avatar_info = {
             "avatar_id": avatar_id,
@@ -322,6 +466,27 @@ class APIAvatar:
             batch_tensor = batch_tensor.pin_memory()
         self.input_latent_cycle_batch_tensor = batch_tensor
 
+    # Local modification: this differs from the original MuseTalk code.
+    # Precompute static blend geometry and alpha once per avatar-cycle frame so
+    # live compose does less repeated CPU setup.
+    def _build_compose_plan_cycle(self) -> None:
+        frame_list = getattr(self, "frame_list_cycle", None) or []
+        coord_list = getattr(self, "coord_list_cycle", None) or []
+        mask_list = getattr(self, "mask_list_cycle", None) or []
+        mask_coord_list = getattr(self, "mask_coords_list_cycle", None) or []
+        total = min(len(frame_list), len(coord_list), len(mask_list), len(mask_coord_list))
+        plans = []
+        for idx in range(total):
+            plans.append(
+                prepare_image_blending_plan(
+                    frame_list[idx].shape,
+                    coord_list[idx],
+                    mask_list[idx],
+                    mask_coord_list[idx],
+                )
+            )
+        self._compose_plan_cycle = plans
+
     @staticmethod
     def _tensor_storage_nbytes(tensor: torch.Tensor) -> int:
         if not isinstance(tensor, torch.Tensor):
@@ -339,6 +504,19 @@ class APIAvatar:
         for value in values:
             if isinstance(value, np.ndarray):
                 total += int(value.nbytes)
+        return total
+
+    @staticmethod
+    def _compose_plan_sequence_nbytes(plans) -> int:
+        if not plans:
+            return 0
+        total = 0
+        for plan in plans:
+            if not isinstance(plan, dict):
+                continue
+            alpha = plan.get("alpha")
+            if isinstance(alpha, np.ndarray):
+                total += int(alpha.nbytes)
         return total
 
     def estimate_memory_usage_bytes(self) -> int:
@@ -367,6 +545,7 @@ class APIAvatar:
         total += self._numpy_sequence_nbytes(getattr(self, "frame_list_cycle", None))
         total += self._numpy_sequence_nbytes(getattr(self, "mask_list_cycle", None))
         total += self._numpy_sequence_nbytes(getattr(self, "_idle_frame_cache", None))
+        total += self._compose_plan_sequence_nbytes(getattr(self, "_compose_plan_cycle", None))
 
         coord_list = getattr(self, "coord_list_cycle", None) or []
         mask_coord_list = getattr(self, "mask_coords_list_cycle", None) or []
@@ -597,7 +776,8 @@ class APIAvatar:
         
         with open(self.coords_path, 'wb') as f:
             pickle.dump(self.coord_list_cycle, f)
-        
+
+        self._build_compose_plan_cycle()
         self._finalize_latent_cycle()
         torch.save(self.input_latent_list_cycle, self.latents_out_path)
     
@@ -635,6 +815,7 @@ class APIAvatar:
             self.frame_list_cycle = frame_list_future.result()
             self.mask_list_cycle = mask_list_future.result()
 
+        self._build_compose_plan_cycle()
         self._finalize_latent_cycle()
         
         print(f"✅ Loaded {len(self.frame_list_cycle)} frames")
@@ -819,15 +1000,21 @@ class APIAvatar:
 
     def compose_frame(self, res_frame, cycle_index: int):
         """Blend a decoded face frame back into the avatar frame cycle."""
-        bbox = self.coord_list_cycle[cycle_index % len(self.coord_list_cycle)]
-        ori_frame = self.frame_list_cycle[cycle_index % len(self.frame_list_cycle)].copy()
+        cycle_pos = cycle_index % len(self.coord_list_cycle)
+        bbox = self.coord_list_cycle[cycle_pos]
+        ori_frame = self.frame_list_cycle[cycle_pos].copy()
         x1, y1, x2, y2 = bbox
 
         if res_frame.dtype != np.uint8:
             res_frame = res_frame.astype(np.uint8)
         res_frame_resized = cv2.resize(res_frame, (x2 - x1, y2 - y1))
-        mask = self.mask_list_cycle[cycle_index % len(self.mask_list_cycle)]
-        mask_crop_box = self.mask_coords_list_cycle[cycle_index % len(self.mask_coords_list_cycle)]
+        compose_plan = None
+        if cycle_pos < len(self._compose_plan_cycle):
+            compose_plan = self._compose_plan_cycle[cycle_pos]
+        if compose_plan is not None:
+            return get_image_blending_with_plan(ori_frame, res_frame_resized, compose_plan)
+        mask = self.mask_list_cycle[cycle_pos % len(self.mask_list_cycle)]
+        mask_crop_box = self.mask_coords_list_cycle[cycle_pos % len(self.mask_coords_list_cycle)]
         return get_image_blending(ori_frame, res_frame_resized, bbox, mask, mask_crop_box)
 
     @torch.no_grad()
@@ -1142,6 +1329,7 @@ class APIAvatar:
         start_frame: int,
         total_frames: int,
         output_path: str,
+        audio_copy_path=None,
     ):
         """Blend the tail of talking frames into idle frames for a seamless handoff."""
         if not frames or not idle_frames or fade_frames <= 0:
@@ -1149,6 +1337,7 @@ class APIAvatar:
                 frames=frames,
                 chunk_index=chunk_index,
                 audio_path=audio_path,
+                audio_copy_path=audio_copy_path,
                 fps=fps,
                 start_frame=start_frame,
                 total_frames=total_frames,
@@ -1184,13 +1373,24 @@ class APIAvatar:
             frames=final_frames,
             chunk_index=chunk_index,
             audio_path=audio_path,
+            audio_copy_path=audio_copy_path,
             fps=fps,
             start_frame=start_frame,
             total_frames=total_frames,
             output_path=output_path,
         )
 
-    def _create_chunk(self, frames, chunk_index, audio_path, fps, start_frame, total_frames, output_path):
+    def _create_chunk(
+        self,
+        frames,
+        chunk_index,
+        audio_path,
+        fps,
+        start_frame,
+        total_frames,
+        output_path,
+        audio_copy_path=None,
+    ):
         """Create an encoded chunk (fMP4 for MSE or TS for HLS)."""
         chunk_start_time = time.time()
 
@@ -1217,75 +1417,103 @@ class APIAvatar:
             encoders_to_try.append("libx264")
 
         last_error = None
+        audio_attempts = []
+        if audio_copy_path:
+            audio_attempts.append((audio_copy_path, True))
+        audio_attempts.append((audio_path, False))
         for encoder in encoders_to_try:
-            ffmpeg_cmd = _build_ffmpeg_chunk_cmd(
-                width=width,
-                height=height,
-                fps=fps,
-                audio_path=audio_path,
-                start_time=start_time,
-                duration=duration,
-                output_path=output_path,
-                encoder=encoder,
-            )
-            proc = None
-            try:
-                proc = subprocess.Popen(
-                    ffmpeg_cmd,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.PIPE,
+            for current_audio_path, copy_audio in audio_attempts:
+                ffmpeg_cmd = _build_ffmpeg_chunk_cmd(
+                    width=width,
+                    height=height,
+                    fps=fps,
+                    audio_path=current_audio_path,
+                    copy_audio=copy_audio,
+                    start_time=start_time,
+                    duration=duration,
+                    output_path=output_path,
+                    encoder=encoder,
                 )
-
-                for frame in frames:
-                    proc.stdin.write(frame.tobytes())
-
-                proc.stdin.close()
-
+                proc = None
                 try:
-                    returncode = proc.wait(timeout=120)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-                    raise RuntimeError(f"FFmpeg chunk encode timed out after 120s using {encoder}")
-
-                if returncode != 0:
-                    stderr_tail = ""
-                    if proc.stderr is not None:
-                        try:
-                            stderr_tail = proc.stderr.read().decode("utf-8", errors="ignore")[-400:]
-                        except Exception:
-                            stderr_tail = ""
-                    detail = f": {stderr_tail}" if stderr_tail else ""
-                    if encoder != "libx264":
-                        _set_ffmpeg_encoder_support(encoder, False, stderr_tail)
-                    raise RuntimeError(
-                        f"FFmpeg failed with exit code {returncode} using {encoder}{detail}"
+                    proc = subprocess.Popen(
+                        ffmpeg_cmd,
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.PIPE,
                     )
-                if not Path(output_path).exists():
-                    raise RuntimeError(f"Output file not created using {encoder}")
 
-                file_size = Path(output_path).stat().st_size
-                if file_size < 1024:
-                    raise RuntimeError(f"Output file too small using {encoder}: {file_size} bytes")
+                    for frame in frames:
+                        try:
+                            proc.stdin.write(frame.tobytes())
+                        except BrokenPipeError as exc:
+                            stderr_tail = ""
+                            if proc.stderr is not None:
+                                try:
+                                    stderr_tail = proc.stderr.read().decode("utf-8", errors="ignore")[-400:]
+                                except Exception:
+                                    stderr_tail = ""
+                            detail = f": {stderr_tail}" if stderr_tail else ""
+                            raise RuntimeError(
+                                f"FFmpeg exited while writing frames using {encoder} "
+                                f"(audio={'copy' if copy_audio else 'aac'}){detail}"
+                            ) from exc
 
-                elapsed = time.time() - chunk_start_time
-                print(f"      ✅ Segment created with {encoder} ({file_size/1024:.1f}KB, {elapsed:.2f}s)")
-                return output_path
-            except Exception as exc:
-                last_error = exc
-                try:
-                    if proc is not None and proc.poll() is None:
+                    proc.stdin.close()
+
+                    try:
+                        returncode = proc.wait(timeout=120)
+                    except subprocess.TimeoutExpired:
                         proc.kill()
-                except OSError:
-                    pass
-                try:
-                    Path(output_path).unlink(missing_ok=True)
-                except OSError:
-                    pass
-                if encoder != encoders_to_try[-1]:
-                    print(f"      ⚠️ Encoder {encoder} failed, retrying with fallback: {exc}")
-                    continue
-                print(f"      ❌ Chunk creation failed: {exc}")
-                raise
+                        raise RuntimeError(f"FFmpeg chunk encode timed out after 120s using {encoder}")
+
+                    if returncode != 0:
+                        stderr_tail = ""
+                        if proc.stderr is not None:
+                            try:
+                                stderr_tail = proc.stderr.read().decode("utf-8", errors="ignore")[-400:]
+                            except Exception:
+                                stderr_tail = ""
+                        detail = f": {stderr_tail}" if stderr_tail else ""
+                        if encoder != "libx264" and not copy_audio:
+                            _set_ffmpeg_encoder_support(encoder, False, stderr_tail)
+                        raise RuntimeError(
+                            f"FFmpeg failed with exit code {returncode} using {encoder} "
+                            f"(audio={'copy' if copy_audio else 'aac'}){detail}"
+                        )
+                    if not Path(output_path).exists():
+                        raise RuntimeError(f"Output file not created using {encoder}")
+
+                    file_size = Path(output_path).stat().st_size
+                    if file_size < 1024:
+                        raise RuntimeError(f"Output file too small using {encoder}: {file_size} bytes")
+
+                    elapsed = time.time() - chunk_start_time
+                    print(
+                        f"      ✅ Segment created with {encoder} "
+                        f"(audio={'copy' if copy_audio else 'aac'}, "
+                        f"{file_size/1024:.1f}KB, {elapsed:.2f}s)"
+                    )
+                    return output_path
+                except Exception as exc:
+                    last_error = exc
+                    try:
+                        if proc is not None and proc.poll() is None:
+                            proc.kill()
+                    except OSError:
+                        pass
+                    try:
+                        Path(output_path).unlink(missing_ok=True)
+                    except OSError:
+                        pass
+                    is_last_attempt = (
+                        encoder == encoders_to_try[-1]
+                        and (current_audio_path, copy_audio) == audio_attempts[-1]
+                    )
+                    if not is_last_attempt:
+                        print(f"      ⚠️ Encoder {encoder} retrying after {exc}")
+                        continue
+                    print(f"      ❌ Chunk creation failed: {exc}")
+                    raise
 
         raise last_error or RuntimeError("Chunk creation failed without a reported error")

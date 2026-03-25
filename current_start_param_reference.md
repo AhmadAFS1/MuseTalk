@@ -8,6 +8,14 @@ Scope:
 - March 2026 code state
 - practical meaning, not just the variable name
 
+Current note:
+
+- the operationally preferred live-serving baseline has since moved to the
+  repaired `trt_stagewise` launch block in [`start_params.md`](./start_params.md)
+- this file is still useful for understanding the remaining param semantics,
+  but it should not be treated as the primary source of truth for the latest
+  recommended launch command
+
 Important framing:
 
 - some knobs raise the actual model-throughput ceiling

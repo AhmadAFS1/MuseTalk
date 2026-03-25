@@ -335,6 +335,77 @@ Likely reasons:
 This is why the first tuning pass helped, but the next more-aggressive one got
 worse again.
 
+## Later Current-Branch Reality Check
+
+After the later host-pipeline refactor slice repaired the severe CPU-starved
+regression, the same Threadripper branch was rechecked with larger worker pools.
+
+Observed result with `prep/compose/encode = 12/12/12`:
+
+- `concurrency=8`
+  - `avg_time_to_live_ready_s = 1.823`
+  - `avg_segment_interval_s = 1.827`
+  - `max_segment_interval_s = 2.533`
+  - `avg_gpu_util_pct = 76.83`
+- `concurrency=10`
+  - `avg_time_to_live_ready_s = 1.812`
+  - `avg_segment_interval_s = 2.251`
+  - `max_segment_interval_s = 3.531`
+  - `avg_gpu_util_pct = 80.33`
+
+Interpretation:
+
+- the repaired branch is far healthier than the earlier CPU-starved state
+- but raising worker counts further still did **not** create a new throughput tier
+- the current bottleneck is therefore structural tail latency, not just a lack
+  of available worker threads
+- the stable baseline should remain the moderate `8/8/8` profile until the next
+  encode/compose refactor slices are measured
+
+Later widened live `bs8` check on the same branch:
+
+- `concurrency=8`, `batch_size=8`
+  - `avg_time_to_live_ready_s = 1.947`
+  - `avg_segment_interval_s = 1.513`
+  - `max_segment_interval_s = 2.531`
+  - `wall_time_s = 28.4`
+  - `avg_gpu_util_pct = 82.87`
+  - `avg_gpu_memory_used_mb ~= 13821`
+
+Interpretation update:
+
+- widening the live batch regime now looks more promising than scaling worker
+  pools further
+- the first `bs8` result improved steady-state throughput without solving the
+  same old tail
+- the next experiment should not force `fixed_batch_sizes=[8]` globally;
+  it should use mixed `4,8` buckets
+
+Later widened `max_batch=16` check on the same branch:
+
+- server-side shape:
+  - `HLS_SCHEDULER_MAX_BATCH=16`
+  - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16`
+  - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
+  - workers `8/8/8`
+- request `batch_size=8`
+  - `avg_time_to_live_ready_s = 2.197`
+  - `avg_segment_interval_s = 1.408`
+  - `max_segment_interval_s = 2.525`
+  - `wall_time_s = 26.4`
+  - `avg_gpu_util_pct = 85.21`
+  - `avg_gpu_memory_used_mb ~= 23922`
+- same server branch with request `batch_size=4`
+  - `avg_segment_interval_s = 1.423`
+  - `max_segment_interval_s = 2.046`
+
+Interpretation update:
+
+- this is now the current best average-throughput result observed on the branch
+- the newer total-batch logic matters more than larger worker pools
+- request `batch_size=8` is the better throughput choice here
+- request `batch_size=4` is still the better tail-latency choice here
+
 ## Current Practical Guidance
 
 For this cross-server branch:

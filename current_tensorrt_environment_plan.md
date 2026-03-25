@@ -374,6 +374,58 @@ New stagewise runtime update in this alternate env:
     - practical meaning:
       - `7` and `8` are now in the same batch-4 saturation band
       - the remaining work is mainly about shrinking tail jitter
+- later 64-core worker-scale check (`prep/compose/encode = 12/12/12`)
+  - `concurrency=8`
+    - `avg_time_to_live_ready_s=1.823`
+    - `avg_segment_interval_s=1.827`
+    - `max_segment_interval_s=2.533`
+    - `avg GPU util ~= 76.83%`
+  - `concurrency=10`
+    - `avg_time_to_live_ready_s=1.812`
+    - `avg_segment_interval_s=2.251`
+    - `max_segment_interval_s=3.531`
+    - `avg GPU util ~= 80.33%`
+  - practical meaning:
+    - this alternate env still prefers the moderate `8/8/8` worker profile
+    - the next gains should come from encode/compose refactors, not larger pools
+- later first widened live `bs8` stagewise experiment in this env on March 25:
+  - `concurrency=1`, `batch_size=8`
+    - `avg_time_to_live_ready_s=1.006`
+    - `avg_segment_interval_s=0.192`
+    - `avg GPU memory used ~= 13742 MB`
+  - `concurrency=8`, `batch_size=8`
+    - `avg_time_to_live_ready_s=1.947`
+    - `avg_segment_interval_s=1.513`
+    - `max_segment_interval_s=2.531`
+    - `wall_time_s=28.4`
+    - `avg GPU util ~= 82.87%`
+    - `avg GPU memory used ~= 13821 MB`
+  - practical meaning:
+    - widened live stagewise buckets can improve steady-state pacing in this env
+    - the tail is still effectively unchanged
+    - prefer the next experimental shape as `fixed_batch_sizes=[4, 8]` rather
+      than forcing every turn to `8`
+- later widened `max_batch=16` branch in this same env on March 25:
+  - server-side shape:
+    - `HLS_SCHEDULER_MAX_BATCH=16`
+    - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16`
+    - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
+    - workers still `8/8/8`
+  - request `batch_size=8`
+    - `avg_time_to_live_ready_s=2.197`
+    - `avg_segment_interval_s=1.408`
+    - `max_segment_interval_s=2.525`
+    - `wall_time_s=26.4`
+    - `avg GPU util ~= 85.21%`
+    - `avg GPU memory used ~= 23922 MB`
+  - same server branch with request `batch_size=4`
+    - `avg_segment_interval_s=1.423`
+    - `max_segment_interval_s=2.046`
+  - practical meaning:
+    - this alternate env now has its best measured average-throughput result so
+      far at `concurrency=8`
+    - the branch is now very close to the 24 GB VRAM ceiling, so it should be
+      treated as a carefully managed high-density mode rather than the default
 
 ## Core Principle
 

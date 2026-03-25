@@ -195,6 +195,49 @@ Current implication for acceleration work:
       - `7` and `8` now behave like the same batch-4 saturation regime
       - the next throughput gains are more likely to come from tail-latency
         reductions than from simply dropping one stream
+- later 64-core worker-scale check (`prep/compose/encode = 12/12/12`)
+  - `concurrency=8`
+    - `avg_segment_interval_s=1.827`
+    - `max_segment_interval_s=2.533`
+    - `avg GPU util ~= 76.83%`
+  - `concurrency=10`
+    - `avg_segment_interval_s=2.251`
+    - `max_segment_interval_s=3.531`
+    - `avg GPU util ~= 80.33%`
+  - practical meaning:
+    - scaling workers further on the 64-core host did **not** unlock a new tier
+    - the next acceleration-adjacent gains now depend more on encode/compose
+      refactors than on worker-count tuning
+- later first widened live `bs8` stagewise experiment on March 25:
+  - `concurrency=8`, `batch_size=8`
+    - `avg_time_to_live_ready_s=1.947`
+    - `avg_segment_interval_s=1.513`
+    - `max_segment_interval_s=2.531`
+    - `wall_time_s=28.4`
+    - `avg GPU util ~= 82.87%`
+    - `avg GPU memory used ~= 13821 MB`
+  - practical meaning:
+    - larger live batch shapes can improve steady-state throughput on this
+      branch
+    - the remaining limiter is now the tail, not the average cadence
+    - forcing `fixed_batch_sizes=[8]` everywhere is probably too aggressive;
+      the next acceleration test should use mixed `4,8` buckets
+- later widened `max_batch=16` branch on March 25 improved that again:
+  - request `batch_size=8`
+    - `avg_time_to_live_ready_s=2.197`
+    - `avg_segment_interval_s=1.408`
+    - `max_segment_interval_s=2.525`
+    - `wall_time_s=26.4`
+    - `avg GPU util ~= 85.21%`
+    - `avg GPU memory used ~= 23922 MB`
+  - same server branch with request `batch_size=4`
+    - `avg_segment_interval_s=1.423`
+    - `max_segment_interval_s=2.046`
+  - practical meaning:
+    - the widened total scheduler batch is now the current best average
+      throughput branch
+    - the remaining work is now almost entirely about protecting tail latency
+      and startup fairness under the denser batch regime
 - benchmark the new stagewise backend next
 - then validate the larger scheduler buckets
 - if its speedup survives while preserving visual correctness, it becomes the
