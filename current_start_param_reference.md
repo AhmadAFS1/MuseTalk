@@ -12,6 +12,8 @@ Current note:
 
 - the operationally preferred live-serving baseline has since moved to the
   repaired `trt_stagewise` launch block in [`start_params.md`](./start_params.md)
+- the repo now also provides an exact launcher for that path:
+  [`scripts/run_trt_stagewise_server.sh`](/content/MuseTalk/scripts/run_trt_stagewise_server.sh)
 - this file is still useful for understanding the remaining param semantics,
   but it should not be treated as the primary source of truth for the latest
   recommended launch command

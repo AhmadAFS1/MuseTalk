@@ -43,6 +43,7 @@ OMEGACONF_VERSION="${OMEGACONF_VERSION:-2.3.0}"
 FFMPEG_PYTHON_VERSION="${FFMPEG_PYTHON_VERSION:-0.2.0}"
 AIOFILES_VERSION="${AIOFILES_VERSION:-24.1.0}"
 AV_VERSION="${AV_VERSION:-17.0.0}"
+PYTHON_MULTIPART_VERSION="${PYTHON_MULTIPART_VERSION:-0.0.22}"
 
 CLEAN=0
 CLEAR_PIP_CACHE=0
@@ -87,6 +88,7 @@ Environment overrides:
   NUMPY_VERSION              Default: $NUMPY_VERSION
   OPENCV_VERSION             Default: $OPENCV_VERSION
   HUGGINGFACE_HUB_VERSION    Default: $HUGGINGFACE_HUB_VERSION
+  PYTHON_MULTIPART_VERSION   Default: $PYTHON_MULTIPART_VERSION
 
 Examples:
   $SCRIPT_NAME --clean --clear-pip-cache
@@ -268,7 +270,8 @@ if [[ $INSTALL_SERVER_DEPS -eq 1 ]]; then
     "omegaconf==$OMEGACONF_VERSION" \
     "ffmpeg-python==$FFMPEG_PYTHON_VERSION" \
     "aiofiles==$AIOFILES_VERSION" \
-    "av==$AV_VERSION"
+    "av==$AV_VERSION" \
+    "python-multipart==$PYTHON_MULTIPART_VERSION"
 
   log "Validating HLS/api_server import path"
   "$VENV_PYTHON" - <<'PY'
@@ -284,6 +287,7 @@ import omegaconf
 import ffmpeg
 import aiofiles
 import av
+import multipart
 import api_server
 
 print("numpy", numpy.__version__)
@@ -296,6 +300,7 @@ print("librosa", librosa.__version__)
 print("imageio", imageio.__version__)
 print("omegaconf", omegaconf.__version__)
 print("av", av.__version__)
+print("multipart", multipart.__version__)
 print("api_server import OK")
 PY
 fi

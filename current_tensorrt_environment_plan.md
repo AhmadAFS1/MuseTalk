@@ -59,6 +59,34 @@ Using a separate artifact directory matters because we do **not** want to mix:
 - current-environment TensorRT artifacts
 - alternate-environment TensorRT artifacts
 
+## Fresh-Node Recreation Path
+
+The repo now has a dedicated from-scratch setup + launch path for the current
+TRT-stagewise HLS server.
+
+Use these scripts:
+
+- setup:
+  - [`scripts/setup_trt_stagewise_server_env.sh`](/content/MuseTalk/scripts/setup_trt_stagewise_server_env.sh)
+- launch:
+  - [`scripts/run_trt_stagewise_server.sh`](/content/MuseTalk/scripts/run_trt_stagewise_server.sh)
+
+Recommended commands on a fresh node:
+
+```bash
+cd /content/MuseTalk
+bash scripts/setup_trt_stagewise_server_env.sh --clean
+bash scripts/run_trt_stagewise_server.sh --profile baseline
+```
+
+Important operational note:
+
+- the launcher uses the exact `/content/py310_trt_exp/bin/python` interpreter
+  instead of depending on shell activation
+- this is intentional, because the earlier mixed-venv state made it too easy to
+  think the new env was active while the process was still running under a
+  different interpreter
+
 ## Current Attempt Status
 
 The separate TensorRT environment is now real and technically validated, but
