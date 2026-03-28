@@ -60,11 +60,14 @@ MMENGINE_VERSION="${MMENGINE_VERSION:-0.10.4}"
 MMCV_VERSION="${MMCV_VERSION:-2.1.0}"
 MMDET_VERSION="${MMDET_VERSION:-3.2.0}"
 MMPOSE_VERSION="${MMPOSE_VERSION:-1.3.1}"
+OPENMIM_VERSION="${OPENMIM_VERSION:-0.3.9}"
+CHUMPY_VERSION="${CHUMPY_VERSION:-0.70}"
 
 CLEAN=0
 CLEAR_PIP_CACHE=0
 INSTALL_RUNTIME_DEPS=0
 INSTALL_SERVER_DEPS=0
+INSTALL_AVATAR_PREP_DEPS=0
 
 log() {
   printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
@@ -89,6 +92,7 @@ Options:
   --python-bin PATH          Python 3.10 interpreter to use (default: $PYTHON_BIN)
   --runtime-requirements P   Requirements file for optional runtime deps
   --install-server-deps      Install the pinned HLS/api_server dependency set
+  --install-avatar-prep-deps Install optional mmpose/mmcv deps for avatar prep
   --install-runtime-deps     Install repo runtime deps after backend validation
   --clean                    Remove an existing venv at --venv-path first
   --clear-pip-cache          Remove the pip cache dir before installing
@@ -109,6 +113,8 @@ Environment overrides:
   MMCV_VERSION               Default: $MMCV_VERSION
   MMDET_VERSION              Default: $MMDET_VERSION
   MMPOSE_VERSION             Default: $MMPOSE_VERSION
+  OPENMIM_VERSION            Default: $OPENMIM_VERSION
+  CHUMPY_VERSION             Default: $CHUMPY_VERSION
 
 Examples:
   $SCRIPT_NAME --clean --clear-pip-cache
@@ -154,6 +160,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --install-server-deps)
       INSTALL_SERVER_DEPS=1
+      shift
+      ;;
+    --install-avatar-prep-deps)
+      INSTALL_AVATAR_PREP_DEPS=1
       shift
       ;;
     --clean)
@@ -293,23 +303,6 @@ if [[ $INSTALL_SERVER_DEPS -eq 1 ]]; then
     "av==$AV_VERSION" \
     "python-multipart==$PYTHON_MULTIPART_VERSION"
 
-  log "Installing mmlab / mmpose stack"
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
-    "mmengine==$MMENGINE_VERSION"
-
-  # Official mmcv docs recommend find-links for prebuilt CUDA/PyTorch wheels.
-  TORCH_SHORT="${TORCH_VERSION%.*}"
-  MMCV_FIND_LINKS="https://download.openmmlab.com/mmcv/dist/cu121/torch${TORCH_SHORT}/index.html"
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
-    "mmcv==$MMCV_VERSION" \
-    -f "$MMCV_FIND_LINKS"
-
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
-    "mmdet==$MMDET_VERSION"
-
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
-    "mmpose==$MMPOSE_VERSION"
-
   log "Validating HLS/api_server import path"
   "$VENV_PYTHON" - <<'PY'
 import numpy
@@ -325,10 +318,6 @@ import ffmpeg
 import aiofiles
 import av
 import multipart
-import mmengine
-import mmcv
-import mmdet
-import mmpose
 
 print("numpy", numpy.__version__)
 print("cv2", cv2.__version__)
@@ -341,10 +330,6 @@ print("imageio", imageio.__version__)
 print("omegaconf", omegaconf.__version__)
 print("av", av.__version__)
 print("multipart", multipart.__version__)
-print("mmengine", mmengine.__version__)
-print("mmcv", mmcv.__version__)
-print("mmdet", mmdet.__version__)
-print("mmpose", mmpose.__version__)
 print("all server dependency imports OK")
 PY
 
@@ -352,6 +337,44 @@ PY
   (
     cd "$REPO_ROOT"
     "$VENV_PYTHON" -c "import api_server; print('api_server import OK')"
+  )
+fi
+
+if [[ $INSTALL_AVATAR_PREP_DEPS -eq 1 ]]; then
+  log "Installing optional avatar-preparation deps (openmim + mmlab stack)"
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "openmim==$OPENMIM_VERSION" \
+    "setuptools<81"
+
+  "$VENV_PYTHON" -m mim install "mmengine==$MMENGINE_VERSION"
+  "$VENV_PYTHON" -m mim install "mmcv==$MMCV_VERSION"
+  "$VENV_PYTHON" -m mim install "mmdet==$MMDET_VERSION"
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "chumpy==$CHUMPY_VERSION" \
+    --no-build-isolation
+
+  if ! "$VENV_PYTHON" -m mim install "mmpose==$MMPOSE_VERSION"; then
+    log "mim install mmpose failed; falling back to pip"
+    "$VENV_PYTHON" -m pip install --no-cache-dir \
+      "mmpose==$MMPOSE_VERSION"
+  fi
+
+  log "Validating avatar-preparation imports"
+  (
+    cd "$REPO_ROOT"
+    "$VENV_PYTHON" - <<'PY'
+import mmengine
+import mmcv
+import mmdet
+import mmpose
+from musetalk.utils.preprocessing import get_landmark_and_bbox
+
+print("mmengine", mmengine.__version__)
+print("mmcv", mmcv.__version__)
+print("mmdet", mmdet.__version__)
+print("mmpose", mmpose.__version__)
+print("avatar prep imports OK")
+PY
   )
 fi
 

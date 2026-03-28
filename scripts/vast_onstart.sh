@@ -13,6 +13,7 @@ AUTO_SETUP="${AUTO_SETUP:-1}"
 SETUP_CLEAN="${SETUP_CLEAN:-0}"
 SETUP_SKIP_APT="${SETUP_SKIP_APT:-auto}"
 SETUP_SKIP_WEIGHTS="${SETUP_SKIP_WEIGHTS:-0}"
+SETUP_INSTALL_AVATAR_PREP_DEPS="${SETUP_INSTALL_AVATAR_PREP_DEPS:-0}"
 
 log() {
   printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
@@ -50,10 +51,6 @@ import ffmpeg
 import aiofiles
 import av
 import multipart
-import mmengine
-import mmcv
-import mmdet
-import mmpose
 PY
 }
 
@@ -117,6 +114,10 @@ run_setup_if_needed() {
 
   if env_flag_is_true "$SETUP_SKIP_WEIGHTS"; then
     setup_args+=("--skip-weights")
+  fi
+
+  if env_flag_is_true "$SETUP_INSTALL_AVATAR_PREP_DEPS"; then
+    setup_args+=("--install-avatar-prep-deps")
   fi
 
   if [[ -n "${PYTHON_BIN:-}" ]]; then

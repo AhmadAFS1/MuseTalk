@@ -21,6 +21,7 @@ ARTIFACT_DIR="${ARTIFACT_DIR:-$REPO_ROOT/models/tensorrt_altenv_bs32}"
 CLEAN=0
 SKIP_APT=0
 SKIP_WEIGHTS=0
+INSTALL_AVATAR_PREP_DEPS=0
 
 log() {
   printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
@@ -48,6 +49,8 @@ Options:
   --clean               Recreate the venv from scratch
   --skip-apt            Skip apt-get system package installation
   --skip-weights        Skip download_weights.sh and only validate required files
+  --install-avatar-prep-deps
+                        Install optional mmpose/mmcv deps for avatar prep
   --help                Show this help text
 
 Examples:
@@ -87,6 +90,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-weights)
       SKIP_WEIGHTS=1
+      shift
+      ;;
+    --install-avatar-prep-deps)
+      INSTALL_AVATAR_PREP_DEPS=1
       shift
       ;;
     --help|-h)
@@ -137,6 +144,9 @@ SETUP_ARGS=(
 )
 if [[ $CLEAN -eq 1 ]]; then
   SETUP_ARGS+=(--clean)
+fi
+if [[ $INSTALL_AVATAR_PREP_DEPS -eq 1 ]]; then
+  SETUP_ARGS+=(--install-avatar-prep-deps)
 fi
 bash "$SCRIPT_DIR/setup_trt_experiment_env.sh" "${SETUP_ARGS[@]}"
 
