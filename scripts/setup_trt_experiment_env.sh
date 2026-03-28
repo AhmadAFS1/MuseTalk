@@ -56,6 +56,8 @@ FFMPEG_PYTHON_VERSION="${FFMPEG_PYTHON_VERSION:-0.2.0}"
 AIOFILES_VERSION="${AIOFILES_VERSION:-24.1.0}"
 AV_VERSION="${AV_VERSION:-17.0.0}"
 PYTHON_MULTIPART_VERSION="${PYTHON_MULTIPART_VERSION:-0.0.22}"
+AIORTC_VERSION="${AIORTC_VERSION:-1.14.0}"
+AIOICE_VERSION="${AIOICE_VERSION:-0.10.1}"
 MMENGINE_VERSION="${MMENGINE_VERSION:-0.10.4}"
 MMCV_VERSION="${MMCV_VERSION:-2.1.0}"
 MMDET_VERSION="${MMDET_VERSION:-3.2.0}"
@@ -109,6 +111,8 @@ Environment overrides:
   OPENCV_VERSION             Default: $OPENCV_VERSION
   HUGGINGFACE_HUB_VERSION    Default: $HUGGINGFACE_HUB_VERSION
   PYTHON_MULTIPART_VERSION   Default: $PYTHON_MULTIPART_VERSION
+  AIORTC_VERSION             Default: $AIORTC_VERSION
+  AIOICE_VERSION             Default: $AIOICE_VERSION
   MMENGINE_VERSION           Default: $MMENGINE_VERSION
   MMCV_VERSION               Default: $MMCV_VERSION
   MMDET_VERSION              Default: $MMDET_VERSION
@@ -301,7 +305,9 @@ if [[ $INSTALL_SERVER_DEPS -eq 1 ]]; then
     "ffmpeg-python==$FFMPEG_PYTHON_VERSION" \
     "aiofiles==$AIOFILES_VERSION" \
     "av==$AV_VERSION" \
-    "python-multipart==$PYTHON_MULTIPART_VERSION"
+    "python-multipart==$PYTHON_MULTIPART_VERSION" \
+    "aiortc==$AIORTC_VERSION" \
+    "aioice==$AIOICE_VERSION"
 
   log "Validating HLS/api_server import path"
   "$VENV_PYTHON" - <<'PY'
@@ -318,6 +324,8 @@ import ffmpeg
 import aiofiles
 import av
 import multipart
+import aiortc
+import aioice
 
 print("numpy", numpy.__version__)
 print("cv2", cv2.__version__)
@@ -330,6 +338,8 @@ print("imageio", imageio.__version__)
 print("omegaconf", omegaconf.__version__)
 print("av", av.__version__)
 print("multipart", multipart.__version__)
+print("aiortc", aiortc.__version__)
+print("aioice", aioice.__version__)
 print("all server dependency imports OK")
 PY
 

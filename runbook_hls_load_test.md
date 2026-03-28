@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This file documents the current commands for:`
+This file documents the current commands for:
 
 1. starting the MuseTalk API server
 2. tuning HLS scheduler behavior
@@ -16,8 +16,8 @@ This runbook is focused on HLS. SSE still exists, but HLS is the main path under
 Activate the Python environment:
 
 ```bash
-source /content/py310/bin/activate
-cd /content/MuseTalk
+source /workspace/.venvs/musetalk_trt_stagewise/bin/activate
+cd /workspace/MuseTalk
 ```
 
 Make sure the avatar already exists:
@@ -32,13 +32,29 @@ Make sure the sample audio exists:
 
 ### Default startup
 
-Use this when you want the code defaults:
+Use this when you want the current Vast-style background server control:
 
 ```bash
-python api_server.py --host 0.0.0.0 --port 8000
+cd /workspace/MuseTalk
+bash scripts/vast_server_ctl.sh start
 ```
 
-This already includes the current HLS scheduler implementation.
+This already includes the current HLS scheduler implementation and writes logs to
+`/workspace/logs/musetalk/api_server_8000.log`.
+
+If you want live logs:
+
+```bash
+tail -f /workspace/logs/musetalk/api_server_8000.log
+```
+
+If you want the server in the foreground for debugging:
+
+```bash
+cd /workspace/MuseTalk
+bash scripts/vast_server_ctl.sh stop
+PROFILE=baseline PORT=8000 bash scripts/run_trt_stagewise_server.sh
+```
 
 ### Tuned startup for HLS experiments
 
@@ -105,15 +121,32 @@ curl http://localhost:8000/hls/sessions/stats
 
 ### Single-stage test
 
-Run a single concurrency level:
+Run the current common `concurrency=8` baseline comparison:
 
 ```bash
 python load_test.py \
-  --base-url http://localhost:8000 \
+  --base-url http://127.0.0.1:8000 \
   --avatar-id test_avatar \
   --audio-file ./data/audio/ai-assistant.mpga \
-  --concurrency 2 \
-  --hold-seconds 120
+  --concurrency 8 \
+  --segment-duration 1.0 \
+  --playback-fps 30 \
+  --musetalk-fps 15 \
+  --batch-size 4
+```
+
+For the widened throughput branch request shape:
+
+```bash
+python load_test.py \
+  --base-url http://127.0.0.1:8000 \
+  --avatar-id test_avatar \
+  --audio-file ./data/audio/ai-assistant.mpga \
+  --concurrency 8 \
+  --segment-duration 1.0 \
+  --playback-fps 30 \
+  --musetalk-fps 15 \
+  --batch-size 8
 ```
 
 ### Ramp test
@@ -122,7 +155,7 @@ Run multiple concurrency levels in sequence:
 
 ```bash
 python load_test.py \
-  --base-url http://localhost:8000 \
+  --base-url http://127.0.0.1:8000 \
   --avatar-id test_avatar \
   --audio-file ./data/audio/ai-assistant.mpga \
   --ramp 1,2,3,4,5,6 \
@@ -135,7 +168,7 @@ Use this when you want to reduce HLS overhead and test a more forgiving live pro
 
 ```bash
 python load_test.py \
-  --base-url http://localhost:8000 \
+  --base-url http://127.0.0.1:8000 \
   --avatar-id test_avatar \
   --audio-file ./data/audio/ai-assistant.mpga \
   --concurrency 2 \
@@ -159,6 +192,10 @@ Current `load_test.py` flags:
 - `--playback-fps`
 - `--musetalk-fps`
 - `--batch-size`
+- `--stagger-seconds`
+- `--gpu-index`
+- `--gpu-sample-interval`
+- `--gpu-log-interval`
 
 ## Manual HLS Validation
 
@@ -167,6 +204,10 @@ Current `load_test.py` flags:
 ```bash
 curl -X POST "http://localhost:8000/hls/sessions/create?avatar_id=test_avatar&playback_fps=30&musetalk_fps=15&batch_size=2&segment_duration=2.0&hls_server_timing=true"
 ```
+
+If this returns `404`, the process on port `8000` is not the expected HLS
+server path and you should inspect the server log file before trusting load test
+results.
 
 ### Open the player
 
