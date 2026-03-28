@@ -35,6 +35,28 @@ env_flag_is_true() {
   esac
 }
 
+server_runtime_imports_complete() {
+  [[ -x "$VENV_PATH/bin/python" ]] || return 1
+
+  "$VENV_PATH/bin/python" - <<'PY' >/dev/null 2>&1
+import fastapi
+import uvicorn
+import aiohttp
+import soundfile
+import librosa
+import imageio
+import omegaconf
+import ffmpeg
+import aiofiles
+import av
+import multipart
+import mmengine
+import mmcv
+import mmdet
+import mmpose
+PY
+}
+
 setup_complete() {
   [[ -x "$VENV_PATH/bin/python" ]] || return 1
 
@@ -50,6 +72,8 @@ setup_complete() {
   for path in "${required[@]}"; do
     [[ -e "$path" ]] || return 1
   done
+
+  server_runtime_imports_complete || return 1
 }
 
 run_setup_if_needed() {
@@ -65,6 +89,11 @@ run_setup_if_needed() {
   fi
 
   local setup_args=("--venv-path" "$VENV_PATH")
+
+  if [[ -x "$VENV_PATH/bin/python" ]] && ! server_runtime_imports_complete; then
+    log "Existing venv failed dependency validation; rebuilding with --clean"
+    setup_args+=("--clean")
+  fi
 
   if env_flag_is_true "$SETUP_CLEAN"; then
     setup_args+=("--clean")

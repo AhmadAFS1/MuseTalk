@@ -56,6 +56,10 @@ FFMPEG_PYTHON_VERSION="${FFMPEG_PYTHON_VERSION:-0.2.0}"
 AIOFILES_VERSION="${AIOFILES_VERSION:-24.1.0}"
 AV_VERSION="${AV_VERSION:-17.0.0}"
 PYTHON_MULTIPART_VERSION="${PYTHON_MULTIPART_VERSION:-0.0.22}"
+MMENGINE_VERSION="${MMENGINE_VERSION:-0.10.4}"
+MMCV_VERSION="${MMCV_VERSION:-2.1.0}"
+MMDET_VERSION="${MMDET_VERSION:-3.2.0}"
+MMPOSE_VERSION="${MMPOSE_VERSION:-1.3.1}"
 
 CLEAN=0
 CLEAR_PIP_CACHE=0
@@ -101,6 +105,10 @@ Environment overrides:
   OPENCV_VERSION             Default: $OPENCV_VERSION
   HUGGINGFACE_HUB_VERSION    Default: $HUGGINGFACE_HUB_VERSION
   PYTHON_MULTIPART_VERSION   Default: $PYTHON_MULTIPART_VERSION
+  MMENGINE_VERSION           Default: $MMENGINE_VERSION
+  MMCV_VERSION               Default: $MMCV_VERSION
+  MMDET_VERSION              Default: $MMDET_VERSION
+  MMPOSE_VERSION             Default: $MMPOSE_VERSION
 
 Examples:
   $SCRIPT_NAME --clean --clear-pip-cache
@@ -285,6 +293,23 @@ if [[ $INSTALL_SERVER_DEPS -eq 1 ]]; then
     "av==$AV_VERSION" \
     "python-multipart==$PYTHON_MULTIPART_VERSION"
 
+  log "Installing mmlab / mmpose stack"
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "mmengine==$MMENGINE_VERSION"
+
+  # Official mmcv docs recommend find-links for prebuilt CUDA/PyTorch wheels.
+  TORCH_SHORT="${TORCH_VERSION%.*}"
+  MMCV_FIND_LINKS="https://download.openmmlab.com/mmcv/dist/cu121/torch${TORCH_SHORT}/index.html"
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "mmcv==$MMCV_VERSION" \
+    -f "$MMCV_FIND_LINKS"
+
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "mmdet==$MMDET_VERSION"
+
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "mmpose==$MMPOSE_VERSION"
+
   log "Validating HLS/api_server import path"
   "$VENV_PYTHON" - <<'PY'
 import numpy
@@ -300,7 +325,10 @@ import ffmpeg
 import aiofiles
 import av
 import multipart
-import api_server
+import mmengine
+import mmcv
+import mmdet
+import mmpose
 
 print("numpy", numpy.__version__)
 print("cv2", cv2.__version__)
@@ -313,8 +341,18 @@ print("imageio", imageio.__version__)
 print("omegaconf", omegaconf.__version__)
 print("av", av.__version__)
 print("multipart", multipart.__version__)
-print("api_server import OK")
+print("mmengine", mmengine.__version__)
+print("mmcv", mmcv.__version__)
+print("mmdet", mmdet.__version__)
+print("mmpose", mmpose.__version__)
+print("all server dependency imports OK")
 PY
+
+  log "Validating api_server full import (includes transitive deps)"
+  (
+    cd "$REPO_ROOT"
+    "$VENV_PYTHON" -c "import api_server; print('api_server import OK')"
+  )
 fi
 
 if [[ $INSTALL_RUNTIME_DEPS -eq 1 ]]; then
