@@ -4,7 +4,17 @@ set -euo pipefail
 SCRIPT_NAME="$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
-VENV_PATH="${VENV_PATH:-/content/py310_trt_exp}"
+WORKSPACE_ROOT="${WORKSPACE:-}"
+if [[ -z "$WORKSPACE_ROOT" ]]; then
+  if [[ "$REPO_ROOT" == /workspace/* || "$REPO_ROOT" == "/workspace" ]]; then
+    WORKSPACE_ROOT="/workspace"
+  elif [[ "$REPO_ROOT" == /content/* || "$REPO_ROOT" == "/content" ]]; then
+    WORKSPACE_ROOT="/content"
+  else
+    WORKSPACE_ROOT="$(cd "$REPO_ROOT/.." && pwd)"
+  fi
+fi
+VENV_PATH="${VENV_PATH:-$WORKSPACE_ROOT/.venvs/musetalk_trt_stagewise}"
 HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 PROFILE="${PROFILE:-baseline}"
@@ -23,7 +33,7 @@ usage() {
 Usage: $SCRIPT_NAME [options]
 
 Launch the current MuseTalk TRT-stagewise HLS server using the exact
-/content/py310_trt_exp interpreter. This avoids mixed-venv launches.
+configured venv interpreter. This avoids mixed-venv launches.
 
 Profiles:
   baseline           Conservative stable TRT-stagewise HLS baseline (default)

@@ -4,7 +4,17 @@ set -euo pipefail
 SCRIPT_NAME="$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
-VENV_PATH="${VENV_PATH:-/content/py310_trt_exp}"
+WORKSPACE_ROOT="${WORKSPACE:-}"
+if [[ -z "$WORKSPACE_ROOT" ]]; then
+  if [[ "$REPO_ROOT" == /workspace/* || "$REPO_ROOT" == "/workspace" ]]; then
+    WORKSPACE_ROOT="/workspace"
+  elif [[ "$REPO_ROOT" == /content/* || "$REPO_ROOT" == "/content" ]]; then
+    WORKSPACE_ROOT="/content"
+  else
+    WORKSPACE_ROOT="$(cd "$REPO_ROOT/.." && pwd)"
+  fi
+fi
+VENV_PATH="${VENV_PATH:-$WORKSPACE_ROOT/.venvs/musetalk_trt_stagewise}"
 PYTHON_BIN="${PYTHON_BIN:-python3.10}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-$REPO_ROOT/models/tensorrt_altenv_bs32}"
 
@@ -28,7 +38,7 @@ Usage: $SCRIPT_NAME [options]
 Create the current MuseTalk TRT-stagewise HLS server environment from scratch.
 
 This wrapper installs the system packages needed by the current server shape,
-builds the /content/py310_trt_exp venv through setup_trt_experiment_env.sh,
+builds the configured TRT-stagewise venv through setup_trt_experiment_env.sh,
 downloads/validates model weights, and runs a final import smoke test.
 
 Options:

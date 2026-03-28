@@ -2,16 +2,28 @@
 set -euo pipefail
 
 # Added helper script:
-# Creates the separate TensorRT experiment venv without touching the stable
-# /content/py310 environment unless the caller explicitly asks to clean or
-# remove caches.
+# Creates the separate TensorRT experiment venv without touching any legacy
+# stable environment unless the caller explicitly asks to clean or remove
+# caches.
 
 SCRIPT_NAME="$(basename "$0")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 PYTHON_BIN="${PYTHON_BIN:-python3.10}"
-VENV_PATH="${VENV_PATH:-/content/py310_trt_exp}"
-REPO_ROOT="${REPO_ROOT:-/content/MuseTalk}"
-ARTIFACT_DIR="${ARTIFACT_DIR:-/content/MuseTalk/models/tensorrt_altenv_bs32}"
+REPO_ROOT="${REPO_ROOT:-$DEFAULT_REPO_ROOT}"
+WORKSPACE_ROOT="${WORKSPACE:-}"
+if [[ -z "$WORKSPACE_ROOT" ]]; then
+  if [[ "$REPO_ROOT" == /workspace/* || "$REPO_ROOT" == "/workspace" ]]; then
+    WORKSPACE_ROOT="/workspace"
+  elif [[ "$REPO_ROOT" == /content/* || "$REPO_ROOT" == "/content" ]]; then
+    WORKSPACE_ROOT="/content"
+  else
+    WORKSPACE_ROOT="$(cd "$REPO_ROOT/.." && pwd)"
+  fi
+fi
+VENV_PATH="${VENV_PATH:-$WORKSPACE_ROOT/.venvs/musetalk_trt_stagewise}"
+ARTIFACT_DIR="${ARTIFACT_DIR:-$REPO_ROOT/models/tensorrt_altenv_bs32}"
 RUNTIME_REQUIREMENTS="${RUNTIME_REQUIREMENTS:-}"
 PIP_CACHE_DIR="${PIP_CACHE_DIR:-$HOME/.cache/pip}"
 
@@ -93,7 +105,7 @@ Environment overrides:
 Examples:
   $SCRIPT_NAME --clean --clear-pip-cache
   $SCRIPT_NAME --clean --install-server-deps
-  VENV_PATH=/content/py310_trt_exp_alt $SCRIPT_NAME --clean
+  VENV_PATH=/somewhere/.venvs/musetalk_trt_stagewise_alt $SCRIPT_NAME --clean
 EOF
 }
 
