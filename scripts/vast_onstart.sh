@@ -39,19 +39,29 @@ env_flag_is_true() {
 server_runtime_imports_complete() {
   [[ -x "$VENV_PATH/bin/python" ]] || return 1
 
-  "$VENV_PATH/bin/python" - <<'PY' >/dev/null 2>&1
-import fastapi
-import uvicorn
-import aiohttp
-import soundfile
-import librosa
-import imageio
-import omegaconf
-import ffmpeg
+  (
+    cd "$REPO_ROOT"
+    "$VENV_PATH/bin/python" - <<'PY' >/dev/null 2>&1
+import api_server
 import aiofiles
+import aiohttp
 import av
+import fastapi
+import ffmpeg
+import imageio
+import librosa
 import multipart
+import omegaconf
+import soundfile
+import tensorrt
+import torch
+import torch_tensorrt
+import uvicorn
+
+if not torch.cuda.is_available():
+    raise RuntimeError("torch.cuda.is_available() returned False")
 PY
+  )
 }
 
 setup_complete() {
