@@ -106,10 +106,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-require_command "$PYTHON_BIN"
 require_command bash
-require_command git
-require_command ffmpeg
 
 if [[ $SKIP_APT -eq 0 ]]; then
   require_command apt-get
@@ -133,6 +130,12 @@ if [[ $SKIP_APT -eq 0 ]]; then
     libxext6 \
     libxrender1
 fi
+
+# Validate runtime/system commands after any optional apt bootstrap has run.
+require_command "$PYTHON_BIN"
+require_command ffmpeg
+require_command curl
+require_command git
 
 log "Creating the pinned TRT experiment venv"
 SETUP_ARGS=(

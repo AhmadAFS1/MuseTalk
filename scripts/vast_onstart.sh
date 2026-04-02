@@ -39,7 +39,12 @@ env_flag_is_true() {
 server_runtime_imports_complete() {
   [[ -x "$VENV_PATH/bin/python" ]] || return 1
 
-  "$VENV_PATH/bin/python" - <<'PY' >/dev/null 2>&1
+  (
+    cd "$REPO_ROOT"
+    "$VENV_PATH/bin/python" - <<'PY'
+import torch
+import torch_tensorrt
+import tensorrt
 import fastapi
 import uvicorn
 import aiohttp
@@ -51,7 +56,9 @@ import ffmpeg
 import aiofiles
 import av
 import multipart
+import api_server
 PY
+  ) >/dev/null 2>&1
 }
 
 setup_complete() {
