@@ -639,7 +639,7 @@ async def list_avatars():
     for avatar_dir in avatars_dir.iterdir():
         if avatar_dir.is_dir():
             avatar_info_path = avatar_dir / "avator_info.json"
-            if avatar_info_path.exists():
+            if avatar_info_path.exists() and manager._avatar_exists(avatar_dir.name):
                 import json
                 with open(avatar_info_path) as f:
                     info = json.load(f)

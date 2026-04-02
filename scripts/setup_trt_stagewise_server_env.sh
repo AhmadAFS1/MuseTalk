@@ -22,6 +22,7 @@ CLEAN=0
 SKIP_APT=0
 SKIP_WEIGHTS=0
 INSTALL_AVATAR_PREP_DEPS=0
+FULL_STACK=0
 
 log() {
   printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
@@ -49,6 +50,7 @@ Options:
   --clean               Recreate the venv from scratch
   --skip-apt            Skip apt-get system package installation
   --skip-weights        Skip download_weights.sh and only validate required files
+  --full-stack          Build one venv with both server and avatar-prep deps
   --install-avatar-prep-deps
                         Install optional mmpose/mmcv deps for avatar prep
   --help                Show this help text
@@ -90,6 +92,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-weights)
       SKIP_WEIGHTS=1
+      shift
+      ;;
+    --full-stack)
+      FULL_STACK=1
+      INSTALL_AVATAR_PREP_DEPS=1
       shift
       ;;
     --install-avatar-prep-deps)
@@ -148,6 +155,9 @@ if [[ $CLEAN -eq 1 ]]; then
   SETUP_ARGS+=(--clean)
 fi
 if [[ $INSTALL_AVATAR_PREP_DEPS -eq 1 ]]; then
+  if [[ $FULL_STACK -eq 1 ]]; then
+    log "Full-stack mode enabled: this venv will install both server and avatar-prep deps"
+  fi
   SETUP_ARGS+=(--install-avatar-prep-deps)
 fi
 bash "$SCRIPT_DIR/setup_trt_experiment_env.sh" "${SETUP_ARGS[@]}"

@@ -17,6 +17,9 @@ import decord
 import json
 import cv2
 from musetalk.utils.face_detection import FaceAlignment,LandmarksType
+from musetalk.utils.mmlab_compat import apply_mmlab_compat_patches
+
+apply_mmlab_compat_patches()
 from mmpose.apis import inference_topdown, init_model
 from mmpose.structures import merge_data_samples
 import sys

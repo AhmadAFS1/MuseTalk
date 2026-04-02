@@ -60,6 +60,7 @@ AIORTC_VERSION="${AIORTC_VERSION:-1.14.0}"
 AIOICE_VERSION="${AIOICE_VERSION:-0.10.1}"
 MMENGINE_VERSION="${MMENGINE_VERSION:-0.10.4}"
 MMCV_VERSION="${MMCV_VERSION:-2.1.0}"
+MMCV_LITE_VERSION="${MMCV_LITE_VERSION:-$MMCV_VERSION}"
 MMDET_VERSION="${MMDET_VERSION:-3.2.0}"
 MMPOSE_VERSION="${MMPOSE_VERSION:-1.3.1}"
 OPENMIM_VERSION="${OPENMIM_VERSION:-0.3.9}"
@@ -70,6 +71,7 @@ CLEAR_PIP_CACHE=0
 INSTALL_RUNTIME_DEPS=0
 INSTALL_SERVER_DEPS=0
 INSTALL_AVATAR_PREP_DEPS=0
+FULL_STACK=0
 
 log() {
   printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
@@ -93,6 +95,8 @@ Options:
   --artifact-dir PATH        TensorRT artifact output dir (default: $ARTIFACT_DIR)
   --python-bin PATH          Python 3.10 interpreter to use (default: $PYTHON_BIN)
   --runtime-requirements P   Requirements file for optional runtime deps
+  --full-stack               Install both server deps and avatar-prep deps in
+                             one venv
   --install-server-deps      Install the pinned HLS/api_server dependency set
   --install-avatar-prep-deps Install optional mmpose/mmcv deps for avatar prep
   --install-runtime-deps     Install repo runtime deps after backend validation
@@ -115,6 +119,7 @@ Environment overrides:
   AIOICE_VERSION             Default: $AIOICE_VERSION
   MMENGINE_VERSION           Default: $MMENGINE_VERSION
   MMCV_VERSION               Default: $MMCV_VERSION
+  MMCV_LITE_VERSION          Default: $MMCV_LITE_VERSION
   MMDET_VERSION              Default: $MMDET_VERSION
   MMPOSE_VERSION             Default: $MMPOSE_VERSION
   OPENMIM_VERSION            Default: $OPENMIM_VERSION
@@ -129,6 +134,24 @@ EOF
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
+}
+
+find_nvcc() {
+  if command -v nvcc >/dev/null 2>&1; then
+    command -v nvcc
+    return 0
+  fi
+  if [[ -n "${CUDA_HOME:-}" && -x "${CUDA_HOME}/bin/nvcc" ]]; then
+    printf '%s\n' "${CUDA_HOME}/bin/nvcc"
+    return 0
+  fi
+  return 1
+}
+
+cuda_toolkit_version() {
+  local nvcc_bin
+  nvcc_bin="$(find_nvcc)" || return 1
+  "$nvcc_bin" --version | sed -n 's/.*release \([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' | head -n 1
 }
 
 while [[ $# -gt 0 ]]; do
@@ -157,6 +180,12 @@ while [[ $# -gt 0 ]]; do
       [[ $# -ge 2 ]] || die "--runtime-requirements requires a value"
       RUNTIME_REQUIREMENTS="$2"
       shift 2
+      ;;
+    --full-stack)
+      FULL_STACK=1
+      INSTALL_SERVER_DEPS=1
+      INSTALL_AVATAR_PREP_DEPS=1
+      shift
       ;;
     --install-runtime-deps)
       INSTALL_RUNTIME_DEPS=1
@@ -351,13 +380,38 @@ PY
 fi
 
 if [[ $INSTALL_AVATAR_PREP_DEPS -eq 1 ]]; then
+  TOOLKIT_CUDA_VERSION="$(cuda_toolkit_version || true)"
+  TORCH_CUDA_VERSION="$("$VENV_PYTHON" - <<'PY'
+import torch
+print(torch.version.cuda or "")
+PY
+)"
+
+  if [[ -z "$TOOLKIT_CUDA_VERSION" ]]; then
+    die "Avatar-prep deps require full mmcv, but no CUDA toolkit (nvcc) was found. Install a CUDA toolkit matching torch CUDA $TORCH_CUDA_VERSION or use an image that already includes it."
+  fi
+
+  if [[ "$TOOLKIT_CUDA_VERSION" != "$TORCH_CUDA_VERSION" ]]; then
+    die "Avatar-prep deps require full mmcv, but local CUDA toolkit $TOOLKIT_CUDA_VERSION does not match torch CUDA $TORCH_CUDA_VERSION. Use a CUDA $TORCH_CUDA_VERSION image/toolkit for a single full-stack venv."
+  fi
+
   log "Installing optional avatar-preparation deps (openmim + mmlab stack)"
   "$VENV_PYTHON" -m pip install --no-cache-dir \
     "openmim==$OPENMIM_VERSION" \
-    "setuptools<81"
+    "setuptools<81" \
+    "ninja" \
+    "psutil"
 
   "$VENV_PYTHON" -m mim install "mmengine==$MMENGINE_VERSION"
-  "$VENV_PYTHON" -m mim install "mmcv==$MMCV_VERSION"
+  if ! "$VENV_PYTHON" -m mim install "mmcv==$MMCV_VERSION"; then
+    log "mim install mmcv failed; trying source build without build isolation"
+    if ! "$VENV_PYTHON" -m pip install --no-cache-dir --no-build-isolation \
+      "mmcv==$MMCV_VERSION"; then
+      log "mmcv source build failed; falling back to mmcv-lite==$MMCV_LITE_VERSION"
+      "$VENV_PYTHON" -m pip install --no-cache-dir \
+        "mmcv-lite==$MMCV_LITE_VERSION"
+    fi
+  fi
   "$VENV_PYTHON" -m mim install "mmdet==$MMDET_VERSION"
   "$VENV_PYTHON" -m pip install --no-cache-dir \
     "chumpy==$CHUMPY_VERSION" \

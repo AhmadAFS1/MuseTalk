@@ -7,6 +7,9 @@ import cv2
 import pickle
 import os
 import json
+from musetalk.utils.mmlab_compat import apply_mmlab_compat_patches
+
+apply_mmlab_compat_patches()
 from mmpose.apis import inference_topdown, init_model
 from mmpose.structures import merge_data_samples
 import torch

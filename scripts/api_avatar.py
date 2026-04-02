@@ -584,7 +584,7 @@ class APIAvatar:
     
     def init(self, preparation, force_recreate):
         """Initialize avatar - prepare or load existing materials"""
-        
+
         if preparation:
             # PREPARATION MODE: Create avatar materials from video
             if os.path.exists(self.avatar_path):
@@ -592,9 +592,16 @@ class APIAvatar:
                     print(f"♻️  Re-creating avatar {self.avatar_id} (force_recreate=True)")
                     shutil.rmtree(self.avatar_path)
                     self._create_avatar()
-                else:
+                elif self._has_prepared_materials():
                     print(f"✅ Avatar {self.avatar_id} already exists, loading existing materials")
                     self._load_existing_materials()
+                else:
+                    print(
+                        f"⚠️  Avatar {self.avatar_id} exists but preparation is incomplete; "
+                        "rebuilding materials"
+                    )
+                    shutil.rmtree(self.avatar_path)
+                    self._create_avatar()
             else:
                 print(f"🆕 Creating new avatar {self.avatar_id}")
                 self._create_avatar()
@@ -604,6 +611,11 @@ class APIAvatar:
                 raise ValueError(
                     f"Avatar {self.avatar_id} does not exist. "
                     f"Create it first with preparation=True"
+                )
+            if not self._has_prepared_materials():
+                raise ValueError(
+                    f"Avatar {self.avatar_id} is incomplete on disk. "
+                    "Re-run preparation to rebuild missing materials."
                 )
             
             # Check for bbox_shift mismatch
@@ -619,6 +631,24 @@ class APIAvatar:
                     )
             
             self._load_existing_materials()
+
+    def _has_prepared_materials(self) -> bool:
+        required_files = (
+            self.avatar_info_path,
+            self.coords_path,
+            self.mask_coords_path,
+            self.latents_out_path,
+        )
+        for path in required_files:
+            if not os.path.exists(path):
+                return False
+
+        if not glob.glob(os.path.join(self.full_imgs_path, '*.png')):
+            return False
+        if not glob.glob(os.path.join(self.mask_out_path, '*.png')):
+            return False
+
+        return True
     
     def _create_avatar(self):
         """Create avatar materials from video"""
