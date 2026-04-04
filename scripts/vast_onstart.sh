@@ -64,6 +64,21 @@ PY
   )
 }
 
+avatar_prep_runtime_imports_complete() {
+  [[ -x "$VENV_PATH/bin/python" ]] || return 1
+
+  (
+    cd "$REPO_ROOT"
+    "$VENV_PATH/bin/python" - <<'PY' >/dev/null 2>&1
+import mmcv
+import mmdet
+import mmengine
+import mmpose
+from musetalk.utils.preprocessing import get_landmark_and_bbox
+PY
+  )
+}
+
 setup_complete() {
   [[ -x "$VENV_PATH/bin/python" ]] || return 1
 
@@ -83,16 +98,46 @@ setup_complete() {
   server_runtime_imports_complete || return 1
 }
 
+avatar_prep_setup_complete() {
+  setup_complete || return 1
+
+  local required=(
+    "$REPO_ROOT/models/dwpose/dw-ll_ucoco_384.pth"
+    "$REPO_ROOT/models/syncnet/latentsync_syncnet.pt"
+  )
+
+  local path
+  for path in "${required[@]}"; do
+    [[ -e "$path" ]] || return 1
+  done
+
+  avatar_prep_runtime_imports_complete || return 1
+}
+
 run_setup_if_needed() {
   if ! env_flag_is_true "$AUTO_SETUP"; then
     log "AUTO_SETUP disabled"
-    setup_complete || die "AUTO_SETUP=0 but required runtime files are missing"
+    if env_flag_is_true "$SETUP_INSTALL_AVATAR_PREP_DEPS"; then
+      avatar_prep_setup_complete || die "AUTO_SETUP=0 but avatar-prep runtime validation failed"
+    else
+      setup_complete || die "AUTO_SETUP=0 but required runtime files are missing"
+    fi
     return 0
   fi
 
-  if setup_complete; then
-    log "Existing setup looks valid; skipping bootstrap"
-    return 0
+  if env_flag_is_true "$SETUP_INSTALL_AVATAR_PREP_DEPS"; then
+    if avatar_prep_setup_complete; then
+      log "Existing full-stack setup looks valid; skipping bootstrap"
+      return 0
+    fi
+    if setup_complete; then
+      log "Server runtime is present, but avatar-prep deps are incomplete; bootstrapping missing prep stack"
+    fi
+  else
+    if setup_complete; then
+      log "Existing setup looks valid; skipping bootstrap"
+      return 0
+    fi
   fi
 
   local setup_args=("--venv-path" "$VENV_PATH")
