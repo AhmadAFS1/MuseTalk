@@ -28,6 +28,14 @@ This creates the current single-venv runtime at:
 - repo: `/workspace/MuseTalk`
 - venv: `/workspace/.venvs/musetalk_trt_stagewise`
 - backend: TRT-stagewise inference with avatar-prep support in the same venv
+- current validated package family:
+  - `torch==2.5.1+cu121`
+  - `torch_tensorrt==2.5.0`
+  - `tensorrt==10.3.0`
+  - `mmcv==2.1.0` with `mmcv._ext`
+  - `mmengine==0.10.4`
+  - `mmdet==3.2.0`
+  - `mmpose==1.3.1`
 
 ---
 
@@ -37,6 +45,15 @@ This creates the current single-venv runtime at:
 bash scripts/run_trt_stagewise_server.sh --profile baseline
 ```
 
+This short command is the intended baseline launcher. It sets the current
+runtime defaults internally.
+
+For the Vast background wrapper:
+
+```bash
+PROFILE=baseline PORT=8000 bash scripts/vast_onstart.sh
+```
+
 ---
 
 ## 🧪 Sample API Requests
@@ -44,11 +61,16 @@ bash scripts/run_trt_stagewise_server.sh --profile baseline
 ### **Prepare an Avatar**
 
 ```bash
-curl -X POST "http://localhost:8000/avatars/prepare" \
-  -F "avatar_id=test_avatar" \
-  -F "video_file=@data/video/ai_test_default_moving_vid.mp4" \
-  -F "batch_size=20" \
-  -F "bbox_shift=5"
+curl -X POST "http://localhost:8000/avatars/prepare?avatar_id=test_avatar&batch_size=20&bbox_shift=5" \
+  -F "video_file=@data/video/ai_test_default_moving_vid.mp4"
+```
+
+If a previous failed preparation left partial files behind, force a clean
+rebuild:
+
+```bash
+curl -X POST "http://localhost:8000/avatars/prepare?avatar_id=test_avatar&batch_size=20&bbox_shift=5&force_recreate=true" \
+  -F "video_file=@data/video/ai_test_default_moving_vid.mp4"
 ```
 
 ---
@@ -56,11 +78,8 @@ curl -X POST "http://localhost:8000/avatars/prepare" \
 ### **Generate a Video**
 
 ```bash
-curl -X POST "http://localhost:8000/generate" \
-  -F "avatar_id=test_avatar" \
-  -F "audio_file=@data/audio/response-2.mpga" \
-  -F "batch_size=2" \
-  -F "fps=25"
+curl -X POST "http://localhost:8000/generate?avatar_id=test_avatar&batch_size=2&fps=25" \
+  -F "audio_file=@data/audio/response-2.mpga"
 ```
 
 ---
@@ -128,6 +147,9 @@ http://localhost:8000/docs
   ```bash
   SETUP_CLEAN=1 SETUP_FULL_STACK=1 PROFILE=baseline PORT=8000 bash scripts/vast_onstart.sh
   ```
+- `download_weights.sh` now includes the S3FD face-detector weight used by
+  avatar preparation, so `/avatars/prepare` should not need to download that
+  checkpoint at runtime
 
 ---
 
@@ -137,8 +159,12 @@ http://localhost:8000/docs
   Re-run `bash scripts/setup_trt_stagewise_server_env.sh --clean --full-stack`.
 - **CUDA errors:**  
   Make sure the node uses a CUDA 12.1 toolkit and that `python -c "import torch; print(torch.version.cuda)"` reports `12.1`.
+- **Avatar prep fails with `<urlopen error [Errno -2] Name or service not known>`:**
+  The S3FD face-detector weight is missing locally. Re-run `bash ./download_weights.sh` and verify `models/face_detection/s3fd.pth`.
 - **Permission errors:**  
   Ensure you have write access to the `uploads/` and `results/` directories.
+- **Warnings during successful avatar prep:**
+  Current upstream warnings around `torch.load(weights_only=False)` and some MMDetection/MMEngine deprecations are noisy but were observed during a successful end-to-end `test_avatar` preparation on the validated CUDA 12.1 stack.
 
 ---
 

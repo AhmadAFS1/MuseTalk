@@ -114,6 +114,7 @@ avatar_prep_setup_complete() {
   local required=(
     "$REPO_ROOT/models/dwpose/dw-ll_ucoco_384.pth"
     "$REPO_ROOT/models/syncnet/latentsync_syncnet.pt"
+    "$REPO_ROOT/models/face_detection/s3fd.pth"
   )
 
   local path

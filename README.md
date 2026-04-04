@@ -138,6 +138,42 @@ https://github.com/user-attachments/assets/b011ece9-a332-4bc1-b8b7-ef6e383d7bde
 # Getting Started
 We provide a detailed tutorial about the installation and the basic usage of MuseTalk for new users:
 
+## Current Repo Runtime
+
+The original open-source installation notes below are still useful for generic
+setups, but the current repo-maintained live-serving path for Vast.ai and the
+TRT-stagewise server is:
+
+- repo: `/workspace/MuseTalk`
+- venv: `/workspace/.venvs/musetalk_trt_stagewise`
+- setup:
+  - inference-only worker:
+    - `bash scripts/setup_trt_stagewise_server_env.sh --clean`
+  - single-venv prep + inference worker:
+    - `bash scripts/setup_trt_stagewise_server_env.sh --clean --full-stack`
+- foreground launch:
+  - `bash scripts/run_trt_stagewise_server.sh --profile baseline`
+- Vast wrapper:
+  - `PROFILE=baseline PORT=8000 bash scripts/vast_onstart.sh`
+
+Validated live stack on the current CUDA 12.1 path:
+
+- `torch==2.5.1+cu121`
+- `torch_tensorrt==2.5.0`
+- `tensorrt==10.3.0`
+- full avatar-prep stack in the same venv:
+  - `mmcv==2.1.0` with `mmcv._ext`
+  - `mmengine==0.10.4`
+  - `mmdet==3.2.0`
+  - `mmpose==1.3.1`
+
+Important note:
+
+- the short launch command is intentional
+- `scripts/run_trt_stagewise_server.sh` exports most runtime defaults
+  internally, so you do not need to pass the older long list of env vars for
+  the baseline path
+
 ## Third party integration
 Thanks for the third-party integration, which makes installation and use more convenient for everyone.
 We also hope you note that we have not verified, maintained, or updated third-party. Please refer to this project for specific results.
@@ -225,12 +261,17 @@ You can also download the weights manually from the following links:
    - [whisper](https://huggingface.co/openai/whisper-tiny/tree/main)
    - [dwpose](https://huggingface.co/yzd-v/DWPose/tree/main)
    - [syncnet](https://huggingface.co/ByteDance/LatentSync/tree/main)
+   - [s3fd face detector](https://huggingface.co/ByteDance/LatentSync/blob/main/auxiliary/s3fd-619a316812.pth)
    - [face-parse-bisent](https://drive.google.com/file/d/154JgKpzCPW82qINcVieuPH3fZ2e0P812/view?pli=1)
    - [resnet18](https://download.pytorch.org/models/resnet18-5c106cde.pth)
 
 Finally, these weights should be organized in `models` as follows:
 ```
 ./models/
+├── auxiliary
+│   └── s3fd-619a316812.pth
+├── face_detection
+│   └── s3fd.pth
 ├── musetalk
 │   └── musetalk.json
 │   └── pytorch_model.bin
@@ -253,6 +294,15 @@ Finally, these weights should be organized in `models` as follows:
     └── preprocessor_config.json
     
 ```
+
+Operational note:
+
+- `download_weights.sh` now downloads the S3FD face-detector weight into the
+  repo so avatar preparation does not need to fetch it on first use
+- if `/avatars/prepare` ever fails with
+  `<urlopen error [Errno -2] Name or service not known>`, re-run
+  `bash ./download_weights.sh` and verify `models/face_detection/s3fd.pth`
+
 ## Quickstart
 
 ### Inference

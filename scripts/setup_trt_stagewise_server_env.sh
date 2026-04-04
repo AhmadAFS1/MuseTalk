@@ -196,6 +196,7 @@ required = [
     repo / "models/whisper/preprocessor_config.json",
     repo / "models/dwpose/dw-ll_ucoco_384.pth",
     repo / "models/syncnet/latentsync_syncnet.pt",
+    repo / "models/face_detection/s3fd.pth",
     repo / "models/face-parse-bisent/79999_iter.pth",
     repo / "models/face-parse-bisent/resnet18-5c106cde.pth",
 ]

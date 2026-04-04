@@ -40,6 +40,32 @@ Recommended image for the single-venv prep + inference path:
 
 - `vastai/pytorch:cuda-12.1.1-auto`
 
+## Validated Live Node
+
+The single-venv path has now been validated on a live CUDA 12.1 node with:
+
+- GPU class tested live:
+  - RTX `3090`
+- server/runtime stack:
+  - `torch==2.5.1+cu121`
+  - `torch_tensorrt==2.5.0`
+  - `tensorrt==10.3.0`
+- avatar-prep stack in the same venv:
+  - `mmcv==2.1.0` with `mmcv._ext`
+  - `mmengine==0.10.4`
+  - `mmdet==3.2.0`
+  - `mmpose==1.3.1`
+
+What was proven:
+
+- the repo can support both TRT inference and avatar preparation from the same
+  `/workspace/.venvs/musetalk_trt_stagewise` venv
+- the canonical startup command remains
+  `bash scripts/run_trt_stagewise_server.sh --profile baseline`
+- avatar preparation for `test_avatar` completed successfully on this path
+- the S3FD face-detector checkpoint is now part of bootstrap instead of being a
+  surprise runtime download
+
 ## Vast.ai On-Start Script
 
 For a fresh server, paste this into the Vast.ai on-start command field:
@@ -116,6 +142,9 @@ Important current behavior:
 - if bootstrap is needed and the target venv already exists, the on-start
   wrapper now recreates that venv cleanly instead of attempting an unsupported
   in-place upgrade
+- full-stack validation now also treats the S3FD face-detector checkpoint as a
+  required local model asset:
+  - `models/face_detection/s3fd.pth`
 
 ## Useful Environment Overrides
 
@@ -209,6 +238,25 @@ Wanted result:
 - Torch reports the `cu121` build
 - `torch.version.cuda` reports `12.1`
 
+Additional current validation signal:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python - <<'PY'
+import mmcv
+import mmcv._ext
+import mmengine
+import mmdet
+import mmpose
+print(mmcv.__version__)
+print(mmengine.__version__)
+print(mmdet.__version__)
+print(mmpose.__version__)
+PY
+```
+
+If that import block fails on a full-stack node, avatar preparation is not
+actually ready yet.
+
 ## Suggested MVP Rollout
 
 For the first autoscaling pass:
@@ -231,3 +279,12 @@ PROFILE=throughput_record bash scripts/vast_onstart.sh
 - they exist only to make boot-time automation safe and idempotent on Vast.ai
 - if you later bake the venv and model weights into a custom image, keep
   `AUTO_SETUP=0` and use `scripts/vast_onstart.sh` only as the startup wrapper
+- if `/avatars/prepare` ever fails with
+  `<urlopen error [Errno -2] Name or service not known>`, that means the S3FD
+  checkpoint was missing and the old runtime download fallback was triggered;
+  the current repo now avoids that by downloading S3FD into the repo during
+  `download_weights.sh`
+- current avatar-prep logs still show some upstream warning noise, including
+  `torch.load(weights_only=False)` and MMDetection/MMEngine deprecation
+  warnings; those warnings were observed during successful end-to-end
+  preparation and are not currently treated as blockers

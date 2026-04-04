@@ -1,5 +1,8 @@
 import os
+from pathlib import Path
+
 import cv2
+import torch
 from torch.utils.model_zoo import load_url
 
 from ..core import FaceDetector
@@ -13,15 +16,55 @@ models_urls = {
 }
 
 
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[5]
+
+
+def _candidate_detector_paths(default_path: str):
+    env_path = os.environ.get("MUSETALK_S3FD_PATH")
+    repo_root = Path(os.environ.get("REPO_ROOT", str(_repo_root())))
+
+    candidates = []
+    if env_path:
+        candidates.append(Path(env_path).expanduser())
+
+    candidates.extend([
+        Path(default_path),
+        repo_root / "models/face_detection/s3fd.pth",
+        repo_root / "models/auxiliary/s3fd-619a316812.pth",
+    ])
+
+    seen = set()
+    unique_candidates = []
+    for candidate in candidates:
+        resolved = str(candidate)
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique_candidates.append(candidate)
+
+    return unique_candidates
+
+
 class SFDDetector(FaceDetector):
     def __init__(self, device, path_to_detector=os.path.join(os.path.dirname(os.path.abspath(__file__)), 's3fd.pth'), verbose=False):
         super(SFDDetector, self).__init__(device, verbose)
 
         # Initialise the face detector
-        if not os.path.isfile(path_to_detector):
-            model_weights = load_url(models_urls['s3fd'])
+        detector_path = next(
+            (path for path in _candidate_detector_paths(path_to_detector) if path.is_file()),
+            None,
+        )
+        if detector_path is None:
+            try:
+                model_weights = load_url(models_urls['s3fd'])
+            except Exception as exc:
+                raise RuntimeError(
+                    "S3FD face-detector weights are missing. "
+                    "Run ./download_weights.sh, or set MUSETALK_S3FD_PATH to a local s3fd.pth file."
+                ) from exc
         else:
-            model_weights = torch.load(path_to_detector)
+            model_weights = torch.load(detector_path, map_location="cpu")
 
         self.face_detector = s3fd()
         self.face_detector.load_state_dict(model_weights)

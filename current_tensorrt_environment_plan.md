@@ -1,5 +1,47 @@
 # MuseTalk Separate TensorRT Environment Plan
 
+## April 2026 Follow-Up
+
+This document is now partly historical.
+
+The current repo-maintained live-serving path is no longer the old
+`/content/py310` versus `/content/py310_trt_exp` split. The active operational
+path is:
+
+- repo:
+  - `/workspace/MuseTalk`
+- venv:
+  - `/workspace/.venvs/musetalk_trt_stagewise`
+- setup:
+  - `bash scripts/setup_trt_stagewise_server_env.sh --clean`
+  - or `bash scripts/setup_trt_stagewise_server_env.sh --clean --full-stack`
+- launch:
+  - `bash scripts/run_trt_stagewise_server.sh --profile baseline`
+
+What is now proven on the CUDA 12.1 path:
+
+- `torch==2.5.1+cu121`
+- `torch_tensorrt==2.5.0`
+- `tensorrt==10.3.0`
+- full avatar-prep deps can coexist in the same venv:
+  - `mmcv==2.1.0` with `mmcv._ext`
+  - `mmengine==0.10.4`
+  - `mmdet==3.2.0`
+  - `mmpose==1.3.1`
+- avatar preparation and TRT inference now both work from that one venv
+
+Important operational fix from the live validation:
+
+- avatar prep used to fail with
+  `<urlopen error [Errno -2] Name or service not known>` because S3FD was being
+  downloaded on demand from an external host
+- `download_weights.sh` now stages S3FD locally at
+  `models/face_detection/s3fd.pth`, and the detector prefers repo-local paths
+
+Use this document as background for the earlier separate-env exploration, but
+follow `start_params.md` and `docs/vast_ai_boot.md` for the current production
+bootstrap path.
+
 ## Purpose
 
 This document defines the next branch for TensorRT work after the current

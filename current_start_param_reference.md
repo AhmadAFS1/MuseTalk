@@ -18,6 +18,18 @@ Current note:
   but it should not be treated as the primary source of truth for the latest
   recommended launch command
 
+April 2026 follow-up:
+
+- the short command
+  `bash scripts/run_trt_stagewise_server.sh --profile baseline` is the current
+  canonical startup path
+- that is intentional: the launcher now sets most baseline env vars internally
+- if logs show worker counts like `compose_workers=10` instead of the values in
+  `start_params.md`, an external shell env override is still active
+- the single `/workspace/.venvs/musetalk_trt_stagewise` venv is now validated
+  for both TRT inference and avatar preparation on CUDA 12.1 when built with
+  `--full-stack`
+
 Important framing:
 
 - some knobs raise the actual model-throughput ceiling

@@ -6,7 +6,7 @@ export HF_HUB_ENABLE_HF_TRANSFER=0
 CheckpointsDir="models"
 
 # Create necessary directories
-mkdir -p models/musetalk models/musetalkV15 models/syncnet models/dwpose models/face-parse-bisent models/sd-vae models/whisper
+mkdir -p models/musetalk models/musetalkV15 models/syncnet models/dwpose models/face-parse-bisent models/sd-vae models/whisper models/auxiliary models/face_detection
 
 # Install required packages
 # pip install -U "huggingface_hub[cli]"
@@ -44,6 +44,12 @@ huggingface-cli download yzd-v/DWPose \
 huggingface-cli download ByteDance/LatentSync \
   --local-dir $CheckpointsDir/syncnet \
   --include "latentsync_syncnet.pt"
+
+# Download S3FD face detector weights used during avatar preparation
+huggingface-cli download ByteDance/LatentSync \
+  --local-dir $CheckpointsDir \
+  --include "auxiliary/s3fd-619a316812.pth"
+cp -f $CheckpointsDir/auxiliary/s3fd-619a316812.pth $CheckpointsDir/face_detection/s3fd.pth
 
 # Download Face Parse Bisent weights
 gdown --id 154JgKpzCPW82qINcVieuPH3fZ2e0P812 -O $CheckpointsDir/face-parse-bisent/79999_iter.pth

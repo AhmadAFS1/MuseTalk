@@ -18,6 +18,38 @@ The shell launchers are path-neutral now. If the repo lives under
 `/workspace/MuseTalk`, their defaults resolve to `/workspace/.venvs/...`. If
 the repo lives under `/content/MuseTalk`, they still fall back to `/content`.
 
+## Validated Live State
+
+The current single-venv path has now been verified end-to-end on a CUDA 12.1
+node:
+
+- toolkit: CUDA `12.1`
+- GPU class tested live: RTX `3090`
+- shared venv:
+  - server/runtime imports passed:
+    - `api_server`
+    - `torch`
+    - `torch_tensorrt`
+    - `tensorrt`
+  - avatar-prep imports passed:
+    - `mmcv`
+    - `mmcv._ext`
+    - `mmengine`
+    - `mmdet`
+    - `mmpose`
+- avatar preparation was re-tested successfully after the S3FD face-detector
+  weight was added to bootstrap
+
+Current package-side validation on that node:
+
+- `torch==2.5.1+cu121`
+- `torch_tensorrt==2.5.0`
+- `tensorrt==10.3.0`
+- `mmcv==2.1.0`
+- `mmengine==0.10.4`
+- `mmdet==3.2.0`
+- `mmpose==1.3.1`
+
 ## Fresh Server Setup
 
 Create the current TRT-stagewise server env from scratch:
@@ -69,6 +101,9 @@ Compatibility note:
 - if `scripts/vast_onstart.sh` needs to bootstrap an already-existing target
   venv, it now recreates that venv cleanly instead of attempting an unsupported
   in-place upgrade
+- `download_weights.sh` now also stages the S3FD face-detector weight at
+  `models/face_detection/s3fd.pth`, so avatar prep should not need an external
+  runtime download on the first request
 
 ## Startup Scripts
 
@@ -78,6 +113,9 @@ Compatibility note:
 cd /workspace/MuseTalk
 bash scripts/run_trt_stagewise_server.sh --profile baseline
 ```
+
+This short command is the intended canonical launcher. The script itself sets
+the current baseline runtime env vars internally.
 
 This is the safe TRT-stagewise baseline:
 
@@ -203,6 +241,9 @@ Practical meaning:
   `python` is active in the shell
 - this avoids the mixed-venv state seen earlier where `VIRTUAL_ENV` and the
   actual interpreter did not match
+- if startup logs show values like `compose_workers=10` or `encode_workers=10`
+  instead of the documented baseline worker counts, a shell env override is
+  still active and the launcher is preserving it
 - `scripts/vast_server_ctl.sh` starts the server in the background with `nohup`
   and writes logs under `/workspace/logs/musetalk`
 - to watch live logs on Vast:
@@ -221,6 +262,12 @@ PROFILE=baseline PORT=8000 bash scripts/run_trt_stagewise_server.sh
 
 - NVENC is still not the default because raw ffmpeg NVENC session open fails on
   the current host/runtime; `libx264` remains the reliable baseline
+- the avatar-prep path still prints several upstream warnings today, including
+  `torch.load(..., weights_only=False)` and some MMDetection/MMEngine
+  deprecation warnings; those warnings were observed during a successful
+  end-to-end avatar preparation and are not currently treated as blockers
+- if a failed avatar-prep attempt leaves partial files on disk, retry with
+  `force_recreate=true`
 
 ## Related Docs
 

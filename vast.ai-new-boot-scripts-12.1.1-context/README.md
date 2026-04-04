@@ -2,6 +2,8 @@
 
 Captured on: 2026-04-02
 
+Follow-up update: 2026-04-04
+
 This note is the handoff context from the server-bootstrap debugging session for
 MuseTalk on Vast.ai.
 
@@ -36,10 +38,6 @@ Current source-of-truth docs:
 
 - `start_params.md`
 - `docs/vast_ai_boot.md`
-
-Known stale doc for this use case:
-
-- `api_calls.md` still references the old `/content/py310` world
 
 ## What Was Happening
 
@@ -257,6 +255,73 @@ the recommended move is:
 - create a new Vast template or machine using `cuda-12.1.1-auto`
 
 Do not keep using the older `cuda-11.8.0-auto` image for this goal.
+
+## 2026-04-04 Live Follow-Up
+
+That recommendation has now been validated on the live CUDA 12.1 path.
+
+Verified current runtime:
+
+- repo:
+  - `/workspace/MuseTalk`
+- venv:
+  - `/workspace/.venvs/musetalk_trt_stagewise`
+- core runtime:
+  - `torch==2.5.1+cu121`
+  - `torch_tensorrt==2.5.0`
+  - `tensorrt==10.3.0`
+- avatar-prep stack in the same venv:
+  - `mmcv==2.1.0` with `mmcv._ext`
+  - `mmengine==0.10.4`
+  - `mmdet==3.2.0`
+  - `mmpose==1.3.1`
+
+What is now confirmed:
+
+- one venv can support both TRT inference and avatar preparation on the 12.1
+  node
+- the startup command is still the short canonical form:
+  - `bash scripts/run_trt_stagewise_server.sh --profile baseline`
+- `scripts/vast_onstart.sh` remains the preferred Vast wrapper when you want
+  auto-setup + background startup + `/health` wait
+- the model download path now includes the S3FD face detector used by avatar
+  prep
+
+## Runtime S3FD Fix
+
+During the live validation, avatar prep failed once with:
+
+- `<urlopen error [Errno -2] Name or service not known>`
+
+Root cause:
+
+- `musetalk/utils/face_detection/detection/sfd/sfd_detector.py` fell back to an
+  external runtime download when `s3fd.pth` was missing locally
+
+Fixes now in repo:
+
+- `download_weights.sh` downloads
+  `auxiliary/s3fd-619a316812.pth` from `ByteDance/LatentSync`
+- that file is copied to:
+  - `models/face_detection/s3fd.pth`
+- full-stack validation now checks that S3FD local file too
+- the detector now prefers repo-local paths before attempting the old external
+  download
+
+Result:
+
+- avatar preparation for `test_avatar` completed successfully after the fix
+
+## Warning Noise Observed During Successful Prep
+
+The current successful avatar-prep logs still show several upstream warnings,
+including:
+
+- `torch.load(..., weights_only=False)` future warnings
+- MMEngine / MMDetection deprecation warnings
+
+Those warnings were present during a successful end-to-end preparation run and
+are not currently treated as blockers.
 
 ## Recommended New Vast Template
 
