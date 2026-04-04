@@ -9,10 +9,10 @@ current working runtime is:
 - repo: `/workspace/MuseTalk`
 - venv: `/workspace/.venvs/musetalk_trt_stagewise`
 - VAE backend: `trt_stagewise`
-- launcher: [`scripts/run_trt_stagewise_server.sh`](/content/MuseTalk/scripts/run_trt_stagewise_server.sh)
-- fresh-node setup: [`scripts/setup_trt_stagewise_server_env.sh`](/content/MuseTalk/scripts/setup_trt_stagewise_server_env.sh)
-- Vast on-start wrapper: [`scripts/vast_onstart.sh`](/content/MuseTalk/scripts/vast_onstart.sh)
-- Vast server control helper: [`scripts/vast_server_ctl.sh`](/content/MuseTalk/scripts/vast_server_ctl.sh)
+- launcher: [`scripts/run_trt_stagewise_server.sh`](./scripts/run_trt_stagewise_server.sh)
+- fresh-node setup: [`scripts/setup_trt_stagewise_server_env.sh`](./scripts/setup_trt_stagewise_server_env.sh)
+- Vast on-start wrapper: [`scripts/vast_onstart.sh`](./scripts/vast_onstart.sh)
+- Vast server control helper: [`scripts/vast_server_ctl.sh`](./scripts/vast_server_ctl.sh)
 
 The shell launchers are path-neutral now. If the repo lives under
 `/workspace/MuseTalk`, their defaults resolve to `/workspace/.venvs/...`. If
@@ -42,18 +42,33 @@ Important note:
 - avatar-preparation deps (`mmpose/mmcv/mmdet/mmengine`) are **not** part of the
   default server bootstrap anymore
 - this keeps autoscaled inference workers on the stable inference-only path
-- if you need avatar preparation on a specific node, opt in with:
+- if you need a single CUDA 12.1 node to support both avatar preparation and
+  TRT inference in the same venv, opt in with:
 
 ```bash
 cd /workspace/MuseTalk
-bash scripts/setup_trt_stagewise_server_env.sh --clean --install-avatar-prep-deps
+bash scripts/setup_trt_stagewise_server_env.sh --clean --full-stack
 ```
 
 or in the Vast wrapper:
 
 ```bash
-SETUP_INSTALL_AVATAR_PREP_DEPS=1 bash scripts/vast_onstart.sh
+SETUP_FULL_STACK=1 bash scripts/vast_onstart.sh
 ```
+
+Compatibility note:
+
+- `--install-avatar-prep-deps` and `SETUP_INSTALL_AVATAR_PREP_DEPS=1` still
+  work
+- `--full-stack` and `SETUP_FULL_STACK=1` are the preferred forms because they
+  describe the intended one-venv outcome directly
+- full-stack avatar preparation requires full `mmcv`; `mmcv-lite` is not
+  enough because the preprocessing path imports `mmcv._ext`
+- avatar prep now validates `mmcv._ext`, so a "successful" full-stack install
+  really means the compiled MMCV ops are present
+- if `scripts/vast_onstart.sh` needs to bootstrap an already-existing target
+  venv, it now recreates that venv cleanly instead of attempting an unsupported
+  in-place upgrade
 
 ## Startup Scripts
 

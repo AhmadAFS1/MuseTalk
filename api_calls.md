@@ -6,57 +6,35 @@ Multi-user, concurrent, real-time avatar video generation with smart GPU/VRAM ma
 
 ## 🚀 Quickstart
 
-### 1. **Clone & Setup**
+### 1. **Clone To The Vast Workspace**
 
 ```bash
-git clone <your-musetalk-repo-url>
-cd MuseTalk
+git clone <your-musetalk-repo-url> /workspace/MuseTalk
+cd /workspace/MuseTalk
 ```
 
 ---
 
-### 2. **Create and Activate Python Virtual Environment**
+### 2. **Create The Current TRT-Stagewise Venv**
 
 ```bash
-# Create venv (Python 3.10 recommended)
-python3.10 -m venv /content/py310
-
-# Activate venv
-source /content/py310/bin/activate
-
-# Upgrade pip
-pip install --upgrade pip
+bash scripts/setup_trt_stagewise_server_env.sh --clean --full-stack
 ```
 
 ---
 
-### 3. **Install Requirements**
+This creates the current single-venv runtime at:
 
-```bash
-pip install -r requirements.txt
-```
-
-If you see errors about missing packages (e.g., `cv2`), install them individually:
-
-```bash
-pip install opencv-python fastapi uvicorn python-multipart torch torchvision torchaudio
-```
+- repo: `/workspace/MuseTalk`
+- venv: `/workspace/.venvs/musetalk_trt_stagewise`
+- backend: TRT-stagewise inference with avatar-prep support in the same venv
 
 ---
 
-### 4. **Download Model Weights**
+### 3. **Start The API Server**
 
 ```bash
-bash download_weights.sh
-```
-
----
-
-### 5. **Start the API Server**
-
-```bash
-source /content/py310/bin/activate
-python api_server.py --host 0.0.0.0 --port 8000
+bash scripts/run_trt_stagewise_server.sh --profile baseline
 ```
 
 ---
@@ -141,20 +119,24 @@ http://localhost:8000/docs
 
 - Always activate your venv before running the server or scripts:
   ```bash
-  source /content/py310/bin/activate
+  source /workspace/.venvs/musetalk_trt_stagewise/bin/activate
   ```
 - Place your test files in `data/video/` and `data/audio/` as shown in the sample requests.
 - The server supports concurrent requests and will manage VRAM automatically.
 - All generated videos and intermediate files are stored in the `results/` directory.
+- For Vast.ai boot automation on a CUDA 12.1.1 node, prefer:
+  ```bash
+  SETUP_CLEAN=1 SETUP_FULL_STACK=1 PROFILE=baseline PORT=8000 bash scripts/vast_onstart.sh
+  ```
 
 ---
 
 ## 🛠️ Troubleshooting
 
 - **Missing dependencies:**  
-  Install them with `pip install -r requirements.txt` or manually as needed.
+  Re-run `bash scripts/setup_trt_stagewise_server_env.sh --clean --full-stack`.
 - **CUDA errors:**  
-  Make sure you have the correct PyTorch version for your CUDA driver.
+  Make sure the node uses a CUDA 12.1 toolkit and that `python -c "import torch; print(torch.version.cuda)"` reports `12.1`.
 - **Permission errors:**  
   Ensure you have write access to the `uploads/` and `results/` directories.
 

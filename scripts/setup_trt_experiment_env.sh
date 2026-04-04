@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Added helper script:
-# Creates the separate TensorRT experiment venv without touching any legacy
-# stable environment unless the caller explicitly asks to clean or remove
-# caches.
+# Creates the pinned TRT-stagewise venv used by the current MuseTalk server
+# path. The name is historical from the earlier experiment branch, but this is
+# now the canonical environment builder for the single-venv runtime.
 
 SCRIPT_NAME="$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -60,11 +59,12 @@ AIORTC_VERSION="${AIORTC_VERSION:-1.14.0}"
 AIOICE_VERSION="${AIOICE_VERSION:-0.10.1}"
 MMENGINE_VERSION="${MMENGINE_VERSION:-0.10.4}"
 MMCV_VERSION="${MMCV_VERSION:-2.1.0}"
-MMCV_LITE_VERSION="${MMCV_LITE_VERSION:-$MMCV_VERSION}"
 MMDET_VERSION="${MMDET_VERSION:-3.2.0}"
 MMPOSE_VERSION="${MMPOSE_VERSION:-1.3.1}"
 OPENMIM_VERSION="${OPENMIM_VERSION:-0.3.9}"
 CHUMPY_VERSION="${CHUMPY_VERSION:-0.70}"
+TLS_CA_BUNDLE="${TLS_CA_BUNDLE:-}"
+MMCV_BUILD_MAX_JOBS="${MMCV_BUILD_MAX_JOBS:-8}"
 
 CLEAN=0
 CLEAR_PIP_CACHE=0
@@ -86,7 +86,7 @@ usage() {
   cat <<EOF
 Usage: $SCRIPT_NAME [options]
 
-Creates the separate TensorRT experiment environment described in
+Creates the pinned TRT-stagewise environment described in
 current_tensorrt_environment_plan.md.
 
 Options:
@@ -119,21 +119,47 @@ Environment overrides:
   AIOICE_VERSION             Default: $AIOICE_VERSION
   MMENGINE_VERSION           Default: $MMENGINE_VERSION
   MMCV_VERSION               Default: $MMCV_VERSION
-  MMCV_LITE_VERSION          Default: $MMCV_LITE_VERSION
   MMDET_VERSION              Default: $MMDET_VERSION
   MMPOSE_VERSION             Default: $MMPOSE_VERSION
   OPENMIM_VERSION            Default: $OPENMIM_VERSION
   CHUMPY_VERSION             Default: $CHUMPY_VERSION
+  MMCV_BUILD_MAX_JOBS        Default: $MMCV_BUILD_MAX_JOBS
 
 Examples:
   $SCRIPT_NAME --clean --clear-pip-cache
   $SCRIPT_NAME --clean --install-server-deps
+  $SCRIPT_NAME --clean --full-stack
   VENV_PATH=/somewhere/.venvs/musetalk_trt_stagewise_alt $SCRIPT_NAME --clean
 EOF
 }
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
+}
+
+configure_python_tls() {
+  local candidate="${TLS_CA_BUNDLE:-}"
+
+  if [[ -z "$candidate" && -n "${SSL_CERT_FILE:-}" && -f "${SSL_CERT_FILE:-}" ]]; then
+    candidate="$SSL_CERT_FILE"
+  fi
+  if [[ -z "$candidate" && -f "/etc/ssl/certs/ca-certificates.crt" ]]; then
+    candidate="/etc/ssl/certs/ca-certificates.crt"
+  fi
+  if [[ -z "$candidate" && -f "/usr/lib/ssl/certs/ca-certificates.crt" ]]; then
+    candidate="/usr/lib/ssl/certs/ca-certificates.crt"
+  fi
+
+  export PIP_DISABLE_PIP_VERSION_CHECK=1
+
+  if [[ -n "$candidate" ]]; then
+    export SSL_CERT_FILE="$candidate"
+    export REQUESTS_CA_BUNDLE="$candidate"
+    export PIP_CERT="$candidate"
+    log "Using CA bundle for Python package installs: $candidate"
+  else
+    log "No explicit CA bundle override found; using Python/pip defaults"
+  fi
 }
 
 find_nvcc() {
@@ -220,16 +246,13 @@ done
 require_command "$PYTHON_BIN"
 require_command rm
 require_command mkdir
+configure_python_tls
 
 if [[ -z "$RUNTIME_REQUIREMENTS" ]]; then
   RUNTIME_REQUIREMENTS="$REPO_ROOT/requirements.txt"
 fi
 
-if ! "$PYTHON_BIN" - <<'PY'
-import sys
-raise SystemExit(0 if sys.version_info[:2] == (3, 10) else 1)
-PY
-then
+if ! "$PYTHON_BIN" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 10) else 1)'; then
   die "Expected a Python 3.10 interpreter at: $PYTHON_BIN"
 fi
 
@@ -273,6 +296,8 @@ log "Installing PyTorch CUDA 12.1 wheel set"
   "torch==$TORCH_VERSION" \
   "torchvision==$TORCHVISION_VERSION" \
   "torchaudio==$TORCHAUDIO_VERSION" \
+  "numpy==$NUMPY_VERSION" \
+  "pillow==$PILLOW_VERSION" \
   --index-url "$PYTORCH_INDEX_URL"
 
 log "Installing torch-tensorrt pinned stack"
@@ -402,14 +427,16 @@ PY
     "ninja" \
     "psutil"
 
+  log "Removing any existing mmcv-lite placeholder before installing full mmcv"
+  "$VENV_PYTHON" -m pip uninstall -y mmcv-lite mmcv >/dev/null 2>&1 || true
+
   "$VENV_PYTHON" -m mim install "mmengine==$MMENGINE_VERSION"
   if ! "$VENV_PYTHON" -m mim install "mmcv==$MMCV_VERSION"; then
     log "mim install mmcv failed; trying source build without build isolation"
-    if ! "$VENV_PYTHON" -m pip install --no-cache-dir --no-build-isolation \
+    log "Limiting mmcv source build parallelism with MAX_JOBS=$MMCV_BUILD_MAX_JOBS"
+    if ! MAX_JOBS="$MMCV_BUILD_MAX_JOBS" "$VENV_PYTHON" -m pip install --no-cache-dir --no-build-isolation \
       "mmcv==$MMCV_VERSION"; then
-      log "mmcv source build failed; falling back to mmcv-lite==$MMCV_LITE_VERSION"
-      "$VENV_PYTHON" -m pip install --no-cache-dir \
-        "mmcv-lite==$MMCV_LITE_VERSION"
+      die "Failed to install full mmcv==$MMCV_VERSION required for avatar preparation. Ensure the node uses CUDA $TORCH_CUDA_VERSION with a matching local toolkit and build toolchain."
     fi
   fi
   "$VENV_PYTHON" -m mim install "mmdet==$MMDET_VERSION"
@@ -429,12 +456,14 @@ PY
     "$VENV_PYTHON" - <<'PY'
 import mmengine
 import mmcv
+import mmcv._ext
 import mmdet
 import mmpose
 from musetalk.utils.preprocessing import get_landmark_and_bbox
 
 print("mmengine", mmengine.__version__)
 print("mmcv", mmcv.__version__)
+print("mmcv._ext", "available")
 print("mmdet", mmdet.__version__)
 print("mmpose", mmpose.__version__)
 print("avatar prep imports OK")

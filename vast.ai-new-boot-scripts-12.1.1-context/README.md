@@ -178,10 +178,11 @@ Fixes:
 - validation runs from repo root
 - checks `torch.cuda.is_available()`
 
-Note:
+Historical note from the earlier session:
 
-- `vast_onstart.sh` still uses `SETUP_INSTALL_AVATAR_PREP_DEPS=1`
-- it does not yet expose a dedicated `SETUP_FULL_STACK=1` env var
+- at capture time, `vast_onstart.sh` still used `SETUP_INSTALL_AVATAR_PREP_DEPS=1`
+- the current repo now also exposes `SETUP_FULL_STACK=1` as the clearer
+  preferred flag for single-venv prep + inference nodes
 
 ### 4. Partial avatar handling
 
@@ -291,7 +292,7 @@ fi
 cd "$REPO_DIR"
 
 SETUP_CLEAN=1 \
-SETUP_INSTALL_AVATAR_PREP_DEPS=1 \
+SETUP_FULL_STACK=1 \
 STARTUP_TIMEOUT_SECONDS=1800 \
 PROFILE=baseline \
 PORT=8000 \
@@ -302,10 +303,15 @@ Why these flags:
 
 - `SETUP_CLEAN=1`
   - guarantees a clean first build on the fresh box
-- `SETUP_INSTALL_AVATAR_PREP_DEPS=1`
-  - required for single-venv avatar preparation support
+- `SETUP_FULL_STACK=1`
+  - preferred flag for a single venv that supports avatar prep + inference
 - `STARTUP_TIMEOUT_SECONDS=1800`
   - safer for first boot because install + TRT warmup can take a long time
+
+Compatibility note:
+
+- `SETUP_INSTALL_AVATAR_PREP_DEPS=1` still works
+- `SETUP_FULL_STACK=1` is now the clearer preferred flag
 
 ## First Validation On The New Machine
 
@@ -388,7 +394,7 @@ check these first:
 1. `nvcc --version`
 2. `python -c "import torch; print(torch.version.cuda)"`
 3. whether the boot script actually included:
-   - `SETUP_INSTALL_AVATAR_PREP_DEPS=1`
+   - `SETUP_FULL_STACK=1`
 
 Those three checks should eliminate a lot of wasted time.
 

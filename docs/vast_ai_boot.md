@@ -36,6 +36,10 @@ Default Vast helper paths:
 
 This avoids hard-coding the Colab-style `/content/...` paths on Vast.
 
+Recommended image for the single-venv prep + inference path:
+
+- `vastai/pytorch:cuda-12.1.1-auto`
+
 ## Vast.ai On-Start Script
 
 For a fresh server, paste this into the Vast.ai on-start command field:
@@ -74,6 +78,21 @@ PORT=8000 \
 bash scripts/vast_onstart.sh
 ```
 
+For a CUDA 12.1.1 node that must support both avatar preparation and TRT
+inference from the same venv, use:
+
+```bash
+set -euo pipefail
+
+cd /workspace/MuseTalk
+SETUP_CLEAN=1 \
+SETUP_FULL_STACK=1 \
+STARTUP_TIMEOUT_SECONDS=1800 \
+PROFILE=baseline \
+PORT=8000 \
+bash scripts/vast_onstart.sh
+```
+
 ## Behavior
 
 On boot, `scripts/vast_onstart.sh` will:
@@ -91,6 +110,12 @@ Important current behavior:
 - the default setup installs the server runtime deps, including `aiortc`
 - avatar-preparation deps (`mmpose/mmcv/mmdet/mmengine`) are optional and are
   only installed when explicitly requested
+- `SETUP_FULL_STACK=1` is the preferred flag for a single-vm, single-venv node
+  that must handle both avatar prep and inference
+- `SETUP_INSTALL_AVATAR_PREP_DEPS=1` is still accepted as a compatibility alias
+- if bootstrap is needed and the target venv already exists, the on-start
+  wrapper now recreates that venv cleanly instead of attempting an unsupported
+  in-place upgrade
 
 ## Useful Environment Overrides
 
@@ -106,6 +131,7 @@ on-start command:
 - `SETUP_CLEAN=0`
 - `SETUP_SKIP_APT=auto`
 - `SETUP_SKIP_WEIGHTS=0`
+- `SETUP_FULL_STACK=0`
 - `SETUP_INSTALL_AVATAR_PREP_DEPS=0`
 - `STARTUP_TIMEOUT_SECONDS=600`
 
@@ -142,21 +168,46 @@ PROFILE=baseline PORT=8000 bash scripts/run_trt_stagewise_server.sh
 Background logging is expected because `scripts/vast_server_ctl.sh` starts the
 server with `nohup` and redirects stdout/stderr into the log file.
 
-## Dedicated Avatar-Prep Nodes
+## Single-Venv Prep + Inference Nodes
 
-If a node needs to prepare avatars as well as serve inference, opt in to the
-heavier preprocessing stack:
+If a node needs to prepare avatars as well as serve inference from the same
+CUDA 12.1.1 venv, opt in to the heavier preprocessing stack:
 
 ```bash
 cd /workspace/MuseTalk
 PROFILE=baseline \
 PORT=8000 \
 SETUP_CLEAN=1 \
-SETUP_INSTALL_AVATAR_PREP_DEPS=1 \
+SETUP_FULL_STACK=1 \
 bash scripts/vast_onstart.sh
 ```
 
-This is not recommended for general autoscaled inference workers.
+Compatibility note:
+
+- `SETUP_INSTALL_AVATAR_PREP_DEPS=1` still works
+- `SETUP_FULL_STACK=1` is clearer because it matches the actual goal: one venv
+  that supports avatar prep, inference, and `load_test.py`
+- full-stack avatar prep needs full `mmcv`; `mmcv-lite` is not sufficient
+  because `musetalk.utils.preprocessing` requires `mmcv._ext`
+
+This is still not recommended for general autoscaled inference workers.
+
+Validation reminder for these nodes:
+
+```bash
+nvcc --version
+/workspace/.venvs/musetalk_trt_stagewise/bin/python - <<'PY'
+import torch
+print(torch.__version__)
+print(torch.version.cuda)
+PY
+```
+
+Wanted result:
+
+- `nvcc` reports CUDA `12.1`
+- Torch reports the `cu121` build
+- `torch.version.cuda` reports `12.1`
 
 ## Suggested MVP Rollout
 

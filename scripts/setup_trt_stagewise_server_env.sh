@@ -57,6 +57,7 @@ Options:
 
 Examples:
   $SCRIPT_NAME --clean
+  $SCRIPT_NAME --clean --full-stack
   $SCRIPT_NAME --clean --skip-apt
 EOF
 }
@@ -157,8 +158,10 @@ fi
 if [[ $INSTALL_AVATAR_PREP_DEPS -eq 1 ]]; then
   if [[ $FULL_STACK -eq 1 ]]; then
     log "Full-stack mode enabled: this venv will install both server and avatar-prep deps"
+    SETUP_ARGS+=(--full-stack)
+  else
+    SETUP_ARGS+=(--install-avatar-prep-deps)
   fi
-  SETUP_ARGS+=(--install-avatar-prep-deps)
 fi
 bash "$SCRIPT_DIR/setup_trt_experiment_env.sh" "${SETUP_ARGS[@]}"
 

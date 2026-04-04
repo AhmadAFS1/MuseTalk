@@ -13,6 +13,7 @@ AUTO_SETUP="${AUTO_SETUP:-1}"
 SETUP_CLEAN="${SETUP_CLEAN:-0}"
 SETUP_SKIP_APT="${SETUP_SKIP_APT:-auto}"
 SETUP_SKIP_WEIGHTS="${SETUP_SKIP_WEIGHTS:-0}"
+SETUP_FULL_STACK="${SETUP_FULL_STACK:-0}"
 SETUP_INSTALL_AVATAR_PREP_DEPS="${SETUP_INSTALL_AVATAR_PREP_DEPS:-0}"
 
 log() {
@@ -34,6 +35,14 @@ env_flag_is_true() {
       return 1
       ;;
   esac
+}
+
+full_stack_requested() {
+  env_flag_is_true "$SETUP_FULL_STACK"
+}
+
+avatar_prep_requested() {
+  full_stack_requested || env_flag_is_true "$SETUP_INSTALL_AVATAR_PREP_DEPS"
 }
 
 server_runtime_imports_complete() {
@@ -71,6 +80,7 @@ avatar_prep_runtime_imports_complete() {
     cd "$REPO_ROOT"
     "$VENV_PATH/bin/python" - <<'PY' >/dev/null 2>&1
 import mmcv
+import mmcv._ext
 import mmdet
 import mmengine
 import mmpose
@@ -117,7 +127,7 @@ avatar_prep_setup_complete() {
 run_setup_if_needed() {
   if ! env_flag_is_true "$AUTO_SETUP"; then
     log "AUTO_SETUP disabled"
-    if env_flag_is_true "$SETUP_INSTALL_AVATAR_PREP_DEPS"; then
+    if avatar_prep_requested; then
       avatar_prep_setup_complete || die "AUTO_SETUP=0 but avatar-prep runtime validation failed"
     else
       setup_complete || die "AUTO_SETUP=0 but required runtime files are missing"
@@ -125,13 +135,13 @@ run_setup_if_needed() {
     return 0
   fi
 
-  if env_flag_is_true "$SETUP_INSTALL_AVATAR_PREP_DEPS"; then
+  if avatar_prep_requested; then
     if avatar_prep_setup_complete; then
       log "Existing full-stack setup looks valid; skipping bootstrap"
       return 0
     fi
     if setup_complete; then
-      log "Server runtime is present, but avatar-prep deps are incomplete; bootstrapping missing prep stack"
+      log "Server runtime is present, but full-stack avatar-prep support is incomplete"
     fi
   else
     if setup_complete; then
@@ -141,13 +151,18 @@ run_setup_if_needed() {
   fi
 
   local setup_args=("--venv-path" "$VENV_PATH")
+  local rebuild_with_clean=0
 
-  if [[ -x "$VENV_PATH/bin/python" ]] && ! server_runtime_imports_complete; then
-    log "Existing venv failed dependency validation; rebuilding with --clean"
-    setup_args+=("--clean")
+  if [[ -e "$VENV_PATH" ]]; then
+    log "Bootstrap requested and an existing venv is present; rebuilding with --clean"
+    rebuild_with_clean=1
   fi
 
   if env_flag_is_true "$SETUP_CLEAN"; then
+    rebuild_with_clean=1
+  fi
+
+  if (( rebuild_with_clean )); then
     setup_args+=("--clean")
   fi
 
@@ -171,7 +186,9 @@ run_setup_if_needed() {
     setup_args+=("--skip-weights")
   fi
 
-  if env_flag_is_true "$SETUP_INSTALL_AVATAR_PREP_DEPS"; then
+  if full_stack_requested; then
+    setup_args+=("--full-stack")
+  elif env_flag_is_true "$SETUP_INSTALL_AVATAR_PREP_DEPS"; then
     setup_args+=("--install-avatar-prep-deps")
   fi
 
@@ -188,11 +205,19 @@ run_setup_if_needed() {
 }
 
 main() {
+  local setup_mode="server-only"
+  if full_stack_requested; then
+    setup_mode="full-stack"
+  elif avatar_prep_requested; then
+    setup_mode="server+avatar-prep"
+  fi
+
   log "Vast.ai MuseTalk on-start begin"
   log "repo=$REPO_ROOT"
   log "workspace=$WORKSPACE_ROOT"
   log "venv=$VENV_PATH"
   log "profile=$PROFILE host=$HOST port=$PORT"
+  log "setup_mode=$setup_mode"
 
   run_setup_if_needed
 
