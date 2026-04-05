@@ -93,6 +93,9 @@ PORT=8000 \
 bash scripts/vast_onstart.sh
 ```
 
+If `PROFILE` is omitted entirely, the current Vast wrapper default is now
+`throughput_record`.
+
 For the widened throughput profile:
 
 ```bash
@@ -279,6 +282,10 @@ PROFILE=throughput_record bash scripts/vast_onstart.sh
 - they exist only to make boot-time automation safe and idempotent on Vast.ai
 - if you later bake the venv and model weights into a custom image, keep
   `AUTO_SETUP=0` and use `scripts/vast_onstart.sh` only as the startup wrapper
+- `scripts/vast_onstart.sh` and `scripts/vast_server_ctl.sh` now default to
+  `throughput_record` when `PROFILE` is unset
+- `scripts/run_trt_stagewise_server.sh` still keeps `baseline` as its default
+  when launched directly in the foreground
 - if `/avatars/prepare` ever fails with
   `<urlopen error [Errno -2] Name or service not known>`, that means the S3FD
   checkpoint was missing and the old runtime download fallback was triggered;

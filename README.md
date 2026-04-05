@@ -154,7 +154,7 @@ TRT-stagewise server is:
 - foreground launch:
   - `bash scripts/run_trt_stagewise_server.sh --profile baseline`
 - Vast wrapper:
-  - `PROFILE=baseline PORT=8000 bash scripts/vast_onstart.sh`
+  - `PORT=8000 bash scripts/vast_onstart.sh`
 
 Validated live stack on the current CUDA 12.1 path:
 
@@ -173,6 +173,9 @@ Important note:
 - `scripts/run_trt_stagewise_server.sh` exports most runtime defaults
   internally, so you do not need to pass the older long list of env vars for
   the baseline path
+- the Vast boot wrapper now defaults to `throughput_record` when `PROFILE` is
+  unset; set `PROFILE=baseline` explicitly if you want the safer lower-VRAM
+  boot profile
 
 ## Third party integration
 Thanks for the third-party integration, which makes installation and use more convenient for everyone.

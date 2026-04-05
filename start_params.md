@@ -246,6 +246,9 @@ Practical meaning:
   still active and the launcher is preserving it
 - `scripts/vast_server_ctl.sh` starts the server in the background with `nohup`
   and writes logs under `/workspace/logs/musetalk`
+- the Vast boot/control wrappers now default to `throughput_record` when
+  `PROFILE` is unset; the direct foreground launcher still defaults to
+  `baseline`
 - to watch live logs on Vast:
 
 ```bash

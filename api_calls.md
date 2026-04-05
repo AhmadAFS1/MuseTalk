@@ -51,8 +51,11 @@ runtime defaults internally.
 For the Vast background wrapper:
 
 ```bash
-PROFILE=baseline PORT=8000 bash scripts/vast_onstart.sh
+PORT=8000 bash scripts/vast_onstart.sh
 ```
+
+That wrapper now defaults to `throughput_record` when `PROFILE` is unset. Use
+`PROFILE=baseline` explicitly if you want the lower-VRAM startup shape.
 
 ---
 
@@ -145,7 +148,7 @@ http://localhost:8000/docs
 - All generated videos and intermediate files are stored in the `results/` directory.
 - For Vast.ai boot automation on a CUDA 12.1.1 node, prefer:
   ```bash
-  SETUP_CLEAN=1 SETUP_FULL_STACK=1 PROFILE=baseline PORT=8000 bash scripts/vast_onstart.sh
+  SETUP_CLEAN=1 SETUP_FULL_STACK=1 PROFILE=throughput_record PORT=8000 bash scripts/vast_onstart.sh
   ```
 - `download_weights.sh` now includes the S3FD face-detector weight used by
   avatar preparation, so `/avatars/prepare` should not need to download that
