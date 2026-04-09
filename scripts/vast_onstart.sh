@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ── Logging to file ──────────────────────────────────────────────────────────
+ONSTART_LOG="${ONSTART_LOG:-/workspace/onstart.log}"
+exec > >(tee -a "$ONSTART_LOG") 2>&1
+echo ""
+echo "========================================"
+echo "VAST_ONSTART BEGIN: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+echo "========================================"
+
 SCRIPT_NAME="$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
@@ -17,11 +25,15 @@ SETUP_FULL_STACK="${SETUP_FULL_STACK:-0}"
 SETUP_INSTALL_AVATAR_PREP_DEPS="${SETUP_INSTALL_AVATAR_PREP_DEPS:-0}"
 
 log() {
-  printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
+  printf '[%s] [%s] %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$*"
 }
 
 die() {
-  printf '[%s] ERROR: %s\n' "$SCRIPT_NAME" "$*" >&2
+  printf '[%s] [%s] ERROR: %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$*" >&2
+  echo "========================================"
+  echo "VAST_ONSTART FAILED: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo "LOG FILE: $ONSTART_LOG"
+  echo "========================================"
   exit 1
 }
 
@@ -205,6 +217,79 @@ run_setup_if_needed() {
   bash "$REPO_ROOT/setup_musetalk.sh" "${setup_args[@]}"
 }
 
+# ── Post-setup validation (logged) ──────────────────────────────────────────
+run_post_setup_validation() {
+  log "── Post-setup validation ──"
+  local PY="$VENV_PATH/bin/python"
+  local all_ok=true
+
+  if [[ -x "$PY" ]]; then
+    log "✅ Venv Python exists at $PY"
+  else
+    log "❌ Venv Python NOT found at $PY"
+    all_ok=false
+  fi
+
+  # Check critical model files
+  local model_files=(
+    "models/musetalkV15/unet.pth"
+    "models/sd-vae/diffusion_pytorch_model.bin"
+    "models/whisper/pytorch_model.bin"
+    "models/face-parse-bisent/79999_iter.pth"
+  )
+
+  if avatar_prep_requested; then
+    model_files+=(
+      "models/dwpose/dw-ll_ucoco_384.pth"
+      "models/syncnet/latentsync_syncnet.pt"
+      "models/face_detection/s3fd.pth"
+    )
+  fi
+
+  for f in "${model_files[@]}"; do
+    if [[ -f "$REPO_ROOT/$f" ]]; then
+      local size
+      size=$(du -h "$REPO_ROOT/$f" | cut -f1)
+      log "✅ $f ($size)"
+    else
+      log "❌ MISSING: $f"
+      all_ok=false
+    fi
+  done
+
+  # Check Python imports
+  if [[ -x "$PY" ]]; then
+    if (cd "$REPO_ROOT" && $PY -c "import torch; print(f'torch {torch.__version__}, CUDA={torch.cuda.is_available()}')" 2>&1); then
+      log "✅ torch + CUDA OK"
+    else
+      log "❌ torch import failed"
+      all_ok=false
+    fi
+
+    if (cd "$REPO_ROOT" && $PY -c "import uvicorn, fastapi; print('uvicorn + fastapi OK')" 2>&1); then
+      log "✅ Server deps OK"
+    else
+      log "❌ Server deps missing"
+      all_ok=false
+    fi
+
+    if avatar_prep_requested; then
+      if (cd "$REPO_ROOT" && $PY -c "import mmcv, mmdet, mmpose; print('mmcv + mmdet + mmpose OK')" 2>&1); then
+        log "✅ Avatar prep deps OK"
+      else
+        log "❌ Avatar prep deps missing (mmcv/mmdet/mmpose)"
+        all_ok=false
+      fi
+    fi
+  fi
+
+  if $all_ok; then
+    log "✅ All post-setup validation checks passed"
+  else
+    log "⚠️  Some validation checks failed — check log above"
+  fi
+}
+
 main() {
   local setup_mode="server-only"
   if full_stack_requested; then
@@ -219,8 +304,12 @@ main() {
   log "venv=$VENV_PATH"
   log "profile=$PROFILE host=$HOST port=$PORT"
   log "setup_mode=$setup_mode"
+  log "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || echo 'N/A')"
+  log "Disk free: $(df -h /workspace | tail -1 | awk '{print $4}')"
 
   run_setup_if_needed
+
+  run_post_setup_validation
 
   PROFILE="$PROFILE" \
   HOST="$HOST" \
@@ -230,6 +319,11 @@ main() {
   bash "$REPO_ROOT/scripts/vast_server_ctl.sh" start
 
   log "Vast.ai MuseTalk on-start complete"
+
+  echo "========================================"
+  echo "VAST_ONSTART COMPLETE: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo "LOG FILE: $ONSTART_LOG"
+  echo "========================================"
 }
 
 main "$@"
