@@ -34,8 +34,24 @@ die() {
   echo "VAST_ONSTART FAILED: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
   echo "LOG FILE: $ONSTART_LOG"
   echo "========================================"
+  trap - ERR
   exit 1
 }
+
+report_unhandled_failure() {
+  local status=$?
+  local line="${BASH_LINENO[0]:-${LINENO:-unknown}}"
+  trap - ERR
+  printf '[%s] [%s] ERROR: unhandled failure near line %s (exit %s)\n' \
+    "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$line" "$status" >&2
+  echo "========================================"
+  echo "VAST_ONSTART FAILED: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo "LOG FILE: $ONSTART_LOG"
+  echo "========================================"
+  exit "$status"
+}
+
+trap report_unhandled_failure ERR
 
 env_flag_is_true() {
   local value="${1:-}"

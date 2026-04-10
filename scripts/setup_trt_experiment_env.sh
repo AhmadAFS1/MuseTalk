@@ -450,7 +450,7 @@ PY
       "mmpose==$MMPOSE_VERSION"
   fi
 
-  log "Validating avatar-preparation imports"
+  log "Validating avatar-preparation dependency imports"
   (
     cd "$REPO_ROOT"
     "$VENV_PYTHON" - <<'PY'
@@ -459,14 +459,13 @@ import mmcv
 import mmcv._ext
 import mmdet
 import mmpose
-from musetalk.utils.preprocessing import get_landmark_and_bbox
 
 print("mmengine", mmengine.__version__)
 print("mmcv", mmcv.__version__)
 print("mmcv._ext", "available")
 print("mmdet", mmdet.__version__)
 print("mmpose", mmpose.__version__)
-print("avatar prep imports OK")
+print("avatar prep dependency imports OK")
 PY
   )
 fi

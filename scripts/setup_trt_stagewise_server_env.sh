@@ -206,6 +206,29 @@ if missing:
 print("Validated", len(required), "required model files")
 PY
 
+if [[ $INSTALL_AVATAR_PREP_DEPS -eq 1 ]]; then
+  log "Running avatar-prep import smoke test"
+  (
+    cd "$REPO_ROOT"
+    "$VENV_PYTHON" - <<'PY'
+import mmcv
+import mmcv._ext
+import mmdet
+import mmengine
+import mmpose
+from musetalk.utils.preprocessing import get_landmark_and_bbox
+
+print("mmengine", mmengine.__version__)
+print("mmcv", mmcv.__version__)
+print("mmcv._ext", "available")
+print("mmdet", mmdet.__version__)
+print("mmpose", mmpose.__version__)
+print("get_landmark_and_bbox", callable(get_landmark_and_bbox))
+print("avatar prep import OK")
+PY
+  )
+fi
+
 log "Running TRT-stagewise server import smoke test"
 (
   cd "$REPO_ROOT"
