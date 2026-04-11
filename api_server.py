@@ -1,5 +1,6 @@
 import os
 import sys
+import signal
 
 # Local modification: this differs from the original MuseTalk code.
 # It applies early CPU thread-pool tuning before heavier imports happen.
@@ -33,6 +34,7 @@ from templates.session_player import get_session_player_html  # ✅ ADD THIS
 from templates.hls_player import get_hls_player_html
 from templates.hls_wall import get_hls_wall_html
 from templates.webrtc_player import get_webrtc_player_html
+from scripts.worker_control_plane import LinguaWorkerControlPlane
 from scripts.session_manager import SessionManager
 from scripts.hls_session_manager import HlsSessionManager
 from scripts.hls_gpu_scheduler import HLSGPUStreamScheduler
@@ -350,6 +352,7 @@ webrtc_session_manager: Optional["WebRTCSessionManager"] = None
 webrtc_ice_servers: list[dict] = []
 hls_group_lock = threading.Lock()
 hls_groups: dict[str, dict] = {}
+worker_control_plane: Optional[LinguaWorkerControlPlane] = None
 
 # ============================================================================
 # Startup/Shutdown Events
@@ -394,10 +397,96 @@ def _start_cpu_logger(label: str, interval_seconds: float):
     thread.start()
     return stop_event.set
 
+
+def _get_worker_metrics() -> dict:
+    manager_stats = manager.get_stats() if manager is not None else {}
+    scheduler_stats = hls_stream_scheduler.get_stats() if hls_stream_scheduler is not None else {}
+    session_streams = session_manager.get_live_sessions() if session_manager is not None else []
+    hls_streams = hls_session_manager.get_live_sessions() if hls_session_manager is not None else []
+    webrtc_streams = (
+        webrtc_session_manager.get_live_sessions()
+        if WEBRTC_AVAILABLE and webrtc_session_manager is not None
+        else []
+    )
+
+    gpu_index = 0
+    if manager is not None:
+        gpu_index = int(getattr(getattr(manager, "args", None), "gpu_id", 0) or 0)
+    live_gpu = _sample_live_gpu_stats(gpu_index)
+
+    active_requests = int(manager_stats.get("active_requests", 0) or 0)
+    active_sse_streams = len(session_streams)
+    active_hls_streams = len(hls_streams)
+    active_webrtc_streams = len(webrtc_streams)
+    active_sessions_local = active_sse_streams + active_hls_streams + active_webrtc_streams
+
+    queue_depth = max(
+        int(scheduler_stats.get("queued_or_active_jobs", 0) or 0),
+        int(scheduler_stats.get("prep_queue_depth", 0) or 0),
+    )
+    capacity = max(1, _env_int("LINGUA_WORKER_DEFAULT_CAPACITY", 1))
+    free_capacity = max(0, capacity - max(active_requests, active_sessions_local))
+
+    return {
+        "queue_depth": queue_depth,
+        "active_requests": active_requests,
+        "active_jobs": active_requests,
+        "active_sessions_local": active_sessions_local,
+        "active_live_sessions": active_sessions_local,
+        "active_sse_streams": active_sse_streams,
+        "active_hls_streams": active_hls_streams,
+        "active_webrtc_streams": active_webrtc_streams,
+        "free_capacity": free_capacity,
+        "gpu_utilization": live_gpu.get("gpu_util_pct") if live_gpu.get("available") else None,
+        "gpu_util_pct": live_gpu.get("gpu_util_pct") if live_gpu.get("available") else None,
+        "gpu_memory_pct": live_gpu.get("memory_util_pct") if live_gpu.get("available") else None,
+        "memory_used_mb": live_gpu.get("memory_used_mb") if live_gpu.get("available") else None,
+        "memory_total_mb": live_gpu.get("memory_total_mb") if live_gpu.get("available") else None,
+        "cached_avatars": (
+            manager_stats.get("cache", {}).get("cached_avatars", 0)
+            if manager_stats
+            else 0
+        ),
+        "p95_latency_ms": 0,
+        "profile": os.getenv("PROFILE", "baseline"),
+    }
+
+
+def _require_accepting_new_sessions() -> None:
+    if worker_control_plane is None:
+        return
+    if worker_control_plane.is_draining():
+        raise HTTPException(
+            status_code=409,
+            detail="Worker is draining and not accepting new sessions.",
+        )
+    if not worker_control_plane.accepting_new_sessions():
+        raise HTTPException(
+            status_code=503,
+            detail="Worker is not ready to accept new sessions yet.",
+        )
+
+
+async def _wait_for_worker_to_be_idle(timeout_seconds: int) -> bool:
+    if worker_control_plane is None:
+        return True
+
+    deadline = time.monotonic() + max(0, int(timeout_seconds))
+    while time.monotonic() <= deadline:
+        metrics = _get_worker_metrics()
+        if (
+            int(metrics.get("active_requests", 0) or 0) <= 0
+            and int(metrics.get("active_sessions_local", 0) or 0) <= 0
+            and int(metrics.get("queue_depth", 0) or 0) <= 0
+        ):
+            return True
+        await asyncio.sleep(1.0)
+    return False
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize the avatar manager on startup"""
-    global manager, session_manager, hls_session_manager, hls_stream_scheduler, webrtc_session_manager, webrtc_ice_servers
+    global manager, session_manager, hls_session_manager, hls_stream_scheduler, webrtc_session_manager, webrtc_ice_servers, worker_control_plane
     
     print("🚀 Starting MuseTalk API Server...")
     
@@ -477,13 +566,24 @@ async def startup_event():
         webrtc_session_manager.start_cleanup()
     else:
         print(f"WebRTC disabled (missing deps): {WEBRTC_IMPORT_ERROR}")
-    
+
+    worker_control_plane = LinguaWorkerControlPlane(
+        internal_port=_env_int("PORT", 8000),
+        profile=os.getenv("PROFILE", "baseline"),
+        metrics_provider=_get_worker_metrics,
+        log_fn=lambda message: print(message, flush=True),
+    )
+    worker_control_plane.start()
+    worker_control_plane.mark_local_ready()
+
     print("✅ MuseTalk API Server ready!")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global manager, webrtc_session_manager, hls_session_manager, hls_stream_scheduler
+    global manager, webrtc_session_manager, hls_session_manager, hls_stream_scheduler, worker_control_plane
+    if worker_control_plane is not None:
+        worker_control_plane.begin_draining(reason="shutdown")
     if hls_stream_scheduler:
         hls_stream_scheduler.shutdown()
     if manager:
@@ -496,6 +596,8 @@ async def shutdown_event():
         sessions = list(hls_session_manager.sessions.keys())
         for session_id in sessions:
             await hls_session_manager.delete_session(session_id)
+    if worker_control_plane is not None:
+        worker_control_plane.stop()
     print("👋 MuseTalk API Server stopped")
 
 @app.on_event("startup")
@@ -564,12 +666,52 @@ async def health_check():
         raise HTTPException(status_code=503, detail="Manager not initialized")
     
     stats = manager.get_stats()
-    return {
-        "status": "healthy",
+    worker_state = worker_control_plane.state_snapshot() if worker_control_plane is not None else None
+    payload = {
+        "ok": worker_control_plane.ready_for_health() if worker_control_plane is not None else True,
+        "service": "musetalk",
+        "status": worker_control_plane.current_status() if worker_control_plane is not None else "healthy",
         "gpu_available": stats['gpu']['free_gb'] > 1,
         "cached_avatars": stats['cache']['cached_avatars'],
-        "active_requests": stats['active_requests']
+        "active_requests": stats['active_requests'],
     }
+    if worker_state is not None:
+        payload["worker"] = {
+            "worker_id": worker_state["worker_id"],
+            "instance_id": worker_state["instance_id"],
+            "base_url": worker_state["base_url"],
+            "registered": worker_state["registered"],
+            "draining": worker_state["draining"],
+            "accepting_new_sessions": worker_state["accepting_new_sessions"],
+        }
+    status_code = 200 if payload["ok"] else 503
+    return JSONResponse(status_code=status_code, content=payload)
+
+
+@app.get("/worker/state")
+async def worker_state():
+    """Worker control-plane state and local drain/admission details."""
+    if worker_control_plane is None:
+        raise HTTPException(status_code=503, detail="Worker state not initialized")
+    return worker_control_plane.state_snapshot()
+
+
+@app.post("/worker/drain")
+async def worker_drain(wait_for_idle: bool = False, timeout_seconds: int = 300):
+    """Put the worker into draining mode and optionally wait for active work to finish."""
+    if worker_control_plane is None:
+        raise HTTPException(status_code=503, detail="Worker state not initialized")
+
+    worker_control_plane.begin_draining(reason="api")
+    drained = True
+    if wait_for_idle:
+        drained = await _wait_for_worker_to_be_idle(timeout_seconds)
+
+    payload = worker_control_plane.state_snapshot()
+    payload["drained"] = drained
+    if wait_for_idle and not drained:
+        return JSONResponse(status_code=202, content=payload)
+    return payload
 
 # ============================================================================
 # Avatar Management Endpoints
@@ -1314,6 +1456,8 @@ async def create_session(
     """
     if session_manager is None:
         raise HTTPException(status_code=503, detail="Session manager not initialized")
+
+    _require_accepting_new_sessions()
     
     # Verify avatar exists
     if not manager._avatar_exists(avatar_id):
@@ -1761,6 +1905,7 @@ async def create_hls_session(
         raise HTTPException(status_code=503, detail="Manager not initialized")
 
     _require_hls()
+    _require_accepting_new_sessions()
 
     if not manager._avatar_exists(avatar_id):
         raise HTTPException(
@@ -2201,6 +2346,7 @@ async def create_hls_group(
     hls_server_timing: Optional[bool] = None,
 ):
     _require_hls()
+    _require_accepting_new_sessions()
     if count < 1 or count > 12:
         raise HTTPException(status_code=400, detail="count must be between 1 and 12")
 
@@ -2448,6 +2594,7 @@ async def create_webrtc_session(
         raise HTTPException(status_code=503, detail="Manager not initialized")
 
     _require_webrtc()
+    _require_accepting_new_sessions()
 
     if not manager._avatar_exists(avatar_id):
         raise HTTPException(
@@ -2783,6 +2930,8 @@ async def get_stats():
     stats = manager.get_stats()
     if hls_stream_scheduler is not None:
         stats["hls_scheduler"] = hls_stream_scheduler.get_stats()
+    if worker_control_plane is not None:
+        stats["worker"] = worker_control_plane.state_snapshot()
     return stats
 
 
@@ -2868,6 +3017,49 @@ def cleanup_old_chunks():
     with open(CLEANUP_DB, 'w') as f:
         json.dump(cleanup_queue, f, indent=2)
 
+
+class DrainingUvicornServer(uvicorn.Server):
+    def __init__(self, config: uvicorn.Config):
+        super().__init__(config)
+        self._drain_thread: Optional[threading.Thread] = None
+
+    def handle_exit(self, sig: int, frame) -> None:
+        global worker_control_plane
+
+        if worker_control_plane is None:
+            return super().handle_exit(sig, frame)
+
+        signame = None
+        try:
+            signame = signal.Signals(sig).name
+        except Exception:
+            signame = str(sig)
+
+        if self.should_exit or worker_control_plane.is_draining():
+            print(f"🛑 Received {signame}; forcing immediate shutdown")
+            worker_control_plane.begin_draining(reason=f"signal:{signame}")
+            self.force_exit = True
+            self.should_exit = True
+            return
+
+        print(f"🛑 Received {signame}; entering drain mode before shutdown")
+        worker_control_plane.begin_draining(reason=f"signal:{signame}")
+
+        def _finish_shutdown_after_drain():
+            drained = worker_control_plane.wait_for_idle()
+            if drained:
+                print("✅ Drain complete; shutting down worker")
+            else:
+                print("⚠️ Drain timeout reached; shutting down worker")
+            self.should_exit = True
+
+        self._drain_thread = threading.Thread(
+            target=_finish_shutdown_after_drain,
+            name="uvicorn-drain",
+            daemon=True,
+        )
+        self._drain_thread.start()
+
 # ============================================================================
 # Main Entry Point
 # ============================================================================
@@ -2879,12 +3071,17 @@ if __name__ == "__main__":
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload (dev mode)")
     
     args = parser.parse_args()
-    
-    uvicorn.run(
-        "api_server:app",
+
+    os.environ.setdefault("HOST", args.host)
+    os.environ.setdefault("PORT", str(args.port))
+
+    config = uvicorn.Config(
+        app,
         host=args.host,
         port=args.port,
         reload=args.reload,
-        access_log=False,      # Suppress per-request access logs
-        log_level="error",     # Only emit errors from Uvicorn
+        access_log=False,
+        log_level="error",
     )
+    server = DrainingUvicornServer(config)
+    server.run()
