@@ -6,6 +6,8 @@ CHECKPOINTS_DIR="${CHECKPOINTS_DIR:-models}"
 HF_MAX_WORKERS="${HF_MAX_WORKERS:-1}"
 DOWNLOAD_RETRIES="${DOWNLOAD_RETRIES:-5}"
 DOWNLOAD_RETRY_SLEEP_SECONDS="${DOWNLOAD_RETRY_SLEEP_SECONDS:-15}"
+EXPECTED_FACE_PARSE_ITER_BYTES="${EXPECTED_FACE_PARSE_ITER_BYTES:-53289463}"
+EXPECTED_RESNET18_BYTES="${EXPECTED_RESNET18_BYTES:-46827520}"
 
 export HF_HUB_ENABLE_HF_TRANSFER="${HF_HUB_ENABLE_HF_TRANSFER:-0}"
 export HF_HUB_ETAG_TIMEOUT="${HF_HUB_ETAG_TIMEOUT:-120}"
@@ -55,6 +57,58 @@ hf_download() {
     --local-dir "$local_dir" \
     "$repo_id" \
     "$@"
+}
+
+remote_content_length() {
+  local url="$1"
+  curl -fsSI "$url" | tr -d '\r' | awk '/^content-length:/ {print $2; exit}'
+}
+
+download_resumable_with_curl() {
+  local url="$1"
+  local output_path="$2"
+  local local_size=0
+  local remote_size
+
+  remote_size="$(remote_content_length "$url")"
+  [[ -n "$remote_size" ]] || die "Could not determine remote content length for $url"
+
+  if [[ -f "$output_path" ]]; then
+    local_size="$(stat -c '%s' "$output_path")"
+    if [[ "$local_size" == "$remote_size" ]]; then
+      log "File already complete, skipping: $output_path"
+      return 0
+    fi
+    if (( local_size > remote_size )); then
+      log "Local file is larger than remote; restarting download: $output_path"
+      rm -f "$output_path"
+    fi
+  fi
+
+  retry curl --fail --location --retry 5 --retry-delay 5 --retry-all-errors --continue-at - \
+    "$url" \
+    -o "$output_path"
+}
+
+download_gdown_if_needed() {
+  local url="$1"
+  local output_path="$2"
+  local expected_bytes="$3"
+  local local_size=0
+
+  if [[ -f "$output_path" ]]; then
+    local_size="$(stat -c '%s' "$output_path")"
+    if [[ "$local_size" == "$expected_bytes" ]]; then
+      log "File already complete, skipping: $output_path"
+      return 0
+    fi
+    if (( local_size > expected_bytes )); then
+      log "Local file is larger than expected; restarting download: $output_path"
+      rm -f "$output_path"
+    fi
+  fi
+
+  retry gdown "$url" -O "$output_path"
 }
 
 validate_required_files() {
@@ -150,13 +204,15 @@ hf_download ByteDance/LatentSync "$CHECKPOINTS_DIR" \
 cp -f "$CHECKPOINTS_DIR/auxiliary/s3fd-619a316812.pth" "$CHECKPOINTS_DIR/face_detection/s3fd.pth"
 
 log "Downloading face parse model"
-retry gdown "https://drive.google.com/uc?id=154JgKpzCPW82qINcVieuPH3fZ2e0P812" \
-  -O "$CHECKPOINTS_DIR/face-parse-bisent/79999_iter.pth"
+download_gdown_if_needed \
+  "https://drive.google.com/uc?id=154JgKpzCPW82qINcVieuPH3fZ2e0P812" \
+  "$CHECKPOINTS_DIR/face-parse-bisent/79999_iter.pth" \
+  "$EXPECTED_FACE_PARSE_ITER_BYTES"
 
 log "Downloading ResNet18 backbone"
-retry curl --fail --location --retry 5 --retry-delay 5 --retry-all-errors --continue-at - \
+download_resumable_with_curl \
   "https://download.pytorch.org/models/resnet18-5c106cde.pth" \
-  -o "$CHECKPOINTS_DIR/face-parse-bisent/resnet18-5c106cde.pth"
+  "$CHECKPOINTS_DIR/face-parse-bisent/resnet18-5c106cde.pth"
 
 validate_required_files
 log "All weights downloaded and validated successfully"
