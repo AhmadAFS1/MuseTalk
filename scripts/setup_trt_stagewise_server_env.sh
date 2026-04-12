@@ -173,6 +173,7 @@ if [[ $SKIP_WEIGHTS -eq 0 ]]; then
   (
     cd "$REPO_ROOT"
     export PATH="$VENV_PATH/bin:$PATH"
+    export DOWNLOAD_AVATAR_PREP_WEIGHTS="$INSTALL_AVATAR_PREP_DEPS"
     bash ./download_weights.sh
   )
 else
@@ -194,12 +195,15 @@ required = [
     repo / "models/whisper/config.json",
     repo / "models/whisper/pytorch_model.bin",
     repo / "models/whisper/preprocessor_config.json",
-    repo / "models/dwpose/dw-ll_ucoco_384.pth",
-    repo / "models/syncnet/latentsync_syncnet.pt",
-    repo / "models/face_detection/s3fd.pth",
     repo / "models/face-parse-bisent/79999_iter.pth",
     repo / "models/face-parse-bisent/resnet18-5c106cde.pth",
 ]
+if $INSTALL_AVATAR_PREP_DEPS:
+    required.extend([
+        repo / "models/dwpose/dw-ll_ucoco_384.pth",
+        repo / "models/syncnet/latentsync_syncnet.pt",
+        repo / "models/face_detection/s3fd.pth",
+    ])
 missing = [str(path) for path in required if not path.exists()]
 if missing:
     raise SystemExit("Missing required model files:\n" + "\n".join(missing))
