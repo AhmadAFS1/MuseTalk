@@ -8,6 +8,7 @@ set -euo pipefail
 SCRIPT_NAME="$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$SCRIPT_DIR/lib/step_logging.sh"
 
 PYTHON_BIN="${PYTHON_BIN:-python3.10}"
 REPO_ROOT="${REPO_ROOT:-$DEFAULT_REPO_ROOT}"
@@ -25,6 +26,7 @@ VENV_PATH="${VENV_PATH:-$WORKSPACE_ROOT/.venvs/musetalk_trt_stagewise}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-$REPO_ROOT/models/tensorrt_altenv_bs32}"
 RUNTIME_REQUIREMENTS="${RUNTIME_REQUIREMENTS:-}"
 PIP_CACHE_DIR="${PIP_CACHE_DIR:-$HOME/.cache/pip}"
+STEP_LOG_ROOT="${STEP_LOG_ROOT:-$REPO_ROOT/logs/setup}"
 
 TORCH_VERSION="${TORCH_VERSION:-2.5.1}"
 TORCHVISION_VERSION="${TORCHVISION_VERSION:-0.20.1}"
@@ -74,11 +76,11 @@ INSTALL_AVATAR_PREP_DEPS=0
 FULL_STACK=0
 
 log() {
-  printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
+  step_log_emit INFO "$*"
 }
 
 die() {
-  printf '[%s] ERROR: %s\n' "$SCRIPT_NAME" "$*" >&2
+  step_log_emit ERROR "$*"
   exit 1
 }
 
@@ -180,6 +182,226 @@ cuda_toolkit_version() {
   "$nvcc_bin" --version | sed -n 's/.*release \([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' | head -n 1
 }
 
+create_artifact_dir_step() {
+  log "Creating TensorRT artifact directory: $ARTIFACT_DIR"
+  mkdir -p "$ARTIFACT_DIR"
+}
+
+create_venv_step() {
+  log "Creating venv: $VENV_PATH"
+  "$PYTHON_BIN" -m venv "$VENV_PATH"
+  VENV_PYTHON="$VENV_PATH/bin/python"
+  [[ -x "$VENV_PYTHON" ]] || die "Venv python not found after creation: $VENV_PYTHON"
+}
+
+upgrade_packaging_tools_step() {
+  "$VENV_PYTHON" -m pip install --upgrade pip setuptools wheel
+}
+
+install_pytorch_cuda_step() {
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "torch==$TORCH_VERSION" \
+    "torchvision==$TORCHVISION_VERSION" \
+    "torchaudio==$TORCHAUDIO_VERSION" \
+    "numpy==$NUMPY_VERSION" \
+    "pillow==$PILLOW_VERSION" \
+    --index-url "$PYTORCH_INDEX_URL"
+}
+
+install_torch_tensorrt_step() {
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    --extra-index-url "$NVIDIA_EXTRA_INDEX_URL" \
+    "torch-tensorrt==$TORCH_TENSORRT_VERSION"
+}
+
+install_export_dependencies_step() {
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "numpy==$NUMPY_VERSION" \
+    "opencv-python==$OPENCV_VERSION" \
+    "diffusers==$DIFFUSERS_VERSION" \
+    "transformers==$TRANSFORMERS_VERSION" \
+    "tokenizers==$TOKENIZERS_VERSION" \
+    "accelerate==$ACCELERATE_VERSION" \
+    "huggingface_hub==$HUGGINGFACE_HUB_VERSION" \
+    "einops==$EINOPS_VERSION" \
+    "safetensors==$SAFETENSORS_VERSION" \
+    "pillow==$PILLOW_VERSION"
+}
+
+validate_backend_imports_step() {
+  "$VENV_PYTHON" - <<'PY'
+import torch
+import torch_tensorrt
+import tensorrt
+import cv2
+import diffusers
+import transformers
+import huggingface_hub
+
+if not torch.cuda.is_available():
+    raise RuntimeError("torch.cuda.is_available() returned False")
+
+engine_class = getattr(torch.classes.tensorrt, "Engine")
+device_name = torch.cuda.get_device_name(0)
+
+print("torch", torch.__version__)
+print("torch.cuda", torch.version.cuda)
+print("torch_tensorrt", torch_tensorrt.__version__)
+print("tensorrt", tensorrt.__version__)
+print("cv2", cv2.__version__)
+print("diffusers", diffusers.__version__)
+print("transformers", transformers.__version__)
+print("huggingface_hub", huggingface_hub.__version__)
+print("cuda_device", device_name)
+print("engine_class", engine_class)
+PY
+}
+
+install_server_dependencies_step() {
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "fastapi==$FASTAPI_VERSION" \
+    "uvicorn==$UVICORN_VERSION" \
+    "aiohttp==$AIOHTTP_VERSION" \
+    "soundfile==$SOUNDFILE_VERSION" \
+    "librosa==$LIBROSA_VERSION" \
+    "imageio[ffmpeg]==$IMAGEIO_VERSION" \
+    "omegaconf==$OMEGACONF_VERSION" \
+    "ffmpeg-python==$FFMPEG_PYTHON_VERSION" \
+    "aiofiles==$AIOFILES_VERSION" \
+    "av==$AV_VERSION" \
+    "python-multipart==$PYTHON_MULTIPART_VERSION" \
+    "aiortc==$AIORTC_VERSION" \
+    "aioice==$AIOICE_VERSION"
+}
+
+validate_server_dependency_imports_step() {
+  "$VENV_PYTHON" - <<'PY'
+import numpy
+import cv2
+import fastapi
+import uvicorn
+import aiohttp
+import soundfile
+import librosa
+import imageio
+import omegaconf
+import ffmpeg
+import aiofiles
+import av
+import multipart
+import aiortc
+import aioice
+
+print("numpy", numpy.__version__)
+print("cv2", cv2.__version__)
+print("fastapi", fastapi.__version__)
+print("uvicorn", uvicorn.__version__)
+print("aiohttp", aiohttp.__version__)
+print("soundfile", soundfile.__version__)
+print("librosa", librosa.__version__)
+print("imageio", imageio.__version__)
+print("omegaconf", omegaconf.__version__)
+print("av", av.__version__)
+print("multipart", multipart.__version__)
+print("aiortc", aiortc.__version__)
+print("aioice", aioice.__version__)
+print("all server dependency imports OK")
+PY
+}
+
+validate_api_server_import_step() {
+  (
+    cd "$REPO_ROOT"
+    "$VENV_PYTHON" -c "import api_server; print('api_server import OK')"
+  )
+}
+
+validate_avatar_prep_cuda_compatibility_step() {
+  TOOLKIT_CUDA_VERSION="$(cuda_toolkit_version || true)"
+  TORCH_CUDA_VERSION="$("$VENV_PYTHON" - <<'PY'
+import torch
+print(torch.version.cuda or "")
+PY
+)"
+
+  if [[ -z "$TOOLKIT_CUDA_VERSION" ]]; then
+    die "Avatar-prep deps require full mmcv, but no CUDA toolkit (nvcc) was found. Install a CUDA toolkit matching torch CUDA $TORCH_CUDA_VERSION or use an image that already includes it."
+  fi
+
+  if [[ "$TOOLKIT_CUDA_VERSION" != "$TORCH_CUDA_VERSION" ]]; then
+    die "Avatar-prep deps require full mmcv, but local CUDA toolkit $TOOLKIT_CUDA_VERSION does not match torch CUDA $TORCH_CUDA_VERSION. Use a CUDA $TORCH_CUDA_VERSION image/toolkit for a single full-stack venv."
+  fi
+}
+
+install_avatar_prep_prerequisites_step() {
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "openmim==$OPENMIM_VERSION" \
+    "setuptools<81" \
+    "ninja" \
+    "psutil"
+}
+
+remove_mmcv_placeholder_step() {
+  "$VENV_PYTHON" -m pip uninstall -y mmcv-lite mmcv >/dev/null 2>&1 || true
+}
+
+install_mmengine_step() {
+  "$VENV_PYTHON" -m mim install "mmengine==$MMENGINE_VERSION"
+}
+
+install_mmcv_step() {
+  if ! "$VENV_PYTHON" -m mim install "mmcv==$MMCV_VERSION"; then
+    log "mim install mmcv failed; trying source build without build isolation"
+    log "Limiting mmcv source build parallelism with MAX_JOBS=$MMCV_BUILD_MAX_JOBS"
+    if ! MAX_JOBS="$MMCV_BUILD_MAX_JOBS" "$VENV_PYTHON" -m pip install --no-cache-dir --no-build-isolation \
+      "mmcv==$MMCV_VERSION"; then
+      die "Failed to install full mmcv==$MMCV_VERSION required for avatar preparation. Ensure the node uses CUDA $TORCH_CUDA_VERSION with a matching local toolkit and build toolchain."
+    fi
+  fi
+}
+
+install_mmdet_step() {
+  "$VENV_PYTHON" -m mim install "mmdet==$MMDET_VERSION"
+}
+
+install_chumpy_step() {
+  "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "chumpy==$CHUMPY_VERSION" \
+    --no-build-isolation
+}
+
+install_mmpose_step() {
+  if ! "$VENV_PYTHON" -m mim install "mmpose==$MMPOSE_VERSION"; then
+    log "mim install mmpose failed; falling back to pip"
+    "$VENV_PYTHON" -m pip install --no-cache-dir \
+      "mmpose==$MMPOSE_VERSION"
+  fi
+}
+
+validate_avatar_prep_imports_step() {
+  (
+    cd "$REPO_ROOT"
+    "$VENV_PYTHON" - <<'PY'
+import mmengine
+import mmcv
+import mmcv._ext
+import mmdet
+import mmpose
+
+print("mmengine", mmengine.__version__)
+print("mmcv", mmcv.__version__)
+print("mmcv._ext", "available")
+print("mmdet", mmdet.__version__)
+print("mmpose", mmpose.__version__)
+print("avatar prep dependency imports OK")
+PY
+  )
+}
+
+install_runtime_dependencies_step() {
+  "$VENV_PYTHON" -m pip install --no-cache-dir -r "$RUNTIME_REQUIREMENTS"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --venv-path)
@@ -246,6 +468,8 @@ done
 require_command "$PYTHON_BIN"
 require_command rm
 require_command mkdir
+step_logging_init "$SCRIPT_NAME" "$STEP_LOG_ROOT"
+trap 'step_logging_on_exit $?' EXIT
 configure_python_tls
 
 if [[ -z "$RUNTIME_REQUIREMENTS" ]]; then
@@ -278,203 +502,37 @@ if [[ -e "$VENV_PATH" ]]; then
   fi
 fi
 
-log "Creating TensorRT artifact directory: $ARTIFACT_DIR"
-mkdir -p "$ARTIFACT_DIR"
-
-log "Creating venv: $VENV_PATH"
-"$PYTHON_BIN" -m venv "$VENV_PATH"
-
-VENV_PYTHON="$VENV_PATH/bin/python"
-
-[[ -x "$VENV_PYTHON" ]] || die "Venv python not found after creation: $VENV_PYTHON"
-
-log "Upgrading pip, setuptools, and wheel"
-"$VENV_PYTHON" -m pip install --upgrade pip setuptools wheel
-
-log "Installing PyTorch CUDA 12.1 wheel set"
-"$VENV_PYTHON" -m pip install --no-cache-dir \
-  "torch==$TORCH_VERSION" \
-  "torchvision==$TORCHVISION_VERSION" \
-  "torchaudio==$TORCHAUDIO_VERSION" \
-  "numpy==$NUMPY_VERSION" \
-  "pillow==$PILLOW_VERSION" \
-  --index-url "$PYTORCH_INDEX_URL"
-
-log "Installing torch-tensorrt pinned stack"
-"$VENV_PYTHON" -m pip install --no-cache-dir \
-  --extra-index-url "$NVIDIA_EXTRA_INDEX_URL" \
-  "torch-tensorrt==$TORCH_TENSORRT_VERSION"
-
-log "Installing pinned export + benchmark dependencies"
-"$VENV_PYTHON" -m pip install --no-cache-dir \
-  "numpy==$NUMPY_VERSION" \
-  "opencv-python==$OPENCV_VERSION" \
-  "diffusers==$DIFFUSERS_VERSION" \
-  "transformers==$TRANSFORMERS_VERSION" \
-  "tokenizers==$TOKENIZERS_VERSION" \
-  "accelerate==$ACCELERATE_VERSION" \
-  "huggingface_hub==$HUGGINGFACE_HUB_VERSION" \
-  "einops==$EINOPS_VERSION" \
-  "safetensors==$SAFETENSORS_VERSION" \
-  "pillow==$PILLOW_VERSION"
-
-log "Validating backend imports and CUDA registration"
-"$VENV_PYTHON" - <<'PY'
-import torch
-import torch_tensorrt
-import tensorrt
-import cv2
-import diffusers
-import transformers
-import huggingface_hub
-
-if not torch.cuda.is_available():
-    raise RuntimeError("torch.cuda.is_available() returned False")
-
-engine_class = getattr(torch.classes.tensorrt, "Engine")
-device_name = torch.cuda.get_device_name(0)
-
-print("torch", torch.__version__)
-print("torch.cuda", torch.version.cuda)
-print("torch_tensorrt", torch_tensorrt.__version__)
-print("tensorrt", tensorrt.__version__)
-print("cv2", cv2.__version__)
-print("diffusers", diffusers.__version__)
-print("transformers", transformers.__version__)
-print("huggingface_hub", huggingface_hub.__version__)
-print("cuda_device", device_name)
-print("engine_class", engine_class)
-PY
+run_step "Create TensorRT artifact directory" create_artifact_dir_step
+run_step "Create venv" create_venv_step
+run_step "Upgrade pip, setuptools, and wheel" upgrade_packaging_tools_step
+run_step "Install PyTorch CUDA 12.1 wheel set" install_pytorch_cuda_step
+run_step "Install torch-tensorrt pinned stack" install_torch_tensorrt_step
+run_step "Install pinned export + benchmark dependencies" install_export_dependencies_step
+run_step "Validate backend imports and CUDA registration" validate_backend_imports_step
 
 if [[ $INSTALL_SERVER_DEPS -eq 1 ]]; then
-  log "Installing pinned HLS/api_server dependency set"
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
-    "fastapi==$FASTAPI_VERSION" \
-    "uvicorn==$UVICORN_VERSION" \
-    "aiohttp==$AIOHTTP_VERSION" \
-    "soundfile==$SOUNDFILE_VERSION" \
-    "librosa==$LIBROSA_VERSION" \
-    "imageio[ffmpeg]==$IMAGEIO_VERSION" \
-    "omegaconf==$OMEGACONF_VERSION" \
-    "ffmpeg-python==$FFMPEG_PYTHON_VERSION" \
-    "aiofiles==$AIOFILES_VERSION" \
-    "av==$AV_VERSION" \
-    "python-multipart==$PYTHON_MULTIPART_VERSION" \
-    "aiortc==$AIORTC_VERSION" \
-    "aioice==$AIOICE_VERSION"
-
-  log "Validating HLS/api_server import path"
-  "$VENV_PYTHON" - <<'PY'
-import numpy
-import cv2
-import fastapi
-import uvicorn
-import aiohttp
-import soundfile
-import librosa
-import imageio
-import omegaconf
-import ffmpeg
-import aiofiles
-import av
-import multipart
-import aiortc
-import aioice
-
-print("numpy", numpy.__version__)
-print("cv2", cv2.__version__)
-print("fastapi", fastapi.__version__)
-print("uvicorn", uvicorn.__version__)
-print("aiohttp", aiohttp.__version__)
-print("soundfile", soundfile.__version__)
-print("librosa", librosa.__version__)
-print("imageio", imageio.__version__)
-print("omegaconf", omegaconf.__version__)
-print("av", av.__version__)
-print("multipart", multipart.__version__)
-print("aiortc", aiortc.__version__)
-print("aioice", aioice.__version__)
-print("all server dependency imports OK")
-PY
-
-  log "Validating api_server full import (includes transitive deps)"
-  (
-    cd "$REPO_ROOT"
-    "$VENV_PYTHON" -c "import api_server; print('api_server import OK')"
-  )
+  run_step "Install pinned HLS/api_server dependency set" install_server_dependencies_step
+  run_step "Validate HLS/api_server dependency imports" validate_server_dependency_imports_step
+  run_step "Validate api_server full import" validate_api_server_import_step
 fi
 
 if [[ $INSTALL_AVATAR_PREP_DEPS -eq 1 ]]; then
-  TOOLKIT_CUDA_VERSION="$(cuda_toolkit_version || true)"
-  TORCH_CUDA_VERSION="$("$VENV_PYTHON" - <<'PY'
-import torch
-print(torch.version.cuda or "")
-PY
-)"
-
-  if [[ -z "$TOOLKIT_CUDA_VERSION" ]]; then
-    die "Avatar-prep deps require full mmcv, but no CUDA toolkit (nvcc) was found. Install a CUDA toolkit matching torch CUDA $TORCH_CUDA_VERSION or use an image that already includes it."
-  fi
-
-  if [[ "$TOOLKIT_CUDA_VERSION" != "$TORCH_CUDA_VERSION" ]]; then
-    die "Avatar-prep deps require full mmcv, but local CUDA toolkit $TOOLKIT_CUDA_VERSION does not match torch CUDA $TORCH_CUDA_VERSION. Use a CUDA $TORCH_CUDA_VERSION image/toolkit for a single full-stack venv."
-  fi
-
-  log "Installing optional avatar-preparation deps (openmim + mmlab stack)"
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
-    "openmim==$OPENMIM_VERSION" \
-    "setuptools<81" \
-    "ninja" \
-    "psutil"
-
-  log "Removing any existing mmcv-lite placeholder before installing full mmcv"
-  "$VENV_PYTHON" -m pip uninstall -y mmcv-lite mmcv >/dev/null 2>&1 || true
-
-  "$VENV_PYTHON" -m mim install "mmengine==$MMENGINE_VERSION"
-  if ! "$VENV_PYTHON" -m mim install "mmcv==$MMCV_VERSION"; then
-    log "mim install mmcv failed; trying source build without build isolation"
-    log "Limiting mmcv source build parallelism with MAX_JOBS=$MMCV_BUILD_MAX_JOBS"
-    if ! MAX_JOBS="$MMCV_BUILD_MAX_JOBS" "$VENV_PYTHON" -m pip install --no-cache-dir --no-build-isolation \
-      "mmcv==$MMCV_VERSION"; then
-      die "Failed to install full mmcv==$MMCV_VERSION required for avatar preparation. Ensure the node uses CUDA $TORCH_CUDA_VERSION with a matching local toolkit and build toolchain."
-    fi
-  fi
-  "$VENV_PYTHON" -m mim install "mmdet==$MMDET_VERSION"
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
-    "chumpy==$CHUMPY_VERSION" \
-    --no-build-isolation
-
-  if ! "$VENV_PYTHON" -m mim install "mmpose==$MMPOSE_VERSION"; then
-    log "mim install mmpose failed; falling back to pip"
-    "$VENV_PYTHON" -m pip install --no-cache-dir \
-      "mmpose==$MMPOSE_VERSION"
-  fi
-
-  log "Validating avatar-preparation dependency imports"
-  (
-    cd "$REPO_ROOT"
-    "$VENV_PYTHON" - <<'PY'
-import mmengine
-import mmcv
-import mmcv._ext
-import mmdet
-import mmpose
-
-print("mmengine", mmengine.__version__)
-print("mmcv", mmcv.__version__)
-print("mmcv._ext", "available")
-print("mmdet", mmdet.__version__)
-print("mmpose", mmpose.__version__)
-print("avatar prep dependency imports OK")
-PY
-  )
+  run_step "Validate avatar-prep CUDA toolkit compatibility" validate_avatar_prep_cuda_compatibility_step
+  run_step "Install avatar-preparation prerequisites" install_avatar_prep_prerequisites_step
+  run_step "Remove mmcv-lite placeholder" remove_mmcv_placeholder_step
+  run_step "Install mmengine" install_mmengine_step
+  run_step "Install full mmcv" install_mmcv_step
+  run_step "Install mmdet" install_mmdet_step
+  run_step "Install chumpy" install_chumpy_step
+  run_step "Install mmpose" install_mmpose_step
+  run_step "Validate avatar-preparation dependency imports" validate_avatar_prep_imports_step
 fi
 
 if [[ $INSTALL_RUNTIME_DEPS -eq 1 ]]; then
   [[ -f "$RUNTIME_REQUIREMENTS" ]] || die "Runtime requirements file not found: $RUNTIME_REQUIREMENTS"
   log "Installing MuseTalk runtime dependencies from: $RUNTIME_REQUIREMENTS"
   log "Warning: full requirements are broader than the validated TRT HLS stack"
-  "$VENV_PYTHON" -m pip install --no-cache-dir -r "$RUNTIME_REQUIREMENTS"
+  run_step "Install MuseTalk runtime dependencies" install_runtime_dependencies_step
 else
   log "Skipping runtime dependency install. Use --install-runtime-deps to include repo requirements."
 fi

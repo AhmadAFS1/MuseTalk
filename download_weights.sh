@@ -2,15 +2,21 @@
 set -euo pipefail
 
 SCRIPT_NAME="$(basename "$0")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="${REPO_ROOT:-$SCRIPT_DIR}"
+source "$REPO_ROOT/scripts/lib/step_logging.sh"
 CHECKPOINTS_DIR="${CHECKPOINTS_DIR:-models}"
 HF_MAX_WORKERS="${HF_MAX_WORKERS:-1}"
 DOWNLOAD_RETRIES="${DOWNLOAD_RETRIES:-5}"
 DOWNLOAD_RETRY_SLEEP_SECONDS="${DOWNLOAD_RETRY_SLEEP_SECONDS:-15}"
 DOWNLOAD_WAIT_FOR_NETWORK_SECONDS="${DOWNLOAD_WAIT_FOR_NETWORK_SECONDS:-180}"
 DOWNLOAD_WAIT_FOR_NETWORK_INTERVAL_SECONDS="${DOWNLOAD_WAIT_FOR_NETWORK_INTERVAL_SECONDS:-5}"
+DOWNLOAD_MUSETALK_V1_WEIGHTS="${DOWNLOAD_MUSETALK_V1_WEIGHTS:-1}"
+DOWNLOAD_MUSETALK_V15_WEIGHTS="${DOWNLOAD_MUSETALK_V15_WEIGHTS:-1}"
 DOWNLOAD_AVATAR_PREP_WEIGHTS="${DOWNLOAD_AVATAR_PREP_WEIGHTS:-1}"
 EXPECTED_FACE_PARSE_ITER_BYTES="${EXPECTED_FACE_PARSE_ITER_BYTES:-53289463}"
 EXPECTED_RESNET18_BYTES="${EXPECTED_RESNET18_BYTES:-46827520}"
+STEP_LOG_ROOT="${STEP_LOG_ROOT:-$REPO_ROOT/logs/setup}"
 
 export HF_HUB_ENABLE_HF_TRANSFER="${HF_HUB_ENABLE_HF_TRANSFER:-0}"
 export HF_HUB_ETAG_TIMEOUT="${HF_HUB_ETAG_TIMEOUT:-120}"
@@ -18,11 +24,11 @@ export HF_HUB_DOWNLOAD_TIMEOUT="${HF_HUB_DOWNLOAD_TIMEOUT:-120}"
 export HF_ENDPOINT="${HF_ENDPOINT:-https://huggingface.co}"
 
 log() {
-  printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
+  step_log_emit INFO "$*"
 }
 
 die() {
-  printf '[%s] ERROR: %s\n' "$SCRIPT_NAME" "$*" >&2
+  step_log_emit ERROR "$*"
   exit 1
 }
 
@@ -153,10 +159,6 @@ download_gdown_if_needed() {
 
 validate_required_files() {
   local required=(
-    "$CHECKPOINTS_DIR/musetalk/musetalk.json"
-    "$CHECKPOINTS_DIR/musetalk/pytorch_model.bin"
-    "$CHECKPOINTS_DIR/musetalkV15/musetalk.json"
-    "$CHECKPOINTS_DIR/musetalkV15/unet.pth"
     "$CHECKPOINTS_DIR/sd-vae/config.json"
     "$CHECKPOINTS_DIR/sd-vae/diffusion_pytorch_model.bin"
     "$CHECKPOINTS_DIR/whisper/config.json"
@@ -165,6 +167,20 @@ validate_required_files() {
     "$CHECKPOINTS_DIR/face-parse-bisent/79999_iter.pth"
     "$CHECKPOINTS_DIR/face-parse-bisent/resnet18-5c106cde.pth"
   )
+
+  if env_flag_is_true "$DOWNLOAD_MUSETALK_V1_WEIGHTS"; then
+    required+=(
+      "$CHECKPOINTS_DIR/musetalk/musetalk.json"
+      "$CHECKPOINTS_DIR/musetalk/pytorch_model.bin"
+    )
+  fi
+
+  if env_flag_is_true "$DOWNLOAD_MUSETALK_V15_WEIGHTS"; then
+    required+=(
+      "$CHECKPOINTS_DIR/musetalkV15/musetalk.json"
+      "$CHECKPOINTS_DIR/musetalkV15/unet.pth"
+    )
+  fi
 
   if env_flag_is_true "$DOWNLOAD_AVATAR_PREP_WEIGHTS"; then
     required+=(
@@ -190,14 +206,90 @@ validate_required_files() {
   fi
 }
 
+wait_for_hf_endpoint_step() {
+  if ! wait_for_http_endpoint "$HF_ENDPOINT" \
+    "$DOWNLOAD_WAIT_FOR_NETWORK_SECONDS" \
+    "$DOWNLOAD_WAIT_FOR_NETWORK_INTERVAL_SECONDS"; then
+    die "Outbound HTTPS never became ready for $HF_ENDPOINT within ${DOWNLOAD_WAIT_FOR_NETWORK_SECONDS}s"
+  fi
+}
+
+install_download_helpers_step() {
+  retry python -m pip install --disable-pip-version-check --no-cache-dir gdown
+}
+
+download_musetalk_v1_weights_step() {
+  hf_download TMElyralab/MuseTalk "$CHECKPOINTS_DIR" \
+    musetalk/musetalk.json \
+    musetalk/pytorch_model.bin
+}
+
+download_musetalk_v15_weights_step() {
+  hf_download TMElyralab/MuseTalk "$CHECKPOINTS_DIR" \
+    musetalkV15/musetalk.json \
+    musetalkV15/unet.pth
+}
+
+download_sd_vae_weights_step() {
+  hf_download stabilityai/sd-vae-ft-mse "$CHECKPOINTS_DIR/sd-vae" \
+    config.json \
+    diffusion_pytorch_model.bin
+}
+
+download_whisper_weights_step() {
+  hf_download openai/whisper-tiny "$CHECKPOINTS_DIR/whisper" \
+    config.json \
+    pytorch_model.bin \
+    preprocessor_config.json
+}
+
+download_dwpose_weights_step() {
+  hf_download yzd-v/DWPose "$CHECKPOINTS_DIR/dwpose" \
+    dw-ll_ucoco_384.pth
+}
+
+download_syncnet_weights_step() {
+  hf_download ByteDance/LatentSync "$CHECKPOINTS_DIR/syncnet" \
+    latentsync_syncnet.pt
+}
+
+download_s3fd_weights_step() {
+  hf_download ByteDance/LatentSync "$CHECKPOINTS_DIR" \
+    auxiliary/s3fd-619a316812.pth
+  [[ -s "$CHECKPOINTS_DIR/auxiliary/s3fd-619a316812.pth" ]] || \
+    die "S3FD download step completed without producing $CHECKPOINTS_DIR/auxiliary/s3fd-619a316812.pth"
+  cp -f "$CHECKPOINTS_DIR/auxiliary/s3fd-619a316812.pth" "$CHECKPOINTS_DIR/face_detection/s3fd.pth"
+}
+
+download_face_parse_model_step() {
+  download_gdown_if_needed \
+    "https://drive.google.com/uc?id=154JgKpzCPW82qINcVieuPH3fZ2e0P812" \
+    "$CHECKPOINTS_DIR/face-parse-bisent/79999_iter.pth" \
+    "$EXPECTED_FACE_PARSE_ITER_BYTES"
+}
+
+download_resnet18_backbone_step() {
+  download_resumable_with_curl \
+    "https://download.pytorch.org/models/resnet18-5c106cde.pth" \
+    "$CHECKPOINTS_DIR/face-parse-bisent/resnet18-5c106cde.pth"
+}
+
+validate_required_files_step() {
+  validate_required_files
+}
+
 require_command huggingface-cli
 require_command curl
 require_command python
+step_logging_init "$SCRIPT_NAME" "$STEP_LOG_ROOT"
+trap 'step_logging_on_exit $?' EXIT
 
 log "Using Hugging Face endpoint: $HF_ENDPOINT"
 log "Hugging Face timeouts: etag=${HF_HUB_ETAG_TIMEOUT}s download=${HF_HUB_DOWNLOAD_TIMEOUT}s"
 log "Hugging Face max workers: $HF_MAX_WORKERS"
 log "Download retries: $DOWNLOAD_RETRIES"
+log "MuseTalk V1 weights enabled: $DOWNLOAD_MUSETALK_V1_WEIGHTS"
+log "MuseTalk V1.5 weights enabled: $DOWNLOAD_MUSETALK_V15_WEIGHTS"
 log "Avatar-prep weights enabled: $DOWNLOAD_AVATAR_PREP_WEIGHTS"
 
 # Create necessary directories
@@ -212,65 +304,34 @@ mkdir -p \
   "$CHECKPOINTS_DIR/auxiliary" \
   "$CHECKPOINTS_DIR/face_detection"
 
-if ! wait_for_http_endpoint "$HF_ENDPOINT" \
-  "$DOWNLOAD_WAIT_FOR_NETWORK_SECONDS" \
-  "$DOWNLOAD_WAIT_FOR_NETWORK_INTERVAL_SECONDS"; then
-  die "Outbound HTTPS never became ready for $HF_ENDPOINT within ${DOWNLOAD_WAIT_FOR_NETWORK_SECONDS}s"
+run_step "Wait for outbound HTTPS to become ready" wait_for_hf_endpoint_step
+
+run_step "Install download helper utilities" install_download_helpers_step
+
+if env_flag_is_true "$DOWNLOAD_MUSETALK_V1_WEIGHTS"; then
+  run_step "Download MuseTalk V1.0 weights" download_musetalk_v1_weights_step
+else
+  log "Skipping MuseTalk V1.0 weights"
 fi
 
-log "Ensuring download helpers are installed"
-retry python -m pip install --disable-pip-version-check --no-cache-dir gdown
+if env_flag_is_true "$DOWNLOAD_MUSETALK_V15_WEIGHTS"; then
+  run_step "Download MuseTalk V1.5 weights" download_musetalk_v15_weights_step
+else
+  log "Skipping MuseTalk V1.5 weights"
+fi
 
-log "Downloading MuseTalk V1.0 weights"
-hf_download TMElyralab/MuseTalk "$CHECKPOINTS_DIR" \
-  musetalk/musetalk.json \
-  musetalk/pytorch_model.bin
-
-log "Downloading MuseTalk V1.5 weights"
-hf_download TMElyralab/MuseTalk "$CHECKPOINTS_DIR" \
-  musetalkV15/musetalk.json \
-  musetalkV15/unet.pth
-
-log "Downloading SD VAE weights"
-hf_download stabilityai/sd-vae-ft-mse "$CHECKPOINTS_DIR/sd-vae" \
-  config.json \
-  diffusion_pytorch_model.bin
-
-log "Downloading Whisper weights"
-hf_download openai/whisper-tiny "$CHECKPOINTS_DIR/whisper" \
-  config.json \
-  pytorch_model.bin \
-  preprocessor_config.json
+run_step "Download SD VAE weights" download_sd_vae_weights_step
+run_step "Download Whisper weights" download_whisper_weights_step
 
 if env_flag_is_true "$DOWNLOAD_AVATAR_PREP_WEIGHTS"; then
-  log "Downloading DWPose weights"
-  hf_download yzd-v/DWPose "$CHECKPOINTS_DIR/dwpose" \
-    dw-ll_ucoco_384.pth
-
-  log "Downloading SyncNet weights"
-  hf_download ByteDance/LatentSync "$CHECKPOINTS_DIR/syncnet" \
-    latentsync_syncnet.pt
-
-  log "Downloading S3FD face detector weights"
-  hf_download ByteDance/LatentSync "$CHECKPOINTS_DIR" \
-    auxiliary/s3fd-619a316812.pth
-  [[ -s "$CHECKPOINTS_DIR/auxiliary/s3fd-619a316812.pth" ]] || \
-    die "S3FD download step completed without producing $CHECKPOINTS_DIR/auxiliary/s3fd-619a316812.pth"
-  cp -f "$CHECKPOINTS_DIR/auxiliary/s3fd-619a316812.pth" "$CHECKPOINTS_DIR/face_detection/s3fd.pth"
+  run_step "Download DWPose weights" download_dwpose_weights_step
+  run_step "Download SyncNet weights" download_syncnet_weights_step
+  run_step "Download S3FD face detector weights" download_s3fd_weights_step
 else
   log "Skipping avatar-prep-only weights (dwpose, syncnet, s3fd)"
 fi
 
-log "Downloading face parse model"
-download_gdown_if_needed \
-  "https://drive.google.com/uc?id=154JgKpzCPW82qINcVieuPH3fZ2e0P812" \
-  "$CHECKPOINTS_DIR/face-parse-bisent/79999_iter.pth" \
-  "$EXPECTED_FACE_PARSE_ITER_BYTES"
-
-log "Downloading ResNet18 backbone"
-download_resumable_with_curl \
-  "https://download.pytorch.org/models/resnet18-5c106cde.pth" \
-  "$CHECKPOINTS_DIR/face-parse-bisent/resnet18-5c106cde.pth"
-
-validate_required_files
+run_step "Download face parse model" download_face_parse_model_step
+run_step "Download ResNet18 backbone" download_resnet18_backbone_step
+run_step "Validate required model files" validate_required_files_step
 log "All weights downloaded and validated successfully"
