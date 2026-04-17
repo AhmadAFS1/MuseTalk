@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${REPO_ROOT:-$SCRIPT_DIR}"
 source "$REPO_ROOT/scripts/lib/step_logging.sh"
 CHECKPOINTS_DIR="${CHECKPOINTS_DIR:-models}"
-HF_MAX_WORKERS="${HF_MAX_WORKERS:-1}"
+HF_MAX_WORKERS="${HF_MAX_WORKERS:-}"
 DOWNLOAD_RETRIES="${DOWNLOAD_RETRIES:-5}"
 DOWNLOAD_RETRY_SLEEP_SECONDS="${DOWNLOAD_RETRY_SLEEP_SECONDS:-15}"
 DOWNLOAD_WAIT_FOR_NETWORK_SECONDS="${DOWNLOAD_WAIT_FOR_NETWORK_SECONDS:-180}"
@@ -46,6 +46,18 @@ env_flag_is_true() {
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
+}
+
+resolve_hf_max_workers() {
+  if [[ -n "${HF_MAX_WORKERS:-}" ]]; then
+    HF_MAX_WORKERS_SOURCE="explicit"
+  else
+    HF_MAX_WORKERS=4
+    HF_MAX_WORKERS_SOURCE="default"
+  fi
+
+  [[ "$HF_MAX_WORKERS" =~ ^[1-9][0-9]*$ ]] || \
+    die "HF_MAX_WORKERS must be a positive integer, got: ${HF_MAX_WORKERS:-<empty>}"
 }
 
 retry() {
@@ -281,12 +293,13 @@ validate_required_files_step() {
 require_command huggingface-cli
 require_command curl
 require_command python
+resolve_hf_max_workers
 step_logging_init "$SCRIPT_NAME" "$STEP_LOG_ROOT"
 trap 'step_logging_on_exit $?' EXIT
 
 log "Using Hugging Face endpoint: $HF_ENDPOINT"
 log "Hugging Face timeouts: etag=${HF_HUB_ETAG_TIMEOUT}s download=${HF_HUB_DOWNLOAD_TIMEOUT}s"
-log "Hugging Face max workers: $HF_MAX_WORKERS"
+log "Hugging Face max workers per repo download: $HF_MAX_WORKERS ($HF_MAX_WORKERS_SOURCE)"
 log "Download retries: $DOWNLOAD_RETRIES"
 log "MuseTalk V1 weights enabled: $DOWNLOAD_MUSETALK_V1_WEIGHTS"
 log "MuseTalk V1.5 weights enabled: $DOWNLOAD_MUSETALK_V15_WEIGHTS"

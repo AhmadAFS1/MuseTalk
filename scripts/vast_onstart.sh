@@ -23,6 +23,7 @@ SETUP_SKIP_APT="${SETUP_SKIP_APT:-auto}"
 SETUP_SKIP_WEIGHTS="${SETUP_SKIP_WEIGHTS:-0}"
 SETUP_FULL_STACK="${SETUP_FULL_STACK:-0}"
 SETUP_INSTALL_AVATAR_PREP_DEPS="${SETUP_INSTALL_AVATAR_PREP_DEPS:-0}"
+HF_MAX_WORKERS="${HF_MAX_WORKERS:-4}"
 
 log() {
   printf '[%s] [%s] %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$*"
@@ -154,6 +155,8 @@ avatar_prep_setup_complete() {
 }
 
 run_setup_if_needed() {
+  export HF_MAX_WORKERS
+
   if ! env_flag_is_true "$AUTO_SETUP"; then
     log "AUTO_SETUP disabled"
     if avatar_prep_requested; then
@@ -229,6 +232,7 @@ run_setup_if_needed() {
     setup_args+=("--artifact-dir" "$ARTIFACT_DIR")
   fi
 
+  log "Using HF_MAX_WORKERS=$HF_MAX_WORKERS for setup/download flow"
   log "Running setup_musetalk.sh ${setup_args[*]}"
   bash "$REPO_ROOT/setup_musetalk.sh" "${setup_args[@]}"
 }
