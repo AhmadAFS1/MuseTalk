@@ -3,10 +3,12 @@ set -euo pipefail
 
 # ── Logging to file ──────────────────────────────────────────────────────────
 ONSTART_LOG="${ONSTART_LOG:-/workspace/onstart.log}"
+ONSTART_START_TS="$(date +%s)"
+ONSTART_START_UTC="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 exec > >(tee -a "$ONSTART_LOG") 2>&1
 echo ""
 echo "========================================"
-echo "VAST_ONSTART BEGIN: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+echo "VAST_ONSTART BEGIN: $ONSTART_START_UTC"
 echo "========================================"
 
 SCRIPT_NAME="$(basename "$0")"
@@ -29,10 +31,27 @@ log() {
   printf '[%s] [%s] %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$*"
 }
 
+format_duration() {
+  local total_seconds="${1:-0}"
+  local minutes=$((total_seconds / 60))
+  local seconds=$((total_seconds % 60))
+
+  if (( minutes > 0 )); then
+    printf '%dm%02ds' "$minutes" "$seconds"
+  else
+    printf '%ss' "$seconds"
+  fi
+}
+
+elapsed_since_start() {
+  printf '%s\n' "$(( $(date +%s) - ONSTART_START_TS ))"
+}
+
 die() {
   printf '[%s] [%s] ERROR: %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$*" >&2
   echo "========================================"
   echo "VAST_ONSTART FAILED: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo "TOTAL ELAPSED: $(format_duration "$(elapsed_since_start)")"
   echo "LOG FILE: $ONSTART_LOG"
   echo "========================================"
   trap - ERR
@@ -47,6 +66,7 @@ report_unhandled_failure() {
     "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$line" "$status" >&2
   echo "========================================"
   echo "VAST_ONSTART FAILED: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo "TOTAL ELAPSED: $(format_duration "$(elapsed_since_start)")"
   echo "LOG FILE: $ONSTART_LOG"
   echo "========================================"
   exit "$status"
@@ -311,6 +331,7 @@ run_post_setup_validation() {
 }
 
 main() {
+  local phase_start phase_elapsed total_elapsed
   local setup_mode="server-only"
   if full_stack_requested; then
     setup_mode="full-stack"
@@ -327,21 +348,33 @@ main() {
   log "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || echo 'N/A')"
   log "Disk free: $(df -h /workspace | tail -1 | awk '{print $4}')"
 
+  phase_start="$(date +%s)"
   run_setup_if_needed
+  phase_elapsed="$(( $(date +%s) - phase_start ))"
+  log "Bootstrap/setup phase finished in $(format_duration "$phase_elapsed")"
 
+  phase_start="$(date +%s)"
   run_post_setup_validation
+  phase_elapsed="$(( $(date +%s) - phase_start ))"
+  log "Post-setup validation finished in $(format_duration "$phase_elapsed")"
 
+  phase_start="$(date +%s)"
   PROFILE="$PROFILE" \
   HOST="$HOST" \
   PORT="$PORT" \
   REPO_ROOT="$REPO_ROOT" \
   VENV_PATH="$VENV_PATH" \
   bash "$REPO_ROOT/scripts/vast_server_ctl.sh" start
+  phase_elapsed="$(( $(date +%s) - phase_start ))"
+  log "Server start-to-health phase finished in $(format_duration "$phase_elapsed")"
 
+  total_elapsed="$(elapsed_since_start)"
+  log "Overall on-start completed in $(format_duration "$total_elapsed")"
   log "Vast.ai MuseTalk on-start complete"
 
   echo "========================================"
   echo "VAST_ONSTART COMPLETE: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo "TOTAL ELAPSED: $(format_duration "$total_elapsed")"
   echo "LOG FILE: $ONSTART_LOG"
   echo "========================================"
 }

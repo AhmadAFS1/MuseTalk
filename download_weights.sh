@@ -290,6 +290,49 @@ validate_required_files_step() {
   validate_required_files
 }
 
+phase_prepare_weight_downloads() {
+  run_step "Wait for outbound HTTPS to become ready" wait_for_hf_endpoint_step
+  run_step "Install download helper utilities" install_download_helpers_step
+}
+
+phase_download_musetalk_weights() {
+  if env_flag_is_true "$DOWNLOAD_MUSETALK_V1_WEIGHTS"; then
+    run_step "Download MuseTalk V1.0 weights" download_musetalk_v1_weights_step
+  else
+    log "Skipping MuseTalk V1.0 weights"
+  fi
+
+  if env_flag_is_true "$DOWNLOAD_MUSETALK_V15_WEIGHTS"; then
+    run_step "Download MuseTalk V1.5 weights" download_musetalk_v15_weights_step
+  else
+    log "Skipping MuseTalk V1.5 weights"
+  fi
+}
+
+phase_download_base_runtime_weights() {
+  run_step "Download SD VAE weights" download_sd_vae_weights_step
+  run_step "Download Whisper weights" download_whisper_weights_step
+}
+
+phase_download_avatar_prep_weights() {
+  if env_flag_is_true "$DOWNLOAD_AVATAR_PREP_WEIGHTS"; then
+    run_step "Download DWPose weights" download_dwpose_weights_step
+    run_step "Download SyncNet weights" download_syncnet_weights_step
+    run_step "Download S3FD face detector weights" download_s3fd_weights_step
+  else
+    log "Skipping avatar-prep-only weights (dwpose, syncnet, s3fd)"
+  fi
+}
+
+phase_download_face_parse_support_weights() {
+  run_step "Download face parse model" download_face_parse_model_step
+  run_step "Download ResNet18 backbone" download_resnet18_backbone_step
+}
+
+phase_validate_downloaded_weights() {
+  run_step "Validate required model files" validate_required_files_step
+}
+
 require_command huggingface-cli
 require_command curl
 require_command python
@@ -317,34 +360,34 @@ mkdir -p \
   "$CHECKPOINTS_DIR/auxiliary" \
   "$CHECKPOINTS_DIR/face_detection"
 
-run_step "Wait for outbound HTTPS to become ready" wait_for_hf_endpoint_step
-
-run_step "Install download helper utilities" install_download_helpers_step
-
-if env_flag_is_true "$DOWNLOAD_MUSETALK_V1_WEIGHTS"; then
-  run_step "Download MuseTalk V1.0 weights" download_musetalk_v1_weights_step
-else
-  log "Skipping MuseTalk V1.0 weights"
-fi
-
-if env_flag_is_true "$DOWNLOAD_MUSETALK_V15_WEIGHTS"; then
-  run_step "Download MuseTalk V1.5 weights" download_musetalk_v15_weights_step
-else
-  log "Skipping MuseTalk V1.5 weights"
-fi
-
-run_step "Download SD VAE weights" download_sd_vae_weights_step
-run_step "Download Whisper weights" download_whisper_weights_step
-
-if env_flag_is_true "$DOWNLOAD_AVATAR_PREP_WEIGHTS"; then
-  run_step "Download DWPose weights" download_dwpose_weights_step
-  run_step "Download SyncNet weights" download_syncnet_weights_step
-  run_step "Download S3FD face detector weights" download_s3fd_weights_step
-else
-  log "Skipping avatar-prep-only weights (dwpose, syncnet, s3fd)"
-fi
-
-run_step "Download face parse model" download_face_parse_model_step
-run_step "Download ResNet18 backbone" download_resnet18_backbone_step
-run_step "Validate required model files" validate_required_files_step
+run_phase \
+  "Phase 1" \
+  "Prepare weight download environment" \
+  "Wait for outbound connectivity and install helper tooling used by the model download path." \
+  phase_prepare_weight_downloads
+run_phase \
+  "Phase 2" \
+  "Download MuseTalk model weights" \
+  "Fetch the MuseTalk model checkpoints required by the runtime path in this setup." \
+  phase_download_musetalk_weights
+run_phase \
+  "Phase 3" \
+  "Download base runtime model weights" \
+  "Fetch the SD VAE and Whisper model weights required by the TRT-stagewise server runtime." \
+  phase_download_base_runtime_weights
+run_phase \
+  "Phase 4" \
+  "Download avatar-preparation model weights" \
+  "Fetch the optional DWPose, SyncNet, and S3FD checkpoints used for avatar preparation." \
+  phase_download_avatar_prep_weights
+run_phase \
+  "Phase 5" \
+  "Download face parsing support weights" \
+  "Fetch the face parsing checkpoint and ResNet18 backbone used by the current preprocessing path." \
+  phase_download_face_parse_support_weights
+run_phase \
+  "Phase 6" \
+  "Validate downloaded model set" \
+  "Verify that every required model file for the requested runtime shape exists on disk." \
+  phase_validate_downloaded_weights
 log "All weights downloaded and validated successfully"

@@ -402,6 +402,65 @@ install_runtime_dependencies_step() {
   "$VENV_PYTHON" -m pip install --no-cache-dir -r "$RUNTIME_REQUIREMENTS"
 }
 
+phase_bootstrap_tooling() {
+  run_step "Create TensorRT artifact directory" create_artifact_dir_step
+  run_step "Create venv" create_venv_step
+  run_step "Upgrade pip, setuptools, and wheel" upgrade_packaging_tools_step
+}
+
+phase_install_core_pytorch_cuda() {
+  run_step "Install PyTorch CUDA 12.1 wheel set" install_pytorch_cuda_step
+}
+
+phase_install_tensorrt_python_stack() {
+  run_step "Install torch-tensorrt pinned stack" install_torch_tensorrt_step
+}
+
+phase_install_export_backend_stack() {
+  run_step "Install pinned export + benchmark dependencies" install_export_dependencies_step
+  run_step "Validate backend imports and CUDA registration" validate_backend_imports_step
+}
+
+phase_install_server_runtime_stack() {
+  if [[ $INSTALL_SERVER_DEPS -eq 0 ]]; then
+    log "Server runtime dependency phase not requested"
+    return 0
+  fi
+
+  run_step "Install pinned HLS/api_server dependency set" install_server_dependencies_step
+  run_step "Validate HLS/api_server dependency imports" validate_server_dependency_imports_step
+  run_step "Validate api_server full import" validate_api_server_import_step
+}
+
+phase_install_avatar_prep_stack() {
+  if [[ $INSTALL_AVATAR_PREP_DEPS -eq 0 ]]; then
+    log "Avatar-preparation dependency phase not requested"
+    return 0
+  fi
+
+  run_step "Validate avatar-prep CUDA toolkit compatibility" validate_avatar_prep_cuda_compatibility_step
+  run_step "Install avatar-preparation prerequisites" install_avatar_prep_prerequisites_step
+  run_step "Remove mmcv-lite placeholder" remove_mmcv_placeholder_step
+  run_step "Install mmengine" install_mmengine_step
+  run_step "Install full mmcv" install_mmcv_step
+  run_step "Install mmdet" install_mmdet_step
+  run_step "Install chumpy" install_chumpy_step
+  run_step "Install mmpose" install_mmpose_step
+  run_step "Validate avatar-preparation dependency imports" validate_avatar_prep_imports_step
+}
+
+phase_install_repo_runtime_extras() {
+  if [[ $INSTALL_RUNTIME_DEPS -eq 0 ]]; then
+    log "Repo runtime extras phase not requested"
+    return 0
+  fi
+
+  [[ -f "$RUNTIME_REQUIREMENTS" ]] || die "Runtime requirements file not found: $RUNTIME_REQUIREMENTS"
+  log "Installing MuseTalk runtime dependencies from: $RUNTIME_REQUIREMENTS"
+  log "Warning: full requirements are broader than the validated TRT HLS stack"
+  run_step "Install MuseTalk runtime dependencies" install_runtime_dependencies_step
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --venv-path)
@@ -502,38 +561,43 @@ if [[ -e "$VENV_PATH" ]]; then
   fi
 fi
 
-run_step "Create TensorRT artifact directory" create_artifact_dir_step
-run_step "Create venv" create_venv_step
-run_step "Upgrade pip, setuptools, and wheel" upgrade_packaging_tools_step
-run_step "Install PyTorch CUDA 12.1 wheel set" install_pytorch_cuda_step
-run_step "Install torch-tensorrt pinned stack" install_torch_tensorrt_step
-run_step "Install pinned export + benchmark dependencies" install_export_dependencies_step
-run_step "Validate backend imports and CUDA registration" validate_backend_imports_step
+run_phase \
+  "Phase 1" \
+  "Bootstrap venv and packaging tooling" \
+  "Create the target venv and prepare the base Python packaging toolchain." \
+  phase_bootstrap_tooling
+run_phase \
+  "Phase 2" \
+  "Install core PyTorch CUDA stack" \
+  "Download and install the pinned torch, torchvision, torchaudio, numpy, and pillow CUDA wheels." \
+  phase_install_core_pytorch_cuda
+run_phase \
+  "Phase 3" \
+  "Install TensorRT Python stack" \
+  "Download and install torch-tensorrt together with the NVIDIA TensorRT Python runtime packages." \
+  phase_install_tensorrt_python_stack
+run_phase \
+  "Phase 4" \
+  "Install export and backend support dependencies" \
+  "Install OpenCV, diffusers, transformers, tokenizers, accelerate, safetensors, and validate backend imports." \
+  phase_install_export_backend_stack
+run_phase \
+  "Phase 5" \
+  "Install API server runtime dependencies" \
+  "Install FastAPI, uvicorn, audio/video server packages, WebRTC packages, and validate api_server imports." \
+  phase_install_server_runtime_stack
+run_phase \
+  "Phase 6" \
+  "Install avatar-preparation dependencies" \
+  "Install the optional mmengine/mmcv/mmdet/mmpose stack plus supporting packages for avatar prep." \
+  phase_install_avatar_prep_stack
+run_phase \
+  "Phase 7" \
+  "Install broader repo runtime extras" \
+  "Install the optional repo requirements file when the wider runtime dependency set is requested." \
+  phase_install_repo_runtime_extras
 
-if [[ $INSTALL_SERVER_DEPS -eq 1 ]]; then
-  run_step "Install pinned HLS/api_server dependency set" install_server_dependencies_step
-  run_step "Validate HLS/api_server dependency imports" validate_server_dependency_imports_step
-  run_step "Validate api_server full import" validate_api_server_import_step
-fi
-
-if [[ $INSTALL_AVATAR_PREP_DEPS -eq 1 ]]; then
-  run_step "Validate avatar-prep CUDA toolkit compatibility" validate_avatar_prep_cuda_compatibility_step
-  run_step "Install avatar-preparation prerequisites" install_avatar_prep_prerequisites_step
-  run_step "Remove mmcv-lite placeholder" remove_mmcv_placeholder_step
-  run_step "Install mmengine" install_mmengine_step
-  run_step "Install full mmcv" install_mmcv_step
-  run_step "Install mmdet" install_mmdet_step
-  run_step "Install chumpy" install_chumpy_step
-  run_step "Install mmpose" install_mmpose_step
-  run_step "Validate avatar-preparation dependency imports" validate_avatar_prep_imports_step
-fi
-
-if [[ $INSTALL_RUNTIME_DEPS -eq 1 ]]; then
-  [[ -f "$RUNTIME_REQUIREMENTS" ]] || die "Runtime requirements file not found: $RUNTIME_REQUIREMENTS"
-  log "Installing MuseTalk runtime dependencies from: $RUNTIME_REQUIREMENTS"
-  log "Warning: full requirements are broader than the validated TRT HLS stack"
-  run_step "Install MuseTalk runtime dependencies" install_runtime_dependencies_step
-else
+if [[ $INSTALL_RUNTIME_DEPS -eq 0 ]]; then
   log "Skipping runtime dependency install. Use --install-runtime-deps to include repo requirements."
 fi
 

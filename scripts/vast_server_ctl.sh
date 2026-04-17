@@ -24,6 +24,18 @@ log() {
   printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
 }
 
+format_duration() {
+  local total_seconds="${1:-0}"
+  local minutes=$((total_seconds / 60))
+  local seconds=$((total_seconds % 60))
+
+  if (( minutes > 0 )); then
+    printf '%dm%02ds' "$minutes" "$seconds"
+  else
+    printf '%ss' "$seconds"
+  fi
+}
+
 die() {
   printf '[%s] ERROR: %s\n' "$SCRIPT_NAME" "$*" >&2
   exit 1
@@ -106,7 +118,8 @@ wait_for_health() {
   start_ts="$(date +%s)"
   while true; do
     if check_health; then
-      log "Health check passed at $HEALTH_URL"
+      elapsed="$(( $(date +%s) - start_ts ))"
+      log "Health check passed at $HEALTH_URL after $(format_duration "$elapsed")"
       return 0
     fi
 
@@ -182,6 +195,8 @@ wait_for_drain() {
 }
 
 start_server() {
+  local start_ts elapsed
+  start_ts="$(date +%s)"
   cleanup_stale_pid
   mkdir -p "$LOG_DIR"
 
@@ -214,6 +229,8 @@ start_server() {
   printf '%s\n' "$pid" > "$PID_FILE"
   log "Spawned pid=$pid"
   wait_for_health
+  elapsed="$(( $(date +%s) - start_ts ))"
+  log "Start command completed in $(format_duration "$elapsed")"
 }
 
 stop_server() {

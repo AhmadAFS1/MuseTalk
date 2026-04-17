@@ -9,6 +9,8 @@ STEP_LOG_SCRIPT_NAME="${STEP_LOG_SCRIPT_NAME:-script}"
 STEP_LOG_FILE="${STEP_LOG_FILE:-}"
 STEP_LOG_SUMMARY_PRINTED=0
 declare -ag STEP_LOG_SUMMARY=()
+declare -ag STEP_LOG_PHASE_SUMMARY=()
+STEP_LOG_CURRENT_PHASE="${STEP_LOG_CURRENT_PHASE:-}"
 
 step_format_duration() {
   local total_seconds="${1:-0}"
@@ -59,17 +61,31 @@ step_record_result() {
   STEP_LOG_SUMMARY+=("${status}"$'\t'"${elapsed_seconds}"$'\t'"${label}")
 }
 
+step_record_phase_result() {
+  local label="$1"
+  local description="$2"
+  local elapsed_seconds="$3"
+  local status="$4"
+
+  STEP_LOG_PHASE_SUMMARY+=("${status}"$'\t'"${elapsed_seconds}"$'\t'"${label}"$'\t'"${description}")
+}
+
 run_step() {
   local label="$1"
   shift
 
+  local qualified_label="$label"
   local start_ts
   local end_ts
   local elapsed_seconds
   local status=0
 
+  if [[ -n "$STEP_LOG_CURRENT_PHASE" ]]; then
+    qualified_label="$STEP_LOG_CURRENT_PHASE :: $label"
+  fi
+
   start_ts="$(date +%s)"
-  step_log_emit STEP "START: $label"
+  step_log_emit STEP "START: $qualified_label"
   if "$@"; then
     status=0
   else
@@ -79,14 +95,77 @@ run_step() {
   elapsed_seconds=$((end_ts - start_ts))
 
   if [[ $status -eq 0 ]]; then
-    step_record_result "$label" "$elapsed_seconds" "OK"
-    step_log_emit STEP "DONE: $label ($(step_format_duration "$elapsed_seconds"))"
+    step_record_result "$qualified_label" "$elapsed_seconds" "OK"
+    step_log_emit STEP "DONE: $qualified_label ($(step_format_duration "$elapsed_seconds"))"
     return 0
   fi
 
-  step_record_result "$label" "$elapsed_seconds" "FAIL"
-  step_log_emit ERROR "FAILED: $label ($(step_format_duration "$elapsed_seconds"), exit=$status)"
+  step_record_result "$qualified_label" "$elapsed_seconds" "FAIL"
+  step_log_emit ERROR "FAILED: $qualified_label ($(step_format_duration "$elapsed_seconds"), exit=$status)"
   return "$status"
+}
+
+run_phase() {
+  local phase_id="$1"
+  local title="$2"
+  local description="$3"
+  shift 3
+
+  local phase_label="${phase_id}: ${title}"
+  local previous_phase="${STEP_LOG_CURRENT_PHASE:-}"
+  local start_ts
+  local end_ts
+  local elapsed_seconds
+  local status=0
+
+  start_ts="$(date +%s)"
+  step_log_emit PHASE "START: $phase_label"
+  if [[ -n "$description" ]]; then
+    step_log_emit PHASE "DETAIL: $description"
+  fi
+
+  STEP_LOG_CURRENT_PHASE="$phase_label"
+  if "$@"; then
+    status=0
+  else
+    status=$?
+  fi
+  STEP_LOG_CURRENT_PHASE="$previous_phase"
+
+  end_ts="$(date +%s)"
+  elapsed_seconds=$((end_ts - start_ts))
+
+  if [[ $status -eq 0 ]]; then
+    step_record_phase_result "$phase_label" "$description" "$elapsed_seconds" "OK"
+    step_log_emit PHASE "DONE: $phase_label ($(step_format_duration "$elapsed_seconds"))"
+    return 0
+  fi
+
+  step_record_phase_result "$phase_label" "$description" "$elapsed_seconds" "FAIL"
+  step_log_emit ERROR "FAILED: $phase_label ($(step_format_duration "$elapsed_seconds"), exit=$status)"
+  return "$status"
+}
+
+print_phase_summary() {
+  local entry
+  local status
+  local elapsed_seconds
+  local label
+  local description
+
+  if [[ ${#STEP_LOG_PHASE_SUMMARY[@]} -eq 0 ]]; then
+    return
+  fi
+
+  step_log_emit INFO "Phase summary:"
+  for entry in "${STEP_LOG_PHASE_SUMMARY[@]}"; do
+    IFS=$'\t' read -r status elapsed_seconds label description <<<"$entry"
+    if [[ -n "$description" ]]; then
+      step_log_emit INFO "  [$status] $label ($(step_format_duration "$elapsed_seconds")) - $description"
+    else
+      step_log_emit INFO "  [$status] $label ($(step_format_duration "$elapsed_seconds"))"
+    fi
+  done
 }
 
 print_step_summary() {
@@ -111,6 +190,7 @@ step_logging_on_exit() {
   local exit_code="${1:-0}"
 
   if [[ $STEP_LOG_SUMMARY_PRINTED -eq 0 ]]; then
+    print_phase_summary
     print_step_summary
     STEP_LOG_SUMMARY_PRINTED=1
   fi
