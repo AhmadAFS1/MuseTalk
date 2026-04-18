@@ -2,6 +2,19 @@
 
 Last updated: 2026-04-18
 
+## Status Update
+
+As of the current repo revision, the full-stack installer now:
+
+- checks `third_party_wheels/mmcv/` for a repo-local `mmcv` wheel before
+  probing OpenMMLab
+- attempts to save a built `mmcv` wheel there the first time source-build
+  fallback is needed
+
+This means the `mmcv` compile bottleneck should still affect the first
+full-stack build on a new repo checkout, but future full-stack boots on the
+same repo can reuse that saved wheel instead of recompiling it.
+
 ## Purpose
 
 This note captures the current startup/setup optimization context for the TRT-stagewise MuseTalk server on Vast.ai.
@@ -190,8 +203,8 @@ Phase layout:
 
 Relevant phase definitions:
 
-- `scripts/setup_trt_experiment_env.sh:505-563`
-- `scripts/setup_trt_experiment_env.sh:665-699`
+- `scripts/setup_trt_experiment_env.sh:622-680`
+- `scripts/setup_trt_experiment_env.sh:783-817`
 
 Key observations:
 
@@ -201,10 +214,10 @@ Key observations:
 
 Relevant lines:
 
-- `scripts/setup_trt_experiment_env.sh:204-231`
-- `scripts/setup_trt_experiment_env.sh:263-277`
-- `scripts/setup_trt_experiment_env.sh:421-479`
-- `scripts/setup_trt_experiment_env.sh:501-503`
+- `scripts/setup_trt_experiment_env.sh:210-237`
+- `scripts/setup_trt_experiment_env.sh:269-283`
+- `scripts/setup_trt_experiment_env.sh:498-578`
+- `scripts/setup_trt_experiment_env.sh:618-619`
 
 #### Why `mmcv` is slow
 
@@ -219,7 +232,7 @@ Current resolved environment:
 
 The script now probes the OpenMMLab index before attempting `mim install`:
 
-- `scripts/setup_trt_experiment_env.sh:339-419`
+- `scripts/setup_trt_experiment_env.sh:411-495`
 
 In the latest run, the probe explicitly reported:
 
@@ -229,7 +242,7 @@ In the latest run, the probe explicitly reported:
 
 Relevant install path:
 
-- `install_mmcv_step()`: `scripts/setup_trt_experiment_env.sh:437-460`
+- `install_mmcv_step()`: `scripts/setup_trt_experiment_env.sh:538-578`
 
 What happens in practice:
 
@@ -249,7 +262,7 @@ The prerequisite step installs:
 - `ninja`
 - `psutil`
 
-Relevant code: `scripts/setup_trt_experiment_env.sh:421-427`
+Relevant code: `scripts/setup_trt_experiment_env.sh:498-503`
 
 In live logs, this step also downgraded a number of packages while installing `openmim`, including:
 
@@ -743,6 +756,8 @@ Those are the two biggest levers to improve next.
 
 The next change that is most likely worth doing is:
 
-- add a local `mmcv` wheel path so the script installs a saved wheel before attempting a source build
+- persist or defer stagewise TRT warmup so cold process start does not block
+  `/health` for the full batch-`8` and batch-`16` compile window
 
-That is compatible with keeping the node full-stack and should cut the biggest dependency hotspot from repeated boots.
+That is now the next highest-value startup improvement after the repo-local
+`mmcv` wheel reuse path.

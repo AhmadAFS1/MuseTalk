@@ -144,7 +144,10 @@ Important current behavior:
   only installed when explicitly requested
 - for the current validated `torch==2.5.1+cu121` runtime, the OpenMMLab
   prebuilt `mmcv` index used by `mim` is not published for `cu121/torch2.5.x`,
-  so fresh full-stack boots may fall back to an `mmcv` source build
+  so fresh full-stack boots may fall back to an `mmcv` source build; the setup
+  script now prefers a repo-local wheel under `third_party_wheels/mmcv/` and
+  will save a built wheel there on the first source-build fallback for future
+  reuse
 - `SETUP_FULL_STACK=1` is the preferred flag for a single-vm, single-venv node
   that must handle both avatar prep and inference
 - `SETUP_INSTALL_AVATAR_PREP_DEPS=1` is still accepted as a compatibility alias
