@@ -320,7 +320,7 @@ phase_download_avatar_prep_weights() {
     run_step "Download SyncNet weights" download_syncnet_weights_step
     run_step "Download S3FD face detector weights" download_s3fd_weights_step
   else
-    log "Skipping avatar-prep-only weights (dwpose, syncnet, s3fd)"
+    log "Skipping avatar-prep-only weights (dwpose, syncnet, s3fd) to keep the server-only bootstrap path smaller and faster"
   fi
 }
 

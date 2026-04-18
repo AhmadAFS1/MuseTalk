@@ -149,12 +149,15 @@ TRT-stagewise server is:
 - setup:
   - inference-only worker:
     - `bash scripts/setup_trt_stagewise_server_env.sh --clean`
+    - recommended for serving-only and autoscaled Vast.ai nodes because it skips the optional avatar-prep `mmcv/mmdet/mmpose` stack and extra weights
   - single-venv prep + inference worker:
     - `bash scripts/setup_trt_stagewise_server_env.sh --clean --full-stack`
+    - only use this when the same node must handle avatar preparation directly; on the current `torch==2.5.1+cu121` stack, `mmcv` may fall back to a source build because OpenMMLab does not publish a matching prebuilt wheel index for `cu121/torch2.5.x`
 - foreground launch:
   - `bash scripts/run_trt_stagewise_server.sh --profile baseline`
 - Vast wrapper:
   - `PORT=8000 bash scripts/vast_onstart.sh`
+  - add `SETUP_FULL_STACK=1` only when `/avatars/prepare` must work on that same node
 
 Validated live stack on the current CUDA 12.1 path:
 

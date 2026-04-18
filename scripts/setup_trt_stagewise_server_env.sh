@@ -106,6 +106,8 @@ build_trt_experiment_venv_step() {
     else
       SETUP_ARGS+=(--install-avatar-prep-deps)
     fi
+  else
+    log "Server-only mode enabled: skipping optional avatar-prep deps to minimize first-boot time"
   fi
   bash "$SCRIPT_DIR/setup_trt_experiment_env.sh" "${SETUP_ARGS[@]}"
   VENV_PYTHON="$VENV_PATH/bin/python"

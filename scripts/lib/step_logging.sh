@@ -8,6 +8,8 @@ MUSETALK_STEP_LOGGING_LOADED=1
 STEP_LOG_SCRIPT_NAME="${STEP_LOG_SCRIPT_NAME:-script}"
 STEP_LOG_FILE="${STEP_LOG_FILE:-}"
 STEP_LOG_SUMMARY_PRINTED=0
+STEP_LOG_HOTSPOT_LIMIT="${STEP_LOG_HOTSPOT_LIMIT:-5}"
+STEP_LOG_HOTSPOT_MIN_SECONDS="${STEP_LOG_HOTSPOT_MIN_SECONDS:-10}"
 declare -ag STEP_LOG_SUMMARY=()
 declare -ag STEP_LOG_PHASE_SUMMARY=()
 STEP_LOG_CURRENT_PHASE="${STEP_LOG_CURRENT_PHASE:-}"
@@ -168,6 +170,56 @@ print_phase_summary() {
   done
 }
 
+step_print_sorted_hotspots() {
+  local heading="$1"
+  local entry_kind="$2"
+  local array_name="$3"
+  local -n entries_ref="$array_name"
+  local count=0
+  local entry
+  local status
+  local elapsed_seconds
+  local label
+  local description
+
+  if [[ ${#entries_ref[@]} -eq 0 ]]; then
+    return
+  fi
+
+  while IFS= read -r entry; do
+    [[ -n "$entry" ]] || continue
+
+    if [[ "$entry_kind" == "phase" ]]; then
+      IFS=$'\t' read -r status elapsed_seconds label description <<<"$entry"
+    else
+      IFS=$'\t' read -r status elapsed_seconds label <<<"$entry"
+      description=""
+    fi
+
+    (( elapsed_seconds >= STEP_LOG_HOTSPOT_MIN_SECONDS )) || continue
+
+    if (( count == 0 )); then
+      step_log_emit INFO "$heading:"
+    fi
+
+    if [[ -n "$description" ]]; then
+      step_log_emit INFO "  [$status] $label ($(step_format_duration "$elapsed_seconds")) - $description"
+    else
+      step_log_emit INFO "  [$status] $label ($(step_format_duration "$elapsed_seconds"))"
+    fi
+
+    count=$((count + 1))
+    if (( count >= STEP_LOG_HOTSPOT_LIMIT )); then
+      break
+    fi
+  done < <(printf '%s\n' "${entries_ref[@]}" | sort -t $'\t' -k2,2nr)
+}
+
+print_hotspot_summary() {
+  step_print_sorted_hotspots "Slowest phases" "phase" "STEP_LOG_PHASE_SUMMARY"
+  step_print_sorted_hotspots "Slowest steps" "step" "STEP_LOG_SUMMARY"
+}
+
 print_step_summary() {
   local entry
   local status
@@ -191,6 +243,7 @@ step_logging_on_exit() {
 
   if [[ $STEP_LOG_SUMMARY_PRINTED -eq 0 ]]; then
     print_phase_summary
+    print_hotspot_summary
     print_step_summary
     STEP_LOG_SUMMARY_PRINTED=1
   fi

@@ -18,7 +18,7 @@ cd /workspace/MuseTalk
 ### 2. **Create The Current TRT-Stagewise Venv**
 
 ```bash
-bash scripts/setup_trt_stagewise_server_env.sh --clean --full-stack
+bash scripts/setup_trt_stagewise_server_env.sh --clean
 ```
 
 ---
@@ -27,15 +27,25 @@ This creates the current single-venv runtime at:
 
 - repo: `/workspace/MuseTalk`
 - venv: `/workspace/.venvs/musetalk_trt_stagewise`
-- backend: TRT-stagewise inference with avatar-prep support in the same venv
+- backend: TRT-stagewise inference
 - current validated package family:
   - `torch==2.5.1+cu121`
   - `torch_tensorrt==2.5.0`
   - `tensorrt==10.3.0`
-  - `mmcv==2.1.0` with `mmcv._ext`
-  - `mmengine==0.10.4`
-  - `mmdet==3.2.0`
-  - `mmpose==1.3.1`
+
+If this same node must also run avatar preparation in-process, use the slower
+full-stack path instead:
+
+```bash
+bash scripts/setup_trt_stagewise_server_env.sh --clean --full-stack
+```
+
+That path adds:
+
+- `mmcv==2.1.0` with `mmcv._ext`
+- `mmengine==0.10.4`
+- `mmdet==3.2.0`
+- `mmpose==1.3.1`
 
 ---
 
@@ -146,10 +156,14 @@ http://localhost:8000/docs
 - Place your test files in `data/video/` and `data/audio/` as shown in the sample requests.
 - The server supports concurrent requests and will manage VRAM automatically.
 - All generated videos and intermediate files are stored in the `results/` directory.
-- For Vast.ai boot automation on a CUDA 12.1.1 node, prefer:
+- For Vast.ai boot automation on a serving-only CUDA 12.1.1 node, prefer:
   ```bash
-  SETUP_CLEAN=1 SETUP_FULL_STACK=1 PROFILE=throughput_record PORT=8000 bash scripts/vast_onstart.sh
+  SETUP_CLEAN=1 PROFILE=throughput_record PORT=8000 bash scripts/vast_onstart.sh
   ```
+- Only add `SETUP_FULL_STACK=1` when that same node must handle
+  `/avatars/prepare`; on the current `torch==2.5.1+cu121` stack, fresh
+  full-stack boots may source-build `mmcv` because OpenMMLab does not publish a
+  matching prebuilt wheel index for `cu121/torch2.5.x`
 - `download_weights.sh` now includes the S3FD face-detector weight used by
   avatar preparation, so `/avatars/prepare` should not need to download that
   checkpoint at runtime
