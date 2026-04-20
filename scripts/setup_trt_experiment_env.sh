@@ -187,6 +187,18 @@ configure_python_tls() {
   fi
 }
 
+env_flag_is_true() {
+  local value="${1:-}"
+  case "${value,,}" in
+    1|true|yes|on)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 wheelhouse_enabled() {
   env_flag_is_true "$WHEELHOUSE_ENABLED"
 }
