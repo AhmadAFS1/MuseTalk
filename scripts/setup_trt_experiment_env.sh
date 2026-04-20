@@ -27,6 +27,15 @@ ARTIFACT_DIR="${ARTIFACT_DIR:-$REPO_ROOT/models/tensorrt_altenv_bs32}"
 RUNTIME_REQUIREMENTS="${RUNTIME_REQUIREMENTS:-}"
 PIP_CACHE_DIR="${PIP_CACHE_DIR:-$HOME/.cache/pip}"
 STEP_LOG_ROOT="${STEP_LOG_ROOT:-$REPO_ROOT/logs/setup}"
+WHEELHOUSE_ENABLED="${WHEELHOUSE_ENABLED:-1}"
+WHEELHOUSE_PREFETCH_IN_PARALLEL="${WHEELHOUSE_PREFETCH_IN_PARALLEL:-1}"
+WHEELHOUSE_ROOT="${WHEELHOUSE_ROOT:-$WORKSPACE_ROOT/.wheelhouse/musetalk_trt_stagewise}"
+PYTORCH_WHEELHOUSE_DIR="${PYTORCH_WHEELHOUSE_DIR:-$WHEELHOUSE_ROOT/pytorch_cuda}"
+TENSORRT_WHEELHOUSE_DIR="${TENSORRT_WHEELHOUSE_DIR:-$WHEELHOUSE_ROOT/tensorrt}"
+EXPORT_WHEELHOUSE_DIR="${EXPORT_WHEELHOUSE_DIR:-$WHEELHOUSE_ROOT/export_backend}"
+SERVER_WHEELHOUSE_DIR="${SERVER_WHEELHOUSE_DIR:-$WHEELHOUSE_ROOT/server_runtime}"
+AVATAR_PREP_WHEELHOUSE_DIR="${AVATAR_PREP_WHEELHOUSE_DIR:-$WHEELHOUSE_ROOT/avatar_prep_prereqs}"
+RUNTIME_WHEELHOUSE_DIR="${RUNTIME_WHEELHOUSE_DIR:-$WHEELHOUSE_ROOT/repo_runtime}"
 
 TORCH_VERSION="${TORCH_VERSION:-2.5.1}"
 TORCHVISION_VERSION="${TORCHVISION_VERSION:-0.20.1}"
@@ -135,6 +144,10 @@ Environment overrides:
   MMCV_BUILD_MAX_JOBS        Default: $MMCV_BUILD_MAX_JOBS
   MMCV_LOCAL_WHEEL_DIR       Default: $MMCV_LOCAL_WHEEL_DIR
   MMCV_LOCAL_WHEEL_PATH      Optional explicit repo-local mmcv wheel path
+  WHEELHOUSE_ENABLED         Default: $WHEELHOUSE_ENABLED
+  WHEELHOUSE_ROOT            Default: $WHEELHOUSE_ROOT
+  WHEELHOUSE_PREFETCH_IN_PARALLEL
+                             Default: $WHEELHOUSE_PREFETCH_IN_PARALLEL
 
 Examples:
   $SCRIPT_NAME --clean --clear-pip-cache
@@ -162,6 +175,7 @@ configure_python_tls() {
   fi
 
   export PIP_DISABLE_PIP_VERSION_CHECK=1
+  export PIP_CACHE_DIR
 
   if [[ -n "$candidate" ]]; then
     export SSL_CERT_FILE="$candidate"
@@ -171,6 +185,10 @@ configure_python_tls() {
   else
     log "No explicit CA bundle override found; using Python/pip defaults"
   fi
+}
+
+wheelhouse_enabled() {
+  env_flag_is_true "$WHEELHOUSE_ENABLED"
 }
 
 find_nvcc() {
@@ -208,7 +226,14 @@ upgrade_packaging_tools_step() {
 }
 
 install_pytorch_cuda_step() {
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
+  local -a install_args=()
+  if wheelhouse_enabled; then
+    log "Installing PyTorch CUDA stack with local wheelhouse preference: $PYTORCH_WHEELHOUSE_DIR"
+    install_args+=(--find-links "$PYTORCH_WHEELHOUSE_DIR")
+  fi
+
+  "$VENV_PYTHON" -m pip install \
+    "${install_args[@]}" \
     "torch==$TORCH_VERSION" \
     "torchvision==$TORCHVISION_VERSION" \
     "torchaudio==$TORCHAUDIO_VERSION" \
@@ -218,13 +243,27 @@ install_pytorch_cuda_step() {
 }
 
 install_torch_tensorrt_step() {
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
+  local -a install_args=()
+  if wheelhouse_enabled; then
+    log "Installing TensorRT Python stack with local wheelhouse preference: $TENSORRT_WHEELHOUSE_DIR"
+    install_args+=(--find-links "$TENSORRT_WHEELHOUSE_DIR")
+  fi
+
+  "$VENV_PYTHON" -m pip install \
+    "${install_args[@]}" \
     --extra-index-url "$NVIDIA_EXTRA_INDEX_URL" \
     "torch-tensorrt==$TORCH_TENSORRT_VERSION"
 }
 
 install_export_dependencies_step() {
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
+  local -a install_args=()
+  if wheelhouse_enabled; then
+    log "Installing export/backend dependencies with local wheelhouse preference: $EXPORT_WHEELHOUSE_DIR"
+    install_args+=(--find-links "$EXPORT_WHEELHOUSE_DIR")
+  fi
+
+  "$VENV_PYTHON" -m pip install \
+    "${install_args[@]}" \
     "numpy==$NUMPY_VERSION" \
     "opencv-python==$OPENCV_VERSION" \
     "diffusers==$DIFFUSERS_VERSION" \
@@ -267,7 +306,14 @@ PY
 }
 
 install_server_dependencies_step() {
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
+  local -a install_args=()
+  if wheelhouse_enabled; then
+    log "Installing API server runtime dependencies with local wheelhouse preference: $SERVER_WHEELHOUSE_DIR"
+    install_args+=(--find-links "$SERVER_WHEELHOUSE_DIR")
+  fi
+
+  "$VENV_PYTHON" -m pip install \
+    "${install_args[@]}" \
     "fastapi==$FASTAPI_VERSION" \
     "uvicorn==$UVICORN_VERSION" \
     "aiohttp==$AIOHTTP_VERSION" \
@@ -496,7 +542,14 @@ PY
 }
 
 install_avatar_prep_prerequisites_step() {
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
+  local -a install_args=()
+  if wheelhouse_enabled; then
+    log "Installing avatar-prep prerequisites with local wheelhouse preference: $AVATAR_PREP_WHEELHOUSE_DIR"
+    install_args+=(--find-links "$AVATAR_PREP_WHEELHOUSE_DIR")
+  fi
+
+  "$VENV_PYTHON" -m pip install \
+    "${install_args[@]}" \
     "openmim==$OPENMIM_VERSION" \
     "setuptools<81" \
     "ninja" \
@@ -514,7 +567,7 @@ install_mmengine_step() {
 install_repo_local_mmcv_wheel() {
   local wheel_path="$1"
   log "Installing mmcv from repo-local wheel: $wheel_path"
-  "$VENV_PYTHON" -m pip install --no-cache-dir --no-deps "$wheel_path"
+  "$VENV_PYTHON" -m pip install --no-deps "$wheel_path"
 }
 
 build_repo_local_mmcv_wheel() {
@@ -522,7 +575,7 @@ build_repo_local_mmcv_wheel() {
 
   mkdir -p "$MMCV_LOCAL_WHEEL_DIR"
   log "Building repo-local mmcv wheel for future reuse under: $MMCV_LOCAL_WHEEL_DIR"
-  if ! MAX_JOBS="$MMCV_BUILD_MAX_JOBS" "$VENV_PYTHON" -m pip wheel --no-cache-dir --no-build-isolation --no-deps \
+  if ! MAX_JOBS="$MMCV_BUILD_MAX_JOBS" "$VENV_PYTHON" -m pip wheel --no-build-isolation --no-deps \
     --wheel-dir "$MMCV_LOCAL_WHEEL_DIR" \
     "mmcv==$MMCV_VERSION"; then
     return 1
@@ -571,7 +624,7 @@ install_mmcv_step() {
     log "Repo-local mmcv wheel build failed; falling back to direct source install"
   fi
 
-  if ! MAX_JOBS="$MMCV_BUILD_MAX_JOBS" "$VENV_PYTHON" -m pip install --no-cache-dir --no-build-isolation \
+  if ! MAX_JOBS="$MMCV_BUILD_MAX_JOBS" "$VENV_PYTHON" -m pip install --no-build-isolation \
     "mmcv==$MMCV_VERSION"; then
     die "Failed to install full mmcv==$MMCV_VERSION required for avatar preparation. Ensure the node uses CUDA $TORCH_CUDA_VERSION with a matching local toolkit and build toolchain."
   fi
@@ -582,7 +635,14 @@ install_mmdet_step() {
 }
 
 install_chumpy_step() {
-  "$VENV_PYTHON" -m pip install --no-cache-dir \
+  local -a install_args=()
+  if wheelhouse_enabled; then
+    log "Installing chumpy with local wheelhouse preference: $AVATAR_PREP_WHEELHOUSE_DIR"
+    install_args+=(--find-links "$AVATAR_PREP_WHEELHOUSE_DIR")
+  fi
+
+  "$VENV_PYTHON" -m pip install \
+    "${install_args[@]}" \
     "chumpy==$CHUMPY_VERSION" \
     --no-build-isolation
 }
@@ -590,7 +650,7 @@ install_chumpy_step() {
 install_mmpose_step() {
   if ! "$VENV_PYTHON" -m mim install "mmpose==$MMPOSE_VERSION"; then
     log "mim install mmpose failed; falling back to pip"
-    "$VENV_PYTHON" -m pip install --no-cache-dir \
+    "$VENV_PYTHON" -m pip install \
       "mmpose==$MMPOSE_VERSION"
   fi
 }
@@ -616,13 +676,253 @@ PY
 }
 
 install_runtime_dependencies_step() {
-  "$VENV_PYTHON" -m pip install --no-cache-dir -r "$RUNTIME_REQUIREMENTS"
+  local -a install_args=()
+  if wheelhouse_enabled; then
+    log "Installing repo runtime extras with local wheelhouse preference: $RUNTIME_WHEELHOUSE_DIR"
+    install_args+=(--find-links "$RUNTIME_WHEELHOUSE_DIR")
+  fi
+
+  "$VENV_PYTHON" -m pip install "${install_args[@]}" -r "$RUNTIME_REQUIREMENTS"
+}
+
+prefetch_wheels_step() {
+  local wheelhouse_dir="$1"
+  shift
+
+  mkdir -p "$wheelhouse_dir"
+  "$VENV_PYTHON" -m pip wheel \
+    --wheel-dir "$wheelhouse_dir" \
+    "$@"
+}
+
+run_parallel_steps() {
+  local entry
+  local label
+  local func
+  local qualified_label
+  local job_dir
+  local output_file
+  local meta_file
+  local start_ts
+  local end_ts
+  local elapsed_seconds
+  local status=0
+  local overall_status=0
+  local i=0
+
+  local -a labels=()
+  local -a output_files=()
+  local -a meta_files=()
+  local -a pids=()
+
+  for entry in "$@"; do
+    label="${entry%%::*}"
+    func="${entry##*::}"
+    qualified_label="$label"
+    if [[ -n "$STEP_LOG_CURRENT_PHASE" ]]; then
+      qualified_label="$STEP_LOG_CURRENT_PHASE :: $label"
+    fi
+
+    job_dir="$(mktemp -d "${TMPDIR:-/tmp}/musetalk-wheelhouse-XXXXXX")"
+    output_file="$job_dir/output.log"
+    meta_file="$job_dir/meta.txt"
+
+    step_log_emit STEP "START: $qualified_label"
+    (
+      start_ts="$(date +%s)"
+      if "$func" >"$output_file" 2>&1; then
+        status=0
+      else
+        status=$?
+      fi
+      end_ts="$(date +%s)"
+      elapsed_seconds=$((end_ts - start_ts))
+      printf '%s\t%s\n' "$status" "$elapsed_seconds" >"$meta_file"
+      exit "$status"
+    ) &
+
+    labels+=("$qualified_label")
+    output_files+=("$output_file")
+    meta_files+=("$meta_file")
+    pids+=("$!")
+  done
+
+  for i in "${!pids[@]}"; do
+    if wait "${pids[$i]}"; then
+      status=0
+    else
+      status=$?
+    fi
+
+    if [[ -f "${meta_files[$i]}" ]]; then
+      IFS=$'\t' read -r status elapsed_seconds <"${meta_files[$i]}"
+    else
+      elapsed_seconds=0
+    fi
+
+    if [[ -s "${output_files[$i]}" ]]; then
+      while IFS= read -r line; do
+        step_log_emit INFO "${labels[$i]} | $line"
+      done <"${output_files[$i]}"
+    fi
+
+    if [[ $status -eq 0 ]]; then
+      step_record_result "${labels[$i]}" "$elapsed_seconds" "OK"
+      step_log_emit STEP "DONE: ${labels[$i]} ($(step_format_duration "$elapsed_seconds"))"
+    else
+      step_record_result "${labels[$i]}" "$elapsed_seconds" "FAIL"
+      step_log_emit ERROR "FAILED: ${labels[$i]} ($(step_format_duration "$elapsed_seconds"), exit=$status)"
+      if [[ $overall_status -eq 0 ]]; then
+        overall_status="$status"
+      fi
+    fi
+
+    rm -rf "$(dirname "${output_files[$i]}")"
+  done
+
+  return "$overall_status"
+}
+
+prefetch_pytorch_cuda_wheelhouse_step() {
+  if ! wheelhouse_enabled; then
+    log "Wheelhouse prefetch disabled; skipping PyTorch CUDA wheel prefetch"
+    return 0
+  fi
+
+  prefetch_wheels_step \
+    "$PYTORCH_WHEELHOUSE_DIR" \
+    --index-url "$PYTORCH_INDEX_URL" \
+    "torch==$TORCH_VERSION" \
+    "torchvision==$TORCHVISION_VERSION" \
+    "torchaudio==$TORCHAUDIO_VERSION" \
+    "numpy==$NUMPY_VERSION" \
+    "pillow==$PILLOW_VERSION"
+}
+
+prefetch_tensorrt_wheelhouse_step() {
+  if ! wheelhouse_enabled; then
+    log "Wheelhouse prefetch disabled; skipping TensorRT wheel prefetch"
+    return 0
+  fi
+
+  prefetch_wheels_step \
+    "$TENSORRT_WHEELHOUSE_DIR" \
+    --extra-index-url "$NVIDIA_EXTRA_INDEX_URL" \
+    "torch-tensorrt==$TORCH_TENSORRT_VERSION"
+}
+
+prefetch_export_backend_wheelhouse_step() {
+  if ! wheelhouse_enabled; then
+    log "Wheelhouse prefetch disabled; skipping export/backend wheel prefetch"
+    return 0
+  fi
+
+  prefetch_wheels_step \
+    "$EXPORT_WHEELHOUSE_DIR" \
+    "numpy==$NUMPY_VERSION" \
+    "opencv-python==$OPENCV_VERSION" \
+    "diffusers==$DIFFUSERS_VERSION" \
+    "transformers==$TRANSFORMERS_VERSION" \
+    "tokenizers==$TOKENIZERS_VERSION" \
+    "accelerate==$ACCELERATE_VERSION" \
+    "huggingface_hub==$HUGGINGFACE_HUB_VERSION" \
+    "einops==$EINOPS_VERSION" \
+    "safetensors==$SAFETENSORS_VERSION" \
+    "pillow==$PILLOW_VERSION"
+}
+
+prefetch_server_runtime_wheelhouse_step() {
+  if ! wheelhouse_enabled; then
+    log "Wheelhouse prefetch disabled; skipping server-runtime wheel prefetch"
+    return 0
+  fi
+
+  if [[ $INSTALL_SERVER_DEPS -eq 0 ]]; then
+    log "Server runtime dependency phase not requested; skipping server-runtime wheel prefetch"
+    return 0
+  fi
+
+  prefetch_wheels_step \
+    "$SERVER_WHEELHOUSE_DIR" \
+    "fastapi==$FASTAPI_VERSION" \
+    "uvicorn==$UVICORN_VERSION" \
+    "aiohttp==$AIOHTTP_VERSION" \
+    "soundfile==$SOUNDFILE_VERSION" \
+    "librosa==$LIBROSA_VERSION" \
+    "imageio[ffmpeg]==$IMAGEIO_VERSION" \
+    "omegaconf==$OMEGACONF_VERSION" \
+    "ffmpeg-python==$FFMPEG_PYTHON_VERSION" \
+    "aiofiles==$AIOFILES_VERSION" \
+    "av==$AV_VERSION" \
+    "python-multipart==$PYTHON_MULTIPART_VERSION" \
+    "aiortc==$AIORTC_VERSION" \
+    "aioice==$AIOICE_VERSION"
+}
+
+prefetch_avatar_prep_wheelhouse_step() {
+  if ! wheelhouse_enabled; then
+    log "Wheelhouse prefetch disabled; skipping avatar-prep prerequisite wheel prefetch"
+    return 0
+  fi
+
+  if [[ $INSTALL_AVATAR_PREP_DEPS -eq 0 ]]; then
+    log "Avatar-preparation dependency phase not requested; skipping avatar-prep prerequisite wheel prefetch"
+    return 0
+  fi
+
+  prefetch_wheels_step \
+    "$AVATAR_PREP_WHEELHOUSE_DIR" \
+    "openmim==$OPENMIM_VERSION" \
+    "setuptools<81" \
+    "ninja" \
+    "psutil" \
+    "chumpy==$CHUMPY_VERSION"
+}
+
+prefetch_repo_runtime_wheelhouse_step() {
+  if ! wheelhouse_enabled; then
+    log "Wheelhouse prefetch disabled; skipping repo runtime wheel prefetch"
+    return 0
+  fi
+
+  if [[ $INSTALL_RUNTIME_DEPS -eq 0 ]]; then
+    log "Repo runtime extras phase not requested; skipping repo runtime wheel prefetch"
+    return 0
+  fi
+
+  [[ -f "$RUNTIME_REQUIREMENTS" ]] || die "Runtime requirements file not found: $RUNTIME_REQUIREMENTS"
+  prefetch_wheels_step "$RUNTIME_WHEELHOUSE_DIR" -r "$RUNTIME_REQUIREMENTS"
 }
 
 phase_bootstrap_tooling() {
   run_step "Create TensorRT artifact directory" create_artifact_dir_step
   run_step "Create venv" create_venv_step
   run_step "Upgrade pip, setuptools, and wheel" upgrade_packaging_tools_step
+}
+
+phase_prefetch_wheelhouses() {
+  if ! wheelhouse_enabled; then
+    log "Wheelhouse prefetch phase disabled by WHEELHOUSE_ENABLED=$WHEELHOUSE_ENABLED"
+    return 0
+  fi
+
+  log "Wheelhouse root: $WHEELHOUSE_ROOT"
+  if env_flag_is_true "$WHEELHOUSE_PREFETCH_IN_PARALLEL"; then
+    run_parallel_steps \
+      "Prefetch PyTorch CUDA wheelhouse::prefetch_pytorch_cuda_wheelhouse_step" \
+      "Prefetch TensorRT wheelhouse::prefetch_tensorrt_wheelhouse_step" \
+      "Prefetch export/backend wheelhouse::prefetch_export_backend_wheelhouse_step" \
+      "Prefetch server runtime wheelhouse::prefetch_server_runtime_wheelhouse_step" \
+      "Prefetch avatar-prep prerequisite wheelhouse::prefetch_avatar_prep_wheelhouse_step" \
+      "Prefetch repo runtime wheelhouse::prefetch_repo_runtime_wheelhouse_step"
+  else
+    run_step "Prefetch PyTorch CUDA wheelhouse" prefetch_pytorch_cuda_wheelhouse_step
+    run_step "Prefetch TensorRT wheelhouse" prefetch_tensorrt_wheelhouse_step
+    run_step "Prefetch export/backend wheelhouse" prefetch_export_backend_wheelhouse_step
+    run_step "Prefetch server runtime wheelhouse" prefetch_server_runtime_wheelhouse_step
+    run_step "Prefetch avatar-prep prerequisite wheelhouse" prefetch_avatar_prep_wheelhouse_step
+    run_step "Prefetch repo runtime wheelhouse" prefetch_repo_runtime_wheelhouse_step
+  fi
 }
 
 phase_install_core_pytorch_cuda() {
@@ -787,31 +1087,36 @@ run_phase \
   phase_bootstrap_tooling
 run_phase \
   "Phase 2" \
+  "Prefetch wheelhouse artifacts" \
+  "Download/build pinned wheel sets into a local wheelhouse so the heavy install phases can prefer local artifacts." \
+  phase_prefetch_wheelhouses
+run_phase \
+  "Phase 3" \
   "Install core PyTorch CUDA stack" \
   "Download and install the pinned torch, torchvision, torchaudio, numpy, and pillow CUDA wheels." \
   phase_install_core_pytorch_cuda
 run_phase \
-  "Phase 3" \
+  "Phase 4" \
   "Install TensorRT Python stack" \
   "Download and install torch-tensorrt together with the NVIDIA TensorRT Python runtime packages." \
   phase_install_tensorrt_python_stack
 run_phase \
-  "Phase 4" \
+  "Phase 5" \
   "Install export and backend support dependencies" \
   "Install OpenCV, diffusers, transformers, tokenizers, accelerate, safetensors, and validate backend imports." \
   phase_install_export_backend_stack
 run_phase \
-  "Phase 5" \
+  "Phase 6" \
   "Install API server runtime dependencies" \
   "Install FastAPI, uvicorn, audio/video server packages, WebRTC packages, and validate api_server imports." \
   phase_install_server_runtime_stack
 run_phase \
-  "Phase 6" \
+  "Phase 7" \
   "Install avatar-preparation dependencies" \
   "Install the optional mmengine/mmcv/mmdet/mmpose stack plus supporting packages for avatar prep." \
   phase_install_avatar_prep_stack
 run_phase \
-  "Phase 7" \
+  "Phase 8" \
   "Install broader repo runtime extras" \
   "Install the optional repo requirements file when the wider runtime dependency set is requested." \
   phase_install_repo_runtime_extras
@@ -832,3 +1137,6 @@ if [[ $INSTALL_SERVER_DEPS -eq 1 ]]; then
 fi
 printf '\n'
 printf 'TensorRT artifacts should be kept under: %s\n' "$ARTIFACT_DIR"
+if wheelhouse_enabled; then
+  printf 'Local wheelhouse artifacts are cached under: %s\n' "$WHEELHOUSE_ROOT"
+fi

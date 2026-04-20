@@ -14,6 +14,7 @@ DOWNLOAD_WAIT_FOR_NETWORK_INTERVAL_SECONDS="${DOWNLOAD_WAIT_FOR_NETWORK_INTERVAL
 DOWNLOAD_MUSETALK_V1_WEIGHTS="${DOWNLOAD_MUSETALK_V1_WEIGHTS:-1}"
 DOWNLOAD_MUSETALK_V15_WEIGHTS="${DOWNLOAD_MUSETALK_V15_WEIGHTS:-1}"
 DOWNLOAD_AVATAR_PREP_WEIGHTS="${DOWNLOAD_AVATAR_PREP_WEIGHTS:-1}"
+DOWNLOAD_GROUPS_IN_PARALLEL="${DOWNLOAD_GROUPS_IN_PARALLEL:-1}"
 EXPECTED_FACE_PARSE_ITER_BYTES="${EXPECTED_FACE_PARSE_ITER_BYTES:-53289463}"
 EXPECTED_RESNET18_BYTES="${EXPECTED_RESNET18_BYTES:-46827520}"
 STEP_LOG_ROOT="${STEP_LOG_ROOT:-$REPO_ROOT/logs/setup}"
@@ -293,9 +294,139 @@ validate_required_files_step() {
   validate_required_files
 }
 
+run_parallel_steps() {
+  local entry
+  local label
+  local func
+  local qualified_label
+  local job_dir
+  local output_file
+  local meta_file
+  local start_ts
+  local end_ts
+  local status
+  local elapsed_seconds
+  local status_overall=0
+  local i=0
+
+  local -a labels=()
+  local -a output_files=()
+  local -a meta_files=()
+  local -a pids=()
+
+  for entry in "$@"; do
+    label="${entry%%::*}"
+    func="${entry##*::}"
+    qualified_label="$label"
+    if [[ -n "$STEP_LOG_CURRENT_PHASE" ]]; then
+      qualified_label="$STEP_LOG_CURRENT_PHASE :: $label"
+    fi
+
+    job_dir="$(mktemp -d "${TMPDIR:-/tmp}/musetalk-download-XXXXXX")"
+    output_file="$job_dir/output.log"
+    meta_file="$job_dir/meta.txt"
+
+    step_log_emit STEP "START: $qualified_label"
+    (
+      start_ts="$(date +%s)"
+      if "$func" >"$output_file" 2>&1; then
+        status=0
+      else
+        status=$?
+      fi
+      end_ts="$(date +%s)"
+      elapsed_seconds=$((end_ts - start_ts))
+      printf '%s\t%s\n' "$status" "$elapsed_seconds" >"$meta_file"
+      exit "$status"
+    ) &
+
+    labels+=("$qualified_label")
+    output_files+=("$output_file")
+    meta_files+=("$meta_file")
+    pids+=("$!")
+  done
+
+  for i in "${!pids[@]}"; do
+    if wait "${pids[$i]}"; then
+      status=0
+    else
+      status=$?
+    fi
+
+    if [[ -f "${meta_files[$i]}" ]]; then
+      IFS=$'\t' read -r status elapsed_seconds <"${meta_files[$i]}"
+    else
+      elapsed_seconds=0
+    fi
+
+    if [[ -s "${output_files[$i]}" ]]; then
+      while IFS= read -r line; do
+        step_log_emit INFO "${labels[$i]} | $line"
+      done <"${output_files[$i]}"
+    fi
+
+    if [[ $status -eq 0 ]]; then
+      step_record_result "${labels[$i]}" "$elapsed_seconds" "OK"
+      step_log_emit STEP "DONE: ${labels[$i]} ($(step_format_duration "$elapsed_seconds"))"
+    else
+      step_record_result "${labels[$i]}" "$elapsed_seconds" "FAIL"
+      step_log_emit ERROR "FAILED: ${labels[$i]} ($(step_format_duration "$elapsed_seconds"), exit=$status)"
+      if [[ $status_overall -eq 0 ]]; then
+        status_overall="$status"
+      fi
+    fi
+
+    rm -rf "$(dirname "${output_files[$i]}")"
+  done
+
+  return "$status_overall"
+}
+
+download_musetalk_weights_group() {
+  if env_flag_is_true "$DOWNLOAD_MUSETALK_V1_WEIGHTS"; then
+    download_musetalk_v1_weights_step
+  else
+    log "Skipping MuseTalk V1.0 weights"
+  fi
+
+  if env_flag_is_true "$DOWNLOAD_MUSETALK_V15_WEIGHTS"; then
+    download_musetalk_v15_weights_step
+  else
+    log "Skipping MuseTalk V1.5 weights"
+  fi
+}
+
+download_base_runtime_weights_group() {
+  download_sd_vae_weights_step
+  download_whisper_weights_step
+}
+
+download_avatar_prep_weights_group() {
+  if env_flag_is_true "$DOWNLOAD_AVATAR_PREP_WEIGHTS"; then
+    download_dwpose_weights_step
+    download_syncnet_weights_step
+    download_s3fd_weights_step
+  else
+    log "Skipping avatar-prep-only weights (dwpose, syncnet, s3fd)"
+  fi
+}
+
+download_face_parse_support_weights_group() {
+  download_face_parse_model_step
+  download_resnet18_backbone_step
+}
+
 phase_prepare_weight_downloads() {
   run_step "Wait for outbound HTTPS to become ready" wait_for_hf_endpoint_step
   run_step "Install download helper utilities" install_download_helpers_step
+}
+
+phase_download_weight_groups_parallel() {
+  run_parallel_steps \
+    "Download MuseTalk model weights::download_musetalk_weights_group" \
+    "Download base runtime model weights::download_base_runtime_weights_group" \
+    "Download avatar-preparation model weights::download_avatar_prep_weights_group" \
+    "Download face parsing support weights::download_face_parse_support_weights_group"
 }
 
 phase_download_musetalk_weights() {
@@ -347,6 +478,7 @@ log "Using Hugging Face endpoint: $HF_ENDPOINT"
 log "Hugging Face timeouts: etag=${HF_HUB_ETAG_TIMEOUT}s download=${HF_HUB_DOWNLOAD_TIMEOUT}s"
 log "Hugging Face max workers per repo download: $HF_MAX_WORKERS ($HF_MAX_WORKERS_SOURCE)"
 log "HF_XET_HIGH_PERFORMANCE=$HF_XET_HIGH_PERFORMANCE"
+log "Download groups in parallel: $DOWNLOAD_GROUPS_IN_PARALLEL"
 log "Download retries: $DOWNLOAD_RETRIES"
 log "MuseTalk V1 weights enabled: $DOWNLOAD_MUSETALK_V1_WEIGHTS"
 log "MuseTalk V1.5 weights enabled: $DOWNLOAD_MUSETALK_V15_WEIGHTS"
@@ -369,29 +501,42 @@ run_phase \
   "Prepare weight download environment" \
   "Wait for outbound connectivity and install helper tooling used by the model download path." \
   phase_prepare_weight_downloads
-run_phase \
-  "Phase 2" \
-  "Download MuseTalk model weights" \
-  "Fetch the MuseTalk model checkpoints required by the runtime path in this setup." \
-  phase_download_musetalk_weights
-run_phase \
-  "Phase 3" \
-  "Download base runtime model weights" \
-  "Fetch the SD VAE and Whisper model weights required by the TRT-stagewise server runtime." \
-  phase_download_base_runtime_weights
-run_phase \
-  "Phase 4" \
-  "Download avatar-preparation model weights" \
-  "Fetch the optional DWPose, SyncNet, and S3FD checkpoints used for avatar preparation." \
-  phase_download_avatar_prep_weights
-run_phase \
-  "Phase 5" \
-  "Download face parsing support weights" \
-  "Fetch the face parsing checkpoint and ResNet18 backbone used by the current preprocessing path." \
-  phase_download_face_parse_support_weights
-run_phase \
-  "Phase 6" \
-  "Validate downloaded model set" \
-  "Verify that every required model file for the requested runtime shape exists on disk." \
-  phase_validate_downloaded_weights
+if env_flag_is_true "$DOWNLOAD_GROUPS_IN_PARALLEL"; then
+  run_phase \
+    "Phase 2" \
+    "Download model weight groups in parallel" \
+    "Fetch the MuseTalk, runtime, avatar-prep, and face-parse model groups concurrently where possible." \
+    phase_download_weight_groups_parallel
+  run_phase \
+    "Phase 3" \
+    "Validate downloaded model set" \
+    "Verify that every required model file for the requested runtime shape exists on disk." \
+    phase_validate_downloaded_weights
+else
+  run_phase \
+    "Phase 2" \
+    "Download MuseTalk model weights" \
+    "Fetch the MuseTalk model checkpoints required by the runtime path in this setup." \
+    phase_download_musetalk_weights
+  run_phase \
+    "Phase 3" \
+    "Download base runtime model weights" \
+    "Fetch the SD VAE and Whisper model weights required by the TRT-stagewise server runtime." \
+    phase_download_base_runtime_weights
+  run_phase \
+    "Phase 4" \
+    "Download avatar-preparation model weights" \
+    "Fetch the optional DWPose, SyncNet, and S3FD checkpoints used for avatar preparation." \
+    phase_download_avatar_prep_weights
+  run_phase \
+    "Phase 5" \
+    "Download face parsing support weights" \
+    "Fetch the face parsing checkpoint and ResNet18 backbone used by the current preprocessing path." \
+    phase_download_face_parse_support_weights
+  run_phase \
+    "Phase 6" \
+    "Validate downloaded model set" \
+    "Verify that every required model file for the requested runtime shape exists on disk." \
+    phase_validate_downloaded_weights
+fi
 log "All weights downloaded and validated successfully"
