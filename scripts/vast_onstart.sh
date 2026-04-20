@@ -202,6 +202,14 @@ run_setup_if_needed() {
     fi
   fi
 
+  if avatar_prep_requested; then
+    log "Full-stack bootstrap requested: this node will install avatar-prep deps and weights in addition to the TRT server runtime"
+    log "Current torch 2.5.x + CUDA 12.1 full-stack boots may source-build mmcv when OpenMMLab does not publish a matching prebuilt wheel"
+  else
+    log "Using the faster server-only bootstrap path; skipping optional avatar-prep deps and weights"
+    log "Enable SETUP_FULL_STACK=1 only if this node must handle /avatars/prepare directly"
+  fi
+
   local setup_args=("--venv-path" "$VENV_PATH")
   local rebuild_with_clean=0
 

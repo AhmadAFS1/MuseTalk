@@ -67,6 +67,13 @@ OPENMIM_VERSION="${OPENMIM_VERSION:-0.3.9}"
 CHUMPY_VERSION="${CHUMPY_VERSION:-0.70}"
 TLS_CA_BUNDLE="${TLS_CA_BUNDLE:-}"
 MMCV_BUILD_MAX_JOBS="${MMCV_BUILD_MAX_JOBS:-8}"
+MMCV_LOCAL_WHEEL_DIR="${MMCV_LOCAL_WHEEL_DIR:-$REPO_ROOT/third_party_wheels/mmcv}"
+MMCV_LOCAL_WHEEL_PATH="${MMCV_LOCAL_WHEEL_PATH:-}"
+MMCV_LOCAL_WHEEL_STATUS="unknown"
+MMCV_LOCAL_WHEEL_RESOLVED=""
+MMCV_PREBUILT_WHEEL_STATUS="unknown"
+MMCV_WHEEL_INDEX_URL=""
+MMCV_WHEEL_LOOKUP_CONTEXT=""
 
 CLEAN=0
 CLEAR_PIP_CACHE=0
@@ -126,6 +133,8 @@ Environment overrides:
   OPENMIM_VERSION            Default: $OPENMIM_VERSION
   CHUMPY_VERSION             Default: $CHUMPY_VERSION
   MMCV_BUILD_MAX_JOBS        Default: $MMCV_BUILD_MAX_JOBS
+  MMCV_LOCAL_WHEEL_DIR       Default: $MMCV_LOCAL_WHEEL_DIR
+  MMCV_LOCAL_WHEEL_PATH      Optional explicit repo-local mmcv wheel path
 
 Examples:
   $SCRIPT_NAME --clean --clear-pip-cache
@@ -333,6 +342,159 @@ PY
   fi
 }
 
+resolve_local_mmcv_wheel_step() {
+  MMCV_LOCAL_WHEEL_STATUS="missing"
+  MMCV_LOCAL_WHEEL_RESOLVED=""
+
+  local explicit_path="${MMCV_LOCAL_WHEEL_PATH:-}"
+  local search_dir="${MMCV_LOCAL_WHEEL_DIR:-}"
+  local current_python_tag=""
+  local matches=()
+  local resolved=""
+
+  if [[ -x "${VENV_PYTHON:-}" ]]; then
+    current_python_tag="$("$VENV_PYTHON" - <<'PY'
+import sys
+print(f"cp{sys.version_info.major}{sys.version_info.minor}")
+PY
+)"
+  fi
+
+  if [[ -n "$explicit_path" ]]; then
+    if [[ -f "$explicit_path" ]]; then
+      resolved="$(cd "$(dirname "$explicit_path")" && pwd)/$(basename "$explicit_path")"
+      if [[ "$(basename "$resolved")" != mmcv-"$MMCV_VERSION"-*.whl ]]; then
+        log "Explicit MMCV_LOCAL_WHEEL_PATH does not match mmcv==$MMCV_VERSION filename pattern, but it will still be attempted first: $resolved"
+      fi
+      MMCV_LOCAL_WHEEL_STATUS="available"
+      MMCV_LOCAL_WHEEL_RESOLVED="$resolved"
+      log "Using explicit repo-local mmcv wheel: $MMCV_LOCAL_WHEEL_RESOLVED"
+      return 0
+    fi
+    log "Explicit MMCV_LOCAL_WHEEL_PATH does not exist: $explicit_path"
+  fi
+
+  if [[ -z "$search_dir" ]]; then
+    log "Repo-local mmcv wheel dir is empty; skipping local wheel lookup"
+    return 0
+  fi
+
+  if [[ ! -d "$search_dir" ]]; then
+    log "Repo-local mmcv wheel dir not present yet: $search_dir"
+    return 0
+  fi
+
+  if [[ -n "$current_python_tag" ]]; then
+    readarray -t matches < <(find "$search_dir" -maxdepth 1 -type f \
+      \( -name "mmcv-${MMCV_VERSION}-${current_python_tag}-${current_python_tag}-*.whl" \
+      -o -name "mmcv-${MMCV_VERSION}-${current_python_tag}-*.whl" \) | sort -r)
+  fi
+
+  if (( ${#matches[@]} == 0 )); then
+    readarray -t matches < <(find "$search_dir" -maxdepth 1 -type f -name "mmcv-${MMCV_VERSION}-*.whl" | sort -r)
+  fi
+
+  if (( ${#matches[@]} == 0 )); then
+    log "No repo-local mmcv wheel found under $search_dir matching mmcv-${MMCV_VERSION}-*.whl"
+    return 0
+  fi
+
+  MMCV_LOCAL_WHEEL_STATUS="available"
+  MMCV_LOCAL_WHEEL_RESOLVED="${matches[0]}"
+  if (( ${#matches[@]} > 1 )); then
+    log "Found multiple repo-local mmcv wheels under $search_dir; using $MMCV_LOCAL_WHEEL_RESOLVED"
+  else
+    log "Found repo-local mmcv wheel: $MMCV_LOCAL_WHEEL_RESOLVED"
+  fi
+}
+
+probe_mmcv_prebuilt_wheel_step() {
+  MMCV_PREBUILT_WHEEL_STATUS="unknown"
+  MMCV_WHEEL_INDEX_URL=""
+  MMCV_WHEEL_LOOKUP_CONTEXT=""
+
+  if [[ "$MMCV_LOCAL_WHEEL_STATUS" == "available" && -n "$MMCV_LOCAL_WHEEL_RESOLVED" ]]; then
+    log "Skipping OpenMMLab mmcv wheel probe because a repo-local wheel is available: $MMCV_LOCAL_WHEEL_RESOLVED"
+    return 0
+  fi
+
+  if ! command -v curl >/dev/null 2>&1; then
+    log "curl is not available; skipping mmcv prebuilt-wheel probe and letting mim decide"
+    return 0
+  fi
+
+  local probe_context=()
+  readarray -t probe_context < <("$VENV_PYTHON" - <<'PY'
+import sys
+import torch
+
+torch_version = (torch.__version__ or "").split("+", 1)[0]
+parts = torch_version.split(".")
+major = parts[0] if len(parts) > 0 else ""
+minor = parts[1] if len(parts) > 1 else ""
+cuda_version = torch.version.cuda or ""
+python_tag = f"cp{sys.version_info.major}{sys.version_info.minor}"
+
+if major and minor:
+    print(f"torch{major}.{minor}.0")
+else:
+    print("")
+print(cuda_version)
+print(python_tag)
+print(torch_version)
+PY
+)
+
+  local wheel_torch_tag="${probe_context[0]:-}"
+  local cuda_version="${probe_context[1]:-}"
+  local python_tag="${probe_context[2]:-}"
+  local torch_package_version="${probe_context[3]:-}"
+
+  if [[ -z "$wheel_torch_tag" || -z "$cuda_version" || -z "$python_tag" || -z "$torch_package_version" ]]; then
+    log "Could not resolve torch/CUDA/python tags for the mmcv wheel probe; mim install will still be attempted"
+    return 0
+  fi
+
+  local cuda_tag="cu${cuda_version/./}"
+  local http_code=""
+  local index_html=""
+  local wheel_token="mmcv-${MMCV_VERSION}-${python_tag}-"
+
+  MMCV_WHEEL_INDEX_URL="https://download.openmmlab.com/mmcv/dist/${cuda_tag}/${wheel_torch_tag}/index.html"
+  MMCV_WHEEL_LOOKUP_CONTEXT="mmcv==$MMCV_VERSION, python=$python_tag, torch=$torch_package_version, cuda=$cuda_version"
+
+  http_code="$(curl --silent --show-error --location --output /dev/null \
+    --write-out '%{http_code}' --connect-timeout 5 --max-time 20 \
+    "$MMCV_WHEEL_INDEX_URL")" || {
+      log "Could not reach the OpenMMLab mmcv wheel index ($MMCV_WHEEL_INDEX_URL); mim install will still be attempted"
+      return 0
+    }
+
+  case "$http_code" in
+    200)
+      index_html="$(curl --silent --show-error --location \
+        --connect-timeout 5 --max-time 20 "$MMCV_WHEEL_INDEX_URL")" || {
+          log "Reached the OpenMMLab mmcv wheel index but could not read it fully; mim install will still be attempted"
+          return 0
+        }
+      if [[ "$index_html" == *"$wheel_token"* ]]; then
+        MMCV_PREBUILT_WHEEL_STATUS="available"
+        log "Found a matching OpenMMLab mmcv wheel via $MMCV_WHEEL_INDEX_URL ($MMCV_WHEEL_LOOKUP_CONTEXT)"
+      else
+        MMCV_PREBUILT_WHEEL_STATUS="missing"
+        log "OpenMMLab index exists but does not publish a matching mmcv wheel for this environment; source build fallback will be used ($MMCV_WHEEL_LOOKUP_CONTEXT, index=$MMCV_WHEEL_INDEX_URL)"
+      fi
+      ;;
+    404)
+      MMCV_PREBUILT_WHEEL_STATUS="missing"
+      log "OpenMMLab does not publish an mmcv wheel index for this torch/CUDA combo; source build fallback will be used ($MMCV_WHEEL_LOOKUP_CONTEXT, index=$MMCV_WHEEL_INDEX_URL)"
+      ;;
+    *)
+      log "OpenMMLab mmcv wheel probe returned HTTP $http_code ($MMCV_WHEEL_INDEX_URL); mim install will still be attempted"
+      ;;
+  esac
+}
+
 install_avatar_prep_prerequisites_step() {
   "$VENV_PYTHON" -m pip install --no-cache-dir \
     "openmim==$OPENMIM_VERSION" \
@@ -349,14 +511,69 @@ install_mmengine_step() {
   "$VENV_PYTHON" -m mim install "mmengine==$MMENGINE_VERSION"
 }
 
+install_repo_local_mmcv_wheel() {
+  local wheel_path="$1"
+  log "Installing mmcv from repo-local wheel: $wheel_path"
+  "$VENV_PYTHON" -m pip install --no-cache-dir --no-deps "$wheel_path"
+}
+
+build_repo_local_mmcv_wheel() {
+  local explicit_path_backup="${MMCV_LOCAL_WHEEL_PATH:-}"
+
+  mkdir -p "$MMCV_LOCAL_WHEEL_DIR"
+  log "Building repo-local mmcv wheel for future reuse under: $MMCV_LOCAL_WHEEL_DIR"
+  if ! MAX_JOBS="$MMCV_BUILD_MAX_JOBS" "$VENV_PYTHON" -m pip wheel --no-cache-dir --no-build-isolation --no-deps \
+    --wheel-dir "$MMCV_LOCAL_WHEEL_DIR" \
+    "mmcv==$MMCV_VERSION"; then
+    return 1
+  fi
+
+  MMCV_LOCAL_WHEEL_PATH=""
+  resolve_local_mmcv_wheel_step || true
+  MMCV_LOCAL_WHEEL_PATH="$explicit_path_backup"
+
+  [[ "$MMCV_LOCAL_WHEEL_STATUS" == "available" && -n "$MMCV_LOCAL_WHEEL_RESOLVED" ]]
+}
+
 install_mmcv_step() {
-  if ! "$VENV_PYTHON" -m mim install "mmcv==$MMCV_VERSION"; then
-    log "mim install mmcv failed; trying source build without build isolation"
-    log "Limiting mmcv source build parallelism with MAX_JOBS=$MMCV_BUILD_MAX_JOBS"
-    if ! MAX_JOBS="$MMCV_BUILD_MAX_JOBS" "$VENV_PYTHON" -m pip install --no-cache-dir --no-build-isolation \
-      "mmcv==$MMCV_VERSION"; then
-      die "Failed to install full mmcv==$MMCV_VERSION required for avatar preparation. Ensure the node uses CUDA $TORCH_CUDA_VERSION with a matching local toolkit and build toolchain."
+  if [[ "$MMCV_LOCAL_WHEEL_STATUS" == "available" && -n "$MMCV_LOCAL_WHEEL_RESOLVED" ]]; then
+    if install_repo_local_mmcv_wheel "$MMCV_LOCAL_WHEEL_RESOLVED"; then
+      return 0
     fi
+    log "Repo-local mmcv wheel install failed; falling back to published wheel/source build resolution"
+  fi
+
+  if [[ "$MMCV_PREBUILT_WHEEL_STATUS" == "available" ]]; then
+    if "$VENV_PYTHON" -m mim install "mmcv==$MMCV_VERSION"; then
+      return 0
+    fi
+    log "mim install mmcv failed; trying repo-local wheel build + source build fallback"
+  elif [[ "$MMCV_PREBUILT_WHEEL_STATUS" == "missing" ]]; then
+    if [[ -n "$MMCV_WHEEL_INDEX_URL" ]]; then
+      log "Skipping mim install mmcv because no matching OpenMMLab wheel is published for this environment ($MMCV_WHEEL_LOOKUP_CONTEXT, index=$MMCV_WHEEL_INDEX_URL)"
+    else
+      log "Skipping mim install mmcv because no matching OpenMMLab wheel is published for this environment"
+    fi
+  else
+    if "$VENV_PYTHON" -m mim install "mmcv==$MMCV_VERSION"; then
+      return 0
+    fi
+    log "mim install mmcv failed; trying repo-local wheel build + source build fallback"
+  fi
+
+  log "Limiting mmcv source build parallelism with MAX_JOBS=$MMCV_BUILD_MAX_JOBS"
+  if build_repo_local_mmcv_wheel; then
+    if install_repo_local_mmcv_wheel "$MMCV_LOCAL_WHEEL_RESOLVED"; then
+      return 0
+    fi
+    log "Built a repo-local mmcv wheel, but local wheel install failed; falling back to direct source install"
+  else
+    log "Repo-local mmcv wheel build failed; falling back to direct source install"
+  fi
+
+  if ! MAX_JOBS="$MMCV_BUILD_MAX_JOBS" "$VENV_PYTHON" -m pip install --no-cache-dir --no-build-isolation \
+    "mmcv==$MMCV_VERSION"; then
+    die "Failed to install full mmcv==$MMCV_VERSION required for avatar preparation. Ensure the node uses CUDA $TORCH_CUDA_VERSION with a matching local toolkit and build toolchain."
   fi
 }
 
@@ -434,11 +651,13 @@ phase_install_server_runtime_stack() {
 
 phase_install_avatar_prep_stack() {
   if [[ $INSTALL_AVATAR_PREP_DEPS -eq 0 ]]; then
-    log "Avatar-preparation dependency phase not requested"
+    log "Avatar-preparation dependency phase not requested; keeping the setup on the faster server-only path"
     return 0
   fi
 
   run_step "Validate avatar-prep CUDA toolkit compatibility" validate_avatar_prep_cuda_compatibility_step
+  run_step "Resolve repo-local mmcv wheel" resolve_local_mmcv_wheel_step
+  run_step "Probe mmcv prebuilt wheel availability" probe_mmcv_prebuilt_wheel_step
   run_step "Install avatar-preparation prerequisites" install_avatar_prep_prerequisites_step
   run_step "Remove mmcv-lite placeholder" remove_mmcv_placeholder_step
   run_step "Install mmengine" install_mmengine_step
