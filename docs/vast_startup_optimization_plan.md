@@ -1,31 +1,42 @@
-# Vast Startup Optimization Plan
+# Vast Cold-Boot Optimization Plan
 
 ## Scope
 
-This note captures the current full-stack Vast.ai bootstrap problem for the
-MuseTalk TRT-stagewise server and proposes a practical plan to reduce startup
-time without adding paid infrastructure.
+This document focuses on **cold boot time only** for a brand-new Vast.ai node.
 
-This is **not** a replacement for the operational boot docs in
-`docs/vast_ai_boot.md`. That document explains how to boot the node. This
-document explains what is slow in the latest boot profile and how to reduce it.
+Cold boot means:
 
-Assumptions for this plan:
+- new server
+- no existing venv
+- no `/workspace` cache
+- no existing wheelhouse
+- no existing model files
+
+This document intentionally does **not** optimize for:
+
+- repeat boots on the same node
+- reusing an existing validated setup
+- skipping bootstrap because the environment is already present
+
+Those are useful operational concerns, but they are not the problem being solved
+here.
+
+Assumptions:
 
 - full-stack setup is required
   - server runtime deps
   - avatar-prep deps
-  - avatar-prep model weights
-- the current Vast boot flow remains based on `scripts/vast_onstart.sh`
-- the current environment family remains CUDA 12.1 / Python 3.10 / TRT-stagewise
-- preferred solutions should avoid recurring storage cost
+  - full model set
+- current boot path remains based on `scripts/vast_onstart.sh`
+- current environment family remains CUDA 12.1 / Python 3.10 / TRT-stagewise
+- preferred solutions should avoid recurring cost
 
-## Current Latest Setup Profile
+## Current Cold-Boot Baseline
 
-The latest `scripts/dependency_install_logs` profile shows that the completed
-setup path took **42m45s** before the background server-health phase.
+The latest `scripts/dependency_install_logs` capture a completed bootstrap/setup
+phase of **42m45s** before the server-health phase.
 
-Top-level completed setup phases from the latest log:
+Top-level completed setup phases:
 
 - `Install required system packages`: `17s`
 - `Build TRT-stagewise experiment venv`: `18m47s`
@@ -37,24 +48,21 @@ Top-level completed setup phases from the latest log:
 
 Important note:
 
-- this specific log ends after `vast_server_ctl.sh` spawned the server process
-- it does **not** include a final `health check passed` or total end-to-end boot
-  duration
-- so the numbers below rank the **completed setup portion**, not the full server
-  warmup tail
+- this log stops after the server process is spawned
+- it does **not** include the final health-ready tail
+- so the numbers below rank the **measured cold-bootstrap portion**
 
-## Ranked Largest Time Sinks
+## Largest Cold-Boot Time Sinks
 
-These are the biggest wall-clock costs from the latest completed setup profile.
+These are the biggest wall-clock costs from the latest completed cold bootstrap.
 
 1. `Download MuseTalk V1.5 weights`: `16m59s`
-   - currently the single largest sink
    - dominated by `models/musetalkV15/unet.pth`
-   - latest post-setup validation reported this file at `3.2G`
+   - latest validation reported `unet.pth` at `3.2G`
 
 2. `Install PyTorch CUDA 12.1 wheel set`: `8m15s`
    - dominated by large wheel downloads
-   - examples from the same log:
+   - examples:
      - `torch`: `780.4 MB`
      - `nvidia-cudnn-cu12`: `664.8 MB`
      - `nvidia-cublas-cu12`: `410.6 MB`
@@ -64,7 +72,7 @@ These are the biggest wall-clock costs from the latest completed setup profile.
 
 3. `Download SyncNet weights`: `4m14s`
    - dominated by `models/syncnet/latentsync_syncnet.pt`
-   - latest post-setup validation reported this file at `1.4G`
+   - latest validation reported `syncnet` at `1.4G`
 
 4. `Install pinned HLS/api_server dependency set`: `2m44s`
 
@@ -75,105 +83,113 @@ These are the biggest wall-clock costs from the latest completed setup profile.
 
 7. `Install pinned export + benchmark dependencies`: `2m15s`
 
-The first three items alone account for about **29m28s** of the `42m45s`
-captured setup, so the current problem is now mostly about **large static
-artifact transfer**, not Python source builds.
+The first three items alone account for about **29m28s** of the measured
+`42m45s` bootstrap.
 
-## What Changed Since The Older mmcv Problem
+Cold-boot conclusion:
 
-The old `mmcv` compile path used to cost roughly `6-10` minutes.
+- the dominant problem is **multi-GB artifact transfer**
+- not Python build logic
+- not apt
+- not validation steps
 
-That is no longer the main issue in the latest profile:
+## What No Longer Matters As Much
+
+The old `mmcv` source-build problem used to cost roughly `6-10` minutes.
+
+That is no longer the primary cold-boot bottleneck:
 
 - latest avatar-prep dependency phase: `2m33s`
 - latest `Install full mmcv`: `1s`
 
-That is the proof point that the general strategy works:
+That matters because it proves the pattern:
 
-- when a large or expensive dependency becomes a prebuilt artifact close to the
-  install path, boot time drops sharply
+- when an expensive dependency becomes a nearby prebuilt artifact, cold boot
+  drops sharply
 
-The next optimization cycle should apply that same idea to the **current**
-largest static assets:
+The next cold-boot optimization cycle should apply that same pattern to:
 
-- model files
-- pinned wheel sets
+- `musetalkV15/unet.pth`
+- `syncnet/latentsync_syncnet.pt`
+- the PyTorch CUDA wheel set
+- the TensorRT wheel set
 
-## Current Script Behaviors That Still Hurt Boot Time
+## What Helps Cold Boot And What Does Not
 
-### 1. The setup path still disables pip caching on heavy installs
+### Helps Cold Boot
 
-`scripts/setup_trt_experiment_env.sh` defines `PIP_CACHE_DIR`, but the heavy
-install steps still use `--no-cache-dir`, including:
+- faster transport for large HF-hosted files
+- parallel model-group downloads
+- prebuilt artifact bundles for models
+- prebuilt artifact bundles for wheel sets
+- wheelhouse-first installs when the wheelhouse is prepopulated
 
-- PyTorch stack
-- TensorRT stack
-- export/backend deps
-- server deps
-- avatar-prep prerequisites
+### Does Not Materially Solve Cold Boot
 
-Relevant install sections:
+- pip cache reuse alone
+- skipping bootstrap because the setup already exists
+- turning `SETUP_CLEAN` off on a completely new node
 
-- `scripts/setup_trt_experiment_env.sh`
-  - `install_pytorch_cuda_step`
-  - `install_torch_tensorrt_step`
-  - `install_export_dependencies_step`
-  - `install_server_dependencies_step`
-  - `install_avatar_prep_prerequisites_step`
+Those are repeat-boot optimizations, not cold-boot answers.
 
-Implication:
+## Current Script-Level Cold-Boot Improvements Already Implemented
 
-- even if the machine has previously downloaded these wheels, the current flow
-  does not reuse them efficiently
+The repo already has several changes that help cold boots directly:
 
-### 2. Full-stack weight downloads are still serialized across repos
+1. `hf_xet` is now installed during the model download helper step.
+2. `HF_XET_HIGH_PERFORMANCE=1` is enabled by default.
+3. independent model download groups now run in parallel.
+4. heavy dependency families can now prefetch into a wheelhouse in parallel.
+5. heavy install phases prefer local wheelhouse artifacts when available.
 
-`download_weights.sh` currently runs the major groups in sequence:
+Cold-boot interpretation:
 
-- MuseTalk V1.5
-- SD VAE
-- Whisper
-- DWPose
-- SyncNet
-- S3FD
-- face-parse model
-- ResNet18
+- these changes can reduce a fresh-node boot
+- but they do **not** remove the need to fetch the largest artifacts at least
+  once
 
-Implication:
+So they are worthwhile, but they are not sufficient to make a brand-new node
+fast by themselves.
 
-- independent downloads are not overlapping
-- the `16m59s` MuseTalk V1.5 pull and `4m14s` SyncNet pull stack on top of each
-  other instead of competing in parallel
+## Cold-Boot Priority Targets
 
-### 3. Hugging Face Xet-backed repos are falling back to plain HTTP
+If the goal is to materially reduce first boot on a brand-new server, the
+highest-value targets are:
 
-The latest log repeatedly reports:
+### Target 1: MuseTalk V1.5 UNet
 
-- Xet storage is enabled for the repo
-- `hf_xet` is not installed
-- the downloader falls back to regular HTTP
+- file: `models/musetalkV15/unet.pth`
+- latest measured cost: effectively the full `16m59s` MuseTalk V1.5 phase
+- latest measured size: `3.2G`
 
-Implication:
+This is the single largest cold-boot target.
 
-- the current helper install step is too minimal for the current artifact mix
-- increasing `HF_MAX_WORKERS` helps only when there are multiple files to fetch
-- it does not solve the largest single-file transfers
+### Target 2: SyncNet
 
-### 4. The current full-stack boot still pays for avatar-prep weights every cold node
+- file: `models/syncnet/latentsync_syncnet.pt`
+- latest measured cost: `4m14s`
+- latest measured size: `1.4G`
 
-Because full-stack is required, the current path must fetch:
+This is the second-best model target.
 
-- `dwpose`
-- `syncnet`
-- `s3fd`
+### Target 3: PyTorch CUDA Wheel Family
 
-That is valid, but it means the optimization target is not “remove avatar-prep.”
-It is “make avatar-prep assets arrive faster and more predictably.”
+- latest measured cost: `8m15s`
+- dominated by the torch/CUDA wheel family
 
-## Why Storing All Models In The Main Repo Is The Wrong Move
+This is the single largest non-model cold-boot target.
 
-At first glance this looks similar to the `mmcv` wheel solution, but the scale
-is very different.
+### Target 4: TensorRT Wheel Family
+
+- latest measured cost: `2m37s`
+- includes a `2.0G` TensorRT libs wheel
+
+This is the second-largest non-model artifact family.
+
+## Why The Main Git Repo Is Still The Wrong Place For Models
+
+Even with a cold-boot-only lens, putting the full model set directly into the
+normal Git history is still the wrong tradeoff.
 
 The full-stack model set is roughly:
 
@@ -185,134 +201,70 @@ The full-stack model set is roughly:
 - `face-parse-bisent/79999_iter.pth`: `51M`
 - `face-parse-bisent/resnet18-5c106cde.pth`: about `47M`
 - `face_detection/s3fd.pth`: `86M`
-- plus the duplicated auxiliary S3FD source file
 
-That is roughly **5.7+ GB** of binary artifacts before counting caches or future
-revisions.
+That is roughly **5.7+ GB** before revision growth.
 
-Putting those directly in the main Git repo would create several problems:
+Why this should not live in normal Git history:
 
-- clone and pull size would explode
-- Git history would bloat permanently
-- every source checkout would inherit the artifact weight
-- large-binary handling in normal Git is poor
-- Git LFS introduces quota and operational complexity, which is not a reliable
-  “free forever” answer
+- the largest files cannot be committed as normal GitHub repo files
+- GitHub blocks normal repo files larger than `100 MiB`
+- Git LFS per-file limits still create practical issues for multi-GB files
+- repo clone/fetch performance would become permanently worse
+- every developer checkout inherits the binary weight forever
 
-Conclusion:
+Cold-boot takeaway:
 
-- do **not** store the full model set in the main source repo
+- use GitHub as a distribution surface if you want
+- do **not** use normal Git history as the storage layer
 
-## Better No-Cost Approach
+## Best No-Cost Cold-Boot Strategy
 
-Use the same basic idea as the `mmcv` optimization, but move the artifact
-storage target.
+The simplest cold-boot strategy that stays GitHub-based is:
 
-Recommended direction:
+### Use GitHub Releases For Prebuilt Bundles
 
-- keep the main source repo small
-- publish large immutable artifacts outside the main Git history
-- fetch them from a predictable public CDN-backed source
-- keep local resume + checksum validation
+Preferred bundle shape:
 
-Two practical no-cost patterns:
-
-### Option A: GitHub release assets in this repo or a companion artifact repo
-
-Store versioned artifacts such as:
-
-- `models-full-stack-core-<version>.tar`
-- `models-avatar-prep-<version>.tar`
-- `wheelhouse-cu121-trt-<version>.tar`
+- `models-core-part-01`
+- `models-core-part-02`
+- `models-avatar-prep`
+- `wheelhouse-cu121-trt`
 - `checksums.txt`
 
-Pros:
+Why this is the best fit:
 
+- still simple
+- still GitHub-based
 - no paid storage service required up front
-- simple public URLs
-- compatible with resumable `curl`
-- close in spirit to the successful `mmcv` wheel approach
+- avoids poisoning normal Git history
+- works well with resumable `curl`
+- matches the successful `mmcv` idea: use prebuilt artifacts instead of building
+  or downloading piece by piece from multiple slow endpoints
 
-Cons:
+If per-file size limits require it:
 
-- still large uploads and downloads
-- main repo releases become artifact-heavy if kept in the same repo
-- should likely live in a separate public artifact repo to keep the source repo
-  clean
+- split the largest model bundle into parts
+- reassemble on the node
 
-### Option B: Public artifact repo containing only binaries and manifests
+## Recommended Cold-Boot Plan
 
-Create a separate public repo dedicated to:
+### Phase 1: Keep The Current Script-Level Transport Improvements
 
-- pinned wheels
-- pinned full-stack model bundles
-- manifest + checksum files
+These are already the right direction for cold boot:
 
-Pros:
+1. `hf_xet`
+2. `HF_XET_HIGH_PERFORMANCE=1`
+3. parallel model download groups
+4. parallel wheelhouse prefetch
 
-- keeps the main repo clean
-- makes artifact versioning explicit
-- easy to mirror the current pinned environment
+These should remain enabled.
 
-Cons:
+### Phase 2: Publish Cold-Boot Artifact Bundles
 
-- still requires maintaining published bundles
-- cloning the artifact repo itself is not the right transport; direct release
-  asset download is better
+This is the real next step if cold boot is all that matters.
 
-Recommendation:
-
-- prefer **release assets or a companion artifact repo**
-- do **not** put the full model set directly in the main Git checkout
-
-## Recommended Improvement Plan
-
-### Phase 1: Fix The Current Downloader And Installer
-
-These are low-risk script changes and should happen first.
-
-1. Preserve pip cache by default.
-   - stop using `--no-cache-dir` on the large wheel phases
-   - keep a stable cache directory under `/workspace` so a rebuilt venv can
-     still reuse wheels
-
-2. Install `hf_xet` before Hugging Face downloads.
-   - the latest log explicitly shows Xet-backed repos falling back to regular
-     HTTP
-   - this is a small dependency with potentially large impact on the biggest
-     model pulls
-
-3. Parallelize independent model download groups.
-   - current script downloads major repos serially
-   - full-stack can safely overlap independent downloads with bounded
-     concurrency
-   - likely grouping:
-     - group A: MuseTalk V1.5
-     - group B: SyncNet + DWPose
-     - group C: SD VAE + Whisper + face-parse + ResNet18 + S3FD
-
-4. Move caches under a persistent workspace path.
-   - pip cache
-   - Hugging Face cache
-   - any downloader temp cache needed for resumable assets
-
-5. Add checksums to all non-HF direct downloads.
-   - face-parse
-   - ResNet18
-   - any future artifact-bundle downloads
-
-Expected result:
-
-- repeat installs should become much faster
-- fresh-node model downloads should improve, especially for HF-backed repos
-- the model phase should stop being fully serialized
-
-### Phase 2: Create A Versioned Artifact Distribution Path
-
-This is the real first-boot optimization layer.
-
-1. Publish a versioned full-stack model bundle outside the main repo history.
-   - server-core bundle:
+1. Publish a GitHub release bundle for the full-stack models.
+   - core runtime bundle:
      - MuseTalk V1.5
      - SD VAE
      - Whisper
@@ -322,95 +274,60 @@ This is the real first-boot optimization layer.
      - SyncNet
      - S3FD
 
-2. Publish a versioned wheelhouse bundle for the pinned Python environment.
-   - PyTorch CUDA stack
-   - TensorRT stack
-   - export/backend deps
-   - server deps
-   - avatar-prep deps that are worth prepacking
+2. Publish a GitHub release bundle for the pinned wheelhouse.
+   - PyTorch CUDA wheels
+   - TensorRT wheels
+   - export/backend wheels
+   - server-runtime wheels
+   - avatar-prep prerequisite wheels
 
-3. Add a manifest file in this repo describing:
-   - artifact version
-   - expected checksums
-   - destination paths
-   - fallback source URLs
+3. Add checksums for every published artifact.
 
-4. Update bootstrap scripts so they:
-   - prefer local/workspace artifact bundles if present
-   - otherwise download the published bundles
-   - only fall back to piecemeal internet installs if the bundles are missing
+4. Update bootstrap to:
+   - prefer GitHub release bundles first
+   - only fall back to public internet piecemeal downloads if the bundles are
+     unavailable
 
-Expected result:
+Expected cold-boot effect:
 
-- first boot stops depending on many slow third-party endpoints
-- the boot path becomes closer to “download a few known bundles and unpack”
+- fewer endpoints
+- fewer independent transfers
+- less dependence on third-party mirror variance
+- much better odds of predictable first boot
 
-### Phase 3: Make Boot Modes Explicit
+### Phase 3: Treat Cold Boot As A Separate Product Path
 
-The repo should separate:
+The cold-boot question should be treated separately from repeat-boot behavior.
 
-- `fresh full-stack bootstrap`
-- `repeat full-stack bootstrap with caches`
-- `already-provisioned node startup`
+That means:
 
-Current pain often comes from treating these as the same operation.
-
-Plan:
-
-1. Keep `SETUP_CLEAN=1` only for forced rebuilds.
-2. Add a documented “normal redeploy” path that reuses:
-   - model bundles
-   - pip wheel cache
-   - Hugging Face cache
-3. Keep full-stack validation, but do not rebuild what is already valid.
+- optimize first boot around prebuilt bundles
+- stop assuming pip caches are the primary answer
+- stop assuming validation-skip logic solves the real problem
 
 ## Concrete Recommendation
 
-If only one medium-sized project is taken on next, it should be this:
+If the next optimization cycle is focused only on cold boot, the highest-value
+project is:
 
-1. add persistent pip/HF caches
-2. add `hf_xet`
-3. parallelize model download groups
-4. build a **separate public artifact release path** for:
-   - full-stack model bundles
-   - pinned wheelhouse bundles
+1. keep the current Xet + parallel-download improvements
+2. publish GitHub release bundles for:
+   - full-stack model artifacts
+   - pinned wheelhouse artifacts
+3. teach bootstrap to consume those bundles first
 
-That is the closest scalable extension of the successful `mmcv` idea.
-
-The right analogy is:
-
-- `mmcv` proved that a prebuilt artifact can erase a 6-10 minute build cost
-- models and wheel sets are now the same class of problem, just larger
-- the answer is still “prebuilt, versioned artifacts”
-- the difference is that these artifacts should live **outside the main source
-  repo**
-
-## Suggested Implementation Order
-
-### Immediate
-
-- remove `--no-cache-dir` from heavy pip phases
-- move pip and HF caches to persistent workspace paths
-- install `hf_xet` in the download-helper step
-- add parallel model download groups
-
-### Next
-
-- create a public artifact release process for full-stack model bundles
-- create a public artifact release process for the pinned wheelhouse
-- add manifest + checksum validation
-
-### After That
-
-- adjust bootstrap scripts to prefer artifact bundles first
-- keep direct internet installs only as a fallback path
+That is the cleanest continuation of the `mmcv` strategy.
 
 ## Decision Summary
 
-- full-stack is required, so the plan must optimize avatar-prep rather than
-  remove it
-- storing the full model set in the main repo is the wrong tradeoff
-- the best no-cost direction is a **separate artifact distribution path**
-  combined with persistent caches and parallel downloads
-- the `mmcv` win should be copied as a pattern, not copied literally into the
-  main source tree
+- cold boot is dominated by large artifact transfer
+- the two biggest model targets are:
+  - `musetalkV15/unet.pth`
+  - `syncnet/latentsync_syncnet.pt`
+- the two biggest dependency targets are:
+  - PyTorch CUDA wheel family
+  - TensorRT wheel family
+- repeat-boot logic is not the focus here
+- the best no-cost cold-boot direction is:
+  - **GitHub Releases for prebuilt model and wheel bundles**
+  - not normal Git repo storage
