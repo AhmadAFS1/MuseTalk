@@ -22,6 +22,7 @@ export HF_HUB_ENABLE_HF_TRANSFER="${HF_HUB_ENABLE_HF_TRANSFER:-0}"
 export HF_HUB_ETAG_TIMEOUT="${HF_HUB_ETAG_TIMEOUT:-120}"
 export HF_HUB_DOWNLOAD_TIMEOUT="${HF_HUB_DOWNLOAD_TIMEOUT:-120}"
 export HF_ENDPOINT="${HF_ENDPOINT:-https://huggingface.co}"
+export HF_XET_HIGH_PERFORMANCE="${HF_XET_HIGH_PERFORMANCE:-1}"
 
 log() {
   step_log_emit INFO "$*"
@@ -227,7 +228,9 @@ wait_for_hf_endpoint_step() {
 }
 
 install_download_helpers_step() {
-  retry python -m pip install --disable-pip-version-check --no-cache-dir gdown
+  retry python -m pip install --disable-pip-version-check --no-cache-dir \
+    gdown \
+    hf-xet
 }
 
 download_musetalk_v1_weights_step() {
@@ -343,6 +346,7 @@ trap 'step_logging_on_exit $?' EXIT
 log "Using Hugging Face endpoint: $HF_ENDPOINT"
 log "Hugging Face timeouts: etag=${HF_HUB_ETAG_TIMEOUT}s download=${HF_HUB_DOWNLOAD_TIMEOUT}s"
 log "Hugging Face max workers per repo download: $HF_MAX_WORKERS ($HF_MAX_WORKERS_SOURCE)"
+log "HF_XET_HIGH_PERFORMANCE=$HF_XET_HIGH_PERFORMANCE"
 log "Download retries: $DOWNLOAD_RETRIES"
 log "MuseTalk V1 weights enabled: $DOWNLOAD_MUSETALK_V1_WEIGHTS"
 log "MuseTalk V1.5 weights enabled: $DOWNLOAD_MUSETALK_V15_WEIGHTS"
