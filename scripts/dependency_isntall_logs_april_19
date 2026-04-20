@@ -1,0 +1,1404 @@
+
+========================================
+VAST_ONSTART BEGIN: 2026-04-20 02:28:55 UTC
+========================================
+[vast_onstart.sh] [02:28:55] Vast.ai MuseTalk on-start begin
+[vast_onstart.sh] [02:28:55] repo=/workspace/MuseTalk
+[vast_onstart.sh] [02:28:55] workspace=/workspace
+[vast_onstart.sh] [02:28:55] venv=/workspace/.venvs/musetalk_trt_stagewise
+[vast_onstart.sh] [02:28:55] profile=throughput_record host=0.0.0.0 port=8000
+[vast_onstart.sh] [02:28:55] setup_mode=full-stack
+[vast_onstart.sh] [02:28:55] GPU: NVIDIA GeForce RTX 3090, 24576 MiB
+[vast_onstart.sh] [02:28:55] Disk free: 50G
+[vast_onstart.sh] [02:28:55] Full-stack bootstrap requested: this node will install avatar-prep deps and weights in addition to the TRT server runtime
+[vast_onstart.sh] [02:28:55] Current torch 2.5.x + CUDA 12.1 full-stack boots may source-build mmcv when OpenMMLab does not publish a matching prebuilt wheel
+[vast_onstart.sh] [02:28:55] Using HF_MAX_WORKERS=4 for setup/download flow
+[vast_onstart.sh] [02:28:55] Running setup_musetalk.sh --venv-path /workspace/.venvs/musetalk_trt_stagewise --clean --full-stack
+[setup_musetalk.sh] This wrapper now targets the current TRT-stagewise server environment.
+[setup_musetalk.sh] Delegating to scripts/setup_trt_stagewise_server_env.sh
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:28:55+0000] Initialized step logging
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:28:55+0000] Log file: /workspace/MuseTalk/logs/setup/setup_trt_stagewise_server_env-20260420T022855.log
+[setup_trt_stagewise_server_env.sh][STEP][2026-04-20T02:28:55+0000] START: Install required system packages
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:28:55+0000] Installing required system packages
+Hit:1 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64  InRelease
+Hit:2 http://security.ubuntu.com/ubuntu jammy-security InRelease
+Hit:3 http://archive.ubuntu.com/ubuntu jammy InRelease
+Hit:4 http://archive.ubuntu.com/ubuntu jammy-updates InRelease
+Hit:5 https://ppa.launchpadcontent.net/deadsnakes/nightly/ubuntu jammy InRelease
+Hit:6 https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu jammy InRelease
+Hit:7 http://archive.ubuntu.com/ubuntu jammy-backports InRelease
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+build-essential is already the newest version (12.9ubuntu3).
+libgl1 is already the newest version (1.4.0-1).
+libxext6 is already the newest version (2:1.3.4-1build1).
+libxext6 set to manually installed.
+libxrender1 is already the newest version (1:0.9.10-1build4).
+libxrender1 set to manually installed.
+ca-certificates is already the newest version (20240203~22.04.1).
+curl is already the newest version (7.81.0-1ubuntu1.23).
+git is already the newest version (1:2.34.1-1ubuntu1.17).
+ffmpeg is already the newest version (7:4.4.2-0ubuntu0.22.04.1).
+The following additional packages will be installed:
+  libglib2.0-bin libice6 libpython3.10 libpython3.10-dev libpython3.10-minimal
+  libpython3.10-stdlib python3.10-dev python3.10-full python3.10-minimal
+Suggested packages:
+  python3.10-doc binfmt-support
+Recommended packages:
+  xdg-user-dirs python3.10-doc python3.10-examples
+The following NEW packages will be installed:
+  libice6 libsm6
+The following packages will be upgraded:
+  libglib2.0-0 libglib2.0-bin libpython3.10 libpython3.10-dev
+  libpython3.10-minimal libpython3.10-stdlib python3.10 python3.10-dev
+  python3.10-full python3.10-minimal python3.10-venv
+11 upgraded, 2 newly installed, 0 to remove and 141 not upgraded.
+Need to get 14.3 MB of archives.
+After this operation, 194 kB of additional disk space will be used.
+Get:1 http://archive.ubuntu.com/ubuntu jammy-updates/universe amd64 python3.10-full amd64 3.10.12-1~22.04.15 [1124 B]
+Get:2 http://archive.ubuntu.com/ubuntu jammy-updates/universe amd64 python3.10-venv amd64 3.10.12-1~22.04.15 [5714 B]
+Get:3 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 python3.10-dev amd64 3.10.12-1~22.04.15 [508 kB]
+Get:4 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 libpython3.10-dev amd64 3.10.12-1~22.04.15 [4764 kB]
+Get:5 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 libpython3.10 amd64 3.10.12-1~22.04.15 [1949 kB]
+Get:6 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 python3.10 amd64 3.10.12-1~22.04.15 [508 kB]
+Get:7 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 libpython3.10-stdlib amd64 3.10.12-1~22.04.15 [1850 kB]
+Get:8 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 python3.10-minimal amd64 3.10.12-1~22.04.15 [2275 kB]
+Get:9 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 libpython3.10-minimal amd64 3.10.12-1~22.04.15 [816 kB]
+Get:10 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 libglib2.0-bin amd64 2.72.4-0ubuntu2.9 [80.9 kB]
+Get:11 http://archive.ubuntu.com/ubuntu jammy-updates/main amd64 libglib2.0-0 amd64 2.72.4-0ubuntu2.9 [1467 kB]
+Get:12 http://archive.ubuntu.com/ubuntu jammy/main amd64 libice6 amd64 2:1.0.10-1build2 [42.6 kB]
+Get:13 http://archive.ubuntu.com/ubuntu jammy/main amd64 libsm6 amd64 2:1.2.3-1build2 [16.7 kB]
+debconf: delaying package configuration, since apt-utils is not installed
+Fetched 14.3 MB in 2s (5851 kB/s)
+(Reading database ... 
+(Reading database ... 5%
+(Reading database ... 10%
+(Reading database ... 15%
+(Reading database ... 20%
+(Reading database ... 25%
+(Reading database ... 30%
+(Reading database ... 35%
+(Reading database ... 40%
+(Reading database ... 45%
+(Reading database ... 50%
+(Reading database ... 55%
+(Reading database ... 60%
+(Reading database ... 65%
+(Reading database ... 70%
+(Reading database ... 75%
+(Reading database ... 80%
+(Reading database ... 85%
+(Reading database ... 90%
+(Reading database ... 95%
+(Reading database ... 100%
+(Reading database ... 40210 files and directories currently installed.)
+Preparing to unpack .../00-python3.10-full_3.10.12-1~22.04.15_amd64.deb ...
+Unpacking python3.10-full (3.10.12-1~22.04.15) over (3.10.12-1~22.04.9) ...
+Preparing to unpack .../01-python3.10-venv_3.10.12-1~22.04.15_amd64.deb ...
+Unpacking python3.10-venv (3.10.12-1~22.04.15) over (3.10.12-1~22.04.9) ...
+Preparing to unpack .../02-python3.10-dev_3.10.12-1~22.04.15_amd64.deb ...
+Unpacking python3.10-dev (3.10.12-1~22.04.15) over (3.10.12-1~22.04.9) ...
+Preparing to unpack .../03-libpython3.10-dev_3.10.12-1~22.04.15_amd64.deb ...
+Unpacking libpython3.10-dev:amd64 (3.10.12-1~22.04.15) over (3.10.12-1~22.04.9) ...
+Preparing to unpack .../04-libpython3.10_3.10.12-1~22.04.15_amd64.deb ...
+Unpacking libpython3.10:amd64 (3.10.12-1~22.04.15) over (3.10.12-1~22.04.9) ...
+Preparing to unpack .../05-python3.10_3.10.12-1~22.04.15_amd64.deb ...
+Unpacking python3.10 (3.10.12-1~22.04.15) over (3.10.12-1~22.04.9) ...
+Preparing to unpack .../06-libpython3.10-stdlib_3.10.12-1~22.04.15_amd64.deb ...
+Unpacking libpython3.10-stdlib:amd64 (3.10.12-1~22.04.15) over (3.10.12-1~22.04.9) ...
+Preparing to unpack .../07-python3.10-minimal_3.10.12-1~22.04.15_amd64.deb ...
+Unpacking python3.10-minimal (3.10.12-1~22.04.15) over (3.10.12-1~22.04.9) ...
+Preparing to unpack .../08-libpython3.10-minimal_3.10.12-1~22.04.15_amd64.deb ...
+Unpacking libpython3.10-minimal:amd64 (3.10.12-1~22.04.15) over (3.10.12-1~22.04.9) ...
+Preparing to unpack .../09-libglib2.0-bin_2.72.4-0ubuntu2.9_amd64.deb ...
+Unpacking libglib2.0-bin (2.72.4-0ubuntu2.9) over (2.72.4-0ubuntu2.4) ...
+Preparing to unpack .../10-libglib2.0-0_2.72.4-0ubuntu2.9_amd64.deb ...
+Unpacking libglib2.0-0:amd64 (2.72.4-0ubuntu2.9) over (2.72.4-0ubuntu2.4) ...
+Selecting previously unselected package libice6:amd64.
+Preparing to unpack .../11-libice6_2%3a1.0.10-1build2_amd64.deb ...
+Unpacking libice6:amd64 (2:1.0.10-1build2) ...
+Selecting previously unselected package libsm6:amd64.
+Preparing to unpack .../12-libsm6_2%3a1.2.3-1build2_amd64.deb ...
+Unpacking libsm6:amd64 (2:1.2.3-1build2) ...
+Setting up libice6:amd64 (2:1.0.10-1build2) ...
+Setting up libglib2.0-0:amd64 (2.72.4-0ubuntu2.9) ...
+No schema files found: doing nothing.
+Setting up libglib2.0-bin (2.72.4-0ubuntu2.9) ...
+Setting up libpython3.10-minimal:amd64 (3.10.12-1~22.04.15) ...
+Setting up libsm6:amd64 (2:1.2.3-1build2) ...
+Setting up python3.10-minimal (3.10.12-1~22.04.15) ...
+Setting up libpython3.10-stdlib:amd64 (3.10.12-1~22.04.15) ...
+Setting up libpython3.10:amd64 (3.10.12-1~22.04.15) ...
+Setting up python3.10 (3.10.12-1~22.04.15) ...
+Setting up libpython3.10-dev:amd64 (3.10.12-1~22.04.15) ...
+Setting up python3.10-dev (3.10.12-1~22.04.15) ...
+Setting up python3.10-venv (3.10.12-1~22.04.15) ...
+Setting up python3.10-full (3.10.12-1~22.04.15) ...
+Processing triggers for man-db (2.10.2-1) ...
+Processing triggers for libc-bin (2.35-0ubuntu3.9) ...
+[setup_trt_stagewise_server_env.sh][STEP][2026-04-20T02:29:15+0000] DONE: Install required system packages (20s)
+[setup_trt_stagewise_server_env.sh][STEP][2026-04-20T02:29:15+0000] START: Build TRT-stagewise experiment venv
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:29:15+0000] Creating the pinned TRT experiment venv
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:29:15+0000] Full-stack mode enabled: this venv will install both server and avatar-prep deps
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:29:15+0000] Initialized step logging
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:29:15+0000] Log file: /workspace/MuseTalk/logs/setup/setup_trt_experiment_env-20260420T022915.log
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:29:15+0000] Using CA bundle for Python package installs: /etc/ssl/certs/ca-certificates.crt
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:29:15+0000] START: Phase 1: Bootstrap venv and packaging tooling
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:29:15+0000] DETAIL: Create the target venv and prepare the base Python packaging toolchain.
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:29:15+0000] START: Phase 1: Bootstrap venv and packaging tooling :: Create TensorRT artifact directory
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:29:15+0000] Creating TensorRT artifact directory: /workspace/MuseTalk/models/tensorrt_altenv_bs32
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:29:15+0000] DONE: Phase 1: Bootstrap venv and packaging tooling :: Create TensorRT artifact directory (0s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:29:15+0000] START: Phase 1: Bootstrap venv and packaging tooling :: Create venv
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:29:15+0000] Creating venv: /workspace/.venvs/musetalk_trt_stagewise
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:29:18+0000] DONE: Phase 1: Bootstrap venv and packaging tooling :: Create venv (3s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:29:18+0000] START: Phase 1: Bootstrap venv and packaging tooling :: Upgrade pip, setuptools, and wheel
+Requirement already satisfied: pip in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (22.0.2)
+Collecting pip
+  Downloading pip-26.0.1-py3-none-any.whl (1.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 3.2 MB/s eta 0:00:00
+Requirement already satisfied: setuptools in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (59.6.0)
+Collecting setuptools
+  Downloading setuptools-82.0.1-py3-none-any.whl (1.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.0/1.0 MB 23.6 MB/s eta 0:00:00
+Collecting wheel
+  Downloading wheel-0.46.3-py3-none-any.whl (30 kB)
+Collecting packaging>=24.0
+  Downloading packaging-26.1-py3-none-any.whl (95 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 95.8/95.8 KB 8.6 MB/s eta 0:00:00
+Installing collected packages: setuptools, pip, packaging, wheel
+  Attempting uninstall: setuptools
+    Found existing installation: setuptools 59.6.0
+    Uninstalling setuptools-59.6.0:
+      Successfully uninstalled setuptools-59.6.0
+  Attempting uninstall: pip
+    Found existing installation: pip 22.0.2
+    Uninstalling pip-22.0.2:
+      Successfully uninstalled pip-22.0.2
+Successfully installed packaging-26.1 pip-26.0.1 setuptools-82.0.1 wheel-0.46.3
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:29:35+0000] DONE: Phase 1: Bootstrap venv and packaging tooling :: Upgrade pip, setuptools, and wheel (17s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:29:35+0000] DONE: Phase 1: Bootstrap venv and packaging tooling (20s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:29:35+0000] START: Phase 2: Prefetch wheelhouse artifacts
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:29:35+0000] DETAIL: Download/build pinned wheel sets into a local wheelhouse so the heavy install phases can prefer local artifacts.
+/workspace/MuseTalk/scripts/setup_trt_experiment_env.sh: line 191: env_flag_is_true: command not found
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:29:35+0000] Wheelhouse prefetch phase disabled by WHEELHOUSE_ENABLED=1
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:29:35+0000] DONE: Phase 2: Prefetch wheelhouse artifacts (0s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:29:35+0000] START: Phase 3: Install core PyTorch CUDA stack
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:29:35+0000] DETAIL: Download and install the pinned torch, torchvision, torchaudio, numpy, and pillow CUDA wheels.
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:29:35+0000] START: Phase 3: Install core PyTorch CUDA stack :: Install PyTorch CUDA 12.1 wheel set
+/workspace/MuseTalk/scripts/setup_trt_experiment_env.sh: line 191: env_flag_is_true: command not found
+Looking in indexes: https://download.pytorch.org/whl/cu121
+Collecting torch==2.5.1
+  Downloading https://download-r2.pytorch.org/whl/cu121/torch-2.5.1%2Bcu121-cp310-cp310-linux_x86_64.whl (780.4 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 780.4/780.4 MB 53.6 MB/s  0:00:10
+Collecting torchvision==0.20.1
+  Downloading https://download-r2.pytorch.org/whl/cu121/torchvision-0.20.1%2Bcu121-cp310-cp310-linux_x86_64.whl (7.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.3/7.3 MB 38.8 MB/s  0:00:00
+Collecting torchaudio==2.5.1
+  Downloading https://download-r2.pytorch.org/whl/cu121/torchaudio-2.5.1%2Bcu121-cp310-cp310-linux_x86_64.whl (3.4 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.4/3.4 MB 7.7 MB/s  0:00:00
+Collecting numpy==1.23.5
+  Downloading numpy-1.23.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (2.3 kB)
+Collecting pillow==11.3.0
+  Downloading pillow-11.3.0-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (9.0 kB)
+Collecting filelock (from torch==2.5.1)
+  Downloading filelock-3.25.2-py3-none-any.whl.metadata (2.0 kB)
+Collecting typing-extensions>=4.8.0 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting networkx (from torch==2.5.1)
+  Downloading networkx-3.4.2-py3-none-any.whl.metadata (6.3 kB)
+Collecting jinja2 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+Collecting fsspec (from torch==2.5.1)
+  Downloading fsspec-2026.2.0-py3-none-any.whl.metadata (10 kB)
+Collecting nvidia-cuda-nvrtc-cu12==12.1.105 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/cu121/nvidia_cuda_nvrtc_cu12-12.1.105-py3-none-manylinux1_x86_64.whl (23.7 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 23.7/23.7 MB 69.4 MB/s  0:00:00
+Collecting nvidia-cuda-runtime-cu12==12.1.105 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/cu121/nvidia_cuda_runtime_cu12-12.1.105-py3-none-manylinux1_x86_64.whl (823 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 823.6/823.6 kB 4.3 MB/s  0:00:00
+Collecting nvidia-cuda-cupti-cu12==12.1.105 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/cu121/nvidia_cuda_cupti_cu12-12.1.105-py3-none-manylinux1_x86_64.whl (14.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 14.1/14.1 MB 68.9 MB/s  0:00:00
+Collecting nvidia-cudnn-cu12==9.1.0.70 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/cu121/nvidia_cudnn_cu12-9.1.0.70-py3-none-manylinux2014_x86_64.whl (664.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 664.8/664.8 MB 33.2 MB/s  0:00:17
+Collecting nvidia-cublas-cu12==12.1.3.1 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/cu121/nvidia_cublas_cu12-12.1.3.1-py3-none-manylinux1_x86_64.whl (410.6 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 410.6/410.6 MB 63.8 MB/s  0:00:05
+Collecting nvidia-cufft-cu12==11.0.2.54 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/cu121/nvidia_cufft_cu12-11.0.2.54-py3-none-manylinux1_x86_64.whl (121.6 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 121.6/121.6 MB 80.6 MB/s  0:00:01
+Collecting nvidia-curand-cu12==10.3.2.106 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/cu121/nvidia_curand_cu12-10.3.2.106-py3-none-manylinux1_x86_64.whl (56.5 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 56.5/56.5 MB 84.3 MB/s  0:00:00
+Collecting nvidia-cusolver-cu12==11.4.5.107 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/cu121/nvidia_cusolver_cu12-11.4.5.107-py3-none-manylinux1_x86_64.whl (124.2 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 124.2/124.2 MB 86.9 MB/s  0:00:01
+Collecting nvidia-cusparse-cu12==12.1.0.106 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/cu121/nvidia_cusparse_cu12-12.1.0.106-py3-none-manylinux1_x86_64.whl (196.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 196.0/196.0 MB 36.9 MB/s  0:00:05
+Collecting nvidia-nccl-cu12==2.21.5 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/nvidia_nccl_cu12-2.21.5-py3-none-manylinux2014_x86_64.whl (188.7 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 188.7/188.7 MB 58.6 MB/s  0:00:03
+Collecting nvidia-nvtx-cu12==12.1.105 (from torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/cu121/nvidia_nvtx_cu12-12.1.105-py3-none-manylinux1_x86_64.whl (99 kB)
+Collecting triton==3.1.0 (from torch==2.5.1)
+  Downloading https://download-r2.pytorch.org/whl/triton-3.1.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (209.5 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 209.5/209.5 MB 66.4 MB/s  0:00:03
+Collecting sympy==1.13.1 (from torch==2.5.1)
+  Downloading sympy-1.13.1-py3-none-any.whl.metadata (12 kB)
+Collecting nvidia-nvjitlink-cu12 (from nvidia-cusolver-cu12==11.4.5.107->torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/nvidia_nvjitlink_cu12-12.9.86-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl.metadata (1.7 kB)
+Collecting mpmath<1.4,>=1.1.0 (from sympy==1.13.1->torch==2.5.1)
+  Downloading mpmath-1.3.0-py3-none-any.whl.metadata (8.6 kB)
+Collecting MarkupSafe>=2.0 (from jinja2->torch==2.5.1)
+  Downloading https://download.pytorch.org/whl/markupsafe-3.0.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+Downloading numpy-1.23.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (17.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 17.1/17.1 MB 18.1 MB/s  0:00:01
+Downloading pillow-11.3.0-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (6.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.6/6.6 MB 10.8 MB/s  0:00:00
+Downloading sympy-1.13.1-py3-none-any.whl (6.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.2/6.2 MB 36.3 MB/s  0:00:00
+Downloading mpmath-1.3.0-py3-none-any.whl (536 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 536.2/536.2 kB 10.9 MB/s  0:00:00
+Downloading https://download.pytorch.org/whl/typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+Downloading filelock-3.25.2-py3-none-any.whl (26 kB)
+Downloading fsspec-2026.2.0-py3-none-any.whl (202 kB)
+Downloading https://download.pytorch.org/whl/jinja2-3.1.6-py3-none-any.whl (134 kB)
+Downloading https://download.pytorch.org/whl/markupsafe-3.0.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (20 kB)
+Downloading networkx-3.4.2-py3-none-any.whl (1.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.7/1.7 MB 27.6 MB/s  0:00:00
+Downloading https://download.pytorch.org/whl/nvidia_nvjitlink_cu12-12.9.86-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl (39.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 39.7/39.7 MB 67.4 MB/s  0:00:00
+Installing collected packages: mpmath, typing-extensions, sympy, pillow, nvidia-nvtx-cu12, nvidia-nvjitlink-cu12, nvidia-nccl-cu12, nvidia-curand-cu12, nvidia-cufft-cu12, nvidia-cuda-runtime-cu12, nvidia-cuda-nvrtc-cu12, nvidia-cuda-cupti-cu12, nvidia-cublas-cu12, numpy, networkx, MarkupSafe, fsspec, filelock, triton, nvidia-cusparse-cu12, nvidia-cudnn-cu12, jinja2, nvidia-cusolver-cu12, torch, torchvision, torchaudio
+
+Successfully installed MarkupSafe-3.0.3 filelock-3.25.2 fsspec-2026.2.0 jinja2-3.1.6 mpmath-1.3.0 networkx-3.4.2 numpy-1.23.5 nvidia-cublas-cu12-12.1.3.1 nvidia-cuda-cupti-cu12-12.1.105 nvidia-cuda-nvrtc-cu12-12.1.105 nvidia-cuda-runtime-cu12-12.1.105 nvidia-cudnn-cu12-9.1.0.70 nvidia-cufft-cu12-11.0.2.54 nvidia-curand-cu12-10.3.2.106 nvidia-cusolver-cu12-11.4.5.107 nvidia-cusparse-cu12-12.1.0.106 nvidia-nccl-cu12-2.21.5 nvidia-nvjitlink-cu12-12.9.86 nvidia-nvtx-cu12-12.1.105 pillow-11.3.0 sympy-1.13.1 torch-2.5.1+cu121 torchaudio-2.5.1+cu121 torchvision-0.20.1+cu121 triton-3.1.0 typing-extensions-4.15.0
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:31:46+0000] DONE: Phase 3: Install core PyTorch CUDA stack :: Install PyTorch CUDA 12.1 wheel set (2m11s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:31:46+0000] DONE: Phase 3: Install core PyTorch CUDA stack (2m11s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:31:46+0000] START: Phase 4: Install TensorRT Python stack
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:31:46+0000] DETAIL: Download and install torch-tensorrt together with the NVIDIA TensorRT Python runtime packages.
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:31:46+0000] START: Phase 4: Install TensorRT Python stack :: Install torch-tensorrt pinned stack
+/workspace/MuseTalk/scripts/setup_trt_experiment_env.sh: line 191: env_flag_is_true: command not found
+Looking in indexes: https://pypi.org/simple, https://pypi.nvidia.com
+Collecting torch-tensorrt==2.5.0
+  Downloading torch_tensorrt-2.5.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_34_x86_64.whl.metadata (10 kB)
+Requirement already satisfied: torch<2.6.0,>=2.5.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch-tensorrt==2.5.0) (2.5.1+cu121)
+Collecting tensorrt-cu12==10.3.0 (from torch-tensorrt==2.5.0)
+  Downloading https://pypi.nvidia.com/tensorrt-cu12/tensorrt-cu12-10.3.0.tar.gz (18 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Installing backend dependencies: started
+  Installing backend dependencies: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting tensorrt-cu12-bindings==10.3.0 (from torch-tensorrt==2.5.0)
+  Downloading https://pypi.nvidia.com/tensorrt-cu12-bindings/tensorrt_cu12_bindings-10.3.0-cp310-none-manylinux_2_17_x86_64.whl (1.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 62.7 MB/s  0:00:00
+Collecting tensorrt-cu12-libs==10.3.0 (from torch-tensorrt==2.5.0)
+  Downloading https://pypi.nvidia.com/tensorrt-cu12-libs/tensorrt_cu12_libs-10.3.0-py2.py3-none-manylinux_2_17_x86_64.whl (2037.5 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 GB 114.6 MB/s  0:00:18
+Requirement already satisfied: packaging>=23 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch-tensorrt==2.5.0) (26.1)
+Requirement already satisfied: numpy in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch-tensorrt==2.5.0) (1.23.5)
+Requirement already satisfied: typing-extensions>=4.7.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch-tensorrt==2.5.0) (4.15.0)
+Requirement already satisfied: nvidia-cuda-runtime-cu12 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from tensorrt-cu12-libs==10.3.0->torch-tensorrt==2.5.0) (12.1.105)
+Requirement already satisfied: filelock in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (3.25.2)
+Requirement already satisfied: networkx in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (3.4.2)
+Requirement already satisfied: jinja2 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (3.1.6)
+Requirement already satisfied: fsspec in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (2026.2.0)
+Requirement already satisfied: nvidia-cuda-nvrtc-cu12==12.1.105 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (12.1.105)
+Requirement already satisfied: nvidia-cuda-cupti-cu12==12.1.105 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (12.1.105)
+Requirement already satisfied: nvidia-cudnn-cu12==9.1.0.70 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (9.1.0.70)
+Requirement already satisfied: nvidia-cublas-cu12==12.1.3.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (12.1.3.1)
+Requirement already satisfied: nvidia-cufft-cu12==11.0.2.54 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (11.0.2.54)
+Requirement already satisfied: nvidia-curand-cu12==10.3.2.106 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (10.3.2.106)
+Requirement already satisfied: nvidia-cusolver-cu12==11.4.5.107 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (11.4.5.107)
+Requirement already satisfied: nvidia-cusparse-cu12==12.1.0.106 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (12.1.0.106)
+Requirement already satisfied: nvidia-nccl-cu12==2.21.5 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (2.21.5)
+Requirement already satisfied: nvidia-nvtx-cu12==12.1.105 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (12.1.105)
+Requirement already satisfied: triton==3.1.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (3.1.0)
+Requirement already satisfied: sympy==1.13.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (1.13.1)
+Requirement already satisfied: nvidia-nvjitlink-cu12 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from nvidia-cusolver-cu12==11.4.5.107->torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (12.9.86)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from sympy==1.13.1->torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (1.3.0)
+Requirement already satisfied: MarkupSafe>=2.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from jinja2->torch<2.6.0,>=2.5.0->torch-tensorrt==2.5.0) (3.0.3)
+Downloading torch_tensorrt-2.5.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_34_x86_64.whl (3.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.6/3.6 MB 8.0 MB/s  0:00:00
+Building wheels for collected packages: tensorrt-cu12
+  Building wheel for tensorrt-cu12 (pyproject.toml): started
+  Building wheel for tensorrt-cu12 (pyproject.toml): finished with status 'done'
+  Created wheel for tensorrt-cu12: filename=tensorrt_cu12-10.3.0-py2.py3-none-any.whl size=17675 sha256=1e862998c314ca6bf009fcf6be0a8317fe9af93f1daad2f37eb546246fcfe7da
+  Stored in directory: /root/.cache/pip/wheels/92/54/df/6f049d138ea150984f938619e4eadd919d1dfd0d500614a958
+Successfully built tensorrt-cu12
+Installing collected packages: tensorrt-cu12-bindings, tensorrt-cu12-libs, tensorrt-cu12, torch-tensorrt
+
+Successfully installed tensorrt-cu12-10.3.0 tensorrt-cu12-bindings-10.3.0 tensorrt-cu12-libs-10.3.0 torch-tensorrt-2.5.0
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:32:45+0000] DONE: Phase 4: Install TensorRT Python stack :: Install torch-tensorrt pinned stack (59s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:32:45+0000] DONE: Phase 4: Install TensorRT Python stack (59s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:32:45+0000] START: Phase 5: Install export and backend support dependencies
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:32:45+0000] DETAIL: Install OpenCV, diffusers, transformers, tokenizers, accelerate, safetensors, and validate backend imports.
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:32:45+0000] START: Phase 5: Install export and backend support dependencies :: Install pinned export + benchmark dependencies
+/workspace/MuseTalk/scripts/setup_trt_experiment_env.sh: line 191: env_flag_is_true: command not found
+Requirement already satisfied: numpy==1.23.5 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (1.23.5)
+Collecting opencv-python==4.9.0.80
+  Downloading opencv_python-4.9.0.80-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (20 kB)
+Collecting diffusers==0.30.2
+  Downloading diffusers-0.30.2-py3-none-any.whl.metadata (18 kB)
+Collecting transformers==4.39.2
+  Downloading transformers-4.39.2-py3-none-any.whl.metadata (134 kB)
+Collecting tokenizers==0.15.2
+  Downloading tokenizers-0.15.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.7 kB)
+Collecting accelerate==0.28.0
+  Downloading accelerate-0.28.0-py3-none-any.whl.metadata (18 kB)
+Collecting huggingface_hub==0.30.2
+  Downloading huggingface_hub-0.30.2-py3-none-any.whl.metadata (13 kB)
+Collecting einops==0.8.1
+  Downloading einops-0.8.1-py3-none-any.whl.metadata (13 kB)
+Collecting safetensors==0.7.0
+  Downloading safetensors-0.7.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+Requirement already satisfied: pillow==11.3.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (11.3.0)
+Collecting importlib-metadata (from diffusers==0.30.2)
+  Downloading importlib_metadata-9.0.0-py3-none-any.whl.metadata (4.5 kB)
+Requirement already satisfied: filelock in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from diffusers==0.30.2) (3.25.2)
+Collecting regex!=2019.12.17 (from diffusers==0.30.2)
+  Downloading regex-2026.4.4-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+Collecting requests (from diffusers==0.30.2)
+  Downloading requests-2.33.1-py3-none-any.whl.metadata (4.8 kB)
+Requirement already satisfied: packaging>=20.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from transformers==4.39.2) (26.1)
+Collecting pyyaml>=5.1 (from transformers==4.39.2)
+  Downloading pyyaml-6.0.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+Collecting tqdm>=4.27 (from transformers==4.39.2)
+  Downloading tqdm-4.67.3-py3-none-any.whl.metadata (57 kB)
+Requirement already satisfied: fsspec>=2023.5.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from huggingface_hub==0.30.2) (2026.2.0)
+Requirement already satisfied: typing-extensions>=3.7.4.3 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from huggingface_hub==0.30.2) (4.15.0)
+Collecting psutil (from accelerate==0.28.0)
+  Downloading psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl.metadata (22 kB)
+Requirement already satisfied: torch>=1.10.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from accelerate==0.28.0) (2.5.1+cu121)
+Requirement already satisfied: networkx in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (3.4.2)
+Requirement already satisfied: jinja2 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (3.1.6)
+Requirement already satisfied: nvidia-cuda-nvrtc-cu12==12.1.105 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (12.1.105)
+Requirement already satisfied: nvidia-cuda-runtime-cu12==12.1.105 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (12.1.105)
+Requirement already satisfied: nvidia-cuda-cupti-cu12==12.1.105 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (12.1.105)
+Requirement already satisfied: nvidia-cudnn-cu12==9.1.0.70 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (9.1.0.70)
+Requirement already satisfied: nvidia-cublas-cu12==12.1.3.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (12.1.3.1)
+Requirement already satisfied: nvidia-cufft-cu12==11.0.2.54 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (11.0.2.54)
+Requirement already satisfied: nvidia-curand-cu12==10.3.2.106 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (10.3.2.106)
+Requirement already satisfied: nvidia-cusolver-cu12==11.4.5.107 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (11.4.5.107)
+Requirement already satisfied: nvidia-cusparse-cu12==12.1.0.106 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (12.1.0.106)
+Requirement already satisfied: nvidia-nccl-cu12==2.21.5 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (2.21.5)
+Requirement already satisfied: nvidia-nvtx-cu12==12.1.105 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (12.1.105)
+Requirement already satisfied: triton==3.1.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (3.1.0)
+Requirement already satisfied: sympy==1.13.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch>=1.10.0->accelerate==0.28.0) (1.13.1)
+Requirement already satisfied: nvidia-nvjitlink-cu12 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from nvidia-cusolver-cu12==11.4.5.107->torch>=1.10.0->accelerate==0.28.0) (12.9.86)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from sympy==1.13.1->torch>=1.10.0->accelerate==0.28.0) (1.3.0)
+Collecting zipp>=3.20 (from importlib-metadata->diffusers==0.30.2)
+  Downloading zipp-3.23.1-py3-none-any.whl.metadata (3.6 kB)
+Requirement already satisfied: MarkupSafe>=2.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from jinja2->torch>=1.10.0->accelerate==0.28.0) (3.0.3)
+Collecting charset_normalizer<4,>=2 (from requests->diffusers==0.30.2)
+  Downloading charset_normalizer-3.4.7-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+Collecting idna<4,>=2.5 (from requests->diffusers==0.30.2)
+  Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+Collecting urllib3<3,>=1.26 (from requests->diffusers==0.30.2)
+  Downloading urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+Collecting certifi>=2023.5.7 (from requests->diffusers==0.30.2)
+  Downloading certifi-2026.2.25-py3-none-any.whl.metadata (2.5 kB)
+Downloading opencv_python-4.9.0.80-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (62.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 62.2/62.2 MB 27.1 MB/s  0:00:02
+Downloading diffusers-0.30.2-py3-none-any.whl (2.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.6/2.6 MB 15.0 MB/s  0:00:00
+Downloading transformers-4.39.2-py3-none-any.whl (8.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.8/8.8 MB 6.9 MB/s  0:00:01
+Downloading tokenizers-0.15.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.6/3.6 MB 13.6 MB/s  0:00:00
+Downloading huggingface_hub-0.30.2-py3-none-any.whl (481 kB)
+Downloading accelerate-0.28.0-py3-none-any.whl (290 kB)
+Downloading einops-0.8.1-py3-none-any.whl (64 kB)
+Downloading safetensors-0.7.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (507 kB)
+Downloading pyyaml-6.0.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (770 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 770.3/770.3 kB 1.7 MB/s  0:00:00
+Downloading regex-2026.4.4-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (793 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 793.6/793.6 kB 1.1 MB/s  0:00:00
+Downloading tqdm-4.67.3-py3-none-any.whl (78 kB)
+Downloading importlib_metadata-9.0.0-py3-none-any.whl (27 kB)
+Downloading zipp-3.23.1-py3-none-any.whl (10 kB)
+Downloading psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl (155 kB)
+Downloading requests-2.33.1-py3-none-any.whl (64 kB)
+Downloading charset_normalizer-3.4.7-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (216 kB)
+Downloading idna-3.11-py3-none-any.whl (71 kB)
+Downloading urllib3-2.6.3-py3-none-any.whl (131 kB)
+Downloading certifi-2026.2.25-py3-none-any.whl (153 kB)
+Installing collected packages: zipp, urllib3, tqdm, safetensors, regex, pyyaml, psutil, opencv-python, idna, einops, charset_normalizer, certifi, requests, importlib-metadata, huggingface_hub, tokenizers, diffusers, accelerate, transformers
+
+Successfully installed accelerate-0.28.0 certifi-2026.2.25 charset_normalizer-3.4.7 diffusers-0.30.2 einops-0.8.1 huggingface_hub-0.30.2 idna-3.11 importlib-metadata-9.0.0 opencv-python-4.9.0.80 psutil-7.2.2 pyyaml-6.0.3 regex-2026.4.4 requests-2.33.1 safetensors-0.7.0 tokenizers-0.15.2 tqdm-4.67.3 transformers-4.39.2 urllib3-2.6.3 zipp-3.23.1
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:33:12+0000] DONE: Phase 5: Install export and backend support dependencies :: Install pinned export + benchmark dependencies (27s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:33:12+0000] START: Phase 5: Install export and backend support dependencies :: Validate backend imports and CUDA registration
+Unable to import quantization op. Please install modelopt library (https://github.com/NVIDIA/TensorRT-Model-Optimizer?tab=readme-ov-file#installation) to add support for compiling quantized models
+The cache for model files in Transformers v4.22.0 has been updated. Migrating your old cache. This is a one-time only operation. You can interrupt this and resume the migration later on by calling `transformers.utils.move_cache()`.
+
+0it [00:00, ?it/s]
+0it [00:00, ?it/s]
+torch 2.5.1+cu121
+torch.cuda 12.1
+torch_tensorrt 2.5.0
+tensorrt 10.3.0
+cv2 4.9.0
+diffusers 0.30.2
+transformers 4.39.2
+huggingface_hub 0.30.2
+cuda_device NVIDIA GeForce RTX 3090
+engine_class <torch.ScriptClass object at 0x7ff196c35bf0>
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:33:16+0000] DONE: Phase 5: Install export and backend support dependencies :: Validate backend imports and CUDA registration (4s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:33:16+0000] DONE: Phase 5: Install export and backend support dependencies (31s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:33:16+0000] START: Phase 6: Install API server runtime dependencies
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:33:16+0000] DETAIL: Install FastAPI, uvicorn, audio/video server packages, WebRTC packages, and validate api_server imports.
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:33:16+0000] START: Phase 6: Install API server runtime dependencies :: Install pinned HLS/api_server dependency set
+/workspace/MuseTalk/scripts/setup_trt_experiment_env.sh: line 191: env_flag_is_true: command not found
+Collecting fastapi==0.135.1
+  Downloading fastapi-0.135.1-py3-none-any.whl.metadata (30 kB)
+Collecting uvicorn==0.42.0
+  Downloading uvicorn-0.42.0-py3-none-any.whl.metadata (6.7 kB)
+Collecting aiohttp==3.13.3
+  Downloading aiohttp-3.13.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (8.1 kB)
+Collecting soundfile==0.12.1
+  Downloading soundfile-0.12.1-py2.py3-none-manylinux_2_31_x86_64.whl.metadata (14 kB)
+Collecting librosa==0.11.0
+  Downloading librosa-0.11.0-py3-none-any.whl.metadata (8.7 kB)
+Collecting imageio==2.37.3 (from imageio[ffmpeg]==2.37.3)
+  Downloading imageio-2.37.3-py3-none-any.whl.metadata (9.7 kB)
+Collecting omegaconf==2.3.0
+  Downloading omegaconf-2.3.0-py3-none-any.whl.metadata (3.9 kB)
+Collecting ffmpeg-python==0.2.0
+  Downloading ffmpeg_python-0.2.0-py3-none-any.whl.metadata (1.7 kB)
+Collecting aiofiles==24.1.0
+  Downloading aiofiles-24.1.0-py3-none-any.whl.metadata (10 kB)
+Collecting av==16.1.0
+  Downloading av-16.1.0-cp310-cp310-manylinux_2_28_x86_64.whl.metadata (4.6 kB)
+Collecting python-multipart==0.0.22
+  Downloading python_multipart-0.0.22-py3-none-any.whl.metadata (1.8 kB)
+Collecting aiortc==1.14.0
+  Downloading aiortc-1.14.0-py3-none-any.whl.metadata (4.9 kB)
+Collecting aioice==0.10.1
+  Downloading aioice-0.10.1-py3-none-any.whl.metadata (4.1 kB)
+Collecting starlette>=0.46.0 (from fastapi==0.135.1)
+  Downloading starlette-1.0.0-py3-none-any.whl.metadata (6.3 kB)
+Collecting pydantic>=2.7.0 (from fastapi==0.135.1)
+  Downloading pydantic-2.13.2-py3-none-any.whl.metadata (108 kB)
+Requirement already satisfied: typing-extensions>=4.8.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from fastapi==0.135.1) (4.15.0)
+Collecting typing-inspection>=0.4.2 (from fastapi==0.135.1)
+  Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+Collecting annotated-doc>=0.0.2 (from fastapi==0.135.1)
+  Downloading annotated_doc-0.0.4-py3-none-any.whl.metadata (6.6 kB)
+Collecting click>=7.0 (from uvicorn==0.42.0)
+  Downloading click-8.3.2-py3-none-any.whl.metadata (2.6 kB)
+Collecting h11>=0.8 (from uvicorn==0.42.0)
+  Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+Collecting aiohappyeyeballs>=2.5.0 (from aiohttp==3.13.3)
+  Downloading aiohappyeyeballs-2.6.1-py3-none-any.whl.metadata (5.9 kB)
+Collecting aiosignal>=1.4.0 (from aiohttp==3.13.3)
+  Downloading aiosignal-1.4.0-py3-none-any.whl.metadata (3.7 kB)
+Collecting async-timeout<6.0,>=4.0 (from aiohttp==3.13.3)
+  Downloading async_timeout-5.0.1-py3-none-any.whl.metadata (5.1 kB)
+Collecting attrs>=17.3.0 (from aiohttp==3.13.3)
+  Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+Collecting frozenlist>=1.1.1 (from aiohttp==3.13.3)
+  Downloading frozenlist-1.8.0-cp310-cp310-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (20 kB)
+Collecting multidict<7.0,>=4.5 (from aiohttp==3.13.3)
+  Downloading multidict-6.7.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.3 kB)
+Collecting propcache>=0.2.0 (from aiohttp==3.13.3)
+  Downloading propcache-0.4.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (13 kB)
+Collecting yarl<2.0,>=1.17.0 (from aiohttp==3.13.3)
+  Downloading yarl-1.23.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (79 kB)
+Collecting cffi>=1.0 (from soundfile==0.12.1)
+  Downloading cffi-2.0.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.6 kB)
+Collecting audioread>=2.1.9 (from librosa==0.11.0)
+  Downloading audioread-3.1.0-py3-none-any.whl.metadata (9.0 kB)
+Collecting numba>=0.51.0 (from librosa==0.11.0)
+  Downloading numba-0.65.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.9 kB)
+Requirement already satisfied: numpy>=1.22.3 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from librosa==0.11.0) (1.23.5)
+Collecting scipy>=1.6.0 (from librosa==0.11.0)
+  Downloading scipy-1.15.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (61 kB)
+Collecting scikit-learn>=1.1.0 (from librosa==0.11.0)
+  Downloading scikit_learn-1.7.2-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (11 kB)
+Collecting joblib>=1.0 (from librosa==0.11.0)
+  Downloading joblib-1.5.3-py3-none-any.whl.metadata (5.5 kB)
+Collecting decorator>=4.3.0 (from librosa==0.11.0)
+  Downloading decorator-5.2.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting pooch>=1.1 (from librosa==0.11.0)
+  Downloading pooch-1.9.0-py3-none-any.whl.metadata (10 kB)
+Collecting soxr>=0.3.2 (from librosa==0.11.0)
+  Downloading soxr-1.0.0-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (5.6 kB)
+Collecting lazy_loader>=0.1 (from librosa==0.11.0)
+  Downloading lazy_loader-0.5-py3-none-any.whl.metadata (5.9 kB)
+Collecting msgpack>=1.0 (from librosa==0.11.0)
+  Downloading msgpack-1.1.2-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (8.1 kB)
+Requirement already satisfied: pillow>=8.3.2 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from imageio==2.37.3->imageio[ffmpeg]==2.37.3) (11.3.0)
+Collecting antlr4-python3-runtime==4.9.* (from omegaconf==2.3.0)
+  Downloading antlr4-python3-runtime-4.9.3.tar.gz (117 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: PyYAML>=5.1.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from omegaconf==2.3.0) (6.0.3)
+Collecting future (from ffmpeg-python==0.2.0)
+  Downloading future-1.0.0-py3-none-any.whl.metadata (4.0 kB)
+Collecting cryptography>=44.0.0 (from aiortc==1.14.0)
+  Downloading cryptography-46.0.7-cp38-abi3-manylinux_2_34_x86_64.whl.metadata (5.7 kB)
+Collecting google-crc32c>=1.1 (from aiortc==1.14.0)
+  Downloading google_crc32c-1.8.0-cp310-cp310-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl.metadata (1.7 kB)
+Collecting pyee>=13.0.0 (from aiortc==1.14.0)
+  Downloading pyee-13.0.1-py3-none-any.whl.metadata (3.0 kB)
+Collecting pylibsrtp>=0.10.0 (from aiortc==1.14.0)
+  Downloading pylibsrtp-1.0.0-cp310-abi3-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (4.0 kB)
+Collecting pyopenssl>=25.0.0 (from aiortc==1.14.0)
+  Downloading pyopenssl-26.0.0-py3-none-any.whl.metadata (18 kB)
+Collecting dnspython>=2.0.0 (from aioice==0.10.1)
+  Downloading dnspython-2.8.0-py3-none-any.whl.metadata (5.7 kB)
+Collecting ifaddr>=0.2.0 (from aioice==0.10.1)
+  Downloading ifaddr-0.2.0-py3-none-any.whl.metadata (4.9 kB)
+Collecting imageio-ffmpeg (from imageio[ffmpeg]==2.37.3)
+  Downloading imageio_ffmpeg-0.6.0-py3-none-manylinux2014_x86_64.whl.metadata (1.5 kB)
+Requirement already satisfied: psutil in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from imageio[ffmpeg]==2.37.3) (7.2.2)
+Requirement already satisfied: idna>=2.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from yarl<2.0,>=1.17.0->aiohttp==3.13.3) (3.11)
+Collecting pycparser (from cffi>=1.0->soundfile==0.12.1)
+  Downloading pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+Requirement already satisfied: packaging in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from lazy_loader>=0.1->librosa==0.11.0) (26.1)
+Collecting llvmlite<0.48,>=0.47.0dev0 (from numba>=0.51.0->librosa==0.11.0)
+  Downloading llvmlite-0.47.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (5.0 kB)
+Collecting platformdirs>=2.5.0 (from pooch>=1.1->librosa==0.11.0)
+  Downloading platformdirs-4.9.6-py3-none-any.whl.metadata (4.7 kB)
+Requirement already satisfied: requests>=2.19.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from pooch>=1.1->librosa==0.11.0) (2.33.1)
+Collecting annotated-types>=0.6.0 (from pydantic>=2.7.0->fastapi==0.135.1)
+  Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.46.2 (from pydantic>=2.7.0->fastapi==0.135.1)
+  Downloading pydantic_core-2.46.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.6 kB)
+Requirement already satisfied: charset_normalizer<4,>=2 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from requests>=2.19.0->pooch>=1.1->librosa==0.11.0) (3.4.7)
+Requirement already satisfied: urllib3<3,>=1.26 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from requests>=2.19.0->pooch>=1.1->librosa==0.11.0) (2.6.3)
+Requirement already satisfied: certifi>=2023.5.7 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from requests>=2.19.0->pooch>=1.1->librosa==0.11.0) (2026.2.25)
+Collecting threadpoolctl>=3.1.0 (from scikit-learn>=1.1.0->librosa==0.11.0)
+  Downloading threadpoolctl-3.6.0-py3-none-any.whl.metadata (13 kB)
+Collecting anyio<5,>=3.6.2 (from starlette>=0.46.0->fastapi==0.135.1)
+  Downloading anyio-4.13.0-py3-none-any.whl.metadata (4.5 kB)
+Collecting exceptiongroup>=1.0.2 (from anyio<5,>=3.6.2->starlette>=0.46.0->fastapi==0.135.1)
+  Downloading exceptiongroup-1.3.1-py3-none-any.whl.metadata (6.7 kB)
+Downloading fastapi-0.135.1-py3-none-any.whl (116 kB)
+Downloading uvicorn-0.42.0-py3-none-any.whl (68 kB)
+Downloading aiohttp-3.13.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.7/1.7 MB 6.3 MB/s  0:00:00
+Downloading soundfile-0.12.1-py2.py3-none-manylinux_2_31_x86_64.whl (1.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 13.7 MB/s  0:00:00
+Downloading librosa-0.11.0-py3-none-any.whl (260 kB)
+Downloading imageio-2.37.3-py3-none-any.whl (317 kB)
+Downloading omegaconf-2.3.0-py3-none-any.whl (79 kB)
+Downloading ffmpeg_python-0.2.0-py3-none-any.whl (25 kB)
+Downloading aiofiles-24.1.0-py3-none-any.whl (15 kB)
+Downloading av-16.1.0-cp310-cp310-manylinux_2_28_x86_64.whl (40.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 40.3/40.3 MB 138.3 kB/s  0:01:19
+Downloading python_multipart-0.0.22-py3-none-any.whl (24 kB)
+Downloading aiortc-1.14.0-py3-none-any.whl (93 kB)
+Downloading aioice-0.10.1-py3-none-any.whl (24 kB)
+Downloading async_timeout-5.0.1-py3-none-any.whl (6.2 kB)
+Downloading multidict-6.7.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (243 kB)
+Downloading yarl-1.23.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (102 kB)
+Downloading aiohappyeyeballs-2.6.1-py3-none-any.whl (15 kB)
+Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+Downloading annotated_doc-0.0.4-py3-none-any.whl (5.3 kB)
+Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+Downloading audioread-3.1.0-py3-none-any.whl (23 kB)
+Downloading cffi-2.0.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (216 kB)
+Downloading click-8.3.2-py3-none-any.whl (108 kB)
+Downloading cryptography-46.0.7-cp38-abi3-manylinux_2_34_x86_64.whl (4.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.4/4.4 MB 72.6 kB/s  0:00:44
+Downloading decorator-5.2.1-py3-none-any.whl (9.2 kB)
+Downloading dnspython-2.8.0-py3-none-any.whl (331 kB)
+Downloading frozenlist-1.8.0-cp310-cp310-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (219 kB)
+Downloading google_crc32c-1.8.0-cp310-cp310-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl (33 kB)
+Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+Downloading ifaddr-0.2.0-py3-none-any.whl (12 kB)
+Downloading joblib-1.5.3-py3-none-any.whl (309 kB)
+Downloading lazy_loader-0.5-py3-none-any.whl (8.0 kB)
+Downloading msgpack-1.1.2-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (406 kB)
+Downloading numba-0.65.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (3.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.7/3.7 MB 239.0 kB/s  0:00:15
+Downloading llvmlite-0.47.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (56.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 56.3/56.3 MB 339.3 kB/s  0:06:03
+Downloading pooch-1.9.0-py3-none-any.whl (67 kB)
+Downloading platformdirs-4.9.6-py3-none-any.whl (21 kB)
+Downloading propcache-0.4.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (196 kB)
+Downloading pydantic-2.13.2-py3-none-any.whl (471 kB)
+Downloading pydantic_core-2.46.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 1.6 MB/s  0:00:01
+Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+Downloading pyee-13.0.1-py3-none-any.whl (15 kB)
+Downloading pylibsrtp-1.0.0-cp310-abi3-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (2.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.4/2.4 MB 2.0 MB/s  0:00:01
+Downloading pyopenssl-26.0.0-py3-none-any.whl (57 kB)
+Downloading scikit_learn-1.7.2-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (9.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.7/9.7 MB 2.1 MB/s  0:00:04
+Downloading scipy-1.15.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (37.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 37.7/37.7 MB 2.4 MB/s  0:00:15
+Downloading soxr-1.0.0-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (242 kB)
+Downloading starlette-1.0.0-py3-none-any.whl (72 kB)
+Downloading anyio-4.13.0-py3-none-any.whl (114 kB)
+Downloading exceptiongroup-1.3.1-py3-none-any.whl (16 kB)
+Downloading threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+Downloading future-1.0.0-py3-none-any.whl (491 kB)
+Downloading imageio_ffmpeg-0.6.0-py3-none-manylinux2014_x86_64.whl (29.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.5/29.5 MB 8.5 MB/s  0:00:03
+Downloading pycparser-3.0-py3-none-any.whl (48 kB)
+Building wheels for collected packages: antlr4-python3-runtime
+  Building wheel for antlr4-python3-runtime (pyproject.toml): started
+  Building wheel for antlr4-python3-runtime (pyproject.toml): finished with status 'done'
+  Created wheel for antlr4-python3-runtime: filename=antlr4_python3_runtime-4.9.3-py3-none-any.whl size=144590 sha256=459283d308ec4dcf986b8bcd7c832dfbbd3122300197aca378195664c8bae28d
+  Stored in directory: /root/.cache/pip/wheels/12/93/dd/1f6a127edc45659556564c5730f6d4e300888f4bca2d4c5a88
+Successfully built antlr4-python3-runtime
+Installing collected packages: ifaddr, antlr4-python3-runtime, typing-inspection, threadpoolctl, soxr, scipy, python-multipart, pyee, pydantic-core, pycparser, propcache, platformdirs, omegaconf, multidict, msgpack, llvmlite, lazy_loader, joblib, imageio-ffmpeg, imageio, h11, google-crc32c, future, frozenlist, exceptiongroup, dnspython, decorator, click, av, audioread, attrs, async-timeout, annotated-types, annotated-doc, aiohappyeyeballs, aiofiles, yarl, uvicorn, scikit-learn, pydantic, pooch, numba, ffmpeg-python, cffi, anyio, aiosignal, aioice, starlette, soundfile, pylibsrtp, cryptography, aiohttp, pyopenssl, librosa, fastapi, aiortc
+
+Successfully installed aiofiles-24.1.0 aiohappyeyeballs-2.6.1 aiohttp-3.13.3 aioice-0.10.1 aiortc-1.14.0 aiosignal-1.4.0 annotated-doc-0.0.4 annotated-types-0.7.0 antlr4-python3-runtime-4.9.3 anyio-4.13.0 async-timeout-5.0.1 attrs-26.1.0 audioread-3.1.0 av-16.1.0 cffi-2.0.0 click-8.3.2 cryptography-46.0.7 decorator-5.2.1 dnspython-2.8.0 exceptiongroup-1.3.1 fastapi-0.135.1 ffmpeg-python-0.2.0 frozenlist-1.8.0 future-1.0.0 google-crc32c-1.8.0 h11-0.16.0 ifaddr-0.2.0 imageio-2.37.3 imageio-ffmpeg-0.6.0 joblib-1.5.3 lazy_loader-0.5 librosa-0.11.0 llvmlite-0.47.0 msgpack-1.1.2 multidict-6.7.1 numba-0.65.0 omegaconf-2.3.0 platformdirs-4.9.6 pooch-1.9.0 propcache-0.4.1 pycparser-3.0 pydantic-2.13.2 pydantic-core-2.46.2 pyee-13.0.1 pylibsrtp-1.0.0 pyopenssl-26.0.0 python-multipart-0.0.22 scikit-learn-1.7.2 scipy-1.15.3 soundfile-0.12.1 soxr-1.0.0 starlette-1.0.0 threadpoolctl-3.6.0 typing-inspection-0.4.2 uvicorn-0.42.0 yarl-1.23.0
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:10+0000] DONE: Phase 6: Install API server runtime dependencies :: Install pinned HLS/api_server dependency set (9m54s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:10+0000] START: Phase 6: Install API server runtime dependencies :: Validate HLS/api_server dependency imports
+numpy 1.23.5
+cv2 4.9.0
+fastapi 0.135.1
+uvicorn 0.42.0
+aiohttp 3.13.3
+soundfile 0.12.1
+librosa 0.11.0
+imageio 2.37.3
+omegaconf 2.3.0
+av 16.1.0
+multipart 0.0.22
+aiortc 1.14.0
+aioice 0.10.1
+all server dependency imports OK
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:11+0000] DONE: Phase 6: Install API server runtime dependencies :: Validate HLS/api_server dependency imports (1s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:11+0000] START: Phase 6: Install API server runtime dependencies :: Validate api_server full import
+🎞️ WebRTC H.264 encoder set to h264_nvenc
+/workspace/MuseTalk/scripts/api_avatar.py:385: FutureWarning: Decorating classes is deprecated and will be disabled in future versions. You should only decorate functions or methods. To preserve the current behavior of class decoration, you can directly decorate the `__init__` method and nothing else.
+  class APIAvatar:
+api_server import OK
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:16+0000] DONE: Phase 6: Install API server runtime dependencies :: Validate api_server full import (5s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:43:16+0000] DONE: Phase 6: Install API server runtime dependencies (10m00s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:43:16+0000] START: Phase 7: Install avatar-preparation dependencies
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:43:16+0000] DETAIL: Install the optional mmengine/mmcv/mmdet/mmpose stack plus supporting packages for avatar prep.
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:16+0000] START: Phase 7: Install avatar-preparation dependencies :: Validate avatar-prep CUDA toolkit compatibility
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:18+0000] DONE: Phase 7: Install avatar-preparation dependencies :: Validate avatar-prep CUDA toolkit compatibility (2s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:18+0000] START: Phase 7: Install avatar-preparation dependencies :: Resolve repo-local mmcv wheel
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:43:18+0000] Found repo-local mmcv wheel: /workspace/MuseTalk/third_party_wheels/mmcv/mmcv-2.1.0-cp310-cp310-linux_x86_64.whl
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:18+0000] DONE: Phase 7: Install avatar-preparation dependencies :: Resolve repo-local mmcv wheel (0s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:18+0000] START: Phase 7: Install avatar-preparation dependencies :: Probe mmcv prebuilt wheel availability
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:43:18+0000] Skipping OpenMMLab mmcv wheel probe because a repo-local wheel is available: /workspace/MuseTalk/third_party_wheels/mmcv/mmcv-2.1.0-cp310-cp310-linux_x86_64.whl
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:18+0000] DONE: Phase 7: Install avatar-preparation dependencies :: Probe mmcv prebuilt wheel availability (0s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:18+0000] START: Phase 7: Install avatar-preparation dependencies :: Install avatar-preparation prerequisites
+/workspace/MuseTalk/scripts/setup_trt_experiment_env.sh: line 191: env_flag_is_true: command not found
+Collecting openmim==0.3.9
+  Downloading openmim-0.3.9-py2.py3-none-any.whl.metadata (16 kB)
+Collecting setuptools<81
+  Downloading setuptools-80.10.2-py3-none-any.whl.metadata (6.6 kB)
+Collecting ninja
+  Downloading ninja-1.13.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (5.1 kB)
+Requirement already satisfied: psutil in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (7.2.2)
+Requirement already satisfied: Click in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from openmim==0.3.9) (8.3.2)
+Collecting colorama (from openmim==0.3.9)
+  Downloading colorama-0.4.6-py2.py3-none-any.whl.metadata (17 kB)
+Collecting model-index (from openmim==0.3.9)
+  Downloading model_index-0.1.11-py3-none-any.whl.metadata (3.9 kB)
+Collecting opendatalab (from openmim==0.3.9)
+  Downloading opendatalab-0.0.10-py3-none-any.whl.metadata (6.4 kB)
+Collecting pandas (from openmim==0.3.9)
+  Downloading pandas-2.3.3-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (91 kB)
+Requirement already satisfied: pip>=19.3 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from openmim==0.3.9) (26.0.1)
+Requirement already satisfied: requests in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from openmim==0.3.9) (2.33.1)
+Collecting rich (from openmim==0.3.9)
+  Downloading rich-15.0.0-py3-none-any.whl.metadata (18 kB)
+Collecting tabulate (from openmim==0.3.9)
+  Downloading tabulate-0.10.0-py3-none-any.whl.metadata (40 kB)
+Requirement already satisfied: pyyaml in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from model-index->openmim==0.3.9) (6.0.3)
+Collecting markdown (from model-index->openmim==0.3.9)
+  Downloading markdown-3.10.2-py3-none-any.whl.metadata (5.1 kB)
+Collecting ordered-set (from model-index->openmim==0.3.9)
+  Downloading ordered_set-4.1.0-py3-none-any.whl.metadata (5.3 kB)
+Collecting pycryptodome (from opendatalab->openmim==0.3.9)
+  Downloading pycryptodome-3.23.0-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (3.4 kB)
+Requirement already satisfied: tqdm in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from opendatalab->openmim==0.3.9) (4.67.3)
+Collecting openxlab (from opendatalab->openmim==0.3.9)
+  Downloading openxlab-0.1.3-py3-none-any.whl.metadata (3.8 kB)
+Requirement already satisfied: charset_normalizer<4,>=2 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from requests->openmim==0.3.9) (3.4.7)
+Requirement already satisfied: idna<4,>=2.5 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from requests->openmim==0.3.9) (3.11)
+Requirement already satisfied: urllib3<3,>=1.26 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from requests->openmim==0.3.9) (2.6.3)
+Requirement already satisfied: certifi>=2023.5.7 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from requests->openmim==0.3.9) (2026.2.25)
+Collecting filelock~=3.14.0 (from openxlab->opendatalab->openmim==0.3.9)
+  Downloading filelock-3.14.0-py3-none-any.whl.metadata (2.8 kB)
+Collecting oss2~=2.17.0 (from openxlab->opendatalab->openmim==0.3.9)
+  Downloading oss2-2.17.0.tar.gz (259 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting packaging~=24.0 (from openxlab->opendatalab->openmim==0.3.9)
+  Downloading packaging-24.2-py3-none-any.whl.metadata (3.2 kB)
+Collecting pytz~=2023.3 (from openxlab->opendatalab->openmim==0.3.9)
+  Downloading pytz-2023.4-py2.py3-none-any.whl.metadata (22 kB)
+Collecting requests (from openmim==0.3.9)
+  Downloading requests-2.28.2-py3-none-any.whl.metadata (4.6 kB)
+Collecting rich (from openmim==0.3.9)
+  Downloading rich-13.4.2-py3-none-any.whl.metadata (18 kB)
+Collecting setuptools<81
+  Downloading setuptools-60.2.0-py3-none-any.whl.metadata (5.1 kB)
+Collecting tqdm (from opendatalab->openmim==0.3.9)
+  Downloading tqdm-4.65.2-py3-none-any.whl.metadata (56 kB)
+Collecting crcmod>=1.7 (from oss2~=2.17.0->openxlab->opendatalab->openmim==0.3.9)
+  Downloading crcmod-1.7.tar.gz (89 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting aliyun-python-sdk-kms>=2.4.1 (from oss2~=2.17.0->openxlab->opendatalab->openmim==0.3.9)
+  Downloading aliyun_python_sdk_kms-2.16.5-py2.py3-none-any.whl.metadata (1.5 kB)
+Collecting aliyun-python-sdk-core>=2.13.12 (from oss2~=2.17.0->openxlab->opendatalab->openmim==0.3.9)
+  Downloading aliyun-python-sdk-core-2.16.0.tar.gz (449 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting six (from oss2~=2.17.0->openxlab->opendatalab->openmim==0.3.9)
+  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting urllib3<1.27,>=1.21.1 (from requests->openmim==0.3.9)
+  Downloading urllib3-1.26.20-py2.py3-none-any.whl.metadata (50 kB)
+Collecting markdown-it-py>=2.2.0 (from rich->openmim==0.3.9)
+  Downloading markdown_it_py-4.0.0-py3-none-any.whl.metadata (7.3 kB)
+Collecting pygments<3.0.0,>=2.13.0 (from rich->openmim==0.3.9)
+  Downloading pygments-2.20.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting jmespath<1.0.0,>=0.9.3 (from aliyun-python-sdk-core>=2.13.12->oss2~=2.17.0->openxlab->opendatalab->openmim==0.3.9)
+  Downloading jmespath-0.10.0-py2.py3-none-any.whl.metadata (8.0 kB)
+Requirement already satisfied: cryptography>=3.0.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from aliyun-python-sdk-core>=2.13.12->oss2~=2.17.0->openxlab->opendatalab->openmim==0.3.9) (46.0.7)
+Requirement already satisfied: cffi>=2.0.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from cryptography>=3.0.0->aliyun-python-sdk-core>=2.13.12->oss2~=2.17.0->openxlab->opendatalab->openmim==0.3.9) (2.0.0)
+Requirement already satisfied: typing-extensions>=4.13.2 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from cryptography>=3.0.0->aliyun-python-sdk-core>=2.13.12->oss2~=2.17.0->openxlab->opendatalab->openmim==0.3.9) (4.15.0)
+Requirement already satisfied: pycparser in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from cffi>=2.0.0->cryptography>=3.0.0->aliyun-python-sdk-core>=2.13.12->oss2~=2.17.0->openxlab->opendatalab->openmim==0.3.9) (3.0)
+Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich->openmim==0.3.9)
+  Downloading mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
+Requirement already satisfied: numpy>=1.22.4 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from pandas->openmim==0.3.9) (1.23.5)
+Collecting python-dateutil>=2.8.2 (from pandas->openmim==0.3.9)
+  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting tzdata>=2022.7 (from pandas->openmim==0.3.9)
+  Downloading tzdata-2026.1-py2.py3-none-any.whl.metadata (1.4 kB)
+Downloading openmim-0.3.9-py2.py3-none-any.whl (52 kB)
+Downloading ninja-1.13.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (180 kB)
+Downloading colorama-0.4.6-py2.py3-none-any.whl (25 kB)
+Downloading model_index-0.1.11-py3-none-any.whl (34 kB)
+Downloading markdown-3.10.2-py3-none-any.whl (108 kB)
+Downloading opendatalab-0.0.10-py3-none-any.whl (29 kB)
+Downloading openxlab-0.1.3-py3-none-any.whl (314 kB)
+Downloading setuptools-60.2.0-py3-none-any.whl (953 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 953.1/953.1 kB 5.8 MB/s  0:00:00
+Downloading filelock-3.14.0-py3-none-any.whl (12 kB)
+Downloading packaging-24.2-py3-none-any.whl (65 kB)
+Downloading pytz-2023.4-py2.py3-none-any.whl (506 kB)
+Downloading requests-2.28.2-py3-none-any.whl (62 kB)
+Downloading rich-13.4.2-py3-none-any.whl (239 kB)
+Downloading pygments-2.20.0-py3-none-any.whl (1.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 19.7 MB/s  0:00:00
+Downloading tqdm-4.65.2-py3-none-any.whl (77 kB)
+Downloading urllib3-1.26.20-py2.py3-none-any.whl (144 kB)
+Downloading jmespath-0.10.0-py2.py3-none-any.whl (24 kB)
+Downloading aliyun_python_sdk_kms-2.16.5-py2.py3-none-any.whl (99 kB)
+Downloading markdown_it_py-4.0.0-py3-none-any.whl (87 kB)
+Downloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+Downloading pycryptodome-3.23.0-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.3/2.3 MB 30.7 MB/s  0:00:00
+Downloading ordered_set-4.1.0-py3-none-any.whl (7.6 kB)
+Downloading pandas-2.3.3-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (12.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.8/12.8 MB 20.6 MB/s  0:00:00
+Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Downloading tzdata-2026.1-py2.py3-none-any.whl (348 kB)
+Downloading tabulate-0.10.0-py3-none-any.whl (39 kB)
+Building wheels for collected packages: oss2, aliyun-python-sdk-core, crcmod
+  Building wheel for oss2 (pyproject.toml): started
+  Building wheel for oss2 (pyproject.toml): finished with status 'done'
+  Created wheel for oss2: filename=oss2-2.17.0-py3-none-any.whl size=112465 sha256=ed127ae4430943a99b99df269d44595ca85e452e8f66cb0c8b186834b1164d0b
+  Stored in directory: /root/.cache/pip/wheels/87/04/7b/7e61b8157fdf211c5131375240d0d86ca82e2a88ead9672c88
+  Building wheel for aliyun-python-sdk-core (pyproject.toml): started
+  Building wheel for aliyun-python-sdk-core (pyproject.toml): finished with status 'done'
+  Created wheel for aliyun-python-sdk-core: filename=aliyun_python_sdk_core-2.16.0-py3-none-any.whl size=535418 sha256=45afe2f0aff724ed0e5a9a9e061fba59c51d9165eb52b59150a643c86c5cd617
+  Stored in directory: /root/.cache/pip/wheels/35/11/5e/08e7cb4e03a3e83b4862edd12d1143c8d3936a3dd57a3ee46d
+  Building wheel for crcmod (pyproject.toml): started
+  Building wheel for crcmod (pyproject.toml): finished with status 'done'
+  Created wheel for crcmod: filename=crcmod-1.7-cp310-cp310-linux_x86_64.whl size=31485 sha256=12f4609ecceeb994d0414978c0ba2fff3eaf9942070345edfaad2244a815d988
+  Stored in directory: /root/.cache/pip/wheels/85/4c/07/72215c529bd59d67e3dac29711d7aba1b692f543c808ba9e86
+Successfully built oss2 aliyun-python-sdk-core crcmod
+Installing collected packages: pytz, crcmod, urllib3, tzdata, tqdm, tabulate, six, setuptools, pygments, pycryptodome, packaging, ordered-set, ninja, mdurl, markdown, jmespath, filelock, colorama, requests, python-dateutil, model-index, markdown-it-py, rich, pandas, aliyun-python-sdk-core, aliyun-python-sdk-kms, oss2, openxlab, opendatalab, openmim
+  Attempting uninstall: urllib3
+    Found existing installation: urllib3 2.6.3
+    Uninstalling urllib3-2.6.3:
+      Successfully uninstalled urllib3-2.6.3
+  Attempting uninstall: tqdm
+    Found existing installation: tqdm 4.67.3
+    Uninstalling tqdm-4.67.3:
+      Successfully uninstalled tqdm-4.67.3
+  Attempting uninstall: setuptools
+    Found existing installation: setuptools 82.0.1
+    Uninstalling setuptools-82.0.1:
+      Successfully uninstalled setuptools-82.0.1
+  Attempting uninstall: packaging
+    Found existing installation: packaging 26.1
+    Uninstalling packaging-26.1:
+      Successfully uninstalled packaging-26.1
+  Attempting uninstall: filelock
+    Found existing installation: filelock 3.25.2
+    Uninstalling filelock-3.25.2:
+      Successfully uninstalled filelock-3.25.2
+  Attempting uninstall: requests
+    Found existing installation: requests 2.33.1
+    Uninstalling requests-2.33.1:
+      Successfully uninstalled requests-2.33.1
+
+Successfully installed aliyun-python-sdk-core-2.16.0 aliyun-python-sdk-kms-2.16.5 colorama-0.4.6 crcmod-1.7 filelock-3.14.0 jmespath-0.10.0 markdown-3.10.2 markdown-it-py-4.0.0 mdurl-0.1.2 model-index-0.1.11 ninja-1.13.0 opendatalab-0.0.10 openmim-0.3.9 openxlab-0.1.3 ordered-set-4.1.0 oss2-2.17.0 packaging-24.2 pandas-2.3.3 pycryptodome-3.23.0 pygments-2.20.0 python-dateutil-2.9.0.post0 pytz-2023.4 requests-2.28.2 rich-13.4.2 setuptools-60.2.0 six-1.17.0 tabulate-0.10.0 tqdm-4.65.2 tzdata-2026.1 urllib3-1.26.20
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:50+0000] DONE: Phase 7: Install avatar-preparation dependencies :: Install avatar-preparation prerequisites (32s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:50+0000] START: Phase 7: Install avatar-preparation dependencies :: Remove mmcv-lite placeholder
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:51+0000] DONE: Phase 7: Install avatar-preparation dependencies :: Remove mmcv-lite placeholder (0s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:43:51+0000] START: Phase 7: Install avatar-preparation dependencies :: Install mmengine
+Looking in links: https://download.openmmlab.com/mmcv/dist/cu121/torch2.5.0/index.html
+Collecting mmengine==0.10.4
+  Downloading mmengine-0.10.4-py3-none-any.whl.metadata (20 kB)
+Collecting addict (from mmengine==0.10.4)
+  Downloading addict-2.4.0-py3-none-any.whl.metadata (1.0 kB)
+Collecting matplotlib (from mmengine==0.10.4)
+  Downloading matplotlib-3.10.8-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (52 kB)
+Requirement already satisfied: numpy in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmengine==0.10.4) (1.23.5)
+Requirement already satisfied: pyyaml in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmengine==0.10.4) (6.0.3)
+Requirement already satisfied: rich in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmengine==0.10.4) (13.4.2)
+Collecting termcolor (from mmengine==0.10.4)
+  Downloading termcolor-3.3.0-py3-none-any.whl.metadata (6.5 kB)
+Collecting yapf (from mmengine==0.10.4)
+  Downloading yapf-0.43.0-py3-none-any.whl.metadata (46 kB)
+Requirement already satisfied: opencv-python>=3 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmengine==0.10.4) (4.9.0.80)
+Collecting contourpy>=1.0.1 (from matplotlib->mmengine==0.10.4)
+  Downloading contourpy-1.3.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (5.5 kB)
+Collecting cycler>=0.10 (from matplotlib->mmengine==0.10.4)
+  Downloading cycler-0.12.1-py3-none-any.whl.metadata (3.8 kB)
+Collecting fonttools>=4.22.0 (from matplotlib->mmengine==0.10.4)
+  Downloading fonttools-4.62.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (117 kB)
+Collecting kiwisolver>=1.3.1 (from matplotlib->mmengine==0.10.4)
+  Downloading kiwisolver-1.5.0-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl.metadata (5.1 kB)
+Requirement already satisfied: packaging>=20.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmengine==0.10.4) (24.2)
+Requirement already satisfied: pillow>=8 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmengine==0.10.4) (11.3.0)
+Collecting pyparsing>=3 (from matplotlib->mmengine==0.10.4)
+  Downloading pyparsing-3.3.2-py3-none-any.whl.metadata (5.8 kB)
+Requirement already satisfied: python-dateutil>=2.7 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmengine==0.10.4) (2.9.0.post0)
+Requirement already satisfied: six>=1.5 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from python-dateutil>=2.7->matplotlib->mmengine==0.10.4) (1.17.0)
+Requirement already satisfied: markdown-it-py>=2.2.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from rich->mmengine==0.10.4) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from rich->mmengine==0.10.4) (2.20.0)
+Requirement already satisfied: mdurl~=0.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from markdown-it-py>=2.2.0->rich->mmengine==0.10.4) (0.1.2)
+Requirement already satisfied: platformdirs>=3.5.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from yapf->mmengine==0.10.4) (4.9.6)
+Collecting tomli>=2.0.1 (from yapf->mmengine==0.10.4)
+  Downloading tomli-2.4.1-py3-none-any.whl.metadata (10 kB)
+Downloading mmengine-0.10.4-py3-none-any.whl (451 kB)
+Downloading addict-2.4.0-py3-none-any.whl (3.8 kB)
+Downloading matplotlib-3.10.8-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (8.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.7/8.7 MB 19.9 MB/s  0:00:00
+Downloading contourpy-1.3.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (325 kB)
+Downloading cycler-0.12.1-py3-none-any.whl (8.3 kB)
+Downloading fonttools-4.62.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (4.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.9/4.9 MB 24.2 MB/s  0:00:00
+Downloading kiwisolver-1.5.0-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl (1.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 19.7 MB/s  0:00:00
+Downloading pyparsing-3.3.2-py3-none-any.whl (122 kB)
+Downloading termcolor-3.3.0-py3-none-any.whl (7.7 kB)
+Downloading yapf-0.43.0-py3-none-any.whl (256 kB)
+Downloading tomli-2.4.1-py3-none-any.whl (14 kB)
+Installing collected packages: addict, tomli, termcolor, pyparsing, kiwisolver, fonttools, cycler, contourpy, yapf, matplotlib, mmengine
+
+Successfully installed addict-2.4.0 contourpy-1.3.2 cycler-0.12.1 fonttools-4.62.1 kiwisolver-1.5.0 matplotlib-3.10.8 mmengine-0.10.4 pyparsing-3.3.2 termcolor-3.3.0 tomli-2.4.1 yapf-0.43.0
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:44:21+0000] DONE: Phase 7: Install avatar-preparation dependencies :: Install mmengine (30s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:44:21+0000] START: Phase 7: Install avatar-preparation dependencies :: Install full mmcv
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:21+0000] Installing mmcv from repo-local wheel: /workspace/MuseTalk/third_party_wheels/mmcv/mmcv-2.1.0-cp310-cp310-linux_x86_64.whl
+Processing ./third_party_wheels/mmcv/mmcv-2.1.0-cp310-cp310-linux_x86_64.whl
+Installing collected packages: mmcv
+Successfully installed mmcv-2.1.0
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:44:22+0000] DONE: Phase 7: Install avatar-preparation dependencies :: Install full mmcv (1s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:44:22+0000] START: Phase 7: Install avatar-preparation dependencies :: Install mmdet
+Looking in links: https://download.openmmlab.com/mmcv/dist/cu121/torch2.5.0/index.html
+Collecting mmdet==3.2.0
+  Downloading mmdet-3.2.0-py3-none-any.whl.metadata (32 kB)
+Requirement already satisfied: matplotlib in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmdet==3.2.0) (3.10.8)
+Requirement already satisfied: numpy in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmdet==3.2.0) (1.23.5)
+Collecting pycocotools (from mmdet==3.2.0)
+  Downloading pycocotools-2.0.11-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (1.3 kB)
+Requirement already satisfied: scipy in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmdet==3.2.0) (1.15.3)
+Collecting shapely (from mmdet==3.2.0)
+  Downloading shapely-2.1.2-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (6.8 kB)
+Requirement already satisfied: six in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmdet==3.2.0) (1.17.0)
+Collecting terminaltables (from mmdet==3.2.0)
+  Downloading terminaltables-3.1.10-py2.py3-none-any.whl.metadata (3.5 kB)
+Requirement already satisfied: tqdm in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmdet==3.2.0) (4.65.2)
+Ignoring mmcv: markers 'extra == "mim"' don't match your environment
+Ignoring mmengine: markers 'extra == "mim"' don't match your environment
+Requirement already satisfied: contourpy>=1.0.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmdet==3.2.0) (1.3.2)
+Requirement already satisfied: cycler>=0.10 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmdet==3.2.0) (0.12.1)
+Requirement already satisfied: fonttools>=4.22.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmdet==3.2.0) (4.62.1)
+Requirement already satisfied: kiwisolver>=1.3.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmdet==3.2.0) (1.5.0)
+Requirement already satisfied: packaging>=20.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmdet==3.2.0) (24.2)
+Requirement already satisfied: pillow>=8 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmdet==3.2.0) (11.3.0)
+Requirement already satisfied: pyparsing>=3 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmdet==3.2.0) (3.3.2)
+Requirement already satisfied: python-dateutil>=2.7 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmdet==3.2.0) (2.9.0.post0)
+Downloading mmdet-3.2.0-py3-none-any.whl (2.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 6.1 MB/s  0:00:00
+Downloading pycocotools-2.0.11-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (472 kB)
+Downloading shapely-2.1.2-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (3.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.1/3.1 MB 12.5 MB/s  0:00:00
+Downloading terminaltables-3.1.10-py2.py3-none-any.whl (15 kB)
+Installing collected packages: terminaltables, shapely, pycocotools, mmdet
+
+Successfully installed mmdet-3.2.0 pycocotools-2.0.11 shapely-2.1.2 terminaltables-3.1.10
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:44:37+0000] DONE: Phase 7: Install avatar-preparation dependencies :: Install mmdet (15s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:44:37+0000] START: Phase 7: Install avatar-preparation dependencies :: Install chumpy
+/workspace/MuseTalk/scripts/setup_trt_experiment_env.sh: line 191: env_flag_is_true: command not found
+Collecting chumpy==0.70
+  Downloading chumpy-0.70.tar.gz (50 kB)
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: scipy>=0.13.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from chumpy==0.70) (1.15.3)
+Requirement already satisfied: six>=1.11.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from chumpy==0.70) (1.17.0)
+Requirement already satisfied: numpy<2.5,>=1.23.5 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from scipy>=0.13.0->chumpy==0.70) (1.23.5)
+Building wheels for collected packages: chumpy
+  Building wheel for chumpy (pyproject.toml): started
+  Building wheel for chumpy (pyproject.toml): finished with status 'done'
+  Created wheel for chumpy: filename=chumpy-0.70-py3-none-any.whl size=58280 sha256=9c10177a6110ea3065af543446b63b33343c9a71419efa616421dfed8d12c258
+  Stored in directory: /root/.cache/pip/wheels/e0/c1/ef/29ba7be03653a29ef6f2c3e1956d6c4d8877f2b243af411db1
+Successfully built chumpy
+Installing collected packages: chumpy
+Successfully installed chumpy-0.70
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:44:40+0000] DONE: Phase 7: Install avatar-preparation dependencies :: Install chumpy (3s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:44:40+0000] START: Phase 7: Install avatar-preparation dependencies :: Install mmpose
+Looking in links: https://download.openmmlab.com/mmcv/dist/cu121/torch2.5.0/index.html
+Collecting mmpose==1.3.1
+  Downloading mmpose-1.3.1-py2.py3-none-any.whl.metadata (29 kB)
+Requirement already satisfied: chumpy in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmpose==1.3.1) (0.70)
+Collecting json-tricks (from mmpose==1.3.1)
+  Downloading json_tricks-3.17.3-py2.py3-none-any.whl.metadata (16 kB)
+Requirement already satisfied: matplotlib in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmpose==1.3.1) (3.10.8)
+Collecting munkres (from mmpose==1.3.1)
+  Downloading munkres-1.1.4-py2.py3-none-any.whl.metadata (980 bytes)
+Requirement already satisfied: numpy in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmpose==1.3.1) (1.23.5)
+Requirement already satisfied: opencv-python in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmpose==1.3.1) (4.9.0.80)
+Requirement already satisfied: pillow in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmpose==1.3.1) (11.3.0)
+Requirement already satisfied: scipy in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmpose==1.3.1) (1.15.3)
+Requirement already satisfied: torchvision in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from mmpose==1.3.1) (0.20.1+cu121)
+Collecting xtcocotools>=1.12 (from mmpose==1.3.1)
+  Downloading xtcocotools-1.14.3-cp310-cp310-manylinux1_x86_64.whl.metadata (364 bytes)
+Ignoring mmcv: markers 'extra == "mim"' don't match your environment
+Ignoring mmdet: markers 'extra == "mim"' don't match your environment
+Ignoring mmengine: markers 'extra == "mim"' don't match your environment
+Requirement already satisfied: setuptools>=18.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from xtcocotools>=1.12->mmpose==1.3.1) (60.2.0)
+Collecting cython>=0.27.3 (from xtcocotools>=1.12->mmpose==1.3.1)
+  Downloading cython-3.2.4-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (7.5 kB)
+Requirement already satisfied: contourpy>=1.0.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmpose==1.3.1) (1.3.2)
+Requirement already satisfied: cycler>=0.10 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmpose==1.3.1) (0.12.1)
+Requirement already satisfied: fonttools>=4.22.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmpose==1.3.1) (4.62.1)
+Requirement already satisfied: kiwisolver>=1.3.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmpose==1.3.1) (1.5.0)
+Requirement already satisfied: packaging>=20.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmpose==1.3.1) (24.2)
+Requirement already satisfied: pyparsing>=3 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmpose==1.3.1) (3.3.2)
+Requirement already satisfied: python-dateutil>=2.7 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from matplotlib->mmpose==1.3.1) (2.9.0.post0)
+Requirement already satisfied: six>=1.5 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from python-dateutil>=2.7->matplotlib->mmpose==1.3.1) (1.17.0)
+Requirement already satisfied: torch==2.5.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torchvision->mmpose==1.3.1) (2.5.1+cu121)
+Requirement already satisfied: filelock in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (3.14.0)
+Requirement already satisfied: typing-extensions>=4.8.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (4.15.0)
+Requirement already satisfied: networkx in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (3.4.2)
+Requirement already satisfied: jinja2 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (3.1.6)
+Requirement already satisfied: fsspec in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (2026.2.0)
+Requirement already satisfied: nvidia-cuda-nvrtc-cu12==12.1.105 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (12.1.105)
+Requirement already satisfied: nvidia-cuda-runtime-cu12==12.1.105 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (12.1.105)
+Requirement already satisfied: nvidia-cuda-cupti-cu12==12.1.105 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (12.1.105)
+Requirement already satisfied: nvidia-cudnn-cu12==9.1.0.70 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (9.1.0.70)
+Requirement already satisfied: nvidia-cublas-cu12==12.1.3.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (12.1.3.1)
+Requirement already satisfied: nvidia-cufft-cu12==11.0.2.54 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (11.0.2.54)
+Requirement already satisfied: nvidia-curand-cu12==10.3.2.106 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (10.3.2.106)
+Requirement already satisfied: nvidia-cusolver-cu12==11.4.5.107 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (11.4.5.107)
+Requirement already satisfied: nvidia-cusparse-cu12==12.1.0.106 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (12.1.0.106)
+Requirement already satisfied: nvidia-nccl-cu12==2.21.5 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (2.21.5)
+Requirement already satisfied: nvidia-nvtx-cu12==12.1.105 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (12.1.105)
+Requirement already satisfied: triton==3.1.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (3.1.0)
+Requirement already satisfied: sympy==1.13.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from torch==2.5.1->torchvision->mmpose==1.3.1) (1.13.1)
+Requirement already satisfied: nvidia-nvjitlink-cu12 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from nvidia-cusolver-cu12==11.4.5.107->torch==2.5.1->torchvision->mmpose==1.3.1) (12.9.86)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from sympy==1.13.1->torch==2.5.1->torchvision->mmpose==1.3.1) (1.3.0)
+Requirement already satisfied: MarkupSafe>=2.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from jinja2->torch==2.5.1->torchvision->mmpose==1.3.1) (3.0.3)
+Downloading mmpose-1.3.1-py2.py3-none-any.whl (1.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.7/1.7 MB 5.1 MB/s  0:00:00
+Downloading xtcocotools-1.14.3-cp310-cp310-manylinux1_x86_64.whl (436 kB)
+Downloading cython-3.2.4-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (3.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.5/3.5 MB 19.8 MB/s  0:00:00
+Downloading json_tricks-3.17.3-py2.py3-none-any.whl (27 kB)
+Downloading munkres-1.1.4-py2.py3-none-any.whl (7.0 kB)
+Installing collected packages: munkres, json-tricks, cython, xtcocotools, mmpose
+
+Successfully installed cython-3.2.4 json-tricks-3.17.3 mmpose-1.3.1 munkres-1.1.4 xtcocotools-1.14.3
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:44:54+0000] DONE: Phase 7: Install avatar-preparation dependencies :: Install mmpose (14s)
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:44:54+0000] START: Phase 7: Install avatar-preparation dependencies :: Validate avatar-preparation dependency imports
+mmengine 0.10.4
+mmcv 2.1.0
+mmcv._ext available
+mmdet 3.2.0
+mmpose 1.3.1
+avatar prep dependency imports OK
+[setup_trt_experiment_env.sh][STEP][2026-04-20T02:44:56+0000] DONE: Phase 7: Install avatar-preparation dependencies :: Validate avatar-preparation dependency imports (2s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:44:56+0000] DONE: Phase 7: Install avatar-preparation dependencies (1m40s)
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:44:56+0000] START: Phase 8: Install broader repo runtime extras
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:44:56+0000] DETAIL: Install the optional repo requirements file when the wider runtime dependency set is requested.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000] Repo runtime extras phase not requested
+[setup_trt_experiment_env.sh][PHASE][2026-04-20T02:44:56+0000] DONE: Phase 8: Install broader repo runtime extras (0s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000] Skipping runtime dependency install. Use --install-runtime-deps to include repo requirements.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000] Setup complete
+
+Next steps:
+  source /workspace/.venvs/musetalk_trt_stagewise/bin/activate
+  python scripts/tensorrt_export.py ...
+  python scripts/benchmark_pipeline.py ...
+  python api_server.py --host 0.0.0.0 --port 8000
+  # Current validated HLS runtime shape: eager UNet + TRT VAE (leave MUSETALK_COMPILE=0)
+
+TensorRT artifacts should be kept under: /workspace/MuseTalk/models/tensorrt_altenv_bs32
+/workspace/MuseTalk/scripts/setup_trt_experiment_env.sh: line 191: env_flag_is_true: command not found
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000] Phase summary:
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 1: Bootstrap venv and packaging tooling (20s) - Create the target venv and prepare the base Python packaging toolchain.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 2: Prefetch wheelhouse artifacts (0s) - Download/build pinned wheel sets into a local wheelhouse so the heavy install phases can prefer local artifacts.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 3: Install core PyTorch CUDA stack (2m11s) - Download and install the pinned torch, torchvision, torchaudio, numpy, and pillow CUDA wheels.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 4: Install TensorRT Python stack (59s) - Download and install torch-tensorrt together with the NVIDIA TensorRT Python runtime packages.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 5: Install export and backend support dependencies (31s) - Install OpenCV, diffusers, transformers, tokenizers, accelerate, safetensors, and validate backend imports.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 6: Install API server runtime dependencies (10m00s) - Install FastAPI, uvicorn, audio/video server packages, WebRTC packages, and validate api_server imports.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies (1m40s) - Install the optional mmengine/mmcv/mmdet/mmpose stack plus supporting packages for avatar prep.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 8: Install broader repo runtime extras (0s) - Install the optional repo requirements file when the wider runtime dependency set is requested.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000] Slowest phases:
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 6: Install API server runtime dependencies (10m00s) - Install FastAPI, uvicorn, audio/video server packages, WebRTC packages, and validate api_server imports.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 3: Install core PyTorch CUDA stack (2m11s) - Download and install the pinned torch, torchvision, torchaudio, numpy, and pillow CUDA wheels.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies (1m40s) - Install the optional mmengine/mmcv/mmdet/mmpose stack plus supporting packages for avatar prep.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 4: Install TensorRT Python stack (59s) - Download and install torch-tensorrt together with the NVIDIA TensorRT Python runtime packages.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 5: Install export and backend support dependencies (31s) - Install OpenCV, diffusers, transformers, tokenizers, accelerate, safetensors, and validate backend imports.
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000] Slowest steps:
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 6: Install API server runtime dependencies :: Install pinned HLS/api_server dependency set (9m54s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 3: Install core PyTorch CUDA stack :: Install PyTorch CUDA 12.1 wheel set (2m11s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 4: Install TensorRT Python stack :: Install torch-tensorrt pinned stack (59s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Install avatar-preparation prerequisites (32s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Install mmengine (30s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000] Step summary:
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 1: Bootstrap venv and packaging tooling :: Create TensorRT artifact directory (0s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 1: Bootstrap venv and packaging tooling :: Create venv (3s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 1: Bootstrap venv and packaging tooling :: Upgrade pip, setuptools, and wheel (17s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 3: Install core PyTorch CUDA stack :: Install PyTorch CUDA 12.1 wheel set (2m11s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 4: Install TensorRT Python stack :: Install torch-tensorrt pinned stack (59s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 5: Install export and backend support dependencies :: Install pinned export + benchmark dependencies (27s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 5: Install export and backend support dependencies :: Validate backend imports and CUDA registration (4s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 6: Install API server runtime dependencies :: Install pinned HLS/api_server dependency set (9m54s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 6: Install API server runtime dependencies :: Validate HLS/api_server dependency imports (1s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 6: Install API server runtime dependencies :: Validate api_server full import (5s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Validate avatar-prep CUDA toolkit compatibility (2s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Resolve repo-local mmcv wheel (0s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Probe mmcv prebuilt wheel availability (0s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Install avatar-preparation prerequisites (32s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Remove mmcv-lite placeholder (0s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Install mmengine (30s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Install full mmcv (1s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Install mmdet (15s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Install chumpy (3s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Install mmpose (14s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000]   [OK] Phase 7: Install avatar-preparation dependencies :: Validate avatar-preparation dependency imports (2s)
+[setup_trt_experiment_env.sh][INFO][2026-04-20T02:44:56+0000] Exit status: success
+[setup_trt_stagewise_server_env.sh][STEP][2026-04-20T02:44:56+0000] DONE: Build TRT-stagewise experiment venv (15m41s)
+[setup_trt_stagewise_server_env.sh][STEP][2026-04-20T02:44:56+0000] START: Download and validate model weights
+[download_weights.sh][INFO][2026-04-20T02:44:56+0000] Initialized step logging
+[download_weights.sh][INFO][2026-04-20T02:44:56+0000] Log file: /workspace/MuseTalk/logs/setup/download_weights-20260420T024456.log
+[download_weights.sh][INFO][2026-04-20T02:44:56+0000] Using Hugging Face endpoint: https://huggingface.co
+[download_weights.sh][INFO][2026-04-20T02:44:56+0000] Hugging Face timeouts: etag=120s download=120s
+[download_weights.sh][INFO][2026-04-20T02:44:56+0000] Hugging Face max workers per repo download: 4 (explicit)
+[download_weights.sh][INFO][2026-04-20T02:44:56+0000] HF_XET_HIGH_PERFORMANCE=1
+[download_weights.sh][INFO][2026-04-20T02:44:56+0000] Download groups in parallel: 1
+[download_weights.sh][INFO][2026-04-20T02:44:56+0000] Download retries: 5
+[download_weights.sh][INFO][2026-04-20T02:44:56+0000] MuseTalk V1 weights enabled: 0
+[download_weights.sh][INFO][2026-04-20T02:44:56+0000] MuseTalk V1.5 weights enabled: 1
+[download_weights.sh][INFO][2026-04-20T02:44:56+0000] Avatar-prep weights enabled: 1
+[download_weights.sh][PHASE][2026-04-20T02:44:56+0000] START: Phase 1: Prepare weight download environment
+[download_weights.sh][PHASE][2026-04-20T02:44:56+0000] DETAIL: Wait for outbound connectivity and install helper tooling used by the model download path.
+[download_weights.sh][STEP][2026-04-20T02:44:56+0000] START: Phase 1: Prepare weight download environment :: Wait for outbound HTTPS to become ready
+[download_weights.sh][STEP][2026-04-20T02:44:57+0000] DONE: Phase 1: Prepare weight download environment :: Wait for outbound HTTPS to become ready (1s)
+[download_weights.sh][STEP][2026-04-20T02:44:57+0000] START: Phase 1: Prepare weight download environment :: Install download helper utilities
+Collecting gdown
+  Downloading gdown-6.0.0-py3-none-any.whl.metadata (7.4 kB)
+Collecting hf-xet
+  Downloading hf_xet-1.4.3-cp37-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (4.9 kB)
+Collecting beautifulsoup4 (from gdown)
+  Downloading beautifulsoup4-4.14.3-py3-none-any.whl.metadata (3.8 kB)
+Requirement already satisfied: filelock in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from gdown) (3.14.0)
+Requirement already satisfied: requests[socks] in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from gdown) (2.28.2)
+Requirement already satisfied: tqdm in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from gdown) (4.65.2)
+Requirement already satisfied: typing-extensions>=4.0 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from gdown) (4.15.0)
+Collecting soupsieve>=1.6.1 (from beautifulsoup4->gdown)
+  Downloading soupsieve-2.8.3-py3-none-any.whl.metadata (4.6 kB)
+Requirement already satisfied: charset-normalizer<4,>=2 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from requests[socks]->gdown) (3.4.7)
+Requirement already satisfied: idna<4,>=2.5 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from requests[socks]->gdown) (3.11)
+Requirement already satisfied: urllib3<1.27,>=1.21.1 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from requests[socks]->gdown) (1.26.20)
+Requirement already satisfied: certifi>=2017.4.17 in /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages (from requests[socks]->gdown) (2026.2.25)
+Collecting PySocks!=1.5.7,>=1.5.6 (from requests[socks]->gdown)
+  Downloading PySocks-1.7.1-py3-none-any.whl.metadata (13 kB)
+Downloading gdown-6.0.0-py3-none-any.whl (18 kB)
+Downloading hf_xet-1.4.3-cp37-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (4.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.2/4.2 MB 9.9 MB/s  0:00:00
+Downloading beautifulsoup4-4.14.3-py3-none-any.whl (107 kB)
+Downloading soupsieve-2.8.3-py3-none-any.whl (37 kB)
+Downloading PySocks-1.7.1-py3-none-any.whl (16 kB)
+Installing collected packages: soupsieve, PySocks, hf-xet, beautifulsoup4, gdown
+
+Successfully installed PySocks-1.7.1 beautifulsoup4-4.14.3 gdown-6.0.0 hf-xet-1.4.3 soupsieve-2.8.3
+[download_weights.sh][STEP][2026-04-20T02:45:01+0000] DONE: Phase 1: Prepare weight download environment :: Install download helper utilities (4s)
+[download_weights.sh][PHASE][2026-04-20T02:45:01+0000] DONE: Phase 1: Prepare weight download environment (5s)
+[download_weights.sh][PHASE][2026-04-20T02:45:01+0000] START: Phase 2: Download model weight groups in parallel
+[download_weights.sh][PHASE][2026-04-20T02:45:01+0000] DETAIL: Fetch the MuseTalk, runtime, avatar-prep, and face-parse model groups concurrently where possible.
+[download_weights.sh][STEP][2026-04-20T02:45:01+0000] START: Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights
+[download_weights.sh][STEP][2026-04-20T02:45:01+0000] START: Phase 2: Download model weight groups in parallel :: Download base runtime model weights
+[download_weights.sh][STEP][2026-04-20T02:45:01+0000] START: Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights
+[download_weights.sh][STEP][2026-04-20T02:45:01+0000] START: Phase 2: Download model weight groups in parallel :: Download face parsing support weights
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights | [download_weights.sh][INFO][2026-04-20T02:45:01+0000] Skipping MuseTalk V1.0 weights
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights | 
+Fetching 2 files:   0%|          | 0/2 [00:00<?, ?it/s]Downloading 'musetalkV15/unet.pth' to 'models/.cache/huggingface/download/musetalkV15/LoOoXrSKVEItbaPMv3sjRItvIew=.7ebf6c98c181e20838e4c0054e96e944ac60d5d692cc01db42839fe11b787007.incomplete'
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights | Xet Storage is enabled for this repo. Downloading file from Xet Storage..
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights | Downloading 'musetalkV15/musetalk.json' to 'models/.cache/huggingface/download/musetalkV15/Qy9txlfbE6_9jp9j0zHgHVupyVE=.b822db87e503a283fbbee73617f89dcd294cb91c.incomplete'
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights | Download complete. Moving file to models/musetalkV15/musetalk.json
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights | 
+Fetching 2 files:  50%|█████     | 1/2 [00:00<00:00,  2.56it/s]Download complete. Moving file to models/musetalkV15/unet.pth
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights | 
+Fetching 2 files: 100%|██████████| 2/2 [02:31<00:00, 88.98s/it]
+Fetching 2 files: 100%|██████████| 2/2 [02:31<00:00, 75.69s/it]
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights | /workspace/MuseTalk/models
+[download_weights.sh][STEP][2026-04-20T02:47:33+0000] DONE: Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights (2m32s)
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | 
+Fetching 2 files:   0%|          | 0/2 [00:00<?, ?it/s]Downloading 'diffusion_pytorch_model.bin' to 'models/sd-vae/.cache/huggingface/download/QGKUr3yaD9JD-RaWEuvjvgKhPHs=.1b4889b6b1d4ce7ae320a02dedaeff1780ad77d415ea0d744b476155c6377ddc.incomplete'
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | Xet Storage is enabled for this repo. Downloading file from Xet Storage..
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | Downloading 'config.json' to 'models/sd-vae/.cache/huggingface/download/8_PA_wEVGiVa2goH2H4KQOQpvVY=.0db26717579be63eb0ddbf15b43faa43700dfe5a.incomplete'
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | Download complete. Moving file to models/sd-vae/config.json
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | 
+Fetching 2 files:  50%|█████     | 1/2 [00:00<00:00,  2.54it/s]Download complete. Moving file to models/sd-vae/diffusion_pytorch_model.bin
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | 
+Fetching 2 files: 100%|██████████| 2/2 [00:32<00:00, 18.97s/it]
+Fetching 2 files: 100%|██████████| 2/2 [00:32<00:00, 16.19s/it]
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | /workspace/MuseTalk/models/sd-vae
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | 
+Fetching 3 files:   0%|          | 0/3 [00:00<?, ?it/s]Downloading 'pytorch_model.bin' to 'models/whisper/.cache/huggingface/download/Q1p2l2BzM1m6P5jKvr8WTq1TUio=.9607f98a2b22d9e229ae43c52ecea79dcede9e0c5cfae67e8da6eda86d8aac1d.incomplete'
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | Xet Storage is enabled for this repo. Downloading file from Xet Storage..
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | Downloading 'preprocessor_config.json' to 'models/whisper/.cache/huggingface/download/PYH5dHjks7Ei0Yd3X0Z8xIwsCNQ=.c2048dfa9fd94a052e62e908d2c4dfb18534b4d2.incomplete'
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | Downloading 'config.json' to 'models/whisper/.cache/huggingface/download/8_PA_wEVGiVa2goH2H4KQOQpvVY=.417aa9de49a132dd3eb6a56d3be2718b15f08917.incomplete'
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | Download complete. Moving file to models/whisper/config.json
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | Download complete. Moving file to models/whisper/preprocessor_config.json
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | 
+Fetching 3 files:  33%|███▎      | 1/3 [00:00<00:00,  2.02it/s]Download complete. Moving file to models/whisper/pytorch_model.bin
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | 
+Fetching 3 files: 100%|██████████| 3/3 [00:04<00:00,  1.71s/it]
+Fetching 3 files: 100%|██████████| 3/3 [00:04<00:00,  1.59s/it]
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download base runtime model weights | /workspace/MuseTalk/models/whisper
+[download_weights.sh][STEP][2026-04-20T02:47:33+0000] DONE: Phase 2: Download model weight groups in parallel :: Download base runtime model weights (39s)
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights | Downloading 'dw-ll_ucoco_384.pth' to 'models/dwpose/.cache/huggingface/download/k-OzMXIWb0U6nYL8JmO35RFCBoQ=.0d9408b13cd863c4e95a149dd31232f88f2a12aa6cf8964ed74d7d97748c7a07.incomplete'
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights | Xet Storage is enabled for this repo. Downloading file from Xet Storage..
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights | Download complete. Moving file to models/dwpose/dw-ll_ucoco_384.pth
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights | models/dwpose/dw-ll_ucoco_384.pth
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights | Downloading 'latentsync_syncnet.pt' to 'models/syncnet/.cache/huggingface/download/D0RAtPKA706-Ixf79oQPssjHl0s=.38fa63bad3ed2332f647c40a5dc616cb0e233db8579f698f62af4c41965c4da5.incomplete'
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights | Xet Storage is enabled for this repo. Downloading file from Xet Storage..
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights | Download complete. Moving file to models/syncnet/latentsync_syncnet.pt
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights | models/syncnet/latentsync_syncnet.pt
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights | Downloading 'auxiliary/s3fd-619a316812.pth' to 'models/.cache/huggingface/download/auxiliary/Eet9jZ2Vw68vEZaquiFTgyfrIT8=.619a31681264d3f7f7fc7a16a42cbbe8b23f31a256f75a366e5a1bcd59b33543.incomplete'
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights | Xet Storage is enabled for this repo. Downloading file from Xet Storage..
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights | Download complete. Moving file to models/auxiliary/s3fd-619a316812.pth
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights | models/auxiliary/s3fd-619a316812.pth
+[download_weights.sh][STEP][2026-04-20T02:47:33+0000] DONE: Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights (59s)
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download face parsing support weights | Downloading...
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download face parsing support weights | From: https://drive.google.com/uc?id=154JgKpzCPW82qINcVieuPH3fZ2e0P812
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download face parsing support weights | To: /workspace/MuseTalk/models/face-parse-bisent/79999_iter.pth
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download face parsing support weights | 
+  0%|          | 0.00/53.3M [00:00<?, ?B/s]
+  1%|          | 524k/53.3M [00:00<00:59, 892kB/s]
+  2%|▏         | 1.05M/53.3M [00:00<00:42, 1.24MB/s]
+  3%|▎         | 1.57M/53.3M [00:01<00:39, 1.29MB/s]
+  4%|▍         | 2.10M/53.3M [00:01<00:38, 1.34MB/s]
+  5%|▍         | 2.62M/53.3M [00:01<00:34, 1.48MB/s]
+  6%|▌         | 3.15M/53.3M [00:02<00:28, 1.78MB/s]
+  7%|▋         | 3.67M/53.3M [00:02<00:23, 2.09MB/s]
+  8%|▊         | 4.19M/53.3M [00:03<01:04, 766kB/s] 
+  9%|▉         | 4.72M/53.3M [00:04<00:50, 965kB/s]
+ 10%|▉         | 5.24M/53.3M [00:05<01:00, 800kB/s]
+ 11%|█         | 5.77M/53.3M [00:05<00:51, 917kB/s]
+ 12%|█▏        | 6.29M/53.3M [00:05<00:42, 1.11MB/s]
+ 13%|█▎        | 6.82M/53.3M [00:06<00:41, 1.11MB/s]
+ 14%|█▍        | 7.34M/53.3M [00:06<00:39, 1.15MB/s]
+ 15%|█▍        | 7.86M/53.3M [00:07<00:40, 1.11MB/s]
+ 16%|█▌        | 8.39M/53.3M [00:08<01:08, 660kB/s] 
+ 17%|█▋        | 8.91M/53.3M [00:09<00:58, 752kB/s]
+ 18%|█▊        | 9.44M/53.3M [00:10<01:12, 606kB/s]
+ 19%|█▊        | 9.96M/53.3M [00:11<01:07, 644kB/s]
+ 20%|█▉        | 10.5M/53.3M [00:11<01:05, 657kB/s]
+ 21%|██        | 11.0M/53.3M [00:12<00:59, 716kB/s]
+ 22%|██▏       | 11.5M/53.3M [00:12<00:51, 815kB/s]
+ 23%|██▎       | 12.1M/53.3M [00:13<00:47, 862kB/s]
+ 24%|██▎       | 12.6M/53.3M [00:14<00:52, 773kB/s]
+ 25%|██▍       | 13.1M/53.3M [00:15<01:00, 662kB/s]
+ 26%|██▌       | 13.6M/53.3M [00:16<01:17, 511kB/s]
+ 27%|██▋       | 14.2M/53.3M [00:18<01:37, 403kB/s]
+ 28%|██▊       | 14.7M/53.3M [00:20<01:38, 391kB/s]
+ 29%|██▊       | 15.2M/53.3M [00:20<01:19, 479kB/s]
+ 30%|██▉       | 15.7M/53.3M [00:21<01:04, 586kB/s]
+ 30%|███       | 16.3M/53.3M [00:21<00:49, 744kB/s]
+ 31%|███▏      | 16.8M/53.3M [00:21<00:43, 836kB/s]
+ 32%|███▏      | 17.3M/53.3M [00:22<00:42, 856kB/s]
+ 33%|███▎      | 17.8M/53.3M [00:22<00:36, 962kB/s]
+ 34%|███▍      | 18.4M/53.3M [00:23<00:32, 1.08MB/s]
+ 35%|███▌      | 18.9M/53.3M [00:23<00:26, 1.28MB/s]
+ 37%|███▋      | 19.9M/53.3M [00:23<00:16, 2.00MB/s]
+ 38%|███▊      | 20.4M/53.3M [00:23<00:14, 2.33MB/s]
+ 39%|███▉      | 21.0M/53.3M [00:23<00:12, 2.53MB/s]
+ 40%|████      | 21.5M/53.3M [00:23<00:11, 2.86MB/s]
+ 41%|████▏     | 22.0M/53.3M [00:24<00:10, 3.06MB/s]
+ 42%|████▏     | 22.5M/53.3M [00:24<00:09, 3.29MB/s]
+ 43%|████▎     | 23.1M/53.3M [00:24<00:08, 3.53MB/s]
+ 44%|████▍     | 23.6M/53.3M [00:24<00:14, 2.10MB/s]
+ 45%|████▌     | 24.1M/53.3M [00:25<00:15, 1.93MB/s]
+ 46%|████▌     | 24.6M/53.3M [00:25<00:12, 2.25MB/s]
+ 47%|████▋     | 25.2M/53.3M [00:25<00:11, 2.45MB/s]
+ 48%|████▊     | 25.7M/53.3M [00:26<00:29, 949kB/s] 
+ 49%|████▉     | 26.2M/53.3M [00:26<00:22, 1.23MB/s]
+ 51%|█████     | 27.3M/53.3M [00:27<00:18, 1.41MB/s]
+ 53%|█████▎    | 28.3M/53.3M [00:27<00:12, 2.00MB/s]
+ 55%|█████▌    | 29.4M/53.3M [00:27<00:09, 2.65MB/s]
+ 56%|█████▌    | 29.9M/53.3M [00:28<00:08, 2.86MB/s]
+ 57%|█████▋    | 30.4M/53.3M [00:28<00:07, 3.00MB/s]
+ 58%|█████▊    | 30.9M/53.3M [00:28<00:06, 3.23MB/s]
+ 59%|█████▉    | 31.5M/53.3M [00:28<00:06, 3.41MB/s]
+ 60%|██████    | 32.0M/53.3M [00:28<00:05, 3.67MB/s]
+ 62%|██████▏   | 33.0M/53.3M [00:28<00:04, 4.62MB/s]
+ 64%|██████▍   | 34.1M/53.3M [00:28<00:03, 5.02MB/s]
+ 66%|██████▌   | 35.1M/53.3M [00:29<00:03, 5.65MB/s]
+ 68%|██████▊   | 36.2M/53.3M [00:29<00:02, 6.27MB/s]
+ 70%|██████▉   | 37.2M/53.3M [00:29<00:02, 6.64MB/s]
+ 72%|███████▏  | 38.3M/53.3M [00:29<00:02, 6.93MB/s]
+ 74%|███████▍  | 39.3M/53.3M [00:29<00:01, 7.15MB/s]
+ 76%|███████▌  | 40.4M/53.3M [00:29<00:01, 7.92MB/s]
+ 81%|████████  | 43.0M/53.3M [00:29<00:00, 12.1MB/s]
+ 86%|████████▌ | 45.6M/53.3M [00:29<00:00, 15.1MB/s]
+ 91%|█████████ | 48.2M/53.3M [00:30<00:00, 17.8MB/s]
+ 95%|█████████▌| 50.9M/53.3M [00:30<00:00, 20.0MB/s]
+100%|██████████| 53.3M/53.3M [00:30<00:00, 1.77MB/s]
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download face parsing support weights |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download face parsing support weights |                                  Dload  Upload   Total   Spent    Left  Speed
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase 2: Download model weight groups in parallel :: Download face parsing support weights | 
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+ 16 44.6M   16 7742k    0     0  21.6M      0  0:00:02 --:--:--  0:00:02 21.6M
+100 44.6M  100 44.6M    0     0  40.7M      0  0:00:01  0:00:01 --:--:-- 40.8M
+[download_weights.sh][STEP][2026-04-20T02:47:33+0000] DONE: Phase 2: Download model weight groups in parallel :: Download face parsing support weights (35s)
+[download_weights.sh][PHASE][2026-04-20T02:47:33+0000] DONE: Phase 2: Download model weight groups in parallel (2m32s)
+[download_weights.sh][PHASE][2026-04-20T02:47:33+0000] START: Phase 3: Validate downloaded model set
+[download_weights.sh][PHASE][2026-04-20T02:47:33+0000] DETAIL: Verify that every required model file for the requested runtime shape exists on disk.
+[download_weights.sh][STEP][2026-04-20T02:47:33+0000] START: Phase 3: Validate downloaded model set :: Validate required model files
+[download_weights.sh][STEP][2026-04-20T02:47:33+0000] DONE: Phase 3: Validate downloaded model set :: Validate required model files (0s)
+[download_weights.sh][PHASE][2026-04-20T02:47:33+0000] DONE: Phase 3: Validate downloaded model set (0s)
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] All weights downloaded and validated successfully
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Phase summary:
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000]   [OK] Phase 1: Prepare weight download environment (5s) - Wait for outbound connectivity and install helper tooling used by the model download path.
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000]   [OK] Phase 2: Download model weight groups in parallel (2m32s) - Fetch the MuseTalk, runtime, avatar-prep, and face-parse model groups concurrently where possible.
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000]   [OK] Phase 3: Validate downloaded model set (0s) - Verify that every required model file for the requested runtime shape exists on disk.
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Slowest phases:
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000]   [OK] Phase 2: Download model weight groups in parallel (2m32s) - Fetch the MuseTalk, runtime, avatar-prep, and face-parse model groups concurrently where possible.
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Slowest steps:
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000]   [OK] Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights (2m32s)
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000]   [OK] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights (59s)
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000]   [OK] Phase 2: Download model weight groups in parallel :: Download base runtime model weights (39s)
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000]   [OK] Phase 2: Download model weight groups in parallel :: Download face parsing support weights (35s)
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000] Step summary:
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000]   [OK] Phase 1: Prepare weight download environment :: Wait for outbound HTTPS to become ready (1s)
+[download_weights.sh][INFO][2026-04-20T02:47:33+0000]   [OK] Phase 1: Prepare weight download environment :: Install download helper utilities (4s)
+[download_weights.sh][INFO][2026-04-20T02:47:34+0000]   [OK] Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights (2m32s)
+[download_weights.sh][INFO][2026-04-20T02:47:34+0000]   [OK] Phase 2: Download model weight groups in parallel :: Download base runtime model weights (39s)
+[download_weights.sh][INFO][2026-04-20T02:47:34+0000]   [OK] Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights (59s)
+[download_weights.sh][INFO][2026-04-20T02:47:34+0000]   [OK] Phase 2: Download model weight groups in parallel :: Download face parsing support weights (35s)
+[download_weights.sh][INFO][2026-04-20T02:47:34+0000]   [OK] Phase 3: Validate downloaded model set :: Validate required model files (0s)
+[download_weights.sh][INFO][2026-04-20T02:47:34+0000] Exit status: success
+[setup_trt_stagewise_server_env.sh][STEP][2026-04-20T02:47:34+0000] DONE: Download and validate model weights (2m38s)
+[setup_trt_stagewise_server_env.sh][STEP][2026-04-20T02:47:34+0000] START: Validate required model files
+Validated 12 required model files
+[setup_trt_stagewise_server_env.sh][STEP][2026-04-20T02:47:34+0000] DONE: Validate required model files (0s)
+[setup_trt_stagewise_server_env.sh][STEP][2026-04-20T02:47:34+0000] START: Run avatar-prep import smoke test
+/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/mmengine/optim/optimizer/zero_optimizer.py:11: DeprecationWarning: `TorchScript` support for functional optimizers is deprecated and will be removed in a future PyTorch release. Consider using the `torch.compile` optimizer instead.
+  from torch.distributed.optim import \
+Loads checkpoint by local backend from path: ./models/dwpose/dw-ll_ucoco_384.pth
+/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/mmengine/runner/checkpoint.py:347: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  checkpoint = torch.load(filename, map_location=map_location)
+cuda start
+/workspace/MuseTalk/musetalk/utils/face_detection/detection/sfd/sfd_detector.py:67: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  model_weights = torch.load(detector_path, map_location="cpu")
+mmengine 0.10.4
+mmcv 2.1.0
+mmcv._ext available
+mmdet 3.2.0
+mmpose 1.3.1
+get_landmark_and_bbox True
+avatar prep import OK
+[setup_trt_stagewise_server_env.sh][STEP][2026-04-20T02:47:42+0000] DONE: Run avatar-prep import smoke test (8s)
+[setup_trt_stagewise_server_env.sh][STEP][2026-04-20T02:47:42+0000] START: Run TRT-stagewise server import smoke test
+🎞️ WebRTC H.264 encoder set to h264_nvenc
+/workspace/MuseTalk/scripts/api_avatar.py:385: FutureWarning: Decorating classes is deprecated and will be disabled in future versions. You should only decorate functions or methods. To preserve the current behavior of class decoration, you can directly decorate the `__init__` method and nothing else.
+  class APIAvatar:
+Unable to import quantization op. Please install modelopt library (https://github.com/NVIDIA/TensorRT-Model-Optimizer?tab=readme-ov-file#installation) to add support for compiling quantized models
+api_server import OK
+torch 2.5.1+cu121
+torch_tensorrt 2.5.0
+tensorrt 10.3.0
+cuda_available True
+default_stagewise_warmup_batches [4]
+[setup_trt_stagewise_server_env.sh][STEP][2026-04-20T02:47:48+0000] DONE: Run TRT-stagewise server import smoke test (6s)
+
+Fresh-server setup complete.
+Recommended next step:
+  bash /workspace/MuseTalk/scripts/run_trt_stagewise_server.sh --profile baseline
+
+Optional throughput profile:
+  bash /workspace/MuseTalk/scripts/run_trt_stagewise_server.sh --profile throughput_record
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:47:48+0000] Slowest steps:
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:47:48+0000]   [OK] Build TRT-stagewise experiment venv (15m41s)
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:47:48+0000]   [OK] Download and validate model weights (2m38s)
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:47:48+0000]   [OK] Install required system packages (20s)
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:47:48+0000] Step summary:
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:47:48+0000]   [OK] Install required system packages (20s)
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:47:48+0000]   [OK] Build TRT-stagewise experiment venv (15m41s)
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:47:48+0000]   [OK] Download and validate model weights (2m38s)
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:47:48+0000]   [OK] Validate required model files (0s)
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:47:48+0000]   [OK] Run avatar-prep import smoke test (8s)
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:47:48+0000]   [OK] Run TRT-stagewise server import smoke test (6s)
+[setup_trt_stagewise_server_env.sh][INFO][2026-04-20T02:47:48+0000] Exit status: success
+[vast_onstart.sh] [02:47:48] Bootstrap/setup phase finished in 18m53s
+[vast_onstart.sh] [02:47:48] ── Post-setup validation ──
+[vast_onstart.sh] [02:47:48] ✅ Venv Python exists at /workspace/.venvs/musetalk_trt_stagewise/bin/python
+[vast_onstart.sh] [02:47:48] ✅ models/musetalkV15/unet.pth (3.2G)
+[vast_onstart.sh] [02:47:48] ✅ models/sd-vae/diffusion_pytorch_model.bin (320M)
+[vast_onstart.sh] [02:47:48] ✅ models/whisper/pytorch_model.bin (145M)
+[vast_onstart.sh] [02:47:48] ✅ models/face-parse-bisent/79999_iter.pth (51M)
+[vast_onstart.sh] [02:47:48] ✅ models/dwpose/dw-ll_ucoco_384.pth (389M)
+[vast_onstart.sh] [02:47:48] ✅ models/syncnet/latentsync_syncnet.pt (1.4G)
+[vast_onstart.sh] [02:47:48] ✅ models/face_detection/s3fd.pth (86M)
+torch 2.5.1+cu121, CUDA=True
+[vast_onstart.sh] [02:47:50] ✅ torch + CUDA OK
+uvicorn + fastapi OK
+[vast_onstart.sh] [02:47:51] ✅ Server deps OK
+mmcv + mmdet + mmpose OK
+[vast_onstart.sh] [02:47:53] ✅ Avatar prep deps OK
+[vast_onstart.sh] [02:47:53] ✅ All post-setup validation checks passed
+[vast_onstart.sh] [02:47:53] Post-setup validation finished in 5s
+[vast_server_ctl.sh] Starting MuseTalk server
+[vast_server_ctl.sh] repo=/workspace/MuseTalk
+[vast_server_ctl.sh] venv=/workspace/.venvs/musetalk_trt_stagewise
+[vast_server_ctl.sh] profile=throughput_record host=0.0.0.0 port=8000
+[vast_server_ctl.sh] log_file=/workspace/logs/musetalk/api_server_8000.log
+[vast_server_ctl.sh] Spawned pid=3589
