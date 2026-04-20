@@ -31,88 +31,127 @@ Assumptions:
 - current environment family remains CUDA 12.1 / Python 3.10 / TRT-stagewise
 - preferred solutions should avoid recurring cost
 
-## Current Cold-Boot Baseline
+## Latest Validated Cold-Boot Result
 
-The latest `scripts/dependency_install_logs` capture a completed bootstrap/setup
-phase of **42m45s** before the server-health phase.
+The latest validated fresh-server run is captured in
+`scripts/dependency_isntall_logs_april_19`.
 
-Top-level completed setup phases:
+That run completed the measured setup/bootstrap portion in **18m53s** before the
+server-health tail:
 
-- `Install required system packages`: `17s`
-- `Build TRT-stagewise experiment venv`: `18m47s`
-- `Download and validate model weights`: `23m26s`
+- `Install required system packages`: `20s`
+- `Build TRT-stagewise experiment venv`: `15m41s`
+- `Download and validate model weights`: `2m38s`
 - `Validate required model files`: `0s`
-- `Run avatar-prep import smoke test`: `9s`
+- `Run avatar-prep import smoke test`: `8s`
 - `Run TRT-stagewise server import smoke test`: `6s`
-- `Bootstrap/setup phase finished`: `42m45s`
+- `Bootstrap/setup phase finished`: `18m53s`
 
 Important note:
 
-- this log stops after the server process is spawned
+- this log still stops after the server process is spawned
 - it does **not** include the final health-ready tail
 - so the numbers below rank the **measured cold-bootstrap portion**
 
-## Largest Cold-Boot Time Sinks
+Compared with the earlier `42m45s` cold-bootstrap baseline, the measured setup
+portion dropped by about **56%**.
 
-These are the biggest wall-clock costs from the latest completed cold bootstrap.
+## What Improved And Why
 
-1. `Download MuseTalk V1.5 weights`: `16m59s`
-   - dominated by `models/musetalkV15/unet.pth`
-   - latest validation reported `unet.pth` at `3.2G`
+The cold-boot picture changed materially in the latest validated run.
 
-2. `Install PyTorch CUDA 12.1 wheel set`: `8m15s`
-   - dominated by large wheel downloads
-   - examples:
-     - `torch`: `780.4 MB`
-     - `nvidia-cudnn-cu12`: `664.8 MB`
-     - `nvidia-cublas-cu12`: `410.6 MB`
-     - `triton`: `209.5 MB`
-     - `nvidia-cusparse-cu12`: `196.0 MB`
-     - `nvidia-nccl-cu12`: `188.7 MB`
+### MuseTalk V1.5 Download
 
-3. `Download SyncNet weights`: `4m14s`
-   - dominated by `models/syncnet/latentsync_syncnet.pt`
-   - latest validation reported `syncnet` at `1.4G`
+The MuseTalk V1.5 download is no longer a `10-15` minute problem.
 
-4. `Install pinned HLS/api_server dependency set`: `2m44s`
+- older run: `Download MuseTalk V1.5 weights`: `16m59s`
+- latest run: `Download MuseTalk model weights`: `2m32s`
 
-5. `Install torch-tensorrt pinned stack`: `2m37s`
-   - includes `tensorrt_cu12_libs-10.3.0` at `2037.5 MB`
+That is about an **85% reduction**.
 
-6. `Install avatar-preparation dependencies`: `2m33s`
+The main reasons are:
 
-7. `Install pinned export + benchmark dependencies`: `2m15s`
+1. `hf_xet` is now installed and actually used.
+   - older run: Hugging Face logged a fallback to regular HTTP
+   - latest run: `Xet Storage is enabled for this repo. Downloading file from Xet Storage..`
 
-The first three items alone account for about **29m28s** of the measured
-`42m45s` bootstrap.
+2. `HF_XET_HIGH_PERFORMANCE=1` is enabled by default.
 
-Cold-boot conclusion:
+3. model groups now download in parallel.
 
-- the dominant problem is **multi-GB artifact transfer**
-- not Python build logic
-- not apt
-- not validation steps
+4. legacy MuseTalk V1 weights remain disabled.
 
-## What No Longer Matters As Much
+Interpretation:
 
-The old `mmcv` source-build problem used to cost roughly `6-10` minutes.
+- yes, the V1.5 speedup is primarily the result of getting onto the Xet path
+- parallel group downloads and skipping V1 also help the overall wall-clock time
+- but the biggest direct evidence in the logs is the switch from HTTP fallback to
+  successful Xet-backed transfer
 
-That is no longer the primary cold-boot bottleneck:
+### Full Model Download Phase
 
-- latest avatar-prep dependency phase: `2m33s`
-- latest `Install full mmcv`: `1s`
+The full weight download phase improved even more sharply:
 
-That matters because it proves the pattern:
+- older run: `23m26s`
+- latest run: `2m38s`
 
-- when an expensive dependency becomes a nearby prebuilt artifact, cold boot
-  drops sharply
+That means model transfer is no longer the dominant cold-boot bottleneck in the
+validated latest run.
 
-The next cold-boot optimization cycle should apply that same pattern to:
+### Avatar-Prep Dependency Phase
 
-- `musetalkV15/unet.pth`
-- `syncnet/latentsync_syncnet.pt`
-- the PyTorch CUDA wheel set
-- the TensorRT wheel set
+The `mmcv` fix is validated.
+
+- `Install full mmcv`: `1s`
+- `Install avatar-preparation dependencies`: `1m40s`
+
+The old `6-10` minute `mmcv` source-build problem is no longer relevant on the
+current path.
+
+## Current Cold-Boot Bottleneck
+
+In the latest validated run, the dominant measured setup cost is now the venv
+build, specifically the API/runtime dependency bundle:
+
+1. `Build TRT-stagewise experiment venv`: `15m41s`
+2. inside that, `Phase 6: Install API server runtime dependencies`: `10m00s`
+3. inside that, `Install pinned HLS/api_server dependency set`: `9m54s`
+
+So the current bottleneck is no longer MuseTalk V1.5 weights. It is now the
+Python dependency set for the API/runtime stack.
+
+Within that phase, the worst observed package downloads in the latest run were:
+
+- `llvmlite-0.47.0` (`56.3 MB`): about `6m03s`
+- `av-16.1.0` (`40.3 MB`): about `1m19s`
+- `cryptography-46.0.7` (`4.4 MB`): about `44s`
+- `scipy-1.15.3` (`37.7 MB`): about `15s`
+
+This is strong evidence that the main remaining cold-boot drag has shifted from
+model transport to slow and variable Python package transport.
+
+## What Did Not Work In That Validated Run
+
+The new wheelhouse prefetch optimization did **not** run successfully in that
+latest validated build.
+
+Symptoms from the log:
+
+- `Phase 2: Prefetch wheelhouse artifacts` completed in `0s`
+- repeated `env_flag_is_true: command not found`
+
+Impact:
+
+- the build did **not** actually exercise the wheelhouse-prefetch/local-wheel
+  path for dependency installs
+- so the latest validated run still paid the full network cost for the
+  API/runtime dependency bundle
+
+Status:
+
+- this helper bug has already been patched in
+  `scripts/setup_trt_experiment_env.sh`
+- the fix still needs validation on the next fresh-node cold boot
 
 ## What Helps Cold Boot And What Does Not
 
@@ -144,47 +183,65 @@ The repo already has several changes that help cold boots directly:
 
 Cold-boot interpretation:
 
-- these changes can reduce a fresh-node boot
-- but they do **not** remove the need to fetch the largest artifacts at least
-  once
+- items `1-3` are now validated by the latest fresh-server run
+- items `4-5` were present but did **not** take effect in that run because of the
+  `env_flag_is_true` helper bug
+- the wheelhouse path still needs a clean fresh-server validation after the patch
 
-So they are worthwhile, but they are not sufficient to make a brand-new node
-fast by themselves.
+So the model-side transport improvements are now proven, while the dependency-side
+wheelhouse path is only partially implemented until the next validation run.
 
 ## Cold-Boot Priority Targets
 
 If the goal is to materially reduce first boot on a brand-new server, the
 highest-value targets are:
 
-### Target 1: MuseTalk V1.5 UNet
+### Target 1: API Server Runtime Wheel Family
+
+- latest measured cost: `10m00s`
+- worst substep: `Install pinned HLS/api_server dependency set` at `9m54s`
+- worst observed packages in the latest run:
+  - `llvmlite`
+  - `av`
+  - `cryptography`
+  - `scipy`
+
+This is the current largest validated cold-boot target.
+
+### Target 2: Wheelhouse Prefetch Validation
+
+- the wheelhouse prefetch phase currently shows `0s` in the latest validated run
+- that happened because of the missing `env_flag_is_true` helper
+- the helper has now been patched, but the fix is not yet validated on a fresh node
+
+This is the next immediate engineering step because it may reduce Target 1
+substantially without changing the artifact strategy.
+
+### Target 3: MuseTalk V1.5 UNet
 
 - file: `models/musetalkV15/unet.pth`
-- latest measured cost: effectively the full `16m59s` MuseTalk V1.5 phase
+- latest measured group cost: `2m32s`
+- prior measured cost: `16m59s`
 - latest measured size: `3.2G`
 
-This is the single largest cold-boot target.
+This is no longer the main blocker, but it is still the single largest model
+artifact and still a strong candidate for prebuilt bundle distribution.
 
-### Target 2: SyncNet
+### Target 4: SyncNet
 
 - file: `models/syncnet/latentsync_syncnet.pt`
-- latest measured cost: `4m14s`
+- latest avatar-prep model-group time: `59s`
 - latest measured size: `1.4G`
 
-This is the second-best model target.
+This remains the second-best model artifact target.
 
-### Target 3: PyTorch CUDA Wheel Family
+### Target 5: PyTorch CUDA And TensorRT Wheel Families
 
-- latest measured cost: `8m15s`
-- dominated by the torch/CUDA wheel family
+- PyTorch CUDA latest measured cost: `2m11s`
+- TensorRT latest measured cost: `59s`
 
-This is the single largest non-model cold-boot target.
-
-### Target 4: TensorRT Wheel Family
-
-- latest measured cost: `2m37s`
-- includes a `2.0G` TensorRT libs wheel
-
-This is the second-largest non-model artifact family.
+These are no longer the worst phases on this node, but they remain large binary
+artifact families and still belong in any eventual prebuilt wheel bundle.
 
 ## Why The Main Git Repo Is Still The Wrong Place For Models
 
@@ -248,20 +305,30 @@ If per-file size limits require it:
 
 ## Recommended Cold-Boot Plan
 
-### Phase 1: Keep The Current Script-Level Transport Improvements
+### Phase 1: Validate The Wheelhouse Fix On A Fresh Node
 
-These are already the right direction for cold boot:
+This is the immediate next action:
+
+1. run one more true cold boot after the `env_flag_is_true` patch
+2. confirm that `Phase 2: Prefetch wheelhouse artifacts` is no longer `0s`
+3. confirm that the API/runtime dependency phase drops meaningfully
+4. confirm that the log shows local wheelhouse preference during heavy pip phases
+
+This needs to happen before making a larger artifact-publishing decision on the
+dependency side.
+
+### Phase 2: Keep The Current Model-Side Transport Improvements
+
+These are already validated and should remain enabled:
 
 1. `hf_xet`
 2. `HF_XET_HIGH_PERFORMANCE=1`
 3. parallel model download groups
-4. parallel wheelhouse prefetch
+4. skip legacy MuseTalk V1 weights
 
-These should remain enabled.
+### Phase 3: Publish Cold-Boot Artifact Bundles
 
-### Phase 2: Publish Cold-Boot Artifact Bundles
-
-This is the real next step if cold boot is all that matters.
+This remains the larger structural answer if cold boot is all that matters.
 
 1. Publish a GitHub release bundle for the full-stack models.
    - core runtime bundle:
@@ -295,7 +362,7 @@ Expected cold-boot effect:
 - less dependence on third-party mirror variance
 - much better odds of predictable first boot
 
-### Phase 3: Treat Cold Boot As A Separate Product Path
+### Phase 4: Treat Cold Boot As A Separate Product Path
 
 The cold-boot question should be treated separately from repeat-boot behavior.
 
@@ -310,23 +377,30 @@ That means:
 If the next optimization cycle is focused only on cold boot, the highest-value
 project is:
 
-1. keep the current Xet + parallel-download improvements
-2. publish GitHub release bundles for:
+1. validate the patched wheelhouse prefetch path on a true fresh-node boot
+2. keep the current Xet + parallel-download improvements
+3. publish GitHub release bundles for:
    - full-stack model artifacts
    - pinned wheelhouse artifacts
-3. teach bootstrap to consume those bundles first
+4. teach bootstrap to consume those bundles first
 
 That is the cleanest continuation of the `mmcv` strategy.
 
 ## Decision Summary
 
-- cold boot is dominated by large artifact transfer
-- the two biggest model targets are:
+- the latest validated cold boot completed measured setup in `18m53s`
+- MuseTalk V1.5 speed improved from `16m59s` to `2m32s`, primarily because Xet
+  is now actually being used
+- the full model-download phase improved from `23m26s` to `2m38s`
+- the current largest validated bottleneck is now:
+  - `Phase 6: Install API server runtime dependencies` at `10m00s`
+- the wheelhouse-prefetch optimization was not validated in that run because of
+  the helper bug
+- the two biggest model artifact targets are still:
   - `musetalkV15/unet.pth`
   - `syncnet/latentsync_syncnet.pt`
-- the two biggest dependency targets are:
-  - PyTorch CUDA wheel family
-  - TensorRT wheel family
+- the current biggest dependency target is:
+  - the API/runtime wheel family
 - repeat-boot logic is not the focus here
 - the best no-cost cold-boot direction is:
   - **GitHub Releases for prebuilt model and wheel bundles**
