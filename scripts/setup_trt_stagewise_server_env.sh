@@ -109,7 +109,7 @@ build_trt_experiment_venv_step() {
   else
     log "Server-only mode enabled: skipping optional avatar-prep deps to minimize first-boot time"
   fi
-  bash "$SCRIPT_DIR/setup_trt_experiment_env.sh" "${SETUP_ARGS[@]}"
+  bash "$SCRIPT_DIR/setup_trt_experiment_env.sh" "${SETUP_ARGS[@]}" || return $?
   VENV_PYTHON="$VENV_PATH/bin/python"
   [[ -x "$VENV_PYTHON" ]] || die "Expected venv python at: $VENV_PYTHON"
 }

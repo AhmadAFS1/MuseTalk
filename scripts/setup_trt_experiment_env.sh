@@ -831,6 +831,7 @@ prefetch_export_backend_wheelhouse_step() {
 
   prefetch_wheels_step \
     "$EXPORT_WHEELHOUSE_DIR" \
+    --no-deps \
     "numpy==$NUMPY_VERSION" \
     "opencv-python==$OPENCV_VERSION" \
     "diffusers==$DIFFUSERS_VERSION" \
@@ -882,13 +883,15 @@ prefetch_avatar_prep_wheelhouse_step() {
     return 0
   fi
 
+  # chumpy installs reliably later with --no-build-isolation, but isolated
+  # wheel prefetch can fail in subprocess build environments.
+  log "Skipping chumpy wheel prefetch; chumpy will be installed during the normal avatar-prep phase with --no-build-isolation"
   prefetch_wheels_step \
     "$AVATAR_PREP_WHEELHOUSE_DIR" \
     "openmim==$OPENMIM_VERSION" \
     "setuptools<81" \
     "ninja" \
-    "psutil" \
-    "chumpy==$CHUMPY_VERSION"
+    "psutil"
 }
 
 prefetch_repo_runtime_wheelhouse_step() {
@@ -920,20 +923,22 @@ phase_prefetch_wheelhouses() {
 
   log "Wheelhouse root: $WHEELHOUSE_ROOT"
   if env_flag_is_true "$WHEELHOUSE_PREFETCH_IN_PARALLEL"; then
-    run_parallel_steps \
+    if ! run_parallel_steps \
       "Prefetch PyTorch CUDA wheelhouse::prefetch_pytorch_cuda_wheelhouse_step" \
       "Prefetch TensorRT wheelhouse::prefetch_tensorrt_wheelhouse_step" \
       "Prefetch export/backend wheelhouse::prefetch_export_backend_wheelhouse_step" \
       "Prefetch server runtime wheelhouse::prefetch_server_runtime_wheelhouse_step" \
       "Prefetch avatar-prep prerequisite wheelhouse::prefetch_avatar_prep_wheelhouse_step" \
-      "Prefetch repo runtime wheelhouse::prefetch_repo_runtime_wheelhouse_step"
+      "Prefetch repo runtime wheelhouse::prefetch_repo_runtime_wheelhouse_step"; then
+      log "Wheelhouse prefetch encountered failures; continuing with the standard install phases and falling back to network/package-index installs where needed"
+    fi
   else
-    run_step "Prefetch PyTorch CUDA wheelhouse" prefetch_pytorch_cuda_wheelhouse_step
-    run_step "Prefetch TensorRT wheelhouse" prefetch_tensorrt_wheelhouse_step
-    run_step "Prefetch export/backend wheelhouse" prefetch_export_backend_wheelhouse_step
-    run_step "Prefetch server runtime wheelhouse" prefetch_server_runtime_wheelhouse_step
-    run_step "Prefetch avatar-prep prerequisite wheelhouse" prefetch_avatar_prep_wheelhouse_step
-    run_step "Prefetch repo runtime wheelhouse" prefetch_repo_runtime_wheelhouse_step
+    run_step "Prefetch PyTorch CUDA wheelhouse" prefetch_pytorch_cuda_wheelhouse_step || true
+    run_step "Prefetch TensorRT wheelhouse" prefetch_tensorrt_wheelhouse_step || true
+    run_step "Prefetch export/backend wheelhouse" prefetch_export_backend_wheelhouse_step || true
+    run_step "Prefetch server runtime wheelhouse" prefetch_server_runtime_wheelhouse_step || true
+    run_step "Prefetch avatar-prep prerequisite wheelhouse" prefetch_avatar_prep_wheelhouse_step || true
+    run_step "Prefetch repo runtime wheelhouse" prefetch_repo_runtime_wheelhouse_step || true
   fi
 }
 
