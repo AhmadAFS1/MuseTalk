@@ -65,11 +65,27 @@ Measured top-level timings:
   - `Download and validate model weights`: `2m38s`
   - `Bootstrap/setup phase finished`: `18m53s`
 
-Important note:
+The updated April 22 logs also include the later server health-ready tail.
 
-- these logs still stop after server spawn and short post-setup validation
-- they do **not** include the final health-ready tail
-- so the numbers below rank the **measured cold-bootstrap portion**
+Measured full on-start timings:
+
+- RTX 3090 / `7000 Mbps`
+  - `Bootstrap/setup phase finished`: `5m06s`
+  - `Server start-to-health phase finished`: `10m01s`
+  - `Overall on-start completed`: `15m11s`
+- RTX 3090 Ti / `700 Mbps`
+  - `Bootstrap/setup phase finished`: `8m58s`
+  - `Server start-to-health phase finished`: `8m55s`
+  - `Overall on-start completed`: `17m57s`
+
+Interpretation:
+
+- the faster link still wins overall, but not by nearly as much as the measured
+  bootstrap delta would suggest
+- the RTX 3090 / `7000 Mbps` node saves `3m52s` during bootstrap compared with
+  the `700 Mbps` node, but only finishes the full on-start about `2m46s` sooner
+- that is because the current user-visible startup is now dominated by the
+  post-spawn server start-to-health tail, not just by dependency download time
 
 Compared with the April 20 `18m53s` baseline, the measured setup portion
 dropped by about:
@@ -230,6 +246,67 @@ Interpretation:
 - for cold boot, GPU choice matters far less than link speed unless the flow is
   doing real compilation or inference work
 
+## Current Full On-Start Bottleneck
+
+If the metric is the full user-visible startup time until `/health` goes green,
+the main bottleneck is no longer dependency installation at all.
+
+Observed April 22 timings:
+
+- RTX 3090 / `7000 Mbps`
+  - `Bootstrap/setup phase finished`: `5m06s`
+  - `Server start-to-health phase finished`: `10m01s`
+  - `Overall on-start completed`: `15m11s`
+- RTX 3090 Ti / `700 Mbps`
+  - `Bootstrap/setup phase finished`: `8m58s`
+  - `Server start-to-health phase finished`: `8m55s`
+  - `Overall on-start completed`: `17m57s`
+
+Interpretation:
+
+- on the fast-link node, the server start-to-health tail is now almost **2x**
+  the measured bootstrap/setup time
+- even on the slower-link node, the start-to-health tail is about the same size
+  as the full setup/bootstrap portion
+- so the next highest-value optimization target for total startup is the server
+  startup path, not additional pip tuning
+
+Current likely causes from the code path:
+
+1. `scripts/vast_server_ctl.sh` and `scripts/vast_onstart.sh` default to
+   `PROFILE=throughput_record`.
+2. `scripts/run_trt_stagewise_server.sh` widens that profile to:
+   - `HLS_SCHEDULER_MAX_BATCH=16`
+   - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16`
+   - `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
+3. `api_server.py` constructs `ParallelAvatarManager(...)` during startup before
+   the process is marked healthy.
+4. `scripts/avatar_manager_parallel.py` immediately loads models, calls
+   `compile_models()`, and then calls `_warm_runtime_paths()`.
+5. `scripts/trt_runtime.py` warms stagewise TRT batches synchronously and logs
+   each warmup batch when the TRT backend is active.
+6. `/health` is gated by `worker_control_plane.ready_for_health()`, so any
+   delayed control-plane registration can also keep health red after the local
+   runtime is initialized.
+
+What the logs prove versus what is still inferred:
+
+- proven by the logs:
+  - full health-ready time is now `8m55s` to `10m01s`
+  - this is the largest user-visible delay in the latest successful runs
+- inferred from the startup code:
+  - widened throughput warmup is a likely major contributor
+  - control-plane registration could also contribute if that path is enabled at
+    runtime
+
+So there are now two distinct bottleneck rankings:
+
+- measured cold-bootstrap bottleneck:
+  - wheelhouse prefetch, especially TensorRT then PyTorch CUDA
+- full on-start bottleneck:
+  - server start-to-health, likely dominated by startup warmup and possibly
+    control-plane readiness gating
+
 ## What Did Not Work In The April 20 Baseline
 
 The new wheelhouse prefetch optimization did **not** run successfully in that
@@ -374,6 +451,46 @@ setup.
   - `Install PyTorch CUDA 12.1 wheel set`: `59s`
 
 This remains the second-best wheel-family target.
+
+## Full Startup Priority Targets
+
+If the target is the full user-visible on-start time rather than bootstrap-only
+time, the priority order changes.
+
+### Target 1: Server Start-To-Health Tail
+
+- RTX 3090 / `7000 Mbps`: `10m01s`
+- RTX 3090 Ti / `700 Mbps`: `8m55s`
+
+This is now the single biggest remaining wall-clock delay in the successful
+April 22 runs.
+
+The most promising next interventions are:
+
+1. reduce or defer throughput-profile warmup during on-start
+   - try making `baseline` the default startup profile
+   - or reduce `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES` for boot
+   - or move widened batch warmup into a background task after health goes green
+
+2. separate readiness from full throughput optimization
+   - make `/health` reflect local runtime readiness first
+   - keep background warmup for larger batch buckets after initial health
+
+3. verify whether control-plane registration is extending health wait
+   - `/health` currently depends on `worker_control_plane.ready_for_health()`
+   - if control-plane registration is optional for this deployment shape, it may
+     not need to gate first health
+
+### Target 2: TensorRT Wheel Family
+
+- still the largest bootstrap-only dependency transfer target
+- this matters most on slower links and brand-new nodes
+
+### Target 3: PyTorch CUDA Wheel Family
+
+- still the second-largest bootstrap-only dependency transfer target
+- likely worth optimizing only after the server warmup tail is addressed if the
+  metric is full on-start latency
 
 ### Target 3: MuseTalk V1.5 UNet
 
@@ -551,6 +668,9 @@ That is the cleanest continuation of the `mmcv` strategy.
 - the latest validated cold boots completed measured setup in:
   - `5m06s` on the RTX 3090 / `7000 Mbps` node
   - `8m58s` on the RTX 3090 Ti / `700 Mbps` node
+- the latest validated full on-starts completed in:
+  - `15m11s` on the RTX 3090 / `7000 Mbps` node
+  - `17m57s` on the RTX 3090 Ti / `700 Mbps` node
 - compared with the April 20 `18m53s` baseline, that is about:
   - `73%` faster on the `7000 Mbps` node
   - `53%` faster on the `700 Mbps` node
@@ -561,8 +681,12 @@ That is the cleanest continuation of the `mmcv` strategy.
   - `1m12s` on the `700 Mbps` node
   - `13s` on the `7000 Mbps` node
 - the current largest validated bottleneck is now:
-  - `Phase 2: Prefetch wheelhouse artifacts`
-  - especially the TensorRT and PyTorch CUDA wheel families
+  - for bootstrap/setup only:
+    - `Phase 2: Prefetch wheelhouse artifacts`
+    - especially the TensorRT and PyTorch CUDA wheel families
+  - for full user-visible startup:
+    - `Server start-to-health phase`
+    - likely driven more by runtime warmup than by download/install
 - the API/runtime dependency install bottleneck was largely removed:
   - from `10m00s` on April 20
   - to `23-27s` on the April 22 runs
@@ -572,6 +696,8 @@ That is the cleanest continuation of the `mmcv` strategy.
   - `syncnet/latentsync_syncnet.pt`
 - the current biggest dependency target is:
   - the TensorRT wheel family, then PyTorch CUDA
+- the current biggest end-to-end startup target is:
+  - the post-spawn server warmup / health-ready path
 - repeat-boot logic is not the focus here
 - the best no-cost cold-boot direction is:
   - **GitHub Releases for prebuilt model and wheel bundles**
