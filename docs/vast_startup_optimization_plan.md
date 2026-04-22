@@ -153,6 +153,65 @@ Status:
   `scripts/setup_trt_experiment_env.sh`
 - the fix still needs validation on the next fresh-node cold boot
 
+## Latest Follow-Up Status
+
+After the April 20 validated run, the next fresh-node build exercised the new
+wheelhouse-prefetch path more fully and exposed a new set of issues.
+
+### What Went Wrong
+
+1. `Prefetch export/backend wheelhouse` resolved the wrong Torch stack.
+   - because the prefetch was unconstrained for transitive dependencies, it
+     started downloading newer PyPI Torch/CUDA artifacts such as:
+     - `torch-2.11.0`
+     - CUDA 13 packages
+   - this was not the intended runtime stack, which remains Torch `2.5.1` with
+     CUDA `12.1`
+
+2. `Prefetch avatar-prep prerequisite wheelhouse` failed on `chumpy`.
+   - the isolated wheel-build subprocess failed with:
+     - `ModuleNotFoundError: No module named 'pip'`
+   - this happened during wheel prefetch, not during the normal install phase
+
+3. the wrapper continued into model download after the env-build phase failed.
+   - that created a secondary failure:
+     - `Required command not found: huggingface-cli`
+   - this was a cascade, not the primary root cause
+
+### What Was Patched
+
+The scripts were updated immediately after that failed run:
+
+1. export/backend wheelhouse prefetch now uses `--no-deps`
+   - this prevents it from resolving a newer Torch/CUDA stack during prefetch
+
+2. `chumpy` is no longer prefetched as a wheel
+   - it is still installed later in the normal avatar-prep phase with
+     `--no-build-isolation`, which is the path that previously worked
+
+3. wheelhouse-prefetch failures are now non-fatal
+   - if one prefetch job fails, the build logs the failure and continues with the
+     standard install phases instead of aborting immediately
+
+4. `setup_trt_stagewise_server_env.sh` now properly stops if
+   `setup_trt_experiment_env.sh` fails
+   - this prevents the wrapper from continuing into `download_weights.sh` with an
+     incomplete venv
+
+### Current Status
+
+- these fixes are applied locally
+- shell syntax validation passes
+- they still need validation on the next true fresh-node cold boot
+
+Interpretation:
+
+- the model-side improvements are already validated
+- the dependency-side wheelhouse path is still in active validation
+- the current goal of the next run is not to prove model download wins again; it
+  is to prove that the wheelhouse path no longer breaks the build and actually
+  reduces the API/runtime dependency bottleneck
+
 ## What Helps Cold Boot And What Does Not
 
 ### Helps Cold Boot
