@@ -209,7 +209,7 @@ class LinguaWorkerControlPlane:
         The local worker can sit in a transient "registering" state while the
         first registration call is still in flight. The control plane itself
         does not accept that internal status on the register endpoint; once the
-        local runtime is ready, it should be advertised as ready/healthy.
+        local runtime is ready, it should be advertised as healthy.
         """
         with self._lock:
             local_ready = self._local_ready
@@ -220,7 +220,7 @@ class LinguaWorkerControlPlane:
             return "booting"
         if self.control_plane_requested and not self.control_plane_configured:
             return "unhealthy"
-        return "ready"
+        return "healthy"
 
     def ready_for_health(self) -> bool:
         with self._lock:

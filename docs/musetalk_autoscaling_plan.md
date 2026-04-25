@@ -151,7 +151,7 @@ Example:
   "public_port": 50401,
   "internal_port": 8000,
   "gpu_type": "RTX 3090",
-  "status": "ready",
+  "status": "healthy",
   "max_concurrency": 1,
   "version": "2026-03-30.1"
 }
@@ -177,7 +177,7 @@ Recommended heartbeat payload:
 ```json
 {
   "worker_id": "musetalk-33678878",
-  "status": "ready",
+  "status": "healthy",
   "draining": false,
   "active_jobs": 1,
   "active_live_sessions": 1,
@@ -346,7 +346,7 @@ Suggested first-pass rules:
 
 EC2 should scale MuseTalk down only when all are true:
 
-- worker is `ready` or `draining`
+- worker is `healthy` or `draining`
 - worker has `active_jobs = 0`
 - worker has `active_live_sessions = 0`
 - worker has been idle for `10m to 20m`
@@ -500,7 +500,7 @@ For control-plane operations, it would help to add:
 
 ```json
 {
-  "status": "ready",
+  "status": "healthy",
   "draining": false,
   "active_jobs": 1,
   "active_live_sessions": 1,
