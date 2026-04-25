@@ -203,6 +203,25 @@ class LinguaWorkerControlPlane:
             return "registering"
         return "healthy"
 
+    def control_plane_status(self) -> str:
+        """Return the wire status sent to the external control plane.
+
+        The local worker can sit in a transient "registering" state while the
+        first registration call is still in flight. The control plane itself
+        does not accept that internal status on the register endpoint; once the
+        local runtime is ready, it should be advertised as ready/healthy.
+        """
+        with self._lock:
+            local_ready = self._local_ready
+            draining = self._draining
+        if draining:
+            return "draining"
+        if not local_ready:
+            return "booting"
+        if self.control_plane_requested and not self.control_plane_configured:
+            return "unhealthy"
+        return "ready"
+
     def ready_for_health(self) -> bool:
         with self._lock:
             local_ready = self._local_ready
@@ -231,7 +250,7 @@ class LinguaWorkerControlPlane:
             "endpoint_url": self.base_url,
             "capacity": self.capacity,
             "max_concurrency": self.capacity,
-            "status": self.current_status(),
+            "status": self.control_plane_status(),
             "internal_port": self.internal_port,
             "metadata": {
                 **metrics,

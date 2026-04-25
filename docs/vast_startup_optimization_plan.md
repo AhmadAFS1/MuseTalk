@@ -517,6 +517,127 @@ This remains the most sensitive model group on slower links.
 That makes prebuilt release bundles attractive even though the current scripts
 are now working correctly.
 
+## Autoscaling Suitability
+
+The current startup path is now much better for cold bootstrap, but it is still
+not shaped primarily for autoscaling readiness.
+
+Why:
+
+1. the successful April 22 runs were both **full-stack** boots
+   - they installed avatar-prep dependencies
+   - they downloaded avatar-prep weights
+   - that is useful for validation, but it is not the leanest configuration for
+     autoscaled inference workers
+2. `scripts/vast_onstart.sh` and `scripts/vast_server_ctl.sh` still default to
+   `PROFILE=throughput_record`
+3. the widened throughput profile warms larger TRT-stagewise buckets before
+   `/health` goes green
+4. the server only reports healthy after the startup path has already created
+   the full runtime stack
+
+So the current status quo is:
+
+- **bootstrap/install is no longer the main autoscaling problem**
+- **readiness policy and startup warmup are now the main autoscaling problem**
+
+### What An Autoscaling-Friendly Shape Looks Like
+
+For autoscaled inference instances, the preferred shape is:
+
+1. server-only node
+   - no avatar-prep deps
+   - no avatar-prep model downloads
+2. fast-ready startup profile
+   - closer to `baseline` than `throughput_record`
+3. health goes green on local runtime readiness
+   - not after all high-throughput warmup work is complete
+4. wider-batch warmup happens after health
+   - or lazily on first wider-batch traffic
+
+That is different from the current validated full-stack test runs, which were
+proving correctness and measuring cold boot under a broader dependency set.
+
+### Highest-Value Autoscaling Changes
+
+If the goal is to make these nodes more suitable for autoscaling, the priority
+order should now be:
+
+1. **Change the default startup profile for autoscaled nodes**
+   - do not default autoscaling workers to `throughput_record`
+   - use `baseline`, or add a dedicated `autoscale` profile with:
+     - `HLS_SCHEDULER_MAX_BATCH=4`
+     - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4`
+     - `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=4`
+
+2. **Stop blocking health on widened stagewise warmup**
+   - current startup warmup is synchronous
+   - for autoscaling, larger bucket warmup should run after health goes green,
+     or on demand
+
+3. **Treat `MUSETALK_WARM_RUNTIME` as optional for autoscaled boot**
+   - warming Whisper/audio paths helps first-request latency
+   - but it may not be worth delaying first readiness on ephemeral workers
+
+4. **Use server-only startup for inference workers**
+   - keep avatar-prep on separate preparation/offline nodes
+   - the current scripts already support a server-only path; the latest timing
+     logs were simply not exercising that leaner mode
+
+5. **Pre-bake or restore artifacts instead of redownloading them**
+   - TensorRT wheelhouse first
+   - PyTorch CUDA wheelhouse second
+   - then model bundles
+
+### Full-Stack-Mandatory Variant
+
+If every autoscaled instance must support **all three** of the following on
+first boot:
+
+- avatar preparation
+- avatar caching
+- AI inference
+
+then the recommendation changes in one important way:
+
+- **do not optimize around server-only workers**
+
+In that deployment shape, the useful optimizations are instead:
+
+1. keep the node full-stack, but make health green earlier
+2. defer non-essential throughput warmup until after health
+3. pre-bake or restore the full dependency and model artifact set
+4. avoid recompiling TRT-stagewise artifacts on every boot if serialized
+   alternatives can be validated
+
+Under this constraint, the biggest wins are no longer about removing
+avatar-prep. They are about:
+
+- removing repeated transfer of mandatory full-stack bytes
+- removing repeated runtime warmup/compile work from the critical path
+- separating "fully capable" from "fully warmed for peak throughput"
+
+### Autoscaling Interpretation Of The Latest Runs
+
+The April 22 runs prove that:
+
+- you already solved the earlier dependency/install problems well enough that
+  the old pip bottleneck is no longer dominant
+- even the slower `700 Mbps` node can finish measured bootstrap in under
+  `9 minutes`
+- but the total worker readiness is still around `15-18 minutes` because the
+  server is spending another `9-10 minutes` getting to health
+
+That means the next big autoscaling win is unlikely to come from more pip
+micro-optimizations alone.
+
+The biggest remaining autoscaling win is much more likely to come from:
+
+1. faster-ready startup defaults
+2. deferred warmup
+3. server-only inference workers
+4. prebuilt artifact restoration
+
 ## Why The Main Git Repo Is Still The Wrong Place For Models
 
 Even with a cold-boot-only lens, putting the full model set directly into the
