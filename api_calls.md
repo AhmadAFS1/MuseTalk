@@ -167,6 +167,16 @@ http://localhost:8000/docs
 - `download_weights.sh` now includes the S3FD face-detector weight used by
   avatar preparation, so `/avatars/prepare` should not need to download that
   checkpoint at runtime
+- Optional S3 avatar asset persistence is available through environment vars:
+  ```bash
+  AVATAR_S3_ENABLED=1
+  AVATAR_S3_BUCKET=<your-bucket>
+  AVATAR_S3_PREFIX=avatars                  # optional, default: avatars
+  AVATAR_S3_ENDPOINT_URL=<custom-endpoint>  # optional (MinIO / R2 / etc)
+  AWS_REGION=us-east-1                      # optional
+  ```
+  With this enabled, `/avatars/prepare` uploads prepared avatar artifacts to S3
+  and new instances lazily restore missing avatar assets by `avatar_id`.
 
 ---
 

@@ -16,6 +16,7 @@ from transformers import WhisperModel
 from scripts.api_avatar import APIAvatar  # ✅ Use new API-friendly class
 from scripts.concurrent_gpu_manager import GPUMemoryManager
 from scripts.avatar_cache import AvatarCache
+from scripts.avatar_s3_store import AvatarS3Store
 from scripts.trt_runtime import load_vae_trt_decoder
 
 
@@ -63,6 +64,9 @@ class ParallelAvatarManager:
         self.request_lock = threading.Lock()
         self.avatar_load_locks = {}
         self.avatar_load_locks_lock = threading.Lock()
+        self.avatar_restore_attempted = set()
+        self.avatar_restore_lock = threading.Lock()
+        self.avatar_s3_store = AvatarS3Store.from_env(version=self.args.version)
         
         # Load models ONCE
         self._init_models()
@@ -500,7 +504,9 @@ class ParallelAvatarManager:
             preparation=True,  # Prepare materials
             force_recreate=force_recreate
         )
-        
+
+        avatar_dir = self._avatar_dir(avatar_id)
+        self.avatar_s3_store.upload_avatar_dir(avatar_id, avatar_dir)
         print(f"✅ Avatar {avatar_id} prepared and saved to disk")
     
     def _inference_worker(self, request_id, avatar_id, audio_path, batch_size, output_name, fps):
@@ -571,11 +577,46 @@ class ParallelAvatarManager:
     
     def _avatar_exists(self, avatar_id):
         """Check if avatar exists on disk"""
+        path = self._avatar_latents_path(avatar_id)
+        if os.path.exists(path):
+            return True
+        if self._restore_avatar_from_s3_if_needed(avatar_id):
+            return os.path.exists(path)
+        return False
+
+    def _avatars_root(self):
         if self.args.version == "v15":
-            path = f"./results/{self.args.version}/avatars/{avatar_id}/latents.pt"
-        else:
-            path = f"./results/avatars/{avatar_id}/latents.pt"
-        return os.path.exists(path)
+            return f"./results/{self.args.version}/avatars"
+        return "./results/avatars"
+
+    def _avatar_dir(self, avatar_id):
+        return os.path.join(self._avatars_root(), avatar_id)
+
+    def _avatar_latents_path(self, avatar_id):
+        return os.path.join(self._avatar_dir(avatar_id), "latents.pt")
+
+    def _restore_avatar_from_s3_if_needed(self, avatar_id):
+        if not self.avatar_s3_store.enabled:
+            return False
+
+        with self.avatar_restore_lock:
+            if avatar_id in self.avatar_restore_attempted:
+                return False
+            self.avatar_restore_attempted.add(avatar_id)
+
+        avatar_lock = self._get_avatar_load_lock(avatar_id)
+        with avatar_lock:
+            if os.path.exists(self._avatar_latents_path(avatar_id)):
+                return True
+            return self.avatar_s3_store.download_avatar_dir(
+                avatar_id=avatar_id,
+                avatars_root=self._avatars_root_path(),
+            )
+
+    def _avatars_root_path(self):
+        from pathlib import Path
+
+        return Path(self._avatars_root())
     
     def evict_avatar(self, avatar_id):
         """Manually evict avatar from cache"""
