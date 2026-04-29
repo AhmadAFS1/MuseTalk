@@ -68,6 +68,7 @@ AV_VERSION="${AV_VERSION:-16.1.0}"
 PYTHON_MULTIPART_VERSION="${PYTHON_MULTIPART_VERSION:-0.0.22}"
 AIORTC_VERSION="${AIORTC_VERSION:-1.14.0}"
 AIOICE_VERSION="${AIOICE_VERSION:-0.10.1}"
+BOTO3_VERSION="${BOTO3_VERSION:-1.42.97}"
 MMENGINE_VERSION="${MMENGINE_VERSION:-0.10.4}"
 MMCV_VERSION="${MMCV_VERSION:-2.1.0}"
 MMDET_VERSION="${MMDET_VERSION:-3.2.0}"
@@ -135,6 +136,7 @@ Environment overrides:
   PYTHON_MULTIPART_VERSION   Default: $PYTHON_MULTIPART_VERSION
   AIORTC_VERSION             Default: $AIORTC_VERSION
   AIOICE_VERSION             Default: $AIOICE_VERSION
+  BOTO3_VERSION              Default: $BOTO3_VERSION
   MMENGINE_VERSION           Default: $MMENGINE_VERSION
   MMCV_VERSION               Default: $MMCV_VERSION
   MMDET_VERSION              Default: $MMDET_VERSION
@@ -338,7 +340,8 @@ install_server_dependencies_step() {
     "av==$AV_VERSION" \
     "python-multipart==$PYTHON_MULTIPART_VERSION" \
     "aiortc==$AIORTC_VERSION" \
-    "aioice==$AIOICE_VERSION"
+    "aioice==$AIOICE_VERSION" \
+    "boto3==$BOTO3_VERSION"
 }
 
 validate_server_dependency_imports_step() {
@@ -358,6 +361,7 @@ import av
 import multipart
 import aiortc
 import aioice
+import boto3
 
 print("numpy", numpy.__version__)
 print("cv2", cv2.__version__)
@@ -372,6 +376,7 @@ print("av", av.__version__)
 print("multipart", multipart.__version__)
 print("aiortc", aiortc.__version__)
 print("aioice", aioice.__version__)
+print("boto3", boto3.__version__)
 print("all server dependency imports OK")
 PY
 }
@@ -869,7 +874,8 @@ prefetch_server_runtime_wheelhouse_step() {
     "av==$AV_VERSION" \
     "python-multipart==$PYTHON_MULTIPART_VERSION" \
     "aiortc==$AIORTC_VERSION" \
-    "aioice==$AIOICE_VERSION"
+    "aioice==$AIOICE_VERSION" \
+    "boto3==$BOTO3_VERSION"
 }
 
 prefetch_avatar_prep_wheelhouse_step() {
@@ -1125,7 +1131,7 @@ run_phase \
 run_phase \
   "Phase 6" \
   "Install API server runtime dependencies" \
-  "Install FastAPI, uvicorn, audio/video server packages, WebRTC packages, and validate api_server imports." \
+  "Install FastAPI, uvicorn, audio/video server packages, WebRTC/S3 packages, and validate api_server imports." \
   phase_install_server_runtime_stack
 run_phase \
   "Phase 7" \

@@ -158,6 +158,13 @@ TRT-stagewise server is:
 - Vast wrapper:
   - `PORT=8000 bash scripts/vast_onstart.sh`
   - add `SETUP_FULL_STACK=1` only when `/avatars/prepare` must work on that same node
+- S3 avatar persistence:
+  - set `AVATAR_S3_ENABLED=1`
+  - set `AVATAR_S3_BUCKET=lingua-musetalk-s3-storage`
+  - set `AVATAR_S3_REGION=us-east-1` or `AWS_REGION=us-east-1`
+  - prepared avatars are stored as `avatars/<version>/<avatar_id>.tar.gz`
+  - restore and upload metrics are exposed under `avatar_s3` in `GET /stats`
+  - see `docs/avatar_s3_persistence.md` for IAM policy, retry knobs, and smoke testing
 
 Validated live stack on the current CUDA 12.1 path:
 

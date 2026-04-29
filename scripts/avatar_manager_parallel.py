@@ -1,8 +1,10 @@
 import os
 import sys
 import threading
+import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 import uuid
 import numpy as np
 import torch
@@ -64,8 +66,9 @@ class ParallelAvatarManager:
         self.request_lock = threading.Lock()
         self.avatar_load_locks = {}
         self.avatar_load_locks_lock = threading.Lock()
-        self.avatar_restore_attempted = set()
+        self.avatar_restore_failed_at = {}
         self.avatar_restore_lock = threading.Lock()
+        self.avatar_restore_retry_seconds = self._env_float("AVATAR_S3_RESTORE_RETRY_SECONDS", 60.0)
         self.avatar_s3_store = AvatarS3Store.from_env(version=self.args.version)
         
         # Load models ONCE
@@ -505,8 +508,13 @@ class ParallelAvatarManager:
             force_recreate=force_recreate
         )
 
-        avatar_dir = self._avatar_dir(avatar_id)
-        self.avatar_s3_store.upload_avatar_dir(avatar_id, avatar_dir)
+        avatar_dir = Path(self._avatar_dir(avatar_id))
+        s3_uploaded = self.avatar_s3_store.upload_avatar_dir(avatar_id, avatar_dir)
+        if self.avatar_s3_store.enabled and not s3_uploaded:
+            print(
+                f"⚠️  Avatar {avatar_id} prepared locally, but S3 persistence did not complete. "
+                "Check /stats avatar_s3 metrics and server logs."
+            )
         print(f"✅ Avatar {avatar_id} prepared and saved to disk")
     
     def _inference_worker(self, request_id, avatar_id, audio_path, batch_size, output_name, fps):
@@ -599,23 +607,36 @@ class ParallelAvatarManager:
         if not self.avatar_s3_store.enabled:
             return False
 
-        with self.avatar_restore_lock:
-            if avatar_id in self.avatar_restore_attempted:
-                return False
-            self.avatar_restore_attempted.add(avatar_id)
+        if self._avatar_s3_restore_on_cooldown(avatar_id):
+            return False
 
         avatar_lock = self._get_avatar_load_lock(avatar_id)
         with avatar_lock:
             if os.path.exists(self._avatar_latents_path(avatar_id)):
                 return True
-            return self.avatar_s3_store.download_avatar_dir(
+            if self._avatar_s3_restore_on_cooldown(avatar_id):
+                return False
+            restored = self.avatar_s3_store.download_avatar_dir(
                 avatar_id=avatar_id,
                 avatars_root=self._avatars_root_path(),
             )
+            with self.avatar_restore_lock:
+                if restored:
+                    self.avatar_restore_failed_at.pop(avatar_id, None)
+                else:
+                    self.avatar_restore_failed_at[avatar_id] = time.monotonic()
+            return restored
+
+    def _avatar_s3_restore_on_cooldown(self, avatar_id):
+        if self.avatar_restore_retry_seconds <= 0:
+            return False
+        with self.avatar_restore_lock:
+            last_failure = self.avatar_restore_failed_at.get(avatar_id)
+        if last_failure is None:
+            return False
+        return (time.monotonic() - last_failure) < self.avatar_restore_retry_seconds
 
     def _avatars_root_path(self):
-        from pathlib import Path
-
         return Path(self._avatars_root())
     
     def evict_avatar(self, avatar_id):
@@ -651,6 +672,7 @@ class ParallelAvatarManager:
         return {
             'gpu': gpu_stats,
             'cache': cache_stats,
+            'avatar_s3': self.avatar_s3_store.get_stats(),
             'active_requests': active_count,
             'total_requests': len(self.active_requests)
         }

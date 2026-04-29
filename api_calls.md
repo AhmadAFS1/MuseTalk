@@ -170,13 +170,17 @@ http://localhost:8000/docs
 - Optional S3 avatar asset persistence is available through environment vars:
   ```bash
   AVATAR_S3_ENABLED=1
-  AVATAR_S3_BUCKET=<your-bucket>
+  AVATAR_S3_BUCKET=lingua-musetalk-s3-storage
   AVATAR_S3_PREFIX=avatars                  # optional, default: avatars
+  AVATAR_S3_REGION=us-east-1                # optional if AWS_REGION is set
   AVATAR_S3_ENDPOINT_URL=<custom-endpoint>  # optional (MinIO / R2 / etc)
-  AWS_REGION=us-east-1                      # optional
+  AVATAR_S3_RETRY_ATTEMPTS=3                # optional, default: 3
   ```
   With this enabled, `/avatars/prepare` uploads prepared avatar artifacts to S3
-  and new instances lazily restore missing avatar assets by `avatar_id`.
+  at `avatars/<version>/<avatar_id>.tar.gz`, and new instances lazily restore
+  missing avatar assets by `avatar_id`. Restores are staged and validated before
+  replacing any local avatar directory. See `docs/avatar_s3_persistence.md` for
+  IAM, retry, and metrics details.
 
 ---
 
