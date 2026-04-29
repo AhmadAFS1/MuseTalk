@@ -165,6 +165,10 @@ TRT-stagewise server is:
   - prepared avatars are stored as `avatars/<version>/<avatar_id>.tar.gz`
   - restore and upload metrics are exposed under `avatar_s3` in `GET /stats`
   - see `docs/avatar_s3_persistence.md` for IAM policy, retry knobs, and smoke testing
+- Vast runtime secrets:
+  - set `MUSETALK_AWS_SECRET_ID` to the MuseTalk worker runtime secret ARN
+  - the on-start wrapper sources the secret into env before starting the worker
+  - see `docs/musetalk_worker_secrets.md` for the secret JSON shape and IAM policies
 
 Validated live stack on the current CUDA 12.1 path:
 

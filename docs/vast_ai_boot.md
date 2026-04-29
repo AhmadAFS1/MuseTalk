@@ -295,6 +295,10 @@ PROFILE=throughput_record bash scripts/vast_onstart.sh
   `throughput_record` when `PROFILE` is unset
 - `scripts/run_trt_stagewise_server.sh` still keeps `baseline` as its default
   when launched directly in the foreground
+- Vast workers can load runtime S3 and Lingua registration env vars from AWS
+  Secrets Manager before the server starts. Set `MUSETALK_AWS_SECRET_ID` in the
+  Vast template and see `docs/musetalk_worker_secrets.md` for the bootstrap
+  credential, runtime secret shape, and IAM policies.
 - if `/avatars/prepare` ever fails with
   `<urlopen error [Errno -2] Name or service not known>`, that means the S3FD
   checkpoint was missing and the old runtime download fallback was triggered;

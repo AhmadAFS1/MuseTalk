@@ -18,6 +18,8 @@ export AVATAR_S3_REGION=us-east-1
 `AVATAR_S3_REGION` is optional when `AWS_REGION` is already set. Credentials can
 come from the instance role, the default AWS credential chain, or
 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN`.
+On Vast workers, prefer loading those credentials from the separate MuseTalk
+runtime secret described in `docs/musetalk_worker_secrets.md`.
 
 The app stores objects under:
 
@@ -50,6 +52,9 @@ The runtime path only needs object reads and writes for the configured prefix:
 
 `s3:ListBucket` is useful for manual debugging or console workflows, but the
 application does not require it for prepare or restore.
+If `MUSETALK_SECRETS_VERIFY_S3=1` is enabled during Vast bootstrap, the runtime
+credential also needs bucket-level `s3:ListBucket` or `s3:GetBucketLocation` so
+the bootstrap `head_bucket` verification can pass.
 
 ## Runtime behavior
 

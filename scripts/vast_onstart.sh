@@ -104,6 +104,7 @@ import api_server
 import aiofiles
 import aiohttp
 import av
+import boto3
 import fastapi
 import ffmpeg
 import imageio
@@ -314,7 +315,7 @@ run_post_setup_validation() {
       all_ok=false
     fi
 
-    if (cd "$REPO_ROOT" && $PY -c "import uvicorn, fastapi; print('uvicorn + fastapi OK')" 2>&1); then
+    if (cd "$REPO_ROOT" && $PY -c "import boto3, uvicorn, fastapi; print('boto3 + uvicorn + fastapi OK')" 2>&1); then
       log "✅ Server deps OK"
     else
       log "❌ Server deps missing"
@@ -336,6 +337,52 @@ run_post_setup_validation() {
   else
     log "⚠️  Some validation checks failed — check log above"
   fi
+}
+
+bootstrap_runtime_secrets() {
+  local secret_id="${MUSETALK_AWS_SECRET_ID:-}"
+  if [[ -z "$secret_id" ]]; then
+    log "MuseTalk AWS Secrets Manager bootstrap skipped (MUSETALK_AWS_SECRET_ID not set)"
+    return 0
+  fi
+
+  local PY="$VENV_PATH/bin/python"
+  [[ -x "$PY" ]] || die "Cannot bootstrap runtime secrets; venv Python not found at $PY"
+
+  local strict="${MUSETALK_SECRETS_STRICT:-${SECRETS_STRICT:-true}}"
+  local verify_s3="${MUSETALK_SECRETS_VERIFY_S3:-1}"
+  local tmp_env
+  tmp_env="$(mktemp "$WORKSPACE_ROOT/.musetalk-runtime-secret.XXXXXX.env")"
+  chmod 600 "$tmp_env"
+
+  log "Bootstrapping MuseTalk runtime env from AWS Secrets Manager"
+  if env_flag_is_true "$verify_s3"; then
+    log "Secret bootstrap S3 verification is enabled"
+  else
+    log "Secret bootstrap S3 verification is disabled"
+  fi
+
+  local bootstrap_args=("--output" "$tmp_env")
+  if env_flag_is_true "$verify_s3"; then
+    bootstrap_args+=("--verify-s3")
+  fi
+
+  if (
+    cd "$REPO_ROOT"
+    "$PY" "$REPO_ROOT/scripts/bootstrap_aws_secrets.py" "${bootstrap_args[@]}"
+  ); then
+    # shellcheck disable=SC1090
+    source "$tmp_env"
+    rm -f "$tmp_env"
+    log "MuseTalk runtime secret env exports loaded"
+    return 0
+  fi
+
+  rm -f "$tmp_env"
+  if env_flag_is_true "$strict"; then
+    die "AWS Secrets Manager bootstrap failed and strict mode is enabled"
+  fi
+  log "⚠️  AWS Secrets Manager bootstrap failed; continuing because strict mode is disabled"
 }
 
 main() {
@@ -365,6 +412,11 @@ main() {
   run_post_setup_validation
   phase_elapsed="$(( $(date +%s) - phase_start ))"
   log "Post-setup validation finished in $(format_duration "$phase_elapsed")"
+
+  phase_start="$(date +%s)"
+  bootstrap_runtime_secrets
+  phase_elapsed="$(( $(date +%s) - phase_start ))"
+  log "Runtime secret bootstrap phase finished in $(format_duration "$phase_elapsed")"
 
   phase_start="$(date +%s)"
   PROFILE="$PROFILE" \
