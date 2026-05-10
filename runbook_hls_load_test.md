@@ -149,6 +149,29 @@ python load_test.py \
   --batch-size 8
 ```
 
+Recent hosted output from May 10, 2026, on the active `throughput_record`
+server:
+
+```json
+{
+  "concurrency": 8,
+  "completed": 8,
+  "failed": 0,
+  "avg_time_to_live_ready_s": 2.265,
+  "avg_segment_interval_s": 1.779,
+  "max_segment_interval_s": 2.546,
+  "wall_time_s": 33.2,
+  "avg_gpu_util_pct": 83.59,
+  "peak_gpu_util_pct": 100.0,
+  "peak_gpu_memory_used_mb": 23984.0
+}
+```
+
+This validates that the hosted worker can serve eight simultaneous HLS streams
+with average cadence below `2.0s`. The run still emits the load-test throttling
+warning because the max segment interval exceeded `2.0s`, so tail jitter remains
+the edge to watch.
+
 ### Ramp test
 
 Run multiple concurrency levels in sequence:

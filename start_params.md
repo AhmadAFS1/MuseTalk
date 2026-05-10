@@ -239,6 +239,35 @@ Practical meaning:
 - request `batch_size=8` is the current best average-throughput point
 - request `batch_size=4` on the same branch still has the better tail latency
 
+## Hosted 8-Stream Validation
+
+Latest hosted validation on May 10, 2026, using the active `throughput_record`
+server on port `8000` and the widened load-test command above:
+
+- request `batch_size=8`
+- `concurrency=8`
+- `segment_duration=1.0`
+- `playback_fps=30`
+- `musetalk_fps=15`
+- `completed=8`
+- `failed=0`
+- `avg_time_to_live_ready_s=2.265`
+- `avg_segment_interval_s=1.779`
+- `max_segment_interval_s=2.546`
+- `wall_time_s=33.2`
+- `avg_gpu_util_pct=83.59`
+- `peak_gpu_util_pct=100.0`
+- `avg_gpu_memory_used_mb=23983.8`
+- `peak_gpu_memory_used_mb=23984.0`
+
+Interpretation:
+
+- the server can host eight simultaneous HLS streams on this profile
+- average segment cadence stayed under the `2.0s` practical threshold
+- the strict load tester still warns because one tail interval exceeded `2.0s`
+- this should be treated as a functional 8-stream hosted pass with remaining
+  tail-jitter risk, not as a clean no-warning realtime pass
+
 ## Notes
 
 - the launcher uses the exact venv python path instead of relying on whichever
