@@ -98,23 +98,40 @@ import Video from "react-native-video";
 
 const idleUrl = `${BASE_URL}/hls/sessions/${sessionId}/index.m3u8`;
 const [liveUrl, setLiveUrl] = useState<string | null>(null);
-const [mode, setMode] = useState<"idle" | "live">("idle");
+const [mode, setMode] = useState<"idle" | "preparingLive" | "live">("idle");
+const [liveVisible, setLiveVisible] = useState(false);
+const idleCurrentTimeRef = useRef(0);
+
+function revealLive() {
+  markIdleAnchor(idleCurrentTimeRef.current);
+  setLiveVisible(true);
+  setMode("live");
+}
+
+function returnToIdle() {
+  setLiveVisible(false);
+  setMode("idle");
+}
 
 <Video
   source={{ uri: idleUrl }}
-  paused={mode !== "idle"}
+  paused={mode === "live"}
   muted
   repeat
-  style={styles.video}
+  style={[styles.video, liveVisible && styles.hiddenVideo]}
+  onProgress={(event) => {
+    idleCurrentTimeRef.current = event.currentTime;
+  }}
 />
 
 {liveUrl && (
   <Video
     source={{ uri: liveUrl }}
-    paused={mode !== "live"}
-    muted={false}
-    style={styles.video}
-    onEnd={() => setMode("idle")}
+    paused={mode === "idle"}
+    muted={mode !== "live"}
+    style={[styles.video, !liveVisible && styles.hiddenVideo]}
+    onReadyForDisplay={revealLive}
+    onEnd={returnToIdle}
   />
 )}
 ```
@@ -132,14 +149,21 @@ async function pollStatus() {
   if (data.status === "streaming" && data.live_ready) {
     // Cache-bust per stream to avoid stale live.m3u8
     setLiveUrl(`${BASE_URL}/hls/sessions/${sessionId}/live.m3u8?stream_id=${data.active_stream}`);
-    setMode("live");
-  } else if (data.status !== "streaming" && mode === "live") {
-    setMode("idle");
+    setLiveVisible(false);
+    setMode("preparingLive");
+  } else if (data.status !== "streaming" && mode !== "idle") {
+    returnToIdle();
   }
 }
 ```
 
 Poll every 800–1500ms while the session is active.
+
+Keep the idle layer visible until the live `Video` fires `onReadyForDisplay`.
+Switching the visible layer as soon as `live_ready` becomes true can expose a
+blank/native-player frame while the live HLS decoder is still attaching.
+`styles.hiddenVideo` should keep the layer mounted and decoding, usually with
+`opacity: 0`, not `display: none`.
 
 ---
 
@@ -165,6 +189,14 @@ function computeResumeTime() {
 ```
 
 Call `markIdleAnchor` when live begins, then seek the idle player to `computeResumeTime()` before returning to idle.
+
+When `hls_server_timing=true`, the server computes the talking-video start
+offset for an expected reveal delay. The stream response includes `timing`, and
+`/hls/sessions/{id}/status` includes `live_timing`; if you reveal live earlier
+than that expected delay, the first talking frame can be ahead of the visible
+idle head. For the smoothest head-position continuity, either use the hosted
+`/hls/player/{session_id}` WebView or let the hidden live layer play muted until
+it is display-ready and your chosen reveal delay has elapsed.
 
 ---
 

@@ -331,10 +331,22 @@ def get_hls_player_html(session) -> str:
             return buf.end(buf.length - 1) - t;
         }}
 
+        function nextPaint() {{
+            return new Promise((resolve) => {{
+                requestAnimationFrame(() => requestAnimationFrame(resolve));
+            }});
+        }}
+
         async function revealLive() {{
             if (liveRevealed || !liveRevealPending) return;
             await waitForVideoFrame(liveVideo, 1500);
             if (!liveRevealPending) return;
+
+            /* Mirror the live-to-idle handoff: freeze the last idle frame while
+               the live layer becomes visible and the browser composites it. */
+            holdCanvas.style.zIndex = '8';
+            await captureHoldFrame(idleVideo);
+
             liveRevealPending = false;
             liveRevealed = true;
             currentMode = 'live';
@@ -343,7 +355,9 @@ def get_hls_player_html(session) -> str:
             liveVideo.volume = 1.0;
             setLayer('live');
             idleVideo.pause();
+            await nextPaint();
             hideHoldFrame();
+            holdCanvas.style.zIndex = '5';
             hideStatus();
         }}
 

@@ -2151,6 +2151,7 @@ async def hls_session_status(session_id: str):
         "live_ready": session.live_ready,
         "active_stream": session.active_stream,
         "live_segment_count": session.live_segment_count,
+        "live_timing": session.live_timing,
         "last_completed_stream": session.last_completed_stream,
         "last_completed_at": session.last_completed_at,
         "last_completed_had_segments": session.last_completed_had_segments,
@@ -2312,6 +2313,7 @@ async def _start_hls_stream_for_session(
         timing_debug["offset_frames"] = (
             int(round(offset_seconds * generation_fps)) if generation_fps else 0
         )
+    session.live_timing = timing_debug
 
     main_loop = asyncio.get_event_loop()
     cancel_event = threading.Event()

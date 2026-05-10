@@ -43,6 +43,7 @@ class HlsSession:
     idle_duration_seconds: Optional[float] = None
     idle_cycle_frames: Optional[int] = None
     timing_source: str = "server"
+    live_timing: Optional[dict] = None
 
     def is_expired(self, ttl_seconds: int = 3600) -> bool:
         return (time.time() - self.last_activity) > ttl_seconds
@@ -312,6 +313,7 @@ class HlsSessionManager:
         session.last_completed_stream = None
         session.last_completed_at = None
         session.last_completed_had_segments = False
+        session.live_timing = None
 
         # Remove previous live chunks if they exist.
         for path in session.segment_dir.glob("chunk_*"):
@@ -336,12 +338,12 @@ class HlsSessionManager:
             handle.write("\n")
 
     def append_live_segment(self, session: HlsSession, segment_name: str, duration: float) -> None:
-        if not session.live_ready:
-            session.live_ready = True
-        session.status = "streaming"
         with session.live_manifest_path.open("a") as handle:
             handle.write(f"#EXTINF:{duration:.6f},\n")
             handle.write(f"segments/{segment_name}\n")
+        if not session.live_ready:
+            session.live_ready = True
+        session.status = "streaming"
         session.live_sequence += 1
         session.live_segment_count += 1
 
