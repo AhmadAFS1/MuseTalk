@@ -761,14 +761,16 @@ Later March 24 ramp testing then clarified the current capacity band:
   - important config note:
     - this first run used a forced `fixed_batch_sizes=[8]` shape, which raised
       VRAM sharply even at low concurrency
-    - the safer follow-up branch should prefer `fixed_batch_sizes=[4, 8]`
-      with `startup_slice_size=4`
+    - the safer follow-up branch originally preferred `fixed_batch_sizes=[4, 8]`
+      with `startup_slice_size=4`, but that only remains safe when batch `4`
+      is also warmed
 - later widened `max_batch=16` branch on March 25 set a new current
   `concurrency=8` average-throughput record:
-  - server-side shape:
+  - originally measured server-side shape:
     - `HLS_SCHEDULER_MAX_BATCH=16`
     - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16`
     - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
+    - `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
     - `HLS_PREP_WORKERS=8`
     - `HLS_COMPOSE_WORKERS=8`
     - `HLS_ENCODE_WORKERS=8`
@@ -807,8 +809,9 @@ That changes the current interpretation again:
   rather than a simple lack-of-threads problem
 - widening the live scheduler to `bs8` now looks promising for steady-state
   throughput and VRAM utilization, but not yet for tail latency
-- that means the next likely win is a hybrid bucket plan (`4,8`) plus more
-  compose / encode tail cleanup, not blindly forcing every turn to pad to `8`
+- that means the next likely win is a hybrid bucket plan (`4,8`) only if batch
+  `4` can be warmed; on the current 24 GB TRT profile, use `8,16` to avoid an
+  unwarmed batch-4 tail compile
 - widening the live scheduler further to `max_batch=16` now pushes that even
   farther:
   - request `batch_size=8` is the current best average-throughput setting at
@@ -818,6 +821,11 @@ That changes the current interpretation again:
     limiter once the average cadence improves
   - the branch is now operating very close to the 24 GB VRAM ceiling, so
     additional warmed buckets should be treated carefully
+  - scheduler fixed buckets should not include unwarmed TRT shapes; using
+    `4,8,16` while warming only `8,16` can make tiny tail batches trigger live
+    batch-4 compilation and stall playback
+  - current operational correction: keep `HLS_SCHEDULER_MAX_BATCH=16`, but set
+    `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16` to match the warmed TRT buckets
 
 ### 1. Request Prep Is Still Too Front-Loaded And Sequential
 

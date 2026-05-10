@@ -150,7 +150,10 @@ case "$PROFILE" in
     # Current best average-throughput branch on the RTX 3090:
     # max_batch=16 with request batch_size=8 in load_test.py.
     : "${HLS_SCHEDULER_MAX_BATCH:=16}"
-    : "${HLS_SCHEDULER_FIXED_BATCH_SIZES:=4,8,16}"
+    # Keep scheduler buckets aligned with warmed TRT stagewise batches. Warming
+    # 4+8+16 previously OOM'd on 24 GB cards; leaving 4 here without warming it
+    # can make tail batches trigger a live batch-4 TRT compile and stall HLS.
+    : "${HLS_SCHEDULER_FIXED_BATCH_SIZES:=8,16}"
     : "${HLS_SCHEDULER_STARTUP_SLICE_SIZE:=4}"
     # Warm 8 and 16 by default to match the widened-batch branch without
     # forcing a 4+8+16 warmup that previously OOM'd on 24 GB cards.

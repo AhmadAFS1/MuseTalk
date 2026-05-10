@@ -1,5 +1,19 @@
+import os
+
+
+def _env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
 def get_hls_player_html(session) -> str:
     manifest_url = f"/hls/sessions/{session.session_id}/index.m3u8"
+    live_prebuffer_seconds = max(0.0, _env_float("HLS_LIVE_PREBUFFER_SECONDS", 0.0))
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -124,11 +138,13 @@ def get_hls_player_html(session) -> str:
         let liveRevealed = false;
         let liveManifestUrl = liveManifestBaseUrl;
         let currentStreamId = null;
+        let completedStreamRevealed = null;
         let idleAnchorTime = 0;
         let idleAnchorWallTime = 0;
         let idleDuration = 0;
 
-        const LIVE_PREBUFFER_SECONDS = 1.2;
+        const LIVE_PREBUFFER_SECONDS = {live_prebuffer_seconds:.3f};
+        const COMPLETED_STREAM_REVEAL_GRACE_SECONDS = 10;
 
         function postToHost(payload) {{
             if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {{
@@ -493,15 +509,31 @@ def get_hls_player_html(session) -> str:
                 }}
 
                 const hasActiveLive = Boolean(data.active_stream);
+                const completedAt = Number(data.last_completed_at || 0);
+                const completedAge = completedAt > 0 ? (Date.now() / 1000) - completedAt : Infinity;
+                const hasFreshCompletedLive = Boolean(
+                    data.last_completed_stream &&
+                    data.last_completed_had_segments &&
+                    completedAge <= COMPLETED_STREAM_REVEAL_GRACE_SECONDS &&
+                    data.last_completed_stream !== completedStreamRevealed
+                );
 
                 if (hasActiveLive && data.live_ready) {{
+                    completedStreamRevealed = null;
                     setLiveStreamId(data.active_stream);
                     setMode('live');
                 }} else if (hasActiveLive && currentMode === 'idle') {{
+                    completedStreamRevealed = null;
                     setLiveStreamId(data.active_stream);
                     showStatus('Preparing live...');
+                }} else if (!hasActiveLive && currentMode === 'idle' && hasFreshCompletedLive) {{
+                    completedStreamRevealed = data.last_completed_stream;
+                    setLiveStreamId(data.last_completed_stream);
+                    setMode('live');
                 }} else if (!hasActiveLive && currentMode === 'live') {{
                     showStatus('Finishing...');
+                }} else if (!hasActiveLive && currentMode === 'idle' && statusEl.textContent === 'Preparing live...') {{
+                    hideStatus();
                 }}
             }} catch (_) {{}}
         }}

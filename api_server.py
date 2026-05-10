@@ -2008,6 +2008,18 @@ async def create_hls_session(
         )
 
     resolved_hls_server_timing = HLS_SERVER_TIMING if hls_server_timing is None else hls_server_timing
+    avatar_cache_warm = None
+    try:
+        avatar_cache_warm, _future = _pop_future_from_payload(
+            manager.warm_avatar_async(avatar_id=avatar_id, batch_size=batch_size)
+        )
+    except Exception as exc:
+        avatar_cache_warm = {
+            "avatar_id": avatar_id,
+            "status": "failed",
+            "cached": False,
+            "error": str(exc),
+        }
 
     session = await hls_session_manager.create_session(
         avatar_id=avatar_id,
@@ -2035,7 +2047,8 @@ async def create_hls_session(
             "segment_duration": segment_duration,
             "part_duration": part_duration,
             "hls_server_timing": resolved_hls_server_timing,
-        }
+        },
+        "avatar_cache_warm": avatar_cache_warm,
     }
 
 
@@ -2137,6 +2150,10 @@ async def hls_session_status(session_id: str):
         "status": session.status,
         "live_ready": session.live_ready,
         "active_stream": session.active_stream,
+        "live_segment_count": session.live_segment_count,
+        "last_completed_stream": session.last_completed_stream,
+        "last_completed_at": session.last_completed_at,
+        "last_completed_had_segments": session.last_completed_had_segments,
     }
 
 

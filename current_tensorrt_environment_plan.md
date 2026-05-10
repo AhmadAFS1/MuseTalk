@@ -473,13 +473,14 @@ New stagewise runtime update in this alternate env:
   - practical meaning:
     - widened live stagewise buckets can improve steady-state pacing in this env
     - the tail is still effectively unchanged
-    - prefer the next experimental shape as `fixed_batch_sizes=[4, 8]` rather
-      than forcing every turn to `8`
+    - this originally suggested mixed `4,8` buckets, but that is only safe when
+      batch `4` is also warmed
 - later widened `max_batch=16` branch in this same env on March 25:
-  - server-side shape:
+  - originally measured server-side shape:
     - `HLS_SCHEDULER_MAX_BATCH=16`
     - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16`
     - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
+    - `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
     - workers still `8/8/8`
   - request `batch_size=8`
     - `avg_time_to_live_ready_s=2.197`
@@ -496,6 +497,10 @@ New stagewise runtime update in this alternate env:
       far at `concurrency=8`
     - the branch is now very close to the 24 GB VRAM ceiling, so it should be
       treated as a carefully managed high-density mode rather than the default
+    - keep fixed scheduler buckets aligned with warmed TRT buckets; do not use
+      `4,8,16` with only `8,16` warmed
+    - current operational correction: use `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16`
+      with `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
 
 ## Core Principle
 

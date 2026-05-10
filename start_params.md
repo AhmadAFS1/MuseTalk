@@ -143,7 +143,7 @@ This is the widened-batch branch that produced the current best average
 throughput at `concurrency=8`:
 
 - `HLS_SCHEDULER_MAX_BATCH=16`
-- `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16`
+- `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16`
 - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
 - default warmup:
   - `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
@@ -156,6 +156,10 @@ Important caveat:
 
 - warming `4,8,16` together previously OOM'd on the RTX 3090
 - that is why the launcher defaults to warming `8,16` on this profile
+- scheduler fixed buckets must stay aligned with warmed TRT batches
+- do not leave `4` in `HLS_SCHEDULER_FIXED_BATCH_SIZES` unless batch `4` is
+  also warmed; otherwise tiny tail batches can trigger a live batch-4 TRT
+  compile and stall HLS playback
 
 ## Matching Load Tests
 

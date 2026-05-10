@@ -231,11 +231,13 @@ Later March 24 ramp results tightened the interpretation further:
   - important nuance:
     - this first `bs8` run forced `fixed_batch_sizes=[8]`, so even
       low-concurrency turns padded to `8` and VRAM jumped sharply
-    - the better follow-up config should prefer mixed `4,8` buckets instead
+    - the better follow-up config originally preferred mixed `4,8` buckets, but
+      that is only safe when batch `4` is also warmed
 - later widened `max_batch=16` branch on March 25
-  - server-side shape:
+  - originally measured server-side shape:
     - `HLS_SCHEDULER_MAX_BATCH=16`
     - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16`
+    - `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
     - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
     - workers still `8/8/8`
   - request `batch_size=8`
@@ -253,6 +255,9 @@ Later March 24 ramp results tightened the interpretation further:
       average throughput observed so far on this branch
     - the remaining issue is no longer whether the GPU can be filled, but how
       to avoid hurting tail fairness while operating close to the VRAM ceiling
+    - current operational correction: use `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16`
+      with `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`; do not include an
+      unwarmed batch-4 scheduler bucket
 
 Compared with the earlier severe regression:
 

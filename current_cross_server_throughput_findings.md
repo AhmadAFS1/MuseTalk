@@ -378,14 +378,16 @@ Interpretation update:
   pools further
 - the first `bs8` result improved steady-state throughput without solving the
   same old tail
-- the next experiment should not force `fixed_batch_sizes=[8]` globally;
-  it should use mixed `4,8` buckets
+- the next experiment should not force `fixed_batch_sizes=[8]` globally if
+  batch `4` is warmed; on the current 24 GB TRT profile, batch `4` is not
+  warmed, so the operational bucket set should stay `8,16`
 
 Later widened `max_batch=16` check on the same branch:
 
-- server-side shape:
+- originally measured server-side shape:
   - `HLS_SCHEDULER_MAX_BATCH=16`
   - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16`
+  - `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
   - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
   - workers `8/8/8`
 - request `batch_size=8`
@@ -405,6 +407,10 @@ Interpretation update:
 - the newer total-batch logic matters more than larger worker pools
 - request `batch_size=8` is the better throughput choice here
 - request `batch_size=4` is still the better tail-latency choice here
+- fixed scheduler buckets must stay aligned with warmed TRT buckets; do not use
+  an unwarmed `4` bucket in the `throughput_record` profile
+- current operational correction: use `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16`
+  with `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
 
 ## Current Practical Guidance
 

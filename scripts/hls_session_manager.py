@@ -32,6 +32,10 @@ class HlsSession:
     status: str = "idle"
     active_stream: Optional[str] = None
     live_ready: bool = False
+    live_segment_count: int = 0
+    last_completed_stream: Optional[str] = None
+    last_completed_at: Optional[float] = None
+    last_completed_had_segments: bool = False
     delete_requested: bool = False
     cancel_requested: bool = False
     idle_start_monotonic: float = field(default_factory=time.monotonic)
@@ -304,6 +308,10 @@ class HlsSessionManager:
         session.live_sequence = 0
         session.status = "streaming"
         session.live_ready = False
+        session.live_segment_count = 0
+        session.last_completed_stream = None
+        session.last_completed_at = None
+        session.last_completed_had_segments = False
 
         # Remove previous live chunks if they exist.
         for path in session.segment_dir.glob("chunk_*"):
@@ -335,12 +343,16 @@ class HlsSessionManager:
             handle.write(f"#EXTINF:{duration:.6f},\n")
             handle.write(f"segments/{segment_name}\n")
         session.live_sequence += 1
+        session.live_segment_count += 1
 
     def finish_live_playlist(self, session: HlsSession) -> None:
         if not session.live_manifest_path.exists():
             return
         with session.live_manifest_path.open("a") as handle:
             handle.write("#EXT-X-ENDLIST\n")
+        session.last_completed_stream = session.active_stream
+        session.last_completed_at = time.time()
+        session.last_completed_had_segments = session.live_segment_count > 0
         session.status = "idle"
         session.live_ready = False
 
