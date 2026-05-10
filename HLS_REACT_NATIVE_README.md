@@ -101,6 +101,7 @@ const [liveUrl, setLiveUrl] = useState<string | null>(null);
 const [mode, setMode] = useState<"idle" | "preparingLive" | "live">("idle");
 const [liveVisible, setLiveVisible] = useState(false);
 const idleCurrentTimeRef = useRef(0);
+const liveProgressRef = useRef({ currentTime: 0, lastMovedAt: Date.now() });
 
 function revealLive() {
   markIdleAnchor(idleCurrentTimeRef.current);
@@ -131,6 +132,12 @@ function returnToIdle() {
     muted={mode !== "live"}
     style={[styles.video, !liveVisible && styles.hiddenVideo]}
     onReadyForDisplay={revealLive}
+    onProgress={(event) => {
+      const currentTime = event.currentTime;
+      if (Math.abs(currentTime - liveProgressRef.current.currentTime) > 0.02) {
+        liveProgressRef.current = { currentTime, lastMovedAt: Date.now() };
+      }
+    }}
     onEnd={returnToIdle}
   />
 )}
@@ -151,8 +158,14 @@ async function pollStatus() {
     setLiveUrl(`${BASE_URL}/hls/sessions/${sessionId}/live.m3u8?stream_id=${data.active_stream}`);
     setLiveVisible(false);
     setMode("preparingLive");
-  } else if (data.status !== "streaming" && mode !== "idle") {
-    returnToIdle();
+  } else if (data.status !== "streaming" && mode === "live") {
+    // Backend generation is done, but playback may still have buffered HLS
+    // segments. Let onEnd return to idle; use this only as a stuck-player
+    // fallback for mobile HLS players that never fire onEnd.
+    const liveHasNotMovedMs = Date.now() - liveProgressRef.current.lastMovedAt;
+    if (liveHasNotMovedMs > Math.max(3000, (data.segment_duration ?? 2) * 1500)) {
+      returnToIdle();
+    }
   }
 }
 ```
@@ -164,6 +177,12 @@ Switching the visible layer as soon as `live_ready` becomes true can expose a
 blank/native-player frame while the live HLS decoder is still attaching.
 `styles.hiddenVideo` should keep the layer mounted and decoding, usually with
 `opacity: 0`, not `display: none`.
+
+Do not switch back to idle only because `/status` reports `status: "idle"` or
+`active_stream: null`. That means the server finished generating the HLS
+playlist; the user may still be watching buffered live segments. Prefer
+`onEnd`, with a progress-based fallback like the snippet above for mobile
+players that can stall at the end of an HLS event playlist.
 
 ---
 

@@ -142,6 +142,10 @@ def get_hls_player_html(session) -> str:
         let idleAnchorTime = 0;
         let idleAnchorWallTime = 0;
         let idleDuration = 0;
+        let noActiveLiveSince = 0;
+        let liveTransitionInFlight = false;
+        let lastLiveCurrentTime = 0;
+        let lastLiveProgressWallTime = performance.now();
 
         const LIVE_PREBUFFER_SECONDS = {live_prebuffer_seconds:.3f};
         const COMPLETED_STREAM_REVEAL_GRACE_SECONDS = 10;
@@ -232,6 +236,9 @@ def get_hls_player_html(session) -> str:
             liveRevealPending = false;
             liveRevealInFlight = false;
             liveRevealed = false;
+            noActiveLiveSince = 0;
+            lastLiveCurrentTime = 0;
+            lastLiveProgressWallTime = performance.now();
         }}
 
         function markIdleAnchor() {{
@@ -339,8 +346,12 @@ def get_hls_player_html(session) -> str:
 
         async function revealLive() {{
             if (liveRevealed || !liveRevealPending) return;
-            await waitForVideoFrame(liveVideo, 1500);
+            const hasFrame = await waitForVideoFrame(liveVideo, 1500);
             if (!liveRevealPending) return;
+            if (!hasFrame && (!liveVideo.videoWidth || !liveVideo.videoHeight)) {{
+                showStatus('Buffering...');
+                return;
+            }}
 
             /* Mirror the live-to-idle handoff: freeze the last idle frame while
                the live layer becomes visible and the browser composites it. */
@@ -386,29 +397,85 @@ def get_hls_player_html(session) -> str:
          * 4) Remove hold canvas instantly
          */
         async function transitionToIdle() {{
-            if (currentMode !== 'live') return;
+            if (currentMode !== 'live' || liveTransitionInFlight) return;
+            liveTransitionInFlight = true;
             liveRevealPending = false;
             liveRevealInFlight = false;
             liveRevealed = false;
 
-            /* 1) Capture last live frame */
-            holdCanvas.style.zIndex = '8';
-            await captureHoldFrame(liveVideo);
+            try {{
+                /* 1) Capture last live frame */
+                holdCanvas.style.zIndex = '8';
+                await captureHoldFrame(liveVideo);
 
-            /* 2) Swap layers behind the hold canvas */
-            idleVideo.classList.remove('hidden');
-            idleVideo.classList.add('visible');
-            liveVideo.classList.remove('visible');
-            liveVideo.classList.add('hidden');
-            currentMode = 'idle';
+                /* 2) Swap layers behind the hold canvas */
+                idleVideo.classList.remove('hidden');
+                idleVideo.classList.add('visible');
+                liveVideo.classList.remove('visible');
+                liveVideo.classList.add('hidden');
+                currentMode = 'idle';
 
-            /* 3) Prime idle and wait for a real painted frame */
-            await primeIdlePlayback();
+                /* 3) Prime idle and wait for a real painted frame */
+                await primeIdlePlayback();
 
-            /* 4) Idle is now rendering – remove hold canvas */
-            hideHoldFrame();
-            holdCanvas.style.zIndex = '5';
-            destroyLive();
+                /* 4) Idle is now rendering – remove hold canvas */
+                hideHoldFrame();
+                holdCanvas.style.zIndex = '5';
+                destroyLive();
+            }} finally {{
+                liveTransitionInFlight = false;
+            }}
+        }}
+
+        function getLiveRemainingSeconds() {{
+            const duration = liveVideo.duration;
+            const current = liveVideo.currentTime;
+            if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(current)) return null;
+            return Math.max(0, duration - current);
+        }}
+
+        function noteLiveProgress() {{
+            const current = Number.isFinite(liveVideo.currentTime) ? liveVideo.currentTime : 0;
+            if (Math.abs(current - lastLiveCurrentTime) > 0.02) {{
+                lastLiveCurrentTime = current;
+                lastLiveProgressWallTime = performance.now();
+            }}
+            maybeRevealLive();
+        }}
+
+        function shouldReturnToIdleAfterLive(data) {{
+            if (liveVideo.ended) return true;
+
+            const remaining = getLiveRemainingSeconds();
+            if (remaining !== null) return remaining <= 0.25;
+
+            const now = performance.now();
+            const segmentDuration = Math.max(0.5, Number(data.segment_duration || 2));
+            const noActiveElapsed = noActiveLiveSince ? (now - noActiveLiveSince) / 1000 : 0;
+            const progressIdle = (now - lastLiveProgressWallTime) / 1000;
+            const bufferedAhead = getBufferedAheadSeconds(liveVideo);
+
+            if (noActiveElapsed >= Math.max(1.5, segmentDuration * 0.75) &&
+                progressIdle >= 1.0 &&
+                bufferedAhead <= 0.15) {{
+                return true;
+            }}
+
+            return noActiveElapsed >= Math.max(3.0, segmentDuration + 1.0) &&
+                progressIdle >= Math.max(1.5, segmentDuration * 0.75);
+        }}
+
+        function handleNoActiveLive(data) {{
+            if (!noActiveLiveSince) noActiveLiveSince = performance.now();
+            if (shouldReturnToIdleAfterLive(data)) {{
+                transitionToIdle();
+                return;
+            }}
+            const remaining = getLiveRemainingSeconds();
+            if (userActivated && liveVideo.paused && (remaining === null || remaining > 0.35)) {{
+                attemptPlay(liveVideo);
+            }}
+            showStatus('Finishing...');
         }}
 
         function setLiveStreamId(streamId) {{
@@ -533,10 +600,12 @@ def get_hls_player_html(session) -> str:
                 );
 
                 if (hasActiveLive && data.live_ready) {{
+                    noActiveLiveSince = 0;
                     completedStreamRevealed = null;
                     setLiveStreamId(data.active_stream);
                     setMode('live');
                 }} else if (hasActiveLive && currentMode === 'idle') {{
+                    noActiveLiveSince = 0;
                     completedStreamRevealed = null;
                     setLiveStreamId(data.active_stream);
                     showStatus('Preparing live...');
@@ -545,8 +614,9 @@ def get_hls_player_html(session) -> str:
                     setLiveStreamId(data.last_completed_stream);
                     setMode('live');
                 }} else if (!hasActiveLive && currentMode === 'live') {{
-                    showStatus('Finishing...');
+                    handleNoActiveLive(data);
                 }} else if (!hasActiveLive && currentMode === 'idle' && statusEl.textContent === 'Preparing live...') {{
+                    noActiveLiveSince = 0;
                     hideStatus();
                 }}
             }} catch (_) {{}}
@@ -566,7 +636,7 @@ def get_hls_player_html(session) -> str:
             if (currentMode === 'idle') showStatus(userActivated ? 'Buffering...' : 'Tap to start', !userActivated);
         }});
 
-        liveVideo.addEventListener('playing', () => maybeRevealLive());
+        liveVideo.addEventListener('playing', () => noteLiveProgress());
         liveVideo.addEventListener('waiting', () => {{
             if (currentMode === 'live') showStatus('Buffering...');
         }});
@@ -583,8 +653,8 @@ def get_hls_player_html(session) -> str:
             if (userActivated && liveRevealPending) attemptPlay(liveVideo);
             maybeRevealLive();
         }});
-        liveVideo.addEventListener('timeupdate', () => maybeRevealLive());
-        liveVideo.addEventListener('progress', () => maybeRevealLive());
+        liveVideo.addEventListener('timeupdate', () => noteLiveProgress());
+        liveVideo.addEventListener('progress', () => noteLiveProgress());
 
         showStatus('Tap to start', true);
         loadIdle(false);
