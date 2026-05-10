@@ -449,6 +449,26 @@ Interpretation update:
   quality mode for low concurrency unless the generation path gets a larger
   throughput improvement
 
+Full-rate `24/24` FPS validation on May 10, 2026:
+
+- three streams on the current `8,16` throughput profile:
+  - `musetalk_fps=24`, `playback_fps=24`, request `batch_size=8`
+  - `completed = 3`, `failed = 0`
+  - `avg_time_to_live_ready_s = 1.848`
+  - `avg_segment_interval_s = 1.060`
+  - `max_segment_interval_s = 1.527`
+  - `wall_time_s = 19.9`
+  - `avg_gpu_util_pct = 82.33`
+  - `peak_gpu_memory_used_mb = 23922`
+
+Interpretation update:
+
+- `24/24` at `concurrency=3` stayed under the `2.0s` throttle threshold
+- this looks like a plausible low-concurrency quality profile on the current
+  24 GB `8,16` runtime
+- this should not be extrapolated to the 8-stream hosted target without a
+  separate 8-stream test
+
 ## Current Practical Guidance
 
 For this cross-server branch:

@@ -325,6 +325,33 @@ Interpretation:
 - practical conclusion: keep `15/30` for the 8-stream target; reserve `30/30`
   for low-concurrency quality experiments
 
+## 24/24 FPS 3-Stream Validation
+
+Hosted validation on May 10, 2026 tested `musetalk_fps=24` with
+`playback_fps=24` on the current `8,16` throughput profile:
+
+- request `batch_size=8`
+- `concurrency=3`
+- `segment_duration=1.0`
+- `completed=3`
+- `failed=0`
+- `avg_time_to_live_ready_s=1.848`
+- `avg_segment_interval_s=1.060`
+- `max_segment_interval_s=1.527`
+- `wall_time_s=19.9`
+- `avg_gpu_util_pct=82.33`
+- `peak_gpu_util_pct=100.0`
+- `avg_gpu_memory_used_mb=23922.0`
+- `peak_gpu_memory_used_mb=23922.0`
+
+Interpretation:
+
+- `24/24` at three concurrent streams passed cleanly on the current `8,16`
+  profile
+- max segment interval stayed below the `2.0s` throttle threshold
+- this is much healthier than the `30/30` 8-stream stress result, but it is not
+  an 8-stream capacity claim
+
 ## Notes
 
 - the launcher uses the exact venv python path instead of relying on whichever

@@ -232,6 +232,43 @@ latency. Both 8-stream runs are well above the `2.0s` throttle threshold, so
 `30/30` should be treated as a low-concurrency quality experiment rather than
 the current hosted 8-stream target.
 
+### 24/24 FPS 3-stream validation
+
+Use this when you want to test full-rate 24 FPS generation at lower concurrency:
+
+```bash
+python load_test.py \
+  --base-url http://127.0.0.1:8000 \
+  --avatar-id test_avatar \
+  --audio-file ./data/audio/ai-assistant.mpga \
+  --concurrency 3 \
+  --segment-duration 1.0 \
+  --playback-fps 24 \
+  --musetalk-fps 24 \
+  --batch-size 8
+```
+
+Recent May 10, 2026 result on the current `8,16` throughput profile:
+
+```json
+{
+  "concurrency": 3,
+  "completed": 3,
+  "failed": 0,
+  "avg_time_to_live_ready_s": 1.848,
+  "avg_segment_interval_s": 1.060,
+  "max_segment_interval_s": 1.527,
+  "wall_time_s": 19.9,
+  "avg_gpu_util_pct": 82.33,
+  "peak_gpu_util_pct": 100.0,
+  "peak_gpu_memory_used_mb": 23922.0
+}
+```
+
+This passed cleanly against the `2.0s` throttle threshold. Treat it as a
+validated 3-stream quality profile, not as evidence that `24/24` can sustain
+the 8-stream hosted target.
+
 ### Ramp test
 
 Run multiple concurrency levels in sequence:
