@@ -269,6 +269,59 @@ This passed cleanly against the `2.0s` throttle threshold. Treat it as a
 validated 3-stream quality profile, not as evidence that `24/24` can sustain
 the 8-stream hosted target.
 
+### 20/20 FPS 4-5 stream validation
+
+Use this when you want to test full-rate 20 FPS generation around the current
+low-concurrency edge:
+
+```bash
+python load_test.py \
+  --base-url http://127.0.0.1:8000 \
+  --avatar-id test_avatar \
+  --audio-file ./data/audio/ai-assistant.mpga \
+  --concurrency 4 \
+  --segment-duration 1.0 \
+  --playback-fps 20 \
+  --musetalk-fps 20 \
+  --batch-size 8
+```
+
+Recent May 10, 2026 results on the current `8,16` throughput profile:
+
+```json
+{
+  "five_streams_20_20": {
+    "concurrency": 5,
+    "completed": 5,
+    "failed": 0,
+    "avg_time_to_live_ready_s": 2.014,
+    "avg_segment_interval_s": 1.477,
+    "max_segment_interval_s": 2.550,
+    "wall_time_s": 27.5,
+    "avg_gpu_util_pct": 78.07,
+    "peak_gpu_util_pct": 100.0,
+    "peak_gpu_memory_used_mb": 23922.0
+  },
+  "four_streams_20_20": {
+    "concurrency": 4,
+    "completed": 4,
+    "failed": 0,
+    "avg_time_to_live_ready_s": 1.889,
+    "avg_segment_interval_s": 1.188,
+    "max_segment_interval_s": 2.041,
+    "wall_time_s": 22.4,
+    "avg_gpu_util_pct": 77.04,
+    "peak_gpu_util_pct": 100.0,
+    "peak_gpu_memory_used_mb": 23922.0
+  }
+}
+```
+
+Both runs completed, but both emitted the strict load-test throttling warning.
+The 5-stream run exceeded the `2.0s` tail threshold by `0.550s`; the 4-stream
+run exceeded it by only `0.041s`. Treat `20/20` at four streams as near the
+current burst-start edge, not as a completely clean no-warning profile.
+
 ### Ramp test
 
 Run multiple concurrency levels in sequence:

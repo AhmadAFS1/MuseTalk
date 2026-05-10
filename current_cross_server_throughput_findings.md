@@ -469,6 +469,36 @@ Interpretation update:
 - this should not be extrapolated to the 8-stream hosted target without a
   separate 8-stream test
 
+Full-rate `20/20` FPS validation on May 10, 2026:
+
+- five streams on the current `8,16` throughput profile:
+  - `musetalk_fps=20`, `playback_fps=20`, request `batch_size=8`
+  - `completed = 5`, `failed = 0`
+  - `avg_time_to_live_ready_s = 2.014`
+  - `avg_segment_interval_s = 1.477`
+  - `max_segment_interval_s = 2.550`
+  - `wall_time_s = 27.5`
+  - `avg_gpu_util_pct = 78.07`
+  - `peak_gpu_memory_used_mb = 23922`
+- four streams on the current `8,16` throughput profile:
+  - `musetalk_fps=20`, `playback_fps=20`, request `batch_size=8`
+  - `completed = 4`, `failed = 0`
+  - `avg_time_to_live_ready_s = 1.889`
+  - `avg_segment_interval_s = 1.188`
+  - `max_segment_interval_s = 2.041`
+  - `wall_time_s = 22.4`
+  - `avg_gpu_util_pct = 77.04`
+  - `peak_gpu_memory_used_mb = 23922`
+
+Interpretation update:
+
+- `20/20` at five streams completed but exceeded the `2.0s` tail threshold by
+  `0.550s`
+- `20/20` at four streams was much closer, exceeding the threshold by only
+  `0.041s`
+- `20/20` therefore looks like a plausible four-stream quality profile, but
+  not a clean no-warning profile under simultaneous burst start
+
 ## Current Practical Guidance
 
 For this cross-server branch:

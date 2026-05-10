@@ -352,6 +352,53 @@ Interpretation:
 - this is much healthier than the `30/30` 8-stream stress result, but it is not
   an 8-stream capacity claim
 
+## 20/20 FPS 4-5 Stream Validation
+
+Hosted validation on May 10, 2026 tested `musetalk_fps=20` with
+`playback_fps=20` on the current `8,16` throughput profile.
+
+Five simultaneous streams:
+
+- request `batch_size=8`
+- `concurrency=5`
+- `segment_duration=1.0`
+- `completed=5`
+- `failed=0`
+- `avg_time_to_live_ready_s=2.014`
+- `avg_segment_interval_s=1.477`
+- `max_segment_interval_s=2.550`
+- `wall_time_s=27.5`
+- `avg_gpu_util_pct=78.07`
+- `peak_gpu_util_pct=100.0`
+- `avg_gpu_memory_used_mb=23922.0`
+- `peak_gpu_memory_used_mb=23922.0`
+
+Four simultaneous streams:
+
+- request `batch_size=8`
+- `concurrency=4`
+- `segment_duration=1.0`
+- `completed=4`
+- `failed=0`
+- `avg_time_to_live_ready_s=1.889`
+- `avg_segment_interval_s=1.188`
+- `max_segment_interval_s=2.041`
+- `wall_time_s=22.4`
+- `avg_gpu_util_pct=77.04`
+- `peak_gpu_util_pct=100.0`
+- `avg_gpu_memory_used_mb=23922.0`
+- `peak_gpu_memory_used_mb=23922.0`
+
+Interpretation:
+
+- both `20/20` runs completed without failed sessions
+- `concurrency=5` had good average cadence but failed the strict tail threshold
+  by `0.550s`
+- `concurrency=4` was much closer, exceeding the `2.0s` threshold by only
+  `0.041s`
+- practical conclusion: `20/20` looks usable around four streams on this host,
+  but it is still not a clean no-warning profile under burst-start load
+
 ## Notes
 
 - the launcher uses the exact venv python path instead of relying on whichever
