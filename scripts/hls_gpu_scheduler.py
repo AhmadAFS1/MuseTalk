@@ -1003,8 +1003,15 @@ class HLSGPUStreamScheduler:
 
         if padded_batch > actual_batch:
             pad_n = padded_batch - actual_batch
-            staging_conditioning[actual_batch:padded_batch].copy_(staging_conditioning[:pad_n])
-            staging_latents[actual_batch:padded_batch].copy_(staging_latents[:pad_n])
+            # When actual_batch is less than half of the padded bucket, the
+            # source and destination ranges can overlap inside the staging
+            # buffer. Clone the repeated prefix before copying it into the pad.
+            staging_conditioning[actual_batch:padded_batch].copy_(
+                staging_conditioning[:pad_n].clone()
+            )
+            staging_latents[actual_batch:padded_batch].copy_(
+                staging_latents[:pad_n].clone()
+            )
 
         assembly_finished_at = time.time()
         conditioning_batch = staging_conditioning[:padded_batch]
