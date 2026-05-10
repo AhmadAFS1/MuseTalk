@@ -172,6 +172,66 @@ with average cadence below `2.0s`. The run still emits the load-test throttling
 warning because the max segment interval exceeded `2.0s`, so tail jitter remains
 the edge to watch.
 
+### 30/30 FPS validation
+
+Use this when you want to test full-rate MuseTalk generation instead of the
+normal `15/30` shape:
+
+```bash
+python load_test.py \
+  --base-url http://127.0.0.1:8000 \
+  --avatar-id test_avatar \
+  --audio-file ./data/audio/ai-assistant.mpga \
+  --concurrency 8 \
+  --segment-duration 1.0 \
+  --playback-fps 30 \
+  --musetalk-fps 30 \
+  --batch-size 8
+```
+
+Recent May 10, 2026 results:
+
+```json
+{
+  "single_stream_4_8": {
+    "concurrency": 1,
+    "completed": 1,
+    "failed": 0,
+    "avg_time_to_live_ready_s": 1.513,
+    "avg_segment_interval_s": 0.476,
+    "max_segment_interval_s": 0.512,
+    "wall_time_s": 9.2,
+    "peak_gpu_memory_used_mb": 13856.0
+  },
+  "eight_streams_4_8": {
+    "concurrency": 8,
+    "completed": 8,
+    "failed": 0,
+    "avg_time_to_live_ready_s": 3.270,
+    "avg_segment_interval_s": 3.826,
+    "max_segment_interval_s": 5.574,
+    "wall_time_s": 69.0,
+    "peak_gpu_memory_used_mb": 13856.0
+  },
+  "eight_streams_8_16": {
+    "concurrency": 8,
+    "completed": 8,
+    "failed": 0,
+    "avg_time_to_live_ready_s": 5.032,
+    "avg_segment_interval_s": 3.567,
+    "max_segment_interval_s": 6.088,
+    "wall_time_s": 66.6,
+    "peak_gpu_memory_used_mb": 23920.0
+  }
+}
+```
+
+The `8,16` profile gave a small average-throughput win for `30/30`
+(`3.826s -> 3.567s` average segment interval), but worsened startup and tail
+latency. Both 8-stream runs are well above the `2.0s` throttle threshold, so
+`30/30` should be treated as a low-concurrency quality experiment rather than
+the current hosted 8-stream target.
+
 ### Ramp test
 
 Run multiple concurrency levels in sequence:

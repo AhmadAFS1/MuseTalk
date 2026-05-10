@@ -412,6 +412,43 @@ Interpretation update:
 - current operational correction: use `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16`
   with `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
 
+Full-rate `30/30` FPS validation on May 10, 2026:
+
+- single stream on the temporary `4,8` profile:
+  - `musetalk_fps=30`, `playback_fps=30`, request `batch_size=8`
+  - `completed = 1`, `failed = 0`
+  - `avg_time_to_live_ready_s = 1.513`
+  - `avg_segment_interval_s = 0.476`
+  - `max_segment_interval_s = 0.512`
+  - `wall_time_s = 9.2`
+  - `peak_gpu_memory_used_mb = 13856`
+- eight streams on the temporary `4,8` profile:
+  - `completed = 8`, `failed = 0`
+  - `avg_time_to_live_ready_s = 3.270`
+  - `avg_segment_interval_s = 3.826`
+  - `max_segment_interval_s = 5.574`
+  - `wall_time_s = 69.0`
+  - `peak_gpu_memory_used_mb = 13856`
+- eight streams on the current `8,16` throughput profile:
+  - `completed = 8`, `failed = 0`
+  - `avg_time_to_live_ready_s = 5.032`
+  - `avg_segment_interval_s = 3.567`
+  - `max_segment_interval_s = 6.088`
+  - `wall_time_s = 66.6`
+  - `peak_gpu_memory_used_mb = 23920`
+
+Interpretation update:
+
+- `30/30` works cleanly for one stream, but it is not viable for the 8-stream
+  hosted target on this 24 GB RTX 3090 profile
+- moving from `4,8` to `8,16` improved average cadence slightly
+  (`3.826s -> 3.567s`) and wall time slightly (`69.0s -> 66.6s`)
+- the same move worsened startup (`3.270s -> 5.032s` average live-ready), tail
+  (`5.574s -> 6.088s` max interval), and memory (`13856MB -> 23920MB`)
+- keep `15/30` as the practical hosted 8-stream target; treat `30/30` as a
+  quality mode for low concurrency unless the generation path gets a larger
+  throughput improvement
+
 ## Current Practical Guidance
 
 For this cross-server branch:

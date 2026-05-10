@@ -268,6 +268,63 @@ Interpretation:
 - this should be treated as a functional 8-stream hosted pass with remaining
   tail-jitter risk, not as a clean no-warning realtime pass
 
+## 30/30 FPS Validation
+
+Additional hosted validation on May 10, 2026 tested `musetalk_fps=30` with
+`playback_fps=30`. This removes the cheaper half-rate generation path used by
+the normal `15/30` stream shape.
+
+Single stream on the temporary `4,8` profile:
+
+- request `batch_size=8`
+- `concurrency=1`
+- `completed=1`
+- `failed=0`
+- `avg_time_to_live_ready_s=1.513`
+- `avg_segment_interval_s=0.476`
+- `max_segment_interval_s=0.512`
+- `wall_time_s=9.2`
+- `peak_gpu_util_pct=100.0`
+- `peak_gpu_memory_used_mb=13856.0`
+
+Eight simultaneous streams on the temporary `4,8` profile:
+
+- request `batch_size=8`
+- `concurrency=8`
+- `completed=8`
+- `failed=0`
+- `avg_time_to_live_ready_s=3.270`
+- `avg_segment_interval_s=3.826`
+- `max_segment_interval_s=5.574`
+- `wall_time_s=69.0`
+- `peak_gpu_util_pct=100.0`
+- `peak_gpu_memory_used_mb=13856.0`
+
+Eight simultaneous streams on the current `8,16` throughput profile:
+
+- request `batch_size=8`
+- `concurrency=8`
+- `completed=8`
+- `failed=0`
+- `avg_time_to_live_ready_s=5.032`
+- `avg_segment_interval_s=3.567`
+- `max_segment_interval_s=6.088`
+- `wall_time_s=66.6`
+- `peak_gpu_util_pct=100.0`
+- `peak_gpu_memory_used_mb=23920.0`
+
+Interpretation:
+
+- `30/30` is viable for a single stream on this host
+- at `concurrency=8`, both `4,8` and `8,16` throttle badly against the `2.0s`
+  segment-interval threshold
+- `8,16` improved average segment cadence by `0.259s` and wall time by `2.4s`
+  versus `4,8`
+- `8,16` worsened average live-ready by `1.762s`, worsened max segment interval
+  by `0.514s`, and raised peak memory by about `10064MB`
+- practical conclusion: keep `15/30` for the 8-stream target; reserve `30/30`
+  for low-concurrency quality experiments
+
 ## Notes
 
 - the launcher uses the exact venv python path instead of relying on whichever
