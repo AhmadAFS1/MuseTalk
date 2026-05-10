@@ -181,6 +181,16 @@ http://localhost:8000/docs
   missing avatar assets by `avatar_id`. Restores are staged and validated before
   replacing any local avatar directory. See `docs/avatar_s3_persistence.md` for
   IAM, retry, and metrics details.
+- Avatar cache warmup is available for call orchestration:
+  ```bash
+  curl -X POST "http://localhost:8000/avatars/test_avatar/cache/warm?batch_size=2"
+  curl "http://localhost:8000/avatars/test_avatar/cache/status"
+  ```
+  Use this before creating the HLS/WebRTC/SSE session when the mobile app enters
+  its "Calling..." state. Route the later session and stream requests to the
+  same MuseTalk worker, because this cache lives in that worker process.
+  Warmups default to 8 active avatars per MuseTalk worker; override with
+  `AVATAR_WARMUP_WORKERS` if needed.
 
 ---
 

@@ -217,7 +217,7 @@ start_server() {
   log "profile=$PROFILE host=$HOST port=$PORT"
   log "log_file=$LOG_FILE"
 
-  nohup bash "$REPO_ROOT/scripts/run_trt_stagewise_server.sh" \
+  setsid nohup bash "$REPO_ROOT/scripts/run_trt_stagewise_server.sh" \
     --profile "$PROFILE" \
     --host "$HOST" \
     --port "$PORT" \

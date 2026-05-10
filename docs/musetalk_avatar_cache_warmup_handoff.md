@@ -39,32 +39,39 @@ The important part: the same MuseTalk worker must handle warmup and the later se
 
 ## Server Changes I Would Make
 
-Add something like:
+Implemented on the MuseTalk server:
 
 ```http
 POST /avatars/{avatar_id}/cache/warm?batch_size=2&wait=false
 GET  /avatars/{avatar_id}/cache/status
 ```
 
-The warm endpoint should:
+The warm endpoint:
 
 - restore from S3 if needed via existing `_avatar_exists()`
 - call `_get_or_load_avatar(avatar_id, batch_size)`
 - reuse the existing per-avatar load lock, so duplicate warm requests do not double-load
-- return `warming`, `ready`, or `failed`
+- return an active state, `ready`, or `failed`
 - expose timings like `s3_restore_seconds`, `avatar_load_seconds`, and `cached`
 
-The status endpoint should tell EC2/RN whether the avatar is:
+The status endpoint tells EC2/RN whether the avatar is:
 
 ```text
 missing
+not_cached
+queued
+checking
 restoring_from_s3
 loading_into_memory
 ready
 failed
 ```
 
-The server already has `/stats/cache`, but it is not enough as a clean call-state API.
+`POST /avatars/{avatar_id}/cache/warm` returns `202` while warmup is active and `200` when the avatar is ready. Use `wait=true&timeout_seconds=...` if EC2 wants the request to block briefly instead of polling immediately.
+
+The warmup executor defaults to 8 active avatar warmups per MuseTalk worker, matching the intended max concurrency for one server. Override with `AVATAR_WARMUP_WORKERS` if a smaller/larger instance profile needs different behavior.
+
+The server already has `/stats/cache`, but it is not enough as a clean call-state API. `/stats` now also includes `avatar_warmups` for worker-level debugging.
 
 ## EC2 Changes Needed
 

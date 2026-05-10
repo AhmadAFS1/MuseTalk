@@ -849,6 +849,88 @@ async def delete_avatar(avatar_id: str, from_disk: bool = False):
         )
     }
 
+
+def _avatar_warm_response_code(payload: dict) -> int:
+    status_value = payload.get("status")
+    if status_value == "ready":
+        return 200
+    if status_value in {"queued", "checking", "restoring_from_s3", "loading_into_memory"}:
+        return 202
+    if status_value == "failed":
+        return 404 if not payload.get("disk_prepared") else 500
+    return 200
+
+
+def _pop_future_from_payload(payload: dict):
+    payload = dict(payload)
+    future = payload.pop("_future", None)
+    return payload, future
+
+
+@app.post("/avatars/{avatar_id}/cache/warm")
+async def warm_avatar_cache(
+    avatar_id: str,
+    batch_size: int = 2,
+    wait: bool = False,
+    timeout_seconds: float = 60.0,
+):
+    """
+    Restore and load an avatar into this worker's process-local MuseTalk cache.
+
+    EC2 should call this when a call starts, then route the later session/stream
+    requests to the same worker because the avatar cache is not shared across
+    workers.
+    """
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    _require_accepting_new_sessions()
+
+    try:
+        payload, future = _pop_future_from_payload(
+            manager.warm_avatar_async(avatar_id=avatar_id, batch_size=batch_size)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    if wait and future is not None:
+        try:
+            await asyncio.wait_for(
+                asyncio.wrap_future(future),
+                timeout=max(0.1, float(timeout_seconds)),
+            )
+        except asyncio.TimeoutError:
+            payload = manager.get_avatar_cache_status(avatar_id)
+            return JSONResponse(status_code=202, content=payload)
+        except Exception as exc:
+            payload = manager.get_avatar_cache_status(avatar_id)
+            if payload.get("status") != "failed":
+                payload["status"] = "failed"
+                payload["error"] = str(exc)
+            return JSONResponse(
+                status_code=_avatar_warm_response_code(payload),
+                content=payload,
+            )
+        payload = manager.get_avatar_cache_status(avatar_id)
+
+    return JSONResponse(
+        status_code=_avatar_warm_response_code(payload),
+        content=payload,
+    )
+
+
+@app.get("/avatars/{avatar_id}/cache/status")
+async def avatar_cache_status(avatar_id: str):
+    """
+    Return this worker's process-local avatar cache/warmup state.
+    This endpoint does not trigger S3 restore or avatar loading.
+    """
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    return manager.get_avatar_cache_status(avatar_id)
+
+
 def _resolve_avatar_video_path(avatar_id: str) -> Path:
     if manager.args.version == "v15":
         return Path(f"./results/{manager.args.version}/avatars/{avatar_id}/input_video.mp4")

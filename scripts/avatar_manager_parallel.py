@@ -58,12 +58,18 @@ class ParallelAvatarManager:
             cleanup_interval=60
         )
         
-        # Thread pool
+        # Thread pools
         self.executor = ThreadPoolExecutor(max_workers=max_concurrent_inferences)
+        self.avatar_warm_executor = ThreadPoolExecutor(
+            max_workers=max(1, self._env_int("AVATAR_WARMUP_WORKERS", 8)),
+            thread_name_prefix="avatar-warm",
+        )
         
         # Request tracking
         self.active_requests = {}
         self.request_lock = threading.Lock()
+        self.avatar_warmups = {}
+        self.avatar_warmups_lock = threading.Lock()
         self.avatar_load_locks = {}
         self.avatar_load_locks_lock = threading.Lock()
         self.avatar_restore_failed_at = {}
@@ -482,6 +488,275 @@ class ParallelAvatarManager:
                 lock = threading.Lock()
                 self.avatar_load_locks[avatar_id] = lock
             return lock
+
+    def _get_avatar_cache_info(self, avatar_id):
+        if hasattr(self.avatar_cache, "peek"):
+            return self.avatar_cache.peek(avatar_id)
+        return None
+
+    def _snapshot_avatar_warmup_locked(self, entry, include_future=False):
+        payload = {}
+        for key, value in entry.items():
+            if key == "future":
+                continue
+            if key == "timings" and isinstance(value, dict):
+                payload[key] = dict(value)
+            elif key == "cache" and isinstance(value, dict):
+                payload[key] = dict(value)
+            else:
+                payload[key] = value
+        if include_future:
+            payload["_future"] = entry.get("future")
+        return payload
+
+    def _update_avatar_warmup(self, avatar_id, request_id, **fields):
+        with self.avatar_warmups_lock:
+            entry = self.avatar_warmups.get(avatar_id)
+            if entry is None or entry.get("request_id") != request_id:
+                return
+            timings = fields.pop("timings", None)
+            if timings:
+                entry.setdefault("timings", {}).update(timings)
+            entry.update(fields)
+            entry["updated_at"] = time.time()
+
+    def warm_avatar_async(self, avatar_id, batch_size=2):
+        """Start or join a process-local avatar cache warmup."""
+        batch_size = max(1, int(batch_size))
+        cache_info = self._get_avatar_cache_info(avatar_id)
+        disk_prepared = os.path.exists(self._avatar_latents_path(avatar_id))
+        s3_enabled = bool(getattr(self.avatar_s3_store, "enabled", False))
+
+        if cache_info is not None:
+            return {
+                "avatar_id": avatar_id,
+                "status": "ready",
+                "cached": True,
+                "disk_prepared": disk_prepared,
+                "s3_enabled": s3_enabled,
+                "s3_restore_required": False,
+                "batch_size": batch_size,
+                "cache": cache_info,
+                "timings": {},
+                "deduped": False,
+                "_future": None,
+            }
+
+        with self.avatar_warmups_lock:
+            entry = self.avatar_warmups.get(avatar_id)
+            if entry is not None:
+                future = entry.get("future")
+                if future is not None and not future.done():
+                    payload = self._snapshot_avatar_warmup_locked(entry, include_future=True)
+                    payload["deduped"] = True
+                    return payload
+
+            request_id = f"warm_{uuid.uuid4().hex[:8]}"
+            now = time.time()
+            entry = {
+                "avatar_id": avatar_id,
+                "request_id": request_id,
+                "status": "queued",
+                "cached": False,
+                "disk_prepared": disk_prepared,
+                "s3_enabled": s3_enabled,
+                "s3_restore_required": s3_enabled and not disk_prepared,
+                "batch_size": batch_size,
+                "submitted_at": now,
+                "started_at": None,
+                "updated_at": now,
+                "completed_at": None,
+                "error": None,
+                "timings": {},
+                "cache": None,
+            }
+            self.avatar_warmups[avatar_id] = entry
+
+            future = self.avatar_warm_executor.submit(
+                self._avatar_warm_worker,
+                avatar_id,
+                batch_size,
+                request_id,
+            )
+            entry["future"] = future
+            payload = self._snapshot_avatar_warmup_locked(entry, include_future=True)
+            payload["deduped"] = False
+            return payload
+
+    def _avatar_warm_worker(self, avatar_id, batch_size, request_id):
+        wall_started_at = time.time()
+        total_start = time.monotonic()
+        self._update_avatar_warmup(
+            avatar_id,
+            request_id,
+            status="checking",
+            started_at=wall_started_at,
+        )
+
+        try:
+            cache_info = self._get_avatar_cache_info(avatar_id)
+            if cache_info is not None:
+                self._update_avatar_warmup(
+                    avatar_id,
+                    request_id,
+                    status="ready",
+                    cached=True,
+                    cache=cache_info,
+                    disk_prepared=os.path.exists(self._avatar_latents_path(avatar_id)),
+                    s3_restore_required=False,
+                    completed_at=time.time(),
+                    timings={"total_seconds": time.monotonic() - total_start},
+                )
+                return self.get_avatar_cache_status(avatar_id)
+
+            local_before = os.path.exists(self._avatar_latents_path(avatar_id))
+            s3_enabled = bool(getattr(self.avatar_s3_store, "enabled", False))
+            if local_before:
+                self._update_avatar_warmup(
+                    avatar_id,
+                    request_id,
+                    status="loading_into_memory",
+                    disk_prepared=True,
+                    s3_restore_required=False,
+                )
+            elif s3_enabled:
+                self._update_avatar_warmup(
+                    avatar_id,
+                    request_id,
+                    status="restoring_from_s3",
+                    disk_prepared=False,
+                    s3_restore_required=True,
+                )
+            else:
+                self._update_avatar_warmup(
+                    avatar_id,
+                    request_id,
+                    status="checking",
+                    disk_prepared=False,
+                    s3_restore_required=False,
+                )
+
+            exists_start = time.monotonic()
+            exists = self._avatar_exists(avatar_id)
+            existence_check_seconds = time.monotonic() - exists_start
+            local_after = os.path.exists(self._avatar_latents_path(avatar_id))
+            s3_restore_seconds = existence_check_seconds if (not local_before and s3_enabled) else 0.0
+
+            self._update_avatar_warmup(
+                avatar_id,
+                request_id,
+                disk_prepared=local_after,
+                s3_restore_required=s3_enabled and not local_after,
+                timings={
+                    "existence_check_seconds": existence_check_seconds,
+                    "s3_restore_seconds": s3_restore_seconds,
+                },
+            )
+
+            if not exists:
+                raise ValueError(f"Avatar '{avatar_id}' not found locally or in S3.")
+
+            self._update_avatar_warmup(
+                avatar_id,
+                request_id,
+                status="loading_into_memory",
+                disk_prepared=True,
+                s3_restore_required=False,
+            )
+
+            load_start = time.monotonic()
+            self._get_or_load_avatar(avatar_id, batch_size)
+            avatar_load_seconds = time.monotonic() - load_start
+            cache_info = self._get_avatar_cache_info(avatar_id)
+
+            self._update_avatar_warmup(
+                avatar_id,
+                request_id,
+                status="ready",
+                cached=cache_info is not None,
+                cache=cache_info,
+                s3_restore_required=False,
+                completed_at=time.time(),
+                timings={
+                    "avatar_load_seconds": avatar_load_seconds,
+                    "total_seconds": time.monotonic() - total_start,
+                },
+            )
+            return self.get_avatar_cache_status(avatar_id)
+        except Exception as exc:
+            error_text = str(exc) or exc.__class__.__name__
+            self._update_avatar_warmup(
+                avatar_id,
+                request_id,
+                status="failed",
+                cached=False,
+                disk_prepared=os.path.exists(self._avatar_latents_path(avatar_id)),
+                s3_restore_required=bool(getattr(self.avatar_s3_store, "enabled", False))
+                and not os.path.exists(self._avatar_latents_path(avatar_id)),
+                completed_at=time.time(),
+                error=error_text,
+                timings={"total_seconds": time.monotonic() - total_start},
+            )
+            print(f"❌ Avatar warmup failed avatar_id={avatar_id}: {error_text}")
+            return self.get_avatar_cache_status(avatar_id)
+
+    def get_avatar_cache_status(self, avatar_id):
+        """Return process-local cache/warmup state without triggering S3 restore."""
+        cache_info = self._get_avatar_cache_info(avatar_id)
+        disk_prepared = os.path.exists(self._avatar_latents_path(avatar_id))
+        s3_enabled = bool(getattr(self.avatar_s3_store, "enabled", False))
+
+        with self.avatar_warmups_lock:
+            entry = self.avatar_warmups.get(avatar_id)
+            warmup_payload = (
+                self._snapshot_avatar_warmup_locked(entry, include_future=False)
+                if entry is not None
+                else None
+            )
+
+        if cache_info is not None:
+            return {
+                "avatar_id": avatar_id,
+                "status": "ready",
+                "cached": True,
+                "disk_prepared": disk_prepared,
+                "s3_enabled": s3_enabled,
+                "s3_restore_required": False,
+                "cache": cache_info,
+                "warmup": warmup_payload,
+            }
+
+        if warmup_payload is not None:
+            warmup_payload["cached"] = False
+            warmup_payload["disk_prepared"] = disk_prepared or bool(warmup_payload.get("disk_prepared"))
+            warmup_payload["s3_enabled"] = s3_enabled
+            warmup_payload["s3_restore_required"] = (
+                s3_enabled and not bool(warmup_payload.get("disk_prepared"))
+            )
+            return warmup_payload
+
+        return {
+            "avatar_id": avatar_id,
+            "status": "not_cached" if disk_prepared else "missing",
+            "cached": False,
+            "disk_prepared": disk_prepared,
+            "s3_enabled": s3_enabled,
+            "s3_restore_required": s3_enabled and not disk_prepared,
+            "cache": None,
+            "warmup": None,
+        }
+
+    def get_avatar_warmup_stats(self):
+        with self.avatar_warmups_lock:
+            warmups = [
+                self._snapshot_avatar_warmup_locked(entry, include_future=False)
+                for entry in self.avatar_warmups.values()
+            ]
+        return {
+            "active": len([entry for entry in warmups if entry.get("status") not in {"ready", "failed"}]),
+            "total_tracked": len(warmups),
+            "warmups": warmups,
+        }
     
     def prepare_avatar(self, avatar_id, video_path, bbox_shift=0, batch_size=20, force_recreate=False):
         """Prepare avatar (one-time operation)"""
@@ -673,6 +948,7 @@ class ParallelAvatarManager:
             'gpu': gpu_stats,
             'cache': cache_stats,
             'avatar_s3': self.avatar_s3_store.get_stats(),
+            'avatar_warmups': self.get_avatar_warmup_stats(),
             'active_requests': active_count,
             'total_requests': len(self.active_requests)
         }
@@ -681,6 +957,7 @@ class ParallelAvatarManager:
         """Graceful shutdown"""
         print("🛑 Shutting down...")
         self.avatar_cache.stop_cleanup()
-        self.avatar_cache.clear_all()
         self.executor.shutdown(wait=True)
+        self.avatar_warm_executor.shutdown(wait=True)
+        self.avatar_cache.clear_all()
         print("✅ Shutdown complete")

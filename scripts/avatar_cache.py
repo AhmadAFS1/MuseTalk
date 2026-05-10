@@ -154,6 +154,22 @@ class AvatarCache:
             
             print(f"📦 Cached avatar: {avatar_id} ({memory_usage_mb:.1f}MB, total: {len(self.cache)})")
 
+    def peek(self, avatar_id):
+        """
+        Return cache metadata without updating LRU state, TTL, or hit/miss stats.
+        This is intended for status endpoints and orchestration probes.
+        """
+        with self.lock:
+            cached = self.cache.get(avatar_id)
+            if cached is None:
+                return None
+            return {
+                'id': avatar_id,
+                'memory_mb': cached.memory_usage_mb,
+                'load_count': cached.load_count,
+                'age_seconds': time.time() - cached.last_access_time,
+            }
+
     def _would_exceed_limits(self, *, cached_count: int, current_memory_mb: float, incoming_memory_mb: float) -> bool:
         over_count = self.max_cached_avatars > 0 and cached_count >= self.max_cached_avatars
         over_memory = self.max_memory_mb > 0 and (current_memory_mb + incoming_memory_mb) > self.max_memory_mb
