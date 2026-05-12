@@ -89,6 +89,53 @@ This player already handles idle/live switching, cache-busting, and UI.
 
 ---
 
+## Latest playback stability update (2026-05-12)
+
+The hosted `/hls/player/{session_id}` now includes two recovery paths for the
+FaceTime/WebView flow:
+
+- Live-to-idle handoff no longer waits forever for
+  `requestVideoFrameCallback`. The player first tries to capture the current
+  frame for the hold canvas, then waits only briefly for a fresh frame before
+  continuing the transition. The hold canvas is cosmetic, so it should preserve
+  the smooth visual swap when frames are available without trapping the UI on
+  `Finishing...` when the live media element has ended or stalled.
+- Idle playback now tracks idle video progress and recovers from native HLS
+  loop stalls. If the idle layer fires `waiting`, `stalled`, or `ended` while no
+  live stream is pending, the player seeks back to the computed idle resume
+  time, attempts playback again, waits for a painted frame, and reloads the idle
+  HLS manifest if the element still does not recover.
+
+Why this changed:
+
+- Backend checks during the failure showed `active_stream: null`, no queued HLS
+  scheduler jobs, and no live generation in progress. That made the long
+  `Buffering...` state an idle-player problem rather than a batch-size or cold
+  generation problem.
+- The earlier `Finishing...` hang was caused by a player-side transition wait:
+  once live media had ended or stalled, `requestVideoFrameCallback` could stop
+  firing, so the transition back to idle could remain blocked.
+
+Impact:
+
+- Smooth live-to-idle transitions are preserved in the normal case because the
+  player still captures and holds the last visible frame while the idle layer is
+  primed behind it.
+- The fallback only runs when the player is idle and no live reveal/transition
+  is in flight, so it should not interrupt active live playback or the
+  live-to-idle handoff.
+- If native HLS gets stuck while looping the idle VOD, the player now has a
+  bounded recovery path instead of remaining frozen behind `Buffering...`.
+
+Result:
+
+- The server was restarted with the updated player, the served HTML was verified
+  to contain the new recovery code, and the avatar cache was warmed again.
+- Recent FaceTime/HLS runs did not reproduce the black screen or the stuck
+  `Finishing...` state.
+
+---
+
 ## Native Player (react-native-video)
 
 If you want to use HLS directly, use two video layers (idle + live) to avoid black flashes.
