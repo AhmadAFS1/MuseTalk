@@ -146,6 +146,10 @@ def get_hls_player_html(session) -> str:
         let liveTransitionInFlight = false;
         let lastLiveCurrentTime = 0;
         let lastLiveProgressWallTime = performance.now();
+        let idleRecoveryTimer = null;
+        let idleReloadInFlight = false;
+        let lastIdleCurrentTime = 0;
+        let lastIdleProgressWallTime = performance.now();
 
         const LIVE_PREBUFFER_SECONDS = {live_prebuffer_seconds:.3f};
         const COMPLETED_STREAM_REVEAL_GRACE_SECONDS = 10;
@@ -210,6 +214,13 @@ def get_hls_player_html(session) -> str:
                     }}
                     showStatus(userActivated ? 'Buffering...' : 'Tap to start', !userActivated);
                 }});
+            }}
+        }}
+
+        function clearIdleRecoveryTimer() {{
+            if (idleRecoveryTimer) {{
+                clearTimeout(idleRecoveryTimer);
+                idleRecoveryTimer = null;
             }}
         }}
 
@@ -443,6 +454,52 @@ def get_hls_player_html(session) -> str:
             maybeRevealLive();
         }}
 
+        function noteIdleProgress() {{
+            const current = Number.isFinite(idleVideo.currentTime) ? idleVideo.currentTime : 0;
+            if (Math.abs(current - lastIdleCurrentTime) > 0.02) {{
+                lastIdleCurrentTime = current;
+                lastIdleProgressWallTime = performance.now();
+            }}
+        }}
+
+        async function recoverIdlePlayback(reason) {{
+            idleRecoveryTimer = null;
+            if (currentMode !== 'idle' || liveRevealPending || liveTransitionInFlight) return;
+
+            const now = performance.now();
+            const progressIdle = (now - lastIdleProgressWallTime) / 1000;
+            const duration = idleDuration || idleVideo.duration || 0;
+            const current = Number.isFinite(idleVideo.currentTime) ? idleVideo.currentTime : 0;
+            const nearEnd = Number.isFinite(duration) && duration > 0 && (duration - current) <= 0.35;
+            const healthy = !idleVideo.paused && idleVideo.readyState >= 3 && progressIdle < 1.0 && !nearEnd;
+            if (healthy) return;
+
+            const resumeTime = computeIdleResumeTime();
+            try {{
+                idleVideo.currentTime = resumeTime !== null ? resumeTime : 0;
+            }} catch (_) {{}}
+            attemptPlay(idleVideo);
+
+            const gotFrame = await waitForVideoFrame(idleVideo, 900);
+            if (currentMode !== 'idle' || liveRevealPending || liveTransitionInFlight) return;
+            if (gotFrame && idleVideo.readyState >= 2) return;
+
+            if (idleReloadInFlight) return;
+            idleReloadInFlight = true;
+            try {{
+                console.warn('Reloading idle HLS after stall:', reason);
+                loadIdle(true);
+            }} finally {{
+                setTimeout(() => {{ idleReloadInFlight = false; }}, 1500);
+            }}
+        }}
+
+        function scheduleIdleRecovery(reason) {{
+            if (currentMode !== 'idle' || liveRevealPending || liveTransitionInFlight) return;
+            clearIdleRecoveryTimer();
+            idleRecoveryTimer = setTimeout(() => recoverIdlePlayback(reason), 1200);
+        }}
+
         function shouldReturnToIdleAfterLive(data) {{
             if (liveVideo.ended) return true;
 
@@ -540,6 +597,7 @@ def get_hls_player_html(session) -> str:
         function setMode(mode) {{
             if (mode === 'live') {{
                 if (currentMode === 'live' && livePrepared) return;
+                clearIdleRecoveryTimer();
                 showStatus(userActivated ? 'Preparing live...' : 'Tap to start', !userActivated);
                 prepareLive();
                 maybeRevealLive();
@@ -623,6 +681,7 @@ def get_hls_player_html(session) -> str:
         }}
 
         idleVideo.addEventListener('playing', () => {{
+            noteIdleProgress();
             if (currentMode === 'idle' && !liveRevealPending) hideStatus();
         }});
 
@@ -633,7 +692,19 @@ def get_hls_player_html(session) -> str:
         }});
 
         idleVideo.addEventListener('waiting', () => {{
-            if (currentMode === 'idle') showStatus(userActivated ? 'Buffering...' : 'Tap to start', !userActivated);
+            if (currentMode === 'idle') {{
+                showStatus(userActivated ? 'Buffering...' : 'Tap to start', !userActivated);
+                scheduleIdleRecovery('waiting');
+            }}
+        }});
+        idleVideo.addEventListener('stalled', () => {{
+            if (currentMode === 'idle') {{
+                showStatus(userActivated ? 'Buffering...' : 'Tap to start', !userActivated);
+                scheduleIdleRecovery('stalled');
+            }}
+        }});
+        idleVideo.addEventListener('ended', () => {{
+            if (currentMode === 'idle') scheduleIdleRecovery('ended');
         }});
 
         liveVideo.addEventListener('playing', () => noteLiveProgress());
@@ -648,6 +719,10 @@ def get_hls_player_html(session) -> str:
         }});
         idleVideo.addEventListener('canplay', () => {{
             if (userActivated && currentMode === 'idle') attemptPlay(idleVideo);
+        }});
+        idleVideo.addEventListener('timeupdate', () => noteIdleProgress());
+        idleVideo.addEventListener('progress', () => {{
+            if (currentMode === 'idle' && userActivated && idleVideo.paused) attemptPlay(idleVideo);
         }});
         liveVideo.addEventListener('canplay', () => {{
             if (userActivated && liveRevealPending) attemptPlay(liveVideo);
