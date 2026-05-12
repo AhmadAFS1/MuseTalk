@@ -293,14 +293,14 @@ def get_hls_player_html(session) -> str:
             holdCanvas.classList.remove('visible');
         }}
 
-        function captureHoldFrame(videoEl) {{
-            if (showHoldFrame(videoEl)) return Promise.resolve(true);
-            if (videoEl.requestVideoFrameCallback) {{
-                return new Promise((resolve) => {{
-                    videoEl.requestVideoFrameCallback(() => resolve(showHoldFrame(videoEl)));
-                }});
-            }}
-            return Promise.resolve(false);
+        async function captureHoldFrame(videoEl, timeoutMs = 500) {{
+            if (showHoldFrame(videoEl)) return true;
+
+            /* requestVideoFrameCallback can stop firing once a live media element
+               has ended or stalled. The hold frame is cosmetic, so never let it
+               block the live-to-idle handoff. */
+            await waitForVideoFrame(videoEl, timeoutMs);
+            return showHoldFrame(videoEl);
         }}
 
         /* waitForVideoFrame: use requestVideoFrameCallback for
