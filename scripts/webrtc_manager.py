@@ -46,6 +46,7 @@ class WebRTCSession:
     audio_player: Optional[object] = None  # MediaPlayer instance, kept generic to avoid import here
     active_stream: Optional[str] = None
     ice_servers: List[dict] = field(default_factory=list)
+    ice_transport_policy: str = "all"
     sync_clock: Optional[VideoSyncClock] = None
 
     def is_expired(self, ttl_seconds: int = 3600) -> bool:
@@ -61,6 +62,7 @@ class WebRTCSessionManager:
         session_ttl_seconds: int = 3600,
         rtc_config: Optional[RTCConfiguration] = None,
         ice_servers: Optional[List[dict]] = None,
+        ice_transport_policy: str = "all",
     ):
         self.sessions: Dict[str, WebRTCSession] = {}
         self.session_ttl = session_ttl_seconds
@@ -68,6 +70,7 @@ class WebRTCSessionManager:
         self.cleanup_task = None
         self.rtc_config = rtc_config
         self.ice_servers = ice_servers or []
+        self.ice_transport_policy = ice_transport_policy
 
     def start_cleanup(self) -> None:
         if self.cleanup_task is None:
@@ -121,6 +124,7 @@ class WebRTCSessionManager:
             active_stream=None,
             silence_audio_track=silence_audio,
             ice_servers=self.ice_servers,
+            ice_transport_policy=self.ice_transport_policy,
             sync_clock=sync_clock,
         )
 
@@ -179,6 +183,7 @@ class WebRTCSessionManager:
                 "chunk_duration": s.chunk_duration,
                 "batch_size": s.batch_size,
                 "player_url": f"/webrtc/player/{s.session_id}",
+                "ice_transport_policy": s.ice_transport_policy,
             }
             for s in self.sessions.values()
             if s.active_stream is not None

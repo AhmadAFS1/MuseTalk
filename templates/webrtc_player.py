@@ -3,6 +3,7 @@ import json
 
 def get_webrtc_player_html(session) -> str:
     ice_servers = json.dumps(session.ice_servers or [])
+    ice_transport_policy = json.dumps(getattr(session, "ice_transport_policy", "all"))
     source_fps = getattr(session, "fps", 10)
     playback_fps = getattr(session, "playback_fps", source_fps)
 
@@ -102,6 +103,7 @@ def get_webrtc_player_html(session) -> str:
         const SESSION_ID = '{session.session_id}';
         const API_ORIGIN = window.location.origin;
         const ICE_SERVERS = {ice_servers};
+        const ICE_TRANSPORT_POLICY = {ice_transport_policy};
         const SOURCE_FPS = {source_fps};
         const PLAYBACK_FPS = {playback_fps};
 
@@ -214,7 +216,10 @@ def get_webrtc_player_html(session) -> str:
             updateStatus('Connecting...');
             setDebug(['debug: connecting']);
 
-            pc = new RTCPeerConnection({{ iceServers: ICE_SERVERS }});
+            pc = new RTCPeerConnection({{
+                iceServers: ICE_SERVERS,
+                iceTransportPolicy: ICE_TRANSPORT_POLICY
+            }});
             remoteStream = new MediaStream();
             remoteVideo.srcObject = remoteStream;
             // Audio is unlocked via user gesture before calling start().
@@ -290,6 +295,7 @@ def get_webrtc_player_html(session) -> str:
             if (!pc) return;
             const lines = [];
             lines.push('pc: ' + pc.connectionState + ' / ice: ' + pc.iceConnectionState);
+            lines.push('ice policy: ' + ICE_TRANSPORT_POLICY);
             const vTracks = remoteVideo.srcObject ? remoteVideo.srcObject.getVideoTracks().length : 0;
             const aTracks = remoteAudio.srcObject ? remoteAudio.srcObject.getAudioTracks().length : 0;
             lines.push('tracks: video=' + vTracks + ' audio=' + aTracks);

@@ -934,6 +934,10 @@ class APIAvatar:
             total=int(np.ceil(float(video_num) / self.batch_size)),
             desc="Generating frames"
         ):
+            whisper_batch, latent_batch, valid_batch = self._pad_generation_batch_for_backend(
+                whisper_batch,
+                latent_batch,
+            )
             # Positional encoding was precomputed on CPU; only copy the final
             # conditioning states needed by the UNet batch.
             audio_feature_batch = whisper_batch.to(
@@ -953,6 +957,8 @@ class APIAvatar:
             # Decode latents
             pred_latents = pred_latents.to(device=device, dtype=self.vae_dtype)
             recon = self.vae.decode_latents(pred_latents)
+            if valid_batch < len(recon):
+                recon = recon[:valid_batch]
             
             # Queue result frames
             for res_frame in recon:
@@ -1046,6 +1052,26 @@ class APIAvatar:
         mask = self.mask_list_cycle[cycle_pos % len(self.mask_list_cycle)]
         mask_crop_box = self.mask_coords_list_cycle[cycle_pos % len(self.mask_coords_list_cycle)]
         return get_image_blending(ori_frame, res_frame_resized, bbox, mask, mask_crop_box)
+
+    def _pad_generation_batch_for_backend(self, whisper_batch, latent_batch):
+        target_batch = max(1, int(self.batch_size))
+        actual_batch = int(whisper_batch.shape[0])
+        if (
+            actual_batch <= 0
+            or actual_batch >= target_batch
+            or not self.vae.has_decode_backend()
+        ):
+            return whisper_batch, latent_batch, actual_batch
+
+        pad_count = target_batch - actual_batch
+        repeat_indices = torch.arange(pad_count, device=whisper_batch.device) % actual_batch
+        whisper_pad = whisper_batch.index_select(0, repeat_indices)
+        latent_pad = latent_batch.index_select(0, repeat_indices.to(latent_batch.device))
+        return (
+            torch.cat([whisper_batch, whisper_pad], dim=0).contiguous(),
+            torch.cat([latent_batch, latent_pad], dim=0).contiguous(),
+            actual_batch,
+        )
 
     @torch.no_grad()
     def inference_streaming(
@@ -1233,6 +1259,18 @@ class APIAvatar:
             if batch_index == 1 or batch_index % 8 == 0 or batch_index == total_batches:
                 print(f"    🔁 Batch {batch_index}/{total_batches} in progress")
 
+            original_batch_size = int(whisper_batch.shape[0])
+            whisper_batch, latent_batch, valid_batch = self._pad_generation_batch_for_backend(
+                whisper_batch,
+                latent_batch,
+            )
+            padded_batch_size = int(whisper_batch.shape[0])
+            if padded_batch_size != original_batch_size:
+                print(
+                    "    🧩 Padded tail batch "
+                    f"{original_batch_size} → {padded_batch_size} for {self.vae.get_decode_backend_name()}"
+                )
+
             # Generate batch (no per-batch logging)
             audio_feature_batch = whisper_batch.to(
                 device=device,
@@ -1248,6 +1286,8 @@ class APIAvatar:
             
             pred_latents = pred_latents.to(device=device, dtype=self.vae_dtype)
             recon = self.vae.decode_latents(pred_latents)
+            if valid_batch < len(recon):
+                recon = recon[:valid_batch]
             
             # Process each frame
             for res_frame in recon:

@@ -350,6 +350,7 @@ session_manager: Optional[SessionManager] = None  # ✅ NEW
 hls_stream_scheduler: Optional[HLSGPUStreamScheduler] = None
 webrtc_session_manager: Optional["WebRTCSessionManager"] = None
 webrtc_ice_servers: list[dict] = []
+webrtc_ice_transport_policy: str = "all"
 hls_group_lock = threading.Lock()
 hls_groups: dict[str, dict] = {}
 worker_control_plane: Optional[LinguaWorkerControlPlane] = None
@@ -360,6 +361,45 @@ worker_control_plane: Optional[LinguaWorkerControlPlane] = None
 
 def _parse_ice_urls(raw: str) -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _parse_webrtc_ice_transport_policy() -> str:
+    policy = os.getenv("WEBRTC_ICE_TRANSPORT_POLICY", "all").strip().lower()
+    if policy not in ("all", "relay"):
+        print(f"⚠️ Invalid WEBRTC_ICE_TRANSPORT_POLICY={policy!r}; using 'all'.")
+        return "all"
+    return policy
+
+
+def _apply_aiortc_ice_transport_policy(policy: str) -> None:
+    if not WEBRTC_AVAILABLE:
+        return
+
+    try:
+        import aiortc.rtcicetransport as rtcicetransport
+        from aioice.ice import TransportPolicy
+    except Exception as exc:
+        print(f"⚠️ Could not configure WebRTC ICE policy: {exc}")
+        return
+
+    original = getattr(
+        rtcicetransport,
+        "_musetalk_original_connection_kwargs",
+        rtcicetransport.connection_kwargs,
+    )
+    rtcicetransport._musetalk_original_connection_kwargs = original
+
+    if policy == "relay":
+        def relay_connection_kwargs(servers):
+            kwargs = original(servers)
+            kwargs["transport_policy"] = TransportPolicy.RELAY
+            return kwargs
+
+        rtcicetransport.connection_kwargs = relay_connection_kwargs
+        print("🧊 WebRTC ICE transport policy: relay")
+    else:
+        rtcicetransport.connection_kwargs = original
+        print("🧊 WebRTC ICE transport policy: all")
 
 
 def _start_cpu_logger(label: str, interval_seconds: float):
@@ -486,7 +526,7 @@ async def _wait_for_worker_to_be_idle(timeout_seconds: int) -> bool:
 @app.on_event("startup")
 async def startup_event():
     """Initialize the avatar manager on startup"""
-    global manager, session_manager, hls_session_manager, hls_stream_scheduler, webrtc_session_manager, webrtc_ice_servers, worker_control_plane
+    global manager, session_manager, hls_session_manager, hls_stream_scheduler, webrtc_session_manager, webrtc_ice_servers, webrtc_ice_transport_policy, worker_control_plane
     
     print("🚀 Starting MuseTalk API Server...")
     
@@ -533,16 +573,27 @@ async def startup_event():
     hls_stream_scheduler.start()
 
     if WEBRTC_AVAILABLE:
+        webrtc_ice_transport_policy = _parse_webrtc_ice_transport_policy()
         stun_urls = _parse_ice_urls(
             os.getenv("WEBRTC_STUN_URLS", "stun:stun.l.google.com:19302")
         )
         turn_urls = _parse_ice_urls(os.getenv("WEBRTC_TURN_URLS", ""))
+        server_turn_urls = _parse_ice_urls(
+            os.getenv("WEBRTC_SERVER_TURN_URLS", os.getenv("WEBRTC_TURN_URLS", ""))
+        )
         turn_user = os.getenv("WEBRTC_TURN_USER")
         turn_pass = os.getenv("WEBRTC_TURN_PASS")
+        if webrtc_ice_transport_policy == "relay":
+            if stun_urls:
+                print("🧊 WEBRTC_ICE_TRANSPORT_POLICY=relay; ignoring STUN URLs.")
+            stun_urls = []
+            if not server_turn_urls:
+                print("⚠️ WEBRTC_ICE_TRANSPORT_POLICY=relay requires WEBRTC_SERVER_TURN_URLS or WEBRTC_TURN_URLS.")
+        _apply_aiortc_ice_transport_policy(webrtc_ice_transport_policy)
 
         rtc_config = build_rtc_configuration(
             stun_urls=stun_urls or None,
-            turn_urls=turn_urls or None,
+            turn_urls=server_turn_urls or None,
             turn_user=turn_user,
             turn_pass=turn_pass,
         )
@@ -562,6 +613,7 @@ async def startup_event():
             session_ttl_seconds=3600,
             rtc_config=rtc_config,
             ice_servers=webrtc_ice_servers,
+            ice_transport_policy=webrtc_ice_transport_policy,
         )
         webrtc_session_manager.start_cleanup()
     else:
@@ -2684,7 +2736,7 @@ async def create_webrtc_session(
     user_id: Optional[str] = None,
     fps: int = 10,
     playback_fps: Optional[int] = None,
-    batch_size: int = 2,
+    batch_size: int = 8,
     chunk_duration: int = 2,
 ):
     """
@@ -2731,6 +2783,7 @@ async def create_webrtc_session(
         "avatar_id": avatar_id,
         "user_id": user_id,
         "ice_servers": session.ice_servers,
+        "ice_transport_policy": session.ice_transport_policy,
         "expires_in_seconds": webrtc_session_manager.session_ttl,
         "config": {
             "fps": fps,
@@ -2981,6 +3034,15 @@ async def webrtc_stream(
         'type': 'webrtc_stream',
         'session_id': session_id
     }
+
+    def _on_webrtc_request_done(done_future):
+        manager.active_requests.pop(request_id, None)
+        try:
+            done_future.exception()
+        except asyncio.CancelledError:
+            pass
+
+    future.add_done_callback(_on_webrtc_request_done)
 
     return {
         "request_id": request_id,
