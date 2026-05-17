@@ -252,6 +252,10 @@ def get_hls_player_html(session) -> str:
             lastLiveProgressWallTime = performance.now();
         }}
 
+        function markCurrentLiveConsumed() {{
+            if (currentStreamId) completedStreamRevealed = currentStreamId;
+        }}
+
         function markIdleAnchor() {{
             idleAnchorTime = idleVideo.currentTime || 0;
             idleAnchorWallTime = performance.now();
@@ -413,6 +417,7 @@ def get_hls_player_html(session) -> str:
             liveRevealPending = false;
             liveRevealInFlight = false;
             liveRevealed = false;
+            markCurrentLiveConsumed();
 
             try {{
                 /* 1) Capture last live frame */
@@ -650,6 +655,10 @@ def get_hls_player_html(session) -> str:
                 const hasActiveLive = Boolean(data.active_stream);
                 const completedAt = Number(data.last_completed_at || 0);
                 const completedAge = completedAt > 0 ? (Date.now() / 1000) - completedAt : Infinity;
+                const activeStreamAlreadyConsumed = Boolean(
+                    data.active_stream &&
+                    data.active_stream === completedStreamRevealed
+                );
                 const hasFreshCompletedLive = Boolean(
                     data.last_completed_stream &&
                     data.last_completed_had_segments &&
@@ -657,15 +666,13 @@ def get_hls_player_html(session) -> str:
                     data.last_completed_stream !== completedStreamRevealed
                 );
 
-                if (hasActiveLive && data.live_ready) {{
+                if (hasActiveLive && data.live_ready && !activeStreamAlreadyConsumed) {{
                     noActiveLiveSince = 0;
-                    completedStreamRevealed = null;
-                    setLiveStreamId(data.active_stream);
+                    if (setLiveStreamId(data.active_stream)) completedStreamRevealed = null;
                     setMode('live');
-                }} else if (hasActiveLive && currentMode === 'idle') {{
+                }} else if (hasActiveLive && currentMode === 'idle' && !activeStreamAlreadyConsumed) {{
                     noActiveLiveSince = 0;
-                    completedStreamRevealed = null;
-                    setLiveStreamId(data.active_stream);
+                    if (setLiveStreamId(data.active_stream)) completedStreamRevealed = null;
                     showStatus('Preparing live...');
                 }} else if (!hasActiveLive && currentMode === 'idle' && hasFreshCompletedLive) {{
                     completedStreamRevealed = data.last_completed_stream;
