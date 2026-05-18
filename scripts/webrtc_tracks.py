@@ -234,6 +234,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._slowdown_active = False
         self._current_slowdown = 1.0
         self._generation_complete = False
+        self._playback_complete = asyncio.Event()
+        self._playback_complete.set()
         
         # Smoothing for adaptive FPS (prevents jitter)
         self._slowdown_history = []
@@ -288,6 +290,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._current_slowdown = 1.0
         self._generation_complete = False
         self._slowdown_history = []
+        self._playback_complete.clear()
         if self._sync_clock:
             self._sync_clock.reset()
         print(f"🎬 Live mode started, prebuffering {self._prebuffer_frames} frames ({self._prebuffer_seconds}s)...")
@@ -309,12 +312,20 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._generation_complete = False
         if self._sync_clock:
             self._sync_clock.deactivate()
+        self._playback_complete.set()
         print(f"🎬 Live mode ended. Played: {self._frames_played}, Dropped: {self._frames_dropped}, Drained: {drained}")
 
     def signal_generation_complete(self) -> None:
         """Called when all frames have been pushed - allows queue to drain naturally"""
         self._generation_complete = True
         print(f"🎬 Generation complete signaled. Queue: {self._queue.qsize()}, Played: {self._frames_played}")
+
+    async def wait_for_playback_complete(self, timeout: Optional[float] = None) -> None:
+        """Wait until the live queue has drained and the track has returned to idle."""
+        if timeout is None:
+            await self._playback_complete.wait()
+            return
+        await asyncio.wait_for(self._playback_complete.wait(), timeout=timeout)
 
     async def push_bgr_frame(self, frame_bgr) -> None:
         """Push a single BGR frame to the queue - never drops, waits if full"""
@@ -456,7 +467,9 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                 frame = self._advance_idle_frame(advance_frames)
             else:
                 # Prebuffer ready - consume live frames
+                attempted_live_pop = False
                 if advance_frames > 0 or self._last_live_frame is None:
+                    attempted_live_pop = True
                     next_frame, popped = self._pop_live_frames(advance_frames)
                     if next_frame is not None:
                         self._last_live_frame = next_frame
@@ -464,11 +477,21 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                         if self._sync_clock:
                             self._sync_clock.add_frames(popped)
                             self._sync_clock.mark_started()
+                    elif self._generation_complete and self._queue.qsize() == 0:
+                        print("🎬 Playback complete - returning to idle")
+                        self.end_live()
                 
-                frame = self._last_live_frame
+                if self._live_active:
+                    frame = self._last_live_frame
                 
                 # If queue is empty and generation is complete, end live mode
-                if frame is None and self._generation_complete and self._queue.qsize() == 0:
+                if (
+                    self._live_active
+                    and attempted_live_pop
+                    and frame is None
+                    and self._generation_complete
+                    and self._queue.qsize() == 0
+                ):
                     print("🎬 Playback complete - returning to idle")
                     self.end_live()
 
@@ -503,6 +526,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
 
     def stop(self) -> None:
         self._closed = True
+        self._playback_complete.set()
         if self._idle is not None:
             self._idle.stop()
         print(f"🎬 SwitchableVideoStreamTrack stopped. Final stats: {self.get_stats()}")
@@ -628,6 +652,7 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
         self._start_time: Optional[float] = None
         self._frames_sent = 0
         self._eof = False
+        self._eof_event = asyncio.Event()
         
         self._audio_samples: bytes = b""
         self._read_position = 0
@@ -721,6 +746,7 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
             self._read_position = len(self._audio_samples)
             if not self._eof:
                 self._eof = True
+                self._eof_event.set()
                 print(f"🔊 Audio EOF after {self._frames_sent} frames")
         return result
 
@@ -782,9 +808,16 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
         self._frames_sent += 1
         return frame
 
+    async def wait_for_eof(self, timeout: Optional[float] = None) -> None:
+        if timeout is None:
+            await self._eof_event.wait()
+            return
+        await asyncio.wait_for(self._eof_event.wait(), timeout=timeout)
+
     def stop(self):
         self._stopped = True
         self._started.set()
+        self._eof_event.set()
         self._audio_samples = b""
         
         if self._converted_path and os.path.exists(self._converted_path):

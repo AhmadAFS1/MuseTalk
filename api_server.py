@@ -28,6 +28,7 @@ import time  # ✅ Add this if not present
 import threading
 import io
 import av  # ✅ ADD THIS - needed for audio probing
+from concurrent.futures import TimeoutError as FutureTimeoutError
 from datetime import datetime, timedelta
 from templates.streaming_ui import streaming_ui_endpoint
 from templates.mobile_player import mobile_player_endpoint
@@ -3175,14 +3176,21 @@ async def webrtc_stream(
     with audio_path.open("wb") as buffer:
         shutil.copyfileobj(audio_file.file, buffer)
 
+    source_duration_seconds: Optional[float] = None
+
     # ✅ Debug: Check source audio quality
     try:
         probe_container = av.open(str(audio_path))
         audio_stream = probe_container.streams.audio[0]
+        if probe_container.duration:
+            source_duration_seconds = float(probe_container.duration) / 1_000_000.0
+        elif audio_stream.duration and audio_stream.time_base:
+            source_duration_seconds = float(audio_stream.duration * audio_stream.time_base)
         print(f"🔊 [{request_id}] Source audio: {audio_stream.sample_rate}Hz, "
               f"{audio_stream.layout.name}, {audio_stream.format.name}, "
               f"codec={audio_stream.codec_context.name}, "
-              f"bitrate={audio_stream.codec_context.bit_rate or 'unknown'}")
+              f"bitrate={audio_stream.codec_context.bit_rate or 'unknown'}, "
+              f"duration={source_duration_seconds if source_duration_seconds is not None else 'unknown'}s")
         probe_container.close()
     except Exception as e:
         print(f"⚠️ Could not probe source audio: {e}")
@@ -3228,6 +3236,10 @@ async def webrtc_stream(
     if video_prebuffer_frames > 0:
         print(f"🎞️ WebRTC video prebuffer: {video_prebuffer_frames} frames")
     audio_start_frames = max(audio_prebuffer_frames, video_prebuffer_frames)
+    try:
+        push_timeout_seconds = max(0.25, float(os.getenv("WEBRTC_PUSH_FRAME_TIMEOUT_SECONDS", "2.0")))
+    except ValueError:
+        push_timeout_seconds = 2.0
 
     def frame_callback(frame_bgr, frame_idx, total_frames):
         nonlocal audio_started, live_started
@@ -3242,23 +3254,51 @@ async def webrtc_stream(
                 audio_started = True
                 asyncio.run_coroutine_threadsafe(_signal_audio_start(audio_track), main_loop)
             
-            asyncio.run_coroutine_threadsafe(
+            push_future = asyncio.run_coroutine_threadsafe(
                 session.idle_track.push_bgr_frame(frame_bgr),
                 main_loop
             )
+            try:
+                push_future.result(timeout=push_timeout_seconds)
+            except FutureTimeoutError:
+                print(f"⚠️ [{request_id}] Timed out handing WebRTC frame {frame_idx}/{total_frames} to playback queue")
         except Exception as e:
             print(f"⚠️ [{request_id}] frame_callback error: {e}")
 
-    def cleanup_to_idle():
+    def cleanup_to_idle(force_video: bool = True):
         session.active_stream = None
-        if session.idle_track:
+        if force_video and session.idle_track:
             session.idle_track.end_live()
         # Stop the synced audio track
         if session.audio_player and hasattr(session.audio_player, "stop"):
             session.audio_player.stop()
+            session.audio_player = None
         # Switch back to silence track
         if session.audio_sender and session.silence_audio_track:
             session.audio_sender.replaceTrack(session.silence_audio_track)
+
+    async def finish_playback_then_cleanup():
+        force_video_cleanup = False
+        try:
+            configured_timeout = os.getenv("WEBRTC_PLAYBACK_DRAIN_TIMEOUT_SECONDS")
+            if configured_timeout:
+                playback_timeout = max(1.0, float(configured_timeout))
+            else:
+                playback_timeout = max(30.0, (source_duration_seconds or 0.0) + 20.0)
+
+            waiters = []
+            if session.idle_track and hasattr(session.idle_track, "wait_for_playback_complete"):
+                waiters.append(session.idle_track.wait_for_playback_complete())
+            if hasattr(audio_track, "wait_for_eof"):
+                waiters.append(audio_track.wait_for_eof())
+
+            if waiters:
+                await asyncio.wait_for(asyncio.gather(*waiters), timeout=playback_timeout)
+        except Exception as exc:
+            force_video_cleanup = True
+            print(f"⚠️ [{request_id}] WebRTC playback drain timed out/failed; forcing idle cleanup: {exc}")
+        finally:
+            cleanup_to_idle(force_video=force_video_cleanup)
 
     def streaming_worker():
         cpu_log_interval = 0.0
@@ -3267,6 +3307,7 @@ async def webrtc_stream(
         except ValueError:
             cpu_log_interval = 0.0
         cpu_logger_stop = _start_cpu_logger(f"webrtc:{session_id}", cpu_log_interval)
+        generation_finished = False
         try:
             print(f"🎬 [{request_id}] Starting WebRTC streaming for session {session_id}")
             with manager.gpu_memory.allocate(session.batch_size):
@@ -3285,7 +3326,8 @@ async def webrtc_stream(
                 ):
                     pass
             # Signal that generation is complete so playback can finish naturally
-            session.idle_track.signal_generation_complete()
+            main_loop.call_soon_threadsafe(session.idle_track.signal_generation_complete)
+            generation_finished = True
             print(f"✅ [{request_id}] WebRTC streaming complete")
         except Exception as e:
             import traceback
@@ -3294,7 +3336,10 @@ async def webrtc_stream(
         finally:
             if cpu_logger_stop:
                 cpu_logger_stop()
-            cleanup_to_idle()
+            if generation_finished:
+                asyncio.run_coroutine_threadsafe(finish_playback_then_cleanup(), main_loop)
+            else:
+                main_loop.call_soon_threadsafe(cleanup_to_idle, True)
 
     future = main_loop.run_in_executor(manager.executor, streaming_worker)
     manager.active_requests[request_id] = {
