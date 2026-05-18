@@ -212,7 +212,8 @@ bash scripts/vast_server_ctl.sh stop
 
 WEBRTC_STUN_URLS="stun:stun.l.google.com:19302" \
 WEBRTC_TURN_URLS="" \
-WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0 \
+WEBRTC_SYNC_MODE=strict_fifo \
+WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0 \
 WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0 \
 WEBRTC_ADAPTIVE_FPS=0 \
 PROFILE=baseline \
@@ -294,22 +295,22 @@ curl http://127.0.0.1:8000/live/sessions
 ## Risks To Check Before Trusting Results
 
 1. Video prebuffer/playback drain.
-   The 2026-05-18 smoothing pass changed WebRTC to default to a 1 second
-   prebuffer, start live before queueing frames, release short clips when
-   generation completes, and let `signal_generation_complete()` drain naturally
-   before cleanup. Retest with `WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0`,
-   `WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0`, and `WEBRTC_ADAPTIVE_FPS=0`.
+   The 2026-05-18 smoothing/sync pass changed WebRTC to default to strict FIFO
+   sync with a 2 second prebuffer, start live before queueing frames, release
+   short clips when generation completes, and let `signal_generation_complete()`
+   drain naturally before cleanup. Retest with `WEBRTC_SYNC_MODE=strict_fifo`,
+   `WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0`, `WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0`,
+   and `WEBRTC_ADAPTIVE_FPS=0`.
 
 2. Offer can wait forever.
    `_wait_for_ice_gathering()` has no timeout. If STUN/TURN gathering stalls,
    `/webrtc/sessions/{id}/offer` can hang. Add a 3-5 second timeout if this
    shows up during browser tests.
 
-3. No WebRTC status endpoint.
-   We currently rely on `/stats`, `/live/sessions`, browser getStats, and logs.
-   A small `GET /webrtc/sessions/{id}/status` endpoint would make debugging much
-   easier by exposing peer connection state, ICE state, active stream, and track
-   queue stats.
+3. WebRTC status endpoint still needs browser validation.
+   `GET /webrtc/sessions/{id}/status` now exposes video/audio/sync stats. Use it
+   alongside browser getStats during real playback to verify stalls, queue depth,
+   and sync mode.
 
 4. HLS scheduler improvements do not cover WebRTC.
    WebRTC still uses the older direct executor path. Concurrency/load testing
@@ -327,9 +328,10 @@ curl http://127.0.0.1:8000/live/sessions
 ## Recommendation
 
 Start with local browser WebRTC while the existing server is healthy, because
-session creation already works. Restart with `WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0`,
-`WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0`, and `WEBRTC_ADAPTIVE_FPS=0`, then do one
-real audio upload. If local playback works, restore either direct UDP
+session creation already works. Restart with `WEBRTC_SYNC_MODE=strict_fifo`,
+`WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0`, `WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0`, and
+`WEBRTC_ADAPTIVE_FPS=0`, then do one real audio upload. If local playback works,
+restore either direct UDP
 `40000-40100` or a real TURN server before testing phones or React Native. The
 next code hardening pass should be an ICE gathering timeout and a WebRTC status
 endpoint.
@@ -362,8 +364,8 @@ next browser validation checklist.
 
 ## 2026-05-18 A/V Sync Follow-Up
 
-After the Phase 1 smoothing pass, video playout can look good while A/V sync can
-still be fragile. The next WebRTC pass should explicitly support a strict
+After the Phase 1 smoothing pass, video playout could look good while A/V sync
+could still be fragile. The follow-up implementation now supports a strict
 FIFO/HLS-like sync mode instead of treating audio and video as independent tracks
 that are corrected after drift appears.
 
@@ -381,7 +383,7 @@ This mode trades latency and occasional buffering for stable lip sync and
 complete playback. It should be separate from a future low-latency mode, where
 holding/dropping video might be acceptable to keep audio continuous.
 
-Suggested next implementation target:
+Implemented default target:
 
 ```bash
 WEBRTC_SYNC_MODE=strict_fifo
@@ -390,7 +392,7 @@ WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
 WEBRTC_ADAPTIVE_FPS=0
 ```
 
-Code direction:
+Implemented code direction:
 
 - add a shared A/V playout gate in `scripts/webrtc_tracks.py`
 - timestamp generated video frames with source media time
@@ -399,3 +401,5 @@ Code direction:
   `SwitchableVideoStreamTrack.recv()` to wait on the same playout state
 - expose stall count/duration and shared buffer depth through WebRTC status
   telemetry
+- attach remote audio and video to one browser `MediaStream` on the video
+  element for native browser A/V sync

@@ -2754,6 +2754,25 @@ def _get_webrtc_session_status(session) -> str:
     return state or "created"
 
 
+def _get_webrtc_track_stats(session) -> dict:
+    video_track = getattr(session, "idle_track", None)
+    audio_track = getattr(session, "audio_player", None)
+    return {
+        "video": video_track.get_stats() if hasattr(video_track, "get_stats") else None,
+        "audio": audio_track.get_stats() if hasattr(audio_track, "get_stats") else None,
+        "sync_clock": (
+            session.sync_clock.get_stats()
+            if getattr(session, "sync_clock", None) is not None
+            and hasattr(session.sync_clock, "get_stats")
+            else None
+        ),
+    }
+
+
+def _get_webrtc_sync_mode() -> str:
+    return os.getenv("WEBRTC_SYNC_MODE", "strict_fifo").strip().lower()
+
+
 async def _build_webrtc_group_response(group: dict) -> dict:
     sessions = []
     async with webrtc_session_manager.lock:
@@ -2981,6 +3000,7 @@ async def webrtc_session_stats():
                 "chunk_duration": session.chunk_duration,
                 "player_url": f"/webrtc/player/{session.session_id}",
                 "ice_transport_policy": session.ice_transport_policy,
+                "track_stats": _get_webrtc_track_stats(session),
             }
             for session in webrtc_session_manager.sessions.values()
         ]
@@ -2998,6 +3018,28 @@ async def webrtc_session_stats():
             "encode_workers": None,
             "jobs": [],
         },
+    }
+
+
+@app.get("/webrtc/sessions/{session_id}/status")
+async def webrtc_session_status(session_id: str):
+    _require_webrtc()
+    session = await webrtc_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+
+    return {
+        "session_id": session.session_id,
+        "avatar_id": session.avatar_id,
+        "user_id": session.user_id,
+        "status": _get_webrtc_session_status(session),
+        "active_stream": session.active_stream,
+        "fps": session.fps,
+        "playback_fps": session.playback_fps,
+        "batch_size": session.batch_size,
+        "chunk_duration": session.chunk_duration,
+        "ice_transport_policy": session.ice_transport_policy,
+        "track_stats": _get_webrtc_track_stats(session),
     }
 
 
@@ -3212,15 +3254,17 @@ async def webrtc_stream(
     audio_started = False
     live_started = False
     try:
-        push_timeout_seconds = max(0.25, float(os.getenv("WEBRTC_PUSH_FRAME_TIMEOUT_SECONDS", "2.0")))
+        default_push_timeout = "30.0" if _get_webrtc_sync_mode() in ("strict_fifo", "fifo", "hls_like", "hls-like", "hls") else "2.0"
+        push_timeout_seconds = max(0.25, float(os.getenv("WEBRTC_PUSH_FRAME_TIMEOUT_SECONDS", default_push_timeout)))
     except ValueError:
-        push_timeout_seconds = 2.0
+        push_timeout_seconds = 30.0 if _get_webrtc_sync_mode() in ("strict_fifo", "fifo", "hls_like", "hls-like", "hls") else 2.0
 
     track_stats = session.idle_track.get_stats() if hasattr(session.idle_track, "get_stats") else {}
     print(
         f"🎞️ WebRTC fixed playout: src={session.fps}fps out={session.playback_fps}fps, "
         f"prebuffer={track_stats.get('prebuffer_frames', 'n/a')} frames, "
-        f"adaptive_fps={track_stats.get('adaptive_fps', 'n/a')}"
+        f"adaptive_fps={track_stats.get('adaptive_fps', 'n/a')}, "
+        f"sync_mode={track_stats.get('sync_mode', _get_webrtc_sync_mode())}"
     )
 
     def signal_audio_start_once():

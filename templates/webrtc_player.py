@@ -186,17 +186,10 @@ def get_webrtc_player_html(session) -> str:
 
         async function unlockAudio() {{
             try {{
-                ensureAudioContext();
                 const vStream = remoteVideo.srcObject;
                 remoteVideo.pause();
                 remoteVideo.srcObject = null;
                 remoteVideo.srcObject = vStream;
-
-                const aStream = remoteAudio.srcObject;
-                remoteAudio.pause();
-                remoteAudio.srcObject = null;
-                remoteAudio.srcObject = aStream;
-                attachAudioToContext(aStream);
 
                 remoteVideo.muted = false;
                 remoteVideo.volume = 1.0;
@@ -241,9 +234,14 @@ def get_webrtc_player_html(session) -> str:
                 }}
 
                 if (event.track && event.track.kind === 'audio') {{
-                    const audioStream = new MediaStream([event.track]);
-                    remoteAudio.srcObject = audioStream;
-                    attachAudioToContext(audioStream);
+                    if (!remoteStream) {{
+                        remoteStream = new MediaStream();
+                        remoteVideo.srcObject = remoteStream;
+                    }}
+                    if (!remoteStream.getTracks().includes(event.track)) {{
+                        remoteStream.addTrack(event.track);
+                    }}
+                    remoteAudio.srcObject = null;
                     if (!audioUnlocked) {{
                         updateStatus('Tap to start (enable audio)', false, true);
                     }}
@@ -297,7 +295,7 @@ def get_webrtc_player_html(session) -> str:
             lines.push('pc: ' + pc.connectionState + ' / ice: ' + pc.iceConnectionState);
             lines.push('ice policy: ' + ICE_TRANSPORT_POLICY);
             const vTracks = remoteVideo.srcObject ? remoteVideo.srcObject.getVideoTracks().length : 0;
-            const aTracks = remoteAudio.srcObject ? remoteAudio.srcObject.getAudioTracks().length : 0;
+            const aTracks = remoteVideo.srcObject ? remoteVideo.srcObject.getAudioTracks().length : 0;
             lines.push('tracks: video=' + vTracks + ' audio=' + aTracks);
             lines.push('fps target: src=' + SOURCE_FPS + ' out=' + PLAYBACK_FPS);
             if (audioContext) {{
@@ -375,7 +373,6 @@ def get_webrtc_player_html(session) -> str:
             lastTapMs = now;
             if (!started) {{
                 // Unlock audio in the user gesture before async negotiation.
-                ensureAudioContext();
                 audioUnlocked = true;
                 remoteVideo.muted = false;
                 remoteVideo.volume = 1.0;

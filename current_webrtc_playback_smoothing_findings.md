@@ -15,35 +15,44 @@ Changed files:
 
 - `scripts/webrtc_tracks.py`
   - changed default `WEBRTC_ADAPTIVE_FPS` to off
-  - changed default `WEBRTC_VIDEO_PREBUFFER_SECONDS` to `1.0`
+  - changed default `WEBRTC_SYNC_MODE` to `strict_fifo`
+  - changed default `WEBRTC_VIDEO_PREBUFFER_SECONDS` to `2.0`
+  - changed default live queue depth to `400` frames in strict FIFO mode
   - replaced aiortc's default 30 FPS video timestamp helper with fixed RTP
     timestamps based on the configured output FPS
   - fixed live frame consumption so `playback_fps > source_fps` duplicates/holds
     frames instead of consuming source frames too fast
+  - added strict FIFO A/V gating so audio waits for emitted video timeline
+    coverage and video waits for the next FIFO frame instead of skipping/holding
+    during underrun
   - removed skip/sleep audio drift correction; audio now emits fixed 48 kHz
     20 ms frames after start
   - starts the audio playout clock only after audio is loaded and ready to emit,
-    avoiding catch-up bursts after FFmpeg/PyAV load work
-  - added stats for duplicated frames, output frames, underruns, source/output
-    FPS, and audio playout state
+    and re-anchors it after strict FIFO stalls to avoid catch-up bursts
+  - added stats for duplicated frames, output frames, underruns, stalls,
+    source/output FPS, sync mode, and audio playout state
 - `api_server.py`
   - starts live video before queueing the first generated frame
   - signals audio only after the video track reports prebuffer readiness
   - releases queued frames and starts audio for short clips that finish before
     the configured prebuffer fills
+  - adds `GET /webrtc/sessions/{session_id}/status` with video/audio/sync stats
+  - increases default WebRTC frame handoff timeout in strict FIFO mode so queue
+    backpressure preserves frame order instead of dropping frames
+- `templates/webrtc_player.py`
+  - attaches remote audio and video tracks to the same `MediaStream` on the
+    video element so the browser can apply native A/V sync
 - `scripts/run_webrtc_relay_api_server.sh`
-  - defaults WebRTC relay launches to `WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0`,
-    `WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0`, and `WEBRTC_ADAPTIVE_FPS=0`
-
-No browser/WebAudio route changes were made; that was intentionally left out of
-this pass.
+  - defaults WebRTC relay launches to `WEBRTC_SYNC_MODE=strict_fifo`,
+    `WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0`, `WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0`,
+    and `WEBRTC_ADAPTIVE_FPS=0`
 
 ## A/V Sync Follow-Up: Strict FIFO Mode
 
-After restarting with the Phase 1 changes, video playback can look much smoother
-while A/V sync still feels fragile. The next pass should preserve the user's
-preferred behavior: WebRTC should remain FIFO-like and should not skip generated
-video frames, while audio must not speed up or slow down.
+After restarting with the Phase 1 changes, video playback could look much
+smoother while A/V sync still felt fragile. The strict FIFO pass preserves the
+user's preferred behavior: WebRTC remains FIFO-like and does not skip generated
+video frames, while audio does not speed up or slow down.
 
 That combination is possible only if WebRTC is allowed to behave like HLS when
 production falls behind: buffer or stall both media tracks together. If we require
@@ -62,7 +71,7 @@ underrun. In that case, the correct sync-preserving behavior is:
 This is closer to HLS buffering than normal ultra-low-latency WebRTC. The user
 experience should be a short buffering/stall event rather than lip sync drift.
 
-The implementation should use a shared A/V playout gate instead of letting audio
+The implementation now uses a shared A/V playout gate instead of letting audio
 and video tracks free-run:
 
 ```text
@@ -81,13 +90,13 @@ Shared playout state:
 ```
 
 In strict mode, `SyncedAudioStreamTrack.recv()` and
-`SwitchableVideoStreamTrack.recv()` should both consult the same playout state.
-Audio should emit packet `N` only when the corresponding video timeline coverage
-exists. Video should emit frame `N` in FIFO order at the configured output
-cadence. If either side is missing, both tracks wait. This makes sync forced by
-the server's media queue, not inferred after the fact from drift correction.
+`SwitchableVideoStreamTrack.recv()` both consult the same playout state. Audio
+emits packet `N` only when the corresponding video timeline coverage exists.
+Video emits frame `N` in FIFO order at the configured output cadence. If either
+side is missing, both tracks wait. This makes sync forced by the server's media
+queue, not inferred after the fact from drift correction.
 
-This should be a new explicit mode, for example:
+This is now the default mode and can be set explicitly:
 
 ```bash
 WEBRTC_SYNC_MODE=strict_fifo
@@ -104,8 +113,8 @@ mode because the priority is complete FIFO playback and stable lip sync.
 Syntax/compile checks:
 
 ```bash
-python3 -m py_compile scripts/webrtc_tracks.py api_server.py
-/workspace/.venvs/musetalk_trt_stagewise/bin/python -m py_compile scripts/webrtc_tracks.py api_server.py
+python3 -m py_compile scripts/webrtc_tracks.py scripts/webrtc_manager.py api_server.py templates/webrtc_player.py
+/workspace/.venvs/musetalk_trt_stagewise/bin/python -m py_compile scripts/webrtc_tracks.py scripts/webrtc_manager.py api_server.py templates/webrtc_player.py
 ```
 
 In-process media track smoke tests used the project venv:
@@ -131,10 +140,28 @@ In-process media track smoke tests used the project venv:
   prebuffer_seconds=0.5, adaptive_fps=False)`.
 - Verified prebuffer readiness stayed false for the first four frames and became
   true on the fifth frame, matching a 0.5 s prebuffer at 10 FPS.
+- Created `VideoSyncClock(strict_fifo=True)` with
+  `SwitchableVideoStreamTrack(source_fps=10, output_fps=10)`.
+- Called `recv()` before pushing a live frame and verified video waited for the
+  missing FIFO frame instead of returning a held/idle frame.
+- Created `SyncedAudioStreamTrack` with the same strict FIFO clock.
+- Verified audio emitted packets through `0.100s` of video coverage, then waited
+  before emitting the next packet until the second video frame advanced coverage
+  to `0.200s`.
+- Verified strict FIFO 10 FPS -> 20 FPS playback still used PTS spacing of
+  `4500` ticks, consumed only `3` source frames, duplicated `3` output frames,
+  and dropped `0` frames.
+- Restarted the API with `WEBRTC_SYNC_MODE=strict_fifo`,
+  `WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0`, `WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0`,
+  and `WEBRTC_ADAPTIVE_FPS=0`.
+- Created a WebRTC session through the live API and verified
+  `GET /webrtc/sessions/{session_id}/status` reported `sync_mode=strict_fifo`,
+  `prebuffer_frames=40`, `queue_max=400`, and `adaptive_fps=false` for a
+  20 FPS / 20 FPS session.
 
 These are smoke tests of the server-side media tracks. They do not prove browser
-smoothness by themselves; the next validation should restart the API and compare
-browser `getStats()` before/after with a real WebRTC session.
+smoothness by themselves; the next validation should compare browser `getStats()`
+and the server status endpoint during a real WebRTC stream.
 
 ## User-Visible Symptoms
 
@@ -428,13 +455,14 @@ Status: implemented on 2026-05-18.
 
    Recommended first test:
 
-   ```bash
-   WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0
-   WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
-   WEBRTC_ADAPTIVE_FPS=0
-   ```
+	   ```bash
+	   WEBRTC_SYNC_MODE=strict_fifo
+	   WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0
+	   WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
+	   WEBRTC_ADAPTIVE_FPS=0
+	   ```
 
-   At `20fps`, this means roughly 20 frames before live reveal.
+	   At `20fps`, this means roughly 40 frames before live reveal.
 
 6. Keep audio start tied to live reveal/prebuffer readiness, not to adaptive
    video progress. Done.
@@ -505,11 +533,12 @@ buffering behavior.
 
 - Make WebRTC defaults favor stable playback:
 
-  ```text
-  WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0
-  WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
-  WEBRTC_ADAPTIVE_FPS=0
-  ```
+	  ```text
+	  WEBRTC_SYNC_MODE=strict_fifo
+	  WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0
+	  WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
+	  WEBRTC_ADAPTIVE_FPS=0
+	  ```
 
 - Add `GET /webrtc/sessions/{session_id}/status`.
 - Include track stats:
@@ -607,8 +636,9 @@ Finally test public/mobile:
 Use a stable profile first, then tune for latency:
 
 ```bash
+WEBRTC_SYNC_MODE=strict_fifo
 WEBRTC_ADAPTIVE_FPS=0
-WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0
+WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0
 WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
 ```
 
