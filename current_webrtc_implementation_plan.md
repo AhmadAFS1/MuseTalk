@@ -19,6 +19,7 @@ Relevant Markdown found from a repo-wide `.md` scan:
 - `HLS_REACT_NATIVE_README.md`
 - `runbook_hls_load_test.md`
 - `archive_hls_throughput_experiment_history.md`
+- `current_webrtc_playback_smoothing_findings.md`
 - Vast/startup docs that explain the current TRT-stagewise server path
 
 The old WebRTC docs were not just speculative. The repo still has a real
@@ -332,3 +333,22 @@ and do one real audio upload. If local playback works, restore either direct UDP
 `40000-40100` or a real TURN server before testing phones or React Native. The
 first code hardening pass should be the prebuffer/cleanup race plus an ICE
 gathering timeout and a WebRTC status endpoint.
+
+## 2026-05-18 Playback Smoothing Update
+
+See `current_webrtc_playback_smoothing_findings.md` for the current jitter/audio
+analysis. The new finding is that the WebRTC symptoms are largely caused by the
+server-side media clocking policy:
+
+- video queue depth currently changes effective playout FPS
+- audio drift correction can sleep or skip audio frames to follow the variable
+  video clock
+- custom video tracks call aiortc's default `next_timestamp()`, which advances
+  RTP timestamps at 30 FPS even for non-30 FPS sessions
+- `playback_fps > source_fps` can consume source frames too quickly instead of
+  duplicating frames
+
+The next WebRTC hardening pass should make audio a fixed-speed master clock,
+timestamp video at the configured playback FPS, disable adaptive FPS by default,
+add a real prebuffer before live reveal, and adapt video by holding/duplicating
+frames rather than speeding up or slowing down audio.
