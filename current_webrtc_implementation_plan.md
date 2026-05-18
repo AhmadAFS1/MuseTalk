@@ -28,6 +28,13 @@ browser/WebView player, TURN setup notes, and an HTTP scratch file.
 
 ## Current Local Findings
 
+Update on 2026-05-18: WebRTC strict FIFO now includes an audio-ready A/V start
+barrier. Audio is prepared before live video leaves the FIFO gate, and the
+shared `VideoSyncClock` reports audio/video readiness, playout release, first
+packet/frame timing, and initial A/V start delta. See
+`current_webrtc_playback_smoothing_findings.md` for the detailed implementation
+notes and smoke-test results.
+
 The current server is already running on the TRT-stagewise venv:
 
 - Process: `/workspace/.venvs/musetalk_trt_stagewise/bin/python api_server.py --host 0.0.0.0 --port 8000`

@@ -3249,30 +3249,96 @@ async def webrtc_stream(
         print(f"🔊 [{request_id}] Added SyncedAudioStreamTrack: {audio_path.name}")
 
     main_loop = asyncio.get_event_loop()
+    audio_prepare_task = asyncio.create_task(audio_track.prepare())
+
+    def _on_audio_prepare_done(done_task):
+        try:
+            done_task.result()
+            stats = audio_track.get_stats() if hasattr(audio_track, "get_stats") else {}
+            prepare_seconds = stats.get("prepare_seconds")
+            if prepare_seconds is None:
+                print(f"🔊 [{request_id}] Audio prepared for synchronized WebRTC start")
+            else:
+                print(f"🔊 [{request_id}] Audio prepared in {prepare_seconds * 1000:.0f}ms")
+        except asyncio.CancelledError:
+            pass
+        except Exception as exc:
+            print(f"⚠️ [{request_id}] Audio prepare failed before WebRTC start: {exc}")
+
+    audio_prepare_task.add_done_callback(_on_audio_prepare_done)
     
-    # Track if we've signaled audio start / started live video.
+    # Track if we've released the shared A/V playout gate / started live video.
     audio_started = False
+    release_future = None
     live_started = False
     try:
         default_push_timeout = "30.0" if _get_webrtc_sync_mode() in ("strict_fifo", "fifo", "hls_like", "hls-like", "hls") else "2.0"
         push_timeout_seconds = max(0.25, float(os.getenv("WEBRTC_PUSH_FRAME_TIMEOUT_SECONDS", default_push_timeout)))
     except ValueError:
         push_timeout_seconds = 30.0 if _get_webrtc_sync_mode() in ("strict_fifo", "fifo", "hls_like", "hls-like", "hls") else 2.0
+    try:
+        av_start_delay_seconds = max(0.0, float(os.getenv("WEBRTC_AV_START_DELAY_SECONDS", "0.05")))
+    except ValueError:
+        av_start_delay_seconds = 0.05
 
     track_stats = session.idle_track.get_stats() if hasattr(session.idle_track, "get_stats") else {}
     print(
         f"🎞️ WebRTC fixed playout: src={session.fps}fps out={session.playback_fps}fps, "
         f"prebuffer={track_stats.get('prebuffer_frames', 'n/a')} frames, "
         f"adaptive_fps={track_stats.get('adaptive_fps', 'n/a')}, "
-        f"sync_mode={track_stats.get('sync_mode', _get_webrtc_sync_mode())}"
+        f"sync_mode={track_stats.get('sync_mode', _get_webrtc_sync_mode())}, "
+        f"av_start_delay={av_start_delay_seconds:.3f}s"
     )
 
-    def signal_audio_start_once():
-        nonlocal audio_started
+    def release_playout_once(reason: str):
+        nonlocal audio_started, release_future
         if audio_started:
-            return
-        audio_started = True
-        asyncio.run_coroutine_threadsafe(_signal_audio_start(audio_track), main_loop)
+            return True
+        if release_future is not None and not release_future.done():
+            return False
+        if release_future is not None and release_future.done():
+            try:
+                release_future.result(timeout=0)
+                audio_started = True
+                return True
+            except Exception as exc:
+                print(f"⚠️ [{request_id}] Previous WebRTC A/V release failed: {exc}")
+
+        release_future = asyncio.run_coroutine_threadsafe(
+            _release_webrtc_playout(
+                audio_track=audio_track,
+                video_track=session.idle_track,
+                sync_clock=getattr(session, "sync_clock", None),
+                audio_prepare_task=audio_prepare_task,
+                request_id=request_id,
+                start_delay_seconds=av_start_delay_seconds,
+                reason=reason,
+            ),
+            main_loop,
+        )
+
+        def _on_release_done(done_future):
+            nonlocal audio_started
+            try:
+                done_future.result()
+                audio_started = True
+            except Exception as exc:
+                print(f"⚠️ [{request_id}] WebRTC A/V release failed: {exc}")
+
+        release_future.add_done_callback(_on_release_done)
+        try:
+            release_future.result(timeout=push_timeout_seconds)
+            audio_started = True
+            return True
+        except FutureTimeoutError:
+            print(
+                f"⏳ [{request_id}] Waiting for audio preparation before releasing WebRTC A/V "
+                f"playout ({reason})"
+            )
+            return False
+        except Exception as exc:
+            print(f"⚠️ [{request_id}] Could not release WebRTC A/V playout ({reason}): {exc}")
+            return False
 
     def frame_callback(frame_bgr, frame_idx, total_frames):
         nonlocal live_started
@@ -3295,12 +3361,14 @@ async def webrtc_stream(
             except FutureTimeoutError:
                 print(f"⚠️ [{request_id}] Timed out handing WebRTC frame {frame_idx}/{total_frames} to playback queue")
             if prebuffer_ready:
-                signal_audio_start_once()
+                release_playout_once("video_prebuffer_ready")
         except Exception as e:
             print(f"⚠️ [{request_id}] frame_callback error: {e}")
 
     def cleanup_to_idle(force_video: bool = True):
         session.active_stream = None
+        if not audio_prepare_task.done():
+            audio_prepare_task.cancel()
         if force_video and session.idle_track:
             session.idle_track.end_live()
         # Stop the synced audio track
@@ -3364,7 +3432,7 @@ async def webrtc_stream(
             # releases the queued frames and starts audio without retiming it.
             main_loop.call_soon_threadsafe(session.idle_track.signal_generation_complete)
             if live_started and not audio_started:
-                signal_audio_start_once()
+                release_playout_once("generation_complete")
             generation_finished = True
             print(f"✅ [{request_id}] WebRTC streaming complete")
         except Exception as e:
@@ -3408,6 +3476,42 @@ async def webrtc_stream(
 async def _start_live_track(video_track):
     """Helper to start live video from the main event loop before frames are queued."""
     video_track.start_live()
+
+
+async def _release_webrtc_playout(
+    audio_track: "SyncedAudioStreamTrack",
+    video_track,
+    sync_clock,
+    audio_prepare_task,
+    request_id: str,
+    start_delay_seconds: float,
+    reason: str,
+):
+    """Release strict FIFO audio/video playout only after audio and video are ready."""
+    if audio_prepare_task is not None:
+        await audio_prepare_task
+    elif hasattr(audio_track, "prepare"):
+        await audio_track.prepare()
+
+    if sync_clock is not None and hasattr(sync_clock, "mark_audio_ready"):
+        sync_clock.mark_audio_ready()
+    if sync_clock is not None and hasattr(sync_clock, "mark_video_ready"):
+        sync_clock.mark_video_ready()
+
+    start_time = time.monotonic() + max(0.0, start_delay_seconds)
+    if sync_clock is not None and hasattr(sync_clock, "release_playout"):
+        start_time = sync_clock.release_playout(start_time)
+
+    audio_track.signal_start(start_time=start_time)
+    queue_size = None
+    if hasattr(video_track, "get_stats"):
+        stats = video_track.get_stats()
+        queue_size = stats.get("queue_size")
+    print(
+        f"🎬 [{request_id}] Released WebRTC A/V playout gate "
+        f"({reason}, queue={queue_size}, t0={start_time:.3f})"
+    )
+    return start_time
 
 
 async def _signal_audio_start(audio_track: "SyncedAudioStreamTrack"):

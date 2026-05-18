@@ -44,6 +44,7 @@ class VideoSyncClock:
         self.source_frames = 0
         self.active = False
         self.started = asyncio.Event()
+        self.playout_released = asyncio.Event()
         self.strict_fifo = WEBRTC_STRICT_FIFO_SYNC if strict_fifo is None else bool(strict_fifo)
         self._coverage_changed = asyncio.Event()
         self._closed = False
@@ -54,6 +55,12 @@ class VideoSyncClock:
         self.audio_stall_seconds = 0.0
         self.video_stall_seconds = 0.0
         self.last_audio_wait_target_seconds = 0.0
+        self.audio_ready_at: Optional[float] = None
+        self.video_ready_at: Optional[float] = None
+        self.playout_released_at: Optional[float] = None
+        self.playout_start_time: Optional[float] = None
+        self.first_video_frame_at: Optional[float] = None
+        self.first_audio_packet_at: Optional[float] = None
 
     def reset(self) -> None:
         self.source_frames = 0
@@ -66,23 +73,75 @@ class VideoSyncClock:
         self.audio_stall_seconds = 0.0
         self.video_stall_seconds = 0.0
         self.last_audio_wait_target_seconds = 0.0
+        self.audio_ready_at = None
+        self.video_ready_at = None
+        self.playout_released_at = None
+        self.playout_start_time = None
+        self.first_video_frame_at = None
+        self.first_audio_packet_at = None
         self.started.clear()
+        self.playout_released.clear()
         self._coverage_changed.set()
 
     def deactivate(self) -> None:
         self.active = False
         self.started.set()
+        self.playout_released.set()
         self._coverage_changed.set()
 
     def close(self) -> None:
         self._closed = True
         self.active = False
         self.started.set()
+        self.playout_released.set()
         self._coverage_changed.set()
 
     def mark_started(self) -> None:
         if self.active and not self.started.is_set():
             self.started.set()
+
+    def mark_audio_ready(self) -> None:
+        if self.audio_ready_at is None:
+            self.audio_ready_at = time.monotonic()
+
+    def mark_video_ready(self) -> None:
+        if self.video_ready_at is None:
+            self.video_ready_at = time.monotonic()
+
+    def release_playout(self, start_time: Optional[float] = None) -> float:
+        if self.playout_start_time is None:
+            now = time.monotonic()
+            self.playout_start_time = now if start_time is None else start_time
+            self.playout_released_at = now
+            self.playout_released.set()
+            self._coverage_changed.set()
+        return self.playout_start_time
+
+    def playout_due(self) -> bool:
+        return (
+            self.playout_released.is_set()
+            and (
+                self.playout_start_time is None
+                or time.monotonic() >= self.playout_start_time
+            )
+        )
+
+    async def wait_for_playout_start(self, timeout: Optional[float] = None) -> Optional[float]:
+        wait_timeout = 60.0 if timeout is None else timeout
+        await asyncio.wait_for(self.playout_released.wait(), timeout=wait_timeout)
+        if self.playout_start_time is not None:
+            delay = self.playout_start_time - time.monotonic()
+            if delay > 0:
+                await asyncio.sleep(delay)
+        return self.playout_start_time
+
+    def mark_first_video_frame(self) -> None:
+        if self.first_video_frame_at is None:
+            self.first_video_frame_at = time.monotonic()
+
+    def mark_first_audio_packet(self) -> None:
+        if self.first_audio_packet_at is None:
+            self.first_audio_packet_at = time.monotonic()
 
     def add_frames(self, frames: int) -> None:
         if self.active and frames > 0:
@@ -155,6 +214,34 @@ class VideoSyncClock:
             "audio_stall_seconds": self.audio_stall_seconds,
             "video_stall_seconds": self.video_stall_seconds,
             "last_audio_wait_target_seconds": self.last_audio_wait_target_seconds,
+            "audio_ready": self.audio_ready_at is not None,
+            "video_ready": self.video_ready_at is not None,
+            "playout_released": self.playout_released.is_set(),
+            "audio_ready_to_release_seconds": (
+                self.playout_released_at - self.audio_ready_at
+                if self.playout_released_at is not None and self.audio_ready_at is not None
+                else None
+            ),
+            "video_ready_to_release_seconds": (
+                self.playout_released_at - self.video_ready_at
+                if self.playout_released_at is not None and self.video_ready_at is not None
+                else None
+            ),
+            "first_audio_packet_after_release_seconds": (
+                self.first_audio_packet_at - self.playout_released_at
+                if self.first_audio_packet_at is not None and self.playout_released_at is not None
+                else None
+            ),
+            "first_video_frame_after_release_seconds": (
+                self.first_video_frame_at - self.playout_released_at
+                if self.first_video_frame_at is not None and self.playout_released_at is not None
+                else None
+            ),
+            "initial_av_start_delta_seconds": (
+                self.first_audio_packet_at - self.first_video_frame_at
+                if self.first_audio_packet_at is not None and self.first_video_frame_at is not None
+                else None
+            ),
         }
 
 
@@ -319,6 +406,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._queue: asyncio.Queue = asyncio.Queue(maxsize=self._max_queue)
         self._idle = IdleVideoStreamTrack(idle_video_path, fps=source_fps)
         self._live_active = False
+        self._live_released = False
         self._last_idle_frame = None
         self._last_live_frame = None
         self._last_ts = None
@@ -451,6 +539,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
     def start_live(self) -> None:
         """Start live mode - will show idle frames until prebuffer is ready"""
         self._live_active = True
+        self._live_released = False
         self._last_live_frame = None
         self._reset_source_timing()
         self._frames_received = 0
@@ -476,6 +565,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
     def end_live(self) -> None:
         """End live mode - drain queue and return to idle"""
         self._live_active = False
+        self._live_released = False
         drained = 0
         try:
             while True:
@@ -502,6 +592,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                 f"releasing {self._queue.qsize()} queued frames"
             )
             self._prebuffer_ready.set()
+            if self._sync_clock:
+                self._sync_clock.mark_video_ready()
         print(f"🎬 Generation complete signaled. Queue: {self._queue.qsize()}, Played: {self._frames_played}")
 
     async def wait_for_playback_complete(self, timeout: Optional[float] = None) -> None:
@@ -542,6 +634,10 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         if not self._prebuffer_ready.is_set() and self._frames_received >= self._prebuffer_frames:
             print(f"🎬 Prebuffer ready: {self._frames_received} frames buffered, queue: {self._queue.qsize()}/{self._max_queue}")
             self._prebuffer_ready.set()
+            if self._sync_clock:
+                self._sync_clock.mark_video_ready()
+        elif self._prebuffer_ready.is_set() and self._frames_received > 0 and self._sync_clock:
+            self._sync_clock.mark_video_ready()
         return self._prebuffer_ready.is_set()
 
     async def push_bgr_frames_batch(self, frames: list) -> None:
@@ -662,7 +758,20 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             if self._prebuffer_frames > 0 and not self._prebuffer_ready.is_set():
                 # Still prebuffering - show idle frames while we wait
                 frame = self._advance_idle_frame(idle_advance_frames)
+            elif (
+                self._strict_fifo
+                and self._sync_clock is not None
+                and not self._sync_clock.playout_due()
+            ):
+                # The FIFO has enough video, but strict A/V mode waits until
+                # audio has also been prepared. Keep showing idle frames so the
+                # first live frame and first audio packet share one release point.
+                self._sync_clock.mark_video_ready()
+                frame = self._advance_idle_frame(idle_advance_frames)
             else:
+                if not self._live_released:
+                    self._live_released = True
+                    self._last_ts = time.monotonic()
                 # Prebuffer ready - consume live frames
                 attempted_live_pop = False
                 live_steps = self._live_source_steps_for_output()
@@ -681,6 +790,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                         self._frames_played += popped
                         self._live_source_consumed += popped
                         if self._sync_clock:
+                            self._sync_clock.mark_first_video_frame()
                             self._sync_clock.add_frames(popped)
                             self._sync_clock.mark_started()
                     elif self._generation_complete and self._queue.qsize() == 0:
@@ -718,6 +828,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         queue_size = self._queue.qsize()
         return {
             'live_active': self._live_active,
+            'live_released': self._live_released,
             'prebuffer_ready': self._prebuffer_ready.is_set(),
             'queue_size': queue_size,
             'queue_max': self._max_queue,
@@ -871,6 +982,8 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
         self._bytes_per_sample = 2
         self._start_time: Optional[float] = None
         self._start_signal_time: Optional[float] = None
+        self._playout_start_time: Optional[float] = None
+        self._first_packet_at: Optional[float] = None
         self._frames_sent = 0
         self._eof = False
         self._eof_event = asyncio.Event()
@@ -885,21 +998,44 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
         self._drift_log_interval = int(os.getenv("WEBRTC_AUDIO_DRIFT_LOG_INTERVAL", "100"))
         self._strict_audio_stalls = 0
         self._strict_audio_stall_seconds = 0.0
+        self._prepare_started_at: Optional[float] = None
+        self._prepare_finished_at: Optional[float] = None
 
-    def signal_start(self):
+    def signal_start(self, start_time: Optional[float] = None):
         self._start_signal_time = time.monotonic()
+        if start_time is None and self._sync_clock is not None:
+            start_time = self._sync_clock.playout_start_time
+        self._playout_start_time = start_time
         self._started.set()
-        print(f"🔊 SyncedAudioStreamTrack: Start signaled at {self._start_signal_time:.3f}")
+        if start_time is None:
+            print(f"🔊 SyncedAudioStreamTrack: Start signaled at {self._start_signal_time:.3f}")
+        else:
+            print(
+                f"🔊 SyncedAudioStreamTrack: Start signaled at {self._start_signal_time:.3f}, "
+                f"t0={start_time:.3f}"
+            )
+
+    async def prepare(self) -> None:
+        """Decode/convert audio before the shared A/V playout gate opens."""
+        await self._load_audio_async()
+        if self._sync_clock is not None:
+            self._sync_clock.mark_audio_ready()
 
     async def _load_audio_async(self):
         if self._fully_loaded:
+            if self._sync_clock is not None:
+                self._sync_clock.mark_audio_ready()
             return
             
         async with self._load_lock:
             if self._fully_loaded:
+                if self._sync_clock is not None:
+                    self._sync_clock.mark_audio_ready()
                 return
             
             loop = asyncio.get_event_loop()
+            if self._prepare_started_at is None:
+                self._prepare_started_at = time.monotonic()
             
             if self._use_ffmpeg:
                 try:
@@ -913,9 +1049,20 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
             
             self._audio_samples = await loop.run_in_executor(None, self._load_pcm_audio)
             self._fully_loaded = True
+            self._prepare_finished_at = time.monotonic()
+            if self._sync_clock is not None:
+                self._sync_clock.mark_audio_ready()
             
             duration_ms = len(self._audio_samples) / (self._bytes_per_sample * self._channels) / self._sample_rate * 1000
-            print(f"🔊 Audio loaded: {len(self._audio_samples)} bytes, {duration_ms:.0f}ms")
+            prepare_ms = (
+                (self._prepare_finished_at - self._prepare_started_at) * 1000
+                if self._prepare_started_at is not None
+                else 0.0
+            )
+            print(
+                f"🔊 Audio loaded: {len(self._audio_samples)} bytes, "
+                f"{duration_ms:.0f}ms media, prepare={prepare_ms:.0f}ms"
+            )
 
     def _load_pcm_audio(self) -> bytes:
         audio_path = Path(self._audio_path)
@@ -987,6 +1134,13 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
             await self._load_audio_async()
 
         if self._sync_clock is not None:
+            if self._sync_clock.strict_fifo:
+                try:
+                    playout_start = await self._sync_clock.wait_for_playout_start(timeout=60.0)
+                    if self._playout_start_time is None:
+                        self._playout_start_time = playout_start
+                except asyncio.TimeoutError:
+                    raise MediaStreamError("Timeout waiting for A/V playout release")
             try:
                 await asyncio.wait_for(self._sync_clock.started.wait(), timeout=60.0)
             except asyncio.TimeoutError:
@@ -1004,8 +1158,13 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
                     self._start_time = time.monotonic() - (self._frames_sent * self._frame_duration)
 
         if self._start_time is None:
-            self._start_time = time.monotonic()
-            print(f"🔊 SyncedAudioStreamTrack: Playout started at {self._start_time:.3f}")
+            now = time.monotonic()
+            playout_t0 = self._playout_start_time or now
+            self._start_time = max(playout_t0, now)
+            print(
+                f"🔊 SyncedAudioStreamTrack: Playout started at {now:.3f} "
+                f"(t0={playout_t0:.3f})"
+            )
         else:
             target = self._start_time + (self._frames_sent * self._frame_duration)
             if target < time.monotonic() - 0.002:
@@ -1040,9 +1199,18 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
 
         self._timestamp += self._samples_per_frame
         self._frames_sent += 1
+        if self._first_packet_at is None:
+            self._first_packet_at = time.monotonic()
+            if self._sync_clock is not None:
+                self._sync_clock.mark_first_audio_packet()
         return frame
 
     def get_stats(self) -> dict:
+        prepare_seconds = (
+            self._prepare_finished_at - self._prepare_started_at
+            if self._prepare_finished_at is not None and self._prepare_started_at is not None
+            else None
+        )
         return {
             "sample_rate": self._sample_rate,
             "samples_per_frame": self._samples_per_frame,
@@ -1051,6 +1219,15 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
             "eof": self._eof,
             "last_drift_seconds": self._last_drift_seconds,
             "fully_loaded": self._fully_loaded,
+            "prepare_started": self._prepare_started_at is not None,
+            "prepare_seconds": prepare_seconds,
+            "start_signaled": self._started.is_set(),
+            "playout_start_time_set": self._playout_start_time is not None,
+            "first_packet_after_signal_seconds": (
+                self._first_packet_at - self._start_signal_time
+                if self._first_packet_at is not None and self._start_signal_time is not None
+                else None
+            ),
             "sync_mode": (
                 "strict_fifo"
                 if self._sync_clock is not None and self._sync_clock.strict_fifo

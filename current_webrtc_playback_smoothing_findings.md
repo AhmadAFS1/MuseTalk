@@ -11,9 +11,54 @@ plan with the latest media-path findings.
 
 Phase 1 items 1-6 have now been implemented.
 
+### A/V Start Barrier Update: 2026-05-18
+
+The follow-up sync fix is now implemented. The main issue found in the logs was
+not dropped video frames or WebRTC network jitter; it was a startup race where
+live video could begin consuming the FIFO as soon as video prebuffer was ready,
+while the audio track was still converting/loading through FFmpeg or PyAV.
+
+New behavior:
+
+- `SyncedAudioStreamTrack.prepare()` converts/decodes audio before live playout
+  is released.
+- `api_server.py` starts audio preparation immediately after replacing the audio
+  track, in parallel with video generation.
+- `VideoSyncClock` now owns a shared A/V playout gate:
+  - video prebuffer marks `video_ready`
+  - audio preparation marks `audio_ready`
+  - the server releases `playout_released` only after both are ready
+  - a short configurable `WEBRTC_AV_START_DELAY_SECONDS` delay, default `0.05`,
+    gives both tracks a common release point without changing audio speed
+- `SwitchableVideoStreamTrack.recv()` keeps showing idle frames after prebuffer
+  readiness until the shared playout gate is due. It does not consume the first
+  live FIFO frame early.
+- `SyncedAudioStreamTrack.recv()` waits for the same playout gate and then waits
+  for video coverage as before. Audio samples are still emitted at fixed
+  48 kHz / 20 ms cadence; they are not resampled, sped up, slowed down, or
+  skipped.
+- New telemetry is exposed in `/webrtc/sessions/{session_id}/status` and
+  `/webrtc/sessions/stats`, including:
+  - `audio.prepare_seconds`
+  - `audio.first_packet_after_signal_seconds`
+  - `sync_clock.audio_ready`
+  - `sync_clock.video_ready`
+  - `sync_clock.playout_released`
+  - `sync_clock.first_video_frame_after_release_seconds`
+  - `sync_clock.first_audio_packet_after_release_seconds`
+  - `sync_clock.initial_av_start_delta_seconds`
+
+Expected result: differences between audio files should no longer create a
+variable 90-200 ms initial lip-sync offset, because audio conversion/loading is
+absorbed before the live FIFO is released.
+
 Changed files:
 
 - `scripts/webrtc_tracks.py`
+  - added the shared `playout_released` start barrier to `VideoSyncClock`
+  - added audio preparation telemetry and first packet/frame release telemetry
+  - holds live video behind the A/V gate after prebuffer readiness so the first
+    live FIFO frame cannot outrun audio setup
   - changed default `WEBRTC_ADAPTIVE_FPS` to off
   - changed default `WEBRTC_SYNC_MODE` to `strict_fifo`
   - changed default `WEBRTC_VIDEO_PREBUFFER_SECONDS` to `2.0`
@@ -32,6 +77,11 @@ Changed files:
   - added stats for duplicated frames, output frames, underruns, stalls,
     source/output FPS, sync mode, and audio playout state
 - `api_server.py`
+  - prepares audio immediately after replacing the WebRTC audio track
+  - releases A/V playout only after audio preparation and video prebuffer are
+    both ready
+  - adds configurable `WEBRTC_AV_START_DELAY_SECONDS`, default `0.05`, for a
+    shared release point
   - starts live video before queueing the first generated frame
   - signals audio only after the video track reports prebuffer readiness
   - releases queued frames and starts audio for short clips that finish before
@@ -116,6 +166,42 @@ Syntax/compile checks:
 python3 -m py_compile scripts/webrtc_tracks.py scripts/webrtc_manager.py api_server.py templates/webrtc_player.py
 /workspace/.venvs/musetalk_trt_stagewise/bin/python -m py_compile scripts/webrtc_tracks.py scripts/webrtc_manager.py api_server.py templates/webrtc_player.py
 ```
+
+Additional checks after the A/V start barrier update:
+
+```bash
+python3 -m py_compile scripts/webrtc_tracks.py api_server.py templates/webrtc_player.py scripts/webrtc_manager.py
+/workspace/.venvs/musetalk_trt_stagewise/bin/python -m py_compile scripts/webrtc_tracks.py api_server.py templates/webrtc_player.py scripts/webrtc_manager.py
+```
+
+In-process strict FIFO barrier smoke test:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python
+```
+
+- Created a strict FIFO `VideoSyncClock`.
+- Created `SwitchableVideoStreamTrack(source_fps=10, output_fps=10,
+  prebuffer_seconds=0.1)`.
+- Pushed one generated frame and verified prebuffer became ready.
+- Called `recv()` before releasing the shared A/V gate and verified the live
+  frame was not consumed (`frames_played == 0`).
+- Prepared `SyncedAudioStreamTrack` before release and verified audio prep
+  telemetry was populated.
+- Released the shared playout gate with a small future `t0`.
+- Verified the next video `recv()` consumed exactly the first live FIFO frame.
+- Verified the first audio `recv()` emitted fixed PTS `0`.
+- Verified sync telemetry was populated:
+
+```text
+strict_fifo_barrier_ok
+initial_av_start_delta_seconds=0.000332878902554512
+audio_prepare_seconds=0.056449003983289
+```
+
+This proves the server-side race is closed in-process: video prebuffer readiness
+alone is no longer enough to start live video, and the measured first live video
+frame to first audio packet delta was about `0.3 ms` in the smoke test.
 
 In-process media track smoke tests used the project venv:
 
