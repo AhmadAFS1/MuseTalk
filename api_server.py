@@ -26,6 +26,7 @@ import subprocess
 import aiofiles
 import time  # ✅ Add this if not present
 import threading
+import io
 import av  # ✅ ADD THIS - needed for audio probing
 from datetime import datetime, timedelta
 from templates.streaming_ui import streaming_ui_endpoint
@@ -34,6 +35,7 @@ from templates.session_player import get_session_player_html  # ✅ ADD THIS
 from templates.hls_player import get_hls_player_html
 from templates.hls_wall import get_hls_wall_html
 from templates.webrtc_player import get_webrtc_player_html
+from templates.webrtc_wall import get_webrtc_wall_html
 from scripts.worker_control_plane import LinguaWorkerControlPlane
 from scripts.session_manager import SessionManager
 from scripts.hls_session_manager import HlsSessionManager
@@ -353,6 +355,8 @@ webrtc_ice_servers: list[dict] = []
 webrtc_ice_transport_policy: str = "all"
 hls_group_lock = threading.Lock()
 hls_groups: dict[str, dict] = {}
+webrtc_group_lock = threading.Lock()
+webrtc_groups: dict[str, dict] = {}
 worker_control_plane: Optional[LinguaWorkerControlPlane] = None
 
 # ============================================================================
@@ -987,6 +991,29 @@ def _resolve_avatar_video_path(avatar_id: str) -> Path:
     if manager.args.version == "v15":
         return Path(f"./results/{manager.args.version}/avatars/{avatar_id}/input_video.mp4")
     return Path(f"./results/avatars/{avatar_id}/input_video.mp4")
+
+
+def _get_default_avatar_id() -> str:
+    if manager is None:
+        return "test_avatar"
+
+    if manager.args.version == "v15":
+        avatars_dir = Path(f"./results/{manager.args.version}/avatars")
+    else:
+        avatars_dir = Path("./results/avatars")
+
+    if not avatars_dir.exists():
+        return "test_avatar"
+
+    for avatar_dir in sorted(avatars_dir.iterdir()):
+        if (
+            avatar_dir.is_dir()
+            and (avatar_dir / "input_video.mp4").exists()
+            and manager._avatar_exists(avatar_dir.name)
+        ):
+            return avatar_dir.name
+
+    return "test_avatar"
 
 
 @app.get("/avatars/{avatar_id}/video")
@@ -2716,6 +2743,46 @@ def _require_webrtc():
         raise HTTPException(status_code=503, detail="WebRTC session manager not initialized")
 
 
+def _get_webrtc_session_status(session) -> str:
+    if session is None:
+        return "missing"
+    if session.active_stream is not None:
+        return "streaming"
+    pc = getattr(session, "pc", None)
+    state = getattr(pc, "connectionState", None) if pc is not None else None
+    return state or "created"
+
+
+async def _build_webrtc_group_response(group: dict) -> dict:
+    sessions = []
+    async with webrtc_session_manager.lock:
+        for session_id in group["session_ids"]:
+            session = webrtc_session_manager.sessions.get(session_id)
+            status = _get_webrtc_session_status(session)
+            group["session_statuses"][session_id] = status
+            sessions.append({
+                "session_id": session_id,
+                "status": status,
+                "player_url": f"/webrtc/player/{session_id}",
+                "avatar_id": group["avatar_id"],
+                "active_stream": getattr(session, "active_stream", None) if session else None,
+                "ice_transport_policy": getattr(session, "ice_transport_policy", None) if session else None,
+            })
+
+    return {
+        "group_id": group["group_id"],
+        "avatar_id": group["avatar_id"],
+        "created_at": group["created_at"],
+        "count": len(group["session_ids"]),
+        "config": group["config"],
+        "session_ids": group["session_ids"],
+        "session_statuses": group["session_statuses"],
+        "sessions": sessions,
+        "wall_url": f"/webrtc/groups/{group['group_id']}/wall",
+        "stream_all_url": f"/webrtc/groups/{group['group_id']}/stream",
+    }
+
+
 async def _wait_for_ice_gathering(pc) -> None:
     if pc.iceGatheringState == "complete":
         return
@@ -2728,6 +2795,209 @@ async def _wait_for_ice_gathering(pc) -> None:
             done.set()
 
     await done.wait()
+
+
+@app.get("/webrtc/wall", response_class=HTMLResponse)
+@app.get("/webrtc/lab", response_class=HTMLResponse)
+async def webrtc_lab():
+    _require_webrtc()
+    return HTMLResponse(content=get_webrtc_wall_html(_get_default_avatar_id()))
+
+
+@app.post("/webrtc/groups/create")
+async def create_webrtc_group(
+    avatar_id: str,
+    count: int = 4,
+    user_id: Optional[str] = None,
+    batch_size: int = 8,
+    playback_fps: Optional[int] = None,
+    musetalk_fps: Optional[int] = None,
+    fps: Optional[int] = None,
+    chunk_duration: Optional[int] = None,
+    segment_duration: Optional[float] = None,
+):
+    _require_webrtc()
+    _require_accepting_new_sessions()
+    if count < 1 or count > 12:
+        raise HTTPException(status_code=400, detail="count must be between 1 and 12")
+
+    resolved_fps = int(fps or musetalk_fps or 10)
+    resolved_playback_fps = int(playback_fps or resolved_fps)
+    resolved_chunk_duration = int(chunk_duration or round(float(segment_duration or 2)))
+    resolved_chunk_duration = max(1, resolved_chunk_duration)
+
+    group_id = uuid.uuid4().hex[:10]
+    session_ids = []
+    session_statuses = {}
+    for index in range(count):
+        session_payload = await create_webrtc_session(
+            avatar_id=avatar_id,
+            user_id=user_id or f"webrtc-wall-{group_id}-{index + 1}",
+            fps=resolved_fps,
+            playback_fps=resolved_playback_fps,
+            batch_size=batch_size,
+            chunk_duration=resolved_chunk_duration,
+        )
+        session_id = session_payload["session_id"]
+        session_ids.append(session_id)
+        session_statuses[session_id] = "created"
+
+    group = {
+        "group_id": group_id,
+        "avatar_id": avatar_id,
+        "created_at": time.time(),
+        "session_ids": session_ids,
+        "session_statuses": session_statuses,
+        "config": {
+            "count": count,
+            "batch_size": batch_size,
+            "fps": resolved_fps,
+            "playback_fps": resolved_playback_fps,
+            "chunk_duration": resolved_chunk_duration,
+            "ice_transport_policy": webrtc_ice_transport_policy,
+        },
+    }
+    with webrtc_group_lock:
+        webrtc_groups[group_id] = group
+
+    return await _build_webrtc_group_response(group)
+
+
+@app.get("/webrtc/groups/{group_id}")
+async def get_webrtc_group(group_id: str):
+    _require_webrtc()
+    with webrtc_group_lock:
+        group = webrtc_groups.get(group_id)
+    if group is None:
+        raise HTTPException(status_code=404, detail="Group not found")
+    return await _build_webrtc_group_response(group)
+
+
+@app.get("/webrtc/groups/{group_id}/wall", response_class=HTMLResponse)
+async def webrtc_group_wall(group_id: str):
+    _require_webrtc()
+    with webrtc_group_lock:
+        group = webrtc_groups.get(group_id)
+        if group is None:
+            raise HTTPException(status_code=404, detail="Group not found")
+    return HTMLResponse(content=get_webrtc_wall_html(group["avatar_id"]))
+
+
+@app.post("/webrtc/groups/{group_id}/stream")
+async def stream_webrtc_group(
+    group_id: str,
+    audio_file: UploadFile = File(...),
+):
+    _require_webrtc()
+    with webrtc_group_lock:
+        group = webrtc_groups.get(group_id)
+    if group is None:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    audio_bytes = await audio_file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="audio_file is empty")
+    audio_filename = audio_file.filename or "audio.bin"
+
+    class InMemoryUpload:
+        def __init__(self, filename: str, payload: bytes):
+            self.filename = filename
+            self.file = io.BytesIO(payload)
+
+    async def _start_one(session_id: str) -> dict:
+        session = await webrtc_session_manager.get_session(session_id)
+        if session is None:
+            group["session_statuses"][session_id] = "missing"
+            return {"session_id": session_id, "status": "missing"}
+        try:
+            result = await webrtc_stream(
+                session_id=session_id,
+                audio_file=InMemoryUpload(audio_filename, audio_bytes),
+            )
+            group["session_statuses"][session_id] = "streaming"
+            return result
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, str) else json.dumps(exc.detail)
+            group["session_statuses"][session_id] = "error"
+            return {"session_id": session_id, "status": "error", "detail": detail}
+        except Exception as exc:
+            group["session_statuses"][session_id] = "error"
+            return {"session_id": session_id, "status": "error", "detail": str(exc)}
+
+    results = await asyncio.gather(*[_start_one(session_id) for session_id in group["session_ids"]])
+    started = sum(1 for result in results if result.get("status") == "streaming")
+    failed = len(results) - started
+
+    return {
+        "group_id": group_id,
+        "started": started,
+        "failed": failed,
+        "results": results,
+    }
+
+
+@app.delete("/webrtc/groups/{group_id}")
+async def delete_webrtc_group(group_id: str):
+    _require_webrtc()
+    with webrtc_group_lock:
+        group = webrtc_groups.pop(group_id, None)
+    if group is None:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    deleted_sessions = []
+    errors = []
+    for session_id in group["session_ids"]:
+        try:
+            await delete_webrtc_session(session_id)
+            deleted_sessions.append(session_id)
+        except HTTPException as exc:
+            errors.append({"session_id": session_id, "detail": exc.detail})
+
+    return {
+        "group_id": group_id,
+        "deleted_sessions": deleted_sessions,
+        "errors": errors,
+    }
+
+
+@app.get("/webrtc/sessions/stats")
+async def webrtc_session_stats():
+    _require_webrtc()
+    now = time.time()
+    async with webrtc_session_manager.lock:
+        sessions = [
+            {
+                "session_id": session.session_id,
+                "avatar_id": session.avatar_id,
+                "user_id": session.user_id,
+                "status": _get_webrtc_session_status(session),
+                "active_stream": session.active_stream,
+                "age_seconds": now - session.created_at,
+                "idle_seconds": now - session.last_activity,
+                "fps": session.fps,
+                "playback_fps": session.playback_fps,
+                "batch_size": session.batch_size,
+                "chunk_duration": session.chunk_duration,
+                "player_url": f"/webrtc/player/{session.session_id}",
+                "ice_transport_policy": session.ice_transport_policy,
+            }
+            for session in webrtc_session_manager.sessions.values()
+        ]
+
+    active_streams = sum(1 for session in sessions if session["active_stream"])
+    return {
+        "total_sessions": len(sessions),
+        "active_streams": active_streams,
+        "sessions": sessions,
+        "scheduler": {
+            "queued_or_active_jobs": active_streams,
+            "preparing_jobs": 0,
+            "startup_pending_jobs": 0,
+            "compose_workers": None,
+            "encode_workers": None,
+            "jobs": [],
+        },
+    }
 
 
 @app.post("/webrtc/sessions/create")

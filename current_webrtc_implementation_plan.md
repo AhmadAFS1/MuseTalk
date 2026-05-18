@@ -156,16 +156,20 @@ This chat added a new TCP relay setup:
 
 The intended no-public-UDP-range setup is:
 
-- expose one TURN TCP listener port publicly
+- expose one TURN listener port publicly
 - set `WEBRTC_ICE_TRANSPORT_POLICY=relay`
 - let the server connect to coturn locally through `WEBRTC_SERVER_TURN_URLS`
 - let browsers/mobile clients connect through public `WEBRTC_TURN_URLS`
 
 Important: coturn/aiortc still allocate internal relay endpoints, and aiortc
 reports relay candidates as UDP relay candidates. The difference is that both
-peers are forced through TURN over TCP, so the old public UDP relay range does
-not need to be opened for this test mode. A public TCP mapping for the TURN
-listener is still required.
+peers are forced through TURN, so the old public UDP relay range does not need
+to be opened for this test mode. On the current Vast instance, internal
+`3478/udp` maps to public `15979/udp`, so the browser/client TURN URL is:
+
+```text
+turn:84.50.156.125:15979?transport=udp
+```
 
 ## Immediate Retest Path
 
@@ -231,12 +235,13 @@ setsid nohup scripts/run_turnserver_tcp_relay.sh \
   > /workspace/logs/musetalk/turnserver_tcp_relay.log 2>&1 < /dev/null &
 ```
 
-The current runner listens on internal TCP `3478`. On Vast, map that internal
-TCP port to a public TCP port, then update `.env.webrtc-turn.local`:
+The current Vast mapping for internal `3478/udp` is public `15979/udp`, so
+`.env.webrtc-turn.local` should contain:
 
 ```text
 TURN_PUBLIC_IP=<PUBLIC_IP>
-TURN_PUBLIC_PORT=<PUBLIC_TCP_PORT_FOR_INTERNAL_3478>
+TURN_PUBLIC_PORT=15979
+TURN_PUBLIC_TRANSPORT=udp
 ```
 
 Restart the API through the relay launcher:

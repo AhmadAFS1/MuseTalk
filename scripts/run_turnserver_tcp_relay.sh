@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Start coturn for WebRTC relay-over-TCP testing.
+# Start coturn for WebRTC relay testing.
 #
 # This mode is intended for hosts where we do not want to expose a public UDP
-# relay range. Clients should use WEBRTC_ICE_TRANSPORT_POLICY=relay and a
-# turn:...transport=tcp URL so media is carried through the TURN TCP listener.
+# relay range. Clients should use WEBRTC_ICE_TRANSPORT_POLICY=relay and one
+# mapped TURN listener port, such as turn:host:public_port?transport=udp.
 
 set -euo pipefail
 
@@ -11,8 +11,9 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
 Usage: scripts/run_turnserver_tcp_relay.sh
 
-Starts coturn in WebRTC relay-over-TCP mode using .env.webrtc-turn.local.
-Only the TURN TCP listener needs public exposure for this test mode.
+Starts coturn in WebRTC relay-only mode using .env.webrtc-turn.local.
+Only the mapped TURN listener needs public exposure for this test mode; the old
+public UDP relay range is not required when both peers are forced through TURN.
 EOF
   exit 0
 fi
@@ -48,6 +49,7 @@ TURN_PUBLIC_IP="${TURN_PUBLIC_IP:-$(detect_public_ip)}"
 TURN_PRIVATE_IP="${TURN_PRIVATE_IP:-$(detect_private_ip)}"
 TURN_LISTEN_PORT="${TURN_LISTEN_PORT:-3478}"
 TURN_PUBLIC_PORT="${TURN_PUBLIC_PORT:-$TURN_LISTEN_PORT}"
+TURN_PUBLIC_TRANSPORT="${TURN_PUBLIC_TRANSPORT:-tcp}"
 TURN_USER="${TURN_USER:-webrtc}"
 TURN_PASS="${TURN_PASS:-${WEBRTC_TURN_PASS:-}}"
 TURN_REALM="${TURN_REALM:-$TURN_PUBLIC_IP}"
@@ -58,6 +60,15 @@ TURN_REALM="${TURN_REALM:-$TURN_PUBLIC_IP}"
 TURN_INTERNAL_RELAY_MIN_PORT="${TURN_INTERNAL_RELAY_MIN_PORT:-49160}"
 TURN_INTERNAL_RELAY_MAX_PORT="${TURN_INTERNAL_RELAY_MAX_PORT:-49200}"
 TURN_RELAY_THREADS="${TURN_RELAY_THREADS:-4}"
+
+case "$TURN_PUBLIC_TRANSPORT" in
+  tcp|udp)
+    ;;
+  *)
+    echo "TURN_PUBLIC_TRANSPORT must be tcp or udp; got: $TURN_PUBLIC_TRANSPORT" >&2
+    exit 1
+    ;;
+esac
 
 if [[ -z "$TURN_PUBLIC_IP" || -z "$TURN_PRIVATE_IP" ]]; then
   echo "Could not determine TURN_PUBLIC_IP or TURN_PRIVATE_IP. Set them in $ENV_FILE." >&2
@@ -70,6 +81,11 @@ if [[ -z "$TURN_PASS" ]]; then
 fi
 
 umask 077
+listener_transport_config=""
+if [[ "$TURN_PUBLIC_TRANSPORT" == "tcp" ]]; then
+  listener_transport_config="no-udp"
+fi
+
 cat > "$CONFIG" <<EOF
 realm=$TURN_REALM
 external-ip=$TURN_PUBLIC_IP/$TURN_PRIVATE_IP
@@ -78,7 +94,7 @@ listening-ip=0.0.0.0
 relay-ip=$TURN_PRIVATE_IP
 
 listening-port=$TURN_LISTEN_PORT
-no-udp
+$listener_transport_config
 no-tls
 no-dtls
 
@@ -99,9 +115,9 @@ cat <<EOF
 Starting coturn TCP relay mode
   config: $CONFIG
   env: $ENV_FILE
-  listen: 0.0.0.0:$TURN_LISTEN_PORT/tcp
-  public URL: turn:$TURN_PUBLIC_IP:$TURN_PUBLIC_PORT?transport=tcp
-  relay policy: expose the TCP listener; do not expose the internal relay range for relay-only tests
+  listen: 0.0.0.0:$TURN_LISTEN_PORT/$TURN_PUBLIC_TRANSPORT
+  public URL: turn:$TURN_PUBLIC_IP:$TURN_PUBLIC_PORT?transport=$TURN_PUBLIC_TRANSPORT
+  relay policy: expose the mapped TURN listener; do not expose the internal relay range for relay-only tests
 EOF
 
 exec turnserver -c "$CONFIG"
