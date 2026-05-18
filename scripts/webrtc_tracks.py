@@ -20,11 +20,13 @@ from aiortc import VideoStreamTrack, MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
 # Environment configuration
-WEBRTC_VIDEO_PREBUFFER_SECONDS = float(os.getenv("WEBRTC_VIDEO_PREBUFFER_SECONDS", "2.0"))  # Match chunk duration
-WEBRTC_ADAPTIVE_FPS = os.getenv("WEBRTC_ADAPTIVE_FPS", "1").lower() in ("1", "true", "yes")
+WEBRTC_VIDEO_PREBUFFER_SECONDS = float(os.getenv("WEBRTC_VIDEO_PREBUFFER_SECONDS", "1.0"))
+WEBRTC_ADAPTIVE_FPS = os.getenv("WEBRTC_ADAPTIVE_FPS", "0").lower() in ("1", "true", "yes")
 WEBRTC_MIN_FPS_RATIO = float(os.getenv("WEBRTC_MIN_FPS_RATIO", "0.75"))  # Allow slowdown to 75%
 WEBRTC_QUEUE_LOG_INTERVAL = int(os.getenv("WEBRTC_QUEUE_LOG_INTERVAL", "30"))
 WEBRTC_TARGET_QUEUE_FILL = float(os.getenv("WEBRTC_TARGET_QUEUE_FILL", "0.4"))  # Target 40% queue fill
+WEBRTC_VIDEO_CLOCK_RATE = 90000
+WEBRTC_VIDEO_TIME_BASE = fractions.Fraction(1, WEBRTC_VIDEO_CLOCK_RATE)
 
 # ============================================================================
 # Video Tracks
@@ -69,6 +71,7 @@ class IdleVideoStreamTrack(VideoStreamTrack):
         self._fps = fps
         self._frame_time = None
         self._last_ts = None
+        self._rtp_frame_index = 0
         self._container = None
         self._stream = None
         self._frame_iter = None
@@ -98,18 +101,19 @@ class IdleVideoStreamTrack(VideoStreamTrack):
 
     async def recv(self):
         if self._last_ts is None:
-            self._last_ts = time.time()
+            self._last_ts = time.monotonic()
         else:
-            now = time.time()
+            now = time.monotonic()
             wait = self._frame_time - (now - self._last_ts)
             if wait > 0:
                 await asyncio.sleep(wait)
-            self._last_ts = time.time()
+            self._last_ts = time.monotonic()
 
         frame = self.read_frame()
-        pts, time_base = await self.next_timestamp()
+        pts = int(round(self._rtp_frame_index * WEBRTC_VIDEO_CLOCK_RATE / float(self._fps)))
+        self._rtp_frame_index += 1
         frame.pts = pts
-        frame.time_base = time_base
+        frame.time_base = WEBRTC_VIDEO_TIME_BASE
         return frame
 
     def stop(self) -> None:
@@ -133,6 +137,7 @@ class LiveVideoStreamTrack(VideoStreamTrack):
         self._frame_time = 1.0 / float(self._fps)
         self._queue: asyncio.Queue = asyncio.Queue(maxsize=max_queue)
         self._last_ts = None
+        self._rtp_frame_index = 0
         self._closed = False
 
     async def push_bgr_frame(self, frame_bgr) -> None:
@@ -151,18 +156,19 @@ class LiveVideoStreamTrack(VideoStreamTrack):
             raise asyncio.CancelledError()
 
         if self._last_ts is None:
-            self._last_ts = time.time()
+            self._last_ts = time.monotonic()
         else:
-            now = time.time()
+            now = time.monotonic()
             wait = self._frame_time - (now - self._last_ts)
             if wait > 0:
                 await asyncio.sleep(wait)
-            self._last_ts = time.time()
+            self._last_ts = time.monotonic()
 
         frame = await self._queue.get()
-        pts, time_base = await self.next_timestamp()
+        pts = int(round(self._rtp_frame_index * WEBRTC_VIDEO_CLOCK_RATE / float(self._fps)))
+        self._rtp_frame_index += 1
         frame.pts = pts
-        frame.time_base = time_base
+        frame.time_base = WEBRTC_VIDEO_TIME_BASE
         return frame
 
     def stop(self) -> None:
@@ -174,11 +180,11 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
     """
     Single video track that switches between idle frames and live frames.
     
-    MSE-like buffering behavior:
+    HLS-like buffering behavior:
     - Prebuffering: waits for N seconds of frames before switching to live playback
-    - Adaptive FPS: dynamically adjusts playback speed based on queue depth
+    - Fixed media clock by default; optional adaptive FPS remains opt-in
     - Smooth transitions between idle and live modes
-    - Never drops frames - slows down instead to maintain smoothness
+    - Repeats/holds video frames instead of speeding up/slowing down audio
     """
 
     def __init__(
@@ -201,6 +207,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._frame_time = self._base_frame_time
         self._source_step = self._source_fps / self._output_fps
         self._source_accum = 0.0
+        self._live_output_index = 0
+        self._live_source_consumed = 0
         self._max_queue = max_queue
         self._queue: asyncio.Queue = asyncio.Queue(maxsize=max_queue)
         self._idle = IdleVideoStreamTrack(idle_video_path, fps=source_fps)
@@ -208,14 +216,15 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._last_idle_frame = None
         self._last_live_frame = None
         self._last_ts = None
+        self._rtp_frame_index = 0
         self._closed = False
         self._sync_clock = sync_clock
 
-        # Prebuffer support - default to 2 seconds like MSE chunks
+        # Prebuffer support - default to a 1s live queue for smoother playout.
         if prebuffer_seconds is None:
             prebuffer_seconds = WEBRTC_VIDEO_PREBUFFER_SECONDS
         self._prebuffer_seconds = prebuffer_seconds
-        self._prebuffer_frames = int(prebuffer_seconds * self._source_fps)
+        self._prebuffer_frames = max(0, int(round(prebuffer_seconds * self._source_fps)))
         self._prebuffer_ready = asyncio.Event()
         self._frames_received = 0
         
@@ -231,6 +240,9 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         # Stats tracking
         self._frames_played = 0
         self._frames_dropped = 0
+        self._frames_duplicated = 0
+        self._queue_underruns = 0
+        self._output_frames_sent = 0
         self._slowdown_active = False
         self._current_slowdown = 1.0
         self._generation_complete = False
@@ -247,6 +259,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
 
     def _reset_source_timing(self) -> None:
         self._source_accum = 0.0
+        self._live_output_index = 0
+        self._live_source_consumed = 0
 
     def _advance_source(self) -> int:
         self._source_accum += self._source_step
@@ -255,11 +269,17 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             self._source_accum -= advance
         return advance
 
+    def _live_source_steps_for_output(self) -> int:
+        desired_consumed = int(self._live_output_index * self._source_step) + 1
+        steps = max(0, desired_consumed - self._live_source_consumed)
+        self._live_output_index += 1
+        return steps
+
     def _pop_live_frames(self, steps: int):
         """Pop frames from queue, returning the last frame and count popped"""
         frame = None
         popped = 0
-        for _ in range(max(steps, 1)):
+        for _ in range(max(steps, 0)):
             try:
                 frame = self._queue.get_nowait()
                 popped += 1
@@ -285,7 +305,12 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._frames_received = 0
         self._frames_played = 0
         self._frames_dropped = 0
+        self._frames_duplicated = 0
+        self._queue_underruns = 0
+        self._output_frames_sent = 0
         self._prebuffer_ready.clear()
+        if self._prebuffer_frames <= 0:
+            self._prebuffer_ready.set()
         self._slowdown_active = False
         self._current_slowdown = 1.0
         self._generation_complete = False
@@ -318,6 +343,12 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
     def signal_generation_complete(self) -> None:
         """Called when all frames have been pushed - allows queue to drain naturally"""
         self._generation_complete = True
+        if self._live_active and not self._prebuffer_ready.is_set() and self._queue.qsize() > 0:
+            print(
+                f"🎬 Generation complete before full prebuffer; "
+                f"releasing {self._queue.qsize()} queued frames"
+            )
+            self._prebuffer_ready.set()
         print(f"🎬 Generation complete signaled. Queue: {self._queue.qsize()}, Played: {self._frames_played}")
 
     async def wait_for_playback_complete(self, timeout: Optional[float] = None) -> None:
@@ -327,10 +358,10 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             return
         await asyncio.wait_for(self._playback_complete.wait(), timeout=timeout)
 
-    async def push_bgr_frame(self, frame_bgr) -> None:
+    async def push_bgr_frame(self, frame_bgr) -> bool:
         """Push a single BGR frame to the queue - never drops, waits if full"""
         if self._closed:
-            return
+            return False
         
         frame = av.VideoFrame.from_ndarray(frame_bgr, format="bgr24").reformat(format="yuv420p")
         
@@ -353,6 +384,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         if not self._prebuffer_ready.is_set() and self._frames_received >= self._prebuffer_frames:
             print(f"🎬 Prebuffer ready: {self._frames_received} frames buffered, queue: {self._queue.qsize()}/{self._max_queue}")
             self._prebuffer_ready.set()
+        return self._prebuffer_ready.is_set()
 
     async def push_bgr_frames_batch(self, frames: list) -> None:
         """Push multiple BGR frames at once"""
@@ -418,12 +450,13 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         fill_ratio = queue_size / self._max_queue if self._max_queue > 0 else 0
         
         # Log status periodically
-        if self._frames_played % WEBRTC_QUEUE_LOG_INTERVAL == 0 and self._frames_played > 0:
+        if self._output_frames_sent % WEBRTC_QUEUE_LOG_INTERVAL == 0 and self._output_frames_sent > 0:
             effective_fps = self._output_fps / slowdown
             status = "⚡" if slowdown <= 1.0 else ("🐢" if slowdown > 1.2 else "📊")
             print(f"{status} Queue: {queue_size}/{self._max_queue} ({fill_ratio*100:.0f}%), "
                   f"slowdown: {slowdown:.2f}x, effective_fps: {effective_fps:.1f}, "
-                  f"played: {self._frames_played}, gen_complete: {self._generation_complete}")
+                  f"played: {self._frames_played}, duplicated: {self._frames_duplicated}, "
+                  f"gen_complete: {self._generation_complete}")
         
         # Track slowdown state changes
         was_slow = self._slowdown_active
@@ -435,6 +468,12 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             print(f"📈 Resuming normal speed (queue: {fill_ratio*100:.0f}%)")
         
         return self._base_frame_time * slowdown
+
+    def _stamp_video_frame(self, frame) -> None:
+        pts = int(round(self._rtp_frame_index * WEBRTC_VIDEO_CLOCK_RATE / self._output_fps))
+        self._rtp_frame_index += 1
+        frame.pts = pts
+        frame.time_base = WEBRTC_VIDEO_TIME_BASE
 
     def _get_current_frame_time(self) -> float:
         """Get the current effective frame time (for stats)"""
@@ -449,40 +488,46 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
 
         # Timing control
         if self._last_ts is None:
-            self._last_ts = time.time()
+            self._last_ts = time.monotonic()
         else:
-            now = time.time()
+            now = time.monotonic()
             wait = frame_time - (now - self._last_ts)
             if wait > 0.001:
                 await asyncio.sleep(wait)
-            self._last_ts = time.time()
+            self._last_ts = time.monotonic()
 
-        advance_frames = self._advance_source()
+        idle_advance_frames = self._advance_source()
         frame = None
         
         if self._live_active:
             # Check if we're still prebuffering
             if self._prebuffer_frames > 0 and not self._prebuffer_ready.is_set():
                 # Still prebuffering - show idle frames while we wait
-                frame = self._advance_idle_frame(advance_frames)
+                frame = self._advance_idle_frame(idle_advance_frames)
             else:
                 # Prebuffer ready - consume live frames
                 attempted_live_pop = False
-                if advance_frames > 0 or self._last_live_frame is None:
+                live_steps = self._live_source_steps_for_output()
+                if live_steps > 0:
                     attempted_live_pop = True
-                    next_frame, popped = self._pop_live_frames(advance_frames)
+                    next_frame, popped = self._pop_live_frames(live_steps)
                     if next_frame is not None:
                         self._last_live_frame = next_frame
                         self._frames_played += popped
+                        self._live_source_consumed += popped
                         if self._sync_clock:
                             self._sync_clock.add_frames(popped)
                             self._sync_clock.mark_started()
                     elif self._generation_complete and self._queue.qsize() == 0:
                         print("🎬 Playback complete - returning to idle")
                         self.end_live()
+                    elif self._last_live_frame is not None:
+                        self._queue_underruns += 1
                 
                 if self._live_active:
                     frame = self._last_live_frame
+                    if frame is not None and not attempted_live_pop:
+                        self._frames_duplicated += 1
                 
                 # If queue is empty and generation is complete, end live mode
                 if (
@@ -497,11 +542,10 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
 
         # Fallback to idle frame if no live frame available
         if frame is None:
-            frame = self._advance_idle_frame(advance_frames)
+            frame = self._advance_idle_frame(idle_advance_frames)
 
-        pts, time_base = await self.next_timestamp()
-        frame.pts = pts
-        frame.time_base = time_base
+        self._output_frames_sent += 1
+        self._stamp_video_frame(frame)
         return frame
 
     def get_stats(self) -> dict:
@@ -516,7 +560,12 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             'frames_received': self._frames_received,
             'frames_played': self._frames_played,
             'frames_dropped': self._frames_dropped,
+            'frames_duplicated': self._frames_duplicated,
+            'queue_underruns': self._queue_underruns,
+            'output_frames_sent': self._output_frames_sent,
             'prebuffer_frames': self._prebuffer_frames,
+            'source_fps': self._source_fps,
+            'output_fps': self._output_fps,
             'adaptive_fps': self._adaptive_fps,
             'slowdown_active': self._slowdown_active,
             'current_slowdown': self._current_slowdown,
@@ -650,6 +699,7 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
         self._stopped = False
         self._bytes_per_sample = 2
         self._start_time: Optional[float] = None
+        self._start_signal_time: Optional[float] = None
         self._frames_sent = 0
         self._eof = False
         self._eof_event = asyncio.Event()
@@ -660,11 +710,13 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
         self._load_lock = asyncio.Lock()
         self._converted_path: Optional[str] = None
         self._source_info = {}
+        self._last_drift_seconds: Optional[float] = None
+        self._drift_log_interval = int(os.getenv("WEBRTC_AUDIO_DRIFT_LOG_INTERVAL", "100"))
 
     def signal_start(self):
-        self._start_time = time.time()
+        self._start_signal_time = time.monotonic()
         self._started.set()
-        print(f"🔊 SyncedAudioStreamTrack: Started at {self._start_time:.3f}")
+        print(f"🔊 SyncedAudioStreamTrack: Start signaled at {self._start_signal_time:.3f}")
 
     async def _load_audio_async(self):
         if self._fully_loaded:
@@ -750,14 +802,6 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
                 print(f"🔊 Audio EOF after {self._frames_sent} frames")
         return result
 
-    def _skip_audio_frames(self, count: int) -> None:
-        if count <= 0:
-            return
-        skip_bytes = count * self._samples_per_frame * self._bytes_per_sample * self._channels
-        self._read_position = min(len(self._audio_samples), self._read_position + skip_bytes)
-        self._timestamp += count * self._samples_per_frame
-        self._frames_sent += count
-
     async def recv(self):
         if self._stopped:
             raise MediaStreamError("Track stopped")
@@ -766,35 +810,36 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
             await asyncio.wait_for(self._started.wait(), timeout=60.0)
         except asyncio.TimeoutError:
             raise MediaStreamError("Timeout waiting for start")
-        
+        if not self._fully_loaded:
+            await self._load_audio_async()
+
         if self._sync_clock is not None:
             try:
                 await asyncio.wait_for(self._sync_clock.started.wait(), timeout=60.0)
             except asyncio.TimeoutError:
                 raise MediaStreamError("Timeout waiting for video")
 
-        if not self._fully_loaded:
-            await self._load_audio_async()
-
-        # Simple timing - sync to video clock if available
-        if self._start_time is not None:
+        if self._start_time is None:
+            self._start_time = time.monotonic()
+            print(f"🔊 SyncedAudioStreamTrack: Playout started at {self._start_time:.3f}")
+        else:
             target = self._start_time + (self._frames_sent * self._frame_duration)
-            wait = target - time.time()
+            wait = target - time.monotonic()
             if wait > 0.002:
                 await asyncio.sleep(wait)
 
-        # Sync with video clock
         if self._sync_clock is not None and self._sync_clock.active:
             video_time = self._sync_clock.video_time()
             audio_time = self._frames_sent * self._frame_duration
             drift = audio_time - video_time
-            
-            if drift > self._max_audio_lead:
-                await asyncio.sleep(drift - self._max_audio_lead)
-            elif drift < -self._max_audio_lag:
-                skip = int((-drift - self._max_audio_lag) / self._frame_duration)
-                if skip > 0:
-                    self._skip_audio_frames(skip)
+            self._last_drift_seconds = drift
+            if (
+                self._drift_log_interval > 0
+                and self._frames_sent > 0
+                and self._frames_sent % self._drift_log_interval == 0
+                and abs(drift) > max(self._max_audio_lead, self._max_audio_lag)
+            ):
+                print(f"🔊 Audio/video drift observed: {drift:.3f}s (audio not retimed)")
 
         audio_bytes = self._get_samples(self._samples_per_frame)
 
@@ -807,6 +852,17 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
         self._timestamp += self._samples_per_frame
         self._frames_sent += 1
         return frame
+
+    def get_stats(self) -> dict:
+        return {
+            "sample_rate": self._sample_rate,
+            "samples_per_frame": self._samples_per_frame,
+            "frames_sent": self._frames_sent,
+            "audio_seconds_sent": self._frames_sent * self._frame_duration,
+            "eof": self._eof,
+            "last_drift_seconds": self._last_drift_seconds,
+            "fully_loaded": self._fully_loaded,
+        }
 
     async def wait_for_eof(self, timeout: Optional[float] = None) -> None:
         if timeout is None:

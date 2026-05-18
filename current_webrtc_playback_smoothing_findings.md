@@ -7,6 +7,74 @@ frames, low apparent framerate, and audio speed changes. It is meant to sit
 next to `current_webrtc_implementation_plan.md` and update the WebRTC retest
 plan with the latest media-path findings.
 
+## Implementation Update: 2026-05-18
+
+Phase 1 items 1-6 have now been implemented.
+
+Changed files:
+
+- `scripts/webrtc_tracks.py`
+  - changed default `WEBRTC_ADAPTIVE_FPS` to off
+  - changed default `WEBRTC_VIDEO_PREBUFFER_SECONDS` to `1.0`
+  - replaced aiortc's default 30 FPS video timestamp helper with fixed RTP
+    timestamps based on the configured output FPS
+  - fixed live frame consumption so `playback_fps > source_fps` duplicates/holds
+    frames instead of consuming source frames too fast
+  - removed skip/sleep audio drift correction; audio now emits fixed 48 kHz
+    20 ms frames after start
+  - starts the audio playout clock only after audio is loaded and ready to emit,
+    avoiding catch-up bursts after FFmpeg/PyAV load work
+  - added stats for duplicated frames, output frames, underruns, source/output
+    FPS, and audio playout state
+- `api_server.py`
+  - starts live video before queueing the first generated frame
+  - signals audio only after the video track reports prebuffer readiness
+  - releases queued frames and starts audio for short clips that finish before
+    the configured prebuffer fills
+- `scripts/run_webrtc_relay_api_server.sh`
+  - defaults WebRTC relay launches to `WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0`,
+    `WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0`, and `WEBRTC_ADAPTIVE_FPS=0`
+
+No browser/WebAudio route changes were made; that was intentionally left out of
+this pass.
+
+## Tests Performed: 2026-05-18
+
+Syntax/compile checks:
+
+```bash
+python3 -m py_compile scripts/webrtc_tracks.py api_server.py
+/workspace/.venvs/musetalk_trt_stagewise/bin/python -m py_compile scripts/webrtc_tracks.py api_server.py
+```
+
+In-process media track smoke tests used the project venv:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python
+```
+
+- Created `SwitchableVideoStreamTrack(source_fps=10, output_fps=20,
+  prebuffer_seconds=0, adaptive_fps=False)`.
+- Pushed three generated frames, marked generation complete, and called `recv()`
+  through playback drain.
+- Verified video RTP PTS values were spaced by `4500` ticks, which is the
+  correct 90 kHz clock step for 20 FPS.
+- Verified only `3` source frames were consumed while `3` output frames were
+  duplicated, confirming `playback_fps > source_fps` no longer speeds through
+  source frames.
+- Created `SyncedAudioStreamTrack(..., use_ffmpeg_convert=False)` and called
+  `recv()` four times.
+- Verified audio PTS values were `[0, 960, 1920, 2880]`, confirming fixed
+  48 kHz / 20 ms audio packet timing.
+- Created `SwitchableVideoStreamTrack(source_fps=10, output_fps=10,
+  prebuffer_seconds=0.5, adaptive_fps=False)`.
+- Verified prebuffer readiness stayed false for the first four frames and became
+  true on the fifth frame, matching a 0.5 s prebuffer at 10 FPS.
+
+These are smoke tests of the server-side media tracks. They do not prove browser
+smoothness by themselves; the next validation should restart the API and compare
+browser `getStats()` before/after with a real WebRTC session.
+
 ## User-Visible Symptoms
 
 - The player can report a lower decoded/rendered FPS than the requested target.
@@ -153,8 +221,8 @@ timestamps still advance as if it were 30 FPS. Browsers use RTP timestamps and
 jitter buffers for playout decisions, so this mismatch can produce uneven frame
 rendering even when frames arrive in order.
 
-This should be fixed by replacing `next_timestamp()` usage in the custom tracks
-with app-controlled video PTS:
+This has now been fixed by replacing `next_timestamp()` usage in the custom
+tracks with app-controlled video PTS:
 
 ```text
 pts_step = round(90000 / playback_fps)
@@ -182,11 +250,12 @@ frames at 15 FPS instead of duplicating some frames. That compresses the live
 video duration and then audio correction tries to compensate.
 
 This is especially important because older WebRTC docs recommend `fps=10` and
-`playback_fps=15`.
+`playback_fps=15`. The Phase 1 implementation now holds/duplicates frames for
+this case instead of consuming source frames at the output FPS.
 
 ### 5. WebRTC startup prebuffer is currently configured too low for smoothness
 
-The current retest path set:
+The old retest path set:
 
 ```text
 WEBRTC_VIDEO_PREBUFFER_SECONDS=0
@@ -194,7 +263,7 @@ WEBRTC_AUDIO_PREBUFFER_SECONDS=0.15
 ```
 
 That was useful to prove live video appears, but it is not the smoothest playout
-profile. Recent logs show live starts after the first frame:
+profile. Older logs showed live starting after the first frame:
 
 ```text
 Prebuffer ready: 1 frames buffered, queue: 1/100
@@ -263,9 +332,9 @@ around it.
 
 ### Phase 1: Stabilize existing WebRTC playout
 
-This is the smallest change set likely to fix the obvious symptoms.
+Status: implemented on 2026-05-18.
 
-1. Disable adaptive FPS by default.
+1. Disable adaptive FPS by default. Done.
 
    Change default `WEBRTC_ADAPTIVE_FPS` to false, or start the server with:
 
@@ -275,23 +344,23 @@ This is the smallest change set likely to fix the obvious symptoms.
 
    The track should play at a fixed `playback_fps`.
 
-2. Add app-controlled RTP video timestamps.
+2. Add app-controlled RTP video timestamps. Done.
 
    Stop using aiortc's hardcoded 30 FPS `next_timestamp()` for custom tracks.
    Use the configured output FPS to set PTS and `time_base`.
 
-3. Fix live-frame consumption when `playback_fps > source_fps`.
+3. Fix live-frame consumption when `playback_fps > source_fps`. Done.
 
    `_pop_live_frames(0)` must not pop a new source frame. It should return the
    previous live frame so output frames can duplicate/hold correctly.
 
-4. Remove audio skip-based drift correction.
+4. Remove audio skip-based drift correction. Done.
 
    In `SyncedAudioStreamTrack`, do not call `_skip_audio_frames()` for normal
    drift. Audio should emit fixed-size frames at normal sample time. If drift
    telemetry is kept, it should log only at first.
 
-5. Increase initial video prebuffer.
+5. Increase initial video prebuffer. Done.
 
    Recommended first test:
 
@@ -303,7 +372,8 @@ This is the smallest change set likely to fix the obvious symptoms.
 
    At `20fps`, this means roughly 20 frames before live reveal.
 
-6. Keep audio start tied to live reveal, not to adaptive video progress.
+6. Keep audio start tied to live reveal/prebuffer readiness, not to adaptive
+   video progress. Done.
 
    Start audio once the video queue crosses the prebuffer threshold and the
    track is actually switching to live. After start, audio should run normally.
@@ -461,21 +531,19 @@ Use a stable profile first, then tune for latency:
 WEBRTC_ADAPTIVE_FPS=0
 WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0
 WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
-WEBRTC_AUDIO_MAX_LEAD_SECONDS=0.0
-WEBRTC_AUDIO_MAX_LAG_SECONDS=0.0
 ```
 
-The lead/lag values should become irrelevant once skip-based correction is
-removed. Until then, setting them to zero is not enough because the current code
-will still react to drift; the code path itself should be changed.
+`WEBRTC_AUDIO_MAX_LEAD_SECONDS` and `WEBRTC_AUDIO_MAX_LAG_SECONDS` are now only
+drift log thresholds. They no longer change audio pacing, so leave them at the
+defaults unless the drift logs are too noisy or too quiet.
 
 ## Bottom Line
 
-The current WebRTC jitter is not just network jitter. The server intentionally
-changes video playout speed based on queue depth, then the audio track corrects
-itself against that variable video clock by sleeping or skipping samples. On top
-of that, custom video tracks appear to inherit aiortc's default 30 FPS timestamp
-step even when the session is configured for 20 FPS.
+The observed WebRTC jitter was not just network jitter. The server was
+intentionally changing video playout speed based on queue depth, then the audio
+track corrected itself against that variable video clock by sleeping or skipping
+samples. On top of that, custom video tracks inherited aiortc's default 30 FPS
+timestamp step even when the session was configured for 20 FPS.
 
 To make WebRTC feel like HLS, keep a real queue but remove variable-rate media
 playout. Use audio as the stable clock, timestamp video at the configured

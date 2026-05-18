@@ -3208,60 +3208,50 @@ async def webrtc_stream(
 
     main_loop = asyncio.get_event_loop()
     
-    # ✅ Track if we've signaled audio start / started live video
+    # Track if we've signaled audio start / started live video.
     audio_started = False
     live_started = False
-    try:
-        prebuffer_seconds = float(os.getenv("WEBRTC_AUDIO_PREBUFFER_SECONDS", "0.2"))
-    except ValueError:
-        prebuffer_seconds = 0.2
-    audio_prebuffer_frames = max(0, int(round(prebuffer_seconds * max(session.fps, 1))))
-    try:
-        video_prebuffer_seconds = float(os.getenv("WEBRTC_VIDEO_PREBUFFER_SECONDS", "0"))
-    except ValueError:
-        video_prebuffer_seconds = 0.0
-    video_prebuffer_frames_env = os.getenv("WEBRTC_VIDEO_PREBUFFER_FRAMES")
-    if video_prebuffer_frames_env:
-        try:
-            video_prebuffer_frames = int(video_prebuffer_frames_env)
-        except ValueError:
-            video_prebuffer_frames = 0
-    else:
-        video_prebuffer_frames = int(round(video_prebuffer_seconds * max(session.fps, 1)))
-    video_prebuffer_frames = max(0, video_prebuffer_frames)
-    queue_max = getattr(getattr(session.idle_track, "_queue", None), "maxsize", 0) or 0
-    if queue_max > 0 and video_prebuffer_frames > queue_max:
-        print(f"⚠️ WebRTC video prebuffer {video_prebuffer_frames} > queue {queue_max}; clamping.")
-        video_prebuffer_frames = queue_max
-    if video_prebuffer_frames > 0:
-        print(f"🎞️ WebRTC video prebuffer: {video_prebuffer_frames} frames")
-    audio_start_frames = max(audio_prebuffer_frames, video_prebuffer_frames)
     try:
         push_timeout_seconds = max(0.25, float(os.getenv("WEBRTC_PUSH_FRAME_TIMEOUT_SECONDS", "2.0")))
     except ValueError:
         push_timeout_seconds = 2.0
 
+    track_stats = session.idle_track.get_stats() if hasattr(session.idle_track, "get_stats") else {}
+    print(
+        f"🎞️ WebRTC fixed playout: src={session.fps}fps out={session.playback_fps}fps, "
+        f"prebuffer={track_stats.get('prebuffer_frames', 'n/a')} frames, "
+        f"adaptive_fps={track_stats.get('adaptive_fps', 'n/a')}"
+    )
+
+    def signal_audio_start_once():
+        nonlocal audio_started
+        if audio_started:
+            return
+        audio_started = True
+        asyncio.run_coroutine_threadsafe(_signal_audio_start(audio_track), main_loop)
+
     def frame_callback(frame_bgr, frame_idx, total_frames):
-        nonlocal audio_started, live_started
+        nonlocal live_started
         try:
             if not live_started:
-                threshold = video_prebuffer_frames if video_prebuffer_frames > 0 else 1
-                if frame_idx >= threshold or frame_idx >= total_frames:
-                    live_started = True
-                    main_loop.call_soon_threadsafe(session.idle_track.start_live)
-            # ✅ Signal audio after video prebuffer is ready
-            if live_started and not audio_started and frame_idx >= audio_start_frames:
-                audio_started = True
-                asyncio.run_coroutine_threadsafe(_signal_audio_start(audio_track), main_loop)
+                live_started = True
+                start_future = asyncio.run_coroutine_threadsafe(
+                    _start_live_track(session.idle_track),
+                    main_loop,
+                )
+                start_future.result(timeout=push_timeout_seconds)
             
             push_future = asyncio.run_coroutine_threadsafe(
                 session.idle_track.push_bgr_frame(frame_bgr),
                 main_loop
             )
+            prebuffer_ready = False
             try:
-                push_future.result(timeout=push_timeout_seconds)
+                prebuffer_ready = bool(push_future.result(timeout=push_timeout_seconds))
             except FutureTimeoutError:
                 print(f"⚠️ [{request_id}] Timed out handing WebRTC frame {frame_idx}/{total_frames} to playback queue")
+            if prebuffer_ready:
+                signal_audio_start_once()
         except Exception as e:
             print(f"⚠️ [{request_id}] frame_callback error: {e}")
 
@@ -3325,8 +3315,12 @@ async def webrtc_stream(
                     emit_chunks=False,
                 ):
                     pass
-            # Signal that generation is complete so playback can finish naturally
+            # Signal that generation is complete so playback can finish naturally.
+            # If a short clip did not reach the configured video prebuffer, this
+            # releases the queued frames and starts audio without retiming it.
             main_loop.call_soon_threadsafe(session.idle_track.signal_generation_complete)
+            if live_started and not audio_started:
+                signal_audio_start_once()
             generation_finished = True
             print(f"✅ [{request_id}] WebRTC streaming complete")
         except Exception as e:
@@ -3365,6 +3359,11 @@ async def webrtc_stream(
         "status": "streaming",
         "message": "WebRTC stream started. Player will switch to live."
     }
+
+
+async def _start_live_track(video_track):
+    """Helper to start live video from the main event loop before frames are queued."""
+    video_track.start_live()
 
 
 async def _signal_audio_start(audio_track: "SyncedAudioStreamTrack"):

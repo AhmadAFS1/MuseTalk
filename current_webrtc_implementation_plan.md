@@ -212,8 +212,9 @@ bash scripts/vast_server_ctl.sh stop
 
 WEBRTC_STUN_URLS="stun:stun.l.google.com:19302" \
 WEBRTC_TURN_URLS="" \
-WEBRTC_VIDEO_PREBUFFER_SECONDS=0 \
-WEBRTC_AUDIO_PREBUFFER_SECONDS=0.15 \
+WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0 \
+WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0 \
+WEBRTC_ADAPTIVE_FPS=0 \
 PROFILE=baseline \
 PORT=8000 \
 bash scripts/vast_server_ctl.sh start
@@ -292,14 +293,12 @@ curl http://127.0.0.1:8000/live/sessions
 
 ## Risks To Check Before Trusting Results
 
-1. Video prebuffer/cleanup race.
-   `SwitchableVideoStreamTrack` defaults to a 2 second prebuffer, but
-   `api_server.py` calls cleanup in the stream worker `finally` block. Cleanup
-   calls `end_live()`, which drains queued frames. Short clips or fast
-   generation may return to idle before the queued live frames are actually
-   watched. For immediate testing set `WEBRTC_VIDEO_PREBUFFER_SECONDS=0`; the
-   durable fix is to let the track drain naturally after
-   `signal_generation_complete()`.
+1. Video prebuffer/playback drain.
+   The 2026-05-18 smoothing pass changed WebRTC to default to a 1 second
+   prebuffer, start live before queueing frames, release short clips when
+   generation completes, and let `signal_generation_complete()` drain naturally
+   before cleanup. Retest with `WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0`,
+   `WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0`, and `WEBRTC_ADAPTIVE_FPS=0`.
 
 2. Offer can wait forever.
    `_wait_for_ice_gathering()` has no timeout. If STUN/TURN gathering stalls,
@@ -328,11 +327,12 @@ curl http://127.0.0.1:8000/live/sessions
 ## Recommendation
 
 Start with local browser WebRTC while the existing server is healthy, because
-session creation already works. Then restart with `WEBRTC_VIDEO_PREBUFFER_SECONDS=0`
-and do one real audio upload. If local playback works, restore either direct UDP
+session creation already works. Restart with `WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0`,
+`WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0`, and `WEBRTC_ADAPTIVE_FPS=0`, then do one
+real audio upload. If local playback works, restore either direct UDP
 `40000-40100` or a real TURN server before testing phones or React Native. The
-first code hardening pass should be the prebuffer/cleanup race plus an ICE
-gathering timeout and a WebRTC status endpoint.
+next code hardening pass should be an ICE gathering timeout and a WebRTC status
+endpoint.
 
 ## 2026-05-18 Playback Smoothing Update
 
@@ -348,7 +348,14 @@ server-side media clocking policy:
 - `playback_fps > source_fps` can consume source frames too quickly instead of
   duplicating frames
 
-The next WebRTC hardening pass should make audio a fixed-speed master clock,
-timestamp video at the configured playback FPS, disable adaptive FPS by default,
-add a real prebuffer before live reveal, and adapt video by holding/duplicating
-frames rather than speeding up or slowing down audio.
+Implemented on 2026-05-18:
+
+- audio is now fixed-speed and no longer skips/sleeps for drift correction
+- video RTP timestamps now use the configured playback FPS
+- adaptive FPS defaults to disabled
+- live video uses a real prebuffer before audio is signaled
+- `playback_fps > source_fps` now holds/duplicates frames instead of consuming
+  source frames too quickly
+
+See `current_webrtc_playback_smoothing_findings.md` for the smoke tests and the
+next browser validation checklist.

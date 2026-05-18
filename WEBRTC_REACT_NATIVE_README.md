@@ -141,9 +141,14 @@ If audio drifts:
 - Avoid large `batch_size` unless you can keep real-time FPS.
 
 Server-side sync knobs (env vars):
-- `WEBRTC_AUDIO_PREBUFFER_SECONDS` (default `0.2`)
-- `WEBRTC_AUDIO_MAX_LEAD_SECONDS` (default `0.08`)
-- `WEBRTC_AUDIO_MAX_LAG_SECONDS` (default `0.12`)
+- `WEBRTC_VIDEO_PREBUFFER_SECONDS` (default `1.0`)
+- `WEBRTC_AUDIO_PREBUFFER_SECONDS` (default `0.0`)
+- `WEBRTC_ADAPTIVE_FPS` (default `0`; keep disabled for fixed-speed audio)
+- `WEBRTC_AUDIO_MAX_LEAD_SECONDS` (default `0.15`; drift log threshold only)
+- `WEBRTC_AUDIO_MAX_LAG_SECONDS` (default `0.25`; drift log threshold only)
+
+Audio is not sped up, slowed down, or frame-skipped by these thresholds. They only
+control when the server logs observed A/V drift.
 
 Reference setup: 20 FPS / 20 FPS playback (batch_size=8 on 8GB GPU)
 ```
@@ -152,7 +157,9 @@ POST /webrtc/sessions/create?avatar_id=test_avatar&user_id=user1&fps=20&playback
 export WEBRTC_TURN_URLS="turn:195.142.145.66:12885?transport=udp,turn:195.142.145.66:12964?transport=tcp"
 export WEBRTC_TURN_USER="webrtc"
 export WEBRTC_TURN_PASS="CHANGE_THIS_PASSWORD"
-export WEBRTC_AUDIO_PREBUFFER_SECONDS=0.15
+export WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0
+export WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
+export WEBRTC_ADAPTIVE_FPS=0
 # optional: force relay-only
 export WEBRTC_STUN_URLS=""
 ```
