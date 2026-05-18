@@ -38,6 +38,67 @@ Changed files:
 No browser/WebAudio route changes were made; that was intentionally left out of
 this pass.
 
+## A/V Sync Follow-Up: Strict FIFO Mode
+
+After restarting with the Phase 1 changes, video playback can look much smoother
+while A/V sync still feels fragile. The next pass should preserve the user's
+preferred behavior: WebRTC should remain FIFO-like and should not skip generated
+video frames, while audio must not speed up or slow down.
+
+That combination is possible only if WebRTC is allowed to behave like HLS when
+production falls behind: buffer or stall both media tracks together. If we require
+all generated video frames to be shown and audio to remain normal speed, then the
+system cannot also promise continuous low-latency playout during a video
+underrun. In that case, the correct sync-preserving behavior is:
+
+- keep video frames in FIFO order
+- keep audio samples in FIFO order
+- start both only after enough shared A/V buffer exists
+- if the next video frame is not ready, stop advancing audio too
+- resume both from the same media timestamp once video catches up
+- never solve drift by speeding audio, slowing audio, skipping audio, or skipping
+  generated video frames
+
+This is closer to HLS buffering than normal ultra-low-latency WebRTC. The user
+experience should be a short buffering/stall event rather than lip sync drift.
+
+The implementation should use a shared A/V playout gate instead of letting audio
+and video tracks free-run:
+
+```text
+Generated video FIFO:
+  frame_index -> media_time = frame_index / source_fps
+
+Decoded audio FIFO:
+  packet_index -> media_time = samples_sent / sample_rate
+
+Shared playout state:
+  next_audio_packet
+  next_video_frame
+  buffered_video_until
+  buffered_audio_until
+  playout_started
+```
+
+In strict mode, `SyncedAudioStreamTrack.recv()` and
+`SwitchableVideoStreamTrack.recv()` should both consult the same playout state.
+Audio should emit packet `N` only when the corresponding video timeline coverage
+exists. Video should emit frame `N` in FIFO order at the configured output
+cadence. If either side is missing, both tracks wait. This makes sync forced by
+the server's media queue, not inferred after the fact from drift correction.
+
+This should be a new explicit mode, for example:
+
+```bash
+WEBRTC_SYNC_MODE=strict_fifo
+WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0
+WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
+WEBRTC_ADAPTIVE_FPS=0
+```
+
+The tradeoff is latency and occasional buffering. That is acceptable for this
+mode because the priority is complete FIFO playback and stable lip sync.
+
 ## Tests Performed: 2026-05-18
 
 Syntax/compile checks:
@@ -319,14 +380,17 @@ The smoother design should be:
 - video timestamps match configured playout FPS
 - generated frames are queued before live reveal
 - when source FPS is lower than playout FPS, repeat/hold frames
-- when queue is temporarily low, hold the last video frame or show idle fallback
-- when queue is too high, optionally drop old video frames only if low latency is
-  more important than complete playback
+- in strict FIFO mode, when the video queue is temporarily low, pause audio and
+  video progression together instead of letting audio run ahead
+- in low-latency mode only, hold the last video frame or drop late video frames
+  if continuous audio is more important than complete video playback
 - never skip audio to catch up to video
 - never speed up or slow down audio because the video queue changed
+- never skip generated video frames in strict FIFO mode
 
-For this use case, audio should be the master clock. Video should adapt visually
-around it.
+For this use case, strict FIFO should use a shared A/V playout clock. Audio is
+still fixed-rate once emitted, but it must not be allowed to free-run past missing
+video coverage.
 
 ## Recommended Implementation Plan
 
@@ -381,18 +445,23 @@ Status: implemented on 2026-05-18.
 ### Phase 2: Make WebRTC more HLS-like
 
 Build an in-memory WebRTC playout buffer that behaves like HLS segments without
-writing media segments:
+writing media segments. The preferred mode is strict FIFO A/V sync:
 
 - frame records should carry `source_index`, `playout_index`, `pts`, and
   optional generation timing
+- audio packets should carry `sample_index`, `packet_index`, and media time
+- both audio and video should be buffered against the same media timeline
 - a live stream should move through states: `preparing`, `prebuffering`,
   `playing`, `draining`, `idle`
 - the player should not reveal live until the server-side queue reaches a
-  minimum playout buffer
+  minimum shared A/V playout buffer
 - queue low-water and high-water behavior should be explicit:
-  - low-water: hold last frame / pause video progression while audio continues
-  - high-water: keep all frames for buffered playback, or drop old video frames
-    only in a separate low-latency mode
+  - strict FIFO low-water: pause both audio and video progression until the next
+    required video frame is available
+  - strict FIFO high-water: keep all frames for buffered playback, accepting
+    higher latency
+  - low-latency mode only: hold/drop video when continuous audio is more
+    important than showing every generated frame
 
 This can be implemented first in `scripts/webrtc_tracks.py` without changing the
 GPU scheduler.
@@ -423,6 +492,14 @@ buffering behavior.
   `prebuffer_frames` stats.
 - Change audio drift correction from "sleep/skip" to "measure/log".
 - Make audio playout fixed at `samples_per_frame / sample_rate`.
+- Add a strict FIFO sync mode with a shared A/V playout gate.
+- Give generated video frames explicit source media time and queue them in FIFO
+  order.
+- Give audio packets explicit sample/media time and only release packet `N` when
+  the corresponding video timeline coverage is ready.
+- In strict FIFO mode, make low-water behavior stall both tracks rather than
+  letting audio run ahead or skipping video frames.
+- Track stall count/duration and current shared buffer depth in stats.
 
 ### `api_server.py`
 
@@ -437,11 +514,13 @@ buffering behavior.
 - Add `GET /webrtc/sessions/{session_id}/status`.
 - Include track stats:
   - queue size/max/fill
+  - shared A/V buffer depth
   - prebuffer readiness
   - frames received
   - frames played
   - frames duplicated
   - frames dropped
+  - A/V stalls and stall duration
   - generation complete
   - configured FPS
   - effective playout FPS

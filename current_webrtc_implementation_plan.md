@@ -359,3 +359,43 @@ Implemented on 2026-05-18:
 
 See `current_webrtc_playback_smoothing_findings.md` for the smoke tests and the
 next browser validation checklist.
+
+## 2026-05-18 A/V Sync Follow-Up
+
+After the Phase 1 smoothing pass, video playout can look good while A/V sync can
+still be fragile. The next WebRTC pass should explicitly support a strict
+FIFO/HLS-like sync mode instead of treating audio and video as independent tracks
+that are corrected after drift appears.
+
+Preferred behavior for this product:
+
+- keep generated video frames in FIFO order
+- keep audio packets in FIFO order
+- do not speed up or slow down audio
+- do not skip generated video frames
+- start playout only after a shared A/V buffer exists
+- if video falls behind, stall both audio and video rather than letting audio run
+  ahead
+
+This mode trades latency and occasional buffering for stable lip sync and
+complete playback. It should be separate from a future low-latency mode, where
+holding/dropping video might be acceptable to keep audio continuous.
+
+Suggested next implementation target:
+
+```bash
+WEBRTC_SYNC_MODE=strict_fifo
+WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0
+WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
+WEBRTC_ADAPTIVE_FPS=0
+```
+
+Code direction:
+
+- add a shared A/V playout gate in `scripts/webrtc_tracks.py`
+- timestamp generated video frames with source media time
+- packetize audio against the same media timeline
+- allow both `SyncedAudioStreamTrack.recv()` and
+  `SwitchableVideoStreamTrack.recv()` to wait on the same playout state
+- expose stall count/duration and shared buffer depth through WebRTC status
+  telemetry
