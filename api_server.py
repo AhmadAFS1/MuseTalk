@@ -2754,6 +2754,44 @@ def _get_webrtc_session_status(session) -> str:
     return state or "created"
 
 
+def _parse_positive_int_list(raw: Optional[str]) -> list[int]:
+    values: list[int] = []
+    if not raw:
+        return values
+    for part in raw.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            value = int(part)
+        except ValueError:
+            continue
+        if value > 0 and value not in values:
+            values.append(value)
+    return sorted(values)
+
+
+def _resolve_webrtc_batch_size(requested_batch_size: int) -> int:
+    requested_batch_size = max(1, int(requested_batch_size))
+    warmed_batches = (
+        _parse_positive_int_list(os.getenv("MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES"))
+        or _parse_positive_int_list(os.getenv("HLS_SCHEDULER_FIXED_BATCH_SIZES"))
+    )
+    if not warmed_batches:
+        return requested_batch_size
+
+    if requested_batch_size in warmed_batches:
+        return requested_batch_size
+
+    larger_or_equal = [batch for batch in warmed_batches if batch >= requested_batch_size]
+    resolved = larger_or_equal[0] if larger_or_equal else warmed_batches[-1]
+    print(
+        f"🎞️ WebRTC batch size {requested_batch_size} adjusted to warmed TRT batch {resolved} "
+        f"(available={warmed_batches})"
+    )
+    return resolved
+
+
 async def _build_webrtc_group_response(group: dict) -> dict:
     sessions = []
     async with webrtc_session_manager.lock:
@@ -2824,6 +2862,7 @@ async def create_webrtc_group(
 
     resolved_fps = int(fps or musetalk_fps or 10)
     resolved_playback_fps = int(playback_fps or resolved_fps)
+    resolved_batch_size = _resolve_webrtc_batch_size(batch_size)
     resolved_chunk_duration = int(chunk_duration or round(float(segment_duration or 2)))
     resolved_chunk_duration = max(1, resolved_chunk_duration)
 
@@ -2836,7 +2875,7 @@ async def create_webrtc_group(
             user_id=user_id or f"webrtc-wall-{group_id}-{index + 1}",
             fps=resolved_fps,
             playback_fps=resolved_playback_fps,
-            batch_size=batch_size,
+            batch_size=resolved_batch_size,
             chunk_duration=resolved_chunk_duration,
         )
         session_id = session_payload["session_id"]
@@ -2851,7 +2890,8 @@ async def create_webrtc_group(
         "session_statuses": session_statuses,
         "config": {
             "count": count,
-            "batch_size": batch_size,
+            "batch_size": resolved_batch_size,
+            "requested_batch_size": batch_size,
             "fps": resolved_fps,
             "playback_fps": resolved_playback_fps,
             "chunk_duration": resolved_chunk_duration,
@@ -3038,13 +3078,14 @@ async def create_webrtc_session(
             detail=f"Input video for '{avatar_id}' is corrupted. Please re-prepare avatar."
         )
 
+    resolved_batch_size = _resolve_webrtc_batch_size(batch_size)
     session = await webrtc_session_manager.create_session(
         avatar_id=avatar_id,
         user_id=user_id,
         idle_video_path=str(video_path),
         fps=fps,
         playback_fps=playback_fps,
-        batch_size=batch_size,
+        batch_size=resolved_batch_size,
         chunk_duration=chunk_duration,
     )
 
@@ -3059,7 +3100,8 @@ async def create_webrtc_session(
         "config": {
             "fps": fps,
             "playback_fps": playback_fps or fps,
-            "batch_size": batch_size,
+            "batch_size": resolved_batch_size,
+            "requested_batch_size": batch_size,
             "chunk_duration": chunk_duration,
         }
     }

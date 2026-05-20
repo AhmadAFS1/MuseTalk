@@ -23,6 +23,7 @@ def get_webrtc_wall_html(default_avatar_id: str = "test_avatar") -> str:
 
     html = html.replace("/hls/", "/webrtc/")
     html = html.replace('/hls/sessions/stats', '/webrtc/sessions/stats')
+    html = html.replace('id="batchSize" type="number" min="1" value="2"', 'id="batchSize" type="number" min="1" value="8"')
     html = html.replace('id="avatarId" value="test_avatar"', f'id="avatarId" value="{safe_default_avatar_id}"')
     html = html.replace('const initialGroupMatch = window.location.pathname.match(/^\\/hls\\/groups\\/([^/]+)\\/wall$/);',
                         'const initialGroupMatch = window.location.pathname.match(/^\\/webrtc\\/groups\\/([^/]+)\\/wall$/);')

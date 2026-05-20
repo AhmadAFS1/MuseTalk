@@ -99,6 +99,108 @@ WEBRTC_ADAPTIVE_FPS=0
 The tradeoff is latency and occasional buffering. That is acceptable for this
 mode because the priority is complete FIFO playback and stable lip sync.
 
+## A/V Sync Retest: 2026-05-20
+
+After fixing the WebRTC batch-size mismatch so the `throughput_record` profile
+uses warmed TRT batches (`8,16`), WebRTC video playback became smooth, but A/V
+sync still failed in the expected direction: audio finished before video.
+
+Observed run:
+
+```text
+Source audio duration: 15.170958s
+Total frames generated: 303
+Generation FPS setting: 20
+Video media duration: 303 / 20 = 15.15s
+Generation complete signaled. Queue: 100, Played: 203
+Audio EOF after 758 frames
+Playback complete - returning to idle
+Live mode ended. Played: 303, Dropped: 0, Drained: 0
+Audio/video drift observed: 0.450s, 0.650s, 0.850s, 1.050s, 1.200s, 1.350s
+```
+
+The audio and video media lengths were effectively the same, so this was not an
+asset-duration mismatch. The drift came from playout policy:
+
+- audio starts once the video prebuffer threshold is reached
+- audio then free-runs at fixed `48000 Hz` / 20 ms packets
+- video drains a generated-frame FIFO at `playback_fps`
+- when generation outruns playout, video can still have a large queue after
+  generation completes
+- audio reaches EOF while video is still draining queued frames
+
+In that run, audio reached EOF when video had played about `288/303` frames,
+leaving roughly `15` video frames, or `0.75s` at 20 FPS, after the spoken audio.
+The drift telemetry reached about `1.35s`.
+
+This confirms that the current `VideoSyncClock` is not a sync mechanism. It
+gates audio start and records drift, but it does not stop audio from advancing
+past missing or delayed video timeline coverage:
+
+```text
+scripts/webrtc_tracks.py
+  SyncedAudioStreamTrack.recv()
+    waits for _started
+    waits for sync_clock.started
+    emits fixed audio packets from its own monotonic start time
+    logs drift only
+```
+
+The current WebRTC browser player also does not mirror HLS playback semantics:
+
+```text
+templates/webrtc_player.py
+  remoteVideo.srcObject = remoteStream           # video track
+  remoteAudio.srcObject = new MediaStream(...)   # separate audio track
+  WebAudio route = createMediaStreamSource(audioStream)
+```
+
+That means the browser is not using one media element as the primary A/V
+playout surface. The WebAudio route is useful for autoplay unlock experiments,
+but it adds a separate audio path and should not be the default sync path.
+
+### Can WebRTC Use One Track Like HLS?
+
+Not literally. HLS works by muxing encoded audio and video into the same media
+segment. The browser plays that muxed segment with one `<video>` element, so one
+media timeline owns both audio and video timestamps.
+
+WebRTC media is different: audio and video are separate RTP media tracks
+(`m=` sections) even when they are in the same peer connection. A WebRTC video
+track cannot carry audio samples, and an audio track cannot carry video frames.
+So "one track containing audio and video" is not a WebRTC-native option.
+
+What is possible, and what we should do, is make WebRTC behave like one media
+timeline:
+
+- keep one `RTCPeerConnection`
+- put audio and video into the same remote `MediaStream` on the client
+- attach that combined stream to one `<video>` element as the default path
+- keep the separate `<audio>` / WebAudio route only as an explicit unlock or
+  fallback path
+- on the server, introduce a shared A/V playout gate so audio and video cannot
+  advance independently
+
+The server-side gate is the important part. Browser-side stream attachment can
+reduce avoidable sync risk, but it cannot fix audio finishing early if the
+server continues to emit audio while video is still queued behind.
+
+The HLS-equivalent WebRTC design is therefore "two RTP tracks, one playout
+timeline", not "one RTP track". In strict FIFO mode:
+
+```text
+video frame N -> media_time = N / fps
+audio packet M -> media_time = samples_sent / sample_rate
+
+Audio packet M may be emitted only if video timeline coverage has reached the
+same media time. If video coverage is missing, both audio and video stall. When
+video catches up, both resume from the same media timestamp.
+```
+
+This intentionally trades latency for lip-sync correctness. It is the correct
+mode when the product requirement is "do not skip generated video frames and do
+not speed/skip audio".
+
 ## Tests Performed: 2026-05-18
 
 Syntax/compile checks:
@@ -559,7 +661,7 @@ export WEBRTC_ADAPTIVE_FPS="${WEBRTC_ADAPTIVE_FPS:-0}"
 Start with one stream and stable local/browser playback:
 
 ```bash
-POST /webrtc/sessions/create?fps=20&playback_fps=20&batch_size=4&chunk_duration=1
+POST /webrtc/sessions/create?fps=20&playback_fps=20&batch_size=8&chunk_duration=1
 POST /webrtc/sessions/{id}/stream
 ```
 
@@ -569,11 +671,12 @@ Expected behavior:
 - no audio speedup/slowdown
 - queue starts around prebuffer target and drains at fixed rate
 - no video speedup after generation completes
+- in strict FIFO mode, audio must not finish before queued video drains
 
 Then test source/output mismatch:
 
 ```bash
-POST /webrtc/sessions/create?fps=10&playback_fps=20&batch_size=4&chunk_duration=1
+POST /webrtc/sessions/create?fps=10&playback_fps=20&batch_size=8&chunk_duration=1
 ```
 
 Expected behavior:
@@ -628,3 +731,8 @@ To make WebRTC feel like HLS, keep a real queue but remove variable-rate media
 playout. Use audio as the stable clock, timestamp video at the configured
 playout FPS, prebuffer before reveal, and adapt video with duplication/holding
 instead of changing audio speed.
+
+The 2026-05-20 retest sharpens this conclusion: removing variable video speed
+and audio skip/sleep correction is not sufficient. Audio and video still need a
+shared playout gate. Without it, audio can free-run to EOF while video is still
+draining a FIFO queue, even when both media durations match.
