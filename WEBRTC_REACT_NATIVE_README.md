@@ -141,7 +141,8 @@ If audio drifts:
 - Avoid large `batch_size` unless you can keep real-time FPS.
 
 Server-side sync knobs (env vars):
-- `WEBRTC_VIDEO_PREBUFFER_SECONDS` (default `1.0`)
+- `WEBRTC_SYNC_MODE` (default `strict_fifo`)
+- `WEBRTC_VIDEO_PREBUFFER_SECONDS` (default `2.0`)
 - `WEBRTC_AUDIO_PREBUFFER_SECONDS` (default `0.0`)
 - `WEBRTC_ADAPTIVE_FPS` (default `0`; keep disabled for fixed-speed audio)
 - `WEBRTC_AUDIO_MAX_LEAD_SECONDS` (default `0.15`; drift log threshold only)
@@ -150,6 +151,10 @@ Server-side sync knobs (env vars):
 Audio is not sped up, slowed down, or frame-skipped by these thresholds. They only
 control when the server logs observed A/V drift.
 
+With `WEBRTC_SYNC_MODE=strict_fifo`, audio and video are released from a shared
+server-side playout gate. If the next FIFO video frame is not ready, audio waits
+too, preserving lip sync and all generated frames at the cost of buffering.
+
 Reference setup: 20 FPS / 20 FPS playback (batch_size=8 on 8GB GPU)
 ```
 POST /webrtc/sessions/create?avatar_id=test_avatar&user_id=user1&fps=20&playback_fps=20&batch_size=8&chunk_duration=2
@@ -157,7 +162,8 @@ POST /webrtc/sessions/create?avatar_id=test_avatar&user_id=user1&fps=20&playback
 export WEBRTC_TURN_URLS="turn:195.142.145.66:12885?transport=udp,turn:195.142.145.66:12964?transport=tcp"
 export WEBRTC_TURN_USER="webrtc"
 export WEBRTC_TURN_PASS="CHANGE_THIS_PASSWORD"
-export WEBRTC_VIDEO_PREBUFFER_SECONDS=1.0
+export WEBRTC_SYNC_MODE=strict_fifo
+export WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0
 export WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
 export WEBRTC_ADAPTIVE_FPS=0
 # optional: force relay-only

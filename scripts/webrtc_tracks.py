@@ -20,44 +20,229 @@ from aiortc import VideoStreamTrack, MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
 # Environment configuration
-WEBRTC_VIDEO_PREBUFFER_SECONDS = float(os.getenv("WEBRTC_VIDEO_PREBUFFER_SECONDS", "1.0"))
+WEBRTC_SYNC_MODE = os.getenv("WEBRTC_SYNC_MODE", "strict_fifo").strip().lower()
+WEBRTC_STRICT_FIFO_SYNC = WEBRTC_SYNC_MODE in ("strict_fifo", "fifo", "hls_like", "hls-like", "hls")
+WEBRTC_VIDEO_PREBUFFER_SECONDS = float(os.getenv("WEBRTC_VIDEO_PREBUFFER_SECONDS", "2.0"))
 WEBRTC_ADAPTIVE_FPS = os.getenv("WEBRTC_ADAPTIVE_FPS", "0").lower() in ("1", "true", "yes")
 WEBRTC_MIN_FPS_RATIO = float(os.getenv("WEBRTC_MIN_FPS_RATIO", "0.75"))  # Allow slowdown to 75%
 WEBRTC_QUEUE_LOG_INTERVAL = int(os.getenv("WEBRTC_QUEUE_LOG_INTERVAL", "30"))
 WEBRTC_TARGET_QUEUE_FILL = float(os.getenv("WEBRTC_TARGET_QUEUE_FILL", "0.4"))  # Target 40% queue fill
 WEBRTC_VIDEO_CLOCK_RATE = 90000
 WEBRTC_VIDEO_TIME_BASE = fractions.Fraction(1, WEBRTC_VIDEO_CLOCK_RATE)
+WEBRTC_SYNC_EPSILON_SECONDS = float(os.getenv("WEBRTC_SYNC_EPSILON_SECONDS", "0.005"))
+WEBRTC_STRICT_AUDIO_WAIT_TIMEOUT_SECONDS = float(os.getenv("WEBRTC_STRICT_AUDIO_WAIT_TIMEOUT_SECONDS", "30.0"))
+WEBRTC_STRICT_VIDEO_WAIT_TIMEOUT_SECONDS = float(os.getenv("WEBRTC_STRICT_VIDEO_WAIT_TIMEOUT_SECONDS", "30.0"))
+WEBRTC_VIDEO_MAX_QUEUE_FRAMES = int(os.getenv("WEBRTC_VIDEO_MAX_QUEUE_FRAMES", "400" if WEBRTC_STRICT_FIFO_SYNC else "100"))
 
 # ============================================================================
 # Video Tracks
 # ============================================================================
 
 class VideoSyncClock:
-    def __init__(self, source_fps: float):
+    def __init__(self, source_fps: float, strict_fifo: Optional[bool] = None):
         self.source_fps = float(source_fps) if source_fps > 0 else 1.0
         self.source_frames = 0
         self.active = False
         self.started = asyncio.Event()
+        self.playout_released = asyncio.Event()
+        self.strict_fifo = WEBRTC_STRICT_FIFO_SYNC if strict_fifo is None else bool(strict_fifo)
+        self._coverage_changed = asyncio.Event()
+        self._closed = False
+        self.audio_waiting = False
+        self.video_waiting = False
+        self.audio_stalls = 0
+        self.video_stalls = 0
+        self.audio_stall_seconds = 0.0
+        self.video_stall_seconds = 0.0
+        self.last_audio_wait_target_seconds = 0.0
+        self.audio_ready_at: Optional[float] = None
+        self.video_ready_at: Optional[float] = None
+        self.playout_released_at: Optional[float] = None
+        self.playout_start_time: Optional[float] = None
+        self.first_video_frame_at: Optional[float] = None
+        self.first_audio_packet_at: Optional[float] = None
 
     def reset(self) -> None:
         self.source_frames = 0
         self.active = True
+        self._closed = False
+        self.audio_waiting = False
+        self.video_waiting = False
+        self.audio_stalls = 0
+        self.video_stalls = 0
+        self.audio_stall_seconds = 0.0
+        self.video_stall_seconds = 0.0
+        self.last_audio_wait_target_seconds = 0.0
+        self.audio_ready_at = None
+        self.video_ready_at = None
+        self.playout_released_at = None
+        self.playout_start_time = None
+        self.first_video_frame_at = None
+        self.first_audio_packet_at = None
         self.started.clear()
+        self.playout_released.clear()
+        self._coverage_changed.set()
 
     def deactivate(self) -> None:
         self.active = False
         self.started.set()
+        self.playout_released.set()
+        self._coverage_changed.set()
+
+    def close(self) -> None:
+        self._closed = True
+        self.active = False
+        self.started.set()
+        self.playout_released.set()
+        self._coverage_changed.set()
 
     def mark_started(self) -> None:
         if self.active and not self.started.is_set():
             self.started.set()
 
+    def mark_audio_ready(self) -> None:
+        if self.audio_ready_at is None:
+            self.audio_ready_at = time.monotonic()
+
+    def mark_video_ready(self) -> None:
+        if self.video_ready_at is None:
+            self.video_ready_at = time.monotonic()
+
+    def release_playout(self, start_time: Optional[float] = None) -> float:
+        if self.playout_start_time is None:
+            now = time.monotonic()
+            self.playout_start_time = now if start_time is None else start_time
+            self.playout_released_at = now
+            self.playout_released.set()
+            self._coverage_changed.set()
+        return self.playout_start_time
+
+    def playout_due(self) -> bool:
+        return (
+            self.playout_released.is_set()
+            and (
+                self.playout_start_time is None
+                or time.monotonic() >= self.playout_start_time
+            )
+        )
+
+    async def wait_for_playout_start(self, timeout: Optional[float] = None) -> Optional[float]:
+        wait_timeout = 60.0 if timeout is None else timeout
+        await asyncio.wait_for(self.playout_released.wait(), timeout=wait_timeout)
+        if self.playout_start_time is not None:
+            delay = self.playout_start_time - time.monotonic()
+            if delay > 0:
+                await asyncio.sleep(delay)
+        return self.playout_start_time
+
+    def mark_first_video_frame(self) -> None:
+        if self.first_video_frame_at is None:
+            self.first_video_frame_at = time.monotonic()
+
+    def mark_first_audio_packet(self) -> None:
+        if self.first_audio_packet_at is None:
+            self.first_audio_packet_at = time.monotonic()
+
     def add_frames(self, frames: int) -> None:
         if self.active and frames > 0:
             self.source_frames += frames
+            self._coverage_changed.set()
 
     def video_time(self) -> float:
         return self.source_frames / self.source_fps
+
+    async def wait_for_audio_coverage(
+        self,
+        target_seconds: float,
+        timeout: Optional[float] = None,
+    ) -> float:
+        """Wait until emitted video covers the requested audio media time."""
+        if not self.strict_fifo or not self.active or self._closed:
+            return 0.0
+
+        self.last_audio_wait_target_seconds = target_seconds
+        if self.video_time() + WEBRTC_SYNC_EPSILON_SECONDS >= target_seconds:
+            return 0.0
+
+        stall_start = time.monotonic()
+        self.audio_stalls += 1
+        self.audio_waiting = True
+        try:
+            while (
+                self.strict_fifo
+                and self.active
+                and not self._closed
+                and self.video_time() + WEBRTC_SYNC_EPSILON_SECONDS < target_seconds
+            ):
+                self._coverage_changed.clear()
+                if self.video_time() + WEBRTC_SYNC_EPSILON_SECONDS >= target_seconds:
+                    break
+                wait_timeout = WEBRTC_STRICT_AUDIO_WAIT_TIMEOUT_SECONDS if timeout is None else timeout
+                try:
+                    await asyncio.wait_for(self._coverage_changed.wait(), timeout=wait_timeout)
+                except asyncio.TimeoutError:
+                    print(
+                        f"🔊 Strict FIFO audio wait timed out at target={target_seconds:.3f}s, "
+                        f"video={self.video_time():.3f}s"
+                    )
+                    break
+        finally:
+            elapsed = time.monotonic() - stall_start
+            self.audio_stall_seconds += elapsed
+            self.audio_waiting = False
+        return elapsed
+
+    def note_video_stall(self, duration_seconds: float) -> None:
+        if duration_seconds <= 0:
+            return
+        self.video_stalls += 1
+        self.video_stall_seconds += duration_seconds
+        self._coverage_changed.set()
+
+    def get_stats(self) -> dict:
+        return {
+            "sync_mode": "strict_fifo" if self.strict_fifo else "free_run",
+            "active": self.active,
+            "started": self.started.is_set(),
+            "source_fps": self.source_fps,
+            "source_frames": self.source_frames,
+            "video_coverage_seconds": self.video_time(),
+            "audio_waiting": self.audio_waiting,
+            "video_waiting": self.video_waiting,
+            "audio_stalls": self.audio_stalls,
+            "video_stalls": self.video_stalls,
+            "audio_stall_seconds": self.audio_stall_seconds,
+            "video_stall_seconds": self.video_stall_seconds,
+            "last_audio_wait_target_seconds": self.last_audio_wait_target_seconds,
+            "audio_ready": self.audio_ready_at is not None,
+            "video_ready": self.video_ready_at is not None,
+            "playout_released": self.playout_released.is_set(),
+            "audio_ready_to_release_seconds": (
+                self.playout_released_at - self.audio_ready_at
+                if self.playout_released_at is not None and self.audio_ready_at is not None
+                else None
+            ),
+            "video_ready_to_release_seconds": (
+                self.playout_released_at - self.video_ready_at
+                if self.playout_released_at is not None and self.video_ready_at is not None
+                else None
+            ),
+            "first_audio_packet_after_release_seconds": (
+                self.first_audio_packet_at - self.playout_released_at
+                if self.first_audio_packet_at is not None and self.playout_released_at is not None
+                else None
+            ),
+            "first_video_frame_after_release_seconds": (
+                self.first_video_frame_at - self.playout_released_at
+                if self.first_video_frame_at is not None and self.playout_released_at is not None
+                else None
+            ),
+            "initial_av_start_delta_seconds": (
+                self.first_audio_packet_at - self.first_video_frame_at
+                if self.first_audio_packet_at is not None and self.first_video_frame_at is not None
+                else None
+            ),
+        }
 
 
 class IdleVideoStreamTrack(VideoStreamTrack):
@@ -192,7 +377,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         idle_video_path: str,
         source_fps: float = 10.0,
         output_fps: Optional[float] = None,
-        max_queue: int = 100,  # Increased for more buffering headroom
+        max_queue: Optional[int] = None,
         sync_clock: Optional[VideoSyncClock] = None,
         prebuffer_seconds: Optional[float] = None,
         adaptive_fps: Optional[bool] = None,
@@ -201,6 +386,14 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         super().__init__()
         self._source_fps = float(source_fps)
         self._output_fps = float(output_fps) if output_fps is not None else self._source_fps
+        self._sync_clock = sync_clock
+        self._strict_fifo = bool(getattr(sync_clock, "strict_fifo", WEBRTC_STRICT_FIFO_SYNC))
+        if self._strict_fifo and self._output_fps < self._source_fps:
+            print(
+                f"⚠️ Strict FIFO requires output_fps >= source_fps to avoid skipping; "
+                f"raising output_fps {self._output_fps:g} -> {self._source_fps:g}"
+            )
+            self._output_fps = self._source_fps
         if self._output_fps <= 0:
             self._output_fps = self._source_fps
         self._base_frame_time = 1.0 / float(self._output_fps)
@@ -209,18 +402,18 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._source_accum = 0.0
         self._live_output_index = 0
         self._live_source_consumed = 0
-        self._max_queue = max_queue
-        self._queue: asyncio.Queue = asyncio.Queue(maxsize=max_queue)
+        self._max_queue = WEBRTC_VIDEO_MAX_QUEUE_FRAMES if max_queue is None else max_queue
+        self._queue: asyncio.Queue = asyncio.Queue(maxsize=self._max_queue)
         self._idle = IdleVideoStreamTrack(idle_video_path, fps=source_fps)
         self._live_active = False
+        self._live_released = False
         self._last_idle_frame = None
         self._last_live_frame = None
         self._last_ts = None
         self._rtp_frame_index = 0
         self._closed = False
-        self._sync_clock = sync_clock
 
-        # Prebuffer support - default to a 1s live queue for smoother playout.
+        # Prebuffer support - strict FIFO defaults to a deeper HLS-like live queue.
         if prebuffer_seconds is None:
             prebuffer_seconds = WEBRTC_VIDEO_PREBUFFER_SECONDS
         self._prebuffer_seconds = prebuffer_seconds
@@ -242,6 +435,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._frames_dropped = 0
         self._frames_duplicated = 0
         self._queue_underruns = 0
+        self._strict_video_stalls = 0
+        self._strict_video_stall_seconds = 0.0
         self._output_frames_sent = 0
         self._slowdown_active = False
         self._current_slowdown = 1.0
@@ -255,7 +450,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         
         print(f"🎬 SwitchableVideoStreamTrack: prebuffer={self._prebuffer_frames} frames "
               f"({prebuffer_seconds}s), adaptive_fps={adaptive_fps}, min_ratio={min_fps_ratio}, "
-              f"max_queue={max_queue}, target_fill={self._target_fill}")
+              f"max_queue={self._max_queue}, target_fill={self._target_fill}, "
+              f"sync_mode={'strict_fifo' if self._strict_fifo else 'free_run'}")
 
     def _reset_source_timing(self) -> None:
         self._source_accum = 0.0
@@ -287,6 +483,49 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                 break
         return frame, popped
 
+    async def _pop_live_frames_strict(self, steps: int):
+        """Pop exactly the next FIFO frames, waiting instead of dropping/holding."""
+        frame = None
+        popped = 0
+        stalled_seconds = 0.0
+        for _ in range(max(steps, 0)):
+            try:
+                frame = self._queue.get_nowait()
+                popped += 1
+                continue
+            except asyncio.QueueEmpty:
+                pass
+
+            if self._generation_complete:
+                break
+
+            self._queue_underruns += 1
+            self._strict_video_stalls += 1
+            stall_start = time.monotonic()
+            if self._sync_clock:
+                self._sync_clock.video_waiting = True
+            try:
+                frame = await asyncio.wait_for(
+                    self._queue.get(),
+                    timeout=WEBRTC_STRICT_VIDEO_WAIT_TIMEOUT_SECONDS,
+                )
+                popped += 1
+            except asyncio.TimeoutError:
+                print(
+                    f"🎬 Strict FIFO video wait timed out "
+                    f"(queue={self._queue.qsize()}, played={self._frames_played})"
+                )
+                break
+            finally:
+                elapsed = time.monotonic() - stall_start
+                stalled_seconds += elapsed
+                self._strict_video_stall_seconds += elapsed
+                if self._sync_clock:
+                    self._sync_clock.video_waiting = False
+                    self._sync_clock.note_video_stall(elapsed)
+
+        return frame, popped, stalled_seconds
+
     def _advance_idle_frame(self, steps: int):
         if steps <= 0 and self._last_idle_frame is not None:
             return self._last_idle_frame
@@ -300,6 +539,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
     def start_live(self) -> None:
         """Start live mode - will show idle frames until prebuffer is ready"""
         self._live_active = True
+        self._live_released = False
         self._last_live_frame = None
         self._reset_source_timing()
         self._frames_received = 0
@@ -307,6 +547,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._frames_dropped = 0
         self._frames_duplicated = 0
         self._queue_underruns = 0
+        self._strict_video_stalls = 0
+        self._strict_video_stall_seconds = 0.0
         self._output_frames_sent = 0
         self._prebuffer_ready.clear()
         if self._prebuffer_frames <= 0:
@@ -323,6 +565,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
     def end_live(self) -> None:
         """End live mode - drain queue and return to idle"""
         self._live_active = False
+        self._live_released = False
         drained = 0
         try:
             while True:
@@ -349,6 +592,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                 f"releasing {self._queue.qsize()} queued frames"
             )
             self._prebuffer_ready.set()
+            if self._sync_clock:
+                self._sync_clock.mark_video_ready()
         print(f"🎬 Generation complete signaled. Queue: {self._queue.qsize()}, Played: {self._frames_played}")
 
     async def wait_for_playback_complete(self, timeout: Optional[float] = None) -> None:
@@ -365,18 +610,23 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         
         frame = av.VideoFrame.from_ndarray(frame_bgr, format="bgr24").reformat(format="yuv420p")
         
-        # Wait for space instead of dropping (MSE-like behavior)
-        try:
-            # Use a short timeout to avoid blocking forever
-            await asyncio.wait_for(self._queue.put(frame), timeout=1.0)
-        except asyncio.TimeoutError:
-            # Only drop if absolutely necessary
-            try:
-                self._queue.get_nowait()
-                self._frames_dropped += 1
-            except asyncio.QueueEmpty:
-                pass
+        if self._strict_fifo:
+            # Strict FIFO preserves every generated frame and applies backpressure
+            # instead of dropping old frames when the playout buffer is full.
             await self._queue.put(frame)
+        else:
+            # Wait for space instead of dropping (MSE-like behavior)
+            try:
+                # Use a short timeout to avoid blocking forever
+                await asyncio.wait_for(self._queue.put(frame), timeout=1.0)
+            except asyncio.TimeoutError:
+                # Only drop if absolutely necessary
+                try:
+                    self._queue.get_nowait()
+                    self._frames_dropped += 1
+                except asyncio.QueueEmpty:
+                    pass
+                await self._queue.put(frame)
         
         self._frames_received += 1
         
@@ -384,6 +634,10 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         if not self._prebuffer_ready.is_set() and self._frames_received >= self._prebuffer_frames:
             print(f"🎬 Prebuffer ready: {self._frames_received} frames buffered, queue: {self._queue.qsize()}/{self._max_queue}")
             self._prebuffer_ready.set()
+            if self._sync_clock:
+                self._sync_clock.mark_video_ready()
+        elif self._prebuffer_ready.is_set() and self._frames_received > 0 and self._sync_clock:
+            self._sync_clock.mark_video_ready()
         return self._prebuffer_ready.is_set()
 
     async def push_bgr_frames_batch(self, frames: list) -> None:
@@ -504,24 +758,45 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             if self._prebuffer_frames > 0 and not self._prebuffer_ready.is_set():
                 # Still prebuffering - show idle frames while we wait
                 frame = self._advance_idle_frame(idle_advance_frames)
+            elif (
+                self._strict_fifo
+                and self._sync_clock is not None
+                and not self._sync_clock.playout_due()
+            ):
+                # The FIFO has enough video, but strict A/V mode waits until
+                # audio has also been prepared. Keep showing idle frames so the
+                # first live frame and first audio packet share one release point.
+                self._sync_clock.mark_video_ready()
+                frame = self._advance_idle_frame(idle_advance_frames)
             else:
+                if not self._live_released:
+                    self._live_released = True
+                    self._last_ts = time.monotonic()
                 # Prebuffer ready - consume live frames
                 attempted_live_pop = False
                 live_steps = self._live_source_steps_for_output()
                 if live_steps > 0:
                     attempted_live_pop = True
-                    next_frame, popped = self._pop_live_frames(live_steps)
+                    if self._strict_fifo:
+                        next_frame, popped, stalled_seconds = await self._pop_live_frames_strict(live_steps)
+                        if stalled_seconds > 0:
+                            # A strict FIFO stall is intentional buffering. Re-anchor
+                            # the local video pacing so we do not burst frames after it.
+                            self._last_ts = time.monotonic()
+                    else:
+                        next_frame, popped = self._pop_live_frames(live_steps)
                     if next_frame is not None:
                         self._last_live_frame = next_frame
                         self._frames_played += popped
                         self._live_source_consumed += popped
                         if self._sync_clock:
+                            self._sync_clock.mark_first_video_frame()
                             self._sync_clock.add_frames(popped)
                             self._sync_clock.mark_started()
                     elif self._generation_complete and self._queue.qsize() == 0:
                         print("🎬 Playback complete - returning to idle")
                         self.end_live()
-                    elif self._last_live_frame is not None:
+                    elif self._last_live_frame is not None and not self._strict_fifo:
                         self._queue_underruns += 1
                 
                 if self._live_active:
@@ -553,6 +828,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         queue_size = self._queue.qsize()
         return {
             'live_active': self._live_active,
+            'live_released': self._live_released,
             'prebuffer_ready': self._prebuffer_ready.is_set(),
             'queue_size': queue_size,
             'queue_max': self._max_queue,
@@ -562,10 +838,14 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             'frames_dropped': self._frames_dropped,
             'frames_duplicated': self._frames_duplicated,
             'queue_underruns': self._queue_underruns,
+            'strict_video_stalls': self._strict_video_stalls,
+            'strict_video_stall_seconds': self._strict_video_stall_seconds,
             'output_frames_sent': self._output_frames_sent,
             'prebuffer_frames': self._prebuffer_frames,
             'source_fps': self._source_fps,
             'output_fps': self._output_fps,
+            'sync_mode': 'strict_fifo' if self._strict_fifo else 'free_run',
+            'sync_clock': self._sync_clock.get_stats() if self._sync_clock else None,
             'adaptive_fps': self._adaptive_fps,
             'slowdown_active': self._slowdown_active,
             'current_slowdown': self._current_slowdown,
@@ -576,6 +856,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
     def stop(self) -> None:
         self._closed = True
         self._playback_complete.set()
+        if self._sync_clock:
+            self._sync_clock.close()
         if self._idle is not None:
             self._idle.stop()
         print(f"🎬 SwitchableVideoStreamTrack stopped. Final stats: {self.get_stats()}")
@@ -700,6 +982,8 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
         self._bytes_per_sample = 2
         self._start_time: Optional[float] = None
         self._start_signal_time: Optional[float] = None
+        self._playout_start_time: Optional[float] = None
+        self._first_packet_at: Optional[float] = None
         self._frames_sent = 0
         self._eof = False
         self._eof_event = asyncio.Event()
@@ -712,21 +996,46 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
         self._source_info = {}
         self._last_drift_seconds: Optional[float] = None
         self._drift_log_interval = int(os.getenv("WEBRTC_AUDIO_DRIFT_LOG_INTERVAL", "100"))
+        self._strict_audio_stalls = 0
+        self._strict_audio_stall_seconds = 0.0
+        self._prepare_started_at: Optional[float] = None
+        self._prepare_finished_at: Optional[float] = None
 
-    def signal_start(self):
+    def signal_start(self, start_time: Optional[float] = None):
         self._start_signal_time = time.monotonic()
+        if start_time is None and self._sync_clock is not None:
+            start_time = self._sync_clock.playout_start_time
+        self._playout_start_time = start_time
         self._started.set()
-        print(f"🔊 SyncedAudioStreamTrack: Start signaled at {self._start_signal_time:.3f}")
+        if start_time is None:
+            print(f"🔊 SyncedAudioStreamTrack: Start signaled at {self._start_signal_time:.3f}")
+        else:
+            print(
+                f"🔊 SyncedAudioStreamTrack: Start signaled at {self._start_signal_time:.3f}, "
+                f"t0={start_time:.3f}"
+            )
+
+    async def prepare(self) -> None:
+        """Decode/convert audio before the shared A/V playout gate opens."""
+        await self._load_audio_async()
+        if self._sync_clock is not None:
+            self._sync_clock.mark_audio_ready()
 
     async def _load_audio_async(self):
         if self._fully_loaded:
+            if self._sync_clock is not None:
+                self._sync_clock.mark_audio_ready()
             return
             
         async with self._load_lock:
             if self._fully_loaded:
+                if self._sync_clock is not None:
+                    self._sync_clock.mark_audio_ready()
                 return
             
             loop = asyncio.get_event_loop()
+            if self._prepare_started_at is None:
+                self._prepare_started_at = time.monotonic()
             
             if self._use_ffmpeg:
                 try:
@@ -740,9 +1049,20 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
             
             self._audio_samples = await loop.run_in_executor(None, self._load_pcm_audio)
             self._fully_loaded = True
+            self._prepare_finished_at = time.monotonic()
+            if self._sync_clock is not None:
+                self._sync_clock.mark_audio_ready()
             
             duration_ms = len(self._audio_samples) / (self._bytes_per_sample * self._channels) / self._sample_rate * 1000
-            print(f"🔊 Audio loaded: {len(self._audio_samples)} bytes, {duration_ms:.0f}ms")
+            prepare_ms = (
+                (self._prepare_finished_at - self._prepare_started_at) * 1000
+                if self._prepare_started_at is not None
+                else 0.0
+            )
+            print(
+                f"🔊 Audio loaded: {len(self._audio_samples)} bytes, "
+                f"{duration_ms:.0f}ms media, prepare={prepare_ms:.0f}ms"
+            )
 
     def _load_pcm_audio(self) -> bytes:
         audio_path = Path(self._audio_path)
@@ -814,16 +1134,44 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
             await self._load_audio_async()
 
         if self._sync_clock is not None:
+            if self._sync_clock.strict_fifo:
+                try:
+                    playout_start = await self._sync_clock.wait_for_playout_start(timeout=60.0)
+                    if self._playout_start_time is None:
+                        self._playout_start_time = playout_start
+                except asyncio.TimeoutError:
+                    raise MediaStreamError("Timeout waiting for A/V playout release")
             try:
                 await asyncio.wait_for(self._sync_clock.started.wait(), timeout=60.0)
             except asyncio.TimeoutError:
                 raise MediaStreamError("Timeout waiting for video")
 
+        if self._sync_clock is not None and self._sync_clock.strict_fifo:
+            packet_end_time = (self._frames_sent + 1) * self._frame_duration
+            stalled_seconds = await self._sync_clock.wait_for_audio_coverage(packet_end_time)
+            if stalled_seconds > 0:
+                self._strict_audio_stalls += 1
+                self._strict_audio_stall_seconds += stalled_seconds
+                if self._start_time is not None:
+                    # Insert silence-free buffering time instead of catching up in
+                    # a burst, which would sound like audio speedup.
+                    self._start_time = time.monotonic() - (self._frames_sent * self._frame_duration)
+
         if self._start_time is None:
-            self._start_time = time.monotonic()
-            print(f"🔊 SyncedAudioStreamTrack: Playout started at {self._start_time:.3f}")
+            now = time.monotonic()
+            playout_t0 = self._playout_start_time or now
+            self._start_time = max(playout_t0, now)
+            print(
+                f"🔊 SyncedAudioStreamTrack: Playout started at {now:.3f} "
+                f"(t0={playout_t0:.3f})"
+            )
         else:
             target = self._start_time + (self._frames_sent * self._frame_duration)
+            if target < time.monotonic() - 0.002:
+                # Any upstream stall should become a real pause, not an audio
+                # catch-up burst.
+                self._start_time = time.monotonic() - (self._frames_sent * self._frame_duration)
+                target = self._start_time + (self._frames_sent * self._frame_duration)
             wait = target - time.monotonic()
             if wait > 0.002:
                 await asyncio.sleep(wait)
@@ -851,9 +1199,18 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
 
         self._timestamp += self._samples_per_frame
         self._frames_sent += 1
+        if self._first_packet_at is None:
+            self._first_packet_at = time.monotonic()
+            if self._sync_clock is not None:
+                self._sync_clock.mark_first_audio_packet()
         return frame
 
     def get_stats(self) -> dict:
+        prepare_seconds = (
+            self._prepare_finished_at - self._prepare_started_at
+            if self._prepare_finished_at is not None and self._prepare_started_at is not None
+            else None
+        )
         return {
             "sample_rate": self._sample_rate,
             "samples_per_frame": self._samples_per_frame,
@@ -862,6 +1219,23 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
             "eof": self._eof,
             "last_drift_seconds": self._last_drift_seconds,
             "fully_loaded": self._fully_loaded,
+            "prepare_started": self._prepare_started_at is not None,
+            "prepare_seconds": prepare_seconds,
+            "start_signaled": self._started.is_set(),
+            "playout_start_time_set": self._playout_start_time is not None,
+            "first_packet_after_signal_seconds": (
+                self._first_packet_at - self._start_signal_time
+                if self._first_packet_at is not None and self._start_signal_time is not None
+                else None
+            ),
+            "sync_mode": (
+                "strict_fifo"
+                if self._sync_clock is not None and self._sync_clock.strict_fifo
+                else "free_run"
+            ),
+            "strict_audio_stalls": self._strict_audio_stalls,
+            "strict_audio_stall_seconds": self._strict_audio_stall_seconds,
+            "sync_clock": self._sync_clock.get_stats() if self._sync_clock else None,
         }
 
     async def wait_for_eof(self, timeout: Optional[float] = None) -> None:
