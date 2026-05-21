@@ -262,6 +262,91 @@ API no longer causes the status loop to wait indefinitely. The timeout check now
 runs before status polling, and track receive errors include their exception
 type.
 
+### Automated WebRTC Load Test Rerun: 2026-05-21
+
+The automated WebRTC load test was rerun after restarting the API server. The
+server was healthy before the run:
+
+```text
+GET http://127.0.0.1:8000/health -> healthy, accepting_new_sessions=true
+```
+
+Rerun command:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python load_test_webrtc.py \
+  --base-url http://127.0.0.1:8000 \
+  --avatar-id test_avatar \
+  --audio-file ./data/audio/ai-assistant.mpga \
+  --ramp 4,5,6,8 \
+  --hold-seconds 15 \
+  --segment-duration 1.0 \
+  --playback-fps 20 \
+  --musetalk-fps 20 \
+  --batch-size 8 \
+  --stage-ready-timeout 90 \
+  --connection-timeout 30 \
+  --completion-timeout 180 \
+  --report-path load_test_webrtc_report_20_20_4_5_6_8streams_8_16_rerun2.json \
+  --detail-report-path load_test_webrtc_report_20_20_4_5_6_8streams_8_16_rerun2_detailed.json
+```
+
+Result summary:
+
+| Stage | Completed | Avg live-ready | Avg frame interval | Max frame interval | Peak GPU memory | Result |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `4` streams | `1/4` | `9.827s` | `0.086s` | `0.855s` | `24145MB` | failed; API process exited mid-stage |
+| `5` streams | `0/5` | `0.000s` | `0.000s` | `0.000s` | `15MB` | failed at create; API already down |
+| `6` streams | `0/6` | `0.000s` | `0.000s` | `0.000s` | `15MB` | failed at create; API already down |
+| `8` streams | `0/8` | `0.000s` | `0.000s` | `0.000s` | `15MB` | failed at create; API already down |
+
+Stage `4` per-session detail:
+
+| Session | Completed | Live-ready | Live video frames received | Avg frame interval | Max frame interval | Server frames played | Strict video stall seconds | Initial A/V start delta |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `-P3h...AqKKWQ` | no | `11.360s` | `338` | `0.085s` | `0.841s` | `342` | `11.041s` | `0.0009s` |
+| `12si...1F3Snw` | no | `11.877s` | `338` | `0.084s` | `0.796s` | `340` | `10.814s` | `0.0067s` |
+| `gb9e...7BZPg` | no | `11.863s` | `339` | `0.083s` | `0.785s` | `340` | `10.398s` | `0.0057s` |
+| `tl3s...wRPx1A` | yes | `9.827s` | `352` | `0.086s` | `0.855s` | `355` | `12.073s` | `0.0072s` |
+
+Observed errors:
+
+- Stage `4` failed sessions recorded `MediaStreamError` for both audio and
+  video track receive.
+- Stage `4` failed sessions timed out with:
+  `ClientConnectorError: Cannot connect to host 127.0.0.1:8000`.
+- Stages `5`, `6`, and `8` failed immediately during session creation with the
+  same connection-refused error because the API was already gone.
+
+Server/process evidence:
+
+- `curl http://127.0.0.1:8000/health` returned connection refused after stage
+  `4` began failing.
+- `ps` showed no `api_server.py` process while the load tester was still
+  running.
+- GPU memory dropped from `24145MB` to `15MB` after the process exited.
+- The server log did not show a Python traceback, CUDA OOM exception, or
+  explicit signal at the point of exit.
+- cgroup memory counters still showed `oom_kill 0` and `memory.failcnt 0`.
+- No kernel OOM-killer entry was found in `dmesg`.
+
+Interpretation:
+
+- The failure is reproducible: two automated WebRTC load-test attempts both
+  brought the API process down during the `4`-stream stage.
+- This is not a confirmed OS RAM OOM and not a logged PyTorch/CUDA OOM. It is
+  an abrupt server process exit under very high GPU memory pressure.
+- The strongest repeated correlation is VRAM pressure: both runs reached
+  `24145MB / 24576MB` before the process disappeared.
+- The load test now documents downstream failures correctly, but the server
+  stability issue must be fixed before `4+` stream WebRTC capacity can be
+  measured meaningfully.
+
+Rerun report files:
+
+- `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_rerun2.json`
+- `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_rerun2_detailed.json`
+
 ## Implementation Update: 2026-05-18
 
 Phase 1 items 1-6 have now been implemented.

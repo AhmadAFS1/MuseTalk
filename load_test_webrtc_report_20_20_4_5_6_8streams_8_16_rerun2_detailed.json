@@ -1,0 +1,2510 @@
+[
+  {
+    "summary": {
+      "concurrency": 4,
+      "completed": 1,
+      "failed": 3,
+      "avg_time_to_live_ready_s": 9.827,
+      "avg_segment_interval_s": 0.086,
+      "max_segment_interval_s": 0.855,
+      "wall_time_s": 180.2,
+      "gpu": {
+        "samples": 170,
+        "avg_util_pct": 13.38,
+        "peak_util_pct": 100.0,
+        "avg_memory_used_mb": 5448.3,
+        "peak_memory_used_mb": 24145.0,
+        "avg_memory_util_pct": 7.05,
+        "peak_memory_util_pct": 55.0
+      },
+      "errors": [
+        "audio track receive failed: MediaStreamError: ",
+        "video track receive failed: MediaStreamError: ",
+        "timeout: stream did not complete in 180s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])",
+        "video track receive failed: MediaStreamError: ",
+        "audio track receive failed: MediaStreamError: ",
+        "timeout: stream did not complete in 180s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])",
+        "video track receive failed: MediaStreamError: ",
+        "audio track receive failed: MediaStreamError: ",
+        "timeout: stream did not complete in 180s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])"
+      ]
+    },
+    "metric_note": "For WebRTC, total_segments_fetched is live video frames received by the WebRTC client, and segment interval fields are live video-frame receive intervals.",
+    "gpu_samples": [
+      {
+        "ts": 1779334456.762,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 21651.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334457.806,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 21651.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334458.872,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 21651.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334459.939,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 21651.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334461.004,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 21651.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334462.066,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 21651.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334463.168,
+        "gpu_index": 0,
+        "gpu_util_pct": 11.0,
+        "memory_util_pct": 2.0,
+        "memory_used_mb": 21707.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334464.242,
+        "gpu_index": 0,
+        "gpu_util_pct": 92.0,
+        "memory_util_pct": 44.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334465.305,
+        "gpu_index": 0,
+        "gpu_util_pct": 46.0,
+        "memory_util_pct": 32.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334466.362,
+        "gpu_index": 0,
+        "gpu_util_pct": 76.0,
+        "memory_util_pct": 36.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334467.423,
+        "gpu_index": 0,
+        "gpu_util_pct": 32.0,
+        "memory_util_pct": 25.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334468.489,
+        "gpu_index": 0,
+        "gpu_util_pct": 93.0,
+        "memory_util_pct": 54.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334469.555,
+        "gpu_index": 0,
+        "gpu_util_pct": 69.0,
+        "memory_util_pct": 38.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334470.616,
+        "gpu_index": 0,
+        "gpu_util_pct": 96.0,
+        "memory_util_pct": 55.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334471.704,
+        "gpu_index": 0,
+        "gpu_util_pct": 30.0,
+        "memory_util_pct": 23.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334472.76,
+        "gpu_index": 0,
+        "gpu_util_pct": 80.0,
+        "memory_util_pct": 37.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334473.822,
+        "gpu_index": 0,
+        "gpu_util_pct": 32.0,
+        "memory_util_pct": 25.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334474.882,
+        "gpu_index": 0,
+        "gpu_util_pct": 84.0,
+        "memory_util_pct": 46.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334475.938,
+        "gpu_index": 0,
+        "gpu_util_pct": 60.0,
+        "memory_util_pct": 39.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334476.998,
+        "gpu_index": 0,
+        "gpu_util_pct": 50.0,
+        "memory_util_pct": 20.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334478.059,
+        "gpu_index": 0,
+        "gpu_util_pct": 87.0,
+        "memory_util_pct": 44.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334479.123,
+        "gpu_index": 0,
+        "gpu_util_pct": 77.0,
+        "memory_util_pct": 43.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334480.184,
+        "gpu_index": 0,
+        "gpu_util_pct": 30.0,
+        "memory_util_pct": 23.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334481.237,
+        "gpu_index": 0,
+        "gpu_util_pct": 94.0,
+        "memory_util_pct": 49.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334482.299,
+        "gpu_index": 0,
+        "gpu_util_pct": 53.0,
+        "memory_util_pct": 35.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334483.362,
+        "gpu_index": 0,
+        "gpu_util_pct": 14.0,
+        "memory_util_pct": 6.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334484.422,
+        "gpu_index": 0,
+        "gpu_util_pct": 99.0,
+        "memory_util_pct": 51.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334485.484,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334486.548,
+        "gpu_index": 0,
+        "gpu_util_pct": 98.0,
+        "memory_util_pct": 54.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334487.608,
+        "gpu_index": 0,
+        "gpu_util_pct": 91.0,
+        "memory_util_pct": 45.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334488.67,
+        "gpu_index": 0,
+        "gpu_util_pct": 84.0,
+        "memory_util_pct": 49.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334489.71,
+        "gpu_index": 0,
+        "gpu_util_pct": 68.0,
+        "memory_util_pct": 30.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334490.775,
+        "gpu_index": 0,
+        "gpu_util_pct": 35.0,
+        "memory_util_pct": 15.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334491.836,
+        "gpu_index": 0,
+        "gpu_util_pct": 84.0,
+        "memory_util_pct": 46.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334492.896,
+        "gpu_index": 0,
+        "gpu_util_pct": 49.0,
+        "memory_util_pct": 33.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334493.962,
+        "gpu_index": 0,
+        "gpu_util_pct": 96.0,
+        "memory_util_pct": 47.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334495.024,
+        "gpu_index": 0,
+        "gpu_util_pct": 73.0,
+        "memory_util_pct": 44.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334496.09,
+        "gpu_index": 0,
+        "gpu_util_pct": 99.0,
+        "memory_util_pct": 55.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334497.156,
+        "gpu_index": 0,
+        "gpu_util_pct": 90.0,
+        "memory_util_pct": 48.0,
+        "memory_used_mb": 24145.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334498.224,
+        "gpu_index": 0,
+        "gpu_util_pct": 100.0,
+        "memory_util_pct": 6.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334499.291,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334500.392,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334501.455,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334502.517,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334503.597,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334504.66,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334505.728,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334506.791,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334507.857,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334508.927,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334509.995,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334511.058,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334512.123,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334513.186,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334514.252,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334515.321,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334516.387,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334517.459,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334518.524,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334519.588,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334520.659,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334521.727,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334522.792,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334523.859,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334524.905,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334525.97,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334527.036,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334528.103,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334529.166,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334530.231,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334531.296,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334532.363,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334533.426,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334534.492,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334535.559,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334536.624,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334537.69,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334538.755,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334539.821,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334540.889,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334541.955,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334543.023,
+        "gpu_index": 0,
+        "gpu_util_pct": 1.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334544.087,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334545.151,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334546.215,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334547.282,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334548.352,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334549.423,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334550.493,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334551.559,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334552.626,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334553.697,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334554.763,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334555.827,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334556.89,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334557.954,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334559.018,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334560.083,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334561.15,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334562.216,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334563.282,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334564.348,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334565.411,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334566.479,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334567.524,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334568.593,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334569.667,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334570.729,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334571.792,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334572.857,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334573.921,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334574.985,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334576.049,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334577.114,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334578.178,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334579.241,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334580.305,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334581.347,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334582.41,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334583.473,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334584.54,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334585.609,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334586.675,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334587.738,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334588.803,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334589.868,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334590.936,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334592.007,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334593.076,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334594.145,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334595.212,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334596.28,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334597.348,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334598.413,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334599.482,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334600.554,
+        "gpu_index": 0,
+        "gpu_util_pct": 1.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334601.622,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334602.687,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334603.752,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334604.821,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334605.888,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334606.956,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334608.023,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334609.09,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334610.163,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334611.227,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334612.296,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334613.365,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334614.431,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334615.496,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334616.565,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334617.634,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334618.705,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334619.773,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334620.843,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334621.908,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334622.976,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334624.045,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334625.092,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334626.159,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334627.224,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334628.297,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334629.364,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334630.434,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334631.504,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334632.573,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334633.644,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334634.71,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334635.774,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      },
+      {
+        "ts": 1779334636.841,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      }
+    ],
+    "sessions": [
+      {
+        "session_id": "-P3hoiWUBC5RGJI9AqKKWQ",
+        "create_latency_s": 0.055,
+        "offer_latency_s": 0.118,
+        "connection_latency_s": 0.03,
+        "stream_start_latency_s": 0.098,
+        "time_to_live_ready_s": 11.36,
+        "total_segments_fetched": 338,
+        "total_video_frames_received": 535,
+        "total_audio_frames_received": 851,
+        "live_video_frames_received": 338,
+        "live_audio_frames_received": 846,
+        "first_video_frame_s": 0.818,
+        "first_audio_frame_s": 11.592,
+        "avg_segment_interval_s": 0.085,
+        "max_segment_interval_s": 0.841,
+        "stream_completed": false,
+        "connection_state": "closed",
+        "ice_connection_state": "closed",
+        "ice_transport_policy": "all",
+        "final_track_stats": {
+          "video": {
+            "live_active": true,
+            "live_released": true,
+            "prebuffer_ready": true,
+            "queue_size": 0,
+            "queue_max": 400,
+            "queue_fill_pct": 0.0,
+            "frames_received": 342,
+            "frames_played": 342,
+            "frames_dropped": 0,
+            "frames_duplicated": 0,
+            "queue_underruns": 26,
+            "strict_video_stalls": 26,
+            "strict_video_stall_seconds": 11.040773684100714,
+            "output_frames_sent": 412,
+            "prebuffer_frames": 40,
+            "source_fps": 20.0,
+            "output_fps": 20.0,
+            "sync_mode": "strict_fifo",
+            "sync_clock": {
+              "sync_mode": "strict_fifo",
+              "active": true,
+              "started": true,
+              "source_fps": 20.0,
+              "source_frames": 342,
+              "video_coverage_seconds": 17.1,
+              "audio_waiting": true,
+              "video_waiting": true,
+              "audio_stalls": 203,
+              "video_stalls": 25,
+              "audio_stall_seconds": 13.73950322374003,
+              "video_stall_seconds": 11.040773684100714,
+              "last_audio_wait_target_seconds": 17.12,
+              "audio_ready": true,
+              "video_ready": true,
+              "playout_released": true,
+              "audio_ready_to_release_seconds": 4.6050408855080605e-06,
+              "video_ready_to_release_seconds": 0.0006196860340423882,
+              "first_audio_packet_after_release_seconds": 0.08804407995194197,
+              "first_video_frame_after_release_seconds": 0.08710457698907703,
+              "initial_av_start_delta_seconds": 0.0009395029628649354
+            },
+            "adaptive_fps": false,
+            "slowdown_active": false,
+            "current_slowdown": 1.0,
+            "effective_fps": 20.0,
+            "generation_complete": false
+          },
+          "audio": {
+            "sample_rate": 48000,
+            "samples_per_frame": 960,
+            "frames_sent": 855,
+            "audio_seconds_sent": 17.1,
+            "eof": false,
+            "last_drift_seconds": -0.019999999999999574,
+            "fully_loaded": true,
+            "prepare_started": true,
+            "prepare_seconds": 0.3566621979698539,
+            "start_signaled": true,
+            "playout_start_time_set": true,
+            "first_packet_after_signal_seconds": 0.08803692494984716,
+            "sync_mode": "strict_fifo",
+            "strict_audio_stalls": 202,
+            "strict_audio_stall_seconds": 13.73950322374003,
+            "sync_clock": {
+              "sync_mode": "strict_fifo",
+              "active": true,
+              "started": true,
+              "source_fps": 20.0,
+              "source_frames": 342,
+              "video_coverage_seconds": 17.1,
+              "audio_waiting": true,
+              "video_waiting": true,
+              "audio_stalls": 203,
+              "video_stalls": 25,
+              "audio_stall_seconds": 13.73950322374003,
+              "video_stall_seconds": 11.040773684100714,
+              "last_audio_wait_target_seconds": 17.12,
+              "audio_ready": true,
+              "video_ready": true,
+              "playout_released": true,
+              "audio_ready_to_release_seconds": 4.6050408855080605e-06,
+              "video_ready_to_release_seconds": 0.0006196860340423882,
+              "first_audio_packet_after_release_seconds": 0.08804407995194197,
+              "first_video_frame_after_release_seconds": 0.08710457698907703,
+              "initial_av_start_delta_seconds": 0.0009395029628649354
+            }
+          },
+          "sync_clock": {
+            "sync_mode": "strict_fifo",
+            "active": true,
+            "started": true,
+            "source_fps": 20.0,
+            "source_frames": 342,
+            "video_coverage_seconds": 17.1,
+            "audio_waiting": true,
+            "video_waiting": true,
+            "audio_stalls": 203,
+            "video_stalls": 25,
+            "audio_stall_seconds": 13.73950322374003,
+            "video_stall_seconds": 11.040773684100714,
+            "last_audio_wait_target_seconds": 17.12,
+            "audio_ready": true,
+            "video_ready": true,
+            "playout_released": true,
+            "audio_ready_to_release_seconds": 4.6050408855080605e-06,
+            "video_ready_to_release_seconds": 0.0006196860340423882,
+            "first_audio_packet_after_release_seconds": 0.08804407995194197,
+            "first_video_frame_after_release_seconds": 0.08710457698907703,
+            "initial_av_start_delta_seconds": 0.0009395029628649354
+          }
+        },
+        "errors": [
+          "audio track receive failed: MediaStreamError: ",
+          "video track receive failed: MediaStreamError: ",
+          "timeout: stream did not complete in 180s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])"
+        ]
+      },
+      {
+        "session_id": "12siUY_KgSolISDz1F3Snw",
+        "create_latency_s": 0.082,
+        "offer_latency_s": 0.093,
+        "connection_latency_s": 0.027,
+        "stream_start_latency_s": 0.091,
+        "time_to_live_ready_s": 11.877,
+        "total_segments_fetched": 338,
+        "total_video_frames_received": 545,
+        "total_audio_frames_received": 844,
+        "live_video_frames_received": 338,
+        "live_audio_frames_received": 844,
+        "first_video_frame_s": 0.778,
+        "first_audio_frame_s": 12.256,
+        "avg_segment_interval_s": 0.084,
+        "max_segment_interval_s": 0.796,
+        "stream_completed": false,
+        "connection_state": "closed",
+        "ice_connection_state": "closed",
+        "ice_transport_policy": "all",
+        "final_track_stats": {
+          "video": {
+            "live_active": true,
+            "live_released": true,
+            "prebuffer_ready": true,
+            "queue_size": 2,
+            "queue_max": 400,
+            "queue_fill_pct": 0.5,
+            "frames_received": 342,
+            "frames_played": 340,
+            "frames_dropped": 0,
+            "frames_duplicated": 0,
+            "queue_underruns": 22,
+            "strict_video_stalls": 22,
+            "strict_video_stall_seconds": 10.813773417961784,
+            "output_frames_sent": 421,
+            "prebuffer_frames": 40,
+            "source_fps": 20.0,
+            "output_fps": 20.0,
+            "sync_mode": "strict_fifo",
+            "sync_clock": {
+              "sync_mode": "strict_fifo",
+              "active": true,
+              "started": true,
+              "source_fps": 20.0,
+              "source_frames": 340,
+              "video_coverage_seconds": 17.0,
+              "audio_waiting": false,
+              "video_waiting": false,
+              "audio_stalls": 200,
+              "video_stalls": 22,
+              "audio_stall_seconds": 13.421140875725541,
+              "video_stall_seconds": 10.813773417961784,
+              "last_audio_wait_target_seconds": 16.96,
+              "audio_ready": true,
+              "video_ready": true,
+              "playout_released": true,
+              "audio_ready_to_release_seconds": 5.2800169214606285e-06,
+              "video_ready_to_release_seconds": 0.0064373009954579175,
+              "first_audio_packet_after_release_seconds": 0.11237900098785758,
+              "first_video_frame_after_release_seconds": 0.10566936997929588,
+              "initial_av_start_delta_seconds": 0.006709631008561701
+            },
+            "adaptive_fps": false,
+            "slowdown_active": false,
+            "current_slowdown": 1.0,
+            "effective_fps": 20.0,
+            "generation_complete": false
+          },
+          "audio": {
+            "sample_rate": 48000,
+            "samples_per_frame": 960,
+            "frames_sent": 848,
+            "audio_seconds_sent": 16.96,
+            "eof": false,
+            "last_drift_seconds": -0.05999999999999872,
+            "fully_loaded": true,
+            "prepare_started": true,
+            "prepare_seconds": 0.3569174979929812,
+            "start_signaled": true,
+            "playout_start_time_set": true,
+            "first_packet_after_signal_seconds": 0.11237217398593202,
+            "sync_mode": "strict_fifo",
+            "strict_audio_stalls": 200,
+            "strict_audio_stall_seconds": 13.421140875725541,
+            "sync_clock": {
+              "sync_mode": "strict_fifo",
+              "active": true,
+              "started": true,
+              "source_fps": 20.0,
+              "source_frames": 340,
+              "video_coverage_seconds": 17.0,
+              "audio_waiting": false,
+              "video_waiting": false,
+              "audio_stalls": 200,
+              "video_stalls": 22,
+              "audio_stall_seconds": 13.421140875725541,
+              "video_stall_seconds": 10.813773417961784,
+              "last_audio_wait_target_seconds": 16.96,
+              "audio_ready": true,
+              "video_ready": true,
+              "playout_released": true,
+              "audio_ready_to_release_seconds": 5.2800169214606285e-06,
+              "video_ready_to_release_seconds": 0.0064373009954579175,
+              "first_audio_packet_after_release_seconds": 0.11237900098785758,
+              "first_video_frame_after_release_seconds": 0.10566936997929588,
+              "initial_av_start_delta_seconds": 0.006709631008561701
+            }
+          },
+          "sync_clock": {
+            "sync_mode": "strict_fifo",
+            "active": true,
+            "started": true,
+            "source_fps": 20.0,
+            "source_frames": 340,
+            "video_coverage_seconds": 17.0,
+            "audio_waiting": false,
+            "video_waiting": false,
+            "audio_stalls": 200,
+            "video_stalls": 22,
+            "audio_stall_seconds": 13.421140875725541,
+            "video_stall_seconds": 10.813773417961784,
+            "last_audio_wait_target_seconds": 16.96,
+            "audio_ready": true,
+            "video_ready": true,
+            "playout_released": true,
+            "audio_ready_to_release_seconds": 5.2800169214606285e-06,
+            "video_ready_to_release_seconds": 0.0064373009954579175,
+            "first_audio_packet_after_release_seconds": 0.11237900098785758,
+            "first_video_frame_after_release_seconds": 0.10566936997929588,
+            "initial_av_start_delta_seconds": 0.006709631008561701
+          }
+        },
+        "errors": [
+          "video track receive failed: MediaStreamError: ",
+          "audio track receive failed: MediaStreamError: ",
+          "timeout: stream did not complete in 180s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])"
+        ]
+      },
+      {
+        "session_id": "gb9efZC160nc8QaS_7BZPg",
+        "create_latency_s": 0.111,
+        "offer_latency_s": 0.069,
+        "connection_latency_s": 0.029,
+        "stream_start_latency_s": 0.109,
+        "time_to_live_ready_s": 11.863,
+        "total_segments_fetched": 339,
+        "total_video_frames_received": 548,
+        "total_audio_frames_received": 846,
+        "live_video_frames_received": 339,
+        "live_audio_frames_received": 846,
+        "first_video_frame_s": 0.824,
+        "first_audio_frame_s": 12.305,
+        "avg_segment_interval_s": 0.083,
+        "max_segment_interval_s": 0.785,
+        "stream_completed": false,
+        "connection_state": "closed",
+        "ice_connection_state": "closed",
+        "ice_transport_policy": "all",
+        "final_track_stats": {
+          "video": {
+            "live_active": true,
+            "live_released": true,
+            "prebuffer_ready": true,
+            "queue_size": 0,
+            "queue_max": 400,
+            "queue_fill_pct": 0.0,
+            "frames_received": 340,
+            "frames_played": 340,
+            "frames_dropped": 0,
+            "frames_duplicated": 0,
+            "queue_underruns": 26,
+            "strict_video_stalls": 26,
+            "strict_video_stall_seconds": 10.39825764222769,
+            "output_frames_sent": 422,
+            "prebuffer_frames": 40,
+            "source_fps": 20.0,
+            "output_fps": 20.0,
+            "sync_mode": "strict_fifo",
+            "sync_clock": {
+              "sync_mode": "strict_fifo",
+              "active": true,
+              "started": true,
+              "source_fps": 20.0,
+              "source_frames": 340,
+              "video_coverage_seconds": 17.0,
+              "audio_waiting": true,
+              "video_waiting": true,
+              "audio_stalls": 226,
+              "video_stalls": 25,
+              "audio_stall_seconds": 13.388419772672933,
+              "video_stall_seconds": 10.39825764222769,
+              "last_audio_wait_target_seconds": 17.02,
+              "audio_ready": true,
+              "video_ready": true,
+              "playout_released": true,
+              "audio_ready_to_release_seconds": 5.228037480264902e-06,
+              "video_ready_to_release_seconds": 0.0006781170377507806,
+              "first_audio_packet_after_release_seconds": 0.06857538496842608,
+              "first_video_frame_after_release_seconds": 0.06287595198955387,
+              "initial_av_start_delta_seconds": 0.00569943297887221
+            },
+            "adaptive_fps": false,
+            "slowdown_active": false,
+            "current_slowdown": 1.0,
+            "effective_fps": 20.0,
+            "generation_complete": false
+          },
+          "audio": {
+            "sample_rate": 48000,
+            "samples_per_frame": 960,
+            "frames_sent": 850,
+            "audio_seconds_sent": 17.0,
+            "eof": false,
+            "last_drift_seconds": -0.019999999999999574,
+            "fully_loaded": true,
+            "prepare_started": true,
+            "prepare_seconds": 0.3813262099865824,
+            "start_signaled": true,
+            "playout_start_time_set": true,
+            "first_packet_after_signal_seconds": 0.06856929999776185,
+            "sync_mode": "strict_fifo",
+            "strict_audio_stalls": 225,
+            "strict_audio_stall_seconds": 13.388419772672933,
+            "sync_clock": {
+              "sync_mode": "strict_fifo",
+              "active": true,
+              "started": true,
+              "source_fps": 20.0,
+              "source_frames": 340,
+              "video_coverage_seconds": 17.0,
+              "audio_waiting": true,
+              "video_waiting": true,
+              "audio_stalls": 226,
+              "video_stalls": 25,
+              "audio_stall_seconds": 13.388419772672933,
+              "video_stall_seconds": 10.39825764222769,
+              "last_audio_wait_target_seconds": 17.02,
+              "audio_ready": true,
+              "video_ready": true,
+              "playout_released": true,
+              "audio_ready_to_release_seconds": 5.228037480264902e-06,
+              "video_ready_to_release_seconds": 0.0006781170377507806,
+              "first_audio_packet_after_release_seconds": 0.06857538496842608,
+              "first_video_frame_after_release_seconds": 0.06287595198955387,
+              "initial_av_start_delta_seconds": 0.00569943297887221
+            }
+          },
+          "sync_clock": {
+            "sync_mode": "strict_fifo",
+            "active": true,
+            "started": true,
+            "source_fps": 20.0,
+            "source_frames": 340,
+            "video_coverage_seconds": 17.0,
+            "audio_waiting": true,
+            "video_waiting": true,
+            "audio_stalls": 226,
+            "video_stalls": 25,
+            "audio_stall_seconds": 13.388419772672933,
+            "video_stall_seconds": 10.39825764222769,
+            "last_audio_wait_target_seconds": 17.02,
+            "audio_ready": true,
+            "video_ready": true,
+            "playout_released": true,
+            "audio_ready_to_release_seconds": 5.228037480264902e-06,
+            "video_ready_to_release_seconds": 0.0006781170377507806,
+            "first_audio_packet_after_release_seconds": 0.06857538496842608,
+            "first_video_frame_after_release_seconds": 0.06287595198955387,
+            "initial_av_start_delta_seconds": 0.00569943297887221
+          }
+        },
+        "errors": [
+          "video track receive failed: MediaStreamError: ",
+          "audio track receive failed: MediaStreamError: ",
+          "timeout: stream did not complete in 180s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])"
+        ]
+      },
+      {
+        "session_id": "tl3sVci0aijy-NldwRPx1A",
+        "create_latency_s": 0.134,
+        "offer_latency_s": 0.055,
+        "connection_latency_s": 0.028,
+        "stream_start_latency_s": 0.12,
+        "time_to_live_ready_s": 9.827,
+        "total_segments_fetched": 355,
+        "total_video_frames_received": 520,
+        "total_audio_frames_received": 892,
+        "live_video_frames_received": 352,
+        "live_audio_frames_received": 876,
+        "first_video_frame_s": 0.969,
+        "first_audio_frame_s": 9.859,
+        "avg_segment_interval_s": 0.086,
+        "max_segment_interval_s": 0.855,
+        "stream_completed": true,
+        "connection_state": "closed",
+        "ice_connection_state": "closed",
+        "ice_transport_policy": "all",
+        "final_track_stats": {
+          "video": {
+            "live_active": false,
+            "live_released": false,
+            "prebuffer_ready": false,
+            "queue_size": 0,
+            "queue_max": 400,
+            "queue_fill_pct": 0.0,
+            "frames_received": 0,
+            "frames_played": 355,
+            "frames_dropped": 0,
+            "frames_duplicated": 0,
+            "queue_underruns": 23,
+            "strict_video_stalls": 23,
+            "strict_video_stall_seconds": 12.073347915837076,
+            "output_frames_sent": 400,
+            "prebuffer_frames": 40,
+            "source_fps": 20.0,
+            "output_fps": 20.0,
+            "sync_mode": "strict_fifo",
+            "sync_clock": {
+              "sync_mode": "strict_fifo",
+              "active": false,
+              "started": true,
+              "source_fps": 20.0,
+              "source_frames": 355,
+              "video_coverage_seconds": 17.75,
+              "audio_waiting": false,
+              "video_waiting": false,
+              "audio_stalls": 192,
+              "video_stalls": 23,
+              "audio_stall_seconds": 14.361538793891668,
+              "video_stall_seconds": 12.073347915837076,
+              "last_audio_wait_target_seconds": 17.76,
+              "audio_ready": true,
+              "video_ready": true,
+              "playout_released": true,
+              "audio_ready_to_release_seconds": 7.710012141615152e-06,
+              "video_ready_to_release_seconds": 0.005848547036293894,
+              "first_audio_packet_after_release_seconds": 0.05756644596112892,
+              "first_video_frame_after_release_seconds": 0.05036005598958582,
+              "initial_av_start_delta_seconds": 0.0072063899715431035
+            },
+            "adaptive_fps": false,
+            "slowdown_active": false,
+            "current_slowdown": 1.0,
+            "effective_fps": 20.0,
+            "generation_complete": false
+          },
+          "audio": null,
+          "sync_clock": {
+            "sync_mode": "strict_fifo",
+            "active": false,
+            "started": true,
+            "source_fps": 20.0,
+            "source_frames": 355,
+            "video_coverage_seconds": 17.75,
+            "audio_waiting": false,
+            "video_waiting": false,
+            "audio_stalls": 192,
+            "video_stalls": 23,
+            "audio_stall_seconds": 14.361538793891668,
+            "video_stall_seconds": 12.073347915837076,
+            "last_audio_wait_target_seconds": 17.76,
+            "audio_ready": true,
+            "video_ready": true,
+            "playout_released": true,
+            "audio_ready_to_release_seconds": 7.710012141615152e-06,
+            "video_ready_to_release_seconds": 0.005848547036293894,
+            "first_audio_packet_after_release_seconds": 0.05756644596112892,
+            "first_video_frame_after_release_seconds": 0.05036005598958582,
+            "initial_av_start_delta_seconds": 0.0072063899715431035
+          }
+        },
+        "errors": []
+      }
+    ]
+  },
+  {
+    "summary": {
+      "concurrency": 5,
+      "completed": 0,
+      "failed": 5,
+      "avg_time_to_live_ready_s": 0.0,
+      "avg_segment_interval_s": 0.0,
+      "max_segment_interval_s": 0.0,
+      "wall_time_s": 0.0,
+      "gpu": {
+        "samples": 1,
+        "avg_util_pct": 0.0,
+        "peak_util_pct": 0.0,
+        "avg_memory_used_mb": 15.0,
+        "peak_memory_used_mb": 15.0,
+        "avg_memory_util_pct": 0.0,
+        "peak_memory_util_pct": 0.0
+      },
+      "errors": [
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+      ]
+    },
+    "metric_note": "For WebRTC, total_segments_fetched is live video frames received by the WebRTC client, and segment interval fields are live video-frame receive intervals.",
+    "gpu_samples": [
+      {
+        "ts": 1779334652.213,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      }
+    ],
+    "sessions": [
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      }
+    ]
+  },
+  {
+    "summary": {
+      "concurrency": 6,
+      "completed": 0,
+      "failed": 6,
+      "avg_time_to_live_ready_s": 0.0,
+      "avg_segment_interval_s": 0.0,
+      "max_segment_interval_s": 0.0,
+      "wall_time_s": 0.0,
+      "gpu": {
+        "samples": 1,
+        "avg_util_pct": 0.0,
+        "peak_util_pct": 0.0,
+        "avg_memory_used_mb": 15.0,
+        "peak_memory_used_mb": 15.0,
+        "avg_memory_util_pct": 0.0,
+        "peak_memory_util_pct": 0.0
+      },
+      "errors": [
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+      ]
+    },
+    "metric_note": "For WebRTC, total_segments_fetched is live video frames received by the WebRTC client, and segment interval fields are live video-frame receive intervals.",
+    "gpu_samples": [
+      {
+        "ts": 1779334667.731,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      }
+    ],
+    "sessions": [
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      }
+    ]
+  },
+  {
+    "summary": {
+      "concurrency": 8,
+      "completed": 0,
+      "failed": 8,
+      "avg_time_to_live_ready_s": 0.0,
+      "avg_segment_interval_s": 0.0,
+      "max_segment_interval_s": 0.0,
+      "wall_time_s": 0.0,
+      "gpu": {
+        "samples": 1,
+        "avg_util_pct": 0.0,
+        "peak_util_pct": 0.0,
+        "avg_memory_used_mb": 15.0,
+        "peak_memory_used_mb": 15.0,
+        "avg_memory_util_pct": 0.0,
+        "peak_memory_util_pct": 0.0
+      },
+      "errors": [
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+        "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+      ]
+    },
+    "metric_note": "For WebRTC, total_segments_fetched is live video frames received by the WebRTC client, and segment interval fields are live video-frame receive intervals.",
+    "gpu_samples": [
+      {
+        "ts": 1779334683.251,
+        "gpu_index": 0,
+        "gpu_util_pct": 0.0,
+        "memory_util_pct": 0.0,
+        "memory_used_mb": 15.0,
+        "memory_total_mb": 24576.0
+      }
+    ],
+    "sessions": [
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      },
+      {
+        "session_id": "",
+        "create_latency_s": 0.0,
+        "offer_latency_s": 0.0,
+        "connection_latency_s": 0.0,
+        "stream_start_latency_s": 0.0,
+        "time_to_live_ready_s": 0.0,
+        "total_segments_fetched": 0,
+        "total_video_frames_received": 0,
+        "total_audio_frames_received": 0,
+        "live_video_frames_received": 0,
+        "live_audio_frames_received": 0,
+        "first_video_frame_s": 0.0,
+        "first_audio_frame_s": 0.0,
+        "avg_segment_interval_s": 0.0,
+        "max_segment_interval_s": 0.0,
+        "stream_completed": false,
+        "connection_state": "",
+        "ice_connection_state": "",
+        "ice_transport_policy": "",
+        "final_track_stats": {},
+        "errors": [
+          "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+        ]
+      }
+    ]
+  }
+]
