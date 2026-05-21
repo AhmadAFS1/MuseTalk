@@ -106,6 +106,68 @@ Use `count=4`, `fps=20`, `playback_fps=20`, `batch_size=8`,
 show every stream queued for the shared `WEBRTC` GPU scheduler and the first
 startup blocks/release gates occurring close together, not one full clip apart.
 
+### WebRTC Wall Load Retest: 2026-05-21
+
+Recent logs from `/workspace/logs/musetalk/api_server_8000.log` were parsed
+after testing `4`, `5`, `6`, and `8` concurrent WebRTC wall streams with the
+shared WebRTC scheduler enabled. Test shape:
+
+- `WEBRTC_SHARED_GPU_SCHEDULER=1`
+- `WEBRTC_SYNC_MODE=strict_fifo`
+- `WEBRTC_ADAPTIVE_FPS=0`
+- `WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0`
+- `WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0`
+- `fps=20`, `playback_fps=20`, request `batch_size=8`
+- uploaded clip duration was about `4.21s`
+- generated media length was `84` frames, so `84 / 20fps = 4.2s`
+
+Result summary:
+
+| Attempt | Generation result | A/V release spread | Practical result |
+| --- | ---: | ---: | --- |
+| `4` streams | completed `4/4` on repeated runs | about `2.45-2.70s` | safest usable wall target |
+| `5` streams | completed `5/5` | about `1.79s` | best observed burst; likely usable |
+| `6` streams | completed `6/6` on repeated runs | about `4.44-4.49s` | generation succeeds, but not true simultaneous playback |
+| `8` streams | completed `8/8` | about `6.57s` | generation succeeds, but streams visibly stagger |
+
+Interpretation:
+
+- The shared scheduler fixed the old hard serialization problem. All tested
+  bursts up to `8` streams generated successfully with no scheduler failures,
+  no frame callback failures, and no WebRTC frame handoff timeouts in the parsed
+  log range.
+- "Generation completed" is not the same as "all wall tiles talk at the same
+  time." Because the clip is only about `4.2s`, any A/V release spread near or
+  above `4.2s` means the first stream is finishing as the last stream starts.
+- At `4` streams, release spread stayed below one clip duration and playback is
+  the safest target.
+- At `5` streams, the observed release spread was better than some `4`-stream
+  runs, so it is a plausible upper practical target, but it needs more repeats.
+- At `6` streams, release spread crossed the clip duration boundary, so the
+  wall no longer behaves like truly concurrent talking playback even though all
+  generation jobs complete.
+- At `8` streams, the release spread was far beyond clip duration; this should
+  be treated as a generation stress test, not a usable simultaneous wall target.
+
+Track-final stats also showed increasing strict FIFO video stalls as concurrency
+rose:
+
+- `4` streams: mostly clean; occasional small stall around `0.5-0.7s`
+- `5` streams: visible stall pressure around `0.6-1.7s`
+- `6` streams: stalls around `2-3.6s`
+- `8` streams: heavier multi-second stalls
+
+Current capacity call for the `20/20`, `batch_size=8`, `2s` prebuffer profile:
+
+- safe practical wall target: `4` concurrent streams
+- upper observed usable target: `5` concurrent streams
+- generation-only ceiling tested: `8` concurrent streams
+- not true simultaneous playback: `6+` streams
+
+Operational note from the same log pass: after the wall tests, the local API was
+not responding on `127.0.0.1:8000`, `ps` showed no `api_server.py`, and the pid
+file still pointed at stale PID `151591`. Restart the API before the next retest.
+
 ## Implementation Update: 2026-05-18
 
 Phase 1 items 1-6 have now been implemented.
