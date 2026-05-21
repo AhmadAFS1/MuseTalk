@@ -168,6 +168,100 @@ Operational note from the same log pass: after the wall tests, the local API was
 not responding on `127.0.0.1:8000`, `ps` showed no `api_server.py`, and the pid
 file still pointed at stale PID `151591`. Restart the API before the next retest.
 
+### Automated WebRTC Load Test: 2026-05-21
+
+`load_test_webrtc.py` was added as the WebRTC equivalent of `load_test.py`.
+It keeps the same summary report shape, but creates WebRTC sessions, performs
+the WebRTC offer/answer exchange with `aiortc`, receives both remote tracks, and
+uses received live video-frame intervals in the existing segment interval
+fields. Because WebRTC has no `.ts` segments, `total_segments_fetched` means
+live video frames received by the WebRTC test client.
+
+Server startup for this run:
+
+```bash
+PORT=8000 bash scripts/vast_server_ctl.sh start
+```
+
+The server used the normal `throughput_record` profile:
+
+- `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16`
+- `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
+- stagewise TRT warmup completed in about `239.70s`
+- API health passed after `4m17s`
+
+Attempted test command:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python load_test_webrtc.py \
+  --base-url http://127.0.0.1:8000 \
+  --avatar-id test_avatar \
+  --audio-file ./data/audio/ai-assistant.mpga \
+  --ramp 4,5,6,8 \
+  --hold-seconds 15 \
+  --segment-duration 1.0 \
+  --playback-fps 20 \
+  --musetalk-fps 20 \
+  --batch-size 8 \
+  --stage-ready-timeout 90 \
+  --connection-timeout 30 \
+  --completion-timeout 240 \
+  --report-path load_test_webrtc_report_20_20_4_5_6_8streams_8_16.json \
+  --detail-report-path load_test_webrtc_report_20_20_4_5_6_8streams_8_16_detailed.json
+```
+
+Only the `4`-stream stage produced a report. The API process disappeared before
+the test could continue to `5`, `6`, or `8` streams.
+
+| Stage | Completed | Avg live-ready | Avg frame interval | Max frame interval | Peak GPU memory | Result |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `4` streams | `3/4` | `10.139s` | `0.084s` | `0.871s` | `24145MB` | failed; API process exited mid-stage |
+
+Per-session detail from the report:
+
+| Session | Completed | Live-ready | Live video frames received | Avg frame interval | Max frame interval | Server frames played | Strict video stall seconds | Initial A/V start delta |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `hdWD...PHDxIw` | yes | `10.861s` | `361` | `0.083s` | `0.865s` | `355` | `11.178s` | `0.0053s` |
+| `5l6c...KGMqiw` | no | `11.200s` | `356` | `0.083s` | `0.818s` | `355` | `11.134s` | `0.0008s` |
+| `YIO6...B0gz2w` | yes | `8.657s` | `356` | `0.087s` | `0.871s` | `355` | `12.400s` | `0.0008s` |
+| `BqrR...NlaYwg` | yes | `10.899s` | `361` | `0.083s` | `0.799s` | `355` | `11.123s` | `0.0118s` |
+
+Interpretation:
+
+- The automated WebRTC client could establish `4/4` peer connections quickly
+  and all four sessions reached live playback.
+- The A/V start barrier appears to align initial audio/video release well:
+  reported initial A/V start deltas were about `0.8ms` to `11.8ms`.
+- Throughput was not healthy. A target `20fps` stream should have frame
+  intervals around `0.050s`; this run averaged about `0.083-0.087s` on the
+  completed sessions and had max frame gaps near `0.8-0.9s`.
+- Server-side strict FIFO stats showed `~11-12.4s` of video stall time per
+  session. That means sync was being preserved by stalling rather than by
+  sustaining smooth realtime playout.
+- This run is not evidence that WebRTC supports `4` stable concurrent streams
+  under the automated test. It is evidence that the current path can reach live
+  at `4`, but the server/process stability and stall pressure are blockers.
+
+Failure evidence:
+
+- After three sessions completed, `curl http://127.0.0.1:8000/health` returned
+  connection refused.
+- `ps` showed no `api_server.py`/server process.
+- GPU memory fell from about `24GB` to `15MB`, consistent with the server
+  process exiting.
+- The pid file still pointed at stale PID `167766`.
+- The final log tail did not include a Python traceback for the process exit.
+
+The first report files are:
+
+- `load_test_webrtc_report_20_20_4_5_6_8streams_8_16.json`
+- `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_detailed.json`
+
+Follow-up from the test run: `load_test_webrtc.py` was patched so a disappeared
+API no longer causes the status loop to wait indefinitely. The timeout check now
+runs before status polling, and track receive errors include their exception
+type.
+
 ## Implementation Update: 2026-05-18
 
 Phase 1 items 1-6 have now been implemented.

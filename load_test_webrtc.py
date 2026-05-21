@@ -473,7 +473,7 @@ async def consume_track(
                     metrics.live_audio_frames_received += 1
     except Exception as exc:
         if not stop_event.is_set():
-            metrics.errors.append(f"{kind} track receive failed: {exc}")
+            metrics.errors.append(f"{kind} track receive failed: {type(exc).__name__}: {exc}")
 
 
 async def run_session(
@@ -655,10 +655,19 @@ async def run_session(
         live_ready = False
         t_stream_start = time.monotonic()
 
+        last_status_error: Optional[str] = None
         while True:
             if shutdown_event.is_set():
                 metrics.errors.append("aborted during stream polling")
                 logger.warning("Session %s interrupted by shutdown request", sid)
+                break
+
+            if time.monotonic() - t_stream_start > completion_timeout_s:
+                message = f"timeout: stream did not complete in {completion_timeout_s:.0f}s"
+                if last_status_error:
+                    message += f" (last status error: {last_status_error})"
+                metrics.errors.append(message)
+                logger.warning("Session %s timed out", sid)
                 break
 
             await asyncio.sleep(0.5)
@@ -667,9 +676,12 @@ async def run_session(
                     f"{base_url}/webrtc/sessions/{sid}/status"
                 ) as resp:
                     if resp.status != 200:
+                        last_status_error = f"status endpoint returned {resp.status}"
                         continue
                     status = await resp.json()
-            except Exception:
+                    last_status_error = None
+            except Exception as exc:
+                last_status_error = f"{type(exc).__name__}: {exc}"
                 continue
 
             session_status = status.get("status", "")
@@ -703,13 +715,6 @@ async def run_session(
                     metrics.total_segments_fetched,
                     metrics.avg_segment_interval,
                 )
-                break
-
-            if time.monotonic() - t_stream_start > completion_timeout_s:
-                metrics.errors.append(
-                    f"timeout: stream did not complete in {completion_timeout_s:.0f}s"
-                )
-                logger.warning("Session %s timed out", sid)
                 break
 
     finally:
