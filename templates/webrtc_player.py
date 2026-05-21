@@ -30,9 +30,16 @@ def get_webrtc_player_html(session) -> str:
             background: #000;
         }}
 
+        body {{
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }}
+
         .video-container {{
             width: 100%;
-            height: 100%;
+            flex: 1 1 auto;
+            min-height: 0;
             position: relative;
         }}
 
@@ -74,29 +81,54 @@ def get_webrtc_player_html(session) -> str:
             color: #ff5555;
         }}
 
-        .debug-overlay {{
+        .debug-panel {{
+            flex: 0 0 auto;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 2px 12px;
+            background: rgba(3,7,18,0.94);
+            border-top: 1px solid rgba(255,255,255,0.12);
+            color: #fff;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            font-size: 11px;
+            line-height: 1.35;
+            padding: 6px 8px;
+            z-index: 20;
+        }}
+
+        .debug-line {{
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }}
+
+        .debug-line:first-child {{
+            grid-column: 1 / -1;
+        }}
+
+        body.debug-overlay-mode .debug-panel {{
             position: absolute;
             top: 12px;
             left: 12px;
-            background: rgba(0,0,0,0.6);
-            color: #fff;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-            font-size: 12px;
-            line-height: 1.4;
-            padding: 8px 10px;
+            max-width: calc(100% - 24px);
+            border: none;
             border-radius: 8px;
+            background: rgba(0,0,0,0.6);
             z-index: 20;
-            max-width: 90%;
-            white-space: pre;
+        }}
+
+        body.debug-off .debug-panel {{
+            display: none;
         }}
     </style>
 </head>
-<body>
-    <div class="video-container">
-        <video id="remoteVideo" playsinline webkit-playsinline autoplay></video>
-        <div class="status-overlay button" id="statusOverlay">Tap to start (enable audio)</div>
-        <div class="debug-overlay" id="debugOverlay">debug: idle</div>
-    </div>
+	<body>
+	    <div class="video-container">
+	        <video id="remoteVideo" playsinline webkit-playsinline autoplay muted></video>
+	        <div class="status-overlay button" id="statusOverlay">Tap to start (enable audio)</div>
+	    </div>
+	    <div class="debug-panel" id="debugOverlay"></div>
 
     <script>
         const SESSION_ID = '{session.session_id}';
@@ -105,10 +137,16 @@ def get_webrtc_player_html(session) -> str:
         const ICE_TRANSPORT_POLICY = {ice_transport_policy};
         const SOURCE_FPS = {source_fps};
         const PLAYBACK_FPS = {playback_fps};
+        const DEBUG_MODES = ['docked', 'off', 'overlay'];
 
         const remoteVideo = document.getElementById('remoteVideo');
         const statusOverlay = document.getElementById('statusOverlay');
         const debugOverlay = document.getElementById('debugOverlay');
+        const queryParams = new URLSearchParams(window.location.search);
+        let debugMode = queryParams.get('debug') || 'docked';
+        if (!DEBUG_MODES.includes(debugMode)) {{
+            debugMode = 'docked';
+        }}
 
         let pc = null;
         let started = false;
@@ -138,8 +176,22 @@ def get_webrtc_player_html(session) -> str:
             statusOverlay.classList.add('hidden');
         }}
 
+        function applyDebugMode(mode) {{
+            if (!DEBUG_MODES.includes(mode)) {{
+                mode = 'docked';
+            }}
+            debugMode = mode;
+            document.body.classList.toggle('debug-off', mode === 'off');
+            document.body.classList.toggle('debug-overlay-mode', mode === 'overlay');
+        }}
+
         function setDebug(lines) {{
-            debugOverlay.textContent = lines.join('\\n');
+            debugOverlay.replaceChildren(...lines.map((line) => {{
+                const item = document.createElement('div');
+                item.className = 'debug-line';
+                item.textContent = line;
+                return item;
+            }}));
         }}
 
         async function sendIceCandidate(candidate) {{
@@ -186,10 +238,16 @@ def get_webrtc_player_html(session) -> str:
             remoteVideo.srcObject = remoteStream;
             // Audio is unlocked via user gesture before calling start().
             remoteVideo.muted = !audioUnlocked;
-            remoteVideo.volume = 1.0;
-            if (audioUnlocked) {{
-                remoteVideo.play().catch(() => {{}});
-            }}
+            remoteVideo.volume = audioUnlocked ? 1.0 : 0.0;
+            remoteVideo.play().catch(() => {{
+                if (audioUnlocked) {{
+                    audioUnlocked = false;
+                    remoteVideo.muted = true;
+                    remoteVideo.volume = 0.0;
+                    remoteVideo.play().catch(() => {{}});
+                    updateStatus('Tap to start (enable audio)', false, true);
+                }}
+            }});
 
             pc.ontrack = (event) => {{
                 if (!event.track) {{
@@ -206,6 +264,8 @@ def get_webrtc_player_html(session) -> str:
 
                 if (event.track.kind === 'audio' && !audioUnlocked) {{
                     remoteVideo.muted = true;
+                    remoteVideo.volume = 0.0;
+                    remoteVideo.play().catch(() => {{}});
                     updateStatus('Tap to start (enable audio)', false, true);
                     return;
                 }}
@@ -255,13 +315,35 @@ def get_webrtc_player_html(session) -> str:
 
             const answer = await resp.json();
             await pc.setRemoteDescription(answer);
-            if (audioUnlocked) {{
-                remoteVideo.muted = false;
-                remoteVideo.volume = 1.0;
-                remoteVideo.play().catch(() => updateStatus('Tap to start (enable audio)', false, true));
-            }}
+            remoteVideo.muted = !audioUnlocked;
+            remoteVideo.volume = audioUnlocked ? 1.0 : 0.0;
+            remoteVideo.play().catch(() => {{
+                if (audioUnlocked) {{
+                    audioUnlocked = false;
+                    remoteVideo.muted = true;
+                    remoteVideo.volume = 0.0;
+                    remoteVideo.play().catch(() => {{}});
+                    updateStatus('Tap to start (enable audio)', false, true);
+                }}
+            }});
             hideStatus();
         }}
+
+        async function startFromWall(muted = false) {{
+            audioUnlocked = !muted;
+            remoteVideo.muted = muted;
+            remoteVideo.volume = muted ? 0.0 : 1.0;
+            if (!started) {{
+                await start();
+                return;
+            }}
+            if (muted) {{
+                remoteVideo.play().catch(() => {{}});
+            }} else {{
+                await unlockAudio();
+            }}
+        }}
+        window.startWebrtcPlayer = startFromWall;
 
         async function updateDebugStats() {{
             if (!pc) return;
@@ -357,7 +439,23 @@ def get_webrtc_player_html(session) -> str:
         statusOverlay.addEventListener('pointerdown', handleTap);
         statusOverlay.addEventListener('click', handleTap);
 
+        window.addEventListener('message', (event) => {{
+            if (event.origin !== window.location.origin) {{
+                return;
+            }}
+            const data = event.data || {{}};
+            if (data.type === 'webrtc-debug-mode') {{
+                applyDebugMode(data.mode);
+            }} else if (data.type === 'webrtc-start') {{
+                startFromWall(Boolean(data.muted)).catch(() => {{
+                    updateStatus('Tap to start (enable audio)', false, true);
+                }});
+            }}
+        }});
+
+        applyDebugMode(debugMode);
         updateStatus('Tap to start (enable audio)', false, true);
+        setDebug(['debug: idle']);
         setInterval(updateDebugStats, 2000);
 
         window.addEventListener('beforeunload', () => {{
