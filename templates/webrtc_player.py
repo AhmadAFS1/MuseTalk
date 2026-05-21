@@ -196,18 +196,24 @@ def get_webrtc_player_html(session) -> str:
                     return;
                 }}
 
-                if (event.track && event.track.kind === 'audio') {{
-                    if (!remoteStream) {{
-                        remoteStream = new MediaStream();
-                        remoteVideo.srcObject = remoteStream;
-                    }}
-                    if (!remoteStream.getTracks().includes(event.track)) {{
-                        remoteStream.addTrack(event.track);
-                    }}
-                    remoteAudio.srcObject = null;
-                    if (!audioUnlocked) {{
-                        updateStatus('Tap to start (enable audio)', false, true);
-                    }}
+                if (!remoteStream) {{
+                    remoteStream = new MediaStream();
+                }}
+                if (!remoteStream.getTracks().includes(event.track)) {{
+                    remoteStream.addTrack(event.track);
+                }}
+                remoteVideo.srcObject = remoteStream;
+
+                if (event.track.kind === 'audio' && !audioUnlocked) {{
+                    remoteVideo.muted = true;
+                    updateStatus('Tap to start (enable audio)', false, true);
+                    return;
+                }}
+
+                if (audioUnlocked) {{
+                    remoteVideo.muted = false;
+                    remoteVideo.volume = 1.0;
+                    remoteVideo.play().catch(() => updateStatus('Tap to start (enable audio)', false, true));
                 }}
             }};
 

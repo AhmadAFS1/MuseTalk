@@ -2754,6 +2754,21 @@ def _get_webrtc_session_status(session) -> str:
     return state or "created"
 
 
+def _get_webrtc_track_stats(session) -> dict:
+    video_track = getattr(session, "idle_track", None)
+    audio_track = getattr(session, "audio_player", None)
+    sync_clock = getattr(session, "sync_clock", None)
+    return {
+        "video": video_track.get_stats() if hasattr(video_track, "get_stats") else None,
+        "audio": audio_track.get_stats() if hasattr(audio_track, "get_stats") else None,
+        "sync_clock": sync_clock.get_stats() if hasattr(sync_clock, "get_stats") else None,
+    }
+
+
+def _get_webrtc_sync_mode() -> str:
+    return os.getenv("WEBRTC_SYNC_MODE", "strict_fifo").strip().lower()
+
+
 def _parse_positive_int_list(raw: Optional[str]) -> list[int]:
     values: list[int] = []
     if not raw:
