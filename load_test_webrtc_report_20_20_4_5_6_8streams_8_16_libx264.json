@@ -1,0 +1,91 @@
+[
+  {
+    "concurrency": 4,
+    "completed": 4,
+    "failed": 0,
+    "avg_time_to_live_ready_s": 10.865,
+    "avg_segment_interval_s": 0.084,
+    "max_segment_interval_s": 0.971,
+    "wall_time_s": 40.9,
+    "gpu": {
+      "samples": 39,
+      "avg_util_pct": 55.95,
+      "peak_util_pct": 98.0,
+      "avg_memory_used_mb": 23698.8,
+      "peak_memory_used_mb": 24145.0,
+      "avg_memory_util_pct": 28.79,
+      "peak_memory_util_pct": 54.0
+    },
+    "errors": []
+  },
+  {
+    "concurrency": 5,
+    "completed": 5,
+    "failed": 0,
+    "avg_time_to_live_ready_s": 6.217,
+    "avg_segment_interval_s": 0.11,
+    "max_segment_interval_s": 1.421,
+    "wall_time_s": 45.8,
+    "gpu": {
+      "samples": 44,
+      "avg_util_pct": 55.98,
+      "peak_util_pct": 99.0,
+      "avg_memory_used_mb": 24029.7,
+      "peak_memory_used_mb": 24145.0,
+      "avg_memory_util_pct": 28.75,
+      "peak_memory_util_pct": 55.0
+    },
+    "errors": []
+  },
+  {
+    "concurrency": 6,
+    "completed": 6,
+    "failed": 0,
+    "avg_time_to_live_ready_s": 7.056,
+    "avg_segment_interval_s": 0.136,
+    "max_segment_interval_s": 1.94,
+    "wall_time_s": 57.0,
+    "gpu": {
+      "samples": 55,
+      "avg_util_pct": 57.82,
+      "peak_util_pct": 100.0,
+      "avg_memory_used_mb": 23970.9,
+      "peak_memory_used_mb": 24039.0,
+      "avg_memory_util_pct": 28.0,
+      "peak_memory_util_pct": 54.0
+    },
+    "errors": []
+  },
+  {
+    "concurrency": 8,
+    "completed": 4,
+    "failed": 4,
+    "avg_time_to_live_ready_s": 8.979,
+    "avg_segment_interval_s": 0.184,
+    "max_segment_interval_s": 3.225,
+    "wall_time_s": 180.5,
+    "gpu": {
+      "samples": 170,
+      "avg_util_pct": 25.61,
+      "peak_util_pct": 100.0,
+      "avg_memory_used_mb": 10189.9,
+      "peak_memory_used_mb": 24059.0,
+      "avg_memory_util_pct": 11.95,
+      "peak_memory_util_pct": 54.0
+    },
+    "errors": [
+      "video track receive failed: MediaStreamError: ",
+      "audio track receive failed: MediaStreamError: ",
+      "timeout: stream did not complete in 180s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])",
+      "audio track receive failed: MediaStreamError: ",
+      "video track receive failed: MediaStreamError: ",
+      "timeout: stream did not complete in 180s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])",
+      "video track receive failed: MediaStreamError: ",
+      "audio track receive failed: MediaStreamError: ",
+      "timeout: stream did not complete in 180s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])",
+      "video track receive failed: MediaStreamError: ",
+      "audio track receive failed: MediaStreamError: ",
+      "timeout: stream did not complete in 180s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])"
+    ]
+  }
+]
