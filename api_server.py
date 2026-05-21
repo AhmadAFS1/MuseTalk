@@ -3440,6 +3440,95 @@ async def webrtc_stream(
         finally:
             cleanup_to_idle(force_video=force_video_cleanup)
 
+    use_shared_scheduler = _env_bool("WEBRTC_SHARED_GPU_SCHEDULER", True)
+    if use_shared_scheduler:
+        if hls_stream_scheduler is None:
+            cleanup_to_idle(force_video=True)
+            try:
+                audio_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise HTTPException(status_code=503, detail="Shared GPU scheduler not initialized")
+
+        cancel_event = threading.Event()
+        completion_future = main_loop.create_future()
+        with manager.request_lock:
+            manager.active_requests[request_id] = {
+                'avatar_id': session.avatar_id,
+                'status': 'preparing',
+                'future': completion_future,
+                'type': 'webrtc_stream',
+                'session_id': session_id,
+                'cancel_event': cancel_event,
+                'cooperative_only': True,
+            }
+
+        def _on_shared_webrtc_done(done_future):
+            with manager.request_lock:
+                manager.active_requests.pop(request_id, None)
+            try:
+                done_future.result()
+            except asyncio.CancelledError:
+                pass
+            except Exception as exc:
+                print(f"⚠️ [{request_id}] Shared WebRTC scheduler future failed: {exc}")
+
+        completion_future.add_done_callback(_on_shared_webrtc_done)
+
+        def _on_shared_generation_complete(status: str, error_message: Optional[str] = None):
+            if session.idle_track:
+                main_loop.call_soon_threadsafe(session.idle_track.signal_generation_complete)
+
+            if status == "completed" and live_started:
+                if not audio_started:
+                    release_playout_once("generation_complete")
+                asyncio.run_coroutine_threadsafe(finish_playback_then_cleanup(), main_loop)
+                print(f"✅ [{request_id}] Shared WebRTC generation complete")
+                return
+
+            if status == "completed":
+                print(f"⚠️ [{request_id}] Shared WebRTC generation completed without live frames")
+            else:
+                print(f"❌ [{request_id}] Shared WebRTC generation ended with status={status}: {error_message}")
+            main_loop.call_soon_threadsafe(cleanup_to_idle, True)
+
+        accepted = hls_stream_scheduler.submit_webrtc_stream(
+            session=session,
+            request_id=request_id,
+            audio_path=str(audio_path),
+            generation_fps=session.fps,
+            cancel_event=cancel_event,
+            completion_future=completion_future,
+            main_loop=main_loop,
+            frame_callback=frame_callback,
+            generation_complete_callback=_on_shared_generation_complete,
+        )
+        if not accepted:
+            with manager.request_lock:
+                manager.active_requests.pop(request_id, None)
+            completion_future.cancel()
+            cleanup_to_idle(force_video=True)
+            try:
+                audio_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "message": "Shared GPU scheduler queue is full. Retry later.",
+                    "scheduler": hls_stream_scheduler.get_stats(),
+                },
+            )
+
+        print(f"🎬 [{request_id}] Queued WebRTC stream on shared GPU scheduler for session {session_id}")
+        return {
+            "request_id": request_id,
+            "session_id": session_id,
+            "status": "streaming",
+            "scheduler": "shared_gpu",
+            "message": "WebRTC stream queued on the shared GPU scheduler. Player will switch to live."
+        }
+
     def streaming_worker():
         cpu_log_interval = 0.0
         try:

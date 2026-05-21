@@ -6,7 +6,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import torch
 
@@ -33,6 +33,9 @@ class HLSStreamJob:
     cancel_event: threading.Event
     completion_future: object
     main_loop: object
+    output_mode: str = "hls"
+    frame_callback: Optional[Callable[[object, int, int], None]] = None
+    generation_complete_callback: Optional[Callable[[str, Optional[str]], None]] = None
     audio_copy_path: Optional[str] = None
     idle_frames: list = field(default_factory=list)
     crossfade_tail_frames: int = 0
@@ -215,6 +218,10 @@ class HLSGPUStreamScheduler:
         cancel_event: threading.Event,
         completion_future,
         main_loop,
+        *,
+        output_mode: str = "hls",
+        frame_callback: Optional[Callable[[object, int, int], None]] = None,
+        generation_complete_callback: Optional[Callable[[str, Optional[str]], None]] = None,
     ) -> bool:
         submitted_at = time.time()
         with self.condition:
@@ -233,9 +240,38 @@ class HLSGPUStreamScheduler:
             cancel_event,
             completion_future,
             main_loop,
+            output_mode,
+            frame_callback,
+            generation_complete_callback,
             submitted_at,
         )
         return True
+
+    def submit_webrtc_stream(
+        self,
+        session,
+        request_id: str,
+        audio_path: str,
+        generation_fps: int,
+        cancel_event: threading.Event,
+        completion_future,
+        main_loop,
+        frame_callback: Callable[[object, int, int], None],
+        generation_complete_callback: Callable[[str, Optional[str]], None],
+    ) -> bool:
+        return self.submit_stream(
+            session=session,
+            request_id=request_id,
+            audio_path=audio_path,
+            generation_fps=generation_fps,
+            start_offset_seconds=0.0,
+            cancel_event=cancel_event,
+            completion_future=completion_future,
+            main_loop=main_loop,
+            output_mode="webrtc",
+            frame_callback=frame_callback,
+            generation_complete_callback=generation_complete_callback,
+        )
 
     def get_stats(self) -> dict:
         with self.condition:
@@ -257,6 +293,7 @@ class HLSGPUStreamScheduler:
                     {
                         "request_id": job.request_id,
                         "session_id": job.session_id,
+                        "output_mode": job.output_mode,
                         "current_frame_idx": job.current_frame_idx,
                         "total_frames": job.total_frames,
                         "composed_frame_idx": job.composed_frame_idx,
@@ -320,20 +357,38 @@ class HLSGPUStreamScheduler:
         cancel_event: threading.Event,
         completion_future,
         main_loop,
+        output_mode: str,
+        frame_callback: Optional[Callable[[object, int, int], None]],
+        generation_complete_callback: Optional[Callable[[str, Optional[str]], None]],
         submitted_at: float,
     ) -> None:
         prep_started_at = time.time()
-        audio_copy_candidate_path = str((session.segment_dir / request_id) / "chunk_audio.m4a")
+        is_hls_output = output_mode == "hls"
+        audio_copy_candidate_path = (
+            str((session.segment_dir / request_id) / "chunk_audio.m4a")
+            if is_hls_output
+            else None
+        )
         audio_copy_path = None
         try:
             if cancel_event.is_set():
                 self._finish_before_enqueue(
-                    request_id, session, audio_path, audio_copy_candidate_path, completion_future, main_loop, "cancelled"
+                    request_id,
+                    session,
+                    audio_path,
+                    audio_copy_candidate_path,
+                    completion_future,
+                    main_loop,
+                    "cancelled",
+                    output_mode=output_mode,
+                    generation_complete_callback=generation_complete_callback,
                 )
                 return
 
             weight_dtype = getattr(self.manager, "unet_dtype", torch.float16)
-            from scripts.api_avatar import prepare_chunk_audio_copy_source
+            prepare_chunk_audio_copy_source = None
+            if is_hls_output:
+                from scripts.api_avatar import prepare_chunk_audio_copy_source
 
             # Local modification: this differs from the original MuseTalk code.
             # Avatar load and audio feature extraction are prepared in parallel.
@@ -350,22 +405,29 @@ class HLSGPUStreamScheduler:
                 0,
                 weight_dtype,
             )
-            audio_copy_future = self.prep_subtask_executor.submit(
-                self._timed_call,
-                prepare_chunk_audio_copy_source,
-                audio_path,
-                audio_copy_candidate_path,
-            )
+            audio_copy_future = None
+            if prepare_chunk_audio_copy_source is not None and audio_copy_candidate_path is not None:
+                audio_copy_future = self.prep_subtask_executor.submit(
+                    self._timed_call,
+                    prepare_chunk_audio_copy_source,
+                    audio_path,
+                    audio_copy_candidate_path,
+                )
 
             avatar, avatar_load_s = avatar_future.result()
             (whisper_input_features, _librosa_length), audio_feature_s = audio_feature_future.result()
             audio_copy_prep_s = 0.0
-            try:
-                audio_copy_path, audio_copy_prep_s = audio_copy_future.result()
-            except Exception as audio_copy_exc:
-                print(f"⚠️  [{request_id}] reusable AAC sidecar unavailable: {audio_copy_exc}")
+            if audio_copy_future is not None:
+                try:
+                    audio_copy_path, audio_copy_prep_s = audio_copy_future.result()
+                except Exception as audio_copy_exc:
+                    print(f"⚠️  [{request_id}] reusable AAC sidecar unavailable: {audio_copy_exc}")
 
-            if session.idle_cycle_frames is None and hasattr(avatar, "input_latent_cycle_tensor"):
+            if (
+                hasattr(session, "idle_cycle_frames")
+                and session.idle_cycle_frames is None
+                and hasattr(avatar, "input_latent_cycle_tensor")
+            ):
                 session.idle_cycle_frames = len(avatar.input_latent_cycle_tensor)
 
             if whisper_input_features is None:
@@ -386,11 +448,22 @@ class HLSGPUStreamScheduler:
 
             if cancel_event.is_set():
                 self._finish_before_enqueue(
-                    request_id, session, audio_path, audio_copy_path, completion_future, main_loop, "cancelled"
+                    request_id,
+                    session,
+                    audio_path,
+                    audio_copy_path,
+                    completion_future,
+                    main_loop,
+                    "cancelled",
+                    output_mode=output_mode,
+                    generation_complete_callback=generation_complete_callback,
                 )
                 return
 
-            frames_per_chunk = max(1, int(round(session.segment_duration * generation_fps)))
+            segment_duration = getattr(session, "segment_duration", None)
+            if segment_duration is None:
+                segment_duration = getattr(session, "chunk_duration", 1)
+            frames_per_chunk = max(1, int(round(float(segment_duration) * generation_fps)))
             startup_chunk_frames = self._startup_chunk_frames(frames_per_chunk, generation_fps)
             startup_chunk_count = self.startup_chunk_count if startup_chunk_frames < frames_per_chunk else 0
             total_chunks = self._estimate_total_chunks(
@@ -407,14 +480,16 @@ class HLSGPUStreamScheduler:
                 startup_chunk_count=startup_chunk_count,
             )
 
-            idle_frame_target = max(8, min(24, int(generation_fps * 0.8)))
-            # Local modification: this differs from the original MuseTalk code.
-            # Idle-frame preparation overlaps with conditioning setup during prep.
-            idle_frames_future = self.prep_subtask_executor.submit(
-                self._timed_call,
-                avatar._get_idle_frames,
-                idle_frame_target,
-            )
+            idle_frames_future = None
+            if is_hls_output:
+                idle_frame_target = max(8, min(24, int(generation_fps * 0.8)))
+                # Local modification: this differs from the original MuseTalk code.
+                # Idle-frame preparation overlaps with conditioning setup during prep.
+                idle_frames_future = self.prep_subtask_executor.submit(
+                    self._timed_call,
+                    avatar._get_idle_frames,
+                    idle_frame_target,
+                )
 
             if initial_ready_frames > 0:
                 initial_prompts = self.manager.audio_processor.build_audio_prompts(
@@ -436,9 +511,11 @@ class HLSGPUStreamScheduler:
             else:
                 conditioning_chunks = torch.empty((0, 0, 0), dtype=torch.float32)
 
-            idle_frames, _idle_frame_s = idle_frames_future.result()
+            idle_frames = []
+            if idle_frames_future is not None:
+                idle_frames, _idle_frame_s = idle_frames_future.result()
             crossfade_tail_frames = 0
-            if idle_frames:
+            if is_hls_output and idle_frames:
                 crossfade_tail_frames = max(4, int(generation_fps * 0.15))
                 crossfade_tail_frames = min(
                     crossfade_tail_frames,
@@ -454,7 +531,11 @@ class HLSGPUStreamScheduler:
                 avatar=avatar,
                 audio_path=audio_path,
                 audio_copy_path=audio_copy_path,
-                chunk_output_dir=session.segment_dir / request_id,
+                chunk_output_dir=(
+                    session.segment_dir / request_id
+                    if is_hls_output
+                    else Path("chunks") / "_webrtc_scheduler" / request_id
+                ),
                 generation_fps=generation_fps,
                 batch_size=max(1, int(session.batch_size)),
                 conditioning_chunks=conditioning_chunks,
@@ -469,6 +550,9 @@ class HLSGPUStreamScheduler:
                 cancel_event=cancel_event,
                 completion_future=completion_future,
                 main_loop=main_loop,
+                output_mode=output_mode,
+                frame_callback=frame_callback,
+                generation_complete_callback=generation_complete_callback,
                 idle_frames=idle_frames,
                 crossfade_tail_frames=crossfade_tail_frames,
                 submitted_at=submitted_at,
@@ -501,14 +585,14 @@ class HLSGPUStreamScheduler:
                 )
 
             print(
-                f"🎛️  [{request_id}] queued for shared HLS GPU scheduler "
+                f"🎛️  [{request_id}] queued for shared {output_mode.upper()} GPU scheduler "
                 f"(frames={total_frames}, chunks={total_chunks}, batch_size={job.batch_size}, "
                 f"ready={job.conditioning_ready_frames}, "
                 f"prep={job.prep_total_s:.2f}s, prep_wait={job.prep_queue_wait_s:.2f}s, "
                 f"prep_work={job.prep_work_s:.2f}s, audio_copy={job.audio_copy_prep_s:.2f}s)"
             )
         except Exception as exc:
-            print(f"❌ [{request_id}] HLS prep failed: {exc}")
+            print(f"❌ [{request_id}] {output_mode.upper()} prep failed: {exc}")
             traceback.print_exc()
             self._finish_before_enqueue(
                 request_id,
@@ -519,6 +603,8 @@ class HLSGPUStreamScheduler:
                 main_loop,
                 "failed",
                 error_message=str(exc),
+                output_mode=output_mode,
+                generation_complete_callback=generation_complete_callback,
             )
 
     @staticmethod
@@ -539,25 +625,37 @@ class HLSGPUStreamScheduler:
         main_loop,
         status: str,
         error_message: Optional[str] = None,
+        output_mode: str = "hls",
+        generation_complete_callback: Optional[Callable[[str, Optional[str]], None]] = None,
     ) -> None:
         with self.condition:
             self.preparing_requests.discard(request_id)
             self.condition.notify_all()
 
-        self.hls_session_manager.finish_live_playlist(session)
-        session.active_stream = None
-        session.cancel_requested = False
+        if output_mode == "hls":
+            self.hls_session_manager.finish_live_playlist(session)
+            session.active_stream = None
+        else:
+            session.active_stream = None
+            if generation_complete_callback is not None:
+                try:
+                    generation_complete_callback(status, error_message)
+                except Exception as callback_exc:
+                    print(f"⚠️  [{request_id}] WebRTC completion callback failed: {callback_exc}")
+        if hasattr(session, "cancel_requested"):
+            session.cancel_requested = False
         self._set_request_status(request_id, status)
         self._resolve_completion(completion_future, main_loop, status, error_message)
-        try:
-            Path(audio_path).unlink(missing_ok=True)
-        except OSError:
-            pass
-        if audio_copy_path:
+        if output_mode == "hls":
             try:
-                Path(audio_copy_path).unlink(missing_ok=True)
+                Path(audio_path).unlink(missing_ok=True)
             except OSError:
                 pass
+            if audio_copy_path:
+                try:
+                    Path(audio_copy_path).unlink(missing_ok=True)
+                except OSError:
+                    pass
 
     def _initial_conditioning_frames(
         self,
@@ -939,7 +1037,7 @@ class HLSGPUStreamScheduler:
             if job.first_scheduled_at is None:
                 job.first_scheduled_at = batch_started_at
             job.last_progress_at = time.time()
-            if not job.session.live_ready:
+            if not getattr(job.session, "live_ready", False) and hasattr(job.session, "status"):
                 job.session.status = "generating"
             self._set_request_status(job.request_id, "running")
             job.scheduler_turns += 1
@@ -1139,6 +1237,10 @@ class HLSGPUStreamScheduler:
         self._finalize_cancelled_jobs()
 
     def _append_ready_composed_frames(self, job: HLSStreamJob) -> None:
+        if job.output_mode == "webrtc":
+            self._append_ready_webrtc_frames(job)
+            return
+
         while job.next_compose_sequence in job.composed_batches:
             compose_info = job.composed_batches.pop(job.next_compose_sequence)
             job.next_compose_sequence += 1
@@ -1164,6 +1266,44 @@ class HLSGPUStreamScheduler:
             and job.frame_buffer
         ):
             self._dispatch_encode(job, force_flush=True)
+
+    def _append_ready_webrtc_frames(self, job: HLSStreamJob) -> None:
+        while job.next_compose_sequence in job.composed_batches:
+            compose_info = job.composed_batches.pop(job.next_compose_sequence)
+            job.next_compose_sequence += 1
+            job.last_progress_at = time.time()
+
+            if job.cancel_event.is_set():
+                continue
+
+            for frame in compose_info["frames"]:
+                if job.cancel_event.is_set():
+                    break
+                job.composed_frame_idx += 1
+                job.last_progress_at = time.time()
+
+                if job.frame_callback is None:
+                    pass
+                else:
+                    try:
+                        job.frame_callback(frame, job.composed_frame_idx, job.total_frames)
+                    except Exception as exc:
+                        job.error_message = f"WebRTC frame callback failed: {exc}"
+                        print(f"❌ [{job.request_id}] {job.error_message}")
+                        traceback.print_exc()
+                        return
+
+                startup_target = self._next_chunk_target_frames(job)
+                if job.first_chunk_appended_at is None and job.composed_frame_idx >= startup_target:
+                    job.first_chunk_appended_at = job.last_progress_at
+                    print(
+                        f"🎛️  [{job.request_id}] first WebRTC startup block ready "
+                        f"(frames={startup_target}, prep={job.prep_total_s:.2f}s, "
+                        f"queue={self._queue_wait_s(job):.2f}s, "
+                        f"first_block={self._time_to_first_chunk_s(job):.2f}s)"
+                    )
+
+            job.chunks_appended += 1
 
     def _dispatch_encode(self, job: HLSStreamJob, force_flush: bool = False) -> None:
         if not job.frame_buffer:
@@ -1320,24 +1460,37 @@ class HLSGPUStreamScheduler:
             self.jobs.pop(job.request_id, None)
             self.condition.notify_all()
 
-        self.hls_session_manager.finish_live_playlist(job.session)
-        job.session.active_stream = None
-        job.session.cancel_requested = False
+        if job.output_mode == "hls":
+            self.hls_session_manager.finish_live_playlist(job.session)
+            job.session.active_stream = None
+        else:
+            if job.generation_complete_callback is not None:
+                try:
+                    job.generation_complete_callback(status, error_message)
+                except Exception as callback_exc:
+                    print(f"⚠️  [{job.request_id}] WebRTC completion callback failed: {callback_exc}")
+            if status != "completed":
+                job.session.active_stream = None
+        if hasattr(job.session, "cancel_requested"):
+            job.session.cancel_requested = False
         self._set_request_status(job.request_id, status)
         self._resolve_completion(job.completion_future, job.main_loop, status, error_message)
 
-        try:
-            Path(job.audio_path).unlink(missing_ok=True)
-        except OSError:
-            pass
-        if job.audio_copy_path:
+        if job.output_mode == "hls":
             try:
-                Path(job.audio_copy_path).unlink(missing_ok=True)
+                Path(job.audio_path).unlink(missing_ok=True)
             except OSError:
                 pass
+            if job.audio_copy_path:
+                try:
+                    Path(job.audio_copy_path).unlink(missing_ok=True)
+                except OSError:
+                    pass
 
+        output_label = "HLS" if job.output_mode == "hls" else "WebRTC"
+        output_count_label = "chunks" if job.output_mode == "hls" else "batches_pushed"
         print(
-            f"🎛️  [{job.request_id}] HLS scheduler finished with status={status} "
+            f"🎛️  [{job.request_id}] {output_label} scheduler finished with status={status} "
             f"(prep={job.prep_total_s:.2f}s, prep_wait={job.prep_queue_wait_s:.2f}s, "
             f"prep_work={job.prep_work_s:.2f}s, audio_copy={job.audio_copy_prep_s:.2f}s, "
             f"queue={self._queue_wait_s(job):.2f}s, "
@@ -1352,7 +1505,7 @@ class HLSGPUStreamScheduler:
             f"max_compose_wait={job.max_compose_queue_wait_s:.3f}s, "
             f"max_encode_wait={job.max_encode_queue_wait_s:.3f}s, "
             f"post_gen_drain={self._post_generation_drain_s(job):.3f}s, "
-            f"chunks={job.chunks_appended})"
+            f"{output_count_label}={job.chunks_appended})"
         )
 
     def _resolve_completion(self, completion_future, main_loop, status: str, error_message: Optional[str]) -> None:

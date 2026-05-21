@@ -7,6 +7,105 @@ frames, low apparent framerate, and audio speed changes. It is meant to sit
 next to `current_webrtc_implementation_plan.md` and update the WebRTC retest
 plan with the latest media-path findings.
 
+## Implementation Update: 2026-05-21 Shared WebRTC Generation
+
+The latest wall investigation found that the browser was not the reason four
+WebRTC streams appeared to take turns. One browser tab can hold multiple WebRTC
+peer connections, and the player now attaches the remote audio and video tracks
+to one combined `MediaStream` on a single `<video>` element. The remaining
+turn-taking came from the backend: each WebRTC stream used its own generation
+worker and leased `session.batch_size` GPU capacity independently. With the
+current `batch_size=8` throughput profile, those workers effectively serialized
+behind the GPU lease/memory budget, so the playout gates were released roughly
+one clip apart instead of together.
+
+The HLS wall does not have that problem because all active HLS jobs enter
+`HLSGPUStreamScheduler`, which builds one shared GPU batch across sessions and
+then fans the composed results back out to each stream. WebRTC now uses that same
+shared scheduler by default:
+
+- `scripts/hls_gpu_scheduler.py`
+  - added `output_mode="webrtc"` jobs
+  - added `submit_webrtc_stream(...)`
+  - keeps avatar load, audio feature extraction, Whisper conditioning,
+    scheduler startup fairness, GPU batching, and compose workers shared with
+    HLS
+  - sends composed frames directly to the WebRTC frame callback instead of
+    encoding HLS segments
+  - keeps WebRTC jobs in startup priority until the initial startup frame block
+    is produced, instead of marking them warmed after one frame
+- `api_server.py`
+  - `POST /webrtc/sessions/{session_id}/stream` now defaults to
+    `WEBRTC_SHARED_GPU_SCHEDULER=1`
+  - group `Start All` inherits this because it calls the same per-session stream
+    route for every session
+  - the old independent WebRTC generation worker remains available with
+    `WEBRTC_SHARED_GPU_SCHEDULER=0`
+  - scheduler completion signals `SwitchableVideoStreamTrack` generation
+    completion, releases short clips if needed, and lets playback drain before
+    returning the session to idle
+
+This does not make WebRTC a literal single audio+video RTP track. WebRTC still
+uses separate RTP audio and video tracks, because that is the normal browser
+media model. The HLS similarity is at two important layers:
+
+- browser playback: one `<video>` element receives a combined remote
+  `MediaStream`, so native media-element A/V sync can apply
+- backend production: all active streams share one scheduler and one GPU batch
+  loop, so concurrent wall streams should generate together instead of being
+  serialized by per-session GPU leases
+
+Audio source clarification: the uploaded audio is the authoritative audio track.
+MuseTalk generates video frames from that audio; the generated frame/chunk output
+is not an MP4 that already contains final audio. HLS later muxes generated video
+frames with the uploaded audio into HLS segments. WebRTC sends the uploaded audio
+through `SyncedAudioStreamTrack` and sends generated video frames through
+`SwitchableVideoStreamTrack`, then the browser receives both tracks in one media
+element.
+
+There is no intentional static A/V offset in this path. The only configured
+startup delay is `WEBRTC_AV_START_DELAY_SECONDS` (default `0.05`), which is a
+shared release delay applied to both tracks after audio preparation and video
+readiness. It is not an audio-only or video-only offset.
+
+Wall/player updates from this pass:
+
+- `templates/webrtc_player.py` now supports debug display modes:
+  `debug=docked`, `debug=overlay`, and `debug=off`.
+- The wall exposes a stats/debug toggle so the ICE/FPS/audio counters can be
+  viewed without covering the video.
+- The wall has `Connect All` for attaching all iframes/peer connections before
+  `Start All` uploads audio. `Start All` starts generation; `Connect All` only
+  establishes/warms the browser WebRTC connections.
+
+HLS wall reference data for matching WebRTC tests is in
+`current_cross_server_throughput_findings.md` under "Full-rate `20/20` FPS
+validation on May 10, 2026":
+
+- `20/20`, request `batch_size=8`, current `8,16` throughput profile,
+  `concurrency=4`: completed `4/4`, `avg_time_to_live_ready_s=1.889`,
+  `avg_segment_interval_s=1.188`, `max_segment_interval_s=2.041`,
+  `wall_time_s=22.4`.
+- `20/20`, request `batch_size=8`, current `8,16` throughput profile,
+  `concurrency=5`: completed `5/5`, `avg_time_to_live_ready_s=2.014`,
+  `avg_segment_interval_s=1.477`, `max_segment_interval_s=2.550`,
+  `wall_time_s=27.5`.
+
+Recommended WebRTC wall retest after restarting:
+
+```bash
+WEBRTC_SHARED_GPU_SCHEDULER=1
+WEBRTC_SYNC_MODE=strict_fifo
+WEBRTC_ADAPTIVE_FPS=0
+WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0
+WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
+```
+
+Use `count=4`, `fps=20`, `playback_fps=20`, `batch_size=8`,
+`chunk_duration=1`, click `Connect All`, then `Start All`. Expected logs should
+show every stream queued for the shared `WEBRTC` GPU scheduler and the first
+startup blocks/release gates occurring close together, not one full clip apart.
+
 ## Implementation Update: 2026-05-18
 
 Phase 1 items 1-6 have now been implemented.

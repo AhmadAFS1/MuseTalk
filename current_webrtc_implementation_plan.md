@@ -28,6 +28,12 @@ browser/WebView player, TURN setup notes, and an HTTP scratch file.
 
 ## Current Local Findings
 
+Update on 2026-05-21: WebRTC wall generation now defaults to the shared HLS GPU
+scheduler with a WebRTC frame sink. The previous wall turn-taking was backend
+serialization from independent per-session GPU leases, not a one-browser WebRTC
+connection limit. See `current_webrtc_playback_smoothing_findings.md` for the
+shared-generation implementation notes and the `20/20` HLS wall reference data.
+
 Update on 2026-05-18: WebRTC strict FIFO now includes an audio-ready A/V start
 barrier. Audio is prepared before live video leaves the FIFO gate, and the
 shared `VideoSyncClock` reports audio/video readiness, playout release, first
@@ -101,12 +107,14 @@ server path:
 - `scripts/vast_onstart.sh` and `scripts/vast_server_ctl.sh` are now the normal
   Vast startup path.
 - `scripts/run_trt_stagewise_server.sh` is the foreground/debug launcher.
-- HLS has a shared GPU scheduler (`scripts/hls_gpu_scheduler.py`), but WebRTC
-  does not currently use that scheduler.
-- WebRTC streaming still goes through `manager.executor` plus
-  `manager.gpu_memory.allocate(session.batch_size)`.
-- Current HLS throughput tuning does not automatically make WebRTC concurrent
-  streaming safe.
+- HLS has a shared GPU scheduler (`scripts/hls_gpu_scheduler.py`), and WebRTC
+  now uses that scheduler by default through `submit_webrtc_stream(...)`.
+- The older WebRTC path through `manager.executor` plus
+  `manager.gpu_memory.allocate(session.batch_size)` remains as a fallback when
+  `WEBRTC_SHARED_GPU_SCHEDULER=0`.
+- Current HLS throughput tuning now applies to WebRTC generation concurrency,
+  but WebRTC still needs separate playback/sync validation because it sends
+  separate RTP audio and video tracks to the browser.
 - The old `scripts/run_api_server.sh` has WebRTC/TURN env defaults, but it is
   stale compared with the current TRT-stagewise launch path.
 
