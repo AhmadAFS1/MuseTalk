@@ -347,6 +347,94 @@ Rerun report files:
 - `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_rerun2.json`
 - `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_rerun2_detailed.json`
 
+### Automated WebRTC Load Test With libx264: 2026-05-21
+
+The API server was restarted with software WebRTC H.264 encoding:
+
+```bash
+WEBRTC_H264_ENCODER=libx264 PORT=8000 bash scripts/vast_server_ctl.sh restart
+```
+
+Startup log confirmation:
+
+```text
+WebRTC H.264 encoder set to libx264
+MuseTalk API Server ready!
+```
+
+The same WebRTC ramp was rerun:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python load_test_webrtc.py \
+  --base-url http://127.0.0.1:8000 \
+  --avatar-id test_avatar \
+  --audio-file ./data/audio/ai-assistant.mpga \
+  --ramp 4,5,6,8 \
+  --hold-seconds 15 \
+  --segment-duration 1.0 \
+  --playback-fps 20 \
+  --musetalk-fps 20 \
+  --batch-size 8 \
+  --stage-ready-timeout 90 \
+  --connection-timeout 30 \
+  --completion-timeout 180 \
+  --report-path load_test_webrtc_report_20_20_4_5_6_8streams_8_16_libx264.json \
+  --detail-report-path load_test_webrtc_report_20_20_4_5_6_8streams_8_16_libx264_detailed.json
+```
+
+Result summary:
+
+| Stage | Completed | Avg live-ready | Avg frame interval | Max frame interval | Peak GPU memory | Result |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `4` streams | `4/4` | `10.865s` | `0.084s` | `0.971s` | `24145MB` | completed, throttled |
+| `5` streams | `5/5` | `6.217s` | `0.110s` | `1.421s` | `24145MB` | completed, throttled |
+| `6` streams | `6/6` | `7.056s` | `0.136s` | `1.940s` | `24039MB` | completed, throttled |
+| `8` streams | `4/8` | `8.979s` | `0.184s` | `3.225s` | `24059MB` | failed; API process exited mid-stage |
+
+Per-stage stall pressure from server track stats:
+
+| Stage | Strict video stall range | Notes |
+| --- | ---: | --- |
+| `4` streams | `10.99-11.88s` | stable process, but not realtime |
+| `5` streams | `19.78-21.47s` | stable process, slower playout |
+| `6` streams | `28.62-31.07s` | stable process, heavy stalling |
+| `8` streams | `44.58-48.18s` | API exited after four sessions completed |
+
+Observed errors at `8` streams:
+
+- Four sessions completed.
+- Four sessions reached live but then timed out after the API disappeared.
+- Failed sessions reported `MediaStreamError` for audio/video receive and:
+  `ClientConnectorError: Cannot connect to host 127.0.0.1:8000`.
+- `curl http://127.0.0.1:8000/health` returned connection refused after the
+  GPU memory dropped to `15MB`.
+- `ps` showed no `api_server.py` process.
+- cgroup memory counters still showed `oom_kill 0` and `memory.failcnt 0`.
+- The server log again ended around WebRTC stream/track teardown, without a
+  Python traceback, CUDA OOM exception, or explicit shutdown line.
+
+Interpretation:
+
+- Switching WebRTC from `h264_nvenc` to `libx264` materially improved process
+  stability. Previous `h264_nvenc` runs killed the API during the `4`-stream
+  stage; this `libx264` run completed `4`, `5`, and `6` streams.
+- `libx264` did not fix the underlying stability issue entirely. The API still
+  exited abruptly during the `8`-stream stage.
+- The crash is therefore not exclusively an NVENC encoder teardown bug. NVENC
+  may lower the failure threshold, but the broader trigger is still high
+  concurrent WebRTC load plus session/track teardown under near-full VRAM.
+- Even successful stages were not realtime at the player receive layer. A
+  `20fps` stream should average about `0.050s` between video frames; this run
+  ranged from `0.084s` at `4` streams to `0.184s` at `8` streams.
+- The highest currently measured successful WebRTC ramp stage with this profile
+  is `6` concurrent streams using `libx264`, but those streams are throttled and
+  should not be counted as smooth realtime playback.
+
+Report files:
+
+- `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_libx264.json`
+- `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_libx264_detailed.json`
+
 ## Implementation Update: 2026-05-18
 
 Phase 1 items 1-6 have now been implemented.
