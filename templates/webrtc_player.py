@@ -94,7 +94,6 @@ def get_webrtc_player_html(session) -> str:
 <body>
     <div class="video-container">
         <video id="remoteVideo" playsinline webkit-playsinline autoplay></video>
-        <audio id="remoteAudio" autoplay></audio>
         <div class="status-overlay button" id="statusOverlay">Tap to start (enable audio)</div>
         <div class="debug-overlay" id="debugOverlay">debug: idle</div>
     </div>
@@ -108,7 +107,6 @@ def get_webrtc_player_html(session) -> str:
         const PLAYBACK_FPS = {playback_fps};
 
         const remoteVideo = document.getElementById('remoteVideo');
-        const remoteAudio = document.getElementById('remoteAudio');
         const statusOverlay = document.getElementById('statusOverlay');
         const debugOverlay = document.getElementById('debugOverlay');
 
@@ -116,8 +114,6 @@ def get_webrtc_player_html(session) -> str:
         let started = false;
         let audioUnlocked = false;
         let remoteStream = null;
-        let audioContext = null;
-        let audioSourceNode = null;
         let lastAudioBytes = null;
         let lastAudioTs = null;
         let lastVideoFrames = null;
@@ -146,31 +142,6 @@ def get_webrtc_player_html(session) -> str:
             debugOverlay.textContent = lines.join('\\n');
         }}
 
-        function ensureAudioContext() {{
-            if (!audioContext) {{
-                const Ctx = window.AudioContext || window.webkitAudioContext;
-                if (!Ctx) return;
-                audioContext = new Ctx();
-            }}
-            if (audioContext.state === 'suspended') {{
-                audioContext.resume().catch(() => {{}});
-            }}
-        }}
-
-        function attachAudioToContext(stream) {{
-            if (!audioContext || !stream) return;
-            try {{
-                if (audioSourceNode) {{
-                    audioSourceNode.disconnect();
-                    audioSourceNode = null;
-                }}
-                audioSourceNode = audioContext.createMediaStreamSource(stream);
-                audioSourceNode.connect(audioContext.destination);
-            }} catch (_) {{
-                // Ignore WebAudio errors; fallback to element playback.
-            }}
-        }}
-
         async function sendIceCandidate(candidate) {{
             if (!candidate) return;
             await fetch(`${{API_ORIGIN}}/webrtc/sessions/${{SESSION_ID}}/ice`, {{
@@ -186,22 +157,15 @@ def get_webrtc_player_html(session) -> str:
 
         async function unlockAudio() {{
             try {{
-                ensureAudioContext();
-                const vStream = remoteVideo.srcObject;
-                remoteVideo.pause();
-                remoteVideo.srcObject = null;
-                remoteVideo.srcObject = vStream;
-
-                const aStream = remoteAudio.srcObject;
-                remoteAudio.pause();
-                remoteAudio.srcObject = null;
-                remoteAudio.srcObject = aStream;
-                attachAudioToContext(aStream);
+                const stream = remoteVideo.srcObject;
+                if (stream) {{
+                    remoteVideo.pause();
+                    remoteVideo.srcObject = null;
+                    remoteVideo.srcObject = stream;
+                }}
 
                 remoteVideo.muted = false;
                 remoteVideo.volume = 1.0;
-                remoteAudio.muted = true;
-                remoteAudio.volume = 0.0;
                 await remoteVideo.play();
                 audioUnlocked = true;
                 hideStatus();
@@ -225,28 +189,33 @@ def get_webrtc_player_html(session) -> str:
             // Audio is unlocked via user gesture before calling start().
             remoteVideo.muted = !audioUnlocked;
             remoteVideo.volume = 1.0;
-            remoteAudio.muted = true;
-            remoteAudio.volume = 0.0;
+            if (audioUnlocked) {{
+                remoteVideo.play().catch(() => {{}});
+            }}
 
             pc.ontrack = (event) => {{
-                if (event.track && event.track.kind === 'video') {{
-                    if (!remoteStream) {{
-                        remoteStream = new MediaStream();
-                        remoteVideo.srcObject = remoteStream;
-                    }}
-                    if (!remoteStream.getTracks().includes(event.track)) {{
-                        remoteStream.addTrack(event.track);
-                    }}
+                if (!event.track) {{
                     return;
                 }}
 
-                if (event.track && event.track.kind === 'audio') {{
-                    const audioStream = new MediaStream([event.track]);
-                    remoteAudio.srcObject = audioStream;
-                    attachAudioToContext(audioStream);
-                    if (!audioUnlocked) {{
-                        updateStatus('Tap to start (enable audio)', false, true);
-                    }}
+                if (!remoteStream) {{
+                    remoteStream = new MediaStream();
+                }}
+                if (!remoteStream.getTracks().includes(event.track)) {{
+                    remoteStream.addTrack(event.track);
+                }}
+                remoteVideo.srcObject = remoteStream;
+
+                if (event.track.kind === 'audio' && !audioUnlocked) {{
+                    remoteVideo.muted = true;
+                    updateStatus('Tap to start (enable audio)', false, true);
+                    return;
+                }}
+
+                if (audioUnlocked) {{
+                    remoteVideo.muted = false;
+                    remoteVideo.volume = 1.0;
+                    remoteVideo.play().catch(() => updateStatus('Tap to start (enable audio)', false, true));
                 }}
             }};
 
@@ -288,6 +257,11 @@ def get_webrtc_player_html(session) -> str:
 
             const answer = await resp.json();
             await pc.setRemoteDescription(answer);
+            if (audioUnlocked) {{
+                remoteVideo.muted = false;
+                remoteVideo.volume = 1.0;
+                remoteVideo.play().catch(() => updateStatus('Tap to start (enable audio)', false, true));
+            }}
             hideStatus();
         }}
 
@@ -297,13 +271,10 @@ def get_webrtc_player_html(session) -> str:
             lines.push('pc: ' + pc.connectionState + ' / ice: ' + pc.iceConnectionState);
             lines.push('ice policy: ' + ICE_TRANSPORT_POLICY);
             const vTracks = remoteVideo.srcObject ? remoteVideo.srcObject.getVideoTracks().length : 0;
-            const aTracks = remoteAudio.srcObject ? remoteAudio.srcObject.getAudioTracks().length : 0;
+            const aTracks = remoteVideo.srcObject ? remoteVideo.srcObject.getAudioTracks().length : 0;
             lines.push('tracks: video=' + vTracks + ' audio=' + aTracks);
             lines.push('fps target: src=' + SOURCE_FPS + ' out=' + PLAYBACK_FPS);
-            if (audioContext) {{
-                lines.push('audioContext: ' + audioContext.state);
-                lines.push('audioRoute: ' + (audioSourceNode ? 'webaudio' : 'none'));
-            }}
+            lines.push('audioRoute: video element');
 
             try {{
                 const stats = await pc.getStats();
@@ -375,12 +346,9 @@ def get_webrtc_player_html(session) -> str:
             lastTapMs = now;
             if (!started) {{
                 // Unlock audio in the user gesture before async negotiation.
-                ensureAudioContext();
                 audioUnlocked = true;
                 remoteVideo.muted = false;
                 remoteVideo.volume = 1.0;
-                remoteAudio.muted = true;
-                remoteAudio.volume = 0.0;
                 remoteVideo.play().catch(() => {{}});
                 start().catch(() => updateStatus('Failed to connect', true, true));
                 return;

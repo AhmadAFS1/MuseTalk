@@ -146,7 +146,8 @@ scripts/webrtc_tracks.py
     logs drift only
 ```
 
-The current WebRTC browser player also does not mirror HLS playback semantics:
+Before the 2026-05-20 combined-stream experiment, the WebRTC browser player
+also did not mirror HLS playback semantics:
 
 ```text
 templates/webrtc_player.py
@@ -155,9 +156,25 @@ templates/webrtc_player.py
   WebAudio route = createMediaStreamSource(audioStream)
 ```
 
-That means the browser is not using one media element as the primary A/V
+That meant the browser was not using one media element as the primary A/V
 playout surface. The WebAudio route is useful for autoplay unlock experiments,
 but it adds a separate audio path and should not be the default sync path.
+
+Implemented experiment on 2026-05-20:
+
+```text
+templates/webrtc_player.py
+  <video id="remoteVideo" ...>
+  remoteStream = new MediaStream()
+  pc.ontrack -> remoteStream.addTrack(event.track)   # audio and video
+  remoteVideo.srcObject = remoteStream
+```
+
+This makes the WebRTC player use one browser media element for both remote RTP
+tracks, which is the closest client-side equivalent to the HLS player. If audio
+still finishes before video after this change, the remaining cause is server
+playout policy: audio is still emitted from its own `SyncedAudioStreamTrack`
+clock while video drains its own queue.
 
 ### Can WebRTC Use One Track Like HLS?
 
@@ -176,8 +193,7 @@ timeline:
 - keep one `RTCPeerConnection`
 - put audio and video into the same remote `MediaStream` on the client
 - attach that combined stream to one `<video>` element as the default path
-- keep the separate `<audio>` / WebAudio route only as an explicit unlock or
-  fallback path
+- keep any separate `<audio>` / WebAudio route out of the default sync path
 - on the server, introduce a shared A/V playout gate so audio and video cannot
   advance independently
 
@@ -458,8 +474,9 @@ debug than HLS.
 
 ### 7. Browser-side audio route may add avoidable sync risk
 
-`templates/webrtc_player.py` attaches video to `remoteVideo` but attaches audio
-to `remoteAudio` and also routes it through WebAudio:
+Before the 2026-05-20 combined-stream experiment, `templates/webrtc_player.py`
+attached video to `remoteVideo` but attached audio to `remoteAudio` and also
+routed it through WebAudio:
 
 ```text
 remoteVideo.srcObject = remoteStream
@@ -469,9 +486,9 @@ audioSourceNode.connect(audioContext.destination)
 ```
 
 Using WebAudio can be useful for autoplay unlocks, but it can also introduce a
-separate audio path from the video element. For simplest A/V sync, prefer one
-remote `MediaStream` attached to one media element when possible, or keep the
-separate audio route only as an explicit fallback.
+separate audio path from the video element. The player now prefers one remote
+`MediaStream` attached to one media element. If the new player still drifts, the
+server-side audio/video playout gate is the next fix to test.
 
 ## Desired WebRTC Behavior
 
