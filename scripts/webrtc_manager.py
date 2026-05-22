@@ -71,6 +71,7 @@ class WebRTCSessionManager:
         self.rtc_config = rtc_config
         self.ice_servers = ice_servers or []
         self.ice_transport_policy = ice_transport_policy
+        self.deleting_sessions: set[str] = set()
 
     def start_cleanup(self) -> None:
         if self.cleanup_task is None:
@@ -137,7 +138,15 @@ class WebRTCSessionManager:
 
         async with self.lock:
             self.sessions[session_id] = session
+            total_sessions = len(self.sessions)
 
+        print(
+            f"🧊 WebRTC session created session_id={session_id} avatar_id={avatar_id} "
+            f"user_id={user_id} fps={fps} playback_fps={playback_fps} "
+            f"batch_size={batch_size} chunk_duration={chunk_duration} "
+            f"total_sessions={total_sessions}",
+            flush=True,
+        )
         return session
 
     async def get_session(self, session_id: str) -> Optional[WebRTCSession]:
@@ -149,23 +158,49 @@ class WebRTCSessionManager:
 
     async def delete_session(self, session_id: str) -> bool:
         async with self.lock:
+            if session_id in self.deleting_sessions:
+                print(f"🧊 WebRTC delete already in progress session_id={session_id}", flush=True)
+                return False
+            self.deleting_sessions.add(session_id)
             session = self.sessions.pop(session_id, None)
+            remaining_sessions = len(self.sessions)
 
         if session is None:
+            async with self.lock:
+                self.deleting_sessions.discard(session_id)
+            print(f"🧊 WebRTC delete skipped missing session_id={session_id}", flush=True)
             return False
 
-        if session.idle_track is not None:
-            session.idle_track.stop()
-        if session.audio_sender and session.audio_sender.track:
-            session.audio_sender.track.stop()
-        if session.silence_audio_track:
-            session.silence_audio_track.stop()
-        if session.audio_player and hasattr(session.audio_player, "stop"):
-            session.audio_player.stop()
-        if session.pc is not None:
-            await session.pc.close()
-
-        return True
+        print(
+            f"🧊 WebRTC delete start session_id={session_id} active_stream={session.active_stream} "
+            f"remaining_sessions={remaining_sessions}",
+            flush=True,
+        )
+        try:
+            if session.idle_track is not None:
+                print(f"🧊 WebRTC delete stop video track session_id={session_id}", flush=True)
+                session.idle_track.stop()
+            if session.audio_sender and session.audio_sender.track:
+                print(f"🧊 WebRTC delete stop audio sender track session_id={session_id}", flush=True)
+                session.audio_sender.track.stop()
+            if session.silence_audio_track:
+                print(f"🧊 WebRTC delete stop silence track session_id={session_id}", flush=True)
+                session.silence_audio_track.stop()
+            if session.audio_player and hasattr(session.audio_player, "stop"):
+                print(f"🧊 WebRTC delete stop audio player session_id={session_id}", flush=True)
+                session.audio_player.stop()
+            if session.pc is not None:
+                print(
+                    f"🧊 WebRTC delete close peer connection session_id={session_id} "
+                    f"state={session.pc.connectionState}",
+                    flush=True,
+                )
+                await session.pc.close()
+            print(f"🧊 WebRTC delete done session_id={session_id}", flush=True)
+            return True
+        finally:
+            async with self.lock:
+                self.deleting_sessions.discard(session_id)
 
     def get_live_sessions(self) -> list[dict]:
         """Return only WebRTC sessions that are actively streaming"""

@@ -135,6 +135,8 @@ unset MUSETALK_CPU_AFFINITY
 
 : "${MUSETALK_WHISPER_SEGMENT_BATCH_SIZE:=4}"
 : "${MUSETALK_AVATAR_LOAD_WORKERS:=8}"
+: "${PYTHONFAULTHANDLER:=1}"
+: "${PYTHONUNBUFFERED:=1}"
 
 unset HLS_CHUNK_ENCODER_TUNE
 unset HLS_CHUNK_ENCODER_QP
@@ -194,6 +196,8 @@ export HLS_PERSISTENT_SEGMENTER
 export HLS_CHUNK_PREPARE_AUDIO_SIDECAR
 export MUSETALK_WHISPER_SEGMENT_BATCH_SIZE
 export MUSETALK_AVATAR_LOAD_WORKERS
+export PYTHONFAULTHANDLER
+export PYTHONUNBUFFERED
 
 log "Launching MuseTalk TRT-stagewise server"
 log "profile=$PROFILE host=$HOST port=$PORT"
@@ -201,6 +205,40 @@ log "python=$VENV_PYTHON"
 log "HLS_SCHEDULER_MAX_BATCH=$HLS_SCHEDULER_MAX_BATCH"
 log "HLS_SCHEDULER_FIXED_BATCH_SIZES=$HLS_SCHEDULER_FIXED_BATCH_SIZES"
 log "MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=$MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES"
+log "WEBRTC_H264_ENCODER=${WEBRTC_H264_ENCODER:-h264_nvenc(default)}"
+log "PYTHONFAULTHANDLER=$PYTHONFAULTHANDLER PYTHONUNBUFFERED=$PYTHONUNBUFFERED"
 
 cd "$REPO_ROOT"
-exec "$VENV_PYTHON" api_server.py --host "$HOST" --port "$PORT"
+
+child_pid=""
+forward_signal() {
+  local sig="$1"
+  log "Received $sig; forwarding to api_server.py pid=${child_pid:-unknown}"
+  if [[ -n "$child_pid" ]] && kill -0 "$child_pid" >/dev/null 2>&1; then
+    kill "-$sig" "$child_pid" >/dev/null 2>&1 || true
+  fi
+}
+
+"$VENV_PYTHON" api_server.py --host "$HOST" --port "$PORT" &
+child_pid=$!
+log "api_server.py started pid=$child_pid wrapper_pid=$$"
+
+trap 'forward_signal TERM' TERM
+trap 'forward_signal INT' INT
+
+set +e
+wait "$child_pid"
+rc=$?
+set -e
+
+trap - TERM INT
+
+if (( rc >= 128 )); then
+  signal_number=$((rc - 128))
+  signal_name="$(kill -l "$signal_number" 2>/dev/null || true)"
+  log "api_server.py exited with code=$rc signal=${signal_name:-$signal_number}"
+else
+  log "api_server.py exited with code=$rc"
+fi
+
+exit "$rc"

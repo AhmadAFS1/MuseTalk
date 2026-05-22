@@ -435,6 +435,81 @@ Report files:
 - `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_libx264.json`
 - `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_libx264_detailed.json`
 
+### Automated WebRTC Load Test With Diagnostics and libx264: 2026-05-22
+
+The same WebRTC ramp was rerun after adding crash/process diagnostics and
+WebRTC delete/cleanup logging. The API was still running with software H.264:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python load_test_webrtc.py \
+  --base-url http://127.0.0.1:8000 \
+  --avatar-id test_avatar \
+  --audio-file ./data/audio/ai-assistant.mpga \
+  --ramp 4,5,6,8 \
+  --hold-seconds 15 \
+  --segment-duration 1.0 \
+  --playback-fps 20 \
+  --musetalk-fps 20 \
+  --batch-size 8 \
+  --stage-ready-timeout 90 \
+  --connection-timeout 30 \
+  --completion-timeout 180 \
+  --report-path load_test_webrtc_report_20_20_4_5_6_8streams_8_16_diagnostics_libx264.json \
+  --detail-report-path load_test_webrtc_report_20_20_4_5_6_8streams_8_16_diagnostics_libx264_detailed.json
+```
+
+Result summary:
+
+| Stage | Completed | Avg live-ready | Avg frame interval | Max frame interval | Peak GPU memory | Result |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `4` streams | `4/4` | `13.928s` | `0.084s` | `0.930s` | `24145MB` | completed, throttled |
+| `5` streams | `5/5` | `5.534s` | `0.110s` | `1.688s` | `24145MB` | completed, throttled |
+| `6` streams | `6/6` | `6.768s` | `0.131s` | `1.799s` | `24145MB` | completed, throttled |
+| `8` streams | `8/8` | `10.407s` | `0.175s` | `3.698s` | `23901MB` | completed, heavily throttled |
+
+Errors observed:
+
+- The load test process exited successfully.
+- No client-side errors were reported in any stage.
+- The API server remained healthy after the run:
+  `{"ok": true, "status": "healthy", "draining": false, "accepting_new_sessions": true}`.
+- The post-start server log scan did not show a fatal Python error,
+  segmentation fault, CUDA OOM, traceback, wrapper exit, or unhandled async
+  exception during this diagnostic run.
+
+Server-side diagnostic observations:
+
+- The resource logger observed the `8`-stream stage with
+  `active_webrtc_streams=8`, `active_requests=8`, and `queue_depth=8`.
+- During the `8`-stream stage, the API process reached about `11.27GB` RSS high
+  water and about `1150` threads.
+- GPU memory remained near full but stable, around `23901MB / 24576MB` during
+  the `8`-stream stage.
+- The new WebRTC delete guard logged duplicate close attempts as
+  `WebRTC delete already in progress`, then completed cleanup without taking
+  the server down.
+
+Playback interpretation:
+
+- This run changes the measured stability ceiling: the highest tested
+  successful stage is now `8` concurrent WebRTC streams with `libx264` and the
+  new cleanup diagnostics in place.
+- It does not prove smooth realtime `20fps` playback. A true `20fps` stream
+  should average about `0.050s` between frames; the measured receive intervals
+  were `0.084s`, `0.110s`, `0.131s`, and `0.175s` as concurrency increased.
+- Server track stats still show large strict FIFO stall time under load:
+  about `10.86-12.05s` at `4` streams, `19.83-21.13s` at `5`, `26.80-29.27s`
+  at `6`, and `42.14-46.88s` at `8`.
+- Initial A/V release stayed tight in the detailed stats. At `8` streams,
+  `initial_av_start_delta_seconds` ranged from about `0.0004s` to `0.0064s`.
+  That suggests the start barrier is aligned, while sustained generation and
+  frame delivery are still too slow for realtime playback at high concurrency.
+
+Report files:
+
+- `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_diagnostics_libx264.json`
+- `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_diagnostics_libx264_detailed.json`
+
 ## Implementation Update: 2026-05-18
 
 Phase 1 items 1-6 have now been implemented.

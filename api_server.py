@@ -1,6 +1,9 @@
 import os
 import sys
 import signal
+import faulthandler
+import atexit
+import traceback
 
 # Local modification: this differs from the original MuseTalk code.
 # It applies early CPU thread-pool tuning before heavier imports happen.
@@ -8,11 +11,35 @@ from scripts.runtime_cpu_tuning import apply_cpu_tuning_early, apply_cpu_tuning_
 
 apply_cpu_tuning_early("api_server")
 
+
+def _enable_default_crash_diagnostics() -> None:
+    try:
+        faulthandler.enable(all_threads=True)
+        print("🧯 Python faulthandler enabled", flush=True)
+    except Exception as exc:
+        print(f"⚠️ Failed to enable faulthandler: {exc}", flush=True)
+
+    if hasattr(signal, "SIGUSR1"):
+        try:
+            faulthandler.register(signal.SIGUSR1, all_threads=True, chain=False)
+            print("🧯 SIGUSR1 stack dump handler enabled", flush=True)
+        except Exception as exc:
+            print(f"⚠️ Failed to register SIGUSR1 faulthandler: {exc}", flush=True)
+
+    def _excepthook(exc_type, exc, tb):
+        print("❌ Unhandled top-level exception", flush=True)
+        traceback.print_exception(exc_type, exc, tb)
+
+    sys.excepthook = _excepthook
+
+
+_enable_default_crash_diagnostics()
+
 import argparse
 from pathlib import Path
 from typing import Optional
 import uvicorn
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Query
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -30,6 +57,27 @@ import io
 import av  # ✅ ADD THIS - needed for audio probing
 from concurrent.futures import TimeoutError as FutureTimeoutError
 from datetime import datetime, timedelta
+
+PROCESS_START_TIME = time.time()
+
+if hasattr(threading, "excepthook"):
+    def _threading_excepthook(args):
+        print(
+            f"❌ Unhandled thread exception thread={getattr(args.thread, 'name', None)}",
+            flush=True,
+        )
+        traceback.print_exception(args.exc_type, args.exc_value, args.exc_traceback)
+
+    threading.excepthook = _threading_excepthook
+
+
+def _log_process_exit() -> None:
+    uptime = time.time() - PROCESS_START_TIME
+    print(f"👋 Python process exiting pid={os.getpid()} uptime={uptime:.1f}s", flush=True)
+
+
+atexit.register(_log_process_exit)
+
 from templates.streaming_ui import streaming_ui_endpoint
 from templates.mobile_player import mobile_player_endpoint
 from templates.session_player import get_session_player_html  # ✅ ADD THIS
@@ -343,6 +391,61 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def request_diagnostics_middleware(request: Request, call_next):
+    request_id = request.headers.get("x-request-id") or uuid.uuid4().hex[:12]
+    request.state.request_id = request_id
+    path = request.url.path
+    include_health = _env_bool("API_REQUEST_LOG_HEALTH", False)
+    log_requests = _env_bool("API_REQUEST_LOG", True) and (
+        include_health or path not in {"/health", "/worker/state"}
+    )
+    session_match = re.search(r"/(?:webrtc|hls)/sessions/([^/]+)", path)
+    group_match = re.search(r"/(?:webrtc|hls)/groups/([^/]+)", path)
+    session_id = session_match.group(1) if session_match else None
+    if session_id in {"create", "stats"}:
+        session_id = None
+    group_id = group_match.group(1) if group_match else None
+    started = time.monotonic()
+
+    if log_requests:
+        print(
+            "🌐 API request start "
+            f"id={request_id} method={request.method} path={path} "
+            f"session_id={session_id or '-'} group_id={group_id or '-'} "
+            f"client={request.client.host if request.client else '-'} "
+            f"counts={_get_runtime_diagnostic_counts()}",
+            flush=True,
+        )
+
+    try:
+        response = await call_next(request)
+    except Exception:
+        elapsed_ms = (time.monotonic() - started) * 1000.0
+        print(
+            "❌ API request exception "
+            f"id={request_id} method={request.method} path={path} "
+            f"session_id={session_id or '-'} group_id={group_id or '-'} "
+            f"elapsed_ms={elapsed_ms:.1f}",
+            flush=True,
+        )
+        traceback.print_exc()
+        raise
+
+    elapsed_ms = (time.monotonic() - started) * 1000.0
+    response.headers["x-request-id"] = request_id
+    if log_requests:
+        print(
+            "🌐 API request done "
+            f"id={request_id} method={request.method} path={path} "
+            f"status={response.status_code} elapsed_ms={elapsed_ms:.1f} "
+            f"session_id={session_id or '-'} group_id={group_id or '-'} "
+            f"counts={_get_runtime_diagnostic_counts()}",
+            flush=True,
+        )
+    return response
+
 # ============================================================================
 # Global Manager Instance
 # ============================================================================
@@ -358,6 +461,8 @@ hls_group_lock = threading.Lock()
 hls_groups: dict[str, dict] = {}
 webrtc_group_lock = threading.Lock()
 webrtc_groups: dict[str, dict] = {}
+resource_logger_stop = None
+asyncio_exception_handler_installed = False
 worker_control_plane: Optional[LinguaWorkerControlPlane] = None
 
 # ============================================================================
@@ -497,6 +602,207 @@ def _get_worker_metrics() -> dict:
     }
 
 
+def _read_proc_status_kb() -> dict:
+    values = {}
+    try:
+        with open("/proc/self/status", "r", encoding="utf-8") as status_file:
+            for line in status_file:
+                if ":" not in line:
+                    continue
+                key, raw_value = line.split(":", 1)
+                if key not in {"VmRSS", "VmHWM", "VmSize", "Threads"}:
+                    continue
+                parts = raw_value.strip().split()
+                if not parts:
+                    continue
+                try:
+                    values[key] = int(parts[0])
+                except ValueError:
+                    pass
+    except OSError:
+        pass
+    return values
+
+
+def _read_meminfo_kb() -> dict:
+    values = {}
+    try:
+        with open("/proc/meminfo", "r", encoding="utf-8") as meminfo_file:
+            for line in meminfo_file:
+                if ":" not in line:
+                    continue
+                key, raw_value = line.split(":", 1)
+                if key not in {"MemTotal", "MemAvailable"}:
+                    continue
+                parts = raw_value.strip().split()
+                if not parts:
+                    continue
+                try:
+                    values[key] = int(parts[0])
+                except ValueError:
+                    pass
+    except OSError:
+        pass
+    return values
+
+
+def _get_runtime_diagnostic_counts() -> dict:
+    active_requests = 0
+    active_webrtc_streams = 0
+    total_webrtc_sessions = 0
+    active_hls_streams = 0
+    total_hls_sessions = 0
+    queue_depth = 0
+
+    try:
+        if manager is not None:
+            with manager.request_lock:
+                active_requests = len(manager.active_requests)
+    except Exception:
+        active_requests = -1
+
+    try:
+        if webrtc_session_manager is not None:
+            sessions = list(webrtc_session_manager.sessions.values())
+            total_webrtc_sessions = len(sessions)
+            active_webrtc_streams = sum(1 for session in sessions if session.active_stream)
+    except Exception:
+        total_webrtc_sessions = -1
+        active_webrtc_streams = -1
+
+    try:
+        if hls_session_manager is not None:
+            sessions = list(hls_session_manager.sessions.values())
+            total_hls_sessions = len(sessions)
+            active_hls_streams = sum(1 for session in sessions if getattr(session, "active_stream", None))
+    except Exception:
+        total_hls_sessions = -1
+        active_hls_streams = -1
+
+    try:
+        if hls_stream_scheduler is not None:
+            scheduler_stats = hls_stream_scheduler.get_stats()
+            queue_depth = int(
+                scheduler_stats.get("queued_or_active_jobs", 0)
+                or scheduler_stats.get("prep_queue_depth", 0)
+                or 0
+            )
+    except Exception:
+        queue_depth = -1
+
+    return {
+        "active_requests": active_requests,
+        "active_webrtc_streams": active_webrtc_streams,
+        "total_webrtc_sessions": total_webrtc_sessions,
+        "active_hls_streams": active_hls_streams,
+        "total_hls_sessions": total_hls_sessions,
+        "queue_depth": queue_depth,
+    }
+
+
+def _sample_process_resource_snapshot(
+    *,
+    cpu_process_pct: Optional[float] = None,
+    cpu_total_pct: Optional[float] = None,
+) -> dict:
+    proc_status = _read_proc_status_kb()
+    meminfo = _read_meminfo_kb()
+    gpu_index = 0
+    if manager is not None:
+        try:
+            gpu_index = int(getattr(getattr(manager, "args", None), "gpu_id", 0) or 0)
+        except Exception:
+            gpu_index = 0
+    gpu = _sample_live_gpu_stats(gpu_index)
+    uptime = time.time() - PROCESS_START_TIME
+    mem_total_kb = meminfo.get("MemTotal")
+    mem_available_kb = meminfo.get("MemAvailable")
+    ram_used_pct = None
+    if mem_total_kb and mem_available_kb is not None:
+        ram_used_pct = round(((mem_total_kb - mem_available_kb) / mem_total_kb) * 100.0, 2)
+
+    return {
+        "pid": os.getpid(),
+        "uptime_s": round(uptime, 1),
+        "rss_mb": round(proc_status.get("VmRSS", 0) / 1024.0, 1),
+        "rss_high_water_mb": round(proc_status.get("VmHWM", 0) / 1024.0, 1),
+        "vms_mb": round(proc_status.get("VmSize", 0) / 1024.0, 1),
+        "threads": proc_status.get("Threads"),
+        "ram_available_mb": round(mem_available_kb / 1024.0, 1) if mem_available_kb is not None else None,
+        "ram_total_mb": round(mem_total_kb / 1024.0, 1) if mem_total_kb is not None else None,
+        "ram_used_pct": ram_used_pct,
+        "cpu_process_pct": round(cpu_process_pct, 1) if cpu_process_pct is not None else None,
+        "cpu_total_pct": round(cpu_total_pct, 1) if cpu_total_pct is not None else None,
+        "gpu": gpu,
+        "counts": _get_runtime_diagnostic_counts(),
+    }
+
+
+def _start_resource_logger(label: str, interval_seconds: float):
+    if interval_seconds <= 0:
+        print(f"🫀 Resource logger disabled label={label}", flush=True)
+        return None
+
+    stop_event = threading.Event()
+    cpu_count = os.cpu_count() or 1
+    last_wall = time.time()
+    last_cpu = time.process_time()
+    print(
+        f"🫀 Resource logger started label={label} interval={interval_seconds:.1f}s pid={os.getpid()}",
+        flush=True,
+    )
+
+    def _run():
+        nonlocal last_wall, last_cpu
+        while not stop_event.wait(interval_seconds):
+            now_wall = time.time()
+            now_cpu = time.process_time()
+            delta_wall = now_wall - last_wall
+            delta_cpu = now_cpu - last_cpu
+            last_wall = now_wall
+            last_cpu = now_cpu
+            if delta_wall <= 0:
+                continue
+            cpu_process_pct = (delta_cpu / delta_wall) * 100.0
+            cpu_total_pct = cpu_process_pct / cpu_count
+            snapshot = _sample_process_resource_snapshot(
+                cpu_process_pct=cpu_process_pct,
+                cpu_total_pct=cpu_total_pct,
+            )
+            print(
+                f"🫀 RESOURCE {label} {json.dumps(snapshot, sort_keys=True)}",
+                flush=True,
+            )
+
+    thread = threading.Thread(target=_run, name=f"{label}-resource-log", daemon=True)
+    thread.start()
+    return stop_event.set
+
+
+def _install_asyncio_exception_handler(loop: asyncio.AbstractEventLoop) -> None:
+    global asyncio_exception_handler_installed
+    if asyncio_exception_handler_installed:
+        return
+    previous_handler = loop.get_exception_handler()
+
+    def _handle_asyncio_exception(event_loop, context):
+        message = context.get("message", "asyncio exception")
+        exc = context.get("exception")
+        print(f"❌ Asyncio exception: {message}", flush=True)
+        if exc is not None:
+            traceback.print_exception(type(exc), exc, exc.__traceback__)
+        else:
+            print(f"❌ Asyncio context: {context}", flush=True)
+        if previous_handler is not None:
+            previous_handler(event_loop, context)
+        else:
+            event_loop.default_exception_handler(context)
+
+    loop.set_exception_handler(_handle_asyncio_exception)
+    asyncio_exception_handler_installed = True
+    print("🧯 Asyncio exception handler installed", flush=True)
+
+
 def _require_accepting_new_sessions() -> None:
     if worker_control_plane is None:
         return
@@ -531,9 +837,16 @@ async def _wait_for_worker_to_be_idle(timeout_seconds: int) -> bool:
 @app.on_event("startup")
 async def startup_event():
     """Initialize the avatar manager on startup"""
-    global manager, session_manager, hls_session_manager, hls_stream_scheduler, webrtc_session_manager, webrtc_ice_servers, webrtc_ice_transport_policy, worker_control_plane
+    global manager, session_manager, hls_session_manager, hls_stream_scheduler, webrtc_session_manager, webrtc_ice_servers, webrtc_ice_transport_policy, worker_control_plane, resource_logger_stop
     
-    print("🚀 Starting MuseTalk API Server...")
+    _install_asyncio_exception_handler(asyncio.get_running_loop())
+    if resource_logger_stop is None:
+        resource_logger_stop = _start_resource_logger(
+            "api_server",
+            _env_float("SERVER_RESOURCE_LOG_INTERVAL", 5.0),
+        )
+
+    print(f"🚀 Starting MuseTalk API Server pid={os.getpid()}...")
     
     # Parse command line args or use defaults
     args = Namespace(
@@ -638,7 +951,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global manager, webrtc_session_manager, hls_session_manager, hls_stream_scheduler, worker_control_plane
+    global manager, webrtc_session_manager, hls_session_manager, hls_stream_scheduler, worker_control_plane, resource_logger_stop
     if worker_control_plane is not None:
         worker_control_plane.begin_draining(reason="shutdown")
     if hls_stream_scheduler:
@@ -655,6 +968,9 @@ async def shutdown_event():
             await hls_session_manager.delete_session(session_id)
     if worker_control_plane is not None:
         worker_control_plane.stop()
+    if resource_logger_stop is not None:
+        resource_logger_stop()
+        resource_logger_stop = None
     print("👋 MuseTalk API Server stopped")
 
 @app.on_event("startup")
@@ -2916,6 +3232,14 @@ async def create_webrtc_group(
     with webrtc_group_lock:
         webrtc_groups[group_id] = group
 
+    print(
+        "🧱 WebRTC group created "
+        f"group_id={group_id} avatar_id={avatar_id} count={count} "
+        f"fps={resolved_fps} playback_fps={resolved_playback_fps} "
+        f"batch_size={resolved_batch_size} chunk_duration={resolved_chunk_duration} "
+        f"counts={_get_runtime_diagnostic_counts()}",
+        flush=True,
+    )
     return await _build_webrtc_group_response(group)
 
 
@@ -2954,6 +3278,13 @@ async def stream_webrtc_group(
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="audio_file is empty")
     audio_filename = audio_file.filename or "audio.bin"
+    print(
+        "🧱 WebRTC group stream start "
+        f"group_id={group_id} session_count={len(group['session_ids'])} "
+        f"audio_filename={audio_filename} audio_bytes={len(audio_bytes)} "
+        f"counts={_get_runtime_diagnostic_counts()}",
+        flush=True,
+    )
 
     class InMemoryUpload:
         def __init__(self, filename: str, payload: bytes):
@@ -2984,6 +3315,12 @@ async def stream_webrtc_group(
     started = sum(1 for result in results if result.get("status") == "streaming")
     failed = len(results) - started
 
+    print(
+        "🧱 WebRTC group stream accepted "
+        f"group_id={group_id} started={started} failed={failed} "
+        f"counts={_get_runtime_diagnostic_counts()}",
+        flush=True,
+    )
     return {
         "group_id": group_id,
         "started": started,
@@ -3000,6 +3337,12 @@ async def delete_webrtc_group(group_id: str):
     if group is None:
         raise HTTPException(status_code=404, detail="Group not found")
 
+    print(
+        "🧱 WebRTC group delete start "
+        f"group_id={group_id} session_count={len(group['session_ids'])} "
+        f"counts={_get_runtime_diagnostic_counts()}",
+        flush=True,
+    )
     deleted_sessions = []
     errors = []
     for session_id in group["session_ids"]:
@@ -3009,6 +3352,12 @@ async def delete_webrtc_group(group_id: str):
         except HTTPException as exc:
             errors.append({"session_id": session_id, "detail": exc.detail})
 
+    print(
+        "🧱 WebRTC group delete done "
+        f"group_id={group_id} deleted={len(deleted_sessions)} errors={len(errors)} "
+        f"counts={_get_runtime_diagnostic_counts()}",
+        flush=True,
+    )
     return {
         "group_id": group_id,
         "deleted_sessions": deleted_sessions,
@@ -3248,6 +3597,14 @@ async def webrtc_stream(
 
     request_id = f"{session.avatar_id}_webrtc_{uuid.uuid4().hex[:8]}"
     session.active_stream = request_id
+    print(
+        "🎬 WebRTC stream request "
+        f"request_id={request_id} session_id={session_id} avatar_id={session.avatar_id} "
+        f"fps={session.fps} playback_fps={session.playback_fps} "
+        f"batch_size={session.batch_size} chunk_duration={session.chunk_duration} "
+        f"snapshot={json.dumps(_sample_process_resource_snapshot(), sort_keys=True)}",
+        flush=True,
+    )
 
     upload_dir = Path("uploads/audio")
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -3404,18 +3761,34 @@ async def webrtc_stream(
             print(f"⚠️ [{request_id}] frame_callback error: {e}")
 
     def cleanup_to_idle(force_video: bool = True):
+        print(
+            "🧹 WebRTC cleanup start "
+            f"request_id={request_id} session_id={session_id} force_video={force_video} "
+            f"counts={_get_runtime_diagnostic_counts()}",
+            flush=True,
+        )
         session.active_stream = None
         if not audio_prepare_task.done():
+            print(f"🧹 [{request_id}] cancelling audio prepare task", flush=True)
             audio_prepare_task.cancel()
         if force_video and session.idle_track:
+            print(f"🧹 [{request_id}] ending live video track", flush=True)
             session.idle_track.end_live()
         # Stop the synced audio track
         if session.audio_player and hasattr(session.audio_player, "stop"):
+            print(f"🧹 [{request_id}] stopping synced audio track", flush=True)
             session.audio_player.stop()
             session.audio_player = None
         # Switch back to silence track
         if session.audio_sender and session.silence_audio_track:
+            print(f"🧹 [{request_id}] replacing audio sender with silence track", flush=True)
             session.audio_sender.replaceTrack(session.silence_audio_track)
+        print(
+            "🧹 WebRTC cleanup done "
+            f"request_id={request_id} session_id={session_id} "
+            f"counts={_get_runtime_diagnostic_counts()}",
+            flush=True,
+        )
 
     async def finish_playback_then_cleanup():
         force_video_cleanup = False
@@ -3433,7 +3806,13 @@ async def webrtc_stream(
                 waiters.append(audio_track.wait_for_eof())
 
             if waiters:
+                print(
+                    f"🧹 [{request_id}] waiting for WebRTC playback drain "
+                    f"waiters={len(waiters)} timeout={playback_timeout:.1f}s",
+                    flush=True,
+                )
                 await asyncio.wait_for(asyncio.gather(*waiters), timeout=playback_timeout)
+                print(f"🧹 [{request_id}] WebRTC playback drain complete", flush=True)
         except Exception as exc:
             force_video_cleanup = True
             print(f"⚠️ [{request_id}] WebRTC playback drain timed out/failed; forcing idle cleanup: {exc}")
