@@ -139,8 +139,8 @@ cd /workspace/MuseTalk
 bash scripts/run_trt_stagewise_server.sh --profile throughput_record
 ```
 
-This is the widened-batch branch that produced the current best average
-throughput at `concurrency=8`:
+This is now GPU-aware. On 24GB RTX 3090-class cards it preserves the widened
+branch that produced the current best average throughput at `concurrency=8`:
 
 - `HLS_SCHEDULER_MAX_BATCH=16`
 - `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16`
@@ -160,6 +160,17 @@ Important caveat:
 - do not leave `4` in `HLS_SCHEDULER_FIXED_BATCH_SIZES` unless batch `4` is
   also warmed; otherwise tiny tail batches can trigger a live batch-4 TRT
   compile and stall HLS playback
+
+On 32GB V100-class cards, the same profile now defaults to:
+
+- `GPU_TOTAL_MEMORY_GB=32`
+- `GPU_RESERVED_MEMORY_GB=8`
+- `HLS_SCHEDULER_MAX_BATCH=32`
+- `HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16,32`
+- `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=4,8,16,32`
+
+Manual env vars still win. See `docs/gpu_vram_budgeting.md` for the full VRAM
+class table.
 
 ## Matching Load Tests
 

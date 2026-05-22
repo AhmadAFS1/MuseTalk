@@ -51,7 +51,7 @@ instances without relying on interactive shells.
 Environment:
   REPO_ROOT                  MuseTalk repo root (default: $REPO_ROOT)
   VENV_PATH                  TRT-stagewise venv (default: $VENV_PATH)
-  PROFILE                    baseline or throughput_record (default: $PROFILE)
+  PROFILE                    baseline, throughput_record, or vram_max (default: $PROFILE)
   HOST                       Bind host (default: $HOST)
   PORT                       Bind port (default: $PORT)
   HEALTH_HOST                Host used for local health checks (default: $HEALTH_HOST)

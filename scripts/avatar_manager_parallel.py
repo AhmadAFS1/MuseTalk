@@ -45,8 +45,7 @@ class ParallelAvatarManager:
 
         # GPU memory manager
         self.gpu_memory = GPUMemoryManager(
-            total_memory_gb=24,
-            reserved_gb=6,
+            gpu_id=getattr(args, "gpu_id", 0),
             max_live_generations=max_live_generations,
         )
         

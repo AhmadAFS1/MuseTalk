@@ -37,10 +37,11 @@ configured venv interpreter. This avoids mixed-venv launches.
 
 Profiles:
   baseline           Conservative stable TRT-stagewise HLS baseline (default)
-  throughput_record  Current widened-batch throughput branch
+  throughput_record  GPU-aware widened-batch throughput branch
+  vram_max           Alias for GPU-aware throughput defaults
 
 Options:
-  --profile NAME     Launch profile: baseline or throughput_record
+  --profile NAME     Launch profile: baseline, throughput_record, or vram_max
   --host HOST        Bind host (default: $HOST)
   --port PORT        Bind port (default: $PORT)
   --venv-path PATH   Python venv path (default: $VENV_PATH)
@@ -116,7 +117,6 @@ unset MUSETALK_CPU_AFFINITY
 : "${MUSETALK_TRT_STAGEWISE_TORCH_STAGES:=}"
 
 : "${AVATAR_CACHE_MAX_AVATARS:=0}"
-: "${AVATAR_CACHE_MAX_MEMORY_MB:=12000}"
 : "${AVATAR_CACHE_TTL_SECONDS:=3600}"
 
 : "${HLS_SCHEDULER_AGGRESSIVE_FILL_MAX_ACTIVE_JOBS:=999}"
@@ -141,25 +141,51 @@ unset MUSETALK_CPU_AFFINITY
 unset HLS_CHUNK_ENCODER_TUNE
 unset HLS_CHUNK_ENCODER_QP
 
+apply_gpu_aware_defaults() {
+  local profile_name="$1"
+  local assignments
+  assignments="$(
+    cd "$REPO_ROOT"
+    PROFILE="$profile_name" "$VENV_PYTHON" - <<'PY'
+import os
+import shlex
+
+from scripts.concurrent_gpu_manager import (
+    default_reserved_memory_gb,
+    detect_total_gpu_memory_gb,
+    recommended_scheduler_batch_config,
+)
+
+profile = os.getenv("PROFILE", "baseline")
+total_gb, source = detect_total_gpu_memory_gb(gpu_id=0)
+reserved_gb = default_reserved_memory_gb(total_gb)
+recommended = recommended_scheduler_batch_config(total_gb, profile=profile)
+available_gb = max(1.0, total_gb - reserved_gb)
+cache_mb = int(max(6000, min(24000, available_gb * 1024 * 0.75)))
+
+defaults = {
+    "PROFILE": profile,
+    "GPU_TOTAL_MEMORY_GB": f"{total_gb:.1f}",
+    "GPU_RESERVED_MEMORY_GB": f"{reserved_gb:.1f}",
+    "HLS_SCHEDULER_MAX_BATCH": str(recommended["max_combined_batch_size"]),
+    "HLS_SCHEDULER_FIXED_BATCH_SIZES": ",".join(str(v) for v in recommended["fixed_batch_sizes"]),
+    "HLS_SCHEDULER_STARTUP_SLICE_SIZE": str(recommended["startup_slice_size"]),
+    "MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES": ",".join(str(v) for v in recommended["warmup_batches"]),
+    "AVATAR_CACHE_MAX_MEMORY_MB": str(cache_mb),
+    "GPU_MEMORY_DETECTION_SOURCE": source,
+}
+
+for name, default in defaults.items():
+    value = os.getenv(name) or default
+    print(f"export {name}={shlex.quote(str(value))}")
+PY
+  )"
+  eval "$assignments"
+}
+
 case "$PROFILE" in
-  baseline)
-    : "${HLS_SCHEDULER_MAX_BATCH:=4}"
-    : "${HLS_SCHEDULER_FIXED_BATCH_SIZES:=4}"
-    : "${HLS_SCHEDULER_STARTUP_SLICE_SIZE:=4}"
-    : "${MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES:=4}"
-    ;;
-  throughput_record)
-    # Current best average-throughput branch on the RTX 3090:
-    # max_batch=16 with request batch_size=8 in load_test.py.
-    : "${HLS_SCHEDULER_MAX_BATCH:=16}"
-    # Keep scheduler buckets aligned with warmed TRT stagewise batches. Warming
-    # 4+8+16 previously OOM'd on 24 GB cards; leaving 4 here without warming it
-    # can make tail batches trigger a live batch-4 TRT compile and stall HLS.
-    : "${HLS_SCHEDULER_FIXED_BATCH_SIZES:=8,16}"
-    : "${HLS_SCHEDULER_STARTUP_SLICE_SIZE:=4}"
-    # Warm 8 and 16 by default to match the widened-batch branch without
-    # forcing a 4+8+16 warmup that previously OOM'd on 24 GB cards.
-    : "${MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES:=8,16}"
+  baseline|throughput_record|vram_max)
+    apply_gpu_aware_defaults "$PROFILE"
     ;;
   *)
     die "Unsupported profile: $PROFILE"
@@ -198,10 +224,17 @@ export MUSETALK_WHISPER_SEGMENT_BATCH_SIZE
 export MUSETALK_AVATAR_LOAD_WORKERS
 export PYTHONFAULTHANDLER
 export PYTHONUNBUFFERED
+export PROFILE
+export GPU_TOTAL_MEMORY_GB
+export GPU_RESERVED_MEMORY_GB
+export GPU_MEMORY_DETECTION_SOURCE
 
 log "Launching MuseTalk TRT-stagewise server"
 log "profile=$PROFILE host=$HOST port=$PORT"
 log "python=$VENV_PYTHON"
+log "GPU_TOTAL_MEMORY_GB=$GPU_TOTAL_MEMORY_GB"
+log "GPU_RESERVED_MEMORY_GB=$GPU_RESERVED_MEMORY_GB"
+log "GPU_MEMORY_DETECTION_SOURCE=${GPU_MEMORY_DETECTION_SOURCE:-unknown}"
 log "HLS_SCHEDULER_MAX_BATCH=$HLS_SCHEDULER_MAX_BATCH"
 log "HLS_SCHEDULER_FIXED_BATCH_SIZES=$HLS_SCHEDULER_FIXED_BATCH_SIZES"
 log "MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=$MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES"

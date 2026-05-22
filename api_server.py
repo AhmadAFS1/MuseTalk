@@ -328,6 +328,11 @@ CLEANUP_DB = Path("chunks/.cleanup_queue.json")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from scripts.avatar_manager_parallel import ParallelAvatarManager
+from scripts.concurrent_gpu_manager import (
+    default_reserved_memory_gb,
+    detect_total_gpu_memory_gb,
+    recommended_scheduler_batch_config,
+)
 from argparse import Namespace
 
 # Local modification: this differs from the original MuseTalk code.
@@ -468,6 +473,51 @@ worker_control_plane: Optional[LinguaWorkerControlPlane] = None
 # ============================================================================
 # Startup/Shutdown Events
 # ============================================================================
+
+
+def _set_env_default(name: str, value) -> bool:
+    if os.getenv(name) not in (None, ""):
+        return False
+    os.environ[name] = str(value)
+    return True
+
+
+def _apply_gpu_aware_runtime_defaults(gpu_id: int) -> None:
+    total_gb, source = detect_total_gpu_memory_gb(gpu_id=gpu_id)
+    reserved_gb = default_reserved_memory_gb(total_gb)
+    profile = os.getenv("PROFILE", "baseline")
+    recommended = recommended_scheduler_batch_config(total_gb, profile=profile)
+
+    changed = {}
+    if _set_env_default("GPU_TOTAL_MEMORY_GB", f"{total_gb:.1f}"):
+        changed["GPU_TOTAL_MEMORY_GB"] = os.environ["GPU_TOTAL_MEMORY_GB"]
+    if _set_env_default("GPU_RESERVED_MEMORY_GB", f"{reserved_gb:.1f}"):
+        changed["GPU_RESERVED_MEMORY_GB"] = os.environ["GPU_RESERVED_MEMORY_GB"]
+    if _set_env_default("GPU_MEMORY_DETECTION_SOURCE", source):
+        changed["GPU_MEMORY_DETECTION_SOURCE"] = os.environ["GPU_MEMORY_DETECTION_SOURCE"]
+    if _set_env_default("HLS_SCHEDULER_MAX_BATCH", recommended["max_combined_batch_size"]):
+        changed["HLS_SCHEDULER_MAX_BATCH"] = os.environ["HLS_SCHEDULER_MAX_BATCH"]
+    fixed_batches = ",".join(str(batch) for batch in recommended["fixed_batch_sizes"])
+    if _set_env_default("HLS_SCHEDULER_FIXED_BATCH_SIZES", fixed_batches):
+        changed["HLS_SCHEDULER_FIXED_BATCH_SIZES"] = os.environ["HLS_SCHEDULER_FIXED_BATCH_SIZES"]
+    warmup_batches = ",".join(str(batch) for batch in recommended["warmup_batches"])
+    if _set_env_default("MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES", warmup_batches):
+        changed["MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES"] = os.environ["MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES"]
+    if _set_env_default("HLS_SCHEDULER_STARTUP_SLICE_SIZE", recommended["startup_slice_size"]):
+        changed["HLS_SCHEDULER_STARTUP_SLICE_SIZE"] = os.environ["HLS_SCHEDULER_STARTUP_SLICE_SIZE"]
+
+    available_gb = max(1.0, total_gb - reserved_gb)
+    cache_mb = int(max(6000, min(24000, available_gb * 1024 * 0.75)))
+    if _set_env_default("AVATAR_CACHE_MAX_MEMORY_MB", cache_mb):
+        changed["AVATAR_CACHE_MAX_MEMORY_MB"] = os.environ["AVATAR_CACHE_MAX_MEMORY_MB"]
+
+    print(
+        "🎛️  GPU-aware runtime defaults "
+        f"gpu_id={gpu_id} total={total_gb:.1f}GB source={source} "
+        f"reserved={reserved_gb:.1f}GB profile={profile} "
+        f"applied={changed or 'none'}",
+        flush=True,
+    )
 
 def _parse_ice_urls(raw: str) -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
@@ -865,6 +915,8 @@ async def startup_event():
         result_dir='./results',
         ffmpeg_path='./ffmpeg-4.4-amd64-static/'
     )
+
+    _apply_gpu_aware_runtime_defaults(args.gpu_id)
     
     # Initialize manager
     manager = ParallelAvatarManager(args, max_concurrent_inferences=5)
