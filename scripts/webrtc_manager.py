@@ -1,4 +1,5 @@
 import asyncio
+import os
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -72,6 +73,57 @@ class WebRTCSessionManager:
         self.ice_servers = ice_servers or []
         self.ice_transport_policy = ice_transport_policy
         self.deleting_sessions: set[str] = set()
+
+    @staticmethod
+    def _delete_detach_grace_seconds() -> float:
+        try:
+            return max(0.0, float(os.getenv("WEBRTC_DELETE_DETACH_GRACE_SECONDS", "0.2")))
+        except ValueError:
+            return 0.2
+
+    @staticmethod
+    def _safe_replace_sender_track(
+        sender: Optional[RTCRtpSender],
+        replacement,
+        label: str,
+        session_id: str,
+    ) -> None:
+        if sender is None:
+            return
+        try:
+            sender.replaceTrack(replacement)
+            replacement_label = "None" if replacement is None else replacement.__class__.__name__
+            print(
+                f"🧊 WebRTC delete detach {label} sender session_id={session_id} "
+                f"replacement={replacement_label}",
+                flush=True,
+            )
+        except Exception as exc:
+            print(
+                f"⚠️ WebRTC delete could not detach {label} sender "
+                f"session_id={session_id}: {exc}",
+                flush=True,
+            )
+
+    @staticmethod
+    def _safe_stop_track(track, label: str, session_id: str, stopped_ids: set[int]) -> None:
+        if track is None:
+            return
+        track_id = id(track)
+        if track_id in stopped_ids:
+            return
+        stopped_ids.add(track_id)
+        if getattr(track, "readyState", None) == "ended":
+            return
+        try:
+            print(f"🧊 WebRTC delete stop {label} track session_id={session_id}", flush=True)
+            track.stop()
+        except Exception as exc:
+            print(
+                f"⚠️ WebRTC delete could not stop {label} track "
+                f"session_id={session_id}: {exc}",
+                flush=True,
+            )
 
     def start_cleanup(self) -> None:
         if self.cleanup_task is None:
@@ -176,26 +228,54 @@ class WebRTCSessionManager:
             f"remaining_sessions={remaining_sessions}",
             flush=True,
         )
+        idle_track = session.idle_track
+        audio_sender_track = session.audio_sender.track if session.audio_sender else None
+        silence_audio_track = session.silence_audio_track
+        audio_player = session.audio_player
+        pc = session.pc
+        session.active_stream = None
+        stopped_track_ids: set[int] = set()
+
         try:
-            if session.idle_track is not None:
-                print(f"🧊 WebRTC delete stop video track session_id={session_id}", flush=True)
-                session.idle_track.stop()
-            if session.audio_sender and session.audio_sender.track:
-                print(f"🧊 WebRTC delete stop audio sender track session_id={session_id}", flush=True)
-                session.audio_sender.track.stop()
-            if session.silence_audio_track:
-                print(f"🧊 WebRTC delete stop silence track session_id={session_id}", flush=True)
-                session.silence_audio_track.stop()
-            if session.audio_player and hasattr(session.audio_player, "stop"):
-                print(f"🧊 WebRTC delete stop audio player session_id={session_id}", flush=True)
-                session.audio_player.stop()
-            if session.pc is not None:
+            if session.sync_clock is not None:
+                session.sync_clock.close()
+
+            # Do not close PyAV-backed tracks while aiortc sender tasks may still
+            # be inside recv()/encode. Detach first, let in-flight callbacks
+            # unwind, then close the peer connection and release local tracks.
+            self._safe_replace_sender_track(session.idle_sender, None, "video", session_id)
+            self._safe_replace_sender_track(session.audio_sender, None, "audio", session_id)
+            detach_grace = self._delete_detach_grace_seconds()
+            if detach_grace > 0:
+                await asyncio.sleep(detach_grace)
+
+            if pc is not None:
                 print(
                     f"🧊 WebRTC delete close peer connection session_id={session_id} "
-                    f"state={session.pc.connectionState}",
+                    f"state={pc.connectionState}",
                     flush=True,
                 )
-                await session.pc.close()
+                try:
+                    await asyncio.wait_for(pc.close(), timeout=10.0)
+                except asyncio.TimeoutError:
+                    print(
+                        f"⚠️ WebRTC delete peer connection close timed out "
+                        f"session_id={session_id}",
+                        flush=True,
+                    )
+
+            self._safe_stop_track(audio_player, "active audio", session_id, stopped_track_ids)
+            self._safe_stop_track(audio_sender_track, "audio sender", session_id, stopped_track_ids)
+            self._safe_stop_track(silence_audio_track, "silence audio", session_id, stopped_track_ids)
+            self._safe_stop_track(idle_track, "video", session_id, stopped_track_ids)
+
+            session.idle_track = None
+            session.idle_sender = None
+            session.audio_sender = None
+            session.silence_audio_track = None
+            session.audio_player = None
+            session.sync_clock = None
+            session.pc = None
             print(f"🧊 WebRTC delete done session_id={session_id}", flush=True)
             return True
         finally:

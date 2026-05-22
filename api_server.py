@@ -4029,6 +4029,21 @@ async def _signal_audio_start(audio_track: "SyncedAudioStreamTrack"):
 async def delete_webrtc_session(session_id: str):
     _require_webrtc()
 
+    session = await webrtc_session_manager.get_session(session_id)
+    if session is not None and session.active_stream and manager is not None:
+        request_id = session.active_stream
+        request_state = None
+        with manager.request_lock:
+            request_state = manager.active_requests.get(request_id)
+        cancel_event = request_state.get("cancel_event") if request_state else None
+        if cancel_event is not None and hasattr(cancel_event, "set"):
+            cancel_event.set()
+            print(
+                f"🧊 WebRTC delete requested active stream cancellation "
+                f"session_id={session_id} request_id={request_id}",
+                flush=True,
+            )
+
     deleted = await webrtc_session_manager.delete_session(session_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Session not found")

@@ -1,0 +1,103 @@
+[
+  {
+    "concurrency": 4,
+    "completed": 4,
+    "failed": 0,
+    "avg_time_to_live_ready_s": 4.173,
+    "avg_segment_interval_s": 0.09,
+    "max_segment_interval_s": 1.031,
+    "wall_time_s": 37.5,
+    "gpu": {
+      "samples": 36,
+      "avg_util_pct": 57.0,
+      "peak_util_pct": 100.0,
+      "avg_memory_used_mb": 24407.0,
+      "peak_memory_used_mb": 24407.0,
+      "avg_memory_util_pct": 30.36,
+      "peak_memory_util_pct": 57.0
+    },
+    "errors": []
+  },
+  {
+    "concurrency": 5,
+    "completed": 5,
+    "failed": 0,
+    "avg_time_to_live_ready_s": 6.596,
+    "avg_segment_interval_s": 0.123,
+    "max_segment_interval_s": 1.768,
+    "wall_time_s": 51.0,
+    "gpu": {
+      "samples": 48,
+      "avg_util_pct": 56.58,
+      "peak_util_pct": 99.0,
+      "avg_memory_used_mb": 24655.7,
+      "peak_memory_used_mb": 24661.0,
+      "avg_memory_util_pct": 27.08,
+      "peak_memory_util_pct": 57.0
+    },
+    "errors": []
+  },
+  {
+    "concurrency": 6,
+    "completed": 1,
+    "failed": 5,
+    "avg_time_to_live_ready_s": 3.545,
+    "avg_segment_interval_s": 0.149,
+    "max_segment_interval_s": 2.292,
+    "wall_time_s": 240.3,
+    "gpu": {
+      "samples": 229,
+      "avg_util_pct": 14.25,
+      "peak_util_pct": 99.0,
+      "avg_memory_used_mb": 5880.0,
+      "peak_memory_used_mb": 24661.0,
+      "avg_memory_util_pct": 6.78,
+      "peak_memory_util_pct": 56.0
+    },
+    "errors": [
+      "video track receive failed: MediaStreamError: ",
+      "audio track receive failed: MediaStreamError: ",
+      "timeout: stream did not complete in 240s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])",
+      "video track receive failed: MediaStreamError: ",
+      "audio track receive failed: MediaStreamError: ",
+      "timeout: stream did not complete in 240s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])",
+      "video track receive failed: MediaStreamError: ",
+      "audio track receive failed: MediaStreamError: ",
+      "timeout: stream did not complete in 240s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])",
+      "audio track receive failed: MediaStreamError: ",
+      "video track receive failed: MediaStreamError: ",
+      "timeout: stream did not complete in 240s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])",
+      "video track receive failed: MediaStreamError: ",
+      "audio track receive failed: MediaStreamError: ",
+      "timeout: stream did not complete in 240s (last status error: ClientConnectorError: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)])"
+    ]
+  },
+  {
+    "concurrency": 8,
+    "completed": 0,
+    "failed": 8,
+    "avg_time_to_live_ready_s": 0.0,
+    "avg_segment_interval_s": 0.0,
+    "max_segment_interval_s": 0.0,
+    "wall_time_s": 0.0,
+    "gpu": {
+      "samples": 1,
+      "avg_util_pct": 0.0,
+      "peak_util_pct": 0.0,
+      "avg_memory_used_mb": 0.0,
+      "peak_memory_used_mb": 0.0,
+      "avg_memory_util_pct": 0.0,
+      "peak_memory_util_pct": 0.0
+    },
+    "errors": [
+      "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+      "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+      "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+      "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+      "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+      "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+      "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]",
+      "create exception: Cannot connect to host 127.0.0.1:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    ]
+  }
+]
