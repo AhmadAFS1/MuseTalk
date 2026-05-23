@@ -617,3 +617,75 @@ curl -sS -X POST \
 
 For this batch-24-only server, use wall batch size `24`. Setting batch size `2`
 will be resolved upward to `24` because that is the only warmed bucket.
+
+### Hardware upgrade read after 32GB V100 testing
+
+The 32GB V100 upgrade was not a transformational WebRTC throughput gain over
+the RTX 3090 reference. Depending on the exact comparison:
+
+- V100 `4,8,16` vs RTX 3090 `8,16` was roughly `+9.6%` average steady-cadence
+  improvement across the comparable 4/5/6/8-stream points.
+- V100 batch-24-only improved the 5-stream exact comparison by about `25.0%`,
+  but that result had much worse live-ready latency than the previous V100
+  profile.
+- V100 batch-24-only improved the 8-stream exact comparison by about `11.5%`
+  per-stream cadence and completed `8/8` where the saved RTX reference completed
+  `4/8`.
+- V100 10-stream batch-24-only completed `10/10`, but average interval was still
+  `0.191s`, or only about `5.24 fps` per stream. This is far from smooth
+  `20 fps` WebRTC.
+
+Practical summary: treat the V100 result as about a `~10%` general steady-state
+throughput improvement over the RTX 3090 reference, plus better 8-stream
+completion in the tested profile. It did not solve the target of smooth 10
+concurrent WebRTC streams.
+
+For true 10-stream realtime at `20 fps`, the target aggregate output is roughly:
+
+```text
+10 streams * 20 fps = 200 aggregate fps
+```
+
+The measured V100 batch-24 10-stream run was approximately:
+
+```text
+10 streams / 0.191s average interval = ~52 aggregate fps
+```
+
+So the current single-GPU path would need roughly:
+
+```text
+200 / 52 = ~3.8x effective throughput improvement
+```
+
+This is why the next GPU should be chosen for compute and end-to-end video
+pipeline throughput, not just VRAM. The 32GB V100 showed that extra VRAM alone
+does not create the needed throughput tier.
+
+Recommended next GPUs to test:
+
+1. `RTX 4090`: best practical next test. It should improve compute throughput
+   over RTX 3090/V100 and has dual 8th-gen NVENC, but it only has `24GB` VRAM.
+   Expect improvement at 5-8 streams; do not assume smooth 10x `20 fps` WebRTC
+   without measurement.
+2. `RTX 5090`: strongest single-GPU candidate if available. It has `32GB`
+   GDDR7 and 3x 9th-gen NVENC, making it the first single GPU that is genuinely
+   interesting for 10-stream viability.
+3. `L40S`: good datacenter/pro test with `48GB` VRAM and 3x NVENC/NVDEC. Test
+   if operational stability, VRAM headroom, and datacenter deployment matter,
+   but do not assume it beats 4090/5090 on throughput per dollar.
+4. `RTX 6000 Ada`: similar pro/datacenter angle with `48GB` VRAM. Worth testing
+   only if pro drivers/VRAM/headroom matter enough to justify the cost.
+
+Do not prioritize another V100, L4, A10, A40, A5000, or A6000 for this specific
+WebRTC throughput problem. They are unlikely to provide the compute jump needed
+to close the current `~3.8x` gap to smooth 10-stream `20 fps` playback.
+
+Success criteria for the next GPU test should be stricter than "completed":
+
+- `10/10` WebRTC sessions complete.
+- average frame interval moves much closer to `0.050s` than the current
+  `0.191s`.
+- max frame interval does not show multi-second stalls.
+- server remains healthy after the run.
+- warmup profile does not OOM.
