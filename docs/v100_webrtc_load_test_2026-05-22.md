@@ -344,3 +344,275 @@ Report files:
 - `load_test_webrtc_batch28_only_10_detailed.json`
 - `load_test_webrtc_v100_batch28_8streams_test_avatar2_20260523.json`
 - `load_test_webrtc_v100_batch28_8streams_test_avatar2_20260523_detailed.json`
+## 2026-05-23 Continuation: 32GB V100 Batch-Warmup Experiments
+
+After the baseline run above, the same 32GB V100-class server was retested with
+larger TensorRT stagewise warmup buckets and WebRTC `libx264`.
+
+### Known-good recovery profile
+
+This profile reliably starts and was used as the safe fallback after failed
+larger-bucket warmups:
+
+```bash
+PROFILE=throughput_record \
+WEBRTC_H264_ENCODER=libx264 \
+HLS_SCHEDULER_MAX_BATCH=16 \
+HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16 \
+HLS_SCHEDULER_STARTUP_SLICE_SIZE=4 \
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=4,8,16 \
+STARTUP_TIMEOUT_SECONDS=2400 \
+bash scripts/vast_server_ctl.sh restart
+```
+
+Idle VRAM after this profile was roughly `24GB`; scheduler max was `16`.
+
+### Failed larger warmup profiles
+
+`4,8,16,32` failed during batch `32` warmup:
+
+- batch `4`: `178.05s`
+- batch `8`: `48.24s`
+- batch `16`: `344.51s`
+- batch `32`: CUDA OOM
+- OOM detail: process was using about `30.86 GiB`; only `894.50 MiB` free;
+  TensorRT tried to allocate another `1.00 GiB`; tactic temp allocations also
+  showed repeated `~2.16GB` requests.
+- Estimate: true batch `32` warmup likely needs roughly `36-40GB` VRAM to be
+  reliable on this code path.
+
+`4,8,16,20` failed during batch `20` warmup:
+
+```bash
+PROFILE=throughput_record \
+HLS_SCHEDULER_MAX_BATCH=20 \
+HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16,20 \
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=4,8,16,20 \
+STARTUP_TIMEOUT_SECONDS=3600 \
+bash scripts/vast_server_ctl.sh restart
+```
+
+- batch `4`: `50.82s`
+- batch `8`: `56.02s`
+- batch `16`: `76.68s`
+- batch `20`: CUDA OOM
+- OOM detail: tried to allocate `640 MiB`; only `552.50 MiB` free; process was
+  using about `31.19 GiB`.
+
+`8,16,20` also failed during batch `20` warmup:
+
+```bash
+PROFILE=throughput_record \
+WEBRTC_H264_ENCODER=libx264 \
+HLS_SCHEDULER_MAX_BATCH=20 \
+HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16,20 \
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16,20 \
+STARTUP_TIMEOUT_SECONDS=3600 \
+bash scripts/vast_server_ctl.sh restart
+```
+
+- batch `8`: `57.50s`
+- batch `16`: `76.97s`
+- batch `20`: CUDA OOM
+- OOM detail: tried to allocate `1.25 GiB`; only `562.50 MiB` free; process was
+  using about `31.18 GiB`.
+- Removing the batch `4` bucket did not make batch `20` viable when combined
+  with `8,16`.
+
+### Successful batch-24-only profile
+
+The profile that succeeded was intentionally sparse: max batch `24`, with only
+the `24` TensorRT bucket warmed and fixed.
+
+```bash
+PROFILE=throughput_record \
+WEBRTC_H264_ENCODER=libx264 \
+HLS_SCHEDULER_MAX_BATCH=24 \
+HLS_SCHEDULER_FIXED_BATCH_SIZES=24 \
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=24 \
+STARTUP_TIMEOUT_SECONDS=3600 \
+bash scripts/vast_server_ctl.sh restart
+```
+
+Startup result:
+
+- `Stagewise TRT batch=24 ready in 540.45s`
+- health passed after `9m23s`
+- idle VRAM immediately after health: about `21.0GB`
+- after WebRTC/avatar cache usage: about `25-26GB`
+- scheduler reported `max_combined_batch_size=24`
+
+Important behavior: because the only warmed bucket is `24`, WebRTC requests for
+smaller batch sizes are resolved upward to batch `24`. For this profile, setting
+`batch_size=2` in the wall does not test a true batch-2 TensorRT path; it routes
+to the warmed batch-24 path.
+
+### WebRTC load tests on batch-24-only
+
+Automated load tests were run with:
+
+- avatar: `test_avatar`
+- encoder: `libx264`
+- fps/playback: `20/20`
+- requested batch size: `24`
+- audio: `./data/audio/ai-assistant.mpga`
+- hold seconds: `15`
+- segment/chunk duration: `1.0`
+
+Reports:
+
+- `load_test_webrtc_report_v100_20_20_5streams_batch24only_libx264_20260523.json`
+- `load_test_webrtc_report_v100_20_20_5streams_batch24only_libx264_20260523_detailed.json`
+- `load_test_webrtc_report_v100_20_20_8streams_batch24only_test_avatar_2_libx264_20260523.json`
+- `load_test_webrtc_report_v100_20_20_8streams_batch24only_test_avatar_2_libx264_20260523_detailed.json`
+- `load_test_webrtc_report_v100_20_20_10streams_batch24only_libx264_20260523.json`
+- `load_test_webrtc_report_v100_20_20_10streams_batch24only_libx264_20260523_detailed.json`
+
+| Streams | Completed | Failed | Avg live-ready | Avg frame interval | Approx FPS/stream | Max frame interval | Wall time | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 5 | 5 | 0 | 10.226s | 0.088s | 11.36 | 1.874s | 43.8s | 25724 MB |
+| 8 | 8 | 0 | 9.230s | 0.165s | 6.06 | 5.640s | 70.9s | 25892 MB |
+| 10 | 10 | 0 | 10.037s | 0.191s | 5.24 | 7.639s | 81.5s | 25866 MB |
+
+The 5- and 10-stream automated tests used `test_avatar`; the later 8-stream
+test used `test_avatar_2`. All stages completed, but all still showed
+frame-throttling warnings. The 8-stream and 10-stream stages had large max frame
+intervals (`5.640s` and `7.639s`), so average throughput improved without making
+the experience perfectly smooth.
+
+### Comparison against previous V100 `4,8,16` warmup
+
+Previous `4,8,16` WebRTC reports:
+
+- `load_test_webrtc_report_v100_20_20_4_5_6_8streams_4_8_16_libx264_20260523.json`
+- `load_test_webrtc_report_v100_20_20_10streams_4_8_16_libx264_20260523.json`
+
+| Streams | `4,8,16` profile | `24 only` profile | Throughput read |
+| ---: | --- | --- | --- |
+| 5 | 5/5, interval `0.096s`, live-ready `5.403s`, wall `40.2s`, peak `27330 MB` | 5/5, interval `0.088s`, live-ready `10.226s`, wall `43.8s`, peak `25724 MB` | `24 only` improved cadence by about `9.1%`, but live-ready was much slower |
+| 8 | 8/8, interval `0.164s`, live-ready `7.208s`, wall `67.7s`, peak `31542 MB` | 8/8, interval `0.165s`, live-ready `9.230s`, wall `70.9s`, peak `25892 MB` | roughly flat cadence (`0.6%` slower), slower live-ready, but about `17.9%` lower peak VRAM |
+| 10 | 10/10, interval `0.206s`, live-ready `10.13s`, wall `85.3s`, peak `27428 MB` | 10/10, interval `0.191s`, live-ready `10.037s`, wall `81.5s`, peak `25866 MB` | `24 only` improved cadence by about `7.9%` and wall time by about `4.7%` |
+
+The batch-24-only profile used less peak VRAM during the load tests than the
+multi-bucket `4,8,16` profile because it did not keep several warmed TRT
+buckets resident.
+
+### RTX 3090 comparison
+
+RTX 3090 reference:
+
+- `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_libx264.json`
+- profile: `throughput_record`
+- warmed buckets: `8,16`
+- request shape: `20/20 fps`, request `batch_size=8`
+- GPU memory: 24GB RTX 3090, peak near `24.1GB`
+
+Reference values:
+
+| Streams | RTX 3090 reference |
+| ---: | --- |
+| 4 | 4/4, avg interval `0.084s`, live-ready `10.865s` |
+| 5 | 5/5, avg interval `0.110s`, live-ready `6.217s` |
+| 6 | 6/6, avg interval `0.136s`, live-ready `7.056s` |
+| 8 | 4/8, avg interval `0.184s`, live-ready `8.979s` |
+
+V100 `4,8,16` vs RTX reference:
+
+- 4 streams: V100 cadence `0.081s` vs RTX `0.084s` -> V100 about `3.7%`
+  faster.
+- 5 streams: V100 `0.096s` vs RTX `0.110s` -> V100 about `14.6%` faster.
+- 6 streams: V100 `0.126s` vs RTX `0.136s` -> V100 about `7.9%` faster.
+- 8 streams: V100 completed `8/8` at `0.164s`; RTX completed `4/8` at
+  `0.184s`. Cadence was about `12.2%` faster, and completion was materially
+  better.
+
+V100 batch-24-only vs RTX:
+
+- 5-stream exact comparison: V100 batch-24-only was about `25.0%` faster on
+  average frame interval (`0.088s` vs RTX `0.110s`), but live-ready was slower
+  (`10.226s` vs `6.217s`).
+- 8-stream exact comparison: V100 batch-24-only completed `8/8` at average
+  interval `0.165s`; RTX 3090 completed `4/8` at `0.184s`. Per-stream cadence
+  was about `11.5%` faster on the V100 batch-24 run. Aggregate completed FPS was
+  about `48.48` vs `21.74`, or `+123.0%`, mostly because the RTX reference only
+  completed half the sessions. Live-ready was slightly slower on V100
+  (`9.230s` vs `8.979s`), and peak VRAM was higher (`25892 MB` vs `24059 MB`).
+- No saved RTX 3090 10-stream report exists. Comparing V100 10-stream
+  batch-24-only against RTX 8-stream is not apples-to-apples. The V100 run
+  completed `10/10`; the RTX 8-stream reference completed `4/8`.
+
+### Compute-bound vs VRAM-bound read
+
+During the batch-24-only WebRTC runs, VRAM stayed around `25-26GB` rather than
+climbing to the full `32GB`. This is expected:
+
+- The server warmed only one TensorRT bucket: `24`.
+- `HLS_SCHEDULER_MAX_BATCH=24` prevents the scheduler from intentionally
+  combining work above total batch `24`.
+- Ten WebRTC streams do not create ten independent model copies; they share the
+  runtime and are batched through the scheduler.
+- VRAM is allocated for resident model/runtime state, warmed TRT engines, avatar
+  cache, buffers, and active work. The GPU does not fill all available VRAM just
+  because it exists.
+- GPU utilization often reached high or near-100% values while VRAM remained
+  below capacity, which points to compute/scheduling/encode/composition limits
+  more than raw VRAM capacity.
+
+Current practical interpretation: batch `24` is a useful throughput profile on
+the 32GB card, but extra free VRAM does not automatically translate to higher
+WebRTC throughput unless the scheduler/runtime can exploit a larger warmed
+bucket, additional buckets, or additional replicas. Batch `32` was not viable
+on this 32GB GPU with the current warmup path.
+
+### Avatar state and wall URLs
+
+The original load tests above used `test_avatar`. A newer avatar was prepared
+afterward:
+
+- avatar id: `test_avatar_2`
+- reference video: `data/video/chatgpt_moving_vid.mp4`
+- uploaded copy: `uploads/videos/test_avatar_2_chatgpt_moving_vid.mp4`
+- prepared files:
+  - `results/v15/avatars/test_avatar_2/input_video.mp4`
+  - `results/v15/avatars/test_avatar_2/avator_info.json`
+  - `results/v15/avatars/test_avatar_2/coords.pkl`
+  - `results/v15/avatars/test_avatar_2/mask_coords.pkl`
+  - `results/v15/avatars/test_avatar_2/latents.pt`
+
+Preparation command used:
+
+```bash
+curl -sS -X POST \
+  "http://127.0.0.1:8000/avatars/prepare?avatar_id=test_avatar_2&bbox_shift=0&batch_size=24&force_recreate=true" \
+  -F "video_file=@data/video/chatgpt_moving_vid.mp4;filename=chatgpt_moving_vid.mp4"
+```
+
+Operational caveat: `/avatars/prepare` is blocking in this server path. Running
+it against the live API blocked normal health/status responses while face and
+mask extraction was in progress; existing WebRTC wall iframes showed
+`Connection lost`. Prepare avatars before interactive wall testing, or move this
+work off the live wall server.
+
+Useful wall/API URLs:
+
+```text
+WebRTC wall: http://127.0.0.1:8000/webrtc/wall
+HLS wall:    http://127.0.0.1:8000/hls/wall
+```
+
+Fresh WebRTC group for visual testing:
+
+```bash
+curl -sS -X POST \
+  "http://127.0.0.1:8000/webrtc/groups/create?avatar_id=test_avatar_2&count=5&fps=20&playback_fps=20&batch_size=24&chunk_duration=1"
+```
+
+Fresh HLS group for visual testing:
+
+```bash
+curl -sS -X POST \
+  "http://127.0.0.1:8000/hls/groups/create?avatar_id=test_avatar_2&count=5&fps=20&playback_fps=20&batch_size=24&segment_duration=1"
+```
+
+For this batch-24-only server, use wall batch size `24`. Setting batch size `2`
+will be resolved upward to `24` because that is the only warmed bucket.
