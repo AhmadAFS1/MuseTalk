@@ -489,6 +489,21 @@ Server-side diagnostic observations:
   `WebRTC delete already in progress`, then completed cleanup without taking
   the server down.
 
+Delete/cleanup crash-prevention read:
+
+- Treat WebRTC delete/cancel as idempotent. Duplicate browser closes, wall
+  refreshes, or load-test teardown calls should return through the same cleanup
+  path instead of racing session removal.
+- Keep the per-session "cleanup in progress" guard. It prevents overlapping
+  close attempts from deleting tracks, peers, queues, or generated files while a
+  previous cleanup is still unwinding.
+- Do not interpret "deleted 8 concurrent streams" as a reason for the API
+  process to exit. The expected post-teardown state is
+  `active_webrtc_streams=0`, `active_requests=0`, healthy `/health`, and no
+  fatal Python error, CUDA OOM, wrapper exit, or traceback in the server log.
+- Future WebRTC load tests should keep checking both completion and teardown:
+  the server must survive the run and a follow-up wall/browser cleanup.
+
 Playback interpretation:
 
 - This run changes the measured stability ceiling: the highest tested

@@ -234,6 +234,20 @@ Result:
 
 The batch-32-only experiment was too aggressive for this V100 server profile:
 
+```bash
+PROFILE=throughput_record \
+WEBRTC_H264_ENCODER=libx264 \
+HLS_SCHEDULER_MAX_BATCH=32 \
+HLS_SCHEDULER_FIXED_BATCH_SIZES=32 \
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=32 \
+STARTUP_TIMEOUT_SECONDS=3600 \
+bash scripts/vast_server_ctl.sh restart
+```
+
+The intended WebRTC load shape was `5` streams first, then `10` streams if the
+first stage succeeded. The saved batch-32 report only contains the 5-stream
+stage because all 5 sessions failed before `live_ready`.
+
 | Profile | Streams | Completed | Avg live-ready | Avg frame interval | Max frame interval | Wall time | Peak VRAM | Read |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | batch `32` only | 5 | 0/5 | 0s | 0s | 0s | 542.6s | 32081 MB | no streams completed; near-full VRAM/OOM pressure |
@@ -344,6 +358,24 @@ Report files:
 - `load_test_webrtc_batch28_only_10_detailed.json`
 - `load_test_webrtc_v100_batch28_8streams_test_avatar2_20260523.json`
 - `load_test_webrtc_v100_batch28_8streams_test_avatar2_20260523_detailed.json`
+
+### Crash and Cleanup Status
+
+The earlier WebRTC crash concern was specifically about teardown/delete behavior
+under higher concurrency. The diagnostic WebRTC run in
+`current_webrtc_playback_smoothing_findings.md` confirmed that the new cleanup
+logging and duplicate-delete guard handled 8 concurrent WebRTC sessions without
+taking the API server down: duplicate closes were logged as
+`WebRTC delete already in progress`, cleanup completed, and the server stayed
+healthy.
+
+The later V100 batch-28 and batch-24 tests also checked post-run health. The
+batch-28 8-stream test ended with `active_webrtc_streams=0` and
+`active_requests=0`, and no OOM, crash, fatal Python error, or traceback in the
+post-run log tail. This is the expected behavior when deleting or closing 8
+concurrent streams: sessions should drain idempotently, not terminate the API
+process.
+
 ## 2026-05-23 Continuation: 32GB V100 Batch-Warmup Experiments
 
 After the baseline run above, the same 32GB V100-class server was retested with
