@@ -451,7 +451,8 @@ to the warmed batch-24 path.
 
 Automated load tests were run with:
 
-- avatar: `test_avatar`
+- avatar: `test_avatar` for the 5- and 10-stream runs; `test_avatar_2` for the
+  later 8-stream run
 - encoder: `libx264`
 - fps/playback: `20/20`
 - requested batch size: `24`
