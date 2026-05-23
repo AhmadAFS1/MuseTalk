@@ -662,6 +662,52 @@ Interpretation:
   materially faster than batch-8-only, while avoiding the `8,16` live-decode
   OOM seen at `6+` streams
 
+### Batch-8-14 Follow-up Retest
+
+The next intermediate profile tested resident TRT buckets `8,14`:
+
+```bash
+PROFILE=throughput_record
+HLS_SCHEDULER_MAX_BATCH=14
+HLS_SCHEDULER_FIXED_BATCH_SIZES=8,14
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,14
+WEBRTC_H264_ENCODER=libx264
+```
+
+Startup and memory facts:
+
+- batch `8` TRT warmup completed in `86.77s`
+- batch `14` TRT warmup completed in `282.81s`
+- total server startup health wait was about `6m25s`
+- idle memory after startup was about `20261 MB`
+- warmed avatar cache memory was again about `3174.8 MB`
+- peak memory during the full WebRTC ramp was about `22563 MB`
+
+Load-test report:
+
+- `load_test_webrtc_4090_gpt_moving_avatar_20_20_4_5_6_8streams_8_14_libx264_20260523.json`
+
+| Streams | Completed | Failed | Avg live-ready | Avg frame interval | Max frame interval | Approx aggregate FPS | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | 4 | 0 | 4.915s | 0.084s | 30.087s | 47.6 | 22449 MB |
+| 5 | 5 | 0 | 3.616s | 0.078s | 0.712s | 64.1 | 22561 MB |
+| 6 | 6 | 0 | 4.468s | 0.093s | 0.950s | 64.5 | 22563 MB |
+| 8 | 8 | 0 | 6.506s | 0.149s | 30.087s | 53.7 | 22563 MB |
+
+Interpretation:
+
+- the `8,14` profile completed the full `4,5,6,8` WebRTC ramp with no OOM
+- it was slightly faster than `8,12` at `5` and `6` streams, by about `3.8%`
+  and `3.2%` aggregate throughput respectively
+- it was worse than `8,12` at `4` and `8` streams, by about `21.4%` and
+  `12.8%` respectively
+- it produced large `30.087s` max-frame stalls at `4` and `8` streams
+- peak VRAM was about `22.56 GB`, leaving only about `2.0 GB` physical device
+  headroom on this 24 GB RTX 4090
+- this makes `8,14` usable for this specific run, but not the current preferred
+  operating point; `8,12` remains the better balance of throughput, smoothness,
+  and memory headroom
+
 ### RTX 4090 Results vs RTX 3090 Diagnostic Reference
 
 Closest saved RTX 3090 reference:
@@ -698,10 +744,21 @@ Batch-8-12 comparison:
 | 6 | 6/6, 0.096s avg interval, 62.5 aggregate FPS | 6/6, 0.131s, 45.8 aggregate FPS | +36.5% |
 | 8 | 8/8, 0.130s avg interval, 61.5 aggregate FPS | 8/8, 0.175s, 45.7 aggregate FPS | +34.6% |
 
+Batch-8-14 comparison:
+
+| Streams | RTX 4090 `8,14` | RTX 3090 diagnostic | Aggregate throughput delta |
+| ---: | --- | --- | ---: |
+| 4 | 4/4, 0.084s avg interval, 47.6 aggregate FPS | 4/4, 0.084s, 47.6 aggregate FPS | +0.0% |
+| 5 | 5/5, 0.078s avg interval, 64.1 aggregate FPS | 5/5, 0.110s, 45.5 aggregate FPS | +41.0% |
+| 6 | 6/6, 0.093s avg interval, 64.5 aggregate FPS | 6/6, 0.131s, 45.8 aggregate FPS | +40.9% |
+| 8 | 8/8, 0.149s avg interval, 53.7 aggregate FPS | 8/8, 0.175s, 45.7 aggregate FPS | +17.4% |
+
 Operational call from this test:
 
 - for RTX 4090 WebRTC with this avatar, prefer the `8,12` profile when using
   this tested request shape and when about `20.7 GB` peak VRAM is acceptable
+- treat `8,14` as experimental/edge: it completed, but had less headroom and
+  worse smoothness at the `4` and `8` stream points
 - keep batch-8-only as the conservative fallback when lower startup latency,
   lower steady VRAM, or maximum memory headroom matters more than throughput
 - do not treat the older 24 GB `8,16` guidance as universally safe across HLS
@@ -721,8 +778,8 @@ For this cross-server branch:
 - treat moderate worker tuning as a queue-management tool, not a model-throughput solution
 - on 24 GB WebRTC profiles, treat resident TRT bucket choices as a VRAM
   admission decision, not just a throughput decision; the May 23 RTX 4090 run
-  shows `8,16` can OOM while `8,12` and batch `8` alone complete the same
-  `4,5,6,8` ramp
+  shows `8,16` can OOM while `8,14`, `8,12`, and batch `8` alone complete the
+  same `4,5,6,8` ramp
 
 Most likely safe tuning range:
 
