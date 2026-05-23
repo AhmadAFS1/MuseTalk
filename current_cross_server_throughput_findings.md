@@ -499,6 +499,162 @@ Interpretation update:
 - `20/20` therefore looks like a plausible four-stream quality profile, but
   not a clean no-warning profile under simultaneous burst start
 
+## RTX 4090 WebRTC Throughput Check - May 23, 2026
+
+This pass tested the same MuseTalk server stack on an RTX 4090 to compare
+against the saved RTX 3090 WebRTC references.
+
+Hardware/runtime observed:
+
+- GPU: `NVIDIA GeForce RTX 4090`
+- GPU memory: `24564 MiB`
+- Driver: `565.77`
+- Python env: `/workspace/.venvs/musetalk_trt_stagewise`
+- Encoder: `WEBRTC_H264_ENCODER=libx264`
+- WebRTC request shape: `20/20 fps`, request `batch_size=8`
+- Ramp tested: `4,5,6,8`
+
+Avatar prepared for this run:
+
+- avatar id: `gpt_moving_avatar_4090`
+- source video: `data/video/chatgpt_moving_vid.mp4`
+- prepare endpoint elapsed time: about `2m39s`
+- prepared frames: `600`
+- avatar artifact size on disk: about `742 MB`
+- warmed avatar cache memory: about `3174.8 MB`
+
+### Initial `8,16` Throughput Profile Result
+
+The first RTX 4090 pass used the same operational shape as the 24 GB
+throughput profile:
+
+```bash
+PROFILE=throughput_record
+HLS_SCHEDULER_MAX_BATCH=16
+HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16
+WEBRTC_H264_ENCODER=libx264
+```
+
+Startup facts:
+
+- batch `8` TRT warmup completed in `199.56s`
+- batch `16` TRT warmup completed in `253.38s`
+- total server startup health wait was about `7m50s`
+- idle/runtime memory after startup was already about `21613 MB`
+
+Load-test report:
+
+- `load_test_webrtc_4090_gpt_moving_avatar_20_20_4_5_6_8streams_8_16_libx264_20260523.json`
+
+| Streams | Completed | Failed | Avg live-ready | Avg frame interval | Approx aggregate FPS | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | 4 | 0 | 18.865s | 0.060s | 66.7 | 24105 MB |
+| 5 | 5 | 0 | 3.740s | 0.075s | 66.7 | 24105 MB |
+| 6 | 0 | 6 | 0.000s | 0.000s | 0.0 | 24105 MB |
+| 8 | 0 | 8 | 0.000s | 0.000s | 0.0 | 23715 MB |
+
+Failure mode:
+
+- stages `4` and `5` completed and showed very strong steady frame cadence
+- stage `6` failed before live frames completed
+- server logs showed CUDA OOM in the VAE decode path:
+  - attempted extra allocation: `512 MB` and then `1024 MB`
+  - free memory at failure: about `394.69 MB` to `906.69 MB`
+  - process memory in use: about `22.65 GB` to `23.15 GB`
+  - stack location: `vae.decode_latents()` through the stagewise TRT decode
+    backend
+
+Important interpretation:
+
+- `8,16` are TRT bucket sizes, not a guarantee that VRAM remains under 24 GB
+- real VRAM use is the sum of model weights, resident TRT engines/workspaces,
+  avatar cache tensors, WebRTC buffers, scheduler queues, compose/encode state,
+  and transient VAE decode allocations
+- on this RTX 4090 run, warming both `8` and `16` left too little transient
+  headroom for concurrent WebRTC generation with the new avatar
+- the OOM happened during live decode, not during model load
+
+### Batch-8-Only Isolation Retest
+
+To isolate whether the failure was raw 4090 throughput or `16`-bucket residency,
+the server was restarted with only the batch-8 scheduler/TRT path:
+
+```bash
+PROFILE=throughput_record
+HLS_SCHEDULER_MAX_BATCH=8
+HLS_SCHEDULER_FIXED_BATCH_SIZES=8
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8
+WEBRTC_H264_ENCODER=libx264
+```
+
+Startup and memory facts:
+
+- batch `8` TRT warmup completed in `84.16s`
+- total server startup health wait was about `1m41s`
+- idle memory before avatar cache was about `9231 MB`
+- warmed avatar cache memory was again about `3174.8 MB`
+- peak memory during the full WebRTC ramp stayed around `10603 MB`
+
+Load-test report:
+
+- `load_test_webrtc_4090_gpt_moving_avatar_20_20_4_5_6_8streams_8only_libx264_20260523.json`
+
+| Streams | Completed | Failed | Avg live-ready | Avg frame interval | Approx aggregate FPS | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | 4 | 0 | 4.897s | 0.072s | 55.6 | 10601 MB |
+| 5 | 5 | 0 | 4.228s | 0.090s | 55.6 | 10601 MB |
+| 6 | 6 | 0 | 5.196s | 0.109s | 55.0 | 10603 MB |
+| 8 | 8 | 0 | 7.389s | 0.145s | 55.2 | 10603 MB |
+
+Interpretation:
+
+- the RTX 4090 can complete the full `4,5,6,8` WebRTC ramp with the new
+  `gpt_moving_avatar_4090` avatar when the resident batch-16 path is removed
+- the `8,16` OOM was therefore primarily a VRAM headroom/runtime residency
+  problem, not evidence that 6 or 8 streams are impossible on the 4090
+- the `8,16` profile is faster at low concurrency but unsafe at `6+` for this
+  WebRTC run because it sits too close to the 24 GB memory wall
+- the batch-8-only profile is slower than the `8,16` low-concurrency result but
+  materially more stable and leaves far more VRAM headroom
+
+### RTX 4090 Batch-8-Only vs RTX 3090 Diagnostic Reference
+
+Closest saved RTX 3090 reference:
+
+- `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_diagnostics_libx264.json`
+- profile: `throughput_record`
+- TRT warmup/fixed buckets: `8,16`
+- encoder: `libx264`
+- request shape: `20/20 fps`, request `batch_size=8`
+
+The comparison is not perfectly avatar-identical:
+
+- RTX 4090 run used `gpt_moving_avatar_4090` from `chatgpt_moving_vid.mp4`
+- saved RTX 3090 diagnostic reference used the existing `test_avatar`
+
+Still, the request shape, codebase, encoder path, and 24 GB GPU memory class are
+close enough to make the throughput direction useful.
+
+| Streams | RTX 4090 batch-8-only | RTX 3090 diagnostic | Aggregate throughput delta |
+| ---: | --- | --- | ---: |
+| 4 | 4/4, 0.072s avg interval, 55.6 aggregate FPS | 4/4, 0.084s, 47.6 aggregate FPS | +16.7% |
+| 5 | 5/5, 0.090s avg interval, 55.6 aggregate FPS | 5/5, 0.110s, 45.5 aggregate FPS | +22.2% |
+| 6 | 6/6, 0.109s avg interval, 55.0 aggregate FPS | 6/6, 0.131s, 45.8 aggregate FPS | +20.2% |
+| 8 | 8/8, 0.145s avg interval, 55.2 aggregate FPS | 8/8, 0.175s, 45.7 aggregate FPS | +20.7% |
+
+Operational call from this test:
+
+- for RTX 4090 WebRTC with this avatar, prefer the batch-8-only profile until
+  the batch-16 TRT residency/workspace issue is reduced or memory-admission
+  logic accounts for decode transient headroom
+- do not treat the older 24 GB `8,16` guidance as universally safe across HLS
+  and WebRTC paths
+- `8,16` can improve steady cadence when it fits, but it can also push a 24 GB
+  card so close to the memory wall that a transient VAE decode allocation fails
+- scheduler/admission should separate "bucket available" from "enough transient
+  headroom remains for this concurrent live decode"
+
 ## Current Practical Guidance
 
 For this cross-server branch:
@@ -507,6 +663,9 @@ For this cross-server branch:
 - do not assume the Threadripper should win automatically
 - do not assume more workers always helps
 - treat moderate worker tuning as a queue-management tool, not a model-throughput solution
+- on 24 GB WebRTC profiles, treat resident TRT bucket choices as a VRAM
+  admission decision, not just a throughput decision; the May 23 RTX 4090 run
+  shows `8,16` can OOM while batch `8` alone completes the same `4,5,6,8` ramp
 
 Most likely safe tuning range:
 

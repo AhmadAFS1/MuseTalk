@@ -1,0 +1,94 @@
+[
+  {
+    "concurrency": 4,
+    "completed": 4,
+    "failed": 0,
+    "avg_time_to_live_ready_s": 18.865,
+    "avg_segment_interval_s": 0.06,
+    "max_segment_interval_s": 0.49,
+    "wall_time_s": 41.6,
+    "gpu": {
+      "samples": 41,
+      "avg_util_pct": 29.46,
+      "peak_util_pct": 98.0,
+      "avg_memory_used_mb": 23073.0,
+      "peak_memory_used_mb": 24105.0,
+      "avg_memory_util_pct": 19.85,
+      "peak_memory_util_pct": 80.0
+    },
+    "errors": []
+  },
+  {
+    "concurrency": 5,
+    "completed": 5,
+    "failed": 0,
+    "avg_time_to_live_ready_s": 3.74,
+    "avg_segment_interval_s": 0.075,
+    "max_segment_interval_s": 0.794,
+    "wall_time_s": 31.2,
+    "gpu": {
+      "samples": 31,
+      "avg_util_pct": 50.03,
+      "peak_util_pct": 99.0,
+      "avg_memory_used_mb": 24105.0,
+      "peak_memory_used_mb": 24105.0,
+      "avg_memory_util_pct": 37.71,
+      "peak_memory_util_pct": 82.0
+    },
+    "errors": []
+  },
+  {
+    "concurrency": 6,
+    "completed": 0,
+    "failed": 6,
+    "avg_time_to_live_ready_s": 0.0,
+    "avg_segment_interval_s": 0.0,
+    "max_segment_interval_s": 0.0,
+    "wall_time_s": 241.2,
+    "gpu": {
+      "samples": 233,
+      "avg_util_pct": 0.36,
+      "peak_util_pct": 84.0,
+      "avg_memory_used_mb": 23208.2,
+      "peak_memory_used_mb": 24105.0,
+      "avg_memory_util_pct": 0.17,
+      "peak_memory_util_pct": 39.0
+    },
+    "errors": [
+      "timeout: stream did not complete in 240s",
+      "timeout: stream did not complete in 240s",
+      "timeout: stream did not complete in 240s",
+      "timeout: stream did not complete in 240s",
+      "timeout: stream did not complete in 240s",
+      "timeout: stream did not complete in 240s"
+    ]
+  },
+  {
+    "concurrency": 8,
+    "completed": 0,
+    "failed": 8,
+    "avg_time_to_live_ready_s": 0.0,
+    "avg_segment_interval_s": 0.0,
+    "max_segment_interval_s": 0.0,
+    "wall_time_s": 241.2,
+    "gpu": {
+      "samples": 233,
+      "avg_util_pct": 0.32,
+      "peak_util_pct": 74.0,
+      "avg_memory_used_mb": 23710.8,
+      "peak_memory_used_mb": 23715.0,
+      "avg_memory_util_pct": 0.18,
+      "peak_memory_util_pct": 42.0
+    },
+    "errors": [
+      "timeout: stream did not complete in 240s",
+      "timeout: stream did not complete in 240s",
+      "timeout: stream did not complete in 240s",
+      "timeout: stream did not complete in 240s",
+      "timeout: stream did not complete in 240s",
+      "timeout: stream did not complete in 240s",
+      "timeout: stream did not complete in 240s",
+      "timeout: stream did not complete in 240s"
+    ]
+  }
+]
