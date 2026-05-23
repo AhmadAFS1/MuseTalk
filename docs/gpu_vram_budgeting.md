@@ -57,3 +57,40 @@ HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16 \
 MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=4,8,16 \
 bash scripts/vast_server_ctl.sh restart
 ```
+
+## 2026-05-23 observed 32GB behavior
+
+The automatic 32GB default of `4,8,16,32` was too aggressive for the current
+TensorRT stagewise warmup path on the tested 32GB V100-class worker. Batch `32`
+OOM'd during warmup after `4,8,16` had already compiled. Batch `20` also OOM'd
+when warmed alongside `4,8,16` or `8,16`.
+
+The successful high-throughput experiment was a sparse profile:
+
+```bash
+PROFILE=throughput_record \
+WEBRTC_H264_ENCODER=libx264 \
+HLS_SCHEDULER_MAX_BATCH=24 \
+HLS_SCHEDULER_FIXED_BATCH_SIZES=24 \
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=24 \
+STARTUP_TIMEOUT_SECONDS=3600 \
+bash scripts/vast_server_ctl.sh restart
+```
+
+Observed behavior:
+
+- batch `24` warmed successfully in `540.45s`
+- health passed after `9m23s`
+- idle VRAM after health was about `21GB`
+- WebRTC load tests with avatar cache active stayed around `25-26GB`
+- max scheduler batch remained `24`; the server did not try to fill the full
+  `32GB`
+
+This is expected: VRAM is allocated for the warmed engine, runtime state, avatar
+cache, buffers, and active jobs. It is not automatically filled. If GPU
+utilization is high while VRAM has headroom, the bottleneck is more likely
+compute, scheduling, composition, or encoding than raw VRAM capacity.
+
+With only bucket `24` warmed, smaller WebRTC/HLS requested batch sizes resolve
+upward to `24`. This means wall tests with `batch_size=2` on this profile do not
+measure a true batch-2 TensorRT path.
