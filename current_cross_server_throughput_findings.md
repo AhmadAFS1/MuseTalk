@@ -856,6 +856,38 @@ Operational read:
   `8,16,24` as a stress-test profile and `8,16,32` as not viable under the
   current runtime shape.
 
+### RTX 6000 Ada `8,16,24` Higher-Concurrency Ramp
+
+After the profile comparison above, the live server was left running on
+`8,16,24` and tested with a higher WebRTC concurrency ramp. This was a stress
+test of completion capacity, not the recommended production serving profile.
+
+Report:
+`load_test_webrtc_rtx6000ada_20_20_10_15_20streams_8_16_24_libx264_20260524.json`
+
+Detailed report:
+`load_test_webrtc_rtx6000ada_20_20_10_15_20streams_8_16_24_libx264_20260524_detailed.json`
+
+| Streams | Completed | Failed | Avg live-ready | Avg frame interval | Max frame interval | Wall time | Peak VRAM | Approx aggregate FPS |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | 10 | 0 | `5.357s` | `0.123s` | `2.590s` | `51.0s` | `44422 MB` | `81.3` |
+| 15 | 15 | 0 | `8.065s` | `0.195s` | `4.610s` | `80.2s` | `44422 MB` | `76.9` |
+| 20 | 20 | 0 | `10.715s` | `0.272s` | `6.541s` | `109.8s` | `44422 MB` | `73.5` |
+
+Operational read from the higher-concurrency ramp:
+
+- The RTX 6000 Ada completed `10`, `15`, and `20` concurrent WebRTC streams with
+  zero failed sessions on the live `8,16,24` profile.
+- Completion capacity is higher than the earlier 3090/4090 references, but
+  smooth realtime playback is not sustained at these higher counts.
+- Average aggregate throughput peaked around the 10-stream point in this ramp
+  (`~81 aggregate FPS`) and then declined as concurrency increased.
+- The 15- and 20-stream stages are useful as overload/completion tests, but the
+  live frame intervals (`0.195s` and `0.272s`) and tail intervals (`4.610s` and
+  `6.541s`) are too high for a smooth 20 fps user-facing target.
+- VRAM stayed pinned around `44.4 GB`, so this profile still has very little
+  headroom for transient allocations or additional resident buckets.
+
 ## Current Practical Guidance
 
 For this cross-server branch:
