@@ -888,6 +888,95 @@ Operational read from the higher-concurrency ramp:
 - VRAM stayed pinned around `44.4 GB`, so this profile still has very little
   headroom for transient allocations or additional resident buckets.
 
+### RTX 6000 Ada `4,8,16,20` Exact-20 Bucket Test
+
+To test whether the slow 20-stream stage was mainly caused by using a larger
+`24` bucket for a 20-stream workload, the API was restarted with exact resident
+TRT buckets:
+
+```bash
+PROFILE=throughput_record
+HLS_SCHEDULER_MAX_BATCH=20
+HLS_SCHEDULER_FIXED_BATCH_SIZES=4,8,16,20
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=4,8,16,20
+WEBRTC_H264_ENCODER=libx264
+```
+
+Startup and memory facts:
+
+- batch `4` warmup: `82.38s`
+- batch `8` warmup: `87.45s`
+- batch `16` warmup: `100.12s`
+- batch `20` warmup: `331.03s`
+- total stagewise warmup: `600.98s`
+- health after restart: `10m15s`
+- idle VRAM after health: roughly `40.2 GB`
+- scheduler: `max_combined_batch_size=20`, `fixed_batch_sizes=[4, 8, 16, 20]`
+
+Report:
+`load_test_webrtc_rtx6000ada_20_20_10_15_20streams_4_8_16_20_libx264_20260524.json`
+
+Detailed report:
+`load_test_webrtc_rtx6000ada_20_20_10_15_20streams_4_8_16_20_libx264_20260524_detailed.json`
+
+| Streams | Completed | Failed | Avg live-ready | Avg frame interval | Max frame interval | Wall time | Peak VRAM | Approx aggregate FPS |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | 10 | 0 | `7.426s` | `0.129s` | `2.330s` | `55.3s` | `43636 MB` | `77.5` |
+| 15 | 15 | 0 | `9.502s` | `0.198s` | `4.056s` | `81.5s` | `44246 MB` | `75.8` |
+| 20 | 20 | 0 | `13.865s` | `0.268s` | `7.853s` | `112.9s` | `43828 MB` | `74.6` |
+
+Detailed 20-stream shape:
+
+- `8,16,24`: live-ready min/median/max `6.345s / 10.444s / 18.824s`,
+  per-session avg interval min/median/max `0.250s / 0.276s / 0.285s`,
+  per-session max interval min/median/max `5.853s / 6.229s / 6.541s`
+- `4,8,16,20`: live-ready min/median/max `6.153s / 13.980s / 17.659s`,
+  per-session avg interval min/median/max `0.254s / 0.268s / 0.280s`,
+  per-session max interval min/median/max `4.923s / 5.606s / 7.853s`
+
+Operational read from the exact-20 bucket test:
+
+- The `4,8,16,20` profile started successfully, unlike the earlier `8,16,32`
+  attempt.
+- Adding batch `4` and replacing batch `24` with exact batch `20` did not solve
+  the 20-stream slowdown.
+- The 20-stream average cadence was almost unchanged versus `8,16,24`
+  (`0.268s` vs `0.272s`), but average live-ready got worse
+  (`13.865s` vs `10.715s`) and the worst frame interval got worse
+  (`7.853s` vs `6.541s`).
+- The 20-stream slowdown is therefore not mainly one tail-latency outlier and
+  not mainly a `24`-bucket mismatch. It is sustained throughput saturation and
+  queueing pressure, with tail latency layered on top.
+- This profile saved only about `0.6 GB` peak VRAM versus `8,16,24` in the
+  20-stream ramp, not enough to justify the worse startup and live-ready
+  behavior.
+
+### RTX 6000 Ada WebRTC Capacity Conclusion
+
+For the current `test_avatar`, `20/20 fps`, request `batch_size=8`, `libx264`
+WebRTC path:
+
+- Strict smooth 20 fps serving target: use `4` concurrent streams as the current
+  good ceiling. The best observed 4-stream result was the `8,16` profile at
+  `0.051s` average frame interval with only `0.081s` max interval.
+- Practical interactive target with visible lower frame rate and occasional
+  jitter: `8` concurrent streams is the reliable ceiling so far. The RTX 6000
+  Ada completes 8 streams around `0.103s-0.105s` average frame interval, roughly
+  `9.5-9.7 fps` per stream, and is materially faster than the saved RTX 3090
+  and RTX 4090 references.
+- Borderline stress target: `10` streams can complete and is useful for demos or
+  overload testing if lower cadence is acceptable, but its `0.123s-0.129s`
+  average interval and multi-second tail intervals are not smooth realtime.
+- Completion-only capacity: `15-20` streams complete with zero failures on the
+  RTX 6000 Ada, but they should not be advertised as good realtime concurrent
+  streams. At 20 streams, both tested high-bucket profiles land around
+  `0.268s-0.272s` average frame interval, roughly `3.7 fps` per stream, with
+  `6.5s-7.9s` worst frame gaps.
+
+Recommended serving profile remains `8,16`. The `8,16,24` and `4,8,16,20`
+profiles are useful stress-test profiles, but they consume roughly `44 GB` VRAM
+and do not improve the practical good-stream ceiling.
+
 ## Current Practical Guidance
 
 For this cross-server branch:
