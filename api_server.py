@@ -143,6 +143,11 @@ def _env_float(name: str, default: float) -> float:
         return default
 
 
+WEBRTC_H264_ENCODE_TIMING = _env_bool("WEBRTC_H264_ENCODE_TIMING", True)
+WEBRTC_H264_ENCODE_LOG_INTERVAL = max(0, _env_int("WEBRTC_H264_ENCODE_LOG_INTERVAL", 300))
+WEBRTC_H264_ENCODE_SLOW_MS = max(0.0, _env_float("WEBRTC_H264_ENCODE_SLOW_MS", 0.0))
+
+
 def _sample_live_gpu_stats(gpu_index: int = 0) -> dict:
     if shutil.which("nvidia-smi") is None:
         return {
@@ -295,6 +300,77 @@ def enable_h264_nvenc():
 
     h264.create_encoder_context = create_encoder_context
     h264.MAX_BITRATE = WEBRTC_H264_MAXBITRATE
+
+    def patch_h264_encode_timing() -> None:
+        if not WEBRTC_H264_ENCODE_TIMING:
+            return
+        encoder_cls = getattr(h264, "H264Encoder", None)
+        if encoder_cls is None:
+            print("⚠️ WebRTC H.264 encode timing skipped: H264Encoder missing")
+            return
+        original_encode = getattr(encoder_cls, "encode", None)
+        if original_encode is None:
+            print("⚠️ WebRTC H.264 encode timing skipped: H264Encoder.encode missing")
+            return
+        if getattr(original_encode, "_musetalk_timing_wrapped", False):
+            return
+
+        def timed_encode(self, frame, *args, **kwargs):
+            encode_started_at = time.perf_counter()
+            result = original_encode(self, frame, *args, **kwargs)
+            encode_s = time.perf_counter() - encode_started_at
+
+            packets = result[0] if isinstance(result, tuple) and result else []
+            packet_count = len(packets) if packets is not None else 0
+            byte_count = 0
+            if packets:
+                try:
+                    byte_count = sum(len(packet) for packet in packets)
+                except TypeError:
+                    byte_count = 0
+
+            count = getattr(self, "_musetalk_encode_count", 0) + 1
+            total_s = getattr(self, "_musetalk_encode_total_s", 0.0) + encode_s
+            max_s = max(getattr(self, "_musetalk_encode_max_s", 0.0), encode_s)
+            total_packets = getattr(self, "_musetalk_encode_packets", 0) + packet_count
+            total_bytes = getattr(self, "_musetalk_encode_bytes", 0) + byte_count
+
+            self._musetalk_encode_count = count
+            self._musetalk_encode_total_s = total_s
+            self._musetalk_encode_max_s = max_s
+            self._musetalk_encode_packets = total_packets
+            self._musetalk_encode_bytes = total_bytes
+
+            should_log_interval = (
+                WEBRTC_H264_ENCODE_LOG_INTERVAL > 0
+                and count % WEBRTC_H264_ENCODE_LOG_INTERVAL == 0
+            )
+            should_log_slow = (
+                WEBRTC_H264_ENCODE_SLOW_MS > 0.0
+                and encode_s * 1000.0 >= WEBRTC_H264_ENCODE_SLOW_MS
+            )
+            if should_log_interval or should_log_slow:
+                codec_name = (
+                    getattr(getattr(self, "codec", None), "name", None)
+                    or getattr(getattr(self, "_encoder", None), "name", None)
+                    or WEBRTC_H264_ENCODER
+                )
+                reason = "slow" if should_log_slow else "interval"
+                print(
+                    f"🎞️ WebRTC H.264 encode timing reason={reason} codec={codec_name} "
+                    f"frames={count} avg={total_s / count:.4f}s max={max_s:.4f}s "
+                    f"last={encode_s:.4f}s packets={total_packets} bytes={total_bytes}"
+                )
+            return result
+
+        timed_encode._musetalk_timing_wrapped = True
+        encoder_cls.encode = timed_encode
+        print(
+            "🎞️ WebRTC H.264 encode timing enabled "
+            f"(interval={WEBRTC_H264_ENCODE_LOG_INTERVAL}, slow_ms={WEBRTC_H264_ENCODE_SLOW_MS:.1f})"
+        )
+
+    patch_h264_encode_timing()
     print(f"🎞️ WebRTC H.264 encoder set to {WEBRTC_H264_ENCODER}")
 
 
