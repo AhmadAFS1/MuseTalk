@@ -768,6 +768,94 @@ Operational call from this test:
 - scheduler/admission should separate "bucket available" from "enough transient
   headroom remains for this concurrent live decode"
 
+## RTX 6000 Ada WebRTC Throughput Check - May 24, 2026
+
+This pass tested the same MuseTalk WebRTC path on an RTX 6000 Ada 48 GB node to
+compare against the saved RTX 3090 and RTX 4090 WebRTC references.
+
+Environment:
+
+- GPU: `NVIDIA RTX 6000 Ada Generation`
+- visible VRAM: `49140 MB`
+- server profile family: `throughput_record`
+- WebRTC encoder: `libx264`
+- playback fps / MuseTalk fps: `20/20`
+- request batch size: `8`
+- avatar: `test_avatar`
+- load-test ramp: `4,8,12,16`
+
+The auto-selected 48 GB profile would include `4,8,16,32,48`, but the explicit
+test focused on smaller resident TRT buckets first. The known-good `8,16`
+profile started successfully:
+
+- batch `8` warmup: `131.74s`
+- batch `16` warmup: `266.68s`
+- total stagewise warmup: `398.42s`
+- health after start: `6m54s`
+- idle VRAM after health: roughly `21.7 GB`
+- scheduler: `max_combined_batch_size=16`, `fixed_batch_sizes=[8, 16]`
+
+`8,16,32` was then tested and failed during startup. The failure was not printed
+as literal PyTorch `CUDA out of memory`, but it is operationally equivalent for
+this profile: TensorRT could not create the execution context after VRAM climbed
+near the memory wall.
+
+Observed failure:
+
+```text
+RuntimeError: [Error thrown at core/runtime/TRTEngine.cpp:93] Expected (exec_ctx.get() != nullptr) to be true but got false
+Unable to create TensorRT execution context
+ERROR:    Application startup failed. Exiting.
+```
+
+A fallback `8,16,24` profile did start successfully:
+
+- batch `8` warmup: `88.94s`
+- batch `16` warmup: `101.43s`
+- batch `24` warmup: `360.02s`
+- total stagewise warmup: `550.40s`
+- health after start: `9m25s`
+- idle VRAM after health: roughly `40.1 GB`
+- scheduler: `max_combined_batch_size=24`, `fixed_batch_sizes=[8, 16, 24]`
+
+### RTX 6000 Ada `8,16` Results
+
+Report:
+`load_test_webrtc_rtx6000ada_20_20_4_8_12_16streams_8_16_libx264_20260524.json`
+
+| Streams | Completed | Failed | Avg live-ready | Avg frame interval | Max frame interval | Wall time | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | 4 | 0 | `16.703s` | `0.051s` | `0.081s` | `35.7s` | `24432 MB` |
+| 8 | 8 | 0 | `4.511s` | `0.105s` | `1.336s` | `43.4s` | `24652 MB` |
+| 12 | 12 | 0 | `6.318s` | `0.161s` | `2.730s` | `65.2s` | `24602 MB` |
+| 16 | 16 | 0 | `9.636s` | `0.219s` | `3.924s` | `89.7s` | `24604 MB` |
+
+### RTX 6000 Ada `8,16,24` Results
+
+Report:
+`load_test_webrtc_rtx6000ada_20_20_4_8_12_16streams_8_16_24_libx264_20260524.json`
+
+| Streams | Completed | Failed | Avg live-ready | Avg frame interval | Max frame interval | Wall time | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | 4 | 0 | `4.176s` | `0.052s` | `0.448s` | `24.2s` | `44270 MB` |
+| 8 | 8 | 0 | `4.601s` | `0.103s` | `1.723s` | `42.8s` | `44424 MB` |
+| 12 | 12 | 0 | `7.066s` | `0.158s` | `3.588s` | `65.9s` | `44434 MB` |
+| 16 | 16 | 0 | `8.389s` | `0.218s` | `5.186s` | `89.3s` | `44422 MB` |
+
+Operational read:
+
+- RTX 6000 Ada is materially faster than the saved RTX 3090 and RTX 4090
+  references at 8 streams for this WebRTC path.
+- The `8,16` profile reached about `76.2` aggregate FPS at 8 streams
+  (`8 / 0.105s`), compared with saved references of about `45.7` aggregate FPS
+  on RTX 3090, `55.2` on RTX 4090 batch-8-only, and `61.5` on RTX 4090 `8,12`.
+- `8,16,24` is not a clear serving win over `8,16`: average cadence was nearly
+  unchanged, tail jitter was worse, and resident VRAM rose from about `24.6 GB`
+  to about `44.4 GB`.
+- Recommended serving profile from this pass is still `8,16`; treat
+  `8,16,24` as a stress-test profile and `8,16,32` as not viable under the
+  current runtime shape.
+
 ## Current Practical Guidance
 
 For this cross-server branch:
