@@ -977,6 +977,71 @@ Recommended serving profile remains `8,16`. The `8,16,24` and `4,8,16,20`
 profiles are useful stress-test profiles, but they consume roughly `44 GB` VRAM
 and do not improve the practical good-stream ceiling.
 
+### RTX 6000 Ada WebRTC Bottleneck Analysis
+
+The `4,8,16,20` detailed run shows the 15- and 20-stream slowdown is primarily
+the shared model GPU batch loop, not CPU compose, encode, network, or WebRTC
+signaling.
+
+Server-side scheduler metrics from the automated `10,15,20` ramp:
+
+| Streams | Observed aggregate FPS | Avg GPU batch | `20 / avg_gpu_batch` | Avg compose | Avg compose wait | Avg encode | Avg scheduler queue | Avg first pushed batch |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | `77.5` | `0.256s` | `78.1 FPS` | `0.025s` | `0.000s` | `0.000s` | `0.927s` | `3.423s` |
+| 15 | `75.8` | `0.266s` | `75.2 FPS` | `0.026s` | `0.000s` | `0.000s` | `0.962s` | `2.035s` |
+| 20 | `74.6` | `0.276s` | `72.5 FPS` | `0.027s` | `0.001s` | `0.000s` | `1.742s` | `3.049s` |
+
+Interpretation:
+
+- The observed aggregate FPS is almost exactly the theoretical throughput from
+  full 20-frame GPU passes (`20 / avg_gpu_batch`). That points directly at the
+  model GPU batch cycle as the throughput ceiling.
+- The GPU batch cycle includes batch assembly/copy, UNet, and VAE decode. The
+  scheduler records UNet and VAE timers internally, but the current final log
+  line only prints the combined `avg_gpu_batch`, so this run proves the bottleneck
+  is inside the model GPU pass, not yet whether UNet or VAE dominates within it.
+- Compose is not backed up: average compose time is only `25-27 ms`, average
+  compose queue wait is `0-1 ms`, and max compose waits stayed in single-digit
+  milliseconds.
+- WebRTC encode is not the bottleneck in this path: `avg_encode` and
+  `avg_encode_wait` are both `0.000s` because frames are handed to WebRTC rather
+  than encoded as HLS segments.
+- CPU is not saturated during the automated load run. Server resource samples
+  averaged roughly `203%`, `212%`, and `224%` process CPU for the 10-, 15-, and
+  20-stream stages, while total host CPU was only a small fraction of the machine.
+- VRAM is a residency/admission constraint, not the immediate speed limiter. The
+  profile sits around `43-44 GB`, but the 15- and 20-stream stages completed
+  without OOM. Adding exact batch `20` saved little memory and did not improve
+  cadence.
+
+The WebRTC playback layer then amplifies the GPU throughput ceiling into visible
+latency:
+
+- The current WebRTC track defaults to strict FIFO sync and a `2.0s` video
+  prebuffer. At `20 fps`, that is about `40` frames before live playout releases.
+- At 20 streams the measured aggregate cadence is only about `74.6 FPS`, or
+  `3.7 FPS` per stream. Filling a 40-frame prebuffer at `3.7 FPS` takes about
+  `10.7s` before the stream can look live.
+- At 15 streams the per-stream cadence is about `5.1 FPS`, so the same 40-frame
+  prebuffer takes about `7.9s`.
+- Final track stats confirm the playback queue is starved, not overflowing:
+  average strict video stall time rose from `27.6s` at 10 streams to `51.9s` at
+  15 streams and `77.2s` at 20 streams; average audio stall time rose from
+  `33.7s` to `57.4s` to `82.3s`.
+
+Capacity implication:
+
+- To truly deliver `20 fps` per stream, the server needs roughly `200`, `300`,
+  or `400` aggregate FPS for `10`, `15`, or `20` concurrent streams.
+- The current RTX 6000 Ada TRT-stagewise WebRTC path tops out around
+  `73-81` aggregate FPS on these runs.
+- Reducing WebRTC prebuffer can reduce time-to-live, but it will not fix
+  sustained cadence at 15-20 streams. It would trade startup latency for more
+  under-run/stall risk.
+- The real fix for 15-20 good realtime streams is more model throughput:
+  faster/lower-latency UNet+VAE execution, a lighter model/path, multiple GPUs
+  or workers, or accepting a lower per-stream target FPS.
+
 ## Current Practical Guidance
 
 For this cross-server branch:
