@@ -1042,6 +1042,87 @@ Capacity implication:
   faster/lower-latency UNet+VAE execution, a lighter model/path, multiple GPUs
   or workers, or accepting a lower per-stream target FPS.
 
+### Handoff: Bottleneck And ROI Read For Next Instance
+
+This is the current working conclusion after reviewing the markdown evidence and
+the RTX 6000 Ada WebRTC results.
+
+The active RTX 6000 Ada WebRTC bottleneck is the shared GPU generation turn in
+`scripts/hls_gpu_scheduler.py`: batch assembly/copy plus `UNet -> VAE decode`.
+It is not primarily WebRTC signaling, network, CPU compose, HLS encode, or host
+CPU saturation.
+
+The strongest evidence is that observed aggregate FPS almost exactly matches
+`batch_size / avg_gpu_batch`:
+
+| Streams | Observed aggregate FPS | Avg GPU batch | Implied FPS |
+| ---: | ---: | ---: | ---: |
+| 10 | `77.5` | `0.256s` | `78.1` |
+| 15 | `75.8` | `0.266s` | `75.2` |
+| 20 | `74.6` | `0.276s` | `72.5` |
+
+That is the cleanest signal in the current data. It means the system is
+throughput-limited by the model GPU batch cycle, and WebRTC strict FIFO then
+turns that throughput ceiling into large visible startup and stall latency.
+
+Current practical capacity from the measured data:
+
+- Smooth `20 fps` target: treat `4` concurrent streams as the good ceiling.
+- Practical lower-FPS interactive target: treat `8` concurrent streams as the
+  reliable ceiling so far.
+- Stress/demo target: `10` streams can complete, but it is not smooth realtime.
+- Completion-only target: `15-20` streams can complete, but they are not good
+  realtime streams on one RTX 6000 Ada with this path.
+
+Best ROI activities:
+
+1. Add compute-aware admission/capacity policy before advertising concurrency.
+   Use the measured `~75-80` aggregate generated FPS budget instead of only
+   memory availability. For example, `10 x 20 fps` needs `200` aggregate FPS;
+   `20 x 20 fps` needs `400` aggregate FPS. The current single-GPU path is far
+   below that.
+2. Use the new stage timing logs to identify whether the current stagewise path
+   is dominated by UNet, VAE tensor decode, or VAE CPU/postprocess. Quantization
+   is only high ROI if it reduces the stage that actually dominates the current
+   `avg_gpu_batch`.
+3. Pursue model-path throughput improvements: quantization, stronger UNet/VAE
+   backend acceleration, a lighter model/path, or multiple GPU workers. This is
+   the only path likely to materially raise the `15-20` stream quality ceiling.
+4. Scale horizontally for real `15-20 x 20 fps` serving. The measured gap is
+   roughly `400 / 75 = 5.3x` for `20` smooth streams, so one GPU is not close
+   enough for tuning knobs alone to solve it.
+5. Lower `musetalk_fps` where the product can tolerate it. This is the fastest
+   way to create real capacity headroom without changing the model.
+
+Lower ROI right now:
+
+- More worker-count tuning. CPU is not saturated in the RTX 6000 Ada WebRTC
+  overload runs, and compose wait is essentially zero.
+- Bigger resident bucket profiles such as `8,16,24` or `4,8,16,20` for serving.
+  They use roughly `44 GB` VRAM and did not improve the good-stream ceiling.
+- Reducing WebRTC prebuffer as a throughput fix. It can reduce time-to-live, but
+  it will not change sustained cadence at `15-20` streams and may increase
+  underrun risk.
+- WebRTC encode work unless new encode timing proves it is significant. Current
+  scheduler `avg_encode=0` is expected for WebRTC, and the measured throughput
+  ceiling already matches the GPU batch loop.
+
+Logging added before this handoff:
+
+- `scripts/hls_gpu_scheduler.py` now prints final `avg_assemble`, `avg_copy`,
+  `avg_pe`, `avg_unet`, `avg_vae`, `avg_callback`, and optional per-batch
+  timing logs. It also supports CUDA sync timing via
+  `HLS_GPU_STAGE_SYNC_TIMING=1`.
+- `musetalk/models/vae.py` now logs VAE tensor decode vs CPU/NumPy postprocess
+  timing.
+- `scripts/webrtc_tracks.py` now exposes push conversion, queue wait, and recv
+  pacing stats.
+- `api_server.py` now wraps aiortc H.264 encode timing.
+
+The running API process must be restarted before those new logs are active.
+For pure throughput comparisons, `HLS_GPU_STAGE_SYNC_TIMING=0` can disable the
+extra CUDA stage synchronization. For bottleneck profiling, leave it enabled.
+
 ## Current Practical Guidance
 
 For this cross-server branch:
