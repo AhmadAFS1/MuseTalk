@@ -11,6 +11,33 @@ from typing import Callable, Dict, Optional
 import torch
 
 
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on")
+
+
+def _env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
 @dataclass
 class HLSStreamJob:
     request_id: str
@@ -84,6 +111,9 @@ class HLSStreamJob:
     compose_batch_count: int = 0
     max_compose_queue_wait_s: float = 0.0
     max_compose_s: float = 0.0
+    frame_callback_count: int = 0
+    frame_callback_total_s: float = 0.0
+    frame_callback_max_s: float = 0.0
     chunks_encoded: int = 0
     encode_queue_wait_total_s: float = 0.0
     encode_total_s: float = 0.0
@@ -177,6 +207,10 @@ class HLSGPUStreamScheduler:
         self._cpu_pe_cache: Dict[tuple[int, str], torch.Tensor] = {}
         self._cpu_staging_cache: Dict[tuple, tuple[torch.Tensor, torch.Tensor]] = {}
         self.fixed_batch_sizes = self._resolve_fixed_batch_sizes(self.max_combined_batch_size)
+        self.gpu_batch_timing_log_interval = max(0, _env_int("HLS_GPU_BATCH_TIMING_LOG_INTERVAL", 25))
+        self.gpu_batch_timing_slow_s = max(0.0, _env_float("HLS_GPU_BATCH_TIMING_SLOW_SECONDS", 0.5))
+        self.gpu_stage_sync_timing = _env_bool("HLS_GPU_STAGE_SYNC_TIMING", True)
+        self._gpu_batch_timing_counter = 0
 
     def start(self) -> None:
         if self.scheduler_thread is not None:
@@ -192,7 +226,10 @@ class HLSGPUStreamScheduler:
             f"startup_chunk_count={self.startup_chunk_count}, "
             f"aggressive_fill_max_active_jobs={self.aggressive_fill_max_active_jobs}, "
             f"compose_workers={self.compose_executor._max_workers}, "
-            f"encode_workers={self.encode_executor._max_workers})"
+            f"encode_workers={self.encode_executor._max_workers}, "
+            f"gpu_batch_timing_log_interval={self.gpu_batch_timing_log_interval}, "
+            f"gpu_batch_timing_slow_s={self.gpu_batch_timing_slow_s:.3f}, "
+            f"gpu_stage_sync_timing={self.gpu_stage_sync_timing})"
         )
 
     def shutdown(self) -> None:
@@ -337,6 +374,9 @@ class HLSGPUStreamScheduler:
                         "avg_compose_s": round(self._safe_avg(job.compose_total_s, job.compose_batch_count), 4),
                         "max_compose_queue_wait_s": round(job.max_compose_queue_wait_s, 4),
                         "max_compose_s": round(job.max_compose_s, 4),
+                        "avg_frame_callback_s": round(self._safe_avg(job.frame_callback_total_s, job.frame_callback_count), 4),
+                        "max_frame_callback_s": round(job.frame_callback_max_s, 4),
+                        "frame_callback_count": job.frame_callback_count,
                         "avg_encode_queue_wait_s": round(self._safe_avg(job.encode_queue_wait_total_s, job.chunks_encoded), 4),
                         "avg_encode_s": round(self._safe_avg(job.encode_total_s, job.chunks_encoded), 4),
                         "max_encode_queue_wait_s": round(job.max_encode_queue_wait_s, 4),
@@ -1128,6 +1168,7 @@ class HLSGPUStreamScheduler:
                     dtype=target_dtype,
                     non_blocking=True,
                 )
+                self._sync_gpu_for_stage_timing()
                 copy_finished_at = time.time()
 
                 pe_started_at = copy_finished_at
@@ -1139,6 +1180,7 @@ class HLSGPUStreamScheduler:
                     self.manager.timesteps,
                     encoder_hidden_states=audio_feature_batch,
                 ).sample
+                self._sync_gpu_for_stage_timing()
                 unet_finished_at = time.time()
 
                 vae_started_at = time.time()
@@ -1147,6 +1189,7 @@ class HLSGPUStreamScheduler:
                     dtype=getattr(self.manager, "vae_dtype", pred_latents.dtype),
                 )
                 recon = self.manager.vae.decode_latents(pred_latents)
+                self._sync_gpu_for_stage_timing()
                 vae_finished_at = time.time()
 
         # After VAE decode, trim padding
@@ -1160,6 +1203,24 @@ class HLSGPUStreamScheduler:
         unet_s = unet_finished_at - unet_started_at
         vae_s = vae_finished_at - vae_started_at
         gpu_batch_s = batch_finished_at - batch_started_at
+
+        self._gpu_batch_timing_counter += 1
+        log_by_interval = (
+            self.gpu_batch_timing_log_interval > 0
+            and self._gpu_batch_timing_counter % self.gpu_batch_timing_log_interval == 0
+        )
+        log_by_slow_batch = (
+            self.gpu_batch_timing_slow_s > 0.0
+            and gpu_batch_s >= self.gpu_batch_timing_slow_s
+        )
+        if log_by_interval or log_by_slow_batch:
+            reason = "slow" if log_by_slow_batch else "interval"
+            print(
+                f"🎛️  GPU batch timing #{self._gpu_batch_timing_counter} reason={reason} "
+                f"jobs={len(selected)} actual={actual_batch} padded={padded_batch} "
+                f"lease={lease_batch_size} assemble={assembly_s:.4f}s copy={copy_s:.4f}s "
+                f"pe={pe_s:.4f}s unet={unet_s:.4f}s vae={vae_s:.4f}s total={gpu_batch_s:.4f}s"
+            )
 
         offset = 0
         for job, take in selected:
@@ -1285,6 +1346,7 @@ class HLSGPUStreamScheduler:
                 if job.frame_callback is None:
                     pass
                 else:
+                    callback_started_at = time.time()
                     try:
                         job.frame_callback(frame, job.composed_frame_idx, job.total_frames)
                     except Exception as exc:
@@ -1292,6 +1354,11 @@ class HLSGPUStreamScheduler:
                         print(f"❌ [{job.request_id}] {job.error_message}")
                         traceback.print_exc()
                         return
+                    finally:
+                        callback_s = time.time() - callback_started_at
+                        job.frame_callback_count += 1
+                        job.frame_callback_total_s += callback_s
+                        job.frame_callback_max_s = max(job.frame_callback_max_s, callback_s)
 
                 startup_target = self._next_chunk_target_frames(job)
                 if job.first_chunk_appended_at is None and job.composed_frame_idx >= startup_target:
@@ -1496,8 +1563,16 @@ class HLSGPUStreamScheduler:
             f"queue={self._queue_wait_s(job):.2f}s, "
             f"first_chunk={self._time_to_first_chunk_s(job):.2f}s, "
             f"avg_gpu_batch={self._safe_avg(job.gpu_batch_total_s, job.gpu_batch_count):.3f}s, "
+            f"gpu_batches={job.gpu_batch_count}, "
+            f"avg_assemble={self._safe_avg(job.batch_assembly_total_s, job.gpu_batch_count):.3f}s, "
+            f"avg_copy={self._safe_avg(job.gpu_copy_total_s, job.gpu_batch_count):.3f}s, "
+            f"avg_pe={self._safe_avg(job.pe_total_s, job.gpu_batch_count):.3f}s, "
+            f"avg_unet={self._safe_avg(job.unet_total_s, job.gpu_batch_count):.3f}s, "
+            f"avg_vae={self._safe_avg(job.vae_total_s, job.gpu_batch_count):.3f}s, "
             f"avg_compose_wait={self._safe_avg(job.compose_queue_wait_total_s, job.compose_batch_count):.3f}s, "
             f"avg_compose={self._safe_avg(job.compose_total_s, job.compose_batch_count):.3f}s, "
+            f"avg_callback={self._safe_avg(job.frame_callback_total_s, job.frame_callback_count):.3f}s, "
+            f"max_callback={job.frame_callback_max_s:.3f}s, "
             f"avg_encode_wait={self._safe_avg(job.encode_queue_wait_total_s, job.chunks_encoded):.3f}s, "
             f"avg_encode={self._safe_avg(job.encode_total_s, job.chunks_encoded):.3f}s, "
             f"max_buffer={job.max_frame_buffer_len}/{job.frames_per_chunk}, "
@@ -1539,6 +1614,16 @@ class HLSGPUStreamScheduler:
         with job.conditioning_lock:
             available_frames = job.total_frames if job.conditioning_complete else job.conditioning_ready_frames
         return max(0, available_frames - job.current_frame_idx - already_allocated)
+
+    def _sync_gpu_for_stage_timing(self) -> None:
+        if not self.gpu_stage_sync_timing or not torch.cuda.is_available():
+            return
+        device = getattr(self.manager, "device", None)
+        device_type = getattr(device, "type", None)
+        if device_type is None and isinstance(device, str):
+            device_type = device.split(":", 1)[0]
+        if device_type == "cuda":
+            torch.cuda.synchronize(device)
 
     @staticmethod
     def _safe_avg(total: float, count: int) -> float:

@@ -443,6 +443,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._generation_complete = False
         self._playback_complete = asyncio.Event()
         self._playback_complete.set()
+        self._reset_timing_stats()
         
         # Smoothing for adaptive FPS (prevents jitter)
         self._slowdown_history = []
@@ -457,6 +458,25 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._source_accum = 0.0
         self._live_output_index = 0
         self._live_source_consumed = 0
+
+    @staticmethod
+    def _safe_avg(total: float, count: int) -> float:
+        return total / count if count else 0.0
+
+    def _reset_timing_stats(self) -> None:
+        self._push_frames = 0
+        self._push_total_s = 0.0
+        self._push_max_s = 0.0
+        self._push_convert_total_s = 0.0
+        self._push_convert_max_s = 0.0
+        self._push_queue_wait_total_s = 0.0
+        self._push_queue_wait_max_s = 0.0
+        self._recv_frames = 0
+        self._recv_total_s = 0.0
+        self._recv_max_s = 0.0
+        self._recv_pace_wait_count = 0
+        self._recv_pace_wait_total_s = 0.0
+        self._recv_pace_wait_max_s = 0.0
 
     def _advance_source(self) -> int:
         self._source_accum += self._source_step
@@ -550,6 +570,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._strict_video_stalls = 0
         self._strict_video_stall_seconds = 0.0
         self._output_frames_sent = 0
+        self._reset_timing_stats()
         self._prebuffer_ready.clear()
         if self._prebuffer_frames <= 0:
             self._prebuffer_ready.set()
@@ -607,9 +628,13 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         """Push a single BGR frame to the queue - never drops, waits if full"""
         if self._closed:
             return False
-        
+
+        push_started_at = time.monotonic()
+        convert_started_at = push_started_at
         frame = av.VideoFrame.from_ndarray(frame_bgr, format="bgr24").reformat(format="yuv420p")
-        
+        convert_s = time.monotonic() - convert_started_at
+
+        queue_wait_started_at = time.monotonic()
         if self._strict_fifo:
             # Strict FIFO preserves every generated frame and applies backpressure
             # instead of dropping old frames when the playout buffer is full.
@@ -627,7 +652,17 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                 except asyncio.QueueEmpty:
                     pass
                 await self._queue.put(frame)
-        
+
+        queue_wait_s = time.monotonic() - queue_wait_started_at
+        push_s = time.monotonic() - push_started_at
+        self._push_frames += 1
+        self._push_total_s += push_s
+        self._push_max_s = max(self._push_max_s, push_s)
+        self._push_convert_total_s += convert_s
+        self._push_convert_max_s = max(self._push_convert_max_s, convert_s)
+        self._push_queue_wait_total_s += queue_wait_s
+        self._push_queue_wait_max_s = max(self._push_queue_wait_max_s, queue_wait_s)
+
         self._frames_received += 1
         
         # Check if prebuffer is ready
@@ -737,6 +772,9 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         if self._closed:
             raise asyncio.CancelledError()
 
+        recv_started_at = time.monotonic()
+        pace_wait_s = 0.0
+
         # Calculate adaptive frame time
         frame_time = self._get_adaptive_frame_time()
 
@@ -747,7 +785,9 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             now = time.monotonic()
             wait = frame_time - (now - self._last_ts)
             if wait > 0.001:
+                pace_wait_started_at = time.monotonic()
                 await asyncio.sleep(wait)
+                pace_wait_s += time.monotonic() - pace_wait_started_at
             self._last_ts = time.monotonic()
 
         idle_advance_frames = self._advance_source()
@@ -821,6 +861,14 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
 
         self._output_frames_sent += 1
         self._stamp_video_frame(frame)
+        recv_s = time.monotonic() - recv_started_at
+        self._recv_frames += 1
+        self._recv_total_s += recv_s
+        self._recv_max_s = max(self._recv_max_s, recv_s)
+        if pace_wait_s > 0.0:
+            self._recv_pace_wait_count += 1
+            self._recv_pace_wait_total_s += pace_wait_s
+            self._recv_pace_wait_max_s = max(self._recv_pace_wait_max_s, pace_wait_s)
         return frame
 
     def get_stats(self) -> dict:
@@ -851,6 +899,19 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             'current_slowdown': self._current_slowdown,
             'effective_fps': self._output_fps / self._current_slowdown,
             'generation_complete': self._generation_complete,
+            'push_frame_count': self._push_frames,
+            'avg_push_s': self._safe_avg(self._push_total_s, self._push_frames),
+            'max_push_s': self._push_max_s,
+            'avg_push_convert_s': self._safe_avg(self._push_convert_total_s, self._push_frames),
+            'max_push_convert_s': self._push_convert_max_s,
+            'avg_push_queue_wait_s': self._safe_avg(self._push_queue_wait_total_s, self._push_frames),
+            'max_push_queue_wait_s': self._push_queue_wait_max_s,
+            'recv_frame_count': self._recv_frames,
+            'avg_recv_s': self._safe_avg(self._recv_total_s, self._recv_frames),
+            'max_recv_s': self._recv_max_s,
+            'recv_pace_wait_count': self._recv_pace_wait_count,
+            'avg_recv_pace_wait_s': self._safe_avg(self._recv_pace_wait_total_s, self._recv_pace_wait_count),
+            'max_recv_pace_wait_s': self._recv_pace_wait_max_s,
         }
 
     def stop(self) -> None:

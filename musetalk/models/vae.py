@@ -6,6 +6,29 @@ import cv2
 import numpy as np
 from PIL import Image
 import os
+import time
+
+#added , not part of default repo
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on")
+
+#added , not part of default repo
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+MUSETALK_VAE_DECODE_TIMING = _env_bool("MUSETALK_VAE_DECODE_TIMING", True)
+MUSETALK_VAE_DECODE_TIMING_SYNC = _env_bool("MUSETALK_VAE_DECODE_TIMING_SYNC", True)
+MUSETALK_VAE_DECODE_TIMING_LOG_INTERVAL = max(0, _env_int("MUSETALK_VAE_DECODE_TIMING_LOG_INTERVAL", 25))
 
 
 class VAE():
@@ -41,6 +64,11 @@ class VAE():
         self._mask_tensor = self.get_mask_tensor()
         self._decode_backend = None
         self._decode_backend_name = "pytorch"
+        self._decode_timing_count = 0
+        self._decode_timing_tensor_total_s = 0.0
+        self._decode_timing_post_total_s = 0.0
+        self._decode_timing_total_s = 0.0
+        self._decode_timing_max_total_s = 0.0
         
     def get_mask_tensor(self):
         """
@@ -121,16 +149,42 @@ class VAE():
         :param latents: The latent variables to decode.
         :return: A NumPy array representing the decoded image.
         """
+        decode_started_at = time.perf_counter()
+        tensor_started_at = decode_started_at
         image = self.decode_latents_tensor(latents)
+        if MUSETALK_VAE_DECODE_TIMING_SYNC and torch.cuda.is_available() and image.is_cuda:
+            torch.cuda.synchronize(image.device)
+        tensor_s = time.perf_counter() - tensor_started_at
         
     #latents = (1/  self.scaling_factor) * latents
        # image = self.vae.decode(latents.to(self._vae_dtype())).sample
        # image = (image / 2 + 0.5).clamp(0, 1)
        
 
+        post_started_at = time.perf_counter()
         image = image.detach().cpu().permute(0, 2, 3, 1).float().numpy()
         image = (image * 255).round().astype("uint8")
         image = image[...,::-1] # RGB to BGR
+        post_s = time.perf_counter() - post_started_at
+        total_s = time.perf_counter() - decode_started_at
+        if MUSETALK_VAE_DECODE_TIMING:
+            self._decode_timing_count += 1
+            self._decode_timing_tensor_total_s += tensor_s
+            self._decode_timing_post_total_s += post_s
+            self._decode_timing_total_s += total_s
+            self._decode_timing_max_total_s = max(self._decode_timing_max_total_s, total_s)
+            if (
+                MUSETALK_VAE_DECODE_TIMING_LOG_INTERVAL > 0
+                and self._decode_timing_count % MUSETALK_VAE_DECODE_TIMING_LOG_INTERVAL == 0
+            ):
+                count = self._decode_timing_count
+                print(
+                    f"VAE decode timing backend={self._decode_backend_name} calls={count} "
+                    f"avg_tensor={self._decode_timing_tensor_total_s / count:.4f}s "
+                    f"avg_post={self._decode_timing_post_total_s / count:.4f}s "
+                    f"avg_total={self._decode_timing_total_s / count:.4f}s "
+                    f"max_total={self._decode_timing_max_total_s:.4f}s"
+                )
         return image
     ##below function is added
     def decode_latents_tensor(self, latents):
