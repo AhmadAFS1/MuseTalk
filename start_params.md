@@ -217,6 +217,9 @@ bash scripts/run_trt_stagewise_server.sh --profile throughput_record
 Important caveats:
 
 - The FP16 stagewise path remains the default production path.
+- `MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed` now requires an explicit
+  `MUSETALK_TRT_STAGEWISE_INT8_STAGES` list. There is no safe default INT8
+  stage set yet.
 - The INT8 path uses TensorRT calibration caches per selected stage and exact
   batch size. Delete the directory pointed to by
   `MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR` if you need to force a fresh
@@ -225,6 +228,80 @@ Important caveats:
   aligned so live traffic does not compile a new quantized batch shape.
 - A failed INT8 experiment can be rolled back by setting
   `MUSETALK_TRT_STAGEWISE_PRECISION=fp16`.
+
+Current INT8 debug command, added after the 2026-05-26 calibration failure.
+This is for isolated diagnostics only, not a known-good live-server config:
+
+```bash
+cd /workspace/MuseTalk
+/workspace/.venvs/musetalk_trt_stagewise/bin/python \
+  scripts/experiment_vae_decoder_int8.py \
+  --stage decoder_up_block_1 \
+  --batch-size 8 \
+  --calibration-batches 8 \
+  --calibration-dir ./calibration/vae_decoder \
+  --enabled-precisions int8 \
+  --min-block-size 1 \
+  --output-dir ./tmp/vae_decoder_int8_experiment
+```
+
+Run that with the API server stopped, or on another GPU. The live FP16 API keeps
+enough VRAM allocated that isolated INT8 compile probes can OOM while the server
+is running. If the command succeeds and writes non-empty calibration cache files,
+then restart the API with the same INT8 env. If it fails, keep the API on
+`MUSETALK_TRT_STAGEWISE_PRECISION=fp16` and test a different single stage before
+trying multiple INT8 stages.
+
+Additional INT8 diagnostic env vars:
+
+```text
+MUSETALK_TRT_STAGEWISE_INT8_ENABLED_PRECISIONS=int8
+MUSETALK_TRT_STAGEWISE_INT8_MIN_BLOCK_SIZE=1
+MUSETALK_TRT_STAGEWISE_INT8_REQUIRE_FULL_COMPILATION=0
+MUSETALK_TRT_STAGEWISE_INT8_REQUIRE_CALIBRATION_CACHE=1
+MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_FORMAT=tensor
+```
+
+Set `MUSETALK_TRT_STAGEWISE_INT8_REQUIRE_FULL_COMPILATION=1` only when you want
+TensorRT to fail early if the selected stage cannot fully compile.
+
+2026-05-26 experiment result: do not run the live API with VAE INT8 yet.
+`decoder_up_block_0` and `decoder_up_block_1` crashed TensorRT PTQ calibration
+with CUDA illegal memory access at batch `8`. `decoder_pre` and
+`decoder_postprocess` could write calibration caches, but their decoded outputs
+were visually unusable (`decoder_postprocess` collapsed to constant `0.5`).
+Keep `MUSETALK_TRT_STAGEWISE_PRECISION=fp16` for WebRTC/HLS while the next INT8
+approach is tested offline. The bad experimental caches were archived under
+`tmp/vae_decoder_int8_experiment_cache_snapshot/` and removed from the live
+TensorRT cache directory.
+
+### WebRTC TURN Relay On Vast
+
+For public WebRTC wall testing on Vast.ai, prefer the TCP-mapped local TURN
+listener path. The current working shape is:
+
+```text
+WEBRTC_RELAY_ENABLED=1
+WEBRTC_TURN_AUTOSTART=1
+TURN_LISTEN_PORT=1455
+TURN_PUBLIC_TRANSPORT=tcp
+TURN_PUBLIC_PORT=$VAST_TCP_PORT_1455
+WEBRTC_USE_LOCAL_TURN=1
+WEBRTC_ICE_TRANSPORT_POLICY=relay
+```
+
+The 2026-05-26 working public values were:
+
+```text
+API:  http://194.228.55.129:37331
+TURN: turn:194.228.55.129:37187?transport=tcp
+```
+
+Those values are host-specific. On a fresh Vast boot, use the current
+`PUBLIC_IPADDR` and `VAST_TCP_PORT_1455` mapping, or let
+`scripts/run_webrtc_relay_api_server.sh` and
+`scripts/run_turnserver_tcp_relay.sh` auto-detect them. Do not commit the local
+`.env.webrtc-turn.local`; it contains credentials.
 
 ## Matching Load Tests
 

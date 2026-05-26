@@ -58,6 +58,32 @@ API, but it does not pass WebRTC relay/TURN env. It also discards local
 uncommitted edits by recloning the repo, so relay-control changes must be
 committed and pushed before a new Vast boot can use them.
 
+Update on 2026-05-26, later in the same INT8/WebRTC debugging session: the
+black screen was reproduced as an ICE/connectivity failure, not an FP16/INT8
+decoder failure. The wall showed `connecting`, relay policy, zero received video
+FPS, and zero RTP bytes. Switching the local coturn path from the earlier UDP
+public mapping to Vast's TCP-mapped TURN listener fixed session loading.
+
+Current working relay shape:
+
+- API internal port: `8000`
+- public API URL used for the wall:
+  `http://194.228.55.129:37331/webrtc/groups/f9effa4e4a/wall`
+- local TURN listener: internal TCP `1455`
+- browser TURN URL shape: `turn:194.228.55.129:37187?transport=tcp`
+- ICE policy: `relay`
+- server-to-TURN URL: local `127.0.0.1:1455`
+
+The active API was then confirmed healthy on FP16 stagewise TensorRT with local
+coturn running. INT8 is still a separate TensorRT calibration/build experiment;
+do not diagnose an INT8 failure from a black WebRTC player unless ICE is already
+`connected` and RTP/video frame counters are moving.
+
+After the isolated INT8 experiments on 2026-05-26, the API was restored to the
+same known-good FP16 + TCP TURN relay shape. The current rule remains: keep
+WebRTC transport testing on FP16 until VAE INT8 passes isolated image-quality
+comparison.
+
 Update on 2026-05-21: WebRTC wall generation now defaults to the shared HLS GPU
 scheduler with a WebRTC frame sink. The previous wall turn-taking was backend
 serialization from independent per-session GPU leases, not a one-browser WebRTC
@@ -71,12 +97,14 @@ packet/frame timing, and initial A/V start delta. See
 `current_webrtc_playback_smoothing_findings.md` for the detailed implementation
 notes and smoke-test results.
 
-The current server is already running on the TRT-stagewise venv:
+The current server for this debugging session is running on the TRT-stagewise
+venv:
 
 - Process: `/workspace/.venvs/musetalk_trt_stagewise/bin/python api_server.py --host 0.0.0.0 --port 8000`
 - Health: `http://127.0.0.1:8000/health` returns healthy.
-- Public worker base URL from stats: `http://84.50.156.125:16359`
-- Cached avatar: `avatar_22ed8902-f691-4042-a4e8-69affacc6415_1778448036`
+- Public worker base URL during the TCP relay fix:
+  `http://194.228.55.129:37331`
+- Prepared avatar used in the current visual path: `test_avatar_2`
 - Sample audio files exist under `data/audio/`.
 
 Installed WebRTC runtime in the active venv:
@@ -94,14 +122,17 @@ venv Python or activate the venv:
 source /workspace/.venvs/musetalk_trt_stagewise/bin/activate
 ```
 
-I also verified that `/webrtc/sessions/create` currently works locally. The
-probe response returned only public STUN:
+Earlier in the session, before the relay wrapper was enabled, I verified that
+`/webrtc/sessions/create` worked locally but the probe response returned only
+public STUN:
 
 ```json
 "ice_servers": [{"urls": ["stun:stun.l.google.com:19302"]}]
 ```
 
-That means TURN is not active in the currently running API process.
+That was the broken public-browser state. After enabling
+`WEBRTC_RELAY_ENABLED=1`, `WEBRTC_TURN_AUTOSTART=1`, and the TCP TURN mapping,
+generated players advertise the TURN-over-TCP URL instead.
 
 ## Current WebRTC Code Path
 
@@ -155,11 +186,12 @@ retesting the old media path against the newer model backend are the blockers.
 
 ## Current Network/Port State
 
-Current host state:
+Current host state during the 2026-05-26 TCP relay fix:
 
 - API TCP `8000` is listening.
-- No `turnserver`/`coturn` process is listening.
-- `turnserver` was not found in PATH from this shell.
+- `turnserver`/coturn is running under `scripts/vast_server_ctl.sh`.
+- The local coturn listener is internal TCP `1455`; Vast mapped that to public
+  TCP `37187` on `194.228.55.129`.
 - Current Linux ephemeral UDP range:
 
 ```text
@@ -189,8 +221,9 @@ The old TURN docs and config are stale for the current host:
 - `scripts/run_api_server.sh` no longer carries hard-coded TURN URLs; use
   `.env.webrtc-turn.local` for the current host.
 - `turnserver.conf` still has `CHANGE_THIS_PASSWORD`.
-- The running API session response exposes STUN only, so the process was not
-  started with `WEBRTC_TURN_URLS`.
+- The earlier broken API session response exposed STUN only. The current
+  relay-enabled process exposes `WEBRTC_TURN_URLS` built from the current
+  public TCP mapping.
 
 For same-machine/local testing, TURN is not required. For public browser,
 iPhone, Android, or carrier-network tests, TURN should be treated as required
@@ -292,12 +325,16 @@ real password. For local coturn, it should include:
 WEBRTC_RELAY_ENABLED=1
 WEBRTC_TURN_AUTOSTART=1
 TURN_PUBLIC_IP=<PUBLIC_IP>
-TURN_PUBLIC_PORT=<PUBLIC_TURN_PORT>
-TURN_PUBLIC_TRANSPORT=udp
-TURN_LISTEN_PORT=3478
+TURN_PUBLIC_PORT=<PUBLIC_TURN_TCP_PORT>
+TURN_PUBLIC_TRANSPORT=tcp
+TURN_LISTEN_PORT=1455
 TURN_PASS=<LONG_RANDOM_PASSWORD>
 WEBRTC_USE_LOCAL_TURN=1
 ```
+
+On Vast.ai, prefer `TURN_LISTEN_PORT=1455` plus
+`TURN_PUBLIC_PORT=$VAST_TCP_PORT_1455`. Fall back to UDP `3478` only when the
+current host's UDP mapping has been verified from the client network.
 
 Then restart through the normal control helper; it will source the ignored env,
 start coturn if requested, and launch the API through the WebRTC relay wrapper:

@@ -246,6 +246,18 @@ Current implementation note:
 - Any quantized VAE bucket must be warmed before live traffic uses it, matching
   the scheduler's fixed batch sizes.
 
+2026-05-26 INT8 status:
+
+- The captured VAE calibration corpus exists and has the correct runtime shape:
+  `(B, 4, 32, 32)` FP16 `pred_latents`.
+- Live serving is still FP16 stagewise TensorRT while INT8 is debugged.
+- The first INT8 error was fixed with `truncate_long_and_double=True`.
+- The remaining blocker is not calibration data availability. Isolated
+  experiments proved caches can be written for small stages, but the up-blocks
+  hit TensorRT CUDA illegal memory access during PTQ calibration, and the stages
+  that did build produced unusable output. Do not enable VAE INT8 in the API
+  until a different quantization path passes direct image comparison.
+
 ## Runtime Phase 7: Composition
 
 Composition is mostly non-AI image processing.

@@ -201,14 +201,7 @@ def _stagewise_precision_policy() -> str:
 
 
 def _stagewise_int8_stage_names() -> set[str]:
-    stages = set(_parse_csv_env("MUSETALK_TRT_STAGEWISE_INT8_STAGES", ""))
-    if stages:
-        return stages
-    return {
-        "decoder_up_block_1",
-        "decoder_up_block_2",
-        "decoder_up_block_3",
-    }
+    return set(_parse_csv_env("MUSETALK_TRT_STAGEWISE_INT8_STAGES", ""))
 
 
 def _stagewise_int8_calibration_dir() -> Optional[Path]:
@@ -251,15 +244,78 @@ def _stagewise_int8_cache_dir() -> Path:
     return _trt_dir() / "stagewise_int8_calibration_cache"
 
 
+def _stagewise_int8_min_block_size() -> int:
+    try:
+        return max(1, int(os.getenv("MUSETALK_TRT_STAGEWISE_INT8_MIN_BLOCK_SIZE", "1")))
+    except Exception:
+        return 1
+
+
+def _stagewise_int8_require_full_compilation() -> bool:
+    return _env_enabled("MUSETALK_TRT_STAGEWISE_INT8_REQUIRE_FULL_COMPILATION", "0")
+
+
+def _stagewise_int8_require_calibration_cache() -> bool:
+    return _env_enabled("MUSETALK_TRT_STAGEWISE_INT8_REQUIRE_CALIBRATION_CACHE", "1")
+
+
+def _stagewise_int8_calibration_format() -> str:
+    value = os.getenv("MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_FORMAT", "tensor")
+    value = value.strip().lower()
+    if value in {"tensor", "list"}:
+        return value
+    raise RuntimeError(
+        "Unsupported MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_FORMAT value: "
+        f"{value!r}. Expected tensor or list."
+    )
+
+
+def _stagewise_int8_enabled_precisions(runtime_dtype: torch.dtype) -> set[torch.dtype]:
+    raw = os.getenv("MUSETALK_TRT_STAGEWISE_INT8_ENABLED_PRECISIONS", "int8")
+    resolved: set[torch.dtype] = set()
+    for token in raw.split(","):
+        value = token.strip().lower()
+        if not value:
+            continue
+        if value in {"runtime", "vae"}:
+            resolved.add(runtime_dtype)
+            continue
+        if value in {"fp16", "float16", "half"}:
+            resolved.add(torch.float16)
+            continue
+        if value in {"fp32", "float32", "float"}:
+            resolved.add(torch.float32)
+            continue
+        if value in {"int8", "i8"}:
+            resolved.add(torch.int8)
+            continue
+        raise RuntimeError(
+            "Unsupported MUSETALK_TRT_STAGEWISE_INT8_ENABLED_PRECISIONS token: "
+            f"{token!r}. Expected int8, fp16, fp32, or runtime."
+        )
+    return resolved or {torch.int8}
+
+
 class _StageCalibrationDataset(torch.utils.data.Dataset):
-    def __init__(self, samples: list[torch.Tensor]):
+    def __init__(self, samples: list[torch.Tensor], as_input_list: bool = False):
         self.samples = [sample.detach().contiguous() for sample in samples]
+        self.as_input_list = bool(as_input_list)
 
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, index: int) -> torch.Tensor:
-        return self.samples[index]
+    def __getitem__(self, index: int):
+        sample = self.samples[index]
+        if self.as_input_list:
+            return [sample]
+        return sample
+
+
+def _cache_file_has_bytes(path: Path) -> bool:
+    try:
+        return path.exists() and path.stat().st_size > 0
+    except OSError:
+        return False
 
 
 def _stagewise_warmup_batches() -> list[int]:
@@ -413,6 +469,11 @@ class StagewiseTrtVaeDecodeBackend:
         int8_calibration_batches: int = 8,
         int8_calibration_algo: str = "minmax",
         int8_cache_dir: Optional[Path] = None,
+        int8_min_block_size: int = 1,
+        int8_require_full_compilation: bool = False,
+        int8_require_calibration_cache: bool = True,
+        int8_calibration_format: str = "tensor",
+        int8_enabled_precisions: Optional[set[torch.dtype]] = None,
     ):
         self.device = device
         self.scaling_factor = float(scaling_factor)
@@ -423,10 +484,21 @@ class StagewiseTrtVaeDecodeBackend:
         self.torch_stage_names = set(torch_stage_names or set())
         self.precision_policy = precision_policy
         self.int8_stage_names = set(int8_stage_names or set())
+        if self.precision_policy == "int8_mixed" and not self.int8_stage_names:
+            raise RuntimeError(
+                "MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed requires an explicit "
+                "MUSETALK_TRT_STAGEWISE_INT8_STAGES list. There is no safe default "
+                "stage set yet."
+            )
         self.int8_calibration_dir = int8_calibration_dir
         self.int8_calibration_batches = max(1, int(int8_calibration_batches))
         self.int8_calibration_algo = int8_calibration_algo
         self.int8_cache_dir = int8_cache_dir or _stagewise_int8_cache_dir()
+        self.int8_min_block_size = max(1, int(int8_min_block_size))
+        self.int8_require_full_compilation = bool(int8_require_full_compilation)
+        self.int8_require_calibration_cache = bool(int8_require_calibration_cache)
+        self.int8_calibration_format = int8_calibration_format
+        self.int8_enabled_precisions = set(int8_enabled_precisions or {torch.int8})
         self.name = (
             "tensorrt_stagewise_int8_mixed"
             if self.precision_policy == "int8_mixed"
@@ -485,6 +557,11 @@ class StagewiseTrtVaeDecodeBackend:
             int8_calibration_batches=_stagewise_int8_calibration_batches(),
             int8_calibration_algo=_stagewise_int8_calibration_algo(),
             int8_cache_dir=_stagewise_int8_cache_dir(),
+            int8_min_block_size=_stagewise_int8_min_block_size(),
+            int8_require_full_compilation=_stagewise_int8_require_full_compilation(),
+            int8_require_calibration_cache=_stagewise_int8_require_calibration_cache(),
+            int8_calibration_format=_stagewise_int8_calibration_format(),
+            int8_enabled_precisions=_stagewise_int8_enabled_precisions(runtime_dtype),
         )
 
     def _is_int8_stage(self, stage_name: str) -> bool:
@@ -496,7 +573,7 @@ class StagewiseTrtVaeDecodeBackend:
 
     def _stage_enabled_precisions(self, stage_name: str) -> set[torch.dtype]:
         if self._is_int8_stage(stage_name):
-            return {self.runtime_dtype, torch.int8}
+            return set(self.int8_enabled_precisions)
         return _stagewise_enabled_precisions(self.runtime_dtype)
 
     def _load_int8_calibration_latents(self, batch_size: int) -> list[torch.Tensor]:
@@ -585,12 +662,13 @@ class StagewiseTrtVaeDecodeBackend:
         cache_file = self.int8_cache_dir / (
             f"{stage_name}_bs{batch_size}_{self.int8_calibration_algo}.cache"
         )
-        use_cache = _env_enabled("MUSETALK_TRT_STAGEWISE_INT8_USE_CACHE", "1") and cache_file.exists()
+        use_cache = _env_enabled("MUSETALK_TRT_STAGEWISE_INT8_USE_CACHE", "1") and _cache_file_has_bytes(cache_file)
         dataset = _StageCalibrationDataset(
             [
                 sample.to(device=self.device, dtype=self.runtime_dtype).contiguous()
                 for sample in calibration_inputs
-            ]
+            ],
+            as_input_list=self.int8_calibration_format == "list",
         )
         dataloader = DataLoader(
             dataset,
@@ -599,19 +677,33 @@ class StagewiseTrtVaeDecodeBackend:
             num_workers=0,
             collate_fn=lambda samples: samples[0],
         )
+        first = calibration_inputs[0].detach()
         logger.info(
-            "Preparing stagewise INT8 calibrator for %s with %d batches algo=%s cache=%s",
+            (
+                "Preparing stagewise INT8 calibrator for %s with %d batches "
+                "algo=%s cache=%s use_cache=%s input_format=%s first_shape=%s "
+                "first_range=[%.5f, %.5f]"
+            ),
             stage_name,
             len(calibration_inputs),
             self.int8_calibration_algo,
             cache_file,
+            use_cache,
+            self.int8_calibration_format,
+            tuple(int(dim) for dim in first.shape),
+            float(first.float().min().item()),
+            float(first.float().max().item()),
         )
-        return DataLoaderCalibrator(
-            dataloader,
-            algo_type=self._int8_calibration_algo_type(),
-            cache_file=str(cache_file),
-            use_cache=use_cache,
-            device=self.device,
+        return (
+            DataLoaderCalibrator(
+                dataloader,
+                algo_type=self._int8_calibration_algo_type(),
+                cache_file=str(cache_file),
+                use_cache=use_cache,
+                device=self.device,
+            ),
+            cache_file,
+            use_cache,
         )
 
     def _compile_stage_int8_ptq(
@@ -624,7 +716,7 @@ class StagewiseTrtVaeDecodeBackend:
         inputs: list,
         calibration_inputs: list[torch.Tensor],
     ):
-        calibrator = self._make_int8_calibrator(
+        calibrator, cache_file, use_cache = self._make_int8_calibrator(
             stage_name=stage_name,
             calibration_inputs=calibration_inputs,
         )
@@ -635,21 +727,43 @@ class StagewiseTrtVaeDecodeBackend:
             check_trace=False,
         ).eval()
         logger.info(
-            "Compiling stagewise TRT VAE stage %s for batch=%s precision=int8_ptq",
+            (
+                "Compiling stagewise TRT VAE stage %s for batch=%s precision=int8_ptq "
+                "enabled_precisions=%s min_block_size=%s require_full_compilation=%s"
+            ),
             stage_name,
             shape[0],
+            sorted(str(dtype) for dtype in self._stage_enabled_precisions(stage_name)),
+            self.int8_min_block_size,
+            self.int8_require_full_compilation,
         )
-        return torch_tensorrt.compile(
+        compiled = torch_tensorrt.compile(
             traced,
             ir="ts",
             inputs=inputs,
             enabled_precisions=self._stage_enabled_precisions(stage_name),
             workspace_size=int(self.workspace_gb * (1 << 30)),
-            min_block_size=self.min_block_size,
-            require_full_compilation=False,
+            min_block_size=self.int8_min_block_size,
+            require_full_compilation=self.int8_require_full_compilation,
             calibrator=calibrator,
             truncate_long_and_double=True,
         ).eval()
+        if (
+            self.int8_require_calibration_cache
+            and not use_cache
+            and not _cache_file_has_bytes(cache_file)
+        ):
+            raise RuntimeError(
+                "Stagewise INT8 calibration finished without writing a non-empty "
+                f"cache for stage={stage_name} batch={shape[0]} cache={cache_file}. "
+                "This usually means TensorRT did not calibrate any INT8 layers for "
+                "the selected stage. Try a different stage, "
+                "MUSETALK_TRT_STAGEWISE_INT8_ENABLED_PRECISIONS=int8, "
+                "MUSETALK_TRT_STAGEWISE_INT8_MIN_BLOCK_SIZE=1, or set "
+                "MUSETALK_TRT_STAGEWISE_INT8_REQUIRE_FULL_COMPILATION=1 for a "
+                "stricter diagnostic build."
+            )
+        return compiled
 
     def _compile_stage(
         self,

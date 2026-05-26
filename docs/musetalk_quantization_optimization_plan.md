@@ -105,6 +105,127 @@ The first safe experiment is:
 4. Validate direct decoder output and blended video.
 5. Expand INT8 stage coverage only if visual quality remains stable.
 
+## 2026-05-26 Live INT8 Experiment Context
+
+Current user goal: experiment with VAE decoder INT8 first because VAE decode is
+the active throughput bottleneck. The base/reference video work is already in
+place, including `test_avatar_2` prepared from `chatgpt_moving_vid.mp4` and a
+saved WebRTC talking reference under `docs/reference_videos/`.
+
+Current live service state:
+
+- The API/WebRTC service is intentionally running FP16 stagewise TensorRT, not
+  INT8.
+- The working public WebRTC wall uses TURN-over-TCP relay. That fixed the black
+  screen/ICE issue but is unrelated to INT8 correctness.
+- The ignored local env keeps the INT8 calibration settings available, but
+  `MUSETALK_TRT_STAGEWISE_PRECISION=fp16` is the live precision until an isolated
+  INT8 build succeeds.
+
+Calibration data state:
+
+- `calibration/vae_decoder` contains 37 captured `.pt` files from real
+  `pred_latents`.
+- The corpus includes mostly batch-16 tensors plus one batch-8 tensor.
+- Verified tensor shape is `(B, 4, 32, 32)` with dtype `torch.float16`.
+- These are representative enough for the first build experiment, but more
+  audio diversity is still recommended before trusting visual quality broadly.
+
+Representative audio guidance:
+
+- Do use real utterances with varied mouth movement: quiet/loud, fast/slow,
+  vowels, closed-mouth consonants, wide-mouth phonemes, short pauses, and at
+  least a few seconds of continuous speech.
+- The point of running FP16 first is to capture the real UNet output distribution
+  that the VAE decoder will see. INT8 calibration learns activation ranges from
+  those tensors; random latents or cached avatar latents are not enough.
+- The count matters because more batches cover more activation range. Eight
+  captured batches is a small first build set, not a final quality corpus.
+
+INT8 failure history:
+
+1. Initial INT8 stagewise run failed because Torch-TensorRT could not freeze
+   `Int64`/`Float64` constants. The runtime now passes
+   `truncate_long_and_double=True`.
+2. The next INT8 run failed with TensorRT reporting calibration completed with
+   no scaling factors. That means the selected stage/build did not produce usable
+   INT8 calibration scales; it is not a WebRTC failure.
+3. The server was rolled back to FP16 because FP16 WebRTC is the known-good
+   path.
+
+Current runtime changes for the next experiment:
+
+- Selected INT8 stages can use `MUSETALK_TRT_STAGEWISE_INT8_MIN_BLOCK_SIZE=1`
+  so TensorRT does not discard small convertible partitions.
+- Selected INT8 stages default to
+  `MUSETALK_TRT_STAGEWISE_INT8_ENABLED_PRECISIONS=int8` so the experiment proves
+  an INT8 path instead of silently choosing FP16 kernels.
+- `MUSETALK_TRT_STAGEWISE_INT8_REQUIRE_FULL_COMPILATION=1` can be used as a
+  stricter diagnostic if a stage silently falls back.
+- The runtime now fails loudly when PTQ returns without writing a non-empty
+  calibration cache, unless
+  `MUSETALK_TRT_STAGEWISE_INT8_REQUIRE_CALIBRATION_CACHE=0` is set.
+- `MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_FORMAT=list` is available only as a
+  calibrator wiring diagnostic; default remains `tensor`.
+- `MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed` now requires an explicit
+  `MUSETALK_TRT_STAGEWISE_INT8_STAGES` list. There is no safe implicit default
+  stage set yet.
+
+The diagnostic entry point used for these tests is:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python \
+  scripts/experiment_vae_decoder_int8.py \
+  --stage decoder_up_block_1 \
+  --batch-size 8 \
+  --calibration-batches 8 \
+  --calibration-dir ./calibration/vae_decoder \
+  --enabled-precisions int8 \
+  --min-block-size 1 \
+  --output-dir ./tmp/vae_decoder_int8_experiment
+```
+
+Change `--stage` for each candidate. The example above is a diagnostic command,
+not a known-good live-server configuration.
+
+Run this only after stopping the live FP16 server or on a separate GPU. The live
+server occupies enough VRAM that even a tiny isolated Torch-TensorRT PTQ probe
+can OOM while it is running. If the experiment fails, restart the FP16 server and
+keep the WebRTC validation path stable.
+
+Actual isolated results from 2026-05-26 after stopping the API:
+
+| INT8 stage | Precision setting | Result | Quality |
+| --- | --- | --- | --- |
+| `decoder_up_block_1` | `int8` | TensorRT calibration hit CUDA illegal memory access; no cache written | failed build |
+| `decoder_up_block_1` | `fp16,int8` | Same CUDA illegal memory access; no cache written | failed build |
+| `decoder_up_block_0` | `int8` | Same CUDA illegal memory access; no cache written | failed build |
+| `decoder_pre` | `int8` | Built in `91.30s`; cache size `574` bytes | bad, MAE `0.213`, output range compressed |
+| `decoder_postprocess` | `int8` | Failed because the stage required FP16 but FP16 was not enabled | failed build |
+| `decoder_postprocess` | `fp16,int8` | Built in `163.06s`; cache size `1133` bytes | bad, constant `0.5` output, MAE `0.210` |
+
+Conclusion: the current Torch-TensorRT TorchScript PTQ path can invoke the
+calibrator and write caches, but it is not ready to enable in the API. The VAE
+up-block family is unsafe on this stack, and the smaller prefix/postprocess
+stages produce unacceptable visual output. Keep live serving on FP16 while the
+next INT8 approach is investigated.
+
+The bad experimental cache files were copied to
+`tmp/vae_decoder_int8_experiment_cache_snapshot/` and removed from the live
+`models/tensorrt/stagewise_int8_calibration_cache/` directory so a later server
+run cannot reuse them accidentally.
+
+Recommended next INT8 direction:
+
+1. Do not start the API with `int8_mixed` yet.
+2. Try a Q/DQ-based path outside the live server, such as ModelOpt-to-ONNX or a
+   Torch Export/Dynamo path that keeps scale nodes explicit.
+3. If staying with TorchScript PTQ, isolate the exact op in the up-block that
+   triggers the calibration illegal memory access before trying more stages.
+4. Consider limiting VAE decoder work to FP16 TensorRT and shifting the next
+   throughput effort to UNet compilation/quantization if VAE INT8 keeps
+   collapsing quality.
+
 ## Optimization Principles
 
 1. **Optimize measured bottlenecks only**
