@@ -82,7 +82,9 @@ do not diagnose an INT8 failure from a black WebRTC player unless ICE is already
 After the isolated INT8 experiments on 2026-05-26, the API was restored to the
 same known-good FP16 + TCP TURN relay shape. The current rule remains: keep
 WebRTC transport testing on FP16 until VAE INT8 passes isolated image-quality
-comparison.
+comparison. The VAE INT8 runtime path now has a live-serving guard that blocks
+the tested decoder stages by default; only the offline diagnostic script should
+set `MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES=1`.
 
 Update on 2026-05-21: WebRTC wall generation now defaults to the shared HLS GPU
 scheduler with a WebRTC frame sink. The previous wall turn-taking was backend

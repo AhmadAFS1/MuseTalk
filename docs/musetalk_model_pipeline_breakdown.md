@@ -257,6 +257,11 @@ Current implementation note:
   hit TensorRT CUDA illegal memory access during PTQ calibration, and the stages
   that did build produced unusable output. Do not enable VAE INT8 in the API
   until a different quantization path passes direct image comparison.
+- The runtime now blocks VAE decoder INT8 stages for live serving by default.
+  `scripts/experiment_vae_decoder_int8.py` sets
+  `MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES=1` only for isolated offline
+  diagnostics, so a normal API restart stays on the known-good FP16 path unless
+  INT8 is intentionally forced.
 
 ## Runtime Phase 7: Composition
 

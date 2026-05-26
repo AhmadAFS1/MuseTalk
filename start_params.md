@@ -217,9 +217,17 @@ bash scripts/run_trt_stagewise_server.sh --profile throughput_record
 Important caveats:
 
 - The FP16 stagewise path remains the default production path.
+- The live API now blocks VAE decoder INT8 stages by default on this
+  Torch-TensorRT/TensorRT stack because isolated PTQ builds either crashed
+  TensorRT calibration or produced unusable decoded images. The example above is
+  retained as a historical experiment shape, not a current server startup
+  recipe.
 - `MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed` now requires an explicit
   `MUSETALK_TRT_STAGEWISE_INT8_STAGES` list. There is no safe default INT8
   stage set yet.
+- `MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES=1` bypasses the live-serving
+  guard and should only be used by `scripts/experiment_vae_decoder_int8.py` or a
+  similarly isolated offline probe.
 - The INT8 path uses TensorRT calibration caches per selected stage and exact
   batch size. Delete the directory pointed to by
   `MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR` if you need to force a fresh
@@ -248,9 +256,10 @@ cd /workspace/MuseTalk
 Run that with the API server stopped, or on another GPU. The live FP16 API keeps
 enough VRAM allocated that isolated INT8 compile probes can OOM while the server
 is running. If the command succeeds and writes non-empty calibration cache files,
-then restart the API with the same INT8 env. If it fails, keep the API on
-`MUSETALK_TRT_STAGEWISE_PRECISION=fp16` and test a different single stage before
-trying multiple INT8 stages.
+and passes direct image comparison against PyTorch FP16, then the live-serving
+guard can be revisited. If it fails, keep the API on
+`MUSETALK_TRT_STAGEWISE_PRECISION=fp16` and test a different offline
+quantization path before trying multiple INT8 stages.
 
 Additional INT8 diagnostic env vars:
 
@@ -267,10 +276,14 @@ TensorRT to fail early if the selected stage cannot fully compile.
 
 2026-05-26 experiment result: do not run the live API with VAE INT8 yet.
 `decoder_up_block_0` and `decoder_up_block_1` crashed TensorRT PTQ calibration
-with CUDA illegal memory access at batch `8`. `decoder_pre` and
-`decoder_postprocess` could write calibration caches, but their decoded outputs
-were visually unusable (`decoder_postprocess` collapsed to constant `0.5`).
-Keep `MUSETALK_TRT_STAGEWISE_PRECISION=fp16` for WebRTC/HLS while the next INT8
+with CUDA illegal memory access at batch `8`; `decoder_up_block_1` also failed
+with group norm and upsample forced to PyTorch, batch `1`, and list-format
+calibrator input. `decoder_pre` and `decoder_postprocess` could write
+calibration caches, but their decoded outputs were visually unusable
+(`decoder_postprocess` collapsed to constant `0.5`). A ModelOpt fake-quant QDQ
+prototype also had high stage error and did not export cleanly through the
+current Torch-TensorRT Dynamo path. Keep
+`MUSETALK_TRT_STAGEWISE_PRECISION=fp16` for WebRTC/HLS while the next INT8
 approach is tested offline. The bad experimental caches were archived under
 `tmp/vae_decoder_int8_experiment_cache_snapshot/` and removed from the live
 TensorRT cache directory.

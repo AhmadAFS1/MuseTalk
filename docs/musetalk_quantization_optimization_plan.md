@@ -170,6 +170,10 @@ Current runtime changes for the next experiment:
 - `MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed` now requires an explicit
   `MUSETALK_TRT_STAGEWISE_INT8_STAGES` list. There is no safe implicit default
   stage set yet.
+- Live serving also blocks all VAE decoder INT8 stages by default on this
+  Torch-TensorRT/TensorRT stack. The offline experiment script deliberately sets
+  `MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES=1`; the API should not use
+  that override unless a new INT8 path has passed direct image comparison.
 
 The diagnostic entry point used for these tests is:
 
@@ -199,16 +203,30 @@ Actual isolated results from 2026-05-26 after stopping the API:
 | --- | --- | --- | --- |
 | `decoder_up_block_1` | `int8` | TensorRT calibration hit CUDA illegal memory access; no cache written | failed build |
 | `decoder_up_block_1` | `fp16,int8` | Same CUDA illegal memory access; no cache written | failed build |
+| `decoder_up_block_1` | `int8`, `group_norm` kept on PyTorch | Same CUDA illegal memory access; no cache written | failed build |
+| `decoder_up_block_1` | `int8`, `group_norm` + `upsample_nearest2d` kept on PyTorch | Same CUDA illegal memory access; no cache written | failed build |
+| `decoder_up_block_1` | `int8`, batch `1` | Same CUDA illegal memory access; no cache written | failed build |
+| `decoder_up_block_1` | `int8`, calibrator returns `[tensor]` instead of `tensor` | Same CUDA illegal memory access; no cache written | failed build |
 | `decoder_up_block_0` | `int8` | Same CUDA illegal memory access; no cache written | failed build |
 | `decoder_pre` | `int8` | Built in `91.30s`; cache size `574` bytes | bad, MAE `0.213`, output range compressed |
 | `decoder_postprocess` | `int8` | Failed because the stage required FP16 but FP16 was not enabled | failed build |
 | `decoder_postprocess` | `fp16,int8` | Built in `163.06s`; cache size `1133` bytes | bad, constant `0.5` output, MAE `0.210` |
+| `decoder_up_block_1` | ModelOpt fake-quant QDQ prototype | Fake-quant stage already had very high error; Torch-TensorRT Dynamo export failed on ModelOpt quantized modules | not viable in current venv |
 
 Conclusion: the current Torch-TensorRT TorchScript PTQ path can invoke the
 calibrator and write caches, but it is not ready to enable in the API. The VAE
 up-block family is unsafe on this stack, and the smaller prefix/postprocess
 stages produce unacceptable visual output. Keep live serving on FP16 while the
 next INT8 approach is investigated.
+
+Root cause assessment: this is not a WebRTC problem, not missing calibration
+data, and not just a need for more warmup runs. The captured calibration tensors
+load with the right shape and dtype, and the calibrator path can write caches
+for simpler stages. The failure boundary is TensorRT PTQ calibration/build for
+Diffusers VAE decoder stages in the current `torch==2.5.1+cu121`,
+Torch-TensorRT `2.5.0`, TensorRT `10.3` stack. Keeping individual ops on
+PyTorch and changing calibrator input shape did not move the failure, which
+points to the frontend/build path rather than the WebRTC relay or the scheduler.
 
 The bad experimental cache files were copied to
 `tmp/vae_decoder_int8_experiment_cache_snapshot/` and removed from the live
@@ -218,11 +236,15 @@ run cannot reuse them accidentally.
 Recommended next INT8 direction:
 
 1. Do not start the API with `int8_mixed` yet.
-2. Try a Q/DQ-based path outside the live server, such as ModelOpt-to-ONNX or a
-   Torch Export/Dynamo path that keeps scale nodes explicit.
-3. If staying with TorchScript PTQ, isolate the exact op in the up-block that
+2. Keep the runtime guard enabled so live WebRTC cannot accidentally enter the
+   crashing PTQ path. The guard can be bypassed only for offline diagnostics with
+   `MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES=1`.
+3. Try a Q/DQ-based path outside the live server, such as ONNX/QDQ or a newer
+   Torch Export/Dynamo path that keeps scale nodes explicit and validates each
+   stage against PyTorch FP16 before serving.
+4. If staying with TorchScript PTQ, isolate the exact op in the up-block that
    triggers the calibration illegal memory access before trying more stages.
-4. Consider limiting VAE decoder work to FP16 TensorRT and shifting the next
+5. Consider limiting VAE decoder work to FP16 TensorRT and shifting the next
    throughput effort to UNet compilation/quantization if VAE INT8 keeps
    collapsing quality.
 

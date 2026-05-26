@@ -69,6 +69,16 @@ def parse_args() -> argparse.Namespace:
         default="tensor",
         help="Use list only to diagnose Torch-TensorRT single-input calibrator wiring.",
     )
+    parser.add_argument(
+        "--torch-executed-op",
+        action="append",
+        default=[],
+        help=(
+            "Aten op to force onto PyTorch in the INT8 TorchScript compile. "
+            "May be repeated or comma-separated. Default runtime behavior keeps "
+            "group_norm on PyTorch."
+        ),
+    )
     parser.add_argument("--use-cache", action="store_true")
     parser.add_argument("--require-full-compilation", action="store_true")
     parser.add_argument(
@@ -97,6 +107,7 @@ def set_experiment_env(args: argparse.Namespace, stages: list[str]) -> None:
     os.environ["MUSETALK_TRT_FALLBACK"] = "0"
     os.environ["MUSETALK_TRT_STAGEWISE_PRECISION"] = "int8_mixed"
     os.environ["MUSETALK_TRT_STAGEWISE_INT8_STAGES"] = ",".join(stages)
+    os.environ["MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES"] = "1"
     os.environ["MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES"] = str(max(1, args.batch_size))
     os.environ["MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR"] = str(
         Path(args.calibration_dir).resolve()
@@ -119,6 +130,11 @@ def set_experiment_env(args: argparse.Namespace, stages: list[str]) -> None:
     )
     os.environ["MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_FORMAT"] = args.calibration_format
     os.environ["MUSETALK_TRT_STAGEWISE_WORKSPACE_GB"] = str(max(0.25, args.workspace_gb))
+    if args.torch_executed_op:
+        ops: list[str] = []
+        for raw in args.torch_executed_op:
+            ops.extend(token.strip() for token in raw.split(",") if token.strip())
+        os.environ["MUSETALK_TRT_STAGEWISE_INT8_TORCH_EXECUTED_OPS"] = ",".join(ops)
 
 
 def main() -> int:
@@ -166,6 +182,14 @@ def main() -> int:
             "int8_min_block_size": max(1, args.min_block_size),
             "require_full_compilation": bool(args.require_full_compilation),
             "calibration_format": args.calibration_format,
+            "allow_unsafe_stages": os.getenv(
+                "MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES",
+                "0",
+            ),
+            "torch_executed_ops": os.getenv(
+                "MUSETALK_TRT_STAGEWISE_INT8_TORCH_EXECUTED_OPS",
+                "group_norm",
+            ),
         },
     )
 

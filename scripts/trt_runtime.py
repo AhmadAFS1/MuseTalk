@@ -296,6 +296,55 @@ def _stagewise_int8_enabled_precisions(runtime_dtype: torch.dtype) -> set[torch.
     return resolved or {torch.int8}
 
 
+def _stagewise_int8_ts_torch_executed_ops() -> list[str]:
+    raw = os.getenv("MUSETALK_TRT_STAGEWISE_INT8_TORCH_EXECUTED_OPS", "group_norm")
+    mapping = {
+        "group_norm": "aten::group_norm",
+        "native_group_norm": "aten::native_group_norm",
+        "silu": "aten::silu",
+        "upsample_nearest2d": "aten::upsample_nearest2d",
+    }
+    resolved: list[str] = []
+    seen: set[str] = set()
+    for token in raw.split(","):
+        value = token.strip()
+        if not value:
+            continue
+        lowered = value.lower()
+        op_name = value if value.startswith("aten::") else mapping.get(lowered)
+        if not op_name:
+            raise RuntimeError(
+                "Unsupported MUSETALK_TRT_STAGEWISE_INT8_TORCH_EXECUTED_OPS token: "
+                f"{token!r}. Expected group_norm, native_group_norm, silu, "
+                "upsample_nearest2d, or an aten:: operator name."
+            )
+        if op_name not in seen:
+            resolved.append(op_name)
+            seen.add(op_name)
+    return resolved
+
+
+_STAGEWISE_VAE_STAGE_NAMES = (
+    "decoder_pre",
+    "decoder_mid_block",
+    "decoder_up_block_0",
+    "decoder_up_block_1",
+    "decoder_up_block_2",
+    "decoder_up_block_3",
+    "decoder_postprocess",
+)
+
+
+def _stagewise_int8_live_blocked_stage_names() -> set[str]:
+    raw = os.getenv(
+        "MUSETALK_TRT_STAGEWISE_INT8_LIVE_BLOCKED_STAGES",
+        ",".join(_STAGEWISE_VAE_STAGE_NAMES),
+    )
+    if raw.strip().lower() in {"", "0", "false", "no", "off", "none"}:
+        return set()
+    return {token.strip() for token in raw.split(",") if token.strip()}
+
+
 class _StageCalibrationDataset(torch.utils.data.Dataset):
     def __init__(self, samples: list[torch.Tensor], as_input_list: bool = False):
         self.samples = [sample.detach().contiguous() for sample in samples]
@@ -474,6 +523,7 @@ class StagewiseTrtVaeDecodeBackend:
         int8_require_calibration_cache: bool = True,
         int8_calibration_format: str = "tensor",
         int8_enabled_precisions: Optional[set[torch.dtype]] = None,
+        int8_ts_torch_executed_ops: Optional[list[str]] = None,
     ):
         self.device = device
         self.scaling_factor = float(scaling_factor)
@@ -490,6 +540,23 @@ class StagewiseTrtVaeDecodeBackend:
                 "MUSETALK_TRT_STAGEWISE_INT8_STAGES list. There is no safe default "
                 "stage set yet."
             )
+        if self.precision_policy == "int8_mixed" and not _env_enabled(
+            "MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES",
+            "0",
+        ):
+            blocked_stages = _stagewise_int8_live_blocked_stage_names()
+            selected_blocked_stages = sorted(self.int8_stage_names & blocked_stages)
+            if selected_blocked_stages:
+                raise RuntimeError(
+                    "VAE stagewise INT8 is blocked for live serving on this "
+                    "Torch-TensorRT/TensorRT stack. Isolated PTQ experiments on "
+                    f"{selected_blocked_stages} either crashed TensorRT "
+                    "calibration or produced unusable decoded images. Keep the "
+                    "API on MUSETALK_TRT_STAGEWISE_PRECISION=fp16, or run "
+                    "scripts/experiment_vae_decoder_int8.py for offline "
+                    "diagnostics. To deliberately bypass this live-serving guard, "
+                    "set MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES=1."
+                )
         self.int8_calibration_dir = int8_calibration_dir
         self.int8_calibration_batches = max(1, int(int8_calibration_batches))
         self.int8_calibration_algo = int8_calibration_algo
@@ -499,6 +566,7 @@ class StagewiseTrtVaeDecodeBackend:
         self.int8_require_calibration_cache = bool(int8_require_calibration_cache)
         self.int8_calibration_format = int8_calibration_format
         self.int8_enabled_precisions = set(int8_enabled_precisions or {torch.int8})
+        self.int8_ts_torch_executed_ops = list(int8_ts_torch_executed_ops or [])
         self.name = (
             "tensorrt_stagewise_int8_mixed"
             if self.precision_policy == "int8_mixed"
@@ -517,15 +585,7 @@ class StagewiseTrtVaeDecodeBackend:
         for module in self.stage_modules.values():
             module.to(device=device, dtype=runtime_dtype).eval()
             module.requires_grad_(False)
-        self.stage_order = [
-            "decoder_pre",
-            "decoder_mid_block",
-            "decoder_up_block_0",
-            "decoder_up_block_1",
-            "decoder_up_block_2",
-            "decoder_up_block_3",
-            "decoder_postprocess",
-        ]
+        self.stage_order = list(_STAGEWISE_VAE_STAGE_NAMES)
         self.compiled_by_batch: dict[int, dict[str, object]] = {}
 
     @classmethod
@@ -562,6 +622,7 @@ class StagewiseTrtVaeDecodeBackend:
             int8_require_calibration_cache=_stagewise_int8_require_calibration_cache(),
             int8_calibration_format=_stagewise_int8_calibration_format(),
             int8_enabled_precisions=_stagewise_int8_enabled_precisions(runtime_dtype),
+            int8_ts_torch_executed_ops=_stagewise_int8_ts_torch_executed_ops(),
         )
 
     def _is_int8_stage(self, stage_name: str) -> bool:
@@ -729,24 +790,31 @@ class StagewiseTrtVaeDecodeBackend:
         logger.info(
             (
                 "Compiling stagewise TRT VAE stage %s for batch=%s precision=int8_ptq "
-                "enabled_precisions=%s min_block_size=%s require_full_compilation=%s"
+                "enabled_precisions=%s min_block_size=%s require_full_compilation=%s "
+                "torch_executed_ops=%s"
             ),
             stage_name,
             shape[0],
             sorted(str(dtype) for dtype in self._stage_enabled_precisions(stage_name)),
             self.int8_min_block_size,
             self.int8_require_full_compilation,
+            self.int8_ts_torch_executed_ops,
         )
+        compile_kwargs = {
+            "ir": "ts",
+            "inputs": inputs,
+            "enabled_precisions": self._stage_enabled_precisions(stage_name),
+            "workspace_size": int(self.workspace_gb * (1 << 30)),
+            "min_block_size": self.int8_min_block_size,
+            "require_full_compilation": self.int8_require_full_compilation,
+            "calibrator": calibrator,
+            "truncate_long_and_double": True,
+        }
+        if self.int8_ts_torch_executed_ops and not self.int8_require_full_compilation:
+            compile_kwargs["torch_executed_ops"] = self.int8_ts_torch_executed_ops
         compiled = torch_tensorrt.compile(
             traced,
-            ir="ts",
-            inputs=inputs,
-            enabled_precisions=self._stage_enabled_precisions(stage_name),
-            workspace_size=int(self.workspace_gb * (1 << 30)),
-            min_block_size=self.int8_min_block_size,
-            require_full_compilation=self.int8_require_full_compilation,
-            calibrator=calibrator,
-            truncate_long_and_double=True,
+            **compile_kwargs,
         ).eval()
         if (
             self.int8_require_calibration_cache
