@@ -478,6 +478,32 @@ Interpretation:
 - the Vast boot/control wrappers now default to `throughput_record` when
   `PROFILE` is unset; the direct foreground launcher still defaults to
   `baseline`
+- normal on-start does not currently prove public WebRTC reachability by itself.
+  The boot path is `scripts/vast_onstart.sh` -> `scripts/vast_server_ctl.sh start`;
+  without relay env, it starts `scripts/run_trt_stagewise_server.sh` with
+  STUN/direct ICE. The saved successful WebRTC load-test reports used
+  `ice_transport_policy=all`, so those runs relied on direct/local ICE working,
+  not on a hidden auto-started TURN server.
+- the external Vast bootstrap script reclones `origin/main` into
+  `/workspace/MuseTalk` before calling `scripts/vast_onstart.sh`; local
+  uncommitted startup fixes are discarded on a fresh boot unless they are pushed.
+  That bootstrap currently passes setup/profile/port settings, not WebRTC
+  relay/TURN settings.
+- for public WebRTC wall playback, preserve the relay launch path during
+  restarts. Copy `.env.webrtc-turn.local.example` to `.env.webrtc-turn.local`,
+  fill the current TURN public mapping and password, then restart with:
+
+```bash
+cd /workspace/MuseTalk
+PROFILE=throughput_record bash scripts/vast_server_ctl.sh restart
+```
+
+  The ignored env file can set `WEBRTC_RELAY_ENABLED=1` so the control helper
+  launches `scripts/run_webrtc_relay_api_server.sh`; with
+  `WEBRTC_TURN_AUTOSTART=1`, it also starts local coturn through
+  `scripts/run_turnserver_tcp_relay.sh` before the API. If using managed TURN,
+  leave autostart off and set `WEBRTC_TURN_URLS`,
+  `WEBRTC_SERVER_TURN_URLS`, `WEBRTC_TURN_USER`, and `WEBRTC_TURN_PASS`.
 - to watch live logs on Vast:
 
 ```bash

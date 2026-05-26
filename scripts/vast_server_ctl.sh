@@ -19,6 +19,13 @@ LOG_FILE="${LOG_FILE:-$LOG_DIR/api_server_${PORT}.log}"
 STARTUP_TIMEOUT_SECONDS="${STARTUP_TIMEOUT_SECONDS:-600}"
 POLL_INTERVAL_SECONDS="${POLL_INTERVAL_SECONDS:-2}"
 DRAIN_TIMEOUT_SECONDS="${DRAIN_TIMEOUT_SECONDS:-300}"
+TURN_ENV_FILE="${TURN_ENV_FILE:-$REPO_ROOT/.env.webrtc-turn.local}"
+TURN_LOG_FILE="${TURN_LOG_FILE:-$LOG_DIR/turnserver.log}"
+TURN_PID_FILE="${TURN_PID_FILE:-$LOG_DIR/turnserver.pid}"
+VAST_SERVER_CTL_LOAD_TURN_ENV="${VAST_SERVER_CTL_LOAD_TURN_ENV:-1}"
+WEBRTC_RELAY_ENABLED="${WEBRTC_RELAY_ENABLED:-0}"
+WEBRTC_TURN_AUTOSTART="${WEBRTC_TURN_AUTOSTART:-0}"
+TURN_ENV_LOADED=0
 
 log() {
   printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
@@ -58,6 +65,11 @@ Environment:
   DRAIN_URL                  Local drain endpoint (default: $DRAIN_URL)
   WORKER_STATE_URL           Local worker-state endpoint (default: $WORKER_STATE_URL)
   LOG_DIR                    Server log dir (default: $LOG_DIR)
+  TURN_ENV_FILE              Optional WebRTC/TURN env file (default: $TURN_ENV_FILE)
+  WEBRTC_RELAY_ENABLED       Use scripts/run_webrtc_relay_api_server.sh (default: $WEBRTC_RELAY_ENABLED)
+  WEBRTC_TURN_AUTOSTART      Start/stop local coturn via scripts/run_turnserver_tcp_relay.sh (default: $WEBRTC_TURN_AUTOSTART)
+  TURN_LOG_FILE              Coturn log file when autostart is enabled (default: $TURN_LOG_FILE)
+  TURN_PID_FILE              Coturn pid file when autostart is enabled (default: $TURN_PID_FILE)
   STARTUP_TIMEOUT_SECONDS    Health wait timeout (default: $STARTUP_TIMEOUT_SECONDS)
   POLL_INTERVAL_SECONDS      Health wait poll interval (default: $POLL_INTERVAL_SECONDS)
   DRAIN_TIMEOUT_SECONDS      Drain wait timeout before stop (default: $DRAIN_TIMEOUT_SECONDS)
@@ -72,6 +84,35 @@ EOF
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
+}
+
+env_enabled() {
+  case "${1:-}" in
+    1|true|TRUE|yes|YES|on|ON)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+load_turn_env() {
+  if (( TURN_ENV_LOADED )); then
+    return 0
+  fi
+  TURN_ENV_LOADED=1
+  if ! env_enabled "$VAST_SERVER_CTL_LOAD_TURN_ENV"; then
+    return 0
+  fi
+  if [[ ! -f "$TURN_ENV_FILE" ]]; then
+    return 0
+  fi
+
+  set -a
+  # shellcheck disable=SC1090
+  source "$TURN_ENV_FILE"
+  set +a
 }
 
 resolve_pid() {
@@ -92,6 +133,27 @@ resolve_pid() {
 cleanup_stale_pid() {
   if [[ -f "$PID_FILE" ]] && ! resolve_pid >/dev/null 2>&1; then
     rm -f "$PID_FILE"
+  fi
+}
+
+resolve_turn_pid() {
+  if [[ ! -f "$TURN_PID_FILE" ]]; then
+    return 1
+  fi
+  local pid
+  pid="$(tr -d '[:space:]' < "$TURN_PID_FILE")"
+  if [[ -z "$pid" ]]; then
+    return 1
+  fi
+  if ! kill -0 "$pid" >/dev/null 2>&1; then
+    return 1
+  fi
+  printf '%s\n' "$pid"
+}
+
+cleanup_stale_turn_pid() {
+  if [[ -f "$TURN_PID_FILE" ]] && ! resolve_turn_pid >/dev/null 2>&1; then
+    rm -f "$TURN_PID_FILE"
   fi
 }
 
@@ -198,6 +260,7 @@ start_server() {
   local start_ts elapsed
   start_ts="$(date +%s)"
   cleanup_stale_pid
+  cleanup_stale_turn_pid
   mkdir -p "$LOG_DIR"
 
   if resolve_pid >/dev/null 2>&1; then
@@ -211,13 +274,21 @@ start_server() {
   [[ -x "$VENV_PATH/bin/python" ]] || die "Venv python not found at $VENV_PATH/bin/python"
   [[ -f "$REPO_ROOT/api_server.py" ]] || die "api_server.py not found under $REPO_ROOT"
 
+  local launcher="$REPO_ROOT/scripts/run_trt_stagewise_server.sh"
+  if env_enabled "$WEBRTC_RELAY_ENABLED"; then
+    launcher="$REPO_ROOT/scripts/run_webrtc_relay_api_server.sh"
+    start_turnserver
+  fi
+
   log "Starting MuseTalk server"
   log "repo=$REPO_ROOT"
   log "venv=$VENV_PATH"
   log "profile=$PROFILE host=$HOST port=$PORT"
+  log "launcher=$launcher"
+  log "webrtc_relay_enabled=$WEBRTC_RELAY_ENABLED turn_autostart=$WEBRTC_TURN_AUTOSTART turn_env=$TURN_ENV_FILE"
   log "log_file=$LOG_FILE"
 
-  setsid nohup bash "$REPO_ROOT/scripts/run_trt_stagewise_server.sh" \
+  setsid nohup bash "$launcher" \
     --profile "$PROFILE" \
     --host "$HOST" \
     --port "$PORT" \
@@ -233,10 +304,53 @@ start_server() {
   log "Start command completed in $(format_duration "$elapsed")"
 }
 
+start_turnserver() {
+  if ! env_enabled "$WEBRTC_TURN_AUTOSTART"; then
+    return 0
+  fi
+
+  cleanup_stale_turn_pid
+  mkdir -p "$LOG_DIR"
+
+  if resolve_turn_pid >/dev/null 2>&1; then
+    local pid
+    pid="$(resolve_turn_pid)"
+    log "TURN server already running with pid=$pid"
+    return 0
+  fi
+
+  if ! command -v turnserver >/dev/null 2>&1; then
+    die "WEBRTC_TURN_AUTOSTART=1 but turnserver is not installed. Install coturn or disable autostart and provide external WEBRTC_TURN_URLS."
+  fi
+
+  if [[ -z "${TURN_PASS:-${WEBRTC_TURN_PASS:-}}" ]]; then
+    die "WEBRTC_TURN_AUTOSTART=1 requires TURN_PASS or WEBRTC_TURN_PASS in the environment or $TURN_ENV_FILE"
+  fi
+
+  log "Starting local TURN server"
+  log "turn_log_file=$TURN_LOG_FILE"
+  setsid nohup bash "$REPO_ROOT/scripts/run_turnserver_tcp_relay.sh" \
+    >>"$TURN_LOG_FILE" 2>&1 &
+
+  local pid=$!
+  printf '%s\n' "$pid" > "$TURN_PID_FILE"
+  sleep 1
+  if ! kill -0 "$pid" >/dev/null 2>&1; then
+    rm -f "$TURN_PID_FILE"
+    if [[ -f "$TURN_LOG_FILE" ]]; then
+      printf '\n[%s] Last TURN log lines from %s:\n' "$SCRIPT_NAME" "$TURN_LOG_FILE" >&2
+      tail -n 40 "$TURN_LOG_FILE" >&2 || true
+    fi
+    die "TURN server exited during startup"
+  fi
+  log "TURN server spawned pid=$pid"
+}
+
 stop_server() {
   cleanup_stale_pid
   if ! resolve_pid >/dev/null 2>&1; then
     log "Server is not running"
+    stop_turnserver
     return 0
   fi
 
@@ -260,6 +374,7 @@ stop_server() {
     if ! kill -0 "$pid" >/dev/null 2>&1; then
       rm -f "$PID_FILE"
       log "Server stopped"
+      stop_turnserver
       return 0
     fi
     sleep 1
@@ -269,10 +384,42 @@ stop_server() {
   log "Process did not exit in time; sending SIGKILL"
   kill -9 "$pid" >/dev/null 2>&1 || true
   rm -f "$PID_FILE"
+  stop_turnserver
+}
+
+stop_turnserver() {
+  cleanup_stale_turn_pid
+  if ! env_enabled "$WEBRTC_TURN_AUTOSTART" && [[ ! -f "$TURN_PID_FILE" ]]; then
+    return 0
+  fi
+  if ! resolve_turn_pid >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local pid
+  pid="$(resolve_turn_pid)"
+  log "Stopping TURN server pid=$pid"
+  kill "$pid" >/dev/null 2>&1 || true
+
+  local tries=10
+  while (( tries > 0 )); do
+    if ! kill -0 "$pid" >/dev/null 2>&1; then
+      rm -f "$TURN_PID_FILE"
+      log "TURN server stopped"
+      return 0
+    fi
+    sleep 1
+    tries="$((tries - 1))"
+  done
+
+  log "TURN server did not exit in time; sending SIGKILL"
+  kill -9 "$pid" >/dev/null 2>&1 || true
+  rm -f "$TURN_PID_FILE"
 }
 
 status_server() {
   cleanup_stale_pid
+  cleanup_stale_turn_pid
   if resolve_pid >/dev/null 2>&1; then
     local pid
     pid="$(resolve_pid)"
@@ -283,6 +430,14 @@ status_server() {
     fi
   else
     log "stopped"
+  fi
+
+  if resolve_turn_pid >/dev/null 2>&1; then
+    local turn_pid
+    turn_pid="$(resolve_turn_pid)"
+    log "turnserver=running pid=$turn_pid"
+  elif env_enabled "$WEBRTC_TURN_AUTOSTART"; then
+    log "turnserver=stopped"
   fi
 }
 
@@ -296,6 +451,12 @@ logs_server() {
 }
 
 main() {
+  load_turn_env
+  WEBRTC_RELAY_ENABLED="${WEBRTC_RELAY_ENABLED:-0}"
+  WEBRTC_TURN_AUTOSTART="${WEBRTC_TURN_AUTOSTART:-0}"
+  TURN_LOG_FILE="${TURN_LOG_FILE:-$LOG_DIR/turnserver.log}"
+  TURN_PID_FILE="${TURN_PID_FILE:-$LOG_DIR/turnserver.pid}"
+
   local command="${1:-}"
   case "$command" in
     start)

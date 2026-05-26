@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
-# Helper to run the MuseTalk API with WebRTC/TURN env vars set.
-# Fill in your TURN creds and endpoints once, then re-run this script.
+# Compatibility helper for the older WebRTC start path.
+#
+# Do not edit stale TURN IPs into this file. Put current TURN settings in
+# .env.webrtc-turn.local or pass WEBRTC_TURN_URLS/WEBRTC_TURN_PASS directly.
 
 set -euo pipefail
 
-# ---- Edit these for your deployment ----
-export WEBRTC_TURN_URLS="${WEBRTC_TURN_URLS:-turn:195.142.145.66:12885?transport=udp,turn:195.142.145.66:12964?transport=tcp}"
-export WEBRTC_TURN_USER="${WEBRTC_TURN_USER:-webrtc}"
-export WEBRTC_TURN_PASS="${WEBRTC_TURN_PASS:-CHANGE_THIS_PASSWORD}"
-# Uncomment to force relay-only testing (no STUN):
-# export WEBRTC_STUN_URLS=""
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 
-HOST="${HOST:-0.0.0.0}"
-PORT="${PORT:-8000}"
+export WEBRTC_RELAY_ENABLED="${WEBRTC_RELAY_ENABLED:-1}"
+export WEBRTC_ICE_TRANSPORT_POLICY="${WEBRTC_ICE_TRANSPORT_POLICY:-relay}"
 
-echo "Starting api_server.py on ${HOST}:${PORT} with TURN URLs: ${WEBRTC_TURN_URLS}"
-exec python api_server.py --host "${HOST}" --port "${PORT}"
+echo "Starting MuseTalk through the WebRTC relay launcher"
+echo "  env file: ${TURN_ENV_FILE:-$REPO_ROOT/.env.webrtc-turn.local}"
+echo "  pass extra TRT server args after this script, for example: --profile throughput_record"
+
+exec bash "$REPO_ROOT/scripts/run_webrtc_relay_api_server.sh" "$@"

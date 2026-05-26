@@ -28,6 +28,36 @@ browser/WebView player, TURN setup notes, and an HTTP scratch file.
 
 ## Current Local Findings
 
+Update on 2026-05-26: an INT8 calibration restart exposed a WebRTC launch/network
+issue, not a model/decoder regression. The wall generated frames and calibration
+tensors, but the browser stayed black because ICE never reached `connected`.
+The running process had only STUN/direct ICE (`WEBRTC_ICE_TRANSPORT_POLICY=all`,
+empty TURN URLs), aiortc bound random UDP sockets on the private Docker address,
+and `output_frames_sent` stayed at zero. The normal Vast on-start path does not
+secretly start TURN: `/workspace/onstart.sh` is only a stub, `scripts/vast_onstart.sh`
+calls `scripts/vast_server_ctl.sh start`, and without relay env the control
+script launches `scripts/run_trt_stagewise_server.sh` directly. The saved WebRTC
+load-test reports also used `ice_transport_policy: all`; previous success was
+direct/local ICE working in that environment, not coturn being auto-started.
+
+The control script now supports `WEBRTC_RELAY_ENABLED=1` to launch through
+`scripts/run_webrtc_relay_api_server.sh` and `WEBRTC_TURN_AUTOSTART=1` to start
+local coturn through `scripts/run_turnserver_tcp_relay.sh` before the API. Use
+`.env.webrtc-turn.local.example` as the local ignored config template.
+
+The current Vast bootstrap script clones `origin/main` into a fresh
+`/workspace/MuseTalk` checkout and then runs:
+
+```bash
+SETUP_CLEAN=1 SETUP_FULL_STACK=1 STARTUP_TIMEOUT_SECONDS=1800 \
+PROFILE=throughput_record PORT=8000 bash scripts/vast_onstart.sh
+```
+
+That bootstrap installs WebRTC Python dependencies through setup and starts the
+API, but it does not pass WebRTC relay/TURN env. It also discards local
+uncommitted edits by recloning the repo, so relay-control changes must be
+committed and pushed before a new Vast boot can use them.
+
 Update on 2026-05-21: WebRTC wall generation now defaults to the shared HLS GPU
 scheduler with a WebRTC frame sink. The previous wall turn-taking was backend
 serialization from independent per-session GPU leases, not a one-browser WebRTC
@@ -115,8 +145,9 @@ server path:
 - Current HLS throughput tuning now applies to WebRTC generation concurrency,
   but WebRTC still needs separate playback/sync validation because it sends
   separate RTP audio and video tracks to the browser.
-- The old `scripts/run_api_server.sh` has WebRTC/TURN env defaults, but it is
-  stale compared with the current TRT-stagewise launch path.
+- `scripts/run_api_server.sh` is now only a compatibility shim that delegates to
+  the WebRTC relay launcher; current TURN values belong in
+  `.env.webrtc-turn.local` or explicit environment variables.
 
 The current setup scripts do install WebRTC server deps (`aiortc`, `aioice`,
 `av`), so dependency installation is not the main blocker. Network exposure and
@@ -155,7 +186,8 @@ The HTTP URL still uses the mapped API TCP port, e.g.
 The old TURN docs and config are stale for the current host:
 
 - `turnserver.conf` still references `96.28.173.248`.
-- `scripts/run_api_server.sh` defaults to old TURN URLs at `195.142.145.66`.
+- `scripts/run_api_server.sh` no longer carries hard-coded TURN URLs; use
+  `.env.webrtc-turn.local` for the current host.
 - `turnserver.conf` still has `CHANGE_THIS_PASSWORD`.
 - The running API session response exposes STUN only, so the process was not
   started with `WEBRTC_TURN_URLS`.
@@ -179,12 +211,12 @@ The intended no-public-UDP-range setup is:
 
 Important: coturn/aiortc still allocate internal relay endpoints, and aiortc
 reports relay candidates as UDP relay candidates. The difference is that both
-peers are forced through TURN, so the old public UDP relay range does not need
-to be opened for this test mode. On the current Vast instance, internal
-`3478/udp` maps to public `15979/udp`, so the browser/client TURN URL is:
+peers are forced through TURN, so the old broad public UDP relay range does not
+need to be opened for this test mode. The single browser/client TURN URL must
+be filled from the current host's actual public mapping, for example:
 
 ```text
-turn:84.50.156.125:15979?transport=udp
+turn:<PUBLIC_IP>:<PUBLIC_TURN_PORT>?transport=<udp-or-tcp>
 ```
 
 ## Immediate Retest Path
@@ -245,37 +277,39 @@ http://84.50.156.125:16359/webrtc/player/<session_id>
 ### 3) Public/mobile test with TURN
 
 This is the realistic mobile path. Either use managed TURN or start coturn on a
-stable host. Coturn is installed on the current node.
+stable host. If `turnserver` is not installed on the current node, install
+coturn first or use managed TURN with `WEBRTC_TURN_AUTOSTART=0`.
 
 ```bash
 cd /workspace/MuseTalk
-setsid nohup scripts/run_turnserver_tcp_relay.sh \
-  > /workspace/logs/musetalk/turnserver_tcp_relay.log 2>&1 < /dev/null &
+cp .env.webrtc-turn.local.example .env.webrtc-turn.local
 ```
 
-The current Vast mapping for internal `3478/udp` is public `15979/udp`, so
-`.env.webrtc-turn.local` should contain:
+Fill the ignored `.env.webrtc-turn.local` with the current host mapping and a
+real password. For local coturn, it should include:
 
 ```text
+WEBRTC_RELAY_ENABLED=1
+WEBRTC_TURN_AUTOSTART=1
 TURN_PUBLIC_IP=<PUBLIC_IP>
-TURN_PUBLIC_PORT=15979
+TURN_PUBLIC_PORT=<PUBLIC_TURN_PORT>
 TURN_PUBLIC_TRANSPORT=udp
+TURN_LISTEN_PORT=3478
+TURN_PASS=<LONG_RANDOM_PASSWORD>
+WEBRTC_USE_LOCAL_TURN=1
 ```
 
-Restart the API through the relay launcher:
+Then restart through the normal control helper; it will source the ignored env,
+start coturn if requested, and launch the API through the WebRTC relay wrapper:
 
 ```bash
 cd /workspace/MuseTalk
-bash scripts/vast_server_ctl.sh stop
-
-setsid nohup scripts/run_webrtc_relay_api_server.sh \
-  --profile baseline \
-  --host 0.0.0.0 \
-  --port 8000 \
-  --venv-path /workspace/.venvs/musetalk_trt_stagewise \
-  --repo-root /workspace/MuseTalk \
-  > /workspace/logs/musetalk/api_server_8000.log 2>&1 < /dev/null &
+PROFILE=throughput_record bash scripts/vast_server_ctl.sh restart
 ```
+
+For managed/external TURN, set `WEBRTC_TURN_AUTOSTART=0`,
+`WEBRTC_USE_LOCAL_TURN=0`, `WEBRTC_TURN_URLS`, `WEBRTC_SERVER_TURN_URLS`,
+`WEBRTC_TURN_USER`, and `WEBRTC_TURN_PASS` instead of local coturn settings.
 
 For iOS/React Native WebView, use HTTPS as soon as possible. HTTP can work for
 some desktop/local cases, but HTTPS is the safer requirement for real devices.
@@ -327,13 +361,15 @@ curl http://127.0.0.1:8000/live/sessions
    alongside browser getStats during real playback to verify stalls, queue depth,
    and sync mode.
 
-4. HLS scheduler improvements do not cover WebRTC.
-   WebRTC still uses the older direct executor path. Concurrency/load testing
-   must be redone separately; do not assume the HLS 8-stream findings apply.
+4. HLS scheduler improvements cover WebRTC generation, not WebRTC transport.
+   The shared scheduler can generate frames and calibration tensors while ICE is
+   still broken. Always verify browser stats reach `connected` and
+   `output_frames_sent` increases before calling playback healthy.
 
 5. TURN config is stale.
    Do not use existing TURN docs by copy/paste without replacing IPs, public
-   ports, and passwords.
+   ports, and passwords. Prefer `.env.webrtc-turn.local.example` plus
+   `WEBRTC_RELAY_ENABLED=1`.
 
 6. Codec/encoder path needs validation.
    The server patches aiortc H.264 to prefer `h264_nvenc` and fallback to
@@ -342,14 +378,13 @@ curl http://127.0.0.1:8000/live/sessions
 
 ## Recommendation
 
-Start with local browser WebRTC while the existing server is healthy, because
-session creation already works. Restart with `WEBRTC_SYNC_MODE=strict_fifo`,
-`WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0`, `WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0`, and
-`WEBRTC_ADAPTIVE_FPS=0`, then do one real audio upload. If local playback works,
-restore either direct UDP
-`40000-40100` or a real TURN server before testing phones or React Native. The
-next code hardening pass should be an ICE gathering timeout and a WebRTC status
-endpoint.
+Start with the relay-preserving control path:
+`.env.webrtc-turn.local` plus `WEBRTC_RELAY_ENABLED=1`, then
+`bash scripts/vast_server_ctl.sh restart`. After restart, the API log should
+show `WEBRTC_ICE_TRANSPORT_POLICY=relay` and non-empty `WEBRTC_TURN_URLS`.
+Then create one wall/session, connect it, upload real audio, and confirm
+browser stats reach `connected` with `output_frames_sent > 0`. The next code
+hardening pass should be an ICE gathering timeout.
 
 ## 2026-05-18 Playback Smoothing Update
 

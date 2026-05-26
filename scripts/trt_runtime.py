@@ -648,6 +648,7 @@ class StagewiseTrtVaeDecodeBackend:
             min_block_size=self.min_block_size,
             require_full_compilation=False,
             calibrator=calibrator,
+            truncate_long_and_double=True,
         ).eval()
 
     def _compile_stage(
@@ -681,6 +682,7 @@ class StagewiseTrtVaeDecodeBackend:
             "min_block_size": self.min_block_size,
             "pass_through_build_failures": False,
             "require_full_compilation": not bool(self.torch_executed_ops),
+            "truncate_long_and_double": True,
         }
         if self.torch_executed_ops:
             compile_kwargs["torch_executed_ops"] = self.torch_executed_ops
