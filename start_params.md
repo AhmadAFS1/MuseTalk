@@ -208,7 +208,7 @@ Enable a mixed INT8/FP16 stagewise experiment:
 ```bash
 MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed \
 MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq \
-MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_up_block_0,decoder_up_block_1 \
+MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2 \
 MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR=./calibration/vae_decoder \
 MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_ALGO=minmax \
 MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR=./models/tensorrt/stagewise_int8_onnx_qdq_cache \
@@ -226,10 +226,12 @@ Current INT8 validation note from 2026-05-26:
 - API logs must include `VAE decode backend active:
   tensorrt_stagewise_int8_mixed` or `backend=tensorrt_stagewise_int8_mixed` for
   generated requests before a run should be treated as an INT8 result.
-- In the latest batch-8 `/generate` test, the selected INT8 VAE stages reduced
+- In the first batch-8 `/generate` test, the two-stage INT8 VAE decoder reduced
   VAE decode time from about `0.0988s` to `0.0883s`, but end-to-end generation
   improved only about `2.1%` sequentially and was about `3.5%` slower in a
   4-job concurrent test.
+- After expanding to five safe INT8 stages, VAE decode time fell to about
+  `0.0765s` in `/generate` and about `0.066s` during the latest WebRTC ramp.
 - Keep the batch-8 cap until batch-16 stagewise context creation is fixed and
   separately validated.
 
@@ -304,12 +306,12 @@ Set `MUSETALK_TRT_STAGEWISE_INT8_REQUIRE_FULL_COMPILATION=1` only when you want
 TensorRT to fail early if the selected stage cannot fully compile.
 
 2026-05-26 experiment result: the live API can run VAE INT8 via `onnx_qdq`.
-The current running/proven server shape is:
+The current running/proven five-stage server shape is:
 
 ```text
 MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed
 MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq
-MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_up_block_0,decoder_up_block_1
+MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2
 MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR=./models/tensorrt/stagewise_int8_onnx_qdq_cache
 MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8
 HLS_SCHEDULER_MAX_BATCH=8
@@ -328,6 +330,38 @@ Validated isolated `onnx_qdq` results at batch `8`:
 - `decoder_mid_block`: MAE `0.0011`, max abs `0.034`.
 - `decoder_up_block_0`: MAE `0.0015`, max abs `0.065`.
 - `decoder_up_block_1`: MAE `0.0019`, max abs `0.050`.
+- `decoder_up_block_2`: MAE `0.003323`, max abs `0.083008`.
+
+Do not promote these stages yet:
+
+- `decoder_up_block_3`: MAE `0.019000`, max abs `0.099609`, visible
+  color/texture harshness.
+- `decoder_postprocess`: MAE `0.019470`, max abs `0.096191`, visible
+  color/texture shift.
+
+Latest five-stage INT8 WebRTC validation on 2026-05-26:
+
+- command family: `load_test_webrtc.py`
+- base URL: `http://127.0.0.1:8000`
+- avatar: `test_avatar_2`
+- audio: `data/audio/ai-assistant.mpga`
+- request shape: `20/20 fps`, request `batch_size=8`
+- ramp: `4,5,6,8`
+- server WebRTC encoder: `h264_nvenc`
+- server relay policy and local turnserver were active
+- report:
+  `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_5_6_8streams_batch8_relay_20260526.json`
+
+| Streams | Completed | Avg frame interval | Approx aggregate FPS | Avg live-ready | Max frame interval |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `0.069s` | `58.0` | `3.196s` | `0.310s` |
+| 5 | `5/5` | `0.086s` | `58.1` | `4.213s` | `0.484s` |
+| 6 | `6/6` | `0.106s` | `56.6` | `4.877s` | `0.810s` |
+| 8 | `8/8` | `0.143s` | `55.9` | `6.661s` | `1.098s` |
+
+This is better than the closest saved RTX 3090 WebRTC diagnostic reference
+(`45.5-47.6` aggregate FPS), but it is not a clean FP16-vs-INT8 A/B because the
+saved reference used a different avatar, `libx264`, and `8,16` buckets.
 
 Historical failed `torchscript_ptq` result:
 `decoder_up_block_0` and `decoder_up_block_1` crashed TensorRT PTQ calibration

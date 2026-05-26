@@ -62,10 +62,10 @@ MUSETALK_TRT_STAGEWISE_PRECISION=fp16
 
 MUSETALK_VAE_BACKEND=trt_stagewise
 MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed
-MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_up_block_1,decoder_up_block_2,decoder_up_block_3
+MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2
 MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR=./calibration/vae_decoder
 MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_ALGO=minmax
-MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR=./models/tensorrt/stagewise_int8_calibration_cache
+MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR=./models/tensorrt/stagewise_int8_onnx_qdq_cache
 ```
 
 Current calibration capture switches:
@@ -120,7 +120,7 @@ Current live service state:
   `MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed` with
   `MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq`.
 - Current live INT8 stages are
-  `decoder_up_block_0,decoder_up_block_1`.
+  `decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2`.
 - The scheduler is intentionally capped to batch `8` while batch `16` remains a
   separate TensorRT context-creation problem.
 - The working public WebRTC wall uses TURN-over-TCP relay when TURN env is
@@ -255,8 +255,8 @@ run cannot reuse them accidentally.
 Recommended next INT8 direction:
 
 1. Keep `onnx_qdq` as the API INT8 frontend.
-2. Measure WebRTC/HLS throughput with `decoder_up_block_0,decoder_up_block_1`
-   quantized at batch `8`.
+2. Measure WebRTC/HLS throughput with the promoted five-stage INT8 set at
+   batch `8`.
 3. Debug batch `16` separately before removing the temporary batch-8 scheduler
    cap. A combined `8,16` warmup currently fails while creating a TensorRT
    execution context for one of the remaining FP16 stagewise modules.
@@ -423,6 +423,61 @@ Expanded five-stage live timing:
 | INT8 two-stage | `0.0883s` | `14.100s` | `57.322s` | `4.187` |
 | INT8 five-stage | `0.0765s` | `14.099s` | `56.329s` | `4.261` |
 
+WebRTC load test on the live five-stage INT8 server:
+
+- Date: 2026-05-26.
+- Hardware: RTX 3090-class 24 GB node.
+- Server precision: `MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed`.
+- INT8 frontend: `onnx_qdq`.
+- INT8 stages:
+  `decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2`.
+- Scheduler buckets: batch `8` only.
+- WebRTC shape: `playback_fps=20`, `musetalk_fps=20`, request
+  `batch_size=8`.
+- Avatar: `test_avatar_2`.
+- Audio: `data/audio/ai-assistant.mpga`, about `17.76s`.
+- Server WebRTC encoder: `h264_nvenc`.
+- TURN relay service was running and the API was launched with relay policy,
+  but the automated load client connected locally to `127.0.0.1`; treat this
+  as a server-side WebRTC load test, not a full public-browser TURN test.
+- Report:
+  `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_5_6_8streams_batch8_relay_20260526.json`.
+- Detailed report:
+  `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_5_6_8streams_batch8_relay_20260526_detailed.json`.
+
+| Streams | Completed | Avg frame interval | Approx per-stream FPS | Approx aggregate FPS | Avg live-ready | Max frame interval | Avg GPU util | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `0.069s` | `14.5` | `58.0` | `3.196s` | `0.310s` | `50.06%` | `8303 MB` |
+| 5 | `5/5` | `0.086s` | `11.6` | `58.1` | `4.213s` | `0.484s` | `51.48%` | `8313 MB` |
+| 6 | `6/6` | `0.106s` | `9.4` | `56.6` | `4.877s` | `0.810s` | `52.64%` | `8315 MB` |
+| 8 | `8/8` | `0.143s` | `7.0` | `55.9` | `6.661s` | `1.098s` | `57.55%` | `8315 MB` |
+
+Comparison caveat:
+
+- The closest saved RTX 3090 WebRTC diagnostic reference was
+  `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_diagnostics_libx264.json`.
+  It used `20/20`, request `batch_size=8`, and completed the same
+  `4,5,6,8` ramp at about `45.5-47.6` aggregate FPS.
+- The current five-stage INT8 run reached about `55.9-58.1` aggregate FPS,
+  roughly `22-28%` higher than that saved 3090 diagnostic reference.
+- Do not treat the full delta as pure INT8 speedup yet. The current run uses
+  `test_avatar_2`, `h264_nvenc`, batch-8-only warmup, and a same-host WebRTC
+  load client, while the older reference used `test_avatar`, `libx264`, and an
+  `8,16` profile.
+- A clean FP16-vs-INT8 WebRTC A/B still needs the same avatar, same encoder,
+  same batch buckets, same TURN/local path, and back-to-back restarts.
+
+Server-side scheduler logs during the 8-stream stage showed the model path was
+still the limiting loop:
+
+| Metric from last 8 WebRTC streams | Average |
+| --- | ---: |
+| `avg_gpu_batch` | `0.1217s` |
+| `avg_unet` | `0.0554s` |
+| `avg_vae` | `0.0650s` |
+| `avg_compose` | `0.0612s` |
+| `avg_callback` | `0.0051s` |
+
 Conclusion:
 
 - Expanding INT8 coverage improved VAE decode materially:
@@ -435,6 +490,11 @@ Conclusion:
 - The next VAE-only experiment is batch `16` warmup/context debugging. The next
   likely major throughput branch is UNet backend acceleration or UNet mixed
   INT8/FP16.
+- The current five-stage INT8 WebRTC run is a real improvement over the saved
+  RTX 3090 WebRTC diagnostic reference, but it still does not deliver strict
+  `20 fps` per stream beyond low concurrency. At 8 streams, the server is closer
+  to `7 fps` per stream, so larger gains still require batch-16 recovery,
+  reducing the VAE/postprocess loop further, and accelerating UNet.
 
 ## Optimization Principles
 

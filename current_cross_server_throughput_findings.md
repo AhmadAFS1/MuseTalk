@@ -1123,6 +1123,79 @@ The running API process must be restarted before those new logs are active.
 For pure throughput comparisons, `HLS_GPU_STAGE_SYNC_TIMING=0` can disable the
 extra CUDA stage synchronization. For bottleneck profiling, leave it enabled.
 
+## RTX 3090 Five-Stage INT8 WebRTC Check - May 26, 2026
+
+This pass tested the current live RTX 3090 WebRTC path after expanding the VAE
+decoder INT8 coverage to five safe ONNX/QDQ stages.
+
+Runtime:
+
+- GPU class: RTX 3090, 24 GB
+- VAE backend: `trt_stagewise`
+- precision: `MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed`
+- INT8 frontend: `onnx_qdq`
+- INT8 stages:
+  `decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2`
+- scheduler fixed buckets: `8`
+- WebRTC encoder: `h264_nvenc`
+- WebRTC request shape: `20/20 fps`, request `batch_size=8`
+- avatar: `test_avatar_2`
+- audio: `data/audio/ai-assistant.mpga`
+- ramp: `4,5,6,8`
+
+Reports:
+
+- `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_5_6_8streams_batch8_relay_20260526.json`
+- `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_5_6_8streams_batch8_relay_20260526_detailed.json`
+
+Results:
+
+| Streams | Completed | Avg frame interval | Per-stream FPS | Aggregate FPS | Avg live-ready | Max frame interval | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `0.069s` | `14.5` | `58.0` | `3.196s` | `0.310s` | `8303 MB` |
+| 5 | `5/5` | `0.086s` | `11.6` | `58.1` | `4.213s` | `0.484s` | `8313 MB` |
+| 6 | `6/6` | `0.106s` | `9.4` | `56.6` | `4.877s` | `0.810s` | `8315 MB` |
+| 8 | `8/8` | `0.143s` | `7.0` | `55.9` | `6.661s` | `1.098s` | `8315 MB` |
+
+Closest saved RTX 3090 diagnostic reference:
+
+- `load_test_webrtc_report_20_20_4_5_6_8streams_8_16_diagnostics_libx264.json`
+- request shape: `20/20 fps`, request `batch_size=8`
+- aggregate FPS was about `47.6`, `45.5`, `45.8`, and `45.7` at
+  `4`, `5`, `6`, and `8` streams
+
+Comparison:
+
+| Streams | Five-stage INT8 current | Saved RTX 3090 diagnostic | Aggregate delta |
+| ---: | ---: | ---: | ---: |
+| 4 | `58.0` FPS | `47.6` FPS | `+21.8%` |
+| 5 | `58.1` FPS | `45.5` FPS | `+27.8%` |
+| 6 | `56.6` FPS | `45.8` FPS | `+23.6%` |
+| 8 | `55.9` FPS | `45.7` FPS | `+22.4%` |
+
+Important caveat:
+
+- This is a useful operational comparison, not a pure INT8 attribution.
+- The current run used `test_avatar_2`, `h264_nvenc`, batch-8-only warmup, and
+  a same-host WebRTC load client.
+- The saved RTX 3090 diagnostic reference used `test_avatar`, `libx264`, and an
+  `8,16` profile.
+- A clean A/B still requires back-to-back FP16 and INT8 runs with the same
+  avatar, same encoder, same scheduler buckets, and same client path.
+
+Operational read:
+
+- The expanded INT8 server completed the whole `4,5,6,8` WebRTC ramp with no
+  failed sessions.
+- The 8-stream point is materially better than the saved RTX 3090 diagnostic
+  reference and roughly in the same band as the saved RTX 4090 batch-8-only
+  reference.
+- It is still not strict realtime `20 fps` per stream at higher concurrency.
+  At 8 streams, the live cadence is about `7 fps` per stream.
+- Server logs during the 8-stream stage averaged about `0.1217s` GPU batch
+  time, with about `0.0554s` UNet, `0.0650s` VAE, and `0.0612s` compose. That
+  points back to model-path and compose throughput, not WebRTC signaling.
+
 ## Current Practical Guidance
 
 For this cross-server branch:

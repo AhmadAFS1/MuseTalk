@@ -107,6 +107,35 @@ end-to-end generation still remains effectively flat. This confirms the next
 large win probably needs batch-16 recovery and UNet/backend work, not only more
 VAE stage coverage.
 
+WebRTC load test on the live five-stage INT8 server was also completed on
+2026-05-26 with `test_avatar_2`, `data/audio/ai-assistant.mpga`,
+`20/20 fps`, request `batch_size=8`, server-side relay policy, and the current
+batch-8-only scheduler:
+
+| Streams | Completed | Avg frame interval | Per-stream FPS | Aggregate FPS | Avg live-ready | Max frame interval |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `0.069s` | `14.5` | `58.0` | `3.196s` | `0.310s` |
+| 5 | `5/5` | `0.086s` | `11.6` | `58.1` | `4.213s` | `0.484s` |
+| 6 | `6/6` | `0.106s` | `9.4` | `56.6` | `4.877s` | `0.810s` |
+| 8 | `8/8` | `0.143s` | `7.0` | `55.9` | `6.661s` | `1.098s` |
+
+Report artifacts:
+
+- `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_5_6_8streams_batch8_relay_20260526.json`
+- `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_5_6_8streams_batch8_relay_20260526_detailed.json`
+
+The closest saved RTX 3090 diagnostic reference was around `45.5-47.6`
+aggregate FPS for the same `4,5,6,8` WebRTC ramp, so this live five-stage INT8
+run is materially better operationally. However, it is not a perfect pure
+FP16-vs-INT8 A/B because the saved reference used a different avatar, `libx264`,
+and an `8,16` bucket profile, while the current run used `test_avatar_2`,
+`h264_nvenc`, batch `8` only, and a same-host WebRTC load client.
+
+Server logs for the 8-stream stage averaged about `0.1217s` per GPU batch, split
+roughly into `0.0554s` UNet, `0.0650s` VAE, and `0.0612s` compose per stream.
+That means the VAE improvement is real, but the remaining WebRTC ceiling is
+still the shared model/compose loop rather than TURN signaling or HLS encoding.
+
 ## Recent Experiment Updates
 
 The direct GPU-resident conditioning experiment was tested in the shared HLS scheduler and then reverted.
