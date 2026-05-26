@@ -82,6 +82,31 @@ Interpretation:
   UNet, CPU composition, ffmpeg/muxing, scheduler waits, and the ONNX/TensorRT
   stage bridge overhead.
 
+Follow-up expansion on 2026-05-26:
+
+- One-stage ONNX/QDQ probes promoted `decoder_pre`, `decoder_mid_block`, and
+  `decoder_up_block_2`.
+- `decoder_up_block_3` and `decoder_postprocess` were rejected for now because
+  they produced visible color/texture shift and much higher MAE.
+- The live API now runs:
+
+```text
+MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2
+```
+
+Expanded result:
+
+| Runtime | VAE decode avg total | Sequential avg | C4 stage wall | C4 jobs/min |
+| --- | ---: | ---: | ---: | ---: |
+| FP16 stagewise | `0.0988s` | `14.408s` | `55.400s` | `4.332` |
+| INT8 two-stage | `0.0883s` | `14.100s` | `57.322s` | `4.187` |
+| INT8 five-stage | `0.0765s` | `14.099s` | `56.329s` | `4.261` |
+
+The five-stage VAE decoder is now faster than the two-stage decoder, but
+end-to-end generation still remains effectively flat. This confirms the next
+large win probably needs batch-16 recovery and UNet/backend work, not only more
+VAE stage coverage.
+
 ## Recent Experiment Updates
 
 The direct GPU-resident conditioning experiment was tested in the shared HLS scheduler and then reverted.

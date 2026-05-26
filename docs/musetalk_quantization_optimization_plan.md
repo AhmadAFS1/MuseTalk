@@ -78,15 +78,15 @@ MUSETALK_VAE_CALIBRATION_MAX_BATCHES=128
 
 Implementation correction from the local prototype:
 
-- ModelOpt QDQ calibration works in the compatible pinned package line, but
-  ModelOpt `0.23.2` does not provide a clean exported quantized-module path for
-  Torch-TensorRT Dynamo on this Torch `2.5.1` stack.
-- The implemented runtime INT8 experiment therefore uses Torch-TensorRT
-  TorchScript PTQ calibration for selected stagewise decoder modules. It still
-  uses the real captured `pred_latents` corpus, but it does not require ModelOpt
-  at runtime.
-- Calibration caches are written per stage and exact batch size so repeat
-  warmups can reuse TensorRT calibration data when enabled.
+- ModelOpt Q/DQ calibration works in the compatible pinned package line.
+- The initial Torch-TensorRT TorchScript PTQ path is no longer the live INT8
+  path. It hit no-scaling-factor failures, CUDA illegal memory access, or bad
+  decoded output quality.
+- The implemented runtime INT8 experiment uses ModelOpt Q/DQ ONNX export plus
+  TensorRT Python `.plan` engines for selected stagewise decoder modules. It
+  still uses the real captured `pred_latents` corpus for calibration.
+- ONNX/QDQ `.onnx` and `.plan` artifacts are written per stage and exact batch
+  size so repeat warmups can reuse the built TensorRT engines when enabled.
 
 Important optional dependency correction from the local dry-run:
 
@@ -341,6 +341,100 @@ Conclusion:
 - The next throughput work should focus on removing the batch-8 cap, profiling
   UNet/composition/encode/scheduler time under load, and then expanding INT8
   stage coverage only after direct visual comparison.
+
+Why the end-to-end speedup is small:
+
+- This is a hybrid experiment, not full-model INT8.
+- Only `decoder_up_block_0` and `decoder_up_block_1` are INT8 in the live API.
+- The VAE decoder `decoder_pre`, `decoder_mid_block`, `decoder_up_block_2`,
+  `decoder_up_block_3`, and `decoder_postprocess` are not yet in the live INT8
+  stage list.
+- The MuseTalk UNet is still not quantized, and it is still a major per-frame
+  generation cost.
+- The VAE encoder is not the right live-throughput target for cached avatars;
+  it runs during avatar preparation, not every streamed/generated frame.
+- The measured INT8 saving was about `0.0105s` per VAE decode call. On the
+  8-second smoke audio with about `25` decode calls, that is only about
+  `0.26s` of possible request-level saving before scheduler and media overhead.
+- The current batch-8 cap, TensorRT ONNX/QDQ stage bridge, CPU composition, and
+  ffmpeg/muxing can hide or reverse small decoder-level gains under concurrent
+  load.
+
+Updated quantization direction:
+
+1. Keep the current WebRTC/API path on the validated
+   `decoder_up_block_0,decoder_up_block_1` INT8 decoder while testing visually.
+2. Run isolated ONNX/QDQ quality and timing probes for `decoder_mid_block`,
+   `decoder_up_block_2`, and `decoder_up_block_3` one at a time.
+3. Add any passing stages to the live `MUSETALK_TRT_STAGEWISE_INT8_STAGES` list
+   only after direct image comparison and a lipsync smoke test.
+4. Debug batch `16` warmup separately. Removing the batch-8 cap may matter as
+   much as adding another small INT8 decoder stage.
+5. Start the second major branch: stable UNet backend acceleration first, then
+   UNet mixed INT8/FP16 calibration. That is the likely path to a larger
+   end-to-end speedup than VAE decoder-only quantization.
+
+## 2026-05-26 Expanded VAE Decoder INT8 Results
+
+The VAE decoder INT8 coverage was expanded and tested one stage at a time with
+the `onnx_qdq` frontend at batch `8`.
+
+One-stage isolated results:
+
+| Stage | MAE vs PyTorch FP16 | Max abs | Decision |
+| --- | ---: | ---: | --- |
+| `decoder_pre` | `0.002805` | `0.092041` | promote |
+| `decoder_mid_block` | `0.001287` | `0.043945` | promote |
+| `decoder_up_block_2` | `0.003323` | `0.083008` | promote |
+| `decoder_up_block_3` | `0.019000` | `0.099609` | do not promote yet |
+| `decoder_postprocess` | `0.019470` | `0.096191` | do not promote |
+
+Visual review:
+
+- `decoder_pre`, `decoder_mid_block`, and `decoder_up_block_2` looked close to
+  the PyTorch reference in the saved comparison crops.
+- `decoder_up_block_3` introduced visible color/texture harshness.
+- `decoder_postprocess` introduced the clearest visible color/texture shift and
+  should remain FP16/PyTorch for now.
+
+Cumulative tests:
+
+| Stage set | MAE | Max abs | Decision |
+| --- | ---: | ---: | --- |
+| `decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2` | `0.005037` | `0.128662` | promoted live |
+| same set plus `decoder_up_block_3` | `0.019373` | `0.151855` | rejected for now |
+
+The live API was restarted with the promoted five-stage set:
+
+```text
+MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed
+MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq
+MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2
+HLS_SCHEDULER_MAX_BATCH=8
+HLS_SCHEDULER_FIXED_BATCH_SIZES=8
+WEBRTC_ICE_TRANSPORT_POLICY=relay
+```
+
+Expanded five-stage live timing:
+
+| Runtime | VAE decode avg total | Sequential `/generate` avg | C4 stage wall | C4 jobs/min |
+| --- | ---: | ---: | ---: | ---: |
+| FP16 stagewise | `0.0988s` | `14.408s` | `55.400s` | `4.332` |
+| INT8 two-stage | `0.0883s` | `14.100s` | `57.322s` | `4.187` |
+| INT8 five-stage | `0.0765s` | `14.099s` | `56.329s` | `4.261` |
+
+Conclusion:
+
+- Expanding INT8 coverage improved VAE decode materially:
+  - about `22.6%` lower VAE decode time than FP16 stagewise
+  - about `13.4%` lower VAE decode time than the two-stage INT8 config
+- End-to-end `/generate` throughput still does not move much because the VAE
+  decoder is no longer enough of the total request wall time. The UNet,
+  scheduler, composition, encoding/muxing, request polling granularity, and
+  batch-8 cap still dominate.
+- The next VAE-only experiment is batch `16` warmup/context debugging. The next
+  likely major throughput branch is UNet backend acceleration or UNet mixed
+  INT8/FP16.
 
 ## Optimization Principles
 

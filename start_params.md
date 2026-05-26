@@ -221,7 +221,7 @@ bash scripts/run_trt_stagewise_server.sh --profile throughput_record
 
 Current INT8 validation note from 2026-05-26:
 
-- The above shape is the validated live-server shape for the current INT8
+- The original two-stage shape above was the first validated live-server INT8
   experiment.
 - API logs must include `VAE decode backend active:
   tensorrt_stagewise_int8_mixed` or `backend=tensorrt_stagewise_int8_mixed` for
@@ -232,6 +232,16 @@ Current INT8 validation note from 2026-05-26:
   4-job concurrent test.
 - Keep the batch-8 cap until batch-16 stagewise context creation is fixed and
   separately validated.
+
+Expanded live INT8 stage list after the one-stage probes:
+
+```text
+MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2
+```
+
+Do not add `decoder_up_block_3` or `decoder_postprocess` to the live stage list
+yet. Both built successfully with `onnx_qdq`, but the saved comparison crops had
+visible color/texture shifts and much higher MAE.
 
 Important caveats:
 
