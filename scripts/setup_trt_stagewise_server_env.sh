@@ -26,6 +26,12 @@ SKIP_APT=0
 SKIP_WEIGHTS=0
 INSTALL_AVATAR_PREP_DEPS=0
 FULL_STACK=0
+INSTALL_MODELOPT=0
+case "${SETUP_INSTALL_MODELOPT:-0}" in
+  1|true|TRUE|yes|YES|on|ON)
+    INSTALL_MODELOPT=1
+    ;;
+esac
 
 log() {
   step_log_emit INFO "$*"
@@ -56,6 +62,8 @@ Options:
   --full-stack          Build one venv with both server and avatar-prep deps
   --install-avatar-prep-deps
                         Install optional mmpose/mmcv deps for avatar prep
+  --install-modelopt    Install NVIDIA TensorRT Model Optimizer for
+                        optional offline INT8/QDQ experiments
   --help                Show this help text
 
 Examples:
@@ -108,6 +116,9 @@ build_trt_experiment_venv_step() {
     fi
   else
     log "Server-only mode enabled: skipping optional avatar-prep deps to minimize first-boot time"
+  fi
+  if [[ $INSTALL_MODELOPT -eq 1 ]]; then
+    SETUP_ARGS+=(--install-modelopt)
   fi
   bash "$SCRIPT_DIR/setup_trt_experiment_env.sh" "${SETUP_ARGS[@]}" || return $?
   VENV_PYTHON="$VENV_PATH/bin/python"
@@ -233,6 +244,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --install-avatar-prep-deps)
       INSTALL_AVATAR_PREP_DEPS=1
+      shift
+      ;;
+    --install-modelopt)
+      INSTALL_MODELOPT=1
       shift
       ;;
     --help|-h)

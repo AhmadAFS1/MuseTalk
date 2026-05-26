@@ -17,6 +17,13 @@ from musetalk.utils.utils import load_all_model
 from scripts.trt_runtime import load_vae_trt_decoder
 
 
+def _torch_load_cpu(path: Path):
+    try:
+        return torch.load(path, map_location="cpu", weights_only=True)
+    except TypeError:
+        return torch.load(path, map_location="cpu")
+
+
 def load_reference_vae(device: str | torch.device = "cuda"):
     vae, unet, pe = load_all_model(
         unet_model_path="./models/musetalkV15/unet.pth",
@@ -61,12 +68,20 @@ def _parse_args():
         default="./tmp/vae_backend_validation",
         help="Directory for JSON report and debug PNGs.",
     )
+    parser.add_argument(
+        "--calibration-dir",
+        default="",
+        help=(
+            "Optional directory of captured VAE pred_latents batches. When set, "
+            "validation uses real UNet outputs instead of cached avatar latents."
+        ),
+    )
     return parser.parse_args()
 
 
 def load_cached_latents(avatar_id: str) -> torch.Tensor:
     latents_path = Path(f"./results/v15/avatars/{avatar_id}/latents.pt")
-    latents = torch.load(latents_path, map_location="cpu")
+    latents = _torch_load_cpu(latents_path)
     if isinstance(latents, list):
         latents = torch.stack(latents, dim=0)
     if latents.dim() == 5 and latents.shape[1] == 1:
@@ -78,6 +93,32 @@ def load_cached_latents(avatar_id: str) -> torch.Tensor:
     # MuseTalk cached UNet inputs are [masked_latent(4), ref_latent(4)].
     # The VAE decode path expects the predicted 4-channel latent output.
     return latents[:, :4, :, :].contiguous()
+
+
+def load_calibration_latents(calibration_dir: str | Path, batch_size: int) -> torch.Tensor:
+    root = Path(calibration_dir)
+    if not root.exists():
+        raise FileNotFoundError(f"VAE calibration directory not found: {root}")
+
+    for path in sorted(root.rglob("*.pt")):
+        payload = _torch_load_cpu(path)
+        if isinstance(payload, dict):
+            latents = payload.get("pred_latents")
+            if latents is None:
+                latents = payload.get("latents")
+        else:
+            latents = payload
+        if not isinstance(latents, torch.Tensor):
+            continue
+        if latents.dim() != 4 or latents.shape[1] != 4:
+            continue
+        if latents.shape[0] < batch_size:
+            continue
+        return latents[:batch_size].contiguous()
+
+    raise RuntimeError(
+        f"No calibration tensor with batch_size>={batch_size} found under {root}"
+    )
 
 
 def tensor_to_bgr_uint8(image_tensor: torch.Tensor) -> np.ndarray:
@@ -180,8 +221,16 @@ def main():
 
     vae = load_reference_vae(device=device)
 
-    cached_latents = load_cached_latents(args.avatar_id)
-    batch_latents = cached_latents[: args.batch_size].to(device=device, dtype=torch.float16)
+    if args.calibration_dir.strip():
+        source_latents = load_calibration_latents(
+            calibration_dir=args.calibration_dir,
+            batch_size=args.batch_size,
+        )
+        latent_source = str(Path(args.calibration_dir).resolve())
+    else:
+        source_latents = load_cached_latents(args.avatar_id)
+        latent_source = f"avatar_cache:{args.avatar_id}"
+    batch_latents = source_latents[: args.batch_size].to(device=device, dtype=torch.float16)
 
     os.environ["MUSETALK_TRT_ENABLED"] = "1"
     os.environ["MUSETALK_VAE_BACKEND"] = args.backend
@@ -203,10 +252,11 @@ def main():
         backend_name="trt",
         output_dir=output_dir,
         extra_report_fields={
-        "avatar_id": args.avatar_id,
-        "backend": args.backend,
-        "trt_dir": str(Path(args.trt_dir).resolve()),
-        "batch_size": int(args.batch_size),
+            "avatar_id": args.avatar_id,
+            "backend": args.backend,
+            "trt_dir": str(Path(args.trt_dir).resolve()),
+            "batch_size": int(args.batch_size),
+            "latent_source": latent_source,
         },
     )
 

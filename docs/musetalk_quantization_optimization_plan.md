@@ -32,6 +32,79 @@ Based on the current docs and runtime notes:
   throughput jump because the remaining cost is split across UNet, VAE decode,
   composition, encoding, memory movement, and scheduler overhead.
 
+## 2026-05-26 Implementation Update
+
+The VAE quantization branch should now be implemented against the repaired
+runtime backend, not the older serialized monolithic TensorRT artifact path.
+
+Current repo-level decision:
+
+- Keep `MUSETALK_VAE_BACKEND=trt_stagewise` as the VAE acceleration base.
+- Keep the monolithic TensorRT VAE artifacts marked performance-only /
+  untrusted because they produced gray collapsed face output.
+- Add calibration capture at the live scheduler boundary immediately after
+  UNet produces `pred_latents` and before VAE decode.
+- Use real captured `pred_latents` for INT8 calibration. Cached avatar latents
+  remain useful for smoke validation, but they are not sufficient calibration
+  data by themselves.
+- Add mixed INT8/FP16 as an opt-in stagewise precision policy. The default
+  production path remains FP16 stagewise TensorRT.
+- Keep normalization, output postprocess, and any fragile stages in FP16 or
+  PyTorch until direct decode and blended-video validation proves otherwise.
+- Require exact scheduler bucket warmup for any quantized stagewise batch size.
+  Scheduler fixed buckets must stay aligned with warmed backend buckets.
+
+Current target runtime switches:
+
+```text
+MUSETALK_VAE_BACKEND=trt_stagewise
+MUSETALK_TRT_STAGEWISE_PRECISION=fp16
+
+MUSETALK_VAE_BACKEND=trt_stagewise
+MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed
+MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_up_block_1,decoder_up_block_2,decoder_up_block_3
+MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR=./calibration/vae_decoder
+MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_ALGO=minmax
+MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR=./models/tensorrt/stagewise_int8_calibration_cache
+```
+
+Current calibration capture switches:
+
+```text
+MUSETALK_VAE_CALIBRATION_CAPTURE=1
+MUSETALK_VAE_CALIBRATION_DIR=./calibration/vae_decoder
+MUSETALK_VAE_CALIBRATION_MAX_BATCHES=128
+```
+
+Implementation correction from the local prototype:
+
+- ModelOpt QDQ calibration works in the compatible pinned package line, but
+  ModelOpt `0.23.2` does not provide a clean exported quantized-module path for
+  Torch-TensorRT Dynamo on this Torch `2.5.1` stack.
+- The implemented runtime INT8 experiment therefore uses Torch-TensorRT
+  TorchScript PTQ calibration for selected stagewise decoder modules. It still
+  uses the real captured `pred_latents` corpus, but it does not require ModelOpt
+  at runtime.
+- Calibration caches are written per stage and exact batch size so repeat
+  warmups can reuse TensorRT calibration data when enabled.
+
+Important optional dependency correction from the local dry-run:
+
+- Do not install latest unpinned `nvidia-modelopt` into the serving venv.
+- Latest `nvidia-modelopt` currently wants a newer Torch/CUDA family than the
+  pinned MuseTalk TRT stack.
+- Use the setup script's pinned `nvidia-modelopt==0.23.2` default for this
+  `torch==2.5.1+cu121` environment for offline QDQ experiments only, unless a
+  newer compatible version is tested in a separate venv first.
+
+The first safe experiment is:
+
+1. Capture representative VAE decoder latents from the FP16 stagewise server.
+2. Validate FP16 stagewise output against PyTorch on those captured latents.
+3. Quantize only one or two conv-heavy up-block stages.
+4. Validate direct decoder output and blended video.
+5. Expand INT8 stage coverage only if visual quality remains stable.
+
 ## Optimization Principles
 
 1. **Optimize measured bottlenecks only**
@@ -401,4 +474,3 @@ mixed precision:
 
 This gives the highest chance of real throughput improvement without damaging
 the visual quality that makes the generated talking head usable.
-

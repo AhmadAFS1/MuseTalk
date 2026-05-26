@@ -234,6 +234,18 @@ generated face latents -> VAE decoder -> generated 256x256 RGB face crops
 The generated crop is not yet the final frame. It still needs to be placed back
 into the original frame using the avatar's face coordinates and masks.
 
+Current implementation note:
+
+- The trusted accelerated VAE path is the exact-batch `trt_stagewise` backend.
+- The older monolithic serialized TensorRT VAE path should not be used for
+  quality validation because previous tests produced collapsed gray face crops.
+- VAE decoder quantization should be introduced inside the stagewise path as a
+  mixed INT8/FP16 policy. The current implementation uses Torch-TensorRT
+  TorchScript PTQ calibration for selected decoder stages, using real
+  `pred_latents` captured after UNet inference as calibration data.
+- Any quantized VAE bucket must be warmed before live traffic uses it, matching
+  the scheduler's fixed batch sizes.
+
 ## Runtime Phase 7: Composition
 
 Composition is mostly non-AI image processing.
@@ -404,4 +416,3 @@ For this application, there are three different kinds of speed:
 TensorRT and quantization mainly improve model speed. They only improve the user
 experience if the model path is the current bottleneck or if enough model time
 is removed to expose and then optimize the next bottleneck.
-

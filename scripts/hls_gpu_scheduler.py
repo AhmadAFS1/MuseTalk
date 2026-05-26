@@ -211,6 +211,16 @@ class HLSGPUStreamScheduler:
         self.gpu_batch_timing_slow_s = max(0.0, _env_float("HLS_GPU_BATCH_TIMING_SLOW_SECONDS", 0.5))
         self.gpu_stage_sync_timing = _env_bool("HLS_GPU_STAGE_SYNC_TIMING", True)
         self._gpu_batch_timing_counter = 0
+        self.vae_calibration_capture = _env_bool("MUSETALK_VAE_CALIBRATION_CAPTURE", False)
+        self.vae_calibration_dir = Path(
+            os.getenv("MUSETALK_VAE_CALIBRATION_DIR", "./calibration/vae_decoder")
+        )
+        self.vae_calibration_max_batches = max(
+            0,
+            _env_int("MUSETALK_VAE_CALIBRATION_MAX_BATCHES", 128),
+        )
+        self._vae_calibration_capture_count = 0
+        self._vae_calibration_limit_logged = False
 
     def start(self) -> None:
         if self.scheduler_thread is not None:
@@ -231,6 +241,16 @@ class HLSGPUStreamScheduler:
             f"gpu_batch_timing_slow_s={self.gpu_batch_timing_slow_s:.3f}, "
             f"gpu_stage_sync_timing={self.gpu_stage_sync_timing})"
         )
+        if self.vae_calibration_capture:
+            limit_label = (
+                str(self.vae_calibration_max_batches)
+                if self.vae_calibration_max_batches > 0
+                else "unlimited"
+            )
+            print(
+                "🧪 VAE calibration capture enabled "
+                f"(dir={self.vae_calibration_dir}, max_batches={limit_label})"
+            )
 
     def shutdown(self) -> None:
         self.stop_event.set()
@@ -1188,6 +1208,12 @@ class HLSGPUStreamScheduler:
                     device=self.manager.device,
                     dtype=getattr(self.manager, "vae_dtype", pred_latents.dtype),
                 )
+                self._capture_vae_calibration_batch(
+                    pred_latents=pred_latents,
+                    selected=selected,
+                    actual_batch=actual_batch,
+                    padded_batch=padded_batch,
+                )
                 recon = self.manager.vae.decode_latents(pred_latents)
                 self._sync_gpu_for_stage_timing()
                 vae_finished_at = time.time()
@@ -1244,6 +1270,76 @@ class HLSGPUStreamScheduler:
 
         self._finalize_cancelled_jobs()
         self._finalize_ready_jobs()
+
+    def _capture_vae_calibration_batch(
+        self,
+        pred_latents: torch.Tensor,
+        selected,
+        actual_batch: int,
+        padded_batch: int,
+    ) -> None:
+        if not self.vae_calibration_capture:
+            return
+        if (
+            self.vae_calibration_max_batches > 0
+            and self._vae_calibration_capture_count >= self.vae_calibration_max_batches
+        ):
+            if not self._vae_calibration_limit_logged:
+                print(
+                    "🧪 VAE calibration capture limit reached "
+                    f"({self.vae_calibration_max_batches} batches)"
+                )
+                self._vae_calibration_limit_logged = True
+            return
+
+        self._vae_calibration_capture_count += 1
+        sequence = self._vae_calibration_capture_count
+        items = []
+        offset = 0
+        for job, take in selected:
+            items.append(
+                {
+                    "request_id": job.request_id,
+                    "session_id": job.session_id,
+                    "avatar_id": getattr(job.session, "avatar_id", None),
+                    "start_frame_idx": int(job.current_frame_idx),
+                    "take": int(take),
+                    "batch_offset": int(offset),
+                }
+            )
+            offset += int(take)
+
+        payload = {
+            "schema_version": 1,
+            "kind": "vae_decoder_pred_latents",
+            "created_at": time.time(),
+            "sequence": int(sequence),
+            "actual_batch": int(actual_batch),
+            "padded_batch": int(padded_batch),
+            "dtype": str(pred_latents.dtype),
+            "shape": list(pred_latents.shape),
+            "items": items,
+            "pred_latents": pred_latents.detach()
+            .to(device="cpu", dtype=torch.float16)
+            .contiguous(),
+        }
+
+        try:
+            self.vae_calibration_dir.mkdir(parents=True, exist_ok=True)
+            path = (
+                self.vae_calibration_dir
+                / f"vae_pred_latents_{sequence:06d}_bs{padded_batch}_pid{os.getpid()}.pt"
+            )
+            tmp_path = path.with_suffix(".tmp")
+            torch.save(payload, tmp_path)
+            tmp_path.replace(path)
+            if sequence == 1 or sequence % 25 == 0:
+                print(
+                    "🧪 Saved VAE calibration batch "
+                    f"#{sequence} actual={actual_batch} padded={padded_batch} path={path}"
+                )
+        except Exception as exc:
+            print(f"⚠️  Failed to save VAE calibration batch #{sequence}: {type(exc).__name__}: {exc}")
 
     def _dispatch_compose_batch(self, job: HLSStreamJob, batch_frames, start_frame_idx: int) -> None:
         compose_sequence = job.compose_sequence

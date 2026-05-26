@@ -123,6 +123,7 @@ This is the safe TRT-stagewise baseline:
 - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4`
 - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
 - `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=4`
+- `MUSETALK_TRT_STAGEWISE_PRECISION=fp16`
 - worker pools:
   - `HLS_PREP_WORKERS=8`
   - `HLS_COMPOSE_WORKERS=8`
@@ -147,6 +148,8 @@ branch that produced the current best average throughput at `concurrency=8`:
 - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
 - default warmup:
   - `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
+- VAE stagewise precision:
+  - `MUSETALK_TRT_STAGEWISE_PRECISION=fp16`
 - worker pools remain:
   - `HLS_PREP_WORKERS=8`
   - `HLS_COMPOSE_WORKERS=8`
@@ -171,6 +174,57 @@ On 32GB V100-class cards, the same profile now defaults to:
 
 Manual env vars still win. See `docs/gpu_vram_budgeting.md` for the full VRAM
 class table.
+
+### VAE Decoder INT8 Experiment Flags
+
+The INT8 VAE decoder path is experimental and disabled by default. It is scoped
+to the existing `trt_stagewise` backend and should only be enabled after a real
+calibration corpus has been captured from live `pred_latents`. The current
+runtime path uses Torch-TensorRT TorchScript PTQ calibration for selected VAE
+decoder stages.
+
+Optional ModelOpt setup for offline QDQ experiments:
+
+```bash
+bash scripts/setup_trt_stagewise_server_env.sh --clean --install-modelopt
+```
+
+The runtime INT8 PTQ path below does not require ModelOpt. The setup script
+pins `nvidia-modelopt==0.23.2` for this `torch==2.5.1+cu121` runtime if you do
+install it; do not install the latest unpinned ModelOpt into this venv because
+the latest package line currently tries to pull a newer Torch/CUDA family.
+
+Capture calibration batches from the shared GPU scheduler:
+
+```bash
+MUSETALK_VAE_CALIBRATION_CAPTURE=1 \
+MUSETALK_VAE_CALIBRATION_DIR=./calibration/vae_decoder \
+MUSETALK_VAE_CALIBRATION_MAX_BATCHES=128 \
+bash scripts/run_trt_stagewise_server.sh --profile throughput_record
+```
+
+Enable a mixed INT8/FP16 stagewise experiment:
+
+```bash
+MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed \
+MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_up_block_1,decoder_up_block_2,decoder_up_block_3 \
+MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR=./calibration/vae_decoder \
+MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_ALGO=minmax \
+MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR=./models/tensorrt/stagewise_int8_calibration_cache \
+bash scripts/run_trt_stagewise_server.sh --profile throughput_record
+```
+
+Important caveats:
+
+- The FP16 stagewise path remains the default production path.
+- The INT8 path uses TensorRT calibration caches per selected stage and exact
+  batch size. Delete the directory pointed to by
+  `MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR` if you need to force a fresh
+  calibration build.
+- Scheduler fixed buckets and `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES` must stay
+  aligned so live traffic does not compile a new quantized batch shape.
+- A failed INT8 experiment can be rolled back by setting
+  `MUSETALK_TRT_STAGEWISE_PRECISION=fp16`.
 
 ## Matching Load Tests
 

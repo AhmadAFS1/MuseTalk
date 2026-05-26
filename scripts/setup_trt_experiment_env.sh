@@ -41,6 +41,8 @@ TORCH_VERSION="${TORCH_VERSION:-2.5.1}"
 TORCHVISION_VERSION="${TORCHVISION_VERSION:-0.20.1}"
 TORCHAUDIO_VERSION="${TORCHAUDIO_VERSION:-2.5.1}"
 TORCH_TENSORRT_VERSION="${TORCH_TENSORRT_VERSION:-2.5.0}"
+MODELOPT_PACKAGE="${MODELOPT_PACKAGE:-nvidia-modelopt}"
+MODELOPT_VERSION="${MODELOPT_VERSION:-0.23.2}"
 PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu121}"
 NVIDIA_EXTRA_INDEX_URL="${NVIDIA_EXTRA_INDEX_URL:-https://pypi.nvidia.com}"
 
@@ -90,6 +92,7 @@ CLEAR_PIP_CACHE=0
 INSTALL_RUNTIME_DEPS=0
 INSTALL_SERVER_DEPS=0
 INSTALL_AVATAR_PREP_DEPS=0
+INSTALL_MODELOPT=0
 FULL_STACK=0
 
 log() {
@@ -118,6 +121,8 @@ Options:
                              one venv
   --install-server-deps      Install the pinned HLS/api_server dependency set
   --install-avatar-prep-deps Install optional mmpose/mmcv deps for avatar prep
+  --install-modelopt         Install NVIDIA TensorRT Model Optimizer for
+                             optional offline INT8/QDQ experiments
   --install-runtime-deps     Install repo runtime deps after backend validation
   --clean                    Remove an existing venv at --venv-path first
   --clear-pip-cache          Remove the pip cache dir before installing
@@ -128,6 +133,8 @@ Environment overrides:
   TORCHVISION_VERSION        Default: $TORCHVISION_VERSION
   TORCHAUDIO_VERSION         Default: $TORCHAUDIO_VERSION
   TORCH_TENSORRT_VERSION     Default: $TORCH_TENSORRT_VERSION
+  MODELOPT_PACKAGE           Default: $MODELOPT_PACKAGE
+  MODELOPT_VERSION           Optional version pin for --install-modelopt
   PYTORCH_INDEX_URL          Default: $PYTORCH_INDEX_URL
   NVIDIA_EXTRA_INDEX_URL     Default: $NVIDIA_EXTRA_INDEX_URL
   NUMPY_VERSION              Default: $NUMPY_VERSION
@@ -267,6 +274,29 @@ install_torch_tensorrt_step() {
     "${install_args[@]}" \
     --extra-index-url "$NVIDIA_EXTRA_INDEX_URL" \
     "torch-tensorrt==$TORCH_TENSORRT_VERSION"
+}
+
+install_modelopt_step() {
+  local package_spec="$MODELOPT_PACKAGE"
+  if [[ -n "$MODELOPT_VERSION" ]]; then
+    package_spec="$package_spec==$MODELOPT_VERSION"
+  fi
+
+  "$VENV_PYTHON" -m pip install \
+    --extra-index-url "$NVIDIA_EXTRA_INDEX_URL" \
+    "$package_spec" \
+    "pulp<4.0" \
+    "torchprofile" \
+    "onnx<1.18"
+}
+
+validate_modelopt_import_step() {
+  "$VENV_PYTHON" - <<'PY'
+import modelopt.torch.quantization as mtq
+
+print("modelopt quantization import OK")
+print("has_INT8_DEFAULT_CFG", hasattr(mtq, "INT8_DEFAULT_CFG"))
+PY
 }
 
 install_export_dependencies_step() {
@@ -828,6 +858,26 @@ prefetch_tensorrt_wheelhouse_step() {
     "torch-tensorrt==$TORCH_TENSORRT_VERSION"
 }
 
+prefetch_modelopt_wheelhouse_step() {
+  if ! wheelhouse_enabled || [[ $INSTALL_MODELOPT -eq 0 ]]; then
+    log "ModelOpt wheel prefetch disabled or not requested; skipping"
+    return 0
+  fi
+
+  local package_spec="$MODELOPT_PACKAGE"
+  if [[ -n "$MODELOPT_VERSION" ]]; then
+    package_spec="$package_spec==$MODELOPT_VERSION"
+  fi
+
+  prefetch_wheels_step \
+    "$TENSORRT_WHEELHOUSE_DIR" \
+    --extra-index-url "$NVIDIA_EXTRA_INDEX_URL" \
+    "$package_spec" \
+    "pulp<4.0" \
+    "torchprofile" \
+    "onnx<1.18"
+}
+
 prefetch_export_backend_wheelhouse_step() {
   if ! wheelhouse_enabled; then
     log "Wheelhouse prefetch disabled; skipping export/backend wheel prefetch"
@@ -941,6 +991,7 @@ phase_prefetch_wheelhouses() {
   else
     run_step "Prefetch PyTorch CUDA wheelhouse" prefetch_pytorch_cuda_wheelhouse_step || true
     run_step "Prefetch TensorRT wheelhouse" prefetch_tensorrt_wheelhouse_step || true
+    run_step "Prefetch ModelOpt wheelhouse" prefetch_modelopt_wheelhouse_step || true
     run_step "Prefetch export/backend wheelhouse" prefetch_export_backend_wheelhouse_step || true
     run_step "Prefetch server runtime wheelhouse" prefetch_server_runtime_wheelhouse_step || true
     run_step "Prefetch avatar-prep prerequisite wheelhouse" prefetch_avatar_prep_wheelhouse_step || true
@@ -954,6 +1005,12 @@ phase_install_core_pytorch_cuda() {
 
 phase_install_tensorrt_python_stack() {
   run_step "Install torch-tensorrt pinned stack" install_torch_tensorrt_step
+  if [[ $INSTALL_MODELOPT -eq 1 ]]; then
+    run_step "Install TensorRT Model Optimizer" install_modelopt_step
+    run_step "Validate TensorRT Model Optimizer import" validate_modelopt_import_step
+  else
+    log "Skipping TensorRT Model Optimizer install. Use --install-modelopt for offline QDQ experiments."
+  fi
 }
 
 phase_install_export_backend_stack() {
@@ -1046,6 +1103,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --install-avatar-prep-deps)
       INSTALL_AVATAR_PREP_DEPS=1
+      shift
+      ;;
+    --install-modelopt)
+      INSTALL_MODELOPT=1
       shift
       ;;
     --clean)
