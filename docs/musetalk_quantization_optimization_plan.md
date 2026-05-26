@@ -114,13 +114,18 @@ saved WebRTC talking reference under `docs/reference_videos/`.
 
 Current live service state:
 
-- The API/WebRTC service is intentionally running FP16 stagewise TensorRT, not
-  INT8.
-- The working public WebRTC wall uses TURN-over-TCP relay. That fixed the black
-  screen/ICE issue but is unrelated to INT8 correctness.
-- The ignored local env keeps the INT8 calibration settings available, but
-  `MUSETALK_TRT_STAGEWISE_PRECISION=fp16` is the live precision until an isolated
-  INT8 build succeeds.
+- The API service has been restarted in INT8 mixed mode for the VAE decoder
+  experiment.
+- Current intended live precision is
+  `MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed` with
+  `MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq`.
+- Current live INT8 stages are
+  `decoder_up_block_0,decoder_up_block_1`.
+- The scheduler is intentionally capped to batch `8` while batch `16` remains a
+  separate TensorRT context-creation problem.
+- The working public WebRTC wall uses TURN-over-TCP relay when TURN env is
+  available. That fixed the black screen/ICE issue but is unrelated to INT8
+  decoder correctness.
 
 Calibration data state:
 
@@ -259,6 +264,83 @@ Recommended next INT8 direction:
    them to the API if direct image comparison remains within tolerance.
 5. Keep `torchscript_ptq` behind the live-serving guard because that frontend is
    the source of the CUDA illegal memory access.
+
+## 2026-05-26 INT8 Smoke And Load-Test Results
+
+Chat context captured in this update:
+
+- The user first asked for a VAE decoder quantization plan after a base
+  reference video had already been created.
+- The relevant plan and pipeline docs were reviewed and updated around a
+  VAE-first strategy.
+- The first INT8 attempts failed under Torch-TensorRT TorchScript PTQ, including
+  no scaling factors, CUDA illegal memory access, and bad output quality on
+  simpler stages.
+- The implementation was redirected to ModelOpt Q/DQ ONNX export plus TensorRT
+  Python engines, which is the current working INT8 path.
+- `test_avatar_2` was prepared from `chatgpt_moving_vid.mp4`.
+- WebRTC black-screen investigation showed a separate ICE/TURN/runtime issue,
+  not an INT8 decoder issue. The startup script path can run without manually
+  starting a TURN server when the relay env exists.
+- A simple lipsync smoke video using `data/audio/yongen.wav` was generated at:
+  `results/v15/avatars/test_avatar_2/vid_output/int8_lipsync_smoke_test.mp4`.
+- The user visually reviewed the INT8 smoke output and reported that lipsync
+  quality looked very good, with audio still to be heard/reviewed separately.
+- `ffprobe` confirms the smoke MP4 contains both tracks: H.264 video
+  (`7.96s`) and AAC audio (`8.00s`).
+
+Validated live INT8 environment for the smoke and load tests:
+
+```text
+MUSETALK_VAE_BACKEND=trt_stagewise
+MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed
+MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq
+MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_up_block_0,decoder_up_block_1
+MUSETALK_TRT_FALLBACK=0
+HLS_SCHEDULER_MAX_BATCH=8
+HLS_SCHEDULER_FIXED_BATCH_SIZES=8
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8
+```
+
+The exact smoke-test request was confirmed by the API log:
+
+```text
+VAE decode timing backend=tensorrt_stagewise_int8_mixed calls=25 avg_tensor=0.0856s avg_post=0.0035s avg_total=0.0891s max_total=0.0945s
+```
+
+Load-test setup:
+
+- Avatar: `test_avatar_2`
+- Source avatar video: `data/video/chatgpt_moving_vid.mp4`
+- Audio: `data/audio/yongen.wav`
+- Audio duration: about `8s`
+- Request path: `/generate`
+- Batch cap: `8`
+- Bench artifacts:
+  - `tmp/load_tests/int8_onnx_qdq_generate_bench.json`
+  - `tmp/load_tests/fp16_stagewise_generate_bench.json`
+  - `tmp/load_tests/int8_onnx_qdq_generate_c4_bench.json`
+  - `tmp/load_tests/fp16_stagewise_generate_c4_bench.json`
+
+Measured result:
+
+| Test | FP16 stagewise | INT8 ONNX/QDQ mixed | Result |
+| --- | ---: | ---: | --- |
+| VAE decode avg total, batch 8 | `0.0988s` | `0.0883s` | INT8 `~10.6%` lower, `~1.12x` faster |
+| Sequential `/generate`, 3 runs | `14.408s` avg | `14.100s` avg | INT8 `~2.1%` faster |
+| Concurrent `/generate`, 4 jobs | `55.400s` stage wall | `57.322s` stage wall | INT8 `~3.5%` slower |
+| Concurrent jobs/min | `4.332` | `4.187` | INT8 `~3.3%` lower |
+
+Conclusion:
+
+- INT8 is genuinely running for the selected VAE decoder stages.
+- The VAE decoder itself is faster on the current batch-8 server.
+- The current end-to-end video generation path does not yet show a meaningful
+  throughput gain from this INT8 configuration. Sequential generation improved
+  slightly, but concurrent load regressed slightly.
+- The next throughput work should focus on removing the batch-8 cap, profiling
+  UNet/composition/encode/scheduler time under load, and then expanding INT8
+  stage coverage only after direct visual comparison.
 
 ## Optimization Principles
 

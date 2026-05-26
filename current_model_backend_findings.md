@@ -40,6 +40,48 @@ This means the best remaining model/GPU opportunities are mostly about:
 - removing repeated host-to-device copies
 - vectorizing CPU orchestration that still sits around the model path
 
+## 2026-05-26 VAE INT8 Load-Test Finding
+
+The VAE decoder INT8 experiment is now working through the `trt_stagewise`
+backend using the ModelOpt ONNX Q/DQ frontend and TensorRT Python `.plan`
+engines for `decoder_up_block_0,decoder_up_block_1`.
+
+The API was verified running with:
+
+```text
+MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed
+MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq
+MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_up_block_0,decoder_up_block_1
+HLS_SCHEDULER_MAX_BATCH=8
+HLS_SCHEDULER_FIXED_BATCH_SIZES=8
+MUSETALK_TRT_FALLBACK=0
+```
+
+Visual smoke result:
+
+- `test_avatar_2` was prepared from `chatgpt_moving_vid.mp4`.
+- A simple lipsync smoke video was generated with `data/audio/yongen.wav`.
+- The user reported that the INT8 visual output looked very good.
+- Logs confirmed `backend=tensorrt_stagewise_int8_mixed` for the smoke request.
+
+Load-test result using `/generate`, same avatar/audio, and the same batch-8 cap:
+
+| Test | FP16 stagewise | INT8 ONNX/QDQ mixed | Takeaway |
+| --- | ---: | ---: | --- |
+| VAE decode avg total | `0.0988s` | `0.0883s` | decoder call is about `1.12x` faster |
+| Sequential 3-run avg | `14.408s` | `14.100s` | end-to-end only about `2.1%` faster |
+| 4-job concurrent stage wall | `55.400s` | `57.322s` | end-to-end about `3.5%` slower |
+| 4-job concurrent jobs/min | `4.332` | `4.187` | slightly lower throughput |
+
+Interpretation:
+
+- The INT8 decoder path is real and faster at the VAE-call level.
+- The current end-to-end video generation path is not meaningfully faster yet.
+- Under load, queueing plus non-VAE work can mask or reverse the decoder gain.
+- The next useful profiling target is the rest of the batch-8 hot path:
+  UNet, CPU composition, ffmpeg/muxing, scheduler waits, and the ONNX/TensorRT
+  stage bridge overhead.
+
 ## Recent Experiment Updates
 
 The direct GPU-resident conditioning experiment was tested in the shared HLS scheduler and then reverted.

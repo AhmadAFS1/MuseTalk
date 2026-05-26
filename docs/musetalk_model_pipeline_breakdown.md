@@ -240,9 +240,10 @@ Current implementation note:
 - The older monolithic serialized TensorRT VAE path should not be used for
   quality validation because previous tests produced collapsed gray face crops.
 - VAE decoder quantization should be introduced inside the stagewise path as a
-  mixed INT8/FP16 policy. The current implementation uses Torch-TensorRT
-  TorchScript PTQ calibration for selected decoder stages, using real
-  `pred_latents` captured after UNet inference as calibration data.
+  mixed INT8/FP16 policy. The current working implementation uses ModelOpt
+  Q/DQ ONNX export plus TensorRT Python `.plan` engines for selected decoder
+  stages, using real `pred_latents` captured after UNet inference as
+  calibration data.
 - Any quantized VAE bucket must be warmed before live traffic uses it, matching
   the scheduler's fixed batch sizes.
 
@@ -263,6 +264,22 @@ Current implementation note:
   creation and must be debugged separately before the scheduler cap is removed.
   Later up-blocks also still need direct comparison before they are added to the
   live warmup set.
+
+2026-05-26 load-test result:
+
+- The lipsync smoke test for `test_avatar_2` visually passed with INT8 enabled.
+- API logs for the smoke test and load test confirm the active backend was
+  `tensorrt_stagewise_int8_mixed`.
+- Batch-8 decoder timing improved from the current FP16 stagewise baseline of
+  about `0.0988s` per VAE decode call to about `0.0883s` with INT8 mixed
+  stages. That is roughly an `11%` decoder-call improvement.
+- End-to-end `/generate` throughput did not improve by the same amount:
+  sequential runs improved only about `2.1%`, while a 4-job concurrent load run
+  was about `3.5%` slower by total stage wall time.
+- Practical interpretation: the INT8 decoder path is working and visually
+  promising, but video generation throughput is now dominated by the rest of the
+  pipeline: UNet work, composition, encoding/muxing, scheduler queueing, and the
+  current batch-8 cap.
 
 ## Runtime Phase 7: Composition
 

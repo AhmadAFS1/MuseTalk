@@ -219,6 +219,20 @@ HLS_SCHEDULER_FIXED_BATCH_SIZES=8 \
 bash scripts/run_trt_stagewise_server.sh --profile throughput_record
 ```
 
+Current INT8 validation note from 2026-05-26:
+
+- The above shape is the validated live-server shape for the current INT8
+  experiment.
+- API logs must include `VAE decode backend active:
+  tensorrt_stagewise_int8_mixed` or `backend=tensorrt_stagewise_int8_mixed` for
+  generated requests before a run should be treated as an INT8 result.
+- In the latest batch-8 `/generate` test, the selected INT8 VAE stages reduced
+  VAE decode time from about `0.0988s` to `0.0883s`, but end-to-end generation
+  improved only about `2.1%` sequentially and was about `3.5%` slower in a
+  4-job concurrent test.
+- Keep the batch-8 cap until batch-16 stagewise context creation is fixed and
+  separately validated.
+
 Important caveats:
 
 - The FP16 stagewise path remains the default production path.
