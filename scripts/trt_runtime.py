@@ -259,6 +259,19 @@ def _stagewise_int8_require_calibration_cache() -> bool:
     return _env_enabled("MUSETALK_TRT_STAGEWISE_INT8_REQUIRE_CALIBRATION_CACHE", "1")
 
 
+def _stagewise_int8_frontend() -> str:
+    value = os.getenv("MUSETALK_TRT_STAGEWISE_INT8_FRONTEND", "onnx_qdq")
+    value = value.strip().lower().replace("-", "_")
+    if value in {"onnx_qdq", "torchscript_ptq"}:
+        return value
+    if value in {"ptq", "ts_ptq", "torchscript"}:
+        return "torchscript_ptq"
+    raise RuntimeError(
+        "Unsupported MUSETALK_TRT_STAGEWISE_INT8_FRONTEND value: "
+        f"{value!r}. Expected onnx_qdq or torchscript_ptq."
+    )
+
+
 def _stagewise_int8_calibration_format() -> str:
     value = os.getenv("MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_FORMAT", "tensor")
     value = value.strip().lower()
@@ -365,6 +378,73 @@ def _cache_file_has_bytes(path: Path) -> bool:
         return path.exists() and path.stat().st_size > 0
     except OSError:
         return False
+
+
+def _trt_dtype_to_torch(dtype) -> torch.dtype:
+    import tensorrt as trt
+
+    if dtype == trt.DataType.FLOAT:
+        return torch.float32
+    if dtype == trt.DataType.HALF:
+        return torch.float16
+    if dtype == trt.DataType.INT32:
+        return torch.int32
+    if dtype == trt.DataType.INT8:
+        return torch.int8
+    if hasattr(trt.DataType, "BOOL") and dtype == trt.DataType.BOOL:
+        return torch.bool
+    raise RuntimeError(f"Unsupported TensorRT tensor dtype: {dtype}")
+
+
+class _TensorRtOnnxStage(torch.nn.Module):
+    def __init__(
+        self,
+        engine_bytes: bytes,
+        device: torch.device,
+        logger_severity: Optional[int] = None,
+    ):
+        super().__init__()
+        import tensorrt as trt
+
+        severity = trt.Logger.WARNING if logger_severity is None else logger_severity
+        self.trt_logger = trt.Logger(severity)
+        self.runtime = trt.Runtime(self.trt_logger)
+        self.engine = self.runtime.deserialize_cuda_engine(engine_bytes)
+        if self.engine is None:
+            raise RuntimeError("Failed to deserialize TensorRT ONNX/QDQ stage engine.")
+        self.context = self.engine.create_execution_context()
+        if self.context is None:
+            raise RuntimeError("Failed to create TensorRT execution context.")
+        self.device = device
+        self.input_name = None
+        self.output_name = None
+        for index in range(self.engine.num_io_tensors):
+            name = self.engine.get_tensor_name(index)
+            mode = self.engine.get_tensor_mode(name)
+            if mode == trt.TensorIOMode.INPUT:
+                self.input_name = name
+            elif mode == trt.TensorIOMode.OUTPUT:
+                self.output_name = name
+        if self.input_name is None or self.output_name is None:
+            raise RuntimeError("TensorRT ONNX/QDQ stage must have one input and one output.")
+
+    def forward(self, sample: torch.Tensor) -> torch.Tensor:
+        sample = sample.contiguous()
+        output_shape = tuple(int(dim) for dim in self.engine.get_tensor_shape(self.output_name))
+        output_dtype = _trt_dtype_to_torch(self.engine.get_tensor_dtype(self.output_name))
+        output = torch.empty(
+            output_shape,
+            device=self.device,
+            dtype=output_dtype,
+        )
+        if not self.context.set_tensor_address(self.input_name, sample.data_ptr()):
+            raise RuntimeError(f"Failed to bind TensorRT input tensor {self.input_name}.")
+        if not self.context.set_tensor_address(self.output_name, output.data_ptr()):
+            raise RuntimeError(f"Failed to bind TensorRT output tensor {self.output_name}.")
+        stream = torch.cuda.current_stream(device=self.device).cuda_stream
+        if not self.context.execute_async_v3(stream):
+            raise RuntimeError("TensorRT ONNX/QDQ stage execution failed.")
+        return output
 
 
 def _stagewise_warmup_batches() -> list[int]:
@@ -521,6 +601,7 @@ class StagewiseTrtVaeDecodeBackend:
         int8_min_block_size: int = 1,
         int8_require_full_compilation: bool = False,
         int8_require_calibration_cache: bool = True,
+        int8_frontend: str = "onnx_qdq",
         int8_calibration_format: str = "tensor",
         int8_enabled_precisions: Optional[set[torch.dtype]] = None,
         int8_ts_torch_executed_ops: Optional[list[str]] = None,
@@ -534,15 +615,20 @@ class StagewiseTrtVaeDecodeBackend:
         self.torch_stage_names = set(torch_stage_names or set())
         self.precision_policy = precision_policy
         self.int8_stage_names = set(int8_stage_names or set())
+        self.int8_frontend = int8_frontend
         if self.precision_policy == "int8_mixed" and not self.int8_stage_names:
             raise RuntimeError(
                 "MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed requires an explicit "
                 "MUSETALK_TRT_STAGEWISE_INT8_STAGES list. There is no safe default "
                 "stage set yet."
             )
-        if self.precision_policy == "int8_mixed" and not _env_enabled(
-            "MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES",
-            "0",
+        if (
+            self.precision_policy == "int8_mixed"
+            and self.int8_frontend == "torchscript_ptq"
+            and not _env_enabled(
+                "MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES",
+                "0",
+            )
         ):
             blocked_stages = _stagewise_int8_live_blocked_stage_names()
             selected_blocked_stages = sorted(self.int8_stage_names & blocked_stages)
@@ -620,6 +706,7 @@ class StagewiseTrtVaeDecodeBackend:
             int8_min_block_size=_stagewise_int8_min_block_size(),
             int8_require_full_compilation=_stagewise_int8_require_full_compilation(),
             int8_require_calibration_cache=_stagewise_int8_require_calibration_cache(),
+            int8_frontend=_stagewise_int8_frontend(),
             int8_calibration_format=_stagewise_int8_calibration_format(),
             int8_enabled_precisions=_stagewise_int8_enabled_precisions(runtime_dtype),
             int8_ts_torch_executed_ops=_stagewise_int8_ts_torch_executed_ops(),
@@ -833,6 +920,113 @@ class StagewiseTrtVaeDecodeBackend:
             )
         return compiled
 
+    def _compile_stage_int8_onnx_qdq(
+        self,
+        stage_name: str,
+        module: torch.nn.Module,
+        example: torch.Tensor,
+        shape: tuple[int, ...],
+        calibration_inputs: list[torch.Tensor],
+    ):
+        if not calibration_inputs:
+            raise RuntimeError(
+                f"Stage {stage_name} was selected for INT8, but no calibration inputs are available."
+            )
+        try:
+            import modelopt.torch.quantization as mtq
+            import tensorrt as trt
+        except Exception as exc:
+            raise RuntimeError(
+                "MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq requires "
+                "nvidia-modelopt, onnx, and TensorRT in the active venv. Run "
+                "scripts/setup_trt_stagewise_server_env.sh --install-modelopt "
+                "or install nvidia-modelopt==0.23.2 and onnx<1.18."
+            ) from exc
+
+        self.int8_cache_dir.mkdir(parents=True, exist_ok=True)
+        batch_size = int(shape[0])
+        artifact_stem = f"{stage_name}_bs{batch_size}_{self.int8_calibration_algo}_onnx_qdq"
+        onnx_path = self.int8_cache_dir / f"{artifact_stem}.onnx"
+        engine_path = self.int8_cache_dir / f"{artifact_stem}.plan"
+        use_cache = _env_enabled("MUSETALK_TRT_STAGEWISE_INT8_USE_CACHE", "1")
+
+        if use_cache and _cache_file_has_bytes(engine_path):
+            logger.info(
+                "Loading cached TensorRT ONNX/QDQ INT8 stage %s batch=%s from %s",
+                stage_name,
+                batch_size,
+                engine_path,
+            )
+            return _TensorRtOnnxStage(engine_path.read_bytes(), self.device).eval()
+
+        quantized_module = copy.deepcopy(module).to(
+            device=self.device,
+            dtype=self.runtime_dtype,
+        ).eval()
+        quantized_module.requires_grad_(False)
+        calibration_samples = [
+            sample.to(device=self.device, dtype=self.runtime_dtype).contiguous()
+            for sample in calibration_inputs
+        ]
+
+        def forward_loop(model):
+            with torch.no_grad():
+                for calibration_sample in calibration_samples:
+                    model(calibration_sample.contiguous())
+
+        logger.info(
+            (
+                "Quantizing stagewise VAE stage %s with ModelOpt ONNX/QDQ "
+                "batch=%s calibration_batches=%s"
+            ),
+            stage_name,
+            batch_size,
+            len(calibration_samples),
+        )
+        quantized_module = mtq.quantize(
+            quantized_module,
+            mtq.INT8_DEFAULT_CFG,
+            forward_loop,
+        ).eval()
+
+        logger.info("Exporting ONNX/QDQ INT8 stage %s to %s", stage_name, onnx_path)
+        with torch.no_grad():
+            torch.onnx.export(
+                quantized_module,
+                example,
+                str(onnx_path),
+                input_names=["input"],
+                output_names=["output"],
+                opset_version=17,
+                do_constant_folding=True,
+            )
+
+        logger.info("Building TensorRT ONNX/QDQ INT8 stage %s to %s", stage_name, engine_path)
+        trt_logger = trt.Logger(trt.Logger.WARNING)
+        builder = trt.Builder(trt_logger)
+        network = builder.create_network(
+            1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
+        )
+        parser = trt.OnnxParser(network, trt_logger)
+        if not parser.parse(onnx_path.read_bytes()):
+            errors = "\n".join(str(parser.get_error(index)) for index in range(parser.num_errors))
+            raise RuntimeError(
+                f"Failed to parse ONNX/QDQ INT8 stage {stage_name}: {errors}"
+            )
+        config = builder.create_builder_config()
+        config.set_memory_pool_limit(
+            trt.MemoryPoolType.WORKSPACE,
+            int(self.workspace_gb * (1 << 30)),
+        )
+        config.set_flag(trt.BuilderFlag.FP16)
+        config.set_flag(trt.BuilderFlag.INT8)
+        serialized_engine = builder.build_serialized_network(network, config)
+        if serialized_engine is None:
+            raise RuntimeError(f"TensorRT failed to build ONNX/QDQ INT8 stage {stage_name}.")
+        engine_bytes = bytes(serialized_engine)
+        engine_path.write_bytes(engine_bytes)
+        return _TensorRtOnnxStage(engine_bytes, self.device).eval()
+
     def _compile_stage(
         self,
         stage_name: str,
@@ -870,6 +1064,14 @@ class StagewiseTrtVaeDecodeBackend:
             compile_kwargs["torch_executed_ops"] = self.torch_executed_ops
         module = self.stage_modules[stage_name]
         if self._is_int8_stage(stage_name):
+            if self.int8_frontend == "onnx_qdq":
+                return self._compile_stage_int8_onnx_qdq(
+                    stage_name=stage_name,
+                    module=module,
+                    example=example,
+                    shape=shape,
+                    calibration_inputs=calibration_inputs or [],
+                )
             return self._compile_stage_int8_ptq(
                 torch_tensorrt=torch_tensorrt,
                 stage_name=stage_name,

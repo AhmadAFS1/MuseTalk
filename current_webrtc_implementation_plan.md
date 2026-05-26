@@ -86,6 +86,15 @@ comparison. The VAE INT8 runtime path now has a live-serving guard that blocks
 the tested decoder stages by default; only the offline diagnostic script should
 set `MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES=1`.
 
+Later update on 2026-05-26: that guard now applies only to the old
+`torchscript_ptq` INT8 frontend. The working VAE INT8 path is
+`MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq`, and the API has booted with
+`decoder_up_block_0,decoder_up_block_1` quantized at batch `8`, with the HLS
+scheduler capped to batch `8`. WebRTC/TURN is still independent transport
+configuration; this checkout currently lacks
+`.env.webrtc-turn.local`, so the running proof is API health, not relay-policy
+wall validation.
+
 Update on 2026-05-21: WebRTC wall generation now defaults to the shared HLS GPU
 scheduler with a WebRTC frame sink. The previous wall turn-taking was backend
 serialization from independent per-session GPU leases, not a one-browser WebRTC

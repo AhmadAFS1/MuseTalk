@@ -250,18 +250,19 @@ Current implementation note:
 
 - The captured VAE calibration corpus exists and has the correct runtime shape:
   `(B, 4, 32, 32)` FP16 `pred_latents`.
-- Live serving is still FP16 stagewise TensorRT while INT8 is debugged.
-- The first INT8 error was fixed with `truncate_long_and_double=True`.
-- The remaining blocker is not calibration data availability. Isolated
-  experiments proved caches can be written for small stages, but the up-blocks
-  hit TensorRT CUDA illegal memory access during PTQ calibration, and the stages
-  that did build produced unusable output. Do not enable VAE INT8 in the API
-  until a different quantization path passes direct image comparison.
-- The runtime now blocks VAE decoder INT8 stages for live serving by default.
-  `scripts/experiment_vae_decoder_int8.py` sets
-  `MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES=1` only for isolated offline
-  diagnostics, so a normal API restart stays on the known-good FP16 path unless
-  INT8 is intentionally forced.
+- TorchScript PTQ was the failing path: the up-blocks hit TensorRT CUDA illegal
+  memory access during calibration, and smaller stages that built had unusable
+  image quality.
+- The working path is `MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq`, which
+  uses ModelOpt Q/DQ ONNX export plus TensorRT Python engines per selected
+  stage.
+- The live API has booted successfully with
+  `decoder_up_block_0,decoder_up_block_1` quantized at batch `8`, with the
+  scheduler capped to batch `8`.
+- Batch `16` currently fails during remaining FP16 stagewise TensorRT context
+  creation and must be debugged separately before the scheduler cap is removed.
+  Later up-blocks also still need direct comparison before they are added to the
+  live warmup set.
 
 ## Runtime Phase 7: Composition
 

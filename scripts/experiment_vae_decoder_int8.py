@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import sys
+import traceback
 from pathlib import Path
 
 import torch
@@ -61,6 +62,12 @@ def parse_args() -> argparse.Namespace:
         default="int8",
         help="Comma-separated precisions for selected INT8 stages. Default: int8.",
     )
+    parser.add_argument(
+        "--frontend",
+        choices=["onnx_qdq", "torchscript_ptq"],
+        default="onnx_qdq",
+        help="INT8 compiler frontend. Default: onnx_qdq.",
+    )
     parser.add_argument("--workspace-gb", type=float, default=1.0)
     parser.add_argument("--min-block-size", type=int, default=1)
     parser.add_argument(
@@ -118,6 +125,7 @@ def set_experiment_env(args: argparse.Namespace, stages: list[str]) -> None:
     os.environ["MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_ALGO"] = args.algo
     os.environ["MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR"] = str(Path(args.cache_dir).resolve())
     os.environ["MUSETALK_TRT_STAGEWISE_INT8_USE_CACHE"] = "1" if args.use_cache else "0"
+    os.environ["MUSETALK_TRT_STAGEWISE_INT8_FRONTEND"] = args.frontend
     os.environ["MUSETALK_TRT_STAGEWISE_INT8_ENABLED_PRECISIONS"] = args.enabled_precisions
     os.environ["MUSETALK_TRT_STAGEWISE_INT8_MIN_BLOCK_SIZE"] = str(
         max(1, args.min_block_size)
@@ -135,6 +143,50 @@ def set_experiment_env(args: argparse.Namespace, stages: list[str]) -> None:
         for raw in args.torch_executed_op:
             ops.extend(token.strip() for token in raw.split(",") if token.strip())
         os.environ["MUSETALK_TRT_STAGEWISE_INT8_TORCH_EXECUTED_OPS"] = ",".join(ops)
+
+
+def experiment_metadata(args: argparse.Namespace, stages: list[str], batch_size: int) -> dict:
+    return {
+        "batch_size": batch_size,
+        "int8_stages": stages,
+        "calibration_dir": str(Path(args.calibration_dir).resolve()),
+        "calibration_batches": max(1, args.calibration_batches),
+        "cache_dir": str(Path(args.cache_dir).resolve()),
+        "algo": args.algo,
+        "frontend": args.frontend,
+        "enabled_precisions": args.enabled_precisions,
+        "int8_min_block_size": max(1, args.min_block_size),
+        "require_full_compilation": bool(args.require_full_compilation),
+        "calibration_format": args.calibration_format,
+        "allow_empty_cache": bool(args.allow_empty_cache),
+        "allow_unsafe_stages": os.getenv(
+            "MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES",
+            "0",
+        ),
+        "torch_executed_ops": os.getenv(
+            "MUSETALK_TRT_STAGEWISE_INT8_TORCH_EXECUTED_OPS",
+            "group_norm",
+        ),
+    }
+
+
+def write_failure_report(
+    output_dir: Path,
+    args: argparse.Namespace,
+    stages: list[str],
+    batch_size: int,
+    exc: BaseException,
+) -> None:
+    report = {
+        "status": "failed",
+        **experiment_metadata(args, stages, batch_size),
+        "error_type": type(exc).__name__,
+        "error": str(exc),
+        "traceback": traceback.format_exc(),
+    }
+    report_path = output_dir / "report.json"
+    report_path.write_text(json.dumps(report, indent=2))
+    print(json.dumps(report, indent=2), file=sys.stderr)
 
 
 def main() -> int:
@@ -156,42 +208,30 @@ def main() -> int:
         dtype=torch.float16,
     )
 
-    backend = load_vae_trt_decoder(
-        device=device,
-        scaling_factor=vae.scaling_factor,
-        vae_module=vae.vae,
-    )
-    if backend is None:
-        raise RuntimeError("Stagewise INT8 backend did not activate.")
+    try:
+        backend = load_vae_trt_decoder(
+            device=device,
+            scaling_factor=vae.scaling_factor,
+            vae_module=vae.vae,
+        )
+        if backend is None:
+            raise RuntimeError("Stagewise INT8 backend did not activate.")
 
-    report = compare_vae_backend_outputs(
-        vae=vae,
-        backend=backend,
-        batch_latents=batch_latents,
-        backend_name="trt_stagewise_int8",
-        output_dir=output_dir,
-        extra_report_fields={
-            "backend_name": getattr(backend, "name", type(backend).__name__),
-            "batch_size": batch_size,
-            "int8_stages": stages,
-            "calibration_dir": str(Path(args.calibration_dir).resolve()),
-            "calibration_batches": max(1, args.calibration_batches),
-            "cache_dir": str(Path(args.cache_dir).resolve()),
-            "algo": args.algo,
-            "enabled_precisions": args.enabled_precisions,
-            "int8_min_block_size": max(1, args.min_block_size),
-            "require_full_compilation": bool(args.require_full_compilation),
-            "calibration_format": args.calibration_format,
-            "allow_unsafe_stages": os.getenv(
-                "MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES",
-                "0",
-            ),
-            "torch_executed_ops": os.getenv(
-                "MUSETALK_TRT_STAGEWISE_INT8_TORCH_EXECUTED_OPS",
-                "group_norm",
-            ),
-        },
-    )
+        report = compare_vae_backend_outputs(
+            vae=vae,
+            backend=backend,
+            batch_latents=batch_latents,
+            backend_name="trt_stagewise_int8",
+            output_dir=output_dir,
+            extra_report_fields={
+                "status": "passed",
+                "backend_name": getattr(backend, "name", type(backend).__name__),
+                **experiment_metadata(args, stages, batch_size),
+            },
+        )
+    except Exception as exc:
+        write_failure_report(output_dir, args, stages, batch_size, exc)
+        return 1
 
     report_path = output_dir / "report.json"
     report_path.write_text(json.dumps(report, indent=2))
