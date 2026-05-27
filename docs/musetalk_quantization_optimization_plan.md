@@ -478,6 +478,98 @@ still the limiting loop:
 | `avg_compose` | `0.0612s` |
 | `avg_callback` | `0.0051s` |
 
+HLS session load test on the same five-stage INT8 server:
+
+- Date: 2026-05-26.
+- Command family: `load_test.py`.
+- Avatar: `test_avatar_2`.
+- Audio: `data/audio/ai-assistant.mpga`.
+- Request shape: `playback_fps=20`, `musetalk_fps=20`, request
+  `batch_size=8`.
+- Scheduler buckets: batch `8` only.
+- HLS encoder: `libx264`.
+- Report:
+  `tmp/load_tests/load_test_hls_3090_int8_5stage_20_20_4_5_6_8streams_batch8_test_avatar_2_20260526.json`.
+- Detailed report:
+  `tmp/load_tests/load_test_hls_3090_int8_5stage_20_20_4_5_6_8streams_batch8_test_avatar_2_20260526_detailed.json`.
+
+| Streams | Completed | Avg segment interval | Approx generated FPS | Avg live-ready | Max segment interval | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `1.091s` | `73.3` | `1.895s` | `1.555s` | `8325 MB` |
+| 5 | `5/5` | `1.397s` | `71.6` | `1.921s` | `2.537s` | `8335 MB` |
+| 6 | `6/6` | `1.703s` | `70.5` | `2.187s` | `3.077s` | `8345 MB` |
+| 8 | `8/8` | `2.278s` | `70.2` | `2.468s` | `4.610s` | `8367 MB` |
+
+Closest saved HLS references:
+
+- `load_test_report_20_20_4streams_8_16.json`: C4, `test_avatar`,
+  FP16-oriented `8,16` profile, avg segment interval `1.188s`.
+- `load_test_report_20_20_5streams_8_16.json`: C5, `test_avatar`,
+  FP16-oriented `8,16` profile, avg segment interval `1.477s`.
+
+The current INT8 run was modestly better at the comparable C4/C5 points:
+
+| Streams | Saved reference | Current five-stage INT8 | Direction |
+| ---: | ---: | ---: | ---: |
+| 4 | `1.188s`, about `67.3` generated FPS | `1.091s`, about `73.3` generated FPS | `~8.2%` lower interval, `~8.9%` higher generated FPS |
+| 5 | `1.477s`, about `67.7` generated FPS | `1.397s`, about `71.6` generated FPS | `~5.4%` lower interval, `~5.7%` higher generated FPS |
+
+Caveat:
+
+- An initial attempt to rerun the old `test_avatar` HLS shape on the live worker
+  returned `404` for every session, so the successful current run used
+  `test_avatar_2`.
+- The comparison is therefore directional, not a clean FP16-vs-INT8 A/B.
+- HLS segment cadence is also not the same metric as WebRTC frame receive
+  cadence. The "generated FPS" column is estimated as
+  `streams * musetalk_fps / avg_segment_interval`.
+
+Server-side HLS logs across this run averaged:
+
+| Metric | Average across 23 HLS sessions |
+| --- | ---: |
+| `avg_gpu_batch` | `0.1134s` |
+| `avg_unet` | `0.0472s` |
+| `avg_vae` | `0.0648s` |
+| `avg_compose` | `0.0575s` |
+| `avg_encode` | `0.1777s` |
+
+This explains why HLS gains remain small: after VAE INT8, HLS still pays a
+substantial per-chunk libx264 encode cost, while WebRTC does not use the HLS
+segment encoder path.
+
+Avatar portability validation:
+
+- The INT8 artifacts are VAE decoder stage engines, not avatar-specific assets.
+  The live cache names are stage and batch scoped, for example
+  `decoder_pre_bs8_minmax_onnx_qdq.plan` and
+  `decoder_up_block_2_bs8_minmax_onnx_qdq.plan`.
+- The calibration corpus was captured from real `pred_latents` generated during
+  `test_avatar_2` WebRTC requests. The payload metadata records
+  `avatar_id=test_avatar_2`, so the current corpus is not multi-avatar yet.
+- That calibration source affects how representative the INT8 activation ranges
+  are; it does not bake `test_avatar_2` frames, masks, coordinates, or avatar
+  latents into the TensorRT engines.
+- A second avatar, `int8_avatar_probe_ai`, was prepared from
+  `data/video/ai_test_default_moving_vid.mp4` on 2026-05-27.
+- A `/generate` smoke request for that second avatar completed successfully:
+  `gen_89a80670`.
+- Output:
+  `results/v15/avatars/int8_avatar_probe_ai/vid_output/int8_avatar_probe_ai_smoke.mp4.mp4`.
+- `ffprobe` confirmed the output contains H.264 video at `512x512` for
+  `7.95s` plus AAC audio for `8.00s`.
+- API logs during that request confirmed
+  `VAE decode timing backend=tensorrt_stagewise_int8_mixed`.
+
+Conclusion from this validation:
+
+- The current INT8 decoder should run for any prepared `v15` avatar that uses
+  the same MuseTalk/VAE decode path and an already-warmed supported batch size.
+- "Any avatar" is a runtime compatibility statement, not a universal visual
+  quality guarantee. For production confidence, the calibration corpus should be
+  expanded beyond `test_avatar_2` to include multiple avatars, face sizes,
+  lighting conditions, and speech patterns.
+
 Conclusion:
 
 - Expanding INT8 coverage improved VAE decode materially:
@@ -495,6 +587,9 @@ Conclusion:
   `20 fps` per stream beyond low concurrency. At 8 streams, the server is closer
   to `7 fps` per stream, so larger gains still require batch-16 recovery,
   reducing the VAE/postprocess loop further, and accelerating UNet.
+- The HLS session load path shows a small directional gain at the comparable
+  C4/C5 points, not a massive throughput jump. HLS now appears limited by the
+  combined GPU model pass plus libx264 segment encoding and queueing.
 
 ## Optimization Principles
 

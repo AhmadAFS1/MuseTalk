@@ -136,6 +136,58 @@ roughly into `0.0554s` UNet, `0.0650s` VAE, and `0.0612s` compose per stream.
 That means the VAE improvement is real, but the remaining WebRTC ceiling is
 still the shared model/compose loop rather than TURN signaling or HLS encoding.
 
+HLS session load test was then run on the same five-stage INT8 server with
+`test_avatar_2`, `data/audio/ai-assistant.mpga`, `20/20 fps`, and request
+`batch_size=8`:
+
+| Streams | Completed | Avg segment interval | Approx generated FPS | Avg live-ready | Max segment interval |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `1.091s` | `73.3` | `1.895s` | `1.555s` |
+| 5 | `5/5` | `1.397s` | `71.6` | `1.921s` | `2.537s` |
+| 6 | `6/6` | `1.703s` | `70.5` | `2.187s` | `3.077s` |
+| 8 | `8/8` | `2.278s` | `70.2` | `2.468s` | `4.610s` |
+
+Report artifacts:
+
+- `tmp/load_tests/load_test_hls_3090_int8_5stage_20_20_4_5_6_8streams_batch8_test_avatar_2_20260526.json`
+- `tmp/load_tests/load_test_hls_3090_int8_5stage_20_20_4_5_6_8streams_batch8_test_avatar_2_20260526_detailed.json`
+
+The closest saved HLS C4/C5 references were modestly slower:
+
+| Streams | Saved reference | Current five-stage INT8 |
+| ---: | ---: | ---: |
+| 4 | `1.188s`, about `67.3` generated FPS | `1.091s`, about `73.3` generated FPS |
+| 5 | `1.477s`, about `67.7` generated FPS | `1.397s`, about `71.6` generated FPS |
+
+This is a small directional gain, not a large breakthrough. The successful run
+used `test_avatar_2` because the live worker returned `404` for the old
+`test_avatar` HLS session shape, so it should not be treated as a perfect
+FP16-vs-INT8 A/B. HLS logs also show why the gain is muted: across the 23 HLS
+sessions, `avg_gpu_batch` was about `0.1134s`, while `avg_encode` was about
+`0.1777s` per chunk. The VAE is faster, but HLS segment encoding remains a big
+part of the observed session cadence.
+
+Avatar portability was validated on 2026-05-27:
+
+- The current INT8 engines are decoder-stage and batch-size artifacts, not
+  avatar-specific files.
+- The calibration corpus was captured from `test_avatar_2` `pred_latents`, so
+  it is currently representative of that avatar's UNet-output distribution
+  rather than a broad multi-avatar corpus.
+- A second avatar, `int8_avatar_probe_ai`, was prepared from
+  `data/video/ai_test_default_moving_vid.mp4`.
+- A `/generate` smoke request completed for that second avatar:
+  `gen_89a80670`.
+- Output:
+  `results/v15/avatars/int8_avatar_probe_ai/vid_output/int8_avatar_probe_ai_smoke.mp4.mp4`.
+- Logs confirmed the same live decoder path:
+  `backend=tensorrt_stagewise_int8_mixed`.
+
+Conclusion: the INT8 VAE decoder is not hard-bound to `test_avatar_2` and should
+run for other prepared `v15` avatars on the same model path. The remaining risk
+is visual robustness from single-avatar calibration coverage, not runtime
+compatibility.
+
 ## Recent Experiment Updates
 
 The direct GPU-resident conditioning experiment was tested in the shared HLS scheduler and then reverted.

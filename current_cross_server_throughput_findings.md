@@ -1196,6 +1196,80 @@ Operational read:
   time, with about `0.0554s` UNet, `0.0650s` VAE, and `0.0612s` compose. That
   points back to model-path and compose throughput, not WebRTC signaling.
 
+### RTX 3090 Five-Stage INT8 HLS Check - May 26, 2026
+
+The same live five-stage INT8 server was then tested through the HLS session
+load path.
+
+Runtime:
+
+- command family: `load_test.py`
+- avatar: `test_avatar_2`
+- audio: `data/audio/ai-assistant.mpga`
+- request shape: `20/20 fps`, request `batch_size=8`
+- scheduler fixed buckets: `8`
+- HLS encoder: `libx264`
+- ramp: `4,5,6,8`
+
+Reports:
+
+- `tmp/load_tests/load_test_hls_3090_int8_5stage_20_20_4_5_6_8streams_batch8_test_avatar_2_20260526.json`
+- `tmp/load_tests/load_test_hls_3090_int8_5stage_20_20_4_5_6_8streams_batch8_test_avatar_2_20260526_detailed.json`
+
+Results:
+
+| Streams | Completed | Avg segment interval | Approx generated FPS | Avg live-ready | Max segment interval | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `1.091s` | `73.3` | `1.895s` | `1.555s` | `8325 MB` |
+| 5 | `5/5` | `1.397s` | `71.6` | `1.921s` | `2.537s` | `8335 MB` |
+| 6 | `6/6` | `1.703s` | `70.5` | `2.187s` | `3.077s` | `8345 MB` |
+| 8 | `8/8` | `2.278s` | `70.2` | `2.468s` | `4.610s` | `8367 MB` |
+
+Closest saved HLS references:
+
+- C4: `load_test_report_20_20_4streams_8_16.json`
+  - avg segment interval `1.188s`
+  - approximate generated FPS `67.3`
+- C5: `load_test_report_20_20_5streams_8_16.json`
+  - avg segment interval `1.477s`
+  - approximate generated FPS `67.7`
+
+Comparison:
+
+| Streams | Saved HLS reference | Five-stage INT8 current | Direction |
+| ---: | ---: | ---: | ---: |
+| 4 | `1.188s`, `67.3` FPS | `1.091s`, `73.3` FPS | `+8.9%` approx generated FPS |
+| 5 | `1.477s`, `67.7` FPS | `1.397s`, `71.6` FPS | `+5.7%` approx generated FPS |
+
+Caveats:
+
+- The first attempt to reuse the old `test_avatar` HLS shape returned `404` on
+  this live worker, so the successful run used `test_avatar_2`.
+- The saved references used `test_avatar` and an `8,16` profile, while the
+  current INT8 server used `test_avatar_2` and batch `8` only.
+- This should be read as a directional HLS improvement, not a clean pure
+  FP16-vs-INT8 attribution.
+
+HLS server-side timing across the 23 completed sessions:
+
+| Metric | Average |
+| --- | ---: |
+| `avg_gpu_batch` | `0.1134s` |
+| `avg_unet` | `0.0472s` |
+| `avg_vae` | `0.0648s` |
+| `avg_compose` | `0.0575s` |
+| `avg_encode` | `0.1777s` |
+
+Operational read:
+
+- HLS did show a modest improvement at the C4/C5 points where saved references
+  exist.
+- The improvement is much smaller than a naive "INT8 should be huge" estimate
+  because HLS still pays libx264 segment encoding and queueing costs.
+- The current HLS generated-FPS band is about `70-73` for this run, while the
+  current WebRTC frame-receive band is about `56-58`. These are different
+  metrics and should not be compared as identical throughput counters.
+
 ## Current Practical Guidance
 
 For this cross-server branch:

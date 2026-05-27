@@ -363,6 +363,43 @@ This is better than the closest saved RTX 3090 WebRTC diagnostic reference
 (`45.5-47.6` aggregate FPS), but it is not a clean FP16-vs-INT8 A/B because the
 saved reference used a different avatar, `libx264`, and `8,16` buckets.
 
+Latest five-stage INT8 HLS validation on 2026-05-26:
+
+- command family: `load_test.py`
+- base URL: `http://127.0.0.1:8000`
+- avatar: `test_avatar_2`
+- audio: `data/audio/ai-assistant.mpga`
+- request shape: `20/20 fps`, request `batch_size=8`
+- ramp: `4,5,6,8`
+- HLS encoder: `libx264`
+- report:
+  `tmp/load_tests/load_test_hls_3090_int8_5stage_20_20_4_5_6_8streams_batch8_test_avatar_2_20260526.json`
+
+| Streams | Completed | Avg segment interval | Approx generated FPS | Avg live-ready | Max segment interval |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `1.091s` | `73.3` | `1.895s` | `1.555s` |
+| 5 | `5/5` | `1.397s` | `71.6` | `1.921s` | `2.537s` |
+| 6 | `6/6` | `1.703s` | `70.5` | `2.187s` | `3.077s` |
+| 8 | `8/8` | `2.278s` | `70.2` | `2.468s` | `4.610s` |
+
+Closest saved C4/C5 HLS references were `1.188s` and `1.477s` average segment
+interval, so this is a modest directional improvement. It is not a clean
+FP16-vs-INT8 A/B because the live worker returned `404` for the old
+`test_avatar` HLS shape and the successful run used `test_avatar_2`.
+
+Avatar portability note from 2026-05-27:
+
+- The live INT8 `.plan` files are stage/batch scoped, not avatar scoped.
+- Current calibration data was captured from `test_avatar_2` `pred_latents`, so
+  broaden the calibration corpus before treating this as fully production
+  representative.
+- Runtime compatibility was validated with a second prepared avatar:
+  `int8_avatar_probe_ai`, created from `data/video/ai_test_default_moving_vid.mp4`.
+- `/generate` request `gen_89a80670` completed successfully for that avatar and
+  logs confirmed `backend=tensorrt_stagewise_int8_mixed`.
+- Output:
+  `results/v15/avatars/int8_avatar_probe_ai/vid_output/int8_avatar_probe_ai_smoke.mp4.mp4`.
+
 Historical failed `torchscript_ptq` result:
 `decoder_up_block_0` and `decoder_up_block_1` crashed TensorRT PTQ calibration
 with CUDA illegal memory access at batch `8`; `decoder_up_block_1` also failed
