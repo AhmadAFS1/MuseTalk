@@ -591,6 +591,159 @@ Conclusion:
   C4/C5 points, not a massive throughput jump. HLS now appears limited by the
   combined GPU model pass plus libx264 segment encoding and queueing.
 
+## 2026-05-27 UNet And VAE Throughput Plan For WebRTC
+
+The next throughput push should treat the VAE decoder and MuseTalk UNet as a
+single shared GPU generation cycle, because WebRTC concurrency is capped by how
+quickly that loop can produce generated frames.
+
+Current live WebRTC reference on the RTX 3090-class node:
+
+| Metric | Current value |
+| --- | ---: |
+| request shape | `20/20 fps`, `batch_size=8` |
+| scheduler bucket | `8` only |
+| aggregate WebRTC FPS at 8 streams | about `55.9` |
+| per-stream FPS at 8 streams | about `7.0` |
+| `avg_gpu_batch` at 8 streams | about `0.1217s` |
+| `avg_unet` at 8 streams | about `0.0554s` |
+| `avg_vae` at 8 streams | about `0.0650s` |
+| `avg_compose` at 8 streams | about `0.0612s` |
+
+Capacity math:
+
+| Target | Required generated FPS | Gap vs current `55.9` FPS |
+| --- | ---: | ---: |
+| `4 x 20 fps` strict realtime | `80` | `1.43x` |
+| `6 x 20 fps` strict realtime | `120` | `2.15x` |
+| `8 x 20 fps` strict realtime | `160` | `2.86x` |
+| `10 x 20 fps` strict realtime | `200` | `3.58x` |
+
+This means another small VAE-only improvement will not make higher WebRTC
+concurrency feel easy. To make `6-8` concurrent streams smooth at `20 fps`, the
+system needs a multi-part speedup: UNet acceleration, VAE batch/boundary work,
+batch-16 recovery where memory allows, and eventually compose optimization if the
+model loop improves enough.
+
+### Component 1: VAE Decoder
+
+Current status:
+
+- The five-stage ONNX/QDQ INT8 decoder is the validated live VAE path.
+- The promoted stages are
+  `decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2`.
+- `decoder_up_block_3` and `decoder_postprocess` should remain out of the live
+  INT8 set because direct comparison showed visible color/texture regressions.
+- VAE decode still averages about `0.065s` per batch-8 WebRTC turn, so it remains
+  the largest single model component, but it is no longer the only meaningful
+  bottleneck.
+
+Highest-ROI VAE work:
+
+1. Debug exact batch `16` for the existing five safe INT8 stages before adding
+   more INT8 coverage.
+2. Build and validate batch `16` plans stage by stage, so the failing context is
+   isolated instead of treating `8,16` warmup as one opaque failure.
+3. Keep the rejected VAE stages in FP16/PyTorch unless a different quantization
+   method proves visual safety.
+4. Expand the calibration corpus across multiple avatars and speech patterns
+   before calling the current VAE INT8 path production-representative.
+5. Profile VAE boundary overhead separately: TensorRT stage bridge, tensor dtype
+   casts, CPU/NumPy postprocess, and crop handoff into composition.
+
+Expected impact:
+
+- VAE-only work can likely improve the current model cycle, but the remaining
+  safe VAE surface is limited.
+- The main VAE upside now comes from better batch residency and less boundary
+  overhead, not from blindly adding `decoder_up_block_3` or `decoder_postprocess`
+  to INT8.
+
+### Component 2: MuseTalk UNet
+
+Current status:
+
+- UNet is now close to the VAE decoder in the WebRTC GPU cycle:
+  `0.0554s` UNet vs `0.0650s` VAE at the latest 8-stream point.
+- It runs every generated batch and directly controls mouth motion, so it is the
+  next major model quantization/backend target.
+- The repo already has a UNet TensorRT export wrapper in `scripts/tensorrt_export.py`,
+  but the live server does not yet have a validated UNet TensorRT runtime path.
+- Previous `torch.compile`/CUDA graph attempts are not enough here; one live run
+  failed during CUDA graph capture. The next branch should prefer explicit
+  TensorRT/ONNX-style backend validation rather than relying on compile-only
+  acceleration.
+
+Required UNet calibration capture:
+
+```text
+latent_batch             # shape: (B, 8, 32, 32)
+audio_feature_batch      # shape: (B, 50, 384)
+timesteps                # usually tensor([0])
+pred_latents reference   # FP16 PyTorch UNet output
+avatar_id
+audio_id or request_id
+batch size
+```
+
+UNet implementation order:
+
+1. Add a scheduler-side UNet input/output capture flag next to the existing VAE
+   `pred_latents` calibration capture.
+2. Build a correctness harness that compares PyTorch FP16 UNet output against a
+   candidate backend on real captured batches.
+3. Attempt exact-batch FP16 TensorRT UNet at batch `8` first.
+4. Wire the UNet backend behind an opt-in runtime flag only after the isolated
+   harness passes.
+5. Run a lipsync smoke test through the current five-stage VAE INT8 decoder.
+6. Add mixed INT8 only after FP16 backend correctness and live runtime stability
+   are proven.
+7. Start UNet INT8 with convolution/residual-heavy blocks; keep attention,
+   normalization, timestep embedding, and output-sensitive layers in FP16 until
+   stage-level validation says otherwise.
+
+UNet quality gates:
+
+- Predicted latent MAE and max error must stay bounded on real scheduler inputs.
+- Decoded face crops through the current VAE INT8 path must remain visually close
+  to the FP16 UNet reference.
+- Full WebRTC lipsync must show no new mouth-shape drift, temporal jitter,
+  identity drift, or teeth/tongue artifacts.
+
+UNet performance gate:
+
+- A UNet backend branch should reduce `avg_unet` enough to move aggregate WebRTC
+  FPS, not merely improve an isolated synthetic benchmark.
+- A useful first target is `avg_unet <= 0.040s` at batch `8`.
+- For comfortable `6-8` WebRTC streams at `20 fps`, UNet acceleration must be
+  combined with VAE/batch improvements; UNet alone is not expected to close a
+  `2.86x` gap.
+
+### Updated Execution Order
+
+1. Keep the current five-stage VAE INT8 server as the visual baseline.
+2. Add UNet real-input calibration capture and a UNet correctness harness.
+3. Build FP16 UNet TensorRT or ONNX backend for exact batch `8`.
+4. Validate UNet backend output, then run one lipsync smoke and one WebRTC C4/C6
+   load test.
+5. In parallel, debug VAE batch `16` context creation for the existing safe INT8
+   stages.
+6. If batch `16` becomes stable, test `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16` for
+   WebRTC and compare C4/C6/C8 against the batch-8-only server.
+7. Only after FP16 UNet backend is stable, add UNet mixed INT8/FP16 one region at
+   a time.
+8. If the combined model cycle drops enough that `avg_compose` becomes the
+   limiter, begin the separate WebRTC compose optimization branch.
+
+Success criteria for the next milestone:
+
+| Milestone | Required result |
+| --- | --- |
+| C4 WebRTC | aggregate FPS near `80`, stable audio/video, no visual regression |
+| C6 WebRTC | aggregate FPS near `120`, acceptable startup latency |
+| C8 WebRTC | clear movement toward `160` aggregate FPS; if below target, quantify remaining gap |
+| quality | lip sync and mouth detail comparable to current five-stage VAE INT8 output |
+
 ## Optimization Principles
 
 1. **Optimize measured bottlenecks only**

@@ -1196,6 +1196,59 @@ Operational read:
   time, with about `0.0554s` UNet, `0.0650s` VAE, and `0.0612s` compose. That
   points back to model-path and compose throughput, not WebRTC signaling.
 
+### RTX 3090 WebRTC UNet/VAE Bottleneck Read - May 27, 2026
+
+The current WebRTC bottleneck should be treated as the combined `UNet -> VAE`
+model turn, not as a VAE-only problem.
+
+Current measured 8-stream shape:
+
+| Component | Average |
+| --- | ---: |
+| `avg_gpu_batch` | `0.1217s` |
+| `avg_unet` | `0.0554s` |
+| `avg_vae` | `0.0650s` |
+| `avg_compose` | `0.0612s` |
+| observed aggregate FPS | `55.9` |
+
+The VAE decoder remains the largest individual model component, but the UNet is
+now close enough that VAE-only work has diminishing returns. More importantly,
+strict WebRTC concurrency needs much larger aggregate FPS than the current server
+produces:
+
+| Target | Required generated FPS | Multiple vs current |
+| --- | ---: | ---: |
+| `4 x 20 fps` | `80` | `1.43x` |
+| `6 x 20 fps` | `120` | `2.15x` |
+| `8 x 20 fps` | `160` | `2.86x` |
+| `10 x 20 fps` | `200` | `3.58x` |
+
+Implications:
+
+- Quantizing the rejected VAE stages is not the right next move. They already
+  showed visible color/texture regressions.
+- The next high-ROI model branch is UNet backend acceleration, starting with
+  correctness-safe FP16 TensorRT or ONNX before any INT8 attempt.
+- UNet calibration must use real scheduler tensors:
+  `latent_batch`, `audio_feature_batch`, `timesteps`, and reference
+  `pred_latents`.
+- Batch `16` recovery for the existing safe VAE INT8 stages should run in
+  parallel, because larger stable buckets can improve aggregate FPS without
+  changing visual math.
+- If UNet plus VAE work gets the model cycle below the current limit, `avg_compose`
+  becomes the next likely WebRTC limiter and should be optimized as a separate
+  branch.
+
+Next WebRTC throughput milestone:
+
+1. Keep five-stage VAE INT8 as the baseline.
+2. Add UNet input/output capture and an isolated correctness harness.
+3. Validate exact-batch FP16 UNet backend at batch `8`.
+4. Run WebRTC C4/C6/C8 load tests with the same avatar/audio/TURN/local path.
+5. Add UNet mixed INT8/FP16 only after FP16 backend output and live lipsync pass.
+6. Separately debug VAE batch `16` context creation and test `8,16` buckets only
+   after warmup is stable.
+
 ### RTX 3090 Five-Stage INT8 HLS Check - May 26, 2026
 
 The same live five-stage INT8 server was then tested through the HLS session

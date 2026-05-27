@@ -400,6 +400,60 @@ Avatar portability note from 2026-05-27:
 - Output:
   `results/v15/avatars/int8_avatar_probe_ai/vid_output/int8_avatar_probe_ai_smoke.mp4.mp4`.
 
+### WebRTC Throughput Expansion Plan
+
+Update from 2026-05-27: after the five-stage VAE decoder INT8 pass, the next
+throughput work is no longer "quantize more VAE at any cost." The live WebRTC
+cycle is now split between the VAE decoder and MuseTalk UNet.
+
+Latest batch-8 WebRTC timing at the 8-stream point:
+
+```text
+avg_gpu_batch ~= 0.1217s
+avg_unet      ~= 0.0554s
+avg_vae       ~= 0.0650s
+avg_compose   ~= 0.0612s
+aggregate FPS ~= 55.9
+```
+
+Concurrency target math:
+
+| Target | Generated FPS needed | Current gap |
+| --- | ---: | ---: |
+| `4 x 20 fps` | `80` | `1.43x` |
+| `6 x 20 fps` | `120` | `2.15x` |
+| `8 x 20 fps` | `160` | `2.86x` |
+
+Operational conclusion:
+
+- The current VAE INT8 path is valid and visually good enough for continued use.
+- The rejected VAE stages, `decoder_up_block_3` and `decoder_postprocess`, should
+  stay out of the live INT8 list.
+- The next model target is the MuseTalk UNet, because it now consumes nearly as
+  much of the GPU generation turn as VAE decode.
+- Batch `16` recovery remains a parallel priority. If `8,16` can be warmed
+  reliably with the five safe INT8 VAE stages, it may raise aggregate throughput
+  as much as another model micro-optimization.
+
+Next execution order:
+
+1. Keep the current five-stage VAE INT8 server as the visual baseline.
+2. Add scheduler-side UNet capture for real `latent_batch`, `audio_feature_batch`,
+   `timesteps`, and FP16 `pred_latents`.
+3. Build a UNet correctness harness before any live server switch.
+4. Try exact-batch FP16 TensorRT or ONNX UNet at batch `8`.
+5. Only after FP16 UNet backend correctness passes, test mixed INT8/FP16 UNet.
+6. Debug VAE batch `16` context creation one stage at a time.
+7. Re-run WebRTC load tests at C4/C6/C8 and require both quality and aggregate FPS
+   gains before changing the default start profile.
+
+Useful first targets:
+
+- reduce `avg_unet` from about `0.055s` toward `0.040s` at batch `8`
+- keep VAE around or below the current `0.065s` batch-8 timing
+- get C4 WebRTC close to `80` aggregate FPS before claiming strict `4 x 20 fps`
+- move C6 toward `120` aggregate FPS before advertising easy higher concurrency
+
 Historical failed `torchscript_ptq` result:
 `decoder_up_block_0` and `decoder_up_block_1` crashed TensorRT PTQ calibration
 with CUDA illegal memory access at batch `8`; `decoder_up_block_1` also failed

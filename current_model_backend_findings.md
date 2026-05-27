@@ -188,6 +188,76 @@ run for other prepared `v15` avatars on the same model path. The remaining risk
 is visual robustness from single-avatar calibration coverage, not runtime
 compatibility.
 
+## 2026-05-27 UNet And VAE WebRTC Throughput Plan
+
+The next backend branch should optimize the two model components that now define
+the WebRTC generation ceiling: the five-stage INT8 VAE decoder and the MuseTalk
+UNet.
+
+Current model-cycle read from the latest RTX 3090 WebRTC run:
+
+| Component | Average at 8 streams |
+| --- | ---: |
+| `avg_gpu_batch` | `0.1217s` |
+| `avg_unet` | `0.0554s` |
+| `avg_vae` | `0.0650s` |
+| `avg_compose` | `0.0612s` |
+| aggregate WebRTC FPS | `55.9` |
+
+Capacity target:
+
+| WebRTC target | Aggregate generated FPS needed |
+| --- | ---: |
+| `4 x 20 fps` | `80` |
+| `6 x 20 fps` | `120` |
+| `8 x 20 fps` | `160` |
+
+This is the reason the next step cannot be another small VAE-only experiment.
+The current server needs roughly `2.9x` more aggregate generated FPS for strict
+`8 x 20 fps` service on one GPU. The validated five-stage VAE INT8 work was
+worth keeping, but it does not close that gap alone.
+
+Component analysis:
+
+- VAE decoder:
+  - currently the largest model substage at about `65 ms` per batch-8 turn
+  - already has five safe ONNX/QDQ INT8 stages live
+  - remaining candidate INT8 stages were rejected for visible artifacts
+  - next useful work is batch `16` recovery, calibration broadening, and boundary
+    overhead reduction
+- MuseTalk UNet:
+  - now close to the VAE decoder at about `55 ms` per batch-8 turn
+  - controls mouth motion and lip-sync, so it needs stricter quality gates than
+    the VAE decoder
+  - should be accelerated with a correctness-first FP16 backend before INT8
+  - should use real scheduler captures, not synthetic random tensors, for
+    validation and calibration
+
+Implementation order:
+
+1. Add scheduler-side UNet capture:
+   `latent_batch`, `audio_feature_batch`, `timesteps`, and FP16 `pred_latents`.
+2. Build a UNet correctness harness that compares candidate backend outputs
+   against PyTorch FP16 on captured scheduler batches.
+3. Attempt exact-batch FP16 TensorRT or ONNX UNet at batch `8`.
+4. Wire UNet backend activation behind an opt-in env flag only after isolated
+   correctness passes.
+5. Run `/generate` and WebRTC lipsync smoke tests through the current VAE INT8
+   decoder.
+6. Run WebRTC C4/C6/C8 load tests and compare aggregate FPS plus visual quality.
+7. Add UNet mixed INT8/FP16 only after FP16 backend is stable.
+8. Debug VAE batch `16` warmup/context creation in parallel and only enable
+   `8,16` serving buckets after exact warmup succeeds.
+
+Do not prioritize:
+
+- VAE encoder quantization, because cached-avatar WebRTC does not run the VAE
+  encoder per generated frame.
+- Whisper quantization, unless audio prep shows up as the measured bottleneck for
+  many short concurrent requests.
+- More VAE INT8 coverage in `decoder_up_block_3` or `decoder_postprocess` without
+  a new visual-safe quantization method.
+
 ## Recent Experiment Updates
 
 The direct GPU-resident conditioning experiment was tested in the shared HLS scheduler and then reverted.

@@ -139,6 +139,29 @@ Current acceleration-plan implication:
 - the first slice of that host-side refactor is now in code and already
   appears to have materially recovered the live HLS path
 
+WebRTC-specific acceleration update from 2026-05-27:
+
+- the live WebRTC bottleneck is now the shared batch generation cycle, not TURN,
+  signaling, or encode
+- on the current RTX 3090 five-stage VAE INT8 server, the 8-stream WebRTC run
+  averaged:
+  - `avg_gpu_batch ~= 0.1217s`
+  - `avg_unet ~= 0.0554s`
+  - `avg_vae ~= 0.0650s`
+  - `avg_compose ~= 0.0612s`
+  - aggregate FPS `~= 55.9`
+- strict `8 x 20 fps` WebRTC needs about `160` aggregate generated FPS, so the
+  current single-GPU path is about `2.86x` short before adding safety margin
+- the VAE decoder remains important, but further VAE-only INT8 expansion is now
+  lower ROI because the remaining rejected stages caused visible artifacts
+- the next model-backend branch for WebRTC should therefore be:
+  1. keep five-stage VAE INT8 as the visual baseline
+  2. add real UNet input/output capture in the scheduler
+  3. validate exact-batch FP16 UNet TensorRT or ONNX at batch `8`
+  4. only then attempt UNet mixed INT8/FP16
+  5. debug VAE batch `16` context creation in parallel
+  6. use C4/C6/C8 WebRTC load tests as the acceptance gate
+
 Acceleration-plan update:
 
 - that correctness branch has now produced a first working runtime path:
