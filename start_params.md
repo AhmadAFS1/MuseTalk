@@ -487,7 +487,8 @@ Next execution order:
 3. Build a UNet correctness harness before any live server switch.
 4. Try exact-batch FP16 TensorRT or ONNX UNet at batch `8`.
 5. Only after FP16 UNet backend correctness passes, test mixed INT8/FP16 UNet.
-6. Debug VAE batch `16` context creation one stage at a time.
+6. Keep the validated VAE `8,16` profile in the benchmark matrix while tracking
+   VRAM residency and tail frame intervals.
 7. Re-run WebRTC load tests at C4/C6/C8 and require both quality and aggregate FPS
    gains before changing the default start profile.
 
