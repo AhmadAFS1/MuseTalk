@@ -1196,6 +1196,60 @@ Operational read:
   time, with about `0.0554s` UNet, `0.0650s` VAE, and `0.0612s` compose. That
   points back to model-path and compose throughput, not WebRTC signaling.
 
+### RTX 3090 Five-Stage INT8 WebRTC `8,16` Bucket Check - May 27, 2026
+
+The live INT8 relay server was restarted with the batch-16 path enabled:
+
+- `HLS_SCHEDULER_MAX_BATCH=16`
+- `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16`
+- `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
+- active VAE backend: `tensorrt_stagewise_int8_mixed`
+- warmup proof: batch `8` ready in `23.03s`, batch `16` ready in `129.11s`,
+  total `152.14s`
+- `/stats` proof: `max_combined_batch_size=16`
+
+This does not require separate INT8 weights for batch `16`; it reuses the same
+five safe ONNX/QDQ INT8 decoder stages and calibration. The batch-specific part
+is TensorRT engine/profile/context availability for the larger shape.
+
+Reports:
+
+- `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_5_6_8streams_8_16_buckets_batch8_relay_20260527.json`
+- `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_5_6_8streams_8_16_buckets_batch8_relay_20260527_detailed.json`
+- C5 rerun used for the valid C5 point:
+  `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_5streams_8_16_buckets_batch8_relay_rerun_20260527.json`
+
+Results versus the previous batch-8-only INT8 WebRTC run:
+
+| Streams | Completed | Batch-8 agg FPS | `8,16` agg FPS | Delta | Avg live-ready | Max frame interval | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `58.0` | `64.5` | `+11.3%` | `4.681s` | `0.555s` | `17873 MB` |
+| 5 | `5/5` | `58.1` | `64.9` | `+11.7%` | `3.975s` | `0.854s` | `17895 MB` |
+| 6 | `6/6` | `56.6` | `65.2` | `+15.2%` | `4.809s` | `1.111s` | `17885 MB` |
+| 8 | `8/8` | `55.9` | `62.5` | `+11.7%` | `6.058s` | `1.905s` | `17895 MB` |
+
+Notes:
+
+- The first C5 row in the multi-stage ramp was invalid (`0/5` peer connections
+  ready), so the table uses the immediate single-stage C5 rerun.
+- Server logs confirmed real batch-16 scheduler turns, e.g.
+  `actual=16 padded=16`.
+- Peak VRAM moved from the prior batch-8-only test footprint of about `8.3 GB`
+  to about `17.9 GB`.
+- Latest batch-16 turns averaged roughly `0.20-0.21s` total GPU batch time with
+  about `0.07-0.08s` UNet, `0.128-0.129s` VAE, and `0.064-0.073s` compose.
+
+Operational read:
+
+- `8,16` is a real throughput win on this card, but only a moderate one
+  (`~11-15%`) and at a large residency cost.
+- The aggregate FPS band moves from `~56-58` to `~62-65`, still below the
+  strict WebRTC targets of `80`, `120`, and `160` aggregate FPS for `4`, `6`,
+  and `8` streams at `20 fps`.
+- Continue using `8,16` for high-throughput experiments when VRAM headroom
+  matters less than throughput, but do not treat it as enough for "easy"
+  multi-stream realtime by itself.
+
 ### RTX 3090 WebRTC UNet/VAE Bottleneck Read - May 27, 2026
 
 The current WebRTC bottleneck should be treated as the combined `UNet -> VAE`
@@ -1232,9 +1286,9 @@ Implications:
 - UNet calibration must use real scheduler tensors:
   `latent_batch`, `audio_feature_batch`, `timesteps`, and reference
   `pred_latents`.
-- Batch `16` recovery for the existing safe VAE INT8 stages should run in
-  parallel, because larger stable buckets can improve aggregate FPS without
-  changing visual math.
+- Batch `16` is now recovered for the existing safe VAE INT8 stages. Keep it in
+  the comparison matrix because it improves aggregate FPS without changing
+  visual math, but track its higher VRAM residency.
 - If UNet plus VAE work gets the model cycle below the current limit, `avg_compose`
   becomes the next likely WebRTC limiter and should be optimized as a separate
   branch.
@@ -1246,8 +1300,8 @@ Next WebRTC throughput milestone:
 3. Validate exact-batch FP16 UNet backend at batch `8`.
 4. Run WebRTC C4/C6/C8 load tests with the same avatar/audio/TURN/local path.
 5. Add UNet mixed INT8/FP16 only after FP16 backend output and live lipsync pass.
-6. Separately debug VAE batch `16` context creation and test `8,16` buckets only
-   after warmup is stable.
+6. Keep the now-validated VAE `8,16` profile in the comparison matrix, while
+   tracking its extra VRAM residency and tail frame intervals.
 
 ### RTX 3090 Five-Stage INT8 HLS Check - May 26, 2026
 

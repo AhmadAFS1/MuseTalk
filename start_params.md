@@ -212,10 +212,10 @@ MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_pre,decoder_mid_block,decoder_up_bloc
 MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR=./calibration/vae_decoder \
 MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_ALGO=minmax \
 MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR=./models/tensorrt/stagewise_int8_onnx_qdq_cache \
-MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8 \
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16 \
 MUSETALK_TRT_STAGEWISE_WORKSPACE_GB=2 \
-HLS_SCHEDULER_MAX_BATCH=8 \
-HLS_SCHEDULER_FIXED_BATCH_SIZES=8 \
+HLS_SCHEDULER_MAX_BATCH=16 \
+HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16 \
 bash scripts/run_trt_stagewise_server.sh --profile throughput_record
 ```
 
@@ -232,8 +232,9 @@ Current INT8 validation note from 2026-05-26:
   4-job concurrent test.
 - After expanding to five safe INT8 stages, VAE decode time fell to about
   `0.0765s` in `/generate` and about `0.066s` during the latest WebRTC ramp.
-- Keep the batch-8 cap until batch-16 stagewise context creation is fixed and
-  separately validated.
+- The batch-16 stagewise context is now fixed for the five-stage INT8 path.
+  Use `8,16` for throughput experiments when its roughly `17.9 GB` resident
+  footprint is acceptable; keep batch `8` as the conservative fallback.
 
 Expanded live INT8 stage list after the one-stage probes:
 
@@ -313,16 +314,28 @@ MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed
 MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq
 MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2
 MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR=./models/tensorrt/stagewise_int8_onnx_qdq_cache
-MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8
-HLS_SCHEDULER_MAX_BATCH=8
-HLS_SCHEDULER_FIXED_BATCH_SIZES=8
+MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16
+HLS_SCHEDULER_MAX_BATCH=16
+HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16
 ```
 
-Batch `16` is not enabled in the current live shape. A warmup with
-`MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16` reached the INT8 cache path but
-failed while creating a TensorRT execution context for one of the remaining FP16
-stagewise modules. Keep the scheduler capped at batch `8` until batch `16` is
-debugged separately.
+Batch `16` is now enabled in the current live INT8 WebRTC shape as of
+2026-05-27. The previous apparent failure was caused by the local relay env file
+pinning the live server to `HLS_SCHEDULER_MAX_BATCH=8`,
+`HLS_SCHEDULER_FIXED_BATCH_SIZES=8`, and
+`MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8`. Updating
+`.env.webrtc-turn.local` to `16`, `8,16`, and `8,16` allowed the same five safe
+INT8 decoder stages to warm batch `16` successfully:
+
+- `Stagewise TRT batch=8 ready in 23.03s`
+- `Stagewise TRT batch=16 ready in 129.11s`
+- `Stagewise TRT warmup complete (batches=[8, 16], total=152.14s)`
+- active backend: `tensorrt_stagewise_int8_mixed`
+- `/stats` scheduler cap: `max_combined_batch_size=16`
+
+No separate INT8 weights are required for batch `16`; the INT8 calibration and
+selected decoder stages are shared. The batch-specific work is TensorRT
+engine/profile/context warmup for the larger shape.
 
 Validated isolated `onnx_qdq` results at batch `8`:
 
@@ -362,6 +375,36 @@ Latest five-stage INT8 WebRTC validation on 2026-05-26:
 This is better than the closest saved RTX 3090 WebRTC diagnostic reference
 (`45.5-47.6` aggregate FPS), but it is not a clean FP16-vs-INT8 A/B because the
 saved reference used a different avatar, `libx264`, and `8,16` buckets.
+
+Latest five-stage INT8 WebRTC `8,16` bucket validation on 2026-05-27:
+
+- command family: `load_test_webrtc.py`
+- base URL: `http://127.0.0.1:8000`
+- avatar: `test_avatar_2`, warmed into cache in `3.38s`
+- audio: `data/audio/ai-assistant.mpga`
+- request shape: `20/20 fps`, request `batch_size=8`
+- server buckets: `HLS_SCHEDULER_MAX_BATCH=16`,
+  `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16`,
+  `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
+- server WebRTC encoder: `h264_nvenc`
+- report:
+  `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_5_6_8streams_8_16_buckets_batch8_relay_20260527.json`
+- corrected C5 rerun:
+  `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_5streams_8_16_buckets_batch8_relay_rerun_20260527.json`
+
+| Streams | Completed | Avg frame interval | Approx aggregate FPS | Delta vs batch-8-only | Avg live-ready | Max frame interval | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `0.062s` | `64.5` | `+11.3%` | `4.681s` | `0.555s` | `17873 MB` |
+| 5 | `5/5` | `0.077s` | `64.9` | `+11.7%` | `3.975s` | `0.854s` | `17895 MB` |
+| 6 | `6/6` | `0.092s` | `65.2` | `+15.2%` | `4.809s` | `1.111s` | `17885 MB` |
+| 8 | `8/8` | `0.128s` | `62.5` | `+11.7%` | `6.058s` | `1.905s` | `17895 MB` |
+
+The first C5 point in the combined ramp was a malformed WebRTC connection
+measurement (`0/5` peers ready). The single-stage C5 rerun above completed
+cleanly and is the valid C5 number. Server logs confirm the larger bucket was
+actually used during the runs, for example `GPU batch timing ... actual=16
+padded=16`. The cost is residency: peak VRAM rose from about `8.3 GB` in the
+batch-8-only run to about `17.9 GB` with `8,16` resident.
 
 Latest five-stage INT8 HLS validation on 2026-05-26:
 
@@ -431,9 +474,10 @@ Operational conclusion:
   stay out of the live INT8 list.
 - The next model target is the MuseTalk UNet, because it now consumes nearly as
   much of the GPU generation turn as VAE decode.
-- Batch `16` recovery remains a parallel priority. If `8,16` can be warmed
-  reliably with the five safe INT8 VAE stages, it may raise aggregate throughput
-  as much as another model micro-optimization.
+- Batch `16` is now recovered for the five safe INT8 VAE stages. The `8,16`
+  server profile raised WebRTC aggregate FPS by about `11-15%`, but increased
+  peak residency to about `17.9 GB`, so it is a useful throughput profile rather
+  than a full concurrency solution.
 
 Next execution order:
 

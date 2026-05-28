@@ -223,8 +223,11 @@ Component analysis:
   - currently the largest model substage at about `65 ms` per batch-8 turn
   - already has five safe ONNX/QDQ INT8 stages live
   - remaining candidate INT8 stages were rejected for visible artifacts
-  - next useful work is batch `16` recovery, calibration broadening, and boundary
-    overhead reduction
+  - batch `16` now starts successfully in the `8,16` WebRTC profile and improves
+    aggregate FPS by about `11-15%`, but raises peak residency to about
+    `17.9 GB`
+  - next useful work is calibration broadening, boundary overhead reduction, and
+    keeping the `8,16` profile in A/B tests while UNet acceleration proceeds
 - MuseTalk UNet:
   - now close to the VAE decoder at about `55 ms` per batch-8 turn
   - controls mouth motion and lip-sync, so it needs stricter quality gates than
@@ -246,8 +249,8 @@ Implementation order:
    decoder.
 6. Run WebRTC C4/C6/C8 load tests and compare aggregate FPS plus visual quality.
 7. Add UNet mixed INT8/FP16 only after FP16 backend is stable.
-8. Debug VAE batch `16` warmup/context creation in parallel and only enable
-   `8,16` serving buckets after exact warmup succeeds.
+8. Keep the now-working VAE `8,16` serving buckets in throughput A/B tests, with
+   VRAM residency and tail frame intervals tracked separately.
 
 Do not prioritize:
 

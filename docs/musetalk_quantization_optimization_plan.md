@@ -257,9 +257,10 @@ Recommended next INT8 direction:
 1. Keep `onnx_qdq` as the API INT8 frontend.
 2. Measure WebRTC/HLS throughput with the promoted five-stage INT8 set at
    batch `8`.
-3. Debug batch `16` separately before removing the temporary batch-8 scheduler
-   cap. A combined `8,16` warmup currently fails while creating a TensorRT
-   execution context for one of the remaining FP16 stagewise modules.
+3. Use the now-validated `8,16` WebRTC serving profile for higher-throughput
+   experiments, but track the VRAM cost separately from model speedup. The
+   batch-16 context does not need separate INT8 weights; it needs the live env
+   to warm the batch-16 TensorRT shape.
 4. Test `decoder_up_block_2` and `decoder_up_block_3` one at a time; only add
    them to the API if direct image comparison remains within tolerance.
 5. Keep `torchscript_ptq` behind the live-serving guard because that frontend is
@@ -289,7 +290,8 @@ Chat context captured in this update:
 - `ffprobe` confirms the smoke MP4 contains both tracks: H.264 video
   (`7.96s`) and AAC audio (`8.00s`).
 
-Validated live INT8 environment for the smoke and load tests:
+Initial two-stage live INT8 environment for the smoke test. Later sections
+supersede this for the five-stage load-test server:
 
 ```text
 MUSETALK_VAE_BACKEND=trt_stagewise
@@ -334,21 +336,19 @@ Measured result:
 Conclusion:
 
 - INT8 is genuinely running for the selected VAE decoder stages.
-- The VAE decoder itself is faster on the current batch-8 server.
-- The current end-to-end video generation path does not yet show a meaningful
-  throughput gain from this INT8 configuration. Sequential generation improved
-  slightly, but concurrent load regressed slightly.
-- The next throughput work should focus on removing the batch-8 cap, profiling
-  UNet/composition/encode/scheduler time under load, and then expanding INT8
-  stage coverage only after direct visual comparison.
+- The VAE decoder itself is faster on the batch-8 server, and the later `8,16`
+  profile adds another measured WebRTC throughput gain.
+- The end-to-end speedup is still moderate rather than massive because this is a
+  hybrid VAE-only INT8 path and the UNet/compose loop remains expensive.
+- The next throughput work should focus on UNet backend acceleration,
+  VAE/stage-boundary overhead, and composition timing under WebRTC load.
 
 Why the end-to-end speedup is small:
 
 - This is a hybrid experiment, not full-model INT8.
-- Only `decoder_up_block_0` and `decoder_up_block_1` are INT8 in the live API.
-- The VAE decoder `decoder_pre`, `decoder_mid_block`, `decoder_up_block_2`,
-  `decoder_up_block_3`, and `decoder_postprocess` are not yet in the live INT8
-  stage list.
+- The live API now uses five safe INT8 VAE decoder stages, but
+  `decoder_up_block_3` and `decoder_postprocess` remain FP16 because direct
+  comparison showed visible regressions.
 - The MuseTalk UNet is still not quantized, and it is still a major per-frame
   generation cost.
 - The VAE encoder is not the right live-throughput target for cached avatars;
@@ -356,20 +356,20 @@ Why the end-to-end speedup is small:
 - The measured INT8 saving was about `0.0105s` per VAE decode call. On the
   8-second smoke audio with about `25` decode calls, that is only about
   `0.26s` of possible request-level saving before scheduler and media overhead.
-- The current batch-8 cap, TensorRT ONNX/QDQ stage bridge, CPU composition, and
-  ffmpeg/muxing can hide or reverse small decoder-level gains under concurrent
-  load.
+- The recovered `8,16` bucket profile improves WebRTC aggregate FPS by about
+  `11-15%`, but TensorRT ONNX/QDQ stage bridge, CPU composition, and media
+  handoff still hide a large part of the decoder-only gain.
 
 Updated quantization direction:
 
-1. Keep the current WebRTC/API path on the validated
-   `decoder_up_block_0,decoder_up_block_1` INT8 decoder while testing visually.
-2. Run isolated ONNX/QDQ quality and timing probes for `decoder_mid_block`,
-   `decoder_up_block_2`, and `decoder_up_block_3` one at a time.
-3. Add any passing stages to the live `MUSETALK_TRT_STAGEWISE_INT8_STAGES` list
-   only after direct image comparison and a lipsync smoke test.
-4. Debug batch `16` warmup separately. Removing the batch-8 cap may matter as
-   much as adding another small INT8 decoder stage.
+1. Keep the current WebRTC/API path on the validated five-stage INT8 decoder:
+   `decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2`.
+2. Keep `decoder_up_block_3` and `decoder_postprocess` out of the live INT8
+   list unless a new quantization method passes direct visual comparison.
+3. Use the recovered `8,16` batch profile for throughput experiments where
+   `~17.9 GB` resident VRAM is acceptable.
+4. Expand the calibration corpus across multiple avatars and speech patterns
+   before calling the current VAE INT8 path production-representative.
 5. Start the second major branch: stable UNet backend acceleration first, then
    UNet mixed INT8/FP16 calibration. That is the likely path to a larger
    end-to-end speedup than VAE decoder-only quantization.
@@ -478,6 +478,63 @@ still the limiting loop:
 | `avg_compose` | `0.0612s` |
 | `avg_callback` | `0.0051s` |
 
+### 2026-05-27 INT8 `8,16` WebRTC Load Test
+
+The live server was restarted with the same five safe ONNX/QDQ decoder stages,
+but with batch `16` enabled in the relay/startup env:
+
+- `HLS_SCHEDULER_MAX_BATCH=16`
+- `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16`
+- `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
+- active backend: `tensorrt_stagewise_int8_mixed`
+- startup proof: batch `8` ready in `23.03s`, batch `16` ready in `129.11s`,
+  total stagewise warmup `152.14s`
+- scheduler proof: `/stats` reported `max_combined_batch_size=16`
+
+No new INT8 calibration set or avatar-specific INT8 weights were required.
+Batch `16` reuses the existing calibration/scales and selected INT8 stages; the
+additional requirement is a TensorRT engine/profile/context that accepts the
+larger batch shape.
+
+Load-test shape:
+
+- command family: `load_test_webrtc.py`
+- avatar: `test_avatar_2`, warmed into cache before the run
+- audio: `data/audio/ai-assistant.mpga`
+- WebRTC request: `playback_fps=20`, `musetalk_fps=20`, request `batch_size=8`
+- server WebRTC encoder: `h264_nvenc`
+- same-host WebRTC client against `http://127.0.0.1:8000`
+- report:
+  `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_5_6_8streams_8_16_buckets_batch8_relay_20260527.json`
+- corrected C5 rerun:
+  `tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_5streams_8_16_buckets_batch8_relay_rerun_20260527.json`
+
+Results compared with the previous batch-8-only INT8 WebRTC run:
+
+| Streams | Batch-8 agg FPS | `8,16` agg FPS | Delta | `8,16` avg frame interval | Avg live-ready | Max frame interval | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `58.0` | `64.5` | `+11.3%` | `0.062s` | `4.681s` | `0.555s` | `17873 MB` |
+| 5 | `58.1` | `64.9` | `+11.7%` | `0.077s` | `3.975s` | `0.854s` | `17895 MB` |
+| 6 | `56.6` | `65.2` | `+15.2%` | `0.092s` | `4.809s` | `1.111s` | `17885 MB` |
+| 8 | `55.9` | `62.5` | `+11.7%` | `0.128s` | `6.058s` | `1.905s` | `17895 MB` |
+
+The first C5 row in the multi-stage ramp was invalid because no peer
+connections became ready before the load harness fired; the single-stage C5
+rerun is the value in the table. Server logs confirmed real batch-16 turns,
+for example `GPU batch timing ... actual=16 padded=16`.
+
+Operational read:
+
+- `8,16` improves aggregate WebRTC FPS by about `11-15%` on this RTX 3090.
+- Peak resident VRAM rises from the batch-8-only `~8.3 GB` test footprint to
+  `~17.9 GB`.
+- The larger bucket still does not meet strict `20 fps` per stream beyond low
+  concurrency: C4 would need `80` aggregate FPS, and C8 would need `160`.
+- Latest scheduler timing during batch-16 turns is roughly
+  `avg_gpu_batch=0.20-0.21s`, `avg_unet=0.07-0.08s`,
+  `avg_vae=0.128-0.129s`, and `avg_compose=0.064-0.073s`, so the next large
+  throughput gain still needs UNet/backend work in addition to VAE batching.
+
 HLS session load test on the same five-stage INT8 server:
 
 - Date: 2026-05-26.
@@ -578,10 +635,10 @@ Conclusion:
 - End-to-end `/generate` throughput still does not move much because the VAE
   decoder is no longer enough of the total request wall time. The UNet,
   scheduler, composition, encoding/muxing, request polling granularity, and
-  batch-8 cap still dominate.
-- The next VAE-only experiment is batch `16` warmup/context debugging. The next
-  likely major throughput branch is UNet backend acceleration or UNet mixed
-  INT8/FP16.
+  serving overhead still dominate.
+- The later batch `16` recovery improved WebRTC aggregate FPS, but the next
+  likely major throughput branch is still UNet backend acceleration or UNet
+  mixed INT8/FP16.
 - The current five-stage INT8 WebRTC run is a real improvement over the saved
   RTX 3090 WebRTC diagnostic reference, but it still does not deliver strict
   `20 fps` per stream beyond low concurrency. At 8 streams, the server is closer
@@ -640,10 +697,10 @@ Current status:
 
 Highest-ROI VAE work:
 
-1. Debug exact batch `16` for the existing five safe INT8 stages before adding
-   more INT8 coverage.
-2. Build and validate batch `16` plans stage by stage, so the failing context is
-   isolated instead of treating `8,16` warmup as one opaque failure.
+1. Keep the `8,16` VAE serving profile in the WebRTC A/B matrix now that exact
+   batch `16` warms successfully.
+2. Track its VRAM residency and tail frame intervals separately from average
+   aggregate FPS.
 3. Keep the rejected VAE stages in FP16/PyTorch unless a different quantization
    method proves visual safety.
 4. Expand the calibration corpus across multiple avatars and speech patterns
@@ -726,13 +783,11 @@ UNet performance gate:
 3. Build FP16 UNet TensorRT or ONNX backend for exact batch `8`.
 4. Validate UNet backend output, then run one lipsync smoke and one WebRTC C4/C6
    load test.
-5. In parallel, debug VAE batch `16` context creation for the existing safe INT8
-   stages.
-6. If batch `16` becomes stable, test `HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16` for
-   WebRTC and compare C4/C6/C8 against the batch-8-only server.
-7. Only after FP16 UNet backend is stable, add UNet mixed INT8/FP16 one region at
+5. Keep the validated VAE `8,16` serving profile available for throughput
+   experiments, but monitor VRAM residency and tail frame intervals.
+6. Only after FP16 UNet backend is stable, add UNet mixed INT8/FP16 one region at
    a time.
-8. If the combined model cycle drops enough that `avg_compose` becomes the
+7. If the combined model cycle drops enough that `avg_compose` becomes the
    limiter, begin the separate WebRTC compose optimization branch.
 
 Success criteria for the next milestone:

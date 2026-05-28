@@ -154,12 +154,13 @@ WebRTC-specific acceleration update from 2026-05-27:
   current single-GPU path is about `2.86x` short before adding safety margin
 - the VAE decoder remains important, but further VAE-only INT8 expansion is now
   lower ROI because the remaining rejected stages caused visible artifacts
-- the next model-backend branch for WebRTC should therefore be:
+  - the next model-backend branch for WebRTC should therefore be:
   1. keep five-stage VAE INT8 as the visual baseline
   2. add real UNet input/output capture in the scheduler
   3. validate exact-batch FP16 UNet TensorRT or ONNX at batch `8`
   4. only then attempt UNet mixed INT8/FP16
-  5. debug VAE batch `16` context creation in parallel
+  5. keep the now-working VAE `8,16` profile in throughput A/B tests, with VRAM
+     residency tracked separately
   6. use C4/C6/C8 WebRTC load tests as the acceptance gate
 
 Acceleration-plan update:
