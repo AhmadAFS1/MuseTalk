@@ -1197,6 +1197,110 @@ http://194.228.55.129:37331/webrtc/wall
   current `PUBLIC_IPADDR`, `VAST_TCP_PORT_1455`, and `VAST_TCP_PORT_8000`, then
   restart with the relay-preserving `scripts/vast_server_ctl.sh` path.
 
+## 2026-05-29 Remaining Optimization ROI Read
+
+Current plan status:
+
+- Done:
+  - five-stage VAE decoder INT8 mixed path is live and visually acceptable
+  - batch `8,16` VAE TRT buckets are warmed and active
+  - UNet capture and validation tooling exists
+  - static batch-8 UNet TensorRT passed correctness
+  - live UNet runtime uses `tensorrt_unet_multi`, splitting batch-16 into two
+    validated batch-8 calls
+  - WebRTC/TURN relay is restored for public wall testing
+  - lipsync sample video was generated from the current stack and stored at
+    `docs/reference_videos/test_avatar_2_vae_int8_trt_unet_split8_sample_20260529.mp4`
+- Not done / intentionally not done:
+  - monolithic static batch-16 UNet TensorRT should stay disabled because it
+    failed validation: `mae_max=0.018293`, `max_abs_max=1.7588`
+  - VAE `decoder_up_block_3` and `decoder_postprocess` should not be forced into
+    INT8 live serving because previous attempts caused visible quality
+    regressions
+  - UNet INT8 should not start until a better FP16 batch-16 or partitioned UNet
+    path passes correctness
+
+Latest measured WebRTC timing with VAE INT8 + TRT UNet split8:
+
+| Metric | Mean |
+| --- | ---: |
+| `avg_gpu_batch` | `0.185s` |
+| `avg_unet` | `0.051s` |
+| `avg_vae` | `0.132s` |
+| `avg_compose` | `0.061s` |
+| `avg_compose_wait` | `0.000s` |
+| `avg_callback` | `0.004s` |
+| `avg_encode` | `0.000s` |
+
+Best ROI ranking:
+
+1. **VAE decode/postprocess path**
+   - Highest ROI because `avg_vae` is now the largest single measured stage.
+   - It is about `71%` of `avg_gpu_batch`.
+   - The current `decode_latents()` path still returns CPU NumPy BGR frames:
+     GPU tensor -> CPU copy -> NHWC float -> uint8 -> RGB/BGR flip.
+   - Next validation step should enable VAE decode timing and split:
+     `tensor decode` vs `CPU postprocess/copy`.
+   - Highest-probability implementation branch is not "more unsafe INT8"; it is
+     reducing CPU roundtrip/postprocess overhead and keeping more of the decoded
+     crop path tensor-side until composition.
+
+2. **VAE stage scheduling / overlap**
+   - If VAE tensor decode remains the dominant part after timing, investigate
+     overlapping UNet, VAE, and compose better instead of only making individual
+     kernels faster.
+   - Current `avg_compose_wait=0.000s`, so compose workers are not backed up,
+     but model and compose are still serially staged per produced batch.
+   - ROI becomes higher if VAE cannot be further quantized safely.
+
+3. **Partitioned UNet TensorRT**
+   - Medium ROI now. UNet has already dropped from `0.078s` to `0.051s`.
+   - A perfect zero-cost UNet would only remove about `0.051s` from the current
+     `0.185s` turn; useful, but smaller than the VAE opportunity.
+   - Next UNet branch should be partitioned/static correctness work, not live
+     batch-16 monolithic TRT or INT8.
+
+4. **Tail jitter / playback scheduling**
+   - Necessary for product smoothness, but lower raw-throughput ROI than VAE.
+   - C4/C6/C8 completed with no failures, but max frame intervals still reached
+     `0.433s`, `0.927s`, and `1.699s`.
+   - Treat this as a parallel reliability track after model-stage time is
+     reduced, because average FPS is still model-limited.
+
+5. **CPU compose worker tuning / encode**
+   - Low ROI right now.
+   - `avg_compose_wait=0.000s`; compose is not queued.
+   - WebRTC path has `avg_encode=0.000s`; NVENC/libx264 work is not in this
+     live WebRTC bottleneck.
+   - Worker-count tuning alone is unlikely to produce the missing 2x throughput.
+
+Throughput implication:
+
+- Current best WebRTC aggregate is about `71-72 FPS`.
+- Strict targets are still `80 FPS` for C4, `120 FPS` for C6, and `160 FPS` for
+  C8.
+- Hitting C4 likely needs a modest VAE/postprocess win.
+- Hitting C6/C8 likely needs a larger architecture change: much faster VAE,
+  better overlap, lighter output path, lower render FPS/resolution, or more GPU
+  capacity. UNet-only work cannot plausibly close that whole gap now.
+
+Next concrete experiment:
+
+1. Restart once with current VAE INT8 + TRT UNet split8 plus:
+
+```text
+MUSETALK_VAE_DECODE_TIMING=1
+MUSETALK_VAE_DECODE_TIMING_SYNC=1
+MUSETALK_VAE_DECODE_TIMING_LOG_INTERVAL=25
+```
+
+2. Run a short C4/C6 WebRTC test.
+3. Record `avg_tensor`, `avg_post`, and `avg_total` from VAE logs.
+4. If `avg_post` is significant, implement GPU-side postprocess / compose input
+   path first.
+5. If `avg_tensor` dominates, investigate VAE stage overlap or safer FP16/INT8
+   rebuild options before returning to UNet work.
+
 ## Related Docs
 
 - [`current_start_param_reference.md`](./current_start_param_reference.md)
