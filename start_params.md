@@ -1301,6 +1301,97 @@ MUSETALK_VAE_DECODE_TIMING_LOG_INTERVAL=25
 5. If `avg_tensor` dominates, investigate VAE stage overlap or safer FP16/INT8
    rebuild options before returning to UNet work.
 
+### 2026-05-29 Fast VAE Postprocess Result
+
+Implemented the first VAE decode/postprocess optimization from the ROI plan.
+`musetalk/models/vae.py` now defaults `MUSETALK_VAE_FAST_POSTPROCESS=1`, which
+does scale/round/clamp/uint8 conversion and RGB-to-BGR channel flip while the
+decoded crop is still a CUDA tensor, then copies compact NHWC `uint8` data back
+to CPU. `MUSETALK_VAE_FAST_POSTPROCESS=0` keeps the old NumPy path available as
+a rollback switch.
+
+Correctness check:
+
+- random-tensor equivalence against the old path: exact match, `max_diff=0`
+- `py_compile musetalk/models/vae.py`: passed
+
+Standalone postprocess microbenchmark:
+
+| Batch | Old NumPy CPU path | New tensor-side path |
+| ---: | ---: | ---: |
+| `8` | `11.97ms` | `0.27ms` |
+| `16` | `35.07ms` | `0.44ms` |
+
+Live server was restarted with:
+
+```text
+MUSETALK_VAE_FAST_POSTPROCESS=1
+MUSETALK_VAE_DECODE_TIMING=1
+MUSETALK_VAE_DECODE_TIMING_SYNC=1
+MUSETALK_VAE_BACKEND=trt_stagewise
+MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed
+MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2
+HLS_SCHEDULER_MAX_BATCH=16
+HLS_SCHEDULER_FIXED_BATCH_SIZES=8,16
+MUSETALK_UNET_BACKEND=trt
+MUSETALK_TRT_UNET_ENABLED=1
+MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_static_bs8_20260529/unet_trt.ts
+```
+
+Server logs confirmed:
+
+- `VAE decode backend active: tensorrt_stagewise_int8_mixed`
+- `UNet backend active: tensorrt_unet_multi`
+
+Before this change, the latest comparable VAE timing was:
+
+```text
+calls=400 avg_tensor=0.1245s avg_post=0.0069s avg_total=0.1314s
+```
+
+After this change:
+
+```text
+calls=400 avg_tensor=0.1254s avg_post=0.0009s avg_total=0.1263s
+```
+
+So the postprocess slice dropped by about `6ms` per VAE decode call, and total
+VAE decode dropped about `5ms` per call. The tensor decode itself is still the
+dominant cost.
+
+WebRTC C4/C6/C8 load test, same host and same request shape:
+
+- report:
+  `tmp/load_tests/load_test_webrtc_3090_int8_trt_unet_split8_fast_vae_post_20_20_4_6_8streams_8_16_buckets_batch8_300w_20260529.json`
+- detail report:
+  `tmp/load_tests/load_test_webrtc_3090_int8_trt_unet_split8_fast_vae_post_20_20_4_6_8streams_8_16_buckets_batch8_300w_20260529_detailed.json`
+
+| Streams | Previous aggregate FPS | New aggregate FPS | Previous max interval | New max interval | Avg live-ready |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| `4` | `71.4` | `71.4` | `0.433s` | `0.263s` | `3.876s` |
+| `6` | `72.3` | `72.3` | `0.927s` | `0.997s` | `4.384s` |
+| `8` | `70.8` | `72.1` | `1.699s` | `1.552s` | `5.876s` |
+
+Scheduler timing average over the 18 WebRTC streams in this run:
+
+| Metric | Previous | New |
+| --- | ---: | ---: |
+| `avg_gpu_batch` | `0.1848s` | `0.1809s` |
+| `avg_unet` | `0.0511s` | `0.0525s` |
+| `avg_vae` | `0.1313s` | `0.1262s` |
+| `avg_compose` | `0.0631s` | `0.0557s` |
+| `avg_callback` | `0.0043s` | `0.0046s` |
+
+Conclusion:
+
+- Keep `MUSETALK_VAE_FAST_POSTPROCESS=1`; it is exact-equivalent for the tested
+  conversion and removes most of the CPU/NumPy postprocess overhead.
+- The end-to-end throughput gain is small, about `0-2%` by WebRTC aggregate FPS,
+  because the live bottleneck is still mostly VAE tensor decode plus serial
+  scheduling.
+- Next VAE work should focus on reducing or overlapping the `avg_tensor`
+  portion, not further CPU postprocess tuning.
+
 ## Related Docs
 
 - [`current_start_param_reference.md`](./current_start_param_reference.md)

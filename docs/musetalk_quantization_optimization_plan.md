@@ -1294,3 +1294,46 @@ Resume sequence after Vast restart:
 
 5. Disable capture, enable the opt-in UNet TRT runtime, run one lipsync smoke,
    then run WebRTC C4/C6/C8 load tests.
+
+## 2026-05-29 VAE Postprocess Optimization Update
+
+The CUDA blocker above was resolved after moving back to a healthy worker. The
+current live stack is now:
+
+- five-stage VAE INT8 decoder with `8,16` warmed buckets
+- static batch-8 TensorRT UNet runtime, splitting larger scheduler batches into
+  validated batch-8 calls
+- TURN relay path restored for public WebRTC wall tests
+
+Implemented and tested the first VAE postprocess optimization:
+
+- `musetalk/models/vae.py` now defaults `MUSETALK_VAE_FAST_POSTPROCESS=1`
+- decoded tensors are scaled, rounded, clamped, converted to `uint8`, and
+  flipped RGB-to-BGR on GPU before the CPU copy
+- `MUSETALK_VAE_FAST_POSTPROCESS=0` keeps the old NumPy postprocess path as a
+  rollback switch
+
+Validation:
+
+- random-tensor equivalence with the old path: exact match, `max_diff=0`
+- postprocess-only microbenchmark:
+  - batch `8`: `11.97ms` -> `0.27ms`
+  - batch `16`: `35.07ms` -> `0.44ms`
+- live VAE timing before:
+  `avg_tensor=0.1245s avg_post=0.0069s avg_total=0.1314s`
+- live VAE timing after:
+  `avg_tensor=0.1254s avg_post=0.0009s avg_total=0.1263s`
+
+WebRTC C4/C6/C8 after the fast postprocess path:
+
+| Streams | Completed | Aggregate FPS | Max frame interval |
+| ---: | ---: | ---: | ---: |
+| `4` | `4/4` | `71.4` | `0.263s` |
+| `6` | `6/6` | `72.3` | `0.997s` |
+| `8` | `8/8` | `72.1` | `1.552s` |
+
+The optimization is worth keeping because it removes almost all CPU/NumPy
+postprocess overhead, but it is not a major throughput unlock by itself. The
+VAE tensor decode is still about `125ms` per live decode call, so the next VAE
+work should target tensor decode reduction, VAE stage scheduling/overlap, or a
+larger output-path architecture change rather than more CPU postprocess tuning.

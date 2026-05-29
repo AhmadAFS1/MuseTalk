@@ -29,6 +29,7 @@ def _env_int(name: str, default: int) -> int:
 MUSETALK_VAE_DECODE_TIMING = _env_bool("MUSETALK_VAE_DECODE_TIMING", True)
 MUSETALK_VAE_DECODE_TIMING_SYNC = _env_bool("MUSETALK_VAE_DECODE_TIMING_SYNC", True)
 MUSETALK_VAE_DECODE_TIMING_LOG_INTERVAL = max(0, _env_int("MUSETALK_VAE_DECODE_TIMING_LOG_INTERVAL", 25))
+MUSETALK_VAE_FAST_POSTPROCESS = _env_bool("MUSETALK_VAE_FAST_POSTPROCESS", True)
 
 
 class VAE():
@@ -162,9 +163,27 @@ class VAE():
        
 
         post_started_at = time.perf_counter()
-        image = image.detach().cpu().permute(0, 2, 3, 1).float().numpy()
-        image = (image * 255).round().astype("uint8")
-        image = image[...,::-1] # RGB to BGR
+        if MUSETALK_VAE_FAST_POSTPROCESS:
+            # Scale and convert while the tensor is still on GPU. This copies
+            # uint8 NHWC BGR to CPU instead of copying fp16/fp32 NCHW and doing
+            # the per-pixel conversion in NumPy.
+            image = (
+                image.detach()
+                .float()
+                .mul(255)
+                .round()
+                .clamp_(0, 255)
+                .to(torch.uint8)
+                .flip(1)
+                .permute(0, 2, 3, 1)
+                .contiguous()
+                .cpu()
+                .numpy()
+            )
+        else:
+            image = image.detach().cpu().permute(0, 2, 3, 1).float().numpy()
+            image = (image * 255).round().astype("uint8")
+            image = image[...,::-1] # RGB to BGR
         post_s = time.perf_counter() - post_started_at
         total_s = time.perf_counter() - decode_started_at
         if MUSETALK_VAE_DECODE_TIMING:
