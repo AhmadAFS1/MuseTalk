@@ -1303,6 +1303,16 @@ Next WebRTC throughput milestone:
 6. Keep the now-validated VAE `8,16` profile in the comparison matrix, while
    tracking its extra VRAM residency and tail frame intervals.
 
+2026-05-29 implementation note:
+
+- UNet input/output capture is now implemented behind
+  `MUSETALK_UNET_CALIBRATION_CAPTURE=1`.
+- The isolated harness is now `scripts/validate_unet_backend.py`.
+- `scripts/tensorrt_export.py --components unet` now has capture-aware export
+  examples and post-export validation flags for the FP16 UNet TRT candidate.
+- An opt-in UNet TensorRT runtime hook exists, but it should stay disabled until
+  the FP16 candidate passes capture-based validation and a lipsync smoke test.
+
 ### RTX 3090 Five-Stage INT8 HLS Check - May 26, 2026
 
 The same live five-stage INT8 server was then tested through the HLS session

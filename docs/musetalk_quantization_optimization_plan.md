@@ -682,6 +682,19 @@ system needs a multi-part speedup: UNet acceleration, VAE batch/boundary work,
 batch-16 recovery where memory allows, and eventually compose optimization if the
 model loop improves enough.
 
+Plain-English component map:
+
+- WebRTC is the live pipe to the browser.
+- The scheduler batches work from multiple streams so the GPU can process more
+  frames per turn.
+- UNet predicts the mouth/face latent from the avatar latent and audio features.
+- The VAE decoder paints that latent back into a face crop.
+- Compose pastes the generated crop into the avatar frame.
+- TensorRT is the optimized runtime; FP16 is the safer fast path, INT8 is the
+  smaller/faster path that needs calibration and visual gates.
+- Calibration capture saves real tensors from the live path so optimized
+  backends can be tested against known-good PyTorch outputs.
+
 ### Component 1: VAE Decoder
 
 Current status:
@@ -758,6 +771,52 @@ UNet implementation order:
 7. Start UNet INT8 with convolution/residual-heavy blocks; keep attention,
    normalization, timestep embedding, and output-sensitive layers in FP16 until
    stage-level validation says otherwise.
+
+2026-05-29 implementation status:
+
+- Step 1 is implemented in `scripts/hls_gpu_scheduler.py` behind
+  `MUSETALK_UNET_CALIBRATION_CAPTURE=1`.
+- Step 2 is implemented as `scripts/validate_unet_backend.py`. It can compare
+  saved scheduler references against either the PyTorch UNet path or a serialized
+  TensorRT UNet candidate.
+- Step 3 is wired into `scripts/tensorrt_export.py`: `--unet-capture-dir` uses
+  captured WebRTC tensors for UNet export examples, and
+  `--validate-unet-capture-dir` runs post-export validation against those same
+  captures.
+- Step 4 has initial opt-in runtime plumbing in `scripts/trt_runtime.py` and
+  `scripts/avatar_manager_parallel.py`, guarded by `MUSETALK_UNET_BACKEND=trt`
+  or `MUSETALK_TRT_UNET_ENABLED=1`.
+- The opt-in runtime must remain disabled until a real UNet TRT artifact passes
+  validation on captured scheduler batches.
+
+Useful commands for the next run:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/validate_unet_backend.py \
+  --capture-dir ./calibration/unet \
+  --backend pytorch \
+  --limit 8 \
+  --report-path tmp/unet_pytorch_reference_validation.json
+
+/workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/tensorrt_export.py \
+  --components unet \
+  --batch-sizes 8,16 \
+  --output-dir ./models/tensorrt \
+  --precision fp16 \
+  --save-format exported_program \
+  --unet-capture-dir ./calibration/unet \
+  --validate-unet-capture-dir ./calibration/unet \
+  --validate-unet-limit 8 \
+  --validate-unet-report-path tmp/unet_trt_fp16_validation.json \
+  --require-valid-unet
+
+/workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/validate_unet_backend.py \
+  --capture-dir ./calibration/unet \
+  --backend trt \
+  --trt-path ./models/tensorrt/unet_trt.ts \
+  --limit 8 \
+  --report-path tmp/unet_trt_fp16_validation.json
+```
 
 UNet quality gates:
 

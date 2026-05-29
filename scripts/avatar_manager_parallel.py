@@ -19,7 +19,7 @@ from scripts.api_avatar import APIAvatar  # ✅ Use new API-friendly class
 from scripts.concurrent_gpu_manager import GPUMemoryManager
 from scripts.avatar_cache import AvatarCache
 from scripts.avatar_s3_store import AvatarS3Store
-from scripts.trt_runtime import load_vae_trt_decoder
+from scripts.trt_runtime import load_unet_trt_backend, load_vae_trt_decoder
 
 
 class ParallelAvatarManager:
@@ -40,6 +40,8 @@ class ParallelAvatarManager:
         self.vae_dtype = torch.float16
         self.eager_unet_model = None
         self.eager_vae_model = None
+        self.unet_backend = None
+        self.unet_backend_name = "pytorch"
         
         max_live_generations = max(1, int(os.getenv("LIVE_MAX_CONCURRENT_GENERATIONS", "1")))
 
@@ -207,6 +209,7 @@ class ParallelAvatarManager:
         
         print("✅ Models loaded!")
         
+        self._activate_unet_backend()
         self.compile_models()
         self._warm_runtime_paths()
 
@@ -326,6 +329,17 @@ class ParallelAvatarManager:
                 return False
         return True
 
+    def _activate_unet_backend(self):
+        self.unet_backend = load_unet_trt_backend(device=self.device)
+        if self.unet_backend is None:
+            print("ℹ️  UNet backend: PyTorch")
+            return
+
+        self.unet.model = self.unet_backend
+        self.unet_backend_name = getattr(self.unet_backend, "name", "tensorrt_unet")
+        self.unet_compiled = False
+        print(f"✅ UNet backend active: {self.unet_backend_name}")
+
     def compile_models(self):
         """Compile UNet and VAE with per-module fallback instead of all-or-nothing restore."""
         if not self._env_enabled("MUSETALK_COMPILE", "0"):
@@ -348,7 +362,12 @@ class ParallelAvatarManager:
         if hasattr(torch, "_dynamo"):
             torch._dynamo.reset()
 
-        if self._env_enabled("MUSETALK_COMPILE_UNET", "1"):
+        if self.unet_backend is not None:
+            print(
+                "ℹ️  UNet compile skipped "
+                f"({self.unet_backend_name} backend active)"
+            )
+        elif self._env_enabled("MUSETALK_COMPILE_UNET", "1"):
             compiled_unet, unet_mode = self._compile_module_with_fallback(
                 label="UNet",
                 module=eager_unet_model,

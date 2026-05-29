@@ -252,6 +252,39 @@ Implementation order:
 8. Keep the now-working VAE `8,16` serving buckets in throughput A/B tests, with
    VRAM residency and tail frame intervals tracked separately.
 
+2026-05-29 repo update:
+
+- Scheduler-side UNet capture is now available with
+  `MUSETALK_UNET_CALIBRATION_CAPTURE=1`, writing `unet_io_*.pt` files under
+  `MUSETALK_UNET_CALIBRATION_DIR` (default `./calibration/unet`).
+- `scripts/validate_unet_backend.py` is the new correctness/benchmark harness
+  for captured UNet batches. It supports `--backend pytorch` for reference
+  reproducibility and `--backend trt` for a serialized FP16 TensorRT candidate.
+- `scripts/tensorrt_export.py --components unet` now supports
+  `--unet-capture-dir` and `--validate-unet-capture-dir`, so the FP16 UNet TRT
+  candidate can be built with real scheduler example tensors and validated in
+  the same export command.
+- `scripts/trt_runtime.py` now has an opt-in `TrtUnetBackend`, and
+  `scripts/avatar_manager_parallel.py` can attach it when
+  `MUSETALK_UNET_BACKEND=trt` or `MUSETALK_TRT_UNET_ENABLED=1` is set.
+- The live default remains PyTorch UNet until a TensorRT UNet artifact passes the
+  capture-based validation gate and a lipsync smoke test.
+- TensorRT runtime loading now honors `MUSETALK_TRT_FALLBACK=0` for CUDA
+  unavailability, so a requested VAE/UNet TensorRT backend should fail loudly
+  instead of quietly becoming a CPU/PyTorch run.
+- On 2026-05-29, the local worker hit a host/container CUDA state where
+  `nvidia-smi` listed the RTX 3090 but `libcuda.cuInit(0)` returned `999`.
+  Treat that as an infrastructure blocker, not a model/backend result.
+
+Plain-English bottleneck read:
+
+- UNet decides what mouth shape to generate from audio.
+- VAE decoder paints that latent mouth/face prediction into pixels.
+- Compose pastes the generated crop back onto the avatar frame.
+- WebRTC handoff streams the finished frames to the browser.
+- After five-stage VAE INT8 and `8,16` buckets, the bottleneck is the combined
+  `UNet -> VAE -> compose` loop, not a single VAE-only problem.
+
 Do not prioritize:
 
 - VAE encoder quantization, because cached-avatar WebRTC does not run the VAE

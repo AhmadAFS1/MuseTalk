@@ -112,6 +112,10 @@ def _requested_vae_backend() -> str:
     return os.getenv("MUSETALK_VAE_BACKEND", "").strip().lower()
 
 
+def _requested_unet_backend() -> str:
+    return os.getenv("MUSETALK_UNET_BACKEND", "").strip().lower()
+
+
 def _trt_vae_requested() -> bool:
     requested_backend = _requested_vae_backend()
     if requested_backend in {"trt", "tensorrt", "trt_stagewise", "tensorrt_stagewise"}:
@@ -119,6 +123,13 @@ def _trt_vae_requested() -> bool:
     return _env_enabled("MUSETALK_TRT_ENABLED", "0") or _env_enabled(
         "MUSETALK_TRT_VAE_ENABLED", "0"
     )
+
+
+def _trt_unet_requested() -> bool:
+    requested_backend = _requested_unet_backend()
+    if requested_backend in {"trt", "tensorrt"}:
+        return True
+    return _env_enabled("MUSETALK_TRT_UNET_ENABLED", "0")
 
 
 def _stagewise_backend_requested() -> bool:
@@ -148,6 +159,24 @@ def _trt_vae_path() -> Path:
 def _trt_vae_meta_path(engine_path: Path) -> Path:
     default_meta = engine_path.with_name("vae_decoder_trt_meta.json")
     return Path(os.getenv("MUSETALK_TRT_VAE_META_PATH", str(default_meta)))
+
+
+def _trt_unet_path() -> Path:
+    return Path(os.getenv("MUSETALK_TRT_UNET_PATH", str(_trt_dir() / "unet_trt.ts")))
+
+
+def _trt_unet_meta_path(engine_path: Path) -> Path:
+    default_meta = engine_path.with_name("unet_trt_meta.json")
+    return Path(os.getenv("MUSETALK_TRT_UNET_META_PATH", str(default_meta)))
+
+
+def _parse_torch_dtype(raw_value: object, default: torch.dtype = torch.float16) -> torch.dtype:
+    value = str(raw_value or "").replace("torch.", "").strip().lower()
+    if value in {"fp16", "float16", "half"}:
+        return torch.float16
+    if value in {"fp32", "float32", "float"}:
+        return torch.float32
+    return default
 
 
 def _resolve_path(base_dir: Path, value: str) -> Path:
@@ -1199,6 +1228,200 @@ class StagewiseTrtVaeDecodeBackend:
         return current
 
 
+class _UNetBackendOutput:
+    def __init__(self, sample: torch.Tensor):
+        self.sample = sample
+
+
+class TrtUnetBackend(torch.nn.Module):
+    """
+    Opt-in runtime wrapper for a serialized TensorRT MuseTalk UNet.
+
+    The exported UNet graph accepts the same real scheduler inputs captured by
+    `MUSETALK_UNET_CALIBRATION_CAPTURE`, except timesteps are baked into the
+    export wrapper. The public call signature still matches diffusers-style
+    UNet usage so existing scheduler code can keep reading `.sample`.
+    """
+
+    name = "tensorrt_unet"
+
+    def __init__(
+        self,
+        module,
+        device: torch.device,
+        runtime_dtype: torch.dtype = torch.float16,
+        batch_range: Optional[tuple[int, int]] = None,
+        opt_batch: Optional[int] = None,
+    ):
+        super().__init__()
+        self.module = module
+        self.device = device
+        self.runtime_dtype = runtime_dtype
+        self.batch_range = batch_range
+        self.opt_batch = opt_batch
+        self.dtype = runtime_dtype
+
+    @staticmethod
+    def _coerce_output(output) -> torch.Tensor:
+        if isinstance(output, torch.Tensor):
+            return output
+        if hasattr(output, "sample") and isinstance(output.sample, torch.Tensor):
+            return output.sample
+        if isinstance(output, (tuple, list)) and output:
+            tensor = output[0]
+            if isinstance(tensor, torch.Tensor):
+                return tensor
+        raise RuntimeError(f"Unexpected TensorRT UNet output type: {type(output).__name__}")
+
+    @classmethod
+    def load(
+        cls,
+        engine_path: Path,
+        meta_path: Path,
+        device: torch.device,
+    ) -> "TrtUnetBackend":
+        meta = {}
+        if meta_path.exists():
+            meta = json.loads(meta_path.read_text())
+
+        logger.info("Loading TensorRT UNet from %s", engine_path)
+        module = _load_serialized_trt_module(engine_path=engine_path, device=device)
+
+        batch_range = None
+        raw_batch_range = meta.get("batch_range")
+        if isinstance(raw_batch_range, list) and len(raw_batch_range) == 2:
+            try:
+                batch_range = (int(raw_batch_range[0]), int(raw_batch_range[1]))
+            except Exception:
+                batch_range = None
+
+        opt_batch = meta.get("opt_batch")
+        try:
+            opt_batch = int(opt_batch) if opt_batch is not None else None
+        except Exception:
+            opt_batch = None
+
+        backend = cls(
+            module=module,
+            device=device,
+            runtime_dtype=_parse_torch_dtype(meta.get("dtype"), torch.float16),
+            batch_range=batch_range,
+            opt_batch=opt_batch,
+        )
+        backend.warmup()
+        return backend
+
+    @torch.no_grad()
+    def warmup(self) -> None:
+        warmup_batch = self.opt_batch or 1
+        if self.batch_range is not None:
+            warmup_batch = max(self.batch_range[0], min(warmup_batch, self.batch_range[1]))
+        dummy_latents = torch.randn(
+            warmup_batch,
+            8,
+            32,
+            32,
+            device=self.device,
+            dtype=self.runtime_dtype,
+        )
+        dummy_audio = torch.randn(
+            warmup_batch,
+            50,
+            384,
+            device=self.device,
+            dtype=self.runtime_dtype,
+        )
+        output = self.module(dummy_latents, dummy_audio)
+        output = self._coerce_output(output)
+        if output.dim() != 4 or output.shape[1:] != (4, 32, 32):
+            raise RuntimeError(
+                f"Unexpected TensorRT UNet warmup output shape: {tuple(output.shape)}"
+            )
+        if self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
+
+    @torch.no_grad()
+    def forward(
+        self,
+        latent: torch.Tensor,
+        timesteps=None,
+        *,
+        encoder_hidden_states: Optional[torch.Tensor] = None,
+    ) -> _UNetBackendOutput:
+        del timesteps
+        if encoder_hidden_states is None:
+            raise RuntimeError("TensorRT UNet backend requires encoder_hidden_states")
+
+        batch_size = int(latent.shape[0])
+        if self.batch_range is not None:
+            min_batch, max_batch = self.batch_range
+            if not (min_batch <= batch_size <= max_batch):
+                raise RuntimeError(
+                    "TensorRT UNet engine batch support mismatch: "
+                    f"got batch={batch_size}, supported range=[{min_batch}, {max_batch}]."
+                )
+
+        model_latent = latent.to(device=self.device, dtype=self.runtime_dtype)
+        model_audio = encoder_hidden_states.to(device=self.device, dtype=self.runtime_dtype)
+        output = self.module(model_latent, model_audio)
+        return _UNetBackendOutput(self._coerce_output(output))
+
+
+def load_unet_trt_backend(
+    device: Optional[torch.device] = None,
+    trt_dir: Optional[Path] = None,
+    force: bool = False,
+):
+    """
+    Load a TensorRT UNet backend when explicitly requested.
+
+    The returned module is call-compatible with the current scheduler's
+    `unet.model(...).sample` path. It returns `None` when disabled or, with
+    fallback enabled, when the artifact cannot be loaded. With fallback disabled,
+    activation failures are raised.
+    """
+    if not force and not _trt_unet_requested():
+        return None
+
+    resolved_device = device or torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    if resolved_device.type != "cuda":
+        message = "TensorRT UNet requested, but CUDA is unavailable"
+        if _allow_fallback():
+            logger.warning("%s; using PyTorch UNet", message)
+            return None
+        raise RuntimeError(message)
+
+    if trt_dir is not None:
+        os.environ["MUSETALK_TRT_DIR"] = str(Path(trt_dir).resolve())
+
+    engine_path = _trt_unet_path()
+    meta_path = _trt_unet_meta_path(engine_path)
+    if not engine_path.exists():
+        message = f"TensorRT UNet engine not found: {engine_path}"
+        if _allow_fallback():
+            logger.warning("%s; falling back to PyTorch UNet", message)
+            return None
+        raise FileNotFoundError(message)
+
+    try:
+        backend = TrtUnetBackend.load(
+            engine_path=engine_path,
+            meta_path=meta_path,
+            device=resolved_device,
+        )
+        logger.info("TensorRT UNet backend is active")
+        return backend
+    except Exception as exc:
+        if _allow_fallback():
+            logger.warning(
+                "Failed to activate TensorRT UNet backend (%s: %s); falling back to PyTorch UNet",
+                type(exc).__name__,
+                exc,
+            )
+            return None
+        raise
+
+
 class TrtVaeDecodeBackend:
     """
     Wrapper around a TorchScript TensorRT VAE decoder.
@@ -1498,16 +1721,20 @@ def load_vae_trt_decoder(
     """
     Load the TensorRT VAE decoder backend when explicitly requested.
 
-    Returns `None` when the backend is disabled or unavailable, so the caller
-    can continue using the standard PyTorch VAE path.
+    Returns `None` when the backend is disabled or, with fallback enabled,
+    unavailable. With fallback disabled, activation failures are raised so the
+    caller does not silently run a non-TRT path.
     """
     if not force and not _trt_vae_requested():
         return None
 
     resolved_device = device or torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if resolved_device.type != "cuda":
-        logger.warning("TensorRT VAE requested, but CUDA is unavailable; using PyTorch VAE")
-        return None
+        message = "TensorRT VAE requested, but CUDA is unavailable"
+        if _allow_fallback():
+            logger.warning("%s; using PyTorch VAE", message)
+            return None
+        raise RuntimeError(message)
 
     if trt_dir is not None:
         os.environ["MUSETALK_TRT_DIR"] = str(Path(trt_dir).resolve())

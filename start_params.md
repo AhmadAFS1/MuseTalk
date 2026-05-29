@@ -499,6 +499,126 @@ Useful first targets:
 - get C4 WebRTC close to `80` aggregate FPS before claiming strict `4 x 20 fps`
 - move C6 toward `120` aggregate FPS before advertising easy higher concurrency
 
+### Plain-English Pipeline Map
+
+For the current WebRTC path, think of each live stream as asking the GPU to make
+one mouth-synced face crop per frame:
+
+- WebRTC is the live browser video pipe. It is how the generated frames reach the
+  wall without waiting for a completed MP4.
+- The shared scheduler is the traffic controller. It gathers frame work from
+  several sessions and sends it to the GPU in buckets like `8` or `16` frames.
+- Audio features are the mouth-movement clues extracted from the audio.
+- UNet is the mouth-motion predictor. It takes the current avatar latent plus
+  audio features and predicts the next mouth/face latent.
+- The VAE decoder is the image painter. It turns UNet's small latent tensor back
+  into an RGB face crop.
+- Compose is the paste step. It puts the generated face crop back into the avatar
+  frame.
+- Frame callback/WebRTC handoff is the delivery step. It pushes composed frames
+  to the live video track.
+- TensorRT is the optimized runtime. FP16 is half precision; INT8 is smaller and
+  potentially faster, but only safe when calibration and visual checks pass.
+- Calibration capture means saving real tensors from live traffic so a new
+  backend can be compared against known-good PyTorch output.
+
+### 2026-05-29 UNet Backend Implementation Update
+
+The repo now has the first correctness-first UNet backend plumbing:
+
+- `scripts/hls_gpu_scheduler.py` can capture real UNet inputs/outputs with:
+
+```text
+MUSETALK_UNET_CALIBRATION_CAPTURE=1
+MUSETALK_UNET_CALIBRATION_DIR=./calibration/unet
+MUSETALK_UNET_CALIBRATION_MAX_BATCHES=64
+```
+
+- Captured files are `unet_io_*.pt` and include `latent_batch`,
+  `audio_feature_batch`, `timesteps`, FP16 `pred_latents`, actual/padded batch
+  sizes, and avatar/request metadata.
+- `scripts/validate_unet_backend.py` validates either PyTorch or TensorRT UNet
+  candidates against those captures.
+- `scripts/tensorrt_export.py --components unet` can now use those captures as
+  TensorRT export example tensors via `--unet-capture-dir`, then run post-export
+  capture validation via `--validate-unet-capture-dir`.
+- `scripts/trt_runtime.py` and `scripts/avatar_manager_parallel.py` now include
+  an opt-in UNet TensorRT runtime path. It stays off until explicitly enabled:
+
+```text
+MUSETALK_UNET_BACKEND=trt
+MUSETALK_TRT_UNET_ENABLED=1
+MUSETALK_TRT_UNET_PATH=./models/tensorrt/unet_trt.ts
+MUSETALK_TRT_UNET_META_PATH=./models/tensorrt/unet_trt_meta.json
+```
+
+Operational guardrail:
+
+- `scripts/trt_runtime.py` now refuses to silently run a requested TensorRT
+  backend on CPU when `MUSETALK_TRT_FALLBACK=0`.
+- On 2026-05-29, after a restart attempt for UNet capture, this worker's CUDA
+  driver API returned `CUDA_ERROR_UNKNOWN` / `cuInit 999` even though
+  `nvidia-smi` still saw the RTX 3090. In that state, do not run WebRTC
+  throughput tests because the server cannot be the INT8 GPU baseline.
+- If this appears again, verify with:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python - <<'PY'
+import ctypes, torch
+print("torch_cuda", torch.cuda.is_available())
+print("cuInit", ctypes.CDLL("libcuda.so.1").cuInit(0))
+PY
+```
+
+  A container/instance restart is the likely fix when `cuInit` returns `999`.
+
+Next concrete run order:
+
+1. Restart once with UNet capture enabled while keeping the current five-stage
+   VAE INT8 `8,16` profile.
+2. Run a short representative WebRTC wall session to write `./calibration/unet`
+   captures.
+3. Validate the saved PyTorch reference path:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/validate_unet_backend.py \
+  --capture-dir ./calibration/unet \
+  --backend pytorch \
+  --limit 8 \
+  --report-path tmp/unet_pytorch_reference_validation.json
+```
+
+4. Export an FP16 UNet TensorRT candidate for the same buckets:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/tensorrt_export.py \
+  --components unet \
+  --batch-sizes 8,16 \
+  --output-dir ./models/tensorrt \
+  --precision fp16 \
+  --save-format exported_program \
+  --unet-capture-dir ./calibration/unet \
+  --validate-unet-capture-dir ./calibration/unet \
+  --validate-unet-limit 8 \
+  --validate-unet-report-path tmp/unet_trt_fp16_validation.json \
+  --require-valid-unet
+```
+
+5. If a separate validation run is needed, validate the TensorRT candidate
+   against the same captures:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/validate_unet_backend.py \
+  --capture-dir ./calibration/unet \
+  --backend trt \
+  --trt-path ./models/tensorrt/unet_trt.ts \
+  --limit 8 \
+  --report-path tmp/unet_trt_fp16_validation.json
+```
+
+6. Only if validation is clean, enable the UNet TRT runtime for one lipsync smoke
+   test, then WebRTC C4/C6/C8 load tests.
+
 Historical failed `torchscript_ptq` result:
 `decoder_up_block_0` and `decoder_up_block_1` crashed TensorRT PTQ calibration
 with CUDA illegal memory access at batch `8`; `decoder_up_block_1` also failed

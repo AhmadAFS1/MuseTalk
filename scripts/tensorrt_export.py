@@ -1,12 +1,13 @@
 import argparse
 import json
 import logging
+import math
 import os
 import pickle
 import sys
 import time
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 import torch
 from torch.export import ExportedProgram
@@ -497,6 +498,145 @@ def update_json(path: Path, payload: dict) -> None:
     write_json(path, current)
 
 
+def _repeat_batch_to_size(tensor: torch.Tensor, target_batch_size: int) -> torch.Tensor:
+    if tensor.shape[0] <= 0:
+        raise RuntimeError("Cannot build an example input from an empty captured tensor")
+    if tensor.shape[0] >= target_batch_size:
+        return tensor[:target_batch_size].contiguous()
+    repeat_factor = math.ceil(target_batch_size / tensor.shape[0])
+    repeat_shape = [repeat_factor] + [1] * (tensor.dim() - 1)
+    return tensor.repeat(*repeat_shape)[:target_batch_size].contiguous()
+
+
+def make_unet_example_inputs_from_captures(
+    capture_dir: Path,
+    target_batch_size: int,
+    device: torch.device,
+    precision: torch.dtype,
+) -> tuple[list[torch.Tensor], str]:
+    """
+    Build TensorRT example tensors from real scheduler UNet captures.
+
+    Values do not calibrate FP16 TensorRT, but using real tensors avoids tracing
+    on synthetic ranges and keeps export/validation shapes tied to WebRTC.
+    """
+    paths = sorted(capture_dir.glob("unet_io_*.pt"))
+    if not paths:
+        raise FileNotFoundError(f"No UNet capture files found in {capture_dir}")
+
+    best_payload = None
+    best_path = None
+    best_score = None
+    for path in paths:
+        payload = torch.load(path, map_location="cpu")
+        if payload.get("kind") != "unet_io_batch":
+            continue
+        latent = payload.get("latent_batch")
+        audio = payload.get("audio_feature_batch")
+        if not isinstance(latent, torch.Tensor) or not isinstance(audio, torch.Tensor):
+            continue
+        if tuple(latent.shape[1:]) != (UNET_LATENT_C, LATENT_H, LATENT_W):
+            continue
+        if tuple(audio.shape[1:]) != (AUDIO_SEQ_LEN, AUDIO_DIM):
+            continue
+        batch = int(latent.shape[0])
+        if batch <= 0:
+            continue
+        # Prefer exact batch captures, then larger batches that can be sliced,
+        # then smaller batches that need repetition.
+        if batch == target_batch_size:
+            score = (0, 0)
+        elif batch > target_batch_size:
+            score = (1, batch - target_batch_size)
+        else:
+            score = (2, target_batch_size - batch)
+        if best_score is None or score < best_score:
+            best_payload = payload
+            best_path = path
+            best_score = score
+
+    if best_payload is None or best_path is None:
+        raise RuntimeError(f"No usable UNet capture payloads found in {capture_dir}")
+
+    latent = _repeat_batch_to_size(best_payload["latent_batch"], target_batch_size).to(
+        device=device,
+        dtype=precision,
+    )
+    audio = _repeat_batch_to_size(best_payload["audio_feature_batch"], target_batch_size).to(
+        device=device,
+        dtype=precision,
+    )
+    source = (
+        f"{best_path} batch={best_payload['latent_batch'].shape[0]} "
+        f"target_batch={target_batch_size}"
+    )
+    return [latent, audio], source
+
+
+def validate_exported_unet(
+    engine_path: Path,
+    capture_dir: Path,
+    report_path: Path,
+    device: torch.device,
+    precision: torch.dtype,
+    limit: int,
+    actual_only: bool,
+    warmup: int,
+    iters: int,
+    max_mae: float,
+    max_abs: float,
+) -> dict:
+    from scripts.validate_unet_backend import (
+        discover_captures,
+        load_backend,
+        summarize,
+        validate_capture,
+    )
+
+    paths = discover_captures(capture_dir, limit)
+    if not paths:
+        raise FileNotFoundError(f"No UNet capture files found in {capture_dir}")
+
+    validation_args = argparse.Namespace(
+        backend="trt",
+        trt_path=str(engine_path),
+        unet_model_path=default_unet_model_path(),
+        unet_config=default_unet_config_path(),
+        vae_type="sd-vae",
+        actual_only=actual_only,
+        warmup=warmup,
+        iters=iters,
+    )
+    run_backend = load_backend(validation_args, device=device, precision=precision)
+    rows = [
+        validate_capture(path, run_backend, validation_args, device=device, precision=precision)
+        for path in paths
+    ]
+    summary = summarize(rows)
+    passed = True
+    if max_mae > 0 and summary.get("mae_max", 0.0) > max_mae:
+        passed = False
+    if max_abs > 0 and summary.get("max_abs_max", 0.0) > max_abs:
+        passed = False
+
+    report = {
+        "backend": "trt",
+        "engine_path": str(engine_path.resolve()),
+        "capture_dir": str(capture_dir),
+        "precision": str(precision).replace("torch.", ""),
+        "limit": int(limit),
+        "actual_only": bool(actual_only),
+        "max_mae": float(max_mae),
+        "max_abs": float(max_abs),
+        "passed": bool(passed),
+        "summary": summary,
+        "files": rows,
+    }
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(report, indent=2))
+    return report
+
+
 def export_unet(
     unet_module: torch.nn.Module,
     output_dir: Path,
@@ -507,6 +647,9 @@ def export_unet(
     save_format: str,
     precision: torch.dtype,
     torch_executed_ops=None,
+    trace_inputs: Optional[list[torch.Tensor]] = None,
+    save_inputs: Optional[list[torch.Tensor]] = None,
+    example_source: str = "synthetic_random",
 ) -> Path:
     torch_tensorrt = require_torch_tensorrt()
 
@@ -530,43 +673,47 @@ def export_unet(
     ]
 
     engine_path = output_dir / "unet_trt.ts"
+    if trace_inputs is None:
+        trace_inputs = [
+            torch.randn(
+                opt_bs,
+                UNET_LATENT_C,
+                LATENT_H,
+                LATENT_W,
+                device=device,
+                dtype=precision,
+            ),
+            torch.randn(
+                opt_bs,
+                AUDIO_SEQ_LEN,
+                AUDIO_DIM,
+                device=device,
+                dtype=precision,
+            ),
+        ]
+    if save_inputs is None:
+        save_inputs = [
+            torch.randn(
+                min_bs,
+                UNET_LATENT_C,
+                LATENT_H,
+                LATENT_W,
+                device=device,
+                dtype=precision,
+            ),
+            torch.randn(
+                min_bs,
+                AUDIO_SEQ_LEN,
+                AUDIO_DIM,
+                device=device,
+                dtype=precision,
+            ),
+        ]
     engine_path, resolved_save_format = compile_trt_module(
         module=wrapper,
         inputs=inputs,
-        trace_inputs=[
-            torch.randn(
-                opt_bs,
-                UNET_LATENT_C,
-                LATENT_H,
-                LATENT_W,
-                device=device,
-                dtype=precision,
-            ),
-            torch.randn(
-                opt_bs,
-                AUDIO_SEQ_LEN,
-                AUDIO_DIM,
-                device=device,
-                dtype=precision,
-            ),
-        ],
-        save_inputs=[
-            torch.randn(
-                min_bs,
-                UNET_LATENT_C,
-                LATENT_H,
-                LATENT_W,
-                device=device,
-                dtype=precision,
-            ),
-            torch.randn(
-                min_bs,
-                AUDIO_SEQ_LEN,
-                AUDIO_DIM,
-                device=device,
-                dtype=precision,
-            ),
-        ],
+        trace_inputs=trace_inputs,
+        save_inputs=save_inputs,
         save_path=engine_path,
         workspace_gb=workspace_gb,
         min_block_size=min_block_size,
@@ -582,6 +729,7 @@ def export_unet(
         "encoder_hidden_states_shape": [AUDIO_SEQ_LEN, AUDIO_DIM],
         "dtype": str(precision).replace("torch.", ""),
         "save_format": resolved_save_format,
+        "example_source": example_source,
     }
     write_json(output_dir / "unet_trt_meta.json", meta)
     return engine_path
@@ -1012,6 +1160,55 @@ def build_parser() -> argparse.ArgumentParser:
         help="Fail the export if post-export VAE validation exceeds --validate-max-mae.",
     )
     parser.add_argument(
+        "--unet-capture-dir",
+        default="",
+        help=(
+            "Optional directory of scheduler unet_io_*.pt captures. When set, "
+            "UNet export trace/save examples are built from real WebRTC tensors."
+        ),
+    )
+    parser.add_argument(
+        "--validate-unet-capture-dir",
+        default="",
+        help=(
+            "Optional directory of scheduler unet_io_*.pt captures used to validate "
+            "the exported UNet TensorRT artifact. Defaults to --unet-capture-dir when set."
+        ),
+    )
+    parser.add_argument(
+        "--validate-unet-limit",
+        type=int,
+        default=8,
+        help="Maximum number of UNet capture files to validate after export.",
+    )
+    parser.add_argument(
+        "--validate-unet-max-mae",
+        type=float,
+        default=0.01,
+        help="Maximum acceptable per-file MAE for UNet TensorRT validation.",
+    )
+    parser.add_argument(
+        "--validate-unet-max-abs",
+        type=float,
+        default=0.5,
+        help="Maximum acceptable per-file max_abs for UNet TensorRT validation.",
+    )
+    parser.add_argument(
+        "--validate-unet-actual-only",
+        action="store_true",
+        help="Validate only real rows from each capture and ignore padded rows.",
+    )
+    parser.add_argument(
+        "--validate-unet-report-path",
+        default="",
+        help="Optional JSON path for the post-export UNet validation report.",
+    )
+    parser.add_argument(
+        "--require-valid-unet",
+        action="store_true",
+        help="Fail the export if post-export UNet validation fails.",
+    )
+    parser.add_argument(
         "--torch-executed-op",
         action="append",
         default=[],
@@ -1219,6 +1416,40 @@ def main() -> int:
                 )
 
     if args.components in {"unet", "all"}:
+        unet_trace_inputs = None
+        unet_save_inputs = None
+        unet_example_source = "synthetic_random"
+        unet_capture_dir = args.unet_capture_dir.strip()
+        if unet_capture_dir:
+            capture_dir = Path(unet_capture_dir)
+            min_bs = min(args.batch_sizes)
+            opt_bs = args.batch_sizes[len(args.batch_sizes) // 2]
+            try:
+                unet_trace_inputs, trace_source = make_unet_example_inputs_from_captures(
+                    capture_dir=capture_dir,
+                    target_batch_size=opt_bs,
+                    device=device,
+                    precision=precision,
+                )
+                unet_save_inputs, save_source = make_unet_example_inputs_from_captures(
+                    capture_dir=capture_dir,
+                    target_batch_size=min_bs,
+                    device=device,
+                    precision=precision,
+                )
+                unet_example_source = (
+                    f"captures trace=({trace_source}) save=({save_source})"
+                )
+                logger.info("Using UNet capture examples: %s", unet_example_source)
+            except Exception as exc:
+                logger.error(
+                    "Failed to build UNet export examples from captures %s: %s: %s",
+                    capture_dir,
+                    type(exc).__name__,
+                    exc,
+                )
+                return 1
+
         exported_paths["unet"] = export_unet(
             unet_module=unet.model,
             output_dir=output_dir,
@@ -1229,7 +1460,74 @@ def main() -> int:
             save_format=args.save_format,
             precision=precision,
             torch_executed_ops=torch_executed_ops,
+            trace_inputs=unet_trace_inputs,
+            save_inputs=unet_save_inputs,
+            example_source=unet_example_source,
         )
+        validate_unet_capture_dir = (
+            args.validate_unet_capture_dir.strip() or args.unet_capture_dir.strip()
+        )
+        if validate_unet_capture_dir:
+            report_path = (
+                Path(args.validate_unet_report_path)
+                if args.validate_unet_report_path.strip()
+                else output_dir / "validation" / "unet_report.json"
+            )
+            try:
+                validation_report = validate_exported_unet(
+                    engine_path=exported_paths["unet"],
+                    capture_dir=Path(validate_unet_capture_dir),
+                    report_path=report_path,
+                    device=device,
+                    precision=precision,
+                    limit=max(0, int(args.validate_unet_limit)),
+                    actual_only=bool(args.validate_unet_actual_only),
+                    warmup=max(0, int(args.warmup)),
+                    iters=max(0, int(args.iters)),
+                    max_mae=float(args.validate_unet_max_mae),
+                    max_abs=float(args.validate_unet_max_abs),
+                )
+                summary = validation_report.get("summary") or {}
+                update_json(
+                    output_dir / "unet_trt_meta.json",
+                    {
+                        "validation": {
+                            "capture_dir": validate_unet_capture_dir,
+                            "passed": bool(validation_report["passed"]),
+                            "mae_max": summary.get("mae_max"),
+                            "max_abs_max": summary.get("max_abs_max"),
+                            "max_mae": float(args.validate_unet_max_mae),
+                            "max_abs": float(args.validate_unet_max_abs),
+                            "report_path": str(report_path.resolve()),
+                        }
+                    },
+                )
+                logger.info(
+                    "UNet validation: passed=%s mae_max=%s max_abs_max=%s report=%s",
+                    validation_report["passed"],
+                    summary.get("mae_max"),
+                    summary.get("max_abs_max"),
+                    report_path,
+                )
+                if args.require_valid_unet and not validation_report["passed"]:
+                    raise RuntimeError(
+                        "Post-export UNet validation failed: "
+                        f"mae_max={summary.get('mae_max')} max_abs_max={summary.get('max_abs_max')}"
+                    )
+            except Exception as exc:
+                update_json(
+                    output_dir / "unet_trt_meta.json",
+                    {
+                        "validation": {
+                            "capture_dir": validate_unet_capture_dir,
+                            "passed": False,
+                            "error": f"{type(exc).__name__}: {exc}",
+                        }
+                    },
+                )
+                if args.require_valid_unet:
+                    raise
+                logger.warning("UNet validation failed: %s: %s", type(exc).__name__, exc)
 
     if args.benchmark:
         logger.info("")

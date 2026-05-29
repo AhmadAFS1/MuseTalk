@@ -221,6 +221,16 @@ class HLSGPUStreamScheduler:
         )
         self._vae_calibration_capture_count = 0
         self._vae_calibration_limit_logged = False
+        self.unet_calibration_capture = _env_bool("MUSETALK_UNET_CALIBRATION_CAPTURE", False)
+        self.unet_calibration_dir = Path(
+            os.getenv("MUSETALK_UNET_CALIBRATION_DIR", "./calibration/unet")
+        )
+        self.unet_calibration_max_batches = max(
+            0,
+            _env_int("MUSETALK_UNET_CALIBRATION_MAX_BATCHES", 128),
+        )
+        self._unet_calibration_capture_count = 0
+        self._unet_calibration_limit_logged = False
 
     def start(self) -> None:
         if self.scheduler_thread is not None:
@@ -250,6 +260,16 @@ class HLSGPUStreamScheduler:
             print(
                 "🧪 VAE calibration capture enabled "
                 f"(dir={self.vae_calibration_dir}, max_batches={limit_label})"
+            )
+        if self.unet_calibration_capture:
+            limit_label = (
+                str(self.unet_calibration_max_batches)
+                if self.unet_calibration_max_batches > 0
+                else "unlimited"
+            )
+            print(
+                "🧪 UNet calibration capture enabled "
+                f"(dir={self.unet_calibration_dir}, max_batches={limit_label})"
             )
 
     def shutdown(self) -> None:
@@ -1202,6 +1222,15 @@ class HLSGPUStreamScheduler:
                 ).sample
                 self._sync_gpu_for_stage_timing()
                 unet_finished_at = time.time()
+                self._capture_unet_calibration_batch(
+                    latent_batch=latent_batch,
+                    audio_feature_batch=audio_feature_batch,
+                    timesteps=getattr(self.manager, "timesteps", None),
+                    pred_latents=pred_latents,
+                    selected=selected,
+                    actual_batch=actual_batch,
+                    padded_batch=padded_batch,
+                )
 
                 vae_started_at = time.time()
                 pred_latents = pred_latents.to(
@@ -1270,6 +1299,97 @@ class HLSGPUStreamScheduler:
 
         self._finalize_cancelled_jobs()
         self._finalize_ready_jobs()
+
+    def _capture_unet_calibration_batch(
+        self,
+        latent_batch: torch.Tensor,
+        audio_feature_batch: torch.Tensor,
+        timesteps,
+        pred_latents: torch.Tensor,
+        selected,
+        actual_batch: int,
+        padded_batch: int,
+    ) -> None:
+        if not self.unet_calibration_capture:
+            return
+        if (
+            self.unet_calibration_max_batches > 0
+            and self._unet_calibration_capture_count >= self.unet_calibration_max_batches
+        ):
+            if not self._unet_calibration_limit_logged:
+                print(
+                    "🧪 UNet calibration capture limit reached "
+                    f"({self.unet_calibration_max_batches} batches)"
+                )
+                self._unet_calibration_limit_logged = True
+            return
+
+        self._unet_calibration_capture_count += 1
+        sequence = self._unet_calibration_capture_count
+        items = []
+        offset = 0
+        for job, take in selected:
+            items.append(
+                {
+                    "request_id": job.request_id,
+                    "session_id": job.session_id,
+                    "avatar_id": getattr(job.session, "avatar_id", None),
+                    "start_frame_idx": int(job.current_frame_idx),
+                    "take": int(take),
+                    "batch_offset": int(offset),
+                }
+            )
+            offset += int(take)
+
+        if isinstance(timesteps, torch.Tensor):
+            saved_timesteps = timesteps.detach().to(device="cpu").contiguous()
+        else:
+            saved_timesteps = torch.tensor([0], dtype=torch.long)
+
+        payload = {
+            "schema_version": 1,
+            "kind": "unet_io_batch",
+            "created_at": time.time(),
+            "sequence": int(sequence),
+            "actual_batch": int(actual_batch),
+            "padded_batch": int(padded_batch),
+            "latent_dtype": str(latent_batch.dtype),
+            "latent_shape": list(latent_batch.shape),
+            "audio_feature_dtype": str(audio_feature_batch.dtype),
+            "audio_feature_shape": list(audio_feature_batch.shape),
+            "timesteps_dtype": str(saved_timesteps.dtype),
+            "timesteps_shape": list(saved_timesteps.shape),
+            "pred_latents_dtype": str(pred_latents.dtype),
+            "pred_latents_shape": list(pred_latents.shape),
+            "items": items,
+            "latent_batch": latent_batch.detach()
+            .to(device="cpu", dtype=torch.float16)
+            .contiguous(),
+            "audio_feature_batch": audio_feature_batch.detach()
+            .to(device="cpu", dtype=torch.float16)
+            .contiguous(),
+            "timesteps": saved_timesteps,
+            "pred_latents": pred_latents.detach()
+            .to(device="cpu", dtype=torch.float16)
+            .contiguous(),
+        }
+
+        try:
+            self.unet_calibration_dir.mkdir(parents=True, exist_ok=True)
+            path = (
+                self.unet_calibration_dir
+                / f"unet_io_{sequence:06d}_bs{padded_batch}_pid{os.getpid()}.pt"
+            )
+            tmp_path = path.with_suffix(".tmp")
+            torch.save(payload, tmp_path)
+            tmp_path.replace(path)
+            if sequence == 1 or sequence % 25 == 0:
+                print(
+                    "🧪 Saved UNet calibration batch "
+                    f"#{sequence} actual={actual_batch} padded={padded_batch} path={path}"
+                )
+        except Exception as exc:
+            print(f"⚠️  Failed to save UNet calibration batch #{sequence}: {type(exc).__name__}: {exc}")
 
     def _capture_vae_calibration_batch(
         self,
