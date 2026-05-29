@@ -1337,3 +1337,54 @@ postprocess overhead, but it is not a major throughput unlock by itself. The
 VAE tensor decode is still about `125ms` per live decode call, so the next VAE
 work should target tensor decode reduction, VAE stage scheduling/overlap, or a
 larger output-path architecture change rather than more CPU postprocess tuning.
+
+## 2026-05-29 VAE Stage Timing Update
+
+Added opt-in stage-level timing to `scripts/trt_runtime.py`:
+
+```text
+MUSETALK_TRT_STAGEWISE_STAGE_TIMING=1
+MUSETALK_TRT_STAGEWISE_STAGE_TIMING_SYNC=1
+MUSETALK_TRT_STAGEWISE_STAGE_TIMING_LOG_INTERVAL=10
+```
+
+This is profiling-only because synchronized timing forces a CUDA synchronize
+after every stage. It should stay disabled for normal WebRTC wall testing.
+
+Measured with the live five-stage INT8 VAE decoder, `8,16` buckets, static
+batch-8 TensorRT UNet split runtime, and a short C4 WebRTC run:
+
+| Stage | Avg time | Share |
+| --- | ---: | ---: |
+| `decoder_pre` | `0.0004s` | `0.3%` |
+| `decoder_mid_block` | `0.0035s` | `2.8%` |
+| `decoder_up_block_0` | `0.0051s` | `4.1%` |
+| `decoder_up_block_1` | `0.0193s` | `15.6%` |
+| `decoder_up_block_2` | `0.0312s` | `25.2%` |
+| `decoder_up_block_3` | `0.0600s` | `48.4%` |
+| `decoder_postprocess` | `0.0045s` | `3.6%` |
+
+This confirms the remaining VAE time is mostly `decoder_up_block_3`, with
+`decoder_up_block_2` second. The earlier rejected stage, `decoder_up_block_3`,
+is therefore the big remaining VAE target, but it is also the stage that caused
+visible INT8 quality regressions. Any future work on that stage must be
+quality-gated with saved comparison crops and lipsync smoke tests.
+
+Also tested the safer FP16 compile knob:
+
+```text
+MUSETALK_TRT_STAGEWISE_MIN_BLOCK_SIZE=1
+```
+
+It did not materially change timing:
+
+- `decoder_up_block_3`: about `0.0598s`
+- total VAE stage timing: about `0.1245s`
+
+Recommendation after this profiling:
+
+- Keep the current five safe INT8 stages.
+- Keep `decoder_up_block_3` FP16 in the live path for now.
+- Use the new timing hook for A/B tests.
+- Next meaningful VAE attempt should be a visual-quality-gated late-block
+  experiment or a scheduling/overlap change, not more CPU postprocess tuning.

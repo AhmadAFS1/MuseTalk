@@ -108,6 +108,16 @@ def _env_enabled(name: str, default: str = "0") -> bool:
     return value not in {"0", "false", "no", "off"}
 
 
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name, "").strip()
+    if not value:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
 def _requested_vae_backend() -> str:
     return os.getenv("MUSETALK_VAE_BACKEND", "").strip().lower()
 
@@ -738,6 +748,26 @@ class StagewiseTrtVaeDecodeBackend:
             module.requires_grad_(False)
         self.stage_order = list(_STAGEWISE_VAE_STAGE_NAMES)
         self.compiled_by_batch: dict[int, dict[str, object]] = {}
+        self.stage_timing_enabled = _env_enabled(
+            "MUSETALK_TRT_STAGEWISE_STAGE_TIMING",
+            "0",
+        )
+        self.stage_timing_sync = _env_enabled(
+            "MUSETALK_TRT_STAGEWISE_STAGE_TIMING_SYNC",
+            "1",
+        )
+        self.stage_timing_log_interval = max(
+            0,
+            _env_int("MUSETALK_TRT_STAGEWISE_STAGE_TIMING_LOG_INTERVAL", 25),
+        )
+        self._stage_timing_calls = 0
+        self._stage_timing_total_s = 0.0
+        self._stage_timing_stage_totals_s = {
+            stage_name: 0.0 for stage_name in self.stage_order
+        }
+        self._stage_timing_stage_max_s = {
+            stage_name: 0.0 for stage_name in self.stage_order
+        }
 
     @classmethod
     def load(
@@ -1195,6 +1225,49 @@ class StagewiseTrtVaeDecodeBackend:
         if self.device.type == "cuda":
             torch.cuda.synchronize(self.device)
 
+    def _maybe_sync_stage_timing(self, tensor: torch.Tensor) -> None:
+        if (
+            self.stage_timing_sync
+            and self.device.type == "cuda"
+            and isinstance(tensor, torch.Tensor)
+            and tensor.is_cuda
+        ):
+            torch.cuda.synchronize(tensor.device)
+
+    def _record_stage_timing(
+        self,
+        stage_times_s: dict[str, float],
+        total_s: float,
+        batch_size: int,
+    ) -> None:
+        self._stage_timing_calls += 1
+        self._stage_timing_total_s += total_s
+        for stage_name, elapsed_s in stage_times_s.items():
+            self._stage_timing_stage_totals_s[stage_name] += elapsed_s
+            self._stage_timing_stage_max_s[stage_name] = max(
+                self._stage_timing_stage_max_s[stage_name],
+                elapsed_s,
+            )
+        if (
+            self.stage_timing_log_interval <= 0
+            or self._stage_timing_calls % self.stage_timing_log_interval != 0
+        ):
+            return
+
+        calls = max(1, self._stage_timing_calls)
+        stage_parts = []
+        for stage_name in self.stage_order:
+            avg_s = self._stage_timing_stage_totals_s[stage_name] / calls
+            max_s = self._stage_timing_stage_max_s[stage_name]
+            stage_parts.append(f"{stage_name}=avg:{avg_s:.4f}s/max:{max_s:.4f}s")
+        print(
+            f"VAE stagewise timing backend={self.name} "
+            f"calls={self._stage_timing_calls} "
+            f"last_batch={batch_size} "
+            f"avg_total={self._stage_timing_total_s / calls:.4f}s "
+            + " ".join(stage_parts)
+        )
+
     @torch.no_grad()
     def warmup(self, batch_sizes: Optional[list[int]] = None) -> None:
         # Local modification: this differs from the original MuseTalk code.
@@ -1256,11 +1329,23 @@ class StagewiseTrtVaeDecodeBackend:
         self._ensure_batch(batch_size)
         compiled = self.compiled_by_batch[batch_size]
         current = latents.to(device=self.device, dtype=self.runtime_dtype).contiguous()
+        stage_times_s = {} if self.stage_timing_enabled else None
+        decode_started_at = time.perf_counter() if self.stage_timing_enabled else 0.0
         for stage_name in self.stage_order:
+            stage_started_at = time.perf_counter() if self.stage_timing_enabled else 0.0
             current = self._coerce_stage_output(compiled[stage_name](current.contiguous()))
+            if self.stage_timing_enabled:
+                self._maybe_sync_stage_timing(current)
+                stage_times_s[stage_name] = time.perf_counter() - stage_started_at
             current = current.to(dtype=self.runtime_dtype).contiguous()
         if output_dtype is not None and current.dtype != output_dtype:
             current = current.to(dtype=output_dtype)
+        if self.stage_timing_enabled:
+            self._record_stage_timing(
+                stage_times_s=stage_times_s or {},
+                total_s=time.perf_counter() - decode_started_at,
+                batch_size=batch_size,
+            )
         return current
 
 

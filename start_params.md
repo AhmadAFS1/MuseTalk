@@ -1392,6 +1392,82 @@ Conclusion:
 - Next VAE work should focus on reducing or overlapping the `avg_tensor`
   portion, not further CPU postprocess tuning.
 
+### 2026-05-29 VAE Stagewise Tensor Timing
+
+Implemented opt-in stage-level timing inside `scripts/trt_runtime.py` for the
+stagewise VAE decoder. It is disabled by default and can be enabled with:
+
+```text
+MUSETALK_TRT_STAGEWISE_STAGE_TIMING=1
+MUSETALK_TRT_STAGEWISE_STAGE_TIMING_SYNC=1
+MUSETALK_TRT_STAGEWISE_STAGE_TIMING_LOG_INTERVAL=10
+```
+
+Important: `STAGE_TIMING_SYNC=1` inserts a CUDA synchronize after every VAE
+stage, so use this only for profiling. It is not a production throughput mode.
+
+Short C4 WebRTC profiling run:
+
+- report:
+  `tmp/load_tests/load_test_webrtc_vae_stage_timing_c4_rerun_20260529.json`
+- request shape: `playback_fps=20`, `musetalk_fps=20`, request `batch_size=8`
+- live scheduler padded to batch `16`, so the timing line reports
+  `last_batch=16`
+
+Final stage timing from the run:
+
+| VAE stage | Avg time | Share of stage sum |
+| --- | ---: | ---: |
+| `decoder_pre` | `0.0004s` | `0.3%` |
+| `decoder_mid_block` | `0.0035s` | `2.8%` |
+| `decoder_up_block_0` | `0.0051s` | `4.1%` |
+| `decoder_up_block_1` | `0.0193s` | `15.6%` |
+| `decoder_up_block_2` | `0.0312s` | `25.2%` |
+| `decoder_up_block_3` | `0.0600s` | `48.4%` |
+| `decoder_postprocess` | `0.0045s` | `3.6%` |
+
+Conclusion:
+
+- The remaining VAE bottleneck is clearly `decoder_up_block_3`.
+- `decoder_up_block_2` is the second-largest VAE cost.
+- The stages already selected for INT8 are not the big remaining opportunity
+  anymore; the largest remaining stage is one of the stages we previously kept
+  out of INT8 because it caused visible image regressions.
+- `decoder_postprocess` is not worth chasing right now after the fast
+  postprocess change; the TensorRT postprocess stage itself is only about
+  `4-5ms`.
+
+Quality-preserving TRT compile knob tested:
+
+```text
+MUSETALK_TRT_STAGEWISE_MIN_BLOCK_SIZE=1
+```
+
+Result:
+
+- report:
+  `tmp/load_tests/load_test_webrtc_vae_stage_timing_minblock1_c4_20260529.json`
+- final timing stayed effectively unchanged:
+  - `decoder_up_block_3`: `0.0598s`
+  - `decoder_up_block_2`: `0.0314s`
+  - total stage timing: `0.1245s`
+
+So the default FP16 TRT compile partition is already close to what this knob can
+deliver on the current stack.
+
+Next VAE optimization direction:
+
+1. Do not blindly enable INT8 for `decoder_up_block_3`; previous tests showed
+   visible quality regressions.
+2. If we pursue `decoder_up_block_3`, make it a quality-gated experiment:
+   try safer calibration/quantization variants, save comparison crops, and only
+   promote if visual quality passes.
+3. Higher-probability throughput work is now overlap/architecture: reduce serial
+   `UNet -> VAE -> compose` waiting, or explore a different VAE decoder backend
+   for the late up block.
+4. Keep the new stage timing hooks for A/B tests, but disable them for normal
+   WebRTC wall use.
+
 ## Related Docs
 
 - [`current_start_param_reference.md`](./current_start_param_reference.md)
