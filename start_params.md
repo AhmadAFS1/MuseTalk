@@ -1164,6 +1164,39 @@ tmp/load_tests/load_test_webrtc_3090_int8_5stage_trt_unet_split8_20_20_4_6_8stre
     tail playback spikes, and only then retrying a more accurate batch-16 UNet
     TRT strategy.
 
+### 2026-05-29 WebRTC TURN Fix After Black Screen
+
+- A public WebRTC wall retest showed the known black-screen failure:
+  `pc: failed / ice: failed`, zero video FPS, zero audio packets.
+- Server stats confirmed this was transport, not model output:
+  - failed session had `ice_transport_policy: all`
+  - no TURN server process was running
+  - `.env.webrtc-turn.local` was missing
+  - API had been launched directly through `run_trt_stagewise_server.sh`
+- Recreated the ignored local TURN env for this Vast host and restarted through
+  the relay wrapper while preserving VAE INT8 + TRT UNet split8 settings.
+- Current relay proof:
+  - `bash scripts/vast_server_ctl.sh status` reports API running and
+    `turnserver=running`.
+  - `/webrtc/sessions/create` returns:
+
+```text
+ice_transport_policy: relay
+WEBRTC_TURN_URLS: turn:194.228.55.129:37187?transport=tcp
+WEBRTC_SERVER_TURN_URLS: turn:127.0.0.1:1455?transport=tcp
+```
+
+- Current public wall URL for this Vast mapping:
+
+```text
+http://194.228.55.129:37331/webrtc/wall
+```
+
+- If this regresses again after a fresh clone/restart, recreate
+  `.env.webrtc-turn.local` from `.env.webrtc-turn.local.example` with the
+  current `PUBLIC_IPADDR`, `VAST_TCP_PORT_1455`, and `VAST_TCP_PORT_8000`, then
+  restart with the relay-preserving `scripts/vast_server_ctl.sh` path.
+
 ## Related Docs
 
 - [`current_start_param_reference.md`](./current_start_param_reference.md)
