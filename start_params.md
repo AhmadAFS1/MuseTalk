@@ -961,6 +961,12 @@ Interpretation:
     - Restarting only `api_server.py` is not enough for this state. A Vast
       container/instance restart is likely required. Do not run throughput tests
       until CUDA reports `torch_cuda True` and `cuInit 0`.
+    - 2026-05-29 retry after another server restart: the same failure persisted.
+      `nvidia-smi` still saw the RTX 3090 with no running GPU processes, but
+      PyTorch still reported CUDA unavailable and `cuInit` still returned `999`.
+      `nvidia-smi --gpu-reset -i 0` also hit an NVIDIA unknown error while
+      trying to disable persistence mode, and reloading `nvidia_uvm` from inside
+      the container did not recover CUDA.
   - After the Vast restart, first verify CUDA:
 
 ```bash
