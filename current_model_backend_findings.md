@@ -1357,6 +1357,46 @@ That is the highest-confidence remaining throughput path left in the current cod
 
 ## Notes
 
+- 2026-05-29 current chat context:
+  - Mission: improve WebRTC playback throughput toward aggregate generated-fps
+    targets of `80`, `120`, and `160` for `4`, `6`, and `8` concurrent
+    `20 fps` streams.
+  - Recent edits to `scripts/hls_gpu_scheduler.py` are relevant because WebRTC
+    uses this shared scheduler path. They are instrumentation/runtime plumbing,
+    not a throughput win by themselves.
+  - The next backend branch is UNet FP16 TensorRT first, then possible UNet
+    mixed INT8/FP16. The current VAE INT8 `8,16` profile remains the baseline.
+  - PyTorch UNet captures are reference inputs/outputs from real scheduler
+    traffic. They validate TensorRT correctness and later provide INT8
+    calibration coverage; they do not create/train the FP16 TensorRT engine.
+  - Implemented in this chat:
+    - UNet capture in `scripts/hls_gpu_scheduler.py`
+    - UNet correctness/benchmark harness in `scripts/validate_unet_backend.py`
+    - capture-aware UNet export and post-export validation flags in
+      `scripts/tensorrt_export.py`
+    - opt-in `TrtUnetBackend` in `scripts/trt_runtime.py`
+    - manager wiring in `scripts/avatar_manager_parallel.py`
+    - env documentation in `.env.webrtc-turn.local.example`
+  - Validation completed without GPU:
+    - Python compile checks passed in system Python and the TRT venv
+    - `git diff --check` passed
+    - fallback guard raises with `MUSETALK_TRT_FALLBACK=0` when CUDA is missing
+    - fake scheduler capture smoke produced a valid `unet_io_*.pt`
+    - capture-example export helper expanded fake batch-4 captures into batch-8
+      UNet example tensors
+  - Blocker:
+    - API/TURN are stopped.
+    - CUDA is wedged: `nvidia-smi` sees the RTX 3090, but
+      `libcuda.cuInit(0) == 999` and PyTorch CUDA is unavailable.
+    - This is an infrastructure issue, not a backend result. Restart the Vast
+      container/instance before attempting capture, export, or WebRTC load tests.
+  - After restart:
+    1. verify `torch.cuda.is_available()` and `cuInit == 0`
+    2. collect real UNet captures with current VAE INT8 `8,16`
+    3. run `scripts/tensorrt_export.py --components unet --unet-capture-dir ./calibration/unet --validate-unet-capture-dir ./calibration/unet --require-valid-unet`
+    4. only after validation, enable UNet TRT and run lipsync/WebRTC C4/C6/C8
+       tests with capture disabled
+
 - The startup-fairness scheduler logic in `scripts/hls_gpu_scheduler.py` should still be preserved.
 - The current findings do **not** say encode/publish overhead is solved.
 - The latest Threadripper run actually strengthens the case that host-side

@@ -901,6 +901,100 @@ Interpretation:
 
 ## Notes
 
+- 2026-05-29 current chat context / resume state:
+  - Goal: increase WebRTC concurrent-stream throughput toward aggregate
+    generated-frame targets of roughly `80 fps` for `4 x 20 fps`, `120 fps` for
+    `6 x 20 fps`, and `160 fps` for `8 x 20 fps`.
+  - Current measured bottleneck is no longer VAE-only. The live WebRTC generation
+    path is the shared scheduler loop `UNet -> VAE decode -> compose -> WebRTC
+    frame handoff`.
+  - `scripts/hls_gpu_scheduler.py` was changed because, despite its name, it is
+    also the WebRTC GPU batching path. Those changes do not speed up WebRTC by
+    themselves; they add real-input UNet capture for the next backend step.
+  - The current five-stage VAE INT8 path remains the visual/performance
+    baseline:
+    `decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2`.
+    The rejected VAE stages `decoder_up_block_3` and `decoder_postprocess` should
+    stay out of live INT8 because prior tests showed visible regressions.
+  - The new UNet plan uses PyTorch scheduler captures as the known-good answer
+    sheet. Captures store `latent_batch`, `audio_feature_batch`, `timesteps`, and
+    PyTorch FP16 `pred_latents` from real WebRTC traffic.
+  - Those captures do not train or create the FP16 TensorRT UNet. FP16 export
+    still uses the existing UNet graph and weights. Captures are used for export
+    example tensors and post-export correctness checks. For future INT8 UNet,
+    the same captures become calibration inputs.
+  - Implemented code:
+    - `scripts/hls_gpu_scheduler.py`: `MUSETALK_UNET_CALIBRATION_CAPTURE=1`
+      writes `unet_io_*.pt` files.
+    - `scripts/validate_unet_backend.py`: validates PyTorch or TensorRT UNet
+      output against captured PyTorch references.
+    - `scripts/tensorrt_export.py`: `--components unet` now supports
+      `--unet-capture-dir`, `--validate-unet-capture-dir`,
+      `--validate-unet-report-path`, and `--require-valid-unet`.
+    - `scripts/trt_runtime.py`: opt-in `TrtUnetBackend` runtime and strict
+      `MUSETALK_TRT_FALLBACK=0` guard so requested TensorRT backends fail loudly
+      if CUDA/TRT is unavailable.
+    - `scripts/avatar_manager_parallel.py`: can attach the opt-in UNet TensorRT
+      backend when `MUSETALK_UNET_BACKEND=trt` or
+      `MUSETALK_TRT_UNET_ENABLED=1` is set.
+    - `.env.webrtc-turn.local.example`: documents UNet capture and UNet TRT
+      runtime flags.
+  - Tests already run:
+    - Python compile checks passed for touched files with both system Python and
+      `/workspace/.venvs/musetalk_trt_stagewise/bin/python`.
+    - `git diff --check` passed.
+    - `scripts/validate_unet_backend.py --help` loads.
+    - TensorRT fallback guard smoke passed: with `MUSETALK_TRT_FALLBACK=0`, VAE
+      and UNet TRT loaders raise when CUDA is unavailable.
+    - Scheduler UNet capture smoke passed with fake CPU tensors and wrote a valid
+      `unet_io_*.pt` payload.
+    - `tensorrt_export.py` capture-example helper smoke passed: a fake batch-4
+      capture was expanded into valid batch-8 UNet export example tensors.
+  - What has not been measured yet:
+    - No real UNet TensorRT export completed.
+    - No WebRTC speedup has been measured from these changes.
+    - No C4/C6/C8 WebRTC load test has been run with UNet TensorRT.
+  - Current infrastructure blocker:
+    - The app/TURN server is intentionally stopped.
+    - `nvidia-smi` sees the RTX 3090 with `0 MiB` used, but CUDA is wedged:
+      `torch.cuda.is_available() == False` and `libcuda.cuInit(0) == 999`.
+    - Restarting only `api_server.py` is not enough for this state. A Vast
+      container/instance restart is likely required. Do not run throughput tests
+      until CUDA reports `torch_cuda True` and `cuInit 0`.
+  - After the Vast restart, first verify CUDA:
+
+```bash
+cd /workspace/MuseTalk
+/workspace/.venvs/musetalk_trt_stagewise/bin/python - <<'PY'
+import ctypes, torch
+print("torch_cuda", torch.cuda.is_available())
+print("cuInit", ctypes.CDLL("libcuda.so.1").cuInit(0))
+PY
+```
+
+  - Then capture real UNet batches on the current VAE INT8 `8,16` baseline. Do
+    not benchmark final performance with capture enabled because capture writes
+    tensors to disk.
+  - Export and validate the FP16 UNet TensorRT candidate with:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/tensorrt_export.py \
+  --components unet \
+  --batch-sizes 8,16 \
+  --output-dir ./models/tensorrt \
+  --precision fp16 \
+  --save-format exported_program \
+  --unet-capture-dir ./calibration/unet \
+  --validate-unet-capture-dir ./calibration/unet \
+  --validate-unet-limit 8 \
+  --validate-unet-report-path tmp/unet_trt_fp16_validation.json \
+  --require-valid-unet
+```
+
+  - Only after that passes should the live runtime be started with
+    `MUSETALK_UNET_BACKEND=trt` / `MUSETALK_TRT_UNET_ENABLED=1`, followed by a
+    lipsync smoke test and WebRTC C4/C6/C8 load tests with capture disabled.
+
 - the launcher uses the exact venv python path instead of relying on whichever
   `python` is active in the shell
 - this avoids the mixed-venv state seen earlier where `VIRTUAL_ENV` and the

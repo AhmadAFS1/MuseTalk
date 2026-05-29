@@ -1389,6 +1389,30 @@ Operational read:
 
 ## Current Practical Guidance
 
+- 2026-05-29 current chat context for WebRTC throughput:
+  - The target is higher WebRTC concurrency, with rough aggregate generated-fps
+    goals of `80` for `4 x 20 fps`, `120` for `6 x 20 fps`, and `160` for
+    `8 x 20 fps`.
+  - The recent `scripts/hls_gpu_scheduler.py` edits are relevant to WebRTC
+    because WebRTC uses the shared scheduler GPU generation loop.
+  - Those edits do not directly improve fps. They add UNet capture data needed
+    to build and validate a faster UNet backend.
+  - Implemented workflow now exists:
+    `UNet PyTorch captures -> capture-aware FP16 UNet TensorRT export ->
+    capture-based validation -> opt-in live UNet TRT runtime -> WebRTC load test`.
+  - Captures are the PyTorch reference answer sheet for real traffic; FP16 TRT
+    export still uses the existing UNet weights and graph. Future INT8 UNet work
+    can use the same captures for calibration.
+  - Real performance testing is blocked until the worker CUDA state is repaired:
+    `nvidia-smi` sees the RTX 3090, but `libcuda.cuInit(0)` returns `999`, and
+    PyTorch reports CUDA unavailable.
+  - The API and TURN server are currently stopped. Do not compare WebRTC
+    throughput until the Vast container/instance is restarted and CUDA reports
+    `cuInit 0`.
+  - After restart, collect captures with UNet capture enabled, disable capture
+    for performance runs, then run WebRTC C4/C6/C8 load tests only after the
+    FP16 UNet TensorRT candidate passes capture validation and a lipsync smoke.
+
 For this cross-server branch:
 
 - treat the workload as mixed GPU + CPU, not GPU-only
