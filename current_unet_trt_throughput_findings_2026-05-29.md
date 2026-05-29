@@ -1,13 +1,144 @@
 # UNet TensorRT Throughput Findings - 2026-05-29
 
-## Decision
+## 2026-05-29 Current Server Update
 
-Do not enable the current UNet TensorRT artifacts in the live MuseTalk server.
+The current server is no longer in the earlier CUDA-failed / 150W-capped state.
+CUDA is healthy and the RTX 3090 is running with a `300W` power limit. The API
+server was restarted successfully with:
 
-The FP16 TensorRT UNet export can build and serialize through the TorchScript
-fallback path, but it fails the captured-output correctness gate. The current
-best live runtime remains the validated VAE decoder INT8 `8,16` profile with
-PyTorch UNet.
+```text
+VAE decode backend active: tensorrt_stagewise_int8_mixed
+UNet backend active: tensorrt_unet_multi
+```
+
+The live UNet TensorRT path is intentionally **not** using the failed batch-16
+artifact. The exact batch-8 TensorRT UNet passed capture validation, and the
+runtime now routes padded batch-16 work as two exact batch-8 TensorRT calls.
+
+Runtime flags used:
+
+```text
+MUSETALK_UNET_BACKEND=trt
+MUSETALK_TRT_UNET_ENABLED=1
+MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_static_bs8_20260529/unet_trt.ts
+MUSETALK_TRT_FALLBACK=0
+```
+
+### Latest VAE INT8 Baseline
+
+Same host, capture disabled, VAE INT8 `8,16` buckets, PyTorch UNet:
+
+| Streams | Completed | Avg frame interval | Approx aggregate FPS | Avg live-ready | Max frame interval | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `0.060s` | `66.7` | `16.604s` | `0.486s` | `17799 MB` |
+| 6 | `6/6` | `0.091s` | `65.9` | `4.822s` | `1.089s` | `17809 MB` |
+| 8 | `8/8` | `0.123s` | `65.0` | `5.989s` | `1.666s` | `17823 MB` |
+
+Report:
+
+```text
+tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_6_8streams_8_16_buckets_batch8_300w_20260529.json
+```
+
+Scheduler timing averaged across the 18 completed streams:
+
+| Component | Mean |
+| --- | ---: |
+| `avg_gpu_batch` | `0.210s` |
+| `avg_unet` | `0.078s` |
+| `avg_vae` | `0.130s` |
+| `avg_compose` | `0.062s` |
+
+### Static UNet TensorRT Validation
+
+Real WebRTC captures were collected in:
+
+```text
+calibration/unet_static_8_16_20260529_1545
+```
+
+Capture counts:
+
+| Padded batch | Captures |
+| ---: | ---: |
+| `8` | `46` |
+| `16` | `95` |
+
+PyTorch reference validation passed for both exact capture sets:
+
+| Batch | Files | `mae_max` | `max_abs_max` | Report |
+| ---: | ---: | ---: | ---: | --- |
+| 8 | `16` | `0.0002594` | `0.03394` | `tmp/unet_pytorch_reference_validation_static_bs8_20260529.json` |
+| 16 | `16` | `0.0002534` | `0.04968` | `tmp/unet_pytorch_reference_validation_static_bs16_20260529.json` |
+
+Static TensorRT export results:
+
+| Candidate | Result | `mae_max` | `max_abs_max` | Latency mean | Mean isolated FPS |
+| --- | --- | ---: | ---: | ---: | ---: |
+| static batch-8 FP16 TRT | passed | `0.001878` | `0.2655` | `26.39 ms` | `303.1` |
+| static batch-16 FP16 TRT | failed | `0.018293` | `1.7588` | `49.54 ms` | `323.0` |
+
+Reports:
+
+```text
+tmp/unet_trt_static_bs8_validation_20260529.json
+tmp/unet_trt_static_bs16_validation_20260529.json
+```
+
+Because the batch-16 artifact failed the correctness gate, the live runtime only
+loads the passed batch-8 artifact and splits batch-16 into two batch-8 calls.
+
+### WebRTC With VAE INT8 + TRT UNet Split8
+
+Same C4/C6/C8 load shape, capture disabled:
+
+| Streams | Completed | Avg frame interval | Approx aggregate FPS | Gain vs PyTorch UNet | Avg live-ready | Max frame interval |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `0.056s` | `71.4` | `+7.1%` | `4.126s` | `0.433s` |
+| 6 | `6/6` | `0.083s` | `72.3` | `+9.6%` | `4.316s` | `0.927s` |
+| 8 | `8/8` | `0.113s` | `70.8` | `+8.8%` | `5.978s` | `1.699s` |
+
+Report:
+
+```text
+tmp/load_tests/load_test_webrtc_3090_int8_5stage_trt_unet_split8_20_20_4_6_8streams_8_16_buckets_batch8_300w_20260529.json
+```
+
+Scheduler timing averaged across the 18 completed streams:
+
+| Component | Mean |
+| --- | ---: |
+| `avg_gpu_batch` | `0.185s` |
+| `avg_unet` | `0.051s` |
+| `avg_vae` | `0.132s` |
+| `avg_compose` | `0.061s` |
+
+Interpretation:
+
+- UNet time improved by about `35%` (`0.078s` -> `0.051s`).
+- End-to-end WebRTC aggregate FPS improved by about `7-10%`.
+- VAE decode is again the largest single GPU stage at about `0.13s`, so the
+  split8 UNet path helps but does not reach the `80/120/160` FPS goals alone.
+- The remaining spikes are playback/scheduling tail latency, not a failed model
+  path: all C4/C6/C8 streams completed with zero request failures.
+
+## Current Decision
+
+The batch-8 TensorRT UNet split runtime is validated enough for controlled
+WebRTC experiments on this server. Do not enable the monolithic batch-16 UNet
+artifact because it failed captured-output validation.
+
+## Earlier Decision Superseded By Current Update
+
+Earlier in the day, the recommendation was not to enable any UNet TensorRT
+artifacts in the live MuseTalk server.
+
+The earlier monolithic FP16 TensorRT UNet export could build and serialize
+through the TorchScript fallback path, but it failed the captured-output
+correctness gate. That is why the first recommendation stayed with the
+validated VAE decoder INT8 `8,16` profile plus PyTorch UNet. The newer static
+batch-8 split runtime above supersedes that recommendation for controlled
+testing.
 
 The new Vast.ai host is also capped at `150W` GPU power even though the RTX 3090
 default and max limit are `350W`. The container cannot raise it:
@@ -229,4 +360,3 @@ Previous strict WebRTC targets still stand:
    - Use the real WebRTC capture corpus.
    - Start with conv-heavy subgraphs.
    - Keep mouth-motion visual quality gates stricter than VAE decoder gates.
-

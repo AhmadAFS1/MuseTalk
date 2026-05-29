@@ -636,6 +636,7 @@ def validate_exported_unet(
     device: torch.device,
     precision: torch.dtype,
     limit: int,
+    padded_batch_size: int,
     actual_only: bool,
     warmup: int,
     iters: int,
@@ -649,9 +650,14 @@ def validate_exported_unet(
         validate_capture,
     )
 
-    paths = discover_captures(capture_dir, limit)
+    paths = discover_captures(capture_dir, limit, padded_batch_size)
     if not paths:
-        raise FileNotFoundError(f"No UNet capture files found in {capture_dir}")
+        suffix = (
+            f" with padded_batch_size={padded_batch_size}"
+            if padded_batch_size > 0
+            else ""
+        )
+        raise FileNotFoundError(f"No UNet capture files found in {capture_dir}{suffix}")
 
     validation_args = argparse.Namespace(
         backend="trt",
@@ -681,6 +687,7 @@ def validate_exported_unet(
         "capture_dir": str(capture_dir),
         "precision": str(precision).replace("torch.", ""),
         "limit": int(limit),
+        "padded_batch_size": int(padded_batch_size),
         "actual_only": bool(actual_only),
         "max_mae": float(max_mae),
         "max_abs": float(max_abs),
@@ -1238,6 +1245,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum number of UNet capture files to validate after export.",
     )
     parser.add_argument(
+        "--validate-unet-padded-batch-size",
+        type=int,
+        default=0,
+        help=(
+            "Only validate UNet captures with this scheduler padded batch size. "
+            "For a static batch-8 or batch-16 engine, set this to the same exact batch."
+        ),
+    )
+    parser.add_argument(
         "--validate-unet-max-mae",
         type=float,
         default=0.01,
@@ -1537,6 +1553,7 @@ def main() -> int:
                     device=device,
                     precision=precision,
                     limit=max(0, int(args.validate_unet_limit)),
+                    padded_batch_size=max(0, int(args.validate_unet_padded_batch_size)),
                     actual_only=bool(args.validate_unet_actual_only),
                     warmup=max(0, int(args.warmup)),
                     iters=max(0, int(args.iters)),
@@ -1550,6 +1567,10 @@ def main() -> int:
                         "validation": {
                             "capture_dir": validate_unet_capture_dir,
                             "passed": bool(validation_report["passed"]),
+                            "padded_batch_size": max(
+                                0,
+                                int(args.validate_unet_padded_batch_size),
+                            ),
                             "mae_max": summary.get("mae_max"),
                             "max_abs_max": summary.get("max_abs_max"),
                             "max_mae": float(args.validate_unet_max_mae),

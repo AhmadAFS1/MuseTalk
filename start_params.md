@@ -1062,6 +1062,108 @@ PROFILE=baseline PORT=8000 bash scripts/run_trt_stagewise_server.sh
 - if a failed avatar-prep attempt leaves partial files on disk, retry with
   `force_recreate=true`
 
+## 2026-05-29 Current Server WebRTC + UNet TRT Update
+
+- Current server sanity:
+  - CUDA is healthy: `torch.cuda.is_available() == True`, `cuInit(0) == 0`.
+  - GPU is RTX 3090 with current power limit `300W`.
+  - API server is running on port `8000`.
+  - Runtime proof from logs:
+    - `VAE decode backend active: tensorrt_stagewise_int8_mixed`
+    - `UNet backend active: tensorrt_unet_multi`
+- Today the missing INT8 dependency issue was fixed by installing
+  `nvidia-modelopt==0.23.2`, `torchprofile`, `pulp<4.0`, and `onnx<1.18` into
+  `/workspace/.venvs/musetalk_trt_stagewise`.
+- New WebRTC baseline on this host, VAE INT8 `8,16`, PyTorch UNet, capture off:
+
+| Streams | Completed | Avg frame interval | Approx aggregate FPS | Avg live-ready | Max frame interval |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `0.060s` | `66.7` | `16.604s` | `0.486s` |
+| 6 | `6/6` | `0.091s` | `65.9` | `4.822s` | `1.089s` |
+| 8 | `8/8` | `0.123s` | `65.0` | `5.989s` | `1.666s` |
+
+  Report:
+
+```text
+tmp/load_tests/load_test_webrtc_3090_int8_5stage_20_20_4_6_8streams_8_16_buckets_batch8_300w_20260529.json
+```
+
+- Static UNet TensorRT implementation status:
+  - `scripts/validate_unet_backend.py` can filter captures by scheduler padded
+    batch using `--padded-batch-size`.
+  - `scripts/tensorrt_export.py` can validate a static UNet export against only
+    matching padded-batch captures with `--validate-unet-padded-batch-size`.
+  - `scripts/trt_runtime.py` now supports
+    `MUSETALK_TRT_UNET_PATHS=8:path/to/unet_trt.ts,...` and can split a larger
+    padded batch into validated smaller exact-batch TensorRT calls.
+  - Runtime refuses a UNet TRT artifact whose meta says validation failed,
+    unless `MUSETALK_TRT_UNET_ALLOW_UNVALIDATED=1` is explicitly set.
+- Capture corpus:
+
+| Padded batch | Captures |
+| ---: | ---: |
+| `8` | `46` |
+| `16` | `95` |
+
+  Directory:
+
+```text
+calibration/unet_static_8_16_20260529_1545
+```
+
+- Static UNet TRT validation:
+
+| Candidate | Result | `mae_max` | `max_abs_max` | Latency mean | Mean isolated FPS |
+| --- | --- | ---: | ---: | ---: | ---: |
+| batch-8 FP16 TRT | passed | `0.001878` | `0.2655` | `26.39 ms` | `303.1` |
+| batch-16 FP16 TRT | failed | `0.018293` | `1.7588` | `49.54 ms` | `323.0` |
+
+  Reports:
+
+```text
+tmp/unet_trt_static_bs8_validation_20260529.json
+tmp/unet_trt_static_bs16_validation_20260529.json
+```
+
+- Because batch-16 failed correctness, the live server uses only the passed
+  batch-8 artifact and splits batch-16 into two exact batch-8 calls:
+
+```text
+MUSETALK_UNET_BACKEND=trt
+MUSETALK_TRT_UNET_ENABLED=1
+MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_static_bs8_20260529/unet_trt.ts
+MUSETALK_TRT_FALLBACK=0
+```
+
+- WebRTC load test with VAE INT8 + TRT UNet split8, capture off:
+
+| Streams | Completed | Avg frame interval | Approx aggregate FPS | Gain vs PyTorch UNet | Avg live-ready | Max frame interval |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `0.056s` | `71.4` | `+7.1%` | `4.126s` | `0.433s` |
+| 6 | `6/6` | `0.083s` | `72.3` | `+9.6%` | `4.316s` | `0.927s` |
+| 8 | `8/8` | `0.113s` | `70.8` | `+8.8%` | `5.978s` | `1.699s` |
+
+  Report:
+
+```text
+tmp/load_tests/load_test_webrtc_3090_int8_5stage_trt_unet_split8_20_20_4_6_8streams_8_16_buckets_batch8_300w_20260529.json
+```
+
+- Scheduler timing moved as expected:
+  - PyTorch UNet baseline: `avg_gpu_batch=0.210s`, `avg_unet=0.078s`,
+    `avg_vae=0.130s`, `avg_compose=0.062s`.
+  - TRT UNet split8: `avg_gpu_batch=0.185s`, `avg_unet=0.051s`,
+    `avg_vae=0.132s`, `avg_compose=0.061s`.
+- Interpretation:
+  - UNet stage got about `35%` faster.
+  - End-to-end WebRTC aggregate FPS improved about `7-10%`.
+  - VAE decode is again the largest single measured GPU stage, around
+    `0.13s`, so this does not reach the `80/120/160` aggregate FPS targets by
+    itself.
+  - Remaining work should focus on VAE/post-VAE scheduling overlap, reducing
+    tail playback spikes, and only then retrying a more accurate batch-16 UNet
+    TRT strategy.
+
 ## Related Docs
 
 - [`current_start_param_reference.md`](./current_start_param_reference.md)

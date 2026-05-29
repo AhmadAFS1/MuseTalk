@@ -170,6 +170,42 @@ def _trt_unet_meta_path(engine_path: Path) -> Path:
     return Path(os.getenv("MUSETALK_TRT_UNET_META_PATH", str(default_meta)))
 
 
+def _trt_unet_path_map() -> dict[int, Path]:
+    """
+    Parse optional exact-batch UNet TensorRT artifacts.
+
+    Format:
+      MUSETALK_TRT_UNET_PATHS=8:models/.../unet_trt.ts,16:models/.../unet_trt.ts
+    """
+    raw = os.getenv("MUSETALK_TRT_UNET_PATHS", "").strip()
+    if not raw:
+        return {}
+
+    paths: dict[int, Path] = {}
+    for token in raw.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        if ":" not in token:
+            raise RuntimeError(
+                "Invalid MUSETALK_TRT_UNET_PATHS entry "
+                f"{token!r}; expected '<batch>:<path>'."
+            )
+        batch_raw, path_raw = token.split(":", 1)
+        batch_size = int(batch_raw.strip())
+        if batch_size <= 0:
+            raise RuntimeError(
+                "Invalid MUSETALK_TRT_UNET_PATHS batch size: "
+                f"{batch_raw!r}."
+            )
+        paths[batch_size] = Path(path_raw.strip())
+    return paths
+
+
+def _allow_unvalidated_unet_trt() -> bool:
+    return _env_enabled("MUSETALK_TRT_UNET_ALLOW_UNVALIDATED", "0")
+
+
 def _parse_torch_dtype(raw_value: object, default: torch.dtype = torch.float16) -> torch.dtype:
     value = str(raw_value or "").replace("torch.", "").strip().lower()
     if value in {"fp16", "float16", "half"}:
@@ -1283,6 +1319,16 @@ class TrtUnetBackend(torch.nn.Module):
         meta = {}
         if meta_path.exists():
             meta = json.loads(meta_path.read_text())
+            validation = meta.get("validation")
+            if (
+                isinstance(validation, dict)
+                and validation.get("passed") is False
+                and not _allow_unvalidated_unet_trt()
+            ):
+                raise RuntimeError(
+                    "TensorRT UNet artifact failed post-export validation: "
+                    f"{meta_path}"
+                )
 
         logger.info("Loading TensorRT UNet from %s", engine_path)
         module = _load_serialized_trt_module(engine_path=engine_path, device=device)
@@ -1367,6 +1413,78 @@ class TrtUnetBackend(torch.nn.Module):
         return _UNetBackendOutput(self._coerce_output(output))
 
 
+class MultiTrtUnetBackend(torch.nn.Module):
+    """
+    Route padded scheduler batches across validated exact-batch TensorRT UNets.
+
+    This lets the live server use a known-good batch-8 engine for both batch-8
+    work and batch-16 work split into two exact batch-8 calls, without enabling
+    an artifact that failed capture validation.
+    """
+
+    name = "tensorrt_unet_multi"
+
+    def __init__(
+        self,
+        backends_by_batch: dict[int, TrtUnetBackend],
+        device: torch.device,
+    ):
+        super().__init__()
+        if not backends_by_batch:
+            raise RuntimeError("MultiTrtUnetBackend requires at least one engine")
+        self.backends_by_batch = torch.nn.ModuleDict(
+            {str(batch): backend for batch, backend in sorted(backends_by_batch.items())}
+        )
+        self.device = device
+        self.dtype = next(iter(backends_by_batch.values())).dtype
+
+    def _backend_for_batch(self, batch_size: int) -> tuple[TrtUnetBackend, int]:
+        exact_key = str(batch_size)
+        if exact_key in self.backends_by_batch:
+            return self.backends_by_batch[exact_key], batch_size
+
+        for chunk_size in sorted((int(key) for key in self.backends_by_batch), reverse=True):
+            if chunk_size < batch_size and batch_size % chunk_size == 0:
+                return self.backends_by_batch[str(chunk_size)], chunk_size
+
+        supported = ", ".join(sorted(self.backends_by_batch.keys(), key=int))
+        raise RuntimeError(
+            "TensorRT UNet engine batch support mismatch: "
+            f"got batch={batch_size}, supported exact/splittable batches={supported}."
+        )
+
+    @torch.no_grad()
+    def forward(
+        self,
+        latent: torch.Tensor,
+        timesteps=None,
+        *,
+        encoder_hidden_states: Optional[torch.Tensor] = None,
+    ) -> _UNetBackendOutput:
+        if encoder_hidden_states is None:
+            raise RuntimeError("TensorRT UNet backend requires encoder_hidden_states")
+
+        batch_size = int(latent.shape[0])
+        backend, chunk_size = self._backend_for_batch(batch_size)
+        if chunk_size == batch_size:
+            return backend(
+                latent,
+                timesteps,
+                encoder_hidden_states=encoder_hidden_states,
+            )
+
+        outputs = []
+        for start in range(0, batch_size, chunk_size):
+            end = start + chunk_size
+            chunk_output = backend(
+                latent[start:end],
+                timesteps,
+                encoder_hidden_states=encoder_hidden_states[start:end],
+            )
+            outputs.append(chunk_output.sample)
+        return _UNetBackendOutput(torch.cat(outputs, dim=0))
+
+
 def load_unet_trt_backend(
     device: Optional[torch.device] = None,
     trt_dir: Optional[Path] = None,
@@ -1394,21 +1512,36 @@ def load_unet_trt_backend(
     if trt_dir is not None:
         os.environ["MUSETALK_TRT_DIR"] = str(Path(trt_dir).resolve())
 
-    engine_path = _trt_unet_path()
-    meta_path = _trt_unet_meta_path(engine_path)
-    if not engine_path.exists():
-        message = f"TensorRT UNet engine not found: {engine_path}"
-        if _allow_fallback():
-            logger.warning("%s; falling back to PyTorch UNet", message)
-            return None
-        raise FileNotFoundError(message)
-
     try:
-        backend = TrtUnetBackend.load(
-            engine_path=engine_path,
-            meta_path=meta_path,
-            device=resolved_device,
-        )
+        path_map = _trt_unet_path_map()
+        if path_map:
+            backends_by_batch: dict[int, TrtUnetBackend] = {}
+            for batch_size, engine_path in sorted(path_map.items()):
+                meta_path = engine_path.with_name("unet_trt_meta.json")
+                if not engine_path.exists():
+                    raise FileNotFoundError(
+                        f"TensorRT UNet engine not found for batch {batch_size}: "
+                        f"{engine_path}"
+                    )
+                backends_by_batch[batch_size] = TrtUnetBackend.load(
+                    engine_path=engine_path,
+                    meta_path=meta_path,
+                    device=resolved_device,
+                )
+            backend = MultiTrtUnetBackend(
+                backends_by_batch=backends_by_batch,
+                device=resolved_device,
+            )
+        else:
+            engine_path = _trt_unet_path()
+            meta_path = _trt_unet_meta_path(engine_path)
+            if not engine_path.exists():
+                raise FileNotFoundError(f"TensorRT UNet engine not found: {engine_path}")
+            backend = TrtUnetBackend.load(
+                engine_path=engine_path,
+                meta_path=meta_path,
+                device=resolved_device,
+            )
         logger.info("TensorRT UNet backend is active")
         return backend
     except Exception as exc:

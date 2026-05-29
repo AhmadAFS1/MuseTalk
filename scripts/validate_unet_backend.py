@@ -39,8 +39,41 @@ def synchronize(device: torch.device) -> None:
         torch.cuda.synchronize(device)
 
 
-def discover_captures(capture_dir: Path, limit: int) -> list[Path]:
+def _capture_batch_size(path: Path) -> int | None:
+    """
+    Return the scheduler padded batch size for a capture.
+
+    Static TensorRT UNet experiments need to validate only captures whose
+    padded batch matches the exact engine shape. Prefer the filename because it
+    is cheap, and fall back to the payload for older or renamed captures.
+    """
+    match = None
+    for part in path.stem.split("_"):
+        if part.startswith("bs") and part[2:].isdigit():
+            match = int(part[2:])
+    if match is not None:
+        return match
+
+    try:
+        payload = torch.load(path, map_location="cpu")
+    except Exception:
+        return None
+    if payload.get("kind") != "unet_io_batch":
+        return None
+    try:
+        return int(payload.get("padded_batch", payload["latent_batch"].shape[0]))
+    except Exception:
+        return None
+
+
+def discover_captures(capture_dir: Path, limit: int, padded_batch_size: int = 0) -> list[Path]:
     paths = sorted(capture_dir.glob("unet_io_*.pt"))
+    if padded_batch_size > 0:
+        paths = [
+            path
+            for path in paths
+            if _capture_batch_size(path) == int(padded_batch_size)
+        ]
     if limit > 0:
         paths = paths[:limit]
     return paths
@@ -205,6 +238,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Directory containing unet_io_*.pt files captured by the scheduler.",
     )
     parser.add_argument("--limit", type=int, default=8, help="Maximum capture files to validate.")
+    parser.add_argument(
+        "--padded-batch-size",
+        type=int,
+        default=0,
+        help=(
+            "Only validate captures with this scheduler padded batch size. "
+            "Use this for exact static TensorRT engines such as batch 8 or 16."
+        ),
+    )
     parser.add_argument("--device", default="auto", help="Device to run on, usually auto or cuda:0.")
     parser.add_argument(
         "--precision",
@@ -258,9 +300,14 @@ def main() -> int:
     device = resolve_device(args.device)
     precision = parse_precision(args.precision)
     capture_dir = Path(args.capture_dir)
-    paths = discover_captures(capture_dir, args.limit)
+    paths = discover_captures(capture_dir, args.limit, args.padded_batch_size)
     if not paths:
-        logger.error("No UNet capture files found in %s", capture_dir)
+        suffix = (
+            f" with padded_batch_size={args.padded_batch_size}"
+            if args.padded_batch_size > 0
+            else ""
+        )
+        logger.error("No UNet capture files found in %s%s", capture_dir, suffix)
         return 1
 
     run_backend = load_backend(args, device=device, precision=precision)
@@ -286,6 +333,7 @@ def main() -> int:
         "backend": args.backend,
         "precision": args.precision,
         "capture_dir": str(capture_dir),
+        "padded_batch_size": int(args.padded_batch_size),
         "actual_only": bool(args.actual_only),
         "summary": summary,
         "files": rows,
