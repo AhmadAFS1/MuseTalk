@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 import torch
+import torch.nn.functional as F
 from torch.export import ExportedProgram
 
 
@@ -93,6 +94,12 @@ def resolve_torch_executed_ops(raw_values: List[str]):
         if name == "scaled_dot_product_attention" and hasattr(
             torch.ops.aten, "scaled_dot_product_attention"
         ):
+            # FX export records MuseTalk attention as the builtin functional
+            # target (`torch._C._nn.scaled_dot_product_attention`), not only as
+            # the ATen overload. Include both forms so torch_executed_ops really
+            # excludes attention blocks from TRT during correctness experiments.
+            resolved.add(F.scaled_dot_product_attention)
+            resolved.add("torch._C._nn.scaled_dot_product_attention")
             resolved.add(torch.ops.aten.scaled_dot_product_attention.default)
             continue
         raise ValueError(
@@ -454,7 +461,56 @@ def compile_trt_module(
             save_kwargs["inputs"] = [tensor.detach() for tensor in chosen_save_inputs]
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        torch_tensorrt.save(compiled, str(save_path), **save_kwargs)
+
+        save_attempts = [(selected_save_format, save_kwargs)]
+        if selected_save_format == "exported_program":
+            # Some Torch-TensorRT 2.5 FX modules fail the retraced
+            # exported_program path when torch.export walks the embedded TRT
+            # engine state. Try the other supported serializers before
+            # discarding an otherwise successfully built engine.
+            torchscript_kwargs = {"output_format": "torchscript"}
+            if chosen_save_inputs:
+                torchscript_kwargs["inputs"] = [
+                    tensor.detach() for tensor in chosen_save_inputs
+                ]
+            save_attempts.append(("torchscript", torchscript_kwargs))
+
+            if save_kwargs.get("retrace", False):
+                non_retrace_kwargs = dict(save_kwargs)
+                non_retrace_kwargs["retrace"] = False
+                save_attempts.append(("exported_program", non_retrace_kwargs))
+
+        save_errors = []
+        for attempt_format, attempt_kwargs in save_attempts:
+            try:
+                torch_tensorrt.save(compiled, str(save_path), **attempt_kwargs)
+                try:
+                    probe = torch_tensorrt.load(str(save_path))
+                    del probe
+                except Exception as load_exc:
+                    raise RuntimeError(
+                        "saved TensorRT artifact failed immediate reload"
+                    ) from load_exc
+                selected_save_format = attempt_format
+                break
+            except Exception as exc:
+                save_errors.append((attempt_format, type(exc).__name__, str(exc)))
+                logger.warning(
+                    "TensorRT save failed for format=%s: %s: %s",
+                    attempt_format,
+                    type(exc).__name__,
+                    exc,
+                )
+                try:
+                    if save_path.exists():
+                        save_path.unlink()
+                except Exception:
+                    pass
+        else:
+            detail = "; ".join(
+                f"{fmt}: {kind}: {msg}" for fmt, kind, msg in save_errors
+            )
+            raise RuntimeError(f"TensorRT save failed for all formats: {detail}")
     else:
         raise RuntimeError(
             "Compiled TensorRT module is not a TorchScript module, and this "
