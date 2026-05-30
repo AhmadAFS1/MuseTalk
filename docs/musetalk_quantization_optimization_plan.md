@@ -1388,3 +1388,47 @@ Recommendation after this profiling:
 - Use the new timing hook for A/B tests.
 - Next meaningful VAE attempt should be a visual-quality-gated late-block
   experiment or a scheduling/overlap change, not more CPU postprocess tuning.
+
+## 2026-05-29 `decoder_up_block_3` Deep Dive
+
+`decoder_up_block_3` is Diffusers `UpDecoderBlock2D`. In this VAE it contains:
+
+- three `ResnetBlock2D` children
+- no upsampler
+- each ResNet contains group norm, SiLU, two 3x3 convs, and residual add
+- the first ResNet also has a shortcut conv because channels change from `256`
+  to `128`
+
+Focused batch-16 profiling showed:
+
+| Child | Avg time |
+| --- | ---: |
+| `resnets.0` | `0.02798s` |
+| `resnets.1` | `0.01879s` |
+| `resnets.2` | `0.01880s` |
+| full block | `0.06577s` |
+
+Within the block, the six 3x3 convolutions are the main cost. Group norms,
+activations, and residual adds are not free, but the bottleneck is mostly
+full-resolution convolution at `[batch, 128, 256, 256]`.
+
+For comparison, `decoder_up_block_2` spends about `0.02343s` in its upsampler
+plus conv, then enters the same high-resolution tensor shape. That explains why
+block 2 and block 3 dominate the remaining VAE decode time.
+
+Quality-gated `decoder_up_block_3` INT8 attempts:
+
+- batch `16`, `onnx_qdq`, `minmax`: TensorRT build failed with GPU OOM/assertion
+- batch `8`, `onnx_qdq`, `minmax`: built, but `mae=0.01905`
+- batch `8`, `onnx_qdq`, `entropy2`: built, same `mae=0.01905`
+
+Saved comparison sheets:
+
+- `tmp/vae_decoder_int8_experiment/up3_minmax_bs8_20260529/comparison_sheet.png`
+- `tmp/vae_decoder_int8_experiment/up3_entropy2_bs8_20260529/comparison_sheet.png`
+
+Conclusion: whole-stage INT8 on `decoder_up_block_3` remains too risky for live
+serving. The next serious attempt should be finer-grained than the current
+stage switch, such as quantizing only selected high-cost convs inside the block
+or using a different fusion/backend strategy for the full-resolution residual
+convs.

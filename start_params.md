@@ -1468,6 +1468,85 @@ Next VAE optimization direction:
 4. Keep the new stage timing hooks for A/B tests, but disable them for normal
    WebRTC wall use.
 
+### 2026-05-29 `decoder_up_block_3` Internal Bottleneck
+
+Added a focused profiler:
+
+```text
+scripts/profile_vae_up_block.py
+```
+
+This loads only the VAE, builds the real input tensor for a selected decoder
+up-block, and times the block's children and ResNet internals. It avoids loading
+the UNet, which matters because the full API server already holds large TRT
+engines.
+
+Batch-16 profile for `decoder_up_block_3`:
+
+- report: `tmp/vae_up_block_profile/up_block_3_bs16_20260529.json`
+- input shape: `[16, 256, 256, 256]`
+- block class: `UpDecoderBlock2D`
+- this final block has no upsampler; it is three high-resolution
+  `ResnetBlock2D` modules
+
+Breakdown:
+
+| Child | Avg time | Main cost |
+| --- | ---: | --- |
+| `resnets.0` | `0.02798s` | `conv1=0.01175s`, `conv2=0.00664s`, shortcut conv |
+| `resnets.1` | `0.01879s` | `conv1=0.00661s`, `conv2=0.00662s` |
+| `resnets.2` | `0.01880s` | `conv1=0.00662s`, `conv2=0.00662s` |
+| full block | `0.06577s` | six 3x3 high-res convs plus norms/activations/adds |
+
+Batch-16 profile for `decoder_up_block_2`, for comparison:
+
+- report: `tmp/vae_up_block_profile/up_block_2_bs16_20260529.json`
+- input shape: `[16, 512, 128, 128]`
+- unlike block 3, this block includes an upsampler to `[16, 256, 256, 256]`
+
+Breakdown:
+
+| Child | Avg time |
+| --- | ---: |
+| `resnets.0` | `0.02100s` |
+| `resnets.1` | `0.01383s` |
+| `resnets.2` | `0.01387s` |
+| `upsamplers.0` | `0.02343s` |
+| full block | `0.07188s` |
+
+Interpretation:
+
+- `decoder_up_block_3` is slow because it runs six 3x3 convolutions at full
+  `256x256` crop resolution.
+- `decoder_up_block_2` is slow for a different reason: it has both residual
+  convolutions and the expensive upsample+conv transition into `256x256`.
+- The `decoder_up_block_3` bottleneck is real math, not just Python overhead or
+  CPU postprocess.
+
+Quality-gated `decoder_up_block_3` INT8 experiments:
+
+| Experiment | Batch | Result |
+| --- | ---: | --- |
+| `onnx_qdq`, `minmax` | `16` | failed during TensorRT build with GPU OOM/assertion |
+| `onnx_qdq`, `minmax` | `8` | built, `mae=0.01905`, `max_abs=0.09082` |
+| `onnx_qdq`, `entropy2` | `8` | built, same `mae=0.01905`, `max_abs=0.09082` |
+
+Saved comparison outputs:
+
+- `tmp/vae_decoder_int8_experiment/up3_minmax_bs8_20260529/comparison_sheet.png`
+- `tmp/vae_decoder_int8_experiment/up3_entropy2_bs8_20260529/comparison_sheet.png`
+
+Conclusion:
+
+- Whole-stage INT8 for `decoder_up_block_3` is still not ready for live serving.
+- Changing from `minmax` to `entropy2` did not improve quality on this sample.
+- The next real optimization here would need finer granularity than the current
+  whole-stage INT8 switch: for example, profiling/quantizing only selected convs
+  inside the block, or using a different backend/fusion strategy for the
+  high-resolution residual convs.
+- Until that finer-grained path exists and passes visual comparison, keep
+  `decoder_up_block_3` FP16 in live WebRTC.
+
 ## Related Docs
 
 - [`current_start_param_reference.md`](./current_start_param_reference.md)
