@@ -1338,6 +1338,41 @@ VAE tensor decode is still about `125ms` per live decode call, so the next VAE
 work should target tensor decode reduction, VAE stage scheduling/overlap, or a
 larger output-path architecture change rather than more CPU postprocess tuning.
 
+### 2026-05-31 9:16 Avatar Shape Check
+
+Prepared and load-tested a portrait idle/base video to check whether moving
+from the usual `1024 x 1024` source shape to `720 x 1280` creates a WebRTC
+throughput or VRAM regression.
+
+Tested avatar:
+
+- avatar id: `portrait_9x16_720p_20260531`
+- source: `assets/ee3102596e4ee7b432d81d2fccde54b6.mp4`
+- source shape: `720 x 1280`, `24 fps`, `10.04s`
+- prepared cycle frames: `482`
+- prepared artifact size: about `536 MB`
+- warmed avatar cache memory: about `2198.6 MB`
+
+WebRTC load test on the current RTX 3090 `8,16` warmed-bucket path:
+
+| Streams | Completed | Avg frame interval | Approx per-stream FPS | Avg live-ready | Max frame interval | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `4` | `4/4` | `0.054s` | `18.5` | `3.720s` | `0.354s` | `19611 MB` |
+| `5` | `5/5` | `0.068s` | `14.7` | `3.270s` | `0.699s` | `19613 MB` |
+| `6` | `6/6` | `0.080s` | `12.5` | `4.051s` | `0.884s` | `19621 MB` |
+| `8` | `8/8` | `0.108s` | `9.3` | `6.408s` | `1.429s` | `19623 MB` |
+
+Report files:
+
+- `tmp/load_tests/load_test_webrtc_3090_portrait_9x16_720p_20_20_4_5_6_8streams_8_16_20260531.json`
+- `tmp/load_tests/load_test_webrtc_3090_portrait_9x16_720p_20_20_4_5_6_8streams_8_16_20260531_detailed.json`
+
+Result: no CUDA OOM and no failed WebRTC sessions. Compared with the closest
+May 29 fast-postprocess baseline, average frame intervals were slightly better
+and peak VRAM was only about `25-30 MB` higher, which is effectively runtime
+noise at this footprint. The remaining caveat is smoothness: `8` streams
+complete, but cadence is still below strict `20 fps` per stream.
+
 ## 2026-05-29 VAE Stage Timing Update
 
 Added opt-in stage-level timing to `scripts/trt_runtime.py`:

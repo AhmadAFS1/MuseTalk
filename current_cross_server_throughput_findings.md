@@ -1387,6 +1387,64 @@ Operational read:
   current WebRTC frame-receive band is about `56-58`. These are different
   metrics and should not be compared as identical throughput counters.
 
+## RTX 3090 9:16 Avatar WebRTC Check - May 31, 2026
+
+This pass tested whether a portrait `720 x 1280` idle/base video changes WebRTC
+throughput or VRAM behavior versus the earlier square-avatar references.
+
+Runtime:
+
+- server profile: `throughput_record`
+- GPU: RTX `3090`
+- scheduler fixed/warmed buckets: `8,16`
+- WebRTC request shape: `20/20 fps`, request `batch_size=8`
+- audio: `data/audio/ai-assistant.mpga`
+- ramp: `4,5,6,8`
+- source asset: `assets/ee3102596e4ee7b432d81d2fccde54b6.mp4`
+- source video shape: `720 x 1280`, `24 fps`, `10.04s`, `241` frames
+- prepared avatar id: `portrait_9x16_720p_20260531`
+- prepared avatar path:
+  `results/v15/avatars/portrait_9x16_720p_20260531`
+- prepared cycle frames: `482`
+- prepared avatar disk footprint: about `536 MB`
+- warmed avatar cache memory: about `2198.6 MB`
+
+Reports:
+
+- `tmp/load_tests/load_test_webrtc_3090_portrait_9x16_720p_20_20_4_5_6_8streams_8_16_20260531.json`
+- `tmp/load_tests/load_test_webrtc_3090_portrait_9x16_720p_20_20_4_5_6_8streams_8_16_20260531_detailed.json`
+
+Results:
+
+| Streams | Completed | Failed | Avg live-ready | Avg frame interval | Max frame interval | Approx per-stream FPS | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `4/4` | `0` | `3.720s` | `0.054s` | `0.354s` | `18.5` | `19611 MB` |
+| 5 | `5/5` | `0` | `3.270s` | `0.068s` | `0.699s` | `14.7` | `19613 MB` |
+| 6 | `6/6` | `0` | `4.051s` | `0.080s` | `0.884s` | `12.5` | `19621 MB` |
+| 8 | `8/8` | `0` | `6.408s` | `0.108s` | `1.429s` | `9.3` | `19623 MB` |
+
+Comparison to the closest May 29 RTX 3090 fast-postprocess WebRTC baseline:
+
+| Streams | May 29 avg interval | 9:16 avg interval | May 29 peak VRAM | 9:16 peak VRAM |
+| ---: | ---: | ---: | ---: | ---: |
+| 4 | `0.056s` | `0.054s` | `19585 MB` | `19611 MB` |
+| 6 | `0.083s` | `0.080s` | `19593 MB` | `19621 MB` |
+| 8 | `0.111s` | `0.108s` | `19597 MB` | `19623 MB` |
+
+Operational read:
+
+- The portrait `720 x 1280` base video did not trigger CUDA OOM.
+- Peak VRAM was essentially unchanged versus the closest current-runtime
+  baseline, only about `25-30 MB` higher.
+- The new avatar cache is smaller than the older `gpt_moving_avatar_4090`
+  reference: about `2.20 GB` RAM versus about `3.17 GB`.
+- The likely reason this did not regress is that the live model still works on
+  the cropped face/latent path, while full-frame resolution mostly affects
+  avatar prep, cached frame/mask footprint, composition, and video encode.
+- The `8` stream case completed, but it is still not strict `8 x 20 fps`.
+  Average received cadence was about `9.3 fps` per stream with visible tail
+  spikes, so this is "works without OOM" rather than "fully smooth 20 fps".
+
 ## Current Practical Guidance
 
 - 2026-05-29 current chat context for WebRTC throughput:
