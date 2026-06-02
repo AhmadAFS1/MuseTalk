@@ -36,7 +36,10 @@ Set the WebView URL to:
 ${BASE_URL}${player_url}
 ```
 
-The player auto-negotiates WebRTC. Users must tap once to enable audio (iOS/Safari policy).
+The player auto-negotiates WebRTC on load with audio/video transceivers enabled.
+iOS/Safari may still block audible playback without a user gesture; when that
+happens, the player keeps the WebRTC connection alive and falls back to muted
+playback.
 
 ### 3) Upload Audio (TTS output)
 
@@ -176,7 +179,9 @@ export WEBRTC_STUN_URLS=""
 
 - **404 on `/webrtc/sessions/{id}/stream`**: session expired or wrong ID.
 - **409 on `/webrtc/sessions/{id}/stream`**: stream already active; wait until it finishes.
-- **Silent audio on iOS**: user must tap once to unlock audio.
+- **Silent audio on iOS**: Safari may have blocked audible autoplay. The media
+  connection can still be active while muted; use a user gesture if you need to
+  retry audible playback.
 
 ---
 

@@ -161,7 +161,8 @@ The active WebRTC files are:
 - `scripts/webrtc_tracks.py`
   - owns idle video, switchable live video, silence audio, synced live audio, A/V sync clock
 - `templates/webrtc_player.py`
-  - browser/WebView player, SDP exchange, ICE candidate POSTs, tap-to-enable-audio, debug overlay
+  - browser/WebView player, auto-start SDP exchange, ICE candidate POSTs,
+    single video-element audio/video playback, debug panel off by default
 - `http_scripts_webrtc.http`
   - already points at the current public base URL and cached avatar
 
@@ -280,7 +281,9 @@ Then open:
 http://127.0.0.1:8000/webrtc/player/<session_id>
 ```
 
-Tap the overlay to start negotiation/audio.
+The player now starts negotiation on load. If the browser blocks audible
+autoplay, it falls back to muted playback while keeping the WebRTC connection
+alive.
 
 ### 2) Public browser test without TURN
 
@@ -366,8 +369,9 @@ some desktop/local cases, but HTTPS is the safer requirement for real devices.
 
 1. Start API with the env above.
 2. Create WebRTC session.
-3. Open `/webrtc/player/{session_id}` and tap to start.
-4. Confirm the debug overlay reaches `connected` and shows video stats.
+3. Open `/webrtc/player/{session_id}`. The player should negotiate on load.
+4. If needed, enable the stats panel and confirm ICE reaches `connected` with
+   moving video/audio counters.
 5. Upload audio:
 
 ```bash

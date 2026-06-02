@@ -40,7 +40,8 @@ Add WebRTC support alongside existing SSE streaming by introducing a parallel se
 - Live playback: frames are rendered as they arrive; audio and video stay in sync.
 - Live end: when the stream finishes or errors, the player returns to the idle loop within a short grace period.
 - Reconnect: if the peer connection drops, the player attempts a limited reconnect; on failure, it falls back to idle.
-- Autoplay policy: same as current MSE player (click-to-play required), use playsinline for iOS.
+- Autoplay policy: auto-negotiate WebRTC on load with `playsinline`; if audible
+  autoplay is blocked, keep the connection alive and fall back to muted playback.
 
 ## Concrete change notes (by class/module)
 - api_server.py: add `/webrtc/...` endpoints for create/offer/ice/player; wire to a WebRTC session manager; keep existing SSE endpoints unchanged.
@@ -98,7 +99,8 @@ Add WebRTC support alongside existing SSE streaming by introducing a parallel se
 
 ## Implementation spec (MVP decisions)
 - WebRTC session APIs use the same payloads and defaults as current `/sessions` endpoints.
-- Client behavior matches the MSE player, including click-to-play for autoplay compliance.
+- Client behavior auto-negotiates on load, with muted playback fallback when
+  audible autoplay is blocked.
 - Encoding settings: fps = 10, H264 software encoding, bitrate set to a stable default (tune after initial tests).
 - Audio sample rate: use source/default settings (no resampling unless required).
 

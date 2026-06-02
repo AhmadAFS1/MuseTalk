@@ -39,16 +39,16 @@ def get_webrtc_wall_html(default_avatar_id: str = "test_avatar") -> str:
     html = html.replace(
         '<button id="deleteBtn" class="danger">Delete Group</button>',
         '<button id="deleteBtn" class="danger">Delete Group</button>\n'
-        '                <button id="webrtcPlayAllBtn" type="button">Connect All</button>\n'
-        '                <button id="webrtcDebugBtn" type="button">Stats: Docked</button>',
+        '                <button id="webrtcPlayAllBtn" type="button">Reconnect All</button>\n'
+        '                <button id="webrtcDebugBtn" type="button">Stats: Off</button>',
     )
     html = html.replace(
         '        const initialGroupId = initialGroupMatch ? initialGroupMatch[1] : null;\n',
         """        const initialGroupId = initialGroupMatch ? initialGroupMatch[1] : null;
-        const webrtcDebugModes = ["docked", "off", "overlay"];
-        let webrtcDebugMode = localStorage.getItem("webrtcWallDebugMode") || "docked";
+        const webrtcDebugModes = ["off", "docked", "overlay"];
+        let webrtcDebugMode = localStorage.getItem("webrtcWallDebugMode") || "off";
         if (!webrtcDebugModes.includes(webrtcDebugMode)) {
-            webrtcDebugMode = "docked";
+            webrtcDebugMode = "off";
         }
 
         function getWebrtcPlayerUrl(playerUrl) {
@@ -75,7 +75,7 @@ def get_webrtc_wall_html(default_avatar_id: str = "test_avatar") -> str:
 
         function setWebrtcDebugMode(mode) {
             if (!webrtcDebugModes.includes(mode)) {
-                mode = "docked";
+                mode = "off";
             }
             webrtcDebugMode = mode;
             localStorage.setItem("webrtcWallDebugMode", mode);

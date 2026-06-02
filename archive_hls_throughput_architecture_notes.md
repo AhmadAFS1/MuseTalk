@@ -349,9 +349,12 @@ Audio sync knobs (env vars):
 
 - Creates an `RTCPeerConnection` using the session's ICE servers.
 - Adds `recvonly` transceivers for video and audio.
-- Uses a separate `<audio>` element plus WebAudio routing to avoid Safari autoplay issues.
-- Requires a user tap to start audio (Safari policy).
-- Includes a debug overlay (getStats) showing audio bytes/packets and ICE state.
+- Attaches audio and video tracks to one `<video>` element and auto-negotiates
+  WebRTC on load.
+- Attempts audible playback by default, with muted autoplay fallback when a
+  browser blocks audio without a user gesture.
+- Includes an optional stats panel (off by default) showing audio bytes/packets
+  and ICE state.
 
 ### 4) WebRTC Endpoints (`api_server.py`)
 
