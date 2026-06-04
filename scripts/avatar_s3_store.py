@@ -1,3 +1,5 @@
+import filecmp
+import json
 import os
 import random
 import shutil
@@ -361,6 +363,8 @@ class AvatarS3Store:
                     raise ValueError(f"Refusing to archive special file: {path}")
 
                 relative_name = path.relative_to(avatar_dir).as_posix()
+                if self._should_skip_redundant_idle_video(avatar_dir, path, relative_name):
+                    continue
                 archive_name = f"{avatar_id}/{relative_name}"
                 info = tar.gettarinfo(str(path), arcname=archive_name)
                 if info.isdir():
@@ -372,6 +376,29 @@ class AvatarS3Store:
                 else:
                     raise ValueError(f"Refusing to archive unsupported member: {path}")
         return file_count
+
+    @staticmethod
+    def _should_skip_redundant_idle_video(
+        avatar_dir: Path,
+        path: Path,
+        relative_name: str,
+    ) -> bool:
+        if relative_name != "idle_video.mp4" or not path.is_file():
+            return False
+
+        input_video_path = avatar_dir / "input_video.mp4"
+        if not input_video_path.is_file():
+            return False
+
+        try:
+            info_path = avatar_dir / "avator_info.json"
+            saved_info = json.loads(info_path.read_text()) if info_path.is_file() else {}
+            video_layout = str(saved_info.get("video_layout", "single_video"))
+            if video_layout == "separate_idle_talking":
+                return False
+            return filecmp.cmp(path, input_video_path, shallow=False)
+        except Exception:
+            return False
 
     def _extract_archive_to_staging(
         self,

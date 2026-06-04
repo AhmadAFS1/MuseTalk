@@ -672,15 +672,16 @@ class APIAvatar:
         has_separate_idle_source = bool(self.idle_video_path)
         if has_separate_idle_source:
             self._materialize_video_artifact(self.idle_video_path, idle_video_path, role="idle")
+            resolved_idle_video_path = idle_video_path
         else:
-            shutil.copy2(input_video_path, idle_video_path)
-            print(f"📹 Saved idle video from talking source: {idle_video_path}")
-        self.idle_video_path = idle_video_path
+            resolved_idle_video_path = input_video_path
+            print(f"📹 Using talking source for idle playback: {resolved_idle_video_path}")
+        self.idle_video_path = resolved_idle_video_path
         
         # Save avatar info
         self.avatar_info['input_video_path'] = input_video_path
         self.avatar_info['talking_video_path'] = input_video_path
-        self.avatar_info['idle_video_path'] = idle_video_path
+        self.avatar_info['idle_video_path'] = resolved_idle_video_path
         self.avatar_info['video_layout'] = (
             "separate_idle_talking" if has_separate_idle_source else "single_video"
         )

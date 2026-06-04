@@ -62,6 +62,11 @@ def build_malicious_archive() -> bytes:
     return buffer.getvalue()
 
 
+def archived_names(payload: bytes) -> set[str]:
+    with tarfile.open(fileobj=io.BytesIO(payload), mode="r:gz") as tar:
+        return set(tar.getnames())
+
+
 class AvatarS3StoreTest(unittest.TestCase):
     def make_store(self, client: FakeS3Client) -> AvatarS3Store:
         return AvatarS3Store(
@@ -135,6 +140,46 @@ class AvatarS3StoreTest(unittest.TestCase):
             self.assertEqual(stats["upload_attempts"], 1)
             self.assertEqual(stats["upload_retries"], 1)
             self.assertEqual(stats["upload_successes"], 1)
+
+    def test_upload_skips_redundant_single_video_idle_copy(self):
+        client = FakeS3Client()
+        store = self.make_store(client)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_dir = write_prepared_avatar(root, "avatar")
+            source_dir.joinpath("input_video.mp4").write_bytes(b"same-video")
+            source_dir.joinpath("idle_video.mp4").write_bytes(b"same-video")
+            source_dir.joinpath("avator_info.json").write_text(
+                '{"avatar_id":"avatar","video_layout":"single_video"}'
+            )
+
+            self.assertTrue(store.upload_avatar_dir("avatar", source_dir))
+
+            payload = client.objects[("test-bucket", "avatars/v15/avatar.tar.gz")]["body"]
+            names = archived_names(payload)
+            self.assertIn("avatar/input_video.mp4", names)
+            self.assertNotIn("avatar/idle_video.mp4", names)
+
+    def test_upload_keeps_separate_idle_video(self):
+        client = FakeS3Client()
+        store = self.make_store(client)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_dir = write_prepared_avatar(root, "avatar")
+            source_dir.joinpath("input_video.mp4").write_bytes(b"talking-video")
+            source_dir.joinpath("idle_video.mp4").write_bytes(b"idle-video")
+            source_dir.joinpath("avator_info.json").write_text(
+                '{"avatar_id":"avatar","video_layout":"separate_idle_talking"}'
+            )
+
+            self.assertTrue(store.upload_avatar_dir("avatar", source_dir))
+
+            payload = client.objects[("test-bucket", "avatars/v15/avatar.tar.gz")]["body"]
+            names = archived_names(payload)
+            self.assertIn("avatar/input_video.mp4", names)
+            self.assertIn("avatar/idle_video.mp4", names)
 
 
 if __name__ == "__main__":

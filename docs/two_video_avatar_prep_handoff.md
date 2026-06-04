@@ -49,7 +49,7 @@ For old single-video prep, `video_layout` is `single_video`.
 
 ## Stored Avatar Artifacts
 
-After preparation, each avatar directory contains:
+After preparation with a separate idle source, each avatar directory contains:
 
 ```text
 input_video.mp4   talking/bobbing source used for MuseTalk prep
@@ -73,9 +73,12 @@ avator_info.json
 }
 ```
 
-S3 persistence stores the whole avatar directory, so `idle_video.mp4` is included
-automatically. Older S3 avatars without `idle_video.mp4` still work because the
-server falls back to `input_video.mp4`.
+For single-video prep, the server does not create a duplicate `idle_video.mp4`.
+`idle_video_path` points at `input_video.mp4`, and `video_layout` is
+`single_video`. S3 persistence stores the whole avatar directory and skips any
+redundant single-video idle copy from older local artifacts, so the avatar
+tarball does not bloat with two copies of the same MP4. Older S3 avatars without
+`idle_video.mp4` still work because the server falls back to `input_video.mp4`.
 
 ## Playback Behavior
 
@@ -133,6 +136,7 @@ Core implementation:
 - `api_server.py`
 - `scripts/api_avatar.py`
 - `scripts/avatar_manager_parallel.py`
+- `scripts/avatar_s3_store.py`
 
 Docs/examples:
 
@@ -147,7 +151,7 @@ Docs/examples:
 Verification run:
 
 ```bash
-python3 -m py_compile api_server.py scripts/api_avatar.py scripts/avatar_manager_parallel.py test_avatar_cache_warmup.py
+python3 -m py_compile api_server.py scripts/api_avatar.py scripts/avatar_manager_parallel.py scripts/avatar_s3_store.py test_avatar_cache_warmup.py
 python3 -m unittest test_avatar_s3_store.py test_avatar_cache_warmup.py
 git diff --check
 ```
