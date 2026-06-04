@@ -776,7 +776,15 @@ class ParallelAvatarManager:
             "warmups": warmups,
         }
     
-    def prepare_avatar(self, avatar_id, video_path, bbox_shift=0, batch_size=20, force_recreate=False):
+    def prepare_avatar(
+        self,
+        avatar_id,
+        video_path,
+        bbox_shift=0,
+        batch_size=20,
+        force_recreate=False,
+        idle_video_path=None,
+    ):
         """Prepare avatar (one-time operation)"""
         exists = self._avatar_exists(avatar_id)
         
@@ -798,7 +806,8 @@ class ParallelAvatarManager:
             fp=self.fp,
             args=self.args,
             preparation=True,  # Prepare materials
-            force_recreate=force_recreate
+            force_recreate=force_recreate,
+            idle_video_path=idle_video_path,
         )
 
         avatar_dir = Path(self._avatar_dir(avatar_id))

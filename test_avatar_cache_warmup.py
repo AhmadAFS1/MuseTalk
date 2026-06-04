@@ -60,6 +60,7 @@ def _install_import_stubs():
     sys.modules["scripts.concurrent_gpu_manager"] = gpu_manager
 
     trt_runtime = types.ModuleType("scripts.trt_runtime")
+    trt_runtime.load_unet_trt_backend = lambda *args, **kwargs: None
     trt_runtime.load_vae_trt_decoder = lambda *args, **kwargs: None
     sys.modules["scripts.trt_runtime"] = trt_runtime
 

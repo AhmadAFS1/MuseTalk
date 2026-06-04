@@ -161,7 +161,8 @@ POST /avatars/prepare
 Content-Type: multipart/form-data
 
 avatar_id: "test_avatar"
-video_file: [binary MP4 file]
+video_file: [binary MP4 file used for MuseTalk/talking prep]
+idle_video_file: [optional binary MP4 file used for idle playback]
 batch_size: 20
 bbox_shift: 5
 force_recreate: false
@@ -169,9 +170,10 @@ force_recreate: false
 
 ### Backend Flow
 
-1. **File Upload & Validation**: Saves the uploaded video to the server.
-2. **Avatar Preparation**: Creates or loads an avatar, extracting frames, landmarks, and generating latents.
-3. **Caching**: Stores the avatar in memory for faster future access.
+1. **File Upload & Validation**: Saves the uploaded talking source and optional idle loop to the server.
+2. **Avatar Preparation**: Creates or loads an avatar from `video_file`, extracting frames, landmarks, masks, and latents.
+3. **Idle Asset Storage**: Stores `idle_video_file` as the preferred idle loop, falling back to `video_file` when omitted.
+4. **Caching**: Stores the avatar in memory for faster future access.
 
 ---
 
@@ -334,7 +336,7 @@ DELETE /webrtc/sessions/{session_id}
 ### 2) WebRTC Tracks (`scripts/webrtc_tracks.py`)
 
 - **`SwitchableVideoStreamTrack`**: single video track that always emits frames. It plays idle frames by default, and switches to live frames when `start_live()` is called. `end_live()` drains the queue and falls back to idle without replacing the track. It also supports a higher `playback_fps` by duplicating source frames.
-- **`IdleVideoStreamTrack`**: loops the prepared avatar MP4 via PyAV and outputs `yuv420p` frames at the configured FPS.
+- **`IdleVideoStreamTrack`**: loops the prepared avatar idle MP4 via PyAV and outputs `yuv420p` frames at the configured FPS.
 - **`SilenceAudioStreamTrack`**: emits 20 ms silent audio frames to keep the audio m-line alive during idle.
 - **`VideoSyncClock`**: shared clock driven by live video frames. It tracks source-frame time so audio can align to real video progress (not just wall-clock time).
 - **`SyncedAudioStreamTrack`**: high-quality audio path used for live streaming. It converts audio to PCM (FFmpeg + soxr if available), preloads into memory, and paces frames using PTS timing. Playback begins when `signal_start()` is called and waits for the video clock to start. It then throttles or skips audio to stay within drift bounds (lead/lag).

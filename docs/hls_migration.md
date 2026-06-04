@@ -20,10 +20,11 @@ Compatibility overview (iOS)
 
 Current implementation snapshot (as in repo)
 - HLS is implemented as dual playlists: a static idle VOD playlist (`index.m3u8`) plus a live event playlist (`live.m3u8`).
-- Idle HLS is generated once per session via ffmpeg as fMP4 segments in `results/hls/{session_id}/segments/seg_*.m4s`.
+- Idle HLS is generated once per session from the avatar's idle MP4 via ffmpeg as fMP4 segments in `results/hls/{session_id}/segments/seg_*.m4s`.
 - Live HLS is assembled by the server: each inference chunk is encoded as a `.ts` segment under `results/hls/{session_id}/segments/{request_id}/chunk_*.ts`, and `live.m3u8` is appended with `EXTINF` entries.
 - The player uses two stacked `<video>` elements plus a hold-frame canvas overlay; it reveals live only after prebuffering and a decoded frame, and returns to idle by holding the last live frame until idle has a frame ready.
 - `part_duration` is accepted in the session config but LL-HLS parts are not generated yet.
+- If `/avatars/prepare` receives both `video_file` and `idle_video_file`, the idle playlist comes from `idle_video_file`; live MuseTalk chunks are generated from the prepared `video_file` frame cycle.
 
 New API surface (parallel to /sessions)
 All endpoints below are new and independent from existing session and WebRTC routes.
@@ -199,6 +200,7 @@ Crossfade and idle frames
 
 Pitfalls
 - Idle HLS is forward-loop, while the avatar cycle is ping-pong; perfect long-run alignment is not possible.
+- If idle and talking/base videos are different clips or durations, server timing maps idle time onto the talking frame cycle only approximately.
 - If frame lists and latent lists are different lengths (skipped bboxes), offsets must be applied carefully to keep mouth and base frame aligned.
 - If playback_fps != musetalk_fps, the offset is approximate; prefer matching fps for best continuity.
 

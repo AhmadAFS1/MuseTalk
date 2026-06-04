@@ -12,7 +12,7 @@ This guide shows how to integrate MuseTalk WebRTC into a React Native app to bui
 4. Upload audio to the active WebRTC session (`POST /webrtc/sessions/{id}/stream`).
 5. Repeat step 4 for each new utterance.
 
-The server keeps an idle video loop until audio arrives, then switches to live video and audio.
+The server keeps an idle video loop until audio arrives, then switches to live video and audio. When an avatar is prepared with both `video_file` and `idle_video_file`, WebRTC uses `idle_video_file` for the idle loop and MuseTalk generates live frames from `video_file`.
 
 ---
 

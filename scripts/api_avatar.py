@@ -388,8 +388,9 @@ class APIAvatar:
     Inspired by realtime_inference.py but designed for server/API usage.
     """
     
-    def __init__(self, avatar_id, video_path, bbox_shift, batch_size, 
-                 vae, unet, pe, fp, args, preparation=True, force_recreate=False):
+    def __init__(self, avatar_id, video_path, bbox_shift, batch_size,
+                 vae, unet, pe, fp, args, preparation=True, force_recreate=False,
+                 idle_video_path=None):
         """
         Args:
             avatar_id: Unique identifier for this avatar
@@ -400,9 +401,11 @@ class APIAvatar:
             args: Configuration namespace
             preparation: If True, prepare materials from video
             force_recreate: If True, recreate even if exists
+            idle_video_path: Optional idle-loop video. If omitted, video_path is used.
         """
         self.avatar_id = avatar_id
         self.video_path = video_path
+        self.idle_video_path = idle_video_path
         self.bbox_shift = bbox_shift
         self.batch_size = batch_size
         self.idx = 0
@@ -436,6 +439,7 @@ class APIAvatar:
         self.avatar_info = {
             "avatar_id": avatar_id,
             "video_path": video_path,
+            "idle_video_path": idle_video_path,
             "bbox_shift": bbox_shift,
             "version": args.version
         }
@@ -660,19 +664,26 @@ class APIAvatar:
         os.makedirs(self.video_out_path, exist_ok=True)
         os.makedirs(self.mask_out_path, exist_ok=True)
         
-        # ✅ NEW: Save input video for playback
+        # Save the MuseTalk/talking source and the idle playback source separately.
         input_video_path = f"{self.avatar_path}/input_video.mp4"
-        if os.path.isfile(self.video_path):
-            # Copy video file
-            shutil.copy2(self.video_path, input_video_path)
-            print(f"📹 Saved input video: {input_video_path}")
-        elif os.path.isdir(self.video_path):
-            # Convert image directory to video (for consistency)
-            print(f"📹 Converting image directory to video...")
-            self._convert_images_to_video(self.video_path, input_video_path, fps=25)
+        self._materialize_video_artifact(self.video_path, input_video_path, role="talking")
+
+        idle_video_path = f"{self.avatar_path}/idle_video.mp4"
+        has_separate_idle_source = bool(self.idle_video_path)
+        if has_separate_idle_source:
+            self._materialize_video_artifact(self.idle_video_path, idle_video_path, role="idle")
+        else:
+            shutil.copy2(input_video_path, idle_video_path)
+            print(f"📹 Saved idle video from talking source: {idle_video_path}")
+        self.idle_video_path = idle_video_path
         
         # Save avatar info
-        self.avatar_info['input_video_path'] = input_video_path  # ✅ Track input video
+        self.avatar_info['input_video_path'] = input_video_path
+        self.avatar_info['talking_video_path'] = input_video_path
+        self.avatar_info['idle_video_path'] = idle_video_path
+        self.avatar_info['video_layout'] = (
+            "separate_idle_talking" if has_separate_idle_source else "single_video"
+        )
         with open(self.avatar_info_path, "w") as f:
             json.dump(self.avatar_info, f)
         
@@ -683,6 +694,20 @@ class APIAvatar:
         self._process_frames()
         
         print(f"✅ Avatar {self.avatar_id} preparation complete")
+
+    def _materialize_video_artifact(self, source_path, output_path, role="video"):
+        """Copy a video file or convert an image directory into an MP4 artifact."""
+        if os.path.isfile(source_path):
+            shutil.copy2(source_path, output_path)
+            print(f"📹 Saved {role} video: {output_path}")
+            return
+
+        if os.path.isdir(source_path):
+            print(f"📹 Converting {role} image directory to video...")
+            self._convert_images_to_video(source_path, output_path, fps=25)
+            return
+
+        raise ValueError(f"Invalid {role} video_path: {source_path}")
 
     def _convert_images_to_video(self, image_dir, output_path, fps=25):
         """Convert image directory to video file"""
@@ -1016,7 +1041,7 @@ class APIAvatar:
 
         frames: list[np.ndarray] = []
         try:
-            video_path = Path(self.video_path)
+            video_path = self._resolve_idle_video_path()
             if not video_path.exists() or not video_path.is_file():
                 return []
 
@@ -1033,6 +1058,39 @@ class APIAvatar:
 
         self._idle_frame_cache = frames
         return frames
+
+    def _resolve_idle_video_path(self) -> Path:
+        candidates = []
+        if self.idle_video_path:
+            candidates.append(Path(self.idle_video_path))
+
+        default_idle_path = Path(self.avatar_path) / "idle_video.mp4"
+        default_input_path = Path(self.avatar_path) / "input_video.mp4"
+        candidates.extend([default_idle_path, default_input_path])
+
+        try:
+            if os.path.exists(self.avatar_info_path):
+                with open(self.avatar_info_path, "r") as f:
+                    saved_info = json.load(f)
+                for key in ("idle_video_path", "input_video_path", "talking_video_path"):
+                    value = saved_info.get(key)
+                    if value:
+                        candidates.append(Path(value))
+        except Exception as exc:
+            print(f"⚠️ Failed to read avatar video metadata: {exc}")
+
+        if self.video_path:
+            candidates.append(Path(self.video_path))
+
+        seen = set()
+        for candidate in candidates:
+            candidate_key = str(candidate)
+            if candidate_key in seen:
+                continue
+            seen.add(candidate_key)
+            if candidate.exists() and candidate.is_file():
+                return candidate
+        return default_idle_path
 
     def compose_frame(self, res_frame, cycle_index: int):
         """Blend a decoded face frame back into the avatar frame cycle."""

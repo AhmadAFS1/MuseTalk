@@ -1222,33 +1222,45 @@ async def worker_drain(wait_for_idle: bool = False, timeout_seconds: int = 300):
 async def prepare_avatar(
     avatar_id: str,
     video_file: UploadFile = File(...),
+    idle_video_file: Optional[UploadFile] = File(None),
     bbox_shift: int = 0,
     batch_size: int = 20,
     force_recreate: bool = False
 ):
     """
-    Prepare an avatar from uploaded video file.
+    Prepare an avatar from uploaded video files.
+    `video_file` is the MuseTalk/talking source. Optional `idle_video_file`
+    is the loop used by HLS/WebRTC while no audio is active.
     This is a one-time operation that saves materials to disk.
     """
     if manager is None:
         raise HTTPException(status_code=503, detail="Manager not initialized")
     
     try:
-        # Save uploaded video to temp location
+        # Save uploaded video(s) to temp location
         upload_dir = Path("./uploads/videos")
         upload_dir.mkdir(parents=True, exist_ok=True)
-        
-        video_path = upload_dir / f"{avatar_id}_{video_file.filename}"
-        
-        with video_path.open("wb") as buffer:
-            shutil.copyfileobj(video_file.file, buffer)
-        
-        print(f"📥 Uploaded video for {avatar_id}: {video_path}")
+
+        def save_upload(upload: UploadFile, role: str) -> Path:
+            safe_filename = Path(upload.filename or f"{role}.mp4").name
+            destination = upload_dir / f"{avatar_id}_{role}_{safe_filename}"
+            with destination.open("wb") as buffer:
+                shutil.copyfileobj(upload.file, buffer)
+            print(f"📥 Uploaded {role} video for {avatar_id}: {destination}")
+            return destination
+
+        video_path = save_upload(video_file, "talking")
+        idle_video_path = (
+            save_upload(idle_video_file, "idle")
+            if idle_video_file is not None
+            else None
+        )
         
         # Prepare avatar (blocks until complete)
         manager.prepare_avatar(
             avatar_id=avatar_id,
             video_path=str(video_path),
+            idle_video_path=str(idle_video_path) if idle_video_path is not None else None,
             bbox_shift=bbox_shift,
             batch_size=batch_size,
             force_recreate=force_recreate
@@ -1257,6 +1269,7 @@ async def prepare_avatar(
         return {
             "status": "success",
             "avatar_id": avatar_id,
+            "video_layout": "separate_idle_talking" if idle_video_path is not None else "single_video",
             "message": f"Avatar {avatar_id} prepared successfully"
         }
     
@@ -1289,7 +1302,9 @@ async def list_avatars():
                 avatars.append({
                     "avatar_id": avatar_dir.name,
                     "version": info.get("version"),
-                    "bbox_shift": info.get("bbox_shift")
+                    "bbox_shift": info.get("bbox_shift"),
+                    "video_layout": info.get("video_layout", "single_video"),
+                    "has_idle_video": (avatar_dir / "idle_video.mp4").exists(),
                 })
     
     return {"avatars": avatars}
@@ -1432,10 +1447,57 @@ async def avatar_cache_status(avatar_id: str):
     return manager.get_avatar_cache_status(avatar_id)
 
 
-def _resolve_avatar_video_path(avatar_id: str) -> Path:
+def _resolve_avatar_dir(avatar_id: str) -> Path:
     if manager.args.version == "v15":
-        return Path(f"./results/{manager.args.version}/avatars/{avatar_id}/input_video.mp4")
-    return Path(f"./results/avatars/{avatar_id}/input_video.mp4")
+        return Path(f"./results/{manager.args.version}/avatars/{avatar_id}")
+    return Path(f"./results/avatars/{avatar_id}")
+
+
+def _resolve_avatar_video_path(avatar_id: str, role: str = "idle") -> Path:
+    avatar_dir = _resolve_avatar_dir(avatar_id)
+    avatar_info_path = avatar_dir / "avator_info.json"
+
+    saved_info = {}
+    try:
+        if avatar_info_path.exists():
+            with avatar_info_path.open("r") as f:
+                saved_info = json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"⚠️ Could not read avatar video metadata for {avatar_id}: {exc}")
+
+    def metadata_path(key: str) -> Optional[Path]:
+        value = saved_info.get(key)
+        return Path(value) if value else None
+
+    if role in {"talking", "input"}:
+        candidates = [
+            metadata_path("talking_video_path"),
+            metadata_path("input_video_path"),
+            avatar_dir / "input_video.mp4",
+            metadata_path("idle_video_path"),
+            avatar_dir / "idle_video.mp4",
+        ]
+    else:
+        candidates = [
+            metadata_path("idle_video_path"),
+            avatar_dir / "idle_video.mp4",
+            metadata_path("input_video_path"),
+            metadata_path("talking_video_path"),
+            avatar_dir / "input_video.mp4",
+        ]
+
+    seen = set()
+    fallback = avatar_dir / ("input_video.mp4" if role in {"talking", "input"} else "idle_video.mp4")
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        candidate_key = str(candidate)
+        if candidate_key in seen:
+            continue
+        seen.add(candidate_key)
+        if candidate.exists():
+            return candidate
+    return fallback
 
 
 def _get_default_avatar_id() -> str:
@@ -1453,7 +1515,10 @@ def _get_default_avatar_id() -> str:
     for avatar_dir in sorted(avatars_dir.iterdir()):
         if (
             avatar_dir.is_dir()
-            and (avatar_dir / "input_video.mp4").exists()
+            and (
+                (avatar_dir / "idle_video.mp4").exists()
+                or (avatar_dir / "input_video.mp4").exists()
+            )
             and manager._avatar_exists(avatar_dir.name)
         ):
             return avatar_dir.name
@@ -1462,21 +1527,25 @@ def _get_default_avatar_id() -> str:
 
 
 @app.get("/avatars/{avatar_id}/video")
-async def get_avatar_video(avatar_id: str):
+async def get_avatar_video(avatar_id: str, role: str = "idle"):
     """
-    Serve the avatar's input video as placeholder.
+    Serve the avatar's idle video as placeholder.
     This loops continuously until audio is uploaded.
     """
     if manager is None:
         raise HTTPException(status_code=503, detail="Manager not initialized")
 
-    video_path = _resolve_avatar_video_path(avatar_id)
+    normalized_role = (role or "idle").strip().lower()
+    if normalized_role not in {"idle", "talking", "input"}:
+        raise HTTPException(status_code=400, detail="role must be 'idle' or 'talking'")
+
+    video_path = _resolve_avatar_video_path(avatar_id, role=normalized_role)
     
     # Check if video exists
     if not video_path.exists():
         raise HTTPException(
             status_code=404, 
-            detail=f"Input video not found for avatar '{avatar_id}'. Avatar may need re-preparation."
+            detail=f"{normalized_role.title()} video not found for avatar '{avatar_id}'. Avatar may need re-preparation."
         )
     
     # Verify file integrity
@@ -1484,7 +1553,7 @@ async def get_avatar_video(avatar_id: str):
     if file_size < 1024:  # Less than 1KB
         raise HTTPException(
             status_code=500,
-            detail=f"Input video for '{avatar_id}' is corrupted. Please re-prepare avatar."
+            detail=f"{normalized_role.title()} video for '{avatar_id}' is corrupted. Please re-prepare avatar."
         )
     
     return FileResponse(
@@ -1493,7 +1562,7 @@ async def get_avatar_video(avatar_id: str):
         headers={
             "Accept-Ranges": "bytes",
             "Cache-Control": "public, max-age=3600",
-            "Content-Disposition": f'inline; filename="{avatar_id}_input.mp4"'
+            "Content-Disposition": f'inline; filename="{avatar_id}_{normalized_role}.mp4"'
         }
     )
 

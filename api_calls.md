@@ -78,6 +78,19 @@ curl -X POST "http://localhost:8000/avatars/prepare?avatar_id=test_avatar&batch_
   -F "video_file=@data/video/ai_test_default_moving_vid.mp4"
 ```
 
+`video_file` is the MuseTalk/talking source used to build latents and compose
+live talking frames. To use a different loop while the avatar is idle, include
+`idle_video_file`:
+
+```bash
+curl -X POST "http://localhost:8000/avatars/prepare?avatar_id=test_avatar&batch_size=20&bbox_shift=5&force_recreate=true" \
+  -F "video_file=@data/video/avatar_bobbing_talking_base.mp4" \
+  -F "idle_video_file=@data/video/avatar_idle_loop.mp4"
+```
+
+If `idle_video_file` is omitted, the server uses `video_file` for both idle
+playback and MuseTalk preparation.
+
 If a previous failed preparation left partial files behind, force a clean
 rebuild:
 

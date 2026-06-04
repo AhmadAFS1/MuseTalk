@@ -119,7 +119,10 @@ PyTorch.
 ## Runtime Phase 2: Avatar Preparation
 
 Avatar preparation is the expensive one-time or occasional setup phase for a
-new source video/avatar.
+new source video/avatar. In the API path, `video_file` is the talking/base
+source used for this pipeline. An optional `idle_video_file` can be stored next
+to the prepared avatar and used only for idle playback; it does not produce
+MuseTalk latents.
 
 The app performs roughly this sequence:
 
@@ -145,11 +148,12 @@ The output of avatar preparation is not a generated video yet. It is a reusable
 avatar package:
 
 ```text
-original frames
+talking/base frames
 face coordinates
 blend masks
 VAE latents
 frame cycle metadata
+optional idle-loop video
 ```
 
 This is why cached avatars are much faster than preparing a new avatar for every

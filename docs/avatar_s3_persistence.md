@@ -326,6 +326,9 @@ curl http://127.0.0.1:8000/stats
 
 - `/avatars/prepare` writes the avatar locally first, validates the required
   prepared materials, then uploads one tarball to S3.
+- If the avatar was prepared with a separate `idle_video_file`, that
+  `idle_video.mp4` is included in the same avatar tarball. Older single-video
+  avatars still restore with `input_video.mp4` as the idle fallback.
 - Inference paths call `_avatar_exists()`. If the avatar is missing locally and
   S3 is enabled, the worker downloads and restores it lazily by `avatar_id`.
 - Restores are staged in a temporary directory. The existing local avatar is

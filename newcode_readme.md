@@ -147,7 +147,8 @@ POST /avatars/prepare
 Content-Type: multipart/form-data
 
 avatar_id: "test_avatar"
-video_file: [binary MP4 file]
+video_file: [binary MP4 file used for MuseTalk/talking prep]
+idle_video_file: [optional binary MP4 file used for idle playback]
 batch_size: 20
 bbox_shift: 5
 force_recreate: false

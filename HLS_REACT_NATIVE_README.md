@@ -30,12 +30,17 @@ POST /avatars/prepare?avatar_id=test_avatar&batch_size=20&bbox_shift=0
 Content-Type: multipart/form-data
 ```
 
-Form field name must be `video_file`.
+Form field name `video_file` is the MuseTalk/talking source, meaning the video
+used for face frames, coordinates, masks, and latents. Optional form field
+`idle_video_file` can provide a separate idle loop for HLS/WebRTC playback while
+no audio is active. If omitted, `video_file` is used for both roles.
 
 Notes:
 - `batch_size` here is for preparation only; HLS streaming uses its own `batch_size`.
 - `bbox_shift` is optional; adjust if the face crop feels too tight/loose.
 - To re-run preparation, pass `force_recreate=true`.
+- With two videos, the idle manifest uses `idle_video_file`; live MuseTalk
+  frames are generated from `video_file`.
 
 ---
 
