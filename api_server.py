@@ -244,6 +244,17 @@ HLS_SERVER_TIMING = _env_bool("HLS_SERVER_TIMING", True)
 HLS_LIVE_STARTUP_SECONDS = _env_optional_float("HLS_LIVE_STARTUP_SECONDS")
 HLS_LIVE_STARTUP_SEGMENTS = _env_int("HLS_LIVE_STARTUP_SEGMENTS", 3)
 HLS_LIVE_PREBUFFER_SECONDS = _env_float("HLS_LIVE_PREBUFFER_SECONDS", 0.0)
+WEBRTC_LIVE_REVEAL_DELAY_SECONDS = _env_optional_float("WEBRTC_LIVE_REVEAL_DELAY_SECONDS")
+WEBRTC_IDLE_SYNC_EXTRA_DELAY_SECONDS = _env_float("WEBRTC_IDLE_SYNC_EXTRA_DELAY_SECONDS", 0.0)
+
+
+def _get_expected_webrtc_reveal_delay(av_start_delay_seconds: float = 0.0) -> float:
+    if WEBRTC_LIVE_REVEAL_DELAY_SECONDS is not None:
+        return max(0.0, WEBRTC_LIVE_REVEAL_DELAY_SECONDS)
+    # By default the WebRTC idle track holds the selected sync frame while live
+    # prebuffers, so no wall-clock prediction is needed. Operators can still add
+    # a small offset if they disable that hold behavior.
+    return max(0.0, WEBRTC_IDLE_SYNC_EXTRA_DELAY_SECONDS)
 
 
 def enable_h264_nvenc():
@@ -3621,6 +3632,7 @@ async def webrtc_session_status(session_id: str):
         "batch_size": session.batch_size,
         "chunk_duration": session.chunk_duration,
         "ice_transport_policy": session.ice_transport_policy,
+        "live_timing": session.live_timing,
         "track_stats": _get_webrtc_track_stats(session),
     }
 
@@ -3872,6 +3884,12 @@ async def webrtc_stream(
         av_start_delay_seconds = max(0.0, float(os.getenv("WEBRTC_AV_START_DELAY_SECONDS", "0.05")))
     except ValueError:
         av_start_delay_seconds = 0.05
+    session.webrtc_live_reveal_delay_seconds = _get_expected_webrtc_reveal_delay(av_start_delay_seconds)
+    session.live_timing = {
+        "timing_source": "webrtc_idle_track",
+        "status": "pending",
+        "reveal_delay_seconds": session.webrtc_live_reveal_delay_seconds,
+    }
 
     track_stats = session.idle_track.get_stats() if hasattr(session.idle_track, "get_stats") else {}
     print(
@@ -3879,7 +3897,8 @@ async def webrtc_stream(
         f"prebuffer={track_stats.get('prebuffer_frames', 'n/a')} frames, "
         f"adaptive_fps={track_stats.get('adaptive_fps', 'n/a')}, "
         f"sync_mode={track_stats.get('sync_mode', _get_webrtc_sync_mode())}, "
-        f"av_start_delay={av_start_delay_seconds:.3f}s"
+        f"av_start_delay={av_start_delay_seconds:.3f}s "
+        f"idle_sync_reveal_delay={session.webrtc_live_reveal_delay_seconds:.3f}s"
     )
 
     def release_playout_once(reason: str):
@@ -4102,6 +4121,7 @@ async def webrtc_stream(
             "session_id": session_id,
             "status": "streaming",
             "scheduler": "shared_gpu",
+            "timing": session.live_timing,
             "message": "WebRTC stream queued on the shared GPU scheduler. Player will switch to live."
         }
 
@@ -4117,6 +4137,32 @@ async def webrtc_stream(
             print(f"🎬 [{request_id}] Starting WebRTC streaming for session {session_id}")
             with manager.gpu_memory.allocate(session.batch_size):
                 avatar = manager._get_or_load_avatar(session.avatar_id, session.batch_size)
+                cycle_frames = None
+                latent_cycle = getattr(avatar, "input_latent_cycle_tensor", None)
+                latent_shape = getattr(latent_cycle, "shape", None)
+                if latent_shape and len(latent_shape) > 0:
+                    cycle_frames = int(latent_shape[0])
+                elif getattr(avatar, "coord_list_cycle", None):
+                    cycle_frames = len(avatar.coord_list_cycle)
+
+                start_offset_seconds = 0.0
+                if session.idle_track and hasattr(session.idle_track, "capture_idle_sync_timing"):
+                    timing_debug = session.idle_track.capture_idle_sync_timing(
+                        generation_fps=float(session.fps),
+                        cycle_frames=cycle_frames,
+                        reveal_delay_seconds=session.webrtc_live_reveal_delay_seconds,
+                        hold=True,
+                    )
+                    session.live_timing = timing_debug
+                    start_offset_seconds = float(timing_debug.get("offset_seconds") or 0.0)
+                    print(
+                        f"🎬 [{request_id}] WebRTC idle sync offset: "
+                        f"source_frame={timing_debug.get('idle_source_frame_index')} "
+                        f"offset_frames={timing_debug.get('offset_frames')} "
+                        f"offset_seconds={start_offset_seconds:.3f} "
+                        f"cycle_frames={cycle_frames} hold={timing_debug.get('hold_enabled')}",
+                        flush=True,
+                    )
                 for _ in avatar.inference_streaming(
                     audio_path=str(audio_path),
                     audio_processor=manager.audio_processor,
@@ -4128,6 +4174,7 @@ async def webrtc_stream(
                     chunk_output_dir=None,
                     frame_callback=frame_callback,
                     emit_chunks=False,
+                    start_offset_seconds=start_offset_seconds,
                 ):
                     pass
             # Signal that generation is complete so playback can finish naturally.
@@ -4172,6 +4219,7 @@ async def webrtc_stream(
         "request_id": request_id,
         "session_id": session_id,
         "status": "streaming",
+        "timing": session.live_timing,
         "message": "WebRTC stream started. Player will switch to live."
     }
 

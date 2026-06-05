@@ -49,6 +49,8 @@ class WebRTCSession:
     ice_servers: List[dict] = field(default_factory=list)
     ice_transport_policy: str = "all"
     sync_clock: Optional[VideoSyncClock] = None
+    live_timing: Optional[dict] = None
+    webrtc_live_reveal_delay_seconds: float = 0.0
 
     def is_expired(self, ttl_seconds: int = 3600) -> bool:
         return (time.time() - self.last_activity) > ttl_seconds

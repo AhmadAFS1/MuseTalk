@@ -12,7 +12,7 @@ This guide shows how to integrate MuseTalk WebRTC into a React Native app to bui
 4. Upload audio to the active WebRTC session (`POST /webrtc/sessions/{id}/stream`).
 5. Repeat step 4 for each new utterance.
 
-The server keeps an idle video loop until audio arrives, then switches to live video and audio. When an avatar is prepared with both `video_file` and `idle_video_file`, WebRTC uses `idle_video_file` for the idle loop and MuseTalk generates live frames from `video_file`.
+The server keeps an idle video loop until audio arrives, then switches to live video and audio. For single-video avatars, WebRTC captures the currently displayed idle source frame, starts MuseTalk generation from the matching prepared cycle frame, and holds that idle pose while live frames prebuffer so the transition does not jump back to frame zero. When an avatar is prepared with both `video_file` and `idle_video_file`, WebRTC uses `idle_video_file` for the idle loop and MuseTalk generates live frames from `video_file`, but pose continuity is only approximate if the clips differ.
 
 ---
 
@@ -148,6 +148,9 @@ Server-side sync knobs (env vars):
 - `WEBRTC_VIDEO_PREBUFFER_SECONDS` (default `2.0`)
 - `WEBRTC_AUDIO_PREBUFFER_SECONDS` (default `0.0`)
 - `WEBRTC_ADAPTIVE_FPS` (default `0`; keep disabled for fixed-speed audio)
+- `WEBRTC_IDLE_SYNC_HOLD` (default `1`; hold the anchored idle pose until live is ready)
+- `WEBRTC_LIVE_REVEAL_DELAY_SECONDS` (optional explicit idle-to-live offset delay)
+- `WEBRTC_IDLE_SYNC_EXTRA_DELAY_SECONDS` (default `0.0`; extra delay when no explicit reveal delay is set)
 - `WEBRTC_AUDIO_MAX_LEAD_SECONDS` (default `0.15`; drift log threshold only)
 - `WEBRTC_AUDIO_MAX_LAG_SECONDS` (default `0.25`; drift log threshold only)
 
@@ -157,6 +160,9 @@ control when the server logs observed A/V drift.
 With `WEBRTC_SYNC_MODE=strict_fifo`, audio and video are released from a shared
 server-side playout gate. If the next FIFO video frame is not ready, audio waits
 too, preserving lip sync and all generated frames at the cost of buffering.
+The `/webrtc/sessions/{id}/status` response includes `live_timing` and
+`track_stats.video.live_timing` so you can verify the source frame and offset
+used for the current live stream.
 
 Reference setup: 20 FPS / 20 FPS playback (batch_size=8 on 8GB GPU)
 ```

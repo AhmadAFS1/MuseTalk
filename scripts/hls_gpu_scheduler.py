@@ -291,7 +291,7 @@ class HLSGPUStreamScheduler:
         request_id: str,
         audio_path: str,
         generation_fps: int,
-        start_offset_seconds: float,
+        start_offset_seconds: Optional[float],
         cancel_event: threading.Event,
         completion_future,
         main_loop,
@@ -335,13 +335,14 @@ class HLSGPUStreamScheduler:
         main_loop,
         frame_callback: Callable[[object, int, int], None],
         generation_complete_callback: Callable[[str, Optional[str]], None],
+        start_offset_seconds: Optional[float] = None,
     ) -> bool:
         return self.submit_stream(
             session=session,
             request_id=request_id,
             audio_path=audio_path,
             generation_fps=generation_fps,
-            start_offset_seconds=0.0,
+            start_offset_seconds=start_offset_seconds,
             cancel_event=cancel_event,
             completion_future=completion_future,
             main_loop=main_loop,
@@ -373,6 +374,7 @@ class HLSGPUStreamScheduler:
                         "output_mode": job.output_mode,
                         "current_frame_idx": job.current_frame_idx,
                         "total_frames": job.total_frames,
+                        "start_offset_frames": job.start_offset_frames,
                         "composed_frame_idx": job.composed_frame_idx,
                         "chunk_index": job.chunk_index,
                         "total_chunks": job.total_chunks,
@@ -433,7 +435,7 @@ class HLSGPUStreamScheduler:
         request_id: str,
         audio_path: str,
         generation_fps: int,
-        start_offset_seconds: float,
+        start_offset_seconds: Optional[float],
         cancel_event: threading.Event,
         completion_future,
         main_loop,
@@ -552,7 +554,60 @@ class HLSGPUStreamScheduler:
                 startup_chunk_frames=startup_chunk_frames,
                 startup_chunk_count=startup_chunk_count,
             )
-            start_offset_frames = int(round(max(0.0, float(start_offset_seconds)) * generation_fps))
+            start_offset_frames = 0
+            timing_debug = None
+            if output_mode == "webrtc" and start_offset_seconds is None:
+                cycle_frames = None
+                latent_cycle = getattr(avatar, "input_latent_cycle_tensor", None)
+                if isinstance(latent_cycle, torch.Tensor) and latent_cycle.shape[0] > 0:
+                    cycle_frames = int(latent_cycle.shape[0])
+                else:
+                    coord_cycle = getattr(avatar, "coord_list_cycle", None)
+                    if coord_cycle:
+                        cycle_frames = len(coord_cycle)
+
+                video_track = getattr(session, "idle_track", None)
+                if hasattr(video_track, "capture_idle_sync_timing"):
+                    timing_debug = video_track.capture_idle_sync_timing(
+                        generation_fps=float(generation_fps),
+                        cycle_frames=cycle_frames,
+                        reveal_delay_seconds=float(
+                            getattr(session, "webrtc_live_reveal_delay_seconds", 0.0) or 0.0
+                        ),
+                        hold=True,
+                    )
+                    try:
+                        start_offset_frames = max(0, int(timing_debug.get("offset_frames") or 0))
+                    except (TypeError, ValueError):
+                        start_offset_frames = 0
+                    timing_debug["offset_frames"] = start_offset_frames
+                    timing_debug["offset_seconds"] = (
+                        start_offset_frames / float(generation_fps)
+                        if generation_fps > 0
+                        else 0.0
+                    )
+                    try:
+                        session.live_timing = timing_debug
+                    except Exception:
+                        pass
+                    print(
+                        f"🎬 [{request_id}] WebRTC idle sync offset: "
+                        f"source_frame={timing_debug.get('idle_source_frame_index')} "
+                        f"offset_frames={start_offset_frames} "
+                        f"offset_seconds={timing_debug.get('offset_seconds'):.3f} "
+                        f"cycle_frames={cycle_frames} hold={timing_debug.get('hold_enabled')}",
+                        flush=True,
+                    )
+                else:
+                    start_offset_seconds = 0.0
+
+            if output_mode != "webrtc" or start_offset_seconds is not None:
+                try:
+                    start_offset_value = max(0.0, float(start_offset_seconds or 0.0))
+                except (TypeError, ValueError):
+                    start_offset_value = 0.0
+                start_offset_frames = int(round(start_offset_value * generation_fps))
+
             initial_ready_frames = self._initial_conditioning_frames(
                 total_frames=total_frames,
                 frames_per_chunk=frames_per_chunk,

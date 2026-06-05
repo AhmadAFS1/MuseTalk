@@ -90,6 +90,12 @@ HLS and WebRTC session creation now resolve the idle video like this:
 Live talking frames are still generated from the prepared MuseTalk frame cycle
 that came from `video_file`.
 
+For the current single-video flow, WebRTC now anchors live generation to the
+idle frame that is already on screen. When a stream starts, the server captures
+the displayed idle source-frame index, starts MuseTalk from the matching prepared
+cycle frame, and holds that idle pose while live frames prebuffer. This avoids
+the old jump where WebRTC live generation always started at frame zero.
+
 Useful debug endpoint:
 
 ```http
@@ -121,9 +127,11 @@ the prepared avatar directory.
 
 ## Important Caveat
 
-HLS server timing can map the idle loop position onto the MuseTalk frame cycle,
-but if the idle and talking videos have different motion, length, or timing, body
-continuity is approximate. The main guarantee is:
+HLS server timing and WebRTC idle-frame anchoring can map the idle loop position
+onto the MuseTalk frame cycle. For single-video avatars this is the intended
+smooth path because idle and talking share the same source. If the idle and
+talking videos have different motion, length, or timing, body continuity is
+still approximate. The main guarantee is:
 
 - idle mode visually uses the idle video
 - live mode visually uses MuseTalk output based on the talking/bobbing source
@@ -137,6 +145,9 @@ Core implementation:
 - `scripts/api_avatar.py`
 - `scripts/avatar_manager_parallel.py`
 - `scripts/avatar_s3_store.py`
+- `scripts/hls_gpu_scheduler.py`
+- `scripts/webrtc_manager.py`
+- `scripts/webrtc_tracks.py`
 
 Docs/examples:
 
@@ -151,7 +162,7 @@ Docs/examples:
 Verification run:
 
 ```bash
-python3 -m py_compile api_server.py scripts/api_avatar.py scripts/avatar_manager_parallel.py scripts/avatar_s3_store.py test_avatar_cache_warmup.py
+python3 -m py_compile api_server.py scripts/api_avatar.py scripts/avatar_manager_parallel.py scripts/avatar_s3_store.py scripts/hls_gpu_scheduler.py scripts/webrtc_manager.py scripts/webrtc_tracks.py test_avatar_cache_warmup.py
 python3 -m unittest test_avatar_s3_store.py test_avatar_cache_warmup.py
 git diff --check
 ```

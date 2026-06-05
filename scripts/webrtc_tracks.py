@@ -10,6 +10,7 @@ import asyncio
 import fractions
 import os
 import subprocess
+import threading
 import time
 import wave
 from pathlib import Path
@@ -33,6 +34,7 @@ WEBRTC_SYNC_EPSILON_SECONDS = float(os.getenv("WEBRTC_SYNC_EPSILON_SECONDS", "0.
 WEBRTC_STRICT_AUDIO_WAIT_TIMEOUT_SECONDS = float(os.getenv("WEBRTC_STRICT_AUDIO_WAIT_TIMEOUT_SECONDS", "30.0"))
 WEBRTC_STRICT_VIDEO_WAIT_TIMEOUT_SECONDS = float(os.getenv("WEBRTC_STRICT_VIDEO_WAIT_TIMEOUT_SECONDS", "30.0"))
 WEBRTC_VIDEO_MAX_QUEUE_FRAMES = int(os.getenv("WEBRTC_VIDEO_MAX_QUEUE_FRAMES", "400" if WEBRTC_STRICT_FIFO_SYNC else "100"))
+WEBRTC_IDLE_SYNC_HOLD = os.getenv("WEBRTC_IDLE_SYNC_HOLD", "1").lower() in ("1", "true", "yes", "on")
 
 # ============================================================================
 # Video Tracks
@@ -260,6 +262,12 @@ class IdleVideoStreamTrack(VideoStreamTrack):
         self._container = None
         self._stream = None
         self._frame_iter = None
+        self._position_lock = threading.Lock()
+        self._source_frame_count: Optional[int] = None
+        self._source_duration_seconds: Optional[float] = None
+        self._next_source_frame_index = 0
+        self._last_source_frame_index: Optional[int] = None
+        self._last_frame_read_at: Optional[float] = None
         self._open_container()
 
     def _open_container(self) -> None:
@@ -270,6 +278,18 @@ class IdleVideoStreamTrack(VideoStreamTrack):
             self._fps = float(rate) if rate else 25.0
         self._frame_time = 1.0 / float(self._fps)
         self._frame_iter = self._container.decode(self._stream)
+        frame_count = int(getattr(self._stream, "frames", 0) or 0)
+        duration_seconds = None
+        if getattr(self._stream, "duration", None) and getattr(self._stream, "time_base", None):
+            duration_seconds = float(self._stream.duration * self._stream.time_base)
+        elif getattr(self._container, "duration", None):
+            duration_seconds = float(self._container.duration) / 1_000_000.0
+        if frame_count <= 0 and duration_seconds and self._fps:
+            frame_count = int(round(duration_seconds * float(self._fps)))
+        with self._position_lock:
+            self._source_frame_count = frame_count if frame_count > 0 else None
+            self._source_duration_seconds = duration_seconds
+            self._next_source_frame_index = 0
 
     def _reset_container(self) -> None:
         if self._container is not None:
@@ -282,7 +302,39 @@ class IdleVideoStreamTrack(VideoStreamTrack):
         except StopIteration:
             self._reset_container()
             frame = next(self._frame_iter)
+        with self._position_lock:
+            frame_index = self._next_source_frame_index
+            if self._source_frame_count:
+                frame_index = frame_index % self._source_frame_count
+            self._last_source_frame_index = frame_index
+            self._next_source_frame_index = frame_index + 1
+            self._last_frame_read_at = time.monotonic()
         return frame.reformat(format="yuv420p")
+
+    def get_timing(self) -> dict:
+        with self._position_lock:
+            frame_index = self._last_source_frame_index
+            frame_count = self._source_frame_count
+            duration_seconds = self._source_duration_seconds
+            last_frame_read_at = self._last_frame_read_at
+            fps = float(self._fps or 0.0)
+
+        if frame_index is None:
+            frame_index = 0
+        if frame_count and frame_count > 0:
+            frame_index = frame_index % frame_count
+        elapsed_seconds = frame_index / fps if fps > 0 else 0.0
+        if duration_seconds is None and frame_count and fps > 0:
+            duration_seconds = frame_count / fps
+
+        return {
+            "source_frame_index": frame_index,
+            "source_frame_count": frame_count,
+            "source_fps": fps,
+            "idle_elapsed_seconds": elapsed_seconds,
+            "idle_duration_seconds": duration_seconds,
+            "last_frame_read_at": last_frame_read_at,
+        }
 
     async def recv(self):
         if self._last_ts is None:
@@ -444,6 +496,9 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._playback_complete = asyncio.Event()
         self._playback_complete.set()
         self._reset_timing_stats()
+        self._idle_sync_hold_active = False
+        self._idle_sync_anchor_timing: Optional[dict] = None
+        self._last_live_timing: Optional[dict] = None
         
         # Smoothing for adaptive FPS (prevents jitter)
         self._slowdown_history = []
@@ -547,6 +602,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         return frame, popped, stalled_seconds
 
     def _advance_idle_frame(self, steps: int):
+        if self._idle_sync_hold_active and self._last_idle_frame is not None:
+            return self._last_idle_frame
         if steps <= 0 and self._last_idle_frame is not None:
             return self._last_idle_frame
         steps = max(1, steps)
@@ -555,6 +612,59 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             frame = self._idle.read_frame()
         self._last_idle_frame = frame
         return frame
+
+    def capture_idle_sync_timing(
+        self,
+        generation_fps: float,
+        cycle_frames: Optional[int] = None,
+        reveal_delay_seconds: float = 0.0,
+        hold: bool = True,
+    ) -> dict:
+        """Capture the displayed idle position and map it to a MuseTalk cycle offset."""
+        idle_timing = self._idle.get_timing()
+        source_fps = float(idle_timing.get("source_fps") or self._source_fps or 0.0)
+        source_frame_count = idle_timing.get("source_frame_count")
+        source_frame_index = int(idle_timing.get("source_frame_index") or 0)
+        safe_delay = max(0.0, float(reveal_delay_seconds or 0.0))
+        delay_frames = int(round(safe_delay * source_fps)) if source_fps > 0 else 0
+
+        target_source_frame = source_frame_index + delay_frames
+        if source_frame_count and source_frame_count > 0:
+            target_source_frame %= int(source_frame_count)
+
+        # Current production mode uses one video for idle and talking. The idle
+        # MP4 is the forward source, while MuseTalk's cycle is source + reversed
+        # source, so the matching pose is the same source frame in the first half.
+        offset_frames = max(0, int(target_source_frame))
+        if cycle_frames and cycle_frames > 0:
+            offset_frames %= int(cycle_frames)
+        offset_seconds = (
+            offset_frames / float(generation_fps)
+            if generation_fps and generation_fps > 0
+            else 0.0
+        )
+
+        timing = {
+            "timing_source": "webrtc_idle_track",
+            "mapping": "single_video_source_frame",
+            "offset_seconds": offset_seconds,
+            "offset_frames": offset_frames,
+            "idle_source_frame_index": source_frame_index,
+            "target_source_frame_index": target_source_frame,
+            "source_frame_count": source_frame_count,
+            "source_fps": source_fps,
+            "cycle_frames": cycle_frames,
+            "generation_fps": generation_fps,
+            "reveal_delay_seconds": safe_delay,
+            "idle_elapsed_seconds": idle_timing.get("idle_elapsed_seconds"),
+            "idle_duration_seconds": idle_timing.get("idle_duration_seconds"),
+            "hold_enabled": bool(hold and WEBRTC_IDLE_SYNC_HOLD),
+        }
+        self._last_live_timing = timing
+        if hold and WEBRTC_IDLE_SYNC_HOLD:
+            self._idle_sync_hold_active = True
+            self._idle_sync_anchor_timing = timing
+        return timing
 
     def start_live(self) -> None:
         """Start live mode - will show idle frames until prebuffer is ready"""
@@ -601,6 +711,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._generation_complete = False
         if self._sync_clock:
             self._sync_clock.deactivate()
+        self._idle_sync_hold_active = False
+        self._idle_sync_anchor_timing = None
         self._playback_complete.set()
         print(f"🎬 Live mode ended. Played: {self._frames_played}, Dropped: {self._frames_dropped}, Drained: {drained}")
 
@@ -894,6 +1006,10 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             'output_fps': self._output_fps,
             'sync_mode': 'strict_fifo' if self._strict_fifo else 'free_run',
             'sync_clock': self._sync_clock.get_stats() if self._sync_clock else None,
+            'idle_timing': self._idle.get_timing() if self._idle else None,
+            'live_timing': self._last_live_timing,
+            'idle_sync_hold_active': self._idle_sync_hold_active,
+            'idle_sync_anchor_timing': self._idle_sync_anchor_timing,
             'adaptive_fps': self._adaptive_fps,
             'slowdown_active': self._slowdown_active,
             'current_slowdown': self._current_slowdown,
