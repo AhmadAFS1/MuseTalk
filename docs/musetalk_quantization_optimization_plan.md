@@ -587,6 +587,62 @@ Operational read:
   signaling: VAE INT8 helps, but the UNet, stage handoff, composition, and
   playout pacing still prevent C4 from reaching the required `80` aggregate fps.
 
+Follow-up `4,8,16` bucket warmup on the same RTX 5000 Ada node:
+
+- Reason: the `8,16` INT8 run had much lower VRAM than FP16, so there was room to
+  test whether an additional warmed batch-4 engine reduced padding/tail latency.
+- Active backend: `tensorrt_stagewise_int8_mixed`.
+- VAE postprocess: `MUSETALK_VAE_FAST_POSTPROCESS` defaults on in
+  `musetalk/models/vae.py` and was not disabled for this run.
+- UNet backend: PyTorch UNet. This was not the prior `tensorrt_unet_multi`
+  split8 path because the batch-8 UNet TRT artifact is not present on this node.
+- Scheduler buckets: `4,8,16`, `max_combined_batch_size=16`.
+- Startup proof: batch `4` ready in `114.81s`, batch `8` ready in `21.25s`,
+  batch `16` ready in `28.17s`, total stagewise warmup `164.23s`.
+- Report:
+  `tmp/load_tests/load_test_webrtc_rtx5000ada_int8_20_20_1_2_3_4_5_6_8streams_4_8_16_20260607.json`
+- Detailed report:
+  `tmp/load_tests/load_test_webrtc_rtx5000ada_int8_20_20_1_2_3_4_5_6_8streams_4_8_16_20260607_detailed.json`
+
+| Streams | Completed | Agg FPS | Avg interval | Max interval | Strict video stalls | Peak VRAM | Read |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | `1/1` | `19.6` | `0.051s` | `0.094s` | `0` | `19752 MB` | clean |
+| 2 | `2/2` | `39.2` | `0.051s` | `0.118s` | `0` | `19752 MB` | strict-clean |
+| 3 | `3/3` | `58.8` | `0.051s` | `0.089s` | `0` | `19762 MB` | clean |
+| 4 | `4/4` | `71.4` | `0.056s` | `0.400s` | `41` | `19776 MB` | not strict 20 fps |
+| 5 | `5/5` | `70.4` | `0.071s` | `0.757s` | `114` | `19776 MB` | saturated |
+| 6 | `6/6` | `72.3` | `0.083s` | `0.969s` | `134` | `19776 MB` | saturated |
+| 8 | `8/8` | `64.5` | `0.124s` | `30.080s` | `204` | `19786 MB` | saturated with one large tail stall |
+
+Read from the bucket experiment:
+
+- Adding batch `4` consumed about another `2.1 GB` of resident VRAM versus the
+  `8,16` INT8 profile, reaching about `19.8 GB` peak, still below the available
+  `32 GB`.
+- It did not improve strict 20 fps capacity. C1-C3 remained clean; C4 and above
+  still recorded strict video stalls.
+- Aggregate throughput was essentially unchanged at C4/C5, slightly better at
+  C6 within run noise, and worse at C8 because of one long tail stall.
+- The practical bottleneck is compute/tail latency in the generation path, not
+  VRAM. Extra warmed buckets are useful only if they let the scheduler avoid
+  meaningful padding without adding engine overhead.
+
+Current optimized-path caveat from the markdowns:
+
+- The faster measured path documented on 2026-05-29 was five-stage VAE INT8 plus
+  static batch-8 TensorRT UNet split runtime, enabled with:
+  `MUSETALK_UNET_BACKEND=trt`,
+  `MUSETALK_TRT_UNET_ENABLED=1`,
+  `MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_static_bs8_20260529/unet_trt.ts`,
+  and `MUSETALK_TRT_FALLBACK=0`.
+- On the RTX 3090 notes, that path improved WebRTC aggregate FPS by about
+  `7-10%` over VAE INT8 plus PyTorch UNet at C4/C6/C8.
+- This RTX 5000 Ada workspace currently lacks that UNet TRT artifact and the
+  saved capture directory; an artifact check found only `models/musetalkV15/unet.pth`.
+- The next true "most optimized" RTX 5000 Ada test should regenerate real UNet
+  captures, export and validate a static batch-8 UNet TensorRT artifact, enable
+  the split8 UNet runtime, and rerun the WebRTC C4/C6/C8 ramp.
+
 HLS session load test on the same five-stage INT8 server:
 
 - Date: 2026-05-26.
