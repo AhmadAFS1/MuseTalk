@@ -1394,6 +1394,47 @@ def _pop_future_from_payload(payload: dict):
     return payload, future
 
 
+def _raise_avatar_not_found(avatar_id: str, message: Optional[str] = None):
+    raise HTTPException(
+        status_code=404,
+        detail={
+            "code": "avatar_not_found",
+            "avatar_id": avatar_id,
+            "recreate_required": True,
+            "message": message
+            or (
+                f"Avatar '{avatar_id}' was not found locally or in S3. "
+                "Recreate it with /avatars/prepare before creating a session."
+            ),
+        },
+    )
+
+
+def _ensure_avatar_for_session(avatar_id: str, batch_size: int):
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    try:
+        available = manager._ensure_avatar_available(avatar_id, batch_size=batch_size)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        print(f"❌ Avatar availability check failed for {avatar_id}: {exc}")
+        if _env_bool("AVATAR_SESSION_CHECK_TRACEBACK", False):
+            traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "avatar_availability_check_failed",
+                "avatar_id": avatar_id,
+                "message": str(exc),
+            },
+        )
+
+    if not available:
+        _raise_avatar_not_found(avatar_id)
+
+
 @app.post("/avatars/{avatar_id}/cache/warm")
 async def warm_avatar_cache(
     avatar_id: str,
@@ -2145,12 +2186,7 @@ async def create_session(
 
     _require_accepting_new_sessions()
     
-    # Verify avatar exists
-    if not manager._avatar_exists(avatar_id):
-        raise HTTPException(
-            status_code=404,
-            detail=f"Avatar '{avatar_id}' not found. Please prepare it first."
-        )
+    _ensure_avatar_for_session(avatar_id, batch_size=batch_size)
     
     session = await session_manager.create_session(
         avatar_id=avatar_id,
@@ -2593,11 +2629,7 @@ async def create_hls_session(
     _require_hls()
     _require_accepting_new_sessions()
 
-    if not manager._avatar_exists(avatar_id):
-        raise HTTPException(
-            status_code=404,
-            detail=f"Avatar '{avatar_id}' not found. Please prepare it first."
-        )
+    _ensure_avatar_for_session(avatar_id, batch_size=batch_size)
 
     video_path = _resolve_avatar_video_path(avatar_id)
     if not video_path.exists():
@@ -3656,11 +3688,8 @@ async def create_webrtc_session(
     _require_webrtc()
     _require_accepting_new_sessions()
 
-    if not manager._avatar_exists(avatar_id):
-        raise HTTPException(
-            status_code=404,
-            detail=f"Avatar '{avatar_id}' not found. Please prepare it first."
-        )
+    resolved_batch_size = _resolve_webrtc_batch_size(batch_size)
+    _ensure_avatar_for_session(avatar_id, batch_size=resolved_batch_size)
 
     video_path = _resolve_avatar_video_path(avatar_id)
     if not video_path.exists():
@@ -3674,7 +3703,6 @@ async def create_webrtc_session(
             detail=f"Input video for '{avatar_id}' is corrupted. Please re-prepare avatar."
         )
 
-    resolved_batch_size = _resolve_webrtc_batch_size(batch_size)
     session = await webrtc_session_manager.create_session(
         avatar_id=avatar_id,
         user_id=user_id,
