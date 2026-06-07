@@ -74,6 +74,7 @@ class ParallelAvatarManager:
         self.avatar_load_locks = {}
         self.avatar_load_locks_lock = threading.Lock()
         self.avatar_restore_failed_at = {}
+        self.avatar_restore_results = {}
         self.avatar_restore_lock = threading.Lock()
         self.avatar_restore_retry_seconds = self._env_float("AVATAR_S3_RESTORE_RETRY_SECONDS", 60.0)
         self.avatar_s3_store = AvatarS3Store.from_env(version=self.args.version)
@@ -454,7 +455,7 @@ class ParallelAvatarManager:
                 avatar.batch_size = batch_size
             return avatar
         
-        if not self._avatar_exists(avatar_id):
+        if not self._ensure_avatar_available(avatar_id, batch_size=batch_size):
             raise ValueError(f"Avatar {avatar_id} not found. Run preparation first.")
 
         with self._get_avatar_load_lock(avatar_id):
@@ -503,7 +504,7 @@ class ParallelAvatarManager:
         with self.avatar_load_locks_lock:
             lock = self.avatar_load_locks.get(avatar_id)
             if lock is None:
-                lock = threading.Lock()
+                lock = threading.RLock()
                 self.avatar_load_locks[avatar_id] = lock
             return lock
 
@@ -655,7 +656,7 @@ class ParallelAvatarManager:
                 )
 
             exists_start = time.monotonic()
-            exists = self._avatar_exists(avatar_id)
+            exists = self._ensure_avatar_available(avatar_id, batch_size=batch_size)
             existence_check_seconds = time.monotonic() - exists_start
             local_after = os.path.exists(self._avatar_latents_path(avatar_id))
             s3_restore_seconds = existence_check_seconds if (not local_before and s3_enabled) else 0.0
@@ -859,7 +860,7 @@ class ParallelAvatarManager:
         """Submit inference request (non-blocking)"""
         
         # ✅ PRE-FLIGHT CHECK: Verify avatar exists before queuing
-        if not self._avatar_exists(avatar_id):
+        if not self._ensure_avatar_available(avatar_id, batch_size=batch_size):
             raise ValueError(
                 f"Avatar '{avatar_id}' not found. "
                 f"Please prepare it first using POST /avatars/prepare"
@@ -894,6 +895,79 @@ class ParallelAvatarManager:
             return os.path.exists(path)
         return False
 
+    def _ensure_avatar_available(self, avatar_id, batch_size=20):
+        """Ensure an avatar exists locally, restoring from S3 or rebuilding from retained uploads."""
+        if self._avatar_exists(avatar_id):
+            return True
+
+        if not self._last_avatar_restore_was_s3_miss(avatar_id):
+            return False
+
+        avatar_lock = self._get_avatar_load_lock(avatar_id)
+        with avatar_lock:
+            if self._avatar_exists(avatar_id):
+                return True
+            if not self._last_avatar_restore_was_s3_miss(avatar_id):
+                return False
+
+            source_paths = self._find_retained_avatar_source_paths(avatar_id)
+            if source_paths is None:
+                print(
+                    f"⚠️  Avatar {avatar_id} missing locally and in S3, "
+                    "but no retained upload source was found for rebuild"
+                )
+                return False
+
+            video_path, idle_video_path = source_paths
+            print(
+                f"♻️  Avatar {avatar_id} missing locally and S3 returned 404; "
+                f"rebuilding from retained source {video_path}"
+            )
+            try:
+                self.prepare_avatar(
+                    avatar_id=avatar_id,
+                    video_path=str(video_path),
+                    idle_video_path=str(idle_video_path) if idle_video_path else None,
+                    bbox_shift=0,
+                    batch_size=batch_size,
+                    force_recreate=True,
+                )
+            except Exception as exc:
+                print(f"❌ Avatar {avatar_id} rebuild after S3 miss failed: {exc}")
+                if self._env_enabled("AVATAR_RECREATE_TRACEBACK", "0"):
+                    traceback.print_exc()
+                return False
+
+            return os.path.exists(self._avatar_latents_path(avatar_id))
+
+    def _last_avatar_restore_was_s3_miss(self, avatar_id):
+        with self.avatar_restore_lock:
+            return self.avatar_restore_results.get(avatar_id) == "miss"
+
+    def _find_retained_avatar_source_paths(self, avatar_id):
+        upload_dir = Path(os.getenv("AVATAR_SOURCE_UPLOAD_DIR", "./uploads/videos"))
+        if not upload_dir.is_dir():
+            return None
+
+        talking = self._find_latest_retained_upload(upload_dir, avatar_id, "talking")
+        if talking is None:
+            return None
+
+        idle = self._find_latest_retained_upload(upload_dir, avatar_id, "idle")
+        return talking, idle
+
+    @staticmethod
+    def _find_latest_retained_upload(upload_dir, avatar_id, role):
+        prefix = f"{avatar_id}_{role}_"
+        candidates = [
+            path
+            for path in upload_dir.iterdir()
+            if path.is_file() and path.name.startswith(prefix)
+        ]
+        if not candidates:
+            return None
+        return max(candidates, key=lambda path: path.stat().st_mtime)
+
     def _avatars_root(self):
         if self.args.version == "v15":
             return f"./results/{self.args.version}/avatars"
@@ -915,18 +989,29 @@ class ParallelAvatarManager:
         avatar_lock = self._get_avatar_load_lock(avatar_id)
         with avatar_lock:
             if os.path.exists(self._avatar_latents_path(avatar_id)):
+                with self.avatar_restore_lock:
+                    self.avatar_restore_results[avatar_id] = "local"
                 return True
             if self._avatar_s3_restore_on_cooldown(avatar_id):
                 return False
+            stats_before = self.avatar_s3_store.get_stats()
+            misses_before = int(stats_before.get("download_misses", 0))
             restored = self.avatar_s3_store.download_avatar_dir(
                 avatar_id=avatar_id,
                 avatars_root=self._avatars_root_path(),
             )
+            stats_after = self.avatar_s3_store.get_stats()
+            misses_after = int(stats_after.get("download_misses", 0))
             with self.avatar_restore_lock:
                 if restored:
                     self.avatar_restore_failed_at.pop(avatar_id, None)
+                    self.avatar_restore_results[avatar_id] = "restored"
+                elif misses_after > misses_before:
+                    self.avatar_restore_failed_at[avatar_id] = time.monotonic()
+                    self.avatar_restore_results[avatar_id] = "miss"
                 else:
                     self.avatar_restore_failed_at[avatar_id] = time.monotonic()
+                    self.avatar_restore_results[avatar_id] = "failed"
             return restored
 
     def _avatar_s3_restore_on_cooldown(self, avatar_id):
