@@ -535,6 +535,58 @@ Operational read:
   `avg_vae=0.128-0.129s`, and `avg_compose=0.064-0.073s`, so the next large
   throughput gain still needs UNet/backend work in addition to VAE batching.
 
+### 2026-06-07 RTX 5000 Ada INT8 `8,16` WebRTC Load Test
+
+The previous RTX 5000 Ada WebRTC ramp on this node was accidentally run with
+the FP16 stagewise backend, not INT8. The server was restarted with the safe
+five-stage ONNX/QDQ mixed INT8 decoder and the same `8,16` scheduler buckets:
+
+- GPU: `NVIDIA RTX 5000 Ada Generation`, about `32 GB` VRAM visible.
+- active backend: `tensorrt_stagewise_int8_mixed`
+- INT8 stages:
+  `decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2`
+- scheduler proof: `/stats` reported `max_combined_batch_size=16`.
+- startup proof: batch `8` ready in `157.66s`, batch `16` ready in `88.86s`,
+  total stagewise warmup `246.53s`.
+
+Load-test shape:
+
+- command family: `load_test_webrtc.py`
+- avatar: `test_avatar_2`
+- audio: `data/audio/ai-assistant.mpga`
+- WebRTC request: `playback_fps=20`, `musetalk_fps=20`, request `batch_size=8`
+- same-host WebRTC client against `http://127.0.0.1:8000`
+- FP16 report:
+  `tmp/load_tests/load_test_webrtc_rtx5000ada_20_20_1_2_3_4_5_6_8streams_8_16_20260607.json`
+- INT8 report:
+  `tmp/load_tests/load_test_webrtc_rtx5000ada_int8_20_20_1_2_3_4_5_6_8streams_8_16_20260607.json`
+- INT8 detailed report:
+  `tmp/load_tests/load_test_webrtc_rtx5000ada_int8_20_20_1_2_3_4_5_6_8streams_8_16_20260607_detailed.json`
+
+Result:
+
+| Streams | FP16 agg FPS | INT8 agg FPS | INT8 avg interval | INT8 strict video stalls | INT8 peak VRAM | Read |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | `19.6` | `19.6` | `0.051s` | `0` | `17636 MB` | clean |
+| 2 | `39.2` | `39.2` | `0.051s` | `0` | `17636 MB` | clean |
+| 3 | `58.8` | `58.8` | `0.051s` | `0` | `17646 MB` | clean |
+| 4 | `61.5` | `71.4` | `0.056s` | `44` | `17646 MB` | higher throughput, not strict 20 fps |
+| 5 | `61.0` | `70.4` | `0.071s` | `115` | `17668 MB` | saturated |
+| 6 | `61.2` | `71.4` | `0.084s` | `144` | `17668 MB` | saturated |
+| 8 | `60.6` | `71.4` | `0.112s` | `205` | `17668 MB` | saturated |
+
+Operational read:
+
+- INT8 raises the RTX 5000 Ada aggregate WebRTC plateau from about `60-61 fps`
+  to about `70-71 fps`, roughly a `15-17%` gain at saturated concurrency.
+- Strict smooth `20 fps` capacity remains `3` concurrent WebRTC streams because
+  C4 records video stalls and an average interval above the `0.050s` target.
+- INT8 materially reduces resident VRAM versus the FP16 run:
+  FP16 peaked around `24.4 GB`, while INT8 peaked around `17.7 GB`.
+- The remaining cap is still the shared generation loop rather than WebRTC
+  signaling: VAE INT8 helps, but the UNet, stage handoff, composition, and
+  playout pacing still prevent C4 from reaching the required `80` aggregate fps.
+
 HLS session load test on the same five-stage INT8 server:
 
 - Date: 2026-05-26.
