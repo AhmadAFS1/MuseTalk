@@ -5,7 +5,9 @@ Date: 2026-05-25
 Latest WebRTC load-test synthesis:
 `docs/webrtc_load_test_findings_2026-06-07.md` summarizes the RTX 5000 Ada
 FP16-vs-INT8 runs, the `4,8,16` bucket follow-up, and the missing TRT UNet
-artifact needed for the next optimized-path test.
+artifact needed for the next RTX 5000 Ada optimized-path test. The 2026-06-08
+RTX 6000 Ada follow-up now has both a five-stage VAE INT8 + PyTorch UNet
+baseline and a validated five-stage VAE INT8 + TRT UNet split8 rerun.
 
 ## Goal
 
@@ -644,9 +646,16 @@ Current optimized-path caveat from the markdowns:
   `7-10%` over VAE INT8 plus PyTorch UNet at C4/C6/C8.
 - This RTX 5000 Ada workspace currently lacks that UNet TRT artifact and the
   saved capture directory; an artifact check found only `models/musetalkV15/unet.pth`.
-- The next true "most optimized" RTX 5000 Ada test should regenerate real UNet
-  captures, export and validate a static batch-8 UNet TensorRT artifact, enable
-  the split8 UNet runtime, and rerun the WebRTC C4/C6/C8 ramp.
+- The first 2026-06-08 RTX 6000 Ada run also lacked the validated UNet
+  TensorRT artifact. Its server log showed `UNet backend: PyTorch`, so that
+  result is a VAE INT8 baseline.
+- The second 2026-06-08 RTX 6000 Ada run regenerated real batch-8 UNet
+  captures, exported and validated
+  `models/tensorrt_unet_static_bs8_rtx6000ada_20260608/unet_trt.ts`, enabled
+  `UNet backend active: tensorrt_unet_multi`, and reran the WebRTC ramp.
+- On RTX 6000 Ada, VAE INT8 + TRT UNet split8 improved the saturated WebRTC
+  plateau from about `108-111 fps` to about `112-114 fps`, but strict smooth
+  `20 fps` capacity remained `4` concurrent sessions.
 
 HLS session load test on the same five-stage INT8 server:
 
@@ -1366,8 +1375,10 @@ Current status:
   same capture corpus for calibration.
 - Implemented: UNet capture, UNet validation harness, capture-aware UNet export
   flags, opt-in UNet TRT runtime, and strict no-silent-fallback guards.
-- Not yet measured: no real UNet TensorRT export or WebRTC speedup, because CUDA
-  is currently blocked on the worker.
+- Measured on RTX 6000 Ada: real batch-8 UNet TensorRT export, validation, and
+  WebRTC speedup. The result is incremental, about `2-4%` aggregate FPS versus
+  VAE INT8 + PyTorch UNet on that node.
+- Still pending on RTX 5000 Ada: local UNet TensorRT export and WebRTC rerun.
 
 Infrastructure blocker:
 

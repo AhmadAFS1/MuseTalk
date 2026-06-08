@@ -1,4 +1,9 @@
-# RTX 6000 Ada WebRTC Load Test - INT8 5-Stage Buckets - 2026-06-08
+# RTX 6000 Ada WebRTC Load Test - VAE INT8 + PyTorch UNet - 2026-06-08
+
+This report is a VAE INT8 bucket test, not the fully optimized
+`VAE INT8 + TRT UNet split8` path. The distinction matters for capacity claims:
+the server log for this run showed `UNet backend: PyTorch`, and the local
+workspace did not contain a validated batch-8 UNet TensorRT artifact.
 
 ## Configuration
 
@@ -6,6 +11,7 @@
 - Server profile: `throughput_record`
 - WebRTC target: `--playback-fps 20 --musetalk-fps 20`
 - VAE backend: `tensorrt_stagewise_int8_mixed`
+- UNet backend: `PyTorch`
 - INT8 frontend: `onnx_qdq`
 - INT8 stages: `decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2`
 - Fixed buckets / warmup batches: `8,16`
@@ -18,7 +24,15 @@ Server log evidence:
 
 - `Stagewise TRT warmup complete (batches=[8, 16], total=212.09s)`
 - `VAE decode backend active: tensorrt_stagewise_int8_mixed`
+- `UNet backend: PyTorch`
 - `HLS GPU scheduler started (max_combined_batch_size=16, fixed_batch_sizes=[8, 16]...)`
+
+Local artifact check:
+
+- `models/tensorrt` contained the VAE INT8 ONNX/QDQ cache and plan files.
+- No `unet_trt.ts` / `unet_trt_meta.json` artifact was present under the repo.
+- Therefore this run cannot be used as the RTX 6000 Ada result for
+  `VAE INT8 + TRT UNet split8`.
 
 ## Current INT8 Results
 
@@ -63,9 +77,33 @@ Compared with the prior `4,8,16,20` bucket report:
 
 ## Conclusion
 
-Strictly smooth concurrent WebRTC capacity at 20 fps is 4 sessions on this run. INT8 buckets significantly improved aggregate throughput at higher concurrency, stabilizing around 108-111 aggregate fps versus roughly 73-81 aggregate fps in the previous RTX 6000 Ada reports, but 8+ concurrent sessions still exceed the 20 fps per-session frame interval target and show throttling spikes.
+Strictly smooth concurrent WebRTC capacity at 20 fps is 4 sessions on this
+`VAE INT8 + PyTorch UNet` run. INT8 buckets significantly improved aggregate
+throughput at higher concurrency, stabilizing around 108-111 aggregate fps
+versus roughly 73-81 aggregate fps in the previous RTX 6000 Ada reports, but
+8+ concurrent sessions still exceed the 20 fps per-session frame interval target
+and show throttling spikes.
 
 The current INT8 path also uses much less VRAM than the prior reports: around 17.9-18.6 GB peak here versus roughly 24.6 GB for the prior `8,16` run and 43-44 GB for prior larger-bucket high-concurrency runs.
+
+This should be treated as the RTX 6000 Ada VAE INT8 baseline, not the optimized
+UNet TensorRT result. The optimized RTX 6000 Ada rerun is documented separately
+in `load_test_webrtc_rtx6000ada_int8_trt_unet_split8_20fps_20260608.md`.
+
+For an optimized rerun, the server must activate:
+
+```text
+MUSETALK_UNET_BACKEND=trt
+MUSETALK_TRT_UNET_ENABLED=1
+MUSETALK_TRT_UNET_PATHS=8:path/to/validated/unet_trt.ts
+MUSETALK_TRT_FALLBACK=0
+```
+
+and the server log must show:
+
+```text
+UNet backend active: tensorrt_unet_multi
+```
 
 ## Artifacts
 
@@ -78,3 +116,6 @@ Notes:
 
 - The first 4-stream run includes some cold-cache live-ready cost; subsequent stages had the avatar cached.
 - This run intentionally used INT8 `8,16` buckets, per the requested INT8 bucket test. Some older high-concurrency baselines used `8,16,24` or `4,8,16,20`, so the throughput comparison is useful but not perfectly bucket-identical for those rows.
+- Any future RTX 6000 Ada table should keep separate columns or sections for
+  `VAE INT8 + PyTorch UNet` and `VAE INT8 + TRT UNet split8`; otherwise the
+  capacity story gets muddied.

@@ -401,19 +401,76 @@ experimentation, but not enough aggregate generated FPS.
 
 ### RTX 6000 Ada Read
 
-There is no local RTX 6000 Ada WebRTC load-test report in the repo. Any claim
-about exact stream capacity would be speculation until we run the same C1-C8 or
-C4/C6/C8 shape.
+The repo now has two local RTX 6000 Ada WebRTC reports from 2026-06-08:
 
-The likely practical read:
+- `load_test_webrtc_rtx6000ada_int8_5stage_20fps_20260608.md`
+- `load_test_webrtc_rtx6000ada_int8_trt_unet_split8_20fps_20260608.md`
 
-- `48 GB` VRAM is useful for warm buckets, more resident artifacts, larger
-  capture/export work, and operational headroom.
-- More VRAM alone will not solve C6/C8. C6 needs `120 fps`; current best is about
-  `71-72 fps`. C8 needs `160 fps`, which is about `2.2x` the current best.
-- RTX 6000 Ada is worth testing if pro-driver stability, VRAM headroom, and
-  datacenter-style operation matter. It should not be assumed to solve the
-  throughput target without direct measurement.
+The first report is the corrected five-stage VAE INT8 `8,16` bucket baseline,
+but it is not the fully optimized `VAE INT8 + TRT UNet split8` path:
+
+```text
+active VAE backend: tensorrt_stagewise_int8_mixed
+UNet backend: PyTorch
+fixed buckets: 8,16
+```
+
+Artifact check on the RTX 6000 Ada workspace found the VAE INT8 ONNX/QDQ cache
+and plan files under `models/tensorrt`, but no validated `unet_trt.ts` /
+`unet_trt_meta.json` artifact. The server log also showed
+`UNet backend: PyTorch`, not `UNet backend active: tensorrt_unet_multi`.
+
+The second report is the optimized rerun. It generated and validated a static
+batch-8 UNet TensorRT artifact, then loaded it through the split8 runtime:
+
+```text
+active VAE backend: tensorrt_stagewise_int8_mixed
+UNet backend active: tensorrt_unet_multi
+fixed buckets: 8,16
+UNet artifact: models/tensorrt_unet_static_bs8_rtx6000ada_20260608/unet_trt.ts
+```
+
+Important precision note: INT8 applies to the selected VAE decoder stages and
+the scheduler buckets. The UNet artifact in the optimized run is FP16 TensorRT,
+not UNet INT8.
+
+RTX 6000 Ada VAE INT8 + PyTorch UNet result:
+
+| Streams | Completed | Avg interval | Aggregate FPS | Max interval | Peak VRAM | Read |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 4 | `4/4` | `0.051s` | `78.4` | `0.082s` | `17920 MB` | strict/near-target |
+| 8 | `8/8` | `0.072s` | `111.1` | `0.660s` | `17922 MB` | completes, not strict 20 fps |
+| 12 | `12/12` | `0.109s` | `110.1` | `1.499s` | `17922 MB` | saturated |
+| 16 | `16/16` | `0.147s` | `108.8` | `2.405s` | `17922 MB` | saturated |
+| 20 | `20/20` | `0.185s` | `108.1` | `3.042s` | `18595 MB` | completion/stress only |
+
+RTX 6000 Ada VAE INT8 + TRT UNet split8 result:
+
+| Streams | Completed | Avg interval | Aggregate FPS | Max interval | Peak VRAM | Read |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 4 | `4/4` | `0.051s` | `78.4` | `0.072s` | `19644 MB` | strict/near-target |
+| 8 | `8/8` | `0.070s` | `114.3` | `0.661s` | `19644 MB` | completes, not strict 20 fps |
+| 10 | `10/10` | `0.089s` | `112.4` | `1.050s` | `19644 MB` | saturated |
+| 12 | `12/12` | `0.105s` | `114.3` | `1.297s` | `19644 MB` | saturated |
+| 15 | `15/15` | `0.134s` | `111.9` | `2.016s` | `19644 MB` | saturated |
+| 16 | `16/16` | `0.143s` | `111.9` | `2.252s` | `19644 MB` | saturated |
+| 20 | `20/20` | `0.179s` | `111.7` | `2.843s` | `19644 MB` | completion/stress only |
+
+Operational read:
+
+- Strict smooth `20 fps` capacity is still `4` concurrent streams on both RTX
+  6000 Ada runs.
+- The saturated aggregate plateau is much better than the older RTX 6000 Ada
+  reports: roughly `108-111 fps` for VAE INT8 + PyTorch UNet and roughly
+  `112-114 fps` for VAE INT8 + TRT UNet split8, versus about `73-81 fps` before.
+- The split8 UNet artifact is a real improvement, but it is incremental on this
+  workload: about `2-4%` aggregate FPS versus the PyTorch UNet VAE INT8 baseline.
+- VRAM remains far below the older large-bucket RTX 6000 Ada runs. The PyTorch
+  UNet baseline peaked around `17.9-18.6 GB`; the split8 UNet runtime peaked
+  around `19.6 GB`; older larger-bucket reports used roughly `43-44 GB`.
+- Do not mix these two result families. `UNet backend: PyTorch` is the VAE INT8
+  baseline; `UNet backend active: tensorrt_unet_multi` is the optimized split8
+  UNet result.
 
 ## Next Optimization Runbook
 
@@ -527,4 +584,3 @@ The success bar should remain strict:
 - C6 needs about `120 aggregate fps`.
 - C8 needs about `160 aggregate fps`.
 - "Completed" is not enough; strict stalls and max frame intervals must stay low.
-

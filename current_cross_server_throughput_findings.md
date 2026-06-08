@@ -977,6 +977,113 @@ Recommended serving profile remains `8,16`. The `8,16,24` and `4,8,16,20`
 profiles are useful stress-test profiles, but they consume roughly `44 GB` VRAM
 and do not improve the practical good-stream ceiling.
 
+### RTX 6000 Ada VAE INT8 `8,16` Follow-Up - June 8, 2026
+
+The June 8 RTX 6000 Ada follow-up tested five-stage VAE INT8 with `8,16`
+fixed buckets. It should be compared as a VAE decoder/backend improvement, not
+as the final optimized UNet TensorRT result.
+
+Runtime proof:
+
+```text
+VAE decode backend active: tensorrt_stagewise_int8_mixed
+UNet backend: PyTorch
+Stagewise TRT warmup complete (batches=[8, 16], total=212.09s)
+HLS GPU scheduler started (max_combined_batch_size=16, fixed_batch_sizes=[8, 16]...)
+```
+
+Local artifact check found VAE INT8 ONNX/QDQ cache and plan files under
+`models/tensorrt`, but no validated `unet_trt.ts` / `unet_trt_meta.json`
+artifact. Therefore this is not the documented `VAE INT8 + TRT UNet split8`
+path, which should log `UNet backend active: tensorrt_unet_multi`.
+
+Report:
+`tmp/load_tests/load_test_webrtc_rtx6000ada_int8_5stage_20_20_4_8_12_16streams_8_16_libx264_20260607_valid.json`
+
+High-concurrency report:
+`tmp/load_tests/load_test_webrtc_rtx6000ada_int8_5stage_20_20_10_15_20streams_8_16_libx264_20260608_valid.json`
+
+| Streams | Completed | Failed | Avg live-ready | Avg frame interval | Max frame interval | Peak VRAM | Approx aggregate FPS |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | 4 | 0 | `9.874s` | `0.051s` | `0.082s` | `17920 MB` | `78.4` |
+| 8 | 8 | 0 | `3.555s` | `0.072s` | `0.660s` | `17922 MB` | `111.1` |
+| 10 | 10 | 0 | `4.170s` | `0.091s` | `1.301s` | `17922 MB` | `109.9` |
+| 12 | 12 | 0 | `5.089s` | `0.109s` | `1.499s` | `17922 MB` | `110.1` |
+| 15 | 15 | 0 | `6.484s` | `0.137s` | `2.208s` | `17922 MB` | `109.5` |
+| 16 | 16 | 0 | `6.968s` | `0.147s` | `2.405s` | `17922 MB` | `108.8` |
+| 20 | 20 | 0 | `9.350s` | `0.185s` | `3.042s` | `18595 MB` | `108.1` |
+
+Read:
+
+- Strict smooth 20 fps capacity remains `4` concurrent streams on this
+  `VAE INT8 + PyTorch UNet` path.
+- Saturated aggregate throughput improves to roughly `108-111 fps`, up from the
+  older RTX 6000 Ada plateau of roughly `73-81 fps`.
+- VRAM drops materially: about `17.9-18.6 GB` peak on this run versus roughly
+  `24.6 GB` for the older `8,16` profile and `43-44 GB` for the older larger
+  resident-bucket profiles.
+- The optimized RTX 6000 Ada result requires VAE INT8 plus validated TRT UNet
+  split8:
+  `MUSETALK_UNET_BACKEND=trt`,
+  `MUSETALK_TRT_UNET_ENABLED=1`,
+  `MUSETALK_TRT_UNET_PATHS=8:path/to/validated/unet_trt.ts`, and
+  `MUSETALK_TRT_FALLBACK=0`. That rerun is documented in the next subsection.
+
+### RTX 6000 Ada VAE INT8 + TRT UNet Split8 Follow-Up - June 8, 2026
+
+The optimized RTX 6000 Ada rerun has now been performed and should be kept
+separate from the PyTorch UNet baseline above.
+
+Runtime proof:
+
+```text
+VAE decode backend active: tensorrt_stagewise_int8_mixed
+UNet backend active: tensorrt_unet_multi
+Stagewise TRT warmup complete (batches=[8, 16], total=30.40s)
+HLS GPU scheduler started (max_combined_batch_size=16, fixed_batch_sizes=[8, 16]...)
+```
+
+Artifact and validation:
+
+```text
+UNet artifact: models/tensorrt_unet_static_bs8_rtx6000ada_20260608/unet_trt.ts
+UNet validation: tmp/unet_rtx6000ada_split8_trt_validation_20260608.json
+validation result: passed
+validation summary: mae_max=0.001708, max_abs_max=0.151123
+```
+
+Precision note: this is five-stage VAE INT8 plus FP16 TensorRT UNet split8. It
+is not a UNet INT8 result.
+
+Reports:
+
+```text
+tmp/load_tests/load_test_webrtc_rtx6000ada_int8_5stage_trt_unet_split8_20_20_4_8_12_16streams_8_16_libx264_20260608.json
+tmp/load_tests/load_test_webrtc_rtx6000ada_int8_5stage_trt_unet_split8_20_20_10_15_20streams_8_16_libx264_20260608.json
+```
+
+| Streams | Completed | Failed | Avg live-ready | Avg frame interval | Max frame interval | Peak VRAM | Approx aggregate FPS |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | 4 | 0 | `3.778s` | `0.051s` | `0.072s` | `19644 MB` | `78.4` |
+| 8 | 8 | 0 | `3.296s` | `0.070s` | `0.661s` | `19644 MB` | `114.3` |
+| 10 | 10 | 0 | `4.019s` | `0.089s` | `1.050s` | `19644 MB` | `112.4` |
+| 12 | 12 | 0 | `4.891s` | `0.105s` | `1.297s` | `19644 MB` | `114.3` |
+| 15 | 15 | 0 | `6.629s` | `0.134s` | `2.016s` | `19644 MB` | `111.9` |
+| 16 | 16 | 0 | `6.933s` | `0.143s` | `2.252s` | `19644 MB` | `111.9` |
+| 20 | 20 | 0 | `9.041s` | `0.179s` | `2.843s` | `19644 MB` | `111.7` |
+
+Read:
+
+- Strict smooth 20 fps capacity remains `4` concurrent streams.
+- The split8 UNet runtime improves the saturated plateau from about `108-111 fps`
+  on VAE INT8 + PyTorch UNet to about `112-114 fps`.
+- The improvement is real but incremental, roughly `2-4%` aggregate FPS on this
+  RTX 6000 Ada workload.
+- C8 and above complete with zero request failures, but they are not smooth
+  `20 fps` sessions because average intervals and tail intervals exceed target.
+- This is the optimized RTX 6000 Ada result for the current code path. The
+  earlier June 8 report remains the VAE INT8 + PyTorch UNet baseline.
+
 ### RTX 6000 Ada WebRTC Bottleneck Analysis
 
 The `4,8,16,20` detailed run shows the 15- and 20-stream slowdown is primarily
