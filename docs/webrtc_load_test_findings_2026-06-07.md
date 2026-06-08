@@ -471,6 +471,14 @@ Operational read:
 - Do not mix these two result families. `UNet backend: PyTorch` is the VAE INT8
   baseline; `UNet backend active: tensorrt_unet_multi` is the optimized split8
   UNet result.
+- A follow-up optimized split8 run with VAE buckets `4,8,16` also completed
+  without OOM, but it did not materially improve FPS. It peaked around
+  `21.7 GB` VRAM versus `19.6 GB` for `8,16`, moved aggregate FPS by only
+  run-noise amounts, and left strict smooth capacity at `4` streams.
+- The prior batch-32 warning still stands. Older markdowns record RTX 6000 Ada
+  `8,16,32` startup failure near the memory wall and explicit V100 32 GB
+  batch-32 CUDA OOM during `4,8,16,32` warmup. Avoid batch `32` as a serving
+  warmup shape unless it is tested separately on the exact GPU/profile.
 
 ## Next Optimization Runbook
 

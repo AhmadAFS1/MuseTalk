@@ -1084,6 +1084,24 @@ Read:
 - This is the optimized RTX 6000 Ada result for the current code path. The
   earlier June 8 report remains the VAE INT8 + PyTorch UNet baseline.
 
+Follow-up bucket check:
+
+- A same-backend rerun with VAE buckets `4,8,16` also completed successfully:
+  `UNet backend active: tensorrt_unet_multi`,
+  `fixed_batch_sizes=[4, 8, 16]`.
+- It did not materially increase FPS. C8 improved only from `114.3` to
+  `115.9` aggregate fps, C10 from `112.4` to `113.6`, C12/C15/C16 were tied,
+  and C20 regressed slightly from `111.7` to `111.1`.
+- Peak VRAM increased from about `19644 MB` on `8,16` to about `21740 MB` on
+  `4,8,16`.
+- Recommended optimized RTX 6000 Ada serving profile therefore remains `8,16`.
+  Use `4,8,16` only as a tail-latency experiment for workloads that frequently
+  form real batch-4 turns.
+- Batch `32` remains excluded from the recommended serving profile. The older
+  RTX 6000 Ada `8,16,32` attempt failed near the memory wall when TensorRT could
+  not create an execution context; the V100 32 GB docs also record explicit
+  batch-32 CUDA OOM during `4,8,16,32` warmup.
+
 ### RTX 6000 Ada WebRTC Bottleneck Analysis
 
 The `4,8,16,20` detailed run shows the 15- and 20-stream slowdown is primarily

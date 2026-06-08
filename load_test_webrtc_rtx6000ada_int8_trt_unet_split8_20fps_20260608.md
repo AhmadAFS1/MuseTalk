@@ -88,6 +88,44 @@ Tail intervals also improved:
 | 16 | 2.405s | 2.252s |
 | 20 | 3.042s | 2.843s |
 
+## `4,8,16` Bucket Follow-Up
+
+After the optimized `8,16` split8 run, the server was restarted with only the
+VAE bucket set changed to `4,8,16`. The UNet backend and split8 artifact stayed
+the same:
+
+```text
+Stagewise TRT warmup complete (batches=[4, 8, 16], total=109.76s)
+VAE decode backend active: tensorrt_stagewise_int8_mixed
+UNet backend active: tensorrt_unet_multi
+HLS GPU scheduler started (max_combined_batch_size=16, fixed_batch_sizes=[4, 8, 16]...)
+```
+
+This did not OOM on the RTX 6000 Ada. It did, however, raise resident VRAM from
+about `19.6 GB` to about `21.7 GB`.
+
+| Concurrency | `8,16` avg | `4,8,16` avg | `8,16` agg fps | `4,8,16` agg fps | `8,16` max | `4,8,16` max | `4,8,16` peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | 0.051s | 0.051s | 78.4 | 78.4 | 0.072s | 0.081s | 21,728 MB |
+| 8 | 0.070s | 0.069s | 114.3 | 115.9 | 0.661s | 0.676s | 21,730 MB |
+| 10 | 0.089s | 0.088s | 112.4 | 113.6 | 1.050s | 0.986s | 21,740 MB |
+| 12 | 0.105s | 0.105s | 114.3 | 114.3 | 1.297s | 1.236s | 21,736 MB |
+| 15 | 0.134s | 0.134s | 111.9 | 111.9 | 2.016s | 2.065s | 21,740 MB |
+| 16 | 0.143s | 0.143s | 111.9 | 111.9 | 2.252s | 2.195s | 21,740 MB |
+| 20 | 0.179s | 0.180s | 111.7 | 111.1 | 2.843s | 2.840s | 21,740 MB |
+
+Read: `4,8,16` does not materially increase FPS on this optimized RTX 6000 Ada
+WebRTC path. It slightly improves a few startup/tail points, slightly regresses
+others, and does not change the strict smooth `20 fps` capacity. The cleaner
+serving profile remains `8,16`.
+
+The existing markdowns already warned against aggressive larger warmup profiles:
+the old RTX 6000 Ada `8,16,32` startup failed near the memory wall when TensorRT
+could not create an execution context, and the V100 32 GB docs record explicit
+batch-32 CUDA OOM during `4,8,16,32` warmup. This `4,8,16` test is below that
+risk boundary on the 48 GB RTX 6000 Ada, but the extra batch-4 engine still did
+not buy meaningful throughput.
+
 ## Conclusion
 
 The optimized backend is active and measured: five-stage VAE INT8 buckets plus
@@ -103,11 +141,19 @@ incremental. The large jump versus the older RTX 6000 Ada markdown results came
 from the five-stage VAE INT8 path; the split8 UNet artifact adds another
 approximately `2-4%` aggregate throughput on this workload.
 
+The follow-up `4,8,16` bucket test does not change the recommendation. It uses
+more VRAM and gives at most run-noise-level throughput changes, so `8,16` remains
+the preferred optimized serving profile for this RTX 6000 Ada path.
+
 ## Artifacts
 
 - `tmp/load_tests/load_test_webrtc_rtx6000ada_int8_5stage_trt_unet_split8_20_20_4_8_12_16streams_8_16_libx264_20260608.json`
 - `tmp/load_tests/load_test_webrtc_rtx6000ada_int8_5stage_trt_unet_split8_20_20_4_8_12_16streams_8_16_libx264_20260608_detailed.json`
 - `tmp/load_tests/load_test_webrtc_rtx6000ada_int8_5stage_trt_unet_split8_20_20_10_15_20streams_8_16_libx264_20260608.json`
 - `tmp/load_tests/load_test_webrtc_rtx6000ada_int8_5stage_trt_unet_split8_20_20_10_15_20streams_8_16_libx264_20260608_detailed.json`
+- `tmp/load_tests/load_test_webrtc_rtx6000ada_int8_5stage_trt_unet_split8_20_20_4_8_12_16streams_4_8_16_libx264_20260608.json`
+- `tmp/load_tests/load_test_webrtc_rtx6000ada_int8_5stage_trt_unet_split8_20_20_4_8_12_16streams_4_8_16_libx264_20260608_detailed.json`
+- `tmp/load_tests/load_test_webrtc_rtx6000ada_int8_5stage_trt_unet_split8_20_20_10_15_20streams_4_8_16_libx264_20260608.json`
+- `tmp/load_tests/load_test_webrtc_rtx6000ada_int8_5stage_trt_unet_split8_20_20_10_15_20streams_4_8_16_libx264_20260608_detailed.json`
 - `tmp/unet_rtx6000ada_split8_trt_validation_20260608.json`
 - `models/tensorrt_unet_static_bs8_rtx6000ada_20260608/unet_trt.ts`

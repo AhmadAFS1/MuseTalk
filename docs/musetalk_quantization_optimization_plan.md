@@ -656,6 +656,9 @@ Current optimized-path caveat from the markdowns:
 - On RTX 6000 Ada, VAE INT8 + TRT UNet split8 improved the saturated WebRTC
   plateau from about `108-111 fps` to about `112-114 fps`, but strict smooth
   `20 fps` capacity remained `4` concurrent sessions.
+- A same-backend RTX 6000 Ada `4,8,16` bucket rerun did not materially improve
+  FPS versus `8,16`; it mainly raised peak VRAM from about `19.6 GB` to
+  `21.7 GB`. Keep `8,16` as the optimized serving baseline.
 
 HLS session load test on the same five-stage INT8 server:
 
