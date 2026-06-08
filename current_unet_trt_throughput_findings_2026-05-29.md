@@ -1,5 +1,11 @@
 # UNet TensorRT Throughput Findings - 2026-05-29
 
+Later RTX 5000 Ada follow-up:
+`docs/webrtc_load_test_findings_2026-06-07.md` records that the 2026-06-07
+server had the VAE INT8 path available but did not have the validated batch-8
+UNet TensorRT artifact or capture directory from this note, so the June 7 load
+tests remained PyTorch-UNet tests.
+
 ## 2026-05-29 Current Server Update
 
 The current server is no longer in the earlier CUDA-failed / 150W-capped state.

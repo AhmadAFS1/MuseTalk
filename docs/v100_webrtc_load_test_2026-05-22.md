@@ -1,5 +1,11 @@
 # V100 WebRTC Load Tests - 2026-05-22 and 2026-05-23
 
+Related current synthesis:
+`docs/webrtc_load_test_findings_2026-06-07.md` summarizes the later RTX 5000 Ada
+FP16-vs-INT8 WebRTC runs and confirms the same high-level lesson from these V100
+experiments: extra VRAM helps warmup/artifact headroom, but smooth `20 fps`
+capacity is still governed by aggregate generation throughput and tail latency.
+
 ## Status
 
 - API server is live locally: `http://127.0.0.1:8000/health`
