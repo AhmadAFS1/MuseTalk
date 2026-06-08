@@ -2,6 +2,11 @@
 
 Date: 2026-05-25
 
+Latest WebRTC load-test synthesis:
+`docs/webrtc_load_test_findings_2026-06-07.md` summarizes the RTX 5000 Ada
+FP16-vs-INT8 runs, the `4,8,16` bucket follow-up, and the missing TRT UNet
+artifact needed for the next optimized-path test.
+
 ## Goal
 
 Improve MuseTalk throughput by applying quantization and backend acceleration to
