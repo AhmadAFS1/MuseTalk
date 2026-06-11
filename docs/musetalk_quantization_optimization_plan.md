@@ -1659,3 +1659,272 @@ Current priority read:
    throughput experiment.
 3. Avoid spending more time on CPU VAE postprocess or extra warmed buckets until
    these two paths are tested.
+
+### 2026-06-11 First 192px ROI Smoke Result
+
+Implemented an opt-in `MUSETALK_GENERATED_ROI_SIZE` experiment and generated a
+direct comparison from the same source avatar/audio:
+
+| ROI size | Cached latent shape | Inference time for 95 frames | Output video |
+| ---: | --- | ---: | --- |
+| `256` | `[1, 8, 32, 32]` per cached frame | `4.34s` | `results/v15/avatars/roi_compare_256_20260611/vid_output/baseline_256.mp4` |
+| `192` | `[1, 8, 24, 24]` per cached frame | `2.84s` | `results/v15/avatars/roi_compare_192_20260611/vid_output/downscaled_192.mp4` |
+
+Side-by-side artifact:
+
+```text
+results/roi_resolution_compare_20260611/side_by_side_256_vs_192.mp4
+```
+
+Initial read:
+
+- The speed signal is real: `192` was about `35%` faster on this short offline
+  PyTorch smoke when including image saving.
+- The quality hit is severe: the `192` output visibly smears the mouth region and
+  looks unacceptable compared with the `256` baseline.
+- Treat `192` as a failed quality candidate for normal serving, not merely a
+  slightly degraded high-throughput mode.
+
+Detailed quality analysis:
+
+1. The model contract changed, not just final display scaling.
+   - `256` preparation produced cached latents shaped `[1, 8, 32, 32]`.
+   - `192` preparation produced cached latents shaped `[1, 8, 24, 24]`.
+   - MuseTalk's UNet and VAE path were trained, validated, and previously
+     optimized around the `256 -> 32` latent geometry. Feeding `24 x 24` latents
+     therefore changes the spatial distribution the UNet sees.
+
+2. The face ROI is too large for a `192` generated crop.
+   - The measured face box for this test averaged about `170 x 204` pixels.
+   - The `256` path decodes a `256 x 256` face crop, then downsamples it into the
+     final face box. That preserves more high-frequency mouth detail before
+     blending.
+   - The `192` path decodes a `192 x 192` face crop, then resizes it to roughly
+     `170 x 204`. Width is slightly downscaled, but height is upscaled by about
+     `1.06x`. The mouth patch is therefore generated from fewer latent pixels and
+     then stretched vertically into the final frame.
+
+3. The artifact is concentrated where viewers are most sensitive.
+   - The cheeks/skin tolerate blur relatively well.
+   - Teeth, lip edges, mouth corners, and the inner mouth do not. Those details
+     are small, high-contrast structures inside the generated ROI.
+   - The result is a soft, smudged mouth patch even though the full-frame
+     difference metric is small. A rough frame diff showed low whole-frame
+     average difference, but the mouth region changed much more visibly.
+
+4. The blend mask does not solve lost generated detail.
+   - Composition still resizes the generated face crop back to the original bbox
+     before masked blending.
+   - Masking can hide outer face seams, but it cannot recover lip/teeth detail
+     that the lower-resolution latent decode never generated.
+
+Conclusion:
+
+- Do not use `192 x 192` generated ROI for the quality path.
+- Keep `256 x 256` as the production-quality ROI.
+- Lower ROI remains useful as evidence that spatial reduction can improve speed,
+  but any acceptable version needs a less aggressive reduction or a different
+  model/composition strategy.
+
+Next experiments, if continuing this branch:
+
+1. Test `224 x 224`, because it keeps a `28 x 28` latent grid and reduces the
+   final upscale/downscale mismatch.
+2. Test adaptive ROI sizing only for small face boxes where the final pasted face
+   region is smaller than the generated crop, avoiding upscaling generated lips.
+3. Test mouth-preserving composition, such as generating a larger mouth-local ROI
+   while reducing only non-mouth areas, if architecture time is available.
+4. Keep `decoder_up_block_3` optimization as the cleaner same-quality path,
+   because it attacks the bottleneck without changing the learned latent geometry.
+
+### 2026-06-11 224px ROI Follow-Up
+
+Tested the next less aggressive generated ROI size with the same source
+avatar/audio and the same opt-in `MUSETALK_GENERATED_ROI_SIZE` path.
+
+| ROI size | Cached latent shape | Inference time for 95 frames | Quality read |
+| ---: | --- | ---: | --- |
+| `256` | `[1, 8, 32, 32]` per cached frame | `4.34s` | Production-quality baseline |
+| `224` | `[1, 8, 28, 28]` per cached frame | `3.47s` | Much closer to `256`; mild softness on inspected frames |
+| `192` | `[1, 8, 24, 24]` per cached frame | `2.84s` | Failed quality candidate; visible mouth smear |
+
+Artifacts:
+
+```text
+results/v15/avatars/roi_compare_224_20260611/vid_output/downscaled_224.mp4
+results/roi_resolution_compare_20260611/side_by_side_256_vs_224.mp4
+results/roi_resolution_compare_20260611/side_by_side_256_vs_224_vs_192.mp4
+results/roi_resolution_compare_20260611/side_by_side_256_vs_224_contact_sheet.png
+```
+
+Why `224` behaved better than `192`:
+
+1. It avoids upscaling the generated face crop in this test.
+   - The measured face box averaged about `170 x 204` pixels.
+   - `224 -> 170 x 204` still downsamples both axes, with scale factors around
+     `0.76x` width and `0.91x` height.
+   - `192 -> 170 x 204` downsampled width but upscaled height by about `1.06x`,
+     which stretched already lower-resolution generated mouth detail.
+
+2. The latent grid reduction is less disruptive.
+   - `224` uses a `28 x 28` latent grid instead of the baseline `32 x 32`.
+   - `192` drops to `24 x 24`, which is a larger spatial contract change for the
+     UNet/VAE path and leaves fewer pixels for teeth, lip edges, and inner-mouth
+     structure.
+
+3. Approximate frame metrics matched the visual read.
+   - Whole-frame average absolute diff vs `256`: `224 ~= 0.97`, `192 ~= 1.09`.
+   - Mouth-region average absolute diff vs `256`: `224 ~= 2.95`,
+     `192 ~= 4.99`.
+   - These numbers are not a replacement for watching the video, but they support
+     the visual result that `224` is much less damaging than `192`.
+
+Decision:
+
+- Do not promote `224 x 224` to production yet.
+- Treat `192 x 192` as rejected for normal visual quality.
+- Next validation for `224`: run WebRTC throughput before deciding whether the
+  blur is worth keeping as an experimental lower-quality profile.
+- If the WebRTC result is only modest, revert the `MUSETALK_GENERATED_ROI_SIZE`
+  implementation and keep `256 x 256` as the only supported generated ROI.
+
+### 2026-06-11 224px ROI INT8 WebRTC Load Test
+
+After watching the side-by-side, the quality read changed from mild softness to
+noticeably blurry. This load test therefore answers a narrower question: how much
+throughput the blurry `224 x 224` generated ROI actually buys.
+
+Reference test shape:
+
+- Matched the recent WebRTC load-test shape from
+  `docs/webrtc_load_test_findings_2026-06-07.md`,
+  `load_test_webrtc_rtx6000ada_int8_5stage_20fps_20260608.md`, and
+  `load_test_webrtc_rtx6000ada_int8_trt_unet_split8_20fps_20260608.md`.
+- WebRTC target: `--playback-fps 20 --musetalk-fps 20`.
+- Harness: `load_test_webrtc.py`.
+- Avatar: `test_avatar_224_load_20260611`, prepared from
+  `data/video/chatgpt_moving_vid.mp4`.
+- Audio: `data/audio/ai-assistant.mpga`.
+- Request batch size: `8`.
+- Scheduler buckets / warmup batches: `8,16`.
+- H.264 encoder: `libx264`.
+- Sync/profile settings: strict FIFO, adaptive fps disabled, video prebuffer
+  `2.0s`, audio prebuffer `0.0s`.
+
+Runtime tested:
+
+- GPU: `NVIDIA GeForce RTX 3090`, `24,576 MiB`.
+- `MUSETALK_GENERATED_ROI_SIZE=224`.
+- `MUSETALK_ALLOW_NON256_TRT_VAE=1`.
+- VAE backend: `tensorrt_stagewise_int8_mixed`.
+- INT8 frontend: `onnx_qdq`.
+- INT8 VAE stages:
+  `decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2`.
+- UNet backend: PyTorch.
+- 224 calibration corpus: `calibration/vae_decoder_224`, with `64` captured
+  files and representative `pred_latents` shape `[16, 4, 28, 28]`.
+- 224 INT8 engine cache:
+  `models/tensorrt/stagewise_int8_224_onnx_qdq_cache`.
+- Server log evidence:
+  - `Stagewise TRT warmup complete (batches=[8, 16], total=218.22s)`
+  - `VAE decode backend active: tensorrt_stagewise_int8_mixed`
+  - `UNet backend: PyTorch`
+  - `HLS GPU scheduler started (max_combined_batch_size=16, fixed_batch_sizes=[8, 16]...)`
+
+Toolchain note:
+
+- The latest `nvidia-modelopt` dependency chain attempted to pull a much newer
+  Torch/CUDA stack, so the working environment was kept on Torch `2.5.1+cu121`
+  and ModelOpt was pinned to `nvidia-modelopt==0.23.2` with `onnx==1.17.0`.
+
+Results:
+
+| Concurrency | Completed | Failed | Avg live-ready | Avg interval | Max interval | Aggregate fps | Peak VRAM | Smooth at 20 fps |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | :--- |
+| 1 | 1 | 0 | 11.061s | 0.051s | 0.070s | 19.6 | 17,756 MB | Yes |
+| 2 | 2 | 0 | 1.762s | 0.051s | 0.169s | 39.2 | 17,760 MB | No |
+| 3 | 3 | 0 | 2.371s | 0.051s | 0.073s | 58.8 | 17,766 MB | Yes |
+| 4 | 4 | 0 | 2.807s | 0.054s | 0.421s | 74.1 | 17,766 MB | No |
+| 5 | 5 | 0 | 3.267s | 0.069s | 0.693s | 72.5 | 17,766 MB | No |
+| 6 | 6 | 0 | 4.254s | 0.082s | 0.956s | 73.2 | 17,770 MB | No |
+| 8 | 8 | 0 | 5.516s | 0.110s | 1.450s | 72.7 | 17,770 MB | No |
+| 10 | 10 | 0 | 7.132s | 0.139s | 2.114s | 71.9 | 17,770 MB | No |
+| 12 | 12 | 0 | 8.449s | 0.168s | 2.969s | 71.4 | 17,770 MB | No |
+
+Server-side timing read across the completed 224 ROI WebRTC sessions:
+
+| Metric | Mean | Min | Max |
+| --- | ---: | ---: | ---: |
+| `avg_gpu_batch` | `0.1863s` | `0.181s` | `0.208s` |
+| `avg_unet` | `0.0624s` | `0.058s` | `0.088s` |
+| `avg_vae` | `0.1220s` | `0.118s` | `0.125s` |
+| `avg_compose` | `0.0692s` | `0.064s` | `0.084s` |
+
+Read:
+
+- The saturated aggregate plateau on this local RTX 3090 is about `72-74 fps`.
+- Strict smooth `20 fps` capacity remains `3` concurrent sessions by the same
+  max-interval warning rule used in the recent RTX 5000/6000 notes. `C4` is
+  close on average, but its `0.421s` max interval is not smooth.
+- Higher concurrency completes without request failures, but it only divides the
+  same aggregate frame budget across more sessions: `C10` and `C12` are stress
+  passes, not good realtime serving capacities.
+- Peak resident VRAM stayed near `17.77 GB`; lowering the generated ROI did not
+  materially reduce resident memory because the warmed TensorRT engines and
+  `8,16` bucket profile dominate what stays loaded.
+- The VAE remains the largest model-side slice even at `224`: logged VAE decode
+  averaged about `0.122s` versus UNet at about `0.062s`.
+
+Comparison against the closest historical RTX 3090 `256 x 256` runs in
+`current_unet_trt_throughput_findings_2026-05-29.md`:
+
+| Concurrency | Historical 3090 `256` VAE INT8 + PyTorch UNet | Current 3090 `224` VAE INT8 + PyTorch UNet | Change |
+| ---: | ---: | ---: | ---: |
+| 4 | 66.7 fps | 74.1 fps | +11.1% |
+| 6 | 65.9 fps | 73.2 fps | +11.1% |
+| 8 | 65.0 fps | 72.7 fps | +11.8% |
+
+Against the historical RTX 3090 `256` VAE INT8 + TRT UNet split8 run, the `224`
+VAE-only test is roughly in the same aggregate range:
+
+| Concurrency | Historical 3090 `256` VAE INT8 + TRT UNet split8 | Current 3090 `224` VAE INT8 + PyTorch UNet | Change |
+| ---: | ---: | ---: | ---: |
+| 4 | 71.4 fps | 74.1 fps | +3.8% |
+| 6 | 72.3 fps | 73.2 fps | +1.2% |
+| 8 | 70.8 fps | 72.7 fps | +2.7% |
+
+Those comparisons are useful for direction, but not perfect apples-to-apples:
+this workspace did not have a validated local UNet TensorRT split8 artifact, so
+the measured 224 run is VAE INT8 plus PyTorch UNet.
+
+Comparison against the newer Ada docs:
+
+- RTX 5000 Ada VAE INT8 + PyTorch UNet plateaued around `70-72 fps`; this local
+  3090 `224` run lands in that same aggregate band.
+- RTX 6000 Ada VAE INT8 + PyTorch UNet plateaued around `108-111 fps`.
+- RTX 6000 Ada VAE INT8 + TRT UNet split8 plateaued around `112-114 fps`.
+- Therefore the `224` ROI change on a 3090 does not approach the current RTX
+  6000 Ada optimized path; it is a modest same-GPU throughput tradeoff.
+
+Decision:
+
+- Do not promote `224 x 224` to production quality. The observed blur is too
+  visible for a roughly `10-12%` aggregate throughput gain versus the closest
+  historical 3090 `256` VAE-only baseline.
+- The configurable ROI implementation was reverted after this test. The code
+  path is back to the original `256 x 256` generated ROI contract.
+- The next same-quality optimization target remains the VAE decoder, especially
+  `decoder_up_block_3` and then `decoder_up_block_2`. Reducing ROI confirms that
+  spatial VAE decoder work is the right bottleneck, but the quality trade is not
+  attractive enough to replace the `256` path.
+
+Artifacts:
+
+```text
+tmp/load_tests/load_test_webrtc_3090_224roi_int8_20_20_1_2_3_4_5_6_8streams_8_16_20260611.json
+tmp/load_tests/load_test_webrtc_3090_224roi_int8_20_20_1_2_3_4_5_6_8streams_8_16_20260611_detailed.json
+tmp/load_tests/load_test_webrtc_3090_224roi_int8_20_20_10_12streams_8_16_20260611.json
+tmp/load_tests/load_test_webrtc_3090_224roi_int8_20_20_10_12streams_8_16_20260611_detailed.json
+calibration/vae_decoder_224
+models/tensorrt/stagewise_int8_224_onnx_qdq_cache
+```
