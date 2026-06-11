@@ -1594,3 +1594,68 @@ serving. The next serious attempt should be finer-grained than the current
 stage switch, such as quantizing only selected high-cost convs inside the block
 or using a different fusion/backend strategy for the full-resolution residual
 convs.
+
+## 2026-06-11 Lower-Resolution Lipsync ROI Experiment
+
+The current live generation path is still built around a `256 x 256` talking-face
+ROI:
+
+- avatar preparation crops the detected face box and resizes it to `256 x 256`
+- the VAE encodes that crop into `4 x 32 x 32` latents
+- UNet predicts `4 x 32 x 32` latents
+- VAE decodes back to a `256 x 256` generated face crop
+- composition resizes that generated crop back into the original face box
+
+This matters because the remaining VAE decode bottleneck is dominated by late,
+full-resolution decoder work. `decoder_up_block_3` runs at
+`[batch, 128, 256, 256]` and accounts for about `48%` of the measured VAE stage
+time; `decoder_up_block_2` is second at about `25%`. Lowering the generated ROI
+resolution could therefore reduce the same expensive late-block convolutional
+work that is currently limiting throughput.
+
+Potential experiment:
+
+1. Add an opt-in generated ROI size, initially `192`, while keeping `256` as the
+   default production path.
+2. Prepare a separate test avatar cache for the lower ROI size instead of
+   reusing existing `256 -> 32` latent caches.
+3. Validate the full model contract end to end:
+   - avatar prep crop resize
+   - cached latent shape
+   - UNet PyTorch correctness/smoke behavior
+   - VAE TensorRT/stagewise backend compatibility
+   - composition resize and mask quality
+4. Run visual gates before throughput claims:
+   - saved face crops
+   - final blended frames
+   - short lipsync video smoke
+   - close-up mouth/teeth/edge comparison against `256`
+5. If `192` passes, test lower degraded-mode sizes such as `160` or `128`.
+
+Expected upside:
+
+- This may be a bigger throughput lever than trying to squeeze a few more
+  milliseconds from the existing `256 x 256` late decoder blocks.
+- It directly reduces the spatial size of the expensive final VAE decode work.
+- It could support a separate lower-quality/high-concurrency serving tier.
+
+Risks and constraints:
+
+- This is not just output downscaling; it changes the latent/model serving
+  contract and likely invalidates existing TensorRT artifacts and prepared
+  avatar caches.
+- The MuseTalk UNet was trained and validated around the current latent/image
+  shape, so quality and motion may regress even if the code runs.
+- `128 x 128` may be visibly too soft for mouth detail, teeth, and blend
+  boundaries; start with `192 x 192`.
+- Treat this as a separate experimental serving profile, not a replacement for
+  the current quality path until it passes visual and WebRTC load tests.
+
+Current priority read:
+
+1. Keep `decoder_up_block_3` as the primary same-resolution VAE optimization
+   target.
+2. Put lower-resolution generated ROI close behind it as a potentially larger
+   throughput experiment.
+3. Avoid spending more time on CPU VAE postprocess or extra warmed buckets until
+   these two paths are tested.
