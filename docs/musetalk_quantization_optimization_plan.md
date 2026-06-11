@@ -1811,6 +1811,58 @@ Reference test shape:
 - Sync/profile settings: strict FIFO, adaptive fps disabled, video prebuffer
   `2.0s`, audio prebuffer `0.0s`.
 
+Exact load-test commands:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python load_test_webrtc.py \
+  --base-url http://127.0.0.1:8000 \
+  --avatar-id test_avatar_224_load_20260611 \
+  --audio-file data/audio/ai-assistant.mpga \
+  --ramp 1,2,3,4,5,6,8 \
+  --hold-seconds 10 \
+  --segment-duration 1 \
+  --playback-fps 20 \
+  --musetalk-fps 20 \
+  --batch-size 8 \
+  --stage-ready-timeout 140 \
+  --connection-timeout 60 \
+  --completion-timeout 240 \
+  --gpu-sample-interval 1 \
+  --gpu-log-interval 20 \
+  --report-path tmp/load_tests/load_test_webrtc_3090_224roi_int8_20_20_1_2_3_4_5_6_8streams_8_16_20260611.json \
+  --detail-report-path tmp/load_tests/load_test_webrtc_3090_224roi_int8_20_20_1_2_3_4_5_6_8streams_8_16_20260611_detailed.json
+
+/workspace/.venvs/musetalk_trt_stagewise/bin/python load_test_webrtc.py \
+  --base-url http://127.0.0.1:8000 \
+  --avatar-id test_avatar_224_load_20260611 \
+  --audio-file data/audio/ai-assistant.mpga \
+  --ramp 10,12 \
+  --hold-seconds 10 \
+  --segment-duration 1 \
+  --playback-fps 20 \
+  --musetalk-fps 20 \
+  --batch-size 8 \
+  --stage-ready-timeout 160 \
+  --connection-timeout 60 \
+  --completion-timeout 300 \
+  --gpu-sample-interval 1 \
+  --gpu-log-interval 20 \
+  --report-path tmp/load_tests/load_test_webrtc_3090_224roi_int8_20_20_10_12streams_8_16_20260611.json \
+  --detail-report-path tmp/load_tests/load_test_webrtc_3090_224roi_int8_20_20_10_12streams_8_16_20260611_detailed.json
+```
+
+Throughput calculation:
+
+```text
+aggregate fps = concurrency / avg_segment_interval_s
+```
+
+The smoothness column intentionally follows the recent RTX 5000/6000 WebRTC
+notes: an average interval near `0.050s` is not enough by itself. A row is only
+treated as smooth when the max interval does not show meaningful throttling.
+That is why `C4` is not counted as smooth even though its average interval is
+close to target.
+
 Runtime tested:
 
 - GPU: `NVIDIA GeForce RTX 3090`, `24,576 MiB`.
@@ -1851,6 +1903,21 @@ Results:
 | 10 | 10 | 0 | 7.132s | 0.139s | 2.114s | 71.9 | 17,770 MB | No |
 | 12 | 12 | 0 | 8.449s | 0.168s | 2.969s | 71.4 | 17,770 MB | No |
 
+Capacity interpretation:
+
+| Read | Value |
+| --- | ---: |
+| Strict smooth 20 fps capacity | `3` concurrent streams |
+| Highest near-target average row | `C4`, `0.054s` avg interval |
+| First clearly saturated row | `C5`, `0.069s` avg interval |
+| Saturated aggregate plateau | about `72-74 fps` |
+| Completion-only stress ceiling tested | `12/12` sessions completed |
+| Practical production recommendation | do not use `224`; quality is too blurry |
+
+The `C10` and `C12` rows are useful stress data, but they should not be read as
+realtime capacity. They completed without request failures while producing only
+about `6-7 fps` per stream on average.
+
 Server-side timing read across the completed 224 ROI WebRTC sessions:
 
 | Metric | Mean | Min | Max |
@@ -1878,16 +1945,21 @@ Read:
 Comparison against the closest historical RTX 3090 `256 x 256` runs in
 `current_unet_trt_throughput_findings_2026-05-29.md`:
 
-| Concurrency | Historical 3090 `256` VAE INT8 + PyTorch UNet | Current 3090 `224` VAE INT8 + PyTorch UNet | Change |
-| ---: | ---: | ---: | ---: |
-| 4 | 66.7 fps | 74.1 fps | +11.1% |
-| 6 | 65.9 fps | 73.2 fps | +11.1% |
-| 8 | 65.0 fps | 72.7 fps | +11.8% |
+| Concurrency | Historical `256` avg interval | Current `224` avg interval | Historical `256` agg fps | Current `224` agg fps | Aggregate change |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | about `0.060s` | `0.054s` | 66.7 fps | 74.1 fps | +11.1% |
+| 6 | about `0.091s` | `0.082s` | 65.9 fps | 73.2 fps | +11.1% |
+| 8 | about `0.123s` | `0.110s` | 65.0 fps | 72.7 fps | +11.8% |
+
+Read: the `224` ROI experiment gives a real same-GPU throughput signal versus
+the historical `256` VAE-only path, but the gain is only about one tenth. That
+is not enough to justify the visible mouth/face blur for the normal quality
+path.
 
 Against the historical RTX 3090 `256` VAE INT8 + TRT UNet split8 run, the `224`
 VAE-only test is roughly in the same aggregate range:
 
-| Concurrency | Historical 3090 `256` VAE INT8 + TRT UNet split8 | Current 3090 `224` VAE INT8 + PyTorch UNet | Change |
+| Concurrency | Historical `256` TRT UNet agg fps | Current `224` PyTorch UNet agg fps | Change |
 | ---: | ---: | ---: | ---: |
 | 4 | 71.4 fps | 74.1 fps | +3.8% |
 | 6 | 72.3 fps | 73.2 fps | +1.2% |
@@ -1896,6 +1968,16 @@ VAE-only test is roughly in the same aggregate range:
 Those comparisons are useful for direction, but not perfect apples-to-apples:
 this workspace did not have a validated local UNet TensorRT split8 artifact, so
 the measured 224 run is VAE INT8 plus PyTorch UNet.
+
+Practical comparison read:
+
+- If the production stack has only VAE INT8 plus PyTorch UNet, `224` looks like a
+  roughly `10-12%` throughput lever.
+- If the production stack also has TRT UNet split8, `224` is only a small
+  throughput movement relative to the existing optimized `256` path.
+- Since the user-visible quality loss is obvious, the better next target is not
+  lower ROI size. It is reducing the same expensive late VAE decoder work while
+  preserving the `256 x 256` generated crop contract.
 
 Comparison against the newer Ada docs:
 
@@ -1917,6 +1999,8 @@ Decision:
   `decoder_up_block_3` and then `decoder_up_block_2`. Reducing ROI confirms that
   spatial VAE decoder work is the right bottleneck, but the quality trade is not
   attractive enough to replace the `256` path.
+- The detailed next-bottleneck plan is now tracked separately in
+  `docs/next_bottleneck_vae_late_block_plan_2026-06-11.md`.
 
 Artifacts:
 
