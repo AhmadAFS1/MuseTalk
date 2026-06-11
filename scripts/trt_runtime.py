@@ -279,6 +279,25 @@ def _stagewise_int8_stage_names() -> set[str]:
     return set(_parse_csv_env("MUSETALK_TRT_STAGEWISE_INT8_STAGES", ""))
 
 
+def _stagewise_split_up_block_indices() -> set[int]:
+    raw = os.getenv("MUSETALK_TRT_STAGEWISE_SPLIT_UP_BLOCKS", "").strip()
+    if not raw or raw.lower() in {"0", "false", "no", "off", "none"}:
+        return set()
+    indices: set[int] = set()
+    for token in raw.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        index = int(token)
+        if index < 0 or index > 3:
+            raise RuntimeError(
+                "Unsupported MUSETALK_TRT_STAGEWISE_SPLIT_UP_BLOCKS value: "
+                f"{index}. Expected decoder up-block indices 0,1,2,3."
+            )
+        indices.add(index)
+    return indices
+
+
 def _stagewise_int8_calibration_dir() -> Optional[Path]:
     raw = os.getenv("MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR", "").strip()
     if not raw:
@@ -633,6 +652,24 @@ class _StagewiseUpBlock(torch.nn.Module):
         return self.up_block(sample.contiguous(), None).contiguous()
 
 
+class _StagewiseUpBlockResnet(torch.nn.Module):
+    def __init__(self, resnet: torch.nn.Module):
+        super().__init__()
+        self.resnet = resnet
+
+    def forward(self, sample: torch.Tensor) -> torch.Tensor:
+        return self.resnet(sample.contiguous(), None).contiguous()
+
+
+class _StagewiseUpBlockUpsampler(torch.nn.Module):
+    def __init__(self, upsampler: torch.nn.Module):
+        super().__init__()
+        self.upsampler = upsampler
+
+    def forward(self, sample: torch.Tensor) -> torch.Tensor:
+        return self.upsampler(sample.contiguous()).contiguous()
+
+
 class _StagewisePostprocess(torch.nn.Module):
     def __init__(self, decoder: torch.nn.Module):
         super().__init__()
@@ -680,6 +717,7 @@ class StagewiseTrtVaeDecodeBackend:
         int8_calibration_format: str = "tensor",
         int8_enabled_precisions: Optional[set[torch.dtype]] = None,
         int8_ts_torch_executed_ops: Optional[list[str]] = None,
+        split_up_block_indices: Optional[set[int]] = None,
     ):
         self.device = device
         self.scaling_factor = float(scaling_factor)
@@ -728,25 +766,21 @@ class StagewiseTrtVaeDecodeBackend:
         self.int8_calibration_format = int8_calibration_format
         self.int8_enabled_precisions = set(int8_enabled_precisions or {torch.int8})
         self.int8_ts_torch_executed_ops = list(int8_ts_torch_executed_ops or [])
+        self.split_up_block_indices = set(split_up_block_indices or set())
         self.name = (
             "tensorrt_stagewise_int8_mixed"
             if self.precision_policy == "int8_mixed"
             else "tensorrt_stagewise"
         )
         decoder = vae_module.decoder
-        self.stage_modules = {
-            "decoder_pre": _StagewisePreDecode(vae_module, scaling_factor),
-            "decoder_mid_block": _StagewiseMidBlock(decoder),
-            "decoder_up_block_0": _StagewiseUpBlock(decoder.up_blocks[0]),
-            "decoder_up_block_1": _StagewiseUpBlock(decoder.up_blocks[1]),
-            "decoder_up_block_2": _StagewiseUpBlock(decoder.up_blocks[2]),
-            "decoder_up_block_3": _StagewiseUpBlock(decoder.up_blocks[3]),
-            "decoder_postprocess": _StagewisePostprocess(decoder),
-        }
+        self.stage_modules, self.stage_order = self._build_stage_modules(
+            vae_module=vae_module,
+            decoder=decoder,
+            scaling_factor=scaling_factor,
+        )
         for module in self.stage_modules.values():
             module.to(device=device, dtype=runtime_dtype).eval()
             module.requires_grad_(False)
-        self.stage_order = list(_STAGEWISE_VAE_STAGE_NAMES)
         self.compiled_by_batch: dict[int, dict[str, object]] = {}
         self.stage_timing_enabled = _env_enabled(
             "MUSETALK_TRT_STAGEWISE_STAGE_TIMING",
@@ -768,6 +802,39 @@ class StagewiseTrtVaeDecodeBackend:
         self._stage_timing_stage_max_s = {
             stage_name: 0.0 for stage_name in self.stage_order
         }
+
+    def _build_stage_modules(
+        self,
+        vae_module: torch.nn.Module,
+        decoder: torch.nn.Module,
+        scaling_factor: float,
+    ) -> tuple[dict[str, torch.nn.Module], list[str]]:
+        modules: dict[str, torch.nn.Module] = {
+            "decoder_pre": _StagewisePreDecode(vae_module, scaling_factor),
+            "decoder_mid_block": _StagewiseMidBlock(decoder),
+        }
+        order = ["decoder_pre", "decoder_mid_block"]
+
+        for block_index, up_block in enumerate(decoder.up_blocks):
+            block_name = f"decoder_up_block_{block_index}"
+            if block_index not in self.split_up_block_indices:
+                modules[block_name] = _StagewiseUpBlock(up_block)
+                order.append(block_name)
+                continue
+
+            for resnet_index, resnet in enumerate(up_block.resnets):
+                name = f"{block_name}_resnet_{resnet_index}"
+                modules[name] = _StagewiseUpBlockResnet(resnet)
+                order.append(name)
+            if up_block.upsamplers is not None:
+                for upsampler_index, upsampler in enumerate(up_block.upsamplers):
+                    name = f"{block_name}_upsampler_{upsampler_index}"
+                    modules[name] = _StagewiseUpBlockUpsampler(upsampler)
+                    order.append(name)
+
+        modules["decoder_postprocess"] = _StagewisePostprocess(decoder)
+        order.append("decoder_postprocess")
+        return modules, order
 
     @classmethod
     def load(
@@ -805,6 +872,7 @@ class StagewiseTrtVaeDecodeBackend:
             int8_calibration_format=_stagewise_int8_calibration_format(),
             int8_enabled_precisions=_stagewise_int8_enabled_precisions(runtime_dtype),
             int8_ts_torch_executed_ops=_stagewise_int8_ts_torch_executed_ops(),
+            split_up_block_indices=_stagewise_split_up_block_indices(),
         )
 
     def _is_int8_stage(self, stage_name: str) -> bool:

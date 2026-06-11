@@ -37,6 +37,15 @@ def parse_args() -> argparse.Namespace:
             "Default: decoder_up_block_1."
         ),
     )
+    parser.add_argument(
+        "--split-up-block",
+        action="append",
+        default=[],
+        help=(
+            "Decoder up-block index to split into resnet/upsampler substages "
+            "before compiling. May be repeated or comma-separated. Example: 3."
+        ),
+    )
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--calibration-batches", type=int, default=8)
     parser.add_argument(
@@ -108,6 +117,25 @@ def parse_stages(raw_values: list[str]) -> list[str]:
     return stages or ["decoder_up_block_1"]
 
 
+def parse_split_up_blocks(raw_values: list[str]) -> list[int]:
+    indices: list[int] = []
+    seen: set[int] = set()
+    for raw in raw_values or []:
+        for token in raw.split(","):
+            token = token.strip()
+            if not token:
+                continue
+            index = int(token)
+            if index < 0 or index > 3:
+                raise RuntimeError(
+                    f"Unsupported --split-up-block {index}; expected 0,1,2,3."
+                )
+            if index not in seen:
+                indices.append(index)
+                seen.add(index)
+    return indices
+
+
 def set_experiment_env(args: argparse.Namespace, stages: list[str]) -> None:
     os.environ["MUSETALK_TRT_ENABLED"] = "1"
     os.environ["MUSETALK_VAE_BACKEND"] = "trt_stagewise"
@@ -138,6 +166,11 @@ def set_experiment_env(args: argparse.Namespace, stages: list[str]) -> None:
     )
     os.environ["MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_FORMAT"] = args.calibration_format
     os.environ["MUSETALK_TRT_STAGEWISE_WORKSPACE_GB"] = str(max(0.25, args.workspace_gb))
+    split_up_blocks = parse_split_up_blocks(args.split_up_block)
+    if split_up_blocks:
+        os.environ["MUSETALK_TRT_STAGEWISE_SPLIT_UP_BLOCKS"] = ",".join(
+            str(index) for index in split_up_blocks
+        )
     if args.torch_executed_op:
         ops: list[str] = []
         for raw in args.torch_executed_op:
@@ -163,6 +196,7 @@ def experiment_metadata(args: argparse.Namespace, stages: list[str], batch_size:
             "MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES",
             "0",
         ),
+        "split_up_blocks": parse_split_up_blocks(args.split_up_block),
         "torch_executed_ops": os.getenv(
             "MUSETALK_TRT_STAGEWISE_INT8_TORCH_EXECUTED_OPS",
             "group_norm",

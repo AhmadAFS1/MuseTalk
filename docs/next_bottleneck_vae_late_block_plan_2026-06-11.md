@@ -454,11 +454,170 @@ A candidate should be rejected if:
    branch and try FP16 fusion/tactic work before more INT8.
 7. After a block 3 win lands, repeat the process for `decoder_up_block_2`.
 
+## 2026-06-11 Implementation Pass: Split Up-Block Substage INT8
+
+Implemented an opt-in VAE stagewise runtime split for decoder up blocks:
+
+```text
+MUSETALK_TRT_STAGEWISE_SPLIT_UP_BLOCKS=3
+```
+
+When enabled, `decoder_up_block_3` is executed as individual substages:
+
+```text
+decoder_up_block_3_resnet_0
+decoder_up_block_3_resnet_1
+decoder_up_block_3_resnet_2
+```
+
+The production/default stage layout is unchanged unless the env var is set.
+The experiment helper now also accepts:
+
+```text
+scripts/experiment_vae_decoder_int8.py --split-up-block 3
+```
+
+New helper scripts:
+
+- `scripts/benchmark_vae_stagewise_decode.py`: same-latent isolated VAE decode
+  benchmark and PyTorch comparison.
+- `scripts/record_webrtc_session.py`: records a WebRTC session to MP4 for
+  visual review.
+
+### Candidate Matrix
+
+All candidates used the existing safe five-stage INT8 profile plus one or more
+`decoder_up_block_3` substages, batch `8`, `onnx_qdq`, `minmax`, and calibration
+from `calibration/vae_decoder`.
+
+Baseline for this table is the same safe five-stage INT8 path with the full
+`decoder_up_block_3` left FP16.
+
+| Candidate | Avg VAE decode | Decode FPS | Speedup vs safe5 | MAE vs PyTorch | Max abs | Read |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| safe5, whole `up_block_3` FP16 | `0.06214s` | `128.75` | baseline | `0.00504` | `0.12866` | current safe reference |
+| + `decoder_up_block_3_resnet_0` INT8 | `0.05829s` | `137.24` | `+6.59%` | `0.00723` | `0.14478` | best balance; keep testing |
+| + `decoder_up_block_3_resnet_1` INT8 | `0.05982s` | `133.74` | `+3.88%` | `0.00931` | `0.12109` | smaller speedup, close to MAE gate |
+| + `decoder_up_block_3_resnet_2` INT8 | `0.05994s` | `133.48` | `+3.67%` | `0.01251` | `0.13135` | reject for now; MAE too high |
+| + `resnet_0` and `resnet_1` INT8 | `0.05561s` | `143.86` | `+11.74%` | `0.01125` | `0.13965` | speed is interesting, quality risk too high |
+
+Decision from this pass:
+
+- `decoder_up_block_3_resnet_0` is the only candidate worth carrying forward.
+- `resnet_0 + resnet_1` proves there is more available speed, but it crosses the
+  preferred mean-error threshold and should not be promoted without deeper
+  visual work.
+- `resnet_2` is not attractive: lower speedup than `resnet_0` and higher error.
+
+### WebRTC Video Review
+
+Generated same-resolution `256 x 256` WebRTC reference artifacts:
+
+```text
+results/vae_late_block_webrtc_compare_20260611/baseline_safe5_webrtc.mp4
+results/vae_late_block_webrtc_compare_20260611/candidate_up3_resnet0_int8_webrtc.mp4
+results/vae_late_block_webrtc_compare_20260611/side_by_side_baseline_vs_up3_resnet0_int8.mp4
+results/vae_late_block_webrtc_compare_20260611/crop_contact_safe5_vs_up3_resnet0_int8.png
+results/vae_late_block_webrtc_compare_20260611/side_by_side_frame_8s.png
+```
+
+The side-by-side video is useful for playback review, but it is not a
+pixel-perfect comparison because the two WebRTC recordings start from different
+idle/source offsets. The crop contact sheet is the cleaner quality artifact.
+
+Quality read:
+
+- The `resnet_0` candidate does not show the obvious blur seen in the `224` ROI
+  experiment, because it keeps the generated ROI at `256 x 256`.
+- The visible difference is much subtler: low-level texture and tonal changes,
+  with risk concentrated around the eyes, lip edge, teeth/inner-mouth detail,
+  and skin texture.
+- The higher max absolute error means this should stay experimental until it is
+  checked on more avatars and a frame-aligned comparison path.
+
+### WebRTC Load Test
+
+Live server settings for the candidate load test:
+
+```text
+MUSETALK_VAE_BACKEND=trt_stagewise
+MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed
+MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq
+MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2,decoder_up_block_3_resnet_0
+MUSETALK_TRT_STAGEWISE_SPLIT_UP_BLOCKS=3
+HLS_SCHEDULER_FIXED_BATCH_SIZES=8
+HLS_SCHEDULER_MAX_BATCH=8
+```
+
+Server log evidence:
+
+```text
+VAE decode backend active: tensorrt_stagewise_int8_mixed
+UNet backend: PyTorch
+HLS GPU scheduler started (... fixed_batch_sizes=[8] ...)
+VAE decode timing backend=tensorrt_stagewise_int8_mixed calls=1000 avg_total=0.0570s max_total=0.0671s
+```
+
+The current workspace did not have a validated local TRT UNet split8 artifact,
+so these WebRTC numbers are VAE INT8 plus PyTorch UNet.
+
+| Concurrency | Completed | Failed | Avg live-ready | Avg frame interval | Approx aggregate FPS | Max frame interval | Avg GPU util | Peak VRAM |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | 4 | 0 | `2.781s` | `0.056s` | `71.4` | `0.184s` | `74.65%` | `8134 MB` |
+| 6 | 6 | 0 | `3.962s` | `0.083s` | `72.3` | `0.430s` | `72.15%` | `8134 MB` |
+| 8 | 8 | 0 | `5.280s` | `0.113s` | `70.8` | `1.215s` | `72.15%` | `8134 MB` |
+
+Artifacts:
+
+```text
+tmp/load_tests/load_test_webrtc_3090_up3_resnet0_int8_20_20_c4_bs8_20260611.json
+tmp/load_tests/load_test_webrtc_3090_up3_resnet0_int8_20_20_c4_bs8_20260611_detailed.json
+tmp/load_tests/load_test_webrtc_3090_up3_resnet0_int8_20_20_c6_c8_bs8_20260611.json
+tmp/load_tests/load_test_webrtc_3090_up3_resnet0_int8_20_20_c6_c8_bs8_20260611_detailed.json
+```
+
+Load-test read:
+
+- The isolated VAE decode improvement is real: `+6.59%` for batch-8 VAE decode.
+- The WebRTC aggregate plateau stayed around `71-72 fps`, and tail intervals are
+  still not smooth at `C4+`.
+- This means the candidate reduces the VAE slice but does not by itself change
+  practical strict-smooth capacity on this RTX 3090 run.
+- The logged live path remains roughly `0.040-0.047s` UNet plus `0.057s` VAE per
+  batch-8 model turn, with compose around `0.041-0.047s`.
+
+### Current Decision
+
+Do not promote `decoder_up_block_3_resnet_0` to the default runtime yet.
+
+Reasons:
+
+- Only batch `8` has been built and tested.
+- The production-like `8,16` bucket profile has not been validated for this
+  candidate.
+- The visual review used one avatar and the WebRTC side-by-side is not
+  frame-aligned.
+- WebRTC throughput did not clearly move the serving plateau despite the VAE
+  microbench gain.
+- Max absolute error is higher than the safe five-stage reference.
+
+Next work:
+
+1. Build and benchmark the `resnet_0` candidate for batch `16`.
+2. Re-run C4/C6/C8 with an `8,16` bucket profile if batch `16` builds cleanly.
+3. Add a frame-aligned quality comparison path for WebRTC or use deterministic
+   offline full-frame exports from identical generated frames.
+4. Test at least one additional avatar with a different face box and mouth
+   shape.
+5. If quality risk remains, try a more conservative split inside `resnet_0`
+   instead of quantizing the whole ResNet substage.
+
 ## Bottom Line
 
 The next high-ROI optimization is not more ROI downscaling. It is making the
 current `256 x 256` VAE decoder cheaper, starting with
-`decoder_up_block_3`. The realistic target is a same-quality `+12-21%`
-aggregate throughput gain if we can partially optimize block 3 and then block 2.
-Anything beyond that likely requires a deeper VAE late-block rewrite or a
-scheduler/tail-latency breakthrough.
+`decoder_up_block_3`. The first split-substage implementation found a viable
+candidate in `decoder_up_block_3_resnet_0`: it improves isolated batch-8 VAE
+decode by `+6.59%` without the blur from ROI downscaling. It is not enough by
+itself to move practical WebRTC capacity yet, so the next gate is batch-16 plus
+better frame-aligned quality review before moving on to `decoder_up_block_2`.

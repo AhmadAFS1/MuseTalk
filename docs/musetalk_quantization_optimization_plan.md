@@ -2012,3 +2012,60 @@ tmp/load_tests/load_test_webrtc_3090_224roi_int8_20_20_10_12streams_8_16_2026061
 calibration/vae_decoder_224
 models/tensorrt/stagewise_int8_224_onnx_qdq_cache
 ```
+
+## 2026-06-11 Late VAE Up-Block Split Experiment
+
+After rejecting `224 x 224` as too blurry, the next implementation kept the
+generated ROI at `256 x 256` and attacked `decoder_up_block_3` directly.
+
+Implemented an opt-in stagewise split:
+
+```text
+MUSETALK_TRT_STAGEWISE_SPLIT_UP_BLOCKS=3
+```
+
+This allows individual `decoder_up_block_3` ResNet substages to be built as
+TensorRT INT8 engines while the rest of the block remains in the stagewise
+pipeline. The default runtime remains unchanged unless this env var is set.
+
+Batch-8 same-latent VAE decode results:
+
+| Profile | Avg VAE decode | Decode FPS | Speedup vs safe5 | MAE vs PyTorch | Max abs | Decision |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| safe five-stage INT8, full `up_block_3` FP16 | `0.06214s` | `128.75` | baseline | `0.00504` | `0.12866` | current safe reference |
+| plus `decoder_up_block_3_resnet_0` INT8 | `0.05829s` | `137.24` | `+6.59%` | `0.00723` | `0.14478` | best candidate |
+| plus `decoder_up_block_3_resnet_1` INT8 | `0.05982s` | `133.74` | `+3.88%` | `0.00931` | `0.12109` | lower speedup |
+| plus `decoder_up_block_3_resnet_2` INT8 | `0.05994s` | `133.48` | `+3.67%` | `0.01251` | `0.13135` | reject for now |
+| plus `resnet_0` and `resnet_1` INT8 | `0.05561s` | `143.86` | `+11.74%` | `0.01125` | `0.13965` | quality risk |
+
+WebRTC load test for the best candidate, VAE INT8 plus PyTorch UNet, batch `8`:
+
+| Concurrency | Completed | Failed | Avg interval | Approx aggregate FPS | Max interval | Read |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 4 | 4 | 0 | `0.056s` | `71.4` | `0.184s` | completes, not strict smooth |
+| 6 | 6 | 0 | `0.083s` | `72.3` | `0.430s` | plateau |
+| 8 | 8 | 0 | `0.113s` | `70.8` | `1.215s` | saturated / tail-heavy |
+
+Quality read:
+
+- `decoder_up_block_3_resnet_0` does not create the obvious softness/blurring
+  from the `224` ROI experiment.
+- The observed differences are subtler texture and tone changes, especially near
+  lips, teeth/inner-mouth, eyes, and skin texture.
+- The WebRTC side-by-side was not frame-aligned, so the crop contact sheet and
+  same-latent VAE comparison are the more reliable quality artifacts.
+
+Decision:
+
+- Do not promote this candidate yet.
+- Keep it as the next candidate to validate at batch `16` and on more avatars.
+- The WebRTC plateau did not clearly move despite the isolated `+6.59%` VAE
+  speedup, so scheduler/tail behavior and the PyTorch UNet slice still matter.
+- More aggressive `resnet_0 + resnet_1` INT8 may become useful later, but only
+  after stronger visual validation.
+
+Detailed canonical notes and artifact paths are in:
+
+```text
+docs/next_bottleneck_vae_late_block_plan_2026-06-11.md
+```
