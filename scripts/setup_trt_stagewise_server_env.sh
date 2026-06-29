@@ -83,6 +83,7 @@ install_system_packages_step() {
   apt-get install -y \
     python3.10 \
     python3.10-venv \
+    coturn \
     ffmpeg \
     git \
     curl \

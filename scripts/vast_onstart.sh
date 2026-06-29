@@ -25,6 +25,9 @@ SETUP_SKIP_APT="${SETUP_SKIP_APT:-auto}"
 SETUP_SKIP_WEIGHTS="${SETUP_SKIP_WEIGHTS:-0}"
 SETUP_FULL_STACK="${SETUP_FULL_STACK:-0}"
 SETUP_INSTALL_AVATAR_PREP_DEPS="${SETUP_INSTALL_AVATAR_PREP_DEPS:-0}"
+SETUP_WEBRTC_TURN="${SETUP_WEBRTC_TURN:-auto}"
+TURN_ENV_FILE="${TURN_ENV_FILE:-$REPO_ROOT/.env.webrtc-turn.local}"
+TURN_ENV_FORCE="${TURN_ENV_FORCE:-0}"
 HF_MAX_WORKERS="${HF_MAX_WORKERS:-4}"
 
 log() {
@@ -92,6 +95,64 @@ full_stack_requested() {
 
 avatar_prep_requested() {
   full_stack_requested || env_flag_is_true "$SETUP_INSTALL_AVATAR_PREP_DEPS"
+}
+
+webrtc_turn_requested() {
+  case "${SETUP_WEBRTC_TURN,,}" in
+    1|true|yes|on|auto)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+webrtc_turn_required() {
+  case "${SETUP_WEBRTC_TURN,,}" in
+    1|true|yes|on)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+read_proc1_env() {
+  local key="$1"
+  if [[ -r /proc/1/environ ]]; then
+    tr '\0' '\n' < /proc/1/environ 2>/dev/null | awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}'
+  fi
+}
+
+generate_turn_password() {
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex 24
+    return 0
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - <<'PY'
+import secrets
+print(secrets.token_hex(24))
+PY
+    return 0
+  fi
+  date +%s%N
+}
+
+ensure_coturn_available() {
+  if command -v turnserver >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
+    die "WebRTC TURN autostart requires coturn, but turnserver is not installed and this script is not running as root"
+  fi
+
+  log "Installing coturn for WebRTC TURN autostart"
+  apt-get update -y
+  DEBIAN_FRONTEND=noninteractive apt-get install -y coturn
 }
 
 server_runtime_imports_complete() {
@@ -385,6 +446,89 @@ bootstrap_runtime_secrets() {
   log "⚠️  AWS Secrets Manager bootstrap failed; continuing because strict mode is disabled"
 }
 
+configure_webrtc_turn() {
+  if ! webrtc_turn_requested; then
+    log "WebRTC TURN bootstrap disabled (SETUP_WEBRTC_TURN=$SETUP_WEBRTC_TURN)"
+    return 0
+  fi
+
+  if [[ -f "$TURN_ENV_FILE" ]] && ! env_flag_is_true "$TURN_ENV_FORCE"; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$TURN_ENV_FILE"
+    set +a
+    export TURN_ENV_FILE WEBRTC_RELAY_ENABLED WEBRTC_TURN_AUTOSTART
+    if env_flag_is_true "${WEBRTC_TURN_AUTOSTART:-0}"; then
+      ensure_coturn_available
+    fi
+    log "Loaded existing WebRTC TURN env from $TURN_ENV_FILE"
+    return 0
+  fi
+
+  local public_ip vast_tcp_1455 vast_udp_3478 listen_port public_port transport turn_pass
+  public_ip="${TURN_PUBLIC_IP:-${PUBLIC_IPADDR:-$(read_proc1_env PUBLIC_IPADDR)}}"
+  vast_tcp_1455="${VAST_TCP_PORT_1455:-$(read_proc1_env VAST_TCP_PORT_1455)}"
+  vast_udp_3478="${VAST_UDP_PORT_3478:-$(read_proc1_env VAST_UDP_PORT_3478)}"
+
+  if [[ -z "$public_ip" ]]; then
+    if webrtc_turn_required; then
+      die "SETUP_WEBRTC_TURN=$SETUP_WEBRTC_TURN but no TURN_PUBLIC_IP/PUBLIC_IPADDR could be detected"
+    fi
+    log "WebRTC TURN auto bootstrap skipped: no public IP detected"
+    return 0
+  fi
+
+  if [[ -n "$vast_tcp_1455" ]]; then
+    listen_port="${TURN_LISTEN_PORT:-1455}"
+    public_port="${TURN_PUBLIC_PORT:-$vast_tcp_1455}"
+    transport="${TURN_PUBLIC_TRANSPORT:-tcp}"
+  elif [[ -n "$vast_udp_3478" ]]; then
+    listen_port="${TURN_LISTEN_PORT:-3478}"
+    public_port="${TURN_PUBLIC_PORT:-$vast_udp_3478}"
+    transport="${TURN_PUBLIC_TRANSPORT:-udp}"
+  else
+    if webrtc_turn_required; then
+      die "SETUP_WEBRTC_TURN=$SETUP_WEBRTC_TURN but no Vast TURN port mapping was detected (expected VAST_TCP_PORT_1455 or VAST_UDP_PORT_3478)"
+    fi
+    log "WebRTC TURN auto bootstrap skipped: no Vast TURN port mapping detected"
+    return 0
+  fi
+
+  turn_pass="${TURN_PASS:-${WEBRTC_TURN_PASS:-$(generate_turn_password)}}"
+  mkdir -p "$(dirname "$TURN_ENV_FILE")"
+  umask 077
+  cat > "$TURN_ENV_FILE" <<EOF
+WEBRTC_RELAY_ENABLED=1
+WEBRTC_TURN_AUTOSTART=1
+
+TURN_PUBLIC_IP=$public_ip
+TURN_PUBLIC_PORT=$public_port
+TURN_PUBLIC_TRANSPORT=$transport
+TURN_LISTEN_PORT=$listen_port
+WEBRTC_USE_LOCAL_TURN=1
+
+TURN_USER=${TURN_USER:-webrtc}
+TURN_PASS=$turn_pass
+
+WEBRTC_ICE_TRANSPORT_POLICY=relay
+WEBRTC_STUN_URLS=
+WEBRTC_SYNC_MODE=strict_fifo
+WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0
+WEBRTC_AUDIO_PREBUFFER_SECONDS=0.0
+WEBRTC_ADAPTIVE_FPS=0
+EOF
+  chmod 600 "$TURN_ENV_FILE"
+
+  set -a
+  # shellcheck disable=SC1090
+  source "$TURN_ENV_FILE"
+  set +a
+  export TURN_ENV_FILE WEBRTC_RELAY_ENABLED WEBRTC_TURN_AUTOSTART
+  ensure_coturn_available
+  log "Generated WebRTC TURN env at $TURN_ENV_FILE"
+  log "WebRTC TURN public URL: turn:$TURN_PUBLIC_IP:$TURN_PUBLIC_PORT?transport=$TURN_PUBLIC_TRANSPORT"
+}
+
 main() {
   local phase_start phase_elapsed total_elapsed
   local setup_mode="server-only"
@@ -417,6 +561,11 @@ main() {
   bootstrap_runtime_secrets
   phase_elapsed="$(( $(date +%s) - phase_start ))"
   log "Runtime secret bootstrap phase finished in $(format_duration "$phase_elapsed")"
+
+  phase_start="$(date +%s)"
+  configure_webrtc_turn
+  phase_elapsed="$(( $(date +%s) - phase_start ))"
+  log "WebRTC TURN bootstrap phase finished in $(format_duration "$phase_elapsed")"
 
   phase_start="$(date +%s)"
   PROFILE="$PROFILE" \
