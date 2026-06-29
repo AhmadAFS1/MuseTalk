@@ -39,7 +39,7 @@ import argparse
 from pathlib import Path
 from typing import Optional
 import uvicorn
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Query, Request
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Query, Request, Header
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -415,6 +415,11 @@ CLEANUP_DB = Path("chunks/.cleanup_queue.json")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from scripts.avatar_manager_parallel import ParallelAvatarManager
+from scripts.avatar_generation import (
+    AvatarGenerationError,
+    GenerateAvatarRequest,
+    generate_avatar_assets,
+)
 from scripts.concurrent_gpu_manager import (
     default_reserved_memory_gb,
     detect_total_gpu_memory_gb,
@@ -1286,6 +1291,66 @@ async def prepare_avatar(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/avatars/generate")
+async def generate_avatar(
+    request: GenerateAvatarRequest,
+    x_avatar_generation_key: Optional[str] = Header(default=None),
+):
+    """
+    Generate a GPT still image, animate it into an idle MP4, and optionally
+    prepare it as a MuseTalk avatar. Intended for local load-test avatar
+    creation, not app-facing production traffic.
+    """
+    expected_key = os.getenv("AVATAR_GENERATION_KEY")
+    if expected_key and x_avatar_generation_key != expected_key:
+        raise HTTPException(status_code=403, detail="Invalid avatar generation key")
+
+    if request.prepare and manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    try:
+        result = await asyncio.to_thread(generate_avatar_assets, request)
+
+        prepare_result = None
+        if request.prepare:
+            await asyncio.to_thread(
+                manager.prepare_avatar,
+                avatar_id=result["avatar_id"],
+                video_path=result["motion_video_path"],
+                idle_video_path=None,
+                bbox_shift=request.bbox_shift,
+                batch_size=request.batch_size,
+                force_recreate=request.force_recreate,
+            )
+            prepare_result = {
+                "status": "success",
+                "avatar_id": result["avatar_id"],
+                "video_layout": "single_video",
+                "message": f"Avatar {result['avatar_id']} prepared successfully",
+            }
+
+        return {
+            "status": "success",
+            **result,
+            "prepare": prepare_result,
+        }
+    except AvatarGenerationError as exc:
+        detail = {
+            "code": exc.code,
+            "message": str(exc),
+            **exc.detail,
+        }
+        raise HTTPException(status_code=exc.status_code, detail=detail)
+    except Exception as exc:
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "avatar_generation_failed",
+                "message": str(exc),
+            },
+        )
 
 @app.get("/avatars/list")
 async def list_avatars():
