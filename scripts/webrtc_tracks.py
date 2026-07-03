@@ -745,7 +745,9 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         convert_started_at = push_started_at
         frame = av.VideoFrame.from_ndarray(frame_bgr, format="bgr24").reformat(format="yuv420p")
         convert_s = time.monotonic() - convert_started_at
+        return await self._push_video_frame(frame, push_started_at, convert_s)
 
+    async def _push_video_frame(self, frame, push_started_at: float, convert_s: float) -> bool:
         queue_wait_started_at = time.monotonic()
         if self._strict_fifo:
             # Strict FIFO preserves every generated frame and applies backpressure
@@ -788,12 +790,32 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         return self._prebuffer_ready.is_set()
 
     async def push_bgr_frames_batch(self, frames: list) -> None:
-        """Push multiple BGR frames at once"""
+        """Push multiple BGR frames in one event-loop handoff."""
         if self._closed or not frames:
-            return
-        
+            return False
+
+        prebuffer_ready = False
+        converted_frames = []
+        convert_started_at = time.monotonic()
         for frame_bgr in frames:
-            await self.push_bgr_frame(frame_bgr)
+            if self._closed:
+                break
+            converted_frames.append(
+                av.VideoFrame.from_ndarray(frame_bgr, format="bgr24").reformat(format="yuv420p")
+            )
+        total_convert_s = time.monotonic() - convert_started_at
+        if not converted_frames:
+            return self._prebuffer_ready.is_set()
+
+        per_frame_convert_s = total_convert_s / len(converted_frames)
+        for frame in converted_frames:
+            push_started_at = time.monotonic()
+            prebuffer_ready = await self._push_video_frame(
+                frame,
+                push_started_at=push_started_at,
+                convert_s=per_frame_convert_s,
+            )
+        return prebuffer_ready
 
     def _calculate_adaptive_slowdown(self) -> float:
         """

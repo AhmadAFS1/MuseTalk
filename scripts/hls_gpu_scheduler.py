@@ -62,6 +62,7 @@ class HLSStreamJob:
     main_loop: object
     output_mode: str = "hls"
     frame_callback: Optional[Callable[[object, int, int], None]] = None
+    frame_batch_callback: Optional[Callable[[list, int, int], None]] = None
     generation_complete_callback: Optional[Callable[[str, Optional[str]], None]] = None
     audio_copy_path: Optional[str] = None
     idle_frames: list = field(default_factory=list)
@@ -298,6 +299,7 @@ class HLSGPUStreamScheduler:
         *,
         output_mode: str = "hls",
         frame_callback: Optional[Callable[[object, int, int], None]] = None,
+        frame_batch_callback: Optional[Callable[[list, int, int], None]] = None,
         generation_complete_callback: Optional[Callable[[str, Optional[str]], None]] = None,
     ) -> bool:
         submitted_at = time.time()
@@ -319,6 +321,7 @@ class HLSGPUStreamScheduler:
             main_loop,
             output_mode,
             frame_callback,
+            frame_batch_callback,
             generation_complete_callback,
             submitted_at,
         )
@@ -336,6 +339,7 @@ class HLSGPUStreamScheduler:
         frame_callback: Callable[[object, int, int], None],
         generation_complete_callback: Callable[[str, Optional[str]], None],
         start_offset_seconds: Optional[float] = None,
+        frame_batch_callback: Optional[Callable[[list, int, int], None]] = None,
     ) -> bool:
         return self.submit_stream(
             session=session,
@@ -348,6 +352,7 @@ class HLSGPUStreamScheduler:
             main_loop=main_loop,
             output_mode="webrtc",
             frame_callback=frame_callback,
+            frame_batch_callback=frame_batch_callback,
             generation_complete_callback=generation_complete_callback,
         )
 
@@ -441,6 +446,7 @@ class HLSGPUStreamScheduler:
         main_loop,
         output_mode: str,
         frame_callback: Optional[Callable[[object, int, int], None]],
+        frame_batch_callback: Optional[Callable[[list, int, int], None]],
         generation_complete_callback: Optional[Callable[[str, Optional[str]], None]],
         submitted_at: float,
     ) -> None:
@@ -687,6 +693,7 @@ class HLSGPUStreamScheduler:
                 main_loop=main_loop,
                 output_mode=output_mode,
                 frame_callback=frame_callback,
+                frame_batch_callback=frame_batch_callback,
                 generation_complete_callback=generation_complete_callback,
                 idle_frames=idle_frames,
                 crossfade_tail_frames=crossfade_tail_frames,
@@ -1606,6 +1613,37 @@ class HLSGPUStreamScheduler:
             job.last_progress_at = time.time()
 
             if job.cancel_event.is_set():
+                continue
+
+            frames = compose_info["frames"]
+            if frames and job.frame_batch_callback is not None:
+                start_frame_idx = job.composed_frame_idx + 1
+                callback_started_at = time.time()
+                try:
+                    job.frame_batch_callback(frames, start_frame_idx, job.total_frames)
+                except Exception as exc:
+                    job.error_message = f"WebRTC frame batch callback failed: {exc}"
+                    print(f"❌ [{job.request_id}] {job.error_message}")
+                    traceback.print_exc()
+                    return
+                finally:
+                    callback_s = time.time() - callback_started_at
+                    job.frame_callback_count += len(frames)
+                    job.frame_callback_total_s += callback_s
+                    job.frame_callback_max_s = max(job.frame_callback_max_s, callback_s)
+
+                job.composed_frame_idx += len(frames)
+                job.last_progress_at = time.time()
+                startup_target = self._next_chunk_target_frames(job)
+                if job.first_chunk_appended_at is None and job.composed_frame_idx >= startup_target:
+                    job.first_chunk_appended_at = job.last_progress_at
+                    print(
+                        f"🎛️  [{job.request_id}] first WebRTC startup block ready "
+                        f"(frames={startup_target}, prep={job.prep_total_s:.2f}s, "
+                        f"queue={self._queue_wait_s(job):.2f}s, "
+                        f"first_block={self._time_to_first_chunk_s(job):.2f}s)"
+                    )
+                job.chunks_appended += 1
                 continue
 
             for frame in compose_info["frames"]:

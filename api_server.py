@@ -3977,6 +3977,7 @@ async def webrtc_stream(
         av_start_delay_seconds = max(0.0, float(os.getenv("WEBRTC_AV_START_DELAY_SECONDS", "0.05")))
     except ValueError:
         av_start_delay_seconds = 0.05
+    use_batch_frame_callback = _env_bool("WEBRTC_BATCH_FRAME_CALLBACK", True)
     session.webrtc_live_reveal_delay_seconds = _get_expected_webrtc_reveal_delay(av_start_delay_seconds)
     session.live_timing = {
         "timing_source": "webrtc_idle_track",
@@ -4068,6 +4069,37 @@ async def webrtc_stream(
                 release_playout_once("video_prebuffer_ready")
         except Exception as e:
             print(f"⚠️ [{request_id}] frame_callback error: {e}")
+
+    def frame_batch_callback(frames_bgr, start_frame_idx, total_frames):
+        nonlocal live_started
+        try:
+            if not frames_bgr:
+                return
+            if not live_started:
+                live_started = True
+                start_future = asyncio.run_coroutine_threadsafe(
+                    _start_live_track(session.idle_track),
+                    main_loop,
+                )
+                start_future.result(timeout=push_timeout_seconds)
+
+            push_future = asyncio.run_coroutine_threadsafe(
+                session.idle_track.push_bgr_frames_batch(frames_bgr),
+                main_loop,
+            )
+            prebuffer_ready = False
+            try:
+                prebuffer_ready = bool(push_future.result(timeout=push_timeout_seconds))
+            except FutureTimeoutError:
+                end_frame_idx = start_frame_idx + len(frames_bgr) - 1
+                print(
+                    f"⚠️ [{request_id}] Timed out handing WebRTC frame batch "
+                    f"{start_frame_idx}-{end_frame_idx}/{total_frames} to playback queue"
+                )
+            if prebuffer_ready:
+                release_playout_once("video_prebuffer_ready")
+        except Exception as e:
+            print(f"⚠️ [{request_id}] frame_batch_callback error: {e}")
 
     def cleanup_to_idle(force_video: bool = True):
         print(
@@ -4189,6 +4221,7 @@ async def webrtc_stream(
             completion_future=completion_future,
             main_loop=main_loop,
             frame_callback=frame_callback,
+            frame_batch_callback=frame_batch_callback if use_batch_frame_callback else None,
             generation_complete_callback=_on_shared_generation_complete,
         )
         if not accepted:
