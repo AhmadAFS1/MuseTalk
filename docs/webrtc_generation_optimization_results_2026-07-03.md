@@ -27,6 +27,58 @@ batch-16 VAE path OOMed, and the isolated `decoder_up_block_3_resnet_0` ONNX/QDQ
 INT8 build failed because TensorRT could not find an implementation after
 memory-related tactic skips.
 
+## 2026-07-04 Follow-Up: UNet Batch-8 vs Batch-16
+
+Built and validated both requested UNet TRT artifacts from fresh captures:
+
+| Artifact | Validation | Mean latency | Mean backend fps | Quality gate |
+| --- | --- | ---: | ---: | --- |
+| `models/tensorrt_unet_static_bs8_20260704/unet_trt.ts` | pass | `25.86 ms` at batch 8 | `309.36 fps` | `mae_max=0.001772`, `max_abs_max=0.1323` |
+| `models/tensorrt_unet_static_bs16_20260704/unet_trt.ts` | pass | `44.89 ms` at batch 16 | `356.44 fps` | `mae_max=0.001785`, `max_abs_max=0.1240` |
+
+Validation reports:
+
+- `tmp/unet_trt_bs8_bs16_20260704/unet_trt_static_bs8_validation.json`
+- `tmp/unet_trt_bs8_bs16_20260704/unet_trt_static_bs16_validation.json`
+
+Live WebRTC tests used VAE INT8 safe-five
+`decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2`,
+batch frame handoff, fixed-point/shrunk-mask compose, recent avatar
+`avatar_5a584c8b-512f-4f70-848c-a3d1efbb988f_1782690149`, and 20 fps WebRTC.
+
+| Runtime profile | Startup result | C4 avg/max interval | C6 avg/max interval | C8 avg/max interval | Peak VRAM | Decision |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| Split8 only: `MUSETALK_TRT_UNET_PATHS=8:...`, scheduler `8,16` | healthy in `2m13s` | `0.062s / 0.344s` | `0.093s / 0.901s` | `0.138s / 30.111s` | `20753 MB` | works, but bad C8 tail |
+| Dual exact `8,16`: `MUSETALK_TRT_UNET_PATHS=8:...,16:...` | failed startup | n/a | n/a | n/a | OOM after `22723 MB` | do not deploy on 24 GB |
+| Exact16 only: `MUSETALK_TRT_UNET_PATHS=16:...`, scheduler `16` | healthy in `1m37s` | `0.061s / 0.219s` | `0.085s / 1.398s` | `0.116s / 2.333s` | `17635 MB` | best validated 3090 profile |
+
+The exact batch-16 artifact is now correctness-valid, but loading both batch-8
+and batch-16 UNet engines is too close to the 24 GB RTX 3090 edge. The server
+finished VAE INT8 warmup, reached about `22.2 GB`, then failed deserializing the
+batch-16 UNet engine with a small CUDA OOM request. The deployable fix is to
+run the exact batch-16 engine alone and force the scheduler bucket to `16`.
+
+Video smoke artifact for the selected profile:
+
+- `tmp/unet_trt_bs8_bs16_20260704/video/webrtc_exact16only_20fps_smoke.mp4`
+- `frames_written=376`
+- WebRTC stats reported `video_stalls=0`, `strict_video_stalls=0`,
+  `frames_dropped=0`, `frames_duplicated=0`
+
+Startup has been updated to generate and load the best validated TRT profile:
+
+- `scripts/select_unet_trt_profile.py` writes
+  `.runtime/musetalk_trt_best.env`.
+- `scripts/vast_onstart.sh` runs the selector after setup/TURN bootstrap and
+  before starting the server.
+- `scripts/run_trt_stagewise_server.sh` sources the generated env by default.
+- Set `MUSETALK_SELECT_BEST_TRT_PROFILE=0` or
+  `MUSETALK_TRT_PROFILE_ENV_LOAD=0` to disable this behavior.
+
+Current deployment recommendation: use exact16-only for new 3090 servers. Treat
+`6x20fps` as the practical support target from this run. `8x20fps` completes but
+is still throttled, so the next concurrency test should be `8x15fps`.
+
 ## Code Changes Tested
 
 - Added WebRTC batch frame callback plumbing:
