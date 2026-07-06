@@ -1381,9 +1381,82 @@ async def list_avatars():
                     "bbox_shift": info.get("bbox_shift"),
                     "video_layout": info.get("video_layout", "single_video"),
                     "has_idle_video": (avatar_dir / "idle_video.mp4").exists(),
+                    "idle_poses": _list_avatar_idle_pose_entries(avatar_dir.name),
                 })
     
     return {"avatars": avatars}
+
+
+@app.get("/avatars/{avatar_id}/idle-poses")
+async def list_avatar_idle_poses(avatar_id: str):
+    """List default and uploaded idle loops for a prepared avatar."""
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    _ensure_avatar_for_session(avatar_id, batch_size=1)
+    return {
+        "avatar_id": avatar_id,
+        "idle_poses": _list_avatar_idle_pose_entries(avatar_id),
+    }
+
+
+@app.post("/avatars/{avatar_id}/idle-poses/{pose_id}")
+async def upload_avatar_idle_pose(
+    avatar_id: str,
+    pose_id: str,
+    idle_video_file: UploadFile = File(...),
+):
+    """
+    Upload an extra idle MP4 for a prepared avatar without rebuilding MuseTalk materials.
+    """
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    _ensure_avatar_for_session(avatar_id, batch_size=1)
+    normalized_pose_id = _normalize_idle_pose_id(pose_id)
+    if normalized_pose_id == "default":
+        raise HTTPException(
+            status_code=400,
+            detail="Upload non-default idle poses here; replace default via /avatars/prepare",
+        )
+
+    avatar_dir = _resolve_avatar_dir(avatar_id)
+    idle_poses_dir = _avatar_idle_poses_dir(avatar_id)
+    idle_poses_dir.mkdir(parents=True, exist_ok=True)
+    destination = idle_poses_dir / f"{normalized_pose_id}.mp4"
+    temp_destination = idle_poses_dir / f".{normalized_pose_id}.{uuid.uuid4().hex}.tmp"
+
+    try:
+        with temp_destination.open("wb") as buffer:
+            shutil.copyfileobj(idle_video_file.file, buffer)
+        if temp_destination.stat().st_size < 1024:
+            temp_destination.unlink(missing_ok=True)
+            raise HTTPException(status_code=400, detail="Uploaded idle pose video is too small")
+        temp_destination.replace(destination)
+
+        info = _load_avatar_info(avatar_dir, avatar_id)
+        info.setdefault("avatar_id", avatar_id)
+        idle_pose_paths = info.get("idle_pose_paths")
+        if not isinstance(idle_pose_paths, dict):
+            idle_pose_paths = {}
+        idle_pose_paths[normalized_pose_id] = str(destination)
+        info["idle_pose_paths"] = idle_pose_paths
+        info["idle_pose_ids"] = sorted(idle_pose_paths.keys())
+        _save_avatar_info(avatar_dir, info)
+
+        s3_uploaded = manager.avatar_s3_store.upload_avatar_dir(avatar_id, avatar_dir)
+        return {
+            "status": "success",
+            "avatar_id": avatar_id,
+            "pose_id": normalized_pose_id,
+            "video_path": str(destination),
+            "s3_uploaded": bool(s3_uploaded),
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        temp_destination.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 @app.delete("/avatars/{avatar_id}")
 async def delete_avatar(avatar_id: str, from_disk: bool = False):
@@ -1570,17 +1643,101 @@ def _resolve_avatar_dir(avatar_id: str) -> Path:
     return Path(f"./results/avatars/{avatar_id}")
 
 
-def _resolve_avatar_video_path(avatar_id: str, role: str = "idle") -> Path:
-    avatar_dir = _resolve_avatar_dir(avatar_id)
-    avatar_info_path = avatar_dir / "avator_info.json"
+def _normalize_idle_pose_id(pose_id: Optional[str]) -> str:
+    normalized = (pose_id or "default").strip().lower()
+    if normalized in {"", "idle"}:
+        normalized = "default"
+    if not re.fullmatch(r"[a-z0-9_.-]{1,64}", normalized):
+        raise HTTPException(
+            status_code=400,
+            detail="pose_id must be 1-64 chars: lowercase letters, numbers, dot, underscore, or dash",
+        )
+    if normalized in {".", ".."}:
+        raise HTTPException(status_code=400, detail="pose_id is not allowed")
+    return normalized
 
-    saved_info = {}
+
+def _avatar_idle_poses_dir(avatar_id: str) -> Path:
+    return _resolve_avatar_dir(avatar_id) / "idle_poses"
+
+
+def _load_avatar_info(avatar_dir: Path, avatar_id: str) -> dict:
+    avatar_info_path = avatar_dir / "avator_info.json"
     try:
         if avatar_info_path.exists():
             with avatar_info_path.open("r") as f:
-                saved_info = json.load(f)
+                return json.load(f)
     except (OSError, json.JSONDecodeError) as exc:
         print(f"⚠️ Could not read avatar video metadata for {avatar_id}: {exc}")
+    return {}
+
+
+def _save_avatar_info(avatar_dir: Path, info: dict) -> None:
+    avatar_info_path = avatar_dir / "avator_info.json"
+    with avatar_info_path.open("w") as f:
+        json.dump(info, f)
+
+
+def _list_avatar_idle_pose_entries(avatar_id: str) -> list[dict]:
+    avatar_dir = _resolve_avatar_dir(avatar_id)
+    saved_info = _load_avatar_info(avatar_dir, avatar_id)
+    default_idle = _resolve_avatar_video_path(avatar_id, role="idle")
+    entries = [
+        {
+            "pose_id": "default",
+            "video_path": str(default_idle),
+            "exists": default_idle.exists(),
+            "is_default": True,
+        }
+    ]
+
+    pose_paths = saved_info.get("idle_pose_paths") or {}
+    seen_pose_ids = {"default"}
+    if isinstance(pose_paths, dict):
+        for pose_id, pose_path in sorted(pose_paths.items()):
+            try:
+                normalized_pose_id = _normalize_idle_pose_id(str(pose_id))
+            except HTTPException:
+                continue
+            seen_pose_ids.add(normalized_pose_id)
+            path = Path(pose_path)
+            entries.append(
+                {
+                    "pose_id": normalized_pose_id,
+                    "video_path": str(path),
+                    "exists": path.exists(),
+                    "is_default": False,
+                }
+            )
+
+    idle_poses_dir = _avatar_idle_poses_dir(avatar_id)
+    if idle_poses_dir.exists():
+        for path in sorted(idle_poses_dir.glob("*.mp4")):
+            try:
+                pose_id = _normalize_idle_pose_id(path.stem)
+            except HTTPException:
+                continue
+            if pose_id in seen_pose_ids:
+                continue
+            seen_pose_ids.add(pose_id)
+            entries.append(
+                {
+                    "pose_id": pose_id,
+                    "video_path": str(path),
+                    "exists": path.exists(),
+                    "is_default": False,
+                }
+            )
+    return entries
+
+
+def _resolve_avatar_video_path(
+    avatar_id: str,
+    role: str = "idle",
+    pose_id: Optional[str] = None,
+) -> Path:
+    avatar_dir = _resolve_avatar_dir(avatar_id)
+    saved_info = _load_avatar_info(avatar_dir, avatar_id)
 
     def metadata_path(key: str) -> Optional[Path]:
         value = saved_info.get(key)
@@ -1595,7 +1752,15 @@ def _resolve_avatar_video_path(avatar_id: str, role: str = "idle") -> Path:
             avatar_dir / "idle_video.mp4",
         ]
     else:
+        pose_candidates = []
+        normalized_pose_id = _normalize_idle_pose_id(pose_id)
+        if normalized_pose_id != "default":
+            pose_paths = saved_info.get("idle_pose_paths") or {}
+            if isinstance(pose_paths, dict) and pose_paths.get(normalized_pose_id):
+                pose_candidates.append(Path(pose_paths[normalized_pose_id]))
+            pose_candidates.append(_avatar_idle_poses_dir(avatar_id) / f"{normalized_pose_id}.mp4")
         candidates = [
+            *pose_candidates,
             metadata_path("idle_video_path"),
             avatar_dir / "idle_video.mp4",
             metadata_path("input_video_path"),
@@ -1644,7 +1809,11 @@ def _get_default_avatar_id() -> str:
 
 
 @app.get("/avatars/{avatar_id}/video")
-async def get_avatar_video(avatar_id: str, role: str = "idle"):
+async def get_avatar_video(
+    avatar_id: str,
+    role: str = "idle",
+    pose_id: Optional[str] = None,
+):
     """
     Serve the avatar's idle video as placeholder.
     This loops continuously until audio is uploaded.
@@ -1656,7 +1825,12 @@ async def get_avatar_video(avatar_id: str, role: str = "idle"):
     if normalized_role not in {"idle", "talking", "input"}:
         raise HTTPException(status_code=400, detail="role must be 'idle' or 'talking'")
 
-    video_path = _resolve_avatar_video_path(avatar_id, role=normalized_role)
+    normalized_pose_id = _normalize_idle_pose_id(pose_id) if normalized_role == "idle" else "default"
+    video_path = _resolve_avatar_video_path(
+        avatar_id,
+        role=normalized_role,
+        pose_id=normalized_pose_id,
+    )
     
     # Check if video exists
     if not video_path.exists():
@@ -1679,7 +1853,9 @@ async def get_avatar_video(avatar_id: str, role: str = "idle"):
         headers={
             "Accept-Ranges": "bytes",
             "Cache-Control": "public, max-age=3600",
-            "Content-Disposition": f'inline; filename="{avatar_id}_{normalized_role}.mp4"'
+            "Content-Disposition": (
+                f'inline; filename="{avatar_id}_{normalized_role}_{normalized_pose_id}.mp4"'
+            )
         }
     )
 
@@ -3728,6 +3904,8 @@ async def webrtc_session_status(session_id: str):
         "playback_fps": session.playback_fps,
         "batch_size": session.batch_size,
         "chunk_duration": session.chunk_duration,
+        "idle_pose_id": session.idle_pose_id,
+        "idle_video_path": session.idle_video_path,
         "ice_transport_policy": session.ice_transport_policy,
         "live_timing": session.live_timing,
         "track_stats": _get_webrtc_track_stats(session),
@@ -3742,6 +3920,7 @@ async def create_webrtc_session(
     playback_fps: Optional[int] = None,
     batch_size: int = 8,
     chunk_duration: int = 2,
+    idle_pose_id: Optional[str] = None,
 ):
     """
     Create a new WebRTC session for a user.
@@ -3756,11 +3935,16 @@ async def create_webrtc_session(
     resolved_batch_size = _resolve_webrtc_batch_size(batch_size)
     _ensure_avatar_for_session(avatar_id, batch_size=resolved_batch_size)
 
-    video_path = _resolve_avatar_video_path(avatar_id)
+    normalized_idle_pose_id = _normalize_idle_pose_id(idle_pose_id)
+    video_path = _resolve_avatar_video_path(
+        avatar_id,
+        role="idle",
+        pose_id=normalized_idle_pose_id,
+    )
     if not video_path.exists():
         raise HTTPException(
             status_code=404,
-            detail=f"Input video not found for avatar '{avatar_id}'."
+            detail=f"Idle video pose '{normalized_idle_pose_id}' not found for avatar '{avatar_id}'."
         )
     if video_path.stat().st_size < 1024:
         raise HTTPException(
@@ -3776,6 +3960,7 @@ async def create_webrtc_session(
         playback_fps=playback_fps,
         batch_size=resolved_batch_size,
         chunk_duration=chunk_duration,
+        idle_pose_id=normalized_idle_pose_id,
     )
 
     return {
@@ -3783,6 +3968,7 @@ async def create_webrtc_session(
         "player_url": f"/webrtc/player/{session.session_id}",
         "avatar_id": avatar_id,
         "user_id": user_id,
+        "idle_pose_id": normalized_idle_pose_id,
         "ice_servers": session.ice_servers,
         "ice_transport_policy": session.ice_transport_policy,
         "expires_in_seconds": webrtc_session_manager.session_ttl,
@@ -3792,6 +3978,8 @@ async def create_webrtc_session(
             "batch_size": resolved_batch_size,
             "requested_batch_size": batch_size,
             "chunk_duration": chunk_duration,
+            "idle_pose_id": normalized_idle_pose_id,
+            "idle_video_path": str(video_path),
         }
     }
 
@@ -3858,6 +4046,76 @@ async def webrtc_ice(session_id: str, ice: WebRTCIceCandidate):
         await session.pc.addIceCandidate(None)
 
     return {"status": "ok"}
+
+
+@app.post("/webrtc/sessions/{session_id}/idle-pose/{pose_id}")
+async def switch_webrtc_idle_pose(
+    session_id: str,
+    pose_id: str,
+    transition_seconds: float = 0.35,
+):
+    """
+    Switch the idle MP4 used by an existing WebRTC session without SDP renegotiation.
+    """
+    _require_webrtc()
+
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    session = await webrtc_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    if session.idle_track is None:
+        raise HTTPException(status_code=500, detail="WebRTC idle track is not initialized")
+
+    normalized_pose_id = _normalize_idle_pose_id(pose_id)
+    video_path = _resolve_avatar_video_path(
+        session.avatar_id,
+        role="idle",
+        pose_id=normalized_pose_id,
+    )
+    if not video_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Idle pose '{normalized_pose_id}' not found for avatar '{session.avatar_id}'",
+        )
+    if video_path.stat().st_size < 1024:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Idle pose '{normalized_pose_id}' for '{session.avatar_id}' is corrupted",
+        )
+
+    try:
+        safe_transition_seconds = float(transition_seconds)
+    except (TypeError, ValueError):
+        safe_transition_seconds = 0.35
+    if (
+        safe_transition_seconds != safe_transition_seconds
+        or safe_transition_seconds in (float("inf"), float("-inf"))
+    ):
+        safe_transition_seconds = 0.35
+    safe_transition_seconds = max(0.0, min(safe_transition_seconds, 2.0))
+
+    switch_result = await session.idle_track.switch_idle_video(
+        str(video_path),
+        transition_seconds=safe_transition_seconds,
+    )
+    session.idle_pose_id = normalized_pose_id
+    session.idle_video_path = str(video_path)
+    session.live_timing = {
+        "timing_source": "webrtc_idle_track",
+        "status": "idle_pose_switched",
+        "idle_pose_id": normalized_pose_id,
+        "idle_video_path": str(video_path),
+    }
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "avatar_id": session.avatar_id,
+        "idle_pose_id": normalized_pose_id,
+        "active_stream": session.active_stream,
+        **switch_result,
+    }
 
 
 @app.post("/webrtc/sessions/{session_id}/stream")
