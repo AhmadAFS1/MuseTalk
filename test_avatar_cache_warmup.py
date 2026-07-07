@@ -10,6 +10,12 @@ from types import SimpleNamespace
 
 
 def _install_import_stubs():
+    originals = {}
+
+    def install(name, module):
+        originals.setdefault(name, sys.modules.get(name))
+        sys.modules[name] = module
+
     torch = types.ModuleType("torch")
 
     class _FakeCuda:
@@ -33,42 +39,55 @@ def _install_import_stubs():
         cudnn=SimpleNamespace(allow_tf32=False, benchmark=False),
     )
     torch.set_float32_matmul_precision = lambda _value: None
-    sys.modules["torch"] = torch
+    install("torch", torch)
 
     face_parsing = types.ModuleType("musetalk.utils.face_parsing")
     face_parsing.FaceParsing = object
-    sys.modules["musetalk.utils.face_parsing"] = face_parsing
+    install("musetalk.utils.face_parsing", face_parsing)
 
     utils = types.ModuleType("musetalk.utils.utils")
     utils.load_all_model = lambda *args, **kwargs: (None, None, None)
-    sys.modules["musetalk.utils.utils"] = utils
+    install("musetalk.utils.utils", utils)
 
     audio_processor = types.ModuleType("musetalk.utils.audio_processor")
     audio_processor.AudioProcessor = object
-    sys.modules["musetalk.utils.audio_processor"] = audio_processor
+    install("musetalk.utils.audio_processor", audio_processor)
 
     transformers = types.ModuleType("transformers")
     transformers.WhisperModel = object
-    sys.modules["transformers"] = transformers
+    install("transformers", transformers)
 
     api_avatar = types.ModuleType("scripts.api_avatar")
     api_avatar.APIAvatar = object
-    sys.modules["scripts.api_avatar"] = api_avatar
+    install("scripts.api_avatar", api_avatar)
 
     gpu_manager = types.ModuleType("scripts.concurrent_gpu_manager")
     gpu_manager.GPUMemoryManager = object
-    sys.modules["scripts.concurrent_gpu_manager"] = gpu_manager
+    install("scripts.concurrent_gpu_manager", gpu_manager)
 
     trt_runtime = types.ModuleType("scripts.trt_runtime")
     trt_runtime.load_unet_trt_backend = lambda *args, **kwargs: None
     trt_runtime.load_vae_trt_decoder = lambda *args, **kwargs: None
-    sys.modules["scripts.trt_runtime"] = trt_runtime
+    install("scripts.trt_runtime", trt_runtime)
+
+    return originals
 
 
-_install_import_stubs()
+def _restore_import_stubs(originals):
+    for name, module in originals.items():
+        if module is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = module
+
+
+_IMPORT_STUB_ORIGINALS = _install_import_stubs()
 
 from scripts.avatar_cache import AvatarCache
 from scripts.avatar_manager_parallel import ParallelAvatarManager
+
+sys.modules.pop("scripts.avatar_manager_parallel", None)
+_restore_import_stubs(_IMPORT_STUB_ORIGINALS)
 
 
 class AvatarCacheWarmupTest(unittest.TestCase):

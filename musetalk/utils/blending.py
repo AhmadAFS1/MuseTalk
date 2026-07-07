@@ -1,6 +1,18 @@
 from PIL import Image
 import numpy as np
 import cv2
+import os
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on")
+
+
+MUSETALK_BLEND_FIXED_POINT = _env_bool("MUSETALK_BLEND_FIXED_POINT", True)
+MUSETALK_BLEND_SHRINK_MASK_BBOX = _env_bool("MUSETALK_BLEND_SHRINK_MASK_BBOX", True)
 
 
 def get_crop_box(box, expand):
@@ -147,6 +159,28 @@ def prepare_image_blending_plan(image_shape, face_box, mask_array, crop_box):
     full_face_x1 = full_face_x0 + face_w
     full_face_y1 = full_face_y0 + face_h
 
+    mask_roi = mask_array[mask_y0:mask_y1, mask_x0:mask_x1]
+    if mask_roi.ndim == 3:
+        mask_roi = mask_roi[:, :, 0]
+    mask_roi = np.ascontiguousarray(mask_roi)
+    if MUSETALK_BLEND_SHRINK_MASK_BBOX:
+        nonzero_y, nonzero_x = np.nonzero(mask_roi)
+        if len(nonzero_x) == 0 or len(nonzero_y) == 0:
+            return None
+        shrink_x0 = int(nonzero_x.min())
+        shrink_x1 = int(nonzero_x.max()) + 1
+        shrink_y0 = int(nonzero_y.min())
+        shrink_y1 = int(nonzero_y.max()) + 1
+        mask_roi = np.ascontiguousarray(mask_roi[shrink_y0:shrink_y1, shrink_x0:shrink_x1])
+        clip_x0 += shrink_x0
+        clip_x1 = clip_x0 + (shrink_x1 - shrink_x0)
+        clip_y0 += shrink_y0
+        clip_y1 = clip_y0 + (shrink_y1 - shrink_y0)
+        mask_x0 += shrink_x0
+        mask_x1 = mask_x0 + (shrink_x1 - shrink_x0)
+        mask_y0 += shrink_y0
+        mask_y1 = mask_y0 + (shrink_y1 - shrink_y0)
+
     place_x0 = max(mask_x0, full_face_x0)
     place_y0 = max(mask_y0, full_face_y0)
     place_x1 = min(mask_x1, full_face_x1)
@@ -168,11 +202,8 @@ def prepare_image_blending_plan(image_shape, face_box, mask_array, crop_box):
         overlay_dst_slice = (slice(dst_y0, dst_y1), slice(dst_x0, dst_x1))
         face_src_slice = (slice(src_y0, src_y1), slice(src_x0, src_x1))
 
-    mask_roi = mask_array[mask_y0:mask_y1, mask_x0:mask_x1]
-    if mask_roi.ndim == 3:
-        mask_roi = mask_roi[:, :, 0]
-    mask_roi = np.ascontiguousarray(mask_roi)
     alpha = (mask_roi.astype(np.float32) / 255.0)[:, :, None]
+    alpha_u8 = mask_roi.astype(np.uint8)[:, :, None]
 
     return {
         "face_size": (face_w, face_h),
@@ -180,6 +211,7 @@ def prepare_image_blending_plan(image_shape, face_box, mask_array, crop_box):
         "overlay_dst_slice": overlay_dst_slice,
         "face_src_slice": face_src_slice,
         "alpha": alpha,
+        "alpha_u8": alpha_u8,
     }
 
 
@@ -199,11 +231,22 @@ def get_image_blending_with_plan(image, face, plan):
         src_y_slice, src_x_slice = face_src_slice
         overlay_roi[dst_y_slice, dst_x_slice] = face[src_y_slice, src_x_slice]
 
-    alpha = plan["alpha"]
-    blended_roi = (
-        overlay_roi.astype(np.float32) * alpha
-        + base_roi.astype(np.float32) * (1.0 - alpha)
-    ).astype(np.uint8)
+    if MUSETALK_BLEND_FIXED_POINT and "alpha_u8" in plan:
+        alpha = plan["alpha_u8"].astype(np.uint32)
+        inv_alpha = 255 - alpha
+        blended_roi = (
+            (
+                overlay_roi.astype(np.uint32) * alpha
+                + base_roi.astype(np.uint32) * inv_alpha
+            )
+            // 255
+        ).astype(np.uint8)
+    else:
+        alpha = plan["alpha"]
+        blended_roi = (
+            overlay_roi.astype(np.float32) * alpha
+            + base_roi.astype(np.float32) * (1.0 - alpha)
+        ).astype(np.uint8)
 
     image[clip_y_slice, clip_x_slice] = blended_roi
     return image

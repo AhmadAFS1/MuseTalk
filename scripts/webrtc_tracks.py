@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 import av
+import numpy as np
 from aiortc import VideoStreamTrack, MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
@@ -457,6 +458,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._max_queue = WEBRTC_VIDEO_MAX_QUEUE_FRAMES if max_queue is None else max_queue
         self._queue: asyncio.Queue = asyncio.Queue(maxsize=self._max_queue)
         self._idle = IdleVideoStreamTrack(idle_video_path, fps=source_fps)
+        self._current_idle_video_path = str(idle_video_path)
+        self._idle_transition_frames = []
         self._live_active = False
         self._live_released = False
         self._last_idle_frame = None
@@ -533,6 +536,93 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._recv_pace_wait_total_s = 0.0
         self._recv_pace_wait_max_s = 0.0
 
+    def _build_idle_transition_frames(self, old_frame, next_idle, frame_count: int) -> list:
+        """Create a short crossfade from the last displayed idle frame into a new idle loop."""
+        if old_frame is None or frame_count <= 0:
+            return []
+
+        frames = []
+        try:
+            for idx in range(frame_count):
+                next_frame = next_idle.read_frame()
+                new_bgr = next_frame.to_ndarray(format="bgr24")
+                old_bgr = old_frame.reformat(
+                    width=next_frame.width,
+                    height=next_frame.height,
+                    format="bgr24",
+                ).to_ndarray()
+                alpha = float(idx + 1) / float(frame_count + 1)
+                blended = (
+                    old_bgr.astype(np.float32) * (1.0 - alpha)
+                    + new_bgr.astype(np.float32) * alpha
+                )
+                blended = np.clip(blended, 0, 255).astype(np.uint8)
+                frames.append(
+                    av.VideoFrame.from_ndarray(blended, format="bgr24").reformat(format="yuv420p")
+                )
+        except Exception as exc:
+            print(f"⚠️ Failed to build idle transition frames: {exc}", flush=True)
+            return []
+        return frames
+
+    async def switch_idle_video(
+        self,
+        idle_video_path: str,
+        transition_seconds: float = 0.35,
+    ) -> dict:
+        """Switch the idle loop without renegotiating the WebRTC media track."""
+        if self._closed:
+            return {"changed": False, "reason": "track_closed"}
+
+        idle_video_path = str(idle_video_path)
+        if idle_video_path == self._current_idle_video_path:
+            return {
+                "changed": False,
+                "reason": "already_active",
+                "idle_video_path": self._current_idle_video_path,
+            }
+
+        previous_idle = self._idle
+        next_idle = None
+        transition_frames = []
+        switched = False
+        try:
+            next_idle = IdleVideoStreamTrack(idle_video_path, fps=self._source_fps)
+            frame_count = max(0, int(round(float(transition_seconds or 0.0) * self._output_fps)))
+            if frame_count > 0 and not self._live_active:
+                transition_frames = self._build_idle_transition_frames(
+                    self._last_idle_frame,
+                    next_idle,
+                    frame_count,
+                )
+
+            self._idle = next_idle
+            self._current_idle_video_path = idle_video_path
+            self._idle_transition_frames = transition_frames
+            self._last_idle_frame = None
+            self._idle_sync_hold_active = False
+            self._idle_sync_anchor_timing = None
+            switched = True
+        except Exception:
+            if next_idle is not None:
+                next_idle.stop()
+            raise
+        finally:
+            if switched and previous_idle is not None:
+                previous_idle.stop()
+
+        print(
+            f"🎬 Switched idle video path={idle_video_path} "
+            f"transition_frames={len(transition_frames)} live_active={self._live_active}",
+            flush=True,
+        )
+        return {
+            "changed": True,
+            "idle_video_path": idle_video_path,
+            "transition_frames": len(transition_frames),
+            "live_active": self._live_active,
+        }
+
     def _advance_source(self) -> int:
         self._source_accum += self._source_step
         advance = int(self._source_accum)
@@ -604,6 +694,10 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
     def _advance_idle_frame(self, steps: int):
         if self._idle_sync_hold_active and self._last_idle_frame is not None:
             return self._last_idle_frame
+        if self._idle_transition_frames:
+            frame = self._idle_transition_frames.pop(0)
+            self._last_idle_frame = frame
+            return frame
         if steps <= 0 and self._last_idle_frame is not None:
             return self._last_idle_frame
         steps = max(1, steps)
@@ -745,7 +839,9 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         convert_started_at = push_started_at
         frame = av.VideoFrame.from_ndarray(frame_bgr, format="bgr24").reformat(format="yuv420p")
         convert_s = time.monotonic() - convert_started_at
+        return await self._push_video_frame(frame, push_started_at, convert_s)
 
+    async def _push_video_frame(self, frame, push_started_at: float, convert_s: float) -> bool:
         queue_wait_started_at = time.monotonic()
         if self._strict_fifo:
             # Strict FIFO preserves every generated frame and applies backpressure
@@ -788,12 +884,32 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         return self._prebuffer_ready.is_set()
 
     async def push_bgr_frames_batch(self, frames: list) -> None:
-        """Push multiple BGR frames at once"""
+        """Push multiple BGR frames in one event-loop handoff."""
         if self._closed or not frames:
-            return
-        
+            return False
+
+        prebuffer_ready = False
+        converted_frames = []
+        convert_started_at = time.monotonic()
         for frame_bgr in frames:
-            await self.push_bgr_frame(frame_bgr)
+            if self._closed:
+                break
+            converted_frames.append(
+                av.VideoFrame.from_ndarray(frame_bgr, format="bgr24").reformat(format="yuv420p")
+            )
+        total_convert_s = time.monotonic() - convert_started_at
+        if not converted_frames:
+            return self._prebuffer_ready.is_set()
+
+        per_frame_convert_s = total_convert_s / len(converted_frames)
+        for frame in converted_frames:
+            push_started_at = time.monotonic()
+            prebuffer_ready = await self._push_video_frame(
+                frame,
+                push_started_at=push_started_at,
+                convert_s=per_frame_convert_s,
+            )
+        return prebuffer_ready
 
     def _calculate_adaptive_slowdown(self) -> float:
         """
@@ -1004,6 +1120,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             'prebuffer_frames': self._prebuffer_frames,
             'source_fps': self._source_fps,
             'output_fps': self._output_fps,
+            'current_idle_video_path': self._current_idle_video_path,
+            'idle_transition_frames': len(self._idle_transition_frames),
             'sync_mode': 'strict_fifo' if self._strict_fifo else 'free_run',
             'sync_clock': self._sync_clock.get_stats() if self._sync_clock else None,
             'idle_timing': self._idle.get_timing() if self._idle else None,

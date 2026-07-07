@@ -29,6 +29,9 @@ SETUP_WEBRTC_TURN="${SETUP_WEBRTC_TURN:-auto}"
 TURN_ENV_FILE="${TURN_ENV_FILE:-$REPO_ROOT/.env.webrtc-turn.local}"
 TURN_ENV_FORCE="${TURN_ENV_FORCE:-0}"
 HF_MAX_WORKERS="${HF_MAX_WORKERS:-4}"
+MUSETALK_SELECT_BEST_TRT_PROFILE="${MUSETALK_SELECT_BEST_TRT_PROFILE:-1}"
+MUSETALK_TRT_PROFILE_ENV_FILE="${MUSETALK_TRT_PROFILE_ENV_FILE:-$REPO_ROOT/.runtime/musetalk_trt_best.env}"
+MUSETALK_TRT_PROFILE_PREFER="${MUSETALK_TRT_PROFILE_PREFER:-split8}"
 
 log() {
   printf '[%s] [%s] %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$*"
@@ -563,6 +566,41 @@ EOF
   log "WebRTC TURN public URL: turn:$TURN_PUBLIC_IP:$TURN_PUBLIC_PORT?transport=$TURN_PUBLIC_TRANSPORT"
 }
 
+select_best_trt_profile() {
+  if ! env_flag_is_true "$MUSETALK_SELECT_BEST_TRT_PROFILE"; then
+    log "TRT profile selection disabled (MUSETALK_SELECT_BEST_TRT_PROFILE=$MUSETALK_SELECT_BEST_TRT_PROFILE)"
+    return 0
+  fi
+
+  local PY="$VENV_PATH/bin/python"
+  if [[ ! -x "$PY" ]]; then
+    log "TRT profile selection skipped; venv Python not found at $PY"
+    return 0
+  fi
+  if [[ ! -f "$REPO_ROOT/scripts/select_unet_trt_profile.py" ]]; then
+    log "TRT profile selection skipped; selector script is missing"
+    return 0
+  fi
+
+  log "Selecting best validated TRT profile"
+  if (
+    cd "$REPO_ROOT"
+    "$PY" "$REPO_ROOT/scripts/select_unet_trt_profile.py" \
+      --output "$MUSETALK_TRT_PROFILE_ENV_FILE" \
+      --prefer "$MUSETALK_TRT_PROFILE_PREFER" \
+      --allow-missing
+  ); then
+    if [[ -f "$MUSETALK_TRT_PROFILE_ENV_FILE" ]]; then
+      log "TRT profile env ready at $MUSETALK_TRT_PROFILE_ENV_FILE"
+    else
+      log "No validated TRT profile env generated; server will use normal defaults"
+    fi
+    return 0
+  fi
+
+  log "⚠️  TRT profile selection failed; continuing with normal defaults"
+}
+
 main() {
   local phase_start phase_elapsed total_elapsed
   local setup_mode="server-only"
@@ -602,11 +640,18 @@ main() {
   log "WebRTC TURN bootstrap phase finished in $(format_duration "$phase_elapsed")"
 
   phase_start="$(date +%s)"
+  select_best_trt_profile
+  phase_elapsed="$(( $(date +%s) - phase_start ))"
+  log "TRT profile selection phase finished in $(format_duration "$phase_elapsed")"
+
+  phase_start="$(date +%s)"
   PROFILE="$PROFILE" \
   HOST="$HOST" \
   PORT="$PORT" \
   REPO_ROOT="$REPO_ROOT" \
   VENV_PATH="$VENV_PATH" \
+  MUSETALK_TRT_PROFILE_ENV_FILE="$MUSETALK_TRT_PROFILE_ENV_FILE" \
+  MUSETALK_TRT_PROFILE_ENV_LOAD="${MUSETALK_TRT_PROFILE_ENV_LOAD:-1}" \
   bash "$REPO_ROOT/scripts/vast_server_ctl.sh" start
   phase_elapsed="$(( $(date +%s) - phase_start ))"
   log "Server start-to-health phase finished in $(format_duration "$phase_elapsed")"

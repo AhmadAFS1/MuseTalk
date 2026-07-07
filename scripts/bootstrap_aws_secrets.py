@@ -16,9 +16,6 @@ import stat
 from pathlib import Path
 from typing import Any
 
-import boto3
-from botocore.config import Config
-
 
 DEFAULT_REGION = "us-east-1"
 ENV_NAME_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
@@ -29,6 +26,18 @@ DEFAULT_S3_BUCKET_ENV_NAMES = (
     "UPLOAD_BUCKETS",
 )
 SECRET_ID_ENV = "MUSETALK_AWS_SECRET_ID"
+
+
+def _aws_sdk():
+    try:
+        import boto3
+        from botocore.config import Config
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "boto3 and botocore are required for AWS secret/S3 access; "
+            "install requirements.txt first"
+        ) from exc
+    return boto3, Config
 
 
 def _env_flag(name: str, default: bool = False) -> bool:
@@ -49,6 +58,7 @@ def _resolve_secret_region() -> str:
 
 
 def _read_secret_payload(secret_id: str, region: str) -> dict[str, Any]:
+    boto3, Config = _aws_sdk()
     client = boto3.client(
         "secretsmanager",
         region_name=region,
@@ -165,6 +175,7 @@ def _verify_s3_buckets(exports: dict[str, str], region: str) -> None:
             "AWS_SECRET_ACCESS_KEY in the MuseTalk runtime secret"
         )
 
+    boto3, Config = _aws_sdk()
     client = boto3.client(
         "s3",
         region_name=(

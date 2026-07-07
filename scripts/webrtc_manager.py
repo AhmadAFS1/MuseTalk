@@ -51,6 +51,8 @@ class WebRTCSession:
     sync_clock: Optional[VideoSyncClock] = None
     live_timing: Optional[dict] = None
     webrtc_live_reveal_delay_seconds: float = 0.0
+    idle_pose_id: str = "default"
+    idle_video_path: Optional[str] = None
 
     def is_expired(self, ttl_seconds: int = 3600) -> bool:
         return (time.time() - self.last_activity) > ttl_seconds
@@ -151,6 +153,7 @@ class WebRTCSessionManager:
         playback_fps: Optional[int] = None,
         batch_size: int = 2,
         chunk_duration: int = 2,
+        idle_pose_id: str = "default",
     ) -> WebRTCSession:
         if playback_fps is None:
             playback_fps = fps
@@ -181,6 +184,8 @@ class WebRTCSessionManager:
             ice_servers=self.ice_servers,
             ice_transport_policy=self.ice_transport_policy,
             sync_clock=sync_clock,
+            idle_pose_id=idle_pose_id or "default",
+            idle_video_path=idle_video_path,
         )
 
         @pc.on("connectionstatechange")
@@ -196,7 +201,8 @@ class WebRTCSessionManager:
 
         print(
             f"🧊 WebRTC session created session_id={session_id} avatar_id={avatar_id} "
-            f"user_id={user_id} fps={fps} playback_fps={playback_fps} "
+            f"user_id={user_id} idle_pose_id={idle_pose_id or 'default'} "
+            f"fps={fps} playback_fps={playback_fps} "
             f"batch_size={batch_size} chunk_duration={chunk_duration} "
             f"total_sessions={total_sessions}",
             flush=True,
