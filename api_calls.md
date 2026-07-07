@@ -32,6 +32,8 @@ This creates the current single-venv runtime at:
   - `torch==2.5.1+cu121`
   - `torch_tensorrt==2.5.0`
   - `tensorrt==10.3.0`
+  - `nvidia-modelopt==0.23.2`
+  - `onnx<1.18`
 
 If this same node must also run avatar preparation in-process, use the slower
 full-stack path instead:
@@ -56,7 +58,14 @@ bash scripts/run_trt_stagewise_server.sh --profile baseline
 ```
 
 This short command is the intended baseline launcher. It sets the current
-runtime defaults internally.
+runtime defaults internally, including the validated five-stage VAE INT8
+ONNX/QDQ TensorRT build and TRT UNet split8. If the batch-8 UNet artifact is
+missing, startup builds it at
+`models/tensorrt_unet_static_bs8_20260529/unet_trt.ts` from
+`calibration/unet_static_8_16_20260529_1545`. If that capture corpus is missing,
+startup fails instead of silently serving with PyTorch UNet. Use
+`MUSETALK_TRT_STAGEWISE_PRECISION=fp16`, `MUSETALK_TRT_UNET_ENABLED=0`, and an
+empty `MUSETALK_UNET_BACKEND` only for the rollback path.
 
 For the Vast background wrapper:
 

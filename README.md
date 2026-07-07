@@ -149,7 +149,7 @@ TRT-stagewise server is:
 - setup:
   - inference-only worker:
     - `bash scripts/setup_trt_stagewise_server_env.sh --clean`
-    - recommended for serving-only and autoscaled Vast.ai nodes because it skips the optional avatar-prep `mmcv/mmdet/mmpose` stack and extra weights
+    - recommended for serving-only and autoscaled Vast.ai nodes because it skips the optional avatar-prep `mmcv/mmdet/mmpose` stack and extra weights while installing the ModelOpt/ONNX dependencies needed by the default VAE INT8 TensorRT build
   - single-venv prep + inference worker:
     - `bash scripts/setup_trt_stagewise_server_env.sh --clean --full-stack`
     - only use this when the same node must handle avatar preparation directly; on the current `torch==2.5.1+cu121` stack, OpenMMLab still does not publish a matching `mmcv` prebuilt wheel index for `cu121/torch2.5.x`, so the installer now prefers a repo-local wheel under `third_party_wheels/mmcv/` and will save a built wheel there on the first source-build fallback for future reuse
@@ -175,6 +175,8 @@ Validated live stack on the current CUDA 12.1 path:
 - `torch==2.5.1+cu121`
 - `torch_tensorrt==2.5.0`
 - `tensorrt==10.3.0`
+- `nvidia-modelopt==0.23.2`
+- `onnx<1.18`
 - full avatar-prep stack in the same venv:
   - `mmcv==2.1.0` with `mmcv._ext`
   - `mmengine==0.10.4`
@@ -187,6 +189,15 @@ Important note:
 - `scripts/run_trt_stagewise_server.sh` exports most runtime defaults
   internally, so you do not need to pass the older long list of env vars for
   the baseline path
+- the launcher now targets the validated optimized path by default: five-stage
+  VAE INT8 ONNX/QDQ plus TRT UNet split8
+- the TRT UNet split8 path builds
+  `models/tensorrt_unet_static_bs8_20260529/unet_trt.ts` at startup when it is
+  missing, using `calibration/unet_static_8_16_20260529_1545`
+- startup fails if that capture corpus is missing so we do not silently serve
+  with PyTorch UNet
+- set `MUSETALK_TRT_STAGEWISE_PRECISION=fp16`, `MUSETALK_TRT_UNET_ENABLED=0`,
+  and clear `MUSETALK_UNET_BACKEND` only when you deliberately need rollback
 - the Vast boot wrapper now defaults to `throughput_record` when `PROFILE` is
   unset; set `PROFILE=baseline` explicitly if you want the safer lower-VRAM
   boot profile

@@ -40,6 +40,12 @@ Profiles:
   throughput_record  GPU-aware widened-batch throughput branch
   vram_max           Alias for GPU-aware throughput defaults
 
+Default precision:
+  VAE TRT-stagewise launches with the validated five-stage INT8 ONNX/QDQ profile,
+  and UNet launches with the validated batch-8 TensorRT split runtime.
+  Set MUSETALK_TRT_STAGEWISE_PRECISION=fp16 and MUSETALK_TRT_UNET_ENABLED=0
+  to opt out.
+
 Options:
   --profile NAME     Launch profile: baseline, throughput_record, or vram_max
   --host HOST        Bind host (default: $HOST)
@@ -115,12 +121,13 @@ unset MUSETALK_CPU_AFFINITY
 : "${MUSETALK_TRT_FALLBACK:=0}"
 : "${MUSETALK_TRT_STAGEWISE_TORCH_EXECUTED_OPS:=native_group_norm}"
 : "${MUSETALK_TRT_STAGEWISE_TORCH_STAGES:=}"
-: "${MUSETALK_TRT_STAGEWISE_PRECISION:=fp16}"
-: "${MUSETALK_TRT_STAGEWISE_INT8_STAGES:=}"
-: "${MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR:=}"
+: "${MUSETALK_TRT_STAGEWISE_PRECISION:=int8_mixed}"
+: "${MUSETALK_TRT_STAGEWISE_INT8_STAGES:=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2}"
+: "${MUSETALK_TRT_STAGEWISE_WORKSPACE_GB:=2}"
+: "${MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR:=./calibration/vae_decoder}"
 : "${MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_BATCHES:=8}"
 : "${MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_ALGO:=minmax}"
-: "${MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR:=./models/tensorrt/stagewise_int8_calibration_cache}"
+: "${MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR:=./models/tensorrt/stagewise_int8_onnx_qdq_cache}"
 : "${MUSETALK_TRT_STAGEWISE_INT8_USE_CACHE:=1}"
 : "${MUSETALK_TRT_STAGEWISE_INT8_FRONTEND:=onnx_qdq}"
 : "${MUSETALK_TRT_STAGEWISE_INT8_ENABLED_PRECISIONS:=int8}"
@@ -133,6 +140,19 @@ unset MUSETALK_CPU_AFFINITY
 : "${MUSETALK_VAE_CALIBRATION_CAPTURE:=0}"
 : "${MUSETALK_VAE_CALIBRATION_DIR:=./calibration/vae_decoder}"
 : "${MUSETALK_VAE_CALIBRATION_MAX_BATCHES:=128}"
+: "${MUSETALK_UNET_BACKEND:=trt}"
+: "${MUSETALK_TRT_UNET_ENABLED:=1}"
+: "${MUSETALK_TRT_UNET_BUILD:=1}"
+: "${MUSETALK_TRT_UNET_OUTPUT_DIR:=./models/tensorrt_unet_static_bs8_20260529}"
+: "${MUSETALK_TRT_UNET_PATHS:=8:${MUSETALK_TRT_UNET_OUTPUT_DIR}/unet_trt.ts}"
+: "${MUSETALK_TRT_UNET_ALLOW_UNVALIDATED:=0}"
+: "${MUSETALK_TRT_UNET_CAPTURE_DIR:=./calibration/unet_static_8_16_20260529_1545}"
+: "${MUSETALK_TRT_UNET_BUILD_BATCH_SIZES:=8}"
+: "${MUSETALK_TRT_UNET_WORKSPACE_GB:=2}"
+: "${MUSETALK_TRT_UNET_MIN_BLOCK_SIZE:=1}"
+: "${MUSETALK_TRT_UNET_VALIDATE_LIMIT:=16}"
+: "${MUSETALK_TRT_UNET_VALIDATE_PADDED_BATCH_SIZE:=8}"
+: "${MUSETALK_TRT_UNET_VALIDATE_REPORT_PATH:=./tmp/unet_trt_static_bs8_validation_startup.json}"
 
 : "${WEBRTC_SYNC_MODE:=strict_fifo}"
 : "${WEBRTC_VIDEO_PREBUFFER_SECONDS:=2.0}"
@@ -206,6 +226,175 @@ PY
   eval "$assignments"
 }
 
+validate_int8_startup_requirements() {
+  case "${MUSETALK_TRT_STAGEWISE_PRECISION,,}" in
+    int8|int8_mixed|mixed_int8)
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  [[ -n "$MUSETALK_TRT_STAGEWISE_INT8_STAGES" ]] || die \
+    "MUSETALK_TRT_STAGEWISE_PRECISION=$MUSETALK_TRT_STAGEWISE_PRECISION requires MUSETALK_TRT_STAGEWISE_INT8_STAGES"
+
+  local calibration_dir="$MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR"
+  if [[ "$calibration_dir" != /* ]]; then
+    calibration_dir="$REPO_ROOT/$calibration_dir"
+  fi
+  [[ -d "$calibration_dir" ]] || die \
+    "INT8 calibration directory not found: $calibration_dir"
+  [[ -n "$(find "$calibration_dir" -type f -name '*.pt' -print -quit)" ]] || die \
+    "INT8 calibration directory has no .pt captures: $calibration_dir"
+
+  (
+    cd "$REPO_ROOT"
+    "$VENV_PYTHON" - <<'PY'
+import modelopt.torch.quantization as mtq
+import onnx
+import tensorrt
+
+if not hasattr(mtq, "INT8_DEFAULT_CFG"):
+    raise RuntimeError("modelopt.torch.quantization.INT8_DEFAULT_CFG is unavailable")
+PY
+  ) || die \
+    "INT8 startup requires nvidia-modelopt, onnx, and TensorRT in $VENV_PATH. Re-run setup_musetalk.sh or set MUSETALK_TRT_STAGEWISE_PRECISION=fp16 to opt out."
+}
+
+unet_trt_requested() {
+  local requested=0
+  case "${MUSETALK_UNET_BACKEND,,}" in
+    trt|tensorrt)
+      requested=1
+      ;;
+  esac
+  case "${MUSETALK_TRT_UNET_ENABLED,,}" in
+    1|true|yes|on)
+      requested=1
+      ;;
+  esac
+  (( requested ))
+}
+
+resolve_repo_path() {
+  local raw="$1"
+  if [[ "$raw" == /* ]]; then
+    printf '%s\n' "$raw"
+  else
+    printf '%s/%s\n' "$REPO_ROOT" "$raw"
+  fi
+}
+
+build_unet_trt_split8_if_needed() {
+  unet_trt_requested || return 0
+  case "${MUSETALK_TRT_UNET_BUILD,,}" in
+    1|true|yes|on)
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  local output_dir engine_path meta_path capture_dir report_path
+  output_dir="$(resolve_repo_path "$MUSETALK_TRT_UNET_OUTPUT_DIR")"
+  engine_path="$output_dir/unet_trt.ts"
+  meta_path="$output_dir/unet_trt_meta.json"
+  if [[ -f "$engine_path" && -f "$meta_path" ]]; then
+    return 0
+  fi
+
+  capture_dir="$(resolve_repo_path "$MUSETALK_TRT_UNET_CAPTURE_DIR")"
+  [[ -d "$capture_dir" ]] || die \
+    "TRT UNet split8 build requested, but capture directory is missing: $capture_dir"
+  [[ -n "$(find "$capture_dir" -type f -name 'unet_io_*.pt' -print -quit)" ]] || die \
+    "TRT UNet split8 build requested, but no unet_io_*.pt captures were found in: $capture_dir"
+
+  report_path="$(resolve_repo_path "$MUSETALK_TRT_UNET_VALIDATE_REPORT_PATH")"
+  mkdir -p "$output_dir" "$(dirname "$report_path")"
+
+  log "Building missing TRT UNet split8 artifact"
+  log "MUSETALK_TRT_UNET_OUTPUT_DIR=$output_dir"
+  log "MUSETALK_TRT_UNET_CAPTURE_DIR=$capture_dir"
+  (
+    cd "$REPO_ROOT"
+    "$VENV_PYTHON" scripts/tensorrt_export.py \
+      --components unet \
+      --batch-sizes "$MUSETALK_TRT_UNET_BUILD_BATCH_SIZES" \
+      --output-dir "$output_dir" \
+      --precision fp16 \
+      --save-format exported_program \
+      --workspace-gb "$MUSETALK_TRT_UNET_WORKSPACE_GB" \
+      --min-block-size "$MUSETALK_TRT_UNET_MIN_BLOCK_SIZE" \
+      --unet-capture-dir "$capture_dir" \
+      --validate-unet-capture-dir "$capture_dir" \
+      --validate-unet-limit "$MUSETALK_TRT_UNET_VALIDATE_LIMIT" \
+      --validate-unet-padded-batch-size "$MUSETALK_TRT_UNET_VALIDATE_PADDED_BATCH_SIZE" \
+      --validate-unet-report-path "$report_path" \
+      --require-valid-unet
+  ) || die "TRT UNet split8 build failed; see logs above and report path $report_path"
+
+  [[ -f "$engine_path" && -f "$meta_path" ]] || die \
+    "TRT UNet split8 build completed without expected artifact: $engine_path"
+}
+
+validate_unet_trt_startup_requirements() {
+  unet_trt_requested || return 0
+
+  (
+    cd "$REPO_ROOT"
+    REPO_ROOT="$REPO_ROOT" \
+    MUSETALK_TRT_UNET_PATHS="$MUSETALK_TRT_UNET_PATHS" \
+    MUSETALK_TRT_UNET_PATH="${MUSETALK_TRT_UNET_PATH:-}" \
+    "$VENV_PYTHON" - <<'PY'
+import json
+import os
+from pathlib import Path
+
+repo = Path(os.environ["REPO_ROOT"])
+raw_paths = os.getenv("MUSETALK_TRT_UNET_PATHS", "").strip()
+if not raw_paths:
+    raw_paths = "8:" + os.getenv("MUSETALK_TRT_UNET_PATH", "./models/tensorrt/unet_trt.ts")
+
+resolved: dict[int, Path] = {}
+for token in raw_paths.split(","):
+    token = token.strip()
+    if not token:
+        continue
+    if ":" not in token:
+        raise RuntimeError(
+            "Invalid MUSETALK_TRT_UNET_PATHS entry "
+            f"{token!r}; expected '<batch>:<path>'."
+        )
+    batch_raw, path_raw = token.split(":", 1)
+    batch = int(batch_raw.strip())
+    path = Path(path_raw.strip())
+    if not path.is_absolute():
+        path = repo / path
+    resolved[batch] = path
+
+if 8 not in resolved:
+    raise RuntimeError(
+        "Default TRT UNet split8 startup requires a batch-8 entry in "
+        "MUSETALK_TRT_UNET_PATHS."
+    )
+
+engine_path = resolved[8]
+if not engine_path.exists():
+    raise FileNotFoundError(f"TensorRT UNet split8 engine not found: {engine_path}")
+
+meta_path = engine_path.with_name("unet_trt_meta.json")
+if not meta_path.exists():
+    raise FileNotFoundError(f"TensorRT UNet split8 metadata not found: {meta_path}")
+
+meta = json.loads(meta_path.read_text())
+validation = meta.get("validation")
+if validation and validation.get("passed") is False:
+    raise RuntimeError(f"TensorRT UNet split8 artifact failed validation: {meta_path}")
+PY
+  ) || die \
+    "TRT UNet split8 startup requires a validated batch-8 unet_trt.ts artifact. Provide models/tensorrt_unet_static_bs8_20260529/unet_trt.ts or set MUSETALK_TRT_UNET_ENABLED=0 and MUSETALK_UNET_BACKEND= to opt out."
+}
+
 case "$PROFILE" in
   baseline|throughput_record|vram_max)
     apply_gpu_aware_defaults "$PROFILE"
@@ -214,6 +403,10 @@ case "$PROFILE" in
     die "Unsupported profile: $PROFILE"
     ;;
 esac
+
+validate_int8_startup_requirements
+build_unet_trt_split8_if_needed
+validate_unet_trt_startup_requirements
 
 export MUSETALK_COMPILE
 export MUSETALK_COMPILE_UNET
@@ -225,6 +418,7 @@ export MUSETALK_TRT_FALLBACK
 export MUSETALK_TRT_STAGEWISE_TORCH_EXECUTED_OPS
 export MUSETALK_TRT_STAGEWISE_TORCH_STAGES
 export MUSETALK_TRT_STAGEWISE_PRECISION
+export MUSETALK_TRT_STAGEWISE_WORKSPACE_GB
 export MUSETALK_TRT_STAGEWISE_INT8_STAGES
 export MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR
 export MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_BATCHES
@@ -243,6 +437,19 @@ export MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES
 export MUSETALK_VAE_CALIBRATION_CAPTURE
 export MUSETALK_VAE_CALIBRATION_DIR
 export MUSETALK_VAE_CALIBRATION_MAX_BATCHES
+export MUSETALK_UNET_BACKEND
+export MUSETALK_TRT_UNET_ENABLED
+export MUSETALK_TRT_UNET_PATHS
+export MUSETALK_TRT_UNET_ALLOW_UNVALIDATED
+export MUSETALK_TRT_UNET_BUILD
+export MUSETALK_TRT_UNET_OUTPUT_DIR
+export MUSETALK_TRT_UNET_CAPTURE_DIR
+export MUSETALK_TRT_UNET_BUILD_BATCH_SIZES
+export MUSETALK_TRT_UNET_WORKSPACE_GB
+export MUSETALK_TRT_UNET_MIN_BLOCK_SIZE
+export MUSETALK_TRT_UNET_VALIDATE_LIMIT
+export MUSETALK_TRT_UNET_VALIDATE_PADDED_BATCH_SIZE
+export MUSETALK_TRT_UNET_VALIDATE_REPORT_PATH
 export WEBRTC_SYNC_MODE
 export WEBRTC_VIDEO_PREBUFFER_SECONDS
 export WEBRTC_AUDIO_PREBUFFER_SECONDS
@@ -284,11 +491,17 @@ log "HLS_SCHEDULER_MAX_BATCH=$HLS_SCHEDULER_MAX_BATCH"
 log "HLS_SCHEDULER_FIXED_BATCH_SIZES=$HLS_SCHEDULER_FIXED_BATCH_SIZES"
 log "MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=$MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES"
 log "MUSETALK_TRT_STAGEWISE_PRECISION=$MUSETALK_TRT_STAGEWISE_PRECISION"
+log "MUSETALK_TRT_STAGEWISE_WORKSPACE_GB=$MUSETALK_TRT_STAGEWISE_WORKSPACE_GB"
 log "MUSETALK_TRT_STAGEWISE_INT8_STAGES=${MUSETALK_TRT_STAGEWISE_INT8_STAGES:-default}"
 log "MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR=${MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR:-${MUSETALK_VAE_CALIBRATION_DIR}}"
 log "MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_ALGO=$MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_ALGO"
 log "MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR=$MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR"
 log "MUSETALK_VAE_CALIBRATION_CAPTURE=$MUSETALK_VAE_CALIBRATION_CAPTURE"
+log "MUSETALK_UNET_BACKEND=$MUSETALK_UNET_BACKEND"
+log "MUSETALK_TRT_UNET_ENABLED=$MUSETALK_TRT_UNET_ENABLED"
+log "MUSETALK_TRT_UNET_PATHS=$MUSETALK_TRT_UNET_PATHS"
+log "MUSETALK_TRT_UNET_BUILD=$MUSETALK_TRT_UNET_BUILD"
+log "MUSETALK_TRT_UNET_CAPTURE_DIR=$MUSETALK_TRT_UNET_CAPTURE_DIR"
 log "WEBRTC_H264_ENCODER=${WEBRTC_H264_ENCODER:-h264_nvenc(default)}"
 log "WEBRTC_ICE_TRANSPORT_POLICY=${WEBRTC_ICE_TRANSPORT_POLICY:-all(default)}"
 log "WEBRTC_STUN_URLS=${WEBRTC_STUN_URLS:-stun:stun.l.google.com:19302(default)}"

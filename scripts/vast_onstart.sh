@@ -89,6 +89,18 @@ env_flag_is_true() {
   esac
 }
 
+int8_startup_requested() {
+  local precision="${MUSETALK_TRT_STAGEWISE_PRECISION:-int8_mixed}"
+  case "${precision,,}" in
+    int8|int8_mixed|mixed_int8)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 full_stack_requested() {
   env_flag_is_true "$SETUP_FULL_STACK"
 }
@@ -157,10 +169,16 @@ ensure_coturn_available() {
 
 server_runtime_imports_complete() {
   [[ -x "$VENV_PATH/bin/python" ]] || return 1
+  local require_modelopt=0
+  if int8_startup_requested; then
+    require_modelopt=1
+  fi
 
   (
     cd "$REPO_ROOT"
-    "$VENV_PATH/bin/python" - <<'PY' >/dev/null 2>&1
+    MUSETALK_REQUIRE_MODELOPT="$require_modelopt" "$VENV_PATH/bin/python" - <<'PY' >/dev/null 2>&1
+import os
+
 import api_server
 import aiofiles
 import aiohttp
@@ -177,6 +195,13 @@ import tensorrt
 import torch
 import torch_tensorrt
 import uvicorn
+
+if os.getenv("MUSETALK_REQUIRE_MODELOPT") == "1":
+    import modelopt.torch.quantization as mtq
+    import onnx
+
+    if not hasattr(mtq, "INT8_DEFAULT_CFG"):
+        raise RuntimeError("modelopt.torch.quantization.INT8_DEFAULT_CFG is unavailable")
 
 if not torch.cuda.is_available():
     raise RuntimeError("torch.cuda.is_available() returned False")
@@ -215,6 +240,15 @@ setup_complete() {
   for path in "${required[@]}"; do
     [[ -e "$path" ]] || return 1
   done
+
+  if int8_startup_requested; then
+    local calibration_dir="${MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR:-${MUSETALK_VAE_CALIBRATION_DIR:-./calibration/vae_decoder}}"
+    if [[ "$calibration_dir" != /* ]]; then
+      calibration_dir="$REPO_ROOT/$calibration_dir"
+    fi
+    [[ -d "$calibration_dir" ]] || return 1
+    [[ -n "$(find "$calibration_dir" -type f -name '*.pt' -print -quit)" ]] || return 1
+  fi
 
   server_runtime_imports_complete || return 1
 }

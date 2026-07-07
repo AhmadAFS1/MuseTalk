@@ -31,6 +31,8 @@ node:
     - `torch`
     - `torch_tensorrt`
     - `tensorrt`
+    - `modelopt.torch.quantization`
+    - `onnx`
   - avatar-prep imports passed:
     - `mmcv`
     - `mmcv._ext`
@@ -45,6 +47,8 @@ Current package-side validation on that node:
 - `torch==2.5.1+cu121`
 - `torch_tensorrt==2.5.0`
 - `tensorrt==10.3.0`
+- `nvidia-modelopt==0.23.2`
+- `onnx<1.18`
 - `mmcv==2.1.0`
 - `mmengine==0.10.4`
 - `mmdet==3.2.0`
@@ -64,6 +68,7 @@ What that does:
 - installs the required system packages for the current server path
 - recreates `/workspace/.venvs/musetalk_trt_stagewise`
 - installs the pinned PyTorch + Torch-TensorRT stack
+- installs pinned ModelOpt/ONNX support for the default VAE INT8 ONNX/QDQ build
 - installs the pinned HLS/api_server dependencies
 - includes the current WebRTC runtime deps used by `api_server.py`
 - downloads and validates the current model weights
@@ -123,7 +128,12 @@ This is the safe TRT-stagewise baseline:
 - `HLS_SCHEDULER_FIXED_BATCH_SIZES=4`
 - `HLS_SCHEDULER_STARTUP_SLICE_SIZE=4`
 - `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=4`
-- `MUSETALK_TRT_STAGEWISE_PRECISION=fp16`
+- `MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed`
+- `MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2`
+- `MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR=./models/tensorrt/stagewise_int8_onnx_qdq_cache`
+- `MUSETALK_UNET_BACKEND=trt`
+- `MUSETALK_TRT_UNET_ENABLED=1`
+- `MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_static_bs8_20260529/unet_trt.ts`
 - worker pools:
   - `HLS_PREP_WORKERS=8`
   - `HLS_COMPOSE_WORKERS=8`
@@ -149,7 +159,13 @@ branch that produced the current best average throughput at `concurrency=8`:
 - default warmup:
   - `MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES=8,16`
 - VAE stagewise precision:
-  - `MUSETALK_TRT_STAGEWISE_PRECISION=fp16`
+  - `MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed`
+  - `MUSETALK_TRT_STAGEWISE_INT8_STAGES=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2`
+  - `MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR=./models/tensorrt/stagewise_int8_onnx_qdq_cache`
+- UNet TensorRT split8:
+  - `MUSETALK_UNET_BACKEND=trt`
+  - `MUSETALK_TRT_UNET_ENABLED=1`
+  - `MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_static_bs8_20260529/unet_trt.ts`
 - worker pools remain:
   - `HLS_PREP_WORKERS=8`
   - `HLS_COMPOSE_WORKERS=8`
@@ -175,24 +191,45 @@ On 32GB V100-class cards, the same profile now defaults to:
 Manual env vars still win. See `docs/gpu_vram_budgeting.md` for the full VRAM
 class table.
 
-### VAE Decoder INT8 Experiment Flags
+### VAE Decoder INT8 Serving Defaults
 
-The INT8 VAE decoder path is experimental and disabled by default. It is scoped
-to the existing `trt_stagewise` backend and should only be enabled after a real
-calibration corpus has been captured from live `pred_latents`. The working
-runtime path is now `MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq`: ModelOpt
-exports Q/DQ ONNX for selected stages, TensorRT builds `.plan` engines, and the
-runtime executes those engines from PyTorch tensor data pointers.
+The validated five-stage INT8 VAE decoder path is now the launcher default. It
+is scoped to the existing `trt_stagewise` backend and uses the checked-in
+`calibration/vae_decoder` captures from live `pred_latents`. The working runtime
+path is `MUSETALK_TRT_STAGEWISE_INT8_FRONTEND=onnx_qdq`: ModelOpt exports Q/DQ
+ONNX for selected stages, TensorRT builds `.plan` engines, and the runtime
+executes those engines from PyTorch tensor data pointers.
 
-ModelOpt setup required for `onnx_qdq` INT8:
+The validated TRT UNet split8 path is also part of the default target. The
+launcher builds the missing batch-8 artifact at
+`models/tensorrt_unet_static_bs8_20260529/unet_trt.ts` from the real capture
+corpus in `calibration/unet_static_8_16_20260529_1545`, then routes batch-16 work
+through `tensorrt_unet_multi` by splitting it into two exact batch-8 calls. If
+the capture corpus is missing, startup fails instead of silently serving with
+PyTorch UNet and missing the RTX 3090 72 fps profile.
+
+UNet split8 build defaults:
+
+```text
+MUSETALK_TRT_UNET_BUILD=1
+MUSETALK_TRT_UNET_OUTPUT_DIR=./models/tensorrt_unet_static_bs8_20260529
+MUSETALK_TRT_UNET_CAPTURE_DIR=./calibration/unet_static_8_16_20260529_1545
+MUSETALK_TRT_UNET_BUILD_BATCH_SIZES=8
+MUSETALK_TRT_UNET_VALIDATE_PADDED_BATCH_SIZE=8
+MUSETALK_TRT_UNET_VALIDATE_REPORT_PATH=./tmp/unet_trt_static_bs8_validation_startup.json
+```
+
+ModelOpt setup is installed by default for `onnx_qdq` INT8:
 
 ```bash
-bash scripts/setup_trt_stagewise_server_env.sh --install-modelopt
+bash scripts/setup_trt_stagewise_server_env.sh
 ```
 
 The setup script pins `nvidia-modelopt==0.23.2` for this `torch==2.5.1+cu121`
 runtime; do not install the latest unpinned ModelOpt into this venv because the
-latest package line currently tries to pull a newer Torch/CUDA family.
+latest package line currently tries to pull a newer Torch/CUDA family. Use
+`--skip-modelopt` only when explicitly opting out with
+`MUSETALK_TRT_STAGEWISE_PRECISION=fp16`.
 
 Capture calibration batches from the shared GPU scheduler:
 
@@ -203,7 +240,7 @@ MUSETALK_VAE_CALIBRATION_MAX_BATCHES=128 \
 bash scripts/run_trt_stagewise_server.sh --profile throughput_record
 ```
 
-Enable a mixed INT8/FP16 stagewise experiment:
+The launcher now applies this mixed INT8/FP16 stagewise profile by default:
 
 ```bash
 MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed \
@@ -248,13 +285,16 @@ visible color/texture shifts and much higher MAE.
 
 Important caveats:
 
-- The FP16 stagewise path remains the default production path.
+- The FP16 stagewise path is now the rollback path; opt out with
+  `MUSETALK_TRT_STAGEWISE_PRECISION=fp16`.
+- The PyTorch UNet path is now the rollback path; opt out with
+  `MUSETALK_TRT_UNET_ENABLED=0` and an empty `MUSETALK_UNET_BACKEND`.
 - The live API now runs the tested `onnx_qdq` INT8 frontend. The live-serving
   guard remains for the old `torchscript_ptq` frontend because that path crashed
   TensorRT calibration on VAE up-blocks.
-- `MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed` now requires an explicit
-  `MUSETALK_TRT_STAGEWISE_INT8_STAGES` list. There is no safe default INT8
-  stage set yet.
+- `MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed` requires an explicit
+  `MUSETALK_TRT_STAGEWISE_INT8_STAGES` list; the launcher now defaults to the
+  validated five-stage list above.
 - `MUSETALK_TRT_STAGEWISE_INT8_ALLOW_UNSAFE_STAGES=1` only matters for
   `torchscript_ptq`; it is not required for the working `onnx_qdq` path.
 - The INT8 path uses TensorRT calibration caches per selected stage and exact

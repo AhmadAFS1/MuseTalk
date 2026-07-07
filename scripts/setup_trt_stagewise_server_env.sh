@@ -26,10 +26,10 @@ SKIP_APT=0
 SKIP_WEIGHTS=0
 INSTALL_AVATAR_PREP_DEPS=0
 FULL_STACK=0
-INSTALL_MODELOPT=0
-case "${SETUP_INSTALL_MODELOPT:-0}" in
-  1|true|TRUE|yes|YES|on|ON)
-    INSTALL_MODELOPT=1
+INSTALL_MODELOPT=1
+case "${SETUP_INSTALL_MODELOPT:-1}" in
+  0|false|FALSE|no|NO|off|OFF)
+    INSTALL_MODELOPT=0
     ;;
 esac
 
@@ -62,8 +62,10 @@ Options:
   --full-stack          Build one venv with both server and avatar-prep deps
   --install-avatar-prep-deps
                         Install optional mmpose/mmcv deps for avatar prep
-  --install-modelopt    Install NVIDIA TensorRT Model Optimizer for
-                        optional offline INT8/QDQ experiments
+  --install-modelopt    Install NVIDIA TensorRT Model Optimizer for INT8/QDQ
+                        serving builds (default)
+  --skip-modelopt       Skip TensorRT Model Optimizer; only use with
+                        MUSETALK_TRT_STAGEWISE_PRECISION=fp16
   --help                Show this help text
 
 Examples:
@@ -120,6 +122,8 @@ build_trt_experiment_venv_step() {
   fi
   if [[ $INSTALL_MODELOPT -eq 1 ]]; then
     SETUP_ARGS+=(--install-modelopt)
+  else
+    log "ModelOpt install disabled; the default INT8 startup path will require MUSETALK_TRT_STAGEWISE_PRECISION=fp16"
   fi
   bash "$SCRIPT_DIR/setup_trt_experiment_env.sh" "${SETUP_ARGS[@]}" || return $?
   VENV_PYTHON="$VENV_PATH/bin/python"
@@ -191,7 +195,9 @@ PY
 trt_server_import_smoke_test_step() {
   (
     cd "$REPO_ROOT"
-    "$VENV_PYTHON" - <<'PY'
+    INSTALL_MODELOPT="$INSTALL_MODELOPT" "$VENV_PYTHON" - <<'PY'
+import os
+
 import api_server
 import torch
 import torch_tensorrt
@@ -205,6 +211,14 @@ print("torch_tensorrt", torch_tensorrt.__version__)
 print("tensorrt", tensorrt.__version__)
 print("cuda_available", torch.cuda.is_available())
 print("default_stagewise_warmup_batches", _stagewise_warmup_batches())
+
+if os.getenv("INSTALL_MODELOPT") == "1":
+    import modelopt.torch.quantization as mtq
+    import onnx
+
+    print("modelopt quantization import OK")
+    print("has_INT8_DEFAULT_CFG", hasattr(mtq, "INT8_DEFAULT_CFG"))
+    print("onnx", onnx.__version__)
 PY
   )
 }
@@ -249,6 +263,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --install-modelopt)
       INSTALL_MODELOPT=1
+      shift
+      ;;
+    --skip-modelopt)
+      INSTALL_MODELOPT=0
       shift
       ;;
     --help|-h)
