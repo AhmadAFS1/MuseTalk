@@ -86,6 +86,71 @@ listen -> think -> speak -> settle -> listen
 
 This is more important than having many expressive poses.
 
+## TTS Duration Gating
+
+Pose animation should be conditional on the final or estimated TTS length. Short
+answers should not pay the visual cost of entering and exiting gestures, because
+the movement can last longer than the spoken response and feel laggy.
+
+First policy:
+
+| TTS Duration | Runtime Behavior |
+|---|---|
+| `< 700ms` | No pose change. Use `speak_neutral` plus lipsync only. |
+| `700ms - 1.5s` | Stay in `speak_neutral`. No full gesture. Optional tiny facial motion only if already available. |
+| `1.5s - 3s` | One small entry or exit reaction only if the avatar is already on a neutral-safe frame. |
+| `3s - 6s` | One subtle speaking variation or one post-speech reaction. |
+| `6s+` | Allow sparse micro-gestures such as small nod, soft smile, brow raise, or slight gaze drift. |
+
+Important rule:
+
+```txt
+Animations must never delay or fight speech.
+```
+
+For a very short response like "Yeah", avoid:
+
+```txt
+neutral -> thinking glance -> speaking -> return neutral
+```
+
+Use:
+
+```txt
+speak_neutral + lipsync
+```
+
+For longer responses:
+
+```txt
+neutral -> speak_neutral
+while speaking: subtle loop or micro-gesture only if allowed
+speech ends -> optional settle/reaction -> neutral
+```
+
+Separate gestures into two categories:
+
+| Gesture Type | Examples | When To Use |
+|---|---|---|
+| Turn-boundary gestures | thinking, nod, smile, empathetic tilt | Before or after speech, only when enough time exists. |
+| In-speech micro motion | tiny head drift, blink, brow, slight smile | During longer TTS only, kept subtle so MuseTalk does not distort. |
+
+If TTS is streamed and the final length is unknown, start conservatively:
+
+```txt
+first 1-2 seconds: speak_neutral only
+if speech continues: allow subtle micro-motion
+when speech ends: return to neutral
+```
+
+The safest MVP:
+
+```txt
+short answer = lipsync only
+medium answer = lipsync + maybe one end reaction
+long answer = lipsync + subtle scheduled micro-motion
+```
+
 ## Clip Metadata
 
 Each clip should have metadata that lets the runtime know when and how it can be used.
@@ -371,6 +436,123 @@ Codex should inspect the current MuseTalk/WebRTC implementation and answer these
 12. What frame format and FPS does the current pipeline expect?
 13. Can a pose manifest be loaded per character?
 14. Where should pose validation run: offline asset build step, server startup, CI, or admin upload?
+
+## Codex Repository Validation
+
+This section reflects the current MuseTalk/WebRTC architecture in this repository.
+
+### Feasibility Verdict
+
+The plan is feasible if Phase 1 is scoped as:
+
+```txt
+multiple neutral-safe idle/listening/thinking/reaction MP4s
+plus one conservative MuseTalk speaking source
+plus duration-gated pose scheduling
+```
+
+This can be made smooth enough for video calls because WebRTC already uses one
+persistent video track and switches between idle playback and generated live
+frames without renegotiating the peer connection.
+
+The plan is not yet feasible as arbitrary in-speech base-pose switching unless
+each speaking pose also has prepared MuseTalk materials. MuseTalk live generation
+currently assumes one cached prepared source cycle per avatar.
+
+### Current Pipeline Answers
+
+| Question | Current Answer |
+|---|---|
+| Where does the idle loop enter WebRTC? | `api_server.py` resolves the avatar idle video during WebRTC session creation, passes it to `WebRTCSessionManager.create_session`, which constructs `SwitchableVideoStreamTrack` in `scripts/webrtc_tracks.py`. |
+| Is idle decoded once or continuously? | Continuously. `IdleVideoStreamTrack` opens the MP4 with PyAV and reads frames in a loop. It does not predecode all idle frames today. |
+| Can video sources switch without WebRTC renegotiation? | Architecturally yes, because the sender owns one persistent `SwitchableVideoStreamTrack`. The clean implementation is to swap the internal idle source or feed transition frames through that track, not replace the WebRTC sender. |
+| Does MuseTalk accept dynamic source clips? | Not in the current live path. `APIAvatar` prepares `latents.pt`, `coords.pkl`, `mask_coords.pkl`, `full_imgs/`, and `mask/` from one source video. Live generation indexes those cached cycles. |
+| How are lipsync frames produced? | Audio is converted to Whisper features, the UNet predicts face latents, VAE decodes face patches, then `compose_frame` blends each decoded face patch onto the prepared source frame cycle. |
+| Can the system know speaking duration? | Yes for uploaded audio. WebRTC `/stream` probes source audio duration with PyAV, and the scheduler computes `total_frames` from audio features. Streaming TTS should start conservative until length is known. |
+| Is there a conversation state machine? | Not a full one. The server has implicit states: idle session, active stream, playback drain, cleanup to idle. A pose state machine still needs to be added. |
+| What prevents choppy startup today? | Strict FIFO A/V release, video prebuffering, shared scheduler startup fairness, and generation-complete release for very short clips. |
+| Where should pose selection happen? | Server-side at WebRTC session/stream orchestration, near `api_server.py` and `SwitchableVideoStreamTrack`, with the app/client sending conversation state hints if needed. |
+| Where should validation run? | Offline/admin upload first. Later add CI for sample assets and startup warnings for missing or failed pose clips. |
+
+### TTS Length Support In Current Code
+
+The current WebRTC stream path already supports a wide range of audio lengths:
+
+- Short audio does not need to fill the normal prebuffer forever. When generation
+  completes, `signal_generation_complete()` can release queued frames.
+- Longer audio is converted into `total_frames` and scheduled through the shared
+  GPU scheduler in batches.
+- Playback cleanup waits for both video drain and audio EOF, using the probed
+  source duration as part of the timeout.
+
+This means TTS-duration-gated pose policy can be implemented before frame
+generation begins for uploaded audio. For streaming TTS, use a conservative
+initial speaking pose, then unlock micro-gestures only after speech continues
+past the threshold.
+
+### Choppiness Risks Specific To This Repo
+
+| Risk | Repo-Specific Reason | Mitigation |
+|---|---|---|
+| Hard cut between idle poses | The idle MP4 is decoded continuously, and a naive source swap would jump immediately. | Add a neutral-frame switcher, short crossfade, or transition-frame queue inside `SwitchableVideoStreamTrack`. |
+| Speaking frame jumps after idle pose | MuseTalk speaking frames come from the prepared source cycle, not whichever idle MP4 was just shown. | For MVP, switch back to neutral before speech. For later, prepare pose-specific MuseTalk material cycles. |
+| Gesture longer than TTS | WebRTC can play very short responses, but a gesture around them would dominate the turn. | Use the TTS gating table above. |
+| Event-loop stalls while loading MP4 | Opening/decoding a new MP4 during a call can stall if done synchronously. | Preload pose clips when the session starts, or load on a worker thread before switching. |
+| FPS/resolution mismatch | `SwitchableVideoStreamTrack` expects stable pacing and frame shape. | Validate all pose MP4s at upload and transcode to the session target if needed. |
+| Overactive avatar behavior | There is no built-in conversation-level pose scheduler yet. | Add a low-frequency state machine with cooldowns and max gestures per turn. |
+
+### Practical Architecture For Phase 1
+
+Use multiple idle MP4s first:
+
+```txt
+default neutral idle MP4
+listening idle MP4
+thinking idle MP4
+reaction MP4s that start/end neutral
+single stable MuseTalk speaking source
+```
+
+Runtime:
+
+```txt
+Idle/listening/thinking/reaction: switch internal idle MP4 on neutral-safe frames.
+Speaking: return to neutral, start MuseTalk, keep source stable.
+Speech end: drain generated frames, optionally play duration-allowed reaction, return neutral.
+```
+
+This avoids changing MuseTalk's model path while testing whether multiple idle
+poses improve perceived realism.
+
+### Later Architecture For True Speaking Poses
+
+For in-speech pose variation, add pose-specific prepared materials:
+
+```txt
+avatar_id/
+  poses/
+    speak_neutral/
+      latents.pt
+      coords.pkl
+      mask_coords.pkl
+      full_imgs/
+      mask/
+    speak_warm_nod/
+      latents.pt
+      coords.pkl
+      mask_coords.pkl
+      full_imgs/
+      mask/
+```
+
+Then cache and schedule by:
+
+```txt
+(avatar_id, pose_id)
+```
+
+This is heavier, but it is the correct path if we want lipsync generated over
+different speaking body/head cycles without visible jumps.
 
 ## Likely Gaps / Risks
 
