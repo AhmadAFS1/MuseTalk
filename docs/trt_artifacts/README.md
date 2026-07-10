@@ -1,5 +1,11 @@
 # MuseTalk TRT Artifact Bundle
 
+Detailed build, validation, visual-test, and load-test report:
+
+```text
+docs/trt_artifacts/split8_int8_artifact_run_2026-07-10.md
+```
+
 Use the existing MuseTalk S3 bucket with a dedicated prefix:
 
 ```text
