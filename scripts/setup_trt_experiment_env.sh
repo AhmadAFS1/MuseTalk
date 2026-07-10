@@ -287,7 +287,8 @@ install_modelopt_step() {
     "$package_spec" \
     "pulp<4.0" \
     "torchprofile" \
-    "onnx<1.18"
+    "onnx<1.18" \
+    "regex!=2019.12.17"
 }
 
 validate_modelopt_import_step() {

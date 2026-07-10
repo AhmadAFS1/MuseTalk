@@ -32,6 +32,9 @@ HF_MAX_WORKERS="${HF_MAX_WORKERS:-4}"
 MUSETALK_SELECT_BEST_TRT_PROFILE="${MUSETALK_SELECT_BEST_TRT_PROFILE:-1}"
 MUSETALK_TRT_PROFILE_ENV_FILE="${MUSETALK_TRT_PROFILE_ENV_FILE:-$REPO_ROOT/.runtime/musetalk_trt_best.env}"
 MUSETALK_TRT_PROFILE_PREFER="${MUSETALK_TRT_PROFILE_PREFER:-split8}"
+MUSETALK_TRT_ARTIFACT_RESTORE="${MUSETALK_TRT_ARTIFACT_RESTORE:-auto}"
+MUSETALK_TRT_ARTIFACT_STRICT="${MUSETALK_TRT_ARTIFACT_STRICT:-1}"
+MUSETALK_TRT_ARTIFACT_KEY="${MUSETALK_TRT_ARTIFACT_KEY:-trt-artifacts/rtx3090/split8-int8-current/musetalk-trt-int8-split8.tar.gz}"
 
 log() {
   printf '[%s] [%s] %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$*"
@@ -601,6 +604,47 @@ select_best_trt_profile() {
   log "⚠️  TRT profile selection failed; continuing with normal defaults"
 }
 
+restore_trt_artifacts() {
+  local restore_mode="${MUSETALK_TRT_ARTIFACT_RESTORE:-auto}"
+  case "${restore_mode,,}" in
+    0|false|no|off)
+      log "TRT artifact restore disabled (MUSETALK_TRT_ARTIFACT_RESTORE=$restore_mode)"
+      return 0
+      ;;
+  esac
+
+  local uri="${MUSETALK_TRT_ARTIFACT_URI:-}"
+  if [[ -z "$uri" && -n "${TRT_ARTIFACT_S3_BUCKET:-}" ]]; then
+    uri="s3://${TRT_ARTIFACT_S3_BUCKET}/${MUSETALK_TRT_ARTIFACT_KEY}"
+  fi
+  if [[ -z "$uri" ]]; then
+    if [[ "${restore_mode,,}" == "auto" ]]; then
+      log "TRT artifact restore skipped; set MUSETALK_TRT_ARTIFACT_URI or TRT_ARTIFACT_S3_BUCKET"
+      return 0
+    fi
+    die "TRT artifact restore requested, but MUSETALK_TRT_ARTIFACT_URI/TRT_ARTIFACT_S3_BUCKET is not set"
+  fi
+
+  local PY="$VENV_PATH/bin/python"
+  [[ -x "$PY" ]] || die "Cannot restore TRT artifacts; venv Python not found at $PY"
+  [[ -f "$REPO_ROOT/scripts/trt_artifact_bundle.py" ]] || die "TRT artifact restore script missing"
+
+  log "Restoring TRT artifact bundle from $uri"
+  local args=(--repo-root "$REPO_ROOT")
+  if env_flag_is_true "$MUSETALK_TRT_ARTIFACT_STRICT"; then
+    args+=(--strict)
+  fi
+  if (
+    cd "$REPO_ROOT"
+    "$PY" "$REPO_ROOT/scripts/trt_artifact_bundle.py" "${args[@]}" restore --uri "$uri"
+  ); then
+    log "TRT artifact restore complete"
+    return 0
+  fi
+
+  die "TRT artifact restore failed from $uri"
+}
+
 main() {
   local phase_start phase_elapsed total_elapsed
   local setup_mode="server-only"
@@ -638,6 +682,11 @@ main() {
   configure_webrtc_turn
   phase_elapsed="$(( $(date +%s) - phase_start ))"
   log "WebRTC TURN bootstrap phase finished in $(format_duration "$phase_elapsed")"
+
+  phase_start="$(date +%s)"
+  restore_trt_artifacts
+  phase_elapsed="$(( $(date +%s) - phase_start ))"
+  log "TRT artifact restore phase finished in $(format_duration "$phase_elapsed")"
 
   phase_start="$(date +%s)"
   select_best_trt_profile

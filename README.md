@@ -165,6 +165,13 @@ TRT-stagewise server is:
   - prepared avatars are stored as `avatars/<version>/<avatar_id>.tar.gz`
   - restore and upload metrics are exposed under `avatar_s3` in `GET /stats`
   - see `docs/avatar_s3_persistence.md` for IAM policy, retry knobs, and smoke testing
+- S3 TRT/INT8 artifact restore:
+  - use the same bucket with the `trt-artifacts/` prefix
+  - default object:
+    `s3://lingua-musetalk-s3-storage/trt-artifacts/rtx3090/split8-int8-current/musetalk-trt-int8-split8.tar.gz`
+  - the Vast on-start wrapper restores this bundle before TRT profile selection
+    when `MUSETALK_TRT_ARTIFACT_URI` or `TRT_ARTIFACT_S3_BUCKET` is set
+  - see `docs/trt_artifacts/README.md` for package, upload, restore, and IAM details
 - Vast runtime secrets:
   - set `MUSETALK_AWS_SECRET_ID` to the MuseTalk worker runtime secret ARN
   - the on-start wrapper sources the secret into env before starting the worker

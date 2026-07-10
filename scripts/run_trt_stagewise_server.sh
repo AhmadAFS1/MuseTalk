@@ -41,8 +41,9 @@ Profiles:
   vram_max           Alias for GPU-aware throughput defaults
 
 Default precision:
-  VAE TRT-stagewise launches with the validated five-stage INT8 ONNX/QDQ profile,
-  and UNet launches with the validated batch-8 TensorRT split runtime.
+  VAE TRT-stagewise launches with the validated five-stage INT8 ONNX/QDQ profile
+  when loaded from the generated TRT profile env. New Vast servers restore the
+  artifact bundle first, then prefer the exact batch-16 UNet TensorRT runtime.
   Set MUSETALK_TRT_STAGEWISE_PRECISION=fp16 and MUSETALK_TRT_UNET_ENABLED=0
   to opt out.
 
@@ -129,9 +130,9 @@ fi
 : "${MUSETALK_TRT_ENABLED:=1}"
 : "${MUSETALK_VAE_BACKEND:=trt_stagewise}"
 : "${MUSETALK_TRT_FALLBACK:=0}"
-: "${MUSETALK_UNET_BACKEND:=trt}"
-: "${MUSETALK_TRT_UNET_ENABLED:=1}"
-: "${MUSETALK_TRT_UNET_BUILD:=1}"
+: "${MUSETALK_UNET_BACKEND:=eager}"
+: "${MUSETALK_TRT_UNET_ENABLED:=0}"
+: "${MUSETALK_TRT_UNET_BUILD:=0}"
 : "${MUSETALK_TRT_UNET_OUTPUT_DIR:=./models/tensorrt_unet_static_bs8_20260529}"
 : "${MUSETALK_TRT_UNET_PATHS:=8:${MUSETALK_TRT_UNET_OUTPUT_DIR}/unet_trt.ts}"
 : "${MUSETALK_TRT_UNET_PATH:=}"
@@ -146,7 +147,7 @@ fi
 : "${MUSETALK_TRT_UNET_VALIDATE_REPORT_PATH:=./tmp/unet_trt_static_bs8_validation_startup.json}"
 : "${MUSETALK_TRT_STAGEWISE_TORCH_EXECUTED_OPS:=native_group_norm}"
 : "${MUSETALK_TRT_STAGEWISE_TORCH_STAGES:=}"
-: "${MUSETALK_TRT_STAGEWISE_PRECISION:=int8_mixed}"
+: "${MUSETALK_TRT_STAGEWISE_PRECISION:=fp16}"
 : "${MUSETALK_TRT_STAGEWISE_INT8_STAGES:=decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2}"
 : "${MUSETALK_TRT_STAGEWISE_WORKSPACE_GB:=2}"
 : "${MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR:=./calibration/vae_decoder}"
@@ -390,27 +391,45 @@ for token in raw_paths.split(","):
         path = repo / path
     resolved[batch] = path
 
-if 8 not in resolved:
+if not resolved:
+    raise RuntimeError("MUSETALK_TRT_UNET_PATHS did not resolve any batch paths")
+
+allowed_batches = set()
+for raw in os.getenv("HLS_SCHEDULER_FIXED_BATCH_SIZES", "").split(","):
+    raw = raw.strip()
+    if raw:
+        allowed_batches.add(int(raw))
+if not allowed_batches:
+    for raw in os.getenv("MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES", "").split(","):
+        raw = raw.strip()
+        if raw:
+            allowed_batches.add(int(raw))
+if not allowed_batches:
+    allowed_batches = set(resolved)
+
+missing_batches = sorted(batch for batch in allowed_batches if batch not in resolved)
+if missing_batches:
     raise RuntimeError(
-        "Default TRT UNet split8 startup requires a batch-8 entry in "
-        "MUSETALK_TRT_UNET_PATHS."
+        "TRT UNet startup is missing artifacts for configured scheduler batch "
+        f"sizes: {missing_batches}. Resolved batches: {sorted(resolved)}"
     )
 
-engine_path = resolved[8]
+preferred_batch = max(allowed_batches)
+engine_path = resolved[preferred_batch]
 if not engine_path.exists():
-    raise FileNotFoundError(f"TensorRT UNet split8 engine not found: {engine_path}")
+    raise FileNotFoundError(f"TensorRT UNet engine not found: {engine_path}")
 
 meta_path = engine_path.with_name("unet_trt_meta.json")
 if not meta_path.exists():
-    raise FileNotFoundError(f"TensorRT UNet split8 metadata not found: {meta_path}")
+    raise FileNotFoundError(f"TensorRT UNet metadata not found: {meta_path}")
 
 meta = json.loads(meta_path.read_text())
 validation = meta.get("validation")
 if validation and validation.get("passed") is False:
-    raise RuntimeError(f"TensorRT UNet split8 artifact failed validation: {meta_path}")
+    raise RuntimeError(f"TensorRT UNet artifact failed validation: {meta_path}")
 PY
   ) || die \
-    "TRT UNet split8 startup requires a validated batch-8 unet_trt.ts artifact. Provide models/tensorrt_unet_static_bs8_20260529/unet_trt.ts or set MUSETALK_TRT_UNET_ENABLED=0 and MUSETALK_UNET_BACKEND= to opt out."
+    "TRT UNet startup requires validated artifacts matching MUSETALK_TRT_UNET_PATHS and scheduler batches. Restore the TRT artifact bundle or set MUSETALK_TRT_UNET_ENABLED=0 and MUSETALK_UNET_BACKEND= to opt out."
 }
 
 case "$PROFILE" in

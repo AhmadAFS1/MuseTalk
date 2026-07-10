@@ -21,6 +21,7 @@ DEFAULT_REGION = "us-east-1"
 ENV_NAME_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 DEFAULT_S3_BUCKET_ENV_NAMES = (
     "AVATAR_S3_BUCKET",
+    "TRT_ARTIFACT_S3_BUCKET",
     "TTS_AUDIO_BUCKET",
     "IDLE_VIDEO_BUCKET",
     "UPLOAD_BUCKETS",
@@ -118,6 +119,21 @@ def _exports_from_payload(payload: dict[str, Any]) -> dict[str, str]:
         exports["AVATAR_S3_BUCKET"] = exports["MUSETALK_AVATAR_S3_BUCKET"]
     if "AVATAR_S3_ENABLED" not in exports and exports.get("AVATAR_S3_BUCKET"):
         exports["AVATAR_S3_ENABLED"] = "1"
+    if (
+        "TRT_ARTIFACT_S3_BUCKET" not in exports
+        and exports.get("AVATAR_S3_BUCKET")
+        and exports.get("TRT_ARTIFACT_S3_USE_AVATAR_BUCKET", "1").strip().lower()
+        in {"1", "true", "yes", "on"}
+    ):
+        exports["TRT_ARTIFACT_S3_BUCKET"] = exports["AVATAR_S3_BUCKET"]
+    if "TRT_ARTIFACT_S3_REGION" not in exports:
+        region = (
+            exports.get("AVATAR_S3_REGION")
+            or exports.get("AWS_REGION")
+            or exports.get("AWS_DEFAULT_REGION")
+        )
+        if region:
+            exports["TRT_ARTIFACT_S3_REGION"] = region
 
     if skipped:
         print(
