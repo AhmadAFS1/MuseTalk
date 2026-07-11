@@ -131,10 +131,17 @@ On boot, `scripts/vast_onstart.sh` will:
 
 1. check whether the TRT-stagewise venv and key model files already exist
 2. if missing, run `setup_musetalk.sh` with the configured `VENV_PATH`
-3. call `scripts/vast_server_ctl.sh start`
-4. wait until `http://127.0.0.1:$PORT/health` responds
+3. load the existing MuseTalk runtime secret when `MUSETALK_AWS_SECRET_ID` is set
+4. restore and checksum-verify the required batch-8 TRT/INT8 bundle from S3
+5. select the validated batch-8 runtime profile
+6. call `scripts/vast_server_ctl.sh start`
+7. wait until `http://127.0.0.1:$PORT/health` responds
 
 If the server is already running, it does not start a duplicate process.
+
+The TRT artifact restore is required by default. Set
+`MUSETALK_TRT_ARTIFACT_RESTORE=off` only for an intentionally non-TRT server.
+See `docs/trt_artifacts/README.md` for the canonical S3 URI and checksum.
 
 Important current behavior:
 

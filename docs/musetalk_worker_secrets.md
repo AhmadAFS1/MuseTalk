@@ -61,6 +61,12 @@ The bootstrap script also fills a few safe aliases:
 - `AWS_DEFAULT_REGION` from `AWS_REGION` when missing
 - `AVATAR_S3_REGION` from the AWS region when missing
 - `AVATAR_S3_ENABLED=1` when `AVATAR_S3_BUCKET` is present
+- `TRT_ARTIFACT_S3_BUCKET` from `AVATAR_S3_BUCKET` by default
+
+The existing runtime secret does not need new TRT fields. The repository pins
+the production artifact key and SHA-256, requires restore, and prefers split8.
+Add TRT fields to the secret only when deliberately overriding those repo
+defaults for a canary or rollback.
 
 ## Startup Flow
 
@@ -71,8 +77,10 @@ The bootstrap script also fills a few safe aliases:
 3. The script fetches the secret JSON from AWS Secrets Manager.
 4. It writes shell `export` statements to a temporary file with mode `0600`.
 5. `vast_onstart.sh` sources that file and deletes it immediately.
-6. The worker starts through `scripts/vast_server_ctl.sh start`.
-7. `api_server.py` registers with Lingua and starts heartbeats when the
+6. The required TRT artifact is downloaded and checksum-verified from S3.
+7. The validated batch-8 split8 profile is selected.
+8. The worker starts through `scripts/vast_server_ctl.sh start`.
+9. `api_server.py` registers with Lingua and starts heartbeats when the
    `LINGUA_*` env vars are present.
 
 The bootstrap logs env var names only. It never prints raw secret values.
@@ -140,6 +148,12 @@ This includes the avatar asset bucket required for prepared avatar persistence.
         "arn:aws:s3:::lingua-blob-storage/*",
         "arn:aws:s3:::linguaprofilepics/*"
       ]
+    },
+    {
+      "Sid": "ReadTRTArtifacts",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::lingua-musetalk-s3-storage/trt-artifacts/*"
     }
   ]
 }

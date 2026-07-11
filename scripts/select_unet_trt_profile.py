@@ -129,14 +129,15 @@ def build_profile(args: argparse.Namespace) -> tuple[dict[str, str], list[str]]:
     if bs8_valid:
         values.update(
             {
-                "MUSETALK_TRT_PROFILE_NAME": "unet_trt_split8_safe5_int8_20260704",
-                "MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES": "8,16",
-                "HLS_SCHEDULER_MAX_BATCH": "16",
-                "HLS_SCHEDULER_FIXED_BATCH_SIZES": "8,16",
+                "MUSETALK_TRT_PROFILE_NAME": "unet_trt_split8_safe5_int8_20260710",
+                "MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES": "8",
+                "HLS_SCHEDULER_MAX_BATCH": "8",
+                "HLS_SCHEDULER_FIXED_BATCH_SIZES": "8",
+                "HLS_SCHEDULER_STARTUP_SLICE_SIZE": "8",
                 "MUSETALK_TRT_UNET_PATHS": "8:" + _relative(bs8_dir / "unet_trt.ts", root),
             }
         )
-        notes.append("selected: split batch-8 fallback")
+        notes.append("selected: validated static batch-8 split8 profile")
         return values, notes
 
     raise SystemExit(
@@ -156,7 +157,7 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=root / ".runtime" / "musetalk_trt_best.env",
     )
-    parser.add_argument("--bs8-dir", default="models/tensorrt_unet_static_bs8_20260704")
+    parser.add_argument("--bs8-dir", default="models/tensorrt_unet_static_bs8_20260529")
     parser.add_argument("--bs16-dir", default="models/tensorrt_unet_static_bs16_20260704")
     parser.add_argument(
         "--prefer",

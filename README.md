@@ -168,9 +168,13 @@ TRT-stagewise server is:
 - S3 TRT/INT8 artifact restore:
   - use the same bucket with the `trt-artifacts/` prefix
   - default object:
-    `s3://lingua-musetalk-s3-storage/trt-artifacts/rtx3090/split8-int8-current/musetalk-trt-int8-split8.tar.gz`
+    `s3://lingua-musetalk-s3-storage/trt-artifacts/rtx3090/split8-int8/sha256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18/musetalk-trt-int8-split8.tar.gz`
+  - pinned bundle SHA-256:
+    `851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18`
   - the Vast on-start wrapper restores this bundle before TRT profile selection
     when `MUSETALK_TRT_ARTIFACT_URI` or `TRT_ARTIFACT_S3_BUCKET` is set
+  - restore is required by default and startup fails before launch when the
+    object, permission, or checksum is wrong
   - see `docs/trt_artifacts/README.md` for package, upload, restore, and IAM details
 - Vast runtime secrets:
   - set `MUSETALK_AWS_SECRET_ID` to the MuseTalk worker runtime secret ARN
@@ -198,11 +202,11 @@ Important note:
   the baseline path
 - the launcher now targets the validated optimized path by default: five-stage
   VAE INT8 ONNX/QDQ plus TRT UNet split8
-- the TRT UNet split8 path builds
-  `models/tensorrt_unet_static_bs8_20260529/unet_trt.ts` at startup when it is
-  missing, using `calibration/unet_static_8_16_20260529_1545`
-- startup fails if that capture corpus is missing so we do not silently serve
-  with PyTorch UNet
+- Vast startup restores the validated split8 bundle from S3 before selecting
+  `models/tensorrt_unet_static_bs8_20260529/unet_trt.ts`
+- startup fails if the S3 object, archive checksum, internal manifest, VAE INT8
+  cache, or validated UNet artifact is missing; it does not silently rebuild or
+  serve with PyTorch UNet
 - set `MUSETALK_TRT_STAGEWISE_PRECISION=fp16`, `MUSETALK_TRT_UNET_ENABLED=0`,
   and clear `MUSETALK_UNET_BACKEND` only when you deliberately need rollback
 - the Vast boot wrapper now defaults to `throughput_record` when `PROFILE` is

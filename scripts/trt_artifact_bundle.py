@@ -32,10 +32,7 @@ DEFAULT_REQUIRED_DIRS = (
     "calibration/vae_decoder",
     "models/tensorrt/stagewise_int8_onnx_qdq_cache",
 )
-DEFAULT_OPTIONAL_PATHS = (
-    "models/tensorrt_unet_static_bs16_20260704/unet_trt.ts",
-    "models/tensorrt_unet_static_bs16_20260704/unet_trt_meta.json",
-)
+DEFAULT_OPTIONAL_PATHS: tuple[str, ...] = ()
 
 
 def _repo_root() -> Path:
@@ -242,27 +239,48 @@ def upload_bundle(args: argparse.Namespace) -> int:
     return 0
 
 
-def _download_to_temp(uri: str) -> Path:
+def _download_to_temp(uri: str) -> tuple[Path, str | None]:
     parsed = urlparse(uri)
     suffix = ".tar.gz"
     fd, raw_path = tempfile.mkstemp(prefix="musetalk-trt-artifact-", suffix=suffix)
     os.close(fd)
     path = Path(raw_path)
+    remote_sha256 = None
     if parsed.scheme == "s3":
         bucket, key = _parse_s3_uri(uri)
-        _s3_client().download_file(bucket, key, str(path))
+        client = _s3_client()
+        head = client.head_object(Bucket=bucket, Key=key)
+        remote_sha256 = head.get("Metadata", {}).get("sha256")
+        client.download_file(bucket, key, str(path))
     elif parsed.scheme in {"", "file"}:
         source = Path(parsed.path if parsed.scheme == "file" else uri).expanduser()
         shutil.copyfile(source, path)
     else:
         raise ValueError(f"Unsupported artifact URI scheme: {parsed.scheme}")
-    return path
+    return path, remote_sha256
 
 
 def restore_bundle(args: argparse.Namespace) -> int:
     root = args.repo_root.resolve()
-    archive_path = _download_to_temp(args.uri)
+    archive_path, remote_sha256 = _download_to_temp(args.uri)
     try:
+        actual_sha256 = _sha256(archive_path)
+        expected_sha256 = (
+            args.expected_sha256
+            or os.getenv("MUSETALK_TRT_ARTIFACT_SHA256", "").strip()
+            or None
+        )
+        for label, digest in (
+            ("expected", expected_sha256),
+            ("S3 metadata", remote_sha256),
+        ):
+            if digest and actual_sha256.lower() != digest.lower():
+                raise RuntimeError(
+                    f"TRT artifact archive SHA256 mismatch ({label}): "
+                    f"expected {digest}, got {actual_sha256}"
+                )
+        print(f"Verified TRT artifact archive SHA256: {actual_sha256}")
+
         with tarfile.open(archive_path, "r:gz") as archive:
             for member in archive.getmembers():
                 member_path = PurePosixPath(member.name)
@@ -328,6 +346,13 @@ def parse_args() -> argparse.Namespace:
 
     restore = subparsers.add_parser("restore", help="Restore a bundle from S3 or a local file.")
     restore.add_argument("--uri", required=True)
+    restore.add_argument(
+        "--expected-sha256",
+        help=(
+            "Expected archive SHA256. Defaults to "
+            "MUSETALK_TRT_ARTIFACT_SHA256 when set."
+        ),
+    )
 
     subparsers.add_parser("verify", help="Verify the restored manifest/checksums.")
     return parser.parse_args()

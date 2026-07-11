@@ -270,7 +270,7 @@ Including startup/warm and non-target phases in the same log lowers the blended
 mean. For reporting this artifact, use the target steady-state range rather
 than the mixed-log aggregate.
 
-## S3 Status
+## S3 Publication - Completed 2026-07-11
 
 The S3 target prefix is:
 
@@ -287,14 +287,81 @@ Upload command:
   --s3-uri s3://lingua-musetalk-s3-storage/trt-artifacts/rtx3090/split8-int8-current/musetalk-trt-int8-split8.tar.gz
 ```
 
-Upload was not completed from this shell because no AWS credentials were
-available to the process:
+The bundle was uploaded successfully with the dedicated IAM user
+`musetalkTRTartifactUpload`. No credential value was printed or committed.
+The downloaded access-key CSV was restricted to mode `0600` before use.
+
+Published object:
 
 ```text
-ERROR: Unable to locate credentials
+s3://lingua-musetalk-s3-storage/trt-artifacts/rtx3090/split8-int8-current/musetalk-trt-int8-split8.tar.gz
+remote size: 1,810,678,414 bytes
+bundle sha256: 851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18
+multipart ETag observed after upload: a6dffcf7d352b9117c3f5e1b7e2e5549-216
 ```
 
-We did not store pasted AWS secret values in the repo or reuse them in commands.
+After verification, the same object was copied within S3 to the immutable
+production key. S3 preserved its size and SHA-256 metadata:
+
+```text
+s3://lingua-musetalk-s3-storage/trt-artifacts/rtx3090/split8-int8/sha256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18/musetalk-trt-int8-split8.tar.gz
+```
+
+The `split8-int8-current` object remains available as a mutable alias, but new
+servers use the checksum-addressed object.
+
+The multipart ETag is not a SHA-256 checksum and must not be used as the
+artifact identity. The uploader stores the SHA-256 in S3 object metadata, and
+startup also pins the expected SHA-256 independently.
+
+Post-upload verification downloaded the object into a clean temporary repo
+root, extracted it, and ran strict manifest verification:
+
+```text
+remote HEAD: passed
+clean S3 restore: passed
+archive SHA-256: passed
+manifest verification: passed
+files verified: 49
+temporary restore directory removed after verification: yes
+```
+
+### IAM setup used for publication
+
+A dedicated IAM user was created instead of using root credentials. Its policy
+is limited to this bucket prefix:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListArtifactPrefix",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::lingua-musetalk-s3-storage",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": ["trt-artifacts/*"]
+        }
+      }
+    },
+    {
+      "Sid": "ManageTRTArtifacts",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:GetObject"],
+      "Resource": "arn:aws:s3:::lingua-musetalk-s3-storage/trt-artifacts/*"
+    }
+  ]
+}
+```
+
+`s3:HeadObject` was intentionally omitted because it is not a valid IAM
+action. S3 metadata reads are authorized by `s3:GetObject`.
+
+AWS only displays an IAM secret access key once, when the access key is
+created. The downloaded CSV must remain outside Git, be mode `0600` while in
+use, and be deleted after the key is transferred to the approved secret store.
 
 ## Startup Restore
 
@@ -304,25 +371,146 @@ Startup restore is wired through `scripts/vast_onstart.sh` and
 Preferred automatic restore variable:
 
 ```bash
-MUSETALK_TRT_ARTIFACT_URI=s3://lingua-musetalk-s3-storage/trt-artifacts/rtx3090/split8-int8-current/musetalk-trt-int8-split8.tar.gz
+MUSETALK_TRT_ARTIFACT_URI=s3://lingua-musetalk-s3-storage/trt-artifacts/rtx3090/split8-int8/sha256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18/musetalk-trt-int8-split8.tar.gz
+MUSETALK_TRT_ARTIFACT_SHA256=851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18
+MUSETALK_TRT_ARTIFACT_RESTORE=required
+MUSETALK_TRT_ARTIFACT_STRICT=1
 ```
 
 Equivalent bucket/key variables:
 
 ```bash
 TRT_ARTIFACT_S3_BUCKET=lingua-musetalk-s3-storage
-MUSETALK_TRT_ARTIFACT_KEY=trt-artifacts/rtx3090/split8-int8-current/musetalk-trt-int8-split8.tar.gz
+MUSETALK_TRT_ARTIFACT_KEY=trt-artifacts/rtx3090/split8-int8/sha256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18/musetalk-trt-int8-split8.tar.gz
+MUSETALK_TRT_ARTIFACT_SHA256=851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18
+MUSETALK_TRT_ARTIFACT_RESTORE=required
+MUSETALK_TRT_ARTIFACT_STRICT=1
 ```
 
 Runtime servers need `s3:GetObject` for the object. Builder/upload servers need
 `s3:PutObject` for the `trt-artifacts/*` prefix. If SSE-KMS is used, runtime
 servers also need `kms:Decrypt`.
 
+## Reuse On Every New MuseTalk Server
+
+The recommended design has three credential and artifact boundaries:
+
+1. The publisher IAM user is used only when a validated bundle is uploaded.
+2. The Vast bootstrap credential can only read the MuseTalk runtime secret.
+3. The S3 runtime credential inside that secret can read the TRT artifact and
+   access the other buckets required by the worker.
+
+No runtime-secret content change is required when the existing secret already
+contains `AVATAR_S3_BUCKET=lingua-musetalk-s3-storage`: bootstrap derives the
+TRT bucket, while the repo pins the key, SHA-256, required mode, and split8
+preference. For a deliberate canary or rollback, these optional secret
+overrides are available:
+
+```json
+{
+  "TRT_ARTIFACT_S3_BUCKET": "lingua-musetalk-s3-storage",
+  "MUSETALK_TRT_ARTIFACT_KEY": "trt-artifacts/rtx3090/split8-int8/sha256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18/musetalk-trt-int8-split8.tar.gz",
+  "MUSETALK_TRT_ARTIFACT_SHA256": "851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18",
+  "MUSETALK_TRT_ARTIFACT_RESTORE": "required",
+  "MUSETALK_TRT_ARTIFACT_STRICT": "1",
+  "MUSETALK_TRT_PROFILE_PREFER": "split8"
+}
+```
+
+The runtime IAM policy must include:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "s3:GetObject",
+  "Resource": "arn:aws:s3:::lingua-musetalk-s3-storage/trt-artifacts/*"
+}
+```
+
+The Vast template continues to provide only the secret-reader bootstrap
+variables documented in `docs/musetalk_worker_secrets.md`. Do not put the S3
+runtime key or the artifact publisher key directly in the startup script.
+
+On boot, `scripts/vast_onstart.sh` performs this sequence:
+
+1. Clone the repository and create/validate the Python environment.
+2. Fetch and source the runtime secret.
+3. Download the TRT bundle from S3.
+4. Verify the whole archive against `MUSETALK_TRT_ARTIFACT_SHA256` and the
+   SHA-256 stored in S3 metadata.
+5. Safely extract the archive and verify all 49 manifest entries.
+6. Select the split8 profile.
+7. Start the API server and wait for health.
+
+Any missing object, denied S3 request, archive checksum mismatch, unsafe tar
+path, missing required artifact, or file checksum mismatch terminates startup
+before the API server launches.
+
+The selector uses the restored `models/tensorrt_unet_static_bs8_20260529`
+directory and emits fixed/max/startup/warmup batch 8. The published VAE INT8
+cache contains batch-8 engines only, so advertising or warming batch 16 would
+cause a cache/build mismatch and is intentionally rejected until a separate
+batch-16 artifact passes validation.
+
+Restore mode now defaults to `required` in the Vast wrapper. A deliberately
+non-TRT server must opt out explicitly with
+`MUSETALK_TRT_ARTIFACT_RESTORE=off`; missing configuration is no longer a
+silent fallback.
+
+For a new server, the intended Vast launch remains:
+
+```bash
+SETUP_CLEAN=1 \
+SETUP_FULL_STACK=1 \
+STARTUP_TIMEOUT_SECONDS=1800 \
+PROFILE=throughput_record \
+PORT=8000 \
+bash scripts/vast_onstart.sh
+```
+
+After startup, verify:
+
+```bash
+curl --fail http://127.0.0.1:8000/health
+curl --fail http://127.0.0.1:8000/stats
+```
+
+The bootstrap log should contain `TRT artifact restore complete` before the
+profile-selection and server-start phases.
+
+## Publishing A Future Artifact
+
+Do not overwrite the production key until the new artifact has passed numeric,
+visual, load, and clean-restore testing. Prefer publishing each future bundle
+under a versioned or checksum-addressed key first. Update the runtime secret's
+key and SHA-256 together, start one canary server, and only then roll the change
+to other servers. Keeping the previous key and checksum provides an immediate
+rollback.
+
+TensorRT engines are not universally portable. Reuse this bundle only on the
+validated compatibility class: RTX 3090/Ampere-compatible GPU, the documented
+CUDA/TensorRT/Torch-TensorRT stack, and the exact batch-8 input shapes. A server
+with a different GPU architecture or materially different TensorRT runtime
+should use an artifact built and validated for that class.
+
+The engine is not tied to an avatar. Avatar identity, idle-video pixels,
+bounding boxes, hair, clothing, background, and audio are runtime inputs rather
+than constants embedded in the engine. It should therefore work with different
+prepared idle videos that satisfy the same preprocessing and tensor-shape
+contract. Visual validation in this run covered one avatar, so two or three
+additional representative avatars remain prudent release smoke coverage.
+
+The high backend FPS is primarily the GPU TensorRT result. CPU performance can
+affect preprocessing, composition, encoding, WebRTC delivery, and whether the
+GPU remains fed, but the measured UNet and VAE timings were GPU-stage timings.
+Do not report the 20 FPS encoded playback stream as the backend throughput, or
+attribute the roughly 94-97 aggregate backend FPS primarily to the CPU.
+
 ## Should We Build Batch 16?
 
-Recommendation: not as the next default target. It is worth testing as a
-separate experiment only after the batch-8 artifact is uploaded to S3 and the
-new-server restore path is proven.
+Recommendation: keep batch 8 as the production default. Now that its S3 and
+clean-restore path is proven, batch 16 is reasonable only as a separate
+experiment with its own artifact family and acceptance tests.
 
 Reasons:
 
@@ -358,3 +546,56 @@ no TensorRT OOM or context allocation failures
 
 Until that experiment passes, production/new-server default should remain the
 batch-8 split8 artifact.
+
+## Startup Alignment Audit - 2026-07-11
+
+The complete fresh-server chain was reviewed after S3 publication. Two runtime
+misalignments were found and corrected:
+
+1. The profile selector looked for a `20260704` batch-8 directory, while the
+   published bundle restores the validated `20260529` directory.
+2. The selector advertised and warmed batches `8,16`, while the published VAE
+   ONNX/QDQ cache contains only the ten batch-8 ONNX/plan files.
+
+The selector now points to the restored `20260529` engine and emits batch 8 for
+UNet paths, VAE warmup, scheduler maximum, fixed buckets, and startup slice.
+Profile selection now fails closed instead of continuing with normal defaults.
+The launcher help text was corrected and `--validate-only` was added for
+non-disruptive dependency/artifact checks.
+
+Validation completed on the RTX 3090 server:
+
+```text
+canonical immutable S3 object: present
+remote size and SHA-256 metadata: matched
+clean canonical S3 restore: passed
+archive SHA-256 verification: passed
+49-file manifest verification: passed
+wrong archive SHA-256 rejection before extraction: passed
+existing-secret bucket alias test: passed
+profile selector path/batch alignment test: passed
+launcher --validate-only: passed
+shell syntax checks: passed
+Python compilation checks: passed
+unit tests: 15 passed
+live /health: healthy, GPU available
+```
+
+The live process was inspected without exposing secrets and matched the target:
+
+```text
+VAE backend: trt_stagewise
+VAE precision/frontend: int8_mixed / onnx_qdq
+VAE warmup/cache batch: 8
+UNet backend: trt
+UNet path: 8:models/tensorrt_unet_static_bs8_20260529/unet_trt.ts
+scheduler max/fixed/startup: 8 / 8 / 8
+TRT fallback: disabled
+```
+
+One external prerequisite cannot be proven from repository tests: the IAM user
+whose credentials are already stored in the runtime secret must have
+`s3:GetObject` on
+`arn:aws:s3:::lingua-musetalk-s3-storage/trt-artifacts/*`. The dedicated
+publisher credential proves the object exists, but it is intentionally not the
+credential used by normal workers.

@@ -18,6 +18,7 @@ VENV_PATH="${VENV_PATH:-$WORKSPACE_ROOT/.venvs/musetalk_trt_stagewise}"
 HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 PROFILE="${PROFILE:-baseline}"
+VALIDATE_ONLY=0
 
 log() {
   printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
@@ -43,7 +44,8 @@ Profiles:
 Default precision:
   VAE TRT-stagewise launches with the validated five-stage INT8 ONNX/QDQ profile
   when loaded from the generated TRT profile env. New Vast servers restore the
-  artifact bundle first, then prefer the exact batch-16 UNet TensorRT runtime.
+  artifact bundle first, then select the static batch-8 FP16 UNet TensorRT
+  runtime with the batch-8 VAE INT8 cache.
   Set MUSETALK_TRT_STAGEWISE_PRECISION=fp16 and MUSETALK_TRT_UNET_ENABLED=0
   to opt out.
 
@@ -53,6 +55,7 @@ Options:
   --port PORT        Bind port (default: $PORT)
   --venv-path PATH   Python venv path (default: $VENV_PATH)
   --repo-root PATH   MuseTalk repo root (default: $REPO_ROOT)
+  --validate-only    Validate dependencies/artifacts without starting the API
   --help             Show this help text
 
 Examples:
@@ -88,6 +91,10 @@ while [[ $# -gt 0 ]]; do
       [[ $# -ge 2 ]] || die "--repo-root requires a value"
       REPO_ROOT="$2"
       shift 2
+      ;;
+    --validate-only)
+      VALIDATE_ONLY=1
+      shift
       ;;
     --help|-h)
       usage
@@ -564,6 +571,11 @@ log "WEBRTC_SYNC_MODE=$WEBRTC_SYNC_MODE"
 log "WEBRTC_VIDEO_PREBUFFER_SECONDS=$WEBRTC_VIDEO_PREBUFFER_SECONDS"
 log "WEBRTC_ADAPTIVE_FPS=$WEBRTC_ADAPTIVE_FPS"
 log "PYTHONFAULTHANDLER=$PYTHONFAULTHANDLER PYTHONUNBUFFERED=$PYTHONUNBUFFERED"
+
+if (( VALIDATE_ONLY )); then
+  log "Validation-only checks passed; API server was not started"
+  exit 0
+fi
 
 cd "$REPO_ROOT"
 

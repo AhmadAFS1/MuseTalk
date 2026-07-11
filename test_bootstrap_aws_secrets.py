@@ -32,6 +32,11 @@ class BootstrapAwsSecretsTest(unittest.TestCase):
         self.assertEqual(exports["AWS_REGION"], "us-east-1")
         self.assertEqual(exports["AVATAR_S3_REGION"], "us-east-1")
         self.assertEqual(exports["AVATAR_S3_ENABLED"], "1")
+        self.assertEqual(
+            exports["TRT_ARTIFACT_S3_BUCKET"],
+            "lingua-musetalk-s3-storage",
+        )
+        self.assertEqual(exports["TRT_ARTIFACT_S3_REGION"], "us-east-1")
         self.assertEqual(exports["LINGUA_WORKER_DEFAULT_CAPACITY"], "1")
         self.assertNotIn("invalid-name", exports)
         self.assertNotIn("OPTIONAL_NONE", exports)

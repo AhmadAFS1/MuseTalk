@@ -32,9 +32,10 @@ HF_MAX_WORKERS="${HF_MAX_WORKERS:-4}"
 MUSETALK_SELECT_BEST_TRT_PROFILE="${MUSETALK_SELECT_BEST_TRT_PROFILE:-1}"
 MUSETALK_TRT_PROFILE_ENV_FILE="${MUSETALK_TRT_PROFILE_ENV_FILE:-$REPO_ROOT/.runtime/musetalk_trt_best.env}"
 MUSETALK_TRT_PROFILE_PREFER="${MUSETALK_TRT_PROFILE_PREFER:-split8}"
-MUSETALK_TRT_ARTIFACT_RESTORE="${MUSETALK_TRT_ARTIFACT_RESTORE:-auto}"
+MUSETALK_TRT_ARTIFACT_RESTORE="${MUSETALK_TRT_ARTIFACT_RESTORE:-required}"
 MUSETALK_TRT_ARTIFACT_STRICT="${MUSETALK_TRT_ARTIFACT_STRICT:-1}"
-MUSETALK_TRT_ARTIFACT_KEY="${MUSETALK_TRT_ARTIFACT_KEY:-trt-artifacts/rtx3090/split8-int8-current/musetalk-trt-int8-split8.tar.gz}"
+MUSETALK_TRT_ARTIFACT_KEY="${MUSETALK_TRT_ARTIFACT_KEY:-trt-artifacts/rtx3090/split8-int8/sha256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18/musetalk-trt-int8-split8.tar.gz}"
+MUSETALK_TRT_ARTIFACT_SHA256="${MUSETALK_TRT_ARTIFACT_SHA256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18}"
 
 log() {
   printf '[%s] [%s] %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$*"
@@ -577,12 +578,10 @@ select_best_trt_profile() {
 
   local PY="$VENV_PATH/bin/python"
   if [[ ! -x "$PY" ]]; then
-    log "TRT profile selection skipped; venv Python not found at $PY"
-    return 0
+    die "Cannot select TRT profile; venv Python not found at $PY"
   fi
   if [[ ! -f "$REPO_ROOT/scripts/select_unet_trt_profile.py" ]]; then
-    log "TRT profile selection skipped; selector script is missing"
-    return 0
+    die "Cannot select TRT profile; selector script is missing"
   fi
 
   log "Selecting best validated TRT profile"
@@ -590,18 +589,17 @@ select_best_trt_profile() {
     cd "$REPO_ROOT"
     "$PY" "$REPO_ROOT/scripts/select_unet_trt_profile.py" \
       --output "$MUSETALK_TRT_PROFILE_ENV_FILE" \
-      --prefer "$MUSETALK_TRT_PROFILE_PREFER" \
-      --allow-missing
+      --prefer "$MUSETALK_TRT_PROFILE_PREFER"
   ); then
     if [[ -f "$MUSETALK_TRT_PROFILE_ENV_FILE" ]]; then
       log "TRT profile env ready at $MUSETALK_TRT_PROFILE_ENV_FILE"
     else
-      log "No validated TRT profile env generated; server will use normal defaults"
+      die "TRT selector completed without creating $MUSETALK_TRT_PROFILE_ENV_FILE"
     fi
     return 0
   fi
 
-  log "⚠️  TRT profile selection failed; continuing with normal defaults"
+  die "TRT profile selection failed; restored artifacts are missing or invalid"
 }
 
 restore_trt_artifacts() {
@@ -634,9 +632,14 @@ restore_trt_artifacts() {
   if env_flag_is_true "$MUSETALK_TRT_ARTIFACT_STRICT"; then
     args+=(--strict)
   fi
+  if [[ -n "$MUSETALK_TRT_ARTIFACT_SHA256" ]]; then
+    args+=(restore --uri "$uri" --expected-sha256 "$MUSETALK_TRT_ARTIFACT_SHA256")
+  else
+    args+=(restore --uri "$uri")
+  fi
   if (
     cd "$REPO_ROOT"
-    "$PY" "$REPO_ROOT/scripts/trt_artifact_bundle.py" "${args[@]}" restore --uri "$uri"
+    "$PY" "$REPO_ROOT/scripts/trt_artifact_bundle.py" "${args[@]}"
   ); then
     log "TRT artifact restore complete"
     return 0
