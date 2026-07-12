@@ -536,8 +536,8 @@ def generate_kling_motion(
         )
 
     payload = {
-        "image": still_url,
-        "input_video": motion_reference_video_url or os.getenv("KLING_2_6_MOTION_INPUT_VIDEO_URL"),
+        "image_url": still_url,
+        "video_url": motion_reference_video_url or os.getenv("KLING_2_6_MOTION_INPUT_VIDEO_URL"),
         "prompt": motion_prompt
         or os.getenv(
             "KLING_MOTION_PROMPT",
@@ -550,7 +550,7 @@ def generate_kling_motion(
     timeout = _env_float("KLING_2_6_MOTION_TIMEOUT_SECONDS", 1200.0)
     response = requests.post(
         os.getenv("KLING_2_6_MOTION_API_URL", "https://api.segmind.com/v1/kling-2.6-pro-motion-control"),
-        headers={"x-api-key": api_key, "Authorization": f"Bearer {api_key}"},
+        headers={"x-api-key": api_key},
         json=payload,
         timeout=timeout,
     )

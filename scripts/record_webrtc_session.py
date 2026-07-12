@@ -72,6 +72,47 @@ async def consume_audio_track(track, stop_event: asyncio.Event) -> None:
         pass
 
 
+def parse_pose_schedule(value: str) -> list[tuple[float, str]]:
+    schedule = []
+    for item in (value or "").split(","):
+        item = item.strip()
+        if not item:
+            continue
+        delay_text, pose_id = item.split(":", 1)
+        schedule.append((max(0.0, float(delay_text)), pose_id.strip()))
+    return sorted(schedule)
+
+
+async def switch_live_poses(
+    http,
+    base_url: str,
+    session_id: str,
+    schedule: list[tuple[float, str]],
+    results: list[dict],
+) -> None:
+    started_at = time.monotonic()
+    for delay_seconds, pose_id in schedule:
+        await asyncio.sleep(max(0.0, delay_seconds - (time.monotonic() - started_at)))
+        async with http.post(
+            f"{base_url}/webrtc/sessions/{session_id}/live-pose/{pose_id}"
+        ) as resp:
+            body = await resp.text()
+            result = {"at_seconds": round(time.monotonic() - started_at, 3), "pose_id": pose_id, "status": resp.status}
+            if resp.status == 200:
+                result["response"] = await _json_or_text(body)
+            else:
+                result["error"] = body[:500]
+            results.append(result)
+
+
+async def _json_or_text(body: str):
+    try:
+        import json
+        return json.loads(body)
+    except Exception:
+        return body[:500]
+
+
 async def record_once(args: argparse.Namespace) -> dict:
     timeout = aiohttp.ClientTimeout(total=max(300, args.completion_timeout + 60))
     metrics = SessionMetrics()
@@ -82,6 +123,8 @@ async def record_once(args: argparse.Namespace) -> dict:
     stop_event = asyncio.Event()
     counters = {"video_frames_written": 0}
     consumer_tasks: list[asyncio.Task] = []
+    pose_switch_task = None
+    pose_switch_results: list[dict] = []
     started_at = time.monotonic()
 
     async with aiohttp.ClientSession(timeout=timeout) as http:
@@ -91,6 +134,8 @@ async def record_once(args: argparse.Namespace) -> dict:
             "playback_fps": args.playback_fps,
             "batch_size": args.batch_size,
             "chunk_duration": max(1, int(round(args.segment_duration))),
+            "idle_pose_id": args.idle_pose_id,
+            "live_pose_id": args.live_pose_id,
         }
         async with http.post(
             f"{args.base_url}/webrtc/sessions/create?{urlencode(create_params)}"
@@ -181,6 +226,15 @@ async def record_once(args: argparse.Namespace) -> dict:
                         body = await resp.text()
                         raise RuntimeError(f"stream failed: {resp.status} {body[:300]}")
             record_event.set()
+            pose_switch_task = asyncio.create_task(
+                switch_live_poses(
+                    http,
+                    args.base_url,
+                    sid,
+                    parse_pose_schedule(args.pose_schedule),
+                    pose_switch_results,
+                )
+            )
 
             live_ready = False
             stream_started_at = time.monotonic()
@@ -199,6 +253,10 @@ async def record_once(args: argparse.Namespace) -> dict:
                     break
 
             stop_event.set()
+            if pose_switch_task is not None:
+                pose_switch_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await pose_switch_task
             for task in consumer_tasks:
                 task.cancel()
             for task in consumer_tasks:
@@ -214,9 +272,14 @@ async def record_once(args: argparse.Namespace) -> dict:
                 "video_stats": video_stats,
                 "audio_stats": audio_stats,
                 "sync_stats": sync_stats,
+                "pose_switches": pose_switch_results,
             }
         finally:
             stop_event.set()
+            if pose_switch_task is not None:
+                pose_switch_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await pose_switch_task
             for task in consumer_tasks:
                 task.cancel()
             if pc is not None:
@@ -237,6 +300,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--playback-fps", type=int, default=20)
     parser.add_argument("--musetalk-fps", type=int, default=20)
     parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--idle-pose-id", default="default")
+    parser.add_argument("--live-pose-id", default="default")
+    parser.add_argument(
+        "--pose-schedule",
+        default="0.5:speaking_direct,3.0:light_smile,5.0:speaking_direct,7.0:default",
+        help="Comma-separated absolute seconds and live pose IDs.",
+    )
     parser.add_argument("--ice-gather-timeout", type=float, default=10.0)
     parser.add_argument("--connection-timeout", type=float, default=60.0)
     parser.add_argument("--completion-timeout", type=float, default=240.0)

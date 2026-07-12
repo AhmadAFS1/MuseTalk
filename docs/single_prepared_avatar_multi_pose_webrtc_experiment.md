@@ -255,3 +255,51 @@ The session status response exposes `live_pose_id` and `live_pose_router`
 diagnostics, including available poses, decoder activity, frame mapping, seeks,
 and failures. A decode failure automatically falls back to the prepared neutral
 background for the affected frames.
+
+## Real Test Result: 2026-07-12
+
+The first end-to-end test used the source image
+`assets/landing_sample_recent_avatar_eng_60s_preview.jpg`, the generated
+three-pose assets under `generated/segmind_pose_test/ab0eb7318f8f/`, and
+`data/audio/yongen.wav`.
+
+Only `neutral_resting.mp4` was prepared. `light_smile.mp4` and
+`speaking_direct.mp4` were attached as idle/live pose MP4s without creating
+additional prepared materials.
+
+The real WebRTC schedule was:
+
+```text
+default -> speaking_direct -> light_smile -> speaking_direct -> default
+```
+
+All four live pose switches returned HTTP 200 while the stream was active. The
+session recorded 103 frames, generated 80 live frames, had no dropped video
+frames, and had no video stalls. Average GPU batch time was about 96 ms, with
+about 30 ms UNet, 58 ms VAE, and 50 ms composition time. The neutral avatar
+cache reported approximately 1.07 GB, confirming that no additional prepared
+pose bundles were loaded.
+
+Visual inspection:
+
+- The neutral-only baseline was clean and lipsync behaved normally.
+- The alternate live backgrounds produced visible mouth motion and preserved
+  the broad avatar identity.
+- `light_smile` and `speaking_direct` introduced noticeable face/mask drift at
+  the cheeks and jaw because the neutral geometry was reused while the head
+  angle changed.
+- Pose changes were functional but visibly abrupt; the current route does not
+  yet provide a visual-quality pass for production use.
+
+Evidence files:
+
+- `generated/segmind_pose_test/ab0eb7318f8f/webrtc_neutral_baseline.mp4`
+- `generated/segmind_pose_test/ab0eb7318f8f/webrtc_pose_transition_test.mp4`
+- `generated/segmind_pose_test/ab0eb7318f8f/webrtc_baseline_contact_sheet.jpg`
+- `generated/segmind_pose_test/ab0eb7318f8f/webrtc_contact_sheet.jpg`
+- `generated/segmind_pose_test/ab0eb7318f8f/face_transition_sheet.jpg`
+
+Conclusion: the low-memory routing hypothesis is technically valid, but the
+first visual experiment does not pass the smoothness criterion. The next
+technical step should be lightweight per-pose face geometry or alignment
+calibration, not additional prepared latent cycles.

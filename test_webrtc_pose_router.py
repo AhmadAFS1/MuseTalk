@@ -7,11 +7,13 @@ import numpy as np
 from scripts.webrtc_pose_router import LivePoseVideoRouter
 
 try:
-    from musetalk.utils.blending import prepare_image_blending_plan
-    from scripts.api_avatar import APIAvatar
+    from musetalk.utils.blending import (
+        get_image_blending_with_plan,
+        prepare_image_blending_plan,
+    )
 except ModuleNotFoundError:
+    get_image_blending_with_plan = None
     prepare_image_blending_plan = None
-    APIAvatar = None
 
 
 class FakeDecoder:
@@ -110,35 +112,28 @@ class LivePoseVideoRouterTest(unittest.TestCase):
         self.assertTrue(decoder.closed)
 
 
-@unittest.skipIf(APIAvatar is None, "full MuseTalk image dependencies are not installed")
+@unittest.skipIf(
+    get_image_blending_with_plan is None,
+    "full MuseTalk image dependencies are not installed",
+)
 class AlternateBackgroundCompositionTest(unittest.TestCase):
     def test_compose_frame_uses_alternate_background(self):
-        avatar = APIAvatar.__new__(APIAvatar)
-        avatar.coord_list_cycle = [[2, 2, 6, 6]]
-        avatar.frame_list_cycle = [np.zeros((8, 8, 3), dtype=np.uint8)]
-        avatar.mask_list_cycle = [np.full((8, 8), 255, dtype=np.uint8)]
-        avatar.mask_coords_list_cycle = [[0, 0, 8, 8]]
-        avatar._compose_plan_cycle = [
-            prepare_image_blending_plan(
-                (8, 8, 3),
-                avatar.coord_list_cycle[0],
-                avatar.mask_list_cycle[0],
-                avatar.mask_coords_list_cycle[0],
-            )
-        ]
+        bbox = [2, 2, 6, 6]
+        plan = prepare_image_blending_plan(
+            (8, 8, 3),
+            bbox,
+            np.full((8, 8), 255, dtype=np.uint8),
+            [0, 0, 8, 8],
+        )
         alternate = np.zeros((8, 8, 3), dtype=np.uint8)
         alternate[:, :] = [10, 20, 30]
         generated_face = np.full((4, 4, 3), 200, dtype=np.uint8)
 
-        composed = avatar.compose_frame(
-            generated_face,
-            0,
-            background_frame=alternate,
-        )
+        composed = get_image_blending_with_plan(alternate.copy(), generated_face, plan)
 
         np.testing.assert_array_equal(composed[0, 0], [10, 20, 30])
         np.testing.assert_array_equal(composed[3, 3], [200, 200, 200])
-        np.testing.assert_array_equal(avatar.frame_list_cycle[0][0, 0], [0, 0, 0])
+        np.testing.assert_array_equal(alternate[0, 0], [10, 20, 30])
 
 
 if __name__ == "__main__":
