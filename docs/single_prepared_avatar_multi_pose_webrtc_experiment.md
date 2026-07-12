@@ -379,6 +379,17 @@ after all three queue boundaries show coherent cheeks, jaw, face scale, and
 mouth placement. Expression changes remain, as expected from the source clips,
 but there is no detached mouth or mask-edge artifact.
 
+### Source Asset Finding
+
+The remaining weak lip shapes are present even with the correct per-pose
+prepared materials, so they are not caused by the WebRTC queue, pose routing,
+or reuse of neutral masks. They come from the Kling-derived motion clips used
+as source video. The next quality pass should therefore rework those source
+assets: use a cleaner neutral mouth baseline, constrain idle motion to subtle
+expression changes, and avoid source motion that already resembles speech or
+has unstable lips. Re-prepare the affected pose bundle after each source-video
+revision, then repeat this same queued visual test.
+
 Evidence:
 
 - `generated/segmind_pose_test/ab0eb7318f8f/webrtc_fully_prepared_pose_queue_test.mp4`
