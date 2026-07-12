@@ -21,6 +21,13 @@ class LivePoseSnapshot:
         return self.video_path is None
 
 
+@dataclass(frozen=True)
+class LivePoseQueueSegment:
+    pose_id: str
+    start_generation_frame: int
+    end_generation_frame: int
+
+
 class _LoopingVideoDecoder:
     """Decode requested MP4 frames without retaining the full clip in RAM."""
 
@@ -118,6 +125,8 @@ class LivePoseVideoRouter:
         self._last_generation_frame = 0
         self._read_failures = 0
         self._closed = False
+        self._pose_queue: list[LivePoseQueueSegment] = []
+        self._queue_hold_last_pose = True
 
         for pose_id, video_path in pose_video_paths.items():
             self.register_pose(pose_id, video_path)
@@ -148,16 +157,97 @@ class LivePoseVideoRouter:
             if normalized_pose_id not in self._pose_video_paths:
                 raise KeyError(normalized_pose_id)
             changed = normalized_pose_id != self.active_pose_id
+            queue_cleared = bool(self._pose_queue)
             if changed:
                 self.active_pose_id = normalized_pose_id
                 self._version += 1
                 self._origin_pending = True
+            if queue_cleared:
+                self._pose_queue = []
             return {
                 "changed": changed,
                 "live_pose_id": self.active_pose_id,
                 "live_pose_version": self._version,
                 "uses_prepared_background": self.active_pose_id == self.prepared_pose_id,
+                "queue_cleared": queue_cleared,
             }
+
+    def queue_pose_sequence(
+        self,
+        pose_ids: list[str],
+        generation_fps: float,
+        *,
+        hold_last_pose: bool = True,
+    ) -> list[dict]:
+        """Route complete pose clips in order using generation-frame boundaries."""
+        safe_generation_fps = max(0.001, float(generation_fps or 0.0))
+        normalized_pose_ids = [str(pose_id or "").strip().lower() for pose_id in pose_ids]
+        if not normalized_pose_ids or any(not pose_id for pose_id in normalized_pose_ids):
+            raise ValueError("At least one pose_id is required")
+
+        with self._lock:
+            if self._closed:
+                raise ValueError("Live pose router is closed")
+            for pose_id in normalized_pose_ids:
+                if pose_id not in self._pose_video_paths:
+                    raise KeyError(pose_id)
+
+            segments = []
+            start_frame = 0
+            for pose_id in normalized_pose_ids:
+                decoder = self._get_or_create_decoder_locked(pose_id)
+                source_fps = max(0.001, float(getattr(decoder, "fps", 25.0)))
+                source_frame_count = max(1, int(getattr(decoder, "frame_count", 1)))
+                duration_seconds = source_frame_count / source_fps
+                duration_frames = max(1, int(round(duration_seconds * safe_generation_fps)))
+                end_frame = start_frame + duration_frames
+                segments.append(
+                    LivePoseQueueSegment(
+                        pose_id=pose_id,
+                        start_generation_frame=start_frame,
+                        end_generation_frame=end_frame,
+                    )
+                )
+                start_frame = end_frame
+
+            self._pose_queue = segments
+            self._queue_hold_last_pose = bool(hold_last_pose)
+            self.active_pose_id = normalized_pose_ids[0]
+            self._origin_pending = False
+            self._origin_generation_frame = 0
+            self._version += 1
+            return [
+                {
+                    "pose_id": segment.pose_id,
+                    "start_generation_frame": segment.start_generation_frame,
+                    "end_generation_frame": segment.end_generation_frame,
+                    "duration_frames": segment.end_generation_frame - segment.start_generation_frame,
+                    "duration_seconds": round(
+                        (segment.end_generation_frame - segment.start_generation_frame)
+                        / safe_generation_fps,
+                        3,
+                    ),
+                }
+                for segment in segments
+            ]
+
+    def _get_or_create_decoder_locked(self, pose_id: str):
+        decoder = self._decoders.get(pose_id)
+        if decoder is None:
+            decoder = self._decoder_factory(self._pose_video_paths[pose_id])
+            self._decoders[pose_id] = decoder
+        return decoder
+
+    def snapshots_for_range(
+        self,
+        start_generation_frame: int,
+        frame_count: int,
+        generation_fps: float,
+    ) -> list[LivePoseSnapshot]:
+        return [
+            self.snapshot(start_generation_frame + offset, generation_fps)
+            for offset in range(max(0, int(frame_count)))
+        ]
 
     def snapshot(self, generation_frame_index: int, generation_fps: float) -> LivePoseSnapshot:
         safe_generation_frame = max(0, int(generation_frame_index))
@@ -172,6 +262,28 @@ class LivePoseVideoRouter:
                     generation_fps=safe_generation_fps,
                 )
             self._last_generation_frame = max(self._last_generation_frame, safe_generation_frame)
+            planned_segment = next(
+                (
+                    segment
+                    for segment in self._pose_queue
+                    if segment.start_generation_frame <= safe_generation_frame < segment.end_generation_frame
+                ),
+                None,
+            )
+            if planned_segment is None and self._pose_queue and self._queue_hold_last_pose:
+                planned_segment = self._pose_queue[-1]
+            if planned_segment is not None:
+                pose_id = planned_segment.pose_id
+                video_path = None
+                if pose_id != self.prepared_pose_id:
+                    video_path = self._pose_video_paths[pose_id]
+                return LivePoseSnapshot(
+                    pose_id=pose_id,
+                    video_path=video_path,
+                    version=self._version,
+                    origin_generation_frame=planned_segment.start_generation_frame,
+                    generation_fps=safe_generation_fps,
+                )
             if self._origin_pending:
                 self._origin_generation_frame = safe_generation_frame
                 self._origin_pending = False
@@ -198,10 +310,7 @@ class LivePoseVideoRouter:
         with self._lock:
             if self._closed:
                 return [None] * int(frame_count)
-            decoder = self._decoders.get(snapshot.pose_id)
-            if decoder is None:
-                decoder = self._decoder_factory(snapshot.video_path)
-                self._decoders[snapshot.pose_id] = decoder
+            decoder = self._get_or_create_decoder_locked(snapshot.pose_id)
             source_fps = max(0.001, float(getattr(decoder, "fps", 25.0)))
 
         source_indices = []
@@ -243,5 +352,14 @@ class LivePoseVideoRouter:
                 "origin_generation_frame": self._origin_generation_frame,
                 "last_generation_frame": self._last_generation_frame,
                 "read_failures": self._read_failures,
+                "queue": [
+                    {
+                        "pose_id": segment.pose_id,
+                        "start_generation_frame": segment.start_generation_frame,
+                        "end_generation_frame": segment.end_generation_frame,
+                    }
+                    for segment in self._pose_queue
+                ],
+                "queue_hold_last_pose": self._queue_hold_last_pose,
                 "decoders": decoder_stats,
             }

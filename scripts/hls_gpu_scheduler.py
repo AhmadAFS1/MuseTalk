@@ -1528,12 +1528,13 @@ class HLSGPUStreamScheduler:
         job.compose_sequence += 1
         compose_submitted_at = time.time()
         live_pose_router = None
-        live_pose_snapshot = None
+        live_pose_snapshots = None
         if job.output_mode == "webrtc":
             live_pose_router = getattr(job.session, "live_pose_router", None)
             if live_pose_router is not None:
-                live_pose_snapshot = live_pose_router.snapshot(
+                live_pose_snapshots = live_pose_router.snapshots_for_range(
                     start_frame_idx,
+                    len(batch_frames),
                     job.generation_fps,
                 )
 
@@ -1541,12 +1542,24 @@ class HLSGPUStreamScheduler:
             compose_started_at = time.time()
             frames = []
             background_frames = [None] * len(batch_frames)
-            if live_pose_router is not None and live_pose_snapshot is not None:
-                background_frames = live_pose_router.read_background_frames(
-                    live_pose_snapshot,
-                    start_frame_idx,
-                    len(batch_frames),
-                )
+            if live_pose_router is not None and live_pose_snapshots is not None:
+                group_start = 0
+                while group_start < len(live_pose_snapshots):
+                    snapshot = live_pose_snapshots[group_start]
+                    group_end = group_start + 1
+                    while (
+                        group_end < len(live_pose_snapshots)
+                        and live_pose_snapshots[group_end].pose_id == snapshot.pose_id
+                        and live_pose_snapshots[group_end].origin_generation_frame
+                        == snapshot.origin_generation_frame
+                    ):
+                        group_end += 1
+                    background_frames[group_start:group_end] = live_pose_router.read_background_frames(
+                        snapshot,
+                        start_frame_idx + group_start,
+                        group_end - group_start,
+                    )
+                    group_start = group_end
             for rel_index, res_frame in enumerate(batch_frames):
                 cycle_index = job.start_offset_frames + start_frame_idx + rel_index
                 background_frame = (
@@ -1565,7 +1578,7 @@ class HLSGPUStreamScheduler:
                 "compose_sequence": compose_sequence,
                 "frames": frames,
                 "live_pose_id": (
-                    live_pose_snapshot.pose_id if live_pose_snapshot is not None else None
+                    live_pose_snapshots[0].pose_id if live_pose_snapshots else None
                 ),
                 "queue_wait_s": compose_started_at - compose_submitted_at,
                 "compose_time": time.time() - compose_started_at,

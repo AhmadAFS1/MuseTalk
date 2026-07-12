@@ -303,3 +303,34 @@ Conclusion: the low-memory routing hypothesis is technically valid, but the
 first visual experiment does not pass the smoothness criterion. The next
 technical step should be lightweight per-pose face geometry or alignment
 calibration, not additional prepared latent cycles.
+
+## Queued Retry: 2026-07-12
+
+The wall-clock pose switch test above did not validate all requested poses. The
+shared scheduler composed most frames before the later API requests arrived, so
+those later requests changed router state but not already queued video frames.
+
+The retry uses a generated-frame pose queue configured before streaming. Each
+segment is the full source MP4 duration at the session's 10 FPS:
+
+```text
+frames 0-48:    default / neutral_resting (4.9 seconds)
+frames 49-97:   light_smile (4.9 seconds)
+frames 98-146:  speaking_direct (4.9 seconds)
+frames 147-195: light_smile (4.9 seconds)
+after frame 195: hold light_smile
+```
+
+The queued WebRTC capture used a 22-second loop of the existing `yongen.wav`
+fixture. It recorded 245 frames and generated 220 live frames with zero dropped
+video frames and zero video stalls. The captured sequence visually follows the
+requested order; the poses are not decoded or composited simultaneously.
+
+Evidence:
+
+- `generated/segmind_pose_test/ab0eb7318f8f/webrtc_queued_pose_transition_test.mp4`
+- `generated/segmind_pose_test/ab0eb7318f8f/queued_face_transition_sheet.jpg`
+
+The queued ordering is now valid. The `speaking_direct` segment still shows
+some face/mask drift from reusing neutral geometry, which remains the next
+visual-quality problem to solve.

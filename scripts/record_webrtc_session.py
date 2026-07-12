@@ -125,6 +125,7 @@ async def record_once(args: argparse.Namespace) -> dict:
     consumer_tasks: list[asyncio.Task] = []
     pose_switch_task = None
     pose_switch_results: list[dict] = []
+    pose_queue_result = None
     started_at = time.monotonic()
 
     async with aiohttp.ClientSession(timeout=timeout) as http:
@@ -146,6 +147,17 @@ async def record_once(args: argparse.Namespace) -> dict:
             data = await resp.json()
             sid = data["session_id"]
             metrics.session_id = sid
+
+        pose_queue_ids = [pose_id.strip() for pose_id in args.pose_queue.split(",") if pose_id.strip()]
+        if pose_queue_ids:
+            async with http.post(
+                f"{args.base_url}/webrtc/sessions/{sid}/live-pose-queue",
+                json={"pose_ids": pose_queue_ids, "hold_last_pose": args.hold_last_pose},
+            ) as resp:
+                body = await resp.text()
+                if resp.status != 200:
+                    raise RuntimeError(f"live pose queue failed: {resp.status} {body[:300]}")
+                pose_queue_result = await _json_or_text(body)
 
         try:
             pc = RTCPeerConnection(
@@ -273,6 +285,7 @@ async def record_once(args: argparse.Namespace) -> dict:
                 "audio_stats": audio_stats,
                 "sync_stats": sync_stats,
                 "pose_switches": pose_switch_results,
+                "pose_queue": pose_queue_result,
             }
         finally:
             stop_event.set()
@@ -306,6 +319,17 @@ def parse_args() -> argparse.Namespace:
         "--pose-schedule",
         default="0.5:speaking_direct,3.0:light_smile,5.0:speaking_direct,7.0:default",
         help="Comma-separated absolute seconds and live pose IDs.",
+    )
+    parser.add_argument(
+        "--pose-queue",
+        default="",
+        help="Comma-separated pose IDs queued by generated-frame order before streaming.",
+    )
+    parser.add_argument(
+        "--hold-last-pose",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Loop the final queued pose after the sequence ends.",
     )
     parser.add_argument("--ice-gather-timeout", type=float, default=10.0)
     parser.add_argument("--connection-timeout", type=float, default=60.0)

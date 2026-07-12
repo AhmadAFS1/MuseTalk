@@ -469,6 +469,11 @@ class WebRTCIceCandidate(BaseModel):
     sdpMid: Optional[str] = None
     sdpMLineIndex: Optional[int] = None
 
+
+class WebRTCLivePoseQueueRequest(BaseModel):
+    pose_ids: list[str]
+    hold_last_pose: bool = True
+
 # ============================================================================
 # Initialize FastAPI App
 # ============================================================================
@@ -4162,6 +4167,75 @@ async def switch_webrtc_live_pose(session_id: str, pose_id: str):
         entry["pose_id"]: Path(entry["video_path"])
         for entry in _list_avatar_idle_pose_entries(session.avatar_id)
         if entry.get("exists") and entry.get("video_path")
+    }
+
+
+@app.post("/webrtc/sessions/{session_id}/live-pose-queue")
+async def queue_webrtc_live_poses(
+    session_id: str,
+    request: WebRTCLivePoseQueueRequest,
+):
+    """Queue complete pose MP4s in generated-frame order before streaming."""
+    _require_webrtc()
+
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    session = await webrtc_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    if session.active_stream is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Configure the live pose queue before starting the stream.",
+        )
+    if session.live_pose_router is None:
+        raise HTTPException(status_code=500, detail="WebRTC live pose router is not initialized")
+
+    try:
+        pose_ids = [_normalize_idle_pose_id(pose_id) for pose_id in request.pose_ids]
+    except HTTPException:
+        raise
+    if not pose_ids:
+        raise HTTPException(status_code=400, detail="pose_ids must include at least one pose")
+
+    pose_video_paths = {
+        entry["pose_id"]: Path(entry["video_path"])
+        for entry in _list_avatar_idle_pose_entries(session.avatar_id)
+        if entry.get("exists") and entry.get("video_path")
+    }
+    for pose_id in pose_ids:
+        video_path = pose_video_paths.get(pose_id)
+        if video_path is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Live pose '{pose_id}' not found for avatar '{session.avatar_id}'",
+            )
+        if video_path.stat().st_size < 1024:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Live pose '{pose_id}' for '{session.avatar_id}' is corrupted",
+            )
+        session.live_pose_router.register_pose(pose_id, str(video_path))
+
+    try:
+        segments = session.live_pose_router.queue_pose_sequence(
+            pose_ids,
+            session.fps,
+            hold_last_pose=request.hold_last_pose,
+        )
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    session.live_pose_id = pose_ids[0]
+    session.touch()
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "avatar_id": session.avatar_id,
+        "pose_ids": pose_ids,
+        "hold_last_pose": request.hold_last_pose,
+        "segments": segments,
     }
     video_path = pose_video_paths.get(normalized_pose_id)
     if video_path is None:

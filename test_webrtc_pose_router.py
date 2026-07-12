@@ -22,6 +22,7 @@ class FakeDecoder:
     def __init__(self, video_path):
         self.video_path = str(video_path)
         self.fps = 30.0
+        self.frame_count = 147
         self.closed = False
         self.requests = []
         self.instances[self.video_path] = self
@@ -91,6 +92,32 @@ class LivePoseVideoRouterTest(unittest.TestCase):
         self.assertIn("speaking_direct.mp4", speaking_frames[0][0])
         self.assertEqual(smile_frames[0][1], 0)
         self.assertEqual(speaking_frames[0][1], 0)
+
+    def test_pose_queue_routes_complete_clips_in_strict_frame_order(self):
+        router = LivePoseVideoRouter(self.paths, decoder_factory=FakeDecoder)
+        segments = router.queue_pose_sequence(
+            ["default", "light_smile", "speaking_direct", "light_smile"],
+            generation_fps=10,
+        )
+
+        self.assertEqual([segment["duration_frames"] for segment in segments], [49, 49, 49, 49])
+        snapshots = {
+            frame: router.snapshot(frame, 10)
+            for frame in (0, 48, 49, 97, 98, 146, 147, 195, 196)
+        }
+
+        self.assertEqual(snapshots[0].pose_id, "default")
+        self.assertEqual(snapshots[48].pose_id, "default")
+        self.assertEqual(snapshots[49].pose_id, "light_smile")
+        self.assertEqual(snapshots[97].pose_id, "light_smile")
+        self.assertEqual(snapshots[98].pose_id, "speaking_direct")
+        self.assertEqual(snapshots[146].pose_id, "speaking_direct")
+        self.assertEqual(snapshots[147].pose_id, "light_smile")
+        self.assertEqual(snapshots[195].pose_id, "light_smile")
+        self.assertEqual(snapshots[196].pose_id, "light_smile")
+        self.assertEqual(snapshots[49].origin_generation_frame, 49)
+        self.assertEqual(snapshots[98].origin_generation_frame, 98)
+        self.assertEqual(snapshots[147].origin_generation_frame, 147)
 
     def test_decode_failure_falls_back_to_prepared_background(self):
         router = LivePoseVideoRouter(self.paths, decoder_factory=FailingDecoder)
