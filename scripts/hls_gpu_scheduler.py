@@ -44,6 +44,7 @@ class HLSStreamJob:
     session_id: str
     session: object
     avatar: object
+    pose_avatars: Dict[str, object]
     audio_path: str
     chunk_output_dir: Path
     generation_fps: int
@@ -503,6 +504,19 @@ class HLSGPUStreamScheduler:
                 )
 
             avatar, avatar_load_s = avatar_future.result()
+            pose_avatars = {"default": avatar}
+            if output_mode == "webrtc":
+                prepared_pose_avatar_ids = dict(
+                    getattr(session, "prepared_pose_avatar_ids", {}) or {}
+                )
+                for pose_id, prepared_avatar_id in prepared_pose_avatar_ids.items():
+                    if pose_id == "default" or prepared_avatar_id == session.avatar_id:
+                        pose_avatars[pose_id] = avatar
+                        continue
+                    pose_avatars[pose_id] = self.manager._get_or_load_avatar(
+                        prepared_avatar_id,
+                        session.batch_size,
+                    )
             (whisper_input_features, _librosa_length), audio_feature_s = audio_feature_future.result()
             audio_copy_prep_s = 0.0
             if audio_copy_future is not None:
@@ -670,6 +684,7 @@ class HLSGPUStreamScheduler:
                 session_id=session.session_id,
                 session=session,
                 avatar=avatar,
+                pose_avatars=pose_avatars,
                 audio_path=audio_path,
                 audio_copy_path=audio_copy_path,
                 chunk_output_dir=(
@@ -1216,29 +1231,43 @@ class HLSGPUStreamScheduler:
                 conditioning_slice = job.conditioning_chunks[job.current_frame_idx: job.current_frame_idx + take]
             staging_conditioning[offset: offset + take].copy_(conditioning_slice)
 
-            latent_cycle = getattr(
-                job.avatar,
-                "input_latent_cycle_batch_tensor",
-                getattr(job.avatar, "input_latent_cycle_tensor", None),
+            live_pose_router = (
+                getattr(job.session, "live_pose_router", None)
+                if job.output_mode == "webrtc"
+                else None
             )
-            if isinstance(latent_cycle, torch.Tensor):
-                cycle_len = latent_cycle.shape[0]
-                start_index = job.start_offset_frames + job.current_frame_idx
-                latent_index_tensor = (
-                    torch.arange(
-                        start_index,
-                        start_index + take,
-                        device=latent_cycle.device,
-                        dtype=torch.long,
-                    )
-                    % cycle_len
+            live_pose_snapshots = (
+                live_pose_router.snapshots_for_range(
+                    job.current_frame_idx,
+                    take,
+                    job.generation_fps,
                 )
-                gathered_latents = latent_cycle.index_select(0, latent_index_tensor)
-                if gathered_latents.dim() == 5 and gathered_latents.shape[1] == 1:
-                    gathered_latents = gathered_latents.squeeze(1)
-                staging_latents[offset: offset + take].copy_(gathered_latents)
-            else:
-                raise RuntimeError("Expected latent cycle tensor for scheduler batch assembly")
+                if live_pose_router is not None
+                else [None] * take
+            )
+            gathered_latents_by_frame = []
+            for relative_frame, snapshot in enumerate(live_pose_snapshots):
+                pose_id = snapshot.pose_id if snapshot is not None else "default"
+                pose_avatar = job.pose_avatars.get(pose_id, job.avatar)
+                latent_cycle = getattr(
+                    pose_avatar,
+                    "input_latent_cycle_batch_tensor",
+                    getattr(pose_avatar, "input_latent_cycle_tensor", None),
+                )
+                if not isinstance(latent_cycle, torch.Tensor):
+                    raise RuntimeError("Expected latent cycle tensor for scheduler batch assembly")
+                generation_index = job.current_frame_idx + relative_frame
+                cycle_index = (
+                    live_pose_router.source_frame_index(snapshot, generation_index)
+                    if snapshot is not None and snapshot.is_queued
+                    else job.start_offset_frames + generation_index
+                )
+                gathered_latent = latent_cycle[cycle_index % latent_cycle.shape[0]]
+                if gathered_latent.dim() == 4 and gathered_latent.shape[0] == 1:
+                    gathered_latent = gathered_latent.squeeze(0)
+                gathered_latents_by_frame.append(gathered_latent)
+            gathered_latents = torch.stack(gathered_latents_by_frame)
+            staging_latents[offset: offset + take].copy_(gathered_latents)
             offset += take
 
         if padded_batch > actual_batch:
@@ -1561,14 +1590,26 @@ class HLSGPUStreamScheduler:
                     )
                     group_start = group_end
             for rel_index, res_frame in enumerate(batch_frames):
-                cycle_index = job.start_offset_frames + start_frame_idx + rel_index
+                snapshot = (
+                    live_pose_snapshots[rel_index]
+                    if live_pose_snapshots is not None
+                    else None
+                )
+                pose_id = snapshot.pose_id if snapshot is not None else "default"
+                pose_avatar = job.pose_avatars.get(pose_id, job.avatar)
+                generation_index = start_frame_idx + rel_index
+                cycle_index = (
+                    live_pose_router.source_frame_index(snapshot, generation_index)
+                    if snapshot is not None and snapshot.is_queued
+                    else job.start_offset_frames + generation_index
+                )
                 background_frame = (
                     background_frames[rel_index]
                     if rel_index < len(background_frames)
                     else None
                 )
                 frames.append(
-                    job.avatar.compose_frame(
+                    pose_avatar.compose_frame(
                         res_frame,
                         cycle_index,
                         background_frame=background_frame,

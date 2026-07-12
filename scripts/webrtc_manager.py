@@ -56,6 +56,7 @@ class WebRTCSession:
     idle_video_path: Optional[str] = None
     live_pose_id: str = "default"
     live_pose_router: Optional[LivePoseVideoRouter] = None
+    prepared_pose_avatar_ids: Dict[str, str] = field(default_factory=dict)
 
     def is_expired(self, ttl_seconds: int = 3600) -> bool:
         return (time.time() - self.last_activity) > ttl_seconds
@@ -158,6 +159,7 @@ class WebRTCSessionManager:
         chunk_duration: int = 2,
         idle_pose_id: str = "default",
         pose_video_paths: Optional[Dict[str, str]] = None,
+        prepared_pose_avatar_ids: Optional[Dict[str, str]] = None,
         live_pose_id: str = "default",
     ) -> WebRTCSession:
         if playback_fps is None:
@@ -174,9 +176,16 @@ class WebRTCSessionManager:
         silence_audio = SilenceAudioStreamTrack()
         resolved_pose_paths = dict(pose_video_paths or {})
         resolved_pose_paths.setdefault("default", idle_video_path)
+        resolved_prepared_pose_avatar_ids = {
+            str(pose_id).strip().lower(): str(prepared_avatar_id)
+            for pose_id, prepared_avatar_id in (prepared_pose_avatar_ids or {}).items()
+            if str(pose_id).strip() and str(prepared_avatar_id).strip()
+        }
+        resolved_prepared_pose_avatar_ids.setdefault("default", avatar_id)
         live_pose_router = LivePoseVideoRouter(
             resolved_pose_paths,
             prepared_pose_id="default",
+            prepared_pose_ids=set(resolved_prepared_pose_avatar_ids),
             initial_pose_id=live_pose_id or "default",
         )
 
@@ -200,6 +209,7 @@ class WebRTCSessionManager:
             idle_video_path=idle_video_path,
             live_pose_id=live_pose_id or "default",
             live_pose_router=live_pose_router,
+            prepared_pose_avatar_ids=resolved_prepared_pose_avatar_ids,
         )
 
         @pc.on("connectionstatechange")

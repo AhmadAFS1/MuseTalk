@@ -191,7 +191,7 @@ Record the following for baseline and alternate-pose runs:
 
 ## Acceptance Criteria
 
-The experiment passes when:
+The single-prepared-pose phase passes when:
 
 - only one prepared avatar bundle exists for the test avatar
 - peak GPU memory remains within normal run-to-run variance of the neutral-only
@@ -224,8 +224,8 @@ considering full pose preparation:
 - a slightly expanded or feathered neutral mask
 - transition only at known compatible frame positions
 
-Full per-pose prepared assets are explicitly outside the scope of this
-experiment.
+If drift remains after this phase, the follow-up is full per-pose preparation
+with a bounded runtime cache. That follow-up is documented below.
 
 ## Expected Outcome
 
@@ -334,3 +334,59 @@ Evidence:
 The queued ordering is now valid. The `speaking_direct` segment still shows
 some face/mask drift from reusing neutral geometry, which remains the next
 visual-quality problem to solve.
+
+## Full Prepared-Pose Validation: 2026-07-12
+
+The queued retry established that the drift is caused by sharing neutral
+prepared geometry, not by queue ordering. The test then prepared each tested
+Kling clip as its own MuseTalk avatar bundle:
+
+```text
+base avatar / default: segmind_pose_test_ab0eb7318f8f
+light_smile:           segmind_pose_test_ab0eb7318f8f_light_smile
+speaking_direct:       segmind_pose_test_ab0eb7318f8f_speaking_direct
+```
+
+Each child bundle contains its own 294-frame cycle, masks, face coordinates,
+blend plans, and latents. The base avatar persists the explicit pose map via:
+
+```text
+PUT /avatars/{avatar_id}/prepared-poses/{pose_id}?prepared_avatar_id={id}
+```
+
+At WebRTC stream setup, the scheduler loads the prepared pose bundles once.
+For every queued generated frame it selects that pose's source-frame index,
+conditioning latent, prepared background frame, mask, coordinates, and blend
+plan. MP4-only poses retain the original low-memory background-decoder fallback.
+
+### Validated Queue
+
+```text
+default -> light_smile -> speaking_direct -> light_smile -> hold light_smile
+```
+
+The final capture generated 220 live frames from the 22-second audio fixture,
+with zero dropped video frames, zero video stalls, and no wall-clock pose
+switches. The recorder now disables its legacy wall-clock schedule whenever a
+generation-frame pose queue is supplied, preventing a test from clearing its
+own queue.
+
+### Visual Result
+
+The full prepared-pose path removes the face/mask drift visible in the
+neutral-only reuse run. Mid-segment samples and frames immediately before and
+after all three queue boundaries show coherent cheeks, jaw, face scale, and
+mouth placement. Expression changes remain, as expected from the source clips,
+but there is no detached mouth or mask-edge artifact.
+
+Evidence:
+
+- `generated/segmind_pose_test/ab0eb7318f8f/webrtc_fully_prepared_pose_queue_test.mp4`
+- `generated/segmind_pose_test/ab0eb7318f8f/fully_prepared_face_transition_sheet.jpg`
+- `generated/segmind_pose_test/ab0eb7318f8f/fully_prepared_transition_boundaries.jpg`
+- `generated/segmind_pose_test/ab0eb7318f8f/webrtc_fully_prepared_pose_queue_test.json`
+
+Conclusion: separate prepared materials for each pose fix the visual alignment
+failure for this test avatar. For a nine-session server, retain only the active
+prepared pose and one or two upcoming queued poses per avatar in RAM; keep the
+remaining prepared bundles on local disk/S3 behind an LRU cache.

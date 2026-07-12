@@ -67,6 +67,21 @@ class LivePoseVideoRouterTest(unittest.TestCase):
         self.assertEqual(frames, [None, None, None])
         self.assertEqual(FakeDecoder.instances, {})
 
+    def test_prepared_alternate_pose_uses_its_own_materials_without_decode(self):
+        router = LivePoseVideoRouter(
+            self.paths,
+            prepared_pose_ids={"default", "light_smile"},
+            decoder_factory=FakeDecoder,
+        )
+        router.switch_pose("light_smile")
+
+        snapshot = router.snapshot(0, 10)
+        frames = router.read_background_frames(snapshot, 0, 2)
+
+        self.assertTrue(snapshot.uses_prepared_background)
+        self.assertEqual(frames, [None, None])
+        self.assertEqual(FakeDecoder.instances, {})
+
     def test_pose_switch_maps_generation_frames_to_source_frames(self):
         router = LivePoseVideoRouter(self.paths, decoder_factory=FakeDecoder)
         router.switch_pose("light_smile")

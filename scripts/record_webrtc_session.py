@@ -238,15 +238,18 @@ async def record_once(args: argparse.Namespace) -> dict:
                         body = await resp.text()
                         raise RuntimeError(f"stream failed: {resp.status} {body[:300]}")
             record_event.set()
-            pose_switch_task = asyncio.create_task(
-                switch_live_poses(
-                    http,
-                    args.base_url,
-                    sid,
-                    parse_pose_schedule(args.pose_schedule),
-                    pose_switch_results,
+            # A generation-frame queue is deterministic. Do not let the legacy
+            # wall-clock switches mutate it after streaming begins.
+            if not pose_queue_ids:
+                pose_switch_task = asyncio.create_task(
+                    switch_live_poses(
+                        http,
+                        args.base_url,
+                        sid,
+                        parse_pose_schedule(args.pose_schedule),
+                        pose_switch_results,
+                    )
                 )
-            )
 
             live_ready = False
             stream_started_at = time.monotonic()

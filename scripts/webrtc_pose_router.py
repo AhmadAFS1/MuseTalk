@@ -15,6 +15,7 @@ class LivePoseSnapshot:
     version: int
     origin_generation_frame: int
     generation_fps: float
+    is_queued: bool = False
 
     @property
     def uses_prepared_background(self) -> bool:
@@ -110,6 +111,7 @@ class LivePoseVideoRouter:
         pose_video_paths: Dict[str, str],
         *,
         prepared_pose_id: str = "default",
+        prepared_pose_ids: Optional[set[str]] = None,
         initial_pose_id: str = "default",
         decoder_factory: Callable[[str], object] = _LoopingVideoDecoder,
     ):
@@ -118,6 +120,12 @@ class LivePoseVideoRouter:
         self._decoders: Dict[str, object] = {}
         self._decoder_factory = decoder_factory
         self.prepared_pose_id = str(prepared_pose_id or "default")
+        self._prepared_pose_ids = {self.prepared_pose_id}
+        self._prepared_pose_ids.update(
+            str(pose_id).strip().lower()
+            for pose_id in (prepared_pose_ids or set())
+            if str(pose_id).strip()
+        )
         self.active_pose_id = self.prepared_pose_id
         self._version = 0
         self._origin_generation_frame = 0
@@ -149,6 +157,16 @@ class LivePoseVideoRouter:
                 if decoder is not None:
                     decoder.close()
 
+    def set_prepared_pose_ids(self, pose_ids: set[str]) -> None:
+        """Mark poses whose own prepared MuseTalk materials are available."""
+        with self._lock:
+            self._prepared_pose_ids = {self.prepared_pose_id}
+            self._prepared_pose_ids.update(
+                str(pose_id).strip().lower()
+                for pose_id in pose_ids
+                if str(pose_id).strip()
+            )
+
     def switch_pose(self, pose_id: str) -> dict:
         normalized_pose_id = str(pose_id or self.prepared_pose_id).strip().lower()
         with self._lock:
@@ -168,7 +186,7 @@ class LivePoseVideoRouter:
                 "changed": changed,
                 "live_pose_id": self.active_pose_id,
                 "live_pose_version": self._version,
-                "uses_prepared_background": self.active_pose_id == self.prepared_pose_id,
+                "uses_prepared_background": self.active_pose_id in self._prepared_pose_ids,
                 "queue_cleared": queue_cleared,
             }
 
@@ -275,7 +293,7 @@ class LivePoseVideoRouter:
             if planned_segment is not None:
                 pose_id = planned_segment.pose_id
                 video_path = None
-                if pose_id != self.prepared_pose_id:
+                if pose_id not in self._prepared_pose_ids:
                     video_path = self._pose_video_paths[pose_id]
                 return LivePoseSnapshot(
                     pose_id=pose_id,
@@ -283,12 +301,13 @@ class LivePoseVideoRouter:
                     version=self._version,
                     origin_generation_frame=planned_segment.start_generation_frame,
                     generation_fps=safe_generation_fps,
+                    is_queued=True,
                 )
             if self._origin_pending:
                 self._origin_generation_frame = safe_generation_frame
                 self._origin_pending = False
             video_path = None
-            if self.active_pose_id != self.prepared_pose_id:
+            if self.active_pose_id not in self._prepared_pose_ids:
                 video_path = self._pose_video_paths[self.active_pose_id]
             return LivePoseSnapshot(
                 pose_id=self.active_pose_id,
@@ -297,6 +316,18 @@ class LivePoseVideoRouter:
                 origin_generation_frame=self._origin_generation_frame,
                 generation_fps=safe_generation_fps,
             )
+
+    def source_frame_index(
+        self,
+        snapshot: LivePoseSnapshot,
+        generation_frame_index: int,
+    ) -> int:
+        """Translate a generated frame to the source-frame timeline for a pose."""
+        with self._lock:
+            decoder = self._get_or_create_decoder_locked(snapshot.pose_id)
+            source_fps = max(0.001, float(getattr(decoder, "fps", 25.0)))
+        relative_frame = max(0, int(generation_frame_index) - snapshot.origin_generation_frame)
+        return int(relative_frame * source_fps / snapshot.generation_fps)
 
     def read_background_frames(
         self,
@@ -311,14 +342,12 @@ class LivePoseVideoRouter:
             if self._closed:
                 return [None] * int(frame_count)
             decoder = self._get_or_create_decoder_locked(snapshot.pose_id)
-            source_fps = max(0.001, float(getattr(decoder, "fps", 25.0)))
 
         source_indices = []
         for offset in range(int(frame_count)):
-            generation_index = int(start_generation_frame) + offset
-            relative_frame = max(0, generation_index - snapshot.origin_generation_frame)
-            source_index = int(relative_frame * source_fps / snapshot.generation_fps)
-            source_indices.append(source_index)
+            source_indices.append(
+                self.source_frame_index(snapshot, int(start_generation_frame) + offset)
+            )
 
         try:
             return decoder.read_frames(source_indices)
@@ -347,6 +376,7 @@ class LivePoseVideoRouter:
             return {
                 "active_pose_id": self.active_pose_id,
                 "prepared_pose_id": self.prepared_pose_id,
+                "prepared_pose_ids": sorted(self._prepared_pose_ids),
                 "available_pose_ids": sorted(self._pose_video_paths),
                 "version": self._version,
                 "origin_generation_frame": self._origin_generation_frame,

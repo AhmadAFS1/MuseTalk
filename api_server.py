@@ -1463,6 +1463,62 @@ async def upload_avatar_idle_pose(
         temp_destination.unlink(missing_ok=True)
         raise HTTPException(status_code=500, detail=str(exc))
 
+
+@app.put("/avatars/{avatar_id}/prepared-poses/{pose_id}")
+async def register_prepared_avatar_pose(
+    avatar_id: str,
+    pose_id: str,
+    prepared_avatar_id: str,
+):
+    """Associate a pose MP4 with its separately prepared MuseTalk materials."""
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    _ensure_avatar_for_session(avatar_id, batch_size=1)
+    normalized_pose_id = _normalize_idle_pose_id(pose_id)
+    normalized_prepared_avatar_id = (prepared_avatar_id or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", normalized_prepared_avatar_id):
+        raise HTTPException(status_code=400, detail="prepared_avatar_id is invalid")
+    if normalized_pose_id == "default" and normalized_prepared_avatar_id != avatar_id:
+        raise HTTPException(
+            status_code=400,
+            detail="The default pose must use the base avatar's prepared materials",
+        )
+    if not manager._avatar_exists(normalized_prepared_avatar_id):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Prepared avatar '{normalized_prepared_avatar_id}' was not found",
+        )
+
+    pose_entries = {
+        entry["pose_id"]: entry
+        for entry in _list_avatar_idle_pose_entries(avatar_id)
+        if entry.get("exists")
+    }
+    if normalized_pose_id not in pose_entries:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Pose video '{normalized_pose_id}' was not found for '{avatar_id}'",
+        )
+
+    avatar_dir = _resolve_avatar_dir(avatar_id)
+    info = _load_avatar_info(avatar_dir, avatar_id)
+    prepared_pose_avatar_ids = info.get("prepared_pose_avatar_ids")
+    if not isinstance(prepared_pose_avatar_ids, dict):
+        prepared_pose_avatar_ids = {}
+    prepared_pose_avatar_ids[normalized_pose_id] = normalized_prepared_avatar_id
+    prepared_pose_avatar_ids["default"] = avatar_id
+    info["prepared_pose_avatar_ids"] = prepared_pose_avatar_ids
+    _save_avatar_info(avatar_dir, info)
+
+    return {
+        "status": "success",
+        "avatar_id": avatar_id,
+        "pose_id": normalized_pose_id,
+        "prepared_avatar_id": normalized_prepared_avatar_id,
+        "prepared_pose_avatar_ids": prepared_pose_avatar_ids,
+    }
+
 @app.delete("/avatars/{avatar_id}")
 async def delete_avatar(avatar_id: str, from_disk: bool = False):
     """
@@ -1734,6 +1790,28 @@ def _list_avatar_idle_pose_entries(avatar_id: str) -> list[dict]:
                 }
             )
     return entries
+
+
+def _get_avatar_prepared_pose_avatar_ids(avatar_id: str) -> dict[str, str]:
+    """Return validated pose-to-prepared-avatar links for WebRTC composition."""
+    info = _load_avatar_info(_resolve_avatar_dir(avatar_id), avatar_id)
+    configured = info.get("prepared_pose_avatar_ids")
+    resolved = {"default": avatar_id}
+    if not isinstance(configured, dict):
+        return resolved
+
+    for pose_id, prepared_avatar_id in configured.items():
+        try:
+            normalized_pose_id = _normalize_idle_pose_id(str(pose_id))
+        except HTTPException:
+            continue
+        normalized_prepared_avatar_id = str(prepared_avatar_id or "").strip()
+        if normalized_prepared_avatar_id and re.fullmatch(
+            r"[A-Za-z0-9_.-]{1,128}", normalized_prepared_avatar_id
+        ):
+            resolved[normalized_pose_id] = normalized_prepared_avatar_id
+    resolved["default"] = avatar_id
+    return resolved
 
 
 def _resolve_avatar_video_path(
@@ -3915,6 +3993,7 @@ async def webrtc_session_status(session_id: str):
         "live_pose_router": (
             session.live_pose_router.get_stats() if session.live_pose_router else None
         ),
+        "prepared_pose_avatar_ids": session.prepared_pose_avatar_ids,
         "ice_transport_policy": session.ice_transport_policy,
         "live_timing": session.live_timing,
         "track_stats": _get_webrtc_track_stats(session),
@@ -3953,6 +4032,7 @@ async def create_webrtc_session(
         for entry in pose_entries
         if entry.get("exists") and entry.get("video_path")
     }
+    prepared_pose_avatar_ids = _get_avatar_prepared_pose_avatar_ids(avatar_id)
     if normalized_live_pose_id not in pose_video_paths:
         raise HTTPException(
             status_code=404,
@@ -3984,6 +4064,7 @@ async def create_webrtc_session(
         chunk_duration=chunk_duration,
         idle_pose_id=normalized_idle_pose_id,
         pose_video_paths=pose_video_paths,
+        prepared_pose_avatar_ids=prepared_pose_avatar_ids,
         live_pose_id=normalized_live_pose_id,
     )
 
@@ -3995,6 +4076,7 @@ async def create_webrtc_session(
         "idle_pose_id": normalized_idle_pose_id,
         "live_pose_id": normalized_live_pose_id,
         "available_pose_ids": sorted(pose_video_paths),
+        "prepared_pose_avatar_ids": prepared_pose_avatar_ids,
         "ice_servers": session.ice_servers,
         "ice_transport_policy": session.ice_transport_policy,
         "expires_in_seconds": webrtc_session_manager.session_ttl,
@@ -4007,6 +4089,7 @@ async def create_webrtc_session(
             "idle_pose_id": normalized_idle_pose_id,
             "idle_video_path": str(video_path),
             "live_pose_id": normalized_live_pose_id,
+            "prepared_pose_avatar_ids": prepared_pose_avatar_ids,
         }
     }
 
@@ -4168,6 +4251,34 @@ async def switch_webrtc_live_pose(session_id: str, pose_id: str):
         for entry in _list_avatar_idle_pose_entries(session.avatar_id)
         if entry.get("exists") and entry.get("video_path")
     }
+    video_path = pose_video_paths.get(normalized_pose_id)
+    if video_path is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Live pose '{normalized_pose_id}' not found for avatar '{session.avatar_id}'",
+        )
+    if video_path.stat().st_size < 1024:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Live pose '{normalized_pose_id}' for '{session.avatar_id}' is corrupted",
+        )
+
+    try:
+        session.live_pose_router.register_pose(normalized_pose_id, str(video_path))
+        switch_result = session.live_pose_router.switch_pose(normalized_pose_id)
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    session.live_pose_id = normalized_pose_id
+    session.touch()
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "avatar_id": session.avatar_id,
+        "active_stream": session.active_stream,
+        "video_path": str(video_path),
+        **switch_result,
+    }
 
 
 @app.post("/webrtc/sessions/{session_id}/live-pose-queue")
@@ -4236,34 +4347,6 @@ async def queue_webrtc_live_poses(
         "pose_ids": pose_ids,
         "hold_last_pose": request.hold_last_pose,
         "segments": segments,
-    }
-    video_path = pose_video_paths.get(normalized_pose_id)
-    if video_path is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Live pose '{normalized_pose_id}' not found for avatar '{session.avatar_id}'",
-        )
-    if video_path.stat().st_size < 1024:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Live pose '{normalized_pose_id}' for '{session.avatar_id}' is corrupted",
-        )
-
-    try:
-        session.live_pose_router.register_pose(normalized_pose_id, str(video_path))
-        switch_result = session.live_pose_router.switch_pose(normalized_pose_id)
-    except (KeyError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    session.live_pose_id = normalized_pose_id
-    session.touch()
-    return {
-        "status": "success",
-        "session_id": session_id,
-        "avatar_id": session.avatar_id,
-        "active_stream": session.active_stream,
-        "video_path": str(video_path),
-        **switch_result,
     }
 
 
