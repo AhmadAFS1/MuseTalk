@@ -8,6 +8,7 @@ from typing import Dict, List, Optional
 from aiortc import RTCPeerConnection, RTCConfiguration, RTCIceServer, RTCRtpSender
 
 from scripts.webrtc_tracks import SwitchableVideoStreamTrack, SilenceAudioStreamTrack, VideoSyncClock
+from scripts.webrtc_pose_router import LivePoseVideoRouter
 
 
 def build_rtc_configuration(
@@ -53,6 +54,8 @@ class WebRTCSession:
     webrtc_live_reveal_delay_seconds: float = 0.0
     idle_pose_id: str = "default"
     idle_video_path: Optional[str] = None
+    live_pose_id: str = "default"
+    live_pose_router: Optional[LivePoseVideoRouter] = None
 
     def is_expired(self, ttl_seconds: int = 3600) -> bool:
         return (time.time() - self.last_activity) > ttl_seconds
@@ -154,6 +157,8 @@ class WebRTCSessionManager:
         batch_size: int = 2,
         chunk_duration: int = 2,
         idle_pose_id: str = "default",
+        pose_video_paths: Optional[Dict[str, str]] = None,
+        live_pose_id: str = "default",
     ) -> WebRTCSession:
         if playback_fps is None:
             playback_fps = fps
@@ -167,6 +172,13 @@ class WebRTCSessionManager:
             sync_clock=sync_clock,
         )
         silence_audio = SilenceAudioStreamTrack()
+        resolved_pose_paths = dict(pose_video_paths or {})
+        resolved_pose_paths.setdefault("default", idle_video_path)
+        live_pose_router = LivePoseVideoRouter(
+            resolved_pose_paths,
+            prepared_pose_id="default",
+            initial_pose_id=live_pose_id or "default",
+        )
 
         session = WebRTCSession(
             session_id=session_id,
@@ -186,6 +198,8 @@ class WebRTCSessionManager:
             sync_clock=sync_clock,
             idle_pose_id=idle_pose_id or "default",
             idle_video_path=idle_video_path,
+            live_pose_id=live_pose_id or "default",
+            live_pose_router=live_pose_router,
         )
 
         @pc.on("connectionstatechange")
@@ -276,6 +290,8 @@ class WebRTCSessionManager:
             self._safe_stop_track(audio_sender_track, "audio sender", session_id, stopped_track_ids)
             self._safe_stop_track(silence_audio_track, "silence audio", session_id, stopped_track_ids)
             self._safe_stop_track(idle_track, "video", session_id, stopped_track_ids)
+            if session.live_pose_router is not None:
+                session.live_pose_router.close()
 
             session.idle_track = None
             session.idle_sender = None
@@ -283,6 +299,7 @@ class WebRTCSessionManager:
             session.silence_audio_track = None
             session.audio_player = None
             session.sync_clock = None
+            session.live_pose_router = None
             session.pc = None
             print(f"🧊 WebRTC delete done session_id={session_id}", flush=True)
             return True

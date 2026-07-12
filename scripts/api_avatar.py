@@ -1093,11 +1093,30 @@ class APIAvatar:
                 return candidate
         return default_idle_path
 
-    def compose_frame(self, res_frame, cycle_index: int):
-        """Blend a decoded face frame back into the avatar frame cycle."""
+    def compose_frame(self, res_frame, cycle_index: int, background_frame=None):
+        """Blend a decoded face into the prepared cycle or an alternate background."""
         cycle_pos = cycle_index % len(self.coord_list_cycle)
         bbox = self.coord_list_cycle[cycle_pos]
-        ori_frame = self.frame_list_cycle[cycle_pos].copy()
+        prepared_frame = self.frame_list_cycle[cycle_pos]
+        if background_frame is None:
+            ori_frame = prepared_frame.copy()
+        else:
+            ori_frame = np.asarray(background_frame)
+            if ori_frame.ndim != 3 or ori_frame.shape[2] < 3:
+                ori_frame = prepared_frame.copy()
+            else:
+                if ori_frame.shape[:2] != prepared_frame.shape[:2]:
+                    ori_frame = cv2.resize(
+                        ori_frame,
+                        (prepared_frame.shape[1], prepared_frame.shape[0]),
+                        interpolation=cv2.INTER_LINEAR,
+                    )
+                else:
+                    ori_frame = ori_frame.copy()
+                if ori_frame.shape[2] > 3:
+                    ori_frame = ori_frame[:, :, :3]
+                if ori_frame.dtype != np.uint8:
+                    ori_frame = np.clip(ori_frame, 0, 255).astype(np.uint8)
         x1, y1, x2, y2 = bbox
 
         if res_frame.dtype != np.uint8:
@@ -1149,6 +1168,7 @@ class APIAvatar:
         start_offset_seconds: float = 0.0,
         cancel_event=None,
         scratch_dir=None,
+        background_frame_provider=None,
     ):
         """
         Stream video chunks as they're generated.
@@ -1354,7 +1374,17 @@ class APIAvatar:
                     return
 
                 cycle_index = frame_idx + start_offset_frames
-                combine_frame = self.compose_frame(res_frame, cycle_index)
+                background_frame = None
+                if background_frame_provider is not None:
+                    try:
+                        background_frame = background_frame_provider(frame_idx, fps)
+                    except Exception as background_err:
+                        print(f"⚠️ alternate background frame failed: {background_err}")
+                combine_frame = self.compose_frame(
+                    res_frame,
+                    cycle_index,
+                    background_frame=background_frame,
+                )
                 frame_buffer.append(combine_frame)
                 frame_idx += 1
 

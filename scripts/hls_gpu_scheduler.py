@@ -1527,16 +1527,46 @@ class HLSGPUStreamScheduler:
         compose_sequence = job.compose_sequence
         job.compose_sequence += 1
         compose_submitted_at = time.time()
+        live_pose_router = None
+        live_pose_snapshot = None
+        if job.output_mode == "webrtc":
+            live_pose_router = getattr(job.session, "live_pose_router", None)
+            if live_pose_router is not None:
+                live_pose_snapshot = live_pose_router.snapshot(
+                    start_frame_idx,
+                    job.generation_fps,
+                )
 
         def compose_batch():
             compose_started_at = time.time()
             frames = []
+            background_frames = [None] * len(batch_frames)
+            if live_pose_router is not None and live_pose_snapshot is not None:
+                background_frames = live_pose_router.read_background_frames(
+                    live_pose_snapshot,
+                    start_frame_idx,
+                    len(batch_frames),
+                )
             for rel_index, res_frame in enumerate(batch_frames):
                 cycle_index = job.start_offset_frames + start_frame_idx + rel_index
-                frames.append(job.avatar.compose_frame(res_frame, cycle_index))
+                background_frame = (
+                    background_frames[rel_index]
+                    if rel_index < len(background_frames)
+                    else None
+                )
+                frames.append(
+                    job.avatar.compose_frame(
+                        res_frame,
+                        cycle_index,
+                        background_frame=background_frame,
+                    )
+                )
             return {
                 "compose_sequence": compose_sequence,
                 "frames": frames,
+                "live_pose_id": (
+                    live_pose_snapshot.pose_id if live_pose_snapshot is not None else None
+                ),
                 "queue_wait_s": compose_started_at - compose_submitted_at,
                 "compose_time": time.time() - compose_started_at,
             }

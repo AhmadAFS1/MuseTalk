@@ -3906,6 +3906,10 @@ async def webrtc_session_status(session_id: str):
         "chunk_duration": session.chunk_duration,
         "idle_pose_id": session.idle_pose_id,
         "idle_video_path": session.idle_video_path,
+        "live_pose_id": session.live_pose_id,
+        "live_pose_router": (
+            session.live_pose_router.get_stats() if session.live_pose_router else None
+        ),
         "ice_transport_policy": session.ice_transport_policy,
         "live_timing": session.live_timing,
         "track_stats": _get_webrtc_track_stats(session),
@@ -3921,6 +3925,7 @@ async def create_webrtc_session(
     batch_size: int = 8,
     chunk_duration: int = 2,
     idle_pose_id: Optional[str] = None,
+    live_pose_id: Optional[str] = None,
 ):
     """
     Create a new WebRTC session for a user.
@@ -3936,6 +3941,18 @@ async def create_webrtc_session(
     _ensure_avatar_for_session(avatar_id, batch_size=resolved_batch_size)
 
     normalized_idle_pose_id = _normalize_idle_pose_id(idle_pose_id)
+    normalized_live_pose_id = _normalize_idle_pose_id(live_pose_id)
+    pose_entries = _list_avatar_idle_pose_entries(avatar_id)
+    pose_video_paths = {
+        entry["pose_id"]: entry["video_path"]
+        for entry in pose_entries
+        if entry.get("exists") and entry.get("video_path")
+    }
+    if normalized_live_pose_id not in pose_video_paths:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Live pose '{normalized_live_pose_id}' not found for avatar '{avatar_id}'.",
+        )
     video_path = _resolve_avatar_video_path(
         avatar_id,
         role="idle",
@@ -3961,6 +3978,8 @@ async def create_webrtc_session(
         batch_size=resolved_batch_size,
         chunk_duration=chunk_duration,
         idle_pose_id=normalized_idle_pose_id,
+        pose_video_paths=pose_video_paths,
+        live_pose_id=normalized_live_pose_id,
     )
 
     return {
@@ -3969,6 +3988,8 @@ async def create_webrtc_session(
         "avatar_id": avatar_id,
         "user_id": user_id,
         "idle_pose_id": normalized_idle_pose_id,
+        "live_pose_id": normalized_live_pose_id,
+        "available_pose_ids": sorted(pose_video_paths),
         "ice_servers": session.ice_servers,
         "ice_transport_policy": session.ice_transport_policy,
         "expires_in_seconds": webrtc_session_manager.session_ttl,
@@ -3980,6 +4001,7 @@ async def create_webrtc_session(
             "chunk_duration": chunk_duration,
             "idle_pose_id": normalized_idle_pose_id,
             "idle_video_path": str(video_path),
+            "live_pose_id": normalized_live_pose_id,
         }
     }
 
@@ -4069,12 +4091,13 @@ async def switch_webrtc_idle_pose(
         raise HTTPException(status_code=500, detail="WebRTC idle track is not initialized")
 
     normalized_pose_id = _normalize_idle_pose_id(pose_id)
-    video_path = _resolve_avatar_video_path(
-        session.avatar_id,
-        role="idle",
-        pose_id=normalized_pose_id,
-    )
-    if not video_path.exists():
+    pose_video_paths = {
+        entry["pose_id"]: Path(entry["video_path"])
+        for entry in _list_avatar_idle_pose_entries(session.avatar_id)
+        if entry.get("exists") and entry.get("video_path")
+    }
+    video_path = pose_video_paths.get(normalized_pose_id)
+    if video_path is None:
         raise HTTPException(
             status_code=404,
             detail=f"Idle pose '{normalized_pose_id}' not found for avatar '{session.avatar_id}'",
@@ -4102,6 +4125,8 @@ async def switch_webrtc_idle_pose(
     )
     session.idle_pose_id = normalized_pose_id
     session.idle_video_path = str(video_path)
+    if session.live_pose_router is not None:
+        session.live_pose_router.register_pose(normalized_pose_id, str(video_path))
     session.live_timing = {
         "timing_source": "webrtc_idle_track",
         "status": "idle_pose_switched",
@@ -4114,6 +4139,56 @@ async def switch_webrtc_idle_pose(
         "avatar_id": session.avatar_id,
         "idle_pose_id": normalized_pose_id,
         "active_stream": session.active_stream,
+        **switch_result,
+    }
+
+
+@app.post("/webrtc/sessions/{session_id}/live-pose/{pose_id}")
+async def switch_webrtc_live_pose(session_id: str, pose_id: str):
+    """Route live MuseTalk composition onto a session pose MP4."""
+    _require_webrtc()
+
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Manager not initialized")
+
+    session = await webrtc_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    if session.live_pose_router is None:
+        raise HTTPException(status_code=500, detail="WebRTC live pose router is not initialized")
+
+    normalized_pose_id = _normalize_idle_pose_id(pose_id)
+    pose_video_paths = {
+        entry["pose_id"]: Path(entry["video_path"])
+        for entry in _list_avatar_idle_pose_entries(session.avatar_id)
+        if entry.get("exists") and entry.get("video_path")
+    }
+    video_path = pose_video_paths.get(normalized_pose_id)
+    if video_path is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Live pose '{normalized_pose_id}' not found for avatar '{session.avatar_id}'",
+        )
+    if video_path.stat().st_size < 1024:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Live pose '{normalized_pose_id}' for '{session.avatar_id}' is corrupted",
+        )
+
+    try:
+        session.live_pose_router.register_pose(normalized_pose_id, str(video_path))
+        switch_result = session.live_pose_router.switch_pose(normalized_pose_id)
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    session.live_pose_id = normalized_pose_id
+    session.touch()
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "avatar_id": session.avatar_id,
+        "active_stream": session.active_stream,
+        "video_path": str(video_path),
         **switch_result,
     }
 
@@ -4547,6 +4622,15 @@ async def webrtc_stream(
                         f"cycle_frames={cycle_frames} hold={timing_debug.get('hold_enabled')}",
                         flush=True,
                     )
+
+                def live_background_frame_provider(frame_index, generation_fps):
+                    router = session.live_pose_router
+                    if router is None:
+                        return None
+                    snapshot = router.snapshot(frame_index, generation_fps)
+                    frames = router.read_background_frames(snapshot, frame_index, 1)
+                    return frames[0] if frames else None
+
                 for _ in avatar.inference_streaming(
                     audio_path=str(audio_path),
                     audio_processor=manager.audio_processor,
@@ -4559,6 +4643,7 @@ async def webrtc_stream(
                     frame_callback=frame_callback,
                     emit_chunks=False,
                     start_offset_seconds=start_offset_seconds,
+                    background_frame_provider=live_background_frame_provider,
                 ):
                     pass
             # Signal that generation is complete so playback can finish naturally.
