@@ -401,3 +401,97 @@ Conclusion: separate prepared materials for each pose fix the visual alignment
 failure for this test avatar. For a nine-session server, retain only the active
 prepared pose and one or two upcoming queued poses per avatar in RAM; keep the
 remaining prepared bundles on local disk/S3 behind an LRU cache.
+
+## Jul 19 Source-Asset Rerun: 2026-07-20
+
+The fully prepared-pose test was repeated with the three updated source clips
+under:
+
+```text
+generated/segmind_pose_test/ab0eb7318f8f/newer assets updated test jul 19/
+```
+
+The normalized sources are 720x1280 H.264 at 30 FPS:
+
+| Pose | Source duration | Source frames | Prepared cycle | Local bundle |
+| --- | ---: | ---: | ---: | --- |
+| `default` | 10.0 s | 300 | 600 | `jul19_multi_pose_ab0eb7318f8f` |
+| `nod` | 10.13 s | 304 | 608 | `jul19_multi_pose_ab0eb7318f8f_nod` |
+| `smile` | 12.4 s | 372 | 744 | `jul19_multi_pose_ab0eb7318f8f_smile` |
+
+Each bundle has matching latent, coordinate, mask-coordinate, full-frame, and
+mask cycle counts. The base avatar registers the following prepared-pose map:
+
+```text
+default -> jul19_multi_pose_ab0eb7318f8f
+nod     -> jul19_multi_pose_ab0eb7318f8f_nod
+smile   -> jul19_multi_pose_ab0eb7318f8f_smile
+```
+
+The old 22-second audio loop was too short for the updated clips. This run used
+the existing 60-second `data/audio/eng.wav` fixture and configured the queue
+before streaming:
+
+```text
+default: generation frames   0-99   (10.0 s)
+nod:     generation frames 100-200  (10.1 s)
+smile:   generation frames 201-324  (12.4 s)
+nod:     generation frames 325-425  (10.1 s)
+hold nod after generation frame 425
+```
+
+### Runtime Result
+
+The canonical warm-cache capture completed in 62.716 seconds and wrote 1,225
+20-FPS WebRTC frames for a 61.25-second MP4. The server generated and played all
+600 requested 10-FPS frames, with:
+
+- zero dropped generated frames
+- zero queue underruns
+- zero strict video stalls
+- zero reported video-stall seconds
+- the expected one duplicate per generated frame for 10-to-20-FPS playback
+- an initial audio/video release delta of approximately 0.27 ms
+
+The strict synchronization clock reported 586 audio wait events totaling about
+11.85 seconds while generation and playout were coordinated. The recorder
+consumes the WebRTC audio track but writes a video-only MP4, so this artifact
+does not independently validate subjective audio continuity.
+
+The three loaded prepared bundles used approximately 7,239 MB of avatar cache:
+
+```text
+default: 2,212 MB
+nod:     2,270 MB
+smile:   2,758 MB
+```
+
+Steady warmed four-frame GPU batches were approximately 89-93 ms in the
+observed server timing samples. A separately preserved cold-cache run spent
+31.45 seconds loading the three bundles from disk before generation; its
+recorder therefore includes about 31 seconds of leading default-idle video.
+
+### Visual Result
+
+Sampled mid-segment frames and before/after frames at all three queue boundaries
+show the intended `default -> nod -> smile -> nod` order. The per-pose prepared
+geometry keeps the generated face coherent through the larger expression and
+head-position changes. The sampled frames do not show the detached mouth,
+cheek/jaw drift, or obvious mask edge seen in the original neutral-geometry
+reuse experiment.
+
+The changes between complete source clips remain direct pose cuts rather than
+crossfades. They are visually readable in this asset set, but transition style
+is separate from the prepared-pose alignment result.
+
+Evidence:
+
+- `generated/segmind_pose_test/ab0eb7318f8f/newer assets updated test jul 19/webrtc_fully_prepared_pose_queue_test.mp4`
+- `generated/segmind_pose_test/ab0eb7318f8f/newer assets updated test jul 19/webrtc_fully_prepared_pose_queue_test.json`
+- `generated/segmind_pose_test/ab0eb7318f8f/newer assets updated test jul 19/fully_prepared_pose_queue_contact_sheet.jpg`
+- `generated/segmind_pose_test/ab0eb7318f8f/newer assets updated test jul 19/fully_prepared_face_transition_sheet.jpg`
+- `generated/segmind_pose_test/ab0eb7318f8f/newer assets updated test jul 19/fully_prepared_transition_boundaries.jpg`
+- `generated/segmind_pose_test/ab0eb7318f8f/newer assets updated test jul 19/webrtc_fully_prepared_pose_queue_test_cold_cache.mp4`
+- `generated/segmind_pose_test/ab0eb7318f8f/newer assets updated test jul 19/webrtc_fully_prepared_pose_queue_test_cold_cache.json`
+
+The rerun prepared and tested the avatar locally with S3 persistence disabled.
