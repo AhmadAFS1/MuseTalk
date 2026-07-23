@@ -110,6 +110,43 @@ curl -X POST "http://localhost:8000/avatars/prepare?avatar_id=test_avatar&batch_
 
 ---
 
+### **Generate a Multi-Pose FaceTime Avatar with Segmind**
+
+The `facetime_v1` preset sends the same generated still through the normalized
+`neutral_resting`, `nod_agree`, and `look_away_reset` motion references. The
+neutral result remains the primary `motion_video_path`, while all three results
+are returned in `motion_videos`.
+
+```bash
+curl -X POST "http://localhost:8000/avatars/generate" \
+  -H "Content-Type: application/json" \
+  -H "X-Avatar-Generation-Key: $AVATAR_GENERATION_KEY" \
+  -d '{
+    "avatar_id": "facetime_test",
+    "prompt": "A photorealistic centered AI FaceTime companion",
+    "motion_reference_preset": "facetime_v1",
+    "prepare": true,
+    "upload_video": true
+  }'
+```
+
+This requires `SEGMIND_API_KEY` (or `KLING_2_6_MOTION_API_KEY`) plus the same
+AWS credentials used for generated image/video uploads. Segmind accepts URLs,
+so the server uploads the three reference MP4s under
+`motion-references/facetime_v1/` before submitting them. Do not combine
+`motion_reference_preset` with `motion_reference_video_url`.
+
+Validate the checked-in references before generation:
+
+```bash
+python3 -m scripts.validate_segmind_motion_references facetime_v1
+```
+
+See `docs/segmind_facetime_motion_reference_set.md` for the framing decision and
+runtime integration notes.
+
+---
+
 ### **Generate a Video**
 
 ```bash

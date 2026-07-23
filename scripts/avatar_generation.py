@@ -4,6 +4,7 @@ import base64
 import io
 import json
 import os
+import re
 import subprocess
 import time
 import uuid
@@ -33,6 +34,7 @@ class GenerateAvatarRequest(BaseModel):
     prepare: bool = True
     upload_video: bool = True
     motion_reference_video_url: Optional[str] = None
+    motion_reference_preset: Optional[str] = None
     motion_prompt: Optional[str] = None
     provider_order: List[str] = Field(
         default_factory=lambda: ["gpt_image_edit", "gpt_image", "getimg"]
@@ -52,6 +54,112 @@ class AvatarGenerationError(RuntimeError):
         self.code = code
         self.status_code = status_code
         self.detail = detail or {}
+
+
+MOTION_REFERENCE_PRESET_ROOT = (
+    Path(__file__).resolve().parents[1] / "assets" / "segmind_motion_references"
+)
+
+
+def load_motion_reference_preset(preset_id: str) -> Dict[str, Any]:
+    normalized_id = str(preset_id or "").strip().lower()
+    if not re.fullmatch(r"[a-z0-9_-]{1,64}", normalized_id):
+        raise AvatarGenerationError(
+            "Motion reference preset is invalid",
+            code="motion_reference_preset_invalid",
+            status_code=400,
+            detail={"preset_id": preset_id},
+        )
+
+    root = Path(
+        os.getenv("SEGMIND_MOTION_REFERENCE_PRESET_DIR", str(MOTION_REFERENCE_PRESET_ROOT))
+    ).resolve()
+    preset_dir = (root / normalized_id).resolve()
+    try:
+        preset_dir.relative_to(root)
+    except ValueError as exc:
+        raise AvatarGenerationError(
+            "Motion reference preset escapes its configured root",
+            code="motion_reference_preset_invalid",
+            status_code=400,
+            detail={"preset_id": normalized_id},
+        ) from exc
+
+    manifest_path = preset_dir / "manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise AvatarGenerationError(
+            "Motion reference preset was not found",
+            code="motion_reference_preset_not_found",
+            status_code=400,
+            detail={"preset_id": normalized_id, "manifest_path": str(manifest_path)},
+        ) from exc
+    except (OSError, json.JSONDecodeError) as exc:
+        raise AvatarGenerationError(
+            "Motion reference preset manifest could not be read",
+            code="motion_reference_preset_invalid",
+            status_code=400,
+            detail={"preset_id": normalized_id, "error": str(exc)},
+        ) from exc
+
+    poses = manifest.get("poses")
+    default_pose_id = str(manifest.get("default_pose_id") or "").strip().lower()
+    if manifest.get("id") != normalized_id or not isinstance(poses, list) or not poses:
+        raise AvatarGenerationError(
+            "Motion reference preset manifest is incomplete",
+            code="motion_reference_preset_invalid",
+            status_code=400,
+            detail={"preset_id": normalized_id, "manifest_path": str(manifest_path)},
+        )
+
+    resolved_poses: List[Dict[str, Any]] = []
+    seen_pose_ids = set()
+    for pose in poses:
+        pose_id = str(pose.get("id") or "").strip().lower() if isinstance(pose, dict) else ""
+        relative_path = str(pose.get("path") or "").strip() if isinstance(pose, dict) else ""
+        if not re.fullmatch(r"[a-z0-9_-]{1,64}", pose_id) or pose_id in seen_pose_ids:
+            raise AvatarGenerationError(
+                "Motion reference preset contains an invalid or duplicate pose id",
+                code="motion_reference_preset_invalid",
+                status_code=400,
+                detail={"preset_id": normalized_id, "pose_id": pose_id},
+            )
+        reference_path = (preset_dir / relative_path).resolve()
+        try:
+            reference_path.relative_to(preset_dir)
+        except ValueError as exc:
+            raise AvatarGenerationError(
+                "Motion reference path escapes its preset directory",
+                code="motion_reference_preset_invalid",
+                status_code=400,
+                detail={"preset_id": normalized_id, "pose_id": pose_id},
+            ) from exc
+        if not reference_path.is_file():
+            raise AvatarGenerationError(
+                "Motion reference video was not found",
+                code="motion_reference_video_missing",
+                status_code=400,
+                detail={"preset_id": normalized_id, "pose_id": pose_id, "path": str(reference_path)},
+            )
+        seen_pose_ids.add(pose_id)
+        resolved_poses.append({**pose, "id": pose_id, "resolved_path": reference_path})
+
+    if default_pose_id not in seen_pose_ids:
+        raise AvatarGenerationError(
+            "Motion reference preset default pose was not found",
+            code="motion_reference_preset_invalid",
+            status_code=400,
+            detail={"preset_id": normalized_id, "default_pose_id": default_pose_id},
+        )
+
+    return {
+        **manifest,
+        "id": normalized_id,
+        "default_pose_id": default_pose_id,
+        "manifest_path": manifest_path,
+        "poses": resolved_poses,
+    }
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -527,6 +635,8 @@ def generate_kling_motion(
     *,
     motion_reference_video_url: Optional[str] = None,
     motion_prompt: Optional[str] = None,
+    keep_original_sound: Optional[bool] = None,
+    character_orientation: Optional[str] = None,
 ) -> Dict[str, Any]:
     api_key = os.getenv("KLING_2_6_MOTION_API_KEY") or os.getenv("SEGMIND_API_KEY")
     if not api_key:
@@ -543,8 +653,13 @@ def generate_kling_motion(
             "KLING_MOTION_PROMPT",
             "Create a seamless forever-looping idle avatar video with subtle natural breathing and micro-movements. Keep the head, shoulders, scale, camera framing, and eye line stable.",
         ),
-        "keep_original_sound": _env_bool("KLING_2_6_MOTION_KEEP_ORIGINAL_SOUND", True),
-        "character_orientation": os.getenv("KLING_2_6_MOTION_CHARACTER_ORIENTATION", "video"),
+        "keep_original_sound": (
+            keep_original_sound
+            if keep_original_sound is not None
+            else _env_bool("KLING_2_6_MOTION_KEEP_ORIGINAL_SOUND", True)
+        ),
+        "character_orientation": character_orientation
+        or os.getenv("KLING_2_6_MOTION_CHARACTER_ORIENTATION", "video"),
     }
     payload = {key: value for key, value in payload.items() if value not in (None, "")}
     timeout = _env_float("KLING_2_6_MOTION_TIMEOUT_SECONDS", 1200.0)
@@ -597,10 +712,19 @@ def generate_avatar_assets(request: GenerateAvatarRequest) -> Dict[str, Any]:
     base_dir = Path(os.getenv("GENERATED_AVATAR_ASSET_DIR", "generated/avatar_assets")) / safe_avatar_id
     base_dir.mkdir(parents=True, exist_ok=True)
 
+    preset_id = request.motion_reference_preset
+    if preset_id and request.motion_reference_video_url:
+        raise AvatarGenerationError(
+            "Use either motion_reference_preset or motion_reference_video_url, not both",
+            code="motion_reference_conflict",
+            status_code=400,
+        )
+    if not preset_id and not request.motion_reference_video_url:
+        preset_id = os.getenv("KLING_2_6_MOTION_REFERENCE_PRESET") or None
+    motion_preset = load_motion_reference_preset(preset_id) if preset_id else None
+
     prompt_path = base_dir / "prompt.txt"
     source_image_path = base_dir / "source.jpg"
-    raw_motion_path = base_dir / "motion.raw.mp4"
-    normalized_motion_path = base_dir / "motion.720x1280.30fps.10s.mp4"
     metadata_path = base_dir / "metadata.json"
 
     prompt_path.write_text(prompt, encoding="utf-8")
@@ -617,26 +741,111 @@ def generate_avatar_assets(request: GenerateAvatarRequest) -> Dict[str, Any]:
         "image/jpeg",
     )
 
-    motion_result = generate_kling_motion(
-        source_image_url,
-        raw_motion_path,
-        motion_reference_video_url=request.motion_reference_video_url,
-        motion_prompt=request.motion_prompt,
-    )
-    normalize_video(raw_motion_path, normalized_motion_path)
+    video_bucket = os.getenv("IDLE_VIDEO_BUCKET", "lingua-ai-idle-vids")
+    video_prefix = os.getenv("IDLE_VIDEO_PREFIX", "musetalk-generated").strip("/")
+    motion_videos: Optional[Dict[str, Dict[str, Any]]] = None
 
-    motion_video_url = None
-    motion_video_key = None
-    if request.upload_video:
-        video_bucket = os.getenv("IDLE_VIDEO_BUCKET", "lingua-ai-idle-vids")
-        video_prefix = os.getenv("IDLE_VIDEO_PREFIX", "musetalk-generated").strip("/")
-        motion_video_key = f"{video_prefix}/{safe_avatar_id}/motion.720x1280.30fps.10s.mp4"
-        motion_video_url = _upload_file_to_s3(
-            normalized_motion_path,
-            video_bucket,
-            motion_video_key,
-            "video/mp4",
+    if motion_preset is not None:
+        reference_bucket = os.getenv("SEGMIND_MOTION_REFERENCE_BUCKET", video_bucket)
+        reference_prefix = os.getenv(
+            "SEGMIND_MOTION_REFERENCE_PREFIX", "motion-references"
+        ).strip("/")
+        shared_motion_prompt = request.motion_prompt or motion_preset.get("prompt")
+        orientation = str(motion_preset.get("character_orientation") or "video")
+        keep_sound = bool(motion_preset.get("keep_original_sound", False))
+        motion_videos = {}
+
+        for pose in motion_preset["poses"]:
+            pose_id = pose["id"]
+            reference_path = pose["resolved_path"]
+            reference_key = (
+                f"{reference_prefix}/{motion_preset['id']}/{reference_path.name}"
+            )
+            reference_url = _upload_file_to_s3(
+                reference_path,
+                reference_bucket,
+                reference_key,
+                "video/mp4",
+            )
+
+            pose_dir = base_dir / "motions" / pose_id
+            raw_motion_path = pose_dir / "motion.raw.mp4"
+            normalized_motion_path = pose_dir / "motion.720x1280.30fps.10s.mp4"
+            pose_prompt = request.motion_prompt or pose.get("prompt") or shared_motion_prompt
+            motion_result = generate_kling_motion(
+                source_image_url,
+                raw_motion_path,
+                motion_reference_video_url=reference_url,
+                motion_prompt=pose_prompt,
+                keep_original_sound=keep_sound,
+                character_orientation=orientation,
+            )
+            normalize_video(raw_motion_path, normalized_motion_path)
+
+            motion_video_url = None
+            motion_video_key = None
+            if request.upload_video:
+                motion_video_key = (
+                    f"{video_prefix}/{safe_avatar_id}/motions/"
+                    f"{pose_id}.720x1280.30fps.10s.mp4"
+                )
+                motion_video_url = _upload_file_to_s3(
+                    normalized_motion_path,
+                    video_bucket,
+                    motion_video_key,
+                    "video/mp4",
+                )
+
+            motion_videos[pose_id] = {
+                **motion_result,
+                "pose_id": pose_id,
+                "role": pose.get("role"),
+                "raw_path": str(raw_motion_path),
+                "normalized_path": str(normalized_motion_path),
+                "url": motion_video_url,
+                "key": motion_video_key,
+                "reference_video_path": str(reference_path),
+                "reference_video_url": reference_url,
+                "reference_video_key": reference_key,
+                "prompt": pose_prompt,
+            }
+
+        default_pose_id = motion_preset["default_pose_id"]
+        primary_motion = motion_videos[default_pose_id]
+    else:
+        raw_motion_path = base_dir / "motion.raw.mp4"
+        normalized_motion_path = base_dir / "motion.720x1280.30fps.10s.mp4"
+        motion_result = generate_kling_motion(
+            source_image_url,
+            raw_motion_path,
+            motion_reference_video_url=request.motion_reference_video_url,
+            motion_prompt=request.motion_prompt,
         )
+        normalize_video(raw_motion_path, normalized_motion_path)
+
+        motion_video_url = None
+        motion_video_key = None
+        if request.upload_video:
+            motion_video_key = (
+                f"{video_prefix}/{safe_avatar_id}/motion.720x1280.30fps.10s.mp4"
+            )
+            motion_video_url = _upload_file_to_s3(
+                normalized_motion_path,
+                video_bucket,
+                motion_video_key,
+                "video/mp4",
+            )
+        primary_motion = {
+            **motion_result,
+            "pose_id": "default",
+            "raw_path": str(raw_motion_path),
+            "normalized_path": str(normalized_motion_path),
+            "url": motion_video_url,
+            "key": motion_video_key,
+            "reference_video_url": request.motion_reference_video_url
+            or os.getenv("KLING_2_6_MOTION_INPUT_VIDEO_URL"),
+            "prompt": request.motion_prompt or os.getenv("KLING_MOTION_PROMPT"),
+        }
 
     metadata = {
         "avatar_id": safe_avatar_id,
@@ -647,16 +856,17 @@ def generate_avatar_assets(request: GenerateAvatarRequest) -> Dict[str, Any]:
             "bucket": image_bucket,
             "key": source_image_key,
         },
-        "motion": {
-            **motion_result,
-            "raw_path": str(raw_motion_path),
-            "normalized_path": str(normalized_motion_path),
-            "url": motion_video_url,
-            "key": motion_video_key,
-            "reference_video_url": request.motion_reference_video_url
-            or os.getenv("KLING_2_6_MOTION_INPUT_VIDEO_URL"),
-            "prompt": request.motion_prompt or os.getenv("KLING_MOTION_PROMPT"),
-        },
+        "motion": primary_motion,
+        "motion_set": (
+            {
+                "preset_id": motion_preset["id"],
+                "default_pose_id": motion_preset["default_pose_id"],
+                "manifest_path": str(motion_preset["manifest_path"]),
+                "poses": motion_videos,
+            }
+            if motion_preset is not None
+            else None
+        ),
         "elapsed_seconds": round(time.time() - started_at, 3),
     }
     metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
@@ -669,9 +879,12 @@ def generate_avatar_assets(request: GenerateAvatarRequest) -> Dict[str, Any]:
         "source_image_url": source_image_url,
         "source_image_path": str(source_image_path),
         "motion_provider": "kling_2_6_pro_motion_control",
-        "motion_video_url": motion_video_url,
-        "motion_video_path": str(normalized_motion_path),
-        "raw_motion_video_path": str(raw_motion_path),
+        "motion_reference_preset": motion_preset["id"] if motion_preset else None,
+        "default_pose_id": motion_preset["default_pose_id"] if motion_preset else "default",
+        "motion_video_url": primary_motion["url"],
+        "motion_video_path": primary_motion["normalized_path"],
+        "raw_motion_video_path": primary_motion["raw_path"],
+        "motion_videos": motion_videos,
         "metadata_path": str(metadata_path),
         "elapsed_seconds": metadata["elapsed_seconds"],
     }

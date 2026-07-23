@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "facetime_v1",
+  "description": "Canonical close-up motion references for 9:16 AI FaceTime avatars.",
+  "default_pose_id": "neutral_resting",
+  "character_orientation": "video",
+  "keep_original_sound": false,
+  "prompt": "Transfer the reference video's motion precisely to the character in the source image. Preserve the character's identity, face, hair, clothing, background, camera framing, lighting, scale, and body proportions. Keep the camera completely locked with no zoom, pan, crop drift, or background movement. Follow the reference head, expression, shoulder, and torso movement while keeping the mouth naturally closed and relaxed. Do not add speech, lip sync, teeth, extra gestures, or new motion. Preserve the reference video's loop timing and return to the exact starting pose and composition at the final frame.",
+  "normalization": {
+    "source_resolution": "1080x1920",
+    "output_resolution": "720x1280",
+    "fps": 30,
+    "duration_seconds": 10,
+    "scale": 1.25,
+    "output_top_padding_px": 60,
+    "padding_color": "#EDF1F7",
+    "ffmpeg_filter": "scale=900:1600:flags=lanczos,crop=720:1220:90:0,pad=720:1280:0:60:color=0xEDF1F7,fps=30,setsar=1"
+  },
+  "poses": [
+    {
+      "id": "neutral_resting",
+      "path": "neutral_resting.mp4",
+      "role": "idle"
+    },
+    {
+      "id": "nod_agree",
+      "path": "nod_agree.mp4",
+      "role": "reaction"
+    },
+    {
+      "id": "look_away_reset",
+      "path": "look_away_reset.mp4",
+      "role": "thinking"
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "preset_id": "facetime_v1",
+  "default_pose_id": "neutral_resting",
+  "manifest_path": "assets/segmind_motion_references/facetime_v1/manifest.json",
+  "anchor_ssim_minimum": 0.99,
+  "poses": {
+    "neutral_resting": {
+      "path": "assets/segmind_motion_references/facetime_v1/neutral_resting.mp4",
+      "codec": "h264",
+      "pixel_format": "yuv420p",
+      "width": 720,
+      "height": 1280,
+      "fps": 30.0,
+      "duration_seconds": 10.0,
+      "frame_count": 300,
+      "audio_stream_count": 0,
+      "first_last_ssim": 0.994272,
+      "checks": {
+        "codec_h264": true,
+        "resolution": true,
+        "fps": true,
+        "duration": true,
+        "segmind_duration_range": true,
+        "silent": true,
+        "neutral_loop_anchor": true,
+        "canonical_start_anchor": true
+      },
+      "passed": true,
+      "canonical_first_frame_ssim": 1.0
+    },
+    "nod_agree": {
+      "path": "assets/segmind_motion_references/facetime_v1/nod_agree.mp4",
+      "codec": "h264",
+      "pixel_format": "yuv420p",
+      "width": 720,
+      "height": 1280,
+      "fps": 30.0,
+      "duration_seconds": 10.0,
+      "frame_count": 300,
+      "audio_stream_count": 0,
+      "first_last_ssim": 0.994272,
+      "checks": {
+        "codec_h264": true,
+        "resolution": true,
+        "fps": true,
+        "duration": true,
+        "segmind_duration_range": true,
+        "silent": true,
+        "neutral_loop_anchor": true,
+        "canonical_start_anchor": true
+      },
+      "passed": true,
+      "canonical_first_frame_ssim": 1.0
+    },
+    "look_away_reset": {
+      "path": "assets/segmind_motion_references/facetime_v1/look_away_reset.mp4",
+      "codec": "h264",
+      "pixel_format": "yuv420p",
+      "width": 720,
+      "height": 1280,
+      "fps": 30.0,
+      "duration_seconds": 10.0,
+      "frame_count": 300,
+      "audio_stream_count": 0,
+      "first_last_ssim": 0.994272,
+      "checks": {
+        "codec_h264": true,
+        "resolution": true,
+        "fps": true,
+        "duration": true,
+        "segmind_duration_range": true,
+        "silent": true,
+        "neutral_loop_anchor": true,
+        "canonical_start_anchor": true
+      },
+      "passed": true,
+      "canonical_first_frame_ssim": 1.0
+    }
+  },
+  "passed": true
+}
