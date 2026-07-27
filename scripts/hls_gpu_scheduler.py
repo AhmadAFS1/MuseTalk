@@ -610,6 +610,38 @@ class HLSGPUStreamScheduler:
                         session.live_timing = timing_debug
                     except Exception:
                         pass
+                    live_pose_router = getattr(
+                        session,
+                        "live_pose_router",
+                        None,
+                    )
+                    if (
+                        live_pose_router is not None
+                        and hasattr(
+                            live_pose_router,
+                            "align_first_queued_pose",
+                        )
+                    ):
+                        try:
+                            timing_debug["live_pose_alignment"] = (
+                                live_pose_router.align_first_queued_pose(
+                                    int(
+                                        timing_debug.get(
+                                            "target_source_frame_index",
+                                            0,
+                                        )
+                                        or 0
+                                    ),
+                                    float(generation_fps),
+                                )
+                            )
+                        except Exception as exc:
+                            timing_debug["live_pose_alignment_error"] = str(exc)
+                            print(
+                                f"⚠️ [{request_id}] Could not phase-align "
+                                f"first live pose: {exc}",
+                                flush=True,
+                            )
                     print(
                         f"🎬 [{request_id}] WebRTC idle sync offset: "
                         f"source_frame={timing_debug.get('idle_source_frame_index')} "
@@ -1255,14 +1287,21 @@ class HLSGPUStreamScheduler:
                     getattr(pose_avatar, "input_latent_cycle_tensor", None),
                 )
                 if not isinstance(latent_cycle, torch.Tensor):
-                    raise RuntimeError("Expected latent cycle tensor for scheduler batch assembly")
+                    raise RuntimeError(
+                        "Expected latent cycle tensor for scheduler batch assembly"
+                    )
                 generation_index = job.current_frame_idx + relative_frame
                 cycle_index = (
-                    live_pose_router.source_frame_index(snapshot, generation_index)
+                    live_pose_router.source_frame_index(
+                        snapshot,
+                        generation_index,
+                    )
                     if snapshot is not None and snapshot.is_queued
                     else job.start_offset_frames + generation_index
                 )
-                gathered_latent = latent_cycle[cycle_index % latent_cycle.shape[0]]
+                gathered_latent = latent_cycle[
+                    cycle_index % latent_cycle.shape[0]
+                ]
                 if gathered_latent.dim() == 4 and gathered_latent.shape[0] == 1:
                     gathered_latent = gathered_latent.squeeze(0)
                 gathered_latents_by_frame.append(gathered_latent)
@@ -1583,10 +1622,12 @@ class HLSGPUStreamScheduler:
                         == snapshot.origin_generation_frame
                     ):
                         group_end += 1
-                    background_frames[group_start:group_end] = live_pose_router.read_background_frames(
-                        snapshot,
-                        start_frame_idx + group_start,
-                        group_end - group_start,
+                    background_frames[group_start:group_end] = (
+                        live_pose_router.read_background_frames(
+                            snapshot,
+                            start_frame_idx + group_start,
+                            group_end - group_start,
+                        )
                     )
                     group_start = group_end
             for rel_index, res_frame in enumerate(batch_frames):
@@ -1618,8 +1659,14 @@ class HLSGPUStreamScheduler:
             return {
                 "compose_sequence": compose_sequence,
                 "frames": frames,
+                "live_pose_ids": [
+                    snapshot.pose_id
+                    for snapshot in (live_pose_snapshots or [])
+                ],
                 "live_pose_id": (
-                    live_pose_snapshots[0].pose_id if live_pose_snapshots else None
+                    live_pose_snapshots[0].pose_id
+                    if live_pose_snapshots
+                    else None
                 ),
                 "queue_wait_s": compose_started_at - compose_submitted_at,
                 "compose_time": time.time() - compose_started_at,
@@ -1701,7 +1748,8 @@ class HLSGPUStreamScheduler:
 
             frames = compose_info["frames"]
             if frames and job.frame_batch_callback is not None:
-                start_frame_idx = job.composed_frame_idx + 1
+                rendered_start_frame_idx = job.composed_frame_idx
+                start_frame_idx = rendered_start_frame_idx + 1
                 callback_started_at = time.time()
                 try:
                     job.frame_batch_callback(frames, start_frame_idx, job.total_frames)
@@ -1716,6 +1764,11 @@ class HLSGPUStreamScheduler:
                     job.frame_callback_total_s += callback_s
                     job.frame_callback_max_s = max(job.frame_callback_max_s, callback_s)
 
+                if hasattr(job.session, "record_rendered_pose_batch"):
+                    job.session.record_rendered_pose_batch(
+                        compose_info.get("live_pose_ids") or [],
+                        rendered_start_frame_idx,
+                    )
                 job.composed_frame_idx += len(frames)
                 job.last_progress_at = time.time()
                 startup_target = self._next_chunk_target_frames(job)
@@ -1730,10 +1783,13 @@ class HLSGPUStreamScheduler:
                 job.chunks_appended += 1
                 continue
 
+            rendered_start_frame_idx = job.composed_frame_idx
+            rendered_frame_count = 0
             for frame in compose_info["frames"]:
                 if job.cancel_event.is_set():
                     break
                 job.composed_frame_idx += 1
+                rendered_frame_count += 1
                 job.last_progress_at = time.time()
 
                 if job.frame_callback is None:
@@ -1752,6 +1808,17 @@ class HLSGPUStreamScheduler:
                         job.frame_callback_count += 1
                         job.frame_callback_total_s += callback_s
                         job.frame_callback_max_s = max(job.frame_callback_max_s, callback_s)
+
+            if (
+                rendered_frame_count > 0
+                and hasattr(job.session, "record_rendered_pose_batch")
+            ):
+                job.session.record_rendered_pose_batch(
+                    (compose_info.get("live_pose_ids") or [])[
+                        :rendered_frame_count
+                    ],
+                    rendered_start_frame_idx,
+                )
 
                 startup_target = self._next_chunk_target_frames(job)
                 if job.first_chunk_appended_at is None and job.composed_frame_idx >= startup_target:

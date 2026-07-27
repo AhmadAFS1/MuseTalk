@@ -39,7 +39,7 @@ import argparse
 from pathlib import Path
 from typing import Optional
 import uvicorn
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Query, Request, Header
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, BackgroundTasks, Query, Request, Header
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -85,6 +85,16 @@ from templates.hls_player import get_hls_player_html
 from templates.hls_wall import get_hls_wall_html
 from templates.webrtc_player import get_webrtc_player_html
 from templates.webrtc_wall import get_webrtc_wall_html
+from templates.webrtc_pose_lab import get_webrtc_pose_lab_html
+from scripts.pose_protocol import (
+    POSE_IDS,
+    POSE_ID_SET,
+    POSE_SWITCH_MODE,
+    PoseProtocolError,
+    normalize_pose_set,
+    normalize_session_event,
+    normalize_stream_metadata,
+)
 from scripts.worker_control_plane import LinguaWorkerControlPlane
 from scripts.session_manager import SessionManager
 from scripts.hls_session_manager import HlsSessionManager
@@ -1208,6 +1218,50 @@ async def health_check():
         }
     status_code = 200 if payload["ok"] else 503
     return JSONResponse(status_code=status_code, content=payload)
+
+
+@app.get("/capabilities")
+async def worker_capabilities():
+    """Advertise optional worker contracts without loading an avatar."""
+    return {
+        "service": "musetalk",
+        "features": {
+            "pose_sets_v1": bool(WEBRTC_AVAILABLE),
+        },
+        "pose_protocol": {
+            "version": 1,
+            "switch_mode": POSE_SWITCH_MODE,
+            "pose_ids": list(POSE_IDS),
+            "audio_start": "immediate",
+            "mouth_mode": "lip_sync",
+        },
+    }
+
+
+@app.get("/webrtc/pose-lab", response_class=HTMLResponse)
+async def webrtc_pose_lab():
+    """Standalone browser UI for the six-pose worker contract."""
+    _require_webrtc()
+    return HTMLResponse(content=get_webrtc_pose_lab_html())
+
+
+@app.get("/webrtc/pose-lab/sample-audio")
+async def webrtc_pose_lab_sample_audio():
+    sample_path = Path(
+        os.getenv(
+            "POSE_LAB_SAMPLE_AUDIO",
+            "./data/audio/eng.wav",
+        )
+    ).expanduser()
+    if not sample_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Set POSE_LAB_SAMPLE_AUDIO to an existing WAV/MP3, "
+                "or choose a local file in the pose lab."
+            ),
+        )
+    return FileResponse(sample_path)
 
 
 @app.get("/worker/state")
@@ -3994,6 +4048,10 @@ async def webrtc_session_status(session_id: str):
             session.live_pose_router.get_stats() if session.live_pose_router else None
         ),
         "prepared_pose_avatar_ids": session.prepared_pose_avatar_ids,
+        "generation_avatar_id": (
+            session.generation_avatar_id or session.avatar_id
+        ),
+        "pose_protocol": session.pose_status(),
         "ice_transport_policy": session.ice_transport_policy,
         "live_timing": session.live_timing,
         "track_stats": _get_webrtc_track_stats(session),
@@ -4010,6 +4068,8 @@ async def create_webrtc_session(
     chunk_duration: int = 2,
     idle_pose_id: Optional[str] = None,
     live_pose_id: Optional[str] = None,
+    pose_set: Optional[str] = None,
+    pose_switch_mode: str = "immediate",
 ):
     """
     Create a new WebRTC session for a user.
@@ -4024,25 +4084,84 @@ async def create_webrtc_session(
     resolved_batch_size = _resolve_webrtc_batch_size(batch_size)
     _ensure_avatar_for_session(avatar_id, batch_size=resolved_batch_size)
 
-    normalized_idle_pose_id = _normalize_idle_pose_id(idle_pose_id)
-    normalized_live_pose_id = _normalize_idle_pose_id(live_pose_id)
-    pose_entries = _list_avatar_idle_pose_entries(avatar_id)
-    pose_video_paths = {
-        entry["pose_id"]: entry["video_path"]
-        for entry in pose_entries
-        if entry.get("exists") and entry.get("video_path")
-    }
-    prepared_pose_avatar_ids = _get_avatar_prepared_pose_avatar_ids(avatar_id)
-    if normalized_live_pose_id not in pose_video_paths:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Live pose '{normalized_live_pose_id}' not found for avatar '{avatar_id}'.",
+    normalized_pose_set: dict = {}
+    pose_video_paths: dict[str, str] = {}
+    prepared_pose_avatar_ids: dict[str, str] = {}
+    normalized_pose_switch_mode = str(
+        pose_switch_mode or "immediate"
+    ).strip().lower()
+
+    if pose_set:
+        try:
+            normalized_pose_set = normalize_pose_set(pose_set)
+        except PoseProtocolError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        if normalized_pose_switch_mode != POSE_SWITCH_MODE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"pose_switch_mode must be {POSE_SWITCH_MODE}.",
+            )
+
+        for pose_id in POSE_IDS:
+            pose_avatar_id = normalized_pose_set["poses"][pose_id]["avatar_id"]
+            _ensure_avatar_for_session(
+                pose_avatar_id,
+                batch_size=resolved_batch_size,
+            )
+            pose_video_path = _resolve_avatar_video_path(
+                pose_avatar_id,
+                role="idle",
+            )
+            if (
+                not pose_video_path.is_file()
+                or pose_video_path.stat().st_size < 1024
+            ):
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        f"Prepared pose video '{pose_id}' was not found "
+                        f"for avatar '{pose_avatar_id}'."
+                    ),
+                )
+            pose_video_paths[pose_id] = str(pose_video_path)
+            prepared_pose_avatar_ids[pose_id] = pose_avatar_id
+
+        normalized_idle_pose_id = normalized_pose_set["default_pose_id"]
+        normalized_live_pose_id = normalized_idle_pose_id
+        video_path = Path(pose_video_paths[normalized_idle_pose_id])
+        pose_video_paths["default"] = str(video_path)
+        prepared_pose_avatar_ids["default"] = avatar_id
+    else:
+        if normalized_pose_switch_mode not in ("immediate", POSE_SWITCH_MODE):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"pose_switch_mode must be immediate or {POSE_SWITCH_MODE}."
+                ),
+            )
+        normalized_idle_pose_id = _normalize_idle_pose_id(idle_pose_id)
+        normalized_live_pose_id = _normalize_idle_pose_id(live_pose_id)
+        pose_entries = _list_avatar_idle_pose_entries(avatar_id)
+        pose_video_paths = {
+            entry["pose_id"]: entry["video_path"]
+            for entry in pose_entries
+            if entry.get("exists") and entry.get("video_path")
+        }
+        prepared_pose_avatar_ids = _get_avatar_prepared_pose_avatar_ids(avatar_id)
+        if normalized_live_pose_id not in pose_video_paths:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Live pose '{normalized_live_pose_id}' not found "
+                    f"for avatar '{avatar_id}'."
+                ),
+            )
+        video_path = _resolve_avatar_video_path(
+            avatar_id,
+            role="idle",
+            pose_id=normalized_idle_pose_id,
         )
-    video_path = _resolve_avatar_video_path(
-        avatar_id,
-        role="idle",
-        pose_id=normalized_idle_pose_id,
-    )
+
     if not video_path.exists():
         raise HTTPException(
             status_code=404,
@@ -4063,6 +4182,8 @@ async def create_webrtc_session(
         batch_size=resolved_batch_size,
         chunk_duration=chunk_duration,
         idle_pose_id=normalized_idle_pose_id,
+        pose_set=normalized_pose_set or None,
+        pose_switch_mode=normalized_pose_switch_mode,
         pose_video_paths=pose_video_paths,
         prepared_pose_avatar_ids=prepared_pose_avatar_ids,
         live_pose_id=normalized_live_pose_id,
@@ -4077,6 +4198,7 @@ async def create_webrtc_session(
         "live_pose_id": normalized_live_pose_id,
         "available_pose_ids": sorted(pose_video_paths),
         "prepared_pose_avatar_ids": prepared_pose_avatar_ids,
+        "pose_protocol": session.pose_status(),
         "ice_servers": session.ice_servers,
         "ice_transport_policy": session.ice_transport_policy,
         "expires_in_seconds": webrtc_session_manager.session_ttl,
@@ -4090,6 +4212,8 @@ async def create_webrtc_session(
             "idle_video_path": str(video_path),
             "live_pose_id": normalized_live_pose_id,
             "prepared_pose_avatar_ids": prepared_pose_avatar_ids,
+            "pose_switch_mode": normalized_pose_switch_mode,
+            "pose_set_id": normalized_pose_set.get("pose_set_id") or None,
         }
     }
 
@@ -4350,10 +4474,95 @@ async def queue_webrtc_live_poses(
     }
 
 
+@app.post("/webrtc/sessions/{session_id}/events")
+async def webrtc_pose_event(session_id: str, request: Request):
+    """Apply one ordered Lingua conversation event to a pose-aware session."""
+    _require_webrtc()
+    session = await webrtc_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    if not session.pose_protocol_enabled:
+        raise HTTPException(
+            status_code=409,
+            detail="This session was created without pose_set protocol v1.",
+        )
+    try:
+        raw_event = await request.json()
+        normalized_event = normalize_session_event(raw_event or {})
+        result = await webrtc_session_manager.handle_pose_event(
+            session,
+            normalized_event,
+        )
+    except (PoseProtocolError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "status": "accepted" if result.get("accepted") else "ignored",
+        "session_id": session_id,
+        **result,
+    }
+
+
+@app.post("/webrtc/sessions/{session_id}/pose")
+async def queue_webrtc_pose(session_id: str, request: Request):
+    """Queue an explicit body pose for the next clip boundary."""
+    _require_webrtc()
+    session = await webrtc_session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    if not session.pose_protocol_enabled:
+        raise HTTPException(
+            status_code=409,
+            detail="This session was created without pose_set protocol v1.",
+        )
+    try:
+        payload = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="JSON body is required.") from exc
+    pose_id = str((payload or {}).get("pose_id") or "").strip().lower()
+    effective = str(
+        (payload or {}).get("effective") or POSE_SWITCH_MODE
+    ).strip().lower()
+    if pose_id not in POSE_ID_SET:
+        raise HTTPException(status_code=400, detail="pose_id is unsupported.")
+    if effective != POSE_SWITCH_MODE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"effective must be {POSE_SWITCH_MODE}.",
+        )
+    replace_pending = (payload or {}).get("replace_pending", True)
+    if not isinstance(replace_pending, bool):
+        raise HTTPException(
+            status_code=400,
+            detail="replace_pending must be a boolean.",
+        )
+    try:
+        result = await webrtc_session_manager.queue_pose(
+            session,
+            pose_id,
+            reason="explicit_pose_request",
+            replace_pending=replace_pending,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "status": "accepted" if result.get("accepted") else "ignored",
+        "session_id": session_id,
+        **result,
+    }
+
+
 @app.post("/webrtc/sessions/{session_id}/stream")
 async def webrtc_stream(
     session_id: str,
     audio_file: UploadFile = File(...),
+    reaction_intent: Optional[str] = Form(None),
+    pose_id: Optional[str] = Form(None),
+    pose_sequence: Optional[str] = Form(None),
+    turn_id: Optional[str] = Form(None),
+    seq: Optional[str] = Form(None),
+    effective: Optional[str] = Form(None),
+    mouth_mode: Optional[str] = Form(None),
+    audio_start: Optional[str] = Form(None),
 ):
     """
     Start live streaming for a WebRTC session.
@@ -4374,6 +4583,54 @@ async def webrtc_stream(
             status_code=409,
             detail=f"Session already streaming (request_id: {session.active_stream})"
         )
+
+    try:
+        stream_metadata = normalize_stream_metadata(
+            {
+                "reaction_intent": reaction_intent,
+                "pose_id": pose_id,
+                "pose_sequence": pose_sequence,
+                "turn_id": turn_id,
+                "seq": seq,
+                "effective": effective,
+                "mouth_mode": mouth_mode,
+                "audio_start": audio_start,
+            }
+        )
+    except PoseProtocolError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if session.pose_protocol_enabled and not stream_metadata:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Pose protocol sessions require stream pose metadata so "
+                "speech cannot silently render against the neutral cache."
+            ),
+        )
+    if stream_metadata and not session.pose_protocol_enabled:
+        raise HTTPException(
+            status_code=409,
+            detail="Pose metadata requires a pose_set protocol v1 session.",
+        )
+    pose_sequence_result = None
+    if stream_metadata:
+        try:
+            pose_sequence_result = await webrtc_session_manager.queue_pose_sequence(
+                session,
+                stream_metadata["pose_sequence"],
+                seq=stream_metadata["seq"],
+                turn_id=stream_metadata["turn_id"],
+                reaction_intent=stream_metadata["reaction_intent"],
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        if not pose_sequence_result.get("accepted"):
+            return {
+                "status": "ignored",
+                "session_id": session_id,
+                "reason": pose_sequence_result.get("reason"),
+                "pose_protocol": pose_sequence_result,
+            }
 
     # Ensure sender exists (idle track added during offer handling)
     if session.idle_sender is None and session.idle_track is not None:
@@ -4591,6 +4848,29 @@ async def webrtc_stream(
         except Exception as e:
             print(f"⚠️ [{request_id}] frame_batch_callback error: {e}")
 
+    pose_recovery_started = False
+
+    def schedule_pose_recovery():
+        nonlocal pose_recovery_started
+        if pose_recovery_started or not stream_metadata:
+            return
+        pose_recovery_started = True
+        recovery_future = asyncio.run_coroutine_threadsafe(
+            webrtc_session_manager.finish_assistant_turn(
+                session,
+                turn_id=stream_metadata.get("turn_id"),
+            ),
+            main_loop,
+        )
+
+        def _on_pose_recovery_done(done_future):
+            try:
+                done_future.result()
+            except Exception as exc:
+                print(f"⚠️ [{request_id}] Pose recovery failed: {exc}", flush=True)
+
+        recovery_future.add_done_callback(_on_pose_recovery_done)
+
     def cleanup_to_idle(force_video: bool = True):
         print(
             "🧹 WebRTC cleanup start "
@@ -4599,6 +4879,7 @@ async def webrtc_stream(
             flush=True,
         )
         session.active_stream = None
+        schedule_pose_recovery()
         if not audio_prepare_task.done():
             print(f"🧹 [{request_id}] cancelling audio prepare task", flush=True)
             audio_prepare_task.cancel()
@@ -4738,6 +5019,7 @@ async def webrtc_stream(
             "status": "streaming",
             "scheduler": "shared_gpu",
             "timing": session.live_timing,
+            "pose_sequence": pose_sequence_result,
             "message": "WebRTC stream queued on the shared GPU scheduler. Player will switch to live."
         }
 
@@ -4752,7 +5034,10 @@ async def webrtc_stream(
         try:
             print(f"🎬 [{request_id}] Starting WebRTC streaming for session {session_id}")
             with manager.gpu_memory.allocate(session.batch_size):
-                avatar = manager._get_or_load_avatar(session.avatar_id, session.batch_size)
+                avatar = manager._get_or_load_avatar(
+                    session.generation_avatar_id or session.avatar_id,
+                    session.batch_size,
+                )
                 cycle_frames = None
                 latent_cycle = getattr(avatar, "input_latent_cycle_tensor", None)
                 latent_shape = getattr(latent_cycle, "shape", None)
@@ -4846,6 +5131,7 @@ async def webrtc_stream(
         "session_id": session_id,
         "status": "streaming",
         "timing": session.live_timing,
+        "pose_sequence": pose_sequence_result,
         "message": "WebRTC stream started. Player will switch to live."
     }
 

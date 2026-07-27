@@ -13,8 +13,9 @@ import subprocess
 import threading
 import time
 import wave
+from collections import deque
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import av
 import numpy as np
@@ -269,6 +270,8 @@ class IdleVideoStreamTrack(VideoStreamTrack):
         self._next_source_frame_index = 0
         self._last_source_frame_index: Optional[int] = None
         self._last_frame_read_at: Optional[float] = None
+        self._last_read_started_cycle = False
+        self._completed_cycles = 0
         self._open_container()
 
     def _open_container(self) -> None:
@@ -298,11 +301,13 @@ class IdleVideoStreamTrack(VideoStreamTrack):
         self._open_container()
 
     def read_frame(self):
+        started_cycle = False
         try:
             frame = next(self._frame_iter)
         except StopIteration:
             self._reset_container()
             frame = next(self._frame_iter)
+            started_cycle = True
         with self._position_lock:
             frame_index = self._next_source_frame_index
             if self._source_frame_count:
@@ -310,7 +315,30 @@ class IdleVideoStreamTrack(VideoStreamTrack):
             self._last_source_frame_index = frame_index
             self._next_source_frame_index = frame_index + 1
             self._last_frame_read_at = time.monotonic()
+            self._last_read_started_cycle = started_cycle
+            if started_cycle:
+                self._completed_cycles += 1
         return frame.reformat(format="yuv420p")
+
+    def next_frame_starts_cycle(self) -> bool:
+        """Return whether the next decode is the first frame of a new loop.
+
+        Container metadata normally gives us the exact frame count, allowing a
+        queued pose to be installed before decoding frame zero. Some codecs do
+        not expose a frame count; ``last_read_started_cycle`` is the fallback
+        used by ``SwitchableVideoStreamTrack`` after the decoder reports EOF.
+        """
+        with self._position_lock:
+            if self._last_source_frame_index is None:
+                return self._next_source_frame_index == 0
+            return bool(
+                self._source_frame_count
+                and self._next_source_frame_index >= self._source_frame_count
+            )
+
+    def last_read_started_cycle(self) -> bool:
+        with self._position_lock:
+            return self._last_read_started_cycle
 
     def get_timing(self) -> dict:
         with self._position_lock:
@@ -335,6 +363,7 @@ class IdleVideoStreamTrack(VideoStreamTrack):
             "idle_elapsed_seconds": elapsed_seconds,
             "idle_duration_seconds": duration_seconds,
             "last_frame_read_at": last_frame_read_at,
+            "completed_cycles": self._completed_cycles,
         }
 
     async def recv(self):
@@ -435,9 +464,19 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         prebuffer_seconds: Optional[float] = None,
         adaptive_fps: Optional[bool] = None,
         min_fps_ratio: Optional[float] = None,
+        idle_pose_id: str = "default",
+        on_idle_pose_changed: Optional[Callable[[str, str], None]] = None,
+        idle_source_fps: Optional[float] = None,
     ):
         super().__init__()
         self._source_fps = float(source_fps)
+        self._idle_source_fps = (
+            float(idle_source_fps)
+            if idle_source_fps is not None
+            else self._source_fps
+        )
+        if self._idle_source_fps <= 0:
+            self._idle_source_fps = self._source_fps
         self._output_fps = float(output_fps) if output_fps is not None else self._source_fps
         self._sync_clock = sync_clock
         self._strict_fifo = bool(getattr(sync_clock, "strict_fifo", WEBRTC_STRICT_FIFO_SYNC))
@@ -452,13 +491,22 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._base_frame_time = 1.0 / float(self._output_fps)
         self._frame_time = self._base_frame_time
         self._source_step = self._source_fps / self._output_fps
-        self._source_accum = 0.0
+        self._idle_source_step = self._idle_source_fps / self._output_fps
+        self._idle_source_accum = 0.0
         self._live_output_index = 0
         self._live_source_consumed = 0
         self._max_queue = WEBRTC_VIDEO_MAX_QUEUE_FRAMES if max_queue is None else max_queue
         self._queue: asyncio.Queue = asyncio.Queue(maxsize=self._max_queue)
-        self._idle = IdleVideoStreamTrack(idle_video_path, fps=source_fps)
+        self._idle = IdleVideoStreamTrack(
+            idle_video_path,
+            fps=self._idle_source_fps,
+        )
         self._current_idle_video_path = str(idle_video_path)
+        self._current_idle_pose_id = str(idle_pose_id or "default")
+        self._pending_idle_switches = deque()
+        self._on_idle_pose_changed = on_idle_pose_changed
+        self._idle_switch_count = 0
+        self._last_idle_switch_reason: Optional[str] = None
         self._idle_transition_frames = []
         self._live_active = False
         self._live_released = False
@@ -513,7 +561,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
               f"sync_mode={'strict_fifo' if self._strict_fifo else 'free_run'}")
 
     def _reset_source_timing(self) -> None:
-        self._source_accum = 0.0
+        self._idle_source_accum = 0.0
         self._live_output_index = 0
         self._live_source_consumed = 0
 
@@ -565,29 +613,192 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             return []
         return frames
 
+    def set_idle_pose_change_callback(
+        self,
+        callback: Optional[Callable[[str, str], None]],
+    ) -> None:
+        """Install a lightweight callback invoked after an idle pose activates."""
+        self._on_idle_pose_changed = callback
+
+    def _notify_idle_pose_changed(self) -> None:
+        if self._on_idle_pose_changed is None:
+            return
+        try:
+            self._on_idle_pose_changed(
+                self._current_idle_pose_id,
+                self._current_idle_video_path,
+            )
+        except Exception as exc:
+            print(f"⚠️ Idle pose change callback failed: {exc}", flush=True)
+
+    def _stop_pending_idle_switches(self) -> None:
+        while self._pending_idle_switches:
+            pending = self._pending_idle_switches.popleft()
+            next_idle = pending.get("idle_track")
+            if next_idle is not None:
+                next_idle.stop()
+
+    def clear_pending_idle_switches(self) -> int:
+        """Discard queued idle decoders and return how many were removed."""
+        pending_count = len(self._pending_idle_switches)
+        self._stop_pending_idle_switches()
+        return pending_count
+
+    def _apply_idle_switch(
+        self,
+        next_idle,
+        *,
+        idle_video_path: str,
+        pose_id: str,
+        reason: str,
+        transition_frames: Optional[list] = None,
+    ) -> None:
+        previous_idle = self._idle
+        self._idle = next_idle
+        self._current_idle_video_path = str(idle_video_path)
+        self._current_idle_pose_id = str(pose_id or "default")
+        self._idle_transition_frames = list(transition_frames or [])
+        self._last_idle_frame = None
+        self._idle_sync_hold_active = False
+        self._idle_sync_anchor_timing = None
+        self._idle_switch_count += 1
+        self._last_idle_switch_reason = reason
+        if previous_idle is not None:
+            previous_idle.stop()
+        self._notify_idle_pose_changed()
+
+    def _activate_next_queued_idle_switch(self) -> bool:
+        if not self._pending_idle_switches:
+            return False
+        pending = self._pending_idle_switches.popleft()
+        self._apply_idle_switch(
+            pending["idle_track"],
+            idle_video_path=pending["idle_video_path"],
+            pose_id=pending["pose_id"],
+            reason=pending["reason"],
+        )
+        print(
+            f"🎬 Activated queued idle pose={self._current_idle_pose_id} "
+            f"path={self._current_idle_video_path} "
+            f"pending={len(self._pending_idle_switches)}",
+            flush=True,
+        )
+        return True
+
+    async def queue_idle_video(
+        self,
+        idle_video_path: str,
+        *,
+        pose_id: str = "default",
+        reason: str = "pose_protocol",
+        replace_pending: bool = False,
+    ) -> dict:
+        """Queue an idle source for activation at the next clip boundary.
+
+        The new decoder is opened when queued, so malformed/missing media fails
+        at request time rather than in the WebRTC sender loop. No crossfade is
+        used: validated pose assets share their mathematical boundary frames.
+        """
+        if self._closed:
+            return {"changed": False, "queued": False, "reason": "track_closed"}
+
+        idle_video_path = str(idle_video_path)
+        pose_id = str(pose_id or "default")
+        if replace_pending:
+            self._stop_pending_idle_switches()
+
+        if not self._pending_idle_switches:
+            if (
+                idle_video_path == self._current_idle_video_path
+                and pose_id == self._current_idle_pose_id
+            ):
+                return {
+                    "changed": False,
+                    "queued": False,
+                    "reason": "already_active",
+                    **self.get_pose_status(),
+                }
+        else:
+            last_pending = self._pending_idle_switches[-1]
+            if (
+                idle_video_path == last_pending["idle_video_path"]
+                and pose_id == last_pending["pose_id"]
+            ):
+                return {
+                    "changed": False,
+                    "queued": False,
+                    "reason": "already_queued",
+                    **self.get_pose_status(),
+                }
+
+        next_idle = IdleVideoStreamTrack(
+            idle_video_path,
+            fps=self._idle_source_fps,
+        )
+        self._pending_idle_switches.append(
+            {
+                "idle_track": next_idle,
+                "idle_video_path": idle_video_path,
+                "pose_id": pose_id,
+                "reason": str(reason or "pose_protocol"),
+            }
+        )
+        print(
+            f"🎬 Queued idle pose={pose_id} path={idle_video_path} "
+            f"effective=next_boundary pending={len(self._pending_idle_switches)}",
+            flush=True,
+        )
+        return {
+            "changed": False,
+            "queued": True,
+            "effective": "next_boundary",
+            **self.get_pose_status(),
+        }
+
     async def switch_idle_video(
         self,
         idle_video_path: str,
         transition_seconds: float = 0.35,
+        *,
+        pose_id: Optional[str] = None,
+        effective: str = "immediate",
+        reason: str = "legacy_switch",
+        replace_pending: bool = False,
     ) -> dict:
         """Switch the idle loop without renegotiating the WebRTC media track."""
         if self._closed:
             return {"changed": False, "reason": "track_closed"}
 
         idle_video_path = str(idle_video_path)
-        if idle_video_path == self._current_idle_video_path:
+        target_pose_id = str(pose_id or self._current_idle_pose_id or "default")
+        switch_mode = str(effective or "immediate").strip().lower()
+        if switch_mode not in ("immediate", "next_boundary"):
+            raise ValueError("effective must be immediate or next_boundary")
+        if switch_mode == "next_boundary":
+            return await self.queue_idle_video(
+                idle_video_path,
+                pose_id=target_pose_id,
+                reason=reason,
+                replace_pending=replace_pending,
+            )
+        if (
+            idle_video_path == self._current_idle_video_path
+            and target_pose_id == self._current_idle_pose_id
+        ):
             return {
                 "changed": False,
                 "reason": "already_active",
                 "idle_video_path": self._current_idle_video_path,
+                "pose_id": self._current_idle_pose_id,
             }
 
-        previous_idle = self._idle
         next_idle = None
         transition_frames = []
-        switched = False
         try:
-            next_idle = IdleVideoStreamTrack(idle_video_path, fps=self._source_fps)
+            next_idle = IdleVideoStreamTrack(
+                idle_video_path,
+                fps=self._idle_source_fps,
+            )
             frame_count = max(0, int(round(float(transition_seconds or 0.0) * self._output_fps)))
             if frame_count > 0 and not self._live_active:
                 transition_frames = self._build_idle_transition_frames(
@@ -596,38 +807,36 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                     frame_count,
                 )
 
-            self._idle = next_idle
-            self._current_idle_video_path = idle_video_path
-            self._idle_transition_frames = transition_frames
-            self._last_idle_frame = None
-            self._idle_sync_hold_active = False
-            self._idle_sync_anchor_timing = None
-            switched = True
+            self._apply_idle_switch(
+                next_idle,
+                idle_video_path=idle_video_path,
+                pose_id=target_pose_id,
+                reason=reason,
+                transition_frames=transition_frames,
+            )
         except Exception:
             if next_idle is not None:
                 next_idle.stop()
             raise
-        finally:
-            if switched and previous_idle is not None:
-                previous_idle.stop()
 
         print(
-            f"🎬 Switched idle video path={idle_video_path} "
+            f"🎬 Switched idle pose={target_pose_id} path={idle_video_path} "
             f"transition_frames={len(transition_frames)} live_active={self._live_active}",
             flush=True,
         )
         return {
             "changed": True,
             "idle_video_path": idle_video_path,
+            "pose_id": target_pose_id,
             "transition_frames": len(transition_frames),
             "live_active": self._live_active,
         }
 
     def _advance_source(self) -> int:
-        self._source_accum += self._source_step
-        advance = int(self._source_accum)
+        self._idle_source_accum += self._idle_source_step
+        advance = int(self._idle_source_accum)
         if advance > 0:
-            self._source_accum -= advance
+            self._idle_source_accum -= advance
         return advance
 
     def _live_source_steps_for_output(self) -> int:
@@ -703,7 +912,21 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         steps = max(1, steps)
         frame = self._last_idle_frame
         for _ in range(steps):
+            if (
+                self._pending_idle_switches
+                and self._idle.next_frame_starts_cycle()
+            ):
+                self._activate_next_queued_idle_switch()
             frame = self._idle.read_frame()
+            if (
+                self._pending_idle_switches
+                and self._idle.last_read_started_cycle()
+            ):
+                # Frame-count metadata is not guaranteed. If EOF was the first
+                # detectable boundary, discard that old loop's frame zero and
+                # emit frame zero from the queued source instead.
+                self._activate_next_queued_idle_switch()
+                frame = self._idle.read_frame()
         self._last_idle_frame = frame
         return frame
 
@@ -726,10 +949,17 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         if source_frame_count and source_frame_count > 0:
             target_source_frame %= int(source_frame_count)
 
-        # Current production mode uses one video for idle and talking. The idle
-        # MP4 is the forward source, while MuseTalk's cycle is source + reversed
-        # source, so the matching pose is the same source frame in the first half.
-        offset_frames = max(0, int(target_source_frame))
+        # Convert through media time because the idle MP4 can run at a different
+        # frame rate from generated WebRTC output.
+        idle_phase_seconds = (
+            target_source_frame / source_fps
+            if source_fps > 0
+            else 0.0
+        )
+        offset_frames = max(
+            0,
+            int(round(idle_phase_seconds * float(generation_fps or 0.0))),
+        )
         if cycle_frames and cycle_frames > 0:
             offset_frames %= int(cycle_frames)
         offset_seconds = (
@@ -745,6 +975,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             "offset_frames": offset_frames,
             "idle_source_frame_index": source_frame_index,
             "target_source_frame_index": target_source_frame,
+            "idle_phase_seconds": idle_phase_seconds,
             "source_frame_count": source_frame_count,
             "source_fps": source_fps,
             "cycle_frames": cycle_frames,
@@ -1099,6 +1330,19 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             self._recv_pace_wait_max_s = max(self._recv_pace_wait_max_s, pace_wait_s)
         return frame
 
+    def get_pose_status(self) -> dict:
+        """Return boundary-switch state without exposing decoder objects."""
+        return {
+            "current_pose_id": self._current_idle_pose_id,
+            "current_idle_video_path": self._current_idle_video_path,
+            "pending_pose_ids": [
+                pending["pose_id"] for pending in self._pending_idle_switches
+            ],
+            "pending_pose_count": len(self._pending_idle_switches),
+            "idle_switch_count": self._idle_switch_count,
+            "last_idle_switch_reason": self._last_idle_switch_reason,
+        }
+
     def get_stats(self) -> dict:
         """Get current track statistics"""
         queue_size = self._queue.qsize()
@@ -1119,8 +1363,16 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             'output_frames_sent': self._output_frames_sent,
             'prebuffer_frames': self._prebuffer_frames,
             'source_fps': self._source_fps,
+            'idle_source_fps': self._idle_source_fps,
             'output_fps': self._output_fps,
             'current_idle_video_path': self._current_idle_video_path,
+            'current_pose_id': self._current_idle_pose_id,
+            'pending_pose_ids': [
+                pending["pose_id"] for pending in self._pending_idle_switches
+            ],
+            'pending_pose_count': len(self._pending_idle_switches),
+            'idle_switch_count': self._idle_switch_count,
+            'last_idle_switch_reason': self._last_idle_switch_reason,
             'idle_transition_frames': len(self._idle_transition_frames),
             'sync_mode': 'strict_fifo' if self._strict_fifo else 'free_run',
             'sync_clock': self._sync_clock.get_stats() if self._sync_clock else None,
@@ -1151,6 +1403,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
     def stop(self) -> None:
         self._closed = True
         self._playback_complete.set()
+        self._stop_pending_idle_switches()
         if self._sync_clock:
             self._sync_clock.close()
         if self._idle is not None:
