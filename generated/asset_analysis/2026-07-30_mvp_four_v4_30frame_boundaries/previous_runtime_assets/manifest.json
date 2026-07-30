@@ -1,0 +1,190 @@
+{
+  "schema_version": 2,
+  "asset_status": "mvp_four_motion_masters_with_runtime_aliases",
+  "activation_blocker": "The ARDY motion references are certified for all ordered transitions, but Segmind does not preserve mathematically identical boundaries. The July 30 speaking replacement passed the 30 fps playback / 15 fps MuseTalk WebRTC test with the two-frame idle crossfade, but exact decoded boundary equality remains false.",
+  "runtime_pose_set_draft": "avatar_pose_set.draft.json",
+  "run_id": "20260729_mvp_four_v2",
+  "created_at": "2026-07-29T18:59:56.490678+00:00",
+  "provider": {
+    "name": "Segmind",
+    "model": "kling-2.6-pro-motion-control",
+    "api_url": "https://api.segmind.com/v2/kling-2.6-pro-motion-control",
+    "request_count": 5,
+    "completed_count": 5,
+    "retry_count": 0,
+    "total_cost_usd": 5.88
+  },
+  "source_avatar": {
+    "path": "../source/indian_tutor_success_001_720x1280.jpg",
+    "sha256": "72b1ac0431025ceaf0620bf67ea9d448dba4376537c7965b134a89fa6f560d6b",
+    "width": 720,
+    "height": 1280
+  },
+  "source_release": {
+    "host": "Arby",
+    "path": "/workspace/ardy/outputs/pose_delivery_mvp_four_v2",
+    "live_latest_verified_at": "2026-07-29T19:00:00Z",
+    "delivery_manifest_sha256": "e9a36be379cebc35d36b373d572f4f845d40e4b76e04767df35dd434d863c00c",
+    "delivery_validation_sha256": "b39763987b1f47e9f84f57548bd489e12280ad4dc17b7ff0e705c6dda1be76ac",
+    "passed": true,
+    "ordered_nonself_transition_count": 12,
+    "shared_boundary_frames": 15,
+    "shared_decoded_handle_sha256": "14e316e87ca6fdd067b832cc3f9c8355ab830c4076edfd232c86ad29de8d83d2"
+  },
+  "prompt_template": "Transfer the reference video {pose_label} motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways.",
+  "generation_settings": {
+    "keep_original_sound": false,
+    "character_orientation": "video"
+  },
+  "normalized_output": {
+    "codec": "h264",
+    "pixel_format": "yuv420p",
+    "width": 720,
+    "height": 1280,
+    "fps": 30,
+    "audio": false
+  },
+  "generated_poses": {
+    "neutral_resting": {
+      "runtime_pose_ids": [
+        "neutral_resting"
+      ],
+      "request_id": "d324e1c2204b3bf16227a321032328a9",
+      "status": "COMPLETED",
+      "cost_usd": 1.4,
+      "input_sha256": "a119d8d975b3327bf926f26e8762992a176222862192ad32bca7b7de7be54ef1",
+      "output_sha256": "f0853c17dda96ccfe613aa4b40fb254a6b134036bf49bfded4acbb7860aa115f",
+      "duration_seconds": 10,
+      "frames": 300,
+      "first_last_ssim": 0.855358
+    },
+    "speaking_direct_v2": {
+      "runtime_pose_ids": [
+        "speaking_direct"
+      ],
+      "request_id": "c42b69f1b13e8cca042ee9863104dd96",
+      "status": "COMPLETED",
+      "cost_usd": 1.4,
+      "input_sha256": "f6ba6a95053cf9ff7746995bffcc81e5c614a2a62957a7349f57cbef79092b8b",
+      "output_sha256": "ee4f754078ae49c7adb77043605bd51c84f8fba8681e2e0149988478991b6b9e",
+      "duration_seconds": 10,
+      "frames": 300,
+      "first_last_ssim": 0.820239,
+      "previous_output_sha256": "d2a57eef4c39b4ebf25657132b22d091a0428948ea7bb19850fe7b725fde1a43",
+      "replacement_run_id": "20260730_speaking_smooth_v3"
+    },
+    "light_smile": {
+      "runtime_pose_ids": [
+        "light_smile"
+      ],
+      "request_id": "05e46bdf23321bff328357d6d71374f8",
+      "status": "COMPLETED",
+      "cost_usd": 0.56,
+      "input_sha256": "704ee72cc4873c0a6a9bb8f9f144f2e4e0d508ff3121e09203c8bf832b2db55b",
+      "output_sha256": "59597dd4bfe36824dc57e9124999d0a27a11062744ba65ef312bc1a63c5e5c81",
+      "duration_seconds": 4,
+      "frames": 120,
+      "first_last_ssim": 0.869961
+    },
+    "active_listening_empathetic_v1": {
+      "runtime_pose_ids": [
+        "active_listening",
+        "empathetic_head_tilt"
+      ],
+      "request_id": "fdf04eef392ffb08f6684759485c2bd0",
+      "status": "COMPLETED",
+      "cost_usd": 1.12,
+      "input_sha256": "6ee987b9736a1b8082e5f98ff04ed9d8b5b57a86b36f233b59f1d5ab880c64a2",
+      "output_sha256": "21c77b017e19616991855b4b22e36af7af5aa74a56b5d90ca72ae6717242cb19",
+      "duration_seconds": 8,
+      "frames": 240,
+      "first_last_ssim": 0.83884
+    }
+  },
+  "runtime_mapping": {
+    "neutral_resting": "neutral_resting.mp4",
+    "speaking_direct": "speaking_direct.mp4",
+    "light_smile": "light_smile.mp4",
+    "active_listening": "active_listening.mp4",
+    "empathetic_head_tilt": "empathetic_head_tilt.mp4",
+    "nod_agree": "nod_agree.mp4"
+  },
+  "retained_compatibility_pose": {
+    "pose_id": "nod_agree",
+    "reason": "The six-pose protocol still requires this ID. It is not part of the new four-pose MVP sequence and was not regenerated or billed in this run.",
+    "sha256": "e87a06220e75465931f717c5a573b4febce0aaeabb542aa5d43d9997cc6b4a68",
+    "duration_seconds": 2.933333,
+    "frames": 88
+  },
+  "visual_validation": {
+    "sampling": "Full-frame samples at 1-2 fps plus dense eye-region samples at 4 fps.",
+    "identity_preserved": true,
+    "direct_camera_gaze": true,
+    "persistent_squint_absent": true,
+    "mouth_closed": true,
+    "neutral_blink": "Brief light closure observed; no prolonged squint.",
+    "moving_pose_eye_contact": "Eyes remain camera-facing in all sampled frames."
+  },
+  "transition_handling": {
+    "source_references_switch_safe": true,
+    "segmind_outputs_mathematically_identical": false,
+    "musetalk_idle_crossfade_frames": 2,
+    "production_switch_safe": false,
+    "runtime_validation_passed": true,
+    "validated_profile": {
+      "playback_fps": 30,
+      "musetalk_lipsync_fps": 15,
+      "ordered_idle_transitions_completed": 12,
+      "tts_flows_completed": 2
+    },
+    "required_test": "Keep the two-frame crossfade enabled. Repeat the pose-aware WebRTC recording after any future Segmind replacement because decoded boundary equality is not preserved."
+  },
+  "latest_replacement": {
+    "run_id": "20260730_speaking_smooth_v3",
+    "pose_id": "speaking_direct_v2",
+    "runtime_pose_id": "speaking_direct",
+    "ardy": {
+      "delivery_path": "/workspace/ardy/outputs/pose_delivery_mvp_four_v3_smooth_speaking",
+      "delivery_manifest_sha256": "61bb0066993808017a52c77946c6cd331461ade6dfb07d8a2c590fdd73361bf8",
+      "delivery_validation_sha256": "de6b05901852077f2f121440a90584b5f4c2bbd160d34ee8e2a9e03ddf2d4cd6",
+      "input_sha256": "f6ba6a95053cf9ff7746995bffcc81e5c614a2a62957a7349f57cbef79092b8b",
+      "max_head_rotation_degrees_per_frame": 0.482092,
+      "shared_boundary_frames": 15,
+      "ordered_nonself_transition_count": 12,
+      "shared_decoded_handle_sha256": "0dc971c161da83d74dbf90bd0660626ec5d65a0c5396251e6e9bd646c29f652c",
+      "passed": true
+    },
+    "segmind": {
+      "request_id": "c42b69f1b13e8cca042ee9863104dd96",
+      "request_count": 1,
+      "cost_usd": 1.4,
+      "output_sha256": "ee4f754078ae49c7adb77043605bd51c84f8fba8681e2e0149988478991b6b9e",
+      "first_last_ssim": 0.820239,
+      "decoded_boundaries_exact": false
+    },
+    "musetalk": {
+      "runtime_path": "speaking_direct.mp4",
+      "prepared_avatar_id": "indian_tutor_essential_six_v1_speaking_direct",
+      "prepared_input_sha256_verified": true,
+      "webrtc_result": "/workspace/MuseTalk/generated/webrtc_pose_showcase/2026-07-30/speaking_smooth_v3_30playback_15lipsync/webrtc_result.json",
+      "webrtc_capture": "/workspace/MuseTalk/generated/webrtc_pose_showcase/2026-07-30/speaking_smooth_v3_30playback_15lipsync/indian_tutor_speaking_smooth_v3_30playback_15lipsync_webrtc_capture.mp4",
+      "passed": true
+    },
+    "validation": {
+      "exact_first_frame_pairs": "0/6",
+      "exact_directed_final_to_first_transitions": "0/12",
+      "speaking_mean_transition_rmse_reduction_percent": 43.5,
+      "speaking_worst_transition_rmse_reduction_percent": 59.1,
+      "visual_review": "Substantially closer than the previous speaking asset. Residual differences remain in brow and eye state plus a small vertical face offset."
+    }
+  },
+  "provenance": {
+    "run_summary": "../../../tmp/segmind_pose_tests/20260729_mvp_four_v2/summary.json",
+    "request_ledger": "../../../tmp/segmind_pose_tests/20260729_mvp_four_v2/requests.json",
+    "previous_assets": "archive/replaced_20260729T190000Z/",
+    "latest_replacement_summary": "/workspace/MuseTalk/generated/asset_analysis/2026-07-30_smooth_speaking_v3/segmind_summary.json",
+    "latest_replacement_requests": "/workspace/MuseTalk/generated/asset_analysis/2026-07-30_smooth_speaking_v3/segmind_requests.json",
+    "latest_geometry_validation": "/workspace/MuseTalk/generated/asset_analysis/2026-07-30_smooth_speaking_v3/geometry_validation.json",
+    "latest_webrtc_transition_comparison": "/workspace/MuseTalk/generated/asset_analysis/2026-07-30_smooth_speaking_v3/webrtc_transition_comparison.json"
+  }
+}

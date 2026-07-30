@@ -1,0 +1,724 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "V4 Pose Transition Validation",
+    "description": "Technical comparison of the v4 30-frame-boundary WebRTC showcase against the prior v3 showcase.",
+    "generatedAt": "2026-07-30T21:54:28Z",
+    "cards": [
+      {
+        "id": "idle_mean_card",
+        "description": "Mean maximum aligned whole-face landmark RMSE across all 12 directed idle transitions in a fixed 400 ms window. Lower is smoother.",
+        "dataset": "controlled_idle_summary",
+        "sourceId": "controlled_idle_summary_sql",
+        "metrics": [
+          {
+            "label": "V4 idle mean RMSE",
+            "field": "v4_mean_400_rmse_px",
+            "format": "number"
+          },
+          {
+            "label": "V3",
+            "field": "v3_mean_400_rmse_px",
+            "format": "number"
+          },
+          {
+            "label": "Change",
+            "field": "mean_percent_change",
+            "format": "percent",
+            "signed": true
+          }
+        ]
+      },
+      {
+        "id": "idle_worst_card",
+        "description": "Worst measured 400 ms whole-face transition in the controlled 12-edge idle sequence. Lower is smoother.",
+        "dataset": "controlled_idle_summary",
+        "sourceId": "controlled_idle_summary_sql",
+        "metrics": [
+          {
+            "label": "V4 idle worst RMSE",
+            "field": "v4_worst_400_rmse_px",
+            "format": "number"
+          },
+          {
+            "label": "V3",
+            "field": "v3_worst_400_rmse_px",
+            "format": "number"
+          },
+          {
+            "label": "Change",
+            "field": "worst_percent_change",
+            "format": "percent",
+            "signed": true
+          }
+        ]
+      },
+      {
+        "id": "idle_edges_card",
+        "description": "Count of directed idle transitions whose v4 whole-face RMSE was lower than v3.",
+        "dataset": "controlled_idle_summary",
+        "sourceId": "controlled_idle_summary_sql",
+        "metrics": [
+          {
+            "label": "Improved idle edges",
+            "field": "improved_edges",
+            "format": "number"
+          },
+          {
+            "label": "Tested",
+            "field": "tested_edges",
+            "format": "number"
+          },
+          {
+            "label": "Share",
+            "field": "improved_share",
+            "format": "percent"
+          }
+        ]
+      },
+      {
+        "id": "smile_brow_card",
+        "description": "Static first-frame eyebrow mismatch between the Segmind smile and neutral assets. Higher is worse.",
+        "dataset": "smile_geometry_summary",
+        "sourceId": "smile_geometry_sql",
+        "metrics": [
+          {
+            "label": "V4 smile brow RMSE",
+            "field": "v4_brow_rmse_px",
+            "format": "number"
+          },
+          {
+            "label": "V3",
+            "field": "v3_brow_rmse_px",
+            "format": "number"
+          },
+          {
+            "label": "Change",
+            "field": "brow_percent_change",
+            "format": "percent",
+            "signed": true
+          }
+        ]
+      }
+    ],
+    "charts": [
+      {
+        "id": "idle_edge_change_chart",
+        "title": "Controlled idle transition change: v4 versus v3",
+        "subtitle": "Negative values mean lower 400 ms whole-face RMSE and smoother switching; 9 of 12 edges improved.",
+        "intent": "comparison",
+        "question": "Which directed idle transitions improved or regressed in v4?",
+        "rationale": "A signed horizontal bar chart exposes both the broad improvement and the two large smile-origin regressions.",
+        "comparisonContext": {
+          "baseline": "v3 15-frame-boundary showcase",
+          "grain": "one directed idle transition",
+          "normalization": "(v4 RMSE / v3 RMSE) - 1",
+          "semanticFamily": "transition continuity",
+          "unit": "%"
+        },
+        "type": "horizontalBar",
+        "dataset": "idle_edge_changes",
+        "sourceId": "idle_edge_detail_sql",
+        "encodings": {
+          "x": {
+            "field": "transition",
+            "type": "nominal",
+            "label": "Transition"
+          },
+          "y": {
+            "field": "percent_change",
+            "type": "quantitative",
+            "format": "percent",
+            "label": "Change in 400 ms RMSE"
+          },
+          "tooltip": [
+            {
+              "field": "v3_rmse_px",
+              "type": "quantitative",
+              "format": "number",
+              "label": "V3 RMSE",
+              "unit": "px"
+            },
+            {
+              "field": "v4_rmse_px",
+              "type": "quantitative",
+              "format": "number",
+              "label": "V4 RMSE",
+              "unit": "px"
+            },
+            {
+              "field": "outcome",
+              "type": "nominal",
+              "label": "Outcome"
+            }
+          ]
+        },
+        "xAxisTitle": "Directed transition",
+        "yAxisTitle": "V4 change versus v3",
+        "valueFormat": "percent",
+        "layout": "full",
+        "labels": {
+          "values": "all"
+        },
+        "maxRows": 12,
+        "palette": {
+          "kind": "diverging",
+          "midpoint": 0
+        },
+        "referenceLines": [
+          {
+            "axis": "y",
+            "color": "neutral",
+            "label": "No change",
+            "lineStyle": "solid",
+            "value": 0
+          }
+        ],
+        "settings": {
+          "orientation": "horizontal",
+          "showValues": true,
+          "sort": "none"
+        },
+        "surface": {
+          "surface": "card",
+          "showControls": false,
+          "viewMode": "visualization"
+        }
+      }
+    ],
+    "tables": [
+      {
+        "id": "all_edge_results_table",
+        "title": "All measured WebRTC transition edges",
+        "subtitle": "Idle edges are the controlled comparison; TTS edges are supporting evidence because speaking duration and phoneme position differ.",
+        "dataset": "all_edge_changes",
+        "sourceId": "all_edge_detail_sql",
+        "defaultSort": {
+          "field": "percent_change",
+          "direction": "desc"
+        },
+        "density": "dense",
+        "layout": "full",
+        "columns": [
+          {
+            "field": "case_label",
+            "label": "Case",
+            "type": "text"
+          },
+          {
+            "field": "evidence_class",
+            "label": "Evidence",
+            "type": "text"
+          },
+          {
+            "field": "v3_rmse_px",
+            "label": "V3 RMSE (px)",
+            "format": "number",
+            "role": "value"
+          },
+          {
+            "field": "v4_rmse_px",
+            "label": "V4 RMSE (px)",
+            "format": "number",
+            "role": "value"
+          },
+          {
+            "field": "percent_change",
+            "label": "Change",
+            "format": "percent",
+            "movement": true,
+            "role": "movement"
+          },
+          {
+            "field": "outcome",
+            "label": "Outcome",
+            "type": "text"
+          }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "controlled_idle_summary_sql",
+        "label": "Controlled idle summary",
+        "path": "generated/asset_analysis/2026-07-30_mvp_four_v4_30frame_boundaries/v4_vs_v3_cadence_neutral_webrtc_validation.json"
+      },
+      {
+        "id": "idle_edge_detail_sql",
+        "label": "Idle transition detail",
+        "path": "generated/asset_analysis/2026-07-30_mvp_four_v4_30frame_boundaries/v4_vs_v3_cadence_neutral_webrtc_validation.json"
+      },
+      {
+        "id": "all_edge_detail_sql",
+        "label": "Idle and TTS transition detail",
+        "path": "generated/asset_analysis/2026-07-30_mvp_four_v4_30frame_boundaries/v4_vs_v3_cadence_neutral_webrtc_validation.json"
+      },
+      {
+        "id": "smile_geometry_sql",
+        "label": "Segmind static geometry validation",
+        "path": "generated/asset_analysis/2026-07-30_mvp_four_v4_30frame_boundaries/v4_segmind_geometry_validation.json"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "report_title",
+        "type": "markdown",
+        "body": "# V4 Pose Transition Validation"
+      },
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "body": "## Technical Summary\n\n**V4 is the smoothest exhaustive idle showcase measured so far, but it is not uniformly better.** In the cleanest like-for-like comparison—the 12 directed idle transitions—the mean 400 ms whole-face discontinuity fell from 1.865 px to 1.748 px (−6.3%), the worst edge improved by 8.4%, and 9 of 12 edges improved. The larger 13.8% all-event gain includes TTS transitions whose speaking durations and phoneme positions differ, so it is supporting rather than causal evidence.\n\nThe visible exception is the regenerated v4 smile. Its raised-brow/narrower-eye state makes smile → neutral 57.8% worse and smile → speaking 33.4% worse in the idle test. Keep v4 neutral, listener, and speaking; correct the smile asset before calling the four-pose library seamless."
+      },
+      {
+        "id": "headline_metrics",
+        "type": "metric-strip",
+        "cardIds": [
+          "idle_mean_card",
+          "idle_worst_card",
+          "idle_edges_card",
+          "smile_brow_card"
+        ]
+      },
+      {
+        "id": "key_findings",
+        "type": "markdown",
+        "body": "## Key Findings\n\n- Speaking transitions improved most consistently: 5 of 6 idle speaking-related edges improved. Neutral → speaking fell 34.8%; listener → speaking fell 27.2%.\n- V4 is calmer in motion as well as lower in landmark error. An independent capture-pixel audit found 17.4% lower state deviation and 14.4% lower adjacent motion within ±1 second of cuts.\n- The smoother feel partly comes from pacing. A one-second outgoing handle plus a one-second incoming handle creates an approximately two-second calm bridge; acting often becomes obvious around +1.2 seconds.\n- The two-frame runtime crossfade remains appropriate. Review found no excessive ghosting; the deliberate dwell comes from the handles, not the 66.7 ms blend.\n- Segmind still breaks exact boundary equality: 0 of 12 directed last-frame → first-frame pairs are pixel-exact after generation."
+      },
+      {
+        "id": "idle_chart_block",
+        "type": "chart",
+        "chartId": "idle_edge_change_chart"
+      },
+      {
+        "id": "edge_results_heading",
+        "type": "markdown",
+        "body": "## Edge-Level Results\n\nThe table separates controlled idle evidence from TTS-supporting evidence. Positive change means v4 is worse; negative change means v4 is smoother."
+      },
+      {
+        "id": "edge_results_table_block",
+        "type": "table",
+        "tableId": "all_edge_results_table"
+      },
+      {
+        "id": "scope_data_metrics",
+        "type": "markdown",
+        "body": "## Scope, Data, and Metric Definitions\n\n**Candidate:** the v4 four-pose WebRTC capture using 30-frame ARDY boundaries, 30 fps playback, 15 fps MuseTalk generation, and the retained two-frame crossfade. **Baseline:** the prior v3 capture using 15-frame ARDY boundaries under the same nominal playback/generation/crossfade profile.\n\nThe principal metric is the maximum 400 ms whole-face RMSE between DWPose 68-point facial landmarks after least-squares similarity alignment. Lower values indicate less facial shape change around a transition. The controlled idle result combines all 12 ordered transitions among neutral, speaking, smile, and listener. TTS adds four measured speaking-boundary events."
+      },
+      {
+        "id": "methodology",
+        "type": "markdown",
+        "body": "## Methodology\n\nTransition centers were reconstructed from each WebRTC result trace. Around every center, the analysis searched ±0.45 seconds and compared fixed 100 ms and 400 ms frame steps. Landmark alignment removes translation, rotation, and scale before regional RMSE is calculated. Group means weight each directed edge equally.\n\nThe saved comparison was rerun on CUDA with the same DWPose checkpoint and reproduced byte-for-byte. Both captures independently probe as H.264 High, yuv420p, 720 × 1280, exact 30 fps. The compared event set is identical: 12 Eulerian idle edges plus four named TTS edges."
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## Limitations and Robustness\n\n- This is one capture per version and one observation per directed edge; there are no repeat runs or confidence intervals.\n- Multiple variables changed together: four Segmind regenerations, clip durations, facial geometry, and boundary length. The improvement cannot be attributed to 30-frame handles alone.\n- TTS is not phoneme-matched. V3 generated 637 frames per case and v4 generated 900; reaction and speaking durations also differ. Whole-face TTS results are mouth-motion confounded.\n- The short v4 TTS reactions switch before their closing handles, so reaction → speaking TTS gains cannot be credited to the full 30-frame closing boundary.\n- Idle transition centers have roughly 0.2-second polling resolution and TTS readiness roughly 0.5 second; the ±0.45-second search absorbs most but not every theoretical timing error.\n- Similarity alignment deliberately removes absolute vertical/body shifts. Dynamic body-keypoint confidence was low, so facial conclusions are stronger than fine body-geometry conclusions."
+      },
+      {
+        "id": "recommended_next_steps",
+        "type": "markdown",
+        "body": "## Recommended Next Steps\n\n1. **Retain v4 neutral, listener, and speaking.** They are the strongest part of the new set.\n2. **Regenerate only the Segmind smile** against the exact v4 neutral eyebrow, eye, and vertical face geometry. The static smile eyebrow mismatch more than doubled versus v3.\n3. **Keep the two-frame crossfade.** It is not the source of the slower cadence and avoids a hard encoded switch.\n4. **Retest the corrected smile with three repeat captures.** Run the same 12-edge idle cycle each time and report mean, worst, and variability.\n5. **Use a short phoneme-locked TTS fixture** for future A/B tests so reaction lengths, speaking duration, and transition phonemes are identical."
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## Further Questions\n\n- Does the approximately two-second neutral bridge feel appropriately calm for the tutor, or should handles be reduced to 20–24 frames while preserving matched endpoints?\n- After the smile is corrected, do all 12 idle edges improve across three repeated captures?\n- Can post-Segmind preprocessing preserve a shared canonical boundary without relying on runtime crossfade?"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-30T21:54:28Z",
+    "status": "ready",
+    "datasets": {
+      "controlled_idle_summary": [
+        {
+          "scope": "12 directed idle transitions",
+          "v3_mean_400_rmse_px": 1.865118,
+          "v4_mean_400_rmse_px": 1.747635,
+          "mean_percent_change": -0.06299,
+          "v3_worst_400_rmse_px": 2.818265,
+          "v4_worst_400_rmse_px": 2.58122,
+          "worst_percent_change": -0.08411,
+          "improved_edges": 9,
+          "tested_edges": 12,
+          "improved_share": 0.75
+        }
+      ],
+      "smile_geometry_summary": [
+        {
+          "comparison": "Smile first frame versus neutral first frame",
+          "v3_brow_rmse_px": 2.318191,
+          "v4_brow_rmse_px": 4.832034,
+          "brow_percent_change": 1.084398568,
+          "v3_whole_face_rmse_px": 1.796095,
+          "v4_whole_face_rmse_px": 2.603267,
+          "whole_face_percent_change": 0.449403846,
+          "exact_directed_v4_boundaries": 0,
+          "tested_directed_v4_boundaries": 12
+        }
+      ],
+      "idle_edge_changes": [
+        {
+          "transition": "Neutral → Speaking",
+          "context": "idle_speaking",
+          "v3_rmse_px": 2.123534,
+          "v4_rmse_px": 1.385551,
+          "percent_change": -0.34752587,
+          "outcome": "Improved",
+          "rank_by_change": 1
+        },
+        {
+          "transition": "Listener → Speaking",
+          "context": "idle_speaking",
+          "v3_rmse_px": 2.818265,
+          "v4_rmse_px": 2.050465,
+          "percent_change": -0.27243712,
+          "outcome": "Improved",
+          "rank_by_change": 2
+        },
+        {
+          "transition": "Neutral → Smile",
+          "context": "idle_non_speaking",
+          "v3_rmse_px": 2.569412,
+          "v4_rmse_px": 2.038707,
+          "percent_change": -0.206547257,
+          "outcome": "Improved",
+          "rank_by_change": 3
+        },
+        {
+          "transition": "Smile → Listener",
+          "context": "idle_non_speaking",
+          "v3_rmse_px": 1.578105,
+          "v4_rmse_px": 1.262578,
+          "percent_change": -0.199940435,
+          "outcome": "Improved",
+          "rank_by_change": 4
+        },
+        {
+          "transition": "Listener → Smile",
+          "context": "idle_non_speaking",
+          "v3_rmse_px": 1.602861,
+          "v4_rmse_px": 1.433436,
+          "percent_change": -0.105701617,
+          "outcome": "Improved",
+          "rank_by_change": 5
+        },
+        {
+          "transition": "Speaking → Smile",
+          "context": "idle_speaking",
+          "v3_rmse_px": 1.808923,
+          "v4_rmse_px": 1.64926,
+          "percent_change": -0.088264122,
+          "outcome": "Improved",
+          "rank_by_change": 6
+        },
+        {
+          "transition": "Neutral → Listener",
+          "context": "idle_non_speaking",
+          "v3_rmse_px": 1.692715,
+          "v4_rmse_px": 1.590204,
+          "percent_change": -0.060560106,
+          "outcome": "Improved",
+          "rank_by_change": 7
+        },
+        {
+          "transition": "Speaking → Listener",
+          "context": "idle_speaking",
+          "v3_rmse_px": 1.652677,
+          "v4_rmse_px": 1.558621,
+          "percent_change": -0.056911302,
+          "outcome": "Improved",
+          "rank_by_change": 8
+        },
+        {
+          "transition": "Speaking → Neutral",
+          "context": "idle_speaking",
+          "v3_rmse_px": 1.354404,
+          "v4_rmse_px": 1.303128,
+          "percent_change": -0.037858719,
+          "outcome": "Improved",
+          "rank_by_change": 9
+        },
+        {
+          "transition": "Listener → Neutral",
+          "context": "idle_non_speaking",
+          "v3_rmse_px": 1.847641,
+          "v4_rmse_px": 1.911291,
+          "percent_change": 0.034449333,
+          "outcome": "Regressed",
+          "rank_by_change": 10
+        },
+        {
+          "transition": "Smile → Speaking",
+          "context": "idle_speaking",
+          "v3_rmse_px": 1.934359,
+          "v4_rmse_px": 2.58122,
+          "percent_change": 0.334405868,
+          "outcome": "Regressed",
+          "rank_by_change": 11
+        },
+        {
+          "transition": "Smile → Neutral",
+          "context": "idle_non_speaking",
+          "v3_rmse_px": 1.398518,
+          "v4_rmse_px": 2.207161,
+          "percent_change": 0.578214224,
+          "outcome": "Regressed",
+          "rank_by_change": 12
+        }
+      ],
+      "all_edge_changes": [
+        {
+          "case_label": "Idle: Neutral → Speaking",
+          "event_id": "idle:neutral_resting->speaking_direct",
+          "evidence_class": "Controlled idle",
+          "v3_rmse_px": 2.123534,
+          "v4_rmse_px": 1.385551,
+          "percent_change": -0.34752587,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "TTS empathy: Speaking → Neutral",
+          "event_id": "tts:empathy:speaking_direct->neutral_resting",
+          "evidence_class": "TTS supporting",
+          "v3_rmse_px": 4.364889,
+          "v4_rmse_px": 3.044024,
+          "percent_change": -0.302611361,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "TTS empathy: Listener → Speaking",
+          "event_id": "tts:empathy:empathetic_head_tilt->speaking_direct",
+          "evidence_class": "TTS supporting",
+          "v3_rmse_px": 4.487526,
+          "v4_rmse_px": 3.208227,
+          "percent_change": -0.285078905,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "Idle: Listener → Speaking",
+          "event_id": "idle:active_listening->speaking_direct",
+          "evidence_class": "Controlled idle",
+          "v3_rmse_px": 2.818265,
+          "v4_rmse_px": 2.050465,
+          "percent_change": -0.27243712,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "TTS warmth: Smile → Speaking",
+          "event_id": "tts:warmth:light_smile->speaking_direct",
+          "evidence_class": "TTS supporting",
+          "v3_rmse_px": 5.058507,
+          "v4_rmse_px": 3.952902,
+          "percent_change": -0.218563501,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "Idle: Neutral → Smile",
+          "event_id": "idle:neutral_resting->light_smile",
+          "evidence_class": "Controlled idle",
+          "v3_rmse_px": 2.569412,
+          "v4_rmse_px": 2.038707,
+          "percent_change": -0.206547257,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "Idle: Smile → Listener",
+          "event_id": "idle:light_smile->active_listening",
+          "evidence_class": "Controlled idle",
+          "v3_rmse_px": 1.578105,
+          "v4_rmse_px": 1.262578,
+          "percent_change": -0.199940435,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "TTS warmth: Speaking → Neutral",
+          "event_id": "tts:warmth:speaking_direct->neutral_resting",
+          "evidence_class": "TTS supporting",
+          "v3_rmse_px": 3.272306,
+          "v4_rmse_px": 2.917501,
+          "percent_change": -0.108426596,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "Idle: Listener → Smile",
+          "event_id": "idle:active_listening->light_smile",
+          "evidence_class": "Controlled idle",
+          "v3_rmse_px": 1.602861,
+          "v4_rmse_px": 1.433436,
+          "percent_change": -0.105701617,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "Idle: Speaking → Smile",
+          "event_id": "idle:speaking_direct->light_smile",
+          "evidence_class": "Controlled idle",
+          "v3_rmse_px": 1.808923,
+          "v4_rmse_px": 1.64926,
+          "percent_change": -0.088264122,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "Idle: Neutral → Listener",
+          "event_id": "idle:neutral_resting->active_listening",
+          "evidence_class": "Controlled idle",
+          "v3_rmse_px": 1.692715,
+          "v4_rmse_px": 1.590204,
+          "percent_change": -0.060560106,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "Idle: Speaking → Listener",
+          "event_id": "idle:speaking_direct->active_listening",
+          "evidence_class": "Controlled idle",
+          "v3_rmse_px": 1.652677,
+          "v4_rmse_px": 1.558621,
+          "percent_change": -0.056911302,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "Idle: Speaking → Neutral",
+          "event_id": "idle:speaking_direct->neutral_resting",
+          "evidence_class": "Controlled idle",
+          "v3_rmse_px": 1.354404,
+          "v4_rmse_px": 1.303128,
+          "percent_change": -0.037858719,
+          "outcome": "Improved"
+        },
+        {
+          "case_label": "Idle: Listener → Neutral",
+          "event_id": "idle:active_listening->neutral_resting",
+          "evidence_class": "Controlled idle",
+          "v3_rmse_px": 1.847641,
+          "v4_rmse_px": 1.911291,
+          "percent_change": 0.034449333,
+          "outcome": "Regressed"
+        },
+        {
+          "case_label": "Idle: Smile → Speaking",
+          "event_id": "idle:light_smile->speaking_direct",
+          "evidence_class": "Controlled idle",
+          "v3_rmse_px": 1.934359,
+          "v4_rmse_px": 2.58122,
+          "percent_change": 0.334405868,
+          "outcome": "Regressed"
+        },
+        {
+          "case_label": "Idle: Smile → Neutral",
+          "event_id": "idle:light_smile->neutral_resting",
+          "evidence_class": "Controlled idle",
+          "v3_rmse_px": 1.398518,
+          "v4_rmse_px": 2.207161,
+          "percent_change": 0.578214224,
+          "outcome": "Regressed"
+        }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "controlled_idle_summary_sql",
+      "label": "Controlled idle summary derived from the reproduced comparison JSON",
+      "path": "generated/asset_analysis/2026-07-30_mvp_four_v4_30frame_boundaries/v4_vs_v3_cadence_neutral_webrtc_validation.json",
+      "query": {
+        "engine": "SQLite-compatible ANSI SQL",
+        "language": "sql",
+        "id": "v4-v3-controlled-idle-summary",
+        "executed_at": "2026-07-30T21:54:28Z",
+        "description": "Returns the reviewed controlled-idle headline metrics reproduced from the saved 12-edge WebRTC comparison.",
+        "sql": "WITH controlled_idle_summary(scope, v3_mean_400_rmse_px, v4_mean_400_rmse_px, mean_percent_change, v3_worst_400_rmse_px, v4_worst_400_rmse_px, worst_percent_change, improved_edges, tested_edges, improved_share) AS (VALUES ('12 directed idle transitions', 1.865118, 1.747635, -0.06299, 2.818265, 2.581220, -0.08411, 9, 12, 0.75)) SELECT * FROM controlled_idle_summary;",
+        "filters": [
+          "Includes only the 12 directed idle transitions shared by v3 and v4.",
+          "Excludes all TTS transitions from the headline comparison.",
+          "Uses the maximum fixed 400 ms whole-face RMSE within ±0.45 seconds of each event center."
+        ],
+        "metric_definitions": [
+          "Mean 400 ms RMSE is the unweighted mean across the 12 directed idle edges.",
+          "Worst 400 ms RMSE is the maximum edge value in the 12-edge idle set.",
+          "Percent change is (v4 / v3) - 1; negative values indicate improvement."
+        ],
+        "tables_used": [
+          "v4_vs_v3_cadence_neutral_webrtc_validation.json"
+        ]
+      }
+    },
+    {
+      "id": "idle_edge_detail_sql",
+      "label": "Controlled idle edge detail derived from the reproduced comparison JSON",
+      "path": "generated/asset_analysis/2026-07-30_mvp_four_v4_30frame_boundaries/v4_vs_v3_cadence_neutral_webrtc_validation.json",
+      "query": {
+        "engine": "SQLite-compatible ANSI SQL",
+        "language": "sql",
+        "id": "v4-v3-idle-edge-detail",
+        "executed_at": "2026-07-30T21:54:28Z",
+        "description": "Returns the 12 reviewed idle transition rows used in the signed change chart.",
+        "sql": "WITH idle_edges(transition, context, v3_rmse_px, v4_rmse_px, percent_change, outcome, rank_by_change) AS (VALUES ('Neutral → Speaking','idle_speaking',2.123534,1.385551,-0.347525870,'Improved',1),('Listener → Speaking','idle_speaking',2.818265,2.050465,-0.272437120,'Improved',2),('Neutral → Smile','idle_non_speaking',2.569412,2.038707,-0.206547257,'Improved',3),('Smile → Listener','idle_non_speaking',1.578105,1.262578,-0.199940435,'Improved',4),('Listener → Smile','idle_non_speaking',1.602861,1.433436,-0.105701617,'Improved',5),('Speaking → Smile','idle_speaking',1.808923,1.649260,-0.088264122,'Improved',6),('Neutral → Listener','idle_non_speaking',1.692715,1.590204,-0.060560106,'Improved',7),('Speaking → Listener','idle_speaking',1.652677,1.558621,-0.056911302,'Improved',8),('Speaking → Neutral','idle_speaking',1.354404,1.303128,-0.037858719,'Improved',9),('Listener → Neutral','idle_non_speaking',1.847641,1.911291,0.034449333,'Regressed',10),('Smile → Speaking','idle_speaking',1.934359,2.581220,0.334405868,'Regressed',11),('Smile → Neutral','idle_non_speaking',1.398518,2.207161,0.578214224,'Regressed',12)) SELECT * FROM idle_edges ORDER BY rank_by_change;",
+        "filters": [
+          "Includes only shared idle transitions.",
+          "One row per directed edge.",
+          "Uses whole-face RMSE at a fixed 400 ms step."
+        ],
+        "metric_definitions": [
+          "Percent change is (v4 edge RMSE / v3 edge RMSE) - 1.",
+          "Outcome is Improved when v4 RMSE is lower than v3 and Regressed otherwise."
+        ],
+        "tables_used": [
+          "v4_vs_v3_cadence_neutral_webrtc_validation.json"
+        ]
+      }
+    },
+    {
+      "id": "all_edge_detail_sql",
+      "label": "All edge detail derived from the reproduced comparison JSON",
+      "path": "generated/asset_analysis/2026-07-30_mvp_four_v4_30frame_boundaries/v4_vs_v3_cadence_neutral_webrtc_validation.json",
+      "query": {
+        "engine": "SQLite-compatible ANSI SQL",
+        "language": "sql",
+        "id": "v4-v3-all-edge-detail",
+        "executed_at": "2026-07-30T21:54:28Z",
+        "description": "Returns the 12 controlled idle and four supporting TTS transition results.",
+        "sql": "WITH all_edges(case_label, event_id, evidence_class, v3_rmse_px, v4_rmse_px, percent_change, outcome) AS (VALUES ('Idle: Neutral → Speaking','idle:neutral_resting->speaking_direct','Controlled idle',2.123534,1.385551,-0.347525870,'Improved'),('TTS empathy: Speaking → Neutral','tts:empathy:speaking_direct->neutral_resting','TTS supporting',4.364889,3.044024,-0.302611361,'Improved'),('TTS empathy: Listener → Speaking','tts:empathy:empathetic_head_tilt->speaking_direct','TTS supporting',4.487526,3.208227,-0.285078905,'Improved'),('Idle: Listener → Speaking','idle:active_listening->speaking_direct','Controlled idle',2.818265,2.050465,-0.272437120,'Improved'),('TTS warmth: Smile → Speaking','tts:warmth:light_smile->speaking_direct','TTS supporting',5.058507,3.952902,-0.218563501,'Improved'),('Idle: Neutral → Smile','idle:neutral_resting->light_smile','Controlled idle',2.569412,2.038707,-0.206547257,'Improved'),('Idle: Smile → Listener','idle:light_smile->active_listening','Controlled idle',1.578105,1.262578,-0.199940435,'Improved'),('TTS warmth: Speaking → Neutral','tts:warmth:speaking_direct->neutral_resting','TTS supporting',3.272306,2.917501,-0.108426596,'Improved'),('Idle: Listener → Smile','idle:active_listening->light_smile','Controlled idle',1.602861,1.433436,-0.105701617,'Improved'),('Idle: Speaking → Smile','idle:speaking_direct->light_smile','Controlled idle',1.808923,1.649260,-0.088264122,'Improved'),('Idle: Neutral → Listener','idle:neutral_resting->active_listening','Controlled idle',1.692715,1.590204,-0.060560106,'Improved'),('Idle: Speaking → Listener','idle:speaking_direct->active_listening','Controlled idle',1.652677,1.558621,-0.056911302,'Improved'),('Idle: Speaking → Neutral','idle:speaking_direct->neutral_resting','Controlled idle',1.354404,1.303128,-0.037858719,'Improved'),('Idle: Listener → Neutral','idle:active_listening->neutral_resting','Controlled idle',1.847641,1.911291,0.034449333,'Regressed'),('Idle: Smile → Speaking','idle:light_smile->speaking_direct','Controlled idle',1.934359,2.581220,0.334405868,'Regressed'),('Idle: Smile → Neutral','idle:light_smile->neutral_resting','Controlled idle',1.398518,2.207161,0.578214224,'Regressed')) SELECT * FROM all_edges;",
+        "filters": [
+          "Includes the same 16 named transition events in both captures.",
+          "Marks four TTS events as supporting evidence because their audio/phoneme timing is not matched."
+        ],
+        "metric_definitions": [
+          "RMSE is similarity-aligned DWPose whole-face landmark RMSE at the maximum fixed 400 ms step around the event.",
+          "Percent change is (v4 / v3) - 1; negative values indicate improvement."
+        ],
+        "tables_used": [
+          "v4_vs_v3_cadence_neutral_webrtc_validation.json"
+        ]
+      }
+    },
+    {
+      "id": "smile_geometry_sql",
+      "label": "Static Segmind geometry evidence",
+      "path": "generated/asset_analysis/2026-07-30_mvp_four_v4_30frame_boundaries/v4_segmind_geometry_validation.json",
+      "query": {
+        "engine": "SQLite-compatible ANSI SQL",
+        "language": "sql",
+        "id": "v4-v3-smile-static-geometry",
+        "executed_at": "2026-07-30T21:54:28Z",
+        "description": "Returns the reviewed v3 and v4 first-frame smile-versus-neutral facial geometry comparison.",
+        "sql": "WITH smile_geometry(comparison, v3_brow_rmse_px, v4_brow_rmse_px, brow_percent_change, v3_whole_face_rmse_px, v4_whole_face_rmse_px, whole_face_percent_change, exact_directed_v4_boundaries, tested_directed_v4_boundaries) AS (VALUES ('Smile first frame versus neutral first frame',2.318191,4.832034,1.084398568,1.796095,2.603267,0.449403846,0,12)) SELECT * FROM smile_geometry;",
+        "filters": [
+          "Compares decoded Segmind first frames after similarity alignment.",
+          "Smile is compared with the neutral first frame within each version."
+        ],
+        "metric_definitions": [
+          "Brow RMSE uses DWPose eyebrow landmarks after similarity alignment.",
+          "Whole-face RMSE uses all 68 facial landmarks after similarity alignment.",
+          "Exact directed boundaries count pixel-identical last-frame to first-frame ordered transitions."
+        ],
+        "tables_used": [
+          "v4_segmind_geometry_validation.json"
+        ]
+      }
+    }
+  ]
+}

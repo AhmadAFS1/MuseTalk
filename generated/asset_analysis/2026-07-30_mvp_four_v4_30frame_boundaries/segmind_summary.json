@@ -1,0 +1,182 @@
+{
+  "api_url": "https://api.segmind.com/v2/kling-2.6-pro-motion-control",
+  "created_at": "2026-07-30T20:46:08.336680+00:00",
+  "inputs": {
+    "active_listening_empathetic_v1": {
+      "path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/inputs/active_listening_empathetic_v1.mp4",
+      "probe": {
+        "duration_seconds": 10.0,
+        "frame_rate": "30/1",
+        "frames": 300,
+        "height": 1920,
+        "width": 1080
+      },
+      "s3_object": "s3://lingua-ai-idle-vids/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/inputs/active_listening_empathetic_v1.mp4",
+      "sha256": "6f30505dfc4c37df3d0494725d2edfdaabbe8046d03fe7349401e6c552979179"
+    },
+    "light_smile": {
+      "path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/inputs/light_smile.mp4",
+      "probe": {
+        "duration_seconds": 6.0,
+        "frame_rate": "30/1",
+        "frames": 180,
+        "height": 1920,
+        "width": 1080
+      },
+      "s3_object": "s3://lingua-ai-idle-vids/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/inputs/light_smile.mp4",
+      "sha256": "1c83b20a9d06bbec43ad073118cc0028510821af9a767e181be93365c37293fd"
+    },
+    "neutral_resting": {
+      "path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/inputs/neutral_resting.mp4",
+      "probe": {
+        "duration_seconds": 11.0,
+        "frame_rate": "30/1",
+        "frames": 330,
+        "height": 1920,
+        "width": 1080
+      },
+      "s3_object": "s3://lingua-ai-idle-vids/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/inputs/neutral_resting.mp4",
+      "sha256": "b5afaaac5623a1a3cf94747d479b597f30439184d955a08dae3d16c2c13fdc0a"
+    },
+    "speaking_direct_v2": {
+      "path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/inputs/speaking_direct_v2.mp4",
+      "probe": {
+        "duration_seconds": 12.0,
+        "frame_rate": "30/1",
+        "frames": 360,
+        "height": 1920,
+        "width": 1080
+      },
+      "s3_object": "s3://lingua-ai-idle-vids/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/inputs/speaking_direct_v2.mp4",
+      "sha256": "389a9fe097fdabade1e692d357a135eebce92ed57ff2613e500374b5567e8a8a"
+    }
+  },
+  "model": "kling-2.6-pro-motion-control",
+  "outputs": {
+    "active_listening_empathetic_v1": {
+      "endpoint_metrics": {
+        "contact_sheet": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/active_listening_empathetic_v1/first_last_contact.png",
+        "first_frame": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/active_listening_empathetic_v1/first_frame.png",
+        "last_frame": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/active_listening_empathetic_v1/last_frame.png",
+        "ssim": "[Parsed_ssim_0 @ 0x116704e70] SSIM R:0.835083 (7.827336) G:0.837156 (7.882287) B:0.823233 (7.525989) All:0.831824 (7.742358)"
+      },
+      "normalized_path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/active_listening_empathetic_v1/active_listening_empathetic_v1_segmind_720x1280_30fps.mp4",
+      "normalized_probe": {
+        "duration_seconds": 10.0,
+        "frame_rate": "30/1",
+        "frames": 300,
+        "height": 1280,
+        "width": 720
+      },
+      "normalized_sha256": "5a53c8a5a23e3c2fae3c34ce15d5e8fd84a8751182365962218c01ca34f1b570",
+      "raw_path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/active_listening_empathetic_v1/active_listening_empathetic_v1_segmind_raw.mp4",
+      "raw_probe": {
+        "duration_seconds": 10.0,
+        "frame_rate": "30/1",
+        "frames": 300,
+        "height": 1920,
+        "width": 1072
+      },
+      "raw_sha256": "a5cd223e6877fa7483ad5b6c5273a2d56a9c17eaf9c6143f36a8ba762783e14e",
+      "request_id": "dc848d920339591ce822a65780e6b193",
+      "status": "COMPLETED"
+    },
+    "light_smile": {
+      "endpoint_metrics": {
+        "contact_sheet": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/light_smile/first_last_contact.png",
+        "first_frame": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/light_smile/first_frame.png",
+        "last_frame": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/light_smile/last_frame.png",
+        "ssim": "[Parsed_ssim_0 @ 0x12fe04c00] SSIM R:0.842408 (8.024657) G:0.845196 (8.102167) B:0.833171 (7.777288) All:0.840258 (7.965815)"
+      },
+      "normalized_path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/light_smile/light_smile_segmind_720x1280_30fps.mp4",
+      "normalized_probe": {
+        "duration_seconds": 6.0,
+        "frame_rate": "30/1",
+        "frames": 180,
+        "height": 1280,
+        "width": 720
+      },
+      "normalized_sha256": "0b97edc14625c092701dc5b8ec8f0a68ccc6a2b51fc5df231466762db6da7975",
+      "raw_path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/light_smile/light_smile_segmind_raw.mp4",
+      "raw_probe": {
+        "duration_seconds": 6.0,
+        "frame_rate": "30/1",
+        "frames": 180,
+        "height": 1920,
+        "width": 1072
+      },
+      "raw_sha256": "ed6ad96dba418094743d01d1dfd2eff5bd4c9da694808320bdf7b291c6301a6a",
+      "request_id": "9c7312acb149ef98fa72fe6211830f3b",
+      "status": "COMPLETED"
+    },
+    "neutral_resting": {
+      "endpoint_metrics": {
+        "contact_sheet": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/neutral_resting/first_last_contact.png",
+        "first_frame": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/neutral_resting/first_frame.png",
+        "last_frame": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/neutral_resting/last_frame.png",
+        "ssim": "[Parsed_ssim_0 @ 0x157622ff0] SSIM R:0.829667 (7.687002) G:0.830737 (7.714375) B:0.814676 (7.320681) All:0.825026 (7.570276)"
+      },
+      "normalized_path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/neutral_resting/neutral_resting_segmind_720x1280_30fps.mp4",
+      "normalized_probe": {
+        "duration_seconds": 10.933333,
+        "frame_rate": "30/1",
+        "frames": 328,
+        "height": 1280,
+        "width": 720
+      },
+      "normalized_sha256": "0cab3c1d283a6bbf363ffba7cef868344365c6dec6e1f54b202fcd4b61020012",
+      "raw_path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/neutral_resting/neutral_resting_segmind_raw.mp4",
+      "raw_probe": {
+        "duration_seconds": 10.933333,
+        "frame_rate": "30/1",
+        "frames": 328,
+        "height": 1920,
+        "width": 1072
+      },
+      "raw_sha256": "398810fb5a1612cd951eb28b2274045c909f8af5db64cbe033c52abd743abec8",
+      "request_id": "e68dc44c55b88fd25a1ff189b5510b9e",
+      "status": "COMPLETED"
+    },
+    "speaking_direct_v2": {
+      "endpoint_metrics": {
+        "contact_sheet": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/speaking_direct_v2/first_last_contact.png",
+        "first_frame": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/speaking_direct_v2/first_frame.png",
+        "last_frame": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/speaking_direct_v2/last_frame.png",
+        "ssim": "[Parsed_ssim_0 @ 0x13be22960] SSIM R:0.832700 (7.765041) G:0.836481 (7.864309) B:0.822865 (7.516962) All:0.830682 (7.712968)"
+      },
+      "normalized_path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/speaking_direct_v2/speaking_direct_v2_segmind_720x1280_30fps.mp4",
+      "normalized_probe": {
+        "duration_seconds": 12.0,
+        "frame_rate": "30/1",
+        "frames": 360,
+        "height": 1280,
+        "width": 720
+      },
+      "normalized_sha256": "b1948ed67cae86e6dec79e83d2f81e4be2f13518a8fdf2c980791ec6b5980fa1",
+      "raw_path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/outputs/speaking_direct_v2/speaking_direct_v2_segmind_raw.mp4",
+      "raw_probe": {
+        "duration_seconds": 12.0,
+        "frame_rate": "30/1",
+        "frames": 360,
+        "height": 1920,
+        "width": 1072
+      },
+      "raw_sha256": "90af22b83cb104aaf6316fd03c35a8928b11a3a196a7a44dc9f09fe57a7b3dd7",
+      "request_id": "ffe6d9ee931c9dbea60af82b3cf6eb13",
+      "status": "COMPLETED"
+    }
+  },
+  "prompts": {
+    "active_listening_empathetic_v1": "Transfer the reference video active listening empathetic v1 motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways.",
+    "light_smile": "Transfer the reference video light smile motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways.",
+    "neutral_resting": "Transfer the reference video neutral resting motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways.",
+    "speaking_direct_v2": "Transfer the reference video speaking direct v2 motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways."
+  },
+  "run_id": "20260730_mvp_four_v4_30frame_boundaries",
+  "schema_version": 1,
+  "source_image": {
+    "path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_mvp_four_v4_30frame_boundaries/inputs/source_avatar.jpg",
+    "s3_object": "s3://linguaprofilepics/generated-images/segmind-pose-tests/20260730_mvp_four_v4_30frame_boundaries/source_avatar.jpg",
+    "sha256": "72b1ac0431025ceaf0620bf67ea9d448dba4376537c7965b134a89fa6f560d6b"
+  }
+}
