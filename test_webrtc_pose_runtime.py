@@ -234,6 +234,54 @@ class SwitchablePoseBoundaryTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(track.get_pose_status()["pending_pose_ids"], [])
         self.assertEqual(activated, [("active_listening", "listening.mp4")])
 
+    async def test_next_boundary_crossfade_replaces_incoming_frames_without_retiming(self):
+        track = webrtc_tracks.SwitchableVideoStreamTrack(
+            "neutral.mp4",
+            source_fps=30,
+            output_fps=30,
+            prebuffer_seconds=0,
+            adaptive_fps=False,
+            idle_pose_id="neutral_resting",
+            pose_crossfade_frames=2,
+        )
+
+        def fake_crossfade(old_frame, next_idle, frame_count):
+            self.assertEqual((old_frame.path, old_frame.index), ("neutral.mp4", 2))
+            self.assertEqual(frame_count, 2)
+            next_idle.read_frame()
+            next_idle.read_frame()
+            return [
+                _FakeFrame("neutral-to-listening", 0),
+                _FakeFrame("neutral-to-listening", 1),
+            ]
+
+        track._build_idle_transition_frames = fake_crossfade
+        track._advance_idle_frame(1)
+        await track.queue_idle_video(
+            "listening.mp4",
+            pose_id="active_listening",
+        )
+        track._advance_idle_frame(1)
+        track._advance_idle_frame(1)
+
+        first_blend = track._advance_idle_frame(1)
+        second_blend = track._advance_idle_frame(1)
+        first_unblended = track._advance_idle_frame(1)
+
+        self.assertEqual(
+            (first_blend.path, first_blend.index),
+            ("neutral-to-listening", 0),
+        )
+        self.assertEqual(
+            (second_blend.path, second_blend.index),
+            ("neutral-to-listening", 1),
+        )
+        self.assertEqual(
+            (first_unblended.path, first_unblended.index),
+            ("listening.mp4", 2),
+        )
+        self.assertEqual(track.get_pose_status()["current_pose_id"], "active_listening")
+
     async def test_legacy_switch_remains_immediate(self):
         track = webrtc_tracks.SwitchableVideoStreamTrack(
             "neutral.mp4",

@@ -1,0 +1,788 @@
+{
+  "comparison": {
+    "active_listening->light_smile": {
+      "delta_px": -0.68165,
+      "new_max_400ms_whole_face_rmse_px": 1.602861,
+      "percent_change": -29.838,
+      "previous_max_400ms_whole_face_rmse_px": 2.284511
+    },
+    "active_listening->neutral_resting": {
+      "delta_px": -0.350587,
+      "new_max_400ms_whole_face_rmse_px": 1.847641,
+      "percent_change": -15.949,
+      "previous_max_400ms_whole_face_rmse_px": 2.198228
+    },
+    "active_listening->speaking_direct": {
+      "delta_px": -3.038925,
+      "new_max_400ms_whole_face_rmse_px": 2.818265,
+      "percent_change": -51.884,
+      "previous_max_400ms_whole_face_rmse_px": 5.85719
+    },
+    "light_smile->active_listening": {
+      "delta_px": 0.052855,
+      "new_max_400ms_whole_face_rmse_px": 1.578105,
+      "percent_change": 3.465,
+      "previous_max_400ms_whole_face_rmse_px": 1.52525
+    },
+    "light_smile->neutral_resting": {
+      "delta_px": 0.083309,
+      "new_max_400ms_whole_face_rmse_px": 1.398518,
+      "percent_change": 6.334,
+      "previous_max_400ms_whole_face_rmse_px": 1.315209
+    },
+    "light_smile->speaking_direct": {
+      "delta_px": -4.95996,
+      "new_max_400ms_whole_face_rmse_px": 1.934359,
+      "percent_change": -71.943,
+      "previous_max_400ms_whole_face_rmse_px": 6.894319
+    },
+    "neutral_resting->active_listening": {
+      "delta_px": 0.099192,
+      "new_max_400ms_whole_face_rmse_px": 1.692715,
+      "percent_change": 6.225,
+      "previous_max_400ms_whole_face_rmse_px": 1.593523
+    },
+    "neutral_resting->light_smile": {
+      "delta_px": -0.223124,
+      "new_max_400ms_whole_face_rmse_px": 2.569412,
+      "percent_change": -7.99,
+      "previous_max_400ms_whole_face_rmse_px": 2.792536
+    },
+    "neutral_resting->speaking_direct": {
+      "delta_px": -1.404189,
+      "new_max_400ms_whole_face_rmse_px": 2.123534,
+      "percent_change": -39.804,
+      "previous_max_400ms_whole_face_rmse_px": 3.527723
+    },
+    "speaking_direct->active_listening": {
+      "delta_px": 0.096253,
+      "new_max_400ms_whole_face_rmse_px": 1.652677,
+      "percent_change": 6.184,
+      "previous_max_400ms_whole_face_rmse_px": 1.556424
+    },
+    "speaking_direct->light_smile": {
+      "delta_px": 0.345599,
+      "new_max_400ms_whole_face_rmse_px": 1.808923,
+      "percent_change": 23.617,
+      "previous_max_400ms_whole_face_rmse_px": 1.463324
+    },
+    "speaking_direct->neutral_resting": {
+      "delta_px": -0.022778,
+      "new_max_400ms_whole_face_rmse_px": 1.354404,
+      "percent_change": -1.654,
+      "previous_max_400ms_whole_face_rmse_px": 1.377182
+    }
+  },
+  "method": {
+    "alignment": "least-squares similarity transform",
+    "face_model": "MuseTalk DWPose 68-point face landmarks",
+    "long_window_seconds": 0.4,
+    "note": "For each reported activation time, metrics select the largest face change within the surrounding search window.",
+    "search_window_seconds": 0.45
+  },
+  "runs": {
+    "new_30playback_15lipsync": {
+      "fps": 30.0,
+      "frame_count": 5381,
+      "summary": {
+        "non_speaking_transition_count": 6,
+        "speaking_max_400ms_face_rmse_px": 2.818265,
+        "speaking_max_consecutive_face_rmse_px": 1.484459,
+        "speaking_mean_max_400ms_face_rmse_px": 1.948694,
+        "speaking_mean_max_consecutive_face_rmse_px": 1.332908,
+        "speaking_transition_count": 6
+      },
+      "transitions": {
+        "active_listening->light_smile": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.454499,
+            "eyes": 1.424043,
+            "jaw": 1.786477,
+            "mouth": 1.718395,
+            "nose": 1.329142,
+            "whole_face": 1.602861
+          },
+          "max_400ms_frame_pair": [
+            2083,
+            2095
+          ],
+          "max_400ms_nose_travel_px": 2.946293,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.191166,
+            "eyes": 1.264649,
+            "jaw": 1.144125,
+            "mouth": 1.095938,
+            "nose": 0.842063,
+            "whole_face": 1.124836
+          },
+          "max_consecutive_frame_pair": [
+            2094,
+            2095
+          ],
+          "max_consecutive_nose_travel_px": 0.0
+        },
+        "active_listening->neutral_resting": {
+          "max_400ms_face_rmse_px": {
+            "brows": 2.401784,
+            "eyes": 1.128297,
+            "jaw": 2.087706,
+            "mouth": 1.763664,
+            "nose": 1.594073,
+            "whole_face": 1.847641
+          },
+          "max_400ms_frame_pair": [
+            240,
+            252
+          ],
+          "max_400ms_nose_travel_px": 2.946293,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.841685,
+            "eyes": 1.001542,
+            "jaw": 1.877294,
+            "mouth": 1.450485,
+            "nose": 1.685114,
+            "whole_face": 1.59734
+          },
+          "max_consecutive_frame_pair": [
+            240,
+            241
+          ],
+          "max_consecutive_nose_travel_px": 4.65847
+        },
+        "active_listening->speaking_direct": {
+          "max_400ms_face_rmse_px": {
+            "brows": 2.314556,
+            "eyes": 1.362944,
+            "jaw": 4.179866,
+            "mouth": 2.570436,
+            "nose": 1.974289,
+            "whole_face": 2.818265
+          },
+          "max_400ms_frame_pair": [
+            1536,
+            1548
+          ],
+          "max_400ms_nose_travel_px": 13.339864,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.074947,
+            "eyes": 1.544165,
+            "jaw": 1.488379,
+            "mouth": 1.526403,
+            "nose": 1.680604,
+            "whole_face": 1.484459
+          },
+          "max_consecutive_frame_pair": [
+            1549,
+            1550
+          ],
+          "max_consecutive_nose_travel_px": 2.083344
+        },
+        "light_smile->active_listening": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.673509,
+            "eyes": 1.045697,
+            "jaw": 1.858159,
+            "mouth": 1.580322,
+            "nose": 1.474792,
+            "whole_face": 1.578105
+          },
+          "max_400ms_frame_pair": [
+            1288,
+            1300
+          ],
+          "max_400ms_nose_travel_px": 6.588082,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.236437,
+            "eyes": 1.023652,
+            "jaw": 1.296644,
+            "mouth": 1.251732,
+            "nose": 1.292501,
+            "whole_face": 1.229632
+          },
+          "max_consecutive_frame_pair": [
+            1296,
+            1297
+          ],
+          "max_consecutive_nose_travel_px": 0.0
+        },
+        "light_smile->neutral_resting": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.32348,
+            "eyes": 1.879985,
+            "jaw": 1.128756,
+            "mouth": 1.442769,
+            "nose": 1.042362,
+            "whole_face": 1.398518
+          },
+          "max_400ms_frame_pair": [
+            2645,
+            2657
+          ],
+          "max_400ms_nose_travel_px": 2.083344,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.103604,
+            "eyes": 1.459076,
+            "jaw": 1.12345,
+            "mouth": 0.656029,
+            "nose": 0.849941,
+            "whole_face": 1.04524
+          },
+          "max_consecutive_frame_pair": [
+            2656,
+            2657
+          ],
+          "max_consecutive_nose_travel_px": 0.0
+        },
+        "light_smile->speaking_direct": {
+          "max_400ms_face_rmse_px": {
+            "brows": 2.744335,
+            "eyes": 1.180424,
+            "jaw": 1.98535,
+            "mouth": 1.542188,
+            "nose": 2.305299,
+            "whole_face": 1.934359
+          },
+          "max_400ms_frame_pair": [
+            2205,
+            2217
+          ],
+          "max_400ms_nose_travel_px": 6.588082,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.284233,
+            "eyes": 1.426962,
+            "jaw": 1.284695,
+            "mouth": 1.487545,
+            "nose": 1.156007,
+            "whole_face": 1.357266
+          },
+          "max_consecutive_frame_pair": [
+            2206,
+            2207
+          ],
+          "max_consecutive_nose_travel_px": 0.0
+        },
+        "neutral_resting->active_listening": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.904302,
+            "eyes": 1.611479,
+            "jaw": 1.939507,
+            "mouth": 1.4186,
+            "nose": 1.6061,
+            "whole_face": 1.692715
+          },
+          "max_400ms_frame_pair": [
+            6,
+            18
+          ],
+          "max_400ms_nose_travel_px": 2.083344,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.196007,
+            "eyes": 1.04524,
+            "jaw": 1.33831,
+            "mouth": 0.887418,
+            "nose": 1.423477,
+            "whole_face": 1.162209
+          },
+          "max_consecutive_frame_pair": [
+            8,
+            9
+          ],
+          "max_consecutive_nose_travel_px": 0.0
+        },
+        "neutral_resting->light_smile": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.778776,
+            "eyes": 1.61458,
+            "jaw": 2.19331,
+            "mouth": 3.812009,
+            "nose": 1.229098,
+            "whole_face": 2.569412
+          },
+          "max_400ms_frame_pair": [
+            1164,
+            1176
+          ],
+          "max_400ms_nose_travel_px": 4.658498,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.042781,
+            "eyes": 1.146117,
+            "jaw": 1.02411,
+            "mouth": 1.442892,
+            "nose": 1.034996,
+            "whole_face": 1.186606
+          },
+          "max_consecutive_frame_pair": [
+            1168,
+            1169
+          ],
+          "max_consecutive_nose_travel_px": 0.0
+        },
+        "neutral_resting->speaking_direct": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.476961,
+            "eyes": 1.096237,
+            "jaw": 3.115896,
+            "mouth": 1.987781,
+            "nose": 1.710393,
+            "whole_face": 2.123534
+          },
+          "max_400ms_frame_pair": [
+            559,
+            571
+          ],
+          "max_400ms_nose_travel_px": 6.25,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.507064,
+            "eyes": 1.074722,
+            "jaw": 1.396065,
+            "mouth": 1.370341,
+            "nose": 0.890039,
+            "whole_face": 1.29701
+          },
+          "max_consecutive_frame_pair": [
+            567,
+            568
+          ],
+          "max_consecutive_nose_travel_px": 0.0
+        },
+        "speaking_direct->active_listening": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.844429,
+            "eyes": 1.251301,
+            "jaw": 2.146347,
+            "mouth": 1.298627,
+            "nose": 1.523104,
+            "whole_face": 1.652677
+          },
+          "max_400ms_frame_pair": [
+            1851,
+            1863
+          ],
+          "max_400ms_nose_travel_px": 5.892564,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.221791,
+            "eyes": 1.381603,
+            "jaw": 1.297394,
+            "mouth": 1.225263,
+            "nose": 1.527766,
+            "whole_face": 1.314403
+          },
+          "max_consecutive_frame_pair": [
+            1837,
+            1838
+          ],
+          "max_consecutive_nose_travel_px": 2.946293
+        },
+        "speaking_direct->light_smile": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.40888,
+            "eyes": 1.23458,
+            "jaw": 1.950275,
+            "mouth": 2.23438,
+            "nose": 1.4855,
+            "whole_face": 1.808923
+          },
+          "max_400ms_frame_pair": [
+            2529,
+            2541
+          ],
+          "max_400ms_nose_travel_px": 2.946271,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.143812,
+            "eyes": 1.131021,
+            "jaw": 1.395256,
+            "mouth": 1.703309,
+            "nose": 1.483638,
+            "whole_face": 1.431597
+          },
+          "max_consecutive_frame_pair": [
+            2540,
+            2541
+          ],
+          "max_consecutive_nose_travel_px": 2.083344
+        },
+        "speaking_direct->neutral_resting": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.401654,
+            "eyes": 1.391776,
+            "jaw": 1.067146,
+            "mouth": 1.564744,
+            "nose": 1.225694,
+            "whole_face": 1.354404
+          },
+          "max_400ms_frame_pair": [
+            856,
+            868
+          ],
+          "max_400ms_nose_travel_px": 2.083313,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.239577,
+            "eyes": 1.119753,
+            "jaw": 1.023494,
+            "mouth": 1.199071,
+            "nose": 0.895519,
+            "whole_face": 1.112713
+          },
+          "max_consecutive_frame_pair": [
+            871,
+            872
+          ],
+          "max_consecutive_nose_travel_px": 0.0
+        }
+      },
+      "video": "/workspace/MuseTalk/generated/webrtc_pose_showcase/2026-07-30/speaking_smooth_v3_30playback_15lipsync/indian_tutor_speaking_smooth_v3_30playback_15lipsync_webrtc_capture.mp4"
+    },
+    "previous_20fps": {
+      "fps": 20.001860811313733,
+      "frame_count": 3583,
+      "summary": {
+        "non_speaking_transition_count": 6,
+        "speaking_max_400ms_face_rmse_px": 6.894319,
+        "speaking_max_consecutive_face_rmse_px": 2.747241,
+        "speaking_mean_max_400ms_face_rmse_px": 3.446027,
+        "speaking_mean_max_consecutive_face_rmse_px": 1.760668,
+        "speaking_transition_count": 6
+      },
+      "transitions": {
+        "active_listening->light_smile": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.439046,
+            "eyes": 1.27992,
+            "jaw": 1.737625,
+            "mouth": 3.483835,
+            "nose": 1.507519,
+            "whole_face": 2.284511
+          },
+          "max_400ms_frame_pair": [
+            1377,
+            1385
+          ],
+          "max_400ms_nose_travel_px": 4.658498,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.337982,
+            "eyes": 1.334085,
+            "jaw": 1.310398,
+            "mouth": 1.422431,
+            "nose": 1.619385,
+            "whole_face": 1.395996
+          },
+          "max_consecutive_frame_pair": [
+            1386,
+            1387
+          ],
+          "max_consecutive_nose_travel_px": 2.946293
+        },
+        "active_listening->neutral_resting": {
+          "max_400ms_face_rmse_px": {
+            "brows": 2.890001,
+            "eyes": 1.474345,
+            "jaw": 2.328302,
+            "mouth": 2.385769,
+            "nose": 1.201381,
+            "whole_face": 2.198228
+          },
+          "max_400ms_frame_pair": [
+            155,
+            163
+          ],
+          "max_400ms_nose_travel_px": 2.946271,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.921538,
+            "eyes": 1.682709,
+            "jaw": 1.522734,
+            "mouth": 1.593864,
+            "nose": 1.495174,
+            "whole_face": 1.632606
+          },
+          "max_consecutive_frame_pair": [
+            160,
+            161
+          ],
+          "max_consecutive_nose_travel_px": 4.65847
+        },
+        "active_listening->speaking_direct": {
+          "max_400ms_face_rmse_px": {
+            "brows": 3.607868,
+            "eyes": 1.564622,
+            "jaw": 9.406421,
+            "mouth": 4.968732,
+            "nose": 4.414263,
+            "whole_face": 5.85719
+          },
+          "max_400ms_frame_pair": [
+            1015,
+            1023
+          ],
+          "max_400ms_nose_travel_px": 21.245923,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.839955,
+            "eyes": 1.455389,
+            "jaw": 3.051882,
+            "mouth": 1.630915,
+            "nose": 2.441655,
+            "whole_face": 2.184379
+          },
+          "max_consecutive_frame_pair": [
+            1024,
+            1025
+          ],
+          "max_consecutive_nose_travel_px": 8.589816
+        },
+        "light_smile->active_listening": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.42194,
+            "eyes": 1.278202,
+            "jaw": 1.830685,
+            "mouth": 1.25715,
+            "nose": 1.819254,
+            "whole_face": 1.52525
+          },
+          "max_400ms_frame_pair": [
+            858,
+            866
+          ],
+          "max_400ms_nose_travel_px": 8.589816,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.490801,
+            "eyes": 1.497186,
+            "jaw": 1.098558,
+            "mouth": 1.323889,
+            "nose": 1.295567,
+            "whole_face": 1.327314
+          },
+          "max_consecutive_frame_pair": [
+            866,
+            867
+          ],
+          "max_consecutive_nose_travel_px": 0.0
+        },
+        "light_smile->neutral_resting": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.31693,
+            "eyes": 1.383069,
+            "jaw": 1.509245,
+            "mouth": 1.213796,
+            "nose": 1.007644,
+            "whole_face": 1.315209
+          },
+          "max_400ms_frame_pair": [
+            1754,
+            1762
+          ],
+          "max_400ms_nose_travel_px": 2.083313,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.278101,
+            "eyes": 0.906135,
+            "jaw": 1.206216,
+            "mouth": 1.209636,
+            "nose": 0.776578,
+            "whole_face": 1.12207
+          },
+          "max_consecutive_frame_pair": [
+            1752,
+            1753
+          ],
+          "max_consecutive_nose_travel_px": 0.0
+        },
+        "light_smile->speaking_direct": {
+          "max_400ms_face_rmse_px": {
+            "brows": 2.948496,
+            "eyes": 2.103012,
+            "jaw": 10.779767,
+            "mouth": 6.219224,
+            "nose": 6.174413,
+            "whole_face": 6.894319
+          },
+          "max_400ms_frame_pair": [
+            1465,
+            1473
+          ],
+          "max_400ms_nose_travel_px": 29.462797,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.631793,
+            "eyes": 1.465037,
+            "jaw": 3.994399,
+            "mouth": 2.410264,
+            "nose": 2.85597,
+            "whole_face": 2.747241
+          },
+          "max_consecutive_frame_pair": [
+            1472,
+            1473
+          ],
+          "max_consecutive_nose_travel_px": 9.316968
+        },
+        "neutral_resting->active_listening": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.627125,
+            "eyes": 1.55604,
+            "jaw": 1.761106,
+            "mouth": 1.574086,
+            "nose": 1.285068,
+            "whole_face": 1.593523
+          },
+          "max_400ms_frame_pair": [
+            7,
+            15
+          ],
+          "max_400ms_nose_travel_px": 0.0,
+          "max_consecutive_face_rmse_px": {
+            "brows": 0.832195,
+            "eyes": 1.096963,
+            "jaw": 1.411577,
+            "mouth": 1.319877,
+            "nose": 1.10894,
+            "whole_face": 1.219619
+          },
+          "max_consecutive_frame_pair": [
+            0,
+            1
+          ],
+          "max_consecutive_nose_travel_px": 2.083344
+        },
+        "neutral_resting->light_smile": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.99655,
+            "eyes": 1.360514,
+            "jaw": 2.59546,
+            "mouth": 4.150068,
+            "nose": 1.012547,
+            "whole_face": 2.792536
+          },
+          "max_400ms_frame_pair": [
+            775,
+            783
+          ],
+          "max_400ms_nose_travel_px": 5.892564,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.416864,
+            "eyes": 1.511769,
+            "jaw": 1.280604,
+            "mouth": 1.391821,
+            "nose": 1.233554,
+            "whole_face": 1.371011
+          },
+          "max_consecutive_frame_pair": [
+            780,
+            781
+          ],
+          "max_consecutive_nose_travel_px": 2.083344
+        },
+        "neutral_resting->speaking_direct": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.674165,
+            "eyes": 1.235201,
+            "jaw": 5.728675,
+            "mouth": 3.062734,
+            "nose": 2.458618,
+            "whole_face": 3.527723
+          },
+          "max_400ms_frame_pair": [
+            372,
+            380
+          ],
+          "max_400ms_nose_travel_px": 13.176163,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.688727,
+            "eyes": 1.379947,
+            "jaw": 1.820166,
+            "mouth": 1.300269,
+            "nose": 2.23225,
+            "whole_face": 1.65543
+          },
+          "max_consecutive_frame_pair": [
+            361,
+            362
+          ],
+          "max_consecutive_nose_travel_px": 4.658457
+        },
+        "speaking_direct->active_listening": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.694429,
+            "eyes": 1.123829,
+            "jaw": 1.767591,
+            "mouth": 1.426955,
+            "nose": 1.732748,
+            "whole_face": 1.556424
+          },
+          "max_400ms_frame_pair": [
+            1217,
+            1225
+          ],
+          "max_400ms_nose_travel_px": 6.25,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.371524,
+            "eyes": 1.393732,
+            "jaw": 1.33895,
+            "mouth": 1.389403,
+            "nose": 1.317199,
+            "whole_face": 1.365661
+          },
+          "max_consecutive_frame_pair": [
+            1226,
+            1227
+          ],
+          "max_consecutive_nose_travel_px": 0.0
+        },
+        "speaking_direct->light_smile": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.639956,
+            "eyes": 1.213269,
+            "jaw": 1.471904,
+            "mouth": 1.502936,
+            "nose": 1.454642,
+            "whole_face": 1.463324
+          },
+          "max_400ms_frame_pair": [
+            1675,
+            1683
+          ],
+          "max_400ms_nose_travel_px": 2.946271,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.34803,
+            "eyes": 1.256821,
+            "jaw": 1.248444,
+            "mouth": 1.418785,
+            "nose": 1.426205,
+            "whole_face": 1.340484
+          },
+          "max_consecutive_frame_pair": [
+            1666,
+            1667
+          ],
+          "max_consecutive_nose_travel_px": 2.946293
+        },
+        "speaking_direct->neutral_resting": {
+          "max_400ms_face_rmse_px": {
+            "brows": 1.827189,
+            "eyes": 1.379173,
+            "jaw": 1.225442,
+            "mouth": 1.446586,
+            "nose": 0.773014,
+            "whole_face": 1.377182
+          },
+          "max_400ms_frame_pair": [
+            565,
+            573
+          ],
+          "max_400ms_nose_travel_px": 2.083313,
+          "max_consecutive_face_rmse_px": {
+            "brows": 1.59357,
+            "eyes": 1.242459,
+            "jaw": 1.182972,
+            "mouth": 1.277331,
+            "nose": 1.026132,
+            "whole_face": 1.270811
+          },
+          "max_consecutive_frame_pair": [
+            566,
+            567
+          ],
+          "max_consecutive_nose_travel_px": 0.0
+        }
+      },
+      "video": "/workspace/MuseTalk/generated/webrtc_pose_showcase/2026-07-29/crossfade_comparison/2_frames/indian_tutor_mvp_four_v2_crossfade_2_webrtc_capture.mp4"
+    }
+  },
+  "schema_version": 1
+}

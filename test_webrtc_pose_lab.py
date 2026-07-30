@@ -3,6 +3,8 @@ import unittest
 
 from scripts.test_pose_webrtc import (
     DEFAULT_MANIFEST,
+    MVP_FOUR_ORDERED_TRANSITION_CIRCUIT,
+    MVP_FOUR_POSE_IDS,
     POSE_IDS,
     load_pose_set,
     worker_pose_manifest,
@@ -14,6 +16,31 @@ from templates.webrtc_pose_lab import (
 
 
 class PoseWebRTCLabTests(unittest.TestCase):
+    def test_mvp_four_circuit_covers_every_ordered_transition_once(self):
+        transitions = list(
+            zip(
+                MVP_FOUR_ORDERED_TRANSITION_CIRCUIT,
+                MVP_FOUR_ORDERED_TRANSITION_CIRCUIT[1:],
+            )
+        )
+        expected = {
+            (source, target)
+            for source in MVP_FOUR_POSE_IDS
+            for target in MVP_FOUR_POSE_IDS
+            if source != target
+        }
+        self.assertEqual(len(transitions), 12)
+        self.assertEqual(set(transitions), expected)
+        self.assertEqual(len(set(transitions)), len(transitions))
+        self.assertEqual(
+            MVP_FOUR_ORDERED_TRANSITION_CIRCUIT[0],
+            "neutral_resting",
+        )
+        self.assertEqual(
+            MVP_FOUR_ORDERED_TRANSITION_CIRCUIT[-1],
+            "neutral_resting",
+        )
+
     def test_manifest_has_exact_canonical_six(self):
         pose_set = load_pose_set(DEFAULT_MANIFEST)
         self.assertEqual(tuple(pose_set["poses"]), POSE_IDS)

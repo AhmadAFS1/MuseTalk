@@ -69,6 +69,29 @@ POSE_IDS = (
     "light_smile",
 )
 POSE_ID_SET = frozenset(POSE_IDS)
+MVP_FOUR_POSE_IDS = (
+    "neutral_resting",
+    "active_listening",
+    "speaking_direct",
+    "light_smile",
+)
+# Eulerian circuit over the complete directed four-pose graph. Every ordered
+# non-self transition appears exactly once while starting/ending at neutral.
+MVP_FOUR_ORDERED_TRANSITION_CIRCUIT = (
+    "neutral_resting",
+    "active_listening",
+    "neutral_resting",
+    "speaking_direct",
+    "neutral_resting",
+    "light_smile",
+    "active_listening",
+    "speaking_direct",
+    "active_listening",
+    "light_smile",
+    "speaking_direct",
+    "light_smile",
+    "neutral_resting",
+)
 REACTION_POSE = {
     "none": None,
     "acknowledge": "nod_agree",
@@ -443,13 +466,15 @@ async def run_webrtc_smoke(
     pose_set: dict[str, Any],
     audio_file: Path,
     reaction_intent: str,
-    fps: int,
+    musetalk_fps: int,
+    playback_fps: int,
     batch_size: int,
     completion_timeout: int,
     pose_recovery_timeout: int,
     event_delay: float,
     record_output: Path | None,
     showcase_six_poses: bool,
+    showcase_mvp_four_exhaustive: bool,
     showcase_timeout: int,
 ) -> dict[str, Any]:
     if AIORTC_IMPORT_ERROR is not None or RTCPeerConnection is None:
@@ -471,8 +496,8 @@ async def run_webrtc_smoke(
     params = {
         "avatar_id": neutral_avatar_id,
         "user_id": f"pose_smoke_{int(time.time())}",
-        "fps": fps,
-        "playback_fps": fps,
+        "fps": musetalk_fps,
+        "playback_fps": playback_fps,
         "batch_size": batch_size,
         "chunk_duration": 2,
         "pose_switch_mode": "next_boundary",
@@ -494,10 +519,12 @@ async def run_webrtc_smoke(
     recorder_started = False
     relay = MediaRelay() if record_output is not None else None
     recording_started_at: float | None = None
-    turn_id = f"pose_smoke_{int(time.time() * 1000)}_1"
+    turn_id_prefix = f"pose_smoke_{int(time.time() * 1000)}"
     final_status: dict[str, Any] = {}
     rendered_pose_trace: list[dict[str, Any]] = []
+    speaking_cases: list[dict[str, Any]] = []
     showcase_pose_trace: list[dict[str, Any]] = []
+    recording_timeline: list[dict[str, Any]] = []
     max_server_video_frames = 0
     max_server_audio_frames = 0
     metrics = SessionMetrics(session_id=session_id)
@@ -583,13 +610,26 @@ async def run_webrtc_smoke(
                 ),
             }
         )
+        recording_timeline.append(
+            {
+                "event": "non_speaking_pose",
+                **showcase_pose_trace[-1],
+            }
+        )
 
-        # Prove that all six boundary switches can coexist in the server queue.
-        # Neutral is last so the visual cycle returns to its starting state.
-        cycle_pose_ids = [
-            *(pose_id for pose_id in POSE_IDS if pose_id != "neutral_resting"),
-            "neutral_resting",
-        ]
+        if showcase_mvp_four_exhaustive:
+            # The first circuit node is already active when recording begins.
+            # Queue the remaining nodes to exercise all 12 ordered transitions.
+            cycle_pose_ids = list(MVP_FOUR_ORDERED_TRANSITION_CIRCUIT[1:])
+            showcase_name = "four-pose exhaustive"
+        else:
+            # Prove that all six boundary switches can coexist in the server
+            # queue. Neutral is last so the cycle returns to its starting state.
+            cycle_pose_ids = [
+                *(pose_id for pose_id in POSE_IDS if pose_id != "neutral_resting"),
+                "neutral_resting",
+            ]
+            showcase_name = "six-pose"
         queued_pose_status = None
         for index, pose_id in enumerate(cycle_pose_ids):
             queued = await queue_pose(
@@ -608,18 +648,27 @@ async def run_webrtc_smoke(
             queued_cycle_state.extend(
                 queued_pose_status.get("queued_pose_ids") or []
             )
-        if queued_cycle_state != cycle_pose_ids:
+        queue_matches = queued_cycle_state == cycle_pose_ids
+        if (
+            not queue_matches
+            and isinstance(queued_pose_status, dict)
+            and queued_pose_status.get("current_pose_id") == "neutral_resting"
+            and list(queued_pose_status.get("queued_pose_ids") or [])
+            == cycle_pose_ids
+        ):
+            queue_matches = True
+        if not queue_matches:
             raise SmokeTestError(
-                "The explicit pose queue did not retain all six boundary "
+                f"The explicit pose queue did not retain the {showcase_name} "
                 f"switches: {json.dumps(queued_pose_status)[:1200]}"
             )
 
-        if showcase_six_poses:
-            print("[showcase] waiting for the complete six-pose cycle", flush=True)
-            expected_showcase_trace = [
-                "neutral_resting",
-                *cycle_pose_ids,
-            ]
+        if showcase_six_poses or showcase_mvp_four_exhaustive:
+            print(
+                f"[showcase] waiting for the complete {showcase_name} cycle",
+                flush=True,
+            )
+            expected_showcase_trace = ["neutral_resting", *cycle_pose_ids]
             showcase_deadline = time.monotonic() + showcase_timeout
             cycle_completed = False
             while time.monotonic() < showcase_deadline:
@@ -629,7 +678,7 @@ async def run_webrtc_smoke(
                 ) as response:
                     status = await require_json(
                         response,
-                        action="poll six-pose showcase",
+                        action=f"poll {showcase_name} showcase",
                     )
                 current_pose_status = (
                     status.get("pose_protocol")
@@ -650,6 +699,12 @@ async def run_webrtc_smoke(
                         ),
                     }
                     showcase_pose_trace.append(activation)
+                    recording_timeline.append(
+                        {
+                            "event": "non_speaking_pose",
+                            **activation,
+                        }
+                    )
                     print(
                         f"[showcase] {current_pose_id} at "
                         f"{activation['at_seconds']:.3f}s",
@@ -667,106 +722,44 @@ async def run_webrtc_smoke(
             ]
             if not cycle_completed:
                 raise SmokeTestError(
-                    "The six-pose showcase did not complete in "
+                    f"The {showcase_name} showcase did not complete in "
                     f"{showcase_timeout}s: {json.dumps(current_pose_status)[:1200]}"
                 )
             if observed_showcase_trace != expected_showcase_trace:
                 raise SmokeTestError(
-                    "The recorded six-pose activation order was incomplete: "
+                    f"The recorded {showcase_name} activation order was incomplete: "
                     f"expected {expected_showcase_trace}, "
                     f"observed {observed_showcase_trace}"
                 )
             print("[showcase] complete", flush=True)
 
-        # Exercise the deterministic event API. The first event deliberately
-        # replaces the manual cycle queue with the conversation state.
-        await asyncio.sleep(event_delay)
-        await post_event(
-            http,
-            base_url,
-            session_id,
-            event="user_speech_started",
-            turn_id=turn_id,
-            seq=1,
-        )
-        await asyncio.sleep(event_delay)
-        await post_event(
-            http,
-            base_url,
-            session_id,
-            event="user_speech_ended",
-            turn_id=turn_id,
-            seq=2,
-        )
-        await post_event(
-            http,
-            base_url,
-            session_id,
-            event="assistant_thinking",
-            turn_id=turn_id,
-            seq=3,
-        )
-        await asyncio.sleep(event_delay)
-        await post_event(
-            http,
-            base_url,
-            session_id,
-            event="assistant_reaction_ready",
-            turn_id=turn_id,
-            seq=4,
-            reaction_intent=reaction_intent,
-        )
-
-        reaction_pose = REACTION_POSE[reaction_intent]
-        pose_sequence = [
-            *(reaction_pose for _ in range(1) if reaction_pose),
-            "speaking_direct",
-            "neutral_resting",
-        ]
-        content_type = (
-            mimetypes.guess_type(audio_file.name)[0] or "application/octet-stream"
-        )
-        pre_stream_counters = dict(counters)
-        with audio_file.open("rb") as audio:
-            form = aiohttp.FormData()
-            form.add_field(
-                "audio_file",
-                audio,
-                filename=audio_file.name,
-                content_type=content_type,
-            )
-            form.add_field("reaction_intent", reaction_intent)
-            form.add_field("pose_id", "speaking_direct")
-            form.add_field(
-                "pose_sequence",
-                json.dumps(pose_sequence, separators=(",", ":")),
-            )
-            form.add_field("turn_id", turn_id)
-            form.add_field("seq", "5")
-            form.add_field("effective", "next_boundary")
-            form.add_field("mouth_mode", "lip_sync")
-            form.add_field("audio_start", "immediate")
-            async with http.post(
-                f"{base_url}/webrtc/sessions/{session_id}/stream",
-                data=form,
-            ) as response:
-                accepted = await require_json(response, action="stream sample TTS")
-        print(f"[stream] accepted: {json.dumps(accepted, sort_keys=True)}", flush=True)
-
-        def observe_server_status(status: dict[str, Any]) -> None:
+        def observe_server_status(
+            status: dict[str, Any],
+            case_trace: list[dict[str, Any]],
+            case_max_frames: dict[str, int],
+        ) -> None:
             nonlocal max_server_video_frames
             nonlocal max_server_audio_frames
-            nonlocal rendered_pose_trace
             track_stats = status.get("track_stats") or {}
             video_stats = track_stats.get("video") or {}
             audio_stats = track_stats.get("audio") or {}
+            video_frames = int(video_stats.get("frames_played") or 0)
+            audio_frames = int(audio_stats.get("frames_sent") or 0)
             max_server_video_frames = max(
                 max_server_video_frames,
-                int(video_stats.get("frames_played") or 0),
+                video_frames,
             )
             max_server_audio_frames = max(
                 max_server_audio_frames,
-                int(audio_stats.get("frames_sent") or 0),
+                audio_frames,
+            )
+            case_max_frames["video"] = max(
+                case_max_frames["video"],
+                video_frames,
+            )
+            case_max_frames["audio"] = max(
+                case_max_frames["audio"],
+                audio_frames,
             )
             protocol_status = (
                 status.get("pose_protocol")
@@ -774,110 +767,291 @@ async def run_webrtc_smoke(
                 or {}
             )
             trace = protocol_status.get("rendered_pose_trace") or []
-            if len(trace) >= len(rendered_pose_trace):
-                rendered_pose_trace = [dict(entry) for entry in trace]
-
-        live_ready = False
-        deadline = time.monotonic() + completion_timeout
-        while time.monotonic() < deadline:
-            await asyncio.sleep(0.5)
-            async with http.get(
-                f"{base_url}/webrtc/sessions/{session_id}/status"
-            ) as response:
-                final_status = await require_json(response, action="poll status")
-            observe_server_status(final_status)
-            if not live_ready and is_live_ready(final_status):
-                live_ready = True
-                print("[status] live playout released", flush=True)
-            if live_ready and is_stream_complete(final_status):
-                break
-        if not live_ready:
-            raise SmokeTestError(
-                f"Stream never reached live-ready state: {json.dumps(final_status)[:1200]}"
-            )
-        if not is_stream_complete(final_status):
-            raise SmokeTestError(
-                f"Stream did not complete in {completion_timeout}s: "
-                f"{json.dumps(final_status)[:1200]}"
-            )
+            if len(trace) >= len(case_trace):
+                case_trace[:] = [dict(entry) for entry in trace]
 
         def pose_status(status: dict[str, Any]) -> dict[str, Any]:
             nested = status.get("pose_protocol") or status.get("pose_status")
             return nested if isinstance(nested, dict) else status
 
-        # Audio completion queues neutral at a clip boundary. Keep consuming
-        # WebRTC long enough to prove that recovery actually activates.
-        recovery_deadline = time.monotonic() + pose_recovery_timeout
-        while time.monotonic() < recovery_deadline:
-            current_pose_status = pose_status(final_status)
-            if (
-                current_pose_status.get("current_pose_id") == "neutral_resting"
-                and not current_pose_status.get("queued_pose_ids")
-            ):
-                break
-            await asyncio.sleep(0.5)
-            async with http.get(
-                f"{base_url}/webrtc/sessions/{session_id}/status"
-            ) as response:
-                final_status = await require_json(
-                    response,
-                    action="poll neutral pose recovery",
-                )
-            observe_server_status(final_status)
-        current_pose_status = pose_status(final_status)
-        if (
-            current_pose_status.get("current_pose_id") != "neutral_resting"
-            or current_pose_status.get("queued_pose_ids")
-        ):
-            raise SmokeTestError(
-                "Stream completed but the session did not recover to "
-                f"neutral_resting in {pose_recovery_timeout}s: "
-                f"{json.dumps(current_pose_status)[:1200]}"
+        async def run_speaking_case(
+            case_reaction_intent: str,
+            *,
+            case_index: int,
+        ) -> tuple[dict[str, Any], dict[str, Any]]:
+            nonlocal final_status
+            turn_id = f"{turn_id_prefix}_{case_index + 1}"
+            first_seq = case_index * 5 + 1
+
+            # Exercise the deterministic event API. The first event replaces
+            # any manual idle queue with the conversation state.
+            await asyncio.sleep(event_delay)
+            await post_event(
+                http,
+                base_url,
+                session_id,
+                event="user_speech_started",
+                turn_id=turn_id,
+                seq=first_seq,
             )
-        post_stream_video_frames = (
-            counters.get("video_frames", 0)
-            - pre_stream_counters.get("video_frames", 0)
-        )
-        post_stream_audio_frames = (
-            counters.get("audio_frames", 0)
-            - pre_stream_counters.get("audio_frames", 0)
-        )
-        if post_stream_video_frames <= 0:
-            raise SmokeTestError(
-                "WebRTC received no video frames after the TTS stream started."
+            await asyncio.sleep(event_delay)
+            await post_event(
+                http,
+                base_url,
+                session_id,
+                event="user_speech_ended",
+                turn_id=turn_id,
+                seq=first_seq + 1,
             )
-        if post_stream_audio_frames <= 0:
-            raise SmokeTestError(
-                "WebRTC received no audio frames after the TTS stream started."
+            await post_event(
+                http,
+                base_url,
+                session_id,
+                event="assistant_thinking",
+                turn_id=turn_id,
+                seq=first_seq + 2,
             )
-        if max_server_video_frames <= 0:
-            raise SmokeTestError(
-                "The server never reported playing a generated video frame."
-            )
-        if max_server_audio_frames <= 0:
-            raise SmokeTestError(
-                "The synchronized sample-audio track never emitted a frame."
+            await asyncio.sleep(event_delay)
+            await post_event(
+                http,
+                base_url,
+                session_id,
+                event="assistant_reaction_ready",
+                turn_id=turn_id,
+                seq=first_seq + 3,
+                reaction_intent=case_reaction_intent,
             )
 
-        observed_rendered_poses = [
-            entry.get("pose_id")
-            for entry in rendered_pose_trace
-            if entry.get("pose_id")
-        ]
-        expected_rendered_poses = [
-            *(reaction_pose for _ in range(1) if reaction_pose),
-            "speaking_direct",
-        ]
-        missing_rendered_poses = [
-            pose_id
-            for pose_id in expected_rendered_poses
-            if pose_id not in observed_rendered_poses
-        ]
-        if missing_rendered_poses:
-            raise SmokeTestError(
-                "The generated pose trace is incomplete; missing "
-                f"{missing_rendered_poses}: {rendered_pose_trace}"
+            reaction_pose = REACTION_POSE[case_reaction_intent]
+            pose_sequence = [
+                *(reaction_pose for _ in range(1) if reaction_pose),
+                "speaking_direct",
+                "neutral_resting",
+            ]
+            content_type = (
+                mimetypes.guess_type(audio_file.name)[0]
+                or "application/octet-stream"
             )
+            pre_stream_counters = dict(counters)
+            with audio_file.open("rb") as audio:
+                form = aiohttp.FormData()
+                form.add_field(
+                    "audio_file",
+                    audio,
+                    filename=audio_file.name,
+                    content_type=content_type,
+                )
+                form.add_field("reaction_intent", case_reaction_intent)
+                form.add_field("pose_id", "speaking_direct")
+                form.add_field(
+                    "pose_sequence",
+                    json.dumps(pose_sequence, separators=(",", ":")),
+                )
+                form.add_field("turn_id", turn_id)
+                form.add_field("seq", str(first_seq + 4))
+                form.add_field("effective", "next_boundary")
+                form.add_field("mouth_mode", "lip_sync")
+                form.add_field("audio_start", "immediate")
+                async with http.post(
+                    f"{base_url}/webrtc/sessions/{session_id}/stream",
+                    data=form,
+                ) as response:
+                    accepted = await require_json(
+                        response,
+                        action=f"stream {case_reaction_intent} sample TTS",
+                    )
+            print(
+                f"[stream {case_reaction_intent}] accepted: "
+                f"{json.dumps(accepted, sort_keys=True)}",
+                flush=True,
+            )
+            submitted_at = round(
+                time.monotonic() - showcase_clock_started_at,
+                3,
+            )
+            recording_timeline.append(
+                {
+                    "event": "speaking_stream_submitted",
+                    "reaction_intent": case_reaction_intent,
+                    "case_index": case_index,
+                    "at_seconds": submitted_at,
+                }
+            )
+
+            case_trace: list[dict[str, Any]] = []
+            case_max_frames = {"video": 0, "audio": 0}
+            live_ready = False
+            playout_released_at: float | None = None
+            deadline = time.monotonic() + completion_timeout
+            while time.monotonic() < deadline:
+                await asyncio.sleep(0.5)
+                async with http.get(
+                    f"{base_url}/webrtc/sessions/{session_id}/status"
+                ) as response:
+                    final_status = await require_json(
+                        response,
+                        action=f"poll {case_reaction_intent} TTS status",
+                    )
+                observe_server_status(
+                    final_status,
+                    case_trace,
+                    case_max_frames,
+                )
+                if not live_ready and is_live_ready(final_status):
+                    live_ready = True
+                    playout_released_at = round(
+                        time.monotonic() - showcase_clock_started_at,
+                        3,
+                    )
+                    print(
+                        f"[status {case_reaction_intent}] live playout released",
+                        flush=True,
+                    )
+                    recording_timeline.append(
+                        {
+                            "event": "speaking_playout_released",
+                            "reaction_intent": case_reaction_intent,
+                            "case_index": case_index,
+                            "at_seconds": playout_released_at,
+                        }
+                    )
+                if live_ready and is_stream_complete(final_status):
+                    break
+            if not live_ready:
+                raise SmokeTestError(
+                    f"{case_reaction_intent} stream never reached live-ready "
+                    f"state: {json.dumps(final_status)[:1200]}"
+                )
+            if not is_stream_complete(final_status):
+                raise SmokeTestError(
+                    f"{case_reaction_intent} stream did not complete in "
+                    f"{completion_timeout}s: {json.dumps(final_status)[:1200]}"
+                )
+
+            # Audio completion queues neutral at a clip boundary. Keep
+            # consuming WebRTC until recovery actually activates.
+            recovery_deadline = time.monotonic() + pose_recovery_timeout
+            while time.monotonic() < recovery_deadline:
+                current_pose_status = pose_status(final_status)
+                if (
+                    current_pose_status.get("current_pose_id")
+                    == "neutral_resting"
+                    and not current_pose_status.get("queued_pose_ids")
+                ):
+                    break
+                await asyncio.sleep(0.5)
+                async with http.get(
+                    f"{base_url}/webrtc/sessions/{session_id}/status"
+                ) as response:
+                    final_status = await require_json(
+                        response,
+                        action="poll neutral pose recovery",
+                    )
+                observe_server_status(
+                    final_status,
+                    case_trace,
+                    case_max_frames,
+                )
+            current_pose_status = pose_status(final_status)
+            if (
+                current_pose_status.get("current_pose_id")
+                != "neutral_resting"
+                or current_pose_status.get("queued_pose_ids")
+            ):
+                raise SmokeTestError(
+                    f"{case_reaction_intent} stream completed but the session "
+                    "did not recover to neutral_resting in "
+                    f"{pose_recovery_timeout}s: "
+                    f"{json.dumps(current_pose_status)[:1200]}"
+                )
+
+            post_stream_video_frames = (
+                counters.get("video_frames", 0)
+                - pre_stream_counters.get("video_frames", 0)
+            )
+            post_stream_audio_frames = (
+                counters.get("audio_frames", 0)
+                - pre_stream_counters.get("audio_frames", 0)
+            )
+            if post_stream_video_frames <= 0:
+                raise SmokeTestError(
+                    f"{case_reaction_intent} TTS received no WebRTC video frames."
+                )
+            if post_stream_audio_frames <= 0:
+                raise SmokeTestError(
+                    f"{case_reaction_intent} TTS received no WebRTC audio frames."
+                )
+            if case_max_frames["video"] <= 0:
+                raise SmokeTestError(
+                    f"{case_reaction_intent} TTS played no generated video frames."
+                )
+            if case_max_frames["audio"] <= 0:
+                raise SmokeTestError(
+                    f"{case_reaction_intent} TTS emitted no synchronized audio frames."
+                )
+
+            observed_rendered_poses = [
+                entry.get("pose_id")
+                for entry in case_trace
+                if entry.get("pose_id")
+            ]
+            expected_rendered_poses = [
+                *(reaction_pose for _ in range(1) if reaction_pose),
+                "speaking_direct",
+                "neutral_resting",
+            ]
+            missing_rendered_poses = [
+                pose_id
+                for pose_id in expected_rendered_poses
+                if pose_id not in observed_rendered_poses
+            ]
+            if missing_rendered_poses:
+                raise SmokeTestError(
+                    f"The {case_reaction_intent} generated pose trace is "
+                    f"incomplete; missing {missing_rendered_poses}: {case_trace}"
+                )
+
+            case_result = {
+                "case_index": case_index,
+                "turn_id": turn_id,
+                "reaction_intent": case_reaction_intent,
+                "pose_sequence": pose_sequence,
+                "submitted_at_seconds": submitted_at,
+                "playout_released_at_seconds": playout_released_at,
+                "rendered_pose_trace": case_trace,
+                "video_frames_received": post_stream_video_frames,
+                "audio_frames_received": post_stream_audio_frames,
+                "server_generated_video_frames_played": case_max_frames["video"],
+                "server_sample_audio_frames_sent": case_max_frames["audio"],
+            }
+            return case_result, current_pose_status
+
+        speaking_reaction_intents = [reaction_intent]
+        if showcase_mvp_four_exhaustive:
+            # Empathy and warmth together cover the merged listener/empathy
+            # pose and the smile pose while the MuseTalk mouth is live.
+            for required_intent in ("empathy", "warmth"):
+                if required_intent not in speaking_reaction_intents:
+                    speaking_reaction_intents.append(required_intent)
+
+        current_pose_status: dict[str, Any] = {}
+        for case_index, case_reaction_intent in enumerate(
+            speaking_reaction_intents
+        ):
+            case_result, current_pose_status = await run_speaking_case(
+                case_reaction_intent,
+                case_index=case_index,
+            )
+            speaking_cases.append(case_result)
+
+        rendered_pose_trace = list(speaking_cases[0]["rendered_pose_trace"])
+        pose_sequence = list(speaking_cases[0]["pose_sequence"])
+        post_stream_video_frames = sum(
+            int(case["video_frames_received"]) for case in speaking_cases
+        )
+        post_stream_audio_frames = sum(
+            int(case["audio_frames_received"]) for case in speaking_cases
+        )
 
         consumer_errors = []
         for task in consumers:
@@ -903,10 +1077,23 @@ async def run_webrtc_smoke(
             "server_generated_video_frames_played": max_server_video_frames,
             "server_sample_audio_frames_sent": max_server_audio_frames,
             "rendered_pose_trace": rendered_pose_trace,
+            "speaking_cases": speaking_cases,
+            "speaking_pose_ids": sorted(
+                {
+                    str(entry.get("pose_id"))
+                    for case in speaking_cases
+                    for entry in case["rendered_pose_trace"]
+                    if entry.get("pose_id")
+                }
+            ),
+            "recording_timeline": recording_timeline,
             "elapsed_seconds": round(time.monotonic() - started_at, 3),
             "final_pose_id": current_pose_status.get("current_pose_id"),
             "final_stream_active": bool(final_status.get("active_stream")),
             "showcase_pose_trace": showcase_pose_trace,
+            "non_speaking_ordered_transition_count": (
+                12 if showcase_mvp_four_exhaustive else None
+            ),
             "recording": str(record_output) if record_output is not None else None,
         }
         print(json.dumps(result, indent=2, sort_keys=True), flush=True)
@@ -974,13 +1161,15 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             pose_set=pose_set,
             audio_file=args.audio_file,
             reaction_intent=args.reaction_intent,
-            fps=args.fps,
+            musetalk_fps=args.musetalk_fps,
+            playback_fps=args.playback_fps,
             batch_size=args.batch_size,
             completion_timeout=args.completion_timeout,
             pose_recovery_timeout=args.pose_recovery_timeout,
             event_delay=args.event_delay,
             record_output=args.record_output,
             showcase_six_poses=args.showcase_six_poses,
+            showcase_mvp_four_exhaustive=args.showcase_mvp_four_exhaustive,
             showcase_timeout=args.showcase_timeout,
         )
         for avatar in avatars:
@@ -1031,7 +1220,25 @@ def parse_args() -> argparse.Namespace:
         choices=tuple(REACTION_POSE),
         default="warmth",
     )
-    parser.add_argument("--fps", type=int, default=20)
+    parser.add_argument(
+        "--fps",
+        type=int,
+        default=20,
+        help=(
+            "Legacy shorthand used for both MuseTalk generation and playback "
+            "unless the corresponding split FPS option is provided."
+        ),
+    )
+    parser.add_argument(
+        "--musetalk-fps",
+        type=int,
+        help="MuseTalk lip-sync generation FPS (for example, 15).",
+    )
+    parser.add_argument(
+        "--playback-fps",
+        type=int,
+        help="WebRTC output playback FPS (for example, 30).",
+    )
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--warm-timeout", type=int, default=900)
     parser.add_argument("--completion-timeout", type=int, default=300)
@@ -1051,16 +1258,34 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--showcase-mvp-four-exhaustive",
+        action="store_true",
+        help=(
+            "Record all 12 ordered non-speaking transitions among neutral, "
+            "active-listening/empathetic, speaking-direct, and light-smile."
+        ),
+    )
+    parser.add_argument(
         "--showcase-timeout",
         type=int,
         default=90,
         help="Maximum seconds to wait for the complete six-pose idle cycle.",
     )
     args = parser.parse_args()
+    if args.musetalk_fps is None:
+        args.musetalk_fps = args.fps
+    if args.playback_fps is None:
+        args.playback_fps = args.fps
     if args.force_recreate:
         args.prepare_missing = True
+    if args.showcase_six_poses and args.showcase_mvp_four_exhaustive:
+        parser.error(
+            "--showcase-six-poses and --showcase-mvp-four-exhaustive "
+            "cannot be used together."
+        )
     if (
-        args.fps < 1
+        args.musetalk_fps < 1
+        or args.playback_fps < 1
         or args.batch_size < 1
         or args.warm_timeout < 1
         or args.completion_timeout < 1

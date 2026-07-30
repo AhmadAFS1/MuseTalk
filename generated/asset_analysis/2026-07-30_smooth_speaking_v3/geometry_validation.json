@@ -1,0 +1,622 @@
+{
+  "current_directed_transitions": {
+    "listener->neutral": {
+      "face_rmse": {
+        "brows": 2.84925,
+        "eyes": 1.597823,
+        "jaw": 1.907532,
+        "mouth": 2.046365,
+        "nose": 1.34954,
+        "whole_face": 2.006679
+      },
+      "pixels": {
+        "exact": false,
+        "mae": 4.614808,
+        "psnr_db": 28.835349,
+        "rmse": 9.220887,
+        "shape_match": true
+      }
+    },
+    "listener->smile": {
+      "face_rmse": {
+        "brows": 2.868587,
+        "eyes": 1.619695,
+        "jaw": 1.358712,
+        "mouth": 1.285103,
+        "nose": 0.778888,
+        "whole_face": 1.643357
+      },
+      "pixels": {
+        "exact": false,
+        "mae": 4.755497,
+        "psnr_db": 28.48244,
+        "rmse": 9.603248,
+        "shape_match": true
+      }
+    },
+    "listener->speaking_new": {
+      "face_rmse": {
+        "brows": 1.780827,
+        "eyes": 1.806174,
+        "jaw": 1.557823,
+        "mouth": 1.729117,
+        "nose": 0.96502,
+        "whole_face": 1.62831
+      },
+      "pixels": {
+        "exact": false,
+        "mae": 4.73834,
+        "psnr_db": 28.984733,
+        "rmse": 9.063659,
+        "shape_match": true
+      }
+    },
+    "neutral->listener": {
+      "face_rmse": {
+        "brows": 3.12999,
+        "eyes": 1.440163,
+        "jaw": 2.137268,
+        "mouth": 2.415251,
+        "nose": 1.868228,
+        "whole_face": 2.264148
+      },
+      "pixels": {
+        "exact": false,
+        "mae": 4.452554,
+        "psnr_db": 30.084951,
+        "rmse": 7.985325,
+        "shape_match": true
+      }
+    },
+    "neutral->smile": {
+      "face_rmse": {
+        "brows": 2.322498,
+        "eyes": 1.428542,
+        "jaw": 1.684667,
+        "mouth": 2.014215,
+        "nose": 1.541278,
+        "whole_face": 1.835907
+      },
+      "pixels": {
+        "exact": false,
+        "mae": 4.029861,
+        "psnr_db": 31.385359,
+        "rmse": 6.874993,
+        "shape_match": true
+      }
+    },
+    "neutral->speaking_new": {
+      "face_rmse": {
+        "brows": 3.001612,
+        "eyes": 1.770408,
+        "jaw": 1.686737,
+        "mouth": 1.864024,
+        "nose": 1.036101,
+        "whole_face": 1.937359
+      },
+      "pixels": {
+        "exact": false,
+        "mae": 4.553312,
+        "psnr_db": 29.554001,
+        "rmse": 8.488679,
+        "shape_match": true
+      }
+    },
+    "smile->listener": {
+      "face_rmse": {
+        "brows": 2.328427,
+        "eyes": 1.34723,
+        "jaw": 1.806751,
+        "mouth": 1.739744,
+        "nose": 1.217803,
+        "whole_face": 1.737864
+      },
+      "pixels": {
+        "exact": false,
+        "mae": 3.53593,
+        "psnr_db": 32.158335,
+        "rmse": 6.289606,
+        "shape_match": true
+      }
+    },
+    "smile->neutral": {
+      "face_rmse": {
+        "brows": 1.505179,
+        "eyes": 1.397074,
+        "jaw": 1.49416,
+        "mouth": 1.644763,
+        "nose": 1.13304,
+        "whole_face": 1.483681
+      },
+      "pixels": {
+        "exact": false,
+        "mae": 3.489257,
+        "psnr_db": 32.494302,
+        "rmse": 6.050971,
+        "shape_match": true
+      }
+    },
+    "smile->speaking_new": {
+      "face_rmse": {
+        "brows": 2.212917,
+        "eyes": 1.440002,
+        "jaw": 1.463112,
+        "mouth": 1.47677,
+        "nose": 1.448114,
+        "whole_face": 1.593809
+      },
+      "pixels": {
+        "exact": false,
+        "mae": 3.867688,
+        "psnr_db": 30.917885,
+        "rmse": 7.255142,
+        "shape_match": true
+      }
+    },
+    "speaking_new->listener": {
+      "face_rmse": {
+        "brows": 2.845435,
+        "eyes": 0.908397,
+        "jaw": 2.664307,
+        "mouth": 2.026015,
+        "nose": 1.930917,
+        "whole_face": 2.19355
+      },
+      "pixels": {
+        "exact": false,
+        "mae": 4.622857,
+        "psnr_db": 30.075632,
+        "rmse": 7.993897,
+        "shape_match": true
+      }
+    },
+    "speaking_new->neutral": {
+      "face_rmse": {
+        "brows": 1.590073,
+        "eyes": 1.70703,
+        "jaw": 1.836013,
+        "mouth": 2.116908,
+        "nose": 1.612791,
+        "whole_face": 1.841485
+      },
+      "pixels": {
+        "exact": false,
+        "mae": 4.633538,
+        "psnr_db": 29.193752,
+        "rmse": 8.848152,
+        "shape_match": true
+      }
+    },
+    "speaking_new->smile": {
+      "face_rmse": {
+        "brows": 2.785279,
+        "eyes": 1.810411,
+        "jaw": 2.232461,
+        "mouth": 1.524228,
+        "nose": 1.707439,
+        "whole_face": 2.008579
+      },
+      "pixels": {
+        "exact": false,
+        "mae": 5.01256,
+        "psnr_db": 28.65778,
+        "rmse": 9.411333,
+        "shape_match": true
+      }
+    }
+  },
+  "current_pose_body_offsets_vs_neutral": {
+    "listener": {
+      "nose_center_delta_px": [
+        4.166656,
+        -2.083313
+      ],
+      "shoulder_center_delta_px": [
+        1.041666,
+        -2.083344
+      ],
+      "shoulder_width_delta_px": -2.056867
+    },
+    "neutral": {
+      "nose_center_delta_px": [
+        0.0,
+        0.0
+      ],
+      "shoulder_center_delta_px": [
+        0.0,
+        0.0
+      ],
+      "shoulder_width_delta_px": 0.0
+    },
+    "smile": {
+      "nose_center_delta_px": [
+        0.0,
+        -2.083313
+      ],
+      "shoulder_center_delta_px": [
+        1e-05,
+        -1.041687
+      ],
+      "shoulder_width_delta_px": -4.156672
+    },
+    "speaking_new": {
+      "nose_center_delta_px": [
+        0.0,
+        -6.25
+      ],
+      "shoulder_center_delta_px": [
+        1.041666,
+        -4.166656
+      ],
+      "shoulder_width_delta_px": -2.056867
+    }
+  },
+  "current_pose_handle_variation": {
+    "listener": {
+      "closing_max_whole_face_rmse_px": 1.354967,
+      "closing_median_whole_face_rmse_px": 1.228523,
+      "opening_max_whole_face_rmse_px": 1.406175,
+      "opening_median_whole_face_rmse_px": 1.355617
+    },
+    "neutral": {
+      "closing_max_whole_face_rmse_px": 1.394581,
+      "closing_median_whole_face_rmse_px": 1.215851,
+      "opening_max_whole_face_rmse_px": 1.365326,
+      "opening_median_whole_face_rmse_px": 1.208243
+    },
+    "smile": {
+      "closing_max_whole_face_rmse_px": 1.383959,
+      "closing_median_whole_face_rmse_px": 1.14021,
+      "opening_max_whole_face_rmse_px": 1.380441,
+      "opening_median_whole_face_rmse_px": 1.290483
+    },
+    "speaking_new": {
+      "closing_max_whole_face_rmse_px": 1.355558,
+      "closing_median_whole_face_rmse_px": 1.173239,
+      "opening_max_whole_face_rmse_px": 1.451151,
+      "opening_median_whole_face_rmse_px": 1.283901
+    }
+  },
+  "decoded_assets": {
+    "listener": {
+      "file_sha256": "21c77b017e19616991855b4b22e36af7af5aa74a56b5d90ca72ae6717242cb19",
+      "first_equals_last": false,
+      "first_frame_sha256": "51115f4727d7ef9d6583ac5a3baae5fb7107f2e6b67d84443874997717fd75b9",
+      "frame_count": 240,
+      "last_frame_sha256": "afd63fe9879cc436f14d3fafc9c9496e0dbad538ad126c3272964048fe35cce4"
+    },
+    "neutral": {
+      "file_sha256": "f0853c17dda96ccfe613aa4b40fb254a6b134036bf49bfded4acbb7860aa115f",
+      "first_equals_last": false,
+      "first_frame_sha256": "1386f767677ede835b8a4aeb20e1f1a76beb9e61e772e138860ff79baff39038",
+      "frame_count": 300,
+      "last_frame_sha256": "a585673b2aa006cbd315c781d523327fce37cbb4f3ffe8f2ce53fdca48412d37"
+    },
+    "smile": {
+      "file_sha256": "59597dd4bfe36824dc57e9124999d0a27a11062744ba65ef312bc1a63c5e5c81",
+      "first_equals_last": false,
+      "first_frame_sha256": "04ce167c7bdb8a1ff58c84f4aa88119e729f341b74a2cdabd82a6eac7e993041",
+      "frame_count": 120,
+      "last_frame_sha256": "43b98f537abdc9054c5c432271e8231866d9e87b2c835ade06cc0230ee08e5a7"
+    },
+    "speaking_new": {
+      "file_sha256": "ee4f754078ae49c7adb77043605bd51c84f8fba8681e2e0149988478991b6b9e",
+      "first_equals_last": false,
+      "first_frame_sha256": "a632e6b181fafc5b4d05637733a1a622855e421695cca7e1d9a4e016f1392fdd",
+      "frame_count": 300,
+      "last_frame_sha256": "56c5f7109f5e6036f5c894af95984fee37379a6e6a0ca51214e421391857eaf9"
+    },
+    "speaking_previous": {
+      "file_sha256": "d2a57eef4c39b4ebf25657132b22d091a0428948ea7bb19850fe7b725fde1a43",
+      "first_equals_last": false,
+      "first_frame_sha256": "91453458e886896bf170f94b5799f6fcfbdec418007084feac9206f5e92126a2",
+      "frame_count": 300,
+      "last_frame_sha256": "27597c0eea574f796e682cb7511d2989393283a5727e82e1cba0caa8dc4dbf48"
+    }
+  },
+  "exact_current_directed_transition_count": 0,
+  "exact_current_first_frame_pair_count": 0,
+  "first_frame_confidence": {
+    "listener": 0.970305,
+    "neutral": 0.970951,
+    "smile": 0.970407,
+    "speaking_new": 0.970225,
+    "speaking_previous": 0.969639
+  },
+  "first_frame_face_metrics": {
+    "listener": {
+      "face_height_over_outer_eye": 1.344008,
+      "face_width_over_outer_eye": 1.505328,
+      "left_eye_aspect_ratio": 0.333425,
+      "mouth_width_over_outer_eye": 0.602212,
+      "nose_height_over_outer_eye": 0.537711,
+      "nose_width_over_outer_eye": 0.344066,
+      "outer_eye_distance_px": 193.761201,
+      "right_eye_aspect_ratio": 0.362069
+    },
+    "neutral": {
+      "face_height_over_outer_eye": 1.336817,
+      "face_width_over_outer_eye": 1.510669,
+      "left_eye_aspect_ratio": 0.312255,
+      "mouth_width_over_outer_eye": 0.63038,
+      "nose_height_over_outer_eye": 0.532594,
+      "nose_width_over_outer_eye": 0.347744,
+      "outer_eye_distance_px": 191.711971,
+      "right_eye_aspect_ratio": 0.33941
+    },
+    "smile": {
+      "face_height_over_outer_eye": 1.322275,
+      "face_width_over_outer_eye": 1.505182,
+      "left_eye_aspect_ratio": 0.345482,
+      "mouth_width_over_outer_eye": 0.602395,
+      "nose_height_over_outer_eye": 0.51601,
+      "nose_width_over_outer_eye": 0.344006,
+      "outer_eye_distance_px": 193.794798,
+      "right_eye_aspect_ratio": 0.347249
+    },
+    "speaking_new": {
+      "face_height_over_outer_eye": 1.336877,
+      "face_width_over_outer_eye": 1.510819,
+      "left_eye_aspect_ratio": 0.345482,
+      "mouth_width_over_outer_eye": 0.60866,
+      "nose_height_over_outer_eye": 0.521708,
+      "nose_width_over_outer_eye": 0.347975,
+      "outer_eye_distance_px": 191.677979,
+      "right_eye_aspect_ratio": 0.347417
+    },
+    "speaking_previous": {
+      "face_height_over_outer_eye": 1.358696,
+      "face_width_over_outer_eye": 1.521739,
+      "left_eye_aspect_ratio": 0.328346,
+      "mouth_width_over_outer_eye": 0.608793,
+      "nose_height_over_outer_eye": 0.53272,
+      "nose_width_over_outer_eye": 0.347996,
+      "outer_eye_distance_px": 191.666656,
+      "right_eye_aspect_ratio": 0.340058
+    }
+  },
+  "first_frame_vs_neutral_face_rmse_px": {
+    "listener": {
+      "brows": 3.402589,
+      "eyes": 1.501052,
+      "jaw": 2.100629,
+      "mouth": 2.223959,
+      "nose": 1.576925,
+      "whole_face": 2.233202
+    },
+    "smile": {
+      "brows": 2.318191,
+      "eyes": 1.48236,
+      "jaw": 1.683346,
+      "mouth": 1.940538,
+      "nose": 1.323735,
+      "whole_face": 1.796095
+    },
+    "speaking_new": {
+      "brows": 3.097479,
+      "eyes": 1.631636,
+      "jaw": 2.065913,
+      "mouth": 1.917841,
+      "nose": 1.150955,
+      "whole_face": 2.050578
+    },
+    "speaking_previous": {
+      "brows": 4.359545,
+      "eyes": 1.469722,
+      "jaw": 2.673175,
+      "mouth": 2.660178,
+      "nose": 2.327366,
+      "whole_face": 2.78583
+    }
+  },
+  "first_frame_vs_neutral_pixels": {
+    "listener": {
+      "exact": false,
+      "mae": 4.025235,
+      "psnr_db": 30.395449,
+      "rmse": 7.704913,
+      "shape_match": true
+    },
+    "smile": {
+      "exact": false,
+      "mae": 3.167518,
+      "psnr_db": 33.613801,
+      "rmse": 5.319247,
+      "shape_match": true
+    },
+    "speaking_new": {
+      "exact": false,
+      "mae": 4.115419,
+      "psnr_db": 30.073355,
+      "rmse": 7.995994,
+      "shape_match": true
+    },
+    "speaking_previous": {
+      "exact": false,
+      "mae": 3.986644,
+      "psnr_db": 30.181603,
+      "rmse": 7.896962,
+      "shape_match": true
+    }
+  },
+  "method": {
+    "alignment": "least-squares similarity transform removing translation, rotation, and scale",
+    "boundary_frames_sampled": 15,
+    "model": "MuseTalk DWPose 68-point face landmarks",
+    "regions": {
+      "brows": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26
+      ],
+      "eyes": [
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "jaw": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "mouth": [
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67
+      ],
+      "nose": [
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "whole_face": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67
+      ]
+    }
+  },
+  "schema_version": 1,
+  "speaking_new_endpoint_face_rmse_px": {
+    "brows": 2.801669,
+    "eyes": 1.908471,
+    "jaw": 1.927943,
+    "mouth": 1.36432,
+    "nose": 1.121483,
+    "whole_face": 1.854787
+  },
+  "speaking_new_vs_previous_face_rmse_px": {
+    "brows": 2.044902,
+    "eyes": 1.806071,
+    "jaw": 1.472542,
+    "mouth": 2.17986,
+    "nose": 1.955747,
+    "whole_face": 1.90696
+  },
+  "speaking_previous_endpoint_face_rmse_px": {
+    "brows": 1.66774,
+    "eyes": 1.479078,
+    "jaw": 1.636741,
+    "mouth": 1.123436,
+    "nose": 1.179134,
+    "whole_face": 1.421281
+  }
+}

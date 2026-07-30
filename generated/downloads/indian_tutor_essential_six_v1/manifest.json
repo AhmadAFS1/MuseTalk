@@ -1,18 +1,18 @@
 {
-  "schema_version": 1,
-  "asset_status": "motion_masters_only",
-  "activation_blocker": "Generated boundaries are visually coherent but are not mathematically identical or invisible-switch safe. Revalidate shared boundaries after MuseTalk processing before attaching this set to a production character.",
+  "schema_version": 2,
+  "asset_status": "mvp_four_motion_masters_with_runtime_aliases",
+  "activation_blocker": "The ARDY motion references are certified for all ordered transitions, but Segmind does not preserve mathematically identical boundaries. The July 30 speaking replacement passed the 30 fps playback / 15 fps MuseTalk WebRTC test with the two-frame idle crossfade, but exact decoded boundary equality remains false.",
   "runtime_pose_set_draft": "avatar_pose_set.draft.json",
-  "run_id": "20260727T012844Z",
-  "created_at": "2026-07-27T01:41:10.439491+00:00",
+  "run_id": "20260729_mvp_four_v2",
+  "created_at": "2026-07-29T18:59:56.490678+00:00",
   "provider": {
     "name": "Segmind",
     "model": "kling-2.6-pro-motion-control",
     "api_url": "https://api.segmind.com/v2/kling-2.6-pro-motion-control",
-    "request_count": 6,
-    "completed_count": 6,
+    "request_count": 5,
+    "completed_count": 5,
     "retry_count": 0,
-    "total_cost_usd": 5.5622
+    "total_cost_usd": 5.88
   },
   "source_avatar": {
     "path": "../source/indian_tutor_success_001_720x1280.jpg",
@@ -20,15 +20,21 @@
     "width": 720,
     "height": 1280
   },
+  "source_release": {
+    "host": "Arby",
+    "path": "/workspace/ardy/outputs/pose_delivery_mvp_four_v2",
+    "live_latest_verified_at": "2026-07-29T19:00:00Z",
+    "delivery_manifest_sha256": "e9a36be379cebc35d36b373d572f4f845d40e4b76e04767df35dd434d863c00c",
+    "delivery_validation_sha256": "b39763987b1f47e9f84f57548bd489e12280ad4dc17b7ff0e705c6dda1be76ac",
+    "passed": true,
+    "ordered_nonself_transition_count": 12,
+    "shared_boundary_frames": 15,
+    "shared_decoded_handle_sha256": "14e316e87ca6fdd067b832cc3f9c8355ab830c4076edfd232c86ad29de8d83d2"
+  },
   "prompt_template": "Transfer the reference video {pose_label} motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways.",
   "generation_settings": {
     "keep_original_sound": false,
     "character_orientation": "video"
-  },
-  "provenance_archive": {
-    "summary": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/archive/provenance/summary.json",
-    "requests": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/archive/provenance/requests.json",
-    "provider_responses_prefix": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/archive/provenance/provider_responses/"
   },
   "normalized_output": {
     "codec": "h264",
@@ -38,224 +44,147 @@
     "fps": 30,
     "audio": false
   },
-  "poses": {
+  "generated_poses": {
     "neutral_resting": {
-      "role": "idle",
-      "request_id": "86047d34b5ad76a7d4a580dd2e78effa",
+      "runtime_pose_ids": [
+        "neutral_resting"
+      ],
+      "request_id": "d324e1c2204b3bf16227a321032328a9",
       "status": "COMPLETED",
       "cost_usd": 1.4,
-      "prompt": "Transfer the reference video neutral resting motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways.",
-      "input": {
-        "path": "../pose_delivery_cleaneyes_extra_slow_blink40_v1/neutral_resting.mp4",
-        "sha256": "d92a1dd6da86aeac9a14eb5d84bad39860aee6c1804775c674c865ec4ebcdeb8",
-        "duration_seconds": 10.0,
-        "frames": 300
-      },
-      "output": {
-        "path": "neutral_resting.mp4",
-        "s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/neutral_resting.mp4",
-        "sha256": "78cc1c231525d6b1e0ac9d5f0a861dd891d8918870356a87e4e279f3c9fda631",
-        "duration_seconds": 10.0,
-        "frames": 300,
-        "first_last_ssim": 0.846734
-      },
-      "raw_archive": {
-        "s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/archive/raw/neutral_resting_segmind_raw.mp4",
-        "sha256": "fb29240da572abfccccd77fea51fd9d9fbec697e4c7e95224996fa51928fe199",
-        "width": 1072,
-        "height": 1920,
-        "duration_seconds": 10.0,
-        "frames": 300
-      }
+      "input_sha256": "a119d8d975b3327bf926f26e8762992a176222862192ad32bca7b7de7be54ef1",
+      "output_sha256": "f0853c17dda96ccfe613aa4b40fb254a6b134036bf49bfded4acbb7860aa115f",
+      "duration_seconds": 10,
+      "frames": 300,
+      "first_last_ssim": 0.855358
     },
-    "active_listening": {
-      "role": "listening",
-      "request_id": "2d4b5ac0e795dd7ac5db8eac88a71a98",
-      "status": "COMPLETED",
-      "cost_usd": 1.12,
-      "prompt": "Transfer the reference video active listening motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways.",
-      "input": {
-        "path": "../pose_delivery_cleaneyes_extra_slow_blink40_v1/active_listening.mp4",
-        "sha256": "cdc01a5c486e7b0b42d8ab6371688315d29a1f61d975f0850e2a2da50dd0ab48",
-        "duration_seconds": 8.0,
-        "frames": 240
-      },
-      "output": {
-        "path": "active_listening.mp4",
-        "s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/active_listening.mp4",
-        "sha256": "583ed367e4d0c147955833a51ed3ff4abe2618828640a3c0d989384a93594336",
-        "duration_seconds": 8.0,
-        "frames": 240,
-        "first_last_ssim": 0.847626
-      },
-      "raw_archive": {
-        "s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/archive/raw/active_listening_segmind_raw.mp4",
-        "sha256": "eb16e6e9330947d841ebb18cd09365f3d0060cf5a1137f747b5a795b3894020d",
-        "width": 1072,
-        "height": 1920,
-        "duration_seconds": 8.0,
-        "frames": 240
-      }
-    },
-    "speaking_direct": {
-      "role": "talking",
-      "request_id": "fe4546994158ffbf60cb43125d05ba94",
+    "speaking_direct_v2": {
+      "runtime_pose_ids": [
+        "speaking_direct"
+      ],
+      "request_id": "c42b69f1b13e8cca042ee9863104dd96",
       "status": "COMPLETED",
       "cost_usd": 1.4,
-      "prompt": "Transfer the reference video speaking direct motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways.",
-      "input": {
-        "path": "../pose_delivery_cleaneyes_extra_slow_blink40_v1/speaking_direct.mp4",
-        "sha256": "9eb9ee7f6f9f64b2855dbe11f824c26826e796a067eae6a585f7a6b457badd63",
-        "duration_seconds": 10.0,
-        "frames": 300
-      },
-      "output": {
-        "path": "speaking_direct.mp4",
-        "s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/speaking_direct.mp4",
-        "sha256": "5408d50e4bc23ef9743a0046378e3d84848ea0da59b2ef7a270ed7fec7865fc7",
-        "duration_seconds": 10.0,
-        "frames": 300,
-        "first_last_ssim": 0.858526
-      },
-      "raw_archive": {
-        "s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/archive/raw/speaking_direct_segmind_raw.mp4",
-        "sha256": "7331f85dc9abb57e42ae66b45359aa764f32943aeba9e4578921e81a07dd3e25",
-        "width": 1072,
-        "height": 1920,
-        "duration_seconds": 10.0,
-        "frames": 300
-      }
-    },
-    "nod_agree": {
-      "role": "reaction",
-      "request_id": "276a2a50c451f072e9ba0058e023eae8",
-      "status": "COMPLETED",
-      "cost_usd": 0.4102,
-      "prompt": "Transfer the reference video nod agree motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways.",
-      "input": {
-        "path": "../pose_delivery_cleaneyes_extra_slow_blink40_v1/nod_agree.mp4",
-        "sha256": "8091082c46c000e7396aa2c3654b08c09b0a6fbf1d2e50aba6d6b1320d41cbe5",
-        "duration_seconds": 2.8,
-        "frames": 84,
-        "submitted_archive_s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/archive/inputs/nod_agree_submitted_3s.mp4",
-        "submitted_sha256": "5b4a163328dba26d585ed938bd5f4eb825a1d7a890f8a1033abc4c3b355d5a9d",
-        "submitted_duration_seconds": 3.0,
-        "submitted_frames": 90,
-        "padding": "Six copies of the canonical final frame were appended to meet the provider's 3-second minimum; the protected 2.8-second source was not modified."
-      },
-      "output": {
-        "path": "nod_agree.mp4",
-        "s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/nod_agree.mp4",
-        "sha256": "e87a06220e75465931f717c5a573b4febce0aaeabb542aa5d43d9997cc6b4a68",
-        "duration_seconds": 2.933333,
-        "frames": 88,
-        "first_last_ssim": 0.907986
-      },
-      "raw_archive": {
-        "s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/archive/raw/nod_agree_segmind_raw.mp4",
-        "sha256": "8993928adc49fbac53ad8dc3339608fa00e60189897d63a482f1f38220350353",
-        "width": 1072,
-        "height": 1920,
-        "duration_seconds": 2.933333,
-        "frames": 88
-      }
-    },
-    "empathetic_head_tilt": {
-      "role": "reaction",
-      "request_id": "3434b803eeb1f3fab2591c06b309fc06",
-      "status": "COMPLETED",
-      "cost_usd": 0.672,
-      "prompt": "Transfer the reference video empathetic head tilt motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways.",
-      "input": {
-        "path": "../pose_delivery_cleaneyes_extra_slow_blink40_v1/empathetic_head_tilt.mp4",
-        "sha256": "a12f2abef843a4cac9375f4542400f39189133c29a01332a2fc4df3f56e09d49",
-        "duration_seconds": 4.8,
-        "frames": 144
-      },
-      "output": {
-        "path": "empathetic_head_tilt.mp4",
-        "s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/empathetic_head_tilt.mp4",
-        "sha256": "774cd54df5b51b7a094ff0fe401c546f8b08342cc9947957532246f12d379a84",
-        "duration_seconds": 4.8,
-        "frames": 144,
-        "first_last_ssim": 0.884255
-      },
-      "raw_archive": {
-        "s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/archive/raw/empathetic_head_tilt_segmind_raw.mp4",
-        "sha256": "6bb7b812104c74eead901b5df3a21be49fedbbb894759c641b14d2ab062329c1",
-        "width": 1072,
-        "height": 1920,
-        "duration_seconds": 4.8,
-        "frames": 144
-      }
+      "input_sha256": "f6ba6a95053cf9ff7746995bffcc81e5c614a2a62957a7349f57cbef79092b8b",
+      "output_sha256": "ee4f754078ae49c7adb77043605bd51c84f8fba8681e2e0149988478991b6b9e",
+      "duration_seconds": 10,
+      "frames": 300,
+      "first_last_ssim": 0.820239,
+      "previous_output_sha256": "d2a57eef4c39b4ebf25657132b22d091a0428948ea7bb19850fe7b725fde1a43",
+      "replacement_run_id": "20260730_speaking_smooth_v3"
     },
     "light_smile": {
-      "role": "reaction",
-      "request_id": "9941b0a200254dd14c1cd90ffbacaf23",
+      "runtime_pose_ids": [
+        "light_smile"
+      ],
+      "request_id": "05e46bdf23321bff328357d6d71374f8",
       "status": "COMPLETED",
       "cost_usd": 0.56,
-      "prompt": "Transfer the reference video light smile motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways.",
-      "input": {
-        "path": "../pose_delivery_cleaneyes_extra_slow_blink40_v1/light_smile.mp4",
-        "sha256": "c14e3407389a94c5568e29e0bf712cbcafd922b6fe7f51a5c5c9d70e60a40418",
-        "duration_seconds": 4.0,
-        "frames": 120
-      },
-      "output": {
-        "path": "light_smile.mp4",
-        "s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/light_smile.mp4",
-        "sha256": "a004ce546b9485e2df015cc42f65d0ce0825d9b3b9a7accefd86c0144d823ab6",
-        "duration_seconds": 4.0,
-        "frames": 120,
-        "first_last_ssim": 0.884861
-      },
-      "raw_archive": {
-        "s3_object": "s3://lingua-ai-idle-vids/avatar_motion/segmind_indian_essential_six_v1/archive/raw/light_smile_segmind_raw.mp4",
-        "sha256": "d88f0a1b8d5f8f455860b2a56f25c2f982157305f2c43bac56189c9c9840c599",
-        "width": 1072,
-        "height": 1920,
-        "duration_seconds": 4.0,
-        "frames": 120
-      }
+      "input_sha256": "704ee72cc4873c0a6a9bb8f9f144f2e4e0d508ff3121e09203c8bf832b2db55b",
+      "output_sha256": "59597dd4bfe36824dc57e9124999d0a27a11062744ba65ef312bc1a63c5e5c81",
+      "duration_seconds": 4,
+      "frames": 120,
+      "first_last_ssim": 0.869961
+    },
+    "active_listening_empathetic_v1": {
+      "runtime_pose_ids": [
+        "active_listening",
+        "empathetic_head_tilt"
+      ],
+      "request_id": "fdf04eef392ffb08f6684759485c2bd0",
+      "status": "COMPLETED",
+      "cost_usd": 1.12,
+      "input_sha256": "6ee987b9736a1b8082e5f98ff04ed9d8b5b57a86b36f233b59f1d5ab880c64a2",
+      "output_sha256": "21c77b017e19616991855b4b22e36af7af5aa74a56b5d90ca72ae6717242cb19",
+      "duration_seconds": 8,
+      "frames": 240,
+      "first_last_ssim": 0.83884
     }
   },
+  "runtime_mapping": {
+    "neutral_resting": "neutral_resting.mp4",
+    "speaking_direct": "speaking_direct.mp4",
+    "light_smile": "light_smile.mp4",
+    "active_listening": "active_listening.mp4",
+    "empathetic_head_tilt": "empathetic_head_tilt.mp4",
+    "nod_agree": "nod_agree.mp4"
+  },
+  "retained_compatibility_pose": {
+    "pose_id": "nod_agree",
+    "reason": "The six-pose protocol still requires this ID. It is not part of the new four-pose MVP sequence and was not regenerated or billed in this run.",
+    "sha256": "e87a06220e75465931f717c5a573b4febce0aaeabb542aa5d43d9997cc6b4a68",
+    "duration_seconds": 2.933333,
+    "frames": 88
+  },
   "visual_validation": {
+    "sampling": "Full-frame samples at 1-2 fps plus dense eye-region samples at 4 fps.",
     "identity_preserved": true,
     "direct_camera_gaze": true,
     "persistent_squint_absent": true,
     "mouth_closed": true,
-    "blink_observation": {
-      "neutral_resting": "Approximately three brief natural blinks.",
-      "active_listening": "Approximately two brief natural blinks; open-eye expression is slightly wide but not squinting.",
-      "speaking_direct": "Approximately three brief natural blinks.",
-      "nod_agree": "No sampled blink in this short one-shot.",
-      "empathetic_head_tilt": "No sampled blink in this short one-shot.",
-      "light_smile": "No sampled blink in this short one-shot."
-    },
-    "contact_sheet_order": [
-      ["neutral_resting", "active_listening"],
-      ["speaking_direct", "nod_agree"],
-      ["empathetic_head_tilt", "light_smile"]
-    ],
-    "full_contact_sheet": "validation/all_six_full.png",
-    "face_contact_sheet": "validation/all_six_faces.png"
+    "neutral_blink": "Brief light closure observed; no prolonged squint.",
+    "moving_pose_eye_contact": "Eyes remain camera-facing in all sampled frames."
   },
-  "transition_validation": {
-    "switch_safe": false,
-    "decoded_endpoint_hash_matches": 0,
-    "all_cross_pose_ssim_range": [0.821197, 0.90033],
-    "all_cross_pose_psnr_db_range": [30.01, 34.37],
-    "planned_flow_boundaries": {
-      "neutral_resting->active_listening": 0.839071,
-      "active_listening->neutral_resting": 0.845508,
-      "active_listening->nod_agree": 0.83998,
-      "active_listening->empathetic_head_tilt": 0.85115,
-      "active_listening->light_smile": 0.821197,
-      "nod_agree->speaking_direct": 0.869273,
-      "empathetic_head_tilt->speaking_direct": 0.878483,
-      "light_smile->speaking_direct": 0.884181,
-      "active_listening->speaking_direct": 0.843456,
-      "speaking_direct->neutral_resting": 0.833771
+  "transition_handling": {
+    "source_references_switch_safe": true,
+    "segmind_outputs_mathematically_identical": false,
+    "musetalk_idle_crossfade_frames": 2,
+    "production_switch_safe": false,
+    "runtime_validation_passed": true,
+    "validated_profile": {
+      "playback_fps": 30,
+      "musetalk_lipsync_fps": 15,
+      "ordered_idle_transitions_completed": 12,
+      "tts_flows_completed": 2
+    },
+    "required_test": "Keep the two-frame crossfade enabled. Repeat the pose-aware WebRTC recording after any future Segmind replacement because decoded boundary equality is not preserved."
+  },
+  "latest_replacement": {
+    "run_id": "20260730_speaking_smooth_v3",
+    "pose_id": "speaking_direct_v2",
+    "runtime_pose_id": "speaking_direct",
+    "ardy": {
+      "delivery_path": "/workspace/ardy/outputs/pose_delivery_mvp_four_v3_smooth_speaking",
+      "delivery_manifest_sha256": "61bb0066993808017a52c77946c6cd331461ade6dfb07d8a2c590fdd73361bf8",
+      "delivery_validation_sha256": "de6b05901852077f2f121440a90584b5f4c2bbd160d34ee8e2a9e03ddf2d4cd6",
+      "input_sha256": "f6ba6a95053cf9ff7746995bffcc81e5c614a2a62957a7349f57cbef79092b8b",
+      "max_head_rotation_degrees_per_frame": 0.482092,
+      "shared_boundary_frames": 15,
+      "ordered_nonself_transition_count": 12,
+      "shared_decoded_handle_sha256": "0dc971c161da83d74dbf90bd0660626ec5d65a0c5396251e6e9bd646c29f652c",
+      "passed": true
+    },
+    "segmind": {
+      "request_id": "c42b69f1b13e8cca042ee9863104dd96",
+      "request_count": 1,
+      "cost_usd": 1.4,
+      "output_sha256": "ee4f754078ae49c7adb77043605bd51c84f8fba8681e2e0149988478991b6b9e",
+      "first_last_ssim": 0.820239,
+      "decoded_boundaries_exact": false
+    },
+    "musetalk": {
+      "runtime_path": "speaking_direct.mp4",
+      "prepared_avatar_id": "indian_tutor_essential_six_v1_speaking_direct",
+      "prepared_input_sha256_verified": true,
+      "webrtc_result": "/workspace/MuseTalk/generated/webrtc_pose_showcase/2026-07-30/speaking_smooth_v3_30playback_15lipsync/webrtc_result.json",
+      "webrtc_capture": "/workspace/MuseTalk/generated/webrtc_pose_showcase/2026-07-30/speaking_smooth_v3_30playback_15lipsync/indian_tutor_speaking_smooth_v3_30playback_15lipsync_webrtc_capture.mp4",
+      "passed": true
+    },
+    "validation": {
+      "exact_first_frame_pairs": "0/6",
+      "exact_directed_final_to_first_transitions": "0/12",
+      "speaking_mean_transition_rmse_reduction_percent": 43.5,
+      "speaking_worst_transition_rmse_reduction_percent": 59.1,
+      "visual_review": "Substantially closer than the previous speaking asset. Residual differences remain in brow and eye state plus a small vertical face offset."
     }
+  },
+  "provenance": {
+    "run_summary": "../../../tmp/segmind_pose_tests/20260729_mvp_four_v2/summary.json",
+    "request_ledger": "../../../tmp/segmind_pose_tests/20260729_mvp_four_v2/requests.json",
+    "previous_assets": "archive/replaced_20260729T190000Z/",
+    "latest_replacement_summary": "/workspace/MuseTalk/generated/asset_analysis/2026-07-30_smooth_speaking_v3/segmind_summary.json",
+    "latest_replacement_requests": "/workspace/MuseTalk/generated/asset_analysis/2026-07-30_smooth_speaking_v3/segmind_requests.json",
+    "latest_geometry_validation": "/workspace/MuseTalk/generated/asset_analysis/2026-07-30_smooth_speaking_v3/geometry_validation.json",
+    "latest_webrtc_transition_comparison": "/workspace/MuseTalk/generated/asset_analysis/2026-07-30_smooth_speaking_v3/webrtc_transition_comparison.json"
   }
 }

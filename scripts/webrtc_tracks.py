@@ -37,6 +37,10 @@ WEBRTC_STRICT_AUDIO_WAIT_TIMEOUT_SECONDS = float(os.getenv("WEBRTC_STRICT_AUDIO_
 WEBRTC_STRICT_VIDEO_WAIT_TIMEOUT_SECONDS = float(os.getenv("WEBRTC_STRICT_VIDEO_WAIT_TIMEOUT_SECONDS", "30.0"))
 WEBRTC_VIDEO_MAX_QUEUE_FRAMES = int(os.getenv("WEBRTC_VIDEO_MAX_QUEUE_FRAMES", "400" if WEBRTC_STRICT_FIFO_SYNC else "100"))
 WEBRTC_IDLE_SYNC_HOLD = os.getenv("WEBRTC_IDLE_SYNC_HOLD", "1").lower() in ("1", "true", "yes", "on")
+WEBRTC_POSE_CROSSFADE_FRAMES = max(
+    0,
+    int(os.getenv("WEBRTC_POSE_CROSSFADE_FRAMES", "0")),
+)
 
 # ============================================================================
 # Video Tracks
@@ -467,6 +471,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         idle_pose_id: str = "default",
         on_idle_pose_changed: Optional[Callable[[str, str], None]] = None,
         idle_source_fps: Optional[float] = None,
+        pose_crossfade_frames: Optional[int] = None,
     ):
         super().__init__()
         self._source_fps = float(source_fps)
@@ -508,6 +513,14 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self._idle_switch_count = 0
         self._last_idle_switch_reason: Optional[str] = None
         self._idle_transition_frames = []
+        self._pose_crossfade_frames = max(
+            0,
+            (
+                WEBRTC_POSE_CROSSFADE_FRAMES
+                if pose_crossfade_frames is None
+                else int(pose_crossfade_frames)
+            ),
+        )
         self._live_active = False
         self._live_released = False
         self._last_idle_frame = None
@@ -558,6 +571,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         print(f"🎬 SwitchableVideoStreamTrack: prebuffer={self._prebuffer_frames} frames "
               f"({prebuffer_seconds}s), adaptive_fps={adaptive_fps}, min_ratio={min_fps_ratio}, "
               f"max_queue={self._max_queue}, target_fill={self._target_fill}, "
+              f"pose_crossfade_frames={self._pose_crossfade_frames}, "
               f"sync_mode={'strict_fifo' if self._strict_fifo else 'free_run'}")
 
     def _reset_source_timing(self) -> None:
@@ -599,7 +613,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                     height=next_frame.height,
                     format="bgr24",
                 ).to_ndarray()
-                alpha = float(idx + 1) / float(frame_count + 1)
+                progress = float(idx + 1) / float(frame_count + 1)
+                alpha = 0.5 - 0.5 * np.cos(np.pi * progress)
                 blended = (
                     old_bgr.astype(np.float32) * (1.0 - alpha)
                     + new_bgr.astype(np.float32) * alpha
@@ -610,6 +625,10 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                 )
         except Exception as exc:
             print(f"⚠️ Failed to build idle transition frames: {exc}", flush=True)
+            try:
+                next_idle.reset()
+            except Exception:
+                pass
             return []
         return frames
 
@@ -671,15 +690,24 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         if not self._pending_idle_switches:
             return False
         pending = self._pending_idle_switches.popleft()
+        transition_frames = []
+        if self._pose_crossfade_frames > 0 and not self._live_active:
+            transition_frames = self._build_idle_transition_frames(
+                self._last_idle_frame,
+                pending["idle_track"],
+                self._pose_crossfade_frames,
+            )
         self._apply_idle_switch(
             pending["idle_track"],
             idle_video_path=pending["idle_video_path"],
             pose_id=pending["pose_id"],
             reason=pending["reason"],
+            transition_frames=transition_frames,
         )
         print(
             f"🎬 Activated queued idle pose={self._current_idle_pose_id} "
             f"path={self._current_idle_video_path} "
+            f"crossfade_frames={len(transition_frames)} "
             f"pending={len(self._pending_idle_switches)}",
             flush=True,
         )
@@ -696,8 +724,9 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         """Queue an idle source for activation at the next clip boundary.
 
         The new decoder is opened when queued, so malformed/missing media fails
-        at request time rather than in the WebRTC sender loop. No crossfade is
-        used: validated pose assets share their mathematical boundary frames.
+        at request time rather than in the WebRTC sender loop. When configured,
+        the first frames of the new clip are replaced by a short cross-dissolve
+        against the last outgoing frame without adding media-clock duration.
         """
         if self._closed:
             return {"changed": False, "queued": False, "reason": "track_closed"}
@@ -916,8 +945,13 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                 self._pending_idle_switches
                 and self._idle.next_frame_starts_cycle()
             ):
-                self._activate_next_queued_idle_switch()
-            frame = self._idle.read_frame()
+                activated = self._activate_next_queued_idle_switch()
+                if activated and self._idle_transition_frames:
+                    frame = self._idle_transition_frames.pop(0)
+                else:
+                    frame = self._idle.read_frame()
+            else:
+                frame = self._idle.read_frame()
             if (
                 self._pending_idle_switches
                 and self._idle.last_read_started_cycle()
@@ -925,8 +959,11 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                 # Frame-count metadata is not guaranteed. If EOF was the first
                 # detectable boundary, discard that old loop's frame zero and
                 # emit frame zero from the queued source instead.
-                self._activate_next_queued_idle_switch()
-                frame = self._idle.read_frame()
+                activated = self._activate_next_queued_idle_switch()
+                if activated and self._idle_transition_frames:
+                    frame = self._idle_transition_frames.pop(0)
+                else:
+                    frame = self._idle.read_frame()
         self._last_idle_frame = frame
         return frame
 
@@ -1374,6 +1411,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             'idle_switch_count': self._idle_switch_count,
             'last_idle_switch_reason': self._last_idle_switch_reason,
             'idle_transition_frames': len(self._idle_transition_frames),
+            'pose_crossfade_frames': self._pose_crossfade_frames,
             'sync_mode': 'strict_fifo' if self._strict_fifo else 'free_run',
             'sync_clock': self._sync_clock.get_stats() if self._sync_clock else None,
             'idle_timing': self._idle.get_timing() if self._idle else None,

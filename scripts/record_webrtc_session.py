@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import asyncio
+import json
 import mimetypes
 import time
 import sys
@@ -30,6 +31,40 @@ try:
     from aiortc import RTCPeerConnection
 except Exception as exc:  # pragma: no cover
     raise RuntimeError("aiortc is required to record WebRTC sessions") from exc
+
+
+REACTION_POSE = {
+    "none": None,
+    "acknowledge": "nod_agree",
+    "warmth": "light_smile",
+    "empathy": "empathetic_head_tilt",
+}
+
+
+def load_worker_pose_manifest(path: Path) -> dict:
+    """Load a local test manifest and keep only worker protocol fields."""
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    poses = raw.get("poses") if isinstance(raw, dict) else None
+    if not isinstance(poses, dict) or not poses:
+        raise ValueError(f"Pose manifest has no poses: {path}")
+    default_pose_id = str(raw.get("default_pose_id") or "neutral_resting")
+    if default_pose_id not in poses:
+        raise ValueError(f"Pose manifest default is unavailable: {default_pose_id}")
+    fields = ("avatar_id", "role", "duration_seconds", "cycle_seconds", "fps", "frame_count")
+    return {
+        "version": 1,
+        "pose_set_id": str(raw.get("pose_set_id") or ""),
+        "default_pose_id": default_pose_id,
+        "switch_mode": "next_boundary",
+        "poses": {
+            pose_id: {
+                field: entry[field]
+                for field in fields
+                if isinstance(entry, dict) and entry.get(field) is not None
+            }
+            for pose_id, entry in poses.items()
+        },
+    }
 
 
 async def consume_video_track(
@@ -72,47 +107,6 @@ async def consume_audio_track(track, stop_event: asyncio.Event) -> None:
         pass
 
 
-def parse_pose_schedule(value: str) -> list[tuple[float, str]]:
-    schedule = []
-    for item in (value or "").split(","):
-        item = item.strip()
-        if not item:
-            continue
-        delay_text, pose_id = item.split(":", 1)
-        schedule.append((max(0.0, float(delay_text)), pose_id.strip()))
-    return sorted(schedule)
-
-
-async def switch_live_poses(
-    http,
-    base_url: str,
-    session_id: str,
-    schedule: list[tuple[float, str]],
-    results: list[dict],
-) -> None:
-    started_at = time.monotonic()
-    for delay_seconds, pose_id in schedule:
-        await asyncio.sleep(max(0.0, delay_seconds - (time.monotonic() - started_at)))
-        async with http.post(
-            f"{base_url}/webrtc/sessions/{session_id}/live-pose/{pose_id}"
-        ) as resp:
-            body = await resp.text()
-            result = {"at_seconds": round(time.monotonic() - started_at, 3), "pose_id": pose_id, "status": resp.status}
-            if resp.status == 200:
-                result["response"] = await _json_or_text(body)
-            else:
-                result["error"] = body[:500]
-            results.append(result)
-
-
-async def _json_or_text(body: str):
-    try:
-        import json
-        return json.loads(body)
-    except Exception:
-        return body[:500]
-
-
 async def record_once(args: argparse.Namespace) -> dict:
     timeout = aiohttp.ClientTimeout(total=max(300, args.completion_timeout + 60))
     metrics = SessionMetrics()
@@ -123,10 +117,12 @@ async def record_once(args: argparse.Namespace) -> dict:
     stop_event = asyncio.Event()
     counters = {"video_frames_written": 0}
     consumer_tasks: list[asyncio.Task] = []
-    pose_switch_task = None
-    pose_switch_results: list[dict] = []
-    pose_queue_result = None
     started_at = time.monotonic()
+    pose_manifest = (
+        load_worker_pose_manifest(args.pose_manifest)
+        if args.pose_manifest is not None
+        else None
+    )
 
     async with aiohttp.ClientSession(timeout=timeout) as http:
         create_params = {
@@ -135,9 +131,14 @@ async def record_once(args: argparse.Namespace) -> dict:
             "playback_fps": args.playback_fps,
             "batch_size": args.batch_size,
             "chunk_duration": max(1, int(round(args.segment_duration))),
-            "idle_pose_id": args.idle_pose_id,
-            "live_pose_id": args.live_pose_id,
         }
+        if pose_manifest is not None:
+            create_params.update(
+                {
+                    "pose_switch_mode": "next_boundary",
+                    "pose_set": json.dumps(pose_manifest, separators=(",", ":")),
+                }
+            )
         async with http.post(
             f"{args.base_url}/webrtc/sessions/create?{urlencode(create_params)}"
         ) as resp:
@@ -147,17 +148,6 @@ async def record_once(args: argparse.Namespace) -> dict:
             data = await resp.json()
             sid = data["session_id"]
             metrics.session_id = sid
-
-        pose_queue_ids = [pose_id.strip() for pose_id in args.pose_queue.split(",") if pose_id.strip()]
-        if pose_queue_ids:
-            async with http.post(
-                f"{args.base_url}/webrtc/sessions/{sid}/live-pose-queue",
-                json={"pose_ids": pose_queue_ids, "hold_last_pose": args.hold_last_pose},
-            ) as resp:
-                body = await resp.text()
-                if resp.status != 200:
-                    raise RuntimeError(f"live pose queue failed: {resp.status} {body[:300]}")
-                pose_queue_result = await _json_or_text(body)
 
         try:
             pc = RTCPeerConnection(
@@ -230,6 +220,25 @@ async def record_once(args: argparse.Namespace) -> dict:
                     filename=args.audio_file.name,
                     content_type=content_type,
                 )
+                if pose_manifest is not None:
+                    reaction_pose = REACTION_POSE[args.reaction_intent]
+                    pose_sequence = [
+                        *(pose for pose in (reaction_pose,) if pose),
+                        "speaking_direct",
+                        "neutral_resting",
+                    ]
+                    turn_id = f"record_{int(time.time() * 1000)}"
+                    form.add_field("reaction_intent", args.reaction_intent)
+                    form.add_field("pose_id", "speaking_direct")
+                    form.add_field(
+                        "pose_sequence",
+                        json.dumps(pose_sequence, separators=(",", ":")),
+                    )
+                    form.add_field("turn_id", turn_id)
+                    form.add_field("seq", "1")
+                    form.add_field("effective", "next_boundary")
+                    form.add_field("mouth_mode", "lip_sync")
+                    form.add_field("audio_start", "immediate")
                 async with http.post(
                     f"{args.base_url}/webrtc/sessions/{sid}/stream",
                     data=form,
@@ -238,18 +247,6 @@ async def record_once(args: argparse.Namespace) -> dict:
                         body = await resp.text()
                         raise RuntimeError(f"stream failed: {resp.status} {body[:300]}")
             record_event.set()
-            # A generation-frame queue is deterministic. Do not let the legacy
-            # wall-clock switches mutate it after streaming begins.
-            if not pose_queue_ids:
-                pose_switch_task = asyncio.create_task(
-                    switch_live_poses(
-                        http,
-                        args.base_url,
-                        sid,
-                        parse_pose_schedule(args.pose_schedule),
-                        pose_switch_results,
-                    )
-                )
 
             live_ready = False
             stream_started_at = time.monotonic()
@@ -268,10 +265,6 @@ async def record_once(args: argparse.Namespace) -> dict:
                     break
 
             stop_event.set()
-            if pose_switch_task is not None:
-                pose_switch_task.cancel()
-                with suppress(asyncio.CancelledError):
-                    await pose_switch_task
             for task in consumer_tasks:
                 task.cancel()
             for task in consumer_tasks:
@@ -287,15 +280,10 @@ async def record_once(args: argparse.Namespace) -> dict:
                 "video_stats": video_stats,
                 "audio_stats": audio_stats,
                 "sync_stats": sync_stats,
-                "pose_switches": pose_switch_results,
-                "pose_queue": pose_queue_result,
+                "pose_protocol": final_status.get("pose_protocol"),
             }
         finally:
             stop_event.set()
-            if pose_switch_task is not None:
-                pose_switch_task.cancel()
-                with suppress(asyncio.CancelledError):
-                    await pose_switch_task
             for task in consumer_tasks:
                 task.cancel()
             if pc is not None:
@@ -312,28 +300,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--avatar-id", required=True)
     parser.add_argument("--audio-file", type=Path, required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--pose-manifest",
+        type=Path,
+        help="Enable pose protocol v1 using this six-pose local manifest.",
+    )
+    parser.add_argument(
+        "--reaction-intent",
+        choices=tuple(REACTION_POSE),
+        default="empathy",
+        help="One-shot pose before speaking when --pose-manifest is used.",
+    )
     parser.add_argument("--segment-duration", type=float, default=1.0)
     parser.add_argument("--playback-fps", type=int, default=20)
     parser.add_argument("--musetalk-fps", type=int, default=20)
     parser.add_argument("--batch-size", type=int, default=8)
-    parser.add_argument("--idle-pose-id", default="default")
-    parser.add_argument("--live-pose-id", default="default")
-    parser.add_argument(
-        "--pose-schedule",
-        default="0.5:speaking_direct,3.0:light_smile,5.0:speaking_direct,7.0:default",
-        help="Comma-separated absolute seconds and live pose IDs.",
-    )
-    parser.add_argument(
-        "--pose-queue",
-        default="",
-        help="Comma-separated pose IDs queued by generated-frame order before streaming.",
-    )
-    parser.add_argument(
-        "--hold-last-pose",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Loop the final queued pose after the sequence ends.",
-    )
     parser.add_argument("--ice-gather-timeout", type=float, default=10.0)
     parser.add_argument("--connection-timeout", type=float, default=60.0)
     parser.add_argument("--completion-timeout", type=float, default=240.0)

@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, Optional
 
+import numpy as np
 import torch
 
 
@@ -123,6 +124,12 @@ class HLSStreamJob:
     max_encode_s: float = 0.0
     chunks_appended: int = 0
     encoded_frame_cursor: int = 0
+    webrtc_last_pose_frame: object = field(default=None, repr=False)
+    webrtc_last_pose_id: Optional[str] = None
+    webrtc_pose_crossfade_anchor: object = field(default=None, repr=False)
+    webrtc_pose_crossfade_index: int = 0
+    webrtc_pose_crossfade_count: int = 0
+    webrtc_pose_crossfade_frames_applied: int = 0
     conditioning_lock: object = field(default_factory=threading.Lock, repr=False)
 
 
@@ -212,6 +219,10 @@ class HLSGPUStreamScheduler:
         self.gpu_batch_timing_log_interval = max(0, _env_int("HLS_GPU_BATCH_TIMING_LOG_INTERVAL", 25))
         self.gpu_batch_timing_slow_s = max(0.0, _env_float("HLS_GPU_BATCH_TIMING_SLOW_SECONDS", 0.5))
         self.gpu_stage_sync_timing = _env_bool("HLS_GPU_STAGE_SYNC_TIMING", True)
+        self.webrtc_pose_crossfade_frames = max(
+            0,
+            _env_int("WEBRTC_POSE_CROSSFADE_FRAMES", 0),
+        )
         self._gpu_batch_timing_counter = 0
         self.vae_calibration_capture = _env_bool("MUSETALK_VAE_CALIBRATION_CAPTURE", False)
         self.vae_calibration_dir = Path(
@@ -249,6 +260,7 @@ class HLSGPUStreamScheduler:
             f"aggressive_fill_max_active_jobs={self.aggressive_fill_max_active_jobs}, "
             f"compose_workers={self.compose_executor._max_workers}, "
             f"encode_workers={self.encode_executor._max_workers}, "
+            f"webrtc_pose_crossfade_frames={self.webrtc_pose_crossfade_frames}, "
             f"gpu_batch_timing_log_interval={self.gpu_batch_timing_log_interval}, "
             f"gpu_batch_timing_slow_s={self.gpu_batch_timing_slow_s:.3f}, "
             f"gpu_stage_sync_timing={self.gpu_stage_sync_timing})"
@@ -1746,7 +1758,12 @@ class HLSGPUStreamScheduler:
             if job.cancel_event.is_set():
                 continue
 
-            frames = compose_info["frames"]
+            frames = self._apply_webrtc_pose_crossfade(
+                job,
+                compose_info["frames"],
+                compose_info.get("live_pose_ids") or [],
+            )
+            compose_info["frames"] = frames
             if frames and job.frame_batch_callback is not None:
                 rendered_start_frame_idx = job.composed_frame_idx
                 start_frame_idx = rendered_start_frame_idx + 1
@@ -1831,6 +1848,64 @@ class HLSGPUStreamScheduler:
                     )
 
             job.chunks_appended += 1
+
+    def _apply_webrtc_pose_crossfade(
+        self,
+        job: HLSStreamJob,
+        frames: list,
+        pose_ids: list,
+    ) -> list:
+        """Blend the first N frames after a live pose change without retiming."""
+        frame_count = self.webrtc_pose_crossfade_frames
+        if frame_count <= 0 or not frames or len(pose_ids) != len(frames):
+            return frames
+
+        blended_frames = []
+        for frame, pose_id in zip(frames, pose_ids):
+            normalized_pose_id = str(pose_id or "default")
+            source_frame = np.asarray(frame)
+            if (
+                job.webrtc_last_pose_id is not None
+                and normalized_pose_id != job.webrtc_last_pose_id
+                and job.webrtc_last_pose_frame is not None
+            ):
+                job.webrtc_pose_crossfade_anchor = np.asarray(
+                    job.webrtc_last_pose_frame,
+                ).copy()
+                job.webrtc_pose_crossfade_index = 0
+                job.webrtc_pose_crossfade_count += 1
+                print(
+                    f"🎞️ [{job.request_id}] WebRTC pose crossfade "
+                    f"{job.webrtc_last_pose_id}->{normalized_pose_id} "
+                    f"frames={frame_count}",
+                    flush=True,
+                )
+
+            output_frame = source_frame
+            anchor = job.webrtc_pose_crossfade_anchor
+            fade_index = job.webrtc_pose_crossfade_index
+            if anchor is not None and fade_index < frame_count:
+                anchor_array = np.asarray(anchor)
+                if anchor_array.shape == source_frame.shape:
+                    progress = float(fade_index + 1) / float(frame_count + 1)
+                    alpha = 0.5 - 0.5 * math.cos(math.pi * progress)
+                    blended = (
+                        anchor_array.astype(np.float32) * (1.0 - alpha)
+                        + source_frame.astype(np.float32) * alpha
+                    )
+                    output_frame = np.clip(blended, 0, 255).astype(
+                        source_frame.dtype,
+                    )
+                    job.webrtc_pose_crossfade_frames_applied += 1
+                job.webrtc_pose_crossfade_index += 1
+                if job.webrtc_pose_crossfade_index >= frame_count:
+                    job.webrtc_pose_crossfade_anchor = None
+
+            blended_frames.append(output_frame)
+            job.webrtc_last_pose_frame = source_frame.copy()
+            job.webrtc_last_pose_id = normalized_pose_id
+
+        return blended_frames
 
     def _dispatch_encode(self, job: HLSStreamJob, force_flush: bool = False) -> None:
         if not job.frame_buffer:

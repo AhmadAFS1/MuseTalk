@@ -1,0 +1,1970 @@
+{
+  "current_vs_previous_2frames": {
+    "all": {
+      "mean_max_100ms_upper_face_rmse_px": {
+        "current": 1.360586,
+        "delta_px": -0.163696,
+        "percent_change": -10.739,
+        "previous": 1.524282
+      },
+      "mean_max_100ms_whole_face_rmse_px": {
+        "current": 2.205857,
+        "delta_px": -0.240289,
+        "percent_change": -9.823,
+        "previous": 2.446146
+      },
+      "mean_max_400ms_whole_face_rmse_px": {
+        "current": 2.47279,
+        "delta_px": -0.747608,
+        "percent_change": -23.215,
+        "previous": 3.220398
+      },
+      "worst_max_100ms_upper_face_rmse_px": {
+        "current": 1.784257,
+        "delta_px": -1.364831,
+        "percent_change": -43.341,
+        "previous": 3.149088
+      },
+      "worst_max_100ms_whole_face_rmse_px": {
+        "current": 5.440618,
+        "delta_px": -0.180143,
+        "percent_change": -3.205,
+        "previous": 5.620761
+      },
+      "worst_max_400ms_whole_face_rmse_px": {
+        "current": 5.058507,
+        "delta_px": -2.032432,
+        "percent_change": -28.662,
+        "previous": 7.090939
+      }
+    },
+    "idle_non_speaking": {
+      "mean_max_100ms_upper_face_rmse_px": {
+        "current": 1.441453,
+        "delta_px": 0.148448,
+        "percent_change": 11.481,
+        "previous": 1.293005
+      },
+      "mean_max_100ms_whole_face_rmse_px": {
+        "current": 1.469032,
+        "delta_px": -0.006287,
+        "percent_change": -0.426,
+        "previous": 1.475319
+      },
+      "mean_max_400ms_whole_face_rmse_px": {
+        "current": 1.781542,
+        "delta_px": -0.170001,
+        "percent_change": -8.711,
+        "previous": 1.951543
+      },
+      "worst_max_100ms_upper_face_rmse_px": {
+        "current": 1.784257,
+        "delta_px": 0.045629,
+        "percent_change": 2.624,
+        "previous": 1.738628
+      },
+      "worst_max_100ms_whole_face_rmse_px": {
+        "current": 1.826799,
+        "delta_px": -0.079851,
+        "percent_change": -4.188,
+        "previous": 1.90665
+      },
+      "worst_max_400ms_whole_face_rmse_px": {
+        "current": 2.569412,
+        "delta_px": -0.223124,
+        "percent_change": -7.99,
+        "previous": 2.792536
+      }
+    },
+    "idle_speaking": {
+      "mean_max_100ms_upper_face_rmse_px": {
+        "current": 1.339252,
+        "delta_px": -0.293887,
+        "percent_change": -17.995,
+        "previous": 1.633139
+      },
+      "mean_max_100ms_whole_face_rmse_px": {
+        "current": 1.526137,
+        "delta_px": -0.522344,
+        "percent_change": -25.499,
+        "previous": 2.048481
+      },
+      "mean_max_400ms_whole_face_rmse_px": {
+        "current": 1.948694,
+        "delta_px": -1.497333,
+        "percent_change": -43.451,
+        "previous": 3.446027
+      },
+      "worst_max_100ms_upper_face_rmse_px": {
+        "current": 1.475222,
+        "delta_px": -0.720162,
+        "percent_change": -32.803,
+        "previous": 2.195384
+      },
+      "worst_max_100ms_whole_face_rmse_px": {
+        "current": 1.746319,
+        "delta_px": -1.705418,
+        "percent_change": -49.408,
+        "previous": 3.451737
+      },
+      "worst_max_400ms_whole_face_rmse_px": {
+        "current": 2.818265,
+        "delta_px": -4.076054,
+        "percent_change": -59.122,
+        "previous": 6.894319
+      }
+    },
+    "tts": {
+      "mean_max_100ms_upper_face_rmse_px": {
+        "current": 1.271286,
+        "delta_px": -0.436624,
+        "percent_change": -25.565,
+        "previous": 1.70791
+      },
+      "mean_max_100ms_whole_face_rmse_px": {
+        "current": 4.330677,
+        "delta_px": -0.168206,
+        "percent_change": -3.739,
+        "previous": 4.498883
+      },
+      "mean_max_400ms_whole_face_rmse_px": {
+        "current": 4.295807,
+        "delta_px": -0.48943,
+        "percent_change": -10.228,
+        "previous": 4.785237
+      },
+      "worst_max_100ms_upper_face_rmse_px": {
+        "current": 1.48418,
+        "delta_px": -1.664908,
+        "percent_change": -52.87,
+        "previous": 3.149088
+      },
+      "worst_max_100ms_whole_face_rmse_px": {
+        "current": 5.440618,
+        "delta_px": -0.180143,
+        "percent_change": -3.205,
+        "previous": 5.620761
+      },
+      "worst_max_400ms_whole_face_rmse_px": {
+        "current": 5.058507,
+        "delta_px": -2.032432,
+        "percent_change": -28.662,
+        "previous": 7.090939
+      }
+    }
+  },
+  "method": {
+    "alignment": "independent least-squares similarity transform per face region",
+    "caveat": "The local maximum can include intentional pose or lip motion; upper-face TTS metrics are less confounded by lip sync.",
+    "event_search_radius_seconds": 0.45,
+    "face_model": "MuseTalk DWPose 68-point face landmarks",
+    "fixed_steps_seconds": [
+      0.1,
+      0.4
+    ],
+    "purpose": "Fixed-time steps make 30 fps and 20 fps captures comparable. TTS boundaries are derived from playout release time plus the server-rendered pose frame trace."
+  },
+  "runs": {
+    "new_v3_2frames_30playback_15lipsync": {
+      "asset_generation_fps": 15.0,
+      "capture_fps": 30.0,
+      "capture_frame_count": 5381,
+      "crossfade_duration_ms": 66.667,
+      "crossfade_frames": 2,
+      "events": {
+        "idle:active_listening->light_smile": {
+          "100ms": {
+            "frame_pair": [
+              2096,
+              2099
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.327195,
+              "eyes": 1.216521,
+              "mouth": 1.38586,
+              "nose": 0.713682,
+              "upper_face": 1.369372,
+              "whole_face": 1.398352
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              2083,
+              2095
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.13445,
+              "eyes": 1.264853,
+              "mouth": 1.307094,
+              "nose": 0.892333,
+              "upper_face": 1.398134,
+              "whole_face": 1.602861
+            }
+          },
+          "expected_center_seconds": 69.842,
+          "group": "idle_non_speaking",
+          "source": "active_listening",
+          "target": "light_smile"
+        },
+        "idle:active_listening->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              240,
+              243
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.312653,
+              "eyes": 1.160617,
+              "mouth": 1.21412,
+              "nose": 1.65793,
+              "upper_face": 1.784257,
+              "whole_face": 1.826799
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              240,
+              252
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.137781,
+              "eyes": 1.104062,
+              "mouth": 1.276039,
+              "nose": 1.464097,
+              "upper_face": 1.579691,
+              "whole_face": 1.847641
+            }
+          },
+          "expected_center_seconds": 8.455,
+          "group": "idle_non_speaking",
+          "source": "active_listening",
+          "target": "neutral_resting"
+        },
+        "idle:active_listening->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              1557,
+              1560
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.901546,
+              "eyes": 1.371162,
+              "mouth": 1.325451,
+              "nose": 1.21653,
+              "upper_face": 1.420818,
+              "whole_face": 1.746319
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1536,
+              1548
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.402638,
+              "eyes": 1.170261,
+              "mouth": 1.569566,
+              "nose": 1.594136,
+              "upper_face": 1.771491,
+              "whole_face": 2.818265
+            }
+          },
+          "expected_center_seconds": 51.558,
+          "group": "idle_speaking",
+          "source": "active_listening",
+          "target": "speaking_direct"
+        },
+        "idle:light_smile->active_listening": {
+          "100ms": {
+            "frame_pair": [
+              1296,
+              1299
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.069846,
+              "eyes": 1.279442,
+              "mouth": 1.345702,
+              "nose": 1.325207,
+              "upper_face": 1.510315,
+              "whole_face": 1.468997
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1288,
+              1300
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.02591,
+              "eyes": 0.717259,
+              "mouth": 1.401761,
+              "nose": 1.329414,
+              "upper_face": 1.351864,
+              "whole_face": 1.578105
+            }
+          },
+          "expected_center_seconds": 43.35,
+          "group": "idle_non_speaking",
+          "source": "light_smile",
+          "target": "active_listening"
+        },
+        "idle:light_smile->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              2654,
+              2657
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.002825,
+              "eyes": 1.310156,
+              "mouth": 0.600518,
+              "nose": 0.827599,
+              "upper_face": 1.492481,
+              "whole_face": 1.267716
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              2645,
+              2657
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.875802,
+              "eyes": 1.480916,
+              "mouth": 1.362305,
+              "nose": 1.028489,
+              "upper_face": 1.472715,
+              "whole_face": 1.398518
+            }
+          },
+          "expected_center_seconds": 88.372,
+          "group": "idle_non_speaking",
+          "source": "light_smile",
+          "target": "neutral_resting"
+        },
+        "idle:light_smile->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              2217,
+              2220
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.077355,
+              "eyes": 1.266361,
+              "mouth": 1.326608,
+              "nose": 1.121206,
+              "upper_face": 1.475222,
+              "whole_face": 1.680627
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              2205,
+              2217
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.154185,
+              "eyes": 1.03883,
+              "mouth": 1.208709,
+              "nose": 1.274897,
+              "upper_face": 2.097054,
+              "whole_face": 1.934359
+            }
+          },
+          "expected_center_seconds": 73.947,
+          "group": "idle_speaking",
+          "source": "light_smile",
+          "target": "speaking_direct"
+        },
+        "idle:neutral_resting->active_listening": {
+          "100ms": {
+            "frame_pair": [
+              9,
+              12
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.371779,
+              "eyes": 1.122623,
+              "mouth": 1.202845,
+              "nose": 0.960338,
+              "upper_face": 1.229566,
+              "whole_face": 1.366334
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              6,
+              18
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.459956,
+              "eyes": 1.203571,
+              "mouth": 1.342933,
+              "nose": 1.294746,
+              "upper_face": 1.465365,
+              "whole_face": 1.692715
+            }
+          },
+          "expected_center_seconds": 0.551,
+          "group": "idle_non_speaking",
+          "source": "neutral_resting",
+          "target": "active_listening"
+        },
+        "idle:neutral_resting->light_smile": {
+          "100ms": {
+            "frame_pair": [
+              1164,
+              1167
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.00403,
+              "eyes": 1.2984,
+              "mouth": 0.962806,
+              "nose": 1.333154,
+              "upper_face": 1.262725,
+              "whole_face": 1.485992
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1164,
+              1176
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.364465,
+              "eyes": 1.284964,
+              "mouth": 2.025632,
+              "nose": 1.077433,
+              "upper_face": 1.360755,
+              "whole_face": 2.569412
+            }
+          },
+          "expected_center_seconds": 39.237,
+          "group": "idle_non_speaking",
+          "source": "neutral_resting",
+          "target": "light_smile"
+        },
+        "idle:neutral_resting->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              566,
+              569
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.365629,
+              "eyes": 0.768616,
+              "mouth": 1.166243,
+              "nose": 0.911425,
+              "upper_face": 1.161199,
+              "whole_face": 1.482819
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              559,
+              571
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.372501,
+              "eyes": 1.022302,
+              "mouth": 1.314749,
+              "nose": 1.373689,
+              "upper_face": 1.29187,
+              "whole_face": 2.123534
+            }
+          },
+          "expected_center_seconds": 18.749,
+          "group": "idle_speaking",
+          "source": "neutral_resting",
+          "target": "speaking_direct"
+        },
+        "idle:speaking_direct->active_listening": {
+          "100ms": {
+            "frame_pair": [
+              1836,
+              1839
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.101593,
+              "eyes": 1.066792,
+              "mouth": 1.337487,
+              "nose": 1.195689,
+              "upper_face": 1.33127,
+              "whole_face": 1.455893
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1851,
+              1863
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.577179,
+              "eyes": 1.004039,
+              "mouth": 1.18012,
+              "nose": 1.209085,
+              "upper_face": 1.437296,
+              "whole_face": 1.652677
+            }
+          },
+          "expected_center_seconds": 61.645,
+          "group": "idle_speaking",
+          "source": "speaking_direct",
+          "target": "active_listening"
+        },
+        "idle:speaking_direct->light_smile": {
+          "100ms": {
+            "frame_pair": [
+              2539,
+              2542
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.19834,
+              "eyes": 1.142795,
+              "mouth": 1.200732,
+              "nose": 1.250761,
+              "upper_face": 1.461086,
+              "whole_face": 1.549234
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              2529,
+              2541
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.245389,
+              "eyes": 0.918692,
+              "mouth": 1.466471,
+              "nose": 1.299533,
+              "upper_face": 1.315218,
+              "whole_face": 1.808923
+            }
+          },
+          "expected_center_seconds": 84.275,
+          "group": "idle_speaking",
+          "source": "speaking_direct",
+          "target": "light_smile"
+        },
+        "idle:speaking_direct->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              870,
+              873
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.020244,
+              "eyes": 1.312905,
+              "mouth": 1.311894,
+              "nose": 0.626095,
+              "upper_face": 1.185917,
+              "whole_face": 1.241929
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              856,
+              868
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.093265,
+              "eyes": 1.350961,
+              "mouth": 1.430477,
+              "nose": 1.041609,
+              "upper_face": 1.29871,
+              "whole_face": 1.354404
+            }
+          },
+          "expected_center_seconds": 28.985,
+          "group": "idle_speaking",
+          "source": "speaking_direct",
+          "target": "neutral_resting"
+        },
+        "tts:empathy:empathetic_head_tilt->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              2946,
+              2949
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.825991,
+              "eyes": 1.096348,
+              "mouth": 7.170958,
+              "nose": 1.339163,
+              "upper_face": 1.188797,
+              "whole_face": 4.798191
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              2937,
+              2949
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.687675,
+              "eyes": 1.063679,
+              "mouth": 4.394692,
+              "nose": 1.413084,
+              "upper_face": 1.666518,
+              "whole_face": 4.487526
+            }
+          },
+          "expected_center_seconds": 98.050667,
+          "group": "tts",
+          "source": "empathetic_head_tilt",
+          "target": "speaking_direct"
+        },
+        "tts:empathy:speaking_direct->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              3244,
+              3247
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.05118,
+              "eyes": 1.178558,
+              "mouth": 7.308367,
+              "nose": 1.037252,
+              "upper_face": 1.352384,
+              "whole_face": 4.652309
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              3228,
+              3240
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.027705,
+              "eyes": 0.959763,
+              "mouth": 6.718137,
+              "nose": 1.34425,
+              "upper_face": 1.326026,
+              "whole_face": 4.364889
+            }
+          },
+          "expected_center_seconds": 108.050667,
+          "group": "tts",
+          "source": "speaking_direct",
+          "target": "neutral_resting"
+        },
+        "tts:warmth:light_smile->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              4287,
+              4290
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.839263,
+              "eyes": 0.943885,
+              "mouth": 8.14865,
+              "nose": 0.814671,
+              "upper_face": 1.48418,
+              "whole_face": 5.440618
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              4280,
+              4292
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.085569,
+              "eyes": 1.405062,
+              "mouth": 7.444799,
+              "nose": 0.972178,
+              "upper_face": 1.759337,
+              "whole_face": 5.058507
+            }
+          },
+          "expected_center_seconds": 142.896667,
+          "group": "tts",
+          "source": "light_smile",
+          "target": "speaking_direct"
+        },
+        "tts:warmth:speaking_direct->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              4597,
+              4600
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.061996,
+              "eyes": 1.04206,
+              "mouth": 2.546443,
+              "nose": 0.825184,
+              "upper_face": 1.059781,
+              "whole_face": 2.431591
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              4581,
+              4593
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.146297,
+              "eyes": 2.087343,
+              "mouth": 2.787423,
+              "nose": 1.851072,
+              "upper_face": 2.176634,
+              "whole_face": 3.272306
+            }
+          },
+          "expected_center_seconds": 152.896667,
+          "group": "tts",
+          "source": "speaking_direct",
+          "target": "neutral_resting"
+        }
+      },
+      "summary": {
+        "all": {
+          "count": 16,
+          "mean_max_100ms_upper_face_rmse_px": 1.360586,
+          "mean_max_100ms_whole_face_rmse_px": 2.205857,
+          "mean_max_400ms_upper_face_rmse_px": 1.548042,
+          "mean_max_400ms_whole_face_rmse_px": 2.47279,
+          "worst_max_100ms_upper_face_rmse_px": 1.784257,
+          "worst_max_100ms_whole_face_rmse_px": 5.440618,
+          "worst_max_400ms_upper_face_rmse_px": 2.176634,
+          "worst_max_400ms_whole_face_rmse_px": 5.058507
+        },
+        "idle_non_speaking": {
+          "count": 6,
+          "mean_max_100ms_upper_face_rmse_px": 1.441453,
+          "mean_max_100ms_whole_face_rmse_px": 1.469032,
+          "mean_max_400ms_upper_face_rmse_px": 1.438087,
+          "mean_max_400ms_whole_face_rmse_px": 1.781542,
+          "worst_max_100ms_upper_face_rmse_px": 1.784257,
+          "worst_max_100ms_whole_face_rmse_px": 1.826799,
+          "worst_max_400ms_upper_face_rmse_px": 1.579691,
+          "worst_max_400ms_whole_face_rmse_px": 2.569412
+        },
+        "idle_speaking": {
+          "count": 6,
+          "mean_max_100ms_upper_face_rmse_px": 1.339252,
+          "mean_max_100ms_whole_face_rmse_px": 1.526137,
+          "mean_max_400ms_upper_face_rmse_px": 1.535273,
+          "mean_max_400ms_whole_face_rmse_px": 1.948694,
+          "worst_max_100ms_upper_face_rmse_px": 1.475222,
+          "worst_max_100ms_whole_face_rmse_px": 1.746319,
+          "worst_max_400ms_upper_face_rmse_px": 2.097054,
+          "worst_max_400ms_whole_face_rmse_px": 2.818265
+        },
+        "tts": {
+          "count": 4,
+          "mean_max_100ms_upper_face_rmse_px": 1.271286,
+          "mean_max_100ms_whole_face_rmse_px": 4.330677,
+          "mean_max_400ms_upper_face_rmse_px": 1.732129,
+          "mean_max_400ms_whole_face_rmse_px": 4.295807,
+          "worst_max_100ms_upper_face_rmse_px": 1.48418,
+          "worst_max_100ms_whole_face_rmse_px": 5.440618,
+          "worst_max_400ms_upper_face_rmse_px": 2.176634,
+          "worst_max_400ms_whole_face_rmse_px": 5.058507
+        }
+      },
+      "video": "/workspace/MuseTalk/generated/webrtc_pose_showcase/2026-07-30/speaking_smooth_v3_30playback_15lipsync/indian_tutor_speaking_smooth_v3_30playback_15lipsync_webrtc_capture.mp4"
+    },
+    "previous_v2_0frames_20playback_20lipsync": {
+      "asset_generation_fps": 20.0,
+      "capture_fps": 20.001861850679575,
+      "capture_frame_count": 3581,
+      "crossfade_duration_ms": 0.0,
+      "crossfade_frames": 0,
+      "events": {
+        "idle:active_listening->light_smile": {
+          "100ms": {
+            "frame_pair": [
+              1377,
+              1379
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.093238,
+              "eyes": 1.251625,
+              "mouth": 1.36508,
+              "nose": 0.888528,
+              "upper_face": 1.291604,
+              "whole_face": 1.518764
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1378,
+              1386
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.942675,
+              "eyes": 0.951373,
+              "mouth": 1.653343,
+              "nose": 0.851912,
+              "upper_face": 1.268772,
+              "whole_face": 2.056101
+            }
+          },
+          "expected_center_seconds": 69.295,
+          "group": "idle_non_speaking",
+          "source": "active_listening",
+          "target": "light_smile"
+        },
+        "idle:active_listening->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              158,
+              160
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.632264,
+              "eyes": 1.195212,
+              "mouth": 1.29038,
+              "nose": 1.256082,
+              "upper_face": 1.552631,
+              "whole_face": 1.982549
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              156,
+              164
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.845637,
+              "eyes": 1.029667,
+              "mouth": 1.490093,
+              "nose": 0.823151,
+              "upper_face": 1.546397,
+              "whole_face": 2.056857
+            }
+          },
+          "expected_center_seconds": 8.218,
+          "group": "idle_non_speaking",
+          "source": "active_listening",
+          "target": "neutral_resting"
+        },
+        "idle:active_listening->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              1023,
+              1025
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.714634,
+              "eyes": 1.15262,
+              "mouth": 1.426535,
+              "nose": 1.725461,
+              "upper_face": 2.280829,
+              "whole_face": 3.076151
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1014,
+              1022
+            ],
+            "regional_face_rmse_px": {
+              "brows": 2.661635,
+              "eyes": 1.637083,
+              "mouth": 1.63244,
+              "nose": 1.810878,
+              "upper_face": 3.050621,
+              "whole_face": 6.243471
+            }
+          },
+          "expected_center_seconds": 50.957,
+          "group": "idle_speaking",
+          "source": "active_listening",
+          "target": "speaking_direct"
+        },
+        "idle:light_smile->active_listening": {
+          "100ms": {
+            "frame_pair": [
+              863,
+              865
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.308288,
+              "eyes": 1.150354,
+              "mouth": 1.08393,
+              "nose": 1.270949,
+              "upper_face": 1.542173,
+              "whole_face": 1.421076
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              857,
+              865
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.341416,
+              "eyes": 1.310839,
+              "mouth": 1.331391,
+              "nose": 1.376634,
+              "upper_face": 1.535301,
+              "whole_face": 1.628582
+            }
+          },
+          "expected_center_seconds": 42.765,
+          "group": "idle_non_speaking",
+          "source": "light_smile",
+          "target": "active_listening"
+        },
+        "idle:light_smile->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              1740,
+              1742
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.818604,
+              "eyes": 1.196579,
+              "mouth": 1.261177,
+              "nose": 1.203121,
+              "upper_face": 1.193631,
+              "whole_face": 1.285179
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1738,
+              1746
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.211181,
+              "eyes": 1.356743,
+              "mouth": 1.126618,
+              "nose": 0.906572,
+              "upper_face": 1.311337,
+              "whole_face": 1.365438
+            }
+          },
+          "expected_center_seconds": 87.384,
+          "group": "idle_non_speaking",
+          "source": "light_smile",
+          "target": "neutral_resting"
+        },
+        "idle:light_smile->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              1471,
+              1473
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.613289,
+              "eyes": 1.347202,
+              "mouth": 1.352155,
+              "nose": 1.294761,
+              "upper_face": 2.254013,
+              "whole_face": 3.306135
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1465,
+              1473
+            ],
+            "regional_face_rmse_px": {
+              "brows": 2.109599,
+              "eyes": 1.304128,
+              "mouth": 1.961297,
+              "nose": 1.189588,
+              "upper_face": 3.485167,
+              "whole_face": 6.738398
+            }
+          },
+          "expected_center_seconds": 73.196,
+          "group": "idle_speaking",
+          "source": "light_smile",
+          "target": "speaking_direct"
+        },
+        "idle:neutral_resting->active_listening": {
+          "100ms": {
+            "frame_pair": [
+              8,
+              10
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.162984,
+              "eyes": 1.119463,
+              "mouth": 1.153444,
+              "nose": 1.294748,
+              "upper_face": 1.242981,
+              "whole_face": 1.352114
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              7,
+              15
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.338014,
+              "eyes": 1.272514,
+              "mouth": 1.344397,
+              "nose": 1.225282,
+              "upper_face": 1.410009,
+              "whole_face": 1.593523
+            }
+          },
+          "expected_center_seconds": 0.427,
+          "group": "idle_non_speaking",
+          "source": "neutral_resting",
+          "target": "active_listening"
+        },
+        "idle:neutral_resting->light_smile": {
+          "100ms": {
+            "frame_pair": [
+              774,
+              776
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.149538,
+              "eyes": 1.2826,
+              "mouth": 1.249436,
+              "nose": 1.010607,
+              "upper_face": 1.44917,
+              "whole_face": 1.561115
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              773,
+              781
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.013147,
+              "eyes": 1.084221,
+              "mouth": 2.080515,
+              "nose": 1.039741,
+              "upper_face": 1.503713,
+              "whole_face": 2.599186
+            }
+          },
+          "expected_center_seconds": 38.834,
+          "group": "idle_non_speaking",
+          "source": "neutral_resting",
+          "target": "light_smile"
+        },
+        "idle:neutral_resting->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              378,
+              380
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.425077,
+              "eyes": 1.351113,
+              "mouth": 1.388224,
+              "nose": 0.960048,
+              "upper_face": 1.405886,
+              "whole_face": 2.017733
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              372,
+              380
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.961628,
+              "eyes": 1.137237,
+              "mouth": 1.579148,
+              "nose": 1.336186,
+              "upper_face": 2.034624,
+              "whole_face": 4.478454
+            }
+          },
+          "expected_center_seconds": 18.517,
+          "group": "idle_speaking",
+          "source": "neutral_resting",
+          "target": "speaking_direct"
+        },
+        "idle:speaking_direct->active_listening": {
+          "100ms": {
+            "frame_pair": [
+              1224,
+              1226
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.435077,
+              "eyes": 1.239701,
+              "mouth": 1.32004,
+              "nose": 1.23481,
+              "upper_face": 1.485994,
+              "whole_face": 1.451043
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1217,
+              1225
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.536883,
+              "eyes": 1.293294,
+              "mouth": 1.250855,
+              "nose": 1.42184,
+              "upper_face": 1.505843,
+              "whole_face": 1.703662
+            }
+          },
+          "expected_center_seconds": 61.066,
+          "group": "idle_speaking",
+          "source": "speaking_direct",
+          "target": "active_listening"
+        },
+        "idle:speaking_direct->light_smile": {
+          "100ms": {
+            "frame_pair": [
+              1665,
+              1667
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.391344,
+              "eyes": 1.248508,
+              "mouth": 1.328154,
+              "nose": 1.444211,
+              "upper_face": 1.403922,
+              "whole_face": 1.46869
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1660,
+              1668
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.619164,
+              "eyes": 0.869297,
+              "mouth": 1.74219,
+              "nose": 0.852625,
+              "upper_face": 1.013912,
+              "whole_face": 1.66558
+            }
+          },
+          "expected_center_seconds": 83.48,
+          "group": "idle_speaking",
+          "source": "speaking_direct",
+          "target": "light_smile"
+        },
+        "idle:speaking_direct->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              566,
+              568
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.438708,
+              "eyes": 1.085188,
+              "mouth": 1.205375,
+              "nose": 1.190559,
+              "upper_face": 1.294588,
+              "whole_face": 1.317075
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              570,
+              578
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.092999,
+              "eyes": 1.029228,
+              "mouth": 1.431524,
+              "nose": 0.831895,
+              "upper_face": 1.186816,
+              "whole_face": 1.453458
+            }
+          },
+          "expected_center_seconds": 28.584,
+          "group": "idle_speaking",
+          "source": "speaking_direct",
+          "target": "neutral_resting"
+        },
+        "tts:empathy:empathetic_head_tilt->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              1937,
+              1939
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.54486,
+              "eyes": 1.016307,
+              "mouth": 3.007389,
+              "nose": 1.208619,
+              "upper_face": 2.194389,
+              "whole_face": 4.267794
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1941,
+              1949
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.491672,
+              "eyes": 0.96003,
+              "mouth": 4.271843,
+              "nose": 1.276269,
+              "upper_face": 2.374347,
+              "whole_face": 4.770343
+            }
+          },
+          "expected_center_seconds": 97.32,
+          "group": "tts",
+          "source": "empathetic_head_tilt",
+          "target": "speaking_direct"
+        },
+        "tts:empathy:speaking_direct->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              2147,
+              2149
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.702347,
+              "eyes": 1.059107,
+              "mouth": 6.660336,
+              "nose": 0.986074,
+              "upper_face": 1.029677,
+              "whole_face": 4.34143
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              2138,
+              2146
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.341543,
+              "eyes": 1.010149,
+              "mouth": 3.35408,
+              "nose": 1.028437,
+              "upper_face": 1.223418,
+              "whole_face": 3.682828
+            }
+          },
+          "expected_center_seconds": 107.32,
+          "group": "tts",
+          "source": "speaking_direct",
+          "target": "neutral_resting"
+        },
+        "tts:warmth:light_smile->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              2834,
+              2836
+            ],
+            "regional_face_rmse_px": {
+              "brows": 2.237116,
+              "eyes": 1.64679,
+              "mouth": 2.685146,
+              "nose": 2.0222,
+              "upper_face": 3.017167,
+              "whole_face": 6.207924
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              2829,
+              2837
+            ],
+            "regional_face_rmse_px": {
+              "brows": 2.909524,
+              "eyes": 1.638444,
+              "mouth": 1.975056,
+              "nose": 2.108517,
+              "upper_face": 3.39285,
+              "whole_face": 7.15891
+            }
+          },
+          "expected_center_seconds": 141.523,
+          "group": "tts",
+          "source": "light_smile",
+          "target": "speaking_direct"
+        },
+        "tts:warmth:speaking_direct->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              3026,
+              3028
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.970036,
+              "eyes": 1.338788,
+              "mouth": 4.25967,
+              "nose": 0.0,
+              "upper_face": 1.110095,
+              "whole_face": 3.206294
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              3022,
+              3030
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.010774,
+              "eyes": 1.2493,
+              "mouth": 5.205578,
+              "nose": 1.501769,
+              "upper_face": 1.3915,
+              "whole_face": 4.083604
+            }
+          },
+          "expected_center_seconds": 151.523,
+          "group": "tts",
+          "source": "speaking_direct",
+          "target": "neutral_resting"
+        }
+      },
+      "summary": {
+        "all": {
+          "count": 16,
+          "mean_max_100ms_upper_face_rmse_px": 1.609297,
+          "mean_max_100ms_whole_face_rmse_px": 2.486317,
+          "mean_max_400ms_upper_face_rmse_px": 1.827164,
+          "mean_max_400ms_whole_face_rmse_px": 3.3299,
+          "worst_max_100ms_upper_face_rmse_px": 3.017167,
+          "worst_max_100ms_whole_face_rmse_px": 6.207924,
+          "worst_max_400ms_upper_face_rmse_px": 3.485167,
+          "worst_max_400ms_whole_face_rmse_px": 7.15891
+        },
+        "idle_non_speaking": {
+          "count": 6,
+          "mean_max_100ms_upper_face_rmse_px": 1.378698,
+          "mean_max_100ms_whole_face_rmse_px": 1.520133,
+          "mean_max_400ms_upper_face_rmse_px": 1.429255,
+          "mean_max_400ms_whole_face_rmse_px": 1.883281,
+          "worst_max_100ms_upper_face_rmse_px": 1.552631,
+          "worst_max_100ms_whole_face_rmse_px": 1.982549,
+          "worst_max_400ms_upper_face_rmse_px": 1.546397,
+          "worst_max_400ms_whole_face_rmse_px": 2.599186
+        },
+        "idle_speaking": {
+          "count": 6,
+          "mean_max_100ms_upper_face_rmse_px": 1.687539,
+          "mean_max_100ms_whole_face_rmse_px": 2.106138,
+          "mean_max_400ms_upper_face_rmse_px": 2.046164,
+          "mean_max_400ms_whole_face_rmse_px": 3.713837,
+          "worst_max_100ms_upper_face_rmse_px": 2.280829,
+          "worst_max_100ms_whole_face_rmse_px": 3.306135,
+          "worst_max_400ms_upper_face_rmse_px": 3.485167,
+          "worst_max_400ms_whole_face_rmse_px": 6.738398
+        },
+        "tts": {
+          "count": 4,
+          "mean_max_100ms_upper_face_rmse_px": 1.837832,
+          "mean_max_100ms_whole_face_rmse_px": 4.505861,
+          "mean_max_400ms_upper_face_rmse_px": 2.095529,
+          "mean_max_400ms_whole_face_rmse_px": 4.923921,
+          "worst_max_100ms_upper_face_rmse_px": 3.017167,
+          "worst_max_100ms_whole_face_rmse_px": 6.207924,
+          "worst_max_400ms_upper_face_rmse_px": 3.39285,
+          "worst_max_400ms_whole_face_rmse_px": 7.15891
+        }
+      },
+      "video": "/workspace/MuseTalk/generated/webrtc_pose_showcase/2026-07-29/crossfade_comparison/0_frames/indian_tutor_mvp_four_v2_crossfade_0_webrtc_capture.mp4"
+    },
+    "previous_v2_2frames_20playback_20lipsync": {
+      "asset_generation_fps": 20.0,
+      "capture_fps": 20.001860811313733,
+      "capture_frame_count": 3583,
+      "crossfade_duration_ms": 99.991,
+      "crossfade_frames": 2,
+      "events": {
+        "idle:active_listening->light_smile": {
+          "100ms": {
+            "frame_pair": [
+              1377,
+              1379
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.190584,
+              "eyes": 1.260543,
+              "mouth": 1.093124,
+              "nose": 1.008583,
+              "upper_face": 1.323065,
+              "whole_face": 1.463551
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1377,
+              1385
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.766603,
+              "eyes": 0.776146,
+              "mouth": 1.993317,
+              "nose": 1.337493,
+              "upper_face": 1.136496,
+              "whole_face": 2.284511
+            }
+          },
+          "expected_center_seconds": 69.321,
+          "group": "idle_non_speaking",
+          "source": "active_listening",
+          "target": "light_smile"
+        },
+        "idle:active_listening->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              160,
+              162
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.448582,
+              "eyes": 1.192076,
+              "mouth": 1.369207,
+              "nose": 1.244225,
+              "upper_face": 1.738628,
+              "whole_face": 1.90665
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              155,
+              163
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.732233,
+              "eyes": 1.243282,
+              "mouth": 1.470956,
+              "nose": 0.973191,
+              "upper_face": 1.690936,
+              "whole_face": 2.198228
+            }
+          },
+          "expected_center_seconds": 8.239,
+          "group": "idle_non_speaking",
+          "source": "active_listening",
+          "target": "neutral_resting"
+        },
+        "idle:active_listening->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              1024,
+              1026
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.75544,
+              "eyes": 1.300418,
+              "mouth": 1.479819,
+              "nose": 1.468766,
+              "upper_face": 2.195384,
+              "whole_face": 3.084604
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1015,
+              1023
+            ],
+            "regional_face_rmse_px": {
+              "brows": 3.012764,
+              "eyes": 1.505848,
+              "mouth": 1.750555,
+              "nose": 1.639637,
+              "upper_face": 2.75034,
+              "whole_face": 5.85719
+            }
+          },
+          "expected_center_seconds": 50.999,
+          "group": "idle_speaking",
+          "source": "active_listening",
+          "target": "speaking_direct"
+        },
+        "idle:light_smile->active_listening": {
+          "100ms": {
+            "frame_pair": [
+              864,
+              866
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.178619,
+              "eyes": 1.178698,
+              "mouth": 1.261318,
+              "nose": 1.13515,
+              "upper_face": 1.419543,
+              "whole_face": 1.434291
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              858,
+              866
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.288764,
+              "eyes": 1.248586,
+              "mouth": 1.072624,
+              "nose": 1.393844,
+              "upper_face": 1.399137,
+              "whole_face": 1.52525
+            }
+          },
+          "expected_center_seconds": 42.974,
+          "group": "idle_non_speaking",
+          "source": "light_smile",
+          "target": "active_listening"
+        },
+        "idle:light_smile->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              1752,
+              1754
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.821923,
+              "eyes": 0.776164,
+              "mouth": 1.211233,
+              "nose": 0.594234,
+              "upper_face": 0.908516,
+              "whole_face": 1.173942
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1754,
+              1762
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.227236,
+              "eyes": 1.170664,
+              "mouth": 1.197637,
+              "nose": 0.60871,
+              "upper_face": 1.125475,
+              "whole_face": 1.315209
+            }
+          },
+          "expected_center_seconds": 87.78,
+          "group": "idle_non_speaking",
+          "source": "light_smile",
+          "target": "neutral_resting"
+        },
+        "idle:light_smile->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              1472,
+              1474
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.579783,
+              "eyes": 1.118457,
+              "mouth": 1.284176,
+              "nose": 1.048387,
+              "upper_face": 2.166551,
+              "whole_face": 3.451737
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1465,
+              1473
+            ],
+            "regional_face_rmse_px": {
+              "brows": 2.386928,
+              "eyes": 1.726044,
+              "mouth": 1.841454,
+              "nose": 1.805676,
+              "upper_face": 3.467481,
+              "whole_face": 6.894319
+            }
+          },
+          "expected_center_seconds": 73.426,
+          "group": "idle_speaking",
+          "source": "light_smile",
+          "target": "speaking_direct"
+        },
+        "idle:neutral_resting->active_listening": {
+          "100ms": {
+            "frame_pair": [
+              8,
+              10
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.162984,
+              "eyes": 1.119463,
+              "mouth": 1.153444,
+              "nose": 1.294748,
+              "upper_face": 1.242981,
+              "whole_face": 1.352114
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              7,
+              15
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.338014,
+              "eyes": 1.272514,
+              "mouth": 1.344397,
+              "nose": 1.225282,
+              "upper_face": 1.410009,
+              "whole_face": 1.593523
+            }
+          },
+          "expected_center_seconds": 0.428,
+          "group": "idle_non_speaking",
+          "source": "neutral_resting",
+          "target": "active_listening"
+        },
+        "idle:neutral_resting->light_smile": {
+          "100ms": {
+            "frame_pair": [
+              778,
+              780
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.91474,
+              "eyes": 1.014653,
+              "mouth": 1.683338,
+              "nose": 0.888528,
+              "upper_face": 1.125297,
+              "whole_face": 1.521365
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              775,
+              783
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.16405,
+              "eyes": 0.93544,
+              "mouth": 2.142588,
+              "nose": 0.51107,
+              "upper_face": 1.439883,
+              "whole_face": 2.792536
+            }
+          },
+          "expected_center_seconds": 38.89,
+          "group": "idle_non_speaking",
+          "source": "neutral_resting",
+          "target": "light_smile"
+        },
+        "idle:neutral_resting->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              377,
+              379
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.209551,
+              "eyes": 1.042475,
+              "mouth": 1.364033,
+              "nose": 1.347581,
+              "upper_face": 1.383034,
+              "whole_face": 1.700127
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              372,
+              380
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.382586,
+              "eyes": 1.195671,
+              "mouth": 1.462192,
+              "nose": 1.037626,
+              "upper_face": 1.445404,
+              "whole_face": 3.527723
+            }
+          },
+          "expected_center_seconds": 18.524,
+          "group": "idle_speaking",
+          "source": "neutral_resting",
+          "target": "speaking_direct"
+        },
+        "idle:speaking_direct->active_listening": {
+          "100ms": {
+            "frame_pair": [
+              1224,
+              1226
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.760412,
+              "eyes": 1.124375,
+              "mouth": 1.285136,
+              "nose": 1.270949,
+              "upper_face": 1.342884,
+              "whole_face": 1.398957
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1217,
+              1225
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.051347,
+              "eyes": 1.057256,
+              "mouth": 1.329727,
+              "nose": 1.281824,
+              "upper_face": 1.343906,
+              "whole_face": 1.556424
+            }
+          },
+          "expected_center_seconds": 61.311,
+          "group": "idle_speaking",
+          "source": "speaking_direct",
+          "target": "active_listening"
+        },
+        "idle:speaking_direct->light_smile": {
+          "100ms": {
+            "frame_pair": [
+              1666,
+              1668
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.301297,
+              "eyes": 1.275858,
+              "mouth": 1.397769,
+              "nose": 1.380796,
+              "upper_face": 1.364981,
+              "whole_face": 1.375383
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1675,
+              1683
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.334248,
+              "eyes": 1.174596,
+              "mouth": 1.33425,
+              "nose": 1.204141,
+              "upper_face": 1.381538,
+              "whole_face": 1.463324
+            }
+          },
+          "expected_center_seconds": 83.699,
+          "group": "idle_speaking",
+          "source": "speaking_direct",
+          "target": "light_smile"
+        },
+        "idle:speaking_direct->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              565,
+              567
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.42044,
+              "eyes": 1.261859,
+              "mouth": 1.235461,
+              "nose": 0.977754,
+              "upper_face": 1.346001,
+              "whole_face": 1.280079
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              565,
+              573
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.562565,
+              "eyes": 1.173931,
+              "mouth": 1.348678,
+              "nose": 0.598027,
+              "upper_face": 1.336202,
+              "whole_face": 1.377182
+            }
+          },
+          "expected_center_seconds": 28.621,
+          "group": "idle_speaking",
+          "source": "speaking_direct",
+          "target": "neutral_resting"
+        },
+        "tts:empathy:empathetic_head_tilt->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              1940,
+              1942
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.220084,
+              "eyes": 1.159628,
+              "mouth": 6.666469,
+              "nose": 1.524166,
+              "upper_face": 1.514586,
+              "whole_face": 4.897406
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              1939,
+              1947
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.425111,
+              "eyes": 0.98476,
+              "mouth": 4.56269,
+              "nose": 1.340131,
+              "upper_face": 1.983815,
+              "whole_face": 4.578917
+            }
+          },
+          "expected_center_seconds": 97.437,
+          "group": "tts",
+          "source": "empathetic_head_tilt",
+          "target": "speaking_direct"
+        },
+        "tts:empathy:speaking_direct->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              2152,
+              2154
+            ],
+            "regional_face_rmse_px": {
+              "brows": 1.002654,
+              "eyes": 0.980305,
+              "mouth": 6.565302,
+              "nose": 1.190442,
+              "upper_face": 1.120338,
+              "whole_face": 4.347985
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              2143,
+              2151
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.98438,
+              "eyes": 1.154306,
+              "mouth": 3.463454,
+              "nose": 1.446498,
+              "upper_face": 1.261608,
+              "whole_face": 3.518191
+            }
+          },
+          "expected_center_seconds": 107.437,
+          "group": "tts",
+          "source": "speaking_direct",
+          "target": "neutral_resting"
+        },
+        "tts:warmth:light_smile->speaking_direct": {
+          "100ms": {
+            "frame_pair": [
+              2835,
+              2837
+            ],
+            "regional_face_rmse_px": {
+              "brows": 2.182073,
+              "eyes": 1.326196,
+              "mouth": 2.297531,
+              "nose": 2.049657,
+              "upper_face": 3.149088,
+              "whole_face": 5.620761
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              2830,
+              2838
+            ],
+            "regional_face_rmse_px": {
+              "brows": 2.922983,
+              "eyes": 1.426677,
+              "mouth": 3.07095,
+              "nose": 2.629,
+              "upper_face": 3.370645,
+              "whole_face": 7.090939
+            }
+          },
+          "expected_center_seconds": 141.731,
+          "group": "tts",
+          "source": "light_smile",
+          "target": "speaking_direct"
+        },
+        "tts:warmth:speaking_direct->neutral_resting": {
+          "100ms": {
+            "frame_pair": [
+              3030,
+              3032
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.944196,
+              "eyes": 0.0,
+              "mouth": 4.073851,
+              "nose": 1.377083,
+              "upper_face": 1.047628,
+              "whole_face": 3.129378
+            }
+          },
+          "400ms": {
+            "frame_pair": [
+              3026,
+              3034
+            ],
+            "regional_face_rmse_px": {
+              "brows": 0.746777,
+              "eyes": 1.162569,
+              "mouth": 4.885483,
+              "nose": 1.064714,
+              "upper_face": 1.291309,
+              "whole_face": 3.952901
+            }
+          },
+          "expected_center_seconds": 151.731,
+          "group": "tts",
+          "source": "speaking_direct",
+          "target": "neutral_resting"
+        }
+      },
+      "summary": {
+        "all": {
+          "count": 16,
+          "mean_max_100ms_upper_face_rmse_px": 1.524282,
+          "mean_max_100ms_whole_face_rmse_px": 2.446146,
+          "mean_max_400ms_upper_face_rmse_px": 1.739637,
+          "mean_max_400ms_whole_face_rmse_px": 3.220398,
+          "worst_max_100ms_upper_face_rmse_px": 3.149088,
+          "worst_max_100ms_whole_face_rmse_px": 5.620761,
+          "worst_max_400ms_upper_face_rmse_px": 3.467481,
+          "worst_max_400ms_whole_face_rmse_px": 7.090939
+        },
+        "idle_non_speaking": {
+          "count": 6,
+          "mean_max_100ms_upper_face_rmse_px": 1.293005,
+          "mean_max_100ms_whole_face_rmse_px": 1.475319,
+          "mean_max_400ms_upper_face_rmse_px": 1.366989,
+          "mean_max_400ms_whole_face_rmse_px": 1.951543,
+          "worst_max_100ms_upper_face_rmse_px": 1.738628,
+          "worst_max_100ms_whole_face_rmse_px": 1.90665,
+          "worst_max_400ms_upper_face_rmse_px": 1.690936,
+          "worst_max_400ms_whole_face_rmse_px": 2.792536
+        },
+        "idle_speaking": {
+          "count": 6,
+          "mean_max_100ms_upper_face_rmse_px": 1.633139,
+          "mean_max_100ms_whole_face_rmse_px": 2.048481,
+          "mean_max_400ms_upper_face_rmse_px": 1.954145,
+          "mean_max_400ms_whole_face_rmse_px": 3.446027,
+          "worst_max_100ms_upper_face_rmse_px": 2.195384,
+          "worst_max_100ms_whole_face_rmse_px": 3.451737,
+          "worst_max_400ms_upper_face_rmse_px": 3.467481,
+          "worst_max_400ms_whole_face_rmse_px": 6.894319
+        },
+        "tts": {
+          "count": 4,
+          "mean_max_100ms_upper_face_rmse_px": 1.70791,
+          "mean_max_100ms_whole_face_rmse_px": 4.498883,
+          "mean_max_400ms_upper_face_rmse_px": 1.976844,
+          "mean_max_400ms_whole_face_rmse_px": 4.785237,
+          "worst_max_100ms_upper_face_rmse_px": 3.149088,
+          "worst_max_100ms_whole_face_rmse_px": 5.620761,
+          "worst_max_400ms_upper_face_rmse_px": 3.370645,
+          "worst_max_400ms_whole_face_rmse_px": 7.090939
+        }
+      },
+      "video": "/workspace/MuseTalk/generated/webrtc_pose_showcase/2026-07-29/crossfade_comparison/2_frames/indian_tutor_mvp_four_v2_crossfade_2_webrtc_capture.mp4"
+    }
+  },
+  "schema_version": 1
+}

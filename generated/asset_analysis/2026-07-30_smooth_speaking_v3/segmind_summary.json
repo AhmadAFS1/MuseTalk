@@ -1,0 +1,59 @@
+{
+  "api_url": "https://api.segmind.com/v2/kling-2.6-pro-motion-control",
+  "created_at": "2026-07-30T15:46:22.631305+00:00",
+  "inputs": {
+    "speaking_direct_v2": {
+      "path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_speaking_smooth_v3/inputs/speaking_direct_v2.mp4",
+      "probe": {
+        "duration_seconds": 10.0,
+        "frame_rate": "30/1",
+        "frames": 300,
+        "height": 1920,
+        "width": 1080
+      },
+      "s3_object": "s3://lingua-ai-idle-vids/segmind_pose_tests/20260730_speaking_smooth_v3/inputs/speaking_direct_v2.mp4",
+      "sha256": "f6ba6a95053cf9ff7746995bffcc81e5c614a2a62957a7349f57cbef79092b8b"
+    }
+  },
+  "model": "kling-2.6-pro-motion-control",
+  "outputs": {
+    "speaking_direct_v2": {
+      "endpoint_metrics": {
+        "contact_sheet": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_speaking_smooth_v3/outputs/speaking_direct_v2/first_last_contact.png",
+        "first_frame": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_speaking_smooth_v3/outputs/speaking_direct_v2/first_frame.png",
+        "last_frame": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_speaking_smooth_v3/outputs/speaking_direct_v2/last_frame.png",
+        "ssim": "[Parsed_ssim_0 @ 0x13ee23720] SSIM R:0.823074 (7.522074) G:0.825956 (7.593407) B:0.811687 (7.251208) All:0.820239 (7.453045)"
+      },
+      "normalized_path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_speaking_smooth_v3/outputs/speaking_direct_v2/speaking_direct_v2_segmind_720x1280_30fps.mp4",
+      "normalized_probe": {
+        "duration_seconds": 10.0,
+        "frame_rate": "30/1",
+        "frames": 300,
+        "height": 1280,
+        "width": 720
+      },
+      "normalized_sha256": "ee4f754078ae49c7adb77043605bd51c84f8fba8681e2e0149988478991b6b9e",
+      "raw_path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_speaking_smooth_v3/outputs/speaking_direct_v2/speaking_direct_v2_segmind_raw.mp4",
+      "raw_probe": {
+        "duration_seconds": 10.0,
+        "frame_rate": "30/1",
+        "frames": 300,
+        "height": 1920,
+        "width": 1072
+      },
+      "raw_sha256": "f2d63d98e757c7bdbc99659b2230d68db75f495bfb490f53a4443c7ec3c7f276",
+      "request_id": "c42b69f1b13e8cca042ee9863104dd96",
+      "status": "COMPLETED"
+    }
+  },
+  "prompts": {
+    "speaking_direct_v2": "Transfer the reference video speaking direct v2 motion to the character in the source image. Preserve the character identity and framing. Keep the natural blinking from the reference and maintain relaxed, direct eye contact with the camera whenever the eyes are open. Keep the camera locked and the mouth closed. No looking sideways."
+  },
+  "run_id": "20260730_speaking_smooth_v3",
+  "schema_version": 1,
+  "source_image": {
+    "path": "/Users/ahmadsmacair/code/lingua/lingua/backend/tmp/segmind_pose_tests/20260730_speaking_smooth_v3/inputs/source_avatar.jpg",
+    "s3_object": "s3://linguaprofilepics/generated-images/segmind-pose-tests/20260730_speaking_smooth_v3/source_avatar.jpg",
+    "sha256": "72b1ac0431025ceaf0620bf67ea9d448dba4376537c7965b134a89fa6f560d6b"
+  }
+}
