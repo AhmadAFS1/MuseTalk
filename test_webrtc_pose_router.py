@@ -43,6 +43,14 @@ class FailingDecoder(FakeDecoder):
         raise RuntimeError("decode failed")
 
 
+class ProductionDurationDecoder(FakeDecoder):
+    def __init__(self, video_path):
+        super().__init__(video_path)
+        self.frame_count = (
+            180 if "light_smile" in self.video_path else 360
+        )
+
+
 class LivePoseVideoRouterTest(unittest.TestCase):
     def setUp(self):
         FakeDecoder.instances = {}
@@ -134,7 +142,7 @@ class LivePoseVideoRouterTest(unittest.TestCase):
         self.assertEqual(snapshots[98].origin_generation_frame, 98)
         self.assertEqual(snapshots[147].origin_generation_frame, 147)
 
-    def test_pose_plan_snaps_semantic_cues_to_complete_clip_boundaries(self):
+    def test_pose_plan_forces_requested_time_when_boundary_is_too_far(self):
         router = LivePoseVideoRouter(self.paths, decoder_factory=FakeDecoder)
         staged = router.queue_pose_plan(
             {
@@ -165,17 +173,34 @@ class LivePoseVideoRouterTest(unittest.TestCase):
                 for segment in compiled
             ],
             [
-                ("speaking_direct", 0, 49),
-                ("light_smile", 49, 147),
-                ("speaking_direct", 147, 200),
+                ("speaking_direct", 0, 40),
+                ("light_smile", 40, 120),
+                ("speaking_direct", 120, 200),
             ],
         )
-        self.assertEqual(router.snapshot(48, 10).pose_id, "speaking_direct")
-        self.assertEqual(router.snapshot(49, 10).pose_id, "light_smile")
-        self.assertEqual(router.snapshot(146, 10).pose_id, "light_smile")
-        self.assertEqual(router.snapshot(147, 10).pose_id, "speaking_direct")
+        self.assertEqual(router.snapshot(39, 10).pose_id, "speaking_direct")
+        self.assertEqual(router.snapshot(40, 10).pose_id, "light_smile")
+        self.assertEqual(router.snapshot(119, 10).pose_id, "light_smile")
+        self.assertEqual(router.snapshot(120, 10).pose_id, "speaking_direct")
+        self.assertEqual(
+            [segment["semantic_drift_frames"] for segment in compiled],
+            [0, 0, 0],
+        )
+        self.assertEqual(
+            [segment["switch_strategy"] for segment in compiled],
+            [
+                "initial_phase_aligned",
+                "requested_time_crossfade",
+                "requested_time_crossfade",
+            ],
+        )
+        self.assertEqual(
+            [segment["crossfade_frames"] for segment in compiled],
+            [0, 4, 4],
+        )
+        self.assertTrue(router.get_compiled_pose_plan()["semantic_timing_valid"])
 
-    def test_pose_plan_skips_expression_that_cannot_finish_safely(self):
+    def test_pose_plan_does_not_require_a_complete_expression_loop(self):
         router = LivePoseVideoRouter(self.paths, decoder_factory=FakeDecoder)
         router.queue_pose_plan(
             {
@@ -198,14 +223,18 @@ class LivePoseVideoRouterTest(unittest.TestCase):
 
         self.assertEqual(
             [segment["pose_id"] for segment in compiled["segments"]],
-            ["speaking_direct"],
+            ["speaking_direct", "light_smile", "speaking_direct"],
         )
         self.assertEqual(
-            compiled["skipped_segments"][0]["reason"],
-            "insufficient_audio_for_complete_clip",
+            [
+                segment["effective_start_generation_frame"]
+                for segment in compiled["segments"]
+            ],
+            [0, 20, 60],
         )
+        self.assertEqual(compiled["skipped_segments"], [])
 
-    def test_pose_plan_preserves_current_phase_for_first_safe_boundary(self):
+    def test_pose_plan_uses_nearest_phase_boundary_within_drift_limit(self):
         router = LivePoseVideoRouter(self.paths, decoder_factory=FakeDecoder)
         router.queue_pose_plan(
             {
@@ -213,7 +242,7 @@ class LivePoseVideoRouterTest(unittest.TestCase):
                 "clock": "audio_progress",
                 "segments": [
                     {"at_permille": 0, "pose_id": "light_smile"},
-                    {"at_permille": 300, "pose_id": "speaking_direct"},
+                    {"at_permille": 350, "pose_id": "speaking_direct"},
                 ],
                 "on_complete": "neutral_resting",
                 "switch_mode": "next_boundary",
@@ -232,6 +261,69 @@ class LivePoseVideoRouterTest(unittest.TestCase):
             compiled[1]["effective_start_generation_frame"],
             69,
         )
+        self.assertEqual(
+            compiled[1]["requested_start_generation_frame"],
+            70,
+        )
+        self.assertEqual(compiled[1]["semantic_drift_frames"], -1)
+        self.assertEqual(
+            compiled[1]["switch_strategy"],
+            "nearest_safe_boundary",
+        )
+        self.assertEqual(compiled[1]["crossfade_frames"], 0)
+
+    def test_production_duration_example_has_no_multi_second_pose_lag(self):
+        router = LivePoseVideoRouter(
+            self.paths,
+            prepared_pose_id="speaking_direct",
+            initial_pose_id="speaking_direct",
+            decoder_factory=ProductionDurationDecoder,
+        )
+        router.queue_pose_plan(
+            {
+                "version": 2,
+                "clock": "audio_progress",
+                "segments": [
+                    {"at_permille": 0, "pose_id": "speaking_direct"},
+                    {"at_permille": 200, "pose_id": "light_smile"},
+                    {"at_permille": 600, "pose_id": "speaking_direct"},
+                ],
+                "on_complete": "neutral_resting",
+                "switch_mode": "next_boundary",
+            },
+            total_generation_frames=395,
+            generation_fps=15,
+        )
+
+        compiled = router.align_first_queued_pose(90, 15)
+
+        self.assertEqual(
+            [
+                segment["effective_start_generation_frame"]
+                for segment in compiled
+            ],
+            [0, 79, 237],
+        )
+        self.assertEqual(
+            [
+                segment["requested_start_generation_frame"]
+                for segment in compiled
+            ],
+            [0, 79, 237],
+        )
+        self.assertEqual(
+            [segment["semantic_drift_frames"] for segment in compiled],
+            [0, 0, 0],
+        )
+        self.assertEqual(router.snapshot(78, 15).pose_id, "speaking_direct")
+        self.assertEqual(router.snapshot(79, 15).pose_id, "light_smile")
+        self.assertEqual(router.snapshot(236, 15).pose_id, "light_smile")
+        self.assertEqual(router.snapshot(237, 15).pose_id, "speaking_direct")
+        self.assertEqual(router.snapshot(79, 15).crossfade_frames, 4)
+        self.assertEqual(router.snapshot(237, 15).crossfade_frames, 4)
+        telemetry = router.get_compiled_pose_plan()
+        self.assertEqual(telemetry["max_abs_semantic_drift_frames"], 0)
+        self.assertTrue(telemetry["semantic_timing_valid"])
 
     def test_decode_failure_falls_back_to_prepared_background(self):
         router = LivePoseVideoRouter(self.paths, decoder_factory=FailingDecoder)

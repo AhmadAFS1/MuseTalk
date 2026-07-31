@@ -1236,6 +1236,22 @@ async def worker_capabilities():
             "version": 1,
             "pose_plan_version": 2,
             "switch_mode": POSE_SWITCH_MODE,
+            "switch_policy": "bounded_semantic",
+            "max_semantic_drift_ms": int(round(
+                _env_float(
+                    "WEBRTC_POSE_MAX_SEMANTIC_DRIFT_SECONDS",
+                    0.75,
+                )
+                * 1000.0
+            )),
+            "boundary_crossfade_frames": _env_int(
+                "WEBRTC_POSE_CROSSFADE_FRAMES",
+                2,
+            ),
+            "forced_switch_crossfade_frames": _env_int(
+                "WEBRTC_POSE_FORCED_CROSSFADE_FRAMES",
+                4,
+            ),
             "pose_ids": list(POSE_IDS),
             "audio_start": "immediate",
             "mouth_mode": "lip_sync",

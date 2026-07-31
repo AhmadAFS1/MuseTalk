@@ -2,10 +2,42 @@
 
 from __future__ import annotations
 
+import math
+import os
 import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, Optional
+
+
+def _env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value in (None, ""):
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value in (None, ""):
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+DEFAULT_MAX_SEMANTIC_DRIFT_SECONDS = max(
+    0.0,
+    _env_float("WEBRTC_POSE_MAX_SEMANTIC_DRIFT_SECONDS", 0.75),
+)
+DEFAULT_FORCED_SWITCH_CROSSFADE_FRAMES = max(
+    1,
+    _env_int("WEBRTC_POSE_FORCED_CROSSFADE_FRAMES", 4),
+)
 
 
 @dataclass(frozen=True)
@@ -17,6 +49,8 @@ class LivePoseSnapshot:
     generation_fps: float
     is_queued: bool = False
     source_frame_offset: int = 0
+    switch_strategy: str = "continuous"
+    crossfade_frames: int = 0
 
     @property
     def uses_prepared_background(self) -> bool:
@@ -31,6 +65,8 @@ class LivePoseQueueSegment:
     source_frame_offset: int = 0
     requested_at_permille: int = 0
     requested_start_generation_frame: int = 0
+    switch_strategy: str = "initial"
+    crossfade_frames: int = 0
 
 
 class _LoopingVideoDecoder:
@@ -113,6 +149,10 @@ class LivePoseVideoRouter:
         prepared_pose_ids: Optional[set[str]] = None,
         initial_pose_id: str = "default",
         decoder_factory: Callable[[str], object] = _LoopingVideoDecoder,
+        max_semantic_drift_seconds: float = DEFAULT_MAX_SEMANTIC_DRIFT_SECONDS,
+        forced_switch_crossfade_frames: int = (
+            DEFAULT_FORCED_SWITCH_CROSSFADE_FRAMES
+        ),
     ):
         self._lock = threading.RLock()
         self._pose_video_paths: Dict[str, str] = {}
@@ -137,6 +177,14 @@ class LivePoseVideoRouter:
         self._queue_mode = "sequence"
         self._pose_plan_request: Optional[dict] = None
         self._compiled_pose_plan: Optional[dict] = None
+        self.max_semantic_drift_seconds = max(
+            0.0,
+            float(max_semantic_drift_seconds),
+        )
+        self.forced_switch_crossfade_frames = max(
+            1,
+            int(forced_switch_crossfade_frames),
+        )
 
         for pose_id, video_path in pose_video_paths.items():
             self.register_pose(pose_id, video_path)
@@ -271,7 +319,7 @@ class LivePoseVideoRouter:
         *,
         hold_last_pose: bool = True,
     ) -> dict:
-        """Stage a semantic audio-progress plan for boundary-safe compilation."""
+        """Stage a semantic audio-progress plan for bounded-drift compilation."""
 
         safe_total_frames = max(1, int(total_generation_frames))
         safe_generation_fps = max(0.001, float(generation_fps or 0.0))
@@ -306,6 +354,12 @@ class LivePoseVideoRouter:
                 ),
                 "total_generation_frames": safe_total_frames,
                 "generation_fps": safe_generation_fps,
+                "max_semantic_drift_seconds": (
+                    self.max_semantic_drift_seconds
+                ),
+                "forced_switch_crossfade_frames": (
+                    self.forced_switch_crossfade_frames
+                ),
             }
             self._compiled_pose_plan = {
                 "status": "pending_phase_alignment",
@@ -314,6 +368,13 @@ class LivePoseVideoRouter:
                 "skipped_segments": [],
                 "total_generation_frames": safe_total_frames,
                 "generation_fps": safe_generation_fps,
+                "switch_policy": "bounded_semantic",
+                "max_semantic_drift_seconds": (
+                    self.max_semantic_drift_seconds
+                ),
+                "forced_switch_crossfade_frames": (
+                    self.forced_switch_crossfade_frames
+                ),
             }
             self._pose_queue = [
                 LivePoseQueueSegment(
@@ -356,6 +417,68 @@ class LivePoseVideoRouter:
         )
         return duration_frames, source_frame_count
 
+    def _nearest_safe_boundary_locked(
+        self,
+        pose_id: str,
+        *,
+        current_start: int,
+        source_frame_offset: int,
+        desired_start: int,
+        generation_fps: float,
+    ) -> int:
+        """Return the closest complete-loop boundary after the segment starts."""
+
+        duration_frames, source_frame_count = (
+            self._pose_duration_frames_locked(
+                pose_id,
+                generation_fps,
+            )
+        )
+        normalized_source_offset = (
+            max(0, int(source_frame_offset)) % source_frame_count
+        )
+        if normalized_source_offset:
+            decoder = self._get_or_create_decoder_locked(pose_id)
+            source_fps = max(
+                0.001,
+                float(getattr(decoder, "fps", 25.0)),
+            )
+            remaining_source_frames = max(
+                1,
+                source_frame_count - normalized_source_offset,
+            )
+            first_boundary = current_start + max(
+                1,
+                int(round(
+                    remaining_source_frames
+                    / source_fps
+                    * generation_fps
+                )),
+            )
+        else:
+            first_boundary = current_start + duration_frames
+
+        if desired_start <= first_boundary:
+            return first_boundary
+
+        complete_cycles = max(
+            0,
+            (desired_start - first_boundary) // duration_frames,
+        )
+        previous_boundary = (
+            first_boundary + complete_cycles * duration_frames
+        )
+        candidates = [previous_boundary]
+        if previous_boundary < desired_start:
+            candidates.append(previous_boundary + duration_frames)
+        return min(
+            candidates,
+            key=lambda boundary: (
+                abs(boundary - desired_start),
+                1 if boundary > desired_start else 0,
+            ),
+        )
+
     def _compile_pose_plan_locked(
         self,
         source_frame_offset: int,
@@ -372,6 +495,20 @@ class LivePoseVideoRouter:
         safe_generation_fps = max(0.001, float(generation_fps or 0.0))
         total_frames = max(1, int(request["total_generation_frames"]))
         requested = [dict(segment) for segment in request["segments"]]
+        max_semantic_drift_seconds = max(
+            0.0,
+            float(request["max_semantic_drift_seconds"]),
+        )
+        max_semantic_drift_frames = max(
+            0,
+            int(math.floor(
+                max_semantic_drift_seconds * safe_generation_fps + 1e-9
+            )),
+        )
+        forced_switch_crossfade_frames = max(
+            1,
+            int(request["forced_switch_crossfade_frames"]),
+        )
         minimum_terminal_frames = max(
             1,
             int(round(safe_generation_fps * 0.75)),
@@ -389,10 +526,12 @@ class LivePoseVideoRouter:
         current_start = 0
         current_source_offset = normalized_source_offset
         current_requested_anchor = 0
+        current_switch_strategy = "initial_phase_aligned"
+        current_crossfade_frames = 0
         compiled: list[LivePoseQueueSegment] = []
         skipped: list[dict] = []
 
-        for request_index, next_request in enumerate(requested[1:], start=1):
+        for next_request in requested[1:]:
             next_pose_id = next_request["pose_id"]
             desired_start = int(round(
                 total_frames
@@ -408,90 +547,76 @@ class LivePoseVideoRouter:
                 )
                 continue
 
-            current_duration, current_source_frame_count = (
-                self._pose_duration_frames_locked(
-                    current_pose_id,
-                    safe_generation_fps,
-                )
-            )
-            if current_start == 0 and current_source_offset:
-                decoder = self._get_or_create_decoder_locked(current_pose_id)
-                source_fps = max(
-                    0.001,
-                    float(getattr(decoder, "fps", 25.0)),
-                )
-                remaining_source_frames = max(
-                    1,
-                    current_source_frame_count - current_source_offset,
-                )
-                boundary = current_start + max(
-                    1,
-                    int(round(
-                        remaining_source_frames
-                        / source_fps
-                        * safe_generation_fps
-                    )),
-                )
-            else:
-                boundary = current_start + current_duration
-            while boundary < desired_start:
-                boundary += current_duration
-
-            # Expressive inserts must be able to play a complete certified clip
-            # and leave a small direct tail when another semantic segment follows.
-            later_request = (
-                requested[request_index + 1]
-                if request_index + 1 < len(requested)
-                else None
-            )
-            if later_request is not None:
-                next_duration, _ = self._pose_duration_frames_locked(
-                    next_pose_id,
-                    safe_generation_fps,
-                )
-                if (
-                    boundary
-                    + next_duration
-                    + minimum_terminal_frames
-                    > total_frames
-                ):
-                    skipped.append(
-                        {
-                            **next_request,
-                            "reason": "insufficient_audio_for_complete_clip",
-                            "requested_start_generation_frame": desired_start,
-                            "earliest_safe_start_generation_frame": boundary,
-                        }
-                    )
-                    continue
-
-            if boundary >= total_frames - minimum_terminal_frames:
+            if desired_start <= current_start:
                 skipped.append(
                     {
                         **next_request,
-                        "reason": "no_safe_boundary_before_audio_end",
+                        "reason": "semantic_window_collapsed",
                         "requested_start_generation_frame": desired_start,
-                        "earliest_safe_start_generation_frame": boundary,
+                        "current_effective_start_generation_frame": (
+                            current_start
+                        ),
                     }
                 )
                 continue
+
+            if desired_start >= total_frames - minimum_terminal_frames:
+                skipped.append(
+                    {
+                        **next_request,
+                        "reason": "no_semantic_window_before_audio_end",
+                        "requested_start_generation_frame": desired_start,
+                        "latest_allowed_start_generation_frame": (
+                            total_frames - minimum_terminal_frames - 1
+                        ),
+                    }
+                )
+                continue
+
+            safe_boundary = self._nearest_safe_boundary_locked(
+                current_pose_id,
+                current_start=current_start,
+                source_frame_offset=current_source_offset,
+                desired_start=desired_start,
+                generation_fps=safe_generation_fps,
+            )
+            safe_boundary_drift = safe_boundary - desired_start
+            if (
+                safe_boundary < total_frames - minimum_terminal_frames
+                and abs(safe_boundary_drift) <= max_semantic_drift_frames
+            ):
+                switch_frame = safe_boundary
+                switch_strategy = "nearest_safe_boundary"
+                crossfade_frames = 0
+            else:
+                # Semantic correctness wins when a 6-12 second source loop has
+                # no certified boundary near the spoken cue. The incoming clip
+                # begins at its canonical first frame and receives a slightly
+                # longer, zero-duration crossfade in the compose stage.
+                switch_frame = desired_start
+                switch_strategy = "requested_time_crossfade"
+                crossfade_frames = forced_switch_crossfade_frames
 
             compiled.append(
                 LivePoseQueueSegment(
                     pose_id=current_pose_id,
                     start_generation_frame=current_start,
-                    end_generation_frame=boundary,
+                    end_generation_frame=switch_frame,
                     source_frame_offset=current_source_offset,
                     requested_at_permille=current_requested_anchor,
                     requested_start_generation_frame=int(round(
                         total_frames * current_requested_anchor / 1000.0
                     )),
+                    switch_strategy=current_switch_strategy,
+                    crossfade_frames=current_crossfade_frames,
                 )
             )
             current_pose_id = next_pose_id
-            current_start = boundary
+            current_start = switch_frame
             current_source_offset = 0
             current_requested_anchor = int(next_request["at_permille"])
+            current_switch_strategy = switch_strategy
+            current_crossfade_frames = crossfade_frames
 
         compiled.append(
             LivePoseQueueSegment(
@@ -503,6 +628,8 @@ class LivePoseVideoRouter:
                 requested_start_generation_frame=int(round(
                     total_frames * current_requested_anchor / 1000.0
                 )),
+                switch_strategy=current_switch_strategy,
+                crossfade_frames=current_crossfade_frames,
             )
         )
         self._pose_queue = compiled
@@ -536,18 +663,67 @@ class LivePoseVideoRouter:
                     segment.start_generation_frame
                     - segment.requested_start_generation_frame
                 ),
+                "semantic_drift_frames": (
+                    segment.start_generation_frame
+                    - segment.requested_start_generation_frame
+                ),
+                "semantic_drift_seconds": round(
+                    (
+                        segment.start_generation_frame
+                        - segment.requested_start_generation_frame
+                    )
+                    / safe_generation_fps,
+                    3,
+                ),
+                "switch_strategy": segment.switch_strategy,
+                "crossfade_frames": segment.crossfade_frames,
                 "source_frame_offset": segment.source_frame_offset,
             }
             for segment in compiled
         ]
+        max_abs_semantic_drift_frames = max(
+            (
+                abs(int(segment["semantic_drift_frames"]))
+                for segment in compiled_segments
+            ),
+            default=0,
+        )
+        semantic_timing_valid = (
+            max_abs_semantic_drift_frames <= max_semantic_drift_frames
+        )
+        if not semantic_timing_valid:
+            raise RuntimeError(
+                "Compiled pose plan exceeded its semantic drift limit: "
+                f"observed={max_abs_semantic_drift_frames} frames, "
+                f"limit={max_semantic_drift_frames} frames"
+            )
         self._compiled_pose_plan = {
             "status": "compiled",
+            "switch_policy": "bounded_semantic",
             "requested_segments": requested,
             "segments": compiled_segments,
             "skipped_segments": skipped,
             "total_generation_frames": total_frames,
             "generation_fps": safe_generation_fps,
             "source_frame_offset": normalized_source_offset,
+            "max_semantic_drift_seconds": max_semantic_drift_seconds,
+            "max_semantic_drift_frames": max_semantic_drift_frames,
+            "max_abs_semantic_drift_frames": (
+                max_abs_semantic_drift_frames
+            ),
+            "max_abs_semantic_drift_seconds": round(
+                max_abs_semantic_drift_frames / safe_generation_fps,
+                3,
+            ),
+            "semantic_timing_valid": semantic_timing_valid,
+            "forced_switch_crossfade_frames": (
+                forced_switch_crossfade_frames
+            ),
+            "requested_time_crossfade_count": sum(
+                1
+                for segment in compiled_segments
+                if segment["switch_strategy"] == "requested_time_crossfade"
+            ),
         }
         return {
             **self._compiled_pose_plan,
@@ -735,6 +911,8 @@ class LivePoseVideoRouter:
                     safe_fps,
                     True,
                     planned.source_frame_offset,
+                    planned.switch_strategy,
+                    planned.crossfade_frames,
                 )
             if self._origin_pending:
                 self._origin_generation_frame = safe_frame
@@ -823,6 +1001,8 @@ class LivePoseVideoRouter:
                         "requested_start_generation_frame": (
                             segment.requested_start_generation_frame
                         ),
+                        "switch_strategy": segment.switch_strategy,
+                        "crossfade_frames": segment.crossfade_frames,
                     }
                     for segment in self._pose_queue
                 ],

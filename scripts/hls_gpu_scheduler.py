@@ -128,6 +128,7 @@ class HLSStreamJob:
     webrtc_last_pose_id: Optional[str] = None
     webrtc_pose_crossfade_anchor: object = field(default=None, repr=False)
     webrtc_pose_crossfade_index: int = 0
+    webrtc_pose_crossfade_target_frames: int = 0
     webrtc_pose_crossfade_count: int = 0
     webrtc_pose_crossfade_frames_applied: int = 0
     conditioning_lock: object = field(default_factory=threading.Lock, repr=False)
@@ -1712,6 +1713,10 @@ class HLSGPUStreamScheduler:
                     snapshot.pose_id
                     for snapshot in (live_pose_snapshots or [])
                 ],
+                "live_pose_crossfade_frames": [
+                    snapshot.crossfade_frames
+                    for snapshot in (live_pose_snapshots or [])
+                ],
                 "live_pose_id": (
                     live_pose_snapshots[0].pose_id
                     if live_pose_snapshots
@@ -1799,6 +1804,7 @@ class HLSGPUStreamScheduler:
                 job,
                 compose_info["frames"],
                 compose_info.get("live_pose_ids") or [],
+                compose_info.get("live_pose_crossfade_frames") or [],
             )
             compose_info["frames"] = frames
             if frames and job.frame_batch_callback is not None:
@@ -1891,14 +1897,21 @@ class HLSGPUStreamScheduler:
         job: HLSStreamJob,
         frames: list,
         pose_ids: list,
+        pose_crossfade_frames: Optional[list] = None,
     ) -> list:
         """Blend the first N frames after a live pose change without retiming."""
-        frame_count = self.webrtc_pose_crossfade_frames
-        if frame_count <= 0 or not frames or len(pose_ids) != len(frames):
+        if not frames or len(pose_ids) != len(frames):
             return frames
+        requested_crossfades = list(pose_crossfade_frames or [])
+        if len(requested_crossfades) != len(frames):
+            requested_crossfades = [0] * len(frames)
 
         blended_frames = []
-        for frame, pose_id in zip(frames, pose_ids):
+        for frame, pose_id, requested_crossfade in zip(
+            frames,
+            pose_ids,
+            requested_crossfades,
+        ):
             normalized_pose_id = str(pose_id or "default")
             source_frame = np.asarray(frame)
             if (
@@ -1910,17 +1923,25 @@ class HLSGPUStreamScheduler:
                     job.webrtc_last_pose_frame,
                 ).copy()
                 job.webrtc_pose_crossfade_index = 0
-                job.webrtc_pose_crossfade_count += 1
-                print(
-                    f"🎞️ [{job.request_id}] WebRTC pose crossfade "
-                    f"{job.webrtc_last_pose_id}->{normalized_pose_id} "
-                    f"frames={frame_count}",
-                    flush=True,
+                job.webrtc_pose_crossfade_target_frames = max(
+                    self.webrtc_pose_crossfade_frames,
+                    max(0, int(requested_crossfade or 0)),
                 )
+                if job.webrtc_pose_crossfade_target_frames > 0:
+                    job.webrtc_pose_crossfade_count += 1
+                    print(
+                        f"🎞️ [{job.request_id}] WebRTC pose crossfade "
+                        f"{job.webrtc_last_pose_id}->{normalized_pose_id} "
+                        f"frames={job.webrtc_pose_crossfade_target_frames}",
+                        flush=True,
+                    )
+                else:
+                    job.webrtc_pose_crossfade_anchor = None
 
             output_frame = source_frame
             anchor = job.webrtc_pose_crossfade_anchor
             fade_index = job.webrtc_pose_crossfade_index
+            frame_count = job.webrtc_pose_crossfade_target_frames
             if anchor is not None and fade_index < frame_count:
                 anchor_array = np.asarray(anchor)
                 if anchor_array.shape == source_frame.shape:
@@ -1937,6 +1958,7 @@ class HLSGPUStreamScheduler:
                 job.webrtc_pose_crossfade_index += 1
                 if job.webrtc_pose_crossfade_index >= frame_count:
                     job.webrtc_pose_crossfade_anchor = None
+                    job.webrtc_pose_crossfade_target_frames = 0
 
             blended_frames.append(output_frame)
             job.webrtc_last_pose_frame = source_frame.copy()

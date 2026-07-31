@@ -275,25 +275,25 @@ total_generation_frames = D * F
 requested_frame = total_generation_frames * at_permille / 1000
 ```
 
-The requested frame is a semantic cue, not permission to cut a physical motion
-clip.
+The requested frame is the semantic audio deadline for the pose cue.
 
 MuseTalk then:
 
 1. phase-aligns the first speaking pose to the currently visible idle phase;
-2. finds the next complete source boundary at or after each requested cue;
-3. lets an expressive insert play its complete source cycle;
-4. preserves at least 0.75 seconds of terminal direct speaking;
-5. skips a cue when the complete motion cannot fit safely;
-6. records requested versus effective timing in session telemetry; and
-7. returns to neutral when audio finishes.
+2. selects the nearest complete source-loop boundary only when it is within
+   `WEBRTC_POSE_MAX_SEMANTIC_DRIFT_SECONDS` (0.75 seconds by default);
+3. otherwise switches on the requested audio frame and starts the incoming pose
+   at its canonical first frame;
+4. applies `WEBRTC_POSE_FORCED_CROSSFADE_FRAMES` (four generated frames by
+   default) only to requested-time switches;
+5. preserves at least 0.75 seconds of terminal direct speaking;
+6. records signed semantic drift and switch strategy in session telemetry;
+7. rejects smoke tests when absolute cue drift exceeds 750 milliseconds; and
+8. returns to neutral when audio finishes.
 
-Skipping a gesture is preferable to cutting a clip, delaying the audio, or
-creating a visible body discontinuity.
-
-At each speaking-pose change, the scheduler uses a two-generated-frame cosine
-blend. MuseTalk generates lip-sync frames at 15 fps and sends video on a 30-fps
-WebRTC cadence.
+Ordinary boundary-safe changes retain the two-generated-frame cosine blend.
+MuseTalk generates lip-sync frames at 15 fps and sends video on a 30-fps WebRTC
+cadence. Crossfades replace incoming frames and never add media-clock duration.
 
 ## Measured behavior from the validated run
 
@@ -306,7 +306,7 @@ speaking_direct at 60%
 neutral_resting on completion
 ```
 
-For the 26.35-second WAV, MuseTalk compiled:
+The former next-boundary-only scheduler compiled:
 
 ```text
 speaking_direct: 0.00s-9.00s
@@ -315,25 +315,30 @@ speaking_direct: 21.00s-26.33s
 neutral_resting: after audio completion
 ```
 
-The run rendered all 395 generated frames, received 1,329 30-fps video frames,
-reported no dropped frames or video stalls, matched the compiled pose trace
-exactly, and ended in neutral.
-
-Media submission to A/V release was 2.36 seconds. Most of that was the
-deliberate two-second video prebuffer. Initial A/V skew was 0.26 milliseconds.
-
-The smoothness policy introduced semantic timing drift:
+That output matched its compiled pose trace and had no initial A/V skew, but the
+compiler itself was semantically wrong:
 
 - the 20% smile cue was applied 3.73 seconds after its nominal target;
 - the 60% direct cue was applied 5.20 seconds after its nominal target.
 
-The current system therefore prioritizes seamless complete motions over exact
-semantic cue timing. Shorter certified motion cycles would improve semantic
-responsiveness without adding another model call.
+The bounded-semantic scheduler now compiles the same cues at generation frames
+79 and 237 (approximately 5.27 and 15.80 seconds at 15 fps), using
+requested-time crossfades because neither complete source boundary is within
+750 milliseconds. Automated validation fails if this regression returns.
+
+The 2026-07-31 WebRTC regression recording confirmed the complete media path:
+
+- both switches rendered exactly at frames 79 and 237 with zero semantic drift;
+- live audio and video began 0.335 milliseconds apart;
+- video covered 26.333 seconds of the 26.350-second WAV;
+- no video frames were dropped and there were no queue underruns or video
+  stalls; and
+- the received 30-fps MP4 is at
+  `generated/webrtc_pose_showcase/2026-07-31/semantic_sync_fix_v1/indian_tutor_semantic_sync_fix_v1_webrtc_capture.mp4`.
 
 The test used a representative compiled pose plan to isolate the real
 Lingua-to-MuseTalk media path. It did not include live STT, model generation, or
-TTS latency in the measured 2.36 seconds.
+TTS network latency.
 
 ## Fallback behavior
 
@@ -395,4 +400,3 @@ policy because `acknowledge` can still select the legacy `nod_agree` asset.
   telemetry, and two-frame crossfades.
 - `api_server.py`: WebRTC capabilities, session creation, stream upload, and
   pose-plan endpoints.
-

@@ -225,8 +225,10 @@ def validate_compiled_pose_plan(
     requested_plan: dict[str, Any],
     compiled_plan: dict[str, Any],
     rendered_trace: list[dict[str, Any]],
+    *,
+    max_semantic_drift_seconds: float = 0.75,
 ) -> dict[str, Any]:
-    """Assert that v2 telemetry accounts for every request and rendered frame."""
+    """Assert v2 rendering and semantic cue timing against the audio clock."""
 
     if compiled_plan.get("status") != "compiled":
         raise SmokeTestError(
@@ -257,9 +259,15 @@ def validate_compiled_pose_plan(
             "Compiled pose-plan telemetry is missing its frame clock or segments: "
             f"{json.dumps(compiled_plan, sort_keys=True)[:1600]}"
         )
+    drift_limit_seconds = max(0.0, float(max_semantic_drift_seconds))
+    drift_limit_frames = max(
+        0,
+        int(drift_limit_seconds * generation_fps),
+    )
 
     accounted_requests: list[tuple[int, str]] = []
     alignment: list[dict[str, Any]] = []
+    max_abs_semantic_drift_frames = 0
     cursor = 0
     for index, segment in enumerate(effective_segments):
         pose_id = str(segment.get("pose_id") or "")
@@ -283,6 +291,40 @@ def validate_compiled_pose_plan(
                 "Compiled pose-plan boundary-snap telemetry is internally inconsistent: "
                 f"segment={segment}"
             )
+        semantic_drift = int(
+            segment.get("semantic_drift_frames", snap_delay)
+        )
+        if semantic_drift != effective_start - requested_start:
+            raise SmokeTestError(
+                "Compiled pose-plan semantic-drift telemetry is internally "
+                f"inconsistent: segment={segment}"
+            )
+        abs_semantic_drift = abs(semantic_drift)
+        max_abs_semantic_drift_frames = max(
+            max_abs_semantic_drift_frames,
+            abs_semantic_drift,
+        )
+        if abs_semantic_drift > drift_limit_frames:
+            raise SmokeTestError(
+                "Pose cue exceeded the semantic timing limit: "
+                f"pose={pose_id}, requested_frame={requested_start}, "
+                f"effective_frame={effective_start}, "
+                f"drift={semantic_drift / generation_fps:.3f}s, "
+                f"limit={drift_limit_seconds:.3f}s"
+            )
+        switch_strategy = str(
+            segment.get("switch_strategy") or "legacy_boundary_snap"
+        )
+        crossfade_frames = int(segment.get("crossfade_frames") or 0)
+        if (
+            switch_strategy == "requested_time_crossfade"
+            and index > 0
+            and crossfade_frames <= 0
+        ):
+            raise SmokeTestError(
+                "A requested-time pose switch is missing its transition "
+                f"crossfade: segment={segment}"
+            )
         accounted_requests.append((requested_at, pose_id))
         alignment.append(
             {
@@ -296,6 +338,13 @@ def validate_compiled_pose_plan(
                     snap_delay / generation_fps,
                     3,
                 ),
+                "semantic_drift_frames": semantic_drift,
+                "semantic_drift_seconds": round(
+                    semantic_drift / generation_fps,
+                    3,
+                ),
+                "switch_strategy": switch_strategy,
+                "crossfade_frames": crossfade_frames,
             }
         )
         cursor = effective_end
@@ -306,6 +355,11 @@ def validate_compiled_pose_plan(
         )
 
     for skipped in skipped_segments:
+        if str(skipped.get("pose_id") or "") == "speaking_direct":
+            raise SmokeTestError(
+                "The terminal speaking_direct cue was skipped: "
+                f"{skipped}"
+            )
         accounted_requests.append(
             (
                 int(skipped.get("at_permille")),
@@ -356,6 +410,14 @@ def validate_compiled_pose_plan(
         "skipped_segment_count": len(skipped_segments),
         "total_generation_frames": total_frames,
         "generation_fps": generation_fps,
+        "max_semantic_drift_seconds": drift_limit_seconds,
+        "max_abs_semantic_drift_frames": (
+            max_abs_semantic_drift_frames
+        ),
+        "max_abs_semantic_drift_seconds": round(
+            max_abs_semantic_drift_frames / generation_fps,
+            3,
+        ),
         "requested_vs_effective": alignment,
         "skipped_segments": skipped_segments,
         "rendered_trace_matches_compiled": True,
@@ -639,6 +701,7 @@ async def run_webrtc_smoke(
     showcase_six_poses: bool,
     showcase_mvp_four_exhaustive: bool,
     showcase_timeout: int,
+    max_pose_semantic_drift_ms: int,
 ) -> dict[str, Any]:
     if AIORTC_IMPORT_ERROR is not None or RTCPeerConnection is None:
         raise SmokeTestError(
@@ -1196,6 +1259,9 @@ async def run_webrtc_smoke(
                     pose_plan,
                     compiled_pose_plan,
                     case_trace,
+                    max_semantic_drift_seconds=(
+                        max_pose_semantic_drift_ms / 1000.0
+                    ),
                 )
             else:
                 observed_rendered_poses = [
@@ -1411,6 +1477,7 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             showcase_six_poses=args.showcase_six_poses,
             showcase_mvp_four_exhaustive=args.showcase_mvp_four_exhaustive,
             showcase_timeout=args.showcase_timeout,
+            max_pose_semantic_drift_ms=args.max_pose_semantic_drift_ms,
         )
         for avatar in avatars:
             status = await avatar_status(
@@ -1492,6 +1559,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pose-recovery-timeout", type=int, default=15)
     parser.add_argument("--event-delay", type=float, default=0.75)
     parser.add_argument(
+        "--max-pose-semantic-drift-ms",
+        type=int,
+        default=750,
+        help=(
+            "Fail a v2 pose-plan smoke test when any rendered pose cue is "
+            "more than this many milliseconds from its requested audio time."
+        ),
+    )
+    parser.add_argument(
         "--record-output",
         type=Path,
         help="Record the received WebRTC audio and video tracks to this MP4.",
@@ -1542,8 +1618,12 @@ def parse_args() -> argparse.Namespace:
         or args.completion_timeout < 1
         or args.pose_recovery_timeout < 1
         or args.showcase_timeout < 1
+        or args.max_pose_semantic_drift_ms < 0
     ):
-        parser.error("FPS, batch size, and timeout values must be positive.")
+        parser.error(
+            "FPS, batch size, and timeout values must be positive; semantic "
+            "drift must be non-negative."
+        )
     return args
 
 
