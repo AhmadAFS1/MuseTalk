@@ -13,6 +13,7 @@ from scripts.pose_protocol import (
     POSE_ID_SET,
     POSE_SWITCH_MODE,
     REACTION_POSE,
+    normalize_pose_plan,
     normalize_pose_sequence,
     normalize_pose_set,
     normalize_session_event,
@@ -84,6 +85,8 @@ class WebRTCSession:
     rendered_pose_id: Optional[str] = None
     rendered_pose_frame_count: int = 0
     rendered_pose_trace: List[Dict[str, Any]] = field(default_factory=list)
+    active_pose_plan: Dict[str, Any] = field(default_factory=dict)
+    compiled_pose_plan: Optional[Dict[str, Any]] = None
     rendered_pose_lock: threading.Lock = field(
         default_factory=threading.Lock,
         repr=False,
@@ -189,6 +192,7 @@ class WebRTCSession:
         return {
             "version": 1 if self.pose_protocol_enabled else None,
             "supported": self.pose_protocol_enabled,
+            "pose_plan_version": 2 if self.pose_protocol_enabled else None,
             "pose_set_id": self.pose_set.get("pose_set_id") if self.pose_set else None,
             "switch_mode": self.pose_switch_mode,
             "default_pose_id": (
@@ -206,6 +210,16 @@ class WebRTCSession:
             "generation_avatar_id": self.generation_avatar_id or self.avatar_id,
             "live_pose_id": self.live_pose_id,
             "missing_video_paths": missing_video_paths,
+            "active_pose_plan": (
+                dict(self.active_pose_plan)
+                if self.active_pose_plan
+                else None
+            ),
+            "compiled_pose_plan": (
+                dict(self.compiled_pose_plan)
+                if self.compiled_pose_plan
+                else None
+            ),
             **rendered_status,
         }
 
@@ -654,6 +668,8 @@ class WebRTCSessionManager:
             elif event_name == "assistant_turn_aborted":
                 resolved.assistant_active = False
                 resolved.user_speaking = False
+                resolved.active_pose_plan = {}
+                resolved.compiled_pose_plan = None
                 switch_result = await self._queue_pose_locked(
                     resolved,
                     "neutral_resting",
@@ -703,6 +719,8 @@ class WebRTCSessionManager:
                 return self._stale_pose_sequence_result(resolved, seq)
 
             resolved.assistant_active = True
+            resolved.active_pose_plan = {}
+            resolved.compiled_pose_plan = None
             resolved.active_turn_id = str(turn_id or "").strip() or resolved.active_turn_id
             resolved.reset_rendered_pose_trace()
             reaction_key = str(turn_id or "").strip() or f"seq:{seq}"
@@ -767,6 +785,64 @@ class WebRTCSessionManager:
                 "pose_status": resolved.pose_status(),
             }
 
+    async def stage_pose_plan(
+        self,
+        session,
+        pose_plan,
+        *,
+        seq: int,
+        turn_id: str,
+    ) -> dict:
+        """Accept one v2 semantic plan before audio generation starts."""
+
+        resolved = await self._resolve_runtime_session(session)
+        if resolved is None:
+            return {"accepted": False, "reason": "session_not_found"}
+        normalized_plan = normalize_pose_plan(pose_plan)
+        if not normalized_plan:
+            raise ValueError("pose_plan is required")
+        seq = int(seq)
+
+        async with resolved.pose_lock:
+            if not resolved.pose_protocol_enabled:
+                return {
+                    "accepted": False,
+                    "reason": "pose_protocol_disabled",
+                    "pose_status": resolved.pose_status(),
+                }
+            if seq <= resolved.last_pose_seq:
+                return self._stale_pose_sequence_result(resolved, seq)
+
+            if (
+                resolved.idle_track is not None
+                and hasattr(resolved.idle_track, "clear_pending_idle_switches")
+            ):
+                resolved.idle_track.clear_pending_idle_switches()
+                resolved.sync_pose_track_state()
+
+            resolved.assistant_active = True
+            resolved.active_turn_id = (
+                str(turn_id or "").strip()
+                or resolved.active_turn_id
+            )
+            resolved.active_pose_plan = normalized_plan
+            resolved.compiled_pose_plan = None
+            resolved.reset_rendered_pose_trace()
+            resolved.last_pose_seq = seq
+            resolved.last_pose_event = "assistant_pose_plan"
+            first_pose_id = normalized_plan["segments"][0]["pose_id"]
+            resolved.live_pose_id = first_pose_id
+            return {
+                "accepted": True,
+                "seq": seq,
+                "turn_id": resolved.active_turn_id,
+                "pose_plan": normalized_plan,
+                "generation_avatar_id": (
+                    resolved.generation_avatar_id or resolved.avatar_id
+                ),
+                "pose_status": resolved.pose_status(),
+            }
+
     async def finish_assistant_turn(
         self,
         session,
@@ -779,6 +855,7 @@ class WebRTCSessionManager:
             return {"accepted": False, "reason": "session_not_found"}
         async with resolved.pose_lock:
             resolved.assistant_active = False
+            resolved.active_pose_plan = {}
             if turn_id and resolved.active_turn_id == turn_id:
                 resolved.active_turn_id = None
             if resolved.live_pose_router is not None:

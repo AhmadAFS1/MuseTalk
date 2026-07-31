@@ -5,6 +5,7 @@ from scripts.pose_protocol import (
     POSE_IDS,
     PoseProtocolError,
     build_turn_pose_sequence,
+    normalize_pose_plan,
     normalize_pose_set,
     normalize_session_event,
     normalize_stream_metadata,
@@ -89,6 +90,65 @@ class PoseProtocolTests(unittest.TestCase):
         )
         self.assertEqual(result["pose_sequence"][0], "nod_agree")
         self.assertEqual(result["seq"], 5)
+
+    def test_pose_plan_audio_progress_contract(self):
+        result = normalize_pose_plan(
+            {
+                "version": 2,
+                "clock": "audio_progress",
+                "segments": [
+                    {
+                        "at_permille": 0,
+                        "pose_id": "empathetic_head_tilt",
+                    },
+                    {
+                        "at_permille": 480,
+                        "pose_id": "speaking_direct",
+                    },
+                ],
+                "on_complete": "neutral_resting",
+                "switch_mode": "next_boundary",
+            }
+        )
+        self.assertEqual(result["version"], 2)
+        self.assertEqual(result["segments"][1]["at_permille"], 480)
+
+    def test_pose_plan_rejects_listening_pose_during_assistant_audio(self):
+        with self.assertRaises(PoseProtocolError):
+            normalize_pose_plan(
+                {
+                    "version": 2,
+                    "clock": "audio_progress",
+                    "segments": [
+                        {
+                            "at_permille": 0,
+                            "pose_id": "active_listening",
+                        }
+                    ],
+                }
+            )
+
+    def test_pose_plan_requires_safe_direct_speaking_tail(self):
+        with self.assertRaisesRegex(
+            PoseProtocolError,
+            "must end with pose_id=speaking_direct",
+        ):
+            normalize_pose_plan(
+                {
+                    "version": 2,
+                    "clock": "audio_progress",
+                    "segments": [
+                        {
+                            "at_permille": 0,
+                            "pose_id": "speaking_direct",
+                        },
+                        {
+                            "at_permille": 500,
+                            "pose_id": "light_smile",
+                        },
+                    ],
+                }
+            )
 
     def test_rejects_arbitrary_stream_sequence(self):
         with self.assertRaises(PoseProtocolError):

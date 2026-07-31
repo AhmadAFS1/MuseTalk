@@ -429,6 +429,48 @@ class PoseSessionManagerTest(unittest.IsolatedAsyncioTestCase):
             ["speaking_direct", "neutral_resting"],
         )
 
+    async def test_v2_pose_plan_is_staged_then_cleared_on_completion(self):
+        plan = {
+            "version": 2,
+            "clock": "audio_progress",
+            "segments": [
+                {
+                    "at_permille": 0,
+                    "pose_id": "empathetic_head_tilt",
+                },
+                {
+                    "at_permille": 400,
+                    "pose_id": "speaking_direct",
+                },
+            ],
+            "on_complete": "neutral_resting",
+            "switch_mode": "next_boundary",
+        }
+
+        staged = await self.manager.stage_pose_plan(
+            self.session,
+            plan,
+            seq=1,
+            turn_id="turn_plan",
+        )
+
+        self.assertTrue(staged["accepted"])
+        self.assertEqual(
+            self.session.active_pose_plan["segments"][0]["pose_id"],
+            "empathetic_head_tilt",
+        )
+        self.assertEqual(self.session.last_pose_event, "assistant_pose_plan")
+        self.assertEqual(self.session.live_pose_id, "empathetic_head_tilt")
+
+        await self.manager.finish_assistant_turn(
+            self.session,
+            turn_id="turn_plan",
+        )
+
+        self.assertEqual(self.session.active_pose_plan, {})
+        self.assertIsNone(self.session.compiled_pose_plan)
+        self.assertFalse(self.session.assistant_active)
+
     async def test_rendered_pose_trace_coalesces_adjacent_batches(self):
         self.session.record_rendered_pose_batch(
             ["light_smile", "light_smile", "speaking_direct"],

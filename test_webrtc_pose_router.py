@@ -134,6 +134,105 @@ class LivePoseVideoRouterTest(unittest.TestCase):
         self.assertEqual(snapshots[98].origin_generation_frame, 98)
         self.assertEqual(snapshots[147].origin_generation_frame, 147)
 
+    def test_pose_plan_snaps_semantic_cues_to_complete_clip_boundaries(self):
+        router = LivePoseVideoRouter(self.paths, decoder_factory=FakeDecoder)
+        staged = router.queue_pose_plan(
+            {
+                "version": 2,
+                "clock": "audio_progress",
+                "segments": [
+                    {"at_permille": 0, "pose_id": "speaking_direct"},
+                    {"at_permille": 200, "pose_id": "light_smile"},
+                    {"at_permille": 600, "pose_id": "speaking_direct"},
+                ],
+                "on_complete": "neutral_resting",
+                "switch_mode": "next_boundary",
+            },
+            total_generation_frames=200,
+            generation_fps=10,
+        )
+        self.assertEqual(staged["status"], "pending_phase_alignment")
+
+        compiled = router.align_first_queued_pose(0, 10)
+
+        self.assertEqual(
+            [
+                (
+                    segment["pose_id"],
+                    segment["effective_start_generation_frame"],
+                    segment["effective_end_generation_frame"],
+                )
+                for segment in compiled
+            ],
+            [
+                ("speaking_direct", 0, 49),
+                ("light_smile", 49, 147),
+                ("speaking_direct", 147, 200),
+            ],
+        )
+        self.assertEqual(router.snapshot(48, 10).pose_id, "speaking_direct")
+        self.assertEqual(router.snapshot(49, 10).pose_id, "light_smile")
+        self.assertEqual(router.snapshot(146, 10).pose_id, "light_smile")
+        self.assertEqual(router.snapshot(147, 10).pose_id, "speaking_direct")
+
+    def test_pose_plan_skips_expression_that_cannot_finish_safely(self):
+        router = LivePoseVideoRouter(self.paths, decoder_factory=FakeDecoder)
+        router.queue_pose_plan(
+            {
+                "version": 2,
+                "clock": "audio_progress",
+                "segments": [
+                    {"at_permille": 0, "pose_id": "speaking_direct"},
+                    {"at_permille": 200, "pose_id": "light_smile"},
+                    {"at_permille": 600, "pose_id": "speaking_direct"},
+                ],
+                "on_complete": "neutral_resting",
+                "switch_mode": "next_boundary",
+            },
+            total_generation_frames=100,
+            generation_fps=10,
+        )
+
+        router.align_first_queued_pose(0, 10)
+        compiled = router.get_compiled_pose_plan()
+
+        self.assertEqual(
+            [segment["pose_id"] for segment in compiled["segments"]],
+            ["speaking_direct"],
+        )
+        self.assertEqual(
+            compiled["skipped_segments"][0]["reason"],
+            "insufficient_audio_for_complete_clip",
+        )
+
+    def test_pose_plan_preserves_current_phase_for_first_safe_boundary(self):
+        router = LivePoseVideoRouter(self.paths, decoder_factory=FakeDecoder)
+        router.queue_pose_plan(
+            {
+                "version": 2,
+                "clock": "audio_progress",
+                "segments": [
+                    {"at_permille": 0, "pose_id": "light_smile"},
+                    {"at_permille": 300, "pose_id": "speaking_direct"},
+                ],
+                "on_complete": "neutral_resting",
+                "switch_mode": "next_boundary",
+            },
+            total_generation_frames=200,
+            generation_fps=10,
+        )
+
+        compiled = router.align_first_queued_pose(87, 10)
+
+        self.assertEqual(
+            compiled[0]["source_frame_offset"],
+            87,
+        )
+        self.assertEqual(
+            compiled[1]["effective_start_generation_frame"],
+            69,
+        )
+
     def test_decode_failure_falls_back_to_prepared_background(self):
         router = LivePoseVideoRouter(self.paths, decoder_factory=FailingDecoder)
         router.switch_pose("speaking_direct")

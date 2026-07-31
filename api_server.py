@@ -1227,9 +1227,14 @@ async def worker_capabilities():
         "service": "musetalk",
         "features": {
             "pose_sets_v1": bool(WEBRTC_AVAILABLE),
+            "pose_plans_v2": bool(
+                WEBRTC_AVAILABLE
+                and _env_bool("WEBRTC_SHARED_GPU_SCHEDULER", True)
+            ),
         },
         "pose_protocol": {
             "version": 1,
+            "pose_plan_version": 2,
             "switch_mode": POSE_SWITCH_MODE,
             "pose_ids": list(POSE_IDS),
             "audio_start": "immediate",
@@ -4558,6 +4563,7 @@ async def webrtc_stream(
     reaction_intent: Optional[str] = Form(None),
     pose_id: Optional[str] = Form(None),
     pose_sequence: Optional[str] = Form(None),
+    pose_plan: Optional[str] = Form(None),
     turn_id: Optional[str] = Form(None),
     seq: Optional[str] = Form(None),
     effective: Optional[str] = Form(None),
@@ -4590,6 +4596,7 @@ async def webrtc_stream(
                 "reaction_intent": reaction_intent,
                 "pose_id": pose_id,
                 "pose_sequence": pose_sequence,
+                "pose_plan": pose_plan,
                 "turn_id": turn_id,
                 "seq": seq,
                 "effective": effective,
@@ -4612,16 +4619,39 @@ async def webrtc_stream(
             status_code=409,
             detail="Pose metadata requires a pose_set protocol v1 session.",
         )
+    if (
+        stream_metadata.get("pose_plan")
+        and (
+            not _env_bool("WEBRTC_SHARED_GPU_SCHEDULER", True)
+            or hls_stream_scheduler is None
+        )
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "pose_plan v2 requires the shared WebRTC GPU scheduler."
+            ),
+        )
     pose_sequence_result = None
+    pose_plan_result = None
     if stream_metadata:
         try:
-            pose_sequence_result = await webrtc_session_manager.queue_pose_sequence(
-                session,
-                stream_metadata["pose_sequence"],
-                seq=stream_metadata["seq"],
-                turn_id=stream_metadata["turn_id"],
-                reaction_intent=stream_metadata["reaction_intent"],
-            )
+            if stream_metadata.get("pose_plan"):
+                pose_plan_result = await webrtc_session_manager.stage_pose_plan(
+                    session,
+                    stream_metadata["pose_plan"],
+                    seq=stream_metadata["seq"],
+                    turn_id=stream_metadata["turn_id"],
+                )
+                pose_sequence_result = pose_plan_result
+            else:
+                pose_sequence_result = await webrtc_session_manager.queue_pose_sequence(
+                    session,
+                    stream_metadata["pose_sequence"],
+                    seq=stream_metadata["seq"],
+                    turn_id=stream_metadata["turn_id"],
+                    reaction_intent=stream_metadata["reaction_intent"],
+                )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         if not pose_sequence_result.get("accepted"):
@@ -4630,6 +4660,8 @@ async def webrtc_stream(
                 "session_id": session_id,
                 "reason": pose_sequence_result.get("reason"),
                 "pose_protocol": pose_sequence_result,
+                "pose_metadata_supported": True,
+                "pose_plan_supported": bool(pose_plan_result),
             }
 
     # Ensure sender exists (idle track added during offer handling)
@@ -5020,6 +5052,9 @@ async def webrtc_stream(
             "scheduler": "shared_gpu",
             "timing": session.live_timing,
             "pose_sequence": pose_sequence_result,
+            "pose_plan": pose_plan_result,
+            "pose_metadata_supported": bool(stream_metadata),
+            "pose_plan_supported": bool(pose_plan_result),
             "message": "WebRTC stream queued on the shared GPU scheduler. Player will switch to live."
         }
 
@@ -5132,6 +5167,9 @@ async def webrtc_stream(
         "status": "streaming",
         "timing": session.live_timing,
         "pose_sequence": pose_sequence_result,
+        "pose_plan": pose_plan_result,
+        "pose_metadata_supported": bool(stream_metadata),
+        "pose_plan_supported": bool(pose_plan_result),
         "message": "WebRTC stream started. Player will switch to live."
     }
 

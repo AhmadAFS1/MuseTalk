@@ -200,6 +200,168 @@ def worker_pose_manifest(pose_set: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def load_pose_plan_argument(raw_value: str | None) -> dict[str, Any] | None:
+    """Load an optional inline v2 pose plan or an ``@file.json`` reference."""
+
+    value = str(raw_value or "").strip()
+    if not value:
+        return None
+    if value.startswith("@"):
+        path = Path(value[1:]).expanduser()
+        try:
+            value = path.read_text()
+        except OSError as exc:
+            raise SmokeTestError(f"Could not read pose-plan JSON: {path}: {exc}") from exc
+    try:
+        pose_plan = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise SmokeTestError(f"pose-plan input is invalid JSON: {exc}") from exc
+    if not isinstance(pose_plan, dict):
+        raise SmokeTestError("pose-plan input must be a JSON object.")
+    return pose_plan
+
+
+def validate_compiled_pose_plan(
+    requested_plan: dict[str, Any],
+    compiled_plan: dict[str, Any],
+    rendered_trace: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Assert that v2 telemetry accounts for every request and rendered frame."""
+
+    if compiled_plan.get("status") != "compiled":
+        raise SmokeTestError(
+            "The v2 pose plan never reached compiled status: "
+            f"{json.dumps(compiled_plan, sort_keys=True)[:1600]}"
+        )
+
+    requested_segments = [
+        {
+            "at_permille": int(segment["at_permille"]),
+            "pose_id": str(segment["pose_id"]).strip().lower(),
+        }
+        for segment in requested_plan.get("segments") or []
+    ]
+    reported_requested = compiled_plan.get("requested_segments")
+    if reported_requested != requested_segments:
+        raise SmokeTestError(
+            "Compiled pose-plan requested_segments do not match the submitted plan: "
+            f"submitted={requested_segments}, reported={reported_requested}"
+        )
+
+    total_frames = int(compiled_plan.get("total_generation_frames") or 0)
+    generation_fps = float(compiled_plan.get("generation_fps") or 0.0)
+    effective_segments = list(compiled_plan.get("segments") or [])
+    skipped_segments = list(compiled_plan.get("skipped_segments") or [])
+    if total_frames <= 0 or generation_fps <= 0 or not effective_segments:
+        raise SmokeTestError(
+            "Compiled pose-plan telemetry is missing its frame clock or segments: "
+            f"{json.dumps(compiled_plan, sort_keys=True)[:1600]}"
+        )
+
+    accounted_requests: list[tuple[int, str]] = []
+    alignment: list[dict[str, Any]] = []
+    cursor = 0
+    for index, segment in enumerate(effective_segments):
+        pose_id = str(segment.get("pose_id") or "")
+        requested_at = int(segment.get("requested_at_permille"))
+        requested_start = int(segment.get("requested_start_generation_frame"))
+        effective_start = int(segment.get("effective_start_generation_frame"))
+        effective_end = int(segment.get("effective_end_generation_frame"))
+        snap_delay = int(segment.get("boundary_snap_delay_frames"))
+        if effective_start != cursor or effective_end <= effective_start:
+            raise SmokeTestError(
+                "Compiled pose-plan segments are not positive and contiguous: "
+                f"index={index}, cursor={cursor}, segment={segment}"
+            )
+        if effective_end > total_frames:
+            raise SmokeTestError(
+                "Compiled pose-plan segment exceeds the generated audio frame clock: "
+                f"total={total_frames}, segment={segment}"
+            )
+        if snap_delay != effective_start - requested_start:
+            raise SmokeTestError(
+                "Compiled pose-plan boundary-snap telemetry is internally inconsistent: "
+                f"segment={segment}"
+            )
+        accounted_requests.append((requested_at, pose_id))
+        alignment.append(
+            {
+                "pose_id": pose_id,
+                "requested_at_permille": requested_at,
+                "requested_start_generation_frame": requested_start,
+                "effective_start_generation_frame": effective_start,
+                "effective_end_generation_frame": effective_end,
+                "boundary_snap_delay_frames": snap_delay,
+                "boundary_snap_delay_seconds": round(
+                    snap_delay / generation_fps,
+                    3,
+                ),
+            }
+        )
+        cursor = effective_end
+    if cursor != total_frames:
+        raise SmokeTestError(
+            "Compiled pose-plan segments do not cover the complete generated frame clock: "
+            f"covered={cursor}, total={total_frames}"
+        )
+
+    for skipped in skipped_segments:
+        accounted_requests.append(
+            (
+                int(skipped.get("at_permille")),
+                str(skipped.get("pose_id") or ""),
+            )
+        )
+    expected_requests = [
+        (segment["at_permille"], segment["pose_id"])
+        for segment in requested_segments
+    ]
+    if sorted(accounted_requests) != sorted(expected_requests):
+        raise SmokeTestError(
+            "Compiled pose-plan telemetry did not account for every requested segment: "
+            f"expected={expected_requests}, accounted={accounted_requests}"
+        )
+
+    expected_trace = [
+        {
+            "pose_id": str(segment["pose_id"]),
+            "start_frame_index": int(segment["effective_start_generation_frame"]),
+            "end_frame_index": int(segment["effective_end_generation_frame"]) - 1,
+            "frame_count": (
+                int(segment["effective_end_generation_frame"])
+                - int(segment["effective_start_generation_frame"])
+            ),
+        }
+        for segment in effective_segments
+    ]
+    normalized_trace = [
+        {
+            "pose_id": str(segment.get("pose_id") or ""),
+            "start_frame_index": int(segment.get("start_frame_index")),
+            "end_frame_index": int(segment.get("end_frame_index")),
+            "frame_count": int(segment.get("frame_count")),
+        }
+        for segment in rendered_trace
+    ]
+    if normalized_trace != expected_trace:
+        raise SmokeTestError(
+            "Rendered pose trace does not match the compiled v2 timeline: "
+            f"compiled={expected_trace}, rendered={normalized_trace}"
+        )
+
+    return {
+        "validated": True,
+        "requested_segment_count": len(requested_segments),
+        "effective_segment_count": len(effective_segments),
+        "skipped_segment_count": len(skipped_segments),
+        "total_generation_frames": total_frames,
+        "generation_fps": generation_fps,
+        "requested_vs_effective": alignment,
+        "skipped_segments": skipped_segments,
+        "rendered_trace_matches_compiled": True,
+    }
+
+
 async def response_body(response: aiohttp.ClientResponse) -> Any:
     text = await response.text()
     if not text:
@@ -466,6 +628,7 @@ async def run_webrtc_smoke(
     pose_set: dict[str, Any],
     audio_file: Path,
     reaction_intent: str,
+    pose_plan: dict[str, Any] | None,
     musetalk_fps: int,
     playback_fps: int,
     batch_size: int,
@@ -847,6 +1010,11 @@ async def run_webrtc_smoke(
                     "pose_sequence",
                     json.dumps(pose_sequence, separators=(",", ":")),
                 )
+                if pose_plan is not None:
+                    form.add_field(
+                        "pose_plan",
+                        json.dumps(pose_plan, separators=(",", ":")),
+                    )
                 form.add_field("turn_id", turn_id)
                 form.add_field("seq", str(first_seq + 4))
                 form.add_field("effective", "next_boundary")
@@ -880,6 +1048,7 @@ async def run_webrtc_smoke(
 
             case_trace: list[dict[str, Any]] = []
             case_max_frames = {"video": 0, "audio": 0}
+            compiled_pose_plan: dict[str, Any] = {}
             live_ready = False
             playout_released_at: float | None = None
             deadline = time.monotonic() + completion_timeout
@@ -897,6 +1066,12 @@ async def run_webrtc_smoke(
                     case_trace,
                     case_max_frames,
                 )
+                if pose_plan is not None:
+                    current_compiled_plan = (
+                        pose_status(final_status).get("compiled_pose_plan")
+                    )
+                    if isinstance(current_compiled_plan, dict):
+                        compiled_pose_plan = dict(current_compiled_plan)
                 if not live_ready and is_live_ready(final_status):
                     live_ready = True
                     playout_released_at = round(
@@ -952,6 +1127,12 @@ async def run_webrtc_smoke(
                     case_trace,
                     case_max_frames,
                 )
+                if pose_plan is not None:
+                    current_compiled_plan = (
+                        pose_status(final_status).get("compiled_pose_plan")
+                    )
+                    if isinstance(current_compiled_plan, dict):
+                        compiled_pose_plan = dict(current_compiled_plan)
             current_pose_status = pose_status(final_status)
             if (
                 current_pose_status.get("current_pose_id")
@@ -990,32 +1171,62 @@ async def run_webrtc_smoke(
                     f"{case_reaction_intent} TTS emitted no synchronized audio frames."
                 )
 
-            observed_rendered_poses = [
-                entry.get("pose_id")
-                for entry in case_trace
-                if entry.get("pose_id")
-            ]
-            expected_rendered_poses = [
-                *(reaction_pose for _ in range(1) if reaction_pose),
-                "speaking_direct",
-                "neutral_resting",
-            ]
-            missing_rendered_poses = [
-                pose_id
-                for pose_id in expected_rendered_poses
-                if pose_id not in observed_rendered_poses
-            ]
-            if missing_rendered_poses:
-                raise SmokeTestError(
-                    f"The {case_reaction_intent} generated pose trace is "
-                    f"incomplete; missing {missing_rendered_poses}: {case_trace}"
+            pose_plan_validation = None
+            if pose_plan is not None:
+                if accepted.get("pose_metadata_supported") is not True:
+                    raise SmokeTestError(
+                        "Worker accepted the stream without confirming "
+                        "pose_metadata_supported=true."
+                    )
+                if accepted.get("pose_plan_supported") is not True:
+                    raise SmokeTestError(
+                        "Worker accepted the stream without confirming "
+                        "pose_plan_supported=true."
+                    )
+                accepted_plan = accepted.get("pose_plan")
+                if (
+                    not isinstance(accepted_plan, dict)
+                    or accepted_plan.get("accepted") is not True
+                ):
+                    raise SmokeTestError(
+                        "Worker did not accept the submitted v2 pose plan: "
+                        f"{json.dumps(accepted, sort_keys=True)[:1600]}"
+                    )
+                pose_plan_validation = validate_compiled_pose_plan(
+                    pose_plan,
+                    compiled_pose_plan,
+                    case_trace,
                 )
+            else:
+                observed_rendered_poses = [
+                    entry.get("pose_id")
+                    for entry in case_trace
+                    if entry.get("pose_id")
+                ]
+                expected_rendered_poses = [
+                    *(reaction_pose for _ in range(1) if reaction_pose),
+                    "speaking_direct",
+                    "neutral_resting",
+                ]
+                missing_rendered_poses = [
+                    pose_id
+                    for pose_id in expected_rendered_poses
+                    if pose_id not in observed_rendered_poses
+                ]
+                if missing_rendered_poses:
+                    raise SmokeTestError(
+                        f"The {case_reaction_intent} generated pose trace is "
+                        f"incomplete; missing {missing_rendered_poses}: {case_trace}"
+                    )
 
             case_result = {
                 "case_index": case_index,
                 "turn_id": turn_id,
                 "reaction_intent": case_reaction_intent,
                 "pose_sequence": pose_sequence,
+                "pose_plan": pose_plan,
+                "compiled_pose_plan": compiled_pose_plan or None,
+                "pose_plan_validation": pose_plan_validation,
                 "submitted_at_seconds": submitted_at,
                 "playout_released_at_seconds": playout_released_at,
                 "rendered_pose_trace": case_trace,
@@ -1054,11 +1265,20 @@ async def run_webrtc_smoke(
         )
 
         consumer_errors = []
+        receiver_tracks_ended = 0
         for task in consumers:
             if task.done() and not task.cancelled():
                 error = task.exception()
-                if error is not None:
-                    consumer_errors.append(repr(error))
+                if error is None:
+                    continue
+                # aiortc raises MediaStreamError when a remote receiver track
+                # ends. Once server completion, rendered-plan validation, and
+                # neutral recovery have all passed above, that is a normal
+                # terminal signal rather than an inference or transport error.
+                if error.__class__.__name__ == "MediaStreamError":
+                    receiver_tracks_ended += 1
+                    continue
+                consumer_errors.append(repr(error))
         if consumer_errors:
             raise SmokeTestError(
                 f"WebRTC receiver task failed: {consumer_errors}"
@@ -1070,10 +1290,22 @@ async def run_webrtc_smoke(
             "pose_set_id": manifest["pose_set_id"],
             "reaction_intent": reaction_intent,
             "pose_sequence": pose_sequence,
+            "pose_plan": pose_plan,
+            "compiled_pose_plans": [
+                case["compiled_pose_plan"]
+                for case in speaking_cases
+                if case.get("compiled_pose_plan")
+            ],
+            "pose_plan_validations": [
+                case["pose_plan_validation"]
+                for case in speaking_cases
+                if case.get("pose_plan_validation")
+            ],
             "video_frames_received": counters.get("video_frames", 0),
             "audio_frames_received": counters.get("audio_frames", 0),
             "post_stream_video_frames_received": post_stream_video_frames,
             "post_stream_audio_frames_received": post_stream_audio_frames,
+            "receiver_tracks_ended": receiver_tracks_ended,
             "server_generated_video_frames_played": max_server_video_frames,
             "server_sample_audio_frames_sent": max_server_audio_frames,
             "rendered_pose_trace": rendered_pose_trace,
@@ -1135,6 +1367,13 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             raise SmokeTestError(
                 "Worker does not advertise features.pose_sets_v1=true."
             )
+        if (
+            args.pose_plan is not None
+            and capabilities["features"].get("pose_plans_v2") is not True
+        ):
+            raise SmokeTestError(
+                "Worker does not advertise features.pose_plans_v2=true."
+            )
 
         avatars = await ensure_six_avatars(
             http,
@@ -1161,6 +1400,7 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             pose_set=pose_set,
             audio_file=args.audio_file,
             reaction_intent=args.reaction_intent,
+            pose_plan=args.pose_plan,
             musetalk_fps=args.musetalk_fps,
             playback_fps=args.playback_fps,
             batch_size=args.batch_size,
@@ -1221,6 +1461,13 @@ def parse_args() -> argparse.Namespace:
         default="warmth",
     )
     parser.add_argument(
+        "--pose-plan-json",
+        help=(
+            "Optional v2 pose-plan JSON object. Prefix a path with @ to load "
+            "the JSON from a file."
+        ),
+    )
+    parser.add_argument(
         "--fps",
         type=int,
         default=20,
@@ -1272,6 +1519,10 @@ def parse_args() -> argparse.Namespace:
         help="Maximum seconds to wait for the complete six-pose idle cycle.",
     )
     args = parser.parse_args()
+    try:
+        args.pose_plan = load_pose_plan_argument(args.pose_plan_json)
+    except SmokeTestError as exc:
+        parser.error(str(exc))
     if args.musetalk_fps is None:
         args.musetalk_fps = args.fps
     if args.playback_fps is None:

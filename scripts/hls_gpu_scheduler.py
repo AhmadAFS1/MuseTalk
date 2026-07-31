@@ -586,6 +586,28 @@ class HLSGPUStreamScheduler:
                 startup_chunk_frames=startup_chunk_frames,
                 startup_chunk_count=startup_chunk_count,
             )
+            pose_plan_router = None
+            active_pose_plan = (
+                getattr(session, "active_pose_plan", None)
+                if output_mode == "webrtc"
+                else None
+            )
+            if active_pose_plan:
+                pose_plan_router = getattr(
+                    session,
+                    "live_pose_router",
+                    None,
+                )
+                if pose_plan_router is None:
+                    raise RuntimeError(
+                        "A v2 pose plan requires the live pose router"
+                    )
+                session.compiled_pose_plan = pose_plan_router.queue_pose_plan(
+                    active_pose_plan,
+                    total_frames,
+                    float(generation_fps),
+                    hold_last_pose=True,
+                )
             start_offset_frames = 0
             timing_debug = None
             if output_mode == "webrtc" and start_offset_seconds is None:
@@ -647,6 +669,10 @@ class HLSGPUStreamScheduler:
                                     float(generation_fps),
                                 )
                             )
+                            if pose_plan_router is live_pose_router:
+                                session.compiled_pose_plan = (
+                                    live_pose_router.get_compiled_pose_plan()
+                                )
                         except Exception as exc:
                             timing_debug["live_pose_alignment_error"] = str(exc)
                             print(
@@ -671,6 +697,17 @@ class HLSGPUStreamScheduler:
                 except (TypeError, ValueError):
                     start_offset_value = 0.0
                 start_offset_frames = int(round(start_offset_value * generation_fps))
+
+            if pose_plan_router is not None:
+                compiled_plan = pose_plan_router.get_compiled_pose_plan() or {}
+                if compiled_plan.get("status") != "compiled":
+                    pose_plan_router.align_first_queued_pose(
+                        start_offset_frames,
+                        float(generation_fps),
+                    )
+                    session.compiled_pose_plan = (
+                        pose_plan_router.get_compiled_pose_plan()
+                    )
 
             initial_ready_frames = self._initial_conditioning_frames(
                 total_frames=total_frames,

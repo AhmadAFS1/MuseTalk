@@ -14,6 +14,9 @@ from typing import Any, Mapping
 
 POSE_PROTOCOL_VERSION = 1
 POSE_SWITCH_MODE = "next_boundary"
+POSE_PLAN_VERSION = 2
+POSE_PLAN_CLOCK = "audio_progress"
+POSE_PLAN_MAX_SEGMENTS = 3
 POSE_IDS = (
     "neutral_resting",
     "active_listening",
@@ -31,6 +34,13 @@ REACTION_POSE = {
     "warmth": "light_smile",
     "empathy": "empathetic_head_tilt",
 }
+
+SPEECH_POSE_IDS = (
+    "speaking_direct",
+    "empathetic_head_tilt",
+    "light_smile",
+)
+SPEECH_POSE_ID_SET = frozenset(SPEECH_POSE_IDS)
 
 SESSION_EVENTS = (
     "user_speech_started",
@@ -194,6 +204,119 @@ def normalize_pose_sequence(
     return sequence
 
 
+def normalize_pose_plan(value: str | Mapping[str, Any] | None) -> dict[str, Any]:
+    """Validate Lingua's semantic speech plan without trusting model timing."""
+
+    if value in (None, ""):
+        return {}
+    raw: Any = value
+    if isinstance(value, str):
+        try:
+            raw = json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise PoseProtocolError("pose_plan must be a JSON object.") from exc
+    if not isinstance(raw, Mapping):
+        raise PoseProtocolError("pose_plan must be a JSON object.")
+    try:
+        version = int(raw.get("version"))
+    except (TypeError, ValueError) as exc:
+        raise PoseProtocolError(
+            f"pose_plan.version must be {POSE_PLAN_VERSION}."
+        ) from exc
+    if version != POSE_PLAN_VERSION:
+        raise PoseProtocolError(
+            f"Unsupported pose_plan version {version}."
+        )
+    clock = str(raw.get("clock") or "").strip().lower()
+    if clock != POSE_PLAN_CLOCK:
+        raise PoseProtocolError(
+            f"pose_plan.clock must be {POSE_PLAN_CLOCK}."
+        )
+    switch_mode = str(
+        raw.get("switch_mode") or POSE_SWITCH_MODE
+    ).strip().lower()
+    if switch_mode != POSE_SWITCH_MODE:
+        raise PoseProtocolError(
+            f"pose_plan.switch_mode must be {POSE_SWITCH_MODE}."
+        )
+    on_complete = str(
+        raw.get("on_complete") or "neutral_resting"
+    ).strip().lower()
+    if on_complete != "neutral_resting":
+        raise PoseProtocolError(
+            "pose_plan.on_complete must be neutral_resting."
+        )
+
+    raw_segments = raw.get("segments")
+    if (
+        not isinstance(raw_segments, list)
+        or not raw_segments
+        or len(raw_segments) > POSE_PLAN_MAX_SEGMENTS
+    ):
+        raise PoseProtocolError(
+            f"pose_plan.segments must contain 1-{POSE_PLAN_MAX_SEGMENTS} items."
+        )
+
+    segments: list[dict[str, Any]] = []
+    previous_anchor = -1
+    previous_pose = ""
+    for index, raw_segment in enumerate(raw_segments):
+        if not isinstance(raw_segment, Mapping):
+            raise PoseProtocolError(
+                f"pose_plan.segments[{index}] must be an object."
+            )
+        pose_id = str(raw_segment.get("pose_id") or "").strip().lower()
+        if pose_id not in SPEECH_POSE_ID_SET:
+            raise PoseProtocolError(
+                "pose_plan speech poses must be one of: "
+                + ", ".join(SPEECH_POSE_IDS)
+                + "."
+            )
+        raw_anchor = raw_segment.get("at_permille")
+        if isinstance(raw_anchor, bool):
+            raise PoseProtocolError(
+                "pose_plan at_permille values must be integers."
+            )
+        try:
+            anchor = int(raw_anchor)
+        except (TypeError, ValueError) as exc:
+            raise PoseProtocolError(
+                "pose_plan at_permille values must be integers."
+            ) from exc
+        if anchor < 0 or anchor >= 1000:
+            raise PoseProtocolError(
+                "pose_plan at_permille values must be between 0 and 999."
+            )
+        if index == 0 and anchor != 0:
+            raise PoseProtocolError(
+                "pose_plan must start at at_permille=0."
+            )
+        if anchor <= previous_anchor:
+            raise PoseProtocolError(
+                "pose_plan at_permille values must be strictly increasing."
+            )
+        if pose_id == previous_pose:
+            raise PoseProtocolError(
+                "pose_plan cannot contain adjacent duplicate poses."
+            )
+        segments.append({"at_permille": anchor, "pose_id": pose_id})
+        previous_anchor = anchor
+        previous_pose = pose_id
+
+    if segments[-1]["pose_id"] != "speaking_direct":
+        raise PoseProtocolError(
+            "pose_plan must end with pose_id=speaking_direct."
+        )
+
+    return {
+        "version": POSE_PLAN_VERSION,
+        "clock": POSE_PLAN_CLOCK,
+        "segments": segments,
+        "on_complete": "neutral_resting",
+        "switch_mode": POSE_SWITCH_MODE,
+    }
+
+
 def normalize_session_event(value: Mapping[str, Any]) -> dict[str, Any]:
     event = str(value.get("event") or "").strip().lower()
     if event not in SESSION_EVENT_SET:
@@ -224,6 +347,7 @@ def normalize_stream_metadata(value: Mapping[str, Any]) -> dict[str, Any]:
     protocol_keys = {
         "reaction_intent",
         "pose_sequence",
+        "pose_plan",
         "turn_id",
         "seq",
         "pose_id",
@@ -239,6 +363,7 @@ def normalize_stream_metadata(value: Mapping[str, Any]) -> dict[str, Any]:
         value.get("pose_sequence"),
         reaction_intent=reaction_intent,
     )
+    pose_plan = normalize_pose_plan(value.get("pose_plan"))
     pose_id = str(value.get("pose_id") or "speaking_direct").strip().lower()
     if pose_id != "speaking_direct":
         raise PoseProtocolError("Assistant audio must use pose_id=speaking_direct.")
@@ -261,7 +386,7 @@ def normalize_stream_metadata(value: Mapping[str, Any]) -> dict[str, Any]:
     if audio_start != "immediate":
         raise PoseProtocolError("audio_start must be immediate.")
 
-    return {
+    result = {
         "reaction_intent": reaction_intent,
         "pose_id": pose_id,
         "pose_sequence": sequence,
@@ -271,3 +396,6 @@ def normalize_stream_metadata(value: Mapping[str, Any]) -> dict[str, Any]:
         "mouth_mode": "lip_sync",
         "audio_start": "immediate",
     }
+    if pose_plan:
+        result["pose_plan"] = pose_plan
+    return result
