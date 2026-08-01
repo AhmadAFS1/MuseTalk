@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import math
 import mimetypes
 import sys
 import time
@@ -111,33 +112,577 @@ class SmokeTestError(RuntimeError):
     pass
 
 
+class SharedRecordingClock:
+    """One receiver-side wall clock for every track written to the MP4."""
+
+    def __init__(self) -> None:
+        self.started_at: float | None = None
+
+    def start(self) -> float:
+        if self.started_at is None:
+            self.started_at = time.monotonic()
+        return self.started_at
+
+    def elapsed(self) -> float:
+        started_at = self.started_at
+        if started_at is None:
+            started_at = self.start()
+        return max(0.0, time.monotonic() - started_at)
+
+
 class WallClockAudioTrack:
-    """Preserve real-time gaps when a WebRTC sender replaces its audio source."""
+    """Anchor audio once, then preserve receiver-visible RTP media spacing."""
 
     kind = "audio"
 
-    def __init__(self, source: Any) -> None:
+    def __init__(self, source: Any, clock: SharedRecordingClock) -> None:
         self.source = source
-        self._started_at: float | None = None
-        self._next_pts = 0
+        self.clock = clock
+        self._source_origin_seconds: float | None = None
+        self._recording_origin_pts: int | None = None
+        self._last_pts = -1
+        self._last_source_seconds: float | None = None
+        self._last_source_duration_seconds: float | None = None
+        self._source_timestamp_anomalies = 0
+        self._source_timestamp_missing = 0
+        self._max_source_timestamp_error_seconds = 0.0
+        self._source_timestamp_anomaly_details: list[dict[str, Any]] = []
+        self._frames = 0
 
     async def recv(self) -> Any:
         frame = await self.source.recv()
-        now = time.monotonic()
         sample_rate = int(frame.sample_rate or 48000)
         samples = int(frame.samples or 0)
-        if self._started_at is None:
-            self._started_at = now
-        wall_clock_pts = int(round((now - self._started_at) * sample_rate))
-        # Normal packets stay sample-contiguous. If the sender pauses while
-        # preparing TTS, advance to wall time so the recording retains silence
-        # instead of collapsing the gap or overlapping reset RTP timestamps.
-        if wall_clock_pts > self._next_pts + max(samples * 2, sample_rate // 10):
-            self._next_pts = wall_clock_pts
-        frame.pts = self._next_pts
+        source_seconds = (
+            float(frame.pts * frame.time_base)
+            if frame.pts is not None and frame.time_base is not None
+            else None
+        )
+        if source_seconds is None:
+            self._source_timestamp_missing += 1
+        if self._recording_origin_pts is None:
+            self._recording_origin_pts = int(round(self.clock.elapsed() * sample_rate))
+            self._source_origin_seconds = source_seconds
+
+        if (
+            source_seconds is not None
+            and self._last_source_seconds is not None
+            and self._last_source_duration_seconds is not None
+        ):
+            source_step = source_seconds - self._last_source_seconds
+            timestamp_error = abs(
+                source_step - self._last_source_duration_seconds
+            )
+            if timestamp_error > max(2.0 / sample_rate, 1e-6):
+                self._source_timestamp_anomalies += 1
+                self._max_source_timestamp_error_seconds = max(
+                    self._max_source_timestamp_error_seconds,
+                    timestamp_error,
+                )
+                self._source_timestamp_anomaly_details.append(
+                    {
+                        "frame_index": self._frames,
+                        "previous_source_seconds": self._last_source_seconds,
+                        "current_source_seconds": source_seconds,
+                        "source_step_seconds": source_step,
+                        "expected_step_seconds": (
+                            self._last_source_duration_seconds
+                        ),
+                        "timestamp_error_seconds": timestamp_error,
+                        "excess_seconds": (
+                            source_step - self._last_source_duration_seconds
+                        ),
+                        "sample_rate": sample_rate,
+                    }
+                )
+
+        if source_seconds is not None and self._source_origin_seconds is not None:
+            source_delta = max(0.0, source_seconds - self._source_origin_seconds)
+            pts = self._recording_origin_pts + int(round(source_delta * sample_rate))
+        else:
+            pts = (
+                self._recording_origin_pts
+                if self._last_pts < 0
+                else self._last_pts + max(1, samples)
+            )
+
+        pts = max(self._last_pts + 1, pts)
+        self._last_pts = pts
+        self._last_source_seconds = source_seconds
+        self._last_source_duration_seconds = (
+            samples / float(sample_rate) if samples > 0 else None
+        )
+        self._frames += 1
+        frame.pts = pts
         frame.time_base = Fraction(1, sample_rate)
-        self._next_pts += samples
         return frame
+
+    def get_stats(self) -> dict[str, Any]:
+        return {
+            "frames": self._frames,
+            "source_timestamp_anomalies": self._source_timestamp_anomalies,
+            "source_timestamp_missing": self._source_timestamp_missing,
+            "max_source_timestamp_error_seconds": (
+                self._max_source_timestamp_error_seconds
+            ),
+            "source_timestamp_anomaly_details": [
+                dict(detail)
+                for detail in self._source_timestamp_anomaly_details
+            ],
+            "timestamp_policy": "preserve_receiver_rtp_deltas",
+        }
+
+
+class WallClockVideoTrack:
+    """Anchor video once while auditing every receiver-visible RTP delta."""
+
+    kind = "video"
+
+    def __init__(
+        self,
+        source: Any,
+        clock: SharedRecordingClock,
+        *,
+        nominal_fps: float = 30.0,
+    ) -> None:
+        self.source = source
+        self.clock = clock
+        self._nominal_fps = float(nominal_fps)
+        if self._nominal_fps <= 0:
+            raise ValueError("nominal_fps must be positive")
+        self._nominal_frame_seconds = 1.0 / self._nominal_fps
+        self._fallback_frame_ticks = max(
+            1,
+            int(round(90_000.0 / self._nominal_fps)),
+        )
+        self._source_origin_seconds: float | None = None
+        self._recording_origin_pts: int | None = None
+        self._last_pts = -1
+        self._last_source_seconds: float | None = None
+        self._source_timestamp_anomalies = 0
+        self._source_timestamp_missing = 0
+        self._max_source_timestamp_error_seconds = 0.0
+        self._source_timestamp_anomaly_details: list[dict[str, Any]] = []
+        self._frames = 0
+
+    async def recv(self) -> Any:
+        frame = await self.source.recv()
+        source_pts = frame.pts
+        source_time_base = frame.time_base
+        source_seconds = (
+            float(source_pts * source_time_base)
+            if source_pts is not None and source_time_base is not None
+            else None
+        )
+        if source_seconds is None:
+            self._source_timestamp_missing += 1
+        if self._recording_origin_pts is None:
+            self._recording_origin_pts = int(round(self.clock.elapsed() * 90_000))
+            self._source_origin_seconds = source_seconds
+
+        if source_seconds is not None and self._last_source_seconds is not None:
+            source_step = source_seconds - self._last_source_seconds
+            timestamp_error = abs(source_step - self._nominal_frame_seconds)
+            source_tick_seconds = (
+                abs(float(source_time_base))
+                if source_time_base is not None
+                else 0.0
+            )
+            timestamp_tolerance = max(2.0 * source_tick_seconds, 1e-6)
+            if timestamp_error > timestamp_tolerance:
+                step_intervals = source_step * self._nominal_fps
+                nearest_intervals = int(round(step_intervals))
+                integral_step = abs(step_intervals - nearest_intervals) <= (
+                    timestamp_tolerance * self._nominal_fps
+                )
+                detail = {
+                    "frame_index": self._frames,
+                    "previous_source_seconds": self._last_source_seconds,
+                    "current_source_seconds": source_seconds,
+                    "source_step_seconds": source_step,
+                    "expected_step_seconds": self._nominal_frame_seconds,
+                    "timestamp_error_seconds": timestamp_error,
+                    "step_frame_intervals": (
+                        nearest_intervals if integral_step else None
+                    ),
+                    "excess_frame_intervals": (
+                        nearest_intervals - 1 if integral_step else None
+                    ),
+                    "source_time_base_seconds": source_tick_seconds,
+                }
+                self._source_timestamp_anomaly_details.append(detail)
+                self._source_timestamp_anomalies += 1
+                self._max_source_timestamp_error_seconds = max(
+                    self._max_source_timestamp_error_seconds,
+                    timestamp_error,
+                )
+
+        # Anchor the first received frame to the shared recording epoch, then
+        # preserve the sender's RTP spacing. MediaRelay can deliver several
+        # queued frames in one event-loop turn; stamping every one from its
+        # arrival wall time would collapse them onto the same encoder tick.
+        if source_seconds is not None and self._source_origin_seconds is not None:
+            source_delta = max(0.0, source_seconds - self._source_origin_seconds)
+            pts = (
+                self._recording_origin_pts
+                + int(round(source_delta * 90_000))
+            )
+        else:
+            pts = (
+                self._recording_origin_pts
+                if self._last_pts < 0
+                else self._last_pts + self._fallback_frame_ticks
+            )
+
+        pts = max(self._last_pts + 1, pts)
+        self._last_pts = pts
+        self._last_source_seconds = source_seconds
+        self._frames += 1
+        frame.pts = pts
+        frame.time_base = Fraction(1, 90_000)
+        return frame
+
+    def get_stats(self) -> dict[str, Any]:
+        return {
+            "frames": self._frames,
+            "nominal_fps": self._nominal_fps,
+            "nominal_frame_duration_seconds": self._nominal_frame_seconds,
+            "source_timestamp_anomalies": self._source_timestamp_anomalies,
+            "source_timestamp_missing": self._source_timestamp_missing,
+            "max_source_timestamp_error_seconds": (
+                self._max_source_timestamp_error_seconds
+            ),
+            "source_timestamp_anomaly_details": [
+                dict(detail)
+                for detail in self._source_timestamp_anomaly_details
+            ],
+            "timestamp_policy": "preserve_receiver_rtp_deltas",
+        }
+
+
+def _numeric_stat(
+    mappings: list[dict[str, Any]],
+    *keys: str,
+) -> float | None:
+    for mapping in mappings:
+        for key in keys:
+            value = mapping.get(key)
+            if value is None or isinstance(value, bool):
+                continue
+            try:
+                result = float(value)
+            except (TypeError, ValueError):
+                continue
+            if math.isfinite(result):
+                return result
+    return None
+
+
+def _case_timestamp_mappings(case: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return every server stats scope that can carry shared RTP telemetry."""
+
+    track_stats = case.get("final_track_stats") or {}
+    if not isinstance(track_stats, dict):
+        return []
+    video_stats = track_stats.get("video") or {}
+    audio_transport = track_stats.get("audio_transport") or {}
+    mappings: list[dict[str, Any]] = []
+
+    def add(value: Any) -> None:
+        if isinstance(value, dict) and value not in mappings:
+            mappings.append(value)
+
+    add(track_stats.get("sync_clock"))
+    add(video_stats)
+    add(video_stats.get("sync_clock") if isinstance(video_stats, dict) else None)
+    add(audio_transport)
+    if isinstance(audio_transport, dict):
+        for source_key in ("last_source", "current_source"):
+            source_stats = audio_transport.get(source_key)
+            add(source_stats)
+            if isinstance(source_stats, dict):
+                add(source_stats.get("sync_clock"))
+    return mappings
+
+
+def _timestamp_anomaly_details(
+    stats: dict[str, Any],
+    *,
+    label: str,
+) -> list[dict[str, Any]]:
+    details = stats.get("source_timestamp_anomaly_details") or []
+    if not isinstance(details, list) or not all(
+        isinstance(detail, dict) for detail in details
+    ):
+        raise SmokeTestError(f"Receiver {label} timestamp details are invalid: {stats}")
+    anomaly_count = int(stats.get("source_timestamp_anomalies") or 0)
+    if anomaly_count != len(details):
+        raise SmokeTestError(
+            f"Receiver {label} timestamp anomaly count/detail mismatch: {stats}"
+        )
+    if int(stats.get("source_timestamp_missing") or 0):
+        raise SmokeTestError(
+            f"Receiver {label} frames were missing RTP timestamps: {stats}"
+        )
+    return [dict(detail) for detail in details]
+
+
+def validate_recording_timestamp_proof(
+    recording_track_stats: dict[str, Any],
+    speaking_cases: list[dict[str, Any]],
+    *,
+    playback_fps: float,
+) -> dict[str, Any]:
+    """Validate receiver RTP cadence and the one declared turn-start rebase.
+
+    The proof deliberately uses receiver source PTS plus server telemetry. It
+    does not infer speaking/idle boundaries from pixels or waveform content.
+    """
+
+    if not recording_track_stats:
+        return {
+            "validated": False,
+            "reason": "recording_disabled",
+        }
+
+    nominal_fps = float(playback_fps)
+    if nominal_fps <= 0:
+        raise SmokeTestError("playback_fps must be positive for RTP validation")
+    nominal_frame_seconds = 1.0 / nominal_fps
+    video_tolerance_seconds = max(2.0 / 90_000.0, 1e-6)
+
+    video_stats = recording_track_stats.get("video") or {}
+    audio_stats = recording_track_stats.get("audio") or {}
+    if not isinstance(video_stats, dict) or not video_stats:
+        raise SmokeTestError("Proof recording did not expose video RTP stats.")
+    if not isinstance(audio_stats, dict) or not audio_stats:
+        raise SmokeTestError("Proof recording did not expose audio RTP stats.")
+
+    recorded_fps = _numeric_stat([video_stats], "nominal_fps")
+    if recorded_fps is None or abs(recorded_fps - nominal_fps) > 1e-9:
+        raise SmokeTestError(
+            "Receiver video timestamp proof used the wrong nominal FPS: "
+            f"expected={nominal_fps:g}, stats={video_stats}"
+        )
+
+    video_anomalies = _timestamp_anomaly_details(video_stats, label="video")
+    audio_anomalies = _timestamp_anomaly_details(audio_stats, label="audio")
+    declared_video_corrections: list[dict[str, Any]] = []
+    declared_audio_corrections: list[dict[str, Any]] = []
+    first_live_av_checks: list[dict[str, Any]] = []
+
+    for case_index, case in enumerate(speaking_cases):
+        mappings = _case_timestamp_mappings(case)
+        track_stats = case.get("final_track_stats") or {}
+        server_video_stats = (
+            track_stats.get("video") or {}
+            if isinstance(track_stats, dict)
+            else {}
+        )
+        first_live_video_seconds = _numeric_stat(
+            mappings,
+            "first_live_video_rtp_seconds",
+        )
+        first_tts_seconds = _numeric_stat(
+            mappings,
+            "first_tts_transport_pts_seconds",
+        )
+
+        correction_frames_value = None
+        if isinstance(server_video_stats, dict):
+            for key in (
+                "last_live_rtp_phase_correction_frames",
+                "live_rtp_phase_correction_frames",
+            ):
+                if server_video_stats.get(key) is not None:
+                    correction_frames_value = server_video_stats.get(key)
+                    break
+        video_correction_seconds = _numeric_stat(
+            mappings,
+            "video_rtp_phase_correction_seconds",
+        )
+        if correction_frames_value is None:
+            correction_frames = (
+                int(round(video_correction_seconds * nominal_fps))
+                if video_correction_seconds is not None
+                else 0
+            )
+        else:
+            try:
+                correction_frames = int(correction_frames_value)
+            except (TypeError, ValueError) as exc:
+                raise SmokeTestError(
+                    "Server video phase-correction telemetry is invalid: "
+                    f"{server_video_stats}"
+                ) from exc
+        if correction_frames < 0:
+            raise SmokeTestError(
+                "Server declared a negative video RTP phase correction: "
+                f"{server_video_stats}"
+            )
+        if video_correction_seconds is not None and abs(
+            video_correction_seconds
+            - correction_frames * nominal_frame_seconds
+        ) > video_tolerance_seconds:
+            raise SmokeTestError(
+                "Server video phase-correction seconds/frames disagree: "
+                f"case={case_index}, frames={correction_frames}, "
+                f"seconds={video_correction_seconds}"
+            )
+        if correction_frames:
+            if first_live_video_seconds is None:
+                raise SmokeTestError(
+                    "Server declared a video RTP phase correction without the "
+                    f"first-live RTP timestamp: case={case_index}"
+                )
+            declared_video_corrections.append(
+                {
+                    "case_index": case_index,
+                    "first_live_video_rtp_seconds": first_live_video_seconds,
+                    "correction_frames": correction_frames,
+                    "correction_seconds": (
+                        correction_frames * nominal_frame_seconds
+                    ),
+                }
+            )
+
+        audio_correction_seconds = _numeric_stat(
+            mappings,
+            "audio_rtp_phase_correction_seconds",
+        ) or 0.0
+        if audio_correction_seconds < 0:
+            raise SmokeTestError(
+                "Server declared a negative audio RTP phase correction: "
+                f"case={case_index}, seconds={audio_correction_seconds}"
+            )
+        if audio_correction_seconds > 1e-6:
+            if first_tts_seconds is None:
+                raise SmokeTestError(
+                    "Server declared an audio RTP phase correction without the "
+                    f"actual first-TTS RTP timestamp: case={case_index}"
+                )
+            declared_audio_corrections.append(
+                {
+                    "case_index": case_index,
+                    "first_tts_transport_pts_seconds": first_tts_seconds,
+                    "correction_seconds": audio_correction_seconds,
+                }
+            )
+
+        # Older workers do not expose actual first-TTS PTS. As soon as that
+        # telemetry appears, it becomes a hard receiver-facing A/V assertion.
+        if first_tts_seconds is not None:
+            if first_live_video_seconds is None:
+                raise SmokeTestError(
+                    "Actual first-TTS RTP telemetry appeared without first-live "
+                    f"video RTP telemetry: case={case_index}"
+                )
+            av_delta_seconds = abs(
+                first_tts_seconds - first_live_video_seconds
+            )
+            if av_delta_seconds > nominal_frame_seconds + video_tolerance_seconds:
+                raise SmokeTestError(
+                    "First TTS/video RTP alignment exceeded one video frame: "
+                    f"case={case_index}, audio={first_tts_seconds:.6f}, "
+                    f"video={first_live_video_seconds:.6f}, "
+                    f"delta={av_delta_seconds:.6f}, "
+                    f"limit={nominal_frame_seconds:.6f}"
+                )
+            first_live_av_checks.append(
+                {
+                    "case_index": case_index,
+                    "first_tts_transport_pts_seconds": first_tts_seconds,
+                    "first_live_video_rtp_seconds": first_live_video_seconds,
+                    "absolute_delta_seconds": av_delta_seconds,
+                    "max_delta_seconds": nominal_frame_seconds,
+                    "aligned": True,
+                }
+            )
+
+    if len(video_anomalies) != len(declared_video_corrections):
+        raise SmokeTestError(
+            "Receiver video RTP timestamps contained an undeclared gap or "
+            "missed a declared first-live phase correction: "
+            f"anomalies={video_anomalies}, "
+            f"declared={declared_video_corrections}"
+        )
+    unmatched_video = list(video_anomalies)
+    for declaration in declared_video_corrections:
+        expected_pts = declaration["first_live_video_rtp_seconds"]
+        match = min(
+            unmatched_video,
+            key=lambda detail: abs(
+                float(detail.get("current_source_seconds", float("inf")))
+                - expected_pts
+            ),
+        )
+        current_pts = _numeric_stat([match], "current_source_seconds")
+        if current_pts is None or abs(current_pts - expected_pts) > video_tolerance_seconds:
+            raise SmokeTestError(
+                "Receiver video RTP gap was not located at the declared first-live "
+                f"frame: anomaly={match}, declared={declaration}"
+            )
+        expected_excess_frames = declaration["correction_frames"]
+        try:
+            actual_excess_frames = int(match.get("excess_frame_intervals"))
+        except (TypeError, ValueError) as exc:
+            raise SmokeTestError(
+                "Receiver video RTP gap was not an integral 30fps phase correction: "
+                f"{match}"
+            ) from exc
+        if actual_excess_frames != expected_excess_frames:
+            raise SmokeTestError(
+                "Receiver video RTP gap size did not match server telemetry: "
+                f"anomaly={match}, declared={declaration}"
+            )
+        unmatched_video.remove(match)
+
+    if len(audio_anomalies) != len(declared_audio_corrections):
+        raise SmokeTestError(
+            "Receiver audio RTP timestamps contained an undeclared gap or "
+            "missed a declared first-TTS phase correction: "
+            f"anomalies={audio_anomalies}, "
+            f"declared={declared_audio_corrections}"
+        )
+    unmatched_audio = list(audio_anomalies)
+    for declaration in declared_audio_corrections:
+        expected_pts = declaration["first_tts_transport_pts_seconds"]
+        match = min(
+            unmatched_audio,
+            key=lambda detail: abs(
+                float(detail.get("current_source_seconds", float("inf")))
+                - expected_pts
+            ),
+        )
+        current_pts = _numeric_stat([match], "current_source_seconds")
+        sample_rate = int(match.get("sample_rate") or 48_000)
+        audio_tolerance_seconds = max(2.0 / sample_rate, 1e-6)
+        if current_pts is None or abs(current_pts - expected_pts) > audio_tolerance_seconds:
+            raise SmokeTestError(
+                "Receiver audio RTP gap was not located immediately before the "
+                f"actual first-TTS packet: anomaly={match}, declared={declaration}"
+            )
+        excess_seconds = _numeric_stat([match], "excess_seconds")
+        if excess_seconds is None or abs(
+            excess_seconds - declaration["correction_seconds"]
+        ) > audio_tolerance_seconds:
+            raise SmokeTestError(
+                "Receiver audio RTP gap size did not match server telemetry: "
+                f"anomaly={match}, declared={declaration}"
+            )
+        unmatched_audio.remove(match)
+
+    return {
+        "validated": True,
+        "nominal_video_fps": nominal_fps,
+        "nominal_video_frame_seconds": nominal_frame_seconds,
+        "video_source_timestamp_anomalies": len(video_anomalies),
+        "declared_video_phase_corrections": declared_video_corrections,
+        "audio_source_timestamp_anomalies": len(audio_anomalies),
+        "declared_audio_phase_corrections": declared_audio_corrections,
+        "first_live_av_rtp_checks": first_live_av_checks,
+        "actual_first_tts_rtp_available": bool(first_live_av_checks),
+    }
 
 
 def load_pose_set(path: Path) -> dict[str, Any]:
@@ -702,6 +1247,7 @@ async def run_webrtc_smoke(
     showcase_mvp_four_exhaustive: bool,
     showcase_timeout: int,
     max_pose_semantic_drift_ms: int,
+    record_postroll_seconds: float,
 ) -> dict[str, Any]:
     if AIORTC_IMPORT_ERROR is not None or RTCPeerConnection is None:
         raise SmokeTestError(
@@ -744,6 +1290,8 @@ async def run_webrtc_smoke(
     recorder = None
     recorder_started = False
     relay = MediaRelay() if record_output is not None else None
+    recording_clock = SharedRecordingClock()
+    recording_track_wrappers: dict[str, Any] = {}
     recording_started_at: float | None = None
     turn_id_prefix = f"pose_smoke_{int(time.time() * 1000)}"
     final_status: dict[str, Any] = {}
@@ -796,7 +1344,17 @@ async def run_webrtc_smoke(
             if recorder is not None and relay is not None:
                 recorder_track = relay.subscribe(track)
                 if track.kind == "audio":
-                    recorder_track = WallClockAudioTrack(recorder_track)
+                    recorder_track = WallClockAudioTrack(
+                        recorder_track,
+                        recording_clock,
+                    )
+                elif track.kind == "video":
+                    recorder_track = WallClockVideoTrack(
+                        recorder_track,
+                        recording_clock,
+                        nominal_fps=playback_fps,
+                    )
+                recording_track_wrappers[track.kind] = recorder_track
                 recorder.addTrack(recorder_track)
 
         pc.addTransceiver("video", direction="recvonly")
@@ -810,9 +1368,9 @@ async def run_webrtc_smoke(
             ice_gather_timeout_s=10,
         )
         if recorder is not None:
+            recording_started_at = recording_clock.start()
             await recorder.start()
             recorder_started = True
-            recording_started_at = time.monotonic()
             print(f"[recording] {record_output}", flush=True)
         connected = await wait_for_peer_connection(
             pc=pc,
@@ -1209,6 +1767,49 @@ async def run_webrtc_smoke(
                     f"{json.dumps(current_pose_status)[:1200]}"
                 )
 
+            # Status can report the atomic neutral handoff before the returned
+            # idle frames have crossed the receiver jitter buffer. Keep the
+            # recorder open until a complete post-roll frame count has crossed
+            # the receiver, so the proof MP4 visibly contains the completed
+            # speaking-to-idle transition.
+            if record_output is not None and record_postroll_seconds > 0:
+                first_postroll_frame = counters.get("video_frames", 0)
+                required_postroll_frames = max(
+                    1,
+                    int(record_postroll_seconds * playback_fps + 0.999999),
+                )
+                postroll_target = first_postroll_frame + required_postroll_frames
+                postroll_deadline = (
+                    time.monotonic() + record_postroll_seconds + 2.0
+                )
+                while (
+                    counters.get("video_frames", 0) < postroll_target
+                    and time.monotonic() < postroll_deadline
+                ):
+                    await asyncio.sleep(0.02)
+                observed_postroll_frames = (
+                    counters.get("video_frames", 0) - first_postroll_frame
+                )
+                if observed_postroll_frames < required_postroll_frames:
+                    raise SmokeTestError(
+                        "Neutral idle post-roll received only "
+                        f"{observed_postroll_frames}/{required_postroll_frames} "
+                        "required video frames."
+                    )
+                recording_timeline.append(
+                    {
+                        "event": "neutral_idle_postroll_complete",
+                        "reaction_intent": case_reaction_intent,
+                        "case_index": case_index,
+                        "duration_seconds": record_postroll_seconds,
+                        "video_frames": observed_postroll_frames,
+                        "at_seconds": round(
+                            time.monotonic() - showcase_clock_started_at,
+                            3,
+                        ),
+                    }
+                )
+
             post_stream_video_frames = (
                 counters.get("video_frames", 0)
                 - pre_stream_counters.get("video_frames", 0)
@@ -1300,6 +1901,11 @@ async def run_webrtc_smoke(
                 "audio_frames_received": post_stream_audio_frames,
                 "server_generated_video_frames_played": case_max_frames["video"],
                 "server_sample_audio_frames_sent": case_max_frames["audio"],
+                # Preserve the server's receiver-visible media-horizon proof in
+                # the capture log.  This makes it possible to audit that idle
+                # was not restored until the final synchronized audio sample
+                # had a corresponding live-video frame.
+                "final_track_stats": final_status.get("track_stats") or {},
             }
             return case_result, current_pose_status
 
@@ -1350,6 +1956,17 @@ async def run_webrtc_smoke(
                 f"WebRTC receiver task failed: {consumer_errors}"
             )
 
+        recording_track_stats = {
+            kind: wrapper.get_stats()
+            for kind, wrapper in recording_track_wrappers.items()
+            if hasattr(wrapper, "get_stats")
+        }
+        recording_timestamp_validation = validate_recording_timestamp_proof(
+            recording_track_stats,
+            speaking_cases,
+            playback_fps=playback_fps,
+        )
+
         result = {
             "ok": True,
             "session_id": session_id,
@@ -1393,6 +2010,8 @@ async def run_webrtc_smoke(
                 12 if showcase_mvp_four_exhaustive else None
             ),
             "recording": str(record_output) if record_output is not None else None,
+            "recording_track_stats": recording_track_stats,
+            "recording_timestamp_validation": recording_timestamp_validation,
         }
         print(json.dumps(result, indent=2, sort_keys=True), flush=True)
         return result
@@ -1478,6 +2097,7 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             showcase_mvp_four_exhaustive=args.showcase_mvp_four_exhaustive,
             showcase_timeout=args.showcase_timeout,
             max_pose_semantic_drift_ms=args.max_pose_semantic_drift_ms,
+            record_postroll_seconds=args.record_postroll_seconds,
         )
         for avatar in avatars:
             status = await avatar_status(
@@ -1573,6 +2193,15 @@ def parse_args() -> argparse.Namespace:
         help="Record the received WebRTC audio and video tracks to this MP4.",
     )
     parser.add_argument(
+        "--record-postroll-seconds",
+        type=float,
+        default=0.75,
+        help=(
+            "Keep a proof recording open this long after neutral recovery so "
+            "the speaking-to-idle handoff is visible (default: 0.75)."
+        ),
+    )
+    parser.add_argument(
         "--showcase-six-poses",
         action="store_true",
         help=(
@@ -1619,6 +2248,7 @@ def parse_args() -> argparse.Namespace:
         or args.pose_recovery_timeout < 1
         or args.showcase_timeout < 1
         or args.max_pose_semantic_drift_ms < 0
+        or args.record_postroll_seconds < 0
     ):
         parser.error(
             "FPS, batch size, and timeout values must be positive; semantic "

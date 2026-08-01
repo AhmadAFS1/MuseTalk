@@ -238,6 +238,57 @@ The Lingua compiler:
 Forcing a direct tail creates the safest handoff from lip-synced speech back to
 neutral.
 
+## WebRTC audio/video synchronization fix (2026-07-31)
+
+The multi-pose scheduler and the WebRTC media tracks now share the decoded
+audio timeline. This fixes two separate problems that were previously easy to
+confuse:
+
+1. A pose request could be held until the next complete source-video loop,
+   making a requested switch several seconds late.
+2. Audio could begin while the newly selected video was still being prepared,
+   producing an apparent audio/video or lip-sync offset.
+
+The current implementation addresses both problems as follows:
+
+- Spoken audio is normalized once (including long leading/trailing silence
+  trimming) and the same timeline is used for MuseTalk generation and the
+  WebRTC audio sender.
+- The audio sender is persistent and timestamp-locked. It is not replaced for
+  every turn, so RTP timestamps remain contiguous across a response.
+- Video waits behind a shared release gate until audio and the first live video
+  frame are ready. The first live video RTP timestamp is forward-aligned to the
+  persistent audio timeline.
+- Pose plans switch at their requested audio-progress frame using a bounded
+  crossfade. They no longer wait for an arbitrary full source-loop boundary.
+- Generation ownership tokens reject stale frames or completion callbacks from
+  an earlier turn.
+- A neutral frame is staged before generation completes and is activated at the
+  shared audio media endpoint, preventing a long silent tail or early neutral
+  handoff.
+
+The v11 end-to-end validation run used a three-segment plan
+(`speaking_direct -> light_smile -> speaking_direct`) and recorded these
+results:
+
+| Measurement | Result |
+|---|---:|
+| Pose semantic drift | 0 frames / 0 seconds |
+| Initial audio/video start delta | 5.2 ms |
+| First live RTP delta | 13.3 ms |
+| Maximum first-RTP mismatch | 33.3 ms |
+| Audio stalls / video stalls | 0 / 0 |
+| Audio media and playout duration | 11.06 s / 11.06 s |
+| Pose crossfade | 4 frames at requested-time switches |
+
+The focused WebRTC, pose-plan, and timestamp tests pass (69 tests in the
+validation run). These checks establish transport and pose-timeline alignment;
+they do not replace a dedicated phoneme-to-mouth metric such as SyncNet or a
+human review of the recorded capture.
+
+Validation artifacts are stored under
+`generated/webrtc_pose_showcase/2026-07-31/av_bidirectional_rtp_lock_v11/`.
+
 ## Lingua backend validation and negotiation
 
 Lingua does not trust pose metadata from the client. It validates that:

@@ -99,6 +99,7 @@ from scripts.worker_control_plane import LinguaWorkerControlPlane
 from scripts.session_manager import SessionManager
 from scripts.hls_session_manager import HlsSessionManager
 from scripts.hls_gpu_scheduler import HLSGPUStreamScheduler
+from scripts.webrtc_audio_timeline import prepare_webrtc_audio_timeline
 try:
     from scripts.webrtc_manager import WebRTCSessionManager, build_rtc_configuration
     from scripts.webrtc_tracks import SyncedAudioStreamTrack  # ✅ ADD SyncedAudioStreamTrack
@@ -1231,6 +1232,24 @@ async def worker_capabilities():
                 WEBRTC_AVAILABLE
                 and _env_bool("WEBRTC_SHARED_GPU_SCHEDULER", True)
             ),
+            "timestamp_locked_av_sync": bool(WEBRTC_AVAILABLE),
+        },
+        "webrtc_av_sync": {
+            "audio_transport": "persistent_timestamp_locked",
+            "edge_silence_trim": _env_bool("WEBRTC_TRIM_EDGE_SILENCE", True),
+            "activity_threshold_db": _env_float(
+                "WEBRTC_AUDIO_ACTIVITY_THRESHOLD_DB",
+                -45.0,
+            ),
+            "leading_padding_ms": int(round(
+                _env_float("WEBRTC_AUDIO_LEADING_PADDING_SECONDS", 0.08)
+                * 1000.0
+            )),
+            "trailing_padding_ms": int(round(
+                _env_float("WEBRTC_AUDIO_TRAILING_PADDING_SECONDS", 0.04)
+                * 1000.0
+            )),
+            "idle_handoff": "audio_media_endpoint",
         },
         "pose_protocol": {
             "version": 1,
@@ -3712,10 +3731,16 @@ def _get_webrtc_session_status(session) -> str:
 def _get_webrtc_track_stats(session) -> dict:
     video_track = getattr(session, "idle_track", None)
     audio_track = getattr(session, "audio_player", None)
+    audio_transport = getattr(session, "silence_audio_track", None)
     sync_clock = getattr(session, "sync_clock", None)
     return {
         "video": video_track.get_stats() if hasattr(video_track, "get_stats") else None,
         "audio": audio_track.get_stats() if hasattr(audio_track, "get_stats") else None,
+        "audio_transport": (
+            audio_transport.get_stats()
+            if hasattr(audio_transport, "get_stats")
+            else None
+        ),
         "sync_clock": sync_clock.get_stats() if hasattr(sync_clock, "get_stats") else None,
     }
 
@@ -4600,12 +4625,6 @@ async def webrtc_stream(
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found or expired")
 
-    if session.active_stream is not None:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Session already streaming (request_id: {session.active_stream})"
-        )
-
     try:
         stream_metadata = normalize_stream_metadata(
             {
@@ -4648,6 +4667,104 @@ async def webrtc_stream(
                 "pose_plan v2 requires the shared WebRTC GPU scheduler."
             ),
         )
+
+    request_id = f"{session.avatar_id}_webrtc_{uuid.uuid4().hex[:8]}"
+    reserved, existing_request_id = await webrtc_session_manager.reserve_stream(
+        session,
+        request_id,
+    )
+    if not reserved:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Session already streaming "
+                f"(request_id: {existing_request_id})"
+            ),
+        )
+
+    pose_turn_staged = False
+    setup_rollback_done = False
+    completion_idle_staged = False
+    audio_path: Optional[Path] = None
+    media_audio_path: Optional[Path] = None
+    audio_track = None
+    audio_prepare_task = None
+    setup_temp_paths: set[Path] = set()
+
+    def register_audio_temp_paths(path: Optional[Path]) -> None:
+        if path is None:
+            return
+        resolved_path = Path(path)
+        setup_temp_paths.add(resolved_path)
+        setup_temp_paths.add(
+            resolved_path.with_name(f"{resolved_path.stem}_webrtc.wav")
+        )
+
+    async def rollback_stream_setup(reason: str) -> None:
+        """Undo a failed pre-submission turn without touching a newer turn."""
+        nonlocal setup_rollback_done
+        if setup_rollback_done:
+            return
+        setup_rollback_done = True
+        print(
+            f"🧹 [{request_id}] Rolling back WebRTC stream setup: {reason}",
+            flush=True,
+        )
+
+        if audio_prepare_task is not None and not audio_prepare_task.done():
+            audio_prepare_task.cancel()
+            try:
+                await audio_prepare_task
+            except (asyncio.CancelledError, Exception):
+                pass
+
+        owns_request = (
+            session.stream_owner == request_id
+            and session.active_stream in (None, request_id)
+        )
+        audio_transport = session.silence_audio_track
+        if audio_track is not None:
+            if audio_transport is not None and hasattr(audio_transport, "cancel_source"):
+                audio_transport.cancel_source(audio_track)
+            if session.audio_player is audio_track:
+                session.audio_player = None
+            if hasattr(audio_track, "stop"):
+                audio_track.stop()
+
+        if owns_request and completion_idle_staged and session.idle_track is not None:
+            # Activates the already-decoded neutral completion source and drops
+            # the failed turn's staging state.
+            session.idle_track.end_live()
+
+        for cleanup_path in setup_temp_paths:
+            try:
+                cleanup_path.unlink(missing_ok=True)
+            except OSError as exc:
+                print(
+                    f"⚠️ [{request_id}] Could not remove setup temp "
+                    f"{cleanup_path}: {exc}",
+                    flush=True,
+                )
+
+        staged_turn_id = (
+            stream_metadata.get("turn_id")
+            if stream_metadata
+            else None
+        )
+        recover_staged_pose = bool(
+            pose_turn_staged
+            or (
+                staged_turn_id
+                and session.active_turn_id == staged_turn_id
+            )
+        )
+        await webrtc_session_manager.finish_reserved_stream(
+            session,
+            request_id,
+            turn_id=staged_turn_id,
+            recover_pose=recover_staged_pose,
+        )
+
     pose_sequence_result = None
     pose_plan_result = None
     if stream_metadata:
@@ -4668,9 +4785,17 @@ async def webrtc_stream(
                     turn_id=stream_metadata["turn_id"],
                     reaction_intent=stream_metadata["reaction_intent"],
                 )
+        except asyncio.CancelledError:
+            await rollback_stream_setup("pose staging cancelled")
+            raise
         except ValueError as exc:
+            await rollback_stream_setup("pose staging rejected")
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception:
+            await rollback_stream_setup("pose staging failed")
+            raise
         if not pose_sequence_result.get("accepted"):
+            await rollback_stream_setup("pose staging ignored")
             return {
                 "status": "ignored",
                 "session_id": session_id,
@@ -4679,21 +4804,36 @@ async def webrtc_stream(
                 "pose_metadata_supported": True,
                 "pose_plan_supported": bool(pose_plan_result),
             }
+        pose_turn_staged = True
 
     # Ensure sender exists (idle track added during offer handling)
-    if session.idle_sender is None and session.idle_track is not None:
-        session.idle_sender = session.pc.addTrack(session.idle_track)
+    try:
+        if session.idle_sender is None and session.idle_track is not None:
+            session.idle_sender = session.pc.addTrack(session.idle_track)
+    except Exception:
+        await rollback_stream_setup("video sender setup failed")
+        raise
 
     if session.idle_sender is None:
+        await rollback_stream_setup("video sender unavailable")
         raise HTTPException(status_code=500, detail="WebRTC sender not initialized")
 
-    # Stop previous audio player if any
-    if session.audio_player and hasattr(session.audio_player, "stop"):
-        session.audio_player.stop()
-        session.audio_player = None
+    # Stop a stale turn controller if a previous request was interrupted.  The
+    # persistent session audio transport itself remains attached and keeps RTP
+    # timestamps advancing continuously.
+    try:
+        if session.audio_player and hasattr(session.audio_player, "stop"):
+            if (
+                session.silence_audio_track is not None
+                and hasattr(session.silence_audio_track, "cancel_source")
+            ):
+                session.silence_audio_track.cancel_source(session.audio_player)
+            session.audio_player.stop()
+            session.audio_player = None
+    except Exception:
+        await rollback_stream_setup("stale audio cleanup failed")
+        raise
 
-    request_id = f"{session.avatar_id}_webrtc_{uuid.uuid4().hex[:8]}"
-    session.active_stream = request_id
     print(
         "🎬 WebRTC stream request "
         f"request_id={request_id} session_id={session_id} avatar_id={session.avatar_id} "
@@ -4704,41 +4844,142 @@ async def webrtc_stream(
     )
 
     upload_dir = Path("uploads/audio")
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    audio_path = upload_dir / f"{request_id}.{audio_file.filename.split('.')[-1]}"
-
-    with audio_path.open("wb") as buffer:
-        shutil.copyfileobj(audio_file.file, buffer)
-
-    source_duration_seconds: Optional[float] = None
-
-    # ✅ Debug: Check source audio quality
     try:
-        probe_container = av.open(str(audio_path))
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        upload_filename = str(audio_file.filename or "audio.wav")
+        upload_suffix = upload_filename.rsplit(".", 1)[-1]
+        audio_path = upload_dir / f"{request_id}.{upload_suffix}"
+        register_audio_temp_paths(audio_path)
+        # Timeline normalization and SyncedAudioStreamTrack conversion use
+        # deterministic per-request names. Register them before either process
+        # starts so a partial subprocess failure is still recoverable.
+        timeline_candidate = audio_path.with_name(
+            f"{audio_path.stem}_timeline.wav"
+        )
+        register_audio_temp_paths(timeline_candidate)
+        with audio_path.open("wb") as buffer:
+            shutil.copyfileobj(audio_file.file, buffer)
+    except Exception:
+        await rollback_stream_setup("audio upload failed")
+        raise
+
+    audio_timeline_task = asyncio.create_task(
+        asyncio.to_thread(
+            prepare_webrtc_audio_timeline,
+            audio_path,
+        )
+    )
+    try:
+        audio_timeline = await asyncio.shield(audio_timeline_task)
+    except asyncio.CancelledError:
+        # The ffmpeg subprocess runs in a worker thread and cannot be safely
+        # interrupted by cancelling its Future. Let it finish so every output
+        # path is known/closed before rollback unlinks it.
+        try:
+            await audio_timeline_task
+        except Exception:
+            pass
+        await rollback_stream_setup("audio timeline preparation cancelled")
+        raise
+    except Exception as exc:
+        await rollback_stream_setup("audio timeline preparation failed")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Could not prepare the WebRTC audio timeline: {exc}",
+        ) from exc
+
+    media_audio_path = Path(audio_timeline.media_path)
+    register_audio_temp_paths(media_audio_path)
+    source_duration_seconds: Optional[float] = audio_timeline.media_duration_seconds
+    print(
+        f"🔊 [{request_id}] Shared audio timeline: "
+        f"original={audio_timeline.original_duration_seconds:.3f}s "
+        f"media={audio_timeline.media_duration_seconds:.3f}s "
+        f"leading_removed={audio_timeline.leading_silence_removed_seconds:.3f}s "
+        f"trailing_removed={audio_timeline.trailing_silence_removed_seconds:.3f}s "
+        f"path={media_audio_path.name}",
+        flush=True,
+    )
+
+    # Probe the exact normalized file used by both MuseTalk and WebRTC audio.
+    try:
+        probe_container = av.open(str(media_audio_path))
         audio_stream = probe_container.streams.audio[0]
         if probe_container.duration:
             source_duration_seconds = float(probe_container.duration) / 1_000_000.0
         elif audio_stream.duration and audio_stream.time_base:
             source_duration_seconds = float(audio_stream.duration * audio_stream.time_base)
-        print(f"🔊 [{request_id}] Source audio: {audio_stream.sample_rate}Hz, "
+        print(f"🔊 [{request_id}] Media audio: {audio_stream.sample_rate}Hz, "
               f"{audio_stream.layout.name}, {audio_stream.format.name}, "
               f"codec={audio_stream.codec_context.name}, "
               f"bitrate={audio_stream.codec_context.bit_rate or 'unknown'}, "
               f"duration={source_duration_seconds if source_duration_seconds is not None else 'unknown'}s")
         probe_container.close()
     except Exception as e:
-        print(f"⚠️ Could not probe source audio: {e}")
+        print(f"⚠️ Could not probe normalized media audio: {e}")
 
-    # ✅ Use the improved track
-    audio_track = SyncedAudioStreamTrack(str(audio_path), sync_clock=session.sync_clock)
-    session.audio_player = audio_track  # Store reference to stop later
-    
-    if session.audio_sender:
-        session.audio_sender.replaceTrack(audio_track)
-        print(f"🔊 [{request_id}] Replaced audio track with SyncedAudioStreamTrack: {audio_path.name}")
-    else:
-        session.audio_sender = session.pc.addTrack(audio_track)
-        print(f"🔊 [{request_id}] Added SyncedAudioStreamTrack: {audio_path.name}")
+    # Decode the turn off-sender.  SilenceAudioStreamTrack is now a persistent,
+    # switchable RTP transport and must never be replaced during prebuffering.
+    try:
+        audio_track = SyncedAudioStreamTrack(
+            str(media_audio_path),
+            sync_clock=session.sync_clock,
+        )
+        session.audio_player = audio_track
+    except Exception:
+        await rollback_stream_setup("audio track construction failed")
+        raise
+    audio_transport = session.silence_audio_track
+    if audio_transport is None:
+        await rollback_stream_setup("persistent audio transport unavailable")
+        raise HTTPException(
+            status_code=500,
+            detail="Persistent WebRTC audio transport is unavailable",
+        )
+    try:
+        if session.audio_sender is None:
+            session.audio_sender = session.pc.addTrack(audio_transport)
+            print(f"🔊 [{request_id}] Added persistent WebRTC audio transport")
+        else:
+            print(
+                f"🔊 [{request_id}] Keeping persistent audio sender attached while "
+                f"preparing {media_audio_path.name}"
+            )
+    except Exception:
+        await rollback_stream_setup("audio sender setup failed")
+        raise
+
+    completion_idle_result = None
+    if (
+        session.idle_track is not None
+        and hasattr(session.idle_track, "stage_completion_idle_video")
+    ):
+        completion_pose_id = (
+            "neutral_resting"
+            if session.pose_protocol_enabled
+            else session.current_pose_id
+        )
+        completion_video_path = (
+            session.video_path_for_pose(completion_pose_id)
+            or session.idle_video_path
+        )
+        if completion_video_path:
+            try:
+                completion_idle_result = await session.idle_track.stage_completion_idle_video(
+                    completion_video_path,
+                    pose_id=completion_pose_id,
+                    reason="audio_media_complete",
+                )
+                completion_idle_staged = bool(
+                    completion_idle_result
+                    and completion_idle_result.get("staged")
+                )
+            except asyncio.CancelledError:
+                await rollback_stream_setup("completion idle staging cancelled")
+                raise
+            except Exception:
+                await rollback_stream_setup("completion idle staging failed")
+                raise
 
     main_loop = asyncio.get_event_loop()
     audio_prepare_task = asyncio.create_task(audio_track.prepare())
@@ -4758,11 +4999,32 @@ async def webrtc_stream(
             print(f"⚠️ [{request_id}] Audio prepare failed before WebRTC start: {exc}")
 
     audio_prepare_task.add_done_callback(_on_audio_prepare_done)
+
+    # Decode and convert before accepting the scheduler job.  A failed prepare
+    # is a setup failure, not an asynchronous playback failure after a 200.
+    try:
+        await asyncio.shield(audio_prepare_task)
+    except asyncio.CancelledError:
+        # SyncedAudioStreamTrack conversion also uses an executor subprocess;
+        # allow it to close its deterministic output before unlinking temps.
+        try:
+            await audio_prepare_task
+        except Exception:
+            pass
+        await rollback_stream_setup("audio preparation cancelled")
+        raise
+    except Exception as exc:
+        await rollback_stream_setup("audio preparation failed")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Could not prepare WebRTC audio playout: {exc}",
+        ) from exc
     
     # Track if we've released the shared A/V playout gate / started live video.
     audio_started = False
     release_future = None
     live_started = False
+    live_generation_id = None
     try:
         default_push_timeout = "30.0" if _get_webrtc_sync_mode() in ("strict_fifo", "fifo", "hls_like", "hls-like", "hls") else "2.0"
         push_timeout_seconds = max(0.25, float(os.getenv("WEBRTC_PUSH_FRAME_TIMEOUT_SECONDS", default_push_timeout)))
@@ -4807,6 +5069,7 @@ async def webrtc_stream(
         release_future = asyncio.run_coroutine_threadsafe(
             _release_webrtc_playout(
                 audio_track=audio_track,
+                audio_transport=audio_transport,
                 video_track=session.idle_track,
                 sync_clock=getattr(session, "sync_clock", None),
                 audio_prepare_task=audio_prepare_task,
@@ -4841,7 +5104,7 @@ async def webrtc_stream(
             return False
 
     def frame_callback(frame_bgr, frame_idx, total_frames):
-        nonlocal live_started
+        nonlocal live_started, live_generation_id
         try:
             if not live_started:
                 live_started = True
@@ -4849,10 +5112,15 @@ async def webrtc_stream(
                     _start_live_track(session.idle_track),
                     main_loop,
                 )
-                start_future.result(timeout=push_timeout_seconds)
+                live_generation_id = start_future.result(
+                    timeout=push_timeout_seconds
+                )
             
             push_future = asyncio.run_coroutine_threadsafe(
-                session.idle_track.push_bgr_frame(frame_bgr),
+                session.idle_track.push_bgr_frame(
+                    frame_bgr,
+                    generation_id=live_generation_id,
+                ),
                 main_loop
             )
             prebuffer_ready = False
@@ -4866,7 +5134,7 @@ async def webrtc_stream(
             print(f"⚠️ [{request_id}] frame_callback error: {e}")
 
     def frame_batch_callback(frames_bgr, start_frame_idx, total_frames):
-        nonlocal live_started
+        nonlocal live_started, live_generation_id
         try:
             if not frames_bgr:
                 return
@@ -4876,10 +5144,15 @@ async def webrtc_stream(
                     _start_live_track(session.idle_track),
                     main_loop,
                 )
-                start_future.result(timeout=push_timeout_seconds)
+                live_generation_id = start_future.result(
+                    timeout=push_timeout_seconds
+                )
 
             push_future = asyncio.run_coroutine_threadsafe(
-                session.idle_track.push_bgr_frames_batch(frames_bgr),
+                session.idle_track.push_bgr_frames_batch(
+                    frames_bgr,
+                    generation_id=live_generation_id,
+                ),
                 main_loop,
             )
             prebuffer_ready = False
@@ -4897,16 +5170,23 @@ async def webrtc_stream(
             print(f"⚠️ [{request_id}] frame_batch_callback error: {e}")
 
     pose_recovery_started = False
+    cleanup_done = False
 
     def schedule_pose_recovery():
         nonlocal pose_recovery_started
-        if pose_recovery_started or not stream_metadata:
+        if pose_recovery_started:
             return
         pose_recovery_started = True
         recovery_future = asyncio.run_coroutine_threadsafe(
-            webrtc_session_manager.finish_assistant_turn(
+            webrtc_session_manager.finish_reserved_stream(
                 session,
-                turn_id=stream_metadata.get("turn_id"),
+                request_id,
+                turn_id=(
+                    stream_metadata.get("turn_id")
+                    if stream_metadata
+                    else None
+                ),
+                recover_pose=bool(stream_metadata and pose_turn_staged),
             ),
             main_loop,
         )
@@ -4920,29 +5200,48 @@ async def webrtc_stream(
         recovery_future.add_done_callback(_on_pose_recovery_done)
 
     def cleanup_to_idle(force_video: bool = True):
+        nonlocal cleanup_done
+        if cleanup_done:
+            return
+        cleanup_done = True
+        owns_request = session.stream_owner == request_id
         print(
             "🧹 WebRTC cleanup start "
             f"request_id={request_id} session_id={session_id} force_video={force_video} "
+            f"owns_request={owns_request} "
             f"counts={_get_runtime_diagnostic_counts()}",
             flush=True,
         )
-        session.active_stream = None
-        schedule_pose_recovery()
+        if owns_request:
+            # Recovery acquires the per-session stream lock, verifies turn_id,
+            # and clears the reservation only after the old pose is neutral.
+            schedule_pose_recovery()
         if not audio_prepare_task.done():
             print(f"🧹 [{request_id}] cancelling audio prepare task", flush=True)
             audio_prepare_task.cancel()
-        if force_video and session.idle_track:
+        if owns_request and force_video and session.idle_track:
             print(f"🧹 [{request_id}] ending live video track", flush=True)
             session.idle_track.end_live()
-        # Stop the synced audio track
-        if session.audio_player and hasattr(session.audio_player, "stop"):
+        if owns_request and hasattr(audio_transport, "cancel_source"):
+            audio_transport.cancel_source(audio_track)
+        # Stop only this request's controller. A delayed callback must never
+        # stop or clear the audio controller installed by a following turn.
+        if session.audio_player is audio_track and hasattr(audio_track, "stop"):
             print(f"🧹 [{request_id}] stopping synced audio track", flush=True)
-            session.audio_player.stop()
+            audio_track.stop()
             session.audio_player = None
-        # Switch back to silence track
-        if session.audio_sender and session.silence_audio_track:
-            print(f"🧹 [{request_id}] replacing audio sender with silence track", flush=True)
-            session.audio_sender.replaceTrack(session.silence_audio_track)
+        # The persistent audio track has already resumed silence without an RTP
+        # reset.  Remove the uploaded and normalized per-turn media now that
+        # both playback clocks have reached the shared endpoint.
+        for cleanup_path in setup_temp_paths:
+            try:
+                cleanup_path.unlink(missing_ok=True)
+            except OSError as exc:
+                print(
+                    f"⚠️ [{request_id}] Could not remove audio temp "
+                    f"{cleanup_path}: {exc}",
+                    flush=True,
+                )
         print(
             "🧹 WebRTC cleanup done "
             f"request_id={request_id} session_id={session_id} "
@@ -4982,11 +5281,7 @@ async def webrtc_stream(
     use_shared_scheduler = _env_bool("WEBRTC_SHARED_GPU_SCHEDULER", True)
     if use_shared_scheduler:
         if hls_stream_scheduler is None:
-            cleanup_to_idle(force_video=True)
-            try:
-                audio_path.unlink(missing_ok=True)
-            except OSError:
-                pass
+            await rollback_stream_setup("shared GPU scheduler unavailable")
             raise HTTPException(status_code=503, detail="Shared GPU scheduler not initialized")
 
         cancel_event = threading.Event()
@@ -5016,7 +5311,10 @@ async def webrtc_stream(
 
         def _on_shared_generation_complete(status: str, error_message: Optional[str] = None):
             if session.idle_track:
-                main_loop.call_soon_threadsafe(session.idle_track.signal_generation_complete)
+                main_loop.call_soon_threadsafe(
+                    session.idle_track.signal_generation_complete,
+                    live_generation_id,
+                )
 
             if status == "completed" and live_started:
                 if not audio_started:
@@ -5031,27 +5329,30 @@ async def webrtc_stream(
                 print(f"❌ [{request_id}] Shared WebRTC generation ended with status={status}: {error_message}")
             main_loop.call_soon_threadsafe(cleanup_to_idle, True)
 
-        accepted = hls_stream_scheduler.submit_webrtc_stream(
-            session=session,
-            request_id=request_id,
-            audio_path=str(audio_path),
-            generation_fps=session.fps,
-            cancel_event=cancel_event,
-            completion_future=completion_future,
-            main_loop=main_loop,
-            frame_callback=frame_callback,
-            frame_batch_callback=frame_batch_callback if use_batch_frame_callback else None,
-            generation_complete_callback=_on_shared_generation_complete,
-        )
+        try:
+            accepted = hls_stream_scheduler.submit_webrtc_stream(
+                session=session,
+                request_id=request_id,
+                audio_path=str(media_audio_path),
+                generation_fps=session.fps,
+                cancel_event=cancel_event,
+                completion_future=completion_future,
+                main_loop=main_loop,
+                frame_callback=frame_callback,
+                frame_batch_callback=frame_batch_callback if use_batch_frame_callback else None,
+                generation_complete_callback=_on_shared_generation_complete,
+            )
+        except Exception:
+            with manager.request_lock:
+                manager.active_requests.pop(request_id, None)
+            completion_future.cancel()
+            await rollback_stream_setup("shared GPU scheduler submission failed")
+            raise
         if not accepted:
             with manager.request_lock:
                 manager.active_requests.pop(request_id, None)
             completion_future.cancel()
-            cleanup_to_idle(force_video=True)
-            try:
-                audio_path.unlink(missing_ok=True)
-            except OSError:
-                pass
+            await rollback_stream_setup("shared GPU scheduler queue full")
             raise HTTPException(
                 status_code=429,
                 detail={
@@ -5067,6 +5368,8 @@ async def webrtc_stream(
             "status": "streaming",
             "scheduler": "shared_gpu",
             "timing": session.live_timing,
+            "audio_timeline": audio_timeline.to_dict(),
+            "completion_idle": completion_idle_result,
             "pose_sequence": pose_sequence_result,
             "pose_plan": pose_plan_result,
             "pose_metadata_supported": bool(stream_metadata),
@@ -5125,7 +5428,7 @@ async def webrtc_stream(
                     return frames[0] if frames else None
 
                 for _ in avatar.inference_streaming(
-                    audio_path=str(audio_path),
+                    audio_path=str(media_audio_path),
                     audio_processor=manager.audio_processor,
                     whisper=manager.whisper,
                     timesteps=manager.timesteps,
@@ -5142,7 +5445,10 @@ async def webrtc_stream(
             # Signal that generation is complete so playback can finish naturally.
             # If a short clip did not reach the configured video prebuffer, this
             # releases the queued frames and starts audio without retiming it.
-            main_loop.call_soon_threadsafe(session.idle_track.signal_generation_complete)
+            main_loop.call_soon_threadsafe(
+                session.idle_track.signal_generation_complete,
+                live_generation_id,
+            )
             if live_started and not audio_started:
                 release_playout_once("generation_complete")
             generation_finished = True
@@ -5159,7 +5465,11 @@ async def webrtc_stream(
             else:
                 main_loop.call_soon_threadsafe(cleanup_to_idle, True)
 
-    future = main_loop.run_in_executor(manager.executor, streaming_worker)
+    try:
+        future = main_loop.run_in_executor(manager.executor, streaming_worker)
+    except Exception:
+        await rollback_stream_setup("WebRTC executor submission failed")
+        raise
     manager.active_requests[request_id] = {
         'avatar_id': session.avatar_id,
         'status': 'streaming',
@@ -5182,6 +5492,8 @@ async def webrtc_stream(
         "session_id": session_id,
         "status": "streaming",
         "timing": session.live_timing,
+        "audio_timeline": audio_timeline.to_dict(),
+        "completion_idle": completion_idle_result,
         "pose_sequence": pose_sequence_result,
         "pose_plan": pose_plan_result,
         "pose_metadata_supported": bool(stream_metadata),
@@ -5192,11 +5504,12 @@ async def webrtc_stream(
 
 async def _start_live_track(video_track):
     """Helper to start live video from the main event loop before frames are queued."""
-    video_track.start_live()
+    return video_track.start_live()
 
 
 async def _release_webrtc_playout(
     audio_track: "SyncedAudioStreamTrack",
+    audio_transport,
     video_track,
     sync_clock,
     audio_prepare_task,
@@ -5219,7 +5532,14 @@ async def _release_webrtc_playout(
     if sync_clock is not None and hasattr(sync_clock, "release_playout"):
         start_time = sync_clock.release_playout(start_time)
 
-    audio_track.signal_start(start_time=start_time)
+    # Arm the already-attached session transport.  It keeps emitting silence
+    # until video frame zero is actually displayed, then substitutes TTS PCM
+    # without resetting or pausing the RTP sample clock.
+    audio_transport.arm_source(
+        audio_track,
+        sync_clock=sync_clock,
+        start_time=start_time,
+    )
     queue_size = None
     if hasattr(video_track, "get_stats"):
         stats = video_track.get_stats()

@@ -58,6 +58,12 @@ class WebRTCSession:
     silence_audio_track: Optional[SilenceAudioStreamTrack] = None
     audio_player: Optional[object] = None  # MediaPlayer instance, kept generic to avoid import here
     active_stream: Optional[str] = None
+    # ``active_stream`` is part of the public session status and is also
+    # touched by the shared HLS/WebRTC scheduler.  Keep a private reservation
+    # owner as the authoritative per-session turn guard so a scheduler failure
+    # cannot briefly clear ``active_stream`` and admit an overlapping request.
+    stream_owner: Optional[str] = field(default=None, repr=False)
+    stream_lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
     ice_servers: List[dict] = field(default_factory=list)
     ice_transport_policy: str = "all"
     sync_clock: Optional[VideoSyncClock] = None
@@ -419,7 +425,7 @@ class WebRTCSessionManager:
             idle_pose_id=initial_pose_id,
             idle_source_fps=idle_source_fps,
         )
-        silence_audio = SilenceAudioStreamTrack()
+        silence_audio = SilenceAudioStreamTrack(sync_clock=sync_clock)
         live_pose_router = LivePoseVideoRouter(
             normalized_pose_paths,
             prepared_pose_id="default",
@@ -499,6 +505,86 @@ class WebRTCSessionManager:
             if session:
                 session.touch()
             return session
+
+    async def reserve_stream(
+        self,
+        session: WebRTCSession,
+        request_id: str,
+    ) -> tuple[bool, Optional[str]]:
+        """Atomically reserve one WebRTC stream turn for a session.
+
+        The reservation is taken before pose/audio staging begins.  The
+        private owner survives scheduler code that may clear the public
+        ``active_stream`` field before its completion callback runs.
+        """
+
+        normalized_request_id = str(request_id or "").strip()
+        if not normalized_request_id:
+            raise ValueError("request_id is required")
+        async with session.stream_lock:
+            existing = session.stream_owner or session.active_stream
+            if existing is not None and existing != normalized_request_id:
+                return False, existing
+            session.stream_owner = normalized_request_id
+            session.active_stream = normalized_request_id
+            session.touch()
+            return True, None
+
+    async def finish_reserved_stream(
+        self,
+        session: WebRTCSession,
+        request_id: str,
+        *,
+        turn_id: Optional[str] = None,
+        recover_pose: bool = False,
+    ) -> dict:
+        """Finish only the request that still owns the session reservation.
+
+        Pose recovery happens while the stream reservation is held, preventing
+        a following request from staging its pose and then being overwritten
+        by a late completion callback from the previous turn.
+        """
+
+        normalized_request_id = str(request_id or "").strip()
+        normalized_turn_id = str(turn_id or "").strip() or None
+        async with session.stream_lock:
+            if session.stream_owner != normalized_request_id:
+                return {
+                    "released": False,
+                    "reason": "stream_owner_mismatch",
+                    "request_id": normalized_request_id,
+                    "active_stream": session.active_stream,
+                    "stream_owner": session.stream_owner,
+                }
+
+            pose_result = None
+            pose_recovery_skipped = False
+            try:
+                if recover_pose:
+                    owns_pose_turn = (
+                        normalized_turn_id is None
+                        or session.active_turn_id == normalized_turn_id
+                    )
+                    if owns_pose_turn:
+                        pose_result = await self.finish_assistant_turn(
+                            session,
+                            turn_id=normalized_turn_id,
+                        )
+                    else:
+                        pose_recovery_skipped = True
+            finally:
+                # Never clear a newer public request if external scheduler code
+                # changed it after this request was reserved.
+                if session.active_stream in (None, normalized_request_id):
+                    session.active_stream = None
+                session.stream_owner = None
+
+            return {
+                "released": True,
+                "request_id": normalized_request_id,
+                "pose_recovery": pose_result,
+                "pose_recovery_skipped": pose_recovery_skipped,
+            }
 
     async def _resolve_runtime_session(self, session_or_id) -> Optional[WebRTCSession]:
         if isinstance(session_or_id, WebRTCSession):
@@ -896,7 +982,9 @@ class WebRTCSessionManager:
         silence_audio_track = session.silence_audio_track
         audio_player = session.audio_player
         pc = session.pc
-        session.active_stream = None
+        async with session.stream_lock:
+            session.active_stream = None
+            session.stream_owner = None
         stopped_track_ids: set[int] = set()
 
         try:
@@ -957,7 +1045,7 @@ class WebRTCSessionManager:
                 "user_id": s.user_id,
                 "avatar_id": s.avatar_id,
                 "generation_avatar_id": s.generation_avatar_id or s.avatar_id,
-                "active_stream": s.active_stream,
+                "active_stream": s.active_stream or s.stream_owner,
                 "age_seconds": now - s.created_at,
                 "idle_seconds": now - s.last_activity,
                 "fps": s.fps,
@@ -969,5 +1057,5 @@ class WebRTCSessionManager:
                 "pose_protocol": s.pose_status(),
             }
             for s in self.sessions.values()
-            if s.active_stream is not None
+            if s.active_stream is not None or s.stream_owner is not None
         ]
