@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "asset": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/speaking_direct_v2/speaking_direct_v2.motion.npz",
+  "behavior_id": "speaking_direct_v2",
+  "passed": true,
+  "checks": {
+    "finite": true,
+    "valid_so3": true,
+    "consistent_forward_kinematics": true,
+    "matching_endpoint_pose": true,
+    "matching_endpoint_root": true,
+    "identical_boundary_motion": true,
+    "zero_velocity_loop_seam": true
+  },
+  "metrics": {
+    "frames": 360,
+    "fps": 30,
+    "duration_seconds": 12.0,
+    "boundary_frames": 30,
+    "max_so3_orthogonality_error": 5.873038941839326e-07,
+    "max_so3_determinant_error": 4.452712778491019e-07,
+    "max_local_so3_orthogonality_error": 1.0839388409067396e-07,
+    "max_local_so3_determinant_error": 1.1258835219685182e-07,
+    "max_global_so3_orthogonality_error": 5.873038941839326e-07,
+    "max_global_so3_determinant_error": 4.452712778491019e-07,
+    "fk_rotation_abs_error": 0.0,
+    "fk_joint_error_cm": 0.0,
+    "max_endpoint_rotation_error_degrees": 5.837378621170372e-15,
+    "endpoint_root_error_cm": 0.0,
+    "boundary_rotation_abs_error": 0.0,
+    "boundary_root_error_cm": 0.0,
+    "max_start_step_degrees": 0.005665597238012412,
+    "max_end_step_degrees": 0.005665597238012412,
+    "loop_seam_step_degrees": 5.837378621170372e-15,
+    "max_head_excursion_degrees": 2.798806881853497,
+    "max_root_drift_cm": 0.0
+  },
+  "tolerances": {
+    "rotation_endpoint_degrees": 0.0001,
+    "root_endpoint_cm": 0.0001,
+    "boundary_abs": 1e-07,
+    "so3_abs": 0.0002,
+    "fk_rotation_abs": 2e-05,
+    "fk_joint_cm": 0.001,
+    "seam_step_degrees": 0.05
+  }
+}

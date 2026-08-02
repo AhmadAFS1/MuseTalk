@@ -1,0 +1,2508 @@
+{
+  "artifact_sha256": {
+    "library_validation": "2ac1fc62f0dd4f5535fe94abd3fad57a253c26b4054e1c313c0ae440f20dc5e1",
+    "switch_test": "f64d8db1bbd5dbe7d6a65a09db64af7dda782b80470261dcfdbfba5d60097cfc"
+  },
+  "behaviors": [
+    {
+      "artifact_sha256": {
+        "motion": "d78177cc21df3e05528569d9415865e31ffec03148e7f0004257e0027ba366f2",
+        "motion_validation": "7f7bfeacab16a4e5e481760b158b1d2c6c6e48c9c2a78b17c3c6c22ea63581ca",
+        "render_manifest": "7697872acbd11bd297425934a1575a9be5088e9575739822a3f7be8fb235f700",
+        "spec": "2f8b813bf320e1545ddbaafcd453694ab96eb6cf37f196aebbce02b200befb54",
+        "video": "e3589ffd3207646fd06caaa90b13273405f310156293f070963c8f0b1bce7682",
+        "video_validation": "c0312acc952ace528869ab45e1a05954527c44a071ad58002e40f8260c511f60"
+      },
+      "behavior_id": "active_listening_empathetic_v1",
+      "motion_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/active_listening_empathetic_v1/active_listening_empathetic_v1.motion.npz",
+      "motion_validation_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/active_listening_empathetic_v1/active_listening_empathetic_v1.motion.validation.json",
+      "render_manifest_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/active_listening_empathetic_v1/active_listening_empathetic_v1.render.json",
+      "spec_path": "/workspace/ardy/outputs/pose_specs_mvp_four_v4_30frame_boundaries/active_listening_empathetic_v1.json",
+      "spec_sha256": "2f8b813bf320e1545ddbaafcd453694ab96eb6cf37f196aebbce02b200befb54",
+      "spec_snapshot": {
+        "ambient_motion": {
+          "breathing_cycles": 1.85,
+          "breathing_degrees": 0.38,
+          "enabled": true,
+          "head_sway_degrees": 0.09,
+          "sway_cycles": 0.92,
+          "sway_degrees": 0.13
+        },
+        "base_pose": {
+          "frame": 0,
+          "mode": "authored_neutral",
+          "motion_path": null
+        },
+        "behavior_id": "active_listening_empathetic_v1",
+        "behavior_type": "loop",
+        "boundary_seconds": 1.0,
+        "camera": {
+          "background_rgb": [
+            238,
+            241,
+            246
+          ],
+          "body_rgb": [
+            76,
+            112,
+            176
+          ],
+          "look_at": [
+            0.0,
+            0.54,
+            0.0
+          ],
+          "position": [
+            0.0,
+            0.56,
+            2.3
+          ],
+          "render_resolution": [
+            540,
+            960
+          ],
+          "resolution": [
+            1080,
+            1920
+          ],
+          "up": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "vertical_fov_degrees": 25.0
+        },
+        "description": "Merged attentive-listening and empathetic response loop with a restrained diagonal lean, one tiny acknowledgment nod, warm upper-face attention, and a gentle neutral return. V4 preserves every v3 performance interval and amplitude while adding exact 30-frame canonical handles and longer quintic ease-in/ease-out ramps.",
+        "duration_seconds": 10.0,
+        "face_intent": {
+          "blink": "zero_blinks_moving_pose",
+          "expression": "soft_empathetic_attention_without_a_fixed_smile",
+          "gaze": "warm_camera_attention_with_one_subtle_eye_led_micro_glance",
+          "intensity": 0.2
+        },
+        "fps": 30,
+        "keyframes": [
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  -0.25,
+                  -0.18,
+                  0.45
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  -0.15,
+                  -0.08,
+                  0.18
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.18,
+                  0.0,
+                  -0.03
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.32,
+                  0.0,
+                  -0.05
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.26,
+                  0.0,
+                  -0.06
+                ]
+              }
+            },
+            "label": "attention settles slightly forward",
+            "time_seconds": 1.85
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.25,
+                  -0.75,
+                  1.85
+                ]
+              },
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  -0.02,
+                  -0.04,
+                  -0.07
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.1,
+                  -0.35,
+                  0.72
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  0.03,
+                  0.05,
+                  0.1
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.24,
+                  0.04,
+                  -0.1
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.42,
+                  0.08,
+                  -0.16
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.34,
+                  0.12,
+                  0.2
+                ]
+              }
+            },
+            "label": "gentle empathetic diagonal begins",
+            "time_seconds": 2.65
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.75,
+                  -1.15,
+                  3.15
+                ]
+              },
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  -0.03,
+                  -0.05,
+                  -0.09
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.32,
+                  -0.52,
+                  1.18
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  0.06,
+                  0.08,
+                  0.14
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.3,
+                  0.06,
+                  -0.14
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.52,
+                  0.1,
+                  -0.22
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.42,
+                  0.16,
+                  0.32
+                ]
+              }
+            },
+            "label": "warm attention peak without a static hold",
+            "time_seconds": 3.45
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.4,
+                  -0.95,
+                  2.85
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.18,
+                  -0.42,
+                  1.05
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.28,
+                  0.04,
+                  -0.12
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.48,
+                  0.07,
+                  -0.19
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.38,
+                  0.12,
+                  0.29
+                ]
+              }
+            },
+            "label": "small attentive micro-adjustment",
+            "time_seconds": 4.35
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  2.2,
+                  -0.78,
+                  2.55
+                ]
+              },
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  -0.02,
+                  -0.03,
+                  -0.06
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.86,
+                  -0.34,
+                  0.94
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  0.04,
+                  0.05,
+                  0.09
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.34,
+                  0.03,
+                  -0.11
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.58,
+                  0.05,
+                  -0.17
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.48,
+                  0.09,
+                  0.28
+                ]
+              }
+            },
+            "label": "single tiny acknowledgment nod within the tilt",
+            "time_seconds": 4.9
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.32,
+                  -0.88,
+                  2.7
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.12,
+                  -0.38,
+                  1.0
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.26,
+                  0.02,
+                  -0.1
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.44,
+                  0.04,
+                  -0.16
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.35,
+                  0.07,
+                  0.25
+                ]
+              }
+            },
+            "label": "soft nod release retaining warm attention",
+            "time_seconds": 5.35
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.22,
+                  -0.42,
+                  1.8
+                ]
+              },
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  -0.01,
+                  -0.02,
+                  -0.03
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.08,
+                  -0.18,
+                  0.68
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  0.02,
+                  0.03,
+                  0.05
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.2,
+                  -0.02,
+                  -0.07
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.34,
+                  -0.04,
+                  -0.11
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.27,
+                  -0.06,
+                  0.18
+                ]
+              }
+            },
+            "label": "diagonal listening posture softens",
+            "time_seconds": 6.75
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.08,
+                  -0.18,
+                  0.7
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.02,
+                  -0.08,
+                  0.28
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.1,
+                  -0.01,
+                  -0.03
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.18,
+                  -0.02,
+                  -0.05
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.14,
+                  -0.03,
+                  0.08
+                ]
+              }
+            },
+            "label": "warm camera attention returns toward center",
+            "time_seconds": 7.65
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.02,
+                  -0.04,
+                  0.12
+                ]
+              },
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.0,
+                  -0.02,
+                  0.05
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.02,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.04,
+                  0.0,
+                  -0.01
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.03,
+                  0.0,
+                  0.01
+                ]
+              }
+            },
+            "label": "near-neutral switch handoff",
+            "time_seconds": 8.25
+          }
+        ],
+        "locks": [
+          "Hips",
+          "RightUpLeg",
+          "RightLeg",
+          "RightFoot",
+          "RightToeBase",
+          "LeftUpLeg",
+          "LeftLeg",
+          "LeftFoot",
+          "LeftToeBase"
+        ],
+        "schema_version": 1,
+        "source_reference": null,
+        "speaking_mode": "listening"
+      },
+      "video_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/active_listening_empathetic_v1/active_listening_empathetic_v1.mp4",
+      "video_validation_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/active_listening_empathetic_v1/active_listening_empathetic_v1.video.validation.json"
+    },
+    {
+      "artifact_sha256": {
+        "motion": "e0b239aad13250c30073dc6732b24911c03f64563192b097179c195df7fb7d30",
+        "motion_validation": "7ccff7408a50cda0ede5a292c157d74177a40b6da14e4d97b3e0647322417c05",
+        "render_manifest": "53f2c083b1bedbd387412b665440c1c64c76651efbd677bb909a29673988d88a",
+        "spec": "4d5c74e9083a0f45aa1846a705ee4a21a156b7e5b3f9b041e3964236fc9869b2",
+        "video": "4435f2b96f7ff531665a5a2e8aaff0e90b24ba4eaaa716c33ab8bea2a6c4d3a4",
+        "video_validation": "9d2fc3bb6fc65200261092605188242d34bed52098cd7d308eb1d4271944a378"
+      },
+      "behavior_id": "light_smile",
+      "motion_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/light_smile/light_smile.motion.npz",
+      "motion_validation_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/light_smile/light_smile.motion.validation.json",
+      "render_manifest_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/light_smile/light_smile.render.json",
+      "spec_path": "/workspace/ardy/outputs/pose_specs_mvp_four_v4_30frame_boundaries/light_smile.json",
+      "spec_sha256": "4d5c74e9083a0f45aa1846a705ee4a21a156b7e5b3f9b041e3964236fc9869b2",
+      "spec_snapshot": {
+        "ambient_motion": {
+          "breathing_cycles": 1.0,
+          "breathing_degrees": 0.45,
+          "enabled": true,
+          "head_sway_degrees": 0.06,
+          "sway_cycles": 1.0,
+          "sway_degrees": 0.18
+        },
+        "base_pose": {
+          "frame": 0,
+          "mode": "authored_neutral",
+          "motion_path": null
+        },
+        "behavior_id": "light_smile",
+        "behavior_type": "one_shot",
+        "boundary_seconds": 1.0,
+        "camera": {
+          "background_rgb": [
+            238,
+            241,
+            246
+          ],
+          "body_rgb": [
+            76,
+            112,
+            176
+          ],
+          "look_at": [
+            0.0,
+            0.54,
+            0.0
+          ],
+          "position": [
+            0.0,
+            0.56,
+            2.3
+          ],
+          "render_resolution": [
+            540,
+            960
+          ],
+          "resolution": [
+            1080,
+            1920
+          ],
+          "up": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "vertical_fov_degrees": 25.0
+        },
+        "description": "Friendly light closed-mouth smile with a tiny chin lift, brief hold, and full release. V4 lengthens the clip to preserve the smile performance while adding exact 30-frame canonical handles and longer quintic ease-in/ease-out ramps.",
+        "duration_seconds": 6.0,
+        "face_intent": {
+          "blink": "zero_blinks",
+          "expression": "mild_closed_mouth_smile_rise_hold_then_full_release",
+          "gaze": "warm_camera_attention",
+          "intensity": 0.24
+        },
+        "fps": 30,
+        "keyframes": [
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  -0.4,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  -0.2,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "label": "smile onset proxy",
+            "time_seconds": 1.95
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  -1.1,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  -0.45,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  -0.2,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "label": "mild smile peak proxy",
+            "time_seconds": 2.45
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  -1.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  -0.4,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  -0.15,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "label": "mild smile hold proxy",
+            "time_seconds": 3.35
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "label": "expression released to neutral",
+            "time_seconds": 4.15
+          }
+        ],
+        "locks": [
+          "Hips",
+          "RightUpLeg",
+          "RightLeg",
+          "RightFoot",
+          "RightToeBase",
+          "LeftUpLeg",
+          "LeftLeg",
+          "LeftFoot",
+          "LeftToeBase",
+          "RightShoulder",
+          "LeftShoulder"
+        ],
+        "schema_version": 1,
+        "source_reference": null,
+        "speaking_mode": "either"
+      },
+      "video_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/light_smile/light_smile.mp4",
+      "video_validation_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/light_smile/light_smile.video.validation.json"
+    },
+    {
+      "artifact_sha256": {
+        "motion": "b411848d37a968816c333310f0caf4ac6d7b4db7e368a1c1e47b7f2a00fecdbc",
+        "motion_validation": "9f79a7905792bb048fb912e7f0d14bddb9559dd4861d7ced9dd75d127388da44",
+        "render_manifest": "598a2304c34ed6c424b41ccab50f402428d72ba8b21941f7f9a136e4a193ea45",
+        "spec": "d2b24b4c64aedd9b400d7bcc689b2599a93c05a0811d8f9e4072b6d0f09be701",
+        "video": "c30c58cd7b7b7eefbf884054cf1e9476e3be515189d6f7321d7ce584011b1189",
+        "video_validation": "4359d222d760193daf76c886253a4b6744c2bd27f6c898d298916e99ae281c4e"
+      },
+      "behavior_id": "neutral_resting",
+      "motion_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/neutral_resting/neutral_resting.motion.npz",
+      "motion_validation_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/neutral_resting/neutral_resting.motion.validation.json",
+      "render_manifest_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/neutral_resting/neutral_resting.render.json",
+      "spec_path": "/workspace/ardy/outputs/pose_specs_mvp_four_v4_30frame_boundaries/neutral_resting.json",
+      "spec_sha256": "d2b24b4c64aedd9b400d7bcc689b2599a93c05a0811d8f9e4072b6d0f09be701",
+      "spec_snapshot": {
+        "ambient_motion": {
+          "breathing_cycles": 2.5,
+          "breathing_degrees": 0.75,
+          "enabled": true,
+          "head_sway_degrees": 0.3,
+          "sway_cycles": 1.0,
+          "sway_degrees": 0.55
+        },
+        "base_pose": {
+          "frame": 0,
+          "mode": "authored_neutral",
+          "motion_path": null
+        },
+        "behavior_id": "neutral_resting",
+        "behavior_type": "loop",
+        "boundary_seconds": 1.0,
+        "camera": {
+          "background_rgb": [
+            238,
+            241,
+            246
+          ],
+          "body_rgb": [
+            76,
+            112,
+            176
+          ],
+          "look_at": [
+            0.0,
+            0.54,
+            0.0
+          ],
+          "position": [
+            0.0,
+            0.56,
+            2.3
+          ],
+          "render_resolution": [
+            540,
+            960
+          ],
+          "resolution": [
+            1080,
+            1920
+          ],
+          "up": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "vertical_fov_degrees": 25.0
+        },
+        "description": "Canonical video-call idle with restrained breathing and posture sway. V4 keeps the original nine-second ambient interior and adds exact 30-frame canonical opening and closing handles.",
+        "duration_seconds": 11.0,
+        "face_intent": {
+          "blink": "three_light_blinks_30_percent_closure_70_percent_open_interior_only",
+          "expression": "neutral",
+          "gaze": "camera",
+          "intensity": 0.1
+        },
+        "fps": 30,
+        "keyframes": [],
+        "locks": [
+          "Hips",
+          "RightUpLeg",
+          "RightLeg",
+          "RightFoot",
+          "RightToeBase",
+          "LeftUpLeg",
+          "LeftLeg",
+          "LeftFoot",
+          "LeftToeBase"
+        ],
+        "schema_version": 1,
+        "source_reference": "/workspace/ardy/outputs/some_videos/default_idle_master.mp4",
+        "speaking_mode": "either"
+      },
+      "video_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/neutral_resting/neutral_resting.mp4",
+      "video_validation_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/neutral_resting/neutral_resting.video.validation.json"
+    },
+    {
+      "artifact_sha256": {
+        "motion": "9449b5e15e61c3d3fadde8ef338aabd79d199917ebd40969b05b5b74357a7dde",
+        "motion_validation": "44877f2d3a87ee87f3792d774610d71264c19d20a79f1fffc0b0ac260694373a",
+        "render_manifest": "c075e05dcc18ca044310fb221cffa429f9e0c04316882801d72596cc3bb135b7",
+        "spec": "b5352702b3efd4da834f9383a70b37fbd4fb481b3fda2197a8623282904fd792",
+        "video": "2ae6b5d98630f5b292394811ded3ad20e1db3d0619cf1dfb1be4794299d370ec",
+        "video_validation": "d1b53e92f7f22a17e736437b0ce0ef14eec384e9cbc7793ef29c01cc4353ebdd"
+      },
+      "behavior_id": "speaking_direct_v2",
+      "motion_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/speaking_direct_v2/speaking_direct_v2.motion.npz",
+      "motion_validation_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/speaking_direct_v2/speaking_direct_v2.motion.validation.json",
+      "render_manifest_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/speaking_direct_v2/speaking_direct_v2.render.json",
+      "spec_path": "/workspace/ardy/outputs/pose_specs_mvp_four_v4_30frame_boundaries/speaking_direct_v2.json",
+      "spec_sha256": "b5352702b3efd4da834f9383a70b37fbd4fb481b3fda2197a8623282904fd792",
+      "spec_snapshot": {
+        "ambient_motion": {
+          "breathing_cycles": 2.55,
+          "breathing_degrees": 0.55,
+          "enabled": true,
+          "head_sway_degrees": 0.32,
+          "sway_cycles": 1.43,
+          "sway_degrees": 0.28
+        },
+        "base_pose": {
+          "frame": 0,
+          "mode": "authored_neutral",
+          "motion_path": null
+        },
+        "behavior_id": "speaking_direct_v2",
+        "behavior_type": "loop",
+        "boundary_seconds": 1.0,
+        "camera": {
+          "background_rgb": [
+            238,
+            241,
+            246
+          ],
+          "body_rgb": [
+            76,
+            112,
+            176
+          ],
+          "look_at": [
+            0.0,
+            0.54,
+            0.0
+          ],
+          "position": [
+            0.0,
+            0.56,
+            2.3
+          ],
+          "render_resolution": [
+            540,
+            960
+          ],
+          "resolution": [
+            1080,
+            1920
+          ],
+          "up": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "vertical_fov_degrees": 25.0
+        },
+        "description": "Restrained front-facing 30 FPS speaking carrier with smooth phrase-level head beats, delayed torso and shoulder follow-through, restrained arm impulses, and a neutral mouth reserved for 15 FPS MuseTalk lip-sync. Authored Head and Neck amplitudes are capped to keep global head motion below 0.5 degrees per frame. V4 preserves every v3 speaking interval and amplitude while adding exact 30-frame canonical handles and longer quintic ease-in/ease-out ramps.",
+        "duration_seconds": 12.0,
+        "face_intent": {
+          "blink": "zero_blinks_moving_pose",
+          "expression": "subtle_asymmetric_brow_emphasis_with_mouth_reserved_for_musetalk",
+          "gaze": "camera_with_brief_eye_led_conversational_micro_glances",
+          "intensity": 0.2
+        },
+        "fps": 30,
+        "keyframes": [
+          {
+            "joints": {
+              "Spine": {
+                "rotation_degrees": [
+                  0.02,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.06,
+                  0.0,
+                  -0.01
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.1,
+                  0.01,
+                  -0.02
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.14,
+                  0.02,
+                  -0.03
+                ]
+              }
+            },
+            "label": "chest begins the phrase after the head",
+            "time_seconds": 1.78
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.18,
+                  0.07,
+                  0.03
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.07,
+                  0.028,
+                  0.012
+                ]
+              }
+            },
+            "label": "conversational entry",
+            "time_seconds": 1.94
+          },
+          {
+            "joints": {
+              "Spine": {
+                "rotation_degrees": [
+                  0.08,
+                  -0.01,
+                  -0.02
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.18,
+                  -0.02,
+                  -0.04
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.34,
+                  -0.04,
+                  -0.07
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.48,
+                  -0.06,
+                  -0.1
+                ]
+              }
+            },
+            "label": "torso follows the opening emphasis",
+            "time_seconds": 2.12
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.64,
+                  0.19,
+                  0.09
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.21,
+                  0.076,
+                  0.036
+                ]
+              }
+            },
+            "label": "first clear phrase accent",
+            "time_seconds": 2.2
+          },
+          {
+            "joints": {
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  -0.08,
+                  -0.14,
+                  -0.3
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  0.16,
+                  0.22,
+                  0.48
+                ]
+              }
+            },
+            "label": "asymmetric shoulder follow-through",
+            "time_seconds": 2.38
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.04,
+                  0.23,
+                  0.05
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.012,
+                  0.09,
+                  0.02
+                ]
+              }
+            },
+            "label": "accent rebound that does not recenter fully",
+            "time_seconds": 2.4699999999999998
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  -0.16,
+                  -0.36,
+                  -0.11
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  -0.06,
+                  -0.144,
+                  -0.044
+                ]
+              }
+            },
+            "label": "left diagonal thought shift mid-sentence",
+            "time_seconds": 2.8200000000000003
+          },
+          {
+            "joints": {
+              "Spine": {
+                "rotation_degrees": [
+                  -0.04,
+                  0.04,
+                  0.03
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  -0.1,
+                  0.08,
+                  0.07
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  -0.18,
+                  0.14,
+                  0.12
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  -0.25,
+                  0.2,
+                  0.17
+                ]
+              }
+            },
+            "label": "torso catches the left diagonal",
+            "time_seconds": 2.94
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.52,
+                  -0.17,
+                  0.07
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.172,
+                  -0.068,
+                  0.028
+                ]
+              }
+            },
+            "label": "quick agreement-like verbal beat",
+            "time_seconds": 3.08
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.09,
+                  -0.1,
+                  0.016
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.032,
+                  -0.04,
+                  0.006
+                ]
+              }
+            },
+            "label": "fast partial rebound",
+            "time_seconds": 3.23
+          },
+          {
+            "joints": {
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  0.08,
+                  0.12,
+                  0.22
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  -0.05,
+                  -0.1,
+                  -0.18
+                ]
+              }
+            },
+            "label": "shoulders release after the verbal beat",
+            "time_seconds": 3.34
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.18,
+                  0.15,
+                  0.044
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.06,
+                  0.056,
+                  0.016
+                ]
+              }
+            },
+            "label": "quiet explanation drift",
+            "time_seconds": 3.68
+          },
+          {
+            "joints": {
+              "Spine": {
+                "rotation_degrees": [
+                  0.03,
+                  0.02,
+                  0.01
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.08,
+                  0.04,
+                  0.02
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.16,
+                  0.07,
+                  0.04
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.22,
+                  0.1,
+                  0.06
+                ]
+              }
+            },
+            "label": "body settles under the explanation",
+            "time_seconds": 3.84
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  -0.09,
+                  -0.08,
+                  -0.02
+                ]
+              },
+              "LeftArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  -0.032,
+                  -0.032,
+                  -0.008
+                ]
+              },
+              "RightArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "label": "visible preparation before a stronger point",
+            "time_seconds": 4.05
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.74,
+                  -0.18,
+                  0.11
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.236,
+                  -0.072,
+                  0.044
+                ]
+              }
+            },
+            "label": "strongest forward diagonal emphasis",
+            "time_seconds": 4.24
+          },
+          {
+            "joints": {
+              "LeftArm": {
+                "rotation_degrees": [
+                  -0.1,
+                  -0.22,
+                  -0.4
+                ]
+              },
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  -0.1,
+                  -0.18,
+                  -0.38
+                ]
+              },
+              "RightArm": {
+                "rotation_degrees": [
+                  0.2,
+                  0.36,
+                  0.65
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  0.2,
+                  0.28,
+                  0.58
+                ]
+              },
+              "Spine": {
+                "rotation_degrees": [
+                  0.11,
+                  -0.02,
+                  -0.01
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.26,
+                  -0.04,
+                  -0.03
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.52,
+                  -0.07,
+                  -0.06
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.72,
+                  -0.1,
+                  -0.08
+                ]
+              }
+            },
+            "label": "torso shoulder and arm impulse trails the head",
+            "time_seconds": 4.3100000000000005
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.1,
+                  0.05,
+                  0.016
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.032,
+                  0.02,
+                  0.006
+                ]
+              }
+            },
+            "label": "relaxed rebound after the strong point",
+            "time_seconds": 4.48
+          },
+          {
+            "joints": {
+              "LeftArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "RightArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "label": "arm impulse dissipates",
+            "time_seconds": 4.65
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  -0.15,
+                  0.42,
+                  0.14
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  -0.056,
+                  0.168,
+                  0.056
+                ]
+              }
+            },
+            "label": "right-side explanatory phrase",
+            "time_seconds": 4.82
+          },
+          {
+            "joints": {
+              "Spine": {
+                "rotation_degrees": [
+                  -0.03,
+                  -0.06,
+                  -0.04
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  -0.08,
+                  -0.12,
+                  -0.08
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  -0.16,
+                  -0.22,
+                  -0.14
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  -0.22,
+                  -0.3,
+                  -0.19
+                ]
+              }
+            },
+            "label": "upper body follows the side phrase",
+            "time_seconds": 5.02
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.14,
+                  0.22,
+                  0.07
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.044,
+                  0.084,
+                  0.028
+                ]
+              }
+            },
+            "label": "off-center conversational hold",
+            "time_seconds": 5.33
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.48,
+                  0.06,
+                  0.03
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.156,
+                  0.024,
+                  0.012
+                ]
+              }
+            },
+            "label": "short phrase-ending head beat",
+            "time_seconds": 5.58
+          },
+          {
+            "joints": {
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  -0.04,
+                  -0.08,
+                  -0.18
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  0.1,
+                  0.12,
+                  0.28
+                ]
+              },
+              "Spine": {
+                "rotation_degrees": [
+                  0.07,
+                  0.0,
+                  0.01
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.18,
+                  0.01,
+                  0.03
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.36,
+                  0.02,
+                  0.06
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.5,
+                  0.03,
+                  0.08
+                ]
+              }
+            },
+            "label": "body punctuates the phrase ending",
+            "time_seconds": 5.72
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.06,
+                  -0.04,
+                  -0.01
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.02,
+                  -0.016,
+                  -0.004
+                ]
+              }
+            },
+            "label": "brief low-motion pause between thoughts",
+            "time_seconds": 5.81
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  -0.12,
+                  0.22,
+                  0.07
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  -0.044,
+                  0.088,
+                  0.028
+                ]
+              }
+            },
+            "label": "new thought starts with a rightward preparation",
+            "time_seconds": 6.38
+          },
+          {
+            "joints": {
+              "LeftArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "RightArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Spine": {
+                "rotation_degrees": [
+                  -0.02,
+                  -0.04,
+                  -0.03
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  -0.06,
+                  -0.09,
+                  -0.06
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  -0.12,
+                  -0.17,
+                  -0.11
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  -0.17,
+                  -0.23,
+                  -0.15
+                ]
+              }
+            },
+            "label": "torso shifts weight beneath the new thought",
+            "time_seconds": 6.48
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.68,
+                  0.25,
+                  0.12
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.22,
+                  0.1,
+                  0.048
+                ]
+              }
+            },
+            "label": "second major emphasis with diagonal energy",
+            "time_seconds": 6.64
+          },
+          {
+            "joints": {
+              "LeftArm": {
+                "rotation_degrees": [
+                  0.18,
+                  0.34,
+                  0.62
+                ]
+              },
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  0.18,
+                  0.24,
+                  0.52
+                ]
+              },
+              "RightArm": {
+                "rotation_degrees": [
+                  -0.08,
+                  -0.18,
+                  -0.34
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  -0.08,
+                  -0.16,
+                  -0.3
+                ]
+              },
+              "Spine": {
+                "rotation_degrees": [
+                  0.1,
+                  -0.01,
+                  0.02
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.24,
+                  -0.02,
+                  0.05
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.48,
+                  -0.04,
+                  0.1
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.66,
+                  -0.05,
+                  0.14
+                ]
+              }
+            },
+            "label": "asymmetric body and arm follow-through",
+            "time_seconds": 6.79
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.14,
+                  0.14,
+                  0.04
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.048,
+                  0.056,
+                  0.016
+                ]
+              }
+            },
+            "label": "partial release while speech continues",
+            "time_seconds": 6.88
+          },
+          {
+            "joints": {
+              "LeftArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "RightArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "label": "arms settle before the next word stress",
+            "time_seconds": 7.05
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.52,
+                  -0.03,
+                  -0.04
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.172,
+                  -0.012,
+                  -0.016
+                ]
+              }
+            },
+            "label": "secondary smaller accent in the same phrase",
+            "time_seconds": 7.11
+          },
+          {
+            "joints": {
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  -0.03,
+                  -0.06,
+                  -0.12
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  0.06,
+                  0.08,
+                  0.18
+                ]
+              },
+              "Spine": {
+                "rotation_degrees": [
+                  0.07,
+                  0.01,
+                  -0.01
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.17,
+                  0.02,
+                  -0.03
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.34,
+                  0.04,
+                  -0.06
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.47,
+                  0.06,
+                  -0.08
+                ]
+              }
+            },
+            "label": "chest follows the secondary accent",
+            "time_seconds": 7.26
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.03,
+                  -0.14,
+                  -0.04
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.008,
+                  -0.056,
+                  -0.016
+                ]
+              }
+            },
+            "label": "asymmetric phrase release",
+            "time_seconds": 7.38
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  -0.06,
+                  -0.38,
+                  -0.11
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  -0.024,
+                  -0.152,
+                  -0.044
+                ]
+              }
+            },
+            "label": "longer left-diagonal explanatory drift",
+            "time_seconds": 7.82
+          },
+          {
+            "joints": {
+              "LeftArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "RightArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Spine": {
+                "rotation_degrees": [
+                  -0.03,
+                  0.05,
+                  0.04
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  -0.08,
+                  0.11,
+                  0.09
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  -0.15,
+                  0.2,
+                  0.16
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  -0.21,
+                  0.28,
+                  0.22
+                ]
+              }
+            },
+            "label": "torso slowly joins the diagonal drift",
+            "time_seconds": 7.96
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.58,
+                  -0.16,
+                  0.08
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.192,
+                  -0.064,
+                  0.032
+                ]
+              }
+            },
+            "label": "affirming verbal beat out of the diagonal",
+            "time_seconds": 8.1
+          },
+          {
+            "joints": {
+              "LeftArm": {
+                "rotation_degrees": [
+                  -0.06,
+                  -0.15,
+                  -0.28
+                ]
+              },
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  -0.06,
+                  -0.12,
+                  -0.24
+                ]
+              },
+              "RightArm": {
+                "rotation_degrees": [
+                  0.12,
+                  0.26,
+                  0.48
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  0.14,
+                  0.18,
+                  0.38
+                ]
+              },
+              "Spine": {
+                "rotation_degrees": [
+                  0.08,
+                  0.02,
+                  -0.02
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.2,
+                  0.04,
+                  -0.05
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.4,
+                  0.08,
+                  -0.1
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.55,
+                  0.11,
+                  -0.14
+                ]
+              }
+            },
+            "label": "left-leading shoulder and arm follow-through",
+            "time_seconds": 8.25
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.08,
+                  -0.08,
+                  0.02
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.028,
+                  -0.032,
+                  0.008
+                ]
+              }
+            },
+            "label": "quick off-axis rebound",
+            "time_seconds": 8.34
+          },
+          {
+            "joints": {
+              "LeftArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "RightArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "label": "arm motion decays naturally",
+            "time_seconds": 8.55
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  -0.13,
+                  0.32,
+                  0.11
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  -0.048,
+                  0.128,
+                  0.044
+                ]
+              }
+            },
+            "label": "soft right-side qualification",
+            "time_seconds": 8.74
+          },
+          {
+            "joints": {
+              "Spine": {
+                "rotation_degrees": [
+                  -0.02,
+                  -0.04,
+                  -0.03
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  -0.06,
+                  -0.09,
+                  -0.07
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  -0.12,
+                  -0.17,
+                  -0.13
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  -0.17,
+                  -0.24,
+                  -0.18
+                ]
+              }
+            },
+            "label": "body follows the quieter qualification",
+            "time_seconds": 8.92
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.62,
+                  0.13,
+                  0.06
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.204,
+                  0.052,
+                  0.024
+                ]
+              }
+            },
+            "label": "late phrase emphasis",
+            "time_seconds": 9.07
+          },
+          {
+            "joints": {
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  0.12,
+                  0.16,
+                  0.34
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  -0.05,
+                  -0.1,
+                  -0.2
+                ]
+              },
+              "Spine": {
+                "rotation_degrees": [
+                  0.09,
+                  0.0,
+                  0.01
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.22,
+                  0.01,
+                  0.03
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.44,
+                  0.02,
+                  0.06
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.6,
+                  0.03,
+                  0.09
+                ]
+              }
+            },
+            "label": "late emphasis reaches chest and shoulders",
+            "time_seconds": 9.22
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.06,
+                  0.04,
+                  0.01
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.02,
+                  0.016,
+                  0.004
+                ]
+              }
+            },
+            "label": "small relaxed rebound",
+            "time_seconds": 9.32
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  -0.09,
+                  -0.24,
+                  -0.07
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  -0.032,
+                  -0.096,
+                  -0.028
+                ]
+              }
+            },
+            "label": "final thought shifts left before concluding",
+            "time_seconds": 9.68
+          },
+          {
+            "joints": {
+              "Spine": {
+                "rotation_degrees": [
+                  -0.02,
+                  0.03,
+                  0.02
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  -0.05,
+                  0.07,
+                  0.05
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  -0.1,
+                  0.13,
+                  0.1
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  -0.14,
+                  0.18,
+                  0.14
+                ]
+              }
+            },
+            "label": "torso follows the concluding thought",
+            "time_seconds": 9.82
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.48,
+                  -0.09,
+                  0.05
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.156,
+                  -0.036,
+                  0.02
+                ]
+              }
+            },
+            "label": "final restrained conclusion beat",
+            "time_seconds": 10.0
+          },
+          {
+            "joints": {
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  -0.01,
+                  -0.02,
+                  -0.03
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  0.02,
+                  0.02,
+                  0.05
+                ]
+              }
+            },
+            "label": "shoulders release toward the switch pose",
+            "time_seconds": 10.16
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.1,
+                  -0.02,
+                  0.01
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.032,
+                  -0.008,
+                  0.004
+                ]
+              }
+            },
+            "label": "head settles without snapping to center",
+            "time_seconds": 10.24
+          },
+          {
+            "joints": {
+              "Head": {
+                "rotation_degrees": [
+                  0.024,
+                  0.0,
+                  0.0
+                ]
+              },
+              "LeftArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "LeftShoulder": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Neck": {
+                "rotation_degrees": [
+                  0.008,
+                  0.0,
+                  0.0
+                ]
+              },
+              "RightArm": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "RightShoulder": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Spine": {
+                "rotation_degrees": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Spine1": {
+                "rotation_degrees": [
+                  0.01,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Spine2": {
+                "rotation_degrees": [
+                  0.02,
+                  0.0,
+                  0.0
+                ]
+              },
+              "Spine3": {
+                "rotation_degrees": [
+                  0.03,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "label": "near-neutral low-velocity handoff",
+            "time_seconds": 10.38
+          }
+        ],
+        "locks": [
+          "Hips",
+          "RightUpLeg",
+          "RightLeg",
+          "RightFoot",
+          "RightToeBase",
+          "LeftUpLeg",
+          "LeftLeg",
+          "LeftFoot",
+          "LeftToeBase"
+        ],
+        "schema_version": 1,
+        "source_reference": null,
+        "speaking_mode": "speaking"
+      },
+      "video_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/speaking_direct_v2/speaking_direct_v2.mp4",
+      "video_validation_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/speaking_direct_v2/speaking_direct_v2.video.validation.json"
+    }
+  ],
+  "contract": {
+    "behavior_timing": {
+      "active_listening_empathetic_v1": {
+        "closing_boundary_start_frame": 270,
+        "duration_seconds": 10.0,
+        "frames": 300,
+        "opening_boundary_start_frame": 0
+      },
+      "light_smile": {
+        "closing_boundary_start_frame": 150,
+        "duration_seconds": 6.0,
+        "frames": 180,
+        "opening_boundary_start_frame": 0
+      },
+      "neutral_resting": {
+        "closing_boundary_start_frame": 300,
+        "duration_seconds": 11.0,
+        "frames": 330,
+        "opening_boundary_start_frame": 0
+      },
+      "speaking_direct_v2": {
+        "closing_boundary_start_frame": 330,
+        "duration_seconds": 12.0,
+        "frames": 360,
+        "opening_boundary_start_frame": 0
+      }
+    },
+    "boundary_frames": 30,
+    "boundary_seconds": 1.0,
+    "camera": {
+      "background_rgb": [
+        238,
+        241,
+        246
+      ],
+      "body_rgb": [
+        76,
+        112,
+        176
+      ],
+      "look_at": [
+        0.0,
+        0.54,
+        0.0
+      ],
+      "position": [
+        0.0,
+        0.56,
+        2.3
+      ],
+      "resolution": [
+        1080,
+        1920
+      ],
+      "up": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "vertical_fov_degrees": 25.0
+    },
+    "canonical_base_pose": {
+      "mode": "authored_neutral"
+    },
+    "encoder": {
+      "all_intra": true,
+      "audio_stream_count": 0,
+      "codec": "H.264/libx264",
+      "codec_name": "h264",
+      "color_primaries": "bt709",
+      "color_space": "bt709",
+      "color_transfer": "bt709",
+      "crf": 0,
+      "pixel_format": "yuv420p",
+      "preset": "medium",
+      "profile_policy": "recorded_not_constrained_reference_master"
+    },
+    "fps": 30
+  },
+  "created_at_utc": "2026-07-30T20:10:06.731211+00:00",
+  "kind": "ardy_pose_video_library",
+  "library_validation_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/library.validation.json",
+  "observed_media": {
+    "all_intra_values": [
+      true
+    ],
+    "audio_stream_counts": [
+      0
+    ],
+    "codec_names": [
+      "h264"
+    ],
+    "color_primaries": [
+      "bt709"
+    ],
+    "color_ranges": [
+      "tv"
+    ],
+    "color_spaces": [
+      "bt709"
+    ],
+    "color_transfers": [
+      "bt709"
+    ],
+    "levels": [
+      40
+    ],
+    "picture_type_sets": [
+      {
+        "I": 180
+      },
+      {
+        "I": 300
+      },
+      {
+        "I": 330
+      },
+      {
+        "I": 360
+      }
+    ],
+    "pixel_formats": [
+      "yuv420p"
+    ],
+    "profiles": [
+      "High 4:4:4 Intra"
+    ]
+  },
+  "passed": true,
+  "runtime_switch_protocol": {
+    "do_not": "jump between arbitrary interior frames",
+    "safe_switch_window_frames": 30,
+    "transition_in": "start the next asset at frame zero",
+    "transition_out": "play the current asset through its final canonical block"
+  },
+  "schema_version": 1,
+  "switch_test_path": "/workspace/ardy/outputs/pose_library_mvp_four_v4_30frame_boundaries/switch_stress_test.mp4"
+}
