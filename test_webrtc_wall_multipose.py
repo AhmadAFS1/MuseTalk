@@ -1,0 +1,107 @@
+import io
+import unittest
+import wave
+from types import SimpleNamespace
+from unittest import mock
+
+import numpy as np
+
+from scripts.kokoro_tts import KokoroTTSService
+from templates.webrtc_player import get_webrtc_player_html
+from templates.webrtc_pose_lab import DEFAULT_POSE_SET
+from templates.webrtc_wall import get_webrtc_wall_html
+
+
+class WebRTCWallMultiposeTest(unittest.TestCase):
+    def test_wall_uses_pose_protocol_group_stream_and_local_kokoro(self):
+        html = get_webrtc_wall_html("legacy_avatar")
+
+        self.assertIn("Multipose WebRTC latency wall", html)
+        self.assertIn(DEFAULT_POSE_SET["pose_set_id"], html)
+        self.assertIn('params.set("pose_set",JSON.stringify(set))', html)
+        self.assertIn('form.append("pose_plan",JSON.stringify(POSE_PLAN))', html)
+        self.assertIn("prebuffer_seconds", html)
+        self.assertIn("/webrtc/tts/kokoro", html)
+        self.assertIn('url.searchParams.set("muted"', html)
+        self.assertIn("wall.insertBefore(card,wall.children[index]||null)", html)
+        self.assertNotIn("wall.replaceChildren(...next)", html)
+        self.assertNotIn("/hls/", html)
+
+    def test_group_wall_embeds_its_pose_set(self):
+        pose_set = {
+            **DEFAULT_POSE_SET,
+            "pose_set_id": "wall_specific_pose_set",
+        }
+        html = get_webrtc_wall_html("ignored", pose_set=pose_set)
+
+        self.assertIn("wall_specific_pose_set", html)
+        self.assertIn(
+            pose_set["poses"][pose_set["default_pose_id"]]["avatar_id"],
+            html,
+        )
+
+    def test_player_honors_wall_mute_messages_and_reports_client_stats(self):
+        session = SimpleNamespace(
+            session_id="session_1",
+            avatar_id="avatar_1",
+            ice_servers=[],
+            ice_transport_policy="all",
+            fps=15,
+            playback_fps=30,
+        )
+        html = get_webrtc_player_html(session)
+
+        self.assertIn("queryParams.get('muted') !== '1'", html)
+        self.assertIn("data.type === 'webrtc-audio'", html)
+        self.assertIn("setAudioMuted(Boolean(data.muted))", html)
+        self.assertIn("webrtc-client-stats", html)
+        self.assertIn("jitterBufferDelay", html)
+
+
+class KokoroTTSServiceTest(unittest.TestCase):
+    def test_validation_rejects_unsafe_or_unbounded_requests(self):
+        service = KokoroTTSService()
+
+        with self.assertRaisesRegex(ValueError, "text is required"):
+            service._validate("", "af_heart", "a", 1.0)
+        with self.assertRaisesRegex(ValueError, "2000"):
+            service._validate("x" * 2001, "af_heart", "a", 1.0)
+        with self.assertRaisesRegex(ValueError, "language_code"):
+            service._validate("hello", "af_heart", "z", 1.0)
+        with self.assertRaisesRegex(ValueError, "speed"):
+            service._validate("hello", "af_heart", "a", 3.0)
+
+    def test_cached_pipeline_audio_is_returned_as_pcm_wav(self):
+        class FakeResult:
+            audio = np.linspace(-0.1, 0.1, 2400, dtype=np.float32)
+
+        class FakePipeline:
+            def __call__(self, text, *, voice, speed):
+                self.call = {"text": text, "voice": voice, "speed": speed}
+                yield FakeResult()
+
+        service = KokoroTTSService()
+        pipeline = FakePipeline()
+        service._pipelines[("a", "cpu")] = pipeline
+
+        with mock.patch.object(service, "available", return_value=True):
+            result = service.synthesize(
+                "hello",
+                voice="af_heart",
+                language_code="a",
+                speed=1.0,
+                device="cpu",
+            )
+
+        self.assertFalse(result.cold_start)
+        self.assertAlmostEqual(result.audio_seconds, 0.1, places=6)
+        self.assertEqual(pipeline.call["text"], "hello")
+        with wave.open(io.BytesIO(result.wav_bytes), "rb") as source:
+            self.assertEqual(source.getframerate(), 24_000)
+            self.assertEqual(source.getnchannels(), 1)
+            self.assertEqual(source.getsampwidth(), 2)
+            self.assertEqual(source.getnframes(), 2400)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -150,7 +150,7 @@ def get_webrtc_player_html(session) -> str:
 
         let pc = null;
         let started = false;
-        let audioConnected = true;
+        let audioConnected = queryParams.get('muted') !== '1';
         let remoteStream = null;
         let lastPlayError = null;
         let lastAudioBytes = null;
@@ -208,28 +208,32 @@ def get_webrtc_player_html(session) -> str:
             }});
         }}
 
-        function forceAudiblePlayback() {{
-            audioConnected = true;
+        function applyAudioRoute() {{
             remoteVideo.autoplay = true;
-            remoteVideo.defaultMuted = false;
-            remoteVideo.muted = false;
-            remoteVideo.volume = 1.0;
+            remoteVideo.defaultMuted = !audioConnected;
+            remoteVideo.muted = !audioConnected;
+            remoteVideo.volume = audioConnected ? 1.0 : 0.0;
+        }}
+
+        function setAudioMuted(muted) {{
+            audioConnected = !Boolean(muted);
+            applyAudioRoute();
         }}
 
         async function playRemoteMedia() {{
-            forceAudiblePlayback();
+            applyAudioRoute();
             try {{
                 await remoteVideo.play();
                 lastPlayError = null;
                 hideStatus();
             }} catch (err) {{
                 lastPlayError = err && err.name ? err.name : String(err);
-                forceAudiblePlayback();
+                applyAudioRoute();
             }}
         }}
 
         async function enableAudio() {{
-            audioConnected = true;
+            setAudioMuted(false);
             await playRemoteMedia();
         }}
 
@@ -244,7 +248,7 @@ def get_webrtc_player_html(session) -> str:
                 iceTransportPolicy: ICE_TRANSPORT_POLICY
             }});
             remoteStream = new MediaStream();
-            forceAudiblePlayback();
+            applyAudioRoute();
             remoteVideo.srcObject = remoteStream;
 
             pc.ontrack = (event) => {{
@@ -313,18 +317,27 @@ def get_webrtc_player_html(session) -> str:
         }}
 
         async function startFromWall(muted = false) {{
-            forceAudiblePlayback();
+            setAudioMuted(muted);
             if (!started) {{
                 await start();
                 return;
             }}
-            await enableAudio();
+            await playRemoteMedia();
         }}
         window.startWebrtcPlayer = startFromWall;
 
         async function updateDebugStats() {{
             if (!pc) return;
             const lines = [];
+            const clientSample = {{
+                videoFps: null,
+                audioJitterMs: null,
+                videoJitterMs: null,
+                audioJitterBufferMs: null,
+                videoJitterBufferMs: null,
+                avJitterBufferDeltaMs: null,
+                droppedFrames: 0,
+            }};
             lines.push('pc: ' + pc.connectionState + ' / ice: ' + pc.iceConnectionState);
             lines.push('ice policy: ' + ICE_TRANSPORT_POLICY);
             const vTracks = remoteVideo.srcObject ? remoteVideo.srcObject.getVideoTracks().length : 0;
@@ -364,6 +377,10 @@ def get_webrtc_player_html(session) -> str:
                         lastVideoTs = now;
                     }}
                     lines.push('video fps: ' + (fps !== null ? fps.toFixed(1) : 'n/a'));
+                    clientSample.videoFps = fps;
+                    if (typeof videoReport.jitter === 'number') {{
+                        clientSample.videoJitterMs = videoReport.jitter * 1000;
+                    }}
                 }} else {{
                     lines.push('video fps: n/a');
                 }}
@@ -384,15 +401,42 @@ def get_webrtc_player_html(session) -> str:
                     lines.push('audio bytes: ' + bytes + ' pkts: ' + packets + ' kbps: ' + kbps);
                     if (audioReport.jitter !== undefined) {{
                         lines.push('audio jitter: ' + audioReport.jitter);
+                        clientSample.audioJitterMs = Number(audioReport.jitter) * 1000;
                     }}
                 }} else {{
                     lines.push('audio inbound: none');
+                }}
+
+                const averageJitterBufferMs = (report) => {{
+                    if (!report || !report.jitterBufferEmittedCount) return null;
+                    return (Number(report.jitterBufferDelay || 0) * 1000) /
+                        Number(report.jitterBufferEmittedCount);
+                }};
+                clientSample.audioJitterBufferMs = averageJitterBufferMs(audioReport);
+                clientSample.videoJitterBufferMs = averageJitterBufferMs(videoReport);
+                if (
+                    clientSample.audioJitterBufferMs !== null &&
+                    clientSample.videoJitterBufferMs !== null
+                ) {{
+                    clientSample.avJitterBufferDeltaMs =
+                        clientSample.audioJitterBufferMs - clientSample.videoJitterBufferMs;
+                }}
+                if (typeof remoteVideo.getVideoPlaybackQuality === 'function') {{
+                    const quality = remoteVideo.getVideoPlaybackQuality();
+                    clientSample.droppedFrames = quality.droppedVideoFrames || 0;
                 }}
             }} catch (err) {{
                 lines.push('stats error: ' + err);
             }}
 
             setDebug(lines);
+            if (window.parent !== window) {{
+                window.parent.postMessage({{
+                    type: 'webrtc-client-stats',
+                    sessionId: SESSION_ID,
+                    stats: clientSample,
+                }}, window.location.origin);
+            }}
         }}
 
         let lastTapMs = 0;
@@ -402,7 +446,7 @@ def get_webrtc_player_html(session) -> str:
                 return;
             }}
             lastTapMs = now;
-            audioConnected = true;
+            setAudioMuted(false);
             if (!started) {{
                 start().catch(() => updateStatus('Failed to connect', true, true));
                 return;
@@ -424,10 +468,14 @@ def get_webrtc_player_html(session) -> str:
                 startFromWall(Boolean(data.muted)).catch(() => {{
                     updateStatus('Failed to connect', true, true);
                 }});
+            }} else if (data.type === 'webrtc-audio') {{
+                setAudioMuted(Boolean(data.muted));
+                playRemoteMedia();
             }}
         }});
 
         applyDebugMode(debugMode);
+        applyAudioRoute();
         setDebug(['debug: idle']);
         setInterval(updateDebugStats, 2000);
         start().catch(() => updateStatus('Failed to connect', true, true));

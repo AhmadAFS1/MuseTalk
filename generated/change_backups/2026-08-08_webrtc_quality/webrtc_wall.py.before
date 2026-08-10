@@ -189,12 +189,7 @@ function renderWall() {
   if(!audioLeader||!sessions.some(item=>item.session_id===audioLeader)) audioLeader=sessions[0].session_id;
   wall.className="wall"; const existing=new Map([...wall.querySelectorAll(".card")].map(card=>[card.dataset.sessionId,card])); const next=[];
   for(const session of sessions){const card=existing.get(session.session_id)||buildCard(session);existing.delete(session.session_id);updateCard(card,session);next.push(card)}
-  // Do not replace existing iframe nodes during the two-second stats refresh.
-  // Detaching a connected iframe closes its RTCPeerConnection, which causes the
-  // server to delete the session and turns a healthy stream into a frozen tile.
-  for(const stale of existing.values()) stale.remove();
-  next.forEach((card,index)=>{if(wall.children[index]!==card)wall.insertBefore(card,wall.children[index]||null)});
-  applyAudioLeader(audioLeader);
+  wall.replaceChildren(...next); applyAudioLeader(audioLeader);
 }
 
 function updateProtocolSeq() { for(const session of currentGroup?.sessions||[]){protocolSeq=Math.max(protocolSeq,Number(session.pose_protocol?.last_seq)||0)} }

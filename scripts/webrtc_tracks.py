@@ -8,6 +8,7 @@ Classes:
 
 import asyncio
 import fractions
+import json
 import math
 import os
 import subprocess
@@ -76,6 +77,13 @@ class VideoSyncClock:
         self.playout_start_time: Optional[float] = None
         self.first_video_frame_at: Optional[float] = None
         self.first_audio_packet_at: Optional[float] = None
+        self.playout_released_wall_time: Optional[float] = None
+        self.playout_start_wall_time: Optional[float] = None
+        self.first_video_frame_wall_time: Optional[float] = None
+        self.first_audio_packet_wall_time: Optional[float] = None
+        self.turn_request_id: Optional[str] = None
+        self.turn_session_id: Optional[str] = None
+        self._av_start_summary_logged = False
         self.audio_completed_at: Optional[float] = None
         self.audio_media_seconds: Optional[float] = None
         self.audio_playout_seconds = 0.0
@@ -107,6 +115,11 @@ class VideoSyncClock:
         self.playout_start_time = None
         self.first_video_frame_at = None
         self.first_audio_packet_at = None
+        self.playout_released_wall_time = None
+        self.playout_start_wall_time = None
+        self.first_video_frame_wall_time = None
+        self.first_audio_packet_wall_time = None
+        self._av_start_summary_logged = False
         self.audio_completed_at = None
         self.audio_media_seconds = None
         self.audio_playout_seconds = 0.0
@@ -148,13 +161,138 @@ class VideoSyncClock:
         if self.video_ready_at is None:
             self.video_ready_at = time.monotonic()
 
+    def set_turn_context(self, request_id: str, session_id: str) -> None:
+        """Attach searchable request/session IDs to one A/V playout turn."""
+        self.turn_request_id = str(request_id or "").strip() or None
+        self.turn_session_id = str(session_id or "").strip() or None
+
+    @staticmethod
+    def _rounded(value: Optional[float], digits: int = 3) -> Optional[float]:
+        return None if value is None else round(float(value), digits)
+
+    def _log_av_timing(
+        self,
+        event: str,
+        *,
+        event_at: Optional[float] = None,
+        event_wall_time: Optional[float] = None,
+        **details,
+    ) -> None:
+        monotonic_now = time.monotonic() if event_at is None else float(event_at)
+        wall_now = time.time() if event_wall_time is None else float(event_wall_time)
+        payload = {
+            "event": event,
+            "request_id": self.turn_request_id,
+            "session_id": self.turn_session_id,
+            "unix_ms": self._rounded(wall_now * 1000.0),
+            "monotonic_seconds": self._rounded(monotonic_now, 6),
+            "scheduled_t0_monotonic_seconds": self._rounded(
+                self.playout_start_time,
+                6,
+            ),
+            "after_gate_release_ms": self._rounded(
+                (monotonic_now - self.playout_released_at) * 1000.0
+                if self.playout_released_at is not None
+                else None
+            ),
+            "after_scheduled_t0_ms": self._rounded(
+                (monotonic_now - self.playout_start_time) * 1000.0
+                if self.playout_start_time is not None
+                else None
+            ),
+            **details,
+        }
+        print(
+            "📐 WEBRTC_AV_TIMING " + json.dumps(payload, sort_keys=True),
+            flush=True,
+        )
+
+    def _log_av_start_summary(self) -> None:
+        if (
+            self._av_start_summary_logged
+            or self.first_audio_packet_at is None
+            or self.first_video_frame_at is None
+        ):
+            return
+        self._av_start_summary_logged = True
+        audio_minus_video_ms = (
+            self.first_audio_packet_at - self.first_video_frame_at
+        ) * 1000.0
+        if abs(audio_minus_video_ms) < 0.5:
+            leading_media = "simultaneous"
+        elif audio_minus_video_ms > 0:
+            leading_media = "video"
+        else:
+            leading_media = "audio"
+        rtp_delta_ms = None
+        if (
+            self.first_tts_transport_pts_seconds is not None
+            and self.first_live_video_rtp_seconds is not None
+        ):
+            rtp_delta_ms = (
+                self.first_tts_transport_pts_seconds
+                - self.first_live_video_rtp_seconds
+            ) * 1000.0
+        self._log_av_timing(
+            "av_start_summary",
+            event_at=max(
+                self.first_audio_packet_at,
+                self.first_video_frame_at,
+            ),
+            event_wall_time=max(
+                self.first_audio_packet_wall_time or 0.0,
+                self.first_video_frame_wall_time or 0.0,
+            ),
+            audio_start_minus_video_start_ms=self._rounded(
+                audio_minus_video_ms
+            ),
+            absolute_start_skew_ms=self._rounded(abs(audio_minus_video_ms)),
+            leading_media=leading_media,
+            audio_after_gate_release_ms=self._rounded(
+                (self.first_audio_packet_at - self.playout_released_at) * 1000.0
+                if self.playout_released_at is not None
+                else None
+            ),
+            video_after_gate_release_ms=self._rounded(
+                (self.first_video_frame_at - self.playout_released_at) * 1000.0
+                if self.playout_released_at is not None
+                else None
+            ),
+            first_tts_audio_rtp_seconds=self._rounded(
+                self.first_tts_transport_pts_seconds,
+                6,
+            ),
+            first_live_video_rtp_seconds=self._rounded(
+                self.first_live_video_rtp_seconds,
+                6,
+            ),
+            audio_rtp_minus_video_rtp_ms=self._rounded(rtp_delta_ms),
+            rtp_aligned=self.first_live_rtp_alignment_valid(),
+        )
+
     def release_playout(self, start_time: Optional[float] = None) -> float:
         if self.playout_start_time is None:
             now = time.monotonic()
+            wall_now = time.time()
             self.playout_start_time = now if start_time is None else start_time
             self.playout_released_at = now
+            self.playout_released_wall_time = wall_now
+            self.playout_start_wall_time = wall_now + (
+                self.playout_start_time - now
+            )
             self.playout_released.set()
             self._coverage_changed.set()
+            self._log_av_timing(
+                "playout_gate_released",
+                event_at=now,
+                event_wall_time=wall_now,
+                scheduled_t0_unix_ms=self._rounded(
+                    self.playout_start_wall_time * 1000.0
+                ),
+                scheduled_delay_ms=self._rounded(
+                    (self.playout_start_time - now) * 1000.0
+                ),
+            )
         return self.playout_start_time
 
     def playout_due(self) -> bool:
@@ -178,10 +316,33 @@ class VideoSyncClock:
     def mark_first_video_frame(self) -> None:
         if self.first_video_frame_at is None:
             self.first_video_frame_at = time.monotonic()
+            self.first_video_frame_wall_time = time.time()
+            self._log_av_timing(
+                "first_live_video_frame",
+                event_at=self.first_video_frame_at,
+                event_wall_time=self.first_video_frame_wall_time,
+                video_rtp_seconds=self._rounded(
+                    self.first_live_video_rtp_seconds,
+                    6,
+                ),
+                source_frames=self.source_frames,
+            )
+            self._log_av_start_summary()
 
     def mark_first_audio_packet(self) -> None:
         if self.first_audio_packet_at is None:
             self.first_audio_packet_at = time.monotonic()
+            self.first_audio_packet_wall_time = time.time()
+            self._log_av_timing(
+                "first_tts_audio_packet",
+                event_at=self.first_audio_packet_at,
+                event_wall_time=self.first_audio_packet_wall_time,
+                audio_rtp_seconds=self._rounded(
+                    self.first_tts_transport_pts_seconds,
+                    6,
+                ),
+            )
+            self._log_av_start_summary()
 
     def mark_audio_complete(self, media_seconds: Optional[float] = None) -> None:
         """Mark the exact media-time endpoint shared by audio and live video."""
@@ -379,6 +540,28 @@ class VideoSyncClock:
             "audio_ready": self.audio_ready_at is not None,
             "video_ready": self.video_ready_at is not None,
             "playout_released": self.playout_released.is_set(),
+            "turn_request_id": self.turn_request_id,
+            "turn_session_id": self.turn_session_id,
+            "playout_released_unix_ms": (
+                self._rounded(self.playout_released_wall_time * 1000.0)
+                if self.playout_released_wall_time is not None
+                else None
+            ),
+            "scheduled_playout_start_unix_ms": (
+                self._rounded(self.playout_start_wall_time * 1000.0)
+                if self.playout_start_wall_time is not None
+                else None
+            ),
+            "first_video_frame_unix_ms": (
+                self._rounded(self.first_video_frame_wall_time * 1000.0)
+                if self.first_video_frame_wall_time is not None
+                else None
+            ),
+            "first_audio_packet_unix_ms": (
+                self._rounded(self.first_audio_packet_wall_time * 1000.0)
+                if self.first_audio_packet_wall_time is not None
+                else None
+            ),
             "audio_ready_to_release_seconds": (
                 self.playout_released_at - self.audio_ready_at
                 if self.playout_released_at is not None and self.audio_ready_at is not None
@@ -2040,6 +2223,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             'strict_video_stalls': self._strict_video_stalls,
             'strict_video_stall_seconds': self._strict_video_stall_seconds,
             'output_frames_sent': self._output_frames_sent,
+            'prebuffer_seconds': self._prebuffer_seconds,
             'prebuffer_frames': self._prebuffer_frames,
             'source_fps': self._source_fps,
             'idle_source_fps': self._idle_source_fps,

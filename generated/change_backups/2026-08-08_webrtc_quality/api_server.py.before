@@ -5067,11 +5067,6 @@ async def webrtc_stream(
         await rollback_stream_setup("audio timeline preparation cancelled")
         raise
     except Exception as exc:
-        print(
-            f"❌ [{request_id}] WebRTC audio timeline preparation failed: "
-            f"{type(exc).__name__}: {exc}",
-            flush=True,
-        )
         await rollback_stream_setup("audio timeline preparation failed")
         raise HTTPException(
             status_code=422,

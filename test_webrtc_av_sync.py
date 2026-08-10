@@ -1,5 +1,6 @@
 import asyncio
 import fractions
+import json
 import math
 import sys
 import tempfile
@@ -9,6 +10,7 @@ import types
 import unittest
 import wave
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 
@@ -103,6 +105,55 @@ _install_media_stubs_if_needed()
 from scripts.webrtc_audio_timeline import prepare_webrtc_audio_timeline
 from scripts import webrtc_tracks
 from scripts.test_pose_webrtc import WallClockAudioTrack, WallClockVideoTrack
+
+
+class VideoSyncClockLoggingTest(unittest.TestCase):
+    def test_logs_actual_audio_start_vs_video_start_with_turn_context(self):
+        clock = webrtc_tracks.VideoSyncClock(30, strict_fifo=True)
+        clock.reset()
+        clock.set_turn_context("request-123", "session-456")
+
+        with patch("builtins.print") as print_mock:
+            clock.release_playout(time.monotonic())
+            clock.note_first_live_rtp_alignment(
+                audio_target_seconds=7.0,
+                video_rtp_seconds=7.0,
+                correction_seconds=0.0,
+                max_mismatch_seconds=1.0 / 30.0,
+            )
+            clock.mark_first_video_frame()
+            clock.note_first_tts_transport_pts(7.0)
+            clock.mark_first_audio_packet()
+
+        payloads = []
+        for call in print_mock.call_args_list:
+            message = str(call.args[0])
+            if message.startswith("📐 WEBRTC_AV_TIMING "):
+                payloads.append(json.loads(message.split(" ", 2)[2]))
+
+        self.assertEqual(
+            [payload["event"] for payload in payloads],
+            [
+                "playout_gate_released",
+                "first_live_video_frame",
+                "first_tts_audio_packet",
+                "av_start_summary",
+            ],
+        )
+        summary = payloads[-1]
+        self.assertEqual(summary["request_id"], "request-123")
+        self.assertEqual(summary["session_id"], "session-456")
+        self.assertEqual(summary["first_tts_audio_rtp_seconds"], 7.0)
+        self.assertEqual(summary["first_live_video_rtp_seconds"], 7.0)
+        self.assertEqual(summary["audio_rtp_minus_video_rtp_ms"], 0.0)
+        self.assertTrue(summary["rtp_aligned"])
+        self.assertGreaterEqual(summary["absolute_start_skew_ms"], 0.0)
+
+        stats = clock.get_stats()
+        self.assertEqual(stats["turn_request_id"], "request-123")
+        self.assertEqual(stats["turn_session_id"], "session-456")
+        self.assertIsNotNone(stats["first_audio_packet_unix_ms"])
+        self.assertIsNotNone(stats["first_video_frame_unix_ms"])
 
 
 def _write_tone_with_edge_silence(

@@ -51,6 +51,7 @@ class WebRTCSession:
     playback_fps: int = 10
     batch_size: int = 2
     chunk_duration: int = 2
+    prebuffer_seconds: float = 0.0
     pc: Optional[RTCPeerConnection] = None
     idle_track: Optional[SwitchableVideoStreamTrack] = None
     idle_sender: Optional[RTCRtpSender] = None
@@ -322,6 +323,7 @@ class WebRTCSessionManager:
         playback_fps: Optional[int] = None,
         batch_size: int = 2,
         chunk_duration: int = 2,
+        prebuffer_seconds: Optional[float] = None,
         idle_pose_id: str = "default",
         pose_set: Optional[dict] = None,
         pose_switch_mode: str = "immediate",
@@ -422,8 +424,12 @@ class WebRTCSessionManager:
             source_fps=float(fps),
             output_fps=playback_fps,
             sync_clock=sync_clock,
+            prebuffer_seconds=prebuffer_seconds,
             idle_pose_id=initial_pose_id,
             idle_source_fps=idle_source_fps,
+        )
+        resolved_prebuffer_seconds = float(
+            idle_track.get_stats().get("prebuffer_seconds") or 0.0
         )
         silence_audio = SilenceAudioStreamTrack(sync_clock=sync_clock)
         live_pose_router = LivePoseVideoRouter(
@@ -441,6 +447,7 @@ class WebRTCSessionManager:
             playback_fps=playback_fps,
             batch_size=batch_size,
             chunk_duration=chunk_duration,
+            prebuffer_seconds=resolved_prebuffer_seconds,
             pc=pc,
             idle_track=idle_track,
             idle_sender=None,
@@ -494,6 +501,7 @@ class WebRTCSessionManager:
             f"live_pose_id={initial_live_pose_id} "
             f"fps={fps} playback_fps={playback_fps} "
             f"batch_size={batch_size} chunk_duration={chunk_duration} "
+            f"prebuffer_seconds={resolved_prebuffer_seconds:g} "
             f"total_sessions={total_sessions}",
             flush=True,
         )
