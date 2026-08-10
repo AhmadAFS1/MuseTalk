@@ -8,6 +8,44 @@ from einops import rearrange
 from transformers import AutoFeatureExtractor
 
 
+WHISPER_FEATURE_FPS = 50
+MUSETALK_TRAINING_VIDEO_FPS = 25
+WHISPER_FEATURE_STEPS_PER_MODEL_FRAME = (
+    WHISPER_FEATURE_FPS // MUSETALK_TRAINING_VIDEO_FPS
+)
+
+
+def pad_whisper_feature_for_musetalk(
+    whisper_feature,
+    *,
+    audio_padding_length_left=2,
+    audio_padding_length_right=2,
+):
+    """Pad encoded Whisper features on MuseTalk's fixed model timeline.
+
+    MuseTalk was trained with 50 Hz Whisper features and a 25 fps video
+    timeline, so each model-frame unit is always two Whisper feature steps.
+    The requested render fps changes where prompt windows are sampled; it must
+    not change the amount of left context. Scaling this padding at 15/20 fps
+    shifts the conditioning into the past and makes audio lead the mouth.
+    """
+
+    feature_steps = WHISPER_FEATURE_STEPS_PER_MODEL_FRAME
+    return torch.cat([
+        torch.zeros_like(
+            whisper_feature[:, :feature_steps * audio_padding_length_left]
+        ),
+        whisper_feature,
+        # Preserve the existing generous right-edge guard, expressed on the
+        # same fixed model timeline.
+        torch.zeros_like(
+            whisper_feature[
+                :, :feature_steps * 3 * audio_padding_length_right
+            ]
+        ),
+    ], 1)
+
+
 class AudioProcessor:
     def __init__(self, feature_extractor_path="openai/whisper-tiny/"):
         self.feature_extractor = AutoFeatureExtractor.from_pretrained(feature_extractor_path)
@@ -118,22 +156,20 @@ class AudioProcessor:
         whisper_feature = torch.cat(whisper_feature_parts, dim=1)
         # Trim the last segment to remove padding
         sr = 16000
-        audio_fps = 50
+        audio_fps = WHISPER_FEATURE_FPS
         fps = int(fps)
-        whisper_idx_multiplier = audio_fps / fps
         num_frames = math.floor((librosa_length / sr) * fps)
         actual_length = math.floor((librosa_length / sr) * audio_fps)
         whisper_feature = whisper_feature[:,:actual_length,...]
 
-        # Calculate padding amount
-        padding_nums = math.ceil(whisper_idx_multiplier)
-        # Add padding at start and end
-        whisper_feature = torch.cat([
-            torch.zeros_like(whisper_feature[:, :padding_nums * audio_padding_length_left]),
+        # Padding is part of the model's fixed 50 Hz conditioning window. It
+        # must not grow when the requested output fps is below the 25 fps
+        # training timeline; only the sampling stride changes with output fps.
+        whisper_feature = pad_whisper_feature_for_musetalk(
             whisper_feature,
-            # Add extra padding to prevent out of bounds
-            torch.zeros_like(whisper_feature[:, :padding_nums * 3 * audio_padding_length_right])
-        ], 1)
+            audio_padding_length_left=audio_padding_length_left,
+            audio_padding_length_right=audio_padding_length_right,
+        )
 
         return whisper_feature.detach().cpu().contiguous(), num_frames
 
@@ -149,8 +185,7 @@ class AudioProcessor:
     ):
         audio_feature_length_per_frame = 2 * (audio_padding_length_left + audio_padding_length_right + 1)
         fps = int(fps)
-        audio_fps = 50
-        whisper_idx_multiplier = audio_fps / fps
+        audio_fps = WHISPER_FEATURE_FPS
 
         if end_frame is None:
             end_frame = num_frames
