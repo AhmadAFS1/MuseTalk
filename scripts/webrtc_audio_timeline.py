@@ -204,6 +204,26 @@ def prepare_webrtc_audio_timeline(
         ),
     )
 
+    if not trim_enabled:
+        samples = _decode_mono_pcm(source)
+        if samples.size == 0:
+            raise RuntimeError(f"WebRTC audio contains no decoded samples: {source}")
+        original_duration = samples.size / float(ANALYSIS_SAMPLE_RATE)
+        return WebRTCAudioTimeline(
+            source_path=str(source),
+            media_path=str(source),
+            original_duration_seconds=original_duration,
+            media_duration_seconds=original_duration,
+            speech_start_seconds=0.0,
+            speech_end_seconds=original_duration,
+            trim_start_seconds=0.0,
+            trim_end_seconds=original_duration,
+            leading_silence_removed_seconds=0.0,
+            trailing_silence_removed_seconds=0.0,
+            threshold_db=threshold,
+            normalized=False,
+        )
+
     speech_start, speech_end, original_duration = detect_speech_bounds(
         source,
         threshold_db=threshold,
