@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Start coturn for WebRTC relay testing.
+# Start coturn for WebRTC relay transport.
 #
 # This mode is intended for hosts where we do not want to expose a public UDP
-# relay range. Clients should use WEBRTC_ICE_TRANSPORT_POLICY=relay and one
-# mapped TURN listener port, such as turn:host:public_port?transport=udp.
+# relay range. Prefer the mapped UDP listener for realtime media and expose the
+# mapped TCP listener as a fallback for networks that block UDP.
 
 set -euo pipefail
 
@@ -12,8 +12,8 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
 Usage: scripts/run_turnserver_tcp_relay.sh
 
 Starts coturn in WebRTC relay-only mode using .env.webrtc-turn.local.
-Only the mapped TURN listener needs public exposure for this test mode; the old
-public UDP relay range is not required when both peers are forced through TURN.
+Only the mapped TURN listeners need public exposure; the internal relay range
+is not exposed because both peers allocate through the same local coturn.
 EOF
   exit 0
 fi
@@ -56,8 +56,12 @@ VAST_TCP_PORT_1455="${VAST_TCP_PORT_1455:-$(read_proc1_env VAST_TCP_PORT_1455)}"
 VAST_UDP_PORT_3478="${VAST_UDP_PORT_3478:-$(read_proc1_env VAST_UDP_PORT_3478)}"
 PUBLIC_IPADDR="${PUBLIC_IPADDR:-$(read_proc1_env PUBLIC_IPADDR)}"
 
-if [[ -z "${TURN_LISTEN_PORT:-}" && -n "$VAST_TCP_PORT_1455" ]]; then
-  TURN_LISTEN_PORT=1455
+if [[ -z "${TURN_LISTEN_PORT:-}" ]]; then
+  if [[ -n "$VAST_UDP_PORT_3478" ]]; then
+    TURN_LISTEN_PORT=3478
+  elif [[ -n "$VAST_TCP_PORT_1455" ]]; then
+    TURN_LISTEN_PORT=1455
+  fi
 fi
 TURN_LISTEN_PORT="${TURN_LISTEN_PORT:-3478}"
 
@@ -79,6 +83,13 @@ if [[ -z "${TURN_PUBLIC_PORT:-}" ]]; then
   else
     TURN_PUBLIC_PORT="$TURN_LISTEN_PORT"
   fi
+fi
+
+TURN_TCP_FALLBACK_LISTEN_PORT="${TURN_TCP_FALLBACK_LISTEN_PORT:-}"
+TURN_TCP_FALLBACK_PUBLIC_PORT="${TURN_TCP_FALLBACK_PUBLIC_PORT:-}"
+if [[ "$TURN_PUBLIC_TRANSPORT" == "udp" && -n "$VAST_TCP_PORT_1455" ]]; then
+  TURN_TCP_FALLBACK_LISTEN_PORT="${TURN_TCP_FALLBACK_LISTEN_PORT:-1455}"
+  TURN_TCP_FALLBACK_PUBLIC_PORT="${TURN_TCP_FALLBACK_PUBLIC_PORT:-$VAST_TCP_PORT_1455}"
 fi
 
 DETECTED_PUBLIC_IP=""
@@ -126,6 +137,10 @@ listener_transport_config=""
 if [[ "$TURN_PUBLIC_TRANSPORT" == "tcp" ]]; then
   listener_transport_config="no-udp"
 fi
+auxiliary_listener_config=""
+if [[ -n "$TURN_TCP_FALLBACK_LISTEN_PORT" && "$TURN_TCP_FALLBACK_LISTEN_PORT" != "$TURN_LISTEN_PORT" ]]; then
+  auxiliary_listener_config="aux-server=0.0.0.0:$TURN_TCP_FALLBACK_LISTEN_PORT"
+fi
 
 cat > "$CONFIG" <<EOF
 realm=$TURN_REALM
@@ -135,6 +150,7 @@ listening-ip=0.0.0.0
 relay-ip=$TURN_PRIVATE_IP
 
 listening-port=$TURN_LISTEN_PORT
+$auxiliary_listener_config
 $listener_transport_config
 no-tls
 no-dtls
@@ -158,6 +174,7 @@ Starting coturn WebRTC relay mode
   env: $ENV_FILE
   listen: 0.0.0.0:$TURN_LISTEN_PORT/$TURN_PUBLIC_TRANSPORT
   public URL: turn:$TURN_PUBLIC_IP:$TURN_PUBLIC_PORT?transport=$TURN_PUBLIC_TRANSPORT
+  TCP fallback: ${TURN_TCP_FALLBACK_PUBLIC_PORT:+turn:$TURN_PUBLIC_IP:$TURN_TCP_FALLBACK_PUBLIC_PORT?transport=tcp}
   relay policy: expose the mapped TURN listener; do not expose the internal relay range for relay-only tests
 EOF
 

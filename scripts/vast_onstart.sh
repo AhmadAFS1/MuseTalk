@@ -151,6 +151,25 @@ detect_public_ip() {
   fi
 }
 
+set_env_file_value() {
+  local key="$1"
+  local value="$2"
+  local repaired_env
+  repaired_env="$(mktemp "${TURN_ENV_FILE}.XXXXXX")"
+  awk -v key="$key" -v value="$value" '
+    BEGIN { found = 0 }
+    index($0, key "=") == 1 {
+      if (!found) print key "=" value
+      found = 1
+      next
+    }
+    { print }
+    END { if (!found) print key "=" value }
+  ' "$TURN_ENV_FILE" > "$repaired_env"
+  chmod 600 "$repaired_env"
+  mv "$repaired_env" "$TURN_ENV_FILE"
+}
+
 generate_turn_password() {
   if command -v openssl >/dev/null 2>&1; then
     openssl rand -hex 24
@@ -509,23 +528,31 @@ configure_webrtc_turn() {
       detected_public_ip="$(detect_public_ip)"
     fi
     if [[ -n "$detected_public_ip" && "$detected_public_ip" != "${TURN_PUBLIC_IP:-}" ]]; then
-      local repaired_env
-      repaired_env="$(mktemp "${TURN_ENV_FILE}.XXXXXX")"
-      awk -v key="TURN_PUBLIC_IP" -v value="$detected_public_ip" '
-        BEGIN { found = 0 }
-        index($0, key "=") == 1 {
-          if (!found) print key "=" value
-          found = 1
-          next
-        }
-        { print }
-        END { if (!found) print key "=" value }
-      ' "$TURN_ENV_FILE" > "$repaired_env"
-      chmod 600 "$repaired_env"
-      mv "$repaired_env" "$TURN_ENV_FILE"
+      set_env_file_value TURN_PUBLIC_IP "$detected_public_ip"
       log "Corrected stale TURN public IP ${TURN_PUBLIC_IP:-unset} -> $detected_public_ip"
       TURN_PUBLIC_IP="$detected_public_ip"
       unset WEBRTC_TURN_URLS WEBRTC_SERVER_TURN_URLS
+    fi
+    local existing_vast_tcp_1455 existing_vast_udp_3478
+    existing_vast_tcp_1455="${VAST_TCP_PORT_1455:-$(read_proc1_env VAST_TCP_PORT_1455)}"
+    existing_vast_udp_3478="${VAST_UDP_PORT_3478:-$(read_proc1_env VAST_UDP_PORT_3478)}"
+    if env_flag_is_true "${TURN_PREFER_UDP:-1}" && [[ -n "$existing_vast_udp_3478" ]]; then
+      if [[ "${TURN_PUBLIC_TRANSPORT:-}" != "udp" || "${TURN_PUBLIC_PORT:-}" != "$existing_vast_udp_3478" || "${TURN_LISTEN_PORT:-}" != "3478" ]]; then
+        log "Promoting TURN media transport from ${TURN_PUBLIC_TRANSPORT:-unset} to UDP"
+        set_env_file_value TURN_PUBLIC_TRANSPORT udp
+        set_env_file_value TURN_PUBLIC_PORT "$existing_vast_udp_3478"
+        set_env_file_value TURN_LISTEN_PORT 3478
+        TURN_PUBLIC_TRANSPORT=udp
+        TURN_PUBLIC_PORT="$existing_vast_udp_3478"
+        TURN_LISTEN_PORT=3478
+        unset WEBRTC_TURN_URLS WEBRTC_SERVER_TURN_URLS
+      fi
+      if [[ -n "$existing_vast_tcp_1455" ]]; then
+        set_env_file_value TURN_TCP_FALLBACK_LISTEN_PORT 1455
+        set_env_file_value TURN_TCP_FALLBACK_PUBLIC_PORT "$existing_vast_tcp_1455"
+        TURN_TCP_FALLBACK_LISTEN_PORT=1455
+        TURN_TCP_FALLBACK_PUBLIC_PORT="$existing_vast_tcp_1455"
+      fi
     fi
     export TURN_ENV_FILE WEBRTC_RELAY_ENABLED WEBRTC_TURN_AUTOSTART
     if env_flag_is_true "${WEBRTC_TURN_AUTOSTART:-0}"; then
@@ -535,7 +562,7 @@ configure_webrtc_turn() {
     return 0
   fi
 
-  local public_ip detected_public_ip vast_tcp_1455 vast_udp_3478 listen_port public_port transport turn_pass
+  local public_ip detected_public_ip vast_tcp_1455 vast_udp_3478 listen_port public_port transport turn_pass tcp_fallback_listen_port tcp_fallback_public_port
   detected_public_ip="$(detect_public_ip)"
   public_ip="${TURN_PUBLIC_IP:-${PUBLIC_IP:-${detected_public_ip:-${PUBLIC_IPADDR:-$(read_proc1_env PUBLIC_IPADDR)}}}}"
   vast_tcp_1455="${VAST_TCP_PORT_1455:-$(read_proc1_env VAST_TCP_PORT_1455)}"
@@ -549,20 +576,27 @@ configure_webrtc_turn() {
     return 0
   fi
 
-  if [[ -n "$vast_tcp_1455" ]]; then
-    listen_port="${TURN_LISTEN_PORT:-1455}"
-    public_port="${TURN_PUBLIC_PORT:-$vast_tcp_1455}"
-    transport="${TURN_PUBLIC_TRANSPORT:-tcp}"
-  elif [[ -n "$vast_udp_3478" ]]; then
+  if [[ -n "$vast_udp_3478" ]]; then
     listen_port="${TURN_LISTEN_PORT:-3478}"
     public_port="${TURN_PUBLIC_PORT:-$vast_udp_3478}"
     transport="${TURN_PUBLIC_TRANSPORT:-udp}"
+  elif [[ -n "$vast_tcp_1455" ]]; then
+    listen_port="${TURN_LISTEN_PORT:-1455}"
+    public_port="${TURN_PUBLIC_PORT:-$vast_tcp_1455}"
+    transport="${TURN_PUBLIC_TRANSPORT:-tcp}"
   else
     if webrtc_turn_required; then
       die "SETUP_WEBRTC_TURN=$SETUP_WEBRTC_TURN but no Vast TURN port mapping was detected (expected VAST_TCP_PORT_1455 or VAST_UDP_PORT_3478)"
     fi
     log "WebRTC TURN auto bootstrap skipped: no Vast TURN port mapping detected"
     return 0
+  fi
+
+  tcp_fallback_listen_port="${TURN_TCP_FALLBACK_LISTEN_PORT:-}"
+  tcp_fallback_public_port="${TURN_TCP_FALLBACK_PUBLIC_PORT:-}"
+  if [[ "$transport" == "udp" && -n "$vast_tcp_1455" ]]; then
+    tcp_fallback_listen_port="${tcp_fallback_listen_port:-1455}"
+    tcp_fallback_public_port="${tcp_fallback_public_port:-$vast_tcp_1455}"
   fi
 
   turn_pass="${TURN_PASS:-${WEBRTC_TURN_PASS:-$(generate_turn_password)}}"
@@ -577,6 +611,8 @@ TURN_PUBLIC_IP_PINNED=0
 TURN_PUBLIC_PORT=$public_port
 TURN_PUBLIC_TRANSPORT=$transport
 TURN_LISTEN_PORT=$listen_port
+TURN_TCP_FALLBACK_LISTEN_PORT=$tcp_fallback_listen_port
+TURN_TCP_FALLBACK_PUBLIC_PORT=$tcp_fallback_public_port
 WEBRTC_USE_LOCAL_TURN=1
 
 TURN_USER=${TURN_USER:-webrtc}
