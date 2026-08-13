@@ -81,7 +81,15 @@ if [[ -z "${TURN_PUBLIC_PORT:-}" ]]; then
   fi
 fi
 
-TURN_PUBLIC_IP="${TURN_PUBLIC_IP:-${PUBLIC_IP:-${PUBLIC_IPADDR:-$(detect_public_ip)}}}"
+DETECTED_PUBLIC_IP=""
+if [[ ! "${TURN_PUBLIC_IP_PINNED:-0}" =~ ^(1|true|TRUE|yes|YES|on|ON)$ ]]; then
+  DETECTED_PUBLIC_IP="$(detect_public_ip)"
+fi
+if [[ -n "$DETECTED_PUBLIC_IP" ]]; then
+  TURN_PUBLIC_IP="$DETECTED_PUBLIC_IP"
+else
+  TURN_PUBLIC_IP="${TURN_PUBLIC_IP:-${PUBLIC_IP:-${PUBLIC_IPADDR:-}}}"
+fi
 TURN_PRIVATE_IP="${TURN_PRIVATE_IP:-$(detect_private_ip)}"
 TURN_USER="${TURN_USER:-webrtc}"
 TURN_PASS="${TURN_PASS:-${WEBRTC_TURN_PASS:-}}"

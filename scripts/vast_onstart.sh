@@ -145,6 +145,12 @@ read_proc1_env() {
   fi
 }
 
+detect_public_ip() {
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsS --max-time 5 https://api.ipify.org || true
+  fi
+}
+
 generate_turn_password() {
   if command -v openssl >/dev/null 2>&1; then
     openssl rand -hex 24
@@ -498,6 +504,29 @@ configure_webrtc_turn() {
     # shellcheck disable=SC1090
     source "$TURN_ENV_FILE"
     set +a
+    local detected_public_ip=""
+    if ! env_flag_is_true "${TURN_PUBLIC_IP_PINNED:-0}"; then
+      detected_public_ip="$(detect_public_ip)"
+    fi
+    if [[ -n "$detected_public_ip" && "$detected_public_ip" != "${TURN_PUBLIC_IP:-}" ]]; then
+      local repaired_env
+      repaired_env="$(mktemp "${TURN_ENV_FILE}.XXXXXX")"
+      awk -v key="TURN_PUBLIC_IP" -v value="$detected_public_ip" '
+        BEGIN { found = 0 }
+        index($0, key "=") == 1 {
+          if (!found) print key "=" value
+          found = 1
+          next
+        }
+        { print }
+        END { if (!found) print key "=" value }
+      ' "$TURN_ENV_FILE" > "$repaired_env"
+      chmod 600 "$repaired_env"
+      mv "$repaired_env" "$TURN_ENV_FILE"
+      log "Corrected stale TURN public IP ${TURN_PUBLIC_IP:-unset} -> $detected_public_ip"
+      TURN_PUBLIC_IP="$detected_public_ip"
+      unset WEBRTC_TURN_URLS WEBRTC_SERVER_TURN_URLS
+    fi
     export TURN_ENV_FILE WEBRTC_RELAY_ENABLED WEBRTC_TURN_AUTOSTART
     if env_flag_is_true "${WEBRTC_TURN_AUTOSTART:-0}"; then
       ensure_coturn_available
@@ -506,8 +535,9 @@ configure_webrtc_turn() {
     return 0
   fi
 
-  local public_ip vast_tcp_1455 vast_udp_3478 listen_port public_port transport turn_pass
-  public_ip="${TURN_PUBLIC_IP:-${PUBLIC_IPADDR:-$(read_proc1_env PUBLIC_IPADDR)}}"
+  local public_ip detected_public_ip vast_tcp_1455 vast_udp_3478 listen_port public_port transport turn_pass
+  detected_public_ip="$(detect_public_ip)"
+  public_ip="${TURN_PUBLIC_IP:-${PUBLIC_IP:-${detected_public_ip:-${PUBLIC_IPADDR:-$(read_proc1_env PUBLIC_IPADDR)}}}}"
   vast_tcp_1455="${VAST_TCP_PORT_1455:-$(read_proc1_env VAST_TCP_PORT_1455)}"
   vast_udp_3478="${VAST_UDP_PORT_3478:-$(read_proc1_env VAST_UDP_PORT_3478)}"
 
@@ -543,6 +573,7 @@ WEBRTC_RELAY_ENABLED=1
 WEBRTC_TURN_AUTOSTART=1
 
 TURN_PUBLIC_IP=$public_ip
+TURN_PUBLIC_IP_PINNED=0
 TURN_PUBLIC_PORT=$public_port
 TURN_PUBLIC_TRANSPORT=$transport
 TURN_LISTEN_PORT=$listen_port
