@@ -1,0 +1,39 @@
+[Script Info]
+Title: LTX 2.3 variable six-pose MuseTalk WebRTC showcase
+ScriptType: v4.00+
+PlayResX: 480
+PlayResY: 832
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Header,DejaVu Sans,22,&H00FFFFFF,&H000000FF,&H00101010,&H98000000,-1,0,0,0,100,100,0,0,3,1,0,8,18,18,20,1
+Style: Phase,DejaVu Sans,16,&H0056E8FF,&H000000FF,&H00101010,&H98000000,-1,0,0,0,100,100,0,0,3,1,0,8,18,18,58,1
+Style: Pose,DejaVu Sans,23,&H00FFFFFF,&H000000FF,&H00101010,&HA8000000,-1,0,0,0,100,100,0,0,3,1,0,2,18,18,57,1
+Style: Motion,DejaVu Sans,15,&H00D9F5FF,&H000000FF,&H00101010,&HA8000000,0,0,0,0,100,100,0,0,3,1,0,2,18,18,22,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:49.30,Header,,0,0,0,,REAL WEBRTC · LTX 2.3 VARIABLE POSE BANK
+Dialogue: 0,0:00:00.00,0:00:30.50,Phase,,0,0,0,,SIX-POSE IDLE SHOWCASE
+Dialogue: 0,0:00:30.50,0:00:49.30,Phase,,0,0,0,,LIVE TTS + MUSETALK LIP SYNC
+Dialogue: 0,0:00:00.00,0:00:00.38,Pose,,0,0,0,,NEUTRAL RESTING
+Dialogue: 0,0:00:00.00,0:00:00.38,Motion,,0,0,0,,breathing · blink · natural head sway
+Dialogue: 0,0:00:00.38,0:00:05.24,Pose,,0,0,0,,ACTIVE LISTENING
+Dialogue: 0,0:00:00.38,0:00:05.24,Motion,,0,0,0,,acknowledgement nods · engaged head sway
+Dialogue: 0,0:00:05.24,0:00:10.52,Pose,,0,0,0,,SPEAKING DIRECT · IDLE PREVIEW
+Dialogue: 0,0:00:05.24,0:00:10.52,Motion,,0,0,0,,passionate head emphasis · shoulder energy
+Dialogue: 0,0:00:10.52,0:00:15.61,Pose,,0,0,0,,NOD / AGREEMENT
+Dialogue: 0,0:00:10.52,0:00:15.61,Motion,,0,0,0,,one clear deep nod · shoulder follow-through
+Dialogue: 0,0:00:15.61,0:00:20.71,Pose,,0,0,0,,EMPATHETIC HEAD TILT
+Dialogue: 0,0:00:15.61,0:00:20.71,Motion,,0,0,0,,gentle sideways sway · softened expression
+Dialogue: 0,0:00:20.71,0:00:25.80,Pose,,0,0,0,,LIGHT SMILE
+Dialogue: 0,0:00:20.71,0:00:25.80,Motion,,0,0,0,,subtle closed-lip smile · relaxed breathing
+Dialogue: 0,0:00:25.80,0:00:30.50,Pose,,0,0,0,,NEUTRAL RESTING
+Dialogue: 0,0:00:25.80,0:00:30.50,Motion,,0,0,0,,baseline return before the live response
+Dialogue: 0,0:00:30.50,0:00:32.03,Pose,,0,0,0,,LIGHT-SMILE REACTION
+Dialogue: 0,0:00:30.50,0:00:32.03,Motion,,0,0,0,,reaction pose with live MuseTalk lip sync
+Dialogue: 0,0:00:32.03,0:00:37.10,Pose,,0,0,0,,SPEAKING DIRECT
+Dialogue: 0,0:00:32.03,0:00:37.10,Motion,,0,0,0,,passionate delivery with live MuseTalk lip sync
+Dialogue: 0,0:00:37.10,0:00:49.30,Pose,,0,0,0,,NEUTRAL RETURN
+Dialogue: 0,0:00:37.10,0:00:49.30,Motion,,0,0,0,,natural settling through speech completion

@@ -26,6 +26,36 @@ VAST_SERVER_CTL_LOAD_TURN_ENV="${VAST_SERVER_CTL_LOAD_TURN_ENV:-1}"
 WEBRTC_RELAY_ENABLED="${WEBRTC_RELAY_ENABLED:-0}"
 WEBRTC_TURN_AUTOSTART="${WEBRTC_TURN_AUTOSTART:-0}"
 TURN_ENV_LOADED=0
+LINGUA_CONTROL_PLANE_ENV_FILE="${LINGUA_CONTROL_PLANE_ENV_FILE:-$WORKSPACE_ROOT/.lingua-control-plane.env}"
+LINGUA_WORKER_CALLBACK_REQUIRED="${LINGUA_WORKER_CALLBACK_REQUIRED:-0}"
+
+if [[ -f "$LINGUA_CONTROL_PLANE_ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$LINGUA_CONTROL_PLANE_ENV_FILE"
+  set +a
+fi
+
+# This launcher is MuseTalk-specific. Never inherit a TTS worker type from a
+# shared machine-level environment file.
+export LINGUA_WORKER_TYPE=musetalk
+
+read_proc1_env() {
+  local key="$1"
+  if [[ -r /proc/1/environ ]]; then
+    tr '\0' '\n' < /proc/1/environ 2>/dev/null | awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}'
+  fi
+}
+
+# Vast injects mapped ports into PID 1, but SSH-launched processes do not
+# necessarily inherit that environment. Promote the endpoint fields before
+# the in-process callback client is started.
+if [[ -z "${PUBLIC_IPADDR:-}" ]]; then
+  export PUBLIC_IPADDR="$(read_proc1_env PUBLIC_IPADDR)"
+fi
+if [[ -z "${VAST_TCP_PORT_8000:-}" ]]; then
+  export VAST_TCP_PORT_8000="$(read_proc1_env VAST_TCP_PORT_8000)"
+fi
 
 log() {
   printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
@@ -273,6 +303,15 @@ start_server() {
 
   [[ -x "$VENV_PATH/bin/python" ]] || die "Venv python not found at $VENV_PATH/bin/python"
   [[ -f "$REPO_ROOT/api_server.py" ]] || die "api_server.py not found under $REPO_ROOT"
+
+  if env_enabled "$LINGUA_WORKER_CALLBACK_REQUIRED"; then
+    [[ -n "${LINGUA_WORKER_TOKEN:-}" ]] || die \
+      "Worker callback is required but LINGUA_WORKER_TOKEN is missing"
+    if [[ -z "${LINGUA_CONTROL_PLANE_BASE_URL:-}" ]]; then
+      [[ -n "${LINGUA_WORKER_REGISTER_URL:-}" && -n "${LINGUA_WORKER_HEARTBEAT_URL:-}" ]] || die \
+        "Worker callback is required but no control-plane URL is configured"
+    fi
+  fi
 
   local launcher="$REPO_ROOT/scripts/run_trt_stagewise_server.sh"
   if env_enabled "$WEBRTC_RELAY_ENABLED"; then
