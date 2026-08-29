@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-29",
+  "result": "passed",
+  "session_id": "kk3X5hBjWIkjtYmIwypo2Q",
+  "pose_set_id": "sample_ai_human_ltx23_user_review_six_v8",
+  "elapsed_seconds": 124.171,
+  "showcase_initial_neutral_hold_seconds": 10.1,
+  "receiver": {
+    "video_frames_received": 2914,
+    "audio_frames_received": 6173,
+    "final_pose_id": "neutral_resting",
+    "final_stream_active": false
+  },
+  "idle_showcase": [
+    {"pose_id": "neutral_resting", "observed_at_seconds": 0.029},
+    {"pose_id": "active_listening", "observed_at_seconds": 10.491},
+    {"pose_id": "speaking_direct", "observed_at_seconds": 20.667},
+    {"pose_id": "nod_agree", "observed_at_seconds": 32.783},
+    {"pose_id": "empathetic_head_tilt", "observed_at_seconds": 38.95},
+    {"pose_id": "light_smile", "observed_at_seconds": 49.322},
+    {"pose_id": "neutral_resting", "observed_at_seconds": 55.484}
+  ],
+  "speaking": {
+    "submitted_at_seconds": 58.137,
+    "playout_released_at_seconds": 61.177,
+    "generated_video_frames_played": 1200,
+    "sample_audio_frames_sent": 3000,
+    "rendered_pose_trace": [
+      {"pose_id": "light_smile", "first_frame": 0, "last_frame": 47, "frame_count": 48},
+      {"pose_id": "speaking_direct", "first_frame": 48, "last_frame": 288, "frame_count": 241},
+      {"pose_id": "neutral_resting", "first_frame": 289, "last_frame": 1199, "frame_count": 911}
+    ]
+  },
+  "timestamp_validation": {
+    "validated": true,
+    "first_live_av_rtp_delta_seconds": 0.0,
+    "allowed_delta_seconds": 0.041666666666666664,
+    "audio_timestamp_anomalies": 0,
+    "declared_video_phase_correction_frames": 20,
+    "declared_video_phase_correction_seconds": 0.8333333333333333
+  },
+  "motion_audit": {
+    "idle_active_merge": {
+      "shared_asset_sha256": "099877cef231ce12dede03843c558d10c2fa1e9c4e054c83be595e81a00f6ae4",
+      "byte_identical": true,
+      "six_pose_compatibility_ids_retained": true
+    },
+    "retained_assets": {
+      "active_listening_byte_identical_to_v6": true,
+      "speaking_direct_byte_identical_to_v7": true,
+      "nod_agree_byte_identical_to_v6": true,
+      "empathetic_head_tilt_byte_identical_to_v6": true
+    },
+    "light_smile": {
+      "closed_lip": true,
+      "moderate_visible_smile": true,
+      "broad_grin": false,
+      "micro_smile": false,
+      "visual_amplitude_between_v6_and_v7": true,
+      "contact_sheet_review": "passed"
+    }
+  },
+  "cache_strategy": {
+    "retained_assets_reuse_existing_validated_cache_ids": true,
+    "new_disk_cache_created_only_for": "light_smile",
+    "reason": "The volume reached capacity while duplicate v8 caches were being prepared; redundant caches created during this run were removed and byte-identical source caches were reused."
+  },
+  "files": {
+    "raw_capture": "sample_ai_human_ltx23_user_review_six_v8_webrtc_capture.mp4",
+    "labeled_review": "sample_ai_human_ltx23_user_review_six_v8_labeled_webrtc.mp4",
+    "contact_sheet": "labeled_webrtc_contact_sheet.jpg",
+    "label_source": "labels.ass",
+    "full_log": "webrtc_smoke.log"
+  },
+  "labeled_review_validation": {
+    "full_decode": "passed",
+    "width": 480,
+    "height": 832,
+    "fps": 24,
+    "video_frames": 2934,
+    "audio_sample_rate": 48000,
+    "audio_channels": 2,
+    "duration_seconds": 123.515
+  },
+  "review_status": {
+    "activation_status": "draft",
+    "test_only": true,
+    "switch_safe": false,
+    "reason": "Awaiting user visual approval of the v8 moderate smile and completed motion set."
+  }
+}
