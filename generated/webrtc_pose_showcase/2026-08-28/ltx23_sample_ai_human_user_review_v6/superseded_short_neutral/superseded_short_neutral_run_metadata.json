@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-28",
+  "result": "passed",
+  "session_id": "MlBAt3Nnc6b0k90U_8iwDQ",
+  "pose_set_id": "sample_ai_human_ltx23_user_review_six_v6",
+  "elapsed_seconds": 113.596,
+  "receiver": {
+    "video_frames_received": 2657,
+    "audio_frames_received": 5622,
+    "final_pose_id": "neutral_resting",
+    "final_stream_active": false
+  },
+  "idle_showcase": [
+    {"pose_id": "neutral_resting", "observed_at_seconds": 0.044},
+    {"pose_id": "active_listening", "observed_at_seconds": 0.413},
+    {"pose_id": "speaking_direct", "observed_at_seconds": 10.389},
+    {"pose_id": "nod_agree", "observed_at_seconds": 22.692},
+    {"pose_id": "empathetic_head_tilt", "observed_at_seconds": 28.866},
+    {"pose_id": "light_smile", "observed_at_seconds": 39.025},
+    {"pose_id": "neutral_resting", "observed_at_seconds": 45.185}
+  ],
+  "speaking": {
+    "submitted_at_seconds": 47.834,
+    "playout_released_at_seconds": 51.081,
+    "generated_video_frames_played": 1200,
+    "sample_audio_frames_sent": 3000,
+    "rendered_pose_trace": [
+      {"pose_id": "light_smile", "first_frame": 0, "last_frame": 48, "frame_count": 49},
+      {"pose_id": "speaking_direct", "first_frame": 49, "last_frame": 289, "frame_count": 241},
+      {"pose_id": "neutral_resting", "first_frame": 290, "last_frame": 1199, "frame_count": 910}
+    ]
+  },
+  "timestamp_validation": {
+    "validated": true,
+    "first_live_av_rtp_delta_seconds": 0.003333333333337407,
+    "allowed_delta_seconds": 0.041666666666666664,
+    "audio_timestamp_anomalies": 0,
+    "declared_video_phase_correction_frames": 13,
+    "declared_video_phase_correction_seconds": 0.5416666666666666
+  },
+  "files": {
+    "raw_capture": "sample_ai_human_ltx23_user_review_six_v6_webrtc_capture.mp4",
+    "labeled_review": "sample_ai_human_ltx23_user_review_six_v6_labeled_webrtc.mp4",
+    "contact_sheet": "labeled_webrtc_contact_sheet.jpg",
+    "label_source": "labels.ass",
+    "full_log": "webrtc_smoke.log"
+  },
+  "labeled_review_validation": {
+    "full_decode": "passed",
+    "width": 480,
+    "height": 832,
+    "fps": 24,
+    "video_frames": 2670,
+    "audio_sample_rate": 48000,
+    "audio_channels": 2
+  },
+  "review_status": {
+    "activation_status": "draft",
+    "test_only": true,
+    "switch_safe": false,
+    "reason": "Awaiting user visual approval of v6 motion."
+  }
+}

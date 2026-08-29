@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-28",
+  "result": "passed",
+  "session_id": "2SuDIhBsKoEivvZUbCPtDw",
+  "pose_set_id": "sample_ai_human_ltx23_user_review_six_v6",
+  "elapsed_seconds": 122.598,
+  "showcase_initial_neutral_hold_seconds": 11.1,
+  "receiver": {
+    "video_frames_received": 2881,
+    "audio_frames_received": 6104,
+    "final_pose_id": "neutral_resting",
+    "final_stream_active": false
+  },
+  "idle_showcase": [
+    {"pose_id": "neutral_resting", "observed_at_seconds": 0.029},
+    {"pose_id": "active_listening", "observed_at_seconds": 11.473},
+    {"pose_id": "speaking_direct", "observed_at_seconds": 21.663},
+    {"pose_id": "nod_agree", "observed_at_seconds": 33.973},
+    {"pose_id": "empathetic_head_tilt", "observed_at_seconds": 40.133},
+    {"pose_id": "light_smile", "observed_at_seconds": 50.308},
+    {"pose_id": "neutral_resting", "observed_at_seconds": 56.461}
+  ],
+  "speaking": {
+    "submitted_at_seconds": 59.076,
+    "playout_released_at_seconds": 60.093,
+    "generated_video_frames_played": 1200,
+    "sample_audio_frames_sent": 3000,
+    "rendered_pose_trace": [
+      {"pose_id": "light_smile", "first_frame": 0, "last_frame": 67, "frame_count": 68},
+      {"pose_id": "speaking_direct", "first_frame": 68, "last_frame": 308, "frame_count": 241},
+      {"pose_id": "neutral_resting", "first_frame": 309, "last_frame": 1199, "frame_count": 891}
+    ]
+  },
+  "timestamp_validation": {
+    "validated": true,
+    "first_live_av_rtp_delta_seconds": 0.005000000000002558,
+    "allowed_delta_seconds": 0.041666666666666664,
+    "audio_timestamp_anomalies": 0,
+    "declared_video_phase_correction_frames": 21,
+    "declared_video_phase_correction_seconds": 0.875
+  },
+  "files": {
+    "raw_capture": "sample_ai_human_ltx23_user_review_six_v6_webrtc_capture.mp4",
+    "labeled_review": "sample_ai_human_ltx23_user_review_six_v6_labeled_webrtc.mp4",
+    "contact_sheet": "labeled_webrtc_contact_sheet.jpg",
+    "label_source": "labels.ass",
+    "full_log": "webrtc_smoke.log"
+  },
+  "labeled_review_validation": {
+    "full_decode": "passed",
+    "width": 480,
+    "height": 832,
+    "fps": 24,
+    "video_frames": 2902,
+    "audio_sample_rate": 48000,
+    "audio_channels": 2,
+    "duration_seconds": 122.125
+  },
+  "review_status": {
+    "activation_status": "draft",
+    "test_only": true,
+    "switch_safe": false,
+    "reason": "Awaiting user visual approval of v6 motion."
+  }
+}

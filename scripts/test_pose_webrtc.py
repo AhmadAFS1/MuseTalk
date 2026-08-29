@@ -1245,6 +1245,7 @@ async def run_webrtc_smoke(
     record_output: Path | None,
     showcase_six_poses: bool,
     showcase_mvp_four_exhaustive: bool,
+    showcase_initial_neutral_seconds: float,
     showcase_timeout: int,
     max_pose_semantic_drift_ms: int,
     record_postroll_seconds: float,
@@ -1400,6 +1401,13 @@ async def run_webrtc_smoke(
                 **showcase_pose_trace[-1],
             }
         )
+        if showcase_initial_neutral_seconds > 0:
+            print(
+                "[showcase] holding initial neutral_resting for "
+                f"{showcase_initial_neutral_seconds:.3f}s",
+                flush=True,
+            )
+            await asyncio.sleep(showcase_initial_neutral_seconds)
 
         if showcase_mvp_four_exhaustive:
             # The first circuit node is already active when recording begins.
@@ -2095,6 +2103,9 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             record_output=args.record_output,
             showcase_six_poses=args.showcase_six_poses,
             showcase_mvp_four_exhaustive=args.showcase_mvp_four_exhaustive,
+            showcase_initial_neutral_seconds=(
+                args.showcase_initial_neutral_seconds
+            ),
             showcase_timeout=args.showcase_timeout,
             max_pose_semantic_drift_ms=args.max_pose_semantic_drift_ms,
             record_postroll_seconds=args.record_postroll_seconds,
@@ -2223,6 +2234,15 @@ def parse_args() -> argparse.Namespace:
         default=90,
         help="Maximum seconds to wait for the complete six-pose idle cycle.",
     )
+    parser.add_argument(
+        "--showcase-initial-neutral-seconds",
+        type=float,
+        default=0.0,
+        help=(
+            "Hold neutral_resting for this many seconds after recording starts "
+            "and before the showcase pose queue is submitted."
+        ),
+    )
     args = parser.parse_args()
     try:
         args.pose_plan = load_pose_plan_argument(args.pose_plan_json)
@@ -2249,6 +2269,7 @@ def parse_args() -> argparse.Namespace:
         or args.showcase_timeout < 1
         or args.max_pose_semantic_drift_ms < 0
         or args.record_postroll_seconds < 0
+        or args.showcase_initial_neutral_seconds < 0
     ):
         parser.error(
             "FPS, batch size, and timeout values must be positive; semantic "
