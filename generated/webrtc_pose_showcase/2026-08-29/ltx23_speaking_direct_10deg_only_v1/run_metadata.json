@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-29T22:48:54Z",
+  "status": "passed_debug_only_pending_user_review",
+  "purpose": "Isolate the remaining speaking-direct motion problem in a WebRTC/MuseTalk session with no visually different idle or reaction clips.",
+  "session_id": "Bkbaw7-kjJapoqlbI0KYmQ",
+  "pose_set_id": "sample_ai_human_ltx23_speaking_direct_10deg_only_v1",
+  "source": {
+    "asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v9_speaking_10deg_candidate/certified/speaking_direct.mp4",
+    "asset_sha256": "867d4dd0928149b018f49339579c16cd48fc8153a34adc050fb867c86a773dcc",
+    "comfyui_prompt_id": "1b28b2b7-d511-460a-8f37-d699bd5d5c29",
+    "motion_constraint": "normally 5-8 degrees, with at most one emphasis approaching 10 degrees",
+    "width": 480,
+    "height": 832,
+    "fps": 24,
+    "frame_count": 289,
+    "duration_seconds": 12.041667,
+    "canonical_handle_frames_each_end": 6,
+    "decoded_boundary_rgb_sha256": "47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33"
+  },
+  "isolation": {
+    "reaction_intent": "none",
+    "visually_distinct_assets": 1,
+    "prepared_avatar_caches": 1,
+    "protocol_pose_ids": 6,
+    "protocol_pose_mapping": "Every required pose ID aliases the same speaking_direct.mp4 and prepared avatar cache. Server transitions therefore cannot introduce a different idle, smile, nod, or tilt plate.",
+    "promoted_to_v8": false
+  },
+  "recording": {
+    "untouched_capture": "sample_ai_human_ltx23_speaking_direct_10deg_only_v1_webrtc_capture.mp4",
+    "untouched_capture_sha256": "94e70996e62dd1d941bac144012a3566f85f76d1815f02cc69a800a677b430cb",
+    "labeled_review": "sample_ai_human_ltx23_speaking_direct_10deg_only_v1_webrtc_labeled.mp4",
+    "labeled_review_sha256": "d09e060b3e143a24b7a565f70d9b27c441e6afd2409b9d48f128b107f2d1a8e8",
+    "labeled_duration_seconds": 68.438,
+    "labeled_video_frames": 1610,
+    "labeled_fps": 24,
+    "audio_sample_rate": 48000,
+    "audio_channels": 2,
+    "timeline_seconds": {
+      "speaking_stream_submitted": 2.766,
+      "live_playout_released": 5.872,
+      "live_playout_duration": 60.0,
+      "postroll_end_in_test_clock": 68.868
+    }
+  },
+  "validation": {
+    "webrtc_test_ok": true,
+    "audio_frames_received": 3419,
+    "video_frames_received": 1610,
+    "server_generated_video_frames_played": 1200,
+    "server_sample_audio_frames_sent": 3000,
+    "video_frames_dropped": 0,
+    "audio_stalls": 0,
+    "video_stalls": 0,
+    "first_live_av_absolute_delta_seconds": 0.0033333333333329662,
+    "first_live_av_allowed_delta_seconds": 0.041666666666666664,
+    "recording_timestamps_validated": true,
+    "raw_capture_full_decode_passed": true,
+    "labeled_review_full_decode_passed": true
+  },
+  "config": {
+    "path": "/workspace/MuseTalk/configs/pose_test/sample_ai_human_ltx23_speaking_direct_10deg_only_v1.json",
+    "sha256": "1ab9978734842f6d28d983bb0b5324f5fa5411cfcb27ef604b4edf9943e9bd33"
+  }
+}

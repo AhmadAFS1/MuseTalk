@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-30T19:26:49Z",
+  "status": "passed_debug_only_pending_user_review",
+  "purpose": "Evaluate a fresh direct-speaking plate with approximately 50 percent less movement distance than the v10 half-distance candidate and a hard 3-degree prompt target, without reducing gesture count or tempo.",
+  "session_id": "F5aekz5KI35QsWoHNRrawg",
+  "pose_set_id": "sample_ai_human_ltx23_speaking_direct_3deg_half_again_only_v1",
+  "source": {
+    "asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v11_speaking_3deg_candidate/certified/speaking_direct.mp4",
+    "asset_sha256": "62ac7c6c5321f1f7b4ea28fa5771223bc655f92df07d3e053eed2b4a953b53e0",
+    "comfyui_prompt_id": "f0f1ea88-2574-4b14-aef0-91601b0e38cd",
+    "comparison_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v10_speaking_half_distance_candidate/certified/speaking_direct.mp4",
+    "amplitude_instruction": "Reduce the spatial travel of every head, neck, shoulder, and upper-chest movement by approximately 50 percent relative to v10 while preserving gesture count and normal timing.",
+    "motion_constraint": "Prompt target: hard 3-degree cone; typical head travel requested near 1-2 degrees.",
+    "geometric_validation": "Not available. LTX accepts natural-language motion guidance but does not expose a measured or enforced 3D head-angle constraint, so the degree value is not certified.",
+    "seed_pair": [
+      1331523,
+      1331539
+    ],
+    "seed_pair_reused_from_v10": true,
+    "width": 480,
+    "height": 832,
+    "fps": 24,
+    "frame_count": 289,
+    "duration_seconds": 12.041667,
+    "canonical_handle_frames_each_end": 6,
+    "all_12_boundary_frames_identical": true,
+    "decoded_boundary_rgb_sha256": "47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33",
+    "pose_bank_validation_passed": true
+  },
+  "comparison": {
+    "side_by_side": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v11_speaking_3deg_candidate/review/previous_5deg_vs_new_3deg.mp4",
+    "side_by_side_sha256": "c3c135d5565b6368d315421c02d2e25aa2a493405f3faae01316742e47c8771e",
+    "contact_sheet": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v11_speaking_3deg_candidate/review/contact_sheet.jpg",
+    "visual_check": "The generated take is packaged for normal-playback review. Sampled frames still show visibly changing orientation, so no claim is made that the natural-language 3-degree instruction was geometrically obeyed."
+  },
+  "isolation": {
+    "reaction_intent": "none",
+    "visually_distinct_assets": 1,
+    "prepared_avatar_caches": 1,
+    "protocol_pose_ids": 6,
+    "protocol_pose_mapping": "Every required pose ID aliases the same new speaking_direct.mp4 and prepared avatar cache.",
+    "promoted_to_v8": false
+  },
+  "recording": {
+    "untouched_capture": "sample_ai_human_ltx23_speaking_direct_3deg_half_again_only_v1_webrtc_capture.mp4",
+    "untouched_capture_sha256": "8a5d895d87747c23f34df3ea3241e11b3267a612ff313c492d5386869d921f29",
+    "labeled_review": "sample_ai_human_ltx23_speaking_direct_3deg_half_again_only_v1_webrtc_labeled.mp4",
+    "labeled_review_sha256": "78cde2dded4f6e2049715fd5c76343ee4c8534447ee1cb3f840ccc68bcc5320d",
+    "untouched_duration_seconds": 67.69,
+    "untouched_video_frames": 1592,
+    "labeled_duration_seconds": 67.557,
+    "labeled_video_frames": 1592,
+    "labeled_fps": 24,
+    "audio_sample_rate": 48000,
+    "audio_channels": 2,
+    "timeline_seconds": {
+      "speaking_stream_submitted": 2.744,
+      "live_playout_released": 5.81,
+      "live_playout_duration": 60,
+      "postroll_complete": 67.911
+    }
+  },
+  "validation": {
+    "webrtc_test_ok": true,
+    "audio_frames_received": 3376,
+    "video_frames_received": 1592,
+    "server_generated_video_frames_played": 1200,
+    "server_sample_audio_frames_sent": 3000,
+    "video_frames_dropped": 0,
+    "audio_stalls": 0,
+    "video_stalls": 0,
+    "first_live_av_absolute_delta_seconds": 0.006666666666666821,
+    "first_live_av_allowed_delta_seconds": 0.041666666666666664,
+    "declared_audio_phase_corrections": 0,
+    "declared_video_phase_corrections": 0,
+    "audio_source_timestamp_anomalies": 0,
+    "video_source_timestamp_anomalies": 0,
+    "recording_timestamps_validated": true,
+    "raw_capture_full_decode_passed": true,
+    "labeled_review_full_decode_passed": true
+  },
+  "config": {
+    "path": "/workspace/MuseTalk/configs/pose_test/sample_ai_human_ltx23_speaking_direct_3deg_half_again_only_v1.json",
+    "sha256": "2118da53fa14f2ae0d77d9aa76eb34ffade995d228e48e870aad104d7c8ecf98"
+  }
+}
