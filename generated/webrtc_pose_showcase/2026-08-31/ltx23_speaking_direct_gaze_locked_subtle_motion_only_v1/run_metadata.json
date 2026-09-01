@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-31T22:50:53Z",
+  "status": "passed_debug_only_pending_user_review",
+  "purpose": "Evaluate V14, which preserves V13's straight camera gaze while adding subtle natural speaking-head motion without returning to V12's excessive excursion.",
+  "session_id": "knnI6gWJK9mwd_Y0p4qFdQ",
+  "pose_set_id": "sample_ai_human_ltx23_speaking_direct_gaze_locked_subtle_motion_only_v1",
+  "source": {
+    "asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v14_speaking_gaze_locked_subtle_motion_candidate/certified/speaking_direct.mp4",
+    "asset_sha256": "20f98455436b4f6f77525edc89a2c89495b67c15b710cd1332ec0e783e6670e0",
+    "comfyui_prompt_id": "694cc583-4993-4664-8477-3046376964d7",
+    "prompt_pack": "/workspace/LTX-2.3/musetalk_pose_banks/user_review_v14_speaking_gaze_locked_subtle_motion_prompt_pack.json",
+    "prompt_pack_sha256": "124681e37ad4e3411631c2aa0f87a5503ea95659e11f6958cfc98ba598eba76f",
+    "seed_pair": [1531523, 1531539],
+    "seed_pair_reused_from_v13": true,
+    "segment_count": 1,
+    "degree_constraint_used": false,
+    "control_strategy": "One uninterrupted segment retains direct pupil-to-lens alignment. Two slow, unequal sagittal micro-adjustments are allowed: shallow chin buoyancy and a smaller forward/back settling change. Yaw, roll, lateral translation, shoulders, torso, and gaze direction remain constrained.",
+    "width": 480,
+    "height": 832,
+    "fps": 24,
+    "frame_count": 289,
+    "duration_seconds": 12.041667,
+    "canonical_handle_frames_each_end": 6,
+    "all_12_boundary_frames_identical": true,
+    "decoded_boundary_rgb_sha256": "47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33",
+    "pose_bank_validation_passed": true,
+    "validation_report": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v14_speaking_gaze_locked_subtle_motion_candidate/validation_report.json",
+    "validation_report_sha256": "ac04a00d76790a1c85814bb1721c8e51f678c4b0d9d7cffd0e1639bfb9c40e08"
+  },
+  "comparison": {
+    "previous_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v13_speaking_gaze_locked_candidate/certified/speaking_direct.mp4",
+    "side_by_side": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v14_speaking_gaze_locked_subtle_motion_candidate/review/v13_vs_v14.mp4",
+    "side_by_side_sha256": "f2707450ae06b8b9ccdf4dd8dcdfad4bbee573ed8b921c5119c7fa46ac1d3621",
+    "landmark_analysis": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v14_speaking_gaze_locked_subtle_motion_candidate/review/v12_v13_v14_landmark_analysis.json",
+    "landmark_analysis_sha256": "5e9444cbfe14cacbca335213fd07d2fa856788e5ccba15e653ae93add2cf8b64",
+    "two_fps_gaze_audit": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v14_speaking_gaze_locked_subtle_motion_candidate/review/v14_two_frames_per_second.png",
+    "two_fps_gaze_audit_sha256": "954b74e8c17deeaf09926250ab4145f93f506ee077e42ffb0dca34900c58461c",
+    "v14_vs_v13": {
+      "central_translation_p95_change_percent": 71.3,
+      "nose_translation_p95_change_percent": 83.9,
+      "pitch_proxy_p95_change_percent": 61.9,
+      "frame_delta_luma_p95_change_percent": -17.4
+    },
+    "v14_vs_v12": {
+      "central_translation_p95_change_percent": -54.7,
+      "nose_translation_p95_change_percent": -46.4,
+      "roll_p95_change_percent": -40.9,
+      "yaw_proxy_p95_change_percent": -86.3
+    },
+    "v14_absolute": {
+      "central_translation_p95_px": 11.7755,
+      "yaw_proxy_p95_px": 1.4746,
+      "roll_p95_degrees": 0.7022,
+      "pitch_proxy_p95_px": 7.6954,
+      "straight_camera_gaze_visual_audit": "passed",
+      "off_axis_gaze_samples_detected": 0
+    },
+    "measurement_limit": "DWpose values are 2D screen-space measurements. The yaw and pitch values are pixel proxies, not recovered 3D degrees. Pupil direction was visually audited because DWpose does not expose iris landmarks."
+  },
+  "isolation": {
+    "reaction_intent": "none",
+    "visually_distinct_assets": 1,
+    "prepared_avatar_caches": 1,
+    "protocol_pose_ids": 6,
+    "protocol_pose_mapping": "Every required pose ID aliases the same V14 speaking_direct.mp4 and prepared avatar cache.",
+    "promoted_to_v8": false
+  },
+  "recording": {
+    "untouched_capture": "sample_ai_human_ltx23_speaking_direct_gaze_locked_subtle_motion_only_v1_webrtc_capture.mp4",
+    "untouched_capture_sha256": "8f50023712a5947d1e7d024befde05aeb44be9d32458157d25feb6d365b9a396",
+    "labeled_review": "sample_ai_human_ltx23_speaking_direct_gaze_locked_subtle_motion_only_v1_webrtc_labeled.mp4",
+    "labeled_review_sha256": "9cb8ebb0cadc1213c901896755b6662dcf8b4b6cc0a9ba25089732d2f8247077",
+    "contact_sheet": "contact_sheet.jpg",
+    "contact_sheet_sha256": "9689cf11a4bd43de8df461971be7ea4c3ceb8d11a2bde07c835e1dca6e44bdc0",
+    "untouched_duration_seconds": 69.091,
+    "untouched_video_frames": 1620,
+    "labeled_duration_seconds": 68.966,
+    "labeled_video_frames": 1621,
+    "labeled_fps": 24,
+    "audio_sample_rate": 48000,
+    "audio_channels": 2,
+    "timeline_seconds": {
+      "speaking_stream_submitted": 2.736,
+      "live_playout_released": 5.782,
+      "live_playout_duration": 60.0,
+      "postroll_complete": 69.288
+    }
+  },
+  "validation": {
+    "webrtc_test_ok": true,
+    "audio_frames_received": 3446,
+    "video_frames_received": 1620,
+    "server_generated_video_frames_played": 1200,
+    "server_sample_audio_frames_sent": 3000,
+    "video_frames_dropped": 0,
+    "queue_underruns": 0,
+    "audio_stalls": 0,
+    "video_stalls": 0,
+    "first_live_av_absolute_delta_seconds": 0.015,
+    "first_live_av_allowed_delta_seconds": 0.041666666666666664,
+    "declared_audio_phase_corrections": 0,
+    "declared_video_phase_corrections": 1,
+    "declared_video_phase_correction_frames": 1,
+    "audio_source_timestamp_anomalies": 0,
+    "video_source_timestamp_anomalies": 1,
+    "maximum_video_timestamp_error_seconds": 0.04166666666666637,
+    "recording_timestamps_validated": true,
+    "raw_capture_full_decode_passed": true,
+    "labeled_review_full_decode_passed": true,
+    "contact_sheet_visual_gaze_check": "passed"
+  },
+  "config": {
+    "path": "/workspace/MuseTalk/configs/pose_test/sample_ai_human_ltx23_speaking_direct_gaze_locked_subtle_motion_only_v1.json",
+    "sha256": "2acdd830a6a2b2c0ffb5241f6f30dff992170ad50c3592756d7802e2c4979824"
+  }
+}
