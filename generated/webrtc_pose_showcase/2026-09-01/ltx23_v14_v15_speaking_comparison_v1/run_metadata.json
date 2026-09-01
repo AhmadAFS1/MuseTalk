@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-01T03:59:44Z",
+  "status": "passed_debug_comparison",
+  "purpose": "Compare V14 and V15 as talking sources inside one continuous MuseTalk WebRTC session.",
+  "session_id": "ucOGLr1b2ckmc75P4_iE_w",
+  "pose_set_id": "sample_ai_human_ltx23_v14_v15_speaking_comparison_v1",
+  "sources": {
+    "v14": {
+      "asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v14_speaking_gaze_locked_subtle_motion_candidate/certified/speaking_direct.mp4",
+      "sha256": "20f98455436b4f6f77525edc89a2c89495b67c15b710cd1332ec0e783e6670e0"
+    },
+    "v15": {
+      "asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v15_speaking_reference_paced_candidate/certified/speaking_direct.mp4",
+      "sha256": "c8ce2774f916a7466e7ff28fb25583ab617bc01f744069c90e997dbf45605db0"
+    },
+    "shared_decoded_boundary_rgb_sha256": "47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33"
+  },
+  "recording_timeline_seconds": {
+    "speaking_stream_submitted": 2.734,
+    "live_playout_released": 3.751,
+    "v14_opening_start": 3.751,
+    "v15_start": 27.751,
+    "v14_closing_start": 51.851,
+    "live_playout_end": 63.751,
+    "postroll_complete": 66.282
+  },
+  "compiled_pose_plan": {
+    "generation_fps": 20,
+    "total_generation_frames": 1200,
+    "semantic_timing_valid": true,
+    "max_abs_semantic_drift_frames": 2,
+    "max_abs_semantic_drift_seconds": 0.1,
+    "segments": [
+      {
+        "label": "V14",
+        "pose_id": "speaking_direct",
+        "start_generation_frame": 0,
+        "end_generation_frame": 480,
+        "start_seconds": 0.0,
+        "end_seconds": 24.0,
+        "switch_strategy": "initial_phase_aligned",
+        "crossfade_frames": 0
+      },
+      {
+        "label": "V15",
+        "pose_id": "empathetic_head_tilt",
+        "start_generation_frame": 480,
+        "end_generation_frame": 962,
+        "start_seconds": 24.0,
+        "end_seconds": 48.1,
+        "switch_strategy": "requested_time_crossfade",
+        "crossfade_frames": 4
+      },
+      {
+        "label": "V14",
+        "pose_id": "speaking_direct",
+        "start_generation_frame": 962,
+        "end_generation_frame": 1200,
+        "start_seconds": 48.1,
+        "end_seconds": 60.0,
+        "switch_strategy": "nearest_safe_boundary",
+        "crossfade_frames": 0,
+        "semantic_drift_seconds": 0.1
+      }
+    ]
+  },
+  "validation": {
+    "webrtc_test_ok": true,
+    "rendered_trace_matches_compiled": true,
+    "server_generated_video_frames_played": 1200,
+    "server_sample_audio_frames_sent": 3000,
+    "audio_frames_received": 3306,
+    "video_frames_received": 1556,
+    "video_frames_dropped": 0,
+    "queue_underruns": 0,
+    "strict_audio_stalls": 0,
+    "strict_video_stalls": 0,
+    "first_live_av_absolute_delta_seconds": 0.013333333333333641,
+    "first_live_av_allowed_delta_seconds": 0.041666666666666664,
+    "recording_timestamps_validated": true
+  },
+  "recording": {
+    "untouched_capture": "sample_ai_human_ltx23_v14_v15_speaking_comparison_v1_webrtc_capture.mp4",
+    "untouched_capture_sha256": "24e187c8560415c0bee299500833621590af24734d2f4c5189a95c3a2eb761e3",
+    "untouched_duration_seconds": 66.293,
+    "untouched_video_frames": 1556,
+    "labeled_review": "sample_ai_human_ltx23_v14_v15_speaking_comparison_v1_webrtc_labeled.mp4",
+    "labeled_review_sha256": "09880573bd3816884adc881d9ed6b16f1b8fa6146f81dfadfe3f4e4ae1455962",
+    "labeled_duration_seconds": 66.173,
+    "labeled_video_frames": 1946,
+    "contact_sheet": "contact_sheet.jpg",
+    "contact_sheet_sha256": "f7a5b129a25704e06a4531b9a16d7184a6458e7550d207fced3d5afb81453d17",
+    "untouched_full_decode_passed": true,
+    "labeled_full_decode_passed": true,
+    "label_visual_check_passed": true
+  },
+  "config": {
+    "path": "/workspace/MuseTalk/configs/pose_test/sample_ai_human_ltx23_v14_v15_speaking_comparison_v1.json",
+    "sha256": "20180650b5d7579dfe6c4e2f0efdd1d9444f2ddcaab15f55be11207be76fe5b1"
+  },
+  "pose_plan": {
+    "path": "/workspace/MuseTalk/configs/pose_test/sample_ai_human_ltx23_v14_v15_speaking_comparison_plan_v1.json",
+    "sha256": "384946c23ae15f1fc7cd6308b358972dc0bdb1b1921a48dfbe40df3eae21e4c5"
+  }
+}
