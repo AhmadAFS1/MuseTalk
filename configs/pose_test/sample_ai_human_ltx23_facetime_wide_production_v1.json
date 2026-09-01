@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "pose_set_id": "sample_ai_human_ltx23_facetime_wide_production_v1",
+  "activation_status": "inactive_retained_alternative",
+  "switch_safe": true,
+  "test_only": false,
+  "default_pose_id": "neutral_resting",
+  "switch_mode": "next_boundary",
+  "asset_bundle": "assets/ltx23_pose_banks/sample_ai_human_facetime_wide_production_v1",
+  "poses": {
+    "neutral_resting": {
+      "avatar_id": "sample_ai_human_ltx23_wide_prod_v1_idle_410600a7",
+      "role": "idle",
+      "asset_file": "idle_active_listening.mp4",
+      "duration_seconds": 4.541667,
+      "cycle_seconds": 4.541667,
+      "fps": 24,
+      "frame_count": 109
+    },
+    "active_listening": {
+      "avatar_id": "sample_ai_human_ltx23_wide_prod_v1_idle_410600a7",
+      "role": "listening",
+      "asset_file": "idle_active_listening.mp4",
+      "duration_seconds": 4.541667,
+      "cycle_seconds": 4.541667,
+      "fps": 24,
+      "frame_count": 109
+    },
+    "speaking_direct": {
+      "avatar_id": "sample_ai_human_ltx23_wide_prod_v1_direct_v14_62f3169f",
+      "role": "talking",
+      "asset_file": "speaking_direct_v14_subtle.mp4",
+      "duration_seconds": 12.041667,
+      "cycle_seconds": 12.041667,
+      "fps": 24,
+      "frame_count": 289,
+      "variant_policy": "deterministic_boundary_rotation",
+      "variants": [
+        {
+          "variant_id": "v14_subtle",
+          "avatar_id": "sample_ai_human_ltx23_wide_prod_v1_direct_v14_62f3169f",
+          "asset_file": "speaking_direct_v14_subtle.mp4"
+        },
+        {
+          "variant_id": "v15_reference_paced",
+          "avatar_id": "sample_ai_human_ltx23_wide_prod_v1_direct_v15_69bee20f",
+          "asset_file": "speaking_direct_v15_reference_paced.mp4"
+        }
+      ]
+    },
+    "nod_agree": {
+      "avatar_id": "sample_ai_human_ltx23_wide_prod_v1_nod_5d8e8ba7",
+      "role": "reaction",
+      "asset_file": "nod_agree.mp4",
+      "duration_seconds": 3.041667,
+      "cycle_seconds": 3.041667,
+      "fps": 24,
+      "frame_count": 73
+    },
+    "empathetic_head_tilt": {
+      "avatar_id": "sample_ai_human_ltx23_wide_prod_v1_empathy_d61d346b",
+      "role": "reaction",
+      "asset_file": "empathetic_head_tilt.mp4",
+      "duration_seconds": 6.083333,
+      "cycle_seconds": 6.083333,
+      "fps": 24,
+      "frame_count": 146
+    },
+    "light_smile": {
+      "avatar_id": "sample_ai_human_ltx23_wide_prod_v1_smile_f89223d1",
+      "role": "reaction",
+      "asset_file": "light_smile.mp4",
+      "duration_seconds": 6.041667,
+      "cycle_seconds": 6.041667,
+      "fps": 24,
+      "frame_count": 145
+    }
+  }
+}

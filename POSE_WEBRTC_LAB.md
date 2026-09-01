@@ -1,21 +1,23 @@
 # MuseTalk six-pose WebRTC lab
 
-This lab runs directly on a MuseTalk worker. It does not call Segmind, Kling,
-Gemini TTS, or any other provider. It reuses the six existing Indian tutor MP4s
-and an existing WAV/MP3 file.
+This lab runs directly on a MuseTalk worker. It does not call LTX, Segmind,
+Kling, Gemini TTS, or any other generation provider. Its default is the local
+close-up LTX 2.3 production bank and an existing WAV/MP3 file.
 
-The current motion masters are deliberately marked `activation_status: draft`
-and `switch_safe: false`. The lab is suitable for visual testing, but a good
-run does not promote these files to production or prove invisible
-clip-to-clip transitions.
+The default bank is `switch_safe: true`: all six unique physical clips share
+the same six-frame decoded boundary at both ends. It is the local migration
+default, while final visual approval remains a separate human review step.
 
 ## Files
 
 - `templates/webrtc_pose_lab.py` — self-contained browser UI.
 - `scripts/test_pose_webrtc.py` — six-cache preparation and headless WebRTC
   smoke test.
-- `configs/pose_test/indian_tutor_essential_six_v1.json` — stable avatar IDs,
-  local filenames, and media timing.
+- `configs/pose_test/sample_ai_human_ltx23_facetime_closeup_production_v1.json` —
+  approved prepared avatar IDs, local filenames, direct-speaking variants, and
+  media timing.
+- `assets/ltx23_pose_banks/sample_ai_human_facetime_closeup_production_v1/` —
+  immutable source image, certified MP4s, hashes, and validation report.
 
 The exact pose IDs are:
 
@@ -69,27 +71,15 @@ The page expects the pose-protocol worker implementation to expose:
 - pose metadata on `POST /webrtc/sessions/{id}/stream`;
 - pose state on `GET /webrtc/sessions/{id}/status`.
 
-## Put the six videos on the worker
+## Local assets
 
-From the Mac, while the worker is reachable:
+The six unique physical MP4s are already in the repository-local asset bank.
+Neutral and active listening share one cache. Direct speech has V14 and V15
+physical variants under the single semantic `speaking_direct` pose, so the
+preparation command creates six physical caches from six files.
 
-```bash
-rsync -av -e 'ssh -p 60523' \
-  /Users/ahmadsmacair/code/lingua/lingua/backend/assets/avatar_motion/segmind_indian_essential_six_v1/ \
-  root@50.40.184.100:/workspace/MuseTalk/generated/downloads/indian_tutor_essential_six_v1/
-```
-
-Only the six top-level pose MP4s are required by the preparation script.
-
-For the known successful sample TTS, either copy it to the worker:
-
-```bash
-scp -P 60523 \
-  /Users/ahmadsmacair/code/lingua/lingua/backend/tmp/gemini_tts_smoke/en/en_english_aoede.wav \
-  root@50.40.184.100:/workspace/MuseTalk/generated/downloads/indian_tutor_essential_six_v1/en_english_aoede.wav
-```
-
-or use an existing audio file already in `data/audio`.
+Use an existing sample audio file in `data/audio`, or pass any local WAV/MP3
+with `--audio-file`.
 
 ## Prepare and warm all six stable avatar IDs
 
@@ -99,14 +89,14 @@ Run this inside the MuseTalk virtual environment on the worker:
 cd /workspace/MuseTalk
 python scripts/test_pose_webrtc.py \
   --base-url http://127.0.0.1:8000 \
-  --asset-dir /workspace/MuseTalk/generated/downloads/indian_tutor_essential_six_v1 \
   --prepare-missing \
   --prepare-only
 ```
 
-`--prepare-missing` uploads only absent stable IDs. Existing prepared caches
-are warmed and reused. Do not use `--force-recreate` unless deliberately
-replacing all six caches.
+The manifest and asset-directory arguments default to the close-up production
+bank. `--prepare-missing` uploads only absent IDs; existing byte-verified
+prepared caches are warmed and reused. Do not use `--force-recreate` during
+normal rollout because the prepared directories are part of the rollback path.
 
 ## Run the headless end-to-end session
 
@@ -118,8 +108,7 @@ the session:
 ```bash
 python scripts/test_pose_webrtc.py \
   --base-url http://127.0.0.1:8000 \
-  --asset-dir /workspace/MuseTalk/generated/downloads/indian_tutor_essential_six_v1 \
-  --audio-file /workspace/MuseTalk/generated/downloads/indian_tutor_essential_six_v1/en_english_aoede.wav \
+  --audio-file /workspace/MuseTalk/data/audio/eng.wav \
   --reaction-intent warmth
 ```
 
@@ -131,7 +120,7 @@ A passing result reports nonzero `video_frames_received` and
 Set the bundled sample path before server startup if desired:
 
 ```bash
-export POSE_LAB_SAMPLE_AUDIO=/workspace/MuseTalk/generated/downloads/indian_tutor_essential_six_v1/en_english_aoede.wav
+export POSE_LAB_SAMPLE_AUDIO=/workspace/MuseTalk/data/audio/eng.wav
 ```
 
 Open:

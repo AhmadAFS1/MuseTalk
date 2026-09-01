@@ -7,6 +7,9 @@ to the worker so it can be used on a GPU host without the Lingua broker.
 from __future__ import annotations
 
 import json
+from pathlib import Path
+
+from scripts.pose_protocol import normalize_pose_set
 
 
 POSE_IDS = (
@@ -18,62 +21,15 @@ POSE_IDS = (
     "light_smile",
 )
 
-DEFAULT_POSE_SET = {
-    "version": 1,
-    "pose_set_id": "indian_tutor_essential_six_v1",
-    "default_pose_id": "neutral_resting",
-    "switch_mode": "next_boundary",
-    "poses": {
-        "neutral_resting": {
-            "avatar_id": "indian_tutor_essential_six_v1_neutral_resting",
-            "role": "idle",
-            "duration_seconds": 10,
-            "cycle_seconds": 10,
-            "fps": 30,
-            "frame_count": 300,
-        },
-        "active_listening": {
-            "avatar_id": "indian_tutor_essential_six_v1_active_listening",
-            "role": "listening",
-            "duration_seconds": 8,
-            "cycle_seconds": 8,
-            "fps": 30,
-            "frame_count": 240,
-        },
-        "speaking_direct": {
-            "avatar_id": "indian_tutor_essential_six_v1_speaking_direct",
-            "role": "talking",
-            "duration_seconds": 10,
-            "cycle_seconds": 10,
-            "fps": 30,
-            "frame_count": 300,
-        },
-        "nod_agree": {
-            "avatar_id": "indian_tutor_essential_six_v1_nod_agree",
-            "role": "reaction",
-            "duration_seconds": 2.933333,
-            "cycle_seconds": 2.933333,
-            "fps": 30,
-            "frame_count": 88,
-        },
-        "empathetic_head_tilt": {
-            "avatar_id": "indian_tutor_essential_six_v1_empathetic_head_tilt",
-            "role": "reaction",
-            "duration_seconds": 4.8,
-            "cycle_seconds": 4.8,
-            "fps": 30,
-            "frame_count": 144,
-        },
-        "light_smile": {
-            "avatar_id": "indian_tutor_essential_six_v1_light_smile",
-            "role": "reaction",
-            "duration_seconds": 4,
-            "cycle_seconds": 4,
-            "fps": 30,
-            "frame_count": 120,
-        },
-    },
-}
+DEFAULT_MANIFEST = (
+    Path(__file__).resolve().parent.parent
+    / "configs"
+    / "pose_test"
+    / "sample_ai_human_ltx23_facetime_closeup_production_v1.json"
+)
+DEFAULT_POSE_SET = normalize_pose_set(
+    json.loads(DEFAULT_MANIFEST.read_text())
+)
 
 
 def _validated_pose_set(pose_set: dict | None) -> dict:

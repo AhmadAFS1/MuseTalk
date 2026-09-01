@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "pose_set_id": "sample_ai_human_ltx23_facetime_wide_production_v1",
+  "created_at": "2026-09-01T00:00:00Z",
+  "status": "live_validated_inactive_retained_alternative",
+  "purpose": "Full-shoulder LTX 2.3 replacement bank for MuseTalk FaceTime sessions, preserving the motion intent and prompt lineage of the accepted close-framed bank.",
+  "source_portrait": {
+    "file": "source/sample_ai_human_facetime_wide_v1.png",
+    "sha256": "de878766585fdace1e8d2d26eda3c02f1fdeb1ea3eae227d53017543a598e7de",
+    "generation_source": "/workspace/LTX-2.3/inputs/musetalk-avatar-samples/sample_ai_human_facetime_wide_v1.png"
+  },
+  "delivery_contract": {
+    "width": 480,
+    "height": 832,
+    "fps": 24,
+    "pixel_format": "yuv420p",
+    "audio_streams": 0,
+    "canonical_handle_frames_each_end": 6,
+    "blend_frames_each_end": 6,
+    "shared_decoded_boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd"
+  },
+  "logical_aliases": {
+    "neutral_resting": "idle_active_listening",
+    "active_listening": "idle_active_listening"
+  },
+  "speaking_variant_policy": {
+    "semantic_pose_id": "speaking_direct",
+    "policy": "deterministic_boundary_rotation",
+    "fallback_variant": "v14_subtle",
+    "variants": ["v14_subtle", "v15_reference_paced"]
+  },
+  "poses": [
+    {
+      "name": "idle_active_listening",
+      "file": "certified/idle_active_listening.mp4",
+      "frame_count": 109,
+      "duration_seconds": 4.541667,
+      "video_sha256": "410600a708850a89f4cc21649b47c30b6b443a8c8212b41c14657290dac15ddc",
+      "decoded_boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+      "generation_mode": "preserved_certified_asset_byte_for_byte",
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_active_listening_v6_restrained_remaster/certified/active_listening.mp4",
+      "prompt_profile": "/workspace/LTX-2.3/musetalk_pose_banks/user_review_v6_prompt_pack.json#poses.active_listening",
+      "derivation": "The exact accepted V6 listening prompt was rendered against the wider portrait. Because two stochastic full renders exceeded the specified two-to-three-degree envelope, only the restrained opening and settled return regions were retained and recertified."
+    },
+    {
+      "name": "speaking_direct_v14_subtle",
+      "file": "certified/speaking_direct_v14_subtle.mp4",
+      "frame_count": 289,
+      "duration_seconds": 12.041667,
+      "video_sha256": "62f3169fe703de59b1ff5f8f58808cf17fb4c63dc8f3b536c97e7995a946a476",
+      "decoded_boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+      "generation_mode": "preserved_certified_asset_byte_for_byte",
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_v14_speaking_candidate/certified/speaking_direct.mp4",
+      "prompt_profile": "/workspace/LTX-2.3/musetalk_pose_banks/user_review_v14_speaking_gaze_locked_subtle_motion_prompt_pack.json#poses.speaking_direct"
+    },
+    {
+      "name": "speaking_direct_v15_reference_paced",
+      "file": "certified/speaking_direct_v15_reference_paced.mp4",
+      "frame_count": 289,
+      "duration_seconds": 12.041667,
+      "video_sha256": "69bee20f79f56ee4c0b19aaad8b736cac8cd115f05c439e3e338fe0f16d7f367",
+      "decoded_boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+      "generation_mode": "preserved_certified_asset_byte_for_byte",
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_v15_speaking_candidate/certified/speaking_direct.mp4",
+      "prompt_profile": "/workspace/LTX-2.3/musetalk_pose_banks/user_review_v15_speaking_reference_paced_prompt_pack.json#poses.speaking_direct"
+    },
+    {
+      "name": "nod_agree",
+      "file": "certified/nod_agree.mp4",
+      "frame_count": 73,
+      "duration_seconds": 3.041667,
+      "video_sha256": "5d8e8ba7e9fb9971c1962f67cf25c651dd727735f3f0a0a5b7672998384147cb",
+      "decoded_boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+      "generation_mode": "preserved_certified_asset_byte_for_byte",
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_v5_motion_repair_candidates/certified/nod_agree.mp4",
+      "prompt_profile": "/workspace/LTX-2.3/musetalk_pose_banks/arby_kling_reference_v5_prompt_pack.json#poses.nod_agree",
+      "derivation": "The earlier accepted nod was a role promotion rather than a fresh text generation, so this wider replacement uses the V5 reverse-engineered modest yes-nod prompt and retains only its compact certified cycle."
+    },
+    {
+      "name": "empathetic_head_tilt",
+      "file": "certified/empathetic_head_tilt.mp4",
+      "frame_count": 146,
+      "duration_seconds": 6.083333,
+      "video_sha256": "d61d346bc61cb29128894432c1c17e49291bb016495ad4d67ffbc7cadc58adb9",
+      "decoded_boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+      "generation_mode": "preserved_certified_asset_byte_for_byte",
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_empathetic_from_v5_listening_motion_remaster_v2/certified/empathetic_head_tilt.mp4",
+      "prompt_profile": "/workspace/LTX-2.3/musetalk_pose_banks/arby_kling_reference_v5_prompt_pack.json#poses.active_listening",
+      "derivation": "The direct empathy rerender became an off-camera yaw and remains preserved as a rejected candidate. Matching the approved V6 method, clean near-frontal LTX frames 0, 24, 48, 60, 66, 68, 69, and 70 were motion-interpolated into one slow small diagonal out-and-back response, then recertified."
+    },
+    {
+      "name": "light_smile",
+      "file": "certified/light_smile.mp4",
+      "frame_count": 145,
+      "duration_seconds": 6.041667,
+      "video_sha256": "f89223d14fe66c980c53e2b302ff071b44c1353bb510c704d4a9a0512c5c760b",
+      "decoded_boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+      "generation_mode": "preserved_certified_asset_byte_for_byte",
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_user_review_v8_smile_candidate/certified/light_smile.mp4",
+      "prompt_profile": "/workspace/LTX-2.3/musetalk_pose_banks/user_review_v8_prompt_pack.json#poses.light_smile"
+    }
+  ],
+  "retained_rejected_or_alternate_assets": [
+    "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_user_review_v6_candidates",
+    "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_active_listening_retake_seed10k",
+    "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_v5_active_listening_alternative",
+    "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_v5_motion_repair_candidates",
+    "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_empathetic_restrained_remaster",
+    "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_empathetic_restrained_open_eye_remaster",
+    "retained_candidates/idle_active_listening_v5_intent_candidate.mp4"
+  ]
+}

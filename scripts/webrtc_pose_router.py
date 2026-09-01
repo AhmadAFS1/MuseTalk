@@ -51,6 +51,11 @@ class LivePoseSnapshot:
     source_frame_offset: int = 0
     switch_strategy: str = "continuous"
     crossfade_frames: int = 0
+    render_key: Optional[str] = None
+
+    @property
+    def effective_render_key(self) -> str:
+        return self.render_key or self.pose_id
 
     @property
     def uses_prepared_background(self) -> bool:
@@ -67,6 +72,7 @@ class LivePoseQueueSegment:
     requested_start_generation_frame: int = 0
     switch_strategy: str = "initial"
     crossfade_frames: int = 0
+    render_key: Optional[str] = None
 
 
 class _LoopingVideoDecoder:
@@ -147,6 +153,7 @@ class LivePoseVideoRouter:
         *,
         prepared_pose_id: str = "default",
         prepared_pose_ids: Optional[set[str]] = None,
+        pose_variant_render_keys: Optional[Dict[str, list[str]]] = None,
         initial_pose_id: str = "default",
         decoder_factory: Callable[[str], object] = _LoopingVideoDecoder,
         max_semantic_drift_seconds: float = DEFAULT_MAX_SEMANTIC_DRIFT_SECONDS,
@@ -165,6 +172,26 @@ class LivePoseVideoRouter:
             for pose_id in (prepared_pose_ids or set())
             if str(pose_id).strip()
         )
+        self._pose_variant_render_keys = {
+            str(pose_id).strip().lower(): [
+                str(render_key).strip().lower()
+                for render_key in render_keys
+                if str(render_key).strip()
+            ]
+            for pose_id, render_keys in (pose_variant_render_keys or {}).items()
+            if str(pose_id).strip()
+        }
+        self._selected_variant_render_keys: Dict[str, str] = {
+            pose_id: render_keys[0]
+            for pose_id, render_keys in self._pose_variant_render_keys.items()
+            if render_keys
+        }
+        self._variant_context_key = ""
+        self._variant_context_assignments: Dict[str, Dict[str, str]] = {}
+        self._variant_rotation_positions: Dict[str, int] = {
+            pose_id: -1
+            for pose_id in self._pose_variant_render_keys
+        }
         self.active_pose_id = self.prepared_pose_id
         self._version = 0
         self._origin_generation_frame = 0
@@ -189,6 +216,40 @@ class LivePoseVideoRouter:
         for pose_id, video_path in pose_video_paths.items():
             self.register_pose(pose_id, video_path)
         self.switch_pose(initial_pose_id)
+
+    def set_variant_context(self, context_key: str) -> dict[str, str]:
+        """Select physical variants deterministically for one assistant turn."""
+
+        normalized_context = str(context_key or "").strip()
+        with self._lock:
+            self._variant_context_key = normalized_context
+            if normalized_context in self._variant_context_assignments:
+                selected = dict(
+                    self._variant_context_assignments[normalized_context]
+                )
+                self._selected_variant_render_keys = selected
+                return selected
+            selected: Dict[str, str] = {}
+            for pose_id, render_keys in self._pose_variant_render_keys.items():
+                if not render_keys:
+                    continue
+                if normalized_context:
+                    index = (
+                        self._variant_rotation_positions.get(pose_id, -1) + 1
+                    ) % len(render_keys)
+                    self._variant_rotation_positions[pose_id] = index
+                else:
+                    index = 0
+                selected[pose_id] = render_keys[index]
+            self._selected_variant_render_keys = selected
+            if normalized_context:
+                self._variant_context_assignments[normalized_context] = dict(
+                    selected
+                )
+            return dict(selected)
+
+    def _render_key_for_pose_locked(self, pose_id: str) -> str:
+        return self._selected_variant_render_keys.get(pose_id, pose_id)
 
     def register_pose(self, pose_id: str, video_path: str) -> None:
         normalized_pose_id = str(pose_id or "").strip().lower()
@@ -239,7 +300,8 @@ class LivePoseVideoRouter:
                 "live_pose_id": self.active_pose_id,
                 "live_pose_version": self._version,
                 "uses_prepared_background": (
-                    self.active_pose_id in self._prepared_pose_ids
+                    self._render_key_for_pose_locked(self.active_pose_id)
+                    in self._prepared_pose_ids
                 ),
                 "queue_cleared": queue_cleared,
             }
@@ -268,7 +330,8 @@ class LivePoseVideoRouter:
             segments = []
             start_frame = 0
             for pose_id in normalized:
-                decoder = self._get_or_create_decoder_locked(pose_id)
+                render_key = self._render_key_for_pose_locked(pose_id)
+                decoder = self._get_or_create_decoder_locked(render_key)
                 source_fps = max(0.001, float(getattr(decoder, "fps", 25.0)))
                 source_frame_count = max(1, int(getattr(decoder, "frame_count", 1)))
                 duration_frames = max(
@@ -277,7 +340,12 @@ class LivePoseVideoRouter:
                 )
                 end_frame = start_frame + duration_frames
                 segments.append(
-                    LivePoseQueueSegment(pose_id, start_frame, end_frame)
+                    LivePoseQueueSegment(
+                        pose_id,
+                        start_frame,
+                        end_frame,
+                        render_key=render_key,
+                    )
                 )
                 start_frame = end_frame
 
@@ -293,6 +361,12 @@ class LivePoseVideoRouter:
             return [
                 {
                     "pose_id": segment.pose_id,
+                    **(
+                        {"render_key": segment.render_key}
+                        if segment.render_key
+                        and segment.render_key != segment.pose_id
+                        else {}
+                    ),
                     "start_generation_frame": segment.start_generation_frame,
                     "end_generation_frame": segment.end_generation_frame,
                     "duration_frames": (
@@ -383,6 +457,7 @@ class LivePoseVideoRouter:
                     end_generation_frame=safe_total_frames,
                     requested_at_permille=0,
                     requested_start_generation_frame=0,
+                    render_key=self._render_key_for_pose_locked(first["pose_id"]),
                 )
             ]
             self._queue_hold_last_pose = bool(hold_last_pose)
@@ -400,10 +475,10 @@ class LivePoseVideoRouter:
 
     def _pose_duration_frames_locked(
         self,
-        pose_id: str,
+        render_key: str,
         generation_fps: float,
     ) -> tuple[int, int]:
-        decoder = self._get_or_create_decoder_locked(pose_id)
+        decoder = self._get_or_create_decoder_locked(render_key)
         source_fps = max(0.001, float(getattr(decoder, "fps", 25.0)))
         source_frame_count = max(
             1,
@@ -419,7 +494,7 @@ class LivePoseVideoRouter:
 
     def _nearest_safe_boundary_locked(
         self,
-        pose_id: str,
+        render_key: str,
         *,
         current_start: int,
         source_frame_offset: int,
@@ -430,7 +505,7 @@ class LivePoseVideoRouter:
 
         duration_frames, source_frame_count = (
             self._pose_duration_frames_locked(
-                pose_id,
+                render_key,
                 generation_fps,
             )
         )
@@ -438,7 +513,7 @@ class LivePoseVideoRouter:
             max(0, int(source_frame_offset)) % source_frame_count
         )
         if normalized_source_offset:
-            decoder = self._get_or_create_decoder_locked(pose_id)
+            decoder = self._get_or_create_decoder_locked(render_key)
             source_fps = max(
                 0.001,
                 float(getattr(decoder, "fps", 25.0)),
@@ -514,8 +589,9 @@ class LivePoseVideoRouter:
             int(round(safe_generation_fps * 0.75)),
         )
         first_pose_id = requested[0]["pose_id"]
+        current_render_key = self._render_key_for_pose_locked(first_pose_id)
         _, first_source_frame_count = self._pose_duration_frames_locked(
-            first_pose_id,
+            current_render_key,
             safe_generation_fps,
         )
         normalized_source_offset = (
@@ -574,7 +650,7 @@ class LivePoseVideoRouter:
                 continue
 
             safe_boundary = self._nearest_safe_boundary_locked(
-                current_pose_id,
+                current_render_key,
                 current_start=current_start,
                 source_frame_offset=current_source_offset,
                 desired_start=desired_start,
@@ -609,9 +685,11 @@ class LivePoseVideoRouter:
                     )),
                     switch_strategy=current_switch_strategy,
                     crossfade_frames=current_crossfade_frames,
+                    render_key=current_render_key,
                 )
             )
             current_pose_id = next_pose_id
+            current_render_key = self._render_key_for_pose_locked(next_pose_id)
             current_start = switch_frame
             current_source_offset = 0
             current_requested_anchor = int(next_request["at_permille"])
@@ -630,6 +708,7 @@ class LivePoseVideoRouter:
                 )),
                 switch_strategy=current_switch_strategy,
                 crossfade_frames=current_crossfade_frames,
+                render_key=current_render_key,
             )
         )
         self._pose_queue = compiled
@@ -641,6 +720,7 @@ class LivePoseVideoRouter:
         compiled_segments = [
             {
                 "pose_id": segment.pose_id,
+                "render_key": segment.render_key or segment.pose_id,
                 "requested_at_permille": segment.requested_at_permille,
                 "requested_start_generation_frame": (
                     segment.requested_start_generation_frame
@@ -792,7 +872,8 @@ class LivePoseVideoRouter:
                 )["segments"]
 
             first = self._pose_queue[0]
-            decoder = self._get_or_create_decoder_locked(first.pose_id)
+            first_render_key = first.render_key or first.pose_id
+            decoder = self._get_or_create_decoder_locked(first_render_key)
             source_fps = max(0.001, float(getattr(decoder, "fps", 25.0)))
             source_frame_count = max(
                 1,
@@ -815,6 +896,7 @@ class LivePoseVideoRouter:
                     start_generation_frame=0,
                     end_generation_frame=first_duration,
                     source_frame_offset=normalized_offset,
+                    render_key=first_render_key,
                 )
             ]
             next_start = first_duration
@@ -830,6 +912,7 @@ class LivePoseVideoRouter:
                         start_generation_frame=next_start,
                         end_generation_frame=next_start + duration,
                         source_frame_offset=0,
+                        render_key=segment.render_key or segment.pose_id,
                     )
                 )
                 next_start += duration
@@ -841,6 +924,12 @@ class LivePoseVideoRouter:
             return [
                 {
                     "pose_id": segment.pose_id,
+                    **(
+                        {"render_key": segment.render_key}
+                        if segment.render_key
+                        and segment.render_key != segment.pose_id
+                        else {}
+                    ),
                     "start_generation_frame": segment.start_generation_frame,
                     "end_generation_frame": segment.end_generation_frame,
                     "source_frame_offset": segment.source_frame_offset,
@@ -898,10 +987,11 @@ class LivePoseVideoRouter:
             if planned is None and self._pose_queue and self._queue_hold_last_pose:
                 planned = self._pose_queue[-1]
             if planned is not None:
+                render_key = planned.render_key or planned.pose_id
                 video_path = (
                     None
-                    if planned.pose_id in self._prepared_pose_ids
-                    else self._pose_video_paths[planned.pose_id]
+                    if render_key in self._prepared_pose_ids
+                    else self._pose_video_paths[render_key]
                 )
                 return LivePoseSnapshot(
                     planned.pose_id,
@@ -913,14 +1003,16 @@ class LivePoseVideoRouter:
                     planned.source_frame_offset,
                     planned.switch_strategy,
                     planned.crossfade_frames,
+                    render_key,
                 )
             if self._origin_pending:
                 self._origin_generation_frame = safe_frame
                 self._origin_pending = False
+            render_key = self._render_key_for_pose_locked(self.active_pose_id)
             video_path = (
                 None
-                if self.active_pose_id in self._prepared_pose_ids
-                else self._pose_video_paths[self.active_pose_id]
+                if render_key in self._prepared_pose_ids
+                else self._pose_video_paths[render_key]
             )
             return LivePoseSnapshot(
                 self.active_pose_id,
@@ -928,6 +1020,7 @@ class LivePoseVideoRouter:
                 self._version,
                 self._origin_generation_frame,
                 safe_fps,
+                render_key=render_key,
             )
 
     def source_frame_index(
@@ -936,7 +1029,9 @@ class LivePoseVideoRouter:
         generation_frame_index: int,
     ) -> int:
         with self._lock:
-            decoder = self._get_or_create_decoder_locked(snapshot.pose_id)
+            decoder = self._get_or_create_decoder_locked(
+                snapshot.effective_render_key
+            )
             source_fps = max(0.001, float(getattr(decoder, "fps", 25.0)))
         relative_frame = max(
             0,
@@ -957,7 +1052,9 @@ class LivePoseVideoRouter:
         with self._lock:
             if self._closed:
                 return [None] * int(frame_count)
-            decoder = self._get_or_create_decoder_locked(snapshot.pose_id)
+            decoder = self._get_or_create_decoder_locked(
+                snapshot.effective_render_key
+            )
         source_indices = [
             self.source_frame_index(snapshot, int(start_generation_frame) + offset)
             for offset in range(int(frame_count))
@@ -994,6 +1091,7 @@ class LivePoseVideoRouter:
                 "queue": [
                     {
                         "pose_id": segment.pose_id,
+                        "render_key": segment.render_key or segment.pose_id,
                         "start_generation_frame": segment.start_generation_frame,
                         "end_generation_frame": segment.end_generation_frame,
                         "source_frame_offset": segment.source_frame_offset,
@@ -1007,6 +1105,14 @@ class LivePoseVideoRouter:
                     for segment in self._pose_queue
                 ],
                 "queue_hold_last_pose": self._queue_hold_last_pose,
+                "variant_context_key": self._variant_context_key,
+                "selected_variant_render_keys": dict(
+                    self._selected_variant_render_keys
+                ),
+                "variant_context_assignments": {
+                    context: dict(assignments)
+                    for context, assignments in self._variant_context_assignments.items()
+                },
                 "compiled_pose_plan": self.get_compiled_pose_plan(),
                 "decoders": {
                     pose_id: decoder.get_stats()

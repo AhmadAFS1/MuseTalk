@@ -17,6 +17,7 @@ from scripts.pose_protocol import (
     normalize_pose_sequence,
     normalize_pose_set,
     normalize_session_event,
+    pose_variant_render_key,
 )
 from scripts.webrtc_pose_router import LivePoseVideoRouter
 from scripts.webrtc_tracks import SwitchableVideoStreamTrack, SilenceAudioStreamTrack, VideoSyncClock
@@ -89,6 +90,7 @@ class WebRTCSession:
     live_pose_id: str = "default"
     live_pose_router: Optional[LivePoseVideoRouter] = None
     prepared_pose_avatar_ids: Dict[str, str] = field(default_factory=dict)
+    pose_variant_render_keys: Dict[str, List[str]] = field(default_factory=dict)
     rendered_pose_id: Optional[str] = None
     rendered_pose_frame_count: int = 0
     rendered_pose_trace: List[Dict[str, Any]] = field(default_factory=list)
@@ -147,6 +149,7 @@ class WebRTCSession:
         self,
         pose_ids,
         start_frame_index: int,
+        render_keys=None,
     ) -> None:
         normalized_pose_ids = [
             str(pose_id or "").strip().lower()
@@ -154,28 +157,43 @@ class WebRTCSession:
         ]
         if not normalized_pose_ids:
             return
+        normalized_render_keys = [
+            str(render_key or "").strip().lower()
+            for render_key in (render_keys or [])
+        ]
         with self.rendered_pose_lock:
             for offset, pose_id in enumerate(normalized_pose_ids):
                 if not pose_id:
                     continue
                 frame_index = int(start_frame_index) + offset
+                render_key = (
+                    normalized_render_keys[offset]
+                    if offset < len(normalized_render_keys)
+                    and normalized_render_keys[offset]
+                    else pose_id
+                )
                 if (
                     self.rendered_pose_trace
                     and self.rendered_pose_trace[-1]["pose_id"] == pose_id
+                    and (
+                        self.rendered_pose_trace[-1].get("render_key")
+                        or self.rendered_pose_trace[-1]["pose_id"]
+                    ) == render_key
                     and self.rendered_pose_trace[-1]["end_frame_index"] + 1
                     == frame_index
                 ):
                     self.rendered_pose_trace[-1]["end_frame_index"] = frame_index
                     self.rendered_pose_trace[-1]["frame_count"] += 1
                 else:
-                    self.rendered_pose_trace.append(
-                        {
-                            "pose_id": pose_id,
-                            "start_frame_index": frame_index,
-                            "end_frame_index": frame_index,
-                            "frame_count": 1,
-                        }
-                    )
+                    trace_entry = {
+                        "pose_id": pose_id,
+                        "start_frame_index": frame_index,
+                        "end_frame_index": frame_index,
+                        "frame_count": 1,
+                    }
+                    if render_key != pose_id:
+                        trace_entry["render_key"] = render_key
+                    self.rendered_pose_trace.append(trace_entry)
                 self.rendered_pose_id = pose_id
                 self.rendered_pose_frame_count += 1
 
@@ -196,6 +214,11 @@ class WebRTCSession:
             pose_id for pose_id in POSE_IDS
             if self.pose_protocol_enabled and not self.video_path_for_pose(pose_id)
         ]
+        router_stats = (
+            self.live_pose_router.get_stats()
+            if self.live_pose_router is not None
+            else {}
+        )
         return {
             "version": 1 if self.pose_protocol_enabled else None,
             "supported": self.pose_protocol_enabled,
@@ -215,6 +238,9 @@ class WebRTCSession:
             "user_speaking": self.user_speaking,
             "assistant_active": self.assistant_active,
             "generation_avatar_id": self.generation_avatar_id or self.avatar_id,
+            "selected_pose_variant_render_keys": dict(
+                router_stats.get("selected_variant_render_keys") or {}
+            ),
             "live_pose_id": self.live_pose_id,
             "missing_video_paths": missing_video_paths,
             "active_pose_plan": (
@@ -405,6 +431,34 @@ class WebRTCSessionManager:
                     pose_id,
                     str(entry["avatar_id"]),
                 )
+        pose_variant_render_keys: Dict[str, List[str]] = {}
+        if pose_protocol_enabled:
+            for pose_id, entry in normalized_pose_set["poses"].items():
+                variants = entry.get("variants") or []
+                if not variants:
+                    continue
+                pose_variant_render_keys[pose_id] = [
+                    pose_variant_render_key(pose_id, variant["variant_id"])
+                    for variant in variants
+                ]
+                for variant, render_key in zip(
+                    variants,
+                    pose_variant_render_keys[pose_id],
+                ):
+                    resolved_prepared_pose_avatar_ids.setdefault(
+                        render_key,
+                        str(variant["avatar_id"]),
+                    )
+                missing_render_keys = [
+                    render_key
+                    for render_key in pose_variant_render_keys[pose_id]
+                    if render_key not in normalized_pose_paths
+                ]
+                if missing_render_keys:
+                    raise ValueError(
+                        "Pose variant video paths are unavailable: "
+                        + ", ".join(missing_render_keys)
+                    )
         resolved_prepared_pose_avatar_ids.setdefault("default", avatar_id)
         initial_live_pose_id = str(
             live_pose_id or (
@@ -436,6 +490,7 @@ class WebRTCSessionManager:
             normalized_pose_paths,
             prepared_pose_id="default",
             prepared_pose_ids=set(resolved_prepared_pose_avatar_ids),
+            pose_variant_render_keys=pose_variant_render_keys,
             initial_pose_id=initial_live_pose_id,
         )
 
@@ -469,6 +524,7 @@ class WebRTCSessionManager:
             live_pose_id=initial_live_pose_id,
             live_pose_router=live_pose_router,
             prepared_pose_avatar_ids=resolved_prepared_pose_avatar_ids,
+            pose_variant_render_keys=pose_variant_render_keys,
         )
 
         def _sync_active_pose(pose_id: str, video_path: str) -> None:
@@ -612,6 +668,31 @@ class WebRTCSessionManager:
             "last_seq": session.last_pose_seq,
             "pose_status": session.pose_status(),
         }
+
+    @staticmethod
+    def _select_pose_variants_for_turn(
+        session: WebRTCSession,
+        turn_id: str,
+    ) -> dict[str, str]:
+        if session.live_pose_router is None:
+            return {}
+        normalized_turn_id = str(turn_id or "").strip()
+        context_key = ":".join(
+            (
+                str(session.pose_set.get("pose_set_id") or "pose-set"),
+                session.session_id,
+                normalized_turn_id or "default-turn",
+            )
+        )
+        selected = session.live_pose_router.set_variant_context(context_key)
+        speaking_render_key = selected.get("speaking_direct")
+        if speaking_render_key:
+            selected_avatar_id = session.prepared_pose_avatar_ids.get(
+                speaking_render_key
+            )
+            if selected_avatar_id:
+                session.generation_avatar_id = selected_avatar_id
+        return selected
 
     async def _queue_pose_locked(
         self,
@@ -816,6 +897,10 @@ class WebRTCSessionManager:
             resolved.active_pose_plan = {}
             resolved.compiled_pose_plan = None
             resolved.active_turn_id = str(turn_id or "").strip() or resolved.active_turn_id
+            selected_variants = self._select_pose_variants_for_turn(
+                resolved,
+                resolved.active_turn_id or "",
+            )
             resolved.reset_rendered_pose_trace()
             reaction_key = str(turn_id or "").strip() or f"seq:{seq}"
             results = []
@@ -876,6 +961,7 @@ class WebRTCSessionManager:
                 "generation_avatar_id": (
                     resolved.generation_avatar_id or resolved.avatar_id
                 ),
+                "selected_pose_variant_render_keys": selected_variants,
                 "pose_status": resolved.pose_status(),
             }
 
@@ -919,6 +1005,10 @@ class WebRTCSessionManager:
                 str(turn_id or "").strip()
                 or resolved.active_turn_id
             )
+            selected_variants = self._select_pose_variants_for_turn(
+                resolved,
+                resolved.active_turn_id or "",
+            )
             resolved.active_pose_plan = normalized_plan
             resolved.compiled_pose_plan = None
             resolved.reset_rendered_pose_trace()
@@ -934,6 +1024,7 @@ class WebRTCSessionManager:
                 "generation_avatar_id": (
                     resolved.generation_avatar_id or resolved.avatar_id
                 ),
+                "selected_pose_variant_render_keys": selected_variants,
                 "pose_status": resolved.pose_status(),
             }
 

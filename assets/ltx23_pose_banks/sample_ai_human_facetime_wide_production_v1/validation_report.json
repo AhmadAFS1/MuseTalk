@@ -1,0 +1,319 @@
+{
+  "schema_version": 1,
+  "result": "passed",
+  "bank": "/workspace/MuseTalk/assets/ltx23_pose_banks/sample_ai_human_facetime_wide_production_v1",
+  "fps": 24,
+  "resolution": [
+    480,
+    832
+  ],
+  "shared_boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+  "clips": {
+    "idle_active_listening": {
+      "file": "certified/idle_active_listening.mp4",
+      "width": 480,
+      "height": 832,
+      "fps": "24/1",
+      "frame_count": 109,
+      "audio_streams": 0,
+      "duration_seconds": 4.541666666666667,
+      "full_decode": "passed",
+      "boundary_frames_checked": 12,
+      "boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+      "boundary_exact": "passed",
+      "video_sha256": "410600a708850a89f4cc21649b47c30b6b443a8c8212b41c14657290dac15ddc"
+    },
+    "speaking_direct_v14_subtle": {
+      "file": "certified/speaking_direct_v14_subtle.mp4",
+      "width": 480,
+      "height": 832,
+      "fps": "24/1",
+      "frame_count": 289,
+      "audio_streams": 0,
+      "duration_seconds": 12.041666666666666,
+      "full_decode": "passed",
+      "boundary_frames_checked": 12,
+      "boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+      "boundary_exact": "passed",
+      "video_sha256": "62f3169fe703de59b1ff5f8f58808cf17fb4c63dc8f3b536c97e7995a946a476"
+    },
+    "speaking_direct_v15_reference_paced": {
+      "file": "certified/speaking_direct_v15_reference_paced.mp4",
+      "width": 480,
+      "height": 832,
+      "fps": "24/1",
+      "frame_count": 289,
+      "audio_streams": 0,
+      "duration_seconds": 12.041666666666666,
+      "full_decode": "passed",
+      "boundary_frames_checked": 12,
+      "boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+      "boundary_exact": "passed",
+      "video_sha256": "69bee20f79f56ee4c0b19aaad8b736cac8cd115f05c439e3e338fe0f16d7f367"
+    },
+    "nod_agree": {
+      "file": "certified/nod_agree.mp4",
+      "width": 480,
+      "height": 832,
+      "fps": "24/1",
+      "frame_count": 73,
+      "audio_streams": 0,
+      "duration_seconds": 3.0416666666666665,
+      "full_decode": "passed",
+      "boundary_frames_checked": 12,
+      "boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+      "boundary_exact": "passed",
+      "video_sha256": "5d8e8ba7e9fb9971c1962f67cf25c651dd727735f3f0a0a5b7672998384147cb"
+    },
+    "empathetic_head_tilt": {
+      "file": "certified/empathetic_head_tilt.mp4",
+      "width": 480,
+      "height": 832,
+      "fps": "24/1",
+      "frame_count": 146,
+      "audio_streams": 0,
+      "duration_seconds": 6.083333333333333,
+      "full_decode": "passed",
+      "boundary_frames_checked": 12,
+      "boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+      "boundary_exact": "passed",
+      "video_sha256": "d61d346bc61cb29128894432c1c17e49291bb016495ad4d67ffbc7cadc58adb9"
+    },
+    "light_smile": {
+      "file": "certified/light_smile.mp4",
+      "width": 480,
+      "height": 832,
+      "fps": "24/1",
+      "frame_count": 145,
+      "audio_streams": 0,
+      "duration_seconds": 6.041666666666667,
+      "full_decode": "passed",
+      "boundary_frames_checked": 12,
+      "boundary_rgb_sha256": "df2b493201dbbff467a53fd32286c00a28173c1a89290336447abb40c558d9bd",
+      "boundary_exact": "passed",
+      "video_sha256": "f89223d14fe66c980c53e2b302ff071b44c1353bb510c704d4a9a0512c5c760b"
+    }
+  },
+  "ordered_transition_count": 30,
+  "ordered_transitions": [
+    {
+      "from": "idle_active_listening",
+      "to": "speaking_direct_v14_subtle",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "idle_active_listening",
+      "to": "speaking_direct_v15_reference_paced",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "idle_active_listening",
+      "to": "nod_agree",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "idle_active_listening",
+      "to": "empathetic_head_tilt",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "idle_active_listening",
+      "to": "light_smile",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "speaking_direct_v14_subtle",
+      "to": "idle_active_listening",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "speaking_direct_v14_subtle",
+      "to": "speaking_direct_v15_reference_paced",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "speaking_direct_v14_subtle",
+      "to": "nod_agree",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "speaking_direct_v14_subtle",
+      "to": "empathetic_head_tilt",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "speaking_direct_v14_subtle",
+      "to": "light_smile",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "speaking_direct_v15_reference_paced",
+      "to": "idle_active_listening",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "speaking_direct_v15_reference_paced",
+      "to": "speaking_direct_v14_subtle",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "speaking_direct_v15_reference_paced",
+      "to": "nod_agree",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "speaking_direct_v15_reference_paced",
+      "to": "empathetic_head_tilt",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "speaking_direct_v15_reference_paced",
+      "to": "light_smile",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "nod_agree",
+      "to": "idle_active_listening",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "nod_agree",
+      "to": "speaking_direct_v14_subtle",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "nod_agree",
+      "to": "speaking_direct_v15_reference_paced",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "nod_agree",
+      "to": "empathetic_head_tilt",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "nod_agree",
+      "to": "light_smile",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "empathetic_head_tilt",
+      "to": "idle_active_listening",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "empathetic_head_tilt",
+      "to": "speaking_direct_v14_subtle",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "empathetic_head_tilt",
+      "to": "speaking_direct_v15_reference_paced",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "empathetic_head_tilt",
+      "to": "nod_agree",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "empathetic_head_tilt",
+      "to": "light_smile",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "light_smile",
+      "to": "idle_active_listening",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "light_smile",
+      "to": "speaking_direct_v14_subtle",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "light_smile",
+      "to": "speaking_direct_v15_reference_paced",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "light_smile",
+      "to": "nod_agree",
+      "frames_checked": 12,
+      "result": "passed"
+    },
+    {
+      "from": "light_smile",
+      "to": "empathetic_head_tilt",
+      "frames_checked": 12,
+      "result": "passed"
+    }
+  ],
+  "preserved_source_identity": {
+    "idle_active_listening": {
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_active_listening_v6_restrained_remaster/certified/active_listening.mp4",
+      "source_sha256": "410600a708850a89f4cc21649b47c30b6b443a8c8212b41c14657290dac15ddc",
+      "certified_sha256": "410600a708850a89f4cc21649b47c30b6b443a8c8212b41c14657290dac15ddc",
+      "byte_identical": true
+    },
+    "speaking_direct_v14_subtle": {
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_v14_speaking_candidate/certified/speaking_direct.mp4",
+      "source_sha256": "62f3169fe703de59b1ff5f8f58808cf17fb4c63dc8f3b536c97e7995a946a476",
+      "certified_sha256": "62f3169fe703de59b1ff5f8f58808cf17fb4c63dc8f3b536c97e7995a946a476",
+      "byte_identical": true
+    },
+    "speaking_direct_v15_reference_paced": {
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_v15_speaking_candidate/certified/speaking_direct.mp4",
+      "source_sha256": "69bee20f79f56ee4c0b19aaad8b736cac8cd115f05c439e3e338fe0f16d7f367",
+      "certified_sha256": "69bee20f79f56ee4c0b19aaad8b736cac8cd115f05c439e3e338fe0f16d7f367",
+      "byte_identical": true
+    },
+    "nod_agree": {
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_v5_motion_repair_candidates/certified/nod_agree.mp4",
+      "source_sha256": "5d8e8ba7e9fb9971c1962f67cf25c651dd727735f3f0a0a5b7672998384147cb",
+      "certified_sha256": "5d8e8ba7e9fb9971c1962f67cf25c651dd727735f3f0a0a5b7672998384147cb",
+      "byte_identical": true
+    },
+    "empathetic_head_tilt": {
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_empathetic_from_v5_listening_motion_remaster_v2/certified/empathetic_head_tilt.mp4",
+      "source_sha256": "d61d346bc61cb29128894432c1c17e49291bb016495ad4d67ffbc7cadc58adb9",
+      "certified_sha256": "d61d346bc61cb29128894432c1c17e49291bb016495ad4d67ffbc7cadc58adb9",
+      "byte_identical": true
+    },
+    "light_smile": {
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_wide_v1_user_review_v8_smile_candidate/certified/light_smile.mp4",
+      "source_sha256": "f89223d14fe66c980c53e2b302ff071b44c1353bb510c704d4a9a0512c5c760b",
+      "certified_sha256": "f89223d14fe66c980c53e2b302ff071b44c1353bb510c704d4a9a0512c5c760b",
+      "byte_identical": true
+    }
+  },
+  "errors": []
+}

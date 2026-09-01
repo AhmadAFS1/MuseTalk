@@ -45,6 +45,62 @@ class PoseProtocolTests(unittest.TestCase):
         with self.assertRaises(PoseProtocolError):
             normalize_pose_set(value)
 
+    def test_accepts_direct_speaking_variants(self):
+        value = complete_pose_set()
+        default_avatar_id = value["poses"]["speaking_direct"]["avatar_id"]
+        value["poses"]["speaking_direct"].update(
+            {
+                "variants": [
+                    {
+                        "variant_id": "calm",
+                        "avatar_id": default_avatar_id,
+                    },
+                    {
+                        "variant_id": "reference_paced",
+                        "avatar_id": "indian_tutor_direct_reference_paced",
+                    },
+                ],
+                "variant_policy": "deterministic_boundary_rotation",
+            }
+        )
+        normalized = normalize_pose_set(value)
+        self.assertEqual(
+            [
+                variant["variant_id"]
+                for variant in normalized["poses"]["speaking_direct"]["variants"]
+            ],
+            ["calm", "reference_paced"],
+        )
+
+    def test_rejects_variant_list_without_default_avatar(self):
+        value = complete_pose_set()
+        value["poses"]["speaking_direct"].update(
+            {
+                "variants": [
+                    {"variant_id": "one", "avatar_id": "direct_one"},
+                    {"variant_id": "two", "avatar_id": "direct_two"},
+                ],
+                "variant_policy": "deterministic_boundary_rotation",
+            }
+        )
+        with self.assertRaisesRegex(PoseProtocolError, "must appear in variants"):
+            normalize_pose_set(value)
+
+    def test_rejects_variants_on_non_direct_pose(self):
+        value = complete_pose_set()
+        default_avatar_id = value["poses"]["light_smile"]["avatar_id"]
+        value["poses"]["light_smile"].update(
+            {
+                "variants": [
+                    {"variant_id": "one", "avatar_id": default_avatar_id},
+                    {"variant_id": "two", "avatar_id": "smile_two"},
+                ],
+                "variant_policy": "deterministic_boundary_rotation",
+            }
+        )
+        with self.assertRaisesRegex(PoseProtocolError, "does not support variants"):
+            normalize_pose_set(value)
+
     def test_builds_only_supported_turn_orders(self):
         self.assertEqual(
             build_turn_pose_sequence("warmth"),

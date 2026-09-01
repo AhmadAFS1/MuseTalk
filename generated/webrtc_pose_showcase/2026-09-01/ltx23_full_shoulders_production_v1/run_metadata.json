@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "pose_set_id": "sample_ai_human_ltx23_facetime_wide_production_v1",
+  "date_utc": "2026-09-01",
+  "result": "passed",
+  "six_pose_showcase": {
+    "session_id": "14AYiTn9q_s4rBNHX7K-JA",
+    "recording": "sample_ai_human_ltx23_full_shoulders_six_pose_webrtc_capture_v2.mp4",
+    "duration_seconds": 48.786,
+    "video": "H.264 480x832",
+    "audio": "AAC",
+    "receiver_timestamp_validation": "passed",
+    "pose_trace": [
+      {"pose_id": "active_listening", "at_seconds": 0.373},
+      {"pose_id": "speaking_direct", "at_seconds": 4.761},
+      {"pose_id": "nod_agree", "at_seconds": 17.031},
+      {"pose_id": "empathetic_head_tilt", "at_seconds": 20.128},
+      {"pose_id": "light_smile", "at_seconds": 26.368},
+      {"pose_id": "neutral_resting", "at_seconds": 32.429}
+    ],
+    "speaking_render_key": "speaking_direct__variant__v14_subtle"
+  },
+  "two_turn_direct_rotation": {
+    "session_id": "OFgVyv0_xMmuXY4X05VNFQ",
+    "recording": "sample_ai_human_ltx23_wide_v14_v15_two_turn_webrtc_capture_v3.mp4",
+    "duration_seconds": 33.899,
+    "video": "H.264 480x832",
+    "audio": "AAC",
+    "receiver_timestamp_validation": "passed",
+    "expected_render_keys": [
+      "speaking_direct__variant__v14_subtle",
+      "speaking_direct__variant__v15_reference_paced"
+    ],
+    "observed_render_keys": [
+      "speaking_direct__variant__v14_subtle",
+      "speaking_direct__variant__v15_reference_paced"
+    ],
+    "variant_rotation_validation": "passed"
+  },
+  "unit_tests": {
+    "count": 83,
+    "result": "passed"
+  },
+  "destructive_actions": false,
+  "old_assets_deleted": false
+}

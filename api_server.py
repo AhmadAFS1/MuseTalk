@@ -94,6 +94,7 @@ from scripts.pose_protocol import (
     normalize_pose_set,
     normalize_session_event,
     normalize_stream_metadata,
+    pose_variant_render_key,
 )
 from scripts.worker_control_plane import LinguaWorkerControlPlane
 from scripts.session_manager import SessionManager
@@ -1236,6 +1237,7 @@ async def worker_capabilities():
         "service": "musetalk",
         "features": {
             "pose_sets_v1": bool(WEBRTC_AVAILABLE),
+            "pose_variants_v1": bool(WEBRTC_AVAILABLE),
             "pose_plans_v2": bool(
                 WEBRTC_AVAILABLE
                 and _env_bool("WEBRTC_SHARED_GPU_SCHEDULER", True)
@@ -4329,7 +4331,8 @@ async def create_webrtc_session(
             )
 
         for pose_id in POSE_IDS:
-            pose_avatar_id = normalized_pose_set["poses"][pose_id]["avatar_id"]
+            pose_entry = normalized_pose_set["poses"][pose_id]
+            pose_avatar_id = pose_entry["avatar_id"]
             _ensure_avatar_for_session(
                 pose_avatar_id,
                 batch_size=resolved_batch_size,
@@ -4351,6 +4354,35 @@ async def create_webrtc_session(
                 )
             pose_video_paths[pose_id] = str(pose_video_path)
             prepared_pose_avatar_ids[pose_id] = pose_avatar_id
+
+            for variant in pose_entry.get("variants") or []:
+                variant_avatar_id = variant["avatar_id"]
+                _ensure_avatar_for_session(
+                    variant_avatar_id,
+                    batch_size=resolved_batch_size,
+                )
+                variant_video_path = _resolve_avatar_video_path(
+                    variant_avatar_id,
+                    role="idle",
+                )
+                if (
+                    not variant_video_path.is_file()
+                    or variant_video_path.stat().st_size < 1024
+                ):
+                    raise HTTPException(
+                        status_code=404,
+                        detail=(
+                            f"Prepared pose variant '{pose_id}/"
+                            f"{variant['variant_id']}' was not found for avatar "
+                            f"'{variant_avatar_id}'."
+                        ),
+                    )
+                render_key = pose_variant_render_key(
+                    pose_id,
+                    variant["variant_id"],
+                )
+                pose_video_paths[render_key] = str(variant_video_path)
+                prepared_pose_avatar_ids[render_key] = variant_avatar_id
 
         normalized_idle_pose_id = normalized_pose_set["default_pose_id"]
         normalized_live_pose_id = normalized_idle_pose_id

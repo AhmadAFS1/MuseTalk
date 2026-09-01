@@ -26,6 +26,9 @@ POSE_IDS = (
     "light_smile",
 )
 POSE_ID_SET = frozenset(POSE_IDS)
+POSE_VARIANT_POLICY = "deterministic_boundary_rotation"
+POSE_VARIANT_MAX_COUNT = 4
+POSE_VARIANT_SUPPORTED_POSES = frozenset({"speaking_direct"})
 
 REACTION_INTENTS = ("none", "acknowledge", "warmth", "empathy")
 REACTION_INTENT_SET = frozenset(REACTION_INTENTS)
@@ -58,6 +61,12 @@ class PoseProtocolError(ValueError):
     """Raised when pose-protocol input is malformed or unsupported."""
 
 
+def pose_variant_render_key(pose_id: str, variant_id: str) -> str:
+    """Return the internal cache/router key for one physical pose variant."""
+
+    return f"{str(pose_id).strip().lower()}__variant__{str(variant_id).strip().lower()}"
+
+
 def _identifier(value: Any, label: str, *, required: bool = True) -> str:
     result = str(value or "").strip()
     if not result and not required:
@@ -88,7 +97,7 @@ def _positive_number(value: Any, label: str, *, integral: bool = False) -> int |
 
 
 def normalize_pose_set(value: str | Mapping[str, Any]) -> dict[str, Any]:
-    """Validate the compact six-cache manifest sent during session creation."""
+    """Validate the six-logical-pose manifest sent during session creation."""
 
     raw: Any = value
     if isinstance(value, str):
@@ -132,6 +141,67 @@ def normalize_pose_set(value: str | Mapping[str, Any]) -> dict[str, Any]:
                     f"pose_set.poses.{pose_id}.{field_name}",
                     integral=field_name == "frame_count",
                 )
+        raw_variants = entry.get("variants")
+        raw_variant_policy = entry.get("variant_policy")
+        if raw_variants is not None or raw_variant_policy is not None:
+            if pose_id not in POSE_VARIANT_SUPPORTED_POSES:
+                raise PoseProtocolError(
+                    f"pose_set.poses.{pose_id} does not support variants."
+                )
+            if (
+                not isinstance(raw_variants, list)
+                or not 2 <= len(raw_variants) <= POSE_VARIANT_MAX_COUNT
+            ):
+                raise PoseProtocolError(
+                    f"pose_set.poses.{pose_id}.variants must contain 2-"
+                    f"{POSE_VARIANT_MAX_COUNT} items."
+                )
+            variant_policy = str(raw_variant_policy or "").strip().lower()
+            if variant_policy != POSE_VARIANT_POLICY:
+                raise PoseProtocolError(
+                    f"pose_set.poses.{pose_id}.variant_policy must be "
+                    f"{POSE_VARIANT_POLICY}."
+                )
+            variants: list[dict[str, str]] = []
+            variant_ids: set[str] = set()
+            variant_avatar_ids: set[str] = set()
+            for index, raw_variant in enumerate(raw_variants):
+                if not isinstance(raw_variant, Mapping):
+                    raise PoseProtocolError(
+                        f"pose_set.poses.{pose_id}.variants[{index}] must be an object."
+                    )
+                variant_id = _identifier(
+                    raw_variant.get("variant_id"),
+                    f"pose_set.poses.{pose_id}.variants[{index}].variant_id",
+                ).lower()
+                variant_avatar_id = _identifier(
+                    raw_variant.get("avatar_id"),
+                    f"pose_set.poses.{pose_id}.variants[{index}].avatar_id",
+                )
+                if variant_id in variant_ids:
+                    raise PoseProtocolError(
+                        f"pose_set.poses.{pose_id}.variants has duplicate "
+                        f"variant_id '{variant_id}'."
+                    )
+                if variant_avatar_id in variant_avatar_ids:
+                    raise PoseProtocolError(
+                        f"pose_set.poses.{pose_id}.variants has duplicate "
+                        f"avatar_id '{variant_avatar_id}'."
+                    )
+                variant_ids.add(variant_id)
+                variant_avatar_ids.add(variant_avatar_id)
+                variants.append(
+                    {
+                        "variant_id": variant_id,
+                        "avatar_id": variant_avatar_id,
+                    }
+                )
+            if normalized_entry["avatar_id"] not in variant_avatar_ids:
+                raise PoseProtocolError(
+                    f"pose_set.poses.{pose_id}.avatar_id must appear in variants."
+                )
+            normalized_entry["variants"] = variants
+            normalized_entry["variant_policy"] = POSE_VARIANT_POLICY
         poses[pose_id] = normalized_entry
 
     default_pose_id = str(

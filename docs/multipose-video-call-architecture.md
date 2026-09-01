@@ -18,21 +18,21 @@ This separation prevents the language model from inventing video names or
 timestamps and avoids the latency, cost, and failure mode of a second model
 request.
 
-The current runtime is **not strictly four-pose-only**:
+The current runtime exposes exactly six logical pose IDs. The active 2026-09-01
+close-up LTX 2.3 production bank resolves them to six unique physical MP4s:
 
-- The pose protocol exposes exactly six logical pose IDs, not ten.
-- The latest MVP introduced four new physical motions.
-- `active_listening` and `empathetic_head_tilt` are logical aliases backed by
-  the same combined listener/empathy MP4.
-- The older `nod_agree` compatibility MP4 is still installed and can still be
-  selected for the `acknowledge` reaction.
-- Therefore, the current six logical IDs resolve to five distinct physical
-  MP4s.
+- neutral and active listening intentionally alias one restrained idle/listener
+  file;
+- `speaking_direct` owns two renderer-level variants, V14 and V15;
+- nod, empathy, and smile each own one physical file.
+
+The semantic contract remains six poses even though direct speech has two
+physical render choices. The model never sees or selects V14/V15 filenames.
 
 During v2 lip-synced speech, only three logical speaking poses are eligible:
 `speaking_direct`, `light_smile`, and `empathetic_head_tilt`. Across the entire
-call lifecycle, neutral, listening, reactions, and speaking can use the wider
-six-ID protocol.
+call lifecycle, neutral, listening, reactions, and speaking use the same six-ID
+protocol regardless of which framing bank is active.
 
 ## Three different layers that must not be confused
 
@@ -64,25 +64,23 @@ installed.
 
 ### Physical motion videos
 
-The latest four-motion MVP consists of:
+The active close-up production bank consists of:
 
-1. neutral resting;
-2. direct speaking;
-3. light smile;
-4. combined active listening and empathy.
-
-The combined motion is installed under both `active_listening` and
-`empathetic_head_tilt`. Those two runtime files are byte-identical. The older
-`nod_agree` file is the additional fifth distinct runtime MP4.
+1. one shared neutral/listening loop;
+2. V14 subtle direct speech;
+3. V15 reference-paced direct speech;
+4. one compact yes nod;
+5. one slow empathetic head tilt; and
+6. one moderate closed-mouth smile.
 
 | Communication function | Semantic label | Logical pose ID | Physical MVP motion |
 |---|---|---|---|
-| Default idle | N/A | `neutral_resting` | Neutral resting |
-| User is speaking / assistant is thinking | N/A | `active_listening` | Combined listener/empathy |
-| Ordinary spoken explanation | `direct` | `speaking_direct` | Direct speaking |
+| Default idle | N/A | `neutral_resting` | Shared restrained idle/listener |
+| User is speaking / assistant is thinking | N/A | `active_listening` | Shared restrained idle/listener |
+| Ordinary spoken explanation | `direct` | `speaking_direct` | Deterministic V14/V15 direct variant |
 | Positive or encouraging spoken clause | `warm` | `light_smile` | Light smile |
-| Reassuring or understanding spoken clause | `empathetic` | `empathetic_head_tilt` | Combined listener/empathy |
-| Agreement before speech | `acknowledge` reaction | `nod_agree` | Older compatibility nod |
+| Reassuring or understanding spoken clause | `empathetic` | `empathetic_head_tilt` | Slow independent empathy tilt |
+| Agreement before speech | `acknowledge` reaction | `nod_agree` | Compact yes nod |
 
 ## Why the speaking labels are direct, warm, and empathetic
 
@@ -109,8 +107,7 @@ It maps to `light_smile`.
 `empathetic` is reserved for reassurance or understanding when the user
 expresses difficulty, sadness, frustration, or uncertainty.
 
-It maps to `empathetic_head_tilt`, which currently uses the same physical
-combined listener/empathy video as `active_listening`.
+It maps to the independent `empathetic_head_tilt` physical video.
 
 Neutral and active listening are not delivery labels because they represent
 conversation state rather than how spoken words are delivered. A nod is also
@@ -403,27 +400,20 @@ The contract falls back without abandoning the entire call:
 4. Non-contract server failures are returned without replaying the WAV, which
    prevents duplicate spoken responses.
 
-## Four-pose-only product decision
+## Direct-speaking physical variants
 
-If the product requirement is to use only the latest four physical motions,
-the current implementation needs one small policy change. The
-`acknowledge -> nod_agree` mapping must no longer route to the older nod file.
+`speaking_direct` remains one semantic pose with two physical plates. MuseTalk
+selects a plate after semantic-plan compilation:
 
-A strict four-motion mapping can be:
+- a new assistant turn alternates to the next configured variant;
+- retries of the same `turn_id` reuse the same assignment;
+- V14 is the top-level fallback for workers or callers that do not negotiate
+  `pose_variants_v1`; and
+- telemetry reports the semantic `pose_id` separately from the physical
+  `render_key`.
 
-| Intent or state | Physical motion |
-|---|---|
-| Idle and completion | Neutral resting |
-| User speaking, thinking, empathy, or acknowledgment | Combined listener/empathy |
-| Ordinary speech | Direct speaking |
-| Warmth and positive encouragement | Light smile |
-
-This can retain the six logical IDs for wire compatibility while ensuring that
-only four physical MP4s are ever selected. Alternatively, the protocol can be
-reduced to four logical IDs in a breaking v3 cleanup.
-
-As currently deployed, the runtime does **not** enforce this strict four-only
-policy because `acknowledge` can still select the legacy `nod_agree` asset.
+Variant selection is renderer-owned. Lingua continues to request only
+`speaking_direct`, so physical motion variety cannot alter response semantics.
 
 ## Implementation locations
 
@@ -444,9 +434,10 @@ policy because `acknowledge` can still select the legacy `nod_agree` asset.
 
 - `scripts/pose_protocol.py`: MuseTalk-side contract validation.
 - `scripts/webrtc_manager.py`: call-state events, stale-event protection,
-  reaction deduplication, plan staging, and neutral recovery.
+  reaction deduplication, plan staging, neutral recovery, and stable per-turn
+  variant assignment.
 - `scripts/webrtc_pose_router.py`: audio-progress compilation and safe-boundary
-  scheduling.
+  scheduling with semantic-pose/physical-render separation.
 - `scripts/hls_gpu_scheduler.py`: pose-aware frame generation, phase alignment,
   telemetry, and two-frame crossfades.
 - `api_server.py`: WebRTC capabilities, session creation, stream upload, and

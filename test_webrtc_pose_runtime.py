@@ -508,6 +508,29 @@ class PoseSessionManagerTest(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
+    async def test_rendered_pose_trace_separates_physical_variants(self):
+        self.session.record_rendered_pose_batch(
+            ["speaking_direct", "speaking_direct"],
+            0,
+            [
+                "speaking_direct__variant__calm",
+                "speaking_direct__variant__reference_paced",
+            ],
+        )
+
+        trace = self.session.rendered_pose_status()["rendered_pose_trace"]
+        self.assertEqual([entry["pose_id"] for entry in trace], [
+            "speaking_direct",
+            "speaking_direct",
+        ])
+        self.assertEqual(
+            [entry["render_key"] for entry in trace],
+            [
+                "speaking_direct__variant__calm",
+                "speaking_direct__variant__reference_paced",
+            ],
+        )
+
 
 class _RouterDecoder:
     fps = 30.0

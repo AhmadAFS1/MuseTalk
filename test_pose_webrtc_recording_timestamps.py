@@ -208,6 +208,49 @@ class PoseWebRTCRecordingTimestampTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["audio_source_timestamp_anomalies"], 1)
         self.assertEqual(len(result["declared_audio_phase_corrections"]), 1)
 
+    async def test_accepts_jitter_buffer_start_one_packet_after_audio_rebase(self):
+        video = await _video_stats([0, 3_000, 6_000, 9_000])
+        # The server declares first TTS at 80 ms, while the receiver jitter
+        # buffer exposes the next ordinary 20 ms packet at 100 ms. The measured
+        # excess gap remains exactly the declared 40 ms rebase.
+        audio = await _audio_stats([0, 960, 1_920, 4_800, 5_760])
+
+        result = validate_recording_timestamp_proof(
+            {"video": video, "audio": audio},
+            [
+                _case(
+                    first_live=0.10,
+                    first_tts=0.08,
+                    audio_correction=0.04,
+                )
+            ],
+            playback_fps=30,
+        )
+
+        declaration = result["declared_audio_phase_corrections"][0]
+        self.assertAlmostEqual(
+            declaration["receiver_first_packet_offset_seconds"],
+            0.02,
+            places=6,
+        )
+
+    async def test_rejects_audio_rebase_more_than_one_packet_after_first_tts(self):
+        video = await _video_stats([0, 3_000, 6_000, 9_000])
+        audio = await _audio_stats([0, 960, 1_920, 5_760, 6_720])
+
+        with self.assertRaisesRegex(SmokeTestError, "following packet"):
+            validate_recording_timestamp_proof(
+                {"video": video, "audio": audio},
+                [
+                    _case(
+                        first_live=0.10,
+                        first_tts=0.08,
+                        audio_correction=0.06,
+                    )
+                ],
+                playback_fps=30,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

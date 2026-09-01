@@ -100,10 +100,17 @@ REACTION_POSE = {
     "empathy": "empathetic_head_tilt",
 }
 DEFAULT_MANIFEST = (
-    ROOT / "configs" / "pose_test" / "indian_tutor_essential_six_v1.json"
+    ROOT
+    / "configs"
+    / "pose_test"
+    / "sample_ai_human_ltx23_facetime_closeup_production_v1.json"
 )
 DEFAULT_ASSET_DIR = (
-    ROOT / "data" / "video" / "segmind_indian_essential_six_v1"
+    ROOT
+    / "assets"
+    / "ltx23_pose_banks"
+    / "sample_ai_human_facetime_closeup_production_v1"
+    / "certified"
 )
 DEFAULT_AUDIO_FILE = ROOT / "data" / "audio" / "eng.wav"
 
@@ -657,10 +664,29 @@ def validate_recording_timestamp_proof(
         current_pts = _numeric_stat([match], "current_source_seconds")
         sample_rate = int(match.get("sample_rate") or 48_000)
         audio_tolerance_seconds = max(2.0 / sample_rate, 1e-6)
-        if current_pts is None or abs(current_pts - expected_pts) > audio_tolerance_seconds:
+        audio_packet_seconds = _numeric_stat(
+            [match],
+            "expected_step_seconds",
+        ) or (960.0 / sample_rate)
+        receiver_offset_seconds = (
+            current_pts - expected_pts
+            if current_pts is not None
+            else float("inf")
+        )
+        # aiortc's receiver jitter buffer can begin the decoded stream on the
+        # packet immediately after a forward RTP rebase.  Accept that single
+        # normal 20 ms packet offset, but no larger receiver-visible skip.  The
+        # correction-size assertion below still has to match server telemetry.
+        if (
+            current_pts is None
+            or receiver_offset_seconds < -audio_tolerance_seconds
+            or receiver_offset_seconds
+            > audio_packet_seconds + audio_tolerance_seconds
+        ):
             raise SmokeTestError(
-                "Receiver audio RTP gap was not located immediately before the "
-                f"actual first-TTS packet: anomaly={match}, declared={declaration}"
+                "Receiver audio RTP gap was not located at the declared "
+                "first-TTS packet or the immediately following packet: "
+                f"anomaly={match}, declared={declaration}"
             )
         excess_seconds = _numeric_stat([match], "excess_seconds")
         if excess_seconds is None or abs(
@@ -670,6 +696,10 @@ def validate_recording_timestamp_proof(
                 "Receiver audio RTP gap size did not match server telemetry: "
                 f"anomaly={match}, declared={declaration}"
             )
+        declaration["receiver_first_observed_tts_pts_seconds"] = current_pts
+        declaration["receiver_first_packet_offset_seconds"] = (
+            receiver_offset_seconds
+        )
         unmatched_audio.remove(match)
 
     return {
@@ -715,6 +745,30 @@ def load_pose_set(path: Path) -> dict[str, Any]:
             raise SmokeTestError(
                 f"Pose entry {pose_id}.asset_file must be a plain filename."
             )
+        variants = entry.get("variants")
+        if variants is not None:
+            if pose_id != "speaking_direct" or not isinstance(variants, list):
+                raise SmokeTestError(
+                    "Only speaking_direct may define a variants array."
+                )
+            for variant in variants:
+                if not isinstance(variant, dict):
+                    raise SmokeTestError(
+                        "speaking_direct variants must be objects."
+                    )
+                if not str(variant.get("variant_id") or "").strip():
+                    raise SmokeTestError(
+                        "speaking_direct variants require variant_id."
+                    )
+                if not str(variant.get("avatar_id") or "").strip():
+                    raise SmokeTestError(
+                        "speaking_direct variants require avatar_id."
+                    )
+                variant_asset = str(variant.get("asset_file") or "").strip()
+                if not variant_asset or Path(variant_asset).name != variant_asset:
+                    raise SmokeTestError(
+                        "speaking_direct variants require a plain asset_file filename."
+                    )
     return value
 
 
@@ -729,7 +783,7 @@ def worker_pose_manifest(pose_set: dict[str, Any]) -> dict[str, Any]:
         "fps",
         "frame_count",
     )
-    return {
+    manifest = {
         "version": 1,
         "pose_set_id": str(pose_set.get("pose_set_id") or ""),
         "default_pose_id": "neutral_resting",
@@ -743,6 +797,58 @@ def worker_pose_manifest(pose_set: dict[str, Any]) -> dict[str, Any]:
             for pose_id in POSE_IDS
         },
     }
+    for pose_id in POSE_IDS:
+        entry = pose_set["poses"][pose_id]
+        if entry.get("variants") is not None:
+            manifest["poses"][pose_id]["variants"] = [
+                {
+                    "variant_id": str(variant["variant_id"]),
+                    "avatar_id": str(variant["avatar_id"]),
+                }
+                for variant in entry["variants"]
+            ]
+            manifest["poses"][pose_id]["variant_policy"] = str(
+                entry.get("variant_policy") or ""
+            )
+    return manifest
+
+
+def pose_asset_entries(pose_set: dict[str, Any]) -> list[dict[str, str | None]]:
+    """Return every unique physical cache source required by a pose set."""
+
+    results: list[dict[str, str | None]] = []
+    seen_avatar_ids: set[str] = set()
+    for pose_id in POSE_IDS:
+        entry = pose_set["poses"][pose_id]
+        variants = entry.get("variants") or []
+        if variants:
+            for variant in variants:
+                avatar_id = str(variant["avatar_id"])
+                if avatar_id in seen_avatar_ids:
+                    continue
+                seen_avatar_ids.add(avatar_id)
+                results.append(
+                    {
+                        "pose_id": pose_id,
+                        "variant_id": str(variant["variant_id"]),
+                        "avatar_id": avatar_id,
+                        "asset_file": str(variant["asset_file"]),
+                    }
+                )
+            continue
+        avatar_id = str(entry["avatar_id"])
+        if avatar_id in seen_avatar_ids:
+            continue
+        seen_avatar_ids.add(avatar_id)
+        results.append(
+            {
+                "pose_id": pose_id,
+                "variant_id": None,
+                "avatar_id": avatar_id,
+                "asset_file": str(entry.get("asset_file") or f"{pose_id}.mp4"),
+            }
+        )
+    return results
 
 
 def load_pose_plan_argument(raw_value: str | None) -> dict[str, Any] | None:
@@ -1093,9 +1199,11 @@ async def ensure_six_avatars(
     warm_timeout: int,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
-    for pose_id in POSE_IDS:
-        entry = pose_set["poses"][pose_id]
-        avatar_id = str(entry["avatar_id"])
+    for physical_entry in pose_asset_entries(pose_set):
+        pose_id = str(physical_entry["pose_id"])
+        variant_id = physical_entry["variant_id"]
+        avatar_id = str(physical_entry["avatar_id"])
+        label = f"{pose_id}/{variant_id}" if variant_id else pose_id
         status = await avatar_status(http, base_url, avatar_id)
         should_prepare = force_recreate or (
             not status.get("disk_prepared")
@@ -1106,9 +1214,9 @@ async def ensure_six_avatars(
                 raise SmokeTestError(
                     f"{avatar_id} is missing. Re-run with --prepare-missing."
                 )
-            asset_name = str(entry.get("asset_file") or f"{pose_id}.mp4")
+            asset_name = str(physical_entry["asset_file"])
             video_path = asset_dir / asset_name
-            print(f"[prepare] {pose_id}: {video_path}", flush=True)
+            print(f"[prepare] {label}: {video_path}", flush=True)
             await prepare_avatar(
                 http,
                 base_url=base_url,
@@ -1124,7 +1232,7 @@ async def ensure_six_avatars(
             status = await avatar_status(http, base_url, avatar_id)
 
         if status.get("status") != "ready":
-            print(f"[warm] {pose_id}: {avatar_id}", flush=True)
+            print(f"[warm] {label}: {avatar_id}", flush=True)
             status = await warm_avatar(
                 http,
                 base_url=base_url,
@@ -1133,13 +1241,14 @@ async def ensure_six_avatars(
                 timeout_seconds=warm_timeout,
             )
         print(
-            f"[ready] {pose_id}: {avatar_id} "
+            f"[ready] {label}: {avatar_id} "
             f"cached={status.get('cached')} disk={status.get('disk_prepared')}",
             flush=True,
         )
         results.append(
             {
                 "pose_id": pose_id,
+                "variant_id": variant_id,
                 "avatar_id": avatar_id,
                 "status": status.get("status"),
                 "cached": bool(status.get("cached")),
@@ -1235,6 +1344,7 @@ async def run_webrtc_smoke(
     pose_set: dict[str, Any],
     audio_file: Path,
     reaction_intent: str,
+    speaking_case_count: int,
     pose_plan: dict[str, Any] | None,
     musetalk_fps: int,
     playback_fps: int,
@@ -1894,10 +2004,25 @@ async def run_webrtc_smoke(
                         f"incomplete; missing {missing_rendered_poses}: {case_trace}"
                     )
 
+            selected_variant_render_keys = dict(
+                (
+                    accepted.get("pose_sequence")
+                    or {}
+                ).get("selected_pose_variant_render_keys")
+                or {}
+            )
             case_result = {
                 "case_index": case_index,
                 "turn_id": turn_id,
                 "reaction_intent": case_reaction_intent,
+                "generation_avatar_id": (
+                    (accepted.get("pose_sequence") or {}).get(
+                        "generation_avatar_id"
+                    )
+                ),
+                "selected_pose_variant_render_keys": (
+                    selected_variant_render_keys
+                ),
                 "pose_sequence": pose_sequence,
                 "pose_plan": pose_plan,
                 "compiled_pose_plan": compiled_pose_plan or None,
@@ -1917,7 +2042,7 @@ async def run_webrtc_smoke(
             }
             return case_result, current_pose_status
 
-        speaking_reaction_intents = [reaction_intent]
+        speaking_reaction_intents = [reaction_intent] * speaking_case_count
         if showcase_mvp_four_exhaustive:
             # Empathy and warmth together cover the merged listener/empathy
             # pose and the smile pose while the MuseTalk mouth is live.
@@ -1934,6 +2059,52 @@ async def run_webrtc_smoke(
                 case_index=case_index,
             )
             speaking_cases.append(case_result)
+
+        variant_rotation_validation = None
+        direct_variants = (
+            manifest["poses"]["speaking_direct"].get("variants") or []
+        )
+        if speaking_case_count > 1 and direct_variants:
+            expected_variant_render_keys = [
+                "speaking_direct__variant__"
+                + str(direct_variants[index % len(direct_variants)]["variant_id"])
+                for index in range(len(speaking_cases))
+            ]
+            observed_variant_render_keys = [
+                str(
+                    case["selected_pose_variant_render_keys"].get(
+                        "speaking_direct"
+                    )
+                    or ""
+                )
+                for case in speaking_cases
+            ]
+            if observed_variant_render_keys != expected_variant_render_keys:
+                raise SmokeTestError(
+                    "Direct-speaking variant rotation did not match the "
+                    "configured deterministic order: "
+                    f"expected={expected_variant_render_keys}, "
+                    f"observed={observed_variant_render_keys}"
+                )
+            for case, render_key in zip(
+                speaking_cases,
+                observed_variant_render_keys,
+            ):
+                if not any(
+                    entry.get("pose_id") == "speaking_direct"
+                    and entry.get("render_key") == render_key
+                    for entry in case["rendered_pose_trace"]
+                ):
+                    raise SmokeTestError(
+                        "Rendered direct-speaking trace omitted its selected "
+                        f"physical variant {render_key}: "
+                        f"{case['rendered_pose_trace']}"
+                    )
+            variant_rotation_validation = {
+                "validated": True,
+                "expected_render_keys": expected_variant_render_keys,
+                "observed_render_keys": observed_variant_render_keys,
+            }
 
         rendered_pose_trace = list(speaking_cases[0]["rendered_pose_trace"])
         pose_sequence = list(speaking_cases[0]["pose_sequence"])
@@ -2001,6 +2172,7 @@ async def run_webrtc_smoke(
             "server_sample_audio_frames_sent": max_server_audio_frames,
             "rendered_pose_trace": rendered_pose_trace,
             "speaking_cases": speaking_cases,
+            "variant_rotation_validation": variant_rotation_validation,
             "speaking_pose_ids": sorted(
                 {
                     str(entry.get("pose_id"))
@@ -2060,6 +2232,17 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             raise SmokeTestError(
                 "Worker does not advertise features.pose_sets_v1=true."
             )
+        has_variants = any(
+            bool(entry.get("variants"))
+            for entry in pose_set["poses"].values()
+        )
+        if (
+            has_variants
+            and capabilities["features"].get("pose_variants_v1") is not True
+        ):
+            raise SmokeTestError(
+                "Worker does not advertise features.pose_variants_v1=true."
+            )
         if (
             args.pose_plan is not None
             and capabilities["features"].get("pose_plans_v2") is not True
@@ -2093,6 +2276,7 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
             pose_set=pose_set,
             audio_file=args.audio_file,
             reaction_intent=args.reaction_intent,
+            speaking_case_count=args.speaking_case_count,
             pose_plan=args.pose_plan,
             musetalk_fps=args.musetalk_fps,
             playback_fps=args.playback_fps,
@@ -2130,7 +2314,7 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Prepare the six Indian tutor pose avatars and run one direct "
+            "Prepare a six-pose avatar bank and run one direct "
             "MuseTalk WebRTC conversation using an existing audio file."
         )
     )
@@ -2157,6 +2341,15 @@ def parse_args() -> argparse.Namespace:
         "--reaction-intent",
         choices=tuple(REACTION_POSE),
         default="warmth",
+    )
+    parser.add_argument(
+        "--speaking-case-count",
+        type=int,
+        default=1,
+        help=(
+            "Run this many assistant turns in one WebRTC session. Values above "
+            "one validate deterministic direct-speaking variant rotation."
+        ),
     )
     parser.add_argument(
         "--pose-plan-json",
@@ -2270,10 +2463,11 @@ def parse_args() -> argparse.Namespace:
         or args.max_pose_semantic_drift_ms < 0
         or args.record_postroll_seconds < 0
         or args.showcase_initial_neutral_seconds < 0
+        or not 1 <= args.speaking_case_count <= 4
     ):
         parser.error(
             "FPS, batch size, and timeout values must be positive; semantic "
-            "drift must be non-negative."
+            "drift must be non-negative; speaking-case-count must be 1-4."
         )
     return args
 
@@ -2281,8 +2475,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     print(
-        "WARNING: this manifest is draft/test-only and switch_safe=false. "
-        "The smoke test is for visual evaluation, not production approval.",
+        "NOTICE: this smoke test provides technical media evidence; final "
+        "motion approval remains a human visual review.",
         file=sys.stderr,
     )
     if aiohttp is None:

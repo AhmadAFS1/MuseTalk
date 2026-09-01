@@ -1330,7 +1330,16 @@ class HLSGPUStreamScheduler:
             gathered_latents_by_frame = []
             for relative_frame, snapshot in enumerate(live_pose_snapshots):
                 pose_id = snapshot.pose_id if snapshot is not None else "default"
-                pose_avatar = job.pose_avatars.get(pose_id, job.avatar)
+                render_key = (
+                    snapshot.effective_render_key
+                    if snapshot is not None
+                    else "default"
+                )
+                pose_avatar = job.pose_avatars.get(render_key, job.avatar)
+                if render_key != pose_id and render_key not in job.pose_avatars:
+                    raise RuntimeError(
+                        f"Prepared pose variant is unavailable: {render_key}"
+                    )
                 latent_cycle = getattr(
                     pose_avatar,
                     "input_latent_cycle_batch_tensor",
@@ -1668,6 +1677,8 @@ class HLSGPUStreamScheduler:
                     while (
                         group_end < len(live_pose_snapshots)
                         and live_pose_snapshots[group_end].pose_id == snapshot.pose_id
+                        and live_pose_snapshots[group_end].effective_render_key
+                        == snapshot.effective_render_key
                         and live_pose_snapshots[group_end].origin_generation_frame
                         == snapshot.origin_generation_frame
                     ):
@@ -1687,7 +1698,16 @@ class HLSGPUStreamScheduler:
                     else None
                 )
                 pose_id = snapshot.pose_id if snapshot is not None else "default"
-                pose_avatar = job.pose_avatars.get(pose_id, job.avatar)
+                render_key = (
+                    snapshot.effective_render_key
+                    if snapshot is not None
+                    else "default"
+                )
+                pose_avatar = job.pose_avatars.get(render_key, job.avatar)
+                if render_key != pose_id and render_key not in job.pose_avatars:
+                    raise RuntimeError(
+                        f"Prepared pose variant is unavailable: {render_key}"
+                    )
                 generation_index = start_frame_idx + rel_index
                 cycle_index = (
                     live_pose_router.source_frame_index(snapshot, generation_index)
@@ -1711,6 +1731,10 @@ class HLSGPUStreamScheduler:
                 "frames": frames,
                 "live_pose_ids": [
                     snapshot.pose_id
+                    for snapshot in (live_pose_snapshots or [])
+                ],
+                "live_pose_render_keys": [
+                    snapshot.effective_render_key
                     for snapshot in (live_pose_snapshots or [])
                 ],
                 "live_pose_crossfade_frames": [
@@ -1828,6 +1852,7 @@ class HLSGPUStreamScheduler:
                     job.session.record_rendered_pose_batch(
                         compose_info.get("live_pose_ids") or [],
                         rendered_start_frame_idx,
+                        compose_info.get("live_pose_render_keys") or [],
                     )
                 job.composed_frame_idx += len(frames)
                 job.last_progress_at = time.time()
@@ -1878,6 +1903,9 @@ class HLSGPUStreamScheduler:
                         :rendered_frame_count
                     ],
                     rendered_start_frame_idx,
+                    (compose_info.get("live_pose_render_keys") or [])[
+                        :rendered_frame_count
+                    ],
                 )
 
                 startup_target = self._next_chunk_target_frames(job)

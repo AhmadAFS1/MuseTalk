@@ -100,6 +100,39 @@ class LivePoseVideoRouterTest(unittest.TestCase):
         self.assertEqual(snapshot.pose_id, "light_smile")
         self.assertEqual([frame[1] for frame in frames], [0, 3, 6])
 
+    def test_direct_variant_selection_is_deterministic_and_semantic_id_stays_stable(self):
+        root = Path(self.temp_dir.name)
+        variant_keys = [
+            "speaking_direct__variant__calm",
+            "speaking_direct__variant__reference_paced",
+        ]
+        for render_key in variant_keys:
+            path = root / f"{render_key}.mp4"
+            path.write_bytes(b"test")
+            self.paths[render_key] = str(path)
+        router = LivePoseVideoRouter(
+            self.paths,
+            pose_variant_render_keys={"speaking_direct": variant_keys},
+            decoder_factory=FakeDecoder,
+        )
+
+        first = router.set_variant_context("pose-set:session:turn-1")
+        repeat = router.set_variant_context("pose-set:session:turn-1")
+        self.assertEqual(first, repeat)
+
+        second_turn = router.set_variant_context("pose-set:session:turn-2")
+        self.assertNotEqual(
+            first["speaking_direct"],
+            second_turn["speaking_direct"],
+        )
+        router.set_variant_context("pose-set:session:turn-1")
+
+        router.queue_pose_sequence(["speaking_direct"], generation_fps=10)
+        snapshot = router.snapshot(0, 10)
+        self.assertEqual(snapshot.pose_id, "speaking_direct")
+        self.assertIn(snapshot.effective_render_key, variant_keys)
+        self.assertIn("speaking_direct__variant__", snapshot.effective_render_key)
+
     def test_in_flight_snapshot_keeps_its_pose_after_switch(self):
         router = LivePoseVideoRouter(self.paths, decoder_factory=FakeDecoder)
         router.switch_pose("light_smile")

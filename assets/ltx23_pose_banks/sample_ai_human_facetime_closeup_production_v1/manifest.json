@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "pose_set_id": "sample_ai_human_ltx23_facetime_closeup_production_v1",
+  "created_at": "2026-09-01T00:00:00Z",
+  "status": "production_default_live_webrtc_verified",
+  "purpose": "Production close-up LTX 2.3 bank selected from the user's approved V6/V8/V14/V15 assets. The full-shoulder bank remains retained as an inactive alternative.",
+  "source_portrait": {
+    "file": "source/sample_ai_human_facetime_v1.png",
+    "sha256": "0e893bd133c22de532ced133f91e136a2896663612c506b9801c64ddd3d1e919",
+    "generation_source": "/workspace/LTX-2.3/inputs/musetalk-avatar-samples/sample_ai_human_facetime_v1.png"
+  },
+  "delivery_contract": {
+    "width": 480,
+    "height": 832,
+    "fps": 24,
+    "pixel_format": "yuv420p",
+    "audio_streams": 0,
+    "canonical_handle_frames_each_end": 6,
+    "blend_frames_each_end": 6,
+    "shared_decoded_boundary_rgb_sha256": "47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33"
+  },
+  "logical_aliases": {
+    "neutral_resting": "idle_active_listening",
+    "active_listening": "idle_active_listening"
+  },
+  "speaking_variant_policy": {
+    "semantic_pose_id": "speaking_direct",
+    "policy": "deterministic_boundary_rotation",
+    "fallback_variant": "v14_subtle",
+    "variants": [
+      "v14_subtle",
+      "v15_reference_paced"
+    ]
+  },
+  "poses": [
+    {
+      "name": "idle_active_listening",
+      "file": "certified/idle_active_listening.mp4",
+      "frame_count": 241,
+      "duration_seconds": 10.041667,
+      "video_sha256": "099877cef231ce12dede03843c558d10c2fa1e9c4e054c83be595e81a00f6ae4",
+      "decoded_boundary_rgb_sha256": "47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33",
+      "generation_mode": "preserved_certified_asset_byte_for_byte",
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v6_user_review/certified/active_listening.mp4",
+      "prompt_profile": "/workspace/LTX-2.3/musetalk_pose_banks/user_review_v6_prompt_pack.json#poses.active_listening",
+      "derivation": "User-approved V6 active-listening clip, also selected as the default idle loop."
+    },
+    {
+      "name": "speaking_direct_v14_subtle",
+      "file": "certified/speaking_direct_v14_subtle.mp4",
+      "frame_count": 289,
+      "duration_seconds": 12.041667,
+      "video_sha256": "20f98455436b4f6f77525edc89a2c89495b67c15b710cd1332ec0e783e6670e0",
+      "decoded_boundary_rgb_sha256": "47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33",
+      "generation_mode": "preserved_certified_asset_byte_for_byte",
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v14_speaking_gaze_locked_subtle_motion_candidate/certified/speaking_direct.mp4",
+      "prompt_profile": "/workspace/LTX-2.3/musetalk_pose_banks/user_review_v14_speaking_gaze_locked_subtle_motion_prompt_pack.json#poses.speaking_direct"
+    },
+    {
+      "name": "speaking_direct_v15_reference_paced",
+      "file": "certified/speaking_direct_v15_reference_paced.mp4",
+      "frame_count": 289,
+      "duration_seconds": 12.041667,
+      "video_sha256": "c8ce2774f916a7466e7ff28fb25583ab617bc01f744069c90e997dbf45605db0",
+      "decoded_boundary_rgb_sha256": "47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33",
+      "generation_mode": "preserved_certified_asset_byte_for_byte",
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v15_speaking_reference_paced_candidate/certified/speaking_direct.mp4",
+      "prompt_profile": "/workspace/LTX-2.3/musetalk_pose_banks/user_review_v15_speaking_reference_paced_prompt_pack.json#poses.speaking_direct"
+    },
+    {
+      "name": "nod_agree",
+      "file": "certified/nod_agree.mp4",
+      "frame_count": 145,
+      "duration_seconds": 6.041667,
+      "video_sha256": "96b71f04ccfec8750f8534c2b9e8d3c2064c492cb9fd1e89e69d0f6505b5b604",
+      "decoded_boundary_rgb_sha256": "47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33",
+      "generation_mode": "preserved_certified_asset_byte_for_byte",
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v6_user_review/certified/nod_agree.mp4",
+      "prompt_profile": "/workspace/LTX-2.3/musetalk_pose_banks/user_review_v6_prompt_pack.json#poses.nod_agree",
+      "derivation": "User-approved V6 nod/agreement asset."
+    },
+    {
+      "name": "empathetic_head_tilt",
+      "file": "certified/empathetic_head_tilt.mp4",
+      "frame_count": 241,
+      "duration_seconds": 10.041667,
+      "video_sha256": "d8260d60bdd4288150502c214eed1f9587dfb493afbd391471a9c4441e039327",
+      "decoded_boundary_rgb_sha256": "47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33",
+      "generation_mode": "preserved_certified_asset_byte_for_byte",
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v6_user_review/certified/empathetic_head_tilt.mp4",
+      "prompt_profile": "/workspace/LTX-2.3/musetalk_pose_banks/user_review_v6_prompt_pack.json#poses.empathetic_head_tilt",
+      "derivation": "User-approved V6 slow empathetic tilt."
+    },
+    {
+      "name": "light_smile",
+      "file": "certified/light_smile.mp4",
+      "frame_count": 145,
+      "duration_seconds": 6.041667,
+      "video_sha256": "55561a4f0bb7e5e7ea1a5598ceb6e36b5f579239958fd25a27bccda3bc1a2ed6",
+      "decoded_boundary_rgb_sha256": "47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33",
+      "generation_mode": "preserved_certified_asset_byte_for_byte",
+      "source_asset": "/workspace/LTX-2.3/musetalk_pose_banks/sample_ai_human_facetime_v8_user_review/certified/light_smile.mp4",
+      "prompt_profile": "/workspace/LTX-2.3/musetalk_pose_banks/user_review_v8_prompt_pack.json#poses.light_smile",
+      "derivation": "User-approved V8 moderate closed-lip smile."
+    }
+  ],
+  "inactive_retained_alternative": {
+    "pose_set_id": "sample_ai_human_ltx23_facetime_wide_production_v1",
+    "asset_bundle": "assets/ltx23_pose_banks/sample_ai_human_facetime_wide_production_v1",
+    "reason": "The user preferred the close-up composition; the wider shoulder-width bank remains available on the back burner."
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-09-01",
+  "result": "passed",
+  "pose_set_id": "sample_ai_human_ltx23_facetime_closeup_production_v1",
+  "session_id": "y86vQ74o-7VG8dZkGeKC4Q",
+  "recording": "sample_ai_human_ltx23_closeup_production_v1_webrtc_capture.mp4",
+  "recording_duration_seconds": 79.474,
+  "video": "H.264 480x832",
+  "audio": "AAC",
+  "receiver_timestamp_validation": "passed",
+  "showcase_pose_trace": [
+    {"pose_id": "active_listening", "at_seconds": 0.381},
+    {"pose_id": "speaking_direct", "render_key": "speaking_direct__variant__v14_subtle", "at_seconds": 10.308},
+    {"pose_id": "nod_agree", "at_seconds": 22.606},
+    {"pose_id": "empathetic_head_tilt", "at_seconds": 28.679},
+    {"pose_id": "light_smile", "at_seconds": 38.822},
+    {"pose_id": "neutral_resting", "at_seconds": 45.063}
+  ],
+  "speaking_turn_rotation": {
+    "expected_render_keys": [
+      "speaking_direct__variant__v14_subtle",
+      "speaking_direct__variant__v15_reference_paced"
+    ],
+    "observed_render_keys": [
+      "speaking_direct__variant__v14_subtle",
+      "speaking_direct__variant__v15_reference_paced"
+    ],
+    "validation": "passed"
+  },
+  "unit_tests": {
+    "count": 83,
+    "result": "passed"
+  },
+  "cache_recreated": false,
+  "old_assets_deleted": false
+}
