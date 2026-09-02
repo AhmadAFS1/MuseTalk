@@ -26,6 +26,20 @@ assets/ltx23_pose_banks/sample_ai_human_facetime_closeup_production_v1/
 
 ## Approved asset selection
 
+These are the best videos produced and approved so far. This table is the canonical selection for MuseTalk; later shoulder-width rerenders did not replace any of these winners.
+
+| Logical role | Best video so far | Production file | Why it won |
+|---|---|---|---|
+| neutral resting | close-up V6 active listening | `certified/idle_active_listening.mp4` | Best natural always-on behavior; subtle attention, blinking, and restrained motion without looking frozen |
+| active listening | close-up V6 active listening | `certified/idle_active_listening.mp4` | The user described this motion as essentially perfect, so idle and listening intentionally share it |
+| direct speaking baseline | close-up V14 | `certified/speaking_direct_v14_subtle.mp4` | Best steady camera gaze and subtle conversational motion |
+| direct speaking variation | close-up V15 | `certified/speaking_direct_v15_reference_paced.mp4` | Best occasional faster natural accents without widening the overall movement envelope |
+| nod/agreement | close-up V6 nod | `certified/nod_agree.mp4` | Best retained ordinary agreement gesture from the approved six-pose review |
+| empathetic response | close-up V6 slow tilt | `certified/empathetic_head_tilt.mp4` | Best slow, readable empathetic tilt without the earlier excessive speed |
+| light smile | close-up V8 moderate smile | `certified/light_smile.mp4` | Best balance between an imperceptible micro-smile and an overly broad smile |
+
+V14 and V15 are co-winners rather than competing replacements. V14 is the calmer default physical render; V15 supplies timing variation on alternating new speaking turns. Both remain one semantic `speaking_direct` pose.
+
 | Use | Approved source | SHA-256 | Existing prepared avatar ID |
 |---|---|---|---|
 | neutral + listening | V6 active listening | `099877cef231ce12dede03843c558d10c2fa1e9c4e054c83be595e81a00f6ae4` | `sample_ai_human_ltx23_user_review_six_v6_active_listening` |

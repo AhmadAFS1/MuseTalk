@@ -73,6 +73,10 @@ The active close-up production bank consists of:
 5. one slow empathetic head tilt; and
 6. one moderate closed-mouth smile.
 
+### Current best-of asset set
+
+The best videos approved so far are the close-up V6 active-listening loop for both idle and listening, close-up V14 and V15 together for direct speech, the close-up V6 nod, the close-up V6 slow empathetic tilt, and the close-up V8 moderate smile. V14 provides the calmer speaking baseline; V15 provides occasional reference-paced accents on alternating turns. The shoulder-width rerenders remain installed as an inactive alternative and are not the current production choice.
+
 | Communication function | Semantic label | Logical pose ID | Physical MVP motion |
 |---|---|---|---|
 | Default idle | N/A | `neutral_resting` | Shared restrained idle/listener |

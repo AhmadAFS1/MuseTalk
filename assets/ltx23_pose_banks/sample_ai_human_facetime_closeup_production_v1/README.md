@@ -2,6 +2,16 @@
 
 This is the active MuseTalk production bank selected from the close-up clips the user approved during V6, V8, V14, and V15 review.
 
+## Best videos so far
+
+- **Best idle and listening:** V6 active listening, used for both roles.
+- **Best direct speaking:** V14 subtle and V15 reference-paced, retained together as alternating variants.
+- **Best nod/agreement:** V6 approved nod.
+- **Best empathetic response:** V6 slow empathetic tilt.
+- **Best smile:** V8 moderate closed-lip smile.
+
+The close-up composition is the preferred overall framing for a video call. The shoulder-width bank is useful experimental work but is not part of the active best-of selection.
+
 Neutral and active listening share the approved V6 active-listening loop. Nod and empathy are the approved V6 assets. Light smile is the approved V8 moderate smile. Direct speech alternates deterministically between the approved close-up V14 subtle and V15 reference-paced variants.
 
 All six physical MP4s are 480×832, 24 fps, silent H.264/yuv420p. Their first six and final six decoded RGB frames are identical and share boundary hash `47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33`.
