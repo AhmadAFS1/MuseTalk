@@ -1,5 +1,7 @@
 # Git audit — 2026-09-15
 
+> **GPU provenance:** Audit host: NVIDIA GeForce RTX 4070, 12 GB (12,282 MiB visible), driver 570.181. Git synchronization and disk inspection are read-only checks, not GPU inference tests.
+
 Result: the main application checkouts matched freshly fetched GitHub main branches before this deployment change. **Not everything on this machine is in Git.** No existing experiment edits were committed or overwritten by this audit.
 
 | Repository | Local HEAD at audit | Ahead / behind origin/main | Tracked/untracked source changes |
