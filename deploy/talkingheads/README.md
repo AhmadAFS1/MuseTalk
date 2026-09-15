@@ -1,5 +1,8 @@
 # Vast.ai: MuseTalk + SoulX-FlashHead + Ditto
 
+Already installing MuseTalk? Use the [FlashHead + Ditto companion](FLASHHEAD_DITTO_COMPANION.md), which coordinates with the existing bootstrap and installs only the two additional repositories.
+
+
 > **GPU provenance — installer validation:** The audit host has an NVIDIA GeForce RTX 4070, 12 GB (12,282 MiB visible), driver 570.181. The installer checks performed on this host were shell/static, dependency-resolution and control-flow checks; no fresh three-repository GPU install or inference validation was performed. RTX 3090/4090/A100 above are deployment suggestions, not GPUs tested by this installer run. Existing MuseTalk RTX 3090 results are historical and documented separately.
 
 ## Instance settings
