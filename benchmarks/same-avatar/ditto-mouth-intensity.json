@@ -1,0 +1,79 @@
+{
+  "gpu": "NVIDIA GeForce RTX 4070 SUPER",
+  "model_load_s": 1.8669234310218599,
+  "fps": 25,
+  "fade_type": "s",
+  "fade_out_frames": 15,
+  "input_frames": 250,
+  "levels": [
+    {
+      "vad_alpha": 0.0,
+      "output": "/workspace/benchmarks/same-avatar/ditto-mouth-0p0.mp4",
+      "frames": 250,
+      "elapsed_s": 7.682563536014641,
+      "end_to_end_fps_excluding_model_load": 32.54122127699167,
+      "mouth_roi_xyxy": [
+        115,
+        255,
+        269,
+        390
+      ],
+      "mouth_roi_mean_temporal_abs_0_255": 2.143861513071687,
+      "full_frame_mean_temporal_abs_0_255": 0.5071080608395886,
+      "first_last_exact_equal": false,
+      "first_last_mean_abs_0_255": 0.7330380394345238
+    },
+    {
+      "vad_alpha": 0.3,
+      "output": "/workspace/benchmarks/same-avatar/ditto-mouth-0p3.mp4",
+      "frames": 250,
+      "elapsed_s": 7.658563392993528,
+      "end_to_end_fps_excluding_model_load": 32.64319783899858,
+      "mouth_roi_xyxy": [
+        115,
+        255,
+        269,
+        390
+      ],
+      "mouth_roi_mean_temporal_abs_0_255": 2.4336549017941254,
+      "full_frame_mean_temporal_abs_0_255": 0.5332476773828116,
+      "first_last_exact_equal": false,
+      "first_last_mean_abs_0_255": 0.7299856357473545
+    },
+    {
+      "vad_alpha": 0.7,
+      "output": "/workspace/benchmarks/same-avatar/ditto-mouth-0p7.mp4",
+      "frames": 250,
+      "elapsed_s": 7.693095838010777,
+      "end_to_end_fps_excluding_model_load": 32.49667042554914,
+      "mouth_roi_xyxy": [
+        115,
+        255,
+        269,
+        390
+      ],
+      "mouth_roi_mean_temporal_abs_0_255": 3.0681126300938883,
+      "full_frame_mean_temporal_abs_0_255": 0.5914792291686588,
+      "first_last_exact_equal": false,
+      "first_last_mean_abs_0_255": 0.747537925760582
+    },
+    {
+      "vad_alpha": 1.0,
+      "output": "/workspace/benchmarks/same-avatar/ditto-mouth-1p0.mp4",
+      "frames": 250,
+      "elapsed_s": 7.679651038022712,
+      "end_to_end_fps_excluding_model_load": 32.55356249421038,
+      "mouth_roi_xyxy": [
+        115,
+        255,
+        269,
+        390
+      ],
+      "mouth_roi_mean_temporal_abs_0_255": 3.645833550652828,
+      "full_frame_mean_temporal_abs_0_255": 0.6455238530178917,
+      "first_last_exact_equal": false,
+      "first_last_mean_abs_0_255": 0.7672164351851852
+    }
+  ],
+  "metric_note": "Mouth ROI temporal MAE is a visual-motion proxy for this fixed portrait, not a landmark or lip-sync accuracy score."
+}
