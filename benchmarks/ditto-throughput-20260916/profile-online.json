@@ -1,0 +1,264 @@
+{
+  "mode": "online",
+  "note": "Unpaced, no encoding or transport. Concurrent host call durations overlap; do not sum as GPU time.",
+  "runs": [
+    {
+      "rep": 0,
+      "frames": 260,
+      "elapsed_s": 8.098403971991502,
+      "fps": 32.10509143520321,
+      "first_frame_s": 0.2666808539943304,
+      "output_span_fps": 33.23413407953843,
+      "stages": {
+        "hubert_fp32.engine:setup": {
+          "calls": 51,
+          "total_s": 0.06490799190942198,
+          "mean_ms": 1.2727057237141564
+        },
+        "hubert_fp32.engine:infer": {
+          "calls": 51,
+          "total_s": 2.1632547418412287,
+          "mean_ms": 42.41675964394566
+        },
+        "lmdm_v0.4_hubert_fp32.engine:setup": {
+          "calls": 260,
+          "total_s": 0.589886719128117,
+          "mean_ms": 2.268795073569681
+        },
+        "lmdm_v0.4_hubert_fp32.engine:infer": {
+          "calls": 260,
+          "total_s": 6.892128906882135,
+          "mean_ms": 26.50818810339283
+        },
+        "stitch_network_fp16.engine:setup": {
+          "calls": 260,
+          "total_s": 0.5968580372282304,
+          "mean_ms": 2.2956078354931937
+        },
+        "stitch_network_fp16.engine:infer": {
+          "calls": 260,
+          "total_s": 0.6345698479562998,
+          "mean_ms": 2.4406532613703837
+        },
+        "warp_network_fp16.engine:setup": {
+          "calls": 260,
+          "total_s": 0.8357964011374861,
+          "mean_ms": 3.214601542836485
+        },
+        "warp_network_fp16.engine:infer": {
+          "calls": 260,
+          "total_s": 4.227635473915143,
+          "mean_ms": 16.260136438135167
+        },
+        "decoder_fp16.engine:setup": {
+          "calls": 260,
+          "total_s": 0.7374490551301278,
+          "mean_ms": 2.836342519731261
+        },
+        "decoder_fp16.engine:infer": {
+          "calls": 260,
+          "total_s": 6.494235671852948,
+          "mean_ms": 24.97782950712672
+        }
+      }
+    },
+    {
+      "rep": 1,
+      "frames": 260,
+      "elapsed_s": 8.07738704798976,
+      "fps": 32.188627145793006,
+      "first_frame_s": 0.2513530720025301,
+      "output_span_fps": 33.09556539953917,
+      "stages": {
+        "hubert_fp32.engine:setup": {
+          "calls": 51,
+          "total_s": 0.0842724290851038,
+          "mean_ms": 1.6524005702961528
+        },
+        "hubert_fp32.engine:infer": {
+          "calls": 51,
+          "total_s": 2.356362932099728,
+          "mean_ms": 46.203194747053494
+        },
+        "lmdm_v0.4_hubert_fp32.engine:setup": {
+          "calls": 260,
+          "total_s": 0.6944226038758643,
+          "mean_ms": 2.6708561687533243
+        },
+        "lmdm_v0.4_hubert_fp32.engine:infer": {
+          "calls": 260,
+          "total_s": 6.807871677010553,
+          "mean_ms": 26.184121834655976
+        },
+        "stitch_network_fp16.engine:setup": {
+          "calls": 260,
+          "total_s": 0.6101083863468375,
+          "mean_ms": 2.346570716718606
+        },
+        "stitch_network_fp16.engine:infer": {
+          "calls": 260,
+          "total_s": 0.6506781850766856,
+          "mean_ms": 2.5026084041410988
+        },
+        "warp_network_fp16.engine:setup": {
+          "calls": 260,
+          "total_s": 0.890479906956898,
+          "mean_ms": 3.4249227190649925
+        },
+        "warp_network_fp16.engine:infer": {
+          "calls": 260,
+          "total_s": 4.431905494973762,
+          "mean_ms": 17.0457903652837
+        },
+        "decoder_fp16.engine:setup": {
+          "calls": 260,
+          "total_s": 0.6472887127310969,
+          "mean_ms": 2.4895719720426803
+        },
+        "decoder_fp16.engine:infer": {
+          "calls": 260,
+          "total_s": 6.64243655995233,
+          "mean_ms": 25.547832922893576
+        }
+      }
+    }
+  ],
+  "isolated": {
+    "warp": {
+      "mean_ms": 9.233962453436106,
+      "note": "Preallocated buffers; synchronous transfers included, setup excluded.",
+      "tensors": {
+        "feature_3d": {
+          "shape": [
+            1,
+            32,
+            16,
+            64,
+            64
+          ],
+          "bytes": 8388608
+        },
+        "kp_source": {
+          "shape": [
+            1,
+            21,
+            3
+          ],
+          "bytes": 252
+        },
+        "kp_driving": {
+          "shape": [
+            1,
+            21,
+            3
+          ],
+          "bytes": 252
+        },
+        "out": {
+          "shape": [
+            1,
+            256,
+            64,
+            64
+          ],
+          "bytes": 4194304
+        }
+      }
+    },
+    "decoder": {
+      "mean_ms": 15.629612996417563,
+      "note": "Preallocated buffers; synchronous transfers included, setup excluded.",
+      "tensors": {
+        "feature": {
+          "shape": [
+            1,
+            256,
+            64,
+            64
+          ],
+          "bytes": 4194304
+        },
+        "output": {
+          "shape": [
+            1,
+            3,
+            512,
+            512
+          ],
+          "bytes": 3145728
+        }
+      }
+    },
+    "motion_step": {
+      "mean_ms": 3.4078375960234553,
+      "note": "Preallocated buffers; synchronous transfers included, setup excluded.",
+      "tensors": {
+        "x": {
+          "shape": [
+            1,
+            80,
+            265
+          ],
+          "bytes": 84800
+        },
+        "cond_frame": {
+          "shape": [
+            1,
+            265
+          ],
+          "bytes": 1060
+        },
+        "cond": {
+          "shape": [
+            1,
+            80,
+            1103
+          ],
+          "bytes": 352960
+        },
+        "time_cond": {
+          "shape": [
+            1
+          ],
+          "bytes": 4
+        },
+        "x_start": {
+          "shape": [
+            1,
+            80,
+            265
+          ],
+          "bytes": 84800
+        },
+        "pred_noise": {
+          "shape": [
+            1,
+            80,
+            265
+          ],
+          "bytes": 84800
+        }
+      }
+    },
+    "hubert": {
+      "mean_ms": 6.820249652082566,
+      "note": "Preallocated buffers; synchronous transfers included, setup excluded.",
+      "tensors": {
+        "input_values": {
+          "shape": [
+            1,
+            6480
+          ],
+          "bytes": 25920
+        },
+        "encoding_out": {
+          "shape": [
+            20,
+            1024
+          ],
+          "bytes": 81920
+        }
+      }
+    }
+  }
+}

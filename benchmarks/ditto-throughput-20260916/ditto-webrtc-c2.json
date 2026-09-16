@@ -1,0 +1,59 @@
+{
+  "gpu": "NVIDIA GeForce RTX 4070 SUPER",
+  "sessions_requested": 2,
+  "sessions_completed": 2,
+  "fps": 25,
+  "frames_per_session": 250,
+  "audio_chunk_interval_s": 0.2,
+  "online_config": "/workspace/ditto-talkinghead/checkpoints/ditto_cfg/v0.4_hubert_cfg_trt_online.pkl",
+  "events": {
+    "process_start": 1789522496.1407015,
+    "sessions_requested": 2,
+    "model_load_start": 1789522496.1407225,
+    "model_load_end": 1789522499.3581655,
+    "avatar_setup_start": 1789522499.358166,
+    "avatar_setup_end": 1789522499.7285154,
+    "webrtc_ready": 1789522500.5103126,
+    "workers_started": 1789522500.510686,
+    "test_end": 1789522517.6510527
+  },
+  "peers": [
+    {
+      "index": 0,
+      "frames": 250,
+      "first_frame_at": 1789522501.399375,
+      "last_frame_at": 1789522517.382417,
+      "model_loaded_at": 1789522497.835284,
+      "model_load_s": 1.6945605278015137,
+      "avatar_ready_at": 1789522499.5743794,
+      "audio_start_at": 1789522500.510656,
+      "audio_feed_end_at": 1789522510.6546242,
+      "generation_end_at": 1789522517.651026,
+      "first_frame_s": 0.888718843460083,
+      "playout_s": 15.983042001724243,
+      "received_fps": 15.579011803456313,
+      "max_gap_s": 0.13937878608703613,
+      "p95_gap_s": 0.10820269584655762,
+      "gaps_over_80ms": 78
+    },
+    {
+      "index": 1,
+      "frames": 250,
+      "first_frame_at": 1789522501.4053364,
+      "last_frame_at": 1789522517.2792153,
+      "model_loaded_at": 1789522499.3581622,
+      "model_load_s": 1.5228745937347412,
+      "avatar_ready_at": 1789522499.728514,
+      "audio_start_at": 1789522500.5106065,
+      "audio_feed_end_at": 1789522510.790921,
+      "generation_end_at": 1789522517.6294155,
+      "first_frame_s": 0.8947298526763916,
+      "playout_s": 15.873878955841064,
+      "received_fps": 15.686147078019403,
+      "max_gap_s": 0.18053555488586426,
+      "p95_gap_s": 0.12938475608825684,
+      "gaps_over_80ms": 72
+    }
+  ],
+  "aggregate_received_fps": 29.170904336397577
+}

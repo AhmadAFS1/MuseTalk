@@ -1,0 +1,126 @@
+{
+  "mode": "offline",
+  "note": "Unpaced, no encoding or transport. Concurrent host call durations overlap; do not sum as GPU time.",
+  "runs": [
+    {
+      "rep": 0,
+      "frames": 250,
+      "elapsed_s": 7.614143087004777,
+      "fps": 32.83363566238733,
+      "first_frame_s": 0.6210406349855475,
+      "output_span_fps": 35.83915179161084,
+      "stages": {
+        "hubert_fp32.engine:setup": {
+          "calls": 50,
+          "total_s": 0.00445124096586369,
+          "mean_ms": 0.0890248193172738
+        },
+        "hubert_fp32.engine:infer": {
+          "calls": 50,
+          "total_s": 0.3761971570784226,
+          "mean_ms": 7.523943141568452
+        },
+        "lmdm_v0.4_hubert_fp32.engine:setup": {
+          "calls": 200,
+          "total_s": 0.4450776792364195,
+          "mean_ms": 2.2253883961820975
+        },
+        "lmdm_v0.4_hubert_fp32.engine:infer": {
+          "calls": 200,
+          "total_s": 5.27710948290769,
+          "mean_ms": 26.38554741453845
+        },
+        "stitch_network_fp16.engine:setup": {
+          "calls": 250,
+          "total_s": 0.7310252981551457,
+          "mean_ms": 2.924101192620583
+        },
+        "stitch_network_fp16.engine:infer": {
+          "calls": 250,
+          "total_s": 0.7822599970386364,
+          "mean_ms": 3.1290399881545454
+        },
+        "warp_network_fp16.engine:setup": {
+          "calls": 250,
+          "total_s": 0.9351822758617345,
+          "mean_ms": 3.740729103446938
+        },
+        "warp_network_fp16.engine:infer": {
+          "calls": 250,
+          "total_s": 4.197621526720468,
+          "mean_ms": 16.790486106881872
+        },
+        "decoder_fp16.engine:setup": {
+          "calls": 250,
+          "total_s": 0.6244710060418583,
+          "mean_ms": 2.4978840241674334
+        },
+        "decoder_fp16.engine:infer": {
+          "calls": 250,
+          "total_s": 6.150964673812268,
+          "mean_ms": 24.603858695249073
+        }
+      }
+    },
+    {
+      "rep": 1,
+      "frames": 250,
+      "elapsed_s": 7.538421798002673,
+      "fps": 33.163440133615,
+      "first_frame_s": 0.5861984799848869,
+      "output_span_fps": 35.816955659815754,
+      "stages": {
+        "hubert_fp32.engine:setup": {
+          "calls": 50,
+          "total_s": 0.004845370014663786,
+          "mean_ms": 0.09690740029327571
+        },
+        "hubert_fp32.engine:infer": {
+          "calls": 50,
+          "total_s": 0.34070913700270467,
+          "mean_ms": 6.814182740054093
+        },
+        "lmdm_v0.4_hubert_fp32.engine:setup": {
+          "calls": 200,
+          "total_s": 0.49996408910374157,
+          "mean_ms": 2.499820445518708
+        },
+        "lmdm_v0.4_hubert_fp32.engine:infer": {
+          "calls": 200,
+          "total_s": 5.29560077941278,
+          "mean_ms": 26.4780038970639
+        },
+        "stitch_network_fp16.engine:setup": {
+          "calls": 250,
+          "total_s": 0.7477325002546422,
+          "mean_ms": 2.990930001018569
+        },
+        "stitch_network_fp16.engine:infer": {
+          "calls": 250,
+          "total_s": 0.8784438665024936,
+          "mean_ms": 3.5137754660099745
+        },
+        "warp_network_fp16.engine:setup": {
+          "calls": 250,
+          "total_s": 1.1492917570867576,
+          "mean_ms": 4.59716702834703
+        },
+        "warp_network_fp16.engine:infer": {
+          "calls": 250,
+          "total_s": 4.170772676938213,
+          "mean_ms": 16.683090707752854
+        },
+        "decoder_fp16.engine:setup": {
+          "calls": 250,
+          "total_s": 0.608238938060822,
+          "mean_ms": 2.432955752243288
+        },
+        "decoder_fp16.engine:infer": {
+          "calls": 250,
+          "total_s": 6.1950701076420955,
+          "mean_ms": 24.780280430568382
+        }
+      }
+    }
+  ]
+}

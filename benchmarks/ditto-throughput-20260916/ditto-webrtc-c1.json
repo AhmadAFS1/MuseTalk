@@ -1,0 +1,41 @@
+{
+  "gpu": "NVIDIA GeForce RTX 4070 SUPER",
+  "sessions_requested": 1,
+  "sessions_completed": 1,
+  "fps": 25,
+  "frames_per_session": 250,
+  "audio_chunk_interval_s": 0.2,
+  "online_config": "/workspace/ditto-talkinghead/checkpoints/ditto_cfg/v0.4_hubert_cfg_trt_online.pkl",
+  "events": {
+    "process_start": 1789522470.935187,
+    "sessions_requested": 1,
+    "model_load_start": 1789522470.9352033,
+    "model_load_end": 1789522472.6404002,
+    "avatar_setup_start": 1789522472.6404006,
+    "avatar_setup_end": 1789522472.858145,
+    "webrtc_ready": 1789522473.6367033,
+    "workers_started": 1789522473.636945,
+    "test_end": 1789522484.3369882
+  },
+  "peers": [
+    {
+      "index": 0,
+      "frames": 250,
+      "first_frame_at": 1789522474.3763442,
+      "last_frame_at": 1789522484.3369431,
+      "model_loaded_at": 1789522472.6403978,
+      "model_load_s": 1.7051935195922852,
+      "avatar_ready_at": 1789522472.8581436,
+      "audio_start_at": 1789522473.6368988,
+      "audio_feed_end_at": 1789522483.6883504,
+      "generation_end_at": 1789522484.309341,
+      "first_frame_s": 0.7394454479217529,
+      "playout_s": 9.960598945617676,
+      "received_fps": 24.99849671284592,
+      "max_gap_s": 0.04291343688964844,
+      "p95_gap_s": 0.041115522384643555,
+      "gaps_over_80ms": 0
+    }
+  ],
+  "aggregate_received_fps": 23.36439164714799
+}
