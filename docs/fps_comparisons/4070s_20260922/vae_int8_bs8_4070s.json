@@ -1,0 +1,47 @@
+{
+  "label": "int8_safe5_bs8_4070s",
+  "batch_size": 8,
+  "iters": 40,
+  "warmup_iters": 8,
+  "int8_stages": [
+    "decoder_pre",
+    "decoder_mid_block",
+    "decoder_up_block_0",
+    "decoder_up_block_1",
+    "decoder_up_block_2"
+  ],
+  "split_up_blocks": [],
+  "cache_dir": "/workspace/MuseTalk/models/tensorrt/stagewise_int8_onnx_qdq_cache",
+  "calibration_dir": "/workspace/MuseTalk/calibration/vae_decoder",
+  "avg_decode_s": 0.08290841037523933,
+  "decode_fps": 96.49202009533651,
+  "comparison": {
+    "pytorch_shape": [
+      8,
+      3,
+      256,
+      256
+    ],
+    "pytorch_dtype": "torch.float16",
+    "pytorch_min": 0.0,
+    "pytorch_max": 0.95458984375,
+    "pytorch_mean": 0.45947265625,
+    "int8_safe5_bs8_4070s_shape": [
+      8,
+      3,
+      256,
+      256
+    ],
+    "int8_safe5_bs8_4070s_dtype": "torch.float16",
+    "int8_safe5_bs8_4070s_min": 0.0,
+    "int8_safe5_bs8_4070s_max": 0.984375,
+    "int8_safe5_bs8_4070s_mean": 0.458984375,
+    "mae": 0.005027575418353081,
+    "max_abs": 0.14013671875,
+    "outputs": {
+      "pytorch_face": "/tmp/claude-0/-workspace/e3b6c3cf-c47c-4de6-9013-fbab0c27bedf/scratchpad/vae_int8_bs8_4070s/pytorch_face.png",
+      "int8_safe5_bs8_4070s_face": "/tmp/claude-0/-workspace/e3b6c3cf-c47c-4de6-9013-fbab0c27bedf/scratchpad/vae_int8_bs8_4070s/int8_safe5_bs8_4070s_face.png",
+      "abs_diff": "/tmp/claude-0/-workspace/e3b6c3cf-c47c-4de6-9013-fbab0c27bedf/scratchpad/vae_int8_bs8_4070s/abs_diff.png"
+    }
+  }
+}

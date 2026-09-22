@@ -1,0 +1,26 @@
+{
+  "B_sdvae_fp16": {
+    "label": "TRT-UNet + SD-VAE FP16",
+    "frames": 200,
+    "wall_s": 4.404,
+    "e2e_fps": 45.4,
+    "unet_ms_per_batch": 25.14,
+    "vae_ms_per_batch": 145.95,
+    "post_ms_per_batch": 0.8,
+    "compose_ms_per_batch": 3.45,
+    "gpu_ms_per_batch": 171.89,
+    "video": "/tmp/claude-0/-workspace/e3b6c3cf-c47c-4de6-9013-fbab0c27bedf/scratchpad/e2e/B_sdvae_fp16.mp4"
+  },
+  "C_taesd": {
+    "label": "TRT-UNet + TAESD",
+    "frames": 200,
+    "wall_s": 1.029,
+    "e2e_fps": 194.3,
+    "unet_ms_per_batch": 24.4,
+    "vae_ms_per_batch": 12.99,
+    "post_ms_per_batch": 0.26,
+    "compose_ms_per_batch": 3.16,
+    "gpu_ms_per_batch": 37.65,
+    "video": "/tmp/claude-0/-workspace/e3b6c3cf-c47c-4de6-9013-fbab0c27bedf/scratchpad/e2e/C_taesd.mp4"
+  }
+}

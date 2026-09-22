@@ -1,0 +1,894 @@
+{
+  "schema_version": 1,
+  "status": "seed_requires_confirmation",
+  "note": "Seed roster of 104 languages. Replace with Lingua's authoritative supported-language list before production. Character IDs derive from `code`, so changing a code after generation orphans that language's pose banks.",
+  "characters_per_language": 3,
+  "excluded_candidates": [
+    {
+      "name": "Latin",
+      "reason": "No native conversational speakers; a speaking companion has no authentic register."
+    },
+    {
+      "name": "Esperanto",
+      "reason": "Constructed language with no regional identity to cast for."
+    },
+    {
+      "name": "Corsican",
+      "reason": "Trimmed to reach the stated 104; reinstate if Lingua ships it."
+    },
+    {
+      "name": "Frisian",
+      "reason": "Trimmed to reach the stated 104; reinstate if Lingua ships it."
+    }
+  ],
+  "languages": [
+    {
+      "code": "af",
+      "name": "Afrikaans",
+      "native_name": "Afrikaans",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southern_africa"
+    },
+    {
+      "code": "sq",
+      "name": "Albanian",
+      "native_name": "Shqip",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southeast_europe"
+    },
+    {
+      "code": "am",
+      "name": "Amharic",
+      "native_name": "አማርኛ",
+      "script": "Ethiopic",
+      "rtl": false,
+      "region_key": "horn_africa"
+    },
+    {
+      "code": "ar",
+      "name": "Arabic",
+      "native_name": "العربية",
+      "script": "Arabic",
+      "rtl": true,
+      "region_key": "arab"
+    },
+    {
+      "code": "hy",
+      "name": "Armenian",
+      "native_name": "Հայերեն",
+      "script": "Armenian",
+      "rtl": false,
+      "region_key": "caucasus"
+    },
+    {
+      "code": "az",
+      "name": "Azerbaijani",
+      "native_name": "Azərbaycan dili",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "caucasus"
+    },
+    {
+      "code": "eu",
+      "name": "Basque",
+      "native_name": "Euskara",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "iberia"
+    },
+    {
+      "code": "be",
+      "name": "Belarusian",
+      "native_name": "Беларуская",
+      "script": "Cyrillic",
+      "rtl": false,
+      "region_key": "east_europe"
+    },
+    {
+      "code": "bn",
+      "name": "Bengali",
+      "native_name": "বাংলা",
+      "script": "Bengali",
+      "rtl": false,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "bs",
+      "name": "Bosnian",
+      "native_name": "Bosanski",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southeast_europe"
+    },
+    {
+      "code": "bg",
+      "name": "Bulgarian",
+      "native_name": "Български",
+      "script": "Cyrillic",
+      "rtl": false,
+      "region_key": "southeast_europe"
+    },
+    {
+      "code": "ca",
+      "name": "Catalan",
+      "native_name": "Català",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "iberia"
+    },
+    {
+      "code": "ceb",
+      "name": "Cebuano",
+      "native_name": "Cebuano",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southeast_asia"
+    },
+    {
+      "code": "ny",
+      "name": "Chichewa",
+      "native_name": "Chichewa",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southern_africa"
+    },
+    {
+      "code": "zh",
+      "name": "Chinese",
+      "native_name": "中文",
+      "script": "Han",
+      "rtl": false,
+      "region_key": "east_asia",
+      "locale_variants": [
+        {
+          "locale": "zh-Hans",
+          "label": "Chinese (Simplified)",
+          "script": "Han (Simplified)"
+        },
+        {
+          "locale": "zh-Hant",
+          "label": "Chinese (Traditional)",
+          "script": "Han (Traditional)"
+        }
+      ]
+    },
+    {
+      "code": "hr",
+      "name": "Croatian",
+      "native_name": "Hrvatski",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southeast_europe"
+    },
+    {
+      "code": "cs",
+      "name": "Czech",
+      "native_name": "Čeština",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "central_europe"
+    },
+    {
+      "code": "da",
+      "name": "Danish",
+      "native_name": "Dansk",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "north_europe"
+    },
+    {
+      "code": "nl",
+      "name": "Dutch",
+      "native_name": "Nederlands",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "west_europe"
+    },
+    {
+      "code": "en",
+      "name": "English",
+      "native_name": "English",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "anglosphere"
+    },
+    {
+      "code": "et",
+      "name": "Estonian",
+      "native_name": "Eesti",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "north_europe"
+    },
+    {
+      "code": "fil",
+      "name": "Filipino",
+      "native_name": "Filipino",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southeast_asia"
+    },
+    {
+      "code": "fi",
+      "name": "Finnish",
+      "native_name": "Suomi",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "north_europe"
+    },
+    {
+      "code": "fr",
+      "name": "French",
+      "native_name": "Français",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "west_europe"
+    },
+    {
+      "code": "gl",
+      "name": "Galician",
+      "native_name": "Galego",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "iberia"
+    },
+    {
+      "code": "ka",
+      "name": "Georgian",
+      "native_name": "ქართული",
+      "script": "Georgian",
+      "rtl": false,
+      "region_key": "caucasus"
+    },
+    {
+      "code": "de",
+      "name": "German",
+      "native_name": "Deutsch",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "west_europe"
+    },
+    {
+      "code": "el",
+      "name": "Greek",
+      "native_name": "Ελληνικά",
+      "script": "Greek",
+      "rtl": false,
+      "region_key": "south_europe"
+    },
+    {
+      "code": "gu",
+      "name": "Gujarati",
+      "native_name": "ગુજરાતી",
+      "script": "Gujarati",
+      "rtl": false,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "ht",
+      "name": "Haitian Creole",
+      "native_name": "Kreyòl ayisyen",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "caribbean"
+    },
+    {
+      "code": "ha",
+      "name": "Hausa",
+      "native_name": "Harshen Hausa",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "west_africa"
+    },
+    {
+      "code": "haw",
+      "name": "Hawaiian",
+      "native_name": "ʻŌlelo Hawaiʻi",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "oceania"
+    },
+    {
+      "code": "he",
+      "name": "Hebrew",
+      "native_name": "עברית",
+      "script": "Hebrew",
+      "rtl": true,
+      "region_key": "israel"
+    },
+    {
+      "code": "hi",
+      "name": "Hindi",
+      "native_name": "हिन्दी",
+      "script": "Devanagari",
+      "rtl": false,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "hmn",
+      "name": "Hmong",
+      "native_name": "Hmoob",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southeast_asia"
+    },
+    {
+      "code": "hu",
+      "name": "Hungarian",
+      "native_name": "Magyar",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "central_europe"
+    },
+    {
+      "code": "is",
+      "name": "Icelandic",
+      "native_name": "Íslenska",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "north_europe"
+    },
+    {
+      "code": "ig",
+      "name": "Igbo",
+      "native_name": "Asụsụ Igbo",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "west_africa"
+    },
+    {
+      "code": "id",
+      "name": "Indonesian",
+      "native_name": "Bahasa Indonesia",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southeast_asia"
+    },
+    {
+      "code": "ga",
+      "name": "Irish",
+      "native_name": "Gaeilge",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "anglosphere"
+    },
+    {
+      "code": "it",
+      "name": "Italian",
+      "native_name": "Italiano",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "south_europe"
+    },
+    {
+      "code": "ja",
+      "name": "Japanese",
+      "native_name": "日本語",
+      "script": "Japanese",
+      "rtl": false,
+      "region_key": "east_asia"
+    },
+    {
+      "code": "jv",
+      "name": "Javanese",
+      "native_name": "Basa Jawa",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southeast_asia"
+    },
+    {
+      "code": "kn",
+      "name": "Kannada",
+      "native_name": "ಕನ್ನಡ",
+      "script": "Kannada",
+      "rtl": false,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "kk",
+      "name": "Kazakh",
+      "native_name": "Қазақ тілі",
+      "script": "Cyrillic",
+      "rtl": false,
+      "region_key": "central_asia"
+    },
+    {
+      "code": "km",
+      "name": "Khmer",
+      "native_name": "ភាសាខ្មែរ",
+      "script": "Khmer",
+      "rtl": false,
+      "region_key": "southeast_asia"
+    },
+    {
+      "code": "rw",
+      "name": "Kinyarwanda",
+      "native_name": "Ikinyarwanda",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "east_africa"
+    },
+    {
+      "code": "ko",
+      "name": "Korean",
+      "native_name": "한국어",
+      "script": "Hangul",
+      "rtl": false,
+      "region_key": "east_asia"
+    },
+    {
+      "code": "ku",
+      "name": "Kurdish (Kurmanji)",
+      "native_name": "Kurmancî",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "arab"
+    },
+    {
+      "code": "ky",
+      "name": "Kyrgyz",
+      "native_name": "Кыргызча",
+      "script": "Cyrillic",
+      "rtl": false,
+      "region_key": "central_asia"
+    },
+    {
+      "code": "lo",
+      "name": "Lao",
+      "native_name": "ພາສາລາວ",
+      "script": "Lao",
+      "rtl": false,
+      "region_key": "southeast_asia"
+    },
+    {
+      "code": "lv",
+      "name": "Latvian",
+      "native_name": "Latviešu",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "north_europe"
+    },
+    {
+      "code": "lt",
+      "name": "Lithuanian",
+      "native_name": "Lietuvių",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "north_europe"
+    },
+    {
+      "code": "lb",
+      "name": "Luxembourgish",
+      "native_name": "Lëtzebuergesch",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "west_europe"
+    },
+    {
+      "code": "mk",
+      "name": "Macedonian",
+      "native_name": "Македонски",
+      "script": "Cyrillic",
+      "rtl": false,
+      "region_key": "southeast_europe"
+    },
+    {
+      "code": "mg",
+      "name": "Malagasy",
+      "native_name": "Malagasy",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "east_africa"
+    },
+    {
+      "code": "ms",
+      "name": "Malay",
+      "native_name": "Bahasa Melayu",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southeast_asia"
+    },
+    {
+      "code": "ml",
+      "name": "Malayalam",
+      "native_name": "മലയാളം",
+      "script": "Malayalam",
+      "rtl": false,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "mt",
+      "name": "Maltese",
+      "native_name": "Malti",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "south_europe"
+    },
+    {
+      "code": "mi",
+      "name": "Maori",
+      "native_name": "Te Reo Māori",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "oceania"
+    },
+    {
+      "code": "mr",
+      "name": "Marathi",
+      "native_name": "मराठी",
+      "script": "Devanagari",
+      "rtl": false,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "mn",
+      "name": "Mongolian",
+      "native_name": "Монгол",
+      "script": "Cyrillic",
+      "rtl": false,
+      "region_key": "east_asia"
+    },
+    {
+      "code": "my",
+      "name": "Burmese",
+      "native_name": "မြန်မာဘာသာ",
+      "script": "Myanmar",
+      "rtl": false,
+      "region_key": "southeast_asia"
+    },
+    {
+      "code": "ne",
+      "name": "Nepali",
+      "native_name": "नेपाली",
+      "script": "Devanagari",
+      "rtl": false,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "no",
+      "name": "Norwegian",
+      "native_name": "Norsk",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "north_europe"
+    },
+    {
+      "code": "or",
+      "name": "Odia",
+      "native_name": "ଓଡ଼ିଆ",
+      "script": "Odia",
+      "rtl": false,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "ps",
+      "name": "Pashto",
+      "native_name": "پښتو",
+      "script": "Arabic",
+      "rtl": true,
+      "region_key": "central_asia"
+    },
+    {
+      "code": "fa",
+      "name": "Persian",
+      "native_name": "فارسی",
+      "script": "Arabic",
+      "rtl": true,
+      "region_key": "iran"
+    },
+    {
+      "code": "pl",
+      "name": "Polish",
+      "native_name": "Polski",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "central_europe"
+    },
+    {
+      "code": "pt",
+      "name": "Portuguese",
+      "native_name": "Português",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "lusophone",
+      "locale_variants": [
+        {
+          "locale": "pt-BR",
+          "label": "Portuguese (Brazil)",
+          "script": "Latin"
+        },
+        {
+          "locale": "pt-PT",
+          "label": "Portuguese (Portugal)",
+          "script": "Latin"
+        }
+      ]
+    },
+    {
+      "code": "pa",
+      "name": "Punjabi",
+      "native_name": "ਪੰਜਾਬੀ",
+      "script": "Gurmukhi",
+      "rtl": false,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "ro",
+      "name": "Romanian",
+      "native_name": "Română",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southeast_europe"
+    },
+    {
+      "code": "ru",
+      "name": "Russian",
+      "native_name": "Русский",
+      "script": "Cyrillic",
+      "rtl": false,
+      "region_key": "east_europe"
+    },
+    {
+      "code": "sm",
+      "name": "Samoan",
+      "native_name": "Gagana Samoa",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "oceania"
+    },
+    {
+      "code": "gd",
+      "name": "Scots Gaelic",
+      "native_name": "Gàidhlig",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "anglosphere"
+    },
+    {
+      "code": "sr",
+      "name": "Serbian",
+      "native_name": "Српски",
+      "script": "Cyrillic",
+      "rtl": false,
+      "region_key": "southeast_europe"
+    },
+    {
+      "code": "st",
+      "name": "Sesotho",
+      "native_name": "Sesotho",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southern_africa"
+    },
+    {
+      "code": "sn",
+      "name": "Shona",
+      "native_name": "ChiShona",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southern_africa"
+    },
+    {
+      "code": "sd",
+      "name": "Sindhi",
+      "native_name": "سنڌي",
+      "script": "Arabic",
+      "rtl": true,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "si",
+      "name": "Sinhala",
+      "native_name": "සිංහල",
+      "script": "Sinhala",
+      "rtl": false,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "sk",
+      "name": "Slovak",
+      "native_name": "Slovenčina",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "central_europe"
+    },
+    {
+      "code": "sl",
+      "name": "Slovenian",
+      "native_name": "Slovenščina",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "central_europe"
+    },
+    {
+      "code": "so",
+      "name": "Somali",
+      "native_name": "Soomaali",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "horn_africa"
+    },
+    {
+      "code": "es",
+      "name": "Spanish",
+      "native_name": "Español",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "hispanophone",
+      "locale_variants": [
+        {
+          "locale": "es-ES",
+          "label": "Spanish (Spain)",
+          "script": "Latin"
+        },
+        {
+          "locale": "es-419",
+          "label": "Spanish (Latin America)",
+          "script": "Latin"
+        }
+      ]
+    },
+    {
+      "code": "su",
+      "name": "Sundanese",
+      "native_name": "Basa Sunda",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southeast_asia"
+    },
+    {
+      "code": "sw",
+      "name": "Swahili",
+      "native_name": "Kiswahili",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "east_africa"
+    },
+    {
+      "code": "sv",
+      "name": "Swedish",
+      "native_name": "Svenska",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "north_europe"
+    },
+    {
+      "code": "tg",
+      "name": "Tajik",
+      "native_name": "Тоҷикӣ",
+      "script": "Cyrillic",
+      "rtl": false,
+      "region_key": "central_asia"
+    },
+    {
+      "code": "ta",
+      "name": "Tamil",
+      "native_name": "தமிழ்",
+      "script": "Tamil",
+      "rtl": false,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "tt",
+      "name": "Tatar",
+      "native_name": "Татарча",
+      "script": "Cyrillic",
+      "rtl": false,
+      "region_key": "east_europe"
+    },
+    {
+      "code": "te",
+      "name": "Telugu",
+      "native_name": "తెలుగు",
+      "script": "Telugu",
+      "rtl": false,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "th",
+      "name": "Thai",
+      "native_name": "ภาษาไทย",
+      "script": "Thai",
+      "rtl": false,
+      "region_key": "southeast_asia"
+    },
+    {
+      "code": "tr",
+      "name": "Turkish",
+      "native_name": "Türkçe",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "turkic"
+    },
+    {
+      "code": "tk",
+      "name": "Turkmen",
+      "native_name": "Türkmençe",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "central_asia"
+    },
+    {
+      "code": "uk",
+      "name": "Ukrainian",
+      "native_name": "Українська",
+      "script": "Cyrillic",
+      "rtl": false,
+      "region_key": "east_europe"
+    },
+    {
+      "code": "ur",
+      "name": "Urdu",
+      "native_name": "اردو",
+      "script": "Arabic",
+      "rtl": true,
+      "region_key": "south_asia"
+    },
+    {
+      "code": "ug",
+      "name": "Uyghur",
+      "native_name": "ئۇيغۇرچە",
+      "script": "Arabic",
+      "rtl": true,
+      "region_key": "central_asia"
+    },
+    {
+      "code": "uz",
+      "name": "Uzbek",
+      "native_name": "Oʻzbekcha",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "central_asia"
+    },
+    {
+      "code": "vi",
+      "name": "Vietnamese",
+      "native_name": "Tiếng Việt",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southeast_asia"
+    },
+    {
+      "code": "cy",
+      "name": "Welsh",
+      "native_name": "Cymraeg",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "anglosphere"
+    },
+    {
+      "code": "xh",
+      "name": "Xhosa",
+      "native_name": "isiXhosa",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southern_africa"
+    },
+    {
+      "code": "yi",
+      "name": "Yiddish",
+      "native_name": "ייִדיש",
+      "script": "Hebrew",
+      "rtl": true,
+      "region_key": "israel"
+    },
+    {
+      "code": "yo",
+      "name": "Yoruba",
+      "native_name": "Èdè Yorùbá",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "west_africa"
+    },
+    {
+      "code": "zu",
+      "name": "Zulu",
+      "native_name": "isiZulu",
+      "script": "Latin",
+      "rtl": false,
+      "region_key": "southern_africa"
+    }
+  ]
+}

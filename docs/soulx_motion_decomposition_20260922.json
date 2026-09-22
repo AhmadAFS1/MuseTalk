@@ -1,0 +1,62 @@
+{
+  "channels": {
+    "dx": {
+      "var_shared": 0.003829388706145898,
+      "var_residual": 0.0028005972548755835,
+      "shared_fraction": 0.5775862465862454,
+      "mean_abs_residual": 0.036392459200784134
+    },
+    "dy": {
+      "var_shared": 0.002583224880076407,
+      "var_residual": 0.0011145572226541668,
+      "shared_fraction": 0.6985876420811442,
+      "mean_abs_residual": 0.024696034520971407
+    },
+    "rot_deg": {
+      "var_shared": 0.9793335298846536,
+      "var_residual": 0.8914838478095539,
+      "shared_fraction": 0.5234789571452919,
+      "mean_abs_residual": 0.6484067344742044
+    },
+    "log_scale": {
+      "var_shared": 6.70535330455081e-05,
+      "var_residual": 3.90139141947376e-05,
+      "shared_fraction": 0.6321782487479877,
+      "mean_abs_residual": 0.0042901325377454
+    },
+    "_config_vs_seed": {
+      "seed50_4step_vs_2step_iod": 0.0813509644818156,
+      "typical_cross_seed_iod": 0.07826323081615788,
+      "ratio": 1.0394531842534187
+    }
+  },
+  "envelope_correlation": {
+    "dx": {
+      "best_corr": 0.21646137800852014,
+      "lag_frames": 1
+    },
+    "dy": {
+      "best_corr": 0.26502906917049535,
+      "lag_frames": 1
+    },
+    "rot_deg": {
+      "best_corr": 0.22136001663267243,
+      "lag_frames": 0
+    },
+    "log_scale": {
+      "best_corr": 0.16850974619235856,
+      "lag_frames": 4
+    },
+    "head_speed": {
+      "best_corr": 0.27763953597387153,
+      "lag_frames": 1
+    }
+  },
+  "seeds_compared": [
+    "s4_seed0_pose",
+    "s4_seed1_pose",
+    "s4_seed50_pose",
+    "s4_seed51_pose"
+  ],
+  "frames": 250
+}

@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "status": "locked_to_runtime_contract",
+  "note": "The six logical pose IDs are fixed by scripts/pose_protocol.py (POSE_IDS). Do not add, rename, or drop one. Only speaking_direct may carry physical variants, and at most POSE_VARIANT_MAX_COUNT=4 of them.",
+  "delivery_contract": {
+    "width": 480,
+    "height": 832,
+    "fps": 24,
+    "video_codec": "h264",
+    "pixel_format": "yuv420p",
+    "audio_streams": 0,
+    "canonical_handle_frames_each_end": 6,
+    "blend_frames_each_end": 6,
+    "frame_count_formula": "1 + 8*round((seconds*fps - 1)/8)",
+    "frame_count_note": "LTX 2.3 latent video length must satisfy this; the ComfyUI graph computes it in node 5639. duration_seconds is always frame_count/fps, which is why every certified duration ends in .041667."
+  },
+  "runtime_manifest": {
+    "version": 1,
+    "default_pose_id": "neutral_resting",
+    "switch_mode": "next_boundary",
+    "target_path": "configs/pose_test/{pose_set_id}.json",
+    "validated_by": "scripts/test_pose_webrtc.py::load_pose_set"
+  },
+  "logical_aliases": {
+    "neutral_resting": "idle_active_listening",
+    "active_listening": "idle_active_listening"
+  },
+  "speaking_variant_policy": {
+    "semantic_pose_id": "speaking_direct",
+    "policy": "deterministic_boundary_rotation",
+    "fallback_variant": "v14_subtle",
+    "variants": ["v14_subtle", "v15_reference_paced"],
+    "note": "The chat model never sees variant IDs. It emits semantic delivery labels only; the router rotates variants on new assistant turns and reuses the same physical render when a turn_id is retried."
+  },
+  "renders": [
+    {
+      "render_key": "idle_active_listening",
+      "serves_pose_ids": ["neutral_resting", "active_listening"],
+      "role": "idle",
+      "seconds": 10,
+      "frame_count": 241,
+      "duration_seconds": 10.041667,
+      "tier": "core",
+      "lineage": "close-up V6 active listening",
+      "why": "The user called this motion essentially perfect; idle and listening intentionally share one physical file."
+    },
+    {
+      "render_key": "speaking_direct_v14_subtle",
+      "serves_pose_ids": ["speaking_direct"],
+      "role": "talking",
+      "variant_id": "v14_subtle",
+      "seconds": 12,
+      "frame_count": 289,
+      "duration_seconds": 12.041667,
+      "tier": "core",
+      "lineage": "close-up V14 gaze-locked subtle motion",
+      "why": "Calmer default speaking render: straight camera gaze with two slow sagittal micro-adjustments only."
+    },
+    {
+      "render_key": "speaking_direct_v15_reference_paced",
+      "serves_pose_ids": ["speaking_direct"],
+      "role": "talking",
+      "variant_id": "v15_reference_paced",
+      "seconds": 12,
+      "frame_count": 289,
+      "duration_seconds": 12.041667,
+      "tier": "full",
+      "lineage": "close-up V15 reference-paced motion",
+      "why": "Occasional faster natural accents on alternating turns without widening the movement envelope. Drop this render first when cutting cost; the manifest then carries speaking_direct with no variants array."
+    },
+    {
+      "render_key": "nod_agree",
+      "serves_pose_ids": ["nod_agree"],
+      "role": "reaction",
+      "seconds": 6,
+      "frame_count": 145,
+      "duration_seconds": 6.041667,
+      "tier": "core",
+      "lineage": "close-up V6 nod",
+      "why": "One compact 0.4 s yes gesture surrounded by stillness, not a slow multi-second bow."
+    },
+    {
+      "render_key": "empathetic_head_tilt",
+      "serves_pose_ids": ["empathetic_head_tilt"],
+      "role": "reaction",
+      "seconds": 10,
+      "frame_count": 241,
+      "duration_seconds": 10.041667,
+      "tier": "core",
+      "lineage": "close-up V6 slow tilt",
+      "why": "Slow readable empathetic tilt; earlier faster versions were rejected as excessive."
+    },
+    {
+      "render_key": "light_smile",
+      "serves_pose_ids": ["light_smile"],
+      "role": "reaction",
+      "seconds": 6,
+      "frame_count": 145,
+      "duration_seconds": 6.041667,
+      "tier": "core",
+      "lineage": "close-up V8 moderate smile",
+      "why": "Balanced between an imperceptible micro-smile and an overly broad smile."
+    }
+  ],
+  "tiers": {
+    "full": {
+      "renders": ["idle_active_listening", "speaking_direct_v14_subtle", "speaking_direct_v15_reference_paced", "nod_agree", "empathetic_head_tilt", "light_smile"],
+      "renders_per_character": 6,
+      "note": "Matches the live production bank. Use for language-agnostic characters and for the flagship character of each high-traffic language."
+    },
+    "core": {
+      "renders": ["idle_active_listening", "speaking_direct_v14_subtle", "nod_agree", "empathetic_head_tilt", "light_smile"],
+      "renders_per_character": 5,
+      "note": "Drops only the V15 speaking variant. All six logical pose IDs still resolve. Recommended default for the 104-language bulk run."
+    },
+    "minimal": {
+      "renders": ["idle_active_listening", "speaking_direct_v14_subtle"],
+      "renders_per_character": 2,
+      "note": "Reaction poses alias the idle loop in the emitted manifest so the wire contract still exposes six IDs. Visibly degraded: nods, empathy, and smiles stop reading as distinct. Use only for a smoke test or a long-tail language, never for a launch language."
+    }
+  }
+}

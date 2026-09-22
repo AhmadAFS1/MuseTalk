@@ -1,0 +1,1984 @@
+{
+  "schema_version": 1,
+  "status": "seed_requires_art_direction_review",
+  "note": "Casting pools consumed by build_character_roster.py. `region_key` matches config/languages.json. Every phrase here is written to drop straight into the portrait prompt template; edit the phrases, not the template, to change a look.",
+  "shared": {
+    "age_bands": [
+      "in their mid twenties",
+      "in their late twenties",
+      "in their early thirties",
+      "in their mid thirties"
+    ],
+    "wardrobe_f": [
+      "a plain navy blue crewneck top",
+      "a soft oatmeal knit sweater",
+      "a simple sage-green blouse",
+      "a plain charcoal T-shirt",
+      "a muted terracotta top",
+      "a plain cream long-sleeve top"
+    ],
+    "wardrobe_m": [
+      "a navy blue casual henley shirt",
+      "a light sage-green crewneck shirt",
+      "a cream casual T-shirt",
+      "a plain charcoal sweatshirt",
+      "a soft grey button-down with the collar open",
+      "a plain olive T-shirt"
+    ],
+    "hair_f": [
+      "long dark hair worn loose",
+      "shoulder-length hair tucked behind one ear",
+      "hair tied back in a simple low bun",
+      "natural textured hair worn short",
+      "dark hair in a simple half-up style",
+      "short curly hair worn natural"
+    ],
+    "hair_m": [
+      "neat short dark hair",
+      "short textured hair",
+      "short hair with a neatly trimmed short beard",
+      "short hair swept back",
+      "short curly hair worn natural",
+      "short hair with a light stubble"
+    ],
+    "lighting": [
+      "warm soft daylight",
+      "balanced natural window light",
+      "warm late-afternoon natural light",
+      "soft diffused overcast daylight"
+    ]
+  },
+  "regions": {
+    "anglosphere": {
+      "heritage": [
+        "British woman",
+        "Irish man",
+        "white American woman",
+        "Black British man",
+        "Welsh woman",
+        "Scottish man",
+        "Australian woman",
+        "mixed-heritage American man"
+      ],
+      "names_f": [
+        "Emma",
+        "Niamh",
+        "Claire",
+        "Rowan",
+        "Bethan",
+        "Alice"
+      ],
+      "names_m": [
+        "Theo",
+        "Liam",
+        "Callum",
+        "Marcus",
+        "Owen",
+        "Declan"
+      ],
+      "settings": [
+        "a bright flat with a rain-flecked window and a bookshelf",
+        "a small kitchen with a kettle and plants",
+        "a university common room with soft grey light"
+      ]
+    },
+    "arab": {
+      "heritage": [
+        "Levantine Arab woman",
+        "Gulf Arab man",
+        "Egyptian woman",
+        "North African Amazigh man",
+        "Jordanian woman",
+        "Iraqi man",
+        "Kurdish woman",
+        "Syrian man"
+      ],
+      "names_f": [
+        "Maya",
+        "Layla",
+        "Nour",
+        "Hala",
+        "Rima",
+        "Salma"
+      ],
+      "names_m": [
+        "Omar",
+        "Karim",
+        "Tarek",
+        "Youssef",
+        "Sami",
+        "Bilal"
+      ],
+      "settings": [
+        "a sunlit city balcony with a soft blurred skyline",
+        "a warm contemporary lounge with neutral plaster walls and a plant",
+        "a quiet room with a latticed window casting soft patterned light"
+      ]
+    },
+    "caribbean": {
+      "heritage": [
+        "Haitian woman",
+        "Afro-Caribbean man",
+        "Haitian man",
+        "Afro-Caribbean woman"
+      ],
+      "names_f": [
+        "Naomie",
+        "Mirlande",
+        "Chantal",
+        "Yvenne"
+      ],
+      "names_m": [
+        "Wesley",
+        "Frantz",
+        "Jean-Marc",
+        "Ricardo"
+      ],
+      "settings": [
+        "a bright room with pastel walls and open shutters",
+        "a shaded veranda with soft green foliage behind",
+        "a small colourful living room with woven textiles"
+      ]
+    },
+    "caucasus": {
+      "heritage": [
+        "Armenian woman",
+        "Georgian man",
+        "Azerbaijani woman",
+        "Armenian man",
+        "Georgian woman",
+        "Azerbaijani man"
+      ],
+      "names_f": [
+        "Anahit",
+        "Nino",
+        "Leyla",
+        "Tamar"
+      ],
+      "names_m": [
+        "Aram",
+        "Giorgi",
+        "Rashad",
+        "Levan"
+      ],
+      "settings": [
+        "a stone-walled apartment with a warm lamp",
+        "a room with a tall old window and sheer curtain",
+        "a modern flat with mountains softly blurred outside"
+      ]
+    },
+    "central_asia": {
+      "heritage": [
+        "Kazakh woman",
+        "Uzbek man",
+        "Kyrgyz woman",
+        "Tajik man",
+        "Turkmen woman",
+        "Uyghur man",
+        "Pashtun man",
+        "Uzbek woman"
+      ],
+      "names_f": [
+        "Aigerim",
+        "Dilnoza",
+        "Aizada",
+        "Nargis"
+      ],
+      "names_m": [
+        "Timur",
+        "Bekzod",
+        "Ruslan",
+        "Farrukh"
+      ],
+      "settings": [
+        "a modern flat with a patterned textile on the wall",
+        "a light room with a low table and tea glasses",
+        "a study with warm wood and a bright window"
+      ]
+    },
+    "central_europe": {
+      "heritage": [
+        "Polish woman",
+        "Czech man",
+        "Hungarian woman",
+        "Slovak man",
+        "Slovenian woman",
+        "Polish man"
+      ],
+      "names_f": [
+        "Zofia",
+        "Tereza",
+        "Anna",
+        "Eva"
+      ],
+      "names_m": [
+        "Jakub",
+        "Tomas",
+        "Bence",
+        "Marek"
+      ],
+      "settings": [
+        "a flat with tall windows and pale winter light",
+        "a tidy room with a mid-century lamp and prints",
+        "a small home office with a wooden desk"
+      ]
+    },
+    "east_africa": {
+      "heritage": [
+        "Kenyan woman",
+        "Tanzanian man",
+        "Rwandan woman",
+        "Ugandan man",
+        "Malagasy woman",
+        "Swahili-coast man"
+      ],
+      "names_f": [
+        "Amina",
+        "Neema",
+        "Uwase",
+        "Zawadi"
+      ],
+      "names_m": [
+        "Juma",
+        "Baraka",
+        "Kwizera",
+        "Otieno"
+      ],
+      "settings": [
+        "a bright room with open louvred windows and green outside",
+        "a modern apartment with warm daylight and woven art",
+        "a small study with a bookshelf and a fan"
+      ]
+    },
+    "east_asia": {
+      "heritage": [
+        "Chinese woman",
+        "Japanese man",
+        "Korean woman",
+        "Chinese man",
+        "Japanese woman",
+        "Mongolian man",
+        "Korean man",
+        "Mongolian woman"
+      ],
+      "names_f": [
+        "Aiko",
+        "Mei",
+        "Soo-jin",
+        "Yuki",
+        "Sarnai"
+      ],
+      "names_m": [
+        "Min",
+        "Haruto",
+        "Wei",
+        "Jun",
+        "Bat"
+      ],
+      "settings": [
+        "a minimal modern apartment with pale wood and soft daylight",
+        "a small tidy workspace with a monitor softly blurred",
+        "a room with a paper-screened window and quiet light"
+      ]
+    },
+    "east_europe": {
+      "heritage": [
+        "Russian woman",
+        "Ukrainian man",
+        "Belarusian woman",
+        "Tatar man",
+        "Ukrainian woman",
+        "Russian man"
+      ],
+      "names_f": [
+        "Olena",
+        "Anastasia",
+        "Katsiaryna",
+        "Alsu"
+      ],
+      "names_m": [
+        "Dmytro",
+        "Ivan",
+        "Ales",
+        "Ruslan"
+      ],
+      "settings": [
+        "an apartment with a tall window and a radiator below",
+        "a warm room with a patterned rug and a lamp",
+        "a small kitchen with morning light"
+      ]
+    },
+    "hispanophone": {
+      "heritage": [
+        "Spanish woman",
+        "Mexican man",
+        "Colombian woman",
+        "Argentinian man",
+        "Peruvian woman",
+        "Chilean man",
+        "Spanish man",
+        "Mexican woman"
+      ],
+      "names_f": [
+        "Sofia",
+        "Lucia",
+        "Valentina",
+        "Camila"
+      ],
+      "names_m": [
+        "Mateo",
+        "Diego",
+        "Andres",
+        "Javier"
+      ],
+      "settings": [
+        "a cozy cafe corner with warm blurred lights",
+        "a sunny apartment with a terracotta plant pot",
+        "a bright living room with a woven throw"
+      ]
+    },
+    "horn_africa": {
+      "heritage": [
+        "Ethiopian woman",
+        "Somali man",
+        "Eritrean woman",
+        "Ethiopian man",
+        "Somali woman"
+      ],
+      "names_f": [
+        "Selam",
+        "Hodan",
+        "Rahel",
+        "Ayaan"
+      ],
+      "names_m": [
+        "Dawit",
+        "Abdi",
+        "Yonas",
+        "Farah"
+      ],
+      "settings": [
+        "a bright room with a woven basket on the wall",
+        "a warm apartment with strong afternoon light",
+        "a small study with a window and pale curtains"
+      ]
+    },
+    "iberia": {
+      "heritage": [
+        "Basque woman",
+        "Catalan man",
+        "Galician woman",
+        "Spanish man",
+        "Catalan woman",
+        "Portuguese man"
+      ],
+      "names_f": [
+        "Ainhoa",
+        "Laia",
+        "Sabela",
+        "Marta"
+      ],
+      "names_m": [
+        "Iker",
+        "Pau",
+        "Brais",
+        "Nuno"
+      ],
+      "settings": [
+        "an apartment with shuttered light and a tiled floor",
+        "a small balcony with a blurred old-town street",
+        "a bright kitchen with ceramic tiles"
+      ]
+    },
+    "iran": {
+      "heritage": [
+        "Iranian woman",
+        "Iranian man",
+        "Persian woman",
+        "Persian man"
+      ],
+      "names_f": [
+        "Yasmin",
+        "Shirin",
+        "Roya",
+        "Parisa"
+      ],
+      "names_m": [
+        "Reza",
+        "Arash",
+        "Kian",
+        "Babak"
+      ],
+      "settings": [
+        "a warm room with a patterned carpet and a lamp",
+        "a modern flat with a large window and soft light",
+        "a study with calligraphy art softly blurred"
+      ]
+    },
+    "israel": {
+      "heritage": [
+        "Israeli woman",
+        "Israeli man",
+        "Ashkenazi Jewish woman",
+        "Mizrahi Jewish man"
+      ],
+      "names_f": [
+        "Noa",
+        "Tamar",
+        "Shira",
+        "Yael"
+      ],
+      "names_m": [
+        "Eitan",
+        "Amir",
+        "Yonatan",
+        "Dov"
+      ],
+      "settings": [
+        "a sunlit apartment with white walls and a plant",
+        "a small balcony with warm Mediterranean light",
+        "a room with a bookshelf and afternoon sun"
+      ]
+    },
+    "lusophone": {
+      "heritage": [
+        "Brazilian woman",
+        "Portuguese man",
+        "Afro-Brazilian man",
+        "Brazilian man",
+        "Portuguese woman",
+        "Afro-Brazilian woman"
+      ],
+      "names_f": [
+        "Camila",
+        "Ines",
+        "Beatriz",
+        "Luana"
+      ],
+      "names_m": [
+        "Rafael",
+        "Tiago",
+        "Bruno",
+        "Joao"
+      ],
+      "settings": [
+        "a colourful living room with plants and warm light",
+        "a bright apartment with a blurred green courtyard",
+        "a small room with a wooden shutter and soft sun"
+      ]
+    },
+    "north_europe": {
+      "heritage": [
+        "Swedish woman",
+        "Finnish man",
+        "Danish woman",
+        "Norwegian man",
+        "Icelandic woman",
+        "Estonian man",
+        "Latvian woman",
+        "Lithuanian man"
+      ],
+      "names_f": [
+        "Elin",
+        "Aino",
+        "Freja",
+        "Ilze"
+      ],
+      "names_m": [
+        "Mikael",
+        "Eero",
+        "Lars",
+        "Tomas"
+      ],
+      "settings": [
+        "a pale minimal room with cool north light",
+        "a flat with a birch desk and a white wall",
+        "a kitchen with a window and soft overcast light"
+      ]
+    },
+    "oceania": {
+      "heritage": [
+        "Maori woman",
+        "Samoan man",
+        "Pacific Islander woman",
+        "Maori man",
+        "Native Hawaiian woman",
+        "Samoan woman"
+      ],
+      "names_f": [
+        "Aroha",
+        "Sina",
+        "Moana",
+        "Leilani"
+      ],
+      "names_m": [
+        "Tane",
+        "Sefa",
+        "Kai",
+        "Rangi"
+      ],
+      "settings": [
+        "a bright room with open doors onto green foliage",
+        "a light interior with woven wall art",
+        "a veranda with soft shaded daylight"
+      ]
+    },
+    "south_asia": {
+      "heritage": [
+        "Indian woman",
+        "Indian man",
+        "Bangladeshi woman",
+        "Pakistani man",
+        "Sri Lankan woman",
+        "Nepali man",
+        "South Indian woman",
+        "Punjabi man"
+      ],
+      "names_f": [
+        "Priya",
+        "Ananya",
+        "Nadia",
+        "Ishani",
+        "Meera"
+      ],
+      "names_m": [
+        "Arjun",
+        "Ravi",
+        "Imran",
+        "Rohan",
+        "Dinesh"
+      ],
+      "settings": [
+        "a book-lined study with warm wood and a window",
+        "a bright apartment with a ceiling fan softly blurred",
+        "a room with a marigold-toned wall and soft daylight"
+      ]
+    },
+    "south_europe": {
+      "heritage": [
+        "Italian woman",
+        "Greek man",
+        "Maltese woman",
+        "Italian man",
+        "Greek woman"
+      ],
+      "names_f": [
+        "Giulia",
+        "Eleni",
+        "Marija",
+        "Chiara"
+      ],
+      "names_m": [
+        "Luca",
+        "Nikos",
+        "Mario",
+        "Stefano"
+      ],
+      "settings": [
+        "an apartment with shutters half open onto warm light",
+        "a room with pale stone walls and a plant",
+        "a small kitchen with a sunlit window"
+      ]
+    },
+    "southeast_asia": {
+      "heritage": [
+        "Filipina woman",
+        "Vietnamese man",
+        "Thai woman",
+        "Indonesian man",
+        "Malaysian woman",
+        "Khmer man",
+        "Burmese woman",
+        "Lao man",
+        "Javanese woman",
+        "Hmong man"
+      ],
+      "names_f": [
+        "Lea",
+        "Linh",
+        "Ploy",
+        "Sari",
+        "Nur"
+      ],
+      "names_m": [
+        "Bayu",
+        "Minh",
+        "Somchai",
+        "Rizal",
+        "Sokha"
+      ],
+      "settings": [
+        "a bright tropical interior with green leaves outside",
+        "a modern apartment with warm light and rattan",
+        "a small room with an open window and soft humidity haze"
+      ]
+    },
+    "southeast_europe": {
+      "heritage": [
+        "Romanian woman",
+        "Serbian man",
+        "Croatian woman",
+        "Bulgarian man",
+        "Albanian woman",
+        "Bosnian man",
+        "Macedonian woman"
+      ],
+      "names_f": [
+        "Ioana",
+        "Ana",
+        "Petra",
+        "Vesna"
+      ],
+      "names_m": [
+        "Andrei",
+        "Miloš",
+        "Ivan",
+        "Besnik"
+      ],
+      "settings": [
+        "a flat with a tall window and a warm lamp",
+        "a room with an old wooden floor and a rug",
+        "a small balcony with a blurred tiled rooftop"
+      ]
+    },
+    "southern_africa": {
+      "heritage": [
+        "South African woman",
+        "Zimbabwean man",
+        "Zulu woman",
+        "Xhosa man",
+        "Afrikaans-speaking woman",
+        "Sotho man",
+        "Malawian woman"
+      ],
+      "names_f": [
+        "Thandiwe",
+        "Nomsa",
+        "Lerato",
+        "Chipo"
+      ],
+      "names_m": [
+        "Sipho",
+        "Tendai",
+        "Pieter",
+        "Kabelo"
+      ],
+      "settings": [
+        "a bright room with a large window and dry warm light",
+        "a modern apartment with bold textile art",
+        "a study with a wooden desk and strong daylight"
+      ]
+    },
+    "turkic": {
+      "heritage": [
+        "Turkish woman",
+        "Turkish man",
+        "Turkish woman with a warm open expression",
+        "Turkish man with a neatly trimmed short beard"
+      ],
+      "names_f": [
+        "Elif",
+        "Zeynep",
+        "Deniz",
+        "Ayse"
+      ],
+      "names_m": [
+        "Emre",
+        "Mert",
+        "Kaan",
+        "Baris"
+      ],
+      "settings": [
+        "an apartment with a balcony and blurred city rooftops",
+        "a warm room with a patterned kilim and a lamp",
+        "a small kitchen with tea glasses and soft light"
+      ]
+    },
+    "west_africa": {
+      "heritage": [
+        "Nigerian woman",
+        "Ghanaian man",
+        "Senegalese woman",
+        "Igbo man",
+        "Yoruba woman",
+        "Hausa man"
+      ],
+      "names_f": [
+        "Adaeze",
+        "Ama",
+        "Aminata",
+        "Folake"
+      ],
+      "names_m": [
+        "Chidi",
+        "Kwame",
+        "Ibrahim",
+        "Tunde"
+      ],
+      "settings": [
+        "a bright room with a bold printed fabric on the wall",
+        "a modern apartment with warm afternoon light",
+        "a small study with a window and a plant"
+      ]
+    },
+    "west_europe": {
+      "heritage": [
+        "French woman",
+        "Black French man",
+        "Dutch woman",
+        "German man",
+        "Luxembourgish woman",
+        "German woman",
+        "Belgian man",
+        "French man"
+      ],
+      "names_f": [
+        "Chloe",
+        "Sanne",
+        "Lena",
+        "Marie"
+      ],
+      "names_m": [
+        "Luc",
+        "Daan",
+        "Jonas",
+        "Matthias"
+      ],
+      "settings": [
+        "a tasteful sunlit apartment with books and plants",
+        "a flat with a tall casement window and pale walls",
+        "a small home office with a wooden desk and warm lamp"
+      ]
+    }
+  },
+  "language_agnostic": {
+    "note": "Language-agnostic companions. Cast for broad, non-region-specific reads so any language can use them. They get the same 6-pose bank and the same certification gates as language characters.",
+    "count": 20,
+    "heritage": [
+      "racially ambiguous woman",
+      "racially ambiguous man",
+      "mixed-heritage woman",
+      "mixed-heritage man",
+      "light-brown-skinned woman with an unplaceable look",
+      "light-brown-skinned man with an unplaceable look",
+      "olive-skinned woman",
+      "olive-skinned man",
+      "deep-brown-skinned woman",
+      "deep-brown-skinned man",
+      "fair-skinned woman with dark hair",
+      "fair-skinned man with dark hair",
+      "warm-toned woman with an unplaceable look",
+      "warm-toned man with an unplaceable look",
+      "medium-toned woman with softly mixed features",
+      "medium-toned man with softly mixed features"
+    ],
+    "names_f": [
+      "Ari",
+      "Noor",
+      "Nova",
+      "Mika",
+      "Ines",
+      "Alya",
+      "Sana",
+      "Zara",
+      "Elin",
+      "Maya",
+      "Lina",
+      "Tara"
+    ],
+    "names_m": [
+      "Sam",
+      "Rey",
+      "Jules",
+      "Nico",
+      "Elio",
+      "Kai",
+      "Adi",
+      "Remy",
+      "Ravi",
+      "Theo",
+      "Luca",
+      "Dario"
+    ],
+    "settings": [
+      "a plain neutral room with soft even light and a single plant",
+      "a simple modern interior with a pale wall and warm lamp",
+      "a quiet room with a softly blurred window and no regional cues",
+      "a neutral home office with a wooden desk and no visible text"
+    ]
+  },
+  "language_heritage": {
+    "am": [
+      "Ethiopian woman",
+      "Ethiopian man"
+    ],
+    "az": [
+      "Azerbaijani woman",
+      "Azerbaijani man"
+    ],
+    "be": [
+      "Belarusian woman",
+      "Belarusian man"
+    ],
+    "bg": [
+      "Bulgarian woman",
+      "Bulgarian man"
+    ],
+    "bn": [
+      "Bengali woman",
+      "Bengali man"
+    ],
+    "bs": [
+      "Bosnian woman",
+      "Bosnian man"
+    ],
+    "cs": [
+      "Czech woman",
+      "Czech man"
+    ],
+    "da": [
+      "Danish woman",
+      "Danish man"
+    ],
+    "el": [
+      "Greek woman",
+      "Greek man"
+    ],
+    "et": [
+      "Estonian woman",
+      "Estonian man"
+    ],
+    "eu": [
+      "Basque woman",
+      "Basque man"
+    ],
+    "fa": [
+      "Iranian woman",
+      "Iranian man"
+    ],
+    "fi": [
+      "Finnish woman",
+      "Finnish man"
+    ],
+    "fil": [
+      "Filipina woman",
+      "Filipino man"
+    ],
+    "ga": [
+      "Irish woman",
+      "Irish man"
+    ],
+    "gu": [
+      "Gujarati Indian woman",
+      "Gujarati Indian man"
+    ],
+    "he": [
+      "Israeli woman",
+      "Israeli man"
+    ],
+    "hi": [
+      "North Indian woman",
+      "North Indian man"
+    ],
+    "hr": [
+      "Croatian woman",
+      "Croatian man"
+    ],
+    "ht": [
+      "Haitian woman",
+      "Haitian man"
+    ],
+    "hu": [
+      "Hungarian woman",
+      "Hungarian man"
+    ],
+    "hy": [
+      "Armenian woman",
+      "Armenian man"
+    ],
+    "id": [
+      "Indonesian woman",
+      "Indonesian man"
+    ],
+    "is": [
+      "Icelandic woman",
+      "Icelandic man"
+    ],
+    "it": [
+      "Italian woman",
+      "Italian man"
+    ],
+    "ja": [
+      "Japanese woman",
+      "Japanese man"
+    ],
+    "jv": [
+      "Javanese Indonesian woman",
+      "Javanese Indonesian man"
+    ],
+    "ka": [
+      "Georgian woman",
+      "Georgian man"
+    ],
+    "kk": [
+      "Kazakh woman",
+      "Kazakh man"
+    ],
+    "km": [
+      "Cambodian woman",
+      "Cambodian man"
+    ],
+    "kn": [
+      "Kannadiga Indian woman",
+      "Kannadiga Indian man"
+    ],
+    "ko": [
+      "Korean woman",
+      "Korean man"
+    ],
+    "ky": [
+      "Kyrgyz woman",
+      "Kyrgyz man"
+    ],
+    "lo": [
+      "Lao woman",
+      "Lao man"
+    ],
+    "lt": [
+      "Lithuanian woman",
+      "Lithuanian man"
+    ],
+    "lv": [
+      "Latvian woman",
+      "Latvian man"
+    ],
+    "mg": [
+      "Malagasy woman",
+      "Malagasy man"
+    ],
+    "mi": [
+      "Maori woman",
+      "Maori man"
+    ],
+    "mk": [
+      "Macedonian woman",
+      "Macedonian man"
+    ],
+    "ml": [
+      "Malayali Indian woman",
+      "Malayali Indian man"
+    ],
+    "mn": [
+      "Mongolian woman",
+      "Mongolian man"
+    ],
+    "mr": [
+      "Marathi Indian woman",
+      "Marathi Indian man"
+    ],
+    "mt": [
+      "Maltese woman",
+      "Maltese man"
+    ],
+    "my": [
+      "Burmese woman",
+      "Burmese man"
+    ],
+    "ne": [
+      "Nepali woman",
+      "Nepali man"
+    ],
+    "nl": [
+      "Dutch woman",
+      "Dutch man"
+    ],
+    "no": [
+      "Norwegian woman",
+      "Norwegian man"
+    ],
+    "or": [
+      "Odia Indian woman",
+      "Odia Indian man"
+    ],
+    "pa": [
+      "Punjabi woman",
+      "Punjabi man"
+    ],
+    "pl": [
+      "Polish woman",
+      "Polish man"
+    ],
+    "ps": [
+      "Pashtun woman",
+      "Pashtun man"
+    ],
+    "ro": [
+      "Romanian woman",
+      "Romanian man"
+    ],
+    "ru": [
+      "Russian woman",
+      "Russian man"
+    ],
+    "si": [
+      "Sinhalese woman",
+      "Sinhalese man"
+    ],
+    "sk": [
+      "Slovak woman",
+      "Slovak man"
+    ],
+    "sl": [
+      "Slovenian woman",
+      "Slovenian man"
+    ],
+    "sq": [
+      "Albanian woman",
+      "Albanian man"
+    ],
+    "sr": [
+      "Serbian woman",
+      "Serbian man"
+    ],
+    "su": [
+      "Sundanese Indonesian woman",
+      "Sundanese Indonesian man"
+    ],
+    "sv": [
+      "Swedish woman",
+      "Swedish man"
+    ],
+    "ta": [
+      "Tamil woman",
+      "Tamil man"
+    ],
+    "te": [
+      "Telugu Indian woman",
+      "Telugu Indian man"
+    ],
+    "tg": [
+      "Tajik woman",
+      "Tajik man"
+    ],
+    "th": [
+      "Thai woman",
+      "Thai man"
+    ],
+    "tk": [
+      "Turkmen woman",
+      "Turkmen man"
+    ],
+    "tr": [
+      "Turkish woman",
+      "Turkish man"
+    ],
+    "tt": [
+      "Tatar woman",
+      "Tatar man"
+    ],
+    "ug": [
+      "Uyghur woman",
+      "Uyghur man"
+    ],
+    "uk": [
+      "Ukrainian woman",
+      "Ukrainian man"
+    ],
+    "ur": [
+      "Pakistani woman",
+      "Pakistani man"
+    ],
+    "uz": [
+      "Uzbek woman",
+      "Uzbek man"
+    ],
+    "vi": [
+      "Vietnamese woman",
+      "Vietnamese man"
+    ],
+    "zh": [
+      "Chinese woman",
+      "Chinese man"
+    ]
+  },
+  "language_heritage_note": "Per-language casting override. When present it replaces the region `heritage` pool, so a Japanese-language character is never cast as Mongolian. Deliberately absent for languages with several plausible home countries; those keep the wider region pool so their three slots read as three different places. Add a code here to pin it.",
+  "language_names": {
+    "am": {
+      "names_f": [
+        "Selam",
+        "Hana",
+        "Rahel"
+      ],
+      "names_m": [
+        "Dawit",
+        "Yonas",
+        "Abel"
+      ]
+    },
+    "az": {
+      "names_f": [
+        "Leyla",
+        "Nigar",
+        "Aysel"
+      ],
+      "names_m": [
+        "Rashad",
+        "Elvin",
+        "Orxan"
+      ]
+    },
+    "be": {
+      "names_f": [
+        "Katsiaryna",
+        "Alesia",
+        "Volha"
+      ],
+      "names_m": [
+        "Ales",
+        "Siarhei",
+        "Maksim"
+      ]
+    },
+    "bg": {
+      "names_f": [
+        "Mila",
+        "Elena",
+        "Ralitsa"
+      ],
+      "names_m": [
+        "Georgi",
+        "Ivan",
+        "Nikolay"
+      ]
+    },
+    "bn": {
+      "names_f": [
+        "Nusrat",
+        "Rupa",
+        "Tanvi"
+      ],
+      "names_m": [
+        "Arif",
+        "Rahul",
+        "Shakib"
+      ]
+    },
+    "bs": {
+      "names_f": [
+        "Amina",
+        "Lejla",
+        "Emina"
+      ],
+      "names_m": [
+        "Adnan",
+        "Haris",
+        "Emir"
+      ]
+    },
+    "cs": {
+      "names_f": [
+        "Tereza",
+        "Eliska",
+        "Katerina"
+      ],
+      "names_m": [
+        "Tomas",
+        "Jakub",
+        "Petr"
+      ]
+    },
+    "da": {
+      "names_f": [
+        "Freja",
+        "Ida",
+        "Sofie"
+      ],
+      "names_m": [
+        "Lars",
+        "Mads",
+        "Anders"
+      ]
+    },
+    "el": {
+      "names_f": [
+        "Eleni",
+        "Maria",
+        "Katerina"
+      ],
+      "names_m": [
+        "Nikos",
+        "Yiannis",
+        "Dimitris"
+      ]
+    },
+    "et": {
+      "names_f": [
+        "Kadri",
+        "Liis",
+        "Maarja"
+      ],
+      "names_m": [
+        "Tarmo",
+        "Mart",
+        "Rasmus"
+      ]
+    },
+    "eu": {
+      "names_f": [
+        "Ainhoa",
+        "Nerea",
+        "Maddi"
+      ],
+      "names_m": [
+        "Iker",
+        "Unai",
+        "Ander"
+      ]
+    },
+    "fa": {
+      "names_f": [
+        "Yasmin",
+        "Shirin",
+        "Parisa"
+      ],
+      "names_m": [
+        "Reza",
+        "Arash",
+        "Kian"
+      ]
+    },
+    "fi": {
+      "names_f": [
+        "Aino",
+        "Emmi",
+        "Sanni"
+      ],
+      "names_m": [
+        "Eero",
+        "Mikko",
+        "Juho"
+      ]
+    },
+    "fil": {
+      "names_f": [
+        "Lea",
+        "Maricel",
+        "Jhen"
+      ],
+      "names_m": [
+        "Rizal",
+        "Paolo",
+        "Emman"
+      ]
+    },
+    "ga": {
+      "names_f": [
+        "Niamh",
+        "Saoirse",
+        "Aoife"
+      ],
+      "names_m": [
+        "Cian",
+        "Oisin",
+        "Declan"
+      ]
+    },
+    "gu": {
+      "names_f": [
+        "Hetal",
+        "Rina",
+        "Krupa"
+      ],
+      "names_m": [
+        "Jignesh",
+        "Parth",
+        "Bhavik"
+      ]
+    },
+    "he": {
+      "names_f": [
+        "Noa",
+        "Tamar",
+        "Shira"
+      ],
+      "names_m": [
+        "Eitan",
+        "Amir",
+        "Yonatan"
+      ]
+    },
+    "hi": {
+      "names_f": [
+        "Priya",
+        "Ananya",
+        "Meera"
+      ],
+      "names_m": [
+        "Arjun",
+        "Rohan",
+        "Vikram"
+      ]
+    },
+    "hr": {
+      "names_f": [
+        "Petra",
+        "Ivana",
+        "Lucija"
+      ],
+      "names_m": [
+        "Ivan",
+        "Luka",
+        "Marko"
+      ]
+    },
+    "ht": {
+      "names_f": [
+        "Naomie",
+        "Mirlande",
+        "Chantal"
+      ],
+      "names_m": [
+        "Wesley",
+        "Frantz",
+        "Jean-Marc"
+      ]
+    },
+    "hu": {
+      "names_f": [
+        "Anna",
+        "Reka",
+        "Eszter"
+      ],
+      "names_m": [
+        "Bence",
+        "Daniel",
+        "Gergo"
+      ]
+    },
+    "hy": {
+      "names_f": [
+        "Anahit",
+        "Lusine",
+        "Nare"
+      ],
+      "names_m": [
+        "Aram",
+        "Vahan",
+        "Tigran"
+      ]
+    },
+    "id": {
+      "names_f": [
+        "Sari",
+        "Putri",
+        "Indah"
+      ],
+      "names_m": [
+        "Bayu",
+        "Agus",
+        "Dimas"
+      ]
+    },
+    "is": {
+      "names_f": [
+        "Katrin",
+        "Elin",
+        "Hafdis"
+      ],
+      "names_m": [
+        "Jon",
+        "Gunnar",
+        "Bjorn"
+      ]
+    },
+    "it": {
+      "names_f": [
+        "Giulia",
+        "Chiara",
+        "Francesca"
+      ],
+      "names_m": [
+        "Luca",
+        "Stefano",
+        "Matteo"
+      ]
+    },
+    "ja": {
+      "names_f": [
+        "Aiko",
+        "Yuki",
+        "Haruka"
+      ],
+      "names_m": [
+        "Haruto",
+        "Sota",
+        "Ren"
+      ]
+    },
+    "jv": {
+      "names_f": [
+        "Wulan",
+        "Ratih",
+        "Siti"
+      ],
+      "names_m": [
+        "Bagus",
+        "Joko",
+        "Wahyu"
+      ]
+    },
+    "ka": {
+      "names_f": [
+        "Nino",
+        "Tamar",
+        "Mariam"
+      ],
+      "names_m": [
+        "Giorgi",
+        "Levan",
+        "Nika"
+      ]
+    },
+    "kk": {
+      "names_f": [
+        "Aigerim",
+        "Aizada",
+        "Dana"
+      ],
+      "names_m": [
+        "Timur",
+        "Nurlan",
+        "Yerlan"
+      ]
+    },
+    "km": {
+      "names_f": [
+        "Sophea",
+        "Chanlina",
+        "Sreyneang"
+      ],
+      "names_m": [
+        "Sokha",
+        "Vuthy",
+        "Dara"
+      ]
+    },
+    "kn": {
+      "names_f": [
+        "Deepa",
+        "Shruthi",
+        "Ananya"
+      ],
+      "names_m": [
+        "Kiran",
+        "Manjunath",
+        "Sandeep"
+      ]
+    },
+    "ko": {
+      "names_f": [
+        "Soo-jin",
+        "Ha-eun",
+        "Min-seo"
+      ],
+      "names_m": [
+        "Min-jun",
+        "Ji-ho",
+        "Seo-jun"
+      ]
+    },
+    "ky": {
+      "names_f": [
+        "Aizada",
+        "Nurgul",
+        "Aisuluu"
+      ],
+      "names_m": [
+        "Ruslan",
+        "Azamat",
+        "Bektur"
+      ]
+    },
+    "lo": {
+      "names_f": [
+        "Phonesavanh",
+        "Noy",
+        "Chanthala"
+      ],
+      "names_m": [
+        "Somchai",
+        "Khamla",
+        "Bounma"
+      ]
+    },
+    "lt": {
+      "names_f": [
+        "Egle",
+        "Ruta",
+        "Gabija"
+      ],
+      "names_m": [
+        "Tomas",
+        "Mantas",
+        "Lukas"
+      ]
+    },
+    "lv": {
+      "names_f": [
+        "Ilze",
+        "Liga",
+        "Anete"
+      ],
+      "names_m": [
+        "Janis",
+        "Martins",
+        "Rihards"
+      ]
+    },
+    "mg": {
+      "names_f": [
+        "Hanta",
+        "Fara",
+        "Vola"
+      ],
+      "names_m": [
+        "Rakoto",
+        "Faly",
+        "Naina"
+      ]
+    },
+    "mi": {
+      "names_f": [
+        "Aroha",
+        "Moana",
+        "Kahurangi"
+      ],
+      "names_m": [
+        "Tane",
+        "Rangi",
+        "Manaia"
+      ]
+    },
+    "mk": {
+      "names_f": [
+        "Vesna",
+        "Marija",
+        "Elena"
+      ],
+      "names_m": [
+        "Stefan",
+        "Nikola",
+        "Aleksandar"
+      ]
+    },
+    "ml": {
+      "names_f": [
+        "Anjali",
+        "Divya",
+        "Lakshmi"
+      ],
+      "names_m": [
+        "Dinesh",
+        "Anoop",
+        "Vishnu"
+      ]
+    },
+    "mn": {
+      "names_f": [
+        "Sarnai",
+        "Oyun",
+        "Bolor"
+      ],
+      "names_m": [
+        "Bat",
+        "Ganbold",
+        "Temuulen"
+      ]
+    },
+    "mr": {
+      "names_f": [
+        "Sneha",
+        "Aditi",
+        "Rutuja"
+      ],
+      "names_m": [
+        "Omkar",
+        "Nikhil",
+        "Sagar"
+      ]
+    },
+    "mt": {
+      "names_f": [
+        "Marija",
+        "Rachel",
+        "Nicole"
+      ],
+      "names_m": [
+        "Mario",
+        "Joseph",
+        "Luke"
+      ]
+    },
+    "my": {
+      "names_f": [
+        "Thida",
+        "Su Su",
+        "Nwe"
+      ],
+      "names_m": [
+        "Aung",
+        "Zaw",
+        "Kyaw"
+      ]
+    },
+    "ne": {
+      "names_f": [
+        "Sunita",
+        "Pratima",
+        "Asmita"
+      ],
+      "names_m": [
+        "Bibek",
+        "Suman",
+        "Nabin"
+      ]
+    },
+    "nl": {
+      "names_f": [
+        "Sanne",
+        "Femke",
+        "Lotte"
+      ],
+      "names_m": [
+        "Daan",
+        "Bram",
+        "Sven"
+      ]
+    },
+    "no": {
+      "names_f": [
+        "Ingrid",
+        "Emma",
+        "Solveig"
+      ],
+      "names_m": [
+        "Lars",
+        "Henrik",
+        "Magnus"
+      ]
+    },
+    "or": {
+      "names_f": [
+        "Sasmita",
+        "Ipsita",
+        "Manisha"
+      ],
+      "names_m": [
+        "Subrat",
+        "Bikash",
+        "Sanjay"
+      ]
+    },
+    "pa": {
+      "names_f": [
+        "Simran",
+        "Harleen",
+        "Gurpreet"
+      ],
+      "names_m": [
+        "Jaspreet",
+        "Manpreet",
+        "Harjit"
+      ]
+    },
+    "pl": {
+      "names_f": [
+        "Zofia",
+        "Julia",
+        "Magdalena"
+      ],
+      "names_m": [
+        "Jakub",
+        "Piotr",
+        "Marek"
+      ]
+    },
+    "ps": {
+      "names_f": [
+        "Malala",
+        "Shaista",
+        "Gulalai"
+      ],
+      "names_m": [
+        "Zahir",
+        "Naseer",
+        "Wali"
+      ]
+    },
+    "ro": {
+      "names_f": [
+        "Ioana",
+        "Andreea",
+        "Elena"
+      ],
+      "names_m": [
+        "Andrei",
+        "Mihai",
+        "Radu"
+      ]
+    },
+    "ru": {
+      "names_f": [
+        "Anastasia",
+        "Ekaterina",
+        "Olga"
+      ],
+      "names_m": [
+        "Ivan",
+        "Dmitri",
+        "Sergei"
+      ]
+    },
+    "si": {
+      "names_f": [
+        "Dilini",
+        "Nadeesha",
+        "Sachini"
+      ],
+      "names_m": [
+        "Kasun",
+        "Nuwan",
+        "Chamara"
+      ]
+    },
+    "sk": {
+      "names_f": [
+        "Zuzana",
+        "Lucia",
+        "Martina"
+      ],
+      "names_m": [
+        "Marek",
+        "Peter",
+        "Michal"
+      ]
+    },
+    "sl": {
+      "names_f": [
+        "Nina",
+        "Maja",
+        "Ana"
+      ],
+      "names_m": [
+        "Luka",
+        "Jan",
+        "Matej"
+      ]
+    },
+    "sq": {
+      "names_f": [
+        "Besnike",
+        "Arta",
+        "Elira"
+      ],
+      "names_m": [
+        "Besnik",
+        "Arben",
+        "Endrit"
+      ]
+    },
+    "sr": {
+      "names_f": [
+        "Jelena",
+        "Milica",
+        "Ana"
+      ],
+      "names_m": [
+        "Milos",
+        "Nikola",
+        "Stefan"
+      ]
+    },
+    "su": {
+      "names_f": [
+        "Neneng",
+        "Euis",
+        "Tati"
+      ],
+      "names_m": [
+        "Asep",
+        "Dadang",
+        "Ujang"
+      ]
+    },
+    "sv": {
+      "names_f": [
+        "Elin",
+        "Sara",
+        "Astrid"
+      ],
+      "names_m": [
+        "Mikael",
+        "Oskar",
+        "Erik"
+      ]
+    },
+    "ta": {
+      "names_f": [
+        "Kavya",
+        "Deepa",
+        "Nithya"
+      ],
+      "names_m": [
+        "Karthik",
+        "Suresh",
+        "Arun"
+      ]
+    },
+    "te": {
+      "names_f": [
+        "Sravani",
+        "Harika",
+        "Divya"
+      ],
+      "names_m": [
+        "Ravi",
+        "Naveen",
+        "Srikanth"
+      ]
+    },
+    "tg": {
+      "names_f": [
+        "Nargis",
+        "Farzona",
+        "Zulfiya"
+      ],
+      "names_m": [
+        "Farrukh",
+        "Jamshed",
+        "Sherali"
+      ]
+    },
+    "th": {
+      "names_f": [
+        "Ploy",
+        "Nok",
+        "Fah"
+      ],
+      "names_m": [
+        "Somchai",
+        "Nattapong",
+        "Krit"
+      ]
+    },
+    "tk": {
+      "names_f": [
+        "Aynur",
+        "Jemal",
+        "Gozel"
+      ],
+      "names_m": [
+        "Serdar",
+        "Merdan",
+        "Batyr"
+      ]
+    },
+    "tr": {
+      "names_f": [
+        "Elif",
+        "Zeynep",
+        "Ayse"
+      ],
+      "names_m": [
+        "Emre",
+        "Mert",
+        "Kaan"
+      ]
+    },
+    "tt": {
+      "names_f": [
+        "Alsu",
+        "Guzel",
+        "Liliya"
+      ],
+      "names_m": [
+        "Ruslan",
+        "Ildar",
+        "Aidar"
+      ]
+    },
+    "ug": {
+      "names_f": [
+        "Gulnar",
+        "Aygul",
+        "Dilnur"
+      ],
+      "names_m": [
+        "Abdul",
+        "Ilham",
+        "Nurlan"
+      ]
+    },
+    "uk": {
+      "names_f": [
+        "Olena",
+        "Kateryna",
+        "Iryna"
+      ],
+      "names_m": [
+        "Dmytro",
+        "Oleksandr",
+        "Andriy"
+      ]
+    },
+    "ur": {
+      "names_f": [
+        "Nadia",
+        "Ayesha",
+        "Fatima"
+      ],
+      "names_m": [
+        "Imran",
+        "Bilal",
+        "Usman"
+      ]
+    },
+    "uz": {
+      "names_f": [
+        "Dilnoza",
+        "Nilufar",
+        "Gulnora"
+      ],
+      "names_m": [
+        "Bekzod",
+        "Sardor",
+        "Jasur"
+      ]
+    },
+    "vi": {
+      "names_f": [
+        "Linh",
+        "Mai",
+        "Thao"
+      ],
+      "names_m": [
+        "Minh",
+        "Tuan",
+        "Nam"
+      ]
+    },
+    "zh": {
+      "names_f": [
+        "Mei",
+        "Xiaoyu",
+        "Lifen"
+      ],
+      "names_m": [
+        "Wei",
+        "Jian",
+        "Hao"
+      ]
+    }
+  },
+  "language_names_note": "Display names for the pinned languages, so a Japanese character is not named from the shared East Asian pool. Seed quality: have a native speaker review before these names reach users. Languages absent here fall back to the region name pool on purpose."
+}

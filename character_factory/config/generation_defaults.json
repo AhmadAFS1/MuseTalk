@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "status": "transcribed_from_the_winning_q4_graph",
+  "note": "Values transcribed from /workspace/LTX-2.3/workflows/q4/LTX_2.3_Q4_lowvram_product_ad_api.json and the accepted V6/V8/V14/V15 runs. Node IDs belong to that exact graph; re-verify them if the graph is ever re-exported from the ComfyUI GUI.",
+  "comfyui": {
+    "base_url": "http://127.0.0.1:18188",
+    "workflow_api_json": "/workspace/LTX-2.3/workflows/q4/LTX_2.3_Q4_lowvram_product_ad_api.json",
+    "input_dir": "/workspace/experiments/ltx23-8gb/ComfyUI/input",
+    "output_dir": "/workspace/experiments/ltx23-8gb/ComfyUI/output",
+    "input_subfolder": "character_factory",
+    "filename_prefix_root": "character_factory",
+    "poll_seconds": 8,
+    "job_timeout_seconds": 2400
+  },
+  "models": {
+    "unet": "LTX-2.3-22B-distilled-1.1-Q4_K_M.gguf",
+    "clip_1": "gemma-3-12b-it-qat-UD-Q3_K_XL.gguf",
+    "clip_2": "ltx-2.3_text_projection_bf16.safetensors",
+    "video_vae": "ltx/LTX23_video_vae_bf16.safetensors",
+    "audio_vae": "ltx/LTX23_audio_vae_bf16.safetensors",
+    "note": "Restored by /workspace/LTX-2.3/scripts/bootstrap-q4.sh against config/q4-models.lock. Peak measured VRAM was about 13.7 GiB, so treat this as a 16 GB configuration despite its '8 GB' publication."
+  },
+  "node_ids": {
+    "load_image": "5652",
+    "resize_image": "5653",
+    "preprocess_image": "5654",
+    "duration_seconds_int": "5636",
+    "fps_float": "5640",
+    "frame_count_calculator": "5639",
+    "empty_latent_video": "5659",
+    "empty_latent_audio": "5663",
+    "add_guide": "5649",
+    "prompt_relay_encode": "5709",
+    "negative_text_encode": "15",
+    "attention_tuner": "9",
+    "nag": "7",
+    "stage1_noise_seed": "5658:5351",
+    "stage2_noise_seed": "5667:5447",
+    "stage1_sigmas": "5658:5354",
+    "stage2_sigmas": "5667:5455",
+    "video_combine": "5661"
+  },
+  "sampling": {
+    "stage1_sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725",
+    "stage2_sigmas": "0.725, 0.421875, 0.0",
+    "step_profile": "6+2",
+    "cfg": 1,
+    "nag_scale": 15,
+    "nag_alpha": 0.4,
+    "nag_tau": 2.5,
+    "guide_strength": 1.0,
+    "guide_strength_note": "The accepted LumaTalk language runs used 1.0, above the graph's shipped 0.9, to hold identity across a longer clip. Lower it only if the render looks pasted to the reference frame.",
+    "img_compression": 18,
+    "resize_width": 1536,
+    "audio_to_video_scale": 0.8,
+    "audio_to_video_scale_note": "Kept from the accepted runs. The graph always produces an audio stream; pose renders strip it during certification because the delivery contract requires audio_streams=0."
+  },
+  "seeds": {
+    "policy": "deterministic_per_character_and_render",
+    "base_stage1": 189,
+    "base_stage2": 74,
+    "formula": "stage_seed = base + (crc32(character_id) % 100000) * 8 + render_index",
+    "note": "Deterministic seeds make a reroll reproducible and a regression bisectable. A render that has to be rerolled records the attempt number, which shifts the seed by +1000 per attempt."
+  },
+  "output": {
+    "width": 480,
+    "height": 832,
+    "fps": 24,
+    "format": "video/h264-mp4",
+    "pix_fmt": "yuv420p",
+    "crf": 19
+  },
+  "throughput": {
+    "measured_reference": "The accepted close-up bank was produced on a single RTX 5060 Ti with 15.48 GiB visible VRAM.",
+    "planning_note": "Budget per-render wall clock from a real measurement on the target GPU before scheduling a bulk run. record_render_timings() in generate_pose_videos.py writes every observed duration to state/timings.jsonl so the estimate stops being a guess after the first few characters.",
+    "reroll_budget_per_render": 2,
+    "reroll_budget_note": "LTX is stochastic. The accepted bank needed rerolls on listening and empathy. Past this budget the pose is escalated for a prompt edit rather than rerolled again."
+  }
+}

@@ -2011,6 +2011,22 @@ def load_vae_trt_decoder(
     unavailable. With fallback disabled, activation failures are raised so the
     caller does not silently run a non-TRT path.
     """
+    # Added code: the distilled tiny-VAE decoder is not a TensorRT artifact, but
+    # every caller resolves its decode backend through this one function, so it
+    # is dispatched here to keep a single integration point and a single env var.
+    try:
+        from scripts.vae_fast_decoder import load_taesd_decoder, taesd_backend_requested
+    except ImportError:  # running with scripts/ already on sys.path
+        from vae_fast_decoder import load_taesd_decoder, taesd_backend_requested
+    if taesd_backend_requested():
+        resolved_device = device or torch.device(
+            "cuda:0" if torch.cuda.is_available() else "cpu"
+        )
+        runtime_dtype = torch.float16
+        if vae_module is not None:
+            runtime_dtype = getattr(vae_module, "dtype", torch.float16)
+        return load_taesd_decoder(device=resolved_device, runtime_dtype=runtime_dtype)
+
     if not force and not _trt_vae_requested():
         return None
 

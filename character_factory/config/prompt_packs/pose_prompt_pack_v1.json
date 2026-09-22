@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "pack_id": "lingua_character_factory_pose_pack_v1",
+  "lineage": "Derived from the accepted close-up V6/V8/V14/V15 prompt profiles and the prompting policy in generated/asset_analysis/2026-08-28_arby_kling_prompt_reverse_engineering/README.md.",
+  "policy": [
+    "Match each pose's own spacious timing. Never compress a pose into a shorter clip to save GPU time.",
+    "One behavioural idea per local segment. Describe a positive trajectory: rest -> action -> release -> rest.",
+    "Keep the global prompt short. It carries identity, framing, camera lock, and mouth state only.",
+    "The mouth stays closed and relaxed in every pose. MuseTalk supplies the lip articulation later; visible speech shapes in the base video fight the overlay.",
+    "Keep the negative prompt to technical continuity and mouth-articulation failures. Never put 'large movement', 'head sway', 'overacting', or 'frozen' in it, which suppresses the intended low-amplitude action along with the unwanted extreme.",
+    "Preserve a quiet interval at both ends so certification can force exact decoded first/last handles.",
+    "Review at normal playback speed before preparing any MuseTalk cache."
+  ],
+  "placeholders": {
+    "{subject}": "Casting phrase from the roster, e.g. 'Black French man in his late twenties'.",
+    "{wardrobe}": "Wardrobe phrase from the roster, e.g. 'a navy blue casual henley shirt'.",
+    "{pronoun_subject}": "they / she / he as recorded on the roster entry.",
+    "{pronoun_possessive}": "their / her / his as recorded on the roster entry."
+  },
+  "global_prompt_template": "Vertical 9:16 photorealistic UGC smartphone video. The exact same person from the reference image, a {subject} wearing {wardrobe}, framed in a tight medium close-up from the chest up at arm's length, facing the camera on a video call. The camera is locked: no zoom, no reframing, no change in subject size. {pronoun_possessive} mouth stays closed and relaxed throughout. Natural skin texture, realistic eyes and hair, stable identity, fixed background and lighting.",
+  "negative_prompt": "text, letters, words, subtitles, captions, typography, overlay graphics, logo, watermark, UI elements, distorted face, warped body, bad hands, extra fingers, extra arms, duplicate person, changing hairstyle, changing identity, changing room layout, changing clothing, open mouth, visible speech shapes, mouth articulation, talking, lip movement, teeth showing, tongue visible, cartoon, anime, zoom, zoom in, zoom out, push-in, pull-back, changing focal length, changing framing, changing crop, changing subject size",
+  "renders": {
+    "idle_active_listening": {
+      "seconds": 10,
+      "frame_count": 241,
+      "segment_lengths": "80,80,81",
+      "control_strategy": "Restrained always-on behaviour. About two and a half slow breaths and one very slow posture arc across the clip, with sparse separated blinks. The listening inclination develops gradually and returns; there is no repeated nodding and no lateral patrolling.",
+      "local_prompts": [
+        "{pronoun_subject} rests in a settled upright posture and looks into the lens with quiet friendly attention. {pronoun_possessive} chest rises and falls slowly with breathing. One blink occurs, unhurried.",
+        "{pronoun_possessive} attention settles slightly forward and {pronoun_possessive} head develops one gradual diagonal listening inclination, held quietly while {pronoun_subject} keeps eye contact. A single small acknowledgement occurs inside that already-established posture. Breathing continues slowly.",
+        "The diagonal softens and {pronoun_possessive} head returns along the same path toward the centre. {pronoun_subject} settles back into the exact resting posture the clip opened with, breathing slowly, mouth closed, eyes on the lens."
+      ]
+    },
+    "speaking_direct_v14_subtle": {
+      "seconds": 12,
+      "frame_count": 289,
+      "segment_lengths": "289",
+      "control_strategy": "One uninterrupted segment retains direct pupil-to-lens alignment. Two slow, unequal sagittal micro-adjustments only: shallow chin buoyancy and a smaller forward/back settling change. Yaw, roll, lateral translation, shoulders, torso, and gaze direction stay constrained.",
+      "local_prompts": [
+        "{pronoun_subject} holds direct eye contact with the lens for the entire shot, pupils aligned to the camera. {pronoun_possessive} head is carried with a shallow slow buoyancy at the chin and one smaller, later settling change forward and back. {pronoun_possessive} shoulders and torso stay where they are. Blinks are natural and sparse. {pronoun_possessive} mouth stays closed and relaxed. {pronoun_subject} ends settled in the same upright posture the clip opened with."
+      ]
+    },
+    "speaking_direct_v15_reference_paced": {
+      "seconds": 12,
+      "frame_count": 289,
+      "segment_lengths": "96,96,97",
+      "control_strategy": "Same envelope as V14, organised into conversational phrases instead of one continuous carriage. Head leads an accent, chest or one shoulder follows slightly later, then a partial release and a quiet interval before a different accent. The final portion settles progressively rather than snapping to centre.",
+      "local_prompts": [
+        "{pronoun_subject} looks straight into the lens and makes one small head-led conversational accent. {pronoun_possessive} chest follows a moment later. The accent releases partway and {pronoun_subject} rests.",
+        "After a quiet interval {pronoun_subject} makes a different, slightly quicker accent with a small diagonal thought shift, and one shoulder follows late. {pronoun_subject} returns most of the way and holds eye contact through a still pause.",
+        "{pronoun_subject} makes one last gentle accent, then progressively settles, each remaining movement smaller than the last, until {pronoun_subject} rests in the exact upright posture the clip opened with. Mouth closed, eyes on the lens."
+      ]
+    },
+    "nod_agree": {
+      "seconds": 6,
+      "frame_count": 145,
+      "segment_lengths": "48,48,49",
+      "control_strategy": "One single short yes gesture surrounded by much more stillness. Rest through roughly 0.7 s, chin dip beginning near 0.8 s, lowest point near 1.0 s, upright again near 1.2 s, then quiet for the remainder. Eyes stay connected to the caller throughout the gesture.",
+      "local_prompts": [
+        "{pronoun_subject} rests upright looking into the lens, then dips {pronoun_possessive} chin once in a single short downward agreement and brings it straight back up. {pronoun_possessive} eyes stay on the lens through the gesture. Mouth closed.",
+        "{pronoun_subject} rests upright again with quiet friendly attention, breathing slowly. One unhurried blink occurs. No further gesture.",
+        "{pronoun_subject} remains in the same settled upright rest, eyes on the lens, breathing slowly, returning to the exact posture the clip opened with."
+      ]
+    },
+    "empathetic_head_tilt": {
+      "seconds": 10,
+      "frame_count": 241,
+      "segment_lengths": "80,80,81",
+      "control_strategy": "Soft forward attention, one gradual diagonal inclination, a quiet warm hold, and a return along the same path. No embedded nod, unlike the listening loop it was originally derived from. Keep the tilt slow and readable; earlier faster renders were rejected.",
+      "local_prompts": [
+        "{pronoun_subject} rests upright on the lens, then {pronoun_possessive} attention softens forward with a gentle warming of the eyes. Mouth closed.",
+        "{pronoun_possessive} head inclines slowly into one gradual diagonal tilt and holds there, warm and attentive, eyes still on the lens. Breathing stays slow. No nod occurs.",
+        "The tilt releases slowly along the same path and {pronoun_subject} returns upright, settling into the exact posture the clip opened with, eyes on the lens, mouth closed."
+      ]
+    },
+    "light_smile": {
+      "seconds": 6,
+      "frame_count": 145,
+      "segment_lengths": "48,48,49",
+      "control_strategy": "Neutral start, closed-lip smile onset after the opening rest with a tiny accompanying chin lift, a brief mild hold, then a full release of both smile and chin lift, then neutral rest. Mild, not broad; the lips do not part.",
+      "local_prompts": [
+        "{pronoun_subject} rests with a neutral relaxed face looking into the lens, breathing slowly.",
+        "A mild closed-lip smile grows, accompanied by a tiny lift of {pronoun_possessive} chin, and holds briefly. {pronoun_possessive} lips stay together and {pronoun_possessive} eyes stay warm on the lens.",
+        "The smile and the chin lift release fully and {pronoun_subject} returns to the neutral resting face and posture the clip opened with, eyes on the lens, breathing slowly."
+      ]
+    }
+  }
+}

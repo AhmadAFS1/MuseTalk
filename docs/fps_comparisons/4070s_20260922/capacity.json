@@ -1,0 +1,80 @@
+{
+  "weights_gb_pytorch_stack": 1.76,
+  "unet_backend": "trt_fp16_bs8",
+  "TRT-UNet + SD-VAE FP16": {
+    "8": {
+      "unet_ms": 25.36,
+      "vae_ms": 142.66,
+      "total_ms": 168.02,
+      "fps": 47.6,
+      "peak_vram_gb": 2.77,
+      "streams_at_20fps": 2.4,
+      "streams_at_25fps": 1.9
+    },
+    "16": {
+      "unet_ms": 52.05,
+      "vae_ms": 284.46,
+      "total_ms": 336.51,
+      "fps": 47.5,
+      "peak_vram_gb": 3.77,
+      "streams_at_20fps": 2.4,
+      "streams_at_25fps": 1.9
+    },
+    "24": {
+      "unet_ms": 78.2,
+      "vae_ms": 424.03,
+      "total_ms": 502.23,
+      "fps": 47.8,
+      "peak_vram_gb": 4.77,
+      "streams_at_20fps": 2.4,
+      "streams_at_25fps": 1.9
+    },
+    "32": {
+      "unet_ms": 104.82,
+      "vae_ms": 570.61,
+      "total_ms": 675.43,
+      "fps": 47.4,
+      "peak_vram_gb": 5.77,
+      "streams_at_20fps": 2.4,
+      "streams_at_25fps": 1.9
+    }
+  },
+  "TRT-UNet + TAESD": {
+    "8": {
+      "unet_ms": 25.9,
+      "vae_ms": 12.38,
+      "total_ms": 38.27,
+      "fps": 209.0,
+      "peak_vram_gb": 2.09,
+      "streams_at_20fps": 10.5,
+      "streams_at_25fps": 8.4
+    },
+    "16": {
+      "unet_ms": 52.4,
+      "vae_ms": 26.85,
+      "total_ms": 79.26,
+      "fps": 201.9,
+      "peak_vram_gb": 2.4,
+      "streams_at_20fps": 10.1,
+      "streams_at_25fps": 8.1
+    },
+    "24": {
+      "unet_ms": 78.89,
+      "vae_ms": 41.91,
+      "total_ms": 120.8,
+      "fps": 198.7,
+      "peak_vram_gb": 2.71,
+      "streams_at_20fps": 9.9,
+      "streams_at_25fps": 7.9
+    },
+    "32": {
+      "unet_ms": 105.17,
+      "vae_ms": 56.01,
+      "total_ms": 161.18,
+      "fps": 198.5,
+      "peak_vram_gb": 3.02,
+      "streams_at_20fps": 9.9,
+      "streams_at_25fps": 7.9
+    }
+  }
+}

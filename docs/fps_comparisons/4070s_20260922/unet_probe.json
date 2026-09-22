@@ -1,0 +1,72 @@
+{
+  "unet_params_M": 849.9,
+  "pytorch_fp16_bs8": {
+    "mean_ms": 42.130892836333565,
+    "p95_ms": 44.05038934201002
+  },
+  "trt_fp16_bs8 (PRODUCTION)": {
+    "error": "RuntimeError: forward() expected at most 3 argument(s) but received 4 argument(s). Declaration: forward(__torch__.torch.fx.graph_module.GraphModule self, Tensor latent, Tensor encoder_hidden_states) -> Tensor"
+  },
+  "pytorch_compiled_maxautotune": {
+    "mean_ms": 37.96225140492121,
+    "p95_ms": 56.56088452669791,
+    "speedup": 1.11,
+    "mae": 0.0002858671359717846,
+    "max_abs": 0.0029296875
+  },
+  "pytorch_fp16_channels_last": {
+    "mean_ms": 37.10164559694628,
+    "p95_ms": 37.49305597739294,
+    "speedup": 1.14,
+    "mae": 0.0002494996297173202,
+    "max_abs": 0.003173828125
+  },
+  "fp8_capability": {
+    "torch_float8_e4m3fn_cast": true,
+    "scaled_mm": true,
+    "tensorrt_version": "10.3.0",
+    "trt_FP8": "settable",
+    "trt_INT8": "settable",
+    "trt_FP16": "settable",
+    "trt_BF16": "settable",
+    "modelopt_fp8_cfg": true
+  },
+  "unet_batch_scaling": {
+    "4": {
+      "mean_ms": 25.093186538045604,
+      "p95_ms": 25.954679993446916,
+      "fps": 159.4,
+      "ms_per_frame": 6.273
+    },
+    "8": {
+      "mean_ms": 40.54193533180902,
+      "p95_ms": 40.99274673499167,
+      "fps": 197.3,
+      "ms_per_frame": 5.068
+    },
+    "12": {
+      "mean_ms": 57.720207438493766,
+      "p95_ms": 57.86406636470929,
+      "fps": 207.9,
+      "ms_per_frame": 4.81
+    },
+    "16": {
+      "mean_ms": 71.04315278120339,
+      "p95_ms": 71.38126000063494,
+      "fps": 225.2,
+      "ms_per_frame": 4.44
+    },
+    "24": {
+      "mean_ms": 104.99006397246073,
+      "p95_ms": 105.24058472365141,
+      "fps": 228.6,
+      "ms_per_frame": 4.375
+    },
+    "32": {
+      "mean_ms": 134.23013386006156,
+      "p95_ms": 134.54104064730927,
+      "fps": 238.4,
+      "ms_per_frame": 4.195
+    }
+  }
+}

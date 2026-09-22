@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "note": "Work queue for interactive ChatGPT image generation. Generate each `prompt`, save the PNG to `expected_portrait`, then run ingest_portraits.py. Re-run this script with --only-missing to see what is left.",
+  "pending": 3,
+  "items": [
+    {
+      "character_id": "ja_01",
+      "display_name": "Haruka",
+      "language_code": "ja",
+      "language_name": "Japanese",
+      "tier": "full",
+      "prompt_file": "state/portrait_prompts/ja_01.md",
+      "expected_portrait": "state/portrait_inbox/ja_01.png",
+      "prompt": "Use case: ads-marketing. Asset type: source frame for an AI language-companion video call. Create a photorealistic vertical smartphone selfie portrait of a friendly Japanese woman in their mid thirties, looking directly into the camera with a calm attentive closed-mouth half-smile. Place them in a minimal modern apartment with pale wood and soft daylight, softly blurred and without landmarks. They have natural textured hair worn short and wear a soft oatmeal knit sweater. Use highly realistic candid UGC phone-camera photography, natural skin texture and pores, no beauty filter. Frame at 9:16 in a tight medium close-up from the chest up, centered at arm's length, with both shoulders visible and no phone visible. Use warm soft daylight. Preserve stable realistic facial anatomy and an unobstructed face. No text, logo, watermark, extra people, distorted hands, artificial bokeh, or glamour-editorial styling."
+    },
+    {
+      "character_id": "ja_02",
+      "display_name": "Sota",
+      "language_code": "ja",
+      "language_name": "Japanese",
+      "tier": "core",
+      "prompt_file": "state/portrait_prompts/ja_02.md",
+      "expected_portrait": "state/portrait_inbox/ja_02.png",
+      "prompt": "Use case: ads-marketing. Asset type: source frame for an AI language-companion video call. Create a photorealistic vertical smartphone selfie portrait of a friendly Japanese man in their mid thirties, looking directly into the camera with a calm attentive closed-mouth half-smile. Place them in a minimal modern apartment with pale wood and soft daylight, softly blurred and without landmarks. They have short hair with a light stubble and wear a cream casual T-shirt. Use highly realistic candid UGC phone-camera photography, natural skin texture and pores, no beauty filter. Frame at 9:16 in a tight medium close-up from the chest up, centered at arm's length, with both shoulders visible and no phone visible. Use soft diffused overcast daylight. Preserve stable realistic facial anatomy and an unobstructed face. No text, logo, watermark, extra people, distorted hands, artificial bokeh, or glamour-editorial styling."
+    },
+    {
+      "character_id": "ja_03",
+      "display_name": "Aiko",
+      "language_code": "ja",
+      "language_name": "Japanese",
+      "tier": "core",
+      "prompt_file": "state/portrait_prompts/ja_03.md",
+      "expected_portrait": "state/portrait_inbox/ja_03.png",
+      "prompt": "Use case: ads-marketing. Asset type: source frame for an AI language-companion video call. Create a photorealistic vertical smartphone selfie portrait of a friendly Japanese woman in their mid thirties, looking directly into the camera with a calm attentive closed-mouth half-smile. Place them in a minimal modern apartment with pale wood and soft daylight, softly blurred and without landmarks. They have long dark hair worn loose and wear a muted terracotta top. Use highly realistic candid UGC phone-camera photography, natural skin texture and pores, no beauty filter. Frame at 9:16 in a tight medium close-up from the chest up, centered at arm's length, with both shoulders visible and no phone visible. Use balanced natural window light. Preserve stable realistic facial anatomy and an unobstructed face. No text, logo, watermark, extra people, distorted hands, artificial bokeh, or glamour-editorial styling."
+    }
+  ]
+}

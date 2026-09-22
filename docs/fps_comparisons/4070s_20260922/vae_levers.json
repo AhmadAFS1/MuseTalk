@@ -1,0 +1,114 @@
+{
+  "nchw_fp16": {
+    "mean_ms": 142.46132182888687,
+    "p95_ms": 143.161225883523
+  },
+  "nchw_fp16_cudnn_bench": {
+    "mean_ms": 142.60818864568137,
+    "p95_ms": 142.84200746333227,
+    "speedup_vs_base": 0.999,
+    "mae": 0.0,
+    "max_abs": 0.0
+  },
+  "nhwc_fp16_cudnn_bench": {
+    "mean_ms": 149.43038845667616,
+    "p95_ms": 149.9347639910411,
+    "speedup_vs_base": 0.953,
+    "mae": 0.0001306502817897126,
+    "max_abs": 0.001708984375
+  },
+  "nhwc_fp16_redprec": {
+    "mean_ms": 149.41302154911682,
+    "p95_ms": 149.98145402641967,
+    "speedup_vs_base": 0.953,
+    "mae": 0.0001306502817897126,
+    "max_abs": 0.001708984375
+  },
+  "nhwc_fp16_compile_maxautotune": {
+    "mean_ms": 93.01040034624748,
+    "p95_ms": 93.4563895338215,
+    "speedup_vs_base": 1.532,
+    "mae": 0.0001620696857571602,
+    "max_abs": 0.00244140625
+  },
+  "nhwc_stage_breakdown": {
+    "up_block_0": {
+      "mean_ms": 7.316275546327233,
+      "p95_ms": 7.38895105314441
+    },
+    "up_block_1": {
+      "mean_ms": 30.779784556943923,
+      "p95_ms": 30.975272983778268
+    },
+    "up_block_2": {
+      "mean_ms": 46.9834073621314,
+      "p95_ms": 47.239830053877085
+    },
+    "up_block_3": {
+      "mean_ms": 54.98306836816482,
+      "p95_ms": 55.2217805525288
+    }
+  },
+  "roi_codex_smoke": {
+    "full_frame": [
+      512,
+      512,
+      3
+    ],
+    "face_bbox_wh": [
+      169,
+      202
+    ],
+    "decoded_at": [
+      256,
+      256
+    ],
+    "resize_ratio_area": 0.521,
+    "mask_shape": [
+      302,
+      302
+    ],
+    "mask_nonzero_rows": [
+      137,
+      260
+    ],
+    "mask_nonzero_frac": 0.169,
+    "mask_crop_box": [
+      101,
+      94,
+      403,
+      396
+    ]
+  },
+  "roi_shared_indian_20260915": {
+    "full_frame": [
+      672,
+      384,
+      3
+    ],
+    "face_bbox_wh": [
+      155,
+      228
+    ],
+    "decoded_at": [
+      256,
+      256
+    ],
+    "resize_ratio_area": 0.539,
+    "mask_shape": [
+      342,
+      342
+    ],
+    "mask_nonzero_rows": [
+      156,
+      294
+    ],
+    "mask_nonzero_frac": 0.156,
+    "mask_crop_box": [
+      23,
+      78,
+      365,
+      420
+    ]
+  }
+}

@@ -3,6 +3,7 @@ API-friendly Avatar implementation for MuseTalk.
 Does NOT modify original realtime_inference.py - creates new class from scratch.
 """
 
+import hashlib
 import os
 import torch
 import glob
@@ -132,6 +133,82 @@ def _load_pickle_local(path):
 
 # Local modification: this differs from the original MuseTalk code.
 # Existing prepared avatar frames and masks can be read in parallel.
+def _avatar_dedup_enabled() -> bool:
+    """Added code: content-dedup of the avatar cycle. Rollback: set to 0."""
+    value = os.getenv("MUSETALK_AVATAR_DEDUP_CYCLE", "1").strip().lower()
+    return value in ("1", "true", "yes", "on")
+
+
+def _dedup_cycle_arrays(arrays, label="arrays"):
+    """
+    Collapse duplicate frames in a prepared avatar cycle onto shared buffers.
+
+    A prepared cycle is forward+reverse, so `cycle[i]` and `cycle[N-1-i]` are
+    byte-identical; a still-portrait avatar repeats one frame for the whole
+    cycle. Both are loaded from disk as distinct arrays, so an avatar pays 2x
+    (moving) to 50x (static) the host RAM it needs. Sharing the buffers is
+    lossless: compose_frame() copies before mutating, and masks and plans are
+    read-only at runtime.
+
+    Returns (deduped_list, unique_count). The list keeps its original length
+    and ordering; only the underlying buffers are shared.
+    """
+    if not arrays or not _avatar_dedup_enabled():
+        return arrays, len(arrays or [])
+
+    canonical: dict[bytes, np.ndarray] = {}
+    out = []
+    for arr in arrays:
+        if not isinstance(arr, np.ndarray):
+            out.append(arr)
+            continue
+        key = hashlib.blake2b(np.ascontiguousarray(arr).tobytes(), digest_size=16).digest()
+        existing = canonical.get(key)
+        if existing is None:
+            canonical[key] = arr
+            out.append(arr)
+        else:
+            out.append(existing)
+    return out, len(canonical)
+
+
+def _read_imgs_dedup(img_list, label="images", max_workers=None):
+    """
+    Added code: read a prepared avatar cycle, decoding each distinct image once.
+
+    A prepared cycle is forward+reverse, so `cycle[i]` and `cycle[N-1-i]` are
+    the same file content; a still-portrait avatar repeats one frame for the
+    whole cycle. Hashing the encoded bytes first lets us skip both the decode
+    and the allocation for every repeat, instead of decoding all N and dropping
+    duplicates afterwards (which leaves the peak, and glibc's retained arena,
+    at the full N).
+
+    Returns (list_of_len_N_with_shared_buffers, unique_count).
+    """
+    if not img_list:
+        return [], 0
+    if not _avatar_dedup_enabled():
+        return _read_imgs_local(img_list, label, max_workers), len(img_list)
+
+    digests: list[bytes] = []
+    for path in img_list:
+        try:
+            with open(path, "rb") as handle:
+                digests.append(hashlib.blake2b(handle.read(), digest_size=16).digest())
+        except OSError:
+            digests.append(hashlib.blake2b(str(path).encode(), digest_size=16).digest())
+
+    first_index: dict[bytes, int] = {}
+    unique_paths = []
+    for idx, digest in enumerate(digests):
+        if digest not in first_index:
+            first_index[digest] = len(unique_paths)
+            unique_paths.append(img_list[idx])
+
+    decoded = _read_imgs_local(unique_paths, f"{label} ({len(unique_paths)} unique)", max_workers)
+    return [decoded[first_index[d]] for d in digests], len(unique_paths)
+
+
 def _read_imgs_local(img_list, label="images", max_workers=None):
     """Added code: parallel image loader for existing prepared avatars."""
     if not img_list:
@@ -480,15 +557,29 @@ class APIAvatar:
         mask_coord_list = getattr(self, "mask_coords_list_cycle", None) or []
         total = min(len(frame_list), len(coord_list), len(mask_list), len(mask_coord_list))
         plans = []
+        # Added code: a plan is a pure function of (frame shape, bbox, mask,
+        # mask crop box). After cycle dedup the mask buffer is shared between
+        # mirrored positions, so the plan - which holds the two alpha arrays,
+        # the largest per-position allocation after the frame itself - can be
+        # shared too instead of rebuilt.
+        plan_cache: dict = {}
         for idx in range(total):
-            plans.append(
-                prepare_image_blending_plan(
+            key = (
+                tuple(frame_list[idx].shape),
+                tuple(int(v) for v in coord_list[idx]),
+                id(mask_list[idx]),
+                tuple(int(v) for v in mask_coord_list[idx]),
+            )
+            plan = plan_cache.get(key)
+            if plan is None:
+                plan = prepare_image_blending_plan(
                     frame_list[idx].shape,
                     coord_list[idx],
                     mask_list[idx],
                     mask_coord_list[idx],
                 )
-            )
+                plan_cache[key] = plan
+            plans.append(plan)
         self._compose_plan_cycle = plans
 
     @staticmethod
@@ -502,25 +593,46 @@ class APIAvatar:
 
     @staticmethod
     def _numpy_sequence_nbytes(values) -> int:
+        # Added code: count each distinct buffer once. After cycle dedup the
+        # mirrored half of the cycle shares buffers with the forward half, so
+        # summing per element would over-report by up to the cycle length and
+        # the cache would admit far fewer avatars than actually fit.
         if not values:
             return 0
         total = 0
+        seen = set()
         for value in values:
-            if isinstance(value, np.ndarray):
-                total += int(value.nbytes)
+            if not isinstance(value, np.ndarray):
+                continue
+            base = value.base if value.base is not None else value
+            try:
+                key = base.__array_interface__["data"][0]
+            except Exception:
+                key = id(base)
+            if key in seen:
+                continue
+            seen.add(key)
+            total += int(value.nbytes)
         return total
 
     @staticmethod
     def _compose_plan_sequence_nbytes(plans) -> int:
+        # Added code: plans are shared across mirrored cycle positions, so
+        # count each distinct plan object once. Also count alpha_u8, which the
+        # fixed-point blend path actually uses and which the original
+        # accounting omitted entirely.
         if not plans:
             return 0
         total = 0
+        seen = set()
         for plan in plans:
-            if not isinstance(plan, dict):
+            if not isinstance(plan, dict) or id(plan) in seen:
                 continue
-            alpha = plan.get("alpha")
-            if isinstance(alpha, np.ndarray):
-                total += int(alpha.nbytes)
+            seen.add(id(plan))
+            for key in ("alpha", "alpha_u8"):
+                arr = plan.get(key)
+                if isinstance(arr, np.ndarray):
+                    total += int(arr.nbytes)
         return total
 
     def estimate_memory_usage_bytes(self) -> int:
@@ -853,13 +965,13 @@ class APIAvatar:
             coords_future = executor.submit(_load_pickle_local, self.coords_path)
             mask_coords_future = executor.submit(_load_pickle_local, self.mask_coords_path)
             frame_list_future = executor.submit(
-                _read_imgs_local,
+                _read_imgs_dedup,
                 input_img_list,
                 "frames",
                 per_image_pool_workers,
             )
             mask_list_future = executor.submit(
-                _read_imgs_local,
+                _read_imgs_dedup,
                 input_mask_list,
                 "masks",
                 per_image_pool_workers,
@@ -868,8 +980,14 @@ class APIAvatar:
             self.input_latent_list_cycle = latents_future.result()
             self.coord_list_cycle = coords_future.result()
             self.mask_coords_list_cycle = mask_coords_future.result()
-            self.frame_list_cycle = frame_list_future.result()
-            self.mask_list_cycle = mask_list_future.result()
+            self.frame_list_cycle, uniq_frames = frame_list_future.result()
+            self.mask_list_cycle, uniq_masks = mask_list_future.result()
+
+        if _avatar_dedup_enabled() and self.frame_list_cycle:
+            print(
+                f"🗜️  Avatar cycle dedup: frames {uniq_frames}/{len(self.frame_list_cycle)} "
+                f"unique, masks {uniq_masks}/{len(self.mask_list_cycle)} unique"
+            )
 
         self._build_compose_plan_cycle()
         self._finalize_latent_cycle()

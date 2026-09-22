@@ -1,0 +1,20 @@
+{
+  "A_sdvae": {
+    "label": "SD-VAE FP16 (reference)",
+    "e2e_fps": 46.7,
+    "unet_ms": 25.87,
+    "vae_ms": 141.11,
+    "post_ms": 0.82,
+    "compose_ms": 3.09,
+    "gpu_ms": 167.8
+  },
+  "B_taesd": {
+    "label": "TAESD",
+    "e2e_fps": 241.1,
+    "unet_ms": 23.73,
+    "vae_ms": 6.9,
+    "post_ms": 0.21,
+    "compose_ms": 2.1,
+    "gpu_ms": 30.83
+  }
+}

@@ -1,0 +1,291 @@
+{
+  "meta": {
+    "ctl_r01": {
+      "path": "benchmarks/pro_30fps_20260921/adv-ctl-r01/video.mp4",
+      "frames": 250,
+      "detect_misses": 0,
+      "size": [
+        320,
+        576
+      ],
+      "iod_px": 130.15828342528593
+    },
+    "ctl_r02": {
+      "path": "benchmarks/pro_30fps_20260921/adv-ctl-r02/video.mp4",
+      "frames": 250,
+      "detect_misses": 0,
+      "size": [
+        320,
+        576
+      ],
+      "iod_px": 130.15828342528593
+    },
+    "ctl_r03": {
+      "path": "benchmarks/pro_30fps_20260921/adv-ctl-r03/video.mp4",
+      "frames": 250,
+      "detect_misses": 0,
+      "size": [
+        320,
+        576
+      ],
+      "iod_px": 129.81097795656
+    },
+    "gc08": {
+      "path": "benchmarks/pro_30fps_20260921/adv-gc08-r01/video.mp4",
+      "frames": 250,
+      "detect_misses": 0,
+      "size": [
+        320,
+        576
+      ],
+      "iod_px": 130.1492378816509
+    },
+    "prealloc": {
+      "path": "benchmarks/pro_30fps_20260921/adv-prealloc-r01/video.mp4",
+      "frames": 250,
+      "detect_misses": 0,
+      "size": [
+        320,
+        576
+      ],
+      "iod_px": 129.68523287693142
+    },
+    "classic": {
+      "path": "benchmarks/pro_30fps_20260921/classic-freshcache-r01/video.mp4",
+      "frames": 84,
+      "detect_misses": 0,
+      "size": [
+        256,
+        448
+      ],
+      "iod_px": 104.6340096996171
+    }
+  },
+  "comparisons": [
+    {
+      "pair": "ctl_r01 vs ctl_r02",
+      "frames": 250,
+      "head_translation_iod_mean": 0.0,
+      "head_translation_iod_p95": 0.0,
+      "head_rotation_deg_mean": 0.0,
+      "head_rotation_deg_p95": 0.0,
+      "head_logscale_mean": 0.0,
+      "pose_corr_dx": 1.0,
+      "pose_corr_dy": 1.0,
+      "pose_corr_rot": 1.0,
+      "pose_corr_scale": 1.0,
+      "mouth_shape_iod_mean": 0.0,
+      "mouth_shape_iod_p95": 0.0
+    },
+    {
+      "pair": "ctl_r01 vs ctl_r03",
+      "frames": 250,
+      "head_translation_iod_mean": 0.027281323495046,
+      "head_translation_iod_p95": 0.06013410584911873,
+      "head_rotation_deg_mean": 0.3723897819677095,
+      "head_rotation_deg_p95": 1.1732574175346469,
+      "head_logscale_mean": 0.0028848075008865684,
+      "pose_corr_dx": 0.9303220721605957,
+      "pose_corr_dy": 0.950162748982685,
+      "pose_corr_rot": 0.9304122423604401,
+      "pose_corr_scale": 0.9393416626592154,
+      "mouth_shape_iod_mean": 0.011572045734523473,
+      "mouth_shape_iod_p95": 0.020836917150665116
+    },
+    {
+      "pair": "ctl_r01 vs gc08",
+      "frames": 250,
+      "head_translation_iod_mean": 0.0007172400163641313,
+      "head_translation_iod_p95": 0.002069362321367834,
+      "head_rotation_deg_mean": 0.012314913575355402,
+      "head_rotation_deg_p95": 0.048303604153238325,
+      "head_logscale_mean": 0.00027765780683917723,
+      "pose_corr_dx": 0.9999210598873712,
+      "pose_corr_dy": 0.9999415846934766,
+      "pose_corr_rot": 0.9998605323533214,
+      "pose_corr_scale": 0.9992497714422552,
+      "mouth_shape_iod_mean": 0.0009739915693750248,
+      "mouth_shape_iod_p95": 0.002817334631905403
+    },
+    {
+      "pair": "ctl_r01 vs prealloc",
+      "frames": 250,
+      "head_translation_iod_mean": 0.03669248210942153,
+      "head_translation_iod_p95": 0.16330014728226633,
+      "head_rotation_deg_mean": 0.49639649744590714,
+      "head_rotation_deg_p95": 2.5029276194287724,
+      "head_logscale_mean": 0.0038188241139187114,
+      "pose_corr_dx": 0.7382025874966849,
+      "pose_corr_dy": 0.9282287079788337,
+      "pose_corr_rot": 0.7508800144507751,
+      "pose_corr_scale": 0.915344387186811,
+      "mouth_shape_iod_mean": 0.011779820221699258,
+      "mouth_shape_iod_p95": 0.022170830246088163
+    },
+    {
+      "pair": "ctl_r01 vs classic",
+      "frames": 84,
+      "head_translation_iod_mean": 0.07152362135768345,
+      "head_translation_iod_p95": 0.13595796700327653,
+      "head_rotation_deg_mean": 1.0635740189578884,
+      "head_rotation_deg_p95": 2.355522804548968,
+      "head_logscale_mean": 0.00653963053883549,
+      "pose_corr_dx": 0.9170269157319044,
+      "pose_corr_dy": 0.9524241198957515,
+      "pose_corr_rot": 0.9088911290576147,
+      "pose_corr_scale": 0.7571611702721814,
+      "mouth_shape_iod_mean": 0.021535716591733693,
+      "mouth_shape_iod_p95": 0.036677915587256596
+    },
+    {
+      "pair": "ctl_r02 vs ctl_r03",
+      "frames": 250,
+      "head_translation_iod_mean": 0.027281323495046,
+      "head_translation_iod_p95": 0.06013410584911873,
+      "head_rotation_deg_mean": 0.3723897819677095,
+      "head_rotation_deg_p95": 1.1732574175346469,
+      "head_logscale_mean": 0.0028848075008865684,
+      "pose_corr_dx": 0.9303220721605957,
+      "pose_corr_dy": 0.950162748982685,
+      "pose_corr_rot": 0.9304122423604401,
+      "pose_corr_scale": 0.9393416626592154,
+      "mouth_shape_iod_mean": 0.011572045734523473,
+      "mouth_shape_iod_p95": 0.020836917150665116
+    },
+    {
+      "pair": "ctl_r02 vs gc08",
+      "frames": 250,
+      "head_translation_iod_mean": 0.0007172400163641313,
+      "head_translation_iod_p95": 0.002069362321367834,
+      "head_rotation_deg_mean": 0.012314913575355402,
+      "head_rotation_deg_p95": 0.048303604153238325,
+      "head_logscale_mean": 0.00027765780683917723,
+      "pose_corr_dx": 0.9999210598873712,
+      "pose_corr_dy": 0.9999415846934766,
+      "pose_corr_rot": 0.9998605323533214,
+      "pose_corr_scale": 0.9992497714422552,
+      "mouth_shape_iod_mean": 0.0009739915693750248,
+      "mouth_shape_iod_p95": 0.002817334631905403
+    },
+    {
+      "pair": "ctl_r02 vs prealloc",
+      "frames": 250,
+      "head_translation_iod_mean": 0.03669248210942153,
+      "head_translation_iod_p95": 0.16330014728226633,
+      "head_rotation_deg_mean": 0.49639649744590714,
+      "head_rotation_deg_p95": 2.5029276194287724,
+      "head_logscale_mean": 0.0038188241139187114,
+      "pose_corr_dx": 0.7382025874966849,
+      "pose_corr_dy": 0.9282287079788337,
+      "pose_corr_rot": 0.7508800144507751,
+      "pose_corr_scale": 0.915344387186811,
+      "mouth_shape_iod_mean": 0.011779820221699258,
+      "mouth_shape_iod_p95": 0.022170830246088163
+    },
+    {
+      "pair": "ctl_r02 vs classic",
+      "frames": 84,
+      "head_translation_iod_mean": 0.07152362135768345,
+      "head_translation_iod_p95": 0.13595796700327653,
+      "head_rotation_deg_mean": 1.0635740189578884,
+      "head_rotation_deg_p95": 2.355522804548968,
+      "head_logscale_mean": 0.00653963053883549,
+      "pose_corr_dx": 0.9170269157319044,
+      "pose_corr_dy": 0.9524241198957515,
+      "pose_corr_rot": 0.9088911290576147,
+      "pose_corr_scale": 0.7571611702721814,
+      "mouth_shape_iod_mean": 0.021535716591733693,
+      "mouth_shape_iod_p95": 0.036677915587256596
+    },
+    {
+      "pair": "ctl_r03 vs gc08",
+      "frames": 250,
+      "head_translation_iod_mean": 0.02732048922677966,
+      "head_translation_iod_p95": 0.060946605299360634,
+      "head_rotation_deg_mean": 0.3728906496041626,
+      "head_rotation_deg_p95": 1.1922327370130985,
+      "head_logscale_mean": 0.0028505595910105585,
+      "pose_corr_dx": 0.9302541205831357,
+      "pose_corr_dy": 0.9499152943398769,
+      "pose_corr_rot": 0.9306298061405035,
+      "pose_corr_scale": 0.9400192794503972,
+      "mouth_shape_iod_mean": 0.011576125101146854,
+      "mouth_shape_iod_p95": 0.02024780803099787
+    },
+    {
+      "pair": "ctl_r03 vs prealloc",
+      "frames": 250,
+      "head_translation_iod_mean": 0.024445785321715853,
+      "head_translation_iod_p95": 0.11178736556195497,
+      "head_rotation_deg_mean": 0.33817868184573635,
+      "head_rotation_deg_p95": 1.3383283245988817,
+      "head_logscale_mean": 0.00313236397289836,
+      "pose_corr_dx": 0.8956868840646556,
+      "pose_corr_dy": 0.9504737963865107,
+      "pose_corr_rot": 0.8985969280446295,
+      "pose_corr_scale": 0.9561701412259415,
+      "mouth_shape_iod_mean": 0.010587539775943497,
+      "mouth_shape_iod_p95": 0.01979207642079682
+    },
+    {
+      "pair": "ctl_r03 vs classic",
+      "frames": 84,
+      "head_translation_iod_mean": 0.07322443122477355,
+      "head_translation_iod_p95": 0.14898724997830956,
+      "head_rotation_deg_mean": 1.0621899032733841,
+      "head_rotation_deg_p95": 2.6447251470490407,
+      "head_logscale_mean": 0.0057304808272273505,
+      "pose_corr_dx": 0.9070024385216416,
+      "pose_corr_dy": 0.9645226428089844,
+      "pose_corr_rot": 0.9130245573044165,
+      "pose_corr_scale": 0.8455879499037838,
+      "mouth_shape_iod_mean": 0.02217640172673748,
+      "mouth_shape_iod_p95": 0.045181448631700774
+    },
+    {
+      "pair": "gc08 vs prealloc",
+      "frames": 250,
+      "head_translation_iod_mean": 0.036710143447321715,
+      "head_translation_iod_p95": 0.16321375264258087,
+      "head_rotation_deg_mean": 0.49577222559756173,
+      "head_rotation_deg_p95": 2.496786476744321,
+      "head_logscale_mean": 0.0038557147449783335,
+      "pose_corr_dx": 0.7379915615337379,
+      "pose_corr_dy": 0.928299221466323,
+      "pose_corr_rot": 0.7512673364175195,
+      "pose_corr_scale": 0.915548123012167,
+      "mouth_shape_iod_mean": 0.011765114219708342,
+      "mouth_shape_iod_p95": 0.021325149821929564
+    },
+    {
+      "pair": "gc08 vs classic",
+      "frames": 84,
+      "head_translation_iod_mean": 0.07157918129486085,
+      "head_translation_iod_p95": 0.13606492305106488,
+      "head_rotation_deg_mean": 1.0648264823114124,
+      "head_rotation_deg_p95": 2.359237880399959,
+      "head_logscale_mean": 0.00654491331392789,
+      "pose_corr_dx": 0.9169545385443034,
+      "pose_corr_dy": 0.9523886530957375,
+      "pose_corr_rot": 0.9086979230595511,
+      "pose_corr_scale": 0.756890849401203,
+      "mouth_shape_iod_mean": 0.021551476950354597,
+      "mouth_shape_iod_p95": 0.03686882740376021
+    },
+    {
+      "pair": "prealloc vs classic",
+      "frames": 84,
+      "head_translation_iod_mean": 0.0703795743456259,
+      "head_translation_iod_p95": 0.14519866074215607,
+      "head_rotation_deg_mean": 0.9226943962478603,
+      "head_rotation_deg_p95": 2.196946771325604,
+      "head_logscale_mean": 0.006228556601515058,
+      "pose_corr_dx": 0.9050759298791704,
+      "pose_corr_dy": 0.9673429271639257,
+      "pose_corr_rot": 0.9227013009463654,
+      "pose_corr_scale": 0.8335379445824975,
+      "mouth_shape_iod_mean": 0.022674997141434047,
+      "mouth_shape_iod_p95": 0.04008912956340566
+    }
+  ]
+}
