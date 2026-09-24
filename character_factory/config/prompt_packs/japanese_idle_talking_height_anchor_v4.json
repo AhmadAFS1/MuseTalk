@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "pack_id": "japanese_idle_talking_height_anchor_v4",
+  "lineage": "Follow-up to idle_talking_shallow_continuous_v3. Keep center-crop guide, seeds, negatives, and unchanged smile. V3 talking lasted through second 7 but settled near the end; v4 removes the verbal return cue and asks for speech through the cut. V3 idle still showed one large inhale; v4 anchors the shoulders and describes near-imperceptible chest motion.",
+  "poses": {
+    "idle": {
+      "seed": 197,
+      "frame_count": 241,
+      "prompt_source": "New v4 idle prompt after v3 still made one large inhale; seed and guide unchanged.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She listens calmly while looking into the lens, with her head upright and level. Her relaxed shoulders remain at their starting height and shape against the background throughout the ten seconds. A few ordinary, shallow breaths create barely perceptible, even upper-chest motion; her neckline and shoulders do not rise into a pronounced inhale. She gives two quick natural blinks and small attentive eye movements. Her lips stay comfortably closed and her jaw relaxed. She ends in the exact starting pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "talking": {
+      "seed": 197,
+      "frame_count": 241,
+      "prompt_source": "New v4 talking prompt after v3 still settled for the last second; seed and guide unchanged.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. She begins speaking to the lens immediately and stays mid-sentence through the final second, making fresh natural conversational lip and jaw shapes from beginning to end. Her mouth does not settle into a resting smile or listening pose; it keeps articulating new syllables right up to the cut. Brief word-to-word lip closures and quiet micro-breaths fit into the speech without stopping it. Her eyes stay on the lens, her eye line and chin remain level at the reference height, and her neck stays relaxed. Her shoulders stay at their starting height while shallow breathing produces only tiny, even upper-chest motion. She blinks naturally. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, off-camera gaze, distorted face, identity change, duplicate facial features, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "smiling": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "japanese_native_three_pose_crop_smile_seed191_v8#smiling, selected video in japanese_shoulders_head_review_v2/smiling.mp4.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. A restrained closed-lip smile slowly appears in the corners of her mouth and softly in her cheeks, holds, then fades back to neutral. Her upper and lower lips stay gently in contact through the entire smile. She looks into the lens and gives one quick natural blink. Her eye line and chin remain level at the reference height, her neck keeps its relaxed starting length, and gentle breathing moves her upper chest and both shoulders together. She ends in the exact starting expression and pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, parted lips, visible teeth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    }
+  }
+}

@@ -36,13 +36,14 @@ roster or canonicalized by `ingest_portraits.py`; the runner prepares its own
 ## 2. Select the tested prompt pack
 
 For the tested Japanese woman, use
-[`japanese_selected_native_three_pose_v2.json`](config/prompt_packs/japanese_selected_native_three_pose_v2.json).
-It selects idle seed 197, talking seed 197, and smile seed 191. The talking
-prompt was revised from the liked Indian native-LTX wording because direct
-gender-word substitution made this Japanese portrait lift her head. The new
-smile is closed-lip and avoids sideways sway, but it still has a brief upward
-head lift. These are the best **observed review candidates** for this portrait,
-not universal or visually approved prompts for every face.
+[`japanese_selected_native_three_pose_v3.json`](config/prompt_packs/japanese_selected_native_three_pose_v3.json).
+It selects an 81-frame idle at seed 197 repeated three times, a 241-frame
+talking clip at seed 191, and the unchanged 241-frame smile at seed 191.
+The short idle prevents one exaggerated ten-second inhale, and the revised
+talking prompt avoids the earlier middle-of-shot silence. These are the best
+**observed review candidates** for this portrait, not universal or visually
+approved prompts for every face. The [v2 pack](config/prompt_packs/japanese_selected_native_three_pose_v2.json)
+remains frozen as the liked baseline.
 
 For a different character, copy the selected pack to a new, versioned JSON
 file. Change identity words and pronouns deliberately while keeping one
@@ -58,8 +59,8 @@ From `/workspace/MuseTalk` on the current machine:
 ```bash
 LTX_PY=/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/.venv/bin/python
 IMAGE=/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png
-PACK=/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_selected_native_three_pose_v2.json
-OUT=/workspace/MuseTalk/character_factory/generated/<character_id>/ltx/native_three_pose_v2
+PACK=/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_selected_native_three_pose_v3.json
+OUT=/workspace/MuseTalk/character_factory/generated/<character_id>/ltx/native_three_pose_v3
 
 "$LTX_PY" character_factory/scripts/generate_three_pose_videos.py \
   --image "$IMAGE" --output-dir "$OUT" --prompt-pack "$PACK" \
@@ -78,13 +79,16 @@ generation graphs. Inspect `graphs/*-generation.json` to confirm the exact
 portrait, prompts, seeds, 241-frame length, and guide indices `0` and `-1`.
 
 The real run emits `idle.mp4`, `talking.mp4`, `smiling.mp4`, a `manifest.json`,
-contact sheets under `review/`, and generation/decode graphs. Each clip is
-512×832, 24 fps, 241 frames (10.04 seconds), and silent. The native graph uses
-the same portrait as both endpoint guides at strength 1, an eight-step Euler
-schedule, and 64/16 tiled VAE decode. The delivery encode replaces the final
-decoded frame with the first and verifies exact decoded first/last equality
-**within each clip**. It does not add a fade or crossfade. SoulX, Segmind,
-Prompt Relay, and NAG are not used.
+contact sheets under `review/`, and generation/decode graphs. Each delivered
+clip is 512×832, 24 fps, 241 frames (10.04 seconds), and silent. Idle is
+generated natively at 81 frames, then its endpoint-matched cycle is repeated
+three times without duplicate join frames. The runner saves that source as
+`review/idle-cycle.mp4` and verifies all four decoded loop boundaries. Talking
+and smiling are generated natively at 241 frames. The native graph uses the
+same portrait as both endpoint guides at strength 1, an eight-step Euler
+schedule, and 64/16 tiled VAE decode. The delivery encode verifies exact
+decoded first/last equality **within each clip**. It does not add a fade or
+crossfade. SoulX, Segmind, Prompt Relay, and NAG are not used.
 
 The `center_crop` guide fit is the current default. It fills the 512×832
 canvas with real portrait pixels, cropping a small amount from the top and
@@ -103,8 +107,8 @@ throughout all three clips. In particular:
 
 | Pose | Required observation | Failure examples from this test |
 |---|---|---|
-| Idle | Calm direct gaze, natural blinks, subtle breathing, closed mouth, head near its starting height | The first Japanese idle dropped its head deeply despite asking for a small posture adjustment. |
-| Talking | Natural conversational lip shapes without a camera move or repeated mechanical sway | The first Japanese talking clip articulated clearly but lifted her head far more than the liked Indian native talking clip. |
+| Idle | Calm direct gaze, natural blinks, several shallow breaths, closed mouth, head near its starting height | A single 10-second generation made one deep breath; the selected short cycle repeats three times and blinks three times, which may feel too regular. |
+| Talking | Natural conversational lip shapes throughout the clip without a camera move or repeated mechanical sway | V2 went quiet at 3.92 s; the current candidate speaks into second 8 but still has a 1.25 s quiet tail. |
 | Smiling | Modest smile, lips together, return to neutral, no large chin lift | Seed 197 opened the mouth; seed 195 tilted the head sideways; the selected seed 191 still has a brief upward lift. |
 
 Record the accepted/rejected decision for each clip with its prompt-pack ID,
@@ -114,9 +118,9 @@ output directory and versioned prompt pack. Keep rejected clips and their
 manifests long enough to explain why the selected version won. Do not use
 `--force` to overwrite a reviewed render unless replacement is intentional.
 
-The Japanese [review set](generated/portrait_pose_set_20260923/ltx/japanese_shoulders_head_review_v2/README.md)
+The Japanese [review set](generated/portrait_pose_set_20260923/ltx/japanese_breath_speech_review_v3/README.md)
 shows the selected videos and contact sheets. Its
-[`validation.json`](generated/portrait_pose_set_20260923/ltx/japanese_shoulders_head_review_v2/validation.json)
+[`validation.json`](generated/portrait_pose_set_20260923/ltx/japanese_breath_speech_review_v3/validation.json)
 checks every decoded frame and independently verifies the end frames.
 
 ## 5. Keep the endpoint and integration gates separate

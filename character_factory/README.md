@@ -64,10 +64,11 @@ prepare_musetalk_avatars.py  bank                        ->  one MuseTalk cache 
 For the reduced Lingua set, `scripts/generate_three_pose_videos.py` is the roster-free entry
 point. It accepts one portrait and emits `idle.mp4`, `talking.mp4`, and `smiling.mp4` with the
 compact native LTX 2.3 Q4 graph used in the September 22 Indian-avatar talking test: 512x832,
-241 frames at 24 fps, the same portrait at guide indices `0` and `-1`, one eight-step Euler
-schedule, and the accepted 64/16 tiled decode. It does not use SoulX, Segmind, Prompt Relay, or
-NAG. For the Japanese test, pass the explicit
-`config/prompt_packs/japanese_selected_native_three_pose_v1.json` pack; the script's historical
+24 fps, the same portrait at guide indices `0` and `-1`, one eight-step Euler
+schedule, and the accepted 64/16 tiled decode. The current Japanese
+`config/prompt_packs/japanese_selected_native_three_pose_v3.json` pack generates an 81-frame
+idle cycle and repeats it three times to deliver 241 frames; talking and smiling are native
+241-frame renders. It does not use SoulX, Segmind, Prompt Relay, or NAG. The script's historical
 default pack is not the selected Japanese result. See the pilot workflow for the command and
 endpoint behavior.
 

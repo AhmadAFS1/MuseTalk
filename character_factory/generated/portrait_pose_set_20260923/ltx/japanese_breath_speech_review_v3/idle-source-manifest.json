@@ -1,0 +1,86 @@
+{
+  "schema_version": 2,
+  "generator": "/workspace/MuseTalk/character_factory/scripts/generate_three_pose_videos.py",
+  "source_image": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png",
+  "source_image_sha256": "14ea206c301eccdf9461ab2b706d9c3489927156267ca74e8ba478d9124fdf7b",
+  "prepared_guide": {
+    "source_dimensions": [
+      941,
+      1672
+    ],
+    "guide_dimensions": [
+      512,
+      832
+    ],
+    "requested_fit": "center_crop",
+    "policy": "center_crop_no_side_padding",
+    "sha256": "181034ff3a68660506ba6bcf77e6c2de545c73b70eac264872d57927de88dee2"
+  },
+  "prompt_pack": "japanese_idle_short_breath_blink_v7",
+  "prompt_pack_path": "/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_idle_short_breath_blink_v7.json",
+  "prompt_pack_sha256": "dd1804d02ea9559485a8586f3bd12cf2c585d01ba02c15aabc573ea826f72323",
+  "lineage": "V6 short 81-frame shallow breath with one natural blink added; same seed 197 and guide. Repeat three cycles only if breathing and face motion remain acceptable.",
+  "accepted_graph": "/workspace/experiments/ltx23_native_flf_talking_20260922/graphs/generation.json",
+  "workflow": {
+    "model": "LTX-2.3-22B-distilled-1.1-Q4_K_M.gguf",
+    "text_encoder": "gemma-3-12b-it-qat-UD-Q3_K_XL.gguf",
+    "resolution": [
+      512,
+      832
+    ],
+    "fps": 24,
+    "frames_by_pose": {
+      "idle": 81
+    },
+    "same_portrait_guide_at_frame_indices": [
+      0,
+      -1
+    ],
+    "guide_strength": 1.0,
+    "sampler": "euler",
+    "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0",
+    "cfg": 1.0,
+    "prompt_relay_used": false,
+    "nag_used": false,
+    "soulx_used": false,
+    "segmind_used": false
+  },
+  "delivery_policy": {
+    "decoded_first_last_exact": true,
+    "last_frame_replaced_with_first": true,
+    "fade_or_crossfade": false,
+    "audio_streams": 0
+  },
+  "poses": {
+    "idle": {
+      "status": "completed",
+      "seed": 197,
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. She quietly looks into the lens and keeps her head upright and level. Her expression and shoulder outline stay almost still. One small, natural breath gently moves only her upper chest and settles back into the starting pose. She gives one quick natural blink while her lips stay closed. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark",
+      "prompt_source": "V6 prompt with one natural blink added; seed and 81-frame length unchanged.",
+      "generation_prompt_id": "7ea1d540-1159-4493-9219-cb19914a2d38",
+      "generation_elapsed_seconds": 280.39,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_short_breath_blink_v7/native/idle.latent",
+      "latent_sha256": "81223dec638a1f785dfc5cd0c665c2e0326f8c1fc2f528d643649ddaf5b06549",
+      "decode_prompt_id": "6468735e-75f7-444d-81cb-4dc7880760fa",
+      "decode_elapsed_seconds": 10.01,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_short_breath_blink_v7/idle.mp4",
+        "sha256": "bc0b4d51b492b69938aab79e41bad4781f9515910ab8047a35ba7b0dcf4f7fbd",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_short_breath_blink_v7/native/idle.mp4",
+        "native_sha256": "23bdb16a368982d6757351da53b1961c9c942d71ed46dddaffe253065e627a3e",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 81,
+        "duration_seconds": 3.375,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "9e4a38c9fb023a78c4999b6a57dcb8baf0643175f0627d6e71129a184ea74670",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_short_breath_blink_v7/review/idle-contact.jpg"
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "method": "MediaPipe FaceMesh on every decoded frame: eye midpoint 33/263, central lip gap 13/14, mouth corners 61/291. Static per-frame Pose shoulders 11/12, median-smoothed over 13 frames. Excursions are relative to the first frame. These are diagnostics, not visual approval.",
+  "videos": {
+    "ltx23-native-flf-talking-seed191-exact-endpoints": {
+      "file": "/workspace/experiments/ltx23_native_flf_talking_20260922/output/ltx23-native-flf-talking-seed191-exact-endpoints.mp4",
+      "frames_read": 241,
+      "face_detections": 241,
+      "width": 512,
+      "height": 832,
+      "fps": 24.0,
+      "first_last_decoded_rgb_equal": true,
+      "endpoint_rgb_sha256": "be910c8bf70076f31b047a02a39e75f765eb4a85fbbce94efea4cd01a6d8fb5e",
+      "initial_eye_distance_px": 139.2,
+      "max_eye_x_excursion_px": 9.2,
+      "max_eye_y_excursion_px": 12.2,
+      "max_eye_y_excursion_pct_of_eye_distance": 8.8,
+      "max_eye_line_tilt_change_deg": 3.8,
+      "max_central_lip_gap_px": 30.3,
+      "last_lip_gap_over_3px_time_s": 8.12,
+      "trailing_lip_gap_under_3px_duration_s": 1.83,
+      "mouth_activity_each_second": [
+        {
+          "second": 0,
+          "mean_lip_gap_px": 10.1,
+          "max_lip_gap_px": 30.3,
+          "fraction_frames_lip_gap_over_3px": 0.71,
+          "mean_mouth_shape_change_px_per_frame": 6.65
+        },
+        {
+          "second": 1,
+          "mean_lip_gap_px": 8.9,
+          "max_lip_gap_px": 21.2,
+          "fraction_frames_lip_gap_over_3px": 0.75,
+          "mean_mouth_shape_change_px_per_frame": 3.2
+        },
+        {
+          "second": 2,
+          "mean_lip_gap_px": 15.0,
+          "max_lip_gap_px": 29.8,
+          "fraction_frames_lip_gap_over_3px": 0.88,
+          "mean_mouth_shape_change_px_per_frame": 6.55
+        },
+        {
+          "second": 3,
+          "mean_lip_gap_px": 9.7,
+          "max_lip_gap_px": 27.6,
+          "fraction_frames_lip_gap_over_3px": 0.79,
+          "mean_mouth_shape_change_px_per_frame": 6.5
+        },
+        {
+          "second": 4,
+          "mean_lip_gap_px": 14.0,
+          "max_lip_gap_px": 21.0,
+          "fraction_frames_lip_gap_over_3px": 0.96,
+          "mean_mouth_shape_change_px_per_frame": 5.02
+        },
+        {
+          "second": 5,
+          "mean_lip_gap_px": 12.9,
+          "max_lip_gap_px": 24.6,
+          "fraction_frames_lip_gap_over_3px": 0.88,
+          "mean_mouth_shape_change_px_per_frame": 2.5
+        },
+        {
+          "second": 6,
+          "mean_lip_gap_px": 13.5,
+          "max_lip_gap_px": 26.7,
+          "fraction_frames_lip_gap_over_3px": 0.92,
+          "mean_mouth_shape_change_px_per_frame": 7.45
+        },
+        {
+          "second": 7,
+          "mean_lip_gap_px": 11.8,
+          "max_lip_gap_px": 27.9,
+          "fraction_frames_lip_gap_over_3px": 0.75,
+          "mean_mouth_shape_change_px_per_frame": 7.74
+        },
+        {
+          "second": 8,
+          "mean_lip_gap_px": 2.5,
+          "max_lip_gap_px": 20.3,
+          "fraction_frames_lip_gap_over_3px": 0.17,
+          "mean_mouth_shape_change_px_per_frame": 1.48
+        },
+        {
+          "second": 9,
+          "mean_lip_gap_px": 0.0,
+          "max_lip_gap_px": 0.0,
+          "fraction_frames_lip_gap_over_3px": 0.0,
+          "mean_mouth_shape_change_px_per_frame": 0.21
+        }
+      ],
+      "eye_y_delta_each_second_px": [
+        0.0,
+        -0.6,
+        -5.5,
+        -6.8,
+        -3.5,
+        -4.1,
+        -8.5,
+        -0.7,
+        0.3,
+        0.3,
+        0.0
+      ],
+      "shoulder_detected_frames": 241,
+      "max_shoulder_mid_y_excursion_px": 3.2,
+      "shoulder_mid_y_delta_each_second_px": [
+        0.0,
+        1.0,
+        0.0,
+        0.6,
+        0.4,
+        1.3,
+        1.7,
+        2.3,
+        2.6,
+        0.1,
+        0.0
+      ]
+    }
+  }
+}

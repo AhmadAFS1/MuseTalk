@@ -1,0 +1,117 @@
+{
+  "schema_version": 2,
+  "generator": "/workspace/MuseTalk/character_factory/scripts/generate_three_pose_videos.py",
+  "source_image": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png",
+  "source_image_sha256": "14ea206c301eccdf9461ab2b706d9c3489927156267ca74e8ba478d9124fdf7b",
+  "prepared_guide": {
+    "source_dimensions": [
+      941,
+      1672
+    ],
+    "guide_dimensions": [
+      512,
+      832
+    ],
+    "requested_fit": "center_crop",
+    "policy": "center_crop_no_side_padding",
+    "sha256": "181034ff3a68660506ba6bcf77e6c2de545c73b70eac264872d57927de88dee2"
+  },
+  "prompt_pack": "japanese_idle_talking_seed191_v5",
+  "prompt_pack_path": "/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_idle_talking_seed191_v5.json",
+  "prompt_pack_sha256": "4a33da44a83ac572688029b08ec1a8ba73e1dee1ce0b01150f9a84a187e28b6d",
+  "lineage": "Seed change from v3 to 191 for idle and talking after fixed-seed prompt revisions failed to produce repeated shallow idle breaths or late speech. Same portrait, center-crop guide, negatives, 241-frame endpoint workflow; selected smile remains unchanged.",
+  "accepted_graph": "/workspace/experiments/ltx23_native_flf_talking_20260922/graphs/generation.json",
+  "workflow": {
+    "model": "LTX-2.3-22B-distilled-1.1-Q4_K_M.gguf",
+    "text_encoder": "gemma-3-12b-it-qat-UD-Q3_K_XL.gguf",
+    "resolution": [
+      512,
+      832
+    ],
+    "fps": 24,
+    "frames_by_pose": {
+      "idle": 241,
+      "talking": 241
+    },
+    "same_portrait_guide_at_frame_indices": [
+      0,
+      -1
+    ],
+    "guide_strength": 1.0,
+    "sampler": "euler",
+    "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0",
+    "cfg": 1.0,
+    "prompt_relay_used": false,
+    "nag_used": false,
+    "soulx_used": false,
+    "segmind_used": false
+  },
+  "delivery_policy": {
+    "decoded_first_last_exact": true,
+    "last_frame_replaced_with_first": true,
+    "fade_or_crossfade": false,
+    "audio_streams": 0
+  },
+  "poses": {
+    "idle": {
+      "status": "completed",
+      "seed": 191,
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She looks calmly into the lens with her head upright and level. Her shoulders stay settled at their starting height and shape. She takes several small, quiet, regular breaths across the entire ten seconds; each makes only a tiny rise and fall in the upper chest, without a single pronounced inhale. She gives two quick natural blinks. Her lips stay comfortably closed and her jaw relaxed. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark",
+      "prompt_source": "New v5 simple shallow-breath prompt with seed 191; v2-v4 seed 197 produced one broad inhale.",
+      "generation_prompt_id": "270ecfb8-171d-4ec2-8b0d-b2f9d4d8ed2b",
+      "generation_elapsed_seconds": 335.58,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_talking_seed191_v5/native/idle.latent",
+      "latent_sha256": "116221c0adfca5d9692bfd17c6773cd786d4bfd9fa2e51dc8f27788c2acba03c",
+      "decode_prompt_id": "739e6f6c-e3fa-4762-b84d-d5a5f56030ee",
+      "decode_elapsed_seconds": 30.04,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_talking_seed191_v5/idle.mp4",
+        "sha256": "c5ce518877324846ff9c2393154953b84c33ce81a6c588047d435d8210fe32a5",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_talking_seed191_v5/native/idle.mp4",
+        "native_sha256": "cf7196b97177a05e43e540723aab56ca3a174fa716bcb6b5a4fe5c93ab4faf3f",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 241,
+        "duration_seconds": 10.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "a8a1299f96538304b672f25a0d235d3493673def0c6df708b079a6512d6a870c",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_talking_seed191_v5/review/idle-contact.jpg"
+    },
+    "talking": {
+      "status": "completed",
+      "seed": 191,
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. She looks straight into the lens and speaks one lively, uninterrupted ten-second sentence. Her mouth and jaw keep forming new conversational syllables throughout the shot, including the final seconds; brief lip closures are part of the words, never a long silent pause. She stays engaged in the sentence until the last moment. Her head remains upright and level, her neck relaxed. Small, regular breaths happen naturally between words, with barely visible motion in her upper chest and shoulders. She gives two quick natural blinks. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, off-camera gaze, distorted face, identity change, duplicate facial features, camera movement, scene cut, text, subtitles, watermark",
+      "prompt_source": "New v5 continuous-speech prompt with seed 191; v3 seed 197 spoke through second 7, v4 settled earlier.",
+      "generation_prompt_id": "dfd67b21-44de-4634-9f1c-d3a711cd2fd5",
+      "generation_elapsed_seconds": 330.72,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_talking_seed191_v5/native/talking.latent",
+      "latent_sha256": "f9e878e1ad9656c7edfd633f011a8fa5c514d101fd0f8723d3555edaee8f51cd",
+      "decode_prompt_id": "ac39348f-f094-4f73-94e6-bdec22a221c2",
+      "decode_elapsed_seconds": 25.06,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_talking_seed191_v5/talking.mp4",
+        "sha256": "245ce7d4bf4a67bd65c6b3917bf6baacdb0994751ca7945ecda43bc05987398a",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_talking_seed191_v5/native/talking.mp4",
+        "native_sha256": "82716f2eb446451da2d09ef2a4754734954cd3abb0fd2d601c099bd6dc586d89",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 241,
+        "duration_seconds": 10.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "82df334cc5e92859f19c17e447c717c91967e4599660ad9a633a1401659765df",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_talking_seed191_v5/review/talking-contact.jpg"
+    }
+  }
+}

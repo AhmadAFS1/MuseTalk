@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "pack_id": "japanese_idle_talking_shallow_continuous_v3",
+  "lineage": "Controlled Japanese rerun from the frozen selected_native_three_pose_v2 baseline. Keep the center-crop guide and all seeds. Idle asks for two or three quiet, shallow, even breaths instead of one deep breath. Talking asks for uninterrupted conversational articulation into the final second and consistently subtle breathing. Smiling is unchanged and not rerendered.",
+  "poses": {
+    "idle": {
+      "seed": 197,
+      "frame_count": 241,
+      "prompt_source": "New v3 idle prompt based on selected_native_three_pose_v2#idle; keep seed and guide, revise only the breathing behavior.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She looks calmly into the lens with her head upright and level at the reference height. Across the whole shot she takes two or three quiet, shallow, evenly spaced breaths; each inhale and exhale makes only a slight, smooth, connected rise and fall through her upper chest and both relaxed shoulders. Her resting posture never builds into one deep inhale. She gives two quick natural blinks. Her lips stay comfortably closed and her jaw relaxed. She ends in the exact starting pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "talking": {
+      "seed": 197,
+      "frame_count": 241,
+      "prompt_source": "New v3 talking prompt based on selected_native_three_pose_v2#talking; keep seed and guide, revise speech duration and breathing behavior.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. She begins speaking to the lens immediately and continues one flowing ten-second sentence, with clear, varied conversational lip and jaw shapes in every part of the shot, including the second half and final second. Short word-to-word mouth closures are natural, but she never settles into a silent listening pose or holds a closed mouth in the middle. She remains engaged in speech until just before returning to the exact starting expression at the final frame. Her eyes stay on the lens, her eye line and chin remain level at the reference height, and her neck stays relaxed. Quiet shallow breaths are woven between words without a long pause; her upper chest and both shoulders move together only slightly and evenly. She gives a couple of quick natural blinks. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, off-camera gaze, distorted face, identity change, duplicate facial features, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "smiling": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "japanese_native_three_pose_crop_smile_seed191_v8#smiling, selected video in japanese_shoulders_head_review_v2/smiling.mp4.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. A restrained closed-lip smile slowly appears in the corners of her mouth and softly in her cheeks, holds, then fades back to neutral. Her upper and lower lips stay gently in contact through the entire smile. She looks into the lens and gives one quick natural blink. Her eye line and chin remain level at the reference height, her neck keeps its relaxed starting length, and gentle breathing moves her upper chest and both shoulders together. She ends in the exact starting expression and pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, parted lips, visible teeth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    }
+  }
+}

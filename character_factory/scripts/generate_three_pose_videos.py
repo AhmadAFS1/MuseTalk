@@ -312,7 +312,10 @@ def history_item(record: dict[str, Any], node: str, key: str) -> dict[str, Any]:
     return items[0]
 
 
-def package_frames(frame_paths: list[Path], native: Path, delivery: Path, frame_count: int) -> dict[str, Any]:
+def package_frames(
+    frame_paths: list[Path], native: Path, delivery: Path, frame_count: int,
+    boundary_indices: list[int] | None = None,
+) -> dict[str, Any]:
     if len(frame_paths) != frame_count:
         raise RenderError(f"Expected {frame_count} decoded frames, got {len(frame_paths)}")
     delivery.parent.mkdir(parents=True, exist_ok=True)
@@ -347,6 +350,11 @@ def package_frames(frame_paths: list[Path], native: Path, delivery: Path, frame_
     first, last = raw[:frame_bytes], raw[-frame_bytes:]
     if first != last:
         raise RenderError("Delivery decoded first and last frames are not identical")
+    if boundary_indices and any(
+        raw[index * frame_bytes:(index + 1) * frame_bytes] != first
+        for index in boundary_indices
+    ):
+        raise RenderError(f"Delivery decoded loop boundaries differ at {boundary_indices}")
     return {
         "file": str(delivery),
         "sha256": sha256_file(delivery),
@@ -358,6 +366,7 @@ def package_frames(frame_paths: list[Path], native: Path, delivery: Path, frame_
         "frame_count": frame_count,
         "duration_seconds": round(frame_count / FPS, 6),
         "decoded_first_last_exact": True,
+        "decoded_loop_boundaries_exact": True if boundary_indices else None,
         "decoded_endpoint_rgb_sha256": hashlib.sha256(first).hexdigest(),
         "last_frame_replaced_with_first": True,
         "fade_or_crossfade_used": False,
@@ -432,6 +441,9 @@ def main() -> int:
         frame_count = int(profile.get("frame_count", FRAMES))
         if frame_count < 9 or (frame_count - 1) % 8:
             raise RenderError(f"{pose}: frame_count must equal 1 + a multiple of 8")
+        repeat_cycles = int(profile.get("repeat_cycles", 1))
+        if repeat_cycles < 1 or repeat_cycles > 10:
+            raise RenderError(f"{pose}: repeat_cycles must be between 1 and 10")
         graph = build_generation_graph(
             base_graph,
             profile,
@@ -459,6 +471,11 @@ def main() -> int:
             "resolution": [WIDTH, HEIGHT],
             "fps": FPS,
             "frames_by_pose": {pose: int(profile.get("frame_count", FRAMES)) for pose, profile in selected.items()},
+            "delivered_frames_by_pose": {
+                pose: (int(profile.get("frame_count", FRAMES)) - 1)
+                * int(profile.get("repeat_cycles", 1)) + 1
+                for pose, profile in selected.items()
+            },
             "same_portrait_guide_at_frame_indices": [0, -1],
             "guide_strength": 1.0,
             "sampler": "euler",
@@ -552,9 +569,32 @@ def main() -> int:
             ]
             native_video = native_dir / f"{pose}.mp4"
             delivery_video = output_dir / f"{pose}.mp4"
-            delivery = package_frames(frame_paths, native_video, delivery_video, int(selected[pose].get("frame_count", FRAMES)))
-            create_contact_sheet(delivery_video, review_dir / f"{pose}-contact.jpg")
             profile = selected[pose]
+            source_count = int(profile.get("frame_count", FRAMES))
+            repeat_cycles = int(profile.get("repeat_cycles", 1))
+            assembly: dict[str, Any] | None = None
+            if repeat_cycles > 1:
+                if len(frame_paths) != source_count:
+                    raise RenderError(f"Expected {source_count} {pose} frames, got {len(frame_paths)}")
+                cycle = frame_paths[:-1] + [frame_paths[0]]
+                cycle_delivery = package_frames(
+                    cycle, native_dir / f"{pose}-cycle-native.mp4",
+                    review_dir / f"{pose}-cycle.mp4", source_count,
+                )
+                repeated = cycle + cycle[1:] * (repeat_cycles - 1)
+                boundaries = [index * (source_count - 1) for index in range(repeat_cycles + 1)]
+                delivery = package_frames(
+                    repeated, native_video, delivery_video, len(repeated), boundaries,
+                )
+                assembly = {
+                    "method": "repeat_endpoint_matched_cycle_without_duplicate_join_frames",
+                    "repeat_cycles": repeat_cycles,
+                    "source_cycle": cycle_delivery,
+                    "decoded_boundary_frame_indices": boundaries,
+                }
+            else:
+                delivery = package_frames(frame_paths, native_video, delivery_video, source_count)
+            create_contact_sheet(delivery_video, review_dir / f"{pose}-contact.jpg")
             manifest["poses"][pose] = {
                 "status": "completed",
                 "seed": profile["seed"],
@@ -565,6 +605,7 @@ def main() -> int:
                 "decode_prompt_id": prompt_id,
                 "decode_elapsed_seconds": round(elapsed, 2),
                 "delivery": delivery,
+                "assembly": assembly,
                 "contact_sheet": str(review_dir / f"{pose}-contact.jpg"),
             }
             write_json(output_dir / "manifest.json", manifest)
