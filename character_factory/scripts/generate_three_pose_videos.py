@@ -8,6 +8,8 @@ as the Japanese three-pose selection.
 It does not use SoulX, Segmind, NAG, or Prompt Relay.
 
 All three renders use the same portrait at native LTX guide indices 0 and -1.
+The default centered crop fills the frame with real portrait pixels; --guide-fit
+edge_pad reproduces the older edge-replicated guide for historical comparisons.
 The default pack produces 241-frame MP4s at 24 fps; an alternate pack may set
 frame_count per pose. The final decoded frame is replaced
 with the first before all-intra H.264 encoding so the endpoints are pixel exact.
@@ -109,10 +111,41 @@ def probe_dimensions(path: Path) -> tuple[int, int]:
     return int(stream["width"]), int(stream["height"])
 
 
-def prepare_guide(source: Path, destination: Path) -> dict[str, Any]:
-    """Match the accepted Indian 512x832 guide without stretching the portrait."""
+def prepare_guide(source: Path, destination: Path, fit: str = "center_crop") -> dict[str, Any]:
+    """Fit a portrait to 512x832 without stretching or inventing border pixels."""
     source_width, source_height = probe_dimensions(source)
     destination.parent.mkdir(parents=True, exist_ok=True)
+    if fit == "center_crop":
+        if source_width * HEIGHT <= source_height * WIDTH:
+            filter_graph = f"scale={WIDTH}:-2:flags=lanczos,crop={WIDTH}:{HEIGHT}:0:(ih-{HEIGHT})/2"
+        else:
+            filter_graph = f"scale=-2:{HEIGHT}:flags=lanczos,crop={WIDTH}:{HEIGHT}:(iw-{WIDTH})/2:0"
+        run(
+            [
+                "ffmpeg", "-v", "error", "-y", "-i", str(source),
+                "-vf", filter_graph, "-frames:v", "1", str(destination),
+            ]
+        )
+        policy = "center_crop_no_side_padding"
+    elif fit == "edge_pad":
+        policy = prepare_legacy_edge_padded_guide(source, destination, source_width, source_height)
+    else:
+        raise RenderError(f"Unknown guide fit: {fit}")
+    if probe_dimensions(destination) != (WIDTH, HEIGHT):
+        raise RenderError(f"Prepared guide is not {WIDTH}x{HEIGHT}: {destination}")
+    return {
+        "source_dimensions": [source_width, source_height],
+        "guide_dimensions": [WIDTH, HEIGHT],
+        "requested_fit": fit,
+        "policy": policy,
+        "sha256": sha256_file(destination),
+    }
+
+
+def prepare_legacy_edge_padded_guide(
+    source: Path, destination: Path, source_width: int, source_height: int,
+) -> str:
+    """Preserve the earlier guide geometry for replaying historical renders."""
     scaled_width = max(2, 2 * round((source_width * HEIGHT / source_height) / 2))
     if scaled_width <= WIDTH:
         left = (WIDTH - scaled_width) // 2
@@ -149,14 +182,7 @@ def prepare_guide(source: Path, destination: Path) -> dict[str, Any]:
             ]
         )
         policy = "width_fit_center_crop"
-    if probe_dimensions(destination) != (WIDTH, HEIGHT):
-        raise RenderError(f"Prepared guide is not {WIDTH}x{HEIGHT}: {destination}")
-    return {
-        "source_dimensions": [source_width, source_height],
-        "guide_dimensions": [WIDTH, HEIGHT],
-        "policy": policy,
-        "sha256": sha256_file(destination),
-    }
+    return policy
 
 
 def build_generation_graph(
@@ -360,6 +386,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--prompt-pack", type=Path, default=PROMPT_PACK_PATH)
+    parser.add_argument(
+        "--guide-fit", choices=("center_crop", "edge_pad"), default="center_crop",
+        help="Crop to fill the frame, or reproduce the earlier edge-padded guide.",
+    )
     parser.add_argument("--port", type=int, default=18190)
     parser.add_argument("--timeout-seconds", type=int, default=3600)
     return parser.parse_args()
@@ -383,7 +413,7 @@ def main() -> int:
     base_graph = load_json(ACCEPTED_GRAPH_PATH)
     selected = {pose: prompt_pack["poses"][pose] for pose in args.poses}
     image_hash = sha256_file(image)
-    job_id = f"{safe_stem(image)}-{image_hash[:10]}"
+    job_id = f"{safe_stem(image)}-{image_hash[:10]}-{args.guide_fit}"
     output_dir.mkdir(parents=True, exist_ok=True)
     run_dir = output_dir / "run"
     graph_dir = output_dir / "graphs"
@@ -394,7 +424,7 @@ def main() -> int:
 
     input_relative = Path("character_factory_native") / f"{job_id}.png"
     input_destination = COMFY_ROOT / "input" / input_relative
-    guide = prepare_guide(image, input_destination)
+    guide = prepare_guide(image, input_destination, args.guide_fit)
     shutil.copy2(input_destination, output_dir / "guide-512x832.png")
 
     graphs: dict[str, dict[str, Any]] = {}

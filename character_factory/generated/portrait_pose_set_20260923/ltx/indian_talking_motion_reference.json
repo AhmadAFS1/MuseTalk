@@ -1,0 +1,34 @@
+{
+  "method": "MediaPipe FaceMesh on every decoded frame. Eye midpoint from landmarks 33/263; central lip gap from landmarks 13/14. Excursions are relative to the first frame. These are diagnostics, not visual approval.",
+  "videos": {
+    "ltx23-native-flf-talking-seed191-exact-endpoints": {
+      "file": "/workspace/experiments/ltx23_native_flf_talking_20260922/output/ltx23-native-flf-talking-seed191-exact-endpoints.mp4",
+      "frames_read": 241,
+      "face_detections": 241,
+      "width": 512,
+      "height": 832,
+      "fps": 24.0,
+      "first_last_decoded_rgb_equal": true,
+      "endpoint_rgb_sha256": "be910c8bf70076f31b047a02a39e75f765eb4a85fbbce94efea4cd01a6d8fb5e",
+      "initial_eye_distance_px": 139.2,
+      "max_eye_x_excursion_px": 9.2,
+      "max_eye_y_excursion_px": 12.2,
+      "max_eye_y_excursion_pct_of_eye_distance": 8.8,
+      "max_eye_line_tilt_change_deg": 3.8,
+      "max_central_lip_gap_px": 30.3,
+      "eye_y_delta_each_second_px": [
+        0.0,
+        -0.6,
+        -5.5,
+        -6.8,
+        -3.5,
+        -4.1,
+        -8.5,
+        -0.7,
+        0.3,
+        0.3,
+        0.0
+      ]
+    }
+  }
+}

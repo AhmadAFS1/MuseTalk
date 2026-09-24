@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "pack_id": "japanese_native_three_pose_crop_seed197_v4",
+  "lineage": "Controlled seed test following japanese_native_three_pose_crop_head_anchored_v3: prompts and center-crop guide are unchanged, while talking and smiling use idle's steady seed 197 instead of 191/193. Only talking and smiling are rerendered.",
+  "poses": {
+    "idle": {
+      "seed": 197,
+      "frame_count": 241,
+      "prompt_source": "japanese_native_three_pose_crop_head_anchored_v3#idle, unchanged and not rerendered here.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She looks calmly into the lens with her head upright and level at the reference height. Gentle breathing creates small connected movement through her upper chest and shoulders, and she gives two quick natural blinks. Her lips stay comfortably closed and her jaw relaxed. She remains near her resting posture and ends in the exact starting pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "talking": {
+      "seed": 197,
+      "frame_count": 241,
+      "prompt_source": "japanese_native_three_pose_crop_head_anchored_v3#talking, exact prompt and negative retained; seed 191 changed to 197.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She faces the lens at eye level and keeps direct eye contact throughout the shot. She speaks naturally and continuously with clear conversational lip and jaw articulation, quick natural blinks, and subtle facial expression. Her eye line and chin stay at the reference height while her head and neck remain near their starting orientation. Gentle breathing moves her upper chest and shoulders together. She returns to the exact starting expression and pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "smiling": {
+      "seed": 197,
+      "frame_count": 241,
+      "prompt_source": "japanese_native_three_pose_crop_head_anchored_v3#smiling, exact prompt and negative retained; seed 193 changed to 197.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She faces the lens at eye level with her head and chin at the reference height. A small genuine closed-lip smile gradually forms at the mouth corners and softly around the eyes, holds briefly, then fades to the reference expression. Her lips stay together, and her head, neck, and shoulder line remain near the starting pose while gentle breathing and one quick natural blink continue. She ends in the exact starting expression and pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    }
+  }
+}

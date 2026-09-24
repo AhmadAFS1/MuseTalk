@@ -1,0 +1,64 @@
+{
+  "status": "review_only_not_production_certified",
+  "selected_prompt_pack": "/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_selected_native_three_pose_v2.json",
+  "selected_prompt_pack_sha256": "aa55312de0631e619dccd2027d34f8eee7ef8fd031dc989ec22948a6405215f3",
+  "source_image": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png",
+  "guide_sha256": "181034ff3a68660506ba6bcf77e6c2de545c73b70eac264872d57927de88dee2",
+  "guide_fit": "center_crop",
+  "pose_sources": {
+    "idle": "japanese_crop_level_head_v2",
+    "talking": "japanese_crop_expression_anchored_v5",
+    "smiling": "japanese_crop_smile_seed191_v8"
+  },
+  "poses": {
+    "idle": {
+      "file": "idle.mp4",
+      "sha256": "94677c19304ceda4f297f010583a355daa7ff05095b26ecb4e5e875645b9bb0e",
+      "seed": 197,
+      "source_render_dir": "japanese_crop_level_head_v2",
+      "width": 512,
+      "height": 832,
+      "fps": "24/1",
+      "frames": 241,
+      "audio_streams": 0,
+      "first_last_decoded_rgb_equal": true,
+      "endpoint_rgb_sha256": "1e9011800fbf8fe5eff99459d8edccd6af53ad62fc50ef0589273004504d8494",
+      "max_eye_y_excursion_px": 8.0,
+      "max_eye_y_excursion_pct_of_eye_distance": 5.2,
+      "max_central_lip_gap_px": 0.5
+    },
+    "talking": {
+      "file": "talking.mp4",
+      "sha256": "6622c21ceaafc8813089ea17552efce1fb4b5c013c79f994853d06611debd6e7",
+      "seed": 197,
+      "source_render_dir": "japanese_crop_expression_anchored_v5",
+      "width": 512,
+      "height": 832,
+      "fps": "24/1",
+      "frames": 241,
+      "audio_streams": 0,
+      "first_last_decoded_rgb_equal": true,
+      "endpoint_rgb_sha256": "cc108f1f21805a3e650fdd0561b2f6bac27a19c6dc85fa52a87b711c68ec8b67",
+      "max_eye_y_excursion_px": 14.5,
+      "max_eye_y_excursion_pct_of_eye_distance": 9.5,
+      "max_central_lip_gap_px": 30.2
+    },
+    "smiling": {
+      "file": "smiling.mp4",
+      "sha256": "278f3dc9ec05559e73bea7ddf6ce92a063af02eccca9dfc4014828140f7b93db",
+      "seed": 191,
+      "source_render_dir": "japanese_crop_smile_seed191_v8",
+      "width": 512,
+      "height": 832,
+      "fps": "24/1",
+      "frames": 241,
+      "audio_streams": 0,
+      "first_last_decoded_rgb_equal": true,
+      "endpoint_rgb_sha256": "f15e5409ac859aca7cf5cb922ca792e1e08012b7435a94c609cbb8238403b59c",
+      "max_eye_y_excursion_px": 18.5,
+      "max_eye_y_excursion_pct_of_eye_distance": 12.1,
+      "max_central_lip_gap_px": 0.5
+    }
+  },
+  "cross_pose_endpoint_hashes_equal": false
+}

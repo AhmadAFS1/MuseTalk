@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "pack_id": "japanese_native_three_pose_crop_level_head_v2",
+  "lineage": "September 24 Japanese rerender. Based on japanese_selected_native_three_pose_v1: retain each pose's behavioral idea and seed, describe connected breathing through the shoulders, and hold the head at the reference height for talking and smiling. Pair with --guide-fit center_crop to remove the replicated side columns. This is a new test, not the missing original Indian V6/V8 text.",
+  "poses": {
+    "idle": {
+      "seed": 197,
+      "frame_count": 241,
+      "prompt_source": "japanese_selected_native_three_pose_v1#idle, revised to describe coordinated breathing through upper chest and shoulders; seed retained.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She looks calmly into the lens with her head upright and level at the reference height. Gentle breathing creates small connected movement through her upper chest and shoulders, and she gives two quick natural blinks. Her lips stay comfortably closed and her jaw relaxed. She remains near her resting posture and ends in the exact starting pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "talking": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "Liked Indian native seed-191 talking text adapted in japanese_selected_native_three_pose_v1#talking; revised to keep chin level and describe connected shoulder breathing.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She speaks naturally and continuously to the camera with clear conversational lip articulation. Her gaze stays near the lens and her head remains upright with her chin level at the reference height. Natural blinks and small eye and brow responses accompany her speech. Gentle breathing creates connected movement through her upper chest and shoulders. Preserve her facial proportions and identity. She settles naturally into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "smiling": {
+      "seed": 193,
+      "frame_count": 241,
+      "prompt_source": "japanese_selected_native_three_pose_v1#smiling, based on surviving Indian V4 small closed-lip smile wording; revised to hold reference chin height and describe connected shoulder breathing.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She looks into the lens with her head upright and her chin level at the reference height. A small genuine closed-lip smile gradually appears at the mouth corners and softly around her eyes, holds briefly, then fades back to the reference expression. Her lips remain together and her shoulders follow gentle breathing while she gives one quick natural blink. She stays near her starting posture and ends in the exact starting pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    }
+  }
+}

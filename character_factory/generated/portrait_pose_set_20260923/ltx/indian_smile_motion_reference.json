@@ -1,0 +1,30 @@
+{
+  "method": "MediaPipe FaceMesh on every decoded frame. Eye midpoint from landmarks 33/263; central lip gap from landmarks 13/14. Excursions are relative to the first frame. These are diagnostics, not visual approval.",
+  "videos": {
+    "light_smile": {
+      "file": "/workspace/MuseTalk/assets/ltx23_pose_banks/sample_ai_human_facetime_closeup_production_v1/certified/light_smile.mp4",
+      "frames_read": 145,
+      "face_detections": 145,
+      "width": 480,
+      "height": 832,
+      "fps": 24.0,
+      "first_last_decoded_rgb_equal": true,
+      "endpoint_rgb_sha256": "47b05c6bdd63466e13381dc6cf21545e827bea0bc668c5798cbf7c69f7076b33",
+      "initial_eye_distance_px": 139.2,
+      "max_eye_x_excursion_px": 3.3,
+      "max_eye_y_excursion_px": 5.7,
+      "max_eye_y_excursion_pct_of_eye_distance": 4.1,
+      "max_eye_line_tilt_change_deg": 0.9,
+      "max_central_lip_gap_px": 0.6,
+      "eye_y_delta_each_second_px": [
+        0.0,
+        -3.8,
+        -0.3,
+        -2.4,
+        -0.6,
+        -0.3,
+        -0.0
+      ]
+    }
+  }
+}

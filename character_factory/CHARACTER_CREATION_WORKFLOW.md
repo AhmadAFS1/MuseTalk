@@ -36,12 +36,13 @@ roster or canonicalized by `ingest_portraits.py`; the runner prepares its own
 ## 2. Select the tested prompt pack
 
 For the tested Japanese woman, use
-[`japanese_selected_native_three_pose_v1.json`](config/prompt_packs/japanese_selected_native_three_pose_v1.json).
-It selects idle seed 197, talking seed 191, and smile seed 193. The talking
-text is the liked Indian native-LTX prompt with only gendered identity words
-changed. The idle and smile were revised after Japanese renders showed a deep
-nod and unwanted teeth, respectively. They are the best **observed** prompts
-for this portrait, not universal or final prompts for every face.
+[`japanese_selected_native_three_pose_v2.json`](config/prompt_packs/japanese_selected_native_three_pose_v2.json).
+It selects idle seed 197, talking seed 197, and smile seed 191. The talking
+prompt was revised from the liked Indian native-LTX wording because direct
+gender-word substitution made this Japanese portrait lift her head. The new
+smile is closed-lip and avoids sideways sway, but it still has a brief upward
+head lift. These are the best **observed review candidates** for this portrait,
+not universal or visually approved prompts for every face.
 
 For a different character, copy the selected pack to a new, versioned JSON
 file. Change identity words and pronouns deliberately while keeping one
@@ -57,14 +58,16 @@ From `/workspace/MuseTalk` on the current machine:
 ```bash
 LTX_PY=/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/.venv/bin/python
 IMAGE=/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png
-PACK=/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_selected_native_three_pose_v1.json
-OUT=/workspace/MuseTalk/character_factory/generated/<character_id>/ltx/native_three_pose_v1
+PACK=/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_selected_native_three_pose_v2.json
+OUT=/workspace/MuseTalk/character_factory/generated/<character_id>/ltx/native_three_pose_v2
 
 "$LTX_PY" character_factory/scripts/generate_three_pose_videos.py \
-  --image "$IMAGE" --output-dir "$OUT" --prompt-pack "$PACK" --dry-run
+  --image "$IMAGE" --output-dir "$OUT" --prompt-pack "$PACK" \
+  --guide-fit center_crop --dry-run
 
 "$LTX_PY" character_factory/scripts/generate_three_pose_videos.py \
-  --image "$IMAGE" --output-dir "$OUT" --prompt-pack "$PACK"
+  --image "$IMAGE" --output-dir "$OUT" --prompt-pack "$PACK" \
+  --guide-fit center_crop
 ```
 
 Replace `<character_id>` and the image and pack paths for a new character.
@@ -83,6 +86,14 @@ decoded frame with the first and verifies exact decoded first/last equality
 **within each clip**. It does not add a fade or crossfade. SoulX, Segmind,
 Prompt Relay, and NAG are not used.
 
+The `center_crop` guide fit is the current default. It fills the 512×832
+canvas with real portrait pixels, cropping a small amount from the top and
+bottom when the source is narrower than that ratio. Earlier Japanese tests
+used `edge_pad`, which repeated the source's outermost pixel columns and
+produced visibly stretched shoulder edges. Use `--guide-fit edge_pad` only to
+replay one of those historical renders; its output guide has a different
+hash and must not be mixed with the new crop in one pose set.
+
 ## 4. Review motion and mouth behavior before accepting a clip
 
 Play each MP4 at normal speed, then inspect any suspect moment frame by
@@ -93,8 +104,8 @@ throughout all three clips. In particular:
 | Pose | Required observation | Failure examples from this test |
 |---|---|---|
 | Idle | Calm direct gaze, natural blinks, subtle breathing, closed mouth, head near its starting height | The first Japanese idle dropped its head deeply despite asking for a small posture adjustment. |
-| Talking | Natural conversational lip shapes without a camera move or repeated mechanical sway | The Japanese talking clip articulates clearly but has more vertical head travel than the accepted Indian body plate. |
-| Smiling | Modest smile, lips together, return to neutral, no large chin lift | Two Japanese smile candidates briefly showed teeth; a stricter wording alone did not fix the second one. |
+| Talking | Natural conversational lip shapes without a camera move or repeated mechanical sway | The first Japanese talking clip articulated clearly but lifted her head far more than the liked Indian native talking clip. |
+| Smiling | Modest smile, lips together, return to neutral, no large chin lift | Seed 197 opened the mouth; seed 195 tilted the head sideways; the selected seed 191 still has a brief upward lift. |
 
 Record the accepted/rejected decision for each clip with its prompt-pack ID,
 seed, file hash, and visual reason. For a reroll, change one pose at a time
@@ -103,9 +114,9 @@ output directory and versioned prompt pack. Keep rejected clips and their
 manifests long enough to explain why the selected version won. Do not use
 `--force` to overwrite a reviewed render unless replacement is intentional.
 
-The Japanese [review set](generated/portrait_pose_set_20260923/ltx/japanese_selected_review_v1/README.md)
+The Japanese [review set](generated/portrait_pose_set_20260923/ltx/japanese_shoulders_head_review_v2/README.md)
 shows the selected videos and contact sheets. Its
-[`validation.json`](generated/portrait_pose_set_20260923/ltx/japanese_selected_review_v1/validation.json)
+[`validation.json`](generated/portrait_pose_set_20260923/ltx/japanese_shoulders_head_review_v2/validation.json)
 checks every decoded frame and independently verifies the end frames.
 
 ## 5. Keep the endpoint and integration gates separate

@@ -119,15 +119,18 @@ roster entry:
   generate_three_pose_videos.py \
   --image /absolute/path/to/portrait.png \
   --output-dir /absolute/path/to/avatar-videos \
-  --prompt-pack /workspace/MuseTalk/character_factory/config/prompt_packs/japanese_selected_native_three_pose_v1.json
+  --prompt-pack /workspace/MuseTalk/character_factory/config/prompt_packs/japanese_selected_native_three_pose_v2.json \
+  --guide-fit center_crop
 ```
 
 This produces `idle.mp4`, `talking.mp4`, `smiling.mp4`, `manifest.json`, and the exact submitted
 generation and decode graph for each pose. It starts and stops its own low-VRAM ComfyUI workers
 under the shared GPU lock. The runner uses the compact native graph from the September 22
 Indian-avatar talking test. The explicit pack above selects the best-observed Japanese idle,
-talking, and smile prompts; it does not claim the missing original V6/V8 text. Every
-render receives the same portrait at native LTX guide indices `0` and `-1`; packaging then replaces
+talking, and smile review candidates; it does not claim the missing original V6/V8 text.
+The centered crop avoids the 22-pixel replicated side borders that distorted shoulders
+in the previous Japanese guide. The selected smile still has a brief upward head lift.
+Every render receives the same portrait at native LTX guide indices `0` and `-1`; packaging then replaces
 only the final decoded frame with the first and verifies literal decoded endpoint equality. It does
 not freeze a handle or add a fade/cross-fade. Delivery clips are silent because MuseTalk supplies
 the speech audio.
@@ -135,13 +138,13 @@ the speech audio.
 Useful controls:
 
 ```bash
-python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v1.json --dry-run
-python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v1.json --poses smiling
-python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v1.json --force
+python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v2.json --guide-fit center_crop --dry-run
+python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v2.json --guide-fit center_crop --poses smiling
+python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v2.json --guide-fit center_crop --force
 ```
 
 All three clips are 241 frames at 24 fps (10.041667 seconds). The selected Japanese pack uses
-seeds 197, 191, and 193 for idle, talking, and smiling respectively; its identity words are
+seeds 197, 197, and 191 for idle, talking, and smiling respectively; its identity words are
 female-specific. The script's historical default is a different pack, so pass `--prompt-pack`
 explicitly. Existing outputs resume by default; `--force` replaces only the requested pose files.
 

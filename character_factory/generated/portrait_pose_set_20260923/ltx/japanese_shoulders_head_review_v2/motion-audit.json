@@ -1,0 +1,92 @@
+{
+  "method": "MediaPipe FaceMesh on every decoded frame. Eye midpoint from landmarks 33/263; central lip gap from landmarks 13/14. Excursions are relative to the first frame. These are diagnostics, not visual approval.",
+  "videos": {
+    "idle": {
+      "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_shoulders_head_review_v2/idle.mp4",
+      "frames_read": 241,
+      "face_detections": 241,
+      "width": 512,
+      "height": 832,
+      "fps": 24.0,
+      "first_last_decoded_rgb_equal": true,
+      "endpoint_rgb_sha256": "1e9011800fbf8fe5eff99459d8edccd6af53ad62fc50ef0589273004504d8494",
+      "initial_eye_distance_px": 153.3,
+      "max_eye_x_excursion_px": 3.7,
+      "max_eye_y_excursion_px": 8.0,
+      "max_eye_y_excursion_pct_of_eye_distance": 5.2,
+      "max_eye_line_tilt_change_deg": 1.0,
+      "max_central_lip_gap_px": 0.5,
+      "eye_y_delta_each_second_px": [
+        0.0,
+        -0.3,
+        -1.6,
+        -4.5,
+        -0.3,
+        -6.5,
+        -2.2,
+        -0.7,
+        1.4,
+        3.4,
+        -0.4
+      ]
+    },
+    "talking": {
+      "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_shoulders_head_review_v2/talking.mp4",
+      "frames_read": 241,
+      "face_detections": 241,
+      "width": 512,
+      "height": 832,
+      "fps": 24.0,
+      "first_last_decoded_rgb_equal": true,
+      "endpoint_rgb_sha256": "cc108f1f21805a3e650fdd0561b2f6bac27a19c6dc85fa52a87b711c68ec8b67",
+      "initial_eye_distance_px": 152.9,
+      "max_eye_x_excursion_px": 3.3,
+      "max_eye_y_excursion_px": 14.5,
+      "max_eye_y_excursion_pct_of_eye_distance": 9.5,
+      "max_eye_line_tilt_change_deg": 1.6,
+      "max_central_lip_gap_px": 30.2,
+      "eye_y_delta_each_second_px": [
+        0.0,
+        -13.9,
+        -12.0,
+        -11.1,
+        -4.4,
+        -8.4,
+        -2.5,
+        -1.1,
+        0.7,
+        2.6,
+        -0.5
+      ]
+    },
+    "smiling": {
+      "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_shoulders_head_review_v2/smiling.mp4",
+      "frames_read": 241,
+      "face_detections": 241,
+      "width": 512,
+      "height": 832,
+      "fps": 24.0,
+      "first_last_decoded_rgb_equal": true,
+      "endpoint_rgb_sha256": "f15e5409ac859aca7cf5cb922ca792e1e08012b7435a94c609cbb8238403b59c",
+      "initial_eye_distance_px": 152.8,
+      "max_eye_x_excursion_px": 3.4,
+      "max_eye_y_excursion_px": 18.5,
+      "max_eye_y_excursion_pct_of_eye_distance": 12.1,
+      "max_eye_line_tilt_change_deg": 0.8,
+      "max_central_lip_gap_px": 0.5,
+      "eye_y_delta_each_second_px": [
+        0.0,
+        3.8,
+        -18.5,
+        -6.5,
+        -4.5,
+        -4.2,
+        -2.4,
+        -0.1,
+        -0.3,
+        -0.2,
+        -0.2
+      ]
+    }
+  }
+}
