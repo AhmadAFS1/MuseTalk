@@ -65,12 +65,16 @@ For the reduced Lingua set, `scripts/generate_three_pose_videos.py` is the roste
 point. It accepts one portrait and emits `idle.mp4`, `talking.mp4`, and `smiling.mp4` with the
 compact native LTX 2.3 Q4 graph used in the September 22 Indian-avatar talking test: 512x832,
 24 fps, the same portrait at guide indices `0` and `-1`, one eight-step Euler
-schedule, and the accepted 64/16 tiled decode. The current Japanese
+schedule, and the accepted 64/16 tiled decode. The historical Japanese
 `config/prompt_packs/japanese_selected_native_three_pose_v3.json` pack generates an 81-frame
 idle cycle and repeats it three times to deliver 241 frames; talking and smiling are native
-241-frame renders. It does not use SoulX, Segmind, Prompt Relay, or NAG. The script's historical
-default pack is not the selected Japanese result. See the pilot workflow for the command and
-endpoint behavior.
+241-frame renders. **The user rejected that idle** because it wobbles without perceptible
+shallow breathing. Only the talking and smiling clips are accepted; there is no approved
+three-pose Japanese pack yet. The [v17 idle review clip](generated/portrait_pose_set_20260923/ltx/japanese_idle_breath_review_v4/README.md)
+is a stronger candidate awaiting normal-speed approval. See the [idle rerun record](JAPANESE_IDLE_SHALLOW_BREATH_RERUN_20260924.md)
+before rendering a new idle. The runner does not use SoulX, Segmind, Prompt Relay, or NAG.
+Pass an explicit pack because the script's default is historical. See the pilot workflow
+for commands and endpoint behavior.
 
 ## Why certification is the load-bearing step
 

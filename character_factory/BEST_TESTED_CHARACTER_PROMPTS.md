@@ -1,22 +1,25 @@
 # Best-tested prompts for the current three-pose character pilot
 
-The current Japanese best-tested **review candidates** use the exact text,
+The prior Japanese three-pose **review candidates** used the exact text,
 seeds, and idle repeat count in
 [`japanese_selected_native_three_pose_v3.json`](config/prompt_packs/japanese_selected_native_three_pose_v3.json).
 The [v3 review set](generated/portrait_pose_set_20260923/ltx/japanese_breath_speech_review_v3/README.md)
-contains the videos and measurements. The selected idle is a 3.375-second
-native LTX cycle repeated three times to make 10.04 seconds; talking is a
-single 10.04-second native LTX render; smile is the unchanged v2 clip. These
-are observations for this portrait, not guaranteed settings for other faces.
-Human normal-speed approval and shared-anchor certification remain pending.
+contains the videos and measurements. **The user rejected its idle** after
+normal-speed review: it wobbles the head and shows no actual shallow breaths.
+The v3 pack must not be treated as a selected full three-pose set. The user
+accepted its talking and smiling clips, which remain unchanged. The
+[idle-only rerun record](JAPANESE_IDLE_SHALLOW_BREATH_RERUN_20260924.md)
+tracks the replacement. The [v17 idle review clip](generated/portrait_pose_set_20260923/ltx/japanese_idle_breath_review_v4/README.md)
+is the strongest new candidate, awaiting normal-speed human review.
+Shared-anchor certification remains pending.
 
 The previous
 [`japanese_selected_native_three_pose_v2.json`](config/prompt_packs/japanese_selected_native_three_pose_v2.json)
 pack and [v2 review videos](generated/portrait_pose_set_20260923/ltx/japanese_shoulders_head_review_v2/README.md)
 remain frozen below. Their talk stopped at 3.92 seconds and idle had one
 conspicuous deep breath. The [controlled reroll notes](JAPANESE_SHALLOW_BREATH_CONTINUOUS_TALK_20260924.md)
-explain why v3, v4, and the long v5 idle were rejected and how the short-cycle
-idle and v5 talking were selected.
+explain why v3, v4, and the long v5 idle were rejected, how the short-cycle
+idle was tried and later rejected, and how v5 talking was selected.
 
 ## Portrait and LTX setup
 
@@ -27,7 +30,7 @@ composition, then supply the character's identity, clothing, and room. The
 was the input in this test. Preserve a centered, upright face, direct gaze,
 closed relaxed mouth, and visible shoulders.
 
-All selected clips use native LTX 2.3 22B distilled Q4_K_M, the accepted
+The currently accepted talking and smiling clips use native LTX 2.3 22B distilled Q4_K_M, the accepted
 low-VRAM eight-step Euler graph at CFG 1.0, 512×832 and 24 fps, with no
 audio. Talking and smile are 241-frame native renders. Idle is an 81-frame
 native render assembled into a 241-frame delivery video. All delivered clips
@@ -41,7 +44,7 @@ repeated roughly 22 columns on each side of this portrait, creating the
 shoulder-edge smear. The corrected guide contains only real image pixels;
 see the [before/after image](generated/portrait_pose_set_20260923/ltx/japanese_guide_fit_before_after.jpg).
 
-## Current best-tested idle — seed 197, 81 frames repeated three times
+## Rejected v7 idle — seed 197, 81 frames repeated three times
 
 Positive prompt:
 
@@ -59,9 +62,33 @@ Generate an 81-frame native LTX clip and repeat the endpoint-matched cycle
 three times without duplicate join frames. The renderer honors
 `"repeat_cycles": 3` in the v3 pack, or the already-rendered short clip can
 be assembled with [the repeat script](scripts/repeat_short_idle_cycle.py).
-The selected ten-second clip has three blinks, exact decoded loop joins, 5.2 px
-maximum shoulder travel, 5.3 px eye-line travel, and closed lips. The v2 idle
-had 14.1 px shoulder travel concentrated in one long rise.
+The ten-second clip has three blinks and exact decoded loop joins, but its
+shirt neckline does not move at all. The earlier shoulder-landmark metric of
+5.2 px concealed this failure. The user observed repeated rapid head wobble
+and no visible breathing, so **do not select this idle**. The v2 idle had a
+single 28 px neckline lift and is also unsuitable.
+
+## Current idle review candidate — v17, seed 193, 121 frames repeated twice
+
+The [v17 pack](config/prompt_packs/japanese_idle_five_second_breath_seed193_v17.json)
+uses this positive prompt:
+
+```text
+Fixed-camera photorealistic FaceTime close-up of the same female language tutor in the reference image, with the same room, lighting, clothing, and framing. She listens quietly to the caller, alert and engaged, looking directly into the lens. Her eyes stay open and attentive. Her lips stay comfortably closed. Her head remains upright and level, without leaning or bobbing. Over this five-second shot, one ordinary shallow breath makes the fabric at her upper chest move gently outward and back while her shoulders remain relaxed. She continues her natural listening pose and finishes at the starting pose. One continuous shot, stable background.
+```
+
+Negative prompt:
+
+```text
+sleeping, closed eyes, prolonged blink, drowsy face, sideways head tilt, head bobbing, head wobble, sighing, gasping, mouth opening, speaking, lip articulation, shoulder distortion, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark
+```
+
+The source cycle repeats twice with exact decoded joins. The ten-second review
+clip shows two 12 px neckline rises rather than v2's single 28 px inhale or
+v7's zero movement. Head position and tilt are much steadier, and the lips
+remain closed. It also repeats six short blinks, which may look patterned.
+The user has **not** yet accepted this idle at normal playback speed; keep it
+as a review candidate rather than declaring a complete selected pack.
 
 ## Current best-tested talking — seed 191, 241 frames
 

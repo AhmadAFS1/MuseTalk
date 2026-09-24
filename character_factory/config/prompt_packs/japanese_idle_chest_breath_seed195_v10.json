@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "pack_id": "japanese_idle_chest_breath_seed195_v10",
+  "lineage": "Idle-only 241-frame native LTX reroll after user rejected the repeated v7 idle as head wobble without perceptible shallow breaths. New chest-led breathing prompt and seed 195; same portrait, center-crop guide, LTX graph. Talking and smiling inherited unchanged, not rendered.",
+  "poses": {
+    "idle": {
+      "seed": 195,
+      "frame_count": 241,
+      "prompt_source": "New v10 10-second chest-led breathing prompt; explicitly corrects user-observed v7 head wobble and absent breaths.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. She rests comfortably facing the lens with her head balanced and her eyes at the same height throughout. Her breathing is visible in her upper torso: three quiet, shallow breaths gently expand her chest beneath the shirt and let it settle again, at an even, unhurried rhythm across the ten-second shot. The shirt neckline and upper chest move softly with each breath while both relaxed shoulders respond together only a little. Her neck, face, and hair stay calm and steady rather than riding up and down with her breathing. She gives two natural blinks at separate moments. Her lips remain comfortably closed, and she finishes in her original resting pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, head bobbing, head wobble, rapid twitch, neck bobbing, rigid chest, frozen shirt, shoulder distortion, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "talking": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "japanese_idle_talking_seed191_v5#talking; native 241-frame render.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. She looks straight into the lens and speaks one lively, uninterrupted ten-second sentence. Her mouth and jaw keep forming new conversational syllables throughout the shot, including the final seconds; brief lip closures are part of the words, never a long silent pause. She stays engaged in the sentence until the last moment. Her head remains upright and level, her neck relaxed. Small, regular breaths happen naturally between words, with barely visible motion in her upper chest and shoulders. She gives two quick natural blinks. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, off-camera gaze, distorted face, identity change, duplicate facial features, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "smiling": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "japanese_selected_native_three_pose_v2#smiling; unchanged selected seed-191 clip.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. A restrained closed-lip smile slowly appears in the corners of her mouth and softly in her cheeks, holds, then fades back to neutral. Her upper and lower lips stay gently in contact through the entire smile. She looks into the lens and gives one quick natural blink. Her eye line and chin remain level at the reference height, her neck keeps its relaxed starting length, and gentle breathing moves her upper chest and both shoulders together. She ends in the exact starting expression and pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, parted lips, visible teeth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    }
+  }
+}

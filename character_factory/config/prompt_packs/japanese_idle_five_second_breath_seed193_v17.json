@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "pack_id": "japanese_idle_five_second_breath_seed193_v17",
+  "lineage": "Idle-only five-second cycle at seed 193, repeated twice to 241 frames. Based on v16 attentive open-eye prompt, with a single ordinary small torso breath per cycle; no requested blink. Talking and smiling inherited unchanged and not rendered.",
+  "poses": {
+    "idle": {
+      "seed": 193,
+      "frame_count": 121,
+      "prompt_source": "V16 alert-listening wording as a five-second breath cycle; repeated twice for two breaths.",
+      "positive_prompt": "Fixed-camera photorealistic FaceTime close-up of the same female language tutor in the reference image, with the same room, lighting, clothing, and framing. She listens quietly to the caller, alert and engaged, looking directly into the lens. Her eyes stay open and attentive. Her lips stay comfortably closed. Her head remains upright and level, without leaning or bobbing. Over this five-second shot, one ordinary shallow breath makes the fabric at her upper chest move gently outward and back while her shoulders remain relaxed. She continues her natural listening pose and finishes at the starting pose. One continuous shot, stable background.",
+      "negative_prompt": "sleeping, closed eyes, prolonged blink, drowsy face, sideways head tilt, head bobbing, head wobble, sighing, gasping, mouth opening, speaking, lip articulation, shoulder distortion, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark",
+      "repeat_cycles": 2
+    },
+    "talking": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "japanese_idle_talking_seed191_v5#talking; native 241-frame render.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. She looks straight into the lens and speaks one lively, uninterrupted ten-second sentence. Her mouth and jaw keep forming new conversational syllables throughout the shot, including the final seconds; brief lip closures are part of the words, never a long silent pause. She stays engaged in the sentence until the last moment. Her head remains upright and level, her neck relaxed. Small, regular breaths happen naturally between words, with barely visible motion in her upper chest and shoulders. She gives two quick natural blinks. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, off-camera gaze, distorted face, identity change, duplicate facial features, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "smiling": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "japanese_selected_native_three_pose_v2#smiling; unchanged selected seed-191 clip.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. A restrained closed-lip smile slowly appears in the corners of her mouth and softly in her cheeks, holds, then fades back to neutral. Her upper and lower lips stay gently in contact through the entire smile. She looks into the lens and gives one quick natural blink. Her eye line and chin remain level at the reference height, her neck keeps its relaxed starting length, and gentle breathing moves her upper chest and both shoulders together. She ends in the exact starting expression and pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, parted lips, visible teeth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    }
+  }
+}

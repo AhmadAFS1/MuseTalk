@@ -96,6 +96,14 @@ def measure(path: Path) -> dict[str, object]:
         active and (index == 0 or not blink_flags[index - 1])
         for index, active in enumerate(blink_flags)
     )
+    # The median can become almost closed in a failed sleepy render. Compare
+    # with the explicitly open source portrait at frame zero as a separate QC.
+    closed_versus_first = [value < eye_openings[0] * 0.55 for value in eye_openings]
+    longest_closed_run = 0
+    current_closed_run = 0
+    for closed in closed_versus_first:
+        current_closed_run = current_closed_run + 1 if closed else 0
+        longest_closed_run = max(longest_closed_run, current_closed_run)
     last_open_frame = next(
         (index for index in range(len(rows) - 2, -1, -1) if rows[index][4] > 3),
         None,
@@ -151,6 +159,11 @@ def measure(path: Path) -> dict[str, object]:
         "median_eye_opening_px": round(eye_opening_median, 1),
         "min_eye_opening_px": round(min(eye_openings), 1),
         "blink_candidate_count": blink_candidate_count,
+        "longest_near_closed_eye_run_seconds": round(longest_closed_run / fps, 2),
+        "near_closed_eye_fraction_each_second": [
+            round(float(np.mean(closed_versus_first[start:start + second])), 2)
+            for start in range(0, len(closed_versus_first) - 1, second)
+        ],
         "max_central_lip_gap_px": round(max(row[4] for row in rows), 1),
         "last_lip_gap_over_3px_time_s": (
             round(last_open_frame / fps, 2) if last_open_frame is not None else None
@@ -177,7 +190,7 @@ def main() -> None:
     if len(stems) != len(set(stems)):
         parser.error("Video basenames must be unique; run same-named revisions separately")
     report = {
-        "method": "MediaPipe FaceMesh on every decoded frame: eye midpoint 33/263, eye opening 159/145 and 386/374, central lip gap 13/14, mouth corners 61/291. Blink candidates are eye-opening runs below 55% of the median. Static per-frame Pose shoulders 11/12, median-smoothed over 13 frames. Excursions are relative to the first frame. These are diagnostics, not visual approval.",
+        "method": "MediaPipe FaceMesh on every decoded frame: eye midpoint 33/263, eye opening 159/145 and 386/374, central lip gap 13/14, mouth corners 61/291. Blink candidates are eye-opening runs below 55% of the median; prolonged eye closure is checked separately against the open first frame. Static per-frame Pose shoulders 11/12, median-smoothed over 13 frames. Excursions are relative to the first frame. These are diagnostics, not visual approval.",
         "videos": {path.stem: measure(path) for path in args.videos},
     }
     serialized = json.dumps(report, indent=2) + "\n"

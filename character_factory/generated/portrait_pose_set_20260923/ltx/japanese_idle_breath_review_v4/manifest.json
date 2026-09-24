@@ -1,0 +1,116 @@
+{
+  "schema_version": 2,
+  "generator": "/workspace/MuseTalk/character_factory/scripts/generate_three_pose_videos.py",
+  "source_image": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png",
+  "source_image_sha256": "14ea206c301eccdf9461ab2b706d9c3489927156267ca74e8ba478d9124fdf7b",
+  "prepared_guide": {
+    "source_dimensions": [
+      941,
+      1672
+    ],
+    "guide_dimensions": [
+      512,
+      832
+    ],
+    "requested_fit": "center_crop",
+    "policy": "center_crop_no_side_padding",
+    "sha256": "181034ff3a68660506ba6bcf77e6c2de545c73b70eac264872d57927de88dee2"
+  },
+  "prompt_pack": "japanese_idle_five_second_breath_seed193_v17",
+  "prompt_pack_path": "/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_idle_five_second_breath_seed193_v17.json",
+  "prompt_pack_sha256": "f5c1d71b60257a148e976abacc4375d928541b5bf0072ed8c3252417fb72900e",
+  "lineage": "Idle-only five-second cycle at seed 193, repeated twice to 241 frames. Based on v16 attentive open-eye prompt, with a single ordinary small torso breath per cycle; no requested blink. Talking and smiling inherited unchanged and not rendered.",
+  "accepted_graph": "/workspace/experiments/ltx23_native_flf_talking_20260922/graphs/generation.json",
+  "workflow": {
+    "model": "LTX-2.3-22B-distilled-1.1-Q4_K_M.gguf",
+    "text_encoder": "gemma-3-12b-it-qat-UD-Q3_K_XL.gguf",
+    "resolution": [
+      512,
+      832
+    ],
+    "fps": 24,
+    "frames_by_pose": {
+      "idle": 121
+    },
+    "delivered_frames_by_pose": {
+      "idle": 241
+    },
+    "same_portrait_guide_at_frame_indices": [
+      0,
+      -1
+    ],
+    "guide_strength": 1.0,
+    "sampler": "euler",
+    "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0",
+    "cfg": 1.0,
+    "prompt_relay_used": false,
+    "nag_used": false,
+    "soulx_used": false,
+    "segmind_used": false
+  },
+  "delivery_policy": {
+    "decoded_first_last_exact": true,
+    "last_frame_replaced_with_first": true,
+    "fade_or_crossfade": false,
+    "audio_streams": 0
+  },
+  "poses": {
+    "idle": {
+      "status": "completed",
+      "seed": 193,
+      "positive_prompt": "Fixed-camera photorealistic FaceTime close-up of the same female language tutor in the reference image, with the same room, lighting, clothing, and framing. She listens quietly to the caller, alert and engaged, looking directly into the lens. Her eyes stay open and attentive. Her lips stay comfortably closed. Her head remains upright and level, without leaning or bobbing. Over this five-second shot, one ordinary shallow breath makes the fabric at her upper chest move gently outward and back while her shoulders remain relaxed. She continues her natural listening pose and finishes at the starting pose. One continuous shot, stable background.",
+      "negative_prompt": "sleeping, closed eyes, prolonged blink, drowsy face, sideways head tilt, head bobbing, head wobble, sighing, gasping, mouth opening, speaking, lip articulation, shoulder distortion, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark",
+      "prompt_source": "V16 alert-listening wording as a five-second breath cycle; repeated twice for two breaths.",
+      "generation_prompt_id": "206a31eb-6ee3-4e5c-8a89-dd9f8d793783",
+      "generation_elapsed_seconds": 290.37,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_five_second_breath_seed193_v17/native/idle.latent",
+      "latent_sha256": "9c089259e9076b580545ffbe8fd58ad1e5b88665fd07d2710e6f88c2b680db5d",
+      "decode_prompt_id": "922c952f-5f5e-478f-894b-126bd0a224c9",
+      "decode_elapsed_seconds": 15.02,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_five_second_breath_seed193_v17/idle.mp4",
+        "sha256": "6d26ed85b4670acc7a9d5cce6d1b989e6a25c7faf994f45b2cb0c8dada514830",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_five_second_breath_seed193_v17/native/idle.mp4",
+        "native_sha256": "6d26ed85b4670acc7a9d5cce6d1b989e6a25c7faf994f45b2cb0c8dada514830",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 241,
+        "duration_seconds": 10.041667,
+        "decoded_first_last_exact": true,
+        "decoded_loop_boundaries_exact": true,
+        "decoded_endpoint_rgb_sha256": "34437da1157804d31b68af0b9314a4e606fffb8bcf30f3fa7bba85f2759f3d6e",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "assembly": {
+        "method": "repeat_endpoint_matched_cycle_without_duplicate_join_frames",
+        "repeat_cycles": 2,
+        "source_cycle": {
+          "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_five_second_breath_seed193_v17/review/idle-cycle.mp4",
+          "sha256": "f527d39478918b2f518c222ea7270ee8bd4b8b845b31b0b3b6a16aecadb21581",
+          "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_five_second_breath_seed193_v17/native/idle-cycle-native.mp4",
+          "native_sha256": "f527d39478918b2f518c222ea7270ee8bd4b8b845b31b0b3b6a16aecadb21581",
+          "width": 512,
+          "height": 832,
+          "fps": 24,
+          "frame_count": 121,
+          "duration_seconds": 5.041667,
+          "decoded_first_last_exact": true,
+          "decoded_loop_boundaries_exact": null,
+          "decoded_endpoint_rgb_sha256": "34437da1157804d31b68af0b9314a4e606fffb8bcf30f3fa7bba85f2759f3d6e",
+          "last_frame_replaced_with_first": true,
+          "fade_or_crossfade_used": false,
+          "audio_streams": 0
+        },
+        "decoded_boundary_frame_indices": [
+          0,
+          120,
+          240
+        ]
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_five_second_breath_seed193_v17/review/idle-contact.jpg"
+    }
+  }
+}

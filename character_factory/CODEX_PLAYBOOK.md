@@ -120,23 +120,24 @@ roster entry:
   --image /absolute/path/to/portrait.png \
   --output-dir /absolute/path/to/avatar-videos \
   --prompt-pack /workspace/MuseTalk/character_factory/config/prompt_packs/japanese_selected_native_three_pose_v3.json \
-  --guide-fit center_crop
+  --guide-fit center_crop --poses talking smiling
 ```
 
-This produces `idle.mp4`, `talking.mp4`, `smiling.mp4`, `manifest.json`, and the exact submitted
+This example produces `talking.mp4`, `smiling.mp4`, `manifest.json`, and the exact submitted
 generation and decode graph for each pose. It starts and stops its own low-VRAM ComfyUI workers
 under the shared GPU lock. The runner uses the compact native graph from the September 22
-Indian-avatar talking test. The explicit pack above selects the best-observed Japanese idle,
-talking, and smile review candidates; it does not claim the missing original V6/V8 text.
-The idle graph generates an 81-frame shallow-breath cycle, and the runner repeats it three
-times to deliver 241 frames with identical decoded joins. Talking and smiling use native
+Indian-avatar talking test. The v3 pack has **accepted talking and smiling clips but a
+rejected idle**: normal-speed review found head wobble without shallow breathing.
+Do not render or select the v3 idle as a pilot asset. For an idle-only experiment, use a
+versioned pack from the [rerun record](JAPANESE_IDLE_SHALLOW_BREATH_RERUN_20260924.md)
+with `--poses idle` and a new output directory. Talking and smiling use native
 241-frame graphs. The [review set](generated/portrait_pose_set_20260923/ltx/japanese_breath_speech_review_v3/README.md)
 and [best-tested prompt notes](BEST_TESTED_CHARACTER_PROMPTS.md) record the remaining timing caveats.
 The centered crop avoids the 22-pixel replicated side borders that distorted shoulders
 in the previous Japanese guide. The selected smile still has a brief upward head lift.
 Every native render receives the same portrait at LTX guide indices `0` and `-1`;
-packaging verifies literal decoded endpoint equality. The repeated idle also verifies
-its internal joins. It does not freeze a handle or add a fade/cross-fade. Delivery clips
+packaging verifies literal decoded endpoint equality. The historical repeated idle also verifies
+its internal joins, which did not make its motion acceptable. It does not freeze a handle or add a fade/cross-fade. Delivery clips
 are silent because MuseTalk supplies the speech audio.
 
 Useful controls:
@@ -144,11 +145,11 @@ Useful controls:
 ```bash
 python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v3.json --guide-fit center_crop --dry-run
 python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v3.json --guide-fit center_crop --poses smiling
-python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v3.json --guide-fit center_crop --force
+python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v3.json --guide-fit center_crop --poses talking smiling
 ```
 
-All three clips are 241 frames at 24 fps (10.041667 seconds). The selected Japanese pack uses
-seeds 197, 197, and 191 for idle, talking, and smiling respectively; its identity words are
+Each delivered clip is 241 frames at 24 fps (10.041667 seconds). The historical v3 pack uses
+seeds 197, 191, and 191 for idle, talking, and smiling respectively; its identity words are
 female-specific. The script's historical default is a different pack, so pass `--prompt-pack`
 explicitly. Existing outputs resume by default; `--force` replaces only the requested pose files.
 

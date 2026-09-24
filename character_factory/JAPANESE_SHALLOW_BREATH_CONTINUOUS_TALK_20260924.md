@@ -1,5 +1,10 @@
 # Japanese avatar: shallow-breathing and continuous-talking test
 
+**Subsequent user review supersedes the idle selection below:** v7's repeated
+idle looks like rapid head wobble with no actual breathing and is rejected.
+The talking and smiling clips were accepted. See the
+[idle replacement record](JAPANESE_IDLE_SHALLOW_BREATH_RERUN_20260924.md).
+
 The [selected v2 prompt pack](config/prompt_packs/japanese_selected_native_three_pose_v2.json)
 and [v2 review videos](generated/portrait_pose_set_20260923/ltx/japanese_shoulders_head_review_v2/README.md)
 are the frozen best-tested baseline. This test changes only the positive
@@ -116,14 +121,15 @@ assembled clip, so a final [v7 short-cycle prompt](config/prompt_packs/japanese_
 adds one natural blink. Repeating a successful v7 cycle would also repeat the
 blink about every 3.3 seconds; review that rhythm for artificial regularity.
 
-V7 succeeded on the measured motion gates. Its native 81-frame source has
+V7 appeared to succeed on the *earlier* motion gates, which proved insufficient.
+Its native 81-frame source has
 5.1 px shoulder travel, 5.2 px eye-line travel, closed lips, and one detected
 blink. The [selected 241-frame idle](generated/portrait_pose_set_20260923/ltx/japanese_breath_speech_review_v3/idle.mp4)
 has 5.2 px shoulder travel, 5.3 px eye-line travel, and three detected blinks.
-All four decoded cycle-boundary frames match exactly. The blink and breath
-pattern repeats every 3.33 seconds; that periodicity remains a normal-speed
-review question. The final [v3 prompt pack](config/prompt_packs/japanese_selected_native_three_pose_v3.json)
-combines this idle, v5 talking, and the unchanged v2 smile. The
+All four decoded cycle-boundary frames match exactly, but a later neckline
+check found **0 px of shirt motion** and the user rejected the loop's head
+wobble. The historical [v3 prompt pack](config/prompt_packs/japanese_selected_native_three_pose_v3.json)
+combined this now-rejected idle, v5 talking, and the unchanged v2 smile. The
 [review folder](generated/portrait_pose_set_20260923/ltx/japanese_breath_speech_review_v3/README.md)
 contains the selected videos, contact sheets, motion audit, source manifests,
 and validation.

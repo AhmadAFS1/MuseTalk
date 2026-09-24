@@ -35,24 +35,27 @@ roster or canonicalized by `ingest_portraits.py`; the runner prepares its own
 
 ## 2. Select the tested prompt pack
 
-For the tested Japanese woman, use
-[`japanese_selected_native_three_pose_v3.json`](config/prompt_packs/japanese_selected_native_three_pose_v3.json).
-It selects an 81-frame idle at seed 197 repeated three times, a 241-frame
-talking clip at seed 191, and the unchanged 241-frame smile at seed 191.
-The short idle prevents one exaggerated ten-second inhale, and the revised
-talking prompt avoids the earlier middle-of-shot silence. These are the best
-**observed review candidates** for this portrait, not universal or visually
-approved prompts for every face. The [v2 pack](config/prompt_packs/japanese_selected_native_three_pose_v2.json)
-remains frozen as the liked baseline.
+The Japanese talking and smiling clips from
+[`japanese_selected_native_three_pose_v3.json`](config/prompt_packs/japanese_selected_native_three_pose_v3.json)
+were accepted in review. **Its idle was rejected**: the repeated 81-frame
+cycle looks like head wobble and shows no perceptible shirt-level breathing.
+There is currently no approved Japanese idle or approved full three-pose
+pack. The [idle rerun record](JAPANESE_IDLE_SHALLOW_BREATH_RERUN_20260924.md)
+tracks replacement experiments. Its [v17 review clip](generated/portrait_pose_set_20260923/ltx/japanese_idle_breath_review_v4/README.md)
+is the strongest pending candidate, with two smaller chest movements and a
+steadier head, but needs normal-speed approval. The [v2 pack](config/prompt_packs/japanese_selected_native_three_pose_v2.json)
+also has a rejected idle with one deep inhale; neither pack is a shortcut to
+an accepted idle.
 
-For a different character, copy the selected pack to a new, versioned JSON
+For a different character, copy the v3 pack to a new, versioned JSON
 file. Change identity words and pronouns deliberately while keeping one
-behavioral idea per pose. Keep the original selected pack unchanged so the
+behavioral idea per pose. Treat its idle only as historical starting text and
+review every pose independently. Keep the original pack unchanged so the
 Japanese render manifest remains reproducible. Record every changed prompt,
 seed, and visual reason in the new character's review notes. Do not silently
 substitute the script's historical default pack for the selected one.
 
-## 3. Dry-run, then render all three poses
+## 3. Dry-run, then render the needed poses
 
 From `/workspace/MuseTalk` on the current machine:
 
@@ -60,7 +63,7 @@ From `/workspace/MuseTalk` on the current machine:
 LTX_PY=/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/.venv/bin/python
 IMAGE=/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png
 PACK=/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_selected_native_three_pose_v3.json
-OUT=/workspace/MuseTalk/character_factory/generated/<character_id>/ltx/native_three_pose_v3
+OUT=/workspace/MuseTalk/character_factory/generated/<character_id>/ltx/native_pose_review
 
 "$LTX_PY" character_factory/scripts/generate_three_pose_videos.py \
   --image "$IMAGE" --output-dir "$OUT" --prompt-pack "$PACK" \
@@ -68,23 +71,26 @@ OUT=/workspace/MuseTalk/character_factory/generated/<character_id>/ltx/native_th
 
 "$LTX_PY" character_factory/scripts/generate_three_pose_videos.py \
   --image "$IMAGE" --output-dir "$OUT" --prompt-pack "$PACK" \
-  --guide-fit center_crop
+  --guide-fit center_crop --poses talking smiling
 ```
 
-Replace `<character_id>` and the image and pack paths for a new character.
+The full-pack dry run is a graph inspection only; the real example renders
+the two accepted pose prompts and deliberately excludes the rejected idle.
+For an idle experiment, use a separately versioned pack and output directory
+with `--poses idle`. Replace `<character_id>` and the image and pack paths for
+a new character.
 The runner uses its configured low-VRAM ComfyUI environment and GPU lock. On a
 different machine, those paths in `generate_three_pose_videos.py` must be
 adapted before running. The dry run writes the prepared guide and three
 generation graphs. Inspect `graphs/*-generation.json` to confirm the exact
 portrait, prompts, seeds, 241-frame length, and guide indices `0` and `-1`.
 
-The real run emits `idle.mp4`, `talking.mp4`, `smiling.mp4`, a `manifest.json`,
-contact sheets under `review/`, and generation/decode graphs. Each delivered
-clip is 512×832, 24 fps, 241 frames (10.04 seconds), and silent. Idle is
-generated natively at 81 frames, then its endpoint-matched cycle is repeated
-three times without duplicate join frames. The runner saves that source as
-`review/idle-cycle.mp4` and verifies all four decoded loop boundaries. Talking
-and smiling are generated natively at 241 frames. The native graph uses the
+The real example emits `talking.mp4`, `smiling.mp4`, a `manifest.json`, contact
+sheets under `review/`, and generation/decode graphs. Each delivered clip is
+512×832, 24 fps, 241 frames (10.04 seconds), and silent. Talking and smiling
+are generated natively at 241 frames. A separate idle experiment produces
+`idle.mp4`; the historical v3 pack repeats an 81-frame cycle three times,
+but that result must not be accepted. The native graph uses the
 same portrait as both endpoint guides at strength 1, an eight-step Euler
 schedule, and 64/16 tiled VAE decode. The delivery encode verifies exact
 decoded first/last equality **within each clip**. It does not add a fade or
@@ -105,9 +111,15 @@ frame. Contact sheets and landmarks help locate defects but cannot replace
 playback. Check the same identity, clothing, framing, and stable background
 throughout all three clips. In particular:
 
+For this Japanese portrait, run `scripts/measure_idle_neckline.py` on each
+idle candidate as a shirt-motion diagnostic. The rejected v3 loop measures
+0 px there despite small shoulder-landmark movement; the earlier deep-breath
+clip measures 28 px. The tracker uses this portrait's dark-shirt/skin boundary
+and must be recalibrated before use on a different portrait.
+
 | Pose | Required observation | Failure examples from this test |
 |---|---|---|
-| Idle | Calm direct gaze, natural blinks, several shallow breaths, closed mouth, head near its starting height | A single 10-second generation made one deep breath; the selected short cycle repeats three times and blinks three times, which may feel too regular. |
+| Idle | Calm direct gaze, natural blinks, several shallow breaths, closed mouth, head near its starting height | The v3 short cycle visibly wobbles the head with no shirt-level breathing; several longer rerolls make one deep inhale or prolonged eye closure. No Japanese idle has passed review. |
 | Talking | Natural conversational lip shapes throughout the clip without a camera move or repeated mechanical sway | V2 went quiet at 3.92 s; the current candidate speaks into second 8 but still has a 1.25 s quiet tail. |
 | Smiling | Modest smile, lips together, return to neutral, no large chin lift | Seed 197 opened the mouth; seed 195 tilted the head sideways; the selected seed 191 still has a brief upward lift. |
 
@@ -118,16 +130,16 @@ output directory and versioned prompt pack. Keep rejected clips and their
 manifests long enough to explain why the selected version won. Do not use
 `--force` to overwrite a reviewed render unless replacement is intentional.
 
-The Japanese [review set](generated/portrait_pose_set_20260923/ltx/japanese_breath_speech_review_v3/README.md)
-shows the selected videos and contact sheets. Its
+The Japanese [historical review set](generated/portrait_pose_set_20260923/ltx/japanese_breath_speech_review_v3/README.md)
+shows the accepted talking/smiling clips and rejected idle. Its
 [`validation.json`](generated/portrait_pose_set_20260923/ltx/japanese_breath_speech_review_v3/validation.json)
 checks every decoded frame and independently verifies the end frames.
 
 ## 5. Keep the endpoint and integration gates separate
 
 An identical first and last frame **inside one video** only makes that clip
-loop to itself. It does not make the three clips interchangeable. The selected
-Japanese clips have three different endpoint RGB hashes, so a direct pose
+loop to itself. It does not make the three clips interchangeable. The Japanese
+review clips have three different endpoint RGB hashes, so a direct pose
 switch could visibly jump. Before using them as a MuseTalk pose set, run a
 shared-anchor certification step across all selected clips and re-decode to
 verify the common boundary. The existing six-pose roster certifier is not a
