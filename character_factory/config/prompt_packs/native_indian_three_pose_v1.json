@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "pack_id": "native_indian_three_pose_v1",
+  "lineage": "The exact compact native LTX 2.3 Q4 prompt lineage accepted on the September 22 Indian avatar, plus the repository's exact approved V8 closed-lip smile behavior. All clips use the accepted native first/last-frame graph and are ten-second-class 241-frame renders.",
+  "poses": {
+    "idle": {
+      "seed": 189,
+      "prompt_source": "/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/graphs/generation-241.json#pos/neg; control nodes removed exactly as in the later direct-LTX runs",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the person in the reference image, in the same room, lighting, clothing and framing. The person maintains relaxed eye contact and natural blinking, with conversational head and shoulder movement. The lips remain gently closed throughout; the jaw is relaxed. Preserve the person's facial proportions and appearance. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, identity change, distorted face, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "talking": {
+      "seed": 191,
+      "prompt_source": "/workspace/experiments/ltx23_native_flf_talking_20260922/graphs/generation.json#pos/neg (identity nouns changed from male/he to person/the person only)",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same language tutor in the reference image, in the same room, lighting, clothing, and framing. The person speaks naturally and continuously to the camera with clear conversational lip articulation, natural blinking, and subtle head and shoulder movement. Preserve the person's facial proportions and identity. The person settles naturally back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "smiling": {
+      "seed": 193,
+      "prompt_source": "/workspace/MuseTalk/character_factory/config/prompt_packs/pose_prompt_pack_v1.json#renders.light_smile; exact V8 behavior placed in the accepted native fixed-camera wrapper",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the person in the reference image, in the same room, lighting, clothing and framing. The person rests with a neutral relaxed face looking into the lens, breathing slowly. A mild closed-lip smile grows, accompanied by a tiny lift of the person's chin, and holds briefly. The person's lips stay together and the person's eyes stay warm on the lens. The smile and the chin lift release fully and the person returns to the neutral resting face and posture the clip opened with, eyes on the lens, breathing slowly. Preserve the person's facial proportions and appearance. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, identity change, distorted face, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    }
+  }
+}

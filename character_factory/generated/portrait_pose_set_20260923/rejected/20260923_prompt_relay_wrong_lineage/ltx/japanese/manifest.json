@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "generator": "/workspace/MuseTalk/character_factory/scripts/generate_three_pose_videos.py",
+  "source_image": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png",
+  "source_image_sha256": "14ea206c301eccdf9461ab2b706d9c3489927156267ca74e8ba478d9124fdf7b",
+  "prompt_pack": "lingua_character_factory_pose_pack_v1",
+  "pronouns": "she",
+  "attempt": 0,
+  "delivery_policy": {
+    "native_same_image_conditioning_at_frames": [
+      0,
+      -1
+    ],
+    "decoded_exact_endpoints": true,
+    "last_frame_replaced_with_first": true,
+    "fade_or_crossfade": false,
+    "audio_streams": 0
+  },
+  "poses": {
+    "idle": {
+      "status": "completed",
+      "pose": "idle",
+      "render_key": "idle_active_listening",
+      "lineage": "close-up V6 active listening",
+      "seconds_requested": 10,
+      "frame_count": 241,
+      "duration_seconds": 10.041667,
+      "fps": 24,
+      "width": 480,
+      "height": 832,
+      "seed_pair": [
+        725549,
+        725434
+      ],
+      "attempt": 0,
+      "global_prompt": "Vertical 9:16 photorealistic UGC smartphone video. The exact same person and clothing from the reference image, framed in a tight medium close-up from the chest up at arm's length, facing the camera on a video call. The camera is locked: no zoom, no reframing, no change in subject size. Her mouth stays closed and relaxed throughout. Natural skin texture, realistic eyes and hair, stable identity, fixed background and lighting.",
+      "local_prompts": [
+        "{pronoun_subject} rests in a settled upright posture and looks into the lens with quiet friendly attention. {pronoun_possessive} chest rises and falls slowly with breathing. One blink occurs, unhurried.",
+        "{pronoun_possessive} attention settles slightly forward and {pronoun_possessive} head develops one gradual diagonal listening inclination, held quietly while {pronoun_subject} keeps eye contact. A single small acknowledgement occurs inside that already-established posture. Breathing continues slowly.",
+        "The diagonal softens and {pronoun_possessive} head returns along the same path toward the centre. {pronoun_subject} settles back into the exact resting posture the clip opened with, breathing slowly, mouth closed, eyes on the lens."
+      ],
+      "local_prompt_resolved": "She rests in a settled upright posture and looks into the lens with quiet friendly attention. Her chest rises and falls slowly with breathing. One blink occurs, unhurried. | Her attention settles slightly forward and her head develops one gradual diagonal listening inclination, held quietly while she keeps eye contact. A single small acknowledgement occurs inside that already-established posture. Breathing continues slowly. | The diagonal softens and her head returns along the same path toward the centre. She settles back into the exact resting posture the clip opened with, breathing slowly, mouth closed, eyes on the lens.",
+      "segment_lengths": "80,80,81",
+      "negative_prompt": "text, letters, words, subtitles, captions, typography, overlay graphics, logo, watermark, UI elements, distorted face, warped body, bad hands, extra fingers, extra arms, duplicate person, changing hairstyle, changing identity, changing room layout, changing clothing, open mouth, visible speech shapes, mouth articulation, talking, lip movement, teeth showing, tongue visible, cartoon, anime, zoom, zoom in, zoom out, push-in, pull-back, changing focal length, changing framing, changing crop, changing subject size",
+      "first_last_native_conditioning": true,
+      "guide_frame_indices": [
+        0,
+        -1
+      ],
+      "guide_strength": 1.0,
+      "prompt_id": "de8b9ba0-3c20-4fa9-9974-a54e2efbfc79",
+      "source_comfy_output": "/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/ComfyUI/output/character_factory/standalone/japanese_woman-14ea206c30_idle_00001-audio.mp4",
+      "elapsed_seconds": 353.53,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese/idle.mp4",
+        "sha256": "0a747550738964e33eb0e1f6a82563179c289b251cf6310da9e0c5a748abc207",
+        "width": 480,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 241,
+        "duration_seconds": 10.041667,
+        "codec": "h264",
+        "pixel_format": "yuv420p",
+        "audio_streams": 0,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "4040d56332cdff88a04939c4ad89a5cc844a6855de38c4108e3906af428a0a9d",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false
+      }
+    },
+    "talking": {
+      "status": "completed",
+      "pose": "talking",
+      "render_key": "speaking_direct_v14_subtle",
+      "lineage": "close-up V14 gaze-locked subtle motion",
+      "seconds_requested": 12,
+      "frame_count": 289,
+      "duration_seconds": 12.041667,
+      "fps": 24,
+      "width": 480,
+      "height": 832,
+      "seed_pair": [
+        725550,
+        725435
+      ],
+      "attempt": 0,
+      "global_prompt": "Vertical 9:16 photorealistic UGC smartphone video. The exact same person and clothing from the reference image, framed in a tight medium close-up from the chest up at arm's length, facing the camera on a video call. The camera is locked: no zoom, no reframing, no change in subject size. Her mouth stays closed and relaxed throughout. Natural skin texture, realistic eyes and hair, stable identity, fixed background and lighting.",
+      "local_prompts": [
+        "{pronoun_subject} holds direct eye contact with the lens for the entire shot, pupils aligned to the camera. {pronoun_possessive} head is carried with a shallow slow buoyancy at the chin and one smaller, later settling change forward and back. {pronoun_possessive} shoulders and torso stay where they are. Blinks are natural and sparse. {pronoun_possessive} mouth stays closed and relaxed. {pronoun_subject} ends settled in the same upright posture the clip opened with."
+      ],
+      "local_prompt_resolved": "She holds direct eye contact with the lens for the entire shot, pupils aligned to the camera. Her head is carried with a shallow slow buoyancy at the chin and one smaller, later settling change forward and back. Her shoulders and torso stay where they are. Blinks are natural and sparse. Her mouth stays closed and relaxed. She ends settled in the same upright posture the clip opened with.",
+      "segment_lengths": "289",
+      "negative_prompt": "text, letters, words, subtitles, captions, typography, overlay graphics, logo, watermark, UI elements, distorted face, warped body, bad hands, extra fingers, extra arms, duplicate person, changing hairstyle, changing identity, changing room layout, changing clothing, open mouth, visible speech shapes, mouth articulation, talking, lip movement, teeth showing, tongue visible, cartoon, anime, zoom, zoom in, zoom out, push-in, pull-back, changing focal length, changing framing, changing crop, changing subject size",
+      "first_last_native_conditioning": true,
+      "guide_frame_indices": [
+        0,
+        -1
+      ],
+      "guide_strength": 1.0,
+      "prompt_id": "00d31bd4-b6f5-49ea-821f-8e99014ab24f",
+      "source_comfy_output": "/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/ComfyUI/output/character_factory/standalone/japanese_woman-14ea206c30_talking_00001-audio.mp4",
+      "elapsed_seconds": 353.64,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese/talking.mp4",
+        "sha256": "fc510715abe40a8ac6f0f1a6dd3683961a11593739b2d41e655952f8342244dd",
+        "width": 480,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 289,
+        "duration_seconds": 12.041667,
+        "codec": "h264",
+        "pixel_format": "yuv420p",
+        "audio_streams": 0,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "60004b4fe8f732d26bfd44d5e27df7997e58451ed8f2b9072ca0921fe677c328",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false
+      }
+    },
+    "smiling": {
+      "status": "completed",
+      "pose": "smiling",
+      "render_key": "light_smile",
+      "lineage": "close-up V8 moderate smile",
+      "seconds_requested": 6,
+      "frame_count": 145,
+      "duration_seconds": 6.041667,
+      "fps": 24,
+      "width": 480,
+      "height": 832,
+      "seed_pair": [
+        725551,
+        725436
+      ],
+      "attempt": 0,
+      "global_prompt": "Vertical 9:16 photorealistic UGC smartphone video. The exact same person and clothing from the reference image, framed in a tight medium close-up from the chest up at arm's length, facing the camera on a video call. The camera is locked: no zoom, no reframing, no change in subject size. Her mouth stays closed and relaxed throughout. Natural skin texture, realistic eyes and hair, stable identity, fixed background and lighting.",
+      "local_prompts": [
+        "{pronoun_subject} rests with a neutral relaxed face looking into the lens, breathing slowly.",
+        "A mild closed-lip smile grows, accompanied by a tiny lift of {pronoun_possessive} chin, and holds briefly. {pronoun_possessive} lips stay together and {pronoun_possessive} eyes stay warm on the lens.",
+        "The smile and the chin lift release fully and {pronoun_subject} returns to the neutral resting face and posture the clip opened with, eyes on the lens, breathing slowly."
+      ],
+      "local_prompt_resolved": "She rests with a neutral relaxed face looking into the lens, breathing slowly. | A mild closed-lip smile grows, accompanied by a tiny lift of her chin, and holds briefly. Her lips stay together and her eyes stay warm on the lens. | The smile and the chin lift release fully and she returns to the neutral resting face and posture the clip opened with, eyes on the lens, breathing slowly.",
+      "segment_lengths": "48,48,49",
+      "negative_prompt": "text, letters, words, subtitles, captions, typography, overlay graphics, logo, watermark, UI elements, distorted face, warped body, bad hands, extra fingers, extra arms, duplicate person, changing hairstyle, changing identity, changing room layout, changing clothing, open mouth, visible speech shapes, mouth articulation, talking, lip movement, teeth showing, tongue visible, cartoon, anime, zoom, zoom in, zoom out, push-in, pull-back, changing focal length, changing framing, changing crop, changing subject size",
+      "first_last_native_conditioning": true,
+      "guide_frame_indices": [
+        0,
+        -1
+      ],
+      "guide_strength": 1.0,
+      "prompt_id": "4dcdd34d-fd36-4ab4-9d9c-72cde3859e6c",
+      "source_comfy_output": "/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/ComfyUI/output/character_factory/standalone/japanese_woman-14ea206c30_smiling_00001-audio.mp4",
+      "elapsed_seconds": 297.2,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese/smiling.mp4",
+        "sha256": "054fdb7c45dd4e774f4958a4834d0ace85aaa48ea1d3a2115ab9b3d7735502a4",
+        "width": 480,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 145,
+        "duration_seconds": 6.041667,
+        "codec": "h264",
+        "pixel_format": "yuv420p",
+        "audio_streams": 0,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "99a719eab2dc15da6351ba1f99f661784c102588c993ef89018ac95e0fe6692b",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false
+      }
+    }
+  }
+}

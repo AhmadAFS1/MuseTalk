@@ -1,0 +1,101 @@
+{
+  "method": "MediaPipe FaceMesh on every 12th decoded frame (0.5-second samples at 24 fps); eye midpoint from landmarks 33 and 263, tilt from eye line, central lip opening from landmarks 13 and 14. Excursions are maximum absolute difference from first sampled frame. This is a motion diagnostic, not a visual acceptance test.",
+  "groups": {
+    "japanese_candidate_v1": {
+      "idle": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/idle.mp4",
+        "frames_read": 241,
+        "samples_detected": 21,
+        "max_eye_x_excursion_px": 8.6,
+        "max_eye_y_excursion_px": 93.4,
+        "max_eye_line_tilt_change_deg": 1.8,
+        "max_lip_gap_px": 0.6,
+        "video_streams": 1,
+        "audio_streams": 0,
+        "fps": "24/1"
+      },
+      "talking": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/talking.mp4",
+        "frames_read": 241,
+        "samples_detected": 21,
+        "max_eye_x_excursion_px": 15.8,
+        "max_eye_y_excursion_px": 30.7,
+        "max_eye_line_tilt_change_deg": 4.8,
+        "max_lip_gap_px": 29.4,
+        "video_streams": 1,
+        "audio_streams": 0,
+        "fps": "24/1"
+      },
+      "smiling": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/smiling.mp4",
+        "frames_read": 241,
+        "samples_detected": 21,
+        "max_eye_x_excursion_px": 4.3,
+        "max_eye_y_excursion_px": 22.4,
+        "max_eye_line_tilt_change_deg": 0.6,
+        "max_lip_gap_px": 7.8,
+        "video_streams": 1,
+        "audio_streams": 0,
+        "fps": "24/1"
+      }
+    },
+    "previous_japanese": {
+      "idle": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese/idle.mp4",
+        "frames_read": 241,
+        "samples_detected": 21,
+        "max_eye_x_excursion_px": 11.5,
+        "max_eye_y_excursion_px": 101.2,
+        "max_eye_line_tilt_change_deg": 3.4,
+        "max_lip_gap_px": 0.3
+      },
+      "talking": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese/talking.mp4",
+        "frames_read": 241,
+        "samples_detected": 21,
+        "max_eye_x_excursion_px": 15.8,
+        "max_eye_y_excursion_px": 27.2,
+        "max_eye_line_tilt_change_deg": 4.5,
+        "max_lip_gap_px": 24.5
+      },
+      "smiling": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese/smiling.mp4",
+        "frames_read": 241,
+        "samples_detected": 21,
+        "max_eye_x_excursion_px": 3.4,
+        "max_eye_y_excursion_px": 42.0,
+        "max_eye_line_tilt_change_deg": 0.9,
+        "max_lip_gap_px": 0.2
+      }
+    },
+    "approved_indian": {
+      "idle": {
+        "file": "/workspace/MuseTalk/assets/ltx23_pose_banks/sample_ai_human_facetime_closeup_production_v1/certified/idle_active_listening.mp4",
+        "frames_read": 241,
+        "samples_detected": 21,
+        "max_eye_x_excursion_px": 19.6,
+        "max_eye_y_excursion_px": 3.4,
+        "max_eye_line_tilt_change_deg": 4.3,
+        "max_lip_gap_px": 0.5
+      },
+      "talking": {
+        "file": "/workspace/MuseTalk/assets/ltx23_pose_banks/sample_ai_human_facetime_closeup_production_v1/certified/speaking_direct_v14_subtle.mp4",
+        "frames_read": 289,
+        "samples_detected": 25,
+        "max_eye_x_excursion_px": 1.8,
+        "max_eye_y_excursion_px": 10.6,
+        "max_eye_line_tilt_change_deg": 0.6,
+        "max_lip_gap_px": 0.4
+      },
+      "smiling": {
+        "file": "/workspace/MuseTalk/assets/ltx23_pose_banks/sample_ai_human_facetime_closeup_production_v1/certified/light_smile.mp4",
+        "frames_read": 145,
+        "samples_detected": 13,
+        "max_eye_x_excursion_px": 1.9,
+        "max_eye_y_excursion_px": 4.6,
+        "max_eye_line_tilt_change_deg": 0.7,
+        "max_lip_gap_px": 0.5
+      }
+    }
+  }
+}

@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "result": "passed",
+  "lineage": "September 22 accepted Indian native LTX 2.3 first/last-frame workflow",
+  "checks": [
+    "full ffmpeg decode",
+    "stream contract",
+    "decoded endpoint equality",
+    "submitted graph prompt/seed parity",
+    "native guide indices and strength"
+  ],
+  "avatars": {
+    "japanese": {
+      "idle": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese/idle.mp4",
+        "sha256": "ce25f36b4b40486e26b8255a360d083031b3a2ee8a7037e22105a13e5b88d283",
+        "codec": "h264",
+        "pixel_format": "yuv420p",
+        "width": 512,
+        "height": 832,
+        "fps": "24/1",
+        "frames": 241,
+        "duration_seconds": 10.042,
+        "audio_streams": 0,
+        "full_decode": "passed",
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "d0ce5112f6925ce12df0c2ce80de5f18472305b9bb10c19da215c8b8cc5e11aa",
+        "seed": 189,
+        "prompt_source": "/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/graphs/generation-241.json#pos/neg; control nodes removed exactly as in the later direct-LTX runs",
+        "graph_prompt_matches_manifest": true,
+        "guide_indices": [
+          0,
+          -1
+        ],
+        "guide_strength": 1.0,
+        "temporal_diagnostic": {
+          "whole_frame_adjacent_luma_mae_mean": 0.7565,
+          "whole_frame_adjacent_luma_mae_p95": 2.6479,
+          "background_top_quarter_adjacent_luma_mae_mean": 0.5275,
+          "background_top_quarter_adjacent_luma_mae_p95": 1.4589,
+          "background_top_quarter_adjacent_luma_mae_max": 2.0009,
+          "note": "Diagnostic for abrupt whole-frame/background changes; normal subject motion still contributes. It is not a substitute for normal-speed review."
+        }
+      },
+      "talking": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese/talking.mp4",
+        "sha256": "6127c299e58202c79308ca434df694ee1da70a7b779edeabc4d294db920d6246",
+        "codec": "h264",
+        "pixel_format": "yuv420p",
+        "width": 512,
+        "height": 832,
+        "fps": "24/1",
+        "frames": 241,
+        "duration_seconds": 10.042,
+        "audio_streams": 0,
+        "full_decode": "passed",
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "d8dc0a87f22f476aa492ef615cba41bc827f818f2820c36fc1af2febaa52b802",
+        "seed": 191,
+        "prompt_source": "/workspace/experiments/ltx23_native_flf_talking_20260922/graphs/generation.json#pos/neg (identity nouns changed from male/he to person/the person only)",
+        "graph_prompt_matches_manifest": true,
+        "guide_indices": [
+          0,
+          -1
+        ],
+        "guide_strength": 1.0,
+        "temporal_diagnostic": {
+          "whole_frame_adjacent_luma_mae_mean": 0.8169,
+          "whole_frame_adjacent_luma_mae_p95": 1.7204,
+          "background_top_quarter_adjacent_luma_mae_mean": 0.5477,
+          "background_top_quarter_adjacent_luma_mae_p95": 1.1855,
+          "background_top_quarter_adjacent_luma_mae_max": 1.5349,
+          "note": "Diagnostic for abrupt whole-frame/background changes; normal subject motion still contributes. It is not a substitute for normal-speed review."
+        }
+      },
+      "smiling": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese/smiling.mp4",
+        "sha256": "e832b9a75c48bd2b84ad74c3e6d4052cc6a499999eb9cf25f20cd70efbb2677a",
+        "codec": "h264",
+        "pixel_format": "yuv420p",
+        "width": 512,
+        "height": 832,
+        "fps": "24/1",
+        "frames": 241,
+        "duration_seconds": 10.042,
+        "audio_streams": 0,
+        "full_decode": "passed",
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "0df737788438bb08217d6bf6581e649103e5b21fcaa553817b34aa7953323a66",
+        "seed": 193,
+        "prompt_source": "/workspace/MuseTalk/character_factory/config/prompt_packs/pose_prompt_pack_v1.json#renders.light_smile; exact V8 behavior placed in the accepted native fixed-camera wrapper",
+        "graph_prompt_matches_manifest": true,
+        "guide_indices": [
+          0,
+          -1
+        ],
+        "guide_strength": 1.0,
+        "temporal_diagnostic": {
+          "whole_frame_adjacent_luma_mae_mean": 0.4817,
+          "whole_frame_adjacent_luma_mae_p95": 0.9283,
+          "background_top_quarter_adjacent_luma_mae_mean": 0.3774,
+          "background_top_quarter_adjacent_luma_mae_p95": 0.6652,
+          "background_top_quarter_adjacent_luma_mae_max": 1.2366,
+          "note": "Diagnostic for abrupt whole-frame/background changes; normal subject motion still contributes. It is not a substitute for normal-speed review."
+        }
+      }
+    },
+    "latina": {
+      "idle": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/idle.mp4",
+        "sha256": "8c6837162da64e34a5c9e0cc66b0a9643d537bb04f7286d213753130c399ad3e",
+        "codec": "h264",
+        "pixel_format": "yuv420p",
+        "width": 512,
+        "height": 832,
+        "fps": "24/1",
+        "frames": 241,
+        "duration_seconds": 10.042,
+        "audio_streams": 0,
+        "full_decode": "passed",
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "fa1cc1a7f022947822ee2f1701b10c5fa3884c5f9b766d1495ff0ffd78e9529b",
+        "seed": 189,
+        "prompt_source": "/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/graphs/generation-241.json#pos/neg; control nodes removed exactly as in the later direct-LTX runs",
+        "graph_prompt_matches_manifest": true,
+        "guide_indices": [
+          0,
+          -1
+        ],
+        "guide_strength": 1.0,
+        "temporal_diagnostic": {
+          "whole_frame_adjacent_luma_mae_mean": 0.659,
+          "whole_frame_adjacent_luma_mae_p95": 2.638,
+          "background_top_quarter_adjacent_luma_mae_mean": 0.4435,
+          "background_top_quarter_adjacent_luma_mae_p95": 1.2932,
+          "background_top_quarter_adjacent_luma_mae_max": 1.5077,
+          "note": "Diagnostic for abrupt whole-frame/background changes; normal subject motion still contributes. It is not a substitute for normal-speed review."
+        }
+      },
+      "talking": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/talking.mp4",
+        "sha256": "72f4ad3ab5dca57be6fa33b42f1491da50c4283f19e5811ce46ff2b8e522fb7c",
+        "codec": "h264",
+        "pixel_format": "yuv420p",
+        "width": 512,
+        "height": 832,
+        "fps": "24/1",
+        "frames": 241,
+        "duration_seconds": 10.042,
+        "audio_streams": 0,
+        "full_decode": "passed",
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "b7c740a1f9dbb481306627688f3734570d3cec7af2c15dadbc86d912a2a8511b",
+        "seed": 191,
+        "prompt_source": "/workspace/experiments/ltx23_native_flf_talking_20260922/graphs/generation.json#pos/neg (identity nouns changed from male/he to person/the person only)",
+        "graph_prompt_matches_manifest": true,
+        "guide_indices": [
+          0,
+          -1
+        ],
+        "guide_strength": 1.0,
+        "temporal_diagnostic": {
+          "whole_frame_adjacent_luma_mae_mean": 0.6835,
+          "whole_frame_adjacent_luma_mae_p95": 1.2956,
+          "background_top_quarter_adjacent_luma_mae_mean": 0.4549,
+          "background_top_quarter_adjacent_luma_mae_p95": 0.8782,
+          "background_top_quarter_adjacent_luma_mae_max": 1.0497,
+          "note": "Diagnostic for abrupt whole-frame/background changes; normal subject motion still contributes. It is not a substitute for normal-speed review."
+        }
+      },
+      "smiling": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/smiling.mp4",
+        "sha256": "a2336e53df4a14d7c0a72f8033704909202f12381c0188998ec65705081fd29b",
+        "codec": "h264",
+        "pixel_format": "yuv420p",
+        "width": 512,
+        "height": 832,
+        "fps": "24/1",
+        "frames": 241,
+        "duration_seconds": 10.042,
+        "audio_streams": 0,
+        "full_decode": "passed",
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "0865baaa95a5aa52efb221ff44511cc14d9db548dbd76a5faaad8dcbd067e381",
+        "seed": 193,
+        "prompt_source": "/workspace/MuseTalk/character_factory/config/prompt_packs/pose_prompt_pack_v1.json#renders.light_smile; exact V8 behavior placed in the accepted native fixed-camera wrapper",
+        "graph_prompt_matches_manifest": true,
+        "guide_indices": [
+          0,
+          -1
+        ],
+        "guide_strength": 1.0,
+        "temporal_diagnostic": {
+          "whole_frame_adjacent_luma_mae_mean": 0.4757,
+          "whole_frame_adjacent_luma_mae_p95": 0.8974,
+          "background_top_quarter_adjacent_luma_mae_mean": 0.3665,
+          "background_top_quarter_adjacent_luma_mae_p95": 0.6438,
+          "background_top_quarter_adjacent_luma_mae_max": 0.8962,
+          "note": "Diagnostic for abrupt whole-frame/background changes; normal subject motion still contributes. It is not a substitute for normal-speed review."
+        }
+      }
+    }
+  }
+}

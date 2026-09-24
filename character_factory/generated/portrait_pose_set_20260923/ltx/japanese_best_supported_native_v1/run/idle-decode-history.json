@@ -1,0 +1,1303 @@
+{
+  "prompt": [
+    0,
+    "8cb0deaa-feea-4dd6-9112-ce0a4d0f946e",
+    {
+      "vae": {
+        "class_type": "VAELoaderKJ",
+        "inputs": {
+          "vae_name": "ltx/LTX23_video_vae_bf16.safetensors",
+          "device": "main_device",
+          "weight_dtype": "bf16"
+        }
+      },
+      "load": {
+        "class_type": "LoadLatent",
+        "inputs": {
+          "latent": "character_factory_native/japanese_woman-14ea206c30_idle.latent"
+        }
+      },
+      "decode": {
+        "class_type": "VAEDecodeTiled",
+        "inputs": {
+          "samples": [
+            "load",
+            0
+          ],
+          "vae": [
+            "vae",
+            0
+          ],
+          "tile_size": 256,
+          "overlap": 64,
+          "temporal_size": 64,
+          "temporal_overlap": 16
+        }
+      },
+      "save_images": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "decode",
+            0
+          ],
+          "filename_prefix": "character_factory_native/japanese_woman-14ea206c30_idle_frames/frame"
+        }
+      }
+    },
+    {
+      "client_id": "character-factory-native-indian-lineage",
+      "create_time": 1790206697288
+    },
+    [
+      "save_images"
+    ]
+  ],
+  "outputs": {
+    "save_images": {
+      "images": [
+        {
+          "filename": "frame_00483_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00484_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00485_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00486_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00487_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00488_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00489_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00490_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00491_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00492_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00493_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00494_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00495_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00496_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00497_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00498_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00499_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00500_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00501_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00502_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00503_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00504_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00505_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00506_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00507_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00508_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00509_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00510_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00511_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00512_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00513_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00514_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00515_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00516_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00517_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00518_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00519_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00520_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00521_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00522_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00523_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00524_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00525_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00526_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00527_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00528_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00529_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00530_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00531_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00532_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00533_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00534_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00535_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00536_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00537_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00538_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00539_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00540_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00541_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00542_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00543_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00544_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00545_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00546_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00547_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00548_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00549_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00550_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00551_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00552_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00553_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00554_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00555_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00556_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00557_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00558_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00559_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00560_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00561_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00562_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00563_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00564_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00565_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00566_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00567_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00568_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00569_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00570_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00571_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00572_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00573_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00574_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00575_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00576_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00577_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00578_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00579_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00580_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00581_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00582_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00583_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00584_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00585_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00586_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00587_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00588_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00589_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00590_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00591_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00592_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00593_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00594_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00595_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00596_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00597_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00598_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00599_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00600_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00601_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00602_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00603_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00604_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00605_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00606_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00607_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00608_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00609_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00610_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00611_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00612_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00613_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00614_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00615_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00616_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00617_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00618_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00619_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00620_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00621_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00622_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00623_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00624_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00625_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00626_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00627_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00628_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00629_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00630_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00631_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00632_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00633_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00634_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00635_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00636_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00637_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00638_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00639_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00640_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00641_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00642_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00643_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00644_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00645_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00646_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00647_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00648_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00649_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00650_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00651_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00652_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00653_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00654_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00655_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00656_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00657_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00658_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00659_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00660_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00661_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00662_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00663_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00664_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00665_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00666_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00667_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00668_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00669_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00670_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00671_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00672_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00673_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00674_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00675_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00676_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00677_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00678_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00679_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00680_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00681_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00682_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00683_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00684_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00685_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00686_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00687_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00688_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00689_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00690_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00691_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00692_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00693_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00694_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00695_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00696_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00697_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00698_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00699_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00700_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00701_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00702_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00703_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00704_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00705_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00706_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00707_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00708_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00709_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00710_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00711_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00712_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00713_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00714_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00715_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00716_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00717_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00718_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00719_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00720_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00721_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00722_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        },
+        {
+          "filename": "frame_00723_.png",
+          "subfolder": "character_factory_native/japanese_woman-14ea206c30_idle_frames",
+          "type": "output"
+        }
+      ]
+    }
+  },
+  "status": {
+    "status_str": "success",
+    "completed": true,
+    "messages": [
+      [
+        "execution_start",
+        {
+          "prompt_id": "8cb0deaa-feea-4dd6-9112-ce0a4d0f946e",
+          "timestamp": 1790206697288
+        }
+      ],
+      [
+        "execution_cached",
+        {
+          "nodes": [],
+          "prompt_id": "8cb0deaa-feea-4dd6-9112-ce0a4d0f946e",
+          "timestamp": 1790206697288
+        }
+      ],
+      [
+        "execution_success",
+        {
+          "prompt_id": "8cb0deaa-feea-4dd6-9112-ce0a4d0f946e",
+          "timestamp": 1790206721988
+        }
+      ]
+    ]
+  },
+  "meta": {
+    "save_images": {
+      "node_id": "save_images",
+      "display_node": "save_images",
+      "parent_node": null,
+      "real_node_id": "save_images"
+    }
+  }
+}

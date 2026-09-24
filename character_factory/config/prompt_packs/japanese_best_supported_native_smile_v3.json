@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "pack_id": "japanese_best_supported_native_smile_v3",
+  "lineage": "Smile v3 uses the preserved Indian V4 small closed-lip smile action text adapted to female identity, within the native fixed-camera wrapper. Seed 193 from smile v1 is held constant. This is not the missing exact V8 prompt.",
+  "poses": {
+    "idle": {
+      "seed": 189,
+      "frame_count": 241,
+      "prompt_source": "New restrained candidate. Based on the neutral-resting action text preserved in the early Indian pose manifests and the approved V6 listening behavior in docs/ltx23-closeup-production-migration.md; this is not the missing exact V6 prompt.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She faces the camera in a relaxed upright resting pose, breathing gently with a subtle rise and fall in the upper chest. She gives one or two natural blinks at separated moments. Her head stays close to the starting position with only a small posture-settling adjustment. Her lips remain comfortably closed and her jaw relaxed. She settles naturally back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "talking": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "experiments/ltx23_native_flf_talking_20260922/graphs/generation.json#pos/neg; only male/He/his changed to female/She/her.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She speaks naturally and continuously to the camera with clear conversational lip articulation, natural blinking, and subtle head and shoulder movement. Preserve her facial proportions and identity. She settles naturally back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "smiling": {
+      "seed": 193,
+      "frame_count": 241,
+      "prompt_source": "MuseTalk/assets/ltx23_pose_banks/sample_ai_human_facetime_v4_balanced/manifest.json#poses.light_smile.action_prompt adapted to female; original V8 text remains unavailable.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. A small genuine closed-lip smile gradually appears at the mouth corners and softly around the eyes, as if warmly acknowledging the caller. Gentle breathing and one quick blink continue naturally. Her head stays comfortably stable while the smile holds. The smile remains modest, never showing teeth or becoming a broad camera pose, then fades smoothly to the reference expression. She settles back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    }
+  }
+}

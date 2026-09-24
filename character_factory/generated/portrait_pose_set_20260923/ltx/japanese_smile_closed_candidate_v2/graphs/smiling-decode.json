@@ -1,0 +1,43 @@
+{
+  "vae": {
+    "class_type": "VAELoaderKJ",
+    "inputs": {
+      "vae_name": "ltx/LTX23_video_vae_bf16.safetensors",
+      "device": "main_device",
+      "weight_dtype": "bf16"
+    }
+  },
+  "load": {
+    "class_type": "LoadLatent",
+    "inputs": {
+      "latent": "character_factory_native/japanese_woman-14ea206c30_smiling.latent"
+    }
+  },
+  "decode": {
+    "class_type": "VAEDecodeTiled",
+    "inputs": {
+      "samples": [
+        "load",
+        0
+      ],
+      "vae": [
+        "vae",
+        0
+      ],
+      "tile_size": 256,
+      "overlap": 64,
+      "temporal_size": 64,
+      "temporal_overlap": 16
+    }
+  },
+  "save_images": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "decode",
+        0
+      ],
+      "filename_prefix": "character_factory_native/japanese_woman-14ea206c30_smiling_frames/frame"
+    }
+  }
+}

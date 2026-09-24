@@ -3,6 +3,11 @@
 Operational runbook. Read `README.md` first for what the pipeline is and why certification
 matters. This file is how to run it.
 
+For the current one-avatar, three-pose Lingua pilot, use
+[CHARACTER_CREATION_WORKFLOW.md](CHARACTER_CREATION_WORKFLOW.md) and
+[BEST_TESTED_CHARACTER_PROMPTS.md](BEST_TESTED_CHARACTER_PROMPTS.md). The roster
+and six-pose stages below are a different path.
+
 All commands are run from `MuseTalk/character_factory/scripts/`.
 
 ---
@@ -110,30 +115,35 @@ For the current Lingua three-pose design, one portrait can be rendered without c
 roster entry:
 
 ```bash
-/workspace/LTX-2.3/scripts/start-q4-comfyui.sh
-python3 generate_three_pose_videos.py \
+/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/.venv/bin/python \
+  generate_three_pose_videos.py \
   --image /absolute/path/to/portrait.png \
-  --output-dir /absolute/path/to/avatar-videos
+  --output-dir /absolute/path/to/avatar-videos \
+  --prompt-pack /workspace/MuseTalk/character_factory/config/prompt_packs/japanese_selected_native_three_pose_v1.json
 ```
 
 This produces `idle.mp4`, `talking.mp4`, `smiling.mp4`, `manifest.json`, and the exact submitted
-workflow for each pose. It uses the documented V6/V14/V8 prompts. Every render receives the same
-portrait at native LTX guide indices `0` and `-1`; packaging then replaces only the final decoded
-frame with the first and verifies literal decoded endpoint equality. It does not freeze a handle
-or add a fade/cross-fade. Delivery clips are silent because MuseTalk supplies the speech audio.
+generation and decode graph for each pose. It starts and stops its own low-VRAM ComfyUI workers
+under the shared GPU lock. The runner uses the compact native graph from the September 22
+Indian-avatar talking test. The explicit pack above selects the best-observed Japanese idle,
+talking, and smile prompts; it does not claim the missing original V6/V8 text. Every
+render receives the same portrait at native LTX guide indices `0` and `-1`; packaging then replaces
+only the final decoded frame with the first and verifies literal decoded endpoint equality. It does
+not freeze a handle or add a fade/cross-fade. Delivery clips are silent because MuseTalk supplies
+the speech audio.
 
 Useful controls:
 
 ```bash
-python3 generate_three_pose_videos.py --image portrait.png --output-dir out --dry-run
-python3 generate_three_pose_videos.py --image portrait.png --output-dir out --poses smiling
-python3 generate_three_pose_videos.py --image portrait.png --output-dir out --attempt 1 --force
-python3 generate_three_pose_videos.py --image portrait.png --output-dir out --pronouns she
+python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v1.json --dry-run
+python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v1.json --poses smiling
+python3 generate_three_pose_videos.py --image portrait.png --output-dir out --prompt-pack ../config/prompt_packs/japanese_selected_native_three_pose_v1.json --force
 ```
 
-The accepted prompt timing remains intact: idle is 241 frames, talking is 289, and smiling is
-145, all at 24 fps. Existing outputs resume by default; `--force` replaces only the requested
-pose files.
+All three clips are 241 frames at 24 fps (10.041667 seconds). The selected Japanese pack uses
+seeds 197, 191, and 193 for idle, talking, and smiling respectively; its identity words are
+female-specific. The script's historical default is a different pack, so pass `--prompt-pack`
+explicitly. Existing outputs resume by default; `--force` replaces only the requested pose files.
 
 ```bash
 python3 generate_pose_videos.py --characters ja_01 --dry-run   # inspect prompts and seeds

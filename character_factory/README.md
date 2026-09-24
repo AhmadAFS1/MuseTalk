@@ -1,11 +1,19 @@
 # Character factory
 
+**Current Lingua pilot:** one character and three poses (idle, talking,
+smiling). Start with [CHARACTER_CREATION_WORKFLOW.md](CHARACTER_CREATION_WORKFLOW.md)
+and [BEST_TESTED_CHARACTER_PROMPTS.md](BEST_TESTED_CHARACTER_PROMPTS.md). The
+standalone renderer and Japanese review clips have been run on a GPU; they
+have not been certified as a shared-anchor MuseTalk pose bank. The larger
+roster pipeline described below remains a separate six-pose design.
+
 Baseline scripts for producing MuseTalk multipose avatars at roster scale: **3 characters for
 each of 104 languages, plus 20 language-agnostic companions**, each with a certified six-pose
 LTX 2.3 bank that MuseTalk can switch between mid-call.
 
-This is scaffolding for Codex to reference, refine, and run. Nothing here has been run against
-a GPU. What *has* been verified is in [Validation status](#validation-status).
+The roster-scale six-pose pipeline is scaffolding for Codex to reference,
+refine, and run. Its GPU stages have not been validated end to end. What
+*has* been verified for that path is in [Validation status](#validation-status).
 
 ## What one character costs
 
@@ -54,8 +62,14 @@ prepare_musetalk_avatars.py  bank                        ->  one MuseTalk cache 
 `run_character_pipeline.py` drives all of it and pauses at the ChatGPT boundary.
 
 For the reduced Lingua set, `scripts/generate_three_pose_videos.py` is the roster-free entry
-point. It accepts one portrait and emits `idle.mp4`, `talking.mp4`, and `smiling.mp4` using the
-same documented V6/V14/V8 prompts. See `CODEX_PLAYBOOK.md` for the command and endpoint behavior.
+point. It accepts one portrait and emits `idle.mp4`, `talking.mp4`, and `smiling.mp4` with the
+compact native LTX 2.3 Q4 graph used in the September 22 Indian-avatar talking test: 512x832,
+241 frames at 24 fps, the same portrait at guide indices `0` and `-1`, one eight-step Euler
+schedule, and the accepted 64/16 tiled decode. It does not use SoulX, Segmind, Prompt Relay, or
+NAG. For the Japanese test, pass the explicit
+`config/prompt_packs/japanese_selected_native_three_pose_v1.json` pack; the script's historical
+default pack is not the selected Japanese result. See the pilot workflow for the command and
+endpoint behavior.
 
 ## Why certification is the load-bearing step
 

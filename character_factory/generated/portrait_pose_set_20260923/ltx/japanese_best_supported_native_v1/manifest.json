@@ -1,0 +1,147 @@
+{
+  "schema_version": 2,
+  "generator": "/workspace/MuseTalk/character_factory/scripts/generate_three_pose_videos.py",
+  "source_image": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png",
+  "source_image_sha256": "14ea206c301eccdf9461ab2b706d9c3489927156267ca74e8ba478d9124fdf7b",
+  "prepared_guide": {
+    "source_dimensions": [
+      941,
+      1672
+    ],
+    "guide_dimensions": [
+      512,
+      832
+    ],
+    "policy": "height_fit_edge_replicated_side_padding",
+    "sha256": "4feab054c18ac022441feacad74a6d04cd7c004090b8513250575ccb4f2f0f63"
+  },
+  "prompt_pack": "japanese_best_supported_native_v1",
+  "prompt_pack_path": "/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_best_supported_native_v1.json",
+  "prompt_pack_sha256": "90c86411127e21e4ba7accf01aa0b8184bab1179e1bc9f858ea7d0b9d917d115",
+  "lineage": "Talking is the liked September 22 Indian native LTX 2.3 seed-191 prompt with only male/He/his changed to female/She/her. Idle and smiling are new restrained candidates informed by the approved Indian V6/V8 motion and surviving older prompts; the exact winning V6/V8 prompt text is unavailable. All poses use the same native first/last guide workflow, 241 frames at 24 fps.",
+  "accepted_graph": "/workspace/experiments/ltx23_native_flf_talking_20260922/graphs/generation.json",
+  "workflow": {
+    "model": "LTX-2.3-22B-distilled-1.1-Q4_K_M.gguf",
+    "text_encoder": "gemma-3-12b-it-qat-UD-Q3_K_XL.gguf",
+    "resolution": [
+      512,
+      832
+    ],
+    "fps": 24,
+    "frames_by_pose": {
+      "idle": 241,
+      "talking": 241,
+      "smiling": 241
+    },
+    "same_portrait_guide_at_frame_indices": [
+      0,
+      -1
+    ],
+    "guide_strength": 1.0,
+    "sampler": "euler",
+    "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0",
+    "cfg": 1.0,
+    "prompt_relay_used": false,
+    "nag_used": false,
+    "soulx_used": false,
+    "segmind_used": false
+  },
+  "delivery_policy": {
+    "decoded_first_last_exact": true,
+    "last_frame_replaced_with_first": true,
+    "fade_or_crossfade": false,
+    "audio_streams": 0
+  },
+  "poses": {
+    "idle": {
+      "status": "completed",
+      "seed": 189,
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She faces the camera in a relaxed upright resting pose, breathing gently with a subtle rise and fall in the upper chest. She gives one or two natural blinks at separated moments. Her head stays close to the starting position with only a small posture-settling adjustment. Her lips remain comfortably closed and her jaw relaxed. She settles naturally back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark",
+      "prompt_source": "New restrained candidate. Based on the neutral-resting action text preserved in the early Indian pose manifests and the approved V6 listening behavior in docs/ltx23-closeup-production-migration.md; this is not the missing exact V6 prompt.",
+      "generation_prompt_id": "f56ad306-64a5-434f-ad75-459c0e7f84bd",
+      "generation_elapsed_seconds": 335.4,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/native/idle.latent",
+      "latent_sha256": "eb370117bdb098feee00f622879ffef1348f61c580c2ff86473a230384bd842a",
+      "decode_prompt_id": "8cb0deaa-feea-4dd6-9112-ce0a4d0f946e",
+      "decode_elapsed_seconds": 25.03,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/idle.mp4",
+        "sha256": "b55c7be0848aca3f34464f7e8eaa92385a8c06ed52489226a37e389e4b67b9b3",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/native/idle.mp4",
+        "native_sha256": "700d9961db5386208422e26b67bdcee0d08a7a5a19ac87f0a3c2cfaf5fd9860f",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 241,
+        "duration_seconds": 10.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "13ab0aa5c36d258d43910f9e788d21f760434d1dd62a2ef24207b4ee4c6b4a66",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/review/idle-contact.jpg"
+    },
+    "talking": {
+      "status": "completed",
+      "seed": 191,
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She speaks naturally and continuously to the camera with clear conversational lip articulation, natural blinking, and subtle head and shoulder movement. Preserve her facial proportions and identity. She settles naturally back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark",
+      "prompt_source": "experiments/ltx23_native_flf_talking_20260922/graphs/generation.json#pos/neg; only male/He/his changed to female/She/her.",
+      "generation_prompt_id": "41908722-4da6-4324-b796-3b5019f8695c",
+      "generation_elapsed_seconds": 330.45,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/native/talking.latent",
+      "latent_sha256": "754f3a857067eb8a7e654039d38cc9f2354db43e9c33bb2f79ce90c943ca2a1d",
+      "decode_prompt_id": "0118f506-ecae-4daa-9c12-1cb265a9f712",
+      "decode_elapsed_seconds": 25.03,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/talking.mp4",
+        "sha256": "5ae1dc483e44738646e2642704e912825c0728975c5925861cb5e702767de197",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/native/talking.mp4",
+        "native_sha256": "b13a5a83cb1a53b6e061691560cbe99a0f268ed69d79a8861c5771bbe8625694",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 241,
+        "duration_seconds": 10.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "752b012ec2d28f49c5826e224cfa08909da0778f2463ec145bbf5dc13aefd36f",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/review/talking-contact.jpg"
+    },
+    "smiling": {
+      "status": "completed",
+      "seed": 193,
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She faces the camera in a relaxed upright resting pose. A mild closed-lip smile gradually appears at the corners of her mouth and softly around her eyes, holds briefly, then fades back to a neutral expression. Her head and shoulders remain close to their starting position while she breathes gently and blinks naturally. Her lips stay together with no visible teeth. She settles naturally back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark",
+      "prompt_source": "New restrained candidate. Based on the approved V8 moderate closed-lip smile behavior in docs/ltx23-closeup-production-migration.md and early Indian smile manifests; this is not the missing exact V8 prompt. The prior Japanese chin-lift clause was deliberately omitted.",
+      "generation_prompt_id": "4ae095bf-6394-4e18-9942-051ae834d670",
+      "generation_elapsed_seconds": 325.6,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/native/smiling.latent",
+      "latent_sha256": "4ca746e2b7c2b2de3199be13672eb3018312d2f272e0d9692fe58e297b6454a2",
+      "decode_prompt_id": "bbbbce07-5e8f-48a6-9c47-a1109af45ac3",
+      "decode_elapsed_seconds": 25.03,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/smiling.mp4",
+        "sha256": "894927b7f3279e9fcad051f6cc702c3cdbb55337dc22c0bf78ea792e0fb50c6a",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/native/smiling.mp4",
+        "native_sha256": "34011a575312cff3c0a4cf714684252382dd66e4d8d5776fc7608ec7f78a01e3",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 241,
+        "duration_seconds": 10.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "76930d615595aaa2860e45019724eb2964a47c1e68258f3d9c510793ee5f0aee",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/review/smiling-contact.jpg"
+    }
+  }
+}

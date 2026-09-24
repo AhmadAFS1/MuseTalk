@@ -1,0 +1,58 @@
+{
+  "status": "review_only_not_production_certified",
+  "selected_prompt_pack": "/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_selected_native_three_pose_v1.json",
+  "method": "All 241 decoded video frames checked with MediaPipe FaceMesh. Eye midpoint: mean of landmarks 33 and 263. Lip gap: landmarks 13 and 14. Maximum displacement relative to first frame. Endpoint equality independently checked by decoding frame 0 and frame 240 as RGB24.",
+  "poses": {
+    "idle": {
+      "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_idle_locked_candidate_v2/idle.mp4",
+      "sha256": "ed60fb51a9f3e79e3facb36570b3d46946cdef6fd097b32bcfef34fc76b137c7",
+      "frames_read": 241,
+      "landmark_detections": 241,
+      "width": 512,
+      "height": 832,
+      "fps": "24/1",
+      "video_streams": 1,
+      "audio_streams": 0,
+      "first_last_decoded_rgb_equal": true,
+      "endpoint_rgb_sha256": "19538ad88586d197efaba47e45c0a962d88f02a65c6559b84cd8558aa5f1d502",
+      "max_eye_x_excursion_px": 12.4,
+      "max_eye_y_excursion_px": 6.3,
+      "max_eye_line_tilt_change_deg": 1.6,
+      "max_central_lip_gap_px": 0.3
+    },
+    "talking": {
+      "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_best_supported_native_v1/talking.mp4",
+      "sha256": "5ae1dc483e44738646e2642704e912825c0728975c5925861cb5e702767de197",
+      "frames_read": 241,
+      "landmark_detections": 241,
+      "width": 512,
+      "height": 832,
+      "fps": "24/1",
+      "video_streams": 1,
+      "audio_streams": 0,
+      "first_last_decoded_rgb_equal": true,
+      "endpoint_rgb_sha256": "752b012ec2d28f49c5826e224cfa08909da0778f2463ec145bbf5dc13aefd36f",
+      "max_eye_x_excursion_px": 19.8,
+      "max_eye_y_excursion_px": 32.2,
+      "max_eye_line_tilt_change_deg": 5.8,
+      "max_central_lip_gap_px": 39.1
+    },
+    "smiling": {
+      "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_smile_v4_lineage_candidate_v3/smiling.mp4",
+      "sha256": "bc3f3a355f63f4fd6c0aea45cb3272fb9906df97632303667b29b8e6a721c6d9",
+      "frames_read": 241,
+      "landmark_detections": 241,
+      "width": 512,
+      "height": 832,
+      "fps": "24/1",
+      "video_streams": 1,
+      "audio_streams": 0,
+      "first_last_decoded_rgb_equal": true,
+      "endpoint_rgb_sha256": "8d90a3d5b22b4324306e6c17b04ec5c3833f987b27a391e6382b08a954a94056",
+      "max_eye_x_excursion_px": 4.8,
+      "max_eye_y_excursion_px": 18.6,
+      "max_eye_line_tilt_change_deg": 0.9,
+      "max_central_lip_gap_px": 0.5
+    }
+  }
+}

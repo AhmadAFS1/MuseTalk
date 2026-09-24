@@ -1,0 +1,141 @@
+{
+  "schema_version": 2,
+  "generator": "/workspace/MuseTalk/character_factory/scripts/generate_three_pose_videos.py",
+  "source_image": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/latina_woman.png",
+  "source_image_sha256": "17ec7758bda62f82ce06bfbcef08f91b60e5ae722161b96590824810a83d45cb",
+  "prepared_guide": {
+    "source_dimensions": [
+      941,
+      1672
+    ],
+    "guide_dimensions": [
+      512,
+      832
+    ],
+    "policy": "height_fit_edge_replicated_side_padding",
+    "sha256": "19da60695a6cd5c924671d213693db1d0deaaa67e4f91b28013399fd842757ad"
+  },
+  "prompt_pack": "native_indian_three_pose_v1",
+  "lineage": "The exact compact native LTX 2.3 Q4 prompt lineage accepted on the September 22 Indian avatar, plus the repository's exact approved V8 closed-lip smile behavior. All clips use the accepted native first/last-frame graph and are ten-second-class 241-frame renders.",
+  "accepted_graph": "/workspace/experiments/ltx23_native_flf_talking_20260922/graphs/generation.json",
+  "workflow": {
+    "model": "LTX-2.3-22B-distilled-1.1-Q4_K_M.gguf",
+    "text_encoder": "gemma-3-12b-it-qat-UD-Q3_K_XL.gguf",
+    "resolution": [
+      512,
+      832
+    ],
+    "fps": 24,
+    "frames": 241,
+    "same_portrait_guide_at_frame_indices": [
+      0,
+      -1
+    ],
+    "guide_strength": 1.0,
+    "sampler": "euler",
+    "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0",
+    "cfg": 1.0,
+    "prompt_relay_used": false,
+    "nag_used": false,
+    "soulx_used": false,
+    "segmind_used": false
+  },
+  "delivery_policy": {
+    "decoded_first_last_exact": true,
+    "last_frame_replaced_with_first": true,
+    "fade_or_crossfade": false,
+    "audio_streams": 0
+  },
+  "poses": {
+    "idle": {
+      "status": "completed",
+      "seed": 189,
+      "positive_prompt": "Fixed-camera photorealistic close-up of the person in the reference image, in the same room, lighting, clothing and framing. The person maintains relaxed eye contact and natural blinking, with conversational head and shoulder movement. The lips remain gently closed throughout; the jaw is relaxed. Preserve the person's facial proportions and appearance. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, identity change, distorted face, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark",
+      "prompt_source": "/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/graphs/generation-241.json#pos/neg; control nodes removed exactly as in the later direct-LTX runs",
+      "generation_prompt_id": "9a0cafac-4389-4b4c-b203-1efddcb90438",
+      "generation_elapsed_seconds": 335.41,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/native/idle.latent",
+      "latent_sha256": "4eb241d3c291d0b900c8b9d36101a8ce1e6b835f5853fbccedecc6c0e89b3ce4",
+      "decode_prompt_id": "8c50cbfa-7d1f-4850-9ccb-b34b43344525",
+      "decode_elapsed_seconds": 30.04,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/idle.mp4",
+        "sha256": "8c6837162da64e34a5c9e0cc66b0a9643d537bb04f7286d213753130c399ad3e",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/native/idle.mp4",
+        "native_sha256": "fac45ae040122e62678ac8d67449631b3fe88cfec02d9653c59968f313ec8bcd",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 241,
+        "duration_seconds": 10.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "fa1cc1a7f022947822ee2f1701b10c5fa3884c5f9b766d1495ff0ffd78e9529b",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/review/idle-contact.jpg"
+    },
+    "talking": {
+      "status": "completed",
+      "seed": 191,
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same language tutor in the reference image, in the same room, lighting, clothing, and framing. The person speaks naturally and continuously to the camera with clear conversational lip articulation, natural blinking, and subtle head and shoulder movement. Preserve the person's facial proportions and identity. The person settles naturally back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark",
+      "prompt_source": "/workspace/experiments/ltx23_native_flf_talking_20260922/graphs/generation.json#pos/neg (identity nouns changed from male/he to person/the person only)",
+      "generation_prompt_id": "60ce112d-8678-46ef-9fcd-5a1c8a3568f5",
+      "generation_elapsed_seconds": 315.46,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/native/talking.latent",
+      "latent_sha256": "5949d598c47ba92bfda5abd467c384ef43aaa7a336b833efb83b561214352595",
+      "decode_prompt_id": "399bd4e5-5334-4fa8-ab54-bea3af557c21",
+      "decode_elapsed_seconds": 25.04,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/talking.mp4",
+        "sha256": "72f4ad3ab5dca57be6fa33b42f1491da50c4283f19e5811ce46ff2b8e522fb7c",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/native/talking.mp4",
+        "native_sha256": "ecd35788c18dc30832bdd2feb170d33120199a26ccfd5c38081d9640d8b47e3e",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 241,
+        "duration_seconds": 10.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "b7c740a1f9dbb481306627688f3734570d3cec7af2c15dadbc86d912a2a8511b",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/review/talking-contact.jpg"
+    },
+    "smiling": {
+      "status": "completed",
+      "seed": 193,
+      "positive_prompt": "Fixed-camera photorealistic close-up of the person in the reference image, in the same room, lighting, clothing and framing. The person rests with a neutral relaxed face looking into the lens, breathing slowly. A mild closed-lip smile grows, accompanied by a tiny lift of the person's chin, and holds briefly. The person's lips stay together and the person's eyes stay warm on the lens. The smile and the chin lift release fully and the person returns to the neutral resting face and posture the clip opened with, eyes on the lens, breathing slowly. Preserve the person's facial proportions and appearance. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, identity change, distorted face, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark",
+      "prompt_source": "/workspace/MuseTalk/character_factory/config/prompt_packs/pose_prompt_pack_v1.json#renders.light_smile; exact V8 behavior placed in the accepted native fixed-camera wrapper",
+      "generation_prompt_id": "efb72ef3-1d46-4a3e-806a-69ec169515ce",
+      "generation_elapsed_seconds": 315.4,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/native/smiling.latent",
+      "latent_sha256": "188fa64a812cd1e53e53a7a630058745e55ed7d5b57352a4310fa3868a0eb907",
+      "decode_prompt_id": "be44f7b5-d266-44c4-97f2-01f6e8b93cc4",
+      "decode_elapsed_seconds": 25.03,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/smiling.mp4",
+        "sha256": "a2336e53df4a14d7c0a72f8033704909202f12381c0188998ec65705081fd29b",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/native/smiling.mp4",
+        "native_sha256": "6efc028c2bb7466d7d7ab1faf57609e03b955477921847368f0bc1b5e4b7b2ba",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 241,
+        "duration_seconds": 10.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "0865baaa95a5aa52efb221ff44511cc14d9db548dbd76a5faaad8dcbd067e381",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/latina/review/smiling-contact.jpg"
+    }
+  }
+}

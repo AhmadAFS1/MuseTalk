@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "generator": "/workspace/MuseTalk/character_factory/scripts/generate_three_pose_videos.py",
+  "source_image": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png",
+  "source_image_sha256": "14ea206c301eccdf9461ab2b706d9c3489927156267ca74e8ba478d9124fdf7b",
+  "prepared_guide": {
+    "source_dimensions": [
+      941,
+      1672
+    ],
+    "guide_dimensions": [
+      512,
+      832
+    ],
+    "policy": "height_fit_edge_replicated_side_padding",
+    "sha256": "4feab054c18ac022441feacad74a6d04cd7c004090b8513250575ccb4f2f0f63"
+  },
+  "prompt_pack": "japanese_documented_v15_native_variation_v1",
+  "prompt_pack_path": "/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_documented_v15_native_variation_v1.json",
+  "prompt_pack_sha256": "a26b1be0afcab0237c48ec70302e3a2e1563369966ffdb1e84499ea530197f92",
+  "lineage": "The available derived V15 reference-paced talking wording from pose_prompt_pack_v1.json, flattened into the compact native LTX graph. Original historical prompt pack absent; not an exact historical rerun.",
+  "accepted_graph": "/workspace/experiments/ltx23_native_flf_talking_20260922/graphs/generation.json",
+  "workflow": {
+    "model": "LTX-2.3-22B-distilled-1.1-Q4_K_M.gguf",
+    "text_encoder": "gemma-3-12b-it-qat-UD-Q3_K_XL.gguf",
+    "resolution": [
+      512,
+      832
+    ],
+    "fps": 24,
+    "frames_by_pose": {
+      "talking": 289
+    },
+    "same_portrait_guide_at_frame_indices": [
+      0,
+      -1
+    ],
+    "guide_strength": 1.0,
+    "sampler": "euler",
+    "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0",
+    "cfg": 1.0,
+    "prompt_relay_used": false,
+    "nag_used": false,
+    "soulx_used": false,
+    "segmind_used": false
+  },
+  "delivery_policy": {
+    "decoded_first_last_exact": true,
+    "last_frame_replaced_with_first": true,
+    "fade_or_crossfade": false,
+    "audio_streams": 0
+  },
+  "poses": {
+    "talking": {
+      "status": "completed",
+      "seed": 195,
+      "positive_prompt": "Vertical 9:16 photorealistic UGC smartphone video. The exact same person from the reference image, a Japanese woman shown in the reference image wearing the same navy top shown in the reference image, framed in a tight medium close-up from the chest up at arm's length, facing the camera on a video call. The camera is locked: no zoom, no reframing, no change in subject size. her mouth stays closed and relaxed throughout. Natural skin texture, realistic eyes and hair, stable identity, fixed background and lighting. she looks straight into the lens and makes one small head-led conversational accent. her chest follows a moment later. The accent releases partway and she rests. After a quiet interval she makes a different, slightly quicker accent with a small diagonal thought shift, and one shoulder follows late. she returns most of the way and holds eye contact through a still pause. she makes one last gentle accent, then progressively settles, each remaining movement smaller than the last, until she rests in the exact upright posture the clip opened with. Mouth closed, eyes on the lens.",
+      "negative_prompt": "text, letters, words, subtitles, captions, typography, overlay graphics, logo, watermark, UI elements, distorted face, warped body, bad hands, extra fingers, extra arms, duplicate person, changing hairstyle, changing identity, changing room layout, changing clothing, open mouth, visible speech shapes, mouth articulation, talking, lip movement, teeth showing, tongue visible, cartoon, anime, zoom, zoom in, zoom out, push-in, pull-back, changing focal length, changing framing, changing crop, changing subject size",
+      "prompt_source": "/workspace/MuseTalk/character_factory/config/prompt_packs/pose_prompt_pack_v1.json#renders.speaking_direct_v15_reference_paced",
+      "generation_prompt_id": "693cfc55-5087-4c46-9a5a-c9d449c4f1ed",
+      "generation_elapsed_seconds": 355.44,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_v15_native_variation_v1/native/talking.latent",
+      "latent_sha256": "1e556deec90b80b04dbe0992d6b6d58120408fbab7a8648ddb8a9133781c2384",
+      "decode_prompt_id": "46aa4341-41c8-409f-975e-4c04f17b5306",
+      "decode_elapsed_seconds": 30.04,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_v15_native_variation_v1/talking.mp4",
+        "sha256": "45a6b7277c0951dd0b6d0099cbf4ad4439d431290b95b468917b754fc6a5c888",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_v15_native_variation_v1/native/talking.mp4",
+        "native_sha256": "18d1ea9b84b3ea09bb03aed08cade8149da251f4e2a1d385104afa0f66e17733",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 289,
+        "duration_seconds": 12.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "e09baed9d8cb15c13aff5986272c46ab0a46cdc2ef767519151fa775dd0256bf",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_v15_native_variation_v1/review/talking-contact.jpg"
+    }
+  }
+}

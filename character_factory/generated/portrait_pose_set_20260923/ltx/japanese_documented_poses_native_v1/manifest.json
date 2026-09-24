@@ -1,0 +1,147 @@
+{
+  "schema_version": 2,
+  "generator": "/workspace/MuseTalk/character_factory/scripts/generate_three_pose_videos.py",
+  "source_image": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png",
+  "source_image_sha256": "14ea206c301eccdf9461ab2b706d9c3489927156267ca74e8ba478d9124fdf7b",
+  "prepared_guide": {
+    "source_dimensions": [
+      941,
+      1672
+    ],
+    "guide_dimensions": [
+      512,
+      832
+    ],
+    "policy": "height_fit_edge_replicated_side_padding",
+    "sha256": "4feab054c18ac022441feacad74a6d04cd7c004090b8513250575ccb4f2f0f63"
+  },
+  "prompt_pack": "japanese_documented_poses_native_v1",
+  "prompt_pack_path": "/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_documented_poses_native_v1.json",
+  "prompt_pack_sha256": "166491254e9fa73039f7770271e1ebf7dd7d724d30e850277dda0ebe513b3ecc",
+  "lineage": "The available derived V6 idle/V14 talking/V8 smile wording from pose_prompt_pack_v1.json, flattened into the compact native LTX graph. Original historical prompt packs are absent from this checkout; this is not an exact historical rerun.",
+  "accepted_graph": "/workspace/experiments/ltx23_native_flf_talking_20260922/graphs/generation.json",
+  "workflow": {
+    "model": "LTX-2.3-22B-distilled-1.1-Q4_K_M.gguf",
+    "text_encoder": "gemma-3-12b-it-qat-UD-Q3_K_XL.gguf",
+    "resolution": [
+      512,
+      832
+    ],
+    "fps": 24,
+    "frames_by_pose": {
+      "idle": 241,
+      "talking": 289,
+      "smiling": 145
+    },
+    "same_portrait_guide_at_frame_indices": [
+      0,
+      -1
+    ],
+    "guide_strength": 1.0,
+    "sampler": "euler",
+    "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0",
+    "cfg": 1.0,
+    "prompt_relay_used": false,
+    "nag_used": false,
+    "soulx_used": false,
+    "segmind_used": false
+  },
+  "delivery_policy": {
+    "decoded_first_last_exact": true,
+    "last_frame_replaced_with_first": true,
+    "fade_or_crossfade": false,
+    "audio_streams": 0
+  },
+  "poses": {
+    "idle": {
+      "status": "completed",
+      "seed": 189,
+      "positive_prompt": "Vertical 9:16 photorealistic UGC smartphone video. The exact same person from the reference image, a Japanese woman shown in the reference image wearing the same navy top shown in the reference image, framed in a tight medium close-up from the chest up at arm's length, facing the camera on a video call. The camera is locked: no zoom, no reframing, no change in subject size. her mouth stays closed and relaxed throughout. Natural skin texture, realistic eyes and hair, stable identity, fixed background and lighting. she rests in a settled upright posture and looks into the lens with quiet friendly attention. her chest rises and falls slowly with breathing. One blink occurs, unhurried. her attention settles slightly forward and her head develops one gradual diagonal listening inclination, held quietly while she keeps eye contact. A single small acknowledgement occurs inside that already-established posture. Breathing continues slowly. The diagonal softens and her head returns along the same path toward the centre. she settles back into the exact resting posture the clip opened with, breathing slowly, mouth closed, eyes on the lens.",
+      "negative_prompt": "text, letters, words, subtitles, captions, typography, overlay graphics, logo, watermark, UI elements, distorted face, warped body, bad hands, extra fingers, extra arms, duplicate person, changing hairstyle, changing identity, changing room layout, changing clothing, open mouth, visible speech shapes, mouth articulation, talking, lip movement, teeth showing, tongue visible, cartoon, anime, zoom, zoom in, zoom out, push-in, pull-back, changing focal length, changing framing, changing crop, changing subject size",
+      "prompt_source": "/workspace/MuseTalk/character_factory/config/prompt_packs/pose_prompt_pack_v1.json#renders.idle_active_listening",
+      "generation_prompt_id": "6c354052-2bda-4bf9-8051-78d5e8757e16",
+      "generation_elapsed_seconds": 330.43,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_poses_native_v1/native/idle.latent",
+      "latent_sha256": "fef6025c01cb535b2a6042ac9a1121b2f01e9ef0c4bee9a1eeb9f44c3493be69",
+      "decode_prompt_id": "3840ff15-690a-42ee-937d-c976189d241e",
+      "decode_elapsed_seconds": 25.07,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_poses_native_v1/idle.mp4",
+        "sha256": "3ea5242fda706b79a3168cbbbedffe4e255928d0c08ca3d83c9d6f6022b1a83d",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_poses_native_v1/native/idle.mp4",
+        "native_sha256": "f6585fefd01bbe95a371ed7a4504822be5040e2425e10bd36ac0d349ac093e32",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 241,
+        "duration_seconds": 10.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "320fdeefb5c5ae68376c3b007f72e19ac96524787e1acd3074d621000f885d8c",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_poses_native_v1/review/idle-contact.jpg"
+    },
+    "talking": {
+      "status": "completed",
+      "seed": 191,
+      "positive_prompt": "Vertical 9:16 photorealistic UGC smartphone video. The exact same person from the reference image, a Japanese woman shown in the reference image wearing the same navy top shown in the reference image, framed in a tight medium close-up from the chest up at arm's length, facing the camera on a video call. The camera is locked: no zoom, no reframing, no change in subject size. her mouth stays closed and relaxed throughout. Natural skin texture, realistic eyes and hair, stable identity, fixed background and lighting. she holds direct eye contact with the lens for the entire shot, pupils aligned to the camera. her head is carried with a shallow slow buoyancy at the chin and one smaller, later settling change forward and back. her shoulders and torso stay where they are. Blinks are natural and sparse. her mouth stays closed and relaxed. she ends settled in the same upright posture the clip opened with.",
+      "negative_prompt": "text, letters, words, subtitles, captions, typography, overlay graphics, logo, watermark, UI elements, distorted face, warped body, bad hands, extra fingers, extra arms, duplicate person, changing hairstyle, changing identity, changing room layout, changing clothing, open mouth, visible speech shapes, mouth articulation, talking, lip movement, teeth showing, tongue visible, cartoon, anime, zoom, zoom in, zoom out, push-in, pull-back, changing focal length, changing framing, changing crop, changing subject size",
+      "prompt_source": "/workspace/MuseTalk/character_factory/config/prompt_packs/pose_prompt_pack_v1.json#renders.speaking_direct_v14_subtle",
+      "generation_prompt_id": "fc1fe7ce-62ab-45b0-94c6-2d037162b4ec",
+      "generation_elapsed_seconds": 340.43,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_poses_native_v1/native/talking.latent",
+      "latent_sha256": "bacd1b20570b91fcfe71cfc187a6c7c13c231678898842f1fcbea40e81c944fe",
+      "decode_prompt_id": "0a91a342-8f15-4358-82ee-88095c25d83b",
+      "decode_elapsed_seconds": 30.04,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_poses_native_v1/talking.mp4",
+        "sha256": "cc36b6581a39a151cab2ed4b462b54f396e8f5a568fe3716269827f30727ddbd",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_poses_native_v1/native/talking.mp4",
+        "native_sha256": "a72b75d251a8e2154fea0c271e589cfb095420f4c966cc1627f8637cbe0ce95c",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 289,
+        "duration_seconds": 12.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "394bc2cb3bf496b97f98ab84219a02982121ecb3fed6d861a4a29ccb2c27c1b1",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_poses_native_v1/review/talking-contact.jpg"
+    },
+    "smiling": {
+      "status": "completed",
+      "seed": 193,
+      "positive_prompt": "Vertical 9:16 photorealistic UGC smartphone video. The exact same person from the reference image, a Japanese woman shown in the reference image wearing the same navy top shown in the reference image, framed in a tight medium close-up from the chest up at arm's length, facing the camera on a video call. The camera is locked: no zoom, no reframing, no change in subject size. her mouth stays closed and relaxed throughout. Natural skin texture, realistic eyes and hair, stable identity, fixed background and lighting. she rests with a neutral relaxed face looking into the lens, breathing slowly. A mild closed-lip smile grows, accompanied by a tiny lift of her chin, and holds briefly. her lips stay together and her eyes stay warm on the lens. The smile and the chin lift release fully and she returns to the neutral resting face and posture the clip opened with, eyes on the lens, breathing slowly.",
+      "negative_prompt": "text, letters, words, subtitles, captions, typography, overlay graphics, logo, watermark, UI elements, distorted face, warped body, bad hands, extra fingers, extra arms, duplicate person, changing hairstyle, changing identity, changing room layout, changing clothing, open mouth, visible speech shapes, mouth articulation, talking, lip movement, teeth showing, tongue visible, cartoon, anime, zoom, zoom in, zoom out, push-in, pull-back, changing focal length, changing framing, changing crop, changing subject size",
+      "prompt_source": "/workspace/MuseTalk/character_factory/config/prompt_packs/pose_prompt_pack_v1.json#renders.light_smile",
+      "generation_prompt_id": "a7c38f5c-db28-4a9d-90a4-efd96bc547ea",
+      "generation_elapsed_seconds": 285.37,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_poses_native_v1/native/smiling.latent",
+      "latent_sha256": "8fd1c82d31e712d74f64642441de3bf9a54772f07a9522939839883c1cf1dbf4",
+      "decode_prompt_id": "002f6e6e-18f4-4938-83fe-55c5e125409b",
+      "decode_elapsed_seconds": 15.02,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_poses_native_v1/smiling.mp4",
+        "sha256": "a48989ef56d98c3e5329ace1bcd52c749eea66700002fa86789ea76f06336a65",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_poses_native_v1/native/smiling.mp4",
+        "native_sha256": "5ac7e5424b3b395abc3549957db178a9d2579e36cb2a89ee973f4d6fa2040b2d",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 145,
+        "duration_seconds": 6.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "b0e271951d0a2ceacb661476fc89622e455f4281f2a31178ee100ef448bacd72",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_documented_poses_native_v1/review/smiling-contact.jpg"
+    }
+  }
+}

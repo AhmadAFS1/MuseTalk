@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "generator": "/workspace/MuseTalk/character_factory/scripts/generate_three_pose_videos.py",
+  "source_image": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png",
+  "source_image_sha256": "14ea206c301eccdf9461ab2b706d9c3489927156267ca74e8ba478d9124fdf7b",
+  "prepared_guide": {
+    "source_dimensions": [
+      941,
+      1672
+    ],
+    "guide_dimensions": [
+      512,
+      832
+    ],
+    "policy": "height_fit_edge_replicated_side_padding",
+    "sha256": "4feab054c18ac022441feacad74a6d04cd7c004090b8513250575ccb4f2f0f63"
+  },
+  "prompt_pack": "japanese_best_supported_native_smile_v3",
+  "prompt_pack_path": "/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_best_supported_native_smile_v3.json",
+  "prompt_pack_sha256": "5dc6266808b0b674d3e4a163d80f82e2666da98a96bfae92eab3a1f0427be29f",
+  "lineage": "Smile v3 uses the preserved Indian V4 small closed-lip smile action text adapted to female identity, within the native fixed-camera wrapper. Seed 193 from smile v1 is held constant. This is not the missing exact V8 prompt.",
+  "accepted_graph": "/workspace/experiments/ltx23_native_flf_talking_20260922/graphs/generation.json",
+  "workflow": {
+    "model": "LTX-2.3-22B-distilled-1.1-Q4_K_M.gguf",
+    "text_encoder": "gemma-3-12b-it-qat-UD-Q3_K_XL.gguf",
+    "resolution": [
+      512,
+      832
+    ],
+    "fps": 24,
+    "frames_by_pose": {
+      "smiling": 241
+    },
+    "same_portrait_guide_at_frame_indices": [
+      0,
+      -1
+    ],
+    "guide_strength": 1.0,
+    "sampler": "euler",
+    "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0",
+    "cfg": 1.0,
+    "prompt_relay_used": false,
+    "nag_used": false,
+    "soulx_used": false,
+    "segmind_used": false
+  },
+  "delivery_policy": {
+    "decoded_first_last_exact": true,
+    "last_frame_replaced_with_first": true,
+    "fade_or_crossfade": false,
+    "audio_streams": 0
+  },
+  "poses": {
+    "smiling": {
+      "status": "completed",
+      "seed": 193,
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. A small genuine closed-lip smile gradually appears at the mouth corners and softly around the eyes, as if warmly acknowledging the caller. Gentle breathing and one quick blink continue naturally. Her head stays comfortably stable while the smile holds. The smile remains modest, never showing teeth or becoming a broad camera pose, then fades smoothly to the reference expression. She settles back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark",
+      "prompt_source": "MuseTalk/assets/ltx23_pose_banks/sample_ai_human_facetime_v4_balanced/manifest.json#poses.light_smile.action_prompt adapted to female; original V8 text remains unavailable.",
+      "generation_prompt_id": "96e54944-368f-48f7-aafd-283d7c4d75f6",
+      "generation_elapsed_seconds": 330.63,
+      "latent_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_smile_v4_lineage_candidate_v3/native/smiling.latent",
+      "latent_sha256": "50c62dab5c075d079ece8aad8fcc2a0a8c820cf3cab463d584191a8213a75884",
+      "decode_prompt_id": "ecc86a03-0c38-4bc1-94c7-9caec929ee5e",
+      "decode_elapsed_seconds": 25.08,
+      "delivery": {
+        "file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_smile_v4_lineage_candidate_v3/smiling.mp4",
+        "sha256": "bc3f3a355f63f4fd6c0aea45cb3272fb9906df97632303667b29b8e6a721c6d9",
+        "native_file": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_smile_v4_lineage_candidate_v3/native/smiling.mp4",
+        "native_sha256": "165dcfb3aaebedfd951d95cce1226e30582a687090913dfe82c2595e424bd65f",
+        "width": 512,
+        "height": 832,
+        "fps": 24,
+        "frame_count": 241,
+        "duration_seconds": 10.041667,
+        "decoded_first_last_exact": true,
+        "decoded_endpoint_rgb_sha256": "8d90a3d5b22b4324306e6c17b04ec5c3833f987b27a391e6382b08a954a94056",
+        "last_frame_replaced_with_first": true,
+        "fade_or_crossfade_used": false,
+        "audio_streams": 0
+      },
+      "contact_sheet": "/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/ltx/japanese_smile_v4_lineage_candidate_v3/review/smiling-contact.jpg"
+    }
+  }
+}

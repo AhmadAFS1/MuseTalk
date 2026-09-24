@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "pack_id": "japanese_selected_native_three_pose_v1",
+  "lineage": "Best observed Japanese native LTX 2.3 candidates from September 23-24 tests: idle v2 seed 197, talking from the liked Indian seed-191 graph with gender words changed, smile v3 seed 193 from surviving Indian V4 small-smile wording. This is review-only: no human normal-speed approval or shared-anchor certification. Original winning Indian V6/V8 prompt JSON files were unavailable.",
+  "poses": {
+    "idle": {
+      "seed": 197,
+      "frame_count": 241,
+      "prompt_source": "New stricter idle candidate after v1 failed with 93 px vertical eye motion; same first/last native graph, seed 197.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She looks calmly into the lens with her head upright and centered for the entire shot. Gentle upper-chest breathing and two quick natural blinks occur while she holds her steady resting posture and keeps her chin level. Her lips stay gently closed and her jaw relaxed. She ends in the exact starting pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "talking": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "experiments/ltx23_native_flf_talking_20260922/graphs/generation.json#pos/neg; only male/He/his changed to female/She/her.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She speaks naturally and continuously to the camera with clear conversational lip articulation, natural blinking, and subtle head and shoulder movement. Preserve her facial proportions and identity. She settles naturally back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "smiling": {
+      "seed": 193,
+      "frame_count": 241,
+      "prompt_source": "MuseTalk/assets/ltx23_pose_banks/sample_ai_human_facetime_v4_balanced/manifest.json#poses.light_smile.action_prompt adapted to female; original V8 text remains unavailable.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. A small genuine closed-lip smile gradually appears at the mouth corners and softly around the eyes, as if warmly acknowledging the caller. Gentle breathing and one quick blink continue naturally. Her head stays comfortably stable while the smile holds. The smile remains modest, never showing teeth or becoming a broad camera pose, then fades smoothly to the reference expression. She settles back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    }
+  }
+}

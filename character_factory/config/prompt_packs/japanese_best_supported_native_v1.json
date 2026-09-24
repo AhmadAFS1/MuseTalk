@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "pack_id": "japanese_best_supported_native_v1",
+  "lineage": "Talking is the liked September 22 Indian native LTX 2.3 seed-191 prompt with only male/He/his changed to female/She/her. Idle and smiling are new restrained candidates informed by the approved Indian V6/V8 motion and surviving older prompts; the exact winning V6/V8 prompt text is unavailable. All poses use the same native first/last guide workflow, 241 frames at 24 fps.",
+  "poses": {
+    "idle": {
+      "seed": 189,
+      "frame_count": 241,
+      "prompt_source": "New restrained candidate. Based on the neutral-resting action text preserved in the early Indian pose manifests and the approved V6 listening behavior in docs/ltx23-closeup-production-migration.md; this is not the missing exact V6 prompt.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She faces the camera in a relaxed upright resting pose, breathing gently with a subtle rise and fall in the upper chest. She gives one or two natural blinks at separated moments. Her head stays close to the starting position with only a small posture-settling adjustment. Her lips remain comfortably closed and her jaw relaxed. She settles naturally back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "talking": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "experiments/ltx23_native_flf_talking_20260922/graphs/generation.json#pos/neg; only male/He/his changed to female/She/her.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She speaks naturally and continuously to the camera with clear conversational lip articulation, natural blinking, and subtle head and shoulder movement. Preserve her facial proportions and identity. She settles naturally back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "smiling": {
+      "seed": 193,
+      "frame_count": 241,
+      "prompt_source": "New restrained candidate. Based on the approved V8 moderate closed-lip smile behavior in docs/ltx23-closeup-production-migration.md and early Indian smile manifests; this is not the missing exact V8 prompt. The prior Japanese chin-lift clause was deliberately omitted.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She faces the camera in a relaxed upright resting pose. A mild closed-lip smile gradually appears at the corners of her mouth and softly around her eyes, holds briefly, then fades back to a neutral expression. Her head and shoulders remain close to their starting position while she breathes gently and blinks naturally. Her lips stay together with no visible teeth. She settles naturally back into the exact starting pose at the end. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    }
+  }
+}

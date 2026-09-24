@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "pack_id": "japanese_documented_poses_native_v1",
+  "lineage": "The available derived V6 idle/V14 talking/V8 smile wording from pose_prompt_pack_v1.json, flattened into the compact native LTX graph. Original historical prompt packs are absent from this checkout; this is not an exact historical rerun.",
+  "source_prompt_pack": "/workspace/MuseTalk/character_factory/config/prompt_packs/pose_prompt_pack_v1.json",
+  "poses": {
+    "idle": {
+      "seed": 189,
+      "frame_count": 241,
+      "source_render_key": "idle_active_listening",
+      "segment_lengths_documented": "80,80,81",
+      "prompt_source": "/workspace/MuseTalk/character_factory/config/prompt_packs/pose_prompt_pack_v1.json#renders.idle_active_listening",
+      "positive_prompt": "Vertical 9:16 photorealistic UGC smartphone video. The exact same person from the reference image, a Japanese woman shown in the reference image wearing the same navy top shown in the reference image, framed in a tight medium close-up from the chest up at arm's length, facing the camera on a video call. The camera is locked: no zoom, no reframing, no change in subject size. her mouth stays closed and relaxed throughout. Natural skin texture, realistic eyes and hair, stable identity, fixed background and lighting. she rests in a settled upright posture and looks into the lens with quiet friendly attention. her chest rises and falls slowly with breathing. One blink occurs, unhurried. her attention settles slightly forward and her head develops one gradual diagonal listening inclination, held quietly while she keeps eye contact. A single small acknowledgement occurs inside that already-established posture. Breathing continues slowly. The diagonal softens and her head returns along the same path toward the centre. she settles back into the exact resting posture the clip opened with, breathing slowly, mouth closed, eyes on the lens.",
+      "negative_prompt": "text, letters, words, subtitles, captions, typography, overlay graphics, logo, watermark, UI elements, distorted face, warped body, bad hands, extra fingers, extra arms, duplicate person, changing hairstyle, changing identity, changing room layout, changing clothing, open mouth, visible speech shapes, mouth articulation, talking, lip movement, teeth showing, tongue visible, cartoon, anime, zoom, zoom in, zoom out, push-in, pull-back, changing focal length, changing framing, changing crop, changing subject size"
+    },
+    "talking": {
+      "seed": 191,
+      "frame_count": 289,
+      "source_render_key": "speaking_direct_v14_subtle",
+      "segment_lengths_documented": "289",
+      "prompt_source": "/workspace/MuseTalk/character_factory/config/prompt_packs/pose_prompt_pack_v1.json#renders.speaking_direct_v14_subtle",
+      "positive_prompt": "Vertical 9:16 photorealistic UGC smartphone video. The exact same person from the reference image, a Japanese woman shown in the reference image wearing the same navy top shown in the reference image, framed in a tight medium close-up from the chest up at arm's length, facing the camera on a video call. The camera is locked: no zoom, no reframing, no change in subject size. her mouth stays closed and relaxed throughout. Natural skin texture, realistic eyes and hair, stable identity, fixed background and lighting. she holds direct eye contact with the lens for the entire shot, pupils aligned to the camera. her head is carried with a shallow slow buoyancy at the chin and one smaller, later settling change forward and back. her shoulders and torso stay where they are. Blinks are natural and sparse. her mouth stays closed and relaxed. she ends settled in the same upright posture the clip opened with.",
+      "negative_prompt": "text, letters, words, subtitles, captions, typography, overlay graphics, logo, watermark, UI elements, distorted face, warped body, bad hands, extra fingers, extra arms, duplicate person, changing hairstyle, changing identity, changing room layout, changing clothing, open mouth, visible speech shapes, mouth articulation, talking, lip movement, teeth showing, tongue visible, cartoon, anime, zoom, zoom in, zoom out, push-in, pull-back, changing focal length, changing framing, changing crop, changing subject size"
+    },
+    "smiling": {
+      "seed": 193,
+      "frame_count": 145,
+      "source_render_key": "light_smile",
+      "segment_lengths_documented": "48,48,49",
+      "prompt_source": "/workspace/MuseTalk/character_factory/config/prompt_packs/pose_prompt_pack_v1.json#renders.light_smile",
+      "positive_prompt": "Vertical 9:16 photorealistic UGC smartphone video. The exact same person from the reference image, a Japanese woman shown in the reference image wearing the same navy top shown in the reference image, framed in a tight medium close-up from the chest up at arm's length, facing the camera on a video call. The camera is locked: no zoom, no reframing, no change in subject size. her mouth stays closed and relaxed throughout. Natural skin texture, realistic eyes and hair, stable identity, fixed background and lighting. she rests with a neutral relaxed face looking into the lens, breathing slowly. A mild closed-lip smile grows, accompanied by a tiny lift of her chin, and holds briefly. her lips stay together and her eyes stay warm on the lens. The smile and the chin lift release fully and she returns to the neutral resting face and posture the clip opened with, eyes on the lens, breathing slowly.",
+      "negative_prompt": "text, letters, words, subtitles, captions, typography, overlay graphics, logo, watermark, UI elements, distorted face, warped body, bad hands, extra fingers, extra arms, duplicate person, changing hairstyle, changing identity, changing room layout, changing clothing, open mouth, visible speech shapes, mouth articulation, talking, lip movement, teeth showing, tongue visible, cartoon, anime, zoom, zoom in, zoom out, push-in, pull-back, changing focal length, changing framing, changing crop, changing subject size"
+    }
+  }
+}
