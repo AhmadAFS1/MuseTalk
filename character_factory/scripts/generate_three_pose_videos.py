@@ -11,8 +11,10 @@ All three renders use the same portrait at native LTX guide indices 0 and -1.
 The default centered crop fills the frame with real portrait pixels; --guide-fit
 edge_pad reproduces the older edge-replicated guide for historical comparisons.
 The default pack produces 241-frame MP4s at 24 fps; an alternate pack may set
-frame_count per pose. The final decoded frame is replaced
-with the first before all-intra H.264 encoding so the endpoints are pixel exact.
+frame_count per pose. A pack may also set repeat_cycles to assemble a short,
+endpoint-matched idle into a longer delivery clip. The final decoded frame is
+replaced with the first before all-intra H.264 encoding so the endpoints are
+pixel exact; repeated-cycle joins are checked the same way.
 """
 
 from __future__ import annotations

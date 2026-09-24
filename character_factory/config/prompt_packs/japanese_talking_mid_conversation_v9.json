@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "pack_id": "japanese_talking_mid_conversation_v9",
+  "lineage": "Talking-only wording test at successful v5 seed 191. Treat the ten-second shot as the middle of a longer conversation, not a complete sentence, to discourage early narrative closure. Same guide, negative prompt, seed, and frame count.",
+  "poses": {
+    "idle": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "New v5 simple shallow-breath prompt with seed 191; v2-v4 seed 197 produced one broad inhale.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, in the same room, lighting, clothing, and framing. She looks calmly into the lens with her head upright and level. Her shoulders stay settled at their starting height and shape. She takes several small, quiet, regular breaths across the entire ten seconds; each makes only a tiny rise and fall in the upper chest, without a single pronounced inhale. She gives two quick natural blinks. Her lips stay comfortably closed and her jaw relaxed. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, open mouth, visible teeth, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "talking": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "New v9 talking wording at v5 seed 191; no ten-second sentence ending cue.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. The camera captures the middle of an ongoing conversation: she is speaking as the shot opens and continues speaking beyond the cut. This ten-second excerpt contains a steady flow of new, varied conversational lip and jaw shapes, with no concluding phrase or silent listening pose. Brief lip closures for consonants and small quiet breaths fit naturally between words without ending the flow. Her eyes stay on the lens, her head upright and level, and her neck relaxed. Barely visible, regular breathing moves her upper chest and shoulders only slightly. She gives quick natural blinks. Continuous shot, stable background.",
+      "negative_prompt": "silent person, frozen mouth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, off-camera gaze, distorted face, identity change, duplicate facial features, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "smiling": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "japanese_native_three_pose_crop_smile_seed191_v8#smiling, selected video in japanese_shoulders_head_review_v2/smiling.mp4.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. A restrained closed-lip smile slowly appears in the corners of her mouth and softly in her cheeks, holds, then fades back to neutral. Her upper and lower lips stay gently in contact through the entire smile. She looks into the lens and gives one quick natural blink. Her eye line and chin remain level at the reference height, her neck keeps its relaxed starting length, and gentle breathing moves her upper chest and both shoulders together. She ends in the exact starting expression and pose. Continuous shot, stable background.",
+      "negative_prompt": "speaking, lip articulation, parted lips, visible teeth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    }
+  }
+}

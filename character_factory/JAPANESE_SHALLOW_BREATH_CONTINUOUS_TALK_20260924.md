@@ -127,3 +127,20 @@ combines this idle, v5 talking, and the unchanged v2 smile. The
 [review folder](generated/portrait_pose_set_20260923/ltx/japanese_breath_speech_review_v3/README.md)
 contains the selected videos, contact sheets, motion audit, source manifests,
 and validation.
+
+Post-selection timing check: the exact v5 talking text with seed 193
+([v8 pack](config/prompt_packs/japanese_talking_seed193_v8.json)) stopped
+articulating at 6.71 s and left a 3.25 s quiet tail. It was rejected. The
+next talking-only [v9 pack](config/prompt_packs/japanese_talking_mid_conversation_v9.json)
+returns to seed 191, keeps the same guide and negative prompt, and describes
+the ten-second shot as the middle of a conversation that continues beyond the
+cut. This tests whether removing a sentence-completion cue shortens the
+remaining v5 quiet tail.
+
+V9 failed that test: lip opening ended at 2.71 s, leaving a 7.25 s quiet
+tail; shoulder travel grew to 14.1 px and eye-line travel to 24.3 px. It is
+rejected. The selected v5 talking clip remains the best of the prompt-only
+rerolls. This experiment corrected the original halfway stop substantially,
+but did not achieve literal articulation through the final second. The exact
+closed-mouth endpoint necessarily closes the lips on frame 240, and LTX's
+timing before that frame varied markedly across both prompts and seeds.
