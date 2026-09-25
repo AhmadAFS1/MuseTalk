@@ -1,5 +1,17 @@
 # Best-tested prompts for the current three-pose character pilot
 
+## Current approved selection - 2026-09-25
+
+The user approved the new fixed-distance idle, talking, and smiling trio as
+**perfect** after normal-speed review. The canonical prompt text, seeds, graph
+settings, shared-anchor requirement, hashes, and reproduction command are in
+[PERFECT_THREE_POSE_PROMPTS.md](PERFECT_THREE_POSE_PROMPTS.md). The exact
+machine-readable pack is
+[japanese_fixed_distance_shared_anchor_v1.json](config/prompt_packs/japanese_fixed_distance_shared_anchor_v1.json).
+Use those two records for new work. The material below preserves rejected and
+superseded prompt history for diagnosis; it no longer describes the selected
+three-pose pack.
+
 The prior Japanese three-pose **review candidates** used the exact text,
 seeds, and idle repeat count in
 [`japanese_selected_native_three_pose_v3.json`](config/prompt_packs/japanese_selected_native_three_pose_v3.json).
@@ -21,6 +33,12 @@ conspicuous deep breath. The [controlled reroll notes](JAPANESE_SHALLOW_BREATH_C
 explain why v3, v4, and the long v5 idle were rejected, how the short-cycle
 idle was tried and later rejected, and how v5 talking was selected.
 
+The [September 25 flicker tests](LTX23_JAPANESE_FLICKER_VALIDATION_20260925.md)
+confirm that the alternate test's temporal `16/8` decode causes visible face
+ghosting that improves at `64/16` using the same latent. Keep the native
+runner's existing `64/16` temporal and `256/64` spatial decode. The tested
+NAG/sampling alternatives do not replace the accepted talking/smiling prompts.
+
 ## Portrait and LTX setup
 
 Use the [gender-neutral FaceTime pose skeleton](generated/portrait_pose_set_20260923/pose_skeleton.png)
@@ -32,9 +50,9 @@ closed relaxed mouth, and visible shoulders.
 
 The currently accepted talking and smiling clips use native LTX 2.3 22B distilled Q4_K_M, the accepted
 low-VRAM eight-step Euler graph at CFG 1.0, 512×832 and 24 fps, with no
-audio. Talking and smile are 241-frame native renders. Idle is an 81-frame
-native render assembled into a 241-frame delivery video. All delivered clips
-last 10.04 seconds. The same portrait guides native generation at frames `0`
+audio. Talking and smile are 241-frame native renders lasting 10.04 seconds.
+The rejected v7 idle used an 81-frame cycle repeated three times; the current
+unapproved v17 candidate uses a 121-frame cycle repeated twice. The same portrait guides native generation at frames `0`
 and `-1` with strength 1. The runner verifies literal within-clip endpoint
 equality and adds no fade or crossfade. There is no SoulX, Segmind, NAG,
 Prompt Relay, or MuseTalk in these renders.

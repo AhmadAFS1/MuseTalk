@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "pack_id": "japanese_fixed_distance_shared_anchor_v1",
+  "lineage": "User-approved perfect three-pose trio on 2026-09-25 after normal-speed review. Native LTX graph and common center-crop guide. Based on v17 idle, v5 talking, v2 smiling, with a shared distance clause; ten-second native clips with no repeated cycles.",
+  "poses": {
+    "idle": {
+      "seed": 193,
+      "frame_count": 241,
+      "prompt_source": "v17 idle seed193, adapted from five to ten seconds and two breaths, with constant distance clause; no repeated cycles.",
+      "positive_prompt": "Fixed-camera photorealistic FaceTime close-up of the same female language tutor in the reference image, with the same room, lighting, clothing, and framing. She stays seated at exactly the reference distance from the camera for the entire shot. Her head keeps the same size in the frame, with her eyes at the reference height; her torso stays in its starting position. She listens quietly to the caller, alert and engaged, looking directly into the lens. Her eyes stay open and attentive. Her lips stay comfortably closed. Her head remains upright and level, without leaning or bobbing. Over this ten-second shot, two ordinary shallow breaths make the fabric at her upper chest move gently outward and back while her shoulders remain relaxed. She continues her natural listening pose and finishes at the starting pose. One continuous shot, stable background.",
+      "negative_prompt": "leaning toward camera, leaning away from camera, rocking torso, changing head size, zoom, dolly, reframing, sleeping, closed eyes, prolonged blink, drowsy face, sideways head tilt, head bobbing, head wobble, sighing, gasping, mouth opening, speaking, lip articulation, shoulder distortion, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "talking": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "japanese_idle_talking_seed191_v5#talking; native 241-frame render. Added constant subject-distance and head-size clause for 2026-09-25 review.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. She stays seated at exactly the reference distance from the camera for the entire shot. Her head keeps the same size in the frame, with her eyes at the reference height; her torso stays in its starting position. She looks straight into the lens and speaks one lively, uninterrupted ten-second sentence. Her mouth and jaw keep forming new conversational syllables throughout the shot, including the final seconds; brief lip closures are part of the words, never a long silent pause. She stays engaged in the sentence until the last moment. Her head remains upright and level, her neck relaxed. Small, regular breaths happen naturally between words, with barely visible motion in her upper chest and shoulders. She gives two quick natural blinks. Continuous shot, stable background.",
+      "negative_prompt": "leaning toward camera, leaning away from camera, rocking torso, changing head size, zoom, dolly, reframing, silent person, frozen mouth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, off-camera gaze, distorted face, identity change, duplicate facial features, camera movement, scene cut, text, subtitles, watermark"
+    },
+    "smiling": {
+      "seed": 191,
+      "frame_count": 241,
+      "prompt_source": "japanese_selected_native_three_pose_v2#smiling; unchanged selected seed-191 clip. Added constant subject-distance and head-size clause for 2026-09-25 review.",
+      "positive_prompt": "Fixed-camera photorealistic close-up of the same female language tutor in the reference image, with the same room, light, clothing, and framing. She stays seated at exactly the reference distance from the camera for the entire shot. Her head keeps the same size in the frame, with her eyes at the reference height; her torso stays in its starting position. A restrained closed-lip smile slowly appears in the corners of her mouth and softly in her cheeks, holds, then fades back to neutral. Her upper and lower lips stay gently in contact through the entire smile. She looks into the lens and gives one quick natural blink. Her eye line and chin remain level at the reference height, her neck keeps its relaxed starting length, and gentle breathing moves her upper chest and both shoulders together. She ends in the exact starting expression and pose. Continuous shot, stable background.",
+      "negative_prompt": "leaning toward camera, leaning away from camera, rocking torso, changing head size, zoom, dolly, reframing, speaking, lip articulation, parted lips, visible teeth, upward chin lift, neck extension, shoulder distortion, stretched frame borders, distorted face, identity change, duplicate facial features, off-camera gaze, camera movement, scene cut, text, subtitles, watermark"
+    }
+  },
+  "approval_status": "user_approved_perfect",
+  "approved_at": "2026-09-25",
+  "approval_evidence": "/workspace/experiments/japanese_ltx_fixed_distance_20260925",
+  "reproduction_requires": [
+    "guide_fit=center_crop",
+    "shared_anchor=true",
+    "native_ltx_2.3_22b_distilled_1.1_q4_k_m",
+    "euler_with_exact_saved_sigmas",
+    "cfg=1",
+    "decode_temporal=64/16",
+    "decode_spatial=256/64"
+  ]
+}

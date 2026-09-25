@@ -14,7 +14,9 @@ The default pack produces 241-frame MP4s at 24 fps; an alternate pack may set
 frame_count per pose. A pack may also set repeat_cycles to assemble a short,
 endpoint-matched idle into a longer delivery clip. The final decoded frame is
 replaced with the first before all-intra H.264 encoding so the endpoints are
-pixel exact; repeated-cycle joins are checked the same way.
+pixel exact; repeated-cycle joins are checked the same way. With --shared-anchor,
+all delivery endpoints use the prepared portrait, and cross-clip equality is
+checked after encoding. Raw native renders remain available for inspection.
 """
 
 from __future__ import annotations
@@ -317,6 +319,7 @@ def history_item(record: dict[str, Any], node: str, key: str) -> dict[str, Any]:
 def package_frames(
     frame_paths: list[Path], native: Path, delivery: Path, frame_count: int,
     boundary_indices: list[int] | None = None,
+    shared_anchor: Path | None = None,
 ) -> dict[str, Any]:
     if len(frame_paths) != frame_count:
         raise RenderError(f"Expected {frame_count} decoded frames, got {len(frame_paths)}")
@@ -333,7 +336,11 @@ def package_frames(
                 "keyint=1:min-keyint=1:scenecut=0:bframes=0", str(native),
             ]
         )
-        shutil.copy2(frame_dir / "frame_00000.png", frame_dir / f"frame_{frame_count - 1:05d}.png")
+        if shared_anchor is not None:
+            for index in {0, frame_count - 1, *(boundary_indices or [])}:
+                shutil.copy2(shared_anchor, frame_dir / f"frame_{index:05d}.png")
+        else:
+            shutil.copy2(frame_dir / "frame_00000.png", frame_dir / f"frame_{frame_count - 1:05d}.png")
         run(
             [
                 "ffmpeg", "-v", "error", "-y", "-framerate", str(FPS),
@@ -371,6 +378,8 @@ def package_frames(
         "decoded_loop_boundaries_exact": True if boundary_indices else None,
         "decoded_endpoint_rgb_sha256": hashlib.sha256(first).hexdigest(),
         "last_frame_replaced_with_first": True,
+        "shared_anchor_image": str(shared_anchor) if shared_anchor is not None else None,
+        "first_frame_replaced_with_shared_anchor": shared_anchor is not None,
         "fade_or_crossfade_used": False,
         "audio_streams": 0,
     }
@@ -397,6 +406,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--prompt-pack", type=Path, default=PROMPT_PACK_PATH)
+    parser.add_argument(
+        "--shared-anchor", action="store_true",
+        help="Use one prepared portrait at every delivery boundary, without fades.",
+    )
     parser.add_argument(
         "--guide-fit", choices=("center_crop", "edge_pad"), default="center_crop",
         help="Crop to fill the frame, or reproduce the earlier edge-padded guide.",
@@ -437,6 +450,7 @@ def main() -> int:
     input_destination = COMFY_ROOT / "input" / input_relative
     guide = prepare_guide(image, input_destination, args.guide_fit)
     shutil.copy2(input_destination, output_dir / "guide-512x832.png")
+    shared_anchor = output_dir / "guide-512x832.png" if args.shared_anchor else None
 
     graphs: dict[str, dict[str, Any]] = {}
     for pose, profile in selected.items():
@@ -493,6 +507,8 @@ def main() -> int:
             "last_frame_replaced_with_first": True,
             "fade_or_crossfade": False,
             "audio_streams": 0,
+            "shared_anchor_image": str(shared_anchor) if shared_anchor is not None else None,
+            "first_frame_replaced_with_shared_anchor": shared_anchor is not None,
         },
         "poses": {},
     }
@@ -581,12 +597,12 @@ def main() -> int:
                 cycle = frame_paths[:-1] + [frame_paths[0]]
                 cycle_delivery = package_frames(
                     cycle, native_dir / f"{pose}-cycle-native.mp4",
-                    review_dir / f"{pose}-cycle.mp4", source_count,
+                    review_dir / f"{pose}-cycle.mp4", source_count, shared_anchor=shared_anchor,
                 )
                 repeated = cycle + cycle[1:] * (repeat_cycles - 1)
                 boundaries = [index * (source_count - 1) for index in range(repeat_cycles + 1)]
                 delivery = package_frames(
-                    repeated, native_video, delivery_video, len(repeated), boundaries,
+                    repeated, native_video, delivery_video, len(repeated), boundaries, shared_anchor,
                 )
                 assembly = {
                     "method": "repeat_endpoint_matched_cycle_without_duplicate_join_frames",
@@ -595,7 +611,9 @@ def main() -> int:
                     "decoded_boundary_frame_indices": boundaries,
                 }
             else:
-                delivery = package_frames(frame_paths, native_video, delivery_video, source_count)
+                delivery = package_frames(
+                    frame_paths, native_video, delivery_video, source_count, shared_anchor=shared_anchor,
+                )
             create_contact_sheet(delivery_video, review_dir / f"{pose}-contact.jpg")
             manifest["poses"][pose] = {
                 "status": "completed",
@@ -620,6 +638,12 @@ def main() -> int:
         fcntl.flock(lock, fcntl.LOCK_UN)
         lock.close()
     write_json(output_dir / "manifest.json", manifest)
+    if shared_anchor is not None:
+        hashes = {entry["delivery"]["decoded_endpoint_rgb_sha256"] for entry in manifest["poses"].values()}
+        if len(hashes) != 1:
+            raise RenderError("Shared-anchor endpoints differ across the rendered clips")
+        manifest["delivery_policy"]["rendered_cross_clip_endpoints_exact"] = True
+        write_json(output_dir / "manifest.json", manifest)
     print(f"Manifest: {output_dir / 'manifest.json'}")
     return 0
 

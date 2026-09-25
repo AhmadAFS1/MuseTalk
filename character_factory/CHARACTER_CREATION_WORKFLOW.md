@@ -8,7 +8,9 @@ new character.
 
 The deliverables for a pilot character are one reviewed portrait and three
 silent LTX 2.3 clips: idle, talking, and smiling. The selected prompt text,
-provenance, and Japanese test evidence live in
+provenance, settings, and Japanese test evidence live in the user-approved
+[PERFECT_THREE_POSE_PROMPTS.md](PERFECT_THREE_POSE_PROMPTS.md). Historical
+iterations remain in
 [BEST_TESTED_CHARACTER_PROMPTS.md](BEST_TESTED_CHARACTER_PROMPTS.md). This workflow
 creates review assets; it does not by itself create a switch-safe MuseTalk pose
 bank or a prepared WebRTC avatar.
@@ -34,67 +36,63 @@ roster or canonicalized by `ingest_portraits.py`; the runner prepares its own
 512×832 guide without stretching the portrait.
 
 ## 2. Select the tested prompt pack
+## 2. Select the approved prompt pack
 
-The Japanese talking and smiling clips from
-[`japanese_selected_native_three_pose_v3.json`](config/prompt_packs/japanese_selected_native_three_pose_v3.json)
-were accepted in review. **Its idle was rejected**: the repeated 81-frame
-cycle looks like head wobble and shows no perceptible shirt-level breathing.
-There is currently no approved Japanese idle or approved full three-pose
-pack. The [idle rerun record](JAPANESE_IDLE_SHALLOW_BREATH_RERUN_20260924.md)
-tracks replacement experiments. Its [v17 review clip](generated/portrait_pose_set_20260923/ltx/japanese_idle_breath_review_v4/README.md)
-is the strongest pending candidate, with two smaller chest movements and a
-steadier head, but needs normal-speed approval. The [v2 pack](config/prompt_packs/japanese_selected_native_three_pose_v2.json)
-also has a rejected idle with one deep inhale; neither pack is a shortcut to
-an accepted idle.
+The canonical Japanese pack is
+[japanese_fixed_distance_shared_anchor_v1.json](config/prompt_packs/japanese_fixed_distance_shared_anchor_v1.json).
+The user approved its idle, talking, and smiling trio as perfect after
+normal-speed review on 2026-09-25. Its exact wording, seeds, graph settings,
+hashes, and evidence are frozen in
+[PERFECT_THREE_POSE_PROMPTS.md](PERFECT_THREE_POSE_PROMPTS.md). Use the pack
+unchanged when reproducing that portrait.
 
-For a different character, copy the v3 pack to a new, versioned JSON
-file. Change identity words and pronouns deliberately while keeping one
-behavioral idea per pose. Treat its idle only as historical starting text and
-review every pose independently. Keep the original pack unchanged so the
-Japanese render manifest remains reproducible. Record every changed prompt,
-seed, and visual reason in the new character's review notes. Do not silently
-substitute the script's historical default pack for the selected one.
+For a different character, copy the approved pack to a new versioned JSON
+file. Change only identity words and pronouns required by the new portrait;
+keep the camera, distance, motion, breathing, expression, and negative-prompt
+clauses unchanged for the first run. Keep the approved seeds as starting
+seeds, then version any reroll instead of overwriting the approved pack.
+Record the prompt, seed, portrait hash, settings, and visual reason for each
+change. LTX is stochastic, so every new identity still needs normal-speed
+review before its output is labeled approved.
 
-## 3. Dry-run, then render the needed poses
+## 3. Dry-run, then render all three poses
 
-From `/workspace/MuseTalk` on the current machine:
+From /workspace/MuseTalk on the current machine:
 
-```bash
+~~~bash
 LTX_PY=/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/.venv/bin/python
 IMAGE=/workspace/MuseTalk/character_factory/generated/portrait_pose_set_20260923/japanese_woman.png
-PACK=/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_selected_native_three_pose_v3.json
-OUT=/workspace/MuseTalk/character_factory/generated/<character_id>/ltx/native_pose_review
+PACK=/workspace/MuseTalk/character_factory/config/prompt_packs/japanese_fixed_distance_shared_anchor_v1.json
+OUT=/workspace/MuseTalk/character_factory/generated/<character_id>/ltx/approved_recipe_review
 
 "$LTX_PY" character_factory/scripts/generate_three_pose_videos.py \
   --image "$IMAGE" --output-dir "$OUT" --prompt-pack "$PACK" \
-  --guide-fit center_crop --dry-run
+  --guide-fit center_crop --shared-anchor --dry-run
 
 "$LTX_PY" character_factory/scripts/generate_three_pose_videos.py \
   --image "$IMAGE" --output-dir "$OUT" --prompt-pack "$PACK" \
-  --guide-fit center_crop --poses talking smiling
-```
+  --guide-fit center_crop --shared-anchor
+~~~
 
-The full-pack dry run is a graph inspection only; the real example renders
-the two accepted pose prompts and deliberately excludes the rejected idle.
-For an idle experiment, use a separately versioned pack and output directory
-with `--poses idle`. Replace `<character_id>` and the image and pack paths for
-a new character.
+Replace <character_id> and the image and copied-pack paths for a new identity.
 The runner uses its configured low-VRAM ComfyUI environment and GPU lock. On a
-different machine, those paths in `generate_three_pose_videos.py` must be
-adapted before running. The dry run writes the prepared guide and three
-generation graphs. Inspect `graphs/*-generation.json` to confirm the exact
-portrait, prompts, seeds, 241-frame length, and guide indices `0` and `-1`.
+different machine, adapt those paths in generate_three_pose_videos.py before
+running. The dry run writes the prepared guide and three generation graphs.
+Inspect graphs/*-generation.json to confirm the exact portrait, prompts,
+seeds, 241-frame length, and guide indices 0 and -1.
 
-The real example emits `talking.mp4`, `smiling.mp4`, a `manifest.json`, contact
-sheets under `review/`, and generation/decode graphs. Each delivered clip is
-512×832, 24 fps, 241 frames (10.04 seconds), and silent. Talking and smiling
-are generated natively at 241 frames. A separate idle experiment produces
-`idle.mp4`; the historical v3 pack repeats an 81-frame cycle three times,
-but that result must not be accepted. The native graph uses the
-same portrait as both endpoint guides at strength 1, an eight-step Euler
-schedule, and 64/16 tiled VAE decode. The delivery encode verifies exact
-decoded first/last equality **within each clip**. It does not add a fade or
-crossfade. SoulX, Segmind, Prompt Relay, and NAG are not used.
+The real run emits idle.mp4, talking.mp4, smiling.mp4, native source videos, a
+manifest, contact sheets under review/, and generation/decode graphs. Each
+delivered clip is 512 x 832, 24 fps, 241 frames (10.04 seconds), and silent.
+All three are native 241-frame generations. The graph uses the same portrait
+as both endpoint guides at strength 1, an eight-step Euler schedule, CFG 1,
+and 64/16 temporal plus 256/64 spatial tiled VAE decode.
+
+The --shared-anchor packaging step installs the same prepared portrait at the
+first and last delivery frame of all three clips. It then decodes the encoded
+videos and requires the boundary pixels to match both within and across clips.
+It adds no fade or crossfade. SoulX, Segmind, Prompt Relay, NAG, MuseTalk, and
+WebRTC rendering are not used in these source videos.
 
 The `center_crop` guide fit is the current default. It fills the 512×832
 canvas with real portrait pixels, cropping a small amount from the top and
@@ -103,6 +101,11 @@ used `edge_pad`, which repeated the source's outermost pixel columns and
 produced visibly stretched shoulder edges. Use `--guide-fit edge_pad` only to
 replay one of those historical renders; its output guide has a different
 hash and must not be mixed with the new crop in one pose set.
+
+If a separate experimental workflow shows face ghosting or flicker, check its
+decode graph before changing the prompt. The [September 25 controlled test](LTX23_JAPANESE_FLICKER_VALIDATION_20260925.md)
+reproduced the problem with temporal `16/8` and improved the same saved latent
+at `64/16`. This runner already uses the corrected profile; preserve it.
 
 ## 4. Review motion and mouth behavior before accepting a clip
 
