@@ -18,6 +18,30 @@ a correct timestamp sequence, and passing tests do not by themselves prove that
 perceptual target. Source videos and received recordings remain reviewable.
 The feature is opt-in; a candidate atlas requires an explicit pilot setting.
 
+Current checkpoint: **212 CPU tests and 18 new received recordings pass automated verification**
+across Japanese, Indian and the fresh Latina candidate. All 4,779 saved video
+frames retain exact 50ms intervals. Thirty returns complete in 0.349–0.450 seconds;
+all three identities pass the explicit user-barge-in/assistant-abort/following-reply
+sequence. Fresh creation, packaging and API cache preparation were exercised in
+the preceding checkpoint. No bank is marked visually reviewed.
+
+Current evidence is [the v5 recording gallery](/workspace/experiments/multipose_validation_20260925_v5/review.html),
+[the v5 report](/workspace/experiments/multipose_validation_20260925_v5/README.md),
+and [the final CPU regression log](/workspace/experiments/multipose_validation_20260925_v5/final-regressions.log).
+The [transport audit](WEBRTC_MULTIPOSE_AUDIT_2026-09-25.md) explains the interruption,
+recorder and inherited-keyframe fixes. Raw idle no longer forces a keyframe on
+every frame; the measured detail drop at return-to-idle is removed in the
+instrumented comparison. **A separate texture change remains when the installed
+VP8 encoder recreates its context for bandwidth adaptation.** The tested
+in-place-bitrate shortcuts did not actually adapt and were rejected. Resolving
+that transport limitation and normal-speed perceptual acceptance remain open.
+
+The prior 15-recording checkpoint had clean received RTP but saved its 20Hz video
+on a 30Hz MP4 grid, creating approximately 33/67ms intervals. Those historical
+files now fail the stricter saved-file verifier. Keep them for comparison; use
+v5 for current playback evidence. Older sections below describe historical
+checkpoints and retained failures, not additional current validation.
+
 ## Tasks
 
 - [x] Keep the approved Japanese source trio and exact prompt pack unchanged.
@@ -50,9 +74,13 @@ The feature is opt-in; a candidate atlas requires an explicit pilot setting.
 - [x] Reproduce and fix the TorchVision/PyAV threaded decoder shutdown deadlock.
 - [x] Bound entry-worker and recorder-network waits; preserve failed-run evidence.
 - [x] Preserve contiguous persistent RTP at speech entry with bounded raw-body/silent-audio alignment.
-- [x] Repeat real receiver tests after entry, cancellation, native shutdown, and timestamp fixes.
+- [x] Repeat real receiver tests after entry, cancellation, native shutdown, and RTP timestamp fixes (prior 15-recording checkpoint).
+- [x] Add CPU-tested recorder cadence/origin correction and preserve the reserved assistant turn ID when user speech begins.
+- [x] Repeat live receiver recordings with the corrected recorder and actual user-speech/assistant-abort barge-in sequence.
+- [x] Diagnose inherited idle keyframe flags and remove the return-specific image-detail drop.
+- [ ] Implement and validate native bitrate adaptation that avoids encoder recreation without disabling bandwidth response.
 - [x] Validate the accepted Indian identity with 241/289/145-frame clips alongside Japanese.
-- [ ] Exercise a fresh portrait through rendering, packaging, cache preparation, and received playback.
+- [x] Exercise a fresh portrait through rendering, packaging, cache preparation, and received playback.
 - [ ] Obtain normal-speed visual acceptance of the transition recordings before marking a bank `reviewed`.
 
 ## Files and responsibilities
@@ -215,19 +243,38 @@ accepted banks. Do not hand-edit status in an indexed atlas or promote a bank
 solely because automated diagnostics pass.
 
 The app uses its existing persistent session/offer flow. At session creation,
-set `avatar_id` to the package's neutral avatar ID and `pose_set` to the JSON
-from `session-pose-set.json`. Send TTS WAV data to
+set `avatar_id` to the package's neutral avatar ID, `pose_set` to the JSON
+from `session-pose-set.json`, and the separate session-create query parameter
+`pose_switch_mode=next_boundary`. The API defaults that query parameter to
+`immediate` and rejects a pose set unless `next_boundary` is explicit; the
+`switch_mode` field inside the JSON does not replace this query parameter. Send TTS WAV data to
 `POST /webrtc/sessions/{session_id}/stream` with a unique `turn_id`, increasing
 `seq`, `pose_id=speaking_direct`, `mouth_mode=lip_sync`,
 `audio_start=immediate`, and `effective=next_boundary`. Body routing happens
 internally; a client does not need to cut videos itself.
 
+Enable `WEBRTC_SHARED_GPU_SCHEDULER=1` for this integration. The baseline uses
+its enabled default; a disabled or unavailable shared scheduler makes v2
+`pose_plan` stream requests fail with HTTP 409. `pose_protocol.supported=true`
+only confirms the six-semantic-pose protocol is enabled. It does not confirm that
+a matched-motion atlas was activated. Check session status
+`track_stats.video.motion.enabled`, then compare
+`track_stats.video.motion.bank.sources[pose_id].sha256` and
+`track_stats.video.motion.bank.routing_sha256` with the intended package.
+A missing motion status or mismatched hash is not the requested multipose setup.
+
 For smiling during known speech, use a v2 audio-progress plan with, for example,
 `0: speaking_direct`, `350: light_smile`, `650: speaking_direct` in permille.
 Set `on_complete=neutral_resting`. To interrupt, send
 `POST /webrtc/sessions/{session_id}/events` with
-`event=assistant_turn_aborted`, the current turn ID, and a newer sequence number.
-A wrong-turn or stale event cannot cancel a newer utterance. Already buffered
+`event=assistant_turn_aborted`, the **currently active assistant turn ID**, and a
+newer sequence number. During barge-in, the client keeps the newer user turn ID
+separately: `user_speech_started` uses that user ID, while the abort still targets
+the assistant whose audio is playing. Do not replace the abort target with the
+new user's ID. The current ownership fix keeps the reserved assistant ID through
+that user-speech event; stale or wrong-assistant aborts cannot cancel a newer
+assistant utterance. The v5 live recordings verify this sequence on all three
+characters, including preservation of user speech through the assistant abort. Already buffered
 receiver audio cannot be retracted; server cancellation stops unsent audio.
 
 The mobile application's repository is not present on this host. These API
@@ -237,26 +284,34 @@ contracts are exercised by a real aiortc receiver, rather than a mocked mobile U
 
 ```bash
 /workspace/.venvs/musetalk_trt_stagewise/bin/python -m unittest \
-  test_motion_transitions test_motion_registry test_webrtc_pose_router \
+  test_motion_transitions test_motion_registry test_motion_entry \
+  test_motion_recording_entry test_character_factory_realtime \
+  test_character_recorded_review test_three_pose_source_assembly \
+  test_webrtc_stream_setup_cancellation test_webrtc_pose_router \
   test_webrtc_pose_runtime test_webrtc_pose_crossfade test_pose_protocol \
   test_webrtc_av_sync test_webrtc_audio_timeline \
-  test_pose_webrtc_recording_timestamps test_pose_webrtc_semantic_timing -q
+  test_pose_webrtc_recording_timestamps test_pose_webrtc_semantic_timing \
+  test_idle_video_decoder_lifecycle test_runtime_av_logging \
+  test_ltx_interior_guides test_webrtc_pose_lab test_motion_evidence_review \
+  test_webrtc_video_picture_type test_motion_recording_cleanup -q
 
 /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/test_webrtc_motion_transitions.py \
   --asset-dir /workspace/experiments/japanese_ltx_fixed_distance_20260925 \
   --audio-dir /workspace/experiments/japanese_multipose_20260925/audio \
   --pose-set /workspace/experiments/realtime_characters/japanese_20260925/pose-set.json \
-  --output /workspace/experiments/japanese_multipose_20260925
+  --output /workspace/experiments/multipose_manual_review_20260925
 ```
 
-Run again with `--case edge-cases` for threshold/silence/bridge interruption/
+Use a fresh output directory for each validation revision. Add `--case barge-in`
+to test new user speech during an assistant reply, cancellation, and the following
+reply. Run again with `--case edge-cases` for threshold/silence/bridge interruption/
 loop playback; add `--legacy --case short-idle` with a separate output directory
 to test requests without a v2 pose plan. The harness asserts the observed body
 poses and preserves the receiver's audio/video timestamps. Evidence must name
 the source bank and retain its hash; no post-render smoothing or dubbed audio
 is used to improve the live recording.
 
-Evidence directory: `/workspace/experiments/japanese_multipose_20260925`.
+Historical first-checkpoint evidence directory: `/workspace/experiments/japanese_multipose_20260925`.
 [Final metrics and video links](/workspace/experiments/japanese_multipose_20260925/README.md)
 are saved alongside the recordings. The durable
 [verification summary](multipose_ltx_musetalk_validation_2026-09-25.json) records
@@ -347,7 +402,7 @@ advances naturally. Reconciliation is limited to half a second and cannot consum
 a phoneme or release audio early. Cancellation during this interval belongs to
 the original turn and does not disturb the next turn.
 
-The full affected CPU suite now contains 157 passing tests. Current received
+At the v4 checkpoint, the affected CPU suite contained 157 passing tests. Those received
 verification runs are isolated under
 `/workspace/experiments/multipose_validation_20260925_v4`; previous failed native,
 CPU-affinity, and RTP-gap runs remain in v2/v3. The transport audit has not been
@@ -401,3 +456,25 @@ long talking/smiling, interruption plus following turn), with four returns in
 source/video hashes and the normal-speed review gallery. Total retained passing
 receiver evidence is now 15 recordings across three characters. Review of visual
 smoothness and the candidate's seven brief idle blinks remains pending.
+
+
+## Current v5 transport and interruption checkpoint
+
+The v5 gallery contains 18 recordings across three characters, including three
+explicit barge-ins, an entry-interruption repeat and a legacy request. The
+verifier decodes the saved MP4 and compares its frame count to the receiver;
+all 4,779 video frames retain exact 50ms spacing. All 30 returns finish within
+0.349–0.450 seconds. The test server has been stopped and its GPU released.
+
+`RTPMP4Recorder` configures the actual video rate, a 1/90000 video time base,
+and a 1/720000 MP4 movie time base. Tests cover actual mux/decode behavior,
+independent audio/video origins, and resource cleanup after setup failures.
+The ownership checks prove that a new user turn does not replace the cancellable
+assistant ID; a correctly targeted abort preserves user speech and the following
+reply begins at generation frame zero.
+
+The inherited-I-frame fix removes the observed return-specific detail drop.
+Encoder recreation during bitrate adaptation still produces a separate texture
+change. See [the transport audit](WEBRTC_MULTIPOSE_AUDIT_2026-09-25.md) for the
+instrumented comparison, rejected adaptation shortcuts, remaining codec limits,
+and current CPU test evidence. Normal-speed visual review remains pending.

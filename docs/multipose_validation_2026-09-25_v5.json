@@ -1,0 +1,740 @@
+{
+  "version": 1,
+  "created_utc": "2026-09-25T14:08:07.485245+00:00",
+  "automated_validation_passed": true,
+  "visual_acceptance": "pending",
+  "job_count": 12,
+  "recording_count": 18,
+  "identities": [
+    "japanese",
+    "indian",
+    "latina"
+  ],
+  "return_count": 30,
+  "return_seconds_min": 0.34924774104729295,
+  "return_seconds_max": 0.4498066430678591,
+  "return_limit_seconds": 0.5,
+  "all_saved_video_cadence_validated": true,
+  "fps": 20,
+  "max_saved_frame_error_seconds": 0.0,
+  "max_saved_origin_error_seconds": 0.0,
+  "receiver_timestamp_anomalies": 0,
+  "barge_in_identity_count": 3,
+  "barge_in_ownership_proofs": [
+    {
+      "identity": "japanese",
+      "assistant_turn_id": "barge-in_0_1790344801",
+      "user_turn_id": "barge-in_0_1790344801_new_user",
+      "following_turn_id": "barge-in_1_1790344806",
+      "interrupted_request_id": "japanese_realtime_idle_41f91fd081_webrtc_69fe1afe",
+      "following_request_id": "japanese_realtime_idle_41f91fd081_webrtc_0f04b513",
+      "events_seq": [
+        1,
+        2,
+        3,
+        4,
+        11
+      ],
+      "return_anchor_output_frame": 97,
+      "following_first_live_output_frame": 129,
+      "following_first_live_generation_frame": 0
+    },
+    {
+      "identity": "indian",
+      "assistant_turn_id": "barge-in_0_1790344813",
+      "user_turn_id": "barge-in_0_1790344813_new_user",
+      "following_turn_id": "barge-in_1_1790344817",
+      "interrupted_request_id": "indian_realtime_idle_099877cef2_webrtc_e7c8e61d",
+      "following_request_id": "indian_realtime_idle_099877cef2_webrtc_247dba35",
+      "events_seq": [
+        1,
+        2,
+        3,
+        4,
+        11
+      ],
+      "return_anchor_output_frame": 98,
+      "following_first_live_output_frame": 131,
+      "following_first_live_generation_frame": 0
+    },
+    {
+      "identity": "latina",
+      "assistant_turn_id": "barge-in_0_1790344825",
+      "user_turn_id": "barge-in_0_1790344825_new_user",
+      "following_turn_id": "barge-in_1_1790344829",
+      "interrupted_request_id": "latina_guided_20260925_idle_ee675cb4fd_webrtc_3a998106",
+      "following_request_id": "latina_guided_20260925_idle_ee675cb4fd_webrtc_93d555ff",
+      "events_seq": [
+        1,
+        2,
+        3,
+        4,
+        11
+      ],
+      "return_anchor_output_frame": 97,
+      "following_first_live_output_frame": 130,
+      "following_first_live_generation_frame": 0
+    }
+  ],
+  "groups": {
+    "japanese": {
+      "label": "Japanese",
+      "gallery": "japanese/review.html",
+      "verification": "japanese/verification.json",
+      "recording_count": 8,
+      "return_count": 15,
+      "max_return_seconds": 0.39969442307483405
+    },
+    "indian": {
+      "label": "Indian",
+      "gallery": "indian/review.html",
+      "verification": "indian/verification.json",
+      "recording_count": 4,
+      "return_count": 6,
+      "max_return_seconds": 0.4498066430678591
+    },
+    "latina": {
+      "label": "Latina with interior guides",
+      "gallery": "latina/review.html",
+      "verification": "latina/verification.json",
+      "recording_count": 4,
+      "return_count": 6,
+      "max_return_seconds": 0.3991987280314788
+    },
+    "entry-repeat": {
+      "label": "Repeated entry interruption",
+      "gallery": "entry-repeat/review.html",
+      "verification": "entry-repeat/verification.json",
+      "recording_count": 1,
+      "return_count": 2,
+      "max_return_seconds": 0.4001686670817435
+    },
+    "legacy": {
+      "label": "Legacy request",
+      "gallery": "legacy/review.html",
+      "verification": "legacy/verification.json",
+      "recording_count": 1,
+      "return_count": 1,
+      "max_return_seconds": 0.3998186190146953
+    }
+  },
+  "recordings": [
+    {
+      "identity": "japanese",
+      "case": "barge-in",
+      "video": "japanese/barge-in.mp4",
+      "video_sha256": "231a2a2842d2d83ac4db56490a198bb0817c2c309a3f7229c65b12d8adefc0fd",
+      "evidence": "japanese/barge-in.json",
+      "evidence_sha256": "04d2a8fa14e76fcc6ec54db21a923b4ad29596d31b9b704807461672d999d674",
+      "duration_seconds": 10.9827,
+      "video_frames": 218,
+      "audio_frames": 542,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.3952196459285915,
+        0.39878263499122113
+      ],
+      "return_count": 2,
+      "max_return_seconds": 0.39878263499122113,
+      "entry_count": 2,
+      "entry_statuses": [
+        "completed",
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": true
+    },
+    {
+      "identity": "japanese",
+      "case": "edge-cases",
+      "video": "japanese/edge-cases.mp4",
+      "video_sha256": "eb6f69879fc415ec88ddcb31eda89938d00b5b93ef059103e41a91d8fc0c3b0d",
+      "evidence": "japanese/edge-cases.json",
+      "evidence_sha256": "7609dcdd0cbdcdca650bfbffb38d820ee32556488a7f462c8cb5ebc9e4a88e8a",
+      "duration_seconds": 41.883767,
+      "video_frames": 836,
+      "audio_frames": 2088,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.39938494202215225,
+        0.39969442307483405,
+        0.355366816977039,
+        0.3992032570531592,
+        0.34924774104729295
+      ],
+      "return_count": 5,
+      "max_return_seconds": 0.39969442307483405,
+      "entry_count": 5,
+      "entry_statuses": [
+        "completed",
+        "completed",
+        "completed",
+        "completed",
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "japanese",
+      "case": "entry-interruption",
+      "video": "japanese/entry-interruption.mp4",
+      "video_sha256": "26cad402e5b5e24ea4065f2bd8c3561624b87f0e50d874924097245c206d9087",
+      "evidence": "japanese/entry-interruption.json",
+      "evidence_sha256": "b748d91885b93b3d2bcaf262d851ef0dc79aef3c4b3b232e1f481ca737c10742",
+      "duration_seconds": 8.131789,
+      "video_frames": 161,
+      "audio_frames": 401,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.36798382306005806,
+        0.34925272094551474
+      ],
+      "return_count": 2,
+      "max_return_seconds": 0.36798382306005806,
+      "entry_count": 2,
+      "entry_statuses": [
+        "cancelled",
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "japanese",
+      "case": "interrupted-and-next-turn",
+      "video": "japanese/interrupted-and-next-turn.mp4",
+      "video_sha256": "e1d716a4419ad5a3ec8332956dc88da9035b6865113ce22b063b861584c465ce",
+      "evidence": "japanese/interrupted-and-next-turn.json",
+      "evidence_sha256": "206678dace3ca403685d16db5ffb28baf38b9e6953af7ffaa515bef848515456",
+      "duration_seconds": 10.929922,
+      "video_frames": 217,
+      "audio_frames": 541,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.3990756790153682,
+        0.39961208193562925
+      ],
+      "return_count": 2,
+      "max_return_seconds": 0.39961208193562925,
+      "entry_count": 2,
+      "entry_statuses": [
+        "completed",
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "japanese",
+      "case": "late-smile",
+      "video": "japanese/late-smile.mp4",
+      "video_sha256": "292586bc69005a92e916a6dbad9c2dfcc72fa7e296077bd72cf9546693cf386b",
+      "evidence": "japanese/late-smile.json",
+      "evidence_sha256": "af72444a200939fcd1aaad037d480250c1599b13c57db00296f882ff4e0de00f",
+      "duration_seconds": 15.932944,
+      "video_frames": 317,
+      "audio_frames": 791,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.3495211290428415
+      ],
+      "return_count": 1,
+      "max_return_seconds": 0.3495211290428415,
+      "entry_count": 1,
+      "entry_statuses": [
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "japanese",
+      "case": "long-talking-smiling",
+      "video": "japanese/long-talking-smiling.mp4",
+      "video_sha256": "5a0865f0f2e340a90c312c71da3400710b70219c9da4ce50c5f106a3e9a1fef8",
+      "evidence": "japanese/long-talking-smiling.json",
+      "evidence_sha256": "43e7fd462c6dd6eceecb84547fff90b48141d88207a5aefe46673ff2be8c526d",
+      "duration_seconds": 15.980433,
+      "video_frames": 318,
+      "audio_frames": 792,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.34952735202386975
+      ],
+      "return_count": 1,
+      "max_return_seconds": 0.34952735202386975,
+      "entry_count": 1,
+      "entry_statuses": [
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "japanese",
+      "case": "reactive-start",
+      "video": "japanese/reactive-start.mp4",
+      "video_sha256": "b678ca26595a2d5cdd3593144c058ebfc9ad588c1c3737171fa68067bfcb97dd",
+      "evidence": "japanese/reactive-start.json",
+      "evidence_sha256": "005d1f72c1f05fa87d0e3e232481c05f54f1d166ef5dbe642a8b023c58b2999c",
+      "duration_seconds": 25.183744,
+      "video_frames": 502,
+      "audio_frames": 1251,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.39918121800292283
+      ],
+      "return_count": 1,
+      "max_return_seconds": 0.39918121800292283,
+      "entry_count": 1,
+      "entry_statuses": [
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "japanese",
+      "case": "short-idle",
+      "video": "japanese/short-idle.mp4",
+      "video_sha256": "76a4d21b556d31afe10ee37f88ab42496088a4aa8054a2c18f6f5b52ba319938",
+      "evidence": "japanese/short-idle.json",
+      "evidence_sha256": "18fbb5af4784845926fa1bfba7856214ad4fffd068f5c2cee4957354a17ba403",
+      "duration_seconds": 6.6828,
+      "video_frames": 132,
+      "audio_frames": 328,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.39926364400889724
+      ],
+      "return_count": 1,
+      "max_return_seconds": 0.39926364400889724,
+      "entry_count": 1,
+      "entry_statuses": [
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "indian",
+      "case": "barge-in",
+      "video": "indian/barge-in.mp4",
+      "video_sha256": "852b1cbc46d1351e1d85b0b363caa1a9136c703fc0d26a76775c6cd293e86ef0",
+      "evidence": "indian/barge-in.json",
+      "evidence_sha256": "1ef014489cdf20084c592b5ef3e76b394ed8f048741fd2d0989f9b934aeab456",
+      "duration_seconds": 11.235678,
+      "video_frames": 223,
+      "audio_frames": 555,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.3979382149409503,
+        0.4491964599583298
+      ],
+      "return_count": 2,
+      "max_return_seconds": 0.4491964599583298,
+      "entry_count": 2,
+      "entry_statuses": [
+        "completed",
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": true
+    },
+    {
+      "identity": "indian",
+      "case": "interrupted-and-next-turn",
+      "video": "indian/interrupted-and-next-turn.mp4",
+      "video_sha256": "8af6d50bf41c17d367a44923454268fd33e07823345f22951f32a8c519637aba",
+      "evidence": "indian/interrupted-and-next-turn.json",
+      "evidence_sha256": "f8c697592cfcfdeaa6be91edaa9173c94fc9cb73b5af94a4c8a181b5839c6f33",
+      "duration_seconds": 10.983611,
+      "video_frames": 218,
+      "audio_frames": 542,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.4038585500093177,
+        0.4498066430678591
+      ],
+      "return_count": 2,
+      "max_return_seconds": 0.4498066430678591,
+      "entry_count": 2,
+      "entry_statuses": [
+        "completed",
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "indian",
+      "case": "long-talking-smiling",
+      "video": "indian/long-talking-smiling.mp4",
+      "video_sha256": "97c59013eb5d8c5bb6ffa614e7921813648fe73b848ade4ece5888d00dc73f9a",
+      "evidence": "indian/long-talking-smiling.json",
+      "evidence_sha256": "418f7e4539aeeb76b73c70dbedc6e0e3a1e032c87fb1e6cf880ad4fb8e5a20b7",
+      "duration_seconds": 16.234511,
+      "video_frames": 323,
+      "audio_frames": 804,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.4488352579064667
+      ],
+      "return_count": 1,
+      "max_return_seconds": 0.4488352579064667,
+      "entry_count": 1,
+      "entry_statuses": [
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "indian",
+      "case": "short-idle",
+      "video": "indian/short-idle.mp4",
+      "video_sha256": "fda8c58a5764ea08e289b295de2557c133374d568efe0e93c344f70c09ff10bb",
+      "evidence": "indian/short-idle.json",
+      "evidence_sha256": "611bbd2319b42b05142b581493f666c15ed0b15e5b6b3f56b80bd9c1ae63a56b",
+      "duration_seconds": 6.893896,
+      "video_frames": 136,
+      "audio_frames": 339,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.399267669999972
+      ],
+      "return_count": 1,
+      "max_return_seconds": 0.399267669999972,
+      "entry_count": 1,
+      "entry_statuses": [
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "latina",
+      "case": "barge-in",
+      "video": "latina/barge-in.mp4",
+      "video_sha256": "50a4d69f65c6d47dff85be2a405f43a8fb1de38b7a6262871cc8c1406fb7c344",
+      "evidence": "latina/barge-in.json",
+      "evidence_sha256": "00308467ff273a4d7fd804cfbc59f98f0eb5e7294b6509f739c58b3ffceeaaa6",
+      "duration_seconds": 10.984111,
+      "video_frames": 218,
+      "audio_frames": 542,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.39043104893062264,
+        0.39915281999856234
+      ],
+      "return_count": 2,
+      "max_return_seconds": 0.39915281999856234,
+      "entry_count": 2,
+      "entry_statuses": [
+        "completed",
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": true
+    },
+    {
+      "identity": "latina",
+      "case": "interrupted-and-next-turn",
+      "video": "latina/interrupted-and-next-turn.mp4",
+      "video_sha256": "65ba33ba2cdbdfa9d30c9cac1f7a1f1b2ed5c1c707b22116880fe06433e44387",
+      "evidence": "latina/interrupted-and-next-turn.json",
+      "evidence_sha256": "512e44001cbb40e214385926c24e4e7d80e029b9a6999d66f152c49d86ffb740",
+      "duration_seconds": 10.930733,
+      "video_frames": 217,
+      "audio_frames": 540,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.37208274204749614,
+        0.3989827139303088
+      ],
+      "return_count": 2,
+      "max_return_seconds": 0.3989827139303088,
+      "entry_count": 2,
+      "entry_statuses": [
+        "completed",
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "latina",
+      "case": "long-talking-smiling",
+      "video": "latina/long-talking-smiling.mp4",
+      "video_sha256": "4d2e75a132343ee4a953e76846a441ec5ed0b96b5124352e5df3e35ed676513b",
+      "evidence": "latina/long-talking-smiling.json",
+      "evidence_sha256": "0375da7a5dad87c32c101211ec4fb718e37ed9c0b45b195ee0456bd4b0d339ba",
+      "duration_seconds": 15.981778,
+      "video_frames": 318,
+      "audio_frames": 791,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.3499566400423646
+      ],
+      "return_count": 1,
+      "max_return_seconds": 0.3499566400423646,
+      "entry_count": 1,
+      "entry_statuses": [
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "latina",
+      "case": "short-idle",
+      "video": "latina/short-idle.mp4",
+      "video_sha256": "17eb6870f72d503a4c1b0874350a26b1079f4284575db4d1e67d0d3622800ca2",
+      "evidence": "latina/short-idle.json",
+      "evidence_sha256": "e322774bf49b482da8368ab3147633f2916a715059bd16809b07e43031818c42",
+      "duration_seconds": 6.682722,
+      "video_frames": 132,
+      "audio_frames": 327,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.3991987280314788
+      ],
+      "return_count": 1,
+      "max_return_seconds": 0.3991987280314788,
+      "entry_count": 1,
+      "entry_statuses": [
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "entry-repeat",
+      "case": "entry-interruption",
+      "video": "entry-repeat/entry-interruption.mp4",
+      "video_sha256": "0a275374177252c3cb5f8e18e02fdd361c349c0e5dc13d895a3cdb3e85d871f0",
+      "evidence": "entry-repeat/entry-interruption.json",
+      "evidence_sha256": "3163c97c7ac88dbc3d1cd332e373a8702c291424e3a9a458217e5e3a6286f910",
+      "duration_seconds": 8.132644,
+      "video_frames": 161,
+      "audio_frames": 399,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.3676561969332397,
+        0.4001686670817435
+      ],
+      "return_count": 2,
+      "max_return_seconds": 0.4001686670817435,
+      "entry_count": 2,
+      "entry_statuses": [
+        "cancelled",
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    },
+    {
+      "identity": "legacy",
+      "case": "short-idle",
+      "video": "legacy/short-idle.mp4",
+      "video_sha256": "9b45531a5deaefc52b1d16a45ce929350fe10644d6e630f72e061f129bfb5484",
+      "evidence": "legacy/short-idle.json",
+      "evidence_sha256": "40f302a29261fd97ccc835e67b6954ca46075178e07b0956ba92aef933f07e66",
+      "duration_seconds": 6.6831,
+      "video_frames": 132,
+      "audio_frames": 328,
+      "fps": 20,
+      "saved_min_frame_seconds": 0.05,
+      "saved_max_frame_seconds": 0.05,
+      "saved_max_frame_error_seconds": 0.0,
+      "saved_origin_error_seconds": 0.0,
+      "receiver_timestamp_anomalies": 0,
+      "return_seconds": [
+        0.3998186190146953
+      ],
+      "return_count": 1,
+      "max_return_seconds": 0.3998186190146953,
+      "entry_count": 1,
+      "entry_statuses": [
+        "completed"
+      ],
+      "queue_underruns": 0,
+      "barge_in_ownership_verified": false
+    }
+  ],
+  "source_hashes": {
+    "japanese": {
+      "neutral_resting": "41f91fd0816ed8002b677112d501522e41dc56b37832c26730205c0d6ffc6a9c",
+      "speaking_direct": "7d94520b7fe776313b2ea80815876116305b198280e5a73672ba20bc47a0e278",
+      "light_smile": "f682b41267d3f79c1d70ed9e44c220f8dd0d6f32529c43e0a1f67275ee881d91"
+    },
+    "indian": {
+      "neutral_resting": "099877cef231ce12dede03843c558d10c2fa1e9c4e054c83be595e81a00f6ae4",
+      "speaking_direct": "20f98455436b4f6f77525edc89a2c89495b67c15b710cd1332ec0e783e6670e0",
+      "light_smile": "55561a4f0bb7e5e7ea1a5598ceb6e36b5f579239958fd25a27bccda3bc1a2ed6"
+    },
+    "latina": {
+      "neutral_resting": "ee675cb4fdc230f1a67f995d3a22975c1954b0238b8c34a57827eec23379a14c",
+      "speaking_direct": "84c5bc80b858c864e5a4578f19eb37c66da4041de0ffe07d8b1e22f6d808bae0",
+      "light_smile": "a28498e05356de4eba8e770ca85483db33bd5e4266491ae3c9586dc9624a12c9"
+    },
+    "entry-repeat": {
+      "neutral_resting": "41f91fd0816ed8002b677112d501522e41dc56b37832c26730205c0d6ffc6a9c",
+      "speaking_direct": "7d94520b7fe776313b2ea80815876116305b198280e5a73672ba20bc47a0e278",
+      "light_smile": "f682b41267d3f79c1d70ed9e44c220f8dd0d6f32529c43e0a1f67275ee881d91"
+    },
+    "legacy": {
+      "neutral_resting": "41f91fd0816ed8002b677112d501522e41dc56b37832c26730205c0d6ffc6a9c",
+      "speaking_direct": "7d94520b7fe776313b2ea80815876116305b198280e5a73672ba20bc47a0e278",
+      "light_smile": "f682b41267d3f79c1d70ed9e44c220f8dd0d6f32529c43e0a1f67275ee881d91"
+    }
+  },
+  "atlases": {
+    "japanese": {
+      "file": "/workspace/experiments/realtime_characters/japanese_20260925/motion-atlas.json",
+      "sha256": "fa3baec02ef395122ff7d69f221bc487d41528d2841e84879cd78e5d6e29d00e",
+      "routing_sha256": "a3ac4767c0170f3d445bb2abfeaa480ff458f96405cd535afad179a223c32f71"
+    },
+    "indian": {
+      "file": "/workspace/experiments/realtime_characters/indian_20260925/motion-atlas.json",
+      "sha256": "650e97e294afe1b46d6cbb3c51d05a0d498cd9c542d43ac3b9f5d7fba824837c",
+      "routing_sha256": "6340e7beb1b79a737703868304e9c58b49dc11293b485863d3f099cddaf34707"
+    },
+    "latina": {
+      "file": "/workspace/experiments/realtime_characters/latina_guided_20260925/motion-atlas.json",
+      "sha256": "9b5ed0f66e1ff2073128df5cca419606b70ab1c1a7db83a25c8efe7f173dd775",
+      "routing_sha256": "e8f8b2de6a110aff5f908fe2e87dcd697143666359df3637b4ed099cd73ea3c0"
+    },
+    "entry-repeat": {
+      "file": "/workspace/experiments/realtime_characters/japanese_20260925/motion-atlas.json",
+      "sha256": "fa3baec02ef395122ff7d69f221bc487d41528d2841e84879cd78e5d6e29d00e",
+      "routing_sha256": "a3ac4767c0170f3d445bb2abfeaa480ff458f96405cd535afad179a223c32f71"
+    },
+    "legacy": {
+      "file": "/workspace/experiments/realtime_characters/japanese_20260925/motion-atlas.json",
+      "sha256": "fa3baec02ef395122ff7d69f221bc487d41528d2841e84879cd78e5d6e29d00e",
+      "routing_sha256": "a3ac4767c0170f3d445bb2abfeaa480ff458f96405cd535afad179a223c32f71"
+    }
+  },
+  "verification_sha256": {
+    "japanese": "c9c55bd10cc850e0bc30eaade95adda671ea518b0631e661a886da7738bbee59",
+    "indian": "78d8df8bf4ef5059b0c86dc1f2ce03b25b01d49ec621bbd906311755332971e7",
+    "latina": "943be87781b32e59d6595ab771e4736eb0f65f6234dd21c9d5158d58170026e0",
+    "entry-repeat": "df7d856b38dcfa8f6fcf6b4e529476170973015d4f1eccf9b17c7aa4b543418e",
+    "legacy": "ae58cb3b098bc006dc3a722d6943b32db0d55f61c20f34d758064d87597998e7"
+  },
+  "cpu_tests": {
+    "count": 212,
+    "seconds": 9.941,
+    "log": "final-regressions.log",
+    "sha256": "217afdfbdcea153bc835b2dbc7685f1f0cd76d2ebb4bdf1da59a4da345403bd3"
+  },
+  "run_inputs_sha256": {
+    "live-jobs.json": "4daea1570c5245d40d8bed06c0d61da564a3531e66fddfbc89c582b82df9167e",
+    "run-live-validation.py": "a439084c74ec151278ea8df42fc9900f47cd308ad931a8e134a40561f5576ca5",
+    "verify-live-validation.py": "b864930efbd2c55b78ab9a0391646baca522cd35a881d88a53595606e1625791",
+    "aggregate_live_evidence.py": "9c2581126fa3b1cbeeae48901b83e233da28d012be37c96c8f32d6b398ad3e0b"
+  },
+  "limitations": [
+    "Normal-speed visual acceptance remains pending; no bank approved.",
+    "Outbound picture-type normalization fixes the observed return-specific detail drop; a separate VP8 bitrate-reconfiguration texture change remains.",
+    "Single-GPU sequential-session validation does not establish concurrent capacity.",
+    "The return bound has limited margin in some cases; no threshold was relaxed."
+  ],
+  "evidence_root": "/workspace/experiments/multipose_validation_20260925_v5",
+  "aggregate_sha256": "a9b38b9852f988ed3bfcc9b94c6b7966d9aa3493be055f53660096021aee45f3",
+  "implementation_sha256": {
+    "scripts/webrtc_manager.py": "2308da6965c77fbfb79f372f9f7906c05a418020c10b70f76b1746b70d4d1d85",
+    "scripts/webrtc_tracks.py": "e5b7f3516e3453225a8d1afc9c1fffc5c51ad5c1efa37c437121349a669fb03b",
+    "scripts/test_pose_webrtc.py": "355ca43cb01af16d715251d1c377416656c80ab247fc32f95323f957c376fb51",
+    "scripts/test_webrtc_motion_transitions.py": "93c94b988d2d366c172f56b98913fa45d751ace611f26ee437eaeaecad288818",
+    "scripts/review_motion_evidence.py": "855cbf44c438f809fbbc591fe74eacef11b5ed88da257748e05c8ac89b6b81c1",
+    "templates/webrtc_pose_lab.py": "46e7ff2bc0208c0f64fd0763d23ae2f2ac8365c29f7b1a429086cc050e6a1249"
+  }
+}

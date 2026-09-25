@@ -450,9 +450,20 @@ def get_webrtc_pose_lab_html(
     if (event === "user_speech_started") {
       turnId = `pose_lab_${Date.now()}_${seq + 1}`;
     }
+    let eventTurnId = ensureTurn();
+    if (event === "assistant_turn_aborted") {
+      // A barge-in starts a new user turn while the previous reply still owns
+      // the stream. Target that reply, not the newly created user turn.
+      const current = await request(`/webrtc/sessions/${sessionId}/status`);
+      const activeTurnId = current.pose_protocol && current.pose_protocol.active_turn_id;
+      if (current.active_stream && !activeTurnId) {
+        throw new Error("Active reply has no turn ID; refresh status before aborting.");
+      }
+      eventTurnId = activeTurnId || eventTurnId;
+    }
     const payload = {
       event,
-      turn_id: ensureTurn(),
+      turn_id: eventTurnId,
       seq: nextSequence(),
     };
     if (event === "assistant_reaction_ready") payload.reaction_intent = reactionIntent || "none";
@@ -463,7 +474,9 @@ def get_webrtc_pose_lab_html(
     });
     applyPoseStatus(body);
     log(`event ${event}`, body);
-    if (event === "assistant_turn_aborted") turnId = null;
+    if (event === "assistant_turn_aborted" && body.accepted && turnId === eventTurnId) {
+      turnId = null;
+    }
     return body;
   }
 

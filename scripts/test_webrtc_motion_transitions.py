@@ -109,7 +109,7 @@ async def record_case(http, args, poses, case, turns):
         action="create motion session", timeout_seconds=30)
     sid = created["session_id"]
     pc = helper.RTCPeerConnection(configuration=helper.build_rtc_configuration_from_payload(created.get("ice_servers") or []))
-    recorder = helper.MediaRecorder(str(args.output / f"{case}.mp4"))
+    recorder = None
     clock, wrappers = helper.SharedRecordingClock(), {}
     connected, failed = asyncio.Event(), asyncio.Event()
     evidence = {"session_id": sid, "case": case, "fps": args.fps, "turns": [], "statuses": []}
@@ -149,15 +149,15 @@ async def record_case(http, args, poses, case, turns):
                 if found: return found
         return None
 
-    started = False
     try:
+        recorder = helper.RTPMP4Recorder(
+            str(args.output / f"{case}.mp4"), video_fps=args.fps)
         pc.addTransceiver("video", direction="recvonly")
         pc.addTransceiver("audio", direction="recvonly")
         await asyncio.wait_for(helper.exchange_offer(http=http, base_url=args.base_url, session_id=sid,
             pc=pc, metrics=helper.SessionMetrics(session_id=sid), ice_gather_timeout_s=10), timeout=45)
         clock.start()
         await recorder.start()
-        started = True
         if not await helper.wait_for_peer_connection(pc=pc, connected_event=connected,
                 failed_event=failed, timeout_s=60):
             raise RuntimeError("WebRTC connection failed")
@@ -238,11 +238,28 @@ async def record_case(http, args, poses, case, turns):
                     if entry_interrupt:
                         turn["entry_abort_proof"] = validate_entry_abort_candidate(
                             current, current_motion, turn["first_possible_output_frame"])
+                    abort_seq = index*10+2
+                    if case == "barge-in":
+                        user_turn_id = turn_id+"_new_user"
+                        turn["barge_in"] = {"user_turn_id": user_turn_id,
+                            "started": await request_json(http, "POST",
+                                f"{args.base_url}/webrtc/sessions/{sid}/events",
+                                json={"event": "user_speech_started", "seq": abort_seq,
+                                      "turn_id": user_turn_id},
+                                action="start user barge-in", timeout_seconds=CONTROL_TIMEOUT_SECONDS)}
+                        assert turn["barge_in"]["started"].get("accepted"), turn["barge_in"]
+                        owner = await status()
+                        turn["barge_in"]["status_before_abort"] = owner
+                        protocol = owner["pose_protocol"]
+                        assert owner["active_stream"] == turn["accepted"]["request_id"], owner
+                        assert protocol["active_turn_id"] == turn_id, protocol
+                        assert protocol["user_speaking"] and protocol["assistant_active"], protocol
+                        abort_seq += 1
                     turn["interrupted_at_seconds"] = clock.elapsed()
                     turn["motion_before_interrupt"] = current_motion
                     turn["interrupt_response"] = await request_json(http, "POST",
                         f"{args.base_url}/webrtc/sessions/{sid}/events",
-                        json={"event": "assistant_turn_aborted", "seq": index*10+2, "turn_id": turn_id},
+                        json={"event": "assistant_turn_aborted", "seq": abort_seq, "turn_id": turn_id},
                         action="interrupt speech", timeout_seconds=CONTROL_TIMEOUT_SECONDS)
                     assert turn["interrupt_response"].get("accepted"), turn["interrupt_response"]
                 started_or_aborted = live_at is not None or (entry_interrupt and "interrupted_at_seconds" in turn)
@@ -283,6 +300,13 @@ async def record_case(http, args, poses, case, turns):
                 assert .3*args.fps <= interrupted["generation_frame"] < .6*args.fps, interrupted
             assert all(0 <= r["source_frame"] < poses["poses"][r["pose_id"]]["frame_count"] for r in live_rows)
             turn["observed_body_poses"] = sorted(observed_poses)
+            if "barge_in" in turn:
+                turn["barge_in"]["ended"] = await request_json(http, "POST",
+                    f"{args.base_url}/webrtc/sessions/{sid}/events",
+                    json={"event": "user_speech_ended", "seq": index*10+4,
+                          "turn_id": turn["barge_in"]["user_turn_id"]},
+                    action="finish user barge-in", timeout_seconds=CONTROL_TIMEOUT_SECONDS)
+                assert turn["barge_in"]["ended"].get("accepted"), turn["barge_in"]
             print(f"[{case}] complete at {turn['complete_at_seconds']:.2f}s", flush=True)
             # Next turn begins as soon as the return is settled: back-to-back test.
             if index == len(turns)-1: await asyncio.sleep(1.2)
@@ -315,7 +339,7 @@ async def record_case(http, args, poses, case, turns):
         evidence["error"] = {"type": type(exc).__name__, "message": str(exc)}
         raise
     finally:
-        if started:
+        if recorder is not None:
             await cleanup_step("stop recorder", recorder.stop(), evidence)
         evidence["recording_seconds"] = clock.elapsed()
         evidence["receiver_tracks"] = {key: value.get_stats() for key, value in wrappers.items()}
@@ -350,6 +374,7 @@ async def main(args):
         cases = {"short-idle": [("short.wav", False, False)],
                  "long-talking-smiling": [("long.wav", True, False)],
                  "interrupted-and-next-turn": [("long.wav", False, True), ("short.wav", False, False)],
+                 "barge-in": [("long.wav", False, True), ("short.wav", False, False)],
                  "late-smile": [("long.wav", "late", False)],
                  "entry-interruption": [("long.wav", False, "entry"), ("short.wav", False, False)],
                  "reactive-start": [("long.wav", False, False)],
@@ -357,7 +382,7 @@ async def main(args):
                                 ("long.wav", False, .38), ("short.wav", False, False),
                                 ("loop.wav", False, False)]}
         for name, turns in cases.items():
-            if (not args.case and name not in {"edge-cases", "late-smile", "entry-interruption", "reactive-start"}) or args.case == name:
+            if (not args.case and name not in {"edge-cases", "late-smile", "entry-interruption", "reactive-start", "barge-in"}) or args.case == name:
                 await record_case(http, args, poses, name, turns)
 
 
@@ -372,5 +397,5 @@ if __name__ == "__main__":
     p.add_argument("--pose-set", type=Path, help="Character package pose-set.json")
     p.add_argument("--atlas", type=Path, help="Expected runtime bank; inferred beside --pose-set when present")
     p.add_argument("--legacy", action="store_true", help="Exercise speech metadata without a v2 pose plan")
-    p.add_argument("--case", choices=["short-idle", "long-talking-smiling", "interrupted-and-next-turn", "edge-cases", "late-smile", "entry-interruption", "reactive-start"])
+    p.add_argument("--case", choices=["short-idle", "long-talking-smiling", "interrupted-and-next-turn", "edge-cases", "late-smile", "entry-interruption", "reactive-start", "barge-in"])
     asyncio.run(main(p.parse_args()))

@@ -119,6 +119,68 @@ class SmokeTestError(RuntimeError):
     pass
 
 
+class RTPMP4Recorder(MediaRecorder if MediaRecorder is not None else object):
+    """Record received timestamps without aiortc's default 30 Hz quantization.
+
+    Only video stream creation differs from MediaRecorder; audio, encoding,
+    task ownership and flushing remain upstream. The private stream registry is
+    checked explicitly because aiortc does not expose a video-rate setting.
+    """
+
+    def __init__(self, file: Any, *, video_fps: float) -> None:
+        if isinstance(video_fps, bool) or not math.isfinite(float(video_fps)) or video_fps <= 0:
+            raise ValueError("video_fps must be finite and positive")
+        if MediaRecorder is None:
+            raise SmokeTestError("aiortc is required for MP4 recording")
+        try:
+            from aiortc.contrib.media import MediaRecorderContext
+        except ImportError as exc:
+            raise SmokeTestError("Unsupported aiortc recorder: missing MediaRecorderContext") from exc
+        self._recorder_context_type = MediaRecorderContext
+        self._video_fps = Fraction(str(video_fps))
+        # Both 90 kHz video and 48 kHz audio origins fit this movie timescale;
+        # the MP4 default (1 kHz) would round the first timestamp to milliseconds.
+        super().__init__(file, format="mp4", options={"movie_timescale": "720000"})
+        try:
+            self._recorder_parts()
+        except Exception:
+            # Construction can reject a changed private registry after av.open
+            # succeeds. The caller has no recorder instance to stop in that case.
+            container = getattr(self, "_MediaRecorder__container", None)
+            if container is not None:
+                with suppress(Exception):
+                    container.close()
+                self._MediaRecorder__container = None
+            raise
+
+    def _recorder_parts(self) -> tuple[Any, dict]:
+        container = getattr(self, "_MediaRecorder__container", None)
+        tracks = getattr(self, "_MediaRecorder__tracks", None)
+        if container is None or not isinstance(tracks, dict):
+            raise SmokeTestError("Unsupported or closed aiortc recorder: stream registry unavailable")
+        return container, tracks
+
+    def addTrack(self, track: Any) -> None:
+        container, tracks = self._recorder_parts()
+        if any(getattr(context, "started", True) for context in tracks.values()):
+            raise SmokeTestError("MP4 tracks must be configured before the first encoded frame")
+        if track.kind == "audio":
+            super().addTrack(track)
+            return
+        if track.kind != "video":
+            raise SmokeTestError(f"Unsupported recording track kind: {track.kind}")
+        stream = container.add_stream("libx264", rate=self._video_fps)
+        stream.pix_fmt = "yuv420p"
+        # Nominal rate determines frame durations; the finer encoder/muxer time
+        # base preserves off-grid receiver origins and genuine RTP gaps too.
+        stream.time_base = Fraction(1, 90_000)
+        stream.codec_context.time_base = Fraction(1, 90_000)
+        context = self._recorder_context_type(stream)
+        if not all(hasattr(context, key) for key in ("stream", "started", "task")):
+            raise SmokeTestError("Unsupported aiortc recorder: incompatible track context")
+        tracks[track] = context
+
+
 class SharedRecordingClock:
     """One receiver-side wall clock for every track written to the MP4."""
 
@@ -147,6 +209,7 @@ class WallClockAudioTrack:
         self.clock = clock
         self._source_origin_seconds: float | None = None
         self._recording_origin_pts: int | None = None
+        self._recording_time_base: Fraction | None = None
         self._last_pts = -1
         self._last_source_seconds: float | None = None
         self._last_source_duration_seconds: float | None = None
@@ -169,6 +232,7 @@ class WallClockAudioTrack:
             self._source_timestamp_missing += 1
         if self._recording_origin_pts is None:
             self._recording_origin_pts = int(round(self.clock.elapsed() * sample_rate))
+            self._recording_time_base = Fraction(1, sample_rate)
             self._source_origin_seconds = source_seconds
 
         if (
@@ -227,6 +291,14 @@ class WallClockAudioTrack:
     def get_stats(self) -> dict[str, Any]:
         return {
             "frames": self._frames,
+            "source_origin_seconds": self._source_origin_seconds,
+            "last_source_seconds": self._last_source_seconds,
+            "recording_origin_pts": self._recording_origin_pts,
+            "recording_time_base": (
+                {"numerator": 1, "denominator": self._recording_time_base.denominator}
+                if self._recording_time_base is not None else None
+            ),
+            "last_recording_pts": self._last_pts if self._frames else None,
             "source_timestamp_anomalies": self._source_timestamp_anomalies,
             "source_timestamp_missing": self._source_timestamp_missing,
             "max_source_timestamp_error_seconds": (
@@ -352,6 +424,11 @@ class WallClockVideoTrack:
     def get_stats(self) -> dict[str, Any]:
         return {
             "frames": self._frames,
+            "source_origin_seconds": self._source_origin_seconds,
+            "last_source_seconds": self._last_source_seconds,
+            "recording_origin_pts": self._recording_origin_pts,
+            "recording_time_base": {"numerator": 1, "denominator": 90_000},
+            "last_recording_pts": self._last_pts if self._frames else None,
             "nominal_fps": self._nominal_fps,
             "nominal_frame_duration_seconds": self._nominal_frame_seconds,
             "source_timestamp_anomalies": self._source_timestamp_anomalies,
@@ -1399,7 +1476,6 @@ async def run_webrtc_smoke(
     counters: dict[str, int] = {}
     pc = None
     recorder = None
-    recorder_started = False
     relay = MediaRelay() if record_output is not None else None
     recording_clock = SharedRecordingClock()
     recording_track_wrappers: dict[str, Any] = {}
@@ -1418,7 +1494,7 @@ async def run_webrtc_smoke(
         if record_output is not None:
             record_output = record_output.expanduser().resolve()
             record_output.parent.mkdir(parents=True, exist_ok=True)
-            recorder = MediaRecorder(str(record_output))
+            recorder = RTPMP4Recorder(str(record_output), video_fps=playback_fps)
         configuration: RTCConfiguration | None = build_rtc_configuration_from_payload(
             created.get("ice_servers") or []
         )
@@ -1481,7 +1557,6 @@ async def run_webrtc_smoke(
         if recorder is not None:
             recording_started_at = recording_clock.start()
             await recorder.start()
-            recorder_started = True
             print(f"[recording] {record_output}", flush=True)
         connected = await wait_for_peer_connection(
             pc=pc,
@@ -2196,7 +2271,7 @@ async def run_webrtc_smoke(
         print(json.dumps(result, indent=2, sort_keys=True), flush=True)
         return result
     finally:
-        if recorder is not None and recorder_started:
+        if recorder is not None:
             with suppress(Exception):
                 await recorder.stop()
         stop_event.set()

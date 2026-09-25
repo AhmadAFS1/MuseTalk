@@ -370,6 +370,111 @@ class PoseSessionManagerTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(self.session.assistant_active)
         self.assertEqual(self.track.calls, [])
 
+    async def _reserve_assistant(self, request_id="request-A", turn_id="assistant-A", seq=10):
+        self.track.motion_bank = object()
+        reserved, _ = await self.manager.reserve_stream(self.session, request_id)
+        self.assertTrue(reserved)
+        self.session.active_turn_id = turn_id
+        self.session.assistant_active = True
+        self.session.last_pose_seq = seq
+        return self.session.stream_cancel_event
+
+    async def test_barge_in_user_events_preserve_the_cancellable_assistant_turn(self):
+        await self._reserve_assistant()
+        for seq, event in enumerate(("user_speech_started", "user_speech_ended", "assistant_thinking"), 11):
+            result = await self.manager.handle_pose_event(self.session,
+                {"event": event, "turn_id": "user-B", "seq": seq})
+            self.assertTrue(result["accepted"])
+            self.assertEqual(self.session.active_turn_id, "assistant-A")
+            self.assertEqual(self.session.stream_owner, "request-A")
+            self.assertTrue(self.session.assistant_active)
+        aborted = await self.manager.handle_pose_event(self.session,
+            {"event": "assistant_turn_aborted", "turn_id": "assistant-A", "seq": 14})
+        self.assertTrue(aborted["accepted"])
+        self.assertFalse(self.session.assistant_active)
+        self.assertEqual(self.track.calls[-1][0], "neutral_resting")
+        self.assertEqual(self.session.stream_owner, "request-A")
+
+    async def test_aborting_assistant_preserves_user_barge_in_until_user_ends(self):
+        await self._reserve_assistant()
+        started = await self.manager.handle_pose_event(self.session,
+            {"event": "user_speech_started", "turn_id": "user-B", "seq": 11})
+        self.assertTrue(started["accepted"])
+        self.assertTrue(self.session.user_speaking)
+        aborted = await self.manager.handle_pose_event(self.session,
+            {"event": "assistant_turn_aborted", "turn_id": "assistant-A", "seq": 12})
+        self.assertTrue(aborted["accepted"])
+        self.assertFalse(self.session.assistant_active)
+        self.assertTrue(self.session.user_speaking)
+        self.assertTrue(aborted["pose_status"]["user_speaking"])
+        completed = await self.manager.finish_reserved_stream(self.session, "request-A",
+            turn_id="assistant-A", recover_pose=True)
+        self.assertTrue(completed["released"])
+        self.assertTrue(self.session.user_speaking)
+        ended = await self.manager.handle_pose_event(self.session,
+            {"event": "user_speech_ended", "turn_id": "user-B", "seq": 13})
+        self.assertTrue(ended["accepted"])
+        self.assertFalse(self.session.user_speaking)
+
+    async def test_foreign_reaction_cannot_change_a_reserved_turn_or_queue_its_pose(self):
+        await self._reserve_assistant()
+        reaction = await self.manager.handle_pose_event(self.session,
+            {"event": "assistant_reaction_ready", "turn_id": "assistant-B",
+             "reaction_intent": "warmth", "seq": 11})
+        self.assertEqual(reaction, {"accepted": False, "reason": "turn_mismatch"})
+        self.assertEqual(self.session.active_turn_id, "assistant-A")
+        self.assertEqual(self.session.last_pose_seq, 10)
+        self.assertEqual(self.session.reaction_turn_ids, set())
+        self.assertEqual(self.track.calls, [])
+        same_turn = await self.manager.handle_pose_event(self.session,
+            {"event": "assistant_reaction_ready", "turn_id": "assistant-A",
+             "reaction_intent": "warmth", "seq": 11})
+        self.assertTrue(same_turn["accepted"])
+        self.assertEqual(self.track.calls[-1][0], "light_smile")
+        aborted = await self.manager.handle_pose_event(self.session,
+            {"event": "assistant_turn_aborted", "turn_id": "assistant-A", "seq": 12})
+        self.assertTrue(aborted["accepted"])
+
+    async def test_barge_in_does_not_make_completion_skip_owned_pose_recovery(self):
+        token = await self._reserve_assistant()
+        await self.manager.handle_pose_event(self.session,
+            {"event": "user_speech_started", "turn_id": "user-B", "seq": 11})
+        completed = await self.manager.finish_reserved_stream(self.session, "request-A",
+            turn_id="assistant-A", recover_pose=True)
+        self.assertTrue(completed["released"])
+        self.assertFalse(completed["pose_recovery_skipped"])
+        self.assertFalse(self.session.assistant_active)
+        self.assertIsNone(self.session.active_turn_id)
+        self.assertIsNone(self.session.stream_owner)
+        self.assertTrue(token.is_set())
+        self.assertEqual(self.track.calls[-1][0], "neutral_resting")
+
+    async def test_previous_turn_events_cannot_cancel_or_complete_a_new_reservation(self):
+        await self._reserve_assistant()
+        await self.manager.finish_reserved_stream(self.session, "request-A",
+            turn_id="assistant-A", recover_pose=True)
+        token = await self._reserve_assistant("request-B", "assistant-B", 20)
+        self.track.calls.clear()
+        # A late user event must not restore assistant-A as the cancellation ID.
+        late_user = await self.manager.handle_pose_event(self.session,
+            {"event": "user_speech_ended", "turn_id": "assistant-A", "seq": 21})
+        self.assertTrue(late_user["accepted"])
+        for event in ("assistant_reaction_ready", "assistant_turn_aborted"):
+            result = await self.manager.handle_pose_event(self.session,
+                {"event": event, "turn_id": "assistant-A", "seq": 22})
+            self.assertEqual(result, {"accepted": False, "reason": "turn_mismatch"})
+        stale_completion = await self.manager.finish_reserved_stream(self.session, "request-A",
+            turn_id="assistant-A", recover_pose=True)
+        self.assertFalse(stale_completion["released"])
+        self.assertEqual(self.session.active_turn_id, "assistant-B")
+        self.assertEqual(self.session.stream_owner, "request-B")
+        self.assertTrue(self.session.assistant_active)
+        self.assertFalse(token.is_set())
+        self.assertEqual(self.track.calls, [])
+        current_abort = await self.manager.handle_pose_event(self.session,
+            {"event": "assistant_turn_aborted", "turn_id": "assistant-B", "seq": 22})
+        self.assertTrue(current_abort["accepted"])
+
     async def test_events_are_monotonic_and_reaction_is_once_per_turn(self):
         started = await self.manager.handle_pose_event(
             self.session,

@@ -816,11 +816,22 @@ class WebRTCSessionManager:
             switch_result: Optional[dict] = None
             deduped = False
 
+            reserved_assistant_turn = bool(
+                resolved.stream_owner and resolved.active_turn_id
+            )
             if (event_name == "assistant_turn_aborted"
                     and getattr(resolved.idle_track, "motion_bank", None)
                     and turn_id and turn_id != resolved.active_turn_id):
                 return {"accepted": False, "reason": "turn_mismatch"}
-            if turn_id:
+            if (event_name == "assistant_reaction_ready" and reserved_assistant_turn
+                    and turn_id and turn_id != resolved.active_turn_id):
+                # A future reaction must not replace the current assistant's
+                # identity or queue a pose into the still-owned speech turn.
+                return {"accepted": False, "reason": "turn_mismatch"}
+            if turn_id and not reserved_assistant_turn:
+                # User speech can begin while assistant audio is still playing.
+                # Its conversation ID is not the cancellable assistant turn ID.
+                # Keep that identity until the owning stream releases it.
                 resolved.active_turn_id = turn_id
 
             if event_name == "user_speech_started":
@@ -860,7 +871,8 @@ class WebRTCSessionManager:
                         )
             elif event_name == "assistant_turn_aborted":
                 resolved.assistant_active = False
-                resolved.user_speaking = False
+                # An assistant abort does not end an overlapping user turn.
+                # Only the ordered user_speech_ended event clears that state.
                 resolved.active_pose_plan = {}
                 resolved.compiled_pose_plan = None
                 switch_result = await self._queue_pose_locked(

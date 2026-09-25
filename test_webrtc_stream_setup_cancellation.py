@@ -131,7 +131,7 @@ class SetupCancellationTest(unittest.IsolatedAsyncioTestCase):
             "event": "assistant_turn_aborted", "turn_id": turn, "seq": seq}))
         return await self.ns["webrtc_pose_event"]("session", request)
 
-    async def exercise_phase(self, phase, supersede=False):
+    async def exercise_phase(self, phase, supersede=False, barge_in=False):
         self.phase = phase
         task = asyncio.create_task(self.start_request())
         try:
@@ -140,9 +140,19 @@ class SetupCancellationTest(unittest.IsolatedAsyncioTestCase):
             old_token = self.session.stream_cancel_event
             self.assertIsNotNone(old_token)
             self.assertEqual(self.manager.active_requests, {})
-            result = await self.abort()
+            if barge_in:
+                for seq, event in enumerate(("user_speech_started", "user_speech_ended", "assistant_thinking"), 2):
+                    accepted = await self.sessions.handle_pose_event(self.session,
+                        {"event": event, "turn_id": "next-user-turn", "seq": seq})
+                    self.assertTrue(accepted["accepted"])
+                    self.assertEqual(self.session.active_turn_id, "turn")
+                result = await self.abort(seq=5)
+            else:
+                result = await self.abort()
             self.assertEqual(result["status"], "accepted")
             self.assertTrue(old_token.is_set())
+            if barge_in:
+                self.track.end_live.assert_called_once()
             if supersede:
                 await self.sessions.finish_reserved_stream(self.session, old_owner)
                 await self.sessions.reserve_stream(self.session, "new-owner")
@@ -179,6 +189,9 @@ class SetupCancellationTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_abort_during_normalization_never_submits(self):
         await self.exercise_phase("normalization")
+
+    async def test_barge_in_events_preserve_real_endpoint_abort_of_owned_audio_setup(self):
+        await self.exercise_phase("recovery", barge_in=True)
 
     async def test_abort_during_previous_motion_recovery_never_submits(self):
         await self.exercise_phase("recovery")
