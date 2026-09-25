@@ -1,0 +1,215 @@
+{
+  "source_atlas": "/workspace/experiments/realtime_characters/japanese_20260925/motion-atlas.json",
+  "atlas_sha256": "fa3baec02ef395122ff7d69f221bc487d41528d2841e84879cd78e5d6e29d00e",
+  "recordings": {
+    "short-idle": {
+      "label": "Short reply on idle",
+      "sha256": "b93c1336a66776ccb9c2d1e6dd00bdaf808730fa1e91d0016b0b9af2fec54ee3",
+      "duration_seconds": 7.134,
+      "returns_seconds": [
+        0.3931
+      ],
+      "return_build_seconds": [
+        0.1125
+      ],
+      "body_pose_sequence": [
+        "neutral_resting"
+      ],
+      "received_video_frames": 141,
+      "received_audio_packets": 350,
+      "timestamp_anomalies": 0,
+      "max_queue_underruns": 0,
+      "av_start_deltas_ms": [
+        4.711
+      ],
+      "turns": [
+        {
+          "audio": "short.wav",
+          "start": 2.644,
+          "interrupt": null,
+          "end": 5.908
+        }
+      ]
+    },
+    "long-talking-smiling": {
+      "label": "Talking, smiling, and planned idle return",
+      "sha256": "6d9ebb3e9c4008397aa4e8b408ec06b5b017dece8b29b3d3c6a0f8b0646cba32",
+      "duration_seconds": 15.767,
+      "returns_seconds": [
+        0.3497
+      ],
+      "return_build_seconds": [
+        0.0789
+      ],
+      "body_pose_sequence": [
+        "neutral_resting",
+        "speaking_direct",
+        "light_smile",
+        "speaking_direct",
+        "neutral_resting"
+      ],
+      "received_video_frames": 314,
+      "received_audio_packets": 782,
+      "timestamp_anomalies": 0,
+      "max_queue_underruns": 0,
+      "av_start_deltas_ms": [
+        15.706
+      ],
+      "turns": [
+        {
+          "audio": "long.wav",
+          "start": 2.211,
+          "interrupt": null,
+          "end": 14.536
+        }
+      ]
+    },
+    "interrupted-and-next-turn": {
+      "label": "Mid-sentence interruption and next reply",
+      "sha256": "ac970cb783abe221f9454d915c2066cf6bf747c306a92d3e0b618c98a075b448",
+      "duration_seconds": 10.5,
+      "returns_seconds": [
+        0.3787,
+        0.4006
+      ],
+      "return_build_seconds": [
+        0.1093,
+        0.1312
+      ],
+      "body_pose_sequence": [
+        "neutral_resting",
+        "speaking_direct",
+        "neutral_resting"
+      ],
+      "received_video_frames": 209,
+      "received_audio_packets": 519,
+      "timestamp_anomalies": 0,
+      "max_queue_underruns": 0,
+      "av_start_deltas_ms": [
+        5.355,
+        4.476
+      ],
+      "turns": [
+        {
+          "audio": "long.wav",
+          "start": 2.19,
+          "interrupt": 4.642770376056433,
+          "end": 5.054
+        },
+        {
+          "audio": "short.wav",
+          "start": 5.999,
+          "interrupt": null,
+          "end": 9.279
+        }
+      ]
+    },
+    "edge-cases": {
+      "label": "Threshold, silence, bridge interruption, and loops",
+      "sha256": "d8d4a4a942a16e0a03af75b55bcda9f580f9a8639782d819b8aeda9b32c49894",
+      "duration_seconds": 40.671,
+      "returns_seconds": [
+        0.3987,
+        0.3986,
+        0.3708,
+        0.3995,
+        0.3487
+      ],
+      "return_build_seconds": [
+        0.1037,
+        0.1184,
+        0.1118,
+        0.133,
+        0.0949
+      ],
+      "body_pose_sequence": [
+        "neutral_resting",
+        "speaking_direct",
+        "neutral_resting",
+        "speaking_direct",
+        "neutral_resting",
+        "speaking_direct",
+        "neutral_resting"
+      ],
+      "received_video_frames": 812,
+      "received_audio_packets": 2028,
+      "timestamp_anomalies": 0,
+      "max_queue_underruns": 0,
+      "av_start_deltas_ms": [
+        4.858,
+        3.569,
+        4.96,
+        4.776,
+        15.969
+      ],
+      "turns": [
+        {
+          "audio": "threshold.wav",
+          "start": 2.186,
+          "interrupt": null,
+          "end": 5.654
+        },
+        {
+          "audio": "silence.wav",
+          "start": 6.392,
+          "interrupt": null,
+          "end": 7.825
+        },
+        {
+          "audio": "long.wav",
+          "start": 8.993,
+          "interrupt": 9.40327966096811,
+          "end": 9.815
+        },
+        {
+          "audio": "short.wav",
+          "start": 10.767,
+          "interrupt": null,
+          "end": 14.059
+        },
+        {
+          "audio": "loop.wav",
+          "start": 15.244,
+          "interrupt": null,
+          "end": 39.462
+        }
+      ]
+    },
+    "legacy-request/short-idle": {
+      "label": "Legacy request without a v2 pose plan",
+      "sha256": "b1d88a709503dde9546e137c444c1696080adea5aa5817e3352281bc84799db4",
+      "duration_seconds": 6.471,
+      "returns_seconds": [
+        0.3995
+      ],
+      "return_build_seconds": [
+        0.1038
+      ],
+      "body_pose_sequence": [
+        "neutral_resting"
+      ],
+      "received_video_frames": 128,
+      "received_audio_packets": 318,
+      "timestamp_anomalies": 0,
+      "max_queue_underruns": 0,
+      "av_start_deltas_ms": [
+        14.822
+      ],
+      "turns": [
+        {
+          "audio": "short.wav",
+          "start": 1.994,
+          "interrupt": null,
+          "end": 5.257
+        }
+      ]
+    }
+  },
+  "unit_tests": 89,
+  "cross_pose_candidates_exercised": 1446,
+  "return_range_seconds": [
+    0.3487,
+    0.4006
+  ],
+  "validation_passed": true
+}

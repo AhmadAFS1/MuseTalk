@@ -470,6 +470,15 @@ class WebRTCSessionManager:
                 f"Live pose video path is unavailable: {initial_live_pose_id}"
             )
 
+        # Validate local motion configuration before allocating media tracks.
+        live_pose_router = LivePoseVideoRouter(
+            normalized_pose_paths,
+            prepared_pose_id="default",
+            prepared_pose_ids=set(resolved_prepared_pose_avatar_ids),
+            pose_variant_render_keys=pose_variant_render_keys,
+            initial_pose_id=initial_live_pose_id,
+        )
+
         session_id = secrets.token_urlsafe(16)
         pc = RTCPeerConnection(self.rtc_config)
         sync_clock = VideoSyncClock(fps)
@@ -485,14 +494,11 @@ class WebRTCSessionManager:
         resolved_prebuffer_seconds = float(
             idle_track.get_stats().get("prebuffer_seconds") or 0.0
         )
-        silence_audio = SilenceAudioStreamTrack(sync_clock=sync_clock)
-        live_pose_router = LivePoseVideoRouter(
-            normalized_pose_paths,
-            prepared_pose_id="default",
-            prepared_pose_ids=set(resolved_prepared_pose_avatar_ids),
-            pose_variant_render_keys=pose_variant_render_keys,
-            initial_pose_id=initial_live_pose_id,
-        )
+        silence_audio = SilenceAudioStreamTrack(
+            sync_clock=sync_clock, steady_pacing=live_pose_router.motion_bank is not None)
+
+        if live_pose_router.motion_bank is not None:
+            idle_track.configure_motion_bank(live_pose_router.motion_bank)
 
         session = WebRTCSession(
             session_id=session_id,
@@ -802,6 +808,10 @@ class WebRTCSessionManager:
             switch_result: Optional[dict] = None
             deduped = False
 
+            if (event_name == "assistant_turn_aborted"
+                    and getattr(resolved.idle_track, "motion_bank", None)
+                    and turn_id and turn_id != resolved.active_turn_id):
+                return {"accepted": False, "reason": "turn_mismatch"}
             if turn_id:
                 resolved.active_turn_id = turn_id
 

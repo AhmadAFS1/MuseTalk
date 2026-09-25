@@ -15,6 +15,13 @@ iterations remain in
 creates review assets; it does not by itself create a switch-safe MuseTalk pose
 bank or a prepared WebRTC avatar.
 
+For the implemented LumaTalk motion runtime, continue with
+[Multipose LTX / MuseTalk implementation](../docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md).
+Its `build_realtime_character.py` wrapper packages a trio, builds a source-verified
+transition atlas, and prepares three physical caches through the avatar API.
+Real received WebRTC evidence is in
+[/workspace/experiments/japanese_multipose_20260925/README.md](/workspace/experiments/japanese_multipose_20260925/README.md).
+
 ## 1. Create and approve one source portrait
 
 Use the interactive Codex/ChatGPT image-generation tool, not an image API. For
@@ -35,7 +42,6 @@ and hash. For the standalone runner, the original does not need to be in the
 roster or canonicalized by `ingest_portraits.py`; the runner prepares its own
 512×832 guide without stretching the portrait.
 
-## 2. Select the tested prompt pack
 ## 2. Select the approved prompt pack
 
 The canonical Japanese pack is

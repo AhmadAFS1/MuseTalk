@@ -204,6 +204,8 @@ class LivePoseVideoRouter:
         self._queue_mode = "sequence"
         self._pose_plan_request: Optional[dict] = None
         self._compiled_pose_plan: Optional[dict] = None
+        self._motion_frames: list[dict] = []
+        self.motion_initial_pose = 'neutral_resting'
         self.max_semantic_drift_seconds = max(
             0.0,
             float(max_semantic_drift_seconds),
@@ -216,6 +218,8 @@ class LivePoseVideoRouter:
         for pose_id, video_path in pose_video_paths.items():
             self.register_pose(pose_id, video_path)
         self.switch_pose(initial_pose_id)
+        from scripts.motion_transitions import configured_bank
+        self.motion_bank = configured_bank(self._pose_video_paths)
 
     def set_variant_context(self, context_key: str) -> dict[str, str]:
         """Select physical variants deterministically for one assistant turn."""
@@ -292,6 +296,7 @@ class LivePoseVideoRouter:
                 self._origin_pending = True
             if queue_cleared:
                 self._pose_queue = []
+                self._motion_frames = []
                 self._pose_plan_request = None
                 self._compiled_pose_plan = None
                 self._queue_mode = "sequence"
@@ -566,6 +571,27 @@ class LivePoseVideoRouter:
                 "segments": [],
                 "skipped_segments": [],
             }
+
+        if self.motion_bank is not None:
+            result = self.motion_bank.plan(
+                int(request["total_generation_frames"]), float(generation_fps),
+                self.motion_initial_pose, int(source_frame_offset), request["segments"],
+            )
+            self._motion_frames = result.pop("frames")
+            segments = []
+            for index, item in enumerate(self._motion_frames):
+                if not segments or segments[-1]["pose_id"] != item["pose_id"]:
+                    if segments:
+                        segments[-1]["effective_end_generation_frame"] = index
+                    segments.append({"pose_id": item["pose_id"],
+                                     "effective_start_generation_frame": index,
+                                     "source_frame_offset": item["source_frame"],
+                                     "switch_strategy": "matched_motion_v1"})
+            segments[-1]["effective_end_generation_frame"] = len(self._motion_frames)
+            result["segments"] = segments
+            result["skipped_segments"] = []
+            self._compiled_pose_plan = result
+            return result
 
         safe_generation_fps = max(0.001, float(generation_fps or 0.0))
         total_frames = max(1, int(request["total_generation_frames"]))
@@ -972,6 +998,13 @@ class LivePoseVideoRouter:
                     safe_fps,
                 )
             self._last_generation_frame = max(self._last_generation_frame, safe_frame)
+            if self.motion_bank is not None and self._motion_frames:
+                item = self._motion_frames[min(safe_frame, len(self._motion_frames)-1)]
+                return LivePoseSnapshot(
+                    item["pose_id"], None, self._version, safe_frame, safe_fps,
+                    True, item["source_frame"], "matched_motion_v1",
+                    item["crossfade_frames"], item["pose_id"],
+                )
             planned = next(
                 (
                     segment
@@ -1028,6 +1061,8 @@ class LivePoseVideoRouter:
         snapshot: LivePoseSnapshot,
         generation_frame_index: int,
     ) -> int:
+        if snapshot.switch_strategy == 'matched_motion_v1':
+            return snapshot.source_frame_offset
         with self._lock:
             decoder = self._get_or_create_decoder_locked(
                 snapshot.effective_render_key

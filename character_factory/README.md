@@ -1,11 +1,14 @@
 # Character factory
 
-**Current Lingua pilot:** one character and three poses (idle, talking,
-smiling). Start with [CHARACTER_CREATION_WORKFLOW.md](CHARACTER_CREATION_WORKFLOW.md)
-and [BEST_TESTED_CHARACTER_PROMPTS.md](BEST_TESTED_CHARACTER_PROMPTS.md). The
-standalone renderer and Japanese review clips have been run on a GPU; they
-have not been certified as a shared-anchor MuseTalk pose bank. The larger
-roster pipeline described below remains a separate six-pose design.
+**Current LumaTalk pilot (formerly Lingua):** one character and three physical
+poses (idle, talking, smiling). Start with
+[CHARACTER_CREATION_WORKFLOW.md](CHARACTER_CREATION_WORKFLOW.md) and the approved
+[PERFECT_THREE_POSE_PROMPTS.md](PERFECT_THREE_POSE_PROMPTS.md).
+The [multipose runtime runbook](../docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md)
+contains the implemented source-matching runtime, reusable character packaging,
+API integration, tests, and received WebRTC video evidence. Transition banks
+remain subject to recorded visual review. The larger roster pipeline below is
+a separate six-pose design.
 
 Baseline scripts for producing MuseTalk multipose avatars at roster scale: **3 characters for
 each of 104 languages, plus 20 language-agnostic companions**, each with a certified six-pose

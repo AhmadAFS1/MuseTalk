@@ -593,6 +593,13 @@ class HLSGPUStreamScheduler:
                 if output_mode == "webrtc"
                 else None
             )
+            motion_router = getattr(session, "live_pose_router", None) if output_mode == "webrtc" else None
+            if getattr(motion_router, "motion_bank", None) is not None and not active_pose_plan:
+                active_pose_plan = {
+                    "version": 2, "clock": "audio_progress", "switch_mode": "next_boundary",
+                    "on_complete": "neutral_resting",
+                    "segments": [{"at_permille": 0, "pose_id": getattr(session, "live_pose_id", None) or "speaking_direct"}],
+                }
             if active_pose_plan:
                 pose_plan_router = getattr(
                     session,
@@ -609,6 +616,8 @@ class HLSGPUStreamScheduler:
                     float(generation_fps),
                     hold_last_pose=True,
                 )
+            if pose_plan_router is not None and getattr(pose_plan_router, "motion_bank", None) is not None:
+                pose_plan_router.motion_initial_pose = session.idle_track.get_pose_status()["current_pose_id"]
             start_offset_frames = 0
             timing_debug = None
             if output_mode == "webrtc" and start_offset_seconds is None:
@@ -1979,9 +1988,11 @@ class HLSGPUStreamScheduler:
                         anchor_array.astype(np.float32) * (1.0 - alpha)
                         + source_frame.astype(np.float32) * alpha
                     )
-                    output_frame = np.clip(blended, 0, 255).astype(
-                        source_frame.dtype,
-                    )
+                    if getattr(getattr(getattr(job, "session", None), "live_pose_router", None), "motion_bank", None) is not None:
+                        from scripts.motion_transitions import flow_blend
+                        output_frame = flow_blend(anchor_array, source_frame, alpha)
+                    else:
+                        output_frame = np.clip(blended, 0, 255).astype(source_frame.dtype)
                     job.webrtc_pose_crossfade_frames_applied += 1
                 job.webrtc_pose_crossfade_index += 1
                 if job.webrtc_pose_crossfade_index >= frame_count:

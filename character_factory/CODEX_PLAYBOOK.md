@@ -8,6 +8,12 @@ For the current one-avatar, three-pose Lingua pilot, use
 [BEST_TESTED_CHARACTER_PROMPTS.md](BEST_TESTED_CHARACTER_PROMPTS.md). The roster
 and six-pose stages below are a different path.
 
+The latest approved three-pose recipe is
+[PERFECT_THREE_POSE_PROMPTS.md](PERFECT_THREE_POSE_PROMPTS.md). For the implemented
+multi-character runtime and reusable packaging command, follow
+[Multipose LTX / MuseTalk implementation](../docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md).
+The historical v3 examples later in this playbook do not supersede that recipe.
+
 All commands are run from `MuseTalk/character_factory/scripts/`.
 
 ---

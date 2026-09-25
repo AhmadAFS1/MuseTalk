@@ -631,9 +631,10 @@ class IdleVideoStreamTrack(VideoStreamTrack):
     Loops a local MP4 file as a WebRTC video track.
     """
 
-    def __init__(self, video_path: str, fps: Optional[float] = None):
+    def __init__(self, video_path: str, fps: Optional[float] = None, decode_threads: int = 0):
         super().__init__()
         self.video_path = video_path
+        self._decode_threads = max(0, int(decode_threads))
         self._fps = fps
         self._frame_time = None
         self._last_ts = None
@@ -654,6 +655,9 @@ class IdleVideoStreamTrack(VideoStreamTrack):
     def _open_container(self) -> None:
         self._container = av.open(self.video_path)
         self._stream = self._container.streams.video[0]
+        if self._decode_threads:
+            self._stream.thread_type = "AUTO"
+            self._stream.codec_context.thread_count = self._decode_threads
         if self._fps is None:
             rate = self._stream.average_rate
             self._fps = float(rate) if rate else 25.0
@@ -820,7 +824,10 @@ class LiveVideoStreamTrack(VideoStreamTrack):
         super().stop()
 
 
-class SwitchableVideoStreamTrack(VideoStreamTrack):
+from scripts.webrtc_motion_playback import MotionPlaybackMixin
+
+
+class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
     """
     Single video track that switches between idle frames and live frames.
     
@@ -1266,20 +1273,9 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                     item = self._queue.get_nowait()
                 except asyncio.QueueEmpty:
                     return frame, popped
-                if (
-                    isinstance(item, tuple)
-                    and len(item) == 3
-                    and item[0] == "live_frame"
-                ):
-                    generation_id, candidate = item[1], item[2]
-                    if generation_id != self._live_generation_id:
-                        self._frames_dropped += 1
-                        continue
-                    frame = candidate
-                else:
-                    # Backward compatibility for callers/tests that directly
-                    # seed the queue with an AV frame.
-                    frame = item
+                frame = self._unwrap_live_queue_item(item)
+                if frame is None:
+                    continue
                 popped += 1
                 break
         return frame, popped
@@ -1287,13 +1283,15 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
     def _unwrap_live_queue_item(self, item):
         if (
             isinstance(item, tuple)
-            and len(item) == 3
+            and len(item) in (3, 4)
             and item[0] == "live_frame"
         ):
             generation_id, frame = item[1], item[2]
             if generation_id != self._live_generation_id:
                 self._frames_dropped += 1
                 return None
+            if len(item) == 4:
+                self._popped_motion = item[3]
             return frame
         return item
 
@@ -1434,6 +1432,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         return frame, popped, stalled_seconds
 
     def _advance_idle_frame(self, steps: int):
+        if getattr(self, '_motion_building', False) and self._last_idle_frame is not None:
+            return self._last_idle_frame
         if self._idle_sync_hold_active and self._last_idle_frame is not None:
             return self._last_idle_frame
         if self._idle_transition_frames:
@@ -1678,7 +1678,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         )
 
     def end_live(self) -> None:
-        """End live mode - drain queue and return to idle"""
+        """End live mode - stop speech while motion may finish its return."""
+        motion_return = self._begin_motion_return()
         # Prevent an in-flight predecode from installing itself after this
         # turn has already handed back to idle.
         self._completion_idle_stage_id += 1
@@ -1697,7 +1698,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                 drained += 1
         except asyncio.QueueEmpty:
             pass
-        self._activate_completion_idle_video()
+        if not motion_return:
+            self._activate_completion_idle_video()
         self._last_live_frame = None
         self._reset_source_timing()
         self._frames_received = 0
@@ -1798,6 +1800,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         push_started_at: float,
         convert_s: float,
         generation_id: Optional[int] = None,
+        metadata: Optional[dict] = None,
     ) -> bool:
         # Audio is the authoritative turn endpoint.  If it has already returned
         # the transport to idle, discard any late inference callbacks instead
@@ -1813,7 +1816,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             or owner_generation_id != self._live_generation_id
         ):
             return False
-        queued_item = ("live_frame", owner_generation_id, frame)
+        queued_item = ("live_frame", owner_generation_id, frame, metadata) if metadata is not None else ("live_frame", owner_generation_id, frame)
         queue_wait_started_at = time.monotonic()
         if self._strict_fifo:
             # Strict FIFO preserves every generated frame and applies backpressure
@@ -1870,6 +1873,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         self,
         frames: list,
         generation_id: Optional[int] = None,
+        metadata: Optional[list] = None,
     ) -> None:
         """Push multiple BGR frames in one event-loop handoff."""
         owner_generation_id = (
@@ -1898,14 +1902,17 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         if not converted_frames:
             return self._prebuffer_ready.is_set()
 
+        if metadata is not None and len(metadata) != len(converted_frames):
+            raise ValueError('Frame metadata length mismatch')
         per_frame_convert_s = total_convert_s / len(converted_frames)
-        for frame in converted_frames:
+        for metadata_index, frame in enumerate(converted_frames):
             push_started_at = time.monotonic()
             prebuffer_ready = await self._push_video_frame(
                 frame,
                 push_started_at=push_started_at,
                 convert_s=per_frame_convert_s,
                 generation_id=owner_generation_id,
+                metadata=metadata[metadata_index] if metadata is not None else None,
             )
         return prebuffer_ready
 
@@ -2007,6 +2014,12 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             previous_index,
             int(round(audio_target * self._output_fps)),
         )
+        if (getattr(self, "motion_bank", None) is not None
+                and 0 <= audio_target - previous_index / self._output_fps
+                <= max(0, 1 / self._output_fps - .02)):
+            # Keep a regular video cadence when the next 20 ms audio packet
+            # already fits within one video-frame synchronization tolerance.
+            target_index = previous_index
         self._rtp_frame_index = target_index
         correction_frames = target_index - previous_index
         self._live_rtp_phase_correction_frames = correction_frames
@@ -2057,7 +2070,13 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                 pace_wait_started_at = time.monotonic()
                 await asyncio.sleep(wait)
                 pace_wait_s += time.monotonic() - pace_wait_started_at
-            self._last_ts = time.monotonic()
+            if getattr(self, "motion_bank", None) is not None:
+                # Advance the deadline, not the actual wakeup time. Repeated
+                # asyncio oversleep otherwise accumulates until speech startup
+                # has to jump the RTP timestamp to catch the audio transport.
+                self._last_ts += frame_time
+            else:
+                self._last_ts = time.monotonic()
 
         idle_advance_frames = self._advance_source()
         frame = None
@@ -2085,7 +2104,8 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
             else:
                 if not self._live_released:
                     self._live_released = True
-                    self._last_ts = time.monotonic()
+                    if getattr(self, "motion_bank", None) is None:
+                        self._last_ts = time.monotonic()
                 # Prebuffer ready - consume live frames
                 attempted_live_pop = False
                 timestamp_locked = (
@@ -2111,6 +2131,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
                         next_frame, popped = self._pop_live_frames(live_steps)
                     if next_frame is not None:
                         self._last_live_frame = next_frame
+                        self._last_live_motion = getattr(self, "_popped_motion", None)
                         self._frames_played += popped
                         self._live_source_consumed += popped
                         if self._sync_clock:
@@ -2180,6 +2201,10 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         ):
             self._align_first_live_rtp_to_audio()
 
+        if self._live_active and frame is self._last_live_frame:
+            self._note_motion_output(getattr(self, "_last_live_motion", None))
+        else:
+            self._note_motion_idle_frame()
         self._output_frames_sent += 1
         self._stamp_video_frame(frame)
         recv_s = time.monotonic() - recv_started_at
@@ -2209,6 +2234,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         """Get current track statistics"""
         queue_size = self._queue.qsize()
         return {
+            'motion': self.motion_status(),
             'live_active': self._live_active,
             'live_released': self._live_released,
             'prebuffer_ready': self._prebuffer_ready.is_set(),
@@ -2277,6 +2303,7 @@ class SwitchableVideoStreamTrack(VideoStreamTrack):
         }
 
     def stop(self) -> None:
+        self._close_motion()
         self._closed = True
         self._completion_idle_stage_id += 1
         # Invalidate every producer before making queue capacity available.
@@ -2333,8 +2360,10 @@ class SilenceAudioStreamTrack(MediaStreamTrack):
         sample_rate: int = 48000,
         samples: int = 960,
         sync_clock: Optional[VideoSyncClock] = None,
+        steady_pacing: bool = False,
     ):
         super().__init__()
+        self._steady_pacing = bool(steady_pacing)
         self.sample_rate = sample_rate
         self.samples = samples
         self._timestamp = 0
@@ -2488,7 +2517,7 @@ class SilenceAudioStreamTrack(MediaStreamTrack):
             return now
         target = self._transport_start_time + self._frames_sent * self._frame_time
         lateness = now - target
-        if lateness > 0.002:
+        if lateness > 0.002 and not self._steady_pacing:
             # A delayed event-loop turn must become a real transport delay, not
             # a burst of back-to-back audio producer callbacks. The RTP sample
             # clock remains contiguous; only its wall-clock pacing is re-anchored.
@@ -2574,6 +2603,7 @@ class SilenceAudioStreamTrack(MediaStreamTrack):
             "source_finishing": self._finishing_source is not None,
             "turns_started": self._turns_started,
             "turns_completed": self._turns_completed,
+            "steady_pacing": self._steady_pacing,
             "pace_reanchors": self._pace_reanchors,
             "pace_reanchor_seconds": self._pace_reanchor_seconds,
             "source_rtp_phase_correction_seconds": (

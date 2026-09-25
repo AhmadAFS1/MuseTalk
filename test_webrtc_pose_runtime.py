@@ -358,6 +358,18 @@ class PoseSessionManagerTest(unittest.IsolatedAsyncioTestCase):
         self.manager = WebRTCSessionManager()
         self.manager.sessions[self.session.session_id] = self.session
 
+    async def test_motion_abort_for_old_turn_cannot_mutate_current_turn(self):
+        self.track.motion_bank = object()
+        self.session.active_turn_id = "current"
+        self.session.assistant_active = True
+        result = await self.manager.handle_pose_event(
+            self.session, {"event": "assistant_turn_aborted", "turn_id": "old", "seq": 5})
+        self.assertFalse(result["accepted"])
+        self.assertEqual(result["reason"], "turn_mismatch")
+        self.assertEqual(self.session.active_turn_id, "current")
+        self.assertTrue(self.session.assistant_active)
+        self.assertEqual(self.track.calls, [])
+
     async def test_events_are_monotonic_and_reaction_is_once_per_turn(self):
         started = await self.manager.handle_pose_event(
             self.session,

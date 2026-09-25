@@ -4749,12 +4749,31 @@ async def webrtc_pose_event(session_id: str, request: Request):
     try:
         raw_event = await request.json()
         normalized_event = normalize_session_event(raw_event or {})
+        event_stream_owner = session.stream_owner
         result = await webrtc_session_manager.handle_pose_event(
             session,
             normalized_event,
         )
     except (PoseProtocolError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if (result.get("accepted")
+            and normalized_event["event"] == "assistant_turn_aborted"
+            and getattr(session.idle_track, "motion_bank", None)
+            and session.stream_owner == event_stream_owner):
+        # Invalidate queued video and mute this turn immediately. GPU cancellation
+        # remains cooperative; its stale frames cannot enter the new generation.
+        request_id = session.stream_owner
+        if manager is not None and request_id:
+            with manager.request_lock:
+                pending = manager.active_requests.get(request_id)
+                if pending is not None and pending.get("cancel_event") is not None:
+                    pending["cancel_event"].set()
+        audio = session.audio_player
+        if audio is not None:
+            session.silence_audio_track.cancel_source(audio)
+            audio.stop()
+        session.idle_track.end_live()
+        result["motion_return_started"] = True
     return {
         "status": "accepted" if result.get("accepted") else "ignored",
         "session_id": session_id,
@@ -5171,6 +5190,13 @@ async def webrtc_stream(
         await rollback_stream_setup("audio sender setup failed")
         raise
 
+    if getattr(session.idle_track, "motion_bank", None) is not None:
+        try:
+            await session.idle_track.wait_for_motion_settled()
+        except (Exception, asyncio.CancelledError):
+            await rollback_stream_setup("motion recovery did not settle")
+            raise
+
     completion_idle_result = None
     if (
         session.idle_track is not None
@@ -5325,6 +5351,19 @@ async def webrtc_stream(
             print(f"⚠️ [{request_id}] Could not release WebRTC A/V playout ({reason}): {exc}")
             return False
 
+    def motion_metadata(start_index, count):
+        router = session.live_pose_router
+        if router is None or getattr(router, "motion_bank", None) is None:
+            return None
+        result = []
+        for index in range(start_index, start_index + count):
+            snapshot = router.snapshot(index, session.fps)
+            result.append({"pose_id": snapshot.pose_id,
+                           "render_key": snapshot.effective_render_key,
+                           "source_frame": router.source_frame_index(snapshot, index),
+                           "generation_frame": index, "mode": "live"})
+        return result
+
     def frame_callback(frame_bgr, frame_idx, total_frames):
         nonlocal live_started, live_generation_id
         try:
@@ -5339,9 +5378,10 @@ async def webrtc_stream(
                 )
             
             push_future = asyncio.run_coroutine_threadsafe(
-                session.idle_track.push_bgr_frame(
-                    frame_bgr,
+                session.idle_track.push_bgr_frames_batch(
+                    [frame_bgr],
                     generation_id=live_generation_id,
+                    metadata=motion_metadata(frame_idx - 1, 1),
                 ),
                 main_loop
             )
@@ -5374,6 +5414,7 @@ async def webrtc_stream(
                 session.idle_track.push_bgr_frames_batch(
                     frames_bgr,
                     generation_id=live_generation_id,
+                    metadata=motion_metadata(start_frame_idx - 1, len(frames_bgr)),
                 ),
                 main_loop,
             )
