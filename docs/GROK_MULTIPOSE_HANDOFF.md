@@ -5,7 +5,20 @@ checkpoint records completed work and remaining requirements; it does not mark
 the overall goal complete. Inspect git status and live processes before acting.
 Preserve user assets, approved source masters, and any newer worktree changes.
 
-## Latest checkpoint — incoming-eye candidate and exact face inputs
+## Latest checkpoint — current-phoneme body transitions
+
+Read [the current-phoneme runbook](WEBRTC_CURRENT_PHONEME_BLEND.md) and
+`/workspace/experiments/multipose_current_phoneme_20260925/` first. The optional
+profile keeps current articulation while raw bodies align; exact CPU evidence
+reproduces 24 transition frames, and 325 regressions pass. Three actual Latina recordings pass timing checks (1,416 frames, eight returns
+in 0.3992–0.4498 s), but the smile-entry transition still has doubled nostrils
+and a philtrum seam at receiver frames 154–156. Visual acceptance failed; keep
+the profile experimental. Inspect the pilot report and processes before continuing. Existing
+source masters and default packages remain unchanged. This feature is for pose
+changes during active speech; do not apply its progress-zero semantics to
+post-audio idle recovery. Beard texture and normal-speed acceptance remain open.
+
+## Preceding checkpoint — incoming-eye candidate and exact face inputs
 
 Start with [the incoming-eye runbook](WEBRTC_MOTION_EYE_BLEND.md) and
 `/workspace/experiments/multipose_blend_quality_20260925/README.md`.
@@ -253,3 +266,11 @@ Combined with v4, there are now 15 passing recordings across three characters.
 The owned test server was stopped. Visual acceptance of these recordings remains
 pending, particularly the new idle's blink rate. Do not promote a bank or claim
 imperceptible transitions without that review. No more render is queued.
+
+Additional edge finding: the one-second `silence.wav` input is exactly zero
+(24,000 samples at 24 kHz, measured peak and RMS both zero), yet the generated
+idle-body mouth opens at receiver frames 141–147. This occurs outside the new
+transition helper and needs a separate silence policy that preserves actual
+speech. Partial-body interruption also includes a three-frame build hold; it
+is recorded and must not be described as continuous motion. See the edge review
+and `silence-input-check.json` in the current experiment directory.

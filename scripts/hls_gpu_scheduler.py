@@ -125,6 +125,10 @@ class HLSStreamJob:
     chunks_appended: int = 0
     encoded_frame_cursor: int = 0
     webrtc_last_pose_frame: object = field(default=None, repr=False)
+    webrtc_last_raw_pose_frame: object = field(default=None, repr=False)
+    webrtc_last_pose_alpha: object = field(default=None, repr=False)
+    webrtc_pose_crossfade_raw_anchor: object = field(default=None, repr=False)
+    webrtc_pose_crossfade_alpha_anchor: object = field(default=None, repr=False)
     webrtc_last_pose_id: Optional[str] = None
     webrtc_last_source_frame: Optional[int] = None
     webrtc_pose_crossfade_anchor_pose: Optional[str] = None
@@ -1677,9 +1681,13 @@ class HLSGPUStreamScheduler:
                     job.generation_fps,
                 )
 
+        bank = getattr(live_pose_router, "motion_bank", None)
+        carry_layers = getattr(bank, "current_phoneme", None) is not None
+
         def compose_batch():
             compose_started_at = time.time()
             frames = []
+            raw_layers = []
             source_frame_indices = []
             background_frames = [None] * len(batch_frames)
             if live_pose_router is not None and live_pose_snapshots is not None:
@@ -1733,13 +1741,19 @@ class HLSGPUStreamScheduler:
                     if rel_index < len(background_frames)
                     else None
                 )
-                frames.append(
-                    pose_avatar.compose_frame(
-                        res_frame,
-                        cycle_index,
-                        background_frame=background_frame,
+                if carry_layers:
+                    result = pose_avatar.compose_frame(res_frame, cycle_index,
+                        background_frame=background_frame, return_layers=True)
+                    frames.append(result["composed"])
+                    raw_layers.append({"raw": result["raw"], "alpha": result["alpha"]})
+                else:
+                    frames.append(
+                        pose_avatar.compose_frame(
+                            res_frame,
+                            cycle_index,
+                            background_frame=background_frame,
+                        )
                     )
-                )
             return {
                 "compose_sequence": compose_sequence,
                 "frames": frames,
@@ -1752,6 +1766,7 @@ class HLSGPUStreamScheduler:
                     for snapshot in (live_pose_snapshots or [])
                 ],
                 "live_source_frame_indices": source_frame_indices,
+                "live_raw_layers": raw_layers,
                 "live_pose_crossfade_frames": [
                     snapshot.crossfade_frames
                     for snapshot in (live_pose_snapshots or [])
@@ -1794,7 +1809,14 @@ class HLSGPUStreamScheduler:
                     print(f"❌ [{job.request_id}] compose batch failed: {exc}")
                     traceback.print_exc()
 
-            self._append_ready_composed_frames(job)
+            try:
+                self._append_ready_composed_frames(job)
+            except Exception as exc:
+                # Invalid configured layers must fail this job, not the shared
+                # scheduler thread or silently select the legacy compositor.
+                job.error_message = f"Composed frame append failed: {exc}"
+                print(f"❌ [{job.request_id}] {job.error_message}")
+                traceback.print_exc()
 
         self._finalize_ready_jobs()
         self._finalize_cancelled_jobs()
@@ -1845,7 +1867,12 @@ class HLSGPUStreamScheduler:
                 compose_info.get("live_pose_ids") or [],
                 compose_info.get("live_pose_crossfade_frames") or [],
                 compose_info.get("live_source_frame_indices") or [],
+                compose_info.get("live_raw_layers"),
             )
+            if job.cancel_event.is_set():
+                # Cancellation can arrive while CPU motion warping is running.
+                # Do not hand that completed batch to any publisher.
+                continue
             compose_info["frames"] = frames
             if frames and job.frame_batch_callback is not None:
                 rendered_start_frame_idx = job.composed_frame_idx
@@ -1864,6 +1891,8 @@ class HLSGPUStreamScheduler:
                     job.frame_callback_total_s += callback_s
                     job.frame_callback_max_s = max(job.frame_callback_max_s, callback_s)
 
+                if job.cancel_event.is_set():
+                    continue
                 if hasattr(job.session, "record_rendered_pose_batch"):
                     job.session.record_rendered_pose_batch(
                         compose_info.get("live_pose_ids") or [],
@@ -1912,6 +1941,7 @@ class HLSGPUStreamScheduler:
 
             if (
                 rendered_frame_count > 0
+                and not job.cancel_event.is_set()
                 and hasattr(job.session, "record_rendered_pose_batch")
             ):
                 job.session.record_rendered_pose_batch(
@@ -1943,26 +1973,60 @@ class HLSGPUStreamScheduler:
         pose_ids: list,
         pose_crossfade_frames: Optional[list] = None,
         pose_source_indices: Optional[list] = None,
+        raw_layers: Optional[list] = None,
     ) -> list:
         """Blend the first N frames after a live pose change without retiming."""
-        if not frames or len(pose_ids) != len(frames):
+        bank = getattr(getattr(getattr(job, "session", None), "live_pose_router", None), "motion_bank", None)
+        current_only = getattr(bank, "current_phoneme", None) is not None
+        if not frames:
+            return frames
+        if len(pose_ids) != len(frames):
+            if current_only:
+                raise ValueError("Current phoneme composition requires every pose ID")
             return frames
         requested_crossfades = list(pose_crossfade_frames or [])
         if len(requested_crossfades) != len(frames):
+            if current_only:
+                raise ValueError("Current phoneme composition requires every crossfade length")
             requested_crossfades = [0] * len(frames)
 
-        bank = getattr(getattr(getattr(job, "session", None), "live_pose_router", None), "motion_bank", None)
         source_indices = list(pose_source_indices or [])
         if len(source_indices) != len(frames):
+            if current_only:
+                raise ValueError("Current phoneme composition requires every source index")
             if bank is not None and bank.eye_blend is not None:
                 raise ValueError("Eye-aware motion composition requires every source index")
             source_indices = [None] * len(frames)
+        layers = [None] * len(frames)
+        if current_only:
+            from scripts.motion_current_phoneme import validate_alpha
+            if not isinstance(raw_layers, (list, tuple)) or len(raw_layers) != len(frames):
+                raise ValueError("Current phoneme composition requires every raw layer")
+            layers = raw_layers
+            # Validate the whole batch before changing history or publishing.
+            for frame, layer, pose, index in zip(frames, layers, pose_ids, source_indices):
+                if not isinstance(layer, dict) or "raw" not in layer or "alpha" not in layer:
+                    raise ValueError("Current phoneme composition requires raw and alpha layers")
+                raw = layer["raw"]
+                if (not isinstance(raw, np.ndarray) or raw.dtype != np.uint8
+                        or raw.ndim != 3 or raw.shape[2] != 3
+                        or raw.shape != np.asarray(frame).shape):
+                    raise ValueError("Current phoneme composition requires matching uint8 BGR raw layers")
+                if (pose not in bank.sources or isinstance(index, (bool, np.bool_))
+                        or not isinstance(index, (int, np.integer))
+                        or not 0 <= index < bank.count(pose)):
+                    raise ValueError("Current phoneme composition requires exact original source indices")
+                source = bank.sources[pose]
+                if raw.shape[:2] != (source["height"], source["width"]):
+                    raise ValueError("Current phoneme composition requires original source dimensions")
+                validate_alpha(layer["alpha"], *raw.shape[:2])
         blended_frames = []
-        for frame, pose_id, requested_crossfade, source_index in zip(
+        for frame, pose_id, requested_crossfade, source_index, layer in zip(
             frames,
             pose_ids,
             requested_crossfades,
             source_indices,
+            layers,
         ):
             normalized_pose_id = str(pose_id or "default")
             source_frame = np.asarray(frame)
@@ -1976,6 +2040,11 @@ class HLSGPUStreamScheduler:
                 ).copy()
                 job.webrtc_pose_crossfade_anchor_pose = job.webrtc_last_pose_id
                 job.webrtc_pose_crossfade_anchor_source = getattr(job, "webrtc_last_source_frame", None)
+                if current_only:
+                    # History advances only here, in generation order. Prepared
+                    # raw layers are immutable cache views; freeze by reference.
+                    job.webrtc_pose_crossfade_raw_anchor = job.webrtc_last_raw_pose_frame
+                    job.webrtc_pose_crossfade_alpha_anchor = job.webrtc_last_pose_alpha
                 job.webrtc_pose_crossfade_index = 0
                 job.webrtc_pose_crossfade_target_frames = max(
                     self.webrtc_pose_crossfade_frames,
@@ -1991,6 +2060,8 @@ class HLSGPUStreamScheduler:
                     )
                 else:
                     job.webrtc_pose_crossfade_anchor = None
+                    job.webrtc_pose_crossfade_raw_anchor = None
+                    job.webrtc_pose_crossfade_alpha_anchor = None
 
             output_frame = source_frame
             anchor = job.webrtc_pose_crossfade_anchor
@@ -1998,28 +2069,40 @@ class HLSGPUStreamScheduler:
             frame_count = job.webrtc_pose_crossfade_target_frames
             if anchor is not None and fade_index < frame_count:
                 anchor_array = np.asarray(anchor)
+                if current_only and anchor_array.shape != source_frame.shape:
+                    raise ValueError("Current phoneme anchor has incompatible frame dimensions")
                 if anchor_array.shape == source_frame.shape:
                     progress = float(fade_index + 1) / float(frame_count + 1)
                     alpha = 0.5 - 0.5 * math.cos(math.pi * progress)
-                    blended = (
-                        anchor_array.astype(np.float32) * (1.0 - alpha)
-                        + source_frame.astype(np.float32) * alpha
-                    )
-                    if bank is not None:
+                    if current_only:
+                        output_frame = bank.blend_current(
+                            job.webrtc_pose_crossfade_raw_anchor, layer["raw"], source_frame,
+                            job.webrtc_pose_crossfade_alpha_anchor, layer["alpha"], alpha,
+                            job.webrtc_pose_crossfade_anchor_pose,
+                            job.webrtc_pose_crossfade_anchor_source,
+                            normalized_pose_id, source_index)
+                    elif bank is not None:
                         output_frame = bank.blend(anchor_array, source_frame, alpha,
                             job.webrtc_pose_crossfade_anchor_pose,
                             job.webrtc_pose_crossfade_anchor_source,
                             normalized_pose_id, source_index)
                     else:
+                        blended = (anchor_array.astype(np.float32) * (1.0 - alpha)
+                                   + source_frame.astype(np.float32) * alpha)
                         output_frame = np.clip(blended, 0, 255).astype(source_frame.dtype)
                     job.webrtc_pose_crossfade_frames_applied += 1
                 job.webrtc_pose_crossfade_index += 1
                 if job.webrtc_pose_crossfade_index >= frame_count:
                     job.webrtc_pose_crossfade_anchor = None
+                    job.webrtc_pose_crossfade_raw_anchor = None
+                    job.webrtc_pose_crossfade_alpha_anchor = None
                     job.webrtc_pose_crossfade_target_frames = 0
 
             blended_frames.append(output_frame)
             job.webrtc_last_pose_frame = source_frame.copy()
+            if current_only:
+                job.webrtc_last_raw_pose_frame = layer["raw"]
+                job.webrtc_last_pose_alpha = layer["alpha"]
             job.webrtc_last_pose_id = normalized_pose_id
             job.webrtc_last_source_frame = source_index
 
@@ -2176,6 +2259,11 @@ class HLSGPUStreamScheduler:
 
         job.finalized = True
         job.finalized_at = time.time()
+        job.webrtc_last_raw_pose_frame = None
+        job.webrtc_last_pose_alpha = None
+        job.webrtc_pose_crossfade_raw_anchor = None
+        job.webrtc_pose_crossfade_alpha_anchor = None
+        job.composed_batches.clear()
         with self.condition:
             self.jobs.pop(job.request_id, None)
             self.condition.notify_all()

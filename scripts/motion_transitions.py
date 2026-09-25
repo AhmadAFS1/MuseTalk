@@ -149,6 +149,46 @@ class MotionBank:
         if not all(edge["admissible"] for edge in manifest["edges"][IDLE][IDLE]):
             raise ValueError("Idle must have a closed-mouth recovery at every phase")
         self.eye_blend = self._validate_eye_blend()
+        self.current_phoneme = self._validate_current_phoneme()
+
+    def _validate_current_phoneme(self):
+        profile = self.manifest.get("current_phoneme")
+        if profile is None:
+            return None
+        if (not isinstance(profile, dict)
+                or set(profile) != {"method", "source_hashes"}
+                or profile.get("method") != "current_similarity_v1"):
+            raise ValueError("Unsupported current phoneme blend profile")
+        if self.eye_blend is None:
+            raise ValueError("Current phoneme blending requires source-bound eye geometry")
+        if len({(s["height"], s["width"]) for s in self.sources.values()}) != 1:
+            raise ValueError("Current phoneme sources require identical frame dimensions")
+        if profile.get("source_hashes") != {p: s["sha256"] for p, s in self.sources.items()}:
+            raise ValueError("Current phoneme source hash mismatch")
+        return profile
+
+    def blend_current(self, old_raw, new_raw, current_composed, old_alpha, new_alpha,
+                      progress, old_pose, old_frame, new_pose, new_frame):
+        """Align raw bodies while keeping this generation frame's articulation.
+
+        Used only inside a speaking job. Entry and recovery retain their separate
+        playback policies; this method must never fade speech against stale lips.
+        """
+        if self.current_phoneme is None:
+            raise ValueError("Current phoneme blending is not enabled for this bank")
+        from scripts.motion_current_phoneme import current_phoneme_blend
+        for pose, index, image in ((old_pose, old_frame, old_raw),
+                                   (new_pose, new_frame, new_raw)):
+            if (pose not in self.sources or isinstance(index, (bool, np.bool_))
+                    or not isinstance(index, (int, np.integer))
+                    or not 0 <= index < self.count(pose)):
+                raise ValueError("Current phoneme blend requires exact original source indices")
+            source = self.sources[pose]
+            if image.shape[:2] != (source["height"], source["width"]):
+                raise ValueError("Current phoneme geometry does not match supplied frame size")
+        return current_phoneme_blend(old_raw, new_raw, current_composed,
+            old_alpha, new_alpha, progress, self.eye_blend["frames"][old_pose][old_frame],
+            self.eye_blend["frames"][new_pose][new_frame])
 
     def _validate_eye_blend(self):
         profile = self.manifest.get("eye_blend")

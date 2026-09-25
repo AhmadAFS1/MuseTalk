@@ -1211,11 +1211,26 @@ class APIAvatar:
                 return candidate
         return default_idle_path
 
-    def compose_frame(self, res_frame, cycle_index: int, background_frame=None):
-        """Blend a decoded face into the prepared cycle or an alternate background."""
+    def compose_frame(self, res_frame, cycle_index: int, background_frame=None,
+                      return_layers: bool = False):
+        """Blend a decoded face into the prepared cycle or an alternate background.
+
+        ``return_layers`` additionally returns the exact pre-composition raw
+        pixels and sparse effective face alpha for opt-in motion composition.
+        Raw and alpha arrays are read-only to their consumers. Prepared raw is
+        a view of the immutable cached image (the cache's flags are unchanged);
+        normalized alternate raw is an owned copy. Sparse alpha is a read-only
+        view of the immutable plan alpha, avoiding per-frame mask copies. Keep
+        layers request local and never mutate their shared underlying caches.
+
+        Alpha is ``{"bounds": (x0, y0, x1, y1), "values": uint8[height, width]}``
+        in full-image coordinates, limited to where the generated face was
+        pasted. Empty support has zero bounds and a (0, 0) values array.
+        """
         cycle_pos = cycle_index % len(self.coord_list_cycle)
         bbox = self.coord_list_cycle[cycle_pos]
         prepared_frame = self.frame_list_cycle[cycle_pos]
+        uses_prepared_background = True
         if background_frame is None:
             ori_frame = prepared_frame.copy()
         else:
@@ -1223,6 +1238,7 @@ class APIAvatar:
             if ori_frame.ndim != 3 or ori_frame.shape[2] < 3:
                 ori_frame = prepared_frame.copy()
             else:
+                uses_prepared_background = False
                 if ori_frame.shape[:2] != prepared_frame.shape[:2]:
                     ori_frame = cv2.resize(
                         ori_frame,
@@ -1235,6 +1251,11 @@ class APIAvatar:
                     ori_frame = ori_frame[:, :, :3]
                 if ori_frame.dtype != np.uint8:
                     ori_frame = np.clip(ori_frame, 0, 255).astype(np.uint8)
+        raw_frame = None
+        if return_layers:
+            raw_frame = (prepared_frame.view() if uses_prepared_background
+                         else ori_frame.copy())
+            raw_frame.setflags(write=False)
         x1, y1, x2, y2 = bbox
 
         if res_frame.dtype != np.uint8:
@@ -1244,10 +1265,33 @@ class APIAvatar:
         if cycle_pos < len(self._compose_plan_cycle):
             compose_plan = self._compose_plan_cycle[cycle_pos]
         if compose_plan is not None:
-            return get_image_blending_with_plan(ori_frame, res_frame_resized, compose_plan)
-        mask = self.mask_list_cycle[cycle_pos % len(self.mask_list_cycle)]
-        mask_crop_box = self.mask_coords_list_cycle[cycle_pos % len(self.mask_coords_list_cycle)]
-        return get_image_blending(ori_frame, res_frame_resized, bbox, mask, mask_crop_box)
+            composed = get_image_blending_with_plan(ori_frame, res_frame_resized, compose_plan)
+        else:
+            mask = self.mask_list_cycle[cycle_pos % len(self.mask_list_cycle)]
+            mask_crop_box = self.mask_coords_list_cycle[cycle_pos % len(self.mask_coords_list_cycle)]
+            if not return_layers:
+                return get_image_blending(ori_frame, res_frame_resized, bbox, mask, mask_crop_box)
+            compose_plan = prepare_image_blending_plan(ori_frame.shape, bbox, mask, mask_crop_box)
+            composed = get_image_blending_with_plan(ori_frame, res_frame_resized, compose_plan)
+        if not return_layers:
+            return composed
+
+        bounds = (0, 0, 0, 0)
+        values = np.empty((0, 0), dtype=np.uint8)
+        if (compose_plan is not None
+                and compose_plan["overlay_dst_slice"] is not None
+                and compose_plan["face_src_slice"] is not None):
+            clip_y, clip_x = compose_plan["clip_slice"]
+            dst_y, dst_x = compose_plan["overlay_dst_slice"]
+            bounds = (clip_x.start + dst_x.start, clip_y.start + dst_y.start,
+                      clip_x.start + dst_x.stop, clip_y.start + dst_y.stop)
+            # Only this part of the plan contains generated pixels. The rest
+            # of its masked overlay equals the original background image.
+            # Read-only flags apply to this view, never to the cached plan.
+            values = compose_plan["alpha_u8"][dst_y, dst_x, 0].view()
+        values.setflags(write=False)
+        return {"composed": composed, "raw": raw_frame,
+                "alpha": {"bounds": bounds, "values": values}}
 
     def _pad_generation_batch_for_backend(self, whisper_batch, latent_batch):
         target_batch = max(1, int(self.batch_size))

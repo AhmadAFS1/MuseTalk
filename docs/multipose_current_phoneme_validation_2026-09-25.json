@@ -1,0 +1,305 @@
+{
+  "version": 1,
+  "created_at": "2026-09-25T18:40:19.140746+00:00",
+  "parent_commit": "2d291eb13e2e95cbfd8193efdbe1c976acf18e71",
+  "profile": "current_similarity_v1",
+  "status": "experimental_visual_failure_retained",
+  "candidate_atlas_sha256": "79a0207a168f1d168e12746e302ee4fa3f9bf3000c20fedb9b2520bd7ed32c3f",
+  "routing_sha256": "a143303eeb633c5bb9d91f71552b133e673efdd9d16bc9201e395f4a1bf065e8",
+  "source_hashes": {
+    "neutral_resting": "ee675cb4fdc230f1a67f995d3a22975c1954b0238b8c34a57827eec23379a14c",
+    "speaking_direct": "84c5bc80b858c864e5a4578f19eb37c66da4041de0ffe07d8b1e22f6d808bae0",
+    "light_smile": "a28498e05356de4eba8e770ca85483db33bd5e4266491ae3c9586dc9624a12c9"
+  },
+  "python_tests": {
+    "existing": 285,
+    "additional": 40,
+    "total": 325,
+    "passed": true,
+    "logs": [
+      "cpu-regressions.log",
+      "current-regressions.log"
+    ]
+  },
+  "live_recording_count": 3,
+  "live_received_frames": 1416,
+  "return_seconds": [
+    0.4196,
+    0.4498,
+    0.3995,
+    0.3994,
+    0.4001,
+    0.4059,
+    0.3992,
+    0.4046
+  ],
+  "saved_frame_interval_seconds": 0.05,
+  "runtime_inputs_unchanged_after_recording": true,
+  "code": {
+    "scripts/api_avatar.py": "6f28c39c53354c84f70180bafcc56765be1f91a24b9729c7b5ab3a2fbe7f675b",
+    "scripts/hls_gpu_scheduler.py": "8262174f0d409d37d4a3803afc2565b8e94a5324230c83733356c38ff89feee2",
+    "scripts/motion_transitions.py": "d6798e7679e1131057f435e33e9be7cd3eae38b8bdce97295999cef1d9907c72",
+    "scripts/motion_current_phoneme.py": "8c2d888e9107f753f2d8672123e3307b4dc7a021bf8539a27269bae8fed6467c",
+    "scripts/motion_eye_blend.py": "b98f3b0a1cf1a4112689a2a02d2da80857d3438c9063e05c13e714c116fae5f8",
+    "scripts/attach_motion_current_profile.py": "f0e146b0f05b810f3c23be5050ceacb974a49aecce7d49590e4087bd97447163",
+    "test_api_avatar_layers.py": "a97838ce3b8c5b340a904f1d8e107ab02d606ee5da864514e3f81511a33211c9",
+    "test_motion_current_phoneme.py": "bc75280f8cc0020a5ce847c85121467ac0a3cbf1e75972541346ec748e07a0f5",
+    "test_motion_current_runtime.py": "5a9ade4952f9695711668f0a030399c71b3b7f65ba94f0799a61485cb33b24d5"
+  },
+  "artifacts_root": "/workspace/experiments/multipose_current_phoneme_20260925",
+  "artifacts": {
+    "PIPELINE_CARRY_AUDIT.md": {
+      "sha256": "0d4aba7f3cce512fcebc395282451db6616a784d8e21a6786220150855fbabd1",
+      "bytes": 11385
+    },
+    "README.md": {
+      "sha256": "3c9718d1e6b56425227b20b3772143b24840d7e296047dadaf7227df4591b131",
+      "bytes": 2929
+    },
+    "cpu/README.md": {
+      "sha256": "eb37cf6d6ba356a212c11d38fd7f29ce19c04c498e556996c38ebe97c88fa45a",
+      "bytes": 7613
+    },
+    "cpu/artifact-inventory.json": {
+      "sha256": "8615cbe3ec0351e7b0c2478a9e216addf78a30bc8b75d146c8d3de84d4f4fb2a",
+      "bytes": 2744
+    },
+    "cpu/helper-tests.log": {
+      "sha256": "a24c8eba620445ee254eb6b161037526b882a02032059bcfc134658228e05c85",
+      "bytes": 1386
+    },
+    "cpu/offline-current-phoneme-switches.mp4": {
+      "sha256": "9821a31ca3a3662696e493be5e3be6b891eb6217ad04327b4bd97bc166fcc63a",
+      "bytes": 130545
+    },
+    "cpu/prototype.py": {
+      "sha256": "7f0b11ff29e06196a2e638ea1a94ecae55b736eb24fea0a343c075cf2e8eba60",
+      "bytes": 17384
+    },
+    "cpu/report.json": {
+      "sha256": "013904df1cf4a5abcda067c44dbd07b8ab114d43a01530cc184bc930a5bf92e8",
+      "bytes": 60513
+    },
+    "cpu/run.log": {
+      "sha256": "3e2c8fb6c4324c5ece3957f807d6f9ca011cc22ecd3187b85623818378be88f6",
+      "bytes": 1733
+    },
+    "cpu/smile-exit-and-idle.jpg": {
+      "sha256": "2eb6191da4564c4e6c0bf798b02639482060b05c2fd13d2f8cb395d97db18650",
+      "bytes": 184557
+    },
+    "cpu/talk-entry-and-smile.jpg": {
+      "sha256": "ae49894c3c47cb660c8769be825081bd5772f932f72951c0da7f907c9dadb5c1",
+      "bytes": 181994
+    },
+    "cpu/v0-double-mask/offline-current-phoneme-switches.mp4": {
+      "sha256": "9a873822da406a9922c0719fa2720008ee9f2917849de18b105e3d21e6566eb9",
+      "bytes": 131060
+    },
+    "cpu/v0-double-mask/prototype.py": {
+      "sha256": "2686b97eb2cbbfd1cdc688e2388e9defc2dec024983b960aed5760c842f0d536",
+      "bytes": 14172
+    },
+    "cpu/v0-double-mask/report.json": {
+      "sha256": "928f49a352dc6d4143871da51614e716e8c5826dabddf98e6480ba3ae207070e",
+      "bytes": 51109
+    },
+    "cpu/v0-double-mask/run.log": {
+      "sha256": "24fb394cc98e242e544edf4fed7042f29992dc677c3e90918a7a5c14715f3f9a",
+      "bytes": 1736
+    },
+    "cpu/v0-double-mask/smile-exit-and-idle.jpg": {
+      "sha256": "aefada199fb8bf70c5c8f8f8094dd1340f5dbce086921cb6b7d0ba4e66b07980",
+      "bytes": 185290
+    },
+    "cpu/v0-double-mask/talk-entry-and-smile.jpg": {
+      "sha256": "d1b9c0d38fa2a0674319e26a6558418af015375624ab96c74061d96fe7ac55cd",
+      "bytes": 182206
+    },
+    "cpu/v2-parser-correction/prototype.py": {
+      "sha256": "e5d2b814b99b992ad64ce4a3d7ef53f63431c959055f6e5d5be424df8482b667",
+      "bytes": 15545
+    },
+    "cpu/v2-parser-correction/report.json": {
+      "sha256": "b39aff84c4197cb8f6712a64f1dd2dbd2d6ed50755db55a459369d18b00e99de",
+      "bytes": 57440
+    },
+    "cpu/v2-parser-correction/smile-exit-and-idle.jpg": {
+      "sha256": "479fa7ee949fbf845c1000b8fa0fd470bf1602f8d2cbbdc668103311ab83a521",
+      "bytes": 184643
+    },
+    "cpu/v2-parser-correction/talk-entry-and-smile.jpg": {
+      "sha256": "76da4bdfa7d29474afc01fb5485b66b6724422de765ee581741bbd5216e957f8",
+      "bytes": 181855
+    },
+    "cpu-regressions.log": {
+      "sha256": "0fd1407b0bfdb945873f46cbc6810b3a7fdd7c83003627a7aacd46b76ee989d8",
+      "bytes": 186232
+    },
+    "current-regressions.log": {
+      "sha256": "9f1b7b24e824ea23e0d0abf57006659a0ebce701e1ab114527dd0c096536e244",
+      "bytes": 1867
+    },
+    "edge-pilot.log": {
+      "sha256": "7388c7beab2af93d5f43bca87aa70faadce1c0e8213ed567338e8daf08f06f6c",
+      "bytes": 1451
+    },
+    "latina-candidate/motion-atlas.json": {
+      "sha256": "79a0207a168f1d168e12746e302ee4fa3f9bf3000c20fedb9b2520bd7ed32c3f",
+      "bytes": 1391865
+    },
+    "latina-candidate/motion-registration.json": {
+      "sha256": "b771e0538aaf5802a634578ab8b72ee2d87347b899388365a054c1cba6bc6b05",
+      "bytes": 399
+    },
+    "latina-edges/README.md": {
+      "sha256": "f11d55f6add18621f9a5e51ffaac865a22b0841a918500a1282eead7669baec4",
+      "bytes": 704
+    },
+    "latina-edges/avatar-preparation.json": {
+      "sha256": "9a2deef493b04562d668ebd90d0d5e25944f7b4db6f0456ffdd92f09dd10cfb3",
+      "bytes": 590
+    },
+    "latina-edges/edge-cases.json": {
+      "sha256": "42fb717fab49269e8e8bfd89290697fb79ac9a0ed74eca038e656ec955918d5c",
+      "bytes": 7387534
+    },
+    "latina-edges/edge-cases.mp4": {
+      "sha256": "98a891d2798d34d60ed9aef9e9a15004cf0dd045478d3a69f4bcbd2aeaedf7b9",
+      "bytes": 2945475
+    },
+    "latina-edges/pose-set.json": {
+      "sha256": "0f38322c63500d51d4dbf42c5852e290f897862ebafc68afabad64e694b8bd16",
+      "bytes": 1906
+    },
+    "latina-edges/review.html": {
+      "sha256": "564a11fd7f9346a5bc96e3d6098f04167ff24b707c512837c9a23223067e0217",
+      "bytes": 941
+    },
+    "latina-edges/verification.json": {
+      "sha256": "550a9294a1c074e29a82d3c42957b2d3855b71e13e1a25d64f73c21a8f55223b",
+      "bytes": 2377
+    },
+    "latina-live/README.md": {
+      "sha256": "2743c9143acf7609c27028412b51929fc631646d0c8227dcf00846c13607b0c5",
+      "bytes": 770
+    },
+    "latina-live/avatar-preparation.json": {
+      "sha256": "9a2deef493b04562d668ebd90d0d5e25944f7b4db6f0456ffdd92f09dd10cfb3",
+      "bytes": 590
+    },
+    "latina-live/interrupted-and-next-turn.json": {
+      "sha256": "490db4f0ba7d898d3cbe36255a330133ad6e43446d28e937273d75f55347c8b7",
+      "bytes": 1459748
+    },
+    "latina-live/interrupted-and-next-turn.mp4": {
+      "sha256": "b8a06408de399c5b74ba17748ac8ef5c99a8e46d9a2333509749c7ece073917d",
+      "bytes": 733186
+    },
+    "latina-live/long-talking-smiling.json": {
+      "sha256": "ea89f1e41eaff712feb71cac1df08695a8481554067581cca560ef021277676b",
+      "bytes": 2409667
+    },
+    "latina-live/long-talking-smiling.mp4": {
+      "sha256": "8745eed0740a85b42251f54ac4c4d1be6043a186dffd92db5c12837bb4143333",
+      "bytes": 1237264
+    },
+    "latina-live/pose-set.json": {
+      "sha256": "0f38322c63500d51d4dbf42c5852e290f897862ebafc68afabad64e694b8bd16",
+      "bytes": 1906
+    },
+    "latina-live/review.html": {
+      "sha256": "f8a55b8f9e6e6ed276dc4025915ea7f807d74abf54f54ff5184a4b2ed8f3f391",
+      "bytes": 1115
+    },
+    "latina-live/verification.json": {
+      "sha256": "8a1acfc81160895b30db75896f4af71817da5a28a9ce3ebbbc17cc57f902b7e8",
+      "bytes": 3214
+    },
+    "live-pilot.log": {
+      "sha256": "b151da3ca9777212327153d54dab0eeaa327439f17f87a0fc0560dae198ee66b",
+      "bytes": 2770
+    },
+    "live-review/README.md": {
+      "sha256": "0c3865460a999724b75390fce6a74aadf7e321b8deb143021b7034a898bf6cab",
+      "bytes": 7675
+    },
+    "live-review/actual-interruption.jpg": {
+      "sha256": "fa03f566bf0f6e69bf57cee445e55c66592121322cf8497e6a8e8a4a722f114f",
+      "bytes": 160633
+    },
+    "live-review/edge-review-data.json": {
+      "sha256": "26139a503b3572d3f0ae8a208506bf656f339bdac4f8570ab1d0e6d8acacd38b",
+      "bytes": 9945
+    },
+    "live-review/first-talking.jpg": {
+      "sha256": "6451ff34246d7fab136845b18285c63a837fd7d032871724e8702413523aad53",
+      "bytes": 151396
+    },
+    "live-review/partial-body-abort.jpg": {
+      "sha256": "689f1f2dea87a939c7b09a61adc1baf3acd87729e3e509eafcfbc456a0faa1b9",
+      "bytes": 131445
+    },
+    "live-review/review-data.json": {
+      "sha256": "b7e6fb0ecb11f43d94e473edf21cf36d141ab652bd90e5c197bf00438c891d52",
+      "bytes": 46015
+    },
+    "live-review/smile-entry.jpg": {
+      "sha256": "385461220d5f86a74b68e6ba973d050011dc858f6f350e38d99b07c30241cc54",
+      "bytes": 153226
+    },
+    "live-review/smile-exit.jpg": {
+      "sha256": "42c78577d2d63bd1f27cbd0418b405df9af5c9675441f9cdad130ededb105632",
+      "bytes": 158932
+    },
+    "live-review/sparse-body-controls.jpg": {
+      "sha256": "303614cd6293e14cbd8d04f2b6c2e0936a48418e95dc7023a6cf29fcd900b77a",
+      "bytes": 161571
+    },
+    "live-review/terminal-body.jpg": {
+      "sha256": "e7c8c9232ae68dc6e62f7a41ae53fd6bfb5a8c489adbadfde7ec7f163cc62b43",
+      "bytes": 155169
+    },
+    "live-review/threshold-and-silence.jpg": {
+      "sha256": "6a8c1bf9e45819ef6c86e50df6076da5c752e374ebb39336664c9da271f74e2a",
+      "bytes": 132997
+    },
+    "review_edges.py": {
+      "sha256": "3acda98265a0e1bd60c6ee7e33882b4fb00adc40aa5b48a3bb00230628be7461",
+      "bytes": 3342
+    },
+    "review_received.py": {
+      "sha256": "33dc950b9a1f7633581fd0e60465ef0fb6a4c83cad55ae634a0bc0affeb962de",
+      "bytes": 5648
+    },
+    "run-latina-edges.sh": {
+      "sha256": "a67cb58d528a34439cf36673324063430e31dc544354811575c104c3d4cb3c7c",
+      "bytes": 995
+    },
+    "run-latina-pilot.sh": {
+      "sha256": "0a823720589c96b27c19d8aa9eff25828ae2ef2e8dddfe9bef03be988a5ab543",
+      "bytes": 1067
+    },
+    "runtime-inputs.json": {
+      "sha256": "d7fc4b4801382f8f14faf785a144a088eed56cfe6d4d3d76d5847098192a827a",
+      "bytes": 1664
+    },
+    "server.log": {
+      "sha256": "e51d41b52497de4da1146009aa65aaa1ee40aad3d30191e7909b63416850b2ae",
+      "bytes": 557843
+    },
+    "silence-input-check.json": {
+      "sha256": "0e181fa8f1c6fb54cfc65f2ac11148e112167b4296a79e620d8c037e95d1af3e",
+      "bytes": 379
+    }
+  },
+  "limitations": [
+    "Smile-entry receiver154-156 has doubled nostrils/philtrum seam; no visual approval.",
+    "Pure-zero one-second audio visibly opens mouth outside transition helper.",
+    "Partial interruption retains three-frame recovery build hold.",
+    "Indian generated beard texture remains soft.",
+    "Live candidate tested only on Latina; controlled CPU comparison uses Indian.",
+    "Actual browser execution pending automatic-review approval; no mobile app repository available.",
+    "Human normal-speed imperceptibility not demonstrated."
+  ]
+}
