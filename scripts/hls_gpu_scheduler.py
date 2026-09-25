@@ -63,6 +63,7 @@ class HLSStreamJob:
     completion_future: object
     main_loop: object
     output_mode: str = "hls"
+    exact_silence: bool = False
     frame_callback: Optional[Callable[[object, int, int], None]] = None
     frame_batch_callback: Optional[Callable[[list, int, int], None]] = None
     generation_complete_callback: Optional[Callable[[str, Optional[str]], None]] = None
@@ -322,6 +323,7 @@ class HLSGPUStreamScheduler:
         frame_callback: Optional[Callable[[object, int, int], None]] = None,
         frame_batch_callback: Optional[Callable[[list, int, int], None]] = None,
         generation_complete_callback: Optional[Callable[[str, Optional[str]], None]] = None,
+        exact_silence: bool = False,
     ) -> bool:
         submitted_at = time.time()
         with self.condition:
@@ -345,6 +347,7 @@ class HLSGPUStreamScheduler:
             frame_batch_callback,
             generation_complete_callback,
             submitted_at,
+            exact_silence,
         )
         return True
 
@@ -361,6 +364,7 @@ class HLSGPUStreamScheduler:
         generation_complete_callback: Callable[[str, Optional[str]], None],
         start_offset_seconds: Optional[float] = None,
         frame_batch_callback: Optional[Callable[[list, int, int], None]] = None,
+        exact_silence: bool = False,
     ) -> bool:
         return self.submit_stream(
             session=session,
@@ -375,6 +379,7 @@ class HLSGPUStreamScheduler:
             frame_callback=frame_callback,
             frame_batch_callback=frame_batch_callback,
             generation_complete_callback=generation_complete_callback,
+            exact_silence=exact_silence,
         )
 
     def get_stats(self) -> dict:
@@ -410,6 +415,7 @@ class HLSGPUStreamScheduler:
                         "startup_chunk_count": job.startup_chunk_count,
                         "conditioning_ready_frames": job.conditioning_ready_frames,
                         "conditioning_complete": job.conditioning_complete,
+                        "exact_silence": job.exact_silence,
                         "frames_until_next_chunk": max(0, self._next_chunk_target_frames(job) - len(job.frame_buffer)),
                         "frame_buffer_fill_pct": round(
                             (len(job.frame_buffer) / job.frames_per_chunk) if job.frames_per_chunk else 0.0,
@@ -470,8 +476,10 @@ class HLSGPUStreamScheduler:
         frame_batch_callback: Optional[Callable[[list, int, int], None]],
         generation_complete_callback: Optional[Callable[[str, Optional[str]], None]],
         submitted_at: float,
+        exact_silence: bool = False,
     ) -> None:
         prep_started_at = time.time()
+        exact_silence = bool(exact_silence and output_mode == "webrtc")
         is_hls_output = output_mode == "hls"
         audio_copy_candidate_path = (
             str((session.segment_dir / request_id) / "chunk_audio.m4a")
@@ -601,6 +609,14 @@ class HLSGPUStreamScheduler:
                 else None
             )
             motion_router = getattr(session, "live_pose_router", None) if output_mode == "webrtc" else None
+            if exact_silence and getattr(motion_router, "motion_bank", None) is not None:
+                # Original-upload PCM proved entirely zero. Preserve the full
+                # audio/frame schedule, but use the neutral physical source.
+                active_pose_plan = {
+                    "version": 2, "clock": "audio_progress", "switch_mode": "next_boundary",
+                    "on_complete": "neutral_resting",
+                    "segments": [{"at_permille": 0, "pose_id": "neutral_resting"}],
+                }
             if getattr(motion_router, "motion_bank", None) is not None and not active_pose_plan:
                 active_pose_plan = {
                     "version": 2, "clock": "audio_progress", "switch_mode": "next_boundary",
@@ -805,6 +821,7 @@ class HLSGPUStreamScheduler:
                 completion_future=completion_future,
                 main_loop=main_loop,
                 output_mode=output_mode,
+                exact_silence=exact_silence,
                 frame_callback=frame_callback,
                 frame_batch_callback=frame_batch_callback,
                 generation_complete_callback=generation_complete_callback,
@@ -1741,7 +1758,19 @@ class HLSGPUStreamScheduler:
                     if rel_index < len(background_frames)
                     else None
                 )
-                if carry_layers:
+                if getattr(job, "exact_silence", False):
+                    # Do not gate individual quiet/voiceless speech frames.
+                    # This flag comes only from the original entire upload's
+                    # exact-zero decoded PCM, and keeps normal timing intact.
+                    result = pose_avatar.compose_frame(res_frame, cycle_index,
+                        background_frame=background_frame, return_layers=True)
+                    frames.append(result["raw"])
+                    if carry_layers:
+                        empty_alpha = np.empty((0, 0), dtype=np.uint8)
+                        empty_alpha.setflags(write=False)
+                        raw_layers.append({"raw": result["raw"], "alpha": {
+                            "bounds": (0, 0, 0, 0), "values": empty_alpha}})
+                elif carry_layers:
                     result = pose_avatar.compose_frame(res_frame, cycle_index,
                         background_frame=background_frame, return_layers=True)
                     frames.append(result["composed"])

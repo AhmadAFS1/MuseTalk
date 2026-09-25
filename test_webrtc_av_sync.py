@@ -232,7 +232,7 @@ class WebRTCAudioTimelineTest(unittest.TestCase):
                 delta=1.0 / 16_000,
             )
 
-    def test_all_silent_audio_is_rejected_instead_of_starting_live_lipsync(self):
+    def test_exact_silence_keeps_audio_timeline_and_flags_raw_frame_policy(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             source = Path(temp_dir) / "silence.wav"
             samples = np.zeros(16_000, dtype="<i2")
@@ -242,8 +242,22 @@ class WebRTCAudioTimelineTest(unittest.TestCase):
                 output.setframerate(16_000)
                 output.writeframes(samples.tobytes())
 
-            with self.assertRaisesRegex(ValueError, "no sustained activity"):
-                prepare_webrtc_audio_timeline(source)
+            before = source.read_bytes()
+            timeline = prepare_webrtc_audio_timeline(source, enabled=True)
+            self.assertTrue(timeline.exact_silence)
+            self.assertFalse(timeline.normalized)
+            self.assertEqual(Path(timeline.media_path), source)
+            self.assertEqual(timeline.original_duration_seconds, 1.0)
+            self.assertEqual(timeline.media_duration_seconds, 1.0)
+            self.assertEqual((timeline.trim_start_seconds, timeline.trim_end_seconds), (0.0, 1.0))
+            self.assertEqual(source.read_bytes(), before)
+            with wave.open(timeline.media_path, "rb") as decoded:
+                self.assertEqual(decoded.getnframes(), len(samples))
+                self.assertEqual(decoded.getframerate(), 16_000)
+                np.testing.assert_array_equal(
+                    np.frombuffer(decoded.readframes(decoded.getnframes()), dtype="<i2"), samples)
+            # Ordered raw-frame output and unchanged callback frame counts are
+            # covered by test_webrtc_exact_silence_runtime, without live models.
 
 
 class ProofRecorderTimestampTest(unittest.IsolatedAsyncioTestCase):

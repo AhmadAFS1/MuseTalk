@@ -19,6 +19,8 @@ from typing import Optional
 
 import numpy as np
 
+from scripts.webrtc_exact_silence import is_exact_silence
+
 
 ANALYSIS_SAMPLE_RATE = 16_000
 
@@ -54,6 +56,7 @@ class WebRTCAudioTimeline:
     trailing_silence_removed_seconds: float
     threshold_db: float
     normalized: bool
+    exact_silence: bool = False
 
     def to_dict(self) -> dict:
         result = asdict(self)
@@ -204,7 +207,11 @@ def prepare_webrtc_audio_timeline(
         ),
     )
 
-    if not trim_enabled:
+    # Classify the original decoded upload before downmixing, resampling or
+    # int16 timeline normalization can erase a tiny nonzero sample. This is
+    # whole-utterance digital zero only, never an RMS/VAD speech gate.
+    exact_silence = is_exact_silence(source)
+    if not trim_enabled or exact_silence:
         samples = _decode_mono_pcm(source)
         if samples.size == 0:
             raise RuntimeError(f"WebRTC audio contains no decoded samples: {source}")
@@ -222,6 +229,7 @@ def prepare_webrtc_audio_timeline(
             trailing_silence_removed_seconds=0.0,
             threshold_db=threshold,
             normalized=False,
+            exact_silence=exact_silence,
         )
 
     speech_start, speech_end, original_duration = detect_speech_bounds(

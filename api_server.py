@@ -5684,6 +5684,7 @@ async def webrtc_stream(
                 session=session,
                 request_id=request_id,
                 audio_path=str(media_audio_path),
+                exact_silence=audio_timeline.exact_silence,
                 generation_fps=session.fps,
                 cancel_event=cancel_event,
                 completion_future=completion_future,

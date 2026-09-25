@@ -5,7 +5,15 @@ checkpoint records completed work and remaining requirements; it does not mark
 the overall goal complete. Inspect git status and live processes before acting.
 Preserve user assets, approved source masters, and any newer worktree changes.
 
-## Latest checkpoint — current-phoneme body transitions
+## Latest checkpoint — exact silence and nasal diagnosis
+
+Read [the current runbook and TASKS](WEBRTC_EXACT_SILENCE_AND_NOSE_MATCHING.md) and `/workspace/experiments/multipose_nose_silence_20260925/README.md` first. Whole-zero original audio now uses raw neutral frames; all nonzero samples retain ordinary lipsync. 347 Python regressions pass. The actual final edge-case session has 882 saved frames at exact 20 Hz, with five returns in 0.3986–0.4407 seconds. Exact runtime hashes were rechecked and the owned server stopped.
+
+The controlled 3a9ccc2 nose diagnosis shows that replacing one smiling entry (63 → 54) reduces the inspected double nostrils; it does not validate every phase. Neither the manual edge nor the rejected local nose warps were shipped. All-phase measurements prove a tight nasal match is absent for many arbitrary returns, so a generalized matcher alone is insufficient. Continue with exact inputs, a better face alignment bridge and actual partially blended return anchors. Beard texture and normal-speed review remain open.
+
+Disk is nearly full (about 66 MB at checkpoint). Use `TMPDIR=/dev/shm/musetalk-nose-capture-tmp` and `PYTHONDONTWRITEBYTECODE=1`; preserve source/models/evidence. Cache relocation journals are in the experiment root. Browser execution still awaits approval after the recorded automatic rejection; dependency provisioning was not browser execution approval. No mobile repository is available. The full goal is active; no Grok process owns it merely because this handoff exists.
+
+## Preceding checkpoint — current-phoneme body transitions
 
 Read [the current-phoneme runbook](WEBRTC_CURRENT_PHONEME_BLEND.md) and
 `/workspace/experiments/multipose_current_phoneme_20260925/` first. The optional

@@ -43,6 +43,7 @@ class SetupCancellationTest(unittest.IsolatedAsyncioTestCase):
         self.old_cwd = os.getcwd()
         os.chdir(self.temp.name)
         self.phase = "normalization"
+        self.exact_silence = False
         self.entered = asyncio.Event()
         self.release = asyncio.Event()
         self.thread_release = threading.Event()
@@ -100,7 +101,8 @@ class SetupCancellationTest(unittest.IsolatedAsyncioTestCase):
                     raise TimeoutError("Test did not release normalization")
             return types.SimpleNamespace(media_path=str(path), media_duration_seconds=1,
                 original_duration_seconds=1, leading_silence_removed_seconds=0,
-                trailing_silence_removed_seconds=0, to_dict=lambda: {})
+                trailing_silence_removed_seconds=0, exact_silence=self.exact_silence,
+                to_dict=lambda: {"exact_silence": self.exact_silence})
 
         self.ns = dict(globals(), manager=self.manager, webrtc_session_manager=self.sessions,
             hls_stream_scheduler=self.scheduler, _require_webrtc=lambda: None,
@@ -215,6 +217,25 @@ class SetupCancellationTest(unittest.IsolatedAsyncioTestCase):
                                                request_id="old", cancel_event=old_token)
         self.track.start_live.assert_not_called()
         self.assertFalse(self.session.stream_cancel_event.is_set())
+
+    async def assert_server_silence_flag_forwarded(self, exact_silence):
+        self.phase = "none"
+        self.exact_silence = exact_silence
+        response = await self.start_request()
+        submitted = self.scheduler.submit_webrtc_stream.call_args.kwargs
+        self.assertIs(submitted["exact_silence"], exact_silence)
+        self.assertIs(response["audio_timeline"]["exact_silence"], exact_silence)
+        self.assertEqual(Path(submitted["audio_path"]).read_bytes(), b"test audio")
+        self.assertIs(submitted["cancel_event"], self.session.stream_cancel_event)
+        submitted["generation_complete_callback"]("cancelled")
+        submitted["completion_future"].set_result("cancelled")
+        await asyncio.sleep(0)
+
+    async def test_original_upload_zero_fact_reaches_scheduler_without_client_override(self):
+        await self.assert_server_silence_flag_forwarded(True)
+
+    async def test_nonzero_upload_fact_keeps_normal_speech_composition(self):
+        await self.assert_server_silence_flag_forwarded(False)
 
     async def test_legacy_track_does_not_start_motion_failure_supervisor(self):
         self.phase = "none"

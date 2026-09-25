@@ -1,5 +1,7 @@
 # Current phoneme during multipose transitions
 
+Follow-up: [exact silence and nasal alignment](WEBRTC_EXACT_SILENCE_AND_NOSE_MATCHING.md) records the later 347-test checkpoint, actual silent-upload correction, controlled smiling-entry comparison and all-phase matching limits. The results below are the original current-phoneme checkpoint; its visual failure remains retained.
+
 2026-09-25. Experimental, source-bound `current_similarity_v1` profile. The
 original banks and approved LTX source videos remain unchanged. This profile
 addresses pose changes during generated speech; it does not certify invisible
