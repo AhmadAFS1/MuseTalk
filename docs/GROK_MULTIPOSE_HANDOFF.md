@@ -5,6 +5,10 @@ checkpoint records completed work and remaining requirements; it does not mark
 the overall goal complete. Inspect git status and live processes before acting.
 Preserve user assets, approved source masters, and any newer worktree changes.
 
+## Latest evidence — Kokoro Spanish talking transition
+
+Read [the complete report](KOKORO_SPANISH_MULTIPOSE_TEST_2026-09-25.md) and `/workspace/experiments/multipose_kokoro_spanish_20260925/README.md`. The Latina package is confirmed to use three distinct prepared MuseTalk caches, one for each physical idle/talking/smiling video. Two actual received recordings of the exact sentence pass strict cadence, source, routing and return checks. The natural-speed 1.550-second diagnostic changes only the short-reply threshold; the unchanged production policy is separately proved with a 3.075-second 0.5× rendering. Both show idle → talking → idle and recover in about 0.400 seconds. Do not ship the threshold-zero atlas or confuse this selected-pair review with all-phase visual acceptance.
+
 ## Latest checkpoint — exact silence and nasal diagnosis
 
 Read [the current runbook and TASKS](WEBRTC_EXACT_SILENCE_AND_NOSE_MATCHING.md) and `/workspace/experiments/multipose_nose_silence_20260925/README.md` first. Whole-zero original audio now uses raw neutral frames; all nonzero samples retain ordinary lipsync. 347 Python regressions pass. The actual final edge-case session has 882 saved frames at exact 20 Hz, with five returns in 0.3986–0.4407 seconds. Exact runtime hashes were rechecked and the owned server stopped.
