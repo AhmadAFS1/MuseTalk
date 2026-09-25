@@ -65,6 +65,8 @@ class WebRTCSession:
     # owner as the authoritative per-session turn guard so a scheduler failure
     # cannot briefly clear ``active_stream`` and admit an overlapping request.
     stream_owner: Optional[str] = field(default=None, repr=False)
+    # Created with the reservation, before audio preparation or GPU submission.
+    stream_cancel_event: Optional[threading.Event] = field(default=None, repr=False)
     stream_lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
     ice_servers: List[dict] = field(default_factory=list)
     ice_transport_policy: str = "all"
@@ -498,7 +500,8 @@ class WebRTCSessionManager:
             sync_clock=sync_clock, steady_pacing=live_pose_router.motion_bank is not None)
 
         if live_pose_router.motion_bank is not None:
-            idle_track.configure_motion_bank(live_pose_router.motion_bank)
+            idle_track.configure_motion_bank(
+                live_pose_router.motion_bank, source_paths=normalized_pose_paths)
 
         session = WebRTCSession(
             session_id=session_id,
@@ -595,6 +598,8 @@ class WebRTCSessionManager:
             existing = session.stream_owner or session.active_stream
             if existing is not None and existing != normalized_request_id:
                 return False, existing
+            if session.stream_owner != normalized_request_id:
+                session.stream_cancel_event = threading.Event()
             session.stream_owner = normalized_request_id
             session.active_stream = normalized_request_id
             session.touch()
@@ -647,6 +652,9 @@ class WebRTCSessionManager:
                 # changed it after this request was reserved.
                 if session.active_stream in (None, normalized_request_id):
                     session.active_stream = None
+                if session.stream_cancel_event is not None:
+                    session.stream_cancel_event.set()
+                session.stream_cancel_event = None
                 session.stream_owner = None
 
             return {
@@ -1092,6 +1100,9 @@ class WebRTCSessionManager:
         audio_player = session.audio_player
         pc = session.pc
         async with session.stream_lock:
+            if session.stream_cancel_event is not None:
+                session.stream_cancel_event.set()
+            session.stream_cancel_event = None
             session.active_stream = None
             session.stream_owner = None
         stopped_track_ids: set[int] = set()

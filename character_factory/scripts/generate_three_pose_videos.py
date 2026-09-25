@@ -65,9 +65,16 @@ def load_json(path: Path) -> dict[str, Any]:
 
 def write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    os.replace(temporary, path)
+    # Distinct temporary names keep independent readers from seeing partial JSON.
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                     prefix=path.name+".", suffix=".tmp", delete=False) as handle:
+        temporary = Path(handle.name)
+        json.dump(value, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+    try:
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def sha256_file(path: Path) -> str:
@@ -76,6 +83,49 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def generation_fingerprint(image: Path, prompt_pack: Path, graph: Path, *,
+                           guide_fit: str, shared_anchor: bool,
+                           prompt_pack_sha256: str | None = None) -> dict[str, Any]:
+    """Immutable render inputs; connection ports/timeouts do not affect pixels."""
+    return {"version": 1, "source_image_sha256": sha256_file(image),
+            "prompt_pack_sha256": prompt_pack_sha256 or sha256_file(prompt_pack),
+            "accepted_graph_sha256": sha256_file(graph),
+            "guide_fit": guide_fit, "shared_anchor": bool(shared_anchor),
+            "width": WIDTH, "height": HEIGHT, "fps": FPS,
+            "delivery_recipe": "native_q4_exact_endpoint_v1"}
+
+
+def verified_resume(output_dir: Path, fingerprint: dict[str, Any]) -> dict[str, Any]:
+    """Validate identity and completed bytes before touching guide/graphs/videos.
+
+    Historical jobs without immutable fingerprints remain ingestible through
+    --source-dir, but cannot safely be resumed as an image-render job.
+    """
+    path = output_dir / "manifest.json"
+    present = {name for name in ("idle", "talking", "smiling")
+               if (output_dir / (name+".mp4")).exists()}
+    if not path.exists():
+        if present:
+            raise RenderError("Existing videos have no generation manifest; use a new output directory")
+        return {}
+    manifest = load_json(path)
+    if manifest.get("generation_fingerprint") != fingerprint:
+        raise RenderError("Generation inputs differ or lack an immutable fingerprint; use a new output directory")
+    completed = {name: entry for name, entry in manifest.get("poses", {}).items()
+                 if entry.get("status") == "completed"}
+    for name, entry in completed.items():
+        video = output_dir / (name+".mp4")
+        if not video.is_file() or sha256_file(video) != entry.get("delivery", {}).get("sha256"):
+            raise RenderError(f"Completed {name} output is missing or corrupt; use a new output directory")
+    if present - completed.keys():
+        raise RenderError("Existing video lacks completed provenance; use a new output directory")
+    guide_hash = manifest.get("prepared_guide", {}).get("sha256")
+    guide = output_dir / "guide-512x832.png"
+    if guide_hash and (not guide.is_file() or sha256_file(guide) != guide_hash):
+        raise RenderError("Prepared guide is missing or corrupt; use a new output directory")
+    return manifest
 
 
 def safe_stem(path: Path) -> str:
@@ -436,7 +486,18 @@ def main() -> int:
     prompt_pack = load_json(prompt_pack_path)
     base_graph = load_json(ACCEPTED_GRAPH_PATH)
     selected = {pose: prompt_pack["poses"][pose] for pose in args.poses}
-    image_hash = sha256_file(image)
+    fingerprint = generation_fingerprint(image, prompt_pack_path, ACCEPTED_GRAPH_PATH,
+                                         guide_fit=args.guide_fit, shared_anchor=args.shared_anchor)
+    resume = verified_resume(output_dir, fingerprint)
+    completed = {pose: entry for pose, entry in resume.get("poses", {}).items()
+                 if entry.get("status") == "completed"}
+    pending = [pose for pose in selected if args.force or pose not in completed]
+    if not pending and not args.dry_run:
+        print("All requested outputs verified; use a new directory for different render inputs.")
+        return 0
+    if args.dry_run and completed:
+        raise RenderError("Dry run cannot replace completed generation provenance; use a new output directory")
+    image_hash = fingerprint["source_image_sha256"]
     job_id = f"{safe_stem(image)}-{image_hash[:10]}-{args.guide_fit}"
     output_dir.mkdir(parents=True, exist_ok=True)
     run_dir = output_dir / "run"
@@ -472,6 +533,7 @@ def main() -> int:
 
     manifest: dict[str, Any] = {
         "schema_version": 2,
+        "generation_fingerprint": fingerprint,
         "generator": str(Path(__file__).resolve()),
         "source_image": str(image),
         "source_image_sha256": image_hash,
@@ -486,11 +548,13 @@ def main() -> int:
             "text_encoder": base_graph["text"]["inputs"]["clip_name1"],
             "resolution": [WIDTH, HEIGHT],
             "fps": FPS,
-            "frames_by_pose": {pose: int(profile.get("frame_count", FRAMES)) for pose, profile in selected.items()},
+            "frames_by_pose": {**resume.get("workflow", {}).get("frames_by_pose", {}),
+                               **{pose: int(profile.get("frame_count", FRAMES)) for pose, profile in selected.items()}},
             "delivered_frames_by_pose": {
-                pose: (int(profile.get("frame_count", FRAMES)) - 1)
-                * int(profile.get("repeat_cycles", 1)) + 1
-                for pose, profile in selected.items()
+                **resume.get("workflow", {}).get("delivered_frames_by_pose", {}),
+                **{pose: (int(profile.get("frame_count", FRAMES)) - 1)
+                   * int(profile.get("repeat_cycles", 1)) + 1
+                   for pose, profile in selected.items()}
             },
             "same_portrait_guide_at_frame_indices": [0, -1],
             "guide_strength": 1.0,
@@ -510,7 +574,7 @@ def main() -> int:
             "shared_anchor_image": str(shared_anchor) if shared_anchor is not None else None,
             "first_frame_replaced_with_shared_anchor": shared_anchor is not None,
         },
-        "poses": {},
+        "poses": completed,
     }
     if args.dry_run:
         for pose, profile in selected.items():
@@ -519,11 +583,9 @@ def main() -> int:
         print(f"Dry run wrote {len(selected)} accepted-lineage graphs to {graph_dir}")
         return 0
 
-    pending = [pose for pose in selected if args.force or not (output_dir / f"{pose}.mp4").exists()]
-    if not pending:
-        print("All requested outputs already exist; use --force to regenerate.")
-        return 0
-
+    # Persist the immutable contract before expensive generation begins, so a
+    # failure before the first completed clip can still resume safely.
+    write_json(output_dir / "manifest.json", manifest)
     GPU_LOCK.parent.mkdir(parents=True, exist_ok=True)
     lock = GPU_LOCK.open("a")
     process: subprocess.Popen[bytes] | None = None
@@ -639,7 +701,11 @@ def main() -> int:
         lock.close()
     write_json(output_dir / "manifest.json", manifest)
     if shared_anchor is not None:
-        hashes = {entry["delivery"]["decoded_endpoint_rgb_sha256"] for entry in manifest["poses"].values()}
+        missing = set(selected) - manifest["poses"].keys()
+        if missing:
+            raise RenderError(f"Requested clips lack completion records: {sorted(missing)}")
+        hashes = {entry["delivery"]["decoded_endpoint_rgb_sha256"] for entry in manifest["poses"].values()
+                  if entry.get("status") == "completed"}
         if len(hashes) != 1:
             raise RenderError("Shared-anchor endpoints differ across the rendered clips")
         manifest["delivery_policy"]["rendered_cross_clip_endpoints_exact"] = True

@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from scripts.motion_transitions import IDLE, TALK, SMILE, file_hash, read_video, MotionBank
+from scripts.motion_transitions import IDLE, TALK, SMILE, file_hash, read_video, MotionBank, publish_bank
 
 
 def build(source_dir, output, measurements):
@@ -101,7 +101,7 @@ def build(source_dir, output, measurements):
                 "method": "upper-frame appearance + four-frame dynamics + saved FaceMesh geometry/blink state and closed-mouth idle; bounded bidirectional optical-flow bridge"}
     MotionBank(manifest)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(manifest, indent=2)+"\n")
+    publish_bank(output, manifest)
     print(json.dumps({"output": str(output), "exit_coverage": coverage}))
 
 

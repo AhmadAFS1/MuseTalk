@@ -40,6 +40,19 @@ The feature is opt-in; a candidate atlas requires an explicit pilot setting.
 - [x] Exercise 1,446 cross-pose candidates and record threshold, silence, prebuffer cancellation, bridge interruption, looping, and legacy-request cases.
 - [x] Fix accumulated audio/video pacing drift in the opt-in runtime and retain the failing captures for comparison.
 - [x] Save final measurements, visual inspection artifacts, and reproducible evidence.
+- [x] Reject changed portraits/prompts/graphs on resume and validate cached artifact integrity.
+- [x] Preserve prepared-cache and review state across matching package resumes.
+- [x] Isolate unrelated malformed registry entries and atomically publish indexed banks.
+- [x] Reserve the complete terminal idle bridge even when a smile cue arrives late.
+- [x] Invalidate request setup on abort before scheduler registration, including stale callbacks.
+- [x] Keep idle moving during prebuffer and bridge into the exact raw body under generation frame zero.
+- [x] Release decoder generators, streams, containers and native workers deterministically.
+- [x] Reproduce and fix the TorchVision/PyAV threaded decoder shutdown deadlock.
+- [x] Bound entry-worker and recorder-network waits; preserve failed-run evidence.
+- [x] Preserve contiguous persistent RTP at speech entry with bounded raw-body/silent-audio alignment.
+- [x] Repeat real receiver tests after entry, cancellation, native shutdown, and timestamp fixes.
+- [x] Validate the accepted Indian identity with 241/289/145-frame clips alongside Japanese.
+- [ ] Exercise a fresh portrait through rendering, packaging, cache preparation, and received playback.
 - [ ] Obtain normal-speed visual acceptance of the transition recordings before marking a bank `reviewed`.
 
 ## Files and responsibilities
@@ -82,7 +95,11 @@ not a general identity or perceptual-quality classifier.
 
 Atlas registration compares all three prepared MP4 hashes. A registry can hold
 many characters; a session selects the bank matching its physical source files.
-Duplicate matching banks are rejected. Parsed atlases are cached by their exact
+Duplicate matching banks are rejected. New packages publish a small
+`motion-registration.json` with source hashes and the atlas digest, so unrelated
+large atlases need not be parsed on every call. Unrelated malformed entries are
+logged and skipped; a selected corrupt/stale bank fails explicitly. Files publish
+by atomic replacement. Parsed atlases are cached by their exact
 contents, because this filesystem can keep the same modification timestamp
 across rapid writes. Never trust timestamps alone for review-status changes.
 
@@ -91,11 +108,20 @@ across rapid writes. Never trust timestamps alone for review-status changes.
 1. Normalize the public TTS metadata and reserve its existing session stream.
    A v1 request gets a default internal motion plan; a v2 request preserves its
    requested speech/smile cues. The public speech allowlist stays compatible.
+   A cancellation token belongs to the reservation before any asynchronous audio
+   normalization or decoder preparation. Every setup boundary and delayed callback
+   checks ownership/token validity; a cancelled setup cannot resurrect speech.
 2. Obtain TTS duration from the actual prepared generation timeline. Below
    three seconds, every body frame is idle. At or above three seconds, begin
-   with 0.3 seconds of idle, then select an admissible expressive entry.
+   with 0.3 seconds of idle, then select an admissible expressive entry. Idle
+   continues moving while inference buffers. Before the first generated lip frame,
+   blend the currently moving body into the exact raw source under generation
+   frame zero for 0.3 seconds. Keep speech gated and every generated frame queued
+   until that entry finishes. This costs about 0.3 seconds of additional initial
+   latency and removes the former 0.45–0.90-second visible idle hold.
 3. For known-duration audio, start the final idle return 0.5 seconds before
    the end: a 0.3-second bridge plus approximately 0.2 seconds of idle lipsync.
+   Refuse late semantic entries whose bridge/cooldown would overlap this return.
 4. Advance source phase by `source_fps / generation_fps`. Always use the
    original forward range; APIAvatar's reversed cache half is not the body
    playback policy. Numerical tolerance prevents fractional-phase drift.
@@ -181,9 +207,12 @@ bash scripts/run_trt_stagewise_server.sh --profile baseline --host 127.0.0.1 --p
 
 The registry scans one level of character folders for `motion-atlas.json`.
 `WEBRTC_MOTION_ATLAS=/absolute/motion-atlas.json` also supports a single bank.
-After recorded visual review, set the specific bank's `status` to `reviewed`
-and omit `WEBRTC_MOTION_ALLOW_UNREVIEWED`. Do not promote a bank solely because
-its automated diagnostics pass.
+Use the explicit recorded-review command described in
+[package integrity](../character_factory/REALTIME_PACKAGE_INTEGRITY.md) after
+normal-speed review. It records the reviewer and evidence hashes and republishes
+the atlas with its discovery sidecar. Omit `WEBRTC_MOTION_ALLOW_UNREVIEWED` for
+accepted banks. Do not hand-edit status in an indexed atlas or promote a bank
+solely because automated diagnostics pass.
 
 The app uses its existing persistent session/offer flow. At session creation,
 set `avatar_id` to the package's neutral avatar ID and `pose_set` to the JSON
@@ -239,3 +268,114 @@ are retained separately so the improvements and test corrections remain auditabl
 The bank remains a pilot pending normal-speed visual acceptance. The test server
 is stopped after verification to release the GPU; the three prepared caches and
 all evidence are retained.
+
+## Expanded validation and reusable review (in progress)
+
+The September 25 follow-up uses the accepted Indian closeup V6/V14/V8 sources
+without regenerating or changing them. Their common frame size is 480×832 and
+source lengths are 241/289/145 frames at 24 fps. The separate package is
+`/workspace/experiments/realtime_characters/indian_20260925`.
+A fresh Latina image run uses the exact approved Japanese motion prompt pack,
+center crop and shared anchor, with separate candidate outputs under
+`/workspace/experiments/latina_fixed_distance_multipose_20260925`.
+Source approval does not automatically approve either bank's live transitions.
+
+The recording harness now binds each run to the selected routing digest and
+all three source hashes, checks actual per-pose frame ranges, requires the first
+live generation frame to remain zero, and fails if idle phases freeze during
+prebuffer. Optional `--case late-smile` reproduces the terminal-cue regression;
+`--case entry-interruption` exercises cancellation before the first phoneme.
+
+After recording, build a source-bound review page with:
+
+```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/review_motion_evidence.py \
+  --directory /absolute/received-recordings \
+  --atlas /absolute/character/motion-atlas.json \
+  --label "Character live multipose review"
+```
+
+This verifies retained audio/video, RTP audits, source routing, entry/return
+metrics, and artifact hashes. It creates `verification.json`, `README.md`, and
+`review.html`; it does not approve visual quality. Review at normal speed for
+visible source changes, frozen expressions, mouth smearing, face displacement,
+and hair/shoulder artifacts. Every additional portrait goes through this same
+render → integrity → prepare → received-recording → visual-review process.
+
+
+## Native decoder shutdown and failure containment
+
+The follow-up exposed a reproducible native deadlock before speech entry.
+TorchVision enables PyAV's Python FFmpeg logging callback during import. Codec
+finalization in installed PyAV 16 can hold the GIL while joining decoder workers;
+a worker entering that callback waits for the same GIL. The callback obtains the
+GIL before filtering severity, so selecting only ERROR messages does not avoid it.
+A CPU-only reproduction on the real idle video hung on its first partial decoder
+close. The identical 100-cycle workload completed in 2.53 seconds with FFmpeg's
+native logger. Paired logs and both failed live attempts are retained under the
+v2/v3 experiment roots.
+
+`scripts/runtime_av_logging.py` restores native FFmpeg ERROR logging after server
+imports and again after model initialization. Codec errors remain visible on
+stderr. `IdleVideoStreamTrack` separately releases its decode generator, stream
+and container during stop/reset, so retained track objects do not retain native
+codec workers. Real-codec tests check repeated close/reset with cyclic GC disabled.
+Entry setup has a five-second deadline; individual entry flow operations have a
+one-second deadline. Their late results cannot enter a newer generation. These
+coroutine limits contain responsive-loop failures; they cannot cure a held-GIL
+native deadlock on their own.
+
+The temporary diagnostic CPU tuning profile is rejected for these recordings:
+its default OpenMP binding pinned the main server and many worker threads to one
+core, causing multi-second video returns. Use the original baseline launch shown
+above with the native logging fix. The slow experiment is retained separately at
+`/workspace/experiments/multipose_validation_20260925_v3/rejected-cpu-profile`.
+Do not weaken the half-second return bound to accept that configuration.
+
+
+## Speech-start transport alignment
+
+A retained receiver failure showed video timestamps jumping from 2.25 to 2.35
+seconds when the audio transport was already at 2.36 seconds. This was a runtime
+index correction, not network loss. The opt-in motion entry now emits the raw
+body at the missing 2.30-second slot and releases generated frame zero at 2.35;
+audio remains contiguous at 2.34 silence followed by 2.36 speech. Both transport
+counters remain continuous and the initial A/V difference is 10 milliseconds in
+the deterministic regression. Catchup slots bypass ordinary pacing sleeps;
+regular pacing resumes when the clocks converge. If video leads, silent audio
+advances naturally. Reconciliation is limited to half a second and cannot consume
+a phoneme or release audio early. Cancellation during this interval belongs to
+the original turn and does not disturb the next turn.
+
+The full affected CPU suite now contains 157 passing tests. Current received
+verification runs are isolated under
+`/workspace/experiments/multipose_validation_20260925_v4`; previous failed native,
+CPU-affinity, and RTP-gap runs remain in v2/v3. The transport audit has not been
+relaxed to accept missing timestamps or slow returns.
+
+
+## Final automated follow-up results
+
+The final v4 batch passed **12 real received audio/video recordings** across the
+Japanese and Indian characters, including short speech, long talking/smiling,
+mid-sentence interruption plus a following turn, pre-speech interruption twice,
+starting from smile, late smile cues, silence, threshold-length speech, looping,
+and legacy requests. All **20 returns** met the unchanged half-second bound:
+**0.3479–0.4999 seconds**. Receiver audits detected no missing timestamps or RTP
+discontinuities. This is a single-GPU, sequential-session validation; simultaneous
+session capacity was not measured. The slowest return has little margin below
+that bound, so these numbers must not be presented as a capacity guarantee.
+
+[Final evidence and review links](/workspace/experiments/multipose_validation_20260925_v4/README.md)
+and the [durable validation summary](multipose_ltx_musetalk_validation_followup_2026-09-25.json)
+retain the exact artifact hashes and 157-test result. The new clock reconciliation
+is covered by a deterministic 60-millisecond-skew regression; the final live batch
+did not require extra catchup slots. Earlier failures remain separately archived.
+
+Normal-speed review is still pending; no bank was marked reviewed. The fresh
+Latina pilot is also incomplete: idle seeds 193, 194 and 195 all failed the same
+3.5-pixel lip-gap gate (58, 86 and 71 frames respectively, out of 241). Seed 195
+used identical prompt text and settings and took 5.5 minutes to generate plus
+0.5 minutes to decode. These candidates were not prepared as usable avatars.
+The reusable tool rejects them; passing software tests does not make a rejected
+source visually suitable. No further seed was queued.

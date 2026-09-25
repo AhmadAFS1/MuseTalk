@@ -444,6 +444,11 @@ from argparse import Namespace
 # It reapplies runtime CPU tuning after the server runtime stack is imported.
 apply_cpu_tuning_runtime("api_server")
 
+# Torchvision imports enable a Python callback inside FFmpeg decoder workers.
+# Use native diagnostics to prevent GIL inversion during threaded codec close.
+from scripts.runtime_av_logging import configure_native_ffmpeg_logging
+configure_native_ffmpeg_logging("api_server imports")
+
 # ============================================================================
 # Pydantic Models (Request/Response schemas)
 # ============================================================================
@@ -1037,6 +1042,9 @@ async def startup_event():
     
     # Initialize manager
     manager = ParallelAvatarManager(args, max_concurrent_inferences=5)
+    # Model initialization can import video dependencies lazily. Reapply before
+    # any session or media worker can create a threaded decoder.
+    configure_native_ffmpeg_logging("api_server models ready")
     
     # ✅ Initialize session manager
     session_manager = SessionManager(session_ttl_seconds=3600)
@@ -4750,6 +4758,7 @@ async def webrtc_pose_event(session_id: str, request: Request):
         raw_event = await request.json()
         normalized_event = normalize_session_event(raw_event or {})
         event_stream_owner = session.stream_owner
+        event_cancel_event = session.stream_cancel_event
         result = await webrtc_session_manager.handle_pose_event(
             session,
             normalized_event,
@@ -4759,10 +4768,13 @@ async def webrtc_pose_event(session_id: str, request: Request):
     if (result.get("accepted")
             and normalized_event["event"] == "assistant_turn_aborted"
             and getattr(session.idle_track, "motion_bank", None)
-            and session.stream_owner == event_stream_owner):
+            and session.stream_owner == event_stream_owner
+            and session.stream_cancel_event is event_cancel_event):
         # Invalidate queued video and mute this turn immediately. GPU cancellation
         # remains cooperative; its stale frames cannot enter the new generation.
         request_id = session.stream_owner
+        if event_cancel_event is not None:
+            event_cancel_event.set()
         if manager is not None and request_id:
             with manager.request_lock:
                 pending = manager.active_requests.get(request_id)
@@ -4914,6 +4926,7 @@ async def webrtc_stream(
                 f"(request_id: {existing_request_id})"
             ),
         )
+    cancel_event = session.stream_cancel_event
     sync_clock = getattr(session, "sync_clock", None)
     if sync_clock is not None and hasattr(sync_clock, "set_turn_context"):
         sync_clock.set_turn_context(request_id, session_id)
@@ -5001,6 +5014,11 @@ async def webrtc_stream(
             recover_pose=recover_staged_pose,
         )
 
+    async def require_current_setup(stage: str) -> None:
+        if not _webrtc_turn_can_publish(session, request_id, cancel_event):
+            await rollback_stream_setup(f"turn cancelled or superseded during {stage}")
+            raise HTTPException(status_code=409, detail="WebRTC turn cancelled during preparation")
+
     pose_sequence_result = None
     pose_plan_result = None
     if stream_metadata:
@@ -5030,6 +5048,7 @@ async def webrtc_stream(
         except Exception:
             await rollback_stream_setup("pose staging failed")
             raise
+        await require_current_setup("pose staging")
         if not pose_sequence_result.get("accepted"):
             await rollback_stream_setup("pose staging ignored")
             return {
@@ -5131,6 +5150,7 @@ async def webrtc_stream(
 
     media_audio_path = Path(audio_timeline.media_path)
     register_audio_temp_paths(media_audio_path)
+    await require_current_setup("audio normalization")
     source_duration_seconds: Optional[float] = audio_timeline.media_duration_seconds
     print(
         f"🔊 [{request_id}] Shared audio timeline: "
@@ -5196,6 +5216,7 @@ async def webrtc_stream(
         except (Exception, asyncio.CancelledError):
             await rollback_stream_setup("motion recovery did not settle")
             raise
+    await require_current_setup("motion recovery")
 
     completion_idle_result = None
     if (
@@ -5229,6 +5250,7 @@ async def webrtc_stream(
                 await rollback_stream_setup("completion idle staging failed")
                 raise
 
+    await require_current_setup("completion idle staging")
     main_loop = asyncio.get_event_loop()
     audio_prepare_task = asyncio.create_task(audio_track.prepare())
 
@@ -5268,11 +5290,14 @@ async def webrtc_stream(
             detail=f"Could not prepare WebRTC audio playout: {exc}",
         ) from exc
     
+    await require_current_setup("audio preparation")
+
     # Track if we've released the shared A/V playout gate / started live video.
     audio_started = False
     release_future = None
     live_started = False
     live_generation_id = None
+    motion_failure_future = None
     try:
         default_push_timeout = "30.0" if _get_webrtc_sync_mode() in ("strict_fifo", "fifo", "hls_like", "hls-like", "hls") else "2.0"
         push_timeout_seconds = max(0.25, float(os.getenv("WEBRTC_PUSH_FRAME_TIMEOUT_SECONDS", default_push_timeout)))
@@ -5302,6 +5327,8 @@ async def webrtc_stream(
 
     def release_playout_once(reason: str):
         nonlocal audio_started, release_future
+        if not _webrtc_turn_can_publish(session, request_id, cancel_event):
+            return False
         if audio_started:
             return True
         if release_future is not None and not release_future.done():
@@ -5324,6 +5351,8 @@ async def webrtc_stream(
                 request_id=request_id,
                 start_delay_seconds=av_start_delay_seconds,
                 reason=reason,
+                session=session,
+                cancel_event=cancel_event,
             ),
             main_loop,
         )
@@ -5365,17 +5394,24 @@ async def webrtc_stream(
         return result
 
     def frame_callback(frame_bgr, frame_idx, total_frames):
-        nonlocal live_started, live_generation_id
+        nonlocal live_started, live_generation_id, motion_failure_future
+        if not _webrtc_turn_can_publish(session, request_id, cancel_event):
+            return
         try:
             if not live_started:
                 live_started = True
                 start_future = asyncio.run_coroutine_threadsafe(
-                    _start_live_track(session.idle_track),
+                    _start_live_track(session.idle_track, session=session,
+                                      request_id=request_id, cancel_event=cancel_event),
                     main_loop,
                 )
                 live_generation_id = start_future.result(
                     timeout=push_timeout_seconds
                 )
+                if (getattr(session.idle_track, "motion_bank", None) is not None
+                        and hasattr(session.idle_track, "wait_for_motion_entry_failure")):
+                    motion_failure_future = asyncio.run_coroutine_threadsafe(
+                        supervise_motion_entry(live_generation_id), main_loop)
             
             push_future = asyncio.run_coroutine_threadsafe(
                 session.idle_track.push_bgr_frames_batch(
@@ -5396,19 +5432,26 @@ async def webrtc_stream(
             print(f"⚠️ [{request_id}] frame_callback error: {e}")
 
     def frame_batch_callback(frames_bgr, start_frame_idx, total_frames):
-        nonlocal live_started, live_generation_id
+        nonlocal live_started, live_generation_id, motion_failure_future
+        if not _webrtc_turn_can_publish(session, request_id, cancel_event):
+            return
         try:
             if not frames_bgr:
                 return
             if not live_started:
                 live_started = True
                 start_future = asyncio.run_coroutine_threadsafe(
-                    _start_live_track(session.idle_track),
+                    _start_live_track(session.idle_track, session=session,
+                                      request_id=request_id, cancel_event=cancel_event),
                     main_loop,
                 )
                 live_generation_id = start_future.result(
                     timeout=push_timeout_seconds
                 )
+                if (getattr(session.idle_track, "motion_bank", None) is not None
+                        and hasattr(session.idle_track, "wait_for_motion_entry_failure")):
+                    motion_failure_future = asyncio.run_coroutine_threadsafe(
+                        supervise_motion_entry(live_generation_id), main_loop)
 
             push_future = asyncio.run_coroutine_threadsafe(
                 session.idle_track.push_bgr_frames_batch(
@@ -5467,6 +5510,8 @@ async def webrtc_stream(
         if cleanup_done:
             return
         cleanup_done = True
+        if motion_failure_future is not None:
+            motion_failure_future.cancel()
         owns_request = session.stream_owner == request_id
         print(
             "🧹 WebRTC cleanup start "
@@ -5512,6 +5557,16 @@ async def webrtc_stream(
             flush=True,
         )
 
+    async def supervise_motion_entry(generation_id):
+        try:
+            failure = await session.idle_track.wait_for_motion_entry_failure(generation_id)
+        except asyncio.CancelledError:
+            return
+        if failure and _webrtc_turn_can_publish(session, request_id, cancel_event):
+            print(f"❌ [{request_id}] Motion entry failed: {failure}", flush=True)
+            cancel_event.set()
+            cleanup_to_idle(force_video=True)
+
     async def finish_playback_then_cleanup():
         force_video_cleanup = False
         try:
@@ -5541,13 +5596,13 @@ async def webrtc_stream(
         finally:
             cleanup_to_idle(force_video=force_video_cleanup)
 
+    await require_current_setup("scheduler submission")
     use_shared_scheduler = _env_bool("WEBRTC_SHARED_GPU_SCHEDULER", True)
     if use_shared_scheduler:
         if hls_stream_scheduler is None:
             await rollback_stream_setup("shared GPU scheduler unavailable")
             raise HTTPException(status_code=503, detail="Shared GPU scheduler not initialized")
 
-        cancel_event = threading.Event()
         completion_future = main_loop.create_future()
         with manager.request_lock:
             manager.active_requests[request_id] = {
@@ -5573,7 +5628,12 @@ async def webrtc_stream(
         completion_future.add_done_callback(_on_shared_webrtc_done)
 
         def _on_shared_generation_complete(status: str, error_message: Optional[str] = None):
-            if session.idle_track:
+            owns_reservation = (session.stream_owner == request_id
+                                and session.stream_cancel_event is cancel_event)
+            if not owns_reservation:
+                main_loop.call_soon_threadsafe(cleanup_to_idle, True)
+                return
+            if session.idle_track and live_generation_id is not None:
                 main_loop.call_soon_threadsafe(
                     session.idle_track.signal_generation_complete,
                     live_generation_id,
@@ -5765,8 +5825,17 @@ async def webrtc_stream(
     }
 
 
-async def _start_live_track(video_track):
-    """Helper to start live video from the main event loop before frames are queued."""
+def _webrtc_turn_can_publish(session, request_id, cancel_event):
+    """A reservation token owns setup, generation, and delayed playback work."""
+    return (cancel_event is not None and not cancel_event.is_set()
+            and session.stream_owner == request_id
+            and session.stream_cancel_event is cancel_event)
+
+
+async def _start_live_track(video_track, *, session=None, request_id=None, cancel_event=None):
+    """Start on the event loop only while the originating reservation survives."""
+    if session is not None and not _webrtc_turn_can_publish(session, request_id, cancel_event):
+        raise RuntimeError("WebRTC turn cancelled before live video start")
     return video_track.start_live()
 
 
@@ -5779,12 +5848,19 @@ async def _release_webrtc_playout(
     request_id: str,
     start_delay_seconds: float,
     reason: str,
+    session=None,
+    cancel_event=None,
 ):
     """Release strict FIFO audio/video playout only after audio and video are ready."""
+    if session is not None and not _webrtc_turn_can_publish(session, request_id, cancel_event):
+        raise RuntimeError("WebRTC turn cancelled before audio preparation")
     if audio_prepare_task is not None:
         await audio_prepare_task
     elif hasattr(audio_track, "prepare"):
         await audio_track.prepare()
+
+    if session is not None and not _webrtc_turn_can_publish(session, request_id, cancel_event):
+        raise RuntimeError("WebRTC turn cancelled before playout release")
 
     if sync_clock is not None and hasattr(sync_clock, "mark_audio_ready"):
         sync_clock.mark_audio_ready()

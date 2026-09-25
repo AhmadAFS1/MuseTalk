@@ -638,7 +638,7 @@ class HLSGPUStreamScheduler:
                         reveal_delay_seconds=float(
                             getattr(session, "webrtc_live_reveal_delay_seconds", 0.0) or 0.0
                         ),
-                        hold=True,
+                        hold=getattr(video_track, "motion_bank", None) is None,
                     )
                     try:
                         start_offset_frames = max(0, int(timing_debug.get("offset_frames") or 0))

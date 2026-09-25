@@ -52,6 +52,19 @@ class MotionPolicyTest(unittest.TestCase):
                                     {"at_permille": 650, "pose_id": TALK}])
         self.assertEqual([s["to"] for s in result["switches"]], [TALK, SMILE, TALK, IDLE])
 
+    def test_late_semantic_cues_leave_complete_terminal_return(self):
+        for fps in (15, 20, 24, 30):
+            for permille in range(850, 1000, 5):
+                with self.subTest(fps=fps, permille=permille):
+                    result = self.plan(10, fps=fps, cues=[
+                        {"at_permille": 0, "pose_id": TALK},
+                        {"at_permille": permille, "pose_id": SMILE}])
+                    import math
+                    terminal = int(10*fps) - math.ceil(.3*fps) - math.ceil(.2*fps)
+                    self.assertLessEqual(result["switches"][-1]["frame"], terminal)
+                    self.assertEqual(result["switches"][-1]["to"], IDLE)
+                    self.assertTrue(all(f["pose_id"] == IDLE for f in result["frames"][terminal:]))
+
     def test_any_uncovered_interruption_phase_disables_that_source(self):
         self.manifest["edges"][TALK][IDLE][20]["admissible"] = False
         result = self.plan(10)

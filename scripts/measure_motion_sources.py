@@ -15,7 +15,7 @@ import cv2
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from scripts.motion_transitions import file_hash
+from scripts.motion_transitions import file_hash, atomic_json
 
 
 def measure_sources(source_dir):
@@ -74,4 +74,4 @@ if __name__ == "__main__":
     p.add_argument("--output", type=Path, required=True)
     args = p.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(measure_sources(args.source_dir), indent=2)+"\n")
+    atomic_json(args.output, measure_sources(args.source_dir))

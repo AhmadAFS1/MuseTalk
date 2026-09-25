@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "date": "2026-09-25",
+  "implementation_status": "implemented; automated checks passed",
+  "visual_acceptance": "pending; no bank promoted",
+  "tests": {
+    "count": 157,
+    "passed": true,
+    "log": "/workspace/experiments/multipose_validation_20260925_v4/full-regressions-final.log"
+  },
+  "live": {
+    "recordings": 12,
+    "completed_returns": 20,
+    "return_seconds_min": 0.3479,
+    "return_seconds_max": 0.4999,
+    "receiver_timestamp_anomalies": 0,
+    "receiver_missing_timestamps": 0,
+    "clock_alignment_padding_frames": 0,
+    "source_frame_counts": {
+      "japanese": {
+        "neutral_resting": 241,
+        "speaking_direct": 241,
+        "light_smile": 241
+      },
+      "indian": {
+        "neutral_resting": 241,
+        "speaking_direct": 289,
+        "light_smile": 145
+      }
+    },
+    "reviews": {
+      "japanese": "/workspace/experiments/multipose_validation_20260925_v4/japanese/review.html",
+      "indian": "/workspace/experiments/multipose_validation_20260925_v4/indian/review.html",
+      "entry-repeat": "/workspace/experiments/multipose_validation_20260925_v4/entry-repeat/review.html",
+      "legacy": "/workspace/experiments/multipose_validation_20260925_v4/legacy/review.html"
+    },
+    "verification_files": {
+      "japanese": {
+        "path": "/workspace/experiments/multipose_validation_20260925_v4/japanese/verification.json",
+        "sha256": "a1af505557b41edb34b73f378d3bf0db3ed17e1843f8bc925bf44192a9e7e7cb"
+      },
+      "indian": {
+        "path": "/workspace/experiments/multipose_validation_20260925_v4/indian/verification.json",
+        "sha256": "5bf0f927f1d780a4461ce46db7053c9f775a76821086fc771e0534e1f2e57076"
+      },
+      "entry-repeat": {
+        "path": "/workspace/experiments/multipose_validation_20260925_v4/entry-repeat/verification.json",
+        "sha256": "92140a9479e9e7ce6d71e18429e58b74faec737f05ab42f2ef9c95dfb77516fe"
+      },
+      "legacy": {
+        "path": "/workspace/experiments/multipose_validation_20260925_v4/legacy/verification.json",
+        "sha256": "c162334da5066cbd22150b02c54c972b025cca606826c8c00399f30483034398"
+      }
+    }
+  },
+  "reproduced_fixes": [
+    "moving idle throughout inference prebuffer",
+    "raw body entry preserves generated frame zero and gated speech",
+    "reservation-owned cancellation before and during setup",
+    "late semantic cues preserve terminal return",
+    "deterministic decoder cleanup",
+    "native FFmpeg logging avoids reproduced Python-callback/GIL shutdown deadlock",
+    "contiguous RTP alignment without timestamp skips"
+  ],
+  "fresh_portrait": {
+    "identity": "latina",
+    "status": "rejected; not packaged or prepared",
+    "prompt_text_changed": false,
+    "threshold_lip_gap_px": 3.5,
+    "seed_results": [
+      {
+        "seed": 193,
+        "frames_over_threshold": 58,
+        "frame_count": 241,
+        "max_lip_gap_px": 12.3539
+      },
+      {
+        "seed": 194,
+        "frames_over_threshold": 86,
+        "frame_count": 241,
+        "max_lip_gap_px": 15.226
+      },
+      {
+        "seed": 195,
+        "frames_over_threshold": 71,
+        "frame_count": 241,
+        "max_lip_gap_px": 8.556367874145508
+      }
+    ],
+    "latest_rejection": "/workspace/experiments/latina_fixed_distance_multipose_20260925/seed195-quality-rejection.json"
+  },
+  "remaining": [
+    "Normal-speed visual review of final Japanese and Indian received videos",
+    "A source-quality-approved fresh portrait bank; three Latina idle samples failed"
+  ],
+  "retained_failures": [
+    "/workspace/experiments/multipose_validation_20260925_v2/native-hang",
+    "/workspace/experiments/multipose_validation_20260925_v2/after-cleanup/first-entry-retry",
+    "/workspace/experiments/multipose_validation_20260925_v3/rejected-cpu-profile",
+    "/workspace/experiments/multipose_validation_20260925_v3/rejected-timestamp-gap"
+  ]
+}

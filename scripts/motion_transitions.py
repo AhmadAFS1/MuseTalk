@@ -9,6 +9,8 @@ import hashlib
 import json
 import math
 import os
+import logging
+import tempfile
 from functools import lru_cache
 from pathlib import Path
 
@@ -17,6 +19,39 @@ import numpy as np
 IDLE = "neutral_resting"
 TALK = "speaking_direct"
 SMILE = "light_smile"
+LOG = logging.getLogger(__name__)
+
+
+def atomic_json(path, value):
+    """Publish a complete JSON artifact; readers never observe a truncated file."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=path.parent,
+                prefix="."+path.name+".", suffix=".tmp", delete=False) as handle:
+            temporary = Path(handle.name)
+            json.dump(value, handle, indent=2, allow_nan=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def publish_bank(path, manifest):
+    """Publish bank then its small discovery record, with exact content binding."""
+    MotionBank(manifest)
+    path = Path(path)
+    atomic_json(path, manifest)
+    atomic_json(path.with_name("motion-registration.json"), {
+        "version": 1,
+        "source_hashes": {pose: manifest["sources"][pose]["sha256"]
+                          for pose in (IDLE, TALK, SMILE)},
+        "atlas_sha256": file_hash(path),
+    })
 
 
 def file_hash(path):
@@ -85,6 +120,9 @@ def flow_blend(old, new, progress):
 class MotionBank:
     def __init__(self, manifest):
         self.manifest = manifest
+        routing = {key: value for key, value in manifest.items() if key not in ("status", "review")}
+        self.routing_sha256 = hashlib.sha256(json.dumps(routing, sort_keys=True,
+                        separators=(",", ":")).encode()).hexdigest()
         if manifest.get("version") != 1:
             raise ValueError("Unsupported motion atlas version")
         self.sources = manifest["sources"]
@@ -140,6 +178,7 @@ class MotionBank:
         # More than one bridge must fit before enabling an expressive source.
         short = duration < self.short_seconds
         frames, switches = [], []
+        cooldown_n = bridge_n + math.ceil(.25 * generation_fps)
         cooldown_until = bridge_n
         terminal_start = max(0, total - bridge_n - math.ceil(.2 * generation_fps))
         for n in range(total):
@@ -156,13 +195,15 @@ class MotionBank:
                 edge = self.edge(pose, idx, desired)
                 # Never enter motion with an uncovered interrupted-return phase.
                 eligible = all(e["admissible"] for e in self.manifest["edges"][desired][IDLE])
-                enough_time = n + 2 * bridge_n < total or desired == IDLE
+                # A semantic cue must leave room for its whole entry/cooldown,
+                # followed by the mandatory terminal bridge and idle phonemes.
+                enough_time = n + cooldown_n <= terminal_start or desired == IDLE
                 if edge["admissible"] and eligible and enough_time:
                     outgoing = pose
                     pose, idx = desired, int(edge["target_frame"])
                     source = float(idx)
                     blend = bridge_n
-                    cooldown_until = n + bridge_n + math.ceil(.25 * generation_fps)
+                    cooldown_until = n + cooldown_n
                     switches.append({"frame": n, "from": outgoing, "to": pose,
                                      "target_frame": idx, "score": edge["score"]})
             frames.append({"pose_id": pose, "source_frame": idx,
@@ -175,7 +216,7 @@ class MotionBank:
                 "bridge_seconds": self.bridge_seconds}
 
 
-@lru_cache(maxsize=4)
+@lru_cache(maxsize=64)
 def load_bank(path, serialized):
     # Read once and key the exact contents: this filesystem can preserve mtime
     # across rapid writes, including a change to recorded-review status.
@@ -195,10 +236,37 @@ def configured_bank(paths):
         return None
     hashes = {pose: file_hash(paths[pose]) for pose in (IDLE, TALK, SMILE)}
     matched = None
-    for candidate in candidates:
-        bank = load_bank(str(candidate), candidate.read_text())
-        if any(hashes[p] != bank.sources[p]["sha256"] for p in hashes):
+    for candidate in dict.fromkeys(candidates):
+        # Explicit configuration errors are fatal. Registry entries are isolated:
+        # an unfinished/damaged *other* character cannot take this one offline.
+        explicit = bool(path and candidate == Path(path))
+        registration = candidate.with_name("motion-registration.json")
+        indexed_match = False
+        try:
+            if registration.exists():
+                index = json.loads(registration.read_text())
+                if index.get("version") != 1 or set(index["source_hashes"]) != set(hashes):
+                    raise ValueError("Invalid motion registration")
+                if index["source_hashes"] != hashes:
+                    continue
+                indexed_match = True
+            serialized = candidate.read_text()
+            manifest = json.loads(serialized)
+            source_hashes = {p: manifest["sources"][p]["sha256"] for p in hashes}
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            if explicit or indexed_match:
+                raise ValueError(f"Unreadable selected motion atlas: {candidate}") from exc
+            LOG.warning("Skipping invalid motion registry entry %s: %s", candidate, exc)
             continue
+        if source_hashes != hashes:
+            if indexed_match:
+                raise ValueError(f"Motion registration does not match its atlas: {candidate}")
+            continue
+        if indexed_match and hashlib.sha256(serialized.encode()).hexdigest() != index["atlas_sha256"]:
+            raise ValueError(f"Motion registration is stale; republish bank: {candidate}")
+        # Fully validate only selected banks, preserving hard failure on any
+        # selected geometry/review corruption rather than falling back silently.
+        bank = load_bank(str(candidate), serialized)
         if matched is not None:
             raise ValueError("Multiple motion atlases match this character; keep one active version")
         matched = bank

@@ -676,9 +676,31 @@ class IdleVideoStreamTrack(VideoStreamTrack):
             self._source_duration_seconds = duration_seconds
             self._next_source_frame_index = 0
 
+    def _close_container(self) -> None:
+        """Release decoder references on its owner thread, before later GC.
+
+        PyAV's decode generator and stream both retain the codec context after
+        InputContainer.close(). Keeping them alive also keeps FFmpeg workers
+        alive. Finish the generator first, then release the stream and container
+        as one deterministic teardown. Like read_frame(), this must be called
+        only after this decoder's in-flight read has finished.
+        """
+        iterator = self._frame_iter
+        self._frame_iter = None
+        try:
+            if iterator is not None:
+                iterator.close()
+        finally:
+            # Do not leave codec finalization to a future executor/GC callback.
+            iterator = None
+            self._stream = None
+            container = self._container
+            self._container = None
+            if container is not None:
+                container.close()
+
     def _reset_container(self) -> None:
-        if self._container is not None:
-            self._container.close()
+        self._close_container()
         self._open_container()
 
     def read_frame(self):
@@ -765,10 +787,10 @@ class IdleVideoStreamTrack(VideoStreamTrack):
         return frame
 
     def stop(self) -> None:
-        if self._container is not None:
-            self._container.close()
-            self._container = None
-        super().stop()
+        try:
+            self._close_container()
+        finally:
+            super().stop()
 
     def reset(self) -> None:
         self._reset_container()
@@ -1479,6 +1501,10 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         hold: bool = True,
     ) -> dict:
         """Capture the displayed idle position and map it to a MuseTalk cycle offset."""
+        # Opt-in motion playback uses a body-only entry bridge at release.
+        # Holding this decoder for the entire inference prebuffer was visible.
+        if getattr(self, "motion_bank", None) is not None:
+            hold = False
         idle_timing = self._idle.get_timing()
         source_fps = float(idle_timing.get("source_fps") or self._source_fps or 0.0)
         source_frame_count = idle_timing.get("source_frame_count")
@@ -1538,6 +1564,10 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         # queue put after end_live() drained.  Rotate the ownership token and
         # clear anything left before accepting this turn's frames.
         self._live_generation_id += 1
+        self._cancel_motion_entry()
+        if getattr(self, "motion_bank", None) is not None:
+            self._motion_entry_failure.clear()
+            self._motion_entry_failed_record = None
         stale_frames = 0
         try:
             while True:
@@ -1680,6 +1710,7 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
     def end_live(self) -> None:
         """End live mode - stop speech while motion may finish its return."""
         motion_return = self._begin_motion_return()
+        self._cancel_motion_entry()
         # Prevent an in-flight predecode from installing itself after this
         # turn has already handed back to idle.
         self._completion_idle_stage_id += 1
@@ -1857,8 +1888,10 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         self._push_queue_wait_total_s += queue_wait_s
         self._push_queue_wait_max_s = max(self._push_queue_wait_max_s, queue_wait_s)
 
+        if self._frames_received == 0:
+            self._prepare_motion_entry(metadata, owner_generation_id)
         self._frames_received += 1
-        
+
         # Check if prebuffer is ready
         if not self._prebuffer_ready.is_set() and self._frames_received >= self._prebuffer_frames:
             print(f"🎬 Prebuffer ready: {self._frames_received} frames buffered, queue: {self._queue.qsize()}/{self._max_queue}")
@@ -2014,11 +2047,9 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
             previous_index,
             int(round(audio_target * self._output_fps)),
         )
-        if (getattr(self, "motion_bank", None) is not None
-                and 0 <= audio_target - previous_index / self._output_fps
-                <= max(0, 1 / self._output_fps - .02)):
-            # Keep a regular video cadence when the next 20 ms audio packet
-            # already fits within one video-frame synchronization tolerance.
+        if getattr(self, "motion_bank", None) is not None:
+            # The motion entry gate has reconciled transport clocks by emitting
+            # real silent/body slots. Never skip a persistent RTP timestamp here.
             target_index = previous_index
         self._rtp_frame_index = target_index
         correction_frames = target_index - previous_index
@@ -2063,6 +2094,10 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         # Timing control
         if self._last_ts is None:
             self._last_ts = time.monotonic()
+        elif getattr(self, "_motion_entry_clock_catchup", False):
+            # Fill an existing video timestamp slot while silent audio waits.
+            # The bounded entry gate reanchors pacing after clocks converge.
+            pass
         else:
             now = time.monotonic()
             wait = frame_time - (now - self._last_ts)
@@ -2101,6 +2136,12 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
                 # first live frame and first audio packet share one release point.
                 self._sync_clock.mark_video_ready()
                 frame = self._advance_idle_frame(idle_advance_frames)
+            elif self._motion_entry_pending():
+                # Keep every generated lip frame queued and the first-audio gate
+                # closed until the moving idle body reaches its generated phase.
+                frame = await self._next_motion_entry_frame(idle_advance_frames)
+            elif (entry_clock_frame := await self._motion_entry_clock_frame()) is not None:
+                frame = entry_clock_frame
             else:
                 if not self._live_released:
                     self._live_released = True

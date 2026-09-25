@@ -7,8 +7,10 @@ poses (idle, talking, smiling). Start with
 The [multipose runtime runbook](../docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md)
 contains the implemented source-matching runtime, reusable character packaging,
 API integration, tests, and received WebRTC video evidence. Transition banks
-remain subject to recorded visual review. The larger roster pipeline below is
-a separate six-pose design.
+remain subject to recorded visual review. Read
+[REALTIME_PACKAGE_INTEGRITY.md](REALTIME_PACKAGE_INTEGRITY.md) for immutable
+render inputs, verified partial resumes, and package validation. The larger
+roster pipeline below is a separate six-pose design.
 
 Baseline scripts for producing MuseTalk multipose avatars at roster scale: **3 characters for
 each of 104 languages, plus 20 language-agnostic companions**, each with a certified six-pose
@@ -72,10 +74,11 @@ schedule, and the accepted 64/16 tiled decode. The historical Japanese
 `config/prompt_packs/japanese_selected_native_three_pose_v3.json` pack generates an 81-frame
 idle cycle and repeats it three times to deliver 241 frames; talking and smiling are native
 241-frame renders. **The user rejected that idle** because it wobbles without perceptible
-shallow breathing. Only the talking and smiling clips are accepted; there is no approved
-three-pose Japanese pack yet. The [v17 idle review clip](generated/portrait_pose_set_20260923/ltx/japanese_idle_breath_review_v4/README.md)
-is a stronger candidate awaiting normal-speed approval. See the [idle rerun record](JAPANESE_IDLE_SHALLOW_BREATH_RERUN_20260924.md)
-before rendering a new idle. The runner does not use SoulX, Segmind, Prompt Relay, or NAG.
+shallow breathing. That historical v3 review accepted only talking and smiling;
+the later [approved fixed-distance trio](PERFECT_THREE_POSE_PROMPTS.md) now supersedes it.
+The [v17 idle review clip](generated/portrait_pose_set_20260923/ltx/japanese_idle_breath_review_v4/README.md)
+and [idle rerun record](JAPANESE_IDLE_SHALLOW_BREATH_RERUN_20260924.md) are retained as
+historical evidence, not the current generation recipe. The runner does not use SoulX, Segmind, Prompt Relay, or NAG.
 Pass an explicit pack because the script's default is historical. See the pilot workflow
 for commands and endpoint behavior.
 
