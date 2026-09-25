@@ -157,7 +157,10 @@ class MotionPlaybackMixin:
             # The first OpenCV/flow invocation can take >100 ms on a cold
             # process. Pay that setup cost while idle continues playing,
             # not inside the first deadline-sensitive bridge recv().
-            await asyncio.to_thread(flow_blend, raw, raw, .5)
+            if bank.eye_blend is None:
+                await asyncio.to_thread(flow_blend, raw, raw, .5)
+            else:
+                await asyncio.to_thread(bank.blend, raw, raw, .5, pose, source_frame, pose, source_frame)
             return raw
 
         async def prepare():
@@ -205,9 +208,15 @@ class MotionPlaybackMixin:
         alpha = .5 - .5 * math.cos(math.pi * progress)
         target = entry["target_bgr"]
         try:
-            blended = await asyncio.wait_for(
-                asyncio.to_thread(flow_blend, outgoing.to_ndarray(format="bgr24"), target, alpha),
-                MOTION_ENTRY_FLOW_TIMEOUT_SECONDS)
+            old = outgoing.to_ndarray(format="bgr24")
+            bank = self.motion_bank
+            if bank.eye_blend is None:
+                work = asyncio.to_thread(flow_blend, old, target, alpha)
+            else:
+                work = asyncio.to_thread(bank.blend, old, target, alpha,
+                    self._current_idle_pose_id, self._idle.get_timing()["source_frame_index"],
+                    entry["pose_id"], entry["source_frame"])
+            blended = await asyncio.wait_for(work, MOTION_ENTRY_FLOW_TIMEOUT_SECONDS)
         except Exception as exc:
             if isinstance(exc, asyncio.TimeoutError):
                 exc = TimeoutError(f"Motion entry flow exceeded {MOTION_ENTRY_FLOW_TIMEOUT_SECONDS:g}s")
@@ -377,7 +386,9 @@ class MotionPlaybackMixin:
                     previous = offset
                     t = (n + 1) / count
                     alpha = .5 - .5 * math.cos(math.pi * t)
-                    blend = flow_blend(old, incoming, alpha)
+                    target_index = (target + offset) % bank.count(IDLE)
+                    blend = (flow_blend(old, incoming, alpha) if bank.eye_blend is None else
+                             bank.blend(old, incoming, alpha, source_pose, source_index, IDLE, target_index))
                     frames.append(av.VideoFrame.from_ndarray(blend, format="bgr24").reformat(format="yuv420p"))
                     ids.append({"pose_id": IDLE,
                                 "source_frame": (target+offset) % bank.count(IDLE),

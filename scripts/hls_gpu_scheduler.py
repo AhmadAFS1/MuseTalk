@@ -126,6 +126,9 @@ class HLSStreamJob:
     encoded_frame_cursor: int = 0
     webrtc_last_pose_frame: object = field(default=None, repr=False)
     webrtc_last_pose_id: Optional[str] = None
+    webrtc_last_source_frame: Optional[int] = None
+    webrtc_pose_crossfade_anchor_pose: Optional[str] = None
+    webrtc_pose_crossfade_anchor_source: Optional[int] = None
     webrtc_pose_crossfade_anchor: object = field(default=None, repr=False)
     webrtc_pose_crossfade_index: int = 0
     webrtc_pose_crossfade_target_frames: int = 0
@@ -1677,6 +1680,7 @@ class HLSGPUStreamScheduler:
         def compose_batch():
             compose_started_at = time.time()
             frames = []
+            source_frame_indices = []
             background_frames = [None] * len(batch_frames)
             if live_pose_router is not None and live_pose_snapshots is not None:
                 group_start = 0
@@ -1723,6 +1727,7 @@ class HLSGPUStreamScheduler:
                     if snapshot is not None and snapshot.is_queued
                     else job.start_offset_frames + generation_index
                 )
+                source_frame_indices.append(cycle_index)
                 background_frame = (
                     background_frames[rel_index]
                     if rel_index < len(background_frames)
@@ -1746,6 +1751,7 @@ class HLSGPUStreamScheduler:
                     snapshot.effective_render_key
                     for snapshot in (live_pose_snapshots or [])
                 ],
+                "live_source_frame_indices": source_frame_indices,
                 "live_pose_crossfade_frames": [
                     snapshot.crossfade_frames
                     for snapshot in (live_pose_snapshots or [])
@@ -1838,6 +1844,7 @@ class HLSGPUStreamScheduler:
                 compose_info["frames"],
                 compose_info.get("live_pose_ids") or [],
                 compose_info.get("live_pose_crossfade_frames") or [],
+                compose_info.get("live_source_frame_indices") or [],
             )
             compose_info["frames"] = frames
             if frames and job.frame_batch_callback is not None:
@@ -1935,6 +1942,7 @@ class HLSGPUStreamScheduler:
         frames: list,
         pose_ids: list,
         pose_crossfade_frames: Optional[list] = None,
+        pose_source_indices: Optional[list] = None,
     ) -> list:
         """Blend the first N frames after a live pose change without retiming."""
         if not frames or len(pose_ids) != len(frames):
@@ -1943,11 +1951,18 @@ class HLSGPUStreamScheduler:
         if len(requested_crossfades) != len(frames):
             requested_crossfades = [0] * len(frames)
 
+        bank = getattr(getattr(getattr(job, "session", None), "live_pose_router", None), "motion_bank", None)
+        source_indices = list(pose_source_indices or [])
+        if len(source_indices) != len(frames):
+            if bank is not None and bank.eye_blend is not None:
+                raise ValueError("Eye-aware motion composition requires every source index")
+            source_indices = [None] * len(frames)
         blended_frames = []
-        for frame, pose_id, requested_crossfade in zip(
+        for frame, pose_id, requested_crossfade, source_index in zip(
             frames,
             pose_ids,
             requested_crossfades,
+            source_indices,
         ):
             normalized_pose_id = str(pose_id or "default")
             source_frame = np.asarray(frame)
@@ -1959,6 +1974,8 @@ class HLSGPUStreamScheduler:
                 job.webrtc_pose_crossfade_anchor = np.asarray(
                     job.webrtc_last_pose_frame,
                 ).copy()
+                job.webrtc_pose_crossfade_anchor_pose = job.webrtc_last_pose_id
+                job.webrtc_pose_crossfade_anchor_source = getattr(job, "webrtc_last_source_frame", None)
                 job.webrtc_pose_crossfade_index = 0
                 job.webrtc_pose_crossfade_target_frames = max(
                     self.webrtc_pose_crossfade_frames,
@@ -1988,9 +2005,11 @@ class HLSGPUStreamScheduler:
                         anchor_array.astype(np.float32) * (1.0 - alpha)
                         + source_frame.astype(np.float32) * alpha
                     )
-                    if getattr(getattr(getattr(job, "session", None), "live_pose_router", None), "motion_bank", None) is not None:
-                        from scripts.motion_transitions import flow_blend
-                        output_frame = flow_blend(anchor_array, source_frame, alpha)
+                    if bank is not None:
+                        output_frame = bank.blend(anchor_array, source_frame, alpha,
+                            job.webrtc_pose_crossfade_anchor_pose,
+                            job.webrtc_pose_crossfade_anchor_source,
+                            normalized_pose_id, source_index)
                     else:
                         output_frame = np.clip(blended, 0, 255).astype(source_frame.dtype)
                     job.webrtc_pose_crossfade_frames_applied += 1
@@ -2002,6 +2021,7 @@ class HLSGPUStreamScheduler:
             blended_frames.append(output_frame)
             job.webrtc_last_pose_frame = source_frame.copy()
             job.webrtc_last_pose_id = normalized_pose_id
+            job.webrtc_last_source_frame = source_index
 
         return blended_frames
 

@@ -5,7 +5,26 @@ checkpoint records completed work and remaining requirements; it does not mark
 the overall goal complete. Inspect git status and live processes before acting.
 Preserve user assets, approved source masters, and any newer worktree changes.
 
-## Latest checkpoint — client and anchor follow-up
+## Latest checkpoint — incoming-eye candidate and exact face inputs
+
+Start with [the incoming-eye runbook](WEBRTC_MOTION_EYE_BLEND.md) and
+`/workspace/experiments/multipose_blend_quality_20260925/README.md`.
+285Python regressions passed. Five actual Latina recordings have1,702 frames at
+exact20Hz, with11returns in0.3988–0.4508s. The optional eye profile keeps incoming
+blink appearance in a source-measured local region. All723 contour rows are
+bound to immutable source hashes. Existing packages are unchanged; the candidate
+is a separate atlas and has no visual approval. Test Japanese/Indian and normal
+speed before broader use. Live stills still show nose/upper-lip doubling, and
+current body bridges mix already composed phonemes; that remains a next target.
+
+238Indian generated faces were captured losslessly and every original composite
+reconstructed with identical hashes. Outer-beard retention helps in offline
+mouth-envelope comparisons, but protected-core moustache softness and jaw-motion
+risks remain. No runtime mask change was made. The full goal remains active.
+Browser execution approval, normal-speed acceptance and mobile integration are
+still pending. Inspect processes and git state before continuing.
+
+## Preceding checkpoint — client and anchor follow-up
 
 Start with [the current implementation plan](MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md)
 and [the client/anchor follow-up](WEBRTC_MULTIPOSE_CLIENT_ANCHOR_2026-09-25.md).

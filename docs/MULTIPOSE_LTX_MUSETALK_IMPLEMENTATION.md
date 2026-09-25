@@ -18,7 +18,9 @@ a correct timestamp sequence, and passing tests do not by themselves prove that
 perceptual target. Source videos and received recordings remain reviewable.
 The feature is opt-in; a candidate atlas requires an explicit pilot setting.
 
-Current checkpoint: **262 Python regressions and 15 Node driver tests pass**. The browser lab now selects a prepared character from the configured registry, verifies its actual session source/routing hashes, and can cancel a pending upload without waiting for its HTTP response. The planner now matches the frame the compositor actually holds, fixing a one-source-frame mismatch during blinks. Three new received Latina recordings exercise that correction: 688 saved frames at exact 50ms intervals, four returns in 0.3485–0.4139 seconds. These three captures cover short speech, talking/smiling, and interruption followed by another reply. They do not repeat the entire earlier matrix.
+Current checkpoint: **285 Python regressions and five fresh Latina receiver recordings pass** with an optional incoming-eye blend profile. All1,702 saved frames retain exact50ms intervals; eleven returns complete in0.3988–0.4508s. Coverage includes short/long/smiling replies, normal interruption, cancellation during entry/body transitions, threshold speech, silence and looping. Source contours are measured offline and bound to all723 source frames. Existing character packages retain their previous blend until explicitly enriched and selected. [Candidate runbook](WEBRTC_MOTION_EYE_BLEND.md) and [evidence](/workspace/experiments/multipose_blend_quality_20260925/README.md) describe the scope and remaining face artifacts. The profile has not been generalized to Japanese/Indian or visually approved. Browser/mobile verification remains open.
+
+Preceding client/anchor checkpoint: **262 Python regressions and 15 Node driver tests passed**. The browser lab now selects a prepared character from the configured registry, verifies its actual session source/routing hashes, and can cancel a pending upload without waiting for its HTTP response. The planner now matches the frame the compositor actually holds, fixing a one-source-frame mismatch during blinks. Three new received Latina recordings exercise that correction: 688 saved frames at exact 50ms intervals, four returns in 0.3485–0.4139 seconds. These three captures cover short speech, talking/smiling, and interruption followed by another reply. They do not repeat the entire earlier matrix.
 
 The [client and anchor follow-up](WEBRTC_MULTIPOSE_CLIENT_ANCHOR_2026-09-25.md) records the current code, test scope and remaining work. [New Latina recordings](/workspace/experiments/multipose_client_validation_20260925/latina/review.html) and [regression log](/workspace/experiments/multipose_client_validation_20260925/final-regressions.log) are the current targeted evidence. Real Chromium execution and mobile-client testing are still pending. No bank is marked visually reviewed.
 
@@ -73,6 +75,11 @@ The v5 gallery is historical evidence for the recorder, interruption ownership a
 - [x] Fence delayed uploads with preflight turn reservation, abort locally, and preserve newer user/assistant ownership.
 - [x] Exercise the shipped client JavaScript and real manager cancellation sequencing in CPU regressions.
 - [ ] Execute the real Chromium UI harness after the pending execution approval.
+- [x] Compare eye-ghosting alternatives on the actual failed source pairs and keep the efficient local candidate.
+- [x] Add offline source-bound eye contours, separate candidate attachment, and all three runtime blend paths.
+- [x] Record five candidate WebRTC cases, including partial-transition cancellation and edge inputs.
+- [x] Capture238 exact Indian generated faces and reproduce every original composite hash to isolate beard texture loss.
+- [ ] Validate the incoming-eye profile on the other characters and at normal speed before enabling it broadly.
 - [ ] Address the remaining inspected expression/face-texture artifacts without dropping phonemes or delaying mandatory returns.
 - [ ] Integrate and test in the actual mobile application when its repository is available.
 - [ ] Obtain normal-speed visual acceptance of the transition recordings before marking a bank `reviewed`.
@@ -94,6 +101,7 @@ The v5 gallery is historical evidence for the recorder, interruption ownership a
 | `scripts/install_native_vp8.py`, `scripts/webrtc_native_vp8.py` | Verify the pinned native encoder and reconfigure bitrate without recreating its reference context; explicitly negotiate VP8 in the opt-in profile. |
 | `scripts/webrtc_pose_lab_catalog.py`, `templates/webrtc_pose_lab.py` | Resolve registered prepared characters, verify active source hashes, and run cancellable speech from the browser lab. |
 | `scripts/test_webrtc_pose_lab_browser.mjs` | Actual Chromium UI/media/cancellation harness; execution is pending. Its Node unit tests are not browser evidence. |
+| `scripts/measure_motion_eyes.py`, `scripts/attach_motion_eye_profile.py`, `scripts/motion_eye_blend.py` | Optional source-bound local eye refinement; separate unreviewed candidate atlas and runtime dispatch. |
 | `scripts/audit_motion_bank.py` | Exercise every candidate using the actual bridge, reporting pixel discontinuities against hard cuts. |
 
 ## Source and transition contracts
@@ -297,7 +305,8 @@ contracts are exercised by a real aiortc receiver, rather than a mocked mobile U
   test_ltx_interior_guides test_webrtc_pose_lab test_motion_evidence_review \
   test_webrtc_video_picture_type test_motion_recording_cleanup \
   test_native_vp8_install test_webrtc_native_vp8 test_webrtc_native_vp8_offer \
-  test_webrtc_pose_lab_catalog test_webrtc_pose_lab_client test_webrtc_pose_lab_preflight -q
+  test_webrtc_pose_lab_catalog test_webrtc_pose_lab_client test_webrtc_pose_lab_preflight \
+  test_motion_eye_blend test_motion_eye_runtime -q
 
 /opt/nvm/versions/node/v22.15.0/bin/node --test test_webrtc_pose_lab_browser.mjs
 

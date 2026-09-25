@@ -1,0 +1,2156 @@
+{
+  "version": 1,
+  "created_utc": "2026-09-25T18:14:50.444909+00:00",
+  "base_commit": "852b4b2020dad3e73135885eaf149bc58f7971aa",
+  "candidate_only": true,
+  "normal_speed_acceptance": "pending",
+  "identities_live_tested": [
+    "latina_guided_20260925"
+  ],
+  "profile": "incoming_roi_v1 with native VP8 and TensorRT baseline; OMP/OpenBLAS/MKL4",
+  "runtime_startup_snapshot": {
+    "captured_utc": "2026-09-25T18:05:12.916420+00:00",
+    "base_commit": "852b4b2020dad3e73135885eaf149bc58f7971aa",
+    "scope": "Before eye-candidate server launch. Tests/docs may still change, these runtime files are frozen.",
+    "code_sha256": {
+      "scripts/motion_transitions.py": "cbc619fd1c8419f9996c7c016221b24b68d5e25df1904e8076baa2fd874c9064",
+      "scripts/motion_eye_blend.py": "b98f3b0a1cf1a4112689a2a02d2da80857d3438c9063e05c13e714c116fae5f8",
+      "scripts/webrtc_motion_playback.py": "714c42bf7ae82e76551b4ee7999875d9d650ff1f48b911ae19d85331a79ac491",
+      "scripts/hls_gpu_scheduler.py": "7bb1cc6ee62d3e7b56c95d0adaebb4a5b05789663a01c07002d53256a27df0cc",
+      "scripts/webrtc_tracks.py": "db0a4bdbe50971cd0ed5c55f48f9629801132221d115b4f6055530162296bda8",
+      "scripts/webrtc_manager.py": "2308da6965c77fbfb79f372f9f7906c05a418020c10b70f76b1746b70d4d1d85",
+      "scripts/api_avatar.py": "1a1ad6fdfa3a93b7e036e73e758b24bd198e28d62ac6cc20e9ec49580f718e70",
+      "api_server.py": "8fb02d45afacc2707f6ce458a79fab8fada794b09c22f7d7fd6b8fa2c8f479f5",
+      "scripts/webrtc_native_vp8.py": "0b8d304b45c24ba75cc29cc1aa75b757a4be5d576b45d51f9268afb0178225c0",
+      "scripts/test_webrtc_motion_transitions.py": "93c94b988d2d366c172f56b98913fa45d751ace611f26ee437eaeaecad288818"
+    },
+    "atlas": "/workspace/experiments/multipose_blend_quality_20260925/eye-candidate/motion-atlas.json",
+    "atlas_sha256": "ed274e8ed658c6e7d3f96df5256f96db1f029861e374ad502d2fcb011763168e"
+  },
+  "current_code": {
+    "scripts/attach_motion_eye_profile.py": {
+      "path": "/workspace/MuseTalk/scripts/attach_motion_eye_profile.py",
+      "sha256": "abffa2edc40df02f572443d6ad7279a20aea5bbc9d710cea345f8b20c0ea53df",
+      "bytes": 3031
+    },
+    "scripts/hls_gpu_scheduler.py": {
+      "path": "/workspace/MuseTalk/scripts/hls_gpu_scheduler.py",
+      "sha256": "7bb1cc6ee62d3e7b56c95d0adaebb4a5b05789663a01c07002d53256a27df0cc",
+      "bytes": 107424
+    },
+    "scripts/measure_motion_eyes.py": {
+      "path": "/workspace/MuseTalk/scripts/measure_motion_eyes.py",
+      "sha256": "3f2695e8d5d9bfc8a4e81b4fff53fccbd9186285ebd0801cc9b545e9cd6d437f",
+      "bytes": 5191
+    },
+    "scripts/motion_eye_blend.py": {
+      "path": "/workspace/MuseTalk/scripts/motion_eye_blend.py",
+      "sha256": "b98f3b0a1cf1a4112689a2a02d2da80857d3438c9063e05c13e714c116fae5f8",
+      "bytes": 5902
+    },
+    "scripts/motion_transitions.py": {
+      "path": "/workspace/MuseTalk/scripts/motion_transitions.py",
+      "sha256": "cbc619fd1c8419f9996c7c016221b24b68d5e25df1904e8076baa2fd874c9064",
+      "bytes": 15769
+    },
+    "scripts/webrtc_motion_playback.py": {
+      "path": "/workspace/MuseTalk/scripts/webrtc_motion_playback.py",
+      "sha256": "714c42bf7ae82e76551b4ee7999875d9d650ff1f48b911ae19d85331a79ac491",
+      "bytes": 23117
+    },
+    "test_motion_eye_blend.py": {
+      "path": "/workspace/MuseTalk/test_motion_eye_blend.py",
+      "sha256": "031e00cadbec793cc7d073df5d03b5babe8cbb947a552bce63769ef58e521ad1",
+      "bytes": 8548
+    },
+    "test_motion_eye_runtime.py": {
+      "path": "/workspace/MuseTalk/test_motion_eye_runtime.py",
+      "sha256": "7e4ea99b736dc0bbd55393300919145051e7fa270a67acc9e9494e8167575134",
+      "bytes": 18080
+    }
+  },
+  "tests": {
+    "python_passed": 285,
+    "seconds": 13.58,
+    "log": {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/final-regressions.log",
+      "sha256": "dfcecbe37aa9e8b6094591459df3d0c0409dee0563b02a0c8218ad659cd7ce87",
+      "bytes": 186224
+    },
+    "node_driver": "Unchanged15-test prior checkpoint; not rerun; no Chromium execution"
+  },
+  "live": {
+    "recordings": 5,
+    "frames": 1702,
+    "exact_frame_seconds": 0.05,
+    "return_count": 11,
+    "min_return_seconds": 0.3988,
+    "max_return_seconds": 0.4508,
+    "verifications": [
+      {
+        "directory": "eye-live",
+        "verification": {
+          "version": 1,
+          "label": "Latina incoming-eye appearance candidate",
+          "automated_validation_passed": true,
+          "visual_acceptance": "pending",
+          "atlas": "/workspace/experiments/multipose_blend_quality_20260925/eye-candidate/motion-atlas.json",
+          "atlas_sha256": "ed274e8ed658c6e7d3f96df5256f96db1f029861e374ad502d2fcb011763168e",
+          "routing_sha256": "ca432aa948266c7eb0b69fa731fe6b035a243847ea763ec0a7faf99f52ce1eb8",
+          "source_hashes": {
+            "neutral_resting": "ee675cb4fdc230f1a67f995d3a22975c1954b0238b8c34a57827eec23379a14c",
+            "speaking_direct": "84c5bc80b858c864e5a4578f19eb37c66da4041de0ffe07d8b1e22f6d808bae0",
+            "light_smile": "a28498e05356de4eba8e770ca85483db33bd5e4266491ae3c9586dc9624a12c9"
+          },
+          "source_frame_counts": {
+            "neutral_resting": 241,
+            "speaking_direct": 241,
+            "light_smile": 241
+          },
+          "recordings": [
+            {
+              "case": "interrupted-and-next-turn",
+              "video": "interrupted-and-next-turn.mp4",
+              "video_sha256": "86a0467a2c5a337090081f8bfb72f3f29e0a4a7f8856f1be77d594d278da8a7c",
+              "evidence_sha256": "2fe0c2a99d712e2cb19d27bf9892d793edca4125f3953db73c6e560b6cf327d7",
+              "duration_seconds": 11.031956,
+              "fps": 20,
+              "turn_count": 2,
+              "return_seconds": [
+                0.3989,
+                0.4508
+              ],
+              "entry_seconds": [
+                0.2967,
+                0.3002
+              ],
+              "longest_idle_hold_frames": 1,
+              "timestamp_anomalies": 0,
+              "saved_video_cadence": {
+                "decoded_frames": 219,
+                "receiver_frames": 219,
+                "time_base": "1/90000",
+                "first_pts": 7376,
+                "last_pts": 988376,
+                "first_seconds": 0.08195555555555556,
+                "last_seconds": 10.981955555555556,
+                "expected_frame_seconds": 0.05,
+                "tolerance_seconds": 1.1111111111111112e-05,
+                "min_frame_seconds": 0.05,
+                "max_frame_seconds": 0.05,
+                "max_frame_error_seconds": 0.0,
+                "validated": true
+              },
+              "observed_poses": [
+                [
+                  "neutral_resting",
+                  "speaking_direct"
+                ],
+                [
+                  "neutral_resting"
+                ]
+              ]
+            },
+            {
+              "case": "long-talking-smiling",
+              "video": "long-talking-smiling.mp4",
+              "video_sha256": "43a379f1c6ab23106a1d94804a8debb373c56b766688ab9dcbc9247c55629732",
+              "evidence_sha256": "e886d4472bb2ec71a7000c5eaea38315c4cdd34c3f8efcd010fdfcf43c3f7058",
+              "duration_seconds": 16.281322,
+              "fps": 20,
+              "turn_count": 1,
+              "return_seconds": [
+                0.4488
+              ],
+              "entry_seconds": [
+                0.2963
+              ],
+              "longest_idle_hold_frames": 1,
+              "timestamp_anomalies": 0,
+              "saved_video_cadence": {
+                "decoded_frames": 324,
+                "receiver_frames": 324,
+                "time_base": "1/90000",
+                "first_pts": 7319,
+                "last_pts": 1460819,
+                "first_seconds": 0.08132222222222223,
+                "last_seconds": 16.23132222222222,
+                "expected_frame_seconds": 0.05,
+                "tolerance_seconds": 1.1111111111111112e-05,
+                "min_frame_seconds": 0.05,
+                "max_frame_seconds": 0.05,
+                "max_frame_error_seconds": 0.0,
+                "validated": true
+              },
+              "observed_poses": [
+                [
+                  "light_smile",
+                  "neutral_resting",
+                  "speaking_direct"
+                ]
+              ]
+            },
+            {
+              "case": "short-idle",
+              "video": "short-idle.mp4",
+              "video_sha256": "f321f26186fbc1fb6056e9e24a2ac34ae79cc0325c5cab19a167e9126a16a699",
+              "evidence_sha256": "d3804189bb80566eb161902a39df79973370cbab7c42470133a70213758c58ba",
+              "duration_seconds": 7.635767,
+              "fps": 20,
+              "turn_count": 1,
+              "return_seconds": [
+                0.3999
+              ],
+              "entry_seconds": [
+                0.296
+              ],
+              "longest_idle_hold_frames": 1,
+              "timestamp_anomalies": 0,
+              "saved_video_cadence": {
+                "decoded_frames": 151,
+                "receiver_frames": 151,
+                "time_base": "1/90000",
+                "first_pts": 7719,
+                "last_pts": 682719,
+                "first_seconds": 0.08576666666666667,
+                "last_seconds": 7.585766666666666,
+                "expected_frame_seconds": 0.05,
+                "tolerance_seconds": 1.1111111111111112e-05,
+                "min_frame_seconds": 0.05,
+                "max_frame_seconds": 0.05,
+                "max_frame_error_seconds": 0.0,
+                "validated": true
+              },
+              "observed_poses": [
+                [
+                  "neutral_resting"
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "directory": "eye-entry-interruption",
+        "verification": {
+          "version": 1,
+          "label": "Latina incoming-eye candidate: entry-interruption",
+          "automated_validation_passed": true,
+          "visual_acceptance": "pending",
+          "atlas": "/workspace/experiments/multipose_blend_quality_20260925/eye-candidate/motion-atlas.json",
+          "atlas_sha256": "ed274e8ed658c6e7d3f96df5256f96db1f029861e374ad502d2fcb011763168e",
+          "routing_sha256": "ca432aa948266c7eb0b69fa731fe6b035a243847ea763ec0a7faf99f52ce1eb8",
+          "source_hashes": {
+            "neutral_resting": "ee675cb4fdc230f1a67f995d3a22975c1954b0238b8c34a57827eec23379a14c",
+            "speaking_direct": "84c5bc80b858c864e5a4578f19eb37c66da4041de0ffe07d8b1e22f6d808bae0",
+            "light_smile": "a28498e05356de4eba8e770ca85483db33bd5e4266491ae3c9586dc9624a12c9"
+          },
+          "source_frame_counts": {
+            "neutral_resting": 241,
+            "speaking_direct": 241,
+            "light_smile": 241
+          },
+          "recordings": [
+            {
+              "case": "entry-interruption",
+              "video": "entry-interruption.mp4",
+              "video_sha256": "672e2bcc7e966ac4f2185cd15016f5dd9c8a54c81e7c2a198600a3f719006d7c",
+              "evidence_sha256": "f118ef347353608cd65627e01bf963b151b3de2baa7869b9e102e5e07ee06dd6",
+              "duration_seconds": 8.233544,
+              "fps": 20,
+              "turn_count": 2,
+              "return_seconds": [
+                0.4114,
+                0.3988
+              ],
+              "entry_seconds": [
+                0.3004
+              ],
+              "longest_idle_hold_frames": 1,
+              "timestamp_anomalies": 0,
+              "saved_video_cadence": {
+                "decoded_frames": 163,
+                "receiver_frames": 163,
+                "time_base": "1/90000",
+                "first_pts": 7519,
+                "last_pts": 736519,
+                "first_seconds": 0.08354444444444445,
+                "last_seconds": 8.183544444444445,
+                "expected_frame_seconds": 0.05,
+                "tolerance_seconds": 1.1111111111111112e-05,
+                "min_frame_seconds": 0.05,
+                "max_frame_seconds": 0.05,
+                "max_frame_error_seconds": 0.0,
+                "validated": true
+              },
+              "observed_poses": [
+                [],
+                [
+                  "neutral_resting"
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "directory": "eye-edge-cases",
+        "verification": {
+          "version": 1,
+          "label": "Latina incoming-eye candidate: edge-cases",
+          "automated_validation_passed": true,
+          "visual_acceptance": "pending",
+          "atlas": "/workspace/experiments/multipose_blend_quality_20260925/eye-candidate/motion-atlas.json",
+          "atlas_sha256": "ed274e8ed658c6e7d3f96df5256f96db1f029861e374ad502d2fcb011763168e",
+          "routing_sha256": "ca432aa948266c7eb0b69fa731fe6b035a243847ea763ec0a7faf99f52ce1eb8",
+          "source_hashes": {
+            "neutral_resting": "ee675cb4fdc230f1a67f995d3a22975c1954b0238b8c34a57827eec23379a14c",
+            "speaking_direct": "84c5bc80b858c864e5a4578f19eb37c66da4041de0ffe07d8b1e22f6d808bae0",
+            "light_smile": "a28498e05356de4eba8e770ca85483db33bd5e4266491ae3c9586dc9624a12c9"
+          },
+          "source_frame_counts": {
+            "neutral_resting": 241,
+            "speaking_direct": 241,
+            "light_smile": 241
+          },
+          "recordings": [
+            {
+              "case": "edge-cases",
+              "video": "edge-cases.mp4",
+              "video_sha256": "aaabc1db7e89f6f2ebef9715dd2b294d899b56fb5aaf94014b50c12096e4115a",
+              "evidence_sha256": "a9774c0ff5905f0f1d59d26c2e5643ec1d40f0c3622a9b2b78bfa8542fb4a149",
+              "duration_seconds": 42.332978,
+              "fps": 20,
+              "turn_count": 5,
+              "return_seconds": [
+                0.399,
+                0.3992,
+                0.4314,
+                0.3998,
+                0.3995
+              ],
+              "entry_seconds": [
+                0.2958,
+                0.2998,
+                0.3006,
+                0.2995,
+                0.2998
+              ],
+              "longest_idle_hold_frames": 1,
+              "timestamp_anomalies": 0,
+              "saved_video_cadence": {
+                "decoded_frames": 845,
+                "receiver_frames": 845,
+                "time_base": "1/90000",
+                "first_pts": 7468,
+                "last_pts": 3805468,
+                "first_seconds": 0.08297777777777778,
+                "last_seconds": 42.28297777777778,
+                "expected_frame_seconds": 0.05,
+                "tolerance_seconds": 1.1111111111111112e-05,
+                "min_frame_seconds": 0.05,
+                "max_frame_seconds": 0.05,
+                "max_frame_error_seconds": 0.0,
+                "validated": true
+              },
+              "observed_poses": [
+                [
+                  "neutral_resting",
+                  "speaking_direct"
+                ],
+                [
+                  "neutral_resting"
+                ],
+                [
+                  "neutral_resting",
+                  "speaking_direct"
+                ],
+                [
+                  "neutral_resting"
+                ],
+                [
+                  "neutral_resting",
+                  "speaking_direct"
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "visual_review": {
+    "report": {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/README.md",
+      "sha256": "579ce0c165764d31cc53a27c95d3e60266c7a8ed8a1622557c41a56e94de2418",
+      "bytes": 7315
+    },
+    "limits": "Still-based review, not normal-speed approval; differing later phases preclude controlled live A/B"
+  },
+  "exact_face_capture": {
+    "captured": 238,
+    "original_composites_exactly_reconstructed": 238,
+    "candidate_frames": 75,
+    "report": {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/exact-inputs/report.json",
+      "sha256": "a627bfa378025a9ed2002d1af3cf226c1f9324e13dc2ca0e3df3d0a084bcea32",
+      "bytes": 245207
+    },
+    "limits": "Offline narrow/expanded jaw variants only; runtime face masks unchanged"
+  },
+  "remaining": [
+    "Nose/upper-lip doubling during already-composed body crossfades",
+    "Indian beard/moustache texture loss and jaw-motion retention tradeoff",
+    "Eye-profile validation for Japanese/Indian and varied user portraits",
+    "Normal-speed perceptual acceptance",
+    "Pending real-browser approval/test and mobile-client integration"
+  ],
+  "cleanup": "Capture and eye-pilot servers exited0; no GPU compute process after tests",
+  "artifacts": [
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/README.md",
+      "sha256": "127131f5bbbd7a52217c2f86220cd5e0a3898b21bbb7630b4c74e4e56b63fdd1",
+      "bytes": 5298
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/capture-receiver.log",
+      "sha256": "238e03d61df176956596fd8e0449b7ee9295850b95cc623ef410c6d9c33b67ce",
+      "bytes": 1357
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/capture-server-final.log",
+      "sha256": "99966a90c24163529cf5b5a528d7c3505bf9bf95f9d5d5d077a5add98898aeda",
+      "bytes": 150958
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/capture-server-resumed.log",
+      "sha256": "6634c6812d723a3b504f7bb8d8f2b7c94b80d5be635aef6be3cb2a50394540e1",
+      "bytes": 4923
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/capture-server.log",
+      "sha256": "ba9398aab0d1bdff4e8fd2a28d3b8e1a3baa058b5dc5aa830922bf1f225ae870",
+      "bytes": 4881
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/capture-verification.log",
+      "sha256": "c826063619dddc8fb5bd7f2751071924e3dec5e0bd2783d403ecb72ae6d0694e",
+      "bytes": 59
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/capture_python/capture_faces.py",
+      "sha256": "57cc7677f321a2e4bb1145c5408503a4846b3d3b3977adb9f8d1062cd5f422fb",
+      "bytes": 2843
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/capture_python/sitecustomize.py",
+      "sha256": "f11dc142e0b80b1077e9c8a2ba6153d89b2f2cb66b140bf0c9eead9c347c7fb9",
+      "bytes": 978
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-candidate/motion-atlas.json",
+      "sha256": "ed274e8ed658c6e7d3f96df5256f96db1f029861e374ad502d2fcb011763168e",
+      "bytes": 1391362
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-candidate/motion-registration.json",
+      "sha256": "85c182d6f58fdef884ed61b75cfcb0a89231fc606ffe8e29ebd70e50b1f0f989",
+      "bytes": 399
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-candidate-created.json",
+      "sha256": "746343d64c8b51105fefef9676260593fcf631179c004850f1e959d91f284fa4",
+      "bytes": 361
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-edge-cases/README.md",
+      "sha256": "665f3c8a5a4e560a90e47a9482de3edb542a2a1128085c040226abdf7f82d6a8",
+      "bytes": 686
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-edge-cases/avatar-preparation.json",
+      "sha256": "9a2deef493b04562d668ebd90d0d5e25944f7b4db6f0456ffdd92f09dd10cfb3",
+      "bytes": 590
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-edge-cases/edge-cases.json",
+      "sha256": "a9774c0ff5905f0f1d59d26c2e5643ec1d40f0c3622a9b2b78bfa8542fb4a149",
+      "bytes": 7376177
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-edge-cases/edge-cases.mp4",
+      "sha256": "aaabc1db7e89f6f2ebef9715dd2b294d899b56fb5aaf94014b50c12096e4115a",
+      "bytes": 2937958
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-edge-cases/pose-set.json",
+      "sha256": "0f38322c63500d51d4dbf42c5852e290f897862ebafc68afabad64e694b8bd16",
+      "bytes": 1906
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-edge-cases/review.html",
+      "sha256": "8b2d90ba06821ac3166679945e4f4bcffe461070bec036d8e16db3e9532959a8",
+      "bytes": 905
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-edge-cases/verification.json",
+      "sha256": "c2fb095c036cf62ea914e0fae6979fb1c7a6fb6370125f1514231ead822af42c",
+      "bytes": 2354
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-edges.log",
+      "sha256": "67d3178690e70893f1e7399aa378c03dc2517d9bb097b19b56f43c6896d5082f",
+      "bytes": 2852
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-entry-interruption/README.md",
+      "sha256": "d281d1712d37741c4d22c3a21cf311ff843ceb3edd2e28c3d200a575bab89e61",
+      "bytes": 682
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-entry-interruption/avatar-preparation.json",
+      "sha256": "9a2deef493b04562d668ebd90d0d5e25944f7b4db6f0456ffdd92f09dd10cfb3",
+      "bytes": 590
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-entry-interruption/entry-interruption.json",
+      "sha256": "f118ef347353608cd65627e01bf963b151b3de2baa7869b9e102e5e07ee06dd6",
+      "bytes": 2045588
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-entry-interruption/entry-interruption.mp4",
+      "sha256": "672e2bcc7e966ac4f2185cd15016f5dd9c8a54c81e7c2a198600a3f719006d7c",
+      "bytes": 485544
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-entry-interruption/pose-set.json",
+      "sha256": "0f38322c63500d51d4dbf42c5852e290f897862ebafc68afabad64e694b8bd16",
+      "bytes": 1906
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-entry-interruption/review.html",
+      "sha256": "2b70a2ec4ae92312841ccaf061c40631effc081ee9bb096ba737123d5526e2f0",
+      "bytes": 936
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-entry-interruption/verification.json",
+      "sha256": "86227881b8a94577b525aafd2346c87545e614b90e6d1bfce22e1a7a32c92016",
+      "bytes": 1994
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-focused-tests.log",
+      "sha256": "4808ba7204bdd7f77d23fbc174b37776e27002898bf3831056230002a1459586",
+      "bytes": 122311
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live/README.md",
+      "sha256": "603920197cb1609fe67bcac448cc96c196388e440a1f854e1f48b90dbd74595a",
+      "bytes": 813
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live/avatar-preparation.json",
+      "sha256": "9a2deef493b04562d668ebd90d0d5e25944f7b4db6f0456ffdd92f09dd10cfb3",
+      "bytes": 590
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live/interrupted-and-next-turn.json",
+      "sha256": "2fe0c2a99d712e2cb19d27bf9892d793edca4125f3953db73c6e560b6cf327d7",
+      "bytes": 1404469
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live/interrupted-and-next-turn.mp4",
+      "sha256": "86a0467a2c5a337090081f8bfb72f3f29e0a4a7f8856f1be77d594d278da8a7c",
+      "bytes": 694766
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live/long-talking-smiling.json",
+      "sha256": "e886d4472bb2ec71a7000c5eaea38315c4cdd34c3f8efcd010fdfcf43c3f7058",
+      "bytes": 2385565
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live/long-talking-smiling.mp4",
+      "sha256": "43a379f1c6ab23106a1d94804a8debb373c56b766688ab9dcbc9247c55629732",
+      "bytes": 1206497
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live/pose-set.json",
+      "sha256": "0f38322c63500d51d4dbf42c5852e290f897862ebafc68afabad64e694b8bd16",
+      "bytes": 1906
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live/review.html",
+      "sha256": "543396a563e65c16c1b8e7e69a9040df9c45d551fd770d99f81a0f0423513833",
+      "bytes": 1240
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live/short-idle.json",
+      "sha256": "d3804189bb80566eb161902a39df79973370cbab7c42470133a70213758c58ba",
+      "bytes": 707179
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live/short-idle.mp4",
+      "sha256": "f321f26186fbc1fb6056e9e24a2ac34ae79cc0325c5cab19a167e9126a16a699",
+      "bytes": 455205
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live/verification.json",
+      "sha256": "4b830a89144937536b377cd8cdc3496db8bfcd0f8a87c93ae7c2731b25f3baf1",
+      "bytes": 4340
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/README.md",
+      "sha256": "579ce0c165764d31cc53a27c95d3e60266c7a8ed8a1622557c41a56e94de2418",
+      "bytes": 7315
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/actual-interrupt-return.jpg",
+      "sha256": "cddd90bf42813e2406e1fcc9c22638f144c8c39c90714a235f2b44c2f05b6a88",
+      "bytes": 209531
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/edge-cases-15-frames.jpg",
+      "sha256": "da0b8a3286e9c92bf411f8d665354c78dcfa43a89acd24de50199aa00425f733",
+      "bytes": 196788
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/entry-interruption-15-frames.jpg",
+      "sha256": "51df149d673fbe036e100388ec6d86e0680fc5e9eb387ed5a389e38cac8ebc51",
+      "bytes": 199264
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/first-talking-entry.jpg",
+      "sha256": "506b2bb32e66eb10a7a240110b3b56f5a71431d85da9ce57433db7c1a0038666",
+      "bytes": 193288
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/interruption-data.json",
+      "sha256": "83a52d4ba7da0ab341142d7c44bde860d01068bd7f750322b9791128cd7632f3",
+      "bytes": 15921
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/interruptions.log",
+      "sha256": "c4b008f84f54c0e38ae8298af52de912a34b08ad22dda23b6fdeac86315f19ae",
+      "bytes": 25
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/review-data.json",
+      "sha256": "59241d0fc7e46d85f6e48c552aff5948201b56f8dbfd5b07228b9ee8b6b4752f",
+      "bytes": 87114
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/review_interruptions.py",
+      "sha256": "8cf2b50419d97bcd038be3355c99f16bcfd7e7e79da9d1ee00f50efd538a3d85",
+      "bytes": 2311
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/review_received.py",
+      "sha256": "2fa928425196a33f18ae2e6fbf2701efda78b0c22234c7727eab6c5c8f18ca63",
+      "bytes": 7147
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/run.log",
+      "sha256": "ba105bd43b844b67838fab3a31d0441b46a0b835b88b86fa8285e14c832f2a52",
+      "bytes": 106
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/sparse-body-controls.jpg",
+      "sha256": "8d3ba39e3bc6629c02055c233340d60c0201d41b79e994671d4f961c02eff2bc",
+      "bytes": 259291
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/speech-entry-start.jpg",
+      "sha256": "a6ac63d416a5c94f33b1ec7807cef33ea4585c0652cfb42d71561cf8b21b6dc5",
+      "bytes": 214851
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-live-review/terminal-body-return.jpg",
+      "sha256": "3a06cdbb484765990b93fb5f33eb2ac33a26b4f91aab2b4dc247a6dfee37e7b4",
+      "bytes": 186265
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-measurements.json",
+      "sha256": "b91c0aa267fc401627399a4c72cf70ce70bd3763f82591fbd1b4337be8ad8cdb",
+      "bytes": 802413
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-pilot.log",
+      "sha256": "7f915836cdf470c75083d581970ddf2c5f95f22a35f4821af1ac1bfb80a6889f",
+      "bytes": 3437
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-runtime-inputs.json",
+      "sha256": "24c45ae81e4dfe61afa824288ccba864d75635173d169131100525dd89aab1f1",
+      "bytes": 1469
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-runtime-tests.log",
+      "sha256": "695218bc7545b2f6cfd80a0392240461d22f5fac40056627819bb838b7e07330",
+      "bytes": 13922
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eye-server.log",
+      "sha256": "062e93a7f5f1ba7360d829dcb0dea6b95f0e985cef0f2a0fd462bc6894519360",
+      "bytes": 2596400
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/README.md",
+      "sha256": "d1e45180e38d126def90fe6672d634366a93cd75b6729766f9d249a3b5889822",
+      "bytes": 10628
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/collector.log",
+      "sha256": "d89b2037977401459c5336b7db774008e43421eb33e987de5ff6f705e99ba771",
+      "bytes": 1093
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/compare.py",
+      "sha256": "3834571c98170e28458567e515ccdb3bceb00f1c4cc42918bfd38307bb911daa",
+      "bytes": 7895
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/comparison.json",
+      "sha256": "522165f06f5ead3e211a04f4f2743d28feafb9d6cfd317920167304668d9a83e",
+      "bytes": 15030
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/evidence-hashes.json",
+      "sha256": "b5106558e42dba383c801d3ee290028083979bad79d5cdfa1264863d14267b79",
+      "bytes": 3283
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/eye-landmarks.json",
+      "sha256": "78161e3073e82d02328fe467e23068877f5fd8b428d043b55a9e3eb7f14ec29b",
+      "bytes": 30620
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/helper-parity.json",
+      "sha256": "a3f54dd5cd84f4a4258986a050a609beb4b5f196efc29df59e024dc70abdadf7",
+      "bytes": 4731
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/helper-tests.log",
+      "sha256": "37139f5f22482a83221b702d0e5d9e601e651ff7334572887b69cf3949485c07",
+      "bytes": 866
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/helper_parity.py",
+      "sha256": "2ef6faa9143435306efc5bda13859bd0124d1979089fc9e1fa7098c66d177e78",
+      "bytes": 1979
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/improved-entry-control-eyes.jpg",
+      "sha256": "31e9e9851b35aa96193b285dee32f67c06ddd077da87d5286d3305c5b99047f0",
+      "bytes": 590744
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/improved-entry-control-roi-eyes.jpg",
+      "sha256": "7b9c99edfab55e12eab18c6f6b4619614b70e9575823aa5d88e18d848199cbfe",
+      "bytes": 329452
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/improved-entry-control-roi-full.jpg",
+      "sha256": "17c0fed87406b93c05fe5749b4b2814a7dc5eff21424f1fa4d2812b34e3f6642",
+      "bytes": 251302
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/improved-entry-control-roi.mp4",
+      "sha256": "6a18ad07288eae4eda6699245b6ca177ece828ac803684d0be4c14ff9e8772e3",
+      "bytes": 295644
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/improved-entry-control.mp4",
+      "sha256": "da99712ac9106d24f7b2b0174c0b52b188b6cb47a5908c131876970d2b2add10",
+      "bytes": 634065
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/interrupted-return-eyes.jpg",
+      "sha256": "0ae027eac7e3ccb0524679f11b06ccf13b707801f1a576fe3f534a312e7d9d56",
+      "bytes": 582449
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/interrupted-return-roi-eyes.jpg",
+      "sha256": "16e81a38509a18a726809001f4b3ab4aedb3d0960d8ed092cd8a799d6e64c25d",
+      "bytes": 324469
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/interrupted-return-roi-full.jpg",
+      "sha256": "ac3110f1d309c95450def82ab306ad055cad2408951ff43a7bdc71215a2b0172",
+      "bytes": 250253
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/interrupted-return-roi.mp4",
+      "sha256": "badcce6c5889a7648761187fddb8a06997c326135c41df5c47fd73084994aea6",
+      "bytes": 328029
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/interrupted-return.mp4",
+      "sha256": "ff5308efe88674b36f1fa0db6b40e6b94fc781d1a51a935d5963340832fc1982",
+      "bytes": 708967
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/measure_eyes.py",
+      "sha256": "62654802687be58bb7fddb70345b200d8cc7b69b1166807fbaf0a7cee6c0d90e",
+      "bytes": 1533
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/roi-comparison.json",
+      "sha256": "a69e8e63b28578fdf339d4104914df07a4dc7613f3f509bf0f784a05bc023ff2",
+      "bytes": 4208
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/roi-pixel-controls.json",
+      "sha256": "0fee8d07689ffff0635920b613c16310773452cc1aa967c1ed89f37a82461c65",
+      "bytes": 14530
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/roi_compare.py",
+      "sha256": "1155bef866f71380f0615e39d9551edac60d4fe829b370eb8a5e37c28e5b63fa",
+      "bytes": 6335
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/terminal-blink-eyes.jpg",
+      "sha256": "62329cff44327bb5bf977ded945f9f539a69cdc4c5cdcada463bf41d24808131",
+      "bytes": 541676
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/terminal-blink-roi-eyes.jpg",
+      "sha256": "4e6445c170cd66c4f98749956317e6f0cfd6c6fe0656b931c241c84799198938",
+      "bytes": 298056
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/terminal-blink-roi-full.jpg",
+      "sha256": "069f6fd5e05c4478dbc5c30d687c9272acd3257e839941d8afd34b5f8b817a07",
+      "bytes": 244163
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/terminal-blink-roi.mp4",
+      "sha256": "e02717c3551aef1679d0621310d9d5edfd8289abd3d84c147508e9d50d55ff2c",
+      "bytes": 336983
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/eyes/terminal-blink.mp4",
+      "sha256": "58b876890004f4e0579d3c430c50ca7b2fcdee1ac0a84c53a5199c8a11b26bbe",
+      "bytes": 737871
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0000.png",
+      "sha256": "41f56563ea0f8675fe236191a0db8f9592bdfd60aa78f297b33d90582a6440c1",
+      "bytes": 97917
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0001.png",
+      "sha256": "be3923cb8397acc19761cc6cf4d0863f1c7e215f83250b2cdd183a45bc32b3cd",
+      "bytes": 97861
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0002.png",
+      "sha256": "2ba0e39e491edfcdaa068ce0e984c4b1b93f709456b4ecdbdf9c043f49db9c0e",
+      "bytes": 96878
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0003.png",
+      "sha256": "e93c2b12f30af1268ae58b406627d32a00698c3548744cb2237f246ff7e9596a",
+      "bytes": 97389
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0004.png",
+      "sha256": "5494b0289e09f3306e798af2b58d9cf9e7e7f94f7419a894fdc657265c3b4a30",
+      "bytes": 96576
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0005.png",
+      "sha256": "f74f9cdfe53f298bca6e0cbb0d86ebbb041cca088720117698ddfe9823f4291f",
+      "bytes": 94334
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0006.png",
+      "sha256": "74cf04c79fe817a29c6dd87064052d59b851ba775443a1fb2b01ad112b201b3b",
+      "bytes": 99009
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0007.png",
+      "sha256": "53e4470b0fb311d1a555351000759efaf5df70aa5f10d69bc8c058128a23f077",
+      "bytes": 98179
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0008.png",
+      "sha256": "d0fbefbffdc023d2b97b2a897a3299995a3f42cf0f58627e20f8e2d761f4ab40",
+      "bytes": 99373
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0009.png",
+      "sha256": "4ba5ba8941a3f56d33f522adbe29fd9745e5c4c6b0819cf1aeb45705df2ef2f4",
+      "bytes": 99467
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0010.png",
+      "sha256": "bd57f1983416a84b864c18dd8d09a4f1585c4a0e77b8d9e3cac12fe703d54893",
+      "bytes": 100405
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0011.png",
+      "sha256": "4a8bbdfe11863a0b55b9792b65de90ef41516f92717ff1849eb0ef7ada2548bd",
+      "bytes": 99149
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0012.png",
+      "sha256": "946db43aa89d0ad00de21f322539c20ed7e0e5b7025677d267da31d37627e599",
+      "bytes": 98273
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0013.png",
+      "sha256": "63697f47896c6acad700415442b38b73d6df4ae4fba4e35dd700dc5b75547fc0",
+      "bytes": 99131
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0014.png",
+      "sha256": "3d544404100a9326e1dafdaa02cad6c6ed3bb126645c57b7f6710c3ef4eed294",
+      "bytes": 97873
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0015.png",
+      "sha256": "df8d2b3eb4d8db06ef83c67665a83f60cbd0407b69ecbb0742e8e280f4c62414",
+      "bytes": 98281
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0016.png",
+      "sha256": "6e2d344215a3afd88346f7aaadc929a7abd09b86b8a01f5c1a25c2491c13312a",
+      "bytes": 97445
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0017.png",
+      "sha256": "2ac9ef579ea76e9c7abe33edd65c634e7470741afb5474469df93d93b566aec2",
+      "bytes": 97793
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0018.png",
+      "sha256": "ae3299867467df56a685a3eddf82b9396122403d61dfe27786f7cd1c993f777d",
+      "bytes": 99037
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0019.png",
+      "sha256": "3640925c7791a2c0a69ad691b052832ae82cfdef8fb1b7f5609a2c6b979f608a",
+      "bytes": 98950
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0020.png",
+      "sha256": "8169e2aecec4ce4284713a99fbb5036fc9d52843d37567a18f581d06e6c1ee98",
+      "bytes": 99881
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0021.png",
+      "sha256": "49713528530a221d52fb0f7bb05cb161ac93f02839786839fa3b215dc903327f",
+      "bytes": 98586
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0022.png",
+      "sha256": "1afd3b8277e19edf341b6c1638df6e172449ebce5c69d986063867b069a92d05",
+      "bytes": 97766
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0023.png",
+      "sha256": "99603b468cb15214a7fb7e79a04dd5446d9364bbdb2db2f56a153e950b506674",
+      "bytes": 98741
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0024.png",
+      "sha256": "af3f96262b38c484ce15ccb448759925cb24aab5126e9b39594e2639802d07d7",
+      "bytes": 98534
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0025.png",
+      "sha256": "a8d24439c55f99a013f76c373b4a0f2801f589c480b91057bdc66ff442543748",
+      "bytes": 98603
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0026.png",
+      "sha256": "4ced63b7a11f79b8e769b21db2e5af202a08e3c6b76417a03099c547b979bfbf",
+      "bytes": 99239
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0027.png",
+      "sha256": "61db7ace203f1d90dd2dd6ca9e7113dbe942a30b4aece1e2855f96f7f5510092",
+      "bytes": 98456
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0028.png",
+      "sha256": "c157aefa602ecfe232b3ef5bcdf4dfc92395992cac0a511f9ef2d0c8fceabccc",
+      "bytes": 99062
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0029.png",
+      "sha256": "895b3120ae622fab96eeabb9aa6d43d6437f196e72f9da5e8c45cb88dec0c988",
+      "bytes": 98727
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0030.png",
+      "sha256": "d6c0dbb446b1672b4ecfe7af2ee1a67bab1c44d7891e0c5e8a4acc8dab2b43b4",
+      "bytes": 98644
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0031.png",
+      "sha256": "c3ff66c47cc37b1ec76adc0ecb81331f237331015cbf2b125a2aa4370e800e05",
+      "bytes": 98191
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0032.png",
+      "sha256": "68c575aaf67a468396d1175dc6cad18a8d485764fafc6664670237468c03aef8",
+      "bytes": 97900
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0033.png",
+      "sha256": "666c55677e9555852448ff4fbb6b1cf8f3e7cb659692e31d8b00a25ae1f147f5",
+      "bytes": 98222
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0034.png",
+      "sha256": "41a44f8db72bbfa75eac74be8f4e7f8418bf64bc1d1961bbc133eb2460e99254",
+      "bytes": 97263
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0035.png",
+      "sha256": "94758e09b390f9cb94c4ccb8bdec14f8cdf4a64c4ff3536526b9e1493a8e4df1",
+      "bytes": 96755
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0036.png",
+      "sha256": "d63a0385805eea5216dbfa80521bff8caf9a631638585a4ef39d1b21815302cf",
+      "bytes": 96457
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0037.png",
+      "sha256": "ba014010b5641975f565f9c19690fc98886684c552208505b1322aa17f1b2763",
+      "bytes": 96189
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0038.png",
+      "sha256": "7428ea1279173a945ecbb081fbfa5fb4f9dfc527fca9006bc581d16b46e88876",
+      "bytes": 97050
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0039.png",
+      "sha256": "494e60cb9b407ce0b4c33483c8e4fd5aeb8201bf0cd2948d79e3fc9f812a883b",
+      "bytes": 96700
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0040.png",
+      "sha256": "e74130bc6b1c77652310c0bb0ede088aec082cafb2cc57dbbb761e56ec82dbf2",
+      "bytes": 97993
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0041.png",
+      "sha256": "6c98389607e9e4e429d39c66fe69c0ef7d64798d83f35cc190b510f1cfe4920f",
+      "bytes": 98418
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0042.png",
+      "sha256": "84e0517eca77840560ea08565654dd19b8522fdc1b6aa5e41afebf1ec203d6c1",
+      "bytes": 98549
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0043.png",
+      "sha256": "8c34c93648e778a1633e9ccc1ff0ad6a126adde73c63b8cfa7aec5407c3a002a",
+      "bytes": 99301
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0044.png",
+      "sha256": "03bcb8bba64827e7ac632b8666b15636199ecf57883690349a900c1910f47452",
+      "bytes": 98825
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0045.png",
+      "sha256": "aa7f89ec2d252d84ec50dcc4896afa32c55dd14378a3b0a38ea173ed7195117f",
+      "bytes": 98559
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0046.png",
+      "sha256": "47f6532f08339ca678d1e933c092e7e54247ba1f772e6ab3f95a3ad0a2555d32",
+      "bytes": 99606
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0047.png",
+      "sha256": "b53c5beb07c45c50dfe76937d239d674d4168f9f4e24b4b9234928d9f81ac5ef",
+      "bytes": 99165
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0048.png",
+      "sha256": "3b41d8da31ae6f47cd6a6db4656b86484419f3eff1d2f832e8175de690db5c32",
+      "bytes": 98221
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0049.png",
+      "sha256": "e29984af6c409378d688cf6e9108b13486ae504a1613a80585848770933fbbb1",
+      "bytes": 98539
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0050.png",
+      "sha256": "281bbb3492989d72d713c38abf2be88aacb32e5bc4b0a5b338cfdf006a28a232",
+      "bytes": 99332
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0051.png",
+      "sha256": "e5ab82124f1d28e090ab2c7bbaba2dc7edb56845edc678ca7b069c3810c4ae13",
+      "bytes": 98017
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0052.png",
+      "sha256": "49b19c057aacfcf61d601d2672f7cf8b3dc6e6b1dc9069409cb06102916c3559",
+      "bytes": 98835
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0053.png",
+      "sha256": "b681d13f2cd7be7fccfccb414bc95fa1a4a54389ce4eab8ffdded684d44d93f2",
+      "bytes": 99373
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0054.png",
+      "sha256": "dd8179c1d113185921297892abb46afa42d0d3b15187080bd85334ef76464c66",
+      "bytes": 98231
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0055.png",
+      "sha256": "fa40ec38ec8a9f89a52ac8a1bacfd301b9c91f742ea00163119f8e1a4d640763",
+      "bytes": 98151
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0056.png",
+      "sha256": "d99dd39fb71bf836ef90d680f71fe54e383704099730011f053a27fd274d9a77",
+      "bytes": 96734
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0057.png",
+      "sha256": "58935c4f116b7d406e5817e863c4e3726e795fbdacde08b768c421320dd2b890",
+      "bytes": 96160
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0058.png",
+      "sha256": "ac7210788fb33528cf7795defd3034d51a6768b64640cf83a82bef5907a719e8",
+      "bytes": 96644
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0059.png",
+      "sha256": "c49f3c86e5940ea8e86819c2d796eca34b792602b993ed38b56817ac8bda2692",
+      "bytes": 96839
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0060.png",
+      "sha256": "0778394cc28da6d5203d036c7d0e6d296ad83d1eedd7f7039f5ae917229e018d",
+      "bytes": 97771
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0061.png",
+      "sha256": "c887bc49b72741d166fa0c3d56eddaa925ba903d52fb98c13b713b6287be27e4",
+      "bytes": 96804
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0062.png",
+      "sha256": "7d7e3b6877b49fa41cad643b155cb5a860f46edbce336b78a2a5288fe1b733d7",
+      "bytes": 96603
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0063.png",
+      "sha256": "d0c638fef3df75df7d62d921e981d91ac6b9eadb050e841e25c2c47be3492faa",
+      "bytes": 97736
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0064.png",
+      "sha256": "b346a25d2cd5eab05f1841423a970921fc239898063a2eab7577abad29cfe793",
+      "bytes": 98034
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0065.png",
+      "sha256": "86542474968b64af2ef19f66a62132cae78f44dfecc0a767f105053ccddf6eb8",
+      "bytes": 98045
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0066.png",
+      "sha256": "a0c288aa4af7154c374c7c841941f9b3dcd4cf411fb289644802f6eb42e1af52",
+      "bytes": 98658
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0067.png",
+      "sha256": "92bb04ad1a35f777de5dd751febab64dc053dbe6409691091817c74f0084e983",
+      "bytes": 97570
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0068.png",
+      "sha256": "ad062f4e03f7e64789ebff27b0a274ad25094085b2c9310638b59be662f552dd",
+      "bytes": 98190
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0069.png",
+      "sha256": "4752e9c3b77bf96956b50d746777902af4a1e6d8bb71eb7613f3b114e06b6b73",
+      "bytes": 98121
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0070.png",
+      "sha256": "bae4d1cc75139f3b79dd14f6fbd2ca1ffcecab2d8dc31b5321d39b26936ecaf6",
+      "bytes": 98834
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0071.png",
+      "sha256": "4f18a97e236d8a3a1bfabd97952c89bfdf246413edd9054065e6a0b4678e9c7c",
+      "bytes": 98644
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0072.png",
+      "sha256": "7a7be68ce00c047cb29d01852478580102984ee9ba98bf38309837222c6d2fe8",
+      "bytes": 98225
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0073.png",
+      "sha256": "d19d91f4df4b06adfe3836adf5ee20ac6f0dc55bc9c87d46b90bf250d481cd38",
+      "bytes": 98773
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0074.png",
+      "sha256": "1cc4bea3f6d0a1d98cb9b8e8b5e236b6111138ccee7c390c6da89828d146efbc",
+      "bytes": 98691
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0075.png",
+      "sha256": "339c51737f13624c0ed9cb793d9729a4f3abd848d36553871807d91050d38671",
+      "bytes": 98131
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0076.png",
+      "sha256": "acfe7b68efd7a105a44a3d8889428b4dae26f40227869906487e03cf356195d0",
+      "bytes": 98358
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0077.png",
+      "sha256": "c4f40317f1071181170ae7ca27473df2163903b2eba131cac3f6ff0ddfe80cad",
+      "bytes": 98568
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0078.png",
+      "sha256": "ae4f3974dae3d41caa25123efc7010cdf5fb86fd44c8952a6a38f368453d421b",
+      "bytes": 96737
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0079.png",
+      "sha256": "890786ed52f9ca16a9583a0753a4417e0729f1099145cdf4b0a0afb77543ca67",
+      "bytes": 95877
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0080.png",
+      "sha256": "e93803cfd4c12c7a6d01ddf57f2b1bc174a1c37c2b57e0f3dc7c9569333cd89f",
+      "bytes": 96541
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0081.png",
+      "sha256": "1f2654eb51bc822c612dacf98bbf73dc6d91634a22083210dbe4a85b603269dc",
+      "bytes": 96776
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0082.png",
+      "sha256": "3d59739da5c184ccde89bf118f92b336ded1f52189092fc0399a367aa2f439ac",
+      "bytes": 96466
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0083.png",
+      "sha256": "75a35dca4af65c17ce913627a3de796ebea7a9b21d8fbc2c39b6b66019186745",
+      "bytes": 97357
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0084.png",
+      "sha256": "70c6f7c02add86ebf49119ed9ba376b69a3e471a1f7a3a1dcb034a878dac6901",
+      "bytes": 96887
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0085.png",
+      "sha256": "fef54a0b7b0d67e39fafaaaabd07027483d0b4f140d7cb92287ea4d1b4aa0554",
+      "bytes": 97121
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0086.png",
+      "sha256": "ea25486af1baaddd7fb2dc78e765aa5d9aca55bc459f6b4610f34195359518c8",
+      "bytes": 97141
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0087.png",
+      "sha256": "5a04c4db9f2da02d54dd088534086d37b2008afbd36cc3cb7f7f3db7c3f35f4c",
+      "bytes": 94039
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0088.png",
+      "sha256": "83cddd26d53cda56399b6775878a8fc5e03b71b00ef275662ff1fc4d8486dcf3",
+      "bytes": 94725
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0089.png",
+      "sha256": "3174092287082307efa570e2f38b0d495ee7470ff3fa7221b5aabc5b43408dd5",
+      "bytes": 94454
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0090.png",
+      "sha256": "f9c406e841e36392e87ba563ddc8d6c1a14bb8d7e2f87f96eba6592a239eea65",
+      "bytes": 94380
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0091.png",
+      "sha256": "aa997b04b9dbd4f4aed5408a362ff772c0392c0ba8d3015cb9b4889487abe2c0",
+      "bytes": 96132
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0092.png",
+      "sha256": "534c13385d027c15545ad35be971ef7d62109200c17d091fdaa1fb1ada40b995",
+      "bytes": 96717
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0093.png",
+      "sha256": "45af86e2b086eef22bc4ec34caa2c8f29f46641c36f13be6dc3798053dbd76b2",
+      "bytes": 97289
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0094.png",
+      "sha256": "731a29bf961f965f45748546e28321730e04383f99c579c3a515ba67efc72a2a",
+      "bytes": 98420
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0095.png",
+      "sha256": "5c5ebdf5b54b0e3202028f4559b222844031342ab6f308792069afa75c849651",
+      "bytes": 96854
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0096.png",
+      "sha256": "496e70d2b9a39159e86c502bfee63747a86d1145811d3c43eee10ba0b4dbadeb",
+      "bytes": 96819
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0097.png",
+      "sha256": "7062344c4aaba5b3a1c917d25640e33f84b7502be8f1861e1449108fb167de79",
+      "bytes": 96052
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0098.png",
+      "sha256": "0f612716a549c1c0dca83a592a25f4e96cc8a53464d680b53fb642b98de678df",
+      "bytes": 96109
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0099.png",
+      "sha256": "e00590306576dbc537f23ad2e2f0eda33c219f74c1944795f568109589a0320b",
+      "bytes": 95773
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0100.png",
+      "sha256": "5625863900ac6b3e340841a13133dd14f1e08c91d08abcfcf9be7314acfb685a",
+      "bytes": 96249
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0101.png",
+      "sha256": "e66b72e1eacf37c54d484e1e80e22d137e18852e9e642b758dff75360d3cdeb1",
+      "bytes": 98110
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0102.png",
+      "sha256": "7b36582fe17570e26d6c24a0a7abced065996f5953f280c3d68d3bb9ae562abe",
+      "bytes": 98001
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0103.png",
+      "sha256": "234c4659848e2bc1e380922c13970d67cd096a77a5cd5a9e7b31833f77515657",
+      "bytes": 98336
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0104.png",
+      "sha256": "be84d64cb9b11bfb282b5a0a869f9927a6342de6c65ca606fb54d808f8d4f556",
+      "bytes": 99109
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0105.png",
+      "sha256": "1f16c3840fbb001eb5f93dce62c22a2e4634a619e4ef6ba2a472366527d25a3e",
+      "bytes": 97692
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0106.png",
+      "sha256": "744b5abdff615d01ce9a84b64f1328208f38057cb5c1ffea94e75b94116d8ed9",
+      "bytes": 96826
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0107.png",
+      "sha256": "6d9a12917c86071168bf0d5df2c93213315e9ffb0c953d6545b8628a7a50a5e3",
+      "bytes": 96135
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0108.png",
+      "sha256": "6c69742a3c4c9525db5116b890eb89e6c435c1d1d6ea49bcd9311828f45905e1",
+      "bytes": 97283
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0109.png",
+      "sha256": "4e3c1475c84f2c2827a5ecdaa526d8ebe3c0187b9e5b3c55916f3c96c6e7f8ba",
+      "bytes": 97478
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0110.png",
+      "sha256": "4397d06d7f09fb28a26f6d947c001fdf334b4a7829def35d6d9c3e442d6a4899",
+      "bytes": 97152
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0111.png",
+      "sha256": "7cb3e64656197f46221390f650d36f4f02b869c1ccc6e105825bd54815e368ee",
+      "bytes": 96998
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0112.png",
+      "sha256": "dcb0a809b970caf90282a0cc891f8ad58c982aa93bf5f3b92131a86730a693a4",
+      "bytes": 97149
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0113.png",
+      "sha256": "163c50538be3f57a6eeced90561bab9d24a29a1461627572f09fbe24c61a3a38",
+      "bytes": 96512
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0114.png",
+      "sha256": "88969263c7d012ec69d00f2191425d348a2f448adf07bf2af3b18b0163be4a8e",
+      "bytes": 96785
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0115.png",
+      "sha256": "eefd35d3a24dd1888a93414e4be4ecc35a774f3fb662431be11700c014076115",
+      "bytes": 96270
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0116.png",
+      "sha256": "e4ee5363f8aae228d7935c778a02506e2ba31cf10902d1fbfce9f4a01d963ba0",
+      "bytes": 96214
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0117.png",
+      "sha256": "615947a90d807a69c13966b08600ee04500a5bb227ab27c4edda3803f63d15fe",
+      "bytes": 95862
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0118.png",
+      "sha256": "d872ebd40a6eb376b199a1c5aa9e8f1c7e0533a6d060bc5aa1bf951b1d67ee6b",
+      "bytes": 96677
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0119.png",
+      "sha256": "c26b1ccc5c5255d7e27e70cf3183a397c6164ecad533ef210728e90826c4fab3",
+      "bytes": 97165
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0120.png",
+      "sha256": "331be45e1942933019986e8cc09d18172b21a022fad509d1639d63cd8e546373",
+      "bytes": 96285
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0121.png",
+      "sha256": "83563639b2f0665e17836ab291d860061310d77df495cbfd8c307c215d861287",
+      "bytes": 94597
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0122.png",
+      "sha256": "eabe802cb87e86181e1b88b7314afa753c56482178a4fd042368dfa182b462f4",
+      "bytes": 94395
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0123.png",
+      "sha256": "04342a8e019955909ba3a87c2fbc7a8573b0eb24a9bd969723b1ce124b26a9ad",
+      "bytes": 94850
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0124.png",
+      "sha256": "383ff9a40adb631bbadf61c00adece9c6126bd999f605526021310bf7091f8a9",
+      "bytes": 95830
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0125.png",
+      "sha256": "80d12a508fa80d027fb104a18958288fd2d654f2b433a028b9ada590356ca584",
+      "bytes": 96110
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0126.png",
+      "sha256": "270e65c1cd6c9c0abcc1dc8aa6fe7c3c0f4b887cd54b538458583aaf9739d950",
+      "bytes": 96598
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0127.png",
+      "sha256": "a2f574e93f9b8adedde5d04a0571dbc5424377d5a091a0759bfe036c46da78df",
+      "bytes": 97151
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0128.png",
+      "sha256": "4a4aaa849220cdfdb67dfa68db0b75b0003d962357379105ed817dfb4f7638b8",
+      "bytes": 97780
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0129.png",
+      "sha256": "4af19c34864341804102550f7085c4f492ea6f833e89deede7b9709f94effc11",
+      "bytes": 97855
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0130.png",
+      "sha256": "4382bf2d426f08ebc1620b91da03cb120c27c352524ed526dd3b895ba58f139b",
+      "bytes": 97968
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0131.png",
+      "sha256": "e9e064c1df363136a2f9337bbc8d6556dcc1b543a721777f876546696407170a",
+      "bytes": 98625
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0132.png",
+      "sha256": "1cc750ab403ac4984ddac3b1258d6685a683b03df07ab15a8a7c4e5abdce2389",
+      "bytes": 98471
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0133.png",
+      "sha256": "8fe1d4c39850461b2249dbe89ca8044fc3f5e6ae1af06d8dac1c879c7a45a186",
+      "bytes": 98537
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0134.png",
+      "sha256": "a0cd4fc70943f87324f479c4bfa3d8f8ec565506f5c0c820db67fa27c2fffac1",
+      "bytes": 98778
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0135.png",
+      "sha256": "32311caaddb9ab695a845af0d7e866b0593979a8d236016aee44c55d1135c76d",
+      "bytes": 98560
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0136.png",
+      "sha256": "b5848b34b816f6ec7cf5289e7050625b141d1e06e0a2b5d79c0e10b6d072fb54",
+      "bytes": 98362
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0137.png",
+      "sha256": "5f2b7902103986fd8db988e9e6c276912eb47595b672ab97f1bdc6bc73b6fcaf",
+      "bytes": 98242
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0138.png",
+      "sha256": "e9c73a33a50b297cc3e472a498c25b3812df0e973a158912f40d5e672003ac66",
+      "bytes": 98081
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0139.png",
+      "sha256": "deb6757ead0727ce9a88b4bc35ef63f852fb4d87b153f92997370555dc6715a7",
+      "bytes": 98360
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0140.png",
+      "sha256": "c6f1394fcdb37bc76b8abce65777407b73b163cc918879136cb8486aef880047",
+      "bytes": 98081
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0141.png",
+      "sha256": "8d7e4cef4bd5915ceb707979b5db67cdf36c98ceabc599a6d59a13c9c0b4dba6",
+      "bytes": 98335
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0142.png",
+      "sha256": "d4004436ae73f4df6655be7fd24caf86f91c48b009230e5d90d9412385827f94",
+      "bytes": 97997
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0143.png",
+      "sha256": "9d61af7ef4cfc4d2ee390e405ce95af5b791c77c8ba326a4a8e2a45f2550b369",
+      "bytes": 98037
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0144.png",
+      "sha256": "d8bbea79d316ea2be61941184216ea1d87f98cd690db469d8e71a28ac386dd7e",
+      "bytes": 98479
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0145.png",
+      "sha256": "b21d577bcbb8578095f046e09ba6a452dec0dc1615b39ef690e92cc20ca1f847",
+      "bytes": 98277
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0146.png",
+      "sha256": "4235548dccecab0866ce12093314f2d54b304e724f1b03291c6f1cd7f5f19a7a",
+      "bytes": 98264
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0147.png",
+      "sha256": "ccec598ddf6df77e9633cd509b6c733605309078763f821b382453def1766a39",
+      "bytes": 98522
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0148.png",
+      "sha256": "ea0840c89249206bf1817ed5496adff144cc02c7919144ef7378dc85542ccdd4",
+      "bytes": 99048
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0149.png",
+      "sha256": "2c6bc13a5dff02ec7e8d2f5de771905875aa49e83374940987ab2242bee04417",
+      "bytes": 98664
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0150.png",
+      "sha256": "44d6ca03343776d3e478a67c288bb9f55b97602189703d039ccc3f9b03badfa1",
+      "bytes": 98465
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0151.png",
+      "sha256": "dfd28bb9e92e3a1b5d16299dc8471567951eb1a270d02cced199510cb7f37d15",
+      "bytes": 99224
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0152.png",
+      "sha256": "e21f5581e768235d6c336051a30092a568e2546322737fc87ae85d934f3b15da",
+      "bytes": 99316
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0153.png",
+      "sha256": "be86a305b9f21524987413c765e374e531a57644b3e63a44f87d5bc39a0984f5",
+      "bytes": 98145
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0154.png",
+      "sha256": "c2d01133756dd6be07f92310dfba3aa121d86ed9020dfc4f38a3eb8d16cd1f89",
+      "bytes": 99421
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0155.png",
+      "sha256": "d33e8b44134c77e25e404d3849d4d038b302ddce2ffe2121d77c6c9b3cd4dc98",
+      "bytes": 100163
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0156.png",
+      "sha256": "8e6c5d9dbe58cde713f0c447edbe233b8599aca10784698daba01b786c16e3b6",
+      "bytes": 100101
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0157.png",
+      "sha256": "a98c2b3d38592ab628938a128665641654a829f27725da56d3b90b5c158a1ca8",
+      "bytes": 100859
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0158.png",
+      "sha256": "f7e68d6ac62d3063f7cb1c2459fc172cbf504b56ca20d229298688b89793e2f7",
+      "bytes": 99111
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0159.png",
+      "sha256": "847e64dfadb723a07aedf3f1b540ac5d5f59dcee45809145f1cd0c78de43d076",
+      "bytes": 99508
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0160.png",
+      "sha256": "83bbcbb0fa0219cd3178b6fe72cb46871369bd41678f3ffd52f58d7065fadc0d",
+      "bytes": 100517
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0161.png",
+      "sha256": "781c30806142442a47aae6cad569d494d7b0b80158af3916e445ff25f101e3e1",
+      "bytes": 99397
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0162.png",
+      "sha256": "6cae8756de55b0b6bbb5f6f62a77fb9a2fd4c8dbd928a8f985425a6fa53e6c39",
+      "bytes": 99544
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0163.png",
+      "sha256": "e055471c8eea3f0c1e2e2b89626e904d8d131ab1320ef7f697ee3aad1093bd6a",
+      "bytes": 98623
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0164.png",
+      "sha256": "338ff3732fa5e9fbb787e686a2df7c82c429eb9449834ba4e30df669869278cf",
+      "bytes": 97950
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0165.png",
+      "sha256": "cadadb23253e2749952ed6eaa6c0bcb50c8c27fabfb93929877febc13494f7c1",
+      "bytes": 98419
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0166.png",
+      "sha256": "faba726705f45bef108decdd464fd015d260fe4dc874f604139c731cf311fddf",
+      "bytes": 99043
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0167.png",
+      "sha256": "eb6133575ae8fdde4857a5057ba5d0857a336087db3602f34fc0c331afb0c2b1",
+      "bytes": 99867
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0168.png",
+      "sha256": "c4feb1de649311b45bbaf1439e6eea487631db8d12943cd644cd3cda21e68aeb",
+      "bytes": 99006
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0169.png",
+      "sha256": "aca0b131af12f82d2b27767620ed014aa5e57af266ccaa9ab2d7695581ee6e00",
+      "bytes": 98946
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0170.png",
+      "sha256": "20e10bb382f880054acc315912f5eb91583f1e16be44f927c08c3d168913d21c",
+      "bytes": 99748
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0171.png",
+      "sha256": "3b881ccab03d397d97b8cb525a22a471f86bad84e77eadd7bd370bc74e7f4399",
+      "bytes": 99392
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0172.png",
+      "sha256": "6b918c42bbe8c0d1336031529a242f67dab001b396933b7b32bf69d29319e193",
+      "bytes": 99010
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0173.png",
+      "sha256": "9130953f5278b34a8cbd8f3bc05d1b2726ccfa47976ff21b24ca4e5a8bffe72e",
+      "bytes": 98583
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0174.png",
+      "sha256": "dea626f247e8db2f9c5a8ae415e730b5c87722937a659208f7cf293181824f6b",
+      "bytes": 99293
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0175.png",
+      "sha256": "f75c7a39d7ce8bfe3f86c4b318b0767e3802f3c8e0139c8c808fafe75703bfb8",
+      "bytes": 98321
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0176.png",
+      "sha256": "586bb62af12860c56492ecc269ccbe708463fad7b19066c5cb7fe1d3eb9a94b3",
+      "bytes": 97281
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0177.png",
+      "sha256": "17a9261300665bf56254545de9e4edead2b7f757cc5c792a9f3ed3b35debcd3a",
+      "bytes": 98477
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0178.png",
+      "sha256": "d5507997df2918b5620a4574e1ce18c119016223470d7bad639d7b6dbeb33259",
+      "bytes": 98664
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0179.png",
+      "sha256": "e1617ef06d8292e13722ae8345e77b1cd1f9d60df1f7f6f1fce53d3b6d4d9d2f",
+      "bytes": 99230
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0180.png",
+      "sha256": "01c8990941604b320f3a3261063eeca519b7da6586900439590850646fab91bd",
+      "bytes": 99816
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0181.png",
+      "sha256": "2612657d639bd687ecebc25f8661f70029fc87db9ba63997af5920c94ce94289",
+      "bytes": 98426
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0182.png",
+      "sha256": "858d1b01a88dfc8e0bee48013ce153e03831228e797eb6ad2362d4589bc3c668",
+      "bytes": 97756
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0183.png",
+      "sha256": "96f61c9dbe0d5a349ae9d64faeb71792cb7ed32d8a43d8bd3a0adb9305c065d5",
+      "bytes": 98025
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0184.png",
+      "sha256": "8af424df6805d3d9a44b3a208e79f1b28fa3fe939e0b3e74f9902c18460e6349",
+      "bytes": 98015
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0185.png",
+      "sha256": "2d7187004ec3ecd5d5471ec02509f8bef8f1e8b6580e94de774bc83c9ca6d11a",
+      "bytes": 98343
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0186.png",
+      "sha256": "7ec28e4ed2b2726a8730c6af6e1ece119db80d85c6031fcef50f050470091f85",
+      "bytes": 98075
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0187.png",
+      "sha256": "6956fddc90ef05bf6a20f7a93da4bdbd120d9902c328684569fd673afe145846",
+      "bytes": 98907
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0188.png",
+      "sha256": "0b381ae1300108b73fdabd6e1887331b0c3cfab3ec609d02bdfd1116b205e6f6",
+      "bytes": 97902
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0189.png",
+      "sha256": "04a5aeb46171d00f7463c0609f1c4b3ee41910cabf8653cbeb57ca9f6631ad25",
+      "bytes": 98245
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0190.png",
+      "sha256": "5e26d01b684b73879327449a55317551f0e58bf4e0ea655fbe8823149453815e",
+      "bytes": 98942
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0191.png",
+      "sha256": "bfcc8f0b783b603db79339c2611f085d8db3422d25aae8c83d29002a43f17a5d",
+      "bytes": 98421
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0192.png",
+      "sha256": "7be020ea235bba4b0e09804e4c50c31088e799637bef563775a0926f642a47b1",
+      "bytes": 98236
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0193.png",
+      "sha256": "e3cc464dc6a8498f77b4415a3464cb2975d44e13574e895d1d9316572431c9ed",
+      "bytes": 98073
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0194.png",
+      "sha256": "b33d83d5702766317dcb86fe4e41576c432e7b85048e278a985c7fd6e0a2c436",
+      "bytes": 99703
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0195.png",
+      "sha256": "26fabe15601bbc314f520fee69e7ccd988783757927768d64bacba04fe6e30a0",
+      "bytes": 98887
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0196.png",
+      "sha256": "5be54c5444e0ac1937d2fe9dbf69d99fc8ea8a078de09a71d479c7c54879ad2a",
+      "bytes": 99624
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0197.png",
+      "sha256": "72328b9c1c44aff33a581d95021ca5dc2f2a4b8e73cace22511b418a82845004",
+      "bytes": 100537
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0198.png",
+      "sha256": "6970fcb1f1aec172815b6cfd4f2e814ddb606bb8bafef7dedf616ef20ac585cc",
+      "bytes": 99600
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0199.png",
+      "sha256": "1cc0a33d959054095d044de81a78b3b3a3b8da9f9a16bb4b436e4855ed516707",
+      "bytes": 98373
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0200.png",
+      "sha256": "998b3d49ad463738a60c35b53d64dca0c682752cb63c509591a52c391af20c03",
+      "bytes": 98923
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0201.png",
+      "sha256": "f5f5f45860d3f58e28eae935e6ff07067a764b17140822df13d8e6f3ecb4a463",
+      "bytes": 97810
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0202.png",
+      "sha256": "fbbc281a57fdae3b742b183f173b83117b1f660d02366c5f7b11b2f5334f942b",
+      "bytes": 98685
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0203.png",
+      "sha256": "2a021d75e3ec28ed27d4504a23b1b667fb510678483b4cbce51ab94bf05ad49a",
+      "bytes": 98810
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0204.png",
+      "sha256": "c16a11ab809856dd592675bca8ebb63888fe8eac13ca314520d5585895b6179f",
+      "bytes": 98098
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0205.png",
+      "sha256": "6f7bca59285296017926b312027e00cda7eb825a90dea0aaada5709c2290a209",
+      "bytes": 98127
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0206.png",
+      "sha256": "c3079765c47777a3b7e624f5b29196c69a48d159537542a26b033c237bbde5a3",
+      "bytes": 97945
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0207.png",
+      "sha256": "a63fa64b13f90ed9008179a802d863e0fc86ffabbdd5bce66bbc6ab39a16548a",
+      "bytes": 99348
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0208.png",
+      "sha256": "6273bcded7dd45d1261df38e11e278f01f5509da8894072f78097b20d296c5aa",
+      "bytes": 98131
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0209.png",
+      "sha256": "68b06675852bce6f2ce90f0012d6033a7690f315a80c464b276296f3766ed292",
+      "bytes": 99063
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0210.png",
+      "sha256": "00a4ca71734aaa4194dbbd3b404ec2a8caa2ecefad10d5d614cebee1661fa70c",
+      "bytes": 99926
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0211.png",
+      "sha256": "59ae4482fda5353dc409ade6a4735d84a3f0401c0ccee5d71a230429bdc3ff3f",
+      "bytes": 98810
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0212.png",
+      "sha256": "44679af2fb41e9fe9dbc967b1862fe9c3eb994baaa15a3a0739bff7826dd0801",
+      "bytes": 98123
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0213.png",
+      "sha256": "4127a316faf0895e00f7fedb8d214d2a61c98bcef07de51186047bbba2d284e2",
+      "bytes": 98041
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0214.png",
+      "sha256": "3a3486bd4151f1e12272798042f1290a11c6dad51bf7580300af4658dc84ab47",
+      "bytes": 98173
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0215.png",
+      "sha256": "7feb875028ee12294aa93675f58b44da9c81f24c1f986d5cccba9c558bfe3941",
+      "bytes": 97777
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0216.png",
+      "sha256": "66d11761eec4cbf728ddcd49055f38f27b1263693ea3dc5472c493d6f951b01b",
+      "bytes": 97575
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0217.png",
+      "sha256": "1a80ab92babcfd6d2ff7c3273208e2bd1267174a1eae382c5f57e7d55b2e8a59",
+      "bytes": 98903
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0218.png",
+      "sha256": "cdbaeeff1412e005ae5e315b9ac9d2640331850110ce6a0d7e29e8a3657a49d5",
+      "bytes": 98338
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0219.png",
+      "sha256": "13f118e65f6783684a8b6e9634bd0cf01912b13c2dde99d6644db1385541395c",
+      "bytes": 97779
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0220.png",
+      "sha256": "671465d9e28ffa22a18bb7a14b69d298be1e43dda72440223b8ba650524b30cf",
+      "bytes": 98520
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0221.png",
+      "sha256": "1cfce338d63e2533c3eb9ab3e611686f0c4400011e72b60f871e9b89f9188eed",
+      "bytes": 97828
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0222.png",
+      "sha256": "180e73fcbd0824c4cbb9bebe622201dcf3bfea941fcdf0eb37d70f076c341857",
+      "bytes": 97601
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0223.png",
+      "sha256": "2e4479e596fd43774dd78d8aa6a47d7b90e43ac3fa1c79e7c370177743be5ce0",
+      "bytes": 97584
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0224.png",
+      "sha256": "94d64e3c3fbf164234eef040f23d06d62a60ddf01f473a6e679a1d36f3483085",
+      "bytes": 97752
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0225.png",
+      "sha256": "c6c90bf3430e048e13957f560c7709038dd7a4e3185fd5c1a893e3df1108345f",
+      "bytes": 96496
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0226.png",
+      "sha256": "2be0b089816874041e656c44dfedf13b52f05edf76d2860925fc27df27ce5589",
+      "bytes": 96084
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0227.png",
+      "sha256": "0871150b71910c7c364a3a698087425792982ad4bd4df2652e032e2eb9ac3c05",
+      "bytes": 96346
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0228.png",
+      "sha256": "569504a7ab191bf28579cc863b529d9327e5c7f2b51273d6b26652bad36af352",
+      "bytes": 94347
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0229.png",
+      "sha256": "3ba0642bb8ccfa692ebfadb05f26800a0f542a427683e22004f71e4173415edd",
+      "bytes": 94688
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0230.png",
+      "sha256": "b5ff08168c7c593c39385ec6b1f5ca37b1d7450f1c95e02d79a7932a2ade5887",
+      "bytes": 95373
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0231.png",
+      "sha256": "875d6f3ebdf176905bf4af196f16c7f6c9656b22b43e6a7dd872e455e557d9a4",
+      "bytes": 98078
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0232.png",
+      "sha256": "1b94c45087386740df0917154c120a33002291edad9f6b74b9cfcc43ef5ce88c",
+      "bytes": 98086
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0233.png",
+      "sha256": "52ee403dc4fd150362177bbdd753f57bef4982281f684d9d7cd199d5da021da5",
+      "bytes": 98525
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0234.png",
+      "sha256": "71c338a8b35c5d1996dcb4f26a91073fcd4ba556edf0ab408ca553eb683311d7",
+      "bytes": 99114
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0235.png",
+      "sha256": "72a32d588b07174aaf1565c626cbc69d8ed717220ee426c0fa12f49d56bc43da",
+      "bytes": 97975
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0236.png",
+      "sha256": "542c5804b7ca4fd77ed952079faac490db1f446223b3caaefa850a24dcd3de99",
+      "bytes": 98378
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/0237.png",
+      "sha256": "1db2dba40a4d10d2fa78d1486dd19507ef45d066ecc747342e8bd2dbcf51685c",
+      "bytes": 98132
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/face-inputs/frames.jsonl",
+      "sha256": "cbbd889044b40107ac8dadc035ca1c6a3fd8e1abf7d7616a6310b47f6d689019",
+      "bytes": 158135
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/final-regressions.log",
+      "sha256": "dfcecbe37aa9e8b6094591459df3d0c0409dee0563b02a0c8218ad659cd7ce87",
+      "bytes": 186224
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/freeze-validation.py",
+      "sha256": "39b2427394e459665f5627edbabd8ba26f80fb556f3a9cf8428c34f64a9264ee",
+      "bytes": 4123
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/indian-input-capture/README.md",
+      "sha256": "c344f6188fd49ba3f5bacad4a5e5a8a33085bf1ccadd1f8c7f43f13c0bba419c",
+      "bytes": 682
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/indian-input-capture/avatar-preparation.json",
+      "sha256": "9ae4003bcae2cdebb45d12b81c6dc6fd59026b8fd5cc784711f131cfacba636b",
+      "bytes": 569
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/indian-input-capture/long-talking-smiling.json",
+      "sha256": "6c60bda85b4b3c3fa7432bceb78dd6e1f07615417712daeca3063e04a004d06c",
+      "bytes": 2424802
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/indian-input-capture/long-talking-smiling.mp4",
+      "sha256": "17320fbcdf9b034d512b3c8d06da6fece6332b721df44bf50a1921e1c75b873d",
+      "bytes": 1000914
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/indian-input-capture/pose-set.json",
+      "sha256": "2e26ee984e4de9667a19367b54f0333d16b18c4fc1cf08558119f712573f78c5",
+      "bytes": 1855
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/indian-input-capture/review.html",
+      "sha256": "cc011acfdbb490330e4d9537615d7afb128e24a8df35148944f5908703711dea",
+      "bytes": 949
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/indian-input-capture/verification.json",
+      "sha256": "3e6229dcb72b6160c0969043f5775b0907085c3403bdd9c60cecc8029073be88",
+      "bytes": 2019
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/run-cpu-validation.sh",
+      "sha256": "5de70189ac5dd9b987318ca8cdd21f0f60eb503259964140c4975d5c6fabf004",
+      "bytes": 1007
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/run-eye-edges.sh",
+      "sha256": "d504db572d68066f208c28a2be85068f8241b0e9fe9293c092ad2219c7686003",
+      "bytes": 1011
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/run-eye-pilot.sh",
+      "sha256": "1b91122ab7c8e2a474f52ef491e8e11ddf4c7eb9c9d291006da3649e5775b219",
+      "bytes": 933
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/README.md",
+      "sha256": "6df7402c469b95438a3b761a93f594b90db8fa71986a8e37573dc3478c1e1e15",
+      "bytes": 8835
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/comparison-1.jpg",
+      "sha256": "7949253313edbfcdc87dfbe0f4e97f9b9d9c32d9cda8f0a07204c5ad14a70acf",
+      "bytes": 308944
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/comparison-2.jpg",
+      "sha256": "18f0348f8e05cc7ff905eee6b79efc708078e0d290ec941e5452ae51c23d8981",
+      "bytes": 232949
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/diagnose_texture.py",
+      "sha256": "710916ad4d4e048f644990847ae589880edfa383bb641a037cce1f5fbdc1cd3f",
+      "bytes": 6487
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/diagnostics.json",
+      "sha256": "8ac4f92d8c842ca6dbd3261088301892ae2b4c0464f964d77c55188aa5e3e56c",
+      "bytes": 39062
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/exact-inputs/README.md",
+      "sha256": "2097bbc16d26bddd91a1f44fba0d76689c98e226a631c13c8613541adaf9edcd",
+      "bytes": 7349
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/exact-inputs/clip-probe.json",
+      "sha256": "c29c9abf0d89a3cd36c58ea8c766aa120554995c2a605fd14fcba53b71dd1e2f",
+      "bytes": 320
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/exact-inputs/exact-comparison.jpg",
+      "sha256": "6092dea8dd78aeaaedaba70efa75433b5a038a4fc896f41d4f775e1f294a6485",
+      "bytes": 213984
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/exact-inputs/offline-first-3s-comparison.mp4",
+      "sha256": "41d6b42ecd7f86e9347d2eed1c1129b8692ff82474fdcb746918d6e1ac272807",
+      "bytes": 85323
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/exact-inputs/reconstruct_and_compare.py",
+      "sha256": "69a92584e7384862ef75adbfbdf4a7ace6963da409163ec0640075fd7a2efc93",
+      "bytes": 9591
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/exact-inputs/report.json",
+      "sha256": "a627bfa378025a9ed2002d1af3cf226c1f9324e13dc2ca0e3df3d0a084bcea32",
+      "bytes": 245207
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/exact-inputs/run.log",
+      "sha256": "28cda159f5f9fdc86aa752d120e9e0baa868bb49a25f3b3a3d1127d3cbc20015",
+      "bytes": 1325
+    },
+    {
+      "path": "/workspace/experiments/multipose_blend_quality_20260925/texture/run.log",
+      "sha256": "91f4bdef36469559361bc0dde44528f6f2ee848c04682e79eab3272301d4a3ee",
+      "bytes": 4868
+    }
+  ]
+}

@@ -148,6 +148,49 @@ class MotionBank:
                         raise ValueError("Non-finite transition score")
         if not all(edge["admissible"] for edge in manifest["edges"][IDLE][IDLE]):
             raise ValueError("Idle must have a closed-mouth recovery at every phase")
+        self.eye_blend = self._validate_eye_blend()
+
+    def _validate_eye_blend(self):
+        profile = self.manifest.get("eye_blend")
+        if profile is None:
+            return None
+        if not isinstance(profile, dict) or profile.get("method") != "incoming_roi_v1":
+            raise ValueError("Unsupported motion eye blend profile")
+        hashes, frames = profile.get("source_hashes"), profile.get("frames")
+        if not isinstance(hashes, dict) or not isinstance(frames, dict):
+            raise ValueError("Motion eye blend needs source-bound frame geometry")
+        if set(hashes) != set(self.sources) or set(frames) != set(self.sources):
+            raise ValueError("Motion eye blend must cover all three sources")
+        from scripts.motion_eye_blend import validate_eye_points
+        for pose, source in self.sources.items():
+            if hashes[pose] != source["sha256"]:
+                raise ValueError("Motion eye geometry source hash mismatch")
+            width, height = source.get("width"), source.get("height")
+            if not isinstance(width, int) or not isinstance(height, int) or min(width, height) < 32:
+                raise ValueError("Motion eye geometry requires original source dimensions")
+            rows = frames[pose]
+            if not isinstance(rows, list) or len(rows) != self.count(pose):
+                raise ValueError("Incomplete motion eye geometry coverage")
+            for points in rows:
+                validate_eye_points(points, width, height)
+        return profile
+
+    def blend(self, old, new, progress, old_pose, old_frame, new_pose, new_frame):
+        """Blend an exact pair; optional source-bound eyes keep incoming appearance."""
+        if self.eye_blend is None:
+            return flow_blend(old, new, progress)
+        from scripts.motion_eye_blend import incoming_eye_blend
+        old_pose, new_pose = self.canonical(old_pose), self.canonical(new_pose)
+        if not (isinstance(old_frame, (int, np.integer)) and isinstance(new_frame, (int, np.integer))
+                and 0 <= old_frame < self.count(old_pose) and 0 <= new_frame < self.count(new_pose)):
+            raise ValueError("Motion eye blend requires exact original source indices")
+        for pose, image in ((old_pose, old), (new_pose, new)):
+            source = self.sources[pose]
+            if image.shape[:2] != (source["height"], source["width"]):
+                raise ValueError("Motion eye geometry does not match the supplied frame size")
+        return incoming_eye_blend(old, new, progress,
+                                 self.eye_blend["frames"][old_pose][old_frame],
+                                 self.eye_blend["frames"][new_pose][new_frame])
 
     def canonical(self, pose):
         return pose if pose in self.sources else IDLE
