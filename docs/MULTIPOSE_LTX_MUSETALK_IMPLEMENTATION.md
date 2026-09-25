@@ -379,3 +379,25 @@ used identical prompt text and settings and took 5.5 minutes to generate plus
 0.5 minutes to decode. These candidates were not prepared as usable avatars.
 The reusable tool rejects them; passing software tests does not make a rejected
 source visually suitable. No further seed was queued.
+
+
+## Controlled fresh-portrait conditioning comparison
+
+The first three Latina idle seeds failed with visible mouth parting. The next
+trial keeps seed 195 and the approved motion text, adding two native portrait
+guides at frames 80 and 160. It is versioned separately from accepted sources.
+[The experiment plan and TASKS](LTX_INTERIOR_GUIDE_EXPERIMENT_2026-09-25.md)
+records the rationale, exact recipe, measurements and results. The reusable
+generator defaults remain unchanged, and source assembly requires an explicitly
+matching experimental reference pack. Forty focused factory tests pass, including
+new guide validation and assembly checks. Final v4 receiver evidence still refers
+to the unchanged runtime at commit 6f634ca.
+
+The controlled Latina candidate now passes the unchanged mouth gate in all
+241 frames and all 723 source-phase return checks. Its three create-avatar API
+caches are prepared. Three additional actual WebRTC recordings passed (short,
+long talking/smiling, interruption plus following turn), with four returns in
+0.3493–0.4000 seconds and zero timestamp anomalies. See the linked experiment for
+source/video hashes and the normal-speed review gallery. Total retained passing
+receiver evidence is now 15 recordings across three characters. Review of visual
+smoothness and the candidate's seven brief idle blinks remains pending.

@@ -149,6 +149,26 @@ Assembly establishes provenance and source compatibility, **not pose quality**.
 The per-frame measurement and transition-coverage gates can still reject the new
 seed. Received WebRTC recordings and explicit visual review remain required.
 
+An explicitly versioned experimental reference can add `interior_guides` to a
+pose profile: a list of `{ "frame_idx": 80, "strength": 1.0 }` objects. These
+condition the native LTX render using the same portrait. They do not replace
+interior delivery frames. Indices must be unique integers strictly inside that
+pose's native clip; strengths must be finite, greater than zero and at most one.
+Invalid settings fail before rendering changes outputs. Omission keeps existing
+render graphs and resume identity unchanged.
+
+Select an experimental recipe with `--reference-prompt-pack /absolute/pack.json`
+(the historical `--approved-prompt-pack` spelling remains an alias). The selected
+pose must match this exact recipe; its recorded per-pose guides and saved graph
+are rechecked before copying. A guided idle may therefore be combined with the
+original talking and smiling only when the explicit reference retains those
+other profiles. Experimental references retain their declared approval status in
+neutral provenance fields and never acquire approval from assembly. Existing
+built-in approved-pack assemblies preserve their original provenance on resume.
+See [the controlled Latina trial](../docs/LTX_INTERIOR_GUIDE_EXPERIMENT_2026-09-25.md)
+for the rationale, evidence and limitations. This option is not a proven recipe
+for arbitrary portraits.
+
 ## Recording an operator's visual decision
 
 First create the source-bound review page and `verification.json` from the actual

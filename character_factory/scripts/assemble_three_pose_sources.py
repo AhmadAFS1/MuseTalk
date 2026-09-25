@@ -21,7 +21,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 from scripts.motion_transitions import atomic_json, file_hash
-from character_factory.scripts.generate_three_pose_videos import build_generation_graph
+from character_factory.scripts.generate_three_pose_videos import (
+    RenderError, build_generation_graph, normalized_interior_guides,
+)
 
 POSES = ("idle", "talking", "smiling")
 APPROVED_PACK = REPO / "character_factory/config/prompt_packs/japanese_fixed_distance_shared_anchor_v1.json"
@@ -66,6 +68,7 @@ def select_sources(manifests, approved_pack):
     approved_pack = Path(approved_pack).resolve()
     approved_hash = file_hash(approved_pack)
     approved = json.loads(approved_pack.read_text())
+    legacy_default_reference = approved_pack == APPROVED_PACK.resolve()
     bindings = {str(approved_pack): approved_hash}
     selections, shared, shared_workflow, endpoint = {}, None, None, None
     for pose in POSES:
@@ -93,16 +96,31 @@ def select_sources(manifests, approved_pack):
             raise ValueError(f"{pose}: selected generation is incomplete")
         for key in ("positive_prompt", "negative_prompt"):
             if profile[key] != expected[key] or entry[key] != expected[key]:
-                raise ValueError(f"{pose}: {key} differs from the chosen approved pack")
+                raise ValueError(f"{pose}: {key} differs from the chosen reference pack")
         # Seed and its descriptive citation may differ. Motion text and every
-        # other per-pose generation option must still match the approved recipe.
+        # other per-pose generation option must still match the reference recipe.
         normalize = lambda value: {k:v for k,v in value.items() if k not in ("seed", "prompt_source")}
         if normalize(profile) != normalize(expected) or int(entry["seed"]) != int(profile["seed"]):
             raise ValueError(f"{pose}: generation options differ beyond a seed reroll")
+        frames = int(profile.get("frame_count", 241))
+        expected_guides = normalized_interior_guides(profile, frames)
+        recorded_guides_by_pose = manifest["workflow"].get("interior_guides_by_pose", {})
+        if not isinstance(recorded_guides_by_pose, dict):
+            raise ValueError(f"{pose}: workflow interior guide metadata must be a per-pose object")
+        try:
+            recorded_guides = normalized_interior_guides(
+                {"interior_guides": recorded_guides_by_pose.get(pose, [])}, frames)
+        except RenderError as exc:
+            raise ValueError(f"{pose}: invalid workflow interior guide metadata: {exc}") from exc
+        if recorded_guides != expected_guides:
+            raise ValueError(f"{pose}: workflow interior guide metadata differs from the selected profile")
+        # A rerolled pose may have explicit interior guides while the other two
+        # retain their original generation jobs. Ignore only this already-checked
+        # per-pose workflow field; the selected graph is still compared exactly.
         common = {k:v for k,v in fingerprint.items() if k != "prompt_pack_sha256"}
         common["guide_sha256"] = manifest["prepared_guide"]["sha256"]
         workflow = {k:v for k,v in manifest["workflow"].items()
-                    if k not in ("frames_by_pose", "delivered_frames_by_pose")}
+                    if k not in ("frames_by_pose", "delivered_frames_by_pose", "interior_guides_by_pose")}
         if (workflow.get("resolution") != [fingerprint["width"], fingerprint["height"]]
                 or workflow.get("fps") != fingerprint["fps"]
                 or manifest["prepared_guide"].get("guide_dimensions") != workflow["resolution"]):
@@ -138,16 +156,20 @@ def select_sources(manifests, approved_pack):
                 or graph_dimensions["height"] != fingerprint["height"]
                 or manifest["workflow"]["frames_by_pose"].get(pose) != frames
                 or manifest["workflow"]["delivered_frames_by_pose"].get(pose) != delivered_frames):
-            raise ValueError(f"{pose}: recorded generation graph differs from the approved recipe")
+            raise ValueError(f"{pose}: recorded generation graph differs from the reference recipe")
         selections[pose] = {"generation_manifest": str(manifest_path), "generation_manifest_sha256": manifest_hash,
                             "delivery_source": str(video), "delivery_sha256": delivery["sha256"],
                             "source_image": str(source_image), "guide": str(guide),
                             "prompt_pack": str(pack_path), "generation_graph": str(generation_path.resolve()),
-                            "seed": entry["seed"], "approved_seed": expected["seed"],
+                            "seed": entry["seed"],
+                            ("approved_seed" if legacy_default_reference else "reference_seed"): expected["seed"],
                             "positive_prompt": entry["positive_prompt"], "negative_prompt": entry["negative_prompt"],
                             "decoded_delivery": metadata}
+    reference = {"path": str(approved_pack), "sha256": approved_hash, "pack_id": approved["pack_id"]}
+    if not legacy_default_reference:
+        reference["approval_status"] = approved.get("approval_status", "unspecified_requires_review")
     return {"version": 1, "kind": "selected_generation_deliveries",
-            "approved_prompt_pack": {"path": str(approved_pack), "sha256": approved_hash, "pack_id": approved["pack_id"]},
+            ("approved_prompt_pack" if legacy_default_reference else "reference_prompt_pack"): reference,
             "shared_inputs": shared, "shared_workflow": shared_workflow,
             "shared_decoded_endpoint_rgb_sha256": endpoint,
             "selections": selections, "bound_input_files": bindings}
@@ -206,11 +228,13 @@ def main():
     for pose in POSES:
         parser.add_argument("--"+pose+"-manifest", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--approved-prompt-pack", type=Path, default=APPROVED_PACK)
+    parser.add_argument("--reference-prompt-pack", "--approved-prompt-pack", dest="approved_prompt_pack",
+                        type=Path, default=APPROVED_PACK,
+                        help="Exact reference recipe; experimental packs still require quality review")
     args = parser.parse_args()
     try:
         result = assemble({p: getattr(args,p+"_manifest") for p in POSES}, args.output_dir, args.approved_prompt_pack)
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, RenderError) as exc:
         parser.exit(2, f"Assembly refused: {exc}\n")
     print(json.dumps({"output_dir": str(args.output_dir.resolve()), "status": result["status"],
                       "quality_status": result["quality_status"],

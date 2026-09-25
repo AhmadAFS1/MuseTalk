@@ -1,4 +1,4 @@
-# LumaTalk multipose mission handoff — final checkpoint, 2026-09-25
+# LumaTalk multipose mission handoff — checkpoint, 2026-09-25
 
 The user authorizes Grok to continue this mission when Codex quota is low. This
 checkpoint records completed work and remaining requirements; it does not mark
@@ -21,11 +21,12 @@ receiver audits detected zero RTP timestamp anomalies and missing timestamps.
 These are sequential sessions on one GPU, not a concurrent capacity guarantee.
 The slowest return has little margin below the half-second bound.
 
-Two requirements remain open: normal-speed visual acceptance of the final
-recordings, and a usable fresh-portrait source bank. All three Latina idle
-candidates failed the unchanged closed-mouth source gate. None was packaged or
-prepared. No bank was promoted to reviewed. Passing tests does not prove that
-a viewer cannot notice a transition. Do not invent visual acceptance.
+Normal-speed visual acceptance remains open. The original three Latina idle
+seeds failed the closed-mouth gate. A separately versioned interior-guide trial
+now passes every mouth frame and all-phase return coverage, and its three API
+caches are prepared. See the new experiment section below for fresh-character
+receiver results. No bank was promoted to reviewed. Passing tests does not prove
+that a viewer cannot notice a transition. Do not invent visual acceptance.
 
 ## Authoritative files and evidence
 
@@ -80,9 +81,12 @@ covers the previously failing 60-millisecond clock mismatch.
 - Factory generation has immutable image/prompt/graph/options fingerprints and
   verified partial/no-op resume. Packaging validates actual source media and
   measurements, preserves preparation/review state, and atomically publishes.
-- `assemble_three_pose_sources.py` accepts verified separate pose manifests for
-  seed-only rerolls with identical portrait/guide/prompt/graph/settings. It copies
-  bytes and preserves provenance; it does not approve source quality.
+- `assemble_three_pose_sources.py` accepts verified separate pose manifests.
+  Each pose must match the explicitly chosen reference profile except its seed
+  and descriptive citation. Optional native interior guides require matching
+  per-pose manifest metadata and the exact saved graph. It copies bytes and
+  preserves provenance; it does not approve source quality. Experimental reference
+  packs use neutral provenance fields and retain their declared approval status.
 - `review_motion_evidence.py` verifies real received media and creates galleries.
   `review_realtime_character.py` requires bound evidence, reviewer identity, notes
   and a normal-speed viewing attestation for acceptance. No real receipt was issued.
@@ -136,7 +140,7 @@ LTX/MediaPipe Python:
 `/workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/.venv/bin/python`.
 One RTX 4070 SUPER, 12 GB. Never run LTX and MuseTalk simultaneously. The owned
 validation server is stopped after verification; check processes before GPU work.
-Disk was about 1.4 GB free at final verification. Do not delete unrelated assets.
+Disk was about 0.5 GB free after the new Latina API caches. Do not delete unrelated assets.
 
 Use the original baseline launch, not the rejected diagnostic CPU profile:
 
@@ -165,9 +169,10 @@ paid image/video API was used or is authorized as a replacement for local LTX.
    Indian recordings. Source approval alone does not approve live transitions.
 2. Address any observed visual issue with specific evidence, without changing
    accepted masters in place or weakening timestamp/return/source-quality gates.
-3. Treat fresh-portrait quality as unresolved. Three same-text idle seeds failed;
-   analyze a concrete next experiment before spending more generation time, and
-   version any candidate recipe separately from the approved pack.
+3. Review the fresh Latina interior-guide candidate and its received recordings.
+   Do not regenerate the failed seed-only samples. If a specific defect remains,
+   analyze that evidence before another render; keep experimental recipes separate
+   from the approved pack.
 4. Publish a reviewed bank only with a real viewing decision and bound evidence.
    Do not mark the full goal achieved merely because automated checks passed.
 
@@ -175,3 +180,40 @@ User authorization covers local implementation/tests, prior commits and the
 Grok handoff. It does not authorize unrelated deletion, deployment, paid APIs,
 or messages to other people. Preserve concrete evidence and report remaining
 limitations plainly.
+
+
+## Controlled native-guide fresh-character trial
+
+Plan and tasks: `docs/LTX_INTERIOR_GUIDE_EXPERIMENT_2026-09-25.md`.
+Root: `/workspace/experiments/latina_fixed_distance_multipose_20260925/idle-interior-guides-seed195`.
+The seed remains 195 and prompt strings remain exact. Two native same-portrait
+image guides at frames 80 and 160, strength 1.0, are added before the final guide.
+The experimental pack is `latina_idle_interior_guides_seed195_v1.json`; no approved
+pack or source was changed. Default graph equality was checked against the
+recorded baseline, and 40 focused factory regressions passed.
+
+The new idle has zero frames above 3.5-pixel lip gap, maximum 0.5328 pixels
+(baseline: 71 frames, maximum 8.5564). All 723 source phases have admissible idle
+returns. Generation took 340.81 seconds, decode 30.04 seconds, full command
+385.507 seconds. Comparison stills and per-frame measures are diagnostics only.
+Seven brief eye-closure spans need normal-speed review for excessive blinking.
+
+`selected/` retains original talking/smiling plus new idle and separate assembly
+provenance. Package: `/workspace/experiments/realtime_characters/latina_guided_20260925`.
+All three content-named API caches are prepared. The bank remains unreviewed.
+Actual receiver work is recorded by `run-webrtc.py`, `webrtc.log`,
+`webrtc-result.json` and the `webrtc/` directory within the trial root.
+
+To fit the caches, only 723 redundant temporary Comfy decode PNGs from idle
+seeds 194, 195 and this controlled trial were reclaimed (419,950,596 bytes),
+after verifying retained latent/native/delivery hashes. The exact receipt is
+`temporary-decode-cleanup.json`. No source master or unrelated asset was removed.
+
+Fresh Latina receiver outcome: all three cases passed, four idle returns took
+0.3493–0.4000 seconds, and there were no timestamp anomalies. `webrtc/review.html`
+is the actual received-media gallery, separate from `review.html` for raw source
+comparison. Durable results: `docs/ltx_interior_guide_validation_2026-09-25.json`.
+Combined with v4, there are now 15 passing recordings across three characters.
+The owned test server was stopped. Visual acceptance of these recordings remains
+pending, particularly the new idle's blink rate. Do not promote a bank or claim
+imperceptible transitions without that review. No more render is queued.

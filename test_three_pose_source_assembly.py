@@ -11,7 +11,9 @@ import cv2
 import numpy as np
 
 from character_factory.scripts import assemble_three_pose_sources as assembly
-from character_factory.scripts.generate_three_pose_videos import build_generation_graph, generation_fingerprint
+from character_factory.scripts.generate_three_pose_videos import (
+    build_generation_graph, generation_fingerprint, normalized_interior_guides,
+)
 from scripts.motion_transitions import atomic_json, file_hash
 
 
@@ -81,6 +83,10 @@ class ThreePoseAssemblyTest(unittest.TestCase):
                 "positive_prompt": profile["positive_prompt"], "negative_prompt": profile["negative_prompt"],
                 "delivery": {**self.metadata, "file": str(video), "sha256": file_hash(video),
                              "first_frame_replaced_with_shared_anchor": True}}
+        guides_by_pose = {pose: normalized_interior_guides(pack["poses"][pose], 9) for pose in poses
+                          if normalized_interior_guides(pack["poses"][pose], 9)}
+        if guides_by_pose:
+            manifest["workflow"]["interior_guides_by_pose"] = guides_by_pose
         path = directory / "manifest.json"
         atomic_json(path, manifest)
         return path
@@ -93,7 +99,7 @@ class ThreePoseAssemblyTest(unittest.TestCase):
         result = self.run_assembly()
         self.assertEqual(result["status"], "complete")
         self.assertEqual(result["inputs"]["selections"]["idle"]["seed"], 2)
-        self.assertEqual(result["inputs"]["selections"]["idle"]["approved_seed"], 1)
+        self.assertEqual(result["inputs"]["selections"]["idle"]["reference_seed"], 1)
         self.assertEqual(result["inputs"]["selections"]["talking"]["generation_manifest"], str(self.original))
         self.assertFalse((self.out / "manifest.json").exists())
         self.assertNotIn("generation_fingerprint", result)
@@ -162,6 +168,94 @@ class ThreePoseAssemblyTest(unittest.TestCase):
         result = self.run_assembly()
         self.assertEqual(result["status"], "complete")
         self.assertTrue(all((self.out / (p+".mp4")).is_file() for p in assembly.POSES))
+
+    def select_experimental_idle(self):
+        experimental = copy.deepcopy(self.pack)
+        experimental.update(pack_id="experimental_interior_idle", approval_status="experimental_requires_review")
+        experimental["poses"]["idle"]["interior_guides"] = [{"frame_idx": 4, "strength": .5}]
+        self.reference = self.root / "experimental-reference.json"
+        atomic_json(self.reference, experimental)
+        self.selection["idle"] = self.make_generation("guided_idle", experimental, ("idle",))
+        return experimental
+
+    def test_guided_idle_mixes_with_original_other_poses_only_with_matching_reference(self):
+        self.select_experimental_idle()
+        with self.assertRaisesRegex(ValueError, "generation options differ"):
+            self.run_assembly()
+        self.assertFalse(self.out.exists())
+        result = assembly.assemble(self.selection, self.out, self.reference)
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["inputs"]["reference_prompt_pack"]["approval_status"], "experimental_requires_review")
+        self.assertNotIn("approved_prompt_pack", result["inputs"])
+        self.assertNotIn("approved_seed", result["inputs"]["selections"]["idle"])
+        self.assertEqual(result["inputs"]["selections"]["talking"]["generation_manifest"], str(self.original))
+        self.assertEqual(result["quality_status"], "requires_per_frame_validation_and_recorded_review")
+        self.assertNotIn("interior_guides_by_pose", result["inputs"]["shared_workflow"])
+        self.assertEqual(assembly.assemble(self.selection, self.out, self.reference), result)
+
+    def test_missing_wrong_or_unexpected_guide_metadata_is_rejected(self):
+        self.select_experimental_idle()
+        path = self.selection["idle"]
+        original = json.loads(path.read_text())
+        for field in (None, {}, {"idle": []}, {"idle": [{"frame_idx": 4, "strength": .4}]},
+                      {"idle": [{"frame_idx": 4.0, "strength": .5}]},
+                      {"idle": [{"frame_idx": 4, "strength": True}]}, []):
+            manifest = copy.deepcopy(original)
+            if field is None:
+                manifest["workflow"].pop("interior_guides_by_pose")
+            else:
+                manifest["workflow"]["interior_guides_by_pose"] = field
+            atomic_json(path, manifest)
+            with self.subTest(metadata=field), self.assertRaisesRegex(ValueError, "interior guide metadata"):
+                assembly.assemble(self.selection, self.out, self.reference)
+        atomic_json(path, original)
+        other = json.loads(self.original.read_text())
+        other["workflow"]["interior_guides_by_pose"] = {"talking": [{"frame_idx": 4, "strength": .5}]}
+        atomic_json(self.original, other)
+        with self.assertRaisesRegex(ValueError, "talking: workflow interior guide metadata"):
+            assembly.assemble(self.selection, self.out, self.reference)
+        self.assertFalse(self.out.exists())
+
+    def test_interior_guide_graph_parameters_and_connections_must_match_exactly(self):
+        self.select_experimental_idle()
+        path = self.selection["idle"].parent / "graphs/idle-generation.json"
+        original = json.loads(path.read_text())
+        added = set(original) - set(json.loads(self.base.read_text()))
+        self.assertTrue(added, "Fixture must contain actual interior conditioning nodes")
+        for mutation in ("strength", "missing_node", "wrong_chain"):
+            graph = copy.deepcopy(original)
+            node = sorted(added)[0]
+            if mutation == "strength":
+                graph[node]["inputs"]["strength"] = .7
+            elif mutation == "missing_node":
+                del graph[node]
+            else:
+                graph["concat"]["inputs"]["video_latent"] = ["missing-guide-chain", 2]
+            atomic_json(path, graph)
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, "generation graph differs"):
+                assembly.assemble(self.selection, self.out, self.reference)
+        self.assertFalse(self.out.exists())
+
+    def test_default_pack_keeps_legacy_provenance_shape(self):
+        with patch.object(assembly, "APPROVED_PACK", self.approved):
+            result = self.run_assembly()
+        reference = result["inputs"]["approved_prompt_pack"]
+        self.assertEqual(set(reference), {"path", "sha256", "pack_id"})
+        self.assertNotIn("reference_prompt_pack", result["inputs"])
+        self.assertEqual(result["inputs"]["selections"]["idle"]["approved_seed"], 1)
+
+    def test_reference_flag_and_legacy_alias_select_same_explicit_pack(self):
+        self.select_experimental_idle()
+        argv = ["assemble"]
+        for pose in assembly.POSES:
+            argv += ["--"+pose+"-manifest", str(self.selection[pose])]
+        argv += ["--output-dir", str(self.out)]
+        with patch("sys.argv", argv + ["--reference-prompt-pack", str(self.reference)]), patch("builtins.print"):
+            assembly.main()
+        saved = (self.out / "assembly-provenance.json").read_bytes()
+        with patch("sys.argv", argv + ["--approved-prompt-pack", str(self.reference)]), patch("builtins.print"):
+            assembly.main()
+        self.assertEqual((self.out / "assembly-provenance.json").read_bytes(), saved)
 
     def test_existing_master_directory_cannot_be_used_as_output(self):
         self.out = self.original.parent

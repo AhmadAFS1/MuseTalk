@@ -8,6 +8,8 @@ as the Japanese three-pose selection.
 It does not use SoulX, Segmind, NAG, or Prompt Relay.
 
 All three renders use the same portrait at native LTX guide indices 0 and -1.
+A versioned experimental profile may add interior_guides using that same image.
+These guide generation; they do not replace interior output frames.
 The default centered crop fills the frame with real portrait pixels; --guide-fit
 edge_pad reproduces the older edge-replicated guide for historical comparisons.
 The default pack produces 241-frame MP4s at 24 fps; an alternate pack may set
@@ -25,6 +27,7 @@ import argparse
 import fcntl
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -239,6 +242,34 @@ def prepare_legacy_edge_padded_guide(
     return policy
 
 
+def normalized_interior_guides(profile: dict[str, Any], frame_count: int) -> list[dict[str, Any]]:
+    """Validate optional same-portrait guides in native source-frame coordinates.
+
+    These are experimental full-image conditioning, not replaced output frames.
+    Keep this absent by default so approved graphs and resume identities remain
+    unchanged. Single-image LTX guides accept any interior source-frame index.
+    """
+    guides = profile.get("interior_guides", [])
+    if not isinstance(guides, list):
+        raise RenderError("interior_guides must be a list")
+    normalized = []
+    seen = set()
+    for guide in guides:
+        if not isinstance(guide, dict) or set(guide) != {"frame_idx", "strength"}:
+            raise RenderError("Each interior guide requires only frame_idx and strength")
+        index, strength = guide["frame_idx"], guide["strength"]
+        if type(index) is not int or not 0 < index < frame_count - 1:
+            raise RenderError("Interior frame_idx must be an integer between the two endpoint frames")
+        if index in seen:
+            raise RenderError("Duplicate interior frame_idx")
+        if (isinstance(strength, bool) or not isinstance(strength, (int, float))
+                or not math.isfinite(strength) or not 0 < strength <= 1):
+            raise RenderError("Interior guide strength must be finite and greater than 0, at most 1")
+        seen.add(index)
+        normalized.append({"frame_idx": index, "strength": float(strength)})
+    return normalized
+
+
 def build_generation_graph(
     base: dict[str, Any], profile: dict[str, Any], input_name: str, prefix: str,
     frame_count: int,
@@ -252,6 +283,24 @@ def build_generation_graph(
     graph["audio"]["inputs"].update({"frames_number": frame_count, "frame_rate": FPS})
     graph["portrait"]["inputs"].update({"frame_idx": 0, "strength": 1.0})
     graph["end_guide"]["inputs"].update({"frame_idx": -1, "strength": 1.0})
+    previous = "portrait"
+    for index, guide in enumerate(normalized_interior_guides(profile, frame_count)):
+        name = f"interior_guide_{index}"
+        if name in graph:
+            raise RenderError(f"Base graph already contains {name}")
+        graph[name] = {
+            "class_type": "LTXVAddGuide",
+            "inputs": {
+                "positive": [previous, 0], "negative": [previous, 1],
+                "latent": [previous, 2], "vae": ["vae", 0],
+                "image": ["image", 0], **guide,
+            },
+        }
+        previous = name
+    if previous != "portrait":
+        graph["end_guide"]["inputs"].update({
+            "positive": [previous, 0], "negative": [previous, 1], "latent": [previous, 2],
+        })
     graph["concat"]["inputs"]["video_latent"] = ["end_guide", 2]
     graph["guider"]["inputs"]["positive"] = ["end_guide", 0]
     graph["guider"]["inputs"]["negative"] = ["end_guide", 1]
@@ -486,6 +535,18 @@ def main() -> int:
     prompt_pack = load_json(prompt_pack_path)
     base_graph = load_json(ACCEPTED_GRAPH_PATH)
     selected = {pose: prompt_pack["poses"][pose] for pose in args.poses}
+    # Validate conditioning before creating files or starting workers.
+    interior_guides = {}
+    for pose, profile in selected.items():
+        frame_count = int(profile.get("frame_count", FRAMES))
+        if frame_count < 9 or (frame_count - 1) % 8:
+            raise RenderError(f"{pose}: frame_count must equal 1 + a multiple of 8")
+        repeat_cycles = int(profile.get("repeat_cycles", 1))
+        if not 1 <= repeat_cycles <= 10:
+            raise RenderError(f"{pose}: repeat_cycles must be between 1 and 10")
+        guides = normalized_interior_guides(profile, frame_count)
+        if guides:
+            interior_guides[pose] = guides
     fingerprint = generation_fingerprint(image, prompt_pack_path, ACCEPTED_GRAPH_PATH,
                                          guide_fit=args.guide_fit, shared_anchor=args.shared_anchor)
     resume = verified_resume(output_dir, fingerprint)
@@ -516,11 +577,6 @@ def main() -> int:
     graphs: dict[str, dict[str, Any]] = {}
     for pose, profile in selected.items():
         frame_count = int(profile.get("frame_count", FRAMES))
-        if frame_count < 9 or (frame_count - 1) % 8:
-            raise RenderError(f"{pose}: frame_count must equal 1 + a multiple of 8")
-        repeat_cycles = int(profile.get("repeat_cycles", 1))
-        if repeat_cycles < 1 or repeat_cycles > 10:
-            raise RenderError(f"{pose}: repeat_cycles must be between 1 and 10")
         graph = build_generation_graph(
             base_graph,
             profile,
@@ -576,6 +632,10 @@ def main() -> int:
         },
         "poses": completed,
     }
+    recorded_guides = {**resume.get("workflow", {}).get("interior_guides_by_pose", {}),
+                       **interior_guides}
+    if recorded_guides:
+        manifest["workflow"]["interior_guides_by_pose"] = recorded_guides
     if args.dry_run:
         for pose, profile in selected.items():
             manifest["poses"][pose] = {"status": "dry_run", **profile}

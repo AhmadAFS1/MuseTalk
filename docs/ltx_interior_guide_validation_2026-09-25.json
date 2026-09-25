@@ -1,0 +1,356 @@
+{
+  "version": 1,
+  "status": "candidate_requires_recorded_review",
+  "experiment_root": "/workspace/experiments/latina_fixed_distance_multipose_20260925/idle-interior-guides-seed195",
+  "plan": "LTX_INTERIOR_GUIDE_EXPERIMENT_2026-09-25.md",
+  "comparison_sha256": "059388340b7a429f563f37aff2b694334bf62bf8117d789cd596803d00025bcd",
+  "comparison_summary": {
+    "baseline": {
+      "frame_count": 241,
+      "fps": 24.0,
+      "violating_frames": 71,
+      "violation_ranges": [
+        {
+          "first_frame": 32,
+          "last_frame": 32,
+          "count": 1,
+          "first_time_seconds": 1.3333333333333333,
+          "last_time_seconds": 1.3333333333333333,
+          "sample_duration_seconds": 0.041666666666666664
+        },
+        {
+          "first_frame": 34,
+          "last_frame": 34,
+          "count": 1,
+          "first_time_seconds": 1.4166666666666667,
+          "last_time_seconds": 1.4166666666666667,
+          "sample_duration_seconds": 0.041666666666666664
+        },
+        {
+          "first_frame": 37,
+          "last_frame": 102,
+          "count": 66,
+          "first_time_seconds": 1.5416666666666667,
+          "last_time_seconds": 4.25,
+          "sample_duration_seconds": 2.75
+        },
+        {
+          "first_frame": 104,
+          "last_frame": 106,
+          "count": 3,
+          "first_time_seconds": 4.333333333333333,
+          "last_time_seconds": 4.416666666666667,
+          "sample_duration_seconds": 0.125
+        }
+      ],
+      "peak_lip_gap_px": 8.556367874145508,
+      "peak_frame": 74,
+      "peak_time_seconds": 3.0833333333333335,
+      "extrema": {
+        "lip_gap_px": {
+          "min": 0.03553199768066406,
+          "min_frame": 143,
+          "max": 8.556367874145508,
+          "max_frame": 74,
+          "max_abs_adjacent_delta": 2.1136951446533203,
+          "signed_delta": 2.1136951446533203,
+          "delta_from_frame": 36,
+          "delta_to_frame": 37,
+          "last_to_first_delta": 0.0
+        },
+        "eye_mid_x_change_px": {
+          "min": -4.629661560058594,
+          "min_frame": 115,
+          "max": 1.980377197265625,
+          "max_frame": 93,
+          "max_abs_adjacent_delta": 2.2516021728515625,
+          "signed_delta": 2.2516021728515625,
+          "delta_from_frame": 92,
+          "delta_to_frame": 93,
+          "last_to_first_delta": 0.0
+        },
+        "eye_mid_y_change_px": {
+          "min": -18.117599487304688,
+          "min_frame": 121,
+          "max": 4.834707260131836,
+          "max_frame": 182,
+          "max_abs_adjacent_delta": 3.5465917587280273,
+          "signed_delta": 3.5465917587280273,
+          "delta_from_frame": 8,
+          "delta_to_frame": 9,
+          "last_to_first_delta": 0.0
+        },
+        "eye_scale_change_pct": {
+          "min": -5.604945012673479,
+          "min_frame": 22,
+          "max": 0.6877302267647156,
+          "max_frame": 163,
+          "max_abs_adjacent_delta": 4.744896165549151,
+          "signed_delta": 4.744896165549151,
+          "delta_from_frame": 9,
+          "delta_to_frame": 10,
+          "last_to_first_delta": 0.0
+        },
+        "eye_line_roll_deg": {
+          "min": -2.391455197198897,
+          "min_frame": 120,
+          "max": 0.11147170238091342,
+          "max_frame": 10,
+          "max_abs_adjacent_delta": 0.621781577958165,
+          "signed_delta": 0.621781577958165,
+          "delta_from_frame": 31,
+          "delta_to_frame": 32,
+          "last_to_first_delta": 0.0
+        },
+        "mouth_width_px": {
+          "min": 83.53530883789062,
+          "min_frame": 64,
+          "max": 89.7120361328125,
+          "max_frame": 147,
+          "max_abs_adjacent_delta": 1.9037017822265625,
+          "signed_delta": -1.9037017822265625,
+          "delta_from_frame": 124,
+          "delta_to_frame": 125,
+          "last_to_first_delta": 0.0
+        }
+      }
+    },
+    "interior_guides": {
+      "frame_count": 241,
+      "fps": 24.0,
+      "violating_frames": 0,
+      "violation_ranges": [],
+      "peak_lip_gap_px": 0.532806396484375,
+      "peak_frame": 64,
+      "peak_time_seconds": 2.6666666666666665,
+      "extrema": {
+        "lip_gap_px": {
+          "min": 0.12876319885253906,
+          "min_frame": 73,
+          "max": 0.532806396484375,
+          "max_frame": 64,
+          "max_abs_adjacent_delta": 0.3885955810546875,
+          "signed_delta": -0.3885955810546875,
+          "delta_from_frame": 89,
+          "delta_to_frame": 90,
+          "last_to_first_delta": 0.0
+        },
+        "eye_mid_x_change_px": {
+          "min": -2.157440185546875,
+          "min_frame": 171,
+          "max": 1.0967864990234375,
+          "max_frame": 204,
+          "max_abs_adjacent_delta": 1.9751205444335938,
+          "signed_delta": -1.9751205444335938,
+          "delta_from_frame": 170,
+          "delta_to_frame": 171,
+          "last_to_first_delta": 0.0
+        },
+        "eye_mid_y_change_px": {
+          "min": -0.4202718734741211,
+          "min_frame": 55,
+          "max": 7.539788246154785,
+          "max_frame": 123,
+          "max_abs_adjacent_delta": 5.6028852462768555,
+          "signed_delta": 5.6028852462768555,
+          "delta_from_frame": 121,
+          "delta_to_frame": 122,
+          "last_to_first_delta": 0.0
+        },
+        "eye_scale_change_pct": {
+          "min": -5.100498542739129,
+          "min_frame": 174,
+          "max": 1.0380003291620366,
+          "max_frame": 124,
+          "max_abs_adjacent_delta": 5.619974558047258,
+          "signed_delta": -5.619974558047258,
+          "delta_from_frame": 124,
+          "delta_to_frame": 125,
+          "last_to_first_delta": 0.0
+        },
+        "eye_line_roll_deg": {
+          "min": -0.5743615423243321,
+          "min_frame": 171,
+          "max": 0.23276022603712682,
+          "max_frame": 123,
+          "max_abs_adjacent_delta": 0.6183925171538575,
+          "signed_delta": 0.6183925171538575,
+          "delta_from_frame": 122,
+          "delta_to_frame": 123,
+          "last_to_first_delta": 0.0
+        },
+        "mouth_width_px": {
+          "min": 85.91596984863281,
+          "min_frame": 12,
+          "max": 89.32847595214844,
+          "max_frame": 93,
+          "max_abs_adjacent_delta": 2.5010986328125,
+          "signed_delta": -2.5010986328125,
+          "delta_from_frame": 203,
+          "delta_to_frame": 204,
+          "last_to_first_delta": 0.0
+        }
+      }
+    }
+  },
+  "generation_fingerprint": {
+    "version": 1,
+    "source_image_sha256": "17ec7758bda62f82ce06bfbcef08f91b60e5ae722161b96590824810a83d45cb",
+    "prompt_pack_sha256": "0dff01c1c1060f477f744cc5288b65c2e75b675b240d120495c7257358085a90",
+    "accepted_graph_sha256": "bc44b4dcab344fc53cc4203bccd6455ffc106a215470f127f3a963174e7bfd83",
+    "guide_fit": "center_crop",
+    "shared_anchor": true,
+    "width": 512,
+    "height": 832,
+    "fps": 24,
+    "delivery_recipe": "native_q4_exact_endpoint_v1"
+  },
+  "guide_configuration": {
+    "idle": [
+      {
+        "frame_idx": 80,
+        "strength": 1.0
+      },
+      {
+        "frame_idx": 160,
+        "strength": 1.0
+      }
+    ]
+  },
+  "timings_seconds": {
+    "generation_elapsed_seconds": 340.81,
+    "decode_elapsed_seconds": 30.04
+  },
+  "source_hashes": {
+    "idle": "ee675cb4fdc230f1a67f995d3a22975c1954b0238b8c34a57827eec23379a14c",
+    "talking": "84c5bc80b858c864e5a4578f19eb37c66da4041de0ffe07d8b1e22f6d808bae0",
+    "smiling": "a28498e05356de4eba8e770ca85483db33bd5e4266491ae3c9586dc9624a12c9"
+  },
+  "package": "/workspace/experiments/realtime_characters/latina_guided_20260925",
+  "exit_coverage": {
+    "neutral_resting": {
+      "covered": 241,
+      "total": 241
+    },
+    "speaking_direct": {
+      "covered": 241,
+      "total": 241
+    },
+    "light_smile": {
+      "covered": 241,
+      "total": 241
+    }
+  },
+  "factory_tests": {
+    "count": 40,
+    "passed": true,
+    "log": "/workspace/experiments/latina_fixed_distance_multipose_20260925/idle-interior-guides-seed195/focused-regressions.log"
+  },
+  "normal_speed_review": "pending",
+  "received_webrtc": {
+    "directory": "/workspace/experiments/latina_fixed_distance_multipose_20260925/idle-interior-guides-seed195/webrtc",
+    "verification_sha256": "44c49b243a53fa756e9e23864052371da115cf31ac88b681df06c72e00c68041",
+    "runtime_commit": "6f634ca",
+    "verification": {
+      "version": 1,
+      "label": "Latina native-guide candidate: actual WebRTC review",
+      "automated_validation_passed": true,
+      "visual_acceptance": "pending",
+      "atlas": "/workspace/experiments/realtime_characters/latina_guided_20260925/motion-atlas.json",
+      "atlas_sha256": "9b5ed0f66e1ff2073128df5cca419606b70ab1c1a7db83a25c8efe7f173dd775",
+      "routing_sha256": "e8f8b2de6a110aff5f908fe2e87dcd697143666359df3637b4ed099cd73ea3c0",
+      "source_hashes": {
+        "neutral_resting": "ee675cb4fdc230f1a67f995d3a22975c1954b0238b8c34a57827eec23379a14c",
+        "speaking_direct": "84c5bc80b858c864e5a4578f19eb37c66da4041de0ffe07d8b1e22f6d808bae0",
+        "light_smile": "a28498e05356de4eba8e770ca85483db33bd5e4266491ae3c9586dc9624a12c9"
+      },
+      "source_frame_counts": {
+        "neutral_resting": 241,
+        "speaking_direct": 241,
+        "light_smile": 241
+      },
+      "recordings": [
+        {
+          "case": "interrupted-and-next-turn",
+          "video": "interrupted-and-next-turn.mp4",
+          "video_sha256": "2282a3770c8c351997edc037e399fc74d683af13a863bcc7085f8520fe1b1736",
+          "evidence_sha256": "6dedc086516b44214c11d86caf6f3871242643c53384fa2f776046a7bc474bd6",
+          "duration_seconds": 10.929,
+          "fps": 20,
+          "turn_count": 2,
+          "return_seconds": [
+            0.3661,
+            0.3997
+          ],
+          "entry_seconds": [
+            0.2957,
+            0.3004
+          ],
+          "longest_idle_hold_frames": 1,
+          "timestamp_anomalies": 0,
+          "observed_poses": [
+            [
+              "neutral_resting",
+              "speaking_direct"
+            ],
+            [
+              "neutral_resting"
+            ]
+          ]
+        },
+        {
+          "case": "long-talking-smiling",
+          "video": "long-talking-smiling.mp4",
+          "video_sha256": "4bf0101bc0d1184f90f3c1f73545321b7a5f90bf158ccad216ca8ec4dd78906f",
+          "evidence_sha256": "070da23affe46c952dec5b3ce13e309bcceff8dc04a022bf9ab9f18b2bed2ef1",
+          "duration_seconds": 15.767,
+          "fps": 20,
+          "turn_count": 1,
+          "return_seconds": [
+            0.3493
+          ],
+          "entry_seconds": [
+            0.2951
+          ],
+          "longest_idle_hold_frames": 1,
+          "timestamp_anomalies": 0,
+          "observed_poses": [
+            [
+              "light_smile",
+              "neutral_resting",
+              "speaking_direct"
+            ]
+          ]
+        },
+        {
+          "case": "short-idle",
+          "video": "short-idle.mp4",
+          "video_sha256": "d33e2637c7788b54d4ae5355e3f7b0aac55e7511f27230301368b77959cf3a50",
+          "evidence_sha256": "12d5593d74f7275d72d13dc27dc79ffce39e1d223dcd15fc1e9e32e5145fc718",
+          "duration_seconds": 7.737,
+          "fps": 20,
+          "turn_count": 1,
+          "return_seconds": [
+            0.4
+          ],
+          "entry_seconds": [
+            0.2963
+          ],
+          "longest_idle_hold_frames": 1,
+          "timestamp_anomalies": 0,
+          "observed_poses": [
+            [
+              "neutral_resting"
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "Normal-speed visual acceptance pending",
+    "Seven brief idle eye-closure spans; blink rate needs review",
+    "Factory default unchanged; this is an explicit experimental recipe",
+    "Sequential single-GPU sessions; concurrent capacity not measured"
+  ]
+}
