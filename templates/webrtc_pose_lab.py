@@ -50,6 +50,9 @@ def get_webrtc_pose_lab_html(
     pose_set: dict | None = None,
     *,
     sample_audio_url: str = "/webrtc/pose-lab/sample-audio",
+    characters: list[dict] | None = None,
+    selected_character: str | None = None,
+    expected_motion: dict | None = None,
 ) -> str:
     """Return the self-contained worker-side pose lab.
 
@@ -62,6 +65,10 @@ def get_webrtc_pose_lab_html(
         separators=(",", ":"),
     ).replace("</", "<\\/")
     embedded_sample_url = json.dumps(sample_audio_url).replace("</", "<\\/")
+
+    embedded_characters = json.dumps(characters or [], separators=(",", ":")).replace("</", "<\\/")
+    embedded_selected = json.dumps(selected_character).replace("</", "<\\/")
+    embedded_motion = json.dumps(expected_motion, separators=(",", ":")).replace("</", "<\\/")
 
     return (
         r"""<!doctype html>
@@ -185,7 +192,7 @@ def get_webrtc_pose_lab_html(
     <header>
       <h1>Pose protocol lab</h1>
       <p>Direct worker WebRTC, deterministic pose events, and local sample TTS.</p>
-      <p class="warning">Test-only motion masters. Their generated clip boundaries are not production-approved or switch-safe yet.</p>
+      <p class="warning" id="bankWarning"></p>
     </header>
     <div class="stage">
       <video id="remoteVideo" autoplay playsinline></video>
@@ -199,12 +206,14 @@ def get_webrtc_pose_lab_html(
       <span class="badge">queued <strong id="queueState">none</strong></span>
       <span class="badge">stream <strong id="streamState">idle</strong></span>
       <span class="badge">seq <strong id="seqState">0</strong></span>
+      <span class="badge">bank <strong id="bankState">unchecked</strong></span>
     </section>
   </article>
 
   <aside class="panel controls">
     <section>
       <h2>Session</h2>
+      <label>Character<select id="characterSelect"></select></label>
       <div class="row">
         <label>Render FPS<input id="fps" type="number" min="1" max="60" value="20"></label>
         <label>Batch size<input id="batchSize" type="number" min="1" max="32" value="4"></label>
@@ -247,6 +256,12 @@ def get_webrtc_pose_lab_html(
     <section>
       <h2>Sample TTS · no provider call</h2>
       <label>WAV, MP3, or MPGA<input id="audioFile" type="file" accept="audio/*,.wav,.mp3,.mpga"></label>
+      <label style="margin-top:8px">Speech movement
+        <select id="speechMovement">
+          <option value="talking">Talking</option>
+          <option value="talking_smiling">Talking → smiling → talking</option>
+        </select>
+      </label>
       <button class="primary" id="streamButton" disabled style="width:100%;margin-top:8px">Stream selected / bundled sample</button>
       <p style="margin:8px 0 0">If no file is selected, the lab fetches the server’s bundled sample WAV.</p>
     </section>
@@ -262,85 +277,86 @@ def get_webrtc_pose_lab_html(
   "use strict";
   const POSE_SET = __POSE_SET__;
   const SAMPLE_AUDIO_URL = __SAMPLE_AUDIO_URL__;
+  const CHARACTERS = __CHARACTERS__;
+  const SELECTED_CHARACTER = __SELECTED_CHARACTER__;
+  const EXPECTED_MOTION = __EXPECTED_MOTION__;
   const API_ORIGIN = window.location.origin;
   const POSE_IDS = Object.keys(POSE_SET.poses);
   const REACTION_POSES = {
-    none: null,
-    acknowledge: "nod_agree",
-    warmth: "light_smile",
-    empathy: "empathetic_head_tilt",
+    none: null, acknowledge: "nod_agree", warmth: "light_smile", empathy: "empathetic_head_tilt",
   };
-
   const remoteVideo = document.getElementById("remoteVideo");
   const emptyState = document.getElementById("emptyState");
   const logElement = document.getElementById("log");
   const connectButton = document.getElementById("connectButton");
   const disconnectButton = document.getElementById("disconnectButton");
   const streamButton = document.getElementById("streamButton");
+  const characterSelect = document.getElementById("characterSelect");
   let sessionId = null;
+  let sessionEpoch = 0;
   let pc = null;
-  let remoteStream = null;
   let pollTimer = null;
   let seq = 0;
   let turnId = null;
+  let turnCounter = 0;
+  let demoEpoch = 0;
   let protocolChain = Promise.resolve();
+  let pendingUpload = null;
+  let cancellingUpload = null;
+  let activeStream = false;
+  let motionReady = false;
+  let motionSettled = true;
+  let ready = false;
+  let latestStatusRequest = 0;
 
-  function setText(id, value) {
-    document.getElementById(id).textContent = String(value);
-  }
-
+  function setText(id, value) { document.getElementById(id).textContent = String(value); }
   function log(label, value) {
-    const stamp = new Date().toLocaleTimeString();
     const detail = value === undefined ? "" : " " + JSON.stringify(value);
-    logElement.textContent += `[${stamp}] ${label}${detail}\n`;
+    logElement.textContent += `[${new Date().toLocaleTimeString()}] ${label}${detail}\n`;
     logElement.scrollTop = logElement.scrollHeight;
   }
-
   async function request(path, options = {}) {
     const response = await fetch(API_ORIGIN + path, options);
     const text = await response.text();
     let body = text;
     try { body = text ? JSON.parse(text) : {}; } catch (_) {}
-    if (!response.ok) {
-      throw new Error(`${response.status} ${typeof body === "string" ? body : JSON.stringify(body)}`);
-    }
+    if (!response.ok) throw new Error(`${response.status} ${typeof body === "string" ? body : JSON.stringify(body)}`);
     return body;
   }
-
-  function nextSequence() {
-    seq += 1;
-    setText("seqState", seq);
-    return seq;
+  function context() { return { id: sessionId, epoch: sessionEpoch }; }
+  function isCurrent(ctx) { return Boolean(ctx.id && ctx.id === sessionId && ctx.epoch === sessionEpoch); }
+  function assertCurrent(ctx) {
+    if (!isCurrent(ctx)) throw new Error("Session ended or changed; this action was discarded.");
   }
-
+  function nextSequence() { seq += 1; setText("seqState", seq); return seq; }
+  function newTurn(kind = "user") { return `pose_lab_${kind}_${Date.now()}_${++turnCounter}`; }
   function ensureTurn() {
-    if (!turnId) {
-      turnId = `pose_lab_${Date.now()}_1`;
-      log("turn started", { turn_id: turnId });
-    }
+    if (!turnId) { turnId = newTurn(); log("turn started", { turn_id: turnId }); }
     return turnId;
   }
-
-  function serializeProtocol(action) {
-    const next = protocolChain.then(action);
+  function serializeProtocol(action, ctx = context()) {
+    const next = protocolChain.then(() => { assertCurrent(ctx); return action(ctx); });
     protocolChain = next.catch(() => {});
     return next;
   }
-
   function setActivePose(poseId) {
     setText("poseState", poseId);
     document.querySelectorAll(".pose-button").forEach((button) => {
       button.classList.toggle("active", button.dataset.pose === poseId);
     });
   }
-
   function setIdlePoseControlsDisabled(disabled) {
-    document.querySelectorAll(".pose-button").forEach((button) => {
-      button.disabled = disabled;
-    });
+    document.querySelectorAll(".pose-button").forEach((button) => { button.disabled = disabled; });
     document.getElementById("cycleButton").disabled = disabled;
   }
-
+  function updateControls() {
+    const busy = Boolean(pendingUpload || cancellingUpload || activeStream || !motionSettled);
+    streamButton.disabled = !ready || !motionReady || busy;
+    setIdlePoseControlsDisabled(!ready || busy);
+    document.querySelectorAll("[data-event]").forEach((button) => { button.disabled = !ready; });
+    document.getElementById("reactionButton").disabled = !ready;
+    document.getElementById("demoButton").disabled = !ready;
+  }
   function applyPoseStatus(body) {
     const status = body && (body.pose_protocol || body.pose_status || body);
     if (!status) return;
@@ -350,227 +366,323 @@ def get_webrtc_pose_lab_html(
     const queued = status.queued_pose_ids || status.pending_pose_ids || [];
     setText("queueState", queued.length ? queued.join(" → ") : "none");
   }
-
-  async function sendIceCandidate(candidate) {
-    if (!sessionId || !candidate) return;
-    await request(`/webrtc/sessions/${sessionId}/ice`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        candidate: candidate.candidate,
-        sdpMid: candidate.sdpMid,
-        sdpMLineIndex: candidate.sdpMLineIndex,
-      }),
+  function validateMotionStatus(body) {
+    const motion = body.track_stats && body.track_stats.video && body.track_stats.video.motion;
+    if (EXPECTED_MOTION) {
+      if (!motion || !motion.enabled || !motion.bank) throw new Error("Selected character has no enabled motion bank.");
+      if (motion.bank.routing_sha256 !== EXPECTED_MOTION.routing_sha256) throw new Error("Selected character routing hash does not match this session.");
+      for (const [pose, hash] of Object.entries(EXPECTED_MOTION.source_hashes)) {
+        if (!motion.bank.sources || !motion.bank.sources[pose] || motion.bank.sources[pose].sha256 !== hash) {
+          throw new Error(`Selected character source hash does not match: ${pose}.`);
+        }
+      }
+    }
+    return motion;
+  }
+  function applySessionStatus(body) {
+    const motion = validateMotionStatus(body);
+    motionReady = true;
+    motionSettled = !motion || (motion.settled && !motion.building);
+    activeStream = Boolean(body.active_stream);
+    applyPoseStatus(body);
+    setText("bankState", EXPECTED_MOTION ? "verified" : "legacy · unverified");
+    setText("streamState", pendingUpload ? (pendingUpload.dispatched ? "preparing" : "loading audio") : activeStream ? "active" : !motionSettled ? "returning" : "idle");
+    updateControls();
+  }
+  async function sendIceCandidate(ctx, candidate) {
+    if (!isCurrent(ctx) || !candidate) return;
+    await request(`/webrtc/sessions/${ctx.id}/ice`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidate: candidate.candidate, sdpMid: candidate.sdpMid, sdpMLineIndex: candidate.sdpMLineIndex }),
     });
   }
-
   async function createAndConnect() {
-    if (sessionId) return;
+    if (sessionId || connectButton.disabled) return;
+    const epoch = ++sessionEpoch;
     connectButton.disabled = true;
+    disconnectButton.disabled = false;
+    characterSelect.disabled = true;
     try {
       const fps = Math.max(1, Number(document.getElementById("fps").value) || 20);
       const batchSize = Math.max(1, Number(document.getElementById("batchSize").value) || 4);
       const params = new URLSearchParams({
         avatar_id: POSE_SET.poses.neutral_resting.avatar_id,
-        user_id: `pose_lab_${Date.now()}`,
-        fps: String(fps),
-        playback_fps: String(fps),
-        batch_size: String(batchSize),
-        chunk_duration: "2",
-        pose_switch_mode: "next_boundary",
-        pose_set: JSON.stringify(POSE_SET),
+        user_id: `pose_lab_${Date.now()}`, fps: String(fps), playback_fps: String(fps),
+        batch_size: String(batchSize), chunk_duration: "2", pose_switch_mode: "next_boundary", pose_set: JSON.stringify(POSE_SET),
       });
       log("creating session");
       const created = await request(`/webrtc/sessions/create?${params}`, { method: "POST" });
+      if (epoch !== sessionEpoch) {
+        await request(`/webrtc/sessions/${created.session_id}`, { method: "DELETE" });
+        return;
+      }
       sessionId = created.session_id;
+      const ctx = context();
       setText("sessionState", sessionId);
-
-      pc = new RTCPeerConnection({
-        iceServers: created.ice_servers || [],
-        iceTransportPolicy: created.ice_transport_policy || "all",
-      });
-      remoteStream = new MediaStream();
-      remoteVideo.srcObject = remoteStream;
-      pc.ontrack = (event) => {
-        if (event.track && !remoteStream.getTracks().includes(event.track)) {
-          remoteStream.addTrack(event.track);
-        }
+      const status = await request(`/webrtc/sessions/${ctx.id}/status`);
+      assertCurrent(ctx);
+      applySessionStatus(status);
+      const peer = new RTCPeerConnection({ iceServers: created.ice_servers || [], iceTransportPolicy: created.ice_transport_policy || "all" });
+      pc = peer;
+      const media = new MediaStream();
+      remoteVideo.srcObject = media;
+      peer.ontrack = (event) => {
+        if (!isCurrent(ctx) || pc !== peer) return;
+        if (event.track && !media.getTracks().includes(event.track)) media.addTrack(event.track);
         emptyState.hidden = true;
-        remoteVideo.play().catch((error) => log("autoplay blocked; tap video", String(error)));
+        remoteVideo.play().catch((error) => { if (isCurrent(ctx)) log("autoplay blocked; tap video", String(error)); });
       };
-      pc.onicecandidate = (event) => {
-        if (event.candidate) sendIceCandidate(event.candidate).catch((error) => log("ICE send failed", String(error)));
+      peer.onicecandidate = (event) => {
+        if (event.candidate) sendIceCandidate(ctx, event.candidate).catch((error) => { if (isCurrent(ctx)) log("ICE send failed", String(error)); });
       };
-      pc.onconnectionstatechange = () => {
-        setText("peerState", pc.connectionState);
-        log("peer state", pc.connectionState);
+      peer.onconnectionstatechange = () => {
+        if (!isCurrent(ctx) || pc !== peer) return;
+        setText("peerState", peer.connectionState);
+        ready = peer.connectionState === "connected";
+        updateControls();
+        log("peer state", peer.connectionState);
       };
-      pc.oniceconnectionstatechange = () => log("ICE state", pc.iceConnectionState);
-      pc.addTransceiver("video", { direction: "recvonly" });
-      pc.addTransceiver("audio", { direction: "recvonly" });
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      const answer = await request(`/webrtc/sessions/${sessionId}/offer`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type }),
+      peer.oniceconnectionstatechange = () => { if (isCurrent(ctx)) log("ICE state", peer.iceConnectionState); };
+      peer.addTransceiver("video", { direction: "recvonly" });
+      peer.addTransceiver("audio", { direction: "recvonly" });
+      const offer = await peer.createOffer();
+      assertCurrent(ctx);
+      await peer.setLocalDescription(offer);
+      assertCurrent(ctx);
+      const answer = await request(`/webrtc/sessions/${ctx.id}/offer`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sdp: peer.localDescription.sdp, type: peer.localDescription.type }),
       });
-      await pc.setRemoteDescription(answer);
-      disconnectButton.disabled = false;
-      streamButton.disabled = false;
-      setActivePose("neutral_resting");
+      assertCurrent(ctx);
+      await peer.setRemoteDescription(answer);
+      assertCurrent(ctx);
+      ready = peer.connectionState === "connected";
+      updateControls();
       startStatusPolling();
-      log("session connected", created);
+      log("session negotiated", created);
     } catch (error) {
-      log("connect failed", String(error));
-      await endSession();
+      if (epoch === sessionEpoch) { log("connect failed", String(error)); await endSession(); }
     } finally {
-      connectButton.disabled = Boolean(sessionId);
+      if (epoch === sessionEpoch) connectButton.disabled = Boolean(sessionId);
     }
   }
-
-  async function queuePose(poseId, replacePending = true) {
-    if (!sessionId) throw new Error("Create a session first.");
-    const body = await request(`/webrtc/sessions/${sessionId}/pose`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        pose_id: poseId,
-        effective: "next_boundary",
-        replace_pending: replacePending,
-      }),
+  async function queuePose(poseId, replacePending = true, ctx = context()) {
+    assertCurrent(ctx);
+    const body = await request(`/webrtc/sessions/${ctx.id}/pose`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pose_id: poseId, effective: "next_boundary", replace_pending: replacePending }),
     });
+    if (!isCurrent(ctx)) return;
     applyPoseStatus(body);
     log("pose queued", body);
   }
-
-  async function sendEvent(event, reactionIntent = null) {
-    if (!sessionId) throw new Error("Create a session first.");
-    if (event === "user_speech_started") {
-      turnId = `pose_lab_${Date.now()}_${seq + 1}`;
+  function cancelPendingUpload() {
+    const upload = pendingUpload || cancellingUpload;
+    if (upload) {
+      upload.cancelled = true;
+      upload.controller.abort();
+      cancellingUpload = upload;
+      updateControls();
     }
-    let eventTurnId = ensureTurn();
-    if (event === "assistant_turn_aborted") {
-      // A barge-in starts a new user turn while the previous reply still owns
-      // the stream. Target that reply, not the newly created user turn.
-      const current = await request(`/webrtc/sessions/${sessionId}/status`);
-      const activeTurnId = current.pose_protocol && current.pose_protocol.active_turn_id;
-      if (current.active_stream && !activeTurnId) {
-        throw new Error("Active reply has no turn ID; refresh status before aborting.");
-      }
-      eventTurnId = activeTurnId || eventTurnId;
-    }
-    const payload = {
-      event,
-      turn_id: eventTurnId,
-      seq: nextSequence(),
-    };
-    if (event === "assistant_reaction_ready") payload.reaction_intent = reactionIntent || "none";
-    const body = await request(`/webrtc/sessions/${sessionId}/events`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    applyPoseStatus(body);
-    log(`event ${event}`, body);
-    if (event === "assistant_turn_aborted" && body.accepted && turnId === eventTurnId) {
-      turnId = null;
-    }
-    return body;
+    return upload;
   }
-
-  async function resolveAudioFile() {
+  async function sendEvent(event, reactionIntent = null, ctx = context()) {
+    assertCurrent(ctx);
+    if (event === "assistant_turn_aborted") ++demoEpoch;
+    const abortingUpload = event === "assistant_turn_aborted" ? cancelPendingUpload() : null;
+    try {
+      if (abortingUpload && !abortingUpload.turnId) {
+        log("local audio load cancelled");
+        return { accepted: false, reason: "audio_load_cancelled" };
+      }
+      if (event === "user_speech_started") turnId = newTurn();
+      let eventTurnId = ensureTurn();
+      if (event === "assistant_turn_aborted") {
+        const current = await request(`/webrtc/sessions/${ctx.id}/status`);
+        assertCurrent(ctx);
+        const protocol = current.pose_protocol || {};
+        const activeTurnId = protocol.active_turn_id;
+        if (current.active_stream && !activeTurnId) throw new Error("Active reply has no turn ID; refresh status before aborting.");
+        if (abortingUpload && abortingUpload.turnId && activeTurnId !== abortingUpload.turnId) {
+          // A newer user event can supersede an upload before it is reserved.
+          // Its higher sequence already prevents that delayed upload from
+          // starting. Preserve the new user's ID and never abort its reply.
+          if (!abortingUpload.dispatched || protocol.last_seq >= abortingUpload.seq) {
+            log("pending reply already superseded", { turn_id: abortingUpload.turnId });
+            return { accepted: false, reason: "pending_reply_already_superseded" };
+          }
+          throw new Error("Pending reply ownership is unknown; end the session to stop it.");
+        }
+        eventTurnId = activeTurnId || eventTurnId;
+      }
+      const payload = { event, turn_id: eventTurnId, seq: nextSequence() };
+      if (event === "assistant_reaction_ready") payload.reaction_intent = reactionIntent || "none";
+      const body = await request(`/webrtc/sessions/${ctx.id}/events`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+      });
+      if (!isCurrent(ctx)) return body;
+      applyPoseStatus(body);
+      log(`event ${event}`, body);
+      if (event === "assistant_turn_aborted" && body.accepted && turnId === eventTurnId) turnId = null;
+      return body;
+    } finally {
+      if (isCurrent(ctx) && abortingUpload && cancellingUpload === abortingUpload) {
+        cancellingUpload = null;
+        updateControls();
+        await pollStatus(ctx);
+      }
+    }
+  }
+  async function resolveAudioFile(signal) {
     const selected = document.getElementById("audioFile").files[0];
     if (selected) return selected;
     if (!SAMPLE_AUDIO_URL) throw new Error("Choose an audio file.");
-    const response = await fetch(SAMPLE_AUDIO_URL);
+    const response = await fetch(SAMPLE_AUDIO_URL, { signal });
     if (!response.ok) throw new Error(`Bundled sample unavailable (${response.status}); choose a local WAV.`);
     const blob = await response.blob();
     return new File([blob], "sample_tts.wav", { type: blob.type || "audio/wav" });
   }
-
   async function streamAudio() {
-    if (!sessionId) return;
-    streamButton.disabled = true;
+    const ctx = context();
+    if (!isCurrent(ctx) || !ready || !motionReady || pendingUpload || cancellingUpload || activeStream || !motionSettled) return;
+    const upload = { cancelled: false, dispatched: false, completed: false, turnId: null, controller: new AbortController() };
+    pendingUpload = upload;
+    updateControls();
+    let responsePromise = null;
     try {
-      const audioFile = await resolveAudioFile();
+      const audioFile = await resolveAudioFile(upload.controller.signal);
+      assertCurrent(ctx);
+      if (upload.cancelled) return;
       const intent = document.getElementById("reactionIntent").value;
-      const reactionPose = REACTION_POSES[intent];
-      const sequence = [...(reactionPose ? [reactionPose] : []), "speaking_direct", "neutral_resting"];
-      const form = new FormData();
-      form.append("audio_file", audioFile, audioFile.name);
-      form.append("reaction_intent", intent);
-      form.append("pose_id", "speaking_direct");
-      form.append("pose_sequence", JSON.stringify(sequence));
-      form.append("turn_id", ensureTurn());
-      form.append("seq", String(nextSequence()));
-      form.append("effective", "next_boundary");
-      form.append("mouth_mode", "lip_sync");
-      form.append("audio_start", "immediate");
-      setText("streamState", "uploading");
-      const body = await request(`/webrtc/sessions/${sessionId}/stream`, { method: "POST", body: form });
-      setText("streamState", "processing");
-      setIdlePoseControlsDisabled(true);
-      applyPoseStatus(body);
-      log("sample TTS accepted", body);
+      const movement = document.getElementById("speechMovement").value;
+      await serializeProtocol(async () => {
+        if (upload.cancelled) return;
+        upload.turnId = newTurn("reply");
+        turnId = upload.turnId;
+        // Establish the pending reply identity before uploading any audio.
+        // A later abort can target it even when multipart upload is stalled;
+        // a later user event fences its lower stream sequence instead.
+        const preflight = await sendEvent("assistant_thinking", null, ctx);
+        assertCurrent(ctx);
+        if (!preflight.accepted) throw new Error("Reply preflight was rejected; refresh session status.");
+        if (upload.cancelled) return;
+        const form = new FormData();
+        form.append("audio_file", audioFile, audioFile.name);
+        form.append("reaction_intent", intent);
+        form.append("pose_id", "speaking_direct");
+        if (movement === "talking_smiling") {
+          form.append("pose_plan", JSON.stringify({
+            version: 2, clock: "audio_progress", switch_mode: "next_boundary", on_complete: "neutral_resting",
+            segments: [{ at_permille: 0, pose_id: "speaking_direct" }, { at_permille: 350, pose_id: "light_smile" }, { at_permille: 700, pose_id: "speaking_direct" }],
+          }));
+        } else {
+          const reactionPose = REACTION_POSES[intent];
+          form.append("pose_sequence", JSON.stringify([...(reactionPose ? [reactionPose] : []), "speaking_direct", "neutral_resting"]));
+        }
+        form.append("turn_id", upload.turnId);
+        upload.seq = nextSequence();
+        form.append("seq", String(upload.seq));
+        form.append("effective", "next_boundary");
+        form.append("mouth_mode", "lip_sync");
+        form.append("audio_start", "immediate");
+        upload.dispatched = true;
+        setText("streamState", "uploading / preparing");
+        // Release the ordered event queue immediately after dispatch. Await
+        // the response outside it so upload / preparation cannot block abort.
+        responsePromise = request(`/webrtc/sessions/${ctx.id}/stream`, { method: "POST", body: form, signal: upload.controller.signal }).then(
+          (body) => { upload.completed = true; return { body }; },
+          (error) => { upload.completed = true; return { error }; },
+        );
+      }, ctx);
+      if (!responsePromise) return;
+      const result = await responsePromise;
+      assertCurrent(ctx);
+      if (result.error) throw result.error;
+      applyPoseStatus(result.body);
+      log("sample TTS response", result.body);
     } catch (error) {
-      setText("streamState", "error");
-      log("stream failed", String(error));
+      if (isCurrent(ctx)) { setText("streamState", "error"); log("stream failed", String(error)); }
     } finally {
-      streamButton.disabled = false;
-    }
-  }
-
-  async function pollStatus() {
-    if (!sessionId) return;
-    try {
-      const body = await request(`/webrtc/sessions/${sessionId}/status`);
-      applyPoseStatus(body);
-      setText("streamState", body.active_stream ? "active" : "idle");
-      setIdlePoseControlsDisabled(Boolean(body.active_stream));
-    } catch (error) {
-      log("status failed", String(error));
-    }
-  }
-
-  function startStatusPolling() {
-    clearInterval(pollTimer);
-    pollTimer = setInterval(pollStatus, 1000);
-    pollStatus();
-  }
-
-  async function endSession() {
-    clearInterval(pollTimer);
-    pollTimer = null;
-    const closingId = sessionId;
-    sessionId = null;
-    if (pc) {
-      pc.close();
-      pc = null;
-    }
-    remoteStream = null;
-    remoteVideo.srcObject = null;
-    emptyState.hidden = false;
-    disconnectButton.disabled = true;
-    streamButton.disabled = true;
-    connectButton.disabled = false;
-    setText("sessionState", "none");
-    setText("peerState", "idle");
-    setText("queueState", "none");
-    setText("streamState", "idle");
-    setText("renderedPoseState", "none");
-    setIdlePoseControlsDisabled(false);
-    if (closingId) {
-      try {
-        await request(`/webrtc/sessions/${closingId}`, { method: "DELETE" });
-        log("session ended", closingId);
-      } catch (error) {
-        log("delete failed", String(error));
+      if (isCurrent(ctx) && pendingUpload === upload) {
+        pendingUpload = null;
+        // Status decides whether speech / recovery still owns the session.
+        // Keep the button blocked until that response arrives.
+        if (upload.dispatched) activeStream = true;
+        updateControls();
+        await pollStatus(ctx);
       }
     }
   }
+  async function pollStatus(ctx = context()) {
+    if (!isCurrent(ctx)) return;
+    const statusRequest = ++latestStatusRequest;
+    try {
+      const body = await request(`/webrtc/sessions/${ctx.id}/status`);
+      if (!isCurrent(ctx) || statusRequest !== latestStatusRequest) return;
+      try { applySessionStatus(body); }
+      catch (error) { log("motion bank verification failed", String(error)); await endSession(); }
+    } catch (error) { if (isCurrent(ctx)) log("status failed", String(error)); }
+  }
+  function startStatusPolling() {
+    clearInterval(pollTimer);
+    const ctx = context();
+    pollTimer = setInterval(() => pollStatus(ctx), 1000);
+    pollStatus(ctx);
+  }
+  async function endSession() {
+    const closingId = sessionId;
+    ++sessionEpoch;
+    ++demoEpoch;
+    clearInterval(pollTimer);
+    pollTimer = null;
+    sessionId = null;
+    const peer = pc;
+    pc = null;
+    if (peer) peer.close();
+    if (pendingUpload) pendingUpload.controller.abort();
+    if (cancellingUpload) cancellingUpload.controller.abort();
+    pendingUpload = null;
+    cancellingUpload = null;
+    activeStream = false;
+    motionReady = false;
+    ready = false;
+    motionSettled = true;
+    turnId = null;
+    seq = 0;
+    protocolChain = Promise.resolve();
+    remoteVideo.srcObject = null;
+    emptyState.hidden = false;
+    disconnectButton.disabled = true;
+    connectButton.disabled = false;
+    characterSelect.disabled = !CHARACTERS.length;
+    for (const [id, value] of Object.entries({ sessionState: "none", peerState: "idle", queueState: "none", streamState: "idle", renderedPoseState: "none", seqState: 0, bankState: "unchecked" })) setText(id, value);
+    updateControls();
+    if (closingId) {
+      try { await request(`/webrtc/sessions/${closingId}`, { method: "DELETE" }); log("session ended", closingId); }
+      catch (error) { log("delete failed", String(error)); }
+    }
+  }
 
+  for (const character of CHARACTERS) {
+    const option = document.createElement("option");
+    option.value = character.id;
+    option.textContent = character.label;
+    characterSelect.appendChild(option);
+  }
+  if (CHARACTERS.length) characterSelect.value = SELECTED_CHARACTER;
+  else {
+    const option = document.createElement("option");
+    option.textContent = "Legacy six-pose sample";
+    characterSelect.appendChild(option);
+    characterSelect.disabled = true;
+  }
+  characterSelect.addEventListener("change", () => {
+    if (sessionId || connectButton.disabled) return;
+    window.location.assign(`/webrtc/pose-lab?character=${encodeURIComponent(characterSelect.value)}`);
+  });
+  setText("bankWarning", EXPECTED_MOTION
+    ? "This character’s prepared motion bank is verified before streaming. Visual approval is still required."
+    : "Legacy sample: no selected motion-bank verification. Configure the character catalog to test prepared three-pose avatars.");
   POSE_IDS.forEach((poseId) => {
     const button = document.createElement("button");
     button.className = "pose-button";
@@ -581,57 +693,57 @@ def get_webrtc_pose_lab_html(
   });
   document.querySelectorAll("[data-event]").forEach((button) => {
     button.addEventListener("click", () => {
-      serializeProtocol(() => sendEvent(button.dataset.event))
-        .catch((error) => log("event failed", String(error)));
+      // Cancel bytes immediately; the ordered abort still reaches the server
+      // to fence late upload completion or cancel an already-owned stream.
+      if (button.dataset.event === "assistant_turn_aborted") { ++demoEpoch; cancelPendingUpload(); }
+      serializeProtocol((ctx) => sendEvent(button.dataset.event, null, ctx)).catch((error) => log("event failed", String(error)));
     });
   });
   connectButton.addEventListener("click", createAndConnect);
   disconnectButton.addEventListener("click", endSession);
   document.getElementById("cycleButton").addEventListener("click", async () => {
+    const ctx = context();
     try {
-      const cyclePoseIds = [
-        ...POSE_IDS.filter((poseId) => poseId !== "neutral_resting"),
-        "neutral_resting",
-      ];
-      for (let index = 0; index < cyclePoseIds.length; index += 1) {
-        await queuePose(cyclePoseIds[index], index === 0);
-      }
-    } catch (error) {
-      log("pose cycle failed", String(error));
-    }
+      const cyclePoseIds = [...POSE_IDS.filter((poseId) => poseId !== "neutral_resting"), "neutral_resting"];
+      for (let index = 0; index < cyclePoseIds.length; index += 1) await queuePose(cyclePoseIds[index], index === 0, ctx);
+    } catch (error) { if (isCurrent(ctx)) log("pose cycle failed", String(error)); }
   });
-  streamButton.addEventListener("click", () => {
-    serializeProtocol(streamAudio).catch((error) => log("stream failed", String(error)));
-  });
+  streamButton.addEventListener("click", streamAudio);
   remoteVideo.addEventListener("click", () => remoteVideo.play().catch(() => {}));
   document.getElementById("reactionButton").addEventListener("click", () => {
-    serializeProtocol(() => sendEvent(
-      "assistant_reaction_ready",
-      document.getElementById("reactionIntent").value,
-    ))
-      .catch((error) => log("reaction failed", String(error)));
+    const intent = document.getElementById("reactionIntent").value;
+    serializeProtocol((ctx) => sendEvent("assistant_reaction_ready", intent, ctx)).catch((error) => log("reaction failed", String(error)));
   });
-  document.getElementById("demoButton").addEventListener("click", () => {
-    serializeProtocol(async () => {
-      await sendEvent("user_speech_started");
+  document.getElementById("demoButton").addEventListener("click", async () => {
+    const ctx = context();
+    const epoch = ++demoEpoch;
+    try {
+      await serializeProtocol(() => sendEvent("user_speech_started", null, ctx), ctx);
+      const demoTurn = turnId;
+      const step = (event, intent = null) => serializeProtocol(() => {
+        if (epoch !== demoEpoch || turnId !== demoTurn) throw new Error("Demo stopped because its turn ended or changed.");
+        return sendEvent(event, intent, ctx);
+      }, ctx);
       await new Promise((resolve) => setTimeout(resolve, 700));
-      await sendEvent("user_speech_ended");
-      await sendEvent("assistant_thinking");
+      await step("user_speech_ended");
+      await step("assistant_thinking");
       await new Promise((resolve) => setTimeout(resolve, 700));
-      await sendEvent("assistant_reaction_ready", document.getElementById("reactionIntent").value);
-    }).catch((error) => log("demo failed", String(error)));
+      await step("assistant_reaction_ready", document.getElementById("reactionIntent").value);
+    } catch (error) { if (isCurrent(ctx)) log("demo failed", String(error)); }
   });
   window.addEventListener("beforeunload", () => {
-    if (sessionId) {
-      fetch(`/webrtc/sessions/${sessionId}`, { method: "DELETE", keepalive: true }).catch(() => {});
-    }
+    if (sessionId) fetch(`/webrtc/sessions/${sessionId}`, { method: "DELETE", keepalive: true }).catch(() => {});
     if (pc) pc.close();
   });
   setActivePose("neutral_resting");
-  log("lab ready", { pose_set_id: POSE_SET.pose_set_id, poses: POSE_IDS });
+  updateControls();
+  log("lab ready", { character: SELECTED_CHARACTER, pose_set_id: POSE_SET.pose_set_id, poses: POSE_IDS });
 </script>
 </body>
 </html>"""
         .replace("__POSE_SET__", embedded_pose_set)
         .replace("__SAMPLE_AUDIO_URL__", embedded_sample_url)
+        .replace("__CHARACTERS__", embedded_characters)
+        .replace("__SELECTED_CHARACTER__", embedded_selected)
+        .replace("__EXPECTED_MOTION__", embedded_motion)
     )

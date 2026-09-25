@@ -95,12 +95,12 @@ class PoseWebRTCLabTests(unittest.TestCase):
         page = get_webrtc_pose_lab_html()
         for endpoint in (
             "/webrtc/sessions/create?",
-            "/webrtc/sessions/${sessionId}/offer",
-            "/webrtc/sessions/${sessionId}/ice",
-            "/webrtc/sessions/${sessionId}/events",
-            "/webrtc/sessions/${sessionId}/pose",
-            "/webrtc/sessions/${sessionId}/stream",
-            "/webrtc/sessions/${sessionId}/status",
+            "/webrtc/sessions/${ctx.id}/offer",
+            "/webrtc/sessions/${ctx.id}/ice",
+            "/webrtc/sessions/${ctx.id}/events",
+            "/webrtc/sessions/${ctx.id}/pose",
+            "/webrtc/sessions/${ctx.id}/stream",
+            "/webrtc/sessions/${ctx.id}/status",
         ):
             self.assertIn(endpoint, page)
         for pose_id in POSE_IDS:
@@ -111,11 +111,11 @@ class PoseWebRTCLabTests(unittest.TestCase):
         self.assertIn("lip_sync", page)
         self.assertIn("replace_pending: replacePending", page)
         self.assertIn(
-            "await queuePose(cyclePoseIds[index], index === 0)",
+            "await queuePose(cyclePoseIds[index], index === 0, ctx)",
             page,
         )
         self.assertIn("rendered_pose_id", page)
-        self.assertIn("setIdlePoseControlsDisabled(Boolean(body.active_stream))", page)
+        self.assertIn("activeStream = Boolean(body.active_stream)", page)
 
     def test_page_embeds_valid_pose_set_without_external_dependencies(self):
         page = get_webrtc_pose_lab_html()

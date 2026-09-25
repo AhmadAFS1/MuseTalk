@@ -39,6 +39,19 @@ class MotionPolicyTest(unittest.TestCase):
             self.assertEqual({f["pose_id"] for f in result["frames"]}, {IDLE})
             self.assertEqual(result["switches"], [])
 
+    def test_switch_waits_for_the_last_composed_anchor_to_be_admissible(self):
+        # At 24Hz source / 20Hz output, generation frame 6 would enter a pose.
+        # The compositor still holds idle source 4 from frame 5; source 5 has
+        # not been displayed. A safe edge for that future source cannot justify
+        # mixing the actual, incompatible anchor into the incoming face.
+        self.manifest["edges"][IDLE][TALK][4]["admissible"] = False
+        result = self.plan(10)
+        first = result["switches"][0]
+        self.assertEqual(first["frame"], 7)
+        self.assertEqual(result["frames"][6]["pose_id"], IDLE)
+        self.assertEqual(result["frames"][6]["source_frame"], 5)
+        self.assertEqual(first["target_frame"], 6)
+
     def test_three_seconds_enters_talking_then_returns_before_end(self):
         result = self.plan(3)
         self.assertFalse(result["short_reply"])

@@ -1305,10 +1305,15 @@ async def worker_capabilities():
 
 
 @app.get("/webrtc/pose-lab", response_class=HTMLResponse)
-async def webrtc_pose_lab():
-    """Standalone browser UI for the six-pose worker contract."""
+async def webrtc_pose_lab(character: Optional[str] = None):
+    """Browser playback of a configured, source-verified character package."""
     _require_webrtc()
-    return HTMLResponse(content=get_webrtc_pose_lab_html())
+    from scripts.webrtc_pose_lab_catalog import PoseLabCatalogError, pose_lab_context
+    try:
+        context = await asyncio.to_thread(pose_lab_context, character)
+    except PoseLabCatalogError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+    return HTMLResponse(content=get_webrtc_pose_lab_html(**context))
 
 
 @app.get("/webrtc/pose-lab/sample-audio")

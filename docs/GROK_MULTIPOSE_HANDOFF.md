@@ -5,7 +5,24 @@ checkpoint records completed work and remaining requirements; it does not mark
 the overall goal complete. Inspect git status and live processes before acting.
 Preserve user assets, approved source masters, and any newer worktree changes.
 
-## Objective and current status
+## Latest checkpoint — client and anchor follow-up
+
+Start with [the current implementation plan](MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md)
+and [the client/anchor follow-up](WEBRTC_MULTIPOSE_CLIENT_ANCHOR_2026-09-25.md).
+They supersede the historical checkpoint counts below. Current validation is
+262 Python regressions, 15 Node driver tests, and three targeted Latina receiver
+recordings after the actual outgoing-anchor fix (688 frames, four returns in
+0.3485–0.4139 seconds). The preceding v6 native VP8 matrix contains 18 recordings
+across three identities. Do not claim those 18 exercised the newer code.
+
+Real Chromium execution awaits explicit approval following an automatic-review
+rejection; dependency provisioning alone was later approved. No browser was
+executed. See the follow-up for exact commands, storage constraints, tests and
+remaining face-texture/blend issues. Human normal-speed acceptance and actual
+mobile integration remain open. No package is reviewed. Inspect live processes
+before starting a server; no handoff grants permission to bypass pending review.
+
+## Historical objective and checkpoint
 
 Build a reusable LTX 2.3 portrait → idle/talking/smiling → MuseTalk character tool
 and a persistent FaceTime-like WebRTC runtime. Speech under three seconds keeps

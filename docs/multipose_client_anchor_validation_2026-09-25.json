@@ -1,0 +1,597 @@
+{
+  "version": 1,
+  "created_utc": "2026-09-25T17:46:31.263886+00:00",
+  "base_commit": "ec805a50eb763afd9ba87c56ef91accc13de2d3a",
+  "capture_scope": "Post-run current-file checkpoint. HTTP evidence independently captures four matching source files. Earlier aiortc recordings exercise corrected planner/media, not the final browser template. No claim of a complete startup code snapshot for those recordings.",
+  "profile": "native-vp8; TensorRT baseline; OMP/OpenBLAS/MKL=4; unreviewed local pilot",
+  "changes": [
+    "Use actual previous composed source frame for transition edge selection",
+    "Resolve browser characters from prepared source-bound registry packages",
+    "Verify created session routing/source hashes before negotiation",
+    "Order preflight reservation and stream dispatch without blocking cancellation on response",
+    "Preserve assistant/user ownership and invalidate stale session/demo continuations",
+    "Add real Chromium driver with CPU assertion tests; browser execution pending"
+  ],
+  "code_files": {
+    "api_server.py": {
+      "path": "/workspace/MuseTalk/api_server.py",
+      "sha256": "8fb02d45afacc2707f6ce458a79fab8fada794b09c22f7d7fd6b8fa2c8f479f5",
+      "bytes": 232292
+    },
+    "scripts/motion_transitions.py": {
+      "path": "/workspace/MuseTalk/scripts/motion_transitions.py",
+      "sha256": "18588017c7312a45f45c7c5dffdaafe0760d2da519d34e69e822486e636dc44a",
+      "bytes": 13053
+    },
+    "scripts/test_webrtc_pose_lab_browser.mjs": {
+      "path": "/workspace/MuseTalk/scripts/test_webrtc_pose_lab_browser.mjs",
+      "sha256": "dbff55e843f09bce7b852dbd2d5114cdc94583e09ce5d69366957d902aed4b47",
+      "bytes": 46995
+    },
+    "scripts/webrtc_pose_lab_catalog.py": {
+      "path": "/workspace/MuseTalk/scripts/webrtc_pose_lab_catalog.py",
+      "sha256": "c22725fbe12031ec854fdb84acb7bb718f6d90b916cf1f329fe327aae7e01675",
+      "bytes": 6891
+    },
+    "templates/webrtc_pose_lab.py": {
+      "path": "/workspace/MuseTalk/templates/webrtc_pose_lab.py",
+      "sha256": "d763f0d334b4e7b1f5ba7c606c6d2b45a85a66bb2c8c20d25b1910db3d5b3107",
+      "bytes": 33741
+    },
+    "test_motion_transitions.py": {
+      "path": "/workspace/MuseTalk/test_motion_transitions.py",
+      "sha256": "fa06f95fb726133766ca64c7ce05d9cbb8d9e336562de2ff25ef16a8def7b0d3",
+      "bytes": 8607
+    },
+    "test_webrtc_pose_lab.py": {
+      "path": "/workspace/MuseTalk/test_webrtc_pose_lab.py",
+      "sha256": "e8a34e1e361061e8600cf676bca82f3d3dfc578330399a6db24a1957631679f0",
+      "bytes": 5222
+    },
+    "test_webrtc_pose_lab_browser.mjs": {
+      "path": "/workspace/MuseTalk/test_webrtc_pose_lab_browser.mjs",
+      "sha256": "88c798c2c36dd882d4b5a0d38b4c7d7fa6512e4db6139c5a25b30ae84a272359",
+      "bytes": 10759
+    },
+    "test_webrtc_pose_lab_catalog.py": {
+      "path": "/workspace/MuseTalk/test_webrtc_pose_lab_catalog.py",
+      "sha256": "ddeff6f077f7bc2bcd252e8dab20e98b046246447d65bc204f6853a6220de7f1",
+      "bytes": 8242
+    },
+    "test_webrtc_pose_lab_client.py": {
+      "path": "/workspace/MuseTalk/test_webrtc_pose_lab_client.py",
+      "sha256": "fde7842d6fe74bdd42f09076a71ab5c954fac4d689335b394bb4c34b778337a5",
+      "bytes": 20048
+    },
+    "test_webrtc_pose_lab_preflight.py": {
+      "path": "/workspace/MuseTalk/test_webrtc_pose_lab_preflight.py",
+      "sha256": "727204c0c78365713b9bc16af139b769547900b133f09018439a71a65d4d16d7",
+      "bytes": 4160
+    },
+    "scripts/hls_gpu_scheduler.py": {
+      "path": "/workspace/MuseTalk/scripts/hls_gpu_scheduler.py",
+      "sha256": "a5156d339d9ce34b78d16a704f2df2210c1c730bbf7df9d6142c2987e855bdf2",
+      "bytes": 106230
+    },
+    "scripts/api_avatar.py": {
+      "path": "/workspace/MuseTalk/scripts/api_avatar.py",
+      "sha256": "1a1ad6fdfa3a93b7e036e73e758b24bd198e28d62ac6cc20e9ec49580f718e70",
+      "bytes": 71972
+    },
+    "scripts/webrtc_manager.py": {
+      "path": "/workspace/MuseTalk/scripts/webrtc_manager.py",
+      "sha256": "2308da6965c77fbfb79f372f9f7906c05a418020c10b70f76b1746b70d4d1d85",
+      "bytes": 48157
+    },
+    "scripts/webrtc_motion_playback.py": {
+      "path": "/workspace/MuseTalk/scripts/webrtc_motion_playback.py",
+      "sha256": "ca2ceec89c858e6e4ff877750e7dc50c3aa470490a2552036603e7551a687972",
+      "bytes": 22397
+    },
+    "scripts/webrtc_tracks.py": {
+      "path": "/workspace/MuseTalk/scripts/webrtc_tracks.py",
+      "sha256": "db0a4bdbe50971cd0ed5c55f48f9629801132221d115b4f6055530162296bda8",
+      "bytes": 133400
+    },
+    "scripts/webrtc_native_vp8.py": {
+      "path": "/workspace/MuseTalk/scripts/webrtc_native_vp8.py",
+      "sha256": "0b8d304b45c24ba75cc29cc1aa75b757a4be5d576b45d51f9268afb0178225c0",
+      "bytes": 11335
+    },
+    "scripts/test_webrtc_motion_transitions.py": {
+      "path": "/workspace/MuseTalk/scripts/test_webrtc_motion_transitions.py",
+      "sha256": "93c94b988d2d366c172f56b98913fa45d751ace611f26ee437eaeaecad288818",
+      "bytes": 23791
+    },
+    "scripts/review_motion_evidence.py": {
+      "path": "/workspace/MuseTalk/scripts/review_motion_evidence.py",
+      "sha256": "855cbf44c438f809fbbc591fe74eacef11b5ed88da257748e05c8ac89b6b81c1",
+      "bytes": 17570
+    }
+  },
+  "tests": {
+    "python": {
+      "passed": 262,
+      "seconds": 13.104,
+      "log": {
+        "path": "/workspace/experiments/multipose_client_validation_20260925/final-regressions.log",
+        "sha256": "ad3b8e67499ce367b88a333622219d580b18975c46fa38f4af1560fc6d2b1dea",
+        "bytes": 174053
+      }
+    },
+    "node_driver": {
+      "passed": 15,
+      "log": {
+        "path": "/workspace/experiments/multipose_client_validation_20260925/browser-driver-cpu-tests-final.log",
+        "sha256": "6dbf5bee99fdf078e72e1b40d2f4d10388f60f8686e42457d190715215d72661",
+        "bytes": 3265
+      },
+      "scope": "CPU-only; no Chromium executed"
+    }
+  },
+  "received_media": {
+    "cases": 3,
+    "saved_frames": 688,
+    "exact_saved_frame_interval_seconds": 0.05,
+    "returns": 4,
+    "min_return_seconds": 0.3485,
+    "max_return_seconds": 0.4139,
+    "verification": {
+      "version": 1,
+      "label": "Latina: actual outgoing anchor correction",
+      "automated_validation_passed": true,
+      "visual_acceptance": "pending",
+      "atlas": "/workspace/experiments/realtime_characters/latina_guided_20260925/motion-atlas.json",
+      "atlas_sha256": "9b5ed0f66e1ff2073128df5cca419606b70ab1c1a7db83a25c8efe7f173dd775",
+      "routing_sha256": "e8f8b2de6a110aff5f908fe2e87dcd697143666359df3637b4ed099cd73ea3c0",
+      "source_hashes": {
+        "neutral_resting": "ee675cb4fdc230f1a67f995d3a22975c1954b0238b8c34a57827eec23379a14c",
+        "speaking_direct": "84c5bc80b858c864e5a4578f19eb37c66da4041de0ffe07d8b1e22f6d808bae0",
+        "light_smile": "a28498e05356de4eba8e770ca85483db33bd5e4266491ae3c9586dc9624a12c9"
+      },
+      "source_frame_counts": {
+        "neutral_resting": 241,
+        "speaking_direct": 241,
+        "light_smile": 241
+      },
+      "recordings": [
+        {
+          "case": "interrupted-and-next-turn",
+          "video": "interrupted-and-next-turn.mp4",
+          "video_sha256": "6b7e72a5d40035b0982635007363f444b4aaa3a0a3684d030ae2d8931d39d110",
+          "evidence_sha256": "2ea74d2626d44f6e044140dc52f6d64a740645d8d5c4febfde5ec017836368ec",
+          "duration_seconds": 11.180944,
+          "fps": 20,
+          "turn_count": 2,
+          "return_seconds": [
+            0.4139,
+            0.35
+          ],
+          "entry_seconds": [
+            0.2957,
+            0.3002
+          ],
+          "longest_idle_hold_frames": 1,
+          "timestamp_anomalies": 0,
+          "saved_video_cadence": {
+            "decoded_frames": 222,
+            "receiver_frames": 222,
+            "time_base": "1/90000",
+            "first_pts": 7285,
+            "last_pts": 1001785,
+            "first_seconds": 0.08094444444444444,
+            "last_seconds": 11.130944444444445,
+            "expected_frame_seconds": 0.05,
+            "tolerance_seconds": 1.1111111111111112e-05,
+            "min_frame_seconds": 0.05,
+            "max_frame_seconds": 0.05,
+            "max_frame_error_seconds": 0.0,
+            "validated": true
+          },
+          "observed_poses": [
+            [
+              "neutral_resting",
+              "speaking_direct"
+            ],
+            [
+              "neutral_resting"
+            ]
+          ]
+        },
+        {
+          "case": "long-talking-smiling",
+          "video": "long-talking-smiling.mp4",
+          "video_sha256": "314fc5ea1e44e14e35c56bc515ea62f92fb735104fdf438e06434247266df219",
+          "evidence_sha256": "c168e6032807b64b4a324ed0565781f18f673836d43076e29a70c040e7eb7dac",
+          "duration_seconds": 15.930989,
+          "fps": 20,
+          "turn_count": 1,
+          "return_seconds": [
+            0.3485
+          ],
+          "entry_seconds": [
+            0.2961
+          ],
+          "longest_idle_hold_frames": 1,
+          "timestamp_anomalies": 0,
+          "saved_video_cadence": {
+            "decoded_frames": 317,
+            "receiver_frames": 317,
+            "time_base": "1/90000",
+            "first_pts": 7289,
+            "last_pts": 1429289,
+            "first_seconds": 0.08098888888888889,
+            "last_seconds": 15.880988888888888,
+            "expected_frame_seconds": 0.05,
+            "tolerance_seconds": 1.1111111111111112e-05,
+            "min_frame_seconds": 0.05,
+            "max_frame_seconds": 0.05,
+            "max_frame_error_seconds": 0.0,
+            "validated": true
+          },
+          "observed_poses": [
+            [
+              "light_smile",
+              "neutral_resting",
+              "speaking_direct"
+            ]
+          ]
+        },
+        {
+          "case": "short-idle",
+          "video": "short-idle.mp4",
+          "video_sha256": "9bfda3ace8a921bb6ccb1eeab31b6b8adc3799558ca1c7566a5e422f2143b247",
+          "evidence_sha256": "a6449b1c65bdf218982125812259eb22baec859ceb277ecf6f6640e23f57743a",
+          "duration_seconds": 7.533544,
+          "fps": 20,
+          "turn_count": 1,
+          "return_seconds": [
+            0.3992
+          ],
+          "entry_seconds": [
+            0.2957
+          ],
+          "longest_idle_hold_frames": 1,
+          "timestamp_anomalies": 0,
+          "saved_video_cadence": {
+            "decoded_frames": 149,
+            "receiver_frames": 149,
+            "time_base": "1/90000",
+            "first_pts": 7519,
+            "last_pts": 673519,
+            "first_seconds": 0.08354444444444445,
+            "last_seconds": 7.483544444444444,
+            "expected_frame_seconds": 0.05,
+            "tolerance_seconds": 1.1111111111111112e-05,
+            "min_frame_seconds": 0.05,
+            "max_frame_seconds": 0.05,
+            "max_frame_error_seconds": 0.0,
+            "validated": true
+          },
+          "observed_poses": [
+            [
+              "neutral_resting"
+            ]
+          ]
+        }
+      ]
+    },
+    "scope": "Three targeted Latina cases; previous broader v6 matrix predates these changes"
+  },
+  "http_integration": {
+    "passed": true,
+    "characters": [
+      "indian_20260925",
+      "japanese_20260925",
+      "latina_guided_20260925"
+    ],
+    "evidence": {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/http-catalog-validation/evidence.json",
+      "sha256": "c20df6d22b5b4fa4ecaf0b9e3c924c8ad80872e5c34928fff0e6947ab87f694b",
+      "bytes": 63612
+    },
+    "scope": "Actual HTTP page, session creation/status/deletion. No browser, SDP, RTP, playback, or visual verification.",
+    "cleanup": "All created sessions deleted; owned API server exited0; no GPU compute process after shutdown"
+  },
+  "visual_review": {
+    "report": {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina-anchor-comparison/README.md",
+      "sha256": "20c23478f37e6596dd42f7a7c965c3f885685585a5b9dbc72edaed2aa9e18dc2",
+      "bytes": 5047
+    },
+    "findings": {
+      "status": "targeted_still_improvement_with_remaining_expression_blend_normal_speed_pending",
+      "first_entry": {
+        "old_frames": [
+          51,
+          58
+        ],
+        "new_frames": [
+          51,
+          58
+        ],
+        "old_incoming_talking": 96,
+        "new_incoming_talking": 198,
+        "actual_outgoing_idle": 33,
+        "observation": "Old doubled eye contours at54\u201355 absent in new inspected window; same improved path also inspected in long reply52\u201359."
+      },
+      "remaining_terminal": {
+        "new_frames": [
+          278,
+          279
+        ],
+        "observation": "Soft/doubled eyelids during closed-to-open expression blend, distinct by280. Old nose/lower-face distortion less conspicuous here, but path differs so not a controlled same-transition comparison."
+      },
+      "release_windows": {
+        "interrupted-and-next-turn": [
+          [
+            99,
+            106
+          ],
+          [
+            190,
+            197
+          ]
+        ],
+        "long-talking-smiling": [
+          [
+            287,
+            294
+          ]
+        ],
+        "short-idle": [
+          [
+            117,
+            124
+          ]
+        ]
+      },
+      "scope": "Latina three new captures, targeted stills only; no normal-speed/human/mobile approval, no source or runtime changes."
+    },
+    "normal_speed_acceptance": "pending",
+    "production_review_status": "No bank promoted"
+  },
+  "pending": [
+    "Actual Chromium execution approval and integration run",
+    "Resolve/review remaining eyelid/face blend softness and Indian lower-face texture onset",
+    "Normal-speed perceptual acceptance",
+    "Actual mobile repository integration and device verification"
+  ],
+  "browser_execution": {
+    "performed": false,
+    "approval": "pending",
+    "reason": "Automatic review rejected combined downloaded unsandboxed browser execution on nearly full filesystem. Dependency-only provisioning was subsequently approved; no launch approval inferred.",
+    "provenance": {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/browser-provisioning/README.md",
+      "sha256": "c66bad860b418dde4a92fff0870c1f3a8e5ab1a82f31894a148b41f0ff60ac62",
+      "bytes": 5703
+    }
+  },
+  "artifact_files": [
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/README.md",
+      "sha256": "72b464abdb0a4242284e02ca9ec131e70e988a2715d7f1c27307c40010f803b2",
+      "bytes": 2336
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/browser-driver-cpu-tests-final.log",
+      "sha256": "6dbf5bee99fdf078e72e1b40d2f4d10388f60f8686e42457d190715215d72661",
+      "bytes": 3265
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/browser-driver-cpu-tests.log",
+      "sha256": "3d781874799de83c3053c2f5fa8f2a2abba98e349a21fc81804d5ff22f3ef25a",
+      "bytes": 1919
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/browser-provisioning/README.md",
+      "sha256": "c66bad860b418dde4a92fff0870c1f3a8e5ab1a82f31894a148b41f0ff60ac62",
+      "bytes": 5703
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/browser-provisioning/cleanup-receipt.json",
+      "sha256": "3bd34a89df0877ee63f0166e53609c628003b5f9dbd49a8e6a70811fdeedd36a",
+      "bytes": 501
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/browser-provisioning/dependency-installation.json",
+      "sha256": "2ed71f54213d8e7873c6060d0e950a8298ba54a762a7e3e15a9ada9df6af62f4",
+      "bytes": 16748
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/browser-provisioning/evidence-hashes.json",
+      "sha256": "667f6bccbf83e73b3b0e8306cc4b9d9ee90f3ff7f19cf3e5b595a9a67afc4240",
+      "bytes": 660
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/browser-provisioning/installation.json",
+      "sha256": "71f2566c8fb9ca31b65a18c07b596900bea172647634b7e9bfecaf04adcacc6a",
+      "bytes": 92477
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/browser-provisioning/library-closure.json",
+      "sha256": "5ebbaa415847e8838f142a148d057a9680a0db6baa792424ff489ad2188d8e0d",
+      "bytes": 4235
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/browser-provisioning/restore-tooling.py",
+      "sha256": "b5bb16793b5756c5ea284c217e12739057e9f8ff25c90b7d2f281137825038fb",
+      "bytes": 2350
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/client-cpu-tests.log",
+      "sha256": "6d0becb7847bc8948fa7d9e78b202ecac6dca26006144e3ac214610e77e83894",
+      "bytes": 478
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/client-server-resumed.log",
+      "sha256": "814f37ae4925a1b0ed146739149899f1afa7336bb7f7d784654bc91045008a02",
+      "bytes": 68455
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/client-server.log",
+      "sha256": "a207c4f29fe81e4ffe62cac014a5651e364a1f065bada47a987029719c5fe752",
+      "bytes": 15897
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/final-regressions.log",
+      "sha256": "ad3b8e67499ce367b88a333622219d580b18975c46fa38f4af1560fc6d2b1dea",
+      "bytes": 174053
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/freeze-checkpoint.py",
+      "sha256": "0a9eb3d9ae04013bb30ceec2603cdfe3832fde1c40218e1a849836a4312b8cf8",
+      "bytes": 5772
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/http-catalog-validation/evidence.json",
+      "sha256": "c20df6d22b5b4fa4ecaf0b9e3c924c8ad80872e5c34928fff0e6947ab87f694b",
+      "bytes": 63612
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/http-catalog-validation/indian_20260925.html",
+      "sha256": "399ee535ae82091a0e18b0724beb6df4d2417045c49f73c3735dbd1ffe346d0c",
+      "bytes": 32705
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/http-catalog-validation/japanese_20260925.html",
+      "sha256": "492deb54acbd103d4ebbfe995cab83b31dfe880cb246ba32eaaad45763cf1d7f",
+      "bytes": 32723
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/http-catalog-validation/latina_guided_20260925.html",
+      "sha256": "870b52574870b8b6968ebcb2e9aff5c2e563933b03a5b0807e54697fa2966c04",
+      "bytes": 32763
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina/README.md",
+      "sha256": "c30625e8c6a8d4b221e74a5b710eb7f268d138f2d50096ea93cfd7e9ae108a9c",
+      "bytes": 814
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina/avatar-preparation.json",
+      "sha256": "9a2deef493b04562d668ebd90d0d5e25944f7b4db6f0456ffdd92f09dd10cfb3",
+      "bytes": 590
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina/interrupted-and-next-turn.json",
+      "sha256": "2ea74d2626d44f6e044140dc52f6d64a740645d8d5c4febfde5ec017836368ec",
+      "bytes": 1429399
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina/interrupted-and-next-turn.mp4",
+      "sha256": "6b7e72a5d40035b0982635007363f444b4aaa3a0a3684d030ae2d8931d39d110",
+      "bytes": 659180
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina/long-talking-smiling.json",
+      "sha256": "c168e6032807b64b4a324ed0565781f18f673836d43076e29a70c040e7eb7dac",
+      "bytes": 2351666
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina/long-talking-smiling.mp4",
+      "sha256": "314fc5ea1e44e14e35c56bc515ea62f92fb735104fdf438e06434247266df219",
+      "bytes": 1189431
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina/pose-set.json",
+      "sha256": "0f38322c63500d51d4dbf42c5852e290f897862ebafc68afabad64e694b8bd16",
+      "bytes": 1906
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina/review.html",
+      "sha256": "4f734c3764022177269432e322328208874b6ce479d524aad9767241d4df4c28",
+      "bytes": 1242
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina/short-idle.json",
+      "sha256": "a6449b1c65bdf218982125812259eb22baec859ceb277ecf6f6640e23f57743a",
+      "bytes": 713564
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina/short-idle.mp4",
+      "sha256": "9bfda3ace8a921bb6ccb1eeab31b6b8adc3799558ca1c7566a5e422f2143b247",
+      "bytes": 456870
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina/verification.json",
+      "sha256": "bdf6a3f59379e6bfaffb484ba4d2a74b1c861930be0466adbc6b14caaf39dafa",
+      "bytes": 4338
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina-anchor-comparison/README.md",
+      "sha256": "20c23478f37e6596dd42f7a7c965c3f885685585a5b9dbc72edaed2aa9e18dc2",
+      "bytes": 5047
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina-anchor-comparison/findings.json",
+      "sha256": "1c7aade412470d33233f49ea99273ea54a7b40126c77db4f413ee3160ce199e2",
+      "bytes": 1186
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina-anchor-comparison/first-talking-entry.jpg",
+      "sha256": "07d8255d8bddc4fd02c8188694eaa3df522da05c98687bb1e6fe3b230c680b54",
+      "bytes": 240015
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina-anchor-comparison/input-bindings.json",
+      "sha256": "51c4e3cec8116eff997aef6fa7886925d99eeac55d0d440c6e34fa767290c30a",
+      "bytes": 3112
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina-anchor-comparison/new-full-frame-controls.jpg",
+      "sha256": "6576608fa451931f6a06e9c428746a8aba0edb05ed2723f227bd3e61dcea1fea",
+      "bytes": 257663
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina-anchor-comparison/new-long-first-entry.jpg",
+      "sha256": "f04777a656397ef65df0890340f60c09641fa1c0bae5c55276a381c9a49b6ff8",
+      "bytes": 122357
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina-anchor-comparison/new-release-windows.jpg",
+      "sha256": "e8a6c7b3069c61e5e2732bff2ede7775c96d9e02bfd0396448867374d87990c2",
+      "bytes": 373204
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina-anchor-comparison/new-second-short-return.jpg",
+      "sha256": "824ea2db32e17e7284102020db2be6b16252cae3722d4cb11d6eca6f1db7cc09",
+      "bytes": 127899
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina-anchor-comparison/review_frames.py",
+      "sha256": "d43548d5bf8be20084548e8b80603a66c5855332a103c4075993c1f45989896f",
+      "bytes": 4468
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/latina-anchor-comparison/terminal-return.jpg",
+      "sha256": "2539ef047737ba004cc1c15cb6f11984d54db115417ba5979b2e0fc29ed4ac29",
+      "bytes": 225231
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/run-cpu-validation.sh",
+      "sha256": "dfedfa8f14fd8de481a01d6339ad3747093ee796fbf0f6ff014031b29365866e",
+      "bytes": 958
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/run-targeted-receiver.sh",
+      "sha256": "bae81947024f3dca1d465e3bdf4dbdd8e77ba1e45130f56dcd413709e7cfb3ae",
+      "bytes": 835
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/server.log",
+      "sha256": "052cca2ccdea8b31cfaaaa82a745edcdcfd850f74abff1150f0708d16097cd40",
+      "bytes": 1276942
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/targeted-receiver.log",
+      "sha256": "6f9d77dc878cd8a81dfabe229dfb75339f325be2185c2c4ae81ac7a3a0cdbefa",
+      "bytes": 3437
+    },
+    {
+      "path": "/workspace/experiments/multipose_client_validation_20260925/validate-http-catalog.py",
+      "sha256": "799c358e993300abd489702b730dbac3fdf50489a7b29acb9c4f81f940b5e81e",
+      "bytes": 8565
+    }
+  ]
+}

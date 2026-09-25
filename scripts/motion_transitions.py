@@ -192,7 +192,11 @@ class MotionBank:
             idx = math.floor(source + 1e-8) % self.count(pose)
             blend = 0
             if desired != pose and n >= cooldown_until:
-                edge = self.edge(pose, idx, desired)
+                # The compositor blends from its previous composed frame. The
+                # next source index has not been displayed and may already be
+                # in a different blink phase (especially with 24→20Hz sampling).
+                anchor_index = frames[-1]["source_frame"] if frames else idx
+                edge = self.edge(pose, anchor_index, desired)
                 # Never enter motion with an uncovered interrupted-return phase.
                 eligible = all(e["admissible"] for e in self.manifest["edges"][desired][IDLE])
                 # A semantic cue must leave room for its whole entry/cooldown,
@@ -205,6 +209,7 @@ class MotionBank:
                     blend = bridge_n
                     cooldown_until = n + cooldown_n
                     switches.append({"frame": n, "from": outgoing, "to": pose,
+                                     "anchor_frame": anchor_index,
                                      "target_frame": idx, "score": edge["score"]})
             frames.append({"pose_id": pose, "source_frame": idx,
                            "crossfade_frames": blend})

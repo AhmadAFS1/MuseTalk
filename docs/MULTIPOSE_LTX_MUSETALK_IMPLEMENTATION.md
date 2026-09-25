@@ -18,9 +18,11 @@ a correct timestamp sequence, and passing tests do not by themselves prove that
 perceptual target. Source videos and received recordings remain reviewable.
 The feature is opt-in; a candidate atlas requires an explicit pilot setting.
 
-Current checkpoint: **234 CPU tests and 18 fresh received recordings pass automated verification** with the optional native VP8 encoder, across Japanese, Indian and the fresh Latina candidate. All 4,781 saved video frames retain exact 50ms intervals. Thirty returns complete in 0.349–0.449 seconds; all three identities pass the explicit user-barge-in/assistant-abort/following-reply sequence. Fresh creation, packaging and API cache preparation were exercised in the preceding checkpoints. No bank is marked visually reviewed.
+Current checkpoint: **262 Python regressions and 15 Node driver tests pass**. The browser lab now selects a prepared character from the configured registry, verifies its actual session source/routing hashes, and can cancel a pending upload without waiting for its HTTP response. The planner now matches the frame the compositor actually holds, fixing a one-source-frame mismatch during blinks. Three new received Latina recordings exercise that correction: 688 saved frames at exact 50ms intervals, four returns in 0.3485–0.4139 seconds. These three captures cover short speech, talking/smiling, and interruption followed by another reply. They do not repeat the entire earlier matrix.
 
-Current evidence is [the v6 recording gallery](/workspace/experiments/multipose_validation_20260925_v6/review.html), [the v6 report](/workspace/experiments/multipose_validation_20260925_v6/README.md), and [the CPU regression log](/workspace/experiments/multipose_validation_20260925_v6/final-regressions.log). The [native encoder runbook](WEBRTC_NATIVE_VP8.md) explains installation, explicit VP8 negotiation, compatibility checks and rollback to the default PyAV profile.
+The [client and anchor follow-up](WEBRTC_MULTIPOSE_CLIENT_ANCHOR_2026-09-25.md) records the current code, test scope and remaining work. [New Latina recordings](/workspace/experiments/multipose_client_validation_20260925/latina/review.html) and [regression log](/workspace/experiments/multipose_client_validation_20260925/final-regressions.log) are the current targeted evidence. Real Chromium execution and mobile-client testing are still pending. No bank is marked visually reviewed.
+
+The preceding native VP8 checkpoint remains useful broader evidence: **234 CPU tests and 18 received recordings**, across Japanese, Indian and the fresh Latina candidate; 4,781 saved frames with exact 50ms intervals; 30 returns in 0.349–0.449 seconds. It predates the anchor/client changes. See [v6 gallery](/workspace/experiments/multipose_validation_20260925_v6/review.html), [v6 report](/workspace/experiments/multipose_validation_20260925_v6/README.md), and [native encoder runbook](WEBRTC_NATIVE_VP8.md).
 
 The native backend fixes the measured bitrate-reset mechanism while preserving actual bandwidth adaptation. Across the 18 v6 recordings, telemetry accounts for 285 bitrate changes with one context and only the initial keyframe per session. The [instrumented pilot](/workspace/experiments/native_vp8_20260925/live-comparison/README.md) retains one context across 26 actual bitrate changes, with only the initial keyframe; inspected change and final-return windows retain image detail. The default PyAV backend still has the previously documented reset behavior. Normal-speed perceptual acceptance and integration testing in the mobile client remain open; the mobile application repository is absent from this host.
 
@@ -65,6 +67,14 @@ The v5 gallery is historical evidence for the recorder, interruption ownership a
 - [x] Implement and validate native bitrate adaptation that avoids encoder recreation without disabling bandwidth response.
 - [x] Validate the accepted Indian identity with 241/289/145-frame clips alongside Japanese.
 - [x] Exercise a fresh portrait through rendering, packaging, cache preparation, and received playback.
+- [x] Match the actual previous composed source frame when planning a cross-pose blend.
+- [x] Repeat targeted Latina receiver recordings with the anchor correction.
+- [x] Select configured prepared characters in the browser lab and verify actual session source/routing hashes.
+- [x] Fence delayed uploads with preflight turn reservation, abort locally, and preserve newer user/assistant ownership.
+- [x] Exercise the shipped client JavaScript and real manager cancellation sequencing in CPU regressions.
+- [ ] Execute the real Chromium UI harness after the pending execution approval.
+- [ ] Address the remaining inspected expression/face-texture artifacts without dropping phonemes or delaying mandatory returns.
+- [ ] Integrate and test in the actual mobile application when its repository is available.
 - [ ] Obtain normal-speed visual acceptance of the transition recordings before marking a bank `reviewed`.
 
 ## Files and responsibilities
@@ -82,6 +92,8 @@ The v5 gallery is historical evidence for the recorder, interruption ownership a
 | `character_factory/scripts/build_realtime_character.py` | Render or ingest a trio, measure it, build a bank, write API manifests, optionally prepare caches. |
 | `scripts/test_webrtc_motion_transitions.py` | Reproducible real WebRTC recordings, with received audio and video timestamp audits. |
 | `scripts/install_native_vp8.py`, `scripts/webrtc_native_vp8.py` | Verify the pinned native encoder and reconfigure bitrate without recreating its reference context; explicitly negotiate VP8 in the opt-in profile. |
+| `scripts/webrtc_pose_lab_catalog.py`, `templates/webrtc_pose_lab.py` | Resolve registered prepared characters, verify active source hashes, and run cancellable speech from the browser lab. |
+| `scripts/test_webrtc_pose_lab_browser.mjs` | Actual Chromium UI/media/cancellation harness; execution is pending. Its Node unit tests are not browser evidence. |
 | `scripts/audit_motion_bank.py` | Exercise every candidate using the actual bridge, reporting pixel discontinuities against hard cuts. |
 
 ## Source and transition contracts
@@ -139,7 +151,8 @@ across rapid writes. Never trust timestamps alone for review-status changes.
    original forward range; APIAvatar's reversed cache half is not the body
    playback policy. Numerical tolerance prevents fractional-phase drift.
 5. Compose each frame with that source pose's own face coordinates, mask,
-   latent, and background. On a source change, warp outgoing and incoming
+   latent, and background. On a source change, choose the edge using the previous composed source
+   frame (not the next unrendered source index), then warp outgoing and incoming
    composites toward intermediate geometry and blend with cosine easing.
    The optical-flow displacement is bounded to 32 pixels.
 6. Attach pose, render key, source frame, and generation frame to each queued
@@ -282,7 +295,11 @@ contracts are exercised by a real aiortc receiver, rather than a mocked mobile U
   test_pose_webrtc_recording_timestamps test_pose_webrtc_semantic_timing \
   test_idle_video_decoder_lifecycle test_runtime_av_logging \
   test_ltx_interior_guides test_webrtc_pose_lab test_motion_evidence_review \
-  test_webrtc_video_picture_type test_motion_recording_cleanup -q
+  test_webrtc_video_picture_type test_motion_recording_cleanup \
+  test_native_vp8_install test_webrtc_native_vp8 test_webrtc_native_vp8_offer \
+  test_webrtc_pose_lab_catalog test_webrtc_pose_lab_client test_webrtc_pose_lab_preflight -q
+
+/opt/nvm/versions/node/v22.15.0/bin/node --test test_webrtc_pose_lab_browser.mjs
 
 /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/test_webrtc_motion_transitions.py \
   --asset-dir /workspace/experiments/japanese_ltx_fixed_distance_20260925 \
