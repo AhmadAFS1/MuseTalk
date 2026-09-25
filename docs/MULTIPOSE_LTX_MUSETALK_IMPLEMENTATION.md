@@ -18,29 +18,13 @@ a correct timestamp sequence, and passing tests do not by themselves prove that
 perceptual target. Source videos and received recordings remain reviewable.
 The feature is opt-in; a candidate atlas requires an explicit pilot setting.
 
-Current checkpoint: **212 CPU tests and 18 new received recordings pass automated verification**
-across Japanese, Indian and the fresh Latina candidate. All 4,779 saved video
-frames retain exact 50ms intervals. Thirty returns complete in 0.349–0.450 seconds;
-all three identities pass the explicit user-barge-in/assistant-abort/following-reply
-sequence. Fresh creation, packaging and API cache preparation were exercised in
-the preceding checkpoint. No bank is marked visually reviewed.
+Current checkpoint: **234 CPU tests and 18 fresh received recordings pass automated verification** with the optional native VP8 encoder, across Japanese, Indian and the fresh Latina candidate. All 4,781 saved video frames retain exact 50ms intervals. Thirty returns complete in 0.349–0.449 seconds; all three identities pass the explicit user-barge-in/assistant-abort/following-reply sequence. Fresh creation, packaging and API cache preparation were exercised in the preceding checkpoints. No bank is marked visually reviewed.
 
-Current evidence is [the v5 recording gallery](/workspace/experiments/multipose_validation_20260925_v5/review.html),
-[the v5 report](/workspace/experiments/multipose_validation_20260925_v5/README.md),
-and [the final CPU regression log](/workspace/experiments/multipose_validation_20260925_v5/final-regressions.log).
-The [transport audit](WEBRTC_MULTIPOSE_AUDIT_2026-09-25.md) explains the interruption,
-recorder and inherited-keyframe fixes. Raw idle no longer forces a keyframe on
-every frame; the measured detail drop at return-to-idle is removed in the
-instrumented comparison. **A separate texture change remains when the installed
-VP8 encoder recreates its context for bandwidth adaptation.** The tested
-in-place-bitrate shortcuts did not actually adapt and were rejected. Resolving
-that transport limitation and normal-speed perceptual acceptance remain open.
+Current evidence is [the v6 recording gallery](/workspace/experiments/multipose_validation_20260925_v6/review.html), [the v6 report](/workspace/experiments/multipose_validation_20260925_v6/README.md), and [the CPU regression log](/workspace/experiments/multipose_validation_20260925_v6/final-regressions.log). The [native encoder runbook](WEBRTC_NATIVE_VP8.md) explains installation, explicit VP8 negotiation, compatibility checks and rollback to the default PyAV profile.
 
-The prior 15-recording checkpoint had clean received RTP but saved its 20Hz video
-on a 30Hz MP4 grid, creating approximately 33/67ms intervals. Those historical
-files now fail the stricter saved-file verifier. Keep them for comparison; use
-v5 for current playback evidence. Older sections below describe historical
-checkpoints and retained failures, not additional current validation.
+The native backend fixes the measured bitrate-reset mechanism while preserving actual bandwidth adaptation. Across the 18 v6 recordings, telemetry accounts for 285 bitrate changes with one context and only the initial keyframe per session. The [instrumented pilot](/workspace/experiments/native_vp8_20260925/live-comparison/README.md) retains one context across 26 actual bitrate changes, with only the initial keyframe; inspected change and final-return windows retain image detail. The default PyAV backend still has the previously documented reset behavior. Normal-speed perceptual acceptance and integration testing in the mobile client remain open; the mobile application repository is absent from this host.
+
+The v5 gallery is historical evidence for the recorder, interruption ownership and inherited-keyframe fixes. The earlier 15-recording checkpoint saved clean 20Hz RTP onto a 30Hz MP4 grid, creating approximately 33/67ms intervals; those files now fail the stricter saved-file verifier. Keep them for comparison; use v6 for current playback evidence. Older sections below describe historical checkpoints and retained failures, not additional current validation.
 
 ## Tasks
 
@@ -78,7 +62,7 @@ checkpoints and retained failures, not additional current validation.
 - [x] Add CPU-tested recorder cadence/origin correction and preserve the reserved assistant turn ID when user speech begins.
 - [x] Repeat live receiver recordings with the corrected recorder and actual user-speech/assistant-abort barge-in sequence.
 - [x] Diagnose inherited idle keyframe flags and remove the return-specific image-detail drop.
-- [ ] Implement and validate native bitrate adaptation that avoids encoder recreation without disabling bandwidth response.
+- [x] Implement and validate native bitrate adaptation that avoids encoder recreation without disabling bandwidth response.
 - [x] Validate the accepted Indian identity with 241/289/145-frame clips alongside Japanese.
 - [x] Exercise a fresh portrait through rendering, packaging, cache preparation, and received playback.
 - [ ] Obtain normal-speed visual acceptance of the transition recordings before marking a bank `reviewed`.
@@ -97,6 +81,7 @@ checkpoints and retained failures, not additional current validation.
 | `scripts/webrtc_manager.py`, `api_server.py` | Activate matching banks, order events, reject wrong-turn aborts, cancel audio/generation, wait for recovery before the next turn. |
 | `character_factory/scripts/build_realtime_character.py` | Render or ingest a trio, measure it, build a bank, write API manifests, optionally prepare caches. |
 | `scripts/test_webrtc_motion_transitions.py` | Reproducible real WebRTC recordings, with received audio and video timestamp audits. |
+| `scripts/install_native_vp8.py`, `scripts/webrtc_native_vp8.py` | Verify the pinned native encoder and reconfigure bitrate without recreating its reference context; explicitly negotiate VP8 in the opt-in profile. |
 | `scripts/audit_motion_bank.py` | Exercise every candidate using the actual bridge, reporting pixel discontinuities against hard cuts. |
 
 ## Source and transition contracts
@@ -223,9 +208,13 @@ Each output folder contains:
 
 ## Server and mobile integration
 
-For a pilot bank, start the existing local TensorRT server:
+For a pilot bank, install the pinned native encoder and start the existing local TensorRT server. The [native VP8 runbook](WEBRTC_NATIVE_VP8.md) lists its supported runtime and VP8 negotiation requirements:
 
 ```bash
+/workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/install_native_vp8.py
+
+WEBRTC_VP8_ENCODER=native \
+WEBRTC_NATIVE_VP8_DIR=/workspace/MuseTalk/.runtime/native_vp8 \
 MUSETALK_TRT_PROFILE_ENV_FILE=/workspace/MuseTalk/.runtime/musetalk_trt_local_sm89.env \
 WEBRTC_MOTION_ATLAS_DIR=/workspace/experiments/realtime_characters \
 WEBRTC_MOTION_ALLOW_UNREVIEWED=1 \
@@ -273,7 +262,7 @@ separately: `user_speech_started` uses that user ID, while the abort still targe
 the assistant whose audio is playing. Do not replace the abort target with the
 new user's ID. The current ownership fix keeps the reserved assistant ID through
 that user-speech event; stale or wrong-assistant aborts cannot cancel a newer
-assistant utterance. The v5 live recordings verify this sequence on all three
+assistant utterance. The v5 and native v6 live recordings verify this sequence on all three
 characters, including preservation of user speech through the assistant abort. Already buffered
 receiver audio cannot be retracted; server cancellation stops unsent audio.
 
@@ -458,7 +447,7 @@ receiver evidence is now 15 recordings across three characters. Review of visual
 smoothness and the candidate's seven brief idle blinks remains pending.
 
 
-## Current v5 transport and interruption checkpoint
+## Historical v5 transport and interruption checkpoint
 
 The v5 gallery contains 18 recordings across three characters, including three
 explicit barge-ins, an entry-interruption repeat and a legacy request. The
@@ -478,3 +467,12 @@ Encoder recreation during bitrate adaptation still produces a separate texture
 change. See [the transport audit](WEBRTC_MULTIPOSE_AUDIT_2026-09-25.md) for the
 instrumented comparison, rejected adaptation shortcuts, remaining codec limits,
 and current CPU test evidence. Normal-speed visual review remains pending.
+
+
+## Current v6 native encoder checkpoint
+
+The native-profile repeat passes 234 CPU tests and all 18 received recordings. The verifier decodes 4,781 frames and confirms exact 20Hz cadence, matching presentation origins, zero receiver timestamp anomalies and 30 completed returns below the unchanged 0.5-second limit (0.348916–0.449458 seconds). Actual user barge-in, following replies, repeated entry interruption and a legacy request are included.
+
+The pinned encoder binding is installed beside the environment; aiortc, PyAV and the receiver decoder remain installed at their tested versions. Actual native bitrate reconfiguration retains reference frames. PLI/FIR requests, intentional dimension changes, teardown, invalid dependencies and offer negotiation have regression coverage. Native mode explicitly requires VP8-capable clients, and its startup compatibility checks fail clearly on untested environments. The pilot server has been shut down cleanly and its GPU released.
+
+The [v6 evidence report](/workspace/experiments/multipose_validation_20260925_v6/README.md) and [committed snapshot](multipose_validation_2026-09-25_v6.json) bind recordings, source masters, implementation files, dependency artifacts and verification outputs to their hashes. This is sequential loopback WebRTC validation on one GPU. It does not establish concurrent capacity, mobile-network behavior or normal-speed perceptual acceptance.

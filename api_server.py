@@ -449,6 +449,13 @@ apply_cpu_tuning_runtime("api_server")
 from scripts.runtime_av_logging import configure_native_ffmpeg_logging
 configure_native_ffmpeg_logging("api_server imports")
 
+# Explicit opt-in only. Missing or incompatible native artifacts fail startup
+# before model initialization or media sessions; the default PyAV path is intact.
+from scripts.webrtc_native_vp8 import (
+    configure_vp8_encoder, prefer_native_vp8, validate_native_offer,
+)
+WEBRTC_VP8_ENCODER_STATUS = configure_vp8_encoder("api_server")
+
 # ============================================================================
 # Pydantic Models (Request/Response schemas)
 # ============================================================================
@@ -4499,15 +4506,30 @@ async def webrtc_offer(session_id: str, offer: WebRTCOffer):
 
     from aiortc import RTCSessionDescription
 
+    native_vp8 = WEBRTC_VP8_ENCODER_STATUS["encoder"] == "native"
+    if native_vp8:
+        try:
+            validate_native_offer(offer.sdp, offer.type)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        # aiortc negotiates codecs during setRemoteDescription. Configure the
+        # existing persistent sender before that point; never silently select
+        # a different encoder for an explicitly requested native VP8 profile.
+        if session.idle_sender is None and session.idle_track is not None:
+            session.idle_sender = session.pc.addTrack(session.idle_track)
+        if session.audio_sender is None and session.silence_audio_track is not None:
+            session.audio_sender = session.pc.addTrack(session.silence_audio_track)
+        prefer_native_vp8(session.pc)
+
     await session.pc.setRemoteDescription(
         RTCSessionDescription(sdp=offer.sdp, type=offer.type)
     )
     
-    if session.idle_sender is None and session.idle_track is not None:
+    if not native_vp8 and session.idle_sender is None and session.idle_track is not None:
         session.idle_sender = session.pc.addTrack(session.idle_track)
         prefer_h264(session.pc)
     
-    if session.audio_sender is None and session.silence_audio_track is not None:
+    if not native_vp8 and session.audio_sender is None and session.silence_audio_track is not None:
         session.audio_sender = session.pc.addTrack(session.silence_audio_track)
     
     answer = await session.pc.createAnswer()

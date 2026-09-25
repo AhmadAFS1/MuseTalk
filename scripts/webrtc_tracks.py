@@ -39,9 +39,10 @@ WEBRTC_QUEUE_LOG_INTERVAL = int(os.getenv("WEBRTC_QUEUE_LOG_INTERVAL", "30"))
 WEBRTC_TARGET_QUEUE_FILL = float(os.getenv("WEBRTC_TARGET_QUEUE_FILL", "0.4"))  # Target 40% queue fill
 WEBRTC_VIDEO_CLOCK_RATE = 90000
 WEBRTC_VIDEO_TIME_BASE = fractions.Fraction(1, WEBRTC_VIDEO_CLOCK_RATE)
+WEBRTC_NATIVE_VP8 = os.getenv("WEBRTC_VP8_ENCODER", "pyav").strip().lower() == "native"
 
 
-def _set_video_transport_metadata(frame, pts: int) -> None:
+def _set_video_transport_metadata(frame, pts: int, fps: float) -> None:
     frame.pts = pts
     frame.time_base = WEBRTC_VIDEO_TIME_BASE
     # A decoded all-intra source carries I-picture metadata. Do not make that
@@ -49,6 +50,10 @@ def _set_video_transport_metadata(frame, pts: int) -> None:
     # marked a cached/held frame as I. The RTP sender can still request a fresh
     # keyframe after recv() returns (for example in response to a PLI).
     frame.pict_type = 0  # av.video.frame.PictureType.NONE
+    if WEBRTC_NATIVE_VP8:
+        # Source clips may be 24 Hz while the transport is 20 Hz. Native rate
+        # control must use the outbound duration, including its first frame.
+        frame.duration = max(1, int(round(WEBRTC_VIDEO_CLOCK_RATE / fps)))
 
 
 WEBRTC_SYNC_EPSILON_SECONDS = float(os.getenv("WEBRTC_SYNC_EPSILON_SECONDS", "0.005"))
@@ -794,7 +799,7 @@ class IdleVideoStreamTrack(VideoStreamTrack):
         frame = self.read_frame()
         pts = int(round(self._rtp_frame_index * WEBRTC_VIDEO_CLOCK_RATE / float(self._fps)))
         self._rtp_frame_index += 1
-        _set_video_transport_metadata(frame, pts)
+        _set_video_transport_metadata(frame, pts, float(self._fps))
         return frame
 
     def stop(self) -> None:
@@ -848,7 +853,7 @@ class LiveVideoStreamTrack(VideoStreamTrack):
         frame = await self._queue.get()
         pts = int(round(self._rtp_frame_index * WEBRTC_VIDEO_CLOCK_RATE / float(self._fps)))
         self._rtp_frame_index += 1
-        _set_video_transport_metadata(frame, pts)
+        _set_video_transport_metadata(frame, pts, float(self._fps))
         return frame
 
     def stop(self) -> None:
@@ -2037,7 +2042,7 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
     def _stamp_video_frame(self, frame) -> None:
         pts = int(round(self._rtp_frame_index * WEBRTC_VIDEO_CLOCK_RATE / self._output_fps))
         self._rtp_frame_index += 1
-        _set_video_transport_metadata(frame, pts)
+        _set_video_transport_metadata(frame, pts, self._output_fps)
 
     def _align_first_live_rtp_to_audio(self) -> None:
         """Choose one forward-only RTP anchor for first live video and TTS."""
