@@ -791,7 +791,7 @@ class ParallelAvatarManager:
         
         if exists and not force_recreate:
             print(f"✅ Avatar {avatar_id} already prepared")
-            return
+            return {"already_prepared": True, "s3_uploaded": False, "s3_key": None}
         
         print(f"🔨 Preparing avatar {avatar_id}...")
         
@@ -819,6 +819,14 @@ class ParallelAvatarManager:
                 "Check /stats avatar_s3 metrics and server logs."
             )
         print(f"✅ Avatar {avatar_id} prepared and saved to disk")
+        return {
+            "already_prepared": False,
+            "s3_uploaded": bool(s3_uploaded),
+            "s3_key": (
+                self.avatar_s3_store._object_key(avatar_id)
+                if s3_uploaded else None
+            ),
+        }
     
     def _inference_worker(self, request_id, avatar_id, audio_path, batch_size, output_name, fps):
         """Worker function for inference"""

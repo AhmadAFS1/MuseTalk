@@ -1,5 +1,15 @@
 # Character creation workflow for the Lingua pilot
 
+**Current H3 talking-avatar workflow (27 September 2026):** use
+[H3 portraits → expressive bases → TAESD + refined 100% chin alignment](h3_avatar_workflow/WORKFLOW.md)
+and its [reusable runner](h3_avatar_workflow/create_avatar.py). This is the recipe
+selected in the latest avatar-quality work. The completed six-identity batch
+passes technical checks, but facial-hair preservation still needs improvement;
+see the guide for evidence and visual limitations. For an existing folder of
+portraits, H3 idle/talking/smiling clips, and S3-backed production caches, use
+the [batch three-pose runner](h3_avatar_workflow/BATCH_THREE_POSE.md). The LTX three-pose pilot documented below is retained as historical and
+separate multipose guidance.
+
 This is the current **one-avatar, three-pose** workflow. Start with one language
 and one character. The 104-language roster and six-pose production pipeline in
 [README.md](README.md) and [CODEX_PLAYBOOK.md](CODEX_PLAYBOOK.md) remain available,

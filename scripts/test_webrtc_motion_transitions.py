@@ -308,9 +308,33 @@ async def record_case(http, args, poses, case, turns):
                     action="finish user barge-in", timeout_seconds=CONTROL_TIMEOUT_SECONDS)
                 assert turn["barge_in"]["ended"].get("accepted"), turn["barge_in"]
             print(f"[{case}] complete at {turn['complete_at_seconds']:.2f}s", flush=True)
-            # Next turn begins as soon as the return is settled: back-to-back test.
-            if index == len(turns)-1:
+            # Default remains back-to-back; the companion case adds a visible idle hold.
+            if index < len(turns)-1:
+                await asyncio.sleep(getattr(args, "between_turn_idle_seconds", 0.0))
+            else:
                 await asyncio.sleep(getattr(args, "post_complete_idle_seconds", 1.2))
+        if getattr(args, "final_smile_seconds", 0.0) > 0:
+            # Exercise a user-visible idle -> smile -> idle transition after
+            # both spoken turns, on the same real received WebRTC tracks.
+            evidence["final_smile"] = {"requested_at_seconds": clock.elapsed()}
+            for pose_id, label in (("light_smile", "smile"), ("neutral_resting", "return_idle")):
+                evidence["final_smile"][label + "_request"] = await request_json(
+                    http, "POST", f"{args.base_url}/webrtc/sessions/{sid}/pose",
+                    json={"pose_id": pose_id, "effective": "next_boundary"},
+                    action=f"request final {pose_id}", timeout_seconds=CONTROL_TIMEOUT_SECONDS)
+                deadline = time.monotonic() + 30
+                while time.monotonic() < deadline:
+                    await asyncio.sleep(.2)
+                    current = await status()
+                    displayed = (motion(current) or {}).get("last_emitted") or {}
+                    if (current["track_stats"]["video"]["current_pose_id"] == pose_id
+                            and displayed.get("pose_id") == pose_id
+                            and displayed.get("mode") == "idle"):
+                        evidence["final_smile"][label + "_visible_at_seconds"] = clock.elapsed()
+                        break
+                else:
+                    raise RuntimeError(f"Final {pose_id} never became visible")
+                await asyncio.sleep(args.final_smile_seconds if label == "smile" else 1.0)
         evidence["final_status"] = await status()
         returns = motion(evidence["final_status"])["returns"]
         assert all(r["status"] == "completed" and r["total_seconds"] <= .5 for r in returns), returns
@@ -373,6 +397,9 @@ async def main(args):
             asset_dir=args.asset_dir, prepare_missing=True, force_recreate=False, batch_size=8, warm_timeout=600)
         save(args.output / "avatar-preparation.json", prepared)
         cases = {"short-idle": [("short.wav", False, False)],
+                 "companion-conversation": [("turn_one.wav", False, False),
+                                             ("turn_two.wav", False, False)],
+                 "companion-midclip-stop": [("turn_one.wav", False, True)],
                  "long-talking-smiling": [("long.wav", True, False)],
                  "interrupted-and-next-turn": [("long.wav", False, True), ("short.wav", False, False)],
                  "barge-in": [("long.wav", False, True), ("short.wav", False, False)],
@@ -383,7 +410,7 @@ async def main(args):
                                 ("long.wav", False, .38), ("short.wav", False, False),
                                 ("loop.wav", False, False)]}
         for name, turns in cases.items():
-            if (not args.case and name not in {"edge-cases", "late-smile", "entry-interruption", "reactive-start", "barge-in"}) or args.case == name:
+            if (not args.case and name not in {"companion-conversation", "companion-midclip-stop", "edge-cases", "late-smile", "entry-interruption", "reactive-start", "barge-in"}) or args.case == name:
                 await record_case(http, args, poses, name, turns)
 
 
@@ -400,5 +427,9 @@ if __name__ == "__main__":
     p.add_argument("--pose-set", type=Path, help="Character package pose-set.json")
     p.add_argument("--atlas", type=Path, help="Expected runtime bank; inferred beside --pose-set when present")
     p.add_argument("--legacy", action="store_true", help="Exercise speech metadata without a v2 pose plan")
-    p.add_argument("--case", choices=["short-idle", "long-talking-smiling", "interrupted-and-next-turn", "edge-cases", "late-smile", "entry-interruption", "reactive-start", "barge-in"])
+    p.add_argument("--final-smile-seconds", type=float, default=0.0,
+                   help="After the spoken turns, visibly switch idle to smiling and back to idle")
+    p.add_argument("--between-turn-idle-seconds", type=float, default=0.0,
+                   help="Visible idle hold between completed spoken turns")
+    p.add_argument("--case", choices=["short-idle", "companion-conversation", "companion-midclip-stop", "long-talking-smiling", "interrupted-and-next-turn", "edge-cases", "late-smile", "entry-interruption", "reactive-start", "barge-in"])
     asyncio.run(main(p.parse_args()))

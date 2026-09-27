@@ -1403,7 +1403,7 @@ async def prepare_avatar(
         )
         
         # Prepare avatar (blocks until complete)
-        manager.prepare_avatar(
+        preparation = manager.prepare_avatar(
             avatar_id=avatar_id,
             video_path=str(video_path),
             idle_video_path=str(idle_video_path) if idle_video_path is not None else None,
@@ -1416,6 +1416,9 @@ async def prepare_avatar(
             "status": "success",
             "avatar_id": avatar_id,
             "video_layout": "separate_idle_talking" if idle_video_path is not None else "single_video",
+            "already_prepared": bool(preparation and preparation.get("already_prepared")),
+            "s3_uploaded": bool(preparation and preparation.get("s3_uploaded")),
+            "s3_key": preparation.get("s3_key") if preparation else None,
             "message": f"Avatar {avatar_id} prepared successfully"
         }
     
