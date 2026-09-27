@@ -79,7 +79,7 @@ def get_webrtc_wall_html(
 <main>
   <section class="panel">
     <h1>Multipose WebRTC latency wall</h1>
-    <p>Runs the real pose-plan path. Only one tile is audible so peer-to-peer jitter cannot masquerade as echo or A/V drift.</p>
+    <p>Listen to concurrent streams together, mute individual tiles, or solo one stream for audio/video sync checks.</p>
     <div class="controls">
       <label class="toggle"><input id="multipose" type="checkbox" checked>Multipose protocol</label>
       <label>Avatar ID<input id="avatarId"></label>
@@ -99,6 +99,11 @@ def get_webrtc_wall_html(
       <button id="debugBtn">Stats: off</button>
       <button id="refreshBtn">Refresh</button>
       <button id="deleteBtn" class="danger">Delete group</button>
+    </div>
+    <div class="actions" aria-label="Stream audio controls">
+      <button id="allAudioBtn">All streams audio</button>
+      <button id="muteAllBtn">Mute all</button>
+      <span id="audioSummary" class="pill" aria-live="polite">Audio: all streams on</span>
     </div>
     <div id="status" class="status">No group created.</div>
     <div id="endpoints" class="code" hidden></div>
@@ -136,7 +141,8 @@ const debugModes=["off","docked","overlay"];
 let debugMode=localStorage.getItem("webrtcWallDebugMode")||"off";
 if(!debugModes.includes(debugMode)) debugMode="off";
 let currentGroup=null;
-let audioLeader=null;
+let defaultAudioEnabled=true;
+const audioEnabledBySession=new Map();
 let protocolSeq=0;
 let lastTts=null;
 const clientStats=new Map();
@@ -153,9 +159,50 @@ function poseSetFromInput() { let value; try{value=JSON.parse($("poseSet").value
 function multiposeEnabled() { return $("multipose").checked; }
 function syncPoseControls() { $("poseDetails").style.display=multiposeEnabled()?"block":"none"; $("avatarId").disabled=multiposeEnabled(); if(multiposeEnabled()){ const set=poseSetFromInput(); $("avatarId").value=set.poses[set.default_pose_id].avatar_id; } }
 
-function playerUrl(session) { const url=new URL(session.player_url,location.origin); url.searchParams.set("debug",debugMode); url.searchParams.set("muted",session.session_id===audioLeader?"0":"1"); return url.pathname+url.search; }
+function audioEnabled(sessionId) { return audioEnabledBySession.get(sessionId) ?? defaultAudioEnabled; }
+function playerUrl(session) { const url=new URL(session.player_url,location.origin); url.searchParams.set("debug",debugMode); url.searchParams.set("muted",audioEnabled(session.session_id)?"0":"1"); return url.pathname+url.search; }
 function postToFrame(sessionId,message) { const frame=document.querySelector(`iframe[data-session-id="${CSS.escape(sessionId)}"]`); try{frame?.contentWindow?.postMessage(message,location.origin)}catch(_){} }
-function applyAudioLeader(sessionId) { audioLeader=sessionId; document.querySelectorAll(".card[data-session-id]").forEach(card=>{ const audible=card.dataset.sessionId===audioLeader; card.classList.toggle("audible",audible); const button=card.querySelector('[data-role="audio"]'); if(button) button.textContent=audible?"Audio on":"Use audio"; postToFrame(card.dataset.sessionId,{type:"webrtc-audio",muted:!audible}); }); }
+function sendAudioPreference(sessionId,userGesture=false) {
+  const muted=!audioEnabled(sessionId);
+  // Call the same-origin player during the click so browsers can unlock audio
+  // on every tile under the same user gesture. Messages cover loading frames.
+  if(userGesture){
+    const frame=document.querySelector(`iframe[data-session-id="${CSS.escape(sessionId)}"]`);
+    try{
+      if(typeof frame?.contentWindow?.startWebrtcPlayer==="function"){
+        Promise.resolve(frame.contentWindow.startWebrtcPlayer(muted)).catch(()=>{});
+        return;
+      }
+    }catch(_){}
+  }
+  postToFrame(sessionId,{type:"webrtc-audio",muted});
+}
+function syncAudioControls(userGesture=false) {
+  const sessions=currentGroup?.sessions||[];
+  const audibleCount=sessions.filter(session=>audioEnabled(session.session_id)).length;
+  $("audioSummary").textContent=sessions.length?`Audio: ${audibleCount} of ${sessions.length} streams on`:`Audio: new streams ${defaultAudioEnabled?"on":"muted"}`;
+  $("allAudioBtn").setAttribute("aria-pressed",String(sessions.length?audibleCount===sessions.length:defaultAudioEnabled));
+  $("muteAllBtn").setAttribute("aria-pressed",String(sessions.length?audibleCount===0:!defaultAudioEnabled));
+  document.querySelectorAll(".card[data-session-id]").forEach(card=>{
+    const sessionId=card.dataset.sessionId;
+    const audible=audioEnabled(sessionId);
+    card.classList.toggle("audible",audible);
+    const button=card.querySelector('[data-role="audio"]');
+    button.textContent=audible?"Mute":"Unmute";
+    button.setAttribute("aria-pressed",String(audible));
+    if(userGesture) sendAudioPreference(sessionId,true);
+  });
+}
+function setAllAudio(enabled) {
+  defaultAudioEnabled=enabled;
+  for(const session of currentGroup?.sessions||[]) audioEnabledBySession.set(session.session_id,enabled);
+  syncAudioControls(true);
+}
+function toggleAudio(sessionId) { audioEnabledBySession.set(sessionId,!audioEnabled(sessionId)); syncAudioControls(true); }
+function soloAudio(sessionId) {
+  for(const session of currentGroup?.sessions||[]) audioEnabledBySession.set(session.session_id,session.session_id===sessionId);
+  syncAudioControls(true);
+}
 
 function serverStats(session) {
   const track=session.track_stats||{}; const video=track.video||{}; const clock=track.sync_clock||video.sync_clock||{}; const client=clientStats.get(session.session_id)||{};
@@ -177,16 +224,19 @@ function buildCard(session) {
   const head=document.createElement("div"); head.className="card-head";
   const title=document.createElement("span"); title.className="card-title"; title.textContent=session.session_id;
   const state=document.createElement("span"); state.className="pill"; state.dataset.role="state";
-  const audio=document.createElement("button"); audio.dataset.role="audio"; audio.addEventListener("click",()=>applyAudioLeader(session.session_id));
-  head.append(title,state,audio);
+  const audio=document.createElement("button"); audio.dataset.role="audio"; audio.addEventListener("click",()=>toggleAudio(session.session_id));
+  const solo=document.createElement("button"); solo.dataset.role="solo"; solo.textContent="Solo"; solo.title="Hear only this stream"; solo.addEventListener("click",()=>soloAudio(session.session_id));
+  head.append(title,state,audio,solo);
   const frame=document.createElement("iframe"); frame.dataset.sessionId=session.session_id; frame.allow="autoplay; fullscreen"; frame.loading="eager"; frame.src=playerUrl(session);
+  frame.addEventListener("load",()=>sendAudioPreference(session.session_id));
   const stats=document.createElement("div"); stats.className="card-stats"; stats.dataset.role="stats";
   card.append(head,frame,stats); return card;
 }
 function updateCard(card,session) { card.querySelector('[data-role="state"]').textContent=session.status||"created"; const stats=card.querySelector('[data-role="stats"]'); stats.replaceChildren(...serverStats(session).map(value=>{const span=document.createElement("span");span.textContent=value;return span;})); const frame=card.querySelector("iframe"); const current=new URL(frame.getAttribute("src")||"/",location.origin); const wanted=new URL(session.player_url,location.origin); if(current.pathname!==wanted.pathname) frame.src=playerUrl(session); }
 function renderWall() {
-  const sessions=currentGroup?.sessions||[]; const wall=$("wall"); if(!sessions.length){wall.className="empty";wall.textContent="Create a group to populate the wall.";return}
-  if(!audioLeader||!sessions.some(item=>item.session_id===audioLeader)) audioLeader=sessions[0].session_id;
+  const sessions=currentGroup?.sessions||[]; const wall=$("wall"); if(!sessions.length){wall.className="empty";wall.textContent="Create a group to populate the wall.";audioEnabledBySession.clear();syncAudioControls();return}
+  for(const sessionId of audioEnabledBySession.keys()) if(!sessions.some(session=>session.session_id===sessionId)) audioEnabledBySession.delete(sessionId);
+  if(wall.classList.contains("empty")) wall.textContent="";
   wall.className="wall"; const existing=new Map([...wall.querySelectorAll(".card")].map(card=>[card.dataset.sessionId,card])); const next=[];
   for(const session of sessions){const card=existing.get(session.session_id)||buildCard(session);existing.delete(session.session_id);updateCard(card,session);next.push(card)}
   // Do not replace existing iframe nodes during the two-second stats refresh.
@@ -194,7 +244,7 @@ function renderWall() {
   // server to delete the session and turns a healthy stream into a frozen tile.
   for(const stale of existing.values()) stale.remove();
   next.forEach((card,index)=>{if(wall.children[index]!==card)wall.insertBefore(card,wall.children[index]||null)});
-  applyAudioLeader(audioLeader);
+  syncAudioControls();
 }
 
 function updateProtocolSeq() { for(const session of currentGroup?.sessions||[]){protocolSeq=Math.max(protocolSeq,Number(session.pose_protocol?.last_seq)||0)} }
@@ -220,10 +270,10 @@ async function refreshMetrics() {
 async function createGroup() {
   setStatus("Creating WebRTC sessions…","warn"); const params=new URLSearchParams({count:$("count").value,musetalk_fps:$("musetalkFps").value,playback_fps:$("playbackFps").value,batch_size:$("batchSize").value,chunk_duration:"2",prebuffer_seconds:$("prebufferSeconds").value});
   if(multiposeEnabled()){const set=poseSetFromInput();params.set("avatar_id",set.poses[set.default_pose_id].avatar_id);params.set("pose_set",JSON.stringify(set));params.set("pose_switch_mode","next_boundary")}else{params.set("avatar_id",$("avatarId").value);params.set("pose_switch_mode","immediate")}
-  try{currentGroup=(await request(`/webrtc/groups/create?${params}`,{method:"POST"})).body;updateProtocolSeq();renderEndpoints();renderWall();await refreshMetrics();setStatus(`Created ${currentGroup.sessions.length} peer(s). Audio is enabled only on tile 1.`,"ok")}catch(error){setStatus(error.message,"err")}
+  try{currentGroup=(await request(`/webrtc/groups/create?${params}`,{method:"POST"})).body;updateProtocolSeq();renderEndpoints();renderWall();await refreshMetrics();setStatus(`Created ${currentGroup.sessions.length} peer(s). Use All streams audio to enable playback in your browser.`,"ok")}catch(error){setStatus(error.message,"err")}
 }
 async function refreshGroup(silent=false) { const id=currentGroup?.group_id||initialGroupId;if(!id)return;try{currentGroup=(await request(`/webrtc/groups/${id}`)).body;updateProtocolSeq();renderEndpoints();renderWall();if(!silent)setStatus("Group refreshed.","ok")}catch(error){if(!silent)setStatus(error.message,"err")} }
-async function deleteGroup() { if(!currentGroup)return setStatus("No group to delete.","warn");try{const count=(await request(`/webrtc/groups/${currentGroup.group_id}`,{method:"DELETE"})).body.deleted_sessions.length;currentGroup=null;audioLeader=null;renderEndpoints();renderWall();setStatus(`Deleted ${count} session(s).`,"ok")}catch(error){setStatus(error.message,"err")} }
+async function deleteGroup() { if(!currentGroup)return setStatus("No group to delete.","warn");try{const count=(await request(`/webrtc/groups/${currentGroup.group_id}`,{method:"DELETE"})).body.deleted_sessions.length;currentGroup=null;audioEnabledBySession.clear();renderEndpoints();renderWall();setStatus(`Deleted ${count} session(s).`,"ok")}catch(error){setStatus(error.message,"err")} }
 
 async function streamBlob(blob,filename) {
   if(!currentGroup)throw new Error("Create a group first."); const form=new FormData();form.append("audio_file",blob,filename);
@@ -233,12 +283,13 @@ async function streamBlob(blob,filename) {
 async function startUpload() { const file=$("audioFile").files[0];if(!file)return setStatus("Choose an audio file.","warn");try{await streamBlob(file,file.name)}catch(error){setStatus(error.message,"err")} }
 async function startKokoro() { if(!currentGroup)return setStatus("Create a group first.","warn");const button=$("kokoroBtn");button.disabled=true;setStatus("Synthesizing with local Kokoro… first use downloads and warms the model.","warn");try{const response=await fetch("/webrtc/tts/kokoro",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:$("ttsText").value,voice:$("ttsVoice").value,language_code:"a",speed:Number($("ttsSpeed").value)})});if(!response.ok){const body=await response.json().catch(()=>({}));throw new Error(body.detail||`Kokoro failed (${response.status})`)}const blob=await response.blob();lastTts={ms:Number(response.headers.get("X-Kokoro-Synthesis-Ms")),audio:Number(response.headers.get("X-Kokoro-Audio-Seconds")),rtf:Number(response.headers.get("X-Kokoro-Real-Time-Factor"))};await refreshMetrics();await streamBlob(blob,"kokoro_test.wav")}catch(error){setStatus(error.message,"err")}finally{button.disabled=false} }
 
-function reconnect() { for(const session of currentGroup?.sessions||[]) postToFrame(session.session_id,{type:"webrtc-start",muted:session.session_id!==audioLeader}); }
+function reconnect() { for(const session of currentGroup?.sessions||[]) { const frame=document.querySelector(`iframe[data-session-id="${CSS.escape(session.session_id)}"]`); try{if(typeof frame?.contentWindow?.startWebrtcPlayer==="function"){Promise.resolve(frame.contentWindow.startWebrtcPlayer(!audioEnabled(session.session_id))).catch(()=>{});continue}}catch(_){} postToFrame(session.session_id,{type:"webrtc-start",muted:!audioEnabled(session.session_id)}); } }
 function cycleDebug() { debugMode=debugModes[(debugModes.indexOf(debugMode)+1)%debugModes.length];localStorage.setItem("webrtcWallDebugMode",debugMode);$("debugBtn").textContent=`Stats: ${debugMode}`;for(const session of currentGroup?.sessions||[])postToFrame(session.session_id,{type:"webrtc-debug-mode",mode:debugMode}); }
 window.addEventListener("message",event=>{if(event.origin!==location.origin||event.data?.type!=="webrtc-client-stats")return;clientStats.set(event.data.sessionId,event.data.stats||{});const session=currentGroup?.sessions?.find(s=>s.session_id===event.data.sessionId);const card=document.querySelector(`.card[data-session-id="${CSS.escape(event.data.sessionId)}"]`);if(session&&card)updateCard(card,session);});
 $("multipose").addEventListener("change",()=>{try{syncPoseControls()}catch(error){setStatus(error.message,"err")}});$("poseSet").addEventListener("change",()=>{if(multiposeEnabled())syncPoseControls()});
 $("createBtn").addEventListener("click",createGroup);$("reconnectBtn").addEventListener("click",reconnect);$("debugBtn").addEventListener("click",cycleDebug);$("refreshBtn").addEventListener("click",()=>refreshGroup(false));$("deleteBtn").addEventListener("click",deleteGroup);$("uploadBtn").addEventListener("click",startUpload);$("kokoroBtn").addEventListener("click",startKokoro);
-syncPoseControls();$("debugBtn").textContent=`Stats: ${debugMode}`;refreshMetrics();if(initialGroupId)refreshGroup(true);setInterval(()=>{refreshMetrics();if(currentGroup||initialGroupId)refreshGroup(true)},2000);
+$("allAudioBtn").addEventListener("click",()=>setAllAudio(true));$("muteAllBtn").addEventListener("click",()=>setAllAudio(false));
+syncPoseControls();syncAudioControls();$("debugBtn").textContent=`Stats: ${debugMode}`;refreshMetrics();if(initialGroupId)refreshGroup(true);setInterval(()=>{refreshMetrics();if(currentGroup||initialGroupId)refreshGroup(true)},2000);
 </script>
 </body>
 </html>"""

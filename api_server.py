@@ -3911,7 +3911,14 @@ async def _wait_for_ice_gathering(pc) -> None:
 @app.get("/webrtc/lab", response_class=HTMLResponse)
 async def webrtc_lab():
     _require_webrtc()
-    return HTMLResponse(content=get_webrtc_wall_html(_get_default_avatar_id()))
+    wall_pose_set_path = os.getenv("WEBRTC_WALL_POSE_SET_PATH")
+    wall_pose_set = (
+        json.loads(Path(wall_pose_set_path).read_text())
+        if wall_pose_set_path else None
+    )
+    return HTMLResponse(content=get_webrtc_wall_html(
+        _get_default_avatar_id(), pose_set=wall_pose_set,
+    ))
 
 
 @app.get("/webrtc/tts/kokoro/status")

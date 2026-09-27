@@ -228,7 +228,14 @@ def get_webrtc_player_html(session) -> str:
                 hideStatus();
             }} catch (err) {{
                 lastPlayError = err && err.name ? err.name : String(err);
-                applyAudioRoute();
+                // Keep video playing if the browser requires a click for sound.
+                // The wall's All streams audio button can unlock every iframe.
+                if (audioConnected && lastPlayError === 'NotAllowedError') {{
+                    remoteVideo.muted = true;
+                    remoteVideo.volume = 0.0;
+                    try {{ await remoteVideo.play(); }} catch (_) {{}}
+                    updateStatus('Tap to enable audio', false, true);
+                }}
             }}
         }}
 
