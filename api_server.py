@@ -5407,17 +5407,41 @@ async def webrtc_stream(
             print(f"⚠️ [{request_id}] Could not release WebRTC A/V playout ({reason}): {exc}")
             return False
 
-    def motion_metadata(start_index, count):
+    def motion_metadata(start_index, count, total_frames):
         router = session.live_pose_router
         if router is None or getattr(router, "motion_bank", None) is None:
             return None
+        raw_idle = os.getenv("WEBRTC_RAW_IDLE_POSE", "").strip().lower() in {
+            "1", "true", "yes", "on",
+        }
+        # Look ahead only near the tail. snapshot() updates the router's last
+        # generation index, so querying the final frame during frame zero would
+        # make the pose router appear to have rendered the whole turn already.
+        final_index = total_frames - 1
+        final_snapshot = (
+            router.snapshot(final_index, session.fps)
+            if raw_idle and start_index + count >= max(0, total_frames - 16)
+            else None
+        )
+        continuation_frame = (
+            (router.source_frame_index(final_snapshot, final_index) + 1)
+            % router.motion_bank.count("neutral_resting")
+            if final_snapshot is not None
+            and final_snapshot.pose_id == "neutral_resting"
+            else None
+        )
         result = []
         for index in range(start_index, start_index + count):
             snapshot = router.snapshot(index, session.fps)
-            result.append({"pose_id": snapshot.pose_id,
-                           "render_key": snapshot.effective_render_key,
-                           "source_frame": router.source_frame_index(snapshot, index),
-                           "generation_frame": index, "mode": "live"})
+            metadata = {"pose_id": snapshot.pose_id,
+                        "render_key": snapshot.effective_render_key,
+                        "source_frame": router.source_frame_index(snapshot, index),
+                        "generation_frame": index, "mode": "live"}
+            if raw_idle and snapshot.pose_id == "neutral_resting":
+                metadata["mode"] = "raw_idle"
+                if continuation_frame is not None:
+                    metadata["continuation_frame"] = continuation_frame
+            result.append(metadata)
         return result
 
     def frame_callback(frame_bgr, frame_idx, total_frames):
@@ -5444,7 +5468,7 @@ async def webrtc_stream(
                 session.idle_track.push_bgr_frames_batch(
                     [frame_bgr],
                     generation_id=live_generation_id,
-                    metadata=motion_metadata(frame_idx - 1, 1),
+                    metadata=motion_metadata(frame_idx - 1, 1, total_frames),
                 ),
                 main_loop
             )
@@ -5484,7 +5508,7 @@ async def webrtc_stream(
                 session.idle_track.push_bgr_frames_batch(
                     frames_bgr,
                     generation_id=live_generation_id,
-                    metadata=motion_metadata(start_frame_idx - 1, len(frames_bgr)),
+                    metadata=motion_metadata(start_frame_idx - 1, len(frames_bgr), total_frames),
                 ),
                 main_loop,
             )
@@ -5890,6 +5914,8 @@ async def _release_webrtc_playout(
     if session is not None and not _webrtc_turn_can_publish(session, request_id, cancel_event):
         raise RuntimeError("WebRTC turn cancelled before playout release")
 
+    if sync_clock is not None and hasattr(sync_clock, "set_audio_media_duration"):
+        sync_clock.set_audio_media_duration(audio_track.media_duration_seconds)
     if sync_clock is not None and hasattr(sync_clock, "mark_audio_ready"):
         sync_clock.mark_audio_ready()
     if sync_clock is not None and hasattr(sync_clock, "mark_video_ready"):

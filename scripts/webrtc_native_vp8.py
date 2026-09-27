@@ -96,8 +96,35 @@ def _load_module(name, path):
 
 
 def _native_encoder_class(upstream):
+    ceiling_text = os.environ.get("WEBRTC_NATIVE_VP8_MAX_BITRATE_BPS", "").strip()
+    try:
+        bitrate_ceiling = int(ceiling_text) if ceiling_text else upstream.MAX_BITRATE
+    except ValueError as exc:
+        raise RuntimeError("WEBRTC_NATIVE_VP8_MAX_BITRATE_BPS must be an integer") from exc
+    if not upstream.MAX_BITRATE <= bitrate_ceiling <= 4_000_000:
+        raise RuntimeError(
+            "WEBRTC_NATIVE_VP8_MAX_BITRATE_BPS must be between "
+            f"{upstream.MAX_BITRATE} and 4000000"
+        )
+    # This is the verified artifact's private module, not installed aiortc.
+    # Its target_bitrate setter is the sole consumer of this limit.
+    upstream.MAX_BITRATE = bitrate_ceiling
+    floor_text = os.environ.get("WEBRTC_NATIVE_VP8_BITRATE_FLOOR_BPS", "").strip()
+    try:
+        bitrate_floor = int(floor_text) if floor_text else 0
+    except ValueError as exc:
+        raise RuntimeError("WEBRTC_NATIVE_VP8_BITRATE_FLOOR_BPS must be an integer") from exc
+    if bitrate_floor and not upstream.MIN_BITRATE <= bitrate_floor <= upstream.MAX_BITRATE:
+        raise RuntimeError(
+            "WEBRTC_NATIVE_VP8_BITRATE_FLOOR_BPS must be between "
+            f"{upstream.MIN_BITRATE} and {upstream.MAX_BITRATE}"
+        )
+
     class NativeVp8Encoder(upstream.Vp8Encoder):
         """Serialize native ownership and require exact outbound frame timing."""
+        bitrate_floor_bps = bitrate_floor
+        bitrate_ceiling_bps = bitrate_ceiling
+
         def __init__(self):
             self._native_lock = threading.RLock()
             self._closed = False
@@ -105,6 +132,20 @@ def _native_encoder_class(upstream):
             self._native_bitrate_reconfigurations = 0
             self._native_frames_encoded = 0
             super().__init__()
+            if bitrate_floor:
+                upstream.Vp8Encoder.target_bitrate.fset(self, bitrate_floor)
+
+        @property
+        def target_bitrate(self):
+            with self._native_lock:
+                return upstream.Vp8Encoder.target_bitrate.fget(self)
+
+        @target_bitrate.setter
+        def target_bitrate(self, bitrate):
+            with self._native_lock:
+                upstream.Vp8Encoder.target_bitrate.fset(
+                    self, max(bitrate, bitrate_floor)
+                )
 
         def encode(self, frame, force_keyframe=False):
             with self._native_lock:
@@ -209,8 +250,9 @@ def _probe_encoder(encoder_class):
         encoder.target_bitrate = 750000
         frame.pts = 4500
         second, next_timestamp = encoder.encode(frame)
+        expected_kbps = max(750000, encoder.bitrate_floor_bps) // 1000
         if (not first or not second or timestamp != 0 or next_timestamp != 4500
-                or encoder.codec is not context or encoder.cfg.rc_target_bitrate != 750):
+                or encoder.codec is not context or encoder.cfg.rc_target_bitrate != expected_kbps):
             raise RuntimeError("Native VP8 startup encode/reconfiguration probe failed")
     finally:
         encoder.close()
@@ -237,7 +279,12 @@ def configure_vp8_encoder(process_label="process"):
     summary = {"encoder": "native", "opt_in": True,
                "directory": encoder_class.native_directory,
                "libvpx": encoder_class.native_libvpx_version,
+               "bitrate_floor_bps": encoder_class.bitrate_floor_bps,
+               "bitrate_ceiling_bps": encoder_class.bitrate_ceiling_bps,
                "packages": dict(SUPPORTED_PACKAGES)}
     print(f"[{process_label}] VP8 encoder=native libvpx=v1.13.1 "
-          f"directory={encoder_class.native_directory} startup_probe=passed", flush=True)
+          f"directory={encoder_class.native_directory} "
+          f"bitrate_floor_bps={encoder_class.bitrate_floor_bps} "
+          f"bitrate_ceiling_bps={encoder_class.bitrate_ceiling_bps} "
+          "startup_probe=passed", flush=True)
     return summary

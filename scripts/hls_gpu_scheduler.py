@@ -1397,8 +1397,11 @@ class HLSGPUStreamScheduler:
                 if gathered_latent.dim() == 4 and gathered_latent.shape[0] == 1:
                     gathered_latent = gathered_latent.squeeze(0)
                 gathered_latents_by_frame.append(gathered_latent)
-            gathered_latents = torch.stack(gathered_latents_by_frame)
-            staging_latents[offset: offset + take].copy_(gathered_latents)
+            # A pose transition can put CPU-pinned and GPU-resident avatar
+            # latents in the same batch. Copy each frame into the common CPU
+            # staging buffer before the model transfer.
+            for relative_frame, gathered_latent in enumerate(gathered_latents_by_frame):
+                staging_latents[offset + relative_frame].copy_(gathered_latent)
             offset += take
 
         if padded_batch > actual_batch:
@@ -1758,10 +1761,17 @@ class HLSGPUStreamScheduler:
                     if rel_index < len(background_frames)
                     else None
                 )
-                if getattr(job, "exact_silence", False):
+                raw_idle_pose = bool(
+                    job.output_mode == "webrtc"
+                    and bank is not None
+                    and pose_id == "neutral_resting"
+                    and _env_bool("WEBRTC_RAW_IDLE_POSE", False)
+                )
+                if getattr(job, "exact_silence", False) or raw_idle_pose:
                     # Do not gate individual quiet/voiceless speech frames.
                     # This flag comes only from the original entire upload's
-                    # exact-zero decoded PCM, and keeps normal timing intact.
+                    # exact-zero decoded PCM. The separate opt-in raw idle mode
+                    # applies only after the motion plan selects the idle pose.
                     result = pose_avatar.compose_frame(res_frame, cycle_index,
                         background_frame=background_frame, return_layers=True)
                     frames.append(result["raw"])

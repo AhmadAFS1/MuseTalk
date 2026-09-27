@@ -103,6 +103,7 @@ class VideoSyncClock:
         self._av_start_summary_logged = False
         self.audio_completed_at: Optional[float] = None
         self.audio_media_seconds: Optional[float] = None
+        self.planned_audio_media_seconds: Optional[float] = None
         self.audio_playout_seconds = 0.0
         # Session-level RTP phase published continuously by the persistent
         # audio transport, including while the avatar is idle.
@@ -139,6 +140,7 @@ class VideoSyncClock:
         self._av_start_summary_logged = False
         self.audio_completed_at = None
         self.audio_media_seconds = None
+        self.planned_audio_media_seconds = None
         self.audio_playout_seconds = 0.0
         self.first_live_audio_target_seconds = None
         self.first_live_video_rtp_seconds = None
@@ -360,6 +362,10 @@ class VideoSyncClock:
                 ),
             )
             self._log_av_start_summary()
+
+    def set_audio_media_duration(self, media_seconds: float) -> None:
+        """Publish the decoded PCM length before video playout starts."""
+        self.planned_audio_media_seconds = max(0.0, float(media_seconds))
 
     def mark_audio_complete(self, media_seconds: Optional[float] = None) -> None:
         """Mark the exact media-time endpoint shared by audio and live video."""
@@ -606,6 +612,7 @@ class VideoSyncClock:
             ),
             "audio_complete": self.audio_complete.is_set(),
             "audio_media_seconds": self.audio_media_seconds,
+            "planned_audio_media_seconds": self.planned_audio_media_seconds,
             "audio_playout_seconds": self.audio_playout_seconds,
             "audio_transport_next_pts_seconds": (
                 self.audio_transport_next_pts_seconds
@@ -1373,6 +1380,8 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
             return 0
         media_seconds = self._sync_clock.audio_media_seconds
         if media_seconds is None:
+            media_seconds = self._sync_clock.planned_audio_media_seconds
+        if media_seconds is None:
             return 0
         return max(
             0,
@@ -1385,9 +1394,8 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
             return True
         if self._sync_clock is None:
             return True
-        if not self._sync_clock.audio_complete.is_set():
-            return False
-        return self._live_output_index >= self._required_live_output_frames()
+        required = self._required_live_output_frames()
+        return bool(required and self._live_output_index >= required)
 
     async def _pop_live_frames_strict(self, steps: int):
         """Pop exactly the next FIFO frames, waiting instead of dropping/holding."""
@@ -1531,6 +1539,19 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         if source_frame_count and source_frame_count > 0:
             target_source_frame %= int(source_frame_count)
 
+        # Diagnostic only: pin the source phase for controlled A/B recordings.
+        # The visible idle phase is still reported separately in the timing
+        # record, and normal playback never reads this variable.
+        test_override = os.getenv("WEBRTC_TEST_IDLE_SYNC_SOURCE_FRAME")
+        if test_override is not None:
+            if (getattr(self, "motion_bank", None) is None
+                    or os.getenv("WEBRTC_MOTION_ALLOW_UNREVIEWED") != "1"
+                    or not source_frame_count):
+                raise ValueError("Test source-frame override requires an unreviewed motion bank")
+            target_source_frame = int(test_override)
+            if not 0 <= target_source_frame < int(source_frame_count):
+                raise ValueError("Test source-frame override outside idle source")
+
         # Convert through media time because the idle MP4 can run at a different
         # frame rate from generated WebRTC output.
         idle_phase_seconds = (
@@ -1551,12 +1572,14 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         )
 
         timing = {
-            "timing_source": "webrtc_idle_track",
+            "timing_source": ("webrtc_idle_track_test_override" if test_override is not None
+                              else "webrtc_idle_track"),
             "mapping": "single_video_source_frame",
             "offset_seconds": offset_seconds,
             "offset_frames": offset_frames,
             "idle_source_frame_index": source_frame_index,
             "target_source_frame_index": target_source_frame,
+            "test_override_source_frame": (target_source_frame if test_override is not None else None),
             "idle_phase_seconds": idle_phase_seconds,
             "source_frame_count": source_frame_count,
             "source_fps": source_fps,
@@ -1581,6 +1604,7 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         self._live_generation_id += 1
         self._cancel_motion_entry()
         if getattr(self, "motion_bank", None) is not None:
+            self._clear_motion_idle_continuation()
             self._motion_entry_failure.clear()
             self._motion_entry_failed_record = None
         stale_frames = 0
@@ -1905,6 +1929,8 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
 
         if self._frames_received == 0:
             self._prepare_motion_entry(metadata, owner_generation_id)
+        if getattr(self, "motion_bank", None) is not None:
+            self._stage_motion_idle_continuation(metadata, owner_generation_id)
         self._frames_received += 1
 
         # Check if prebuffer is ready

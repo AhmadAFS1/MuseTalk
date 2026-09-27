@@ -32,6 +32,9 @@ class MotionPlaybackMixin:
         self._motion_trace = deque(maxlen=3600)
         self._motion_returns = deque(maxlen=30)
         self._motion_return_record = None
+        self._motion_idle_continuation = None
+        self._motion_idle_continuation_task = None
+        self._motion_idle_continuation_token = 0
         self._motion_entries = deque(maxlen=30)
         self._motion_entry = None
         self._motion_entry_task = None
@@ -66,8 +69,63 @@ class MotionPlaybackMixin:
     def _close_motion(self):
         if getattr(self, "motion_bank", None):
             self._motion_token += 1
+            self._clear_motion_idle_continuation()
             self._cancel_motion_entry()
             self._motion_settled.set()
+
+    def _clear_motion_idle_continuation(self):
+        self._motion_idle_continuation_token += 1
+        staged = self._motion_idle_continuation
+        self._motion_idle_continuation = None
+        if staged is not None:
+            staged["decoder"].stop()
+        # Let any in-flight decoder finish. Its token check closes it on the
+        # worker's return, avoiding a PyAV decoder leak after cancellation.
+        self._motion_idle_continuation_task = None
+
+    def _stage_motion_idle_continuation(self, metadata, generation_id):
+        bank = getattr(self, "motion_bank", None)
+        if (bank is None or metadata is None or metadata.get("mode") != "raw_idle"
+                or metadata.get("continuation_frame") is None
+                or self._motion_idle_continuation is not None
+                or self._motion_idle_continuation_task is not None):
+            return
+        target = int(metadata["continuation_frame"])
+        if not 0 <= target < bank.count(IDLE):
+            raise ValueError("Raw idle continuation frame is outside the source")
+        self._motion_idle_continuation_token += 1
+        token = self._motion_idle_continuation_token
+
+        def decode():
+            from scripts.webrtc_tracks import IdleVideoStreamTrack
+            decoder = IdleVideoStreamTrack(self._motion_idle_path, fps=bank.fps,
+                                           decode_threads=16)
+            try:
+                for _ in range(target):
+                    decoder.read_frame()
+                return decoder, decoder.read_frame()
+            except BaseException:
+                decoder.stop()
+                raise
+
+        async def stage():
+            try:
+                decoder, first = await asyncio.to_thread(decode)
+                if (self._closed or token != self._motion_idle_continuation_token
+                        or generation_id != self._live_generation_id):
+                    decoder.stop()
+                    return
+                self._motion_idle_continuation = {
+                    "decoder": decoder, "first": first, "target": target,
+                    "generation_id": generation_id,
+                }
+            except Exception as exc:
+                print(f"Raw idle continuation preparation failed: {exc}", flush=True)
+            finally:
+                if token == self._motion_idle_continuation_token:
+                    self._motion_idle_continuation_task = None
+
+        self._motion_idle_continuation_task = asyncio.create_task(stage())
 
     def _cancel_motion_entry(self):
         entry = getattr(self, "_motion_entry", None)
@@ -321,7 +379,8 @@ class MotionPlaybackMixin:
         self._motion_trace.append(self._emitted_motion)
         entry = self._motion_entry
         if (entry is not None and entry["status"] == "completed"
-                and metadata.get("mode") == "live" and "first_live_output_frame" not in entry):
+                and metadata.get("mode") in ("live", "raw_idle")
+                and "first_live_output_frame" not in entry):
             entry["first_live_output_frame"] = self._rtp_frame_index
             entry["first_live_generation_frame"] = metadata.get("generation_frame")
             entry["additional_start_seconds"] = time.monotonic() - entry["bridge_started_at"]
@@ -346,9 +405,33 @@ class MotionPlaybackMixin:
             anchor = self._motion_entry_last_frame
         metadata = self._emitted_motion
         if anchor is None or metadata is None:
+            self._clear_motion_idle_continuation()
             return True  # Cancelled before speech was actually displayed.
         source_pose = bank.canonical(metadata["pose_id"])
         source_index = int(metadata["source_frame"])
+        staged_idle = self._motion_idle_continuation
+        if (metadata.get("mode") == "raw_idle" and source_pose == IDLE
+                and staged_idle is not None
+                and staged_idle["generation_id"] == self._live_generation_id
+                and staged_idle["target"] == (source_index + 1) % bank.count(IDLE)):
+            self._motion_idle_continuation = None
+            self._motion_idle_continuation_task = None
+            self._motion_idle_continuation_token += 1
+            self._apply_idle_switch(staged_idle["decoder"],
+                                    idle_video_path=self._motion_idle_path,
+                                    pose_id=IDLE, reason="raw_idle_continuation",
+                                    transition_frames=[staged_idle["first"]])
+            record = {"from_pose": IDLE, "from_frame": source_index,
+                      "target_frame": staged_idle["target"],
+                      "started_at": time.monotonic(), "status": "playing",
+                      "bridge_seconds": 0, "source_output_frame": metadata.get("output_frame")}
+            self._motion_returns.append(record)
+            self._motion_return_record = record
+            self._motion_transition_ids = [{"pose_id": IDLE,
+                "source_frame": staged_idle["target"], "mode": "raw_idle_continuation"}]
+            self._motion_settled.clear()
+            return True
+        self._clear_motion_idle_continuation()
         edge = bank.edge(source_pose, source_index, IDLE)
         if not edge["admissible"]:
             raise RuntimeError("Attempted playback from an uncovered motion phase")

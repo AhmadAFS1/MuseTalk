@@ -64,6 +64,7 @@ def main(args):
     if args.use_float16:
         pe = pe.half()
         vae.vae = vae.vae.half()
+        vae.runtime_dtype = vae.vae.dtype
         unet.model = unet.model.half()
     
     # Move models to specified device
@@ -208,8 +209,11 @@ def main(args):
             
             # Execute inference
             for i, (whisper_batch, latent_batch) in enumerate(tqdm(gen, total=total)):
+                # datagen only moves its final, partial batch to the requested
+                # device. Full batches must be transferred here as well.
+                whisper_batch = whisper_batch.to(device=device, dtype=weight_dtype)
+                latent_batch = latent_batch.to(device=device, dtype=unet.model.dtype)
                 audio_feature_batch = pe(whisper_batch)
-                latent_batch = latent_batch.to(dtype=unet.model.dtype)
                 
                 pred_latents = unet.model(latent_batch, timesteps, encoder_hidden_states=audio_feature_batch).sample
                 recon = vae.decode_latents(pred_latents)
@@ -239,11 +243,11 @@ def main(args):
 
             # Save prediction results
             temp_vid_path = f"{temp_dir}/temp_{input_basename}_{audio_basename}.mp4"
-            cmd_img2video = f"ffmpeg -y -v warning -r {fps} -f image2 -i {result_img_save_path}/%08d.png -vcodec libx264 -vf format=yuv420p -crf 18 {temp_vid_path}"
+            cmd_img2video = f"ffmpeg -y -v warning -r {fps} -f image2 -i {result_img_save_path}/%08d.png -vcodec libx264 -vf format=yuv420p -crf 12 {temp_vid_path}"
             print("Video generation command:", cmd_img2video)
             os.system(cmd_img2video)   
             
-            cmd_combine_audio = f"ffmpeg -y -v warning -i {audio_path} -i {temp_vid_path} {output_vid_name}"
+            cmd_combine_audio = f"ffmpeg -y -v warning -i {audio_path} -i {temp_vid_path} -map 1:v:0 -map 0:a:0 -c:v copy -c:a aac -b:a 192k -shortest {output_vid_name}"
             print("Audio combination command:", cmd_combine_audio) 
             os.system(cmd_combine_audio)
             

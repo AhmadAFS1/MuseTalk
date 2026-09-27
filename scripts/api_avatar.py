@@ -29,6 +29,9 @@ import subprocess
 # an existing avatar should not require those dependencies just to start the
 # server.
 from musetalk.utils.blending import (
+    attenuate_outer_cheeks,
+    attenuate_lateral_jaw,
+    restrict_to_source_mouth,
     get_image_prepare_material,
     get_image_blending,
     get_image_blending_with_plan,
@@ -493,6 +496,51 @@ class APIAvatar:
         self.pe = pe
         self.fp = fp
         self.args = args
+        selected_height_ids = {
+            value.strip() for value in
+            os.getenv("MUSETALK_FIXED_FACE_HEIGHT_AVATAR_IDS", "").split(",")
+            if value.strip()
+        }
+        self._fixed_face_height = (
+            _env_flag("MUSETALK_FIXED_FACE_HEIGHT")
+            and (not selected_height_ids or avatar_id in selected_height_ids)
+        )
+        selected_mouth_ids = {
+            value.strip() for value in
+            os.getenv("MUSETALK_SOURCE_MOUTH_BLEND_AVATAR_IDS", "").split(",")
+            if value.strip()
+        }
+        self._source_mouth_blend = (
+            _env_flag("MUSETALK_SOURCE_MOUTH_BLEND")
+            and (not selected_mouth_ids or avatar_id in selected_mouth_ids)
+        )
+        selected_jaw_ids = {
+            value.strip() for value in
+            os.getenv("MUSETALK_SIDE_JAW_BLEND_AVATAR_IDS", "").split(",")
+            if value.strip()
+        }
+        self._side_jaw_blend = (
+            _env_flag("MUSETALK_SIDE_JAW_BLEND")
+            and (not selected_jaw_ids or avatar_id in selected_jaw_ids)
+        )
+        if self._source_mouth_blend and self._side_jaw_blend:
+            raise ValueError("Choose either source-mouth or side-jaw blend for an avatar")
+        self._side_jaw_strength = (
+            float(os.getenv("MUSETALK_SIDE_JAW_BLEND_STRENGTH", "1"))
+            if self._side_jaw_blend else 1.0
+        )
+        if self._side_jaw_blend and not 0 <= self._side_jaw_strength <= 1:
+            raise ValueError("Side-jaw blend strength must be within [0, 1]")
+        self._source_mouth_radii = (
+            (float(os.getenv("MUSETALK_SOURCE_MOUTH_RADIUS_X", ".32")),
+             float(os.getenv("MUSETALK_SOURCE_MOUTH_RADIUS_Y", ".20")))
+            if self._source_mouth_blend else (.32, .20)
+        )
+        if self._source_mouth_blend and not all(
+            0 < radius < 1 for radius in self._source_mouth_radii
+        ):
+            raise ValueError("Source-mouth radii must be within (0, 1) face widths")
+        self._source_mouth_centers = None
         self.unet_dtype = getattr(unet, "model_dtype", getattr(getattr(unet, "model", None), "dtype", torch.float16))
         self.vae_dtype = getattr(vae, "runtime_dtype", getattr(getattr(vae, "vae", None), "dtype", torch.float16))
         
@@ -518,7 +566,8 @@ class APIAvatar:
             "video_path": video_path,
             "idle_video_path": idle_video_path,
             "bbox_shift": bbox_shift,
-            "version": args.version
+            "version": args.version,
+            "fixed_face_height": self._fixed_face_height,
         }
         self._cpu_pe_cache = {}
         
@@ -556,6 +605,17 @@ class APIAvatar:
         mask_list = getattr(self, "mask_list_cycle", None) or []
         mask_coord_list = getattr(self, "mask_coords_list_cycle", None) or []
         total = min(len(frame_list), len(coord_list), len(mask_list), len(mask_coord_list))
+        preserve_cheeks = _env_flag("MUSETALK_CHEEK_ONLY_BLEND")
+        if self._source_mouth_blend or self._side_jaw_blend:
+            with open(self.avatar_info_path, "r") as handle:
+                saved = json.load(handle)
+            path_text = saved.get("latent_mix", {}).get("source_mouth_centers")
+            if not path_text:
+                raise ValueError(f"{self.avatar_id} lacks saved source-mouth centers")
+            with open(path_text, "r") as handle:
+                self._source_mouth_centers = json.load(handle)["smoothed_xy_px"]
+            if len(self._source_mouth_centers) < (total + 1) // 2:
+                raise ValueError(f"{self.avatar_id} has too few source-mouth centers")
         plans = []
         # Added code: a plan is a pure function of (frame shape, bbox, mask,
         # mask crop box). After cycle dedup the mask buffer is shared between
@@ -564,18 +624,33 @@ class APIAvatar:
         # shared too instead of rebuilt.
         plan_cache: dict = {}
         for idx in range(total):
+            center = (self._source_mouth_centers[min(idx, total - 1 - idx)]
+                      if self._source_mouth_blend or self._side_jaw_blend else None)
             key = (
                 tuple(frame_list[idx].shape),
                 tuple(int(v) for v in coord_list[idx]),
                 id(mask_list[idx]),
                 tuple(int(v) for v in mask_coord_list[idx]),
+                tuple(center) if center is not None else None,
             )
             plan = plan_cache.get(key)
             if plan is None:
+                mask = (attenuate_outer_cheeks(mask_list[idx], coord_list[idx],
+                                               mask_coord_list[idx])
+                        if preserve_cheeks else mask_list[idx])
+                if center is not None:
+                    if self._source_mouth_blend:
+                        mask = restrict_to_source_mouth(
+                            mask, coord_list[idx], mask_coord_list[idx], center,
+                            *self._source_mouth_radii)
+                    else:
+                        mask = attenuate_lateral_jaw(
+                            mask, coord_list[idx], mask_coord_list[idx], center,
+                            self._side_jaw_strength)
                 plan = prepare_image_blending_plan(
                     frame_list[idx].shape,
                     coord_list[idx],
-                    mask_list[idx],
+                    mask,
                     mask_coord_list[idx],
                 )
                 plan_cache[key] = plan
@@ -710,6 +785,7 @@ class APIAvatar:
                     self._create_avatar()
                 elif self._has_prepared_materials():
                     print(f"✅ Avatar {self.avatar_id} already exists, loading existing materials")
+                    self._validate_prepared_height_mode()
                     self._load_existing_materials()
                 else:
                     print(
@@ -733,6 +809,7 @@ class APIAvatar:
                     f"Avatar {self.avatar_id} is incomplete on disk. "
                     "Re-run preparation to rebuild missing materials."
                 )
+            self._validate_prepared_height_mode()
             
             # Check for bbox_shift mismatch
             if os.path.exists(self.avatar_info_path):
@@ -747,6 +824,16 @@ class APIAvatar:
                     )
             
             self._load_existing_materials()
+
+    def _validate_prepared_height_mode(self) -> None:
+        with open(self.avatar_info_path, "r") as handle:
+            prepared = json.load(handle)
+        saved = bool(prepared.get("fixed_face_height", False))
+        if saved != self._fixed_face_height:
+            raise ValueError(
+                f"Avatar {self.avatar_id} was prepared with fixed_face_height={saved}; "
+                f"requested {self._fixed_face_height}. Use a new avatar ID or reprepare it."
+            )
 
     def _has_prepared_materials(self) -> bool:
         required_files = (
@@ -805,6 +892,8 @@ class APIAvatar:
         
         # Process frames
         self._process_frames()
+        with open(self.avatar_info_path, "w") as f:
+            json.dump(self.avatar_info, f)
         
         print(f"✅ Avatar {self.avatar_id} preparation complete")
 
@@ -887,10 +976,13 @@ class APIAvatar:
         
         print("🧠 Encoding latents...")
         input_latent_list = []
+        mask_source_coords = []
+        anchor_height = None
         coord_placeholder = (0.0, 0.0, 0.0, 0.0)
         
         for idx, (bbox, frame) in enumerate(zip(coord_list, frame_list)):
             if bbox == coord_placeholder:
+                mask_source_coords.append(bbox)
                 continue
             
             x1, y1, x2, y2 = bbox
@@ -899,6 +991,17 @@ class APIAvatar:
             if self.args.version == "v15":
                 y2 = y2 + self.args.extra_margin
                 y2 = min(y2, frame.shape[0])
+                coord_list[idx] = [x1, y1, x2, y2]
+            mask_source_coords.append([x1, y1, x2, y2])
+
+            if self._fixed_face_height:
+                if anchor_height is None:
+                    anchor_height = int(y2 - y1)
+                    if anchor_height <= 0:
+                        raise ValueError("Cannot anchor a nonpositive face-box height")
+                y1 = int(y2 - anchor_height)
+                if y1 < 0 or y1 >= y2:
+                    raise ValueError(f"Fixed face height is outside frame {idx}")
                 coord_list[idx] = [x1, y1, x2, y2]
             
             # Crop and resize
@@ -916,6 +1019,9 @@ class APIAvatar:
         self.frame_list_cycle = frame_list + frame_list[::-1]
         self.coord_list_cycle = coord_list + coord_list[::-1]
         self.input_latent_list_cycle = input_latent_list + input_latent_list[::-1]
+        mask_source_coords_cycle = mask_source_coords + mask_source_coords[::-1]
+        if self._fixed_face_height:
+            self.avatar_info["fixed_face_height_anchor_px"] = anchor_height
         
         print("🎭 Creating masks...")
         self.mask_coords_list_cycle = []
@@ -926,7 +1032,8 @@ class APIAvatar:
             cv2.imwrite(f"{self.full_imgs_path}/{str(i).zfill(8)}.png", frame)
             
             # Create mask
-            x1, y1, x2, y2 = self.coord_list_cycle[i]
+            x1, y1, x2, y2 = (mask_source_coords_cycle[i]
+                              if self._fixed_face_height else self.coord_list_cycle[i])
             mode = self.args.parsing_mode if self.args.version == "v15" else "raw"
             mask, crop_box = get_image_prepare_material(
                 frame, [x1, y1, x2, y2], 
@@ -1269,6 +1376,19 @@ class APIAvatar:
         else:
             mask = self.mask_list_cycle[cycle_pos % len(self.mask_list_cycle)]
             mask_crop_box = self.mask_coords_list_cycle[cycle_pos % len(self.mask_coords_list_cycle)]
+            if _env_flag("MUSETALK_CHEEK_ONLY_BLEND"):
+                mask = attenuate_outer_cheeks(mask, bbox, mask_crop_box)
+            if self._source_mouth_blend or self._side_jaw_blend:
+                center = self._source_mouth_centers[
+                    min(cycle_pos, len(self.coord_list_cycle) - 1 - cycle_pos)]
+                if self._source_mouth_blend:
+                    mask = restrict_to_source_mouth(
+                        mask, bbox, mask_crop_box, center,
+                        *self._source_mouth_radii)
+                else:
+                    mask = attenuate_lateral_jaw(
+                        mask, bbox, mask_crop_box, center,
+                        self._side_jaw_strength)
             if not return_layers:
                 return get_image_blending(ori_frame, res_frame_resized, bbox, mask, mask_crop_box)
             compose_plan = prepare_image_blending_plan(ori_frame.shape, bbox, mask, mask_crop_box)

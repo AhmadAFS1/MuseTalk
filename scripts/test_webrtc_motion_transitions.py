@@ -161,7 +161,7 @@ async def record_case(http, args, poses, case, turns):
         if not await helper.wait_for_peer_connection(pc=pc, connected_event=connected,
                 failed_event=failed, timeout_s=60):
             raise RuntimeError("WebRTC connection failed")
-        await asyncio.sleep(1)
+        await asyncio.sleep(getattr(args, "initial_idle_wait_seconds", 1.0))
         selected = motion(await status())
         assert selected, "Motion atlas did not match prepared sources"
         if args.atlas:
@@ -198,7 +198,7 @@ async def record_case(http, args, poses, case, turns):
             # Keep partial-turn evidence if an assertion or network call fails.
             evidence["turns"].append(turn)
             entry_interrupt = interrupt == "entry"
-            segments = speech_segments(smile)
+            segments = getattr(args, "pose_segments_override", None) or speech_segments(smile)
             with (args.audio_dir / audio_name).open("rb") as audio:
                 form = aiohttp.FormData()
                 form.add_field("audio_file", audio, filename=audio_name, content_type="audio/wav")
@@ -309,7 +309,8 @@ async def record_case(http, args, poses, case, turns):
                 assert turn["barge_in"]["ended"].get("accepted"), turn["barge_in"]
             print(f"[{case}] complete at {turn['complete_at_seconds']:.2f}s", flush=True)
             # Next turn begins as soon as the return is settled: back-to-back test.
-            if index == len(turns)-1: await asyncio.sleep(1.2)
+            if index == len(turns)-1:
+                await asyncio.sleep(getattr(args, "post_complete_idle_seconds", 1.2))
         evidence["final_status"] = await status()
         returns = motion(evidence["final_status"])["returns"]
         assert all(r["status"] == "completed" and r["total_seconds"] <= .5 for r in returns), returns
@@ -394,6 +395,8 @@ if __name__ == "__main__":
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--avatar-prefix", default="japanese_motion_20260925")
     p.add_argument("--fps", type=int, default=20)
+    p.add_argument("--initial-idle-wait-seconds", type=float, default=1.0,
+                   help="Natural idle playback before speech; vary to exercise different source phases")
     p.add_argument("--pose-set", type=Path, help="Character package pose-set.json")
     p.add_argument("--atlas", type=Path, help="Expected runtime bank; inferred beside --pose-set when present")
     p.add_argument("--legacy", action="store_true", help="Exercise speech metadata without a v2 pose plan")

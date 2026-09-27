@@ -12,6 +12,7 @@ import asyncio
 import json
 import math
 import mimetypes
+import os
 import sys
 import time
 from contextlib import suppress
@@ -138,6 +139,15 @@ class RTPMP4Recorder(MediaRecorder if MediaRecorder is not None else object):
             raise SmokeTestError("Unsupported aiortc recorder: missing MediaRecorderContext") from exc
         self._recorder_context_type = MediaRecorderContext
         self._video_fps = Fraction(str(video_fps))
+        crf_text = os.getenv("WEBRTC_RECEIVER_RECORDING_CRF", "").strip()
+        self._video_crf = None
+        if crf_text:
+            try:
+                self._video_crf = int(crf_text)
+            except ValueError as exc:
+                raise ValueError("WEBRTC_RECEIVER_RECORDING_CRF must be an integer") from exc
+            if not 0 <= self._video_crf <= 51:
+                raise ValueError("WEBRTC_RECEIVER_RECORDING_CRF must be between 0 and 51")
         # Both 90 kHz video and 48 kHz audio origins fit this movie timescale;
         # the MP4 default (1 kHz) would round the first timestamp to milliseconds.
         super().__init__(file, format="mp4", options={"movie_timescale": "720000"})
@@ -171,6 +181,8 @@ class RTPMP4Recorder(MediaRecorder if MediaRecorder is not None else object):
             raise SmokeTestError(f"Unsupported recording track kind: {track.kind}")
         stream = container.add_stream("libx264", rate=self._video_fps)
         stream.pix_fmt = "yuv420p"
+        if self._video_crf is not None:
+            stream.options = {"crf": str(self._video_crf), "preset": "veryfast"}
         # Nominal rate determines frame durations; the finer encoder/muxer time
         # base preserves off-grid receiver origins and genuine RTP gaps too.
         stream.time_base = Fraction(1, 90_000)

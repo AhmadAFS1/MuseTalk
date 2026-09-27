@@ -692,6 +692,27 @@ class TimestampLockedVideoTrackTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(final_stats["last_live_output_frames"], 6)
         self.assertEqual(final_stats["last_required_live_output_frames"], 6)
 
+    async def test_planned_media_duration_caps_live_before_audio_eof_callback(self):
+        track, clock = self._make_track(source_fps=10, output_fps=30)
+        generation_id = track.start_live()
+        clock.set_audio_media_duration(0.20)
+        clock.release_playout(time.monotonic() - 1.0)
+        for index in range(2):
+            track._queue.put_nowait(_FakeIdleFrame("live", index))
+
+        self.assertEqual((await track.recv()).source, "live")
+        track.signal_generation_complete(generation_id)
+        remaining = [await track.recv() for _ in range(5)]
+        self.assertTrue(all(frame.source == "live" for frame in remaining))
+        self.assertFalse(clock.audio_complete.is_set())
+
+        self.assertEqual((await track.recv()).source, "idle.mp4")
+        stats = track.get_stats()
+        self.assertEqual(stats["last_live_output_frames"], 6)
+        self.assertEqual(stats["last_required_live_output_frames"], 6)
+        clock.mark_audio_complete(0.20)
+        self.assertTrue(clock.audio_complete.is_set())
+
     async def test_live_rtp_phase_anchors_to_persistent_audio_packet(self):
         track, clock = self._make_track(source_fps=10, output_fps=30)
         # Model independently free-running idle transports: video is at 3.0s,

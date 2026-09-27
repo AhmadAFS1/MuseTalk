@@ -117,6 +117,92 @@ def get_image_blending(image, face, face_box, mask_array, crop_box):
     return get_image_blending_with_plan(image, face, plan)
 
 
+def attenuate_outer_cheeks(mask_array, face_box, crop_box):
+    """Precompute a cheek-preserving mask while leaving the mouth and jaw intact.
+
+    Geometry follows the prepared face box's width and lower edge, which are
+    steadier than its height during upward head motion. This runs once when an
+    avatar's compose plans are built, never in the live frame path.
+    """
+    if mask_array is None:
+        return None
+    x0, _, x1, y1 = [int(v) for v in face_box]
+    crop_x, crop_y = [int(v) for v in crop_box[:2]]
+    face_width = x1 - x0
+    if face_width <= 0:
+        return mask_array
+    height, width = mask_array.shape[:2]
+    center_x = (x0 + x1) / 2
+    yy = np.arange(height, dtype=np.float32)[:, None] + crop_y
+    xx = np.arange(width, dtype=np.float32)[None, :] + crop_x
+
+    def smoothstep(values):
+        values = np.clip(values, 0, 1)
+        return values * values * (3 - 2 * values)
+
+    side = smoothstep((np.abs(xx - center_x) / face_width - 0.24) / 0.20)
+    top = smoothstep((yy - (y1 - 0.86 * face_width)) / (0.11 * face_width))
+    bottom = 1 - smoothstep((yy - (y1 - 0.41 * face_width)) / (0.12 * face_width))
+    weight = 1 - side * top * bottom
+    if mask_array.ndim == 3:
+        weight = weight[:, :, None]
+    return np.rint(mask_array.astype(np.float32) * weight).astype(np.uint8)
+
+
+def restrict_to_source_mouth(mask_array, face_box, crop_box, center,
+                             radius_x, radius_y):
+    """Precompute a mouth feather over the cached LTX source frame.
+
+    The input mask already describes where the generated face can appear.
+    Multiplying it by this source-mouth envelope keeps the generated lips and
+    feathers back to the original source jaw and cheeks. Call during avatar
+    cache load, not for every live frame.
+    """
+    if mask_array is None:
+        return None
+    x0, _, x1, _ = [int(v) for v in face_box]
+    crop_x, crop_y = [int(v) for v in crop_box[:2]]
+    face_width = x1 - x0
+    if face_width <= 0 or radius_x <= 0 or radius_y <= 0:
+        raise ValueError("Source-mouth blend requires positive face width and radii")
+    height, width = mask_array.shape[:2]
+    yy = np.arange(height, dtype=np.float32)[:, None] + crop_y
+    xx = np.arange(width, dtype=np.float32)[None, :] + crop_x
+    distance = np.sqrt(((xx - center[0]) / (radius_x * face_width)) ** 2 +
+                       ((yy - center[1]) / (radius_y * face_width)) ** 2)
+    edge = np.clip((distance - .68) / .64, 0, 1)
+    weight = .5 + .5 * np.cos(np.pi * edge)
+    if mask_array.ndim == 3:
+        weight = weight[:, :, None]
+    return np.rint(mask_array.astype(np.float32) * weight).astype(np.uint8)
+
+
+def attenuate_lateral_jaw(mask_array, face_box, crop_box, center, strength=1.0):
+    """Preserve source jaw sides while retaining generated lips and central chin."""
+    if mask_array is None:
+        return None
+    x0, _, x1, bottom = [int(v) for v in face_box]
+    crop_x, crop_y = [int(v) for v in crop_box[:2]]
+    face_width = x1 - x0
+    if face_width <= 0 or not 0 <= strength <= 1:
+        raise ValueError("Lateral-jaw blend requires positive face width and strength in [0, 1]")
+    height, width = mask_array.shape[:2]
+    yy = np.arange(height, dtype=np.float32)[:, None] + crop_y
+    xx = np.arange(width, dtype=np.float32)[None, :] + crop_x
+
+    def smoothstep(values):
+        values = np.clip(values, 0, 1)
+        return values * values * (3 - 2 * values)
+
+    horizontal = smoothstep((np.abs(xx - center[0]) / face_width - .22) / .12)
+    upper = smoothstep((yy - (center[1] - .10 * face_width)) / (.18 * face_width))
+    lower = 1 - smoothstep((yy - (bottom - .08 * face_width)) / (.11 * face_width))
+    weight = 1 - strength * horizontal * upper * lower
+    if mask_array.ndim == 3:
+        weight = weight[:, :, None]
+    return np.rint(mask_array.astype(np.float32) * weight).astype(np.uint8)
+
+
 def prepare_image_blending_plan(image_shape, face_box, mask_array, crop_box):
     """
     Precompute the static blending geometry for one avatar-cycle frame.
