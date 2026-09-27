@@ -1,0 +1,76 @@
+{
+  "gpu_start": {
+    "tag": "start",
+    "t": 1790541748.8700674,
+    "smi": "0 %, 1 MiB, 210 MHz, 9.20 W, 37",
+    "compute_apps": "",
+    "own_torch_reserved_MiB": 0.0,
+    "own_pid": 3454996
+  },
+  "pre": {
+    "tag": "pre",
+    "t": 1790541762.4744134,
+    "smi": "0 %, 2433 MiB, 2805 MHz, 83.00 W, 41",
+    "compute_apps": "3454996, 2424 MiB",
+    "own_torch_reserved_MiB": 452.0,
+    "own_pid": 3454996
+  },
+  "unet only (default stream)": {
+    "wall_ms_per_iter": 24.40055909877022,
+    "host_ms_per_iter_median": 24.441101937554777
+  },
+  "unet only (sA)": {
+    "wall_ms_per_iter": 23.941557101594906,
+    "host_ms_per_iter_median": 23.935368051752448
+  },
+  "taesd only (default)": {
+    "wall_ms_per_iter": 5.992418566408257,
+    "host_ms_per_iter_median": 5.944809061475098
+  },
+  "dep: event wait + record_stream": {
+    "wall_ms_per_iter": 29.977746532919507,
+    "host_ms_per_iter_median": 29.95498653035611
+  },
+  "dep: event wait, no record_stream": {
+    "wall_ms_per_iter": 29.984525870531797,
+    "host_ms_per_iter_median": 29.959235922433436
+  },
+  "dep: clone on sA then event": {
+    "wall_ms_per_iter": 30.00831479827563,
+    "host_ms_per_iter_median": 30.011626542545855
+  },
+  "dep: static buffer copy (racy, timing only)": {
+    "wall_ms_per_iter": 30.004220463645954,
+    "host_ms_per_iter_median": 29.98315601143986
+  },
+  "nodep: two streams, decode fixed z": {
+    "wall_ms_per_iter": 29.617707602058847,
+    "host_ms_per_iter_median": 29.600727022625506
+  },
+  "serial on sA: dec(unet())": {
+    "wall_ms_per_iter": 29.988894565030932,
+    "host_ms_per_iter_median": 29.97654606588185
+  },
+  "serial default stream: dec(unet())": {
+    "wall_ms_per_iter": 30.735267101166148,
+    "host_ms_per_iter_median": 30.746874399483204
+  },
+  "pipelined: decode(i-1) after launching unet(i)": {
+    "wall_ms_per_iter": 29.48100333257268,
+    "host_ms_per_iter_median": 29.664962086826563
+  },
+  "gil": {
+    "spin_rate_idle_per_s": 18291669.02100506,
+    "spin_rate_during_unet_loop_per_s": 18208518.830023702,
+    "unet_host_ms_per_call_with_spinner": 14.105811051558703
+  },
+  "unet_host_enqueue_ms_median": 4.52120800036937,
+  "gpu_end": {
+    "tag": "end",
+    "t": 1790541773.4316244,
+    "smi": "100 %, 2679 MiB, 2580 MHz, 169.20 W, 61",
+    "compute_apps": "3454996, 2670 MiB",
+    "own_torch_reserved_MiB": 698.0,
+    "own_pid": 3454996
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "avatar_id": "japanese_realtime_talking_7d94520b7f",
+  "version": "v15",
+  "frame_count": 482,
+  "baseline_float_full_mask": {
+    "fixed_point": false,
+    "shrink_mask_bbox": false,
+    "iters": 1000,
+    "mean_ms": 1.9142,
+    "median_ms": 1.8483,
+    "p95_ms": 2.6965,
+    "max_ms": 3.0733,
+    "fps_single_worker": 522.42
+  },
+  "fixed_point_full_mask": {
+    "fixed_point": true,
+    "shrink_mask_bbox": false,
+    "iters": 1000,
+    "mean_ms": 1.9394,
+    "median_ms": 1.9301,
+    "p95_ms": 2.1285,
+    "max_ms": 3.2735,
+    "fps_single_worker": 515.62
+  },
+  "fixed_point_shrunk_mask": {
+    "fixed_point": true,
+    "shrink_mask_bbox": true,
+    "iters": 1000,
+    "mean_ms": 0.4991,
+    "median_ms": 0.4965,
+    "p95_ms": 0.5412,
+    "max_ms": 0.5837,
+    "fps_single_worker": 2003.55
+  },
+  "mean_speedup": 3.8353,
+  "mean_reduction_pct": 73.93
+}

@@ -1,0 +1,352 @@
+{
+  "gpu_start": {
+    "tag": "start",
+    "t": 1790541380.7538106,
+    "smi": "0 %, 197 MiB, 2505 MHz, 10.72 W, 43",
+    "compute_apps": "3451407, 188 MiB",
+    "own_torch_reserved_MiB": 6.0,
+    "own_pid": 3451407
+  },
+  "latents": "real pred_latents from unet-captures (128 frames)",
+  "torch": "2.5.1+cu121",
+  "results": {
+    "max-autotune": {
+      "8": {
+        "median_ms": 5.908399820327759,
+        "mean_ms": 5.9170232057571415,
+        "p90_ms": 5.933567905426026,
+        "min_ms": 5.883903980255127,
+        "wall_median_ms": 5.914268083870411,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7385499775409698,
+        "fps_equiv": 1354.0045093895174,
+        "pipelined": {
+          "gpu_ms_per_call": 5.859430313110352,
+          "wall_ms_per_call": 5.859952297760174,
+          "n": 40
+        },
+        "pipelined_ms_per_frame": 0.732428789138794,
+        "compile_or_first_call_s": 6.1,
+        "max_abs_vs_eager": 0.0029296875,
+        "gpu_state": {
+          "tag": "max-autotune bs8",
+          "t": 1790541387.8334126,
+          "smi": "97 %, 1327 MiB, 2790 MHz, 137.88 W, 50",
+          "compute_apps": "3451407, 1318 MiB",
+          "own_torch_reserved_MiB": 1082.0,
+          "own_pid": 3451407
+        }
+      },
+      "16": {
+        "median_ms": 12.212224006652832,
+        "mean_ms": 12.212656044960022,
+        "p90_ms": 12.231507492065429,
+        "min_ms": 12.184576034545898,
+        "wall_median_ms": 12.218293501064181,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.763264000415802,
+        "fps_equiv": 1310.162669083347,
+        "pipelined": {
+          "gpu_ms_per_call": 12.15551986694336,
+          "wall_ms_per_call": 12.157432350795716,
+          "n": 40
+        },
+        "pipelined_ms_per_frame": 0.75971999168396,
+        "compile_or_first_call_s": 3.3,
+        "max_abs_vs_eager": 0.005859375,
+        "gpu_state": {
+          "tag": "max-autotune bs16",
+          "t": 1790541391.9477878,
+          "smi": "99 %, 1455 MiB, 2790 MHz, 144.24 W, 51",
+          "compute_apps": "3451407, 1446 MiB",
+          "own_torch_reserved_MiB": 1210.0,
+          "own_pid": 3451407
+        }
+      },
+      "24": {
+        "median_ms": 18.81923198699951,
+        "mean_ms": 18.841235208511353,
+        "p90_ms": 18.908323287963867,
+        "min_ms": 18.76540756225586,
+        "wall_median_ms": 18.824503989890218,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7841346661249796,
+        "fps_equiv": 1275.291149850292,
+        "pipelined": {
+          "gpu_ms_per_call": 18.769868469238283,
+          "wall_ms_per_call": 18.77101922291331,
+          "n": 40
+        },
+        "pipelined_ms_per_frame": 0.7820778528849285,
+        "compile_or_first_call_s": 3.6,
+        "max_abs_vs_eager": 0.007568359375,
+        "gpu_state": {
+          "tag": "max-autotune bs24",
+          "t": 1790541397.0213006,
+          "smi": "99 %, 1841 MiB, 2790 MHz, 148.11 W, 55",
+          "compute_apps": "3451407, 1832 MiB",
+          "own_torch_reserved_MiB": 1596.0,
+          "own_pid": 3451407
+        }
+      },
+      "32": {
+        "median_ms": 25.230656623840332,
+        "mean_ms": 25.228146457672118,
+        "p90_ms": 25.266893005371095,
+        "min_ms": 25.13920021057129,
+        "wall_median_ms": 25.236889952793717,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7884580194950104,
+        "fps_equiv": 1268.2983434431646,
+        "pipelined": {
+          "gpu_ms_per_call": 25.17908477783203,
+          "wall_ms_per_call": 25.179939350346103,
+          "n": 40
+        },
+        "pipelined_ms_per_frame": 0.786846399307251,
+        "compile_or_first_call_s": 3.7,
+        "max_abs_vs_eager": 0.006591796875,
+        "gpu_state": {
+          "tag": "max-autotune bs32",
+          "t": 1790541402.8998997,
+          "smi": "99 %, 2357 MiB, 2790 MHz, 153.50 W, 52",
+          "compute_apps": "3451407, 2348 MiB",
+          "own_torch_reserved_MiB": 2110.0,
+          "own_pid": 3451407
+        }
+      }
+    },
+    "max-autotune-no-cudagraphs": {
+      "8": {
+        "median_ms": 6.085119962692261,
+        "mean_ms": 6.096882379055023,
+        "p90_ms": 6.110259389877319,
+        "min_ms": 6.054912090301514,
+        "wall_median_ms": 6.0917920200154185,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7606399953365326,
+        "fps_equiv": 1314.6823807990356,
+        "pipelined": {
+          "gpu_ms_per_call": 5.959244918823242,
+          "wall_ms_per_call": 5.959984351648018,
+          "n": 40
+        },
+        "pipelined_ms_per_frame": 0.7449056148529053,
+        "compile_or_first_call_s": 1.1,
+        "max_abs_vs_eager": 0.0029296875,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs bs8",
+          "t": 1790541406.8357356,
+          "smi": "0 %, 2361 MiB, 2790 MHz, 69.75 W, 47",
+          "compute_apps": "3451407, 2352 MiB",
+          "own_torch_reserved_MiB": 2114.0,
+          "own_pid": 3451407
+        }
+      },
+      "16": {
+        "median_ms": 12.340384006500244,
+        "mean_ms": 12.340531969070435,
+        "p90_ms": 12.356911754608154,
+        "min_ms": 12.308416366577148,
+        "wall_median_ms": 12.346939067356288,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7712740004062653,
+        "fps_equiv": 1296.5560870368433,
+        "pipelined": {
+          "gpu_ms_per_call": 12.252969360351562,
+          "wall_ms_per_call": 12.253856199095026,
+          "n": 40
+        },
+        "pipelined_ms_per_frame": 0.7658105850219726,
+        "compile_or_first_call_s": 1.1,
+        "max_abs_vs_eager": 0.005859375,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs bs16",
+          "t": 1790541408.6163824,
+          "smi": "0 %, 2617 MiB, 2790 MHz, 96.04 W, 47",
+          "compute_apps": "3451407, 2608 MiB",
+          "own_torch_reserved_MiB": 2370.0,
+          "own_pid": 3451407
+        }
+      },
+      "24": {
+        "median_ms": 18.979520797729492,
+        "mean_ms": 18.991196870803833,
+        "p90_ms": 19.02239646911621,
+        "min_ms": 18.933759689331055,
+        "wall_median_ms": 18.98573851212859,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7908133665720621,
+        "fps_equiv": 1264.520862026775,
+        "pipelined": {
+          "gpu_ms_per_call": 18.894970703125,
+          "wall_ms_per_call": 18.895910802530125,
+          "n": 40
+        },
+        "pipelined_ms_per_frame": 0.7872904459635417,
+        "compile_or_first_call_s": 1.1,
+        "max_abs_vs_eager": 0.007568359375,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs bs24",
+          "t": 1790541411.046817,
+          "smi": "0 %, 3001 MiB, 2790 MHz, 86.98 W, 48",
+          "compute_apps": "3451407, 2992 MiB",
+          "own_torch_reserved_MiB": 2754.0,
+          "own_pid": 3451407
+        }
+      },
+      "32": {
+        "median_ms": 25.454447746276855,
+        "mean_ms": 25.474375200271606,
+        "p90_ms": 25.521747970581053,
+        "min_ms": 25.391103744506836,
+        "wall_median_ms": 25.461200042627752,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7954514920711517,
+        "fps_equiv": 1257.1476827534213,
+        "pipelined": {
+          "gpu_ms_per_call": 25.35210723876953,
+          "wall_ms_per_call": 25.353528501000255,
+          "n": 40
+        },
+        "pipelined_ms_per_frame": 0.7922533512115478,
+        "compile_or_first_call_s": 1.3,
+        "max_abs_vs_eager": 0.006591796875,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs bs32",
+          "t": 1790541414.3724868,
+          "smi": "0 %, 3769 MiB, 2790 MHz, 59.36 W, 48",
+          "compute_apps": "3451407, 3760 MiB",
+          "own_torch_reserved_MiB": 3522.0,
+          "own_pid": 3451407
+        }
+      }
+    },
+    "reduce-overhead": {
+      "8": {
+        "median_ms": 5.926768064498901,
+        "mean_ms": 5.932256031036377,
+        "p90_ms": 5.9606366634368895,
+        "min_ms": 5.893119812011719,
+        "wall_median_ms": 5.932842497713864,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7408460080623627,
+        "fps_equiv": 1349.8081775663998,
+        "pipelined": {
+          "gpu_ms_per_call": 5.870389556884765,
+          "wall_ms_per_call": 5.8711983961984515,
+          "n": 40
+        },
+        "pipelined_ms_per_frame": 0.7337986946105957,
+        "compile_or_first_call_s": 2.7,
+        "max_abs_vs_eager": 0.0029296875,
+        "gpu_state": {
+          "tag": "reduce-overhead bs8",
+          "t": 1790541419.8657777,
+          "smi": "99 %, 1071 MiB, 2790 MHz, 137.31 W, 53",
+          "compute_apps": "3451407, 1062 MiB",
+          "own_torch_reserved_MiB": 824.0,
+          "own_pid": 3451407
+        }
+      },
+      "16": {
+        "median_ms": 12.219775676727295,
+        "mean_ms": 12.244974446296691,
+        "p90_ms": 12.368383979797363,
+        "min_ms": 12.169055938720703,
+        "wall_median_ms": 12.22546910867095,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7637359797954559,
+        "fps_equiv": 1309.3530047750537,
+        "pipelined": {
+          "gpu_ms_per_call": 12.169190979003906,
+          "wall_ms_per_call": 12.170391547260806,
+          "n": 40
+        },
+        "pipelined_ms_per_frame": 0.7605744361877441,
+        "compile_or_first_call_s": 2.6,
+        "max_abs_vs_eager": 0.005859375,
+        "gpu_state": {
+          "tag": "reduce-overhead bs16",
+          "t": 1790541423.3707874,
+          "smi": "99 %, 1445 MiB, 2790 MHz, 142.27 W, 53",
+          "compute_apps": "3451407, 1436 MiB",
+          "own_torch_reserved_MiB": 1198.0,
+          "own_pid": 3451407
+        }
+      },
+      "24": {
+        "median_ms": 18.88918399810791,
+        "mean_ms": 18.90574631690979,
+        "p90_ms": 18.95086040496826,
+        "min_ms": 18.852863311767578,
+        "wall_median_ms": 18.895764485932887,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7870493332544962,
+        "fps_equiv": 1270.5683846588624,
+        "pipelined": {
+          "gpu_ms_per_call": 18.804908752441406,
+          "wall_ms_per_call": 18.806943524396047,
+          "n": 40
+        },
+        "pipelined_ms_per_frame": 0.7835378646850586,
+        "compile_or_first_call_s": 2.7,
+        "max_abs_vs_eager": 0.007568359375,
+        "gpu_state": {
+          "tag": "reduce-overhead bs24",
+          "t": 1790541427.653972,
+          "smi": "100 %, 1637 MiB, 2790 MHz, 142.60 W, 54",
+          "compute_apps": "3451407, 1628 MiB",
+          "own_torch_reserved_MiB": 1390.0,
+          "own_pid": 3451407
+        }
+      },
+      "32": {
+        "median_ms": 25.36086368560791,
+        "mean_ms": 25.382041454315186,
+        "p90_ms": 25.492054557800294,
+        "min_ms": 25.28563117980957,
+        "wall_median_ms": 25.367359980009496,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7925269901752472,
+        "fps_equiv": 1261.7866803234997,
+        "pipelined": {
+          "gpu_ms_per_call": 25.293312072753906,
+          "wall_ms_per_call": 25.2945089712739,
+          "n": 40
+        },
+        "pipelined_ms_per_frame": 0.7904160022735596,
+        "compile_or_first_call_s": 2.8,
+        "max_abs_vs_eager": 0.006591796875,
+        "gpu_state": {
+          "tag": "reduce-overhead bs32",
+          "t": 1790541432.698348,
+          "smi": "99 %, 2405 MiB, 2790 MHz, 145.18 W, 55",
+          "compute_apps": "3451407, 2396 MiB",
+          "own_torch_reserved_MiB": 2158.0,
+          "own_pid": 3451407
+        }
+      }
+    }
+  },
+  "gpu_end": {
+    "tag": "end",
+    "t": 1790541435.6927278,
+    "smi": "100 %, 2405 MiB, 2670 MHz, 218.31 W, 63",
+    "compute_apps": "3451407, 2396 MiB",
+    "own_torch_reserved_MiB": 2158.0,
+    "own_pid": 3451407
+  }
+}

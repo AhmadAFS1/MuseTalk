@@ -1,0 +1,152 @@
+{
+ "who": "black_woman",
+ "frames": 96,
+ "cv2_threads": 1,
+ "numpy": "1.23.5",
+ "opencv": "4.9.0",
+ "frame_shape": [
+  896,
+  512,
+  3
+ ],
+ "bbox_example": [
+  137,
+  177,
+  387,
+  497
+ ],
+ "cropbox_example": [
+  22,
+  97,
+  502,
+  577
+ ],
+ "plan_clip_shape": [
+  199,
+  234
+ ],
+ "refined_region_shape": [
+  190,
+  219
+ ],
+ "prepare_refined_seconds_for_N": 2.014,
+ "stages_ms": {
+  "frame_copy_512x896": {
+   "mean": 0.0966,
+   "p50": 0.0942,
+   "p95": 0.1184
+  },
+  "resize_256_to_bbox": {
+   "mean": 0.0974,
+   "p50": 0.0947,
+   "p95": 0.1165
+  },
+  "std_blend_fixedpoint(plan)": {
+   "mean": 0.555,
+   "p50": 0.5293,
+   "p95": 0.7264
+  },
+  "STANDARD_total(copy+resize+blend)": {
+   "mean": 0.6326,
+   "p50": 0.6059,
+   "p95": 0.8421
+  },
+  "geometry_curves+filter": {
+   "mean": 0.065,
+   "p50": 0.0699,
+   "p95": 0.0837
+  },
+  "refined_mask_current(g,delta)": {
+   "mean": 0.73,
+   "p50": 0.7007,
+   "p95": 0.9692
+  },
+  "sourcemask_current(g)[chin100 v1]": {
+   "mean": 0.2179,
+   "p50": 0.2171,
+   "p95": 0.2736
+  },
+  "plan_alpha_rebuild(float+u8)": {
+   "mean": 0.0195,
+   "p50": 0.0187,
+   "p95": 0.0276
+  },
+  "plan_alpha_rebuild(u8 only)": {
+   "mean": 0.0007,
+   "p50": 0.0007,
+   "p95": 0.0007
+  },
+  "blend_with_dynamic_alpha": {
+   "mean": 0.5534,
+   "p50": 0.5353,
+   "p95": 0.6467
+  },
+  "warp_roi(100%)": {
+   "mean": 0.989,
+   "p50": 0.9754,
+   "p95": 1.2584
+  },
+  "REFINED_total(corrected_refined)": {
+   "mean": 3.7301,
+   "p50": 4.2057,
+   "p95": 4.9551
+  },
+  "CHIN_v1_total(corrected SourceMask)": {
+   "mean": 2.9337,
+   "p50": 2.5766,
+   "p95": 4.224
+  },
+  "tracker_input_prep(frame->shm+resize paste)": {
+   "mean": 0.2214,
+   "p50": 0.2137,
+   "p95": 0.2921
+  },
+  "cv2_BGR2RGB_512x896": {
+   "mean": 0.0404,
+   "p50": 0.0399,
+   "p95": 0.0443
+  },
+  "cv2_BGR2YUV_I420_512x896": {
+   "mean": 0.1354,
+   "p50": 0.132,
+   "p95": 0.1386
+  },
+  "pyav_from_ndarray+reformat_yuv420p": {
+   "mean": 0.8252,
+   "p50": 0.7866,
+   "p95": 1.1095
+  }
+ },
+ "thread_scaling_fps": {
+  "STANDARD_total(copy+resize+blend)": {
+   "1": 1264.6,
+   "2": 2818.0,
+   "4": 5429.4,
+   "8": 7885.8,
+   "12": 7824.5,
+   "16": 7140.1
+  },
+  "REFINED_total(corrected_refined)": {
+   "1": 327.5,
+   "2": 555.5,
+   "4": 809.9,
+   "8": 832.4,
+   "12": 743.8,
+   "16": 682.5
+  }
+ },
+ "process_scaling_fps": {
+  "STANDARD_total(copy+resize+blend)": {
+   "1": 1076.5,
+   "4": 4679.0,
+   "8": 9975.5,
+   "16": 11332.0
+  },
+  "REFINED_total(corrected_refined)": {
+   "1": 361.5,
+   "4": 1391.5,
+   "8": 2046.0,
+   "16": 2424.5
+  }
+ }
+}

@@ -1,0 +1,312 @@
+=== initial @ 21:03:13
+ 21:03:13 up 13 days, 11:48,  0 users,  load average: 0.62, 0.86, 1.17
+0 %, 0 %, 1 MiB, 9.37 W
+ 2.8 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== enc smoke @ 21:04:21
+ 21:04:21 up 13 days, 11:49,  0 users,  load average: 0.63, 0.81, 1.13
+0 %, 0 %, 1 MiB, 9.23 W
+ 2.8 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== enc single-stream matrix @ 21:05:56
+ 21:05:56 up 13 days, 11:50,  0 users,  load average: 0.97, 0.89, 1.12
+0 %, 0 %, 1 MiB, 9.11 W
+ 2.7 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== after single matrix @ 21:07:43
+ 21:07:43 up 13 days, 11:52,  0 users,  load average: 4.70, 2.29, 1.60
+6 %, 32 %, 1 MiB, 30.48 W
+ 2.7 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== enc paced concurrency 512x832 @ 21:08:02
+ 21:08:02 up 13 days, 11:53,  0 users,  load average: 3.50, 2.17, 1.58
+0 %, 0 %, 1 MiB, 27.22 W
+ 2.7 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== after paced @ 21:17:24
+ 21:17:24 up 13 days, 12:02,  0 users,  load average: 0.62, 1.69, 1.72
+1 %, 0 %, 1 MiB, 13.19 W
+ 2.6 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== nvenc session probe @ 21:17:40
+ 21:17:40 up 13 days, 12:02,  0 users,  load average: 0.69, 1.65, 1.71
+0 %, 0 %, 1 MiB, 9.44 W
+ 2.6 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== nvenc 12 streams @ 21:17:55
+ 21:17:55 up 13 days, 12:02,  0 users,  load average: 0.76, 1.62, 1.70
+0 %, 0 %, 1 MiB, 27.54 W
+ 2.6 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== enc saturation @ 21:18:30
+ 21:18:30 up 13 days, 12:03,  0 users,  load average: 0.74, 1.52, 1.66
+0 %, 0 %, 1 MiB, 27.31 W
+ 2.6 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== after saturation @ 21:19:04
+ 21:19:04 up 13 days, 12:04,  0 users,  load average: 34.00, 9.68, 4.37
+0 %, 0 %, 1 MiB, 9.23 W
+ 2.6 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== enc paced 384x672 @ 21:19:19
+ 21:19:19 up 13 days, 12:04,  0 users,  load average: 26.54, 9.22, 4.31
+0 %, 0 %, 1 MiB, 9.28 W
+ 2.6 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== misc bench @ 21:21:15
+ 21:21:15 up 13 days, 12:06,  0 users,  load average: 11.80, 10.52, 5.42
+0 %, 0 %, 1 MiB, 9.21 W
+ 2.5 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== colorconv probe @ 21:21:32
+ 21:21:32 up 13 days, 12:06,  0 users,  load average: 8.65, 9.88, 5.32
+0 %, 0 %, 1 MiB, 9.29 W
+ 2.5 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== compose repo bench @ 21:22:00
+ 21:22:00 up 13 days, 12:07,  0 users,  load average: 5.95, 9.15, 5.20
+0 %, 0 %, 1 MiB, 9.43 W
+ 2.5 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.7 3245487 claude
+ 0.5 1505531 grok
+=== compose repo bench (cpu map) @ 21:22:17
+ 21:22:17 up 13 days, 12:07,  0 users,  load average: 4.45, 8.61, 5.11
+0 %, 0 %, 1 MiB, 9.39 W
+ 2.5 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== compose scaling @ 21:23:06
+ 21:23:06 up 13 days, 12:08,  0 users,  load average: 2.64, 7.55, 4.91
+0 %, 0 %, 1 MiB, 9.16 W
+ 2.5 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== after compose scaling @ 21:23:13
+ 21:23:13 up 13 days, 12:08,  0 users,  load average: 2.46, 7.35, 4.88
+0 %, 0 %, 1 MiB, 9.19 W
+ 2.5 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== compose scaling @ 21:23:28
+ 21:23:28 up 13 days, 12:08,  0 users,  load average: 2.07, 7.03, 4.81
+0 %, 0 %, 1 MiB, 8.98 W
+ 2.5 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== after compose scaling @ 21:25:19
+ 21:25:19 up 13 days, 12:10,  0 users,  load average: 7.69, 7.34, 5.16
+0 %, 0 %, 1 MiB, 9.09 W
+ 2.5 3230940 MainThread
+ 1.5 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== facemesh single @ 21:26:39
+ 21:26:39 up 13 days, 12:11,  0 users,  load average: 2.53, 5.77, 4.79
+0 %, 0 %, 1 MiB, 9.07 W
+ 2.5 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== facemesh scaling @ 21:26:56
+ 21:26:56 up 13 days, 12:11,  0 users,  load average: 2.25, 5.55, 4.73
+0 %, 0 %, 1 MiB, 9.27 W
+ 2.5 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== after facemesh @ 21:27:25
+ 21:27:25 up 13 days, 12:12,  0 users,  load average: 33.22, 13.22, 7.34
+0 %, 0 %, 1 MiB, 32.24 W
+ 2.5 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== facemesh paced @ 21:27:42
+ 21:27:42 up 13 days, 12:12,  0 users,  load average: 24.00, 12.41, 7.19
+0 %, 0 %, 1 MiB, 9.40 W
+ 2.5 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== after facemesh paced @ 21:28:17
+ 21:28:17 up 13 days, 12:13,  0 users,  load average: 14.69, 11.26, 6.97
+2 %, 0 %, 1 MiB, 9.25 W
+ 2.5 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== whisper cpu @ 21:29:03
+ 21:29:03 up 13 days, 12:14,  0 users,  load average: 6.69, 9.60, 6.63
+0 %, 0 %, 1 MiB, 9.30 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== whisper gpu @ 21:29:18
+ 21:29:18 up 13 days, 12:14,  0 users,  load average: 5.58, 9.21, 6.55
+0 %, 0 %, 1 MiB, 9.21 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== whisper cold @ 21:29:34
+ 21:29:34 up 13 days, 12:14,  0 users,  load average: 4.56, 8.81, 6.46
+0 %, 0 %, 1 MiB, 9.17 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== combined smoke @ 21:31:30
+ 21:31:30 up 13 days, 12:16,  0 users,  load average: 1.39, 6.24, 5.80
+0 %, 0 %, 1 MiB, 9.15 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== combined A_std15 @ 21:31:57
+ 21:31:57 up 13 days, 12:16,  0 users,  load average: 1.30, 5.83, 5.67
+0 %, 0 %, 1 MiB, 9.14 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== combined B_std20 @ 21:32:21
+ 21:32:21 up 13 days, 12:17,  0 users,  load average: 1.70, 5.56, 5.58
+0 %, 0 %, 1 MiB, 8.93 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== combined C_chin15 @ 21:32:45
+ 21:32:45 up 13 days, 12:17,  0 users,  load average: 1.51, 5.21, 5.47
+0 %, 0 %, 1 MiB, 8.93 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== combined D_chin20 @ 21:33:20
+ 21:33:20 up 13 days, 12:18,  0 users,  load average: 3.61, 5.35, 5.51
+2 %, 0 %, 1 MiB, 9.37 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== after combined A-D @ 21:33:54
+ 21:33:54 up 13 days, 12:18,  0 users,  load average: 8.29, 6.27, 5.81
+0 %, 0 %, 1 MiB, 14.62 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== combined F_chin20_cv2 @ 21:34:17
+ 21:34:17 up 13 days, 12:19,  0 users,  load average: 6.14, 5.92, 5.70
+0 %, 0 %, 1 MiB, 8.94 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== combined G_chin20_4proc @ 21:34:51
+ 21:34:51 up 13 days, 12:19,  0 users,  load average: 13.93, 8.38, 6.56
+1 %, 0 %, 1 MiB, 9.37 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== combined H switch=0.5 @ 21:35:58
+ 21:35:58 up 13 days, 12:20,  0 users,  load average: 8.43, 8.16, 6.63
+0 %, 0 %, 1 MiB, 9.28 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== combined H switch=1 @ 21:36:33
+ 21:36:33 up 13 days, 12:21,  0 users,  load average: 10.56, 8.85, 6.93
+24 %, 0 %, 1 MiB, 9.35 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== combined I x264_aiortc @ 21:37:08
+ 21:37:08 up 13 days, 12:22,  0 users,  load average: 9.74, 8.76, 6.96
+0 %, 0 %, 1 MiB, 10.45 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok
+=== combined unpaced ceiling @ 21:37:56
+ 21:37:56 up 13 days, 12:22,  0 users,  load average: 4.88, 7.61, 6.66
+0 %, 0 %, 1 MiB, 9.21 W
+ 2.4 3230940 MainThread
+ 1.4 3179432 MainThread
+ 0.7 3230532 claude
+ 0.6 3245487 claude
+ 0.5 1505531 grok

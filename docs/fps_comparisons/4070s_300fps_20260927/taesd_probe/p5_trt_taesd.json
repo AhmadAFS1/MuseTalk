@@ -1,0 +1,147 @@
+{
+  "gpu_start": {
+    "tag": "start",
+    "t": 1790541946.7709644,
+    "smi": "0 %, 197 MiB, 210 MHz, 10.07 W, 43",
+    "compute_apps": "3456145, 188 MiB",
+    "own_torch_reserved_MiB": 6.0,
+    "own_pid": 3456145
+  },
+  "trt": "10.3.0",
+  "results": {
+    "full_bs16": {
+      "median_ms": 8.024143695831299,
+      "mean_ms": 8.031573762893677,
+      "p90_ms": 8.083763217926025,
+      "min_ms": 7.961599826812744,
+      "wall_median_ms": 8.029937511309981,
+      "n": 50,
+      "warmup": 15,
+      "ms_per_frame": 0.5015089809894562,
+      "pipelined_ms_per_frame": 0.5033087921142578,
+      "build_s": 27.30680775642395,
+      "max_abs_vs_eager_pytorch": 0.00830078125,
+      "gpu_state": {
+        "tag": "trt full bs16",
+        "t": 1790541976.5469425,
+        "smi": "5 %, 1671 MiB, 2790 MHz, 54.35 W, 49",
+        "compute_apps": "3456145, 1662 MiB",
+        "own_torch_reserved_MiB": 1022.0,
+        "own_pid": 3456145
+      }
+    },
+    "full_bs8": {
+      "median_ms": 3.8906880617141724,
+      "mean_ms": 3.882142729759216,
+      "p90_ms": 3.92192006111145,
+      "min_ms": 3.7027840614318848,
+      "wall_median_ms": 3.8961394457146525,
+      "n": 50,
+      "warmup": 15,
+      "ms_per_frame": 0.48633600771427155,
+      "pipelined_ms_per_frame": 0.490618896484375,
+      "build_s": 13.88045334815979,
+      "max_abs_vs_eager_pytorch": 0.008544921875,
+      "gpu_state": {
+        "tag": "trt full bs8",
+        "t": 1790541992.9623668,
+        "smi": "3 %, 1871 MiB, 2790 MHz, 125.00 W, 51",
+        "compute_apps": "3456145, 1862 MiB",
+        "own_torch_reserved_MiB": 1022.0,
+        "own_pid": 3456145
+      }
+    },
+    "staged_exact_crop_bs16": {
+      "median_ms": 5.6053760051727295,
+      "mean_ms": 5.596273279190063,
+      "p90_ms": 5.635433387756348,
+      "min_ms": 5.527552127838135,
+      "wall_median_ms": 5.610769498161972,
+      "n": 50,
+      "warmup": 15,
+      "ms_per_frame": 0.3503360003232956,
+      "pipelined_ms_per_frame": 0.3517836761474609,
+      "build_s": 16.346610069274902,
+      "max_abs_vs_eager_pytorch": 0.004150390625,
+      "gpu_state": {
+        "tag": "trt staged_exact_crop bs16",
+        "t": 1790542011.3357296,
+        "smi": "6 %, 2127 MiB, 2775 MHz, 111.97 W, 52",
+        "compute_apps": "3456145, 2118 MiB",
+        "own_torch_reserved_MiB": 1022.0,
+        "own_pid": 3456145
+      }
+    },
+    "staged_exact_crop_bs8": {
+      "median_ms": 2.7896000146865845,
+      "mean_ms": 2.786703362464905,
+      "p90_ms": 2.801289677619934,
+      "min_ms": 2.75763201713562,
+      "wall_median_ms": 2.7948865899816155,
+      "n": 50,
+      "warmup": 15,
+      "ms_per_frame": 0.34870000183582306,
+      "pipelined_ms_per_frame": 0.3469668960571289,
+      "build_s": 12.097432374954224,
+      "max_abs_vs_eager_pytorch": 0.00439453125,
+      "gpu_state": {
+        "tag": "trt staged_exact_crop bs8",
+        "t": 1790542025.6617637,
+        "smi": "38 %, 2265 MiB, 2775 MHz, 150.59 W, 53",
+        "compute_apps": "3456145, 2256 MiB",
+        "own_torch_reserved_MiB": 1022.0,
+        "own_pid": 3456145
+      }
+    },
+    "staged_exact_crop_u8_bgr_nhwc_bs16": {
+      "median_ms": 5.519200086593628,
+      "mean_ms": 5.510470418930054,
+      "p90_ms": 5.560291147232055,
+      "min_ms": 5.436416149139404,
+      "wall_median_ms": 5.524540436454117,
+      "n": 50,
+      "warmup": 15,
+      "ms_per_frame": 0.34495000541210175,
+      "pipelined_ms_per_frame": 0.3466009521484375,
+      "build_s": 16.159740924835205,
+      "max_abs_vs_eager_pytorch": 1.0,
+      "gpu_state": {
+        "tag": "trt staged_exact_crop_u8_bgr_nhwc bs16",
+        "t": 1790542043.7033777,
+        "smi": "36 %, 2519 MiB, 2790 MHz, 159.66 W, 54",
+        "compute_apps": "3456145, 2510 MiB",
+        "own_torch_reserved_MiB": 1022.0,
+        "own_pid": 3456145
+      }
+    },
+    "staged_exact_crop_u8_bgr_nhwc_bs8": {
+      "median_ms": 2.7673280239105225,
+      "mean_ms": 2.771128945350647,
+      "p90_ms": 2.794828701019287,
+      "min_ms": 2.7402238845825195,
+      "wall_median_ms": 2.772512030787766,
+      "n": 50,
+      "warmup": 15,
+      "ms_per_frame": 0.3459160029888153,
+      "pipelined_ms_per_frame": 0.34373374938964846,
+      "build_s": 12.091379880905151,
+      "max_abs_vs_eager_pytorch": 1.0,
+      "gpu_state": {
+        "tag": "trt staged_exact_crop_u8_bgr_nhwc bs8",
+        "t": 1790542058.006351,
+        "smi": "3 %, 2653 MiB, 2790 MHz, 135.22 W, 52",
+        "compute_apps": "3456145, 2644 MiB",
+        "own_torch_reserved_MiB": 1022.0,
+        "own_pid": 3456145
+      }
+    }
+  },
+  "gpu_end": {
+    "tag": "end",
+    "t": 1790542058.48527,
+    "smi": "99 %, 2653 MiB, 2445 MHz, 110.13 W, 63",
+    "compute_apps": "3456145, 2644 MiB",
+    "own_torch_reserved_MiB": 1022.0,
+    "own_pid": 3456145
+  }
+}

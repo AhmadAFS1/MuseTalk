@@ -1,0 +1,109 @@
+{
+  "gpu_start": {
+    "tag": "start",
+    "t": 1790542221.5940676,
+    "smi": "0 %, 197 MiB, 210 MHz, 9.31 W, 40",
+    "compute_apps": "3459226, 188 MiB",
+    "own_torch_reserved_MiB": 6.0,
+    "own_pid": 3459226
+  },
+  "pre_UNet[default]": {
+    "tag": "pre UNet[default]",
+    "t": 1790542251.4371696,
+    "smi": "49 %, 2431 MiB, 2790 MHz, 50.98 W, 48",
+    "compute_apps": "3459226, 2422 MiB",
+    "own_torch_reserved_MiB": 284.0,
+    "own_pid": 3459226
+  },
+  "UNet[default] only": {
+    "wall_ms_per_bs8": 24.0291094679075,
+    "aggregate_fps": 332.9295249449232,
+    "smi": [
+      "49 %, 2790 MHz, 50.98 W",
+      "100 %, 2565 MHz, 112.50 W",
+      "100 %, 2565 MHz, 189.67 W"
+    ]
+  },
+  "UNet[default] + LIVE decode (compiled TAESD full + post + pinned D2H), serial": {
+    "wall_ms_per_bs8": 30.927788753372926,
+    "aggregate_fps": 258.66705388459224,
+    "smi": [
+      "35 %, 2760 MHz, 46.62 W",
+      "100 %, 2580 MHz, 99.28 W",
+      "100 %, 2625 MHz, 183.39 W",
+      "100 %, 2640 MHz, 209.39 W"
+    ]
+  },
+  "UNet[default] + TRT TAESD staged-crop u8 + pinned D2H, serial": {
+    "wall_ms_per_bs8": 26.931824853333335,
+    "aggregate_fps": 297.04633991817474,
+    "smi": [
+      "30 %, 2745 MHz, 164.16 W",
+      "100 %, 2535 MHz, 163.85 W",
+      "100 %, 2550 MHz, 199.65 W",
+      "100 %, 2550 MHz, 210.01 W"
+    ]
+  },
+  "UNet[default] + TRT TAESD staged-crop u8, 2-stream (decode on sB)": {
+    "wall_ms_per_bs8": 26.90943241662656,
+    "aggregate_fps": 297.29352429808336,
+    "smi": [
+      "100 %, 2535 MHz, 127.25 W",
+      "100 %, 2535 MHz, 142.58 W",
+      "100 %, 2535 MHz, 210.37 W"
+    ]
+  },
+  "pre_UNet[cudagraphs]": {
+    "tag": "pre UNet[cudagraphs]",
+    "t": 1790542261.6352239,
+    "smi": "100 %, 2437 MiB, 2535 MHz, 209.95 W, 65",
+    "compute_apps": "3459226, 2428 MiB",
+    "own_torch_reserved_MiB": 280.0,
+    "own_pid": 3459226
+  },
+  "UNet[cudagraphs] only": {
+    "wall_ms_per_bs8": 23.43223876863097,
+    "aggregate_fps": 341.4099727726272,
+    "smi": [
+      "100 %, 2520 MHz, 200.04 W",
+      "100 %, 2520 MHz, 201.30 W",
+      "100 %, 2535 MHz, 212.99 W"
+    ]
+  },
+  "UNet[cudagraphs] + LIVE decode (compiled TAESD full + post + pinned D2H), serial": {
+    "wall_ms_per_bs8": 30.257616265832137,
+    "aggregate_fps": 264.3962409237721,
+    "smi": [
+      "60 %, 2550 MHz, 204.88 W",
+      "100 %, 2610 MHz, 176.40 W",
+      "100 %, 2595 MHz, 211.36 W",
+      "100 %, 2610 MHz, 210.95 W"
+    ]
+  },
+  "UNet[cudagraphs] + TRT TAESD staged-crop u8 + pinned D2H, serial": {
+    "wall_ms_per_bs8": 26.264739816542715,
+    "aggregate_fps": 304.5908718639291,
+    "smi": [
+      "0 %, 2790 MHz, 173.96 W",
+      "100 %, 2520 MHz, 156.09 W",
+      "100 %, 2520 MHz, 178.93 W"
+    ]
+  },
+  "UNet[cudagraphs] + TRT TAESD staged-crop u8, 2-stream (decode on sB)": {
+    "wall_ms_per_bs8": 26.31726353429258,
+    "aggregate_fps": 303.98297260562975,
+    "smi": [
+      "29 %, 2775 MHz, 201.62 W",
+      "100 %, 2520 MHz, 202.84 W",
+      "100 %, 2520 MHz, 203.29 W"
+    ]
+  },
+  "gpu_end": {
+    "tag": "end",
+    "t": 1790542269.6665971,
+    "smi": "100 %, 2437 MiB, 2520 MHz, 211.18 W, 66",
+    "compute_apps": "3459226, 2428 MiB",
+    "own_torch_reserved_MiB": 280.0,
+    "own_pid": 3459226
+  }
+}

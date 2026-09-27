@@ -1,0 +1,62 @@
+{
+ "gpu_log": [
+  {
+   "tag": "bs16_native_round0",
+   "samples": [
+    "0 %, 3879 MiB, 34.58 W, 2505 MHz",
+    "0 %, 3879 MiB, 34.58 W, 2505 MHz",
+    "0 %, 3879 MiB, 34.58 W, 2505 MHz"
+   ],
+   "apps": [
+    "3447828, 3870 MiB"
+   ],
+   "foreign_apps": [],
+   "contaminated": false
+  },
+  {
+   "tag": "bs16_native_round1",
+   "samples": [
+    "0 %, 3879 MiB, 55.60 W, 2805 MHz",
+    "0 %, 3879 MiB, 55.60 W, 2805 MHz",
+    "0 %, 3879 MiB, 55.60 W, 2805 MHz"
+   ],
+   "apps": [
+    "3447828, 3870 MiB"
+   ],
+   "foreign_apps": [],
+   "contaminated": false
+  }
+ ],
+ "build_s": 44.29150629043579,
+ "free_vram_GB_before_build": 9.38983154296875,
+ "peak_alloc_GB_during_build": 1.8571429252624512,
+ "bs16_rel_l2_vs_torch": 0.003933778498321772,
+ "bs16_mae_vs_torch": 0.001964329741895199,
+ "rss_GB_after_build": 11.033218383789062,
+ "round0": {
+  "native_bs16": {
+   "median_ms": 45.341697692871094,
+   "min_ms": 45.17990493774414,
+   "p90_ms": 45.42047882080078
+  },
+  "ms_per_frame": 2.8338561058044434,
+  "speedup_vs_prod_2x8_torch_tensorrt_49.29": 1.0870788370976607,
+  "contaminated": false
+ },
+ "round1": {
+  "native_bs16": {
+   "median_ms": 45.36627197265625,
+   "min_ms": 45.23494338989258,
+   "p90_ms": 45.437950134277344
+  },
+  "ms_per_frame": 2.8353919982910156,
+  "speedup_vs_prod_2x8_torch_tensorrt_49.29": 1.0864899815816629,
+  "contaminated": false
+ },
+ "native_bs16_cudagraph": {
+  "median_ms": 44.62963104248047,
+  "min_ms": 44.520225524902344,
+  "p90_ms": 44.69452667236328
+ },
+ "peak_reserved_GB": 2.091796875
+}

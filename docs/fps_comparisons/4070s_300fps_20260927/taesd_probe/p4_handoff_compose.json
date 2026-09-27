@@ -1,0 +1,224 @@
+{
+  "gpu_start": {
+    "tag": "start",
+    "t": 1790541849.8283505,
+    "smi": "0 %, 1 MiB, 210 MHz, 9.32 W, 39",
+    "compute_apps": "",
+    "own_torch_reserved_MiB": 0.0,
+    "own_pid": 3455435
+  },
+  "bs": 16,
+  "avatar": "/workspace/MuseTalk/results/v15/avatars/japanese_realtime_talking_7d94520b7f",
+  "handoff_bs16": {
+    "repo_path_total_wall(convert+pageable .cpu())": {
+      "median_ms": 0.2902840496972203,
+      "p90_ms": 0.2958170371130109,
+      "n": 50
+    },
+    "gpu_convert_eager_events": {
+      "median_ms": 0.08294399827718735,
+      "mean_ms": 0.08323327898979187,
+      "p90_ms": 0.08390719816088676,
+      "min_ms": 0.08262400329113007,
+      "wall_median_ms": 0.08779997006058693,
+      "n": 50,
+      "warmup": 10
+    },
+    "gpu_convert_compiled_events": {
+      "median_ms": 0.02643200010061264,
+      "mean_ms": 0.026997759975492953,
+      "p90_ms": 0.029798400588333607,
+      "min_ms": 0.02457600086927414,
+      "wall_median_ms": 0.03100454341620207,
+      "n": 50,
+      "warmup": 10
+    },
+    "d2h_pageable_3.1MB_wall": {
+      "median_ms": 0.19912910647690296,
+      "p90_ms": 0.20411890000104904,
+      "n": 50
+    },
+    "d2h_pinned_3.1MB_events": {
+      "median_ms": 0.11849600076675415,
+      "mean_ms": 0.11849344059824944,
+      "p90_ms": 0.11856000125408173,
+      "min_ms": 0.11833599954843521,
+      "wall_median_ms": 0.12969900853931904,
+      "n": 50,
+      "warmup": 10
+    },
+    "optimized_total_wall(compiled convert + pinned D2H)": {
+      "median_ms": 0.15701900701969862,
+      "p90_ms": 0.16027209348976612,
+      "n": 50
+    },
+    "gpu_state": {
+      "tag": "handoff",
+      "t": 1790541853.061482,
+      "smi": "0 %, 869 MiB, 2805 MHz, 39.48 W, 42",
+      "compute_apps": "3455435, 860 MiB",
+      "own_torch_reserved_MiB": 644.0,
+      "own_pid": 3455435
+    }
+  },
+  "compose": {
+    "real_japanese_bbox~224x308": {
+      "frame_hw": [
+        832,
+        512
+      ],
+      "bbox_wh": [
+        224,
+        308
+      ],
+      "clip_roi_hw": [
+        192,
+        215
+      ],
+      "cpu_ms_per_frame_cv2threads=1": 0.4668559049605392,
+      "cpu_ms_per_frame_cv2threads=all": 0.46342812856892124,
+      "cpu_split_ms": {
+        "frame_copy": 0.046234969049692154,
+        "cv2_resize": 0.07537568919360638,
+        "blend_with_plan(incl roi copy)": 0.4673754598479718,
+        "blend_only": 0.34576480160467327
+      },
+      "gpu_vs_cpu_u8": {
+        "max_lsb": 1,
+        "frac_gt1lsb": 0.0,
+        "frac_differ": 0.05911548803179095
+      },
+      "gpu_compose_eager_events_bs16": {
+        "median_ms": 0.23244799673557281,
+        "mean_ms": 0.23268864005804063,
+        "p90_ms": 0.23347200453281403,
+        "min_ms": 0.2303999960422516,
+        "wall_median_ms": 0.2377995988354087,
+        "n": 50,
+        "warmup": 10
+      },
+      "gpu_compose_compiled_events_bs16": {
+        "median_ms": 0.08318400010466576,
+        "mean_ms": 0.08411455869674683,
+        "p90_ms": 0.08713919967412949,
+        "min_ms": 0.08099199831485748,
+        "wall_median_ms": 0.08804444223642349,
+        "n": 50,
+        "warmup": 10
+      },
+      "roi_bytes_per_frame": 144450,
+      "d2h_roi_pinned_events_bs16": {
+        "median_ms": 0.08761599659919739,
+        "mean_ms": 0.08764799728989602,
+        "p90_ms": 0.08777599781751633,
+        "min_ms": 0.08755200356245041,
+        "wall_median_ms": 0.09900506120175123,
+        "n": 50,
+        "warmup": 10
+      },
+      "full_frame_bytes": 1277952,
+      "d2h_fullframe_pinned_events_bs16": {
+        "median_ms": 0.7561920285224915,
+        "mean_ms": 0.7562700927257537,
+        "p90_ms": 0.7564224183559418,
+        "min_ms": 0.7560960054397583,
+        "wall_median_ms": 0.7676830282434821,
+        "n": 50,
+        "warmup": 10
+      },
+      "gpu_state": {
+        "tag": "gpu compose real_japanese_bbox~224x308",
+        "t": 1790541856.4634814,
+        "smi": "0 %, 869 MiB, 2505 MHz, 29.02 W, 41",
+        "compute_apps": "3455435, 860 MiB",
+        "own_torch_reserved_MiB": 644.0,
+        "own_pid": 3455435
+      },
+      "cpu_after_gpu_roi_ms_per_frame(copy+paste)": 0.06914210505783558,
+      "cpu_after_gpu_roi_ms_per_frame(paste only, reused buffer)": 0.0043351901695132256
+    },
+    "synthetic_bbox_170x210": {
+      "frame_hw": [
+        832,
+        512
+      ],
+      "bbox_wh": [
+        170,
+        210
+      ],
+      "clip_roi_hw": [
+        130,
+        146
+      ],
+      "cpu_ms_per_frame_cv2threads=1": 0.35149558971170336,
+      "cpu_ms_per_frame_cv2threads=all": 0.3521059043123387,
+      "cpu_split_ms": {
+        "frame_copy": 0.04590116906911135,
+        "cv2_resize": 0.04878416541032493,
+        "blend_with_plan(incl roi copy)": 0.34886918612755835,
+        "blend_only": 0.25418385164812207
+      },
+      "gpu_vs_cpu_u8": {
+        "max_lsb": 1,
+        "frac_gt1lsb": 0.0,
+        "frac_differ": 0.05909292463295777
+      },
+      "gpu_compose_eager_events_bs16": {
+        "median_ms": 0.12248000130057335,
+        "mean_ms": 0.12248319864273072,
+        "p90_ms": 0.1231519989669323,
+        "min_ms": 0.12083200365304947,
+        "wall_median_ms": 0.12751494068652391,
+        "n": 50,
+        "warmup": 10
+      },
+      "gpu_compose_compiled_events_bs16": {
+        "median_ms": 0.05446399934589863,
+        "mean_ms": 0.05464191980659962,
+        "p90_ms": 0.059494401514530185,
+        "min_ms": 0.04793599992990494,
+        "wall_median_ms": 0.05938450340181589,
+        "n": 50,
+        "warmup": 10
+      },
+      "roi_bytes_per_frame": 57816,
+      "d2h_roi_pinned_events_bs16": {
+        "median_ms": 0.03751999884843826,
+        "mean_ms": 0.037660160064697266,
+        "p90_ms": 0.03872640058398247,
+        "min_ms": 0.03654399886727333,
+        "wall_median_ms": 0.04284502938389778,
+        "n": 50,
+        "warmup": 10
+      },
+      "full_frame_bytes": 1277952,
+      "d2h_fullframe_pinned_events_bs16": {
+        "median_ms": 0.7562080025672913,
+        "mean_ms": 0.7563417661190033,
+        "p90_ms": 0.7565151870250701,
+        "min_ms": 0.7560639977455139,
+        "wall_median_ms": 0.7676380919292569,
+        "n": 50,
+        "warmup": 10
+      },
+      "gpu_state": {
+        "tag": "gpu compose synthetic_bbox_170x210",
+        "t": 1790541859.221292,
+        "smi": "0 %, 871 MiB, 2805 MHz, 39.23 W, 42",
+        "compute_apps": "3455435, 862 MiB",
+        "own_torch_reserved_MiB": 646.0,
+        "own_pid": 3455435
+      },
+      "cpu_after_gpu_roi_ms_per_frame(copy+paste)": 0.07214515004307032,
+      "cpu_after_gpu_roi_ms_per_frame(paste only, reused buffer)": 0.0025810895022004843
+    }
+  },
+  "gpu_end": {
+    "tag": "end",
+    "t": 1790541859.38796,
+    "smi": "40 %, 871 MiB, 2805 MHz, 38.06 W, 42",
+    "compute_apps": "3455435, 862 MiB",
+    "own_torch_reserved_MiB": 646.0,
+    "own_pid": 3455435
+  }
+}

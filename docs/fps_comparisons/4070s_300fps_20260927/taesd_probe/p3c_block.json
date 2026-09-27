@@ -1,0 +1,65 @@
+{
+  "gpu_start": {
+    "tag": "start",
+    "t": 1790541826.409202,
+    "smi": "0 %, 4 MiB, 210 MHz, 9.30 W, 38",
+    "compute_apps": "",
+    "own_torch_reserved_MiB": 0.0,
+    "own_pid": 3455314
+  },
+  "pre": {
+    "tag": "pre",
+    "t": 1790541834.9954267,
+    "smi": "20 %, 2487 MiB, 2505 MHz, 32.09 W, 41",
+    "compute_apps": "3455314, 2478 MiB",
+    "own_torch_reserved_MiB": 506.0,
+    "own_pid": 3455314
+  },
+  "unet_host_ms_while_other_stream_busy": 16.85172296129167,
+  "unet_host_ms_while_same_stream_busy": 64.41468093544245,
+  "unet_host_ms_back_to_back": [
+    4.376257071271539,
+    24.655332090333104,
+    24.594272021204233
+  ],
+  "cudagraph_mode_max_abs_vs_normal": 0.0,
+  "cg_gpu_state": {
+    "tag": "cudagraphs mode",
+    "t": 1790541835.58766,
+    "smi": "100 %, 2999 MiB, 2790 MHz, 87.23 W, 52",
+    "compute_apps": "3455314, 2990 MiB",
+    "own_torch_reserved_MiB": 1008.0,
+    "own_pid": 3455314
+  },
+  "cg_unet_events": {
+    "median_ms": 23.318415641784668,
+    "mean_ms": 23.315822982788085,
+    "p90_ms": 23.346278572082518,
+    "min_ms": 23.227392196655273,
+    "wall_median_ms": 23.324415553361177,
+    "n": 30,
+    "warmup": 10
+  },
+  "cg_unet_host_ms_back_to_back": [
+    0.27412991039454937,
+    0.06093899719417095,
+    0.051530078053474426
+  ],
+  "normal_unet_events": {
+    "median_ms": 24.588255882263184,
+    "mean_ms": 24.581352615356444,
+    "p90_ms": 24.632729911804198,
+    "min_ms": 24.509536743164062,
+    "wall_median_ms": 24.5948676019907,
+    "n": 30,
+    "warmup": 10
+  },
+  "gpu_end": {
+    "tag": "end",
+    "t": 1790541837.6704907,
+    "smi": "99 %, 2999 MiB, 2580 MHz, 210.16 W, 59",
+    "compute_apps": "3455314, 2990 MiB",
+    "own_torch_reserved_MiB": 1008.0,
+    "own_pid": 3455314
+  }
+}

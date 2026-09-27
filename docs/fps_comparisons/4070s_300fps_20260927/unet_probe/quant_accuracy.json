@@ -1,0 +1,37 @@
+{
+ "missing_keys": 0,
+ "fp16_vs_captured_pred_rel_l2": 0.0008352583972737193,
+ "int8_max_all_linear_conv": {
+  "latent_rel_l2": 0.07074549049139023,
+  "latent_maxabs": 1.5552978515625,
+  "psnr_full_mean_dB": 41.81890106201172,
+  "psnr_full_min_dB": 39.42674255371094,
+  "psnr_lowerhalf_mean_dB": 40.2974739074707,
+  "psnr_lowerhalf_min_dB": 37.26763916015625
+ },
+ "int8_smoothquant": {
+  "latent_rel_l2": 0.06754473596811295,
+  "latent_maxabs": 1.2080078125,
+  "psnr_full_mean_dB": 41.63115310668945,
+  "psnr_full_min_dB": 38.4157600402832,
+  "psnr_lowerhalf_mean_dB": 39.861324310302734,
+  "psnr_lowerhalf_min_dB": 35.928382873535156
+ },
+ "int8_conv_only(no Linear)": {
+  "latent_rel_l2": 0.060894764959812164,
+  "latent_maxabs": 0.9273681640625,
+  "psnr_full_mean_dB": 42.53002166748047,
+  "psnr_full_min_dB": 40.46449661254883,
+  "psnr_lowerhalf_mean_dB": 41.07470703125,
+  "psnr_lowerhalf_min_dB": 38.32508087158203
+ },
+ "fp8_max_all": {
+  "latent_rel_l2": 0.058279991149902344,
+  "latent_maxabs": 0.97265625,
+  "psnr_full_mean_dB": 42.98651885986328,
+  "psnr_full_min_dB": 41.33224105834961,
+  "psnr_lowerhalf_mean_dB": 41.693580627441406,
+  "psnr_lowerhalf_min_dB": 39.49161148071289
+ },
+ "note": "eval = last 64 captured frames (same avatar), calib = first 64; PSNR is vs FP16-UNet decode, not vs ground truth"
+}

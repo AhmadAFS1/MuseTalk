@@ -1,0 +1,72 @@
+{
+ "who": "black_woman",
+ "mediapipe": "0.10.9",
+ "numpy": "2.2.6",
+ "opencv": "5.0.0",
+ "full_frame_refined": {
+  "cvt_ms": 0.0992,
+  "process_ms": 2.7933,
+  "extract_ms": 0.1402,
+  "total_ms": 3.0328
+ },
+ "full_frame_unrefined": {
+  "cvt_ms": 0.1009,
+  "process_ms": 1.983,
+  "extract_ms": 0.1669,
+  "total_ms": 2.2508
+ },
+ "crop_refined": {
+  "crop": [
+   73,
+   81,
+   451,
+   561
+  ],
+  "cvt_ms": 0.0471,
+  "process_ms": 2.6266,
+  "extract_ms": 0.1604,
+  "total_ms": 2.8341
+ },
+ "extract": {
+  "listcomp_ms": 0.209,
+  "fromiter_ms": 0.1634
+ },
+ "process_scaling": [
+  {
+   "procs": 1,
+   "agg_fps": 292.5,
+   "per_proc_fps": 292.5,
+   "cpu_cores_per_proc": 1.07
+  },
+  {
+   "procs": 2,
+   "agg_fps": 626.1,
+   "per_proc_fps": 313.1,
+   "cpu_cores_per_proc": 1.07
+  },
+  {
+   "procs": 4,
+   "agg_fps": 994.8,
+   "per_proc_fps": 248.7,
+   "cpu_cores_per_proc": 1.08
+  },
+  {
+   "procs": 8,
+   "agg_fps": 1633.1,
+   "per_proc_fps": 204.1,
+   "cpu_cores_per_proc": 1.07
+  },
+  {
+   "procs": 12,
+   "agg_fps": 1694.0,
+   "per_proc_fps": 141.2,
+   "cpu_cores_per_proc": 1.07
+  },
+  {
+   "procs": 16,
+   "agg_fps": 1704.5,
+   "per_proc_fps": 106.5,
+   "cpu_cores_per_proc": 1.01
+  }
+ ]
+}

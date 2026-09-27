@@ -1,0 +1,237 @@
+{
+ "time_embedding": {
+  "flops": 4096000,
+  "weights": 2048000,
+  "res": 0
+ },
+ "conv_in": {
+  "flops": 47185920,
+  "weights": 23040,
+  "res": 32
+ },
+ "down_blocks.0.resnets.0": {
+  "flops": 3775692800,
+  "weights": 2252800,
+  "res": 32
+ },
+ "down_blocks.0.attentions.0": {
+  "flops": 5626593280,
+  "weights": 2293760,
+  "res": 32
+ },
+ "down_blocks.0.resnets.1": {
+  "flops": 3775692800,
+  "weights": 2252800,
+  "res": 32
+ },
+ "down_blocks.0.attentions.1": {
+  "flops": 5626593280,
+  "weights": 2293760,
+  "res": 32
+ },
+ "down_blocks.0.downsamplers.0": {
+  "flops": 471859200,
+  "weights": 921600,
+  "res": 16
+ },
+ "down_blocks.1.resnets.0": {
+  "flops": 2937651200,
+  "weights": 6553600,
+  "res": 16
+ },
+ "down_blocks.1.attentions.0": {
+  "flops": 4443996160,
+  "weights": 8683520,
+  "res": 16
+ },
+ "down_blocks.1.resnets.1": {
+  "flops": 3776512000,
+  "weights": 8192000,
+  "res": 16
+ },
+ "down_blocks.1.attentions.1": {
+  "flops": 4443996160,
+  "weights": 8683520,
+  "res": 16
+ },
+ "down_blocks.1.downsamplers.0": {
+  "flops": 471859200,
+  "weights": 3686400,
+  "res": 8
+ },
+ "down_blocks.2.resnets.0": {
+  "flops": 2939289600,
+  "weights": 24576000,
+  "res": 8
+ },
+ "down_blocks.2.attentions.0": {
+  "flops": 4329963520,
+  "weights": 33751040,
+  "res": 8
+ },
+ "down_blocks.2.resnets.1": {
+  "flops": 3778150400,
+  "weights": 31129600,
+  "res": 8
+ },
+ "down_blocks.2.attentions.1": {
+  "flops": 4329963520,
+  "weights": 33751040,
+  "res": 8
+ },
+ "down_blocks.2.downsamplers.0": {
+  "flops": 471859200,
+  "weights": 14745600,
+  "res": 4
+ },
+ "down_blocks.3.resnets.0": {
+  "flops": 946995200,
+  "weights": 31129600,
+  "res": 4
+ },
+ "down_blocks.3.resnets.1": {
+  "flops": 946995200,
+  "weights": 31129600,
+  "res": 4
+ },
+ "mid_block.resnets.0": {
+  "flops": 946995200,
+  "weights": 31129600,
+  "res": 4
+ },
+ "mid_block.attentions.0": {
+  "flops": 1152286720,
+  "weights": 33751040,
+  "res": 4
+ },
+ "mid_block.resnets.1": {
+  "flops": 946995200,
+  "weights": 31129600,
+  "res": 4
+ },
+ "up_blocks.0.resnets.0": {
+  "flops": 1523712000,
+  "weights": 49152000,
+  "res": 4
+ },
+ "up_blocks.0.resnets.1": {
+  "flops": 1523712000,
+  "weights": 49152000,
+  "res": 4
+ },
+ "up_blocks.0.resnets.2": {
+  "flops": 1523712000,
+  "weights": 49152000,
+  "res": 4
+ },
+ "up_blocks.0.upsamplers.0": {
+  "flops": 1887436800,
+  "weights": 14745600,
+  "res": 8
+ },
+ "up_blocks.1.resnets.0": {
+  "flops": 6085017600,
+  "weights": 49152000,
+  "res": 8
+ },
+ "up_blocks.1.attentions.0": {
+  "flops": 4329963520,
+  "weights": 33751040,
+  "res": 8
+ },
+ "up_blocks.1.resnets.1": {
+  "flops": 6085017600,
+  "weights": 49152000,
+  "res": 8
+ },
+ "up_blocks.1.attentions.1": {
+  "flops": 4329963520,
+  "weights": 33751040,
+  "res": 8
+ },
+ "up_blocks.1.resnets.2": {
+  "flops": 5036441600,
+  "weights": 40960000,
+  "res": 8
+ },
+ "up_blocks.1.attentions.2": {
+  "flops": 4329963520,
+  "weights": 33751040,
+  "res": 8
+ },
+ "up_blocks.1.upsamplers.0": {
+  "flops": 7549747200,
+  "weights": 14745600,
+  "res": 16
+ },
+ "up_blocks.2.resnets.0": {
+  "flops": 8180531200,
+  "weights": 16793600,
+  "res": 16
+ },
+ "up_blocks.2.attentions.0": {
+  "flops": 4443996160,
+  "weights": 8683520,
+  "res": 16
+ },
+ "up_blocks.2.resnets.1": {
+  "flops": 6083379200,
+  "weights": 12697600,
+  "res": 16
+ },
+ "up_blocks.2.attentions.1": {
+  "flops": 4443996160,
+  "weights": 8683520,
+  "res": 16
+ },
+ "up_blocks.2.resnets.2": {
+  "flops": 5034803200,
+  "weights": 10649600,
+  "res": 16
+ },
+ "up_blocks.2.attentions.2": {
+  "flops": 4443996160,
+  "weights": 8683520,
+  "res": 16
+ },
+ "up_blocks.2.upsamplers.0": {
+  "flops": 7549747200,
+  "weights": 3686400,
+  "res": 32
+ },
+ "up_blocks.3.resnets.0": {
+  "flops": 8179712000,
+  "weights": 4403200,
+  "res": 32
+ },
+ "up_blocks.3.attentions.0": {
+  "flops": 5626593280,
+  "weights": 2293760,
+  "res": 32
+ },
+ "up_blocks.3.resnets.1": {
+  "flops": 6082560000,
+  "weights": 3379200,
+  "res": 32
+ },
+ "up_blocks.3.attentions.1": {
+  "flops": 5626593280,
+  "weights": 2293760,
+  "res": 32
+ },
+ "up_blocks.3.resnets.2": {
+  "flops": 6082560000,
+  "weights": 3379200,
+  "res": 32
+ },
+ "up_blocks.3.attentions.2": {
+  "flops": 5626593280,
+  "weights": 2293760,
+  "res": 32
+ },
+ "conv_out": {
+  "flops": 23592960,
+  "weights": 11520,
+  "res": 32
+ }
+}

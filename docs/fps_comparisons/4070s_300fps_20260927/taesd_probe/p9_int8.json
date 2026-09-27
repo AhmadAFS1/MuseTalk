@@ -1,0 +1,35 @@
+{
+  "gpu_start": {
+    "tag": "start",
+    "t": 1790542580.389205,
+    "smi": "0 %, 197 MiB, 210 MHz, 9.53 W, 40",
+    "compute_apps": "3460176, 188 MiB",
+    "own_torch_reserved_MiB": 6.0,
+    "own_pid": 3460176
+  },
+  "int8_staged_bs16": {
+    "median_ms": 2.348912000656128,
+    "ms_per_frame": 0.146807000041008,
+    "build_s": 49.209506034851074,
+    "max_abs_vs_fp16_eager": 0.18222150206565857,
+    "mean_abs": 0.003123487811535597,
+    "psnr_u8_db": 46.29002581334447,
+    "gpu_state": {
+      "tag": "int8 staged bs16",
+      "t": 1790542632.862954,
+      "smi": "18 %, 2443 MiB, 2790 MHz, 47.74 W, 53",
+      "compute_apps": "3460176, 2434 MiB",
+      "own_torch_reserved_MiB": 2052.0,
+      "own_pid": 3460176
+    },
+    "note": "fp32 I/O binding (adds I/O cost)"
+  },
+  "gpu_end": {
+    "tag": "end",
+    "t": 1790542633.1108778,
+    "smi": "1 %, 2443 MiB, 2505 MHz, 44.75 W, 50",
+    "compute_apps": "3460176, 2434 MiB",
+    "own_torch_reserved_MiB": 2052.0,
+    "own_pid": 3460176
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "avatar_id": "latina_guided_20260925_talking_84c5bc80b8",
+  "version": "v15",
+  "frame_count": 482,
+  "baseline_float_full_mask": {
+    "fixed_point": false,
+    "shrink_mask_bbox": false,
+    "iters": 1000,
+    "mean_ms": 3.4767,
+    "median_ms": 3.5447,
+    "p95_ms": 3.819,
+    "max_ms": 4.0542,
+    "fps_single_worker": 287.63
+  },
+  "fixed_point_full_mask": {
+    "fixed_point": true,
+    "shrink_mask_bbox": false,
+    "iters": 1000,
+    "mean_ms": 3.5111,
+    "median_ms": 3.5974,
+    "p95_ms": 3.8099,
+    "max_ms": 4.0487,
+    "fps_single_worker": 284.81
+  },
+  "fixed_point_shrunk_mask": {
+    "fixed_point": true,
+    "shrink_mask_bbox": true,
+    "iters": 1000,
+    "mean_ms": 0.5106,
+    "median_ms": 0.5131,
+    "p95_ms": 0.5621,
+    "max_ms": 0.7675,
+    "fps_single_worker": 1958.37
+  },
+  "mean_speedup": 6.809,
+  "mean_reduction_pct": 85.31
+}

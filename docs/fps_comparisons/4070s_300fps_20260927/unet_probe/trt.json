@@ -1,0 +1,87 @@
+{
+ "gpu_log": [
+  {
+   "tag": "trt_ts_bs8",
+   "samples": [
+    "0 %, 6977 MiB, 31.44 W, 2505 MHz",
+    "0 %, 6977 MiB, 31.44 W, 2505 MHz",
+    "0 %, 6977 MiB, 31.44 W, 2505 MHz"
+   ],
+   "apps": [
+    "3240171, 4994 MiB",
+    "3252144, 1968 MiB"
+   ],
+   "foreign_apps": [],
+   "contaminated": false
+  }
+ ],
+ "load_s": 9.33236837387085,
+ "ts_code_head": "def forward(self,\n    latent: Tensor,\n    encoder_hidden_states: Tensor) -> Tensor:\n  _run_on_acc_0 = self._run_on_acc_0\n  _0 = (_run_on_acc_0).forward(latent, encoder_hidden_states, )\n  return _0\n",
+ "engine_objects": [],
+ "out_shape": [
+  8,
+  4,
+  32,
+  32
+ ],
+ "ts_bs8": {
+  "median_ms": 24.615936279296875,
+  "mean_ms": 24.61688969930013,
+  "min_ms": 24.50716781616211,
+  "p90_ms": 24.67136001586914,
+  "n": 30,
+  "ms_per_frame": 3.0769920349121094,
+  "TFLOPS": 57.79168785046249,
+  "contaminated": false
+ },
+ "ts_bs16_as_2x8": {
+  "median_ms": 49.293312072753906,
+  "mean_ms": 49.26888338724772,
+  "min_ms": 49.133567810058594,
+  "p90_ms": 49.351680755615234,
+  "n": 30,
+  "ms_per_frame": 3.080832004547119
+ },
+ "ts_host": {
+  "enqueue_ms_median": 4.566590068861842,
+  "enqueue_ms_min": 4.521329188719392,
+  "enqueue_ms_max": 4.72809886559844,
+  "back_to_back_30_gpu_ms_per_call": 24.635015869140624,
+  "back_to_back_30_host_enqueue_ms_per_call": 23.966563298987847
+ },
+ "ts_two_streams_same_module": {
+  "median_ms": 49.10073471069336,
+  "mean_ms": 49.096638997395836,
+  "min_ms": 48.78131103515625,
+  "p90_ms": 49.42464065551758,
+  "n": 30
+ },
+ "ts_two_streams_profile": {
+  "kernels_per_stream": {
+   "75": 3,
+   "71": 7500,
+   "79": 3
+  },
+  "overlap_ms_total_3iters": 0.004448,
+  "busy_ms_per_stream": {
+   "75": 0.010272,
+   "71": 142.311145,
+   "79": 0.010208
+  }
+ },
+ "ts_cudagraph_torch": {
+  "median_ms": 23.650976181030273,
+  "mean_ms": 23.640748850504558,
+  "min_ms": 23.52124786376953,
+  "p90_ms": 23.735872268676758,
+  "n": 30,
+  "max_abs_vs_eager_call": 0.0
+ },
+ "ts_runtime_cudagraphs_mode": {
+  "median_ms": 23.792896270751953,
+  "mean_ms": 23.807590421040853,
+  "min_ms": 23.61382484436035,
+  "p90_ms": 23.90617561340332,
+  "n": 30
+ }
+}

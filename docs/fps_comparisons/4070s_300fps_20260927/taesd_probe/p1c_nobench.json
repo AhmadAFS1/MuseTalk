@@ -1,0 +1,90 @@
+{
+  "gpu_start": {
+    "tag": "start",
+    "t": 1790542700.0239441,
+    "smi": "0 %, 197 MiB, 210 MHz, 9.31 W, 40",
+    "compute_apps": "3460955, 188 MiB",
+    "own_torch_reserved_MiB": 6.0,
+    "own_pid": 3460955
+  },
+  "eager_bs8": {
+    "median_ms": 12.10859203338623,
+    "mean_ms": 12.1090247631073,
+    "p90_ms": 12.11894359588623,
+    "min_ms": 12.089344024658203,
+    "wall_median_ms": 12.11412250995636,
+    "n": 40,
+    "warmup": 15,
+    "ms_per_frame": 1.5135740041732788,
+    "gpu_state": {
+      "tag": "eager bs8 nobench",
+      "t": 1790542700.1859868,
+      "smi": "0 %, 727 MiB, 210 MHz, 9.31 W, 40",
+      "compute_apps": "3460955, 718 MiB",
+      "own_torch_reserved_MiB": 504.0,
+      "own_pid": 3460955
+    }
+  },
+  "eager_bs16": {
+    "median_ms": 26.47886371612549,
+    "mean_ms": 26.488655185699464,
+    "p90_ms": 26.516889762878417,
+    "min_ms": 26.429855346679688,
+    "wall_median_ms": 26.486755115911365,
+    "n": 40,
+    "warmup": 15,
+    "ms_per_frame": 1.654928982257843,
+    "gpu_state": {
+      "tag": "eager bs16 nobench",
+      "t": 1790542700.9470751,
+      "smi": "99 %, 1243 MiB, 2790 MHz, 118.79 W, 55",
+      "compute_apps": "3460955, 1234 MiB",
+      "own_torch_reserved_MiB": 1020.0,
+      "own_pid": 3460955
+    }
+  },
+  "max-autotune_bs8": {
+    "median_ms": 6.613935947418213,
+    "mean_ms": 6.615994369983673,
+    "p90_ms": 6.630502557754516,
+    "min_ms": 6.605823993682861,
+    "wall_median_ms": 6.619182997383177,
+    "n": 40,
+    "warmup": 15,
+    "ms_per_frame": 0.8267419934272766,
+    "gpu_state": {
+      "tag": "max-autotune bs8 nobench",
+      "t": 1790542708.2237804,
+      "smi": "99 %, 747 MiB, 2790 MHz, 134.98 W, 50",
+      "compute_apps": "3460955, 738 MiB",
+      "own_torch_reserved_MiB": 504.0,
+      "own_pid": 3460955
+    }
+  },
+  "max-autotune_bs16": {
+    "median_ms": 13.537792205810547,
+    "mean_ms": 13.538430404663085,
+    "p90_ms": 13.547596549987793,
+    "min_ms": 13.518848419189453,
+    "wall_median_ms": 13.543643988668919,
+    "n": 40,
+    "warmup": 15,
+    "ms_per_frame": 0.8461120128631592,
+    "gpu_state": {
+      "tag": "max-autotune bs16 nobench",
+      "t": 1790542713.0547893,
+      "smi": "99 %, 1121 MiB, 2790 MHz, 140.61 W, 51",
+      "compute_apps": "3460955, 1112 MiB",
+      "own_torch_reserved_MiB": 876.0,
+      "own_pid": 3460955
+    }
+  },
+  "gpu_end": {
+    "tag": "end",
+    "t": 1790542714.003241,
+    "smi": "99 %, 1121 MiB, 2790 MHz, 162.89 W, 61",
+    "compute_apps": "3460955, 1112 MiB",
+    "own_torch_reserved_MiB": 876.0,
+    "own_pid": 3460955
+  }
+}

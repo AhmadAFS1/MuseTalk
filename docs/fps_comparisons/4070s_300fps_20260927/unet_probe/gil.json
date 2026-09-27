@@ -1,0 +1,56 @@
+{
+ "gpu_log": [
+  {
+   "tag": "gil_probe",
+   "samples": [
+    "0 %, 1991 MiB, 41.38 W, 2790 MHz",
+    "0 %, 1991 MiB, 41.38 W, 2790 MHz",
+    "0 %, 1991 MiB, 41.38 W, 2790 MHz"
+   ],
+   "apps": [
+    "3401021, 1982 MiB"
+   ],
+   "foreign_apps": [],
+   "contaminated": false
+  }
+ ],
+ "contaminated": false,
+ "spinner_alone_rate_per_s": 17361310.5,
+ "eager_no_spinner": {
+  "calls": 125,
+  "wall_s": 3.0221867540385574,
+  "calls_per_s": 41.36077951932061,
+  "fps_bs8": 330.88623615456487,
+  "main_thread_cpu_ms_per_call": 24.177379783999996,
+  "main_thread_cpu_util": 0.9999952746009032,
+  "spinner_rate_per_s": null
+ },
+ "eager_with_spinner": {
+  "calls": 125,
+  "wall_s": 3.028988048899919,
+  "calls_per_s": 41.2679079553972,
+  "fps_bs8": 330.1432636431776,
+  "main_thread_cpu_ms_per_call": 17.47613934399999,
+  "main_thread_cpu_util": 0.7212037098638872,
+  "spinner_rate_per_s": 17450522.467131224
+ },
+ "graph_no_spinner": {
+  "calls": 207,
+  "wall_s": 4.858097929973155,
+  "calls_per_s": 42.6092686857681,
+  "fps_bs8": 340.8741494861448,
+  "main_thread_cpu_ms_per_call": 23.46883675845411,
+  "main_thread_cpu_util": 0.999989971183402,
+  "spinner_rate_per_s": null
+ },
+ "graph_with_spinner": {
+  "calls": 207,
+  "wall_s": 4.873888771981001,
+  "calls_per_s": 42.47121953008059,
+  "fps_bs8": 339.7697562406447,
+  "main_thread_cpu_ms_per_call": 18.464219256038657,
+  "main_thread_cpu_util": 0.7841979094747592,
+  "spinner_rate_per_s": 17296866.61801576
+ },
+ "spinner_alone_rate_per_s_after": 17342751.5
+}

@@ -1,0 +1,1691 @@
+{
+ "gpu_log": [
+  {
+   "tag": "trt_kernel_profile",
+   "samples": [
+    "0 %, 6951 MiB, 72.54 W, 2805 MHz",
+    "0 %, 6951 MiB, 63.06 W, 2805 MHz",
+    "0 %, 6951 MiB, 63.06 W, 2805 MHz"
+   ],
+   "apps": [
+    "3240171, 4994 MiB",
+    "3264978, 1942 MiB"
+   ],
+   "foreign_apps": [],
+   "contaminated": false
+  }
+ ],
+ "layer_types": [
+  [
+   "REFORMAT",
+   257
+  ],
+  [
+   "SHUFFLE",
+   125
+  ],
+  [
+   "REDUCE",
+   122
+  ],
+  [
+   "other:Cast ITensor [SHUFFLE]-[aten_ops.native_",
+   110
+  ],
+  [
+   "CONVOLUTION",
+   101
+  ],
+  [
+   "other:Forced Cast ITensor [ELEMENTWISE]-[aten_",
+   85
+  ],
+  [
+   "SLICE",
+   83
+  ],
+  [
+   "other:[MATRIX_MULTIPLY]_[aten_ops_addmm_defaul",
+   64
+  ],
+  [
+   "other:PWN([SLICE]-[aten_ops.native_group_norm.",
+   61
+  ],
+  [
+   "other:PWN(PWN(PWN([SLICE]-[aten_ops.native_gro",
+   61
+  ],
+  [
+   "other:PWN(PWN([SLICE]-[aten_ops.native_group_n",
+   61
+  ],
+  [
+   "other:Cast ITensor [ELEMENTWISE]-[aten_ops.nat",
+   48
+  ],
+  [
+   "other:[MATRIX_MULTIPLY]_[aten_ops_mm_default]_",
+   48
+  ],
+  [
+   "other:PWN(PWN([SIGMOID]-[aten_ops.sigmoid.defa",
+   45
+  ],
+  [
+   "other:__myl_AddSqrDivMulCasMulAddResResTra_myl",
+   32
+  ],
+  [
+   "other:Cast ITensor [CONVOLUTION]-[aten_ops.con",
+   21
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMeaAddSqrD",
+   16
+  ],
+  [
+   "other:__myl_SliDivCasErfCasAddMulMulSliMul_myl",
+   16
+  ],
+  [
+   "ELEMENTWISE",
+   14
+  ],
+  [
+   "other:PWN([ELEMENTWISE]-[aten_ops.add.Tensor]-",
+   7
+  ],
+  [
+   "other:unet.mid_block.resnets.slice(1, None, No",
+   7
+  ],
+  [
+   "other:unet.down_blocks.0.resnets.0.norm1/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.0.resnets.0.norm2/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.0.attentions.0.norm/nat",
+   3
+  ],
+  [
+   "other:unet.down_blocks.0.resnets.1.norm1/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.0.resnets.1.norm2/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.0.attentions.1.norm/nat",
+   3
+  ],
+  [
+   "other:unet.down_blocks.1.resnets.0.norm1/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.1.resnets.0.norm2/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.1.attentions.0.norm/nat",
+   3
+  ],
+  [
+   "other:unet.down_blocks.1.resnets.1.norm1/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.1.resnets.1.norm2/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.1.attentions.1.norm/nat",
+   3
+  ],
+  [
+   "other:unet.down_blocks.2.resnets.0.norm1/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.2.resnets.0.norm2/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.2.attentions.0.norm/nat",
+   3
+  ],
+  [
+   "other:unet.down_blocks.2.resnets.1.norm1/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.2.resnets.1.norm2/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.2.attentions.1.norm/nat",
+   3
+  ],
+  [
+   "other:unet.down_blocks.3.resnets.0.norm1/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.3.resnets.0.norm2/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.3.resnets.1.norm1/nativ",
+   3
+  ],
+  [
+   "other:unet.down_blocks.3.resnets.1.norm2/nativ",
+   3
+  ],
+  [
+   "other:unet.mid_block.resnets.0.norm1/native_gr",
+   3
+  ],
+  [
+   "other:unet.mid_block.resnets.0.norm2/native_gr",
+   3
+  ],
+  [
+   "other:unet.mid_block.attentions.0.norm/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.0.resnets.0.norm1/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.0.resnets.0.norm2/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.0.resnets.1.norm1/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.0.resnets.1.norm2/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.0.resnets.2.norm1/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.0.resnets.2.norm2/native_",
+   3
+  ],
+  [
+   "RESIZE",
+   3
+  ],
+  [
+   "other:unet.up_blocks.1.resnets.0.norm1/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.1.resnets.0.norm2/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.1.attentions.0.norm/nativ",
+   3
+  ],
+  [
+   "other:unet.up_blocks.1.resnets.1.norm1/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.1.resnets.1.norm2/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.1.attentions.1.norm/nativ",
+   3
+  ],
+  [
+   "other:unet.up_blocks.1.resnets.2.norm1/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.1.resnets.2.norm2/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.1.attentions.2.norm/nativ",
+   3
+  ],
+  [
+   "other:unet.up_blocks.2.resnets.0.norm1/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.2.resnets.0.norm2/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.2.attentions.0.norm/nativ",
+   3
+  ],
+  [
+   "other:unet.up_blocks.2.resnets.1.norm1/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.2.resnets.1.norm2/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.2.attentions.1.norm/nativ",
+   3
+  ],
+  [
+   "other:unet.up_blocks.2.resnets.2.norm1/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.2.resnets.2.norm2/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.2.attentions.2.norm/nativ",
+   3
+  ],
+  [
+   "other:unet.up_blocks.3.resnets.0.norm1/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.3.resnets.0.norm2/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.3.attentions.0.norm/nativ",
+   3
+  ],
+  [
+   "other:unet.up_blocks.3.resnets.1.norm1/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.3.resnets.1.norm2/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.3.attentions.1.norm/nativ",
+   3
+  ],
+  [
+   "other:unet.up_blocks.3.resnets.2.norm1/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.3.resnets.2.norm2/native_",
+   3
+  ],
+  [
+   "other:unet.up_blocks.3.attentions.2.norm/nativ",
+   3
+  ],
+  [
+   "other:unet.conv_norm_out/native_group_norm_60_",
+   3
+  ],
+  [
+   "other:PWN(unet.mid_block.resnets.slice(1, None",
+   2
+  ],
+  [
+   "other:PWN(unet.down_blocks.0.resnets.0.norm1/n",
+   1
+  ],
+  [
+   "other:unet.down_blocks.0.resnets.0/add_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.0.resnets.0.norm2/n",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl59_0",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl60_0",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.0.attentions.0.norm",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38704_0_myl88_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl88_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl88_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl88_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl88_",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl88_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl88_17",
+   1
+  ],
+  [
+   "other:Cast ITensor [ELEMENTWISE]-[aten_ops.div",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.0.resnets.1.norm1/n",
+   1
+  ],
+  [
+   "other:unet.down_blocks.0.resnets.1/add_6_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.0.resnets.1.norm2/n",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl146_0",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl147_0",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.0.attentions.1.norm",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38630_0_myl175_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl175_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl175_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl175_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl175",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl175_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl175_17",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.1.resnets.0.norm1/n",
+   1
+  ],
+  [
+   "other:unet.down_blocks.1.resnets.0/add_12_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.1.resnets.0.norm2/n",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl221_0",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.1.attentions.0.norm",
+   1
+  ],
+  [
+   "other:__myl_Mov_myl236_0",
+   1
+  ],
+  [
+   "other:__myl_Mov_myl238_0",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38713_0_myl243_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl243_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl243_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl243_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl243",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl243_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl243_17",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.1.resnets.1.norm1/n",
+   1
+  ],
+  [
+   "other:__myl_Mov_myl256_0",
+   1
+  ],
+  [
+   "other:__myl_Mov_myl258_0",
+   1
+  ],
+  [
+   "other:unet.down_blocks.1.resnets.1/add_18_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.1.resnets.1.norm2/n",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl288_0",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.1.attentions.1.norm",
+   1
+  ],
+  [
+   "other:__myl_Mov_myl305_0",
+   1
+  ],
+  [
+   "other:__myl_Mov_myl307_0",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38655_0_myl312_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl312_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl312_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl312_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl312",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl312_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl312_17",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.2.resnets.0.norm1/n",
+   1
+  ],
+  [
+   "other:unet.down_blocks.2.resnets.0/add_24_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.2.resnets.0.norm2/n",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl358_0",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.2.attentions.0.norm",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38702_0_myl379_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl379_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl379_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl379_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl379",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl379_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl379_17",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.2.resnets.1.norm1/n",
+   1
+  ],
+  [
+   "other:unet.down_blocks.2.resnets.1/add_30_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.2.resnets.1.norm2/n",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl424_0",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.2.attentions.1.norm",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38628_0_myl447_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl447_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl447_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl447_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl447",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl447_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl447_17",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.3.resnets.0.norm1/n",
+   1
+  ],
+  [
+   "other:unet.down_blocks.3.resnets.0/add_36_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.3.resnets.0.norm2/n",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl495_0",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.3.resnets.1.norm1/n",
+   1
+  ],
+  [
+   "other:unet.down_blocks.3.resnets.1/add_38_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.down_blocks.3.resnets.1.norm2/n",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl542_0",
+   1
+  ],
+  [
+   "other:PWN(unet.mid_block.resnets.0.norm1/nativ",
+   1
+  ],
+  [
+   "other:unet.mid_block.resnets.0/add_40_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.mid_block.resnets.0.norm2/nativ",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl589_0",
+   1
+  ],
+  [
+   "other:PWN(unet.mid_block.attentions.0.norm/nat",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38628_0_myl611_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl611_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl611_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl611_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl611",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl611_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl611_17",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl656_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.0.resnets.0.norm1/nat",
+   1
+  ],
+  [
+   "other:unet.up_blocks.0.resnets.0/add_48_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.0.resnets.0.norm2/nat",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl703_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.0.resnets.1.norm1/nat",
+   1
+  ],
+  [
+   "other:unet.up_blocks.0.resnets.1/add_50_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.0.resnets.1.norm2/nat",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl751_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.0.resnets.2.norm1/nat",
+   1
+  ],
+  [
+   "other:unet.up_blocks.0.resnets.2/add_52_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.0.resnets.2.norm2/nat",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl799_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.1.resnets.0.norm1/nat",
+   1
+  ],
+  [
+   "other:unet.up_blocks.1.resnets.0/add_54_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.1.resnets.0.norm2/nat",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl849_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.1.attentions.0.norm/n",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38628_0_myl870_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl870_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl870_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl870_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl870",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl870_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl870_17",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.1.resnets.1.norm1/nat",
+   1
+  ],
+  [
+   "other:unet.up_blocks.1.resnets.1/add_60_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.1.resnets.1.norm2/nat",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl917_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.1.attentions.1.norm/n",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38628_0_myl938_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl938_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl938_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl938_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl938",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl938_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl938_17",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.1.resnets.2.norm1/nat",
+   1
+  ],
+  [
+   "other:unet.up_blocks.1.resnets.2/add_66_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.1.resnets.2.norm2/nat",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl985_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.1.attentions.2.norm/n",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38628_0_myl1006_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl1006_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl1006_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1006_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl100",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1006_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl1006_17",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.2.resnets.0.norm1/nat",
+   1
+  ],
+  [
+   "other:unet.up_blocks.2.resnets.0/add_72_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.2.resnets.0.norm2/nat",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl1060_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.2.attentions.0.norm/n",
+   1
+  ],
+  [
+   "other:__myl_Mov_myl1075_0",
+   1
+  ],
+  [
+   "other:__myl_Mov_myl1077_0",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38655_0_myl1082_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl1082_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl1082_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1082_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl108",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1082_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl1082_17",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.2.resnets.1.norm1/nat",
+   1
+  ],
+  [
+   "other:unet.up_blocks.2.resnets.1/add_78_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.2.resnets.1.norm2/nat",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl1134_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.2.attentions.1.norm/n",
+   1
+  ],
+  [
+   "other:__myl_Mov_myl1150_0",
+   1
+  ],
+  [
+   "other:__myl_Mov_myl1152_0",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38655_0_myl1157_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl1157_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl1157_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1157_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl115",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1157_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl1157_17",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.2.resnets.2.norm1/nat",
+   1
+  ],
+  [
+   "other:unet.up_blocks.2.resnets.2/add_84_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.2.resnets.2.norm2/nat",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl1209_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.2.attentions.2.norm/n",
+   1
+  ],
+  [
+   "other:__myl_Mov_myl1225_0",
+   1
+  ],
+  [
+   "other:__myl_Mov_myl1227_0",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38655_0_myl1232_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl1232_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl1232_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1232_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl123",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1232_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl1232_17",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.3.resnets.0.norm1/nat",
+   1
+  ],
+  [
+   "other:unet.up_blocks.3.resnets.0/add_90_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.3.resnets.0.norm2/nat",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl1292_0",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl1293_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.3.attentions.0.norm/n",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38630_0_myl1321_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl1321_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl1321_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1321_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl132",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1321_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl1321_17",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.3.resnets.1.norm1/nat",
+   1
+  ],
+  [
+   "other:unet.up_blocks.3.resnets.1/add_96_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.3.resnets.1.norm2/nat",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl1380_0",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl1381_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.3.attentions.1.norm/n",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38630_0_myl1409_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl1409_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl1409_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1409_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl140",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1409_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl1409_17",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.3.resnets.2.norm1/nat",
+   1
+  ],
+  [
+   "other:unet.up_blocks.3.resnets.2/add_102_rhs",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.3.resnets.2.norm2/nat",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl1468_0",
+   1
+  ],
+  [
+   "other:__myl_Cas_myl1469_0",
+   1
+  ],
+  [
+   "other:PWN(unet.up_blocks.3.attentions.2.norm/n",
+   1
+  ],
+  [
+   "other:dummy_shape_call__mye38630_0_myl1497_0",
+   1
+  ],
+  [
+   "other:__myl_MovResTra_myl1497_1",
+   1
+  ],
+  [
+   "other:__myl_TraResCasMeaSubMulMea_myl1497_3",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1497_6",
+   1
+  ],
+  [
+   "other:__myl_ResTraResAddCasMeaSubMulMea_myl149",
+   1
+  ],
+  [
+   "other:_gemm_mha_v2_myl1497_11",
+   1
+  ],
+  [
+   "other:__myl_AddResTraCas_myl1497_17",
+   1
+  ],
+  [
+   "other:PWN(unet.conv_norm_out/native_group_norm",
+   1
+  ]
+ ],
+ "layer_aten_ops": [
+  [
+   "aten_ops.native_group_norm.default",
+   308
+  ],
+  [
+   "aten_ops.convolution.default",
+   101
+  ],
+  [
+   "aten_ops.add.Tensor",
+   36
+  ],
+  [
+   "aten_ops.upsample_nearest2d.default",
+   3
+  ]
+ ],
+ "kernel_total_ms_per_call": 24.0842754,
+ "kernels_per_call": 1250.0,
+ "category_ms_per_call": {
+  "conv": {
+   "ms": 8.821671400000003,
+   "share": 0.3662834465013634,
+   "kernels_per_call": 63.0
+  },
+  "gemm": {
+   "ms": 6.5603496,
+   "share": 0.2723914043932582,
+   "kernels_per_call": 147.0
+  },
+  "fused_pointwise(myelin)": {
+   "ms": 5.360986600000002,
+   "share": 0.222592812570147,
+   "kernels_per_call": 594.0
+  },
+  "attention_fused(mha)": {
+   "ms": 1.2785056000000001,
+   "share": 0.05308466120595848,
+   "kernels_per_call": 32.0
+  },
+  "other": {
+   "ms": 1.1747475999999997,
+   "share": 0.048776539069138855,
+   "kernels_per_call": 200.0
+  },
+  "norm/reduce": {
+   "ms": 0.8880145999999997,
+   "share": 0.03687113626013427,
+   "kernels_per_call": 214.0
+  }
+ },
+ "top_kernels": [
+  {
+   "name": "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize128x64x64_stage3_warpsize2x2x1_g1_tensor16x8x16_t1r3s3_aACCESS_execute_kernel_trt",
+   "calls_per_fwd": 13.0,
+   "ms_per_fwd": 2.739061,
+   "cat": "conv"
+  },
+  {
+   "name": "generatedNativePointwise",
+   "calls_per_fwd": 296.0,
+   "ms_per_fwd": 2.5432182000000045,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize64x64x64_stage4_warpsize2x1x2_g1_tensor16x8x16_aACCESS_execute_kernel_trt",
+   "calls_per_fwd": 20.0,
+   "ms_per_fwd": 2.4337078000000005,
+   "cat": "conv"
+  },
+  {
+   "name": "sm80_xmma_gemm_f16f16_f16f16_f16_nn_n_tilesize128x128x32_stage4_warpsize2x2x1_tensor16x8x16_execute_kernel_trt",
+   "calls_per_fwd": 25.0,
+   "ms_per_fwd": 1.3350619999999995,
+   "cat": "gemm"
+  },
+  {
+   "name": "sm80_xmma_gemm_f16f16_f16f16_f16_nn_n_tilesize256x128x32_stage3_warpsize4x2x1_tensor16x8x16_execute_kernel_trt",
+   "calls_per_fwd": 10.0,
+   "ms_per_fwd": 1.1930396,
+   "cat": "gemm"
+  },
+  {
+   "name": "void CUTENSOR_NAMESPACE::permutationKernelPLC3<CUTENSOR_NAMESPACE::VectorWrite2DTensorView<(unsigned char)0, (unsigned char)1, false, 8u, float, __half, CUTENSO",
+   "calls_per_fwd": 116.0,
+   "ms_per_fwd": 1.0661579999999988,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8_execute_kernel_trt",
+   "calls_per_fwd": 7.0,
+   "ms_per_fwd": 1.0198970000000003,
+   "cat": "conv"
+  },
+  {
+   "name": "sm80_xmma_gemm_f16f16_f16f16_f16_nn_n_tilesize256x64x32_stage3_warpsize4x1x1_tensor16x8x16_execute_kernel_trt",
+   "calls_per_fwd": 28.0,
+   "ms_per_fwd": 0.9370358,
+   "cat": "gemm"
+  },
+  {
+   "name": "_gemm_mha_v2_0x0ecc808dd6c894c4efed0365700af3a1",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.9136557999999999,
+   "cat": "attention_fused(mha)"
+  },
+  {
+   "name": "sm80_xmma_gemm_f16f16_f16f16_f16_tn_n_tilesize128x64x32_stage5_warpsize2x2x1_tensor16x8x16_execute_kernel_trt",
+   "calls_per_fwd": 20.0,
+   "ms_per_fwd": 0.7548124,
+   "cat": "gemm"
+  },
+  {
+   "name": "sm80_xmma_gemm_f16f16_f16f16_f16_nn_n_tilesize128x256x32_stage3_warpsize2x4x1_tensor16x8x16_execute_kernel_trt",
+   "calls_per_fwd": 6.0,
+   "ms_per_fwd": 0.7171481999999998,
+   "cat": "gemm"
+  },
+  {
+   "name": "sm80_xmma_gemm_f16f16_f16f16_f16_tn_n_tilesize128x128x32_stage4_warpsize2x2x1_tensor16x8x16_execute_kernel_trt",
+   "calls_per_fwd": 20.0,
+   "ms_per_fwd": 0.6366405999999999,
+   "cat": "gemm"
+  },
+  {
+   "name": "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize128x128x64_stage3_warpsize2x2x1_g1_tensor16x8x16_execute_kernel_trt",
+   "calls_per_fwd": 2.0,
+   "ms_per_fwd": 0.6203787999999999,
+   "cat": "conv"
+  },
+  {
+   "name": "void cuSliceLayer::naiveSlice<short, (cuSliceLayer::Mode)0, 4>(cuSliceLayer::LaunchParams<short>)",
+   "calls_per_fwd": 54.0,
+   "ms_per_fwd": 0.5736441999999995,
+   "cat": "other"
+  },
+  {
+   "name": "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize128x128x32_stage4_warpsize2x2x1_g1_tensor16x8x16_execute_kernel_trt",
+   "calls_per_fwd": 2.0,
+   "ms_per_fwd": 0.556935,
+   "cat": "conv"
+  },
+  {
+   "name": "void cuReduceLayer::tailReducePacked<1024u, (nvinfer1::ReduceOp)4, __half, float, 4>(__half*, __half const*, cuReduceLayer::LaunchParams)",
+   "calls_per_fwd": 88.0,
+   "ms_per_fwd": 0.5496379999999997,
+   "cat": "norm/reduce"
+  },
+  {
+   "name": "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x128x32_stage3_warpsize4x2x1_g1_tensor16x8x16_t1r3s3_execute_kernel_trt",
+   "calls_per_fwd": 1.0,
+   "ms_per_fwd": 0.4820924,
+   "cat": "conv"
+  },
+  {
+   "name": "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize64x64x64_stage4_warpsize2x2x1_g1_tensor16x8x16_execute_kernel_trt",
+   "calls_per_fwd": 3.0,
+   "ms_per_fwd": 0.4521078,
+   "cat": "conv"
+  },
+  {
+   "name": "sm80_xmma_gemm_f16f16_f16f16_f16_tn_n_tilesize64x128x32_stage5_warpsize2x2x1_tensor16x8x16_execute_kernel_trt",
+   "calls_per_fwd": 10.0,
+   "ms_per_fwd": 0.4308853999999999,
+   "cat": "gemm"
+  },
+  {
+   "name": "__myl_SliDivCasErfCasAddMulMulSliMul_0x081e9fdcba12848ac52552f613720225",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.37128760000000005,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "void cuInt8::nhwcTonchw<__half, 32, 32, 2>(__half const*, __half*, int, int, int, int, int, int)",
+   "calls_per_fwd": 35.0,
+   "ms_per_fwd": 0.21964340000000018,
+   "cat": "other"
+  },
+  {
+   "name": "trt_ampere_h16816gemm_256x128_ldg8_relu_stages_32x3_nn_v1",
+   "calls_per_fwd": 7.0,
+   "ms_per_fwd": 0.20055300000000004,
+   "cat": "gemm"
+  },
+  {
+   "name": "sm75_xmma_fprop_implicit_gemm_indexed_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8_execute_kernel_trt",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.19574019999999995,
+   "cat": "conv"
+  },
+  {
+   "name": "void cuReduceLayer::tailReducePacked<1024u, (nvinfer1::ReduceOp)4, float, float, 4>(float*, float const*, cuReduceLayer::LaunchParams)",
+   "calls_per_fwd": 34.0,
+   "ms_per_fwd": 0.18805359999999988,
+   "cat": "norm/reduce"
+  },
+  {
+   "name": "__myl_AddSqrDivMulCasMulAddResResTra_0x4d9fb3042500b67da222a9467d518c3b",
+   "calls_per_fwd": 10.0,
+   "ms_per_fwd": 0.18583239999999995,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "void cuSliceLayer::naiveSlice<int, (cuSliceLayer::Mode)0, 4>(cuSliceLayer::LaunchParams<int>)",
+   "calls_per_fwd": 29.0,
+   "ms_per_fwd": 0.14430379999999998,
+   "cat": "other"
+  },
+  {
+   "name": "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize128x64x32_stage1_warpsize2x2x1_g1_tensor16x8x8_simple_t1r1s1_execute_kernel_trt",
+   "calls_per_fwd": 6.0,
+   "ms_per_fwd": 0.1358416,
+   "cat": "conv"
+  },
+  {
+   "name": "_gemm_mha_v2_0xca156b918e7b1c6f5d22e22b21ac130f",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.11438220000000002,
+   "cat": "attention_fused(mha)"
+  },
+  {
+   "name": "sm80_xmma_gemm_f16f16_f16f16_f16_tn_n_tilesize256x64x32_stage3_warpsize4x1x1_tensor16x8x16_execute_kernel_trt",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.11412680000000001,
+   "cat": "gemm"
+  },
+  {
+   "name": "__myl_ResTraResAddCasMeaSubMulMea_0x73e5683066fa7c256a26167733d5ed78",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.1084236,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "void CUTENSOR_NAMESPACE::permutationKernelPLC3<CUTENSOR_NAMESPACE::VectorWrite2DTensorView<(unsigned char)0, (unsigned char)1, false, 4u, float, __half, CUTENSO",
+   "calls_per_fwd": 10.0,
+   "ms_per_fwd": 0.10001419999999998,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "__myl_TraResCasMeaSubMulMea_0xd7de1b9a0d1d348c8ea0d82d53f9cbec",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.099214,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize64x64x64_stage4_warpsize2x2x1_g1_tensor16x8x16_t1r3s3_aACCESS_execute_kernel_trt",
+   "calls_per_fwd": 1.0,
+   "ms_per_fwd": 0.0956618,
+   "cat": "conv"
+  },
+  {
+   "name": "__myl_AddResTraCas_0x3cc1ee35fb9c85d64d037a8326c74c53",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.09290299999999999,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "void genericReformat::copyPackedKernel<__half, __half, true, true, genericReformat::ArrayN<4>, 4>(unsigned int, unsigned int, void const*, genericReformat::Arra",
+   "calls_per_fwd": 52.0,
+   "ms_per_fwd": 0.08831299999999995,
+   "cat": "norm/reduce"
+  },
+  {
+   "name": "_gemm_mha_v2_0xd376703fb8b14dd7b2a2971fca9f19b2",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.08702879999999999,
+   "cat": "attention_fused(mha)"
+  },
+  {
+   "name": "void cuInt8::nchwTonhwc<__half, 32, 32, 2>(__half const*, __half*, int, int, int, int, int, int, int, int)",
+   "calls_per_fwd": 16.0,
+   "ms_per_fwd": 0.0750666,
+   "cat": "other"
+  },
+  {
+   "name": "__myl_SliDivCasErfCasAddMulMulSliMul_0x4208af59ffd734afee62abb455881e09",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.07405500000000001,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "void cuInt8::nhwcTonchw<float, 32, 32, 2>(__half const*, float*, int, int, int, int, int, int)",
+   "calls_per_fwd": 17.0,
+   "ms_per_fwd": 0.0699728,
+   "cat": "other"
+  },
+  {
+   "name": "trt_ampere_h16816gemm_128x64_ldg8_relu_stages_32x6_nn_v1",
+   "calls_per_fwd": 3.0,
+   "ms_per_fwd": 0.0611654,
+   "cat": "gemm"
+  },
+  {
+   "name": "__myl_AddSqrDivMulCasMulAddResResTra_0x42ec21cebea2d97eace8ddfead4b96a6",
+   "calls_per_fwd": 10.0,
+   "ms_per_fwd": 0.0573128,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize128x64x32_stage5_warpsize2x2x1_g1_tensor16x8x16_t1r3s3_execute_kernel_trt",
+   "calls_per_fwd": 1.0,
+   "ms_per_fwd": 0.054394399999999996,
+   "cat": "conv"
+  },
+  {
+   "name": "trt_ampere_h16816gemm_128x128_ldg8_relu_stages_32x5_tn_v1",
+   "calls_per_fwd": 1.0,
+   "ms_per_fwd": 0.0543242,
+   "cat": "gemm"
+  },
+  {
+   "name": "__myl_ResTraResAddCasMeaSubMulMeaAddSqrDivMulCasMulAdd_0x6586b7201bbf116686725373b8a3f6e9",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.05269820000000001,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "_gemm_mha_v2_0x64796656a296dfaf11ddcd1a55fcddba",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.051847199999999996,
+   "cat": "attention_fused(mha)"
+  },
+  {
+   "name": "_gemm_mha_v2_0x571698094f9744a477b1df9627b9c16e",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.05143739999999998,
+   "cat": "attention_fused(mha)"
+  },
+  {
+   "name": "__myl_AddSqrDivMulCasMulAddResResTra_0xd7a1ced64147f433aa0c3e813ab3fe77",
+   "calls_per_fwd": 10.0,
+   "ms_per_fwd": 0.05102800000000002,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "__myl_Cas_0x91d8fa721032ddf7f6d6002eac273a77",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.0493058,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "__myl_Cas_0xb8432a604115741f7584d6a91e4d4398",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.048198800000000014,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "_gemm_mha_v2_0x6ca6b934da8231d30a9eba0bda913a13",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.047437400000000005,
+   "cat": "attention_fused(mha)"
+  },
+  {
+   "name": "__myl_ResTraResAddCasMeaSubMulMea_0xa568577ff2301820fd821b01863e59fb",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.0456644,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "void cuInt8::nchwTonhwc<__half, 1, 128, 2>(__half const*, __half*, int, int, int, int, int, int, int, int)",
+   "calls_per_fwd": 32.0,
+   "ms_per_fwd": 0.045370600000000046,
+   "cat": "other"
+  },
+  {
+   "name": "__myl_TraResCasMeaSubMulMea_0x274a86892feafa76d9daa34253f9f50a",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.044537799999999995,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "__myl_SliDivCasErfCasAddMulMulSliMul_0x5a2c92454b62aa4b027ea384c5c0eb7b",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.040832400000000005,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "__myl_ResTraResAddCasMeaSubMulMeaAddSqrDivMulCasMulAdd_0xdd3c474acb8294212b8e6b82db7bc014",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.0390022,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "void genericReformat::copyVectorizedKernel<double, float, float, true, false, 1>(unsigned int, void const*, genericReformat::ArrayN<1>, genericReformat::ArrayNW",
+   "calls_per_fwd": 34.0,
+   "ms_per_fwd": 0.03886719999999998,
+   "cat": "norm/reduce"
+  },
+  {
+   "name": "__myl_MovResTra_0x03bf08d48c3e26a5a9fde924622ab62f",
+   "calls_per_fwd": 16.0,
+   "ms_per_fwd": 0.038400799999999985,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "__myl_AddResTraCas_0x4e4ada96fcb35ae8fd8c11234f3111b6",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.033446800000000006,
+   "cat": "fused_pointwise(myelin)"
+  },
+  {
+   "name": "sm80_xmma_gemm_f16f16_f16f16_f16_nn_n_tilesize64x128x32_stage5_warpsize2x2x1_tensor16x8x16_execute_kernel_trt",
+   "calls_per_fwd": 1.0,
+   "ms_per_fwd": 0.03241619999999999,
+   "cat": "gemm"
+  },
+  {
+   "name": "__myl_Cas_0x21d8b03fe85ebd49304a248b7d6afc59",
+   "calls_per_fwd": 5.0,
+   "ms_per_fwd": 0.030304600000000008,
+   "cat": "fused_pointwise(myelin)"
+  }
+ ],
+ "contaminated": false
+}

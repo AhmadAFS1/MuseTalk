@@ -1,0 +1,1639 @@
+{
+ "gpu_log": [
+  {
+   "tag": "res320_32x32_bs8",
+   "samples": [
+    "0 %, 5319 MiB, 38.64 W, 2505 MHz",
+    "0 %, 5319 MiB, 38.64 W, 2505 MHz",
+    "0 %, 5319 MiB, 38.64 W, 2505 MHz"
+   ],
+   "apps": [
+    "3305906, 4972 MiB",
+    "3306423, 332 MiB"
+   ],
+   "foreign_apps": [
+    "3305906, 4972 MiB"
+   ],
+   "contaminated": false
+  },
+  {
+   "tag": "res320_32x32_bs16",
+   "samples": [
+    "0 %, 5415 MiB, 55.91 W, 2790 MHz",
+    "0 %, 5415 MiB, 55.91 W, 2790 MHz",
+    "0 %, 5415 MiB, 55.91 W, 2790 MHz"
+   ],
+   "apps": [
+    "3305906, 4972 MiB",
+    "3306423, 428 MiB"
+   ],
+   "foreign_apps": [
+    "3305906, 4972 MiB"
+   ],
+   "contaminated": false
+  }
+ ],
+ "blocks": {
+  "res320_32x32_bs8": {
+   "input_shape": [
+    8,
+    320,
+    32,
+    32
+   ],
+   "GFLOP": 30.199808,
+   "contaminated": false,
+   "pytorch_eager_ms": 0.7962656021118164,
+   "torch_tensorrt_fp16_ms": 0.6862847805023193,
+   "torch_tensorrt_fp16_maxabs": 0.02337646484375,
+   "fp8_fakequant_torch": {
+    "maxabs": 0.041015625,
+    "rel_l2": 0.011081957258284092
+   },
+   "fp16": {
+    "onnx_MB_in_ram": 4.307831764221191,
+    "onnx_ops": {
+     "Constant": 9,
+     "Mul": 5,
+     "Reshape": 4,
+     "Add": 4,
+     "Sigmoid": 3,
+     "InstanceNormalization": 2,
+     "Shape": 2,
+     "Conv": 2,
+     "Unsqueeze": 2,
+     "Gemm": 1,
+     "Div": 1
+    },
+    "build_s": 3.697268486022949,
+    "engine_MB": 4.583049774169922,
+    "layers": [
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Network Input x"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye1837_0_myl1_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMul_0xb0bc90835a30f95e73c59655b6101135",
+      "in": [
+       "Half",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMul_myl1_1"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 0 to /r/conv1/Conv"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "/r/conv1/Conv"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye2699_0_myl4_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_SumAdd_0x0ef41feb96471060b3b70e1edf41b29e",
+      "in": [
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_SumAdd_myl4_1"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_ResAddMovResCasMeaSubMulMea_0xd168420eb1d99c42892774cc5932890c",
+      "in": [
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Float"
+      ],
+      "name": "__myl_ResAddMovResCasMeaSubMulMea_myl4_2"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_AddSqrDivCasMulAddResMovMulAddNegExpAddDivMul_0x2ecb17c6d384d329e0f74cb792c06b9a",
+      "in": [
+       "Float",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_AddSqrDivCasMulAddResMovMulAddNegExpAddDivMul_myl4_3"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 1 to /r/conv2/Conv + /r/Add_1"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0",
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "/r/conv2/Conv + /r/Add_1"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Output Tensor 0 to /r/conv2/Conv + /r/Add_1"
+     }
+    ],
+    "trt_ms": 0.4491263866424561,
+    "TFLOPS": 67.241224070056,
+    "maxabs_vs_torch_fp16": 0.02337646484375,
+    "rel_l2_vs_torch_fp16": 0.0025381003506481647,
+    "top_kernels_ms": {
+     "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8_execute_kernel_trt": 0.2850943333333334,
+     "__myl_ResAddMovResCasMeaSubMulMea_0xd168420eb1d99c42892774cc5932890c": 0.05548900000000001,
+     "__myl_AddSqrDivCasMulAddResMovMulAddNegExpAddDivMul_0x2ecb17c6d384d329e0f74cb792c06b9a": 0.030080666666666665,
+     "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMul_0xb0bc90835a30f95e73c59655b6101135": 0.026603333333333333,
+     "void CUTENSOR_NAMESPACE::permutationKernelPLC3<CUTENSOR_NAMESPACE::VectorWrite2DTensorView<(unsigned char)0, (unsigned char)1, false, 8u, fl": 0.015754666666666667,
+     "void cuInt8::nhwcTonchw<__half, 32, 32, 2>(__half const*, __half*, int, int, int, int, int, int)": 0.009717333333333335,
+     "__myl_SumAdd_0x0ef41feb96471060b3b70e1edf41b29e": 0.001632
+    }
+   },
+   "int8_qdq": {
+    "fakequant_torch_maxabs_vs_fp16": 0.03955078125,
+    "onnx_MB_in_ram": 8.617408752441406,
+    "onnx_ops": {
+     "Constant": 21,
+     "QuantizeLinear": 6,
+     "DequantizeLinear": 6,
+     "Mul": 5,
+     "Reshape": 4,
+     "Add": 4,
+     "Sigmoid": 3,
+     "Cast": 3,
+     "InstanceNormalization": 2,
+     "Shape": 2,
+     "Conv": 2,
+     "Unsqueeze": 2,
+     "Gemm": 1,
+     "Div": 1
+    },
+    "build_s": 17.420664072036743,
+    "engine_MB": 2.6010169982910156,
+    "layers": [
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Network Input x"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye1840_0_myl1_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCas_0x1b4cf3ae1ae32125f1c1f91055f36e55",
+      "in": [
+       "Half",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCas_myl1_1"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Thirty-two wide channel vectorized row major Int8 format"
+      ],
+      "name": "/r/conv1/input_quantizer/QuantizeLinear"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm80_xmma_fprop_implicit_gemm_interleaved_i8f32_i8i32_f32_nchw_vect_c_32kcrs_vect_c_32_nchw_tilesize128x64x64_stage4_warpsize2x2x1_g1_tensor16x8x32_t1",
+      "in": [
+       "Thirty-two wide channel vectorized row major Int8 format"
+      ],
+      "out": [
+       "Row major linear FP32"
+      ],
+      "name": "onnx::QuantizeLinear_106 + /r/conv1/weight_quantizer/QuantizeLinear + /r/conv1/Conv"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye2796_0_myl4_0"
+     },
+     {
+      "type": "gemm",
+      "tactic": "sm80_xmma_gemm_i8f32_i8i32_f32_tn_n_tilesize32x64x64_stage6_warpsize2x2x1_tensor16x8x32",
+      "in": [
+       "Int8",
+       "Int8",
+       "Float"
+      ],
+      "out": [
+       "Float"
+      ],
+      "name": "/r/time_emb_proj/Gemm_myl4_1"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_AddResCasMeaSubMulMeaAddSqrDivMulAddCasResMulAddNegExpAddDivMul_0x3ded035068bec6c25e8380c779ac1e34",
+      "in": [
+       "Float",
+       "Float",
+       "Float"
+      ],
+      "out": [
+       "Float"
+      ],
+      "name": "__myl_AddResCasMeaSubMulMeaAddSqrDivMulAddCasResMulAddNegExpAddDivMul_myl4_2"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP32"
+      ],
+      "out": [
+       "Thirty-two wide channel vectorized row major Int8 format"
+      ],
+      "name": "/r/conv2/input_quantizer/QuantizeLinear"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm80_xmma_fprop_implicit_gemm_interleaved_i8f32_i8i32_f32_nchw_vect_c_32kcrs_vect_c_32_nchw_tilesize128x64x64_stage4_warpsize2x2x1_g1_tensor16x8x32_t1",
+      "in": [
+       "Thirty-two wide channel vectorized row major Int8 format"
+      ],
+      "out": [
+       "Row major linear FP32"
+      ],
+      "name": "onnx::QuantizeLinear_118 + /r/conv2/weight_quantizer/QuantizeLinear + /r/conv2/Conv"
+     },
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "/r/Cast"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP32"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 1 to PWN(/r/Add_1, /r/Constant_2_output_0 + ONNXTRT_Broadcast"
+     },
+     {
+      "type": "PointWiseV2",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP32"
+      ],
+      "name": "PWN(/r/Add_1, /r/Constant_2_output_0 + ONNXTRT_Broadcast_33 + /r/Div)"
+     }
+    ],
+    "trt_ms": 0.2481152057647705,
+    "TFLOPS": 121.71687707294893,
+    "maxabs_vs_torch_fp16": 0.0380859375,
+    "rel_l2_vs_torch_fp16": 0.016222449019551277,
+    "top_kernels_ms": {
+     "sm80_xmma_fprop_implicit_gemm_interleaved_i8f32_i8i32_f32_nchw_vect_c_32kcrs_vect_c_32_nchw_tilesize128x64x64_stage4_warpsize2x2x1_g1_tensor": 0.142924,
+     "__myl_AddResCasMeaSubMulMeaAddSqrDivMulAddCasResMulAddNegExpAddDivMul_0x3ded035068bec6c25e8380c779ac1e34": 0.03705633333333334,
+     "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCas_0x1b4cf3ae1ae32125f1c1f91055f36e55": 0.026741333333333336,
+     "void CUTENSOR_NAMESPACE::permutationKernelPLC3<CUTENSOR_NAMESPACE::VectorWrite2DTensorView<(unsigned char)0, (unsigned char)1, false, 4u, fl": 0.009717333333333333,
+     "generatedNativePointwise": 0.009706666666666667,
+     "void CUTENSOR_NAMESPACE::permutationKernelPLC3<CUTENSOR_NAMESPACE::VectorWrite2DTensorView<(unsigned char)0, (unsigned char)1, false, 8u, fl": 0.008938999999999999,
+     "void genericReformat::copyVectorizedKernel<double, float, __half, true, false, 1>(unsigned int, void const*, genericReformat::ArrayN<1>, gen": 0.006794666666666668,
+     "sm80_xmma_gemm_i8f32_i8i32_f32_tn_n_tilesize32x64x64_stage6_warpsize2x2x1_tensor16x8x32_execute_kernel_trt": 0.0038080000000000006
+    }
+   },
+   "fp8_qdq_perchannelW": {
+    "fakequant_torch_maxabs_vs_fp16": 0.03955078125,
+    "qdq_nodes_converted": 12,
+    "onnx_MB_in_ram": 8.626218795776367,
+    "onnx_ops": {
+     "Constant": 21,
+     "QuantizeLinear": 6,
+     "DequantizeLinear": 6,
+     "Mul": 5,
+     "Reshape": 4,
+     "Add": 4,
+     "Sigmoid": 3,
+     "Cast": 3,
+     "InstanceNormalization": 2,
+     "Shape": 2,
+     "Conv": 2,
+     "Unsqueeze": 2,
+     "Gemm": 1,
+     "Div": 1
+    },
+    "build_s": 7.300699234008789,
+    "engine_MB": 4.325740814208984,
+    "layers": [
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Network Input x"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye1968_0_myl1_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_Mov_0x8151e7bc2ef7908a5669d7292c425e1f",
+      "in": [
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_Mov_myl1_1"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0xb01b3684275cc007ecea7668372b789a",
+      "in": [
+       "Half",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_myl1_2"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 0 to /r/conv1/Conv"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "/r/conv1/Conv"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye2926_0_myl4_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_Mov_0x3f551d16dcc96c7ceb5b34d8836e31d1",
+      "in": [
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_Mov_myl4_1"
+     },
+     {
+      "type": "gemm",
+      "tactic": "sm89_xmma_gemm_e4m3f32_e4m3f32_f32_tn_n_tilesize32x64x64_stage5_warpsize2x2x1_tensor16x8x32_bias_f32",
+      "in": [
+       "FP8",
+       "FP8",
+       "Float"
+      ],
+      "out": [
+       "Float"
+      ],
+      "name": "/r/time_emb_proj/Gemm_myl4_2"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_MulCasAddResAddMovResCasMeaSubMulMea_0x6b969c4fc79e6eeac29b2a40decfad94",
+      "in": [
+       "Half",
+       "Half",
+       "Float"
+      ],
+      "out": [
+       "Float"
+      ],
+      "name": "__myl_MulCasAddResAddMovResCasMeaSubMulMea_myl4_3"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_AddSqrDivCasMulAddResMovMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0x116c9c71287d8ea4ab107b1845b12bd5",
+      "in": [
+       "Float",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_AddSqrDivCasMulAddResMovMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_myl4_4"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 1 to /r/conv2/Conv"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "/r/conv2/Conv"
+     },
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "/r/Cast"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 1 to PWN(/r/Add_1, /r/Constant_2_output_0 + ONNXTRT_Broadcast"
+     },
+     {
+      "type": "PointWiseV2",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP32"
+      ],
+      "name": "PWN(/r/Add_1, /r/Constant_2_output_0 + ONNXTRT_Broadcast_22 + /r/Div)"
+     }
+    ],
+    "trt_ms": 0.6152607917785644,
+    "TFLOPS": 49.08456447013297,
+    "maxabs_vs_torch_fp16": 0.03857421875,
+    "rel_l2_vs_torch_fp16": 0.011591149494051933,
+    "top_kernels_ms": {
+     "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8_execute_kernel_trt": 0.30143333333333333,
+     "void nvinfer1::rt::cuda::padFilterWeights<__half, 1>(nvinfer1::rt::cuda::PadWeightsLaunchParams<__half>)": 0.10941000000000001,
+     "__myl_MulCasAddResAddMovResCasMeaSubMulMea_0x6b969c4fc79e6eeac29b2a40decfad94": 0.06324366666666667,
+     "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0xb01b3684275cc007ecea7668372b789a": 0.053665000000000004,
+     "__myl_AddSqrDivCasMulAddResMovMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0x116c9c71287d8ea4ab107b1845b12bd5": 0.038017,
+     "void genericReformat::copyPackedKernel<__half, __half, false, true, genericReformat::IdentityCoordMapper<4>, 4>(unsigned int, unsigned int, ": 0.009994666666666667,
+     "generatedNativePointwise": 0.009685333333333334,
+     "void cuInt8::nhwcTonchw<__half, 32, 32, 2>(__half const*, __half*, int, int, int, int, int, int)": 0.009536000000000001,
+     "void CUTENSOR_NAMESPACE::permutationKernelPLC3<CUTENSOR_NAMESPACE::VectorWrite2DTensorView<(unsigned char)0, (unsigned char)1, false, 8u, fl": 0.008053333333333332,
+     "__myl_Mov_0x3f551d16dcc96c7ceb5b34d8836e31d1": 0.004384,
+     "sm89_xmma_gemm_e4m3f32_e4m3f32_f32_tn_n_tilesize32x64x64_stage5_warpsize2x2x1_tensor16x8x32_bias_f32_execute_kernel_trt": 0.004096,
+     "__myl_Mov_0x8151e7bc2ef7908a5669d7292c425e1f": 0.0029653333333333333
+    }
+   },
+   "fp8_qdq_pertensorW": {
+    "fakequant_torch_maxabs_vs_fp16": 0.03955078125,
+    "qdq_nodes_converted": 12,
+    "onnx_MB_in_ram": 8.616960525512695,
+    "onnx_ops": {
+     "Constant": 21,
+     "QuantizeLinear": 6,
+     "DequantizeLinear": 6,
+     "Mul": 5,
+     "Reshape": 4,
+     "Add": 4,
+     "Sigmoid": 3,
+     "Cast": 3,
+     "InstanceNormalization": 2,
+     "Shape": 2,
+     "Conv": 2,
+     "Unsqueeze": 2,
+     "Gemm": 1,
+     "Div": 1
+    },
+    "build_s": 6.6712141036987305,
+    "engine_MB": 4.348957061767578,
+    "layers": [
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Network Input x"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye1958_0_myl1_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_Mov_0x8151e7bc2ef7908a5669d7292c425e1f",
+      "in": [
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_Mov_myl1_1"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0xb01b3684275cc007ecea7668372b789a",
+      "in": [
+       "Half",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_myl1_2"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 0 to /r/conv1/Conv"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "/r/conv1/Conv"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 0 to {ForeignNode[emb.../r/conv2/input_quantizer/DequantizeLi"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye2907_0_myl5_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_Mov_0x8151e7bc2ef7908a5669d7292c425e1f",
+      "in": [
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_Mov_myl5_1"
+     },
+     {
+      "type": "gemm",
+      "tactic": "sm89_xmma_gemm_e4m3f16_e4m3f32_f32_tn_n_tilesize32x64x64_stage5_warpsize2x2x1_tensor16x8x32_bias_f16",
+      "in": [
+       "FP8",
+       "FP8",
+       "Float"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "/r/time_emb_proj/Gemm_myl5_2"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_AddResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0x93637f1dbf2e2d99406b858f397d82ed",
+      "in": [
+       "Half",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_AddResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_myl5_3"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 0 to /r/conv2/Conv"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "/r/conv2/Conv"
+     },
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "/r/Cast"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 1 to PWN(/r/Add_1, /r/Constant_2_output_0 + ONNXTRT_Broadcast"
+     },
+     {
+      "type": "PointWiseV2",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP32"
+      ],
+      "name": "PWN(/r/Add_1, /r/Constant_2_output_0 + ONNXTRT_Broadcast_22 + /r/Div)"
+     }
+    ],
+    "trt_ms": 0.5621888160705566,
+    "TFLOPS": 53.71826535270282,
+    "maxabs_vs_torch_fp16": 0.037109375,
+    "rel_l2_vs_torch_fp16": 0.011512084864079952,
+    "top_kernels_ms": {
+     "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8_execute_kernel_trt": 0.2960043333333333,
+     "void nvinfer1::rt::cuda::padFilterWeights<__half, 1>(nvinfer1::rt::cuda::PadWeightsLaunchParams<__half>)": 0.10753233333333333,
+     "__myl_AddResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0x93637f1dbf2e2d99406b858f397d82ed": 0.05316333333333333,
+     "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0xb01b3684275cc007ecea7668372b789a": 0.05272633333333333,
+     "void cuInt8::nhwcTonchw<__half, 32, 32, 2>(__half const*, __half*, int, int, int, int, int, int)": 0.01876266666666667,
+     "void CUTENSOR_NAMESPACE::permutationKernelPLC3<CUTENSOR_NAMESPACE::VectorWrite2DTensorView<(unsigned char)0, (unsigned char)1, false, 8u, fl": 0.015744,
+     "generatedNativePointwise": 0.009525666666666667,
+     "__myl_Mov_0x8151e7bc2ef7908a5669d7292c425e1f": 0.004970666666666667,
+     "sm89_xmma_gemm_e4m3f16_e4m3f32_f32_tn_n_tilesize32x64x64_stage5_warpsize2x2x1_tensor16x8x32_bias_f16_execute_kernel_trt": 0.004138666666666666
+    }
+   }
+  },
+  "res320_32x32_bs16": {
+   "input_shape": [
+    16,
+    320,
+    32,
+    32
+   ],
+   "GFLOP": 60.3987968,
+   "contaminated": false,
+   "pytorch_eager_ms": 1.4409024238586425,
+   "torch_tensorrt_fp16_ms": 1.2700863838195802,
+   "torch_tensorrt_fp16_maxabs": 0.02337646484375,
+   "fp8_fakequant_torch": {
+    "maxabs": 0.041015625,
+    "rel_l2": 0.011082391254603863
+   },
+   "fp16": {
+    "onnx_MB_in_ram": 4.307831764221191,
+    "onnx_ops": {
+     "Constant": 9,
+     "Mul": 5,
+     "Reshape": 4,
+     "Add": 4,
+     "Sigmoid": 3,
+     "InstanceNormalization": 2,
+     "Shape": 2,
+     "Conv": 2,
+     "Unsqueeze": 2,
+     "Gemm": 1,
+     "Div": 1
+    },
+    "build_s": 3.6420445442199707,
+    "engine_MB": 4.705829620361328,
+    "layers": [
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Network Input x"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye1837_0_myl1_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMul_0x35a7de02571f1d15bcdfe91d4cb314ab",
+      "in": [
+       "Half",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMul_myl1_1"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 0 to /r/conv1/Conv"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8_t1r3s3",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "/r/conv1/Conv"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye2699_0_myl4_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_SumAdd_0x0ef41feb96471060b3b70e1edf41b29e",
+      "in": [
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_SumAdd_myl4_1"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_ResAddMovResCasMeaSubMulMea_0x0378002c0898cb855ddbeafff37511b5",
+      "in": [
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Float"
+      ],
+      "name": "__myl_ResAddMovResCasMeaSubMulMea_myl4_2"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_AddSqrDivCasMulAddResMovMulAddNegExpAddDivMul_0x1cac28e769d5e790d098f667f39fca52",
+      "in": [
+       "Float",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_AddSqrDivCasMulAddResMovMulAddNegExpAddDivMul_myl4_3"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 1 to /r/conv2/Conv + /r/Add_1"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0",
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "/r/conv2/Conv + /r/Add_1"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Output Tensor 0 to /r/conv2/Conv + /r/Add_1"
+     }
+    ],
+    "trt_ms": 0.9204192161560059,
+    "TFLOPS": 65.6209645994209,
+    "maxabs_vs_torch_fp16": 0.02337646484375,
+    "rel_l2_vs_torch_fp16": 0.00253860792145133,
+    "top_kernels_ms": {
+     "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8_execute_kernel_trt": 0.2997266666666667,
+     "sm75_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage1_warpsize4x1x1_g1_tensor16x8x8_t1r3s3_execute_kernel_t": 0.29432933333333333,
+     "__myl_ResAddMovResCasMeaSubMulMea_0x0378002c0898cb855ddbeafff37511b5": 0.11399633333333334,
+     "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMul_0x35a7de02571f1d15bcdfe91d4cb314ab": 0.070657,
+     "__myl_AddSqrDivCasMulAddResMovMulAddNegExpAddDivMul_0x1cac28e769d5e790d098f667f39fca52": 0.067329,
+     "void CUTENSOR_NAMESPACE::permutationKernelPLC3<CUTENSOR_NAMESPACE::VectorWrite2DTensorView<(unsigned char)0, (unsigned char)1, false, 8u, fl": 0.047210999999999996,
+     "void cuInt8::nhwcTonchw<__half, 32, 32, 2>(__half const*, __half*, int, int, int, int, int, int)": 0.019466666666666667,
+     "__myl_SumAdd_0x0ef41feb96471060b3b70e1edf41b29e": 0.004704
+    }
+   },
+   "int8_qdq": {
+    "fakequant_torch_maxabs_vs_fp16": 0.03955078125,
+    "onnx_MB_in_ram": 8.617408752441406,
+    "onnx_ops": {
+     "Constant": 21,
+     "QuantizeLinear": 6,
+     "DequantizeLinear": 6,
+     "Mul": 5,
+     "Reshape": 4,
+     "Add": 4,
+     "Sigmoid": 3,
+     "Cast": 3,
+     "InstanceNormalization": 2,
+     "Shape": 2,
+     "Conv": 2,
+     "Unsqueeze": 2,
+     "Gemm": 1,
+     "Div": 1
+    },
+    "build_s": 6.867098808288574,
+    "engine_MB": 2.765178680419922,
+    "layers": [
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Network Input x"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye1840_0_myl1_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCas_0x83692aa8c5b6a0ea86f80bae161d9e20",
+      "in": [
+       "Half",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCas_myl1_1"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Thirty-two wide channel vectorized row major Int8 format"
+      ],
+      "name": "/r/conv1/input_quantizer/QuantizeLinear"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm80_xmma_fprop_implicit_gemm_interleaved_i8f32_i8i32_f32_nchw_vect_c_32kcrs_vect_c_32_nchw_tilesize128x64x64_stage4_warpsize2x2x1_g1_tensor16x8x32_t1",
+      "in": [
+       "Thirty-two wide channel vectorized row major Int8 format"
+      ],
+      "out": [
+       "Row major linear FP32"
+      ],
+      "name": "onnx::QuantizeLinear_106 + /r/conv1/weight_quantizer/QuantizeLinear + /r/conv1/Conv"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye2796_0_myl4_0"
+     },
+     {
+      "type": "gemm",
+      "tactic": "sm80_xmma_gemm_i8f32_i8i32_f32_tn_n_tilesize32x64x64_stage6_warpsize2x2x1_tensor16x8x32",
+      "in": [
+       "Int8",
+       "Int8",
+       "Float"
+      ],
+      "out": [
+       "Float"
+      ],
+      "name": "/r/time_emb_proj/Gemm_myl4_1"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_AddResCasMeaSubMulMeaAddSqrDivMulAddCasResMulAddNegExpAddDivMul_0x94678674fc49f1b145cc6ef314e43a55",
+      "in": [
+       "Float",
+       "Float",
+       "Float"
+      ],
+      "out": [
+       "Float"
+      ],
+      "name": "__myl_AddResCasMeaSubMulMeaAddSqrDivMulAddCasResMulAddNegExpAddDivMul_myl4_2"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP32"
+      ],
+      "out": [
+       "Thirty-two wide channel vectorized row major Int8 format"
+      ],
+      "name": "/r/conv2/input_quantizer/QuantizeLinear"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm80_xmma_fprop_implicit_gemm_interleaved_i8f16_i8i32_f32_nchw_vect_c_32kcrs_vect_c_32_nchw_vect_c_32_tilesize256x64x64_stage4_warpsize4x1x1_g1_tensor",
+      "in": [
+       "Thirty-two wide channel vectorized row major Int8 format"
+      ],
+      "out": [
+       "Thirty-two wide channel vectorized row major FP16 format"
+      ],
+      "name": "onnx::QuantizeLinear_118 + /r/conv2/weight_quantizer/QuantizeLinear + /r/conv2/Conv"
+     },
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "/r/Cast"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Thirty-two wide channel vectorized row major FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 1 to PWN(/r/Add_1, /r/Constant_2_output_0 + ONNXTRT_Broadcast"
+     },
+     {
+      "type": "PointWiseV2",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP32"
+      ],
+      "name": "PWN(/r/Add_1, /r/Constant_2_output_0 + ONNXTRT_Broadcast_33 + /r/Div)"
+     }
+    ],
+    "trt_ms": 0.49785919189453126,
+    "TFLOPS": 121.31702654752863,
+    "maxabs_vs_torch_fp16": 0.03857421875,
+    "rel_l2_vs_torch_fp16": 0.01622086949646473,
+    "top_kernels_ms": {
+     "sm80_xmma_fprop_implicit_gemm_interleaved_i8f32_i8i32_f32_nchw_vect_c_32kcrs_vect_c_32_nchw_tilesize128x64x64_stage4_warpsize2x2x1_g1_tensor": 0.14027866666666666,
+     "sm80_xmma_fprop_implicit_gemm_interleaved_i8f16_i8i32_f32_nchw_vect_c_32kcrs_vect_c_32_nchw_vect_c_32_tilesize256x64x64_stage4_warpsize4x1x1": 0.12431033333333333,
+     "__myl_AddResCasMeaSubMulMeaAddSqrDivMulAddCasResMulAddNegExpAddDivMul_0x94678674fc49f1b145cc6ef314e43a55": 0.07275799999999999,
+     "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCas_0x83692aa8c5b6a0ea86f80bae161d9e20": 0.052726,
+     "generatedNativePointwise": 0.044854,
+     "void CUTENSOR_NAMESPACE::permutationKernelPLC3<CUTENSOR_NAMESPACE::VectorWrite2DTensorView<(unsigned char)0, (unsigned char)1, false, 8u, fl": 0.03553166666666667,
+     "void CUTENSOR_NAMESPACE::permutationKernelPLC3<CUTENSOR_NAMESPACE::VectorWrite2DTensorView<(unsigned char)0, (unsigned char)1, false, 4u, fl": 0.018581666666666666,
+     "sm80_xmma_gemm_i8f32_i8i32_f32_tn_n_tilesize32x64x64_stage6_warpsize2x2x1_tensor16x8x32_execute_kernel_trt": 0.004576
+    }
+   },
+   "fp8_qdq_perchannelW": {
+    "fakequant_torch_maxabs_vs_fp16": 0.03955078125,
+    "qdq_nodes_converted": 12,
+    "onnx_MB_in_ram": 8.626218795776367,
+    "onnx_ops": {
+     "Constant": 21,
+     "QuantizeLinear": 6,
+     "DequantizeLinear": 6,
+     "Mul": 5,
+     "Reshape": 4,
+     "Add": 4,
+     "Sigmoid": 3,
+     "Cast": 3,
+     "InstanceNormalization": 2,
+     "Shape": 2,
+     "Conv": 2,
+     "Unsqueeze": 2,
+     "Gemm": 1,
+     "Div": 1
+    },
+    "build_s": 7.416419982910156,
+    "engine_MB": 4.367740631103516,
+    "layers": [
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Network Input x"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye1968_0_myl1_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_Mov_0x8151e7bc2ef7908a5669d7292c425e1f",
+      "in": [
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_Mov_myl1_1"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0xfeeb276df3524c9870015958f8f95616",
+      "in": [
+       "Half",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_myl1_2"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 0 to /r/conv1/Conv"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage3_warpsize4x1x1_g1_tensor16x8x16_t1r3s3_aACCESS",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "/r/conv1/Conv"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye2926_0_myl4_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_Mov_0x3f551d16dcc96c7ceb5b34d8836e31d1",
+      "in": [
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_Mov_myl4_1"
+     },
+     {
+      "type": "gemm",
+      "tactic": "sm89_xmma_gemm_e4m3f32_e4m3f32_f32_tn_n_tilesize32x64x64_stage5_warpsize2x2x1_tensor16x8x32_bias_f32",
+      "in": [
+       "FP8",
+       "FP8",
+       "Float"
+      ],
+      "out": [
+       "Float"
+      ],
+      "name": "/r/time_emb_proj/Gemm_myl4_2"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_MulCasAddResAddMovResCasMeaSubMulMea_0x4e2cdca9ada92f47f9ae61c111c45442",
+      "in": [
+       "Half",
+       "Half",
+       "Float"
+      ],
+      "out": [
+       "Float"
+      ],
+      "name": "__myl_MulCasAddResAddMovResCasMeaSubMulMea_myl4_3"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_AddSqrDivCasMulAddResMovMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0x0a12c64dcf5ceb32b308e54010be5e56",
+      "in": [
+       "Float",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_AddSqrDivCasMulAddResMovMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_myl4_4"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 1 to /r/conv2/Conv"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage3_warpsize4x1x1_g1_tensor16x8x16_t1r3s3_aACCESS",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "/r/conv2/Conv"
+     },
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "/r/Cast"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 1 to PWN(/r/Add_1, /r/Constant_2_output_0 + ONNXTRT_Broadcast"
+     },
+     {
+      "type": "PointWiseV2",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP32"
+      ],
+      "name": "PWN(/r/Add_1, /r/Constant_2_output_0 + ONNXTRT_Broadcast_22 + /r/Div)"
+     }
+    ],
+    "trt_ms": 1.0991519927978515,
+    "TFLOPS": 54.950359182133724,
+    "maxabs_vs_torch_fp16": 0.0400390625,
+    "rel_l2_vs_torch_fp16": 0.011597256176173687,
+    "top_kernels_ms": {
+     "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage3_warpsize4x1x1_g1_tensor16x8x16_t1r3s3_aACCESS_execute": 0.5813616666666668,
+     "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0xfeeb276df3524c9870015958f8f95616": 0.11632133333333333,
+     "void nvinfer1::rt::cuda::padFilterWeights<__half, 1>(nvinfer1::rt::cuda::PadWeightsLaunchParams<__half>)": 0.11249200000000002,
+     "__myl_MulCasAddResAddMovResCasMeaSubMulMea_0x4e2cdca9ada92f47f9ae61c111c45442": 0.10645433333333333,
+     "__myl_AddSqrDivCasMulAddResMovMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0x0a12c64dcf5ceb32b308e54010be5e56": 0.074625,
+     "generatedNativePointwise": 0.044875,
+     "void cuInt8::nhwcTonchw<__half, 32, 32, 2>(__half const*, __half*, int, int, int, int, int, int)": 0.01822933333333333,
+     "void CUTENSOR_NAMESPACE::permutationKernelPLC3<CUTENSOR_NAMESPACE::VectorWrite2DTensorView<(unsigned char)0, (unsigned char)1, false, 8u, fl": 0.014443000000000001,
+     "__myl_Mov_0x8151e7bc2ef7908a5669d7292c425e1f": 0.009408,
+     "void genericReformat::copyPackedKernel<__half, __half, false, true, genericReformat::IdentityCoordMapper<4>, 4>(unsigned int, unsigned int, ": 0.008192,
+     "__myl_Mov_0x3f551d16dcc96c7ceb5b34d8836e31d1": 0.007167999999999999,
+     "sm89_xmma_gemm_e4m3f32_e4m3f32_f32_tn_n_tilesize32x64x64_stage5_warpsize2x2x1_tensor16x8x32_bias_f32_execute_kernel_trt": 0.005162666666666667
+    }
+   },
+   "fp8_qdq_pertensorW": {
+    "fakequant_torch_maxabs_vs_fp16": 0.03955078125,
+    "qdq_nodes_converted": 12,
+    "onnx_MB_in_ram": 8.616960525512695,
+    "onnx_ops": {
+     "Constant": 21,
+     "QuantizeLinear": 6,
+     "DequantizeLinear": 6,
+     "Mul": 5,
+     "Reshape": 4,
+     "Add": 4,
+     "Sigmoid": 3,
+     "Cast": 3,
+     "InstanceNormalization": 2,
+     "Shape": 2,
+     "Conv": 2,
+     "Unsqueeze": 2,
+     "Gemm": 1,
+     "Div": 1
+    },
+    "build_s": 6.765170097351074,
+    "engine_MB": 4.390949249267578,
+    "layers": [
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Network Input x"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye1958_0_myl1_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_Mov_0x8151e7bc2ef7908a5669d7292c425e1f",
+      "in": [
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_Mov_myl1_1"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0xfeeb276df3524c9870015958f8f95616",
+      "in": [
+       "Half",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_myl1_2"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 0 to /r/conv1/Conv"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage3_warpsize4x1x1_g1_tensor16x8x16_t1r3s3_aACCESS",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "/r/conv1/Conv"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 0 to {ForeignNode[emb.../r/conv2/input_quantizer/DequantizeLi"
+     },
+     {
+      "type": "shape_call",
+      "tactic": "",
+      "in": [],
+      "out": [],
+      "name": "dummy_shape_call__mye2907_0_myl5_0"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_Mov_0x8151e7bc2ef7908a5669d7292c425e1f",
+      "in": [
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_Mov_myl5_1"
+     },
+     {
+      "type": "gemm",
+      "tactic": "sm89_xmma_gemm_e4m3f16_e4m3f32_f32_tn_n_tilesize32x64x64_stage5_warpsize2x2x1_tensor16x8x32_bias_f16",
+      "in": [
+       "FP8",
+       "FP8",
+       "Float"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "/r/time_emb_proj/Gemm_myl5_2"
+     },
+     {
+      "type": "kgen",
+      "tactic": "__myl_AddResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0xfe3402c0c6ebf2f2e9b5a304d9dabf2d",
+      "in": [
+       "Half",
+       "Half",
+       "Half"
+      ],
+      "out": [
+       "Half"
+      ],
+      "name": "__myl_AddResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_myl5_3"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 0 to /r/conv2/Conv"
+     },
+     {
+      "type": "CaskConvolution",
+      "tactic": "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage3_warpsize4x1x1_g1_tensor16x8x16_t1r3s3_aACCESS",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "name": "/r/conv2/Conv"
+     },
+     {
+      "type": "NoOp",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "/r/Cast"
+     },
+     {
+      "type": "Reformat",
+      "tactic": "",
+      "in": [
+       "Channel major FP16 format where channel % 8 == 0"
+      ],
+      "out": [
+       "Row major linear FP16 format"
+      ],
+      "name": "Reformatting CopyNode for Input Tensor 1 to PWN(/r/Add_1, /r/Constant_2_output_0 + ONNXTRT_Broadcast"
+     },
+     {
+      "type": "PointWiseV2",
+      "tactic": "",
+      "in": [
+       "Row major linear FP16 format",
+       "Row major linear FP16 format"
+      ],
+      "out": [
+       "Row major linear FP32"
+      ],
+      "name": "PWN(/r/Add_1, /r/Constant_2_output_0 + ONNXTRT_Broadcast_22 + /r/Div)"
+     }
+    ],
+    "trt_ms": 1.017612838745117,
+    "TFLOPS": 59.35341467829905,
+    "maxabs_vs_torch_fp16": 0.0380859375,
+    "rel_l2_vs_torch_fp16": 0.011503648944199085,
+    "top_kernels_ms": {
+     "sm80_xmma_fprop_implicit_gemm_f16f16_f16f16_f16_nhwckrsc_nhwc_tilesize256x64x32_stage3_warpsize4x1x1_g1_tensor16x8x16_t1r3s3_aACCESS_execute": 0.5700320000000001,
+     "__myl_ResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0xfeeb276df3524c9870015958f8f95616": 0.11426233333333333,
+     "__myl_AddResCasMeaSubMulMeaAddSqrDivCasMulAddResMulAddNegExpAddDivMulCasMulMinMaxCasCasMulCas_0xfe3402c0c6ebf2f2e9b5a304d9dabf2d": 0.11271566666666666,
+     "void nvinfer1::rt::cuda::padFilterWeights<__half, 1>(nvinfer1::rt::cuda::PadWeightsLaunchParams<__half>)": 0.11091266666666667,
+     "void cuInt8::nhwcTonchw<__half, 32, 32, 2>(__half const*, __half*, int, int, int, int, int, int)": 0.035840333333333335,
+     "generatedNativePointwise": 0.02965366666666667,
+     "void CUTENSOR_NAMESPACE::permutationKernelPLC3<CUTENSOR_NAMESPACE::VectorWrite2DTensorView<(unsigned char)0, (unsigned char)1, false, 8u, fl": 0.02824533333333333,
+     "__myl_Mov_0x8151e7bc2ef7908a5669d7292c425e1f": 0.01585033333333333,
+     "sm89_xmma_gemm_e4m3f16_e4m3f32_f32_tn_n_tilesize32x64x64_stage5_warpsize2x2x1_tensor16x8x32_bias_f16_execute_kernel_trt": 0.005226666666666667
+    }
+   }
+  }
+ }
+}

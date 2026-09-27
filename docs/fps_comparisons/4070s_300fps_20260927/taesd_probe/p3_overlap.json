@@ -1,0 +1,150 @@
+{
+  "gpu_start": {
+    "tag": "start",
+    "t": 1790541599.868384,
+    "smi": "0 %, 1 MiB, 210 MHz, 9.45 W, 39",
+    "compute_apps": "",
+    "own_torch_reserved_MiB": 0.0,
+    "own_pid": 3454377
+  },
+  "unet_kind": "trt",
+  "unet_host_launch_ms": 4.508656915277243,
+  "unet_single_call_ms": 23.621822940185666,
+  "gpu_pre_blocks": {
+    "tag": "pre-blocks",
+    "t": 1790541614.7266514,
+    "smi": "0 %, 3011 MiB, 2805 MHz, 72.78 W, 42",
+    "compute_apps": "3454377, 3002 MiB",
+    "own_torch_reserved_MiB": 1030.0,
+    "own_pid": 3454377
+  },
+  "unet_alone": {
+    "wall_ms_per_iter": 23.90056134900078,
+    "smi_samples": [
+      "67 %, 2805 MHz, 56.63 W",
+      "67 %, 2805 MHz, 56.63 W",
+      "100 %, 2580 MHz, 126.34 W"
+    ]
+  },
+  "taesd_ma_bs8": {
+    "taesd_alone": {
+      "wall_ms_per_iter": 5.890049447771162,
+      "smi_samples": [
+        "94 %, 2580 MHz, 198.39 W"
+      ]
+    },
+    "serial_same_stream": {
+      "wall_ms_per_iter": 29.839447676204145,
+      "smi_samples": [
+        "94 %, 2580 MHz, 198.39 W",
+        "71 %, 2580 MHz, 184.04 W",
+        "100 %, 2595 MHz, 187.21 W",
+        "100 %, 2595 MHz, 187.21 W"
+      ],
+      "saving_vs_serial_sum_pct": -0.16393379701196142
+    },
+    "two_stream_1thread": {
+      "wall_ms_per_iter": 29.617829323979095,
+      "smi_samples": [
+        "100 %, 2595 MHz, 209.51 W",
+        "100 %, 2595 MHz, 180.05 W",
+        "100 %, 2595 MHz, 180.05 W",
+        "100 %, 2595 MHz, 179.43 W"
+      ],
+      "saving_vs_serial_sum_pct": 0.5799863385532622
+    },
+    "two_stream_pipelined_dep": {
+      "wall_ms_per_iter": 59.97981979744509,
+      "smi_samples": [
+        "100 %, 2730 MHz, 213.05 W",
+        "100 %, 2730 MHz, 213.05 W",
+        "0 %, 2790 MHz, 142.22 W",
+        "0 %, 2805 MHz, 64.52 W",
+        "71 %, 2595 MHz, 58.72 W",
+        "100 %, 2565 MHz, 134.71 W"
+      ],
+      "saving_vs_serial_sum_pct": -101.33799943418546
+    },
+    "two_threads": {
+      "wall_ms_per_iter": 24.119747773511335,
+      "smi_samples": [
+        "100 %, 2580 MHz, 208.50 W",
+        "100 %, 2565 MHz, 186.84 W",
+        "100 %, 2565 MHz, 186.84 W"
+      ],
+      "saving_vs_serial_sum_pct": 19.035739354075588
+    },
+    "serial_sum_of_alone": 29.790610796771944
+  },
+  "taesd_ma_nocg_bs8": {
+    "taesd_alone": {
+      "wall_ms_per_iter": 6.054517027223483,
+      "smi_samples": [
+        "100 %, 2565 MHz, 185.74 W"
+      ]
+    },
+    "serial_same_stream": {
+      "wall_ms_per_iter": 30.06982312654145,
+      "smi_samples": [
+        "100 %, 2670 MHz, 200.76 W",
+        "100 %, 2670 MHz, 200.76 W",
+        "100 %, 2580 MHz, 184.86 W",
+        "100 %, 2595 MHz, 198.60 W"
+      ],
+      "saving_vs_serial_sum_pct": -0.38305608443429673
+    },
+    "two_stream_1thread": {
+      "wall_ms_per_iter": 29.825204296503216,
+      "smi_samples": [
+        "100 %, 2595 MHz, 198.60 W",
+        "16 %, 2550 MHz, 189.40 W",
+        "100 %, 2565 MHz, 188.99 W",
+        "100 %, 2565 MHz, 188.99 W"
+      ],
+      "saving_vs_serial_sum_pct": 0.4335628105855083
+    },
+    "two_stream_pipelined_dep": {
+      "wall_ms_per_iter": 54.56990236998536,
+      "smi_samples": [
+        "100 %, 2565 MHz, 212.32 W",
+        "0 %, 2790 MHz, 152.18 W",
+        "0 %, 2790 MHz, 152.18 W",
+        "0 %, 2790 MHz, 74.56 W",
+        "100 %, 2565 MHz, 80.41 W",
+        "100 %, 2565 MHz, 80.41 W"
+      ],
+      "saving_vs_serial_sum_pct": -82.17245731961829
+    },
+    "two_threads": {
+      "wall_ms_per_iter": 31.27443972043693,
+      "smi_samples": [
+        "100 %, 2775 MHz, 202.59 W",
+        "100 %, 2565 MHz, 178.72 W",
+        "100 %, 2565 MHz, 178.72 W",
+        "100 %, 2565 MHz, 176.97 W"
+      ],
+      "saving_vs_serial_sum_pct": -4.404466340037549
+    },
+    "serial_sum_of_alone": 29.955078376224265
+  },
+  "unet_x2_two_streams_per_pair": {
+    "wall_ms_per_iter": 48.22836252278648,
+    "smi_samples": [
+      "95 %, 2775 MHz, 209.47 W",
+      "95 %, 2775 MHz, 209.47 W",
+      "100 %, 2565 MHz, 185.33 W",
+      "100 %, 2565 MHz, 185.70 W",
+      "100 %, 2565 MHz, 185.70 W",
+      "100 %, 2565 MHz, 209.84 W"
+    ]
+  },
+  "unet_x2_saving_vs_2x_alone_pct": -0.8937861721034057,
+  "gpu_end": {
+    "tag": "end",
+    "t": 1790541631.4236279,
+    "smi": "100 %, 2963 MiB, 2550 MHz, 208.35 W, 64",
+    "compute_apps": "3454377, 2954 MiB",
+    "own_torch_reserved_MiB": 980.0,
+    "own_pid": 3454377
+  }
+}

@@ -1,0 +1,838 @@
+{
+  "gpu_start": {
+    "tag": "start",
+    "t": 1790541465.991452,
+    "smi": "0 %, 197 MiB, 210 MHz, 9.41 W, 40",
+    "compute_apps": "3452510, 188 MiB",
+    "own_torch_reserved_MiB": 6.0,
+    "own_pid": 3452510
+  },
+  "rf_latent_rows": 18.125,
+  "rf_px_at_256": 145.0,
+  "exact_first_rows": {
+    "latent": -6,
+    "16": 99,
+    "11": 39,
+    "6": 9
+  },
+  "latent_crop": {
+    "0": {
+      "max_abs": 0.301513671875,
+      "mean_abs": 0.003252867143601179,
+      "p99_abs": 0.044921875,
+      "u8_max_lsb": 77,
+      "u8_frac_pixels_differ": 0.36774858832359314,
+      "u8_frac_gt1lsb": 0.11862517148256302
+    },
+    "1": {
+      "max_abs": 0.137939453125,
+      "mean_abs": 0.0020784069783985615,
+      "p99_abs": 0.0166015625,
+      "u8_max_lsb": 35,
+      "u8_frac_pixels_differ": 0.3607821464538574,
+      "u8_frac_gt1lsb": 0.08704449981451035
+    },
+    "2": {
+      "max_abs": 0.0693359375,
+      "mean_abs": 0.0013786773197352886,
+      "p99_abs": 0.01123046875,
+      "u8_max_lsb": 18,
+      "u8_frac_pixels_differ": 0.28163862228393555,
+      "u8_frac_gt1lsb": 0.04316684603691101
+    },
+    "3": {
+      "max_abs": 0.05810546875,
+      "mean_abs": 0.0013169494923204184,
+      "p99_abs": 0.009033203125,
+      "u8_max_lsb": 15,
+      "u8_frac_pixels_differ": 0.28449228405952454,
+      "u8_frac_gt1lsb": 0.03937410190701485
+    },
+    "4": {
+      "max_abs": 0.05712890625,
+      "mean_abs": 0.0012533609988167882,
+      "p99_abs": 0.008056640625,
+      "u8_max_lsb": 15,
+      "u8_frac_pixels_differ": 0.272759348154068,
+      "u8_frac_gt1lsb": 0.03901759535074234
+    },
+    "5": {
+      "max_abs": 0.044677734375,
+      "mean_abs": 0.001258766744285822,
+      "p99_abs": 0.00830078125,
+      "u8_max_lsb": 12,
+      "u8_frac_pixels_differ": 0.2687475085258484,
+      "u8_frac_gt1lsb": 0.04432163015007973
+    },
+    "6": {
+      "max_abs": 0.044677734375,
+      "mean_abs": 0.001222041086293757,
+      "p99_abs": 0.0087890625,
+      "u8_max_lsb": 11,
+      "u8_frac_pixels_differ": 0.2519034147262573,
+      "u8_frac_gt1lsb": 0.05018669366836548
+    },
+    "7": {
+      "max_abs": 0.048095703125,
+      "mean_abs": 0.0011043883860111237,
+      "p99_abs": 0.0087890625,
+      "u8_max_lsb": 12,
+      "u8_frac_pixels_differ": 0.22792421281337738,
+      "u8_frac_gt1lsb": 0.04547594487667084
+    },
+    "8": {
+      "max_abs": 0.03759765625,
+      "mean_abs": 0.000702364428434521,
+      "p99_abs": 0.00634765625,
+      "u8_max_lsb": 10,
+      "u8_frac_pixels_differ": 0.16114379465579987,
+      "u8_frac_gt1lsb": 0.015822092071175575
+    },
+    "9": {
+      "max_abs": 0.025634765625,
+      "mean_abs": 0.0003630446153692901,
+      "p99_abs": 0.00390625,
+      "u8_max_lsb": 7,
+      "u8_frac_pixels_differ": 0.08978452533483505,
+      "u8_frac_gt1lsb": 0.002358018420636654
+    },
+    "10": {
+      "max_abs": 0.01953125,
+      "mean_abs": 0.00026046286802738905,
+      "p99_abs": 0.0029296875,
+      "u8_max_lsb": 5,
+      "u8_frac_pixels_differ": 0.06539174169301987,
+      "u8_frac_gt1lsb": 0.000896186160389334
+    },
+    "11": {
+      "max_abs": 0.01123046875,
+      "mean_abs": 8.548035111743957e-05,
+      "p99_abs": 0.001220703125,
+      "u8_max_lsb": 3,
+      "u8_frac_pixels_differ": 0.02173447236418724,
+      "u8_frac_gt1lsb": 0.00010226065933238715
+    },
+    "12": {
+      "max_abs": 0.00390625,
+      "mean_abs": 5.881027755094692e-05,
+      "p99_abs": 0.0009765625,
+      "u8_max_lsb": 1,
+      "u8_frac_pixels_differ": 0.015013243071734905,
+      "u8_frac_gt1lsb": 0.0
+    },
+    "13": {
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "p99_abs": 0.0,
+      "u8_max_lsb": 0,
+      "u8_frac_pixels_differ": 0.0,
+      "u8_frac_gt1lsb": 0.0
+    }
+  },
+  "staged": {
+    "crop@128+256": {
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "p99_abs": 0.0,
+      "u8_max_lsb": 0,
+      "u8_frac_pixels_differ": 0.0,
+      "u8_frac_gt1lsb": 0.0
+    },
+    "crop@64+128+256": {
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "p99_abs": 0.0,
+      "u8_max_lsb": 0,
+      "u8_frac_pixels_differ": 0.0,
+      "u8_frac_gt1lsb": 0.0
+    },
+    "crop@256only": {
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "p99_abs": 0.0,
+      "u8_max_lsb": 0,
+      "u8_frac_pixels_differ": 0.0,
+      "u8_frac_gt1lsb": 0.0
+    },
+    "crop@128+256_halo-4": {
+      "max_abs": 0.0673828125,
+      "mean_abs": 0.00010675317753339186,
+      "p99_abs": 0.0029296875,
+      "u8_max_lsb": 17,
+      "u8_frac_pixels_differ": 0.014140480197966099,
+      "u8_frac_gt1lsb": 0.005805032327771187
+    },
+    "crop@64+128+256_halo-4(aggr)": {
+      "max_abs": 0.0673828125,
+      "mean_abs": 0.00010708636546041816,
+      "p99_abs": 0.0029296875,
+      "u8_max_lsb": 17,
+      "u8_frac_pixels_differ": 0.014251574873924255,
+      "u8_frac_gt1lsb": 0.005795060656964779
+    }
+  },
+  "timing": {
+    "eager_cl": {
+      "full_bs8": {
+        "median_ms": 8.144351959228516,
+        "mean_ms": 8.145785570144653,
+        "p90_ms": 8.16351375579834,
+        "min_ms": 8.121343612670898,
+        "wall_median_ms": 8.149921079166234,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 1.0180439949035645,
+        "gpu_state": {
+          "tag": "eager_cl full bs8",
+          "t": 1790541472.8354473,
+          "smi": "95 %, 487 MiB, 2775 MHz, 190.11 W, 57",
+          "compute_apps": "3452510, 478 MiB",
+          "own_torch_reserved_MiB": 262.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h4_bs8": {
+        "median_ms": 5.947999954223633,
+        "mean_ms": 5.958164846897125,
+        "p90_ms": 5.979545593261719,
+        "min_ms": 5.928031921386719,
+        "wall_median_ms": 5.954907508566976,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7434999942779541,
+        "gpu_state": {
+          "tag": "eager_cl latent_h4 bs8",
+          "t": 1790541473.3961697,
+          "smi": "99 %, 487 MiB, 2730 MHz, 184.04 W, 61",
+          "compute_apps": "3452510, 478 MiB",
+          "own_torch_reserved_MiB": 262.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h6_bs8": {
+        "median_ms": 6.461439847946167,
+        "mean_ms": 6.464703989028931,
+        "p90_ms": 6.488099050521851,
+        "min_ms": 6.43174409866333,
+        "wall_median_ms": 6.4675259636715055,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.8076799809932709,
+        "gpu_state": {
+          "tag": "eager_cl latent_h6 bs8",
+          "t": 1790541473.8154242,
+          "smi": "97 %, 487 MiB, 2760 MHz, 178.56 W, 60",
+          "compute_apps": "3452510, 478 MiB",
+          "own_torch_reserved_MiB": 262.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h8_bs8": {
+        "median_ms": 6.961519956588745,
+        "mean_ms": 6.968710422515869,
+        "p90_ms": 6.994227075576783,
+        "min_ms": 6.930240154266357,
+        "wall_median_ms": 6.967750145122409,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.8701899945735931,
+        "gpu_state": {
+          "tag": "eager_cl latent_h8 bs8",
+          "t": 1790541474.2799084,
+          "smi": "97 %, 487 MiB, 2760 MHz, 178.56 W, 60",
+          "compute_apps": "3452510, 478 MiB",
+          "own_torch_reserved_MiB": 262.0,
+          "own_pid": 3452510
+        }
+      },
+      "staged_exact_128_256_bs8": {
+        "median_ms": 5.587967872619629,
+        "mean_ms": 5.593749594688416,
+        "p90_ms": 5.6118494987487795,
+        "min_ms": 5.57155179977417,
+        "wall_median_ms": 5.5950990645214915,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.6984959840774536,
+        "gpu_state": {
+          "tag": "eager_cl staged_exact_128_256 bs8",
+          "t": 1790541474.778253,
+          "smi": "90 %, 487 MiB, 2775 MHz, 185.51 W, 55",
+          "compute_apps": "3452510, 478 MiB",
+          "own_torch_reserved_MiB": 262.0,
+          "own_pid": 3452510
+        }
+      },
+      "staged_exact_64_128_256_bs8": {
+        "median_ms": 5.535775899887085,
+        "mean_ms": 5.573929619789124,
+        "p90_ms": 5.724169826507568,
+        "min_ms": 5.501952171325684,
+        "wall_median_ms": 5.541559075936675,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.6919719874858856,
+        "gpu_state": {
+          "tag": "eager_cl staged_exact_64_128_256 bs8",
+          "t": 1790541475.1508105,
+          "smi": "77 %, 487 MiB, 2775 MHz, 186.19 W, 54",
+          "compute_apps": "3452510, 478 MiB",
+          "own_torch_reserved_MiB": 262.0,
+          "own_pid": 3452510
+        }
+      },
+      "full_bs16": {
+        "median_ms": 17.4443998336792,
+        "mean_ms": 17.447216749191284,
+        "p90_ms": 17.48558101654053,
+        "min_ms": 17.354719161987305,
+        "wall_median_ms": 17.450624494813383,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 1.09027498960495,
+        "gpu_state": {
+          "tag": "eager_cl full bs16",
+          "t": 1790541475.6113853,
+          "smi": "55 %, 489 MiB, 2760 MHz, 177.13 W, 60",
+          "compute_apps": "3452510, 480 MiB",
+          "own_torch_reserved_MiB": 264.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h4_bs16": {
+        "median_ms": 11.981391906738281,
+        "mean_ms": 11.981943130493164,
+        "p90_ms": 12.010927677154541,
+        "min_ms": 11.931648254394531,
+        "wall_median_ms": 11.987430043518543,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7488369941711426,
+        "gpu_state": {
+          "tag": "eager_cl latent_h4 bs16",
+          "t": 1790541476.7120204,
+          "smi": "100 %, 487 MiB, 2730 MHz, 192.02 W, 61",
+          "compute_apps": "3452510, 478 MiB",
+          "own_torch_reserved_MiB": 262.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h6_bs16": {
+        "median_ms": 13.103840351104736,
+        "mean_ms": 13.111721563339234,
+        "p90_ms": 13.142118740081788,
+        "min_ms": 13.06726360321045,
+        "wall_median_ms": 13.109846971929073,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.818990021944046,
+        "gpu_state": {
+          "tag": "eager_cl latent_h6 bs16",
+          "t": 1790541477.516654,
+          "smi": "99 %, 487 MiB, 2730 MHz, 197.46 W, 62",
+          "compute_apps": "3452510, 478 MiB",
+          "own_torch_reserved_MiB": 262.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h8_bs16": {
+        "median_ms": 14.281871795654297,
+        "mean_ms": 14.289774346351624,
+        "p90_ms": 14.345727825164795,
+        "min_ms": 14.227423667907715,
+        "wall_median_ms": 14.288413571193814,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.8926169872283936,
+        "gpu_state": {
+          "tag": "eager_cl latent_h8 bs16",
+          "t": 1790541478.3884075,
+          "smi": "99 %, 489 MiB, 2730 MHz, 196.99 W, 61",
+          "compute_apps": "3452510, 480 MiB",
+          "own_torch_reserved_MiB": 264.0,
+          "own_pid": 3452510
+        }
+      },
+      "staged_exact_128_256_bs16": {
+        "median_ms": 11.620944023132324,
+        "mean_ms": 11.626564860343933,
+        "p90_ms": 11.662668418884277,
+        "min_ms": 11.574272155761719,
+        "wall_median_ms": 11.627936037257314,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7263090014457703,
+        "gpu_state": {
+          "tag": "eager_cl staged_exact_128_256 bs16",
+          "t": 1790541479.3152997,
+          "smi": "98 %, 487 MiB, 2745 MHz, 197.39 W, 58",
+          "compute_apps": "3452510, 478 MiB",
+          "own_torch_reserved_MiB": 262.0,
+          "own_pid": 3452510
+        }
+      },
+      "staged_exact_64_128_256_bs16": {
+        "median_ms": 11.420671939849854,
+        "mean_ms": 11.421224021911621,
+        "p90_ms": 11.441904067993164,
+        "min_ms": 11.389632225036621,
+        "wall_median_ms": 11.426956509239972,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7137919962406158,
+        "gpu_state": {
+          "tag": "eager_cl staged_exact_64_128_256 bs16",
+          "t": 1790541480.0509562,
+          "smi": "99 %, 647 MiB, 2730 MHz, 196.83 W, 63",
+          "compute_apps": "3452510, 638 MiB",
+          "own_torch_reserved_MiB": 422.0,
+          "own_pid": 3452510
+        }
+      }
+    },
+    "max-autotune-no-cudagraphs": {
+      "full_bs8": {
+        "median_ms": 6.073728084564209,
+        "mean_ms": 6.078292822837829,
+        "p90_ms": 6.099379014968872,
+        "min_ms": 6.055935859680176,
+        "wall_median_ms": 6.0796019388362765,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7592160105705261,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs full bs8",
+          "t": 1790541482.3096602,
+          "smi": "6 %, 651 MiB, 2790 MHz, 42.25 W, 50",
+          "compute_apps": "3452510, 642 MiB",
+          "own_torch_reserved_MiB": 426.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h4_bs8": {
+        "median_ms": 4.430160045623779,
+        "mean_ms": 4.4309632062911986,
+        "p90_ms": 4.442185640335083,
+        "min_ms": 4.418560028076172,
+        "wall_median_ms": 4.435551934875548,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5537700057029724,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs latent_h4 bs8",
+          "t": 1790541486.013906,
+          "smi": "100 %, 897 MiB, 2790 MHz, 136.09 W, 54",
+          "compute_apps": "3452510, 888 MiB",
+          "own_torch_reserved_MiB": 672.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h6_bs8": {
+        "median_ms": 4.797904014587402,
+        "mean_ms": 4.801514422893524,
+        "p90_ms": 4.816998386383057,
+        "min_ms": 4.78169584274292,
+        "wall_median_ms": 4.8046959564089775,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5997380018234253,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs latent_h6 bs8",
+          "t": 1790541489.3862553,
+          "smi": "99 %, 897 MiB, 2790 MHz, 136.55 W, 54",
+          "compute_apps": "3452510, 888 MiB",
+          "own_torch_reserved_MiB": 672.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h8_bs8": {
+        "median_ms": 5.168751955032349,
+        "mean_ms": 5.167583954334259,
+        "p90_ms": 5.182684803009034,
+        "min_ms": 5.145599842071533,
+        "wall_median_ms": 5.173884448595345,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.6460939943790436,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs latent_h8 bs8",
+          "t": 1790541492.921379,
+          "smi": "99 %, 897 MiB, 2790 MHz, 136.93 W, 53",
+          "compute_apps": "3452510, 888 MiB",
+          "own_torch_reserved_MiB": 672.0,
+          "own_pid": 3452510
+        }
+      },
+      "staged_exact_128_256_bs8": {
+        "median_ms": 4.503040075302124,
+        "mean_ms": 4.5046736121177675,
+        "p90_ms": 4.520483303070068,
+        "min_ms": 4.481023788452148,
+        "wall_median_ms": 4.508876474574208,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5628800094127655,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs staged_exact_128_256 bs8",
+          "t": 1790541496.3228943,
+          "smi": "99 %, 897 MiB, 2790 MHz, 140.60 W, 53",
+          "compute_apps": "3452510, 888 MiB",
+          "own_torch_reserved_MiB": 672.0,
+          "own_pid": 3452510
+        }
+      },
+      "staged_exact_64_128_256_bs8": {
+        "median_ms": 4.448368072509766,
+        "mean_ms": 4.476322412490845,
+        "p90_ms": 4.493545436859131,
+        "min_ms": 4.42844820022583,
+        "wall_median_ms": 4.455111920833588,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5560460090637207,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs staged_exact_64_128_256 bs8",
+          "t": 1790541500.3966818,
+          "smi": "93 %, 897 MiB, 2790 MHz, 141.35 W, 53",
+          "compute_apps": "3452510, 888 MiB",
+          "own_torch_reserved_MiB": 672.0,
+          "own_pid": 3452510
+        }
+      },
+      "full_bs16": {
+        "median_ms": 12.363296031951904,
+        "mean_ms": 12.382560849189758,
+        "p90_ms": 12.49523229598999,
+        "min_ms": 12.332799911499023,
+        "wall_median_ms": 12.370289419777691,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.772706001996994,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs full bs16",
+          "t": 1790541501.328188,
+          "smi": "0 %, 1025 MiB, 2790 MHz, 98.31 W, 53",
+          "compute_apps": "3452510, 1016 MiB",
+          "own_torch_reserved_MiB": 800.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h4_bs16": {
+        "median_ms": 8.662015914916992,
+        "mean_ms": 8.679649615287781,
+        "p90_ms": 8.684355163574219,
+        "min_ms": 8.633536338806152,
+        "wall_median_ms": 8.667804533615708,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.541375994682312,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs latent_h4 bs16",
+          "t": 1790541505.2294946,
+          "smi": "100 %, 1119 MiB, 2790 MHz, 138.13 W, 54",
+          "compute_apps": "3452510, 1110 MiB",
+          "own_torch_reserved_MiB": 892.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h6_bs16": {
+        "median_ms": 9.439183712005615,
+        "mean_ms": 9.435132789611817,
+        "p90_ms": 9.452544212341309,
+        "min_ms": 9.407487869262695,
+        "wall_median_ms": 9.445067029446363,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.589948982000351,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs latent_h6 bs16",
+          "t": 1790541508.9196815,
+          "smi": "99 %, 1219 MiB, 2790 MHz, 140.71 W, 53",
+          "compute_apps": "3452510, 1210 MiB",
+          "own_torch_reserved_MiB": 992.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h8_bs16": {
+        "median_ms": 10.165760040283203,
+        "mean_ms": 10.164647197723388,
+        "p90_ms": 10.181734466552735,
+        "min_ms": 10.142463684082031,
+        "wall_median_ms": 10.171861504204571,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.6353600025177002,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs latent_h8 bs16",
+          "t": 1790541512.8878007,
+          "smi": "99 %, 1327 MiB, 2790 MHz, 141.06 W, 53",
+          "compute_apps": "3452510, 1318 MiB",
+          "own_torch_reserved_MiB": 1100.0,
+          "own_pid": 3452510
+        }
+      },
+      "staged_exact_128_256_bs16": {
+        "median_ms": 8.942623615264893,
+        "mean_ms": 8.94348635673523,
+        "p90_ms": 8.958053970336914,
+        "min_ms": 8.923744201660156,
+        "wall_median_ms": 8.949088980443776,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5589139759540558,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs staged_exact_128_256 bs16",
+          "t": 1790541516.5000741,
+          "smi": "100 %, 1327 MiB, 2790 MHz, 147.57 W, 54",
+          "compute_apps": "3452510, 1318 MiB",
+          "own_torch_reserved_MiB": 1100.0,
+          "own_pid": 3452510
+        }
+      },
+      "staged_exact_64_128_256_bs16": {
+        "median_ms": 8.809919834136963,
+        "mean_ms": 8.809555172920227,
+        "p90_ms": 8.824563121795654,
+        "min_ms": 8.78553581237793,
+        "wall_median_ms": 8.815879467874765,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5506199896335602,
+        "gpu_state": {
+          "tag": "max-autotune-no-cudagraphs staged_exact_64_128_256 bs16",
+          "t": 1790541520.6467476,
+          "smi": "100 %, 1327 MiB, 2775 MHz, 147.18 W, 54",
+          "compute_apps": "3452510, 1318 MiB",
+          "own_torch_reserved_MiB": 1100.0,
+          "own_pid": 3452510
+        }
+      }
+    },
+    "max-autotune": {
+      "full_bs8": {
+        "median_ms": 5.932368040084839,
+        "mean_ms": 5.931643152236939,
+        "p90_ms": 5.94633903503418,
+        "min_ms": 5.9073920249938965,
+        "wall_median_ms": 5.937647540122271,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7415460050106049,
+        "gpu_state": {
+          "tag": "max-autotune full bs8",
+          "t": 1790541521.9594889,
+          "smi": "0 %, 759 MiB, 2790 MHz, 118.10 W, 49",
+          "compute_apps": "3452510, 750 MiB",
+          "own_torch_reserved_MiB": 512.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h4_bs8": {
+        "median_ms": 4.28166389465332,
+        "mean_ms": 4.290237593650818,
+        "p90_ms": 4.3089344024658205,
+        "min_ms": 4.259552001953125,
+        "wall_median_ms": 4.288898082450032,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.535207986831665,
+        "gpu_state": {
+          "tag": "max-autotune latent_h4 bs8",
+          "t": 1790541523.691024,
+          "smi": "0 %, 759 MiB, 2790 MHz, 93.16 W, 48",
+          "compute_apps": "3452510, 750 MiB",
+          "own_torch_reserved_MiB": 512.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h6_bs8": {
+        "median_ms": 4.649440050125122,
+        "mean_ms": 4.650599205493927,
+        "p90_ms": 4.661129379272461,
+        "min_ms": 4.636256217956543,
+        "wall_median_ms": 4.655046039260924,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5811800062656403,
+        "gpu_state": {
+          "tag": "max-autotune latent_h6 bs8",
+          "t": 1790541525.3312156,
+          "smi": "0 %, 759 MiB, 2790 MHz, 41.54 W, 47",
+          "compute_apps": "3452510, 750 MiB",
+          "own_torch_reserved_MiB": 512.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h8_bs8": {
+        "median_ms": 5.007055997848511,
+        "mean_ms": 5.005668807029724,
+        "p90_ms": 5.01958737373352,
+        "min_ms": 4.973567962646484,
+        "wall_median_ms": 5.012200097553432,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.6258819997310638,
+        "gpu_state": {
+          "tag": "max-autotune latent_h8 bs8",
+          "t": 1790541526.9672446,
+          "smi": "0 %, 761 MiB, 2790 MHz, 78.99 W, 47",
+          "compute_apps": "3452510, 752 MiB",
+          "own_torch_reserved_MiB": 512.0,
+          "own_pid": 3452510
+        }
+      },
+      "staged_exact_128_256_bs8": {
+        "median_ms": 4.36630392074585,
+        "mean_ms": 4.367866396903992,
+        "p90_ms": 4.378623962402344,
+        "min_ms": 4.350912094116211,
+        "wall_median_ms": 4.37183806207031,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5457879900932312,
+        "gpu_state": {
+          "tag": "max-autotune staged_exact_128_256 bs8",
+          "t": 1790541528.7135227,
+          "smi": "0 %, 761 MiB, 2790 MHz, 84.77 W, 47",
+          "compute_apps": "3452510, 752 MiB",
+          "own_torch_reserved_MiB": 512.0,
+          "own_pid": 3452510
+        }
+      },
+      "staged_exact_64_128_256_bs8": {
+        "median_ms": 4.303152084350586,
+        "mean_ms": 4.304967164993286,
+        "p90_ms": 4.316828918457031,
+        "min_ms": 4.28934383392334,
+        "wall_median_ms": 4.308427916839719,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5378940105438232,
+        "gpu_state": {
+          "tag": "max-autotune staged_exact_64_128_256 bs8",
+          "t": 1790541530.422456,
+          "smi": "0 %, 763 MiB, 2790 MHz, 62.69 W, 47",
+          "compute_apps": "3452510, 754 MiB",
+          "own_torch_reserved_MiB": 512.0,
+          "own_pid": 3452510
+        }
+      },
+      "full_bs16": {
+        "median_ms": 12.256639957427979,
+        "mean_ms": 12.253659200668334,
+        "p90_ms": 12.273609352111816,
+        "min_ms": 12.216287612915039,
+        "wall_median_ms": 12.26226391736418,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.7660399973392487,
+        "gpu_state": {
+          "tag": "max-autotune full bs16",
+          "t": 1790541531.5195906,
+          "smi": "0 %, 1147 MiB, 2790 MHz, 78.50 W, 48",
+          "compute_apps": "3452510, 1138 MiB",
+          "own_torch_reserved_MiB": 896.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h4_bs16": {
+        "median_ms": 8.542207717895508,
+        "mean_ms": 8.538577556610107,
+        "p90_ms": 8.551817607879638,
+        "min_ms": 8.506367683410645,
+        "wall_median_ms": 8.547560428269207,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5338879823684692,
+        "gpu_state": {
+          "tag": "max-autotune latent_h4 bs16",
+          "t": 1790541533.647293,
+          "smi": "0 %, 1147 MiB, 2790 MHz, 108.02 W, 47",
+          "compute_apps": "3452510, 1138 MiB",
+          "own_torch_reserved_MiB": 896.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h6_bs16": {
+        "median_ms": 9.310976028442383,
+        "mean_ms": 9.314425587654114,
+        "p90_ms": 9.332326221466065,
+        "min_ms": 9.296895980834961,
+        "wall_median_ms": 9.31678747292608,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5819360017776489,
+        "gpu_state": {
+          "tag": "max-autotune latent_h6 bs16",
+          "t": 1790541535.6219375,
+          "smi": "0 %, 1149 MiB, 2790 MHz, 92.39 W, 47",
+          "compute_apps": "3452510, 1140 MiB",
+          "own_torch_reserved_MiB": 896.0,
+          "own_pid": 3452510
+        }
+      },
+      "latent_h8_bs16": {
+        "median_ms": 10.099711894989014,
+        "mean_ms": 10.109429526329041,
+        "p90_ms": 10.145705699920654,
+        "min_ms": 10.060799598693848,
+        "wall_median_ms": 10.105395456776023,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.6312319934368134,
+        "gpu_state": {
+          "tag": "max-autotune latent_h8 bs16",
+          "t": 1790541537.5953462,
+          "smi": "0 %, 1149 MiB, 2790 MHz, 100.21 W, 47",
+          "compute_apps": "3452510, 1140 MiB",
+          "own_torch_reserved_MiB": 896.0,
+          "own_pid": 3452510
+        }
+      },
+      "staged_exact_128_256_bs16": {
+        "median_ms": 8.850207805633545,
+        "mean_ms": 8.851330375671386,
+        "p90_ms": 8.86569242477417,
+        "min_ms": 8.832608222961426,
+        "wall_median_ms": 8.855239488184452,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5531379878520966,
+        "gpu_state": {
+          "tag": "max-autotune staged_exact_128_256 bs16",
+          "t": 1790541539.616693,
+          "smi": "0 %, 1151 MiB, 2790 MHz, 103.95 W, 47",
+          "compute_apps": "3452510, 1142 MiB",
+          "own_torch_reserved_MiB": 896.0,
+          "own_pid": 3452510
+        }
+      },
+      "staged_exact_64_128_256_bs16": {
+        "median_ms": 8.70963191986084,
+        "mean_ms": 8.711325621604919,
+        "p90_ms": 8.72666597366333,
+        "min_ms": 8.685567855834961,
+        "wall_median_ms": 8.715379983186722,
+        "n": 40,
+        "warmup": 15,
+        "ms_per_frame": 0.5443519949913025,
+        "gpu_state": {
+          "tag": "max-autotune staged_exact_64_128_256 bs16",
+          "t": 1790541541.6066294,
+          "smi": "0 %, 1151 MiB, 2790 MHz, 98.87 W, 47",
+          "compute_apps": "3452510, 1142 MiB",
+          "own_torch_reserved_MiB": 896.0,
+          "own_pid": 3452510
+        }
+      }
+    }
+  },
+  "gpu_end": {
+    "tag": "end",
+    "t": 1790541542.5146124,
+    "smi": "99 %, 1151 MiB, 2700 MHz, 77.82 W, 59",
+    "compute_apps": "3452510, 1142 MiB",
+    "own_torch_reserved_MiB": 896.0,
+    "own_pid": 3452510
+  }
+}

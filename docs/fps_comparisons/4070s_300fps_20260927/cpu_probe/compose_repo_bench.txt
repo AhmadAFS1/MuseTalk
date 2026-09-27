@@ -1,0 +1,47 @@
+/workspace/MuseTalk/scripts/api_avatar.py:465: FutureWarning: Decorating classes is deprecated and will be disabled in future versions. You should only decorate functions or methods. To preserve the current behavior of class decoration, you can directly decorate the `__init__` method and nothing else.
+  class APIAvatar:
+📂 Loading avatar materials for japanese_realtime_talking_7d94520b7f...
+/usr/lib/python3.10/concurrent/futures/thread.py:58: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  result = self.fn(*self.args, **self.kwargs)
+reading masks (240 unique)...
+  0%|          | 0/240 [00:00<?, ?it/s]100%|██████████| 240/240 [00:00<00:00, 3378.35it/s]
+reading frames (240 unique)...
+  0%|          | 0/240 [00:00<?, ?it/s] 30%|██▉       | 71/240 [00:00<00:00, 685.36it/s] 61%|██████▏   | 147/240 [00:00<00:00, 717.04it/s] 92%|█████████▏| 221/240 [00:00<00:00, 724.19it/s]100%|██████████| 240/240 [00:00<00:00, 719.75it/s]
+Traceback (most recent call last):
+  File "/workspace/MuseTalk/scripts/benchmark_compose_frame.py", line 141, in <module>
+    raise SystemExit(main())
+  File "/workspace/MuseTalk/scripts/benchmark_compose_frame.py", line 100, in main
+    avatar = load_avatar(args.avatar_id, args.batch_size, args.version)
+  File "/workspace/MuseTalk/scripts/benchmark_compose_frame.py", line 30, in load_avatar
+    return APIAvatar(
+  File "/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+    return func(*args, **kwargs)
+  File "/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 134, in <lambda>
+    func = cast(F, lambda *args, **kwargs: orig_func(*args, **kwargs))
+  File "/workspace/MuseTalk/scripts/api_avatar.py", line 575, in __init__
+    self.init(preparation, force_recreate)
+  File "/workspace/MuseTalk/scripts/api_avatar.py", line 826, in init
+    self._load_existing_materials()
+  File "/workspace/MuseTalk/scripts/api_avatar.py", line 1087, in _load_existing_materials
+    self.input_latent_list_cycle = latents_future.result()
+  File "/usr/lib/python3.10/concurrent/futures/_base.py", line 458, in result
+    return self.__get_result()
+  File "/usr/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/usr/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/torch/serialization.py", line 1360, in load
+    return _load(
+  File "/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/torch/serialization.py", line 1848, in _load
+    result = unpickler.load()
+  File "/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/torch/serialization.py", line 1812, in persistent_load
+    typed_storage = load_tensor(
+  File "/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/torch/serialization.py", line 1784, in load_tensor
+    wrap_storage=restore_location(storage, location),
+  File "/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/torch/serialization.py", line 601, in default_restore_location
+    result = fn(storage, location)
+  File "/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/torch/serialization.py", line 539, in _deserialize
+    device = _validate_device(location, backend_name)
+  File "/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/torch/serialization.py", line 508, in _validate_device
+    raise RuntimeError(
+RuntimeError: Attempting to deserialize object on a CUDA device but torch.cuda.is_available() is False. If you are running on a CPU-only machine, please use torch.load with map_location=torch.device('cpu') to map your storages to the CPU.

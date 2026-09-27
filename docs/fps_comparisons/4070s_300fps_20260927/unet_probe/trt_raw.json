@@ -1,0 +1,175 @@
+{
+ "gpu_log": [
+  {
+   "tag": "raw_bs8",
+   "samples": [
+    "0 %, 7129 MiB, 28.00 W, 2505 MHz",
+    "0 %, 7129 MiB, 27.89 W, 2505 MHz",
+    "0 %, 7129 MiB, 27.89 W, 2505 MHz"
+   ],
+   "apps": [
+    "3240171, 4994 MiB",
+    "3255137, 2108 MiB"
+   ],
+   "foreign_apps": [],
+   "contaminated": false
+  }
+ ],
+ "engine_info_types": [
+  [
+   0,
+   "str",
+   1
+  ],
+  [
+   1,
+   "str",
+   20
+  ],
+  [
+   2,
+   "str",
+   37
+  ],
+  [
+   3,
+   "str",
+   2210484456
+  ],
+  [
+   4,
+   "str",
+   28
+  ],
+  [
+   5,
+   "str",
+   7
+  ],
+  [
+   6,
+   "str",
+   1
+  ],
+  [
+   7,
+   "str",
+   1316
+  ],
+  [
+   8,
+   "str",
+   12
+  ]
+ ],
+ "engine_info_small": {
+  "0": "6",
+  "1": "_run_on_acc_0_engine",
+  "2": "0%8%9%0%NVIDIA GeForce RTX 4070 SUPER",
+  "4": "latent%encoder_hidden_states",
+  "5": "output0",
+  "6": "0",
+  "8": "linux_x86_64"
+ },
+ "raw_engine_ok": true,
+ "raw_io": {
+  "latent": [
+   "INPUT",
+   [
+    8,
+    8,
+    32,
+    32
+   ],
+   "DataType.HALF"
+  ],
+  "encoder_hidden_states": [
+   "INPUT",
+   [
+    8,
+    50,
+    384
+   ],
+   "DataType.HALF"
+  ],
+  "output0": [
+   "OUTPUT",
+   [
+    8,
+    4,
+    32,
+    32
+   ],
+   "DataType.HALF"
+  ]
+ },
+ "raw_device_memory_MB": 151.40625,
+ "inspector_num_layers": 1798,
+ "inspector_sample": [
+  "Reformatting CopyNode for Input Tensor 0 to [CONVOLUTION]-[aten_ops.convolution.default]-[unet.conv_in/convolution]",
+  "[CONVOLUTION]-[aten_ops.convolution.default]-[unet.conv_in/convolution]",
+  "Reformatting CopyNode for Input Tensor 0 to [SHUFFLE]-[aten_ops.native_group_norm.default]-[unet.down_blocks.0.resnets.0.norm1/native_group_norm_reshape_input]",
+  "[SHUFFLE]-[aten_ops.native_group_norm.default]-[unet.down_blocks.0.resnets.0.norm1/native_group_norm_reshape_input]",
+  "[REDUCE]-[aten_ops.native_group_norm.default]-[unet.down_blocks.0.resnets.0.norm1/native_group_norm_mean]"
+ ],
+ "inspector_tactics_top": [
+  [
+   "name_only",
+   1798
+  ]
+ ],
+ "inspector_input_formats": [],
+ "raw_bs8": {
+  "median_ms": 24.043519973754883,
+  "mean_ms": 24.05969829559326,
+  "min_ms": 23.90220832824707,
+  "p90_ms": 24.165376663208008,
+  "n": 30,
+  "TFLOPS": 59.1675639487421,
+  "contaminated": false
+ },
+ "raw_host_enqueue_ms_median": 5.942787043750286,
+ "raw_2x8_sequential": {
+  "median_ms": 48.05923080444336,
+  "mean_ms": 48.06612879435222,
+  "min_ms": 47.90681457519531,
+  "p90_ms": 48.155487060546875,
+  "n": 30
+ },
+ "raw_2x8_two_streams_two_contexts": {
+  "median_ms": 45.66425704956055,
+  "mean_ms": 45.65324821472168,
+  "min_ms": 45.10396957397461,
+  "p90_ms": 46.2213134765625,
+  "n": 30
+ },
+ "raw_two_streams_profile": {
+  "kernels_per_stream": {
+   "187": 3750,
+   "191": 3750
+  },
+  "overlap_ms_total_3iters": 45.961412,
+  "busy_ms_per_stream": {
+   "187": 90.860263,
+   "191": 89.537466
+  },
+  "num_kernels_per_bs8_call": 1250.0
+ },
+ "raw_cudagraph_bs8": {
+  "median_ms": 23.617759704589844,
+  "mean_ms": 23.614694277445476,
+  "min_ms": 23.441471099853516,
+  "p90_ms": 23.687711715698242,
+  "n": 30,
+  "max_abs_graph_vs_direct": 0.0
+ },
+ "raw_cudagraph_2x8_two_streams": {
+  "median_ms": 46.893184661865234,
+  "mean_ms": 47.02263692220052,
+  "min_ms": 46.27916717529297,
+  "p90_ms": 47.231136322021484,
+  "n": 30
+ },
+ "raw_cudagraph_host_replay_ms_median": 0.8867699652910233,
+ "peak_reserved_GB": 0.00390625
+}
