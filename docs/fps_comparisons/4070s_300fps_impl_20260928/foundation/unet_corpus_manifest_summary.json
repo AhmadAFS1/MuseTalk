@@ -1,0 +1,262 @@
+{
+ "schema": "unet_multi_avatar_corpus_v1",
+ "created_utc": "2026-09-28T00:46:11Z",
+ "builder": "scripts/build_unet_multi_avatar_corpus.py",
+ "builder_sha256": "f8c64f59f92a6dbd4e122299caafe74e89a8fabc61e72d43c46d5d743d9f4248",
+ "capture_format": "HLSGPUStreamScheduler._capture_unet_calibration_batch schema_version=1 (kind=unet_io_batch)",
+ "reference_backend": "PyTorch FP16 eager UNet (models/musetalkV15/unet.pth), tf32+cudnn.benchmark on, inference_mode",
+ "fps": 20,
+ "batch": 8,
+ "batches_per_pair": 16,
+ "audio_padding_left_right": [
+  2,
+  2
+ ],
+ "splits": {
+  "main": "/workspace/MuseTalk/calibration/unet_multi_avatar_20260928",
+  "holdout": "/workspace/MuseTalk/calibration/unet_multi_avatar_20260928/holdout"
+ },
+ "counts": {
+  "main_files": 352,
+  "holdout_files": 96,
+  "main_avatars": [
+   "chin_h3_japanese_new",
+   "chin_h3_latina_new",
+   "chinese_bob_pink_bedroom_talking_3373c10448",
+   "div_black_woman",
+   "div_east_asian_man_goatee",
+   "div_middle_eastern_man_full_beard",
+   "div_white_man_clean_shaven",
+   "indian_realtime_talking_20f9845543",
+   "japanese_realtime_talking_7d94520b7f",
+   "japanese_realtime_talking_7d94520b7f_fh1",
+   "latina_guided_20260925_talking_84c5bc80b8"
+  ],
+  "holdout_avatars": [
+   "codex_smoke",
+   "div_black_man_short_beard",
+   "div_south_asian_woman"
+  ],
+  "total_bytes": 227055616
+ },
+ "audio": {
+  "A_af_heart_dense": {
+   "path": "/workspace/experiments/cheek_drift_ab_20260926/h3_reduced_mouth_screen_20260926/dense_tts/speech_dense_10s.wav",
+   "sha256": "f021429775d8d9e752e694d83878f492e9b4d9a136ffe72c61acbb4f5ff15201",
+   "seconds": 10.0,
+   "frames_at_fps": 200,
+   "conditioning_shape": [
+    200,
+    50,
+    384
+   ],
+   "conditioning_dtype": "torch.float16",
+   "cpu_pe_vs_gpu_pe_module": {
+    "mae": 0.0,
+    "max_abs": 0.0,
+    "exact": true
+   }
+  },
+  "B_am_michael": {
+   "path": "/workspace/experiments/avatar_diversity_20260927/_audio/am_michael/speech.wav",
+   "sha256": "6945fc361adf030910861d3a8e22cca6d7ddef5f3d99d7c1a29427fbd8184e35",
+   "seconds": 10.0,
+   "frames_at_fps": 200,
+   "conditioning_shape": [
+    200,
+    50,
+    384
+   ],
+   "conditioning_dtype": "torch.float16",
+   "cpu_pe_vs_gpu_pe_module": {
+    "mae": 0.0,
+    "max_abs": 0.0,
+    "exact": true
+   }
+  },
+  "C_repo_eng": {
+   "path": "/workspace/MuseTalk/data/audio/eng.wav",
+   "sha256": "654dcbce843d70451d1123f7649a58bee11bb9dec9a7e835c05b1e367efb2078",
+   "seconds": 60.0,
+   "frames_at_fps": 1200,
+   "conditioning_shape": [
+    1200,
+    50,
+    384
+   ],
+   "conditioning_dtype": "torch.float16",
+   "cpu_pe_vs_gpu_pe_module": {
+    "mae": 0.0,
+    "max_abs": 0.0,
+    "exact": true
+   }
+  }
+ },
+ "avatars": {
+  "chin_h3_japanese_new": {
+   "kind": "h3_cache",
+   "path": "/workspace/experiments/portrait_jaw_video_20260926/japanese_new/cache.pt",
+   "split": "main",
+   "cycle_frames": 480,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "30e1f920c2148075b3e0aa4d02da9d62d52623fe5dec32b503a80fc6ccb96447"
+  },
+  "chin_h3_latina_new": {
+   "kind": "h3_cache",
+   "path": "/workspace/experiments/portrait_jaw_video_20260926/latina_new/cache.pt",
+   "split": "main",
+   "cycle_frames": 480,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "ce38cbaf053054e66e10e36a1a0ca13f20cb9026aeb2d99ab99dd2359d827d82"
+  },
+  "japanese_realtime_talking_7d94520b7f": {
+   "kind": "results_v15",
+   "path": "/workspace/MuseTalk/results/v15/avatars/japanese_realtime_talking_7d94520b7f",
+   "split": "main",
+   "cycle_frames": 482,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "86bfc84c82854616101b7d2e3f3bc51247232aee5430371aebf42677f04a83d8"
+  },
+  "japanese_realtime_talking_7d94520b7f_fh1": {
+   "kind": "results_v15",
+   "path": "/workspace/MuseTalk/results/v15/avatars/japanese_realtime_talking_7d94520b7f_fh1",
+   "split": "main",
+   "cycle_frames": 482,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "9a34871dd62f405ad46f1dd86d8bacf3168689902c26b97a6d44f344f52b4a88"
+  },
+  "latina_guided_20260925_talking_84c5bc80b8": {
+   "kind": "results_v15",
+   "path": "/workspace/MuseTalk/results/v15/avatars/latina_guided_20260925_talking_84c5bc80b8",
+   "split": "main",
+   "cycle_frames": 482,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "e879e43247f7e067252ad43ddf23e51301219a4caaff1f142c976e73281e10ce"
+  },
+  "chinese_bob_pink_bedroom_talking_3373c10448": {
+   "kind": "results_v15",
+   "path": "/workspace/MuseTalk/results/v15/avatars/chinese_bob_pink_bedroom_talking_3373c10448",
+   "split": "main",
+   "cycle_frames": 480,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "ed8932a5792c4e39bb1142b60a3570c53414e48372d091d80fc8274a9ec9cb23"
+  },
+  "indian_realtime_talking_20f9845543": {
+   "kind": "results_v15",
+   "path": "/workspace/MuseTalk/results/v15/avatars/indian_realtime_talking_20f9845543",
+   "split": "main",
+   "cycle_frames": 578,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "5064854b89a4b23fae485095686acd25603066d8e1a8406f2b9b0692b90c83c2"
+  },
+  "div_black_woman": {
+   "kind": "h3_cache",
+   "path": "/workspace/experiments/avatar_diversity_20260927/black_woman/cache.pt",
+   "split": "main",
+   "cycle_frames": 480,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "3169a0d834e9c40f7f54a0137d2a42d8d11fb667faa2abd726a5664925c19f68"
+  },
+  "div_east_asian_man_goatee": {
+   "kind": "h3_cache",
+   "path": "/workspace/experiments/avatar_diversity_20260927/east_asian_man_goatee/cache.pt",
+   "split": "main",
+   "cycle_frames": 480,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "32fc43ae8f6ffb8e96d25408bc46f21f77fe9c4f4d9b5094d30748c7f629f158"
+  },
+  "div_middle_eastern_man_full_beard": {
+   "kind": "h3_cache",
+   "path": "/workspace/experiments/avatar_diversity_20260927/middle_eastern_man_full_beard/cache.pt",
+   "split": "main",
+   "cycle_frames": 480,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "ee4ca4dc805d45f121fff55f5cf285e218123806af15e94310e1934c1762f57e"
+  },
+  "div_white_man_clean_shaven": {
+   "kind": "h3_cache",
+   "path": "/workspace/experiments/avatar_diversity_20260927/white_man_clean_shaven/cache.pt",
+   "split": "main",
+   "cycle_frames": 480,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "4dec8ee209c08fed6503ac70f7fa7717e7652f3fde44f30ea55d76043d30c50a"
+  },
+  "div_south_asian_woman": {
+   "kind": "h3_cache",
+   "path": "/workspace/experiments/avatar_diversity_20260927/south_asian_woman/cache.pt",
+   "split": "holdout",
+   "cycle_frames": 480,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "6c1149c60646a244aacf3843fb8a19ea7507d2650f0010fc98d8083b919b6602"
+  },
+  "div_black_man_short_beard": {
+   "kind": "h3_cache",
+   "path": "/workspace/experiments/avatar_diversity_20260927/black_man_short_beard/cache.pt",
+   "split": "holdout",
+   "cycle_frames": 480,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "7becbcdcbd625df94beb2b58743cd0de3ed38b1dd772fdd9f0214d9623272b87"
+  },
+  "codex_smoke": {
+   "kind": "results_v15",
+   "path": "/workspace/MuseTalk/results/v15/avatars/codex_smoke",
+   "split": "holdout",
+   "cycle_frames": 600,
+   "latent_dtype": "torch.float16",
+   "latents_sha256": "a91e5eab9d92b52602fdd15792f97540eb1028b7d463e8180cc0e3463809dec0"
+  }
+ },
+ "checks": {
+  "same_process_rerun_vs_saved_reference": [
+   {
+    "mae": 0.0,
+    "max_abs": 0.0,
+    "exact": true
+   },
+   {
+    "mae": 0.0,
+    "max_abs": 0.0,
+    "exact": true
+   },
+   {
+    "mae": 0.0,
+    "max_abs": 0.0,
+    "exact": true
+   },
+   {
+    "mae": 0.0,
+    "max_abs": 0.0,
+    "exact": true
+   }
+  ],
+  "legacy_same_avatar_captures_eager_vs_stored_reference": [
+   {
+    "file": "unet_io_000001_bs8_pid73932.pt",
+    "mae": 0.00029542704578489065,
+    "max_abs": 0.01416015625,
+    "exact": false
+   },
+   {
+    "file": "unet_io_000002_bs8_pid73932.pt",
+    "mae": 0.0002895958023145795,
+    "max_abs": 0.0078125,
+    "exact": false
+   },
+   {
+    "file": "unet_io_000003_bs8_pid73932.pt",
+    "mae": 0.0002980919380206615,
+    "max_abs": 0.0078125,
+    "exact": false
+   },
+   {
+    "file": "unet_io_000004_bs8_pid73932.pt",
+    "mae": 0.00029698802973143756,
+    "max_abs": 0.01220703125,
+    "exact": false
+   }
+  ]
+ },
+ "torch": "2.5.1+cu121",
+ "gpu": "NVIDIA GeForce RTX 4070 SUPER",
+ "seconds": 23.21685028076172
+}

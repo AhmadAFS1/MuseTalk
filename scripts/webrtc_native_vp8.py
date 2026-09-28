@@ -109,6 +109,17 @@ def _native_encoder_class(upstream):
     # This is the verified artifact's private module, not installed aiortc.
     # Its target_bitrate setter is the sole consumer of this limit.
     upstream.MAX_BITRATE = bitrate_ceiling
+    # WEBRTC_NATIVE_VP8_THREADS: cfg.g_threads for every native encoder. Unset
+    # keeps upstream number_of_threads() (2 threads for 512x896 on this box).
+    threads_text = os.environ.get("WEBRTC_NATIVE_VP8_THREADS", "").strip()
+    try:
+        codec_threads = int(threads_text) if threads_text else None
+    except ValueError as exc:
+        raise RuntimeError("WEBRTC_NATIVE_VP8_THREADS must be an integer") from exc
+    if codec_threads is not None:
+        if not 1 <= codec_threads <= 16:
+            raise RuntimeError("WEBRTC_NATIVE_VP8_THREADS must be between 1 and 16")
+        upstream.number_of_threads = lambda pixels, cpus, _threads=codec_threads: _threads
     floor_text = os.environ.get("WEBRTC_NATIVE_VP8_BITRATE_FLOOR_BPS", "").strip()
     try:
         bitrate_floor = int(floor_text) if floor_text else 0
@@ -124,6 +135,7 @@ def _native_encoder_class(upstream):
         """Serialize native ownership and require exact outbound frame timing."""
         bitrate_floor_bps = bitrate_floor
         bitrate_ceiling_bps = bitrate_ceiling
+        codec_threads_override = codec_threads
 
         def __init__(self):
             self._native_lock = threading.RLock()
@@ -281,10 +293,12 @@ def configure_vp8_encoder(process_label="process"):
                "libvpx": encoder_class.native_libvpx_version,
                "bitrate_floor_bps": encoder_class.bitrate_floor_bps,
                "bitrate_ceiling_bps": encoder_class.bitrate_ceiling_bps,
+               "codec_threads": encoder_class.codec_threads_override or "upstream_default",
                "packages": dict(SUPPORTED_PACKAGES)}
     print(f"[{process_label}] VP8 encoder=native libvpx=v1.13.1 "
           f"directory={encoder_class.native_directory} "
           f"bitrate_floor_bps={encoder_class.bitrate_floor_bps} "
           f"bitrate_ceiling_bps={encoder_class.bitrate_ceiling_bps} "
+          f"threads={encoder_class.codec_threads_override or 'upstream_default'} "
           "startup_probe=passed", flush=True)
     return summary

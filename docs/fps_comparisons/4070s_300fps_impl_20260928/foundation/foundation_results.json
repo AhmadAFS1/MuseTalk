@@ -1,0 +1,419 @@
+{
+ "schema": "foundation_results_v1",
+ "date": "2026-09-28",
+ "box": "RTX 4070 SUPER 12 GB (220 W cap), Ryzen 9 7950X, 30 GB RAM",
+ "box_guard": {
+  "script": "scripts/box_guard.sh",
+  "selftest": "scripts/test_box_guard.sh -> box_guard_selftest.log (10/10 pass)",
+  "lease": "/workspace/.gpu_lease (flock); holder record /workspace/.gpu_lease.holder; run log /workspace/.gpu_lease.log",
+  "exit_codes": {
+   "2": "usage",
+   "75": "lease/GPU wait timeout",
+   "76": "RAM below --min-avail-gb",
+   "77": "disk below --need-disk-gb",
+   "86": "watchdog kill",
+   "87": "oom_kill rose"
+  }
+ },
+ "unet_corpus": {
+  "dir": "calibration/unet_multi_avatar_20260928 (holdout/ subfolder)",
+  "builder": "scripts/build_unet_multi_avatar_corpus.py",
+  "counts": {
+   "main_files": 352,
+   "holdout_files": 96,
+   "main_avatars": [
+    "chin_h3_japanese_new",
+    "chin_h3_latina_new",
+    "chinese_bob_pink_bedroom_talking_3373c10448",
+    "div_black_woman",
+    "div_east_asian_man_goatee",
+    "div_middle_eastern_man_full_beard",
+    "div_white_man_clean_shaven",
+    "indian_realtime_talking_20f9845543",
+    "japanese_realtime_talking_7d94520b7f",
+    "japanese_realtime_talking_7d94520b7f_fh1",
+    "latina_guided_20260925_talking_84c5bc80b8"
+   ],
+   "holdout_avatars": [
+    "codex_smoke",
+    "div_black_man_short_beard",
+    "div_south_asian_woman"
+   ],
+   "total_bytes": 227055616
+  },
+  "fps": 20,
+  "audio": {
+   "A_af_heart_dense": {
+    "path": "/workspace/experiments/cheek_drift_ab_20260926/h3_reduced_mouth_screen_20260926/dense_tts/speech_dense_10s.wav",
+    "seconds": 10.0
+   },
+   "B_am_michael": {
+    "path": "/workspace/experiments/avatar_diversity_20260927/_audio/am_michael/speech.wav",
+    "seconds": 10.0
+   },
+   "C_repo_eng": {
+    "path": "/workspace/MuseTalk/data/audio/eng.wav",
+    "seconds": 60.0
+   }
+  },
+  "checks": {
+   "same_process_rerun_vs_saved_reference": [
+    {
+     "mae": 0.0,
+     "max_abs": 0.0,
+     "exact": true
+    },
+    {
+     "mae": 0.0,
+     "max_abs": 0.0,
+     "exact": true
+    },
+    {
+     "mae": 0.0,
+     "max_abs": 0.0,
+     "exact": true
+    },
+    {
+     "mae": 0.0,
+     "max_abs": 0.0,
+     "exact": true
+    }
+   ],
+   "legacy_same_avatar_captures_eager_vs_stored_reference": [
+    {
+     "file": "unet_io_000001_bs8_pid73932.pt",
+     "mae": 0.00029542704578489065,
+     "max_abs": 0.01416015625,
+     "exact": false
+    },
+    {
+     "file": "unet_io_000002_bs8_pid73932.pt",
+     "mae": 0.0002895958023145795,
+     "max_abs": 0.0078125,
+     "exact": false
+    },
+    {
+     "file": "unet_io_000003_bs8_pid73932.pt",
+     "mae": 0.0002980919380206615,
+     "max_abs": 0.0078125,
+     "exact": false
+    },
+    {
+     "file": "unet_io_000004_bs8_pid73932.pt",
+     "mae": 0.00029698802973143756,
+     "max_abs": 0.01220703125,
+     "exact": false
+    }
+   ]
+  },
+  "trt_shipping_validation": {
+   "engine": "models/tensorrt_unet_sm89_bs8_local/unet_trt.ts (symlink -> tensorrt_unet_static_bs8_20260529/unet_trt.ts; sha256 2c1a9338... per STORAGE_AUDIT_20260927 [D])",
+   "reference": "PyTorch FP16 eager UNet (corpus pred_latents)",
+   "gate": {
+    "mae_max": 0.01,
+    "max_abs": 0.5
+   },
+   "tag": "[M] 2026-09-28",
+   "splits": {
+    "main": {
+     "files": 352,
+     "mae_max": 0.0025857507716864347,
+     "mae_mean": 0.0017930437547461638,
+     "max_abs_max": 0.4016265869140625,
+     "max_abs_mean": 0.08235375447706743,
+     "rmse_max": 0.006109512411057949,
+     "unet_latency_ms_mean": 24.09035015840676,
+     "passed": true,
+     "per_avatar": {
+      "chin_h3_japanese_new": {
+       "files": 32,
+       "mae_mean": 0.001665897128987126,
+       "mae_max": 0.001835920149460435,
+       "max_abs_max": 0.197265625
+      },
+      "chin_h3_latina_new": {
+       "files": 32,
+       "mae_mean": 0.0016044507647166029,
+       "mae_max": 0.0017238676082342863,
+       "max_abs_max": 0.220703125
+      },
+      "chinese_bob_pink_bedroom_talking_3373c10448": {
+       "files": 32,
+       "mae_mean": 0.001740248713758774,
+       "mae_max": 0.0018288716673851013,
+       "max_abs_max": 0.1826171875
+      },
+      "div_black_woman": {
+       "files": 32,
+       "mae_mean": 0.0017954179165826645,
+       "mae_max": 0.0019668100867420435,
+       "max_abs_max": 0.39154052734375
+      },
+      "div_east_asian_man_goatee": {
+       "files": 32,
+       "mae_mean": 0.0018271408916916698,
+       "mae_max": 0.0019278498366475105,
+       "max_abs_max": 0.2127685546875
+      },
+      "div_middle_eastern_man_full_beard": {
+       "files": 32,
+       "mae_mean": 0.002350128866964951,
+       "mae_max": 0.0025857507716864347,
+       "max_abs_max": 0.216796875
+      },
+      "div_white_man_clean_shaven": {
+       "files": 32,
+       "mae_mean": 0.0017042656691046432,
+       "mae_max": 0.001780424965545535,
+       "max_abs_max": 0.2064208984375
+      },
+      "indian_realtime_talking_20f9845543": {
+       "files": 32,
+       "mae_mean": 0.0019954537783632986,
+       "mae_max": 0.0020897018257528543,
+       "max_abs_max": 0.26318359375
+      },
+      "japanese_realtime_talking_7d94520b7f": {
+       "files": 32,
+       "mae_mean": 0.001742818556522252,
+       "mae_max": 0.0019258653046563268,
+       "max_abs_max": 0.4016265869140625
+      },
+      "japanese_realtime_talking_7d94520b7f_fh1": {
+       "files": 32,
+       "mae_mean": 0.001671234280365752,
+       "mae_max": 0.0017882315441966057,
+       "max_abs_max": 0.1044921875
+      },
+      "latina_guided_20260925_talking_84c5bc80b8": {
+       "files": 32,
+       "mae_mean": 0.0016264247351500671,
+       "mae_max": 0.0016961877699941397,
+       "max_abs_max": 0.1552734375
+      }
+     }
+    },
+    "holdout": {
+     "files": 96,
+     "mae_max": 0.0021299670916050673,
+     "mae_mean": 0.001830736512298851,
+     "max_abs_max": 0.28125,
+     "max_abs_mean": 0.07846399148305257,
+     "rmse_max": 0.004344632383435965,
+     "unet_latency_ms_mean": 24.40433484177144,
+     "passed": true,
+     "per_avatar": {
+      "codex_smoke": {
+       "files": 32,
+       "mae_mean": 0.001829194778110832,
+       "mae_max": 0.001932907267473638,
+       "max_abs_max": 0.158203125
+      },
+      "div_black_man_short_beard": {
+       "files": 32,
+       "mae_mean": 0.0019799962938122917,
+       "mae_max": 0.0021299670916050673,
+       "max_abs_max": 0.1796875
+      },
+      "div_south_asian_woman": {
+       "files": 32,
+       "mae_mean": 0.0016830184649734292,
+       "mae_max": 0.001754612079821527,
+       "max_abs_max": 0.28125
+      }
+     }
+    },
+    "legacy": {
+     "files": 16,
+     "mae_max": 0.002007685834541917,
+     "mae_mean": 0.001939857131219469,
+     "max_abs_max": 0.148193359375,
+     "max_abs_mean": 0.05890083312988281,
+     "rmse_max": 0.003491847077384591,
+     "unet_latency_ms_mean": 24.363728014577646,
+     "passed": true
+    }
+   },
+   "eager_noise_floor_main": {
+    "note": "validate_unet_backend.py --backend pytorch (no cudnn.benchmark) vs corpus reference (cudnn.benchmark on): kernel-choice noise floor",
+    "mae_max": 0.0003957913722842932,
+    "max_abs_max": 0.0458984375
+   }
+  },
+  "tag": "[M]"
+ },
+ "sustained_baseline": {
+  "config": "TRT FP16 static bs8 .ts UNet (MultiTrtUnetBackend) + torch.compile max-autotune TAESD, live env (.runtime/musetalk_trt_local_sm89.env + run_local_api.sh overrides), live stage/decode syncs, repo uint8 BGR post, pinned D2H",
+  "baseline_200s": {
+   "label": "baseline: TRT bs8 .ts UNet + compiled TAESD, live syncs, pinned D2H",
+   "seconds": 200.03048509010114,
+   "batches": 6503,
+   "frames": 52024,
+   "aggregate_fps": 260.0803571343961,
+   "wall_ms_per_frame": 3.8449654984257484,
+   "event_ms_per_bs8": {
+    "median": 30.73414421081543,
+    "p90": 30.796512603759766,
+    "p99": 30.972000122070312,
+    "max": 32.03596878051758
+   },
+   "stage_event_ms_median": {
+    "h2d": 0.03126399964094162,
+    "unet": 24.224224090576172,
+    "vae": 6.345088005065918,
+    "post_d2h": 0.1266240030527115
+   },
+   "fps_10s_windows_min_max": [
+    259.2,
+    260.8
+   ],
+   "sm_clock_mhz": {
+    "median": 2580.0,
+    "min": 2550.0,
+    "max": 2610.0
+   },
+   "power_w": {
+    "median": 211.63,
+    "min": 210.39,
+    "max": 213.37
+   },
+   "power_limit_w": 220.0,
+   "temp_c": {
+    "median": 67.0,
+    "max": 68.0
+   },
+   "util_pct_median": 99.0,
+   "throttle_reasons_active_hist": {
+    "0x0000000000000004": 200
+   },
+   "golden_combined_sha256": "e5d461ff127f3e340840365d994a91e6832f7d92b4b56f1265693948e3b81bc3",
+   "tag": "[M]"
+  },
+  "variant_repo_post_60s": {
+   "label": "variant: repo VAE.decode_latents post (pageable .cpu()), live syncs",
+   "seconds": 60.00885208789259,
+   "batches": 1946,
+   "frames": 15568,
+   "aggregate_fps": 259.42839195121024,
+   "wall_ms_per_frame": 3.8546282173620625,
+   "event_ms_per_bs8": {
+    "median": 30.814271926879883,
+    "p90": 30.8855037689209,
+    "p99": 31.19481658935547,
+    "max": 31.664960861206055
+   },
+   "stage_event_ms_median": {
+    "h2d": 0.04371200129389763,
+    "unet": 24.22220802307129,
+    "vae": 6.543263912200928,
+    "post_d2h": 0.0015040000434964895
+   },
+   "fps_10s_windows_min_max": [
+    259.2,
+    260.0
+   ],
+   "sm_clock_mhz": {
+    "median": 2580.0,
+    "min": 2565.0,
+    "max": 2610.0
+   },
+   "power_w": {
+    "median": 211.42000000000002,
+    "min": 210.33,
+    "max": 212.76
+   },
+   "power_limit_w": 220.0,
+   "temp_c": {
+    "median": 67.0,
+    "max": 68.0
+   },
+   "util_pct_median": 98.0,
+   "throttle_reasons_active_hist": {
+    "0x0000000000000004": 60
+   },
+   "golden_combined_sha256": "e5d461ff127f3e340840365d994a91e6832f7d92b4b56f1265693948e3b81bc3",
+   "tag": "[M]"
+  },
+  "variant_no_syncs_60s": {
+   "label": "variant: pinned D2H, stage/decode syncs off",
+   "seconds": 60.027771895052865,
+   "batches": 1937,
+   "frames": 15496,
+   "aggregate_fps": 258.1471793937614,
+   "wall_ms_per_frame": 3.873759156882606,
+   "event_ms_per_bs8": {
+    "median": 30.961824417114258,
+    "p90": 31.030336380004883,
+    "p99": 31.074432373046875,
+    "max": 31.13654327392578
+   },
+   "stage_event_ms_median": {
+    "h2d": 0.023360000923275948,
+    "unet": 24.798080444335938,
+    "vae": 6.022143840789795,
+    "post_d2h": 0.11868800222873688
+   },
+   "fps_10s_windows_min_max": [
+    257.6,
+    258.4
+   ],
+   "sm_clock_mhz": {
+    "median": 2587.5,
+    "min": 2565.0,
+    "max": 2610.0
+   },
+   "power_w": {
+    "median": 211.915,
+    "min": 210.91,
+    "max": 212.19
+   },
+   "power_limit_w": 220.0,
+   "temp_c": {
+    "median": 67.0,
+    "max": 68.0
+   },
+   "util_pct_median": 99.0,
+   "throttle_reasons_active_hist": {
+    "0x0000000000000004": 60
+   },
+   "golden_combined_sha256": "e5d461ff127f3e340840365d994a91e6832f7d92b4b56f1265693948e3b81bc3",
+   "tag": "[M]"
+  },
+  "target_300fps_ms_per_frame": 3.333,
+  "throughput_increase_needed_for_300fps_pct": 15.34896495277247,
+  "ms_per_frame_reduction_needed_pct": 13.30654762186796,
+  "throttle_note": "0x4 = SW power cap active in every 1 Hz sample; the GPU is power-bound at ~211.6 W of 220 W"
+ },
+ "host_memory": {
+  "bench_process_mib": {
+   "start": {
+    "VmHWM": 567.7,
+    "VmRSS": 567.7,
+    "MemAvailable_MiB": 12429.6
+   },
+   "after_sd_vae": {
+    "VmHWM": 1013.9,
+    "VmRSS": 1013.9,
+    "MemAvailable_MiB": 11951.3
+   },
+   "after_unet_backend": {
+    "VmHWM": 9490.2,
+    "VmRSS": 1231.8,
+    "MemAvailable_MiB": 11850.7
+   },
+   "after_decode_backend": {
+    "VmHWM": 9490.2,
+    "VmRSS": 1486.4,
+    "MemAvailable_MiB": 11275.1
+   },
+   "end": {
+    "VmHWM": 9490.2,
+    "VmRSS": 1604.0,
+    "MemAvailable_MiB": 11139.9
+   }
+  },
+  "finding": "Loading the shipping 2.2 GB UNet .ts via load_unet_trt_backend raises process peak RSS (VmHWM) from ~1.0 GB to ~9.5 GB and drops MemAvailable by ~8.4 GB transiently (min 3.7-4.1 GB with 12.4 GB free at start); steady RSS after load is 1.2 GB. validate_unet_backend.py --backend trt showed the same (peak group RSS 8.5 GB, min MemAvailable 4.23 GB). Any process that loads this engine needs >= 12 GB MemAvailable to stay above the 3 GB floor.",
+  "tag": "[M]"
+ },
+ "flags_added": "none in the live path; no tracked repo file was modified (new scripts only)"
+}

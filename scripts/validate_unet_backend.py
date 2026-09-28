@@ -106,6 +106,22 @@ def load_backend(args, device: torch.device, precision: torch.dtype):
 
         return run
 
+    if args.backend == "runtime":
+        # Added code (300 fps plan 2.3): validate whatever backend the live loader
+        # selects from the environment (e.g. MUSETALK_UNET_BACKEND=trt_stagewise,
+        # MUSETALK_TRT_UNET_CUDAGRAPHS=manual), through the same call the server makes.
+        from scripts.trt_runtime import load_unet_trt_backend
+
+        backend = load_unet_trt_backend(device=device, force=True)
+        if backend is None:
+            raise RuntimeError("load_unet_trt_backend returned None (fallback active?)")
+        logger.info("Runtime UNet backend: %s", getattr(backend, "name", type(backend).__name__))
+
+        def run(latent_batch, audio_feature_batch, timesteps):
+            return backend(latent_batch, timesteps, encoder_hidden_states=audio_feature_batch).sample
+
+        return run
+
     engine_path = Path(args.trt_path)
     logger.info("Loading TensorRT UNet candidate from %s", engine_path)
     module = _load_serialized_trt_module(engine_path=engine_path, device=device)
@@ -152,10 +168,28 @@ def benchmark_run(run_backend, latent_batch, audio_feature_batch, timesteps, war
     }
 
 
-def validate_capture(path: Path, run_backend, args, device: torch.device, precision: torch.dtype) -> dict:
-    payload = torch.load(path, map_location="cpu")
-    if payload.get("kind") != "unet_io_batch":
-        raise RuntimeError(f"{path} is not a UNet capture file")
+def _load_capture_group(paths: list[Path]) -> dict:
+    """Concatenate several captures into one batch (e.g. two bs8 captures -> one bs16 input)."""
+    payloads = [torch.load(path, map_location="cpu") for path in paths]
+    for path, payload in zip(paths, payloads):
+        if payload.get("kind") != "unet_io_batch":
+            raise RuntimeError(f"{path} is not a UNet capture file")
+    if len(payloads) == 1:
+        return payloads[0]
+    merged = dict(payloads[0])
+    for key in ("latent_batch", "audio_feature_batch", "pred_latents"):
+        merged[key] = torch.cat([payload[key] for payload in payloads], dim=0)
+    merged["actual_batch"] = int(merged["latent_batch"].shape[0])
+    merged["padded_batch"] = int(merged["latent_batch"].shape[0])
+    merged["items"] = [item for payload in payloads for item in payload.get("items", [])]
+    merged["grouped_paths"] = [str(path) for path in paths]
+    return merged
+
+
+def validate_capture(path, run_backend, args, device: torch.device, precision: torch.dtype) -> dict:
+    group = list(path) if isinstance(path, (list, tuple)) else [path]
+    payload = _load_capture_group(group)
+    path = group[0] if len(group) == 1 else Path("+".join(p.name for p in group))
 
     latent_batch = payload["latent_batch"].to(device=device, dtype=precision)
     audio_feature_batch = payload["audio_feature_batch"].to(device=device, dtype=precision)
@@ -256,7 +290,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--backend",
-        choices=["pytorch", "trt"],
+        choices=["pytorch", "trt", "runtime"],
         default="pytorch",
         help="Candidate backend to compare against saved scheduler references.",
     )
@@ -280,6 +314,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--actual-only",
         action="store_true",
         help="Compare only real rows and ignore padded batch rows.",
+    )
+    parser.add_argument(
+        "--group-captures",
+        type=int,
+        default=1,
+        help="Concatenate this many consecutive captures into one batch (2 x bs8 -> bs16).",
     )
     parser.add_argument("--warmup", type=int, default=5, help="Warmup iterations per capture.")
     parser.add_argument("--iters", type=int, default=20, help="Timed iterations per capture.")
@@ -310,6 +350,9 @@ def main() -> int:
         logger.error("No UNet capture files found in %s%s", capture_dir, suffix)
         return 1
 
+    if args.group_captures > 1:
+        n = int(args.group_captures)
+        paths = [paths[i:i + n] for i in range(0, len(paths) - n + 1, n)]
     run_backend = load_backend(args, device=device, precision=precision)
     rows = []
     for path in paths:
@@ -318,7 +361,7 @@ def main() -> int:
         bench = row.get("benchmark") or {}
         logger.info(
             "%s batch=%s mae=%.6g rmse=%.6g p95=%.6g max=%.6g latency_ms=%s fps=%s",
-            path.name,
+            Path(row["path"]).name,
             row["compared_batch"],
             row["mae"],
             row["rmse"],

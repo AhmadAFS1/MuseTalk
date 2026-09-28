@@ -1422,6 +1422,46 @@ class _UNetBackendOutput:
         self.sample = sample
 
 
+_TRT_UNET_CUDAGRAPH_MODES = {"0", "manual", "runtime"}
+
+
+def _trt_unet_cudagraphs_mode() -> str:
+    """
+    Added code (300 fps plan item 1.2): CUDA-graph mode for the serialized
+    TensorRT UNet call. MUSETALK_TRT_UNET_CUDAGRAPHS=manual|runtime|0, default 0
+    (today's eager torch_tensorrt call, unchanged).
+
+    - manual: capture the whole `module(latent, audio)` call once per input shape
+      in a torch.cuda.CUDAGraph with static input/output buffers; every call copies
+      its inputs in, replays, and returns a clone of the static output, so no
+      returned tensor is ever overwritten by a later replay.
+    - runtime: torch_tensorrt's own runtime CUDA-graph mode, enabled only around
+      this module's call (the global mode is restored afterwards).
+    """
+    raw = os.getenv("MUSETALK_TRT_UNET_CUDAGRAPHS", "0").strip().lower()
+    if raw in {"", "0", "off", "false", "no", "none"}:
+        return "0"
+    if raw in {"1", "on", "true", "yes", "manual"}:
+        return "manual"
+    if raw == "runtime":
+        return "runtime"
+    raise RuntimeError(
+        f"Invalid MUSETALK_TRT_UNET_CUDAGRAPHS={raw!r}; expected manual, runtime or 0."
+    )
+
+
+class _TrtUnetGraphEntry:
+    """Static buffers and the captured graph for one (latent, audio) input shape."""
+
+    __slots__ = ("graph", "static_latent", "static_audio", "static_output")
+
+    def __init__(self, graph, static_latent, static_audio, static_output):
+        self.graph = graph
+        self.static_latent = static_latent
+        self.static_audio = static_audio
+        self.static_output = static_output
+
+
 class TrtUnetBackend(torch.nn.Module):
     """
     Opt-in runtime wrapper for a serialized TensorRT MuseTalk UNet.
@@ -1441,6 +1481,7 @@ class TrtUnetBackend(torch.nn.Module):
         runtime_dtype: torch.dtype = torch.float16,
         batch_range: Optional[tuple[int, int]] = None,
         opt_batch: Optional[int] = None,
+        cudagraphs_mode: Optional[str] = None,
     ):
         super().__init__()
         self.module = module
@@ -1449,6 +1490,97 @@ class TrtUnetBackend(torch.nn.Module):
         self.batch_range = batch_range
         self.opt_batch = opt_batch
         self.dtype = runtime_dtype
+        # Added code (plan item 1.2): see _trt_unet_cudagraphs_mode. "0" keeps
+        # the original call path byte-for-byte.
+        self._graph_entries: dict[tuple, _TrtUnetGraphEntry] = {}
+        self._graph_pool = None
+        self.cudagraphs_mode = "0"
+        self.set_cudagraphs_mode(
+            _trt_unet_cudagraphs_mode() if cudagraphs_mode is None else cudagraphs_mode
+        )
+
+    def set_cudagraphs_mode(self, mode: str) -> None:
+        mode = str(mode or "0").strip().lower()
+        if mode not in _TRT_UNET_CUDAGRAPH_MODES:
+            raise RuntimeError(f"Invalid TensorRT UNet CUDA-graph mode: {mode!r}")
+        if mode != "0" and self.device.type != "cuda":
+            raise RuntimeError("TensorRT UNet CUDA graphs require a CUDA device")
+        if mode != self.cudagraphs_mode:
+            # Drop captured graphs when leaving manual mode (their static
+            # buffers and private pool are released with them).
+            self._graph_entries.clear()
+            self._graph_pool = None
+        self.cudagraphs_mode = mode
+
+    def _capture_manual_graph(
+        self,
+        model_latent: torch.Tensor,
+        model_audio: torch.Tensor,
+    ) -> _TrtUnetGraphEntry:
+        # Static buffers must be normal (non-inference) tensors so later
+        # copy_() calls work both under torch.no_grad and torch.inference_mode.
+        with torch.inference_mode(False), torch.no_grad():
+            static_latent = torch.empty(
+                tuple(model_latent.shape), device=self.device, dtype=self.runtime_dtype
+            )
+            static_audio = torch.empty(
+                tuple(model_audio.shape), device=self.device, dtype=self.runtime_dtype
+            )
+            static_latent.copy_(model_latent)
+            static_audio.copy_(model_audio)
+            current = torch.cuda.current_stream(self.device)
+            side = torch.cuda.Stream(device=self.device)
+            side.wait_stream(current)
+            with torch.cuda.stream(side):
+                for _ in range(2):
+                    self._coerce_output(self.module(static_latent, static_audio))
+            current.wait_stream(side)
+            if self._graph_pool is None:
+                self._graph_pool = torch.cuda.graph_pool_handle()
+            graph = torch.cuda.CUDAGraph()
+            with torch.cuda.graph(
+                graph,
+                pool=self._graph_pool,
+                capture_error_mode="thread_local",
+            ):
+                static_output = self._coerce_output(
+                    self.module(static_latent, static_audio)
+                )
+        entry = _TrtUnetGraphEntry(graph, static_latent, static_audio, static_output)
+        self._graph_entries[(tuple(model_latent.shape), tuple(model_audio.shape))] = entry
+        logger.info(
+            "Captured TensorRT UNet CUDA graph for latent=%s audio=%s",
+            tuple(model_latent.shape),
+            tuple(model_audio.shape),
+        )
+        return entry
+
+    def _run_manual_graph(
+        self,
+        model_latent: torch.Tensor,
+        model_audio: torch.Tensor,
+    ) -> torch.Tensor:
+        entry = self._graph_entries.get(
+            (tuple(model_latent.shape), tuple(model_audio.shape))
+        )
+        if entry is None:
+            entry = self._capture_manual_graph(model_latent, model_audio)
+        entry.static_latent.copy_(model_latent)
+        entry.static_audio.copy_(model_audio)
+        entry.graph.replay()
+        # The static output is overwritten by the next replay; callers (VAE
+        # decode, calibration capture, MultiTrtUnetBackend's cat) get a copy.
+        return entry.static_output.clone()
+
+    def _run_module(self, model_latent: torch.Tensor, model_audio: torch.Tensor) -> torch.Tensor:
+        if self.cudagraphs_mode == "manual":
+            return self._run_manual_graph(model_latent, model_audio)
+        if self.cudagraphs_mode == "runtime":
+            torch_tensorrt = _ensure_torch_tensorrt_registered()
+            with torch_tensorrt.runtime.enable_cudagraphs():
+                output = self.module(model_latent, model_audio)
+            return self._coerce_output(output)
+        return self._coerce_output(self.module(model_latent, model_audio))
 
     @staticmethod
     def _coerce_output(output) -> torch.Tensor:
@@ -1536,6 +1668,10 @@ class TrtUnetBackend(torch.nn.Module):
             raise RuntimeError(
                 f"Unexpected TensorRT UNet warmup output shape: {tuple(output.shape)}"
             )
+        if self.cudagraphs_mode != "0":
+            # Added code (plan item 1.2): capture/record the graph for the
+            # warmup batch now, before scheduler threads start issuing work.
+            self._run_module(dummy_latents, dummy_audio)
         if self.device.type == "cuda":
             torch.cuda.synchronize(self.device)
 
@@ -1562,6 +1698,8 @@ class TrtUnetBackend(torch.nn.Module):
 
         model_latent = latent.to(device=self.device, dtype=self.runtime_dtype)
         model_audio = encoder_hidden_states.to(device=self.device, dtype=self.runtime_dtype)
+        if self.cudagraphs_mode != "0":
+            return _UNetBackendOutput(self._run_module(model_latent, model_audio))
         output = self.module(model_latent, model_audio)
         return _UNetBackendOutput(self._coerce_output(output))
 
@@ -1638,6 +1776,17 @@ class MultiTrtUnetBackend(torch.nn.Module):
         return _UNetBackendOutput(torch.cat(outputs, dim=0))
 
 
+def _stagewise_unet_requested() -> bool:
+    """
+    Added code (300 fps plan items 2.3a/2.3b): MUSETALK_UNET_BACKEND=trt_stagewise
+    selects the ONNX-parser stagewise FP16 TensorRT UNet
+    (scripts/unet_stagewise_trt.py; engine batch MUSETALK_UNET_STAGEWISE_BATCH,
+    engines under MUSETALK_UNET_STAGEWISE_CACHE_DIR). Unset or `trt` keeps the
+    shipping torch_tensorrt .ts path.
+    """
+    return _requested_unet_backend() in {"trt_stagewise", "tensorrt_stagewise"}
+
+
 def load_unet_trt_backend(
     device: Optional[torch.device] = None,
     trt_dir: Optional[Path] = None,
@@ -1651,7 +1800,8 @@ def load_unet_trt_backend(
     fallback enabled, when the artifact cannot be loaded. With fallback disabled,
     activation failures are raised.
     """
-    if not force and not _trt_unet_requested():
+    stagewise_requested = _stagewise_unet_requested()
+    if not force and not stagewise_requested and not _trt_unet_requested():
         return None
 
     resolved_device = device or torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -1666,6 +1816,12 @@ def load_unet_trt_backend(
         os.environ["MUSETALK_TRT_DIR"] = str(Path(trt_dir).resolve())
 
     try:
+        if stagewise_requested:
+            from scripts.unet_stagewise_trt import load_stagewise_unet_backend
+
+            backend = load_stagewise_unet_backend(device=resolved_device)
+            logger.info("TensorRT stagewise UNet backend is active (%s)", backend.describe())
+            return backend
         path_map = _trt_unet_path_map()
         if path_map:
             backends_by_batch: dict[int, TrtUnetBackend] = {}

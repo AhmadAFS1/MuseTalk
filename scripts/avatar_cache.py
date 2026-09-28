@@ -201,6 +201,16 @@ class AvatarCache:
         )
         for attr in heavy_attrs:
             if hasattr(avatar_instance, attr):
+                # Added code (avatar memory layout): a PNG-held cycle also owns
+                # a decoded LRU and queued readahead decodes; drop both now
+                # rather than when the last pending decode finishes. Plain
+                # lists (the default layout) have no such method.
+                release = getattr(getattr(avatar_instance, attr, None), "release_decoded_cache", None)
+                if callable(release):
+                    try:
+                        release()
+                    except Exception:
+                        pass
                 try:
                     delattr(avatar_instance, attr)
                 except Exception:
