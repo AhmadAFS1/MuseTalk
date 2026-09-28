@@ -1,0 +1,10 @@
+# Optional legacy recipe (MUSETALK_RECIPE=legacy_int8): INT8 SD-VAE trt_stagewise built through
+# NVIDIA TensorRT Model Optimizer ONNX/QDQ (scripts/trt_runtime.py _compile_stage_int8_onnx_qdq).
+# Group: --with-legacy-int8. cu121 matrix only (modelopt 0.23.2 was validated with torch 2.5.1).
+# Bounds below are the ones scripts/setup_trt_experiment_env.sh used; exact pins come from
+# constraints-cu121.txt (nvidia-modelopt 0.23.2, PuLP 3.3.2, onnx 1.17.0, torchprofile 0.1.0).
+nvidia-modelopt
+pulp<4.0
+torchprofile
+onnx<1.18
+regex!=2019.12.17

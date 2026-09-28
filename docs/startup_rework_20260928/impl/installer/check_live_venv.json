@@ -1,0 +1,166 @@
+{
+  "schema": "musetalk_install_check_v1",
+  "created_utc": "2026-09-28T06:23:55Z",
+  "repo_root": "/workspace/MuseTalk-perf300",
+  "venv": "/workspace/.venvs/musetalk_trt_stagewise",
+  "venv_facts": {
+    "venv": "/workspace/.venvs/musetalk_trt_stagewise",
+    "exists": true,
+    "python": "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+    "python_executable": true,
+    "pyvenv_version": "3.10.12",
+    "python_version": "3.10.12",
+    "machine": "x86_64",
+    "site_packages": "/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages",
+    "dist_count": 214,
+    "torch_cuda_tag": "cu121",
+    "versions": {
+      "torch": "2.5.1+cu121",
+      "torchvision": "0.20.1+cu121",
+      "torchaudio": "2.5.1+cu121",
+      "torch-tensorrt": "2.5.0",
+      "tensorrt-cu12": "10.3.0",
+      "triton": "3.1.0",
+      "onnx": "1.17.0",
+      "numpy": "1.23.5",
+      "diffusers": "0.30.2",
+      "transformers": "4.39.2",
+      "aiortc": "1.14.0",
+      "av": "16.1.0",
+      "cffi": "2.1.1",
+      "kokoro": "0.9.4",
+      "spacy": "3.8.16",
+      "nvidia-modelopt": "0.23.2",
+      "mmcv": "2.1.0",
+      "setuptools": "60.2.0",
+      "pip": "26.2.1"
+    }
+  },
+  "matrix": {
+    "matrix": "cu121",
+    "reason": "compute capability 8.9 < 10.0",
+    "gpu": {
+      "index": 0,
+      "name": "NVIDIA GeForce RTX 4070 SUPER",
+      "compute_capability": "8.9"
+    },
+    "gpu_source": "nvidia-smi",
+    "gpu_error": null,
+    "gpu_visible": true
+  },
+  "groups": {
+    "server": {
+      "enabled": true,
+      "source": "always"
+    },
+    "kokoro": {
+      "enabled": true,
+      "source": "default"
+    },
+    "legacy_int8": {
+      "enabled": false,
+      "source": "default"
+    },
+    "avatar_prep": {
+      "enabled": false,
+      "source": "default"
+    },
+    "chin_tools": {
+      "enabled": false,
+      "source": "default"
+    },
+    "native_vp8": {
+      "enabled": true,
+      "source": "auto"
+    }
+  },
+  "module_specs": {
+    "torch": true,
+    "torchvision": true,
+    "torchaudio": true,
+    "torch_tensorrt": true,
+    "tensorrt": true,
+    "onnx": true,
+    "diffusers": true,
+    "transformers": true,
+    "cv2": true,
+    "numpy": true,
+    "aiortc": true,
+    "av": true,
+    "cffi": true,
+    "fastapi": true,
+    "uvicorn": true,
+    "boto3": true,
+    "librosa": true,
+    "soundfile": true,
+    "numba": true,
+    "imageio": true,
+    "ffmpeg": true,
+    "omegaconf": true,
+    "multipart": true,
+    "kokoro": true,
+    "misaki": true,
+    "spacy": true,
+    "en_core_web_sm": true,
+    "espeakng_loader": true
+  },
+  "native_vp8": {
+    "directory": "/workspace/MuseTalk-perf300/.runtime/native_vp8",
+    "verified": true,
+    "detail": "8 files verified in /workspace/MuseTalk/.runtime/native_vp8"
+  },
+  "checks": [
+    {
+      "check": "venv",
+      "status": "ok",
+      "detail": "/workspace/.venvs/musetalk_trt_stagewise (CPython 3.10.12, 214 dists)"
+    },
+    {
+      "check": "matrix",
+      "status": "ok",
+      "detail": "cu121: torch 2.5.1+cu121 (compute capability 8.9 < 10.0)"
+    },
+    {
+      "check": "stamp",
+      "status": "warn",
+      "detail": "no install stamp at /workspace/MuseTalk-perf300/.runtime/install_state.json: validating a pre-existing venv by its packages and files (OK if everything below passes)"
+    },
+    {
+      "check": "packages",
+      "status": "ok",
+      "detail": "all top-level requirements of the selected groups are installed"
+    },
+    {
+      "check": "pins",
+      "status": "ok",
+      "detail": "every installed package matches constraints-cu121.txt (210 pins)"
+    },
+    {
+      "check": "modules",
+      "status": "ok",
+      "detail": "28 top-level modules resolvable (find_spec, not imported)"
+    },
+    {
+      "check": "weights",
+      "status": "ok",
+      "detail": "11 model files present (incl. models/taesd)"
+    },
+    {
+      "check": "kokoro_cache",
+      "status": "ok",
+      "detail": "Kokoro-82M cached (3 voices) in /root/.cache/huggingface/hub/models--hexgrad--Kokoro-82M"
+    },
+    {
+      "check": "native_vp8",
+      "status": "ok",
+      "detail": "8 files verified in /workspace/MuseTalk/.runtime/native_vp8"
+    }
+  ],
+  "warnings": [
+    "stamp: no install stamp at /workspace/MuseTalk-perf300/.runtime/install_state.json: validating a pre-existing venv by its packages and files (OK if everything below passes)"
+  ],
+  "needs_clean": [],
+  "needs_repair": [],
+  "exit_code": 0,
+  "verdict": "ok"
+}

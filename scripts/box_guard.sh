@@ -325,14 +325,20 @@ cmd_run() {
             if [[ $(( $(date +%s) - busy_since )) -ge 60 ]]; then release=1; break; fi
             sleep 2
         done
+        # RAM threshold: also checked while holding the lease, but never waited on while holding it.
+        local ram_short=0
+        if [[ $release -eq 0 && "$(avail_kb)" -lt "$(gb_to_kb "$min_avail")" ]]; then release=1; ram_short=1; fi
         [[ $release -eq 0 ]] && break
-        # Foreign GPU use: give the lease back while waiting.
+        # Foreign GPU use or low RAM: give the lease back while waiting.
         : > "$HOLDER_FILE" 2>/dev/null; flock -u "$lfd"; holding=0
-        if [[ $(date +%s) -ge $deadline ]]; then
+        if [[ $ram_short -eq 0 && $(date +%s) -ge $deadline ]]; then
             log "foreign GPU use still present after ${wait_min} min:"; describe_gpu_apps "$apps" >&2
             die 75 "GPU not quiet (util=${util}% mem=${gmem}MiB); giving up"
         fi
-        if [[ -n "$apps" ]]; then
+        if [[ $ram_short -eq 1 ]]; then
+            if [[ $(date +%s) -ge $deadline ]]; then die 76 "MemAvailable $(kb_to_gb "$(avail_kb)") GB < ${min_avail} GB after waiting"; fi
+            log "MemAvailable $(kb_to_gb "$(avail_kb)") GB < ${min_avail} GB; released the lease, retrying in ${poll_s}s"
+        elif [[ -n "$apps" ]]; then
             log "foreign GPU compute apps present; released the lease, retrying in ${poll_s}s:"; describe_gpu_apps "$apps" >&2
         else
             log "GPU busy without a visible app (util=${util}% mem=${gmem}MiB) for 60 s; released the lease, retrying in ${poll_s}s"

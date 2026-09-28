@@ -1,0 +1,38 @@
+{
+  "source": "/workspace/MuseTalk/docs/fps_comparisons/startup_rework_20260928/A_old_recipe_gen.jsonl",
+  "stages": [
+    {
+      "jobs": 4,
+      "frames_generated": 1397,
+      "frames_expected": 1420,
+      "generation_span_s": 20.0,
+      "mean_gen_fps": 69.8,
+      "peak_5s_gen_fps": 70.0,
+      "avg_gpu_batch_s": 0.1081,
+      "avg_unet_s": 0.0238,
+      "avg_vae_s": 0.0835
+    },
+    {
+      "jobs": 8,
+      "frames_generated": 2840,
+      "frames_expected": 2840,
+      "generation_span_s": 50.01,
+      "mean_gen_fps": 56.8,
+      "peak_5s_gen_fps": 70.0,
+      "avg_gpu_batch_s": 0.109,
+      "avg_unet_s": 0.0239,
+      "avg_vae_s": 0.0841
+    },
+    {
+      "jobs": 12,
+      "frames_generated": 4253,
+      "frames_expected": 4260,
+      "generation_span_s": 112.85,
+      "mean_gen_fps": 37.7,
+      "peak_5s_gen_fps": 69.3,
+      "avg_gpu_batch_s": 0.1095,
+      "avg_unet_s": 0.024,
+      "avg_vae_s": 0.0845
+    }
+  ]
+}

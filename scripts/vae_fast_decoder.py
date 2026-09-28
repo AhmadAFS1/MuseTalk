@@ -472,13 +472,15 @@ def build_bgr_u8_post_plan(batch: int, height: int = _IMAGE_HW, width: int = _IM
     x = network.add_unary(x, trt.UnaryOperation.ROUND).get_output(0)
     x = network.add_elementwise(x, constant(0.0), trt.ElementWiseOperation.MAX).get_output(0)
     x = network.add_elementwise(x, constant(255.0), trt.ElementWiseOperation.MIN).get_output(0)
-    x = network.add_cast(x, trt.DataType.UINT8).get_output(0)
+    # Channel reverse + NHWC transpose are pure data movement, so doing them on the (already
+    # integer-valued) fp32 tensor before the final uint8 cast is byte-identical to the repo post
+    # (cast, then flip/permute). TensorRT 10.3 rejects Slice on UInt8 inputs.
     x = network.add_slice(
         x, start=(0, 2, 0, 0), shape=(batch, 3, height, width), stride=(1, -1, 1, 1)
     ).get_output(0)
     shuffle = network.add_shuffle(x)
     shuffle.first_transpose = trt.Permutation([0, 2, 3, 1])
-    out = shuffle.get_output(0)
+    out = network.add_cast(shuffle.get_output(0), trt.DataType.UINT8).get_output(0)
     out.name = "bgr_u8"
     network.mark_output(out)
 

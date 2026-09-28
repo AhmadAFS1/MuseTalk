@@ -1,0 +1,318 @@
+summary:
+  WebRTC runtime slice. Everything below comes from reading files, git history and the live process environment. The only things I ran were CPU-only checks, with torch and tensorrt imports blocked; nothing was written to the repo. Tags: PROVEN = I measured or ran it; DOC = a number from the repo docs; PROJECTED = my inference.
+1) Native VP8 is never provisioned or enabled by any start script (grep: zero hits in scripts/*.sh and /workspace/run-musetalk-local-trt.sh). The live user server (pid 3555159, started via vast_onstart) runs with WEBRTC_VP8_ENCODER unset (pyav), MUSETALK_VAE_BACKEND=trt_stagewise int8_mixed and no motion atlas. That is the old recipe.
+2) The only launcher for the fast path (TRT UNet + TAESD) is outside the repo: /workspace/experiments/chinese_bob_webrtc_20260927/run_local_api.sh. It skips run_trt_stagewise_server.sh, so the launcher's WebRTC defaults are never applied: edge-silence trimming falls back to ON (the API default), and the track crossfade falls back to 0 while /capabilities reports 2.
+3) Native VP8 works on this box. PROVEN: `install_native_vp8.py --verify` passes; the configure_vp8_encoder startup probe passes at both default and 3.5M/2.5M bitrate settings; 22 CPU unit tests pass. It hard-requires Linux x86_64, CPython 3.10, glibc >= 2.17 and exactly aiortc 1.14.0, av 16.1.0 and cffi 2.1.1. cffi is not pinned by any setup script. It also needs a network download of the pinned aiortc 1.11.0 wheel, or `--wheel` for an offline install. Once opted in, it never falls back. Clients that offer only H264 get HTTP 400.
+4) Encoder cost (DOC, from the 4070S evidence digest): native VP8 at 1 thread costs 4.0 ms/frame. aiortc libx264 costs 11.5–26 CPU-ms/frame. The api_server NVENC patch does nothing on aiortc 1.14, because h264.py:270 hardcodes libx264. prefer_h264 runs after setRemoteDescription, so in pyav mode the client's offer order decides the codec; the chinese_bob wall log shows libx264. Native VP8 uses 2 threads at 512x896, and there is no env setting to reduce that.
+5) PROVEN bug: the registry directory the docs use, WEBRTC_MOTION_ATLAS_DIR=/workspace/experiments/realtime_characters, now raises "Multiple motion atlases match this character" for japanese_20260925 and latina_guided_20260925. The cause is the 2026-09-26 variant folders, which have the same source hashes and no motion-registration.json. Indian is fine. Session creation for the Japanese and Latina pose sets would therefore fail.
+6) No motion atlas is reviewed; all are candidate_requires_recorded_review. Without WEBRTC_MOTION_ALLOW_UNREVIEWED=1, any matching bank raises an error. Atlases and registrations are not in the repo or in S3; S3 restores only avatar caches. A fresh machine therefore gets no matched-motion multipose (configured_bank returns None).
+7) Kokoro is not installed by any setup path. The server setup passes --install-server-deps, and requirements.txt (which lists kokoro==0.9.4) is only used with --install-runtime-deps. The current venv has kokoro 0.9.4, misaki 0.9.4, espeakng_loader 0.2.4, spacy 3.8.16 and en_core_web_sm 3.8.0 only because of a manual uv install on 2026-09-27. The model (hexgrad/Kokoro-82M, 314 MB) and TAESD (madebyollin/taesd) sit only in /root/.cache/huggingface; models/ is gitignored and download_weights.sh fetches neither. espeak is bundled in the pip wheel, so no system espeak is needed. Kokoro loads lazily, in-process, on CPU. DOC: about 8.8 audio-seconds per second of throughput, and 30–85% CPU at 15 speakers.
+8) System dependencies: ffmpeg and coturn (apt, setup_trt_stagewise_server_env.sh:82-99). libvpx, libx264 and opus come bundled in PyAV's av.libs, so there is no system libvpx dependency. mediapipe/FaceMesh is needed only offline, in other venvs; the chin alignment and refined seam are not in the live server at all.
+9) WebRTC batch size snaps to the first list of MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES, then HLS_SCHEDULER_FIXED_BATCH_SIZES (api_server.py:3803-3820). These must equal the UNet engine batches and MUSETALK_TAESD_WARMUP_BATCHES (8 today). The GPU-aware defaults produce [4], [4,8], [8,16] and so on, which do not match a bs8-only engine.
+10) TURN: the relay-only coturn range is 49160–49200, which is 41 ports. PROJECTED: at roughly 3 allocations per session, that supports about 13 concurrent relay sessions, below the 15–20 stream target.
+11) The multipose docs validated OMP/OPENBLAS/MKL at 4 threads, with MUSETALK_CPU_TUNING and OMP_PROC_BIND off. The CPU-tuning profile was rejected after 3.6 s returns.
+12) No startup warmup exists for Kokoro, avatar caches or the pose lab. Health reflects only manager init; STARTUP_TIMEOUT_SECONDS is 600.
+recommended_env:
+    name:
+      WEBRTC_VP8_ENCODER
+    value:
+      native (only after a launcher preflight passes; otherwise pyav)
+    scope:
+      all-gpus (host must be x86_64 Linux + CPython 3.10; set pyav elsewhere)
+    evidence:
+      scripts/webrtc_native_vp8.py:55-76 validate_runtime and :261-290 configure (import-time hard fail, no fallback); api_server.py:452-457 configures at import; scripts/webrtc_tracks.py:42 reads at import. docs/WEBRTC_NATIVE_VP8.md: 234 CPU tests and 18 received recordings, 4,781 frames at exact 20 Hz, 285 bitrate changes with 1 context each. Digest (docs/fps_comparisons/4070s_300fps_20260927/EVIDENCE_DIGEST.md:99-100): 4.0 ms/frame at 1 thread vs libx264 11.5–26 CPU-ms/frame. PROVEN here: probe passed and 22 CPU tests pass. Caveat: H264-only offers get HTTP 400 (api_server.py:4523-4529).
+    name:
+      WEBRTC_NATIVE_VP8_DIR
+    value:
+      $REPO_ROOT/.runtime/native_vp8
+    scope:
+      all-gpus
+    evidence:
+      scripts/install_native_vp8.py:13 DEFAULT_DIRECTORY; webrtc_native_vp8.py:271. The directory is gitignored (.gitignore:23 .runtime/), so it must be created by the installer at install time.
+    name:
+      WEBRTC_NATIVE_VP8_MAX_BITRATE_BPS / WEBRTC_NATIVE_VP8_BITRATE_FLOOR_BPS
+    value:
+      leave unset (ceiling 1500000, floor 0). The 3500000/2500000 pair is a local-loopback quality profile only.
+    scope:
+      optional
+    evidence:
+      webrtc_native_vp8.py:98-121 (the ceiling must be 1.5M–4M and an invalid value fails startup). docs/WEBRTC_NATIVE_VP8.md:26-28 says remote/mobile bandwidth was not validated. PROVEN: probe passes with 3500000/2500000.
+    name:
+      WEBRTC_BATCH_FRAME_CALLBACK
+    value:
+      1
+    scope:
+      all-gpus
+    evidence:
+      api_server.py:5347 (default True) and :5727; run_trt_stagewise_server.sh:189; .runtime/musetalk_trt_local_sm89.env; live server env =1.
+    name:
+      WEBRTC_SHARED_GPU_SCHEDULER
+    value:
+      1 (default; do not disable)
+    scope:
+      all-gpus
+    evidence:
+      api_server.py:1258 (capabilities pose_plans_v2) and :5661. docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md:274-276: when disabled, v2 pose_plan streams return 409.
+    name:
+      WEBRTC_TRIM_EDGE_SILENCE
+    value:
+      0 (set explicitly in the env, not only in the launcher)
+    scope:
+      all-gpus
+    evidence:
+      Code default is True (webrtc_audio_timeline.py:176, api_server.py:1265). The launcher sets 0 (run_trt_stagewise_server.sh:182, commit 763297d 'Disable WebRTC edge silence trimming'). The exact-silence doc's live run used 0. run_local_api.sh bypasses the launcher, so the TAESD wall ran with trimming ON.
+    name:
+      WEBRTC_POSE_CROSSFADE_FRAMES / WEBRTC_POSE_FORCED_CROSSFADE_FRAMES / WEBRTC_POSE_MAX_SEMANTIC_DRIFT_SECONDS
+    value:
+      2 / 4 / 0.75
+    scope:
+      all-gpus
+    evidence:
+      run_trt_stagewise_server.sh:190-192. Code defaults are 0 in webrtc_tracks.py:64-67 and hls_gpu_scheduler.py:233, while api_server.py:1293 reports 2 in /capabilities. These must be set in the env so the code and the advertised value agree.
+    name:
+      WEBRTC_SYNC_MODE / WEBRTC_AUDIO_SYNC_STRATEGY / WEBRTC_ADAPTIVE_FPS / WEBRTC_VIDEO_PREBUFFER_SECONDS / WEBRTC_AUDIO_PREBUFFER_SECONDS
+    value:
+      strict_fifo / timestamp_locked / 0 / 2.0 / 0.0
+    scope:
+      all-gpus
+    evidence:
+      run_trt_stagewise_server.sh:180-188; run_webrtc_relay_api_server.sh:120-123; live server env. Per-session prebuffer_seconds can override (the wall uses 0.50).
+    name:
+      MUSETALK_TAESD_WARMUP_BATCHES = HLS_SCHEDULER_FIXED_BATCH_SIZES = MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES = HLS_SCHEDULER_MAX_BATCH
+    value:
+      8 (the batch sizes that actually have UNet TRT engines; keys of MUSETALK_TRT_UNET_PATHS)
+    scope:
+      per-gpu-tier
+    evidence:
+      api_server.py:3803-3820 snaps the WebRTC batch to MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES, then HLS_SCHEDULER_FIXED_BATCH_SIZES. wall_api.log:285 'WebRTC batch size 4 adjusted to warmed TRT batch 8'. vae_fast_decoder.py:180,732 default 8. The GPU-aware defaults (concurrent_gpu_manager.py:126-140) give [4] for baseline, [4,8] for <20GB, [8,16] for <30GB, which don't match a bs8-only engine.
+    name:
+      OMP_NUM_THREADS / OPENBLAS_NUM_THREADS / MKL_NUM_THREADS
+    value:
+      4
+    scope:
+      optional
+    evidence:
+      Used in every validated multipose launch (docs/WEBRTC_NATIVE_VP8.md:18, MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md:250, WEBRTC_MULTIPOSE_AUDIT_2026-09-25.md:23). No start script sets them and the live server has none. Validated only with sequential single sessions; not measured under concurrency.
+    name:
+      MUSETALK_CPU_TUNING (and OMP_PROC_BIND)
+    value:
+      unset (never 1)
+    scope:
+      avoid
+    evidence:
+      runtime_cpu_tuning.py:113 sets OMP_PROC_BIND=true, which pinned the server to one core and caused 3.6 s returns (GROK_MULTIPOSE_HANDOFF.md:216-218; MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md:406-411). The launcher already unsets it (run_trt_stagewise_server.sh:116-121).
+    name:
+      WEBRTC_MOTION_ATLAS_DIR (or WEBRTC_MOTION_ATLAS)
+    value:
+      a clean registry dir with exactly one atlas + motion-registration.json per source trio, e.g. $REPO_ROOT/.runtime/characters. Do NOT use /workspace/experiments/realtime_characters.
+    scope:
+      per-deployment
+    evidence:
+      motion_transitions.py:314-365. PROVEN via a CPU run of configured_bank(): with DIR=/workspace/experiments/realtime_characters, japanese_20260925 and latina_guided_20260925 raise 'Multiple motion atlases match'; indian_20260925 is OK; the explicit WEBRTC_MOTION_ATLAS works for all three.
+    name:
+      WEBRTC_MOTION_ALLOW_UNREVIEWED
+    value:
+      1 only for pilot/wall boxes; unset for production
+    scope:
+      optional
+    evidence:
+      motion_transitions.py:362-365. Every atlas on disk has status candidate_requires_recorded_review, so without this flag a matching bank raises and pose-set session creation fails (webrtc_pose_router.py:221-222). Docs say it is for pilots only.
+    name:
+      KOKORO_TTS_DEVICE
+    value:
+      cpu (default)
+    scope:
+      optional
+    evidence:
+      kokoro_tts.py:49-52. Digest:113-114: in-process, single RLock, ~8.8 audio-s/s; 15 speakers would take 30–85% CPU. Keep TTS off-box or pre-synthesized for capacity.
+    name:
+      HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE
+    value:
+      1 only after install has pre-cached hexgrad/Kokoro-82M and TAESD (models/taesd or the HF cache)
+    scope:
+      optional
+    evidence:
+      run_local_api.sh:17-18 sets both. kokoro/model.py:46,67 hf_hub_download; misaki/en.py:500-501 runs spacy.cli.download if en_core_web_sm is missing; vae_fast_decoder.py:117-124 falls back to HF madebyollin/taesd when models/taesd is absent (gitignored).
+    name:
+      WEBRTC_H264_ENCODER
+    value:
+      do not rely on it (dead on aiortc 1.14)
+    scope:
+      avoid
+    evidence:
+      api_server.py:273-325 patches h264.create_encoder_context, but aiortc/codecs/h264.py:270 hardcodes libx264. wall_api.log:4 says 'set to h264_nvenc' while :882 shows codec=libx264.
+    name:
+      WEBRTC_ICE_TRANSPORT_POLICY / WEBRTC_STUN_URLS / WEBRTC_SERVER_TURN_URLS
+    value:
+      relay / '' / turn:127.0.0.1:<listen or tcp-fallback port>?transport=tcp when local coturn is autostarted. Otherwise all / stun:stun.l.google.com:19302.
+    scope:
+      per-deployment
+    evidence:
+      run_webrtc_relay_api_server.sh:105-117; vast_onstart.sh:605-626; api_server.py:1072-1100; live server env.
+    name:
+      TURN_INTERNAL_RELAY_MIN_PORT / TURN_INTERNAL_RELAY_MAX_PORT
+    value:
+      widen from 49160-49200 (41 ports), e.g. 49160-49400; the range is internal, not public
+    scope:
+      per-gpu-tier (by concurrency target)
+    evidence:
+      run_turnserver_tcp_relay.sh:112-114; live /tmp/musetalk-turnserver-tcp-relay.conf min-port=49160 max-port=49200. PROJECTED: about 3 allocations per relay-only session (1 server TCP URL + 2 client URLs) gives roughly 13 sessions.
+    name:
+      AVATAR_S3_ENABLED / AVATAR_S3_BUCKET / AVATAR_S3_PREFIX / AVATAR_S3_REGION
+    value:
+      1 / <bucket> / avatars / <region> on fresh machines, so prepared caches restore lazily
+    scope:
+      all-gpus
+    evidence:
+      api_calls.md:229-242; avatar_s3_store.py:157-171. The live server has it enabled; run_local_api.sh:15 disables it.
+    name:
+      WEBRTC_WALL_POSE_SET_PATH / POSE_LAB_SAMPLE_AUDIO
+    value:
+      optional wall preset JSON / ./data/audio/eng.wav (default, tracked)
+    scope:
+      optional
+    evidence:
+      api_server.py:3914-3921 and :1318-1335; run_wall_api.sh:6.
+    name:
+      HLS_GPU_STAGE_SYNC_TIMING / MUSETALK_VAE_DECODE_TIMING_SYNC
+    value:
+      leave at the default (1) until measured live
+    scope:
+      optional
+    evidence:
+      hls_gpu_scheduler.py:230; musetalk/models/vae.py:29-30. The digest infers they cost live throughput. The foundation GPU-only bench measured 258.1 fps with syncs off vs 259.4/260.1 with them on (docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/foundation_results.json), so no gain was proven.
+procedures:
+    System packages (existing): apt-get install -y python3.10 python3.10-venv coturn ffmpeg git curl build-essential ca-certificates libgl1 libglib2.0-0 libsm6 libxext6 libxrender1   (scripts/setup_trt_stagewise_server_env.sh:82-99). No system libvpx, x264, opus or espeak is needed: PyAV av.libs bundles libvpx, libx264 and libopus, and espeakng_loader ships libespeak-ng.so.
+    WebRTC Python pins (existing, setup_trt_experiment_env.sh:69-73,350-376): av==16.1.0 aiortc==1.14.0 aioice==0.10.1. ADD cffi==2.1.1, because native VP8 hard-requires it (webrtc_native_vp8.py:19) and it only arrives transitively today. Do NOT use scripts/install_webrtc_deps.sh (unpinned `pip install aiortc av aioice`).
+    Native VP8 install (x86_64/py3.10 only): /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/install_native_vp8.py   then   ... scripts/install_native_vp8.py --verify   (offline: --wheel /abs/aiortc-1.11.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl; sha256 f57c5804135d357291f25de65faf7a844d7595c6eb12493e0a304f4d5c34d660, 1867914 bytes). The installer is idempotent; an existing valid dir is reused.
+    Native VP8 launcher preflight (CPU only, ~0.2 s, verified here): cd $REPO_ROOT && WEBRTC_VP8_ENCODER=native WEBRTC_NATIVE_VP8_DIR=$REPO_ROOT/.runtime/native_vp8 CUDA_VISIBLE_DEVICES= $VENV/bin/python -B -c "from scripts import webrtc_native_vp8 as n; n.configure_vp8_encoder('preflight')"  -> prints 'VP8 encoder=native libvpx=v1.13.1 ... startup_probe=passed'. If it fails, export WEBRTC_VP8_ENCODER=pyav.
+    Kokoro install (not done by any setup script today). The versions in the live venv: kokoro==0.9.4 misaki[en]==0.9.4 espeakng-loader==0.2.4 phonemizer-fork==3.3.2 spacy==3.8.16 spacy-curated-transformers==0.3.1 num2words==0.5.14 loguru==0.7.3 plus the en_core_web_sm 3.8.0 wheel. Keep numpy==1.23.5. Do NOT `pip install -r requirements.txt`: it also pulls tensorflow==2.12.0, gradio==5.24.0 and moviepy.
+    Model pre-cache at install: huggingface-cli download hexgrad/Kokoro-82M config.json kokoro-v1_0.pth voices/af_heart.pt voices/af_bella.pt voices/am_michael.pt  (~314 MB). TAESD: vendor madebyollin/taesd into $REPO_ROOT/models/taesd (config.json + diffusion_pytorch_model.safetensors, ~4.9 MB), which vae_fast_decoder.py:119-124 prefers. download_weights.sh fetches neither.
+    TURN (existing): vast_onstart.sh configure_webrtc_turn (SETUP_WEBRTC_TURN=auto) writes $REPO_ROOT/.env.webrtc-turn.local (chmod 600) from VAST_UDP_PORT_3478 / VAST_TCP_PORT_1455 / public IP (curl https://api.ipify.org). vast_server_ctl.sh start then runs scripts/run_turnserver_tcp_relay.sh when WEBRTC_TURN_AUTOSTART=1, and scripts/run_webrtc_relay_api_server.sh when WEBRTC_RELAY_ENABLED=1.
+    Character package build + cache prep: /workspace/.venvs/musetalk_trt_stagewise/bin/python character_factory/scripts/build_realtime_character.py --source-dir <trio dir> --output-dir <registry>/<char_id> --character-id <id> [--prepare-url http://127.0.0.1:8000]. Six-pose lab bank: python scripts/test_pose_webrtc.py --base-url http://127.0.0.1:8000 --prepare-missing --prepare-only.
+    Avatar cache warm before a call (per worker, process-local): curl -X POST 'http://127.0.0.1:8000/avatars/<avatar_id>/cache/warm?batch_size=8' ; curl 'http://127.0.0.1:8000/avatars/<avatar_id>/cache/status'. Multipose needs all 3 physical caches (idle/talking/smiling avatar_ids from session-pose-set.json). AVATAR_WARMUP_WORKERS defaults to 8.
+    Post-boot checks: GET /capabilities (features.pose_plans_v2, features.local_kokoro_tts). For multipose sessions check GET /webrtc/sessions/{id}/status track_stats.video.motion.enabled and bank.routing_sha256 / bank.sources[pose].sha256. Session create must pass pose_set=<session-pose-set.json> and pose_switch_mode=next_boundary.
+    CPU regression (no GPU; ran here with torch imports blocked, 22 tests OK in 0.87 s): cd $REPO_ROOT && PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES= $VENV/bin/python -m unittest test_native_vp8_install test_webrtc_native_vp8 test_webrtc_native_vp8_offer -q. The full multipose suite list is in docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md:303-317.
+    Fast-path launcher as the user runs it today (outside repo, /workspace/experiments/chinese_bob_webrtc_20260927/run_local_api.sh): source .runtime/musetalk_trt_local_sm89.env; MUSETALK_VAE_BACKEND=taesd MUSETALK_UNET_BACKEND=trt MUSETALK_TRT_FALLBACK=0 MUSETALK_BLEND_FIXED_POINT=1 MUSETALK_BLEND_SHRINK_MASK_BBOX=1 MUSETALK_TAESD_WARMUP_BATCHES=8 WEBRTC_MOTION_ATLAS=<atlas> WEBRTC_MOTION_ALLOW_UNREVIEWED=1 AVATAR_S3_ENABLED=0 KOKORO_TTS_DEVICE=cpu HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 exec $VENV/bin/python api_server.py --host ... --port ... (bypasses run_trt_stagewise_server.sh).
+machine_specific:
+    /workspace/run-musetalk-local-trt.sh:11 pins MUSETALK_TRT_PROFILE_ENV_FILE=.runtime/musetalk_trt_local_sm89.env ('Validated on RTX 4070 SUPER 2026-09-15') and sets MUSETALK_TRT_ARTIFACT_RESTORE=0 and MUSETALK_SELECT_BEST_TRT_PROFILE=0.
+    Every native-VP8 and multipose launch command in the docs hardcodes MUSETALK_TRT_PROFILE_ENV_FILE=/workspace/MuseTalk/.runtime/musetalk_trt_local_sm89.env (WEBRTC_NATIVE_VP8.md:15, WEBRTC_MULTIPOSE_CLIENT_ANCHOR_2026-09-25.md:101, MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md:247, GROK_MULTIPOSE_HANDOFF.md:209). That env pins MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_sm89_bs8_local/unet_trt.ts.
+    The fast-path launcher lives outside the repo: /workspace/experiments/chinese_bob_webrtc_20260927/run_local_api.sh and run_wall_api.sh (WEBRTC_WALL_POSE_SET_PATH=/workspace/experiments/chinese_bob_webrtc_20260927/pose-set.json).
+    WEBRTC_MOTION_ATLAS_DIR=/workspace/experiments/realtime_characters (outside the repo). Atlas sources[*].path are absolute paths into /workspace/experiments/... and /workspace/MuseTalk/assets/...; the pose-lab catalog hashes those exact files (webrtc_pose_lab_catalog.py:57-59 -> motion_transitions.file_hash).
+    Japanese and Latina source MP4s exist only under /workspace/experiments (japanese_ltx_fixed_distance_20260925, latina_fixed_distance_multipose_20260925/...). Only the Indian sources are tracked in the repo (assets/ltx23_pose_banks, 101 files, ~1 GB).
+    Kokoro model/voices and the TAESD HF snapshot are only in /root/.cache/huggingface/hub (models--hexgrad--Kokoro-82M 314 MB, models--madebyollin--taesd 9.4 MB). models/taesd is local but gitignored (.gitignore:11 models/).
+    Kokoro was installed into the venv by hand with uv on 2026-09-27 (kokoro-0.9.4.dist-info/INSTALLER=uv); /dev/shm/musetalk-kokoro-runtime holds an earlier volatile copy.
+    Native VP8 requires Linux x86_64, CPython 3.10, glibc >= 2.17 and exact aiortc 1.14.0 / av 16.1.0 / cffi 2.1.1 (webrtc_native_vp8.py:19,55-76). It breaks on aarch64 (GH200/Grace) or any other Python version.
+    TURN is Vast-specific: it keys on VAST_UDP_PORT_3478 / VAST_TCP_PORT_1455 / PUBLIC_IPADDR from /proc/1/environ (vast_onstart.sh:141-146, run_webrtc_relay_api_server.sh:31-47). .env.webrtc-turn.local currently holds public IP 90.107.125.22 and mapped ports 50680/udp and 50685/tcp.
+    turnserver.conf (tracked) hardcodes realm/external-ip 96.28.173.248/172.17.0.2 and commits a TURN user credential and a CLI password. scripts/run_turnserver.sh defaults to CONFIG=/workspace/turnserver.conf (does not exist) and uses sudo.
+    Hardcoded public URLs/IPs in docs: POSE_WEBRTC_LAB.md:129 http://50.40.184.100:60525; WEBRTC_REACT_NATIVE_README.md:171-173 TURN 195.142.145.66 with an example password; chinese_bob README links to http://90.107.125.22:50575.
+    vast_onstart.sh:37 MUSETALK_TRT_ARTIFACT_KEY defaults to trt-artifacts/rtx3090/split8-int8/... (an sm86 bundle) with MUSETALK_TRT_ARTIFACT_RESTORE=required.
+    Offline tooling paths: MediaPipe/LTX venv /workspace/experiments/soulx_ltx_motion_pilot_20260922/A1/.venv (mediapipe 0.10.21); chin tracking uses SoulX-FlashHead/.venv (create_avatar.py:58-59); Node /opt/nvm/versions/node/v22.15.0/bin/node; browser tooling under /dev/shm and /workspace/.tools.
+    Docs assume a 12 GB 4070S and 'never run LTX and MuseTalk simultaneously' (MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md:222-223). The disk is nearly full (docs report 66 MB to 1.4 GB free).
+problems:
+    No start or install script provisions or enables native VP8 (zero grep hits for native_vp8/WEBRTC_VP8_ENCODER in scripts/*.sh and /workspace/run-musetalk-local-trt.sh). Fresh boots use PyAV VP8, which recreates its codec context on large bitrate changes (documented texture change), or libx264.
+    The live user server (pid 3555159, launched via vast_onstart -> vast_server_ctl -> run_webrtc_relay_api_server.sh) runs the old recipe: MUSETALK_VAE_BACKEND=trt_stagewise, MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed, PROFILE=throughput_record, no WEBRTC_VP8_ENCODER, no WEBRTC_MOTION_ATLAS*, no OMP threads.
+    The only TAESD launcher (experiments/.../run_local_api.sh) bypasses run_trt_stagewise_server.sh, so WEBRTC_TRIM_EDGE_SILENCE falls back to True (webrtc_audio_timeline.py:176) instead of the intended 0 (commit 763297d). WEBRTC_POSE_CROSSFADE_FRAMES falls back to 0 in webrtc_tracks.py:66 and hls_gpu_scheduler.py:233, while /capabilities reports 2 (api_server.py:1293).
+    PROVEN (CPU run of configured_bank): the doc-recommended WEBRTC_MOTION_ATLAS_DIR=/workspace/experiments/realtime_characters raises ValueError 'Multiple motion atlases match this character' for japanese_20260925 and latina_guided_20260925. The 2026-09-26 variant dirs (japanese_fixedheight/onepass/onepass_r38/onepass_x38y22, latina_fixedheight/onepass/onepass_x38y22) carry atlases with identical source hashes and no motion-registration.json. Pose-set session creation for those characters would fail (webrtc_pose_router.py:221-222).
+    Every atlas is status=candidate_requires_recorded_review. Without WEBRTC_MOTION_ALLOW_UNREVIEWED=1, a matching bank raises (motion_transitions.py:362-365), which fails the session rather than falling back.
+    Character packages (motion-atlas.json, motion-registration.json, session-pose-set.json) are neither in the repo nor in S3; AVATAR_S3 restores only prepared caches. A fresh machine has no matched-motion bank and multipose silently degrades (configured_bank returns None).
+    Kokoro is never installed by setup. setup_trt_stagewise_server_env.sh passes only --install-server-deps; requirements.txt (kokoro==0.9.4 at line 8) is only used with --install-runtime-deps, and would also pull tensorflow 2.12/gradio. KOKORO_SPANISH_MULTIPOSE_TEST_2026-09-25.md:36 records Kokoro missing from the venv; it is present now only through a manual uv install.
+    No pre-cache for Kokoro-82M, Kokoro voices, spaCy en_core_web_sm or TAESD: download_weights.sh has no taesd/kokoro entries and models/ is gitignored. misaki/en.py:500-501 calls spacy.cli.download at runtime when the model is missing. With HF_HUB_OFFLINE=1 (as in run_local_api.sh) a fresh box would fail at first TTS or TAESD load.
+    cffi is not pinned, but native VP8 demands cffi==2.1.1 exactly (webrtc_native_vp8.py:19,68-76), so a fresh resolve can hard-fail startup. scripts/install_webrtc_deps.sh (recommended in TURN_API_README.md:36) installs unpinned latest aiortc/av/aioice, which also breaks the native check (and aiortc 1.14 requires av<17).
+    The NVENC patch is dead code on aiortc 1.14: api_server.py:273-325 patches create_encoder_context, but aiortc/codecs/h264.py:270 hardcodes libx264 (preset default, tune zerolatency). wall_api.log:4 logs 'encoder set to h264_nvenc' but :882 shows codec=libx264. Digest cost: 11.5–26 CPU-ms/frame, about 7.9 cores at 300 fps.
+    prefer_h264 is applied after setRemoteDescription (api_server.py:4539-4545), but aiortc negotiates codecs inside setRemoteDescription (rtcpeerconnection.py:903-907). In pyav mode the client's offer order decides the codec, as the multipose audit doc also states.
+    Native VP8 inherits aiortc number_of_threads: 2 threads at 512x896 (installed vpx.py:29-37). Digest [M]: 35–45% more CPU than 1 thread under concurrency. There is no env setting for this.
+    coturn relay range is TURN_INTERNAL_RELAY_MIN/MAX_PORT=49160-49200, i.e. 41 ports (run_turnserver_tcp_relay.sh:112-114). The server uses 1 TCP TURN URL and clients get 2 URLs (udp + tcp), about 3 allocations per session. PROJECTED ceiling: about 13 concurrent relay sessions, below the 15–20 stream target.
+    The pose-lab catalog needs the original source MP4s at the absolute paths recorded in each atlas (webrtc_pose_lab_catalog.py:57-59 -> file_hash), so it is not portable. Runtime sessions hash the prepared cache videos instead.
+    No warmup at startup (api_server.py:1016-1133): Kokoro cold-loads its 313 MB model on the first /webrtc/tts/kokoro call under a global RLock, and avatar caches load lazily. Health reflects only manager init. vast_server_ctl.sh STARTUP_TIMEOUT_SECONDS=600 may be too short for a fresh TAESD max-autotune compile plus TRT builds on a new GPU (PROJECTED).
+    The chin alignment and refined seam the user requires are offline-only. Live WebRTC applies TAESD but not chin (chinese_bob README:34; digest 'Chin path ... Not in the live server at all'). Startup scripts cannot make chin live without code work.
+    Doc/code discrepancy: api_calls.md:56-68 says `run_trt_stagewise_server.sh --profile baseline` uses INT8 VAE + TRT UNet split8 and builds UNet if missing. Without a profile env, the launcher defaults are MUSETALK_UNET_BACKEND=eager, MUSETALK_TRT_UNET_ENABLED=0, MUSETALK_TRT_UNET_BUILD=0 and MUSETALK_TRT_STAGEWISE_PRECISION=fp16 (run_trt_stagewise_server.sh:136-155).
+    Doc/code discrepancy: WEBRTC_REACT_NATIVE_README.md:135-139 recommends fps=10, playback_fps=15, batch_size=2. The batch is snapped to the warmed batch 8 (api_server.py:3803-3820), and the validated multipose runtime is 20/20. The wall defaults to 15 generated / 30 transport fps, which duplicates frames (digest: 1.5x encode cost).
+    Doc/code discrepancy: KOKORO doc says Kokoro was removed from the venv, but it is now present (installed 2026-09-27). requirements.txt pins typer==0.9.4 and rich==13.4.2, while the venv has typer 0.27.2 and rich 15.0.0.
+    Stale artifacts: aiortc-1.6.0-cp38-abi3-...whl is tracked at the repo root (commit 88e871e) with zero references anywhere. turnserver.conf is tracked with a hardcoded IP and committed credentials. run_turnserver.sh points at a missing /workspace/turnserver.conf and uses sudo.
+    GPU waste (digest, inferred from code): exact-silence turns and WEBRTC_RAW_IDLE_POSE neutral frames still run UNet+TAESD and then discard the output (hls_gpu_scheduler.py ~1763-1782).
+    Kokoro supports only language codes 'a' and 'b' (kokoro_tts.py:21); the Spanish test used English phonemization.
+open_questions:
+    Should native VP8 become the default for every client? H264-only offers get HTTP 400 in native mode, and the mobile app repo is absent, so no one has confirmed that React Native and iOS clients always offer VP8.
+    On hosts where the native preflight fails (aarch64, non-3.10 Python, a different cffi), should the launcher silently set WEBRTC_VP8_ENCODER=pyav or fail the boot? The code deliberately never falls back once native is requested.
+    Is a small code change acceptable to run native VP8 at 1 thread? Digest: -35–45% CPU. No env setting exists today.
+    Where should character packages (atlas, registration, session-pose-set) ship for 'any machine': repo, S3 next to the avatar tarballs, or a separate bundle? And which of the 2026-09-26 variant atlases (fixedheight/onepass/r38/x38y22) is canonical, so a clean registry holds one atlas per character?
+    Should WEBRTC_MOTION_ALLOW_UNREVIEWED=1 be the default, given that no bank has a recorded review and every matching bank otherwise fails session creation?
+    Is Kokoro needed on production workers, or only for wall/pilot demos? At 15 speakers it would take 30–85% of CPU in-process.
+    What transport fps should the default be: 20/20 as validated for multipose, or the wall's 15 generated / 30 transport?
+    What concurrency and duty cycle should TURN relay-port sizing target? Is relay-only (WEBRTC_ICE_TRANSPORT_POLICY=relay) still desired on non-Vast hosts?
+    Does OMP_NUM_THREADS=4 help or hurt at 15–20 concurrent streams? It was validated only with sequential single sessions.
+    Is live chin alignment in scope for this rework? It is offline-only today and needs FaceMesh (mediapipe is not in the runtime venv), so start scripts alone cannot deliver it.
+files_read:
+    /workspace/MuseTalk/docs/WEBRTC_NATIVE_VP8.md
+    /workspace/MuseTalk/docs/WEBRTC_WALL_AUDIO.md
+    /workspace/MuseTalk/docs/WEBRTC_EXACT_SILENCE_AND_NOSE_MATCHING.md
+    /workspace/MuseTalk/docs/WEBRTC_CURRENT_PHONEME_BLEND.md
+    /workspace/MuseTalk/docs/WEBRTC_MOTION_EYE_BLEND.md
+    /workspace/MuseTalk/docs/WEBRTC_MULTIPOSE_AUDIT_2026-09-25.md
+    /workspace/MuseTalk/docs/WEBRTC_MULTIPOSE_CLIENT_ANCHOR_2026-09-25.md
+    /workspace/MuseTalk/docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md
+    /workspace/MuseTalk/docs/GROK_MULTIPOSE_HANDOFF.md
+    /workspace/MuseTalk/docs/KOKORO_SPANISH_MULTIPOSE_TEST_2026-09-25.md
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_20260927/EVIDENCE_DIGEST.md
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/foundation_results.json (partial)
+    /workspace/MuseTalk/character_factory/REALTIME_PACKAGE_INTEGRITY.md
+    /workspace/MuseTalk/character_factory/README.md
+    /workspace/MuseTalk/character_factory/CHARACTER_CREATION_WORKFLOW.md
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/WORKFLOW.md (grep)
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/BATCH_THREE_POSE.md (grep)
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/create_avatar.py (grep)
+    /workspace/MuseTalk/POSE_WEBRTC_LAB.md
+    /workspace/MuseTalk/WEBRTC_REACT_NATIVE_README.md
+    /workspace/MuseTalk/api_calls.md
+    /workspace/MuseTalk/requirements.txt
+    /workspace/MuseTalk/turnserver.conf (secrets redacted)
+    /workspace/MuseTalk/scripts/install_native_vp8.py
+    /workspace/MuseTalk/scripts/native_vp8_manifest.json
+    /workspace/MuseTalk/scripts/webrtc_native_vp8.py
+    /workspace/MuseTalk/scripts/kokoro_tts.py
+    /workspace/MuseTalk/api_server.py (header, 120-460, 600-720, 1010-1340, 3780-3960, 4315-4360, 4510-4560, 5320-5440, 5620-5700)
+    /workspace/MuseTalk/scripts/motion_transitions.py (1-70, 300-365)
+    /workspace/MuseTalk/scripts/webrtc_pose_lab_catalog.py (1-60)
+    /workspace/MuseTalk/scripts/webrtc_pose_router.py (195-240)
+    /workspace/MuseTalk/scripts/webrtc_tracks.py (1-70, 1535-1560)
+    /workspace/MuseTalk/scripts/webrtc_motion_playback.py (grep)
+    /workspace/MuseTalk/scripts/webrtc_manager.py (350-512)
+    /workspace/MuseTalk/scripts/runtime_cpu_tuning.py
+    /workspace/MuseTalk/scripts/concurrent_gpu_manager.py (115-147)
+    /workspace/MuseTalk/scripts/vae_fast_decoder.py (108-135, env grep)
+    /workspace/MuseTalk/scripts/api_avatar.py (540-560, env grep)
+    /workspace/MuseTalk/scripts/avatar_manager_parallel.py (env grep)
+    /workspace/MuseTalk/scripts/avatar_s3_store.py (env grep)
+    /workspace/MuseTalk/scripts/hls_gpu_scheduler.py (env grep)
+    /workspace/MuseTalk/musetalk/models/vae.py (env grep)
+    /workspace/MuseTalk/scripts/setup_trt_stagewise_server_env.sh
+    /workspace/MuseTalk/scripts/setup_trt_experiment_env.sh (pins, server deps, runtime-deps gating)
+    /workspace/MuseTalk/scripts/install_webrtc_deps.sh
+    /workspace/MuseTalk/scripts/run_trt_stagewise_server.sh
+    /workspace/MuseTalk/scripts/run_webrtc_relay_api_server.sh
+    /workspace/MuseTalk/scripts/run_turnserver_tcp_relay.sh
+    /workspace/MuseTalk/scripts/run_turnserver.sh
+    /workspace/MuseTalk/scripts/vast_onstart.sh (1-60, 110-200, 505-789)
+    /workspace/MuseTalk/scripts/vast_server_ctl.sh (1-30, 190-345, grep)
+    /workspace/run-musetalk-local-trt.sh
+    /workspace/.musetalk-runtime.env (key names only)
+    /workspace/MuseTalk/.env.webrtc-turn.local (key names only)
+    /workspace/MuseTalk/.runtime/musetalk_trt_local_sm89.env
+    /workspace/MuseTalk/.runtime/musetalk_trt_best.env (key names only)
+    /workspace/MuseTalk/.runtime/native_vp8/installation.json
+    /workspace/MuseTalk/templates/webrtc_wall.py (grep)
+    /workspace/experiments/chinese_bob_webrtc_20260927/run_local_api.sh
+    /workspace/experiments/chinese_bob_webrtc_20260927/run_wall_api.sh
+    /workspace/experiments/chinese_bob_webrtc_20260927/README.md (grep)
+    /workspace/experiments/chinese_bob_webrtc_20260927/wall_api.log (grep)
+    /workspace/experiments/cheek_drift_ab_20260926/README.md (grep)
+    /workspace/experiments/realtime_characters/*/motion-atlas.json (sources/status only)
+    /workspace/experiments/realtime_characters/latina_guided_20260925/session-pose-set.json
+    /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/aiortc/codecs/h264.py (260-290)
+    /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/aiortc/codecs/vpx.py (25-40)
+    /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/aiortc/rtcpeerconnection.py (80-100, 880-915)
+    /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/misaki/en.py (grep)
+    /workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/kokoro/model.py (grep)
+    /proc/3555159/environ (WEBRTC_/MUSETALK_/HLS_/TURN_ names, secrets redacted)
+    /tmp/musetalk-turnserver-tcp-relay.conf (port lines only)

@@ -28,11 +28,64 @@ from aiortc.mediastreams import MediaStreamError
 # 300 fps plan media-path levers; every default reproduces the previous path.
 from scripts.webrtc_media_flags import (
     effective_decode_threads,
+    env_bool as _media_env_bool,
     env_int as _media_env_int,
     lifetime_counters_enabled,
+    preencode_sha_dir,
+    thread_caps_enabled,
 )
 from scripts.webrtc_idle_frame_cache import get_idle_frame_cache, register_reader_finalizer
 from scripts.webrtc_live_handoff import video_frame_from_live_item
+
+_ffmpeg_executor = None
+_ffmpeg_executor_lock = threading.Lock()
+
+
+def _turn_media_executor():
+    """MUSETALK_THREAD_CAPS=1: per-turn ffmpeg/PCM work gets its own bounded
+    executor instead of the loop default executor (shared with to_thread
+    decoders). None = the default executor (today)."""
+    global _ffmpeg_executor
+    if not thread_caps_enabled():
+        return None
+    with _ffmpeg_executor_lock:
+        if _ffmpeg_executor is None:
+            from concurrent.futures import ThreadPoolExecutor
+            _ffmpeg_executor = ThreadPoolExecutor(
+                max_workers=_media_env_int("MUSETALK_FFMPEG_EXECUTOR_WORKERS", 4,
+                                           minimum=1, maximum=64),
+                thread_name_prefix="webrtc-turn-media",
+            )
+        return _ffmpeg_executor
+
+
+class _PreencodeShaTap:
+    """WEBRTC_PREENCODE_SHA_DIR (smoke tests): one JSON line per live frame that
+    entered a track queue: generation, per-turn index, SHA-256 of packed I420."""
+
+    def __init__(self, directory: str, label: str):
+        import hashlib
+        self._hashlib = hashlib
+        Path(directory).mkdir(parents=True, exist_ok=True)
+        self.path = Path(directory) / f"preencode_{os.getpid()}_{label}.jsonl"
+        self._fh = open(self.path, "a", buffering=1)
+        self._index = {}
+
+    def record(self, generation_id: int, frame, metadata=None) -> None:
+        index = self._index.get(generation_id, 0)
+        self._index[generation_id] = index + 1
+        digest = self._hashlib.sha256(frame.to_ndarray().tobytes()).hexdigest()
+        entry = {"g": int(generation_id), "i": index, "sha256": digest,
+                 "t": round(time.monotonic(), 6)}
+        if isinstance(metadata, dict) and "generation_frame" in metadata:
+            entry["gf"] = metadata.get("generation_frame")
+        self._fh.write(json.dumps(entry) + "\n")
+
+    def close(self) -> None:
+        try:
+            self._fh.close()
+        except Exception:
+            pass
 
 # Environment configuration
 WEBRTC_SYNC_MODE = os.getenv("WEBRTC_SYNC_MODE", "strict_fifo").strip().lower()
@@ -1119,6 +1172,11 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
             deque(maxlen=_media_env_int("WEBRTC_LIFETIME_SEND_RING", 256, minimum=16))
             if self._lifetime_enabled else None
         )
+        self._deadline_pacing = _media_env_bool("WEBRTC_DEADLINE_PACING", False)
+        tap_dir = preencode_sha_dir()
+        self._preencode_tap = (
+            _PreencodeShaTap(tap_dir, uuid.uuid4().hex[:8]) if tap_dir else None
+        )
         self._slowdown_active = False
         self._current_slowdown = 1.0
         self._generation_complete = False
@@ -2061,6 +2119,8 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         ):
             self._remove_queued_item_identity(queued_item)
             return False
+        if self._preencode_tap is not None:
+            self._preencode_tap.record(owner_generation_id, frame, metadata)
 
         queue_wait_s = time.monotonic() - queue_wait_started_at
         push_s = time.monotonic() - push_started_at
@@ -2298,6 +2358,14 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
                 # asyncio oversleep otherwise accumulates until speech startup
                 # has to jump the RTP timestamp to catch the audio transport.
                 self._last_ts += frame_time
+            elif self._deadline_pacing:
+                # WEBRTC_DEADLINE_PACING=1: the same deadline pacing for tracks
+                # without a motion bank (~51 ms -> 50 ms average send interval).
+                # Frame selection is by output index, so content is unchanged;
+                # after a long hiccup re-anchor instead of bursting to catch up.
+                self._last_ts += frame_time
+                if time.monotonic() - self._last_ts > 3.0 * frame_time:
+                    self._last_ts = time.monotonic()
             else:
                 self._last_ts = time.monotonic()
 
@@ -2510,6 +2578,39 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
             stats["send_ring"] = tail
         return stats
 
+    def counters_view(self, ring: int = 0) -> dict:
+        """Cheap per-poll counters for GET /webrtc/sessions/stats?view=lifetime.
+
+        With WEBRTC_LIFETIME_COUNTERS=1: the monotonic lifetime counters (and the
+        newest ``ring`` send stamps). Otherwise today's per-turn counters, which
+        start_live() zeroes, so a client can stitch the resets itself."""
+        handoff = getattr(self, "_musetalk_live_handoff", None)
+        if self._lifetime_enabled:
+            view = {"lifetime_enabled": True, "lifetime": self.lifetime_stats(ring=ring)}
+            if handoff is not None:
+                view["live_handoff"] = handoff.get_stats()
+            if getattr(self._idle, "_frame_cache", None) is not None:
+                view["idle_cache_backed"] = bool(getattr(self._idle, "cache_backed", False))
+            return view
+        return {
+            "lifetime_enabled": False,
+            "turn_counters": {
+                "generation_id": self._live_generation_id,
+                "frames_received": self._frames_received,
+                "frames_played": self._frames_played,
+                "frames_dropped": self._frames_dropped,
+                "frames_duplicated": self._frames_duplicated,
+                "queue_underruns": self._queue_underruns,
+                "strict_video_stalls": self._strict_video_stalls,
+                "strict_video_stall_seconds": round(self._strict_video_stall_seconds, 6),
+                "output_frames_sent": self._output_frames_sent,
+                "output_fps": self._output_fps,
+                "live_active": self._live_active,
+                "live_released": self._live_released,
+                "queue_size": self._queue.qsize(),
+            },
+        }
+
     def live_buffer_depth_frames(self) -> int:
         """Generated frames not yet played: track queue + non-blocking handoff
         backlog. The GPU scheduler may read this to cap run-ahead."""
@@ -2618,6 +2719,13 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
     def stop(self) -> None:
         self._close_motion()
         self._closed = True
+        handoff = getattr(self, "_musetalk_live_handoff", None)
+        if handoff is not None:
+            # WEBRTC_NONBLOCKING_HANDOFF: drop frames not yet queued and wake a
+            # scheduler thread waiting on the FIFO bound.
+            handoff.close()
+        if getattr(self, "_preencode_tap", None) is not None:
+            self._preencode_tap.close()
         self._completion_idle_stage_id += 1
         # Invalidate every producer before making queue capacity available.
         # Draining an asyncio.Queue wakes blocked putters; once awakened, their
@@ -3110,7 +3218,7 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
                 conversion_future = None
                 try:
                     conversion_future = loop.run_in_executor(
-                        None, _convert_audio_with_ffmpeg,
+                        _turn_media_executor(), _convert_audio_with_ffmpeg,
                         self._original_audio_path,
                         self._sample_rate,
                         self._channels,
@@ -3141,7 +3249,8 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
                     if self._converted_path:
                         Path(self._converted_path).unlink(missing_ok=True)
             
-            self._audio_samples = await loop.run_in_executor(None, self._load_pcm_audio)
+            self._audio_samples = await loop.run_in_executor(
+                _turn_media_executor(), self._load_pcm_audio)
             self._fully_loaded = True
             self._prepare_finished_at = time.monotonic()
             if self._sync_clock is not None:

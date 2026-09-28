@@ -4,10 +4,15 @@ Baseline is scripts/api_avatar.py at BASE_COMMIT (today's code, default
 layout). Each candidate is the working-tree api_avatar.py under a flag set.
 For every avatar, every cycle position 0..N-1 plus wrap/mirror/negative
 indices is composed three ways (plain, return_layers, alternate background)
-with a deterministic per-position face, and every output array is compared by
-SHA-256. Also checked on the whole prepared library: every mask's plane 0 from
-the single-channel reader equals plane 0 of cv2.imread, and the 3 planes are
-identical. Mutation safety is checked on the PNG store. CPU only (CUDA hidden).
+with a deterministic per-position face, plus all-zero and all-255 faces at the
+cycle ends and the forward/reverse mirror seam, and every output array is
+compared by SHA-256. The default layout's cache-admission estimate must equal
+the baseline's. Also checked on the whole prepared library: every mask's plane 0
+from the single-channel reader equals plane 0 of cv2.imread, and the 3 planes
+are identical. Mutation safety (read-only cached images, private outputs, plans
+unchanged) and 6-thread concurrent compose are checked on the PNG store. CPU
+only (CUDA hidden). Set TMPDIR to a scratch dir (the baseline module is written
+there).
 
     CUDA_VISIBLE_DEVICES= python verify_layout_bitexact.py [--quick]
 """
@@ -24,7 +29,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
-ROOT = Path("/workspace/MuseTalk")
+ROOT = Path("/workspace/MuseTalk-perf300")
 HERE = Path(__file__).resolve().parent
 os.chdir(ROOT)
 sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "scripts")]
@@ -58,7 +63,12 @@ CONFIGS = {
     "mask1_decoded": {"MUSETALK_AVATAR_MASK_CHANNELS": "1"},
     "framepng_inline_lru1": {"MUSETALK_AVATAR_FRAME_STORE": "png", "MUSETALK_AVATAR_PNG_READAHEAD": "0",
                              "MUSETALK_AVATAR_DECODED_LRU_FRAMES": "1"},
+    # Zero-runtime-CPU tiers (frames stay decoded):
+    "lean_decoded": {"MUSETALK_AVATAR_MASK_CHANNELS": "1", "MUSETALK_AVATAR_PLAN_FLOAT_ALPHA": "0"},
+    "lean_maskpng": {"MUSETALK_AVATAR_MASK_CHANNELS": "1", "MUSETALK_AVATAR_MASK_STORE": "png",
+                     "MUSETALK_AVATAR_PLAN_FLOAT_ALPHA": "0"},
 }
+SPECIAL_FACES = {"zero": np.zeros((256, 256, 3), np.uint8), "white": np.full((256, 256, 3), 255, np.uint8)}
 # (avatar_id, extra env, configs to run, label)
 AVATARS = [
     ("chinese_bob_pink_bedroom_talking_3373c10448", {}, "all", "standard"),
@@ -132,7 +142,13 @@ def positions_for(count: int):
     return list(range(count)) + extra
 
 
-def compose_hashes(avatar, positions, backgrounds):
+def boundary_positions(count: int):
+    """Cycle ends and the forward/reverse mirror seam, where dedup shares buffers."""
+    half = count // 2
+    return sorted({0, 1, half - 2, half - 1, half, half + 1, count - 2, count - 1})
+
+
+def compose_hashes(avatar, positions, backgrounds, special_faces=True):
     out = []
     for position in positions:
         face = face_for(position)
@@ -142,13 +158,41 @@ def compose_hashes(avatar, positions, backgrounds):
                 sha(np.asarray(layers["alpha"]["bounds"]))]
         background = backgrounds[position % len(backgrounds)]
         out.append(sha(avatar.compose_frame(face, position, background_frame=background)))
+    if special_faces:
+        # Saturated faces at the seams: any mask-plane or plan-alpha difference shows up
+        # as the full-range blend weight, not diluted by a random face.
+        for position in boundary_positions(len(avatar.coord_list_cycle)):
+            for face in SPECIAL_FACES.values():
+                out.append(sha(avatar.compose_frame(face, position)))
     return out
 
 
-def mutation_checks(avatar, positions):
+def concurrent_compose_check(avatar, reference_plain: dict, workers: int = 6, rounds: int = 2):
+    """Scheduler-like: several compose threads walk interleaved positions at once."""
+    from concurrent.futures import ThreadPoolExecutor
+    positions = sorted(reference_plain)
+    bad = []
+
+    def walk(offset):
+        for step in range(rounds * len(positions) // workers):
+            position = positions[(offset + step * workers) % len(positions)]
+            if sha(avatar.compose_frame(face_for(position), position)) != reference_plain[position]:
+                bad.append(position)
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        list(pool.map(walk, range(workers)))
+    return {"workers": workers, "composes": workers * (rounds * len(positions) // workers),
+            "mismatches": len(bad)}
+
+
+def mutation_checks(avatar, positions, reference_plain=None):
     """PNG store: shared decoded images must be immutable and stay exact."""
     frames = avatar.frame_list_cycle
     checks = {}
+    if reference_plain:
+        concurrent = concurrent_compose_check(avatar, reference_plain)
+        checks["concurrent_compose_exact"] = concurrent["mismatches"] == 0
+        checks["concurrent_compose"] = concurrent
     paths = sorted((Path(avatar.full_imgs_path)).glob("*.png"))
     plan_hash_before = [sha(p["alpha_u8"]) for p in avatar._compose_plan_cycle if isinstance(p, dict)]
     first = avatar.compose_frame(face_for(0), 0)
@@ -168,7 +212,7 @@ def mutation_checks(avatar, positions):
     except ValueError:
         checks["cached_frame_write_raises"] = True
     for position in positions[:: max(1, len(positions) // 64)]:
-        compose_hashes(avatar, [position], [np.zeros((10, 10, 3), np.uint8)])
+        compose_hashes(avatar, [position], [np.zeros((10, 10, 3), np.uint8)], special_faces=False)
     exact = all(sha(frames[i]) == sha(cv2.imread(str(paths[i]))) for i in range(len(paths)))
     checks["every_position_still_equals_imread_after_composes"] = exact
     plan_hash_after = [sha(p["alpha_u8"]) for p in avatar._compose_plan_cycle if isinstance(p, dict)]
@@ -230,6 +274,9 @@ def main():
         positions = positions_for(count)
         frame_hashes_before = [sha(f) for f in base.frame_list_cycle[: count // 2 + 1]]
         reference = compose_hashes(base, positions, backgrounds)
+        # plain compose output of position k is reference[6 * k] (see compose_hashes)
+        reference_plain = {p % count: reference[6 * k] for k, p in enumerate(positions) if 0 <= p < count}
+        baseline_estimate = base.estimate_memory_usage_bytes()
         with_float = None
         if avatar_id in QUICK and label == "standard":
             blending.MUSETALK_BLEND_FIXED_POINT = False
@@ -249,16 +296,22 @@ def main():
             result = {"outputs_compared": len(got), "mismatches": len(mismatches) + abs(len(got) - len(reference)),
                       "first_mismatch_output": mismatches[0] if mismatches else None,
                       "digest": hashlib.sha256("".join(got).encode()).hexdigest()[:16],
-                      "seconds": round(time.perf_counter() - started, 1)}
+                      "seconds": round(time.perf_counter() - started, 1),
+                      "estimate_mb": round(candidate.estimate_memory_usage_bytes() / memguard.MB, 1),
+                      "baseline_estimate_mb": round(baseline_estimate / memguard.MB, 1)}
+            if config == "new_default":
+                # Default layout = today's: the cache admission estimate must not move either.
+                result["estimate_equals_baseline"] = candidate.estimate_memory_usage_bytes() == baseline_estimate
+                all_ok &= result["estimate_equals_baseline"]
             if with_float is not None and config == "new_all":
                 blending.MUSETALK_BLEND_FIXED_POINT = False
                 float_got = compose_hashes(candidate, positions[::7], backgrounds)
                 blending.MUSETALK_BLEND_FIXED_POINT = True
                 result["float_blend_mismatches"] = sum(a != b for a, b in zip(with_float, float_got))
             if config == "new_all":
-                result["mutation_safety"] = mutation_checks(candidate, positions)
+                result["mutation_safety"] = mutation_checks(candidate, positions, reference_plain)
                 ms = result["mutation_safety"]
-                result["mutation_ok"] = all(v for k, v in ms.items() if k != "store_stats")
+                result["mutation_ok"] = all(v for k, v in ms.items() if k not in ("store_stats", "concurrent_compose"))
                 all_ok &= result["mutation_ok"]
             all_ok &= result["mismatches"] == 0 and result.get("float_blend_mismatches", 0) == 0
             entry["configs"][config] = result

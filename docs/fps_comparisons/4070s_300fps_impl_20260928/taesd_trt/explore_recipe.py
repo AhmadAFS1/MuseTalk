@@ -19,7 +19,7 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path("/workspace/MuseTalk")
+ROOT = Path("/workspace/MuseTalk-perf300")
 OUT = Path(__file__).resolve().parent
 sys.path[:0] = [str(ROOT), str(ROOT / "scripts")]
 

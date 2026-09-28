@@ -1,0 +1,238 @@
+summary:
+  You get the TAESD decoder today by setting one runtime env var, MUSETALK_VAE_BACKEND=taesd. It is not an avatar-prep parameter, not a per-request API field and not stored in avatar packages. The '100% chin alignment + refined seam' is not in the live server at all. It exists only as an offline render stage in character_factory/h3_avatar_workflow (chin.py plus render_stage.py), and no env var, API field or start script can turn it on.
+
+TAESD path: scripts/avatar_manager_parallel.py:183 calls trt_runtime.load_vae_trt_decoder. That function checks taesd_backend_requested() at scripts/trt_runtime.py:2021, which reads MUSETALK_VAE_BACKEND in {taesd,tiny,tiny_vae} (vae_fast_decoder.py:58, committed). It then returns vae_fast_decoder.load_taesd_decoder(), which loads diffusers AutoencoderTiny from models/taesd, falling back to the HF id madebyollin/taesd. The decoder is torch.compile'd (max-autotune, dynamic=False, one graph per batch size) and warmed only at MUSETALK_TAESD_WARMUP_BATCHES (default '8'). The native SD-VAE encoder is kept (musetalk/models/vae.py:135-143; set_decode_backend swaps decode only). TAESD decodes the same SD1.x latent space, so existing avatars do NOT need re-preparing. This is shown by the 20260925 and 20260922 A/Bs, which used the same caches.
+
+The start chain can never produce TAESD today. scripts/select_unet_trt_profile.py:75 hard-writes MUSETALK_VAE_BACKEND=trt_stagewise (int8_mixed) into the profile env. run_trt_stagewise_server.sh:124-128 sources that file AFTER the caller's env, which clobbers any exported MUSETALK_VAE_BACKEND=taesd. Then :138 defaults to trt_stagewise, and :459 runs the INT8 calibration/modelopt precheck whatever backend is set. Confirmed: the live user server (PID 3555159, port 8000) runs MUSETALK_VAE_BACKEND=trt_stagewise / MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed.
+
+Every TAESD run so far bypassed vast_onstart. They called api_server.py directly: experiments/chinese_bob_webrtc_20260927/run_local_api.sh, and batch_three_pose.py:186-194 (sources the sm89 env, then overrides MUSETALK_VAE_BACKEND=taesd, MUSETALK_UNET_BACKEND=trt, MUSETALK_TRT_FALLBACK=0, MUSETALK_TAESD_WARMUP_BATCHES=8, HF offline).
+
+On a fresh machine the TAESD weights are missing. models/ is gitignored (.gitignore:11) and download_weights.sh does not fetch madebyollin/taesd. The docs call them 'vendored', but that is local only.
+
+Chin alignment: it needs per-source FaceMesh landmarks (track_stage.py; mediapipe 0.10.9 exists only in /workspace/SoulX-FlashHead/.venv, because the TRT venv has protobuf 7.36.1 and no mediapipe). It also needs per-frame FaceMesh tracking of each generated face over a 512x896 shared-memory IPC (hardcoded), a one-frame look-ahead filter, and research cache.pt/masks.npz files. Production avatar dirs contain none of this: none of the 33 local avatars have landmarks. So putting chin into production would need new prep artifacts plus runtime code.
+
+The masks are compatible: the API hardcodes parsing_mode='jaw', cheek width 90 and extra_margin 10 (api_server.py:1038-1041). Those are the same settings the chin prep uses (prepare_stage.py:87,95,115), and they get baked into masks at prep time.
+
+Commit c284891 ('TAESD + chin alignment 100%') contains no TAESD or chin-alignment code. It adds opt-in cheek/jaw blend env flags, a prep-time fixed-face-height mode and WEBRTC_RAW_IDLE_POSE. TAESD came in 9b90b92; the chin module came in e803a63.
+
+PROVEN on the 4070S: TAESD VAE decode is 6.83 ms at batch 8, vs 138.4 ms for SD-VAE. End to end: 209-241 fps model path. GPU-only sustained run: 260.1 fps (bs8, 200 s). Offline chin, refined seam: 168.8/163.4 fps (Japanese/Latina). Offline chin v1, pipelined: 184.9/193.4 fps. Diversity batch: 148-171 fps. All of these exclude TTS, encode and transport. Live WebRTC with chin has never been measured; the plan projects a ~174-203 fps structural cap on the live server even without chin.
+recommended_env:
+    name:
+      MUSETALK_VAE_BACKEND
+    value:
+      taesd
+    scope:
+      all-gpus
+    evidence:
+      Turns on TAESD: scripts/vae_fast_decoder.py:58 (committed) checks it; dispatched at scripts/trt_runtime.py:2021-2028; loaded at avatar_manager_parallel.py:183-188. Measured 4070S: VAE bs8 138.38 ms -> 6.83 ms (docs/fps_comparisons/4070s_20260922/taesd_backend_validation.json); e2e 46.7 -> 241.1 fps (e2e_indian_results.json); capacity.json 209.0 fps at bs8 with eager-equivalent 12.38 ms VAE. MUST be set after, or instead of, sourcing the profile env: .runtime/*.env line 7 and select_unet_trt_profile.py:75 force trt_stagewise, and run_trt_stagewise_server.sh:124-128 sources the profile over the caller's env.
+    name:
+      MUSETALK_TAESD_WARMUP_BATCHES
+    value:
+      same list as HLS_SCHEDULER_FIXED_BATCH_SIZES (8 on the sm89 profile; e.g. 4,8 for <20GB, 8,16 for 20-30GB under throughput_record)
+    scope:
+      per-gpu-tier
+    evidence:
+      vae_fast_decoder.py:157 defaults to '8'. torch.compile runs with dynamic=False, one graph per batch (:143), so any unwarmed batch size triggers a max-autotune compile on first use, mid-stream. The scheduler pads to fixed buckets (hls_gpu_scheduler.py:1318-1324; buckets from concurrent_gpu_manager.py:115-147). The GPU-aware defaults set only MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES (api_server.py:633; run_trt_stagewise_server.sh:250), never the TAESD one. Warmup cost measured at 3.8 s for bs8 (component analysis doc:380).
+    name:
+      MUSETALK_TAESD_COMPILE
+    value:
+      1 (default); make 0 an automatic fallback when the compile preflight fails
+    scope:
+      all-gpus
+    evidence:
+      vae_fast_decoder.py:121. Compiled: 6.83 ms at bs8; eager: 12.3 ms (taesd.json taesd_raw/taesd_compiled). Compile errors surface lazily inside warmup() fn(probe) (:168), which has no try around it. load_taesd_decoder then either raises (MUSETALK_TRT_FALLBACK=0) or drops TAESD entirely and returns None, i.e. PyTorch SD-VAE at ~46 fps (fallback=1). It does not drop to eager TAESD.
+    name:
+      MUSETALK_TAESD_COMPILE_MODE
+    value:
+      max-autotune (default)
+    scope:
+      optional
+    evidence:
+      vae_fast_decoder.py:122; the measured 6.83 ms used max-autotune (bench_gpu_path_baseline_trtbs8_taesd_200s.json backends.taesd_compile_mode).
+    name:
+      MUSETALK_TAESD_LOCAL_DIR
+    value:
+      unset (auto-uses <repo>/models/taesd when config.json exists) or an absolute path to a provisioned copy
+    scope:
+      optional
+    evidence:
+      vae_fast_decoder.py:96-100. If neither exists it downloads madebyollin/taesd from the HF Hub (:94), which fails under HF_HUB_OFFLINE=1.
+    name:
+      MUSETALK_TRT_FALLBACK
+    value:
+      0 (only after the start script has provisioned and preflighted models/taesd)
+    scope:
+      all-gpus
+    evidence:
+      vae_fast_decoder.py:227 defaults to True, and True silently degrades to SD-VAE on any TAESD failure. Every TAESD launcher sets 0 (run_local_api.sh, batch_three_pose.py:190, h3 backend.py:37).
+    name:
+      HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE
+    value:
+      1, but only once models/taesd, models/sd-vae and models/whisper exist locally
+    scope:
+      all-gpus
+    evidence:
+      Set by run_local_api.sh and batch_three_pose.py:192. With models/taesd absent (gitignored, and not fetched by download_weights.sh:237-275), offline mode makes the TAESD load fail.
+    name:
+      MUSETALK_TRT_STAGEWISE_PRECISION
+    value:
+      fp16 (or skip the INT8 precheck) when MUSETALK_VAE_BACKEND=taesd
+    scope:
+      all-gpus
+    evidence:
+      run_trt_stagewise_server.sh:263-296 plus the call at :459 run the INT8 calibration-dir/.pt/modelopt check for int8|int8_mixed whatever the VAE backend. The profile env sets int8_mixed, so a fresh machine without calibration captures would die before TAESD is ever used.
+    name:
+      MUSETALK_BLEND_FIXED_POINT / MUSETALK_BLEND_SHRINK_MASK_BBOX
+    value:
+      1 / 1 (already the code defaults)
+    scope:
+      all-gpus
+    evidence:
+      musetalk/utils/blending.py:14-15 default True. Set explicitly in the sm89 profile, run_local_api.sh and batch_three_pose.py:191. The chin harness create_avatar.py:62 also sets both.
+    name:
+      MUSETALK_AVATAR_DEDUP_CYCLE
+    value:
+      1 (default; leave unset)
+    scope:
+      all-gpus
+    evidence:
+      scripts/api_avatar.py:141. Lossless: host RAM per avatar 673.9 -> 339.4 MB, composed frames bit-identical (component analysis doc 'Implementation round 1' section 2).
+    name:
+      MUSETALK_FIXED_FACE_HEIGHT
+    value:
+      do NOT set globally
+    scope:
+      avoid
+    evidence:
+      api_avatar.py:505 plus _validate_prepared_height_mode :828-835. It raises ValueError for every avatar whose avatar_info.json fixed_face_height differs, which is all 33 local avatars and all S3 caches (prepared False). If used, it needs a re-prepare under a new avatar id. It is not the accepted 100% chin alignment.
+    name:
+      MUSETALK_SOURCE_MOUTH_BLEND / MUSETALK_SIDE_JAW_BLEND (+ _AVATAR_IDS, _STRENGTH, MUSETALK_SOURCE_MOUTH_RADIUS_X/Y)
+    value:
+      do NOT set by default
+    scope:
+      avoid
+    evidence:
+      api_avatar.py:510-543,608-617. It needs avatar_info.latent_mix.source_mouth_centers, which no local avatar has, or it raises. These are 26-Sep cheek-drift experiments: source-mouth was rejected by the user (AVATAR_WORK_CONTEXT line 42) and side-jaw is provisional per avatar.
+    name:
+      MUSETALK_CHEEK_ONLY_BLEND
+    value:
+      do NOT set by default
+    scope:
+      avoid
+    evidence:
+      api_avatar.py:608,1379. Experimental cheek attenuation from c284891; never accepted as a default.
+    name:
+      WEBRTC_RAW_IDLE_POSE
+    value:
+      leave unset (opt-in)
+    scope:
+      optional
+    evidence:
+      api_server.py motion_metadata and hls_gpu_scheduler.py raw_idle_pose (added in c284891). The live retake was still unreviewed at normal speed (AVATAR_WORK_CONTEXT line 118).
+    name:
+      MUSETALK_TAESD_BACKEND
+    value:
+      leave unset (=compiled) until the other session's uncommitted TRT-TAESD work lands
+    scope:
+      avoid
+    evidence:
+      Exists only in the uncommitted working-tree scripts/vae_fast_decoder.py (:278 and _TRT_FLAG_DOC). Measured 0.49 ms/frame full-height TRT TAESD (300fps plan line 38), but there are no engines under models/taesd/trt and it is not committed.
+procedures:
+    Provision TAESD weights on a fresh machine (missing from download_weights.sh). Example: huggingface-cli download madebyollin/taesd config.json diffusion_pytorch_model.safetensors --local-dir /workspace/MuseTalk/models/taesd. Local reference copy: models/taesd/config.json sha256 7e586377ccc3d64e45cc35c2c9585831620fce39741f6c7c7dbf32ebebe53619, diffusion_pytorch_model.safetensors (4,903,134 bytes) sha256 8b947cff0fc2846c1c600f95d54634d54a2ddd2cedd53652eb032fe6ea5434e8. The config says _diffusers_version 0.30.2 (it was re-saved locally, so the HF file hashes may differ).
+    How TAESD has actually been booted (bypasses vast_onstart), from experiments/chinese_bob_webrtc_20260927/run_local_api.sh: cd /workspace/MuseTalk; set -a; source .runtime/musetalk_trt_local_sm89.env; set +a; export MUSETALK_VAE_BACKEND=taesd MUSETALK_UNET_BACKEND=trt MUSETALK_TRT_FALLBACK=0 MUSETALK_BLEND_FIXED_POINT=1 MUSETALK_BLEND_SHRINK_MASK_BBOX=1 MUSETALK_TAESD_WARMUP_BATCHES=8 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1; exec /workspace/.venvs/musetalk_trt_stagewise/bin/python api_server.py --host ${MUSETALK_API_HOST:-127.0.0.1} --port ${MUSETALK_API_PORT:-8200}. Pilot extras, not for default use: WEBRTC_MOTION_ATLAS=..., WEBRTC_MOTION_ALLOW_UNREVIEWED=1, AVATAR_S3_ENABLED=0, KOKORO_TTS_DEVICE=cpu.
+    Same TAESD override in the character factory: character_factory/h3_avatar_workflow/batch_three_pose.py:178-209 (local_api). It sources the sm89 env, then env.update(MUSETALK_VAE_BACKEND='taesd', MUSETALK_UNET_BACKEND='trt', MUSETALK_TRT_FALLBACK='0', MUSETALK_BLEND_FIXED_POINT='1', MUSETALK_BLEND_SHRINK_MASK_BBOX='1', MUSETALK_TAESD_WARMUP_BATCHES='8', HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1'), then runs .venvs/musetalk_trt_stagewise/bin/python api_server.py --host 127.0.0.1 --port 8198.
+    TAESD contract/speed gate (GPU; not run by me): V=/workspace/.venvs/musetalk_trt_stagewise/bin/python; $V docs/fps_comparisons/4070s_20260922/validate_taesd_backend.py -> expects name=taesd, blended ROI mae ~0.0157, bs8 ~6.8 ms. Per-avatar e2e: $V docs/fps_comparisons/4070s_20260922/e2e_indian.py --avatar <avatar_id>. Both hardcode ROOT=/workspace/MuseTalk, a /tmp/claude-0/... output path and models/tensorrt_unet_sm89_bs8_local/unet_trt.ts.
+    Sustained GPU-path bench (untracked, other session): scripts/box_guard.sh run --min-avail-gb 11 -- /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/bench_gpu_path.py --seconds 180. It reproduces the sm89 env plus the TAESD overrides. Measured 260.08 fps aggregate, vae 6.35 ms/bs8 median (docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/bench_gpu_path_baseline_trtbs8_taesd_200s.json).
+    Offline chin-100% + refined-seam render (the only place it runs): WORKFLOW=/workspace/MuseTalk/character_factory/h3_avatar_workflow; python3 $WORKFLOW/create_avatar.py --config $WORKFLOW/config/diversity_batch_20260927.json --output <out> --stage plan, then --stage all (stages audio,h3,prepare,track,render,validate,report). The prepare/render stages run in .venvs/musetalk_trt_stagewise; audio, track and validate run in SoulX-FlashHead/.venv (create_avatar.py:58-59). GPU stages are serialized by the flock /workspace/.h3_avatar_build_gpu.lock.
+    Chin parity check before changing chin code: /workspace/.venvs/musetalk_trt_stagewise/bin/python $WORKFLOW/verify_baseline.py. It requires raw-pixel parity with the 480 accepted frames and reads /workspace/experiments/chin_fps_validation_20260927/*.
+    Enabling switches for chin (code, not env): chin.prepare_refined(d, frames) at render_stage.py:34 builds a RefinedMask per source frame (chin.py:186-232). Per frame: tracker.track() does FaceMesh on the generated face (render_stage.py:62; backend.py:22-26), chin.curves() gives delta (chin.py:48-54), the .25/.5/.25 filter clipped to [0,.18] needs one next frame (render_stage.py:45), and chin.corrected_refined() does the refined alpha plus warp_roi(strength=1.0) (chin.py:234-241, 92-123). 'Refined seam' = RefinedMask.current(): a target-relative jaw cap 1-smooth((relative+shift+.45)/.40) with lip-guard feather .14*span (chin.py:204-227). It replaced SourceMask's -.27..-.05 cap with .04*span feather (chin.py:125-163).
+    Chin inputs, per source (not present in production avatar dirs): source_landmarks.npy (240x478x2 FaceMesh, track_stage.py:35-53), cache.pt {latents,audio,boxes,cropboxes} and masks.npz (prepare_stage.py:109-119; jaw mask, cheeks 90, box y2+10, seed 123, LANCZOS4).
+machine_specific:
+    TAESD weights exist only on this box at /workspace/MuseTalk/models/taesd (models/ gitignored at .gitignore:11). download_weights.sh:237-275 never fetches madebyollin/taesd, and scripts/trt_artifact_bundle.py does not bundle it.
+    .runtime/ is gitignored (.gitignore:23). .runtime/musetalk_trt_local_sm89.env (MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_sm89_bs8_local/unet_trt.ts, HLS_SCHEDULER_FIXED_BATCH_SIZES=8) is sourced by every TAESD launcher: run_local_api.sh, batch_three_pose.py:186, h3 backend.py:34, bench_gpu_path.py LIVE_ENV_FILE.
+    The chin render pins the sm89 UNet artifact in its signature: render_stage.py:20-21 models/tensorrt_unet_sm89_bs8_local/unet_trt.ts.
+    Chin tracker hardcodes the 512x896 frame size: backend.py:11-13 SharedMemory 896*512*3 + 478*2*4; tracker_worker.py:8 frame shape (896,512,3), :24 scales to 512/896. common.py:91-99 check_video requires 240 frames at 24/1 and 512x896. render_stage.py:31 asserts 240 frames. Chin cannot run on other avatar resolutions or cycle lengths without code changes.
+    Chin tracking depends on /workspace/SoulX-FlashHead/.venv/bin/python (mediapipe 0.10.9, protobuf 3.20.3, numpy 2.2.6, opencv 5.0) at backend.py:15 and create_avatar.py:57-59. The TRT venv /workspace/.venvs/musetalk_trt_stagewise has protobuf 7.36.1 and no mediapipe.
+    Chin pixel parity is pinned to numpy 1.23.5 / opencv 4.9.0 in the TRT venv (baseline_parity.json; chin_seam_refinement README:74: cross-env NumPy/OpenCV arithmetic changed raw pixels).
+    /workspace/run-musetalk-local-trt.sh forces MUSETALK_TRT_PROFILE_ENV_FILE=.../musetalk_trt_local_sm89.env, MUSETALK_TRT_ARTIFACT_RESTORE=0, MUSETALK_SELECT_BEST_TRT_PROFILE=0, and sources /workspace/.musetalk-runtime.env (AWS/S3 key names only).
+    docs/fps_comparisons/4070s_20260922/*.py hardcode ROOT=/workspace/MuseTalk, /tmp/claude-0/-workspace/e3b6c3cf.../scratchpad output paths and results/v15/avatars/codex_smoke or shared_indian_20260915.
+    verify_baseline.py:18 and chin_origin.json read /workspace/experiments/* (outside the repo, not portable).
+    The TRT venv is torch 2.5.1+cu121 / triton 3.1.0 / diffusers 0.30.2 (setup_trt_experiment_env.sh:40,46,51). TAESD itself has no per-GPU artifact, but a cu121 torch 2.5.1 wheel has no Blackwell (sm_100/sm_120) kernels, so 'any GPU' needs a newer torch for those.
+problems:
+    The start chain cannot produce TAESD. select_unet_trt_profile.py:73-91 (_base_profile) hard-codes MUSETALK_VAE_BACKEND=trt_stagewise and MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed. run_trt_stagewise_server.sh:123-129 sources the profile env with set -a AFTER inheriting the caller's env, so an exported MUSETALK_VAE_BACKEND=taesd is overwritten. :138 then defaults to trt_stagewise. Confirmed live: the port-8000 server (PID 3555159) runs MUSETALK_VAE_BACKEND=trt_stagewise, int8_mixed.
+    run_trt_stagewise_server.sh:459 calls validate_int8_startup_requirements (:263-296) whatever MUSETALK_VAE_BACKEND is set to. With the profile's int8_mixed it requires ./calibration/vae_decoder/*.pt plus modelopt/onnx/tensorrt, so a TAESD-only fresh machine dies at preflight.
+    The TAESD weights are not in git and not downloaded. The component analysis doc (lines 379-380) says 'Weights are vendored at models/taesd/ ... a cold start needs no network', but models/ is gitignored. On a fresh machine under HF_HUB_OFFLINE=1 the load fails: with MUSETALK_TRT_FALLBACK=0 the server does not boot; with fallback=1 (the code default, vae_fast_decoder.py:227) it silently serves PyTorch SD-VAE at ~46 fps.
+    TAESD compile errors are not caught at the right level. torch.compile is lazy, so Inductor/Triton failures raise inside warmup() fn(probe) (vae_fast_decoder.py:168), outside the try at :142-151. The result is a failed boot (fallback=0) or a full drop to SD-VAE (fallback=1), never eager TAESD (~12.3 ms bs8, still ~200 fps).
+    TAESD warmup covers only MUSETALK_TAESD_WARMUP_BATCHES (default '8'). The GPU-aware defaults (api_server.py:614-649; run_trt_stagewise_server.sh:221-260) pick buckets [4,8], [8,16], [4,8,16,32] or [4,8,16,32,48] and warm only the stagewise VAE. Any other batch triggers a max-autotune compile on first use in the live path. api_server.py:617 defaults PROFILE=baseline (bucket [4]) when api_server is launched directly without the sm89 env. Non-scheduler endpoints default to batch_size=2 (api_server.py:473,1768,...), and api_avatar.py:1416-1434 pads tails to the request batch_size, so bs2 would also compile at runtime.
+    Doc/code mismatch: the component analysis doc line 305 says 'land it behind MUSETALK_VAE_DECODER=taesd'. The code uses MUSETALK_VAE_BACKEND (also accepts 'tiny' and 'tiny_vae'). The doc's own implementation section (line 367) is correct.
+    Doc/code mismatch: the vae_fast_decoder.py docstring (committed :131-133) says the TAESD scaling convention 'is asserted by scripts/validate_vae_backend.py'. That script has no TAESD-specific assertion or thresholds; it only reports mae/max_abs. The real assertions are in docs/fps_comparisons/4070s_20260922/validate_taesd_backend.py.
+    The commit named 'MASSIVE OPTIMIZATIONS TAESD + chin alignmetn 100%' (c284891) contains neither TAESD nor the accepted chin alignment. It adds MUSETALK_FIXED_FACE_HEIGHT (a prep-time mode, validated against avatar_info.json), MUSETALK_SOURCE_MOUTH_BLEND, MUSETALK_SIDE_JAW_BLEND, MUSETALK_CHEEK_ONLY_BLEND (blending.py attenuate_* helpers) and WEBRTC_RAW_IDLE_POSE. TAESD is from 9b90b92; chin.py/render_stage.py are from e803a63.
+    The live WebRTC path has no chin or seam code: no chin symbols in api_server.py, hls_gpu_scheduler.py or api_avatar.py. AVATAR_WORK_CONTEXT line 8 and chinese_bob README:34 say so explicitly. The '160-200 fps with chin' numbers are offline single-stream harness numbers, not server capacity.
+    batch_three_pose.py (the production three-pose + S3 path) prepares caches through /avatars/prepare on a TAESD server but applies no chin correction. Only create_avatar.py's offline render stage does. AVATAR_WORK_CONTEXT line 12 describes the workflow as freezing TAESD + refined chin, which is true only for the offline 10 s clips.
+    Porting chin to live needs new per-avatar artifacts: FaceMesh source landmarks (none of the 33 local avatars under results/v15/avatars have them) and per-frame generated-face FaceMesh at runtime. That needs mediapipe, which is incompatible with the TRT venv's protobuf 7.36.1. It also adds a one-frame look-ahead (41.7 ms at 24 fps) and ~3.3 ms/frame of CPU tracking (PERFORMANCE_EXPLANATION.md). Under 15-stream load FaceMesh rose from 3.4 to 13.2 ms/frame (300fps plan :191).
+    The TRT row-crop TAESD speedup (0.345 ms) cannot be combined with chin, because the tracker reads the full 256x256 face (300fps plan :40,194-196; chin_fps_validation run.py:38-41; backend.py Tracker).
+    The pilot launcher run_local_api.sh does not set WEBRTC_VP8_ENCODER=native, and the H.264 path actually ran libx264 medium despite logging h264_nvenc (300fps plan :254). Worth fixing in the new default, but outside this slice.
+    TAESD quality is a measured trade, not free: blended-ROI mae 0.0112-0.0157 vs 0.0050 for INT8 (component analysis). The user judged SD-VAE and TAESD essentially the same on new avatars (AVATAR_WORK_CONTEXT item 10) and later required TAESD (chin_fps_validation README:3). Beard/moustache loss is an open risk (WORKFLOW.md, diversity batch).
+open_questions:
+    Should the reworked default ship chin alignment at all? It is offline-only and would need a runtime port: landmark prep artifacts, a FaceMesh worker process or venv, an extra frame of latency and a GIL/process split at 15 streams. The alternative is to ship TAESD + standard jaw90 compose now (proven 209-260 fps GPU path) and make chin a later phase.
+    Do the madebyollin/taesd HF files hash-match the local models/taesd copy? The local config was re-saved by diffusers 0.30.2. Should the install script pin a revision and verify sha256 (7e5863.../8b947c...) or just use the HF files?
+    When a TAESD compile fails, should the start script fall back to eager TAESD (MUSETALK_TAESD_COMPILE=0, ~12 ms bs8) rather than SD-VAE? This needs a startup preflight, because the current code cannot degrade gracefully.
+    Which GPUs must be supported? The cu121 torch 2.5.1 stack lacks Blackwell sm_100/sm_120. TAESD needs no per-GPU artifact, but the TRT UNet and the (uncommitted) TRT TAESD engines do.
+    Is TAESD torch.compile max-autotune time acceptable for larger buckets (16/32/48) on big cards? Only bs8 was timed (3.8 s). Could autotune cache reuse (TORCHINDUCTOR cache dir) cut cold boots?
+    Should the new default keep MUSETALK_TRT_FALLBACK=0 (loud failure) or allow a degraded boot? Today the same flag also governs the UNet TRT fallback.
+    Will the other session's uncommitted TRT-TAESD path (MUSETALK_TAESD_BACKEND=trt, models/taesd/trt engines built on first use, MUSETALK_TAESD_TRT_BUILD default 1) land before the start-script rework? If so, a first-boot engine build step needs budgeting.
+files_read:
+    /workspace/MuseTalk/docs/AVATAR_WORK_CONTEXT_2026-09-26.md
+    /workspace/MuseTalk/docs/musetalk_4070s_pipeline_component_analysis_2026-09-22.md
+    /workspace/MuseTalk/docs/musetalk_4070s_300fps_plan_2026-09-27.md (lines 1-62 and chin grep)
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_20260922/taesd.json
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_20260922/e2e_results.json
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_20260922/capacity.json
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_20260922/taesd_backend_validation.json
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_20260922/e2e_indian_results.json
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_20260922/validate_taesd_backend.py
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_20260922/e2e_indian.py
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_20260922/all_avatars.py
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/bench_gpu_path_baseline_trtbs8_taesd_200s.json
+    git show c284891 (api_server.py, scripts/api_avatar.py, musetalk/utils/blending.py, scripts/inference.py, scripts/hls_gpu_scheduler.py)
+    git show 9b90b92 (scripts/api_avatar.py, scripts/trt_runtime.py, scripts/vae_fast_decoder.py)
+    git show e803a63 -- api_server.py
+    git log for scripts/vae_fast_decoder.py and musetalk/models/vae.py; git diff HEAD of vae.py, avatar_manager_parallel.py, trt_runtime.py (read-only)
+    /workspace/MuseTalk/scripts/vae_fast_decoder.py (committed HEAD and working tree)
+    /workspace/MuseTalk/scripts/trt_runtime.py (HEAD load_vae_trt_decoder :2000-2030)
+    /workspace/MuseTalk/scripts/avatar_manager_parallel.py (HEAD :150-215, :240-280, :320-350, :423-500)
+    /workspace/MuseTalk/musetalk/models/vae.py (HEAD)
+    /workspace/MuseTalk/api_server.py (:614-649, :960-1120, :1368-1420, batch_size defaults)
+    /workspace/MuseTalk/scripts/api_avatar.py (switch lines 141, 496-543, 600-660, 785-835, 1185-1212, 1379-1390, 1416-1434)
+    /workspace/MuseTalk/musetalk/utils/blending.py (:14-15)
+    /workspace/MuseTalk/scripts/hls_gpu_scheduler.py (:1310-1330, :2570-2600)
+    /workspace/MuseTalk/scripts/concurrent_gpu_manager.py (:115-147)
+    /workspace/MuseTalk/scripts/run_trt_stagewise_server.sh (:118-172, :221-296, :400-495)
+    /workspace/MuseTalk/scripts/select_unet_trt_profile.py (:60-110)
+    /workspace/MuseTalk/scripts/bench_gpu_path.py (header)
+    /workspace/MuseTalk/download_weights.sh (:100-300)
+    /workspace/MuseTalk/.runtime/musetalk_trt_local_sm89.env
+    /workspace/MuseTalk/.runtime/musetalk_trt_best.env (key names only)
+    /workspace/.musetalk-runtime.env (key names only)
+    /workspace/run-musetalk-local-trt.sh
+    /workspace/MuseTalk/.gitignore
+    /workspace/MuseTalk/models/taesd/config.json
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/WORKFLOW.md
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/BATCH_THREE_POSE.md
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/chin.py
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/backend.py
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/common.py
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/render_stage.py
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/prepare_stage.py
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/track_stage.py
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/tracker_worker.py
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/create_avatar.py
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/batch_three_pose.py (:170-260)
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/three_pose_s3_stage.py
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/chin_origin.json
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/baseline_parity.json
+    /workspace/experiments/chin_fps_validation_20260927/README.md
+    /workspace/experiments/chin_seam_refinement_20260927/README.md and PERFORMANCE_EXPLANATION.md (grep)
+    /workspace/experiments/chinese_bob_webrtc_20260927/README.md (grep), run_local_api.sh, run_wall_api.sh
+    /workspace/experiments/musetalk_sdvae_vs_taesd_new_avatars_20260925/README.md (grep)
+    /proc/3555159/environ (whitelisted non-secret MUSETALK_/HLS_ keys only)

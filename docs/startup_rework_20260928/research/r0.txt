@@ -1,0 +1,244 @@
+summary:
+  IN-FLIGHT STATE (2026-09-28 02:10 UTC): the other session's 300 fps work is code-complete for 5 levers, but NONE has been built, gated or benchmarked yet. There is no models/taesd/trt/, no models/tensorrt_unet_stagewise_sm89/ and no stepA_cudagraph_gate.json. Two GPU jobs are stuck in scripts/box_guard.sh. stepA_cudagraph_gate (lease holder pid 3564278 since 01:49:40, --wait-min 30) and taesd_trt/explore_recipe (waiting on the lease) are both blocked by the user's live server, pid 3555159 (9.5 GB VRAM). stepA will very likely exit 75 at about 02:19.
+WHAT IS PROVEN (measured, foundation/foundation_results.json):
+- box_guard self-test passes 10/10.
+- A multi-avatar UNet corpus exists: 352 main + 96 holdout bs8 captures, 227 MB, in the gitignored calibration/unet_multi_avatar_20260928.
+- The shipping TRT .ts bs8 UNet passes G-UNET: mae_max 0.00259 (gate 0.01) and max_abs_max 0.40 (gate 0.5, a thin margin).
+- The sustained GPU-only path, 200 s: TRT .ts bs8 UNet + compiled TAESD (max-autotune) = 260.08 fps. UNet takes 24.22 ms and TAESD 6.35 ms per bs8. The card is power-capped at about 211.6 of 220 W (throttle 0x4 in every sample).
+- Turning the syncs off gave 258.15 fps (no gain). The repo pageable post gave 259.43 fps.
+- Loading the 2.2 GB .ts raises VmHWM to 9.5 GB, so at least 12 GB MemAvailable is needed.
+- This is the recipe that experiments/chinese_bob_webrtc_20260927/run_local_api.sh and bench_gpu_path.py treat as 'live': sm89.env, then MUSETALK_VAE_BACKEND=taesd, MUSETALK_UNET_BACKEND=trt and the rest.
+- The user's current server was started by scripts/run_trt_stagewise_server.sh --profile throughput_record. /proc environ shows it still runs MUSETALK_VAE_BACKEND=trt_stagewise, the old INT8 SD-VAE, which confirms the start scripts boot the old recipe.
+NEW KNOBS (all default to today's behaviour; the rollback is removing the variable):
+- (a) MUSETALK_TAESD_BACKEND=trt: TensorRT FP16 TAESD, full 256x256, static bs8, with a fused uint8 BGR post. Persisted about 3 MB plans under models/taesd/trt, keyed by TRT version, GPU name, compute capability and ONNX hash. Built on first use, with a fallback to compiled TAESD. Projected 0.85 to 0.51 ms/frame from a 0.486 ms/frame probe; the G-TAESD and G-TRACK gates have not run.
+- (b) MUSETALK_UNET_BACKEND=trt_stagewise: an ONNX-parser FP16 UNet made of 11 per-block engines with one CUDA graph, loaded from MUSETALK_UNET_STAGEWISE_CACHE_DIR/bs<N>. The batch defaults to 16. There is no build on first use and no fallback to the .ts. Projected 2.53 ms/frame at bs8 and 2.40 at bs16, against 3.03 today; the probe sum at bs8 was 2.57.
+- (c) MUSETALK_TRT_UNET_CUDAGRAPHS=manual|runtime|0 on the .ts UNet. Projected -2.5% UNet time; its gate is blocked.
+- (d) MUSETALK_FREE_EAGER_UNET=1 frees about 1.7 GB of VRAM (inferred, not measured). Untested.
+- (e) validate_unet_backend.py gained --backend runtime and --group-captures.
+RECOMMENDATION FOR THE STARTUP REWORK:
+- Boot the proven recipe now: taesd + .ts TRT UNet bs8 + scheduler 8/8/8 + blend flags + TRT_FALLBACK=0. Set these AFTER any profile env file is sourced, because `set -a; source` of .runtime/musetalk_trt_*.env overwrites MUSETALK_VAE_BACKEND and MUSETALK_UNET_BACKEND.
+- Stop requiring the INT8 SD-VAE (MUSETALK_TRT_STAGEWISE_*) artifacts when the VAE backend is taesd.
+- Pass every new knob through untouched (layering: caller > overlay > profile, as in bench_gpu_path.apply_env), and support an overlay env file. The other session names .runtime/musetalk_300fps.env; it does not exist yet.
+- Optionally pre-build the TAESD TRT engines at install (`python scripts/vae_fast_decoder.py build`, about 14 s on the 4070S, harmless while unused). Leave (a) to (d) off until their gates land.
+- Never run the long-lived server under `box_guard.sh run`. It needs a GPU with no other apps, would hold the lease forever, sets oom_score_adj=1000 and kills the process group when MemAvailable falls below 3 GB. Use box_guard only around install-time builds on this shared host.
+recommended_env:
+    name:
+      MUSETALK_VAE_BACKEND
+    value:
+      taesd
+    scope:
+      all-gpus
+    evidence:
+      foundation_results.json sustained_baseline.baseline_200s: 260.08 fps, TAESD 6.35 ms/bs8 [M]. bench_gpu_path.py:49-59 LIVE_LAUNCHER_OVERRIDES and run_local_api.sh use it. trt_runtime.py:2177: taesd is dispatched before the MUSETALK_TRT_ENABLED check, so it wins even when MUSETALK_TRT_ENABLED=1. The live server (pid 3555159 environ) still has trt_stagewise, the old recipe.
+    name:
+      MUSETALK_UNET_BACKEND
+    value:
+      trt (NOT trt_stagewise yet)
+    scope:
+      all-gpus (needs a per-arch .ts artifact)
+    evidence:
+      The shipping .ts bs8 passes G-UNET on 352 main + 96 holdout captures: mae_max 0.00259, max_abs_max 0.40 (gate 0.01/0.5) [M foundation_results.json trt_shipping_validation]. With trt_stagewise, a missing manifest falls back to EAGER PyTorch when fallback=1 (trt_runtime.py:1819-1861); there is no fallback to the .ts.
+    name:
+      MUSETALK_TRT_UNET_ENABLED / MUSETALK_TRT_UNET_PATHS
+    value:
+      1 / 8:<per-arch dir>/unet_trt.ts (today 8:models/tensorrt_unet_sm89_bs8_local/unet_trt.ts, a symlink to ../tensorrt_unet_static_bs8_20260529/unet_trt.ts)
+    scope:
+      per-gpu-tier
+    evidence:
+      .runtime/musetalk_trt_local_sm89.env; the .ts is torch_tensorrt and sm89-specific. Loading it has a 9.5 GB VmHWM transient (foundation_results.json host_memory).
+    name:
+      MUSETALK_TRT_FALLBACK
+    value:
+      0
+    scope:
+      all-gpus
+    evidence:
+      run_local_api.sh and bench overrides. With 1, a failed TRT UNet or stagewise load silently serves the eager UNet (trt_runtime.py:1857-1861).
+    name:
+      HLS_SCHEDULER_MAX_BATCH / HLS_SCHEDULER_FIXED_BATCH_SIZES / HLS_SCHEDULER_STARTUP_SLICE_SIZE
+    value:
+      8 / 8 / 8
+    scope:
+      all-gpus
+    evidence:
+      sm89.env and the live server environ. They must match the engine batch: the stagewise engine defaults to 16 (unet_stagewise_trt.py:62), so enabling it at a scheduler batch of 8 pads every call to 16 rows.
+    name:
+      MUSETALK_TAESD_WARMUP_BATCHES
+    value:
+      8
+    scope:
+      all-gpus
+    evidence:
+      run_local_api.sh; used by both compiled and TRT TAESD warmup (vae_fast_decoder.py:180 and :732).
+    name:
+      MUSETALK_BLEND_FIXED_POINT / MUSETALK_BLEND_SHRINK_MASK_BBOX
+    value:
+      1 / 1
+    scope:
+      all-gpus
+    evidence:
+      sm89.env, run_local_api.sh and the live environ (outside this slice).
+    name:
+      MUSETALK_TAESD_BACKEND
+    value:
+      unset (=compiled) by default; trt only behind an opt-in flag
+    scope:
+      optional
+    evidence:
+      vae_fast_decoder.py:276-286. G-TAESD, G-TRACK and the speed runs have not happened: explore_recipe.log shows only lease-wait lines. Probe [M 2026-09-27 p5_trt_taesd.json]: bs8 3.89 ms = 0.486 ms/frame, build 13.9 s, max_abs 0.0085 vs eager. On failure it falls back to compiled (STRICT=0).
+    name:
+      MUSETALK_TAESD_TRT_BUILD
+    value:
+      0 at serve time when engines are pre-built at install (default 1 builds in the server process)
+    scope:
+      optional
+    evidence:
+      vae_fast_decoder.py:887. The build needs a writable MUSETALK_TAESD_TRT_DIR (default models/taesd/trt, flock .build.lock). load_taesd_trt_backend also re-exports the ONNX on every start (:881) to compute the key.
+    name:
+      MUSETALK_TAESD_TRT_STRICT / MUSETALK_TAESD_TRT_FUSED_POST / MUSETALK_TAESD_TRT_BATCH / MUSETALK_TAESD_TRT_OPT_LEVEL / MUSETALK_TAESD_TRT_STRONGLY_TYPED / MUSETALK_TAESD_TRT_DIR
+    value:
+      defaults 0 / 1 / 8 / 3 / 0 / models/taesd/trt; pass through
+    scope:
+      optional
+    evidence:
+      _TRT_FLAG_DOC in the vae_fast_decoder.py diff (around :250-263). Batch, opt level and strongly-typed are part of the engine fingerprint.
+    name:
+      MUSETALK_UNET_STAGEWISE_BATCH / MUSETALK_UNET_STAGEWISE_CACHE_DIR / MUSETALK_UNET_STAGEWISE_CUDAGRAPH / MUSETALK_UNET_STAGEWISE_PROBE_CHECK / MUSETALK_UNET_STAGEWISE_PROBE_TOL / MUSETALK_UNET_STAGEWISE_VERIFY_SHA
+    value:
+      only with MUSETALK_UNET_BACKEND=trt_stagewise. Defaults 16 / models/tensorrt_unet_stagewise_sm89 / 1 / 1 / 0 / 1. If enabled, set CACHE_DIR per arch (e.g. models/tensorrt_unet_stagewise_sm${CC}) and BATCH equal to the scheduler batch
+    scope:
+      per-gpu-tier (behind a flag)
+    evidence:
+      unet_stagewise_trt.py:55, 62, 415, 486-492 (refuses on a TRT version or compute-capability mismatch), 502, 506, 546. No engines are built on this box yet. Projected 2.53 ms/frame at bs8 and 2.40 at bs16 (plan 2.3a/2.3b [I]); the probe block sum at bs8 was 20.58 ms = 2.57 ms/frame [M trt_topblocks_bs8.json].
+    name:
+      MUSETALK_TRT_UNET_CUDAGRAPHS
+    value:
+      unset/0
+    scope:
+      optional (behind a flag)
+    evidence:
+      trt_runtime.py:1428-1448: an invalid value raises. The stepA gate has not run (stepA_cudagraph_gate.log and stepA_wait1_blocked_by_user_server.log are only waits). Plan 1.2 cites 23.65 ms vs 24.2 ms per bs8 from probes.
+    name:
+      MUSETALK_FREE_EAGER_UNET
+    value:
+      0 (default). Candidate 1 for GPUs with 8 GB or less once tested; must stay 0 with MUSETALK_UNET_CALIBRATION_CAPTURE=1
+    scope:
+      optional
+    evidence:
+      avatar_manager_parallel.py:343-354. The about 1.7 GB VRAM saving is inferred (plan 0.6), not measured.
+    name:
+      HLS_GPU_STAGE_SYNC_TIMING / MUSETALK_VAE_DECODE_TIMING_SYNC
+    value:
+      leave at the code default (1/1) or 0; no proven gain
+    scope:
+      optional
+    evidence:
+      bench_gpu_path_variant_nosync_60s.json 258.15 fps vs baseline 260.08 [M]. The plan's claimed benefit (item 1.1) is in the live scheduler and unproven.
+    name:
+      MUSETALK_TRT_STAGEWISE_* (INT8 SD-VAE)
+    value:
+      do not set or require when MUSETALK_VAE_BACKEND=taesd
+    scope:
+      avoid
+    evidence:
+      These are the old VAE-recipe knobs (sm89.env, run_trt_stagewise_server.sh:155-175). They are ignored when taesd is selected (trt_runtime.py:2177-2184). The name collides with the new MUSETALK_UNET_BACKEND=trt_stagewise.
+    name:
+      MUSETALK_TRT_PROFILE_ENV_LOAD / MUSETALK_TRT_PROFILE_ENV_FILE
+    value:
+      if the profile file stays, re-export the recipe after sourcing it, or source it with only-if-unset semantics
+    scope:
+      all-gpus
+    evidence:
+      run_trt_stagewise_server.sh:123-129 does `set -a; source` and clobbers the caller's MUSETALK_VAE_BACKEND and MUSETALK_UNET_BACKEND (sm89.env sets trt_stagewise and trt). run_local_api.sh works around this by exporting its overrides after the source.
+    name:
+      BOX_GUARD_LEASE_FILE / BOX_GUARD_LOG / BOX_GUARD_DISK_PATH / BOX_GUARD_MEMORY_EVENTS
+    value:
+      defaults /workspace/.gpu_lease, /workspace/.gpu_lease.log, /workspace, /sys/fs/cgroup/memory.events
+    scope:
+      optional (shared host only)
+    evidence:
+      box_guard.sh:34-47. Only for guarding install-time builds on this box. Never wrap the server in it.
+procedures:
+    GPU lease and RAM guard: `scripts/box_guard.sh check [--min-avail-gb 6] [--need-disk-gb 1] [--max-load 2] [--max-gpu-mem-mib 600] [--max-gpu-util 5] [--quiet-s 0]`. Exits 0 only if the box is quiet: no GPU compute apps, util <=5%, GPU memory <=600 MiB, MemAvailable, disk, load1, no co-tenants matching api_server.py|run_wall_api|run_local_api|dev_server|drive_wall|trtexec, lease free.
+    `scripts/box_guard.sh run [--min-avail-gb 6] [--need-disk-gb 1] [--wait-min 30] [--poll-s 30] [--kill-below-gb 3] [--settle-s 10] [--max-gpu-mem-mib 600] [--max-gpu-util 5] [--label TEXT] -- cmd ...`. Steps: flock /workspace/.gpu_lease; write the holder record to /workspace/.gpu_lease.holder; wait for NO foreign GPU compute apps plus a settle period; wait for MemAvailable (min of meminfo and the cgroup estimate); start the child with setsid and oom_score_adj=1000; a 1 Hz watchdog kills the group below --kill-below-gb; append one line to /workspace/.gpu_lease.log. Exit codes: 2 usage, 75 lease/GPU wait timeout, 76 RAM, 77 disk, 86 watchdog kill, 87 cgroup oom_kill rose. `scripts/box_guard.sh lease` prints the holder (exit 1 if held).
+    box_guard self-test (no GPU, about 45 s): `scripts/test_box_guard.sh` (private lease) or `scripts/test_box_guard.sh --real-lease`. Result 10/10 PASS in foundation/box_guard_selftest.log.
+    TAESD TRT engines: `python scripts/vae_fast_decoder.py build [--batch 8] [--force]`, `python scripts/vae_fast_decoder.py verify`, `python scripts/vae_fast_decoder.py flags`. Writes models/taesd/trt/taesd_trt_<key20>.decoder.plan, .post_bgr_u8.plan, .json (meta with fingerprint, plan SHA-256s, probe hashes, build times) and taesd_trt_timing.cache, under a flock on .build.lock.
+    Stagewise FP16 UNet engines: `scripts/box_guard.sh run --min-avail-gb 8 -- /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/build_unet_stagewise.py --batch 16 --opt-level 5 --max-minutes 20`. Other options: --batch repeatable (8 and/or 16), --root (default $MUSETALK_UNET_STAGEWISE_CACHE_DIR or models/tensorrt_unet_stagewise_sm89), --workspace-gb 2, --timing-cache, --no-timing-cache, --blocks, --force, --second-build, --report. Writes <root>/bs<N>/{head,down0-3,mid,up0-3,tail}.plan, manifest.json, probe_output.pt and <root>/timing_cache.bin. It resumes per block.
+    Stagewise G-UNET: `MUSETALK_UNET_BACKEND=trt_stagewise MUSETALK_UNET_STAGEWISE_BATCH=16 python scripts/validate_unet_backend.py --backend runtime --capture-dir calibration/unet_multi_avatar_20260928 --group-captures 2 --fail-mae 0.01 --fail-max-abs 0.5` (plan 2.3a/2.3b gate; --backend runtime is new in the diff).
+    Sustained GPU-path bench: `scripts/box_guard.sh run --min-avail-gb 11 -- /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/bench_gpu_path.py --seconds 180`. Options: --batch 8, --warmup 20, --capture-dir calibration/unet_multi_avatar_20260928, --inputs 32, --post pinned|repo, --stage-sync env|on|off, --no-live-env, --overlay FILE, --smi-interval-ms 1000, --window-s 10, --out X.json (plus X.smi.csv), --label. Env layering: .runtime/musetalk_trt_local_sm89.env < run_local_api.sh overrides (taesd, trt, FALLBACK=0, BLEND x2, TAESD_WARMUP_BATCHES=8, AVATAR_S3_ENABLED=0, HF/TRANSFORMERS offline) < --overlay < caller. It measures H2D->UNet->TAESD->uint8 BGR->D2H per batch with CUDA events, wall fps, 10 s windows, nvidia-smi at 1 Hz, host RSS and golden SHA-256.
+    Multi-avatar corpus: `scripts/box_guard.sh run --min-avail-gb 8 -- /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/build_unet_multi_avatar_corpus.py [--manifest <json>]` (25.8 s, peak group RSS 4.1 GB).
+    Gate scripts (hardcode ROOT=/workspace/MuseTalk), all under box_guard: `docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/gate_taesd_trt.py [--corpus DIR] [--limit-files N] [--no-record]` (G-TAESD: max <=3 LSB, mean <=0.2 LSB; writes gate.verdict into the engine meta); speed_taesd_trt.py [--warmup 100 --iters 500 --rounds 2]; gtrack_taesd_trt.py [--ids black_woman,east_asian_man_goatee,south_asian_woman] [--video-crf 12] [--no-video]; explore_recipe.py; unet_fp16/stepA_cudagraph_gate.py --seconds 30 (box_guard --min-avail-gb 12); unet_fp16/stepB_chain_bench.py --batch 16 --seconds 90 (box_guard --min-avail-gb 6).
+    Current live user server, from ps and /proc (read-only): `bash /workspace/MuseTalk/scripts/run_trt_stagewise_server.sh --profile throughput_record --host 0.0.0.0 --port 8000 --venv-path /workspace/.venvs/musetalk_trt_stagewise --repo-root /workspace/MuseTalk` with MUSETALK_TRT_PROFILE_ENV_FILE=/workspace/MuseTalk/.runtime/musetalk_trt_local_sm89.env. It exec's `python api_server.py --host 0.0.0.0 --port 8000` and runs MUSETALK_VAE_BACKEND=trt_stagewise (old INT8 SD-VAE).
+    The launcher with the new recipe that the other session treats as live: /workspace/experiments/chinese_bob_webrtc_20260927/run_local_api.sh. It runs `source .runtime/musetalk_trt_local_sm89.env`, then exports MUSETALK_VAE_BACKEND=taesd MUSETALK_UNET_BACKEND=trt MUSETALK_TRT_FALLBACK=0 MUSETALK_BLEND_FIXED_POINT=1 MUSETALK_BLEND_SHRINK_MASK_BBOX=1 MUSETALK_TAESD_WARMUP_BATCHES=8 AVATAR_S3_ENABLED=0 KOKORO_TTS_DEVICE=cpu HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1, then `exec /workspace/.venvs/musetalk_trt_stagewise/bin/python api_server.py --host ${MUSETALK_API_HOST:-127.0.0.1} --port ${MUSETALK_API_PORT:-8200}`.
+machine_specific:
+    scripts/unet_stagewise_trt.py:55 hardcodes the default engine dir models/tensorrt_unet_stagewise_sm89. The manifest does refuse a TRT-version or compute-capability mismatch (:486-495), but other GPUs still get an 'sm89' folder name unless MUSETALK_UNET_STAGEWISE_CACHE_DIR is set.
+    scripts/build_unet_stagewise.py:39 seeds from docs/fps_comparisons/4070s_300fps_20260927/unet_probe/tt16_timing_cache.bin: 8.1 MB, built on sm89, gitignored so absent on fresh clones. It is applied with ignore_mismatch=True (unet_stagewise_trt.py:274), so a copied sm89 cache would be accepted on other GPUs.
+    scripts/bench_gpu_path.py:46 LIVE_ENV_FILE=.runtime/musetalk_trt_local_sm89.env is read unconditionally unless --no-live-env; the file is gitignored under .runtime/. :199 defaults --capture-dir to calibration/unet_multi_avatar_20260928, which is gitignored and exists only on this box. The docstring assumes /workspace/.venvs/musetalk_trt_stagewise.
+    scripts/box_guard.sh:42-48 defaults: /workspace/.gpu_lease, /workspace/.gpu_lease.log, disk path /workspace, cgroup v2 /sys/fs/cgroup. The co-tenant regex names this host's other agents (SoulX dev_server/drive_wall, Codex run_wall_api, run_local_api). It needs nvidia-smi; run exits 75 if nvidia-smi fails.
+    Every docs/fps_comparisons/4070s_300fps_impl_20260928/**/*.py hardcodes ROOT=Path('/workspace/MuseTalk'). stepA_cudagraph_gate.py sets MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_sm89_bs8_local/unet_trt.ts.
+    scripts/build_unet_multi_avatar_corpus.py and the corpus depend on this box's local avatars and on audio under /workspace/experiments/... (foundation_results.json unet_corpus.audio). G-UNET and G-TAESD gates therefore cannot run on a fresh machine without rebuilding a corpus.
+    models/tensorrt_unet_sm89_bs8_local/unet_trt.ts is a symlink to ../tensorrt_unet_static_bs8_20260529/unet_trt.ts (torch_tensorrt, sm89). .runtime/musetalk_trt_local_sm89.env pins it and also pins the old MUSETALK_VAE_BACKEND=trt_stagewise.
+    All measured numbers are for an RTX 4070 SUPER 12 GB power-capped at 220 W (throttle 0x4 SW power cap in 100% of samples), Ryzen 9 7950X, 30 GB RAM, TensorRT 10.3.0, torch 2.5.1+cu121, torch_tensorrt 2.5.0, driver 595.84. The TAESD TRT fingerprint includes the GPU name string, so even two SKUs of the same arch build separate engines.
+problems:
+    NOTHING IN FLIGHT IS VALIDATED YET. No TAESD TRT engine (models/taesd/trt missing), no stagewise engine set (models/tensorrt_unet_stagewise_sm89 missing), no stepA_cudagraph_gate.json, no gate_taesd_trt.json, no speed or gtrack output. stepA (lease holder pid 3564278 since 01:49:40, --wait-min 30) and explore_recipe are blocked by the user's server pid 3555159 (9502 MiB). box_guard's no-foreign-GPU-app precondition cannot pass while any server runs, so stepA will likely exit 75 at about 02:19.
+    Profile env clobbering: run_trt_stagewise_server.sh:123-129 does `set -a; source $MUSETALK_TRT_PROFILE_ENV_FILE` BEFORE its `: ${VAR:=}` defaults (:138-140). The profile file (sm89.env / musetalk_trt_best.env, generated by scripts/select_unet_trt_profile.py) therefore overwrites caller-exported MUSETALK_VAE_BACKEND (to trt_stagewise) and MUSETALK_UNET_BACKEND (to trt). Any new-knob selection such as MUSETALK_UNET_BACKEND=trt_stagewise, exported by a wrapper, is silently reverted. run_local_api.sh only works because it re-exports after sourcing.
+    Name collision: MUSETALK_VAE_BACKEND=trt_stagewise (old INT8 SD-VAE, MUSETALK_TRT_STAGEWISE_* knobs, run_trt_stagewise_server.sh) vs MUSETALK_UNET_BACKEND=trt_stagewise (new FP16 UNet, MUSETALK_UNET_STAGEWISE_* knobs, backend name tensorrt_unet_stagewise); the venv is also named musetalk_trt_stagewise. Startup logic must key on full variable names, never on the substring 'stagewise'.
+    Batch-default mismatch: MUSETALK_UNET_STAGEWISE_BATCH defaults to 16 (unet_stagewise_trt.py:62) while every env file sets HLS_SCHEDULER_MAX_BATCH=8 and FIXED=8. Enabling stagewise alone looks for bs16/ and pads each bs8 call to 16 rows (_run_chunk :562-579). Plan 2.3b also warns that loading 8+16 together OOMed even on 24 GB.
+    The stagewise UNet has no build-on-first-use and no fallback to the .ts. A missing or mismatched manifest raises, then trt_runtime.py:1857-1861 either serves the EAGER PyTorch UNet (MUSETALK_TRT_FALLBACK=1, a large silent slowdown) or fails startup (0). The probe check is exact SHA by default (PROBE_TOL=0), so a driver change could fail startup until MUSETALK_UNET_STAGEWISE_PROBE_TOL is set.
+    Build acceptance gaps: build_unet_stagewise.py records manifest.probe.vs_eager_forward (mae, max_abs, rel_l2) but never fails on it. build_taesd_trt_engines only checks fused post == repo post, not accuracy against compiled TAESD. load_taesd_trt_backend just logs gate='not recorded'. A startup script that auto-builds on a new GPU gets engines that are unverified for quality unless it checks these fields itself.
+    TAESD TRT side costs: load_taesd_trt_backend re-exports the TAESD ONNX via torch.onnx.export on every server start to compute the key (vae_fast_decoder.py:881; time not measured). With MUSETALK_TAESD_TRT_BUILD=1 (default) the build runs inside the server process and needs a writable models/taesd/trt. The trt path also loads the compiled backend's weights first and deletes them on success.
+    Unverified risk: taesd_trt_timing.cache is ONE file per engine dir, not per key, and is loaded with ignore_mismatch=False (vae_fast_decoder.py:436). The return value of set_timing_cache is not checked. A dir shared across GPU types might fail the build, which STRICT=0 silently turns into compiled TAESD.
+    StagewiseTrtUnetBackend has no lock around its shared static buffers and CUDA graph (unlike TaesdTrtBackend._lock). Concurrent calls from two threads would corrupt outputs. That is fine with one scheduler thread, but it is an assumption.
+    bench_gpu_path.py is not portable as a fresh-machine smoke test. It crashes without .runtime/musetalk_trt_local_sm89.env unless --no-live-env, exits with 'no captures' without the gitignored corpus, and imports torch_tensorrt unconditionally at the end (:394).
+    box_guard.sh is unsuitable for wrapping the production server. It holds the lease for the server's lifetime (blocking all other guarded work), sets oom_score_adj=1000 on the server (first OOM victim) and kills the whole group when MemAvailable < --kill-below-gb (default 3). Its GPU-quiet precondition also fails whenever another server is up.
+    Host RAM: loading the shipping 2.2 GB .ts spikes VmHWM to 9.5 GB (min MemAvailable 3.7-4.2 GB from 12.4 GB). The box currently shows about 9 GB available with the server up, so a restart that overlaps the old process, or a second server, risks OOM. Plan 0.1 asks for at least 14 GB MemAvailable before a server start.
+    The shipping .ts G-UNET margin is thin: max_abs_max 0.4016 against a 0.5 gate (japanese_realtime_talking_7d94520b7f). Rebuilt per-arch .ts engines on other GPUs may not pass the same gate.
+open_questions:
+    When will the other session flip any lever to default-on, and in which file? bench_gpu_path.py names .runtime/musetalk_300fps.env as the overlay, but it does not exist yet. Should the reworked start script read an overlay path such as MUSETALK_EXTRA_ENV_FILE, defaulting to .runtime/musetalk_300fps.env when present?
+    Should startup auto-enable a lever when its artifact records a pass for THIS GPU (TAESD meta.gate.verdict=='PASS'; a stagewise manifest.complete with matching tensorrt_version and compute_capability plus a probe.vs_eager_forward threshold), or stay strictly opt-in until the gates land?
+    How should G-UNET and G-TAESD be satisfied on non-sm89 GPUs, given the corpus (calibration/unet_multi_avatar_20260928, 227 MB) is gitignored and built from box-local avatars? Ship a small portable corpus, or accept probe-vs-eager thresholds from the build manifests?
+    Is the stagewise UNet going to replace the torch_tensorrt .ts? It avoids the 9.5 GB host-RSS load transient and the torch_tensorrt dependency, but its build RAM, disk size and time are unmeasured: plan estimate 3-5 GB RSS per block, about 184 s total at bs8 at the default opt level, opt level 5 unknown.
+    Should the install step pre-build the TAESD TRT engines (`python scripts/vae_fast_decoder.py build`, about 14 s, 3 MB) on every GPU even while MUSETALK_TAESD_BACKEND stays compiled, so that flipping the flag later needs no serve-time build?
+    Cold-start cost of compiled TAESD (torch.compile max-autotune) on a fresh machine with an empty Inductor cache has not been measured. It matters for 'ready out of the box' and is an argument for TRT TAESD once gated.
+    VRAM budget of the TAESD + .ts recipe on 8 GB cards has not been measured. The bench GPU path alone is 2.68 GB and the full live server 9.5 GB (old recipe). Should MUSETALK_FREE_EAGER_UNET=1 become the low-VRAM default after it is tested?
+    The live efficiency of HLS_GPU_STAGE_SYNC_TIMING=0 and MUSETALK_VAE_DECODE_TIMING_SYNC=0 is unknown: the GPU-only bench showed no gain (258.1 vs 260.1 fps). Should they stay at the code default of 1?
+files_read:
+    /workspace/MuseTalk/scripts/trt_runtime.py (git diff; lines 120-160, 1422-1700, 1776-1900, 2156-2196)
+    /workspace/MuseTalk/scripts/vae_fast_decoder.py (full git diff; lines 57-200)
+    /workspace/MuseTalk/musetalk/models/vae.py (git diff; lines 20-35)
+    /workspace/MuseTalk/scripts/avatar_manager_parallel.py (git diff; lines 160-215, 300-400)
+    /workspace/MuseTalk/scripts/validate_unet_backend.py (git diff)
+    /workspace/MuseTalk/character_factory/h3_avatar_workflow/BATCH_THREE_POSE.md (git diff: a roster capacity estimate, unrelated to startup)
+    /workspace/MuseTalk/scripts/bench_gpu_path.py
+    /workspace/MuseTalk/scripts/box_guard.sh
+    /workspace/MuseTalk/scripts/test_box_guard.sh
+    /workspace/MuseTalk/scripts/build_unet_stagewise.py
+    /workspace/MuseTalk/scripts/unet_stagewise_trt.py
+    /workspace/MuseTalk/scripts/build_unet_multi_avatar_corpus.py (header)
+    /workspace/MuseTalk/scripts/run_trt_stagewise_server.sh (lines 100-175 and profile grep)
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/foundation_results.json
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/bench_gpu_path_baseline_200s.log
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/bench_gpu_path_variants_60s.log
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/bench_gpu_path_baseline_trtbs8_taesd_200s.json
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/box_guard_selftest.log
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/unet_corpus_build.log
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/unet_validate_trt_shipping.log
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/stepA_cudagraph_gate.py
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/stepA_cudagraph_gate.log
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/stepA_wait1_blocked_by_user_server.log
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/stepB_chain_bench.py
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/explore_recipe.py
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/explore_recipe.log
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/gate_taesd_trt.py
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/speed_taesd_trt.py
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/gtrack_taesd_trt.py
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_20260927/taesd_probe/p5_trt_taesd.json
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_20260927/unet_probe/trt_topblocks_bs8.json
+    /workspace/MuseTalk/docs/musetalk_4070s_300fps_plan_2026-09-27.md (exec summary, Phase 0 items 0.1/0.6-0.8, Phase 1 items 1.1-1.2, Phase 2)
+    /workspace/MuseTalk/.runtime/musetalk_trt_local_sm89.env (values, secrets filtered)
+    /workspace/MuseTalk/.runtime/musetalk_trt_best.env (key names only)
+    /workspace/experiments/chinese_bob_webrtc_20260927/run_local_api.sh
+    /workspace/experiments/chinese_bob_webrtc_20260927/api_server.log (grep)
+    /workspace/.gpu_lease.log
+    /workspace/.gpu_lease.holder
+    /proc/3555159/environ (MUSETALK_/HLS_/WEBRTC_ keys only, secrets filtered) and ps of pids 3555159/3555031/3564278

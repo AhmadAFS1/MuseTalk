@@ -36,21 +36,48 @@ Modes
           scheduler's CUDA-event capacity telemetry when HLS_GPU_EVENT_TIMING=1.
   compare CPU only: compare two golden JSONs frame by frame.
 
+Which tree
+----------
+--repo PATH selects the code under test: the harness puts PATH first on sys.path,
+drops its own tree from sys.path, and chdirs to PATH before importing anything
+from `scripts.` / `musetalk.`, so e.g. `--repo /workspace/MuseTalk` replays the
+clean main checkout (the pre-change arm) and `--repo /workspace/MuseTalk-perf300`
+(the default: this file's own tree) replays the candidates. With a foreign repo
+the harness never writes into it (no .pyc: sys.dont_write_bytecode; git is only
+read with --no-optional-locks). Launch it with cwd = this file's tree.
+
 Runs
 ----
 Several runs can execute sequentially in ONE process (the model loads once):
   --run LABEL:SOURCE[:KEY=VAL,KEY=VAL...]
-SOURCE is `head` (git HEAD's scripts/hls_gpu_scheduler.py, i.e. today's code),
-`worktree` (the working copy) or a path. KEY=VAL are env overrides applied while
-that run's scheduler is constructed and runs (every scheduler flag is read in
-__init__ or at use time). Flags read at module import time elsewhere (e.g.
-MUSETALK_VAE_DECODE_TIMING_SYNC in musetalk/models/vae.py) must be set for the
-whole process instead.
+SOURCE is `repo` (alias `worktree`: --repo's working copy of
+scripts/hls_gpu_scheduler.py), `head` (git HEAD's copy in --repo), `base`
+(merge-base(HEAD, main)'s copy: today's scheduler running inside --repo's other
+modules, which isolates scheduler changes from the rest of the tree) or a path.
+KEY=VAL are env overrides applied while that run's scheduler is constructed and
+runs (every scheduler flag is read in __init__ or at use time). Flags read at
+module import time elsewhere (e.g. MUSETALK_VAE_DECODE_TIMING_SYNC in
+musetalk/models/vae.py, MUSETALK_TRT_UNET_CUDAGRAPHS at model load) must be set
+for the whole process instead. Harness-only keys (not exported to the env):
+  REPLAY_JOBS=id+id+...   golden: this run replays only these jobs.
+  REPLAY_CONSUMER_DEPTH=zero|none   golden: overrides --consumer-depth for this run.
+
+Outputs
+-------
+golden: per job, in generation order, SHA-256 of every decoded face (the TAESD
+uint8 BGR row; "RAW_NO_GPU" where HLS_SKIP_GPU_FOR_RAW skipped it) and of every
+composed pre-encoder BGR frame (+ its PyAV yuv420p unless --no-yuv), batch order
+checks, first-frame latency, the scheduler capacity telemetry when present, and
+an event-vs-host stage-time summary. --video-dir writes short H.264 mp4s
+(libx264 -crf --video-crf, <= 12; --video-lossless for libx264rgb -qp 0 mkv)
+for the labelled comparison video tool.
+speed: unpaced null sink (the consumer reports an empty queue, so run-ahead caps
+never throttle) or --paced; generated fps over a --seconds window per N.
 
 Run it under the GPU lease (model load has an ~8.5-10.6 GB host-RSS peak):
-  scripts/box_guard.sh run --min-avail-gb 11 --wait-min 240 --label golden_base -- \
+  scripts/box_guard.sh run --min-avail-gb 14 --wait-min 60 --label sched_golden -- \
     /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/replay_scheduler_exactness.py \
-    --mode golden --run base:head --out docs/.../scheduler/golden_base_r1.json
+    --repo /workspace/MuseTalk --mode golden --run main_r1:repo --out docs/.../scheduler/golden_main_r1.json
 """
 from __future__ import annotations
 
@@ -68,7 +95,27 @@ import traceback
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+HARNESS_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _repo_from_argv(argv) -> Path:
+    """--repo is resolved before any repo module is imported (see docstring)."""
+    for index, arg in enumerate(argv):
+        if arg == "--repo" and index + 1 < len(argv):
+            return Path(argv[index + 1]).resolve()
+        if arg.startswith("--repo="):
+            return Path(arg.split("=", 1)[1]).resolve()
+    return HARNESS_ROOT
+
+
+ROOT = _repo_from_argv(sys.argv[1:]) if __name__ == "__main__" else HARNESS_ROOT
+FOREIGN_REPO = ROOT != HARNESS_ROOT
+if FOREIGN_REPO:
+    # Import nothing from the harness's own tree, and write nothing (.pyc)
+    # into the repo under test.
+    sys.dont_write_bytecode = True
+    _own = {str(HARNESS_ROOT), str(HARNESS_ROOT / "scripts")}
+    sys.path[:] = [p for p in sys.path if str(Path(p or ".").resolve()) not in _own]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -257,14 +304,22 @@ def bgr_to_yuv420p(bgr):
     return av.VideoFrame.from_ndarray(bgr, format="bgr24").reformat(format="yuv420p").to_ndarray()
 
 
+MAX_VIDEO_CRF = 12
+
+
 class LosslessWriter:
-    """Encodes BGR frames in order to lossless RGB H.264 (libx264rgb -qp 0).
+    """Encodes BGR frames in order for review videos.
 
-    ffmpeg is started on the first frame so the size always matches the composed
-    frames (prepared avatar frames can differ from the idle video's size)."""
+    Default: H.264 mp4 (libx264 -crf <= 12, yuv420p) for the labelled comparison
+    video tool; lossless=True: RGB H.264 mkv (libx264rgb -qp 0). ffmpeg is
+    started on the first frame so the size always matches the composed frames
+    (prepared avatar frames can differ from the idle video's size)."""
 
-    def __init__(self, path: Path, fps: int, max_frames: int):
-        self.path = path
+    def __init__(self, path: Path, fps: int, max_frames: int, crf: int = MAX_VIDEO_CRF,
+                 lossless: bool = False):
+        self.lossless = bool(lossless)
+        self.crf = min(MAX_VIDEO_CRF, max(0, int(crf)))
+        self.path = Path(path).with_suffix(".mkv" if self.lossless else ".mp4")
         self.fps = fps
         self.max_frames = max_frames
         self.count = 0
@@ -272,6 +327,14 @@ class LosslessWriter:
         self.q: queue.Queue = queue.Queue(maxsize=64)
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
+
+    def _codec_args(self, width: int, height: int) -> list:
+        if self.lossless:
+            return ["-c:v", "libx264rgb", "-qp", "0", "-preset", "ultrafast"]
+        # yuv420p needs even dimensions; pad by one pixel if a clip is odd.
+        pad = [] if width % 2 == 0 and height % 2 == 0 else ["-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2"]
+        return pad + ["-c:v", "libx264", "-crf", str(self.crf), "-preset", "medium",
+                      "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
 
     def put(self, bgr):
         if self.count >= self.max_frames:
@@ -290,8 +353,8 @@ class LosslessWriter:
                 self.path.parent.mkdir(parents=True, exist_ok=True)
                 self.proc = subprocess.Popen(
                     ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24",
-                     "-s", f"{w}x{h}", "-r", str(self.fps), "-i", "-", "-c:v", "libx264rgb", "-qp", "0",
-                     "-preset", "ultrafast", "-threads", "2", str(self.path)],
+                     "-s", f"{w}x{h}", "-r", str(self.fps), "-i", "-", *self._codec_args(w, h),
+                     "-threads", "2", str(self.path)],
                     stdin=subprocess.PIPE)
             self.proc.stdin.write(np.ascontiguousarray(item).tobytes())
 
@@ -327,9 +390,12 @@ class JobRecorder:
     def record_faces(self, start_frame_idx: int, batch_frames):
         if not self.hash_faces:
             return
+        import numpy as np
         for i, face in enumerate(batch_frames):
             idx = int(start_frame_idx) + i
-            self.faces[idx] = "RAW_NO_GPU" if face is None else self.pool.submit(sha_array, face)
+            # Copy before hashing off-thread: at HLS_GPU_PIPELINE_DEPTH>=2 faces are
+            # views of a pinned ring slot the scheduler reuses once compose is done.
+            self.faces[idx] = "RAW_NO_GPU" if face is None else self.pool.submit(sha_array, np.array(face))
 
     def record_frames(self, frames, start_frame_idx: int, now: float):
         with self.lock:
@@ -355,7 +421,11 @@ class JobRecorder:
                 self.writer.put(bgr)
 
     def _check_yuv(self, idx, bgr, yuv_given):
+        """WEBRTC_YUV_IN_COMPOSE producer contract: the carried I420 must equal
+        today's conversion of the same BGR; the recorded hash is of the carried one."""
         import numpy as np
+        if hasattr(yuv_given, "to_ndarray"):
+            yuv_given = yuv_given.to_ndarray()
         expected = bgr_to_yuv420p(bgr)
         if not np.array_equal(expected, yuv_given):
             self.yuv_mismatch.append(idx)
@@ -602,18 +672,42 @@ def prepare_wavs(names, workdir: Path) -> dict:
 
 
 # ------------------------------------------------------------------ scheduler loading
+def git_read(*args) -> str:
+    """Read-only git on --repo (never takes the index lock)."""
+    try:
+        return subprocess.run(["git", "--no-optional-locks", "-C", str(ROOT), *args], check=True,
+                              capture_output=True, text=True).stdout
+    except (OSError, subprocess.CalledProcessError) as exc:
+        return f"<git {' '.join(args)} failed: {exc}>"
+
+
+def repo_provenance() -> dict:
+    status = git_read("status", "--porcelain", "--untracked-files=no")
+    return {"repo": str(ROOT), "harness": str(Path(__file__).resolve()), "foreign_repo": FOREIGN_REPO,
+            "head": git_read("rev-parse", "HEAD").strip(),
+            "branch": git_read("rev-parse", "--abbrev-ref", "HEAD").strip(),
+            "modified_tracked_files": [line[3:] for line in status.splitlines() if line.strip()]}
+
+
 def load_scheduler_class(source: str, scratch: Path):
-    if source == "worktree":
+    if source in ("repo", "worktree"):
         path = ROOT / "scripts/hls_gpu_scheduler.py"
         mod_name = "scripts.hls_gpu_scheduler"
         import scripts.hls_gpu_scheduler as module
+        if Path(module.__file__).resolve() != path.resolve():
+            raise RuntimeError(f"imported {module.__file__}, expected {path} (sys.path leak)")
     else:
-        if source == "head":
-            text = subprocess.run(["git", "-C", str(ROOT), "show", "HEAD:scripts/hls_gpu_scheduler.py"],
-                                  check=True, capture_output=True, text=True).stdout
-            path = scratch / "hls_gpu_scheduler_HEAD.py"
+        if source in ("head", "base"):
+            rev = "HEAD" if source == "head" else git_read("merge-base", "HEAD", "main").strip()
+            if rev.startswith("<git "):
+                raise RuntimeError(rev)
+            text = git_read("show", f"{rev}:scripts/hls_gpu_scheduler.py")
+            if text.startswith("<git "):
+                raise RuntimeError(text)
+            tag = hashlib.sha1(f"{ROOT}:{rev}".encode()).hexdigest()[:8]
+            path = scratch / f"hls_gpu_scheduler_{source}_{tag}.py"
             path.write_text(text)
-            mod_name = "hls_gpu_scheduler_head"
+            mod_name = f"hls_gpu_scheduler_{source}"
         else:
             path = Path(source).resolve()
             mod_name = "hls_gpu_scheduler_" + hashlib.sha1(str(path).encode()).hexdigest()[:8]
@@ -662,12 +756,13 @@ def parse_run(spec: str) -> dict:
     parts = spec.split(":", 2)
     if len(parts) < 2:
         raise SystemExit(f"--run needs LABEL:SOURCE[:K=V,...], got {spec!r}")
-    overrides = {}
+    overrides, harness = {}, {}
     if len(parts) == 3 and parts[2]:
         for item in parts[2].split(","):
             k, v = item.split("=", 1)
-            overrides[k.strip()] = v.strip()
-    return {"label": parts[0], "source": parts[1], "env": overrides}
+            k, v = k.strip(), v.strip()
+            (harness if k.startswith("REPLAY_") else overrides)[k] = v
+    return {"label": parts[0], "source": parts[1], "env": overrides, "harness": harness}
 
 
 # ------------------------------------------------------------------------- the runs
@@ -753,10 +848,15 @@ def run_golden(cls, manager, run: dict, jobs: list, wavs: dict, args, hash_pool)
     video_jobs = set(filter(None, (args.video_jobs or "").split(",")))
     for job in jobs:
         session = build_session(job["identity"], f"{run['label']}_{job['id']}", job["idle_frame"])
+        if (run.get("harness") or {}).get("REPLAY_CONSUMER_DEPTH", args.consumer_depth) == "zero":
+            # A consumer that is never behind: EDF run-ahead caps never throttle,
+            # so batch composition does not depend on wall-clock timing.
+            session.webrtc_playback_queue_frames = lambda: 0
         writer = None
         if args.video_dir and job["id"] in video_jobs:
-            writer = LosslessWriter(Path(args.video_dir) / f"{run['label']}_{job['id']}.mkv", 20,
-                                    int(args.video_seconds * 20))
+            writer = LosslessWriter(Path(args.video_dir) / f"{run['label']}_{job['id']}", 20,
+                                    int(args.video_seconds * 20), crf=args.video_crf,
+                                    lossless=args.video_lossless)
             writers[job["id"]] = writer
         rec = JobRecorder(job["id"], hash_pool, True, True, not args.no_yuv, writer)
         handles.append(JobHandle(job["id"], session, rec))
@@ -787,6 +887,10 @@ def run_golden(cls, manager, run: dict, jobs: list, wavs: dict, args, hash_pool)
                 raise TimeoutError(f"{handle.job_id} did not finish in {args.timeout_s}s")
         wall = time.time() - t0
         cap = capacity_stats(scheduler)
+        if cap is not None:
+            cap = {k: v for k, v in cap.items() if k != "batches"} | {
+                "batches_tail": (cap.get("batches") or [])[-64:]}
+        sched_stats = scheduler.get_stats()
     finally:
         scheduler.shutdown()
         for w in writers.values():
@@ -805,9 +909,32 @@ def run_golden(cls, manager, run: dict, jobs: list, wavs: dict, args, hash_pool)
             handle.session.live_pose_router.close()
         except Exception:
             pass
+    latencies = sorted(r["first_frame_latency_s"] for r in results.values() if r["first_frame_latency_s"] is not None)
     return {"wall_s": round(wall, 3), "frames": total_frames, "fps": round(total_frames / wall, 2),
-            "jobs": results, "capacity": cap,
+            "jobs": results, "capacity": cap, "event_vs_host": event_vs_host(cap),
+            "scheduler_pipeline": sched_stats.get("pipeline"),
+            "first_frame_latency_s": {"max": latencies[-1] if latencies else None,
+                                      "median": latencies[len(latencies) // 2] if latencies else None},
             "videos": {k: str(w.path) for k, w in writers.items()}}
+
+
+def event_vs_host(cap: dict | None) -> dict | None:
+    """Plan item 0.2 gate input: CUDA-event stage totals vs host (sync) totals.
+
+    Only meaningful at depth 1 with HLS_GPU_STAGE_SYNC_TIMING=1 (host clocks
+    bracket host syncs). vae compares event vae+d2h with host vae (the host
+    decode includes the D2H)."""
+    if not cap or not cap.get("enabled"):
+        return None
+    t = cap.get("totals") or {}
+    out = {"stage_sync_on": bool((cap.get("config") or {}).get("gpu_stage_sync_timing")),
+           "depth": (cap.get("config") or {}).get("pipeline_depth"), "gpu_batches": t.get("gpu_batches")}
+    for name, ev, host in (("h2d", t.get("h2d_ms", 0.0), t.get("host_copy_ms", 0.0)),
+                           ("unet", t.get("unet_ms", 0.0), t.get("host_unet_ms", 0.0)),
+                           ("vae", t.get("vae_ms", 0.0) + t.get("d2h_ms", 0.0), t.get("host_vae_ms", 0.0))):
+        out[name] = {"event_ms": round(ev, 3), "host_ms": round(host, 3),
+                     "rel_diff": round((ev - host) / host, 5) if host else None}
+    return out
 
 
 class SmiSampler:
@@ -877,6 +1004,11 @@ def run_speed(cls, manager, run: dict, n_jobs: int, wavs: dict, args) -> dict:
                     handle.playing = True
             handle.blocked_s += time.time() - t_block
 
+    if not args.paced:
+        # Null sink: an infinitely fast consumer, never behind (EDF run-ahead
+        # caps do not throttle an unpaced throughput run).
+        for h in handles:
+            h.session.webrtc_playback_queue_frames = lambda: 0
     if args.paced:
         for h in handles:
             h.session.webrtc_playback_queue_frames = (lambda hh=h: hh.queue_frames)
@@ -996,11 +1128,16 @@ def diff_capacity(c0: dict, c1: dict) -> dict:
 
 
 # -------------------------------------------------------------------------- compare
-def compare(a: dict, b: dict, label_a="A", label_b="B") -> dict:
+def compare(a: dict, b: dict, label_a="A", label_b="B", subset_ok: bool | None = None) -> dict:
     """Frame-by-frame comparison of two golden runs (faces are compared only where
-    both computed a face; frames marked RAW_NO_GPU had their GPU output discarded)."""
-    report = {"a": label_a, "b": label_b, "jobs": {}, "identical": True}
-    for job_id in sorted(set(a["jobs"]) | set(b["jobs"])):
+    both computed a face; frames marked RAW_NO_GPU had their GPU output discarded).
+
+    subset_ok (default: b ran a REPLAY_JOBS subset) compares only b's jobs."""
+    if subset_ok is None:
+        subset_ok = bool((b.get("harness_options") or {}).get("REPLAY_JOBS"))
+    report = {"a": label_a, "b": label_b, "jobs": {}, "identical": True, "subset": bool(subset_ok)}
+    job_ids = set(b["jobs"]) if subset_ok else set(a["jobs"]) | set(b["jobs"])
+    for job_id in sorted(job_ids):
         ja, jb = a["jobs"].get(job_id), b["jobs"].get(job_id)
         if ja is None or jb is None:
             report["jobs"][job_id] = {"missing_in": label_a if ja is None else label_b}
@@ -1014,6 +1151,7 @@ def compare(a: dict, b: dict, label_a="A", label_b="B") -> dict:
         face_diff = sum(1 for x, y in face_pairs if x != y)
         ok = (not frame_diff and not yuv_diff and face_diff == 0 and len(ja["faces"]) == len(jb["faces"])
               and not ja["order_errors"] and not jb["order_errors"]
+              and not jb.get("yuv_contract_mismatches")
               and ja["status"] == jb["status"] == "completed")
         report["jobs"][job_id] = {
             "frames": len(fa), "frames_b": len(fb), "frame_mismatches": len(frame_diff),
@@ -1037,10 +1175,75 @@ def strip_hashes(run_result: dict) -> dict:
     return out
 
 
+# ------------------------------------------------------------------------ selfcheck
+def selfcheck(args) -> int:
+    """CPU-only preflight (no CUDA, no model): the modules the replay uses import
+    from --repo, the fixtures exist, WAV prep works, the scheduler sources load."""
+    os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+    report = {"provenance": repo_provenance(), "checks": {}}
+    ok = True
+
+    def check(name, fn):
+        nonlocal ok
+        try:
+            report["checks"][name] = {"ok": True, "detail": fn()}
+        except Exception as exc:  # noqa: BLE001
+            ok = False
+            report["checks"][name] = {"ok": False, "detail": f"{type(exc).__name__}: {exc}"}
+
+    def modules():
+        import importlib
+        out = {}
+        for name in ("scripts.hls_gpu_scheduler", "scripts.webrtc_manager", "scripts.webrtc_pose_router",
+                     "scripts.pose_protocol", "scripts.webrtc_audio_timeline"):
+            path = Path(importlib.import_module(name).__file__).resolve()
+            if not str(path).startswith(str(ROOT) + os.sep):
+                raise RuntimeError(f"{name} imported from {path}, not {ROOT}")
+            out[name] = str(path)
+        return out
+
+    def sources():
+        scratch = Path(os.getenv("REPLAY_SCRATCH", "/tmp/claude-0/replay_scheduler"))
+        scratch.mkdir(parents=True, exist_ok=True)
+        out = {}
+        for source in ("repo", "head", "base"):
+            _cls, path, sha = load_scheduler_class(source, scratch)
+            out[source] = {"path": path, "sha256": sha}
+        out["repo_equals_head"] = out["repo"]["sha256"] == out["head"]["sha256"]
+        return out
+
+    def fixtures():
+        missing = [p for p in [str(LIVE_ENV_FILE), IDENTITIES["bob"]["pose_set"], str(BOB_DIR / "motion-atlas.json")]
+                   + [w for w in WAVS.values() if not w.startswith("@")] if not Path(p).exists()]
+        for spec in IDENTITIES.values():
+            if not (ROOT / "results/v15/avatars" / spec["avatar_id"]).is_dir():
+                missing.append(spec["avatar_id"])
+        if missing:
+            raise FileNotFoundError(missing)
+        return "all present"
+
+    def wav_prep():
+        scratch = Path(os.getenv("REPLAY_SCRATCH", "/tmp/claude-0/replay_scheduler")) / "selfcheck_wav"
+        return prepare_wavs(["zero3", "bob1"], scratch)
+
+    check("modules_from_repo", modules)
+    check("scheduler_sources", sources)
+    check("fixtures", fixtures)
+    check("wav_prep", wav_prep)
+    import torch
+    report["cuda_initialized"] = bool(torch.cuda.is_initialized())
+    ok &= not report["cuda_initialized"]
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.out).write_text(json.dumps(report, indent=1))
+    print(("PASS" if ok else "FAIL") + f" selfcheck repo={ROOT} "
+          + " ".join(f"{k}={'ok' if v['ok'] else 'FAIL'}" for k, v in report["checks"].items()), flush=True)
+    return 0 if ok else 1
+
+
 # ----------------------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--mode", choices=["golden", "speed", "compare"], default="golden")
+    ap.add_argument("--mode", choices=["golden", "speed", "compare", "selfcheck"], default="golden")
     ap.add_argument("--run", action="append", default=[], help="LABEL:SOURCE[:K=V,...] (repeatable)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--overlay", default=None, help="extra env file layered over the live env")
@@ -1052,6 +1255,14 @@ def main():
     ap.add_argument("--video-dir", default=None)
     ap.add_argument("--video-jobs", default="bob_t1,jp_d10")
     ap.add_argument("--video-seconds", type=float, default=12.0)
+    ap.add_argument("--video-crf", type=int, default=MAX_VIDEO_CRF,
+                    help=f"libx264 crf of the mp4 dumps (capped at {MAX_VIDEO_CRF})")
+    ap.add_argument("--video-lossless", action="store_true", help="libx264rgb -qp 0 mkv instead of crf mp4")
+    ap.add_argument("--repo", default=str(HARNESS_ROOT),
+                    help="tree under test (resolved before import; see docstring)")
+    ap.add_argument("--consumer-depth", choices=["zero", "none"], default="zero",
+                    help="golden: 'zero' = consumer never behind (deterministic EDF); 'none' = no depth hook "
+                         "(EDF falls back to its wall-clock estimate)")
     ap.add_argument("--hash-workers", type=int, default=6)
     ap.add_argument("--n-jobs", default="8,12,16", help="speed: comma list of N")
     ap.add_argument("--seconds", type=float, default=60.0, help="speed: measured window")
@@ -1061,6 +1272,10 @@ def main():
     ap.add_argument("--compare", nargs=2, metavar=("A_JSON", "B_JSON"))
     args = ap.parse_args()
 
+    if Path(args.repo).resolve() != ROOT:
+        raise SystemExit(f"--repo resolved to {ROOT} at import but {args.repo} at parse time")
+    if args.video_crf > MAX_VIDEO_CRF:
+        print(f"[replay] --video-crf {args.video_crf} capped at {MAX_VIDEO_CRF}", flush=True)
     if args.mode == "compare":
         a, b = (json.loads(Path(p).read_text()) for p in args.compare)
         ra = a["runs"][0] if "runs" in a else a
@@ -1074,6 +1289,8 @@ def main():
         return 0 if all(r["identical"] for r in reports) else 1
 
     os.chdir(ROOT)
+    if args.mode == "selfcheck":
+        return selfcheck(args)
     env_report = apply_env(args.overlay)
     from scripts.runtime_cpu_tuning import apply_cpu_tuning_early
     apply_cpu_tuning_early("api_server")
@@ -1105,9 +1322,16 @@ def main():
                       ffmpeg_path="./ffmpeg-4.4-amd64-static/")
     manager = ParallelAvatarManager(margs, max_concurrent_inferences=5)
     load_s = time.time() - t_load
+    leaked = sorted({str(Path(m.__file__).resolve()) for m in list(sys.modules.values())
+                     if getattr(m, "__file__", None) and str(Path(m.__file__).resolve()).startswith(
+                         str(HARNESS_ROOT) + os.sep) and Path(m.__file__).resolve() != Path(__file__).resolve()}
+                    ) if FOREIGN_REPO else []
+    if leaked:
+        raise SystemExit(f"modules imported from the harness tree instead of --repo {ROOT}: {leaked[:5]}")
     print(f"[replay] models loaded in {load_s:.1f}s rss={rss_gb():.2f}GB avail={mem_available_gb():.2f}GB", flush=True)
 
-    out = {"schema": "replay_scheduler_exactness_v1", "mode": args.mode, "argv": sys.argv,
+    out = {"schema": "replay_scheduler_exactness_v2", "mode": args.mode, "argv": sys.argv,
+           "provenance": repo_provenance(),
            "started_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "pid": os.getpid(), "env": env_report,
            "gpu_defaults_applied": gpu_defaults, "wavs": wavs, "model_load_s": round(load_s, 1),
            "unet_backend": getattr(manager, "unet_backend_name", None),
@@ -1119,10 +1343,17 @@ def main():
             cls, path, sha = load_scheduler_class(run["source"], scratch)
             print(f"[replay] run {run['label']} source={run['source']} sha={sha[:12]} env={run['env']}", flush=True)
             entry = {"label": run["label"], "source": run["source"], "scheduler_path": path, "scheduler_sha256": sha,
-                     "env_overrides": run["env"], "mem_available_gb_start": round(mem_available_gb(), 2)}
+                     "env_overrides": run["env"], "harness_options": run["harness"],
+                     "mem_available_gb_start": round(mem_available_gb(), 2)}
             try:
                 if args.mode == "golden":
-                    entry.update(run_golden(cls, manager, run, jobs, wavs, args, hash_pool))
+                    run_jobs = jobs
+                    if run["harness"].get("REPLAY_JOBS"):
+                        wanted_ids = set(run["harness"]["REPLAY_JOBS"].split("+"))
+                        run_jobs = [j for j in jobs if j["id"] in wanted_ids]
+                        if not run_jobs:
+                            raise RuntimeError(f"REPLAY_JOBS matched no golden job: {wanted_ids}")
+                    entry.update(run_golden(cls, manager, run, run_jobs, wavs, args, hash_pool))
                     bad = [k for k, v in entry["jobs"].items() if v["status"] != "completed" or v["order_errors"]]
                     entry["all_completed_in_order"] = not bad
                     print(f"[replay] {run['label']}: {entry['frames']} frames in {entry['wall_s']}s "
@@ -1162,4 +1393,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

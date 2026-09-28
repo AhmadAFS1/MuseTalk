@@ -1,0 +1,119 @@
+{
+ "schema": "video_ab_selftest_v1",
+ "created_utc": "2026-09-28T06:05:26Z",
+ "work_dir": "/tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/selftest_final",
+ "seconds": 16.6,
+ "tests": [
+  {
+   "test": "lossless_roundtrip",
+   "result": "pass",
+   "detail": "36 frames libx264rgb qp0 decoded SHA-exact"
+  },
+  {
+   "test": "per_frame_sha_equality",
+   "result": "pass",
+   "detail": "32/36 equal; differing [20, 21, 22, 30]"
+  },
+  {
+   "test": "metrics_lsb_psnr",
+   "result": "pass",
+   "detail": "frame21 max 3 psnr 58.215 (ref 58.214); frame30 mouth max 0"
+  },
+  {
+   "test": "gate_exact_fails_on_diff",
+   "result": "pass",
+   "detail": "EXACT FAIL: 32/36 SHA-identical, min PSNR 48.41 dB (mouth 42.48), max 41 LSB, mean 0.004 LSB; fps A 123.4 -> B 150.0 (+21.6%) [4/36 frames not SHA-identical]"
+  },
+  {
+   "test": "video_encode",
+   "result": "pass",
+   "detail": "{'codec': 'h264', 'pix_fmt': 'yuv420p', 'frames': 36, 'avg_frame_rate': '24/1', 'width': 1568, 'height': 1544, 'duration_s': 1.5, 'audio': False, 'encoder': 'libx264', 'crf': 10, 'preset': 'medium', 'audio_source': None}"
+  },
+  {
+   "test": "panels_full_and_zoom",
+   "result": "pass",
+   "detail": "PSNR vs source: A 38.8, B 38.8, zoom(3x NN) 38.2 dB"
+  },
+  {
+   "test": "diff_panel",
+   "result": "pass",
+   "detail": "identical frame diff-panel mean 0.16; changed block mean 84.9 (expected |A-B|x8 87.1)"
+  },
+  {
+   "test": "labels",
+   "result": "pass",
+   "detail": "5/5/7 lines, bright header px 2045"
+  },
+  {
+   "test": "json_fields",
+   "result": "pass",
+   "detail": "all present; contact sheet written"
+  },
+  {
+   "test": "exact_pass_identical",
+   "result": "pass",
+   "detail": "EXACT PASS: 36/36 frames SHA-identical (black diff panel); fps A 123.4 -> B 150.0 (+21.6%) (diff panel mean 0.16)"
+  },
+  {
+   "test": "gate_fp16_numeric",
+   "result": "pass",
+   "detail": "{'expect': 'fp16', 'thresholds': {'full_psnr_min_db': 40.0, 'mouth_psnr_min_db': 36.0, 'full_mean_abs_lsb_max': 0.5}, 'result': 'PASS', 'reasons': [], 'note': 'E1 numeric gate [proposed]; the video decides (plan D14). Visual review required.'}"
+  },
+  {
+   "test": "max_20s_and_count_mismatch",
+   "result": "pass",
+   "detail": "video 200 frames/20.0 s; compared 249; ['frame counts differ']"
+  },
+  {
+   "test": "corrupt_dump_detected",
+   "result": "pass",
+   "detail": "/tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/selftest_final/b/frames.mkv: frame 3 does not match its recorded SHA-256"
+  },
+  {
+   "test": "readme_index",
+   "result": "pass",
+   "detail": "markers respected, one row per report"
+  },
+  {
+   "test": "tree_dirty_detection",
+   "result": "pass",
+   "detail": "clean 9d4038cb8e7d, doc-only dirty ignored, code dirty ['scripts/x.py']"
+  },
+  {
+   "test": "snapshot_is_head",
+   "result": "pass",
+   "detail": "/tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/selftest_final/trees/9d4038cb8e7d: scripts from HEAD, other entries symlinked"
+  },
+  {
+   "test": "harness_tree_shim",
+   "result": "pass",
+   "detail": "{'/workspace/MuseTalk': {'ROOT': '/workspace/MuseTalk', 'LIVE_ENV_FILE': '/workspace/MuseTalk/.runtime/musetalk_trt_local_sm89.env', 'hls_gpu_scheduler': '/workspace/MuseTalk/scripts/hls_gpu_scheduler.py', 'sys_path0': '/workspace/MuseTalk'}, '/workspace/MuseTalk-perf300': {'ROOT': '/workspace/MuseTalk-perf300', 'LIVE_ENV_FILE': '/workspace/MuseTalk-perf300/.runtime/musetalk_trt_local_sm89.env', 'hls_gpu_scheduler': '/workspace/MuseTalk-perf300/scripts/hls_gpu_scheduler.py', 'sys_path0': '/workspace/MuseTalk-perf300'}}"
+  },
+  {
+   "test": "replay_adapter",
+   "result": "pass",
+   "detail": "12 video frames of 15, mouth_box [43, 80, 64, 96], mismatch detected=True"
+  },
+  {
+   "test": "compose_arm_flow",
+   "result": "pass",
+   "detail": "{'rc': 0, 'states': ('ok', 'stale', 'missing'), 'results': {'chin_japanese': 'PASS', 'replay_jp_d10': 'PASS'}, 'golden_identical': True, 'tracking_mean_px': 0.01415, 'candidate_frames_deleted': True, 'baseline_frames_kept': True, 'readme_rows': 2}"
+  },
+  {
+   "test": "chin_gpu_loop_mock",
+   "result": "pass",
+   "detail": "{'frames': 16, 'repeats': 2, 'repeats_identical': True, 'landmarks_restored': True, 'checks': True, 'lip_max': 0, 'ref_max': 0, 'unet': 'fake_unet', 'cuda_initialized': False, 'digest': '03c1f8536b66'}"
+  },
+  {
+   "test": "dry_run_chin_both_trees",
+   "result": "pass",
+   "detail": "{'pre_change': (0, 'frames=12 fps=457.0 repeats_identical=True checks=True digest=c996903d32a0 -> /tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/selftest_final/dry_pre_change/japanese/clip.json\\n'), 'wt_default': (0, 'frames=12 fps=454.3 repeats_identical=True checks=True digest=c996903d32a0 -> /tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/selftest_final/dry_wt_default/japanese/clip.json\\n')}"
+  },
+  {
+   "test": "dry_run_chin_ab_exact",
+   "result": "pass",
+   "detail": "EXACT PASS: 12/12 frames SHA-identical (black diff panel); fps A 457.0 -> B 454.3 (-0.6%); module origins ok=True; mouth_box [175, 421, 345, 535]; video /tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/selftest_final/out/dry_chin_ab.mp4"
+  }
+ ],
+ "all_pass": true
+}

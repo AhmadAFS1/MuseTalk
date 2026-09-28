@@ -1,0 +1,1098 @@
+{
+ "schema": "chin_multistream_v1",
+ "label": "V_srcmix_taesdtrt",
+ "started_utc": "2026-09-28T18:30:56Z",
+ "tags": "[M] measured by this run",
+ "args": {
+  "mode": "multi",
+  "backend": "stagewise16_taesdtrt",
+  "flags": "MUSETALK_UNET_STAGEWISE_CACHE_DIR=models/tensorrt_unet_stagewise_sm89_srcmix",
+  "identities": "all",
+  "streams": 6,
+  "loops": 1,
+  "repeats": 1,
+  "align": "stream8",
+  "pack": 16,
+  "decode_split": 8,
+  "depth": 2,
+  "ring_slots": 3,
+  "encode": true,
+  "crf": 12,
+  "save_arrays": true,
+  "compare_accepted": false,
+  "cv2_threads": 2,
+  "blas_threads": 1,
+  "label": "V_srcmix_taesdtrt",
+  "out_root": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream",
+  "min_timed_s": 0.0,
+  "identity_list": [
+   "black_man_short_beard",
+   "black_woman",
+   "east_asian_man_goatee",
+   "middle_eastern_man_full_beard",
+   "south_asian_woman",
+   "white_man_clean_shaven"
+  ],
+  "extra_flags": {
+   "MUSETALK_UNET_STAGEWISE_CACHE_DIR": "models/tensorrt_unet_stagewise_sm89_srcmix"
+  }
+ },
+ "code_integrity": {
+  "files": {
+   "chin.py": "fd753e7d86b14f1800719ec7f26663c1b362cb512ee24b4b8eb9b1e07f2b99e1",
+   "backend.py": "9676886653aa26f5ffdf328d339a882bbf80d725df6273879c0d5389f7f96c3e",
+   "render_stage.py": "774fe698471cd8d0c39ec83fd31bf73f6f42c54a12ed7d629ec91de1192a2ecf",
+   "tracker_worker.py": "7e5ab0cec1ef7148700a15c2f47d5a0c013a941b2426f2421db972fdf631177d"
+  },
+  "blending_py": "6e5de1bf3f30378493c098b76dfc6fe6644e354d60df2492ffb1fc27726ba121",
+  "matches_accepted_render_json": true
+ },
+ "harness_code_sha256": {
+  "chin_multistream_render.py": "181f743923ca610251f6f60b7303b78eecaf5aae67e2e0eb1f398c671dc895f7",
+  "__init__.py": "5da441e276301a29e393822d056eac82ec5ca6a961d537bddc6df237cb36b53f",
+  "arena.py": "4d79e728255a73868e6a187090e42679e2f154e447d8a19d974cf627f96a96b2",
+  "check_prep.py": "0fe8be858c184d590e2c77147af8ea23c6ec8ca6b952482fd455b98cfda344c2",
+  "gpu.py": "38ea680d0dd46ef318b70b3cf25dc4abdafc78c505a9153d66c99fd17a713ec9",
+  "paths.py": "b1f045f72057273cb3c46028ac9cb9edef5427c90cccc32aada37257c5cc168a",
+  "serial.py": "41e926a5a2b51a8ff4763d73140839e44384b5078eb90abe741244c8d8ea275f",
+  "telemetry.py": "199bcfb5365dd544e4c6a458e5d7b28b89259a2b12c3deec51cf215d712bc226",
+  "worker.py": "2e6e88fbe106ca964b2b5e31af44203ce5dff201eb2c37436726b65520cc447b"
+ },
+ "streams": [
+  {
+   "stream": 0,
+   "identity": "black_man_short_beard"
+  },
+  {
+   "stream": 1,
+   "identity": "black_woman"
+  },
+  {
+   "stream": 2,
+   "identity": "east_asian_man_goatee"
+  },
+  {
+   "stream": 3,
+   "identity": "middle_eastern_man_full_beard"
+  },
+  {
+   "stream": 4,
+   "identity": "south_asian_woman"
+  },
+  {
+   "stream": 5,
+   "identity": "white_man_clean_shaven"
+  }
+ ],
+ "unique_identities": [
+  "black_man_short_beard",
+  "black_woman",
+  "east_asian_man_goatee",
+  "middle_eastern_man_full_beard",
+  "south_asian_woman",
+  "white_man_clean_shaven"
+ ],
+ "workers": {
+  "0": {
+   "pid": 18804,
+   "torch_loaded": false,
+   "numpy": "1.23.5",
+   "opencv": "4.9.0",
+   "chin": "/workspace/MuseTalk-perf300/character_factory/h3_avatar_workflow/chin.py",
+   "blending": "/workspace/MuseTalk-perf300/musetalk/utils/blending.py",
+   "blas_env": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+   }
+  },
+  "1": {
+   "pid": 18805,
+   "torch_loaded": false,
+   "numpy": "1.23.5",
+   "opencv": "4.9.0",
+   "chin": "/workspace/MuseTalk-perf300/character_factory/h3_avatar_workflow/chin.py",
+   "blending": "/workspace/MuseTalk-perf300/musetalk/utils/blending.py",
+   "blas_env": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+   }
+  },
+  "2": {
+   "pid": 18806,
+   "torch_loaded": false,
+   "numpy": "1.23.5",
+   "opencv": "4.9.0",
+   "chin": "/workspace/MuseTalk-perf300/character_factory/h3_avatar_workflow/chin.py",
+   "blending": "/workspace/MuseTalk-perf300/musetalk/utils/blending.py",
+   "blas_env": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+   }
+  },
+  "3": {
+   "pid": 18807,
+   "torch_loaded": false,
+   "numpy": "1.23.5",
+   "opencv": "4.9.0",
+   "chin": "/workspace/MuseTalk-perf300/character_factory/h3_avatar_workflow/chin.py",
+   "blending": "/workspace/MuseTalk-perf300/musetalk/utils/blending.py",
+   "blas_env": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+   }
+  },
+  "4": {
+   "pid": 18808,
+   "torch_loaded": false,
+   "numpy": "1.23.5",
+   "opencv": "4.9.0",
+   "chin": "/workspace/MuseTalk-perf300/character_factory/h3_avatar_workflow/chin.py",
+   "blending": "/workspace/MuseTalk-perf300/musetalk/utils/blending.py",
+   "blas_env": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+   }
+  },
+  "5": {
+   "pid": 18809,
+   "torch_loaded": false,
+   "numpy": "1.23.5",
+   "opencv": "4.9.0",
+   "chin": "/workspace/MuseTalk-perf300/character_factory/h3_avatar_workflow/chin.py",
+   "blending": "/workspace/MuseTalk-perf300/musetalk/utils/blending.py",
+   "blas_env": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+   }
+  }
+ },
+ "workers_spawned_before_cuda_init": true,
+ "spawn_s": 0.11794937704689801,
+ "env": {
+  "env_file": "/workspace/MuseTalk-perf300/.runtime/musetalk_trt_local_sm89.env",
+  "env_file_values": {
+   "MUSETALK_VAE_BACKEND": "trt_stagewise",
+   "MUSETALK_TRT_STAGEWISE_PRECISION": "int8_mixed",
+   "MUSETALK_TRT_STAGEWISE_INT8_FRONTEND": "onnx_qdq",
+   "MUSETALK_TRT_STAGEWISE_INT8_STAGES": "decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2",
+   "MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR": "./calibration/vae_decoder",
+   "MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_ALGO": "minmax",
+   "MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR": "./models/tensorrt/stagewise_int8_onnx_qdq_cache",
+   "MUSETALK_TRT_STAGEWISE_INT8_USE_CACHE": "1",
+   "MUSETALK_TRT_STAGEWISE_INT8_REQUIRE_CALIBRATION_CACHE": "1",
+   "MUSETALK_UNET_BACKEND": "trt",
+   "MUSETALK_TRT_UNET_ENABLED": "1",
+   "MUSETALK_TRT_FALLBACK": "0",
+   "MUSETALK_UNET_CALIBRATION_CAPTURE": "0",
+   "WEBRTC_BATCH_FRAME_CALLBACK": "1",
+   "MUSETALK_BLEND_FIXED_POINT": "1",
+   "MUSETALK_BLEND_SHRINK_MASK_BBOX": "1",
+   "MUSETALK_TRT_PROFILE_NAME": "unet_trt_split8_safe5_int8_20260710",
+   "MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES": "8",
+   "HLS_SCHEDULER_MAX_BATCH": "8",
+   "HLS_SCHEDULER_FIXED_BATCH_SIZES": "8",
+   "HLS_SCHEDULER_STARTUP_SLICE_SIZE": "8",
+   "MUSETALK_TRT_UNET_PATHS": "8:models/tensorrt_unet_sm89_bs8_local/unet_trt.ts"
+  },
+  "recipe_overrides": {
+   "MUSETALK_TRT_FALLBACK": "0",
+   "MUSETALK_VAE_BACKEND": "taesd",
+   "MUSETALK_TAESD_WARMUP_BATCHES": "8"
+  },
+  "candidate_flags": {
+   "MUSETALK_UNET_BACKEND": "trt_stagewise",
+   "MUSETALK_UNET_STAGEWISE_BATCH": "16",
+   "MUSETALK_TAESD_BACKEND": "trt",
+   "MUSETALK_TAESD_TRT_STRICT": "1",
+   "MUSETALK_TAESD_TRT_BUILD": "0",
+   "MUSETALK_UNET_STAGEWISE_CACHE_DIR": "models/tensorrt_unet_stagewise_sm89_srcmix"
+  },
+  "effective": {
+   "HLS_SCHEDULER_FIXED_BATCH_SIZES": "8",
+   "HLS_SCHEDULER_MAX_BATCH": "8",
+   "HLS_SCHEDULER_STARTUP_SLICE_SIZE": "8",
+   "MUSETALK_BLEND_FIXED_POINT": "1",
+   "MUSETALK_BLEND_SHRINK_MASK_BBOX": "1",
+   "MUSETALK_TAESD_BACKEND": "trt",
+   "MUSETALK_TAESD_TRT_BUILD": "0",
+   "MUSETALK_TAESD_TRT_STRICT": "1",
+   "MUSETALK_TAESD_WARMUP_BATCHES": "8",
+   "MUSETALK_TRT_FALLBACK": "0",
+   "MUSETALK_TRT_PROFILE_NAME": "unet_trt_split8_safe5_int8_20260710",
+   "MUSETALK_TRT_STAGEWISE_INT8_CACHE_DIR": "./models/tensorrt/stagewise_int8_onnx_qdq_cache",
+   "MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_ALGO": "minmax",
+   "MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR": "./calibration/vae_decoder",
+   "MUSETALK_TRT_STAGEWISE_INT8_FRONTEND": "onnx_qdq",
+   "MUSETALK_TRT_STAGEWISE_INT8_REQUIRE_CALIBRATION_CACHE": "1",
+   "MUSETALK_TRT_STAGEWISE_INT8_STAGES": "decoder_pre,decoder_mid_block,decoder_up_block_0,decoder_up_block_1,decoder_up_block_2",
+   "MUSETALK_TRT_STAGEWISE_INT8_USE_CACHE": "1",
+   "MUSETALK_TRT_STAGEWISE_PRECISION": "int8_mixed",
+   "MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES": "8",
+   "MUSETALK_TRT_UNET_ENABLED": "1",
+   "MUSETALK_TRT_UNET_PATHS": "8:models/tensorrt_unet_sm89_bs8_local/unet_trt.ts",
+   "MUSETALK_UNET_BACKEND": "trt_stagewise",
+   "MUSETALK_UNET_CALIBRATION_CAPTURE": "0",
+   "MUSETALK_UNET_STAGEWISE_BATCH": "16",
+   "MUSETALK_UNET_STAGEWISE_CACHE_DIR": "models/tensorrt_unet_stagewise_sm89_srcmix",
+   "MUSETALK_VAE_BACKEND": "taesd"
+  }
+ },
+ "load_s": 3.3126621900592,
+ "backends": {
+  "unet_name": "tensorrt_unet_stagewise",
+  "unet_class": "StagewiseTrtUnetBackend",
+  "decoder_name": "taesd_trt",
+  "decoder_class": "TaesdTrtBackend",
+  "decoder_compile_enabled": false,
+  "decoder_compile_mode": "tensorrt",
+  "unet_describe": {
+   "name": "tensorrt_unet_stagewise",
+   "engine_dir": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm89_srcmix/bs16",
+   "batch": 16,
+   "cuda_graph": true,
+   "arena_mib": 191.5673828125,
+   "activation_mib": 104.4609375,
+   "device_memory_sizes_mib": {
+    "prefix": 30.0,
+    "down0rest": 151.5625,
+    "down1": 77.54150390625,
+    "down2": 39.49462890625,
+    "down3": 5.01123046875,
+    "mid": 17.7197265625,
+    "up0": 6.8818359375,
+    "up1": 51.99462890625,
+    "up2": 102.54150390625,
+    "up3": 191.5673828125,
+    "tail": 20.0
+   },
+   "probe_status": "exact"
+  },
+  "decoder_trt_key": "6111388248264a4ef2ae",
+  "decoder_trt_gate": {
+   "verdict": "FAIL",
+   "report": "docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/gate_taesd_trt.json",
+   "created_utc": "2026-09-28T06:04:48Z",
+   "frames": 3584,
+   "G_TAESD_full_max": 5,
+   "G_TAESD_full_mean": 0.06567877105304173,
+   "G_TAESD_rows104_max": 3,
+   "G_TAESD_rows104_mean": 0.06125288798396749,
+   "fused_post_mismatched_bytes": 0
+  }
+ },
+ "gpu_warmup_s": 0.341253835009411,
+ "parent_rss_after_load_mib": {
+  "VmHWM": 1592.921875,
+  "VmRSS": 1368.6171875,
+  "RssAnon": 904.29296875,
+  "RssFile": 437.6953125,
+  "RssShmem": 26.62890625
+ },
+ "mem_available_after_load_gb": 13.462230682373047,
+ "prep": {
+  "black_man_short_beard": {
+   "identity": "black_man_short_beard",
+   "decode_s": 0.31876552617177367,
+   "prep_s": 4.147455140016973,
+   "frames_bytes": 330301440,
+   "prep_bytes": 306029584,
+   "wall_s": 4.491585200885311
+  },
+  "black_woman": {
+   "identity": "black_woman",
+   "decode_s": 0.31552854110486805,
+   "prep_s": 3.498339893994853,
+   "frames_bytes": 330301440,
+   "prep_bytes": 293555924,
+   "wall_s": 3.840007097925991
+  },
+  "east_asian_man_goatee": {
+   "identity": "east_asian_man_goatee",
+   "decode_s": 0.3167855590581894,
+   "prep_s": 3.7105047879740596,
+   "frames_bytes": 330301440,
+   "prep_bytes": 257969520,
+   "wall_s": 4.052548282081261
+  },
+  "middle_eastern_man_full_beard": {
+   "identity": "middle_eastern_man_full_beard",
+   "decode_s": 0.3184984258841723,
+   "prep_s": 4.596809593960643,
+   "frames_bytes": 330301440,
+   "prep_bytes": 322000832,
+   "wall_s": 4.941175475018099
+  },
+  "south_asian_woman": {
+   "identity": "south_asian_woman",
+   "decode_s": 0.3165214799810201,
+   "prep_s": 1.8065602469723672,
+   "frames_bytes": 330301440,
+   "prep_bytes": 208243560,
+   "wall_s": 2.1524656359106302
+  },
+  "white_man_clean_shaven": {
+   "identity": "white_man_clean_shaven",
+   "decode_s": 0.31379283405840397,
+   "prep_s": 3.468308645999059,
+   "frames_bytes": 330301440,
+   "prep_bytes": 263245056,
+   "wall_s": 3.8093944508582354
+  }
+ },
+ "prep_wall_s": 4.94288195297122,
+ "attach_wall_s": 0.0084241081494838,
+ "attach": {
+  "0": {
+   "attach_s": 0.0079162388574332,
+   "facemesh_pid": 19323,
+   "rss_mib": {
+    "VmHWM": 128.1484375,
+    "VmRSS": 90.9765625,
+    "RssAnon": 48.01171875,
+    "RssFile": 42.96484375,
+    "RssShmem": 0.0
+   }
+  },
+  "1": {
+   "attach_s": 0.00806675897911191,
+   "facemesh_pid": 19326,
+   "rss_mib": {
+    "VmHWM": 122.25,
+    "VmRSS": 90.50390625,
+    "RssAnon": 47.3203125,
+    "RssFile": 43.18359375,
+    "RssShmem": 0.0
+   }
+  },
+  "2": {
+   "attach_s": 0.007996649015694857,
+   "facemesh_pid": 19325,
+   "rss_mib": {
+    "VmHWM": 122.64453125,
+    "VmRSS": 90.8203125,
+    "RssAnon": 48.15234375,
+    "RssFile": 42.66796875,
+    "RssShmem": 0.0
+   }
+  },
+  "3": {
+   "attach_s": 0.007445350056514144,
+   "facemesh_pid": 19322,
+   "rss_mib": {
+    "VmHWM": 132.0,
+    "VmRSS": 93.38671875,
+    "RssAnon": 49.859375,
+    "RssFile": 43.52734375,
+    "RssShmem": 0.0
+   }
+  },
+  "4": {
+   "attach_s": 0.007918878924101591,
+   "facemesh_pid": 19324,
+   "rss_mib": {
+    "VmHWM": 118.6796875,
+    "VmRSS": 92.73046875,
+    "RssAnon": 48.96484375,
+    "RssFile": 43.765625,
+    "RssShmem": 0.0
+   }
+  },
+  "5": {
+   "attach_s": 0.008124669082462788,
+   "facemesh_pid": 19327,
+   "rss_mib": {
+    "VmHWM": 120.22265625,
+    "VmRSS": 91.16796875,
+    "RssAnon": 48.07421875,
+    "RssFile": 43.09375,
+    "RssShmem": 0.0
+   }
+  }
+ },
+ "mem_available_after_attach_gb": 9.952259063720703,
+ "repeats": [
+  {
+   "repeat": 0,
+   "frames": 1440,
+   "wall_s": 4.114524683915079,
+   "aggregate_fps": 349.97967216709026,
+   "gpu_issue_done_s": 4.036829872988164,
+   "all_reported_s": 6.570057576987892,
+   "timed_ge_min": true,
+   "gpu": {
+    "jobs": 90,
+    "partial_jobs": 0,
+    "chunks": 180,
+    "busy_frac_events": 0.9808768628077833,
+    "ms_per_job": {
+     "total": 44.84268959893121,
+     "unet": 36.817720625135635,
+     "decode_post_d2h": 8.024968926111857
+    },
+    "ms_per_frame": 2.8026680999332005,
+    "smi": {
+     "n": 14,
+     "utilization.gpu": {
+      "median": 96.5,
+      "min": 0.0,
+      "max": 100.0
+     },
+     "clocks.sm": {
+      "median": 2475.0,
+      "min": 2445.0,
+      "max": 2805.0
+     },
+     "power.draw": {
+      "median": 159.35999999999999,
+      "min": 27.14,
+      "max": 209.84
+     },
+     "memory.used": {
+      "median": 4308.0,
+      "min": 4308.0,
+      "max": 4308.0
+     },
+     "temperature.gpu": {
+      "median": 55.5,
+      "min": 41.0,
+      "max": 61.0
+     }
+    }
+   },
+   "gpu_thread": {
+    "submit_host_ms": 159.44468043744564,
+    "sync_wait_ms": 3799.413685221225,
+    "deliver_host_ms": 47.75247862562537,
+    "credit_wait_ms": 0.0,
+    "credit_wait_frac": 0.0,
+    "min_free_ring_slots_seen": 2
+   },
+   "workers_aggregate_ms": {
+    "tracking_ipc_ms": 7770.699051674455,
+    "facemesh_ms": 6879.378326237202,
+    "compose_ms": 5193.79704981111,
+    "filter_ms": 312.77820910327137,
+    "hash_ms": 45.895037008449435,
+    "copy_ms": 75.65599610097706,
+    "reset_ms": 0.0,
+    "idle_ms": 10092.834179289639
+   },
+   "workers_mean_idle_frac": 0.4088294904287722,
+   "cores": {
+    "parent": 0.9818874135798924,
+    "workers": 4.20947772356528,
+    "facemesh": 2.13633424885328,
+    "harness_total": 7.327699385998453,
+    "system_busy": 14.781446841000191
+   },
+   "mem_available_gb": {
+    "min_gb": 7.8964996337890625,
+    "max_gb": 9.36749267578125,
+    "n": 8
+   },
+   "per_worker": {
+    "0": {
+     "identity": "black_man_short_beard",
+     "frames": 240,
+     "fps": 58.329945361181714,
+     "idle_frac": 0.404156451564748,
+     "timing_ms": {
+      "tracking_ipc_ms": 1270.764352986589,
+      "facemesh_ms": 1124.3870635516942,
+      "compose_ms": 914.1645079944283,
+      "filter_ms": 49.39257283695042,
+      "hash_ms": 8.137345081195235,
+      "copy_ms": 12.409839080646634,
+      "reset_ms": 0.0,
+      "idle_ms": 1662.9116961266845,
+      "encode_queue_ms": 59.48732001706958,
+      "compare_ms": 0.0,
+      "batches": 30,
+      "frames": 240,
+      "hash_drain_after_last_ms": 0.05990895442664623
+     },
+     "per_frame_ms": {
+      "tracking_ipc_ms": 5.294851470777455,
+      "facemesh_ms": 4.684946098132059,
+      "compose_ms": 3.8090187833101177,
+      "filter_ms": 0.20580238682062676,
+      "hash_ms": 0.03390560450498015,
+      "copy_ms": 0.051707662836027644,
+      "reset_ms": 0.0,
+      "compare_ms": 0.0,
+      "encode_queue_ms": 0.24786383340445658
+     },
+     "busy_ms": 2451.612987788394,
+     "worker_cpu_s": 2.830000000000001,
+     "facemesh_cpu_s": 1.4400000000000002,
+     "arm_reset_ms": 593.224564101547,
+     "first_recv_after_t0_ms": 45.73381599038839,
+     "done_after_t0_s": 4.024561468977481,
+     "rss_mib": {
+      "VmHWM": 813.10546875,
+      "VmRSS": 727.046875,
+      "RssAnon": 104.109375,
+      "RssFile": 42.890625,
+      "RssShmem": 580.046875
+     },
+     "facemesh_rss_mib": {
+      "VmHWM": 187.0703125,
+      "VmRSS": 187.0703125,
+      "RssAnon": 93.6328125,
+      "RssFile": 92.17578125,
+      "RssShmem": 1.26171875
+     },
+     "compare_accepted": null,
+     "clips": [
+      {
+       "loop": 0,
+       "t_done": 1242971.833174807,
+       "videos": [
+        "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt/stream00_black_man_short_beard_refined.mp4",
+        "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt/stream00_black_man_short_beard_faces.mp4"
+       ],
+       "raw_refined_sha256": "ef6d3eb653e417e2ffce1a6a5ed478cd5d53b59c11794c285d3486c15a2d0728",
+       "generated_faces_sha256": "863acc6b71d31b5b26aa9098e0eb5fd80a21db8837407d64c78478d92b196fd4"
+      }
+     ]
+    },
+    "1": {
+     "identity": "black_woman",
+     "frames": 240,
+     "fps": 58.329945361181714,
+     "idle_frac": 0.39163907716390267,
+     "timing_ms": {
+      "tracking_ipc_ms": 1305.9208951890469,
+      "facemesh_ms": 1152.681879233569,
+      "compose_ms": 938.1455960683525,
+      "filter_ms": 52.19079530797899,
+      "hash_ms": 7.700535701587796,
+      "copy_ms": 9.460569126531482,
+      "reset_ms": 0.0,
+      "idle_ms": 1611.4086501765996,
+      "encode_queue_ms": 65.0331147480756,
+      "compare_ms": 0.0,
+      "batches": 30,
+      "frames": 240,
+      "hash_drain_after_last_ms": 0.06408989429473877
+     },
+     "per_frame_ms": {
+      "tracking_ipc_ms": 5.441337063287695,
+      "facemesh_ms": 4.802841163473204,
+      "compose_ms": 3.908939983618135,
+      "filter_ms": 0.21746164711657912,
+      "hash_ms": 0.03208556542328248,
+      "copy_ms": 0.039419038027214505,
+      "reset_ms": 0.0,
+      "compare_ms": 0.0,
+      "encode_queue_ms": 0.270971311450315
+     },
+     "busy_ms": 2503.116033738479,
+     "worker_cpu_s": 2.8,
+     "facemesh_cpu_s": 1.48,
+     "arm_reset_ms": 581.1814111657441,
+     "first_recv_after_t0_ms": 46.68697505258024,
+     "done_after_t0_s": 4.038221550872549,
+     "rss_mib": {
+      "VmHWM": 809.0234375,
+      "VmRSS": 723.74609375,
+      "RssAnon": 102.91015625,
+      "RssFile": 43.125,
+      "RssShmem": 577.7109375
+     },
+     "facemesh_rss_mib": {
+      "VmHWM": 185.4765625,
+      "VmRSS": 185.4765625,
+      "RssAnon": 93.57421875,
+      "RssFile": 90.578125,
+      "RssShmem": 1.32421875
+     },
+     "compare_accepted": null,
+     "clips": [
+      {
+       "loop": 0,
+       "t_done": 1242971.846834889,
+       "videos": [
+        "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt/stream01_black_woman_refined.mp4",
+        "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt/stream01_black_woman_faces.mp4"
+       ],
+       "raw_refined_sha256": "fcf8cc891cfb213104ad9c9e7895aa1010d5b63dc52a59c912f0e95bde805851",
+       "generated_faces_sha256": "e50ebd960176e62b1d8f4877d3c67a5c3b1e6d696a78cead15c37c8fc71ea5d2"
+      }
+     ]
+    },
+    "2": {
+     "identity": "east_asian_man_goatee",
+     "frames": 240,
+     "fps": 58.329945361181714,
+     "idle_frac": 0.41266413415883296,
+     "timing_ms": {
+      "tracking_ipc_ms": 1319.8460540734231,
+      "facemesh_ms": 1171.8013361096382,
+      "compose_ms": 833.2712850533426,
+      "filter_ms": 52.3181869648397,
+      "hash_ms": 7.240544073283672,
+      "copy_ms": 10.573659557849169,
+      "reset_ms": 0.0,
+      "idle_ms": 1697.9167661629617,
+      "encode_queue_ms": 59.84697677195072,
+      "compare_ms": 0.0,
+      "batches": 30,
+      "frames": 240,
+      "hash_drain_after_last_ms": 0.06538000889122486
+     },
+     "per_frame_ms": {
+      "tracking_ipc_ms": 5.499358558639263,
+      "facemesh_ms": 4.882505567123492,
+      "compose_ms": 3.4719636877222606,
+      "filter_ms": 0.21799244568683207,
+      "hash_ms": 0.030168933638681967,
+      "copy_ms": 0.04405691482437154,
+      "reset_ms": 0.0,
+      "compare_ms": 0.0,
+      "encode_queue_ms": 0.24936240321646133
+     },
+     "busy_ms": 2416.607917752117,
+     "worker_cpu_s": 2.87,
+     "facemesh_cpu_s": 1.4899999999999998,
+     "arm_reset_ms": 594.6441518608481,
+     "first_recv_after_t0_ms": 90.30202403664589,
+     "done_after_t0_s": 4.072982041863725,
+     "rss_mib": {
+      "VmHWM": 780.26171875,
+      "VmRSS": 693.5625,
+      "RssAnon": 106.859375,
+      "RssFile": 42.7421875,
+      "RssShmem": 543.9609375
+     },
+     "facemesh_rss_mib": {
+      "VmHWM": 184.73046875,
+      "VmRSS": 184.73046875,
+      "RssAnon": 93.3671875,
+      "RssFile": 90.1015625,
+      "RssShmem": 1.26171875
+     },
+     "compare_accepted": null,
+     "clips": [
+      {
+       "loop": 0,
+       "t_done": 1242971.88159538,
+       "videos": [
+        "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt/stream02_east_asian_man_goatee_refined.mp4",
+        "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt/stream02_east_asian_man_goatee_faces.mp4"
+       ],
+       "raw_refined_sha256": "076feadc871120927aa56302cea132480c9ab248d0eae332c101c4a5219e914e",
+       "generated_faces_sha256": "c68eb516a2ef394d2db6646aa299737651d8b993218cca262cb8989c9e63f583"
+      }
+     ]
+    },
+    "3": {
+     "identity": "middle_eastern_man_full_beard",
+     "frames": 240,
+     "fps": 58.329945361181714,
+     "idle_frac": 0.39252444844429807,
+     "timing_ms": {
+      "tracking_ipc_ms": 1297.608204651624,
+      "facemesh_ms": 1143.1458569131792,
+      "compose_ms": 933.8935050182045,
+      "filter_ms": 53.63395716995001,
+      "hash_ms": 7.717813365161419,
+      "copy_ms": 11.947221821174026,
+      "reset_ms": 0.0,
+      "idle_ms": 1615.051532164216,
+      "encode_queue_ms": 61.36636412702501,
+      "compare_ms": 0.0,
+      "batches": 30,
+      "frames": 240,
+      "hash_drain_after_last_ms": 0.0610200222581625
+     },
+     "per_frame_ms": {
+      "tracking_ipc_ms": 5.4067008527151,
+      "facemesh_ms": 4.763107737138246,
+      "compose_ms": 3.891222937575852,
+      "filter_ms": 0.22347482154145837,
+      "hash_ms": 0.03215755568817258,
+      "copy_ms": 0.04978009092155844,
+      "reset_ms": 0.0,
+      "compare_ms": 0.0,
+      "encode_queue_ms": 0.2556931838626042
+     },
+     "busy_ms": 2499.4731517508626,
+     "worker_cpu_s": 3.26,
+     "facemesh_cpu_s": 1.46,
+     "arm_reset_ms": 579.456884181127,
+     "first_recv_after_t0_ms": 91.40823292545974,
+     "done_after_t0_s": 4.074218329973519,
+     "rss_mib": {
+      "VmHWM": 831.0625,
+      "VmRSS": 741.87890625,
+      "RssAnon": 109.37890625,
+      "RssFile": 43.41015625,
+      "RssShmem": 589.08984375
+     },
+     "facemesh_rss_mib": {
+      "VmHWM": 185.83203125,
+      "VmRSS": 185.83203125,
+      "RssAnon": 93.7265625,
+      "RssFile": 90.78125,
+      "RssShmem": 1.32421875
+     },
+     "compare_accepted": null,
+     "clips": [
+      {
+       "loop": 0,
+       "t_done": 1242971.882831668,
+       "videos": [
+        "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt/stream03_middle_eastern_man_full_beard_refined.mp4",
+        "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt/stream03_middle_eastern_man_full_beard_faces.mp4"
+       ],
+       "raw_refined_sha256": "bb00dbb55b835e89b2d60d10e44deaaab1c6c5924cd333151af2a6653973d929",
+       "generated_faces_sha256": "42ac7f79546c6ed622c6b502a986bf0282f6f6ad63834e1555c9984603b041ce"
+      }
+     ]
+    },
+    "4": {
+     "identity": "south_asian_woman",
+     "frames": 240,
+     "fps": 58.329945361181714,
+     "idle_frac": 0.43786651809428295,
+     "timing_ms": {
+      "tracking_ipc_ms": 1301.9578591920435,
+      "facemesh_ms": 1161.9146612938493,
+      "compose_ms": 721.8924020417035,
+      "filter_ms": 53.08355297893286,
+      "hash_ms": 7.425264222547412,
+      "copy_ms": 18.864192999899387,
+      "reset_ms": 0.0,
+      "idle_ms": 1801.6125969588757,
+      "encode_queue_ms": 73.26409965753555,
+      "compare_ms": 0.0,
+      "batches": 30,
+      "frames": 240,
+      "hash_drain_after_last_ms": 0.06218999624252319
+     },
+     "per_frame_ms": {
+      "tracking_ipc_ms": 5.424824413300182,
+      "facemesh_ms": 4.841311088724372,
+      "compose_ms": 3.0078850085070976,
+      "filter_ms": 0.22118147074555358,
+      "hash_ms": 0.030938600927280884,
+      "copy_ms": 0.07860080416624744,
+      "reset_ms": 0.0,
+      "compare_ms": 0.0,
+      "encode_queue_ms": 0.3052670819063981
+     },
+     "busy_ms": 2312.912086956203,
+     "worker_cpu_s": 2.7099999999999995,
+     "facemesh_cpu_s": 1.48,
+     "arm_reset_ms": 543.5874930117279,
+     "first_recv_after_t0_ms": 134.7111219074577,
+     "done_after_t0_s": 4.114524683915079,
+     "rss_mib": {
+      "VmHWM": 739.45703125,
+      "VmRSS": 685.88671875,
+      "RssAnon": 135.6640625,
+      "RssFile": 43.68359375,
+      "RssShmem": 506.5390625
+     },
+     "facemesh_rss_mib": {
+      "VmHWM": 185.33984375,
+      "VmRSS": 185.33984375,
+      "RssAnon": 93.609375,
+      "RssFile": 90.40625,
+      "RssShmem": 1.32421875
+     },
+     "compare_accepted": null,
+     "clips": [
+      {
+       "loop": 0,
+       "t_done": 1242971.923138022,
+       "videos": [
+        "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt/stream04_south_asian_woman_refined.mp4",
+        "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt/stream04_south_asian_woman_faces.mp4"
+       ],
+       "raw_refined_sha256": "2631d51b21cb02d81d393c80ca80705a70a90f3592f5df7676096f259e5db83d",
+       "generated_faces_sha256": "7a2f157f52e4ebe57360aa8571bd770aa5900bf5b1e79761efdd465f5da14207"
+      }
+     ]
+    },
+    "5": {
+     "identity": "white_man_clean_shaven",
+     "frames": 240,
+     "fps": 58.329945361181714,
+     "idle_frac": 0.41412631314656845,
+     "timing_ms": {
+      "tracking_ipc_ms": 1274.6016855817288,
+      "facemesh_ms": 1125.447529135272,
+      "compose_ms": 852.4297536350787,
+      "filter_ms": 52.15914384461939,
+      "hash_ms": 7.673534564673901,
+      "copy_ms": 12.400513514876366,
+      "reset_ms": 0.0,
+      "idle_ms": 1703.9329377003014,
+      "encode_queue_ms": 69.86343115568161,
+      "compare_ms": 0.0,
+      "batches": 30,
+      "frames": 240,
+      "hash_drain_after_last_ms": 0.061450060456991196
+     },
+     "per_frame_ms": {
+      "tracking_ipc_ms": 5.310840356590536,
+      "facemesh_ms": 4.689364704730299,
+      "compose_ms": 3.551790640146161,
+      "filter_ms": 0.21732976601924747,
+      "hash_ms": 0.03197306068614125,
+      "copy_ms": 0.05166880631198486,
+      "reset_ms": 0.0,
+      "compare_ms": 0.0,
+      "encode_queue_ms": 0.29109762981534004
+     },
+     "busy_ms": 2410.5917462147772,
+     "worker_cpu_s": 2.8499999999999996,
+     "facemesh_cpu_s": 1.44,
+     "arm_reset_ms": 580.3770120255649,
+     "first_recv_after_t0_ms": 135.77881990931928,
+     "done_after_t0_s": 4.1105490499176085,
+     "rss_mib": {
+      "VmHWM": 784.05859375,
+      "VmRSS": 699.21484375,
+      "RssAnon": 108.3984375,
+      "RssFile": 43.13671875,
+      "RssShmem": 547.6796875
+     },
+     "facemesh_rss_mib": {
+      "VmHWM": 185.13671875,
+      "VmRSS": 185.13671875,
+      "RssAnon": 93.375,
+      "RssFile": 90.4375,
+      "RssShmem": 1.32421875
+     },
+     "compare_accepted": null,
+     "clips": [
+      {
+       "loop": 0,
+       "t_done": 1242971.919162388,
+       "videos": [
+        "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt/stream05_white_man_clean_shaven_refined.mp4",
+        "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt/stream05_white_man_clean_shaven_faces.mp4"
+       ],
+       "raw_refined_sha256": "7b36c21891f3015e49da619644d8a17e10004a3584f39f3cbb99acc9c73682d0",
+       "generated_faces_sha256": "43daee49f1f8f19cbffcd8199af5dec1ebae5c24feebb61fad265ac393cd4ff7"
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "stop_warning": "RuntimeError('worker 2 exited (exitcode None)')",
+ "facemesh_pids": {
+  "0": 19323,
+  "1": 19326,
+  "2": 19325,
+  "3": 19322,
+  "4": 19324,
+  "5": 19327
+ },
+ "exactness": {
+  "clips_checked": 6,
+  "clips_expected": 6,
+  "all_clips_match_accepted": false,
+  "clips_matching_raw": 0,
+  "clips_matching_faces": 0,
+  "deterministic_per_identity": {
+   "black_man_short_beard": true,
+   "black_woman": true,
+   "east_asian_man_goatee": true,
+   "middle_eastern_man_full_beard": true,
+   "south_asian_woman": true,
+   "white_man_clean_shaven": true
+  },
+  "distinct_hash_pairs_per_identity": {
+   "black_man_short_beard": [
+    [
+     "ef6d3eb653e417e2ffce1a6a5ed478cd5d53b59c11794c285d3486c15a2d0728",
+     "863acc6b71d31b5b26aa9098e0eb5fd80a21db8837407d64c78478d92b196fd4"
+    ]
+   ],
+   "black_woman": [
+    [
+     "fcf8cc891cfb213104ad9c9e7895aa1010d5b63dc52a59c912f0e95bde805851",
+     "e50ebd960176e62b1d8f4877d3c67a5c3b1e6d696a78cead15c37c8fc71ea5d2"
+    ]
+   ],
+   "east_asian_man_goatee": [
+    [
+     "076feadc871120927aa56302cea132480c9ab248d0eae332c101c4a5219e914e",
+     "c68eb516a2ef394d2db6646aa299737651d8b993218cca262cb8989c9e63f583"
+    ]
+   ],
+   "middle_eastern_man_full_beard": [
+    [
+     "bb00dbb55b835e89b2d60d10e44deaaab1c6c5924cd333151af2a6653973d929",
+     "42ac7f79546c6ed622c6b502a986bf0282f6f6ad63834e1555c9984603b041ce"
+    ]
+   ],
+   "south_asian_woman": [
+    [
+     "2631d51b21cb02d81d393c80ca80705a70a90f3592f5df7676096f259e5db83d",
+     "7a2f157f52e4ebe57360aa8571bd770aa5900bf5b1e79761efdd465f5da14207"
+    ]
+   ],
+   "white_man_clean_shaven": [
+    [
+     "7b36c21891f3015e49da619644d8a17e10004a3584f39f3cbb99acc9c73682d0",
+     "43daee49f1f8f19cbffcd8199af5dec1ebae5c24feebb61fad265ac393cd4ff7"
+    ]
+   ]
+  },
+  "per_stream_first_clip": [
+   {
+    "repeat": 0,
+    "stream": 0,
+    "identity": "black_man_short_beard",
+    "loop": 0,
+    "raw_match": false,
+    "faces_match": false
+   },
+   {
+    "repeat": 0,
+    "stream": 1,
+    "identity": "black_woman",
+    "loop": 0,
+    "raw_match": false,
+    "faces_match": false
+   },
+   {
+    "repeat": 0,
+    "stream": 2,
+    "identity": "east_asian_man_goatee",
+    "loop": 0,
+    "raw_match": false,
+    "faces_match": false
+   },
+   {
+    "repeat": 0,
+    "stream": 3,
+    "identity": "middle_eastern_man_full_beard",
+    "loop": 0,
+    "raw_match": false,
+    "faces_match": false
+   },
+   {
+    "repeat": 0,
+    "stream": 4,
+    "identity": "south_asian_woman",
+    "loop": 0,
+    "raw_match": false,
+    "faces_match": false
+   },
+   {
+    "repeat": 0,
+    "stream": 5,
+    "identity": "white_man_clean_shaven",
+    "loop": 0,
+    "raw_match": false,
+    "faces_match": false
+   }
+  ]
+ },
+ "summary": {
+  "streams": 6,
+  "loops": 1,
+  "repeats": 1,
+  "backend": "stagewise16_taesdtrt",
+  "pack": 16,
+  "decode_split": 8,
+  "aggregate_fps_per_repeat": [
+   349.97967216709026
+  ],
+  "median_aggregate_fps": 349.97967216709026,
+  "wall_s_per_repeat": [
+   4.114524683915079
+  ],
+  "all_repeats_ge_min_timed_s": true,
+  "gpu_busy_frac_median": 0.9808768628077833,
+  "gpu_ms_per_frame_median": 2.8026680999332005,
+  "worker_idle_frac_median": 0.4088294904287722,
+  "harness_cores_median": 7.327699385998453,
+  "all_clips_match_accepted": false,
+  "deterministic_per_identity": true
+ },
+ "versions": {
+  "torch": "2.5.1+cu121",
+  "numpy": "1.23.5",
+  "opencv": "4.9.0",
+  "python": "3.10.12",
+  "gpu": "NVIDIA GeForce RTX 4070 SUPER"
+ },
+ "videos": [
+  {
+   "file": "stream00_black_man_short_beard_faces.mp4",
+   "frames": "240",
+   "bytes": 1417464
+  },
+  {
+   "file": "stream00_black_man_short_beard_refined.mp4",
+   "frames": "240",
+   "bytes": 6275745
+  },
+  {
+   "file": "stream01_black_woman_faces.mp4",
+   "frames": "240",
+   "bytes": 1363269
+  },
+  {
+   "file": "stream01_black_woman_refined.mp4",
+   "frames": "240",
+   "bytes": 6777192
+  },
+  {
+   "file": "stream02_east_asian_man_goatee_faces.mp4",
+   "frames": "240",
+   "bytes": 1183425
+  },
+  {
+   "file": "stream02_east_asian_man_goatee_refined.mp4",
+   "frames": "240",
+   "bytes": 6554140
+  },
+  {
+   "file": "stream03_middle_eastern_man_full_beard_faces.mp4",
+   "frames": "240",
+   "bytes": 1668340
+  },
+  {
+   "file": "stream03_middle_eastern_man_full_beard_refined.mp4",
+   "frames": "240",
+   "bytes": 7324861
+  },
+  {
+   "file": "stream04_south_asian_woman_faces.mp4",
+   "frames": "240",
+   "bytes": 1073704
+  },
+  {
+   "file": "stream04_south_asian_woman_refined.mp4",
+   "frames": "240",
+   "bytes": 6985673
+  },
+  {
+   "file": "stream05_white_man_clean_shaven_faces.mp4",
+   "frames": "240",
+   "bytes": 1278217
+  },
+  {
+   "file": "stream05_white_man_clean_shaven_refined.mp4",
+   "frames": "240",
+   "bytes": 6317973
+  }
+ ],
+ "status": "complete",
+ "finished_utc": "2026-09-28T18:31:18Z"
+}

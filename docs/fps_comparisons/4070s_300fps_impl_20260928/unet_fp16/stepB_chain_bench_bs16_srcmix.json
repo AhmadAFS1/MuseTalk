@@ -1,0 +1,186 @@
+{
+ "created_utc": "2026-09-28T18:20:32Z",
+ "args": {
+  "batch": 16,
+  "seconds": 90.0,
+  "warmup": 15.0,
+  "raw_seconds": 15.0,
+  "root": "models/tensorrt_unet_stagewise_sm89_srcmix",
+  "label": "srcmix",
+  "out": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/stepB_chain_bench_bs16_srcmix.json"
+ },
+ "tags": "[M]",
+ "load_s": 1.8191673755645752,
+ "vram": {
+  "device_used_by_backend_mib": 1952.0,
+  "smi_used_before_mib": 191.0,
+  "smi_used_after_load_mib": 2143.0,
+  "torch_allocated_mib": 346.7119140625,
+  "name": "tensorrt_unet_stagewise",
+  "engine_dir": "models/tensorrt_unet_stagewise_sm89_srcmix/bs16",
+  "batch": 16,
+  "cuda_graph": true,
+  "arena_mib": 191.5673828125,
+  "activation_mib": 104.4609375,
+  "device_memory_sizes_mib": {
+   "prefix": 30.0,
+   "down0rest": 151.5625,
+   "down1": 77.54150390625,
+   "down2": 39.49462890625,
+   "down3": 5.01123046875,
+   "mid": 17.7197265625,
+   "up0": 6.8818359375,
+   "up1": 51.99462890625,
+   "up2": 102.54150390625,
+   "up3": 191.5673828125,
+   "tail": 20.0
+  },
+  "probe_status": "exact",
+  "torch_max_allocated_mib": 380.21240234375
+ },
+ "sustained": {
+  "calls": 2358,
+  "wall_s": 90.11413313192315,
+  "wall_ms_per_call": 38.216341446956385,
+  "wall_ms_per_frame": 2.388521340434774,
+  "wall_fps": 418.6690665355218,
+  "event_ms_per_call": {
+   "median": 38.25971221923828,
+   "mean": 38.21458614792634,
+   "p90": 38.338558197021484,
+   "p99": 38.428672790527344,
+   "min": 37.86854553222656,
+   "max": 38.61606216430664,
+   "n": 2358
+  },
+  "event_ms_per_frame_median": 2.3912320137023926,
+  "host_ms_per_call_median": 0.10882492642849684,
+  "gpu": {
+   "samples": 91,
+   "sm_mhz": {
+    "median": 2445.0,
+    "min": 2415.0,
+    "max": 2460.0,
+    "p05": 2430.0,
+    "p95": 2460.0
+   },
+   "mem_mhz": {
+    "median": 10251.0,
+    "min": 10251.0,
+    "max": 10251.0,
+    "p05": 10251.0,
+    "p95": 10251.0
+   },
+   "power_w": {
+    "median": 207.7,
+    "min": 207.2,
+    "max": 208.38,
+    "p05": 207.26,
+    "p95": 208.17
+   },
+   "power_limit_w": {
+    "median": 220.0,
+    "min": 220.0,
+    "max": 220.0,
+    "p05": 220.0,
+    "p95": 220.0
+   },
+   "temp_c": {
+    "median": 68.0,
+    "min": 66.0,
+    "max": 69.0,
+    "p05": 67.0,
+    "p95": 68.0
+   },
+   "util_pct": {
+    "median": 100.0,
+    "min": 100.0,
+    "max": 100.0,
+    "p05": 100.0,
+    "p95": 100.0
+   },
+   "mem_used_mib": {
+    "median": 2155.0,
+    "min": 2155.0,
+    "max": 2155.0,
+    "p05": 2155.0,
+    "p95": 2155.0
+   },
+   "throttle_hist": {
+    "0x0000000000000004": 91
+   }
+  }
+ },
+ "raw_graph_replay": {
+  "ms_per_call": {
+   "median": 37.300408935546876,
+   "mean": 37.298291090058115,
+   "p90": 37.335757446289065,
+   "p99": 37.34886474609375,
+   "min": 37.22659912109375,
+   "max": 37.362142944335936,
+   "n": 41
+  },
+  "ms_per_frame_median": 2.3312755584716798,
+  "gpu": {
+   "samples": 15,
+   "sm_mhz": {
+    "median": 2445.0,
+    "min": 2430.0,
+    "max": 2460.0,
+    "p05": 2430.0,
+    "p95": 2460.0
+   },
+   "mem_mhz": {
+    "median": 10251.0,
+    "min": 10251.0,
+    "max": 10251.0,
+    "p05": 10251.0,
+    "p95": 10251.0
+   },
+   "power_w": {
+    "median": 207.65,
+    "min": 207.41,
+    "max": 208.15,
+    "p05": 207.41,
+    "p95": 208.11
+   },
+   "power_limit_w": {
+    "median": 220.0,
+    "min": 220.0,
+    "max": 220.0,
+    "p05": 220.0,
+    "p95": 220.0
+   },
+   "temp_c": {
+    "median": 68.0,
+    "min": 67.0,
+    "max": 68.0,
+    "p05": 67.0,
+    "p95": 68.0
+   },
+   "util_pct": {
+    "median": 100.0,
+    "min": 100.0,
+    "max": 100.0,
+    "p05": 100.0,
+    "p95": 100.0
+   },
+   "mem_used_mib": {
+    "median": 2155.0,
+    "min": 2155.0,
+    "max": 2155.0,
+    "p05": 2155.0,
+    "p95": 2155.0
+   },
+   "throttle_hist": {
+    "0x0000000000000004": 15
+   }
+  }
+ },
+ "decision": {
+  "ms_per_frame": 2.3912320137023926,
+  "verdict": "GO",
+  "rule": "bs16: <=2.51 GO, 2.51-2.64 marginal, >2.64 K2; bs8: <=2.60 GO"
+ }
+}

@@ -1234,6 +1234,44 @@ class APIAvatar:
     def estimate_memory_usage_mb(self) -> float:
         return self.estimate_memory_usage_bytes() / (1024 * 1024)
 
+    def estimate_memory_breakdown(self) -> dict:
+        """Added code (avatar memory layout): estimate_memory_usage_bytes() by part.
+
+        Same accounting, split by component, with the latent tensors split by
+        device: a server's prepared latents load onto the GPU (VRAM), so only
+        ``host_bytes`` is host RAM there. ``total_bytes`` always equals
+        estimate_memory_usage_bytes(), which the cache keeps using unchanged.
+        """
+        latents = {"cpu": 0, "device": 0}
+        seen_tensor_storages = set()
+        for attr in ("input_latent_cycle_tensor", "input_latent_cycle_batch_tensor"):
+            tensor = getattr(self, attr, None)
+            if not isinstance(tensor, torch.Tensor):
+                continue
+            try:
+                storage_ptr = tensor.untyped_storage().data_ptr()
+            except Exception:
+                storage_ptr = tensor.data_ptr()
+            if storage_ptr in seen_tensor_storages:
+                continue
+            seen_tensor_storages.add(storage_ptr)
+            latents["cpu" if tensor.device.type == "cpu" else "device"] += self._tensor_storage_nbytes(tensor)
+        coord_count = (len(getattr(self, "coord_list_cycle", None) or [])
+                       + len(getattr(self, "mask_coords_list_cycle", None) or []))
+        parts = {
+            "frames_bytes": self._numpy_sequence_nbytes(getattr(self, "frame_list_cycle", None)),
+            "masks_bytes": self._numpy_sequence_nbytes(getattr(self, "mask_list_cycle", None)),
+            "idle_frames_bytes": self._numpy_sequence_nbytes(getattr(self, "_idle_frame_cache", None)),
+            "compose_plans_bytes": self._compose_plan_sequence_nbytes(
+                getattr(self, "_compose_plan_cycle", None)),
+            "coords_bytes": coord_count * 4 * 8,
+            "latents_host_bytes": latents["cpu"],
+            "latents_device_bytes": latents["device"],
+        }
+        parts["total_bytes"] = int(sum(parts.values()))
+        parts["host_bytes"] = parts["total_bytes"] - latents["device"]
+        return parts
+
     def apply_positional_encoding_cpu(self, audio_prompts: torch.Tensor) -> torch.Tensor:
         """
         Apply positional encoding on CPU and cache the constant PE slice.

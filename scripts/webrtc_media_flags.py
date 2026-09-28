@@ -55,14 +55,24 @@ FLAGS = {
         "unchanged push_bgr_frames_batch (same conversion, order, tokens, A/V release). "
         "0: scheduler blocks on run_coroutine_threadsafe(...).result() per batch (today)."),
     "WEBRTC_HANDOFF_MAX_PENDING_FRAMES": (
-        "0",
-        "Safety valve for the non-blocking FIFO: when more than N frames are still waiting "
-        "to enter the track queue the scheduler waits (bounded by the push timeout). "
+        "64",
+        "Bound of the per-track non-blocking FIFO (frames not yet in the track queue). When a "
+        "batch would exceed it the scheduler waits, like today's blocking handoff, bounded by "
+        "the push timeout. 64 x 1.38 MB (512x896 BGR) = 88 MB per stream worst case. "
         "0 = the track's max_queue (400 in strict FIFO)."),
     "WEBRTC_HANDOFF_CONVERT_THREADS": (
         "0",
         ">0: with the non-blocking handoff, BGR->yuv420p runs on N shared converter threads "
-        "(the exact PyAV call used today) instead of on the event loop. 0 = on the loop."),
+        "(the exact PyAV call used today; PyAV releases the GIL in sws_scale) instead of on "
+        "the event loop. 0 = on the loop inside push_bgr_frames_batch (today's placement)."),
+    "WEBRTC_HANDOFF_VERIFY": (
+        "0",
+        "Smoke-test only: SHA-1 every frame at submit and again right before the push and count "
+        "order/content mismatches (live_handoff.verify_*). Costs ~0.4 ms/frame of CPU."),
+    "WEBRTC_PREENCODE_SHA_DIR": (
+        "",
+        "Smoke-test only: directory; each track appends one JSON line per live frame entering "
+        "its queue (generation, index, SHA-256 of the packed I420 planes) for A/B exactness."),
     "WEBRTC_YUV_IN_COMPOSE": (
         "0",
         "Producer contract: when 1 the compose side may hand objects with .bgr and "
@@ -89,6 +99,12 @@ FLAGS = {
         "track_stats.video.lifetime and GET /webrtc/sessions/stats?view=lifetime."),
     "WEBRTC_LIFETIME_SEND_RING": (
         "256", "Entries kept in the per-track send-timestamp ring."),
+    "WEBRTC_DEADLINE_PACING": (
+        "0",
+        "1: SwitchableVideoStreamTrack.recv() advances its pacing deadline by one frame time "
+        "(as the motion-bank path already does) instead of re-anchoring on each wake-up, so "
+        "asyncio oversleep no longer stretches the average send interval (~51 ms measured) and "
+        "RTP media time stays on wall time. Frames are chosen by output index: same content."),
     "WEBRTC_GROUP_MAX_COUNT": (
         "12", "Upper bound for count on /webrtc/groups/create and /hls/groups/create."),
     "MUSETALK_DISABLE_LOCAL_TTS": (
@@ -102,6 +118,15 @@ FLAGS = {
     "MUSETALK_MOTION_DECODE_THREADS": (
         "", "Motion entry/return builder decoder threads when MUSETALK_THREAD_CAPS=1; "
             "unset keeps today's 16 (their decode latency is a visible hold)."),
+    "MUSETALK_TORCH_INTRAOP_THREADS": (
+        "4", "torch intra-op thread cap applied at startup when MUSETALK_THREAD_CAPS=1 "
+             "(0 = leave torch alone). Only lowers, never raises."),
+    "MUSETALK_CV2_THREADS": (
+        "", "cv2.setNumThreads() applied at startup when MUSETALK_THREAD_CAPS=1; unset = "
+            "leave OpenCV alone (per-worker caps belong to the compose owner)."),
+    "MUSETALK_FFMPEG_EXECUTOR_WORKERS": (
+        "4", "With MUSETALK_THREAD_CAPS=1 the per-turn ffmpeg conversion and PCM load run on "
+             "this dedicated executor instead of the loop's default executor."),
     "WEBRTC_NATIVE_VP8_THREADS": (
         "",
         "Native VP8 cfg.g_threads. Unset = aiortc's number_of_threads() (2 for 512x896 on "
@@ -148,6 +173,14 @@ def group_max_count() -> int:
     return env_int("WEBRTC_GROUP_MAX_COUNT", 12, minimum=1)
 
 
+def handoff_verify_enabled() -> bool:
+    return env_bool("WEBRTC_HANDOFF_VERIFY", False)
+
+
+def preencode_sha_dir() -> str:
+    return env_str("WEBRTC_PREENCODE_SHA_DIR", "")
+
+
 def effective_decode_threads(requested: int) -> int:
     """FFmpeg decoder thread count for an idle-clip decoder.
 
@@ -163,6 +196,52 @@ def effective_decode_threads(requested: int) -> int:
     if motion:
         return env_int("MUSETALK_MOTION_DECODE_THREADS", requested, minimum=1, maximum=64)
     return requested
+
+
+_thread_caps_summary: Optional[dict] = None
+
+
+def apply_thread_caps(label: str = "api_server") -> dict:
+    """MUSETALK_THREAD_CAPS=1: targeted, process-wide thread caps (plan item 1.11).
+
+    Idle-decoder caps are applied where decoders are opened
+    (effective_decode_threads). Here: torch intra-op threads (lower only) and,
+    only if MUSETALK_CV2_THREADS is set, OpenCV's pool. Global OMP/MKL caps
+    (MUSETALK_CPU_TUNING) are deliberately not touched. Idempotent.
+    """
+    global _thread_caps_summary
+    if _thread_caps_summary is not None:
+        return dict(_thread_caps_summary)
+    summary: dict = {"enabled": thread_caps_enabled()}
+    if summary["enabled"]:
+        summary["idle_decode_threads"] = env_int("MUSETALK_IDLE_DECODE_THREADS", 1, minimum=1)
+        summary["motion_decode_threads"] = (
+            os.environ.get("MUSETALK_MOTION_DECODE_THREADS", "").strip() or "unchanged")
+        torch_cap = env_int("MUSETALK_TORCH_INTRAOP_THREADS", 4, minimum=0, maximum=256)
+        if torch_cap > 0:
+            try:
+                import torch  # already imported by the server stack at this point
+                before = int(torch.get_num_threads())
+                if before > torch_cap:
+                    torch.set_num_threads(torch_cap)
+                summary["torch_intraop_threads"] = {"before": before,
+                                                    "after": int(torch.get_num_threads())}
+            except Exception as exc:  # pragma: no cover - torch always present in the server
+                summary["torch_intraop_threads"] = f"error: {exc}"
+        cv2_text = os.environ.get("MUSETALK_CV2_THREADS", "").strip()
+        if cv2_text:
+            try:
+                import cv2
+                before = int(cv2.getNumThreads())
+                cv2.setNumThreads(int(cv2_text))
+                summary["cv2_threads"] = {"before": before, "after": int(cv2.getNumThreads())}
+            except Exception as exc:
+                summary["cv2_threads"] = f"error: {exc}"
+        summary["ffmpeg_executor_workers"] = env_int(
+            "MUSETALK_FFMPEG_EXECUTOR_WORKERS", 4, minimum=1, maximum=64)
+        print(f"[{label}] MUSETALK_THREAD_CAPS=1: {summary}", flush=True)
+    _thread_caps_summary = summary
+    return dict(summary)
 
 
 def snapshot() -> dict:

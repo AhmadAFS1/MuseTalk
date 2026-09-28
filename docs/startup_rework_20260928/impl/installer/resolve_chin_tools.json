@@ -1,0 +1,78 @@
+{
+ "schema": "musetalk_resolve_check_v1",
+ "date_utc": "2026-09-28",
+ "result": "RESOLVES",
+ "command": "pip install --dry-run --ignore-installed --no-cache-dir --report <report.json> -r requirements/chin-tools.in -c requirements/constraints-chin-tools.txt ",
+ "interpreter": "CPython 3.10.12 (/usr/bin/python3.10), scratch venv under the session scratchpad (deleted afterwards)",
+ "pip_version": "26.2.1",
+ "environment": {
+  "implementation_name": "cpython",
+  "implementation_version": "3.10.12",
+  "os_name": "posix",
+  "platform_machine": "x86_64",
+  "platform_release": "5.15.0-191-generic",
+  "platform_system": "Linux",
+  "platform_version": "#201-Ubuntu SMP Fri Aug 7 18:39:04 UTC 2026",
+  "python_full_version": "3.10.12",
+  "platform_python_implementation": "CPython",
+  "python_version": "3.10",
+  "sys_platform": "linux"
+ },
+ "run": {
+  "label": "chin_tools",
+  "rc": "0",
+  "elapsed": "2s",
+  "peak_rss_mb": "6",
+  "min_disk_free_gb": "20",
+  "min_memavail_mb": "8565"
+ },
+ "packages": 20,
+ "key_versions": {
+  "numpy": "2.2.6",
+  "cffi": "2.1.1",
+  "mediapipe": "0.10.9",
+  "opencv-contrib-python": "5.0.0.93",
+  "protobuf": "3.20.3"
+ },
+ "download_hosts": {
+  "files.pythonhosted.org": 20
+ },
+ "resolved": [
+  "absl-py==2.5.0 (files.pythonhosted.org)",
+  "attrs==26.1.0 (files.pythonhosted.org)",
+  "cffi==2.1.1 (files.pythonhosted.org)",
+  "contourpy==1.3.2 (files.pythonhosted.org)",
+  "cycler==0.12.1 (files.pythonhosted.org)",
+  "flatbuffers==25.12.19 (files.pythonhosted.org)",
+  "fonttools==4.65.0 (files.pythonhosted.org)",
+  "kiwisolver==1.5.1 (files.pythonhosted.org)",
+  "matplotlib==3.10.9 (files.pythonhosted.org)",
+  "mediapipe==0.10.9 (files.pythonhosted.org)",
+  "numpy==2.2.6 (files.pythonhosted.org)",
+  "opencv-contrib-python==5.0.0.93 (files.pythonhosted.org)",
+  "packaging==26.3 (files.pythonhosted.org)",
+  "pillow==11.3.0 (files.pythonhosted.org)",
+  "protobuf==3.20.3 (files.pythonhosted.org)",
+  "pycparser==3.0 (files.pythonhosted.org)",
+  "pyparsing==3.3.2 (files.pythonhosted.org)",
+  "python-dateutil==2.9.0.post0 (files.pythonhosted.org)",
+  "six==1.17.0 (files.pythonhosted.org)",
+  "sounddevice==0.5.6 (files.pythonhosted.org)"
+ ],
+ "constraints_file": "requirements/constraints-chin-tools.txt",
+ "constraints_sha256": "cecb72dd69c7ae44bb8bd36e9dbd919ad4a5dcf5f2fba1f6f97a96dd936fb06b",
+ "groups": [
+  "chin_tools (dedicated venv)"
+ ],
+ "static_check": {
+  "packages": 20,
+  "pins_checked": 20,
+  "edges_checked": 22,
+  "overrides": {},
+  "problems": [],
+  "valid": true
+ },
+ "notes": [
+  "Exact closure of the validated chin-tracker env (/workspace/SoulX-FlashHead/.venv dist-info names, read-only)."
+ ]
+}

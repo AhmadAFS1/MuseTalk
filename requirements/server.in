@@ -1,0 +1,76 @@
+# MuseTalk API server: top-level runtime requirements (fast, fast300 and legacy recipes).
+#
+# Top-level names only. Exact versions come from the matrix constraints file:
+#   pip install -r requirements/server.in -c requirements/constraints-<cu121|cu128>.txt \
+#     --extra-index-url https://download.pytorch.org/whl/<cu121|cu128> \
+#     --extra-index-url https://pypi.nvidia.com
+# scripts/install_musetalk.sh builds exactly this command. Never install the repo-root
+# requirements.txt (it pulls tensorflow/gradio and is not the validated stack).
+#
+# Coverage was checked against every third-party import in api_server.py, scripts/*.py and
+# musetalk/** on branch perf/300fps-4070s (2026-09-28), including the 300 fps work
+# (TAESD TRT backend, stagewise FP16 UNet engines, UNet CUDA graphs, WebRTC handoff/idle cache,
+# H.264 override). Training-only and offline-tool imports (decord, lws, bitsandbytes,
+# mediapipe, playwright, more_itertools) are deliberately not listed.
+
+# --- PyTorch CUDA stack (the constraints file carries the +cuXXX local version) -------------
+torch
+torchvision
+torchaudio
+
+# --- TensorRT: torch_tensorrt .ts UNet engines, and the raw TensorRT API used by the
+#     TAESD TRT backend (scripts/vae_fast_decoder.py), the stagewise FP16 UNet
+#     (scripts/unet_stagewise_trt.py, scripts/build_unet_stagewise.py) and INT8 VAE stages.
+torch-tensorrt
+tensorrt-cu12
+# torch.onnx.export feeds the TensorRT ONNX parser in the TAESD-TRT and stagewise UNet
+# builders. The validated venv had onnx 1.17.0 when those engines were built; keep it so the
+# build environment matches (TorchScript export itself does not import it).
+onnx
+
+# --- Model stack -----------------------------------------------------------------------------
+numpy
+pillow
+opencv-python
+diffusers
+transformers
+tokenizers
+accelerate
+huggingface-hub
+safetensors
+einops
+scipy
+tqdm
+
+# --- API server, HLS, audio -------------------------------------------------------------------
+fastapi
+pydantic
+uvicorn
+python-multipart
+aiofiles
+aiohttp
+requests
+soundfile
+librosa
+# numba is a librosa dependency; listed explicitly because the chin-alignment CPU kernels
+# (numba nogil ports, docs/fps_comparisons/4070s_300fps_20260927/cpu-post-chin) use it.
+numba
+imageio[ffmpeg]
+ffmpeg-python
+omegaconf
+
+# --- WebRTC: aiortc/PyAV built-in encoders (pyav VP8, aiortc/x264tuned/nvenc H.264 via
+#     scripts/webrtc_h264_override.py). Native VP8 (scripts/install_native_vp8.py) requires
+#     exactly aiortc 1.14.0, av 16.1.0 and cffi 2.1.1; the constraints enforce all three.
+aiortc
+aioice
+av
+cffi
+
+# --- S3 (avatars, engine store restore/publish), secrets bootstrap ------------------------------
+boto3
+botocore
+
+# --- download_weights.sh helpers (installed here so its own pip step is a no-op) ------------
+hf-xet
+gdown

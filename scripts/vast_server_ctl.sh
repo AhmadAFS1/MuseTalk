@@ -16,7 +16,7 @@ WORKER_STATE_URL="${WORKER_STATE_URL:-http://${HEALTH_HOST}:${PORT}/worker/state
 LOG_DIR="${LOG_DIR:-$WORKSPACE_ROOT/logs/musetalk}"
 PID_FILE="${PID_FILE:-$LOG_DIR/api_server_${PORT}.pid}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/api_server_${PORT}.log}"
-STARTUP_TIMEOUT_SECONDS="${STARTUP_TIMEOUT_SECONDS:-600}"
+STARTUP_TIMEOUT_SECONDS="${STARTUP_TIMEOUT_SECONDS:-900}"
 POLL_INTERVAL_SECONDS="${POLL_INTERVAL_SECONDS:-2}"
 DRAIN_TIMEOUT_SECONDS="${DRAIN_TIMEOUT_SECONDS:-300}"
 TURN_ENV_FILE="${TURN_ENV_FILE:-$REPO_ROOT/.env.webrtc-turn.local}"
@@ -28,6 +28,12 @@ WEBRTC_TURN_AUTOSTART="${WEBRTC_TURN_AUTOSTART:-0}"
 TURN_ENV_LOADED=0
 LINGUA_CONTROL_PLANE_ENV_FILE="${LINGUA_CONTROL_PLANE_ENV_FILE:-$WORKSPACE_ROOT/.lingua-control-plane.env}"
 LINGUA_WORKER_CALLBACK_REQUIRED="${LINGUA_WORKER_CALLBACK_REQUIRED:-0}"
+VERIFY_STATE_FILE="${VERIFY_STATE_FILE:-$LOG_DIR/api_server_${PORT}.verify}"
+SPAWN_TS=0
+SPAWN_LOG_OFFSET=0
+# shellcheck source=lib/musetalk_env_layers.sh
+MT_ENV_LOG_PREFIX="$SCRIPT_NAME"
+source "$SCRIPT_DIR/lib/musetalk_env_layers.sh"
 
 if [[ -f "$LINGUA_CONTROL_PLANE_ENV_FILE" ]]; then
   set -a
@@ -82,8 +88,10 @@ usage() {
   cat <<EOF
 Usage: $SCRIPT_NAME <start|stop|restart|status|logs>
 
-Control the current MuseTalk TRT-stagewise server for Vast.ai/Jupyter-style
-instances without relying on interactive shells.
+Control the MuseTalk server for Vast.ai/Jupyter-style instances without relying
+on interactive shells. The launcher is scripts/run_musetalk_server.sh (recipe
+fast by default; see docs/STARTUP.md); after /health passes, start verifies from
+the server log that the resolved VAE/UNet backends are the ones actually active.
 
 Environment:
   REPO_ROOT                  MuseTalk repo root (default: $REPO_ROOT)
@@ -97,10 +105,16 @@ Environment:
   LOG_DIR                    Server log dir (default: $LOG_DIR)
   TURN_ENV_FILE              Optional WebRTC/TURN env file (default: $TURN_ENV_FILE)
   WEBRTC_RELAY_ENABLED       Use scripts/run_webrtc_relay_api_server.sh (default: $WEBRTC_RELAY_ENABLED)
+  MUSETALK_SERVER_LAUNCHER   Launcher (default: $REPO_ROOT/scripts/run_musetalk_server.sh;
+                             the relay wrapper execs it too)
+  MUSETALK_VERIFY_RECIPE     strict (default: a backend mismatch stops the server and fails start),
+                             warn, or off; also honoured from the overrides files
+  MUSETALK_VERIFY_TIMEOUT_SECONDS  How long verify-log waits for the backend lines (default: 60)
   WEBRTC_TURN_AUTOSTART      Start/stop local coturn via scripts/run_turnserver_tcp_relay.sh (default: $WEBRTC_TURN_AUTOSTART)
   TURN_LOG_FILE              Coturn log file when autostart is enabled (default: $TURN_LOG_FILE)
   TURN_PID_FILE              Coturn pid file when autostart is enabled (default: $TURN_PID_FILE)
-  STARTUP_TIMEOUT_SECONDS    Health wait timeout (default: $STARTUP_TIMEOUT_SECONDS)
+  STARTUP_TIMEOUT_SECONDS    Health wait timeout (default: $STARTUP_TIMEOUT_SECONDS; engine builds run
+                             before start in vast_onstart.sh, not inside this timeout)
   POLL_INTERVAL_SECONDS      Health wait poll interval (default: $POLL_INTERVAL_SECONDS)
   DRAIN_TIMEOUT_SECONDS      Drain wait timeout before stop (default: $DRAIN_TIMEOUT_SECONDS)
 
@@ -313,19 +327,28 @@ start_server() {
     fi
   fi
 
-  local launcher="$REPO_ROOT/scripts/run_trt_stagewise_server.sh"
+  local launcher="${MUSETALK_SERVER_LAUNCHER:-$REPO_ROOT/scripts/run_musetalk_server.sh}"
   if env_enabled "$WEBRTC_RELAY_ENABLED"; then
     launcher="$REPO_ROOT/scripts/run_webrtc_relay_api_server.sh"
     start_turnserver
   fi
+  mt_env_effective_recipe "$REPO_ROOT"
 
   log "Starting MuseTalk server"
   log "repo=$REPO_ROOT"
   log "venv=$VENV_PATH"
   log "profile=$PROFILE host=$HOST port=$PORT"
-  log "launcher=$launcher"
+  log "launcher=$launcher recipe=$MT_ENV_RECIPE (source=$MT_ENV_RECIPE_SOURCE)"
   log "webrtc_relay_enabled=$WEBRTC_RELAY_ENABLED turn_autostart=$WEBRTC_TURN_AUTOSTART turn_env=$TURN_ENV_FILE"
   log "log_file=$LOG_FILE"
+
+  SPAWN_LOG_OFFSET=0
+  if [[ -f "$LOG_FILE" ]]; then
+    SPAWN_LOG_OFFSET="$(stat -c %s "$LOG_FILE" 2>/dev/null || echo 0)"
+  fi
+  SPAWN_TS="$(date +%s)"
+  rm -f "$VERIFY_STATE_FILE"
+  log "log_offset=$SPAWN_LOG_OFFSET"
 
   setsid nohup bash "$launcher" \
     --profile "$PROFILE" \
@@ -339,8 +362,142 @@ start_server() {
   printf '%s\n' "$pid" > "$PID_FILE"
   log "Spawned pid=$pid"
   wait_for_health
+  verify_recipe
   elapsed="$(( $(date +%s) - start_ts ))"
   log "Start command completed in $(format_duration "$elapsed")"
+}
+
+record_verify() {
+  # record_verify RESULT DETAIL
+  mkdir -p "$(dirname "$VERIFY_STATE_FILE")"
+  printf '%s result=%s %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1" "$2" > "$VERIFY_STATE_FILE"
+}
+
+verify_failed() {
+  # verify_failed MODE DETAIL
+  local mode="$1" detail="$2"
+  if [[ "$mode" == "warn" ]]; then
+    record_verify WARN "$detail"
+    log "WARNING: recipe verification failed but MUSETALK_VERIFY_RECIPE=warn; server left running: $detail"
+    return 0
+  fi
+  record_verify FAIL "$detail"
+  printf '[%s] ERROR: recipe verification failed (MUSETALK_VERIFY_RECIPE=strict): %s\n' "$SCRIPT_NAME" "$detail" >&2
+  if [[ -f "$LOG_FILE" ]]; then
+    printf '\n[%s] Backend lines in %s since offset %s:\n' "$SCRIPT_NAME" "$LOG_FILE" "$SPAWN_LOG_OFFSET" >&2
+    tail -c +"$(( SPAWN_LOG_OFFSET + 1 ))" "$LOG_FILE" 2>/dev/null \
+      | grep -E 'backend active|backend: PyTorch|TAESD TRT|Loaded TAESD|stagewise UNet|falling back|using compiled TAESD' \
+      | grep -v '^\[run_musetalk_server.sh\]' | tail -n 20 >&2 || true
+  fi
+  log "Stopping the server because it is not running the resolved recipe"
+  stop_server
+  die "Server stopped: it did not activate the resolved backends ($detail). Fix the engine/flags, set MUSETALK_VERIFY_RECIPE=warn to keep it up, or roll back with MUSETALK_RECIPE=legacy_int8."
+}
+
+read_launch_expectations() {
+  # prints "<vae> <unet> <created_ts>" from the launcher's state file
+  "$VENV_PATH/bin/python" -I -B - "$1" <<'PY'
+import json, sys
+state = json.load(open(sys.argv[1]))
+expect = state.get("expect") or {}
+print(expect.get("vae") or "any", expect.get("unet") or "any", int(float(state.get("created_ts") or 0)))
+PY
+}
+
+run_verify_log() {
+  # run_verify_log VAE UNET -> verify-log exit code
+  local tool="$1" vae="$2" unet="$3" rc=0
+  (
+    cd "$REPO_ROOT"
+    "$VENV_PATH/bin/python" -B "$tool" verify-log \
+      --log "$LOG_FILE" \
+      --offset "$SPAWN_LOG_OFFSET" \
+      --expect-vae "$vae" \
+      --expect-unet "$unet" \
+      --timeout "${MUSETALK_VERIFY_TIMEOUT_SECONDS:-60}"
+  ) || rc=$?
+  return "$rc"
+}
+
+verify_recipe() {
+  local mode state tool expectations vae unet created rc=0 fallback_vae fallback_unet
+  mode="$(mt_env_peek_or MUSETALK_VERIFY_RECIPE "$REPO_ROOT" strict)"
+  mode="${mode,,}"
+  case "$mode" in
+    off|0|false|no)
+      log "Recipe verification disabled (MUSETALK_VERIFY_RECIPE=$mode)"
+      record_verify OFF "verification disabled"
+      return 0
+      ;;
+    warn|strict)
+      ;;
+    *)
+      log "WARNING: unknown MUSETALK_VERIFY_RECIPE=$mode; using strict"
+      mode="strict"
+      ;;
+  esac
+  mt_env_effective_recipe "$REPO_ROOT"
+  if [[ "$MT_ENV_RECIPE" == "legacy_int8" ]]; then
+    log "Recipe verification skipped for legacy_int8 (old chain)"
+    record_verify SKIP "recipe=legacy_int8"
+    return 0
+  fi
+
+  state="${MUSETALK_LAUNCH_STATE_FILE:-${MUSETALK_RUNTIME_DIR:-$REPO_ROOT/.runtime}/musetalk_launch_${PORT}.json}"
+  if [[ ! -f "$state" ]]; then
+    verify_failed "$mode" "launch state $state is missing (was the server started by scripts/run_musetalk_server.sh?)"
+    return 0
+  fi
+  if ! expectations="$(read_launch_expectations "$state")"; then
+    verify_failed "$mode" "cannot read launch state $state"
+    return 0
+  fi
+  read -r vae unet created <<< "$expectations"
+  if (( created + 5 < SPAWN_TS )); then
+    verify_failed "$mode" "launch state $state is stale (written before this start; the launcher did not finish?)"
+    return 0
+  fi
+
+  tool="$REPO_ROOT/scripts/musetalk_host_profile.py"
+  if [[ ! -f "$tool" ]]; then
+    verify_failed "$mode" "verifier $tool is missing"
+    return 0
+  fi
+
+  log "Verifying active backends in $LOG_FILE from offset $SPAWN_LOG_OFFSET: expect vae=$vae unet=$unet (mode=$mode)"
+  run_verify_log "$tool" "$vae" "$unet" || rc=$?
+  if (( rc == 2 )); then
+    # Older verifiers only know --expect-vae taesd and --expect-unet trt|eager|any.
+    fallback_vae="$vae"
+    fallback_unet="$unet"
+    [[ "$vae" == taesd* ]] && fallback_vae="taesd"
+    case "$unet" in
+      trt|eager|any) ;;
+      *) fallback_unet="any" ;;
+    esac
+    if [[ "$fallback_vae" != "$vae" || "$fallback_unet" != "$unet" ]]; then
+      log "WARNING: verifier rejected vae=$vae/unet=$unet (exit 2); retrying with vae=$fallback_vae unet=$fallback_unet (a TRT->compiled TAESD or stagewise->eager fallback is then not detected)"
+      rc=0
+      run_verify_log "$tool" "$fallback_vae" "$fallback_unet" || rc=$?
+      vae="$fallback_vae"
+      unet="$fallback_unet"
+    fi
+  fi
+  case "$rc" in
+    0)
+      record_verify PASS "vae=$vae unet=$unet"
+      log "Recipe verification passed: vae=$vae unet=$unet"
+      ;;
+    1)
+      verify_failed "$mode" "backend mismatch (expected vae=$vae unet=$unet)"
+      ;;
+    3)
+      verify_failed "$mode" "backend lines not found in the log within ${MUSETALK_VERIFY_TIMEOUT_SECONDS:-60}s (expected vae=$vae unet=$unet)"
+      ;;
+    *)
+      verify_failed "$mode" "verifier exited $rc (expected vae=$vae unet=$unet)"
+      ;;
+  esac
 }
 
 start_turnserver() {
@@ -477,6 +634,43 @@ status_server() {
     log "turnserver=running pid=$turn_pid"
   elif env_enabled "$WEBRTC_TURN_AUTOSTART"; then
     log "turnserver=stopped"
+  fi
+  status_recipe
+}
+
+status_recipe() {
+  local state="${MUSETALK_LAUNCH_STATE_FILE:-${MUSETALK_RUNTIME_DIR:-$REPO_ROOT/.runtime}/musetalk_launch_${PORT}.json}"
+  if [[ -f "$VERIFY_STATE_FILE" ]]; then
+    log "last_verify: $(cat "$VERIFY_STATE_FILE")"
+  fi
+  if [[ ! -f "$state" ]]; then
+    log "recipe=unknown (no launch state at $state; legacy chain or not started by run_musetalk_server.sh)"
+    return 0
+  fi
+  local py="$VENV_PATH/bin/python"
+  [[ -x "$py" ]] || py="python3"
+  if "$py" -I -B - "$state" <<'PY' | while IFS= read -r line; do log "$line"; done
+import json, sys
+s = json.load(open(sys.argv[1]))
+env = s.get("env") or {}
+def v(key, default="-"):
+    item = env.get(key)
+    return item["value"] if item else default
+print(f"recipe={s.get('recipe')} (source={s.get('recipe_source')}) launched={s.get('created_utc')} "
+      f"launcher_pid={s.get('launcher_pid')}")
+print(f"vae={v('MUSETALK_VAE_BACKEND', 'pytorch')} taesd_backend={v('MUSETALK_TAESD_BACKEND', 'compiled')} "
+      f"unet={v('MUSETALK_UNET_BACKEND', 'eager')} engine={v('MUSETALK_TRT_UNET_PATHS', 'none')}")
+print(f"buckets={v('HLS_SCHEDULER_FIXED_BATCH_SIZES')} max_batch={v('HLS_SCHEDULER_MAX_BATCH')} "
+      f"vp8={v('WEBRTC_VP8_ENCODER', 'pyav')} h264_impl={v('WEBRTC_H264_IMPL', 'aiortc')} "
+      f"cache_mb={v('AVATAR_CACHE_MAX_MEMORY_MB')}")
+expect = s.get("expect") or {}
+print(f"expect vae={expect.get('vae')} unet={expect.get('unet')} overrides={','.join(s.get('overrides_files') or []) or 'none'}")
+print(f"resolved_report={s.get('resolved_report')}")
+PY
+  then
+    :
+  else
+    log "cannot parse launch state $state"
   fi
 }
 

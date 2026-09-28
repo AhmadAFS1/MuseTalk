@@ -1,0 +1,309 @@
+summary:
+  1) The "required recipe" (plan L78; chin_fps README L3) has five parts: TAESD decoder, MuseTalk's native avatar encoder (SD-VAE latents prepared ahead, no runtime cost, no flag), 100% chin alignment, refined seam, and expressive H3 sources. Only the decoder can be switched on at startup today: MUSETALK_VAE_BACKEND=taesd (scripts/vae_fast_decoder.py:16,81). Chin and seam are OFFLINE ONLY. There is no FaceMesh or chin code in api_server.py, hls_gpu_scheduler.py or api_avatar.py (checked by grep; the only related flags are the unrelated MUSETALK_SIDE_JAW_BLEND and source-mouth blend). Every MUSETALK_CHIN_* flag in the plan (3.0a-3.7) is proposed and does not exist.
+2) The startup chain boots the OLD recipe, confirmed on the live process. pid 3555159 was started by run_trt_stagewise_server.sh --profile throughput_record and has MUSETALK_VAE_BACKEND=trt_stagewise. That is the int8 SD-VAE decoder, 82.9 ms per bs8 batch, against TAESD at 6.3-6.8 ms: offline pipelined 73.9 fps vs 250.8 fps. The user's TAESD launcher (experiments/chinese_bob_webrtc_20260927/run_local_api.sh) works around this: it sources the sm89 env, then exports MUSETALK_VAE_BACKEND=taesd and execs api_server.py directly, skipping every start script.
+3) What is proven on the GPU:
+- Plan (short bursts): shipping TRT UNet bs8 23.43-24.6 ms per bs8 (2.93-3.08 ms/frame); compiled TAESD 0.74-0.85 ms/frame; TRT TAESD full height 0.486 ms/frame; GPU path 30.93 ms per bs8 = 258.7 fps.
+- New 2026-09-28 run of 200 s sustained (docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/foundation_results.json): 260.08 fps. Per bs8: UNet 24.22 ms, TAESD 6.35, H2D 0.03, post+D2H 0.13. Power-bound at 211.6 of 220 W, SM clock 2580 MHz. Turning the syncs off gave 258.1 fps, so no GPU gain on its own.
+4) "160 fps" is the offline one-stream harness: refined-seam chin 163.4 / 168.8 fps, rendered at 24 fps, excluding TTS, scheduling, WebRTC and encode. Other offline numbers: chin100 v1 182.8-197.7, pipelined standard 250.8, serial TAESD 204-219.6.
+- Live has never been measured cleanly beyond 3 peers. The contaminated 10-stream wall run delivered 136-145 fresh fps (TAESD, no chin, libx264 medium).
+- The structural single-process live ceiling is 174-203 fps: 3 syncs plus a blocking D2H per batch, the handoff blocking the scheduler for 8-10 ms per batch, and idle-mp4 decode on the event loop capping at about 183 fps.
+5) Nearly every Phase 1 serving fix is CODE, not configuration. None of these flags exist: HLS_GPU_PIPELINE_DEPTH, WEBRTC_NONBLOCKING_HANDOFF, WEBRTC_YUV_CONVERTER, WEBRTC_IDLE_FRAME_CACHE, HLS_SCHEDULER_POLICY, HLS_SKIP_GPU_FOR_RAW, MUSETALK_THREAD_CAPS, HLS_GPU_BLOCKING_WAIT, WEBRTC_NATIVE_VP8_THREADS, WEBRTC_H264_IMPL.
+6) Env-only items the start scripts CAN act on today:
+- MUSETALK_VAE_BACKEND=taesd.
+- WEBRTC_VP8_ENCODER=native. The native VP8 files must be installed first; the check is strict and startup fails with no fallback.
+- HLS_GPU_STAGE_SYNC_TIMING=0 and MUSETALK_VAE_DECODE_TIMING_SYNC=0: optional, timing-only.
+- Scheduler batch settings matched to the engine batch.
+- MUSETALK_FREE_EAGER_UNET=1: optional; it is an uncommitted edit.
+- MALLOC_ARENA_MAX=4: optional; unmeasured.
+- A RAM preflight: loading the 2.2 GB .ts pushes peak RSS to 9.5 GB; the startup high-water mark was 10.5 GB.
+- A persistent torch.compile cache for TAESD.
+- Downloading TAESD weights: models/taesd is git-ignored and no installer fetches it.
+7) Work in progress from the other session that must NOT be the default yet: MUSETALK_TAESD_BACKEND=trt, MUSETALK_UNET_BACKEND=trt_stagewise, MUSETALK_TRT_UNET_CUDAGRAPHS=manual. Its gate runs were blocked at 01:49-02:11 UTC waiting on the user's server (the stepA_cudagraph_gate log shows only lease waits).
+8) Box status now, from read-only checks:
+- D1 (disk): mostly resolved. 25 GB free, against 1.3 GB in the plan.
+- D2 (RAM): still open. /dev/shm holds 8.9 GB (soulx-lfs-state 7.9 GB), and MemAvailable is about 9 GB with the user server running (RSS 3.9 GB, VRAM 9.5 GB).
+9) Portability blockers:
+- TRT engines are tied to the GPU architecture and TRT version (models/tensorrt_unet_sm89_bs8_local).
+- Native VP8 needs exactly CPython 3.10, aiortc 1.14.0, av 16.1.0 and cffi 2.1.1.
+- FaceMesh chin depends on the SoulX venv (mediapipe 0.10.9).
+- The torch.compile TAESD cache lives in /tmp/torchinductor_root.
+- NVENC is capped at 12 sessions on GeForce cards.
+- The 220 W power cap and the 16-core SMT layout are specific to this box.
+10) Only the offline 250.8 fps harness and the 260 fps sustained GPU run are measured. 311 fps / 300 lossless is PROJECTED, about a coin flip, and depends on item 2.2 (chained stagewise bs16 ≤ 2.51 ms/frame) and live efficiency ≥ 0.90.
+recommended_env:
+    name:
+      MUSETALK_VAE_BACKEND
+    value:
+      taesd
+    scope:
+      all-gpus
+    evidence:
+      vae_fast_decoder.py:16,81 (taesd|tiny|tiny_vae). User-required decoder (chin_fps_validation_20260927/README.md:3). Per bs8: TAESD 6.35 ms sustained (foundation_results.json, 200 s) vs INT8 5-stage SD-VAE 82.9 ms (musetalk_4070s_pipeline_component_analysis_2026-09-22.md:200-203). Offline pipelined: TAESD 250.8 fps vs mixed-INT8 SD-VAE 73.9 fps. The live server today runs trt_stagewise (pid 3555159 env), which comes from select_unet_trt_profile.py:75 and run_trt_stagewise_server.sh:138.
+    name:
+      MUSETALK_TAESD_COMPILE / MUSETALK_TAESD_COMPILE_MODE
+    value:
+      1 / max-autotune (code defaults; leave unset)
+    scope:
+      all-gpus
+    evidence:
+      vae_fast_decoder.py:144-145. Compiled TAESD measured 0.739 ms/frame (EVIDENCE_DIGEST L49-50). Plan §8 closes turning cudnn.benchmark off (11% slower) and forcing inductor max-autotune (no gain on 56 SMs). The first boot on a new machine pays a cold compile.
+    name:
+      MUSETALK_TAESD_WARMUP_BATCHES
+    value:
+      8 (must list the same buckets as HLS_SCHEDULER_FIXED_BATCH_SIZES)
+    scope:
+      per-gpu-tier
+    evidence:
+      vae_fast_decoder.py:180, default '8'. Set to 8 by the user's run_local_api.sh. Plan §8: TAESD bs16 is slower per frame than bs8 (0.502 vs 0.486 ms).
+    name:
+      MUSETALK_TAESD_BACKEND
+    value:
+      unset/compiled (do NOT default to trt yet)
+    scope:
+      avoid
+    evidence:
+      The trt option is an uncommitted edit (vae_fast_decoder.py:251-284, 955-975). Plan 2.1 is E1 (about 2 LSB, max_abs 0.0085) and needs G-TAESD, G-TRACK and user decision D14. Its gate scripts in docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/ have no recorded pass. PROJECTED gain 0.85→0.51 ms/frame (ceiling 259→284). Offer it later as a one-line opt-in; the engine fingerprint includes the GPU and TRT version, so it builds on first use (MUSETALK_TAESD_TRT_BUILD=1 default).
+    name:
+      MUSETALK_UNET_BACKEND / MUSETALK_TRT_UNET_ENABLED / MUSETALK_TRT_FALLBACK
+    value:
+      trt / 1 / 0
+    scope:
+      per-gpu-tier
+    evidence:
+      Set in .runtime/musetalk_trt_local_sm89.env. Foundation 2026-09-28: the shipping bs8 .ts passes the UNet gate on the 11-avatar corpus (mae_max 0.00259 main, 0.00213 holdout; gate mae ≤0.01, max_abs ≤0.5), UNet 24.09 ms per bs8. The engine is sm89-specific, so other GPUs need a GPU-local build and validation first. With no env file, run_trt_stagewise_server.sh:140-141 defaults to eager/0.
+    name:
+      MUSETALK_TRT_UNET_PATHS
+    value:
+      8:<GPU-local validated bs8 .ts> (here models/tensorrt_unet_sm89_bs8_local/unet_trt.ts)
+    scope:
+      per-gpu-tier
+    evidence:
+      sm89 env last line. The plan (§1 corr.4) notes it is a symlink to tensorrt_unet_static_bs8_20260529. Plan 2.3b: load only bs16 when using bs16, because an 8+16 pair OOMed even on 24 GB.
+    name:
+      HLS_SCHEDULER_MAX_BATCH / HLS_SCHEDULER_FIXED_BATCH_SIZES
+    value:
+      8 / 8 (16/16 only with a validated bs16-only engine)
+    scope:
+      per-gpu-tier
+    evidence:
+      sm89 env. Plan 2.3b gives the bs16 recipe (MUSETALK_UNET_STAGEWISE_BATCH=16, HLS_SCHEDULER_MAX_BATCH=16, HLS_SCHEDULER_FIXED_BATCH_SIZES=16). Plan §8 closes batches >16 (−4.4% only). PROFILE=baseline makes concurrent_gpu_manager.py:125-127 recommend max 4 / buckets [4], which mismatches a static bs8 engine unless set explicitly (api_server.py:627-636 only fills unset values).
+    name:
+      HLS_SCHEDULER_STARTUP_SLICE_SIZE
+    value:
+      8 (current); plan target 10 packed across jobs requires item 1.9 code
+    scope:
+      per-gpu-tier
+    evidence:
+      sm89 env sets 8; api_server.py:1066 defaults to 2. Plan 1.9 and 2.3b keep the slice at 10, packed, but that packing is not implemented (HLS_SCHEDULER_POLICY does not exist).
+    name:
+      MUSETALK_BLEND_FIXED_POINT / MUSETALK_BLEND_SHRINK_MASK_BBOX / WEBRTC_BATCH_FRAME_CALLBACK
+    value:
+      1 / 1 / 1
+    scope:
+      all-gpus
+    evidence:
+      select_unet_trt_profile.py _base_profile, sm89 env, run_trt_stagewise_server.sh:189,193-194, and run_local_api.sh all set these.
+    name:
+      WEBRTC_VP8_ENCODER
+    value:
+      native (requires .runtime/native_vp8 installed and verified)
+    scope:
+      all-gpus
+    evidence:
+      webrtc_native_vp8.py:263; the default 'pyav' is not set by any start script (grep). Plan 1.8 [M]: VP8 at 15 streams 2.53→1.85 cores, at 20 streams 4.00→2.79; libx264 medium costs 7.85 cores at 300 fps. There is no fallback: startup raises if the install or runtime check fails (validate_runtime needs CPython 3.10; SUPPORTED_PACKAGES aiortc 1.14.0, av 16.1.0, cffi 2.1.1). There is no thread env var: the vendored vpx.py:25-33,264 picks 2 threads at 512x896, so the plan's single-thread saving needs a code change.
+    name:
+      WEBRTC_H264_ENCODER
+    value:
+      do not rely on h264_nvenc (default)
+    scope:
+      avoid
+    evidence:
+      api_server.py:125 defaults to h264_nvenc and :398 logs 'encoder set to h264_nvenc', but plan §2 and EVIDENCE_DIGEST L94-96 show the patch is dead code on aiortc 1.14 and libx264 medium actually runs. NVENC is capped at 12 sessions and uses 2.47 GB VRAM (plan §8, closed). Use VP8 clients.
+    name:
+      HLS_GPU_STAGE_SYNC_TIMING / MUSETALK_VAE_DECODE_TIMING_SYNC
+    value:
+      0 / 0
+    scope:
+      optional
+    evidence:
+      hls_gpu_scheduler.py:230,2398-2406 and vae.py:30,168 both default to True. Plan 1.1 marks this E0 (timing only). Foundation variant_no_syncs_60s gave 258.15 fps vs 260.08 fps baseline, so no gain in the isolated GPU path. The gain is PROJECTED only together with depth-2 pipelining (1.4, not implemented). Side effect: per-stage timing logs stop being accurate.
+    name:
+      MUSETALK_FREE_EAGER_UNET
+    value:
+      1 (optional; must be 0 when MUSETALK_UNET_CALIBRATION_CAPTURE=1)
+    scope:
+      optional
+    evidence:
+      Uncommitted avatar_manager_parallel.py diff (+12 lines after 'UNet backend active'), default 0. Plan 0.6 PROJECTS about 1.7 GB VRAM saved (849.9M params × 2 B). Most useful on 8-12 GB cards. Not yet gated.
+    name:
+      MUSETALK_TRT_UNET_CUDAGRAPHS
+    value:
+      0 (keep default)
+    scope:
+      avoid
+    evidence:
+      Uncommitted trt_runtime.py adds manual|runtime|0 with default 0. Plan 1.2 [M]: manual capture 23.65 ms max_abs 0 in the probe, about −2.5%. The in-repo gate (unet_fp16/stepA_cudagraph_gate.log) never ran: it waited on the lease behind the user's server from 01:49 to 02:11 UTC.
+    name:
+      MUSETALK_UNET_BACKEND=trt_stagewise
+    value:
+      do not default
+    scope:
+      avoid
+    evidence:
+      Uncommitted trt_runtime.py _stagewise_unet_requested plus untracked scripts/unet_stagewise_trt.py and build_unet_stagewise.py. The item 2.2 go/no-go (≤2.51 ms/frame at bs16) is not yet measured. The name also collides with MUSETALK_VAE_BACKEND=trt_stagewise, which is easy to confuse in env files.
+    name:
+      MUSETALK_VAE_BACKEND=trt_stagewise + MUSETALK_TRT_STAGEWISE_PRECISION=int8_mixed
+    value:
+      remove as the default
+    scope:
+      avoid
+    evidence:
+      select_unet_trt_profile.py:75-76, the sm89 and best env files, run_trt_stagewise_server.sh:138. Measured 82.9 ms per bs8 decode, and offline 73.9 fps pipelined (chin_fps README table). Its only remaining use is as a rollback.
+    name:
+      HLS_COMPOSE_WORKERS / HLS_ENCODE_WORKERS / HLS_PREP_WORKERS
+    value:
+      8 / 8 / 8 (launcher defaults)
+    scope:
+      all-gpus
+    evidence:
+      run_trt_stagewise_server.sh:202-204; api_server.py:1068-1070 defaults to 2. The code clamps the effective count to max(6, value, min(10, cpu//2)) (hls_gpu_scheduler.py:195-216). Plan §8 closes global thread caps and worker-count tuning (GPU utilisation fell to 37%). Plan 1.11 thread hygiene (cv2.setNumThreads(1), idle decoder threads) is code.
+    name:
+      MALLOC_ARENA_MAX
+    value:
+      4
+    scope:
+      optional
+    evidence:
+      Plan 1.12 (proposed, unmeasured): RSS rose about 0.07 GB per session per turn in the wall run and did not come back down. No script sets it today. Gate: the item 0.9 soak shows a flat RSS slope.
+    name:
+      TORCHINDUCTOR_CACHE_DIR
+    value:
+      <persistent dir, e.g. under the repo/.runtime> [I]
+    scope:
+      optional
+    evidence:
+      Plan 0.3: keep /tmp/torchinductor_root (835 MB); deleting it changes compiled-TAESD numerics [D]. /tmp is not durable on fresh or rebooted boxes. INFERRED recommendation, not in the plan verbatim.
+    name:
+      WEBRTC_VIDEO_PREBUFFER_SECONDS
+    value:
+      2.0 today; 0.5 on the wall; D6 undecided
+    scope:
+      optional
+    evidence:
+      webrtc_tracks.py:35 and run_trt_stagewise_server.sh:186 use 2.0. Plan D6 notes the wall uses 0.5 s (10 frames).
+    name:
+      KOKORO_TTS_DEVICE
+    value:
+      cpu (in-process); no disable flag exists
+    scope:
+      avoid
+    evidence:
+      Plan 0.5 / EVIDENCE_DIGEST L113-114: local Kokoro at 15 speakers takes 30-85% of the CPU. The proposed MUSETALK_DISABLE_LOCAL_TTS does not exist in code.
+    name:
+      HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE
+    value:
+      1 only after the installer has vendored models/taesd (and the other weights)
+    scope:
+      optional
+    evidence:
+      run_local_api.sh sets both. vae_fast_decoder.py:117-123 falls back to HF id madebyollin/taesd when models/taesd/config.json is missing. models/ is git-ignored (.gitignore:11), and neither download_weights.sh nor any scripts/*.sh fetches TAESD (grep).
+    name:
+      MUSETALK_TRT_PROFILE_ENV_FILE / MUSETALK_TRT_PROFILE_ENV_LOAD
+    value:
+      rework: the generated env must not clobber caller overrides
+    scope:
+      all-gpus
+    evidence:
+      run_trt_stagewise_server.sh:123-131 sources the env file under set -a AFTER the caller's env, so an exported MUSETALK_VAE_BACKEND=taesd is overwritten by trt_stagewise. /workspace/run-musetalk-local-trt.sh points it at the sm89 file with MUSETALK_SELECT_BEST_TRT_PROFILE=0.
+procedures:
+    Live server's actual launch today (ps): /workspace/run-musetalk-local-trt.sh → scripts/vast_onstart.sh → bash /workspace/MuseTalk/scripts/run_trt_stagewise_server.sh --profile throughput_record --host 0.0.0.0 --port 8000 --venv-path /workspace/.venvs/musetalk_trt_stagewise --repo-root /workspace/MuseTalk → /workspace/.venvs/musetalk_trt_stagewise/bin/python api_server.py --host 0.0.0.0 --port 8000 (pid 3555159, MUSETALK_VAE_BACKEND=trt_stagewise, HLS_COMPOSE_WORKERS=8, PROFILE=throughput_record)
+    User's TAESD launcher (bypasses the start scripts): experiments/chinese_bob_webrtc_20260927/run_local_api.sh. It runs cd /workspace/MuseTalk; set -a; source .runtime/musetalk_trt_local_sm89.env; set +a; then exports MUSETALK_VAE_BACKEND=taesd MUSETALK_UNET_BACKEND=trt MUSETALK_TRT_FALLBACK=0 MUSETALK_BLEND_FIXED_POINT=1 MUSETALK_BLEND_SHRINK_MASK_BBOX=1 MUSETALK_TAESD_WARMUP_BATCHES=8 AVATAR_S3_ENABLED=0 KOKORO_TTS_DEVICE=cpu HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 (plus WEBRTC_MOTION_ATLAS and WEBRTC_MOTION_ALLOW_UNREVIEWED=1 for chinese_bob); then exec python api_server.py --host ${MUSETALK_API_HOST:-127.0.0.1} --port ${MUSETALK_API_PORT:-8200}. run_wall_api.sh wraps it with host 0.0.0.0, port 8000 and WEBRTC_WALL_POSE_SET_PATH.
+    Native VP8 install/verify (docs/WEBRTC_NATIVE_VP8.md:10-11): /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/install_native_vp8.py ; ... scripts/install_native_vp8.py --verify (installs aiortc 1.11.0 VP8 encoder files only, into .runtime/native_vp8; options --directory, --wheel, --verify). Then set WEBRTC_VP8_ENCODER=native.
+    TRT TAESD engine build (uncommitted WIP, plan 2.1): python scripts/vae_fast_decoder.py build [--batch N] [--force]; engines go to models/taesd/trt (MUSETALK_TAESD_TRT_DIR), fingerprinted by TRT version, GPU, ONNX hash, batch and recipe.
+    UNet backend gate (plan 2.3a/G-UNET): scripts/validate_unet_backend.py --fail-mae 0.01 --fail-max-abs 0.5 on the multi-avatar corpus (calibration/unet_multi_avatar_20260928, built by the untracked scripts/build_unet_multi_avatar_corpus.py).
+    bs16 fallback build (plan 2.4): scripts/tensorrt_export.py --batch-sizes 16 --require-valid-unet --validate-unet-capture-dir … then MUSETALK_TRT_UNET_PATHS=16:<path> (needs about 2.7 GB disk and ≥16 GB MemAvailable; 11.0 GB peak RSS measured).
+    UNet calibration capture (plan 0.7): MUSETALK_UNET_CALIBRATION_CAPTURE=1 MUSETALK_UNET_CALIBRATION_DIR=... MUSETALK_UNET_CALIBRATION_MAX_BATCHES=16 (hls_gpu_scheduler.py:246-252).
+    Shared-box guard (untracked, plan 0.1): scripts/box_guard.sh check | run [--min-avail-gb N --need-disk-gb N --kill-below-gb N --wait-min N] -- cmd | lease. Lease is flock on /workspace/.gpu_lease; exit codes 75 lease/GPU timeout, 76 RAM, 77 disk, 86 watchdog kill, 87 oom_kill rose.
+    Plan RAM preflight thresholds (0.1): MemAvailable ≥14 GB before a server start (10.5 GB transient), ≥16 GB before a torch_tensorrt build, ≥ server budget + 4 GB before a load test. Watchdog kills the child below 3 GB (4 GB during load tests). Foundation [M]: loading the 2.2 GB .ts pushes VmHWM to about 9.5 GB, so any process loading it needs ≥12 GB MemAvailable to stay above a 3 GB floor.
+    Offline 160-250 fps harness (not live): /workspace/experiments/chin_fps_validation_20260927 (run.py, decode.py/render_full.py/benchmark.py with /workspace/.venvs/musetalk_trt_stagewise/bin/python; FaceMesh via /workspace/SoulX-FlashHead/.venv/bin/python); refined seam in /workspace/experiments/chin_seam_refinement_20260927.
+    Plan's intended flag overlay (not created): .runtime/musetalk_300fps.env sourced after the generated sm89 env by a new experiments/throughput300_candidate/run_candidate_api.sh on port 8300 with oom_score_adj 1000. One lever per line so rollback deletes a line (plan §4 conventions).
+machine_specific:
+    .runtime/musetalk_trt_local_sm89.env and MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_sm89_bs8_local/unet_trt.ts: a TRT .ts built for sm89 / TRT 10.3 (symlink to tensorrt_unet_static_bs8_20260529). It will not load on other compute capabilities, which need a GPU-local rebuild and validation.
+    /workspace/run-musetalk-local-trt.sh hardcodes MUSETALK_TRT_PROFILE_ENV_FILE=/workspace/MuseTalk/.runtime/musetalk_trt_local_sm89.env, MUSETALK_TRT_ARTIFACT_RESTORE=0, MUSETALK_SELECT_BEST_TRT_PROFILE=0, and sources /workspace/.musetalk-runtime.env.
+    Venv path /workspace/.venvs/musetalk_trt_stagewise (torch 2.5.1+cu121, torch_tensorrt 2.5.0, TRT 10.3, NumPy 1.23.5, OpenCV 4.9.0.80). Chin pixel math is pinned to NumPy 1.23 / OpenCV 4.9; with NumPy 2, dtype promotion changes lip_y (EVIDENCE_DIGEST L134-135).
+    Chin FaceMesh tracker runs in another project's venv, /workspace/SoulX-FlashHead/.venv (mediapipe 0.10.9, NumPy 2.2.6, OpenCV 5.0), so it is not portable (plan 3.3, R18).
+    Native VP8 validate_runtime requires Linux x86_64 CPython 3.10 exactly, with aiortc 1.14.0, av 16.1.0 and cffi 2.1.1 (webrtc_native_vp8.py:19,56-60). Installed files live in .runtime/native_vp8 (aiortc 1.11.0 wheel).
+    /tmp/torchinductor_root (835 MB): the compiled-TAESD cache on this box. The plan says deleting it changes numerics. A fresh machine compiles cold.
+    Power cap 220 W = max (GeForce 4070S); every ms figure is power-bound at about 211 W / 2580 MHz. Other GPUs have different ratios.
+    CPU pinning in the plan ({0-11,16-27} server, {12-15,28-31} load client) comes from this box's lscpu: 16 cores, CPU n+16 is the SMT sibling of n (verified via thread_siblings_list 0,16 and 15,31). It is for the load harness, not production.
+    NVENC 12-session cap and 2.47 GB VRAM at 12 sessions: a GeForce driver limit.
+    12 GB VRAM: server uses 5-6.2 GB (TAESD) or 9.5 GB (current trt_stagewise live server). The 8+16 engine pair OOMed even on 24 GB.
+    30 GB shared RAM with /dev/shm/soulx-lfs-state-20260919 at 7.9 GB, and co-tenants (SoulX, Codex, Pylance 4.4 GB). box_guard.sh COTENANT_RE and the /workspace/.gpu_lease path are specific to this host.
+    docs/fps_comparisons/4070s_300fps_20260927/unet_probe/tt16_timing_cache.bin: an 8 MB TRT timing cache valid only for this GPU and TRT version.
+    Offline harness and audio are hardcoded to /workspace/experiments/* paths, and the corpus audio to /workspace/experiments/cheek_drift_ab_20260926/... and avatar_diversity_20260927/_audio.
+problems:
+    run_trt_stagewise_server.sh:123-131 sources the generated profile env under `set -a` AFTER the caller's environment, so any caller override (e.g. MUSETALK_VAE_BACKEND=taesd) is overwritten by the file's trt_stagewise. Only bypassing the launcher (run_local_api.sh) gets TAESD today.
+    select_unet_trt_profile.py:75-76 hardcodes MUSETALK_VAE_BACKEND=trt_stagewise with int8_mixed in _base_profile(), so every regenerated .runtime/*.env re-emits the old decoder. run_trt_stagewise_server.sh:138 also defaults MUSETALK_VAE_BACKEND:=trt_stagewise, and :140-141 default MUSETALK_UNET_BACKEND:=eager and MUSETALK_TRT_UNET_ENABLED:=0 when no env file is present.
+    No start or install script (vast_onstart.sh, vast_server_ctl.sh, run_webrtc_relay_api_server.sh, setup_trt_stagewise_server_env.sh, run_trt_stagewise_server.sh) mentions TAESD, WEBRTC_VP8_ENCODER, native VP8 install, HF offline, MALLOC_ARENA_MAX, the inductor cache or a RAM preflight (grep).
+    TAESD weights (models/taesd, 4.9 MB) are git-ignored (.gitignore:11 'models/'), and download_weights.sh does not fetch them. On a fresh machine TAESD loads from HF 'madebyollin/taesd' (vae_fast_decoder.py:117-123), which fails if HF_HUB_OFFLINE=1.
+    Without WEBRTC_VP8_ENCODER=native the server uses PyAV VP8, and H.264 clients get libx264 medium. The log line 'WebRTC H.264 encoder set to h264_nvenc' (api_server.py:398) is misleading because enable_h264_nvenc (api_server.py:273-325) is dead code on aiortc 1.14.
+    PROFILE=baseline (the run_trt_stagewise_server.sh:20 default) makes recommended_scheduler_batch_config return max_batch 4 / buckets [4] (concurrent_gpu_manager.py:125-127). A static bs8-only engine then gets padded or mismatched batches unless HLS_SCHEDULER_* is set explicitly. vast_onstart.sh:19 defaults to throughput_record, which on <20 GB cards gives [4,8].
+    Doc vs code: the plan says MUSETALK_VAE_DECODE_TIMING_SYNC sync is at vae.py:156-157. It is now at :168, shifted by the other session's uncommitted fused-uint8 edit.
+    Doc vs code: the plan (1.8, §10 anchors) says webrtc_native_vp8.py:123 sets cfg.g_threads and proposes WEBRTC_NATIVE_VP8_THREADS. Neither is in webrtc_native_vp8.py. g_threads is set in the vendored .runtime/native_vp8/aiortc/codecs/vpx.py:264 via number_of_threads(), which gives 2 threads for 512x896 on ≥3 CPUs. The 1-thread saving needs a code change.
+    Doc vs code: the plan header says 'nothing in the serving code was changed'. The working tree now has uncommitted flags: MUSETALK_TAESD_BACKEND=trt, MUSETALK_TAESD_TRT_*, MUSETALK_UNET_BACKEND=trt_stagewise, MUSETALK_UNET_STAGEWISE_BATCH/CACHE_DIR, MUSETALK_TRT_UNET_CUDAGRAPHS (default 0), MUSETALK_FREE_EAGER_UNET (default 0). There are also untracked scripts (box_guard.sh, unet_stagewise_trt.py, build_unet_stagewise.py, bench_gpu_path.py). None of these has a recorded gate pass.
+    Doc vs box state: the plan says disk is 1.3 GB free. `df /` now shows 25 GB free (D1 effectively eased). /dev/shm still holds 8.9 GB (D2 open). MemAvailable is about 9 GB with the user server running.
+    Doc superseded: the plan's 'no ms figure comes from a ≥60 s run' (§1 corr.5, R5) is now answered by foundation_results.json: 200 s sustained 260.08 fps, 30.73 ms per bs8 median, power-bound.
+    Group cap is hardcoded `count > 12` at api_server.py:3539 and :3982 (the plan's WEBRTC_GROUP_MAX_COUNT does not exist). A wall above 12 tiles cannot be configured at startup.
+    Load harness and wall defaults are still 15 fps generation / 30 fps playback: load_test_webrtc.py:1057-1064 (bs 2) and templates/webrtc_wall.py:87-89 (bs 4, prebuffer 0.5). Plan 0.4 wants 20/20/8. Any 'test run' must pass --musetalk-fps 20 --playback-fps 20 --batch-size 8 explicitly.
+    Startup RAM transient: loading the 2.2 GB .ts pushes VmHWM to about 9.5 GB (foundation) and the wall run to 10.5 GB. No start script checks MemAvailable first. The 2026-09-27 wall server died with 0.8 GB available.
+    Proposed but nonexistent (code work, cannot be enabled by scripts): HLS_GPU_EVENT_TIMING, MUSETALK_CAPACITY_TELEMETRY, MUSETALK_CAPTURE_DIR, WEBRTC_LIFETIME_COUNTERS, WEBRTC_GROUP_MAX_COUNT, MUSETALK_DISABLE_LOCAL_TTS, MUSETALK_SKIP_TORCH_UNET_WITH_TRT, HLS_GPU_BLOCKING_WAIT, HLS_GPU_PIPELINE_DEPTH, MUSETALK_WHISPER_STREAM, WEBRTC_NONBLOCKING_HANDOFF, WEBRTC_YUV_CONVERTER, WEBRTC_IDLE_FRAME_CACHE, WEBRTC_NATIVE_VP8_THREADS, WEBRTC_H264_IMPL, HLS_SCHEDULER_POLICY, HLS_SCHEDULER_MAX_RUNAHEAD_S, HLS_SKIP_GPU_FOR_RAW, MUSETALK_THREAD_CAPS, all MUSETALK_CHIN_*, HLS_POST_WORKERS, MUSETALK_MEDIA_WORKERS, MUSETALK_UNET_CONTEXTS, HLS_H2D_COPY_STREAM, HLS_NULL_SINK, MUSETALK_CAPACITY_ADMISSION.
+    Live chin is impossible from startup: production avatars lack FaceMesh landmarks and chin masks (plan 3.0a; chinese_bob has none). The recipe was accepted at 24 fps, not live 20 fps (D18, item 0.10).
+    CLOSED / rejected levers that startup must NOT enable (plan §8): FP8 UNet/TAESD on TRT 10.3/sm89; raising the power cap; batches >16; larger TAESD batches (bs16 slower than bs8); a second CUDA stream for TAESD or two torch_tensorrt UNets on two streams (raw-TRT 2 contexts stays optional 2.5); two server replicas or MPS on one saturated GPU (+1.3%); DeepCache / cross-frame / source-only caching; latent-space TAESD crop; the staged TAESD crop as an exact lever under chin (lossy 6.1 only); forced inductor max-autotune or cudnn.benchmark off; hunting for 'unfused attention'; TorchScript PTQ INT8; dynamic-shape UNet TRT and torch.compile UNet (failed the gate: mae 0.0122, max_abs 1.94); dropping generator blocks without distillation; ROI 224/192 and lowering fps (20 fps required); Whisper on CPU, shorter windows, cross-stream batching; cheaper FaceMesh variants or subsampling; a GPU landmark net or GPU compose; GIL switch-interval tuning (881-1055 late frames); global thread caps or worker-pool count tuning (GPU utilisation 37%); NVENC for every session (12 cap, 656 ms spikes, 2.47 GB); on-box TTS during capacity tests; a sum-of-blocks discount.
+open_questions:
+    Should the new default boot straight into TAESD even though the plan labels TAESD 'required' only together with chin, which cannot run live? The user's run_local_api.sh already uses TAESD live, and the 10-stream wall ran on it. Rollback is removing MUSETALK_VAE_BACKEND=taesd.
+    D4: does '15 streams' mean a 100%-speaking wall or conversational duty? Duty cycle changes whether bs16 or stagewise is ever worth enabling by default (240 fps at p99 for 15 sessions at 50% duty is reachable after P1 + TRT TAESD with no UNet rebuild).
+    D5: native VP8 for everyone (recommended) vs keeping H.264 support. Native VP8 rejects H.264-only offers (webrtc_native_vp8.py:40-41), so enabling it by default drops H.264-only clients such as some Safari and React Native paths.
+    D6: prebuffer default. The code uses 2.0 s and the wall 0.5 s. Which should startup set? And a run-ahead cap of 5 s (needs 1.9 code)?
+    D14: do E1 FP16 runtime changes (TRT TAESD, about 2 LSB; stagewise UNet) count as 'no quality change'? That decides whether MUSETALK_TAESD_BACKEND=trt can ever become the default.
+    On a non-sm89 GPU with no prebuilt engine, should startup build the UNet .ts at boot (needs ≥16 GB RAM, about 2.7 GB disk, 401 s cold / 44 s warm) or fall back to eager UNet + TAESD? D15 in the plan prefers persisted engines with a fingerprint check.
+    Whether the other session's in-progress gates (taesd_trt/gate_taesd_trt.py and gtrack_taesd_trt.py, unet_fp16/stepA/stepB) will land before the startup rework. Their flags should then be wired as opt-in overlay lines, not defaults.
+    Where production TTS runs (D19). Local Kokoro in-process at 15 speakers takes 30-85% of the CPU, and there is no disable flag.
+    Whether MUSETALK_FREE_EAGER_UNET=1 (uncommitted) should become the default for ≤12 GB cards once item 0.6's golden-SHA gate passes.
+    Whether the TAESD torch.compile cache should be pinned via TORCHINDUCTOR_CACHE_DIR in the repo/.runtime, given the plan's claim that deleting it changes compiled-TAESD numerics.
+files_read:
+    /workspace/MuseTalk/docs/musetalk_4070s_300fps_plan_2026-09-27.md (all 1294 lines)
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_20260927/EVIDENCE_DIGEST.md
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_20260927/ (file listing of all subdirs, .gitignore)
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_20260927/wf2_result.json (final.rejected, residual_uncertainties, winner)
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/foundation_results.json
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/stepA_cudagraph_gate.log (tail)
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/explore_recipe.log (tail)
+    /workspace/MuseTalk/docs/musetalk_4070s_pipeline_component_analysis_2026-09-22.md (grep for decode timings)
+    /workspace/experiments/chin_fps_validation_20260927/README.md (lines 1-60)
+    /workspace/experiments/chin_seam_refinement_20260927/README.md (lines 60-80)
+    /workspace/experiments/chinese_bob_webrtc_20260927/run_local_api.sh
+    /workspace/experiments/chinese_bob_webrtc_20260927/run_wall_api.sh
+    /workspace/experiments/chinese_bob_webrtc_20260927/wall_api.log (lines 1-60)
+    /workspace/MuseTalk/.runtime/musetalk_trt_local_sm89.env
+    /workspace/MuseTalk/.runtime/musetalk_trt_best.env (key names only)
+    /workspace/run-musetalk-local-trt.sh
+    /workspace/MuseTalk/scripts/run_trt_stagewise_server.sh (lines 1-216 and export grep)
+    /workspace/MuseTalk/scripts/select_unet_trt_profile.py (lines 55-110)
+    /workspace/MuseTalk/scripts/vae_fast_decoder.py (lines 1-200 plus env grep; uncommitted)
+    /workspace/MuseTalk/musetalk/models/vae.py (env grep and git diff)
+    /workspace/MuseTalk/scripts/avatar_manager_parallel.py (git diff)
+    /workspace/MuseTalk/scripts/trt_runtime.py (git diff grep)
+    /workspace/MuseTalk/scripts/webrtc_native_vp8.py (lines 1-60, 100-140, 240-330)
+    /workspace/MuseTalk/.runtime/native_vp8/aiortc/codecs/vpx.py (lines 25-33, 255-270)
+    /workspace/MuseTalk/.runtime/native_vp8/installation.json
+    /workspace/MuseTalk/scripts/install_native_vp8.py (CLI grep)
+    /workspace/MuseTalk/scripts/hls_gpu_scheduler.py (lines 180-230, env grep, 2398-2406)
+    /workspace/MuseTalk/scripts/concurrent_gpu_manager.py (lines 60-175)
+    /workspace/MuseTalk/api_server.py (lines 125-161 grep, 560-700, 1050-1080, 3539, 3982, 3924-3930)
+    /workspace/MuseTalk/scripts/webrtc_tracks.py (lines 30-45)
+    /workspace/MuseTalk/scripts/box_guard.sh (lines 1-70; untracked)
+    /workspace/MuseTalk/load_test_webrtc.py (lines 1050-1070)
+    /workspace/MuseTalk/templates/webrtc_wall.py (lines 80-95)
+    /workspace/MuseTalk/scripts/vast_onstart.sh, vast_server_ctl.sh, run_webrtc_relay_api_server.sh, setup_trt_stagewise_server_env.sh (grep only)
+    git log -40, git status, git show --stat for 9b90b92 8599234 c284891 6b32ee5 e803a63 2e0b05e 1564568, git diff --stat
+    Read-only box checks: ps of pid 3555159 and parent, selected non-secret env names from /proc/3555159/environ, nproc, thread_siblings_list, free, df, du /dev/shm, nvidia-smi query

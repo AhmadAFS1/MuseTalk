@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# /workspace/run-musetalk-local-trt.sh: this RTX 4070 SUPER box's boot wrapper.
+# Proposed by the startup rework (2026-09-28). Before installing it:
+#   cp -p /workspace/run-musetalk-local-trt.sh /workspace/run-musetalk-local-trt.sh.bak-20260928
+# Run when port 8000 is free (vast_server_ctl.sh stop first).
+set -euo pipefail
+set -a
+source /workspace/.musetalk-runtime.env
+set +a
+
+REPO_ROOT="${MUSETALK_REPO_ROOT:-/workspace/MuseTalk}"
+if [[ ! -f "$REPO_ROOT/scripts/lib/musetalk_env_layers.sh" || ! -f "$REPO_ROOT/scripts/run_musetalk_server.sh" ]]; then
+  echo "[run-musetalk-local-trt] $REPO_ROOT does not contain the startup rework yet;" \
+    "set MUSETALK_REPO_ROOT=/workspace/MuseTalk-perf300 or restore run-musetalk-local-trt.sh.bak-20260928" >&2
+  exit 1
+fi
+
+# Existing venv on this box; check it, never rebuild it at boot.
+export AUTO_SETUP="${AUTO_SETUP:-0}"
+
+# Shared box: adopt + validate the local sm89 engines instead of building at boot
+# (a torch_tensorrt bs8 build needs ~7 min and ~11 GB host RAM next to other tenants).
+export MUSETALK_UNET_ENGINE_PROVISION="${MUSETALK_UNET_ENGINE_PROVISION:-adopt}"
+export MUSETALK_UNET_STAGEWISE_PROVISION="${MUSETALK_UNET_STAGEWISE_PROVISION:-adopt}"
+
+# legacy_int8 rollback only (MUSETALK_RECIPE=legacy_int8 in the env or an overrides file):
+# keep the hand-rebuilt sm89 engines and never extract the rtx3090 bundle over them.
+# shellcheck source=/dev/null
+source "$REPO_ROOT/scripts/lib/musetalk_env_layers.sh"
+mt_env_effective_recipe "$REPO_ROOT"
+if [[ "$MT_ENV_RECIPE" == "legacy_int8" ]]; then
+  export MUSETALK_TRT_ARTIFACT_RESTORE="${MUSETALK_TRT_ARTIFACT_RESTORE:-0}"
+  export MUSETALK_SELECT_BEST_TRT_PROFILE="${MUSETALK_SELECT_BEST_TRT_PROFILE:-0}"
+  export MUSETALK_TRT_PROFILE_ENV_LOAD="${MUSETALK_TRT_PROFILE_ENV_LOAD:-1}"
+  export MUSETALK_TRT_PROFILE_ENV_FILE="${MUSETALK_TRT_PROFILE_ENV_FILE:-$REPO_ROOT/.runtime/musetalk_trt_local_sm89.env}"
+fi
+
+exec bash "$REPO_ROOT/scripts/vast_onstart.sh" "$@"

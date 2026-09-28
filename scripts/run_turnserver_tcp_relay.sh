@@ -109,8 +109,10 @@ TURN_REALM="${TURN_REALM:-$TURN_PUBLIC_IP}"
 # Coturn still allocates relay endpoints internally for aiortc/browser TURN
 # allocations. With relay-only TURN-over-TCP on both peers, this range does not
 # need to be opened publicly; only the TURN TCP listener does.
+# 49160-49460: relay-only sessions use ~3 allocations each; the old 41-port range capped a box
+# at ~13 concurrent sessions.
 TURN_INTERNAL_RELAY_MIN_PORT="${TURN_INTERNAL_RELAY_MIN_PORT:-49160}"
-TURN_INTERNAL_RELAY_MAX_PORT="${TURN_INTERNAL_RELAY_MAX_PORT:-49200}"
+TURN_INTERNAL_RELAY_MAX_PORT="${TURN_INTERNAL_RELAY_MAX_PORT:-49460}"
 TURN_RELAY_THREADS="${TURN_RELAY_THREADS:-4}"
 
 case "$TURN_PUBLIC_TRANSPORT" in

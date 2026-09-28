@@ -1,0 +1,83 @@
+{
+  "suite": "h264_override",
+  "passed": true,
+  "results": [
+    {
+      "test": "H1_default_untouched",
+      "result": "pass",
+      "logs": [
+        "\ud83c\udf9e\ufe0f [test] WebRTC H.264 impl=aiortc codec=libx264 (aiortc 1.14 built-in: preset=medium tune=zerolatency profile=Baseline threads=auto) max_bitrate=6000000; WEBRTC_H264_ENCODER/NVENC settings are not used by this impl"
+      ],
+      "status": {
+        "impl": "aiortc",
+        "codec": "libx264",
+        "installed": false,
+        "max_bitrate": 6000000,
+        "detail": "aiortc 1.14 built-in: preset=medium tune=zerolatency level=31 profile=Baseline threads=auto"
+      },
+      "codec": "libx264",
+      "x264_sei": {
+        "subme": "7",
+        "me": "hex",
+        "ref": "3",
+        "threads": "8",
+        "sliced_threads": "1"
+      }
+    },
+    {
+      "test": "H2_x264tuned_preset_threads_timing",
+      "result": "pass",
+      "logs": [
+        "\ud83c\udf9e\ufe0f [test] WebRTC H.264 impl=x264tuned codec=libx264 preset=veryfast threads=1 max_bitrate=6000000",
+        "\ud83c\udf9e\ufe0f WebRTC H.264 encoder opened impl=x264tuned codec=libx264 preset=veryfast threads=1 bitrate=1000000"
+      ],
+      "codec": "libx264",
+      "x264_sei": {
+        "subme": "2",
+        "me": "hex",
+        "ref": "1",
+        "threads": "1",
+        "sliced_threads": "0"
+      },
+      "thread_count": 1,
+      "timing_wrapper_calls": 6,
+      "decoded_frames": 6
+    },
+    {
+      "test": "H3_nvenc_semaphore_fallback",
+      "result": "pass",
+      "logs": [
+        "\ud83c\udf9e\ufe0f WebRTC H.264 encoder opened impl=nvenc codec=h264_nvenc slot=1/2 bitrate=1000000",
+        "\ud83c\udf9e\ufe0f WebRTC H.264 encoder opened impl=nvenc codec=h264_nvenc slot=2/2 bitrate=1000000",
+        "\ud83c\udf9e\ufe0f WebRTC H.264 encoder opened impl=nvenc codec=libx264 preset=veryfast threads=1 (nvenc fallback: 2/2 sessions in use) bitrate=1000000",
+        "\ud83c\udf9e\ufe0f WebRTC H.264 encoder opened impl=nvenc codec=h264_nvenc slot=2/2 bitrate=1000000",
+        "\u26a0\ufe0f WebRTC H.264 NVENC open failed (fake: OpenEncodeSessionEx failed: out of memory (10)); this encoder falls back to x264tuned",
+        "\ud83c\udf9e\ufe0f WebRTC H.264 encoder opened impl=nvenc codec=libx264 preset=veryfast threads=1 (nvenc fallback: 1/2 sessions in use) bitrate=1000000"
+      ],
+      "first_three": [
+        "h264_nvenc",
+        "h264_nvenc",
+        "libx264"
+      ],
+      "in_use_after_three": 2,
+      "in_use_after_drop": 1,
+      "e4": "h264_nvenc",
+      "e5_after_open_failure": "libx264",
+      "e5_slots_before": 2,
+      "slots": {
+        "capacity": 2,
+        "in_use": 1,
+        "peak": 2,
+        "denied": 1,
+        "opened": 3,
+        "open_failures": 1
+      }
+    },
+    {
+      "test": "H4_invalid_impl_fails",
+      "result": "pass",
+      "logs": [],
+      "error": "Unsupported WEBRTC_H264_IMPL='bogus'; use one of ('aiortc', 'x264tuned', 'nvenc')"
+    }
+  ]
+}

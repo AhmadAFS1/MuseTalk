@@ -316,6 +316,24 @@ class APIAvatarLayoutTest(unittest.TestCase):
         plans = type(default)._compose_plan_sequence_nbytes(lean._compose_plan_cycle)
         self.assertEqual(plans * 5, type(default)._compose_plan_sequence_nbytes(default._compose_plan_cycle))
 
+    def test_breakdown_sums_to_the_unchanged_estimate(self):
+        for name, env in [("default", {})] + list(self.LAYOUTS.items()):
+            with self.subTest(layout=name):
+                avatar = _load_avatar("synthetic", env)
+                parts = avatar.estimate_memory_breakdown()
+                self.assertEqual(parts["total_bytes"], avatar.estimate_memory_usage_bytes())
+                self.assertEqual(parts["latents_device_bytes"], 0)  # CUDA hidden: latents on CPU
+                self.assertEqual(parts["host_bytes"], parts["total_bytes"])
+                self.assertGreater(parts["frames_bytes"], 0)
+
+    def test_default_layout_is_todays(self):
+        avatar = _load_avatar("synthetic", {})
+        for attr in ("frame_list_cycle", "mask_list_cycle"):
+            values = getattr(avatar, attr)
+            self.assertIs(type(values), list)
+            self.assertTrue(all(v.ndim == 3 and v.shape[2] == 3 and v.flags.writeable for v in values))
+        self.assertTrue(all(type(p) is dict and "alpha" in p for p in avatar._compose_plan_cycle if p))
+
     def test_cache_cleanup_releases_png_store(self):
         from avatar_cache import AvatarCache
         avatar = _load_avatar("synthetic", self.LAYOUTS["framepng"])

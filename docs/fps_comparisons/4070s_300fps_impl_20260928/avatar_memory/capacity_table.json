@@ -1,0 +1,615 @@
+{
+ "sessions": 20,
+ "distinct_avatars": 20,
+ "boxes_gb": [
+  30.0,
+  36.0
+ ],
+ "fixed_gb": {
+  "os_and_system_reserve": {
+   "gb": 1.0,
+   "source": "[A] dedicated box: kernel, page tables, sshd/systemd; no IDE or other projects"
+  },
+  "memavailable_guard": {
+   "gb": 4.0,
+   "source": "[plan 0.1] MemAvailable floor every run keeps"
+  },
+  "server_base": {
+   "gb": 2.2,
+   "source": "[plan D] process after model load, before sessions"
+  },
+  "facemesh_tracker_pool": {
+   "gb": 1.82,
+   "source": "[plan I] 6 procs x 0.2 + 0.031 per stream (chin recipe)"
+  },
+  "turn_to_turn_growth": {
+   "gb": 0.7,
+   "source": "[plan D] 6450 -> 7165 MB over turns"
+  }
+ },
+ "fixed_total_gb": 9.72,
+ "per_session_gb": {
+  "non_queue": {
+   "gb": 0.15,
+   "source": "[plan I] 0.43 measured - 0.275 full queue"
+  },
+  "runahead_i420_cap100": {
+   "gb": 0.069,
+   "source": "[plan I] lever 1.9: 100 frames x 0.69 MB"
+  }
+ },
+ "sessions_total_gb_cap100": 4.38,
+ "sessions_total_gb_uncapped": 8.5,
+ "chin_assets": {
+  "mb_per_unique_source_frame": 1.1,
+  "source": "[plan 3.1 M/I] trimmed SourceMask+RefinedMask per unique source frame"
+ },
+ "idle_frame_cache_optional_gb": {
+  "gb": 1.0,
+  "source": "WEBRTC_IDLE_FRAME_CACHE_MAX_MB default 1024 (LRU across all clips)"
+ },
+ "avatar_materials_source": "[M] ram_attribution.json: steady USS per pose minus latents (VRAM in the server), max over complete identities",
+ "rows": [
+  {
+   "layout": "baseline",
+   "flags": "(defaults = today)",
+   "unit": "identity (3 poses)",
+   "chin_assets": false,
+   "avatar_materials_gb_mean": 1.359,
+   "avatar_materials_gb_max": 1.519,
+   "per_avatar_budget_gb": 1.519,
+   "per_avatar_mean_gb": 1.359,
+   "chin_assets_gb_per_identity": 0.0,
+   "extra_cpu_cores_at_300fps": 0,
+   "boxes": {
+    "30GB_runahead_cap100": {
+     "need_gb": 44.48,
+     "spare_gb": -14.48,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 41.29,
+     "max_distinct_avatars_at_20_sessions": 10,
+     "fits_20x20_with_idle_cache": false
+    },
+    "30GB_uncapped_queue": {
+     "need_gb": 48.6,
+     "spare_gb": -18.6,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 45.41,
+     "max_distinct_avatars_at_20_sessions": 7,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_runahead_cap100": {
+     "need_gb": 44.48,
+     "spare_gb": -8.48,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 41.29,
+     "max_distinct_avatars_at_20_sessions": 14,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_uncapped_queue": {
+     "need_gb": 48.6,
+     "spare_gb": -12.6,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 45.41,
+     "max_distinct_avatars_at_20_sessions": 11,
+     "fits_20x20_with_idle_cache": false
+    }
+   }
+  },
+  {
+   "layout": "baseline",
+   "flags": "(defaults = today)",
+   "unit": "identity (3 poses)",
+   "chin_assets": true,
+   "avatar_materials_gb_mean": 1.359,
+   "avatar_materials_gb_max": 1.519,
+   "per_avatar_budget_gb": 2.292,
+   "per_avatar_mean_gb": 2.133,
+   "chin_assets_gb_per_identity": 0.773,
+   "extra_cpu_cores_at_300fps": 0,
+   "boxes": {
+    "30GB_runahead_cap100": {
+     "need_gb": 59.95,
+     "spare_gb": -29.95,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 56.76,
+     "max_distinct_avatars_at_20_sessions": 6,
+     "fits_20x20_with_idle_cache": false
+    },
+    "30GB_uncapped_queue": {
+     "need_gb": 64.07,
+     "spare_gb": -34.07,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 60.88,
+     "max_distinct_avatars_at_20_sessions": 5,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_runahead_cap100": {
+     "need_gb": 59.95,
+     "spare_gb": -23.95,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 56.76,
+     "max_distinct_avatars_at_20_sessions": 9,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_uncapped_queue": {
+     "need_gb": 64.07,
+     "spare_gb": -28.07,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 60.88,
+     "max_distinct_avatars_at_20_sessions": 7,
+     "fits_20x20_with_idle_cache": false
+    }
+   }
+  },
+  {
+   "layout": "baseline",
+   "flags": "(defaults = today)",
+   "unit": "talking pose only",
+   "chin_assets": false,
+   "avatar_materials_gb_mean": 0.525,
+   "avatar_materials_gb_max": 0.571,
+   "per_avatar_budget_gb": 0.571,
+   "per_avatar_mean_gb": 0.525,
+   "chin_assets_gb_per_identity": 0.0,
+   "extra_cpu_cores_at_300fps": 0,
+   "boxes": {
+    "30GB_runahead_cap100": {
+     "need_gb": 25.52,
+     "spare_gb": 4.48,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 24.6,
+     "max_distinct_avatars_at_20_sessions": 27,
+     "fits_20x20_with_idle_cache": true
+    },
+    "30GB_uncapped_queue": {
+     "need_gb": 29.64,
+     "spare_gb": 0.36,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 28.72,
+     "max_distinct_avatars_at_20_sessions": 20,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_runahead_cap100": {
+     "need_gb": 25.52,
+     "spare_gb": 10.48,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 24.6,
+     "max_distinct_avatars_at_20_sessions": 38,
+     "fits_20x20_with_idle_cache": true
+    },
+    "36GB_uncapped_queue": {
+     "need_gb": 29.64,
+     "spare_gb": 6.36,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 28.72,
+     "max_distinct_avatars_at_20_sessions": 31,
+     "fits_20x20_with_idle_cache": true
+    }
+   }
+  },
+  {
+   "layout": "mask1_lean",
+   "flags": "MASK_CHANNELS=1 PLAN_FLOAT_ALPHA=0",
+   "unit": "identity (3 poses)",
+   "chin_assets": false,
+   "avatar_materials_gb_mean": 0.984,
+   "avatar_materials_gb_max": 1.08,
+   "per_avatar_budget_gb": 1.08,
+   "per_avatar_mean_gb": 0.984,
+   "chin_assets_gb_per_identity": 0.0,
+   "extra_cpu_cores_at_300fps": 0,
+   "boxes": {
+    "30GB_runahead_cap100": {
+     "need_gb": 35.71,
+     "spare_gb": -5.71,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 33.78,
+     "max_distinct_avatars_at_20_sessions": 14,
+     "fits_20x20_with_idle_cache": false
+    },
+    "30GB_uncapped_queue": {
+     "need_gb": 39.83,
+     "spare_gb": -9.83,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 37.9,
+     "max_distinct_avatars_at_20_sessions": 10,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_runahead_cap100": {
+     "need_gb": 35.71,
+     "spare_gb": 0.29,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 33.78,
+     "max_distinct_avatars_at_20_sessions": 20,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_uncapped_queue": {
+     "need_gb": 39.83,
+     "spare_gb": -3.83,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 37.9,
+     "max_distinct_avatars_at_20_sessions": 16,
+     "fits_20x20_with_idle_cache": false
+    }
+   }
+  },
+  {
+   "layout": "mask1_lean",
+   "flags": "MASK_CHANNELS=1 PLAN_FLOAT_ALPHA=0",
+   "unit": "identity (3 poses)",
+   "chin_assets": true,
+   "avatar_materials_gb_mean": 0.984,
+   "avatar_materials_gb_max": 1.08,
+   "per_avatar_budget_gb": 1.854,
+   "per_avatar_mean_gb": 1.758,
+   "chin_assets_gb_per_identity": 0.773,
+   "extra_cpu_cores_at_300fps": 0,
+   "boxes": {
+    "30GB_runahead_cap100": {
+     "need_gb": 51.18,
+     "spare_gb": -21.18,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 49.25,
+     "max_distinct_avatars_at_20_sessions": 8,
+     "fits_20x20_with_idle_cache": false
+    },
+    "30GB_uncapped_queue": {
+     "need_gb": 55.3,
+     "spare_gb": -25.3,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 53.37,
+     "max_distinct_avatars_at_20_sessions": 6,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_runahead_cap100": {
+     "need_gb": 51.18,
+     "spare_gb": -15.18,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 49.25,
+     "max_distinct_avatars_at_20_sessions": 11,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_uncapped_queue": {
+     "need_gb": 55.3,
+     "spare_gb": -19.3,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 53.37,
+     "max_distinct_avatars_at_20_sessions": 9,
+     "fits_20x20_with_idle_cache": false
+    }
+   }
+  },
+  {
+   "layout": "mask1_lean",
+   "flags": "MASK_CHANNELS=1 PLAN_FLOAT_ALPHA=0",
+   "unit": "talking pose only",
+   "chin_assets": false,
+   "avatar_materials_gb_mean": 0.372,
+   "avatar_materials_gb_max": 0.396,
+   "per_avatar_budget_gb": 0.396,
+   "per_avatar_mean_gb": 0.372,
+   "chin_assets_gb_per_identity": 0.0,
+   "extra_cpu_cores_at_300fps": 0,
+   "boxes": {
+    "30GB_runahead_cap100": {
+     "need_gb": 22.02,
+     "spare_gb": 7.98,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 21.54,
+     "max_distinct_avatars_at_20_sessions": 40,
+     "fits_20x20_with_idle_cache": true
+    },
+    "30GB_uncapped_queue": {
+     "need_gb": 26.14,
+     "spare_gb": 3.86,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 25.66,
+     "max_distinct_avatars_at_20_sessions": 29,
+     "fits_20x20_with_idle_cache": true
+    },
+    "36GB_runahead_cap100": {
+     "need_gb": 22.02,
+     "spare_gb": 13.98,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 21.54,
+     "max_distinct_avatars_at_20_sessions": 55,
+     "fits_20x20_with_idle_cache": true
+    },
+    "36GB_uncapped_queue": {
+     "need_gb": 26.14,
+     "spare_gb": 9.86,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 25.66,
+     "max_distinct_avatars_at_20_sessions": 44,
+     "fits_20x20_with_idle_cache": true
+    }
+   }
+  },
+  {
+   "layout": "mask1_lean_maskpng",
+   "flags": "MASK_CHANNELS=1 MASK_STORE=png PLAN_FLOAT_ALPHA=0",
+   "unit": "identity (3 poses)",
+   "chin_assets": false,
+   "avatar_materials_gb_mean": 0.863,
+   "avatar_materials_gb_max": 0.938,
+   "per_avatar_budget_gb": 0.938,
+   "per_avatar_mean_gb": 0.863,
+   "chin_assets_gb_per_identity": 0.0,
+   "extra_cpu_cores_at_300fps": 0,
+   "boxes": {
+    "30GB_runahead_cap100": {
+     "need_gb": 32.86,
+     "spare_gb": -2.86,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 31.35,
+     "max_distinct_avatars_at_20_sessions": 16,
+     "fits_20x20_with_idle_cache": false
+    },
+    "30GB_uncapped_queue": {
+     "need_gb": 36.98,
+     "spare_gb": -6.98,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 35.47,
+     "max_distinct_avatars_at_20_sessions": 12,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_runahead_cap100": {
+     "need_gb": 32.86,
+     "spare_gb": 3.14,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 31.35,
+     "max_distinct_avatars_at_20_sessions": 23,
+     "fits_20x20_with_idle_cache": true
+    },
+    "36GB_uncapped_queue": {
+     "need_gb": 36.98,
+     "spare_gb": -0.98,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 35.47,
+     "max_distinct_avatars_at_20_sessions": 18,
+     "fits_20x20_with_idle_cache": false
+    }
+   }
+  },
+  {
+   "layout": "mask1_lean_maskpng",
+   "flags": "MASK_CHANNELS=1 MASK_STORE=png PLAN_FLOAT_ALPHA=0",
+   "unit": "identity (3 poses)",
+   "chin_assets": true,
+   "avatar_materials_gb_mean": 0.863,
+   "avatar_materials_gb_max": 0.938,
+   "per_avatar_budget_gb": 1.711,
+   "per_avatar_mean_gb": 1.636,
+   "chin_assets_gb_per_identity": 0.773,
+   "extra_cpu_cores_at_300fps": 0,
+   "boxes": {
+    "30GB_runahead_cap100": {
+     "need_gb": 48.32,
+     "spare_gb": -18.32,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 46.82,
+     "max_distinct_avatars_at_20_sessions": 9,
+     "fits_20x20_with_idle_cache": false
+    },
+    "30GB_uncapped_queue": {
+     "need_gb": 52.44,
+     "spare_gb": -22.44,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 50.94,
+     "max_distinct_avatars_at_20_sessions": 6,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_runahead_cap100": {
+     "need_gb": 48.32,
+     "spare_gb": -12.32,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 46.82,
+     "max_distinct_avatars_at_20_sessions": 12,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_uncapped_queue": {
+     "need_gb": 52.44,
+     "spare_gb": -16.44,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 50.94,
+     "max_distinct_avatars_at_20_sessions": 10,
+     "fits_20x20_with_idle_cache": false
+    }
+   }
+  },
+  {
+   "layout": "mask1_lean_maskpng",
+   "flags": "MASK_CHANNELS=1 MASK_STORE=png PLAN_FLOAT_ALPHA=0",
+   "unit": "talking pose only",
+   "chin_assets": false,
+   "avatar_materials_gb_mean": 0.322,
+   "avatar_materials_gb_max": 0.347,
+   "per_avatar_budget_gb": 0.347,
+   "per_avatar_mean_gb": 0.322,
+   "chin_assets_gb_per_identity": 0.0,
+   "extra_cpu_cores_at_300fps": 0,
+   "boxes": {
+    "30GB_runahead_cap100": {
+     "need_gb": 21.05,
+     "spare_gb": 8.95,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 20.55,
+     "max_distinct_avatars_at_20_sessions": 45,
+     "fits_20x20_with_idle_cache": true
+    },
+    "30GB_uncapped_queue": {
+     "need_gb": 25.17,
+     "spare_gb": 4.83,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 24.67,
+     "max_distinct_avatars_at_20_sessions": 33,
+     "fits_20x20_with_idle_cache": true
+    },
+    "36GB_runahead_cap100": {
+     "need_gb": 21.05,
+     "spare_gb": 14.95,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 20.55,
+     "max_distinct_avatars_at_20_sessions": 63,
+     "fits_20x20_with_idle_cache": true
+    },
+    "36GB_uncapped_queue": {
+     "need_gb": 25.17,
+     "spare_gb": 10.83,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 24.67,
+     "max_distinct_avatars_at_20_sessions": 51,
+     "fits_20x20_with_idle_cache": true
+    }
+   }
+  },
+  {
+   "layout": "png_all",
+   "flags": "MASK_CHANNELS=1 MASK_STORE=png FRAME_STORE=png PLAN_FLOAT_ALPHA=0",
+   "unit": "identity (3 poses)",
+   "chin_assets": false,
+   "avatar_materials_gb_mean": 0.518,
+   "avatar_materials_gb_max": 0.581,
+   "per_avatar_budget_gb": 0.581,
+   "per_avatar_mean_gb": 0.518,
+   "chin_assets_gb_per_identity": 0.0,
+   "extra_cpu_cores_at_300fps": [
+    1.35,
+    1.39
+   ],
+   "boxes": {
+    "30GB_runahead_cap100": {
+     "need_gb": 25.72,
+     "spare_gb": 4.28,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 24.45,
+     "max_distinct_avatars_at_20_sessions": 27,
+     "fits_20x20_with_idle_cache": true
+    },
+    "30GB_uncapped_queue": {
+     "need_gb": 29.84,
+     "spare_gb": 0.16,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 28.57,
+     "max_distinct_avatars_at_20_sessions": 20,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_runahead_cap100": {
+     "need_gb": 25.72,
+     "spare_gb": 10.28,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 24.45,
+     "max_distinct_avatars_at_20_sessions": 37,
+     "fits_20x20_with_idle_cache": true
+    },
+    "36GB_uncapped_queue": {
+     "need_gb": 29.84,
+     "spare_gb": 6.16,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 28.57,
+     "max_distinct_avatars_at_20_sessions": 30,
+     "fits_20x20_with_idle_cache": true
+    }
+   }
+  },
+  {
+   "layout": "png_all",
+   "flags": "MASK_CHANNELS=1 MASK_STORE=png FRAME_STORE=png PLAN_FLOAT_ALPHA=0",
+   "unit": "identity (3 poses)",
+   "chin_assets": true,
+   "avatar_materials_gb_mean": 0.518,
+   "avatar_materials_gb_max": 0.581,
+   "per_avatar_budget_gb": 1.355,
+   "per_avatar_mean_gb": 1.291,
+   "chin_assets_gb_per_identity": 0.773,
+   "extra_cpu_cores_at_300fps": [
+    1.35,
+    1.39
+   ],
+   "boxes": {
+    "30GB_runahead_cap100": {
+     "need_gb": 41.19,
+     "spare_gb": -11.19,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 39.92,
+     "max_distinct_avatars_at_20_sessions": 11,
+     "fits_20x20_with_idle_cache": false
+    },
+    "30GB_uncapped_queue": {
+     "need_gb": 45.31,
+     "spare_gb": -15.31,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 44.04,
+     "max_distinct_avatars_at_20_sessions": 8,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_runahead_cap100": {
+     "need_gb": 41.19,
+     "spare_gb": -5.19,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 39.92,
+     "max_distinct_avatars_at_20_sessions": 16,
+     "fits_20x20_with_idle_cache": false
+    },
+    "36GB_uncapped_queue": {
+     "need_gb": 45.31,
+     "spare_gb": -9.31,
+     "fits_20x20": false,
+     "need_gb_at_mean_identity": 44.04,
+     "max_distinct_avatars_at_20_sessions": 13,
+     "fits_20x20_with_idle_cache": false
+    }
+   }
+  },
+  {
+   "layout": "png_all",
+   "flags": "MASK_CHANNELS=1 MASK_STORE=png FRAME_STORE=png PLAN_FLOAT_ALPHA=0",
+   "unit": "talking pose only",
+   "chin_assets": false,
+   "avatar_materials_gb_mean": 0.185,
+   "avatar_materials_gb_max": 0.207,
+   "per_avatar_budget_gb": 0.207,
+   "per_avatar_mean_gb": 0.185,
+   "chin_assets_gb_per_identity": 0.0,
+   "extra_cpu_cores_at_300fps": [
+    1.35,
+    1.39
+   ],
+   "boxes": {
+    "30GB_runahead_cap100": {
+     "need_gb": 18.23,
+     "spare_gb": 11.77,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 17.79,
+     "max_distinct_avatars_at_20_sessions": 76,
+     "fits_20x20_with_idle_cache": true
+    },
+    "30GB_uncapped_queue": {
+     "need_gb": 22.35,
+     "spare_gb": 7.65,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 21.91,
+     "max_distinct_avatars_at_20_sessions": 56,
+     "fits_20x20_with_idle_cache": true
+    },
+    "36GB_runahead_cap100": {
+     "need_gb": 18.23,
+     "spare_gb": 17.77,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 17.79,
+     "max_distinct_avatars_at_20_sessions": 105,
+     "fits_20x20_with_idle_cache": true
+    },
+    "36GB_uncapped_queue": {
+     "need_gb": 22.35,
+     "spare_gb": 13.65,
+     "fits_20x20": true,
+     "need_gb_at_mean_identity": 21.91,
+     "max_distinct_avatars_at_20_sessions": 86,
+     "fits_20x20_with_idle_cache": true
+    }
+   }
+  }
+ ]
+}

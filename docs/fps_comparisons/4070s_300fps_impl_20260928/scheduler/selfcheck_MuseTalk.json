@@ -1,0 +1,60 @@
+{
+ "provenance": {
+  "repo": "/workspace/MuseTalk",
+  "harness": "/workspace/MuseTalk-perf300/scripts/replay_scheduler_exactness.py",
+  "foreign_repo": true,
+  "head": "1564568f5ecb498368ea12bf43f2515885186b7b",
+  "branch": "main",
+  "modified_tracked_files": [
+   "character_factory/h3_avatar_workflow/BATCH_THREE_POSE.md"
+  ]
+ },
+ "checks": {
+  "modules_from_repo": {
+   "ok": true,
+   "detail": {
+    "scripts.hls_gpu_scheduler": "/workspace/MuseTalk/scripts/hls_gpu_scheduler.py",
+    "scripts.webrtc_manager": "/workspace/MuseTalk/scripts/webrtc_manager.py",
+    "scripts.webrtc_pose_router": "/workspace/MuseTalk/scripts/webrtc_pose_router.py",
+    "scripts.pose_protocol": "/workspace/MuseTalk/scripts/pose_protocol.py",
+    "scripts.webrtc_audio_timeline": "/workspace/MuseTalk/scripts/webrtc_audio_timeline.py"
+   }
+  },
+  "scheduler_sources": {
+   "ok": true,
+   "detail": {
+    "repo": {
+     "path": "/workspace/MuseTalk/scripts/hls_gpu_scheduler.py",
+     "sha256": "e8a8dc5accb5395b4766c7b882f8fa4408b1e37d7651ddd9c9c3311979a605c8"
+    },
+    "head": {
+     "path": "/tmp/claude-0/replay_scheduler/hls_gpu_scheduler_HEAD_1b3a9f1c.py",
+     "sha256": "e8a8dc5accb5395b4766c7b882f8fa4408b1e37d7651ddd9c9c3311979a605c8"
+    },
+    "repo_equals_head": true
+   }
+  },
+  "fixtures": {
+   "ok": true,
+   "detail": "all present"
+  },
+  "wav_prep": {
+   "ok": true,
+   "detail": {
+    "zero3": {
+     "media_path": "/tmp/claude-0/replay_scheduler/selfcheck_wav/zero3.wav",
+     "exact_silence": true,
+     "media_duration_s": 3.0,
+     "sha256": "cb285321577f2cae96d045a03703d8dab14a24b2d1ac8a931dfcbb35f46a1f94"
+    },
+    "bob1": {
+     "media_path": "/tmp/claude-0/replay_scheduler/selfcheck_wav/bob1_timeline.wav",
+     "exact_silence": false,
+     "media_duration_s": 6.4,
+     "sha256": "96b5d474f0b2e12631684517169d0930351d006c6717fc247791f1a349d2a77e"
+    }
+   }
+  }
+ },
+ "cuda_initialized": false
+}

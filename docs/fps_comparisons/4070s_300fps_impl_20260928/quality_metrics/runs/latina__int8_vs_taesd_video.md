@@ -1,0 +1,26 @@
+### latina__int8_vs_taesd_video — FAIL (profile lossy, frames video, 240 frames)
+
+A = `approved_INT8_chin100` (source), B = `TAESD_chin100` (source); identity `latina`; pre-encode/decoded frames SHA-identical: **False**
+
+| Metric | A | B | Delta / ratio | Threshold | Result |
+|---|---:|---:|---:|---|---|
+| Lip aperture mean (eye spans); delta = Pearson A vs B | 0.0977 | 0.0959 | 0.9926 | >= 0.97 | PASS |
+| Aperture xcorr lag (frames) | - | - | 0 | == 0 | PASS |
+| Aperture mean abs delta (px) | 9.7341 | 9.5592 | 0.6214 | <= 0.5 | FAIL |
+| Flicker mouth mean abs(dt) RGB | 6.2225 | 5.7524 | 0.9244 | <= 1.05 | PASS |
+| Flicker jaw mean abs(dt) RGB | 3.0887 | 3.0676 | 0.9932 | <= 1.05 | PASS |
+| Flicker ring mean abs(dt) RGB | 2.3485 | 2.2602 | 0.9624 | <= 1.05 | PASS |
+| Flicker mouth 2nd-diff | 8.3618 | 7.6809 | 0.9186 | report |  |
+| Mouth-box >6 Hz temporal power | 1441.2 | 1243.1 | 0.8626 | <= 1.05 (report) | REPORT |
+| Seam band abs(A-B): per-frame max p99 / max; delta = mean | - | 28.6 / 32.0 | 1.6760 | report |  |
+| Seam ring abs(A-B): per-frame max p99 / max; delta = mean | - | 24.6 / 30.0 | 1.7053 | report |  |
+| Outside-mask abs(A-B): max; delta = mean | - | 27.0 | 1.0398 | report |  |
+| Protected-lip max RGB change vs own standard | n/a | n/a | n/a | == 0 vs own standard compose | NOT-RUN |
+| Chin-target abs error mean (px) | 1.0518 | 1.0135 | -0.0383 | <= A (1.0518) + 0.2 | PASS |
+| Chin positive excess p95 (px) | 1.1675 | 1.2454 | 0.0778 | report |  |
+| Jaw+lip landmark dev A vs B mean (px) | - | - | 0.4988 | <= 0.05 | REPORT |
+| Jaw+lip landmark dev A vs B p99 (px) | - | - | 1.4112 | <= 0.15 | REPORT |
+| PSNR A vs B, dB mean frame (cap 100) | - | full 43.28 / face 39.90 | mouth 35.08; worst face 38.71 | report-only | REPORT |
+| SSIM A vs B mean | - | full 0.9819 / face 0.9795 | mouth 0.9697; worst mouth 0.9601 | report |  |
+| Mouth sharpness (Laplacian var) | 35.5978 | 28.1494 | 0.7908 | >= 0.95 | FAIL |
+| Face Lab L* mean; delta = dE76 of means | 41.9898 | 41.9979 | 0.0203 | report |  |

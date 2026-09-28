@@ -2,7 +2,7 @@
 # GPU sequence for the FP16 UNet items (plan 1.2, 2.2, 2.3a, 2.3b). Every step is its own
 # box_guard lease (< 25 min each). Usage: run_sequence.sh <step> [...]; steps below.
 set -uo pipefail
-R=/workspace/MuseTalk
+R=/workspace/MuseTalk-perf300
 D=$R/docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16
 PY=/workspace/.venvs/musetalk_trt_stagewise/bin/python
 G="$R/scripts/box_guard.sh run --wait-min 30"

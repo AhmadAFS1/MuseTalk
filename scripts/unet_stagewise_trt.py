@@ -42,6 +42,22 @@ logger = logging.getLogger("unet_stagewise_trt")
 
 ROOT = Path(__file__).resolve().parent.parent
 BLOCK_ORDER = ["head", "down0", "down1", "down2", "down3", "mid", "up0", "up1", "up2", "up3", "tail"]
+# Source-prefix cache variant (engine-set manifest "variant": "srccache"): conv_in and down_blocks[0].resnets[0]
+# see only the avatar latents (t=0 is baked; audio first enters at down_blocks[0].attentions[0]), so their
+# outputs h0 (skip r0) and a0 are computed once per source frame by a separate "prefix" engine and gathered
+# per batch; the per-frame chain starts at "down0rest" (the exact remainder of CrossAttnDownBlock2D.forward).
+SRCCACHE_BLOCK_ORDER = ["down0rest", "down1", "down2", "down3", "mid", "up0", "up1", "up2", "up3", "tail"]
+PREFIX_SPEC = {"name": "prefix", "inputs": ["x"], "outputs": ["h0", "a0"]}
+VARIANTS = ("default", "srccache")
+
+
+def block_order(variant: Optional[str] = None) -> list:
+    """Engine names of a set: its chain blocks plus the prefix for the srccache variant."""
+    if variant in (None, "default"):
+        return list(BLOCK_ORDER)
+    if variant == "srccache":
+        return ["prefix"] + SRCCACHE_BLOCK_ORDER
+    raise RuntimeError(f"Unknown stagewise UNet variant {variant!r}")
 MANIFEST_SCHEMA = "musetalk_unet_stagewise_trt_v1"
 LATENT_CHW = (8, 32, 32)
 AUDIO_TD = (50, 384)
@@ -148,7 +164,47 @@ def make_block_wrappers(model, emb: torch.Tensor) -> dict:
         def forward(self, h):
             return self.conv_out(self.act(self.norm(h)))
 
-    wrappers = {"head": Head(), "tail": Tail(), "mid": Mid(model.mid_block)}
+    down0 = model.down_blocks[0]
+
+    class Prefix(nn.Module):
+        """conv_in + down_blocks[0].resnets[0]: depends only on the latent (source-prefix cache)."""
+
+        def __init__(self):
+            super().__init__()
+            self.conv_in = model.conv_in
+            self.resnet0 = down0.resnets[0]
+            self.register_buffer("emb", emb.clone())
+
+        def forward(self, x):
+            h0 = self.conv_in(x)
+            return h0, self.resnet0(h0, self.emb)
+
+    class Down0Rest(nn.Module):
+        """The rest of CrossAttnDownBlock2D.forward after resnets[0], op for op (diffusers 0.30)."""
+
+        def __init__(self):
+            super().__init__()
+            self.block = down0
+            self.register_buffer("emb", emb.clone())
+
+        def forward(self, a0, ehs):
+            b = self.block
+            h = b.attentions[0](a0, encoder_hidden_states=ehs, cross_attention_kwargs=None, attention_mask=None,
+                                encoder_attention_mask=None, return_dict=False)[0]
+            out = (h,)
+            for resnet, attn in list(zip(b.resnets, b.attentions))[1:]:
+                h = resnet(h, self.emb)
+                h = attn(h, encoder_hidden_states=ehs, cross_attention_kwargs=None, attention_mask=None,
+                         encoder_attention_mask=None, return_dict=False)[0]
+                out = out + (h,)
+            if b.downsamplers is not None:
+                for downsampler in b.downsamplers:
+                    h = downsampler(h)
+                out = out + (h,)
+            return out
+
+    wrappers = {"head": Head(), "tail": Tail(), "mid": Mid(model.mid_block), "prefix": Prefix(),
+                "down0rest": Down0Rest()}
     for i, block in enumerate(model.down_blocks):
         cross = bool(getattr(block, "has_cross_attention", False))
         wrappers[f"down{i}"] = Down(block) if cross else DownPlain(block)
@@ -158,8 +214,27 @@ def make_block_wrappers(model, emb: torch.Tensor) -> dict:
     return {k: v.eval() for k, v in wrappers.items()}
 
 
-def chain_spec(model) -> list[dict]:
-    """Input/output tensor keys of every block, mirroring UNet2DConditionModel.forward."""
+def chain_spec(model, variant: str = "default") -> list[dict]:
+    """Input/output tensor keys of every block, mirroring UNet2DConditionModel.forward.
+
+    variant "srccache": head+down0 are replaced by down0rest(a0, ehs); h0/a0 are chain inputs
+    (produced per source frame by PREFIX_SPEC).
+    """
+    spec = _default_chain_spec(model)
+    if variant in (None, "default"):
+        return spec
+    if variant != "srccache":
+        raise RuntimeError(f"Unknown stagewise UNet variant {variant!r}")
+    d0 = next(s for s in spec if s["name"] == "down0")
+    if d0["inputs"] != ["h0", "ehs"] or len(model.down_blocks[0].resnets) < 1:
+        raise RuntimeError(f"srccache needs a cross-attention down0 fed by conv_in; got {d0}")
+    spec = ([{"name": "down0rest", "inputs": ["a0", "ehs"], "outputs": list(d0["outputs"])}]
+            + [s for s in spec if s["name"] not in ("head", "down0")])
+    assert [s["name"] for s in spec] == SRCCACHE_BLOCK_ORDER, [s["name"] for s in spec]
+    return spec
+
+
+def _default_chain_spec(model) -> list[dict]:
     spec = [{"name": "head", "inputs": ["x"], "outputs": ["h0"]}]
     res_stack = ["h0"]
     cur = "h0"
@@ -201,6 +276,8 @@ def time_embedding_t0(model, batch: int, device) -> torch.Tensor:
 def trace_block_inputs(model, spec: list[dict], wrappers: dict, latent: torch.Tensor, ehs: torch.Tensor):
     """Run the wrappers in chain order (eager). Returns (tensors by key, final output)."""
     tensors = {"x": latent, "ehs": ehs}
+    if any("a0" in blk["inputs"] for blk in spec):
+        tensors["h0"], tensors["a0"] = wrappers["prefix"](latent)
     for blk in spec:
         args = [tensors[k] for k in blk["inputs"]]
         out = wrappers[blk["name"]](*args)
@@ -253,8 +330,13 @@ def build_engine_from_onnx(
     timing_cache: Optional[bytes] = None,
     use_timing_cache: bool = True,
     log_severity: str = "ERROR",
+    int8: bool = False,
 ):
-    """ONNX bytes -> (serialized FP16 engine bytes, build seconds, updated timing cache bytes)."""
+    """ONNX bytes -> (serialized FP16 engine bytes, build seconds, updated timing cache bytes).
+
+    int8=True additionally sets BuilderFlag.INT8 for ONNX graphs that carry explicit Q/DQ nodes
+    (modelopt fake-quant export); layers without Q/DQ stay FP16.
+    """
     import tensorrt as trt
 
     trt_logger = trt.Logger(getattr(trt.Logger, log_severity))
@@ -267,7 +349,14 @@ def build_engine_from_onnx(
     config = builder.create_builder_config()
     config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, int(workspace_gb * (1 << 30)))
     config.set_flag(trt.BuilderFlag.FP16)
+    if int8:
+        config.set_flag(trt.BuilderFlag.INT8)
     config.builder_optimization_level = int(opt_level)
+    # Build-time only: timing iterations per tactic (TensorRT default 1). More iterations make the
+    # kernel choice less sensitive to single noisy samples on a power-capped GPU.
+    avg_iters = int(os.getenv("MUSETALK_TRT_AVG_TIMING_ITERS", "0") or 0)
+    if avg_iters > 0:
+        config.avg_timing_iterations = avg_iters
     cache = None
     if use_timing_cache:
         cache = config.create_timing_cache(timing_cache or b"")
@@ -312,7 +401,8 @@ def _trt_dtype_to_torch(dtype) -> torch.dtype:
 class StageChain:
     """The 11 deserialized engines, their contexts, the static IO buffers and one shared arena."""
 
-    def __init__(self, engines: dict, spec: list[dict], device: torch.device, require_io: bool = True):
+    def __init__(self, engines: dict, spec: list[dict], device: torch.device, require_io: bool = True,
+                 required_keys: tuple = ("x", "ehs", "out")):
         import tensorrt as trt
 
         self.trt = trt
@@ -335,9 +425,12 @@ class StageChain:
                         raise RuntimeError(f"Stagewise UNet tensor {key}: {shape}/{dtype} vs "
                                            f"{tuple(self.buffers[key].shape)}/{self.buffers[key].dtype}")
                 else:
-                    self.buffers[key] = torch.zeros(shape, device=device, dtype=dtype)
+                    # Normal (non-inference) tensors: callers may construct the chain inside
+                    # torch.inference_mode() and later update the buffers in place outside it.
+                    with torch.inference_mode(False):
+                        self.buffers[key] = torch.zeros(shape, device=device, dtype=dtype)
         if require_io:
-            for key in ("x", "ehs", "out"):
+            for key in required_keys:
                 if key not in self.buffers:
                     raise RuntimeError(f"Stagewise UNet chain has no {key!r} tensor")
         first = self.buffers.get("x", next(iter(self.buffers.values())))
@@ -349,7 +442,8 @@ class StageChain:
             sizes[name] = int(size if size is not None else eng.device_memory_size)
         self.arena_bytes = max(sizes.values()) if sizes else 0
         self.device_memory_sizes = sizes
-        self.arena = torch.empty(max(1, self.arena_bytes), device=device, dtype=torch.uint8)
+        with torch.inference_mode(False):
+            self.arena = torch.empty(max(1, self.arena_bytes), device=device, dtype=torch.uint8)
         for blk in spec:
             eng = engines[blk["name"]]
             ctx = eng.create_execution_context(trt.ExecutionContextAllocationStrategy.USER_MANAGED)
@@ -395,14 +489,32 @@ class StageChain:
         current.wait_stream(side)
         torch.cuda.synchronize(self.device)
         graph = torch.cuda.CUDAGraph()
-        with torch.cuda.graph(graph, capture_error_mode="thread_local"):
-            self.enqueue(torch.cuda.current_stream(self.device).cuda_stream)
+        # Capture with capture_begin/capture_end instead of torch.cuda.graph(): the context manager
+        # runs gc.collect() on entry, which can finalize torch.compile cudagraph-tree objects created
+        # under inference_mode (e.g. the compiled TAESD) and fail with an inference-tensor error.
+        # Nothing is allocated during this capture (TensorRT runs in the user-managed arena), so the
+        # pre-capture collection is not needed.
+        # capture_begin updates the CUDA generator's graph-safe state tensors in place; if an earlier
+        # capture in this process (e.g. torch.compile cudagraph trees) ran under inference_mode those
+        # are inference tensors, which may only be updated inside inference_mode. Capturing inside
+        # inference_mode is valid for both kinds, and the TensorRT enqueue has no autograd.
+        capture_stream = torch.cuda.Stream(device=self.device)
+        capture_stream.wait_stream(current)
+        with torch.cuda.stream(capture_stream), torch.inference_mode(True):
+            graph.capture_begin(capture_error_mode="thread_local")
+            try:
+                self.enqueue(capture_stream.cuda_stream)
+            finally:
+                graph.capture_end()
+        current.wait_stream(capture_stream)
         torch.cuda.synchronize(self.device)
         self.graph = graph
 
     def run(self) -> None:
         if self.graph is not None:
-            self.graph.replay()
+            # replay() also advances the generator's graph-safe state in place (see capture_graph).
+            with torch.inference_mode(True):
+                self.graph.replay()
         else:
             self.enqueue_current()
 
@@ -416,7 +528,7 @@ def deserialize_engines(engine_dir: Path, manifest: dict):
     trt_logger = trt.Logger(trt.Logger.ERROR)
     runtime = trt.Runtime(trt_logger)
     engines = {}
-    for name in BLOCK_ORDER:
+    for name in block_order(manifest.get("variant")):
         entry = manifest["blocks"][name]
         path = engine_dir / entry["engine_file"]
         data = path.read_bytes()
@@ -466,7 +578,9 @@ class StagewiseTrtUnetBackend(torch.nn.Module):
         self.engine_dir = engine_dir
         self.device = device
         self.batch = chain.batch
-        self.runtime_dtype = chain.buffers["x"].dtype
+        self.variant = manifest.get("variant", "default") or "default"
+        self._prefix = None  # srccache: StageChain of the prefix engine (set by load)
+        self.runtime_dtype = chain.buffers["x" if self.variant == "default" else "a0"].dtype
         self.dtype = self.runtime_dtype
         self.opt_batch = self.batch
         self.batch_range = None  # any batch: padded or split onto the engine batch
@@ -503,12 +617,19 @@ class StagewiseTrtUnetBackend(torch.nn.Module):
             )
         started = time.time()
         runtime, engines = deserialize_engines(engine_dir, manifest)
-        chain = StageChain(engines, manifest["spec"], device)
+        variant = manifest.get("variant", "default") or "default"
+        required = ("x", "ehs", "out") if variant == "default" else ("h0", "a0", "ehs", "out")
+        chain = StageChain(engines, manifest["spec"], device, required_keys=required)
+        prefix_chain = None
+        if variant == "srccache":
+            prefix_chain = StageChain({"prefix": engines["prefix"]}, [PREFIX_SPEC], device,
+                                      required_keys=("x", "h0", "a0"))
         if chain.batch != int(manifest["batch"]):
             raise RuntimeError(f"Stagewise UNet engine batch {chain.batch} != manifest {manifest['batch']}")
         if use_graph is None:
             use_graph = _env_on("MUSETALK_UNET_STAGEWISE_CUDAGRAPH", "1")
         backend = cls(chain, runtime, manifest, engine_dir, device, use_graph=use_graph)
+        backend._prefix = prefix_chain
         backend.warmup()
         if probe_check is None:
             probe_check = _env_on("MUSETALK_UNET_STAGEWISE_PROBE_CHECK", "1")
@@ -522,19 +643,27 @@ class StagewiseTrtUnetBackend(torch.nn.Module):
     @torch.no_grad()
     def warmup(self) -> None:
         with torch.inference_mode(False):
-            self._chain.buffers["x"].normal_()
-            self._chain.buffers["ehs"].normal_()
-            self._chain.enqueue_current()
+            inputs = ["x", "ehs"] if self.variant == "default" else ["h0", "a0", "ehs"]
+            chains = [self._chain] + ([self._prefix] if self._prefix is not None else [])
+            for key in inputs:
+                self._chain.buffers[key].normal_()
+            if self._prefix is not None:
+                self._prefix.buffers["x"].normal_()
+            for ch in chains:
+                ch.enqueue_current()
             torch.cuda.synchronize(self.device)
-            if self.use_graph and self._chain.graph is None:
-                self._chain.capture_graph()
-            self._chain.run()
+            for ch in chains:
+                if self.use_graph and ch.graph is None:
+                    ch.capture_graph()
+                ch.run()
             out = self._chain.buffers["out"]
             torch.cuda.synchronize(self.device)
             if not torch.isfinite(out).all():
                 raise RuntimeError("Stagewise UNet warmup produced non-finite output")
-            self._chain.buffers["x"].zero_()
-            self._chain.buffers["ehs"].zero_()
+            for key in inputs:
+                self._chain.buffers[key].zero_()
+            if self._prefix is not None:
+                self._prefix.buffers["x"].zero_()
 
     @torch.no_grad()
     def run_probe(self) -> torch.Tensor:
@@ -570,6 +699,10 @@ class StagewiseTrtUnetBackend(torch.nn.Module):
     def _run_chunk(self, latent: torch.Tensor, audio: torch.Tensor, out: torch.Tensor) -> None:
         n = int(latent.shape[0])
         buf = self._chain.buffers
+        if self.variant == "srccache":
+            h0, a0 = self._prefix_rows(latent)
+            self._run_cached_chunk(h0, a0, audio, out)
+            return
         buf["x"][:n].copy_(latent)
         buf["ehs"][:n].copy_(audio)
         if n < self.batch:
@@ -585,6 +718,70 @@ class StagewiseTrtUnetBackend(torch.nn.Module):
         self._chain.run()
         # static output is overwritten by the next replay: hand back a copy
         out.copy_(buf["out"][:n])
+
+    # -- source-prefix cache (variant "srccache")
+    @staticmethod
+    def _fill_padded(dst: torch.Tensor, src: torch.Tensor) -> None:
+        """dst[:n] = src; remaining rows repeat src (rows are independent, pads never change real rows)."""
+        n = int(src.shape[0])
+        dst[:n].copy_(src)
+        fill = n
+        while fill < dst.shape[0]:
+            take = min(n, dst.shape[0] - fill)
+            dst[fill:fill + take].copy_(src[:take])
+            fill += take
+
+    def _prefix_rows(self, latent: torch.Tensor):
+        """h0, a0 for <= batch latent rows via the prefix engine (fresh tensors)."""
+        if self._prefix is None:
+            raise RuntimeError("This stagewise UNet engine set has no prefix engine (variant != srccache)")
+        n = int(latent.shape[0])
+        pb = self._prefix.buffers
+        self._fill_padded(pb["x"], latent.to(device=self.device, dtype=pb["x"].dtype))
+        self._prefix.run()
+        return pb["h0"][:n].clone(), pb["a0"][:n].clone()
+
+    @torch.no_grad()
+    def precompute_prefix(self, latents: torch.Tensor):
+        """Per-source-frame cache: latents [N,8,32,32] -> (h0 [N,320,32,32], a0 [N,320,32,32]) on device."""
+        latents = latents.to(device=self.device, dtype=self.runtime_dtype)
+        total = int(latents.shape[0])
+        h0 = torch.empty((total,) + tuple(self._prefix.buffers["h0"].shape[1:]), device=self.device,
+                         dtype=self._prefix.buffers["h0"].dtype)
+        a0 = torch.empty((total,) + tuple(self._prefix.buffers["a0"].shape[1:]), device=self.device,
+                         dtype=self._prefix.buffers["a0"].dtype)
+        for start in range(0, total, self.batch):
+            end = min(total, start + self.batch)
+            h, a = self._prefix_rows(latents[start:end])
+            h0[start:end].copy_(h)
+            a0[start:end].copy_(a)
+        return h0, a0
+
+    def _run_cached_chunk(self, h0: torch.Tensor, a0: torch.Tensor, audio: torch.Tensor, out: torch.Tensor) -> None:
+        n = int(a0.shape[0])
+        buf = self._chain.buffers
+        self._fill_padded(buf["h0"], h0)
+        self._fill_padded(buf["a0"], a0)
+        self._fill_padded(buf["ehs"], audio)
+        if n < self.batch:
+            self.padded_rows += self.batch - n
+        self._chain.run()
+        out.copy_(buf["out"][:n])
+
+    @torch.no_grad()
+    def forward_cached(self, h0: torch.Tensor, a0: torch.Tensor, *,
+                       encoder_hidden_states: torch.Tensor) -> _UNetOutput:
+        """UNet output from cached (h0, a0) rows; bit-identical to forward() on the same latents."""
+        if self.variant != "srccache":
+            raise RuntimeError("forward_cached needs a srccache engine set")
+        total = int(a0.shape[0])
+        audio = encoder_hidden_states.to(device=self.device, dtype=self.runtime_dtype)
+        out = torch.empty((total,) + OUT_CHW, device=self.device, dtype=self._chain.buffers["out"].dtype)
+        self.calls += 1
+        for start in range(0, total, self.batch):
+            end = min(total, start + self.batch)
+            self._run_cached_chunk(h0[start:end], a0[start:end], audio[start:end], out[start:end])
+        return _UNetOutput(out)
 
     @torch.no_grad()
     def forward(self, latent: torch.Tensor, timesteps=None, *,

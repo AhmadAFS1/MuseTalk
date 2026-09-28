@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# Vast.ai / box on-start: install check -> secrets -> TURN -> engines -> server (docs/STARTUP.md).
+# Recipe fast/fast300 (default fast): install_musetalk.sh --check, unet_engine_store.py ensure,
+# vast_server_ctl.sh start (run_musetalk_server.sh + recipe verification after /health).
+# Recipe legacy_int8: the old TRT artifact restore + profile selector + legacy launcher.
+# Every exit path prints exactly one VAST_ONSTART COMPLETE or VAST_ONSTART FAILED marker.
+set -Eeuo pipefail
 
 # ── Logging to file ──────────────────────────────────────────────────────────
 ONSTART_LOG="${ONSTART_LOG:-/workspace/onstart.log}"
@@ -14,6 +19,8 @@ echo "========================================"
 SCRIPT_NAME="$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+ONSTART_MAIN_PID="$$"
+ONSTART_MARKER_PRINTED=0
 WORKSPACE_ROOT="${WORKSPACE:-/workspace}"
 VENV_PATH="${VENV_PATH:-$WORKSPACE_ROOT/.venvs/musetalk_trt_stagewise}"
 PROFILE="${PROFILE:-throughput_record}"
@@ -36,6 +43,14 @@ MUSETALK_TRT_ARTIFACT_RESTORE="${MUSETALK_TRT_ARTIFACT_RESTORE:-required}"
 MUSETALK_TRT_ARTIFACT_STRICT="${MUSETALK_TRT_ARTIFACT_STRICT:-1}"
 MUSETALK_TRT_ARTIFACT_KEY="${MUSETALK_TRT_ARTIFACT_KEY:-trt-artifacts/rtx3090/split8-int8/sha256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18/musetalk-trt-int8-split8.tar.gz}"
 MUSETALK_TRT_ARTIFACT_SHA256="${MUSETALK_TRT_ARTIFACT_SHA256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18}"
+INSTALLER="${MUSETALK_INSTALLER:-$REPO_ROOT/scripts/install_musetalk.sh}"
+ENGINE_STORE="${MUSETALK_ENGINE_STORE_TOOL:-$REPO_ROOT/scripts/unet_engine_store.py}"
+ONSTART_POST_VALIDATE_IMPORTS="${ONSTART_POST_VALIDATE_IMPORTS:-1}"
+ONSTART_RECIPE="fast"
+ONSTART_RECIPE_SOURCE="default"
+# shellcheck source=lib/musetalk_env_layers.sh
+MT_ENV_LOG_PREFIX="$SCRIPT_NAME"
+source "$SCRIPT_DIR/lib/musetalk_env_layers.sh"
 
 log() {
   printf '[%s] [%s] %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$*"
@@ -57,32 +72,69 @@ elapsed_since_start() {
   printf '%s\n' "$(( $(date +%s) - ONSTART_START_TS ))"
 }
 
-die() {
-  printf '[%s] [%s] ERROR: %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$*" >&2
+in_main_shell() {
+  [[ "${BASHPID:-$$}" == "$ONSTART_MAIN_PID" ]]
+}
+
+print_failed_marker() {
+  # Only the main shell prints markers, and only once.
+  in_main_shell || return 0
+  (( ONSTART_MARKER_PRINTED )) && return 0
+  ONSTART_MARKER_PRINTED=1
   echo "========================================"
   echo "VAST_ONSTART FAILED: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
   echo "TOTAL ELAPSED: $(format_duration "$(elapsed_since_start)")"
   echo "LOG FILE: $ONSTART_LOG"
   echo "========================================"
+}
+
+die() {
+  printf '[%s] [%s] ERROR: %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$*" >&2
   trap - ERR
+  print_failed_marker
   exit 1
 }
 
 report_unhandled_failure() {
   local status=$?
   local line="${BASH_LINENO[0]:-${LINENO:-unknown}}"
+  if ! in_main_shell; then
+    # A subshell failed: let the parent's own failure handling report it once.
+    exit "$status"
+  fi
   trap - ERR
   printf '[%s] [%s] ERROR: unhandled failure near line %s (exit %s)\n' \
     "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$line" "$status" >&2
-  echo "========================================"
-  echo "VAST_ONSTART FAILED: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-  echo "TOTAL ELAPSED: $(format_duration "$(elapsed_since_start)")"
-  echo "LOG FILE: $ONSTART_LOG"
-  echo "========================================"
+  print_failed_marker
   exit "$status"
 }
 
+report_exit() {
+  # Catches exits the ERR trap cannot see (set -u unbound variables, explicit exit N).
+  local status=$?
+  if (( status != 0 )) && in_main_shell && (( ! ONSTART_MARKER_PRINTED )); then
+    printf '[%s] [%s] ERROR: exiting with status %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$status" >&2
+    print_failed_marker
+  fi
+}
+
+report_signal() {
+  local signal="$1"
+  trap - ERR
+  printf '[%s] [%s] ERROR: received SIG%s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$signal" >&2
+  print_failed_marker
+  case "$signal" in
+    INT) exit 130 ;;
+    HUP) exit 129 ;;
+    *) exit 143 ;;
+  esac
+}
+
 trap report_unhandled_failure ERR
+trap report_exit EXIT
+trap 'report_signal TERM' TERM
+trap 'report_signal INT' INT
+trap 'report_signal HUP' HUP
 
 env_flag_is_true() {
   local value="${1:-}"
@@ -96,16 +148,8 @@ env_flag_is_true() {
   esac
 }
 
-int8_startup_requested() {
-  local precision="${MUSETALK_TRT_STAGEWISE_PRECISION:-int8_mixed}"
-  case "${precision,,}" in
-    int8|int8_mixed|mixed_int8)
-      return 0
-      ;;
-    *)
-      return 1
-      ;;
-  esac
+legacy_recipe_selected() {
+  [[ "$ONSTART_RECIPE" == "legacy_int8" ]]
 }
 
 full_stack_requested() {
@@ -199,169 +243,105 @@ ensure_coturn_available() {
   DEBIAN_FRONTEND=noninteractive apt-get install -y coturn
 }
 
-server_runtime_imports_complete() {
-  [[ -x "$VENV_PATH/bin/python" ]] || return 1
-  local require_modelopt=0
-  if int8_startup_requested; then
-    require_modelopt=1
+installer_group_args() {
+  # Groups must match between --check and the install, so both use this list.
+  INSTALLER_GROUP_ARGS=(--venv "$VENV_PATH")
+  if avatar_prep_requested; then
+    INSTALLER_GROUP_ARGS+=(--with-avatar-prep)
   fi
-
-  (
-    cd "$REPO_ROOT"
-    MUSETALK_REQUIRE_MODELOPT="$require_modelopt" "$VENV_PATH/bin/python" - <<'PY' >/dev/null 2>&1
-import os
-
-import api_server
-import aiofiles
-import aiohttp
-import av
-import boto3
-import fastapi
-import ffmpeg
-import imageio
-import librosa
-import multipart
-import omegaconf
-import soundfile
-import tensorrt
-import torch
-import torch_tensorrt
-import uvicorn
-
-if os.getenv("MUSETALK_REQUIRE_MODELOPT") == "1":
-    import modelopt.torch.quantization as mtq
-    import onnx
-
-    if not hasattr(mtq, "INT8_DEFAULT_CFG"):
-        raise RuntimeError("modelopt.torch.quantization.INT8_DEFAULT_CFG is unavailable")
-
-if not torch.cuda.is_available():
-    raise RuntimeError("torch.cuda.is_available() returned False")
-PY
-  )
-}
-
-avatar_prep_runtime_imports_complete() {
-  [[ -x "$VENV_PATH/bin/python" ]] || return 1
-
-  (
-    cd "$REPO_ROOT"
-    "$VENV_PATH/bin/python" - <<'PY' >/dev/null 2>&1
-import mmcv
-import mmcv._ext
-import mmdet
-import mmengine
-import mmpose
-from musetalk.utils.preprocessing import get_landmark_and_bbox
-PY
-  )
-}
-
-setup_complete() {
-  [[ -x "$VENV_PATH/bin/python" ]] || return 1
-
-  local required=(
-    "$REPO_ROOT/api_server.py"
-    "$REPO_ROOT/models/musetalkV15/unet.pth"
-    "$REPO_ROOT/models/sd-vae/diffusion_pytorch_model.bin"
-    "$REPO_ROOT/models/whisper/pytorch_model.bin"
-    "$REPO_ROOT/models/face-parse-bisent/79999_iter.pth"
-  )
-
-  local path
-  for path in "${required[@]}"; do
-    [[ -e "$path" ]] || return 1
-  done
-
-  if int8_startup_requested; then
-    local calibration_dir="${MUSETALK_TRT_STAGEWISE_INT8_CALIBRATION_DIR:-${MUSETALK_VAE_CALIBRATION_DIR:-./calibration/vae_decoder}}"
-    if [[ "$calibration_dir" != /* ]]; then
-      calibration_dir="$REPO_ROOT/$calibration_dir"
-    fi
-    [[ -d "$calibration_dir" ]] || return 1
-    [[ -n "$(find "$calibration_dir" -type f -name '*.pt' -print -quit)" ]] || return 1
+  if legacy_recipe_selected; then
+    INSTALLER_GROUP_ARGS+=(--with-legacy-int8)
   fi
-
-  server_runtime_imports_complete || return 1
+  case "${SETUP_KOKORO:-}" in
+    "") ;;
+    1|true|yes|on|with) INSTALLER_GROUP_ARGS+=(--with-kokoro) ;;
+    0|false|no|off|without) INSTALLER_GROUP_ARGS+=(--without-kokoro) ;;
+    *) die "Unsupported SETUP_KOKORO value: $SETUP_KOKORO" ;;
+  esac
+  case "${SETUP_NATIVE_VP8:-}" in
+    ""|auto) ;;
+    1|true|yes|on|with) INSTALLER_GROUP_ARGS+=(--with-native-vp8) ;;
+    0|false|no|off|without) INSTALLER_GROUP_ARGS+=(--without-native-vp8) ;;
+    *) die "Unsupported SETUP_NATIVE_VP8 value: $SETUP_NATIVE_VP8" ;;
+  esac
+  if env_flag_is_true "${SETUP_CHIN_TOOLS:-0}"; then
+    INSTALLER_GROUP_ARGS+=(--with-chin-tools)
+  fi
+  if [[ -n "${SETUP_MATRIX:-}" ]]; then
+    INSTALLER_GROUP_ARGS+=(--matrix "$SETUP_MATRIX")
+  fi
+  if [[ -n "${PYTHON_BIN:-}" ]]; then
+    INSTALLER_GROUP_ARGS+=(--python "$PYTHON_BIN")
+  fi
 }
 
-avatar_prep_setup_complete() {
-  setup_complete || return 1
-
-  local required=(
-    "$REPO_ROOT/models/dwpose/dw-ll_ucoco_384.pth"
-    "$REPO_ROOT/models/syncnet/latentsync_syncnet.pt"
-    "$REPO_ROOT/models/face_detection/s3fd.pth"
-  )
-
-  local path
-  for path in "${required[@]}"; do
-    [[ -e "$path" ]] || return 1
-  done
-
-  avatar_prep_runtime_imports_complete || return 1
+run_install_check() {
+  # Sets INSTALL_CHECK_RC (0 ok, 10 needs clean install, 11 repairable, other = error).
+  # SETUP_CHECK_IMPORTS=1 adds the installer's CPU import smoke (CUDA hidden, ~10-30 s).
+  local check_args=(--check)
+  if env_flag_is_true "${SETUP_CHECK_IMPORTS:-0}"; then
+    check_args+=(--check-imports)
+  fi
+  INSTALL_CHECK_RC=0
+  log "Running install check: scripts/install_musetalk.sh ${check_args[*]} ${INSTALLER_GROUP_ARGS[*]}"
+  bash "$INSTALLER" "${check_args[@]}" "${INSTALLER_GROUP_ARGS[@]}" || INSTALL_CHECK_RC=$?
+  case "$INSTALL_CHECK_RC" in
+    0) log "Install check: OK" ;;
+    10) log "Install check: venv missing or built for an incompatible matrix (exit 10) -> needs a clean install" ;;
+    11) log "Install check: incomplete but repairable in place (exit 11)" ;;
+    *) log "⚠️  Install check exited $INSTALL_CHECK_RC (unexpected)" ;;
+  esac
 }
 
 run_setup_if_needed() {
   export HF_MAX_WORKERS
+  installer_group_args
+
+  if [[ -n "${ARTIFACT_DIR:-}" ]]; then
+    log "ARTIFACT_DIR=$ARTIFACT_DIR is ignored (TensorRT engines are managed by scripts/unet_engine_store.py)"
+  fi
+
+  if [[ ! -f "$INSTALLER" ]]; then
+    if ! env_flag_is_true "$AUTO_SETUP"; then
+      [[ -x "$VENV_PATH/bin/python" ]] || die "AUTO_SETUP=0 and the venv python is missing ($VENV_PATH/bin/python); installer $INSTALLER not found either"
+      log "⚠️  Installer $INSTALLER not found; AUTO_SETUP=0 so continuing with the existing venv"
+      return 0
+    fi
+    die "Installer not found: $INSTALLER"
+  fi
+
+  run_install_check
 
   if ! env_flag_is_true "$AUTO_SETUP"; then
-    log "AUTO_SETUP disabled"
-    if avatar_prep_requested; then
-      avatar_prep_setup_complete || die "AUTO_SETUP=0 but avatar-prep runtime validation failed"
-    else
-      setup_complete || die "AUTO_SETUP=0 but required runtime files are missing"
-    fi
+    log "AUTO_SETUP disabled: check only"
+    [[ -x "$VENV_PATH/bin/python" ]] || die "AUTO_SETUP=0 but the venv python is missing: $VENV_PATH/bin/python"
+    case "$INSTALL_CHECK_RC" in
+      0) ;;
+      10) die "AUTO_SETUP=0 but the install check says the venv needs a clean install (exit 10); rerun with AUTO_SETUP=1 (optionally SETUP_CLEAN=1)" ;;
+      11) log "⚠️  Install is incomplete (exit 11) but AUTO_SETUP=0; continuing. Repair with: bash scripts/install_musetalk.sh ${INSTALLER_GROUP_ARGS[*]}" ;;
+      *) log "⚠️  Install check exited $INSTALL_CHECK_RC but AUTO_SETUP=0; continuing" ;;
+    esac
     return 0
   fi
 
-  if avatar_prep_requested; then
-    if avatar_prep_setup_complete; then
-      log "Existing full-stack setup looks valid; skipping bootstrap"
-      return 0
-    fi
-    if setup_complete; then
-      log "Server runtime is present, but full-stack avatar-prep support is incomplete"
-    fi
-  else
-    if setup_complete; then
-      log "Existing setup looks valid; skipping bootstrap"
-      return 0
-    fi
-  fi
-
-  if avatar_prep_requested; then
-    log "Full-stack bootstrap requested: this node will install avatar-prep deps and weights in addition to the TRT server runtime"
-    log "Current torch 2.5.x + CUDA 12.1 full-stack boots may source-build mmcv when OpenMMLab does not publish a matching prebuilt wheel"
-  else
-    log "Using the faster server-only bootstrap path; skipping optional avatar-prep deps and weights"
-    log "Enable SETUP_FULL_STACK=1 only if this node must handle /avatars/prepare directly"
-  fi
-
-  local setup_args=("--venv-path" "$VENV_PATH")
-  local rebuild_with_clean=0
-
-  if [[ -e "$VENV_PATH" ]]; then
-    log "Bootstrap requested and an existing venv is present; rebuilding with --clean"
-    rebuild_with_clean=1
-  fi
-
-  if env_flag_is_true "$SETUP_CLEAN"; then
-    rebuild_with_clean=1
-  fi
-
-  if (( rebuild_with_clean )); then
-    setup_args+=("--clean")
+  local install_args=("${INSTALLER_GROUP_ARGS[@]}")
+  local mode="repair"
+  if env_flag_is_true "$SETUP_CLEAN" || (( INSTALL_CHECK_RC == 10 )); then
+    mode="clean"
+    install_args+=(--clean)
+  elif (( INSTALL_CHECK_RC == 0 )); then
+    log "Existing install looks valid; skipping setup"
+    return 0
   fi
 
   case "${SETUP_SKIP_APT,,}" in
     auto)
       if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
-        setup_args+=("--skip-apt")
+        install_args+=(--skip-apt)
       fi
       ;;
     1|true|yes|on)
-      setup_args+=("--skip-apt")
+      install_args+=(--skip-apt)
       ;;
     0|false|no|off)
       ;;
@@ -369,28 +349,21 @@ run_setup_if_needed() {
       die "Unsupported SETUP_SKIP_APT value: $SETUP_SKIP_APT"
       ;;
   esac
-
   if env_flag_is_true "$SETUP_SKIP_WEIGHTS"; then
-    setup_args+=("--skip-weights")
+    install_args+=(--skip-weights)
+  fi
+  if [[ -n "${SETUP_SELFTEST:-}" ]] && ! env_flag_is_true "$SETUP_SELFTEST"; then
+    install_args+=(--no-selftest)
   fi
 
-  if full_stack_requested; then
-    setup_args+=("--full-stack")
-  elif env_flag_is_true "$SETUP_INSTALL_AVATAR_PREP_DEPS"; then
-    setup_args+=("--install-avatar-prep-deps")
+  if avatar_prep_requested; then
+    log "Full-stack/avatar-prep install requested (mmcv/mmdet/mmpose + avatar-prep weights)"
+  else
+    log "Using the server-only install; enable SETUP_FULL_STACK=1 only if this node must handle /avatars/prepare"
   fi
-
-  if [[ -n "${PYTHON_BIN:-}" ]]; then
-    setup_args+=("--python-bin" "$PYTHON_BIN")
-  fi
-
-  if [[ -n "${ARTIFACT_DIR:-}" ]]; then
-    setup_args+=("--artifact-dir" "$ARTIFACT_DIR")
-  fi
-
   log "Using HF_MAX_WORKERS=$HF_MAX_WORKERS for setup/download flow"
-  log "Running setup_musetalk.sh ${setup_args[*]}"
-  bash "$REPO_ROOT/setup_musetalk.sh" "${setup_args[@]}"
+  log "Running install ($mode): scripts/install_musetalk.sh ${install_args[*]}"
+  bash "$INSTALLER" "${install_args[@]}"
 }
 
 # ── Post-setup validation (logged) ──────────────────────────────────────────
@@ -413,6 +386,9 @@ run_post_setup_validation() {
     "models/whisper/pytorch_model.bin"
     "models/face-parse-bisent/79999_iter.pth"
   )
+  if ! legacy_recipe_selected; then
+    model_files+=("models/taesd/config.json" "models/taesd/diffusion_pytorch_model.safetensors")
+  fi
 
   if avatar_prep_requested; then
     model_files+=(
@@ -433,8 +409,9 @@ run_post_setup_validation() {
     fi
   done
 
-  # Check Python imports
-  if [[ -x "$PY" ]]; then
+  # Check Python imports (ONSTART_POST_VALIDATE_IMPORTS=0 skips them; the install check
+  # already ran an import smoke with CUDA hidden)
+  if [[ -x "$PY" ]] && env_flag_is_true "$ONSTART_POST_VALIDATE_IMPORTS"; then
     if (cd "$REPO_ROOT" && $PY -c "import torch; print(f'torch {torch.__version__}, CUDA={torch.cuda.is_available()}')" 2>&1); then
       log "✅ torch + CUDA OK"
     else
@@ -715,6 +692,104 @@ restore_trt_artifacts() {
   die "TRT artifact restore failed from $uri"
 }
 
+# Engine-store knobs an operator may keep in an overrides file. unet_engine_store.py reads only its
+# own environment while the resolver also reads the overrides files, so forward them (the caller
+# env still wins) to keep `ensure` and the resolver on the same store roots / remotes.
+ENGINE_STORE_ENV_KEYS=(
+  MUSETALK_UNET_ENGINE_STORE MUSETALK_UNET_STAGEWISE_ENGINE_STORE MUSETALK_TAESD_TRT_ENGINE_STORE
+  MUSETALK_UNET_ENGINE_REMOTE MUSETALK_UNET_STAGEWISE_ENGINE_REMOTE MUSETALK_TAESD_TRT_ENGINE_REMOTE
+  MUSETALK_ENGINE_REMOTE_BASE MUSETALK_UNET_ENGINE_PUBLISH MUSETALK_ENGINE_AUTO_BUILD MUSETALK_UNET_ADOPT_PATHS
+  MUSETALK_UNET_VALIDATION_CORPUS MUSETALK_ENGINE_LOG_DIR MUSETALK_UNET_BUILD_MIN_MEM_AVAILABLE_GB
+  MUSETALK_TAESD_TRT_BATCH
+)
+
+engine_store_env_args() {
+  # Sets ENGINE_STORE_ENV_ARGS to KEY=VALUE words for `env` (overrides-file values of unset keys).
+  ENGINE_STORE_ENV_ARGS=()
+  local key
+  for key in "${ENGINE_STORE_ENV_KEYS[@]}"; do
+    [[ -n "${!key+x}" ]] && continue
+    if mt_env_peek "$key" "$REPO_ROOT"; then
+      ENGINE_STORE_ENV_ARGS+=("$key=$MT_ENV_PEEK_VALUE")
+    fi
+  done
+}
+
+provision_engine_kind() {
+  # provision_engine_kind KIND MODE REQUIRED [--batch N]
+  local kind="$1" mode="$2" required="$3"
+  shift 3
+  local PY="$VENV_PATH/bin/python" rc=0 started
+  # cwd is the repo root and the store defaults its repo root to its own checkout.
+  local args=(ensure --kind "$kind" "$@" --provision "$mode")
+  if (( required )); then
+    args+=(--require)
+  fi
+  if [[ "${mode,,}" == "off" ]]; then
+    log "Engine provisioning for $kind disabled (provision=off)"
+    return 0
+  fi
+  started="$(date +%s)"
+  engine_store_env_args
+  log "Engine provisioning: $kind (provision=$mode required=$required${*:+ $*})"
+  if (( ${#ENGINE_STORE_ENV_ARGS[@]} > 0 )); then
+    log "Engine store settings from the overrides files: ${ENGINE_STORE_ENV_ARGS[*]%%=*}"
+  fi
+  (
+    cd "$REPO_ROOT"
+    env "${ENGINE_STORE_ENV_ARGS[@]}" "$PY" "$ENGINE_STORE" "${args[@]}"
+  ) || rc=$?
+  local took="$(( $(date +%s) - started ))"
+  case "$rc" in
+    0)
+      log "✅ Engine $kind usable ($(format_duration "$took"))"
+      ;;
+    2|3)
+      # ensure: 3 = no usable engine; with --require it reports that as 2.
+      if (( required )); then
+        die "No usable $kind engine and MUSETALK_UNET_MODE=trt requires one (exit $rc, $(format_duration "$took"))"
+      fi
+      if (( rc == 2 )); then
+        log "⚠️  Engine provisioning for $kind exited 2 ($(format_duration "$took")); continuing (non-fatal)"
+        return 0
+      fi
+      log "⚠️  No usable $kind engine ($(format_duration "$took")); the resolver will pick the fallback backend"
+      ;;
+    *)
+      if (( required )); then
+        die "Engine provisioning for $kind failed with exit $rc ($(format_duration "$took"))"
+      fi
+      log "⚠️  Engine provisioning for $kind exited $rc ($(format_duration "$took")); continuing (non-fatal)"
+      ;;
+  esac
+}
+
+provision_engines() {
+  local unet_mode unet_required=0 stagewise_batch
+  if [[ ! -f "$ENGINE_STORE" ]]; then
+    log "⚠️  Engine store $ENGINE_STORE not found; skipping engine provisioning"
+    return 0
+  fi
+  [[ -x "$VENV_PATH/bin/python" ]] || die "Cannot provision engines; venv Python not found at $VENV_PATH/bin/python"
+  unet_mode="$(mt_env_peek_or MUSETALK_UNET_MODE "$REPO_ROOT" auto)"
+  if [[ "${unet_mode,,}" == "trt" ]]; then
+    unet_required=1
+  fi
+  provision_engine_kind unet_ts \
+    "$(mt_env_peek_or MUSETALK_UNET_ENGINE_PROVISION "$REPO_ROOT" auto)" "$unet_required"
+  if [[ "$ONSTART_RECIPE" == "fast300" ]]; then
+    provision_engine_kind taesd_trt \
+      "$(mt_env_peek_or MUSETALK_TAESD_TRT_PROVISION "$REPO_ROOT" auto)" 0
+    stagewise_batch="$(mt_env_peek_or MUSETALK_UNET_STAGEWISE_BATCH "$REPO_ROOT" 16)"
+    local batch_args=()
+    if [[ "$stagewise_batch" != "16" ]]; then
+      batch_args=(--batch "$stagewise_batch")
+    fi
+    provision_engine_kind unet_stagewise \
+      "$(mt_env_peek_or MUSETALK_UNET_STAGEWISE_PROVISION "$REPO_ROOT" auto)" 0 "${batch_args[@]}"
+  fi
+}
+
 main() {
   local phase_start phase_elapsed total_elapsed
   local setup_mode="server-only"
@@ -724,7 +799,16 @@ main() {
     setup_mode="server+avatar-prep"
   fi
 
+  mt_env_effective_recipe "$REPO_ROOT"
+  ONSTART_RECIPE="$MT_ENV_RECIPE"
+  ONSTART_RECIPE_SOURCE="$MT_ENV_RECIPE_SOURCE"
+  case "$ONSTART_RECIPE" in
+    fast|fast300|legacy_int8) ;;
+    *) die "Unsupported MUSETALK_RECIPE=$ONSTART_RECIPE (source=$ONSTART_RECIPE_SOURCE); expected fast, fast300 or legacy_int8" ;;
+  esac
+
   log "Vast.ai MuseTalk on-start begin"
+  log "recipe=$ONSTART_RECIPE (source=$ONSTART_RECIPE_SOURCE)"
   log "repo=$REPO_ROOT"
   log "workspace=$WORKSPACE_ROOT"
   log "venv=$VENV_PATH"
@@ -753,32 +837,51 @@ main() {
   phase_elapsed="$(( $(date +%s) - phase_start ))"
   log "WebRTC TURN bootstrap phase finished in $(format_duration "$phase_elapsed")"
 
-  phase_start="$(date +%s)"
-  restore_trt_artifacts
-  phase_elapsed="$(( $(date +%s) - phase_start ))"
-  log "TRT artifact restore phase finished in $(format_duration "$phase_elapsed")"
+  if legacy_recipe_selected; then
+    phase_start="$(date +%s)"
+    restore_trt_artifacts
+    phase_elapsed="$(( $(date +%s) - phase_start ))"
+    log "TRT artifact restore phase finished in $(format_duration "$phase_elapsed")"
 
-  phase_start="$(date +%s)"
-  select_best_trt_profile
-  phase_elapsed="$(( $(date +%s) - phase_start ))"
-  log "TRT profile selection phase finished in $(format_duration "$phase_elapsed")"
+    phase_start="$(date +%s)"
+    select_best_trt_profile
+    phase_elapsed="$(( $(date +%s) - phase_start ))"
+    log "TRT profile selection phase finished in $(format_duration "$phase_elapsed")"
 
-  phase_start="$(date +%s)"
-  PROFILE="$PROFILE" \
-  HOST="$HOST" \
-  PORT="$PORT" \
-  REPO_ROOT="$REPO_ROOT" \
-  VENV_PATH="$VENV_PATH" \
-  MUSETALK_TRT_PROFILE_ENV_FILE="$MUSETALK_TRT_PROFILE_ENV_FILE" \
-  MUSETALK_TRT_PROFILE_ENV_LOAD="${MUSETALK_TRT_PROFILE_ENV_LOAD:-1}" \
-  bash "$REPO_ROOT/scripts/vast_server_ctl.sh" start
-  phase_elapsed="$(( $(date +%s) - phase_start ))"
-  log "Server start-to-health phase finished in $(format_duration "$phase_elapsed")"
+    phase_start="$(date +%s)"
+    MUSETALK_RECIPE=legacy_int8 \
+    PROFILE="$PROFILE" \
+    HOST="$HOST" \
+    PORT="$PORT" \
+    REPO_ROOT="$REPO_ROOT" \
+    VENV_PATH="$VENV_PATH" \
+    MUSETALK_TRT_PROFILE_ENV_FILE="$MUSETALK_TRT_PROFILE_ENV_FILE" \
+    MUSETALK_TRT_PROFILE_ENV_LOAD="${MUSETALK_TRT_PROFILE_ENV_LOAD:-1}" \
+    bash "$REPO_ROOT/scripts/vast_server_ctl.sh" start
+    phase_elapsed="$(( $(date +%s) - phase_start ))"
+    log "Server start-to-health phase finished in $(format_duration "$phase_elapsed")"
+  else
+    log "Recipe $ONSTART_RECIPE: legacy TRT artifact restore and profile selection are skipped"
+    phase_start="$(date +%s)"
+    provision_engines
+    phase_elapsed="$(( $(date +%s) - phase_start ))"
+    log "Engine provisioning phase finished in $(format_duration "$phase_elapsed")"
+
+    phase_start="$(date +%s)"
+    HOST="$HOST" \
+    PORT="$PORT" \
+    REPO_ROOT="$REPO_ROOT" \
+    VENV_PATH="$VENV_PATH" \
+    bash "$REPO_ROOT/scripts/vast_server_ctl.sh" start
+    phase_elapsed="$(( $(date +%s) - phase_start ))"
+    log "Server start-to-health-and-verify phase finished in $(format_duration "$phase_elapsed")"
+  fi
 
   total_elapsed="$(elapsed_since_start)"
   log "Overall on-start completed in $(format_duration "$total_elapsed")"
   log "Vast.ai MuseTalk on-start complete"
 
+  ONSTART_MARKER_PRINTED=1
   echo "========================================"
   echo "VAST_ONSTART COMPLETE: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
   echo "TOTAL ELAPSED: $(format_duration "$total_elapsed")"

@@ -3,7 +3,7 @@
 # Process A runs the baseline twice in-process (base_r1, base_r1b) and records lossless
 # review clips; process B repeats it in a fresh process (base_r2) for the 2-run gate.
 set -uo pipefail
-cd /workspace/MuseTalk
+cd /workspace/MuseTalk-perf300
 OUT=docs/fps_comparisons/4070s_300fps_impl_20260928/scheduler
 PY=/workspace/.venvs/musetalk_trt_stagewise/bin/python
 VID=/tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/videos

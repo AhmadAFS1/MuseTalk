@@ -1,0 +1,244 @@
+{
+ "created_utc": "2026-09-28T06:05:33Z",
+ "engine_key": "6111388248264a4ef2ae",
+ "rounds": [
+  {
+   "compiled_bs8_decode": {
+    "batch": 8,
+    "median_ms": 5.909503936767578,
+    "p90_ms": 5.9258880615234375,
+    "p99_ms": 5.9668754196166995,
+    "ms_per_frame": 0.7386879920959473,
+    "pipelined_ms_per_frame": 0.7318281860351562,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 6,
+     "sm_mhz_median": 2692.5,
+     "power_w_median": 218.53,
+     "temp_c_max": 59.0
+    }
+   },
+   "compiled_bs8_decode_post": {
+    "batch": 8,
+    "median_ms": 5.974016189575195,
+    "p90_ms": 5.989376068115234,
+    "p99_ms": 6.003350248336792,
+    "ms_per_frame": 0.7467520236968994,
+    "pipelined_ms_per_frame": 0.7393610229492188,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 6,
+     "sm_mhz_median": 2677.5,
+     "power_w_median": 218.65499999999997,
+     "temp_c_max": 61.0
+    }
+   },
+   "trt_fp16_bs8": {
+    "batch": 8,
+    "median_ms": 3.939984083175659,
+    "p90_ms": 3.959808111190796,
+    "p99_ms": 3.98130824804306,
+    "ms_per_frame": 0.4924980103969574,
+    "pipelined_ms_per_frame": 0.4888404541015625,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 3,
+     "sm_mhz_median": 2415.0,
+     "power_w_median": 203.05,
+     "temp_c_max": 62.0
+    }
+   },
+   "trt_fp16_bs8_post": {
+    "batch": 8,
+    "median_ms": 3.9937280416488647,
+    "p90_ms": 4.014016151428223,
+    "p99_ms": 4.023295879364014,
+    "ms_per_frame": 0.4992160052061081,
+    "pipelined_ms_per_frame": 0.49588812255859377,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 4,
+     "sm_mhz_median": 2430.0,
+     "power_w_median": 202.68,
+     "temp_c_max": 63.0
+    }
+   },
+   "trt_u8_bs8": {
+    "batch": 8,
+    "median_ms": 3.959104061126709,
+    "p90_ms": 3.9790495157241823,
+    "p99_ms": 3.9884800910949707,
+    "ms_per_frame": 0.4948880076408386,
+    "pipelined_ms_per_frame": 0.4924748840332031,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 4,
+     "sm_mhz_median": 2392.5,
+     "power_w_median": 203.09,
+     "temp_c_max": 63.0
+    }
+   },
+   "trt_fp16_bs16": {
+    "batch": 16,
+    "median_ms": 7.8837761878967285,
+    "p90_ms": 7.915580987930298,
+    "p99_ms": 7.935978484153748,
+    "ms_per_frame": 0.49273601174354553,
+    "pipelined_ms_per_frame": 0.4921475524902344,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 8,
+     "sm_mhz_median": 2355.0,
+     "power_w_median": 203.975,
+     "temp_c_max": 65.0
+    }
+   },
+   "trt_u8_bs16": {
+    "batch": 16,
+    "median_ms": 7.935807943344116,
+    "p90_ms": 7.969791889190674,
+    "p99_ms": 7.985761489868164,
+    "ms_per_frame": 0.49598799645900726,
+    "pipelined_ms_per_frame": 0.4950719909667969,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 8,
+     "sm_mhz_median": 2355.0,
+     "power_w_median": 204.245,
+     "temp_c_max": 66.0
+    }
+   }
+  },
+  {
+   "compiled_bs8_decode": {
+    "batch": 8,
+    "median_ms": 5.951488018035889,
+    "p90_ms": 5.965824127197266,
+    "p99_ms": 5.993197207450867,
+    "ms_per_frame": 0.7439360022544861,
+    "pipelined_ms_per_frame": 0.7370578002929687,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 6,
+     "sm_mhz_median": 2670.0,
+     "power_w_median": 218.0,
+     "temp_c_max": 67.0
+    }
+   },
+   "compiled_bs8_decode_post": {
+    "batch": 8,
+    "median_ms": 6.01907205581665,
+    "p90_ms": 6.042640018463135,
+    "p99_ms": 6.0917861366271975,
+    "ms_per_frame": 0.7523840069770813,
+    "pipelined_ms_per_frame": 0.7429754638671875,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 6,
+     "sm_mhz_median": 2670.0,
+     "power_w_median": 218.41000000000003,
+     "temp_c_max": 67.0
+    }
+   },
+   "trt_fp16_bs8": {
+    "batch": 8,
+    "median_ms": 3.9720959663391113,
+    "p90_ms": 3.9925758838653564,
+    "p99_ms": 4.011045227050781,
+    "ms_per_frame": 0.4965119957923889,
+    "pipelined_ms_per_frame": 0.49474917602539065,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 4,
+     "sm_mhz_median": 2340.0,
+     "power_w_median": 204.14499999999998,
+     "temp_c_max": 67.0
+    }
+   },
+   "trt_fp16_bs8_post": {
+    "batch": 8,
+    "median_ms": 4.023952007293701,
+    "p90_ms": 4.0417280197143555,
+    "p99_ms": 4.057710266113281,
+    "ms_per_frame": 0.5029940009117126,
+    "pipelined_ms_per_frame": 0.5007708129882813,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 4,
+     "sm_mhz_median": 2377.5,
+     "power_w_median": 203.26999999999998,
+     "temp_c_max": 66.0
+    }
+   },
+   "trt_u8_bs8": {
+    "batch": 8,
+    "median_ms": 3.9874560832977295,
+    "p90_ms": 4.00486421585083,
+    "p99_ms": 4.018176078796387,
+    "ms_per_frame": 0.4984320104122162,
+    "pipelined_ms_per_frame": 0.49646258544921873,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 4,
+     "sm_mhz_median": 2362.5,
+     "power_w_median": 203.625,
+     "temp_c_max": 66.0
+    }
+   },
+   "trt_fp16_bs16": {
+    "batch": 16,
+    "median_ms": 7.935824155807495,
+    "p90_ms": 7.967923355102539,
+    "p99_ms": 7.985162010192871,
+    "ms_per_frame": 0.49598900973796844,
+    "pipelined_ms_per_frame": 0.49524679565429686,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 8,
+     "sm_mhz_median": 2340.0,
+     "power_w_median": 204.2,
+     "temp_c_max": 66.0
+    }
+   },
+   "trt_u8_bs16": {
+    "batch": 16,
+    "median_ms": 7.964047908782959,
+    "p90_ms": 7.997411108016967,
+    "p99_ms": 8.019996833801269,
+    "ms_per_frame": 0.49775299429893494,
+    "pipelined_ms_per_frame": 0.49695257568359374,
+    "iters": 500,
+    "warmup": 100,
+    "smi": {
+     "samples": 8,
+     "sm_mhz_median": 2347.5,
+     "power_w_median": 204.42000000000002,
+     "temp_c_max": 66.0
+    }
+   }
+  }
+ ],
+ "median_over_rounds_ms_per_frame": {
+  "compiled_bs8_decode": 0.7413119971752167,
+  "compiled_bs8_decode_post": 0.7495680153369904,
+  "trt_fp16_bs8": 0.49450500309467316,
+  "trt_fp16_bs8_post": 0.5011050030589104,
+  "trt_u8_bs8": 0.4966600090265274,
+  "trt_fp16_bs16": 0.494362510740757,
+  "trt_u8_bs16": 0.4968704953789711
+ },
+ "tags": "[M] measured by this run (burst, not power-capped steady state)"
+}

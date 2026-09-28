@@ -19,7 +19,10 @@ ffplay*
 debug
 exp_out
 tmp/
-calibration/
+# calibration/ stays local except the force-added calibration/vae_decoder and the portable UNet engine
+# validation corpus (16 bs8 captures, ~8 MB) used by scripts/unet_engine_store.py on every GPU.
+calibration/*
+!calibration/unet_portable_bs8/
 .runtime/
 .gradio
 chunks/

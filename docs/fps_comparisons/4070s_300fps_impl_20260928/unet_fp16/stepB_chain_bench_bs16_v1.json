@@ -1,0 +1,186 @@
+{
+ "created_utc": "2026-09-28T18:03:52Z",
+ "args": {
+  "batch": 16,
+  "seconds": 90.0,
+  "warmup": 15.0,
+  "raw_seconds": 15.0,
+  "root": "models/tensorrt_unet_stagewise_sm89_v1",
+  "label": "v1",
+  "out": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/stepB_chain_bench_bs16_v1.json"
+ },
+ "tags": "[M]",
+ "load_s": 1.713468074798584,
+ "vram": {
+  "device_used_by_backend_mib": 1656.0,
+  "smi_used_before_mib": 191.0,
+  "smi_used_after_load_mib": 1847.0,
+  "torch_allocated_mib": 316.7119140625,
+  "name": "tensorrt_unet_stagewise",
+  "engine_dir": "models/tensorrt_unet_stagewise_sm89_v1/bs16",
+  "batch": 16,
+  "cuda_graph": true,
+  "arena_mib": 221.2744140625,
+  "activation_mib": 94.7109375,
+  "device_memory_sizes_mib": {
+   "head": 10.25,
+   "down0": 201.26953125,
+   "down1": 102.24609375,
+   "down2": 54.19921875,
+   "down3": 5.01123046875,
+   "mid": 17.7197265625,
+   "up0": 6.8818359375,
+   "up1": 51.99462890625,
+   "up2": 114.75341796875,
+   "up3": 221.2744140625,
+   "tail": 20.0
+  },
+  "probe_status": "exact",
+  "torch_max_allocated_mib": 330.21240234375
+ },
+ "sustained": {
+  "calls": 2983,
+  "wall_s": 90.07831295393407,
+  "wall_ms_per_call": 30.19722190879453,
+  "wall_ms_per_frame": 1.887326369299658,
+  "wall_fps": 529.8500652916094,
+  "event_ms_per_call": {
+   "median": 30.19366455078125,
+   "mean": 30.195653595702183,
+   "p90": 30.277631759643555,
+   "p99": 30.333951950073242,
+   "min": 29.99193572998047,
+   "max": 30.402559280395508,
+   "n": 2983
+  },
+  "event_ms_per_frame_median": 1.8871040344238281,
+  "host_ms_per_call_median": 0.06853998638689518,
+  "gpu": {
+   "samples": 91,
+   "sm_mhz": {
+    "median": 2535.0,
+    "min": 2505.0,
+    "max": 2550.0,
+    "p05": 2505.0,
+    "p95": 2550.0
+   },
+   "mem_mhz": {
+    "median": 10251.0,
+    "min": 10251.0,
+    "max": 10251.0,
+    "p05": 10251.0,
+    "p95": 10251.0
+   },
+   "power_w": {
+    "median": 210.18,
+    "min": 208.75,
+    "max": 210.5,
+    "p05": 209.02,
+    "p95": 210.45
+   },
+   "power_limit_w": {
+    "median": 220.0,
+    "min": 220.0,
+    "max": 220.0,
+    "p05": 220.0,
+    "p95": 220.0
+   },
+   "temp_c": {
+    "median": 68.0,
+    "min": 66.0,
+    "max": 69.0,
+    "p05": 67.0,
+    "p95": 69.0
+   },
+   "util_pct": {
+    "median": 100.0,
+    "min": 100.0,
+    "max": 100.0,
+    "p05": 100.0,
+    "p95": 100.0
+   },
+   "mem_used_mib": {
+    "median": 1859.0,
+    "min": 1859.0,
+    "max": 1859.0,
+    "p05": 1859.0,
+    "p95": 1859.0
+   },
+   "throttle_hist": {
+    "0x0000000000000004": 91
+   }
+  }
+ },
+ "raw_graph_replay": {
+  "ms_per_call": {
+   "median": 30.191615295410156,
+   "mean": 30.190322937011718,
+   "p90": 30.213018798828124,
+   "p99": 30.22734680175781,
+   "min": 30.1591552734375,
+   "max": 30.231143188476562,
+   "n": 50
+  },
+  "ms_per_frame_median": 1.8869759559631347,
+  "gpu": {
+   "samples": 15,
+   "sm_mhz": {
+    "median": 2520.0,
+    "min": 2505.0,
+    "max": 2550.0,
+    "p05": 2505.0,
+    "p95": 2550.0
+   },
+   "mem_mhz": {
+    "median": 10251.0,
+    "min": 10251.0,
+    "max": 10251.0,
+    "p05": 10251.0,
+    "p95": 10251.0
+   },
+   "power_w": {
+    "median": 210.06,
+    "min": 208.88,
+    "max": 210.38,
+    "p05": 208.88,
+    "p95": 210.35
+   },
+   "power_limit_w": {
+    "median": 220.0,
+    "min": 220.0,
+    "max": 220.0,
+    "p05": 220.0,
+    "p95": 220.0
+   },
+   "temp_c": {
+    "median": 68.0,
+    "min": 67.0,
+    "max": 69.0,
+    "p05": 67.0,
+    "p95": 68.0
+   },
+   "util_pct": {
+    "median": 100.0,
+    "min": 100.0,
+    "max": 100.0,
+    "p05": 100.0,
+    "p95": 100.0
+   },
+   "mem_used_mib": {
+    "median": 1859.0,
+    "min": 1859.0,
+    "max": 1859.0,
+    "p05": 1859.0,
+    "p95": 1859.0
+   },
+   "throttle_hist": {
+    "0x0000000000000004": 15
+   }
+  }
+ },
+ "decision": {
+  "ms_per_frame": 1.8871040344238281,
+  "verdict": "GO",
+  "rule": "bs16: <=2.51 GO, 2.51-2.64 marginal, >2.64 K2; bs8: <=2.60 GO"
+ }
+}

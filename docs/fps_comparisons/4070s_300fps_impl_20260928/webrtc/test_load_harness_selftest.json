@@ -1,0 +1,146 @@
+{
+  "suite": "load_test_webrtc_v2_selftest",
+  "passed": true,
+  "results": [
+    {
+      "test": "ring_10pct_hold_detected",
+      "result": "pass",
+      "summary": {
+        "speaking_slots": 1200,
+        "fresh": 1080,
+        "held": 120,
+        "fresh_fraction": 0.9,
+        "max_held_run": 1,
+        "speaking_segments": 1,
+        "speaking_span_s": 59.95,
+        "slot_deficit": 0,
+        "effective_output_fps": 20.0,
+        "send_interval_avg_s": 0.05,
+        "send_interval_p99_s": 0.05,
+        "send_interval_max_s": 0.05,
+        "send_gaps_over_100ms": 0,
+        "ring_gaps": 0,
+        "ring_missing_entries": 0
+      }
+    },
+    {
+      "test": "turn_boundary_resets_do_not_corrupt_deltas",
+      "result": "pass",
+      "stitched": {
+        "samples": 63,
+        "span_s": 62.0,
+        "fresh": 1062.0,
+        "held": 118.0,
+        "fresh_fraction": 0.9,
+        "fresh_fps": 17.129,
+        "held_fps": 1.903,
+        "stall_seconds": 0.0,
+        "underruns": 0.0,
+        "fresh_fps_min_1s": 0.0,
+        "held_fps_max_1s": 2.0
+      },
+      "lifetime": {
+        "samples": 63,
+        "span_s": 62.0,
+        "fresh": 1062.0,
+        "held": 118.0,
+        "fresh_fraction": 0.9,
+        "fresh_fps": 17.129,
+        "held_fps": 1.903,
+        "stall_seconds": 0.0,
+        "underruns": 0.0,
+        "fresh_fps_min_1s": 0.0,
+        "held_fps_max_1s": 2.0
+      },
+      "resets": 5,
+      "totals_equal": {
+        "frames_played": [
+          1080.0,
+          1080.0
+        ],
+        "frames_duplicated": [
+          120.0,
+          120.0
+        ],
+        "strict_video_stall_seconds": [
+          0.0,
+          0.0
+        ],
+        "queue_underruns": [
+          0.0,
+          0.0
+        ],
+        "frames_received": [
+          1200.0,
+          1200.0
+        ],
+        "output_frames_sent": [
+          1260.0,
+          1260.0
+        ]
+      }
+    },
+    {
+      "test": "ring_gap_counted",
+      "result": "pass",
+      "gaps": 1,
+      "missing": 35
+    },
+    {
+      "test": "aggregate_fresh_and_speakers",
+      "result": "pass",
+      "series": {
+        "seconds": 10,
+        "aggregate_fresh_fps_mean": 57.0,
+        "aggregate_fresh_fps_min_1s": 57,
+        "aggregate_fresh_fps_p05_1s": 57,
+        "speakers_min": 3,
+        "speakers_max": 3,
+        "speakers_mean": 3.0
+      }
+    },
+    {
+      "test": "first_frame_latency_matching",
+      "result": "pass",
+      "latencies": [
+        {
+          "turn": 0,
+          "matched": true,
+          "generation_id": 1,
+          "accept_s": 0.1,
+          "setup_s": 0.2,
+          "first_frame_s": 0.9
+        },
+        {
+          "turn": 1,
+          "matched": true,
+          "generation_id": 2,
+          "accept_s": 0.1,
+          "setup_s": 0.3,
+          "first_frame_s": 0.8
+        }
+      ]
+    },
+    {
+      "test": "stall_gap_slot_deficit",
+      "result": "pass",
+      "summary": {
+        "speaking_slots": 100,
+        "fresh": 100,
+        "held": 0,
+        "fresh_fraction": 1.0,
+        "max_held_run": 0,
+        "speaking_segments": 1,
+        "speaking_span_s": 5.15,
+        "slot_deficit": 4,
+        "effective_output_fps": 19.223,
+        "send_interval_avg_s": 0.05202,
+        "send_interval_p99_s": 0.25,
+        "send_interval_max_s": 0.25,
+        "send_gaps_over_100ms": 1,
+        "ring_gaps": 0,
+        "ring_missing_entries": 0
+      }
+    }
+  ]
+}

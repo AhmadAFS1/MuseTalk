@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import gc
+import glob
 import json
 import os
 import sys
@@ -123,7 +124,8 @@ def build_batch(args, batch: int, model, device) -> dict:
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
     import tensorrt as trt
 
-    spec = sw.chain_spec(model)
+    spec = sw.chain_spec(model, args.variant)
+    order = sw.block_order(args.variant)
     flags = sw.build_flags_record(args.opt_level, args.workspace_gb, not args.no_timing_cache)
     base = {
         "schema": sw.MANIFEST_SCHEMA,
@@ -137,6 +139,7 @@ def build_batch(args, batch: int, model, device) -> dict:
         "unet_config": "models/musetalkV15/musetalk.json",
         "timestep": 0,
         "spec": spec,
+        "variant": args.variant,
         "build_flags": flags,
     }
     if manifest.get("spec") not in (None, spec) or manifest.get("batch") not in (None, batch):
@@ -163,10 +166,33 @@ def build_batch(args, batch: int, model, device) -> dict:
         elif SEED_TIMING_CACHE.exists():
             cache_bytes = SEED_TIMING_CACHE.read_bytes()
             manifest["timing_cache_seed"] = str(SEED_TIMING_CACHE.relative_to(ROOT))
-    wanted = BLOCKS if not args.blocks else [b for b in sw.BLOCK_ORDER if b in args.blocks.split(",")]
+    wanted = order if not args.blocks else [b for b in order if b in args.blocks.split(",")]
+    int8_blocks = {b for b in (args.int8_blocks or "").split(",") if b}
+    unknown = int8_blocks - set(order)
+    if unknown:
+        raise SystemExit(f"--int8-blocks: unknown blocks {sorted(unknown)}")
+    calib = []
+    if int8_blocks:
+        # Calibration inputs per block, traced through the FP16 eager wrappers from real
+        # scheduler-equivalent corpus batches (main split only; holdout stays unseen).
+        files = sorted(glob.glob(str(Path(args.calib_dir) / "unet_io_*.pt")))
+        need = args.calib_batches * (batch // 8)
+        if len(files) < need:
+            raise SystemExit(f"--calib-dir has {len(files)} captures; need {need}")
+        step = max(1, len(files) // need)
+        picked = files[::step][:need]
+        for k in range(0, len(picked), batch // 8):
+            ds = [torch.load(f, map_location="cpu") for f in picked[k:k + batch // 8]]
+            lat_c = torch.cat([d["latent_batch"] for d in ds]).to(device=device, dtype=torch.float16)
+            aud_c = torch.cat([d["audio_feature_batch"] for d in ds]).to(device=device, dtype=torch.float16)
+            t_c, _ = sw.trace_block_inputs(model, spec, wrappers, lat_c, aud_c)
+            calib.append({key: val for key, val in t_c.items()})
+        manifest["int8_calibration"] = {"dir": str(Path(args.calib_dir)), "files": [Path(f).name for f in picked],
+                                        "batches": len(calib), "algorithm": "modelopt INT8_DEFAULT_CFG (max)"}
     started = time.time()
     log = manifest.setdefault("build_log", [])
-    for blk in spec:
+    build_specs = ([sw.PREFIX_SPEC] + spec) if args.variant == "srccache" else spec
+    for blk in build_specs:
         name = blk["name"]
         if name not in wanted:
             continue
@@ -174,13 +200,43 @@ def build_batch(args, batch: int, model, device) -> dict:
             print(f"[bs{batch}] --max-minutes reached; stopping before {name}", flush=True)
             break
         args_t = [tensors[k] for k in blk["inputs"]]
+        is_int8 = name in int8_blocks
+        block_flags = dict(flags, precision="int8_qdq") if is_int8 else flags
         t0 = time.time()
-        onnx_bytes = sw.export_block_onnx(wrappers[name], args_t)
+        export_module = wrappers[name]
+        if is_int8:
+            import copy
+            import modelopt.torch.quantization as mtq
+
+            export_module = copy.deepcopy(wrappers[name]).eval()
+
+            def _calib_loop(q, _blk=blk):
+                with torch.no_grad():
+                    for t_c in calib:
+                        q(*[t_c[k] for k in _blk["inputs"]])
+
+            export_module = mtq.quantize(export_module, mtq.INT8_DEFAULT_CFG, _calib_loop)
+
+            class _HalfOutputs(torch.nn.Module):
+                """The fake-quant export can surface fp32 outputs; the chain's static buffers are fp16."""
+
+                def __init__(self, inner):
+                    super().__init__()
+                    self.inner = inner
+
+                def forward(self, *xs):
+                    out = self.inner(*xs)
+                    if isinstance(out, (tuple, list)):
+                        return tuple(o.half() for o in out)
+                    return out.half()
+
+            export_module = _HalfOutputs(export_module).eval()
+        onnx_bytes = sw.export_block_onnx(export_module, args_t)
         export_s = time.time() - t0
         onnx_sha = sw.sha256_bytes(onnx_bytes)
-        engine_file = f"{name}.plan"
+        engine_file = f"{name}.int8.plan" if is_int8 else f"{name}.plan"
         prev = blocks.get(name, {})
-        if (not args.force and prev.get("onnx_sha256") == onnx_sha and prev.get("build_flags") == flags
+        if (not args.force and prev.get("onnx_sha256") == onnx_sha and prev.get("build_flags") == block_flags
                 and (engine_dir / engine_file).exists()
                 and (not args.second_build or prev.get("second_build"))):
             print(f"[bs{batch}] {name}: engine up to date, skip", flush=True)
@@ -191,7 +247,7 @@ def build_batch(args, batch: int, model, device) -> dict:
         mem0 = proc_mem()
         engine_bytes, build_s, cache_out = sw.build_engine_from_onnx(
             onnx_bytes, opt_level=args.opt_level, workspace_gb=args.workspace_gb,
-            timing_cache=cache_bytes, use_timing_cache=not args.no_timing_cache)
+            timing_cache=cache_bytes, use_timing_cache=not args.no_timing_cache, int8=is_int8)
         mem1 = proc_mem()
         onnx_mb = len(onnx_bytes) / 2**20
         del onnx_bytes
@@ -199,13 +255,13 @@ def build_batch(args, batch: int, model, device) -> dict:
             cache_bytes = cache_out
             write_bytes_atomic(cache_path, cache_bytes)
         entry = {"engine_file": engine_file, "onnx_sha256": onnx_sha, "onnx_mib": onnx_mb,
-                 "export_s": export_s, "build_s": build_s, "build_flags": flags,
+                 "export_s": export_s, "build_s": build_s, "build_flags": block_flags,
                  "inputs": blk["inputs"], "outputs": blk["outputs"],
                  "host_mem_before_build": mem0, "host_mem_after_build": mem1}
         if args.second_build:
-            onnx_b = sw.export_block_onnx(wrappers[name], args_t)
+            onnx_b = sw.export_block_onnx(export_module, args_t)
             eng_b, build_b, _ = sw.build_engine_from_onnx(
-                onnx_b, opt_level=args.opt_level, workspace_gb=args.workspace_gb, use_timing_cache=False)
+                onnx_b, opt_level=args.opt_level, workspace_gb=args.workspace_gb, use_timing_cache=False, int8=is_int8)
             del onnx_b
             ms, outs, _rt = time_block_engines([engine_bytes, eng_b], blk, tensors, device)
             keep_b = ms[1] < ms[0] * 0.995
@@ -227,7 +283,7 @@ def build_batch(args, batch: int, model, device) -> dict:
         print(f"[bs{batch}] {name}: built in {build_s:.1f}s (onnx {onnx_mb:.1f} MiB, engine "
               f"{entry['engine_mib']:.1f} MiB) {entry.get('second_build', '')} mem={mem1}", flush=True)
 
-    missing = [b for b in sw.BLOCK_ORDER if b not in blocks or not (engine_dir / blocks[b]["engine_file"]).exists()]
+    missing = [b for b in order if b not in blocks or not (engine_dir / blocks[b]["engine_file"]).exists()]
     manifest["missing_blocks"] = missing
     if missing:
         write_json_atomic(manifest_path, manifest)
@@ -266,7 +322,7 @@ def build_batch(args, batch: int, model, device) -> dict:
     manifest["runtime"] = backend.describe()
     manifest["complete"] = True
     manifest["finalized_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    manifest["total_engine_mib"] = sum(blocks[b]["engine_mib"] for b in sw.BLOCK_ORDER)
+    manifest["total_engine_mib"] = sum(blocks[b]["engine_mib"] for b in order)
     write_json_atomic(manifest_path, manifest)
     print(f"[bs{batch}] complete: probe {manifest['probe']}", flush=True)
     del backend
@@ -291,6 +347,14 @@ def main() -> int:
     ap.add_argument("--force", action="store_true", help="rebuild even when the engine is up to date")
     ap.add_argument("--second-build", action="store_true", help="build twice, keep the faster engine per block")
     ap.add_argument("--max-minutes", type=float, default=1e9, help="do not start a new block after this long")
+    ap.add_argument("--variant", choices=sw.VARIANTS, default="default",
+                    help="srccache: separate per-source-frame prefix engine (conv_in + down0.resnets[0]) and a chain "
+                    "starting at down0rest; default: today's 11-block chain")
+    ap.add_argument("--int8-blocks", default="", help="comma list of blocks built as INT8 Q/DQ (modelopt max "
+                    "calibration on real corpus batches); all other blocks stay FP16. Default: none (all FP16)")
+    ap.add_argument("--calib-dir", default=str(ROOT / "calibration/unet_multi_avatar_20260928"),
+                    help="UNet capture corpus used for INT8 calibration (main split; holdout stays unseen)")
+    ap.add_argument("--calib-batches", type=int, default=8, help="engine-batch-sized calibration batches")
     ap.add_argument("--report", default="", help="optional JSON summary path")
     args = ap.parse_args()
     os.chdir(ROOT)

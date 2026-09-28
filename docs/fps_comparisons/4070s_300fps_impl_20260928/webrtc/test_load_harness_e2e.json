@@ -1,0 +1,395 @@
+{
+  "suite": "load_harness_e2e_fake_server",
+  "passed": true,
+  "work_dir": "/tmp/claude-0/lt2_e2e_3904645",
+  "results": [
+    {
+      "test": "E1_harness_end_to_end_clean",
+      "result": "pass",
+      "verdict": "PASS",
+      "failed_checks": [],
+      "invalid": [],
+      "unmeasured": [],
+      "effective_output_fps": [
+        19.619,
+        19.624,
+        19.612
+      ],
+      "slot_deficit": [
+        4,
+        4,
+        4
+      ],
+      "fresh_fraction_min": 1.0,
+      "fresh_fractions": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "counter_fresh_fractions": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "max_held_run": 0,
+      "send_interval_max_s": 0.06565,
+      "agg_fresh_fps": 48.786,
+      "generated_fps": 47.86,
+      "speakers_max": 3,
+      "first_frame_p95_s": 0.527,
+      "turns_ok": [
+        2,
+        2,
+        2
+      ],
+      "stitch_resets": [
+        0,
+        0,
+        0
+      ],
+      "client_lag_p99_ms": 2.076,
+      "output_fps_ok": true,
+      "steady_s": 14.12,
+      "server_rss_max_mb": 260.2
+    },
+    {
+      "test": "E2_synthetic_10pct_hold_detected_across_turns",
+      "result": "pass",
+      "verdict": "FAIL",
+      "failed_checks": [
+        "fresh_fraction",
+        "send_interval_avg"
+      ],
+      "invalid": [],
+      "unmeasured": [],
+      "effective_output_fps": [
+        19.601,
+        19.619,
+        19.626
+      ],
+      "slot_deficit": [
+        24,
+        23,
+        22
+      ],
+      "fresh_fraction_min": 0.93283,
+      "fresh_fractions": [
+        0.933558,
+        0.93283,
+        0.93283
+      ],
+      "counter_fresh_fractions": [
+        0.932766,
+        0.931973,
+        0.932261
+      ],
+      "max_held_run": 1,
+      "send_interval_max_s": 0.05898,
+      "agg_fresh_fps": 51.312,
+      "generated_fps": 52.704,
+      "speakers_max": 3,
+      "first_frame_p95_s": 0.559,
+      "turns_ok": [
+        2,
+        2,
+        2
+      ],
+      "stitch_resets": [
+        0,
+        0,
+        0
+      ],
+      "client_lag_p99_ms": 2.099,
+      "output_fps_ok": true,
+      "steady_s": 64.95,
+      "server_rss_max_mb": 254.0
+    },
+    {
+      "test": "E3_stitched_per_turn_counters",
+      "result": "pass",
+      "verdict": "FAIL",
+      "failed_checks": [
+        "fresh_fraction"
+      ],
+      "invalid": [],
+      "unmeasured": [
+        "held_run",
+        "send_interval_max",
+        "send_interval_avg"
+      ],
+      "effective_output_fps": [
+        null,
+        null,
+        null
+      ],
+      "slot_deficit": [
+        0,
+        0,
+        0
+      ],
+      "fresh_fraction_min": 0.931414,
+      "fresh_fractions": [
+        null,
+        null,
+        null
+      ],
+      "counter_fresh_fractions": [
+        0.931414,
+        0.932261,
+        0.931414
+      ],
+      "max_held_run": 0,
+      "send_interval_max_s": 0.0,
+      "agg_fresh_fps": 0.0,
+      "generated_fps": 50.638,
+      "speakers_max": 0,
+      "first_frame_p95_s": null,
+      "turns_ok": [
+        2,
+        2,
+        2
+      ],
+      "stitch_resets": [
+        4,
+        4,
+        4
+      ],
+      "client_lag_p99_ms": 2.086,
+      "output_fps_ok": true,
+      "steady_s": 69.7,
+      "server_rss_max_mb": 254.5,
+      "output_frames_sent_stitched_vs_truth": [
+        [
+          1385.0,
+          1401
+        ],
+        [
+          1385.0,
+          1401
+        ],
+        [
+          1384.0,
+          1401
+        ]
+      ],
+      "stitched_vs_truth": [
+        {
+          "frames_played": [
+            1119.0,
+            1119
+          ],
+          "frames_duplicated": [
+            81.0,
+            81
+          ]
+        },
+        {
+          "frames_played": [
+            1120.0,
+            1120
+          ],
+          "frames_duplicated": [
+            80.0,
+            80
+          ]
+        },
+        {
+          "frames_played": [
+            1119.0,
+            1119
+          ],
+          "frames_duplicated": [
+            81.0,
+            81
+          ]
+        }
+      ]
+    },
+    {
+      "test": "E4_chain_mode_blocking_handoff",
+      "result": "pass",
+      "chain": [
+        {
+          "duration_s": 18.0,
+          "clips": [
+            "04_turn_tone.wav",
+            "05_turn_tone.wav",
+            "06_turn_tone.wav"
+          ]
+        },
+        {
+          "duration_s": 18.0,
+          "clips": [
+            "00_turn_tone.wav",
+            "01_turn_tone.wav",
+            "02_turn_tone.wav"
+          ]
+        }
+      ],
+      "verdict": "PASS",
+      "failed_checks": [],
+      "invalid": [],
+      "unmeasured": [],
+      "effective_output_fps": [
+        19.615,
+        19.647
+      ],
+      "slot_deficit": [
+        6,
+        6
+      ],
+      "fresh_fraction_min": 1.0,
+      "fresh_fractions": [
+        1.0,
+        1.0
+      ],
+      "counter_fresh_fractions": [
+        1.0,
+        1.0
+      ],
+      "max_held_run": 0,
+      "send_interval_max_s": 0.05775,
+      "agg_fresh_fps": 39.25,
+      "generated_fps": 39.363,
+      "speakers_max": 2,
+      "first_frame_p95_s": 0.515,
+      "turns_ok": [
+        1,
+        1
+      ],
+      "stitch_resets": [
+        0,
+        0
+      ],
+      "client_lag_p99_ms": 2.06,
+      "output_fps_ok": true,
+      "steady_s": 16.74,
+      "server_rss_max_mb": 218.6
+    },
+    {
+      "test": "E5_deadline_pacing_cadence_50ms",
+      "result": "pass",
+      "verdict": "PASS",
+      "failed_checks": [],
+      "invalid": [],
+      "unmeasured": [],
+      "effective_output_fps": [
+        19.997,
+        19.999,
+        20.0
+      ],
+      "slot_deficit": [
+        0,
+        0,
+        0
+      ],
+      "fresh_fraction_min": 1.0,
+      "fresh_fractions": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "counter_fresh_fractions": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "max_held_run": 0,
+      "send_interval_max_s": 0.05706,
+      "agg_fresh_fps": 50.308,
+      "generated_fps": 47.86,
+      "speakers_max": 3,
+      "first_frame_p95_s": 0.521,
+      "turns_ok": [
+        2,
+        2,
+        2
+      ],
+      "stitch_resets": [
+        0,
+        0,
+        0
+      ],
+      "client_lag_p99_ms": 2.158,
+      "output_fps_ok": true,
+      "steady_s": 13.69,
+      "server_rss_max_mb": 259.7
+    },
+    {
+      "test": "E6_duty_and_barge_in",
+      "result": "pass",
+      "barge_in": [
+        {
+          "turn": 0,
+          "abort_status": 200,
+          "return_to_idle_s": 0.0544
+        },
+        {
+          "turn": 1,
+          "abort_status": 200,
+          "return_to_idle_s": 0.0355
+        },
+        {
+          "turn": 2,
+          "abort_status": 200,
+          "return_to_idle_s": 0.0373
+        },
+        {
+          "turn": 0,
+          "abort_status": 200,
+          "return_to_idle_s": 0.0532
+        },
+        {
+          "turn": 1,
+          "abort_status": 200,
+          "return_to_idle_s": 0.0445
+        },
+        {
+          "turn": 2,
+          "abort_status": 200,
+          "return_to_idle_s": 0.054
+        }
+      ],
+      "barge_in_return_p95_s": 0.054,
+      "verdict": "PASS",
+      "failed_checks": [],
+      "invalid": [],
+      "unmeasured": [],
+      "effective_output_fps": [
+        19.648,
+        19.613
+      ],
+      "slot_deficit": [
+        1,
+        2
+      ],
+      "fresh_fraction_min": 1.0,
+      "fresh_fractions": [
+        1.0,
+        1.0
+      ],
+      "counter_fresh_fractions": [
+        1.0,
+        1.0
+      ],
+      "max_held_run": 0,
+      "send_interval_max_s": 0.05813,
+      "agg_fresh_fps": 6.348,
+      "generated_fps": 24.97,
+      "speakers_max": 2,
+      "first_frame_p95_s": 0.515,
+      "turns_ok": [
+        3,
+        3
+      ],
+      "stitch_resets": [
+        0,
+        0
+      ],
+      "client_lag_p99_ms": 2.216,
+      "output_fps_ok": true,
+      "steady_s": 23.68,
+      "server_rss_max_mb": 212.4
+    }
+  ]
+}
