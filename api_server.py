@@ -271,59 +271,26 @@ def _get_expected_webrtc_reveal_delay(av_start_delay_seconds: float = 0.0) -> fl
 
 
 def enable_h264_nvenc():
-    """
-    Patch aiortc's H.264 encoder selection to prefer NVENC (with fallback).
-    Keeps bitrate/framerate bounded and uses low-latency presets.
+    """Install the H.264 encoder selected by WEBRTC_H264_IMPL (300 fps plan item 1.8).
+
+    aiortc 1.14 has no ``create_encoder_context`` hook, so the NVENC patch that
+    used to live here was dead code while the log claimed "h264_nvenc".
+    scripts/webrtc_h264_override.py now owns the choice:
+      WEBRTC_H264_IMPL=aiortc (default): aiortc's built-in libx264, untouched
+        (preset medium, zerolatency, Baseline, auto threads) = previous behaviour;
+      x264tuned: libx264 WEBRTC_H264_X264_PRESET/THREADS (default veryfast/1);
+      nvenc: h264_nvenc under WEBRTC_NVENC_MAX_SESSIONS (default 12), x264tuned
+        beyond it. The startup and per-encoder logs name the codec actually used.
+    ``h264.MAX_BITRATE`` = WEBRTC_H264_MAXBITRATE exactly as before.
     """
     try:
-        import fractions
-        import av
         import aiortc.codecs.h264 as h264
     except Exception as exc:  # pragma: no cover - optional dependency path
-        print(f"⚠️ NVENC patch skipped (aiortc/av missing): {exc}")
+        print(f"⚠️ H.264 encoder setup skipped (aiortc/av missing): {exc}")
         return
 
-    def create_encoder_context(codec_name: str, width: int, height: int, bitrate: int):
-        # Try NVENC first, then the requested codec_name, then libx264.
-        prefs = [WEBRTC_H264_ENCODER, codec_name, "libx264"]
-        last_err = None
-        for name in prefs:
-            if not name:
-                continue
-            try:
-                codec = av.CodecContext.create(name, "w")
-                codec.width = width
-                codec.height = height
-                codec.bit_rate = min(WEBRTC_H264_MAXBITRATE, bitrate)
-                codec.pix_fmt = "yuv420p"
-                codec.framerate = fractions.Fraction(WEBRTC_H264_FRAMERATE, 1)
-                codec.time_base = fractions.Fraction(1, WEBRTC_H264_FRAMERATE)
-                codec.options = {
-                    "preset": "p2",          # low-latency preset on NVENC
-                    "tune": "ll",
-                    "bf": "0",               # no B-frames for WebRTC
-                    "rc": "cbr_ld_hq",
-                    "maxrate": str(codec.bit_rate),
-                    "bufsize": str(codec.bit_rate * 2),
-                    "g": str(WEBRTC_H264_FRAMERATE * 2),
-                }
-                codec.open()
-                print(f"🎞️ WebRTC H.264 encoder selected: {name}")
-                # aiortc treats these names as "buffering" encoders
-                return codec, name in ("h264_omx", "h264_nvenc")
-            except Exception as err:
-                if name == WEBRTC_H264_ENCODER:
-                    print(f"⚠️ WebRTC H.264 encoder {name} unavailable: {err}")
-                last_err = err
-                continue
-        if WEBRTC_H264_STRICT and WEBRTC_H264_ENCODER:
-            raise RuntimeError(
-                f"Strict H.264 encoder {WEBRTC_H264_ENCODER} unavailable: {last_err}"
-            )
-        raise last_err or RuntimeError("No H.264 encoder found")
-
-    h264.create_encoder_context = create_encoder_context
-    h264.MAX_BITRATE = WEBRTC_H264_MAXBITRATE
+    from scripts.webrtc_h264_override import install_h264_encoder
+    install_h264_encoder(WEBRTC_H264_MAXBITRATE, label="api_server")
 
     def patch_h264_encode_timing() -> None:
         if not WEBRTC_H264_ENCODE_TIMING:
@@ -377,7 +344,7 @@ def enable_h264_nvenc():
                 codec_name = (
                     getattr(getattr(self, "codec", None), "name", None)
                     or getattr(getattr(self, "_encoder", None), "name", None)
-                    or WEBRTC_H264_ENCODER
+                    or "unknown"
                 )
                 reason = "slow" if should_log_slow else "interval"
                 print(
@@ -395,7 +362,6 @@ def enable_h264_nvenc():
         )
 
     patch_h264_encode_timing()
-    print(f"🎞️ WebRTC H.264 encoder set to {WEBRTC_H264_ENCODER}")
 
 
 def prefer_h264(pc):
@@ -443,6 +409,21 @@ from argparse import Namespace
 # Local modification: this differs from the original MuseTalk code.
 # It reapplies runtime CPU tuning after the server runtime stack is imported.
 apply_cpu_tuning_runtime("api_server")
+
+# 300 fps plan media/serving levers (docs/musetalk_4070s_300fps_plan_2026-09-27.md
+# items 0.4, 0.5, 1.5, 1.7, 1.8, 1.11). Every default reproduces the previous path.
+from scripts.webrtc_media_flags import (
+    apply_thread_caps as _apply_media_thread_caps,
+    group_max_count as _webrtc_group_max_count,
+    lifetime_counters_enabled as _webrtc_lifetime_counters_enabled,
+    local_tts_disabled as _local_tts_disabled,
+    nonblocking_handoff_enabled as _webrtc_nonblocking_handoff_enabled,
+    non_default as _media_flags_non_default,
+    startup_line as _media_flags_startup_line,
+)
+from scripts.webrtc_live_handoff import get_live_handoff as _get_webrtc_live_handoff
+print(_media_flags_startup_line("api_server"), flush=True)
+MUSETALK_THREAD_CAPS_STATUS = _apply_media_thread_caps("api_server")
 
 # Torchvision imports enable a Python callback inside FFmpeg decoder workers.
 # Use native diagnostics to prevent GIL inversion during threaded codec close.
@@ -1258,7 +1239,9 @@ async def worker_capabilities():
                 and _env_bool("WEBRTC_SHARED_GPU_SCHEDULER", True)
             ),
             "timestamp_locked_av_sync": bool(WEBRTC_AVAILABLE),
-            "local_kokoro_tts": kokoro_tts_service.available(),
+            "local_kokoro_tts": (
+                kokoro_tts_service.available() and not _local_tts_disabled()
+            ),
         },
         "webrtc_av_sync": {
             "audio_transport": "persistent_timestamp_locked",
@@ -3536,8 +3519,12 @@ async def create_hls_group(
 ):
     _require_hls()
     _require_accepting_new_sessions()
-    if count < 1 or count > 12:
-        raise HTTPException(status_code=400, detail="count must be between 1 and 12")
+    max_group_count = _webrtc_group_max_count()  # WEBRTC_GROUP_MAX_COUNT, default 12
+    if count < 1 or count > max_group_count:
+        raise HTTPException(
+            status_code=400,
+            detail=f"count must be between 1 and {max_group_count}",
+        )
 
     group_id = uuid.uuid4().hex[:10]
     session_ids = []
@@ -3924,12 +3911,23 @@ async def webrtc_lab():
 @app.get("/webrtc/tts/kokoro/status")
 async def kokoro_tts_status():
     """Report whether local Kokoro synthesis is installed and warmed."""
-    return kokoro_tts_service.status()
+    status = kokoro_tts_service.status()
+    if _local_tts_disabled():
+        # MUSETALK_DISABLE_LOCAL_TTS=1 (plan item 0.5): report, never load.
+        status = {**status, "available": False, "disabled": True,
+                  "disabled_by": "MUSETALK_DISABLE_LOCAL_TTS"}
+    return status
 
 
 @app.post("/webrtc/tts/kokoro")
 async def synthesize_kokoro_tts(request: KokoroTTSRequest):
     """Synthesize a local WAV for direct use by the WebRTC test wall."""
+    if _local_tts_disabled():
+        # Local Kokoro takes 30-85% of the CPU; load tests use pre-synthesized WAVs.
+        raise HTTPException(
+            status_code=503,
+            detail="Local Kokoro TTS is disabled on this server (MUSETALK_DISABLE_LOCAL_TTS=1)",
+        )
     try:
         synthesis = await asyncio.to_thread(
             kokoro_tts_service.synthesize,
@@ -3979,8 +3977,12 @@ async def create_webrtc_group(
 ):
     _require_webrtc()
     _require_accepting_new_sessions()
-    if count < 1 or count > 12:
-        raise HTTPException(status_code=400, detail="count must be between 1 and 12")
+    max_group_count = _webrtc_group_max_count()  # WEBRTC_GROUP_MAX_COUNT, default 12
+    if count < 1 or count > max_group_count:
+        raise HTTPException(
+            status_code=400,
+            detail=f"count must be between 1 and {max_group_count}",
+        )
 
     resolved_fps = int(fps or musetalk_fps or 10)
     resolved_playback_fps = int(playback_fps or resolved_fps)
@@ -4235,9 +4237,186 @@ async def delete_webrtc_group(group_id: str):
     }
 
 
+# ----------------------------------------------------------------------------
+# 300 fps plan items 0.4 / 1.5: monotonic serving counters for the load harness.
+# Everything here is observational and only active with WEBRTC_LIFETIME_COUNTERS=1
+# (the lifetime view itself is served on request either way).
+# ----------------------------------------------------------------------------
+import collections  # noqa: E402  (local to the 300 fps serving counters)
+
+
+class _WebrtcLiveCounters:
+    """Process-wide monotonic counters of generated frames handed to WebRTC."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.frames_handed_off = 0
+        self.batches_handed_off = 0
+        self.callback_total_s = 0.0
+        self.callback_max_s = 0.0
+
+    def note_batch(self, frame_count: int, callback_s: float) -> None:
+        with self._lock:
+            self.frames_handed_off += int(frame_count)
+            self.batches_handed_off += 1
+            self.callback_total_s += callback_s
+            if callback_s > self.callback_max_s:
+                self.callback_max_s = callback_s
+
+    def snapshot(self) -> dict:
+        with self._lock:
+            return {
+                "frames_handed_off": self.frames_handed_off,
+                "batches_handed_off": self.batches_handed_off,
+                "callback_total_s": round(self.callback_total_s, 6),
+                "callback_max_ms": round(self.callback_max_s * 1000.0, 3),
+            }
+
+
+class _LoopLagMonitor:
+    """Event-loop lag: oversleep of a 50 ms timer, rolling 60 s window."""
+
+    def __init__(self, interval_s: float = 0.05, window: int = 1200) -> None:
+        self.interval_s = interval_s
+        self._samples = collections.deque(maxlen=window)
+        self._task = None
+        self.max_ms = 0.0
+        self.samples_total = 0
+
+    def start(self, loop) -> None:
+        if self._task is None:
+            self._task = loop.create_task(self._run())
+
+    async def _run(self) -> None:
+        while True:
+            started = time.monotonic()
+            await asyncio.sleep(self.interval_s)
+            lag_ms = max(0.0, (time.monotonic() - started - self.interval_s) * 1000.0)
+            self._samples.append(lag_ms)
+            self.samples_total += 1
+            if lag_ms > self.max_ms:
+                self.max_ms = lag_ms
+
+    def snapshot(self) -> dict:
+        values = sorted(self._samples)
+        if not values:
+            return {"running": self._task is not None, "samples": 0}
+
+        def pick(q: float) -> float:
+            return round(values[min(len(values) - 1, int(q * (len(values) - 1) + 0.5))], 3)
+
+        return {"running": True, "samples": len(values), "samples_total": self.samples_total,
+                "p50_ms": pick(0.50), "p99_ms": pick(0.99), "max_window_ms": round(values[-1], 3),
+                "max_lifetime_ms": round(self.max_ms, 3)}
+
+
+_WEBRTC_LIVE_COUNTERS = _WebrtcLiveCounters()
+_WEBRTC_LOOP_LAG = _LoopLagMonitor()
+
+
+@app.on_event("startup")
+async def _start_webrtc_lifetime_monitors():
+    if _webrtc_lifetime_counters_enabled():
+        _WEBRTC_LOOP_LAG.start(asyncio.get_running_loop())
+
+
+def _webrtc_server_counters_view(include_scheduler: bool = False) -> dict:
+    status = _read_proc_status_kb()
+    view = {
+        "pid": os.getpid(),
+        "monotonic": time.monotonic(),
+        "wall_time": time.time(),
+        "process_cpu_s": round(time.process_time(), 4),
+        "rss_mb": round(status.get("VmRSS", 0) / 1024.0, 1),
+        "rss_high_water_mb": round(status.get("VmHWM", 0) / 1024.0, 1),
+        "threads": status.get("Threads"),
+        "lifetime_counters": _webrtc_lifetime_counters_enabled(),
+        "live_handoff_mode": (
+            "nonblocking" if _webrtc_nonblocking_handoff_enabled() else "blocking"
+        ),
+        "live": _WEBRTC_LIVE_COUNTERS.snapshot(),
+        "loop_lag": _WEBRTC_LOOP_LAG.snapshot(),
+        "media_flags": _media_flags_non_default(),
+        "thread_caps": MUSETALK_THREAD_CAPS_STATUS,
+        "vp8": WEBRTC_VP8_ENCODER_STATUS,
+    }
+    try:
+        from scripts.webrtc_h264_override import h264_status
+        view["h264"] = h264_status()
+    except Exception as exc:
+        view["h264"] = {"error": str(exc)}
+    try:
+        from scripts.webrtc_idle_frame_cache import get_idle_frame_cache
+        cache = get_idle_frame_cache()
+        view["idle_frame_cache"] = cache.get_stats() if cache is not None else {"enabled": False}
+    except Exception as exc:
+        view["idle_frame_cache"] = {"error": str(exc)}
+    if hls_stream_scheduler is not None:
+        try:
+            if include_scheduler:
+                view["scheduler"] = hls_stream_scheduler.get_stats()
+            else:
+                view["scheduler"] = {"queued_or_active_jobs": len(hls_stream_scheduler.jobs)}
+        except Exception as exc:
+            view["scheduler"] = {"error": str(exc)}
+    return view
+
+
+def _prewarm_webrtc_idle_frame_cache(idle_video_path, pose_video_paths=None) -> None:
+    """WEBRTC_IDLE_FRAME_CACHE=1: start the one-time background decode of this
+    session's idle and pose clips (no-op when the flag is off or already cached).
+    Until a clip is ready its readers decode as before and switch over at the
+    same frame, so playback is identical either way."""
+    try:
+        from scripts.webrtc_idle_frame_cache import get_idle_frame_cache
+        cache = get_idle_frame_cache()
+        if cache is None:
+            return
+        paths = [str(idle_video_path)] if idle_video_path else []
+        if isinstance(pose_video_paths, dict):
+            paths.extend(str(p) for p in pose_video_paths.values() if p)
+        cache.prewarm(sorted(set(paths)))
+    except Exception as exc:
+        print(f"⚠️ Idle frame cache prewarm failed: {exc}", flush=True)
+
+
+async def _webrtc_lifetime_stats_view(ring: int, include_scheduler: bool) -> dict:
+    ring = max(0, min(int(ring or 0), 1024))
+    async with webrtc_session_manager.lock:
+        sessions = []
+        for session in webrtc_session_manager.sessions.values():
+            track = getattr(session, "idle_track", None)
+            sessions.append({
+                "session_id": session.session_id,
+                "user_id": session.user_id,
+                "avatar_id": session.avatar_id,
+                "status": _get_webrtc_session_status(session),
+                "active_stream": session.active_stream,
+                "playback_fps": session.playback_fps,
+                "counters": (
+                    track.counters_view(ring) if hasattr(track, "counters_view") else None
+                ),
+            })
+    return {
+        "view": "lifetime",
+        "total_sessions": len(sessions),
+        "active_streams": sum(1 for entry in sessions if entry["active_stream"]),
+        "sessions": sessions,
+        "server": _webrtc_server_counters_view(include_scheduler),
+    }
+
+
 @app.get("/webrtc/sessions/stats")
-async def webrtc_session_stats():
+async def webrtc_session_stats(
+    view: Optional[str] = None,
+    ring: int = 0,
+    scheduler: bool = False,
+):
     _require_webrtc()
+    if view == "lifetime":
+        # Cheap 1 Hz poll for load_test_webrtc_v2.py: lifetime (or per-turn)
+        # counters, server send stamps, process RSS/threads/CPU seconds.
+        return await _webrtc_lifetime_stats_view(ring, scheduler)
     now = time.time()
     async with webrtc_session_manager.lock:
         sessions = [
@@ -4477,6 +4656,7 @@ async def create_webrtc_session(
         prepared_pose_avatar_ids=prepared_pose_avatar_ids,
         live_pose_id=normalized_live_pose_id,
     )
+    _prewarm_webrtc_idle_frame_cache(video_path, pose_video_paths)
 
     return {
         "session_id": session.session_id,
@@ -5345,6 +5525,19 @@ async def webrtc_stream(
     except ValueError:
         av_start_delay_seconds = 0.05
     use_batch_frame_callback = _env_bool("WEBRTC_BATCH_FRAME_CALLBACK", True)
+    # WEBRTC_NONBLOCKING_HANDOFF=1 (300 fps plan item 1.5): the scheduler thread
+    # appends each composed batch to this track's bounded FIFO and returns; one
+    # drain task on this loop runs the unchanged start / push / A/V release /
+    # completion steps in submission order. Only the shared scheduler's batch
+    # callback uses it; every other path keeps the blocking handoff.
+    use_nonblocking_handoff = (
+        _webrtc_nonblocking_handoff_enabled()
+        and use_batch_frame_callback
+        and _env_bool("WEBRTC_SHARED_GPU_SCHEDULER", True)
+    )
+    count_live_batches = _webrtc_lifetime_counters_enabled()
+    live_handoff = None
+    live_handoff_turn = None
     session.webrtc_live_reveal_delay_seconds = _get_expected_webrtc_reveal_delay(av_start_delay_seconds)
     session.live_timing = {
         "timing_source": "webrtc_idle_track",
@@ -5416,6 +5609,52 @@ async def webrtc_stream(
         except Exception as exc:
             print(f"⚠️ [{request_id}] Could not release WebRTC A/V playout ({reason}): {exc}")
             return False
+
+    def release_playout_from_loop(reason: str) -> bool:
+        """Event-loop twin of release_playout_once for the non-blocking handoff.
+
+        Starts the same _release_webrtc_playout coroutine as a task. It must
+        never wait on .result() here: that would block the loop it runs on."""
+        nonlocal audio_started, release_future
+        if not _webrtc_turn_can_publish(session, request_id, cancel_event):
+            return False
+        if audio_started:
+            return True
+        if release_future is not None and not release_future.done():
+            return False
+        if release_future is not None and release_future.done():
+            try:
+                release_future.result()
+                audio_started = True
+                return True
+            except (Exception, asyncio.CancelledError) as exc:
+                print(f"⚠️ [{request_id}] Previous WebRTC A/V release failed: {exc}")
+
+        release_future = asyncio.ensure_future(
+            _release_webrtc_playout(
+                audio_track=audio_track,
+                audio_transport=audio_transport,
+                video_track=session.idle_track,
+                sync_clock=getattr(session, "sync_clock", None),
+                audio_prepare_task=audio_prepare_task,
+                request_id=request_id,
+                start_delay_seconds=av_start_delay_seconds,
+                reason=reason,
+                session=session,
+                cancel_event=cancel_event,
+            )
+        )
+
+        def _on_release_done(done_future):
+            nonlocal audio_started
+            try:
+                done_future.result()
+                audio_started = True
+            except (Exception, asyncio.CancelledError) as exc:
+                print(f"⚠️ [{request_id}] WebRTC A/V release failed: {exc}")
+
+        release_future.add_done_callback(_on_release_done)
+        return False
 
     def motion_metadata(start_index, count, total_frames):
         router = session.live_pose_router
@@ -5492,7 +5731,7 @@ async def webrtc_stream(
         except Exception as e:
             print(f"⚠️ [{request_id}] frame_callback error: {e}")
 
-    def frame_batch_callback(frames_bgr, start_frame_idx, total_frames):
+    def _frame_batch_callback_blocking(frames_bgr, start_frame_idx, total_frames):
         nonlocal live_started, live_generation_id, motion_failure_future
         if not _webrtc_turn_can_publish(session, request_id, cancel_event):
             return
@@ -5535,6 +5774,70 @@ async def webrtc_stream(
                 release_playout_once("video_prebuffer_ready")
         except Exception as e:
             print(f"⚠️ [{request_id}] frame_batch_callback error: {e}")
+
+    def _on_live_started_nonblocking(generation_id):
+        # Loop thread, right after the unchanged _start_live_track() returned.
+        nonlocal live_generation_id, motion_failure_future
+        live_generation_id = generation_id
+        if (getattr(session.idle_track, "motion_bank", None) is not None
+                and hasattr(session.idle_track, "wait_for_motion_entry_failure")):
+            motion_failure_future = asyncio.ensure_future(
+                supervise_motion_entry(generation_id))
+
+    def _on_live_batch_pushed(prebuffer_ready: bool):
+        # Loop thread, after push_bgr_frames_batch() queued the whole batch.
+        if prebuffer_ready:
+            release_playout_from_loop("video_prebuffer_ready")
+
+    def _frame_batch_callback_nonblocking(frames_bgr, start_frame_idx, total_frames):
+        nonlocal live_started, live_handoff, live_handoff_turn
+        if not _webrtc_turn_can_publish(session, request_id, cancel_event):
+            return
+        try:
+            if not frames_bgr:
+                return
+            if live_handoff is None:
+                live_handoff = _get_webrtc_live_handoff(session.idle_track, main_loop)
+            if not live_started:
+                live_started = True
+                live_handoff_turn = live_handoff.begin_turn(
+                    lambda: _start_live_track(session.idle_track, session=session,
+                                              request_id=request_id,
+                                              cancel_event=cancel_event),
+                    on_started=_on_live_started_nonblocking,
+                    can_publish=lambda: _webrtc_turn_can_publish(
+                        session, request_id, cancel_event),
+                    label=request_id,
+                )
+            # motion_metadata() advances the pose router; it stays on this
+            # (scheduler) thread in generation order, exactly as before.
+            live_handoff.submit_frames(
+                live_handoff_turn,
+                frames_bgr,
+                metadata=motion_metadata(start_frame_idx - 1, len(frames_bgr), total_frames),
+                on_pushed=_on_live_batch_pushed,
+                wait_timeout_s=push_timeout_seconds,
+            )
+        except Exception as e:
+            print(f"⚠️ [{request_id}] frame_batch_callback error: {e}")
+
+    _frame_batch_callback_impl = (
+        _frame_batch_callback_nonblocking
+        if use_nonblocking_handoff
+        else _frame_batch_callback_blocking
+    )
+
+    def frame_batch_callback(frames_bgr, start_frame_idx, total_frames):
+        if not count_live_batches:
+            return _frame_batch_callback_impl(frames_bgr, start_frame_idx, total_frames)
+        callback_started_at = time.monotonic()
+        try:
+            return _frame_batch_callback_impl(frames_bgr, start_frame_idx, total_frames)
+        finally:
+            _WEBRTC_LIVE_COUNTERS.note_batch(
+                len(frames_bgr) if frames_bgr else 0,
+                time.monotonic() - callback_started_at,
+            )
 
     pose_recovery_started = False
     cleanup_done = False
@@ -5688,9 +5991,49 @@ async def webrtc_stream(
 
         completion_future.add_done_callback(_on_shared_webrtc_done)
 
+        def _finish_shared_generation_on_loop(status, error_message, owns_reservation,
+                                              generation_id):
+            # Non-blocking handoff: loop thread, after every frame of this turn
+            # is in the track queue. Same steps and order as the blocking path.
+            if not owns_reservation:
+                cleanup_to_idle(True)
+                return
+            if session.idle_track and generation_id is not None:
+                session.idle_track.signal_generation_complete(generation_id)
+            if status == "completed" and live_started:
+                if not audio_started:
+                    release_playout_from_loop("generation_complete")
+                asyncio.ensure_future(finish_playback_then_cleanup())
+                print(f"✅ [{request_id}] Shared WebRTC generation complete")
+                return
+            if status == "completed":
+                print(f"⚠️ [{request_id}] Shared WebRTC generation completed without live frames")
+            else:
+                print(f"❌ [{request_id}] Shared WebRTC generation ended with status={status}: {error_message}")
+            cleanup_to_idle(True)
+
         def _on_shared_generation_complete(status: str, error_message: Optional[str] = None):
             owns_reservation = (session.stream_owner == request_id
                                 and session.stream_cancel_event is cancel_event)
+            if (use_nonblocking_handoff and live_handoff is not None
+                    and live_handoff_turn is not None):
+                if not owns_reservation:
+                    live_handoff.cancel_turn(live_handoff_turn)
+                    main_loop.call_soon_threadsafe(cleanup_to_idle, True)
+                    return
+                turn = live_handoff_turn
+
+                def _complete_after_queued_frames(generation_id):
+                    _finish_shared_generation_on_loop(
+                        status, error_message, owns_reservation, generation_id)
+
+                if not live_handoff.submit_marker(turn, _complete_after_queued_frames):
+                    # Track closed: nothing left to drain.
+                    main_loop.call_soon_threadsafe(
+                        _finish_shared_generation_on_loop,
+                        status, error_message, owns_reservation, turn.generation_id,
+                    )
+                return
             if not owns_reservation:
                 main_loop.call_soon_threadsafe(cleanup_to_idle, True)
                 return
