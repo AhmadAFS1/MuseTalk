@@ -71,6 +71,8 @@ pre-change renders. `deterministic_per_identity` must be `true`.
 ## A rebuild is close, not identical
 
 - **ONNX identical:** step 1 checks every block's ONNX hash against the published manifest; expect 11/11 MATCH.
+  Checked on 2026-09-29 with a partial fresh-root build (`tail` FP16 and `up0` INT8 recipe): both MATCH the
+  published r5 manifest, and the engine bytes differ, as expected.
   The recipe pins every INT8 layer's input range, and weight ranges are per-channel max, so the calibration data
   cannot change the r5 network.
 - **Engines differ:** the plan files and their tactics differ, because TensorRT tactic timing varies (the builder
