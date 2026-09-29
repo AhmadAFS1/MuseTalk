@@ -153,6 +153,8 @@ class AvatarCache:
             self.stats['loads'] += 1
             
             print(f"📦 Cached avatar: {avatar_id} ({memory_usage_mb:.1f}MB, total: {len(self.cache)})")
+        from scripts import gc_tuning  # opt-in (MUSETALK_GC_FREEZE=1): the avatar's arrays and plans leave GC scans
+        gc_tuning.freeze(f"avatar {avatar_id}", collect=False)
 
     def peek(self, avatar_id):
         """

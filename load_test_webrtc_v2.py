@@ -495,20 +495,89 @@ def emit(event: dict) -> None:
 
 
 class LoopLag:
-    def __init__(self, interval=0.05):
+    def __init__(self, interval=0.05, spike_ms=20.0):
         self.interval = interval
         self.samples = array("d")
+        self.spike_ms = spike_ms
+        self.spikes = array("d")  # flat (t, lag_ms) pairs above spike_ms, for attributing client-side gaps
 
     async def run(self, stop: asyncio.Event):
         while not stop.is_set():
             t = now()
             await asyncio.sleep(self.interval)
-            self.samples.append(max(0.0, (now() - t - self.interval) * 1000.0))
+            lag_ms = max(0.0, (now() - t - self.interval) * 1000.0)
+            self.samples.append(lag_ms)
+            if lag_ms > self.spike_ms:
+                self.spikes.extend((now(), lag_ms))
 
     def summary(self):
         values = list(self.samples)
         return {"samples": len(values), "p50_ms": rnd(pct(values, 0.5), 3),
                 "p99_ms": rnd(pct(values, 0.99), 3), "max_ms": rnd(max(values), 3) if values else None}
+
+
+class ArrivalRecorder:
+    """Writes one stream's decoded frames to MP4 with pts = arrival time (ms), in a background thread.
+
+    Starts record_at_s after the stream connects and runs record_seconds. A delivery stall therefore shows as
+    a frozen picture of the same length, unlike a fixed-fps recorder that erases gaps."""
+
+    def __init__(self, path: Path, start_t: float, seconds: float):
+        import queue
+        import threading
+        self.path, self.start_t, self.end_t = path, start_t, start_t + seconds
+        self.q = queue.Queue(maxsize=200)
+        self.dropped = 0
+        self.written = 0
+        self.thread = threading.Thread(target=self._run, daemon=True)
+        self.thread.start()
+
+    def offer(self, t: float, frame) -> None:
+        if self.start_t <= t <= self.end_t:
+            try:
+                self.q.put_nowait((t, frame.to_ndarray(format="rgb24")))
+            except Exception:
+                self.dropped += 1
+        elif t > self.end_t and self.q is not None:
+            with suppress(Exception):
+                self.q.put_nowait(None)
+
+    def _run(self) -> None:
+        import av
+        from fractions import Fraction
+        container = stream = None
+        t0 = None
+        last_pts = -1
+        try:
+            while True:
+                item = self.q.get()
+                if item is None:
+                    break
+                t, img = item
+                if container is None:
+                    self.path.parent.mkdir(parents=True, exist_ok=True)
+                    container = av.open(str(self.path), "w")
+                    stream = container.add_stream("libx264", rate=1000)
+                    stream.width, stream.height = img.shape[1], img.shape[0]
+                    stream.pix_fmt = "yuv420p"
+                    stream.time_base = Fraction(1, 1000)
+                    stream.options = {"crf": "18", "preset": "veryfast"}
+                    t0 = t
+                pts = int(round((t - t0) * 1000))
+                if pts <= last_pts:
+                    pts = last_pts + 1
+                last_pts = pts
+                vf = av.VideoFrame.from_ndarray(img, format="rgb24")
+                vf.pts, vf.time_base = pts, Fraction(1, 1000)
+                for packet in stream.encode(vf):
+                    container.mux(packet)
+                self.written += 1
+        finally:
+            if container is not None:
+                with suppress(Exception):
+                    for packet in stream.encode():
+                        container.mux(packet)
+                    container.close()
 
 
 class StreamClient:
@@ -521,12 +590,15 @@ class StreamClient:
         self.pc = None
         self.tasks = []
         self.video_t = array("d")
+        self.video_pts = array("q")   # RTP-derived pts per decoded video frame (joins the server send ring)
+        self.audio_t = array("d")
         self.audio_frames = 0
         self.errors = []
         self.turns = []
         self.timing = {}
         self.seq = 0
         self.stop = asyncio.Event()
+        self.recorder = None  # --record-streams: frames written at their real arrival times (gaps stay visible)
 
     async def setup(self):
         from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
@@ -596,16 +668,23 @@ class StreamClient:
         if self.pc.connectionState != "connected":
             raise RuntimeError(f"peer not connected: {self.pc.connectionState}")
         self.timing["offer_connect_s"] = now() - t1
+        if spec.get("trace_dir") and self.stream["index"] in (spec.get("record_streams") or []):
+            self.recorder = ArrivalRecorder(Path(spec["trace_dir"]) / f"s{self.stream['index']:02d}_observer.mp4",
+                                            now() + spec.get("record_at_s", 60.0), spec.get("record_seconds", 90.0))
 
     async def _consume(self, track):
         kind = track.kind
         try:
             while not self.stop.is_set():
-                await track.recv()
+                frame = await track.recv()
                 if kind == "video":
                     self.video_t.append(now())
+                    self.video_pts.append(int(frame.pts) if frame.pts is not None else -1)
+                    if self.recorder is not None:
+                        self.recorder.offer(self.video_t[-1], frame)
                 else:
                     self.audio_frames += 1
+                    self.audio_t.append(now())
         except Exception as exc:
             if not self.stop.is_set():
                 self.errors.append(f"{kind} recv: {type(exc).__name__}: {exc}")
@@ -679,9 +758,52 @@ async def shard_main(spec_path: str) -> int:
     cpu0 = time.process_time()
     async with aiohttp.ClientSession(timeout=timeout) as http:
         clients = [StreamClient(spec, stream, http) for stream in spec["streams"]]
-        results = await asyncio.gather(*(c.setup() for c in clients), return_exceptions=True)
+        stagger_join = bool(spec.get("stagger_join"))
+        # --stagger-join: a stream with a start delay creates its session and connects only when its delay
+        # expires, i.e. while the other streams are already live (a real mid-call join)
+        early = [c for c in clients if not (stagger_join and c.stream.get("start_delay_s", 0.0) > 0)]
+        results = await asyncio.gather(*(c.setup() for c in early), return_exceptions=True)
         ready = []
-        for client, result in zip(clients, results):
+        trace_dir = Path(spec["trace_dir"]) if spec.get("trace_dir") else None
+        flushed = {}
+
+        def flush_traces():
+            if trace_dir is None:
+                return
+            trace_dir.mkdir(parents=True, exist_ok=True)
+            import struct
+            for c in clients:
+                k = c.stream["index"]
+                v0, a0 = flushed.get(("v", k), 0), flushed.get(("a", k), 0)
+                n_v, n_a = len(c.video_t), len(c.audio_t)
+                if n_v > v0:
+                    with open(trace_dir / f"s{k:02d}_video.bin", "ab") as f:
+                        f.write(b"".join(struct.pack("<dq", c.video_t[i], c.video_pts[i]) for i in range(v0, n_v)))
+                    flushed[("v", k)] = n_v
+                if n_a > a0:
+                    with open(trace_dir / f"s{k:02d}_audio.bin", "ab") as f:
+                        f.write(array("d", c.audio_t[a0:n_a]).tobytes())
+                    flushed[("a", k)] = n_a
+                meta = trace_dir / f"s{k:02d}_meta.json"
+                if c.session_id and not meta.exists():
+                    meta.write_text(json.dumps({"stream": k, "session_id": c.session_id, "avatar_id": c.stream["avatar_id"],
+                                                "user_id": c.stream["user_id"], "timing": c.timing}))
+            n_l = len(lag.spikes)
+            l0 = flushed.get(("lag",), 0)
+            if n_l > l0:
+                with open(trace_dir / f"shard{spec['shard']}_looplag.bin", "ab") as f:
+                    f.write(array("d", lag.spikes[l0:n_l]).tobytes())
+                flushed[("lag",)] = n_l
+
+        async def flusher():
+            while not stop.is_set():
+                with suppress(asyncio.TimeoutError):
+                    await asyncio.wait_for(stop.wait(), 10.0)
+                with suppress(Exception):
+                    flush_traces()
+
+        flush_task = asyncio.ensure_future(flusher())
+        for client, result in zip(early, results):
             if isinstance(result, Exception):
                 client.errors.append(f"setup: {type(result).__name__}: {result}")
             ready.append({"stream": client.stream["index"], "session_id": client.session_id,
@@ -699,38 +821,68 @@ async def shard_main(spec_path: str) -> int:
         poll_started: dict = {}
 
         async def poll_active():
-            sids = {c.session_id for c in clients if c.session_id}
             while not stop.is_set():
+                sids = {c.session_id for c in clients if c.session_id}  # late joiners appear over time
                 started = now()
-                with suppress(Exception):
-                    async with http.get(f"{spec['base_url']}/webrtc/sessions/stats",
-                                        params={"view": "lifetime"}) as resp:
-                        data = await resp.json()
-                    for entry in data.get("sessions", []):
-                        if entry["session_id"] in sids:
-                            active[entry["session_id"]] = entry.get("active_stream")
-                            poll_started[entry["session_id"]] = started
+                if spec.get("shard_poll") == "all":
+                    with suppress(Exception):
+                        async with http.get(f"{spec['base_url']}/webrtc/sessions/stats",
+                                            params={"view": "lifetime"}) as resp:
+                            data = await resp.json()
+                        for entry in data.get("sessions", []):
+                            if entry["session_id"] in sids:
+                                active[entry["session_id"]] = entry.get("active_stream")
+                                poll_started[entry["session_id"]] = started
+                else:
+                    # One small per-session request instead of every session's lifetime stats: the
+                    # server builds these replies on its event loop, so the poll is part of the load.
+                    for sid in sids:
+                        with suppress(Exception):
+                            async with http.get(f"{spec['base_url']}/webrtc/sessions/{sid}/status",
+                                                params={"light": "1"}) as resp:
+                                entry = await resp.json()
+                            active[sid] = entry.get("active_stream")
+                            poll_started[sid] = started
                 await asyncio.sleep(0.5)
 
         poll_task = asyncio.ensure_future(poll_active())
 
         async def run_client(client: StreamClient):
+            delay = client.stream.get("start_delay_s", 0.0)
+            if stagger_join and delay > 0 and not client.session_id:
+                await asyncio.sleep(max(0.0, t_go + delay - now()))
+                try:
+                    await client.setup()
+                except Exception as exc:
+                    client.errors.append(f"setup: {type(exc).__name__}: {exc}")
+                emit({"event": "joined", "shard": spec["shard"], "stream": client.stream["index"],
+                      "session_id": client.session_id, "t": now(), "timing": client.timing,
+                      "error": client.errors[-1] if client.errors else None})
+                delay = 0.0
             if not client.session_id or client.errors:
                 return
-            delay = client.stream.get("start_delay_s", 0.0)
             if delay > 0:
                 await asyncio.sleep(max(0.0, t_go + delay - now()))
             deadline = t_go + spec["max_level_s"]
+            end_at = (now() + spec["duration_s"]) if spec.get("duration_s") else None
+            failures = 0
             rng = random.Random(spec["seed"] * 1000 + client.stream["index"])
             durations = client.stream.get("durations") or []
             for index, wav in enumerate(client.stream["turns"]):
+                if end_at is not None and now() >= end_at:
+                    break  # --duration-s: stop starting new turns (not an error)
                 if now() > deadline:
                     client.errors.append("level time limit reached before all turns")
                     break
                 record = await client.post_turn(wav, index)
                 client.turns.append(record)
                 if record.get("status") != 200:
-                    break
+                    failures += 1
+                    if failures > spec.get("max_consecutive_post_failures", 0):
+                        break
+                    await asyncio.sleep(min(5.0, 0.5 * 2 ** failures))  # keep the stream speaking after a rare race
+                    continue
+                failures = 0
                 answered = now()
                 abort_at = None
                 if spec.get("barge_in_fraction", 0) > 0 and rng.random() < spec["barge_in_fraction"]:
@@ -758,6 +910,14 @@ async def shard_main(spec_path: str) -> int:
 
         await asyncio.gather(*(run_client(c) for c in clients))
         stop.set()
+        for c in clients:
+            if c.recorder is not None:
+                with suppress(Exception):
+                    c.recorder.q.put_nowait(None)
+                    c.recorder.thread.join(timeout=30)
+        flush_task.cancel()
+        with suppress(Exception):
+            flush_traces()
         for c in clients:
             c.stop.set()
         poll_task.cancel()
@@ -905,6 +1065,13 @@ async def poll_server(args, sessions_of_interest: set, state: dict, stop: asynci
                 stitcher = state["stitchers"].setdefault(sid, CounterStitcher())
                 totals = stitcher.update(view)
                 state["counter_samples"].setdefault(sid, []).append((t_resp, totals))
+                if state.get("counters_jsonl") is not None:
+                    life_ = view.get("lifetime") or {}
+                    rows = state.setdefault("_jsonl_rows", [])
+                    rows.append(json.dumps({"t": t_resp, "sid": sid, "totals": totals,
+                                            "live_active": life_.get("live_active"),
+                                            "buffer_depth_frames": life_.get("buffer_depth_frames"),
+                                            "queue_underruns": life_.get("queue_underruns")}))
                 life = view.get("lifetime") or {}
                 turn_view = view.get("turn_counters") or {}
                 fps = life.get("output_fps", turn_view.get("output_fps"))
@@ -928,6 +1095,12 @@ async def poll_server(args, sessions_of_interest: set, state: dict, stop: asynci
                 state["live"].setdefault(sid, []).append((t_resp, bool(live_active),
                                                           bool(life.get("live_released",
                                                                         turn_view.get("live_released")))))
+            if state.get("counters_jsonl") is not None and state.get("_jsonl_rows"):
+                with suppress(Exception):
+                    state["counters_jsonl"].parent.mkdir(parents=True, exist_ok=True)
+                    with open(state["counters_jsonl"], "a") as f:
+                        f.write("\n".join(state["_jsonl_rows"]) + "\n")
+                    state["_jsonl_rows"] = []
             elapsed = now() - t_req
             with suppress(asyncio.TimeoutError):
                 await asyncio.wait_for(stop.wait(), max(0.05, args.poll_interval_s - elapsed))
@@ -1002,6 +1175,8 @@ async def run_level(args, level: int, corpus: list, level_dir: Path, client_cpus
         duty_gaps = expected_audio * (1.0 - args.duty) / args.duty * 3.0  # generous: exponential tail
     max_level_s = (expected_audio + duty_gaps + turns_per_stream * (args.turn_gap_s + 30.0)
                    + args.stagger_s * level + 120.0)
+    if args.duration_s:
+        max_level_s = args.duration_s + args.stagger_s * level + 600.0
     procs = []
     for k, members in enumerate(shards):
         spec = {"shard": k, "base_url": args.base_url, "streams": members, "client_cpus": client_cpus,
@@ -1011,7 +1186,12 @@ async def run_level(args, level: int, corpus: list, level_dir: Path, client_cpus
                 "pose_plan": json.loads(args.pose_plan) if args.pose_plan else None,
                 "ignore_ice_servers": args.ignore_ice_servers, "ice_gather_timeout_s": args.ice_gather_timeout_s,
                 "connection_timeout_s": args.connection_timeout_s, "http_timeout_s": 120,
-                "post_retries": 3, "turn_gap_s": args.turn_gap_s, "tail_s": args.tail_s,
+                "post_retries": args.post_retries, "turn_gap_s": args.turn_gap_s, "tail_s": args.tail_s,
+                "trace_dir": str(Path(args.trace_dir) / f"n{level:02d}") if args.trace_dir else None,
+                "stagger_join": args.stagger_join, "duration_s": args.duration_s, "shard_poll": args.shard_poll,
+                "max_consecutive_post_failures": args.max_consecutive_post_failures,
+                "record_streams": [int(x) for x in args.record_streams.split(",") if x != ""] if args.record_streams else [],
+                "record_at_s": args.record_at_s, "record_seconds": args.record_seconds,
                 "duty": args.duty, "seed": args.seed, "barge_in_fraction": args.barge_in_fraction,
                 "barge_in_after_s": [args.barge_in_min_s, args.barge_in_max_s],
                 "max_level_s": max_level_s, "keep_sessions": args.keep_sessions}
@@ -1024,6 +1204,8 @@ async def run_level(args, level: int, corpus: list, level_dir: Path, client_cpus
             limit=1 << 26)
         procs.append((proc, log))
     events = {"ready": {}, "result": {}}
+    sessions: set = set()  # polled sessions; late joiners (--stagger-join) are added as they connect
+    joins: list = []
 
     async def reader(k, proc):
         while True:
@@ -1033,6 +1215,11 @@ async def run_level(args, level: int, corpus: list, level_dir: Path, client_cpus
             text = line.decode(errors="ignore")
             if text.startswith(MARK):
                 event = json.loads(text[len(MARK):])
+                if event["event"] == "joined":
+                    joins.append(event)
+                    if event.get("session_id"):
+                        sessions.add(event["session_id"])
+                    continue
                 events.setdefault(event["event"], {})[k] = event
 
     readers = [asyncio.ensure_future(reader(k, p)) for k, (p, _l) in enumerate(procs)]
@@ -1042,9 +1229,10 @@ async def run_level(args, level: int, corpus: list, level_dir: Path, client_cpus
             break
         await asyncio.sleep(0.2)
     ready_streams = [s for e in events["ready"].values() for s in e["streams"]]
-    sessions = {s["session_id"] for s in ready_streams if s.get("session_id")}
+    sessions.update(s["session_id"] for s in ready_streams if s.get("session_id"))
     setup_s = now() - t_setup
-    state = {"stitchers": {}, "counter_samples": {}, "rings": {}, "turn_marks": {}, "live": {},
+    state = {"counters_jsonl": (Path(args.trace_dir) / f"n{level:02d}" / "server_counters.jsonl") if args.trace_dir else None,
+             "stitchers": {}, "counter_samples": {}, "rings": {}, "turn_marks": {}, "live": {},
              "handoff": {}, "idle_cache_backed": {}, "last_totals": {}, "last_view": {},
              "output_fps": {}, "playback_fps": {}, "server_samples": [], "poll_rtt": [],
              "poll_errors": 0, "last_poll_error": None}
@@ -1084,6 +1272,21 @@ async def run_level(args, level: int, corpus: list, level_dir: Path, client_cpus
         log.close()
     for task in readers:
         task.cancel()
+    if args.trace_dir:
+        # raw material for per-stream 1 s windows / gap / freshness analysis (docs/.../live15/live_trace_report.py)
+        with suppress(Exception):
+            tdir = Path(args.trace_dir) / f"n{level:02d}"
+            tdir.mkdir(parents=True, exist_ok=True)
+            import struct
+            for sid, ring in state["rings"].items():
+                with open(tdir / f"ring_{sid}.bin", "wb") as f:
+                    f.write(b"".join(struct.pack("<qdbq", ring.seq[i], ring.t[i], ring.kind[i], ring.pts[i])
+                                     for i in range(len(ring.seq))))
+            (tdir / "level_meta.json").write_text(json.dumps({
+                "level": level, "t_go": t_go, "t_end": t_end, "stagger_s": args.stagger_s,
+                "stagger_join": args.stagger_join, "duration_s": args.duration_s, "joins": joins,
+                "ready": [s_ for e in events["ready"].values() for s_ in e["streams"]],
+                "server_samples": state["server_samples"], "system_samples": getattr(sampler, "samples", [])}, default=str))
     return summarize_level(args, level, t_go, t_end, events, state, sampler, plan, reuse, chain_info,
                            setup_s, server_view)
 
@@ -1438,6 +1641,18 @@ def parse_args(argv=None):
     p.add_argument("--barge-in-max-s", type=float, default=4.0)
     p.add_argument("--tail-s", type=float, default=2.0)
     p.add_argument("--stagger-s", type=float, default=0.0)
+    p.add_argument("--stagger-join", action="store_true",
+                   help="with --stagger-s: create/connect each delayed stream at its start time (real mid-run join)")
+    p.add_argument("--duration-s", type=float, default=None,
+                   help="stop starting new turns this long after a stream's first turn (not an error)")
+    p.add_argument("--post-retries", type=int, default=3, help="409 retries per turn POST (0.5 s apart)")
+    p.add_argument("--max-consecutive-post-failures", type=int, default=0,
+                   help="keep a stream speaking after this many failed turns in a row (default 0: stop it)")
+    p.add_argument("--record-streams", default="", help="with --trace-dir: comma list of stream indexes to record")
+    p.add_argument("--record-at-s", type=float, default=60.0, help="recording starts this long after the stream connects")
+    p.add_argument("--record-seconds", type=float, default=90.0)
+    p.add_argument("--trace-dir", default=None,
+                   help="write per-frame client arrival traces, loop-lag spikes, 1 Hz server counters and send rings")
     p.add_argument("--musetalk-fps", type=int, default=20)
     p.add_argument("--playback-fps", type=int, default=20)
     p.add_argument("--batch-size", type=int, default=8)
@@ -1446,6 +1661,9 @@ def parse_args(argv=None):
     p.add_argument("--pose-set-file", default=None, help="pose protocol v1 session (wall-style turns)")
     p.add_argument("--pose-plan", default=None, help="JSON pose plan (default: the wall plan)")
     p.add_argument("--peers-per-shard", type=int, default=5)
+    p.add_argument("--shard-poll", choices=("session", "all"), default="session",
+                   help="how each shard learns its turns ended: GET /webrtc/sessions/{id}/status per own session "
+                        "(default), or the older GET /webrtc/sessions/stats?view=lifetime of every session")
     p.add_argument("--client-cores", default=DEFAULT_CLIENT_CORES, help="physical core ids for all client processes")
     p.add_argument("--no-pin", action="store_true")
     p.add_argument("--ring", type=int, default=64)

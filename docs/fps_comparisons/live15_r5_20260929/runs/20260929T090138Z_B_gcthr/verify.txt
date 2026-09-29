@@ -1,0 +1,18 @@
+{
+ "log": "/workspace/MuseTalk-perf300/tmp/live15_r5/20260929T090138Z_B_gcthr/api_server_8300.log",
+ "offset": 0,
+ "expected": {
+  "vae": "taesd_trt",
+  "unet": "trt_stagewise"
+ },
+ "found": {
+  "vae": "taesd_trt",
+  "unet": "tensorrt_unet_stagewise"
+ },
+ "extras": {
+  "taesd_trt_loaded": "key=6111388248264a4ef2ae batch=8 built_now=False fused_post=True probe=ok gate=FAIL"
+ },
+ "notes": [],
+ "status": "match"
+}
+[musetalk_host_profile] verify-log MATCH vae=taesd_trt unet=tensorrt_unet_stagewise

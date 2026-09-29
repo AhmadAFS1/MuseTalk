@@ -1,0 +1,13 @@
+run 20260929T064641Z_B_loopdiag, N=5, asyncio slow-callback log >= 40 ms (GC freeze on, nvidia-smi still on the loop)
+slow callbacks: 78
+   74  BaseHTTPMiddleware call_next (HTTP handler)
+    2  RTCRtpSender._run_rtp
+    1  RequestResponseCycle.run_asgi
+    1  LifespanOn.main
+request latency (ms) by endpoint:
+  /webrtc/sessions/stats                   n=  992 p50=    2.7 max=   47.3
+  /webrtc/sessions/<id>/stream             n=  126 p50=  141.0 max=  204.0
+  /stats                                   n=   34 p50=   41.2 max=   84.1
+  /webrtc/sessions/create                  n=    5 p50=   10.6 max=   13.1
+  /webrtc/sessions/<id>/offer              n=    5 p50=    7.6 max=    9.3
+  /webrtc/sessions/<id>                    n=    5 p50=  205.1 max=  213.6

@@ -211,6 +211,14 @@ def serve(port: int, gen_fps: float, handoff: str) -> None:
             s["track"].end_live()  # what api_server does for a motion session abort
         return web.json_response({"status": "accepted"})
 
+    async def status(request):
+        s = sessions.get(request.match_info["sid"])
+        if s is None:
+            return web.json_response({"detail": "Session not found or expired"}, status=404)
+        return web.json_response({"session_id": s["sid"], "avatar_id": s["avatar_id"],
+                                  "status": "streaming" if s["active"] else "connected",
+                                  "active_stream": s["active"]})
+
     async def delete(request):
         s = sessions.pop(request.match_info["sid"], None)
         if s:
@@ -227,6 +235,7 @@ def serve(port: int, gen_fps: float, handoff: str) -> None:
     app.router.add_post("/webrtc/sessions/{sid}/offer", offer)
     app.router.add_post("/webrtc/sessions/{sid}/stream", stream)
     app.router.add_get("/webrtc/sessions/stats", stats)
+    app.router.add_get("/webrtc/sessions/{sid}/status", status)
     app.router.add_delete("/webrtc/sessions/{sid}", delete)
     app.router.add_post("/webrtc/sessions/{sid}/events", events)
     web.run_app(app, host="127.0.0.1", port=port, print=None)

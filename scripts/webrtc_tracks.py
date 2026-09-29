@@ -32,10 +32,15 @@ from scripts.webrtc_media_flags import (
     env_int as _media_env_int,
     lifetime_counters_enabled,
     preencode_sha_dir,
+    queue_packed_i420_enabled,
     thread_caps_enabled,
 )
 from scripts.webrtc_idle_frame_cache import get_idle_frame_cache, register_reader_finalizer
-from scripts.webrtc_live_handoff import video_frame_from_live_item
+from scripts.webrtc_live_handoff import (
+    live_frame_from_queue,
+    packed_i420_from_live_item,
+    video_frame_from_live_item,
+)
 
 _ffmpeg_executor = None
 _ffmpeg_executor_lock = threading.Lock()
@@ -74,7 +79,8 @@ class _PreencodeShaTap:
     def record(self, generation_id: int, frame, metadata=None) -> None:
         index = self._index.get(generation_id, 0)
         self._index[generation_id] = index + 1
-        digest = self._hashlib.sha256(frame.to_ndarray().tobytes()).hexdigest()
+        packed = frame if isinstance(frame, np.ndarray) else frame.to_ndarray()
+        digest = self._hashlib.sha256(np.ascontiguousarray(packed).tobytes()).hexdigest()
         entry = {"g": int(generation_id), "i": index, "sha256": digest,
                  "t": round(time.monotonic(), 6)}
         if isinstance(metadata, dict) and "generation_frame" in metadata:
@@ -1527,7 +1533,7 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
                 return None
             if len(item) == 4:
                 self._popped_motion = item[3]
-            return frame
+            return live_frame_from_queue(frame)
         return item
 
     def _pop_live_frames_timestamp_locked(self):
@@ -2041,7 +2047,10 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
 
         push_started_at = time.monotonic()
         convert_started_at = push_started_at
-        frame = video_frame_from_live_item(frame_bgr)[0]
+        if queue_packed_i420_enabled():
+            frame = packed_i420_from_live_item(frame_bgr)
+        else:
+            frame = video_frame_from_live_item(frame_bgr)[0]
         convert_s = time.monotonic() - convert_started_at
         return await self._push_video_frame(
             frame,
@@ -2171,13 +2180,17 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         prebuffer_ready = False
         converted_frames = []
         convert_started_at = time.monotonic()
+        packed = queue_packed_i420_enabled()
         for frame_bgr in frames:
             if self._closed:
                 break
             # Plain BGR ndarrays: today's exact PyAV conversion. Items carrying
             # a pre-converted .yuv420p (WEBRTC_YUV_IN_COMPOSE producer contract)
             # pass through, so no conversion runs on the event loop.
-            converted_frames.append(video_frame_from_live_item(frame_bgr)[0])
+            if packed:
+                converted_frames.append(packed_i420_from_live_item(frame_bgr))
+            else:
+                converted_frames.append(video_frame_from_live_item(frame_bgr)[0])
         total_convert_s = time.monotonic() - convert_started_at
         if not converted_frames:
             return self._prebuffer_ready.is_set()

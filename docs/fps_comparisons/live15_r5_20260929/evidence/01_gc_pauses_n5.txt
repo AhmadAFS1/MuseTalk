@@ -1,0 +1,9 @@
+run 20260929T062327Z_B_gclog, N=5, Arm B (serve.env), GC log on. Times are seconds after GO.
+gen-2 collections >= 20 ms (t, ms):
+       0.8   117.9
+      35.5   137.8
+     105.4   143.2
+     175.2   145.0
+     239.1   144.0
+     306.2   146.9
+client gaps > 100 ms: 85; within 0.3 s after a gen-2 collection >= 100 ms: 26

@@ -1,0 +1,315 @@
+{
+ "summary": {
+  "level_dir": "tmp/live15_r5/20260929T081939Z_B_garbage/traces/ramp/n05",
+  "streams": 5,
+  "streams_pass": 0,
+  "all_pass": false,
+  "min_anchored_1s": 19,
+  "worst_gap_ms": 146.4,
+  "gaps_over_100ms_total": 14,
+  "min_server_fresh_fraction": 0.99721,
+  "max_server_held_run": 1,
+  "min_pts_join": 1.0,
+  "client_loop_spikes": 5,
+  "client_loop_spike_max_ms": 62.8,
+  "server_cadence_min_anchored_1s": 19,
+  "server_send_interval_max_ms": 125.1,
+  "gap_causes": {
+   "server_send": 6,
+   "server_late": 4,
+   "transport": 4
+  }
+ },
+ "streams": [
+  {
+   "stream": 0,
+   "avatar_id": "chinese_bob_pink_bedroom_talking_3373c10448",
+   "session_id": "pDnuW_wqi1PHXLCp2TLs_g",
+   "window_s": 300.6,
+   "frames": 6012,
+   "mean_fps": 19.999,
+   "anchored_1s_min_frames": 19,
+   "anchored_1s_windows_below_20": 1,
+   "first_below_20_rel_s": 57.2,
+   "fixed_1s_bin_min": 19,
+   "gap_max_ms": 135.2,
+   "gap_p99_ms": 53.4,
+   "gaps_over_100ms": 1,
+   "gaps_over_120ms": 1,
+   "gaps_over_100ms_per_10min": 2.0,
+   "gap_causes": {
+    "server_send": 1
+   },
+   "worst_gaps": [
+    {
+     "t_rel_s": 58.1,
+     "gap_ms": 135.2,
+     "cause": "server_send"
+    }
+   ],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "f": 5006,
+    "i": 910,
+    "p": 82,
+    "h": 14
+   },
+   "client_content_1s_min": 19,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99721,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 1,
+   "server_send_interval_max_ms": 116.5,
+   "server_anchored_1s_min": 19,
+   "latency_ms_p50": 54.2,
+   "latency_ms_p99": 57.7,
+   "latency_ms_max": 140.7,
+   "P1_rate": false,
+   "P2_fresh": true,
+   "P3_no_buffering": false,
+   "PASS": false
+  },
+  {
+   "stream": 1,
+   "avatar_id": "indian_realtime_talking_20f9845543",
+   "session_id": "_iGAWrHN6eiyJn4pF4xuIA",
+   "window_s": 294.8,
+   "frames": 5896,
+   "mean_fps": 19.999,
+   "anchored_1s_min_frames": 19,
+   "anchored_1s_windows_below_20": 3,
+   "first_below_20_rel_s": 50.4,
+   "fixed_1s_bin_min": 19,
+   "gap_max_ms": 126.0,
+   "gap_p99_ms": 53.7,
+   "gaps_over_100ms": 3,
+   "gaps_over_120ms": 1,
+   "gaps_over_100ms_per_10min": 6.11,
+   "gap_causes": {
+    "server_late": 1,
+    "server_send": 1,
+    "transport": 1
+   },
+   "worst_gaps": [
+    {
+     "t_rel_s": 51.3,
+     "gap_ms": 126.0,
+     "cause": "server_late"
+    },
+    {
+     "t_rel_s": 89.45,
+     "gap_ms": 112.0,
+     "cause": "server_send"
+    },
+    {
+     "t_rel_s": 280.81,
+     "gap_ms": 103.1,
+     "cause": "transport"
+    }
+   ],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "f": 5000,
+    "i": 811,
+    "p": 71,
+    "h": 14
+   },
+   "client_content_1s_min": 19,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99721,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 1,
+   "server_send_interval_max_ms": 102.6,
+   "server_anchored_1s_min": 19,
+   "latency_ms_p50": 53.9,
+   "latency_ms_p99": 57.7,
+   "latency_ms_max": 131.2,
+   "P1_rate": false,
+   "P2_fresh": true,
+   "P3_no_buffering": false,
+   "PASS": false
+  },
+  {
+   "stream": 2,
+   "avatar_id": "japanese_realtime_talking_7d94520b7f",
+   "session_id": "kAcBe9bl3Azk0LWpTo83rA",
+   "window_s": 300.8,
+   "frames": 6017,
+   "mean_fps": 19.998,
+   "anchored_1s_min_frames": 19,
+   "anchored_1s_windows_below_20": 3,
+   "first_below_20_rel_s": 45.4,
+   "fixed_1s_bin_min": 19,
+   "gap_max_ms": 126.5,
+   "gap_p99_ms": 53.5,
+   "gaps_over_100ms": 2,
+   "gaps_over_120ms": 1,
+   "gaps_over_100ms_per_10min": 3.99,
+   "gap_causes": {
+    "server_late": 1,
+    "server_send": 1
+   },
+   "worst_gaps": [
+    {
+     "t_rel_s": 46.31,
+     "gap_ms": 126.5,
+     "cause": "server_late"
+    },
+    {
+     "t_rel_s": 84.46,
+     "gap_ms": 111.8,
+     "cause": "server_send"
+    }
+   ],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "f": 5040,
+    "h": 11,
+    "i": 888,
+    "p": 78
+   },
+   "client_content_1s_min": 19,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99782,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 1,
+   "server_send_interval_max_ms": 101.7,
+   "server_anchored_1s_min": 19,
+   "latency_ms_p50": 54.3,
+   "latency_ms_p99": 57.8,
+   "latency_ms_max": 132.5,
+   "P1_rate": false,
+   "P2_fresh": true,
+   "P3_no_buffering": false,
+   "PASS": false
+  },
+  {
+   "stream": 3,
+   "avatar_id": "latina_guided_20260925_talking_84c5bc80b8",
+   "session_id": "00PwrIwdFlwmhkhM3Xxb8g",
+   "window_s": 299.8,
+   "frames": 5997,
+   "mean_fps": 19.999,
+   "anchored_1s_min_frames": 19,
+   "anchored_1s_windows_below_20": 5,
+   "first_below_20_rel_s": 40.4,
+   "fixed_1s_bin_min": 20,
+   "gap_max_ms": 129.1,
+   "gap_p99_ms": 53.8,
+   "gaps_over_100ms": 4,
+   "gaps_over_120ms": 1,
+   "gaps_over_100ms_per_10min": 8.0,
+   "gap_causes": {
+    "transport": 3,
+    "server_late": 1
+   },
+   "worst_gaps": [
+    {
+     "t_rel_s": 41.3,
+     "gap_ms": 129.1,
+     "cause": "transport"
+    },
+    {
+     "t_rel_s": 79.45,
+     "gap_ms": 108.6,
+     "cause": "server_late"
+    },
+    {
+     "t_rel_s": 270.81,
+     "gap_ms": 101.8,
+     "cause": "transport"
+    },
+    {
+     "t_rel_s": 156.11,
+     "gap_ms": 101.7,
+     "cause": "transport"
+    }
+   ],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "f": 5082,
+    "i": 828,
+    "p": 76,
+    "h": 11
+   },
+   "client_content_1s_min": 19,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99784,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 0,
+   "server_send_interval_max_ms": 99.3,
+   "server_anchored_1s_min": 20,
+   "latency_ms_p50": 54.3,
+   "latency_ms_p99": 58.1,
+   "latency_ms_max": 134.7,
+   "P1_rate": false,
+   "P2_fresh": true,
+   "P3_no_buffering": false,
+   "PASS": false
+  },
+  {
+   "stream": 4,
+   "avatar_id": "codex_smoke",
+   "session_id": "oDkn53lWRrYNirTi93AuTA",
+   "window_s": 299.8,
+   "frames": 5997,
+   "mean_fps": 19.999,
+   "anchored_1s_min_frames": 19,
+   "anchored_1s_windows_below_20": 5,
+   "first_below_20_rel_s": 35.4,
+   "fixed_1s_bin_min": 19,
+   "gap_max_ms": 146.4,
+   "gap_p99_ms": 53.4,
+   "gaps_over_100ms": 4,
+   "gaps_over_120ms": 1,
+   "gaps_over_100ms_per_10min": 8.0,
+   "gap_causes": {
+    "server_send": 3,
+    "server_late": 1
+   },
+   "worst_gaps": [
+    {
+     "t_rel_s": 36.3,
+     "gap_ms": 146.4,
+     "cause": "server_send"
+    },
+    {
+     "t_rel_s": 74.45,
+     "gap_ms": 105.3,
+     "cause": "server_late"
+    },
+    {
+     "t_rel_s": 265.81,
+     "gap_ms": 103.6,
+     "cause": "server_send"
+    },
+    {
+     "t_rel_s": 151.11,
+     "gap_ms": 102.0,
+     "cause": "server_send"
+    }
+   ],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "f": 5067,
+    "i": 846,
+    "p": 73,
+    "h": 11
+   },
+   "client_content_1s_min": 19,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99783,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 3,
+   "server_send_interval_max_ms": 125.1,
+   "server_anchored_1s_min": 19,
+   "latency_ms_p50": 53.2,
+   "latency_ms_p99": 56.8,
+   "latency_ms_max": 150.4,
+   "P1_rate": false,
+   "P2_fresh": true,
+   "P3_no_buffering": false,
+   "PASS": false
+  }
+ ]
+}

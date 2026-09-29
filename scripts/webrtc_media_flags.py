@@ -73,6 +73,14 @@ FLAGS = {
         "",
         "Smoke-test only: directory; each track appends one JSON line per live frame entering "
         "its queue (generation, index, SHA-256 of the packed I420 planes) for A/B exactness."),
+    "WEBRTC_QUEUE_PACKED_I420": (
+        "0",
+        "1: live frames wait in the track FIFO as packed I420 uint8 arrays (the exact bytes of today's "
+        "PyAV conversion; the handoff converter threads produce them) and become an av.VideoFrame when "
+        "recv() pops them. 0: the FIFO holds av.VideoFrame objects (today). Each av.VideoFrame owns a "
+        "VideoFormat whose components reference it back, a reference cycle; queued for seconds, those "
+        "cycles reach generation 2, so full collections (30 ms at 15 streams, every ~10 s) freeze the "
+        "event loop. Same pixels, pts and colour metadata either way."),
     "WEBRTC_YUV_IN_COMPOSE": (
         "0",
         "Producer contract: when 1 the compose side may hand objects with .bgr and "
@@ -91,6 +99,11 @@ FLAGS = {
         "4", "FFmpeg frame threads used for the one-time background decode of a clip."),
     "WEBRTC_IDLE_FRAME_CACHE_WORKERS": (
         "2", "Background threads that build cache entries."),
+    "WEBRTC_IDLE_FRAME_CACHE_WARM": (
+        "0",
+        "1 (with WEBRTC_IDLE_FRAME_CACHE=1): POST /avatars/{id}/cache/warm also builds that avatar's idle and pose "
+        "clips into the idle frame cache (and waits for them when wait=true). 0: a clip is built at the avatar's "
+        "first session create, where its decode competes with the live streams for the GIL (today)."),
     "WEBRTC_LIFETIME_COUNTERS": (
         "0",
         "1: per-track monotonic counters (frames_played, frames_duplicated, "
@@ -142,11 +155,22 @@ FLAGS = {
     "WEBRTC_H264_NVENC_TUNE": ("ll", "NVENC tune for WEBRTC_H264_IMPL=nvenc."),
     "WEBRTC_NVENC_MAX_SESSIONS": (
         "12", "Process-wide NVENC session semaphore; encoders beyond it use x264tuned."),
+    "MUSETALK_OFFLOOP_DIAGNOSTICS": (
+        "0",
+        "1: the per-turn '🎬 WebRTC stream request' resource snapshot (it runs nvidia-smi, "
+        "40-80 ms) is taken on a worker thread and logged when ready, and GET /stats, GET /health and "
+        "GET /worker/state (the last two run nvidia-smi through the worker metrics provider) build their "
+        "replies on a worker thread. 0: all run on the event loop (today), which freezes every stream's "
+        "pacing for that long (live 15-stream test, 2026-09-29)."),
 }
 
 
 def nonblocking_handoff_enabled() -> bool:
     return env_bool("WEBRTC_NONBLOCKING_HANDOFF", False)
+
+
+def queue_packed_i420_enabled() -> bool:
+    return env_bool("WEBRTC_QUEUE_PACKED_I420", False)
 
 
 def yuv_in_compose_enabled() -> bool:
@@ -157,8 +181,16 @@ def idle_frame_cache_enabled() -> bool:
     return env_bool("WEBRTC_IDLE_FRAME_CACHE", False)
 
 
+def idle_frame_cache_warm_enabled() -> bool:
+    return env_bool("WEBRTC_IDLE_FRAME_CACHE_WARM", False)
+
+
 def lifetime_counters_enabled() -> bool:
     return env_bool("WEBRTC_LIFETIME_COUNTERS", False)
+
+
+def offloop_diagnostics_enabled() -> bool:
+    return env_bool("MUSETALK_OFFLOOP_DIAGNOSTICS", False)
 
 
 def thread_caps_enabled() -> bool:

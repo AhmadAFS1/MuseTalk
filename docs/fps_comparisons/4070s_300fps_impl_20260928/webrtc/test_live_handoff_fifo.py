@@ -23,6 +23,11 @@ timestamp-locked mode, real recv()) on a real idle clip:
      WEBRTC_LIFETIME_COUNTERS stays monotonic across two turns.
   T8 WEBRTC_DEADLINE_PACING=1 plays the same frames in the same order.
   T9 with no flag set the track carries none of the levers (today's payload).
+  T10 WEBRTC_QUEUE_PACKED_I420=1 (live 15-stream test, 2026-09-29): every item
+     entering the track FIFO is a packed I420 ndarray (no av.VideoFrame, so no
+     VideoFormat reference cycle, waits in the FIFO), and the frames recv() plays
+     are SHA-identical, in order, to the direct conversion, for the blocking,
+     non-blocking and converter-thread handoffs.
 
 Run from the worktree root:
   /workspace/.venvs/musetalk_trt_stagewise/bin/python \
@@ -459,6 +464,35 @@ def t8_deadline_pacing_same_content(lt: LoopThread):
         os.environ.pop("WEBRTC_DEADLINE_PACING", None)
 
 
+def t10_packed_i420_queue(lt: LoopThread):
+    """WEBRTC_QUEUE_PACKED_I420=1: the FIFO holds packed I420 arrays; played frames unchanged."""
+    import numpy as np
+    os.environ["WEBRTC_QUEUE_PACKED_I420"] = "1"
+    try:
+        frames = make_frames(60, 31)
+        expected = [i420_sha(bgr_to_yuv420p_frame(f)) for f in frames]
+        runs = {}
+        for mode, converter in (("blocking", False), ("nonblocking", False), ("nonblocking_convert", True)):
+            track, clock = lt.call(_make_real_track())
+            kinds = {"ndarray": 0, "other": 0}
+            push = track._push_video_frame
+
+            async def counting_push(frame, *args, **kwargs):
+                kinds["ndarray" if isinstance(frame, np.ndarray) else "other"] += 1
+                return await push(frame, *args, **kwargs)
+
+            track._push_video_frame = counting_push
+            live = run_real_turn(lt, track, clock, frames,
+                                 "blocking" if mode == "blocking" else "nonblocking", converter)
+            runs[mode] = {"live_frames": len(live), "equal_to_inputs": live == expected, "queued": kinds}
+            lt.loop.call_soon_threadsafe(track.stop)
+            time.sleep(0.05)
+        ok = all(r["equal_to_inputs"] and r["queued"] == {"ndarray": 60, "other": 0} for r in runs.values())
+        record("T10_packed_i420_queue", ok, runs=runs)
+    finally:
+        os.environ.pop("WEBRTC_QUEUE_PACKED_I420", None)
+
+
 def t9_defaults_inert(lt: LoopThread):
     """No flag set: no handoff, no lifetime ring, no cache, no tap, FFmpeg auto threads,
     and get_stats() carries no lever keys (today's payload)."""
@@ -483,7 +517,8 @@ def main() -> int:
     lt = LoopThread()
     try:
         for test in (t1_order, t2_nonblocking, t3_bound, t4_cancel, t5_close, t6_converter,
-                     t7_real_track, t8_deadline_pacing_same_content, t9_defaults_inert):
+                     t7_real_track, t8_deadline_pacing_same_content, t9_defaults_inert,
+                     t10_packed_i420_queue):
             try:
                 test(lt)
             except Exception as exc:  # a crash is a failure, keep going

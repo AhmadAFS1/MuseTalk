@@ -59,6 +59,7 @@ from scripts.webrtc_media_flags import (  # noqa: F401
     env_int,
     handoff_verify_enabled,
     nonblocking_handoff_enabled,
+    queue_packed_i420_enabled,
 )
 
 DEFAULT_MAX_PENDING_FRAMES = 64
@@ -128,6 +129,33 @@ def video_frame_from_live_item(item):
     return bgr_to_yuv420p_frame(bgr), True
 
 
+def packed_i420_from_live_item(item):
+    """WEBRTC_QUEUE_PACKED_I420=1: the packed (H*3/2, W) uint8 I420 of one live item.
+
+    The bytes are exactly ``video_frame_from_live_item(item)[0].to_ndarray()``;
+    ``live_frame_from_queue`` turns them back into the same av.VideoFrame.
+    """
+    yuv = getattr(item, "yuv420p", None)
+    if isinstance(yuv, np.ndarray):
+        array = np.ascontiguousarray(yuv)
+        if array.dtype != np.uint8 or array.ndim != 2:
+            raise ValueError("pre-converted live frame must be a packed uint8 I420 array")
+        return array
+    frame, _ = video_frame_from_live_item(item)
+    return frame.to_ndarray()
+
+
+def live_frame_from_queue(frame):
+    """Inverse of ``packed_i420_from_live_item`` (av.VideoFrame passes through).
+
+    Reformatted and from_ndarray frames both carry unspecified range/colorspace,
+    so the rebuilt frame matches the one today's FIFO would have held.
+    """
+    if isinstance(frame, np.ndarray):
+        return av.VideoFrame.from_ndarray(frame, format="yuv420p")
+    return frame
+
+
 _convert_pool: Optional[ThreadPoolExecutor] = None
 _convert_pool_lock = threading.Lock()
 
@@ -153,6 +181,7 @@ def _frame_digest(item) -> bytes:
 
 def _preconvert_batch(frames):
     """Converter-thread version of today's per-frame conversion (same call)."""
+    packed = queue_packed_i420_enabled()
     converted = []
     for item in frames:
         if getattr(item, "yuv420p", None) is not None:
@@ -161,7 +190,9 @@ def _preconvert_batch(frames):
         bgr = getattr(item, "bgr", None)
         if bgr is None:
             bgr = item
-        converted.append(ComposedFrame(bgr, bgr_to_yuv420p_frame(bgr)))
+        yuv = bgr_to_yuv420p_frame(bgr)
+        # The packed array keeps no av.VideoFrame (and its VideoFormat cycle) alive in the FIFO.
+        converted.append(ComposedFrame(bgr, yuv.to_ndarray() if packed else yuv))
     return converted
 
 

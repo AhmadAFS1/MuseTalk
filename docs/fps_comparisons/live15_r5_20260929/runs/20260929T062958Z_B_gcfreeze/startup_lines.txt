@@ -1,0 +1,10 @@
+🎞️ [api_server] WebRTC H.264 impl=aiortc codec=libx264 (aiortc 1.14 built-in: preset=medium tune=zerolatency profile=Baseline threads=auto) max_bitrate=6000000; WEBRTC_H264_ENCODER/NVENC settings are not used by this impl
+[api_server] WebRTC media flags: MUSETALK_DISABLE_LOCAL_TTS=1 MUSETALK_THREAD_CAPS=1 WEBRTC_DEADLINE_PACING=1 WEBRTC_HANDOFF_CONVERT_THREADS=2 WEBRTC_IDLE_FRAME_CACHE=1 WEBRTC_IDLE_FRAME_CACHE_MAX_MB=1536 WEBRTC_LIFETIME_COUNTERS=1 WEBRTC_NONBLOCKING_HANDOFF=1
+🎛️  GPU-aware runtime defaults gpu_id=0 total=12.0GB source=env reserved=4.0GB profile=throughput_record applied={'GPU_RESERVED_MEMORY_GB': '4.0', 'GPU_MEMORY_DETECTION_SOURCE': 'env'}
+TAESD TRT backend: key=6111388248264a4ef2ae batch=8 built_now=False fused_post=True probe=ok gate=FAIL
+✅ VAE decode backend active: taesd_trt
+✅ UNet backend active: tensorrt_unet_stagewise
+🎛️  HLS GPU scheduler started (max_combined_batch_size=16, fixed_batch_sizes=[16], startup_slice_size=8, startup_chunk_duration_seconds=0.50, startup_chunk_count=1, aggressive_fill_max_active_jobs=4, compose_workers=10, encode_workers=10, webrtc_pose_crossfade_frames=2, gpu_batch_timing_log_interval=25, gpu_batch_timing_slow_s=0.500, gpu_stage_sync_timing=False)
+🎛️  HLS GPU scheduler 300fps flags: gpu_event_timing=True gpu_stage_sync_timing=False pipeline_depth=1 output_ring_size=0 gpu_blocking_wait=False scheduler_policy=roundrobin max_runahead_s=5.0 edf_startup_frames=0 edf_urgent_s=0.5 edf_max_queue_frames=0 skip_gpu_for_raw=False skip_raw_max_pending_batches=2 skip_crossfade_copy=True webrtc_yuv_in_compose=False whisper_stream=False unet_cudagrap
+[worker-control] Lingua control plane integration disabled (no env vars present)
+[worker-control] Local MuseTalk runtime is ready

@@ -1,0 +1,532 @@
+{
+ "summary": {
+  "level_dir": "tmp/live15_r5/20260929T073802Z_B_swi1/traces/ramp/n10",
+  "streams": 10,
+  "streams_pass": 3,
+  "all_pass": false,
+  "min_anchored_1s": 13,
+  "worst_gap_ms": 412.7,
+  "gaps_over_100ms_total": 16,
+  "min_server_fresh_fraction": 0.99725,
+  "max_server_held_run": 1,
+  "min_pts_join": 1.0,
+  "client_loop_spikes": 10,
+  "client_loop_spike_max_ms": 77.9,
+  "server_cadence_min_anchored_1s": 13,
+  "server_send_interval_max_ms": 385.0,
+  "gap_causes": {
+   "client_loop": 5,
+   "server_send": 9,
+   "server_late": 2
+  }
+ },
+ "streams": [
+  {
+   "stream": 0,
+   "avatar_id": "chinese_bob_pink_bedroom_talking_3373c10448",
+   "session_id": "tyqmBEjTYL5mPjgpEMK4Ig",
+   "window_s": 304.6,
+   "frames": 6086,
+   "mean_fps": 19.977,
+   "anchored_1s_min_frames": 13,
+   "anchored_1s_windows_below_20": 22,
+   "first_below_20_rel_s": 25.8,
+   "fixed_1s_bin_min": 14,
+   "gap_max_ms": 402.0,
+   "gap_p99_ms": 57.7,
+   "gaps_over_100ms": 4,
+   "gaps_over_120ms": 3,
+   "gaps_over_100ms_per_10min": 7.88,
+   "gap_causes": {
+    "client_loop": 2,
+    "server_send": 2
+   },
+   "worst_gaps": [
+    {
+     "t_rel_s": 26.7,
+     "gap_ms": 402.0,
+     "cause": "client_loop"
+    },
+    {
+     "t_rel_s": 31.78,
+     "gap_ms": 127.2,
+     "cause": "server_send"
+    },
+    {
+     "t_rel_s": 46.98,
+     "gap_ms": 121.4,
+     "cause": "server_send"
+    },
+    {
+     "t_rel_s": 36.74,
+     "gap_ms": 103.1,
+     "cause": "client_loop"
+    }
+   ],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "i": 811,
+    "p": 92,
+    "f": 5172,
+    "h": 11
+   },
+   "client_content_1s_min": 13,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99788,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 3,
+   "server_send_interval_max_ms": 385.0,
+   "server_anchored_1s_min": 13,
+   "latency_ms_p50": 54.7,
+   "latency_ms_p99": 63.0,
+   "latency_ms_max": 405.9,
+   "P1_rate": false,
+   "P2_fresh": false,
+   "P3_no_buffering": false,
+   "PASS": false
+  },
+  {
+   "stream": 1,
+   "avatar_id": "indian_realtime_talking_20f9845543",
+   "session_id": "11LTClYP6uWOtS18v-H-dg",
+   "window_s": 298.8,
+   "frames": 5970,
+   "mean_fps": 19.977,
+   "anchored_1s_min_frames": 13,
+   "anchored_1s_windows_below_20": 21,
+   "first_below_20_rel_s": 18.94,
+   "fixed_1s_bin_min": 16,
+   "gap_max_ms": 412.7,
+   "gap_p99_ms": 58.2,
+   "gaps_over_100ms": 3,
+   "gaps_over_120ms": 3,
+   "gaps_over_100ms_per_10min": 6.02,
+   "gap_causes": {
+    "client_loop": 1,
+    "server_late": 1,
+    "server_send": 1
+   },
+   "worst_gaps": [
+    {
+     "t_rel_s": 19.84,
+     "gap_ms": 412.7,
+     "cause": "client_loop"
+    },
+    {
+     "t_rel_s": 24.96,
+     "gap_ms": 133.7,
+     "cause": "server_late"
+    },
+    {
+     "t_rel_s": 40.16,
+     "gap_ms": 122.6,
+     "cause": "server_send"
+    }
+   ],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "f": 4934,
+    "i": 933,
+    "p": 90,
+    "h": 13
+   },
+   "client_content_1s_min": 13,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99737,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 2,
+   "server_send_interval_max_ms": 364.7,
+   "server_anchored_1s_min": 14,
+   "latency_ms_p50": 54.0,
+   "latency_ms_p99": 62.5,
+   "latency_ms_max": 416.2,
+   "P1_rate": false,
+   "P2_fresh": false,
+   "P3_no_buffering": false,
+   "PASS": false
+  },
+  {
+   "stream": 2,
+   "avatar_id": "japanese_realtime_talking_7d94520b7f",
+   "session_id": "0_xf8I6Clg2kgw6nDMWGZg",
+   "window_s": 300.8,
+   "frames": 6011,
+   "mean_fps": 19.978,
+   "anchored_1s_min_frames": 14,
+   "anchored_1s_windows_below_20": 22,
+   "first_below_20_rel_s": 14.0,
+   "fixed_1s_bin_min": 15,
+   "gap_max_ms": 391.4,
+   "gap_p99_ms": 58.0,
+   "gaps_over_100ms": 3,
+   "gaps_over_120ms": 3,
+   "gaps_over_100ms_per_10min": 5.98,
+   "gap_causes": {
+    "client_loop": 1,
+    "server_send": 2
+   },
+   "worst_gaps": [
+    {
+     "t_rel_s": 14.9,
+     "gap_ms": 391.4,
+     "cause": "client_loop"
+    },
+    {
+     "t_rel_s": 19.97,
+     "gap_ms": 127.5,
+     "cause": "server_send"
+    },
+    {
+     "t_rel_s": 35.17,
+     "gap_ms": 121.7,
+     "cause": "server_send"
+    }
+   ],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "f": 5054,
+    "h": 13,
+    "i": 863,
+    "p": 81
+   },
+   "client_content_1s_min": 14,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99743,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 3,
+   "server_send_interval_max_ms": 373.1,
+   "server_anchored_1s_min": 14,
+   "latency_ms_p50": 54.7,
+   "latency_ms_p99": 62.9,
+   "latency_ms_max": 393.9,
+   "P1_rate": false,
+   "P2_fresh": false,
+   "P3_no_buffering": false,
+   "PASS": false
+  },
+  {
+   "stream": 3,
+   "avatar_id": "latina_guided_20260925_talking_84c5bc80b8",
+   "session_id": "IfhdkF7wilNWb_Xs_75hAw",
+   "window_s": 314.6,
+   "frames": 6292,
+   "mean_fps": 19.998,
+   "anchored_1s_min_frames": 19,
+   "anchored_1s_windows_below_20": 3,
+   "first_below_20_rel_s": 14.07,
+   "fixed_1s_bin_min": 19,
+   "gap_max_ms": 128.7,
+   "gap_p99_ms": 56.4,
+   "gaps_over_100ms": 3,
+   "gaps_over_120ms": 1,
+   "gaps_over_100ms_per_10min": 5.72,
+   "gap_causes": {
+    "server_send": 1,
+    "client_loop": 1,
+    "server_late": 1
+   },
+   "worst_gaps": [
+    {
+     "t_rel_s": 14.97,
+     "gap_ms": 128.7,
+     "cause": "server_send"
+    },
+    {
+     "t_rel_s": 19.93,
+     "gap_ms": 103.4,
+     "cause": "client_loop"
+    },
+    {
+     "t_rel_s": 30.2,
+     "gap_ms": 103.1,
+     "cause": "server_late"
+    }
+   ],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "p": 108,
+    "f": 5307,
+    "i": 867,
+    "h": 10
+   },
+   "client_content_1s_min": 19,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99812,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 1,
+   "server_send_interval_max_ms": 121.8,
+   "server_anchored_1s_min": 19,
+   "latency_ms_p50": 54.3,
+   "latency_ms_p99": 61.0,
+   "latency_ms_max": 394.3,
+   "P1_rate": false,
+   "P2_fresh": true,
+   "P3_no_buffering": false,
+   "PASS": false
+  },
+  {
+   "stream": 4,
+   "avatar_id": "codex_smoke",
+   "session_id": "C-G8cnaNa-TLUIfc4r3BXQ",
+   "window_s": 299.7,
+   "frames": 5997,
+   "mean_fps": 20.004,
+   "anchored_1s_min_frames": 19,
+   "anchored_1s_windows_below_20": 2,
+   "first_below_20_rel_s": 14.02,
+   "fixed_1s_bin_min": 20,
+   "gap_max_ms": 120.5,
+   "gap_p99_ms": 57.6,
+   "gaps_over_100ms": 1,
+   "gaps_over_120ms": 1,
+   "gaps_over_100ms_per_10min": 2.0,
+   "gap_causes": {
+    "server_send": 1
+   },
+   "worst_gaps": [
+    {
+     "t_rel_s": 25.18,
+     "gap_ms": 120.5,
+     "cause": "server_send"
+    }
+   ],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "f": 5083,
+    "i": 820,
+    "p": 80,
+    "h": 14
+   },
+   "client_content_1s_min": 19,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99725,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 1,
+   "server_send_interval_max_ms": 111.2,
+   "server_anchored_1s_min": 19,
+   "latency_ms_p50": 53.7,
+   "latency_ms_p99": 61.7,
+   "latency_ms_max": 133.3,
+   "P1_rate": false,
+   "P2_fresh": true,
+   "P3_no_buffering": false,
+   "PASS": false
+  },
+  {
+   "stream": 5,
+   "avatar_id": "japanese_baddie_ltx23_talking_v1",
+   "session_id": "1yLiRYBHt26hJU8VAKO-_Q",
+   "window_s": 299.4,
+   "frames": 5989,
+   "mean_fps": 19.999,
+   "anchored_1s_min_frames": 19,
+   "anchored_1s_windows_below_20": 1,
+   "first_below_20_rel_s": 18.9,
+   "fixed_1s_bin_min": 19,
+   "gap_max_ms": 117.7,
+   "gap_p99_ms": 57.9,
+   "gaps_over_100ms": 1,
+   "gaps_over_120ms": 0,
+   "gaps_over_100ms_per_10min": 2.0,
+   "gap_causes": {
+    "server_send": 1
+   },
+   "worst_gaps": [
+    {
+     "t_rel_s": 19.8,
+     "gap_ms": 117.7,
+     "cause": "server_send"
+    }
+   ],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "f": 4976,
+    "i": 898,
+    "p": 102,
+    "h": 13
+   },
+   "client_content_1s_min": 19,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99739,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 1,
+   "server_send_interval_max_ms": 103.8,
+   "server_anchored_1s_min": 19,
+   "latency_ms_p50": 54.7,
+   "latency_ms_p99": 62.8,
+   "latency_ms_max": 121.0,
+   "P1_rate": false,
+   "P2_fresh": true,
+   "P3_no_buffering": false,
+   "PASS": false
+  },
+  {
+   "stream": 6,
+   "avatar_id": "latina_baddie_ltx23_talking_v1",
+   "session_id": "cLsdqjb9QQAsp3VQRQb42A",
+   "window_s": 301.8,
+   "frames": 6036,
+   "mean_fps": 19.997,
+   "anchored_1s_min_frames": 20,
+   "anchored_1s_windows_below_20": 0,
+   "first_below_20_rel_s": null,
+   "fixed_1s_bin_min": 19,
+   "gap_max_ms": 98.0,
+   "gap_p99_ms": 57.7,
+   "gaps_over_100ms": 0,
+   "gaps_over_120ms": 0,
+   "gaps_over_100ms_per_10min": 0.0,
+   "gap_causes": {},
+   "worst_gaps": [],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "f": 5052,
+    "h": 12,
+    "i": 876,
+    "p": 96
+   },
+   "client_content_1s_min": 19,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99763,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 0,
+   "server_send_interval_max_ms": 88.4,
+   "server_anchored_1s_min": 20,
+   "latency_ms_p50": 54.4,
+   "latency_ms_p99": 62.8,
+   "latency_ms_max": 101.8,
+   "P1_rate": true,
+   "P2_fresh": true,
+   "P3_no_buffering": true,
+   "PASS": true
+  },
+  {
+   "stream": 7,
+   "avatar_id": "ltx23_talking_endpoint_override_pilot_20260922",
+   "session_id": "mgRT9nAe7N7440of88WvIw",
+   "window_s": 293.8,
+   "frames": 5877,
+   "mean_fps": 19.999,
+   "anchored_1s_min_frames": 20,
+   "anchored_1s_windows_below_20": 0,
+   "first_below_20_rel_s": null,
+   "fixed_1s_bin_min": 19,
+   "gap_max_ms": 117.8,
+   "gap_p99_ms": 57.7,
+   "gaps_over_100ms": 1,
+   "gaps_over_120ms": 0,
+   "gaps_over_100ms_per_10min": 2.04,
+   "gap_causes": {
+    "server_send": 1
+   },
+   "worst_gaps": [
+    {
+     "t_rel_s": 10.13,
+     "gap_ms": 117.8,
+     "cause": "server_send"
+    }
+   ],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "i": 781,
+    "p": 85,
+    "f": 5000,
+    "h": 11
+   },
+   "client_content_1s_min": 19,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.9978,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 1,
+   "server_send_interval_max_ms": 110.1,
+   "server_anchored_1s_min": 20,
+   "latency_ms_p50": 54.8,
+   "latency_ms_p99": 62.9,
+   "latency_ms_max": 121.5,
+   "P1_rate": true,
+   "P2_fresh": true,
+   "P3_no_buffering": false,
+   "PASS": false
+  },
+  {
+   "stream": 8,
+   "avatar_id": "japanese_relay64_talking_preview_20260925",
+   "session_id": "XGynv-ZdXauKibyUFZoRQQ",
+   "window_s": 309.8,
+   "frames": 6197,
+   "mean_fps": 19.997,
+   "anchored_1s_min_frames": 20,
+   "anchored_1s_windows_below_20": 0,
+   "first_below_20_rel_s": null,
+   "fixed_1s_bin_min": 19,
+   "gap_max_ms": 87.3,
+   "gap_p99_ms": 56.8,
+   "gaps_over_100ms": 0,
+   "gaps_over_120ms": 0,
+   "gaps_over_100ms_per_10min": 0.0,
+   "gap_causes": {},
+   "worst_gaps": [],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "f": 5161,
+    "i": 931,
+    "p": 93,
+    "h": 12
+   },
+   "client_content_1s_min": 19,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99768,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 0,
+   "server_send_interval_max_ms": 79.3,
+   "server_anchored_1s_min": 20,
+   "latency_ms_p50": 54.6,
+   "latency_ms_p99": 62.1,
+   "latency_ms_max": 92.7,
+   "P1_rate": true,
+   "P2_fresh": true,
+   "P3_no_buffering": true,
+   "PASS": true
+  },
+  {
+   "stream": 9,
+   "avatar_id": "chinese_bob_pink_bedroom_idle_d4b06da317",
+   "session_id": "iUvUNVaEuyznJW62pDmf7A",
+   "window_s": 302.8,
+   "frames": 6057,
+   "mean_fps": 19.999,
+   "anchored_1s_min_frames": 20,
+   "anchored_1s_windows_below_20": 0,
+   "first_below_20_rel_s": null,
+   "fixed_1s_bin_min": 19,
+   "gap_max_ms": 77.3,
+   "gap_p99_ms": 57.2,
+   "gaps_over_100ms": 0,
+   "gaps_over_120ms": 0,
+   "gaps_over_100ms_per_10min": 0.0,
+   "gap_causes": {},
+   "worst_gaps": [],
+   "pts_join_matched": 1.0,
+   "client_kinds": {
+    "f": 5034,
+    "i": 910,
+    "p": 101,
+    "h": 12
+   },
+   "client_content_1s_min": 19,
+   "client_held_run_max": 1,
+   "server_fresh_fraction": 0.99762,
+   "server_held_run_max": 1,
+   "server_send_gaps_over_100ms": 0,
+   "server_send_interval_max_ms": 72.9,
+   "server_anchored_1s_min": 20,
+   "latency_ms_p50": 54.5,
+   "latency_ms_p99": 62.1,
+   "latency_ms_max": 81.9,
+   "P1_rate": true,
+   "P2_fresh": true,
+   "P3_no_buffering": true,
+   "PASS": true
+  }
+ ]
+}

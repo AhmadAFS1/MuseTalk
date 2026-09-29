@@ -57,6 +57,8 @@ import io
 import av  # ✅ ADD THIS - needed for audio probing
 from concurrent.futures import TimeoutError as FutureTimeoutError
 from datetime import datetime, timedelta
+from scripts import gc_tuning  # opt-in GC logging/freeze (MUSETALK_GC_LOG / MUSETALK_GC_FREEZE); default no-op
+gc_tuning.install()
 
 PROCESS_START_TIME = time.time()
 
@@ -415,10 +417,12 @@ apply_cpu_tuning_runtime("api_server")
 from scripts.webrtc_media_flags import (
     apply_thread_caps as _apply_media_thread_caps,
     group_max_count as _webrtc_group_max_count,
+    idle_frame_cache_warm_enabled as _idle_frame_cache_warm_enabled,
     lifetime_counters_enabled as _webrtc_lifetime_counters_enabled,
     local_tts_disabled as _local_tts_disabled,
     nonblocking_handoff_enabled as _webrtc_nonblocking_handoff_enabled,
     non_default as _media_flags_non_default,
+    offloop_diagnostics_enabled as _offloop_diagnostics_enabled,
     startup_line as _media_flags_startup_line,
 )
 from scripts.webrtc_live_handoff import get_live_handoff as _get_webrtc_live_handoff
@@ -1112,6 +1116,8 @@ async def startup_event():
     worker_control_plane.mark_local_ready()
 
     print("✅ MuseTalk API Server ready!")
+    gc_tuning.freeze("startup")
+    gc_tuning.install_loop_diagnostics(asyncio.get_running_loop())
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -1203,8 +1209,17 @@ async def health_check():
     if manager is None:
         raise HTTPException(status_code=503, detail="Manager not initialized")
     
-    stats = manager.get_stats()
-    worker_state = worker_control_plane.state_snapshot() if worker_control_plane is not None else None
+    def _collect_health():
+        return (
+            manager.get_stats(),
+            worker_control_plane.state_snapshot() if worker_control_plane is not None else None,
+        )
+
+    # state_snapshot() samples nvidia-smi through the worker metrics provider.
+    if _offloop_diagnostics_enabled():
+        stats, worker_state = await asyncio.to_thread(_collect_health)
+    else:
+        stats, worker_state = _collect_health()
     payload = {
         "ok": worker_control_plane.ready_for_health() if worker_control_plane is not None else True,
         "service": "musetalk",
@@ -1323,6 +1338,8 @@ async def worker_state():
     """Worker control-plane state and local drain/admission details."""
     if worker_control_plane is None:
         raise HTTPException(status_code=503, detail="Worker state not initialized")
+    if _offloop_diagnostics_enabled():
+        return await asyncio.to_thread(worker_control_plane.state_snapshot)
     return worker_control_plane.state_snapshot()
 
 
@@ -1791,10 +1808,40 @@ async def warm_avatar_cache(
             )
         payload = manager.get_avatar_cache_status(avatar_id)
 
+    if _idle_frame_cache_warm_enabled():
+        payload = dict(payload)
+        payload["idle_frame_cache"] = await _warm_webrtc_idle_frame_cache(
+            avatar_id, wait=wait, timeout_seconds=timeout_seconds
+        )
+
     return JSONResponse(
         status_code=_avatar_warm_response_code(payload),
         content=payload,
     )
+
+
+async def _warm_webrtc_idle_frame_cache(avatar_id: str, wait: bool, timeout_seconds: float) -> dict:
+    """WEBRTC_IDLE_FRAME_CACHE_WARM=1: build the avatar's idle/pose clips now instead of at its first session."""
+    try:
+        from scripts.webrtc_idle_frame_cache import get_idle_frame_cache
+
+        cache = get_idle_frame_cache()
+        if cache is None:
+            return {"enabled": False}
+        video_path = _resolve_avatar_video_path(avatar_id, role="idle")
+        pose_paths = {
+            entry["pose_id"]: entry["video_path"]
+            for entry in _list_avatar_idle_pose_entries(avatar_id)
+            if entry.get("exists") and entry.get("video_path")
+        }
+        _prewarm_webrtc_idle_frame_cache(video_path, pose_paths)
+        ready = True
+        if wait:
+            ready = await asyncio.to_thread(cache.wait_idle, max(0.1, float(timeout_seconds)))
+        return {"requested": 1 + len(pose_paths), "ready": bool(ready)}
+    except Exception as exc:
+        print(f"⚠️ Idle frame cache warm failed for {avatar_id}: {exc}", flush=True)
+        return {"error": str(exc)}
 
 
 @app.get("/avatars/{avatar_id}/cache/status")
@@ -4457,12 +4504,19 @@ async def webrtc_session_stats(
 
 
 @app.get("/webrtc/sessions/{session_id}/status")
-async def webrtc_session_status(session_id: str):
+async def webrtc_session_status(session_id: str, light: bool = False):
     _require_webrtc()
     session = await webrtc_session_manager.get_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found or expired")
 
+    if light:
+        # Turn-completion polling: skip track/pose stats, which are built on the event loop.
+        return {
+            "session_id": session.session_id,
+            "status": _get_webrtc_session_status(session),
+            "active_stream": session.active_stream,
+        }
     return {
         "session_id": session.session_id,
         "avatar_id": session.avatar_id,
@@ -5306,14 +5360,28 @@ async def webrtc_stream(
         await rollback_stream_setup("stale audio cleanup failed")
         raise
 
-    print(
+    stream_request_line = (
         "🎬 WebRTC stream request "
         f"request_id={request_id} session_id={session_id} avatar_id={session.avatar_id} "
         f"fps={session.fps} playback_fps={session.playback_fps} "
         f"batch_size={session.batch_size} chunk_duration={session.chunk_duration} "
-        f"snapshot={json.dumps(_sample_process_resource_snapshot(), sort_keys=True)}",
-        flush=True,
     )
+    if _offloop_diagnostics_enabled():
+        # The snapshot runs nvidia-smi; on the loop it stalls every stream's pacing.
+        def _log_stream_request_snapshot():
+            print(
+                stream_request_line
+                + f"snapshot={json.dumps(_sample_process_resource_snapshot(), sort_keys=True)}",
+                flush=True,
+            )
+
+        asyncio.get_running_loop().run_in_executor(None, _log_stream_request_snapshot)
+    else:
+        print(
+            stream_request_line
+            + f"snapshot={json.dumps(_sample_process_resource_snapshot(), sort_keys=True)}",
+            flush=True,
+        )
 
     upload_dir = Path("uploads/audio")
     try:
@@ -6350,12 +6418,17 @@ async def get_stats():
     if manager is None:
         raise HTTPException(status_code=503, detail="Manager not initialized")
 
-    stats = manager.get_stats()
-    if hls_stream_scheduler is not None:
-        stats["hls_scheduler"] = hls_stream_scheduler.get_stats()
-    if worker_control_plane is not None:
-        stats["worker"] = worker_control_plane.state_snapshot()
-    return stats
+    def _collect_stats():
+        stats = manager.get_stats()
+        if hls_stream_scheduler is not None:
+            stats["hls_scheduler"] = hls_stream_scheduler.get_stats()
+        if worker_control_plane is not None:
+            stats["worker"] = worker_control_plane.state_snapshot()
+        return stats
+
+    if _offloop_diagnostics_enabled():
+        return await asyncio.to_thread(_collect_stats)
+    return _collect_stats()
 
 
 @app.get("/stats/gpu-live")
