@@ -30,6 +30,7 @@ re-running one verbatim repeats that day's task. Adapt a copy instead.
 | `musetalk-300fps-chin-multistream.js` | 09-28 05:38 | The multi-stream TAESD + 100% chin harness (bit-exact vs accepted renders), ≥ 300 fps with the new engines, quality metrics and videos. |
 | `verify-lineage-videos.js` | 09-28 22:49 | First verification of the BEFORE/r2/r3/r4 lineage videos: 6 per-identity agents plus a skeptic. Results: `experiments/video_validation/lineage_all_rounds/verification/pass1_first_4col_set.json`. |
 | `verify-final-lineage.js` | 09-28 23:54 | Second pass on the final sets: 3 video agents, a README auditor and a skeptic. Results: `.../verification/pass2_final_sets.json`. |
+| (named) `review-repro-scripts` | 09-29 01:05 | First audit of `scripts/repro_400fps/`: 3 blockers and about 20 majors/minors, all fixed in 37400f0. Results: `scripts/repro_400fps/review_2026-09-29.json`. |
 
 The SoulX-FlashHead sessions on this box ran their own workflows (30 fps levers, quantization targets, tiny-VAE
 feasibility, motion reuse). Those scripts are in `~/.claude/projects/-workspace-SoulX-FlashHead/*/workflows/scripts/`
