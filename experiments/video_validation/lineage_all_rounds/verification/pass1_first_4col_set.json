@@ -1,0 +1,524 @@
+[
+ {
+  "identity": "white_man_clean_shaven",
+  "checks": [
+   {
+    "check": "1. ffprobe container/streams",
+    "pass": true,
+    "detail": "1600x1610 (4 columns x 400 px), H.264 High, level 5.0, yuv420p, avc1. 240 frames: both nb_frames and a -count_frames decode give 240. 24/1 fps, 10.000 s. Audio is AAC-LC, 24 kHz mono, 10.000 s; packets run from -0.043 s (AAC priming) to 10.000 s, so it matches the video exactly (limit was 0.2 s). The source speech.wav (/workspace/experiments/avatar_diversity_20260927/white_man_clean_shaven/speech.wav) is also 10.000 s. moov comes before mdat (faststart). This is the standard Chromium-playable combination; I did not open it in VS Code itself."
+   },
+   {
+    "check": "2. Frames extracted and viewed",
+    "pass": true,
+    "detail": "Extracted frames 1, 25, 48, 96, 144, 184, 192 and 240 (1-based; ffmpeg n = frame - 1) to /tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/verify_white_man_clean_shaven/ and viewed every PNG. 184 is the widest-mouth still and 25 the last-column-most-different still; the builder writes these as widest+1 and worst+1, so they are 1-based. Also viewed the zoom and diff crops saved in the same folder."
+   },
+   {
+    "check": "2a. Column labels and fps legible, correct, not clipped",
+    "pass": true,
+    "detail": "Headers read: 'BEFORE (accepted render) / single-stream 148-171 fps / TensorRT FP16 bs8 UNet (shipping engine) + compiled TAESD'; 'r2 / 350.2 fps aggregate (6 streams)'; 'r3 / 415.6 fps aggregate (6 streams)'; 'r4 NEW / 414.9 fps aggregate (6 streams)' in yellow. The two-line descriptions wrap inside their columns and nothing is clipped. One cosmetic issue: the full-width title line on row 1 is crossed by the 2 px grey column dividers at x=400 and x=800 ('source|frames', 'rebu|ilt'). It stays readable."
+   },
+   {
+    "check": "2b. Frame counter increments",
+    "pass": true,
+    "detail": "Reads 'frame 1 / 240', '25 / 240', '48', '96', '144', '184', '192', '240 / 240', matching each extracted index (1-based). It does not overlap the title."
+   },
+   {
+    "check": "2c. Mouth zoom row shows the mouth in all four columns",
+    "pass": true,
+    "detail": "Every column in all 8 frames shows the upper lip, lower lip, teeth/inner mouth, lip corners and the chin/jaw curve. The zoom row sits at y=826..1070 (zh=244)."
+   },
+   {
+    "check": "2d. Diff panels: r2 near-black, r3 broad, r4 around lips",
+    "pass": true,
+    "detail": "Mean brightness of the x8 panel (0-255): r2 0.56-0.64 (near-black, matching raw face diff mean 0.097 LSB x8); r3 5.2-6.7, with broad differences on eye outlines, hair, nose, lips and the jaw/neck edge; r4 1.0-1.7, except 3.05 at frame 25. In raw 256 px faces over all 240 frames, r4's mouth region averages 0.51 LSB against 0.215 elsewhere (2.4x; r3 is 1.5x), so r4 is lip-weighted. Caveat: at frames 25-26 (the 'most different' still) r4 also shows a faint reddish tint in the upper-left hair/forehead of the generated crop, with block means up to 6.3 LSB. The upper half of the face differs more than the lower half in 17 of 240 frames. That tint does not measurably reach the composite: in the full frame's head region, r4 minus r2 block MAD stays within +/-0.3 LSB."
+   },
+   {
+    "check": "2e. BEFORE row 3 shows the generated face",
+    "pass": true,
+    "detail": "All 8 frames show the 256 px generated face (forehead to collar), upscaled to 400x400, with the mouth pose matching the frame."
+   },
+   {
+    "check": "3. Cyan metrics vs quality JSONs",
+    "pass": true,
+    "detail": "No mismatch. r2 (srcmix_taesdtrt): corr 0.99992->0.9999, delta 0.0535->0.05, flicker 1.0002/1.0003->1.000/1.000, landmarks 0.05496/0.17834->0.055/0.18, PSNR 63.21/57.18->63.2/57.2, chin err +0.0010->+0.001. r3 (srcv1_taesdtrt): 0.99687->0.9969, 0.3115->0.31, 1.0253/1.0086->1.025/1.009, 0.2498/0.8110->0.250/0.81, 51.07/43.45->51.1/43.5, -0.0017->-0.002. r4 (srcblkA8): 0.99931->0.9993, 0.1344->0.13, 1.0025/0.9992->1.003/0.999, 0.1158/0.4101->0.116/0.41, 57.58/50.06->57.6/50.1, +0.0061->+0.006. The JSONs' B arm points at Q_* captures, not the V_* captures used for the video. However, each JSON's B.info.frames_sha256 equals the lineage frames_sha256 for its round, so the metrics describe exactly the pixels shown."
+   },
+   {
+    "check": "3a. Quality-tool verdict",
+    "pass": false,
+    "detail": "All three JSONs have verdict FAIL. Each fails exactly chin.landmark_dev_mean_px (<=0.05) and chin.landmark_dev_p99_px (<=0.15): r2 0.055/0.178, r3 0.250/0.811, r4 0.116/0.410. The quality README records that these strict thresholds fail even on 1-LSB synthetic noise, and lists a report-only calibrated proposal of 0.10/0.35. Under that proposal r2 would pass, but r4 (0.116 > 0.10, 0.41 > 0.35) and r3 would fail. The video prints the values but no thresholds or verdict."
+   },
+   {
+    "check": "4. lineage_report.json bit-exactness",
+    "pass": true,
+    "detail": "BEFORE raw_matches_render_json is true. Its frames_sha256 a14a2af3... equals render.json raw_refined_sha256, which I read directly, and faces.npz sha256 cb0b6229... equals render.json's artifact hash. bit_exact_vs_harness_render is true for r2, r3 and r4 NEW. I re-read raw_refined_sha256 from V_srcmix_taesdtrt.json, V_srcv1_taesdtrt.json and V_srcblkA8.json (worker 5): 7b36c218..., 4852aaff..., f53ddd75..., each equal to the report's frames_sha256. protected_lip max_rgb_difference is 0 in all columns and chin_delta_recomputed_equals_saved is true for every round."
+   },
+   {
+    "check": "5. Independent mouth-zoom MAD vs BEFORE",
+    "pass": true,
+    "detail": "Measured on the encoded video's zoom cells (x+2..x+398 to skip the dividers) at all 8 frames, in LSB. r2: 0.97, 1.08, 1.20, 1.12, 1.19, 1.18, 1.12, 1.21 (mean 1.134). r3: 1.54, 1.53, 1.50, 1.44, 1.53, 1.52, 1.44, 1.56 (mean 1.505). r4: 1.08, 1.19, 1.23, 1.16, 1.29, 1.30, 1.16, 1.35 (mean 1.219). r2 < r4 < r3 at every frame, matching PSNR mouth 57.2 > 50.1 > 43.5 and aperture delta 0.05 < 0.13 < 0.31. Caveat: the codec noise floor between columns on content that should be pixel-identical (wall and shirt) is 0.7-1.2 LSB, so r2's zoom MAD is at the floor and r4 is only about 0.1 above it. A noise-free check on the raw 256 px faces' mouth region at the same frames gives r2 0.12-0.18, r4 0.34-0.76 and r3 1.14-1.80 LSB, the same ordering."
+   },
+   {
+    "check": "fps labels vs capture runs",
+    "pass": true,
+    "detail": "The labels (350.2 / 415.6 / 414.9) match the headline numbers in the round docs. The V_* capture runs that produced these frames recorded 350.0 / 413.6 / 412.8 aggregate fps, within 0.5%. BEFORE is labelled single-stream while the rounds are 6-stream aggregate; the labels say so explicitly."
+   }
+  ],
+  "visual_observations": "At normal viewing, and in the 3x nearest-neighbour mouth zoom, I could not see any difference between BEFORE and r2, r3 or r4 at frames 1, 25, 48, 96, 144, 184, 192 or 240. I also compared 2x2 crops at frames 144 and 184. Specifically: the teeth look the same (the upper-incisor row and the small gap at frames 1 and 240, the single visible tooth at frames 48 and 96, the wide upper row at 184); the lip outlines and corners look the same; the inner-mouth darkness and tongue/lower-lip edge at 184 and 192 look the same; the light chin stubble on this clean-shaven identity has the same texture; and the chin/jaw curve at the bottom corners of the zoom is in the same place. No seam or halo is visible in any column. The full-frame row also looks the same, and measures at codec noise (0.8-1.4 LSB, the same as the wall and shirt). Differences only show when amplified. In an x8 diff of the encoded zoom cells, r2 is pure codec noise (p99 6 LSB). r3 shows scattered differences along the teeth, lip line and lip corners (peak 23-29 LSB, p99 8) at frames 25, 184 and 240. r4 shows smaller differences on the teeth at frames 25 and 240 and a thin line along the inner edge of the lower lip at frame 184 (peak 14-23 LSB, p99 6-7). The video's own diff row, made from raw pre-encode faces, tells the same story. r2 is essentially black. r3 lights up the eyes, hair, nose, lips and jaw/neck outline. r4 is faint and mostly at the lips and teeth, with a faint jaw/neck edge line at the bottom-right of the crop (frames 1, 192). At frames 25-26 r4 also shows a faint reddish tint in the upper-left hair/forehead of the generated crop. That tint is not measurable in the composited frame, where the head-region difference from r2 is within +/-0.3 LSB. Bottom line: the r4 and r3 changes are real but below what a viewer would notice at normal size. The evidence for them is the amplified diff panel and the metrics, not the visible frame.",
+  "problems": [
+   {
+    "severity": "major",
+    "description": "The cyan metrics lines show values without thresholds or the quality tool's verdict. All three quality JSONs are verdict FAIL on chin.landmark_dev_mean_px/p99_px (strict gates <=0.05/0.15 px): r2 0.055/0.178, r3 0.250/0.811, r4 0.116/0.410. The strict gates are known to fail on 1-LSB noise, and r2 would pass the report-only calibrated proposal (<=0.10/0.35). r4 would fail even that proposal (0.116 > 0.10, 0.41 > 0.35). A viewer of the video cannot see any of this.",
+    "suggested_fix": "Add a per-column verdict line such as 'quality tool: FAIL chin.landmark_dev (strict 0.05/0.15 px); calibrated 0.10/0.35: r2 pass / r3 fail / r4 fail', or print each threshold next to its value. State the same in the README beside the video."
+   },
+   {
+    "severity": "minor",
+    "description": "r4's differences are lip-weighted but not only at the lips. At frames 25-26, the frame the video picks as the 'most different' still, the raw-face diff shows a low-frequency reddish tint in the upper-left hair/forehead (16 px block means up to 6.3 LSB), plus a faint jaw/neck edge line in several frames. The upper-face difference exceeds the lower-face difference in 17 of 240 frames. It does not measurably reach the composited frame.",
+    "suggested_fix": "In the README, describe r4 as 'mostly at the lips/teeth, with a faint upper-left hair tint in raw faces at frames 25-26 that the blend removes', rather than 'lips only'."
+   },
+   {
+    "severity": "minor",
+    "description": "The H.264 encode (crf 14) adds 0.7-1.2 LSB of noise between columns even where the content should be identical (wall, shirt). That is about the size of r2's and r4's real mouth-zoom differences (r2 zoom MAD 1.13 against a floor of about 1.0), so the zoom row cannot show those differences at the pixel level. Only the raw-face diff row and the metrics can.",
+    "suggested_fix": "Note in the README that zoom-row differences below about 1 LSB are codec noise. Optionally add a row showing the x8 difference of the raw composited mouth crop (pre-encode), so the lip-region change survives encoding."
+   },
+   {
+    "severity": "minor",
+    "description": "The 2 px grey column dividers are drawn full height and cross the single-line title in row 1 ('source|frames', 'rebu|ilt').",
+    "suggested_fix": "Start the dividers at y=24, below the title line, or put the title on its own black band."
+   },
+   {
+    "severity": "minor",
+    "description": "The fps labels are headline benchmark numbers (350.2 / 415.6 / 414.9). The capture runs that produced these frames measured 350.0 / 413.6 / 412.8. BEFORE is labelled single-stream while the rounds are 6-stream aggregate, so the fps line compares different measurements (it is labelled accurately).",
+    "suggested_fix": "Optionally add 'capture run: 350.0 / 413.6 / 412.8 fps', and BEFORE's aggregate figure if one exists, so the fps comparison is like-for-like."
+   }
+  ]
+ },
+ {
+  "identity": "east_asian_man_goatee",
+  "checks": [
+   {
+    "check": "1. ffprobe container/streams",
+    "pass": true,
+    "detail": "1600x1608 H.264 High, level 5.0, yuv420p, 24/1 fps (r and avg). nb_frames 240, and a -count_frames decode also read 240. Video duration 10.000 s. AAC LC audio, 24 kHz mono, 10.000 s, start 0; source speech.wav is pcm_s16le 24 kHz, 10.000 s, so the audio-video gap is 0.0 s. The audio is not silent (mean -27.5 dB, max -6.9 dB). moov comes before mdat (faststart). A full video and audio decode with -xerror ran with no errors. Canvas height matches the script: 104+700+22+242+22+400+118 = 1608. I did not test playback in VS Code itself; the file meets the stated criterion (yuv420p, H.264 High)."
+   },
+   {
+    "check": "2a. Frames extracted and viewed",
+    "pass": true,
+    "detail": "Frames 1, 48, 96, 144, 183, 185, 192 and 240 (ffmpeg n = K-1) are in /tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/verify_east_asian_man_goatee/f*.png. I viewed every one with Read. 183 and 185 are the stills frames from lineage_report (widest_mouth 183, last_column_most_different 185). video_lineage.py confirms those numbers are 1-based (widest+1, worst+1)."
+   },
+   {
+    "check": "2b. Column labels and fps legible, not clipped",
+    "pass": true,
+    "detail": "Labels read 'BEFORE (accepted render)' / 'single-stream 148-171 fps' / 'TensorRT FP16 bs8 UNet (shipping engine) + compiled TAESD'; 'r2' / '350.2 fps aggregate (6 streams)'; 'r3' / '415.6 fps aggregate (6 streams)'; 'r4 NEW' (yellow) / '414.9 fps aggregate (6 streams)'. The r2 and r4 descriptions wrap to 2 lines and stay inside their 400 px columns. Nothing is clipped and no labels overlap. One cosmetic issue: the canvas-wide header sentence runs across the column dividers (see problems)."
+   },
+   {
+    "check": "2c. Frame counter increments",
+    "pass": true,
+    "detail": "The counter reads 'frame 1 / 240', 48, 96, 144, 183, 185, 192 and '240 / 240', matching n+1 at every extracted frame."
+   },
+   {
+    "check": "2d. Mouth zoom row shows the mouth in all 4 columns",
+    "pass": true,
+    "detail": "In every extracted frame, all 4 cells show the moustache at the top, both lips, teeth or the mouth gap, and chin stubble at the bottom. The crop box is fixed, taken from the BEFORE landmarks, so the framing is identical across columns."
+   },
+   {
+    "check": "2e. Diff panels: r2 near-black, r3 broad, r4 around the lips",
+    "pass": true,
+    "detail": "r2 is essentially black in every frame. r3 shows broad differences across the whole face: hair, eyes, brows, nose, lips, jaw contour and neck/collar edges. r4 is dim overall. At 144, 183 and 185 its brightest area is clearly the lip line, teeth and lower lip. At 1, 48, 96, 192 and 240 it is near-black with a faint lip region, plus faint jaw-contour and neck/collar edge lines, so 'around the lips' is not the only place r4 differs. Measured on the encoded panels, the share of diff energy in the central mouth band is r4 0.23-0.43, r2 0.14-0.19 and r3 0.15-0.20. On the raw faces, 26% of r4's clip-wide |diff| falls in a mouth box covering 11% of the face area, against 15% (r2) and 16% (r3)."
+   },
+   {
+    "check": "2f. BEFORE row 3 shows the generated face",
+    "pass": true,
+    "detail": "In all frames the BEFORE cell shows the upscaled 256 px generated face. The eyes are closed at 96 and 192, matching the blink in the full frame."
+   },
+   {
+    "check": "3. Cyan metrics vs quality-tool JSONs",
+    "pass": true,
+    "detail": "No mismatches. r2 (srcmix_taesdtrt): corr 0.99995 shown as 0.9999, delta 0.0427 as 0.04, flicker 1.00005/0.99981 as 1.000/1.000, landmarks 0.0412/0.1230 as 0.041/0.12, PSNR 62.79/56.39 as 62.8/56.4, chin error change -0.0052 as -0.005. r3 (srcv1_taesdtrt): 0.99859/0.2344/1.0231/1.0057/0.2215/0.6491/50.38/42.56/+0.0053, shown as 0.9986/0.23/1.023/1.006/0.221/0.65/50.4/42.6/+0.005. r4 (srcblkA8): 0.99895/0.1648/0.99871/1.00170/0.1171/0.4946/56.56/48.76/+0.0133, shown as 0.9990/0.16/0.999/1.002/0.117/0.49/56.6/48.8/+0.013. I also recomputed the 'raw face diff mean / max' line from faces.npz: 0.106/15, 0.915/71 and 0.235/57, all exact. The quality JSONs scored the Q_ captures, but their B frames_sha256 values (076fe..., bb780..., fa4b0...) equal the video's V_ rebuilt sha256 values, so the metrics describe exactly the frames shown. Their A sha (93322d...) equals BEFORE."
+   },
+   {
+    "check": "4. lineage_report bit-exactness",
+    "pass": true,
+    "detail": "BEFORE: raw_matches_render_json true, protected_lip max diff 0 across 240 frames. r2, r3 and r4 NEW: bit_exact_vs_harness_render true, and each harness raw_refined_sha256 equals its frames_sha256. I re-read those harness sha256 values from each capture's V_*.json (worker 2) and they match. chin_delta_recomputed_equals_saved is true and protected_lip is 0 for all three. The rebuilt-vs-capture-mp4 PSNR is about 40.84 dB for each."
+   },
+   {
+    "check": "5. Independent mouth-zoom MAD ordering",
+    "pass": true,
+    "detail": "Encoded mouth-zoom cell (y 826-1068, x k*400+3 to +397) MAD vs BEFORE, r2/r3/r4: f1 1.08/1.70/1.24; f48 1.25/1.68/1.33; f96 1.25/1.59/1.33; f144 1.21/1.67/1.64; f183 1.29/1.75/1.50; f185 1.11/1.55/1.92; f192 1.28/1.75/1.35; f240 1.32/1.71/1.42. r2 is the smallest at all 8 frames. r3 > r4 at 6 of 8 frames, which matches the clip-level mouth PSNR order (r2 56.4 > r4 48.8 > r3 42.6 dB). The exceptions: r4 > r3 at frame 185, the frame the report chose as r4's most-different one (per-frame raw face MAD peaks at 0.525 there), and r3 and r4 are roughly tied at 144. The encode sets a noise floor: background MAD between columns is 0.3-0.5 LSB, and r2's zoom MAD of about 1.1-1.3 is mostly encode noise, since its raw mouth-box MAD is only 0.15. The raw-face mouth-box MAD gives the same order: clip r2 0.149 < r4 0.549 < r3 1.352; frame 185: 0.186 / 1.337 / 1.852."
+   }
+  ],
+  "visual_observations": "At normal viewing, the full frames and the 3x mouth zooms of BEFORE, r2, r3 and r4 look the same in all 8 frames I checked (1, 48, 96, 144, 183, 185, 192, 240). Lip shape, mouth opening, teeth, inner-mouth darkness, moustache, chin stubble, chin line and blend seam show no difference I can see. r2 cannot be told apart from BEFORE even when enlarged, and its x8 diff panel is black.\n\nFor r3 and r4 I only found differences by enlarging the crops about 6x and using the x8 diff. At frame 185 (r4's worst frame), r4's diff is brightest along the lower edge of the dark mouth slit, the teeth and the lower lip: 240 face pixels differ by 16 LSB or more and the maximum difference is 57. Even enlarged, BEFORE and r4 look alike: same teeth, same lip edges, same gap. At most, r4's lower slit edge and teeth highlights sit a fraction of a pixel differently; I would not call that visible. Frame 144 is similar: small changes in the teeth and inner-mouth highlights for r3 and r4, not noticeable at normal size.\n\nr3's differences are spread over the whole face (hair, eyes, lips, jaw, neck edges) but are low-amplitude texture changes that I could not see in the full-frame or zoom rows. Its landmark numbers are the worst of the three (jaw+lip deviation 0.221 / p99 0.65 px).\n\nThe moustache in the generated face looks greyish, and the zoom's lower-right stubble looks slightly blocky under nearest-neighbour scaling. Both are identical in all four columns, including BEFORE, so they are not regressions.\n\nBeard, chin line and seam look the same in all columns. The only non-lip signal in r4's diff panel is faint jaw-contour and collar/neck edge lines (visible at 1, 183, 185, 240), consistent with r4's chin landmark deviation of 0.117 px mean / 0.49 px p99. That is sub-pixel and not visible.",
+  "problems": [
+   {
+    "severity": "major",
+    "description": "The cyan block shows each round's numbers but not the gate thresholds or the tool's verdict. From the quality JSONs: r2 (srcmix_taesdtrt) PASS; r3 FAIL; r4 NEW (srcblkA8) FAIL. r4 fails chin.landmark_dev_mean_px (0.117, gate <= 0.05) and chin.landmark_dev_p99_px (0.49, gate <= 0.15). It also misses the report-only calibrated proposal (mean <= 0.1 and p99 <= 0.35). r3 fails the same gates (0.221 / 0.65). A viewer who sees the yellow 'r4 NEW' label would have no way to tell that the quality tool rejects it, while r2 passes every gate.",
+    "suggested_fix": "Add a verdict line per round, e.g. 'quality tool: PASS' or 'FAIL: jaw+lip landmarks 0.117 > 0.05, p99 0.49 > 0.15'. Alternatively, colour any number that breaches its gate."
+   },
+   {
+    "severity": "minor",
+    "description": "The fps labels measure different things. BEFORE is 'single-stream 148-171 fps' and the rounds are '6-stream aggregate'. The labels say this explicitly, but placed side by side they invite a like-for-like reading.",
+    "suggested_fix": "Add BEFORE's 6-stream aggregate number if one was measured, or add a footnote that the metrics differ."
+   },
+   {
+    "severity": "minor",
+    "description": "The canvas-wide header sentence ('east_asian_man_goatee: same audio and source frames, ... encoded once.') spans three columns. The grey column dividers, drawn full height, run through it at x=400 and x=800 (between 'source' and 'frames', and between 'rebuilt' and 'from'). It stays legible and nothing is clipped; this is cosmetic only.",
+    "suggested_fix": "Start the dividers at y=TOP (104) instead of 0, or give the header row a solid background."
+   }
+  ]
+ },
+ {
+  "identity": "black_man_short_beard",
+  "checks": [
+   {
+    "check": "1. ffprobe container/streams",
+    "pass": true,
+    "detail": "1600x1610, H.264 High, level 5.0, avc1, yuv420p, 24/1 fps, 240 frames, 10.000 s. AAC LC mono 24 kHz, 10.000 s (0.000 s mismatch; first packet pts -0.043 s is normal AAC priming). moov comes before mdat (faststart), so it plays in VS Code/Chromium. The decoded audio correlates 0.998 at lag 0 with /workspace/experiments/avatar_diversity_20260927/black_man_short_beard/speech.wav (10.000 s pcm_s16le)."
+   },
+   {
+    "check": "2a. Frames extracted and viewed",
+    "pass": true,
+    "detail": "Extracted and viewed n=0,8,9,15,16,47,95,143,191,239 (counter reads frame 1,9,10,16,17,48,96,144,192,240) into /tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/verify_black_man_short_beard/. The stills_frames values (widest_mouth 16, last_column_most_different 9) are 1-based: the stills PNG shows 'frame 9 / 240' and 'frame 16 / 240', which are n=8 and n=15. I viewed both."
+   },
+   {
+    "check": "2b. Labels/fps legible, not clipped",
+    "pass": true,
+    "detail": "The labels read 'BEFORE (accepted render) / single-stream 148-171 fps', 'r2 / 350.2 fps aggregate (6 streams)', 'r3 / 415.6 fps aggregate (6 streams)' and 'r4 NEW / 414.9 fps aggregate (6 streams)' in yellow. The r2 and r4 descriptions wrap cleanly onto a second line. Nothing is clipped. Harness medians match: Te_srcmix 350.21, Tf_srcv1 415.64, T_srcblkA8 414.88. Cosmetic: the gray column dividers run through the one-line title, cutting 'fr|ames' and 'rebuilt| from'; the title stays readable. I did not independently check BEFORE's 148-171 fps."
+   },
+   {
+    "check": "2c. Frame counter increments",
+    "pass": true,
+    "detail": "The counter reads 'frame N / 240' with N = n+1 in all 10 extracted frames (1, 9, 10, 16, 17, 48, 96, 144, 192, 240)."
+   },
+   {
+    "check": "2d. Mouth zoom shows mouth in all 4 columns",
+    "pass": true,
+    "detail": "Rows y=826-1070 of each 400 px column show lips, teeth and the beard below, lined up across all four columns in every frame viewed."
+   },
+   {
+    "check": "2e. Diff panels behave as described",
+    "pass": true,
+    "detail": "The r2 panel is near-black: mean 0.56-0.71 gray and mostly codec noise, because the real diff is at most 9 LSB and x8 of sub-LSB values disappears under crf 14. The r3 panel shows broad texture over forehead, eyes, hair, beard, teeth and jaw contour (mean 6.2-9.1). The r4 panel concentrates on the lips and teeth, with a faint right jaw contour (mean 1.4-3.2). At frame 9, 88% of r4 panel energy is in the lower half. Checked against |face - BEFORE| x8 recomputed from faces.npz: blurred correlation is 0.971 for r3 and 0.983 for r4."
+   },
+   {
+    "check": "2f. BEFORE row 3 shows generated face",
+    "pass": true,
+    "detail": "The BEFORE column row 3 shows the tight 256 px generated face (forehead to chin, with shirt collar) upscaled to 400x400, labelled 'reference column'."
+   },
+   {
+    "check": "3. Cyan metrics vs quality JSONs",
+    "pass": true,
+    "detail": "No mismatch. r2 (srcmix_taesdtrt): corr 0.99994->0.9999, delta 0.0647->0.06, flicker mouth 1.00026->1.000, jaw 0.99997->1.000, landmarks 0.0617/p99 0.1977->0.062/0.20, PSNR face 62.09->62.1, mouth 56.11->56.1, chin +0.0073->+0.007. r3 (srcv1_taesdtrt): 0.99793->0.9979, 0.368->0.37, 1.0210->1.021, 0.99904->0.999, 0.3152/1.012->0.315/1.01, 48.65->48.6, 41.28->41.3, +0.0346->+0.035. r4 (srcblkA8): 0.99902->0.9990, 0.2396->0.24, 1.00053->1.001, 0.99822->0.998, 0.1610/0.6465->0.161/0.65, 55.23->55.2, 47.65->47.7, -0.0085->-0.009. The 'raw face diff mean/max LSB' line is not in the JSONs; I recomputed it from the raw 256 px faces.npz: r2 0.1039/9, r3 1.0745/68, r4 0.2571/35. All match the overlay. The JSON face_max_abs (9/63/34) is measured after compositing, so it differs from this line as expected."
+   },
+   {
+    "check": "3b. Quality-tool verdicts (not shown in video)",
+    "pass": false,
+    "detail": "All three JSONs report verdict FAIL. Every round fails the strict gates chin.landmark_dev_mean_px <= 0.05 and p99 <= 0.15. On the calibrated proposal (mean <= 0.1 and p99 <= 0.35), r2 passes but r3 (0.315/1.01) and r4 NEW (0.161/0.65) fail. All other gates pass for all three: lip corr, lag, aperture delta, flicker mouth/jaw/ring, chin target, protected lip, sharpness. The overlay prints the values but not these verdicts."
+   },
+   {
+    "check": "4. lineage_report.json bit-exactness",
+    "pass": true,
+    "detail": "BEFORE: raw_matches_render_json true, frames_sha256 7fd04eba...bd5ba, which equals render.json raw_refined_sha256. r2, r3 and r4 NEW: bit_exact_vs_harness_render true, chin_delta_recomputed_equals_saved true, protected_lip max 0. I also confirmed each round's frames_sha256 equals per_worker['0'].clips[0].raw_refined_sha256 in V_srcmix_taesdtrt.json (ef6d3eb6...), V_srcv1_taesdtrt.json (804902e8...) and V_srcblkA8.json (c3ab416d...). Worker 0 identity is confirmed as black_man_short_beard in V_srcblkA8.json; for the other two I inferred it from the stream00 file naming."
+   },
+   {
+    "check": "5. Independent mouth-zoom MAD vs BEFORE",
+    "pass": true,
+    "detail": "Measured on 10 frames (RGB MAD of the 394x244 mouth cell vs the BEFORE cell). r2 1.15-1.44, r3 1.66-2.09, r4 1.29-1.83. The order r2 < r4 < r3 holds in 9 of 10 frames and matches mouth PSNR (56.1 > 47.7 > 41.3). The exception is frame 9 (n=8), the report's 'last column most different' frame, where r4 1.831 > r3 1.691. Caveat: the r2 value is almost entirely an H.264 floor; its true raw face diff is 0.10 LSB, and full-frame cells differ by about 0.8-1.4 for every round. So only the excess above roughly 1.2 reflects real differences. Raw faces.npz means (whole face / upper half / lower half / mouth box): r2 0.104/0.085/0.123/0.146, r3 1.074/0.835/1.314/1.432, r4 0.257/0.118/0.397/0.569. This confirms r4 is concentrated in the lower face and r3 is broad."
+   }
+  ],
+  "visual_observations": "At normal viewing, the mouth zoom looks the same in all four columns in every frame I viewed (1, 9, 10, 16, 17, 48, 96, 144, 192, 240). I also checked 1.4x crops of the zoom cells and 3x nearest-neighbour crops of the raw 256 px faces for BEFORE, r3 and r4 at frame 9. Teeth: the count, gaps, the vertical lower-tooth edge at frames 16-17, and the dark inner-mouth corners look identical. The r3 and r4 diff panels light up along the tooth edges (frames 16, 17, 144), but I could not see the change in the zoom. Lip edges and lip colour: the r4 diff panel at frame 9 has a clear magenta patch on the lower lip. That patch is a uniform shift of about +3.5/+2.1/+4.3 LSB (B/G/R) in the peak 15 px window; 2,898 of 65,536 pixels differ by at least 4 LSB and 29 by at least 12. Side by side in the zoom I could not see it. Beard/stubble: the texture looks the same in all columns. r3's diff shows speckle across the beard and hair (broad INT8 noise); r4's shows almost none there. Chin line/jaw: r3 and r4 diffs show a thin bright line on the right jaw/neck contour (frames 9, 10, 144, 192). It is not visible in the zoom, and chin-target error changes by only +0.035 px (r3) and -0.009 px (r4). Seam: I saw no seam differences. A faint curved mark near the bottom centre of the zoom at frames 9-10 appears in all four columns, including BEFORE, so the rounds did not introduce it. Full frame: in the downscaled view the r2 and r3 faces looked slightly darker, but face-region means measure identical to within 0.1 (e.g. 92.15/92.13/92.16/92.13 at frame 1), so that was a viewing artefact. Sharpness ratios are 1.001 (r2), 0.996 (r3) and 1.003 (r4). Bottom line: r2 is practically identical to BEFORE. r3 and r4 differ measurably, r3 broadly and r4 at the lips and teeth, and those differences are visible only in the x8 diff panels. In my viewing none of them shows as a visible change in the mouth zoom or full frame.",
+  "problems": [
+   {
+    "severity": "major",
+    "description": "The overlay does not say that the quality tool's verdict is FAIL for all three rounds. All three fail the strict landmark gates (mean <= 0.05, p99 <= 0.15 px). On the calibrated proposal (mean <= 0.1, p99 <= 0.35), r2 passes but r4 NEW (0.161/0.65 px) and r3 (0.315/1.01 px) fail. A viewer could take 'r4 NEW' as quality-accepted when its landmark deviation is 2.6x r2's.",
+    "suggested_fix": "Add a verdict line per round, e.g. 'landmark gate: strict FAIL / calibrated PASS|FAIL', or state this in the summary that goes with the video."
+   },
+   {
+    "severity": "minor",
+    "description": "At frame 9 (n=8), the report's own 'last column most different' frame, r4's mouth-zoom MAD vs BEFORE (1.83) is larger than r3's (1.69). The order r2 < r4 < r3 holds on average and in 9 of 10 sampled frames, but not per frame.",
+    "suggested_fix": "When describing r4 as closer to BEFORE than r3, say it is on average (mouth PSNR 47.7 vs 41.3 dB) and that single frames can invert."
+   },
+   {
+    "severity": "minor",
+    "description": "The r2 diff panel and mouth-zoom cells are dominated by H.264 (crf 14) noise: the true raw diff is 0.10 LSB mean and 9 LSB max, while the encoded cells differ by about 1.2-1.4 on average. The video cannot show r2's real differences, only that they are below the codec floor.",
+    "suggested_fix": "Point to lineage_report.json and faces.npz for sub-LSB claims; do not cite pixel differences read from the mp4."
+   },
+   {
+    "severity": "minor",
+    "description": "The column divider lines run through the header, so the single-line title is cut at x=400 and x=800 ('fr|ames', 'rebuilt| from'). It stays legible.",
+    "suggested_fix": "Start the dividers below the header (y >= 104) or draw the title band after the dividers."
+   }
+  ]
+ },
+ {
+  "identity": "south_asian_woman",
+  "checks": [
+   {
+    "check": "1. ffprobe container/streams",
+    "pass": true,
+    "detail": "1600x1610 H.264 High (level 5.0), yuv420p, 24/1 fps, 240 frames (nb_frames=240; -count_frames also 240), video duration 10.000 s. Audio: AAC LC, 24 kHz mono, 10.000 s. It matches the video exactly (0.0 s difference) and matches the source speech.wav (pcm_s16le 24 kHz, 10.000 s). The audio is not silent (mean -25.4 dB, max -4.7 dB). moov comes before mdat (faststart), so it should play in VS Code/Chromium. Bitrate is about 23 Mbit/s."
+   },
+   {
+    "check": "2a. Frames extracted and viewed",
+    "pass": true,
+    "detail": "Extracted n=0,16,17,47,95,143,181,182,191,239 to /tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/verify_south_asian_woman/f_nNNN.png and viewed every one, plus zoomed crops (lips2x_*, diffpanels_r3r4_*, chin_full_*, raw_nose_lips_BEFORE_vs_r4_f096.png). The burned-in counter increments correctly: it reads 1, 17, 18, 48, 96, 144, 182, 183, 192 and 240 of 240. stills_frames in lineage_report.json are 1-based (video_lineage.py writes widest+1 and worst+1), so the stills are n=181 (frame 182) and n=16 (frame 17)."
+   },
+   {
+    "check": "2b. Column labels and fps legible, not clipped",
+    "pass": true,
+    "detail": "Column labels are 'BEFORE (accepted render)' / 'single-stream 148-171 fps', 'r2' / '350.2 fps aggregate (6 streams)', 'r3' / '415.6 fps aggregate (6 streams)' and 'r4 NEW' / '414.9 fps aggregate (6 streams)' (r4 in yellow). All are legible, stay inside their 400 px columns and do not overlap. The r2 and r4 descriptions wrap cleanly onto two lines. The r2, r3 and r4 fps figures match the medians in Te_srcmix_taesdtrt_n6.json (350.21), Tf_srcv1_taesdtrt_n6.json (415.64) and T_srcblkA8.json (repeats 415.61 and 414.15). I did not trace the BEFORE figure '148-171' to a source file. One cosmetic issue: the full-width title line and the row-3 caption are crossed by the grey column separator lines. They are still readable."
+   },
+   {
+    "check": "2c. Mouth zoom row shows the mouth in all four columns",
+    "pass": true,
+    "detail": "In every viewed frame, all four zoom cells show the nose base, both lips, the teeth or inner mouth and the chin. The crop box is the same in every column."
+   },
+   {
+    "check": "2d. Diff panels: r2 near-black, r3 broad, r4 around the lips; BEFORE row 3 shows the face",
+    "pass": true,
+    "detail": "The BEFORE row-3 cell shows the raw 256 px generated face in every frame. The r2 panel is essentially black: mean pixel 0.47-0.53 of 255 across all 10 frames, and raw max diff is 7 LSB. The r3 panel is broad: faint outlines of eyes, brows, nose, face contour and lips appear in every frame (mean 4.5-5.2). The r4 panel is mostly dark, and its visible energy sits on the lip line, teeth and inner mouth, with a faint jaw contour. The lip box holds 26-58% of r4's diff energy against 20-24% for r3, while the box covers 14% of the panel area. One exception: at frame 96, r4 shows an isolated hotspot at the viewer-right nostril (raw max 23 LSB, also above 10 LSB at frame 141). It is not visible in the image even at 4x on the raw face."
+   },
+   {
+    "check": "3. Cyan metrics text vs quality-tool JSONs",
+    "pass": true,
+    "detail": "No mismatches. Video text vs JSON: r2 (srcmix_taesdtrt): corr 1.0000 (0.99996), aperture delta 0.04 (0.0399), flicker mouth 1.000 (1.00036), jaw 1.000 (0.99986), landmarks 0.036 (0.03596), p99 0.11 (0.1101), PSNR face 64.2 (64.154), mouth 57.7 (57.688), chin err change -0.000 (-0.0004). r3 (srcv1_taesdtrt): 0.9982 (0.99815), 0.28 (0.2759), 1.021 (1.0214), 1.002 (1.00155), 0.197 (0.19712), 0.65 (0.6522), 51.8 (51.777), 44.2 (44.178), +0.016 (+0.0157). r4 (srcblkA8): 0.9994 (0.99936), 0.15 (0.1481), 0.998 (0.99821), 0.999 (0.99922), 0.105 (0.10489), 0.37 (0.3737), 57.4 (57.401), 49.6 (49.633), -0.015 (-0.0151). The quality JSONs scored the Q_* capture faces while the video uses V_* captures. For this identity I checked that the Q and V faces.npz and arrays.npz are byte-identical for all three rounds, so the metrics describe exactly the frames shown. I also recomputed the 'raw face diff mean / max' line from faces.npz and it matches: r2 0.086/7, r3 0.767/73, r4 0.187/32."
+   },
+   {
+    "check": "4. lineage_report.json bit-exactness",
+    "pass": true,
+    "detail": "BEFORE raw_matches_render_json is true, and its frames_sha256 d8ffc50d... equals raw_refined_sha256 in render.json. r2, r3 and r4 NEW all have bit_exact_vs_harness_render true, chin_delta_recomputed_equals_saved true, and protected_lip max_rgb_difference 0 over 240 frames. I checked the harness shas myself: per_worker['4'] clip raw_refined_sha256 in V_srcmix_taesdtrt.json (2631d51b...), V_srcv1_taesdtrt.json (d76df9e8...) and V_srcblkA8.json (71914f67...) equals each round's frames_sha256. psnr_rebuilt_vs_capture_mp4 is about 40.96 dB for all three."
+   },
+   {
+    "check": "5. Independent mouth-zoom MAD from decoded frames (columns cropped at 400 px, 3 px margins), ordering vs metrics",
+    "pass": true,
+    "detail": "Mean absolute difference vs the BEFORE cell, as r2/r3/r4 by frame: 1: 0.96/1.29/1.22; 17: 1.04/1.40/1.65; 18: 1.18/1.43/1.35; 48: 1.23/1.51/1.28; 96: 1.17/1.47/1.23; 144: 1.22/1.47/1.30; 182: 1.26/1.59/1.32; 183: 1.17/1.45/1.29; 192: 1.19/1.43/1.25; 240: 1.30/1.51/1.34. The mean over the 10 frames is 1.17/1.45/1.32. r2 is smallest at every frame, and r2 < r4 < r3 holds everywhere except frame 17, which is r4's worst frame (the report's last_column_most_different frame; I confirmed it on raw faces). This matches the metric ordering (PSNR mouth 57.7 > 49.6 > 44.2). Two caveats. First, the encode noise floor is similar in size: regions whose content is identical in every column (background, sweater) differ by 0.45-1.15, so r2's decoded values are essentially the noise floor. Second, measured on raw pre-encode faces in the lip region, the means over all 240 frames are r2 0.117, r3 1.089, r4 0.455. r2 is smallest in all 240 frames, and r4 exceeds r3 only at frames 17 and 146."
+   }
+  ],
+  "visual_observations": "At normal viewing, I could see no difference between BEFORE and r2, r3 or r4 in the mouth zoom. I checked frames 1, 17, 18, 48, 96, 144, 182, 183, 192 and 240. Teeth shape and count, lip edges, inner-mouth shading, corner creases and the chin line look the same in all four columns.\n\nEnlarged lip crops (6x source pixels) also look indistinguishable:\n- Frame 48: separated upper teeth with a gap.\n- Frame 144: broad upper and lower teeth.\n- Frame 182: widest mouth, with the inner-mouth and tongue tone visible.\n\nFrame 17 is where r4 differs most. Its diff panel shows the change on the teeth line and the gap between the lips (raw max 31 LSB). At 6x I could not confidently spot a tooth-edge or tone difference. The full-frame chin and jaw crops at frames 17 and 96 show the same chin contour, and there is no visible blend seam in any column. There is no beard or stubble on this identity; the skin texture on the chin looks the same in every column.\n\nSharpness: I saw no softening, which matches the quality tool's mouth sharpness ratios of 1.0004 for r2, 1.008 for r3 and 1.005 for r4. I also saw no colour shift: mean face and cheek colour per column agree within about 0.5 of 255 at frames 1, 17, 96 and 182.\n\nThe only visible differences are in the x8 diff panels:\n- r2 is black.\n- r3 shows faint whole-face outlines, including the eyes and brows. Those areas do not measurably differ in the composited full frame: the eye-region MAD is 1.0-1.9, the same for r2 (raw-identical) as for r3.\n- r4 is mostly limited to the lips, with a faint jaw contour and a one-frame nostril speck at frame 96.\n\nI saw no artefacts: no blocking, colour banding, flicker or tearing in the viewed frames.",
+  "problems": [
+   {
+    "severity": "major",
+    "description": "The video does not state the quality verdicts, so a viewer cannot tell that the quality tool rates r3 and 'r4 NEW' FAIL on this identity. Both fail the jaw+lip landmark gates. For r4: chin.landmark_dev_mean_px 0.105 against a threshold of 0.05, and p99 0.374 against 0.15. r4 is also slightly over the proposed calibrated band (0.10 mean / 0.35 p99). For r3: 0.197 / 0.652. r2 passes. The numbers in the video are correct; the problem is that no pass/fail is shown, and r4 is highlighted in yellow as NEW.",
+    "suggested_fix": "Add a verdict line to each round's metrics block, e.g. 'quality tool: PASS' or 'FAIL (landmark dev 0.105 > 0.05, p99 0.37 > 0.15)', read from the verdict and gates fields of the JSON. Or state it clearly next to the video when presenting it to the user."
+   },
+   {
+    "severity": "minor",
+    "description": "stills_frames in lineage_report.json are 1-based: video_lineage.py writes widest+1 and worst+1. ffmpeg select=eq(n,K) is 0-based, so K=182 and K=17 as the task suggests extracts frames 183 and 18, one frame off from the stills.",
+    "suggested_fix": "Document stills_frames as 1-based in the report (or rename the key to stills_frames_1based), and extract with n=K-1."
+   },
+   {
+    "severity": "minor",
+    "description": "Cosmetic: the grey column separator lines (x=399-400, 799-800, 1199-1200) are drawn through the full-width title banner ('fram|es', 'fro|m') and the row-3 caption. The text is still legible.",
+    "suggested_fix": "Draw the separators only below the title band (from y=24), or give the title a solid background strip that is drawn after the separators."
+   },
+   {
+    "severity": "minor",
+    "description": "The decoded video cannot show r2 vs BEFORE differences. The crf-14 encode noise (MAD 0.45-1.15 in regions identical across columns) is larger than r2's raw difference (mean 0.086, max 7 LSB), and it is comparable to r4's raw mouth difference (about 0.45 mean). The video is valid evidence of 'no visible change', but pixel differences taken from the mp4 reflect encode noise as much as the renders.",
+    "suggested_fix": "Quote the raw pre-encode numbers (already in the cyan text) as the authority, and describe the video as a visual check only. For pixel-level claims, use the raw faces.npz or refined frames."
+   }
+  ]
+ },
+ {
+  "identity": "middle_eastern_man_full_beard",
+  "checks": [
+   {
+    "check": "1. ffprobe container/streams",
+    "pass": true,
+    "detail": "Video: h264 High (level 5.0), yuv420p, 1600x1610, 24/1 fps, 240 frames by nb_frames and by -count_frames, 10.000 s. Audio: AAC-LC, 24 kHz mono, 10.000 s (last packet at 9.984 s); the source speech.wav is also 10.000 s. Audio and video durations are equal (limit was 0.2 s). The pixel format and codec are the standard Chromium-playable combination. I did not test playback inside VS Code. Small doc error: the README says 1600x1612, but this file is 1600x1610 (the zoom row height depends on the identity)."
+   },
+   {
+    "check": "2a. Frames extracted and viewed",
+    "pass": true,
+    "detail": "Extracted n=0,15,16,47,95,143,191,216,217,239 (shown as frame 1,16,17,48,96,144,192,217,218,240) plus the zoom row of n=64, into /tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/verify_middle_eastern_man_full_beard/. I viewed every PNG, plus the stored _stills.png. stills_frames in the report are 1-based (script writes widest+1 and worst+1), so the stills are n=15 (frame 16, widest mouth) and n=216 (frame 217)."
+   },
+   {
+    "check": "2b. Labels, fps and counter",
+    "pass": true,
+    "detail": "Column headers read 'BEFORE (accepted render)' / 'single-stream 148-171 fps', 'r2' / '350.2 fps aggregate (6 streams)', 'r3' / '415.6 fps aggregate (6 streams)', and 'r4 NEW' (yellow) / '414.9 fps aggregate (6 streams)'. All are legible. The r2 and r4 description lines wrap to a second line ('TRT TAESD', 'FP16)') without clipping or overlap. The title banner runs across the column separators but stays legible. The counter reads 'frame n+1 / 240' in every extracted frame, from 1 to 240."
+   },
+   {
+    "check": "2c. Mouth zoom shows the mouth in all four columns",
+    "pass": true,
+    "detail": "The lips are in the zoom cell in all four columns at every frame I viewed. Two caveats. (1) The crop box is fixed per clip: 160x98 px of the 512x896 frame scaled to 400x244. That is a 2.5x zoom, while the label says '3x'. (2) Using BEFORE's lip landmarks, the upper lip rises above the box top in 9 frames (31,32,35,36,63-66,193), by up to 4.4 source px (about 11 px in the zoom). At frames 65 and 144 the upper-lip edge touches or slightly crosses the top of the cell."
+   },
+   {
+    "check": "2d. Diff panels (row 3)",
+    "pass": true,
+    "detail": "r2 is near-black in every frame. r3 shows broad differences over the whole face: hair edge, eyes, beard contour and mouth. r4 is mostly dark with differences concentrated around the lips. Measured on the encoded panels, the lip band is 2-4x brighter than the rest of the face at frames 1,16,48,96,144,192,240. Exception: frame 217, the r4 'most different' frame. There the strongest r4 difference in the raw face is near the subject's left eye (raw face row ~90, max 29 LSB; 77 px >=8 LSB in the upper half vs 22 in the lower). The eye area is not composited into the output: in the full frame, the eye-region difference of r4 equals r2's codec-noise level (1.48 vs 1.47). Row 3 of the BEFORE column shows the raw generated 256 px face."
+   },
+   {
+    "check": "3. Cyan metrics vs quality JSONs",
+    "pass": true,
+    "detail": "Every value matches after rounding. r2 (srcmix_taesdtrt): corr 0.99976->0.9998, aperture 0.0756->0.08, flicker mouth 0.99965->1.000, jaw 1.00041->1.000, landmarks 0.0936->0.094, p99 0.4749->0.47, PSNR face 60.75->60.8, mouth 55.09->55.1, chin err +0.0315->+0.032. r3 (srcv1_taesdtrt): 0.99733->0.9973, 0.3245->0.32, 1.0207->1.021, 1.0070->1.007, 0.3551->0.355, 0.981->0.98, 46.85->46.9, 40.19->40.2, +0.0157->+0.016. r4 (srcblkA8): 0.99913->0.9991, 0.1768->0.18, 0.99864->0.999, 0.99995->1.000, 0.1713->0.171, 0.5871->0.59, 54.86->54.9, 47.93->47.9, +0.0242->+0.024. I recomputed the 'raw face diff mean/max' line from the faces.npz files and it matches: 0.142/29, 1.341/99, 0.328/43. The quality JSONs were run on the Q_* captures and the video uses the V_* captures. Each JSON's B frames_sha256 (bb00.., 20bb.., c8f2..) equals the lineage report's frames_sha256, and A's (ea63..) equals BEFORE's, so the numbers describe exactly the frames shown. Not shown in the video: all three JSONs have verdict FAIL, from the hard gates chin.landmark_dev_mean_px (<=0.05) and p99 (<=0.15). r2 fails them as well."
+   },
+   {
+    "check": "4. lineage_report.json bit-exactness",
+    "pass": true,
+    "detail": "BEFORE: raw_matches_render_json=true, and protected_lip max_rgb_difference is 0 over 240 frames. r2, r3 and 'r4 NEW' each have bit_exact_vs_harness_render=true, with harness_raw_refined_sha256 equal to frames_sha256, chin_delta_recomputed_equals_saved=true, and protected_lip max diff 0. psnr_rebuilt_vs_capture_mp4 is 41.11 dB for each (rebuild vs the crf-12 capture encode)."
+   },
+   {
+    "check": "5. Independent mouth-zoom MAD vs BEFORE (x 3:397 of each 400 px column, rows 826:1070)",
+    "pass": true,
+    "detail": "Values are r2/r3/r4 in 8-bit LSB. frame1 1.26/2.33/1.52; f16 1.41/2.31/1.61; f17 1.35/2.41/1.70; f48 1.40/2.16/1.81; f96 1.39/2.01/1.59; f144 1.46/2.03/1.78; f192 1.54/2.04/1.67; f217 1.32/2.15/1.49; f218 1.41/2.19/1.54; f240 1.45/2.23/1.58. The order r2 < r4 < r3 holds at all 10 frames. That matches mouth PSNR (55.1 > 47.9 > 40.2) and raw face diff (0.142 < 0.328 < 1.341). For scale, a pure-background patch, identical before encoding, gives 0.6-1.0 LSB of codec noise. Most of r2's ~1.4 is therefore encode noise. Diff-panel mean/8 on the encoded frames is about 70-85% of the raw per-frame means (codec attenuation), and the ordering is the same."
+   }
+  ],
+  "visual_observations": "At normal viewing, I could not see any difference between BEFORE and r2, r3 or r4 in the mouth zoom, in the frames I extracted (1, 16, 17, 48, 65, 96, 144, 192, 217, 218, 240). The teeth, upper and lower lip edges, inner-mouth darkness, beard/stubble texture below the lip, and chin/beard contour look the same in all four columns. There is no visible seam in any column. I also viewed the zoom cells enlarged 2x (frames 16 = widest mouth, 144, 217) and still could not point to a difference I would trust in any round.\n\nThe differences only show up in the amplified maps:\n- r2: essentially nothing above codec noise.\n- r4: thin lines along the lip edges and the inner-mouth/teeth boundary. At frame 144 there is a small bright spot at a tooth edge, and at frame 16 a streak along the right lower-lip corner.\n- r3: faint, broad differences over the teeth, inner mouth, lip edges and beard texture (strongest at frames 16 and 217).\n\nIn the full-frame row, my eye read r3's face as slightly more contrasty at frames 48, 96 and 144. The pixels do not support this: the face-region mean colour shift vs BEFORE is 0.13 LSB or less for every round, and the eye/jaw region differences equal r2's codec-noise level. I treat it as a perception effect, not a real change.\n\nThe r4 'most different' frame (217) is driven mainly by an eye-area difference in the raw 256 px face. The full-frame eye region shows no measurable difference, so that part is not composited into what a viewer sees. Net for a viewer: r2 and r4 look the same as BEFORE, and r3 is only separable using the diff row and metrics.",
+  "problems": [
+   {
+    "severity": "minor",
+    "description": "Row label says '3x mouth zoom', but for this identity the crop is 160x98 source px scaled to 400x244, which is 2.5x.",
+    "suggested_fix": "Compute the label from CW / box width in video_lineage.py, e.g. f'{400/w:.1f}x mouth zoom'."
+   },
+   {
+    "severity": "minor",
+    "description": "The fixed mouth box (Y=358, top of box at cy-h/2+8) crops the top of the upper lip in 9 frames (31,32,35,36,63-66,193) by up to 4.4 source px. It is visible at frame 65, where the upper-lip edge touches or crosses the top of the zoom cell.",
+    "suggested_fix": "In mouth_box(), guarantee a margin above the lip landmarks, e.g. Y = min(Y, y0 - 4), or grow h to cover y0..y1 plus padding before fixing the aspect ratio."
+   },
+   {
+    "severity": "minor",
+    "description": "The cyan metrics show values without thresholds or verdicts. All three quality JSONs report verdict FAIL, from the chin.landmark_dev_mean_px (<=0.05) and p99 (<=0.15) gates: r2 0.094/0.47, r3 0.355/0.98, r4 0.171/0.59. A viewer cannot tell this from the video. The README says these thresholds are below the \u00b11 LSB noise floor.",
+    "suggested_fix": "Add a line per round with gate pass/fail, or note the calibrated landmark proposal, so the video does not implicitly look like a clean pass."
+   },
+   {
+    "severity": "minor",
+    "description": "Row 3 diffs the whole 256 px generated face, including upper-face areas that are not composited into the output. At r4's 'most different' frame (217), the brightest difference is near the eye, while the composited full frame shows no measurable eye change. The encode also dims the diff panel to about 70-85% of the raw means.",
+    "suggested_fix": "Mask the diff panel to the compose/blend region, or label it 'raw generated face (not all composited)'."
+   },
+   {
+    "severity": "minor",
+    "description": "The README says each video is 1600x1612. This one is 1600x1610.",
+    "suggested_fix": "Change the README to say the height varies by identity (1600 x ~1610)."
+   }
+  ]
+ },
+ {
+  "identity": "black_woman",
+  "checks": [
+   {
+    "check": "1. ffprobe container and streams",
+    "pass": true,
+    "detail": "H.264 High, level 5.0, yuv420p, 1600x1612, r_frame_rate and avg_frame_rate 24/1, nb_frames 240 (a full decode with -count_frames also gives 240), duration 10.000 s. Audio: AAC LC, 24 kHz mono, stream duration 10.000 s (236 packets), so it matches the video to within 0.01 s. The source speech.wav (pcm_s16le 24 kHz mono) is 10.000 s. moov atom is at the file start (faststart), 25.4 Mb/s. Should play in VS Code/Chromium."
+   },
+   {
+    "check": "2a. Frame extraction and frame counter",
+    "pass": true,
+    "detail": "Extracted ffmpeg n=0,47,95,143,145,146,183,184,191,239 to /tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/verify_black_woman/n*.png and viewed every one. The counter reads frame 1, 48, 96, 144, 146, 147, 184, 185, 192, 240 / 240, so it is 1-indexed and increments correctly. lineage_report stills_frames (widest_mouth 184, last_column_most_different 146) are 1-indexed display numbers: black_woman_stills.png is labelled 'frame 146 / 240' and 'frame 184 / 240'. They correspond to ffmpeg n=145 and n=183."
+   },
+   {
+    "check": "2b. Column labels and fps text",
+    "pass": true,
+    "detail": "Viewed at 2x. Labels read: 'BEFORE (accepted render) / single-stream 148-171 fps / TensorRT FP16 bs8 UNet (shipping engine) + compiled TAESD', 'r2 / 350.2 fps aggregate (6 streams)', 'r3 / 415.6 fps aggregate (6 streams)', 'r4 NEW / 414.9 fps aggregate (6 streams)' (yellow). All are legible, none clipped or overlapping. The r2 and r4 descriptions wrap onto a second line ('TRT TAESD', 'FP16)'), which is fine. The one-line title runs across the column separators at x=400 and x=800, but the separators fall in gaps between words. The fps numbers match lineage_report.arms and the task context. I did not re-derive them from benchmark logs."
+   },
+   {
+    "check": "2c. Mouth zoom row shows the mouth in all four columns",
+    "pass": true,
+    "detail": "Row y=826-1072. In every extracted frame and every column it shows nose tip to chin with the lips centred: closed at 146 and 147, wide open at 184 and 185, teeth visible at 144 and 240."
+   },
+   {
+    "check": "2d. Diff panels: r2 near-black, r3 broad, r4 concentrated at the lips",
+    "pass": true,
+    "detail": "Panel brightness mean/8 across the 10 frames: r2 0.064-0.081, r3 0.645-0.948, r4 0.123-0.395. r2 is visually black. r3 outlines eyes, brows, nose, hairline, lips and jaw across the whole face. r4 is mostly black with a bright band on the lip opening and teeth (strongest at frames 146 and 48) plus a faint curve on the lower-right jaw/neck edge. From the raw faces: r4 top half 0.107 LSB vs bottom half 0.333 and mouth box 0.483. r3 is 0.795 / 1.051 / 1.177. r2 is 0.088 / 0.106 / 0.129."
+   },
+   {
+    "check": "2e. BEFORE column row 3 shows the generated face",
+    "pass": true,
+    "detail": "The BEFORE cell at y=1094-1494 is the raw 256 px generated face (brows to chin), upscaled. Its metrics cell reads 'reference column'."
+   },
+   {
+    "check": "3. Cyan metrics text vs quality JSONs",
+    "pass": true,
+    "detail": "No mismatches. r2 (srcmix_taesdtrt): aperture_corr 0.99994 -> 0.9999; mean_abs_delta 0.0534 -> 0.05; mouth 0.99974 -> 1.000; jaw 1.00028 -> 1.000; landmark dev 0.05021/0.14409 -> 0.050/0.14; PSNR face 63.297 -> 63.3, mouth 57.020 -> 57.0; chin change -0.00051 -> -0.001. r3 (srcv1_taesdtrt): 0.99769 -> 0.9977; 0.3254 -> 0.33; 1.0167 -> 1.017; 1.0011 -> 1.001; 0.2547/0.7787 -> 0.255/0.78; 50.357 -> 50.4 / 43.163 -> 43.2; -0.0097 -> -0.010. r4 (srcblkA8): 0.99888 -> 0.9989; 0.2003 -> 0.20; 0.99909 -> 0.999; 1.00046 -> 1.000; 0.1405/0.55501 -> 0.141/0.56; 56.468 -> 56.5 / 49.114 -> 49.1; -0.0043 -> -0.004. I recomputed the 'raw face diff' line from the npz arrays: 0.097/22, 0.923/57, 0.220/53 LSB, which matches. The V_* capture faces the video uses are array-identical to the Q_* faces the quality JSONs used, for all three rounds. The overlay does not show the JSON verdicts; see problems."
+   },
+   {
+    "check": "4. lineage_report.json bit-exactness",
+    "pass": true,
+    "detail": "BEFORE: raw_matches_render_json true; protected_lip max_rgb_difference 0 over 240 frames; matches_pixel_checks_rows true. r2, r3 and r4 NEW: bit_exact_vs_harness_render true, frames_sha256 equal to harness_raw_refined_sha256 (fcf8cc89..., 81f893a2..., aa548b36...), chin_delta_recomputed_equals_saved true, protected_lip 0 nonzero frames. psnr_rebuilt_vs_capture_mp4_db is about 40.87 dB for each, which is the capture mp4's codec loss, as expected."
+   },
+   {
+    "check": "5. Independent mouth-zoom MAD vs BEFORE",
+    "pass": true,
+    "detail": "Each column is 400 px wide; x-crop 400i+2 to 400i+398. On the 10 full frames, r2/r3/r4 MAD was: frame 1: 1.066/1.396/1.162; frame 48: 1.258/1.596/1.354; frame 184: 1.301/1.586/1.408; frame 240: 1.427/1.753/1.491. On 31 zoom-row crops (every 8th frame plus 146): r2 was smallest in 31/31 and r4 < r3 in 30/31. Means: raw 1.161/1.457/1.262; after a 3x3 blur 0.793/1.107/0.896. This matches the metrics order (mouth PSNR r2 57.0 > r4 49.1 > r3 43.2). One exception: frame 146, where r4 is 1.746 vs r3 1.486 (blurred 1.417 vs 1.130). The raw-face mouth crop at 146 agrees: r4 mean 1.59, max 53, 449 px > 8 LSB; r3 1.14, max 19, 74 px. Frame 146 is r4's worst per-frame face diff (0.486). Note that the codec noise floor (about 1.1-1.3 LSB) dominates these video-domain numbers; r2's own raw diff is only about 0.1."
+   }
+  ],
+  "visual_observations": "At normal viewing (400x700 full-frame cells and the 3x zoom row) I could not tell BEFORE apart from r2, r3 or r4 in any of the extracted frames (1, 48, 96, 144, 146, 147, 184, 185, 192, 240). I also checked enlarged 1.5x zoom grids (frames 48, 146, 184, 240) and 4x raw 256 px mouth crops (146, 184).\n\n- Teeth and inner mouth: at frame 48 the teeth are a blurry grey patch in all four columns, including BEFORE, so this is a baseline artefact and not a regression. Enlarged, r3's patch has slightly different grey/white patterning (the diff panel shows coloured blotches on the teeth), but I would not notice it at normal size. At frame 184 (widest mouth) the upper teeth row, tongue and lip edges look the same in all four. Raw mouth-crop diff there: r2 max 2, r3 mean 1.25 / max 18, r4 mean 0.61 / max 9 LSB.\n- Lip edges: frame 146 is r4's most different frame. Its diff panel shows a bright band along the lip parting line and teeth (max 53 LSB). Even at 4x side by side I cannot reliably see a change in the lip line or teeth; at most a slight difference in the dark parting line near the left mouth corner, and I am not confident of that.\n- Beard/stubble: not applicable, this identity has no facial hair. Skin texture around the mouth and chin looks the same in every column.\n- Chin line and jaw: the jaw contour looks identical in all columns. The r3 diff panel, and more faintly r4's, shows a thin curve along the lower-right jaw/neck edge (frames 1, 144, 146, 240). In that region r3 has mean 1.82 / max 49 LSB and r4 has 0.69 / max 24. It is not visible in the composited frame.\n- Seam: no visible seam change between columns. At frame 240 there is a faint vertical tone step on the nose and lower-lip midline (about x=215 in the zoom cell) in all four columns, BEFORE included, so no round introduced it.\n- Colour: at canvas scale my first impression was that the r2/r3 full-frame faces looked slightly lighter than BEFORE. Measurement does not support this. Full-frame MAD vs BEFORE is about 1.2 LSB for every round (codec noise), and the quality tool's Lab deltaE of mean face colour is 0.005 / 0.033 / 0.004.\n\nOverall: the differences are only visible in the x8 diff panels. r2 is effectively identical to BEFORE. r3 changes texture everywhere by small amounts. r4 concentrates its change on the lip opening, with occasional spikes (frame 146).",
+  "problems": [
+   {
+    "severity": "major",
+    "description": "The overlay shows metric values but not pass/fail. All three quality JSONs have verdict FAIL. The strict chin.landmark_dev_mean_px <= 0.05 gate fails for r2 (0.0502, over by 0.0002), r3 (0.255) and r4 (0.141). chin.landmark_dev_p99_px <= 0.15 fails for r3 (0.78) and r4 (0.555). Under the proposed calibrated gate (report-only: mean <= 0.1, p99 <= 0.35), r2 would pass and r3 and r4 would not. A viewer sees 'r4 NEW' highlighted in yellow with no sign that it misses the jaw+lip landmark gates.",
+    "suggested_fix": "Add a verdict line per round column, e.g. 'gates: strict FAIL (landmark mean 0.141>0.05, p99 0.56>0.15); calibrated FAIL (p99>0.35)', or colour the landmark line red or amber when it fails."
+   },
+   {
+    "severity": "minor",
+    "description": "The overlay reports mean-over-clip metrics only, and those hide r4's worst case. r4's worst-frame mouth_roi PSNR is 36.73 dB, below r3's worst of 37.96 dB. At frame 146, r4's mouth diff is larger than r3's (zoom MAD 1.746 vs 1.486; raw mouth-crop max 53 vs 19 LSB). The order r2 < r4 < r3 holds in 30/31 sampled frames, not all of them.",
+    "suggested_fix": "Add the worst-frame mouth PSNR and its frame number to the metrics lines, or state in the README that the stills frame 146 is where r4 is worse than r3 locally."
+   },
+   {
+    "severity": "minor",
+    "description": "Frame indexing is ambiguous. lineage_report stills_frames (146, 184) are 1-indexed display numbers, but ffmpeg select=eq(n,K) is 0-indexed. Using K=146 as the task suggests extracts display frame 147.",
+    "suggested_fix": "Record the index base in lineage_report (e.g. 'stills_frames_1based') or also store the 0-based n."
+   },
+   {
+    "severity": "minor",
+    "description": "scripts/video_lineage.py DEFAULT_ARMS now has four arms: r2, r3, 'r4' (no NEW) and 'r5 NEW' (srcg50, 400.9 fps). Re-running it with defaults would not reproduce this 3-round video. The video and lineage_report.arms match each other, so this is a provenance issue only.",
+    "suggested_fix": "Store the exact --arm arguments or command line in lineage_report.json."
+   },
+   {
+    "severity": "minor",
+    "description": "Cosmetic: the one-line title runs across the column separators at x=400 and x=800. It stays legible because the separators fall in gaps between words, and 'raw' ends about 2 px before the line.",
+    "suggested_fix": "Draw the title on a full-width band with no separators, or wrap it inside column 1."
+   }
+  ]
+ },
+ {
+  "verified_facts": [
+   "Method: CPU only, no GPU jobs. I wrote a streaming check (/tmp/claude-0/-workspace/866169db-0af2-4cde-9a98-79a398efeda7/scratchpad/verify_lineage/verify.py and diffcell.py; results in v_<id>.json there). It decodes one frame at a time and rebuilds every column's raw refined composite with chin.py fd753e7d... from one shared decode of source.mp4.",
+   "BEFORE is the pre-change render and matches bit for bit. For all 6 identities, every artifact sha in render.json (faces.npz, generated_landmarks.npy, chin_delta.npy, refined_raw.mp4, pixel_checks.json, mask_samples.npz) matches the file on disk. render.json records UNet 'TensorRT FP16 batch8' (unet_trt.ts 2c1a9338...), compiled TAESD, chin_strength 1.0 and chin.py fd753e7d.... My independent rebuild reproduces render.json raw_refined_sha256 6/6.",
+   "The rounds also match bit for bit. My rebuild reproduces every recorded raw_refined_sha256 for r2/r3/r4 (18/18, every clip in the V_* capture JSONs). chin_delta recomputed with chin.prepare equals the saved one 24/24. lineage_report.json's claims are therefore correct.",
+   "All columns share the same inputs. chin.py (fd753e7d...) and blending.py (6e5de1bf...) are identical in /workspace/MuseTalk and MuseTalk-perf300, and the harness code_integrity says matches_accepted_render_json=True. The harness loads latents, audio features, boxes and cropboxes from each accepted identity's cache.pt, so every column uses the same source frames and audio features. Video audio is that identity's speech.wav (24 kHz mono, 10.0 s) encoded to AAC.",
+   "The fps labels trace to measured runs. r2 350.2 = Te_srcmix_taesdtrt_n6 [350.7, 349.7]; r3 415.6 = Tf_srcv1_taesdtrt_n6 [416.6, 414.7]; r4 414.9 = T_srcblkA8 [415.6, 414.1]. Each timed T* run and its V* video capture run have identical effective env, engine dir, harness code and per-identity raw_refined hashes, so the video shows exactly the frames that were timed. The Q* quality runs have the same hashes, and the faces.npz files are byte-identical.",
+   "The cyan metric lines describe the exact pixels on screen. The quality tool's A and B composite shas equal the video's BEFORE and round column shas (36/36).",
+   "BEFORE's '148-171 fps' is accurate but single-stream: render.json warm_render_fps 148.0-170.6, one warm run each. Per-frame tracking IPC (754-780 ms) plus compose (557-761 ms) take about 94% of the 1.41-1.62 s render. The harness serial baseline (S_serial_baseline) gives median 164.8 fps (146.2-186.8).",
+   "The same 6-stream harness measured the unchanged BEFORE pipeline at 251.8 fps aggregate (Ta_baseline_n6: 252.0 / 251.6). All 144/144 clips there match the accepted raw and faces hashes, GPU busy fraction was 0.999 at 3.97 ms/frame, and gateE_baseline_n6_loops1 agrees at 252.4. This figure appears only in the JSON and logs (seq_A.out), not in any video label or the READMEs checked.",
+   "Every column goes through the same single encode. There is one libx264 encode per identity: crf=14.0 (read from the x264 SEI), yuv420p, 24 fps, 240 frames, 10.0 s, 1600 px wide and 1608-1612 px tall. Each column's full-frame row is equally faithful to its own raw composite (39.50-39.89 dB, differences between columns at most 0.02 dB), and so is the mouth zoom (40.42-41.05 dB luma), so no column gets an encoding advantage.",
+   "Frame alignment is identical: each column matches its raw frame at the same index. At lag 0 it scores 39.5-39.9 dB; at lag -1 or +1 it drops to 33.1-35.6 dB, for every column and identity.",
+   "The x8 diff is computed the same way for every round column: clip(|face_k - face_BEFORE| * 8), nearest-neighbour 256 to 400 px. The encoded r4 panel matches my recomputation up to encoding noise (MSE 5.8-8.1). Every column uses the same mouth crop, taken from BEFORE's landmarks.",
+   "The source-prefix cache used by r2-r4 is precomputed per identity before the timed loop (gpu.py GpuIssuer init). That is a per-avatar precompute like cache.pt, which BEFORE's fps also excludes.",
+   "The older A/B videos were biased toward the candidate. A (stored refined_raw.mp4) is x264 crf 18 at 1.51-1.91 Mbit/s; B (the V_* captures) is crf 12 at 4.94-5.80 Mbit/s, 2.9-3.3x the bitrate. Both are then re-encoded at crf 12. Measured against the raw composites in the r4 A/B videos, B is 0.56-0.78 dB closer to its raw frames than A over the full frame and 0.73-1.22 dB closer in the mouth (luma). On their own, the stored accepted mp4 scores 38.87-40.15 dB in the mouth (luma) against 40.37-41.10 dB for the r4 crf-12 capture. I measured only the r4 A/B set; the r2 and r3 sets use the same kinds of input (crf 18 vs crf 12, checked with ffprobe), so the same bias direction is expected but was not measured."
+  ],
+  "problems": [
+   {
+    "severity": "major",
+    "description": "The fps labels compare different measurement modes, which is unfair to BEFORE. BEFORE is labelled 'single-stream 148-171 fps' (one warm serial run, mostly CPU tracking and compose), while the rounds show 6-stream aggregate numbers. The same harness ran the unchanged, bit-exact BEFORE pipeline at 251.8 fps aggregate over 6 streams (Ta_baseline_n6). The video suggests gains of 2.0-2.8x; like-for-like, the gains are 1.39x (r2), 1.65x (r3) and 1.65x (r4). Uncertain: Ta ran at 06:44 UTC, about 12-15 h before the round runs, with less free host RAM (5.6 GB minimum versus about 9-10 GB), and the JSON does not record whether other processes were using the GPU. Contention could have understated the baseline, but I cannot confirm it.",
+    "suggested_fix": "Relabel BEFORE as '251.8 fps aggregate (6 streams, same harness; serial render loop 148-171)'. Add each round's speedup over 251.8 to its label. Change the same sentence in the r2 README ('The before-point is the accepted single-stream render loop'). Ideally re-run Ta_baseline_n6 right before or after T_srcblkA8 once the GPU is free, to rule out contention."
+   },
+   {
+    "severity": "major",
+    "description": "The video leaves out the quality verdicts and thresholds, which flatters the new rounds. The cyan lines give bare numbers. Quality tool verdicts: r2 passes 2/6 identities (the strict landmark gate fails on 4/6; the calibrated 0.10/0.35 bar passes 5/6, with the full-beard identity at p99 0.475). r3 fails 6/6. r4 fails 6/6 on the strict bar (0.05/0.15 px) and also on the calibrated bar (mean 0.105-0.171, p99 0.37-0.65). The r4 README also records the UNet latent max_abs of 1.28 failing its 0.5 gate. The TRT TAESD used by r2-r4 has decoder_trt_gate verdict FAIL (max 5 LSB against a limit of 3). The older A/B overlay printed 'verdict FAIL'; the lineage overlay and the lineage README table dropped it, and the README frames r4 only against '\u00b11 LSB noise'. The README's numeric ranges themselves are correct (I recomputed them from the JSONs).",
+    "suggested_fix": "Add a line under each round column such as 'quality tool: FAIL, landmarks 0.171/0.59 px vs 0.05/0.15 strict, 0.10/0.35 calibrated', and show the limits next to the lip, flicker and chin values. Add a verdict column (PASS count out of 6) and the UNet and TAESD gate results to the lineage README table."
+   },
+   {
+    "severity": "minor",
+    "description": "The diff panel caption 'black = identical' is not true after the crf-14 yuv420p encode. I checked 3 identities, every 8th frame. Of the face pixels that differ by at least 1 LSB, only 26-36% (r2), 47-59% (r4) and 80-88% (r3) still show at least 4/255 in the encoded panel. Most of r2's changed pixels and about half of r4's show as black. This applies to every round equally but understates how much of the face changed. Also, the video's own coding error (about 39.5-41 dB against raw) is larger than the actual r4-vs-BEFORE mouth difference (47.7-50.1 dB PSNR). The full-frame and zoom rows are fair, but they cannot show changes that small.",
+    "suggested_fix": "Encode the diff panel losslessly (a separate yuv444p crf 0 or ffv1 file, or PNG stills), or give any non-zero difference a visible floor or a colormap. Change the caption to 'black = < ~1-2 LSB after encoding' and point to the raw numbers."
+   },
+   {
+    "severity": "minor",
+    "description": "The '3x mouth zoom' label is wrong. The actual factor is 1.75x-2.53x per identity (mouth box 158-228 px wide scaled into a 400 px column; black_woman is 1.75x), and the non-integer nearest-neighbour scaling duplicates pixels unevenly. The full-frame row is a 0.78x INTER_AREA downscale, so beard, cheek and jaw detail outside the mouth box is only ever seen downscaled. The diff panel covers only the 256 px generated face; composite changes from the chin warp outside the face box are never shown (0.6-2.2% of changed pixel-frames; max 2-6 LSB for r4 and up to 15 for r3). All of this applies equally to every column.",
+    "suggested_fix": "Print the computed zoom factor, or use an integer 3x crop (for example 133 px into 400). Render with --col-width 512 for a native full frame, and add a 1:1 or 2x jaw-and-beard crop, or a composite-level diff panel alongside the face-only one."
+   },
+   {
+    "severity": "minor",
+    "description": "The label 'accepted render' overstates what was approved. The six BEFORE renders come from the accepted recipe and passed their technical checks, but each validation.json says 'visual_acceptance: Pending human review'. The batch README says 'This batch has not received user visual acceptance' and marks the 3 facial-hair identities 'Needs improvement'. BEFORE is a faithful output of the previous working pipeline, not a set of clips the user approved.",
+    "suggested_fix": "Label the column 'BEFORE (pre-change pipeline, accepted recipe)', and mention the facial-hair limitation, which is present in BEFORE too."
+   },
+   {
+    "severity": "minor",
+    "description": "Old per-round A/B videos (r2_*/, r3_*/, r4_*/): A is a double-lossy file at about a third of the bitrate, so B gets a measurable advantage (0.56-0.78 dB full frame, 0.73-1.22 dB mouth luma, on r4). That advantage sits on the same codec noise floor that is already coarser than the actual r4-vs-BEFORE difference. The videos also carry the same single-stream fps label for A. The lineage README already flags them as biased, and the size is now quantified.",
+    "suggested_fix": "Tell the user to rely on the lineage videos, not the old *_ab.mp4 files. Either regenerate the A/B videos with video_ab_round.py rebuilt from raw frames (as video_lineage.py does), or add a 'biased: A is crf18 at 1.5-1.9 Mbit/s' banner."
+   },
+   {
+    "severity": "minor",
+    "description": "Reproducibility and bookkeeping. video_lineage.py was changed after these videos were made (mtime 22:58 against videos from 22:46-22:48) and again during this review. The README's regenerate command would now write lineage_all_rounds with r5, not this folder. lineage_report.json does not record the script sha or its arguments. The README says 1600x1612, but heights are 1608-1612. The folder is marked superseded by lineage_all_rounds (r5 at 400.9 fps), yet r4 is still highlighted as 'NEW'.",
+    "suggested_fix": "Save the script sha256 and argv in lineage_report.json. Put the exact command (--out-name lineage_before_r2_r3_r4 with its three --arm specs) in this README. Rename the r4 label to 'r4' here, or point the user to lineage_all_rounds."
+   }
+  ]
+ }
+]

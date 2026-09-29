@@ -13,10 +13,10 @@ post-training quantization (modelopt max calibration) and no quality recovery. E
 |---|---|---|---|
 | UNet latent mae_max / max_abs | 0.038 / 2.39 (**fails** the 0.01 / 0.5 gate) | 0.0025 / 0.39 | — |
 | Raw face diff mean / max | 1.3 LSB / ~99 LSB | 0.1 LSB / ~29 LSB | — |
-| Lip-aperture correlation | 0.997-0.998 | 0.9998+ | 0.992-0.993 |
-| Aperture mean abs delta | 0.28-0.33 px | ~0.05-0.07 px | 0.62-0.65 px |
-| Mouth flicker ratio | 1.017-1.021 | ~1.000 | 0.92-0.95 |
-| Landmark deviation mean / p99 | 0.20-0.36 / 0.65-0.98 px (fails both bars) | 0.04-0.09 / 0.11-0.47 px | 0.47-0.50 / 1.38-1.41 px |
+| Lip-aperture correlation | 0.9969-0.9986 | 0.9998+ | 0.992-0.993 |
+| Aperture mean abs delta | 0.23-0.37 px | ~0.05-0.07 px | 0.62-0.65 px |
+| Mouth flicker ratio | 1.017-1.025 | ~1.000 | 0.92-0.95 |
+| Landmark deviation mean / p99 | 0.20-0.36 / 0.65-1.01 px (fails both bars) | 0.04-0.09 / 0.11-0.47 px | 0.47-0.50 / 1.38-1.41 px |
 | Chin-target error change / sharpness | pass / pass | pass / pass | — |
 
 The measured differences are about half the size of the INT8-VAE vs TAESD decoder switch, which you judged

@@ -116,6 +116,73 @@ def time_block_engines(engine_bytes_list, blk, tensors, device, rounds=6, reps=4
     return [sorted(t)[len(t) // 2] for t in times], outs, runtime
 
 
+def recipe_block_and_local(full_name: str, variant: str) -> tuple[str, str]:
+    """UNet module name -> (stagewise block, name inside that block's wrapper)."""
+    import re
+
+    m = re.match(r"(down|up)_blocks\.(\d+)\.(.+)$", full_name)
+    if m:
+        blk = f"{m.group(1)}{m.group(2)}"
+        if blk == "down0" and variant == "srccache":
+            blk = "down0rest"
+        return blk, "block." + m.group(3)
+    if full_name.startswith("mid_block."):
+        return "mid", "block." + full_name[len("mid_block."):]
+    raise SystemExit(f"--int8-recipe: layer {full_name} is not inside a down/mid/up block")
+
+
+def load_int8_recipe(path: str, variant: str) -> dict:
+    """{"layers": {unet_module_name: {"input_amax": float}}} -> {block: {local_name: input_amax}}."""
+    raw = json.loads(Path(path).read_text())
+    per_block: dict = {}
+    for full, spec in raw["layers"].items():
+        blk, local = recipe_block_and_local(full, variant)
+        per_block.setdefault(blk, {})[local] = float(spec["input_amax"])
+    return per_block
+
+
+def load_recipe_tensors(path: str, variant: str) -> tuple[dict, dict, str | None]:
+    """A recovered recipe's learned tensors (int8_layer_study.py --stage recover): FP16 model edits
+    {"bias_delta": {unet_module_name: delta}, "lora": {unet_module_name: {"A", "B"}}} and pinned per-output-channel
+    weight amax {block: {local_name: amax}}."""
+    raw = json.loads(Path(path).read_text())
+    if not raw.get("tensors"):
+        return {}, {}, None
+    t = torch.load(raw["tensors"], map_location="cpu", weights_only=True)
+    if t.get("smooth"):
+        raise SystemExit("--int8-recipe: per-channel smoothing tensors are study-only (not exported)")
+    w_amax: dict = {}
+    for full, v in t.get("weight_amax", {}).items():
+        blk, local = recipe_block_and_local(full, variant)
+        w_amax.setdefault(blk, {})[local] = v
+    edits = {"bias_delta": t.get("bias_delta", {}), "lora": t.get("lora", {})}
+    return edits, w_amax, sw.sha256_bytes(Path(raw["tensors"]).read_bytes())[:16]
+
+
+def apply_int8_recipe(module, layer_amax: dict, weight_amax: dict | None = None) -> list:
+    """Keep INT8 Q/DQ only on the recipe's layers; pin their input amax (and learned weight amax) to the recipe."""
+    from modelopt.torch.quantization.nn import TensorQuantizer
+
+    kept = []
+    for name, m in module.named_modules():
+        iq, wq = getattr(m, "input_quantizer", None), getattr(m, "weight_quantizer", None)
+        if not (isinstance(iq, TensorQuantizer) and isinstance(wq, TensorQuantizer)):
+            continue
+        local = name[len("inner."):] if name.startswith("inner.") else name
+        if local in layer_amax:
+            iq.amax = torch.tensor(layer_amax[local], device=iq.amax.device, dtype=iq.amax.dtype)
+            if weight_amax and local in weight_amax:
+                wq.amax = weight_amax[local].to(wq.amax.device, wq.amax.dtype).reshape(wq.amax.shape)
+            kept.append(local)
+        else:
+            iq.disable()
+            wq.disable()
+    missing = sorted(set(layer_amax) - set(kept))
+    if missing:
+        raise SystemExit(f"--int8-recipe: layers not found in block wrapper: {missing[:5]}")
+    return kept
+
+
 def build_batch(args, batch: int, model, device) -> dict:
     root = Path(args.root).resolve()
     engine_dir = root / f"bs{batch}"
@@ -168,6 +235,11 @@ def build_batch(args, batch: int, model, device) -> dict:
             manifest["timing_cache_seed"] = str(SEED_TIMING_CACHE.relative_to(ROOT))
     wanted = order if not args.blocks else [b for b in order if b in args.blocks.split(",")]
     int8_blocks = {b for b in (args.int8_blocks or "").split(",") if b}
+    recipe = load_int8_recipe(args.int8_recipe, args.variant) if args.int8_recipe else {}
+    recipe_sha = sw.sha256_bytes(Path(args.int8_recipe).read_bytes())[:16] if args.int8_recipe else None
+    _, recipe_w_amax, tensors_sha = load_recipe_tensors(args.int8_recipe, args.variant) if args.int8_recipe else ({}, {}, None)
+    if recipe:
+        int8_blocks |= set(recipe)
     unknown = int8_blocks - set(order)
     if unknown:
         raise SystemExit(f"--int8-blocks: unknown blocks {sorted(unknown)}")
@@ -189,6 +261,17 @@ def build_batch(args, batch: int, model, device) -> dict:
             calib.append({key: val for key, val in t_c.items()})
         manifest["int8_calibration"] = {"dir": str(Path(args.calib_dir)), "files": [Path(f).name for f in picked],
                                         "batches": len(calib), "algorithm": "modelopt INT8_DEFAULT_CFG (max)"}
+        if recipe:
+            manifest["int8_calibration"].update(
+                recipe=str(args.int8_recipe), recipe_sha256_16=recipe_sha,
+                algorithm="layer-selective recipe: weight per-channel max, input amax pinned from the recipe "
+                          "(scripts/int8_layer_study.py); non-recipe layers stay FP16")
+            if tensors_sha:
+                manifest["int8_calibration"].update(
+                    recipe_tensors_sha256_16=tensors_sha,
+                    algorithm="layer-selective recovered recipe: learned input amax, per-channel bias corrections and "
+                              "quantization-aware LoRA merged into the FP16 weights, weight amax per-channel max or learned "
+                              "(scripts/int8_layer_study.py --stage recover); non-recipe layers stay FP16")
     started = time.time()
     log = manifest.setdefault("build_log", [])
     build_specs = ([sw.PREFIX_SPEC] + spec) if args.variant == "srccache" else spec
@@ -202,6 +285,8 @@ def build_batch(args, batch: int, model, device) -> dict:
         args_t = [tensors[k] for k in blk["inputs"]]
         is_int8 = name in int8_blocks
         block_flags = dict(flags, precision="int8_qdq") if is_int8 else flags
+        if is_int8 and name in recipe:
+            block_flags = dict(block_flags, precision=f"int8_qdq_recipe:{recipe_sha}")
         t0 = time.time()
         export_module = wrappers[name]
         if is_int8:
@@ -216,6 +301,8 @@ def build_batch(args, batch: int, model, device) -> dict:
                         q(*[t_c[k] for k in _blk["inputs"]])
 
             export_module = mtq.quantize(export_module, mtq.INT8_DEFAULT_CFG, _calib_loop)
+            if name in recipe:
+                apply_int8_recipe(export_module, recipe[name], recipe_w_amax.get(name))
 
             class _HalfOutputs(torch.nn.Module):
                 """The fake-quant export can surface fp32 outputs; the chain's static buffers are fp16."""
@@ -352,6 +439,9 @@ def main() -> int:
                     "starting at down0rest; default: today's 11-block chain")
     ap.add_argument("--int8-blocks", default="", help="comma list of blocks built as INT8 Q/DQ (modelopt max "
                     "calibration on real corpus batches); all other blocks stay FP16. Default: none (all FP16)")
+    ap.add_argument("--int8-recipe", default="", help="layer-selective INT8 recipe JSON ({\"layers\": {unet_module: "
+                    "{\"input_amax\": x}}}, from scripts/int8_layer_study.py --stage export); blocks holding a recipe "
+                    "layer are built INT8 with Q/DQ on those layers only, everything else stays FP16")
     ap.add_argument("--calib-dir", default=str(ROOT / "calibration/unet_multi_avatar_20260928"),
                     help="UNet capture corpus used for INT8 calibration (main split; holdout stays unseen)")
     ap.add_argument("--calib-batches", type=int, default=8, help="engine-batch-sized calibration batches")
@@ -369,6 +459,27 @@ def main() -> int:
     mem = {"start": proc_mem()}
     model = load_eager_unet(device)
     mem["after_model"] = proc_mem()
+    if args.int8_recipe:
+        edits, _, _ = load_recipe_tensors(args.int8_recipe, "default")
+        with torch.no_grad():
+            for full, delta in edits.get("bias_delta", {}).items():
+                m = model.get_submodule(full)
+                m.bias.add_(delta.to(m.bias.device, m.bias.dtype))
+            for full, ab in edits.get("lora", {}).items():
+                # quantization-aware LoRA merged in FP32 then rounded once, as in the study's fake quant
+                m = model.get_submodule(full)
+                dw = (ab["B"].float() @ ab["A"].float()).view(m.weight.shape).to(m.weight.device)
+                m.weight.copy_((m.weight.float() + dw).to(m.weight.dtype))
+        if any(edits.values()):
+            print(f"applied learned edits: bias corrections on {len(edits.get('bias_delta', {}))} layers, "
+                  f"LoRA merged into {len(edits.get('lora', {}))} layers", flush=True)
+        smooth = json.loads(Path(args.int8_recipe).read_text()).get("smooth_ff")
+        if smooth:
+            # power-of-two SmoothQuant folded into GEGLU (FP16-noise change, not bit-exact); INT8 ff.net.2 range shrinks
+            from scripts import unet_int8_smooth as sq
+
+            sq.apply_smoothing(model, smooth["exponents"])
+            print(f"applied smooth_ff (alpha {smooth['alpha']}) to {len(smooth['exponents'])} ff.net.2 layers", flush=True)
     summary = {"args": vars(args), "batches": {}}
     for batch in (args.batch or [16]):
         m = build_batch(args, batch, model, device)

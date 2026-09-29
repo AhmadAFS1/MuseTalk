@@ -1,0 +1,119 @@
+{
+ "batch": 16,
+ "rounds": 7,
+ "reps": 30,
+ "seconds": 31.29029130935669,
+ "sets": {
+  "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm89_srcmix": {
+   "block_ms": {
+    "down0rest": 4.375517781575521,
+    "down1": 3.098828887939453,
+    "down2": 2.987349446614583,
+    "down3": 0.23845547040303547,
+    "mid": 0.478549321492513,
+    "up0": 1.2922196706136069,
+    "up1": 6.921454874674479,
+    "up2": 7.312998453776042,
+    "up3": 10.214878336588542,
+    "tail": 0.10106879870096842
+   },
+   "sum_ms": 37.02132104237875,
+   "engine_files": {
+    "down0rest": "down0rest.plan",
+    "down1": "down1.plan",
+    "down2": "down2.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.plan",
+    "up1": "up1.plan",
+    "up2": "up2.plan",
+    "up3": "up3.plan",
+    "tail": "tail.plan"
+   }
+  },
+  "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm89_nd0_thr_4e-06": {
+   "block_ms": {
+    "down1": 2.5493845621744793,
+    "down2": 2.0942848205566404,
+    "down3": 0.24750080108642578,
+    "mid": 0.5000192006429036,
+    "up0": 0.9039189020792643,
+    "up1": 5.22977294921875,
+    "up2": 6.30469970703125,
+    "up3": 10.708787027994791
+   },
+   "sum_ms": 28.538367970784506,
+   "engine_files": {
+    "down1": "down1.int8.plan",
+    "down2": "down2.int8.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.int8.plan",
+    "up1": "up1.int8.plan",
+    "up2": "up2.int8.plan",
+    "up3": "up3.int8.plan"
+   }
+  },
+  "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm89_nd0_thr_8e-06": {
+   "block_ms": {
+    "down1": 2.417664082845052,
+    "down2": 2.138794708251953,
+    "down3": 0.24688639640808105,
+    "mid": 0.47069867451985675,
+    "up0": 0.9196544011433919,
+    "up1": 4.608273315429687,
+    "up2": 6.115327962239584,
+    "up3": 10.74182840983073
+   },
+   "sum_ms": 27.659127950668335,
+   "engine_files": {
+    "down1": "down1.int8.plan",
+    "down2": "down2.int8.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.int8.plan",
+    "up1": "up1.int8.plan",
+    "up2": "up2.int8.plan",
+    "up3": "up3.int8.plan"
+   }
+  },
+  "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm89_srcv1": {
+   "block_ms": {
+    "down0rest": 4.349303690592448,
+    "down1": 2.128179168701172,
+    "down2": 1.6950271606445313,
+    "down3": 0.2389674663543701,
+    "mid": 0.47472639083862306,
+    "up0": 1.3043712615966796,
+    "up1": 6.918894958496094,
+    "up2": 4.615406799316406,
+    "up3": 8.42076161702474,
+    "tail": 0.10035200119018554
+   },
+   "sum_ms": 30.245990514755253,
+   "engine_files": {
+    "down0rest": "down0rest.plan",
+    "down1": "down1.int8.plan",
+    "down2": "down2.int8.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.plan",
+    "up1": "up1.plan",
+    "up2": "up2.int8.plan",
+    "up3": "up3.int8.plan",
+    "tail": "tail.plan"
+   }
+  },
+  "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm89_pool_up01": {
+   "block_ms": {
+    "up0": 0.7211690902709961,
+    "up1": 3.556659189860026
+   },
+   "sum_ms": 4.277828280131022,
+   "engine_files": {
+    "up0": "up0.int8.plan",
+    "up1": "up1.int8.plan"
+   }
+  }
+ }
+}

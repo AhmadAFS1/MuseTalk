@@ -115,13 +115,32 @@ None rendered yet.
 
 <!-- VIDEO_AB_INDEX:END -->
 
-## Rounds (full chin recipe, six accepted identities; A = accepted pre-change render)
+## Rounds (full chin recipe, six identities; A = the pre-change render made with the accepted recipe, visual acceptance pending)
 
 | Round | Candidate | Measured fps | Quality verdict (tool) | Folder |
 |---|---|---|---|---|
 | r1 | stagewise FP16 bs16 UNet + compiled TAESD (2 identities, single-stream render loop) | GPU path 309.6 | all perceptual gates pass; beard landmark p99 0.24 px | `r1_unet_stagewise/` |
 | r2 | stagewise bs16 + source-prefix cache + INT8 down3/mid + TensorRT TAESD, 6 streams | **350.2** aggregate | perceptual gates 6/6 PASS; strict landmark gate 2/6 (FaceMesh floor), calibrated 5/6 | `r2_srcmix_taesdtrt_chin/` |
-| r3 | as r2 + INT8 down1/down2/up2/up3 (PTQ, no recovery), 6 streams | **415.6** aggregate | measurable change: landmarks 0.20-0.36 / 0.65-0.98 px, aperture delta 0.28-0.33 px, lip corr 0.997-0.998 | `r3_srcv1_int8_taesdtrt_chin/` |
+| r3 | as r2 + INT8 down1/down2/up2/up3 (PTQ, no recovery), 6 streams | **415.6** aggregate | measurable change: landmarks 0.20-0.36 / 0.65-1.01 px, aperture delta 0.23-0.37 px, lip corr 0.9969-0.9986, mouth flicker 1.017-1.025 | `r3_srcv1_int8_taesdtrt_chin/` |
+
+| r4 | as r2 + layer-selective INT8 (146 layers, 59% of MACs; down0/up3/audio K/V FP16), 6 streams | **414.9** aggregate | half of r3's change, no added flicker: landmarks 0.10-0.17 / 0.37-0.65 px, aperture delta 0.13-0.24 px, lip corr 0.9989-0.9994 | `r4_srcblkA8_int8sel_taesdtrt_chin/` |
+| r5 | as r2 + INT8 on 117 layers chosen by error per MAC (50% of MACs; down0/up3/audio K/V FP16), 6 streams | **400.9** aggregate | close to r2: lip corr 0.9997-0.9998, aperture delta 0.08-0.14 px, landmarks 0.06-0.13 / 0.20-0.47 px (repo gate 0/6, proposed bar 4/6), mean mouth PSNR 51.0-53.4 dB (±1 LSB-noise level; worst frames 43-47 dB); sustained ~400.0 fps (README only; videos in the two folders below) | `r5_srcg50_int8gmac_taesdtrt_chin/` |
+
+**Like-for-like throughput.** The pre-change pipeline, in the same six-stream harness, runs at **252.0 fps**,
+re-measured back to back with r5 (400.7). Relative to that, r2 is 1.39×, r4 1.65× and r5 1.59×.
+- Only r5 was measured back to back. r2–r4 ran in the same harness code, hours apart.
+- The per-round READMEs compare against the single-stream 148–171 fps render loop, which overstates the gains.
+- r5 over 5 consecutive 64 s repeats: 404.0 → 400.9 → 400.5 → 400.1 → 399.96 fps as the GPU warms (64 → 67 °C). It
+  sustains ≈400, with no margin.
+
+**For visual judgement, use the side-by-side videos rebuilt from raw frames:**
+- [`focus_before_r2_r5/`](focus_before_r2_r5/README.md): BEFORE | r2 | r5, native resolution;
+- [`lineage_all_rounds/`](lineage_all_rounds/README.md): BEFORE | r2 | r3 | r4 | r5.
+
+Every column is bit-exact to what was rendered, and all columns are encoded once. The per-round A/B videos
+compare against the stored crf-18 pre-change mp4 (1.5-1.9 Mbit/s) against crf-12 captures (4.9-5.8 Mbit/s). That favours the candidate by 0.56-0.78 dB over the full frame and 0.73-1.22 dB in the mouth, measured on the r4 set.
+
+The layer-selective INT8 work behind r4 is recorded in `docs/fps_comparisons/4070s_400fps_20260928/README.md`.
 
 Round videos (`*_ab.mp4`, `mosaic_candidate.mp4`) are kept on disk and ignored by git (100+ MB per round).
 Regenerate them with `scripts/video_ab_round.py` from a `chin_multistream_render.py --encode --save-arrays` capture.

@@ -100,17 +100,23 @@ class Collector:
 
         deadline = time.monotonic() + timeout
         want = set(streams)
+        closed = getattr(self, "closed", set())
+        self.closed = closed
         while not want <= set(self.inbox.get(kind, {})):
             left = deadline - time.monotonic()
             if left <= 0:
                 raise TimeoutError(f"timed out waiting for {kind} from {sorted(want - set(self.inbox.get(kind, {})))}")
-            ready = conn_wait(self.conns, timeout=min(left, 5.0))
+            ready = conn_wait([c for i, c in enumerate(self.conns) if i not in closed], timeout=min(left, 5.0))
             for c in ready:
                 s = self.conns.index(c)
                 try:
                     while c.poll():
                         self.on_message(s, c.recv())
                 except EOFError:
+                    # a worker closes its pipe right after its final "bye": that is a clean exit, not a failure
+                    if s in self.inbox.get("bye", {}):
+                        closed.add(s)
+                        continue
                     raise RuntimeError(f"worker {s} exited (exitcode {self.procs[s].exitcode})")
             for s, p in enumerate(self.procs):
                 if not p.is_alive() and s in want and s not in self.inbox.get(kind, {}):

@@ -1,0 +1,79 @@
+{
+ "batch": 16,
+ "rounds": 7,
+ "reps": 30,
+ "seconds": 19.49334192276001,
+ "sets": {
+  "models/tensorrt_unet_stagewise_sm89_srcmix": {
+   "block_ms": {
+    "down0rest": 4.368418375651042,
+    "down1": 3.0757545471191405,
+    "down2": 2.978679402669271,
+    "down3": 0.2352128028869629,
+    "mid": 0.4770133336385091,
+    "up0": 1.2813312530517578,
+    "up1": 6.809941101074219,
+    "up2": 7.2709803263346355,
+    "up3": 10.179276529947916,
+    "tail": 0.10632533232371012
+   },
+   "sum_ms": 36.78293300469716,
+   "engine_files": {
+    "down0rest": "down0rest.plan",
+    "down1": "down1.plan",
+    "down2": "down2.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.plan",
+    "up1": "up1.plan",
+    "up2": "up2.plan",
+    "up3": "up3.plan",
+    "tail": "tail.plan"
+   }
+  },
+  "models/tensorrt_unet_stagewise_sm89_blkA_thr_8e-06": {
+   "block_ms": {
+    "down1": 2.155861409505208,
+    "down2": 1.7600852966308593,
+    "down3": 0.24634025891621908,
+    "mid": 0.4734293301900228,
+    "up0": 0.7466325124104818,
+    "up1": 4.176349894205729,
+    "up2": 5.781367492675781
+   },
+   "sum_ms": 15.340066194534302,
+   "engine_files": {
+    "down1": "down1.int8.plan",
+    "down2": "down2.int8.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.int8.plan",
+    "up1": "up1.int8.plan",
+    "up2": "up2.int8.plan"
+   }
+  },
+  "models/tensorrt_unet_stagewise_sm89_nd0_thr_8e-06": {
+   "block_ms": {
+    "down1": 2.3841451009114585,
+    "down2": 2.129032516479492,
+    "down3": 0.2456234614054362,
+    "mid": 0.471722666422526,
+    "up0": 0.9012224197387695,
+    "up1": 4.560759480794271,
+    "up2": 6.051669311523438,
+    "up3": 10.705066935221355
+   },
+   "sum_ms": 27.449241892496744,
+   "engine_files": {
+    "down1": "down1.int8.plan",
+    "down2": "down2.int8.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.int8.plan",
+    "up1": "up1.int8.plan",
+    "up2": "up2.int8.plan",
+    "up3": "up3.int8.plan"
+   }
+  }
+ }
+}

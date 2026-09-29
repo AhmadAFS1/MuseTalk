@@ -1,0 +1,81 @@
+{
+ "args": {
+  "batch": [
+   16
+  ],
+  "root": "models/tensorrt_unet_stagewise_sm89_srcg50",
+  "opt_level": 5,
+  "workspace_gb": 2.0,
+  "timing_cache": "",
+  "no_timing_cache": false,
+  "blocks": "prefix",
+  "force": false,
+  "second_build": false,
+  "max_minutes": 1000000000.0,
+  "variant": "srccache",
+  "int8_blocks": "",
+  "int8_recipe": "",
+  "calib_dir": "/workspace/MuseTalk-perf300/calibration/unet_multi_avatar_20260928",
+  "calib_batches": 8,
+  "report": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/gate/finalize_srcg50_report.json"
+ },
+ "batches": {
+  "16": {
+   "complete": true,
+   "missing": [],
+   "probe": {
+    "seed": 20260928,
+    "input_sha256": "bc70410094d8397351287b19179a486f457f7c392839ebd1ad626a189ddfb9a4",
+    "output_sha256": "e738c41ccd593dc09f47c5a0d536aa4981060dda188fc6afd7f353618837e5c6",
+    "output_file": "probe_output.pt",
+    "deterministic_run_to_run": true,
+    "graph_equals_direct_enqueue": true,
+    "vs_eager_forward": {
+     "mae": 0.0023728511296212673,
+     "max_abs": 0.04541015625,
+     "rel_l2": 0.0034294568467885256
+    }
+   },
+   "runtime": {
+    "name": "tensorrt_unet_stagewise",
+    "engine_dir": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm89_srcg50/bs16",
+    "batch": 16,
+    "cuda_graph": true,
+    "arena_mib": 191.5673828125,
+    "activation_mib": 104.4609375,
+    "device_memory_sizes_mib": {
+     "prefix": 30.0,
+     "down0rest": 151.5625,
+     "down1": 102.5390625,
+     "down2": 54.4921875,
+     "down3": 2.5048828125,
+     "mid": 12.6220703125,
+     "up0": 11.2548828125,
+     "up1": 60.7470703125,
+     "up2": 145.04638671875,
+     "up3": 191.5673828125,
+     "tail": 20.0
+    },
+    "probe_status": null
+   }
+  }
+ },
+ "host_mem": {
+  "start": {
+   "VmHWM_MiB": 360.9,
+   "VmRSS_MiB": 360.1,
+   "MemAvailable_MiB": 15864.1
+  },
+  "after_model": {
+   "VmHWM_MiB": 5396.2,
+   "VmRSS_MiB": 1902.3,
+   "MemAvailable_MiB": 14317.6
+  },
+  "end": {
+   "VmHWM_MiB": 5396.2,
+   "VmRSS_MiB": 2181.2,
+   "MemAvailable_MiB": 14205.0
+  }
+ },
+ "torch_max_reserved_mib": 2332.0
+}

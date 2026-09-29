@@ -1,0 +1,345 @@
+{
+ "arms": [
+  {
+   "name": "r2",
+   "fps": "350.2 fps aggregate (6 streams)",
+   "what": "stagewise FP16 UNet + source-prefix cache + INT8 down3/mid + TRT TAESD",
+   "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt",
+   "quality_label": "srcmix_taesdtrt"
+  },
+  {
+   "name": "r3",
+   "fps": "415.6 fps aggregate (6 streams)",
+   "what": "r2 + broad INT8 PTQ on 6 UNet blocks (no recovery)",
+   "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcv1_taesdtrt",
+   "quality_label": "srcv1_taesdtrt"
+  },
+  {
+   "name": "r4 NEW",
+   "fps": "414.9 fps aggregate (6 streams)",
+   "what": "r2 + layer-selective INT8 (146 layers; down0/up3/audio K/V FP16)",
+   "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcblkA8",
+   "quality_label": "srcblkA8"
+  }
+ ],
+ "identities": {
+  "black_man_short_beard": {
+   "BEFORE": {
+    "raw_matches_render_json": true,
+    "frames_sha256": "7fd04eba4dc18d52cdb72f61463cbe3c9269319d3d41478e5b3c650a526bd5ba",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0,
+     "matches_pixel_checks_rows": true
+    }
+   },
+   "r2": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "ef6d3eb653e417e2ffce1a6a5ed478cd5d53b59c11794c285d3486c15a2d0728",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 41.263660665885446,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "ef6d3eb653e417e2ffce1a6a5ed478cd5d53b59c11794c285d3486c15a2d0728"
+   },
+   "r3": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "804902e8deea49d3415e2e6af62ad7b8a4dcd2aeeee6b884a22302a2df2e28ed",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 41.25982425724504,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "804902e8deea49d3415e2e6af62ad7b8a4dcd2aeeee6b884a22302a2df2e28ed"
+   },
+   "r4 NEW": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "c3ab416da97ff351b429a944727dcd6999d6a54baea906d92d69e7750eaff1d7",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 41.260140529499616,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "c3ab416da97ff351b429a944727dcd6999d6a54baea906d92d69e7750eaff1d7"
+   },
+   "stills_frames": {
+    "widest_mouth": 16,
+    "last_column_most_different": 9
+   },
+   "video": "experiments/video_validation/lineage_before_r2_r3_r4/black_man_short_beard_lineage.mp4"
+  },
+  "black_woman": {
+   "BEFORE": {
+    "raw_matches_render_json": true,
+    "frames_sha256": "2b697c4fe61a9b3ca05d283bac2a6848522de758941d8a786c8d26de34682266",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0,
+     "matches_pixel_checks_rows": true
+    }
+   },
+   "r2": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "fcf8cc891cfb213104ad9c9e7895aa1010d5b63dc52a59c912f0e95bde805851",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 40.87208576886062,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "fcf8cc891cfb213104ad9c9e7895aa1010d5b63dc52a59c912f0e95bde805851"
+   },
+   "r3": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "81f893a29c0b396e96eb9654cf6cbefc27fab42ba44846e19cd15718a3d2d52a",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 40.86875737539975,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "81f893a29c0b396e96eb9654cf6cbefc27fab42ba44846e19cd15718a3d2d52a"
+   },
+   "r4 NEW": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "aa548b366d8dca8cf5021d6f5adf9728523fc9b27022d5fa7d02503fc3aaa160",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 40.87254594394801,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "aa548b366d8dca8cf5021d6f5adf9728523fc9b27022d5fa7d02503fc3aaa160"
+   },
+   "stills_frames": {
+    "widest_mouth": 184,
+    "last_column_most_different": 146
+   },
+   "video": "experiments/video_validation/lineage_before_r2_r3_r4/black_woman_lineage.mp4"
+  },
+  "east_asian_man_goatee": {
+   "BEFORE": {
+    "raw_matches_render_json": true,
+    "frames_sha256": "93322d29a2b6d60b8de149a99dd85c90e1068c7da4f511d9fc015852c8e8a84f",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0,
+     "matches_pixel_checks_rows": true
+    }
+   },
+   "r2": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "076feadc871120927aa56302cea132480c9ab248d0eae332c101c4a5219e914e",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 40.83861821322301,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "076feadc871120927aa56302cea132480c9ab248d0eae332c101c4a5219e914e"
+   },
+   "r3": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "bb78032d961af35d8cc262c70cc7fbd9493688bb0cc412af94f583c9673bbd3c",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 40.83803453815435,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "bb78032d961af35d8cc262c70cc7fbd9493688bb0cc412af94f583c9673bbd3c"
+   },
+   "r4 NEW": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "fa4b0a89527ffe581d61ab11a2a23bff502eec0777cc286bd1888dcfd88c20f0",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 40.83757955005632,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "fa4b0a89527ffe581d61ab11a2a23bff502eec0777cc286bd1888dcfd88c20f0"
+   },
+   "stills_frames": {
+    "widest_mouth": 183,
+    "last_column_most_different": 185
+   },
+   "video": "experiments/video_validation/lineage_before_r2_r3_r4/east_asian_man_goatee_lineage.mp4"
+  },
+  "middle_eastern_man_full_beard": {
+   "BEFORE": {
+    "raw_matches_render_json": true,
+    "frames_sha256": "ea63b2e61c9a12baf0cdb4adb6149ccbfc0e17c1a12718840c214f426f01b7e0",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0,
+     "matches_pixel_checks_rows": true
+    }
+   },
+   "r2": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "bb00dbb55b835e89b2d60d10e44deaaab1c6c5924cd333151af2a6653973d929",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 41.11488520617485,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "bb00dbb55b835e89b2d60d10e44deaaab1c6c5924cd333151af2a6653973d929"
+   },
+   "r3": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "20bb2fdefd342749256c935b727377a306d9e72fcca857fdc55c5c534bf696ab",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 41.112503040454385,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "20bb2fdefd342749256c935b727377a306d9e72fcca857fdc55c5c534bf696ab"
+   },
+   "r4 NEW": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "c8f2cf29037f1ef17f3c7b679211a602833f419e3f812ecf55afa3f1d27d4bf8",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 41.11330792472365,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "c8f2cf29037f1ef17f3c7b679211a602833f419e3f812ecf55afa3f1d27d4bf8"
+   },
+   "stills_frames": {
+    "widest_mouth": 16,
+    "last_column_most_different": 217
+   },
+   "video": "experiments/video_validation/lineage_before_r2_r3_r4/middle_eastern_man_full_beard_lineage.mp4"
+  },
+  "south_asian_woman": {
+   "BEFORE": {
+    "raw_matches_render_json": true,
+    "frames_sha256": "d8ffc50d09c64267531331d90a023dbecd29509b1ca4bf2c1c9053b852f3c173",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0,
+     "matches_pixel_checks_rows": true
+    }
+   },
+   "r2": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "2631d51b21cb02d81d393c80ca80705a70a90f3592f5df7676096f259e5db83d",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 40.959541588114575,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "2631d51b21cb02d81d393c80ca80705a70a90f3592f5df7676096f259e5db83d"
+   },
+   "r3": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "d76df9e81ee69d8289844e93a9af51d039941c79b76c84c9563ce2f2fc7f93a5",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 40.957699287680015,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "d76df9e81ee69d8289844e93a9af51d039941c79b76c84c9563ce2f2fc7f93a5"
+   },
+   "r4 NEW": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "71914f67ca0bb55ce0c6f6e9f02fc2ec63d60d052621e72ee01ad0be924d0f8b",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 40.95979223948997,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "71914f67ca0bb55ce0c6f6e9f02fc2ec63d60d052621e72ee01ad0be924d0f8b"
+   },
+   "stills_frames": {
+    "widest_mouth": 182,
+    "last_column_most_different": 17
+   },
+   "video": "experiments/video_validation/lineage_before_r2_r3_r4/south_asian_woman_lineage.mp4"
+  },
+  "white_man_clean_shaven": {
+   "BEFORE": {
+    "raw_matches_render_json": true,
+    "frames_sha256": "a14a2af39e14e4c007e7664a9f5e60b945006b843587541cbdb91405a498d41e",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0,
+     "matches_pixel_checks_rows": true
+    }
+   },
+   "r2": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "7b36c21891f3015e49da619644d8a17e10004a3584f39f3cbb99acc9c73682d0",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 40.91601332060349,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "7b36c21891f3015e49da619644d8a17e10004a3584f39f3cbb99acc9c73682d0"
+   },
+   "r3": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "4852aaff6678e6b97e0e52f66195fa316b3300a53a17da7e39c7d8728b4cee4e",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 40.91285583637773,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "4852aaff6678e6b97e0e52f66195fa316b3300a53a17da7e39c7d8728b4cee4e"
+   },
+   "r4 NEW": {
+    "chin_delta_recomputed_equals_saved": true,
+    "frames_sha256": "f53ddd759f98029d44097c7ec205e73182fb45d23e98b3341ef73e0fdccb9c19",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "psnr_rebuilt_vs_capture_mp4_db": 40.91647306121753,
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "f53ddd759f98029d44097c7ec205e73182fb45d23e98b3341ef73e0fdccb9c19"
+   },
+   "stills_frames": {
+    "widest_mouth": 184,
+    "last_column_most_different": 25
+   },
+   "video": "experiments/video_validation/lineage_before_r2_r3_r4/white_man_clean_shaven_lineage.mp4"
+  }
+ }
+}

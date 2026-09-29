@@ -1,0 +1,115 @@
+{
+ "batch": 16,
+ "rounds": 9,
+ "reps": 30,
+ "seconds": 28.196104049682617,
+ "sets": {
+  "models/tensorrt_unet_stagewise_sm89_srcmix": {
+   "block_ms": {
+    "down0rest": 4.3759618123372395,
+    "down1": 3.084356180826823,
+    "down2": 2.972467295328776,
+    "down3": 0.23565653165181477,
+    "mid": 0.4772864023844401,
+    "up0": 1.291366449991862,
+    "up1": 6.8300114949544275,
+    "up2": 7.295692952473958,
+    "up3": 10.201702880859376,
+    "tail": 0.10649600028991699
+   },
+   "sum_ms": 36.870998001098634,
+   "engine_files": {
+    "down0rest": "down0rest.plan",
+    "down1": "down1.plan",
+    "down2": "down2.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.plan",
+    "up1": "up1.plan",
+    "up2": "up2.plan",
+    "up3": "up3.plan",
+    "tail": "tail.plan"
+   }
+  },
+  "models/tensorrt_unet_stagewise_sm89_blkA_thr_8e-06": {
+   "block_ms": {
+    "down1": 2.160742441813151,
+    "down2": 1.7569450378417968,
+    "down3": 0.24719360669453938,
+    "mid": 0.47609173456827797,
+    "up0": 0.748475710550944,
+    "up1": 4.207343037923177,
+    "up2": 5.812872314453125
+   },
+   "sum_ms": 15.409663883845012,
+   "engine_files": {
+    "down1": "down1.int8.plan",
+    "down2": "down2.int8.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.int8.plan",
+    "up1": "up1.int8.plan",
+    "up2": "up2.int8.plan"
+   }
+  },
+  "models/tensorrt_unet_stagewise_sm89_gmac_0.50": {
+   "block_ms": {
+    "down1": 2.4574976603190106,
+    "down2": 1.7707008361816405,
+    "down3": 0.24036693572998047,
+    "mid": 0.49575252532958985,
+    "up0": 0.8395776112874349,
+    "up1": 4.467234293619792,
+    "up2": 6.217898559570313
+   },
+   "sum_ms": 16.489028422037762,
+   "engine_files": {
+    "down1": "down1.int8.plan",
+    "down2": "down2.int8.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.int8.plan",
+    "up1": "up1.int8.plan",
+    "up2": "up2.int8.plan"
+   }
+  },
+  "models/tensorrt_unet_stagewise_sm89_gmac_0.55": {
+   "block_ms": {
+    "down1": 2.3096661885579426,
+    "down2": 1.7630208333333333,
+    "down3": 0.24995840390523275,
+    "mid": 0.4765695889790853,
+    "up0": 0.7369386672973632
+   },
+   "sum_ms": 5.536153682072958,
+   "engine_files": {
+    "down1": "down1.int8.plan",
+    "down2": "down2.int8.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.int8.plan"
+   }
+  },
+  "models/tensorrt_unet_stagewise_sm89_gmac_0.59": {
+   "block_ms": {
+    "down1": 2.2879231770833335,
+    "down2": 1.7539754231770834,
+    "down3": 0.26641066869099933,
+    "mid": 0.49981441497802737,
+    "up0": 0.7282005310058594,
+    "up1": 4.255812327067058,
+    "up2": 5.43092041015625
+   },
+   "sum_ms": 15.223056952158611,
+   "engine_files": {
+    "down1": "down1.int8.plan",
+    "down2": "down2.int8.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.int8.plan",
+    "up1": "up1.int8.plan",
+    "up2": "up2.int8.plan"
+   }
+  }
+ }
+}
