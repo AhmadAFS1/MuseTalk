@@ -31,7 +31,7 @@ while [ ! -e $RUN/STOP_SAMPLER ]; do
     fi
   fi
   if (( i % 10 == 0 )) && [ -n "$P" ]; then
-    curl -s -m 3 http://127.0.0.1:8300/stats 2>/dev/null | python3 -c "import json,sys,time
+    curl -s -m 3 http://127.0.0.1:${PORT:-8300}/stats 2>/dev/null | python3 -c "import json,sys,time
 try:
     d=json.load(sys.stdin); h=d.get('hls_scheduler') or d.get('scheduler') or {}
     print(json.dumps({'t':time.time(),'capacity':h.get('capacity'),'pipeline':h.get('pipeline'),'jobs':len(h.get('jobs') or [])}))
