@@ -90,6 +90,69 @@ same production `/avatars/prepare` and `/stats` endpoints with S3 enabled.
 `--continue-on-error` allow controlled rollout. Do not use `--release-local`
 until you want to rely on the verified S3 copies.
 
+## Capacity estimate for the 104-language LumaTalk roster
+
+The planned roster has four characters for each of 104 languages:
+
+- 416 approved base portraits;
+- 1,248 H3 source videos (idle, talking, and smiling for every portrait); and
+- 1,248 production MuseTalk caches, because each physical pose is prepared
+  independently through `/avatars/prepare`.
+
+The estimate below is for this machine's RTX 4070 SUPER with 12 GB VRAM. It
+uses measured runs from 27 September 2026, including the Chinese bob three-pose
+pilot and the six-identity diversity batch. H3 generation and MuseTalk cache
+preparation run sequentially because both require the same GPU.
+
+| Work per character | Measured wall time | 416-character total |
+|---|---:|---:|
+| H3 idle, 240 delivered frames / 10 seconds | 327.29 seconds | 37.82 hours |
+| H3 talking, 240 delivered frames / 10 seconds | 323.41 seconds | 37.37 hours |
+| H3 smiling, 158 frames / 6.58 seconds | 181.18 seconds | 20.94 hours |
+| Prepare all three MuseTalk caches | 95.77 seconds | 11.07 hours |
+| **Measured processing subtotal** | **927.64 seconds / 15.46 minutes** | **107.20 hours / 4.47 days** |
+
+The H3 times come from each pose's `h3.json`. Fresh `/avatars/prepare`
+requests for the Chinese bob pilot took 37.34 seconds for idle, 35.35 seconds
+for talking, and 23.08 seconds for smiling. Those preparation timings exclude
+S3 transfer. The similar diversity talking runs took about 319–325 seconds,
+which supports using the Chinese pilot as the single-machine H3 baseline.
+
+The 4.47-day subtotal assumes 24-hour uninterrupted operation and already
+approved portraits. A practical first pass should be scheduled for **five to
+six days** after allowing for H3 and API startup, packaging, endpoint checks,
+S3 uploads, transient failures, and resumptions. Reserve **seven to nine days
+end to end**, or ten calendar days with comfortable revision capacity, when
+portrait generation, visual review, and approximately 20–30% video rerolls
+are included.
+
+Base-image generation has not been batch-timed on this machine. If the image
+workflow averages two to five minutes per approved portrait, generating 416
+portraits sequentially adds about 14–35 hours. Provider concurrency, rejected
+images, and human review can change that number substantially, so it is a
+planning assumption rather than a measured benchmark.
+
+The current accepted recipe uses a 6.58-second smile. Extending every smile to
+ten seconds at the measured talking-video rate would add approximately 16.4
+hours of H3 work across the roster, plus the extra cache preparation and S3
+transfer time.
+
+Storage requires streaming publication rather than retaining the full roster
+locally. The Chinese pilot's three prepared caches occupy approximately 866 MB
+per character (326 MB idle, 322 MB talking, and 218 MB smiling). Straight-line
+extrapolation is about **360 GB for 416 characters**, before source videos and
+intermediate H3 files. The production batch should therefore process one
+identity at a time, confirm all three S3 receipts, and then use
+`--release-local` to remove that identity's generated videos and owned API
+caches. Do not release local files until `published.json` confirms all three
+uploads. Actual S3 upload throughput still needs a live bucket measurement.
+
+This estimate covers asset creation and cache publication. It does not include
+language-specific TTS, lip-sync evaluation in all 104 languages, manual visual
+acceptance of every pose, or WebRTC load testing. Other jobs sharing the GPU
+will extend the schedule almost directly in proportion to the time they occupy
+it.
+
 ## Output and checks
 
 Each identity gets one 512×896 portrait anchor used as **both H3 conditioning
