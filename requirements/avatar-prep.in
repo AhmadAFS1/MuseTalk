@@ -1,0 +1,20 @@
+# Optional avatar preparation (/avatars/prepare on this node): mmpose/mmdet/mmcv stack.
+# Group: --with-avatar-prep. cu121 matrix only.
+#
+# NOT installed with a single `pip install -r`: scripts/install_musetalk.sh installs these in order
+# (the same logic scripts/setup_trt_experiment_env.sh used) and uses this file as the list of
+# top-level names that `--check` verifies:
+#   1. openmim, setuptools<81, ninja, psutil     (pip, -c constraints-cu121.txt)
+#   2. mmcv==2.1.0 from third_party_wheels/mmcv/  (pip --no-deps); else `mim install mmcv==2.1.0`;
+#      else a local wheel build (needs nvcc matching torch's CUDA)
+#   3. chumpy==0.70 with --no-build-isolation    (its setup.py imports numpy/pip)
+#   4. mmengine, mmdet, mmpose                    (pip, -c constraints-cu121.txt)
+openmim
+setuptools<81
+ninja
+psutil
+mmcv==2.1.0
+chumpy
+mmengine
+mmdet
+mmpose

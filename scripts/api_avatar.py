@@ -5,11 +5,14 @@ Does NOT modify original realtime_inference.py - creates new class from scratch.
 
 import hashlib
 import os
+import struct
 import torch
 import glob
 import pickle
 import cv2
 import numpy as np
+from collections import OrderedDict
+from collections.abc import Sequence
 # Local modification: this differs from the original MuseTalk code.
 # Avatar materials can now be loaded with a thread pool instead of only serial IO.
 from concurrent.futures import ThreadPoolExecutor
@@ -175,7 +178,7 @@ def _dedup_cycle_arrays(arrays, label="arrays"):
     return out, len(canonical)
 
 
-def _read_imgs_dedup(img_list, label="images", max_workers=None):
+def _read_imgs_dedup(img_list, label="images", max_workers=None, reader=None):
     """
     Added code: read a prepared avatar cycle, decoding each distinct image once.
 
@@ -187,11 +190,13 @@ def _read_imgs_dedup(img_list, label="images", max_workers=None):
     at the full N).
 
     Returns (list_of_len_N_with_shared_buffers, unique_count).
+    ``reader`` (default ``cv2.imread``) decodes one path; see
+    ``_read_mask_plane0_required`` for the single-channel mask reader.
     """
     if not img_list:
         return [], 0
     if not _avatar_dedup_enabled():
-        return _read_imgs_local(img_list, label, max_workers), len(img_list)
+        return _read_imgs_local(img_list, label, max_workers, reader), len(img_list)
 
     digests: list[bytes] = []
     for path in img_list:
@@ -208,25 +213,447 @@ def _read_imgs_dedup(img_list, label="images", max_workers=None):
             first_index[digest] = len(unique_paths)
             unique_paths.append(img_list[idx])
 
-    decoded = _read_imgs_local(unique_paths, f"{label} ({len(unique_paths)} unique)", max_workers)
+    decoded = _read_imgs_local(unique_paths, f"{label} ({len(unique_paths)} unique)", max_workers, reader)
     return [decoded[first_index[d]] for d in digests], len(unique_paths)
 
 
-def _read_imgs_local(img_list, label="images", max_workers=None):
+def _read_imgs_local(img_list, label="images", max_workers=None, reader=None):
     """Added code: parallel image loader for existing prepared avatars."""
     if not img_list:
         return []
 
+    reader = reader or _read_img_required
     workers = max_workers or _avatar_io_workers(len(img_list))
     print(f"reading {label}...")
     if workers <= 1:
         frames = []
         for img_path in tqdm(img_list):
-            frames.append(_read_img_required(img_path))
+            frames.append(reader(img_path))
         return frames
 
     with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="avatar-io") as executor:
-        return list(tqdm(executor.map(_read_img_required, img_list), total=len(img_list)))
+        return list(tqdm(executor.map(reader, img_list), total=len(img_list)))
+
+
+# ---------------------------------------------------------------------------
+# Added code (300 fps plan, avatar memory layout for many distinct avatars).
+# Lossless storage layouts. Every flag's default reproduces the previous
+# layout exactly; compose_frame() is unchanged and sees the same pixels.
+#
+#   MUSETALK_AVATAR_MASK_CHANNELS=3|1       masks held as the 3 identical planes
+#                                           cv2.imread returns (default 3), or as
+#                                           the one plane every consumer reads (1)
+#   MUSETALK_AVATAR_MASK_STORE=decoded|png  masks held decoded (default) or as their
+#                                           on-disk PNG bytes, decoded on demand
+#   MUSETALK_AVATAR_FRAME_STORE=decoded|png unique source frames held decoded
+#                                           (default) or as their on-disk PNG bytes
+#   MUSETALK_AVATAR_DECODED_LRU_FRAMES=24   png store: decoded frames kept per avatar
+#   MUSETALK_AVATAR_PNG_READAHEAD=8         png store: cycle positions decoded ahead
+#                                           of compose (0 = decode inline only)
+#   MUSETALK_AVATAR_PNG_DECODE_WORKERS=4    png store: shared readahead threads
+#   MUSETALK_AVATAR_PLAN_FLOAT_ALPHA=1|0    keep each compose plan's float32 alpha
+#                                           (default 1) or derive it on access (0)
+#
+# Why these are exact:
+#   * prepare_image_blending_plan() and compose_frame()'s return_layers read only
+#     plane 0 of a mask; attenuate_outer_cheeks / restrict_to_source_mouth /
+#     attenuate_lateral_jaw scale every plane by the same float32 weight, so
+#     their plane 0 is identical for a 2-D mask.
+#   * cv2.imdecode of the file's bytes is the decoder cv2.imread runs.
+#   * The default fixed-point blend reads only a plan's alpha_u8; the float
+#     alpha is derived from the same uint8 ROI with the same expression.
+# ---------------------------------------------------------------------------
+
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_MASK_DECODED_LRU_ITEMS = 4  # masks are read once per plan build, then only on fallback
+
+
+def _env_choice(name: str, default: str, choices) -> str:
+    raw_value = os.getenv(name)
+    value = default if raw_value is None or not raw_value.strip() else raw_value.strip().lower()
+    if value not in choices:
+        raise ValueError(f"{name}={raw_value!r}: expected one of {sorted(choices)}")
+    return value
+
+
+def _env_nonneg_int(name: str, default: int) -> int:
+    raw_value = os.getenv(name)
+    if raw_value is None or not raw_value.strip():
+        return default
+    try:
+        value = int(raw_value.strip())
+    except ValueError:
+        raise ValueError(f"{name}={raw_value!r}: expected a non-negative integer") from None
+    if value < 0:
+        raise ValueError(f"{name}={raw_value!r}: expected a non-negative integer")
+    return value
+
+
+def _avatar_mask_channels() -> int:
+    return int(_env_choice("MUSETALK_AVATAR_MASK_CHANNELS", "3", {"1", "3"}))
+
+
+def _avatar_mask_store() -> str:
+    return _env_choice("MUSETALK_AVATAR_MASK_STORE", "decoded", {"decoded", "png"})
+
+
+def _avatar_frame_store() -> str:
+    return _env_choice("MUSETALK_AVATAR_FRAME_STORE", "decoded", {"decoded", "png"})
+
+
+def _avatar_decoded_lru_frames() -> int:
+    return max(1, _env_nonneg_int("MUSETALK_AVATAR_DECODED_LRU_FRAMES", 24))
+
+
+def _avatar_png_readahead() -> int:
+    return _env_nonneg_int("MUSETALK_AVATAR_PNG_READAHEAD", 8)
+
+
+def _avatar_plan_float_alpha() -> bool:
+    return _env_choice("MUSETALK_AVATAR_PLAN_FLOAT_ALPHA", "1", {"0", "1"}) == "1"
+
+
+def avatar_memory_layout_flags() -> dict:
+    """The layout flags as this process resolves them (for logs and reports)."""
+    return {
+        "MUSETALK_AVATAR_MASK_CHANNELS": _avatar_mask_channels(),
+        "MUSETALK_AVATAR_MASK_STORE": _avatar_mask_store(),
+        "MUSETALK_AVATAR_FRAME_STORE": _avatar_frame_store(),
+        "MUSETALK_AVATAR_DECODED_LRU_FRAMES": _avatar_decoded_lru_frames(),
+        "MUSETALK_AVATAR_PNG_READAHEAD": _avatar_png_readahead(),
+        "MUSETALK_AVATAR_PNG_DECODE_WORKERS": max(1, _env_nonneg_int("MUSETALK_AVATAR_PNG_DECODE_WORKERS", 4)),
+        "MUSETALK_AVATAR_PLAN_FLOAT_ALPHA": int(_avatar_plan_float_alpha()),
+        "MUSETALK_AVATAR_DEDUP_CYCLE": int(_avatar_dedup_enabled()),
+    }
+
+
+def _png_header(blob: bytes, path) -> tuple:
+    """(width, height, bit_depth, color_type) of a structurally complete PNG."""
+    if (
+        len(blob) < 57
+        or not blob.startswith(_PNG_SIGNATURE)
+        or blob[12:16] != b"IHDR"
+        or blob[-8:-4] != b"IEND"
+    ):
+        raise ValueError(f"Not a complete PNG file: {path}")
+    width, height = struct.unpack(">II", blob[16:24])
+    if width <= 0 or height <= 0:
+        raise ValueError(f"PNG has an empty image: {path}")
+    return width, height, blob[24], blob[25]
+
+
+def _png_is_gray8(bit_depth: int, color_type: int) -> bool:
+    return bit_depth == 8 and color_type == 0
+
+
+def _decode_png_color(blob: bytes):
+    """Bit-identical to cv2.imread(path) (IMREAD_COLOR) of the file holding ``blob``."""
+    return cv2.imdecode(np.frombuffer(blob, dtype=np.uint8), cv2.IMREAD_COLOR)
+
+
+def _decode_png_plane0(blob: bytes, gray8: bool):
+    """Plane 0 of cv2.imread(path): the only mask plane any consumer reads.
+
+    An 8-bit grayscale PNG decodes under IMREAD_COLOR to its single plane
+    replicated into B, G and R, so IMREAD_GRAYSCALE returns exactly plane 0.
+    Any other PNG layout takes plane 0 of the IMREAD_COLOR decode itself.
+    """
+    buffer = np.frombuffer(blob, dtype=np.uint8)
+    if gray8:
+        return cv2.imdecode(buffer, cv2.IMREAD_GRAYSCALE)
+    full = cv2.imdecode(buffer, cv2.IMREAD_COLOR)
+    return None if full is None else np.ascontiguousarray(full[:, :, 0])
+
+
+def _read_mask_plane0_required(img_path: str):
+    """Single-channel mask reader: plane 0 of what _read_img_required returns."""
+    with open(img_path, "rb") as handle:
+        blob = handle.read()
+    try:
+        _, _, bit_depth, color_type = _png_header(blob, img_path)
+        gray8 = _png_is_gray8(bit_depth, color_type)
+    except ValueError:
+        gray8 = False  # not a PNG: plane 0 of the generic IMREAD_COLOR decode
+    mask = _decode_png_plane0(blob, gray8)
+    if mask is None:
+        raise FileNotFoundError(f"Failed to read image: {img_path}")
+    return mask
+
+
+def _check_plane0_matches_imread(img_path: str, plane0) -> None:
+    """Load-time self-check of the single-channel reader on one real mask."""
+    reference = _read_img_required(img_path)
+    if not np.array_equal(reference[:, :, 0], plane0):
+        raise ValueError(
+            f"Single-channel mask decode differs from cv2.imread plane 0: {img_path}; "
+            "unset MUSETALK_AVATAR_MASK_CHANNELS"
+        )
+
+
+_PNG_DECODE_POOL = None
+_PNG_DECODE_POOL_LOCK = threading.Lock()
+
+
+def _png_decode_pool() -> ThreadPoolExecutor:
+    """Readahead decode threads shared by every PNG-stored avatar in the process."""
+    global _PNG_DECODE_POOL
+    with _PNG_DECODE_POOL_LOCK:
+        if _PNG_DECODE_POOL is None:
+            workers = max(1, _env_nonneg_int("MUSETALK_AVATAR_PNG_DECODE_WORKERS", 4))
+            _PNG_DECODE_POOL = ThreadPoolExecutor(
+                max_workers=workers, thread_name_prefix="avatar-png"
+            )
+        return _PNG_DECODE_POOL
+
+
+class _EncodedImageCycle(Sequence):
+    """A prepared avatar cycle held as its PNG file bytes, decoded on demand.
+
+    It stands in for the list of decoded images it replaces: ``len()`` is the
+    cycle length and ``[i]`` returns the image the decoded store would hold at
+    position ``i`` (same decoder, so bit-identical). Positions whose files have
+    identical bytes share one slot, the same partition the decoded dedup uses.
+
+    Decoded images live in a small per-avatar LRU. They are marked read-only:
+    they are shared between callers, and compose_frame() copies before it
+    blends exactly as it does with the decoded store, so a write into one is a
+    bug that now raises instead of silently corrupting a cached image.
+
+    With ``readahead`` > 0, serving position ``i`` also queues positions
+    ``i+1 .. i+readahead`` on a shared thread pool (cv2.imdecode releases the
+    GIL), so the compose that reaches them finds them decoded. A queued
+    readahead that has not started is cancelled and decoded inline instead of
+    waiting behind other avatars' work.
+    """
+
+    def __init__(self, blobs, slot_of, shapes, gray8, *, kind, label, lru_items, readahead):
+        if kind not in ("color", "plane0"):
+            raise ValueError(f"unknown encoded image kind: {kind}")
+        self._blobs = list(blobs)
+        self._slot_of = tuple(int(slot) for slot in slot_of)
+        self._shapes = tuple(tuple(shape) for shape in shapes)
+        self._gray8 = tuple(bool(value) for value in gray8)
+        self._kind = kind
+        self.label = label
+        self._lru_items = max(1, int(lru_items))
+        self._readahead = max(0, min(int(readahead), self._lru_items - 1))
+        self._lru: "OrderedDict[int, np.ndarray]" = OrderedDict()
+        self._inflight: dict = {}
+        self._lock = threading.Lock()
+        self._stats = {
+            "requests": 0,
+            "hits": 0,
+            "inline_decodes": 0,
+            "readahead_decodes": 0,
+            "readahead_joins": 0,
+            "readahead_cancels": 0,
+            "decode_seconds": 0.0,
+        }
+
+    @classmethod
+    def from_paths(cls, paths, *, kind, label, lru_items, readahead, dedup=True):
+        """Read (and dedup by file bytes) a cycle's PNG files without decoding them.
+
+        Returns ``(store, unique_count)`` like ``_read_imgs_dedup``. Every file
+        is checked to be a complete PNG, and the first slot is decoded once so
+        a store that cannot decode fails at load, as the decoded store does.
+        """
+        blobs, slot_of, shapes, gray8 = [], [], [], []
+        first_slot: dict = {}
+        for path in paths:
+            with open(path, "rb") as handle:
+                blob = handle.read()
+            width, height, bit_depth, color_type = _png_header(blob, path)
+            if dedup:
+                digest = hashlib.blake2b(blob, digest_size=16).digest()
+                existing = first_slot.get(digest)
+                if existing is not None:
+                    slot_of.append(existing)
+                    continue
+                first_slot[digest] = len(blobs)
+            slot_of.append(len(blobs))
+            blobs.append(blob)
+            shapes.append((height, width, 3) if kind == "color" else (height, width))
+            gray8.append(_png_is_gray8(bit_depth, color_type))
+        store = cls(blobs, slot_of, shapes, gray8, kind=kind, label=label,
+                    lru_items=lru_items, readahead=readahead)
+        if blobs:
+            first = store._decode_slot(0)
+            if kind == "plane0":
+                _check_plane0_matches_imread(paths[slot_of.index(0)], first)
+        print(f"reading {label}: {len(slot_of)} positions, {len(blobs)} unique, "
+              f"{store.encoded_nbytes() / (1024 * 1024):.1f}MB encoded (decode on demand)")
+        return store, len(blobs)
+
+    # -- Sequence protocol -------------------------------------------------
+    def __len__(self) -> int:
+        return len(self._slot_of)
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return [self[i] for i in range(*index.indices(len(self)))]
+        count = len(self._slot_of)
+        position = int(index)
+        if position < 0:
+            position += count
+        if not 0 <= position < count:
+            raise IndexError("avatar cycle index out of range")
+        image = self._get_slot(self._slot_of[position])
+        if self._readahead:
+            self._schedule(
+                (position + step) % count for step in range(1, self._readahead + 1)
+            )
+        return image
+
+    # -- layout queries (no decode) ---------------------------------------
+    def slot_at(self, index) -> int:
+        return self._slot_of[int(index)]
+
+    def shape_at(self, index) -> tuple:
+        return self._shapes[self._slot_of[int(index)]]
+
+    @property
+    def unique_count(self) -> int:
+        return len(self._blobs)
+
+    def encoded_nbytes(self) -> int:
+        return int(sum(len(blob) for blob in self._blobs))
+
+    def decoded_capacity_nbytes(self) -> int:
+        """Largest decoded footprint the LRU can hold (what admission must budget)."""
+        sizes = sorted((int(np.prod(shape)) for shape in self._shapes), reverse=True)
+        return int(sum(sizes[: self._lru_items]))
+
+    def resident_nbytes(self) -> int:
+        return self.encoded_nbytes() + self.decoded_capacity_nbytes()
+
+    def stats(self) -> dict:
+        with self._lock:
+            snapshot = dict(self._stats)
+            snapshot["lru_items"] = len(self._lru)
+            snapshot["inflight"] = len(self._inflight)
+        snapshot.update(
+            positions=len(self._slot_of),
+            unique=len(self._blobs),
+            lru_capacity=self._lru_items,
+            readahead=self._readahead,
+            encoded_bytes=self.encoded_nbytes(),
+        )
+        return snapshot
+
+    def prefetch(self, indices) -> None:
+        """Queue decodes of these cycle positions (e.g. a batch about to compose)."""
+        count = len(self._slot_of)
+        if count:
+            self._schedule(int(index) % count for index in indices)
+
+    def release_decoded_cache(self) -> None:
+        with self._lock:
+            for future in self._inflight.values():
+                future.cancel()
+            self._inflight.clear()
+            self._lru.clear()
+
+    # -- internals ---------------------------------------------------------
+    def _decode_slot(self, slot: int):
+        started = time.perf_counter()
+        blob = self._blobs[slot]
+        if self._kind == "color":
+            image = _decode_png_color(blob)
+        else:
+            image = _decode_png_plane0(blob, self._gray8[slot])
+        if image is None or tuple(image.shape) != self._shapes[slot]:
+            raise ValueError(
+                f"{self.label}: slot {slot} decoded to "
+                f"{None if image is None else image.shape}, expected {self._shapes[slot]}"
+            )
+        image.setflags(write=False)
+        elapsed = time.perf_counter() - started
+        with self._lock:
+            self._stats["decode_seconds"] += elapsed
+        return image
+
+    def _insert_locked(self, slot: int, image) -> None:
+        self._lru[slot] = image
+        self._lru.move_to_end(slot)
+        while len(self._lru) > self._lru_items:
+            self._lru.popitem(last=False)
+
+    def _get_slot(self, slot: int):
+        with self._lock:
+            self._stats["requests"] += 1
+            image = self._lru.get(slot)
+            if image is not None:
+                self._lru.move_to_end(slot)
+                self._stats["hits"] += 1
+                return image
+            future = self._inflight.get(slot)
+            if future is not None and future.cancel():
+                # Still queued behind other work: decode here rather than wait.
+                del self._inflight[slot]
+                self._stats["readahead_cancels"] += 1
+                future = None
+        if future is not None:
+            image = future.result()
+            with self._lock:
+                self._stats["readahead_joins"] += 1
+            return image
+        image = self._decode_slot(slot)
+        with self._lock:
+            self._stats["inline_decodes"] += 1
+            self._insert_locked(slot, image)
+        return image
+
+    def _readahead_task(self, slot: int):
+        try:
+            image = self._decode_slot(slot)
+        except BaseException:
+            with self._lock:
+                self._inflight.pop(slot, None)
+            raise
+        with self._lock:
+            self._stats["readahead_decodes"] += 1
+            self._insert_locked(slot, image)
+            self._inflight.pop(slot, None)
+        return image
+
+    def _schedule(self, positions) -> None:
+        pool = _png_decode_pool()
+        with self._lock:
+            for position in positions:
+                slot = self._slot_of[position]
+                if slot in self._lru or slot in self._inflight:
+                    continue
+                if len(self._inflight) >= self._lru_items:
+                    break
+                self._inflight[slot] = pool.submit(self._readahead_task, slot)
+
+
+class _PlanWithDerivedFloatAlpha(dict):
+    """A compose plan whose float32 ``alpha`` is derived from ``alpha_u8`` on access.
+
+    The default fixed-point blend reads only ``alpha_u8``; the float alpha is
+    4x its size and only MUSETALK_BLEND_FIXED_POINT=0 reads it. The derivation
+    repeats prepare_image_blending_plan's expression on the same uint8 ROI, so
+    it is exact. ``plan.get("alpha")`` and ``"alpha" in plan`` report the key as
+    absent (memory accounting relies on that); ``plan["alpha"]`` derives it.
+    """
+
+    __slots__ = ()
+
+    def __missing__(self, key):
+        if key == "alpha" and dict.__contains__(self, "alpha_u8"):
+            alpha_u8 = dict.__getitem__(self, "alpha_u8")
+            return (alpha_u8[:, :, 0].astype(np.float32) / 255.0)[:, :, None]
+        raise KeyError(key)
+
+
+def _lean_compose_plan(plan):
+    if not isinstance(plan, dict) or "alpha_u8" not in plan:
+        return plan
+    return _PlanWithDerivedFloatAlpha(
+        (key, value) for key, value in plan.items() if key != "alpha"
+    )
 
 
 def _get_landmark_and_bbox_lazy(img_list, upperbondrange=0):
@@ -623,13 +1050,19 @@ class APIAvatar:
         # the largest per-position allocation after the frame itself - can be
         # shared too instead of rebuilt.
         plan_cache: dict = {}
+        # Added code (avatar memory layout): shapes and mask identities come
+        # from the store without decoding, so a PNG-held cycle is not decoded
+        # just to build its plans; identity is the file-bytes slot there, the
+        # same partition the decoded dedup's shared buffers form.
+        lean_plans = not _avatar_plan_float_alpha()
         for idx in range(total):
             center = (self._source_mouth_centers[min(idx, total - 1 - idx)]
                       if self._source_mouth_blend or self._side_jaw_blend else None)
+            frame_shape = self._cycle_image_shape(frame_list, idx)
             key = (
-                tuple(frame_list[idx].shape),
+                frame_shape,
                 tuple(int(v) for v in coord_list[idx]),
-                id(mask_list[idx]),
+                self._cycle_image_identity(mask_list, idx),
                 tuple(int(v) for v in mask_coord_list[idx]),
                 tuple(center) if center is not None else None,
             )
@@ -648,14 +1081,61 @@ class APIAvatar:
                             mask, coord_list[idx], mask_coord_list[idx], center,
                             self._side_jaw_strength)
                 plan = prepare_image_blending_plan(
-                    frame_list[idx].shape,
+                    frame_shape,
                     coord_list[idx],
                     mask,
                     mask_coord_list[idx],
                 )
+                if lean_plans:
+                    plan = _lean_compose_plan(plan)
                 plan_cache[key] = plan
             plans.append(plan)
         self._compose_plan_cycle = plans
+
+    @staticmethod
+    def _cycle_image_shape(images, idx) -> tuple:
+        shape_at = getattr(images, "shape_at", None)
+        if shape_at is not None:
+            return tuple(shape_at(idx))
+        return tuple(images[idx].shape)
+
+    @staticmethod
+    def _cycle_image_identity(images, idx):
+        slot_at = getattr(images, "slot_at", None)
+        if slot_at is not None:
+            return ("slot", int(slot_at(idx)))
+        return id(images[idx])
+
+    def prefetch_cycle_frames(self, cycle_indices) -> None:
+        """Added code: start decoding these cycle positions' source frames.
+
+        A no-op for the default decoded store. With the PNG store, a caller
+        that knows a batch's cycle indices before composing it (the scheduler)
+        can hide the decode behind the GPU instead of relying on readahead.
+        """
+        frames = getattr(self, "frame_list_cycle", None)
+        prefetch = getattr(frames, "prefetch", None)
+        if prefetch is None or not frames:
+            return
+        prefetch(int(index) % len(frames) for index in cycle_indices)
+
+    def memory_layout_stats(self) -> dict:
+        """Added code: the resolved layout and, for PNG stores, LRU/decode counters."""
+        stats = {"flags": avatar_memory_layout_flags()}
+        for attr in ("frame_list_cycle", "mask_list_cycle"):
+            values = getattr(self, attr, None)
+            store_stats = getattr(values, "stats", None)
+            if store_stats is not None:
+                stats[attr] = store_stats()
+            elif values:
+                first = values[0]
+                stats[attr] = {
+                    "store": "decoded",
+                    "positions": len(values),
+                    "dtype": str(getattr(first, "dtype", "")),
+                    "shape": list(getattr(first, "shape", ())),
+                }
+        return stats
 
     @staticmethod
     def _tensor_storage_nbytes(tensor: torch.Tensor) -> int:
@@ -674,6 +1154,12 @@ class APIAvatar:
         # the cache would admit far fewer avatars than actually fit.
         if not values:
             return 0
+        # Added code (avatar memory layout): a PNG-held cycle costs its encoded
+        # bytes plus the most its decoded LRU can hold; iterating it here would
+        # decode every frame.
+        resident_nbytes = getattr(values, "resident_nbytes", None)
+        if callable(resident_nbytes):
+            return int(resident_nbytes())
         total = 0
         seen = set()
         for value in values:
@@ -747,6 +1233,44 @@ class APIAvatar:
 
     def estimate_memory_usage_mb(self) -> float:
         return self.estimate_memory_usage_bytes() / (1024 * 1024)
+
+    def estimate_memory_breakdown(self) -> dict:
+        """Added code (avatar memory layout): estimate_memory_usage_bytes() by part.
+
+        Same accounting, split by component, with the latent tensors split by
+        device: a server's prepared latents load onto the GPU (VRAM), so only
+        ``host_bytes`` is host RAM there. ``total_bytes`` always equals
+        estimate_memory_usage_bytes(), which the cache keeps using unchanged.
+        """
+        latents = {"cpu": 0, "device": 0}
+        seen_tensor_storages = set()
+        for attr in ("input_latent_cycle_tensor", "input_latent_cycle_batch_tensor"):
+            tensor = getattr(self, attr, None)
+            if not isinstance(tensor, torch.Tensor):
+                continue
+            try:
+                storage_ptr = tensor.untyped_storage().data_ptr()
+            except Exception:
+                storage_ptr = tensor.data_ptr()
+            if storage_ptr in seen_tensor_storages:
+                continue
+            seen_tensor_storages.add(storage_ptr)
+            latents["cpu" if tensor.device.type == "cpu" else "device"] += self._tensor_storage_nbytes(tensor)
+        coord_count = (len(getattr(self, "coord_list_cycle", None) or [])
+                       + len(getattr(self, "mask_coords_list_cycle", None) or []))
+        parts = {
+            "frames_bytes": self._numpy_sequence_nbytes(getattr(self, "frame_list_cycle", None)),
+            "masks_bytes": self._numpy_sequence_nbytes(getattr(self, "mask_list_cycle", None)),
+            "idle_frames_bytes": self._numpy_sequence_nbytes(getattr(self, "_idle_frame_cache", None)),
+            "compose_plans_bytes": self._compose_plan_sequence_nbytes(
+                getattr(self, "_compose_plan_cycle", None)),
+            "coords_bytes": coord_count * 4 * 8,
+            "latents_host_bytes": latents["cpu"],
+            "latents_device_bytes": latents["device"],
+        }
+        parts["total_bytes"] = int(sum(parts.values()))
+        parts["host_bytes"] = parts["total_bytes"] - latents["device"]
+        return parts
 
     def apply_positional_encoding_cpu(self, audio_prompts: torch.Tensor) -> torch.Tensor:
         """
@@ -1064,6 +1588,36 @@ class APIAvatar:
         input_mask_list = sorted(glob.glob(os.path.join(self.mask_out_path, '*.png')))
         image_workers = _avatar_io_workers(len(input_img_list) + len(input_mask_list) + 3)
         per_image_pool_workers = max(1, image_workers // 2)
+        # Added code (avatar memory layout): resolve the layout flags once, up
+        # front, so an invalid value fails before any material is read.
+        frame_store = _avatar_frame_store()
+        mask_store = _avatar_mask_store()
+        mask_channels = _avatar_mask_channels()
+        dedup = _avatar_dedup_enabled()
+        if frame_store == "png":
+            frame_loader = (
+                _EncodedImageCycle.from_paths,
+                (input_img_list,),
+                dict(kind="color", label="frames", lru_items=_avatar_decoded_lru_frames(),
+                     readahead=_avatar_png_readahead(), dedup=dedup),
+            )
+        else:
+            frame_loader = (_read_imgs_dedup, (input_img_list, "frames", per_image_pool_workers), {})
+        if mask_store == "png":
+            mask_loader = (
+                _EncodedImageCycle.from_paths,
+                (input_mask_list,),
+                dict(kind="plane0" if mask_channels == 1 else "color", label="masks",
+                     lru_items=_MASK_DECODED_LRU_ITEMS, readahead=0, dedup=dedup),
+            )
+        elif mask_channels == 1:
+            mask_loader = (
+                _read_imgs_dedup,
+                (input_mask_list, "masks", per_image_pool_workers, _read_mask_plane0_required),
+                {},
+            )
+        else:
+            mask_loader = (_read_imgs_dedup, (input_mask_list, "masks", per_image_pool_workers), {})
 
         # Local modification: this differs from the original MuseTalk code.
         # Latents, coords, frames, and masks are loaded concurrently on cache miss.
@@ -1071,24 +1625,22 @@ class APIAvatar:
             latents_future = executor.submit(torch.load, self.latents_out_path)
             coords_future = executor.submit(_load_pickle_local, self.coords_path)
             mask_coords_future = executor.submit(_load_pickle_local, self.mask_coords_path)
-            frame_list_future = executor.submit(
-                _read_imgs_dedup,
-                input_img_list,
-                "frames",
-                per_image_pool_workers,
-            )
-            mask_list_future = executor.submit(
-                _read_imgs_dedup,
-                input_mask_list,
-                "masks",
-                per_image_pool_workers,
-            )
+            frame_list_future = executor.submit(frame_loader[0], *frame_loader[1], **frame_loader[2])
+            mask_list_future = executor.submit(mask_loader[0], *mask_loader[1], **mask_loader[2])
 
             self.input_latent_list_cycle = latents_future.result()
             self.coord_list_cycle = coords_future.result()
             self.mask_coords_list_cycle = mask_coords_future.result()
             self.frame_list_cycle, uniq_frames = frame_list_future.result()
             self.mask_list_cycle, uniq_masks = mask_list_future.result()
+
+        if mask_store != "png" and mask_channels == 1 and input_mask_list:
+            _check_plane0_matches_imread(input_mask_list[0], self.mask_list_cycle[0])
+        if (frame_store, mask_store, mask_channels) != ("decoded", "decoded", 3) or not _avatar_plan_float_alpha():
+            print(
+                f"🧩 Avatar memory layout: frames={frame_store} masks={mask_store}/"
+                f"{mask_channels}ch plan_float_alpha={int(_avatar_plan_float_alpha())}"
+            )
 
         if _avatar_dedup_enabled() and self.frame_list_cycle:
             print(

@@ -1,0 +1,158 @@
+{
+  "suite": "live_handoff_fifo",
+  "passed": true,
+  "max_rss_mb": 302.8,
+  "results": [
+    {
+      "test": "T1_order_marker_prebuffer",
+      "result": "pass",
+      "frames": 80,
+      "marker": [
+        [
+          1,
+          80
+        ]
+      ],
+      "on_pushed": [
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "stats": {
+        "mode": "nonblocking",
+        "pending_frames": 0,
+        "queued_items": 0,
+        "depth_frames": 80,
+        "max_pending_frames": 64,
+        "max_pending_frames_seen": 64,
+        "max_depth_frames_seen": 80,
+        "turns_started": 1,
+        "turns_failed": 0,
+        "batches_submitted": 10,
+        "frames_submitted": 80,
+        "frames_pushed": 80,
+        "frames_skipped": 0,
+        "markers_run": 1,
+        "overflow_waits": 2,
+        "overflow_wait_total_s": 0.0262,
+        "overflow_wait_max_s": 0.0138,
+        "avg_submit_ms": 2.6221,
+        "max_submit_ms": 13.783,
+        "avg_push_ms": 13.333,
+        "max_push_ms": 15.16,
+        "avg_handoff_latency_ms": 69.768,
+        "max_handoff_latency_ms": 107.849,
+        "preconvert_batches": 0,
+        "convert_threads": 0,
+        "errors": 0,
+        "closed": false,
+        "frames_dropped_on_close": 0
+      }
+    },
+    {
+      "test": "T2_scheduler_never_waits_on_loop",
+      "result": "pass",
+      "max_submit_ms": 0.0094,
+      "blocking_result_wait_ms": 203.8
+    },
+    {
+      "test": "T3_bound_waits_only_when_full",
+      "result": "pass",
+      "fill_ms": 0.02,
+      "ninth_wait_s": 0.315,
+      "max_pending_seen": 64,
+      "bound": 64
+    },
+    {
+      "test": "T3b_bound_timeout_then_queue",
+      "result": "pass",
+      "timeout_wait_s": 0.3,
+      "overflow_waits": 2
+    },
+    {
+      "test": "T4_cancelled_turn_skipped_next_in_order",
+      "result": "pass",
+      "gens_seen": {
+        "1": 8,
+        "2": 16
+      },
+      "skipped": 16
+    },
+    {
+      "test": "T5_close_drops_and_wakes",
+      "result": "pass",
+      "dropped": 8,
+      "waiter_released_s": 0.201
+    },
+    {
+      "test": "T6_converter_threads_exact_i420",
+      "result": "pass",
+      "preconvert_batches": 6,
+      "verify": {
+        "verify_frames": 48,
+        "verify_content_mismatch": 0,
+        "verify_order_errors": 0,
+        "verify_i420_checked": 48,
+        "verify_i420_mismatch": 0
+      }
+    },
+    {
+      "test": "T7_real_track_end_to_end",
+      "result": "pass",
+      "runs": {
+        "blocking": {
+          "live_frames": 60,
+          "equal_to_inputs": true,
+          "frames_played": 60,
+          "frames_duplicated": 0,
+          "fresh_output_frames": 60
+        },
+        "nonblocking": {
+          "live_frames": 60,
+          "equal_to_inputs": true,
+          "frames_played": 60,
+          "frames_duplicated": 0,
+          "fresh_output_frames": 60
+        },
+        "nonblocking_turn2": {
+          "live_frames": 30,
+          "equal_to_inputs": true,
+          "lifetime_frames_played": 90,
+          "per_turn_frames_played": 30,
+          "turns_started": 2,
+          "fresh_output_frames": 90
+        },
+        "nonblocking_convert": {
+          "live_frames": 60,
+          "equal_to_inputs": true,
+          "frames_played": 60,
+          "frames_duplicated": 0,
+          "fresh_output_frames": 60
+        }
+      }
+    },
+    {
+      "test": "T8_deadline_pacing_same_content",
+      "result": "pass",
+      "live_frames": 60,
+      "deadline_pacing": true,
+      "turn_wall_s": 3.107
+    },
+    {
+      "test": "T9_defaults_inert",
+      "result": "pass",
+      "stats_keys": 62,
+      "view_keys": [
+        "lifetime_enabled",
+        "turn_counters"
+      ]
+    }
+  ]
+}

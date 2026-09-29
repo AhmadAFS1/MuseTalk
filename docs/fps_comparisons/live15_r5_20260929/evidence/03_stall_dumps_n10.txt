@@ -1,0 +1,53 @@
+run 20260929T074547Z_B_stalldump, N=10, MUSETALK_LOOP_STALL_DUMP_MS=40: 22 stalls, ms [41, 43, 43, 49, 50, 51, 51, 51, 52, 52, 52, 52, 52, 55, 56, 57, 58, 60, 75, 76, 99, 157]
+threads not parked in a wait during a stall (count of stalls):
+   22/22  Thread-1 (_cleanup_loop)
+   22/22  MainThread LOOP
+   15/22  avatar-png_N
+   14/22  hls-gpu-scheduler
+   14/22  asyncio_N
+   13/22  hls-compose_N
+   10/22  webrtc-yuv_N
+    5/22  idle-frame-cache_N
+    1/22  ThreadPoolExecutor-1_N
+
+first dumps verbatim:
+🩺 loop stall dumps on (heartbeat >= 40 ms overdue)
+🩺 loop stall 43 ms t_mono=1290680.104 active threads:
+   [Thread-1 (_cleanup_loop)] avatar_cache.py:81:_cleanup_loop <- threading.py:953:run <- threading.py:1016:_bootstrap_inner <- threading.py:973:_bootstrap
+   [MainThread LOOP] selectors.py:416:select <- subprocess.py:2021:_communicate <- subprocess.py:1154:communicate <- subprocess.py:505:run <- api_server.py:175:_sample_live_gpu_stats <- api_server.py:728:_get_worker_metrics <- worker_control_plane.py:176:_active_metrics
+🩺 loop stall 75 ms t_mono=1290719.911 active threads:
+   [webrtc-yuv_1] webrtc_live_handoff.py:80:bgr_to_yuv420p_frame <- webrtc_live_handoff.py:164:_preconvert_batch <- thread.py:58:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner <- threading.py:973:_bootstrap
+   [hls-compose_1] blending.py:329:get_image_blending_with_plan <- api_avatar.py:1927:compose_frame <- hls_gpu_scheduler.py:2849:compose_batch <- thread.py:58:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [avatar-png_3] api_avatar.py:351:_decode_png_color <- api_avatar.py:574:_decode_slot <- api_avatar.py:618:_readahead_task <- thread.py:64:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [avatar-png_2] api_avatar.py:351:_decode_png_color <- api_avatar.py:574:_decode_slot <- api_avatar.py:618:_readahead_task <- thread.py:64:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [avatar-png_1] api_avatar.py:351:_decode_png_color <- api_avatar.py:574:_decode_slot <- api_avatar.py:618:_readahead_task <- thread.py:64:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [avatar-png_0] api_avatar.py:351:_decode_png_color <- api_avatar.py:574:_decode_slot <- api_avatar.py:618:_readahead_task <- thread.py:64:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [idle-frame-cache_0] webrtc_idle_frame_cache.py:121:decode_clip <- webrtc_idle_frame_cache.py:264:_build <- thread.py:58:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner <- threading.py:973:_bootstrap
+   [hls-gpu-scheduler] vae.py:221:decode_latents <- hls_gpu_scheduler.py:2298:_launch_gpu_batch <- hls_gpu_scheduler.py:1978:_submit_generation_batch <- hls_gpu_scheduler.py:1905:_run_generation_batch <- hls_gpu_scheduler.py:1378:_run_loop <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [Thread-1 (_cleanup_loop)] avatar_cache.py:81:_cleanup_loop <- threading.py:953:run <- threading.py:1016:_bootstrap_inner <- threading.py:973:_bootstrap
+   [MainThread LOOP] selectors.py:482:select <- base_events.py:1910:_run_once <- base_events.py:603:run_forever <- base_events.py:636:run_until_complete <- _compat.py:60:asyncio_run <- server.py:75:run <- api_server.py:6534:<module>
+🩺 loop stall 157 ms t_mono=1290729.612 active threads:
+   [asyncio_9] _collections_abc.py:836:keys <- vpx.py:240:encode <- thread.py:58:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner <- threading.py:973:_bootstrap
+   [idle-frame-cache_0] webrtc_idle_frame_cache.py:121:decode_clip <- webrtc_idle_frame_cache.py:264:_build <- thread.py:58:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner <- threading.py:973:_bootstrap
+   [Thread-1 (_cleanup_loop)] avatar_cache.py:81:_cleanup_loop <- threading.py:953:run <- threading.py:1016:_bootstrap_inner <- threading.py:973:_bootstrap
+   [MainThread LOOP] utils.py:10:random32 <- rtcrtpsender.py:371:_run_rtp
+🩺 loop stall 76 ms t_mono=1290730.013 active threads:
+   [avatar-png_3] api_avatar.py:351:_decode_png_color <- api_avatar.py:574:_decode_slot <- api_avatar.py:618:_readahead_task <- thread.py:64:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [avatar-png_2] api_avatar.py:351:_decode_png_color <- api_avatar.py:574:_decode_slot <- api_avatar.py:618:_readahead_task <- thread.py:64:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [avatar-png_1] api_avatar.py:351:_decode_png_color <- api_avatar.py:574:_decode_slot <- api_avatar.py:618:_readahead_task <- thread.py:64:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [avatar-png_0] api_avatar.py:351:_decode_png_color <- api_avatar.py:574:_decode_slot <- api_avatar.py:618:_readahead_task <- thread.py:64:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [idle-frame-cache_0] webrtc_idle_frame_cache.py:121:decode_clip <- webrtc_idle_frame_cache.py:264:_build <- thread.py:58:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner <- threading.py:973:_bootstrap
+   [hls-gpu-scheduler] vae.py:221:decode_latents <- hls_gpu_scheduler.py:2298:_launch_gpu_batch <- hls_gpu_scheduler.py:1978:_submit_generation_batch <- hls_gpu_scheduler.py:1905:_run_generation_batch <- hls_gpu_scheduler.py:1378:_run_loop <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [Thread-1 (_cleanup_loop)] avatar_cache.py:81:_cleanup_loop <- threading.py:953:run <- threading.py:1016:_bootstrap_inner <- threading.py:973:_bootstrap
+   [MainThread LOOP] selectors.py:482:select <- base_events.py:1910:_run_once <- base_events.py:603:run_forever <- base_events.py:636:run_until_complete <- _compat.py:60:asyncio_run <- server.py:75:run <- api_server.py:6534:<module>
+🩺 loop stall 52 ms t_mono=1290732.428 active threads:
+   [webrtc-yuv_1] webrtc_live_handoff.py:80:bgr_to_yuv420p_frame <- webrtc_live_handoff.py:164:_preconvert_batch <- thread.py:58:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner <- threading.py:973:_bootstrap
+   [avatar-png_3] api_avatar.py:351:_decode_png_color <- api_avatar.py:574:_decode_slot <- api_avatar.py:618:_readahead_task <- thread.py:64:run <- thread.py:81:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [avatar-png_2] api_avatar.py:351:_decode_png_color <- api_avatar.py:574:_decode_slot <- api_avatar.py:618:_readahead_task <- thread.py:64:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [avatar-png_1] api_avatar.py:351:_decode_png_color <- api_avatar.py:574:_decode_slot <- api_avatar.py:618:_readahead_task <- thread.py:64:run <- thread.py:81:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [avatar-png_0] api_avatar.py:351:_decode_png_color <- api_avatar.py:574:_decode_slot <- api_avatar.py:618:_readahead_task <- thread.py:64:run <- thread.py:83:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner
+   [hls-compose_0] gc_tuning.py:57:_callback <- threading.py:471:acquire <- thread.py:183:_adjust_thread_count <- thread.py:162:submit <- api_avatar.py:622:_schedule <- api_avatar.py:506:__getitem__ <- api_avatar.py:1949:compose_frame
+   [Thread-1 (_cleanup_loop)] avatar_cache.py:81:_cleanup_loop <- threading.py:953:run <- threading.py:1016:_bootstrap_inner <- threading.py:973:_bootstrap
+   [MainThread LOOP] selectors.py:482:select <- base_events.py:1910:_run_once <- base_events.py:603:run_forever <- base_events.py:636:run_until_complete <- _compat.py:60:asyncio_run <- server.py:75:run <- api_server.py:6534:<module>
+🩺 loop stall 43 ms t_mono=1290734.499 active threads:
+   [asyncio_5] vpx.py:247:encode <- thread.py:64:run <- thread.py:81:_worker <- threading.py:953:run <- threading.py:1016:_bootstrap_inner <- threading.py:973:_bootstrap

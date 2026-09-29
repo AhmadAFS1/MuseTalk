@@ -1,0 +1,145 @@
+{
+  "suite": "idle_frame_cache_i420",
+  "passed": true,
+  "clips": {
+    "bob_idle_512x896_240f": "/workspace/MuseTalk-perf300/results/v15/avatars/chinese_bob_pink_bedroom_idle_d4b06da317/input_video.mp4",
+    "latina_idle_512x832_241f": "/workspace/MuseTalk-perf300/results/v15/avatars/latina_guided_20260925_idle_ee675cb4fd/input_video.mp4"
+  },
+  "max_rss_mb": 419.3,
+  "results": [
+    {
+      "test": "B_cache_equals_decode[bob_idle_512x896_240f]",
+      "result": "pass",
+      "frames": 603,
+      "clip_frames": 240,
+      "cache_backed": true,
+      "decode_ms_per_frame": 8.425,
+      "cache_ms_per_frame": 3.199,
+      "cache_mib": 157.5,
+      "first_mismatch": null
+    },
+    {
+      "test": "read_frame_cost[bob_idle_512x896_240f]",
+      "result": "pass",
+      "decoder": {
+        "wall_ms_per_frame": 4.033,
+        "cpu_ms_per_frame": 4.033
+      },
+      "cache": {
+        "wall_ms_per_frame": 0.134,
+        "cpu_ms_per_frame": 0.134
+      }
+    },
+    {
+      "test": "C_switch_over_mid_clip[bob_idle_512x896_240f]",
+      "result": "pass",
+      "started_decoding": true,
+      "switched_to_cache": true,
+      "first_mismatch": null
+    },
+    {
+      "test": "D_skip_frames_cache[bob_idle_512x896_240f]",
+      "result": "pass",
+      "skipped": 235,
+      "first_mismatch": null
+    },
+    {
+      "test": "D_skip_frames_decoder[bob_idle_512x896_240f]",
+      "result": "pass",
+      "skipped": 235,
+      "first_mismatch": null
+    },
+    {
+      "test": "E_reset[bob_idle_512x896_240f]",
+      "result": "pass",
+      "first_mismatch": null
+    },
+    {
+      "test": "G_thread_caps_decoder_exact[bob_idle_512x896_240f]",
+      "result": "pass",
+      "decode_threads": 1,
+      "first_mismatch": null
+    },
+    {
+      "test": "B_cache_equals_decode[latina_idle_512x832_241f]",
+      "result": "pass",
+      "frames": 605,
+      "clip_frames": 241,
+      "cache_backed": true,
+      "decode_ms_per_frame": 6.393,
+      "cache_ms_per_frame": 1.816,
+      "cache_mib": 146.86,
+      "first_mismatch": null
+    },
+    {
+      "test": "read_frame_cost[latina_idle_512x832_241f]",
+      "result": "pass",
+      "decoder": {
+        "wall_ms_per_frame": 4.206,
+        "cpu_ms_per_frame": 4.206
+      },
+      "cache": {
+        "wall_ms_per_frame": 0.103,
+        "cpu_ms_per_frame": 0.103
+      }
+    },
+    {
+      "test": "C_switch_over_mid_clip[latina_idle_512x832_241f]",
+      "result": "pass",
+      "started_decoding": true,
+      "switched_to_cache": true,
+      "first_mismatch": null
+    },
+    {
+      "test": "D_skip_frames_cache[latina_idle_512x832_241f]",
+      "result": "pass",
+      "skipped": 236,
+      "first_mismatch": null
+    },
+    {
+      "test": "D_skip_frames_decoder[latina_idle_512x832_241f]",
+      "result": "pass",
+      "skipped": 236,
+      "first_mismatch": null
+    },
+    {
+      "test": "E_reset[latina_idle_512x832_241f]",
+      "result": "pass",
+      "first_mismatch": null
+    },
+    {
+      "test": "G_thread_caps_decoder_exact[latina_idle_512x832_241f]",
+      "result": "pass",
+      "decode_threads": 1,
+      "first_mismatch": null
+    },
+    {
+      "test": "F_lru_budget_evict_and_reject",
+      "result": "pass",
+      "after_first": [
+        {
+          "path": "/workspace/MuseTalk/results/v15/avatars/chinese_bob_pink_bedroom_idle_d4b06da317/input_video.mp4",
+          "frames": 240,
+          "mib": 157.5,
+          "readers": 0
+        }
+      ],
+      "after_second": {
+        "evictions": 1,
+        "clips": [
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/latina_guided_20260925_idle_ee675cb4fd/input_video.mp4",
+            "frames": 241,
+            "mib": 146.86,
+            "readers": 0
+          }
+        ]
+      },
+      "after_third": {
+        "admission_rejected": 1,
+        "used_mib": 146.86
+      },
+      "fallback_session_decodes": true
+    }
+  ]
+}

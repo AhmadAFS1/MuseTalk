@@ -1,0 +1,39 @@
+{
+ "area": "scheduler pipeline (plan items 0.2, 1.1, 1.2 hookup, 1.4, 1.9, 1.10, 1.5 crossfade-copy skip, WEBRTC_YUV_IN_COMPOSE producer side; bonus 1.3 blocking wait and 1.4 Whisper stream)",
+ "date": "2026-09-28",
+ "status": "IMPLEMENTED + CPU-TESTED; NO GPU RUN YET (workflow was CPU-only). Run gpu_sequence.sh when the lease is free.",
+ "files": {
+  "scripts/hls_gpu_scheduler.py": "all levers, flag registry SCHEDULER_PIPELINE_FLAGS; defaults = the code at merge-base 1564568 (sha256 prefix e8a8dc5accb5)",
+  "scripts/replay_scheduler_exactness.py": "--repo (main or worktree), sources repo|head|base|path, SHA-256 faces/frames/yuv per job in order, crf<=12 mp4 dumps, null-sink speed mode, selfcheck mode, event-vs-host summary",
+  "scripts/test_hls_scheduler_pipeline.py": "27 CPU tests (mocked UNet/TAESD, real VAE.decode_latents and APIAvatar.compose_frame, compared against the merge-base scheduler)",
+  "docs/.../scheduler/gpu_sequence.sh": "executable GPU sequence (cpu g1 g2 g3 g4 g5 g6 t1 t2 video summary)",
+  "docs/.../scheduler/gate.py": "CPU-only PASS/FAIL gates over the harness JSON"
+ },
+ "flags_default_off": {
+  "HLS_GPU_EVENT_TIMING": "0",
+  "HLS_GPU_PIPELINE_DEPTH": "1",
+  "HLS_GPU_OUTPUT_RING": "0 (= depth + 2)",
+  "HLS_GPU_BLOCKING_WAIT": "0",
+  "HLS_GPU_TIMING_WINDOW": "512",
+  "HLS_SCHEDULER_POLICY": "roundrobin",
+  "HLS_SCHEDULER_MAX_RUNAHEAD_S": "5",
+  "HLS_SCHEDULER_EDF_STARTUP_FRAMES": "0 (= prebuffer_seconds x fps)",
+  "HLS_SCHEDULER_EDF_URGENT_S": "0.5",
+  "HLS_SCHEDULER_EDF_MAX_QUEUE_FRAMES": "0 (= track max_queue)",
+  "HLS_SKIP_GPU_FOR_RAW": "0",
+  "HLS_SKIP_RAW_MAX_PENDING_BATCHES": "2",
+  "HLS_SKIP_CROSSFADE_COPY": "0",
+  "WEBRTC_YUV_IN_COMPOSE": "0",
+  "MUSETALK_WHISPER_STREAM": "0",
+  "existing, item 1.1": "HLS_GPU_STAGE_SYNC_TIMING=1 and MUSETALK_VAE_DECODE_TIMING_SYNC=1 (set both to 0)"
+ },
+ "cpu_results": {
+  "unit_tests": "27/27 pass, 3 repeated runs, ~12 s, max RSS ~610 MB (gate_cpu_unit_tests.json, cpu_tests.log)",
+  "existing_scheduler_tests": "test_webrtc_exact_silence_runtime 13, test_motion_eye_runtime 14, test_motion_current_runtime 19, test_webrtc_pose_crossfade 2: all pass after the change",
+  "selfcheck": "harness selfcheck PASS for --repo /workspace/MuseTalk and /workspace/MuseTalk-perf300; modules import from --repo, no CUDA init, nothing written under /workspace/MuseTalk (selfcheck_*.json)",
+  "gate_script": "exercised on synthetic JSON: identical/diff/failed-run/evsync/speed/missing-file cases give the expected verdicts",
+  "video_step": "filter graph verified on synthetic clips (labels fit, diff panel black when identical)"
+ },
+ "superseded": "run_baseline_capture.sh / golden_base_A.log (an earlier interrupted attempt; it never ran). gpu_sequence.sh g1/g2 replace it and baseline against the main checkout.",
+ "next": "docs/fps_comparisons/4070s_300fps_impl_20260928/scheduler/gpu_sequence.sh (all steps, ~60 min of leases), then gate.py summary"
+}

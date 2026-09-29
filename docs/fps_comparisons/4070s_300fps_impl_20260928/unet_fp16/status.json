@@ -1,0 +1,19 @@
+{
+ "area": "unet_fp16 (plan items 1.2, 2.2, 2.3a, 2.3b)",
+ "status": "BLOCKED before any GPU work: foreign GPU process for the whole window",
+ "blocker": {
+  "pid": 3555159,
+  "cmd": "/workspace/.venvs/musetalk_trt_stagewise/bin/python api_server.py --host 0.0.0.0 --port 8000",
+  "parent": "bash scripts/run_trt_stagewise_server.sh --profile throughput_record --port 8000 (ppid 1)",
+  "started_utc": "2026-09-28T01:15:09",
+  "launched_from": "SSH session (SSH_CONNECTION from 162.197.46.143), log /workspace/logs/musetalk/api_server_8000.log",
+  "vram_mib": 9502, "rss_mib": 3800,
+  "state": "idle (0% util) but registered with worker control ('Worker registration succeeded'); log shows 1-2 WebRTC sessions at times",
+  "waited": "01:18:59-02:19:45 UTC (two lease attempts, polled every 30 s)"
+ },
+ "gpu_measurements": "none (tag [M] nothing); no engine built, no benchmark run",
+ "cpu_checks": ["chain spec vs diffusers forward on meta-device UNet: 11 blocks, skip mapping correct",
+                "tiny-UNet fp32 CPU: wrapper chain vs UNet2DConditionModel.forward max_abs 8.3e-07; all 11 blocks export to ONNX with the expected i*/o* names",
+                "mock-chain CPU test: padded (1,3,8), exact (8,16) and split (17,24,40) batches return correct rows in fresh tensors for engine bs16 and bs8"],
+ "next": "run_sequence.sh A1 A2 A3 B1_16 B2_16 B3_16 B2_8 B3_8 G16 G8 C16 once the GPU is free"
+}

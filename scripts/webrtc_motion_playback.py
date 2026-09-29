@@ -7,11 +7,25 @@ from collections import deque
 import av
 
 from scripts.motion_transitions import IDLE, flow_blend
+from scripts.webrtc_idle_frame_cache import get_idle_frame_cache
 
 
 MOTION_ENTRY_PREPARE_TIMEOUT_SECONDS = 5.0
 MOTION_ENTRY_FLOW_TIMEOUT_SECONDS = 1.0
 MOTION_ENTRY_CLOCK_TIMEOUT_SECONDS = .5
+
+
+def _skip_source_frames(decoder, count):
+    """Advance ``decoder`` by ``count`` frames exactly as repeated read_frame()
+    calls would. With WEBRTC_IDLE_FRAME_CACHE=1 a cache-backed decoder only
+    moves its index (no decode, no frame build)."""
+    if count <= 0:
+        return
+    if getattr(decoder, "cache_backed", False):
+        decoder.skip_frames(count)
+        return
+    for _ in range(count):
+        decoder.read_frame()
 
 
 class MotionPlaybackMixin:
@@ -44,6 +58,11 @@ class MotionPlaybackMixin:
         self._motion_entry_failure = asyncio.Event()
         self._motion_entry_failed_record = None
         self._motion_entry_clock_catchup = False
+        cache = get_idle_frame_cache()
+        if cache is not None:
+            # Decode every motion source once, off the event loop, before the
+            # first turn boundary needs it (WEBRTC_IDLE_FRAME_CACHE=1).
+            cache.prewarm(sorted(set(self._motion_source_paths.values())))
 
     def motion_status(self):
         if not getattr(self, "motion_bank", None):
@@ -101,8 +120,7 @@ class MotionPlaybackMixin:
             decoder = IdleVideoStreamTrack(self._motion_idle_path, fps=bank.fps,
                                            decode_threads=16)
             try:
-                for _ in range(target):
-                    decoder.read_frame()
+                _skip_source_frames(decoder, target)
                 return decoder, decoder.read_frame()
             except BaseException:
                 decoder.stop()
@@ -197,8 +215,7 @@ class MotionPlaybackMixin:
             from scripts.webrtc_tracks import IdleVideoStreamTrack
             decoder = IdleVideoStreamTrack(source_path, fps=bank.fps, decode_threads=16)
             try:
-                for _ in range(source_frame):
-                    decoder.read_frame()
+                _skip_source_frames(decoder, source_frame)
                 return decoder.read_frame().to_ndarray(format="bgr24")
             finally:
                 decoder.stop()
@@ -456,15 +473,19 @@ class MotionPlaybackMixin:
             decoder = IdleVideoStreamTrack(path, fps=bank.fps, decode_threads=16)
             try:
                 target = int(edge["target_frame"])
-                for _ in range(target):
-                    decoder.read_frame()
+                _skip_source_frames(decoder, target)
                 count = max(2, math.ceil(bank.bridge_seconds * self._output_fps))
                 frames, ids = [], []
                 previous = -1
                 incoming = None
                 for n in range(count):
                     offset = int(n * bank.fps / self._output_fps)
-                    for _ in range(offset - previous):
+                    steps = offset - previous
+                    if steps > 1 and getattr(decoder, "cache_backed", False):
+                        # Only the last of these frames is used; skip the rest.
+                        _skip_source_frames(decoder, steps - 1)
+                        steps = 1
+                    for _ in range(steps):
                         incoming = decoder.read_frame().to_ndarray(format="bgr24")
                     previous = offset
                     t = (n + 1) / count

@@ -1,15 +1,157 @@
+import collections
 import math
 import os
+import sys
 import threading
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import wait as _wait_futures
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, Optional
 
 import numpy as np
 import torch
+
+# Added code (300 fps plan items 0.2, 1.1, 1.2 hookup, 1.4, 1.9, 1.10, 1.5
+# crossfade-copy skip and the WEBRTC_YUV_IN_COMPOSE producer side;
+# docs/musetalk_4070s_300fps_plan_2026-09-27.md). Every lever is one env line
+# and every default reproduces the scheduler exactly as it was before them.
+# name -> (default, effect)
+SCHEDULER_PIPELINE_FLAGS = {
+    "HLS_GPU_EVENT_TIMING": (
+        "0",
+        "1: CUDA events around H2D / UNet / TAESD / D2H of every batch; capacity telemetry "
+        "(GPU busy fraction, GPU idle gap between batches, callback-blocked time, batch fill, "
+        "jobs per batch, feeder-thread CPU per batch) in get_stats()['capacity'] and "
+        "get_capacity_stats(). With HLS_GPU_STAGE_SYNC_TIMING=0 (or depth >= 2) the per-job "
+        "stage times come from the events instead of host clocks."),
+    "HLS_GPU_PIPELINE_DEPTH": (
+        "1",
+        "2: double-buffered loop: batch N+1 is assembled and launched before batch N is "
+        "collected; per-slot pinned staging, pinned output ring, non_blocking D2H + events, "
+        "no host syncs inside a batch. All UNet/TAESD launches stay on the scheduler thread."),
+    "HLS_GPU_OUTPUT_RING": (
+        "0", "Pinned output slots per shape for depth >= 2 (0 = depth + 2). A slot is reused only "
+             "after every compose task that reads its faces has finished."),
+    "HLS_GPU_TIMING_WINDOW": (
+        "512", "Per-batch capacity records kept for get_capacity_stats(include_batches=True)."),
+    "HLS_GPU_BLOCKING_WAIT": (
+        "0", "1 (depth >= 2): the batch-done event is created with blocking=True so the collect "
+             "wait sleeps instead of spinning (plan item 1.3)."),
+    "HLS_SCHEDULER_POLICY": (
+        "roundrobin",
+        "edf: startup jobs packed to a prebuffer-sized first slice, then earliest-deadline-first "
+        "on slack (frames queued ahead of playout), skipping jobs beyond the run-ahead cap or "
+        "whose consumer queue is full. roundrobin: today's five selection rounds."),
+    "HLS_SCHEDULER_MAX_RUNAHEAD_S": (
+        "5", "edf: jobs with more than this many seconds generated ahead of playout wait (<=0 off)."),
+    "HLS_SCHEDULER_EDF_STARTUP_FRAMES": (
+        "0", "edf: first-slice size per job; 0 = session prebuffer_seconds x fps, else the "
+             "startup chunk."),
+    "HLS_SCHEDULER_EDF_URGENT_S": (
+        "0.5", "edf: warmed jobs with less slack than this are served before startup jobs."),
+    "HLS_SCHEDULER_EDF_MAX_QUEUE_FRAMES": (
+        "0", "edf: consumer queue capacity used for the queue-full skip (0 = the track's max_queue)."),
+    "HLS_SKIP_GPU_FOR_RAW": (
+        "0",
+        "1: frames whose generated face is discarded (exact_silence jobs, and neutral_resting "
+        "frames when WEBRTC_RAW_IDLE_POSE=1) are left out of the UNet/TAESD batch and composed "
+        "from the raw layer only; freed GPU rows are topped up with other jobs' frames."),
+    "HLS_SKIP_RAW_MAX_PENDING_BATCHES": (
+        "2", "With HLS_SKIP_GPU_FOR_RAW=1: an exact_silence job with this many compose batches "
+             "outstanding is not selected (paces all-raw jobs that no longer wait on the GPU)."),
+    "HLS_SKIP_CROSSFADE_COPY": (
+        "0", "1: the WebRTC crossfade history keeps a reference to each frame and copies only the "
+             "last frame of a batch (the only one that can outlive the batch) instead of every frame."),
+    "WEBRTC_YUV_IN_COMPOSE": (
+        "0", "1: compose workers attach the exact PyAV yuv420p conversion to each WebRTC frame "
+             "(webrtc_live_handoff.ComposedFrame); frames changed by a crossfade stay plain BGR."),
+    "MUSETALK_WHISPER_STREAM": (
+        "0", "1: the Whisper encode in job prep runs on a per-prep-thread CUDA stream so it does "
+             "not queue behind scheduler batches."),
+}
+
+
+def scheduler_pipeline_flag_snapshot() -> dict:
+    return {
+        name: os.environ.get(name, default)
+        for name, (default, _effect) in SCHEDULER_PIPELINE_FLAGS.items()
+    }
+
+
+class _HostEvent:
+    """CPU stand-in for torch.cuda.Event (CPU device or no CUDA): work is
+    synchronous, so an event completes when it is recorded."""
+
+    __slots__ = ("t",)
+
+    def __init__(self):
+        self.t = None
+
+    def record(self, stream=None):
+        self.t = time.perf_counter()
+
+    def synchronize(self):
+        return None
+
+    def query(self):
+        return True
+
+    def elapsed_time(self, end) -> float:
+        if self.t is None or end.t is None:
+            return 0.0
+        return (end.t - self.t) * 1000.0
+
+
+class _BatchPiece:
+    """A contiguous run of one job's frames inside one GPU batch."""
+
+    __slots__ = ("job", "start_frame_idx", "take", "snapshots", "raw_mask",
+                 "gpu_offset", "gpu_rows")
+
+    def __init__(self, job, start_frame_idx: int, take: int):
+        self.job = job
+        self.start_frame_idx = int(start_frame_idx)
+        self.take = int(take)
+        # Pose snapshots computed at assembly. Only pieces that skip raw
+        # frames carry them to compose; otherwise compose recomputes them
+        # exactly as before.
+        self.snapshots = None
+        # None: every frame goes to the GPU (the default). Else one bool per
+        # frame, True = composed raw without a generated face.
+        self.raw_mask = None
+        self.gpu_offset = 0
+        self.gpu_rows = int(take)
+
+
+class _OutputSlot:
+    """One pinned host buffer of the depth >= 2 output ring."""
+
+    __slots__ = ("tensor", "array", "consumers", "uses")
+
+    def __init__(self, tensor):
+        self.tensor = tensor
+        self.array = tensor.numpy()
+        self.consumers = []
+        self.uses = 0
+
+
+class _InflightBatch:
+    """Everything collect() needs about a submitted batch."""
+
+    __slots__ = (
+        "seq", "pieces", "jobs", "actual_batch", "padded_batch", "lease_batch_size",
+        "recon", "done_event", "slot", "events", "pipelined", "raw_frames",
+        "batch_started_at", "assembly_finished_at", "copy_started_at", "copy_finished_at",
+        "pe_started_at", "pe_finished_at", "unet_started_at", "unet_finished_at",
+        "vae_started_at", "vae_finished_at", "submit_cpu_s", "submitted_at_perf",
+    )
+
+    def __init__(self):
+        for name in self.__slots__:
+            setattr(self, name, None)
 
 
 def _env_int(name: str, default: int) -> int:
@@ -140,6 +282,9 @@ class HLSStreamJob:
     webrtc_pose_crossfade_count: int = 0
     webrtc_pose_crossfade_frames_applied: int = 0
     conditioning_lock: object = field(default_factory=threading.Lock, repr=False)
+    # Added code (plan item 1.4): GPU batches submitted for this job but not
+    # yet collected. Always 0 between batches at depth 1.
+    gpu_inflight_batches: int = 0
 
 
 class HLSGPUStreamScheduler:
@@ -149,6 +294,24 @@ class HLSGPUStreamScheduler:
     One GPU thread batches work across active HLS sessions and a separate
     encode pool turns ready frame buffers into TS segments.
     """
+
+    # Added code: class-level defaults of the 300 fps plan flags. __init__
+    # reads the env; instances built with __new__ (unit tests) get today's
+    # behaviour from these.
+    gpu_event_timing = False
+    pipeline_depth = 1
+    output_ring_size = 0
+    gpu_blocking_wait = False
+    scheduler_policy = "roundrobin"
+    max_runahead_s = 5.0
+    edf_startup_frames = 0
+    edf_urgent_s = 0.5
+    edf_max_queue_frames = 0
+    skip_gpu_for_raw = False
+    skip_raw_max_pending_batches = 2
+    skip_crossfade_copy = False
+    webrtc_yuv_in_compose = False
+    whisper_stream_enabled = False
 
     def __init__(
         self,
@@ -253,6 +416,79 @@ class HLSGPUStreamScheduler:
         )
         self._unet_calibration_capture_count = 0
         self._unet_calibration_limit_logged = False
+        self._init_pipeline_flags()
+
+    def _init_pipeline_flags(self) -> None:
+        """Added code: read the 300 fps plan flags (SCHEDULER_PIPELINE_FLAGS)."""
+        self.gpu_event_timing = _env_bool("HLS_GPU_EVENT_TIMING", False)
+        self.pipeline_depth = max(1, min(4, _env_int("HLS_GPU_PIPELINE_DEPTH", 1)))
+        ring = _env_int("HLS_GPU_OUTPUT_RING", 0)
+        self.output_ring_size = max(self.pipeline_depth + 1, ring if ring > 0 else self.pipeline_depth + 2)
+        self.gpu_blocking_wait = _env_bool("HLS_GPU_BLOCKING_WAIT", False)
+        policy = (os.getenv("HLS_SCHEDULER_POLICY") or "roundrobin").strip().lower()
+        if policy not in ("roundrobin", "edf"):
+            raise RuntimeError(
+                f"Invalid HLS_SCHEDULER_POLICY={policy!r}; expected roundrobin or edf"
+            )
+        self.scheduler_policy = policy
+        self.max_runahead_s = _env_float("HLS_SCHEDULER_MAX_RUNAHEAD_S", 5.0)
+        self.edf_startup_frames = max(0, _env_int("HLS_SCHEDULER_EDF_STARTUP_FRAMES", 0))
+        self.edf_urgent_s = max(0.0, _env_float("HLS_SCHEDULER_EDF_URGENT_S", 0.5))
+        self.edf_max_queue_frames = max(0, _env_int("HLS_SCHEDULER_EDF_MAX_QUEUE_FRAMES", 0))
+        self.skip_gpu_for_raw = _env_bool("HLS_SKIP_GPU_FOR_RAW", False)
+        self.skip_raw_max_pending_batches = max(1, _env_int("HLS_SKIP_RAW_MAX_PENDING_BATCHES", 2))
+        self.skip_crossfade_copy = _env_bool("HLS_SKIP_CROSSFADE_COPY", False)
+        self.webrtc_yuv_in_compose = _env_bool("WEBRTC_YUV_IN_COMPOSE", False)
+        self.whisper_stream_enabled = _env_bool("MUSETALK_WHISPER_STREAM", False)
+        self._whisper_streams = threading.local()
+        # depth >= 2 state (only touched by the scheduler thread).
+        self._pipeline_seq = 0
+        self._staging_slot_events: Dict[int, object] = {}
+        self._output_rings: Dict[tuple, list] = {}
+        self._output_ring_pos: Dict[tuple, int] = {}
+        self._fallback_decode_logged = False
+        # Capacity telemetry (HLS_GPU_EVENT_TIMING=1).
+        self._cap_lock = threading.Lock()
+        self._cap_started_at = time.monotonic()
+        self._cap_totals = collections.defaultdict(float)
+        self._cap_batches = collections.deque(
+            maxlen=max(16, _env_int("HLS_GPU_TIMING_WINDOW", 512))
+        )
+        self._cap_prev_end_event = None
+        self._cap_prev_seq = None
+
+    def _pipeline_flags_non_default(self) -> bool:
+        return bool(
+            self.gpu_event_timing
+            or self.pipeline_depth > 1
+            or self.gpu_blocking_wait
+            or self.scheduler_policy != "roundrobin"
+            or self.skip_gpu_for_raw
+            or self.skip_crossfade_copy
+            or self.webrtc_yuv_in_compose
+            or self.whisper_stream_enabled
+        )
+
+    def _pipeline_config(self) -> dict:
+        unet_model = getattr(getattr(self.manager, "unet", None), "model", None)
+        return {
+            "gpu_event_timing": self.gpu_event_timing,
+            "gpu_stage_sync_timing": bool(getattr(self, "gpu_stage_sync_timing", True)),
+            "pipeline_depth": self.pipeline_depth,
+            "output_ring_size": self.output_ring_size if self.pipeline_depth > 1 else 0,
+            "gpu_blocking_wait": self.gpu_blocking_wait,
+            "scheduler_policy": self.scheduler_policy,
+            "max_runahead_s": self.max_runahead_s,
+            "edf_startup_frames": self.edf_startup_frames,
+            "edf_urgent_s": self.edf_urgent_s,
+            "edf_max_queue_frames": self.edf_max_queue_frames,
+            "skip_gpu_for_raw": self.skip_gpu_for_raw,
+            "skip_raw_max_pending_batches": self.skip_raw_max_pending_batches,
+            "skip_crossfade_copy": self.skip_crossfade_copy,
+            "webrtc_yuv_in_compose": self.webrtc_yuv_in_compose,
+            "whisper_stream": self.whisper_stream_enabled,
+            "unet_cudagraphs_mode": getattr(unet_model, "cudagraphs_mode", None),
+        }
 
     def start(self) -> None:
         if self.scheduler_thread is not None:
@@ -274,6 +510,17 @@ class HLSGPUStreamScheduler:
             f"gpu_batch_timing_slow_s={self.gpu_batch_timing_slow_s:.3f}, "
             f"gpu_stage_sync_timing={self.gpu_stage_sync_timing})"
         )
+        if self._pipeline_flags_non_default():
+            config = self._pipeline_config()
+            print(
+                "🎛️  HLS GPU scheduler 300fps flags: "
+                + " ".join(f"{key}={value}" for key, value in config.items())
+            )
+            if self.pipeline_depth > 1 and self.gpu_stage_sync_timing:
+                print(
+                    "🎛️  HLS_GPU_PIPELINE_DEPTH>1 never host-syncs inside a batch; "
+                    "HLS_GPU_STAGE_SYNC_TIMING is ignored (use HLS_GPU_EVENT_TIMING=1)"
+                )
         if self.vae_calibration_capture:
             limit_label = (
                 str(self.vae_calibration_max_batches)
@@ -384,7 +631,86 @@ class HLSGPUStreamScheduler:
 
     def get_stats(self) -> dict:
         with self.condition:
-            return {
+            stats = self._get_stats_locked()
+            # Added code: only present when a 300 fps plan flag is non-default,
+            # so the default stats payload is unchanged.
+            if self._pipeline_flags_non_default():
+                stats["pipeline"] = self._pipeline_config()
+                if self.gpu_event_timing:
+                    stats["capacity"] = self.get_capacity_stats()
+            return stats
+
+    def get_capacity_stats(self, include_batches: bool = False) -> dict:
+        """Added code (plan item 0.2): capacity telemetry totals since start.
+
+        Totals are monotonic, so a caller computes a window by differencing two
+        snapshots. Event-based GPU times need HLS_GPU_EVENT_TIMING=1; host
+        (sync) stage times are recorded as host_*_ms for the event-vs-sync gate.
+        """
+        with self._cap_lock:
+            totals = dict(self._cap_totals)
+            batches = list(self._cap_batches) if include_batches else None
+        totals["wall_s"] = time.monotonic() - self._cap_started_at
+        totals["scheduler_thread_cpu_ms"] = self._scheduler_thread_cpu_s() * 1000.0
+        out = {
+            "enabled": bool(self.gpu_event_timing),
+            "config": self._pipeline_config(),
+            "totals": totals,
+            "derived": self._derive_capacity(totals),
+        }
+        if include_batches:
+            out["batches"] = batches
+        return out
+
+    @staticmethod
+    def _derive_capacity(totals: dict) -> dict:
+        wall = totals.get("wall_s", 0.0) or 1e-9
+        batches = totals.get("batches", 0.0) or 0.0
+        gpu_batches = totals.get("gpu_batches", 0.0) or 0.0
+
+        def per(key, count):
+            return round(totals.get(key, 0.0) / count, 4) if count else None
+
+        return {
+            "batches": int(batches),
+            "gpu_batches": int(gpu_batches),
+            "gpu_busy_fraction": round(totals.get("gpu_span_ms", 0.0) / 1000.0 / wall, 4),
+            "gpu_ms_per_batch": per("gpu_span_ms", gpu_batches),
+            "idle_gap_ms_per_batch": per("idle_gap_ms", totals.get("idle_gap_count", 0.0)),
+            "callback_ms_per_batch": per("callback_ms", batches),
+            "feeder_cpu_ms_per_batch": per("feeder_cpu_ms", batches),
+            "host_wait_ms_per_batch": per("host_wait_ms", gpu_batches),
+            "ring_wait_ms_total": round(totals.get("ring_wait_ms", 0.0), 3),
+            "fill": (
+                round(totals.get("actual_frames", 0.0) / totals["padded_frames"], 4)
+                if totals.get("padded_frames") else None
+            ),
+            "jobs_per_batch": per("jobs", batches),
+            "gpu_fps": round(totals.get("actual_frames", 0.0) / wall, 2),
+            "raw_frames": int(totals.get("raw_frames", 0.0)),
+            "h2d_ms_per_batch": per("h2d_ms", gpu_batches),
+            "unet_ms_per_batch": per("unet_ms", gpu_batches),
+            "vae_ms_per_batch": per("vae_ms", gpu_batches),
+            "d2h_ms_per_batch": per("d2h_ms", gpu_batches),
+        }
+
+    def _scheduler_thread_cpu_s(self) -> float:
+        thread = getattr(self, "scheduler_thread", None)
+        ident = getattr(thread, "ident", None)
+        if (
+            ident is None
+            or not thread.is_alive()
+            or not hasattr(time, "pthread_getcpuclockid")
+        ):
+            return 0.0
+        try:
+            return time.clock_gettime(time.pthread_getcpuclockid(ident))
+        except (OSError, ValueError, OverflowError):
+            return 0.0
+
+    def _get_stats_locked(self) -> dict:
+        # Body unchanged from the original get_stats (caller holds the lock).
+        return {
                 "queued_or_active_jobs": len(self.jobs),
                 "preparing_jobs": len(self.preparing_requests),
                 "prep_queue_depth": len(self.preparing_requests),
@@ -564,16 +890,34 @@ class HLSGPUStreamScheduler:
                 raise RuntimeError("Audio feature extraction failed")
 
             whisper_chunk_start = time.time()
-            whisper_feature, total_frames = self.manager.audio_processor.encode_whisper_feature(
-                whisper_input_features,
-                self.manager.device,
-                weight_dtype,
-                self.manager.whisper,
-                _librosa_length,
-                fps=generation_fps,
-                audio_padding_length_left=self.manager.args.audio_padding_length_left,
-                audio_padding_length_right=self.manager.args.audio_padding_length_right,
-            )
+            whisper_stream = self._whisper_stream_for_thread()
+            if whisper_stream is None:
+                whisper_feature, total_frames = self.manager.audio_processor.encode_whisper_feature(
+                    whisper_input_features,
+                    self.manager.device,
+                    weight_dtype,
+                    self.manager.whisper,
+                    _librosa_length,
+                    fps=generation_fps,
+                    audio_padding_length_left=self.manager.args.audio_padding_length_left,
+                    audio_padding_length_right=self.manager.args.audio_padding_length_right,
+                )
+            else:
+                # Added code (plan item 1.4, MUSETALK_WHISPER_STREAM=1): same
+                # call on this prep thread's own stream. The result is a CPU
+                # tensor; the stream is drained before it is used.
+                with torch.cuda.stream(whisper_stream):
+                    whisper_feature, total_frames = self.manager.audio_processor.encode_whisper_feature(
+                        whisper_input_features,
+                        self.manager.device,
+                        weight_dtype,
+                        self.manager.whisper,
+                        _librosa_length,
+                        fps=generation_fps,
+                        audio_padding_length_left=self.manager.args.audio_padding_length_left,
+                        audio_padding_length_right=self.manager.args.audio_padding_length_right,
+                    )
+                whisper_stream.synchronize()
             whisper_chunk_s = time.time() - whisper_chunk_start
 
             if cancel_event.is_set():
@@ -879,6 +1223,22 @@ class HLSGPUStreamScheduler:
                 generation_complete_callback=generation_complete_callback,
             )
 
+    def _whisper_stream_for_thread(self):
+        """Added code: per-prep-thread CUDA stream for MUSETALK_WHISPER_STREAM=1."""
+        if not self.whisper_stream_enabled or not torch.cuda.is_available():
+            return None
+        device = torch.device(getattr(self.manager, "device", "cuda"))
+        if device.type != "cuda":
+            return None
+        local = getattr(self, "_whisper_streams", None)
+        if local is None:
+            return None
+        stream = getattr(local, "stream", None)
+        if stream is None:
+            stream = torch.cuda.Stream(device=device)
+            local.stream = stream
+        return stream
+
     @staticmethod
     # Local modification: this differs from the original MuseTalk code.
     # Small helper used to parallelize prep work while still reporting timings.
@@ -996,6 +1356,9 @@ class HLSGPUStreamScheduler:
             traceback.print_exc()
 
     def _run_loop(self) -> None:
+        if self.pipeline_depth > 1:
+            self._run_loop_pipelined()
+            return
         while True:
             self._drain_completed_composes()
             self._drain_completed_encodes()
@@ -1006,7 +1369,7 @@ class HLSGPUStreamScheduler:
                 if self.stop_event.is_set() and not self.jobs and not self.preparing_requests:
                     break
 
-                selected = self._select_jobs_locked()
+                selected = self._select_jobs_for_batch_locked()
                 if not selected:
                     self.condition.wait(timeout=0.02)
                     continue
@@ -1023,6 +1386,240 @@ class HLSGPUStreamScheduler:
             self._drain_completed_encodes()
             self._finalize_ready_jobs()
             self._finalize_cancelled_jobs()
+
+    def _run_loop_pipelined(self) -> None:
+        """Added code (plan item 1.4, HLS_GPU_PIPELINE_DEPTH>=2).
+
+        Batch N+1 is selected, assembled and launched before batch N is
+        collected, so the GPU always has the next batch queued while this
+        thread waits on N, composes, and runs callbacks. Selection counts
+        in-flight frames as scheduled (current_frame_idx advances at submit),
+        so no frame is generated twice, and per-job compose sequence numbers
+        are assigned at collect in submit order, so frame order is unchanged.
+        """
+        inflight = collections.deque()
+        while True:
+            self._drain_completed_composes()
+            self._drain_completed_encodes()
+            self._finalize_ready_jobs()
+            self._finalize_cancelled_jobs()
+
+            selected = []
+            with self.condition:
+                if (
+                    self.stop_event.is_set()
+                    and not self.jobs
+                    and not self.preparing_requests
+                    and not inflight
+                ):
+                    break
+                if len(inflight) < self.pipeline_depth:
+                    selected = self._select_jobs_for_batch_locked()
+                if not selected and not inflight:
+                    self.condition.wait(timeout=0.02)
+                    continue
+
+            if selected:
+                try:
+                    batch = self._submit_generation_batch(selected, pipelined=True)
+                    if batch is not None:
+                        inflight.append(batch)
+                except Exception as exc:
+                    print(f"❌ HLS scheduler batch submit failed: {exc}")
+                    traceback.print_exc()
+                    for job, _ in selected:
+                        job.error_message = str(exc)
+
+            if inflight and (len(inflight) >= self.pipeline_depth or not selected):
+                batch = inflight.popleft()
+                try:
+                    self._collect_generation_batch(batch)
+                except Exception as exc:
+                    print(f"❌ HLS scheduler batch collect failed: {exc}")
+                    traceback.print_exc()
+                    for job in batch.jobs or []:
+                        job.error_message = str(exc)
+
+            self._drain_completed_composes()
+            self._drain_completed_encodes()
+            self._finalize_ready_jobs()
+            self._finalize_cancelled_jobs()
+
+    def _select_jobs_for_batch_locked(self):
+        """Added code: policy dispatch. The defaults call _select_jobs_locked()
+        and return its result unchanged."""
+        if self.scheduler_policy == "edf":
+            selected = self._select_jobs_edf_locked()
+        else:
+            selected = self._select_jobs_locked()
+        if self.skip_gpu_for_raw and selected:
+            selected = [
+                (job, take)
+                for job, take in selected
+                if not (
+                    job.exact_silence
+                    and self._pending_compose_batches(job) >= self.skip_raw_max_pending_batches
+                )
+            ]
+        return selected
+
+    @staticmethod
+    def _pending_compose_batches(job: HLSStreamJob, extra: int = 0) -> int:
+        return (
+            len(job.compose_tasks)
+            + len(job.composed_batches)
+            + int(job.gpu_inflight_batches)
+            + int(extra)
+        )
+
+    # ------------------------------------------------------------------ EDF
+    # Added code (plan item 1.9, HLS_SCHEDULER_POLICY=edf).
+    def _select_jobs_edf_locked(self):
+        jobs = self._ordered_schedulable_jobs_locked()
+        if not jobs:
+            return []
+        now = time.time()
+        capacity = self.max_combined_batch_size
+        allocations: Dict[str, int] = {}
+        state = {job.request_id: self._edf_job_state(job, now) for job in jobs}
+        ordinal = {job.request_id: index for index, job in enumerate(jobs)}
+        total = [0]
+
+        def grant(job: HLSStreamJob, want: int) -> int:
+            capacity_left = capacity - total[0]
+            if capacity_left <= 0 or want <= 0:
+                return 0
+            take = min(int(want), self._remaining_frames(job, allocations), capacity_left)
+            if take <= 0:
+                return 0
+            allocations[job.request_id] = allocations.get(job.request_id, 0) + take
+            total[0] += take
+            return take
+
+        def slack_s(job: HLSStreamJob) -> float:
+            st = state[job.request_id]
+            return (st["slack_frames"] + allocations.get(job.request_id, 0)) / st["fps"]
+
+        def eligible(job: HLSStreamJob) -> bool:
+            st = state[job.request_id]
+            if st["queue_cap"] is not None and (
+                st["slack_frames"] + allocations.get(job.request_id, 0) + job.batch_size
+                > st["queue_cap"]
+            ):
+                return False
+            return not (self.max_runahead_s > 0 and slack_s(job) > self.max_runahead_s)
+
+        def edf_key(job: HLSStreamJob):
+            return (slack_s(job), ordinal[job.request_id])
+
+        startup = [job for job in jobs if state[job.request_id]["startup_need"] > 0]
+        warmed = [job for job in jobs if state[job.request_id]["startup_need"] <= 0]
+
+        # 1. Warmed jobs about to underrun are served before any new stream.
+        for job in sorted(warmed, key=edf_key):
+            if slack_s(job) >= self.edf_urgent_s:
+                break
+            if eligible(job):
+                grant(job, job.batch_size)
+
+        # 2. Startup jobs: a prebuffer-sized first slice each, packed across
+        #    jobs into full batches, closest-to-ready first, then arrival.
+        for job in sorted(
+            startup,
+            key=lambda j: (state[j.request_id]["startup_need"], j.queued_at, ordinal[j.request_id]),
+        ):
+            need = state[job.request_id]["startup_need"] - allocations.get(job.request_id, 0)
+            grant(job, need)
+
+        # 3. Earliest deadline first on slack, one per-job batch slice at a
+        #    time, re-ranked after every grant.
+        while total[0] < capacity:
+            granted = False
+            for job in sorted(jobs, key=edf_key):
+                if not eligible(job):
+                    continue
+                if grant(job, job.batch_size) > 0:
+                    granted = True
+                    break
+            if not granted:
+                break
+
+        return [
+            (job, allocations[job.request_id])
+            for job in jobs
+            if allocations.get(job.request_id, 0) > 0
+        ]
+
+    def _edf_startup_target(self, job: HLSStreamJob) -> int:
+        target = self.edf_startup_frames
+        if target <= 0:
+            prebuffer_s = 0.0
+            if job.output_mode == "webrtc":
+                try:
+                    prebuffer_s = float(getattr(job.session, "prebuffer_seconds", 0.0) or 0.0)
+                except (TypeError, ValueError):
+                    prebuffer_s = 0.0
+            if prebuffer_s > 0:
+                target = int(round(prebuffer_s * float(job.generation_fps or 0)))
+            if target <= 0:
+                target = (
+                    job.startup_chunk_frames
+                    if job.startup_chunk_count > 0 and job.startup_chunk_frames > 0
+                    else job.frames_per_chunk
+                )
+        return max(0, min(int(target), int(job.total_frames)))
+
+    @staticmethod
+    def _consumer_depth_frames(job: HLSStreamJob) -> Optional[int]:
+        """Frames delivered to the consumer and not yet played, if knowable."""
+        session = job.session
+        hook = getattr(session, "webrtc_playback_queue_frames", None)
+        if not callable(hook):
+            track = getattr(session, "idle_track", None) if job.output_mode == "webrtc" else None
+            hook = getattr(track, "live_buffer_depth_frames", None)
+        if not callable(hook):
+            return None
+        try:
+            return max(0, int(hook()))
+        except Exception:
+            return None
+
+    def _consumer_queue_cap(self, job: HLSStreamJob) -> Optional[int]:
+        if self.edf_max_queue_frames > 0:
+            return self.edf_max_queue_frames
+        if job.output_mode != "webrtc":
+            return None
+        cap = getattr(getattr(job.session, "idle_track", None), "_max_queue", None)
+        if isinstance(cap, int) and not isinstance(cap, bool) and cap > 0:
+            return cap
+        return None
+
+    def _edf_job_state(self, job: HLSStreamJob, now: float) -> dict:
+        fps = max(1.0, float(job.generation_fps or 20))
+        startup_need = max(0, self._edf_startup_target(job) - job.current_frame_idx)
+        # Scheduled (incl. in flight) but not yet handed to the consumer.
+        pipeline = max(0, job.current_frame_idx - job.composed_frame_idx)
+        depth = self._consumer_depth_frames(job)
+        if depth is None:
+            # No consumer counter: assume playout started with the first
+            # delivered block and runs in real time.
+            if job.first_chunk_appended_at is None:
+                queued = float(job.composed_frame_idx)
+            else:
+                queued = max(
+                    0.0,
+                    job.composed_frame_idx - (now - job.first_chunk_appended_at) * fps,
+                )
+            queue_cap = None
+        else:
+            queued = float(depth)
+            queue_cap = self._consumer_queue_cap(job)
+        return {
+            "fps": fps,
+            "startup_need": startup_need,
+            "slack_frames": queued + pipeline,
+            "queue_cap": queue_cap,
+        }
 
     def _select_jobs_locked(self):
         jobs = self._ordered_schedulable_jobs_locked()
@@ -1120,9 +1717,12 @@ class HLSGPUStreamScheduler:
             if job.generation_done:
                 continue
             if job.current_frame_idx >= job.total_frames:
-                job.generation_done = True
-                if job.generation_done_at is None:
-                    job.generation_done_at = time.time()
+                # Added guard: at depth >= 2 the last frames may still be in
+                # flight; collect() marks the job done once they land.
+                if job.gpu_inflight_batches <= 0:
+                    job.generation_done = True
+                    if job.generation_done_at is None:
+                        job.generation_done_at = time.time()
                 continue
 
             remaining_frames = self._remaining_frames(job)
@@ -1295,24 +1895,256 @@ class HLSGPUStreamScheduler:
         return [job for *_unused, job in ranked]
 
     def _run_generation_batch(self, selected) -> None:
+        # Added code (plan item 1.4): the batch is split into submit (assemble
+        # + launch) and collect (wait + compose dispatch + stats). At depth 1
+        # (the default) they run back to back, which is exactly the original
+        # sequence of calls: the same stage syncs, the blocking
+        # decode_latents(), the same compose dispatch order and per-job stats.
+        batch = self._submit_generation_batch(selected, pipelined=False)
+        if batch is not None:
+            self._collect_generation_batch(batch)
+
+    def _submit_generation_batch(self, selected, pipelined: bool = False):
         selected = [(job, take) for job, take in selected if take > 0 and not job.cancel_event.is_set()]
         if not selected:
             self._finalize_cancelled_jobs()
-            return
+            return None
 
+        telemetry = self.gpu_event_timing
+        cpu_started = time.thread_time() if telemetry else 0.0
         batch_started_at = time.time()
         total_batch = sum(take for _, take in selected)
         lease_batch_size = self._memory_bucket(total_batch)
-        actual_batch = total_batch
 
         for job, take in selected:
-            if job.first_scheduled_at is None:
-                job.first_scheduled_at = batch_started_at
-            job.last_progress_at = time.time()
-            if not getattr(job.session, "live_ready", False) and hasattr(job.session, "status"):
-                job.session.status = "generating"
-            self._set_request_status(job.request_id, "running")
-            job.scheduler_turns += 1
+            self._mark_job_scheduled(job, batch_started_at)
+
+        pieces = self._plan_batch_pieces(selected)
+        jobs = []
+        seen = set()
+        for piece in pieces:
+            if id(piece.job) not in seen:
+                seen.add(id(piece.job))
+                jobs.append(piece.job)
+        if len(jobs) > len(selected):
+            # Jobs added by the raw-frame top-up.
+            selected_ids = {id(job) for job, _ in selected}
+            for job in jobs:
+                if id(job) not in selected_ids:
+                    self._mark_job_scheduled(job, batch_started_at)
+
+        gpu_offset = 0
+        for piece in pieces:
+            piece.gpu_offset = gpu_offset
+            gpu_offset += piece.gpu_rows
+
+        batch = _InflightBatch()
+        batch.seq = self._pipeline_seq
+        self._pipeline_seq += 1
+        batch.pipelined = bool(pipelined)
+        batch.pieces = pieces
+        batch.jobs = jobs
+        batch.actual_batch = gpu_offset
+        batch.raw_frames = sum(piece.take - piece.gpu_rows for piece in pieces)
+        batch.lease_batch_size = lease_batch_size
+        batch.batch_started_at = batch_started_at
+        batch.submitted_at_perf = time.perf_counter()
+
+        if batch.actual_batch > 0:
+            calib_selected = (
+                selected
+                if not self.skip_gpu_for_raw
+                else [(piece.job, piece.gpu_rows) for piece in pieces if piece.gpu_rows > 0]
+            )
+            self._launch_gpu_batch(batch, calib_selected)
+        else:
+            # Every frame is raw (HLS_SKIP_GPU_FOR_RAW=1): nothing to launch.
+            now = time.time()
+            batch.padded_batch = 0
+            batch.recon = None
+            batch.assembly_finished_at = now
+            batch.copy_started_at = batch.copy_finished_at = now
+            batch.pe_started_at = batch.pe_finished_at = now
+            batch.unet_started_at = batch.unet_finished_at = now
+            batch.vae_started_at = batch.vae_finished_at = now
+
+        # The frames are scheduled now; at depth >= 2 selection of the next
+        # batch must not pick them again.
+        for piece in pieces:
+            piece.job.current_frame_idx = piece.start_frame_idx + piece.take
+        for job in jobs:
+            job.gpu_inflight_batches += 1
+        batch.submit_cpu_s = (time.thread_time() - cpu_started) if telemetry else 0.0
+        return batch
+
+    def _mark_job_scheduled(self, job: HLSStreamJob, batch_started_at: float) -> None:
+        if job.first_scheduled_at is None:
+            job.first_scheduled_at = batch_started_at
+        job.last_progress_at = time.time()
+        if not getattr(job.session, "live_ready", False) and hasattr(job.session, "status"):
+            job.session.status = "generating"
+        self._set_request_status(job.request_id, "running")
+        job.scheduler_turns += 1
+
+    def _plan_batch_pieces(self, selected) -> list:
+        pieces = [_BatchPiece(job, job.current_frame_idx, take) for job, take in selected]
+        if not self.skip_gpu_for_raw:
+            return pieces
+
+        # Added code (plan item 1.10, HLS_SKIP_GPU_FOR_RAW=1).
+        for piece in pieces:
+            self._mark_raw_frames(piece)
+        allocations: Dict[str, int] = {}
+        for piece in pieces:
+            allocations[piece.job.request_id] = allocations.get(piece.job.request_id, 0) + piece.take
+        new_round = pieces
+        for _round in range(4):
+            gpu_rows = sum(piece.gpu_rows for piece in pieces)
+            if gpu_rows >= self.max_combined_batch_size:
+                break
+            if not any(piece.raw_mask is not None for piece in new_round):
+                break
+            # Raw frames freed GPU rows: top them up with more frames, never
+            # from exact_silence jobs (their frames are all raw).
+            with self.condition:
+                candidates = [job for job in self._topup_order_locked() if not job.exact_silence]
+                before = dict(allocations)
+                self._fill_remaining_capacity(candidates, allocations, gpu_rows)
+            new_round = []
+            for job in candidates:
+                added = allocations.get(job.request_id, 0) - before.get(job.request_id, 0)
+                if added <= 0:
+                    continue
+                piece = _BatchPiece(job, job.current_frame_idx + before.get(job.request_id, 0), added)
+                self._mark_raw_frames(piece)
+                new_round.append(piece)
+            if not new_round:
+                break
+            pieces.extend(new_round)
+        return pieces
+
+    def _topup_order_locked(self) -> list:
+        jobs = self._ordered_schedulable_jobs_locked()
+        if self.scheduler_policy == "edf" and jobs:
+            now = time.time()
+            ordinal = {job.request_id: index for index, job in enumerate(jobs)}
+            slack = {}
+            for job in jobs:
+                st = self._edf_job_state(job, now)
+                slack[job.request_id] = st["slack_frames"] / st["fps"]
+            jobs.sort(key=lambda job: (slack[job.request_id], ordinal[job.request_id]))
+        return jobs
+
+    def _mark_raw_frames(self, piece: _BatchPiece) -> None:
+        """Mirror of the raw-compose decision in _dispatch_compose_batch."""
+        job = piece.job
+        router = (
+            getattr(job.session, "live_pose_router", None)
+            if job.output_mode == "webrtc"
+            else None
+        )
+        if router is not None:
+            piece.snapshots = router.snapshots_for_range(
+                piece.start_frame_idx,
+                piece.take,
+                job.generation_fps,
+            )
+        mask = None
+        if getattr(job, "exact_silence", False):
+            mask = [True] * piece.take
+        elif (
+            router is not None
+            and getattr(router, "motion_bank", None) is not None
+            and _env_bool("WEBRTC_RAW_IDLE_POSE", False)
+        ):
+            mask = [
+                (snapshot.pose_id if snapshot is not None else "default") == "neutral_resting"
+                for snapshot in piece.snapshots
+            ]
+        if mask is not None and any(mask):
+            piece.raw_mask = mask
+            piece.gpu_rows = piece.take - sum(1 for is_raw in mask if is_raw)
+
+    def _assemble_piece(self, piece: _BatchPiece, staging_conditioning, staging_latents) -> None:
+        job = piece.job
+        take = piece.take
+        offset = piece.gpu_offset
+        if piece.raw_mask is None:
+            with job.conditioning_lock:
+                conditioning_slice = job.conditioning_chunks[piece.start_frame_idx: piece.start_frame_idx + take]
+            staging_conditioning[offset: offset + take].copy_(conditioning_slice)
+
+        live_pose_router = (
+            getattr(job.session, "live_pose_router", None)
+            if job.output_mode == "webrtc"
+            else None
+        )
+        live_pose_snapshots = piece.snapshots
+        if live_pose_snapshots is None:
+            live_pose_snapshots = (
+                live_pose_router.snapshots_for_range(
+                    piece.start_frame_idx,
+                    take,
+                    job.generation_fps,
+                )
+                if live_pose_router is not None
+                else [None] * take
+            )
+        gathered_latents_by_frame = []
+        for relative_frame, snapshot in enumerate(live_pose_snapshots):
+            if piece.raw_mask is not None and piece.raw_mask[relative_frame]:
+                continue
+            pose_id = snapshot.pose_id if snapshot is not None else "default"
+            render_key = (
+                snapshot.effective_render_key
+                if snapshot is not None
+                else "default"
+            )
+            pose_avatar = job.pose_avatars.get(render_key, job.avatar)
+            if render_key != pose_id and render_key not in job.pose_avatars:
+                raise RuntimeError(
+                    f"Prepared pose variant is unavailable: {render_key}"
+                )
+            latent_cycle = getattr(
+                pose_avatar,
+                "input_latent_cycle_batch_tensor",
+                getattr(pose_avatar, "input_latent_cycle_tensor", None),
+            )
+            if not isinstance(latent_cycle, torch.Tensor):
+                raise RuntimeError(
+                    "Expected latent cycle tensor for scheduler batch assembly"
+                )
+            generation_index = piece.start_frame_idx + relative_frame
+            cycle_index = (
+                live_pose_router.source_frame_index(
+                    snapshot,
+                    generation_index,
+                )
+                if snapshot is not None and snapshot.is_queued
+                else job.start_offset_frames + generation_index
+            )
+            gathered_latent = latent_cycle[
+                cycle_index % latent_cycle.shape[0]
+            ]
+            if gathered_latent.dim() == 4 and gathered_latent.shape[0] == 1:
+                gathered_latent = gathered_latent.squeeze(0)
+            gathered_latents_by_frame.append((relative_frame, gathered_latent))
+        # A pose transition can put CPU-pinned and GPU-resident avatar
+        # latents in the same batch. Copy each frame into the common CPU
+        # staging buffer before the model transfer.
+        row = offset
+        for relative_frame, gathered_latent in gathered_latents_by_frame:
+            if piece.raw_mask is not None:
+                with job.conditioning_lock:
+                    conditioning_row = job.conditioning_chunks[piece.start_frame_idx + relative_frame]
+                staging_conditioning[row].copy_(conditioning_row)
+            staging_latents[row].copy_(gathered_latent)
+            row += 1
+
+    def _launch_gpu_batch(self, batch: _InflightBatch, calib_selected) -> None:
+        pieces = batch.pieces
+        pipelined = batch.pipelined
+        actual_batch = batch.actual_batch
 
         # Pad to compile-friendly size to avoid torch.compile recompilation
         padded_batch = actual_batch
@@ -1322,87 +2154,37 @@ class HLSGPUStreamScheduler:
                 break
         else:
             padded_batch = actual_batch  # larger than 32, don't pad
+        batch.padded_batch = padded_batch
 
-        conditioning_shape = tuple(selected[0][0].conditioning_chunks.shape[1:])
+        first_job = next(piece.job for piece in pieces if piece.gpu_rows > 0)
+        conditioning_shape = tuple(first_job.conditioning_chunks.shape[1:])
         latent_cycle = getattr(
-            selected[0][0].avatar,
+            first_job.avatar,
             "input_latent_cycle_batch_tensor",
-            getattr(selected[0][0].avatar, "input_latent_cycle_tensor", None),
+            getattr(first_job.avatar, "input_latent_cycle_tensor", None),
         )
         if not isinstance(latent_cycle, torch.Tensor):
             raise RuntimeError("Expected latent cycle tensor for scheduler batch assembly")
         latent_shape = tuple(latent_cycle.shape[1:])
+        staging_slot = (batch.seq % self.pipeline_depth) if pipelined else None
         staging_conditioning, staging_latents = self._get_staging_buffers(
             conditioning_shape=conditioning_shape,
-            conditioning_dtype=selected[0][0].conditioning_chunks.dtype,
+            conditioning_dtype=first_job.conditioning_chunks.dtype,
             latent_shape=latent_shape,
             latent_dtype=latent_cycle.dtype,
             batch_size=padded_batch,
+            slot=staging_slot,
         )
+        if staging_slot is not None:
+            # The batch that last used this slot was collected already; this
+            # only guards its H2D copy explicitly.
+            previous_h2d = self._staging_slot_events.get(staging_slot)
+            if previous_h2d is not None:
+                previous_h2d.synchronize()
 
-        offset = 0
-        for job, take in selected:
-            with job.conditioning_lock:
-                conditioning_slice = job.conditioning_chunks[job.current_frame_idx: job.current_frame_idx + take]
-            staging_conditioning[offset: offset + take].copy_(conditioning_slice)
-
-            live_pose_router = (
-                getattr(job.session, "live_pose_router", None)
-                if job.output_mode == "webrtc"
-                else None
-            )
-            live_pose_snapshots = (
-                live_pose_router.snapshots_for_range(
-                    job.current_frame_idx,
-                    take,
-                    job.generation_fps,
-                )
-                if live_pose_router is not None
-                else [None] * take
-            )
-            gathered_latents_by_frame = []
-            for relative_frame, snapshot in enumerate(live_pose_snapshots):
-                pose_id = snapshot.pose_id if snapshot is not None else "default"
-                render_key = (
-                    snapshot.effective_render_key
-                    if snapshot is not None
-                    else "default"
-                )
-                pose_avatar = job.pose_avatars.get(render_key, job.avatar)
-                if render_key != pose_id and render_key not in job.pose_avatars:
-                    raise RuntimeError(
-                        f"Prepared pose variant is unavailable: {render_key}"
-                    )
-                latent_cycle = getattr(
-                    pose_avatar,
-                    "input_latent_cycle_batch_tensor",
-                    getattr(pose_avatar, "input_latent_cycle_tensor", None),
-                )
-                if not isinstance(latent_cycle, torch.Tensor):
-                    raise RuntimeError(
-                        "Expected latent cycle tensor for scheduler batch assembly"
-                    )
-                generation_index = job.current_frame_idx + relative_frame
-                cycle_index = (
-                    live_pose_router.source_frame_index(
-                        snapshot,
-                        generation_index,
-                    )
-                    if snapshot is not None and snapshot.is_queued
-                    else job.start_offset_frames + generation_index
-                )
-                gathered_latent = latent_cycle[
-                    cycle_index % latent_cycle.shape[0]
-                ]
-                if gathered_latent.dim() == 4 and gathered_latent.shape[0] == 1:
-                    gathered_latent = gathered_latent.squeeze(0)
-                gathered_latents_by_frame.append(gathered_latent)
-            # A pose transition can put CPU-pinned and GPU-resident avatar
-            # latents in the same batch. Copy each frame into the common CPU
-            # staging buffer before the model transfer.
-            for relative_frame, gathered_latent in enumerate(gathered_latents_by_frame):
-                staging_latents[offset + relative_frame].copy_(gathered_latent)
-            offset += take
+        for piece in pieces:
+            if piece.gpu_rows > 0:
+                self._assemble_piece(piece, staging_conditioning, staging_latents)
 
         if padded_batch > actual_batch:
             pad_n = padded_batch - actual_batch
@@ -1416,14 +2198,17 @@ class HLSGPUStreamScheduler:
                 staging_latents[:pad_n].clone()
             )
 
-        assembly_finished_at = time.time()
+        batch.assembly_finished_at = time.time()
         conditioning_batch = staging_conditioning[:padded_batch]
         latent_batch = staging_latents[:padded_batch]
+        events = self._new_batch_events() if self.gpu_event_timing else None
+        batch.events = events
 
-        with self.manager.gpu_memory.allocate(lease_batch_size):
+        with self.manager.gpu_memory.allocate(batch.lease_batch_size):
             runtime_context = torch.no_grad if getattr(self.manager, "models_compiled", False) else torch.inference_mode
             with runtime_context():
-                copy_started_at = time.time()
+                batch.copy_started_at = time.time()
+                self._record_event(events, "start")
                 audio_feature_batch = conditioning_batch.to(self.manager.device, non_blocking=True)
                 # Use the prepared conditioning dtype instead of asking the
                 # compiled model wrapper for dtype metadata.
@@ -1433,84 +2218,176 @@ class HLSGPUStreamScheduler:
                     dtype=target_dtype,
                     non_blocking=True,
                 )
-                self._sync_gpu_for_stage_timing()
-                copy_finished_at = time.time()
+                if staging_slot is not None:
+                    staging_event = self._make_event(timing=False)
+                    staging_event.record()
+                    self._staging_slot_events[staging_slot] = staging_event
+                if not pipelined:
+                    self._sync_gpu_for_stage_timing()
+                self._record_event(events, "h2d")
+                batch.copy_finished_at = time.time()
 
-                pe_started_at = copy_finished_at
-                pe_finished_at = copy_finished_at
+                batch.pe_started_at = batch.copy_finished_at
+                batch.pe_finished_at = batch.copy_finished_at
 
-                unet_started_at = time.time()
+                batch.unet_started_at = time.time()
                 pred_latents = self.manager.unet.model(
                     latent_batch,
                     self.manager.timesteps,
                     encoder_hidden_states=audio_feature_batch,
                 ).sample
-                self._sync_gpu_for_stage_timing()
-                unet_finished_at = time.time()
+                if not pipelined:
+                    self._sync_gpu_for_stage_timing()
+                self._record_event(events, "unet")
+                batch.unet_finished_at = time.time()
                 self._capture_unet_calibration_batch(
                     latent_batch=latent_batch,
                     audio_feature_batch=audio_feature_batch,
                     timesteps=getattr(self.manager, "timesteps", None),
                     pred_latents=pred_latents,
-                    selected=selected,
+                    selected=calib_selected,
                     actual_batch=actual_batch,
                     padded_batch=padded_batch,
                 )
 
-                vae_started_at = time.time()
+                batch.vae_started_at = time.time()
                 pred_latents = pred_latents.to(
                     device=self.manager.device,
                     dtype=getattr(self.manager, "vae_dtype", pred_latents.dtype),
                 )
                 self._capture_vae_calibration_batch(
                     pred_latents=pred_latents,
-                    selected=selected,
+                    selected=calib_selected,
                     actual_batch=actual_batch,
                     padded_batch=padded_batch,
                 )
-                recon = self.manager.vae.decode_latents(pred_latents)
-                self._sync_gpu_for_stage_timing()
-                vae_finished_at = time.time()
+                # Depth >= 2: decode + postprocess stay on the GPU and the
+                # uint8 faces are copied non_blocking into a pinned ring slot,
+                # all enqueued on this stream before the next batch's UNet, so
+                # static engine/graph outputs are consumed before any reuse.
+                device_u8 = self._vae_decode_device_u8(pred_latents) if pipelined else None
+                if device_u8 is None:
+                    if pipelined and not self._fallback_decode_logged:
+                        self._fallback_decode_logged = True
+                        print(
+                            "🎛️  depth>1: VAE decode has no device uint8 path "
+                            "(MUSETALK_VAE_FAST_POSTPROCESS=0?); using the blocking decode_latents()"
+                        )
+                    recon = self.manager.vae.decode_latents(pred_latents)
+                    if not pipelined:
+                        self._sync_gpu_for_stage_timing()
+                    self._record_event(events, "vae")
+                    self._record_event(events, "d2h")
+                else:
+                    self._record_event(events, "vae")
+                    slot = self._acquire_output_slot(tuple(device_u8.shape), device_u8.dtype)
+                    slot.tensor.copy_(device_u8, non_blocking=True)
+                    self._record_event(events, "d2h")
+                    batch.slot = slot
+                    recon = slot.array
+                    del device_u8
+                if pipelined:
+                    done_event = self._make_event(timing=False, blocking=self.gpu_blocking_wait)
+                    done_event.record()
+                    batch.done_event = done_event
+                batch.vae_finished_at = time.time()
 
         # After VAE decode, trim padding
         if padded_batch > actual_batch:
             recon = recon[:actual_batch]
+        batch.recon = recon
 
-        batch_finished_at = time.time()
-        assembly_s = assembly_finished_at - batch_started_at
-        copy_s = copy_finished_at - copy_started_at
-        pe_s = pe_finished_at - pe_started_at
-        unet_s = unet_finished_at - unet_started_at
-        vae_s = vae_finished_at - vae_started_at
-        gpu_batch_s = batch_finished_at - batch_started_at
+    def _collect_generation_batch(self, batch: _InflightBatch) -> None:
+        telemetry = self.gpu_event_timing
+        cpu_started = time.thread_time() if telemetry else 0.0
+        host_wait_s = 0.0
+        stage_ms = None
+        try:
+            if batch.done_event is not None:
+                wait_started = time.perf_counter()
+                batch.done_event.synchronize()
+                host_wait_s = time.perf_counter() - wait_started
+            if telemetry:
+                stage_ms = self._event_stage_ms(batch)
 
-        self._gpu_batch_timing_counter += 1
-        log_by_interval = (
-            self.gpu_batch_timing_log_interval > 0
-            and self._gpu_batch_timing_counter % self.gpu_batch_timing_log_interval == 0
-        )
-        log_by_slow_batch = (
-            self.gpu_batch_timing_slow_s > 0.0
-            and gpu_batch_s >= self.gpu_batch_timing_slow_s
-        )
-        if log_by_interval or log_by_slow_batch:
-            reason = "slow" if log_by_slow_batch else "interval"
-            print(
-                f"🎛️  GPU batch timing #{self._gpu_batch_timing_counter} reason={reason} "
-                f"jobs={len(selected)} actual={actual_batch} padded={padded_batch} "
-                f"lease={lease_batch_size} assemble={assembly_s:.4f}s copy={copy_s:.4f}s "
-                f"pe={pe_s:.4f}s unet={unet_s:.4f}s vae={vae_s:.4f}s total={gpu_batch_s:.4f}s"
+            batch_finished_at = time.time()
+            assembly_s = batch.assembly_finished_at - batch.batch_started_at
+            copy_s = batch.copy_finished_at - batch.copy_started_at
+            pe_s = batch.pe_finished_at - batch.pe_started_at
+            unet_s = batch.unet_finished_at - batch.unet_started_at
+            vae_s = batch.vae_finished_at - batch.vae_started_at
+            host_stage_s = (copy_s, unet_s, vae_s)
+            if stage_ms is not None and (batch.pipelined or not self.gpu_stage_sync_timing):
+                # Without host syncs the host clocks only time the enqueue.
+                copy_s = stage_ms["h2d_ms"] / 1000.0
+                unet_s = stage_ms["unet_ms"] / 1000.0
+                vae_s = (stage_ms["vae_ms"] + stage_ms["d2h_ms"]) / 1000.0
+            gpu_batch_s = batch_finished_at - batch.batch_started_at
+            actual_batch = batch.actual_batch
+            padded_batch = batch.padded_batch
+            lease_batch_size = batch.lease_batch_size
+
+            self._gpu_batch_timing_counter += 1
+            log_by_interval = (
+                self.gpu_batch_timing_log_interval > 0
+                and self._gpu_batch_timing_counter % self.gpu_batch_timing_log_interval == 0
             )
+            log_by_slow_batch = (
+                self.gpu_batch_timing_slow_s > 0.0
+                and gpu_batch_s >= self.gpu_batch_timing_slow_s
+            )
+            if log_by_interval or log_by_slow_batch:
+                reason = "slow" if log_by_slow_batch else "interval"
+                extra = ""
+                if self._pipeline_flags_non_default():
+                    extra = (
+                        f" depth={self.pipeline_depth} raw={batch.raw_frames}"
+                        f" pieces={len(batch.pieces)} host_wait={host_wait_s:.4f}s"
+                    )
+                    if stage_ms is not None:
+                        extra += (
+                            f" ev_h2d={stage_ms['h2d_ms']:.2f}ms ev_unet={stage_ms['unet_ms']:.2f}ms"
+                            f" ev_vae={stage_ms['vae_ms']:.2f}ms ev_d2h={stage_ms['d2h_ms']:.2f}ms"
+                        )
+                print(
+                    f"🎛️  GPU batch timing #{self._gpu_batch_timing_counter} reason={reason} "
+                    f"jobs={len(batch.jobs)} actual={actual_batch} padded={padded_batch} "
+                    f"lease={lease_batch_size} assemble={assembly_s:.4f}s copy={copy_s:.4f}s "
+                    f"pe={pe_s:.4f}s unet={unet_s:.4f}s vae={vae_s:.4f}s total={gpu_batch_s:.4f}s"
+                    f"{extra}"
+                )
 
-        offset = 0
-        for job, take in selected:
-            batch_frames = recon[offset: offset + take]
-            offset += take
-            start_frame_idx = job.current_frame_idx
-            job.current_frame_idx += take
-            if not job.cancel_event.is_set():
-                self._dispatch_compose_batch(job, batch_frames, start_frame_idx)
-            if job.current_frame_idx >= job.total_frames:
+            recon = batch.recon
+            for piece in batch.pieces:
+                job = piece.job
+                if piece.raw_mask is None:
+                    batch_frames = recon[piece.gpu_offset: piece.gpu_offset + piece.take]
+                else:
+                    batch_frames = []
+                    row = piece.gpu_offset
+                    for is_raw in piece.raw_mask:
+                        if is_raw:
+                            batch_frames.append(None)
+                        else:
+                            batch_frames.append(recon[row])
+                            row += 1
+                if not job.cancel_event.is_set() and not job.finalized:
+                    future = self._dispatch_compose_batch(
+                        job,
+                        batch_frames,
+                        piece.start_frame_idx,
+                        live_pose_snapshots=(
+                            piece.snapshots if piece.raw_mask is not None else None
+                        ),
+                    )
+                    if batch.slot is not None and future is not None:
+                        batch.slot.consumers.append(future)
+        finally:
+            for job in batch.jobs:
+                job.gpu_inflight_batches = max(0, job.gpu_inflight_batches - 1)
+
+        for job in batch.jobs:
+            if job.current_frame_idx >= job.total_frames and job.gpu_inflight_batches <= 0:
                 job.generation_done = True
                 if job.generation_done_at is None:
                     job.generation_done_at = time.time()
@@ -1522,8 +2399,163 @@ class HLSGPUStreamScheduler:
             job.gpu_batch_total_s += gpu_batch_s
             job.gpu_batch_count += 1
 
+        if telemetry:
+            collect_cpu_s = time.thread_time() - cpu_started
+            self._record_capacity(batch, stage_ms, host_wait_s, collect_cpu_s, host_stage_s, gpu_batch_s)
+
         self._finalize_cancelled_jobs()
         self._finalize_ready_jobs()
+
+    # ------------------------------------------------ depth >= 2 / telemetry helpers
+    def _device_is_cuda(self) -> bool:
+        if not torch.cuda.is_available():
+            return False
+        device = getattr(self.manager, "device", None)
+        try:
+            return torch.device(device).type == "cuda"
+        except (TypeError, RuntimeError):
+            return False
+
+    def _make_event(self, timing: bool = False, blocking: bool = False):
+        if self._device_is_cuda():
+            return torch.cuda.Event(enable_timing=bool(timing), blocking=bool(blocking))
+        return _HostEvent()
+
+    def _new_batch_events(self) -> dict:
+        return {name: self._make_event(timing=True) for name in ("start", "h2d", "unet", "vae", "d2h")}
+
+    @staticmethod
+    def _record_event(events, name: str) -> None:
+        if events is not None:
+            events[name].record()
+
+    def _event_stage_ms(self, batch: _InflightBatch) -> Optional[dict]:
+        events = batch.events
+        if not events:
+            return None
+        events["d2h"].synchronize()
+        return {
+            "h2d_ms": events["start"].elapsed_time(events["h2d"]),
+            "unet_ms": events["h2d"].elapsed_time(events["unet"]),
+            "vae_ms": events["unet"].elapsed_time(events["vae"]),
+            "d2h_ms": events["vae"].elapsed_time(events["d2h"]),
+            "span_ms": events["start"].elapsed_time(events["d2h"]),
+        }
+
+    def _vae_decode_device_u8(self, pred_latents: torch.Tensor):
+        """GPU half of VAE.decode_latents(): uint8 NHWC BGR on the device.
+
+        Mirrors musetalk/models/vae.py decode_latents() op for op (the fused
+        decode_bgr_u8 backend path, else decode_latents_tensor + the fast
+        postprocess), so the bytes equal its .cpu().numpy() result. Returns
+        None when that path does not apply (the caller then uses the blocking
+        decode_latents(), unchanged).
+        """
+        vae = self.manager.vae
+        hook = getattr(vae, "decode_latents_device_u8", None)
+        if callable(hook):
+            return hook(pred_latents)
+        module = sys.modules.get(type(vae).__module__)
+        if getattr(module, "MUSETALK_VAE_FAST_POSTPROCESS", None) is not True:
+            return None
+        if not callable(getattr(vae, "decode_latents_tensor", None)):
+            return None
+        backend = getattr(vae, "_decode_backend", None)
+        fused_bgr_u8 = None
+        if backend is not None and getattr(backend, "fused_post_enabled", False):
+            fused_bgr_u8 = getattr(backend, "decode_bgr_u8", None)
+        if fused_bgr_u8 is not None:
+            return fused_bgr_u8(pred_latents)
+        image = vae.decode_latents_tensor(pred_latents)
+        return (
+            image.detach()
+            .float()
+            .mul(255)
+            .round()
+            .clamp_(0, 255)
+            .to(torch.uint8)
+            .flip(1)
+            .permute(0, 2, 3, 1)
+            .contiguous()
+        )
+
+    def _acquire_output_slot(self, shape: tuple, dtype) -> _OutputSlot:
+        key = (tuple(shape), str(dtype))
+        ring = self._output_rings.setdefault(key, [])
+        position = self._output_ring_pos.get(key, 0)
+        index = position % self.output_ring_size
+        self._output_ring_pos[key] = position + 1
+        if index >= len(ring):
+            with torch.inference_mode(False):
+                tensor = torch.empty(
+                    shape,
+                    dtype=dtype,
+                    pin_memory=self._device_is_cuda(),
+                )
+            ring.append(_OutputSlot(tensor))
+        slot = ring[index]
+        # The faces of this slot's previous batch are views handed to compose
+        # workers; never overwrite them before those tasks finish.
+        pending = [future for future in slot.consumers if not future.done()]
+        if pending:
+            wait_started = time.perf_counter()
+            _wait_futures(pending)
+            if self.gpu_event_timing:
+                self._cap_add("ring_wait_ms", (time.perf_counter() - wait_started) * 1000.0)
+                self._cap_add("ring_waits", 1.0)
+        slot.consumers = []
+        slot.uses += 1
+        return slot
+
+    def _cap_add(self, key: str, value: float) -> None:
+        with self._cap_lock:
+            self._cap_totals[key] += value
+
+    def _record_capacity(self, batch, stage_ms, host_wait_s, collect_cpu_s, host_stage_s, gpu_batch_s) -> None:
+        record = {
+            "seq": batch.seq,
+            "jobs": len(batch.jobs),
+            "pieces": len(batch.pieces),
+            "actual": batch.actual_batch,
+            "padded": batch.padded_batch,
+            "raw": batch.raw_frames,
+            "host_wait_ms": round(host_wait_s * 1000.0, 3),
+            "feeder_cpu_ms": round((batch.submit_cpu_s + collect_cpu_s) * 1000.0, 3),
+            "wall_ms": round(gpu_batch_s * 1000.0, 3),
+        }
+        gap_ms = None
+        if stage_ms is not None:
+            if self._cap_prev_end_event is not None:
+                gap_ms = max(0.0, self._cap_prev_end_event.elapsed_time(batch.events["start"]))
+            self._cap_prev_end_event = batch.events["d2h"]
+            record.update({key: round(value, 4) for key, value in stage_ms.items()})
+            if gap_ms is not None:
+                record["idle_gap_ms"] = round(gap_ms, 4)
+        with self._cap_lock:
+            totals = self._cap_totals
+            totals["batches"] += 1
+            totals["jobs"] += len(batch.jobs)
+            totals["pieces"] += len(batch.pieces)
+            totals["raw_frames"] += batch.raw_frames
+            totals["feeder_cpu_ms"] += (batch.submit_cpu_s + collect_cpu_s) * 1000.0
+            if batch.actual_batch > 0:
+                totals["gpu_batches"] += 1
+                totals["actual_frames"] += batch.actual_batch
+                totals["padded_frames"] += batch.padded_batch
+                totals["host_wait_ms"] += host_wait_s * 1000.0
+                totals["host_copy_ms"] += host_stage_s[0] * 1000.0
+                totals["host_unet_ms"] += host_stage_s[1] * 1000.0
+                totals["host_vae_ms"] += host_stage_s[2] * 1000.0
+                if stage_ms is not None:
+                    totals["gpu_span_ms"] += stage_ms["span_ms"]
+                    totals["h2d_ms"] += stage_ms["h2d_ms"]
+                    totals["unet_ms"] += stage_ms["unet_ms"]
+                    totals["vae_ms"] += stage_ms["vae_ms"]
+                    totals["d2h_ms"] += stage_ms["d2h_ms"]
+                if gap_ms is not None:
+                    totals["idle_gap_ms"] += gap_ms
+                    totals["idle_gap_count"] += 1
+            self._cap_batches.append(record)
 
     def _capture_unet_calibration_batch(
         self,
@@ -1686,7 +2718,19 @@ class HLSGPUStreamScheduler:
         except Exception as exc:
             print(f"⚠️  Failed to save VAE calibration batch #{sequence}: {type(exc).__name__}: {exc}")
 
-    def _dispatch_compose_batch(self, job: HLSStreamJob, batch_frames, start_frame_idx: int) -> None:
+    def _dispatch_compose_batch(
+        self,
+        job: HLSStreamJob,
+        batch_frames,
+        start_frame_idx: int,
+        live_pose_snapshots=None,
+    ):
+        # Added: `live_pose_snapshots` is passed only for batches with skipped
+        # raw frames (HLS_SKIP_GPU_FOR_RAW=1) so compose uses the snapshots
+        # the skip decision was made with; otherwise they are computed here
+        # as before. Returns the compose future (the depth >= 2 output ring
+        # tracks it as a reader of the faces).
+        given_snapshots = live_pose_snapshots
         compose_sequence = job.compose_sequence
         job.compose_sequence += 1
         compose_submitted_at = time.time()
@@ -1695,14 +2739,19 @@ class HLSGPUStreamScheduler:
         if job.output_mode == "webrtc":
             live_pose_router = getattr(job.session, "live_pose_router", None)
             if live_pose_router is not None:
-                live_pose_snapshots = live_pose_router.snapshots_for_range(
-                    start_frame_idx,
-                    len(batch_frames),
-                    job.generation_fps,
+                live_pose_snapshots = (
+                    given_snapshots
+                    if given_snapshots is not None
+                    else live_pose_router.snapshots_for_range(
+                        start_frame_idx,
+                        len(batch_frames),
+                        job.generation_fps,
+                    )
                 )
 
         bank = getattr(live_pose_router, "motion_bank", None)
         carry_layers = getattr(bank, "current_phoneme", None) is not None
+        yuv_in_compose = bool(self.webrtc_yuv_in_compose and job.output_mode == "webrtc")
 
         def compose_batch():
             compose_started_at = time.time()
@@ -1772,14 +2821,24 @@ class HLSGPUStreamScheduler:
                     # This flag comes only from the original entire upload's
                     # exact-zero decoded PCM. The separate opt-in raw idle mode
                     # applies only after the motion plan selects the idle pose.
-                    result = pose_avatar.compose_frame(res_frame, cycle_index,
-                        background_frame=background_frame, return_layers=True)
+                    if res_frame is None:
+                        # Added code (HLS_SKIP_GPU_FOR_RAW=1): no face was
+                        # generated; build the identical raw layer directly.
+                        result = {"raw": self._compose_raw_layer(
+                            pose_avatar, cycle_index, background_frame)}
+                    else:
+                        result = pose_avatar.compose_frame(res_frame, cycle_index,
+                            background_frame=background_frame, return_layers=True)
                     frames.append(result["raw"])
                     if carry_layers:
                         empty_alpha = np.empty((0, 0), dtype=np.uint8)
                         empty_alpha.setflags(write=False)
                         raw_layers.append({"raw": result["raw"], "alpha": {
                             "bounds": (0, 0, 0, 0), "values": empty_alpha}})
+                elif res_frame is None:
+                    raise RuntimeError(
+                        "GPU face was skipped for a frame that is not composed raw"
+                    )
                 elif carry_layers:
                     result = pose_avatar.compose_frame(res_frame, cycle_index,
                         background_frame=background_frame, return_layers=True)
@@ -1793,6 +2852,8 @@ class HLSGPUStreamScheduler:
                             background_frame=background_frame,
                         )
                     )
+            if yuv_in_compose:
+                frames = self._attach_yuv420p(frames)
             return {
                 "compose_sequence": compose_sequence,
                 "frames": frames,
@@ -1822,6 +2883,53 @@ class HLSGPUStreamScheduler:
         future = self.compose_executor.submit(compose_batch)
         job.compose_tasks[compose_sequence] = future
         job.max_pending_composes = max(job.max_pending_composes, len(job.compose_tasks))
+        return future
+
+    @staticmethod
+    def _attach_yuv420p(frames: list) -> list:
+        """Added code (WEBRTC_YUV_IN_COMPOSE=1 producer side): carry the exact
+        conversion push_bgr_frames_batch would make (webrtc_live_handoff
+        bgr_to_yuv420p_frame) so the event loop does not convert."""
+        from scripts.webrtc_live_handoff import ComposedFrame
+
+        return [ComposedFrame.from_bgr(frame) for frame in frames]
+
+    @staticmethod
+    def _compose_raw_layer(pose_avatar, cycle_index: int, background_frame=None):
+        """Added code (HLS_SKIP_GPU_FOR_RAW=1): exactly
+        ``pose_avatar.compose_frame(face, cycle_index, background_frame=...,
+        return_layers=True)["raw"]``, which never reads ``face``.
+
+        Kept in lock-step with APIAvatar.compose_frame (scripts/api_avatar.py);
+        scripts/test_hls_scheduler_pipeline.py compares the two bit for bit.
+        An avatar may provide ``compose_raw_frame`` to own this itself.
+        """
+        own = getattr(pose_avatar, "compose_raw_frame", None)
+        if callable(own):
+            return own(cycle_index, background_frame=background_frame)
+        cycle_pos = cycle_index % len(pose_avatar.coord_list_cycle)
+        prepared_frame = pose_avatar.frame_list_cycle[cycle_pos]
+        if background_frame is not None:
+            ori_frame = np.asarray(background_frame)
+            if ori_frame.ndim == 3 and ori_frame.shape[2] >= 3:
+                if ori_frame.shape[:2] != prepared_frame.shape[:2]:
+                    import cv2
+
+                    ori_frame = cv2.resize(
+                        ori_frame,
+                        (prepared_frame.shape[1], prepared_frame.shape[0]),
+                        interpolation=cv2.INTER_LINEAR,
+                    )
+                if ori_frame.shape[2] > 3:
+                    ori_frame = ori_frame[:, :, :3]
+                if ori_frame.dtype != np.uint8:
+                    ori_frame = np.clip(ori_frame, 0, 255).astype(np.uint8)
+                raw_frame = ori_frame.copy()
+                raw_frame.setflags(write=False)
+                return raw_frame
+        raw_frame = prepared_frame.view()
+        raw_frame.setflags(write=False)
+        return raw_frame
 
     def _drain_completed_composes(self) -> None:
         for job in list(self.jobs.values()):
@@ -1929,6 +3037,8 @@ class HLSGPUStreamScheduler:
                     job.frame_callback_count += len(frames)
                     job.frame_callback_total_s += callback_s
                     job.frame_callback_max_s = max(job.frame_callback_max_s, callback_s)
+                    if self.gpu_event_timing:
+                        self._cap_add("callback_ms", callback_s * 1000.0)
 
                 if job.cancel_event.is_set():
                     continue
@@ -1977,6 +3087,8 @@ class HLSGPUStreamScheduler:
                         job.frame_callback_count += 1
                         job.frame_callback_total_s += callback_s
                         job.frame_callback_max_s = max(job.frame_callback_max_s, callback_s)
+                        if self.gpu_event_timing:
+                            self._cap_add("callback_ms", callback_s * 1000.0)
 
             if (
                 rendered_frame_count > 0
@@ -2060,13 +3172,14 @@ class HLSGPUStreamScheduler:
                     raise ValueError("Current phoneme composition requires original source dimensions")
                 validate_alpha(layer["alpha"], *raw.shape[:2])
         blended_frames = []
-        for frame, pose_id, requested_crossfade, source_index, layer in zip(
+        last_frame_index = len(frames) - 1
+        for frame_index, (frame, pose_id, requested_crossfade, source_index, layer) in enumerate(zip(
             frames,
             pose_ids,
             requested_crossfades,
             source_indices,
             layers,
-        ):
+        )):
             normalized_pose_id = str(pose_id or "default")
             source_frame = np.asarray(frame)
             if (
@@ -2137,8 +3250,26 @@ class HLSGPUStreamScheduler:
                     job.webrtc_pose_crossfade_alpha_anchor = None
                     job.webrtc_pose_crossfade_target_frames = 0
 
+            if (
+                self.webrtc_yuv_in_compose
+                and output_frame is source_frame
+                and frame is not source_frame
+                and getattr(frame, "yuv420p", None) is not None
+            ):
+                # Unchanged by a crossfade: keep the carrier with its exact
+                # yuv420p. Blended frames stay plain BGR and are converted by
+                # the consumer as before.
+                output_frame = frame
             blended_frames.append(output_frame)
-            job.webrtc_last_pose_frame = source_frame.copy()
+            if self.skip_crossfade_copy and frame_index < last_frame_index:
+                # Added code (HLS_SKIP_CROSSFADE_COPY=1): the history is read
+                # only by the next frame's pose-change check, which copies it
+                # into the anchor; within a batch nothing mutates this frame
+                # before that, so only the batch's last frame (which outlives
+                # the batch) needs its own copy.
+                job.webrtc_last_pose_frame = source_frame
+            else:
+                job.webrtc_last_pose_frame = source_frame.copy()
             if current_only:
                 job.webrtc_last_raw_pose_frame = layer["raw"]
                 job.webrtc_last_pose_alpha = layer["alpha"]
@@ -2268,6 +3399,8 @@ class HLSGPUStreamScheduler:
             if job.finalized:
                 continue
             if not job.cancel_event.is_set():
+                continue
+            if job.gpu_inflight_batches > 0:
                 continue
             if job.compose_tasks:
                 continue
@@ -2491,6 +3624,7 @@ class HLSGPUStreamScheduler:
         latent_shape: tuple[int, ...],
         latent_dtype: torch.dtype,
         batch_size: int,
+        slot: Optional[int] = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         cache_key = (
             batch_size,
@@ -2499,6 +3633,10 @@ class HLSGPUStreamScheduler:
             latent_shape,
             str(latent_dtype),
         )
+        if slot is not None:
+            # Added code (depth >= 2): one staging set per pipeline slot, so
+            # assembling batch N+1 never overwrites batch N's pending H2D.
+            cache_key = ("pipeline_slot", int(slot)) + cache_key
         buffers = self._cpu_staging_cache.get(cache_key)
         if buffers is None:
             pin_memory = torch.cuda.is_available()

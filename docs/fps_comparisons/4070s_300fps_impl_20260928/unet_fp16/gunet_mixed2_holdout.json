@@ -1,0 +1,1608 @@
+{
+  "backend": "runtime",
+  "precision": "fp16",
+  "capture_dir": "calibration/unet_multi_avatar_20260928/holdout",
+  "padded_batch_size": 8,
+  "actual_only": false,
+  "summary": {
+    "files": 48,
+    "mae_mean": 0.005168805005572115,
+    "mae_max": 0.010681496933102608,
+    "rmse_mean": 0.013447342401680848,
+    "rmse_max": 0.045430947095155716,
+    "p95_abs_mean": 0.019827405611673992,
+    "p95_abs_max": 0.03564453125,
+    "max_abs_mean": 0.5782238642374674,
+    "max_abs_max": 2.51416015625,
+    "latency_ms_mean": 35.4389110871125,
+    "latency_ms_max": 35.608485457487404,
+    "frames_per_sec_mean": 451.48440890510983,
+    "frames_per_sec_min": 449.3311016864851
+  },
+  "files": [
+    {
+      "path": "unet_io_000353_bs8_pid3537045.pt+unet_io_000354_bs8_pid3537045.pt",
+      "sequence": 353,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 0,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 16,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005014752969145775,
+      "rmse": 0.01193554513156414,
+      "p95_abs": 0.0201416015625,
+      "max_abs": 0.4033203125,
+      "benchmark": {
+        "latency_ms": 35.431660478934646,
+        "frames_per_sec": 451.5735301062889
+      }
+    },
+    {
+      "path": "unet_io_000355_bs8_pid3537045.pt+unet_io_000356_bs8_pid3537045.pt",
+      "sequence": 355,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 24,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 40,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004789095371961594,
+      "rmse": 0.010818250477313995,
+      "p95_abs": 0.01904296875,
+      "max_abs": 0.58349609375,
+      "benchmark": {
+        "latency_ms": 35.21428140811622,
+        "frames_per_sec": 454.3611103281609
+      }
+    },
+    {
+      "path": "unet_io_000357_bs8_pid3537045.pt+unet_io_000358_bs8_pid3537045.pt",
+      "sequence": 357,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 48,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 64,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004282105248421431,
+      "rmse": 0.00926600769162178,
+      "p95_abs": 0.0166015625,
+      "max_abs": 0.53662109375,
+      "benchmark": {
+        "latency_ms": 35.390155971981585,
+        "frames_per_sec": 452.10312191523576
+      }
+    },
+    {
+      "path": "unet_io_000359_bs8_pid3537045.pt+unet_io_000360_bs8_pid3537045.pt",
+      "sequence": 359,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 80,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 88,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004379319027066231,
+      "rmse": 0.010047425515949726,
+      "p95_abs": 0.0166015625,
+      "max_abs": 0.37158203125,
+      "benchmark": {
+        "latency_ms": 35.2568959351629,
+        "frames_per_sec": 453.8119302795076
+      }
+    },
+    {
+      "path": "unet_io_000361_bs8_pid3537045.pt+unet_io_000362_bs8_pid3537045.pt",
+      "sequence": 361,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 104,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 112,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.0043772123754024506,
+      "rmse": 0.01032615453004837,
+      "p95_abs": 0.01700592041015625,
+      "max_abs": 0.4744720458984375,
+      "benchmark": {
+        "latency_ms": 35.30302597209811,
+        "frames_per_sec": 453.2189397205119
+      }
+    },
+    {
+      "path": "unet_io_000363_bs8_pid3537045.pt+unet_io_000364_bs8_pid3537045.pt",
+      "sequence": 363,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 128,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 144,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.0042380886152386665,
+      "rmse": 0.009754331782460213,
+      "p95_abs": 0.015869140625,
+      "max_abs": 0.4893798828125,
+      "benchmark": {
+        "latency_ms": 35.31015105545521,
+        "frames_per_sec": 453.1274866219553
+      }
+    },
+    {
+      "path": "unet_io_000365_bs8_pid3537045.pt+unet_io_000366_bs8_pid3537045.pt",
+      "sequence": 365,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 152,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 168,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004577178508043289,
+      "rmse": 0.010408916510641575,
+      "p95_abs": 0.01806640625,
+      "max_abs": 0.414306640625,
+      "benchmark": {
+        "latency_ms": 35.38149606902152,
+        "frames_per_sec": 452.21377775511576
+      }
+    },
+    {
+      "path": "unet_io_000367_bs8_pid3537045.pt+unet_io_000368_bs8_pid3537045.pt",
+      "sequence": 367,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 176,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:B_am_michael:off160",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 192,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004845482762902975,
+      "rmse": 0.010991537012159824,
+      "p95_abs": 0.01953125,
+      "max_abs": 0.302490234375,
+      "benchmark": {
+        "latency_ms": 35.380251007154584,
+        "frames_per_sec": 452.2296915520606
+      }
+    },
+    {
+      "path": "unet_io_000369_bs8_pid3537045.pt+unet_io_000370_bs8_pid3537045.pt",
+      "sequence": 369,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 0,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 80,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.00466097891330719,
+      "rmse": 0.010701487772166729,
+      "p95_abs": 0.017822265625,
+      "max_abs": 0.416015625,
+      "benchmark": {
+        "latency_ms": 35.29462148435414,
+        "frames_per_sec": 453.3268619155666
+      }
+    },
+    {
+      "path": "unet_io_000371_bs8_pid3537045.pt+unet_io_000372_bs8_pid3537045.pt",
+      "sequence": 371,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 160,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 240,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004011065233498812,
+      "rmse": 0.008222995325922966,
+      "p95_abs": 0.015625,
+      "max_abs": 0.368896484375,
+      "benchmark": {
+        "latency_ms": 35.59705545194447,
+        "frames_per_sec": 449.4753792655625
+      }
+    },
+    {
+      "path": "unet_io_000373_bs8_pid3537045.pt+unet_io_000374_bs8_pid3537045.pt",
+      "sequence": 373,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 320,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 400,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.00990881398320198,
+      "rmse": 0.04413042962551117,
+      "p95_abs": 0.0341796875,
+      "max_abs": 1.9482421875,
+      "benchmark": {
+        "latency_ms": 35.338491084985435,
+        "frames_per_sec": 452.76409684617397
+      }
+    },
+    {
+      "path": "unet_io_000375_bs8_pid3537045.pt+unet_io_000376_bs8_pid3537045.pt",
+      "sequence": 375,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 480,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 560,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005072602070868015,
+      "rmse": 0.011942245997488499,
+      "p95_abs": 0.0201416015625,
+      "max_abs": 0.416748046875,
+      "benchmark": {
+        "latency_ms": 35.5158910388127,
+        "frames_per_sec": 450.5025646833633
+      }
+    },
+    {
+      "path": "unet_io_000377_bs8_pid3537045.pt+unet_io_000378_bs8_pid3537045.pt",
+      "sequence": 377,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 632,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 712,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005904146004468203,
+      "rmse": 0.01677836664021015,
+      "p95_abs": 0.0224609375,
+      "max_abs": 0.7158203125,
+      "benchmark": {
+        "latency_ms": 35.337736015208066,
+        "frames_per_sec": 452.77377116389647
+      }
+    },
+    {
+      "path": "unet_io_000379_bs8_pid3537045.pt+unet_io_000380_bs8_pid3537045.pt",
+      "sequence": 379,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 792,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 872,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.00425127474591136,
+      "rmse": 0.008686988614499569,
+      "p95_abs": 0.0166015625,
+      "max_abs": 0.20068359375,
+      "benchmark": {
+        "latency_ms": 35.42066039517522,
+        "frames_per_sec": 451.71376878618054
+      }
+    },
+    {
+      "path": "unet_io_000381_bs8_pid3537045.pt+unet_io_000382_bs8_pid3537045.pt",
+      "sequence": 381,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 952,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 1032,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004217176232486963,
+      "rmse": 0.00907584186643362,
+      "p95_abs": 0.01611328125,
+      "max_abs": 0.3115234375,
+      "benchmark": {
+        "latency_ms": 35.527150495909154,
+        "frames_per_sec": 450.3597889687875
+      }
+    },
+    {
+      "path": "unet_io_000383_bs8_pid3537045.pt+unet_io_000384_bs8_pid3537045.pt",
+      "sequence": 383,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 1112,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_south_asian_woman:C_repo_eng:off320",
+          "session_id": "corpus:div_south_asian_woman",
+          "avatar_id": "div_south_asian_woman",
+          "start_frame_idx": 1192,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005295192822813988,
+      "rmse": 0.01481679081916809,
+      "p95_abs": 0.0200958251953125,
+      "max_abs": 0.623779296875,
+      "benchmark": {
+        "latency_ms": 35.40618601255119,
+        "frames_per_sec": 451.89843363326787
+      }
+    },
+    {
+      "path": "unet_io_000385_bs8_pid3537045.pt+unet_io_000386_bs8_pid3537045.pt",
+      "sequence": 385,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 0,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 16,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005380422808229923,
+      "rmse": 0.011868108995258808,
+      "p95_abs": 0.02197265625,
+      "max_abs": 0.3193359375,
+      "benchmark": {
+        "latency_ms": 35.532810958102345,
+        "frames_per_sec": 450.2880455719085
+      }
+    },
+    {
+      "path": "unet_io_000387_bs8_pid3537045.pt+unet_io_000388_bs8_pid3537045.pt",
+      "sequence": 387,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 24,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 40,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005331776104867458,
+      "rmse": 0.011132657527923584,
+      "p95_abs": 0.021728515625,
+      "max_abs": 0.2890625,
+      "benchmark": {
+        "latency_ms": 35.239226068370044,
+        "frames_per_sec": 454.03948341422995
+      }
+    },
+    {
+      "path": "unet_io_000389_bs8_pid3537045.pt+unet_io_000390_bs8_pid3537045.pt",
+      "sequence": 389,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 48,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 64,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005112809129059315,
+      "rmse": 0.010284334421157837,
+      "p95_abs": 0.0205078125,
+      "max_abs": 0.31475830078125,
+      "benchmark": {
+        "latency_ms": 35.50770552828908,
+        "frames_per_sec": 450.6064180140493
+      }
+    },
+    {
+      "path": "unet_io_000391_bs8_pid3537045.pt+unet_io_000392_bs8_pid3537045.pt",
+      "sequence": 391,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 80,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 88,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.0054265414364635944,
+      "rmse": 0.01188481505960226,
+      "p95_abs": 0.021554946899414062,
+      "max_abs": 0.283203125,
+      "benchmark": {
+        "latency_ms": 35.48944042995572,
+        "frames_per_sec": 450.8383284199323
+      }
+    },
+    {
+      "path": "unet_io_000393_bs8_pid3537045.pt+unet_io_000394_bs8_pid3537045.pt",
+      "sequence": 393,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 104,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 112,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005152180790901184,
+      "rmse": 0.010640120133757591,
+      "p95_abs": 0.020751953125,
+      "max_abs": 0.4400634765625,
+      "benchmark": {
+        "latency_ms": 35.44964105822146,
+        "frames_per_sec": 451.3444853707282
+      }
+    },
+    {
+      "path": "unet_io_000395_bs8_pid3537045.pt+unet_io_000396_bs8_pid3537045.pt",
+      "sequence": 395,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 128,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 144,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.0050732227973639965,
+      "rmse": 0.010541633702814579,
+      "p95_abs": 0.0205841064453125,
+      "max_abs": 0.223388671875,
+      "benchmark": {
+        "latency_ms": 35.52247548941523,
+        "frames_per_sec": 450.41905947032274
+      }
+    },
+    {
+      "path": "unet_io_000397_bs8_pid3537045.pt+unet_io_000398_bs8_pid3537045.pt",
+      "sequence": 397,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 152,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 168,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005251932889223099,
+      "rmse": 0.011209321208298206,
+      "p95_abs": 0.021484375,
+      "max_abs": 0.2728271484375,
+      "benchmark": {
+        "latency_ms": 35.36593040917069,
+        "frames_per_sec": 452.41281128153395
+      }
+    },
+    {
+      "path": "unet_io_000399_bs8_pid3537045.pt+unet_io_000400_bs8_pid3537045.pt",
+      "sequence": 399,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 176,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:B_am_michael:off160",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 192,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004838085733354092,
+      "rmse": 0.010415417142212391,
+      "p95_abs": 0.01953125,
+      "max_abs": 0.34619140625,
+      "benchmark": {
+        "latency_ms": 35.54597042966634,
+        "frames_per_sec": 450.1213444617775
+      }
+    },
+    {
+      "path": "unet_io_000401_bs8_pid3537045.pt+unet_io_000402_bs8_pid3537045.pt",
+      "sequence": 401,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 0,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 80,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005254928022623062,
+      "rmse": 0.01272917166352272,
+      "p95_abs": 0.02099609375,
+      "max_abs": 1.07421875,
+      "benchmark": {
+        "latency_ms": 35.37074592895806,
+        "frames_per_sec": 452.3512179283951
+      }
+    },
+    {
+      "path": "unet_io_000403_bs8_pid3537045.pt+unet_io_000404_bs8_pid3537045.pt",
+      "sequence": 403,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 160,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 240,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005126681178808212,
+      "rmse": 0.010814138688147068,
+      "p95_abs": 0.020595550537109375,
+      "max_abs": 0.3330078125,
+      "benchmark": {
+        "latency_ms": 35.5117404833436,
+        "frames_per_sec": 450.5552187030829
+      }
+    },
+    {
+      "path": "unet_io_000405_bs8_pid3537045.pt+unet_io_000406_bs8_pid3537045.pt",
+      "sequence": 405,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 320,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 400,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.010681496933102608,
+      "rmse": 0.045430947095155716,
+      "p95_abs": 0.03564453125,
+      "max_abs": 1.904296875,
+      "benchmark": {
+        "latency_ms": 35.47539107967168,
+        "frames_per_sec": 451.01687431906606
+      }
+    },
+    {
+      "path": "unet_io_000407_bs8_pid3537045.pt+unet_io_000408_bs8_pid3537045.pt",
+      "sequence": 407,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 480,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 560,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.00527328671887517,
+      "rmse": 0.011994891799986362,
+      "p95_abs": 0.02099609375,
+      "max_abs": 0.44219970703125,
+      "benchmark": {
+        "latency_ms": 35.608485457487404,
+        "frames_per_sec": 449.3311016864851
+      }
+    },
+    {
+      "path": "unet_io_000409_bs8_pid3537045.pt+unet_io_000410_bs8_pid3537045.pt",
+      "sequence": 409,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 632,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 712,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.007764783687889576,
+      "rmse": 0.03458600863814354,
+      "p95_abs": 0.02490234375,
+      "max_abs": 2.06640625,
+      "benchmark": {
+        "latency_ms": 35.372160957194865,
+        "frames_per_sec": 452.3331220663103
+      }
+    },
+    {
+      "path": "unet_io_000411_bs8_pid3537045.pt+unet_io_000412_bs8_pid3537045.pt",
+      "sequence": 411,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 792,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 872,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004979131743311882,
+      "rmse": 0.010253899730741978,
+      "p95_abs": 0.02001953125,
+      "max_abs": 0.267578125,
+      "benchmark": {
+        "latency_ms": 35.495426040142775,
+        "frames_per_sec": 450.7623033431167
+      }
+    },
+    {
+      "path": "unet_io_000413_bs8_pid3537045.pt+unet_io_000414_bs8_pid3537045.pt",
+      "sequence": 413,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 952,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 1032,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005194325465708971,
+      "rmse": 0.01109937485307455,
+      "p95_abs": 0.021484375,
+      "max_abs": 0.48211669921875,
+      "benchmark": {
+        "latency_ms": 35.51031602546573,
+        "frames_per_sec": 450.57329223783375
+      }
+    },
+    {
+      "path": "unet_io_000415_bs8_pid3537045.pt+unet_io_000416_bs8_pid3537045.pt",
+      "sequence": 415,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 1112,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:div_black_man_short_beard:C_repo_eng:off320",
+          "session_id": "corpus:div_black_man_short_beard",
+          "avatar_id": "div_black_man_short_beard",
+          "start_frame_idx": 1192,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.00655711255967617,
+      "rmse": 0.016587844118475914,
+      "p95_abs": 0.0263671875,
+      "max_abs": 0.48779296875,
+      "benchmark": {
+        "latency_ms": 35.54119553882629,
+        "frames_per_sec": 450.1818173933151
+      }
+    },
+    {
+      "path": "unet_io_000417_bs8_pid3537045.pt+unet_io_000418_bs8_pid3537045.pt",
+      "sequence": 417,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 0,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 16,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004493703134357929,
+      "rmse": 0.009348900057375431,
+      "p95_abs": 0.017578125,
+      "max_abs": 0.33154296875,
+      "benchmark": {
+        "latency_ms": 35.4012354509905,
+        "frames_per_sec": 451.96162778416067
+      }
+    },
+    {
+      "path": "unet_io_000419_bs8_pid3537045.pt+unet_io_000420_bs8_pid3537045.pt",
+      "sequence": 419,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 24,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 40,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004410388879477978,
+      "rmse": 0.009330850094556808,
+      "p95_abs": 0.01708984375,
+      "max_abs": 0.41845703125,
+      "benchmark": {
+        "latency_ms": 35.39079101756215,
+        "frames_per_sec": 452.0950094633443
+      }
+    },
+    {
+      "path": "unet_io_000421_bs8_pid3537045.pt+unet_io_000422_bs8_pid3537045.pt",
+      "sequence": 421,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 48,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 64,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004328468814492226,
+      "rmse": 0.008994047529995441,
+      "p95_abs": 0.0166015625,
+      "max_abs": 0.3603515625,
+      "benchmark": {
+        "latency_ms": 35.42523051146418,
+        "frames_per_sec": 451.6554943748959
+      }
+    },
+    {
+      "path": "unet_io_000423_bs8_pid3537045.pt+unet_io_000424_bs8_pid3537045.pt",
+      "sequence": 423,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 80,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 88,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.00421886146068573,
+      "rmse": 0.008714243769645691,
+      "p95_abs": 0.01611328125,
+      "max_abs": 0.23681640625,
+      "benchmark": {
+        "latency_ms": 35.56149546056986,
+        "frames_per_sec": 449.92483563410883
+      }
+    },
+    {
+      "path": "unet_io_000425_bs8_pid3537045.pt+unet_io_000426_bs8_pid3537045.pt",
+      "sequence": 425,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 104,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 112,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004312444012612104,
+      "rmse": 0.008963222615420818,
+      "p95_abs": 0.0166015625,
+      "max_abs": 0.4248046875,
+      "benchmark": {
+        "latency_ms": 35.41685547679663,
+        "frames_per_sec": 451.76229748805366
+      }
+    },
+    {
+      "path": "unet_io_000427_bs8_pid3537045.pt+unet_io_000428_bs8_pid3537045.pt",
+      "sequence": 427,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 128,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 144,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004091616254299879,
+      "rmse": 0.007834773510694504,
+      "p95_abs": 0.015625,
+      "max_abs": 0.17578125,
+      "benchmark": {
+        "latency_ms": 35.58325057383627,
+        "frames_per_sec": 449.64975773642544
+      }
+    },
+    {
+      "path": "unet_io_000429_bs8_pid3537045.pt+unet_io_000430_bs8_pid3537045.pt",
+      "sequence": 429,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 152,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 168,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004532088991254568,
+      "rmse": 0.009440640918910503,
+      "p95_abs": 0.017578125,
+      "max_abs": 0.3043212890625,
+      "benchmark": {
+        "latency_ms": 35.32973094843328,
+        "frames_per_sec": 452.876361366956
+      }
+    },
+    {
+      "path": "unet_io_000431_bs8_pid3537045.pt+unet_io_000432_bs8_pid3537045.pt",
+      "sequence": 431,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 176,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:B_am_michael:off200",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 192,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004260082729160786,
+      "rmse": 0.008768762461841106,
+      "p95_abs": 0.0166015625,
+      "max_abs": 0.33038330078125,
+      "benchmark": {
+        "latency_ms": 35.48725554719567,
+        "frames_per_sec": 450.86608567746447
+      }
+    },
+    {
+      "path": "unet_io_000433_bs8_pid3537045.pt+unet_io_000434_bs8_pid3537045.pt",
+      "sequence": 433,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 0,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 80,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.005322742275893688,
+      "rmse": 0.013550305739045143,
+      "p95_abs": 0.021190643310546875,
+      "max_abs": 1.0107421875,
+      "benchmark": {
+        "latency_ms": 35.43761104810983,
+        "frames_per_sec": 451.49770333780464
+      }
+    },
+    {
+      "path": "unet_io_000435_bs8_pid3537045.pt+unet_io_000436_bs8_pid3537045.pt",
+      "sequence": 435,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 160,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 240,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004287897143512964,
+      "rmse": 0.010613837279379368,
+      "p95_abs": 0.0159912109375,
+      "max_abs": 0.6806640625,
+      "benchmark": {
+        "latency_ms": 35.45206051785499,
+        "frames_per_sec": 451.313682936477
+      }
+    },
+    {
+      "path": "unet_io_000437_bs8_pid3537045.pt+unet_io_000438_bs8_pid3537045.pt",
+      "sequence": 437,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 320,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 400,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.007077927701175213,
+      "rmse": 0.03641771152615547,
+      "p95_abs": 0.02392578125,
+      "max_abs": 2.51416015625,
+      "benchmark": {
+        "latency_ms": 35.48836044501513,
+        "frames_per_sec": 450.85204837203
+      }
+    },
+    {
+      "path": "unet_io_000439_bs8_pid3537045.pt+unet_io_000440_bs8_pid3537045.pt",
+      "sequence": 439,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 480,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 560,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004597588442265987,
+      "rmse": 0.01049733068794012,
+      "p95_abs": 0.017578125,
+      "max_abs": 0.343017578125,
+      "benchmark": {
+        "latency_ms": 35.424935980699956,
+        "frames_per_sec": 451.659249538716
+      }
+    },
+    {
+      "path": "unet_io_000441_bs8_pid3537045.pt+unet_io_000442_bs8_pid3537045.pt",
+      "sequence": 441,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 632,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 712,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.006262592971324921,
+      "rmse": 0.023745613172650337,
+      "p95_abs": 0.021484375,
+      "max_abs": 1.5108642578125,
+      "benchmark": {
+        "latency_ms": 35.53123550955206,
+        "frames_per_sec": 450.30801126233365
+      }
+    },
+    {
+      "path": "unet_io_000443_bs8_pid3537045.pt+unet_io_000444_bs8_pid3537045.pt",
+      "sequence": 443,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 792,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 872,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.004254297353327274,
+      "rmse": 0.008730407804250717,
+      "p95_abs": 0.01611328125,
+      "max_abs": 0.269287109375,
+      "benchmark": {
+        "latency_ms": 35.438176011666656,
+        "frames_per_sec": 451.49050545752175
+      }
+    },
+    {
+      "path": "unet_io_000445_bs8_pid3537045.pt+unet_io_000446_bs8_pid3537045.pt",
+      "sequence": 445,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 952,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 1032,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.00444220844656229,
+      "rmse": 0.009588651359081268,
+      "p95_abs": 0.01708984375,
+      "max_abs": 0.4306640625,
+      "benchmark": {
+        "latency_ms": 35.560750402510166,
+        "frames_per_sec": 449.93426232283866
+      }
+    },
+    {
+      "path": "unet_io_000447_bs8_pid3537045.pt+unet_io_000448_bs8_pid3537045.pt",
+      "sequence": 447,
+      "actual_batch": 16,
+      "padded_batch": 16,
+      "compared_batch": 16,
+      "items": [
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 1112,
+          "take": 8,
+          "batch_offset": 0
+        },
+        {
+          "request_id": "corpus:codex_smoke:C_repo_eng:off400",
+          "session_id": "corpus:codex_smoke",
+          "avatar_id": "codex_smoke",
+          "start_frame_idx": 1192,
+          "take": 8,
+          "batch_offset": 0
+        }
+      ],
+      "mae": 0.0049865287728607655,
+      "rmse": 0.011557136662304401,
+      "p95_abs": 0.01953125,
+      "max_abs": 0.2890625,
+      "benchmark": {
+        "latency_ms": 35.494385519996285,
+        "frames_per_sec": 450.77551746842227
+      }
+    }
+  ]
+}

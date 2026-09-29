@@ -1,0 +1,477 @@
+{
+ "schema": "musetalk_unet_int8_recipe_v1",
+ "source": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/int8_study/study.json",
+ "recipe": "blkA_thr_8e-06",
+ "summary": {
+  "layers": 146,
+  "macs_frac": 0.593301624657615,
+  "amax": "per_layer",
+  "gate_pass": false
+ },
+ "eval": {
+  "main_eval": {
+   "files": 88,
+   "mae_mean": 0.004625440360872413,
+   "mae_max": 0.006338989827781916,
+   "max_abs_max": 1.17578125,
+   "max_abs_mean": 0.3517412705854936,
+   "mse_mean": 0.00012199485742960611,
+   "worst_file": {
+    "file": "unet_io_000311_bs8_pid3537045.pt",
+    "avatar": "div_middle_eastern_man_full_beard"
+   }
+  },
+  "holdout": {
+   "files": 96,
+   "mae_mean": 0.004676648008171469,
+   "mae_max": 0.006681415252387524,
+   "max_abs_max": 1.89453125,
+   "max_abs_mean": 0.36747535069783527,
+   "mse_mean": 0.00012222510084332802,
+   "worst_file": {
+    "file": "unet_io_000416_bs8_pid3537045.pt",
+    "avatar": "div_black_man_short_beard"
+   }
+  }
+ },
+ "layers": {
+  "down_blocks.1.resnets.0.conv1": {
+   "input_amax": 4.90234375
+  },
+  "down_blocks.1.resnets.0.conv2": {
+   "input_amax": 4.34375
+  },
+  "down_blocks.1.resnets.0.conv_shortcut": {
+   "input_amax": 6.140625
+  },
+  "down_blocks.1.attentions.0.proj_in": {
+   "input_amax": 4.21875
+  },
+  "down_blocks.1.attentions.0.transformer_blocks.0.attn1.to_q": {
+   "input_amax": 3.716796875
+  },
+  "down_blocks.1.attentions.0.transformer_blocks.0.attn1.to_k": {
+   "input_amax": 5.30859375
+  },
+  "down_blocks.1.attentions.0.transformer_blocks.0.attn1.to_v": {
+   "input_amax": 3.716796875
+  },
+  "down_blocks.1.attentions.0.transformer_blocks.0.attn1.to_out.0": {
+   "input_amax": 2.015625
+  },
+  "down_blocks.1.attentions.0.transformer_blocks.0.attn2.to_q": {
+   "input_amax": 3.8828125
+  },
+  "down_blocks.1.attentions.0.transformer_blocks.0.attn2.to_out.0": {
+   "input_amax": 1.9326171875
+  },
+  "down_blocks.1.attentions.0.transformer_blocks.0.ff.net.0.proj": {
+   "input_amax": 3.96875
+  },
+  "down_blocks.1.attentions.0.transformer_blocks.0.ff.net.2": {
+   "input_amax": 7.75
+  },
+  "down_blocks.1.attentions.0.proj_out": {
+   "input_amax": 3.79296875
+  },
+  "down_blocks.1.resnets.1.conv1": {
+   "input_amax": 4.28515625
+  },
+  "down_blocks.1.resnets.1.conv2": {
+   "input_amax": 5.0859375
+  },
+  "down_blocks.1.attentions.1.proj_in": {
+   "input_amax": 3.88671875
+  },
+  "down_blocks.1.attentions.1.transformer_blocks.0.attn1.to_q": {
+   "input_amax": 3.66015625
+  },
+  "down_blocks.1.attentions.1.transformer_blocks.0.attn1.to_k": {
+   "input_amax": 3.66015625
+  },
+  "down_blocks.1.attentions.1.transformer_blocks.0.attn1.to_v": {
+   "input_amax": 4.875
+  },
+  "down_blocks.1.attentions.1.transformer_blocks.0.attn1.to_out.0": {
+   "input_amax": 2.1171875
+  },
+  "down_blocks.1.attentions.1.transformer_blocks.0.attn2.to_q": {
+   "input_amax": 5.04296875
+  },
+  "down_blocks.1.attentions.1.transformer_blocks.0.attn2.to_out.0": {
+   "input_amax": 2.1484375
+  },
+  "down_blocks.1.attentions.1.transformer_blocks.0.ff.net.0.proj": {
+   "input_amax": 4.03125
+  },
+  "down_blocks.1.attentions.1.transformer_blocks.0.ff.net.2": {
+   "input_amax": 7.0546875
+  },
+  "down_blocks.1.attentions.1.proj_out": {
+   "input_amax": 3.74609375
+  },
+  "down_blocks.1.downsamplers.0.conv": {
+   "input_amax": 5.25
+  },
+  "down_blocks.2.resnets.0.conv1": {
+   "input_amax": 4.45703125
+  },
+  "down_blocks.2.resnets.0.conv2": {
+   "input_amax": 4.87890625
+  },
+  "down_blocks.2.resnets.0.conv_shortcut": {
+   "input_amax": 10.4296875
+  },
+  "down_blocks.2.attentions.0.proj_in": {
+   "input_amax": 13.234375
+  },
+  "down_blocks.2.attentions.0.transformer_blocks.0.attn1.to_q": {
+   "input_amax": 9.6484375
+  },
+  "down_blocks.2.attentions.0.transformer_blocks.0.attn1.to_k": {
+   "input_amax": 9.6484375
+  },
+  "down_blocks.2.attentions.0.transformer_blocks.0.attn1.to_v": {
+   "input_amax": 10.71875
+  },
+  "down_blocks.2.attentions.0.transformer_blocks.0.attn1.to_out.0": {
+   "input_amax": 2.76953125
+  },
+  "down_blocks.2.attentions.0.transformer_blocks.0.attn2.to_q": {
+   "input_amax": 11.7265625
+  },
+  "down_blocks.2.attentions.0.transformer_blocks.0.attn2.to_out.0": {
+   "input_amax": 3.0625
+  },
+  "down_blocks.2.attentions.0.transformer_blocks.0.ff.net.0.proj": {
+   "input_amax": 10.6328125
+  },
+  "down_blocks.2.attentions.0.transformer_blocks.0.ff.net.2": {
+   "input_amax": 14.7265625
+  },
+  "down_blocks.2.attentions.0.proj_out": {
+   "input_amax": 54.375
+  },
+  "down_blocks.2.resnets.1.conv1": {
+   "input_amax": 22.71875
+  },
+  "down_blocks.2.resnets.1.conv2": {
+   "input_amax": 3.00390625
+  },
+  "down_blocks.2.attentions.1.proj_in": {
+   "input_amax": 15.3125
+  },
+  "down_blocks.2.attentions.1.transformer_blocks.0.attn1.to_q": {
+   "input_amax": 13.484375
+  },
+  "down_blocks.2.attentions.1.transformer_blocks.0.attn1.to_k": {
+   "input_amax": 14.984375
+  },
+  "down_blocks.2.attentions.1.transformer_blocks.0.attn1.to_v": {
+   "input_amax": 14.984375
+  },
+  "down_blocks.2.attentions.1.transformer_blocks.0.attn1.to_out.0": {
+   "input_amax": 2.115234375
+  },
+  "down_blocks.2.attentions.1.transformer_blocks.0.attn2.to_q": {
+   "input_amax": 23.859375
+  },
+  "down_blocks.2.attentions.1.transformer_blocks.0.attn2.to_out.0": {
+   "input_amax": 3.44140625
+  },
+  "down_blocks.2.attentions.1.transformer_blocks.0.ff.net.0.proj": {
+   "input_amax": 17.125
+  },
+  "down_blocks.2.attentions.1.transformer_blocks.0.ff.net.2": {
+   "input_amax": 11.5703125
+  },
+  "down_blocks.2.downsamplers.0.conv": {
+   "input_amax": 8.796875
+  },
+  "down_blocks.3.resnets.0.conv1": {
+   "input_amax": 6.4921875
+  },
+  "down_blocks.3.resnets.0.conv2": {
+   "input_amax": 5.59375
+  },
+  "down_blocks.3.resnets.1.conv1": {
+   "input_amax": 6.13671875
+  },
+  "down_blocks.3.resnets.1.conv2": {
+   "input_amax": 6.1953125
+  },
+  "mid_block.resnets.0.conv1": {
+   "input_amax": 6.20703125
+  },
+  "mid_block.resnets.0.conv2": {
+   "input_amax": 6.52734375
+  },
+  "mid_block.attentions.0.proj_in": {
+   "input_amax": 6.92578125
+  },
+  "mid_block.attentions.0.transformer_blocks.0.attn1.to_q": {
+   "input_amax": 4.27734375
+  },
+  "mid_block.attentions.0.transformer_blocks.0.attn1.to_k": {
+   "input_amax": 4.27734375
+  },
+  "mid_block.attentions.0.transformer_blocks.0.attn1.to_v": {
+   "input_amax": 4.27734375
+  },
+  "mid_block.attentions.0.transformer_blocks.0.attn1.to_out.0": {
+   "input_amax": 3.591796875
+  },
+  "mid_block.attentions.0.transformer_blocks.0.attn2.to_q": {
+   "input_amax": 4.6484375
+  },
+  "mid_block.attentions.0.transformer_blocks.0.attn2.to_out.0": {
+   "input_amax": 4.0390625
+  },
+  "mid_block.attentions.0.transformer_blocks.0.ff.net.0.proj": {
+   "input_amax": 4.58984375
+  },
+  "mid_block.attentions.0.transformer_blocks.0.ff.net.2": {
+   "input_amax": 12.09375
+  },
+  "mid_block.attentions.0.proj_out": {
+   "input_amax": 7.3515625
+  },
+  "mid_block.resnets.1.conv1": {
+   "input_amax": 6.20703125
+  },
+  "mid_block.resnets.1.conv2": {
+   "input_amax": 9.5390625
+  },
+  "up_blocks.0.resnets.0.conv1": {
+   "input_amax": 5.80859375
+  },
+  "up_blocks.0.resnets.0.conv2": {
+   "input_amax": 8.4765625
+  },
+  "up_blocks.0.resnets.0.conv_shortcut": {
+   "input_amax": 36.40625
+  },
+  "up_blocks.0.resnets.1.conv1": {
+   "input_amax": 22.359375
+  },
+  "up_blocks.0.resnets.1.conv2": {
+   "input_amax": 6.8125
+  },
+  "up_blocks.0.resnets.1.conv_shortcut": {
+   "input_amax": 119.375
+  },
+  "up_blocks.0.resnets.2.conv1": {
+   "input_amax": 30.59375
+  },
+  "up_blocks.0.resnets.2.conv2": {
+   "input_amax": 5.6640625
+  },
+  "up_blocks.0.resnets.2.conv_shortcut": {
+   "input_amax": 138.375
+  },
+  "up_blocks.0.upsamplers.0.conv": {
+   "input_amax": 63.6875
+  },
+  "up_blocks.1.resnets.0.conv1": {
+   "input_amax": 16.5625
+  },
+  "up_blocks.1.resnets.0.conv2": {
+   "input_amax": 22.640625
+  },
+  "up_blocks.1.resnets.0.conv_shortcut": {
+   "input_amax": 56.0
+  },
+  "up_blocks.1.attentions.0.proj_in": {
+   "input_amax": 18.5625
+  },
+  "up_blocks.1.attentions.0.transformer_blocks.0.attn1.to_q": {
+   "input_amax": 4.60546875
+  },
+  "up_blocks.1.attentions.0.transformer_blocks.0.attn1.to_k": {
+   "input_amax": 4.60546875
+  },
+  "up_blocks.1.attentions.0.transformer_blocks.0.attn1.to_v": {
+   "input_amax": 3.681640625
+  },
+  "up_blocks.1.attentions.0.transformer_blocks.0.attn1.to_out.0": {
+   "input_amax": 1.390625
+  },
+  "up_blocks.1.attentions.0.transformer_blocks.0.attn2.to_q": {
+   "input_amax": 4.71875
+  },
+  "up_blocks.1.attentions.0.transformer_blocks.0.attn2.to_out.0": {
+   "input_amax": 3.10546875
+  },
+  "up_blocks.1.attentions.0.transformer_blocks.0.ff.net.0.proj": {
+   "input_amax": 4.40625
+  },
+  "up_blocks.1.attentions.0.transformer_blocks.0.ff.net.2": {
+   "input_amax": 26.96875
+  },
+  "up_blocks.1.attentions.0.proj_out": {
+   "input_amax": 26.6875
+  },
+  "up_blocks.1.resnets.1.conv1": {
+   "input_amax": 29.203125
+  },
+  "up_blocks.1.resnets.1.conv_shortcut": {
+   "input_amax": 72.4375
+  },
+  "up_blocks.1.attentions.1.transformer_blocks.0.attn1.to_q": {
+   "input_amax": 8.6328125
+  },
+  "up_blocks.1.attentions.1.transformer_blocks.0.attn1.to_k": {
+   "input_amax": 8.6328125
+  },
+  "up_blocks.1.attentions.1.transformer_blocks.0.attn1.to_v": {
+   "input_amax": 5.609375
+  },
+  "up_blocks.1.attentions.1.transformer_blocks.0.attn1.to_out.0": {
+   "input_amax": 1.09765625
+  },
+  "up_blocks.1.attentions.1.transformer_blocks.0.attn2.to_q": {
+   "input_amax": 9.4453125
+  },
+  "up_blocks.1.attentions.1.transformer_blocks.0.attn2.to_out.0": {
+   "input_amax": 2.8984375
+  },
+  "up_blocks.1.attentions.1.transformer_blocks.0.ff.net.0.proj": {
+   "input_amax": 8.71875
+  },
+  "up_blocks.1.attentions.1.transformer_blocks.0.ff.net.2": {
+   "input_amax": 8.59375
+  },
+  "up_blocks.1.resnets.2.conv2": {
+   "input_amax": 6.09765625
+  },
+  "up_blocks.1.attentions.2.transformer_blocks.0.attn1.to_q": {
+   "input_amax": 11.0234375
+  },
+  "up_blocks.1.attentions.2.transformer_blocks.0.attn1.to_k": {
+   "input_amax": 14.6953125
+  },
+  "up_blocks.1.attentions.2.transformer_blocks.0.attn1.to_v": {
+   "input_amax": 14.6953125
+  },
+  "up_blocks.1.attentions.2.transformer_blocks.0.attn1.to_out.0": {
+   "input_amax": 3.017578125
+  },
+  "up_blocks.1.attentions.2.transformer_blocks.0.attn2.to_q": {
+   "input_amax": 12.1875
+  },
+  "up_blocks.1.attentions.2.transformer_blocks.0.attn2.to_out.0": {
+   "input_amax": 2.52734375
+  },
+  "up_blocks.1.attentions.2.transformer_blocks.0.ff.net.0.proj": {
+   "input_amax": 10.46875
+  },
+  "up_blocks.1.upsamplers.0.conv": {
+   "input_amax": 19.28125
+  },
+  "up_blocks.2.resnets.0.conv1": {
+   "input_amax": 4.4609375
+  },
+  "up_blocks.2.resnets.0.conv2": {
+   "input_amax": 4.390625
+  },
+  "up_blocks.2.resnets.0.conv_shortcut": {
+   "input_amax": 17.015625
+  },
+  "up_blocks.2.attentions.0.proj_in": {
+   "input_amax": 5.828125
+  },
+  "up_blocks.2.attentions.0.transformer_blocks.0.attn1.to_q": {
+   "input_amax": 3.54296875
+  },
+  "up_blocks.2.attentions.0.transformer_blocks.0.attn1.to_k": {
+   "input_amax": 3.54296875
+  },
+  "up_blocks.2.attentions.0.transformer_blocks.0.attn1.to_v": {
+   "input_amax": 5.0625
+  },
+  "up_blocks.2.attentions.0.transformer_blocks.0.attn1.to_out.0": {
+   "input_amax": 2.78125
+  },
+  "up_blocks.2.attentions.0.transformer_blocks.0.attn2.to_q": {
+   "input_amax": 5.31640625
+  },
+  "up_blocks.2.attentions.0.transformer_blocks.0.attn2.to_out.0": {
+   "input_amax": 1.951171875
+  },
+  "up_blocks.2.attentions.0.transformer_blocks.0.ff.net.0.proj": {
+   "input_amax": 4.25
+  },
+  "up_blocks.2.attentions.0.transformer_blocks.0.ff.net.2": {
+   "input_amax": 9.3046875
+  },
+  "up_blocks.2.attentions.0.proj_out": {
+   "input_amax": 4.69921875
+  },
+  "up_blocks.2.resnets.1.conv1": {
+   "input_amax": 3.828125
+  },
+  "up_blocks.2.resnets.1.conv2": {
+   "input_amax": 5.6953125
+  },
+  "up_blocks.2.resnets.1.conv_shortcut": {
+   "input_amax": 12.375
+  },
+  "up_blocks.2.attentions.1.proj_in": {
+   "input_amax": 3.8828125
+  },
+  "up_blocks.2.attentions.1.transformer_blocks.0.attn1.to_q": {
+   "input_amax": 4.34375
+  },
+  "up_blocks.2.attentions.1.transformer_blocks.0.attn1.to_k": {
+   "input_amax": 5.79296875
+  },
+  "up_blocks.2.attentions.1.transformer_blocks.0.attn1.to_v": {
+   "input_amax": 4.34375
+  },
+  "up_blocks.2.attentions.1.transformer_blocks.0.attn1.to_out.0": {
+   "input_amax": 3.033203125
+  },
+  "up_blocks.2.attentions.1.transformer_blocks.0.attn2.to_q": {
+   "input_amax": 4.64453125
+  },
+  "up_blocks.2.attentions.1.transformer_blocks.0.attn2.to_out.0": {
+   "input_amax": 1.939453125
+  },
+  "up_blocks.2.attentions.1.transformer_blocks.0.ff.net.0.proj": {
+   "input_amax": 4.7734375
+  },
+  "up_blocks.2.attentions.1.proj_out": {
+   "input_amax": 4.66796875
+  },
+  "up_blocks.2.resnets.2.conv_shortcut": {
+   "input_amax": 6.6953125
+  },
+  "up_blocks.2.attentions.2.proj_in": {
+   "input_amax": 4.79296875
+  },
+  "up_blocks.2.attentions.2.transformer_blocks.0.attn1.to_q": {
+   "input_amax": 4.0234375
+  },
+  "up_blocks.2.attentions.2.transformer_blocks.0.attn1.to_k": {
+   "input_amax": 4.0234375
+  },
+  "up_blocks.2.attentions.2.transformer_blocks.0.attn1.to_v": {
+   "input_amax": 4.0234375
+  },
+  "up_blocks.2.attentions.2.transformer_blocks.0.attn1.to_out.0": {
+   "input_amax": 2.27734375
+  },
+  "up_blocks.2.attentions.2.transformer_blocks.0.attn2.to_q": {
+   "input_amax": 5.66796875
+  },
+  "up_blocks.2.attentions.2.transformer_blocks.0.attn2.to_out.0": {
+   "input_amax": 1.3154296875
+  },
+  "up_blocks.2.attentions.2.transformer_blocks.0.ff.net.0.proj": {
+   "input_amax": 4.859375
+  },
+  "up_blocks.2.attentions.2.proj_out": {
+   "input_amax": 4.53515625
+  }
+ }
+}

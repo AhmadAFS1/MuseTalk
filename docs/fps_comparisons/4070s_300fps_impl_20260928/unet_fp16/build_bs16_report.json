@@ -1,0 +1,76 @@
+{
+ "args": {
+  "batch": [
+   16
+  ],
+  "root": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm89",
+  "opt_level": 5,
+  "workspace_gb": 2.0,
+  "timing_cache": "",
+  "no_timing_cache": false,
+  "blocks": "",
+  "force": false,
+  "second_build": false,
+  "max_minutes": 18.0,
+  "report": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/build_bs16_report.json"
+ },
+ "batches": {
+  "16": {
+   "complete": true,
+   "missing": [],
+   "probe": {
+    "seed": 20260928,
+    "input_sha256": "bc70410094d8397351287b19179a486f457f7c392839ebd1ad626a189ddfb9a4",
+    "output_sha256": "adf8526464c0776058289f45d9e52cb33d46cff53bfd05f446e47db1083f90b5",
+    "output_file": "probe_output.pt",
+    "deterministic_run_to_run": true,
+    "graph_equals_direct_enqueue": true,
+    "vs_eager_forward": {
+     "mae": 0.0014173892559483647,
+     "max_abs": 0.021484375,
+     "rel_l2": 0.0019903823267668486
+    }
+   },
+   "runtime": {
+    "name": "tensorrt_unet_stagewise",
+    "engine_dir": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm89/bs16",
+    "batch": 16,
+    "cuda_graph": true,
+    "arena_mib": 191.5673828125,
+    "activation_mib": 94.7109375,
+    "device_memory_sizes_mib": {
+     "head": 10.25,
+     "down0": 151.5673828125,
+     "down1": 77.54150390625,
+     "down2": 39.49462890625,
+     "down3": 2.509765625,
+     "mid": 10.7470703125,
+     "up0": 6.8818359375,
+     "up1": 51.99462890625,
+     "up2": 102.54150390625,
+     "up3": 191.5673828125,
+     "tail": 20.0
+    },
+    "probe_status": null
+   }
+  }
+ },
+ "host_mem": {
+  "start": {
+   "VmHWM_MiB": 365.0,
+   "VmRSS_MiB": 365.0,
+   "MemAvailable_MiB": 11850.8
+  },
+  "after_model": {
+   "VmHWM_MiB": 5417.4,
+   "VmRSS_MiB": 1921.9,
+   "MemAvailable_MiB": 10305.3
+  },
+  "end": {
+   "VmHWM_MiB": 9427.4,
+   "VmRSS_MiB": 7967.4,
+   "MemAvailable_MiB": 7141.2
+  }
+ },
+ "torch_max_reserved_mib": 2318.0
+}

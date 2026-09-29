@@ -1,0 +1,12 @@
+# Optional dedicated chin-tracker venv (--with-chin-tools): MediaPipe FaceMesh used by the OFFLINE
+# 100% chin-alignment stage (character_factory/h3_avatar_workflow/tracker_worker.py imports only
+# cv2, numpy, mediapipe). Installed into $WORKSPACE/.venvs/musetalk_chin_tools (NOT the server venv:
+# mediapipe needs numpy>=2 / protobuf<4, the server stack is numpy 1.23.5 / protobuf 7.x).
+#
+# Exact versions are the ones the chin tracker was validated with: the dist-info names of
+# /workspace/SoulX-FlashHead/.venv (CPython 3.10.12), read 2026-09-28 (that venv is not modified).
+# Full dependency closure: requirements/constraints-chin-tools.txt.
+# The resolved env exposes this venv's python as MUSETALK_CHIN_TRACKER_PYTHON.
+mediapipe==0.10.9
+numpy==2.2.6
+opencv-contrib-python==5.0.0.93

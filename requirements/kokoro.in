@@ -1,0 +1,13 @@
+# Optional local Kokoro TTS (POST /webrtc/tts/kokoro, scripts/kokoro_tts.py). Group: --with-kokoro
+# (default on). Versions come from constraints-<matrix>.txt except the spaCy model, which is a
+# pinned direct URL (constraints files cannot carry URL entries).
+#
+# misaki[en] loads en_core_web_sm through spaCy and, if it is missing, calls spacy.cli.download at
+# RUNTIME (unpinned network install). Installing it here keeps first use offline and pinned.
+# Model weights (hexgrad/Kokoro-82M + default voices) are pre-cached by download_weights.sh
+# (DOWNLOAD_KOKORO_WEIGHTS), not by pip.
+kokoro
+misaki[en]
+espeakng-loader
+spacy
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl#sha256=1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85

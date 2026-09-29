@@ -1,0 +1,1236 @@
+{
+  "suite": "encoder_quality_g_enc",
+  "bitrate_bps": 2500000,
+  "cheapest_h264_within_gate": "h264_x264tuned_faster",
+  "fps": 20,
+  "frames_per_clip": 200,
+  "warmup_frames_excluded": 20,
+  "clips": {
+    "bob_idle": "/workspace/MuseTalk-perf300/results/v15/avatars/chinese_bob_pink_bedroom_idle_d4b06da317/input_video.mp4",
+    "bob_talking": "/workspace/MuseTalk-perf300/results/v15/avatars/chinese_bob_pink_bedroom_talking_3373c10448/input_video.mp4"
+  },
+  "gate_db": 0.2,
+  "passed": true,
+  "g_enc_pass": [
+    "h264_aiortc_default",
+    "h264_x264tuned_faster",
+    "h264_x264tuned_fast",
+    "h264_x264tuned_medium",
+    "vp8_pyav_default",
+    "vp8_native",
+    "vp8_native_threads1"
+  ],
+  "g_enc_fail": [
+    "h264_x264tuned_veryfast",
+    "h264_x264tuned_ultrafast"
+  ],
+  "gates": [
+    {
+      "config": "h264_aiortc_default",
+      "baseline": "h264_aiortc_default",
+      "result": "pass",
+      "delta_psnr_yuv_db_vs_family_baseline": 0.0,
+      "delta_psnr_yuv_db_vs_h264_today": 0.0,
+      "delta_ssim_y_vs_family_baseline": 0.0,
+      "bitrate_kbps": 1650.0,
+      "encode_cpu_ms_per_frame": 18.764,
+      "undecoded_frames": 0
+    },
+    {
+      "config": "h264_x264tuned_veryfast",
+      "baseline": "h264_aiortc_default",
+      "result": "fail",
+      "delta_psnr_yuv_db_vs_family_baseline": -0.2656,
+      "delta_psnr_yuv_db_vs_h264_today": -0.2656,
+      "delta_ssim_y_vs_family_baseline": -0.0006,
+      "bitrate_kbps": 1651.6,
+      "encode_cpu_ms_per_frame": 4.153,
+      "undecoded_frames": 0
+    },
+    {
+      "config": "h264_x264tuned_ultrafast",
+      "baseline": "h264_aiortc_default",
+      "result": "fail",
+      "delta_psnr_yuv_db_vs_family_baseline": -1.7655,
+      "delta_psnr_yuv_db_vs_h264_today": -1.7655,
+      "delta_ssim_y_vs_family_baseline": -0.01585,
+      "bitrate_kbps": 1662.8,
+      "encode_cpu_ms_per_frame": 1.658,
+      "undecoded_frames": 0
+    },
+    {
+      "config": "h264_x264tuned_faster",
+      "baseline": "h264_aiortc_default",
+      "result": "pass",
+      "delta_psnr_yuv_db_vs_family_baseline": -0.0794,
+      "delta_psnr_yuv_db_vs_h264_today": -0.0794,
+      "delta_ssim_y_vs_family_baseline": 0.0,
+      "bitrate_kbps": 1655.3,
+      "encode_cpu_ms_per_frame": 11.554,
+      "undecoded_frames": 0
+    },
+    {
+      "config": "h264_x264tuned_fast",
+      "baseline": "h264_aiortc_default",
+      "result": "pass",
+      "delta_psnr_yuv_db_vs_family_baseline": 0.0062,
+      "delta_psnr_yuv_db_vs_h264_today": 0.0062,
+      "delta_ssim_y_vs_family_baseline": 5e-05,
+      "bitrate_kbps": 1654.3,
+      "encode_cpu_ms_per_frame": 13.552,
+      "undecoded_frames": 0
+    },
+    {
+      "config": "h264_x264tuned_medium",
+      "baseline": "h264_aiortc_default",
+      "result": "pass",
+      "delta_psnr_yuv_db_vs_family_baseline": 0.0253,
+      "delta_psnr_yuv_db_vs_h264_today": 0.0253,
+      "delta_ssim_y_vs_family_baseline": 0.00015,
+      "bitrate_kbps": 1653.7,
+      "encode_cpu_ms_per_frame": 14.812,
+      "undecoded_frames": 0
+    },
+    {
+      "config": "vp8_pyav_default",
+      "baseline": "vp8_pyav_default",
+      "result": "pass",
+      "delta_psnr_yuv_db_vs_family_baseline": 0.0,
+      "delta_psnr_yuv_db_vs_h264_today": -2.1742,
+      "delta_ssim_y_vs_family_baseline": 0.0,
+      "bitrate_kbps": 2488.4,
+      "encode_cpu_ms_per_frame": 4.623,
+      "undecoded_frames": 0
+    },
+    {
+      "config": "vp8_native",
+      "baseline": "vp8_pyav_default",
+      "result": "pass",
+      "delta_psnr_yuv_db_vs_family_baseline": 0.0021,
+      "delta_psnr_yuv_db_vs_h264_today": -2.1721,
+      "delta_ssim_y_vs_family_baseline": 0.0001,
+      "bitrate_kbps": 2495.1,
+      "encode_cpu_ms_per_frame": 4.678,
+      "undecoded_frames": 0
+    },
+    {
+      "config": "vp8_native_threads1",
+      "baseline": "vp8_pyav_default",
+      "result": "pass",
+      "delta_psnr_yuv_db_vs_family_baseline": 0.0252,
+      "delta_psnr_yuv_db_vs_h264_today": -2.149,
+      "delta_ssim_y_vs_family_baseline": 0.00025,
+      "bitrate_kbps": 2494.2,
+      "encode_cpu_ms_per_frame": 4.506,
+      "undecoded_frames": 0
+    }
+  ],
+  "results": {
+    "h264_aiortc_default": {
+      "config": "h264_aiortc_default",
+      "family": "h264",
+      "env": {
+        "WEBRTC_H264_IMPL": "aiortc"
+      },
+      "encoder_class": "H264Encoder",
+      "clips": {
+        "bob_idle": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 1637.5,
+          "encode_cpu_ms_per_frame": 18.262,
+          "encode_wall_ms_per_frame": 3.637,
+          "all": {
+            "psnr_y": {
+              "mean": 44.2016,
+              "min": 40.1553,
+              "p05": 41.3731
+            },
+            "psnr_u": {
+              "mean": 51.4106,
+              "min": 49.2803,
+              "p05": 50.3047
+            },
+            "psnr_v": {
+              "mean": 51.5753,
+              "min": 49.0621,
+              "p05": 49.9486
+            },
+            "psnr_yuv": {
+              "mean": 45.1875,
+              "min": 41.2382,
+              "p05": 42.4375
+            },
+            "ssim_y": {
+              "mean": 0.9781,
+              "min": 0.9469,
+              "p05": 0.9616
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 44.4916,
+              "min": 43.1735,
+              "p05": 43.9288
+            },
+            "psnr_yuv": {
+              "mean": 45.4707,
+              "min": 44.1872,
+              "p05": 44.9151
+            },
+            "ssim_y": {
+              "mean": 0.9799,
+              "min": 0.9737,
+              "p05": 0.9778
+            }
+          }
+        },
+        "bob_talking": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 1662.6,
+          "encode_cpu_ms_per_frame": 19.267,
+          "encode_wall_ms_per_frame": 3.671,
+          "all": {
+            "psnr_y": {
+              "mean": 44.2179,
+              "min": 43.0565,
+              "p05": 43.5516
+            },
+            "psnr_u": {
+              "mean": 51.0992,
+              "min": 50.8047,
+              "p05": 50.8902
+            },
+            "psnr_v": {
+              "mean": 51.4558,
+              "min": 50.7331,
+              "p05": 51.2298
+            },
+            "psnr_yuv": {
+              "mean": 45.1902,
+              "min": 44.0681,
+              "p05": 44.584
+            },
+            "ssim_y": {
+              "mean": 0.979,
+              "min": 0.9737,
+              "p05": 0.976
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 44.2726,
+              "min": 43.7061,
+              "p05": 43.8565
+            },
+            "psnr_yuv": {
+              "mean": 45.2398,
+              "min": 44.7143,
+              "p05": 44.8414
+            },
+            "ssim_y": {
+              "mean": 0.9791,
+              "min": 0.9768,
+              "p05": 0.9774
+            }
+          }
+        }
+      },
+      "codec_in_use": "libx264",
+      "steady_psnr_yuv_mean": 45.3552,
+      "steady_ssim_y_mean": 0.9795,
+      "encode_cpu_ms_per_frame": 18.764,
+      "bitrate_kbps": 1650.0
+    },
+    "h264_x264tuned_veryfast": {
+      "config": "h264_x264tuned_veryfast",
+      "family": "h264",
+      "env": {
+        "WEBRTC_H264_IMPL": "x264tuned",
+        "WEBRTC_H264_X264_PRESET": "veryfast",
+        "WEBRTC_H264_X264_THREADS": "1"
+      },
+      "encoder_class": "MuseTalkH264Encoder",
+      "clips": {
+        "bob_idle": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 1643.0,
+          "encode_cpu_ms_per_frame": 4.089,
+          "encode_wall_ms_per_frame": 4.089,
+          "all": {
+            "psnr_y": {
+              "mean": 44.0222,
+              "min": 40.2215,
+              "p05": 41.5188
+            },
+            "psnr_u": {
+              "mean": 50.3026,
+              "min": 48.2124,
+              "p05": 48.9994
+            },
+            "psnr_v": {
+              "mean": 50.263,
+              "min": 47.9799,
+              "p05": 48.541
+            },
+            "psnr_yuv": {
+              "mean": 44.9407,
+              "min": 41.2473,
+              "p05": 42.4949
+            },
+            "ssim_y": {
+              "mean": 0.9776,
+              "min": 0.9498,
+              "p05": 0.963
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 44.2898,
+              "min": 43.1071,
+              "p05": 43.8511
+            },
+            "psnr_yuv": {
+              "mean": 45.2019,
+              "min": 44.0419,
+              "p05": 44.7918
+            },
+            "ssim_y": {
+              "mean": 0.9792,
+              "min": 0.974,
+              "p05": 0.9773
+            }
+          }
+        },
+        "bob_talking": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 1660.2,
+          "encode_cpu_ms_per_frame": 4.217,
+          "encode_wall_ms_per_frame": 4.216,
+          "all": {
+            "psnr_y": {
+              "mean": 44.0157,
+              "min": 42.9194,
+              "p05": 43.3436
+            },
+            "psnr_u": {
+              "mean": 50.113,
+              "min": 49.8197,
+              "p05": 49.8916
+            },
+            "psnr_v": {
+              "mean": 50.3508,
+              "min": 49.7695,
+              "p05": 50.0869
+            },
+            "psnr_yuv": {
+              "mean": 44.9308,
+              "min": 43.8912,
+              "p05": 44.3587
+            },
+            "ssim_y": {
+              "mean": 0.9785,
+              "min": 0.9735,
+              "p05": 0.9756
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 44.0686,
+              "min": 43.3853,
+              "p05": 43.608
+            },
+            "psnr_yuv": {
+              "mean": 44.9773,
+              "min": 44.3587,
+              "p05": 44.5585
+            },
+            "ssim_y": {
+              "mean": 0.9786,
+              "min": 0.9759,
+              "p05": 0.9769
+            }
+          }
+        }
+      },
+      "codec_in_use": "libx264",
+      "steady_psnr_yuv_mean": 45.0896,
+      "steady_ssim_y_mean": 0.9789,
+      "encode_cpu_ms_per_frame": 4.153,
+      "bitrate_kbps": 1651.6
+    },
+    "h264_x264tuned_ultrafast": {
+      "config": "h264_x264tuned_ultrafast",
+      "family": "h264",
+      "env": {
+        "WEBRTC_H264_IMPL": "x264tuned",
+        "WEBRTC_H264_X264_PRESET": "ultrafast",
+        "WEBRTC_H264_X264_THREADS": "1"
+      },
+      "encoder_class": "MuseTalkH264Encoder",
+      "clips": {
+        "bob_idle": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 1665.0,
+          "encode_cpu_ms_per_frame": 1.533,
+          "encode_wall_ms_per_frame": 1.532,
+          "all": {
+            "psnr_y": {
+              "mean": 42.9927,
+              "min": 40.0596,
+              "p05": 42.0338
+            },
+            "psnr_u": {
+              "mean": 50.3693,
+              "min": 48.767,
+              "p05": 49.9891
+            },
+            "psnr_v": {
+              "mean": 50.567,
+              "min": 48.6168,
+              "p05": 50.1175
+            },
+            "psnr_yuv": {
+              "mean": 43.9896,
+              "min": 41.1154,
+              "p05": 43.0742
+            },
+            "ssim_y": {
+              "mean": 0.967,
+              "min": 0.9447,
+              "p05": 0.9596
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 43.0832,
+              "min": 41.9959,
+              "p05": 42.1581
+            },
+            "psnr_yuv": {
+              "mean": 44.0774,
+              "min": 43.0385,
+              "p05": 43.194
+            },
+            "ssim_y": {
+              "mean": 0.9676,
+              "min": 0.9595,
+              "p05": 0.9607
+            }
+          }
+        },
+        "bob_talking": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 1660.6,
+          "encode_cpu_ms_per_frame": 1.783,
+          "encode_wall_ms_per_frame": 1.781,
+          "all": {
+            "psnr_y": {
+              "mean": 42.1307,
+              "min": 41.476,
+              "p05": 41.6463
+            },
+            "psnr_u": {
+              "mean": 49.7709,
+              "min": 49.4943,
+              "p05": 49.5318
+            },
+            "psnr_v": {
+              "mean": 49.8912,
+              "min": 49.6122,
+              "p05": 49.6737
+            },
+            "psnr_yuv": {
+              "mean": 43.1405,
+              "min": 42.507,
+              "p05": 42.6829
+            },
+            "ssim_y": {
+              "mean": 0.9601,
+              "min": 0.9545,
+              "p05": 0.9558
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 42.0935,
+              "min": 41.476,
+              "p05": 41.6463
+            },
+            "psnr_yuv": {
+              "mean": 43.1021,
+              "min": 42.507,
+              "p05": 42.6829
+            },
+            "ssim_y": {
+              "mean": 0.9597,
+              "min": 0.9545,
+              "p05": 0.9558
+            }
+          }
+        }
+      },
+      "codec_in_use": "libx264",
+      "steady_psnr_yuv_mean": 43.5897,
+      "steady_ssim_y_mean": 0.96365,
+      "encode_cpu_ms_per_frame": 1.658,
+      "bitrate_kbps": 1662.8
+    },
+    "h264_x264tuned_faster": {
+      "config": "h264_x264tuned_faster",
+      "family": "h264",
+      "env": {
+        "WEBRTC_H264_IMPL": "x264tuned",
+        "WEBRTC_H264_X264_PRESET": "faster",
+        "WEBRTC_H264_X264_THREADS": "1"
+      },
+      "encoder_class": "MuseTalkH264Encoder",
+      "clips": {
+        "bob_idle": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 1645.8,
+          "encode_cpu_ms_per_frame": 12.782,
+          "encode_wall_ms_per_frame": 12.79,
+          "all": {
+            "psnr_y": {
+              "mean": 44.1992,
+              "min": 40.1431,
+              "p05": 41.5334
+            },
+            "psnr_u": {
+              "mean": 50.3973,
+              "min": 48.492,
+              "p05": 49.4953
+            },
+            "psnr_v": {
+              "mean": 50.4376,
+              "min": 48.2307,
+              "p05": 48.9239
+            },
+            "psnr_yuv": {
+              "mean": 45.1139,
+              "min": 41.1873,
+              "p05": 42.5437
+            },
+            "ssim_y": {
+              "mean": 0.9782,
+              "min": 0.9465,
+              "p05": 0.9626
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 44.4735,
+              "min": 43.3052,
+              "p05": 44.028
+            },
+            "psnr_yuv": {
+              "mean": 45.3794,
+              "min": 44.2537,
+              "p05": 44.9472
+            },
+            "ssim_y": {
+              "mean": 0.9798,
+              "min": 0.9744,
+              "p05": 0.9781
+            }
+          }
+        },
+        "bob_talking": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 1664.8,
+          "encode_cpu_ms_per_frame": 10.326,
+          "encode_wall_ms_per_frame": 10.326,
+          "all": {
+            "psnr_y": {
+              "mean": 44.2039,
+              "min": 42.9967,
+              "p05": 43.49
+            },
+            "psnr_u": {
+              "mean": 50.324,
+              "min": 49.8426,
+              "p05": 49.992
+            },
+            "psnr_v": {
+              "mean": 50.6358,
+              "min": 50.1357,
+              "p05": 50.4089
+            },
+            "psnr_yuv": {
+              "mean": 45.1229,
+              "min": 43.9849,
+              "p05": 44.4642
+            },
+            "ssim_y": {
+              "mean": 0.979,
+              "min": 0.9731,
+              "p05": 0.9756
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 44.2601,
+              "min": 43.6655,
+              "p05": 43.8658
+            },
+            "psnr_yuv": {
+              "mean": 45.1721,
+              "min": 44.6429,
+              "p05": 44.8162
+            },
+            "ssim_y": {
+              "mean": 0.9792,
+              "min": 0.9767,
+              "p05": 0.9775
+            }
+          }
+        }
+      },
+      "codec_in_use": "libx264",
+      "steady_psnr_yuv_mean": 45.2758,
+      "steady_ssim_y_mean": 0.9795,
+      "encode_cpu_ms_per_frame": 11.554,
+      "bitrate_kbps": 1655.3
+    },
+    "h264_x264tuned_fast": {
+      "config": "h264_x264tuned_fast",
+      "family": "h264",
+      "env": {
+        "WEBRTC_H264_IMPL": "x264tuned",
+        "WEBRTC_H264_X264_PRESET": "fast",
+        "WEBRTC_H264_X264_THREADS": "1"
+      },
+      "encoder_class": "MuseTalkH264Encoder",
+      "clips": {
+        "bob_idle": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 1643.1,
+          "encode_cpu_ms_per_frame": 13.175,
+          "encode_wall_ms_per_frame": 13.179,
+          "all": {
+            "psnr_y": {
+              "mean": 44.2132,
+              "min": 40.155,
+              "p05": 41.4322
+            },
+            "psnr_u": {
+              "mean": 51.354,
+              "min": 49.2162,
+              "p05": 50.2755
+            },
+            "psnr_v": {
+              "mean": 51.4527,
+              "min": 49.0484,
+              "p05": 49.9095
+            },
+            "psnr_yuv": {
+              "mean": 45.193,
+              "min": 41.2362,
+              "p05": 42.4907
+            },
+            "ssim_y": {
+              "mean": 0.9782,
+              "min": 0.9469,
+              "p05": 0.9617
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 44.5004,
+              "min": 43.2314,
+              "p05": 43.9763
+            },
+            "psnr_yuv": {
+              "mean": 45.4732,
+              "min": 44.2355,
+              "p05": 44.9553
+            },
+            "ssim_y": {
+              "mean": 0.9799,
+              "min": 0.9741,
+              "p05": 0.978
+            }
+          }
+        },
+        "bob_talking": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 1665.5,
+          "encode_cpu_ms_per_frame": 13.928,
+          "encode_wall_ms_per_frame": 13.935,
+          "all": {
+            "psnr_y": {
+              "mean": 44.2318,
+              "min": 43.0932,
+              "p05": 43.568
+            },
+            "psnr_u": {
+              "mean": 51.0732,
+              "min": 50.758,
+              "p05": 50.8728
+            },
+            "psnr_v": {
+              "mean": 51.4378,
+              "min": 50.7537,
+              "p05": 51.2546
+            },
+            "psnr_yuv": {
+              "mean": 45.2018,
+              "min": 44.1079,
+              "p05": 44.5871
+            },
+            "ssim_y": {
+              "mean": 0.979,
+              "min": 0.9737,
+              "p05": 0.9762
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 44.2846,
+              "min": 43.723,
+              "p05": 43.8766
+            },
+            "psnr_yuv": {
+              "mean": 45.2495,
+              "min": 44.7328,
+              "p05": 44.8631
+            },
+            "ssim_y": {
+              "mean": 0.9792,
+              "min": 0.977,
+              "p05": 0.9775
+            }
+          }
+        }
+      },
+      "codec_in_use": "libx264",
+      "steady_psnr_yuv_mean": 45.3614,
+      "steady_ssim_y_mean": 0.97955,
+      "encode_cpu_ms_per_frame": 13.552,
+      "bitrate_kbps": 1654.3
+    },
+    "h264_x264tuned_medium": {
+      "config": "h264_x264tuned_medium",
+      "family": "h264",
+      "env": {
+        "WEBRTC_H264_IMPL": "x264tuned",
+        "WEBRTC_H264_X264_PRESET": "medium",
+        "WEBRTC_H264_X264_THREADS": "1"
+      },
+      "encoder_class": "MuseTalkH264Encoder",
+      "clips": {
+        "bob_idle": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 1642.7,
+          "encode_cpu_ms_per_frame": 14.441,
+          "encode_wall_ms_per_frame": 14.445,
+          "all": {
+            "psnr_y": {
+              "mean": 44.2333,
+              "min": 40.155,
+              "p05": 41.4343
+            },
+            "psnr_u": {
+              "mean": 51.3778,
+              "min": 49.2162,
+              "p05": 50.3059
+            },
+            "psnr_v": {
+              "mean": 51.5025,
+              "min": 49.0484,
+              "p05": 49.9051
+            },
+            "psnr_yuv": {
+              "mean": 45.2142,
+              "min": 41.2362,
+              "p05": 42.4927
+            },
+            "ssim_y": {
+              "mean": 0.9783,
+              "min": 0.9469,
+              "p05": 0.9617
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 44.5226,
+              "min": 43.2543,
+              "p05": 43.9915
+            },
+            "psnr_yuv": {
+              "mean": 45.4966,
+              "min": 44.2597,
+              "p05": 44.972
+            },
+            "ssim_y": {
+              "mean": 0.98,
+              "min": 0.9742,
+              "p05": 0.9781
+            }
+          }
+        },
+        "bob_talking": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 1664.7,
+          "encode_cpu_ms_per_frame": 15.184,
+          "encode_wall_ms_per_frame": 15.184,
+          "all": {
+            "psnr_y": {
+              "mean": 44.2444,
+              "min": 43.0966,
+              "p05": 43.5597
+            },
+            "psnr_u": {
+              "mean": 51.1054,
+              "min": 50.8044,
+              "p05": 50.882
+            },
+            "psnr_v": {
+              "mean": 51.4638,
+              "min": 50.7598,
+              "p05": 51.2961
+            },
+            "psnr_yuv": {
+              "mean": 45.2154,
+              "min": 44.1113,
+              "p05": 44.581
+            },
+            "ssim_y": {
+              "mean": 0.9791,
+              "min": 0.9736,
+              "p05": 0.9762
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 44.2984,
+              "min": 43.7218,
+              "p05": 43.8765
+            },
+            "psnr_yuv": {
+              "mean": 45.2644,
+              "min": 44.7297,
+              "p05": 44.871
+            },
+            "ssim_y": {
+              "mean": 0.9793,
+              "min": 0.977,
+              "p05": 0.9776
+            }
+          }
+        }
+      },
+      "codec_in_use": "libx264",
+      "steady_psnr_yuv_mean": 45.3805,
+      "steady_ssim_y_mean": 0.97965,
+      "encode_cpu_ms_per_frame": 14.812,
+      "bitrate_kbps": 1653.7
+    },
+    "vp8_pyav_default": {
+      "config": "vp8_pyav_default",
+      "family": "vp8",
+      "env": {
+        "WEBRTC_VP8_ENCODER": "pyav"
+      },
+      "encoder_class": "Vp8Encoder",
+      "clips": {
+        "bob_idle": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 2476.4,
+          "encode_cpu_ms_per_frame": 4.396,
+          "encode_wall_ms_per_frame": 2.728,
+          "all": {
+            "psnr_y": {
+              "mean": 41.8399,
+              "min": 38.8017,
+              "p05": 40.2971
+            },
+            "psnr_u": {
+              "mean": 50.6167,
+              "min": 48.6913,
+              "p05": 49.3089
+            },
+            "psnr_v": {
+              "mean": 50.7499,
+              "min": 48.3018,
+              "p05": 48.7705
+            },
+            "psnr_yuv": {
+              "mean": 42.9035,
+              "min": 39.9088,
+              "p05": 41.4208
+            },
+            "ssim_y": {
+              "mean": 0.9595,
+              "min": 0.9374,
+              "p05": 0.9526
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 41.999,
+              "min": 41.2836,
+              "p05": 41.5031
+            },
+            "psnr_yuv": {
+              "mean": 43.0607,
+              "min": 42.3831,
+              "p05": 42.5959
+            },
+            "ssim_y": {
+              "mean": 0.9602,
+              "min": 0.9528,
+              "p05": 0.9557
+            }
+          }
+        },
+        "bob_talking": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 2500.4,
+          "encode_cpu_ms_per_frame": 4.849,
+          "encode_wall_ms_per_frame": 2.944,
+          "all": {
+            "psnr_y": {
+              "mean": 42.1534,
+              "min": 38.0774,
+              "p05": 40.8855
+            },
+            "psnr_u": {
+              "mean": 50.2192,
+              "min": 46.1477,
+              "p05": 49.9169
+            },
+            "psnr_v": {
+              "mean": 50.694,
+              "min": 46.225,
+              "p05": 50.4322
+            },
+            "psnr_yuv": {
+              "mean": 43.1924,
+              "min": 39.1086,
+              "p05": 41.9736
+            },
+            "ssim_y": {
+              "mean": 0.9614,
+              "min": 0.905,
+              "p05": 0.9563
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 42.2667,
+              "min": 41.5032,
+              "p05": 41.6972
+            },
+            "psnr_yuv": {
+              "mean": 43.3014,
+              "min": 42.5685,
+              "p05": 42.7424
+            },
+            "ssim_y": {
+              "mean": 0.9622,
+              "min": 0.9562,
+              "p05": 0.9569
+            }
+          }
+        }
+      },
+      "vp8_status": {
+        "encoder": "pyav",
+        "opt_in": false
+      },
+      "codec_in_use": "libvpx",
+      "steady_psnr_yuv_mean": 43.181,
+      "steady_ssim_y_mean": 0.9612,
+      "encode_cpu_ms_per_frame": 4.623,
+      "bitrate_kbps": 2488.4
+    },
+    "vp8_native": {
+      "config": "vp8_native",
+      "family": "vp8",
+      "env": {
+        "WEBRTC_VP8_ENCODER": "native",
+        "WEBRTC_NATIVE_VP8_MAX_BITRATE_BPS": "2500000"
+      },
+      "encoder_class": "NativeVp8Encoder",
+      "clips": {
+        "bob_idle": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 2481.7,
+          "encode_cpu_ms_per_frame": 4.588,
+          "encode_wall_ms_per_frame": 2.83,
+          "all": {
+            "psnr_y": {
+              "mean": 41.81,
+              "min": 38.9013,
+              "p05": 39.4745
+            },
+            "psnr_u": {
+              "mean": 50.5153,
+              "min": 46.7977,
+              "p05": 48.8006
+            },
+            "psnr_v": {
+              "mean": 50.689,
+              "min": 46.5988,
+              "p05": 48.553
+            },
+            "psnr_yuv": {
+              "mean": 42.8715,
+              "min": 39.9212,
+              "p05": 40.5254
+            },
+            "ssim_y": {
+              "mean": 0.959,
+              "min": 0.9203,
+              "p05": 0.9471
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 42.0024,
+              "min": 41.2583,
+              "p05": 41.5351
+            },
+            "psnr_yuv": {
+              "mean": 43.0634,
+              "min": 42.3568,
+              "p05": 42.6127
+            },
+            "ssim_y": {
+              "mean": 0.9603,
+              "min": 0.9525,
+              "p05": 0.9554
+            }
+          }
+        },
+        "bob_talking": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 2508.6,
+          "encode_cpu_ms_per_frame": 4.769,
+          "encode_wall_ms_per_frame": 2.899,
+          "all": {
+            "psnr_y": {
+              "mean": 42.1612,
+              "min": 38.1889,
+              "p05": 41.078
+            },
+            "psnr_u": {
+              "mean": 50.216,
+              "min": 46.2149,
+              "p05": 49.9371
+            },
+            "psnr_v": {
+              "mean": 50.6566,
+              "min": 46.2796,
+              "p05": 50.3895
+            },
+            "psnr_yuv": {
+              "mean": 43.1989,
+              "min": 39.2176,
+              "p05": 42.1649
+            },
+            "ssim_y": {
+              "mean": 0.9615,
+              "min": 0.9072,
+              "p05": 0.956
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 42.2696,
+              "min": 41.452,
+              "p05": 41.6973
+            },
+            "psnr_yuv": {
+              "mean": 43.3027,
+              "min": 42.5076,
+              "p05": 42.7506
+            },
+            "ssim_y": {
+              "mean": 0.9623,
+              "min": 0.956,
+              "p05": 0.9574
+            }
+          }
+        }
+      },
+      "vp8_status": {
+        "encoder": "native",
+        "opt_in": true,
+        "directory": "/workspace/MuseTalk/.runtime/native_vp8",
+        "libvpx": "v1.13.1",
+        "bitrate_floor_bps": 0,
+        "bitrate_ceiling_bps": 2500000,
+        "codec_threads": "upstream_default"
+      },
+      "codec_in_use": "NativeVp8Encoder",
+      "steady_psnr_yuv_mean": 43.1831,
+      "steady_ssim_y_mean": 0.9613,
+      "encode_cpu_ms_per_frame": 4.678,
+      "bitrate_kbps": 2495.1
+    },
+    "vp8_native_threads1": {
+      "config": "vp8_native_threads1",
+      "family": "vp8",
+      "env": {
+        "WEBRTC_VP8_ENCODER": "native",
+        "WEBRTC_NATIVE_VP8_MAX_BITRATE_BPS": "2500000",
+        "WEBRTC_NATIVE_VP8_THREADS": "1"
+      },
+      "encoder_class": "NativeVp8Encoder",
+      "clips": {
+        "bob_idle": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 2478.8,
+          "encode_cpu_ms_per_frame": 4.454,
+          "encode_wall_ms_per_frame": 4.453,
+          "all": {
+            "psnr_y": {
+              "mean": 41.8343,
+              "min": 38.9013,
+              "p05": 39.4702
+            },
+            "psnr_u": {
+              "mean": 50.5402,
+              "min": 46.7969,
+              "p05": 48.777
+            },
+            "psnr_v": {
+              "mean": 50.7217,
+              "min": 46.5988,
+              "p05": 48.5629
+            },
+            "psnr_yuv": {
+              "mean": 42.8959,
+              "min": 39.9212,
+              "p05": 40.5489
+            },
+            "ssim_y": {
+              "mean": 0.9592,
+              "min": 0.9203,
+              "p05": 0.9472
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 42.027,
+              "min": 41.3323,
+              "p05": 41.5537
+            },
+            "psnr_yuv": {
+              "mean": 43.0879,
+              "min": 42.4302,
+              "p05": 42.6263
+            },
+            "ssim_y": {
+              "mean": 0.9605,
+              "min": 0.9535,
+              "p05": 0.9559
+            }
+          }
+        },
+        "bob_talking": {
+          "frames": 200,
+          "decoded": 200,
+          "undecoded": 0,
+          "bitrate_kbps": 2509.5,
+          "encode_cpu_ms_per_frame": 4.558,
+          "encode_wall_ms_per_frame": 4.556,
+          "all": {
+            "psnr_y": {
+              "mean": 42.1722,
+              "min": 38.1889,
+              "p05": 41.1183
+            },
+            "psnr_u": {
+              "mean": 50.1992,
+              "min": 46.2149,
+              "p05": 49.8696
+            },
+            "psnr_v": {
+              "mean": 50.6446,
+              "min": 46.2796,
+              "p05": 50.2868
+            },
+            "psnr_yuv": {
+              "mean": 43.2088,
+              "min": 39.2176,
+              "p05": 42.196
+            },
+            "ssim_y": {
+              "mean": 0.9615,
+              "min": 0.9072,
+              "p05": 0.9552
+            }
+          },
+          "steady": {
+            "psnr_y": {
+              "mean": 42.2925,
+              "min": 41.4592,
+              "p05": 41.6908
+            },
+            "psnr_yuv": {
+              "mean": 43.3245,
+              "min": 42.5103,
+              "p05": 42.7589
+            },
+            "ssim_y": {
+              "mean": 0.9624,
+              "min": 0.9552,
+              "p05": 0.9572
+            }
+          }
+        }
+      },
+      "vp8_status": {
+        "encoder": "native",
+        "opt_in": true,
+        "directory": "/workspace/MuseTalk/.runtime/native_vp8",
+        "libvpx": "v1.13.1",
+        "bitrate_floor_bps": 0,
+        "bitrate_ceiling_bps": 2500000,
+        "codec_threads": 1
+      },
+      "codec_in_use": "NativeVp8Encoder",
+      "steady_psnr_yuv_mean": 43.2062,
+      "steady_ssim_y_mean": 0.96145,
+      "encode_cpu_ms_per_frame": 4.506,
+      "bitrate_kbps": 2494.2
+    }
+  }
+}

@@ -152,7 +152,19 @@ class VAE():
         """
         decode_started_at = time.perf_counter()
         tensor_started_at = decode_started_at
-        image = self.decode_latents_tensor(latents)
+        # Added code (plan item 2.1): a backend that exposes a fused uint8 path
+        # (TaesdTrtBackend with MUSETALK_TAESD_TRT_FUSED_POST=1) returns the
+        # fast postprocess below already applied on the GPU, bit-identical to
+        # it. No other backend has `decode_bgr_u8`, so their path is unchanged.
+        fused_bgr_u8 = None
+        if MUSETALK_VAE_FAST_POSTPROCESS and self._decode_backend is not None and getattr(
+            self._decode_backend, "fused_post_enabled", False
+        ):
+            fused_bgr_u8 = getattr(self._decode_backend, "decode_bgr_u8", None)
+        if fused_bgr_u8 is not None:
+            image = fused_bgr_u8(latents)
+        else:
+            image = self.decode_latents_tensor(latents)
         if MUSETALK_VAE_DECODE_TIMING_SYNC and torch.cuda.is_available() and image.is_cuda:
             torch.cuda.synchronize(image.device)
         tensor_s = time.perf_counter() - tensor_started_at
@@ -163,7 +175,9 @@ class VAE():
        
 
         post_started_at = time.perf_counter()
-        if MUSETALK_VAE_FAST_POSTPROCESS:
+        if fused_bgr_u8 is not None:
+            image = image.cpu().numpy()
+        elif MUSETALK_VAE_FAST_POSTPROCESS:
             # Scale and convert while the tensor is still on GPU. This copies
             # uint8 NHWC BGR to CPU instead of copying fp16/fp32 NCHW and doing
             # the per-pixel conversion in NumPy.

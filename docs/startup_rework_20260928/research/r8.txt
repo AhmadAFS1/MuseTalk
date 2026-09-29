@@ -1,0 +1,317 @@
+summary:
+  PORTABILITY SLICE. All checks were read-only: no GPU work, no torch/TRT import, no repo writes. I ran nvidia-smi queries, cuobjdump on libtorch_cuda.so and strings on the .ts engines.
+1) No committed code checks GPU architecture. git grep for get_device_capability or compute_cap at HEAD finds nothing. Arch fingerprints exist only in another session's uncommitted scripts/vae_fast_decoder.py (TAESD TRT key = TRT version + GPU name + compute capability + ONNX sha + batch + recipe) and in untracked scripts/unet_stagewise_trt.py:486-495, which refuses to load on a TRT-version or sm mismatch.
+2) PROVEN that arch-bound artifacts break off-arch. /workspace/benchmarks/same-avatar/REPORT.md (2026-09-15): on the 4070S, the 3090 VAE plans failed with 'expecting compute 8.9 got compute 8.6'. The 3090 UNet .ts embeds '0%8%6%0%NVIDIA GeForce RTX 3090' (confirmed with strings) and failed with 'No compatible device was found'. The rebuilt local engine embeds '0%8%9%0%NVIDIA GeForce RTX 4070 SUPER'. unet_trt_meta.json has no GPU or TRT fields, so select_unet_trt_profile.py:34-48 accepts any artifact with validation.passed=true.
+3) Default boot is not portable. vast_onstart.sh:35-38 defaults to MUSETALK_TRT_ARTIFACT_RESTORE=required with the rtx3090 bundle key, and trt_artifact_bundle.py extracts into the repo with no GPU guard. The sm89 engine now lives at the path that bundle restores to (models/tensorrt_unet_static_bs8_20260529/unet_trt.ts), and models/tensorrt_unet_sm89_bs8_local/unet_trt.ts is a symlink to it. A default restore here would therefore overwrite the good engine with the sm86 one (inferred from code). The selector, run_trt_stagewise_server.sh:138 and the generated profiles all emit the old recipe (VAE_BACKEND=trt_stagewise int8, FALLBACK=0). The live :8000 process env confirms MUSETALK_VAE_BACKEND=trt_stagewise.
+4) TAESD is the portable win and needs no TRT. Measured on the 4070S: compiled TAESD 6.3-6.9 ms per bs8 vs INT8 SD-VAE 82.9 ms and PyTorch SD-VAE 138 ms. It is compiled at runtime (inductor), so there is no per-arch artifact to ship. Weights are 4.7 MB fp16 in models/taesd. They are NOT in git (models/ is gitignored, 0 tracked files) and no install script downloads them. The upstream file is madebyollin/taesd rev 614f76814bbe30edbe2e627ace1c2234c81a2c0e (fp32, 9.79 MB); the vendored copy is an fp16 re-save (sha 8b947cff...).
+5) Only the UNet TRT engine needs a per-arch rebuild. Measured on the 4070S: 7m06s wall (TorchScript IR fails in about 6 s, then dynamo compile 379.8 s including a 5m50s engine build), 2.21 GB file, validation mae_max 0.0020. Loading the .ts raises host RSS peak from about 1.0 to 9.5 GB. A bs16 build took 11.0 GB of RAM and needed +1.9 GB of VRAM. The in-launcher auto-build (MUSETALK_TRT_UNET_BUILD=1) needs a capture dir that no fresh machine has (run_trt_stagewise_server.sh:148).
+6) The UNet TRT is an optimisation, not a requirement. Measured on the 4070S: TRT bs8 UNet 24.2 ms vs PyTorch fp16 eager 37.11 ms (cudnn.benchmark is on in avatar_manager_parallel.py:157-160). The measured GPU path TRT UNet + compiled TAESD is 30.9 ms per bs8 = 260 fps (200 s sustained). PROJECTED: eager UNet + TAESD is about 44 ms = about 180 fps. The offline TAESD + 100% chin harness measured 185-193 fps; live WebRTC was observed at 136-145 fps.
+7) Stack: torch 2.5.1+cu121 has SASS only for sm50/60/70/75/80/86/90 and no PTX, TRT 10.3.0, torch_tensorrt 2.5.0, triton 3.1.0, py3.10. Proven on V100 sm70, RTX 3090 sm86 and RTX 4070S sm89. Blackwell (sm100/sm120) cannot run this stack and would need a cu128 stack (PROJECTED).
+8) Fallback-ladder bugs. TAESD compile errors surface lazily in warmup, outside the try around torch.compile, so the failure drops to PyTorch SD-VAE (138 ms) rather than eager TAESD (12.4 ms), or crashes the server when FALLBACK=0. MUSETALK_TRT_FALLBACK governs both the UNet and TAESD fallbacks.
+9) Inductor max-autotune only autotunes on GPUs with at least 68 SMs (torch/_inductor/utils.py:1044-1053). The 4070S has 56, so the measured TAESD numbers are default compile + cudagraphs. On a 3090 or 4090, compile time and TAESD speed are unmeasured.
+recommended_env:
+    name:
+      MUSETALK_VAE_BACKEND
+    value:
+      taesd
+    scope:
+      all-gpus
+    evidence:
+      trt_runtime.py (HEAD) load_vae_trt_decoder dispatches to TAESD first; measured on 4070S TAESD 6.3-6.9 ms per bs8 vs INT8 82.9 ms (musetalk_4070s_pipeline_component_analysis_2026-09-22.md, foundation_results.json); no per-arch artifact. Must replace run_trt_stagewise_server.sh:138 default trt_stagewise and select_unet_trt_profile.py:73-89 _base_profile.
+    name:
+      MUSETALK_TAESD_BACKEND
+    value:
+      compiled (leave unset)
+    scope:
+      all-gpus
+    evidence:
+      vae_fast_decoder.py working copy: trt option is uncommitted, being built by another session, not gated yet; no models/taesd/trt exists. The TRT option is fingerprinted by GPU, cc and TRT version, about 15 s build, 3 MB [M per EVIDENCE_DIGEST], so it is a safe later upgrade with MUSETALK_TAESD_TRT_STRICT=0.
+    name:
+      MUSETALK_TAESD_COMPILE
+    value:
+      1 (auto-degrade to 0 if the warmup compile fails; needs a code change)
+    scope:
+      all-gpus
+    evidence:
+      vae_fast_decoder.py HEAD:137-168: torch.compile is lazy, so failures surface at fn(probe) in warmup and bypass the eager-TAESD path. Eager TAESD is 12.4 ms per bs8 on 4070S [M].
+    name:
+      MUSETALK_TAESD_COMPILE_MODE
+    value:
+      max-autotune (as measured) or reduce-overhead to reproduce the 4070S behaviour on bigger GPUs
+    scope:
+      per-gpu-tier
+    evidence:
+      torch/_inductor/utils.py:1044-1053 is_big_gpu requires 68 SMs; the 4070S has 56, so the measured max-autotune was effectively default + cudagraphs (EVIDENCE_DIGEST.md:49). On GPUs with 68+ SMs (3080 and up, 3090, 4090, A100, V100 has 80) real autotune runs, and compile time is unmeasured.
+    name:
+      MUSETALK_TAESD_WARMUP_BATCHES
+    value:
+      same list as HLS_SCHEDULER_FIXED_BATCH_SIZES (8 today)
+    scope:
+      all-gpus
+    evidence:
+      vae_fast_decoder.py compiles per batch (dynamic=False) and warmup defaults to 8; the scheduler pads to fixed sizes (hls_gpu_scheduler.py:1318-1325). Any other bucket, for example 16 on 24 GB GPU tiers, triggers a cold compile on the first live request. No launcher sets this except experiments/.../run_local_api.sh.
+    name:
+      MUSETALK_TAESD_LOCAL_DIR
+    value:
+      models/taesd (installer must fetch madebyollin/taesd@614f76814bbe30edbe2e627ace1c2234c81a2c0e config.json + diffusion_pytorch_model.safetensors)
+    scope:
+      all-gpus
+    evidence:
+      vae_fast_decoder.py HEAD:95-101 falls back to an HF download if models/taesd is missing. git ls-files models shows 0 files; download_weights.sh has no TAESD step; setup_complete (vast_onstart.sh:260-285) does not check it.
+    name:
+      MUSETALK_UNET_BACKEND / MUSETALK_TRT_UNET_ENABLED
+    value:
+      trt / 1 only when a validated engine whose fingerprint matches this GPU exists; otherwise unset / 0 (PyTorch fp16 UNet)
+    scope:
+      per-gpu-tier
+    evidence:
+      TRT bs8 24.2 ms vs eager 37.11 ms on 4070S [M: foundation_results.json, 300fps plan line 212]. The engine is arch-bound [M: REPORT.md].
+    name:
+      MUSETALK_TRT_UNET_PATHS
+    value:
+      8:models/tensorrt_unet/<gpu-cc>_<trt-version>/bs8/unet_trt.ts (fingerprint-keyed dir, not the sm89 path)
+    scope:
+      all-gpus
+    evidence:
+      The current value 8:models/tensorrt_unet_sm89_bs8_local/unet_trt.ts is in .runtime/musetalk_trt_local_sm89.env, and the selector default points at the same inode the 3090 bundle overwrites.
+    name:
+      MUSETALK_TRT_FALLBACK
+    value:
+      1 until preflight has loaded the engine on this GPU; 0 only after a successful preflight load
+    scope:
+      all-gpus
+    evidence:
+      trt_runtime.py HEAD:1706-1714 with fallback=1 returns the PyTorch UNet on a load failure. The flag also controls TAESD to SD-VAE fallback (vae_fast_decoder.py HEAD:227), which costs about 20x decode time, so health or logs must expose the active backend names.
+    name:
+      MUSETALK_TRT_ARTIFACT_RESTORE
+    value:
+      off by default; restore only a bundle whose recorded compute_capability and TRT version match the GPU
+    scope:
+      all-gpus
+    evidence:
+      vast_onstart.sh:35-38 defaults to required plus the rtx3090 key; trt_artifact_bundle.py has no GPU check; the 3090 engine fails on sm89 [M REPORT.md].
+    name:
+      MUSETALK_SELECT_BEST_TRT_PROFILE
+    value:
+      0 (or rewrite the selector)
+    scope:
+      all-gpus
+    evidence:
+      select_unet_trt_profile.py:73-89 always emits VAE_BACKEND=trt_stagewise int8 and FALLBACK=0, and _artifact_valid (34-48) never checks the device.
+    name:
+      MUSETALK_TRT_STAGEWISE_PRECISION
+    value:
+      fp16 (or drop the int8 gating when VAE_BACKEND=taesd)
+    scope:
+      all-gpus
+    evidence:
+      vast_onstart.sh:99-100 treats unset as int8_mixed, so setup_complete and the import checks require modelopt and calibration/vae_decoder even for the TAESD recipe.
+    name:
+      HLS_SCHEDULER_FIXED_BATCH_SIZES / HLS_SCHEDULER_MAX_BATCH / HLS_SCHEDULER_STARTUP_SLICE_SIZE / MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES
+    value:
+      8 / 8 / 8 / 8 (16 allowed on 24 GB or more: MultiTrtUnetBackend splits into 2x8, but warm TAESD at 16 too)
+    scope:
+      all-gpus
+    evidence:
+      The only engine is static bs8 (unet_trt_meta.json batch_range [8,8]). concurrent_gpu_manager.py:115-146 emits bucket 4 for under 20 GB and for 30-45 GB; batch 4 cannot be served by a bs8 engine (trt_runtime.py HEAD MultiTrtUnetBackend._backend_for_batch), and validate_unet_trt_startup_requirements dies. Live server values: 8/8/8 (process env).
+    name:
+      MUSETALK_TRT_UNET_CUDAGRAPHS
+    value:
+      0 (default)
+    scope:
+      avoid
+    evidence:
+      The manual/runtime modes are uncommitted in trt_runtime.py (working copy) and their gate was still blocked by the live server (docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/stepA_*.log).
+    name:
+      MUSETALK_UNET_BACKEND=trt_stagewise
+    value:
+      do not set by default
+    scope:
+      avoid
+    evidence:
+      Untracked scripts/unet_stagewise_trt.py; no engines on disk; default cache dir is hardcoded models/tensorrt_unet_stagewise_sm89. Its design (fingerprint, probe check, eager comparison) is the right portable pattern once it is measured.
+    name:
+      MUSETALK_FREE_EAGER_UNET
+    value:
+      1 when a TRT UNet is active and no calibration capture is running
+    scope:
+      optional
+    evidence:
+      Uncommitted avatar_manager_parallel.py diff; saves about 1.7 GB VRAM [I: 849.9M params x 2 B, 300fps plan line 275]; unmeasured in the server.
+    name:
+      MUSETALK_UNET_CALIBRATION_CAPTURE / MUSETALK_VAE_CALIBRATION_CAPTURE
+    value:
+      0
+    scope:
+      all-gpus
+    evidence:
+      Profile env and run_trt_stagewise_server.sh defaults; capture is only for building validation corpora.
+    name:
+      STARTUP_TIMEOUT_SECONDS
+    value:
+      1800 or more if any engine build or cold max-autotune compile can happen before /health; better to build in a separate onstart phase
+    scope:
+      all-gpus
+    evidence:
+      vast_server_ctl.sh:19 defaults to 600 s. The UNet build takes 7m06s on 4070S [M unet-build.log] and happens inside the launcher before api_server (run_trt_stagewise_server.sh:460). V100 stagewise warmups took 244.65 s (bs8) and 540.45 s (bs24) [D].
+    name:
+      TORCHINDUCTOR_CACHE_DIR
+    value:
+      /workspace/.cache/torchinductor (persistent)
+    scope:
+      optional
+    evidence:
+      The inductor cache is at /tmp/torchinductor_root (835 MB here) and is lost on container restart, so TAESD recompiles on every boot. PROJECTED benefit; cold compile time unmeasured.
+    name:
+      HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE
+    value:
+      1 after install has verified all weights (optional)
+    scope:
+      optional
+    evidence:
+      experiments/chinese_bob_webrtc_20260927/run_local_api.sh (the TAESD launcher) sets both; this prevents surprise downloads, but a missing models/taesd then fails hard.
+    name:
+      WEBRTC_H264_ENCODER / WEBRTC_H264_STRICT
+    value:
+      h264_nvenc default / leave STRICT unset
+    scope:
+      all-gpus
+    evidence:
+      api_server.py:125,287-288 tries NVENC, then libx264. GPUs without NVENC (e.g. A100, H100) need the fallback, so do not set STRICT.
+    name:
+      PYTORCH_CUDA_ALLOC_CONF
+    value:
+      unset (keep run_trt_stagewise_server.sh:113 behaviour)
+    scope:
+      all-gpus
+    evidence:
+      run_trt_stagewise_server.sh:113 unsets it deliberately; no measurement supports changing it.
+    name:
+      MUSETALK_VAE_DECODE_TIMING_SYNC
+    value:
+      1 (default; no need to change)
+    scope:
+      optional
+    evidence:
+      foundation_results.json: 260.1 fps with syncs vs 258.1 without [M].
+procedures:
+    GPU fingerprint (read-only, no torch): nvidia-smi --query-gpu=name,compute_cap,memory.total,driver_version --format=csv,noheader. This box: NVIDIA GeForce RTX 4070 SUPER, 8.9, 12282 MiB, 595.84.
+    Engine arch check without importing torch: strings -n 8 <unet_trt.ts> | grep -m1 -oE '[0-9]+%[0-9]+%[0-9]+%[0-9]%NVIDIA[^%]*'. The fields are device%major%minor%type%name. The 3090 bundle gives 0%8%6%0%NVIDIA GeForce RTX 3090 and the local engine 0%8%9%0%NVIDIA GeForce RTX 4070 SUPER. It takes seconds on a 2.2 GB file; recording cc and TRT version in unet_trt_meta.json at build time is the proper fix.
+    Torch arch coverage check: /usr/local/cuda/bin/cuobjdump --list-elf <venv>/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so | grep -oE 'sm_[0-9]+' | sort -u. Result: sm_50 sm_60 sm_70 sm_75 sm_80 sm_86 sm_90; --list-ptx lists nothing.
+    Current install chain: setup_musetalk.sh execs scripts/setup_trt_stagewise_server_env.sh, which runs setup_trt_experiment_env.sh --install-server-deps [--install-modelopt] and then download_weights.sh (DOWNLOAD_MUSETALK_V1_WEIGHTS=0). Pins: python3.10, torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 from https://download.pytorch.org/whl/cu121, torch-tensorrt==2.5.0 (extra index https://pypi.nvidia.com, which pulls tensorrt-cu12 10.3.0), nvidia-modelopt==0.23.2, onnx<1.18, numpy==1.23.5, diffusers==0.30.2, transformers==4.39.2, huggingface_hub==0.30.2, aiortc==1.14.0, av==16.1.0. requirements.txt (kokoro==0.9.4 etc.) is only installed with --install-runtime-deps, which the server setup never passes.
+    UNet TRT bs8 build, exact command from run_trt_stagewise_server.sh:354-368: cd /workspace/MuseTalk && /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/tensorrt_export.py --components unet --batch-sizes 8 --output-dir <out_dir> --precision fp16 --save-format exported_program --workspace-gb 2 --min-block-size 1 --unet-capture-dir <capture_dir> --validate-unet-capture-dir <capture_dir> --validate-unet-limit 16 --validate-unet-padded-batch-size 8 --validate-unet-report-path <report.json> --require-valid-unet. The Sep-15 sm89 build used captures /workspace/benchmarks/same-avatar/unet-captures (16 x bs8, 7.8 MB). Timings from unet-build.log: models loaded 18:48:41; TorchScript IR failed at 18:48:53 (VerifyConverterSupportForBlock); dynamo compile 379.8 s (Build TRT engine 0:05:50); save 2210.5 MB (format fell back to torchscript) 18:55:35; validation passed 18:55:47 (mae_max 0.0020, max_abs 0.148). About 7m06s total.
+    UNet TRT validation against a capture corpus: /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/validate_unet_backend.py --backend trt --trt-path <engine> --capture-dir <dir> --padded-batch-size 8 --limit 16 --fail-mae 0.01 --fail-max-abs 0.5 --report-path <json>. The working copy adds --backend runtime (validates whatever load_unet_trt_backend picks from env) and --group-captures N. The gate is mae_max 0.01 and max_abs 0.5. On 2026-09-28 the sm89 engine passed on 352 main + 96 holdout multi-avatar captures (mae_max 0.0026, max_abs 0.40).
+    TAESD portable smoke test (no avatar needed; calibration/vae_decoder is tracked in git, 4.8 MB): /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/validate_vae_backend.py --backend taesd --calibration-dir calibration/vae_decoder --batch-size 8 --output-dir tmp/taesd_smoke.
+    TAESD TRT (uncommitted; optional; fingerprinted plans in models/taesd/trt): python scripts/vae_fast_decoder.py build [--batch 8] [--force]. Verify with python scripts/vae_fast_decoder.py verify. List flags with python scripts/vae_fast_decoder.py flags.
+    Stagewise UNet (untracked; per-GPU; self-validates against eager on a probe): scripts/box_guard.sh run --min-avail-gb 8 -- /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/build_unet_stagewise.py --batch 16 --opt-level 5 --max-minutes 20. Engines go to $MUSETALK_UNET_STAGEWISE_CACHE_DIR/bs<N>/*.plan plus manifest.json.
+    Old-recipe VAE INT8 plan rebuild (not needed for TAESD): on the 4070S the 5 ONNX/QDQ stages built in 8.0+26.0+7.7+5.8+10.6 s = 58 s (vae-build.json). On a V100 the fp16 stagewise warmup took 244.65 s for bs8 and 540.45 s for bs24 (docs/v100_webrtc_load_test_2026-05-22.md, docs/gpu_vram_budgeting.md).
+    Legacy artifact bundle (3090 only): scripts/trt_artifact_bundle.py --strict restore --uri s3://lingua-musetalk-s3-storage/trt-artifacts/rtx3090/split8-int8/sha256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18/musetalk-trt-int8-split8.tar.gz --expected-sha256 851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18 (1.81 GB; valid only on sm86 with TRT 10.3).
+    Launcher validation without starting a server: bash scripts/run_trt_stagewise_server.sh --profile throughput_record --validate-only. It still imports torch via concurrent_gpu_manager in apply_gpu_aware_defaults, so it touches CUDA.
+    Preflight memory source to reuse: scripts/box_guard.sh (untracked; another session's) computes MemAvailable as min(/proc/meminfo, cgroup memory.max - memory.current + reclaimable). This box has cgroup memory.max 31156338688 B (29.0 GiB) and current 22.4 GiB.
+    Proposed ladder, derived from the code and measurements. Tier A: sm80/86/89/90, VRAM >= 10-12 GB, MemAvailable >= 12 GB, TRT imports OK, and either an engine with matching fingerprint or a successful local build: TAESD compiled + TRT UNet bs8 (measured 260 fps GPU path on 4070S). Tier B: sm70/75, or build failed or skipped, or low RAM: TAESD compiled + PyTorch fp16 UNet (projected about 180 fps on a 4070S-class GPU; 37.11 + 6.3 ms). Tier C: inductor/triton failure: TAESD eager (12.4 ms/bs8) + PyTorch UNet. Tier D: sm100/sm120 on the current cu121 stack is unsupported and needs a torch>=2.7 cu128 / TRT>=10.8 venv variant. Never fall back silently to SD-VAE PyTorch (138 ms/bs8).
+machine_specific:
+    .runtime/musetalk_trt_local_sm89.env (generated 2026-09-15): MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_sm89_bs8_local/unet_trt.ts plus the old-recipe VAE_BACKEND=trt_stagewise int8. Only valid on sm89 with TRT 10.3.
+    /workspace/run-musetalk-local-trt.sh hardcodes MUSETALK_TRT_PROFILE_ENV_FILE=/workspace/MuseTalk/.runtime/musetalk_trt_local_sm89.env, MUSETALK_TRT_ARTIFACT_RESTORE=0 and MUSETALK_SELECT_BEST_TRT_PROFILE=0, and sources /workspace/.musetalk-runtime.env. Its comment says 'Validated on NVIDIA GeForce RTX 4070 SUPER, 2026-09-15'.
+    models/tensorrt_unet_sm89_bs8_local/unet_trt.ts is a symlink (created 2026-09-27) to ../tensorrt_unet_static_bs8_20260529/unet_trt.ts. That target is the sm89 engine (2,210,490,890 B, embeds '0%8%9%0%NVIDIA GeForce RTX 4070 SUPER') and is also the path the 3090 bundle restores to.
+    models/tensorrt/stagewise_int8_onnx_qdq_cache/*.plan were rebuilt for sm89 on 2026-09-15 (identical to models/tensorrt/stagewise_int8_sm89_local). The 3090 originals are in models/trt_downloaded_backup_20260915 (2.2 GB UNet + 53 MB plans, cleanup candidate).
+    The .plan cache names carry no fingerprint ({stage}_bs{N}_{algo}_onnx_qdq.plan; trt_runtime.py HEAD:1109-1123 reuses any non-empty file), so a plan from another GPU fails in deserialize_cuda_engine (HEAD:505-507) instead of being rebuilt.
+    scripts/vast_onstart.sh:35-38 defaults: MUSETALK_TRT_ARTIFACT_RESTORE=required, STRICT=1, KEY=trt-artifacts/rtx3090/split8-int8/sha256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18/..., SHA256=851fc69... These are RTX 3090 (sm86) artifacts.
+    docs/trt_artifacts/README.md and the bundle DEFAULT_REQUIRED_FILES/DIRS (trt_artifact_bundle.py:26-34) describe only the historical RTX 3090 70+ fps profile.
+    unet_trt_meta.json validation.capture_dir and report_path are absolute off-repo paths (/workspace/benchmarks/same-avatar/...); the 3090 meta points to calibration/unet_static_bs8_20260710, which does not exist on this box.
+    run_trt_stagewise_server.sh:148 MUSETALK_TRT_UNET_CAPTURE_DIR default ./calibration/unet_static_8_16_20260529_1545 does not exist here or on any fresh clone (calibration/ is gitignored except the force-added vae_decoder).
+    scripts/unet_stagewise_trt.py:53-58 default cache dir is models/tensorrt_unet_stagewise_sm89. build_unet_stagewise.py seeds its timing cache from docs/fps_comparisons/4070s_300fps_20260927/unet_probe/tt16_timing_cache.bin, an sm89 timing cache loaded with ignore_mismatch=True.
+    The measured TAESD compiled speed reflects inductor's behaviour on a 56-SM GPU (is_big_gpu False below 68 SMs, torch/_inductor/utils.py:1044-1053), so it will differ on 3080+/3090/4090/A100/V100-class GPUs.
+    Chin-alignment tracker used for the 185-193 fps result: /workspace/experiments/chin_fps_validation_20260927/run.py:31 hardcodes /workspace/SoulX-FlashHead/.venv/bin/python (mediapipe 0.10.9, protobuf 3.20.3). The MuseTalk venv has protobuf 7.36.1 and no mediapipe. The tracker is not in the server.
+    experiments/chinese_bob_webrtc_20260927/run_local_api.sh (the working TAESD launcher on port 8200) sources the sm89 env and sets HF_HUB_OFFLINE=1, TRANSFORMERS_OFFLINE=1 and KOKORO_TTS_DEVICE=cpu.
+    concurrent_gpu_manager.py:115-146 VRAM tiers ([4,8] under 20 GB, [8,16] for 20-29 GB, [4,8,16,32] for 30-44 GB, [4,8,16,32,48] for 45 GB+) and the per-batch GB estimates (4:6 ... 64:34) are calibrated for the SD-VAE era and the 3090/V100. They do not match TAESD's footprint (GPU path 2.09-2.68 GB at bs8) or a static bs8 engine.
+    Inductor cache /tmp/torchinductor_root (835 MB) is not persistent; HF cache /root/.cache/huggingface is 3.6 GB; the venv is 9.5 GB. The disk is at 89% (25 GB free), shared with other projects.
+    Measured host facts for this box: Ryzen 9 7950X (32 threads), 30 GB RAM with cgroup max 29.0 GiB, /dev/shm 15G (8.9G used), system CUDA toolkit 12.1, gcc and python3.10-dev present from the base image (not installed by the setup script).
+    .runtime/native_vp8 (aiortc 1.11.0 VP8 wheel, x86_64 only) was installed manually on 2026-09-25 and is not created by any setup script.
+problems:
+    select_unet_trt_profile.py:34-48 _artifact_valid checks only validation.passed. The 3090 meta has passed=true and no arch field, so the selector marks it valid on any GPU. PROVEN wrong on the 4070S (REPORT.md).
+    tensorrt_export.py:787-799 export_unet writes meta without GPU name, compute capability, TRT, torch_tensorrt or torch versions, so nothing downstream can detect a stale engine.
+    trt_runtime.py HEAD:1466-1512 TrtUnetBackend.load only rejects validation.passed is False. There is no device or TRT-version check before torch_tensorrt.load, which then fails with 'No compatible device was found'. With MUSETALK_TRT_FALLBACK=0, which the generated profile sets, the server fails to start.
+    trt_artifact_bundle.py restore (263-291) runs extractall into the repo root with no GPU guard. By default (vast_onstart.sh:35-38) it would overwrite models/tensorrt_unet_static_bs8_20260529/unet_trt.ts, which the sm89 symlink points to, turning the working local engine into an sm86 one (inferred from code).
+    The start scripts still boot the old recipe. run_trt_stagewise_server.sh:138-139 defaults MUSETALK_VAE_BACKEND=trt_stagewise and MUSETALK_TRT_FALLBACK=0; select_unet_trt_profile.py:73-89 always writes trt_stagewise int8 plus FALLBACK=0. The live :8000 process env confirms MUSETALK_VAE_BACKEND=trt_stagewise with 9502 MiB VRAM.
+    TAESD fallback ladder bug. torch.compile is lazy (vae_fast_decoder.py HEAD:137-150), so compile errors surface in warmup (HEAD:156-168) outside that try. load_taesd_decoder (HEAD:210-241) then returns None, which means PyTorch SD-VAE at 138 ms/bs8 rather than eager TAESD at 12.4 ms, or raises when FALLBACK=0.
+    MUSETALK_TRT_FALLBACK controls both the UNet TRT fallback (trt_runtime._allow_fallback) and the TAESD to SD-VAE fallback (vae_fast_decoder _env_bool('MUSETALK_TRT_FALLBACK', True)). One flag cannot express 'UNet may fall back, decoder must stay TAESD'.
+    TAESD weights are not shipped or installed. models/ is gitignored (git ls-files models finds 0 files); download_weights.sh and setup_trt_stagewise_server_env.sh validate_required_model_files_step have no TAESD entry. The docs claim a vendored copy so that 'a cold start needs no network' (pipeline_component_analysis doc line 379-380), which holds only on this box. The vendored file is an fp16 re-save (sha 8b947cff...) of upstream rev 614f768 (fp32, sha db169d69...).
+    The in-launcher UNet auto-build is unusable on a fresh machine. build_unet_trt_split8_if_needed (run_trt_stagewise_server.sh:322-372) requires unet_io_*.pt captures in a dir that is never shipped (default at line 148 does not exist). It also runs before api_server inside the 600 s health timeout (vast_server_ctl.sh:19) and needs about 9.5-11 GB of host RAM. The build took 7m06s on the 4070S.
+    UNet .ts load raises process peak RSS from about 1.0 to 9.5 GB, with MemAvailable dropping about 8.4 GB [M foundation_results.json host_memory]. MemAvailable on this box is currently about 9.7 GB, so a second TRT-UNet process now would risk OOM. No startup script checks RAM.
+    vast_onstart.sh:99-100 int8_startup_requested defaults to int8_mixed, so setup_complete (260-285) and server_runtime_imports_complete (202-243) require modelopt, onnx, tensorrt and torch_tensorrt plus calibration files even for a TAESD-only server. Any setup_complete failure with an existing venv triggers a full --clean venv rebuild (vast_onstart.sh:341-355).
+    GPU-tier buckets from concurrent_gpu_manager.recommended_scheduler_batch_config include 4 (under 20 GB and 30-45 GB). A static bs8 UNet engine cannot serve bs4 (MultiTrtUnetBackend only splits divisible larger batches), and validate_unet_trt_startup_requirements dies unless a profile env pins 8. TAESD warmup defaults to 8 only, so other buckets compile on the first live request.
+    The torch 2.5.1+cu121 wheel contains SASS only for sm_50/60/70/75/80/86/90 and no PTX (cuobjdump). RTX 50xx and B-series (sm_100/sm_120) cannot run this venv at all, and TRT 10.3 predates Blackwell. There is no alternate install matrix in setup_trt_experiment_env.sh, whose defaults are hard pins (lines 40-47).
+    install_system_packages_step (setup_trt_stagewise_server_env.sh:82-99) installs build-essential but not python3.10-dev. Triton/inductor (TAESD compile) needs Python.h to build its launcher; it works here only because the base image ships it (PROJECTED failure on minimal images).
+    The server setup never installs requirements.txt (setup_trt_experiment_env.sh:1210 skips it without --install-runtime-deps), so kokoro==0.9.4 is missing on fresh machines. kokoro_tts.py degrades via importlib, so local TTS is silently unavailable.
+    The 100% chin alignment (the recipe behind the 160-193 fps offline numbers) exists only in the experiments harness. It uses a MediaPipe FaceMesh worker from another project's venv (/workspace/SoulX-FlashHead/.venv). mediapipe cannot go into the MuseTalk venv as-is (protobuf 7.36.1 vs 3.20.x), so any 'out of the box' install needs a separate tracker venv, or the feature stays off.
+    Doc/code disagreements. (a) docs/trt_artifacts/README.md and docs/vast_ai_boot.md still present restore=required with the 3090 bundle as the production default, and vast_onstart.sh matches them, but that is wrong for the TAESD recipe and for non-sm86 GPUs. (b) The pipeline doc line 30 says the INT8 VAE and TRT UNet 'could not be co-resident on this 12 GB card', yet the live server runs both at 9.5 GB. (c) The 'vendored' TAESD claim, covered above.
+    The stagewise UNet (untracked) defaults its cache dir to an sm89-named folder, and its default engine batch is 16 (MUSETALK_UNET_STAGEWISE_BATCH), which does not match the scheduler's 8 unless both are set together.
+    Generated profile files are marked 'Do not edit by hand' but are machine-specific and gitignored (.runtime/). A fresh machine gets none of them unless the selector runs, and the selector only knows the old recipe.
+open_questions:
+    Cost of a hardware-compatible (Ampere-plus) UNet engine. torch_tensorrt 2.5 dynamo supports hardware_compatible=True (torch_tensorrt/dynamo/_settings.py:77,110; _TRTInterpreter.py:229-232; the runtime honours HW_COMPATIBLE_IDX), and Ditto's 'Ampere_Plus' TRT engines ran on this 4070S. One sm80-90 artifact per TRT version could replace per-GPU builds, but tensorrt_export.py does not pass the flag and the speed cost for the UNet is unmeasured.
+    TAESD torch.compile on GPUs with 68+ SMs (3090, 4090, A100, V100, L40): how long does real max-autotune take at cold start, and is mode=reduce-overhead equal or faster there? Only the 56-SM 4070S is measured.
+    Does TAESD triton/inductor compile work on sm70 (V100) and sm75 (T4) with triton 3.1.0? The V100 runs used SD-VAE, never TAESD.
+    Should the rework build the UNet engine on first boot (7m06s on 4070S; unknown elsewhere; about 9.5-11 GB RAM), or prebuild and publish per-fingerprint engines to S3 (key: gpu name + cc + TRT 10.3 + recipe + batch)? Either way the build needs its own phase outside the 600 s health timeout.
+    Validation corpus for per-GPU builds: ship the 16 legacy bs8 captures (7.8 MB, /workspace/benchmarks/same-avatar/unet-captures) as a force-added calibration/ dir, ship a subset of calibration/unet_multi_avatar_20260928 (218 MB, too large for git), or switch to an eager-PyTorch-on-the-fly comparison as build_unet_stagewise.py does?
+    Server-level VRAM of the TAESD + TRT UNet recipe with N sessions on 8-12 GB GPUs. The plan cites 5.0-6.2 GB [M trt.json 4994 MiB; D RESOURCE], but no end-to-end server measurement exists for this recipe outside the 4070S, and MUSETALK_FREE_EAGER_UNET savings are only inferred (about 1.7 GB).
+    Is eager PyTorch UNet + TAESD good enough as the universal default (projected about 180 fps GPU path on a 4070S-class GPU), with TRT UNet as an opt-in upgrade? It needs one measured run.
+    Keep the INT8 SD-VAE recipe as a selectable profile? If not, drop modelopt from the default install and the int8 gating in vast_onstart.sh (saves install time and removes a failure point).
+    Blackwell support: add a second pinned matrix (for example torch 2.7.x+cu128, torch_tensorrt 2.7.x, TensorRT 10.9+) chosen by compute_cap >= 10.0? Not tested for MuseTalk, although SoulX on this box already uses torch 2.7.1+cu128.
+    Where does chin alignment (FaceMesh) run in the reworked server, and how is its venv installed portably? CPU need is projected at 11-14 logical cores at 300 fps (300fps plan), which small cloud VMs cannot supply.
+    Is the vendored fp16 TAESD bit-equivalent to loading upstream fp32 rev 614f768 with torch_dtype=float16? This is inferred but unverified, and it affects the TAESD TRT fingerprint (ONNX sha) and golden hashes.
+    What driver range do the target fleets have? Measured OK: 570.211.01 (V100) and 595.84 (4070S). The cu121 and TRT 10.3 vendor minimum (525.x) is unverified here.
+files_read:
+    /workspace/MuseTalk/scripts/trt_runtime.py (git show HEAD + git diff working copy)
+    /workspace/MuseTalk/scripts/vae_fast_decoder.py (git show HEAD + working copy)
+    /workspace/MuseTalk/musetalk/models/vae.py (HEAD + diff)
+    /workspace/MuseTalk/scripts/tensorrt_export.py
+    /workspace/MuseTalk/scripts/select_unet_trt_profile.py
+    /workspace/MuseTalk/scripts/trt_artifact_bundle.py
+    /workspace/MuseTalk/.musetalk_trt_artifact_manifest.json
+    /workspace/MuseTalk/docs/trt_artifacts/README.md
+    /workspace/MuseTalk/scripts/validate_unet_backend.py (+ diff)
+    /workspace/MuseTalk/scripts/validate_vae_backend.py
+    /workspace/MuseTalk/scripts/runtime_cpu_tuning.py
+    /workspace/MuseTalk/scripts/setup_trt_experiment_env.sh
+    /workspace/MuseTalk/scripts/setup_trt_stagewise_server_env.sh
+    /workspace/MuseTalk/setup_musetalk.sh
+    /workspace/MuseTalk/download_weights.sh
+    /workspace/MuseTalk/requirements.txt
+    /workspace/MuseTalk/scripts/vast_onstart.sh
+    /workspace/MuseTalk/scripts/vast_server_ctl.sh (grep)
+    /workspace/MuseTalk/scripts/run_webrtc_relay_api_server.sh (grep)
+    /workspace/MuseTalk/scripts/run_trt_stagewise_server.sh
+    /workspace/run-musetalk-local-trt.sh
+    /workspace/MuseTalk/.runtime/musetalk_trt_local_sm89.env (generated config; values shown)
+    /workspace/MuseTalk/.runtime/musetalk_trt_best.env (key names only)
+    /workspace/MuseTalk/models/tensorrt_unet_sm89_bs8_local/unet_trt_meta.json
+    /workspace/MuseTalk/models/trt_downloaded_backup_20260915/tensorrt_unet_static_bs8_20260529/unet_trt_meta.json
+    /workspace/MuseTalk/models/taesd/config.json
+    /workspace/MuseTalk/scripts/concurrent_gpu_manager.py
+    /workspace/MuseTalk/scripts/avatar_manager_parallel.py (diff + lines 140-215, 326-354)
+    /workspace/MuseTalk/scripts/unet_stagewise_trt.py (untracked; header + grep)
+    /workspace/MuseTalk/scripts/build_unet_stagewise.py (untracked; header)
+    /workspace/MuseTalk/scripts/box_guard.sh (untracked; header)
+    /workspace/MuseTalk/scripts/hls_gpu_scheduler.py (grep)
+    /workspace/MuseTalk/api_server.py (grep: encoder, kokoro)
+    /workspace/MuseTalk/scripts/webrtc_native_vp8.py (grep)
+    /workspace/MuseTalk/docs/musetalk_4070s_pipeline_component_analysis_2026-09-22.md
+    /workspace/MuseTalk/docs/musetalk_4070s_300fps_plan_2026-09-27.md (sections 1-3, grep)
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_20260927/EVIDENCE_DIGEST.md
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/foundation_results.json
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/foundation/bench_gpu_path_baseline_200s.log
+    /workspace/MuseTalk/docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/stepA_cudagraph_gate.log
+    /workspace/MuseTalk/docs/gpu_vram_budgeting.md
+    /workspace/MuseTalk/docs/vast_ai_boot.md
+    /workspace/MuseTalk/docs/v100_webrtc_load_test_2026-05-22.md
+    /workspace/benchmarks/same-avatar/REPORT.md
+    /workspace/benchmarks/same-avatar/unet-build.log
+    /workspace/benchmarks/same-avatar/vae-build.json
+    /workspace/benchmarks/same-avatar/installed-engines.json
+    /workspace/benchmarks/same-avatar/install_validated_engines.py
+    /workspace/benchmarks/same-avatar/resource-usage/README.md
+    /workspace/experiments/chin_fps_validation_20260927/README.md
+    /workspace/experiments/chin_fps_validation_20260927/tracker_worker.py
+    /workspace/experiments/chinese_bob_webrtc_20260927/run_local_api.sh
+    /workspace/.venvs/musetalk_trt_stagewise (pip list; torch/_inductor/utils.py:1044-1053; torch_tensorrt/dynamo/_settings.py; cuobjdump of torch/lib/libtorch_cuda.so)
+    /proc/3555159/environ (non-secret MUSETALK_/HLS_/GPU_ keys only)

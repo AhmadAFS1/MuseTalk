@@ -153,6 +153,8 @@ class AvatarCache:
             self.stats['loads'] += 1
             
             print(f"📦 Cached avatar: {avatar_id} ({memory_usage_mb:.1f}MB, total: {len(self.cache)})")
+        from scripts import gc_tuning  # opt-in (MUSETALK_GC_FREEZE=1): the avatar's arrays and plans leave GC scans
+        gc_tuning.freeze(f"avatar {avatar_id}", collect=False)
 
     def peek(self, avatar_id):
         """
@@ -201,6 +203,16 @@ class AvatarCache:
         )
         for attr in heavy_attrs:
             if hasattr(avatar_instance, attr):
+                # Added code (avatar memory layout): a PNG-held cycle also owns
+                # a decoded LRU and queued readahead decodes; drop both now
+                # rather than when the last pending decode finishes. Plain
+                # lists (the default layout) have no such method.
+                release = getattr(getattr(avatar_instance, attr, None), "release_decoded_cache", None)
+                if callable(release):
+                    try:
+                        release()
+                    except Exception:
+                        pass
                 try:
                     delattr(avatar_instance, attr)
                 except Exception:

@@ -14,6 +14,18 @@ DOWNLOAD_WAIT_FOR_NETWORK_INTERVAL_SECONDS="${DOWNLOAD_WAIT_FOR_NETWORK_INTERVAL
 DOWNLOAD_MUSETALK_V1_WEIGHTS="${DOWNLOAD_MUSETALK_V1_WEIGHTS:-1}"
 DOWNLOAD_MUSETALK_V15_WEIGHTS="${DOWNLOAD_MUSETALK_V15_WEIGHTS:-1}"
 DOWNLOAD_AVATAR_PREP_WEIGHTS="${DOWNLOAD_AVATAR_PREP_WEIGHTS:-1}"
+# TAESD (fast-recipe VAE decoder, scripts/vae_fast_decoder.py loads <repo>/models/taesd first).
+# Pinned HF revision; bit-identical to the vendored fp16 copy after the loader's fp32->fp16 cast.
+DOWNLOAD_TAESD_WEIGHTS="${DOWNLOAD_TAESD_WEIGHTS:-1}"
+TAESD_REPO_ID="${TAESD_REPO_ID:-madebyollin/taesd}"
+TAESD_REVISION="${TAESD_REVISION:-614f76814bbe30edbe2e627ace1c2234c81a2c0e}"
+# Kokoro TTS pre-cache (HF cache, not models/): auto = only when the `kokoro` package is importable
+# by the python on PATH (i.e. the installer's kokoro group). 1 = always, 0 = never.
+DOWNLOAD_KOKORO_WEIGHTS="${DOWNLOAD_KOKORO_WEIGHTS:-auto}"
+KOKORO_REPO_ID="${KOKORO_REPO_ID:-hexgrad/Kokoro-82M}"
+KOKORO_REVISION="${KOKORO_REVISION:-f3ff3571791e39611d31c381e3a41a3af07b4987}"
+KOKORO_VOICES="${KOKORO_VOICES:-af_heart af_bella am_michael}"
+EN_CORE_WEB_SM_URL="${EN_CORE_WEB_SM_URL:-https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl#sha256=1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85}"
 DOWNLOAD_GROUPS_IN_PARALLEL="${DOWNLOAD_GROUPS_IN_PARALLEL:-1}"
 EXPECTED_FACE_PARSE_ITER_BYTES="${EXPECTED_FACE_PARSE_ITER_BYTES:-53289463}"
 EXPECTED_RESNET18_BYTES="${EXPECTED_RESNET18_BYTES:-46827520}"
@@ -196,6 +208,13 @@ validate_required_files() {
     )
   fi
 
+  if env_flag_is_true "$DOWNLOAD_TAESD_WEIGHTS"; then
+    required+=(
+      "$CHECKPOINTS_DIR/taesd/config.json"
+      "$CHECKPOINTS_DIR/taesd/diffusion_pytorch_model.safetensors"
+    )
+  fi
+
   if env_flag_is_true "$DOWNLOAD_AVATAR_PREP_WEIGHTS"; then
     required+=(
       "$CHECKPOINTS_DIR/dwpose/dw-ll_ucoco_384.pth"
@@ -257,6 +276,65 @@ download_whisper_weights_step() {
     config.json \
     pytorch_model.bin \
     preprocessor_config.json
+}
+
+download_taesd_weights_step() {
+  local dir="$CHECKPOINTS_DIR/taesd"
+  if [[ -s "$dir/config.json" && -s "$dir/diffusion_pytorch_model.safetensors" ]]; then
+    log "TAESD already present, skipping: $dir (vendored or previously downloaded)"
+    return 0
+  fi
+  mkdir -p "$dir"
+  hf_download "$TAESD_REPO_ID" "$dir" \
+    config.json \
+    diffusion_pytorch_model.safetensors \
+    --revision "$TAESD_REVISION"
+}
+
+kokoro_weights_enabled() {
+  case "${DOWNLOAD_KOKORO_WEIGHTS,,}" in
+    auto)
+      python -c 'import importlib.util, sys; sys.exit(0 if importlib.util.find_spec("kokoro") else 1)' >/dev/null 2>&1
+      ;;
+    *)
+      env_flag_is_true "$DOWNLOAD_KOKORO_WEIGHTS"
+      ;;
+  esac
+}
+
+download_kokoro_weights_step() {
+  local -a files=(config.json kokoro-v1_0.pth)
+  local voice
+  for voice in $KOKORO_VOICES; do
+    files+=("voices/${voice}.pt")
+  done
+  # Into the HF cache (kokoro.KPipeline calls hf_hub_download without a local dir).
+  retry huggingface-cli download \
+    --max-workers "$HF_MAX_WORKERS" \
+    --revision "$KOKORO_REVISION" \
+    "$KOKORO_REPO_ID" \
+    "${files[@]}" >/dev/null || return $?
+  # kokoro resolves revision "main": point refs/main at the pinned snapshot when no ref exists yet,
+  # so HF_HUB_OFFLINE=1 boots find it (an existing ref is never rewritten).
+  KOKORO_REPO_ID="$KOKORO_REPO_ID" KOKORO_REVISION="$KOKORO_REVISION" python - <<'PY' || return $?
+import os
+from pathlib import Path
+from huggingface_hub import constants
+
+repo_dir = Path(constants.HF_HUB_CACHE) / ("models--" + os.environ["KOKORO_REPO_ID"].replace("/", "--"))
+ref = repo_dir / "refs" / "main"
+if not ref.exists():
+    ref.parent.mkdir(parents=True, exist_ok=True)
+    ref.write_text(os.environ["KOKORO_REVISION"])
+    print(f"wrote {ref} -> {os.environ['KOKORO_REVISION']}")
+else:
+    print(f"kept existing {ref} -> {ref.read_text().strip()}")
+PY
+  # misaki[en] loads en_core_web_sm; without it spaCy downloads an unpinned model at runtime.
+  if ! python -c 'import importlib.util, sys; sys.exit(0 if importlib.util.find_spec("en_core_web_sm") else 1)' >/dev/null 2>&1; then
+    log "Installing the pinned spaCy model en_core_web_sm 3.8.0"
+    retry python -m pip install --disable-pip-version-check --no-deps "en_core_web_sm @ $EN_CORE_WEB_SM_URL" || return $?
+  fi
 }
 
 download_dwpose_weights_step() {
@@ -399,6 +477,19 @@ download_musetalk_weights_group() {
 download_base_runtime_weights_group() {
   download_sd_vae_weights_step
   download_whisper_weights_step
+  if env_flag_is_true "$DOWNLOAD_TAESD_WEIGHTS"; then
+    download_taesd_weights_step
+  else
+    log "Skipping TAESD weights (DOWNLOAD_TAESD_WEIGHTS=$DOWNLOAD_TAESD_WEIGHTS)"
+  fi
+}
+
+download_kokoro_group() {
+  if kokoro_weights_enabled; then
+    download_kokoro_weights_step
+  else
+    log "Skipping Kokoro TTS pre-cache (DOWNLOAD_KOKORO_WEIGHTS=$DOWNLOAD_KOKORO_WEIGHTS)"
+  fi
 }
 
 download_avatar_prep_weights_group() {
@@ -426,7 +517,8 @@ phase_download_weight_groups_parallel() {
     "Download MuseTalk model weights::download_musetalk_weights_group" \
     "Download base runtime model weights::download_base_runtime_weights_group" \
     "Download avatar-preparation model weights::download_avatar_prep_weights_group" \
-    "Download face parsing support weights::download_face_parse_support_weights_group"
+    "Download face parsing support weights::download_face_parse_support_weights_group" \
+    "Download Kokoro TTS cache (optional)::download_kokoro_group"
 }
 
 phase_download_musetalk_weights() {
@@ -446,6 +538,19 @@ phase_download_musetalk_weights() {
 phase_download_base_runtime_weights() {
   run_step "Download SD VAE weights" download_sd_vae_weights_step
   run_step "Download Whisper weights" download_whisper_weights_step
+  if env_flag_is_true "$DOWNLOAD_TAESD_WEIGHTS"; then
+    run_step "Download TAESD weights (pinned revision)" download_taesd_weights_step
+  else
+    log "Skipping TAESD weights (DOWNLOAD_TAESD_WEIGHTS=$DOWNLOAD_TAESD_WEIGHTS)"
+  fi
+}
+
+phase_download_kokoro_weights() {
+  if kokoro_weights_enabled; then
+    run_step "Download Kokoro TTS cache" download_kokoro_weights_step
+  else
+    log "Skipping Kokoro TTS pre-cache (DOWNLOAD_KOKORO_WEIGHTS=$DOWNLOAD_KOKORO_WEIGHTS)"
+  fi
 }
 
 phase_download_avatar_prep_weights() {
@@ -483,6 +588,8 @@ log "Download retries: $DOWNLOAD_RETRIES"
 log "MuseTalk V1 weights enabled: $DOWNLOAD_MUSETALK_V1_WEIGHTS"
 log "MuseTalk V1.5 weights enabled: $DOWNLOAD_MUSETALK_V15_WEIGHTS"
 log "Avatar-prep weights enabled: $DOWNLOAD_AVATAR_PREP_WEIGHTS"
+log "TAESD weights enabled: $DOWNLOAD_TAESD_WEIGHTS ($TAESD_REPO_ID@$TAESD_REVISION)"
+log "Kokoro TTS pre-cache: $DOWNLOAD_KOKORO_WEIGHTS ($KOKORO_REPO_ID@$KOKORO_REVISION; voices: $KOKORO_VOICES)"
 
 # Create necessary directories
 mkdir -p \
@@ -493,6 +600,7 @@ mkdir -p \
   "$CHECKPOINTS_DIR/face-parse-bisent" \
   "$CHECKPOINTS_DIR/sd-vae" \
   "$CHECKPOINTS_DIR/whisper" \
+  "$CHECKPOINTS_DIR/taesd" \
   "$CHECKPOINTS_DIR/auxiliary" \
   "$CHECKPOINTS_DIR/face_detection"
 
@@ -535,6 +643,11 @@ else
     phase_download_face_parse_support_weights
   run_phase \
     "Phase 6" \
+    "Download optional Kokoro TTS cache" \
+    "Pre-cache hexgrad/Kokoro-82M (pinned revision) and the default voices when the kokoro group is installed." \
+    phase_download_kokoro_weights
+  run_phase \
+    "Phase 7" \
     "Validate downloaded model set" \
     "Verify that every required model file for the requested runtime shape exists on disk." \
     phase_validate_downloaded_weights

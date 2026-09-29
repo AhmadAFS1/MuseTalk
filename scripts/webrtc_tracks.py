@@ -25,6 +25,74 @@ import numpy as np
 from aiortc import VideoStreamTrack, MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
+# 300 fps plan media-path levers; every default reproduces the previous path.
+from scripts.webrtc_media_flags import (
+    effective_decode_threads,
+    env_bool as _media_env_bool,
+    env_int as _media_env_int,
+    lifetime_counters_enabled,
+    preencode_sha_dir,
+    queue_packed_i420_enabled,
+    thread_caps_enabled,
+)
+from scripts.webrtc_idle_frame_cache import get_idle_frame_cache, register_reader_finalizer
+from scripts.webrtc_live_handoff import (
+    live_frame_from_queue,
+    packed_i420_from_live_item,
+    video_frame_from_live_item,
+)
+
+_ffmpeg_executor = None
+_ffmpeg_executor_lock = threading.Lock()
+
+
+def _turn_media_executor():
+    """MUSETALK_THREAD_CAPS=1: per-turn ffmpeg/PCM work gets its own bounded
+    executor instead of the loop default executor (shared with to_thread
+    decoders). None = the default executor (today)."""
+    global _ffmpeg_executor
+    if not thread_caps_enabled():
+        return None
+    with _ffmpeg_executor_lock:
+        if _ffmpeg_executor is None:
+            from concurrent.futures import ThreadPoolExecutor
+            _ffmpeg_executor = ThreadPoolExecutor(
+                max_workers=_media_env_int("MUSETALK_FFMPEG_EXECUTOR_WORKERS", 4,
+                                           minimum=1, maximum=64),
+                thread_name_prefix="webrtc-turn-media",
+            )
+        return _ffmpeg_executor
+
+
+class _PreencodeShaTap:
+    """WEBRTC_PREENCODE_SHA_DIR (smoke tests): one JSON line per live frame that
+    entered a track queue: generation, per-turn index, SHA-256 of packed I420."""
+
+    def __init__(self, directory: str, label: str):
+        import hashlib
+        self._hashlib = hashlib
+        Path(directory).mkdir(parents=True, exist_ok=True)
+        self.path = Path(directory) / f"preencode_{os.getpid()}_{label}.jsonl"
+        self._fh = open(self.path, "a", buffering=1)
+        self._index = {}
+
+    def record(self, generation_id: int, frame, metadata=None) -> None:
+        index = self._index.get(generation_id, 0)
+        self._index[generation_id] = index + 1
+        packed = frame if isinstance(frame, np.ndarray) else frame.to_ndarray()
+        digest = self._hashlib.sha256(np.ascontiguousarray(packed).tobytes()).hexdigest()
+        entry = {"g": int(generation_id), "i": index, "sha256": digest,
+                 "t": round(time.monotonic(), 6)}
+        if isinstance(metadata, dict) and "generation_frame" in metadata:
+            entry["gf"] = metadata.get("generation_frame")
+        self._fh.write(json.dumps(entry) + "\n")
+
+    def close(self) -> None:
+        try:
+            self._fh.close()
+        except Exception:
+            pass
+
 # Environment configuration
 WEBRTC_SYNC_MODE = os.getenv("WEBRTC_SYNC_MODE", "strict_fifo").strip().lower()
 WEBRTC_STRICT_FIFO_SYNC = WEBRTC_SYNC_MODE in ("strict_fifo", "fifo", "hls_like", "hls-like", "hls")
@@ -64,6 +132,17 @@ WEBRTC_IDLE_SYNC_HOLD = os.getenv("WEBRTC_IDLE_SYNC_HOLD", "1").lower() in ("1",
 WEBRTC_POSE_CROSSFADE_FRAMES = max(
     0,
     int(os.getenv("WEBRTC_POSE_CROSSFADE_FRAMES", "0")),
+)
+# Per-turn counters that start_live() zeroes; lifetime = folded base + current.
+_LIFETIME_RESET_COUNTERS = (
+    "frames_received", "frames_played", "frames_dropped", "frames_duplicated",
+    "queue_underruns", "strict_video_stalls", "strict_video_stall_seconds",
+    "output_frames_sent",
+)
+_LIFETIME_EXTRA_COUNTERS = (
+    "turns_started", "turns_ended", "fresh_output_frames", "held_output_frames",
+    "live_unreleased_output_frames", "idle_output_frames", "send_gaps_over_75ms",
+    "send_gaps_over_100ms", "recv_total",
 )
 
 # ============================================================================
@@ -658,7 +737,9 @@ class IdleVideoStreamTrack(VideoStreamTrack):
     def __init__(self, video_path: str, fps: Optional[float] = None, decode_threads: int = 0):
         super().__init__()
         self.video_path = video_path
-        self._decode_threads = max(0, int(decode_threads))
+        # MUSETALK_THREAD_CAPS=1 replaces FFmpeg's auto thread count (16 slice
+        # threads per idle decoder here); decoded pixels do not depend on it.
+        self._decode_threads = effective_decode_threads(decode_threads)
         self._fps = fps
         self._frame_time = None
         self._last_ts = None
@@ -674,7 +755,36 @@ class IdleVideoStreamTrack(VideoStreamTrack):
         self._last_frame_read_at: Optional[float] = None
         self._last_read_started_cycle = False
         self._completed_cycles = 0
+        # WEBRTC_IDLE_FRAME_CACHE=1: frames come from the process-wide clip
+        # decoded once into yuv420p. Until that clip is ready this track decodes
+        # as before and switches at the same position (identical frames).
+        self._frame_cache = get_idle_frame_cache()
+        self._cache_clip = None
+        self._cache_finalizer = None
+        self._cache_pending = None
+        self._cache_position = 0  # frames read since the last (re)open
+        if self._frame_cache is not None:
+            clip = self._frame_cache.acquire(video_path)
+            if clip is not None:
+                self._attach_cache_clip(clip)
+                self._apply_source_metadata(
+                    clip.average_rate, clip.stream_frames, clip.duration_seconds)
+                return
+            self._cache_pending = self._frame_cache.request(video_path)
         self._open_container()
+
+    def _apply_source_metadata(self, average_rate, stream_frames, duration_seconds) -> None:
+        if self._fps is None:
+            self._fps = float(average_rate) if average_rate else 25.0
+        self._frame_time = 1.0 / float(self._fps)
+        frame_count = int(stream_frames or 0)
+        if frame_count <= 0 and duration_seconds and self._fps:
+            frame_count = int(round(duration_seconds * float(self._fps)))
+        self._cache_position = 0
+        with self._position_lock:
+            self._source_frame_count = frame_count if frame_count > 0 else None
+            self._source_duration_seconds = duration_seconds
+            self._next_source_frame_index = 0
 
     def _open_container(self) -> None:
         self._container = av.open(self.video_path)
@@ -682,10 +792,7 @@ class IdleVideoStreamTrack(VideoStreamTrack):
         if self._decode_threads:
             self._stream.thread_type = "AUTO"
             self._stream.codec_context.thread_count = self._decode_threads
-        if self._fps is None:
-            rate = self._stream.average_rate
-            self._fps = float(rate) if rate else 25.0
-        self._frame_time = 1.0 / float(self._fps)
+        rate = self._stream.average_rate
         self._frame_iter = self._container.decode(self._stream)
         frame_count = int(getattr(self._stream, "frames", 0) or 0)
         duration_seconds = None
@@ -693,12 +800,7 @@ class IdleVideoStreamTrack(VideoStreamTrack):
             duration_seconds = float(self._stream.duration * self._stream.time_base)
         elif getattr(self._container, "duration", None):
             duration_seconds = float(self._container.duration) / 1_000_000.0
-        if frame_count <= 0 and duration_seconds and self._fps:
-            frame_count = int(round(duration_seconds * float(self._fps)))
-        with self._position_lock:
-            self._source_frame_count = frame_count if frame_count > 0 else None
-            self._source_duration_seconds = duration_seconds
-            self._next_source_frame_index = 0
+        self._apply_source_metadata(rate, frame_count, duration_seconds)
 
     def _close_container(self) -> None:
         """Release decoder references on its owner thread, before later GC.
@@ -727,14 +829,52 @@ class IdleVideoStreamTrack(VideoStreamTrack):
         self._close_container()
         self._open_container()
 
-    def read_frame(self):
+    # -- shared pre-decoded clip (WEBRTC_IDLE_FRAME_CACHE) -------------------
+    @property
+    def cache_backed(self) -> bool:
+        return self._cache_clip is not None
+
+    def _attach_cache_clip(self, clip) -> None:
+        self._cache_clip = clip
+        self._cache_finalizer = register_reader_finalizer(self, self._frame_cache, clip)
+
+    def _release_cache_clip(self) -> None:
+        finalizer = self._cache_finalizer
+        self._cache_finalizer = None
+        self._cache_clip = None
+        self._cache_pending = None
+        if finalizer is not None:
+            finalizer()
+
+    def _maybe_switch_to_cache(self) -> None:
+        pending = self._cache_pending
+        if pending is None or not pending.done():
+            return
+        self._cache_pending = None
+        clip = self._frame_cache.acquire(self.video_path)
+        if clip is None:
+            return
+        if self._cache_position > clip.count:
+            self._frame_cache.release(clip)
+            return
+        # Same position in the same decoded sequence: frame k of the clip is
+        # frame k this decoder would have produced next.
+        self._attach_cache_clip(clip)
+        self._close_container()
+
+    def _advance_cached_position(self):
+        clip = self._cache_clip
         started_cycle = False
-        try:
-            frame = next(self._frame_iter)
-        except StopIteration:
-            self._reset_container()
-            frame = next(self._frame_iter)
+        if self._cache_position >= clip.count:
+            # Mirrors the decoder path: EOF -> reopen -> metadata/index reset.
+            self._apply_source_metadata(
+                clip.average_rate, clip.stream_frames, clip.duration_seconds)
             started_cycle = True
+        index = self._cache_position
+        self._cache_position = index + 1
+        return index, started_cycle
+
+    def _note_frame_read(self, started_cycle: bool) -> None:
         with self._position_lock:
             frame_index = self._next_source_frame_index
             if self._source_frame_count:
@@ -745,7 +885,38 @@ class IdleVideoStreamTrack(VideoStreamTrack):
             self._last_read_started_cycle = started_cycle
             if started_cycle:
                 self._completed_cycles += 1
+
+    def read_frame(self):
+        if self._cache_pending is not None and self._cache_clip is None:
+            self._maybe_switch_to_cache()
+        clip = self._cache_clip
+        if clip is not None:
+            index, started_cycle = self._advance_cached_position()
+            self._note_frame_read(started_cycle)
+            self._frame_cache.note_served()
+            return clip.video_frame(index)
+        started_cycle = False
+        try:
+            frame = next(self._frame_iter)
+        except StopIteration:
+            self._reset_container()
+            frame = next(self._frame_iter)
+            started_cycle = True
+        self._cache_position += 1
+        self._note_frame_read(started_cycle)
         return frame.reformat(format="yuv420p")
+
+    def skip_frames(self, count: int) -> None:
+        """Advance exactly like ``count`` read_frame() calls, without building
+        frames when the clip is cache-backed."""
+        for _ in range(max(0, int(count))):
+            if self._cache_pending is not None and self._cache_clip is None:
+                self._maybe_switch_to_cache()
+            if self._cache_clip is None:
+                self.read_frame()
+                continue
+            _index, started_cycle = self._advance_cached_position()
+            self._note_frame_read(started_cycle)
 
     def next_frame_starts_cycle(self) -> bool:
         """Return whether the next decode is the first frame of a new loop.
@@ -811,11 +982,17 @@ class IdleVideoStreamTrack(VideoStreamTrack):
 
     def stop(self) -> None:
         try:
+            self._release_cache_clip()
             self._close_container()
         finally:
             super().stop()
 
     def reset(self) -> None:
+        clip = self._cache_clip
+        if clip is not None:
+            self._apply_source_metadata(
+                clip.average_rate, clip.stream_frames, clip.duration_seconds)
+            return
         self._reset_container()
 
 
@@ -986,6 +1163,26 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         self._strict_video_stalls = 0
         self._strict_video_stall_seconds = 0.0
         self._output_frames_sent = 0
+        # WEBRTC_LIFETIME_COUNTERS=1: monotonic totals that survive the per-turn
+        # resets in start_live()/end_live() (base + current turn), plus a ring
+        # of server send timestamps for cadence measurement.
+        self._lifetime_enabled = lifetime_counters_enabled()
+        self._lifetime_base = dict.fromkeys(_LIFETIME_RESET_COUNTERS, 0)
+        self._lifetime_base["strict_video_stall_seconds"] = 0.0
+        self._lifetime_extra = dict.fromkeys(_LIFETIME_EXTRA_COUNTERS, 0)
+        self._lifetime_send_seq = 0
+        self._lifetime_last_send_at: Optional[float] = None
+        self._lifetime_send_interval_max_s = 0.0
+        self._lifetime_turn_marks: dict = {}
+        self._lifetime_send_ring = (
+            deque(maxlen=_media_env_int("WEBRTC_LIFETIME_SEND_RING", 256, minimum=16))
+            if self._lifetime_enabled else None
+        )
+        self._deadline_pacing = _media_env_bool("WEBRTC_DEADLINE_PACING", False)
+        tap_dir = preencode_sha_dir()
+        self._preencode_tap = (
+            _PreencodeShaTap(tap_dir, uuid.uuid4().hex[:8]) if tap_dir else None
+        )
         self._slowdown_active = False
         self._current_slowdown = 1.0
         self._generation_complete = False
@@ -1336,7 +1533,7 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
                 return None
             if len(item) == 4:
                 self._popped_motion = item[3]
-            return frame
+            return live_frame_from_queue(frame)
         return item
 
     def _pop_live_frames_timestamp_locked(self):
@@ -1620,6 +1817,15 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         self._live_rtp_phase_correction_frames = 0
         self._last_live_frame = None
         self._reset_source_timing()
+        if self._lifetime_enabled:
+            self._lifetime_fold(_LIFETIME_RESET_COUNTERS)
+            self._lifetime_extra["turns_started"] += 1
+            self._lifetime_turn_marks = {
+                "generation_id": self._live_generation_id,
+                "started_monotonic": time.monotonic(),
+                "first_live_send_monotonic": None,
+                "first_live_pts_seconds": None,
+            }
         self._frames_received = 0
         self._frames_played = 0
         self._frames_dropped = 0
@@ -1772,6 +1978,9 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
             self._activate_completion_idle_video()
         self._last_live_frame = None
         self._reset_source_timing()
+        if self._lifetime_enabled:
+            self._lifetime_fold(("frames_received",))
+            self._lifetime_extra["turns_ended"] += 1
         self._frames_received = 0
         self._prebuffer_ready.clear()
         self._generation_complete = False
@@ -1838,7 +2047,10 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
 
         push_started_at = time.monotonic()
         convert_started_at = push_started_at
-        frame = av.VideoFrame.from_ndarray(frame_bgr, format="bgr24").reformat(format="yuv420p")
+        if queue_packed_i420_enabled():
+            frame = packed_i420_from_live_item(frame_bgr)
+        else:
+            frame = video_frame_from_live_item(frame_bgr)[0]
         convert_s = time.monotonic() - convert_started_at
         return await self._push_video_frame(
             frame,
@@ -1916,6 +2128,8 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         ):
             self._remove_queued_item_identity(queued_item)
             return False
+        if self._preencode_tap is not None:
+            self._preencode_tap.record(owner_generation_id, frame, metadata)
 
         queue_wait_s = time.monotonic() - queue_wait_started_at
         push_s = time.monotonic() - push_started_at
@@ -1966,12 +2180,17 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
         prebuffer_ready = False
         converted_frames = []
         convert_started_at = time.monotonic()
+        packed = queue_packed_i420_enabled()
         for frame_bgr in frames:
             if self._closed:
                 break
-            converted_frames.append(
-                av.VideoFrame.from_ndarray(frame_bgr, format="bgr24").reformat(format="yuv420p")
-            )
+            # Plain BGR ndarrays: today's exact PyAV conversion. Items carrying
+            # a pre-converted .yuv420p (WEBRTC_YUV_IN_COMPOSE producer contract)
+            # pass through, so no conversion runs on the event loop.
+            if packed:
+                converted_frames.append(packed_i420_from_live_item(frame_bgr))
+            else:
+                converted_frames.append(video_frame_from_live_item(frame_bgr)[0])
         total_convert_s = time.monotonic() - convert_started_at
         if not converted_frames:
             return self._prebuffer_ready.is_set()
@@ -2127,6 +2346,8 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
 
         recv_started_at = time.monotonic()
         pace_wait_s = 0.0
+        lifetime_played0 = self._frames_played
+        lifetime_duplicated0 = self._frames_duplicated
 
         # Calculate adaptive frame time
         frame_time = self._get_adaptive_frame_time()
@@ -2150,6 +2371,14 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
                 # asyncio oversleep otherwise accumulates until speech startup
                 # has to jump the RTP timestamp to catch the audio transport.
                 self._last_ts += frame_time
+            elif self._deadline_pacing:
+                # WEBRTC_DEADLINE_PACING=1: the same deadline pacing for tracks
+                # without a motion bank (~51 ms -> 50 ms average send interval).
+                # Frame selection is by output index, so content is unchanged;
+                # after a long hiccup re-anchor instead of bursting to catch up.
+                self._last_ts += frame_time
+                if time.monotonic() - self._last_ts > 3.0 * frame_time:
+                    self._last_ts = time.monotonic()
             else:
                 self._last_ts = time.monotonic()
 
@@ -2296,7 +2525,111 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
             self._recv_pace_wait_count += 1
             self._recv_pace_wait_total_s += pace_wait_s
             self._recv_pace_wait_max_s = max(self._recv_pace_wait_max_s, pace_wait_s)
+        if self._lifetime_enabled:
+            self._lifetime_note_send(frame, lifetime_played0, lifetime_duplicated0)
         return frame
+
+    # -- WEBRTC_LIFETIME_COUNTERS ---------------------------------------------
+    def _lifetime_fold(self, names) -> None:
+        for name in names:
+            self._lifetime_base[name] += getattr(self, "_" + name)
+
+    def _lifetime_note_send(self, frame, played0: int, duplicated0: int) -> None:
+        """Classify the frame just handed to the RTP sender and stamp it."""
+        now = time.monotonic()
+        extra = self._lifetime_extra
+        extra["recv_total"] += 1
+        if self._frames_played > played0:
+            kind = "f"  # freshly popped generated frame
+            extra["fresh_output_frames"] += 1
+            marks = self._lifetime_turn_marks
+            if marks and marks.get("first_live_send_monotonic") is None:
+                marks["first_live_send_monotonic"] = now
+                marks["first_live_pts_seconds"] = float(frame.pts * frame.time_base)
+        elif self._frames_duplicated > duplicated0:
+            kind = "h"  # held (repeated) generated frame
+            extra["held_output_frames"] += 1
+        elif self._live_active:
+            kind = "p"  # live turn still prebuffering / entering: idle body shown
+            extra["live_unreleased_output_frames"] += 1
+        else:
+            kind = "i"
+            extra["idle_output_frames"] += 1
+        last = self._lifetime_last_send_at
+        if last is not None:
+            gap = now - last
+            if gap > self._lifetime_send_interval_max_s:
+                self._lifetime_send_interval_max_s = gap
+            if gap > 0.075:
+                extra["send_gaps_over_75ms"] += 1
+            if gap > 0.100:
+                extra["send_gaps_over_100ms"] += 1
+        self._lifetime_last_send_at = now
+        self._lifetime_send_seq += 1
+        self._lifetime_send_ring.append(
+            (self._lifetime_send_seq, round(now, 6), kind, int(frame.pts)))
+
+    def lifetime_stats(self, ring: int = 0) -> Optional[dict]:
+        """Monotonic counters; ``ring`` > 0 adds the newest send stamps."""
+        if not self._lifetime_enabled:
+            return None
+        stats = {name: self._lifetime_base[name] + getattr(self, "_" + name)
+                 for name in _LIFETIME_RESET_COUNTERS}
+        stats["strict_video_stall_seconds"] = round(stats["strict_video_stall_seconds"], 6)
+        stats.update(self._lifetime_extra)
+        stats["send_seq"] = self._lifetime_send_seq
+        stats["last_send_monotonic"] = self._lifetime_last_send_at
+        stats["send_interval_max_s"] = round(self._lifetime_send_interval_max_s, 6)
+        stats["output_fps"] = self._output_fps
+        stats["live_active"] = self._live_active
+        stats["live_released"] = self._live_released
+        stats["queue_size"] = self._queue.qsize()
+        stats["buffer_depth_frames"] = self.live_buffer_depth_frames()
+        stats["turn"] = dict(self._lifetime_turn_marks) if self._lifetime_turn_marks else None
+        if ring and self._lifetime_send_ring:
+            tail = list(self._lifetime_send_ring)[-int(ring):]
+            stats["send_ring"] = tail
+        return stats
+
+    def counters_view(self, ring: int = 0) -> dict:
+        """Cheap per-poll counters for GET /webrtc/sessions/stats?view=lifetime.
+
+        With WEBRTC_LIFETIME_COUNTERS=1: the monotonic lifetime counters (and the
+        newest ``ring`` send stamps). Otherwise today's per-turn counters, which
+        start_live() zeroes, so a client can stitch the resets itself."""
+        handoff = getattr(self, "_musetalk_live_handoff", None)
+        if self._lifetime_enabled:
+            view = {"lifetime_enabled": True, "lifetime": self.lifetime_stats(ring=ring)}
+            if handoff is not None:
+                view["live_handoff"] = handoff.get_stats()
+            if getattr(self._idle, "_frame_cache", None) is not None:
+                view["idle_cache_backed"] = bool(getattr(self._idle, "cache_backed", False))
+            return view
+        return {
+            "lifetime_enabled": False,
+            "turn_counters": {
+                "generation_id": self._live_generation_id,
+                "frames_received": self._frames_received,
+                "frames_played": self._frames_played,
+                "frames_dropped": self._frames_dropped,
+                "frames_duplicated": self._frames_duplicated,
+                "queue_underruns": self._queue_underruns,
+                "strict_video_stalls": self._strict_video_stalls,
+                "strict_video_stall_seconds": round(self._strict_video_stall_seconds, 6),
+                "output_frames_sent": self._output_frames_sent,
+                "output_fps": self._output_fps,
+                "live_active": self._live_active,
+                "live_released": self._live_released,
+                "queue_size": self._queue.qsize(),
+            },
+        }
+
+    def live_buffer_depth_frames(self) -> int:
+        """Generated frames not yet played: track queue + non-blocking handoff
+        backlog. The GPU scheduler may read this to cap run-ahead."""
+        handoff = getattr(self, "_musetalk_live_handoff", None)
+        backlog = handoff.pending_frames() if handoff is not None else 0
+        return self._queue.qsize() + backlog
 
     def get_pose_status(self) -> dict:
         """Return boundary-switch state without exposing decoder objects."""
@@ -2381,11 +2714,31 @@ class SwitchableVideoStreamTrack(MotionPlaybackMixin, VideoStreamTrack):
             'recv_pace_wait_count': self._recv_pace_wait_count,
             'avg_recv_pace_wait_s': self._safe_avg(self._recv_pace_wait_total_s, self._recv_pace_wait_count),
             'max_recv_pace_wait_s': self._recv_pace_wait_max_s,
+            **self._media_lever_stats(),
         }
+
+    def _media_lever_stats(self) -> dict:
+        """Extra stats only when a 300 fps media lever is on (default: none)."""
+        extra = {}
+        if self._lifetime_enabled:
+            extra['lifetime'] = self.lifetime_stats()
+        handoff = getattr(self, "_musetalk_live_handoff", None)
+        if handoff is not None:
+            extra['live_handoff'] = handoff.get_stats()
+        if getattr(self._idle, "_frame_cache", None) is not None:
+            extra['idle_frame_cache_backed'] = bool(getattr(self._idle, "cache_backed", False))
+        return extra
 
     def stop(self) -> None:
         self._close_motion()
         self._closed = True
+        handoff = getattr(self, "_musetalk_live_handoff", None)
+        if handoff is not None:
+            # WEBRTC_NONBLOCKING_HANDOFF: drop frames not yet queued and wake a
+            # scheduler thread waiting on the FIFO bound.
+            handoff.close()
+        if getattr(self, "_preencode_tap", None) is not None:
+            self._preencode_tap.close()
         self._completion_idle_stage_id += 1
         # Invalidate every producer before making queue capacity available.
         # Draining an asyncio.Queue wakes blocked putters; once awakened, their
@@ -2878,7 +3231,7 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
                 conversion_future = None
                 try:
                     conversion_future = loop.run_in_executor(
-                        None, _convert_audio_with_ffmpeg,
+                        _turn_media_executor(), _convert_audio_with_ffmpeg,
                         self._original_audio_path,
                         self._sample_rate,
                         self._channels,
@@ -2909,7 +3262,8 @@ class SyncedAudioStreamTrack(MediaStreamTrack):
                     if self._converted_path:
                         Path(self._converted_path).unlink(missing_ok=True)
             
-            self._audio_samples = await loop.run_in_executor(None, self._load_pcm_audio)
+            self._audio_samples = await loop.run_in_executor(
+                _turn_media_executor(), self._load_pcm_audio)
             self._fully_loaded = True
             self._prepare_finished_at = time.monotonic()
             if self._sync_clock is not None:

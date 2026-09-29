@@ -1,0 +1,86 @@
+{
+ "provenance": {
+  "repo": "/workspace/MuseTalk-perf300",
+  "harness": "/workspace/MuseTalk-perf300/scripts/replay_scheduler_exactness.py",
+  "foreign_repo": false,
+  "head": "2254bc22a1767f0b197cc9a7aa1787a4a3b196a7",
+  "branch": "perf/300fps-4070s",
+  "modified_tracked_files": [
+   ".gitignore",
+   "api_server.py",
+   "docs/fps_comparisons/4070s_300fps_impl_20260928/avatar_memory/verify_layout_bitexact.py",
+   "docs/fps_comparisons/4070s_300fps_impl_20260928/scheduler/run_baseline_capture.sh",
+   "docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/explore_recipe.py",
+   "docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/gate_taesd_trt.py",
+   "docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/gtrack_taesd_trt.py",
+   "docs/fps_comparisons/4070s_300fps_impl_20260928/taesd_trt/speed_taesd_trt.py",
+   "docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/run_sequence.sh",
+   "docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/stepA_cudagraph_gate.py",
+   "docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/stepB_chain_bench.py",
+   "download_weights.sh",
+   "scripts/api_avatar.py",
+   "scripts/box_guard.sh",
+   "scripts/hls_gpu_scheduler.py",
+   "scripts/replay_scheduler_exactness.py",
+   "scripts/run_turnserver_tcp_relay.sh",
+   "scripts/run_webrtc_relay_api_server.sh",
+   "scripts/unet_stagewise_trt.py",
+   "scripts/vae_fast_decoder.py",
+   "scripts/vast_onstart.sh",
+   "scripts/vast_server_ctl.sh",
+   "scripts/webrtc_live_handoff.py",
+   "scripts/webrtc_media_flags.py",
+   "scripts/webrtc_tracks.py",
+   "setup_musetalk.sh",
+   "test_avatar_memory_layout.py"
+  ]
+ },
+ "checks": {
+  "modules_from_repo": {
+   "ok": true,
+   "detail": {
+    "scripts.hls_gpu_scheduler": "/workspace/MuseTalk-perf300/scripts/hls_gpu_scheduler.py",
+    "scripts.webrtc_manager": "/workspace/MuseTalk-perf300/scripts/webrtc_manager.py",
+    "scripts.webrtc_pose_router": "/workspace/MuseTalk-perf300/scripts/webrtc_pose_router.py",
+    "scripts.pose_protocol": "/workspace/MuseTalk-perf300/scripts/pose_protocol.py",
+    "scripts.webrtc_audio_timeline": "/workspace/MuseTalk-perf300/scripts/webrtc_audio_timeline.py"
+   }
+  },
+  "scheduler_sources": {
+   "ok": true,
+   "detail": {
+    "repo": {
+     "path": "/workspace/MuseTalk-perf300/scripts/hls_gpu_scheduler.py",
+     "sha256": "f0eeb1979ba93b64c65dc76d10d88973ca6d1bdb2d3d799154bd8472d99c707e"
+    },
+    "head": {
+     "path": "/tmp/claude-0/replay_scheduler/hls_gpu_scheduler_HEAD_76077958.py",
+     "sha256": "e8a8dc5accb5395b4766c7b882f8fa4408b1e37d7651ddd9c9c3311979a605c8"
+    },
+    "repo_equals_head": false
+   }
+  },
+  "fixtures": {
+   "ok": true,
+   "detail": "all present"
+  },
+  "wav_prep": {
+   "ok": true,
+   "detail": {
+    "zero3": {
+     "media_path": "/tmp/claude-0/replay_scheduler/selfcheck_wav/zero3.wav",
+     "exact_silence": true,
+     "media_duration_s": 3.0,
+     "sha256": "cb285321577f2cae96d045a03703d8dab14a24b2d1ac8a931dfcbb35f46a1f94"
+    },
+    "bob1": {
+     "media_path": "/tmp/claude-0/replay_scheduler/selfcheck_wav/bob1_timeline.wav",
+     "exact_silence": false,
+     "media_duration_s": 6.4,
+     "sha256": "96b5d474f0b2e12631684517169d0930351d006c6717fc247791f1a349d2a77e"
+    }
+   }
+  }
+ },
+ "cuda_initialized": false
+}

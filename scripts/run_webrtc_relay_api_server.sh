@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Launch the current TRT-stagewise API with WebRTC forced through TURN relay.
+# Launch the MuseTalk API with WebRTC forced through TURN relay.
+#
+# Final exec: ${MUSETALK_SERVER_LAUNCHER:-scripts/run_musetalk_server.sh} (which dispatches
+# MUSETALK_RECIPE=legacy_int8 to the old scripts/run_trt_stagewise_server.sh). For the fast
+# recipes this wrapper only sets the TURN/ICE knobs; the WebRTC sync/prebuffer defaults come
+# from the overrides/resolved layers so an overrides file can still change them.
 
 set -euo pipefail
 
@@ -7,6 +12,10 @@ SCRIPT_NAME="$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 ENV_FILE="${TURN_ENV_FILE:-$REPO_ROOT/.env.webrtc-turn.local}"
+SERVER_LAUNCHER="${MUSETALK_SERVER_LAUNCHER:-$REPO_ROOT/scripts/run_musetalk_server.sh}"
+MT_ENV_LOG_PREFIX="$SCRIPT_NAME"
+# shellcheck source=lib/musetalk_env_layers.sh
+source "$SCRIPT_DIR/lib/musetalk_env_layers.sh"
 
 log() {
   printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
@@ -117,10 +126,17 @@ if [[ -z "${WEBRTC_SERVER_TURN_URLS:-}" ]]; then
 fi
 export WEBRTC_TURN_USER="${WEBRTC_TURN_USER:-$TURN_USER}"
 export WEBRTC_TURN_PASS="${WEBRTC_TURN_PASS:-$TURN_PASS}"
-export WEBRTC_SYNC_MODE="${WEBRTC_SYNC_MODE:-strict_fifo}"
-export WEBRTC_VIDEO_PREBUFFER_SECONDS="${WEBRTC_VIDEO_PREBUFFER_SECONDS:-2.0}"
-export WEBRTC_AUDIO_PREBUFFER_SECONDS="${WEBRTC_AUDIO_PREBUFFER_SECONDS:-0.0}"
-export WEBRTC_ADAPTIVE_FPS="${WEBRTC_ADAPTIVE_FPS:-0}"
+mt_env_effective_recipe "$REPO_ROOT"
+if [[ "$MT_ENV_RECIPE" == "legacy_int8" ]]; then
+  # Unchanged legacy behaviour.
+  export WEBRTC_SYNC_MODE="${WEBRTC_SYNC_MODE:-strict_fifo}"
+  export WEBRTC_VIDEO_PREBUFFER_SECONDS="${WEBRTC_VIDEO_PREBUFFER_SECONDS:-2.0}"
+  export WEBRTC_AUDIO_PREBUFFER_SECONDS="${WEBRTC_AUDIO_PREBUFFER_SECONDS:-0.0}"
+  export WEBRTC_ADAPTIVE_FPS="${WEBRTC_ADAPTIVE_FPS:-0}"
+fi
+# Fast recipes: the resolver emits WEBRTC_SYNC_MODE=strict_fifo, WEBRTC_VIDEO_PREBUFFER_SECONDS=2.0
+# and WEBRTC_ADAPTIVE_FPS=0 (same values); exporting them here would make them outrank the
+# overrides files. WEBRTC_AUDIO_PREBUFFER_SECONDS is read by no Python module.
 
 log "Starting API with WebRTC relay policy"
 log "TURN env file=$ENV_FILE"
@@ -128,8 +144,9 @@ log "WEBRTC_ICE_TRANSPORT_POLICY=$WEBRTC_ICE_TRANSPORT_POLICY"
 log "WEBRTC_TURN_URLS=$WEBRTC_TURN_URLS"
 log "WEBRTC_SERVER_TURN_URLS=$WEBRTC_SERVER_TURN_URLS"
 log "WEBRTC_USE_LOCAL_TURN=$WEBRTC_USE_LOCAL_TURN"
-log "WEBRTC_SYNC_MODE=$WEBRTC_SYNC_MODE"
-log "WEBRTC_VIDEO_PREBUFFER_SECONDS=$WEBRTC_VIDEO_PREBUFFER_SECONDS"
-log "WEBRTC_ADAPTIVE_FPS=$WEBRTC_ADAPTIVE_FPS"
+log "recipe=$MT_ENV_RECIPE (source=$MT_ENV_RECIPE_SOURCE) launcher=$SERVER_LAUNCHER"
+log "WEBRTC_SYNC_MODE=${WEBRTC_SYNC_MODE:-<overrides/resolved layer>}"
+log "WEBRTC_VIDEO_PREBUFFER_SECONDS=${WEBRTC_VIDEO_PREBUFFER_SECONDS:-<overrides/resolved layer>}"
+log "WEBRTC_ADAPTIVE_FPS=${WEBRTC_ADAPTIVE_FPS:-<overrides/resolved layer>}"
 
-exec bash "$REPO_ROOT/scripts/run_trt_stagewise_server.sh" "$@"
+exec bash "$SERVER_LAUNCHER" "$@"

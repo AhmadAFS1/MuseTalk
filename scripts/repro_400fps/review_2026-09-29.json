@@ -1,0 +1,336 @@
+{
+ "workflow": "review-repro-scripts",
+ "run": "wf_7ebfa401-d59",
+ "date": "2026-09-29",
+ "note": "findings on the first version of the package; all blockers and majors were fixed in commit 37400f0",
+ "results": [
+  {
+   "scope": "Static and dry-run review of /workspace/MuseTalk-perf300/scripts/repro_400fps/ (README.md, lib.sh, 00_check.sh, 10_build_engines.sh, 20_gate.sh, 30_benchmark.sh, 40_videos.sh, 50_derive_recipe.sh). I ran bash -n on all seven scripts and 10_build_engines.sh --dry-run, with OUT set to the scratchpad as well as the default. I checked every flag against the argparse of the scripts it calls: build_unet_stagewise.py, validate_unet_backend.py, vae_fast_decoder.py, chin_multistream_render.py and chin_multistream/gpu.py+paths.py, quality_ab_metrics.py, video_lineage.py, video_signoff.py, int8_layer_study.py, make_gmac_recipes.py, stability_report.py, compare_quality.py, srccache_exact.py and box_guard.sh. I compared everything with the recorded runs (run_srccache.sh, run_int8_set.sh, gate/run_assemble_gate.sh, validate_candidate.sh, blocks/*.sh, run_pair_baseline_r5.sh, the harness JSON args, box_guard logs) and with the manifests for srcg50, srcmix, gmac_0.50, srcfp16, mixed and default. I also checked git tracking and ran the non-GPU prerequisite checks by hand. Nothing ran on the GPU, nothing was built, no harness ran, and I edited no files. The workflow-level Workflow tool was not available in this subagent, so I did this phase directly.",
+   "verified": [
+    "bash -n passes on lib.sh, 00_check.sh, 10_build_engines.sh, 20_gate.sh, 30_benchmark.sh, 40_videos.sh and 50_derive_recipe.sh.",
+    "10_build_engines.sh --dry-run exits 0 and prints four guarded commands. The UNet builds use --batch 16 --opt-level 5 --variant srccache in three stages: FP16 down0rest,up3,tail; INT8 down1..up2 with --int8-recipe; then prefix. TAESD is built last with MUSETALK_TAESD_TRT_BATCH=8. This matches the recorded builder settings: opt level 5, workspace 2.0, timing cache on, variant srccache.",
+    "Builder logic confirms that 'prefix last' finalises. build_batch finalises only when missing_blocks is empty, main() returns 0 even when the set is incomplete, and 10_build_engines.sh checks manifest.complete afterwards and dies otherwise. Re-running on an incomplete root skips blocks that are already up to date (same onnx sha, flags and file), so the build can resume.",
+    "The first 16 hex digits of the sha256 of recipe_gmac_0.50.json are f6f90777264b5302. That equals the precision tag int8_qdq_recipe:f6f90777264b5302 on every INT8 block in the gmac_0.50 and srcg50 manifests. The recipe has 117 layers, all in down1, down2, down3, mid, up0, up1 and up2, which is exactly the INT8 block list in step 1.",
+    "Every flag used exists in the target argparse. build_unet_stagewise.py: --batch --opt-level --variant --root --blocks --int8-recipe --report. validate_unet_backend.py: --backend (choices include runtime) --capture-dir --padded-batch-size --group-captures --limit --warmup --iters --fail-mae --fail-max-abs --report-path. vae_fast_decoder.py: positional build/verify. chin_multistream_render.py: --backend (the stagewise16_taesdtrt and baseline presets) --flags --out-root --label --streams --loops --repeats --min-timed-s --save-arrays --compare-accepted --encode. quality_ab_metrics.py pair: --identity-dir --a --b --profile e1 --name. video_lineage.py: --col-width --crf --out-name --arm with 5 fields. int8_layer_study.py: --stage is an append option with the inventory/baseline/amax_mse/sens/recipes/export stages, plus --out --recipes --export-recipe --export-out. make_gmac_recipes.py: --study --out. stability_report.py: positional json. compare_quality.py: labels. srccache_exact.py: --root. box_guard.sh run: --wait-min --min-avail-gb --label --.",
+    "The harness arguments for T (6/18/2/60), SUST (6/18/5/60), N15 (15/7/10/60), PAIR (baseline 6/12/2/60 --compare-accepted, then r5 6/18/2/60), Q (loops 1 --save-arrays --compare-accepted) and V (loops 1 --encode --save-arrays) are identical to the args recorded in docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/*.json.",
+    "I tested summary() from lib.sh against the published T_srcg50_n15_stability.log. It extracts aggregate_fps_per_repeat, median_aggregate_fps, all_clips_match_accepted and deterministic_per_identity. The 40_videos FPS grep returns 399 for that log.",
+    "20_gate.sh reads summary.mae_max and summary.max_abs_max. Both keys exist in the published gunet_srcg50_{main,holdout}.json, and the published values are 0.00444/0.777 and 0.00392/1.260, matching the header. validate_unet_backend.py writes its report before it exits 1 on the max_abs failure.",
+    "The published harness run used TAESD TRT engine key 6111388248264a4ef2ae (batch 8, gate=FAIL recorded), and it is present in models/taesd/trt. vae_fast_decoder.py build reuses an engine with the same key and does not force a rebuild.",
+    "On this box these are all present: the engine manifests for srcg50, srcmix and gmac_0.50; all 7 files for each of the 6 avatars; the corpus (352 main, 96 holdout); musetalkV15 weights; TAESD weights; code_integrity() matches_accepted_render_json is True; .runtime/musetalk_trt_local_sm89.env; the BEFORE engine models/tensorrt_unet_sm89_bs8_local/unet_trt.ts; models/tensorrt_unet_stagewise_sm89; the r2 capture V_srcmix_taesdtrt; the FaceMesh venv; ffmpeg; and every referenced record script.",
+    "The published numbers in the README and headers match the JSON: T 401.8/400.1; SUST 404.0, 400.9, 400.5, 400.1, 399.96; PAIR 252.6/251.4 vs 401.4/400.1 (medians 252.0 and 400.7); N15 median 399.8 (range 399.6 to 403.9).",
+    "50_derive_recipe.sh uses the study defaults. They match the published study.json: calib 32, main_eval 88, holdout 96, quick 12, and 254 layers each for max and mse sensitivity. The export stage runs on CPU only.",
+    "lib.sh behaves correctly. guarded returns the child's rc (logged). run() in step 10 calls die on a failure. die runs in the calling shell, not a subshell, so it stops the script. set -u is safe with the ${1:-} and ${*:-} defaults, and 30_benchmark.sh's 'shift || true' handles the no-argument case."
+   ],
+   "problems": [
+    {
+     "severity": "blocker",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/README.md",
+     "description": "The package and most of what it calls are not in the branch it names ('Branch perf/300fps-4070s ... including ...'). Untracked: scripts/repro_400fps/ itself; the recipe docs/fps_comparisons/4070s_400fps_20260928/int8_study/recipe_gmac_0.50.json (00_check.sh's hint wrongly says 'committed with this repo'); scripts/int8_layer_study.py, video_lineage.py, video_signoff.py, assemble_stagewise_set.py and bench_stagewise_blocks.py; the whole docs/fps_comparisons/4070s_400fps_20260928/ directory (148 files, including stability_report.py, compare_quality.py, make_gmac_recipes.py and study.json); and the r5 quality runs <id>__srcg50.json. Modified but uncommitted: scripts/build_unet_stagewise.py, where the `--int8-recipe` argparse line exists only in the working-tree diff, and scripts/chin_multistream_render.py (a fix for a clean worker exit). From a fresh checkout, 10_build_engines.sh fails with 'unrecognized arguments: --int8-recipe', and 30/50 fail on missing scripts. Everything works on this box only because of the uncommitted working tree. This defeats the user's request to store the scripts for the future.",
+     "suggested_fix": "With the user's go-ahead, commit scripts/repro_400fps/, the five untracked scripts, the build_unet_stagewise.py and chin_multistream_render.py changes, recipe_gmac_0.50.json (git add -f if an ignore rule applies) and the 400fps record: README, *.py, *.sh, study.json, gate/blocks JSON and logs. Leave out the large recover_*.pt files, or reference them. Then correct the 00_check hint."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/00_check.sh",
+     "description": "Lines 22-24: the avatar check string contains `test -e ... || exit 1`. need() runs it with `eval` in the current shell, so one missing avatar file makes 00_check.sh itself exit with rc 1. Because output goes to /dev/null, it prints no 'MISSING' line and skips every later check (corpus, recipe, chin integrity, box_guard, RAM, disk). I reproduced this with a minimal copy of need(): 'reached after' never prints and rc is 1. This is the failure most likely on a fresh machine, and the check fails silently there.",
+     "suggested_fix": "Run the loop in a subshell inside the string: \"( for i in ...; do ...; test -e ... || exit 1; done; done )\". Alternatively, make need()/warn() run `( eval \"$2\" )` so that no check string can exit the script."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/30_benchmark.sh",
+     "description": "Q step (lines 25-32): quality_ab_metrics.py pair is called without --out-dir. Its default is docs/fps_comparisons/4070s_300fps_impl_20260928/quality_metrics/runs, the published record, not $OUT. With the README's own 'published engines' form, `30_benchmark.sh models/tensorrt_unet_stagewise_sm89_srcg50` (whose default steps include Q), TAG becomes srcg50 and the step overwrites the six published <id>__srcg50.json/.md files. video_lineage.py (QRUNS) and compare_quality.py read those files for the r5 metrics shown in the sign-off videos. The same happens for srcblkA8 and other published labels. Even with the default TAG r5, it writes into the record directory, contradicting the README's 'Logs and JSON go to docs/fps_comparisons/repro_400fps/'. The fix is not a one-liner, because compare_quality.py (RUNS) and video_lineage.py (QRUNS) can only read that fixed directory.",
+     "suggested_fix": "Pass --out-dir \"$OUT/quality_runs\". Add a runs-dir option (argument or env) to compare_quality.py and video_lineage.py, and pass it from 30 and 40, pointing at $OUT/quality_runs for the rebuild and at the published directory for the r2 comparison. Until then, refuse any TAG that already has files in the published runs directory, or default TAG to repro_<suffix>."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/20_gate.sh",
+     "description": "Line 21 calls docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/srccache_exact.py, which (a) hardcodes ROOT=/workspace/MuseTalk-perf300 and the corpus path, (b) writes srccache_exact_<rootname>.json next to itself in the r1-r3 record directory, not $OUT, and overwrites the published srccache_exact_tensorrt_unet_stagewise_sm89_srcmix.json when gating srcmix, and (c) always loads --baseline-root models/tensorrt_unet_stagewise_sm89, the default-variant FP16 set. The package never builds that set and 00_check never checks for it. On a fresh machine the gate computes the exactness result and then crashes loading the baseline, before it prints PASS/FAIL or writes the JSON.",
+     "suggested_fix": "Copy the gate into scripts/repro_400fps, or give srccache_exact.py --out and --corpus options and make the baseline comparison optional (skip it when --baseline-root is missing). Pass --out \"$OUT/gate_srccache_exact.json\" and --corpus \"$CORPUS\". Add a warn line in 00_check for models/tensorrt_unet_stagewise_sm89."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/lib.sh",
+     "description": "The advertised overrides are only partly honoured, so 00_check can pass on paths the heavy steps never read. MUSETALK_REPRO_AVATARS and MUSETALK_REPRO_FACEMESH_PY affect only 00_check and Q's --identity-dir. The harness hardcodes ACCEPTED_ROOT and FACEMESH_PY in scripts/chin_multistream/paths.py, and quality_ab_metrics.py hardcodes DIV and FACEMESH_PY. MUSETALK_REPRO_CORPUS is used by 00_check and 20_gate's validate_unet_backend.py, but not by the builder (10_build_engines.sh never passes --calib-dir, whose default is the fixed path), srccache_exact.py (hardcoded) or int8_layer_study.py (CORPUS constant).",
+     "suggested_fix": "Pass `--calib-dir \"$CORPUS\"` in 10_build_engines.sh for the INT8 step, and wire CORPUS into 20 and 50 where the tools accept it. For AVATARS and FACEMESH_PY, either add env support to paths.py and quality_ab_metrics.py, or have lib.sh die when those variables are set to non-default values."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/40_videos.sh",
+     "description": "r2 (srcmix, 350 fps) cannot be reproduced from the package, although the README title says 'Reproducing the 350 / 400 fps'. No step builds r2. It was made from FP16 srccache blocks plus INT8 down3/mid built with `--int8-blocks down3,mid` and modelopt max calibration (run_int8_set.sh, root _mixed), then assembled (run_srccache.sh). 40_videos.sh also hardcodes R2CAP=docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt, and that directory's *_faces.npz are gitignored (chin_multistream/.gitignore '*/*_faces.npz'). A fresh machine has neither the r2 engines nor the r2 column's frames.",
+     "suggested_fix": "Add an optional r2 build: `build_unet_stagewise.py --batch 16 --opt-level 5 --variant srccache --root models/tensorrt_unet_stagewise_sm89_r2 --int8-blocks down3,mid`, a full-set build equivalent to srcmix. Let 30_benchmark.sh run T and V on it. Make 40_videos.sh take R2CAP and the r2 quality label from arguments or env, defaulting to the published capture when it exists."
+    },
+    {
+     "severity": "minor",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/lib.sh",
+     "description": "The RAM thresholds are below what the recorded runs used, measured against box_guard's 3 GB watchdog floor (kill_below=3). harness() uses --min-avail-gb 10 for every step, and the INT8 build uses 12. Recorded MemAvailable use: build_gmac_0.50 peak_group_rss 10.48 GB (min_avail 5.90); N15 15.37 -> 5.79 GB (about 9.6 GB); T 15 -> 7.69 GB (about 7.7 GB). If the box has only 10-12 GB free when the guard admits a step, the watchdog can kill N15 or the INT8 build partway through (rc 86), after up to about 10 minutes of work.",
+     "suggested_fix": "Give each step its own threshold: INT8 build and N15 >= 14 GB, T/SUST/PAIR >= 12 GB, FP16 builds, gates and Q/V as now. For example, give harness() an optional GB argument, or add a per-step variable."
+    },
+    {
+     "severity": "minor",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/10_build_engines.sh",
+     "description": "Line 28 prints m.get('probe',{}).get('sha256',''), but the manifest probe dict has 'output_sha256' (and 'input_sha256'), not 'sha256'. The 'probe' hash always prints empty, so the finalised set cannot be compared with the published probe (srcg50 output_sha256 e738c41c...).",
+     "suggested_fix": "Use m['probe'].get('output_sha256','')[:16]. Optionally also print deterministic_run_to_run, graph_equals_direct_enqueue and vs_eager_forward."
+    },
+    {
+     "severity": "minor",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/20_gate.sh",
+     "description": "Line 26, `tail -4 \"$OUT/gate_taesd_trt.log\"`: box_guard writes its stderr 'after:'/'done:' lines at the end of the same log, and verify prints a multi-line indented JSON. The tail therefore shows closing braces and guard lines, never the 'TAESD TRT backend: key=... gate=FAIL' line the header promises. Also, verify runs with MUSETALK_TAESD_TRT_BUILD at its default of 1, so a missing engine would be built quietly during a gate. The per-split python3 -c prints a traceback, not a message, when the gate JSON is missing.",
+     "suggested_fix": "Use `grep -a 'TAESD TRT backend:' \"$OUT/gate_taesd_trt.log\"` and `grep -a '^PASS\\|^FAIL' gate_srccache_exact.log`. Run verify with MUSETALK_TAESD_TRT_BUILD=0. Guard the JSON print with `[ -s file ] || log 'gate_unet_$split: no report (see log)'`."
+    },
+    {
+     "severity": "minor",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/30_benchmark.sh",
+     "description": "Step failures are not handled. harness and guarded return codes are ignored. The Q loop globs stream*_faces.npz without nullglob, so a failed capture runs quality_ab_metrics on the literal pattern. N15 runs stability_report.py on a JSON that may be missing. summary() leaves out all_repeats_ge_min_timed_s and the SUMMARY status word, so a repeat shorter than 60 s passes silently. The stability report goes to stdout through tail -25 only, and no stability md is saved as the published stability_n15.md was. PAIR_baseline has a fixed label, so a PAIR run for a second tag overwrites the first tag's baseline half.",
+     "suggested_fix": "Add `|| { log \"$s failed\"; continue; }` after each harness call, `shopt -s nullglob` before the Q loop, and all_repeats_ge_min_timed_s plus status to summary(). Pass `--md \"$OUT/stability_N15_$TAG.md\"` to stability_report.py. Name the baseline PAIR_baseline_$TAG."
+    },
+    {
+     "severity": "minor",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/40_videos.sh",
+     "description": "(a) The header says the script writes repro_<tag>_signoff/ (plain side-by-side, clean clips and a reel), but it only runs video_lineage.py (focus). The hinted `scripts/video_signoff.py` hardcodes V_srcg50 and would rewrite experiments/video_validation/signoff_r2_r5/, the user's current sign-off set. (b) TAG defaults to the ROOT_NAME suffix and ignores MUSETALK_REPRO_TAG, while 30_benchmark.sh derives TAG from its root argument. So after `30_benchmark.sh models/..._srcg50 V`, the script dies looking for V_r5, and the arm label always reads 'rebuilt r5 engine set $ROOT_NAME'. (c) The fps is truncated with `cut -d. -f1` (399.8 becomes 399). (d) video_lineage runs outside box_guard (about 2.5 GB). The \u00a78.6 watchdog incident was exactly a lineage render during a build.",
+     "suggested_fix": "Correct the header, and warn that video_signoff.py overwrites the published sign-off set. Honour MUSETALK_REPRO_TAG and build the label from TAG. Round with printf '%.1f'. Run video_lineage under `$GUARD --min-avail-gb 6`, which also takes the GPU lease so it cannot overlap a build."
+    },
+    {
+     "severity": "minor",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/00_check.sh",
+     "description": "The corpus check and README count are wrong, and several hard prerequisites are not checked. The README says '120 main + 96 holdout' and line 25 accepts >= 120, but the corpus manifest has 352 main + 96 holdout (the gate used 176/48 bs16 groups). The builder picks INT8 calibration files as files[::len//16]; published: 000001, 000023, ..., step 22. A 120-file corpus would pass the check, calibrate on different files and gate on fewer. Not checked at all: .runtime/musetalk_trt_local_sm89.env, which is gitignored and read unconditionally by chin_multistream/gpu.py setup_backends, so every harness step crashes without it; the BEFORE engine models/tensorrt_unet_sm89_bs8_local/unet_trt.ts (PAIR); models/tensorrt_unet_stagewise_sm89 (srccache_exact); ffmpeg (V --encode, 40); free /dev/shm for the six ~590 MB arenas (9 of 15 GB is used by SoulX now); and the r2 V capture needed by 40. lib.sh's `mkdir -p \"$OUT\"` also makes the 'read-only' check create a directory.",
+     "suggested_fix": "Compare the counts with calibration/unet_multi_avatar_20260928/manifest.json (main_files 352, holdout_files 96) and fix the README. Add need/warn lines for the runtime env file, the BEFORE engine, the default stagewise set, ffmpeg, /dev/shm >= 4 GB free and the r2 capture. Optionally add a bench_stagewise_blocks.py step to re-measure the README's 31.20 ms per-call figure."
+    }
+   ]
+  },
+  {
+   "scope": "Fresh-machine completeness check of /workspace/MuseTalk-perf300/scripts/repro_400fps/ (README.md, lib.sh, 00_check.sh, 10_build_engines.sh, 20_gate.sh, 30_benchmark.sh, 40_videos.sh, 50_derive_recipe.sh). I compared it against the run record in docs/fps_comparisons/4070s_400fps_20260928/ (README \u00a78, gate/run_assemble_gate.sh, validate_candidate.sh, blocks/*.sh, int8_study/, chin_multistream/*.json, stability_n15.md) and unet_fp16/run_srccache.sh. I also read the three bs16 engine manifests (srcg50, srcmix, gmac_0.50), the two venvs' dist-info, the requirements/constraints files, the installer and downloader, the harness sources (scripts/chin_multistream/*, chin_multistream_render.py), quality_ab_metrics.py, video_lineage.py, box_guard.sh, the avatar directories and the corpus manifest, and git tracking status (git ls-files, git status, check-ignore). Read-only throughout: no GPU jobs, builds or harness runs. I ran only `bash -n` on all seven scripts and `10_build_engines.sh --dry-run`, plus CPU-only recomputation of the README tables from the source JSONs (compare_quality.py, stability_report.py, block-time sums). I printed no secrets; the JSON dumps redacted any key/token fields. The skill offered to start the review-repro-scripts workflow, but I am already that workflow's fresh-machine critic phase, so I did this phase directly instead of starting a nested run.",
+   "verified": [
+    "bash -n passes for all 7 scripts. `10_build_engines.sh --dry-run` exits 0 and prints the 4 guarded commands. Their flags match what was run: --batch 16 --opt-level 5 --variant srccache; recipe gmac_0.50.json (117 layers, sha256_16 f6f90777264b5302, the same value as the gmac_0.50 and srcg50 manifests); FP16 down0rest/up3/tail, INT8 down1..up2, and prefix last so the set finalizes.",
+    "All three manifests record tensorrt_version 10.3.0, torch_version 2.5.1+cu121, and an NVIDIA GeForce RTX 4070 SUPER with compute capability [8,9]. They record no modelopt, diffusers, onnx, driver or CUDA versions.",
+    "The main venv /workspace/.venvs/musetalk_trt_stagewise (Python 3.10.12) has torch 2.5.1+cu121, torch_tensorrt 2.5.0, tensorrt-cu12 10.3.0, nvidia-modelopt 0.23.2, diffusers 0.30.2, onnx 1.17.0, transformers 4.39.2, numpy 1.23.5 and opencv-python 4.9.0.80. All of these are pinned in requirements/constraints-cu121.txt. modelopt only comes with `install_musetalk.sh --with-legacy-int8`; with --matrix auto, sm_89 picks cu121.",
+    "The FaceMesh venv /workspace/SoulX-FlashHead/.venv has mediapipe 0.10.9, numpy 2.2.6 and opencv-contrib-python 5.0.0.93. These pins are in requirements/chin-tools.in and constraints-chin-tools.txt.",
+    "download_weights.sh (called by install_musetalk.sh) fetches MuseTalk V1.5 unet.pth/musetalk.json, SD-VAE, Whisper and TAESD at the pinned revision 614f76814bbe30edbe2e627ace1c2234c81a2c0e. The harness does not need Whisper or SD-VAE, because cache.pt carries the latents and the audio. Only the corpus rebuild needs them.",
+    "The harness consumes cache.pt, source.mp4, source_landmarks.npy, masks.npz, faces.npz, speech.wav and render.json, plus generated_landmarks.npy and chin_delta.npy with --compare-accepted. The quality tool's dir= arm also reads refined_raw.mp4, standard_raw.mp4, pixel_checks.json and mask_samples.npz. All of these exist for the six avatars (763 MB in total).",
+    "Seed timing cache: no published manifest has a timing_cache_seed key, so the published INT8 sets were built without the seed file. SEED_TIMING_CACHE (docs/fps_comparisons/4070s_300fps_20260927/unet_probe/tt16_timing_cache.bin) is gitignored and missing from this worktree. It exists only in /workspace/MuseTalk. A fresh box without it therefore matches how gmac_0.50 was built.",
+    "When main has 352 files, the builder picks by stride 22 the same 16 calibration files the published manifests list. With a recipe, input amax is pinned and weight amax is per-channel max, so for r5 the corpus content only has to be present.",
+    "README top table: BEFORE 252.0 (T_baseline_pair median 251.98); r2 350.2 (Te_srcmix_taesdtrt_n6: 350.69 / 349.73, median 350.21; 1.39x); r5 about 400 at 1.59x (400.73 / 251.98).",
+    "README expected results that match the JSONs: T 401.81 / 400.05. SUST 404.02, 400.89, 400.46, 400.14, 399.96, with temperature 64 to 67 C and SM clock 2475 to 2460 MHz. PAIR 252.57 / 251.38 against 401.38 / 400.08. N15: 10 windows, aggregate 399.61 to 403.91, median 399.83; per-clip minimum 26.56, median 26.67; deterministic_per_identity true; FaceMesh growth +75.8 to 168.9 MiB.",
+    "README expected results that also match: gate main mae_max 0.00444 / max_abs 0.777 and holdout 0.00392 / 1.260 over 176 and 48 groups. Quality (srcg50 runs): lip corr 0.9997-0.9998, aperture delta 0.084-0.141, landmarks 0.064-0.126 / 0.203-0.467, mouth PSNR 51.02-53.38. Only the landmark gates fail: 6/6 on the strict bar, and the proposed 0.10/0.35 bar passes 4/6 (r2: 5/6). The srcmix block sum is 36.87 ms.",
+    "Host footprint: at 400 fps the harness uses about 4.5-5 CPU cores and the GPU is 99.9% busy (Ryzen 9 7950X, 32 threads). box_guard recorded MemAvailable falling 15.37 to 5.79 GB during N15 (about 9.6 GB used) and 13.77 to 7.69 GB for 6-stream T (about 6.1 GB). The r5 set is 1060 MiB of engines."
+   ],
+   "problems": [
+    {
+     "severity": "blocker",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/README.md",
+     "description": "A fresh clone of perf/300fps-4070s has neither the package nor what it runs, because none of it is committed. Untracked (`??` in git status): scripts/repro_400fps/ itself; the whole docs/fps_comparisons/4070s_400fps_20260928/ tree (recipe_gmac_0.50.json, study.json, make_gmac_recipes.py, compare_quality.py, stability_report.py, select_combo.py); and scripts/int8_layer_study.py, unet_int8_smooth.py, video_lineage.py, video_signoff.py, assemble_stagewise_set.py, bench_stagewise_blocks.py and profile_stagewise_block.py. Modified but uncommitted: scripts/build_unet_stagewise.py (+111 lines, the entire --int8-recipe feature) and scripts/chin_multistream_render.py (the shutdown-race fix). The README's 'What the scripts need: This repo. Branch perf/300fps-4070s, including ...' is false for a fresh clone. 00_check.sh cannot catch this because it is itself missing.",
+     "suggested_fix": "Commit these files to perf/300fps-4070s (commit only; pushing is the user's call). In 00_check.sh, add a `git ls-files --error-unmatch` check (or `git diff --quiet`) for each script and recipe the steps call. Then only the external items below remain."
+    },
+    {
+     "severity": "blocker",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/00_check.sh",
+     "description": "Every harness step (T, SUST, PAIR, Q, V, N15) reads .runtime/musetalk_trt_local_sm89.env with an unconditional read_text() in scripts/chin_multistream/gpu.py setup_backends(), so it crashes when the file is absent. .runtime is excluded in .git/info/exclude; here it is a symlink to /workspace/MuseTalk/.runtime. No startup script writes that filename: vast_onstart.sh and run_trt_stagewise_server.sh default to musetalk_trt_best.env. The file was hand-generated on 2026-09-15 by select_unet_trt_profile.py. For the BEFORE baseline it also carries MUSETALK_UNET_BACKEND=trt, MUSETALK_TRT_UNET_ENABLED=1 and MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_sm89_bs8_local/unet_trt.ts. Neither 00_check nor the README mentions it.",
+     "suggested_fix": "Check for the file in 00_check.sh (`need \".runtime/musetalk_trt_local_sm89.env\" ...`). Ship a template in the package and have lib.sh or 30_benchmark.sh install it when absent, with the .ts path filled in from the engine store. Alternatively, make gpu.py treat the file as optional for the stagewise presets."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/30_benchmark.sh",
+     "description": "PAIR, the BEFORE baseline, needs the torch_tensorrt bs8 engine models/tensorrt_unet_sm89_bs8_local/unet_trt.ts (2.1 GB, sha 2c1a9338... in every render.json) plus torch_tensorrt 2.5.0 and the compiled-TAESD toolchain. The package does not create or check any of these. The README calls them 'the repo's shipping engines', but they are not in the repo. A fresh box has to build one (`scripts/unet_engine_store.py ensure --kind unet_ts --provision auto`: about 7 min, 9.5-11 GB RAM, lands under models/tensorrt_unet/<key>/bs8/, not at the env file's path). The rebuilt engine will not have the recorded sha, so the published 'BEFORE: all clips bit-identical to the accepted renders' (T_baseline_pair all_clips_match_accepted=true) is not expected to hold.",
+     "suggested_fix": "In 00_check.sh, warn when the .ts named in the env file is missing, and check `import torch_tensorrt` version 2.5.0. Add a README line with the ensure/adopt command, its time and RAM, and a note that a rebuilt BEFORE engine changes the bit-exactness claim. Optionally add a 05_before_engine.sh."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/README.md",
+     "description": "The six prepared avatars (/workspace/experiments/avatar_diversity_20260927/<id>/, 763 MB) sit outside the repo and cannot be regenerated. Portraits came from an external image-generation tool (spec.json generated_path under /root/.codex/generated_images). The H3 sources came from a ComfyUI server with MiniMax H3 weights (seed 42, 8 steps, CFG 1). Speech came from a Kokoro TTS server (voices af_heart / am_michael), and the prepared cache from the native SD-VAE encoder plus Whisper. Every harness and quality check compares against their render.json hashes, so they must be copied byte for byte. The README instead implies they come from `character_factory/h3_avatar_workflow`. 00_check checks 7 files per avatar. It skips generated_landmarks.npy and chin_delta.npy, which worker.py needs for --compare-accepted in Q and PAIR. It also skips refined_raw.mp4, standard_raw.mp4, pixel_checks.json and mask_samples.npz, which the quality dir= arm and the 40_videos BEFORE column need. It verifies no hashes.",
+     "suggested_fix": "README: say 'copy the six directories byte-exact from the original box (rsync, about 763 MB); they cannot be regenerated because the portraits, H3 and TTS are external'. In 00_check.sh, add the missing files and verify their sha256 against each avatar's render.json/preparation.json/audio.json `artifacts` maps."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/00_check.sh",
+     "description": "Calibration corpus. calibration/unet_multi_avatar_20260928 is an untracked symlink to /workspace/MuseTalk/calibration/... (218 MB), so a fresh clone has nothing there. The README says it has '120 main + 96 holdout', but its manifest.json has main_files 352 and holdout_files 96, and the published gates ran 176 and 48 groups. 00_check accepts >= 120 main files, so a partial corpus passes and 20_gate.sh then reports numbers that cannot be compared with the published ones. The README's 'Rebuild with build_unet_multi_avatar_corpus.py' is not possible on a fresh box: the manifest's sources are 14 avatars (/workspace/experiments/portrait_jaw_video_20260926/{japanese_new,latina_new}, five /workspace/MuseTalk/results/v15/avatars/* including codex_smoke, and the six diversity avatars) and three audio files outside the repo. The references also come from the eager GPU UNet with tf32 and cudnn.benchmark on, so a rebuild is not bit-reproducible.",
+     "suggested_fix": "README: correct the count to 352 + 96 and say 'copy it (218 MB)'; list the rebuild inputs, or drop the rebuild claim. In 00_check.sh, require exactly the manifest.json counts and check every file named in manifest.json['files'] exists (optionally sha256)."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/lib.sh",
+     "description": "The FaceMesh venv path is hardcoded as /workspace/SoulX-FlashHead/.venv/bin/python in three places. One is character_factory/h3_avatar_workflow/backend.py, which is byte-hashed by the code-integrity check and so cannot be edited. The others are scripts/chin_multistream/paths.py and scripts/quality_ab_metrics.py. `install_musetalk.sh --with-chin-tools` creates /workspace/.venvs/musetalk_chin_tools instead, so following the README's install pointer leaves the harness without a tracker. lib.sh's MUSETALK_REPRO_FACEMESH_PY is honoured only by 00_check, so 00_check can pass while the run fails. 00_check checks `import mediapipe` but not mediapipe 0.10.9, numpy 2.2.6 or opencv-contrib 5.0.0.93.",
+     "suggested_fix": "README: give the command `scripts/install_musetalk.sh --matrix cu121 --with-legacy-int8 --with-chin-tools --chin-venv /workspace/SoulX-FlashHead/.venv`, or a symlink from /workspace/SoulX-FlashHead/.venv to the chin venv. Remove the FACEMESH_PY override, or have 00_check reject a non-default value. Check mediapipe.__version__ == '0.10.9'."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/lib.sh",
+     "description": "The MUSETALK_REPRO_AVATARS and MUSETALK_REPRO_CORPUS overrides only reach 00_check.sh, 20_gate.sh --capture-dir and the Q step's --identity-dir. The harness hardcodes ACCEPTED_ROOT=/workspace/experiments/avatar_diversity_20260927 (paths.py), and so do quality_ab_metrics.py (DIV) and video_lineage.py. build_unet_stagewise.py defaults --calib-dir to <repo>/calibration/unet_multi_avatar_20260928, and 10_build_engines.sh never passes $CORPUS. int8_layer_study.py hardcodes CORPUS. Relocating data therefore gives a green 00_check and then failing or mismatched steps. The same /workspace assumption covers box_guard's lease file (/workspace/.gpu_lease).",
+     "suggested_fix": "Either drop these overrides and state in the README that the layout under /workspace is fixed (repo anywhere; avatars, FaceMesh venv, main venv and a writable /workspace at the given paths), or pass --calib-dir \"$CORPUS\" in 10_build_engines.sh and make paths.py, quality_ab_metrics.py and int8_layer_study.py read the same environment variables."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/40_videos.sh",
+     "description": "r2 (srcmix) cannot be rebuilt or re-measured on a fresh box. No step builds it. It needs the base FP16 set models/tensorrt_unet_stagewise_sm89 (up0-up3, tail), srcfp16 (prefix, down0rest) and mixed (INT8 down3/mid with modelopt INT8_DEFAULT_CFG max calibration over 16 corpus files), per unet_fp16/run_srccache.sh and build_mixed.log. 40_videos.sh hardcodes R2CAP=docs/.../4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt. Its *_faces.npz and *_arrays.npz are gitignored (that directory's .gitignore), so step 4 dies on a fresh box at video_lineage.py's `next(cap.glob(...))`. The README still lists r2 as a result the scripts reproduce.",
+     "suggested_fix": "Add an r2 build path to 10_build_engines.sh (for example `--set r2`: FP16 all blocks, then `--int8-blocks down3,mid`, then prefix), or ship the r2 V capture arrays (262 MB) as a download. In 40_videos.sh, check that R2CAP holds the npz files and fail with that instruction. README: mark r2 as 'from the record, not rebuilt' until then."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/00_check.sh",
+     "description": "The harness writes each avatar's read-only arena into /dev/shm (arena.py): 330 MB of frames plus about 300 MB of prep per avatar, roughly 3.8 GB for the six. A container's default /dev/shm is 64 MB. 00_check does not check the free space, and the README does not mention it. This box has 15 GB of shm, 8.9 GB of it held by SoulX.",
+     "suggested_fix": "In 00_check.sh, add `need \"/dev/shm >= 5 GB free\"` (via df -BG /dev/shm), and add a README line: 'docker run --shm-size=8g or larger'."
+    },
+    {
+     "severity": "major",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/30_benchmark.sh",
+     "description": "The Q step writes quality runs with --name \"${id}__$TAG\" and no --out-dir, so they land in the published record: docs/fps_comparisons/4070s_300fps_impl_20260928/quality_metrics/runs/. TAG is derived from the root's basename. When re-measuring the published engines as the README suggests (models/tensorrt_unet_stagewise_sm89_srcg50), TAG=srcg50, and the default step list includes Q. That run would overwrite the published r5 evidence <id>__srcg50.json/.md, which the README table, compare_quality.py and the sign-off videos all rely on.",
+     "suggested_fix": "Pass `--out-dir \"$OUT/quality_runs\"` to quality_ab_metrics.py and have the comparison read from there, or default TAG to `repro_<suffix>`. Also, 40_videos.sh defaults its tag from ROOT_NAME (r5), not from the root given to 30_benchmark.sh, so pass the tag through or print it."
+    },
+    {
+     "severity": "minor",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/00_check.sh",
+     "description": "Package versions are only partly checked. modelopt and diffusers are import-only checks, although the manifests' onnx_sha256 depends on modelopt 0.23.2, diffusers 0.30.2 and onnx 1.17.0. torch_tensorrt (needed by PAIR) and onnx are not checked at all. The manifests record only TRT and torch, not modelopt, diffusers, onnx, driver or CUDA, so a rebuild cannot be compared on those. The README says 'the engine tools need the TensorRT and modelopt extras' without naming `--matrix cu121 --with-legacy-int8`.",
+     "suggested_fix": "Compare `pip freeze` for torch, torch_tensorrt, tensorrt-cu12, nvidia-modelopt, diffusers, onnx, transformers, numpy and opencv-python against requirements/constraints-cu121.txt. Put the exact install command in the README. Have build_unet_stagewise.py record the modelopt, diffusers and onnx versions and the driver version. After the build, diff each block's onnx_sha256 against the published manifest to show the inputs are identical."
+    },
+    {
+     "severity": "minor",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/00_check.sh",
+     "description": "The weight checks are weak. `ls models/taesd* >/dev/null` passes for any path starting with models/taesd, even an empty directory. unet.pth is only checked as non-empty, not against the manifests' size of 3400074924 bytes. The TAESD safetensors and config sha256 (8b947cff..., 7e586377...) are recorded in every render.json but not verified. Also, models/ is gitignored: here it is a symlink to /workspace/MuseTalk/models, and on a fresh clone it is created by download_weights.sh.",
+     "suggested_fix": "Check models/taesd/diffusion_pytorch_model.safetensors and config.json by sha256 against render.json, and unet.pth by size (optionally sha256) against the manifest's unet_weights.bytes."
+    },
+    {
+     "severity": "minor",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/README.md",
+     "description": "The README says nothing about the seed timing cache. build_unet_stagewise.py silently seeds from docs/fps_comparisons/4070s_300fps_20260927/unet_probe/tt16_timing_cache.bin when that file exists. It is gitignored and present only in /workspace/MuseTalk, so running the package from that checkout would build differently from the published, unseeded builds. The rebuild also puts FP16 and INT8 blocks in one root that shares timing_cache.bin. The published blocks came from four roots with separate caches: gmac_0.50 fresh, srcfp16, the base set and mixed. This adds to tactic nondeterminism.",
+     "suggested_fix": "README: state 'no seed cache; the published INT8 blocks were built cold'. In 00_check.sh, warn when SEED_TIMING_CACHE exists, or pass an explicit fresh --timing-cache path per build step."
+    },
+    {
+     "severity": "minor",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/README.md",
+     "description": "Three problems in the expected-results table. (a) 'UNet per bs16 call (sum of block engines) 31.20 ms' is select_combo.py's prediction, which substitutes gmac_0.59's down3/mid. In blocks/gmac_sets.json, the actual r5 blocks (srcmix down0rest/up3/tail plus all seven gmac_0.50 blocks) sum to 31.17 ms, and no package step runs bench_stagewise_blocks.py, so that row is never re-measured. (b) The N15 row says 'no errors', but T_srcg50_n15_stability.json has stop_warning RuntimeError('worker 5 exited (exitcode None)'), as do T_srcg50_sustained and T_baseline_pair. The committed harness still has this shutdown race; the fix is uncommitted. (c) summary() prints all_clips_match_accepted, which is false for every r5 run as expected for INT8, and the README does not warn the reader.",
+     "suggested_fix": "Use 31.17 ms, or label 31.20 as select_combo's prediction; optionally add a BENCH step to 30_benchmark.sh. Note that the stop_warning is a known harness shutdown race until chin_multistream_render.py is committed. Add 'all_clips_match_accepted=false is expected for r5; deterministic_per_identity must be true'."
+    },
+    {
+     "severity": "minor",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/README.md",
+     "description": "The README's 'To re-measure the published engines, pass models/tensorrt_unet_stagewise_sm89_srcg50' cannot work on a fresh box. models/ is gitignored, and srcg50 and srcmix are symlink farms of absolute links into /workspace/MuseTalk/models/{tensorrt_unet_stagewise_sm89, _srcfp16, _gmac_0.50, _mixed}. A plain copy breaks them, and the README does not say this.",
+     "suggested_fix": "README: 'copy with cp -L (or rsync -L) from the original box, same GPU model, driver and TRT only; then verify each block's engine_sha256 against bs16/manifest.json'. Optionally, 20_gate.sh could verify those hashes before gating."
+    },
+    {
+     "severity": "minor",
+     "file": "/workspace/MuseTalk-perf300/scripts/repro_400fps/00_check.sh",
+     "description": "Host prerequisites are neither listed nor checked. Tools: ffmpeg with libx264 (harness V capture, quality tool, videos) and flock/setsid (box_guard). A writable /workspace (box_guard lease). Power limit: all numbers were measured at the 220 W maximum, and 00_check logs power.limit but does not warn when it is lower. Driver: 595.84 on this box, recorded nowhere, although the README calls engines driver-specific. CPU: the harness uses about 5 cores on a 32-thread 7950X. RAM: N15 used about 9.6 GB of MemAvailable, and box_guard requires 10-12 GB available before starting, so plan for at least 16 GB free (a 32 GB box). Disk: about 17-19 GB of setup (main venv 9.5 GB, weights about 3.7 GB, BEFORE .ts 2.1 GB, avatars 0.76 GB, corpus 0.22 GB, chin venv), then about 3.5 GB per full run (engines 1.06 GB, Q 216 MB, V 262 MB, videos 300-600 MB). 00_check's '~1.6 GB engine set' is really 1.06 GB (srcg50 total_engine_mib 1060).",
+     "suggested_fix": "Add a 'Fresh machine' section to the README listing these items with the numbers above. In 00_check.sh, add need-checks for ffmpeg -encoders | grep libx264, flock, setsid and a writable /workspace. Warn when power.limit < 220 W, and log driver_version (and record it in the manifests)."
+    }
+   ]
+  },
+  {
+   "scope": "History cross-check (read-only, no GPU) of /workspace/MuseTalk-perf300/scripts/repro_400fps/ against the record of what was run: srcg50, srcmix, gmac_0.50, srcfp16, sm89 and mixed manifests (build_flags, variant, build_log, int8_calibration, assembled_from, onnx/engine sha); blocks/build_recipes_r2.sh plus blocks/build_gmac_0.50.log; gate/run_assemble_gate.sh, finalize_srcg50.log and srcg50.out; validate_candidate.sh; run_pair_baseline_r5.sh; unet_fp16/run_srccache.sh and run_int8_set.sh; taesd_trt; and the args, env and harness_code_sha256 of every published chin_multistream JSON. Also ran bash -n on all 7 files, 10_build_engines.sh --dry-run, and two CPU-only JSON checks (make_gmac_recipes.py to scratch, and the recipe export transform replicated in plain Python).",
+   "verified": [
+    "Build step 2 matches the published gmac_0.50 build (blocks/build_gmac_0.50.log): --batch 16 --opt-level 5 --variant srccache --blocks down1,down2,down3,mid,up0,up1,up2 --int8-recipe recipe_gmac_0.50.json. Only the recipe path form differs (relative vs absolute); the precision tag int8_qdq_recipe:f6f90777264b5302 hashes the file bytes, so it is the same.",
+    "Build flags: every block entry in the srcg50, srcmix, gmac_0.50, srcfp16 and sm89 manifests is FP16, builder opt level 5, workspace 2.0 GB, timing cache on, opset 17, batch 16. The package passes the same values (workspace and timing cache are builder defaults).",
+    "Variant: srcg50, srcmix, gmac_0.50 and srcfp16 are srccache. sm89, the source of r5's up3/tail plans, is variant default. chain_spec shows the up3 and tail specs are identical in both variants, so building them with --variant srccache does not change the network.",
+    "Finalize matches: the published set ran --blocks prefix with no recipe after assembly (run_assemble_gate.sh:9); step 3 does the same. The builder keeps step 2's int8_calibration record. finalize_srcg50.log shows 'prefix: engine up to date, skip', so the prefix ONNX export is deterministic (the 22:50 export hashed the same as the 18:11 one).",
+    "Recipe: sha16 f6f90777264b5302 equals the manifest's recipe_sha256_16. 117 layers, all in down1..up2: down1 19, down2 23, down3 4, mid 14, up0 8, up1 26, up2 23. No tensors and no smooth_ff.",
+    "Recipe chain reproduces: make_gmac_recipes.py regenerates recipes_gmac.json byte-for-byte for all four cuts, and the export transform rebuilds recipe_gmac_0.50.json's layers, summary and eval exactly from study.json.",
+    "int8_layer_study.py defaults match the recorded study splits: calib 32, main_eval 88, holdout 96, quick 12, amax-MSE files 3. All the stage names 50_derive_recipe.sh uses are valid choices.",
+    "The builder's --calib-dir default equals the published calibration dir (/workspace/MuseTalk-perf300/calibration/unet_multi_avatar_20260928; 16 files, 8 batches). No seed timing cache was used in history or in the package: tt16_timing_cache.bin is absent and no manifest has a timing_cache_seed key.",
+    "TAESD: the package builds batch 8 with default opt level 3, not strongly typed, which is exactly the fingerprint of the published key 6111388248264a4ef2ae. The key must match because the preset sets MUSETALK_TAESD_TRT_BUILD=0. On this box the step reuses the existing engine; it does not pass --force, so the engine the live server uses in the shared /workspace/MuseTalk/models/taesd/trt is not overwritten.",
+    "UNet gate: 20_gate.sh's validate_unet_backend.py args and env are identical to run_assemble_gate.sh:11-12 (runtime backend, padded batch 8, group 2, limit 0, warmup 1, iters 2, fail-mae 0.01, fail-max-abs 0.5; trt_stagewise, batch 16, cache dir, MUSETALK_TRT_FALLBACK=0). The summary keys mae_max and max_abs_max exist. The quoted r5 (0.0044/0.78, 0.0039/1.26) and r2 (0.0025/0.39, 0.0021/0.24) values match srcg50.out and gunet_srcmix_*.json.",
+    "Harness: T, SUST, PAIR (baseline, then r5), Q, V and N15 args all match the recorded JSON args and the box_guard 'running:' lines. Streams 6 or 15; loops 18/18/12+18/1/1/7; repeats 2/5/2/1/1/10; --min-timed-s 60; --compare-accepted, --save-arrays and --encode where published; preset stagewise16_taesdtrt with pack 16; baseline with pack 8. PAIR order matches.",
+    "Expected numbers in README.md and the 30_benchmark.sh header match the records: T 401.8/400.1; SUST 404.0 -> 399.96; PAIR 252.57/251.38 vs 401.38/400.08; N15 399.6-403.9 (median 399.8), slowest clip 26.56 fps.",
+    "40_videos.sh's video_lineage.py args (--col-width 512 --crf 10, r2 arm V_srcmix_taesdtrt|srcmix_taesdtrt) match the command recorded in focus_before_r2_r5/lineage_report.json.",
+    "The .runtime/musetalk_trt_local_sm89.env on this box matches the recorded env_file_values exactly: 22 keys, all values equal.",
+    "Harness code: all 8 chin_multistream module files match the recorded hashes. Only chin_multistream_render.py differs (see problems). git HEAD's copy is byte-identical to the recorded 181f7439...",
+    "Syntax and dry-run: bash -n passes on all 7 files, and 10_build_engines.sh --dry-run prints the expected 4 commands.",
+    "Guard thresholds differ on purpose and do not affect results: builds require 12 GB free vs 8 GB published, with --wait-min 120 vs 90. The published gmac_0.50 build peaked at 10.48 GB group RSS.",
+    "The fresh-root manifest will lack assembled_from and int8_calibration_by_overlay. Nothing reads them (only assemble_stagewise_set.py writes them), so this is cosmetic."
+   ],
+   "problems": [
+    {
+     "severity": "blocker",
+     "file": "scripts/repro_400fps/00_check.sh",
+     "description": "Every harness run reads .runtime/musetalk_trt_local_sm89.env, and fails if it is missing (scripts/chin_multistream/gpu.py:57-63 calls read_text(), which raises FileNotFoundError). The file is gitignored (.gitignore:26) and is a symlink into /workspace/MuseTalk/.runtime. The package neither checks for it nor creates it. Its 22 values are part of every published run's effective env: for example MUSETALK_BLEND_FIXED_POINT=1 and MUSETALK_BLEND_SHRINK_MASK_BBOX=1, and for BEFORE, MUSETALK_UNET_BACKEND=trt with MUSETALK_TRT_UNET_PATHS=8:models/tensorrt_unet_sm89_bs8_local/unet_trt.ts. On this box it matches the record, but on any other machine T, SUST, PAIR, Q, V and N15 all crash at backend load.",
+     "suggested_fix": "In 00_check.sh, add a need-check that parses the file and compares it with env.env_file_values in docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/T_srcg50.json. Add a small helper (or a 00_check --write-env option) that writes the file from that record when it is absent."
+    },
+    {
+     "severity": "major",
+     "file": "scripts/repro_400fps/30_benchmark.sh",
+     "description": "The Q step (line 28) calls quality_ab_metrics.py pair without --out-dir, so it writes <id>__<TAG>.json/.md into the tool's default docs/fps_comparisons/4070s_300fps_impl_20260928/quality_metrics/runs/, the published record directory. The README's own example passes the published root (models/tensorrt_unet_stagewise_sm89_srcg50), where TAG becomes srcg50, and the default steps include Q. Doing that overwrites the six published r5 quality records (*__srcg50.json), which are untracked in git and so cannot be recovered. compare_quality.py (RUNS) and video_lineage.py (QRUNS) hard-code the same directory, which is the only reason the step currently works.",
+     "suggested_fix": "Pass --out-dir \"$OUT/quality_runs\". Give compare_quality.py and video_lineage.py a runs-dir option, or copy the *__srcmix_taesdtrt records into $OUT/quality_runs. Refuse a TAG whose <id>__<TAG>.json already exists in the published runs dir, or always prefix repro_ onto the TAG."
+    },
+    {
+     "severity": "major",
+     "file": "scripts/repro_400fps/20_gate.sh",
+     "description": "The srccache gate (line 21) runs docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/srccache_exact.py, which has three problems. (a) After the gated exactness check, it loads --baseline-root, which defaults to models/tensorrt_unet_stagewise_sm89 (the original default-variant FP16 set), for an ungated comparison. The package never builds that set, so on a fresh machine the step exits non-zero with no PASS line even when forward_cached == forward. (b) It writes srccache_exact_<rootname>.json next to itself in the published r1-r3 record directory, so running 20_gate.sh on srcmix overwrites the tracked published record. (c) It was never run on the published r5; only srcfp16 and srcmix have records. So this is a new check with no published r5 value, not a match to the published gate.",
+     "suggested_fix": "Move a copy into scripts/ (or the package) with an --out option, and make --baseline-root optional: skip the vs_default comparison when the set is absent. Label it in 20_gate.sh and the README as a check the published r5 did not run."
+    },
+    {
+     "severity": "major",
+     "file": "scripts/repro_400fps/20_gate.sh",
+     "description": "The TAESD step (line 25) is not the published TAESD gate. The published G-TAESD gate was taesd_trt/gate_taesd_trt.py: 3584 frames, max 5 LSB, mean 0.066, verdict FAIL, stored in the engine meta at 06:04:48. 20_gate.sh instead runs 'vae_fast_decoder.py verify', which only loads the engine, checks the probe hashes and echoes meta['gate']. The 'recorded G-TAESD verdict' the comment promises exists only because this box reuses the published engine (key 6111388248264a4ef2ae). After a real rebuild it prints gate=not recorded.",
+     "suggested_fix": "Either run gate_taesd_trt.py under the guard, with its report redirected to $OUT (it currently writes into the published taesd_trt dir and into the engine meta), or relabel the step 'load + probe check' and drop the verdict claim."
+    },
+    {
+     "severity": "major",
+     "file": "scripts/repro_400fps/README.md",
+     "description": "r2 (srcmix) cannot be rebuilt, and only partly re-measured. The published r2 was assembled from three roots: the sm89 default-variant FP16 set (build_bs16, 05:22-05:31); the mixed root's INT8 down3/mid (--blocks down3,mid --int8-blocks down3,mid --force, default variant, modelopt INT8_DEFAULT_CFG max calibration over 8 batches; run_int8_set.sh); and srcfp16's prefix/down0rest (--variant srccache --blocks prefix,down0rest). They were joined by the inline Python in run_srccache.sh and then finalised. None of this is scripted. 40_videos.sh and compare_quality.py rely on the published r2 capture V_srcmix_taesdtrt (262 MB, untracked) and its quality records. Re-measuring r2 with 30_benchmark.sh T would use --loops 18, while the published r2 T (Te_srcmix_taesdtrt_n6, 350.2 fps) used --loops 16.",
+     "suggested_fix": "Add an r2 build target: either one srccache root built with '--int8-blocks down3,mid', or the three-root assembly verbatim followed by a prefix finalize. Make T's --loops follow the target (16 for r2, 18 for r5). Otherwise, state in README.md that r2 is reused from the record, not rebuilt."
+    },
+    {
+     "severity": "major",
+     "file": "scripts/repro_400fps/00_check.sh",
+     "description": "The PAIR BEFORE arm (baseline preset) loads the shipping bs8 .ts UNet, models/tensorrt_unet_sm89_bs8_local/unet_trt.ts (a symlink to ../tensorrt_unet_static_bs8_20260529/unet_trt.ts), through the env file's MUSETALK_TRT_UNET_PATHS. The package neither checks for this engine nor builds it.",
+     "suggested_fix": "Add a need-check for the file in 00_check.sh, and point the README at how that engine is produced (unet_engine_store.py, per docs/STARTUP.md)."
+    },
+    {
+     "severity": "major",
+     "file": "scripts/repro_400fps/10_build_engines.sh",
+     "description": "Nothing checks that the fresh-root build reproduces the published network. Building every block into one fresh root should give the same network: block specs, build flags, the recipe and the up3/tail specs are all identical, so each block's ONNX should hash the same as in the srcg50 manifest (export is deterministic, per the finalize skip). But the published up3/tail were exported at 05:22-05:31 under variant default, by a builder that predates later edits to unet_stagewise_trt.py (18:07) and build_unet_stagewise.py (22:09). Whether the current code exports them identically is unproven. Engine sha256s and the probe hash (e738c41c...) will differ regardless, because TensorRT tactic timing is not deterministic.",
+     "suggested_fix": "After the finalize step, compare blocks[*].onnx_sha256 and build_flags against models/tensorrt_unet_stagewise_sm89_srcg50/bs16/manifest.json and print MATCH/DIFF per block. Expect 11/11 MATCH; engine_sha256 is expected to differ. Warn loudly on any ONNX mismatch."
+    },
+    {
+     "severity": "major",
+     "file": "scripts/repro_400fps/00_check.sh",
+     "description": "Much of what the package needs is not committed. Untracked: scripts/repro_400fps/*, scripts/int8_layer_study.py, scripts/assemble_stagewise_set.py, scripts/bench_stagewise_blocks.py, scripts/video_lineage.py, scripts/video_signoff.py, and all of docs/fps_comparisons/4070s_400fps_20260928/ (including recipe_gmac_0.50.json, compare_quality.py, stability_report.py and make_gmac_recipes.py). scripts/build_unet_stagewise.py (which has --int8-recipe) and scripts/chin_multistream_render.py are modified relative to HEAD 7400c44. So 00_check.sh:27's hint that the recipe is 'committed with this repo' is false today.",
+     "suggested_fix": "Commit these when the user asks. Until then, say in README.md and in the 00_check message that these files are uncommitted on perf/300fps-4070s."
+    },
+    {
+     "severity": "minor",
+     "file": "scripts/repro_400fps/README.md",
+     "description": "The harness code differs from what produced the published numbers. The current scripts/chin_multistream_render.py (sha 47400421...) does not match the 181f7439... recorded in every published run JSON, which equals git HEAD. The working-tree change, made at 00:54 after the N15 run started, only affects shutdown: the collector now treats EOF after 'bye' as a clean exit. Every published run ended with stop_warning 'worker N exited (exitcode None)'. The timing path is unchanged, but a rebuild's harness_code_sha256 will not match and its stop_warning will be null.",
+     "suggested_fix": "Note this in the expected-results section, or commit the fix and record the new sha as the reference."
+    },
+    {
+     "severity": "minor",
+     "file": "scripts/repro_400fps/10_build_engines.sh",
+     "description": "The timing-cache history and build order differ from the published build. Published: up3/tail were tuned in the sm89 root's cache after head..up2; prefix then down0rest in a fresh srcfp16 cache; the INT8 blocks in a fresh gmac_0.50 cache. Package: one shared cache, built in the order down0rest, up3, tail, then the 7 INT8 blocks, then prefix. The effect is on tactic choice only. However, the builder's docstring gives ~5% per-block tactic variance, against the README's '~1%', and the published sets did not use --second-build.",
+     "suggested_fix": "Explain the shared-cache and order difference in README.md, and reconcile the ~1% claim with the builder's ~5% per-block figure. Rely on the per-block benchmark (next item) to quantify drift."
+    },
+    {
+     "severity": "minor",
+     "file": "scripts/repro_400fps/README.md",
+     "description": "The 'UNet per bs16 call 31.20 ms' expected result has no step that measures it. It was also never measured on srcg50 itself: it is a sum from the interleaved blocks/run_r5_select.sh bench (--rounds 9), taking srcmix's non-INT8 blocks (srcmix total 36.87 ms) plus gmac_0.50's down1-up2 blocks (16.49 ms).",
+     "suggested_fix": "Add an optional step: bench_stagewise_blocks.py --root models/tensorrt_unet_stagewise_sm89_srcg50 --root $ENGINE_ROOT --rounds 9 --out $OUT/blocks.json. This times the published set and the rebuild interleaved, so tactic drift is measured directly."
+    },
+    {
+     "severity": "minor",
+     "file": "scripts/repro_400fps/lib.sh",
+     "description": "MUSETALK_REPRO_CORPUS is not passed through everywhere. 10_build_engines.sh relies on the builder's --calib-dir default, and srccache_exact.py hard-codes /workspace/MuseTalk-perf300/calibration/...; only 00_check.sh and 20_gate.sh use $CORPUS. The default equals the published directory, and for r5 the calibration data cannot change the ONNX (input amax is pinned, weight amax is per-channel max, and non-recipe quantizers are disabled). So only overrides, and r2-style max calibration, are affected.",
+     "suggested_fix": "Pass --calib-dir \"$CORPUS\" in the builder calls. Give the srccache check a corpus argument."
+    },
+    {
+     "severity": "minor",
+     "file": "scripts/repro_400fps/00_check.sh",
+     "description": "Several environment knobs change the builds without being recorded, and nothing warns about them. MUSETALK_TRT_AVG_TIMING_ITERS changes UNet builds but is not in build_flags. MUSETALK_TAESD_TRT_OPT_LEVEL, MUSETALK_TAESD_TRT_STRONGLY_TYPED and MUSETALK_TAESD_TRT_DIR change the TAESD key; because the preset sets MUSETALK_TAESD_TRT_BUILD=0, a mismatched key makes the harness refuse to load.",
+     "suggested_fix": "Have 00_check.sh warn if any of these is set, and unset them in 10_build_engines.sh."
+    },
+    {
+     "severity": "minor",
+     "file": "scripts/repro_400fps/README.md",
+     "description": "The disk estimate is high: a fresh r5 set is 1060 MiB of plans (total_engine_mib) plus a timing cache of about 20 MB, not the ~1.6 GB stated in the steps table and the 00_check log line. The fresh root holds real plan files, whereas the published srcg50 is symlinks into srcfp16, sm89 and gmac_0.50 under the live server's /workspace/MuseTalk/models.",
+     "suggested_fix": "Change the estimate to ~1.1 GB, and note the real-files vs symlinks difference."
+    },
+    {
+     "severity": "minor",
+     "file": "scripts/repro_400fps/50_derive_recipe.sh",
+     "description": "If the published docs/.../int8_study/study.json is passed as the argument, the inventory, baseline, amax_mse and sens stages rewrite it in place, because int8_layer_study.py loads --out and saves back over it.",
+     "suggested_fix": "Refuse any study path under docs/fps_comparisons/4070s_400fps_20260928/, or always copy the file to $OUT first."
+    },
+    {
+     "severity": "minor",
+     "file": "scripts/repro_400fps/40_videos.sh",
+     "description": "The header promises repro_<tag>_signoff/ (plain side-by-sides, clean single clips and a reel), but the script only produces repro_<tag>_focus/ and then points at video_signoff.py for the published r5.",
+     "suggested_fix": "Either generate the sign-off set for the rebuild, or correct the header."
+    }
+   ]
+  }
+ ]
+}

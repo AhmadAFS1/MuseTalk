@@ -1,0 +1,186 @@
+{
+ "created_utc": "2026-09-28T17:49:26Z",
+ "args": {
+  "batch": 16,
+  "seconds": 90.0,
+  "warmup": 15.0,
+  "raw_seconds": 15.0,
+  "root": "models/tensorrt_unet_stagewise_sm89_mixed2",
+  "label": "mixed2",
+  "out": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/unet_fp16/stepB_chain_bench_bs16_mixed2.json"
+ },
+ "tags": "[M]",
+ "load_s": 1.7393391132354736,
+ "vram": {
+  "device_used_by_backend_mib": 1710.0,
+  "smi_used_before_mib": 191.0,
+  "smi_used_after_load_mib": 1901.0,
+  "torch_allocated_mib": 286.7119140625,
+  "name": "tensorrt_unet_stagewise",
+  "engine_dir": "models/tensorrt_unet_stagewise_sm89_mixed2/bs16",
+  "batch": 16,
+  "cuda_graph": true,
+  "arena_mib": 191.5673828125,
+  "activation_mib": 94.7109375,
+  "device_memory_sizes_mib": {
+   "head": 10.25,
+   "down0": 151.5673828125,
+   "down1": 102.24609375,
+   "down2": 52.9541015625,
+   "down3": 5.01123046875,
+   "mid": 17.7197265625,
+   "up0": 6.8818359375,
+   "up1": 51.99462890625,
+   "up2": 102.54150390625,
+   "up3": 191.5673828125,
+   "tail": 20.0
+  },
+  "probe_status": "exact",
+  "torch_max_allocated_mib": 300.21240234375
+ },
+ "sustained": {
+  "calls": 2509,
+  "wall_s": 90.0861702549737,
+  "wall_ms_per_call": 35.90520934833547,
+  "wall_ms_per_frame": 2.2440755842709668,
+  "wall_fps": 445.6177889056576,
+  "event_ms_per_call": {
+   "median": 35.84204864501953,
+   "mean": 35.903537724397246,
+   "p90": 36.102142333984375,
+   "p99": 36.17279815673828,
+   "min": 35.45087814331055,
+   "max": 37.216705322265625,
+   "n": 2509
+  },
+  "event_ms_per_frame_median": 2.2401280403137207,
+  "host_ms_per_call_median": 0.07714913226664066,
+  "gpu": {
+   "samples": 90,
+   "sm_mhz": {
+    "median": 2445.0,
+    "min": 2415.0,
+    "max": 2460.0,
+    "p05": 2415.0,
+    "p95": 2460.0
+   },
+   "mem_mhz": {
+    "median": 10251.0,
+    "min": 10251.0,
+    "max": 10251.0,
+    "p05": 10251.0,
+    "p95": 10251.0
+   },
+   "power_w": {
+    "median": 207.46,
+    "min": 206.61,
+    "max": 209.8,
+    "p05": 206.94,
+    "p95": 209.34
+   },
+   "power_limit_w": {
+    "median": 220.0,
+    "min": 220.0,
+    "max": 220.0,
+    "p05": 220.0,
+    "p95": 220.0
+   },
+   "temp_c": {
+    "median": 68.0,
+    "min": 66.0,
+    "max": 68.0,
+    "p05": 66.0,
+    "p95": 68.0
+   },
+   "util_pct": {
+    "median": 100.0,
+    "min": 100.0,
+    "max": 100.0,
+    "p05": 100.0,
+    "p95": 100.0
+   },
+   "mem_used_mib": {
+    "median": 1913.0,
+    "min": 1913.0,
+    "max": 1925.0,
+    "p05": 1913.0,
+    "p95": 1925.0
+   },
+   "throttle_hist": {
+    "0x0000000000000004": 90
+   }
+  }
+ },
+ "raw_graph_replay": {
+  "ms_per_call": {
+   "median": 35.88948211669922,
+   "mean": 35.89564187186105,
+   "p90": 35.9546875,
+   "p99": 36.0153076171875,
+   "min": 35.77999267578125,
+   "max": 36.06148986816406,
+   "n": 42
+  },
+  "ms_per_frame_median": 2.2430926322937013,
+  "gpu": {
+   "samples": 15,
+   "sm_mhz": {
+    "median": 2445.0,
+    "min": 2415.0,
+    "max": 2475.0,
+    "p05": 2415.0,
+    "p95": 2460.0
+   },
+   "mem_mhz": {
+    "median": 10251.0,
+    "min": 10251.0,
+    "max": 10251.0,
+    "p05": 10251.0,
+    "p95": 10251.0
+   },
+   "power_w": {
+    "median": 207.51,
+    "min": 207.0,
+    "max": 208.38,
+    "p05": 207.0,
+    "p95": 207.96
+   },
+   "power_limit_w": {
+    "median": 220.0,
+    "min": 220.0,
+    "max": 220.0,
+    "p05": 220.0,
+    "p95": 220.0
+   },
+   "temp_c": {
+    "median": 68.0,
+    "min": 67.0,
+    "max": 68.0,
+    "p05": 67.0,
+    "p95": 68.0
+   },
+   "util_pct": {
+    "median": 100.0,
+    "min": 100.0,
+    "max": 100.0,
+    "p05": 100.0,
+    "p95": 100.0
+   },
+   "mem_used_mib": {
+    "median": 1913.0,
+    "min": 1913.0,
+    "max": 1925.0,
+    "p05": 1913.0,
+    "p95": 1925.0
+   },
+   "throttle_hist": {
+    "0x0000000000000004": 15
+   }
+  }
+ },
+ "decision": {
+  "ms_per_frame": 2.2401280403137207,
+  "verdict": "GO",
+  "rule": "bs16: <=2.51 GO, 2.51-2.64 marginal, >2.64 K2; bs8: <=2.60 GO"
+ }
+}

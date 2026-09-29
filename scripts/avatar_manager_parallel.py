@@ -340,6 +340,18 @@ class ParallelAvatarManager:
         self.unet_backend_name = getattr(self.unet_backend, "name", "tensorrt_unet")
         self.unet_compiled = False
         print(f"✅ UNet backend active: {self.unet_backend_name}")
+        if self._env_enabled("MUSETALK_FREE_EAGER_UNET", "0"):
+            # Added code (300 fps plan item 0.6/2.3): the TensorRT UNet
+            # backends carry their own weights, so the eager FP16 UNet
+            # (~1.7 GB VRAM) is only kept alive by this reference. Default 0
+            # keeps it resident exactly as before.
+            self.eager_unet_model = None
+            import gc
+
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            print("ℹ️  Eager UNet released (MUSETALK_FREE_EAGER_UNET=1)")
 
     def compile_models(self):
         """Compile UNet and VAE with per-module fallback instead of all-or-nothing restore."""

@@ -1,0 +1,545 @@
+{
+ "command": [
+  "scripts/video_lineage.py",
+  "--crf",
+  "12"
+ ],
+ "script_sha256": "cd84b7628a1cd7d82216c50288f521f84bef9c63b87dca6a5433949d3c36e8a5",
+ "crf": 12,
+ "col_width": 400,
+ "before": [
+  "BEFORE (previous working pipeline)",
+  "1 stream 148-171 fps | same 6-stream harness 252.0 fps",
+  "shipping TensorRT FP16 bs8 UNet + compiled TAESD, same chin recipe (pre-change backends)"
+ ],
+ "arms": [
+  {
+   "name": "r2",
+   "fps": "350.2 fps aggregate (6 streams)",
+   "what": "stagewise FP16 UNet + source-prefix cache + INT8 down3/mid + TRT TAESD",
+   "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt",
+   "quality_label": "srcmix_taesdtrt"
+  },
+  {
+   "name": "r3",
+   "fps": "415.6 fps aggregate (6 streams)",
+   "what": "r2 + broad INT8 PTQ on 6 UNet blocks (no recovery)",
+   "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcv1_taesdtrt",
+   "quality_label": "srcv1_taesdtrt"
+  },
+  {
+   "name": "r4",
+   "fps": "414.9 fps aggregate (6 streams)",
+   "what": "r2 + layer-selective INT8 (146 layers; down0/up3/audio K/V FP16)",
+   "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcblkA8",
+   "quality_label": "srcblkA8"
+  },
+  {
+   "name": "r5 NEW",
+   "fps": "400 fps sustained aggregate (6 streams; 404.0 to 399.96 over 5 x 64 s)",
+   "what": "r2 + INT8 on 117 layers chosen by error per MAC (gmac_0.50)",
+   "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcg50",
+   "quality_label": "srcg50"
+  }
+ ],
+ "identities": {
+  "black_man_short_beard": {
+   "BEFORE": {
+    "raw_matches_render_json": true,
+    "frames_sha256": "7fd04eba4dc18d52cdb72f61463cbe3c9269319d3d41478e5b3c650a526bd5ba",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0,
+     "matches_pixel_checks_rows": true
+    }
+   },
+   "mouth_box_size_wh": [
+    176,
+    110
+   ],
+   "mouth_box_follows": "BEFORE lip landmarks, centre smoothed +-12 frames (Hann)",
+   "face_box_xys": [
+    37,
+    145,
+    436
+   ],
+   "r2": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "ef6d3eb653e417e2ffce1a6a5ed478cd5d53b59c11794c285d3486c15a2d0728",
+    "frames_sha256": "ef6d3eb653e417e2ffce1a6a5ed478cd5d53b59c11794c285d3486c15a2d0728",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt",
+    "tag": "stream00_black_man_short_beard"
+   },
+   "r3": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "804902e8deea49d3415e2e6af62ad7b8a4dcd2aeeee6b884a22302a2df2e28ed",
+    "frames_sha256": "804902e8deea49d3415e2e6af62ad7b8a4dcd2aeeee6b884a22302a2df2e28ed",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcv1_taesdtrt",
+    "tag": "stream00_black_man_short_beard"
+   },
+   "r4": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "c3ab416da97ff351b429a944727dcd6999d6a54baea906d92d69e7750eaff1d7",
+    "frames_sha256": "c3ab416da97ff351b429a944727dcd6999d6a54baea906d92d69e7750eaff1d7",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcblkA8",
+    "tag": "stream00_black_man_short_beard"
+   },
+   "r5 NEW": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "92cb88822f12a7b58979eeae4ad443f36004e05dedb7e0db7d976c12b2267359",
+    "frames_sha256": "92cb88822f12a7b58979eeae4ad443f36004e05dedb7e0db7d976c12b2267359",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcg50",
+    "tag": "stream00_black_man_short_beard"
+   },
+   "stills_frames_1based": {
+    "widest_mouth": 16,
+    "last_column_most_different_output": 221
+   },
+   "video": "experiments/video_validation/lineage_all_rounds/black_man_short_beard_lineage.mp4",
+   "video_size": [
+    2000,
+    1668
+   ]
+  },
+  "black_woman": {
+   "BEFORE": {
+    "raw_matches_render_json": true,
+    "frames_sha256": "2b697c4fe61a9b3ca05d283bac2a6848522de758941d8a786c8d26de34682266",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0,
+     "matches_pixel_checks_rows": true
+    }
+   },
+   "mouth_box_size_wh": [
+    168,
+    106
+   ],
+   "mouth_box_follows": "BEFORE lip landmarks, centre smoothed +-12 frames (Hann)",
+   "face_box_xys": [
+    29,
+    138,
+    456
+   ],
+   "r2": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "fcf8cc891cfb213104ad9c9e7895aa1010d5b63dc52a59c912f0e95bde805851",
+    "frames_sha256": "fcf8cc891cfb213104ad9c9e7895aa1010d5b63dc52a59c912f0e95bde805851",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt",
+    "tag": "stream01_black_woman"
+   },
+   "r3": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "81f893a29c0b396e96eb9654cf6cbefc27fab42ba44846e19cd15718a3d2d52a",
+    "frames_sha256": "81f893a29c0b396e96eb9654cf6cbefc27fab42ba44846e19cd15718a3d2d52a",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcv1_taesdtrt",
+    "tag": "stream01_black_woman"
+   },
+   "r4": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "aa548b366d8dca8cf5021d6f5adf9728523fc9b27022d5fa7d02503fc3aaa160",
+    "frames_sha256": "aa548b366d8dca8cf5021d6f5adf9728523fc9b27022d5fa7d02503fc3aaa160",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcblkA8",
+    "tag": "stream01_black_woman"
+   },
+   "r5 NEW": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "8304cf95afacb258e632d1b1399a6027d45b071df37840c2a14e86702690d5ce",
+    "frames_sha256": "8304cf95afacb258e632d1b1399a6027d45b071df37840c2a14e86702690d5ce",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcg50",
+    "tag": "stream01_black_woman"
+   },
+   "stills_frames_1based": {
+    "widest_mouth": 184,
+    "last_column_most_different_output": 140
+   },
+   "video": "experiments/video_validation/lineage_all_rounds/black_woman_lineage.mp4",
+   "video_size": [
+    2000,
+    1670
+   ]
+  },
+  "east_asian_man_goatee": {
+   "BEFORE": {
+    "raw_matches_render_json": true,
+    "frames_sha256": "93322d29a2b6d60b8de149a99dd85c90e1068c7da4f511d9fc015852c8e8a84f",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0,
+     "matches_pixel_checks_rows": true
+    }
+   },
+   "mouth_box_size_wh": [
+    158,
+    98
+   ],
+   "mouth_box_follows": "BEFORE lip landmarks, centre smoothed +-12 frames (Hann)",
+   "face_box_xys": [
+    42,
+    204,
+    432
+   ],
+   "r2": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "076feadc871120927aa56302cea132480c9ab248d0eae332c101c4a5219e914e",
+    "frames_sha256": "076feadc871120927aa56302cea132480c9ab248d0eae332c101c4a5219e914e",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt",
+    "tag": "stream02_east_asian_man_goatee"
+   },
+   "r3": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "bb78032d961af35d8cc262c70cc7fbd9493688bb0cc412af94f583c9673bbd3c",
+    "frames_sha256": "bb78032d961af35d8cc262c70cc7fbd9493688bb0cc412af94f583c9673bbd3c",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcv1_taesdtrt",
+    "tag": "stream02_east_asian_man_goatee"
+   },
+   "r4": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "fa4b0a89527ffe581d61ab11a2a23bff502eec0777cc286bd1888dcfd88c20f0",
+    "frames_sha256": "fa4b0a89527ffe581d61ab11a2a23bff502eec0777cc286bd1888dcfd88c20f0",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcblkA8",
+    "tag": "stream02_east_asian_man_goatee"
+   },
+   "r5 NEW": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "6645a31d34c7e3e7903d21598e21d159fec58ef545f6ad4539705ac5151613ff",
+    "frames_sha256": "6645a31d34c7e3e7903d21598e21d159fec58ef545f6ad4539705ac5151613ff",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcg50",
+    "tag": "stream02_east_asian_man_goatee"
+   },
+   "stills_frames_1based": {
+    "widest_mouth": 183,
+    "last_column_most_different_output": 14
+   },
+   "video": "experiments/video_validation/lineage_all_rounds/east_asian_man_goatee_lineage.mp4",
+   "video_size": [
+    2000,
+    1666
+   ]
+  },
+  "middle_eastern_man_full_beard": {
+   "BEFORE": {
+    "raw_matches_render_json": true,
+    "frames_sha256": "ea63b2e61c9a12baf0cdb4adb6149ccbfc0e17c1a12718840c214f426f01b7e0",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0,
+     "matches_pixel_checks_rows": true
+    }
+   },
+   "mouth_box_size_wh": [
+    162,
+    100
+   ],
+   "mouth_box_follows": "BEFORE lip landmarks, centre smoothed +-12 frames (Hann)",
+   "face_box_xys": [
+    12,
+    125,
+    478
+   ],
+   "r2": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "bb00dbb55b835e89b2d60d10e44deaaab1c6c5924cd333151af2a6653973d929",
+    "frames_sha256": "bb00dbb55b835e89b2d60d10e44deaaab1c6c5924cd333151af2a6653973d929",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt",
+    "tag": "stream03_middle_eastern_man_full_beard"
+   },
+   "r3": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "20bb2fdefd342749256c935b727377a306d9e72fcca857fdc55c5c534bf696ab",
+    "frames_sha256": "20bb2fdefd342749256c935b727377a306d9e72fcca857fdc55c5c534bf696ab",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcv1_taesdtrt",
+    "tag": "stream03_middle_eastern_man_full_beard"
+   },
+   "r4": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "c8f2cf29037f1ef17f3c7b679211a602833f419e3f812ecf55afa3f1d27d4bf8",
+    "frames_sha256": "c8f2cf29037f1ef17f3c7b679211a602833f419e3f812ecf55afa3f1d27d4bf8",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcblkA8",
+    "tag": "stream03_middle_eastern_man_full_beard"
+   },
+   "r5 NEW": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "b75eeb0c731e5146a5944a82838e50da0f818ae11ca31cc02b8989813f3963ed",
+    "frames_sha256": "b75eeb0c731e5146a5944a82838e50da0f818ae11ca31cc02b8989813f3963ed",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcg50",
+    "tag": "stream03_middle_eastern_man_full_beard"
+   },
+   "stills_frames_1based": {
+    "widest_mouth": 16,
+    "last_column_most_different_output": 10
+   },
+   "video": "experiments/video_validation/lineage_all_rounds/middle_eastern_man_full_beard_lineage.mp4",
+   "video_size": [
+    2000,
+    1664
+   ]
+  },
+  "south_asian_woman": {
+   "BEFORE": {
+    "raw_matches_render_json": true,
+    "frames_sha256": "d8ffc50d09c64267531331d90a023dbecd29509b1ca4bf2c1c9053b852f3c173",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0,
+     "matches_pixel_checks_rows": true
+    }
+   },
+   "mouth_box_size_wh": [
+    146,
+    90
+   ],
+   "mouth_box_follows": "BEFORE lip landmarks, centre smoothed +-12 frames (Hann)",
+   "face_box_xys": [
+    64,
+    142,
+    392
+   ],
+   "r2": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "2631d51b21cb02d81d393c80ca80705a70a90f3592f5df7676096f259e5db83d",
+    "frames_sha256": "2631d51b21cb02d81d393c80ca80705a70a90f3592f5df7676096f259e5db83d",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt",
+    "tag": "stream04_south_asian_woman"
+   },
+   "r3": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "d76df9e81ee69d8289844e93a9af51d039941c79b76c84c9563ce2f2fc7f93a5",
+    "frames_sha256": "d76df9e81ee69d8289844e93a9af51d039941c79b76c84c9563ce2f2fc7f93a5",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcv1_taesdtrt",
+    "tag": "stream04_south_asian_woman"
+   },
+   "r4": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "71914f67ca0bb55ce0c6f6e9f02fc2ec63d60d052621e72ee01ad0be924d0f8b",
+    "frames_sha256": "71914f67ca0bb55ce0c6f6e9f02fc2ec63d60d052621e72ee01ad0be924d0f8b",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcblkA8",
+    "tag": "stream04_south_asian_woman"
+   },
+   "r5 NEW": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "be7648a5ab5b356659830212516d08d0b9b6e0611fb06b0c002d844b5cae51ef",
+    "frames_sha256": "be7648a5ab5b356659830212516d08d0b9b6e0611fb06b0c002d844b5cae51ef",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcg50",
+    "tag": "stream04_south_asian_woman"
+   },
+   "stills_frames_1based": {
+    "widest_mouth": 182,
+    "last_column_most_different_output": 21
+   },
+   "video": "experiments/video_validation/lineage_all_rounds/south_asian_woman_lineage.mp4",
+   "video_size": [
+    2000,
+    1664
+   ]
+  },
+  "white_man_clean_shaven": {
+   "BEFORE": {
+    "raw_matches_render_json": true,
+    "frames_sha256": "a14a2af39e14e4c007e7664a9f5e60b945006b843587541cbdb91405a498d41e",
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0,
+     "matches_pixel_checks_rows": true
+    }
+   },
+   "mouth_box_size_wh": [
+    148,
+    92
+   ],
+   "mouth_box_follows": "BEFORE lip landmarks, centre smoothed +-12 frames (Hann)",
+   "face_box_xys": [
+    43,
+    163,
+    426
+   ],
+   "r2": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "7b36c21891f3015e49da619644d8a17e10004a3584f39f3cbb99acc9c73682d0",
+    "frames_sha256": "7b36c21891f3015e49da619644d8a17e10004a3584f39f3cbb99acc9c73682d0",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcmix_taesdtrt",
+    "tag": "stream05_white_man_clean_shaven"
+   },
+   "r3": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "4852aaff6678e6b97e0e52f66195fa316b3300a53a17da7e39c7d8728b4cee4e",
+    "frames_sha256": "4852aaff6678e6b97e0e52f66195fa316b3300a53a17da7e39c7d8728b4cee4e",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_300fps_impl_20260928/chin_multistream/V_srcv1_taesdtrt",
+    "tag": "stream05_white_man_clean_shaven"
+   },
+   "r4": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "f53ddd759f98029d44097c7ec205e73182fb45d23e98b3341ef73e0fdccb9c19",
+    "frames_sha256": "f53ddd759f98029d44097c7ec205e73182fb45d23e98b3341ef73e0fdccb9c19",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcblkA8",
+    "tag": "stream05_white_man_clean_shaven"
+   },
+   "r5 NEW": {
+    "bit_exact_vs_harness_render": true,
+    "harness_raw_refined_sha256": "4404a9b08e15c490a730e3984e00b37849715ffa6a0e65a2fcd317905851837b",
+    "frames_sha256": "4404a9b08e15c490a730e3984e00b37849715ffa6a0e65a2fcd317905851837b",
+    "chin_delta_recomputed_equals_saved": true,
+    "protected_lip": {
+     "max_rgb_difference": 0,
+     "frames": 240,
+     "frames_nonzero": 0
+    },
+    "capture": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/V_srcg50",
+    "tag": "stream05_white_man_clean_shaven"
+   },
+   "stills_frames_1based": {
+    "widest_mouth": 184,
+    "last_column_most_different_output": 17
+   },
+   "video": "experiments/video_validation/lineage_all_rounds/white_man_clean_shaven_lineage.mp4",
+   "video_size": [
+    2000,
+    1666
+   ]
+  }
+ }
+}

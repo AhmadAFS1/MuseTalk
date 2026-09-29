@@ -1141,6 +1141,9 @@ Each scenario runs 3 times. Report the minimum and the median.
 | NVENC for every session | 12-session cap; 656 ms latency spikes at 12 [M]; 2.47 GB VRAM [M] |
 | On-box TTS during capacity tests | 30–85% of CPU [M] |
 | Sum-of-blocks discount for the stagewise UNet | Block boundaries ship; same-session sum vs full forward differs by only 0.6% [M] |
+| INT8 on the audio cross-attention K/V (`attn2.to_k` / `attn2.to_v`) | Per-tensor amax calibrated on TTS clips clips real speech: holdout mae 0.0144 vs 0.0043 without them; 0.6% of MACs [M 2026-09-28, `fps_comparisons/4070s_400fps_20260928/`] |
+| Any INT8 in `down0`; partial INT8 in `up3` | All-INT8 `down0` 4.41 vs 4.37 ms FP16; three INT8 `ff_in` layers make `up3` 0.5 ms slower [M 2026-09-28] |
+| Power-of-two GEGLU SmoothQuant for `ff_out` as an exact lever | Not bit-exact (FP16 output max change 0.0116, subnormal weights); only 1.5–2× less `ff_out` error [M 2026-09-28] |
 
 ---
 
@@ -1292,3 +1295,22 @@ All probe outputs, scripts and the raw workflow results are kept in `docs/fps_co
 - Venvs: the TRT venv has NumPy 1.23.5 and OpenCV 4.9.0.80; the SoulX venv has NumPy 2.2.6 and OpenCV 5.0.0.93.
 - `git status`: api_server.py and two templates modified; two new untracked wall-audio files.
 - Engine files: sizes and dates as in §1, correction 4.
+
+---
+
+## 11. Follow-up: 400 fps attempt, session 2 (2026-09-28, 19:40–21:05 UTC) — stopped by the user
+
+The plan above was later implemented to 350.2 fps with 100% chin (round r2), with a 415.6 fps INT8 attempt (r3)
+that fails the UNet gate. A second session then tried **layer-selective INT8** to reach 400 fps at close to r2
+quality. It was stopped at the user's request before a candidate was measured. Full record:
+[`fps_comparisons/4070s_400fps_20260928/README.md`](fps_comparisons/4070s_400fps_20260928/README.md).
+
+In short:
+- **The fake-quant study predicts the engines.** A replica of r3 scores mae 0.0300 against 0.0299 for the real
+  engine.
+- **Layer-selective recipes have 4–6× lower mae than r3 at similar coverage** (0.004–0.007). Beyond ~0.3 of MACs
+  they fail the max_abs ≤ 0.5 gate.
+- **INT8 speed per block:** `up1` holds the largest untapped saving (−3.35 ms per bs16 call); `down0` has none;
+  partial `up3` is slower.
+- **Best timed set:** 32.1 ms per call against the ~31.5 ms that 400 fps needs. The projection with `up3` kept at
+  FP16 is ≈ 399 fps, not measured.
