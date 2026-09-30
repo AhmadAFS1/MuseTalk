@@ -18,7 +18,7 @@ The rig is isolated from everything else on the box:
 - `sample_box.sh` stops the server at once if any other GPU compute app appears.
 
 ```bash
-cd /workspace/MuseTalk-perf300
+cd /workspace/MuseTalk
 E=$PWD/experiments/live15_r5; RUN=$PWD/tmp/live15_r5/$(date -u +%Y%m%dT%H%M%SZ)_B_final; mkdir -p $RUN
 bash scripts/box_guard.sh run --min-avail-gb 14 --need-disk-gb 2 --wait-min 60 --kill-below-gb 3.0 --label live15 -- \
   bash $E/run_live15.sh B_final $RUN "$E/loopfix.env:$E/serve.env:$E/common.env" ramp,soak "5 10 15"

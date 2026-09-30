@@ -5,8 +5,8 @@ PRE-CHANGE output, repeatable any time.
 Concepts
 --------
 arm   = (code tree, env flags). The PRE-CHANGE arm is the clean main checkout /workspace/MuseTalk at
-        its git HEAD with no new flags (what ships today). CANDIDATE arms are the worktree
-        /workspace/MuseTalk-perf300 plus flags. A subprocess environment is scrubbed of inherited
+        its git HEAD with no new flags (what ships today). CANDIDATE arms are this checkout
+        plus flags (the perf/300fps-4070s worktree when the published videos were made). A subprocess environment is scrubbed of inherited
         MUSETALK_/HLS_/WEBRTC_/AVATAR_ variables and PYTHONPATH, so an arm is defined only by its
         tree and flags. Bytecode goes to PYTHONPYCACHEPREFIX (nothing is written into a tree).
 clip  = one reviewable sequence of pre-encoder frames, stored losslessly with per-frame SHA-256

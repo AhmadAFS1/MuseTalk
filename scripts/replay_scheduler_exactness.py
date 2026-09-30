@@ -40,9 +40,8 @@ Which tree
 ----------
 --repo PATH selects the code under test: the harness puts PATH first on sys.path,
 drops its own tree from sys.path, and chdirs to PATH before importing anything
-from `scripts.` / `musetalk.`, so e.g. `--repo /workspace/MuseTalk` replays the
-clean main checkout (the pre-change arm) and `--repo /workspace/MuseTalk-perf300`
-(the default: this file's own tree) replays the candidates. With a foreign repo
+from `scripts.` / `musetalk.`, so e.g. `--repo <a checkout of the pre-change commit>` replays
+the pre-change arm and the default (this file's own tree) replays the candidates. With a foreign repo
 the harness never writes into it (no .pyc: sys.dont_write_bytecode; git is only
 read with --no-optional-locks). Launch it with cwd = this file's tree.
 

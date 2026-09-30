@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Candidate API launcher for the 300 fps plan (docs/musetalk_4070s_300fps_plan_2026-09-27.md, section 4).
 #
-# * Runs THIS worktree's api_server.py (/workspace/MuseTalk-perf300), port 8300 by default.
+# * Runs the api_server.py of the checkout that contains this script, port 8300 by default.
 # * Sources the generated .runtime/musetalk_trt_local_sm89.env ("Do not edit by hand"), then the
 #   live launcher's exports (copied below from
 #   /workspace/experiments/chinese_bob_webrtc_20260927/run_local_api.sh, which is neither read
@@ -37,7 +37,6 @@ LOG=${MUSETALK_CANDIDATE_LOG:-$LOG_DIR/api_${MODE}_${PORT}_$(date -u +%Y%m%dT%H%
 
 die() { echo "[run_candidate_api] ERROR: $*" >&2; exit 1; }
 
-[[ "$REPO_ROOT" == /workspace/MuseTalk-perf300 ]] || die "expected the perf300 worktree, got $REPO_ROOT"
 [[ -f "$REPO_ROOT/api_server.py" ]] || die "api_server.py missing in $REPO_ROOT"
 if [[ "$PORT" == 8000 || "$PORT" == 8200 ]]; then
   die "port $PORT belongs to the user's live server; use 8300 (default)"

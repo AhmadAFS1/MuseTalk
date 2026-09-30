@@ -6,7 +6,7 @@
 # child of this script, so box_guard's RAM watchdog covers it, and the EXIT trap always stops it.
 set -uo pipefail
 ARM=$1; RUN=$2; OVR=$3; STAGES=$4; LEVELS="${5:-5 10 15}"
-R=/workspace/MuseTalk-perf300; E=$R/experiments/live15_r5; PY=/workspace/.venvs/musetalk_trt_stagewise/bin/python
+R=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd); E=$R/experiments/live15_r5; PY=/workspace/.venvs/musetalk_trt_stagewise/bin/python
 cd $R; mkdir -p $RUN/runtime $RUN/lt2 $RUN/traces
 log() { printf '[live15 %s] %s\n' "$(date -u +%H:%M:%S)" "$*" | tee -a $RUN/driver.log; }
 ss -ltn | grep -q ':8300 ' && { log "port 8300 busy; refusing"; exit 2; }

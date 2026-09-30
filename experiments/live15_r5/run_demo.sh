@@ -6,7 +6,7 @@
 # Never starts or stops coturn, never binds 8000/8200, never registers with the Lingua control plane.
 set -uo pipefail
 RUN=$1; N=${2:-15}; MIN=${3:-45}; AVATAR=${4:-chinese_bob_pink_bedroom_talking_3373c10448}
-R=/workspace/MuseTalk-perf300; E=$R/experiments/live15_r5; PY=/workspace/.venvs/musetalk_trt_stagewise/bin/python
+R=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd); E=$R/experiments/live15_r5; PY=/workspace/.venvs/musetalk_trt_stagewise/bin/python
 export PORT=6006
 cd $R; mkdir -p $RUN/runtime
 log() { printf '[demo %s] %s\n' "$(date -u +%H:%M:%S)" "$*" | tee -a $RUN/driver.log; }
@@ -22,11 +22,35 @@ cleanup() {
 }
 trap cleanup EXIT
 OVR="$E/demo.env:$E/loopfix.env:$E/serve.env:$E/common.env"
+# The TURN env file may name a TCP fallback listener (TURN_TCP_FALLBACK_LISTEN_PORT) that the running coturn does not
+# open. Use only what coturn actually listens on: the server reaches it on loopback, browsers through the public
+# UDP mapping of the same port.
+TURN_PORT=$(sed -n 's/^listening-port=//p' /tmp/musetalk-turnserver-tcp-relay.conf 2>/dev/null | head -1); TURN_PORT=${TURN_PORT:-3478}
+TURN_UDP_PUB=$(tr '\0' '\n' </proc/1/environ | sed -n "s/^VAST_UDP_PORT_$TURN_PORT=//p")
+[ -n "$TURN_UDP_PUB" ] || { log "no public UDP mapping for TURN port $TURN_PORT"; exit 2; }
+export WEBRTC_TURN_URLS="turn:$PUB_IP:$TURN_UDP_PUB?transport=udp"
+TURN_FILE=/workspace/MuseTalk/.env.webrtc-turn.local
+if [ "${DEMO_SERVER_RELAY:-0}" = 1 ]; then
+  # Both peers relay through coturn: ~3-4 relay ports per call. The running coturn has 41 (49160-49200), so only
+  # ~11 calls connect; the rest stay in ICE state "new" (coturn logs "no available ports").
+  export WEBRTC_SERVER_TURN_URLS="turn:127.0.0.1:$TURN_PORT?transport=udp"
+  LAUNCH="bash scripts/run_webrtc_relay_api_server.sh"
+else
+  # Default: only browsers relay. coturn runs in this container, so a browser's relay reaches the server's own host
+  # candidate directly (the server learns it as peer-reflexive): ~1-2 relay ports per call instead of ~3-4.
+  export WEBRTC_ICE_TRANSPORT_POLICY=all WEBRTC_STUN_URLS= WEBRTC_SERVER_TURN_URLS=
+  WEBRTC_TURN_USER=$(bash -c 'set -a; source "$1" >/dev/null 2>&1; printf %s "${TURN_USER:-webrtc}"' _ $TURN_FILE)
+  WEBRTC_TURN_PASS=$(bash -c 'set -a; source "$1" >/dev/null 2>&1; printf %s "${TURN_PASS:-}"' _ $TURN_FILE)
+  export WEBRTC_TURN_USER WEBRTC_TURN_PASS
+  [ -n "$WEBRTC_TURN_PASS" ] || { log "no TURN password in $TURN_FILE"; exit 2; }
+  LAUNCH="bash scripts/run_musetalk_server.sh"
+fi
+log "server relay=${DEMO_SERVER_RELAY:-0} browser TURN=$WEBRTC_TURN_URLS server TURN='${WEBRTC_SERVER_TURN_URLS}' policy=${WEBRTC_ICE_TRANSPORT_POLICY:-from TURN file}"
 env -u LINGUA_WORKER_TOKEN -u LINGUA_CONTROL_PLANE_BASE_URL -u LINGUA_WORKER_REGISTER_URL -u LINGUA_WORKER_HEARTBEAT_URL \
   REPO_ROOT=$R VENV_PATH=/workspace/.venvs/musetalk_trt_stagewise MUSETALK_RECIPE=fast300 \
   MUSETALK_RUNTIME_DIR=$RUN/runtime MUSETALK_ENV_OVERRIDES_FILE=$OVR LINGUA_CONTROL_PLANE_ENV_FILE=$RUN/no-control-plane.env \
-  TURN_ENV_FILE=/workspace/MuseTalk/.env.webrtc-turn.local \
-  taskset -c 0-11,16-27 bash scripts/run_webrtc_relay_api_server.sh --host 0.0.0.0 --port $PORT >> $RUN/api_server.log 2>&1 &
+  TURN_ENV_FILE=$TURN_FILE \
+  taskset -c 0-11,16-27 $LAUNCH --host 0.0.0.0 --port $PORT >> $RUN/api_server.log 2>&1 &
 echo $! > $RUN/server.pid
 bash $E/sample_box.sh $RUN > $RUN/sampler.log 2>&1 &
 t0=$SECONDS
