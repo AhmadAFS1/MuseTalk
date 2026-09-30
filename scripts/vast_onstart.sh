@@ -783,8 +783,9 @@ print(d.get("sha256", "")); print(d.get("s3_key", "")); print(d.get("sidecar_dir
       continue
     fi
     log "r5 engine bundle $name: $uri (${size:-?} bytes, sha256 ${sha:0:12}); staging in $MUSETALK_TRT_ARTIFACT_STAGE_DIR"
-    # --skip-if-verified: a reboot whose stamp still matches and whose files still hash clean skips the
-    # download. The sidecars go to $sidecar, never the repo root (that pair belongs to legacy_int8).
+    # --skip-if-verified: a start whose stamp still matches and whose files still hash clean skips the download
+    # (only when the checkout survives; the standard Vast template re-clones it on every start). The sidecars go
+    # to $sidecar, never the repo root (that pair belongs to legacy_int8).
     if (
       cd "$REPO_ROOT"
       "$PY" -B "$REPO_ROOT/scripts/trt_artifact_bundle.py" --repo-root "$REPO_ROOT" --strict \

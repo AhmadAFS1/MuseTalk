@@ -111,6 +111,23 @@ MUSETALK_RECIPE=fast PORT=8000 bash scripts/vast_onstart.sh          # .ts UNet 
 MUSETALK_RECIPE=legacy_int8 PORT=8000 bash scripts/vast_onstart.sh   # the old INT8 chain (RTX 3090 bundle)
 ```
 
+**The standard Vast onstart template** (unchanged since 2026-09; this box runs it too, as `/root/onstart.sh`) clones
+`main` (depth 1) into a stage dir, deletes `/workspace/MuseTalk`, moves the clone into place, exports the runtime
+secret's ARN plus the secret-reader key, and runs
+`SETUP_CLEAN=1 SETUP_FULL_STACK=1 STARTUP_TIMEOUT_SECONDS=1800 PROFILE=throughput_record PORT=8000 bash scripts/vast_onstart.sh`.
+Nothing in it needs to change for r5. What that implies:
+- **Every container start is a first boot.** The checkout (weights in `models/`, restored engines, `.runtime/`
+  stamps, local avatars in `results/`) is deleted, and `SETUP_CLEAN=1` rebuilds the 9.5 GB venv, so each start
+  re-downloads about 5.7 GB of weights and the r5 bundle (1.0 GB portable, 2.6 GB RTX 4070 SUPER). Avatars come
+  back from S3 on first use. Uncommitted work in the checkout is lost: push before restarting a box.
+- **The install runs before the secret is read,** so nothing in the secret can change install behaviour; runtime
+  settings (recipe, `MUSETALK_R5_BUNDLE_RESTORE`, `LINGUA_*`, capacity) can live in the secret.
+- **Control plane:** the worker registers only if the secret carries `LINGUA_WORKER_TOKEN` and
+  `LINGUA_CONTROL_PLANE_BASE_URL` (`docs/musetalk_worker_secrets.md`).
+- **GPUs:** RTX 30xx/40xx, A-series, L40S, A100, H100 get r5 (the 4070 SUPER its own bundle, the rest the portable
+  one). Pre-Ampere GPUs boot without r5 (eager UNet). RTX 50xx (Blackwell) cannot boot this template: its cu128
+  stack has no avatar-prep build, and `SETUP_FULL_STACK=1` requests avatar prep.
+
 **This RTX 4070 SUPER box:** `/workspace/run-musetalk-local-trt.sh`. The proposed new version is
 in `docs/startup_rework_20260928/impl/launch/run-musetalk-local-trt.sh.proposed`, with a `.diff`
 next to it. It sources `/workspace/.musetalk-runtime.env`, sets `AUTO_SETUP=0`, and provisions

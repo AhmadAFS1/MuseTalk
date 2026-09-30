@@ -29,7 +29,27 @@ Do not set `MUSETALK_AWS_SECRET_ID` to the backend provider-key secret
 
 ## Runtime Secret Shape
 
-Recommended JSON for `lingua/musetalk-worker-runtime`:
+What a MuseTalk worker needs from `lingua/musetalk-worker-runtime` (the Vast template itself supplies only the
+secret's ARN and the secret-reader key):
+
+- **Required:** the runtime S3 key pair and region, and `AVATAR_S3_BUCKET` / `AVATAR_S3_PREFIX`. The bootstrap
+  derives `TRT_ARTIFACT_S3_BUCKET` from the avatar bucket; the r5 engine bundles are read from there.
+- **Required for the Lingua control plane:** `LINGUA_WORKER_TOKEN` and `LINGUA_CONTROL_PLANE_BASE_URL` (or the two
+  explicit register/heartbeat URLs). Without them the worker boots and serves but never registers ("control plane
+  integration disabled" in its log). As of the secret's last recorded exports (2026-09-15, 2026-09-28) it had no
+  `LINGUA_*` key; this box registers only through its local `/workspace/.lingua-control-plane.env`, which no fresh
+  instance has. Per-instance values need no secret entry: the worker derives its id from `VAST_INSTANCE_ID` and its
+  public URL from `PUBLIC_IPADDR` + `VAST_TCP_PORT_8000`. Never copy one box's `WORKER_ID`, `VAST_INSTANCE_ID`,
+  `LINGUA_WORKER_BASE_URL` or `LINGUA_WORKER_GPU_TYPE` into the shared secret.
+- **Recommended:** `LINGUA_WORKER_DEFAULT_CAPACITY` (calls advertised per worker; default 1). The r5 live test passed
+  10 concurrent calls on an RTX 4070 SUPER with its own bundle (15 at the knee); other GPUs are not measured yet.
+  `LINGUA_WORKER_CALLBACK_REQUIRED=1` makes a start fail loudly when the token or URL is missing.
+- **Only if the runtime IAM user can reach them:** `TTS_AUDIO_BUCKET`, `IDLE_VIDEO_BUCKET`, `UPLOAD_BUCKETS`. With
+  `MUSETALK_SECRETS_VERIFY_S3=1` (the template sets it) the bootstrap runs `head_bucket` on every bucket the secret
+  names, and with `MUSETALK_SECRETS_STRICT=true` a 403 fails the boot. On 2026-09-30 the runtime user got 403 on all
+  four of those buckets, so leave them out unless its policy grants them.
+
+Full example (drop the optional bucket keys unless the runtime policy covers them):
 
 ```json
 {
@@ -51,7 +71,8 @@ Recommended JSON for `lingua/musetalk-worker-runtime`:
   "LINGUA_WORKER_HEARTBEAT_URL": "http://18.205.211.142:8000/api/runtime/workers/heartbeat",
   "LINGUA_WORKER_TOKEN": "<same-value-as-backend-WORKER_REGISTRATION_TOKEN>",
   "LINGUA_WORKER_TYPE": "musetalk",
-  "LINGUA_WORKER_DEFAULT_CAPACITY": "1"
+  "LINGUA_WORKER_DEFAULT_CAPACITY": "<calls per worker: 10 is validated on an RTX 4070 SUPER only>",
+  "LINGUA_WORKER_CALLBACK_REQUIRED": "1"
 }
 ```
 
@@ -90,9 +111,10 @@ Ampere skip the r5 bundle and serve eager UNet + compiled TAESD.
 6. Engines, by recipe:
    - `r5` (default): on any GPU of compute capability 8.0-9.0 with TensorRT
      10.3 and >= 8 GB (RTX 3090, RTX 4070 SUPER, ...), the pinned r5 bundle is
-     downloaded, checksum-verified and verified per file (skipped on a reboot
-     whose files still verify); on older GPUs it is skipped. No `.ts` UNet is
-     built;
+     downloaded, checksum-verified and verified per file; on older GPUs it is
+     skipped. No `.ts` UNet is built. (A reboot skips the download only if the
+     checkout survives; the standard Vast template re-clones the repo on every
+     start, so every start downloads it again, like the weights and the venv.)
    - `fast`, `fast300`: `unet_engine_store.py ensure` (the `.ts` UNet);
    - `legacy_int8`: the RTX 3090 split8 bundle is restored and its batch-8
      profile selected.
@@ -187,8 +209,9 @@ env vars found in the secret:
 - `IDLE_VIDEO_BUCKET`
 - each bucket in `UPLOAD_BUCKETS`
 
-S3 verification requires `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` from the
-MuseTalk runtime secret; it will not fall back to the bootstrap secret-reader key.
+S3 verification uses `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` from the MuseTalk
+runtime secret. If the secret has none, the environment's keys are used, i.e. the
+bootstrap secret-reader key, which normally has no S3 access, so the check fails.
 
 After the worker starts:
 

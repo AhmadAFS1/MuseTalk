@@ -31,6 +31,7 @@ re-running one verbatim repeats that day's task. Adapt a copy instead.
 | `verify-lineage-videos.js` | 09-28 22:49 | First verification of the BEFORE/r2/r3/r4 lineage videos: 6 per-identity agents plus a skeptic. Results: `experiments/video_validation/lineage_all_rounds/verification/pass1_first_4col_set.json`. |
 | `verify-final-lineage.js` | 09-28 23:54 | Second pass on the final sets: 3 video agents, a README auditor and a skeptic. Results: `.../verification/pass2_final_sets.json`. |
 | (named) `review-repro-scripts` | 09-29 01:05 | First audit of `scripts/repro_400fps/`: 3 blockers and about 20 majors/minors, all fixed in 37400f0. Results: `scripts/repro_400fps/review_2026-09-29.json`. |
+| `vast-template-audit.js` | 09-30 23:10 | Can the unchanged Vast onstart template (clone main, `SETUP_CLEAN=1 SETUP_FULL_STACK=1`) boot the full r5 pipeline? 4 audits (template trace, runtime inventory, venv parity, secrets/control plane), each followed by an adversarial verifier. Found two install blockers that also hit the old main (openmim's rich conflict, the CUDA-hidden `torch_tensorrt` import smoke), the missing `LINGUA_*` secret keys and the unuploaded portable bundle. Results: `archive/vast-template-audit.results.json`. |
 
 The SoulX-FlashHead sessions on this box ran their own workflows (30 fps levers, quantization targets, tiny-VAE
 feasibility, motion reuse). Those scripts are in `~/.claude/projects/-workspace-SoulX-FlashHead/*/workflows/scripts/`

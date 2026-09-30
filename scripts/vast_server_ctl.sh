@@ -350,13 +350,15 @@ start_server() {
   rm -f "$VERIFY_STATE_FILE"
   log "log_offset=$SPAWN_LOG_OFFSET"
 
+  # 9>&-: the Vast onstart template holds its single-run flock on fd 9; the long-lived server must not inherit
+  # it, or the lock outlives the boot and a later manual re-run of the template silently exits.
   setsid nohup bash "$launcher" \
     --profile "$PROFILE" \
     --host "$HOST" \
     --port "$PORT" \
     --venv-path "$VENV_PATH" \
     --repo-root "$REPO_ROOT" \
-    >>"$LOG_FILE" 2>&1 &
+    >>"$LOG_FILE" 2>&1 9>&- &
 
   local pid=$!
   printf '%s\n' "$pid" > "$PID_FILE"
@@ -526,7 +528,7 @@ start_turnserver() {
   log "Starting local TURN server"
   log "turn_log_file=$TURN_LOG_FILE"
   setsid nohup bash "$REPO_ROOT/scripts/run_turnserver_tcp_relay.sh" \
-    >>"$TURN_LOG_FILE" 2>&1 &
+    >>"$TURN_LOG_FILE" 2>&1 9>&- &   # 9>&-: see start_server
 
   local pid=$!
   printf '%s\n' "$pid" > "$TURN_PID_FILE"

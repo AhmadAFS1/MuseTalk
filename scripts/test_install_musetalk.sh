@@ -171,6 +171,21 @@ assert chin["mediapipe"] == "0.10.9" and chin["numpy"] == "2.2.6" and chin["prot
 assert "en_core_web_sm @ https://" in (req / "kokoro.in").read_text() and "#sha256=" in (req / "kokoro.in").read_text()
 print("requirements OK")
 PY
+# openmim pulls opendatalab -> openxlab, which requires rich~=13.4.2; the constraints pin rich 15 (Kokoro's typer
+# needs rich>=13.8), so `pip install openmim -c constraints-cu121.txt` is ResolutionImpossible and a fresh
+# --with-avatar-prep install died there. The installer may only ever install openmim with --no-deps.
+run "avatar-prep never installs openmim's dependency chain" 0 "$PY310" - "$REPO/scripts/install_musetalk.sh" "$REPO/requirements" <<'PY'
+import re, sys
+from pathlib import Path
+lines = Path(sys.argv[1]).read_text().splitlines()
+bad = [l.strip() for l in lines if re.search(r"pip install\b.*\bopenmim\b", l) and "--no-deps" not in l]
+assert not bad, f"openmim installed with dependencies: {bad}"
+names = [l.split("#", 1)[0].strip() for l in (Path(sys.argv[2]) / "avatar-prep.in").read_text().splitlines()]
+assert "openmim" not in names, "avatar-prep.in must not require openmim (--check would demand it)"
+pins = Path(sys.argv[2], "constraints-cu121.txt").read_text()
+assert "\nrich==15.0.0\n" in pins and "\nwheel==0.48.0\n" in pins
+print("avatar-prep openmim guard OK")
+PY
 
 # ------------------------------------------------------------------------- 3. plan / matrix
 log "3. --plan matrix and group resolution"

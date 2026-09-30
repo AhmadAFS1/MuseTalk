@@ -131,14 +131,14 @@ Sizes are from this box. **Portable** works on any GPU. **GPU-bound** only works
 | **TAESD TRT engine** `models/taesd/trt/taesd_trt_6111…` (4070 SUPER), `…_512bfd…` (any Ampere+) | 3.5 MB each | **GPU-bound** / portable | `vae_fast_decoder.py build` (~40 s) | S3, in the same bundles |
 | Prepared avatars `results/v15/avatars/*` | 160–350 MB each | yes | `POST /avatars/prepare` | S3 `avatars/v15/<id>.tar.gz`, restored on first use. All 33 avatars of this box were uploaded on 2026-09-30 |
 | Python venv `/workspace/.venvs/musetalk_trt_stagewise` | 9.5 GB | per CUDA and OS | installer, from pinned requirements | rebuilt per machine (~minutes) |
-| Secrets (S3 keys, Lingua token) | – | – | operator | Secrets Manager. This box also has a static copy in `/workspace/.musetalk-runtime.env` |
+| Secrets (S3 keys, Lingua token) | – | – | operator | Secrets Manager (`lingua/musetalk-worker-runtime`): S3 keys yes; the `LINGUA_*` control-plane keys still need to be added (this box registers through its local `/workspace/.lingua-control-plane.env`; `docs/musetalk_worker_secrets.md`) |
 | TURN password `.env.webrtc-turn.local` | – | per machine | generated at boot | local only (fine) |
 
 ### 3.2 Needed only to prepare avatars or rebuild engines
 
 | Item | Size | Portable? | Produced by | Stored today |
 |---|---|---|---|---|
-| DWPose, S3FD, BiSeNet face parsing | ~570 MB | yes | `download_weights.sh`. The face-parsing weights come from a **Google Drive link** (fragile) | re-downloaded |
+| DWPose, S3FD, BiSeNet face parsing | ~570 MB | yes | `download_weights.sh`. The face-parsing weights come from a **Google Drive link** (fragile); every server start loads them too (blending), not only prepare | re-downloaded |
 | **INT8 calibration data** `calibration/unet_multi_avatar_20260928` | 218 MB | yes | `scripts/build_unet_multi_avatar_corpus.py` from specific avatars and audio | S3: inside the r5 bundle, and alone as `trt-artifacts/repro-inputs/unet-multi-avatar-calibration-20260928/…`. Needed for an exact r5 rebuild |
 | Quality-harness avatars `/workspace/experiments/avatar_diversity_20260927` | 763 MB | yes | external portrait and video tools | S3 `trt-artifacts/repro-inputs/avatar-diversity-20260927/…`; **cannot be regenerated**. `scripts/repro_400fps/05_fetch_inputs.sh` restores both inputs |
 | FaceMesh environment (chin tracker, quality tools) | uses mediapipe from `/workspace/SoulX-FlashHead/.venv` | yes | `install_musetalk.sh --with-chin-tools` defines a proper one | borrowed from another project's venv |

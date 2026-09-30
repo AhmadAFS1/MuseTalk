@@ -248,6 +248,11 @@ out["nvidia_driver_library"] = driver
 required = ["torch", "torchvision", "diffusers", "transformers", "cv2", "numpy", "aiortc", "av", "fastapi",
             "uvicorn", "boto3", "librosa", "soundfile", "onnx", "numba", "multipart", "omegaconf", "ffmpeg"]
 gpu_stack = ["tensorrt", "torch_tensorrt"]
+# torch_tensorrt 2.5 queries the CUDA device while it imports (a CompilationSettings() default calls
+# torch.cuda.current_device()), so with CUDA hidden it can only fail with "No CUDA GPUs are available", on every
+# host. That case is deferred to the GPU self-test, which imports it with the GPU visible; a missing or broken
+# package still raises ImportError here and fails.
+needs_device = {"torch_tensorrt"}
 if os.environ.get("SMOKE_KOKORO") == "1":
     required += ["kokoro", "misaki", "spacy", "en_core_web_sm"]
 if os.environ.get("SMOKE_LEGACY") == "1":
@@ -264,6 +269,8 @@ for name in required + gpu_stack:
         out["modules"][name] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"[:400]}
         if name in gpu_stack and not driver:
             out["deferred"].append(name)  # GPU-less image build: TensorRT needs the driver library
+        elif name in needs_device and not isinstance(exc, ImportError) and "CUDA" in str(exc):
+            out["deferred"].append(name)  # needs a visible GPU at import: checked by the GPU self-test
         else:
             out["failed"].append(name)
 try:
@@ -572,8 +579,14 @@ preflight() {
   need=$MIN_DISK_GB_REPAIR
   (( fresh )) && need=$MIN_DISK_GB_FRESH
   free="$(disk_free_gb "$VENV_PATH")"
-  log "Disk free at the venv location: ${free} GB (need >= ${need} GB for a $( (( fresh )) && echo fresh || echo repair ) install)"
-  if [[ -n "$free" ]] && (( free < need )); then
+  local reclaim=0
+  if (( CLEAN )) && [[ -f "$VENV_PATH/pyvenv.cfg" ]]; then
+    # --clean deletes the old venv before installing, so its size counts as free space here
+    reclaim="$(du -sk "$VENV_PATH" 2>/dev/null | awk '{printf "%d", $1 / 1048576}')"
+    reclaim="${reclaim:-0}"
+  fi
+  log "Disk free at the venv location: ${free} GB$( (( reclaim > 0 )) && echo " + ${reclaim} GB from the venv --clean replaces") (need >= ${need} GB for a $( (( fresh )) && echo fresh || echo repair ) install)"
+  if [[ -n "$free" ]] && (( free + reclaim < need )); then
     die "Not enough disk: ${free} GB free, ${need} GB required (override with MUSETALK_INSTALL_MIN_DISK_GB)"
   fi
 }
@@ -642,7 +655,10 @@ pip_install_groups_step() {
 
 avatar_prep_step() {
   local -a common=(-c "$CONSTRAINTS" --extra-index-url "$PYTORCH_INDEX" --extra-index-url "$NVIDIA_INDEX_URL")
-  "$VENV_PY" -m pip install --disable-pip-version-check openmim "setuptools<81" ninja psutil "${common[@]}"
+  # openmim is NOT installed up front: its dependency chain (opendatalab -> openxlab) requires rich~=13.4.2, while
+  # the constraints pin rich 15 (Kokoro's typer needs rich>=13.8), so pip stopped with ResolutionImpossible and every
+  # fresh --with-avatar-prep install failed. Nothing imports mim/opendatalab/openxlab; mmcv comes from the repo wheel.
+  "$VENV_PY" -m pip install --disable-pip-version-check "setuptools<81" ninja psutil "${common[@]}"
   local have_mmcv wheel=""
   have_mmcv="$("$VENV_PY" -c 'import importlib.metadata as m; print(m.version("mmcv"))' 2>/dev/null || true)"
   if [[ "$have_mmcv" == "$MMCV_VERSION" ]]; then
@@ -652,7 +668,10 @@ avatar_prep_step() {
     if [[ -n "$wheel" ]]; then
       log "Installing mmcv from the repo-local wheel: $wheel"
       "$VENV_PY" -m pip install --disable-pip-version-check --no-deps "$wheel"
-    elif "$VENV_PY" -m mim install "mmcv==$MMCV_VERSION"; then
+    elif "$VENV_PY" -m pip install --disable-pip-version-check --no-deps openmim "${common[@]}" \
+        && "$VENV_PY" -m pip install --disable-pip-version-check click colorama model-index tabulate "${common[@]}" \
+        && "$VENV_PY" -m mim install "mmcv==$MMCV_VERSION"; then
+      # (mim only for this fallback, without the opendatalab/openxlab chain that cannot resolve; see above)
       log "Installed mmcv $MMCV_VERSION via mim (OpenMMLab prebuilt wheel)"
     else
       local torch_cuda nvcc_cuda
@@ -778,7 +797,7 @@ phase_verify() {
   local deferred
   deferred="$("$HOST_PY" -c 'import json,sys; print(",".join(json.load(open(sys.argv[1])).get("deferred") or []))' "$WORK_DIR/smoke.json" 2>/dev/null || true)"
   if [[ -n "$deferred" ]]; then
-    warn "No NVIDIA driver library in this image: $deferred imports deferred to the first GPU boot"
+    warn "Imports deferred (they need the NVIDIA driver or a visible GPU; the GPU self-test imports them): $deferred"
   fi
   if (( SELFTEST == 0 )); then
     log "GPU self-test skipped (--no-selftest)"

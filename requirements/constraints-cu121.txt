@@ -15,6 +15,9 @@
 # Packaging: the validated cu121 venv has setuptools 60.2.0 (openxlab pins ~=60.2.0; spacy/thinc need
 # 'setuptools', triton/runtime/build.py imports it for torch.compile launchers). pip freeze omits it.
 setuptools==60.2.0
+# chumpy (avatar-prep, sdist) is built with --no-build-isolation against setuptools 60.2.0, which relies on the
+# `wheel` package's bdist_wheel; pinned to the validated venv's version so a future wheel release cannot break it.
+wheel==0.48.0
 
 # --- pip freeze of the validated venv ---------------------------------------------------------------
 accelerate==0.28.0
