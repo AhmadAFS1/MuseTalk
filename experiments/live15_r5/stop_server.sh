@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Stop the live-test server of <RUN> cleanly (only if that pid really is our server from this worktree).
 #   [PORT=8300] stop_server.sh <RUN>
-RUN=$1; PORT=${PORT:-8300}; PID=$(cat $RUN/server.pid 2>/dev/null) || exit 0
+RUN=$1; PORT=${PORT:-8300}; R=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd); PID=$(cat $RUN/server.pid 2>/dev/null) || exit 0
 [ -n "$PID" ] && [ -d /proc/$PID ] || exit 0
-[[ "$(readlink /proc/$PID/cwd)" == /workspace/MuseTalk-perf300 ]] && tr '\0' ' ' </proc/$PID/cmdline | grep -q -- "--port $PORT" || { echo "pid $PID is not our :$PORT server; not touching it"; exit 0; }
+[[ "$(readlink /proc/$PID/cwd)" == "$R" ]] && tr '\0' ' ' </proc/$PID/cmdline | grep -q -- "--port $PORT" || { echo "pid $PID is not our :$PORT server; not touching it"; exit 0; }
 for s in $(curl -s -m 5 http://127.0.0.1:$PORT/webrtc/sessions/stats | python3 -c "import json,sys
 try: [print(x['session_id']) for x in json.load(sys.stdin).get('sessions',[])]
 except Exception: pass"); do curl -s -m 5 -X DELETE http://127.0.0.1:$PORT/webrtc/sessions/$s >/dev/null; done
@@ -13,7 +13,7 @@ kill -INT $PID 2>/dev/null; sleep 5; kill -KILL $PID 2>/dev/null
 # a profiler shim (py-spy record -- python api_server.py) may leave its child running: stop our :$PORT server by name,
 # only for processes whose cwd is this worktree
 for p in $(pgrep -f "api_server.py --host [0-9.]* --port $PORT"); do
-  [[ "$(readlink /proc/$p/cwd)" == /workspace/MuseTalk-perf300 ]] || continue
+  [[ "$(readlink /proc/$p/cwd)" == "$R" ]] || continue
   kill -INT $p 2>/dev/null; sleep 3; kill -INT $p 2>/dev/null; sleep 5; kill -KILL $p 2>/dev/null
 done
 echo "server $PID stopped"
