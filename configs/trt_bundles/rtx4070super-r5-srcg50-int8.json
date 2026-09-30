@@ -1,7 +1,7 @@
 {
   "schema": "musetalk_trt_bundle_v1",
   "name": "rtx4070super-r5-srcg50-int8",
-  "description": "r5 = layer-selective INT8 stagewise UNet srcg50 (gmac_0.50 blocks) bs16 + TensorRT TAESD bs8 (runtime key 6111388248264a4ef2ae), ~400 fps offline on one RTX 4070 SUPER. Also carries r2 (srcmix, 350 fps), the INT8 calibration corpus and the load-test audio. Built 2026-09-30 from the engines of docs/fps_comparisons/4070s_400fps.",
+  "description": "r5 = layer-selective INT8 stagewise UNet srcg50 (gmac_0.50 blocks) bs16 + TensorRT TAESD bs8 (runtime key 6111388248264a4ef2ae), TensorRT plans for exactly an RTX 4070 SUPER: ~400 fps there. The first candidate of configs/recipes/r5.env; every other Ampere+ GPU gets ampere-plus-r5-srcg50-int8. Also carries r2 (srcmix, 350 fps), the INT8 calibration corpus and the load-test audio. Built 2026-09-30 from the engines of docs/fps_comparisons/4070s_400fps.",
   "s3_key": "trt-artifacts/rtx4070super/r5-srcg50-int8/sha256-8e3f4b56dfb9cd82beaca20a22f031fbce4e2bc2a9280f55effb3e73c233ebff/musetalk-trt-r5-r2-rtx4070super.tar.gz",
   "sha256": "8e3f4b56dfb9cd82beaca20a22f031fbce4e2bc2a9280f55effb3e73c233ebff",
   "size_bytes": 2579327644,
@@ -11,8 +11,7 @@
     "engine_key": "sm89-nvidia-geforce-rtx-4070-super-trt10.3.0",
     "gpu_name": "NVIDIA GeForce RTX 4070 SUPER",
     "compute_capability": "8.9",
-    "tensorrt_version": "10.3.0",
-    "min_vram_gb": 11.5
+    "tensorrt_version": "10.3.0"
   },
   "engines": {
     "unet_stagewise": {

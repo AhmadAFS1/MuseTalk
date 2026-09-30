@@ -1,0 +1,29 @@
+{
+  "schema": "musetalk_trt_bundle_v1",
+  "name": "ampere-plus-r5-srcg50-int8",
+  "description": "r5 = layer-selective INT8 stagewise UNet srcg50 (gmac_0.50 recipe) bs16 + TensorRT TAESD bs8, built with TensorRT hardware compatibility AMPERE_PLUS: one set of plans for every GPU of compute capability 8.0-9.0 (RTX 30xx/40xx, A-series, L40S, A100, H100). Same ONNX per block as the RTX 4070 SUPER set; 307 fps vs 401 fps on the build GPU (docs/fps_comparisons/ampere_plus_r5_20260930). Built 2026-09-30 on an RTX 4070 SUPER, driver 595.84, torch 2.5.1+cu121, TensorRT 10.3.0.",
+  "s3_key": "trt-artifacts/ampere-plus/r5-srcg50-int8/sha256-07644ff16a170ecbfb4eb3d39ff1150731d5508baff31e0216a5dc1bb371df2e/musetalk-trt-r5-ampere-plus.tar.gz",
+  "sha256": "07644ff16a170ecbfb4eb3d39ff1150731d5508baff31e0216a5dc1bb371df2e",
+  "size_bytes": 1000524577,
+  "payload_bytes": 1163760505,
+  "sidecar_dir": ".runtime/trt_artifacts/ampere-plus-r5-srcg50-int8",
+  "host": {
+    "hardware_compatibility": "ampere_plus",
+    "min_compute_capability": "8.0",
+    "max_compute_capability": "9.0",
+    "tensorrt_version": "10.3.0",
+    "min_vram_gb": 8
+  },
+  "engines": {
+    "unet_stagewise": {
+      "cache_dir": "models/tensorrt_unet_stagewise_ampere_plus_r5",
+      "batch": 16
+    },
+    "taesd_trt": {
+      "dir": "models/taesd/trt",
+      "batch": 8,
+      "key": "512bfd629a5e1f4f2e40",
+      "hardware_compatibility": "ampere_plus"
+    }
+  }
+}

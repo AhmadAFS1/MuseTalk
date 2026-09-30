@@ -13,6 +13,8 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -41,6 +43,14 @@ GPU_4070S = {"index": 0, "name": "NVIDIA GeForce RTX 4070 SUPER", "compute_capab
              "memory_total_mib": 12282, "memory_used_mib": 500, "power_limit_w": 220.0,
              "power_default_limit_w": 220.0, "driver_version": "595.84", "uuid": "GPU-aaaa-1111"}
 GPU_4070TI = dict(GPU_4070S, index=1, name="NVIDIA GeForce RTX 4070 Ti", uuid="GPU-bbbb-2222")
+GPU_3090 = dict(GPU_4070S, name="NVIDIA GeForce RTX 3090", compute_capability="8.6", memory_total_mib=24576,
+                power_limit_w=350.0, power_default_limit_w=350.0, uuid="GPU-cccc-3333")
+GPU_A100 = dict(GPU_4070S, name="NVIDIA A100-SXM4-40GB", compute_capability="8.0", memory_total_mib=40960,
+                uuid="GPU-dddd-4444")
+GPU_H100 = dict(GPU_4070S, name="NVIDIA H100 80GB HBM3", compute_capability="9.0", memory_total_mib=81559,
+                uuid="GPU-eeee-5555")
+GPU_T4 = dict(GPU_4070S, name="Tesla T4", compute_capability="7.5", memory_total_mib=15360, uuid="GPU-ffff-6666")
+GPU_3070 = dict(GPU_3090, name="NVIDIA GeForce RTX 3070", memory_total_mib=6144, uuid="GPU-9999-7777")
 CU121 = {"torch": "2.5.1+cu121", "tensorrt_cu12_bindings": "10.3.0", "tensorrt_cu12": "10.3.0",
          "torch_tensorrt": "2.5.0", "triton": "3.1.0", "aiortc": "1.14.0", "av": "16.1.0", "cffi": "2.1.1",
          "nvidia_cuda_runtime_cu12": "12.1.105"}
@@ -380,9 +390,9 @@ class EnvFileTests(Base):
 
 # --------------------------------------------------------------------------- resolve: fast
 class FastRecipeTests(Base):
-    def test_default_recipe_is_fast_and_eager_without_engine(self):
+    def test_fast_recipe_is_eager_without_engine(self):
         t = self.tree()
-        proc, env, rep = t.resolve(recipe=None)
+        proc, env, rep = t.resolve(recipe="fast")  # the default recipe is r5 (R5RecipeTests)
         self.assertOk(proc)
         self.assertEqual(env["MUSETALK_RECIPE"], "fast")
         self.assertEqual(env["MUSETALK_VAE_BACKEND"], "taesd")
@@ -1086,7 +1096,8 @@ class LeverGroupTests(Base):
 
 # --------------------------------------------------------------------------- verify-log
 REAL_R5 = REPO / "configs" / "recipes" / "r5.env"
-R5_BUNDLE = REPO / "configs" / "trt_bundles" / "rtx4070super-r5-srcg50-int8.json"
+R5_BUNDLE = REPO / "configs" / "trt_bundles" / "ampere-plus-r5-srcg50-int8.json"  # the portable candidate (last)
+R5_NATIVE = REPO / "configs" / "trt_bundles" / "rtx4070super-r5-srcg50-int8.json"  # the RTX 4070 SUPER one (first)
 
 
 @unittest.skipUnless(REAL_R5.is_file() and R5_BUNDLE.is_file(), "r5 recipe / bundle descriptor not present")
@@ -1107,14 +1118,15 @@ class R5RecipeTests(Base):
             (t.repo / rel).write_text(f"# reads {keys}\n")
         t.recipe(REAL_R5.read_text(), name="r5")
         (t.repo / "configs" / "trt_bundles").mkdir(parents=True)
-        (t.repo / "configs" / "trt_bundles" / R5_BUNDLE.name).write_text(R5_BUNDLE.read_text())
+        for desc in (REPO / "configs" / "trt_bundles").glob("*.json"):
+            (t.repo / "configs" / "trt_bundles" / desc.name).write_text(desc.read_text())
         if restored:
             self.restore(t)
         return t
 
-    def restore(self, t, stamp_sha=None):
+    def restore(self, t, stamp_sha=None, descriptor=None):
         """What trt_artifact_bundle.py restore --sidecar-dir leaves behind (tiny stand-in files)."""
-        desc = json.loads(R5_BUNDLE.read_text())
+        desc = descriptor or json.loads(R5_BUNDLE.read_text())
         unet = t.repo / desc["engines"]["unet_stagewise"]["cache_dir"] / "bs16"
         unet.mkdir(parents=True, exist_ok=True)
         (unet / "manifest.json").write_text(json.dumps({"batch": 16, "complete": True}))
@@ -1146,12 +1158,17 @@ class R5RecipeTests(Base):
         self.assertEqual(env["WEBRTC_DEADLINE_PACING"], "1")
         self.assertEqual(env["MUSETALK_GC_FREEZE"], "1")
 
-    def test_descriptor_matches_this_engine_key_scheme(self):
-        t = self.tree()
+    def test_descriptor_is_hardware_compatible(self):
         desc = json.loads(R5_BUNDLE.read_text())
-        self.assertEqual(ek.engine_key("unet_stagewise", t.host_facts()), desc["host"]["engine_key"])
+        host = desc["host"]
+        self.assertNotIn("engine_key", host)  # not tied to one GPU model
+        self.assertEqual((host["hardware_compatibility"], host["min_compute_capability"], host["tensorrt_version"]),
+                         ("ampere_plus", "8.0", "10.3.0"))
+        self.assertEqual(desc["engines"]["taesd_trt"]["hardware_compatibility"], "ampere_plus")
         self.assertTrue(desc["s3_key"].startswith("trt-artifacts/") and desc["sha256"] in desc["s3_key"])
         self.assertTrue(desc["sidecar_dir"].startswith(".runtime/"))
+        candidates = re.search(r"requires=bundle:([^,\s]+)", REAL_R5.read_text()).group(1).split("|")
+        self.assertEqual(candidates, [json.loads(R5_NATIVE.read_text())["name"], desc["name"]])  # portable last
 
     def test_restored_bundle_selects_its_engines(self):
         t = self.r5_tree()
@@ -1160,21 +1177,23 @@ class R5RecipeTests(Base):
         self.assertEqual(env["MUSETALK_RECIPE"], "r5")
         self.assertEqual(env["MUSETALK_UNET_BACKEND"], "trt_stagewise")
         self.assertEqual(env["MUSETALK_TRT_UNET_ENABLED"], "0")
+        desc = json.loads(R5_BUNDLE.read_text())
         self.assertEqual(env["MUSETALK_UNET_STAGEWISE_CACHE_DIR"],
-                         str(t.repo / "models" / "tensorrt_unet_stagewise_sm89_srcg50"))
+                         str(t.repo / desc["engines"]["unet_stagewise"]["cache_dir"]))
         self.assertEqual(env["MUSETALK_UNET_STAGEWISE_BATCH"], "16")
         self.assertEqual(env["MUSETALK_TAESD_BACKEND"], "trt")
         self.assertEqual(env["MUSETALK_TAESD_TRT_DIR"], str(t.repo / "models" / "taesd" / "trt"))
         self.assertEqual(env["MUSETALK_TAESD_TRT_BATCH"], "8")
         self.assertEqual(env["MUSETALK_TAESD_TRT_BUILD"], "0")
         self.assertEqual(env["MUSETALK_TAESD_TRT_STRICT"], "1")
+        self.assertEqual(env["MUSETALK_TAESD_TRT_HW_COMPAT"], "ampere_plus")
         for knob in ("HLS_SCHEDULER_FIXED_BATCH_SIZES", "HLS_SCHEDULER_MAX_BATCH",
                      "MUSETALK_TAESD_WARMUP_BATCHES", "MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES"):
             self.assertEqual(env[knob], "16", knob)
         self.assertEqual(env["MUSETALK_TRT_FALLBACK"], "0")
         self.assertEqual(rep["expect"], {"vae": "taesd_trt", "unet": "trt_stagewise"})
         self.assertEqual(rep["warnings"], [])
-        self.assertEqual(rep["unet"]["engine"]["match"], "bundle:rtx4070super-r5-srcg50-int8")
+        self.assertEqual(rep["unet"]["engine"]["match"], f"bundle:{desc['name']}")
         groups = self.groups(rep)
         self.assertEqual({n for n, g in groups.items() if g["status"] == "enabled"},
                          {"r5_engines", "r5_deadline_pacing", "r5_handoff", "r5_idle_frame_cache", "r5_gc",
@@ -1196,13 +1215,95 @@ class R5RecipeTests(Base):
         self.assertOk(proc)
         self.assertEnginesDropped(env, rep, "not restored")
 
-    def test_other_gpu_or_tensorrt_drops_engines(self):
-        proc, env, rep = self.r5_tree(gpus=(GPU_4070TI,)).resolve("r5")
+    def test_gpu_specific_bundle_is_preferred_on_its_gpu(self):
+        native = json.loads(R5_NATIVE.read_text())
+        t = self.r5_tree()  # the portable bundle restored ...
+        self.restore(t, descriptor=native)  # ... and the RTX 4070 SUPER one
+        proc, env, rep = t.resolve("r5")
         self.assertOk(proc)
-        self.assertEnginesDropped(env, rep, "this host is sm89-nvidia-geforce-rtx-4070-ti")
+        self.assertEqual(env["MUSETALK_UNET_STAGEWISE_CACHE_DIR"],
+                         str(t.repo / native["engines"]["unet_stagewise"]["cache_dir"]))
+        self.assertNotIn("MUSETALK_TAESD_TRT_HW_COMPAT", env)
+        self.assertEqual(rep["unet"]["engine"]["match"], f"bundle:{native['name']}")
+        for gpu in (GPU_3090, GPU_4070TI):  # other GPUs: the portable one, even with both restored
+            with self.subTest(gpu=gpu["name"]):
+                other = Tree(Path(tempfile.mkdtemp(dir=str(self.tmp))), gpus=(gpu,))
+                shutil.rmtree(other.repo)
+                shutil.copytree(t.repo, other.repo, symlinks=True)
+                proc, env, rep = other.resolve("r5")
+                self.assertOk(proc)
+                self.assertEqual(env["MUSETALK_TAESD_TRT_HW_COMPAT"], "ampere_plus")
+                self.assertEqual(rep["unet"]["engine"]["match"], f"bundle:{json.loads(R5_BUNDLE.read_text())['name']}")
+
+    def test_any_ampere_or_newer_gpu_uses_the_bundle(self):
+        for gpu in (GPU_3090, GPU_4070TI, GPU_A100, GPU_H100):
+            with self.subTest(gpu=gpu["name"]):
+                proc, env, rep = self.r5_tree(gpus=(gpu,)).resolve("r5")
+                self.assertOk(proc)
+                self.assertEqual(env["MUSETALK_UNET_BACKEND"], "trt_stagewise")
+                self.assertEqual(env["MUSETALK_TAESD_BACKEND"], "trt")
+                self.assertEqual(self.groups(rep)["r5_engines"]["status"], "enabled")
+
+    def test_pre_ampere_other_tensorrt_or_small_vram_drops_engines(self):
+        proc, env, rep = self.r5_tree(gpus=(GPU_T4,)).resolve("r5")
+        self.assertOk(proc)
+        self.assertEnginesDropped(env, rep, "Tesla T4 is sm7.5")
         proc, env, rep = self.r5_tree(packages=CU128).resolve("r5")
         self.assertOk(proc)
-        self.assertEnginesDropped(env, rep, "bundle is for sm89-nvidia-geforce-rtx-4070-super-trt10.3.0")
+        self.assertEnginesDropped(env, rep, "bundle engines need TensorRT 10.3.0; the venv has 10.9.0.34")
+        proc, env, rep = self.r5_tree(gpus=(GPU_3070,)).resolve("r5")
+        self.assertOk(proc)
+        self.assertEnginesDropped(env, rep, "VRAM 6.0 GB < 8 GB")
+
+    def test_exact_engine_key_descriptor_still_supported(self):
+        t = self.r5_tree(restored=False)
+        desc = dict(json.loads(R5_BUNDLE.read_text()), name="gpu-specific-test")
+        desc["host"] = {"engine_key": ek.engine_key("unet_stagewise", t.host_facts())}
+        desc["sidecar_dir"] = ".runtime/trt_artifacts/gpu-specific-test"
+        (t.repo / "configs" / "trt_bundles" / "gpu-specific-test.json").write_text(json.dumps(desc))
+        t.recipe(re.sub(r"bundle:[^,\s]+,", "bundle:gpu-specific-test,", REAL_R5.read_text()), name="r5")
+        self.restore(t, descriptor=desc)
+        proc, env, rep = t.resolve("r5")
+        self.assertOk(proc)
+        self.assertEqual(env["MUSETALK_UNET_BACKEND"], "trt_stagewise")
+        other = Tree(Path(tempfile.mkdtemp(dir=str(self.tmp))), gpus=(GPU_4070TI,))  # same sm_89, other model
+        shutil.rmtree(other.repo)
+        shutil.copytree(t.repo, other.repo, symlinks=True)
+        proc, env, rep = other.resolve("r5")
+        self.assertOk(proc)
+        self.assertEnginesDropped(env, rep, "these plans load only on the exact GPU model")
+
+    def test_default_recipe_is_r5(self):
+        t = self.r5_tree()
+        proc, env, rep = t.resolve(None)
+        self.assertOk(proc)
+        self.assertEqual((rep["recipe"], env["MUSETALK_RECIPE"]), ("r5", "r5"))
+        self.assertEqual(env["MUSETALK_UNET_BACKEND"], "trt_stagewise")
+
+    def test_bundle_check_cli(self):
+        native, portable = json.loads(R5_NATIVE.read_text())["name"], json.loads(R5_BUNDLE.read_text())["name"]
+        both = f"{native}|{portable}"
+
+        def states(proc):
+            return [tuple(line.split("\t")[:2]) for line in proc.stdout.splitlines() if line]
+
+        for gpus, want, fit in (((GPU_4070S,), 0, [(native, "ok"), (portable, "ok")]),
+                                ((GPU_3090,), 0, [(native, "no"), (portable, "ok")]),
+                                ((GPU_T4,), 3, [(native, "no"), (portable, "no")])):
+            with self.subTest(gpu=gpus[0]["name"]):
+                t = self.r5_tree(restored=False, gpus=gpus)
+                proc = t.run("bundle-check", "--bundle", both, "--host-only", "--repo-root", str(t.repo),
+                             "--venv", str(t.venv))
+                self.assertEqual(proc.returncode, want, proc.stdout + proc.stderr)
+                self.assertEqual(states(proc), fit)
+        t = self.r5_tree(restored=False)
+        proc = t.run("bundle-check", "--bundle", portable, "--repo-root", str(t.repo), "--venv", str(t.venv))
+        self.assertEqual(proc.returncode, 3, proc.stdout)  # host fits, but nothing is restored
+        self.assertIn("not restored", proc.stdout)
+        proc = t.run("bundle-check", "--bundle", "nope", "--repo-root", str(t.repo), "--venv", str(t.venv))
+        self.assertEqual((proc.returncode, states(proc)), (3, [("nope", "no")]))
+        proc = t.run("bundle-check", "--bundle", "|", "--repo-root", str(t.repo), "--venv", str(t.venv))
+        self.assertEqual(proc.returncode, 2)
 
     def test_changed_or_missing_file_drops_engines(self):
         t = self.r5_tree()

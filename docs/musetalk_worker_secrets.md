@@ -63,17 +63,18 @@ The bootstrap script also fills a few safe aliases:
 - `AVATAR_S3_ENABLED=1` when `AVATAR_S3_BUCKET` is present
 - `TRT_ARTIFACT_S3_BUCKET` from `AVATAR_S3_BUCKET` by default
 
-The existing runtime secret does not need new TRT fields. The repository pins
-every engine bundle it restores: the RTX 4070 SUPER r5 bundle for recipe `r5`
-(`configs/trt_bundles/rtx4070super-r5-srcg50-int8.json`) and the RTX 3090 split8
-bundle for recipe `legacy_int8` (`scripts/vast_onstart.sh`). Both are read from
+The existing runtime secret does not need new TRT or recipe fields. The default
+recipe is r5, and the repository pins every engine bundle it restores: the r5
+bundle (`configs/trt_bundles/ampere-plus-r5-srcg50-int8.json`, one TensorRT set
+for every Ampere-or-newer GPU) and the RTX 3090 split8 bundle for the rollback
+recipe `legacy_int8` (`scripts/vast_onstart.sh`). Both are read from
 `TRT_ARTIFACT_S3_BUCKET`, which the bootstrap derives from `AVATAR_S3_BUCKET`.
 
-The secret may set `"MUSETALK_RECIPE": "r5"` to switch every worker at once:
-`vast_onstart.sh` re-reads the recipe after the bootstrap. That works among
-fast, fast300 and r5; `legacy_int8` must be set in the Vast template, because
-it changes the install step that runs before the secret is read. Hosts whose
-GPU is not an RTX 4070 SUPER skip the r5 bundle and serve the fast engines.
+The secret may set `"MUSETALK_RECIPE"` (e.g. `"fast"`) to switch every worker at
+once: `vast_onstart.sh` re-reads the recipe after the bootstrap. That works among
+r5, fast and fast300; `legacy_int8` must be set in the Vast template, because it
+changes the install step that runs before the secret is read. GPUs older than
+Ampere skip the r5 bundle and serve eager UNet + compiled TAESD.
 
 ## Startup Flow
 
@@ -87,10 +88,12 @@ GPU is not an RTX 4070 SUPER skip the r5 bundle and serve the fast engines.
 5. `vast_onstart.sh` sources that file, deletes it immediately, and re-reads
    `MUSETALK_RECIPE`.
 6. Engines, by recipe:
-   - `r5`: on an RTX 4070 SUPER with TensorRT 10.3, the pinned r5 bundle is
+   - `r5` (default): on any GPU of compute capability 8.0-9.0 with TensorRT
+     10.3 and >= 8 GB (RTX 3090, RTX 4070 SUPER, ...), the pinned r5 bundle is
      downloaded, checksum-verified and verified per file (skipped on a reboot
-     whose files still verify); on other GPUs it is skipped;
-   - `fast`, `fast300` (and `r5` without its bundle): `unet_engine_store.py ensure`;
+     whose files still verify); on older GPUs it is skipped. No `.ts` UNet is
+     built;
+   - `fast`, `fast300`: `unet_engine_store.py ensure` (the `.ts` UNet);
    - `legacy_int8`: the RTX 3090 split8 bundle is restored and its batch-8
      profile selected.
 7. The worker starts through `scripts/vast_server_ctl.sh start`, which checks

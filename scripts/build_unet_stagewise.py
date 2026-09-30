@@ -14,6 +14,12 @@ records the probe output hash that the runtime checks at load.
 times both engines on the block's real inputs (interleaved CUDA-graph replays) and keeps the faster
 (tactic variance ~5%); only the kept engine is written.
 
+--hardware-compat ampere_plus builds every block with TensorRT HardwareCompatibilityLevel.AMPERE_PLUS:
+the set then loads on any GPU of compute capability 8.0 or newer (RTX 3090 and 4070 SUPER alike) with
+the same TensorRT version. A root holds one level only; such a build never seeds from the probe's
+default-level timing cache, and finalising records the cross-GPU probe bound the loader applies on
+other GPU models.
+
 Run under the GPU lease, e.g.:
   scripts/box_guard.sh run --min-avail-gb 8 -- /workspace/.venvs/musetalk_trt_stagewise/bin/python \
       scripts/build_unet_stagewise.py --batch 16 --opt-level 5 --max-minutes 20
@@ -193,7 +199,9 @@ def build_batch(args, batch: int, model, device) -> dict:
 
     spec = sw.chain_spec(model, args.variant)
     order = sw.block_order(args.variant)
-    flags = sw.build_flags_record(args.opt_level, args.workspace_gb, not args.no_timing_cache)
+    hw_compat = sw.hardware_compat_level(args.hardware_compat)
+    flags = sw.build_flags_record(args.opt_level, args.workspace_gb, not args.no_timing_cache,
+                                  hardware_compat=hw_compat)
     base = {
         "schema": sw.MANIFEST_SCHEMA,
         "batch": batch,
@@ -209,8 +217,13 @@ def build_batch(args, batch: int, model, device) -> dict:
         "variant": args.variant,
         "build_flags": flags,
     }
+    if hw_compat != "none":
+        base["hardware_compatibility_level"] = hw_compat
     if manifest.get("spec") not in (None, spec) or manifest.get("batch") not in (None, batch):
         raise SystemExit(f"{manifest_path}: existing manifest has a different spec/batch; use a fresh --root")
+    if manifest.get("blocks") and sw.hardware_compat_level(manifest.get("hardware_compatibility_level")) != hw_compat:
+        raise SystemExit(f"{manifest_path}: existing set has hardware compatibility "
+                         f"{manifest.get('hardware_compatibility_level') or 'none'}, not {hw_compat}; use a fresh --root")
     blocks = dict(manifest.get("blocks", {}))
     manifest.update(base)
     manifest["blocks"] = blocks
@@ -230,7 +243,7 @@ def build_batch(args, batch: int, model, device) -> dict:
     if not args.no_timing_cache:
         if cache_path.exists():
             cache_bytes = cache_path.read_bytes()
-        elif SEED_TIMING_CACHE.exists():
+        elif SEED_TIMING_CACHE.exists() and hw_compat == "none":  # the seed was timed without hardware compat
             cache_bytes = SEED_TIMING_CACHE.read_bytes()
             manifest["timing_cache_seed"] = str(SEED_TIMING_CACHE.relative_to(ROOT))
     wanted = order if not args.blocks else [b for b in order if b in args.blocks.split(",")]
@@ -334,7 +347,8 @@ def build_batch(args, batch: int, model, device) -> dict:
         mem0 = proc_mem()
         engine_bytes, build_s, cache_out = sw.build_engine_from_onnx(
             onnx_bytes, opt_level=args.opt_level, workspace_gb=args.workspace_gb,
-            timing_cache=cache_bytes, use_timing_cache=not args.no_timing_cache, int8=is_int8)
+            timing_cache=cache_bytes, use_timing_cache=not args.no_timing_cache, int8=is_int8,
+            hardware_compat=hw_compat)
         mem1 = proc_mem()
         onnx_mb = len(onnx_bytes) / 2**20
         del onnx_bytes
@@ -348,7 +362,8 @@ def build_batch(args, batch: int, model, device) -> dict:
         if args.second_build:
             onnx_b = sw.export_block_onnx(export_module, args_t)
             eng_b, build_b, _ = sw.build_engine_from_onnx(
-                onnx_b, opt_level=args.opt_level, workspace_gb=args.workspace_gb, use_timing_cache=False, int8=is_int8)
+                onnx_b, opt_level=args.opt_level, workspace_gb=args.workspace_gb, use_timing_cache=False, int8=is_int8,
+                hardware_compat=hw_compat)
             del onnx_b
             ms, outs, _rt = time_block_engines([engine_bytes, eng_b], blk, tensors, device)
             keep_b = ms[1] < ms[0] * 0.995
@@ -406,6 +421,9 @@ def build_batch(args, batch: int, model, device) -> dict:
         "graph_equals_direct_enqueue": bool(torch.equal(out1, out_direct)),
         "vs_eager_forward": {"mae": float(d.mean()), "max_abs": float(d.max()), "rel_l2": rel},
     }
+    if hw_compat != "none":
+        # the loader's bound on GPU models other than this one (the build GPU stays bit-exact)
+        manifest["probe"]["cross_gpu_rel_l2_max"] = sw.CROSS_GPU_PROBE_REL_L2_MAX
     manifest["runtime"] = backend.describe()
     manifest["complete"] = True
     manifest["finalized_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -446,6 +464,9 @@ def main() -> int:
                     help="UNet capture corpus used for INT8 calibration (main split; holdout stays unseen)")
     ap.add_argument("--calib-batches", type=int, default=8, help="engine-batch-sized calibration batches")
     ap.add_argument("--report", default="", help="optional JSON summary path")
+    ap.add_argument("--hardware-compat", default="none", choices=sw.HW_COMPAT_LEVELS,
+                    help="none (default: engines for this GPU's compute capability) or ampere_plus (one set for "
+                         "every Ampere-or-newer GPU; TensorRT HardwareCompatibilityLevel.AMPERE_PLUS)")
     args = ap.parse_args()
     os.chdir(ROOT)
     logging_level = os.getenv("BUILD_LOG_LEVEL", "INFO")

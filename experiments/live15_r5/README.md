@@ -1,7 +1,7 @@
 # Live WebRTC test rig: 15 concurrent streams on the r5 engines
 
 Findings, results and recommendations: `docs/fps_comparisons/live15_r5_20260929/README.md`.
-Production: `MUSETALK_RECIPE=r5` serves this configuration (`configs/recipes/r5.env`: `loopfix.env` + `serve.env` +
+Production: the default recipe r5 serves this configuration (`configs/recipes/r5.env`: `loopfix.env` + `serve.env` +
 `common.env` minus the test-rig lines; the engines come from the pinned S3 bundle, `docs/STARTUP.md` §4).
 This file covers how to run the rig and what it measures.
 

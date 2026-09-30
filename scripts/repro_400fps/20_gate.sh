@@ -12,6 +12,7 @@ source "$(dirname "$0")/lib.sh"
 ROOT="${1:-$ENGINE_ROOT}"
 [ -e "$ROOT/bs16/manifest.json" ] || die "no engine set at $ROOT"
 T=$(tag "$ROOT")
+HW=$(hw_compat_of "$ROOT")   # a hardware-compatible set is gated with the hardware-compatible TAESD engine
 E="MUSETALK_UNET_BACKEND=trt_stagewise MUSETALK_UNET_STAGEWISE_BATCH=16 MUSETALK_UNET_STAGEWISE_CACHE_DIR=$ROOT MUSETALK_TRT_FALLBACK=0"
 for split in main holdout; do
   dir=$CORPUS; [ $split = holdout ] && dir=$CORPUS/holdout
@@ -29,12 +30,14 @@ guarded "gate_srccache_${T}" 8 "$PY" "$PKG/srccache_exact.py" --root "$ROOT" --c
 grep -a '^PASS\|^FAIL' "$OUT/gate_srccache_${T}.log" | cut -c1-220 || log "srccache gate: no verdict; see its log"
 # TAESD: load + probe check (never builds), then the published G-TAESD gate itself. The verdict is recorded into the
 # engine meta only when the engine has none yet (a fresh engine); an existing record is left as it is.
-guarded "gate_taesd_load_${T}" 6 env MUSETALK_TAESD_TRT_BATCH=8 MUSETALK_TAESD_TRT_BUILD=0 "$PY" scripts/vae_fast_decoder.py verify
+guarded "gate_taesd_load_${T}" 6 env MUSETALK_TAESD_TRT_BATCH=8 MUSETALK_TAESD_TRT_BUILD=0 MUSETALK_TAESD_TRT_HW_COMPAT=$HW \
+  "$PY" scripts/vae_fast_decoder.py verify
 L=$(grep -a 'TAESD TRT backend' "$OUT/gate_taesd_load_${T}.log" | tail -1)
 echo "  $L"
 REC=--no-record   # record only when the loader says this key has no verdict yet (a freshly built engine)
 case "$L" in *gate=PASS*|*gate=FAIL*|"") ;; *gate=*) REC= ;; esac
 guarded "gate_taesd_${T}" 8 env REPRO_GATE_OUT="$OUT/taesd_gate" MUSETALK_TAESD_TRT_BATCH=8 MUSETALK_TAESD_TRT_BUILD=0 \
+  MUSETALK_TAESD_TRT_HW_COMPAT=$HW \
   "$PY" "$PKG/gate_taesd_trt.py" $REC
 python3 -c "import json; g=json.load(open('$OUT/taesd_gate/gate_taesd_trt.json'))['gate']; print('  G-TAESD: verdict %s  max %s LSB (bar 3)  mean %.3f (bar 0.2)  rows104 max %s' % (g['verdict'], g['G_TAESD_full_max'], g['G_TAESD_full_mean'], g['G_TAESD_rows104_max']))" 2>/dev/null \
   || log "G-TAESD: see $OUT/gate_taesd_${T}.log"

@@ -7,11 +7,12 @@ venv is inspected through its site-packages/*.dist-info directory names.
 
 Subcommands
   detect       [--repo-root R] [--venv V]           host facts JSON on stdout
-  resolve      --recipe fast|fast300|r5|legacy_int8  writes .runtime/musetalk_resolved.{env,json}
+  resolve      --recipe r5|fast|fast300|legacy_int8  writes .runtime/musetalk_resolved.{env,json}
                [--repo-root R] [--venv V] [--out ENVFILE] [--report JSONFILE]
   verify-log   --log L [--offset B] --expect-vae X [--expect-unet Y] [--timeout S]
   engine-key   --kind unet_ts|unet_stagewise|taesd_trt
   find-engine  --kind K [--batch N]                  JSON of the best usable engine, exit 3 if none
+  bundle-check --bundle A[|B...] [--host-only]       which pinned bundles can this host use? exit 0 some, 3 none
 
 Layering (highest wins): 1 caller env > 2 overrides files (MUSETALK_ENV_OVERRIDES_FILE,
 colon list, default <repo>/.runtime/musetalk_overrides.env, first file wins) >
@@ -25,7 +26,8 @@ MUSETALK_ENV_CALLER_KEYS / MUSETALK_ENV_OVERRIDE_KEYS (comma lists) so the repor
 attributes each value to the right layer; without them the source is inferred.
 
 Recipes
-  fast        (DEFAULT) compiled TAESD + the validated torch_tensorrt bs8 .ts UNet for this
+  r5          (DEFAULT) see below.
+  fast        compiled TAESD + the validated torch_tensorrt bs8 .ts UNet for this
               engine key, else eager (reason recorded). MUSETALK_UNET_MODE=auto|trt|eager.
   fast300     fast + the levers of configs/recipes/fast300.env (MUSETALK_RECIPE_FILE overrides).
               "# @lever <group> requires=<p>,..." groups are atomic: every prerequisite
@@ -36,12 +38,17 @@ Recipes
               Ungrouped lines are single levers gated by the LEVERS table (engine levers need a
               validated engine, pass-through levers need code that reads them).
   r5          fast + the levers of configs/recipes/r5.env, in the same format. Its engine group
-              requires bundle:<name>: the pinned S3 engine bundle configs/trt_bundles/<name>.json,
-              for this exact engine key (GPU model + TensorRT), restored or adopted with a stamp
-              for the pinned archive SHA256 by scripts/trt_artifact_bundle.py, every file present.
-              The resolver then points the stagewise UNet and TAESD TRT at the bundle's engines
-              (they are not engine-store entries). On any other host the group is dropped with
-              its reason and the host serves the fast engines plus r5's serving levers.
+              requires bundle:<name>[|<name>...]: pinned S3 engine bundles configs/trt_bundles/<name>.json in
+              order of preference (a GPU-specific bundle first, the portable one last); the first that
+              fits this host and is restored wins.
+              Its "host" block is either hardware_compatibility (a compute-capability range, e.g.
+              TensorRT AMPERE_PLUS plans for every sm_80+ GPU) with the TensorRT version and a VRAM
+              floor, or an exact engine_key (one GPU model). The bundle must be restored or adopted
+              with a stamp for the pinned archive SHA256 by scripts/trt_artifact_bundle.py, every
+              file present. The resolver then points the stagewise UNet and TAESD TRT at the
+              bundle's engines (they are not engine-store entries). On any other host the group is
+              dropped with its reason and the host serves the fast engines (without a .ts engine:
+              eager) plus r5's serving levers.
   legacy_int8 emits only MUSETALK_RECIPE=legacy_int8 (the launcher execs the old chain).
 Engines come ONLY from scripts/musetalk_engine_keys.py (the engine store's module).
 Pass-through serving levers are never emitted unless a recipe line enables them; the
@@ -84,6 +91,7 @@ FACTS_SCHEMA = "musetalk_host_facts_v1"
 REPORT_SCHEMA = "musetalk_resolved_v1"
 SELFTEST_SCHEMA = "musetalk_gpu_selftest_v1"
 RECIPES = ("fast", "fast300", "r5", "legacy_int8")
+DEFAULT_RECIPE = "r5"
 RECIPE_FILE_RECIPES = ("fast300", "r5")  # recipes that read configs/recipes/<recipe>.env
 TRT_BUNDLE_DIR = Path("configs") / "trt_bundles"  # pinned S3 engine bundles (bundle:<name> prerequisite)
 TRT_BUNDLE_STAMP = ".musetalk_trt_artifact_restored.json"  # written by scripts/trt_artifact_bundle.py
@@ -105,6 +113,21 @@ def log(msg: str) -> None:
 
 def utc_now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def _cc_tuple(value):
+    """'8.9' / [8, 9] / (8, 9) -> (8, 9); None when absent or malformed."""
+    if value in (None, ""):
+        return None
+    try:
+        parts = [int(v) for v in (value if isinstance(value, (list, tuple)) else str(value).split("."))]
+    except (TypeError, ValueError):
+        return None
+    return tuple(parts[:2]) if len(parts) >= 2 else (parts[0], 0) if parts else None
+
+
+def _cc_text(cap):
+    return f"{cap[0]}.{cap[1]}" if cap else "?"
 
 
 def _to_int(value, default=None):
@@ -837,6 +860,7 @@ LEVERS = {
     "MUSETALK_TAESD_TRT_FUSED_POST": _lever("engine", "bool", default="1"),
     "MUSETALK_TAESD_TRT_OPT_LEVEL": _lever("engine", "int", minimum=0, maximum=5, default="3"),
     "MUSETALK_TAESD_TRT_STRONGLY_TYPED": _lever("engine", "bool", default="0"),
+    "MUSETALK_TAESD_TRT_HW_COMPAT": _lever("engine", "choice", ["none", "ampere_plus"], default="none"),
     "MUSETALK_TRT_UNET_CUDAGRAPHS": _lever("engine", "choice",
                                            ["0", "off", "false", "no", "none", "1", "on", "true", "yes", "manual",
                                             "runtime"], default="0", raises=True),
@@ -1165,7 +1189,7 @@ class Resolver:
         # The recipe actually resolved is the truth for this knob (the launcher dispatches on it).
         self.emitted["MUSETALK_RECIPE"] = self.recipe
         self.decisions.append({"knob": "MUSETALK_RECIPE", "value": self.recipe, "source": "resolver",
-                               "reason": "selected recipe (--recipe, else MUSETALK_RECIPE, else overrides, else fast)"})
+                               "reason": "selected recipe (--recipe, else MUSETALK_RECIPE, else overrides, else r5)"})
         if self.recipe == "legacy_int8":
             self.expect = {"vae": "any", "unet": "any"}
             self.notes.append("legacy_int8: the launcher execs scripts/run_trt_stagewise_server.sh (old chain)")
@@ -1412,7 +1436,7 @@ class Resolver:
         if prereq == "gpu:nvenc":
             return self.pyav_has_encoder("h264_nvenc") if gpu is not None else (False, "no GPU visible")
         if kind == "bundle":
-            return self._cached(prereq, lambda: self._bundle_check(arg))
+            return self._cached(prereq, lambda: self._bundle_prereq(arg))
         if kind == "code":
             path = self.repo_root / arg
             first = group["keys"][0] if group["keys"] else None
@@ -1424,22 +1448,54 @@ class Resolver:
             return True, f"{arg} mentions {first}"
         return False, f"unknown prerequisite {prereq!r}"
 
-    def _bundle_check(self, name):
-        """(ok, why) for bundle:<name>: configs/trt_bundles/<name>.json is for this exact engine key,
-        its stamp binds the stored sidecars to the pinned archive SHA256, and every file of the
-        bundle manifest is present with its recorded size (stat only; the restore hashed them)."""
+    def _bundle_descriptor(self, name):
         desc_path = self.repo_root / TRT_BUNDLE_DIR / f"{name}.json"
         try:
-            desc = json.loads(desc_path.read_text())
+            return json.loads(desc_path.read_text()), None
         except (OSError, ValueError) as exc:
-            return False, f"{desc_path} unreadable ({type(exc).__name__})"
-        if self.facts.get("gpu") is None:
+            return None, f"{desc_path} unreadable ({type(exc).__name__})"
+
+    def _bundle_host_check(self, desc):
+        """(ok, why): can this host run the bundle's engines at all (checked before any download)?"""
+        gpu = self.facts.get("gpu")
+        if gpu is None:
             return False, "no GPU visible"
-        want = (desc.get("host") or {}).get("engine_key")
-        have = self.store.engine_key("unet_stagewise", self.facts)
-        if not want or have != want:
-            return False, (f"bundle is for {want}; this host is {have} (raw TensorRT plans load only on the "
-                           "exact GPU model + TensorRT they were built on)")
+        host = desc.get("host") or {}
+        if host.get("engine_key"):
+            # a GPU-specific bundle: raw plans for one GPU model + TensorRT version
+            want, have = host["engine_key"], self.store.engine_key("unet_stagewise", self.facts)
+            if have != want:
+                return False, (f"bundle is for {want}; this host is {have} (these plans load only on the exact "
+                               "GPU model + TensorRT they were built on)")
+            return True, f"engine key {have}"
+        level = host.get("hardware_compatibility")
+        if not level:
+            return False, "descriptor names neither host.engine_key nor host.hardware_compatibility"
+        cap = _cc_tuple(gpu.get("compute_capability"))
+        low, high = _cc_tuple(host.get("min_compute_capability")), _cc_tuple(host.get("max_compute_capability"))
+        span = f"sm{_cc_text(low)}..sm{_cc_text(high)}" if high else f"sm{_cc_text(low)}+"
+        if cap is None or (low and cap < low) or (high and cap > high):
+            return False, (f"bundle engines are TensorRT {level} ({span}); {gpu.get('name')} is "
+                           f"sm{gpu.get('compute_capability')}")
+        trt_have = (self.facts.get("venv") or {}).get("tensorrt")
+        trt_want = host.get("tensorrt_version")
+        if trt_want and trt_have != trt_want:
+            return False, f"bundle engines need TensorRT {trt_want}; the venv has {trt_have}"
+        min_vram = _to_float(host.get("min_vram_gb"))
+        if min_vram and not self._vram_ok(min_vram):
+            return False, f"VRAM {self._vram_gb() or 0:.1f} GB < {min_vram:g} GB"
+        return True, f"{gpu.get('name')} sm{gpu.get('compute_capability')} + TensorRT {trt_have} within {level} ({span})"
+
+    def _bundle_check(self, name):
+        """(ok, why) for bundle:<name>: this host can run configs/trt_bundles/<name>.json (hardware-compatibility
+        range or exact engine key), its stamp binds the stored sidecars to the pinned archive SHA256, and every
+        file of the bundle manifest is present with its recorded size (stat only; the restore hashed them)."""
+        desc, err = self._bundle_descriptor(name)
+        if desc is None:
+            return False, err
+        ok, host_why = self._bundle_host_check(desc)
+        if not ok:
+            return False, host_why
         sidecar_dir = self.repo_root / str(desc.get("sidecar_dir") or f".runtime/trt_artifacts/{name}")
         try:
             stamp = json.loads((sidecar_dir / TRT_BUNDLE_STAMP).read_text())
@@ -1468,11 +1524,23 @@ class Resolver:
         if bad:
             return False, f"{len(bad)} bundle file(s) missing or changed since the restore: {bad[:3]}"
         self.shared.setdefault("bundles", {})[name] = desc
-        return True, (f"{name} {stamp.get('mode') or 'restored'} {stamp.get('restored_at')} for {want}; "
+        return True, (f"{name} {stamp.get('mode') or 'restored'} {stamp.get('restored_at')}; {host_why}; "
                       f"{len(files)} files present")
 
+    def _bundle_prereq(self, arg):
+        """bundle:A|B|...: candidates in order of preference; the first that fits this host and is restored
+        wins (its descriptor is what the group's engine levers point at)."""
+        reasons = []
+        for name in [n for n in arg.split("|") if n]:
+            ok, why = self._bundle_check(name)
+            if ok:
+                self.shared.setdefault("bundles", {})[arg] = self.shared["bundles"][name]
+                return True, why
+            reasons.append(f"{name}: {why}")
+        return False, "; ".join(reasons) or "no bundle named"
+
     def _group_bundle(self, item):
-        """Descriptor of the pinned bundle that the item's @lever group requires (and that passed)."""
+        """Descriptor of the pinned bundle that the item's @lever group requires (the candidate that passed)."""
         if not item or not item.get("group"):
             return None
         for group in self.recipe_groups:
@@ -2067,9 +2135,15 @@ class Resolver:
         engine_dir = self.repo_root / str(spec.get("dir") or "")
         runtime_key = str(spec.get("key") or "")
         batch = _to_int(spec.get("batch"))
+        hw_compat = str(spec.get("hardware_compatibility") or "none")
         self.engines["taesd_trt"] = {"key": self.store.engine_key("taesd_trt", self.facts), "bundle": name,
-                                     "dir": str(engine_dir), "runtime_key": runtime_key, "batch": batch}
+                                     "dir": str(engine_dir), "runtime_key": runtime_key, "batch": batch,
+                                     "hardware_compatibility": hw_compat}
         problems = []
+        hw_up, hw_src = self.view.upper("MUSETALK_TAESD_TRT_HW_COMPAT")
+        if hw_up is not None and hw_up.strip().lower() != hw_compat:
+            problems.append(f"{hw_src} sets MUSETALK_TAESD_TRT_HW_COMPAT={hw_up}; the bundle engine is {hw_compat} "
+                            "(part of its runtime key)")
         if not runtime_key or not batch or not spec.get("dir"):
             problems.append(f"bundle {name} names no taesd_trt dir/key/batch")
         elif not (engine_dir / f"taesd_trt_{runtime_key}.json").is_file():
@@ -2102,6 +2176,8 @@ class Resolver:
                 self._drop(i, "the bundle engine is pre-built; serve-time builds are disabled (use 0)")
             elif name_i == "MUSETALK_TAESD_TRT_BATCH" and _to_int(i["requested"]) != batch:
                 self._drop(i, f"the bundle engine is bs{batch} (part of its runtime key)")
+            elif name_i == "MUSETALK_TAESD_TRT_HW_COMPAT" and i["requested"].strip().lower() != hw_compat:
+                self._drop(i, f"the bundle engine is {hw_compat} (part of its runtime key)")
             else:
                 self._enable(i, "TAESD TRT enabled")
                 self.emitted[name_i] = i["requested"]
@@ -2109,6 +2185,8 @@ class Resolver:
                                        "reason": i["reason"]})
         self.emit("MUSETALK_TAESD_TRT_DIR", str(engine_dir), reason)
         self.emit("MUSETALK_TAESD_TRT_BATCH", str(batch), reason)
+        if hw_compat != "none":
+            self.emit("MUSETALK_TAESD_TRT_HW_COMPAT", hw_compat, reason)
         if "MUSETALK_TAESD_TRT_BUILD" not in self.emitted:
             self.emit("MUSETALK_TAESD_TRT_BUILD", "0", "bundle engine pre-built; never build inside the server")
 
@@ -2611,7 +2689,9 @@ def cmd_resolve(args):
                     break
             if recipe:
                 break
-    recipe = (recipe or "fast").strip()
+    recipe = (recipe or "").strip().lower()
+    if recipe in ("", "default"):
+        recipe = DEFAULT_RECIPE
     if args.recipe and os.environ.get("MUSETALK_RECIPE") and os.environ["MUSETALK_RECIPE"] != args.recipe:
         log(f"warning: --recipe {args.recipe} differs from MUSETALK_RECIPE={os.environ['MUSETALK_RECIPE']}; "
             "using --recipe")
@@ -2706,6 +2786,29 @@ def cmd_find_engine(args):
     return 0 if entry else 3
 
 
+def cmd_bundle_check(args):
+    """Which of the pinned bundles A|B|... can this host use, in order of preference? One line per candidate:
+    NAME<TAB>ok|no<TAB>reason. --host-only: GPU / TensorRT / VRAM only (before a download). Exit 0 when at least
+    one candidate is ok, 3 when none is, 2 when no candidate is named."""
+    repo_root = Path(args.repo_root).resolve()
+    facts = detect(repo_root, args.venv)
+    resolver = Resolver(repo_root, args.venv, DEFAULT_RECIPE, facts)
+    names = [n for n in args.bundle.split("|") if n]
+    if not names:
+        log("--bundle names no bundle")
+        return 2
+    any_ok = False
+    for name in names:
+        desc, err = resolver._bundle_descriptor(name)
+        if desc is None:
+            ok, why = False, err
+        else:
+            ok, why = resolver._bundle_host_check(desc) if args.host_only else resolver._bundle_check(name)
+        any_ok = any_ok or ok
+        print(f"{name}\t{'ok' if ok else 'no'}\t{why}")
+    return 0 if any_ok else 3
+
+
 def build_parser():
     env = os.environ
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
@@ -2724,7 +2827,7 @@ def build_parser():
     p.add_argument("--out", default=None, help="env file (default <repo>/.runtime/musetalk_resolved.env)")
     p.add_argument("--report", default=None, help="JSON report (default <repo>/.runtime/musetalk_resolved.json)")
     p.add_argument("--recipe", default=None, choices=RECIPES,
-                   help="default: MUSETALK_RECIPE, then the overrides files, then fast")
+                   help="default: MUSETALK_RECIPE, then the overrides files, then r5")
     p.set_defaults(func=cmd_resolve)
 
     p = sub.add_parser("verify-log", help="check the server log for the expected backends")
@@ -2737,6 +2840,13 @@ def build_parser():
     p.add_argument("--resolved", default=None, help="musetalk_resolved.json (for 'auto' expectations)")
     p.add_argument("--repo-root", default=None, help="finds .runtime/musetalk_resolved.json for 'auto'")
     p.set_defaults(func=cmd_verify_log)
+
+    p = sub.add_parser("bundle-check", help="which pinned bundles fit this host (exit 0 some, 3 none)")
+    common(p)
+    p.add_argument("--bundle", required=True, help="descriptor names under configs/trt_bundles/, '|'-separated, "
+                                                   "in order of preference")
+    p.add_argument("--host-only", action="store_true", help="GPU, TensorRT and VRAM only (no restore stamp)")
+    p.set_defaults(func=cmd_bundle_check)
 
     for name, func, helptext in (("engine-key", cmd_engine_key, "print the engine key for this GPU + venv"),
                                  ("find-engine", cmd_find_engine, "JSON of the best usable engine (exit 3: none)")):

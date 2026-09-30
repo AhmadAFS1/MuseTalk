@@ -90,7 +90,7 @@ Usage: $SCRIPT_NAME <start|stop|restart|status|logs>
 
 Control the MuseTalk server for Vast.ai/Jupyter-style instances without relying
 on interactive shells. The launcher is scripts/run_musetalk_server.sh (recipe
-fast by default; see docs/STARTUP.md); after /health passes, start verifies from
+r5 by default; see docs/STARTUP.md); after /health passes, start verifies from
 the server log that the resolved VAE/UNet backends are the ones actually active.
 
 Environment:

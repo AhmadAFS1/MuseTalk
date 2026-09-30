@@ -263,6 +263,7 @@ def main():
     for a in res["per_avatar_trt_vs_compiled"].values():
         for k in ("full", "rows104"):
             a[k] = {kk: vv for kk, vv in a[k].items() if kk != "hist"}
+    OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "gate_taesd_trt.json").write_text(json.dumps(res, indent=1))
     try:
         import cv2

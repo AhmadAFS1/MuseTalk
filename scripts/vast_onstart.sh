@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Vast.ai / box on-start: install check -> secrets -> TURN -> [r5 bundle] -> engines -> server
 # (docs/STARTUP.md).
-# Recipe fast/fast300 (default fast): install_musetalk.sh --check, unet_engine_store.py ensure,
-# vast_server_ctl.sh start (run_musetalk_server.sh + recipe verification after /health).
-# Recipe r5: as fast, plus the pinned RTX 4070 SUPER engine bundle from S3
-# (configs/trt_bundles/$MUSETALK_R5_BUNDLE.json) restored and verified before the engine step; on
-# any other GPU the bundle is skipped and the host serves the fast engines + r5's serving levers.
+# Recipe r5 (default): an r5 engine bundle from S3 is restored and verified (the first candidate of the bundle:<a>|<b>
+# list in configs/recipes/r5.env that fits this host: the RTX 4070 SUPER bundle there, else the portable AMPERE_PLUS
+# bundle, which runs on any Ampere-or-newer GPU such as an RTX 3090), then vast_server_ctl.sh start
+# (run_musetalk_server.sh + recipe verification after /health). No .ts UNet is built. A GPU that fits no candidate
+# (older than Ampere) serves eager UNet + compiled TAESD with r5's serving levers.
+# Recipe fast/fast300: install_musetalk.sh --check, unet_engine_store.py ensure (.ts UNet), ctl start.
 # Recipe legacy_int8: the old TRT artifact restore + profile selector + legacy launcher.
 # Every exit path prints exactly one VAST_ONSTART COMPLETE or VAST_ONSTART FAILED marker.
 set -Eeuo pipefail
@@ -47,17 +48,17 @@ MUSETALK_TRT_ARTIFACT_RESTORE="${MUSETALK_TRT_ARTIFACT_RESTORE:-required}"
 MUSETALK_TRT_ARTIFACT_STRICT="${MUSETALK_TRT_ARTIFACT_STRICT:-1}"
 MUSETALK_TRT_ARTIFACT_KEY="${MUSETALK_TRT_ARTIFACT_KEY:-trt-artifacts/rtx3090/split8-int8/sha256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18/musetalk-trt-int8-split8.tar.gz}"
 MUSETALK_TRT_ARTIFACT_SHA256="${MUSETALK_TRT_ARTIFACT_SHA256-851fc69691e715bebdfdc898272ac2f3854b73975843f681d6ea8236d275be18}"
-# Recipe r5: the pinned engine bundle (URI, SHA-256, engine key and sidecar dir live in the descriptor).
-# RESTORE: required (default; a matching host that cannot restore it fails the boot), auto (warn and
-# serve the fast engines instead) or off. Hosts whose engine key differs always skip it.
-MUSETALK_R5_BUNDLE="${MUSETALK_R5_BUNDLE:-rtx4070super-r5-srcg50-int8}"
+# Recipe r5: the pinned engine bundles that configs/recipes/r5.env names (bundle:<a>|<b>, in order of preference;
+# URI, SHA-256, host rule and sidecar dir live in configs/trt_bundles/<name>.json), so the boot restores exactly what
+# the resolver will check. RESTORE: required (default; a host that fits a candidate but cannot restore any fails the
+# boot), auto (warn and serve without it) or off. A host that fits no candidate (resolver bundle-check) skips it.
 MUSETALK_R5_BUNDLE_RESTORE="${MUSETALK_R5_BUNDLE_RESTORE:-required}"
 MUSETALK_TRT_ARTIFACT_STAGE_DIR="${MUSETALK_TRT_ARTIFACT_STAGE_DIR:-$REPO_ROOT/tmp/trt_artifact_stage}"
 R5_BUNDLE_ACTIVE=0
 INSTALLER="${MUSETALK_INSTALLER:-$REPO_ROOT/scripts/install_musetalk.sh}"
 ENGINE_STORE="${MUSETALK_ENGINE_STORE_TOOL:-$REPO_ROOT/scripts/unet_engine_store.py}"
 ONSTART_POST_VALIDATE_IMPORTS="${ONSTART_POST_VALIDATE_IMPORTS:-1}"
-ONSTART_RECIPE="fast"
+ONSTART_RECIPE="r5"
 ONSTART_RECIPE_SOURCE="default"
 # shellcheck source=lib/musetalk_env_layers.sh
 MT_ENV_LOG_PREFIX="$SCRIPT_NAME"
@@ -722,12 +723,13 @@ refresh_recipe_after_secrets() {
 }
 
 restore_r5_bundle() {
-  # Sets R5_BUNDLE_ACTIVE=1 when the bundle's engines are on disk, verified and stamped for the
-  # resolver (its bundle:<name> prerequisite reads the same descriptor, stamp and manifest).
-  local mode="${MUSETALK_R5_BUNDLE_RESTORE:-required}"
-  local descriptor="$REPO_ROOT/configs/trt_bundles/${MUSETALK_R5_BUNDLE}.json"
-  local PY="$VENV_PATH/bin/python" host_key="" rc=0 uri
-  local -a fields=()
+  # Sets R5_BUNDLE_ACTIVE=1 when a bundle's engines are on disk, verified and stamped for the resolver.
+  # Candidates come from the bundle:<a>|<b> prerequisite of configs/recipes/r5.env, in order of preference
+  # (a GPU-specific bundle first, the portable AMPERE_PLUS one last); the resolver applies the same host rule
+  # (bundle-check) and the same stamp, so it serves exactly what is restored here.
+  local mode="${MUSETALK_R5_BUNDLE_RESTORE:-required}" recipe_file="$REPO_ROOT/configs/recipes/r5.env"
+  local PY="$VENV_PATH/bin/python" candidates report="" rc=0 name state why uri descriptor tried=0
+  local -a fits=() fields=()
   R5_BUNDLE_ACTIVE=0
   case "${mode,,}" in
     0|false|no|off)
@@ -737,54 +739,72 @@ restore_r5_bundle() {
     auto|required) ;;
     *) die "MUSETALK_R5_BUNDLE_RESTORE=$mode must be required, auto or off" ;;
   esac
-  [[ -f "$descriptor" ]] || die "r5 engine bundle descriptor $descriptor is missing"
+  candidates="$(sed -nE 's/^# @lever r5_engines requires=(.*,)?bundle:([A-Za-z0-9._|-]+).*/\2/p' "$recipe_file" 2>/dev/null | head -n 1)"
+  [[ -n "$candidates" ]] || die "$recipe_file names no bundle:<name> prerequisite for group r5_engines"
   [[ -x "$PY" ]] || die "Cannot restore the r5 engine bundle; venv Python not found at $PY"
-  mapfile -t fields < <("$PY" -B -c '
+
+  report="$("$PY" -B "$REPO_ROOT/scripts/musetalk_host_profile.py" bundle-check --bundle "$candidates" \
+    --host-only --repo-root "$REPO_ROOT" --venv "$VENV_PATH" 2>/dev/null)" || rc=$?
+  while IFS=$'\t' read -r name state why; do
+    [[ -n "$name" ]] || continue
+    if [[ "$state" == ok ]]; then
+      fits+=("$name")
+      log "r5 bundle candidate $name fits this host: $why"
+    else
+      log "r5 bundle candidate $name does not fit this host: $why"
+    fi
+  done <<< "$report"
+  if (( ${#fits[@]} == 0 )); then
+    log "⚠️  No r5 engine bundle fits this host (bundle-check exit $rc)."
+    log "    The resolver drops the r5 engine group: eager UNet + compiled TAESD + r5 serving levers"
+    return 0
+  fi
+
+  mkdir -p "$MUSETALK_TRT_ARTIFACT_STAGE_DIR"
+  for name in "${fits[@]}"; do
+    descriptor="$REPO_ROOT/configs/trt_bundles/$name.json"
+    mapfile -t fields < <("$PY" -B -c '
 import json, sys
 d = json.load(open(sys.argv[1]))
-print((d.get("host") or {}).get("engine_key", "")); print(d.get("sha256", "")); print(d.get("s3_key", ""))
-print(d.get("sidecar_dir", "")); print(d.get("size_bytes", ""))' "$descriptor")
-  local want_key="${fields[0]:-}" sha="${fields[1]:-}" s3_key="${fields[2]:-}" sidecar="${fields[3]:-}" size="${fields[4]:-}"
-  [[ -n "$want_key" && -n "$sha" && -n "$s3_key" && -n "$sidecar" ]] || die "$descriptor lacks host.engine_key/sha256/s3_key/sidecar_dir"
-
-  host_key="$("$PY" -B "$REPO_ROOT/scripts/musetalk_engine_keys.py" key --kind unet_stagewise --venv "$VENV_PATH" 2>/dev/null)" || rc=$?
-  if (( rc != 0 )) || [[ "$host_key" != "$want_key" ]]; then
-    log "⚠️  r5 engine bundle $MUSETALK_R5_BUNDLE is built for $want_key; this host is ${host_key:-unknown (engine key exit $rc)}."
-    log "    Skipping it: the resolver drops the r5 engine group and serves the fast engines + r5 serving levers"
-    return 0
-  fi
-
-  uri="${MUSETALK_R5_BUNDLE_URI:-}"
-  if [[ -z "$uri" && -n "${TRT_ARTIFACT_S3_BUCKET:-}" ]]; then
-    uri="s3://${TRT_ARTIFACT_S3_BUCKET}/${s3_key}"
-  fi
-  if [[ -z "$uri" ]]; then
-    if [[ "${mode,,}" == "auto" ]]; then
-      log "⚠️  r5 engine bundle skipped: set TRT_ARTIFACT_S3_BUCKET (runtime secret) or MUSETALK_R5_BUNDLE_URI"
+print(d.get("sha256", "")); print(d.get("s3_key", "")); print(d.get("sidecar_dir", "")); print(d.get("size_bytes", ""))' \
+      "$descriptor" 2>/dev/null)
+    local sha="${fields[0]:-}" s3_key="${fields[1]:-}" sidecar="${fields[2]:-}" size="${fields[3]:-}"
+    [[ -n "$sha" && -n "$s3_key" && -n "$sidecar" ]] || die "$descriptor lacks sha256/s3_key/sidecar_dir"
+    # MUSETALK_R5_BUNDLE_URI replaces the first candidate's URI only (tests, mirrors); the sha256 stays pinned.
+    uri=""
+    if (( tried == 0 )) && [[ -n "${MUSETALK_R5_BUNDLE_URI:-}" ]]; then
+      uri="$MUSETALK_R5_BUNDLE_URI"
+    elif [[ -n "${TRT_ARTIFACT_S3_BUCKET:-}" ]]; then
+      uri="s3://${TRT_ARTIFACT_S3_BUCKET}/${s3_key}"
+    fi
+    tried=$(( tried + 1 ))
+    if [[ -z "$uri" ]]; then
+      log "⚠️  r5 engine bundle $name: no URI (set TRT_ARTIFACT_S3_BUCKET via the runtime secret, or MUSETALK_R5_BUNDLE_URI)"
+      continue
+    fi
+    log "r5 engine bundle $name: $uri (${size:-?} bytes, sha256 ${sha:0:12}); staging in $MUSETALK_TRT_ARTIFACT_STAGE_DIR"
+    # --skip-if-verified: a reboot whose stamp still matches and whose files still hash clean skips the
+    # download. The sidecars go to $sidecar, never the repo root (that pair belongs to legacy_int8).
+    if (
+      cd "$REPO_ROOT"
+      "$PY" -B "$REPO_ROOT/scripts/trt_artifact_bundle.py" --repo-root "$REPO_ROOT" --strict \
+        --sidecar-dir "$sidecar" restore --uri "$uri" --expected-sha256 "$sha" \
+        --stage-dir "$MUSETALK_TRT_ARTIFACT_STAGE_DIR" --skip-if-verified
+    ); then
+      R5_BUNDLE_ACTIVE=1
+      log "✅ r5 engine bundle $name ready (stamp: $sidecar/.musetalk_trt_artifact_restored.json)"
       return 0
     fi
-    die "r5 engine bundle required on $host_key, but TRT_ARTIFACT_S3_BUCKET/MUSETALK_R5_BUNDLE_URI is not set"
-  fi
-
-  log "r5 engine bundle $MUSETALK_R5_BUNDLE for $host_key: $uri (${size:-?} bytes, sha256 ${sha:0:12}); staging in $MUSETALK_TRT_ARTIFACT_STAGE_DIR"
-  mkdir -p "$MUSETALK_TRT_ARTIFACT_STAGE_DIR"
-  # --skip-if-verified: a reboot whose stamp still matches and whose files still hash clean skips the
-  # download. The sidecars go to $sidecar, never the repo root (that pair belongs to legacy_int8).
-  if (
-    cd "$REPO_ROOT"
-    "$PY" -B "$REPO_ROOT/scripts/trt_artifact_bundle.py" --repo-root "$REPO_ROOT" --strict \
-      --sidecar-dir "$sidecar" restore --uri "$uri" --expected-sha256 "$sha" \
-      --stage-dir "$MUSETALK_TRT_ARTIFACT_STAGE_DIR" --skip-if-verified
-  ); then
-    R5_BUNDLE_ACTIVE=1
-    log "✅ r5 engine bundle ready (stamp: $sidecar/.musetalk_trt_artifact_restored.json)"
-    return 0
-  fi
+    log "⚠️  r5 engine bundle $name could not be restored from $uri; trying the next candidate"
+  done
   if [[ "${mode,,}" == "auto" ]]; then
-    log "⚠️  r5 engine bundle restore failed from $uri (MUSETALK_R5_BUNDLE_RESTORE=auto): serving the fast engines"
+    log "⚠️  No r5 engine bundle restored (MUSETALK_R5_BUNDLE_RESTORE=auto): serving without it"
     return 0
   fi
-  die "r5 engine bundle restore failed from $uri (set MUSETALK_R5_BUNDLE_RESTORE=auto to boot the fast engines instead)"
+  if [[ -z "${TRT_ARTIFACT_S3_BUCKET:-}${MUSETALK_R5_BUNDLE_URI:-}" ]]; then
+    die "r5 engine bundle required on this host (${fits[*]}), but TRT_ARTIFACT_S3_BUCKET/MUSETALK_R5_BUNDLE_URI is not set"
+  fi
+  die "No r5 engine bundle could be restored (${fits[*]}); set MUSETALK_R5_BUNDLE_RESTORE=auto to boot without it"
 }
 
 # Engine-store knobs an operator may keep in an overrides file. unet_engine_store.py reads only its
@@ -870,10 +890,14 @@ provision_engines() {
   if [[ "${unet_mode,,}" == "trt" ]]; then
     unet_required=1
   fi
-  if [[ "$ONSTART_RECIPE" == "r5" ]] && (( R5_BUNDLE_ACTIVE && !unet_required )); then
-    # The bundle's stagewise UNet + TAESD TRT serve this host; the .ts engine would be unused.
+  if [[ "$ONSTART_RECIPE" == "r5" ]] && (( !unet_required )); then
+    # r5 serves the bundle's stagewise UNet; the old .ts engine (a multi-minute build) is not built by default.
     unet_ts_default=off
-    log "Recipe r5 with its engine bundle: .ts UNet provisioning defaults to off (MUSETALK_UNET_ENGINE_PROVISION=auto forces it)"
+    if (( R5_BUNDLE_ACTIVE )); then
+      log "Recipe r5: the bundle's engines serve this host; .ts UNet provisioning off (MUSETALK_UNET_ENGINE_PROVISION=auto builds it)"
+    else
+      log "⚠️  Recipe r5 without its bundle on this host: the UNet runs eager; .ts provisioning stays off unless MUSETALK_UNET_ENGINE_PROVISION=auto"
+    fi
   fi
   provision_engine_kind unet_ts \
     "$(mt_env_peek_or MUSETALK_UNET_ENGINE_PROVISION "$REPO_ROOT" "$unet_ts_default")" "$unet_required"

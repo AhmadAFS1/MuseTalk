@@ -2,10 +2,11 @@
 # MuseTalk API launcher (startup rework 2026-09-28; operator guide: docs/STARTUP.md).
 #
 # Boots the recipe that scripts/musetalk_host_profile.py resolves for THIS host:
-#   fast        (default) compiled TAESD + validated torch_tensorrt bs8 .ts UNet, else eager UNet
+#   r5          (default) fast + configs/recipes/r5.env: the ~400 fps r5 engines from the pinned S3
+#               bundle (one TensorRT set for every Ampere-or-newer GPU, restored by vast_onstart.sh)
+#               + the live-tested serving levers; on other GPUs the fast engines + those levers
+#   fast        compiled TAESD + validated torch_tensorrt bs8 .ts UNet, else eager UNet
 #   fast300     fast + the 300 fps levers of configs/recipes/fast300.env whose gates pass here
-#   r5          fast + configs/recipes/r5.env: the RTX 4070 SUPER ~400 fps engines from the pinned
-#               S3 bundle (restored by vast_onstart.sh) + the live-tested serving levers
 #   legacy_int8 exec scripts/run_trt_stagewise_server.sh unchanged (one-line rollback)
 #
 # Layering, highest wins: caller env > overrides files (MUSETALK_ENV_OVERRIDES_FILE, colon list,
@@ -89,7 +90,7 @@ Options:
   --help             Show this help text
 
 Environment (see configs/musetalk_overrides.env.example for every lever):
-  MUSETALK_RECIPE=fast|fast300|r5|legacy_int8  recipe (default fast)
+  MUSETALK_RECIPE=r5|fast|fast300|legacy_int8  recipe (default r5)
   MUSETALK_ENV_OVERRIDES_FILE=a.env:b.env    overrides files (default .runtime/musetalk_overrides.env)
   MUSETALK_UNET_MODE=auto|trt|eager          UNet selection (resolver)
   MUSETALK_VP8_FALLBACK=1                    native VP8 preflight failure -> pyav with a warning

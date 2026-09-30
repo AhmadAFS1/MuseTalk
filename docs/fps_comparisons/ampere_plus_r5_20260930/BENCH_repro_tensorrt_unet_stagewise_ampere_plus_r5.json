@@ -1,0 +1,62 @@
+{
+ "batch": 16,
+ "rounds": 9,
+ "reps": 30,
+ "seconds": 22.60228133201599,
+ "sets": {
+  "models/tensorrt_unet_stagewise_sm89_srcg50": {
+   "block_ms": {
+    "down0rest": 4.3749033610026045,
+    "down1": 2.4800254821777346,
+    "down2": 1.7903274536132812,
+    "down3": 0.23930880228678386,
+    "mid": 0.4994048118591309,
+    "up0": 0.8269141515096029,
+    "up1": 4.43132578531901,
+    "up2": 6.234043884277344,
+    "up3": 10.205832926432292,
+    "tail": 0.10489173730214436
+   },
+   "sum_ms": 31.186978395779928,
+   "engine_files": {
+    "down0rest": "down0rest.plan",
+    "down1": "down1.int8.plan",
+    "down2": "down2.int8.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.int8.plan",
+    "up1": "up1.int8.plan",
+    "up2": "up2.int8.plan",
+    "up3": "up3.plan",
+    "tail": "tail.plan"
+   }
+  },
+  "models/tensorrt_unet_stagewise_ampere_plus_r5": {
+   "block_ms": {
+    "down0rest": 5.347601318359375,
+    "down1": 3.173819732666016,
+    "down2": 2.143812306722005,
+    "down3": 0.32146771748860675,
+    "mid": 0.5505706787109375,
+    "up0": 0.9966933568318684,
+    "up1": 6.164309183756511,
+    "up2": 8.661879475911459,
+    "up3": 13.101943969726562,
+    "tail": 0.12864853541056315
+   },
+   "sum_ms": 40.5907462755839,
+   "engine_files": {
+    "down0rest": "down0rest.plan",
+    "down1": "down1.int8.plan",
+    "down2": "down2.int8.plan",
+    "down3": "down3.int8.plan",
+    "mid": "mid.int8.plan",
+    "up0": "up0.int8.plan",
+    "up1": "up1.int8.plan",
+    "up2": "up2.int8.plan",
+    "up3": "up3.plan",
+    "tail": "tail.plan"
+   }
+  }
+ }
+}

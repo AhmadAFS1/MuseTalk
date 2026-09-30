@@ -259,7 +259,16 @@ _TRT_FLAG_DOC = {
     "MUSETALK_TAESD_TRT_OPT_LEVEL": "builder optimization level (default 3); part of the fingerprint",
     "MUSETALK_TAESD_TRT_STRONGLY_TYPED": "0 (default): FP16 builder flag on the fp16 ONNX; 1: strongly "
                                          "typed network; part of the fingerprint",
+    "MUSETALK_TAESD_TRT_HW_COMPAT": "none (default): engines for this GPU model (its name is in the key); "
+                                    "ampere_plus: one pair of engines for every Ampere-or-newer GPU (TensorRT "
+                                    "hardware compatibility; the key omits the GPU); part of the fingerprint",
 }
+
+# Hardware-compatible engines (MUSETALK_TAESD_TRT_HW_COMPAT=ampere_plus) run on any GPU of the level. The
+# build GPU keeps the exact probe hashes; another GPU model is checked against the recorded fp16 probe
+# image with this relative-L2 bound (a broken engine differs by O(1)).
+TAESD_HW_COMPAT_MIN_CAPABILITY = {"ampere_plus": (8, 0)}
+TAESD_CROSS_GPU_REL_L2_MAX = 0.01
 
 
 def _env_int(name: str, default: int) -> int:
@@ -271,6 +280,28 @@ def _env_int(name: str, default: int) -> int:
     except ValueError:
         logger.warning("Ignoring non-integer %s=%r; using %s", name, raw, default)
         return default
+
+
+def taesd_trt_hw_compat(value: Optional[str] = None) -> str:
+    """'none' (default) or 'ampere_plus' from MUSETALK_TAESD_TRT_HW_COMPAT (or the given value)."""
+    raw = os.getenv("MUSETALK_TAESD_TRT_HW_COMPAT", "") if value is None else value
+    raw = raw.strip().lower().replace("-", "_").replace("+", "_plus")
+    if raw in ("", "0", "none", "off", "false", "no"):
+        return "none"
+    if raw in ("ampere_plus", "ampere"):
+        return "ampere_plus"
+    raise ValueError(f"MUSETALK_TAESD_TRT_HW_COMPAT={raw!r} must be none or ampere_plus")
+
+
+def _check_hw_compat_device(hw_compat: str, device: torch.device) -> None:
+    if hw_compat == "none":
+        return
+    cap = tuple(torch.cuda.get_device_capability(device))
+    minimum = TAESD_HW_COMPAT_MIN_CAPABILITY[hw_compat]
+    if cap < minimum:
+        raise TaesdTrtVerificationError(
+            f"TAESD TRT {hw_compat} engines need sm{minimum[0]}{minimum[1]} or newer; device is sm{cap[0]}{cap[1]}"
+        )
 
 
 def taesd_backend_kind() -> str:
@@ -370,12 +401,13 @@ def _trt_logger():
 
 
 def taesd_trt_fingerprint(
-    onnx_sha256: str, batch: int, device: torch.device, opt_level: int, strongly_typed: bool
+    onnx_sha256: str, batch: int, device: torch.device, opt_level: int, strongly_typed: bool,
+    hw_compat: str = "none",
 ) -> dict:
     import tensorrt as trt
 
     major, minor = torch.cuda.get_device_capability(device)
-    return {
+    fingerprint = {
         "recipe": TAESD_TRT_RECIPE,
         "post_recipe": TAESD_TRT_POST_RECIPE,
         "tensorrt": trt.__version__,
@@ -388,6 +420,11 @@ def taesd_trt_fingerprint(
         "opt_level": int(opt_level),
         "strongly_typed": bool(strongly_typed),
     }
+    if hw_compat != "none":
+        # one engine for every GPU of the level: the key names the level, not this GPU model
+        del fingerprint["gpu"], fingerprint["compute_capability"]
+        fingerprint["hardware_compatibility_level"] = hw_compat
+    return fingerprint
 
 
 def _fingerprint_key(fingerprint: dict) -> str:
@@ -400,6 +437,7 @@ def taesd_trt_paths(engine_dir: Path, key: str) -> dict:
         "post": engine_dir / f"taesd_trt_{key}.post_bgr_u8.plan",
         "meta": engine_dir / f"taesd_trt_{key}.json",
         "timing_cache": engine_dir / "taesd_trt_timing.cache",
+        "probe_ref": engine_dir / f"taesd_trt_{key}.probe_fp16.pt",
         "lock": engine_dir / ".build.lock",
     }
 
@@ -410,6 +448,7 @@ def build_taesd_decoder_plan(
     strongly_typed: bool = False,
     timing_cache_path: Optional[Path] = None,
     workspace_bytes: int = 1 << 30,
+    hw_compat: str = "none",
 ) -> bytes:
     """ONNX (fp16 TAESD decode graph) -> serialized FP16 TensorRT plan."""
     import tensorrt as trt
@@ -429,6 +468,8 @@ def build_taesd_decoder_plan(
         config.set_flag(trt.BuilderFlag.FP16)
     config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, workspace_bytes)
     config.builder_optimization_level = int(opt_level)
+    if hw_compat == "ampere_plus":
+        config.hardware_compatibility_level = trt.HardwareCompatibilityLevel.AMPERE_PLUS
     cache_blob = b""
     if timing_cache_path is not None and Path(timing_cache_path).exists():
         cache_blob = Path(timing_cache_path).read_bytes()
@@ -442,7 +483,8 @@ def build_taesd_decoder_plan(
     return bytes(plan)
 
 
-def build_bgr_u8_post_plan(batch: int, height: int = _IMAGE_HW, width: int = _IMAGE_HW) -> bytes:
+def build_bgr_u8_post_plan(batch: int, height: int = _IMAGE_HW, width: int = _IMAGE_HW,
+                           hw_compat: str = "none") -> bytes:
     """[batch,3,H,W] fp16 [0,1] -> [batch,H,W,3] uint8 BGR, as ONE TensorRT kernel.
 
     Mirrors the repo fast postprocess op for op, in a STRONGLY TYPED network so
@@ -486,6 +528,8 @@ def build_bgr_u8_post_plan(batch: int, height: int = _IMAGE_HW, width: int = _IM
 
     config = builder.create_builder_config()
     config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 1 << 28)
+    if hw_compat == "ampere_plus":
+        config.hardware_compatibility_level = trt.HardwareCompatibilityLevel.AMPERE_PLUS
     plan = builder.build_serialized_network(network, config)
     del keep_alive
     if plan is None:
@@ -756,8 +800,9 @@ class TaesdTrtBackend:
         )
 
     # ----------------------------------------------------------------- probe
-    def probe_hashes(self) -> dict:
-        """Decode the fixed probe batch; return fp16 / fused-u8 hashes and a post check."""
+    def probe_hashes(self, return_image: bool = False):
+        """Decode the fixed probe batch; return fp16 / fused-u8 hashes and a post check
+        (and the fp16 image when return_image)."""
         probe = taesd_probe_latents(self.batch).to(self.device)
         with torch.inference_mode():
             image = self.decode(probe, 1.0)
@@ -765,7 +810,7 @@ class TaesdTrtBackend:
             fused_u8 = self.decode_bgr_u8(probe) if self.post_engine is not None else reference_u8
             torch.cuda.synchronize(self.device)
         mismatched = int((fused_u8 != reference_u8).sum().item())
-        return {
+        hashes = {
             "probe_seed": _PROBE_SEED,
             "probe_shape": list(probe.shape),
             "fp16_sha256": _sha256_tensor(image),
@@ -773,6 +818,7 @@ class TaesdTrtBackend:
             "u8_fused_sha256": _sha256_tensor(fused_u8),
             "fused_vs_repo_post_mismatched_bytes": mismatched,
         }
+        return (hashes, image) if return_image else hashes
 
 
 def _load_taesd_model(device: torch.device, runtime_dtype: torch.dtype):
@@ -789,6 +835,7 @@ def build_taesd_trt_engines(
     strongly_typed: Optional[bool] = None,
     force: bool = False,
     onnx_bytes: Optional[bytes] = None,
+    hw_compat: Optional[str] = None,
 ) -> dict:
     """Build (or reuse) the persisted decoder + post plans; return their meta record."""
     import fcntl
@@ -797,8 +844,11 @@ def build_taesd_trt_engines(
     opt_level = _env_int("MUSETALK_TAESD_TRT_OPT_LEVEL", 3) if opt_level is None else int(opt_level)
     if strongly_typed is None:
         strongly_typed = _env_bool("MUSETALK_TAESD_TRT_STRONGLY_TYPED", False)
+    hw_compat = taesd_trt_hw_compat(hw_compat)
+    _check_hw_compat_device(hw_compat, device)
     onnx_bytes = onnx_bytes or export_taesd_decoder_onnx(model, batch, device)
-    fingerprint = taesd_trt_fingerprint(_sha256_bytes(onnx_bytes), batch, device, opt_level, strongly_typed)
+    fingerprint = taesd_trt_fingerprint(_sha256_bytes(onnx_bytes), batch, device, opt_level, strongly_typed,
+                                        hw_compat)
     key = _fingerprint_key(fingerprint)
     paths = taesd_trt_paths(engine_dir, key)
     engine_dir.mkdir(parents=True, exist_ok=True)
@@ -808,24 +858,34 @@ def build_taesd_trt_engines(
             if not force and paths["meta"].exists() and paths["decoder"].exists() and paths["post"].exists():
                 return json.loads(paths["meta"].read_text())
             started_at = time.time()
+            # a hardware-compatible build keeps its own timing cache (tactics timed under the same restriction)
+            timing_cache_path = (paths["timing_cache"] if hw_compat == "none"
+                                 else paths["timing_cache"].with_name(f"taesd_trt_timing.{hw_compat}.cache"))
             decoder_plan = build_taesd_decoder_plan(
                 onnx_bytes, opt_level=opt_level, strongly_typed=strongly_typed,
-                timing_cache_path=paths["timing_cache"],
+                timing_cache_path=timing_cache_path, hw_compat=hw_compat,
             )
             decoder_s = time.time() - started_at
             post_started_at = time.time()
-            post_plan = build_bgr_u8_post_plan(batch)
+            post_plan = build_bgr_u8_post_plan(batch, hw_compat=hw_compat)
             post_s = time.time() - post_started_at
             decoder_engine = _TrtEngine(decoder_plan, "taesd decoder")
             post_engine = _TrtEngine(post_plan, "taesd bgr_u8 post")
             probe_backend = TaesdTrtBackend(
                 decoder_engine, post_engine, device, torch.float16, batch, meta={}, paths=paths
             )
-            probe = probe_backend.probe_hashes()
+            probe, probe_image = probe_backend.probe_hashes(return_image=True)
             if probe["fused_vs_repo_post_mismatched_bytes"] != 0:
                 raise TaesdTrtVerificationError(
                     f"fused post differs from the repo post on the probe batch: {probe}"
                 )
+            if hw_compat != "none":
+                # reference for GPU models other than this one (see load_taesd_trt_backend)
+                buffer = io.BytesIO()
+                torch.save(probe_image.cpu(), buffer)
+                _atomic_write(paths["probe_ref"], buffer.getvalue())
+                probe["reference_file"] = paths["probe_ref"].name
+                probe["cross_gpu_rel_l2_max"] = TAESD_CROSS_GPU_REL_L2_MAX
             meta = {
                 "schema": TAESD_TRT_META_SCHEMA,
                 "key": key,
@@ -843,7 +903,10 @@ def build_taesd_trt_engines(
                     "post_build_s": round(post_s, 2),
                     "torch": torch.__version__,
                     "pid": os.getpid(),
-                    "timing_cache": paths["timing_cache"].name,
+                    "timing_cache": timing_cache_path.name,
+                    "gpu": torch.cuda.get_device_name(device),
+                    "compute_capability": ".".join(str(v) for v in torch.cuda.get_device_capability(device)),
+                    "hardware_compatibility_level": hw_compat,
                 },
             }
             _atomic_write(paths["decoder"], decoder_plan)
@@ -878,10 +941,13 @@ def load_taesd_trt_backend(
     engine_dir = Path(os.getenv("MUSETALK_TAESD_TRT_DIR", "").strip() or DEFAULT_TRT_DIR)
     opt_level = _env_int("MUSETALK_TAESD_TRT_OPT_LEVEL", 3)
     strongly_typed = _env_bool("MUSETALK_TAESD_TRT_STRONGLY_TYPED", False)
+    hw_compat = taesd_trt_hw_compat()
+    _check_hw_compat_device(hw_compat, device)
     if model is None:
         model = _load_taesd_model(device, torch.float16)
     onnx_bytes = export_taesd_decoder_onnx(model, batch, device)
-    fingerprint = taesd_trt_fingerprint(_sha256_bytes(onnx_bytes), batch, device, opt_level, strongly_typed)
+    fingerprint = taesd_trt_fingerprint(_sha256_bytes(onnx_bytes), batch, device, opt_level, strongly_typed,
+                                        hw_compat)
     key = _fingerprint_key(fingerprint)
     paths = taesd_trt_paths(engine_dir, key)
     built_now = False
@@ -894,7 +960,7 @@ def load_taesd_trt_backend(
         logger.warning("TAESD TRT engine key=%s missing; building it now (one-off, ~15-60 s)", key)
         build_taesd_trt_engines(
             model, device, batch=batch, engine_dir=engine_dir, opt_level=opt_level,
-            strongly_typed=strongly_typed, onnx_bytes=onnx_bytes,
+            strongly_typed=strongly_typed, onnx_bytes=onnx_bytes, hw_compat=hw_compat,
         )
         built_now = True
     meta = json.loads(paths["meta"].read_text())
@@ -920,13 +986,31 @@ def load_taesd_trt_backend(
         paths=paths,
         model=model,
     )
-    probe = backend.probe_hashes()
+    probe, probe_image = backend.probe_hashes(return_image=True)
     recorded = meta.get("probe") or {}
-    for field in ("fp16_sha256", "u8_fused_sha256"):
-        if probe[field] != recorded.get(field):
+    mismatched = [f for f in ("fp16_sha256", "u8_fused_sha256") if probe[f] != recorded.get(f)]
+    probe_status = "exact"
+    if mismatched:
+        # A hardware-compatible engine on a GPU model other than its build GPU may round differently: accept the
+        # recorded relative-L2 bound on the fp16 probe image there. The build GPU itself stays bit-exact.
+        device_name = torch.cuda.get_device_name(device)
+        build_gpu = (meta.get("build") or {}).get("gpu")
+        bound = recorded.get("cross_gpu_rel_l2_max")
+        ref_path = paths["probe_ref"]
+        if hw_compat == "none" or bound is None or not ref_path.exists() or device_name == build_gpu:
+            field = mismatched[0]
             raise TaesdTrtVerificationError(
                 f"TAESD TRT probe {field} mismatch (engine {key}): {probe[field]} != {recorded.get(field)}"
             )
+        ref = torch.load(ref_path, map_location="cpu", weights_only=True).float()
+        rel = float((probe_image.float().cpu() - ref).norm() / ref.norm())
+        if rel > float(bound):
+            raise TaesdTrtVerificationError(
+                f"TAESD TRT probe on {device_name} (engine {key} built on {build_gpu}): rel_l2 {rel:.3g} > {bound}"
+            )
+        probe_status = f"cross_gpu:rel_l2={rel:.3g}"
+        logger.warning("TAESD TRT probe on %s (engine built on %s): rel_l2 %.3g <= %s", device_name, build_gpu,
+                       rel, bound)
     if probe["fused_vs_repo_post_mismatched_bytes"] != 0:
         raise TaesdTrtVerificationError(f"TAESD TRT fused post differs from the repo post: {probe}")
     gate = meta.get("gate") or {}
@@ -937,7 +1021,8 @@ def load_taesd_trt_backend(
     )
     print(
         f"TAESD TRT backend: key={key} batch={batch} built_now={built_now} "
-        f"fused_post={backend.fused_post_enabled} probe=ok gate={gate.get('verdict', 'not recorded')}",
+        f"fused_post={backend.fused_post_enabled} probe={probe_status} hw_compat={hw_compat} "
+        f"gate={gate.get('verdict', 'not recorded')}",
         flush=True,
     )
     return backend

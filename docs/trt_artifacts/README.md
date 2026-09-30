@@ -5,13 +5,45 @@ SHA256SUMS sidecars first, then the payload at repo-relative paths. Restores che
 the archive sha256 and then every file's sha256. Bundles are checksum-addressed
 (`sha256-<archive sha>/` in the key) and never overwritten.
 
-| Bundle | Recipe | Restored by |
-|---|---|---|
-| RTX 4070 SUPER r5 + r2 (stagewise INT8, TAESD TRT) | `r5` | `scripts/vast_onstart.sh`, from `configs/trt_bundles/rtx4070super-r5-srcg50-int8.json` |
-| RTX 3090 split8 (FP16 `.ts` UNet + INT8 SD-VAE) | `legacy_int8` | `scripts/vast_onstart.sh` (`MUSETALK_TRT_ARTIFACT_*` defaults) |
-| Repro inputs: UNet calibration corpus, harness avatars | none | `scripts/repro_400fps/05_fetch_inputs.sh` |
+| Bundle | Runs on | Recipe | Restored by |
+|---|---|---|---|
+| r5 portable (`ampere-plus-r5-srcg50-int8`) | any GPU of compute capability 8.0-9.0 with TensorRT 10.3.0 and >= 8 GB (RTX 3090, 4070 SUPER, 4090, A-series, L40S, A100, H100) | `r5` (default), second candidate | `scripts/vast_onstart.sh` |
+| r5 RTX 4070 SUPER (`rtx4070super-r5-srcg50-int8`) | exactly an RTX 4070 SUPER | `r5` (default), first candidate | `scripts/vast_onstart.sh` |
+| RTX 3090 split8 (FP16 `.ts` UNet + INT8 SD-VAE) | exactly an RTX 3090 | `legacy_int8` (rollback) | `scripts/vast_onstart.sh` (`MUSETALK_TRT_ARTIFACT_*` defaults) |
+| Repro inputs: UNet calibration corpus, harness avatars, live-test audio | data, any machine | none | `scripts/repro_400fps/05_fetch_inputs.sh` |
 
-## RTX 4070 SUPER r5 bundle (recipe r5)
+## Which r5 bundle a host gets
+
+TensorRT plans are compiled for a GPU architecture: plans built on an RTX 4070 SUPER (sm_89) do not load on an
+RTX 3090 (sm_86). `configs/recipes/r5.env` therefore lists candidates in order of preference,
+`bundle:rtx4070super-r5-srcg50-int8|ampere-plus-r5-srcg50-int8`, and a host gets the first one it fits
+(`scripts/musetalk_host_profile.py bundle-check`; `vast_onstart.sh` restores it, the resolver serves it):
+
+- **RTX 4070 SUPER** -> the GPU-specific bundle: ~400 fps (6-stream full recipe, 401.8 / 400.1).
+- **Any other Ampere-or-newer GPU** (RTX 3090 included) -> the portable bundle: the same r5 engines built with
+  TensorRT hardware compatibility `AMPERE_PLUS`. On the RTX 4070 SUPER itself it measures 307 fps (-23%: the
+  architecture-specific kernels are excluded) with the same accuracy; its speed on a 3090 is not measured yet.
+  Record: `docs/fps_comparisons/ampere_plus_r5_20260930/README.md`.
+- **Older GPUs** (T4, V100, RTX 20xx) fit neither: the server runs eager UNet + compiled TAESD.
+
+A faster, GPU-specific bundle for another model (e.g. a 3090-native one) is added by building it on that GPU and
+putting its descriptor before the portable one in the list (see "Publishing a bundle" below).
+
+## r5 portable bundle (`AMPERE_PLUS`)
+
+```text
+S3 URI: s3://lingua-musetalk-s3-storage/trt-artifacts/ampere-plus/r5-srcg50-int8/sha256-07644ff16a170ecbfb4eb3d39ff1150731d5508baff31e0216a5dc1bb371df2e/musetalk-trt-r5-ampere-plus.tar.gz
+size: 1,000,524,577 bytes (payload 1,163,760,505 bytes, 17 files)
+sha256: 07644ff16a170ecbfb4eb3d39ff1150731d5508baff31e0216a5dc1bb371df2e
+```
+
+Contents: `models/tensorrt_unet_stagewise_ampere_plus_r5/bs16/` (11 plans, manifest, probe output) and the TensorRT
+TAESD engine `models/taesd/trt/taesd_trt_512bfd629a5e1f4f2e40.*` (decoder, fused post, meta, fp16 probe reference;
+served with `MUSETALK_TAESD_TRT_HW_COMPAT=ampere_plus`, which the resolver sets). Built 2026-09-30 on an RTX 4070
+SUPER, driver 595.84, torch 2.5.1+cu121, TensorRT 10.3.0. On a GPU model other than the build GPU both loaders
+accept a probe within relative L2 0.01 of the recorded one (bit-exact on the build GPU).
+
+## r5 RTX 4070 SUPER bundle
 
 ```text
 S3 URI: s3://lingua-musetalk-s3-storage/trt-artifacts/rtx4070super/r5-srcg50-int8/sha256-8e3f4b56dfb9cd82beaca20a22f031fbce4e2bc2a9280f55effb3e73c233ebff/musetalk-trt-r5-r2-rtx4070super.tar.gz
@@ -26,43 +58,50 @@ TensorRT TAESD engine `models/taesd/trt/taesd_trt_6111388248264a4ef2ae.*`; the I
 Valid only on NVIDIA GeForce RTX 4070 SUPER, sm_89, TensorRT 10.3.0 (engine key
 `sm89-nvidia-geforce-rtx-4070-super-trt10.3.0`), torch 2.5.1+cu121; built on driver 595.84.
 
-Its sidecars never go to the repo root (that pair belongs to the RTX 3090 bundle below). They live in
-`.runtime/trt_artifacts/rtx4070super-r5-srcg50-int8/` next to a restore stamp that binds them to the archive
-sha256; the resolver's `bundle:` prerequisite reads the stamp and checks every file's size.
+## Restoring by hand
 
-Boot (automatic): `MUSETALK_RECIPE=r5 bash scripts/vast_onstart.sh`; see `docs/STARTUP.md` §3-4.
-
-By hand (the runtime credentials can read `trt-artifacts/*`):
+A bundle's sidecars never go to the repo root (that pair belongs to the RTX 3090 bundle below). They live in its
+descriptor's `sidecar_dir` (`.runtime/trt_artifacts/<name>/`) next to a restore stamp that binds them to the archive
+sha256; the resolver's `bundle:` prerequisite reads the stamp and checks every file's size. Boot does this
+automatically (`docs/STARTUP.md` §3-4). By hand (the runtime credentials can read `trt-artifacts/*`):
 
 ```bash
 set -a; . /workspace/.musetalk-runtime.env; set +a
 PY=/workspace/.venvs/musetalk_trt_stagewise/bin/python
-# restore: stages the archive in tmp/ (about 5.5 GB peak disk), verifies, stamps; a later run skips the download
-$PY scripts/trt_artifact_bundle.py --repo-root . --strict \
-  --sidecar-dir .runtime/trt_artifacts/rtx4070super-r5-srcg50-int8 \
-  restore --uri s3://$TRT_ARTIFACT_S3_BUCKET/trt-artifacts/rtx4070super/r5-srcg50-int8/sha256-8e3f4b56dfb9cd82beaca20a22f031fbce4e2bc2a9280f55effb3e73c233ebff/musetalk-trt-r5-r2-rtx4070super.tar.gz \
-  --expected-sha256 8e3f4b56dfb9cd82beaca20a22f031fbce4e2bc2a9280f55effb3e73c233ebff \
-  --stage-dir tmp/trt_artifact_stage --skip-if-verified
+N=ampere-plus-r5-srcg50-int8      # or rtx4070super-r5-srcg50-int8
+KEY=$(python3 -c "import json; print(json.load(open('configs/trt_bundles/$N.json'))['s3_key'])")
+SHA=$(python3 -c "import json; print(json.load(open('configs/trt_bundles/$N.json'))['sha256'])")
+# restore: stages the archive in tmp/ (peak disk about archive + payload), verifies, stamps; a later run skips
+$PY scripts/trt_artifact_bundle.py --repo-root . --strict --sidecar-dir .runtime/trt_artifacts/$N \
+  restore --uri s3://$TRT_ARTIFACT_S3_BUCKET/$KEY --expected-sha256 $SHA --stage-dir tmp/trt_artifact_stage --skip-if-verified
 # adopt: the files are already here (built or copied); verify them against the bundle, no download
-$PY scripts/trt_artifact_bundle.py --repo-root . --strict \
-  --sidecar-dir .runtime/trt_artifacts/rtx4070super-r5-srcg50-int8 \
-  adopt --uri s3://$TRT_ARTIFACT_S3_BUCKET/trt-artifacts/rtx4070super/r5-srcg50-int8/sha256-8e3f4b56dfb9cd82beaca20a22f031fbce4e2bc2a9280f55effb3e73c233ebff/musetalk-trt-r5-r2-rtx4070super.tar.gz \
-  --expected-sha256 8e3f4b56dfb9cd82beaca20a22f031fbce4e2bc2a9280f55effb3e73c233ebff
+$PY scripts/trt_artifact_bundle.py --repo-root . --strict --sidecar-dir .runtime/trt_artifacts/$N \
+  adopt --uri s3://$TRT_ARTIFACT_S3_BUCKET/$KEY --expected-sha256 $SHA
+$PY scripts/musetalk_host_profile.py bundle-check \
+  --bundle 'rtx4070super-r5-srcg50-int8|ampere-plus-r5-srcg50-int8'     # which candidates fit / are restored here
 ```
 
-Publishing a new bundle (a rebuilt set, another GPU or TensorRT version) needs an identity with `s3:PutObject` on
-`trt-artifacts/*` (the runtime credentials are read-only by design):
+## Publishing a bundle
+
+Needs an identity with `s3:PutObject` on `trt-artifacts/*` (the runtime credentials are read-only by design). For
+a GPU-specific r5 bundle on a new GPU model (e.g. an RTX 3090), on that GPU:
 
 ```bash
+scripts/repro_400fps/05_fetch_inputs.sh                  # calibration corpus + harness avatars
+scripts/repro_400fps/10_build_engines.sh                 # -> models/tensorrt_unet_stagewise_sm86_r5 + TAESD engine
+scripts/repro_400fps/20_gate.sh && scripts/repro_400fps/30_benchmark.sh models/tensorrt_unet_stagewise_sm86_r5 BENCH T
 $PY scripts/trt_artifact_bundle.py --repo-root . --strict --sidecar-dir tmp/new_bundle_sidecars \
   create --output tmp/new.tar.gz --profile <name> --keep-symlinks --compresslevel 1 \
-  --required-files <manifest.json paths> --required-dirs <engine dirs, block dirs, taesd trt files>
+  --required-files <the TAESD engine's .decoder.plan,.post_bgr_u8.plan,.json> \
+  --required-dirs models/tensorrt_unet_stagewise_sm86_r5/bs16
 sha256sum tmp/new.tar.gz        # then upload to trt-artifacts/<gpu>/<profile>/sha256-<sha>/<file>.tar.gz
 $PY scripts/trt_artifact_bundle.py upload --bundle tmp/new.tar.gz --s3-uri s3://<bucket>/<that key>
 ```
 
-Then add a descriptor next to `configs/trt_bundles/rtx4070super-r5-srcg50-int8.json` (key, sha256, engine key,
-engine dirs, sidecar dir) and point a recipe's engine group at it with `requires=bundle:<name>`.
+Then add `configs/trt_bundles/<name>.json` (copy `rtx4070super-r5-srcg50-int8.json`: key, sha256, size,
+`host.engine_key` from `scripts/musetalk_engine_keys.py key --kind unet_stagewise`, engine dirs, TAESD key, sidecar
+dir) and put `<name>` before the portable candidate in `configs/recipes/r5.env`. The portable bundle itself is
+rebuilt with `10_build_engines.sh --hardware-compat ampere_plus`.
 
 ## Repro inputs (not needed to serve)
 
@@ -71,9 +110,12 @@ s3://lingua-musetalk-s3-storage/trt-artifacts/repro-inputs/unet-multi-avatar-cal
   198,489,230 bytes, 449 files, repo-relative (calibration/unet_multi_avatar_20260928)
 s3://lingua-musetalk-s3-storage/trt-artifacts/repro-inputs/avatar-diversity-20260927/sha256-4fbb421484b119814c52ed40840ae41c0481086a53960847b9e215e01b015149/musetalk-repro-avatar-diversity-20260927.tar.gz
   779,866,156 bytes, 300 files, relative to /workspace/experiments (the six harness avatars; not reproducible)
+s3://lingua-musetalk-s3-storage/trt-artifacts/repro-inputs/audio-corpus-throughput300/sha256-e4a62439bde6e30e2b25ce5771a8b7f1d6bf0cfd61405f3a498ffadb0550f445/musetalk-repro-audio-corpus-throughput300.tar.gz
+  18,658,586 bytes, 39 files, repo-relative (experiments/throughput300_candidate/audio_corpus: the live load test's turns)
 ```
 
-`scripts/repro_400fps/05_fetch_inputs.sh [--engines]` restores or adopts both (and, with `--engines`, the r5 bundle).
+`scripts/repro_400fps/05_fetch_inputs.sh [--engines]` restores or adopts all three (and, with `--engines`, the r5
+bundle that fits this host).
 
 ## RTX 3090 split8 bundle (recipe legacy_int8)
 

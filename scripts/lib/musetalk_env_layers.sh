@@ -406,7 +406,7 @@ mt_env_peek_or() {
   fi
 }
 
-# mt_env_effective_recipe REPO_ROOT -> MT_ENV_RECIPE (fast default | fast300 | legacy_int8 |
+# mt_env_effective_recipe REPO_ROOT -> MT_ENV_RECIPE (r5 default | fast | fast300 | legacy_int8 |
 # anything else, left for the caller to reject) and MT_ENV_RECIPE_SOURCE. Prints nothing.
 mt_env_effective_recipe() {
   local _mt_value=""
@@ -419,7 +419,7 @@ mt_env_effective_recipe() {
   _mt_value="${_mt_value//[[:space:]]/}"
   case "$_mt_value" in
     ""|default)
-      MT_ENV_RECIPE="fast"
+      MT_ENV_RECIPE="r5"
       ;;
     legacy|int8|legacy-int8)
       MT_ENV_RECIPE="legacy_int8"

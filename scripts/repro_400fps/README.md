@@ -25,7 +25,7 @@ published set never overwrites the published records.
 |---|---|---|---|---|
 | 0a | `05_fetch_inputs.sh [--engines]` | ~1–3 min | – | Restores the inputs git does not hold from checksum-pinned S3 bundles: the six harness avatars and the UNet capture corpus (and with `--engines` the published r5/r2 engines + TAESD TRT). Inputs already here are verified against the bundles, not overwritten. Needs the runtime secret's bucket and read access (`set -a; . /workspace/.musetalk-runtime.env; set +a`). |
 | 0 | `00_check.sh [--deep]` | ~1 min | – | Prerequisites: GPU, power limit, versions against `requirements/constraints-cu121.txt`, weights and avatars byte-exact against `render.json`, the corpus against its manifest, the runtime env file, `/dev/shm`, disk, tools, and that the package is committed. |
-| 1 | `10_build_engines.sh [--set r5\|r2] [--dry-run]` | ~20–25 min | 14 GB | Builds the set from scratch into `models/tensorrt_unet_stagewise_sm89_<set>`. Order: FP16 blocks, then INT8 blocks, then `prefix` (finalizes). Then the TensorRT TAESD engine, then a per-block ONNX comparison with the published set. |
+| 1 | `10_build_engines.sh [--set r5\|r2] [--hardware-compat ampere_plus] [--dry-run]` | ~20–25 min (~45 min with `ampere_plus`) | 14 GB | Builds the set from scratch into `models/tensorrt_unet_stagewise_sm89_<set>` (`..._ampere_plus_<set>` with `--hardware-compat ampere_plus`: the served, GPU-portable variant). Order: FP16 blocks, then INT8 blocks, then `prefix` (finalizes). Then the TensorRT TAESD engine (hardware-compatible too with that flag), then a per-block ONNX comparison with the published set. |
 | 2 | `20_gate.sh [root]` | ~6 min | 8 GB | Repo UNet gate (main + holdout), `forward_cached == forward` bit-exactness, and TAESD load + probe plus the published G-TAESD gate. |
 | 3 | `30_benchmark.sh [root] [BENCH T SUST PAIR Q V N15]` | ~50 min for all | 12–14 GB | Per-block times vs the published set; 6-stream throughput; sustained throughput; like-for-like BEFORE pair; quality metrics; video capture; the 15-stream stability run. |
 | 4 | `40_videos.sh [root] [r2 capture]` | ~5 min | 6 GB | BEFORE \| r2 \| the set at native resolution: bit-exact, encoded once, with diff row, metrics and verdicts. |
@@ -157,11 +157,18 @@ published engine, so its BEFORE numbers are "like-for-like" only approximately.
 
 ## Serving these engines
 
-Recipe `r5` serves the published r5 set: `MUSETALK_RECIPE=r5` (`configs/recipes/r5.env`, `docs/STARTUP.md` §4).
-On an RTX 4070 SUPER, `scripts/vast_onstart.sh` restores the set from the pinned S3 bundle
-(`configs/trt_bundles/rtx4070super-r5-srcg50-int8.json`), and the resolver points the server at it only when that
-restore verified for this exact GPU and TensorRT. A set rebuilt by `10_build_engines.sh` is a different set: it is
-not the bundle, so serve it through an overrides file (`docs/STARTUP.md` §5), not through the recipe.
+**Which set is served.** The default recipe r5 serves `models/tensorrt_unet_stagewise_ampere_plus_r5`: the same
+recipe and the same ONNX per block as the published `..._srcg50` set, built with TensorRT hardware compatibility
+`AMPERE_PLUS` so one set of plans runs on every GPU of compute capability 8.0+ (RTX 3090 included). Rebuild it with
+`10_build_engines.sh --hardware-compat ampere_plus`; `20_gate.sh` and `30_benchmark.sh` then gate and measure it with
+the hardware-compatible TAESD engine automatically (they read the set's `hardware_compatibility_level`). The
+measured cost against the sm_89-only set is in `docs/trt_artifacts/README.md`.
+
+On a fresh instance `scripts/vast_onstart.sh` restores that set from the pinned S3 bundle
+(`configs/trt_bundles/ampere-plus-r5-srcg50-int8.json`), and the resolver points the server at it only when the
+restore verified and the GPU is in the bundle's range. A set rebuilt by `10_build_engines.sh` is a different set (its
+engine hashes differ): serve it through an overrides file (`docs/STARTUP.md` §5), not through the recipe, or publish
+it as a new bundle with its own descriptor.
 
 The live WebRTC test ran with these engines on 2026-09-29 (`docs/fps_comparisons/live15_r5_20260929/README.md`):
 10 concurrent calls pass with margin and 15 is at the knee; the limit is the server's single event loop, not the GPU.

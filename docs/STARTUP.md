@@ -3,16 +3,16 @@
 This is the operator guide for the start/install chain reworked on 2026-09-28. The binding design
 is `docs/startup_rework_20260928/STARTUP_CONTRACT.md`.
 
-**RTX 4070 SUPER production:** set `MUSETALK_RECIPE=r5` (section 4). The boot then restores the ~400 fps
-engines from S3 and serves the live-tested configuration; on any other GPU the same setting falls back to the fast
-engines.
-
-**Default:** a fresh machine with any NVIDIA GPU boots recipe **fast**. That is compiled TAESD plus
-the best UNet available on that GPU: a validated TensorRT `.ts` engine built for it, otherwise
-eager PyTorch FP16. The chain never falls back to a slower backend silently. After `/health`
-passes, the start script reads the server log to confirm which backends are actually active. If
-they are not the ones it expected, the server is stopped. Rolling back to the old INT8 chain is one
-line.
+**Default:** a fresh machine boots recipe **r5** with nothing set. On any Ampere-or-newer GPU (RTX 3090,
+RTX 4070 SUPER, RTX 4090, A-series, L40S, A100, H100) the boot restores r5 engines from S3 and serves the
+live-tested configuration: an RTX 4070 SUPER gets its own bundle (~400 fps), every other such GPU the portable one
+(the same engines built with TensorRT hardware compatibility `AMPERE_PLUS`; 307 fps on the 4070 SUPER). No `.ts`
+UNet engine is built. On an older GPU (T4, V100, RTX 20xx) no r5 engine can load; that host serves eager UNet +
+compiled TAESD with the same serving levers.
+The chain never falls back to a slower backend silently: after `/health` passes, the start script reads the server
+log to confirm which backends are actually active, and stops the server if they are not the ones it expected.
+`MUSETALK_RECIPE=fast` (the `.ts` UNet recipe) and the old INT8 chain (`MUSETALK_RECIPE=legacy_int8`) remain one
+line away.
 
 ## 1. The chain at a glance
 
@@ -20,7 +20,7 @@ line.
 Vast template / box wrapper
   └─ scripts/vast_onstart.sh            install check → secrets → TURN → [r5 bundle] → engines → server
        ├─ scripts/install_musetalk.sh --check     (repairs in place / clean install when needed)
-       ├─ scripts/trt_artifact_bundle.py restore  (recipe r5 on its GPU: pinned S3 engine bundle, verified)
+       ├─ scripts/trt_artifact_bundle.py restore  (recipe r5, Ampere+ GPU: pinned S3 engine bundle, verified)
        ├─ scripts/unet_engine_store.py ensure     (adopt → restore → build; BEFORE the health timeout)
        └─ scripts/vast_server_ctl.sh start        (log offset → spawn → /health → verify-log)
             └─ [scripts/run_webrtc_relay_api_server.sh]   (when WEBRTC_RELAY_ENABLED=1)
@@ -41,8 +41,8 @@ recipe legacy_int8:  run_musetalk_server.sh → exec scripts/run_trt_stagewise_s
 | `scripts/lib/musetalk_env_layers.sh` | Shared env-file parser and layering helpers. |
 | `configs/musetalk_overrides.env.example` | Every operator lever, commented, with its default and effect. |
 | `configs/recipes/fast300.env` | The fast300 levers and their gates. All are commented out today. |
-| `configs/recipes/r5.env` | Recipe r5: the RTX 4070 SUPER bundle engines plus the live-tested serving levers. |
-| `configs/trt_bundles/<name>.json` | A pinned S3 engine bundle: URI, sha256, engine key (GPU + TensorRT), engine dirs, sidecar dir. |
+| `configs/recipes/r5.env` | Recipe r5 (the default): the bundle's engines plus the live-tested serving levers. |
+| `configs/trt_bundles/<name>.json` | A pinned S3 engine bundle: URI, sha256, the hosts it fits (compute-capability range + TensorRT + VRAM, or one engine key), engine dirs, sidecar dir. |
 | `scripts/trt_artifact_bundle.py` | Bundle tool: `create`, `upload`, `restore`, `adopt`, `verify`. |
 
 Files the chain writes under `<repo>/.runtime/` (gitignored):
@@ -102,14 +102,13 @@ Legacy flags still work through `setup_musetalk.sh`:
 
 ## 3. Boot
 
-**Vast template** (unchanged contract; the recipe defaults to fast):
+**Vast template** (unchanged contract; the recipe defaults to r5, nothing to set):
 
 ```bash
-PORT=8000 bash scripts/vast_onstart.sh
-# first boot on a new GPU type, if it may build engines:
-SETUP_CLEAN=1 PORT=8000 bash scripts/vast_onstart.sh
-# RTX 4070 SUPER workers (the ~400 fps engines from S3; the runtime secret supplies the bucket):
-MUSETALK_RECIPE=r5 PORT=8000 bash scripts/vast_onstart.sh
+PORT=8000 bash scripts/vast_onstart.sh      # any GPU; Ampere+ restores the r5 engines from S3
+# the old recipes, by name:
+MUSETALK_RECIPE=fast PORT=8000 bash scripts/vast_onstart.sh          # .ts UNet (built on first boot per GPU)
+MUSETALK_RECIPE=legacy_int8 PORT=8000 bash scripts/vast_onstart.sh   # the old INT8 chain (RTX 3090 bundle)
 ```
 
 **This RTX 4070 SUPER box:** `/workspace/run-musetalk-local-trt.sh`. The proposed new version is
@@ -131,25 +130,28 @@ What `vast_onstart.sh` does, in order:
    be skipped with `ONSTART_POST_VALIDATE_IMPORTS=0`.
 3. **Secrets and TURN.** The AWS Secrets Manager bootstrap and the TURN env autogen run exactly as
    before.
-4. **r5 bundle** (recipe r5 only). Reads `configs/trt_bundles/$MUSETALK_R5_BUNDLE.json` (default
-   `rtx4070super-r5-srcg50-int8`) and compares its engine key with this host's
-   (`musetalk_engine_keys.py key --kind unet_stagewise`).
-   - Another GPU or TensorRT: logged and skipped; the next step provisions the fast `.ts` engine.
-   - This GPU: `trt_artifact_bundle.py restore --sidecar-dir .runtime/trt_artifacts/<name> --skip-if-verified`
-     from `s3://$TRT_ARTIFACT_S3_BUCKET/<s3_key>` (or `MUSETALK_R5_BUNDLE_URI`). It stages the 2.58 GB archive in
-     `tmp/trt_artifact_stage` (`MUSETALK_TRT_ARTIFACT_STAGE_DIR`), checks its sha256, extracts about 2.9 GB,
-     verifies every file and writes the stamp. Peak disk is about 5.5 GB. A reboot whose files still verify skips
-     the download.
-   - `MUSETALK_R5_BUNDLE_RESTORE=required` (default) fails the boot when the restore fails on a matching host;
-     `auto` boots the fast engines instead; `off` skips the step.
+4. **r5 bundle** (recipe r5, the default). Takes the candidate bundles that `configs/recipes/r5.env` names in its
+   `r5_engines` group (`bundle:rtx4070super-r5-srcg50-int8|ampere-plus-r5-srcg50-int8`, each described by
+   `configs/trt_bundles/<name>.json`, so the boot restores exactly what the resolver checks) and asks the resolver
+   which ones this host fits (`musetalk_host_profile.py bundle-check --host-only`: the exact GPU model for a
+   GPU-specific bundle; compute capability 8.0-9.0, TensorRT 10.3.0 and >= 8 GB VRAM for the portable one; the same
+   rule the resolver's `bundle:` prerequisite applies at every launch).
+   - None fits (e.g. a T4): logged and skipped; the host serves eager UNet + compiled TAESD.
+   - Otherwise, in order, until one succeeds: `trt_artifact_bundle.py restore --sidecar-dir .runtime/trt_artifacts/<name> --skip-if-verified`
+     from `s3://$TRT_ARTIFACT_S3_BUCKET/<s3_key>` (or `MUSETALK_R5_BUNDLE_URI`). It stages the archive in
+     `tmp/trt_artifact_stage` (`MUSETALK_TRT_ARTIFACT_STAGE_DIR`), checks its sha256, extracts it, verifies every
+     file and writes the stamp. Peak disk is about twice the archive size (`docs/trt_artifacts/README.md`). A
+     reboot whose files still verify skips the download.
+   - `MUSETALK_R5_BUNDLE_RESTORE=required` (default) fails the boot when no fitting candidate can be restored;
+     `auto` boots without it; `off` skips the step.
 5. **Engines.** For fast and fast300: `unet_engine_store.py ensure --kind unet_ts
    --provision ${MUSETALK_UNET_ENGINE_PROVISION:-auto}`. fast300 also ensures `taesd_trt` and
    `unet_stagewise`.
    - This runs before the server starts, so a build never counts against the health timeout.
    - It is non-fatal: with no engine, the resolver picks eager. The exception is
      `MUSETALK_UNET_MODE=trt`, which adds `--require`.
-   - For r5 with its bundle ready, the `.ts` provisioning defaults to off (the bundle's engines serve);
-     `MUSETALK_UNET_ENGINE_PROVISION=auto` forces it.
+   - For r5 (the default) the `.ts` provisioning defaults to off, with or without the bundle: no multi-minute
+     `.ts` build at boot. `MUSETALK_UNET_ENGINE_PROVISION=auto` builds or restores it anyway.
    - For legacy_int8, the old TRT artifact restore and profile selector run unchanged instead.
 6. **Server.** `vast_server_ctl.sh start`: spawn, wait for `/health` (`STARTUP_TIMEOUT_SECONDS`,
    default 900), then verify the recipe (section 7).
@@ -170,9 +172,9 @@ PORT=8000 bash scripts/run_musetalk_server.sh          # foreground server
 
 | Recipe | What boots | How to select |
 |---|---|---|
-| `fast` (default) | `MUSETALK_VAE_BACKEND=taesd`, compiled TAESD warmed for every scheduler bucket. The UNet is TRT `.ts` bs8 when a validated engine exists for this GPU key, VRAM >= 8 GB and MemAvailable >= 10 GB; otherwise eager (the reason is in the report). `MUSETALK_TRT_FALLBACK=0`. Buckets `8/8/8`, `MUSETALK_TRT_ENABLED=0`, workers and cache sized from CPU and host RAM. | nothing |
+| `fast` | `MUSETALK_VAE_BACKEND=taesd`, compiled TAESD warmed for every scheduler bucket. The UNet is TRT `.ts` bs8 when a validated engine exists for this GPU key, VRAM >= 8 GB and MemAvailable >= 10 GB; otherwise eager (the reason is in the report). `MUSETALK_TRT_FALLBACK=0`. Buckets `8/8/8`, `MUSETALK_TRT_ENABLED=0`, workers and cache sized from CPU and host RAM. | `MUSETALK_RECIPE=fast` |
 | `fast300` | fast, plus each lever group of `configs/recipes/fast300.env` whose prerequisites hold on this host (engine validated for this key, code present, preflight ok). Every dropped group is recorded with its reason. **All groups are commented out today**, so fast300 currently equals fast. | `MUSETALK_RECIPE=fast300` |
-| `r5` | fast, plus the groups of `configs/recipes/r5.env`. Group `r5_engines` requires `bundle:rtx4070super-r5-srcg50-int8`: when the bundle is restored for this exact engine key, the UNet is the stagewise INT8 srcg50 set bs16 and the VAE is TensorRT TAESD (`BUILD=0`, `STRICT=1`), buckets 16. The serving and memory groups (deadline pacing, non-blocking handoff with packed I420, idle frame cache + warm, GC freeze and thresholds, off-loop diagnostics, thread caps, scheduler syncs off, lean avatar layout) apply on any GPU. Local Kokoro and the load-test telemetry ship off. | `MUSETALK_RECIPE=r5` |
+| `r5` (default) | fast, plus the groups of `configs/recipes/r5.env`. Group `r5_engines` requires `bundle:rtx4070super-r5-srcg50-int8|ampere-plus-r5-srcg50-int8` (first that fits and is restored): the UNet is the stagewise INT8 srcg50 set bs16 and the VAE is TensorRT TAESD (`BUILD=0`, `STRICT=1`; `HW_COMPAT=ampere_plus` for the portable bundle), buckets 16. The serving and memory groups (deadline pacing, non-blocking handoff with packed I420, idle frame cache + warm, GC freeze and thresholds, off-loop diagnostics, thread caps, scheduler syncs off, lean avatar layout) apply on any GPU. Local Kokoro and the load-test telemetry ship off. | nothing |
 | `legacy_int8` | The old chain, exactly: `run_trt_stagewise_server.sh` with its profile env (INT8 SD-VAE, about 4x slower on the decoder). Overrides files and the resolver are not applied. | `MUSETALK_RECIPE=legacy_int8` |
 
 **fast300 levers.** Each group in `configs/recipes/fast300.env` names its human gate, which must
@@ -191,19 +193,31 @@ fast300 must not become the default. The user approves it after reviewing the la
 
 **r5.** The configuration of the 2026-09-29 live WebRTC test on one RTX 4070 SUPER
 (`docs/fps_comparisons/live15_r5_20260929/README.md`: 10 calls per worker pass with margin, 15 is at the knee),
-minus the test-rig lines. Its engines are not engine-store entries (the source-cache INT8 blocks are outside the
-store's layout, and the numeric gates are mixed: UNet max_abs 0.78/1.26 against the store's 0.5 bar, G-TAESD FAIL
-at 5 LSB against 3). They were accepted on the labelled video review and are pinned by sha256 instead: the resolver
-enables `r5_engines` only when the stamp in `.runtime/trt_artifacts/<bundle>/` binds the pinned archive, every
-bundle file is present with its recorded size, and the host's engine key matches. The server then checks each
-plan's sha256 and the probe output. By hand on a box that already has the files:
+minus the test-rig lines, and the default recipe.
+
+- **Every Ampere+ GPU, the fastest bundle that fits.** TensorRT plans are compiled for the GPU architecture they
+  were built on (the RTX 4070 SUPER set does not load on an RTX 3090). The portable bundle is the same r5 built with
+  TensorRT hardware compatibility `AMPERE_PLUS` (`build_unet_stagewise.py --hardware-compat ampere_plus`,
+  `MUSETALK_TAESD_TRT_HW_COMPAT=ampere_plus`): it loads on every GPU of compute capability 8.0 or newer with the
+  same TensorRT version, with the same accuracy but 23% fewer fps on the 4070 SUPER (307 vs 401), where the
+  GPU-specific bundle is listed first (`docs/fps_comparisons/ampere_plus_r5_20260930/README.md`). A GPU-specific
+  bundle for another model is one build on that GPU plus a descriptor (`docs/trt_artifacts/README.md`).
+- **Pinned, not store-validated.** The engines are not engine-store entries (the source-cache INT8 blocks are
+  outside the store's layout, and the numeric gates are mixed: UNet max_abs above the store's 0.5 bar, G-TAESD 5 LSB
+  against 3). r5 was accepted on the labelled video review and is pinned by sha256 instead: the resolver enables
+  `r5_engines` only when the stamp in `.runtime/trt_artifacts/<bundle>/` binds the pinned archive, every bundle file
+  is present with its recorded size, and the host is in the bundle's range.
+- **Load checks.** The server checks each plan's sha256 and runs a probe batch: bit-exact on the build GPU; on any
+  other GPU model within the recorded relative-L2 bound (the plans may round differently there).
+
+By hand on a box that already has the files:
 
 ```bash
 set -a; . /workspace/.musetalk-runtime.env; set +a      # runtime credentials read trt-artifacts/*
 /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/trt_artifact_bundle.py --repo-root . --strict \
-  --sidecar-dir .runtime/trt_artifacts/rtx4070super-r5-srcg50-int8 adopt \
+  --sidecar-dir .runtime/trt_artifacts/<name> adopt \
   --uri s3://$TRT_ARTIFACT_S3_BUCKET/<s3_key from the descriptor> --expected-sha256 <sha256 from the descriptor>
-MUSETALK_RECIPE=r5 bash scripts/run_musetalk_server.sh --print-env    # r5_engines enabled?
+bash scripts/run_musetalk_server.sh --print-env    # r5_engines enabled, from which bundle?
 ```
 
 `adopt` reads the manifest from the archive's first few hundred KB and hashes the local files against it; nothing
@@ -425,7 +439,7 @@ belong to the launch scripts themselves.
 
 | Knob | Default | Read by |
 |---|---|---|
-| `MUSETALK_RECIPE` | `fast` | all |
+| `MUSETALK_RECIPE` | `r5` | all |
 | `MUSETALK_ENV_OVERRIDES_FILE` | `<repo>/.runtime/musetalk_overrides.env` | all |
 | `MUSETALK_RUNTIME_DIR` | `<repo>/.runtime` | launcher, ctl |
 | `MUSETALK_RESOLVED_ENV_FILE` / `MUSETALK_RESOLVED_REPORT_FILE` | `$RUNTIME_DIR/musetalk_resolved.{env,json}` | launcher |
@@ -462,11 +476,13 @@ The `integration` group runs the real resolver with injected host facts
 - bucket coupling
 - `MUSETALK_UNET_MODE=trt` hard errors
 - fast300 with every lever off
-- r5 without its bundle (engine group dropped, serving levers on), with it (bundle engines, buckets 16), on
-  another sm_89 GPU and after a bundle file changed
+- r5 (the default) without a bundle (engine group dropped, serving levers on), with the portable bundle on a
+  4070 SUPER and a 3090, with both bundles (the GPU-specific one wins on its GPU only), on a T4 (dropped) and after
+  a bundle file changed
 - the `verify-log` exit codes
 
-The `onstart` group covers the r5 bundle step: the pinned restore call, another GPU, a failed restore under
+The `onstart` group covers the r5 bundle step: the default boot's pinned restore, a GPU only the portable bundle
+fits, falling back to the next candidate when a restore fails, a GPU no bundle fits, a failed restore under
 `required` / `auto` / `off`, and `MUSETALK_RECIPE` set by the runtime secret. `test_trt_artifact_bundle.py`
 restores real (tiny) bundles: legacy root sidecars unchanged, `--sidecar-dir` with relative symlinks, the stamp,
 `--skip-if-verified`, a wrong sha256 and `adopt`.

@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Step 1: build an engine set from scratch, plus the TensorRT TAESD decoder engine.
-#   scripts/repro_400fps/10_build_engines.sh [--set r5|r2] [--dry-run]
-#   --set r5 (default) -> models/tensorrt_unet_stagewise_sm89_r5   (≈400 fps; ~20-25 min; peak ~10.5 GB of MemAvailable)
-#   --set r2           -> models/tensorrt_unet_stagewise_sm89_r2   (350 fps; ~25 min)
+#   scripts/repro_400fps/10_build_engines.sh [--set r5|r2] [--hardware-compat ampere_plus] [--dry-run]
+#   --set r5 (default) -> models/tensorrt_unet_stagewise_sm<cc>_r5 (sm89 here; ≈400 fps; ~20-25 min; peak ~10.5 GB
+#                         of MemAvailable)
+#   --set r2           -> models/tensorrt_unet_stagewise_sm<cc>_r2 (350 fps; ~25 min)
+#   --hardware-compat ampere_plus -> models/tensorrt_unet_stagewise_ampere_plus_<set> and the hardware-compatible TAESD
+#       engine: TensorRT AMPERE_PLUS plans that load on every GPU of compute capability 8.0+ (the served default,
+#       configs/trt_bundles/ampere-plus-r5-srcg50-int8.json; ~45 min: every tactic is timed without a seed cache).
 #   MUSETALK_REPRO_ROOT overrides the root name.
 #
 # Both sets are the stagewise bs16 TensorRT UNet, variant "srccache" (conv_in + down0.resnets[0] precomputed per
@@ -19,12 +23,21 @@
 # one timing cache. The ONNX of every block must still match the published manifest (checked at the end); the
 # engine hashes will differ. 20_gate.sh and 30_benchmark.sh re-measure accuracy and speed.
 source "$(dirname "$0")/lib.sh"
-SET=r5; DRY=0
-while [ $# -gt 0 ]; do case $1 in --set) SET=$2; shift 2 ;; --dry-run) DRY=1; shift ;; *) die "unknown arg $1" ;; esac; done
+SET=r5; DRY=0; HW=none
+while [ $# -gt 0 ]; do case $1 in --set) SET=$2; shift 2 ;; --hardware-compat) HW=$2; shift 2 ;; --dry-run) DRY=1; shift ;;
+  *) die "unknown arg $1" ;; esac; done
 case $SET in r5) PUB=$PUBLISHED_R5 ;; r2) PUB=$PUBLISHED_R2 ;; *) die "--set r5|r2" ;; esac
-[ -n "${MUSETALK_REPRO_ROOT:-}" ] || { ROOT_NAME="tensorrt_unet_stagewise_sm89_$SET"; ENGINE_ROOT="models/$ROOT_NAME"; }
+# default builds are for this GPU's compute capability (sm89 on the RTX 4070 SUPER, sm86 on an RTX 3090)
+case $HW in
+  none) ARCH="sm$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | head -n 1 | tr -d '. ')"
+        [ "$ARCH" = sm ] && ARCH=sm89 ;;
+  ampere_plus) ARCH=ampere_plus ;;
+  *) die "--hardware-compat none|ampere_plus" ;;
+esac
+[ -n "${MUSETALK_REPRO_ROOT:-}" ] || { ROOT_NAME="tensorrt_unet_stagewise_${ARCH}_$SET"; ENGINE_ROOT="models/$ROOT_NAME"; }
 run() { if [ $DRY -eq 1 ]; then echo "  $*"; else "$@" || die "step failed: $*"; fi; }
 B="$PY scripts/build_unet_stagewise.py --batch 16 --opt-level 5 --variant srccache --root $ENGINE_ROOT --calib-dir $CORPUS"
+[ $HW = none ] || B="$B --hardware-compat $HW"
 SEED=docs/fps_comparisons/4070s_300fps_20260927/unet_probe/tt16_timing_cache.bin
 [ -e "$SEED" ] && log "note: $SEED exists and the builder will seed from it; the published INT8 blocks were built without it"
 if [ $DRY -eq 0 ] && [ -e "$ENGINE_ROOT/bs16/manifest.json" ] && \
@@ -60,5 +73,5 @@ sys.exit(0 if m.get("complete") else 1)
 EOF
 fi
 # TensorRT TAESD decoder (bs8, fused uint8 post, optimisation level 3); reused when an engine with the same key exists
-run guarded build_taesd_trt 8 env MUSETALK_TAESD_TRT_BATCH=8 "$PY" scripts/vae_fast_decoder.py build
+run guarded build_taesd_trt 8 env MUSETALK_TAESD_TRT_BATCH=8 MUSETALK_TAESD_TRT_HW_COMPAT=$HW "$PY" scripts/vae_fast_decoder.py build
 log "done. Next: scripts/repro_400fps/20_gate.sh $ENGINE_ROOT"

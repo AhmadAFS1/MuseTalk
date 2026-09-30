@@ -26,7 +26,8 @@ PUBLISHED_QRUNS=docs/fps_comparisons/4070s_300fps_impl_20260928/quality_metrics/
 GUARD="scripts/box_guard.sh run --wait-min 120"
 mkdir -p "$OUT" "$QRUNS_OUT"
 # knobs that change engine builds or the TAESD engine key without being recorded; the package runs with them unset
-for v in MUSETALK_TRT_AVG_TIMING_ITERS MUSETALK_TAESD_TRT_OPT_LEVEL MUSETALK_TAESD_TRT_STRONGLY_TYPED MUSETALK_TAESD_TRT_DIR; do
+for v in MUSETALK_TRT_AVG_TIMING_ITERS MUSETALK_TAESD_TRT_OPT_LEVEL MUSETALK_TAESD_TRT_STRONGLY_TYPED MUSETALK_TAESD_TRT_DIR \
+         MUSETALK_TAESD_TRT_HW_COMPAT; do
   [ -n "${!v:-}" ] && echo "[repro] note: unsetting $v=${!v} (it would change the engines)" >&2
   unset "$v"
 done
@@ -55,13 +56,22 @@ guarded() {
   log "$label rc=$rc"
   return $rc
 }
+# hw_compat_of <engine root>: the set's TensorRT hardware compatibility level (none | ampere_plus). A hardware-compatible
+# UNet set is gated and measured with the hardware-compatible TAESD engine (MUSETALK_TAESD_TRT_HW_COMPAT), a default
+# set with the default one.
+hw_compat_of() {
+  python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("hardware_compatibility_level") or "none")' \
+    "$1/bs16/manifest.json" 2>/dev/null || echo none
+}
 # harness <label> <engine root> <min_avail_gb> <extra args...>: the six-avatar full-recipe multi-stream harness
 # (TensorRT TAESD, 100% chin, refined seam, unchanged chin.py) with the given UNet engine set
 harness() {
-  local label=$1 root=$2 gb=$3; shift 3
+  local label=$1 root=$2 gb=$3 flags hw; shift 3
+  flags="MUSETALK_UNET_STAGEWISE_CACHE_DIR=$root"
+  hw=$(hw_compat_of "$root"); [ "$hw" = none ] || flags="$flags,MUSETALK_TAESD_TRT_HW_COMPAT=$hw"
   ensure_runtime_env
   guarded "$label" "$gb" "$PY" scripts/chin_multistream_render.py --backend stagewise16_taesdtrt \
-    --flags "MUSETALK_UNET_STAGEWISE_CACHE_DIR=$root" --out-root "$OUT/chin_multistream" --label "$label" "$@"
+    --flags "$flags" --out-root "$OUT/chin_multistream" --label "$label" "$@"
 }
 summary() {  # summary <label>: status + the harness SUMMARY fields that matter
   local s; s=$(grep -a '^SUMMARY' "$OUT/$1.log" | tail -1)

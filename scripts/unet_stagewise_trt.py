@@ -24,6 +24,13 @@ default (unset / trt) path is unchanged. Engines live under
   $MUSETALK_UNET_STAGEWISE_CACHE_DIR (default models/tensorrt_unet_stagewise_sm89)/bs<N>/
 with manifest.json (TensorRT version, GPU, per-block ONNX hash, build flags, probe output hash).
 Build them with scripts/build_unet_stagewise.py (under scripts/box_guard.sh).
+
+Hardware compatibility: a set built with --hardware-compat ampere_plus (TensorRT
+HardwareCompatibilityLevel.AMPERE_PLUS, manifest "hardware_compatibility_level") loads on every GPU of
+compute capability 8.0 or newer (RTX 30xx/40xx, A-series, L40S, A100, H100) with the same TensorRT
+version; a default set loads only on the compute capability it was built on. On a GPU model other
+than the build GPU the probe may round differently, so the load check accepts the manifest's
+cross-GPU relative-L2 bound there (never on the build GPU itself).
 """
 from __future__ import annotations
 
@@ -63,6 +70,12 @@ LATENT_CHW = (8, 32, 32)
 AUDIO_TD = (50, 384)
 OUT_CHW = (4, 32, 32)
 PROBE_SEED = 20260928
+HW_COMPAT_LEVELS = ("none", "ampere_plus")
+HW_COMPAT_MIN_CAPABILITY = {"ampere_plus": (8, 0)}
+# Probe bound on a GPU model other than the build GPU (hardware-compatible sets only): relative L2 of the
+# probe output vs the recorded one. The INT8 r5 set itself differs from eager FP16 by ~0.0034 on the probe;
+# a broken or mismatched engine differs by O(1).
+CROSS_GPU_PROBE_REL_L2_MAX = 0.01
 
 
 # --------------------------------------------------------------------------- env
@@ -84,6 +97,34 @@ def requested_stagewise_batch() -> int:
 
 def _env_on(name: str, default: str) -> bool:
     return os.getenv(name, default).strip().lower() not in {"0", "false", "no", "off", ""}
+
+
+def hardware_compat_level(value: Optional[str]) -> str:
+    """'none' (engines for the build GPU's compute capability only) or 'ampere_plus'."""
+    raw = (value or "none").strip().lower().replace("-", "_").replace("+", "_plus")
+    if raw in ("", "0", "off", "false", "none", "no"):
+        return "none"
+    if raw in ("ampere_plus", "ampere"):
+        return "ampere_plus"
+    raise ValueError(f"Unknown TensorRT hardware compatibility level {value!r} (expected none or ampere_plus)")
+
+
+def check_device_for_set(manifest: dict, capability) -> None:
+    """Raise when a set's engines cannot run on a device of this compute capability."""
+    cap = list(capability)
+    level = hardware_compat_level(manifest.get("hardware_compatibility_level"))
+    if level != "none":
+        minimum = HW_COMPAT_MIN_CAPABILITY[level]
+        if tuple(cap) < minimum:
+            raise RuntimeError(
+                f"Stagewise UNet engines are hardware-compatible ({level}: sm{minimum[0]}{minimum[1]} or newer), "
+                f"device is sm{cap}"
+            )
+        return
+    if manifest.get("compute_capability") != cap:
+        raise RuntimeError(
+            f"Stagewise UNet engines were built for sm{manifest.get('compute_capability')}, device is sm{cap}"
+        )
 
 
 # --------------------------------------------------------------------------- block wrappers
@@ -331,11 +372,13 @@ def build_engine_from_onnx(
     use_timing_cache: bool = True,
     log_severity: str = "ERROR",
     int8: bool = False,
+    hardware_compat: str = "none",
 ):
     """ONNX bytes -> (serialized FP16 engine bytes, build seconds, updated timing cache bytes).
 
     int8=True additionally sets BuilderFlag.INT8 for ONNX graphs that carry explicit Q/DQ nodes
-    (modelopt fake-quant export); layers without Q/DQ stay FP16.
+    (modelopt fake-quant export); layers without Q/DQ stay FP16. hardware_compat='ampere_plus' builds a
+    plan that runs on every Ampere-or-newer GPU (TensorRT excludes arch-specific tactics).
     """
     import tensorrt as trt
 
@@ -352,6 +395,8 @@ def build_engine_from_onnx(
     if int8:
         config.set_flag(trt.BuilderFlag.INT8)
     config.builder_optimization_level = int(opt_level)
+    if hardware_compat_level(hardware_compat) == "ampere_plus":
+        config.hardware_compatibility_level = trt.HardwareCompatibilityLevel.AMPERE_PLUS
     # Build-time only: timing iterations per tactic (TensorRT default 1). More iterations make the
     # kernel choice less sensitive to single noisy samples on a power-capped GPU.
     avg_iters = int(os.getenv("MUSETALK_TRT_AVG_TIMING_ITERS", "0") or 0)
@@ -375,8 +420,9 @@ def build_engine_from_onnx(
     return engine_bytes, build_s, cache_out
 
 
-def build_flags_record(opt_level: int, workspace_gb: float, use_timing_cache: bool, opset: int = 17) -> dict:
-    return {
+def build_flags_record(opt_level: int, workspace_gb: float, use_timing_cache: bool, opset: int = 17,
+                       hardware_compat: str = "none") -> dict:
+    record = {
         "precision": "fp16",
         "builder_flags": ["FP16"],
         "builder_optimization_level": int(opt_level),
@@ -386,6 +432,10 @@ def build_flags_record(opt_level: int, workspace_gb: float, use_timing_cache: bo
         "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
         "network": "explicit batch, static shapes, ONNX parser",
     }
+    level = hardware_compat_level(hardware_compat)
+    if level != "none":  # absent for default builds, so existing manifests still match their flags
+        record["hardware_compatibility_level"] = level
+    return record
 
 
 # --------------------------------------------------------------------------- runtime chain
@@ -610,11 +660,7 @@ class StagewiseTrtUnetBackend(torch.nn.Module):
                 f"Stagewise UNet engines were built with TensorRT {manifest.get('tensorrt_version')}, "
                 f"runtime is {trt.__version__}"
             )
-        cap = list(torch.cuda.get_device_capability(device))
-        if manifest.get("compute_capability") != cap:
-            raise RuntimeError(
-                f"Stagewise UNet engines were built for sm{manifest.get('compute_capability')}, device is sm{cap}"
-            )
+        check_device_for_set(manifest, torch.cuda.get_device_capability(device))
         started = time.time()
         runtime, engines = deserialize_engines(engine_dir, manifest)
         variant = manifest.get("variant", "default") or "default"
@@ -690,8 +736,23 @@ class StagewiseTrtUnetBackend(torch.nn.Module):
             self.probe_status = f"within_tol:{max_abs}"
             logger.warning("Stagewise UNet probe hash differs but max_abs %.3g <= tol %.3g", max_abs, tol)
             return
+        # A hardware-compatible set on a GPU model other than its build GPU: kernels may round differently,
+        # so the check is the recorded relative-L2 bound instead of bit equality (the build GPU stays exact).
+        cross = probe.get("cross_gpu_rel_l2_max")
+        device_name = torch.cuda.get_device_name(self.device)
+        rel = None
+        if (cross is not None and ref_path.exists() and device_name != self.manifest.get("gpu")
+                and hardware_compat_level(self.manifest.get("hardware_compatibility_level")) != "none"):
+            ref = torch.load(ref_path, map_location="cpu", weights_only=True).float()
+            rel = float((out.float().cpu() - ref).norm() / ref.norm())
+            if rel <= float(cross):
+                self.probe_status = f"cross_gpu:rel_l2={rel:.3g}"
+                logger.warning("Stagewise UNet probe on %s (set built on %s): rel_l2 %.3g <= %.3g, max_abs %.3g",
+                               device_name, self.manifest.get("gpu"), rel, float(cross), max_abs or 0.0)
+                return
         raise RuntimeError(
-            f"Stagewise UNet probe output mismatch (sha {got[:12]} != {expected[:12]}, max_abs={max_abs}); "
+            f"Stagewise UNet probe output mismatch (sha {got[:12]} != {expected[:12]}, max_abs={max_abs}"
+            + (f", rel_l2={rel:.3g} > {cross}" if rel is not None else "") + "); "
             "rebuild with scripts/build_unet_stagewise.py or set MUSETALK_UNET_STAGEWISE_PROBE_TOL"
         )
 
@@ -814,6 +875,7 @@ class StagewiseTrtUnetBackend(torch.nn.Module):
             "activation_mib": self._chain.activation_bytes() / 2**20,
             "device_memory_sizes_mib": {k: v / 2**20 for k, v in self._chain.device_memory_sizes.items()},
             "probe_status": getattr(self, "probe_status", None),
+            "hardware_compatibility_level": hardware_compat_level(self.manifest.get("hardware_compatibility_level")),
         }
 
 

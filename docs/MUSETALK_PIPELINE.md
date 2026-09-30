@@ -82,7 +82,7 @@ worker that is serving calls would freeze every live stream until it finishes. `
 | Upload and audio timeline (CPU, ffmpeg) | Takes the turn's audio (`POST /webrtc/sessions/{id}/stream`) and trims leading and trailing silence. The same trimmed file drives both lip-sync and playback, so they cannot drift. | `webrtc_audio_timeline.py` |
 | **Whisper features** (CPU mel + GPU encoder) | Converts speech into per-frame feature windows (50×384) that the UNet reads through cross-attention. Only the Whisper *encoder* is used; nothing is transcribed. | `models/whisper` (openai/whisper-tiny), `musetalk/utils/audio_processor.py` |
 | **GPU scheduler** (`scripts/hls_gpu_scheduler.py`) | One thread batches frames from every active call into GPU batches. With the r5 engines the batch is exactly 16, padded when short. This is how one GPU serves many calls: a batch of 16 is far more efficient per frame than 15 single-frame calls. Prep workers (Whisper) and compose workers (blending) run around it. | `HLS_SCHEDULER_*` |
-| **UNet** (GPU) | The core model: MuseTalk v1.5, one denoising step, ~80% of GPU time. From face latents and Whisper features it produces the new mouth-region latent. Backends:<br/>• PyTorch (default, slowest)<br/>• TensorRT `.ts` bs8 (the 252 fps "BEFORE" profile)<br/>• **TensorRT stagewise bs16**: 11 per-block engines in one CUDA graph. The r2 set (350 fps) is FP16 plus 2 INT8 blocks; the **r5 set (~400 fps)** has 7 INT8 blocks chosen by error per operation. | `models/musetalkV15/unet.pth` (source weights), `models/tensorrt_unet_stagewise_sm89_srcg50` (r5), `scripts/unet_stagewise_trt.py` |
+| **UNet** (GPU) | The core model: MuseTalk v1.5, one denoising step, ~80% of GPU time. From face latents and Whisper features it produces the new mouth-region latent. Backends:<br/>• PyTorch (default, slowest)<br/>• TensorRT `.ts` bs8 (the 252 fps "BEFORE" profile)<br/>• **TensorRT stagewise bs16**: 11 per-block engines in one CUDA graph. The r2 set (350 fps) is FP16 plus 2 INT8 blocks; the **r5 set (~400 fps)** has 7 INT8 blocks chosen by error per operation. | `models/musetalkV15/unet.pth` (source weights), `models/tensorrt_unet_stagewise_sm89_srcg50` (r5, RTX 4070 SUPER only), `models/tensorrt_unet_stagewise_ampere_plus_r5` (r5 for any Ampere+ GPU), `scripts/unet_stagewise_trt.py` |
 | **Decoder** (GPU) | Turns latents back into a 256×256 face. The original SD-VAE decoder is accurate but slow. **TAESD** is a tiny distilled decoder at a fraction of the cost, and its TensorRT build also produces uint8 BGR on the GPU. | `models/taesd` (weights), `models/taesd/trt/taesd_trt_6111…` (bs8 engine), `scripts/vae_fast_decoder.py` |
 | **Compose / blend** (CPU, 6–10 threads) | Resizes the generated face into the crop box and alpha-blends it into the avatar frame with the mask. Fixed-point math keeps it exact and fast. | `musetalk/utils/blending.py` |
 | *Chin extension / FaceMesh chin tracker* | **Offline only.** The "100% chin" recipe in the fps records was measured by the offline harness (`scripts/chin_multistream_render.py`). The live server uses the standard blend. | `character_factory/h3_avatar_workflow/chin.py`; needs mediapipe |
@@ -111,7 +111,7 @@ worker that is serving calls would freeze every live stream until it finishes. `
 | Installer | apt packages (ffmpeg, coturn), the venv from pinned requirements, weights, the native VP8 build, and a GPU self-test. | `scripts/install_musetalk.sh`, `requirements/*.in` + `constraints-cu121.txt`, `download_weights.sh` |
 | Secrets bootstrap | Reads the worker secret (`lingua/musetalk-worker-runtime` in AWS Secrets Manager) into the environment: S3 bucket names, keys, and Lingua control-plane settings. | `scripts/bootstrap_aws_secrets.py` |
 | Boot script | install check → secrets → TURN → engines → server start → registration. | `scripts/vast_onstart.sh`, `scripts/vast_server_ctl.sh` |
-| Resolver and recipes | Pick backends and batch sizes for the GPU. `fast` (default): `.ts` UNet if present plus TAESD. `fast300`: adds TAESD TRT and stagewise, but its r5 levers are still commented out. `legacy_int8`: the old RTX 3090 profile. Override files (`MUSETALK_ENV_OVERRIDES_FILE`) sit on top, and that is how r5 was run (`experiments/live15_r5/common.env`). | `scripts/musetalk_host_profile.py`, `configs/recipes/*.env`, `scripts/run_musetalk_server.sh` |
+| Resolver and recipes | Pick backends and batch sizes for the GPU. `r5` (default, nothing to set): the r5 engines from the first pinned bundle that fits the GPU (`configs/recipes/r5.env`) plus the live-tested serving levers. `fast`: `.ts` UNet if present plus TAESD. `fast300`: gated levers, all off. `legacy_int8`: the old RTX 3090 profile. Override files (`MUSETALK_ENV_OVERRIDES_FILE`) sit on top. | `scripts/musetalk_host_profile.py`, `configs/recipes/*.env`, `configs/trt_bundles/*.json`, `scripts/run_musetalk_server.sh` |
 | Engine store | Builds, adopts, validates, publishes and restores TensorRT engines by fingerprint (GPU, TensorRT version). It **cannot handle the r5 set**: the source-cache layout, INT8 blocks, and r5 fails its default validation bar. | `scripts/unet_engine_store.py` |
 
 ## 3. What a machine needs that is not in git
@@ -127,8 +127,8 @@ Sizes are from this box. **Portable** works on any GPU. **GPU-bound** only works
 | SD-VAE `models/sd-vae` | 320 MB | yes | HF `stabilityai/sd-vae-ft-mse` | re-downloaded |
 | Whisper-tiny `models/whisper` | 145 MB | yes | HF `openai/whisper-tiny` | re-downloaded |
 | TAESD weights `models/taesd` | 5 MB | yes | HF `madebyollin/taesd` (pinned revision) | re-downloaded |
-| **r5 + r2 UNet engines** (`…_srcg50`, `…_srcmix`, and the 4 block folders they link into) | 2.5 GB | **GPU-bound** | `scripts/repro_400fps/10_build_engines.sh` (20–25 min, 14 GB RAM, needs the calibration data below) | **S3**, the pinned r5 bundle (`configs/trt_bundles/rtx4070super-r5-srcg50-int8.json`); `MUSETALK_RECIPE=r5` restores it at boot |
-| **TAESD TRT engine** `models/taesd/trt/taesd_trt_6111…` | 10 MB | **GPU-bound** | `vae_fast_decoder.py build` (~15 s) | S3, in the same bundle |
+| **r5 UNet engines** | 1.1 GB per set | **GPU-bound**: the RTX 4070 SUPER set loads only there; the `AMPERE_PLUS` set loads on any GPU of compute capability 8.0-9.0 (23% slower on the 4070 SUPER) | `scripts/repro_400fps/10_build_engines.sh [--hardware-compat ampere_plus]` (20–40 min, 14 GB RAM, needs the calibration data below) | **S3**, two pinned bundles (`configs/trt_bundles/`); the default boot restores the first that fits the GPU |
+| **TAESD TRT engine** `models/taesd/trt/taesd_trt_6111…` (4070 SUPER), `…_512bfd…` (any Ampere+) | 3.5 MB each | **GPU-bound** / portable | `vae_fast_decoder.py build` (~40 s) | S3, in the same bundles |
 | Prepared avatars `results/v15/avatars/*` | 160–350 MB each | yes | `POST /avatars/prepare` | S3 `avatars/v15/<id>.tar.gz`, restored on first use. All 33 avatars of this box were uploaded on 2026-09-30 |
 | Python venv `/workspace/.venvs/musetalk_trt_stagewise` | 9.5 GB | per CUDA and OS | installer, from pinned requirements | rebuilt per machine (~minutes) |
 | Secrets (S3 keys, Lingua token) | – | – | operator | Secrets Manager. This box also has a static copy in `/workspace/.musetalk-runtime.env` |
@@ -170,7 +170,7 @@ re-download everything else.** Every S3 object is checksum-addressed, so a resto
 | Kind | Store in | How | Status |
 |---|---|---|---|
 | Code, configs, recipes, small corpora, docs | **git** | – | done |
-| **TensorRT engines** (GPU-bound) | **S3 `trt-artifacts/<gpu>/<profile>/sha256-<hash>/<bundle>.tar.gz`**, the existing convention | `trt_artifact_bundle.py` format: manifest + SHA256SUMS inside, restore verifies every file. One bundle per GPU type and TensorRT version, pinned by a descriptor in `configs/trt_bundles/` (URI, sha256, engine key) | **done**: `s3://lingua-musetalk-s3-storage/trt-artifacts/rtx4070super/r5-srcg50-int8/sha256-8e3f4b56dfb9cd82beaca20a22f031fbce4e2bc2a9280f55effb3e73c233ebff/musetalk-trt-r5-r2-rtx4070super.tar.gz` (2,579,327,644 bytes, 535 files), restored by recipe r5 |
+| **TensorRT engines** (GPU-bound) | **S3 `trt-artifacts/<gpu>/<profile>/sha256-<hash>/<bundle>.tar.gz`**, the existing convention | `trt_artifact_bundle.py` format: manifest + SHA256SUMS inside, restore verifies every file. Pinned by descriptors in `configs/trt_bundles/` (URI, sha256, the hosts it fits); a portable `AMPERE_PLUS` bundle covers every Ampere+ GPU, GPU-specific bundles are faster where they exist | **done**: the RTX 4070 SUPER bundle (`sha256-8e3f4b56…`) and the portable one (`trt-artifacts/ampere-plus/r5-srcg50-int8/sha256-07644ff1…`); `docs/trt_artifacts/README.md` |
 | INT8 calibration data | S3, inside the engine bundle, and as its own repro-inputs bundle | – | done |
 | **Prepared avatars** | S3 `avatars/v15/<id>.tar.gz` (existing flow, restored lazily) | keep `AVATAR_S3_ENABLED=1` wherever avatars are prepared | done; all 33 local avatars uploaded 2026-09-30 |
 | Base model weights (5.7 GB) | public sources + **an S3 mirror** `models/<name>/sha256-…` | the installer downloads from HF; the mirror is insurance against link rot (the Google Drive face-parsing file especially) and HF rate limits | not done (recommended) |
@@ -187,12 +187,14 @@ design). Publishing needs a separate identity with `s3:PutObject` on `trt-artifa
 
 Closed on 2026-09-30:
 
-- **A fresh machine can serve r5.** `MUSETALK_RECIPE=r5` makes `scripts/vast_onstart.sh` restore the pinned bundle
-  (engine-key check, download, sha256, per-file verify, stamp) before the engine step, and the resolver selects the
-  bundle's engines through the `bundle:` prerequisite of `configs/recipes/r5.env`. On another GPU the engine group
-  is dropped with its reason and the host serves the fast engines. See `docs/STARTUP.md` §4.
-- **A recipe selects r5**: `configs/recipes/r5.env` (the live-tested levers minus the test-rig lines).
-- **r5 does not build the `.ts` UNet** when its bundle is active (the `.ts` provisioning defaults to off).
+- **A fresh machine serves r5 with nothing set.** r5 is the default recipe: `scripts/vast_onstart.sh` restores the
+  first bundle of `configs/recipes/r5.env`'s candidate list that fits the GPU (engine-key or compute-capability
+  check, download, sha256, per-file verify, stamp) before the engine step, and the resolver serves exactly that
+  bundle through the `bundle:` prerequisite. See `docs/STARTUP.md` §3-4.
+- **Any Ampere-or-newer GPU runs r5**, RTX 3090 included: the portable bundle is built with TensorRT hardware
+  compatibility `AMPERE_PLUS` (same ONNX, same accuracy; 307 vs 401 fps on the 4070 SUPER, so the 4070 SUPER keeps
+  its own bundle). `docs/fps_comparisons/ampere_plus_r5_20260930/README.md`.
+- **No `.ts` UNet is built by default** (r5 does not use it; `MUSETALK_UNET_ENGINE_PROVISION=auto` builds it).
 - **The TAESD TRT engine** comes from the bundle; its G-TAESD record still reads FAIL (5 LSB against a 3 LSB bar).
   r5 was accepted as a whole on the labelled video review.
 - **The trt-artifacts docs** now say the RTX 3090 restore runs only for `legacy_int8`.
@@ -204,17 +206,22 @@ Still open:
 2. **Video codec is VP8 by accident** (§2.5). This needs a decision.
 3. **coturn has only 41 relay ports** (§2.5). Widen the range (`TURN_INTERNAL_RELAY_MAX_PORT`, which defaults to
    49460 in the current script) before running more than about 11 relayed calls per machine.
-4. **Engines are tied to this machine's GPU, TensorRT version and driver.** A driver or TensorRT upgrade needs a
-   rebuild, a re-gate and a new bundle plus descriptor.
-5. **The TAESD engine key hashes the exported ONNX**, so a different torch or ONNX exporter than the pinned
+4. **Engines are tied to the TensorRT version** (and the GPU-specific ones to one GPU model). A TensorRT upgrade
+   needs a rebuild, a re-gate and new bundles plus descriptors. Blackwell GPUs (RTX 50xx) need the cu128 stack and
+   their own bundle; the r5 bundles are TensorRT 10.3 / cu121.
+5. **r5 has not run on an RTX 3090 yet.** The portable plans load there by TensorRT's hardware-compatibility
+   contract; the fps there is unknown, and a 3090-native bundle would likely be faster (as on the 4070 SUPER).
+6. **The TAESD engine key hashes the exported ONNX**, so a different torch or ONNX exporter than the pinned
    `torch 2.5.1+cu121` changes the key; with `STRICT=1` the server then stops at startup instead of serving slower.
-6. **The launchers installed on this box** (`experiments/chinese_bob_webrtc_20260927/run_local_api.sh`,
+7. **The launchers installed on this box** (`experiments/chinese_bob_webrtc_20260927/run_local_api.sh`,
    `/workspace/run-musetalk-local-trt.sh`) still serve the `.ts` bs8 UNet; they are the user's and were not changed.
 
 ## 6. Suggested order
 
-1. Set `MUSETALK_RECIPE=r5` in the Vast template for RTX 4070 SUPER instances and boot one fresh instance: the log
-   should show `r5 engine bundle ready` and `Recipe verification passed: vae=taesd_trt unet=trt_stagewise`.
+1. Boot one fresh RTX 3090 instance with the unchanged template: the log should show
+   `r5 engine bundle ampere-plus-r5-srcg50-int8 ready` and
+   `Recipe verification passed: vae=taesd_trt unet=trt_stagewise`. Measure its fps; if a 3090-native bundle is
+   worth it, build one there (`docs/trt_artifacts/README.md`, "Publishing a bundle").
 2. Mirror the base weights to S3.
 3. Optionally archive the evidence videos and raw captures.
 4. After the backups, delete the cleanup candidates in §3.4 (about 9 GB).
