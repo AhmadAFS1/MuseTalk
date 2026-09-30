@@ -23,6 +23,7 @@ published set never overwrites the published records.
 
 | Step | Script | Time | Needs free RAM | What it does |
 |---|---|---|---|---|
+| 0a | `05_fetch_inputs.sh [--engines]` | ~1–3 min | – | Restores the inputs git does not hold from checksum-pinned S3 bundles: the six harness avatars and the UNet capture corpus (and with `--engines` the published r5/r2 engines + TAESD TRT). Inputs already here are verified against the bundles, not overwritten. Needs the runtime secret's bucket and read access (`set -a; . /workspace/.musetalk-runtime.env; set +a`). |
 | 0 | `00_check.sh [--deep]` | ~1 min | – | Prerequisites: GPU, power limit, versions against `requirements/constraints-cu121.txt`, weights and avatars byte-exact against `render.json`, the corpus against its manifest, the runtime env file, `/dev/shm`, disk, tools, and that the package is committed. |
 | 1 | `10_build_engines.sh [--set r5\|r2] [--dry-run]` | ~20–25 min | 14 GB | Builds the set from scratch into `models/tensorrt_unet_stagewise_sm89_<set>`. Order: FP16 blocks, then INT8 blocks, then `prefix` (finalizes). Then the TensorRT TAESD engine, then a per-block ONNX comparison with the published set. |
 | 2 | `20_gate.sh [root]` | ~6 min | 8 GB | Repo UNet gate (main + holdout), `forward_cached == forward` bit-exactness, and TAESD load + probe plus the published G-TAESD gate. |
@@ -33,6 +34,7 @@ published set never overwrites the published records.
 **Commands.** A full reproduction on a free box:
 
 ```bash
+scripts/repro_400fps/05_fetch_inputs.sh                 # avatars + corpus from S3 (needs the runtime secret env)
 scripts/repro_400fps/00_check.sh
 scripts/repro_400fps/10_build_engines.sh                 # r5; add --set r2 for the 350 fps set
 scripts/repro_400fps/20_gate.sh
@@ -91,7 +93,7 @@ pre-change renders. `deterministic_per_identity` must be `true`.
 The layout is fixed. The repo can live anywhere; the paths below are hard-coded in the harness, the quality tool and
 the (unchangeable) chin workflow.
 
-**1. This repo, committed.** Branch `perf/300fps-4070s`, including:
+**1. This repo, committed.** Branch `main` (the `perf/300fps-4070s` work was merged in PR #2), including:
 - this package;
 - `scripts/build_unet_stagewise.py` (`--variant srccache`, `--int8-recipe`) and `scripts/unet_stagewise_trt.py`;
 - `scripts/vae_fast_decoder.py`;
@@ -123,13 +125,14 @@ or symlink that path to your chin-tools venv.
 `install_musetalk.sh`. `00_check.sh` checks the TAESD files by sha256 against the renders.
 
 **5. The six prepared avatars** `/workspace/experiments/avatar_diversity_20260927/<id>/` (763 MB).
-- Copy them byte-exact from the original box (rsync). They cannot be regenerated: the portraits, the MiniMax H3
-  source videos and the Kokoro speech were made with external tools.
+- `05_fetch_inputs.sh` restores them byte-exact from S3 (`trt-artifacts/repro-inputs/avatar-diversity-20260927/`).
+  They cannot be regenerated: the portraits, the MiniMax H3 source videos and the Kokoro speech were made with
+  external tools.
 - Every harness and quality check compares against their `render.json` hashes; `00_check.sh` verifies them
   (`--deep` includes the mp4s).
 
 **6. The UNet capture corpus** `calibration/unet_multi_avatar_20260928`: 352 main + 96 holdout bs8 captures,
-218 MB. Here it is a symlink into `/workspace/MuseTalk/calibration/`. Copy it. Rebuilding it
+218 MB. `05_fetch_inputs.sh` restores it from S3 (it is also inside the r5 engine bundle). Rebuilding it
 (`scripts/build_unet_multi_avatar_corpus.py`) needs the 14 source avatars its manifest names.
 
 **7. The runtime env file** `.runtime/musetalk_trt_local_sm89.env`. Every harness run reads it. The first harness
@@ -152,23 +155,15 @@ published engine, so its BEFORE numbers are "like-for-like" only approximately.
 - **Tools and CPU:** ffmpeg with libx264, flock and setsid, and a writable `/workspace`. The harness uses about 5
   cores of the 32 threads here.
 
-## Serving these engines (not yet validated end to end)
+## Serving these engines
 
-The numbers above come from the offline full-recipe harness: one GPU issuer and one chin worker per stream. The live
-server can load the same engine set through an overrides file (`docs/STARTUP.md` §5):
+Recipe `r5` serves the published r5 set: `MUSETALK_RECIPE=r5` (`configs/recipes/r5.env`, `docs/STARTUP.md` §4).
+On an RTX 4070 SUPER, `scripts/vast_onstart.sh` restores the set from the pinned S3 bundle
+(`configs/trt_bundles/rtx4070super-r5-srcg50-int8.json`), and the resolver points the server at it only when that
+restore verified for this exact GPU and TensorRT. A set rebuilt by `10_build_engines.sh` is a different set: it is
+not the bundle, so serve it through an overrides file (`docs/STARTUP.md` §5), not through the recipe.
 
-```
-MUSETALK_UNET_BACKEND=trt_stagewise
-MUSETALK_UNET_STAGEWISE_BATCH=16
-MUSETALK_UNET_STAGEWISE_CACHE_DIR=/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm89_srcg50
-MUSETALK_TAESD_BACKEND=trt
-MUSETALK_TAESD_TRT_BUILD=0
-MUSETALK_TAESD_TRT_STRICT=1
-HLS_SCHEDULER_FIXED_BATCH_SIZES=16
-```
-
-The `fast300` recipe groups these levers; they are still switched off there. Two caveats before relying on it:
-- **Prefix cache:** the server path calls `forward`, not `forward_cached`, so it recomputes the per-source prefix
-  (~1.8% of UNet time) until per-avatar prefix caching is wired into the scheduler.
-- **Untested end to end:** the WebRTC/scheduler GPU gates and a live 15-stream load test have not run with these
-  engines.
+The live WebRTC test ran with these engines on 2026-09-29 (`docs/fps_comparisons/live15_r5_20260929/README.md`):
+10 concurrent calls pass with margin and 15 is at the knee; the limit is the server's single event loop, not the GPU.
+The server path still calls `forward`, not `forward_cached`, so it recomputes the per-source prefix (~1.8% of UNet
+time) until per-avatar prefix caching is wired into the scheduler.

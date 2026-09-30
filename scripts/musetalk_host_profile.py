@@ -7,7 +7,7 @@ venv is inspected through its site-packages/*.dist-info directory names.
 
 Subcommands
   detect       [--repo-root R] [--venv V]           host facts JSON on stdout
-  resolve      --recipe fast|fast300|legacy_int8     writes .runtime/musetalk_resolved.{env,json}
+  resolve      --recipe fast|fast300|r5|legacy_int8  writes .runtime/musetalk_resolved.{env,json}
                [--repo-root R] [--venv V] [--out ENVFILE] [--report JSONFILE]
   verify-log   --log L [--offset B] --expect-vae X [--expect-unet Y] [--timeout S]
   engine-key   --kind unet_ts|unet_stagewise|taesd_trt
@@ -15,7 +15,7 @@ Subcommands
 
 Layering (highest wins): 1 caller env > 2 overrides files (MUSETALK_ENV_OVERRIDES_FILE,
 colon list, default <repo>/.runtime/musetalk_overrides.env, first file wins) >
-3 recipe levers (configs/recipes/<recipe>.env, fast300 only, each gated) >
+3 recipe levers (configs/recipes/<recipe>.env, fast300 and r5 only, each gated) >
 4 resolver-computed values > 5 code defaults. The resolver reads layers 1 and 2
 itself (only-if-unset, exactly like the launcher), so its dependents (bucket
 coupling, warmups) are computed from what the server will really see.
@@ -35,6 +35,13 @@ Recipes
               whole group is dropped with the reason (resolution re-runs until stable).
               Ungrouped lines are single levers gated by the LEVERS table (engine levers need a
               validated engine, pass-through levers need code that reads them).
+  r5          fast + the levers of configs/recipes/r5.env, in the same format. Its engine group
+              requires bundle:<name>: the pinned S3 engine bundle configs/trt_bundles/<name>.json,
+              for this exact engine key (GPU model + TensorRT), restored or adopted with a stamp
+              for the pinned archive SHA256 by scripts/trt_artifact_bundle.py, every file present.
+              The resolver then points the stagewise UNet and TAESD TRT at the bundle's engines
+              (they are not engine-store entries). On any other host the group is dropped with
+              its reason and the host serves the fast engines plus r5's serving levers.
   legacy_int8 emits only MUSETALK_RECIPE=legacy_int8 (the launcher execs the old chain).
 Engines come ONLY from scripts/musetalk_engine_keys.py (the engine store's module).
 Pass-through serving levers are never emitted unless a recipe line enables them; the
@@ -76,7 +83,11 @@ DEFAULT_REPO_ROOT = SCRIPT_DIR.parent
 FACTS_SCHEMA = "musetalk_host_facts_v1"
 REPORT_SCHEMA = "musetalk_resolved_v1"
 SELFTEST_SCHEMA = "musetalk_gpu_selftest_v1"
-RECIPES = ("fast", "fast300", "legacy_int8")
+RECIPES = ("fast", "fast300", "r5", "legacy_int8")
+RECIPE_FILE_RECIPES = ("fast300", "r5")  # recipes that read configs/recipes/<recipe>.env
+TRT_BUNDLE_DIR = Path("configs") / "trt_bundles"  # pinned S3 engine bundles (bundle:<name> prerequisite)
+TRT_BUNDLE_STAMP = ".musetalk_trt_artifact_restored.json"  # written by scripts/trt_artifact_bundle.py
+TRT_BUNDLE_MANIFEST = ".musetalk_trt_artifact_manifest.json"
 ENGINE_KINDS = ("unet_ts", "unet_stagewise", "taesd_trt")
 TS_ENGINE_BATCH = 8  # MultiTrtUnetBackend only serves multiples of the .ts engine batch
 
@@ -1162,7 +1173,7 @@ class Resolver:
             return self
         self._gpu_checks()
         self._core_recipe()
-        if self.recipe == "fast300":
+        if self.recipe in RECIPE_FILE_RECIPES:
             self._load_recipe_levers()
         self._resolve_unet()
         self._resolve_buckets()
@@ -1279,12 +1290,12 @@ class Resolver:
         self.recipe_file = str(path)
         self._pending_recipe = []
         if not path.is_file():
-            self.warn(f"recipe file {path} missing: fast300 == fast")
+            self.warn(f"recipe file {path} missing: {self.recipe} == fast")
             return
         groups, entries = parse_recipe_file(path)
         self.recipe_groups = [dict(g, status=None, reason=None, prereqs={}) for g in groups]
         if not entries:
-            self.notes.append(f"{path}: no lever enabled (all commented out): fast300 == fast")
+            self.notes.append(f"{path}: no lever enabled (all commented out): {self.recipe} == fast")
         for group in self.recipe_groups:  # static prerequisites, once per group (cached across passes)
             if group["name"] not in self.excluded_groups and group["keys"]:
                 ok, why = self._check_prereqs(group, entries, state=False)
@@ -1400,6 +1411,8 @@ class Resolver:
             return self.native_vp8_preflight()
         if prereq == "gpu:nvenc":
             return self.pyav_has_encoder("h264_nvenc") if gpu is not None else (False, "no GPU visible")
+        if kind == "bundle":
+            return self._cached(prereq, lambda: self._bundle_check(arg))
         if kind == "code":
             path = self.repo_root / arg
             first = group["keys"][0] if group["keys"] else None
@@ -1410,6 +1423,64 @@ class Resolver:
                 return False, f"{arg} does not mention {first} (lever not implemented in this checkout)"
             return True, f"{arg} mentions {first}"
         return False, f"unknown prerequisite {prereq!r}"
+
+    def _bundle_check(self, name):
+        """(ok, why) for bundle:<name>: configs/trt_bundles/<name>.json is for this exact engine key,
+        its stamp binds the stored sidecars to the pinned archive SHA256, and every file of the
+        bundle manifest is present with its recorded size (stat only; the restore hashed them)."""
+        desc_path = self.repo_root / TRT_BUNDLE_DIR / f"{name}.json"
+        try:
+            desc = json.loads(desc_path.read_text())
+        except (OSError, ValueError) as exc:
+            return False, f"{desc_path} unreadable ({type(exc).__name__})"
+        if self.facts.get("gpu") is None:
+            return False, "no GPU visible"
+        want = (desc.get("host") or {}).get("engine_key")
+        have = self.store.engine_key("unet_stagewise", self.facts)
+        if not want or have != want:
+            return False, (f"bundle is for {want}; this host is {have} (raw TensorRT plans load only on the "
+                           "exact GPU model + TensorRT they were built on)")
+        sidecar_dir = self.repo_root / str(desc.get("sidecar_dir") or f".runtime/trt_artifacts/{name}")
+        try:
+            stamp = json.loads((sidecar_dir / TRT_BUNDLE_STAMP).read_text())
+        except (OSError, ValueError):
+            stamp = {}
+        sha = str(desc.get("sha256") or "").lower()
+        if not sha or str(stamp.get("archive_sha256") or "").lower() != sha:
+            return False, (f"not restored: {sidecar_dir / TRT_BUNDLE_STAMP} does not bind archive {sha[:12]} "
+                           "(scripts/vast_onstart.sh restores it for recipe r5; by hand: "
+                           "scripts/trt_artifact_bundle.py --sidecar-dir ... restore|adopt)")
+        try:
+            files = json.loads((sidecar_dir / TRT_BUNDLE_MANIFEST).read_text()).get("files") or []
+        except (OSError, ValueError):
+            files = []
+        if not files:
+            return False, f"{sidecar_dir / TRT_BUNDLE_MANIFEST} missing or empty"
+        bad = []
+        for entry in files:
+            try:
+                size = (self.repo_root / entry["path"]).stat().st_size
+            except (OSError, KeyError, TypeError):
+                bad.append(f"missing {entry.get('path') if isinstance(entry, dict) else entry}")
+                continue
+            if size != entry.get("size"):
+                bad.append(f"size changed {entry['path']}")
+        if bad:
+            return False, f"{len(bad)} bundle file(s) missing or changed since the restore: {bad[:3]}"
+        self.shared.setdefault("bundles", {})[name] = desc
+        return True, (f"{name} {stamp.get('mode') or 'restored'} {stamp.get('restored_at')} for {want}; "
+                      f"{len(files)} files present")
+
+    def _group_bundle(self, item):
+        """Descriptor of the pinned bundle that the item's @lever group requires (and that passed)."""
+        if not item or not item.get("group"):
+            return None
+        for group in self.recipe_groups:
+            if group["name"] == item["group"]:
+                for prereq in group["requires"]:
+                    if prereq.startswith("bundle:"):
+                        return self.shared.get("bundles", {}).get(prereq.partition(":")[2])
+        return None
 
     def _cached(self, key, fn):
         cache = self.shared["prereq"]
@@ -1724,7 +1795,11 @@ class Resolver:
 
     def _unet_stagewise(self, explicit, source, item=None):
         """Stagewise FP16 UNet. explicit=True: caller chose it (respected, warn/err on gaps);
-        explicit=False: fast300 lever (enabled only if a validated engine exists)."""
+        explicit=False: fast300 lever (enabled only if a validated engine exists), or a lever of a
+        group that requires a pinned bundle (the bundle's engine set, see _unet_stagewise_bundle)."""
+        bundle = None if explicit else self._group_bundle(item)
+        if bundle is not None:
+            return self._unet_stagewise_bundle(bundle, source, item)
         gpu = self.facts.get("gpu")
         key = self.store.engine_key("unet_stagewise", self.facts)
         self.engines["unet_stagewise"] = {"key": key, "store": str(self.store.store_root("unet_stagewise")),
@@ -1810,6 +1885,51 @@ class Resolver:
         self.unet.update({"backend": "trt_stagewise", "engine_batch": engine_batch or 16,
                           "engine": ({"dir": entry.get("dir"), "key": entry.get("key"), "match": entry.get("match"),
                                       "layout": entry.get("layout")} if entry else None),
+                          "reason": source})
+        self.expect["unet"] = "trt_stagewise"
+        self._drop_ts_only_levers("UNet runs the stagewise engines")
+        return True
+
+    def _unet_stagewise_bundle(self, bundle, source, item):
+        """Stagewise UNet from a pinned bundle (bundle:<name> held): its engine set is not an engine-store
+        entry (srccache INT8 blocks), so the resolver points the server at the bundle directory."""
+        name = bundle.get("name")
+        spec = (bundle.get("engines") or {}).get("unet_stagewise") or {}
+        batch = _to_int(spec.get("batch"))
+        cache_rel = str(spec.get("cache_dir") or "")
+        root = self.repo_root / cache_rel
+        key = self.store.engine_key("unet_stagewise", self.facts)
+        self.engines["unet_stagewise"] = {"key": key, "bundle": name, "dir": str(root), "batch": batch}
+        batch_item = self._pending("MUSETALK_UNET_STAGEWISE_BATCH")
+        want_batch, _ = self._stagewise_batch_request()
+        cache_up, cache_src = self.view.upper("MUSETALK_UNET_STAGEWISE_CACHE_DIR")
+        problems = []
+        if not cache_rel or not batch:
+            problems.append(f"bundle {name} names no unet_stagewise cache_dir/batch")
+        elif not (root / f"bs{batch}" / "manifest.json").is_file():
+            problems.append(f"{root}/bs{batch}/manifest.json missing")
+        if want_batch and batch and want_batch != batch:
+            problems.append(f"batch {want_batch} requested but the bundle engines are bs{batch}")
+        if cache_up:
+            up_root = Path(cache_up) if Path(cache_up).is_absolute() else self.repo_root / cache_up
+            if os.path.realpath(str(up_root)) != os.path.realpath(str(root)):
+                problems.append(f"{cache_src} pins MUSETALK_UNET_STAGEWISE_CACHE_DIR={cache_up}, not the bundle set")
+        if problems:
+            self._drop(item, "; ".join(problems))
+            if batch_item:
+                self._drop(batch_item, "stagewise UNet lever dropped")
+            return False
+        reason = f"pinned bundle {name} ({str(bundle.get('sha256'))[:12]}) restored for {key}"
+        self._enable(item, reason)
+        if batch_item:
+            self._enable(batch_item, "matches the bundle engine batch")
+        self.emit("MUSETALK_UNET_BACKEND", "trt_stagewise", reason)
+        self.emit("MUSETALK_TRT_UNET_ENABLED", "0", "stagewise UNet does not load the .ts engine")
+        self.emit("MUSETALK_UNET_STAGEWISE_CACHE_DIR", str(root), reason)
+        self.emit("MUSETALK_UNET_STAGEWISE_BATCH", str(batch), "engine batch of the bundle set")
+        self.unet.update({"backend": "trt_stagewise", "engine_batch": batch,
+                          "engine": {"dir": str(root / f"bs{batch}"), "key": key, "match": f"bundle:{name}",
+                                     "layout": "bundle"},
                           "reason": source})
         self.expect["unet"] = "trt_stagewise"
         self._drop_ts_only_levers("UNet runs the stagewise engines")
@@ -1915,6 +2035,9 @@ class Resolver:
             for i in trt_items:
                 self._drop(i, "TAESD TRT not selected")
             return
+        bundle = self._group_bundle(item)
+        if bundle is not None:
+            return self._taesd_trt_bundle(bundle, item, trt_items)
         entry = self._taesd_trt_entry()
         verdict = quality_verdict(entry)
         if self.facts.get("gpu") is None or entry is None or verdict != "PASS":
@@ -1935,6 +2058,59 @@ class Resolver:
         self.decisions.append({"knob": "MUSETALK_TAESD_BACKEND", "value": "trt", "source": f"recipe:{self.recipe}",
                                "reason": item["reason"]})
         self._emit_taesd_trt(entry, item["reason"], trt_items)
+
+    def _taesd_trt_bundle(self, bundle, item, trt_items):
+        """TAESD TRT from a pinned bundle (bundle:<name> held): the bundle's plans in their own directory.
+        The engine store's G-TAESD gate does not apply; the bundle was accepted as a whole (see its recipe)."""
+        name = bundle.get("name")
+        spec = (bundle.get("engines") or {}).get("taesd_trt") or {}
+        engine_dir = self.repo_root / str(spec.get("dir") or "")
+        runtime_key = str(spec.get("key") or "")
+        batch = _to_int(spec.get("batch"))
+        self.engines["taesd_trt"] = {"key": self.store.engine_key("taesd_trt", self.facts), "bundle": name,
+                                     "dir": str(engine_dir), "runtime_key": runtime_key, "batch": batch}
+        problems = []
+        if not runtime_key or not batch or not spec.get("dir"):
+            problems.append(f"bundle {name} names no taesd_trt dir/key/batch")
+        elif not (engine_dir / f"taesd_trt_{runtime_key}.json").is_file():
+            problems.append(f"{engine_dir}/taesd_trt_{runtime_key}.json missing")
+        batch_up = self._taesd_trt_batch()
+        if batch_up and batch and batch_up != batch:
+            problems.append(f"MUSETALK_TAESD_TRT_BATCH={batch_up} but the bundle engine is bs{batch}")
+        dir_up, dir_src = self.view.upper("MUSETALK_TAESD_TRT_DIR")
+        if dir_up:
+            up_dir = Path(dir_up) if Path(dir_up).is_absolute() else self.repo_root / dir_up
+            if os.path.realpath(str(up_dir)) != os.path.realpath(str(engine_dir)):
+                problems.append(f"{dir_src} pins MUSETALK_TAESD_TRT_DIR={dir_up}, not the bundle engine")
+        if problems:
+            self._drop(item, "; ".join(problems))
+            for i in trt_items:
+                self._drop(i, "TAESD TRT lever dropped")
+            self.expect["vae"] = "taesd_compiled"
+            return
+        reason = f"pinned bundle {name} TAESD TRT engine {runtime_key} bs{batch}"
+        self._enable(item, reason)
+        self.expect["vae"] = "taesd_trt"
+        self.emitted["MUSETALK_TAESD_BACKEND"] = "trt"
+        self.decisions.append({"knob": "MUSETALK_TAESD_BACKEND", "value": "trt", "source": f"recipe:{self.recipe}",
+                               "reason": reason})
+        for i in trt_items:
+            name_i = i["name"]
+            if name_i == "MUSETALK_TAESD_TRT_DIR":
+                self._drop(i, "the resolver points MUSETALK_TAESD_TRT_DIR at the bundle engine")
+            elif name_i == "MUSETALK_TAESD_TRT_BUILD" and parse_bool(i["requested"]) is not False:
+                self._drop(i, "the bundle engine is pre-built; serve-time builds are disabled (use 0)")
+            elif name_i == "MUSETALK_TAESD_TRT_BATCH" and _to_int(i["requested"]) != batch:
+                self._drop(i, f"the bundle engine is bs{batch} (part of its runtime key)")
+            else:
+                self._enable(i, "TAESD TRT enabled")
+                self.emitted[name_i] = i["requested"]
+                self.decisions.append({"knob": name_i, "value": i["requested"], "source": f"recipe:{self.recipe}",
+                                       "reason": i["reason"]})
+        self.emit("MUSETALK_TAESD_TRT_DIR", str(engine_dir), reason)
+        self.emit("MUSETALK_TAESD_TRT_BATCH", str(batch), reason)
+        if "MUSETALK_TAESD_TRT_BUILD" not in self.emitted:
+            self.emit("MUSETALK_TAESD_TRT_BUILD", "0", "bundle engine pre-built; never build inside the server")
 
     def _taesd_trt_batch(self):
         """Explicitly requested TAESD TRT engine batch (caller/overrides or recipe line), else None."""
@@ -2257,13 +2433,13 @@ class Resolver:
         if self.recipe_groups:
             on = [g["name"] for g in self.recipe_groups if g["status"] == "enabled"]
             off = [g["name"] for g in self.recipe_groups if g["status"] == "off"]
-            lines.append(f"fast300 groups enabled: {', '.join(on) or 'none'}; switched off in the file: {len(off)}")
+            lines.append(f"{self.recipe} groups enabled: {', '.join(on) or 'none'}; switched off in the file: {len(off)}")
         if self.recipe_levers:
             enabled = [i["name"] for i in self.recipe_levers if i["status"] == "enabled"]
             dropped = [f"{i['name']} ({i['reason']})" for i in self.recipe_levers if i["status"] == "dropped"]
-            lines.append(f"fast300 levers enabled: {', '.join(enabled) or 'none'}")
+            lines.append(f"{self.recipe} levers enabled: {', '.join(enabled) or 'none'}")
             if dropped:
-                lines.append(f"fast300 levers dropped: {'; '.join(dropped)}")
+                lines.append(f"{self.recipe} levers dropped: {'; '.join(dropped)}")
         lines.append(f"expect: vae={self.expect['vae']} unet={self.expect['unet']}")
         if getattr(self, "estimate", None):
             lines.append(self.estimate["line"])

@@ -127,9 +127,9 @@ Sizes are from this box. **Portable** works on any GPU. **GPU-bound** only works
 | SD-VAE `models/sd-vae` | 320 MB | yes | HF `stabilityai/sd-vae-ft-mse` | re-downloaded |
 | Whisper-tiny `models/whisper` | 145 MB | yes | HF `openai/whisper-tiny` | re-downloaded |
 | TAESD weights `models/taesd` | 5 MB | yes | HF `madebyollin/taesd` (pinned revision) | re-downloaded |
-| **r5 + r2 UNet engines** (`…_srcg50`, `…_srcmix`, and the 4 block folders they link into) | 2.5 GB | **GPU-bound** | `scripts/repro_400fps/10_build_engines.sh` (20–25 min, 14 GB RAM, needs the calibration data below) | **this machine only.** A bundle is built (`tmp/trt_bundle/`), and its upload waits on a publisher login |
-| **TAESD TRT engine** `models/taesd/trt/taesd_trt_6111…` | 10 MB | **GPU-bound** | `vae_fast_decoder.py build` (~15 s) | this machine only (in the same bundle) |
-| Prepared avatars `results/v15/avatars/*` | 160–350 MB each | yes | `POST /avatars/prepare` | S3 `avatars/v15/<id>.tar.gz` for avatars prepared with S3 on. **Which of the 33 local avatars are in S3 has not been checked** |
+| **r5 + r2 UNet engines** (`…_srcg50`, `…_srcmix`, and the 4 block folders they link into) | 2.5 GB | **GPU-bound** | `scripts/repro_400fps/10_build_engines.sh` (20–25 min, 14 GB RAM, needs the calibration data below) | **S3**, the pinned r5 bundle (`configs/trt_bundles/rtx4070super-r5-srcg50-int8.json`); `MUSETALK_RECIPE=r5` restores it at boot |
+| **TAESD TRT engine** `models/taesd/trt/taesd_trt_6111…` | 10 MB | **GPU-bound** | `vae_fast_decoder.py build` (~15 s) | S3, in the same bundle |
+| Prepared avatars `results/v15/avatars/*` | 160–350 MB each | yes | `POST /avatars/prepare` | S3 `avatars/v15/<id>.tar.gz`, restored on first use. All 33 avatars of this box were uploaded on 2026-09-30 |
 | Python venv `/workspace/.venvs/musetalk_trt_stagewise` | 9.5 GB | per CUDA and OS | installer, from pinned requirements | rebuilt per machine (~minutes) |
 | Secrets (S3 keys, Lingua token) | – | – | operator | Secrets Manager. This box also has a static copy in `/workspace/.musetalk-runtime.env` |
 | TURN password `.env.webrtc-turn.local` | – | per machine | generated at boot | local only (fine) |
@@ -139,8 +139,8 @@ Sizes are from this box. **Portable** works on any GPU. **GPU-bound** only works
 | Item | Size | Portable? | Produced by | Stored today |
 |---|---|---|---|---|
 | DWPose, S3FD, BiSeNet face parsing | ~570 MB | yes | `download_weights.sh`. The face-parsing weights come from a **Google Drive link** (fragile) | re-downloaded |
-| **INT8 calibration data** `calibration/unet_multi_avatar_20260928` | 218 MB | yes | `scripts/build_unet_multi_avatar_corpus.py` from specific avatars and audio | this machine only (in the r5 bundle). Needed for an exact r5 rebuild |
-| Quality-harness avatars `/workspace/experiments/avatar_diversity_20260927` | 763 MB | yes | external portrait and video tools | this machine only; **cannot be regenerated** |
+| **INT8 calibration data** `calibration/unet_multi_avatar_20260928` | 218 MB | yes | `scripts/build_unet_multi_avatar_corpus.py` from specific avatars and audio | S3: inside the r5 bundle, and alone as `trt-artifacts/repro-inputs/unet-multi-avatar-calibration-20260928/…`. Needed for an exact r5 rebuild |
+| Quality-harness avatars `/workspace/experiments/avatar_diversity_20260927` | 763 MB | yes | external portrait and video tools | S3 `trt-artifacts/repro-inputs/avatar-diversity-20260927/…`; **cannot be regenerated**. `scripts/repro_400fps/05_fetch_inputs.sh` restores both inputs |
 | FaceMesh environment (chin tracker, quality tools) | uses mediapipe from `/workspace/SoulX-FlashHead/.venv` | yes | `install_musetalk.sh --with-chin-tools` defines a proper one | borrowed from another project's venv |
 | SyncNet `models/syncnet` | 1.4 GB | yes | HF `ByteDance/LatentSync` | re-downloaded; quality checks only |
 
@@ -170,11 +170,11 @@ re-download everything else.** Every S3 object is checksum-addressed, so a resto
 | Kind | Store in | How | Status |
 |---|---|---|---|
 | Code, configs, recipes, small corpora, docs | **git** | – | done |
-| **TensorRT engines** (GPU-bound) | **S3 `trt-artifacts/<gpu>/<profile>/sha256-<hash>/<bundle>.tar.gz`**, the existing convention | `trt_artifact_bundle.py` format: manifest + SHA256SUMS inside, restore verifies every file. One bundle per GPU type and TensorRT version. Record GPU, TensorRT and driver in the bundle's notes | r5/r2 bundle built and verified locally (2.58 GB, sha256 `8e3f4b56…3ebff`, 535 files); **upload pending `aws login` for the publisher profile** |
-| INT8 calibration data | S3, inside the engine bundle (already) | – | done in the bundle |
-| **Prepared avatars** | S3 `avatars/v15/<id>.tar.gz` (existing flow, restored lazily) | keep `AVATAR_S3_ENABLED=1` wherever avatars are prepared | exists; check the 33 local avatars against S3 |
+| **TensorRT engines** (GPU-bound) | **S3 `trt-artifacts/<gpu>/<profile>/sha256-<hash>/<bundle>.tar.gz`**, the existing convention | `trt_artifact_bundle.py` format: manifest + SHA256SUMS inside, restore verifies every file. One bundle per GPU type and TensorRT version, pinned by a descriptor in `configs/trt_bundles/` (URI, sha256, engine key) | **done**: `s3://lingua-musetalk-s3-storage/trt-artifacts/rtx4070super/r5-srcg50-int8/sha256-8e3f4b56dfb9cd82beaca20a22f031fbce4e2bc2a9280f55effb3e73c233ebff/musetalk-trt-r5-r2-rtx4070super.tar.gz` (2,579,327,644 bytes, 535 files), restored by recipe r5 |
+| INT8 calibration data | S3, inside the engine bundle, and as its own repro-inputs bundle | – | done |
+| **Prepared avatars** | S3 `avatars/v15/<id>.tar.gz` (existing flow, restored lazily) | keep `AVATAR_S3_ENABLED=1` wherever avatars are prepared | done; all 33 local avatars uploaded 2026-09-30 |
 | Base model weights (5.7 GB) | public sources + **an S3 mirror** `models/<name>/sha256-…` | the installer downloads from HF; the mirror is insurance against link rot (the Google Drive face-parsing file especially) and HF rate limits | not done (recommended) |
-| Quality-harness avatars, evidence videos, raw captures | S3 archive prefix (Infrequent Access / Glacier) | one bundle per record, e.g. `evidence/4070s_400fps_20260928/…` | not done (recommended for the harness avatars; optional for the rest) |
+| Quality-harness avatars, evidence videos, raw captures | S3 archive prefix (Infrequent Access / Glacier) | one bundle per record, e.g. `evidence/4070s_400fps_20260928/…` | harness avatars **done** (`trt-artifacts/repro-inputs/avatar-diversity-20260927/…`); evidence videos and raw captures not uploaded (optional) |
 | Python environments | rebuild from pinned requirements; optionally a Docker image | `install_musetalk.sh --matrix cu121` | done; an image would cut boot time |
 | Secrets | AWS Secrets Manager only | `bootstrap_aws_secrets.py` | done; the static keys on this box are a local exception |
 | Runtime-generated state (`.runtime/*.env`, idle frame cache, compose plans, TensorRT timing caches, `/dev/shm` arenas) | nowhere; regenerated | – | – |
@@ -185,35 +185,36 @@ design). Publishing needs a separate identity with `s3:PutObject` on `trt-artifa
 
 ## 5. Gaps found while writing this
 
-1. **A fresh machine cannot serve r5 yet.** No boot step restores the r5 engines. The engine store cannot adopt or
-   build them, and the launcher's preflight stops the server when the pinned engine folder is missing. Fix: publish
-   the r5 bundle, then add a restore step for `fast300`, the same way `legacy_int8` restores the RTX 3090 bundle,
-   before engine provisioning. Alternatively, teach the engine store the source-cache and INT8 layout.
-2. **No recipe selects r5.** Its levers in `configs/recipes/fast300.env` are commented out, and r5 has run only
-   through `experiments/live15_r5/common.env`. The launchers installed on this box
-   (`experiments/chinese_bob_webrtc_20260927/run_local_api.sh`, `/workspace/run-musetalk-local-trt.sh`) serve the
-   `.ts` bs8 UNet, the 252 fps class.
-3. **The TAESD TRT engine** is built at boot only under `fast300`, and its quality gate reads FAIL (5 LSB against a
-   3 LSB bar). With strict mode and no engine, the launcher stops.
-4. **`fast300` always ensures the `.ts` UNet as well** (a 7-minute build) even though r5 does not use it. Set
-   `MUSETALK_UNET_ENGINE_PROVISION=off` for r5 machines.
-5. **Stale docs.** `docs/musetalk_worker_secrets.md` and `docs/trt_artifacts/README.md` still describe the RTX 3090
-   restore as the default boot step. It runs only for `legacy_int8`. The tracked root files
-   `.musetalk_trt_artifact_manifest.json` / `SHA256SUMS` describe that old bundle.
-6. **`POST /avatars/prepare` blocks the event loop** (§2.2). Run it in a thread before preparing avatars on a
+Closed on 2026-09-30:
+
+- **A fresh machine can serve r5.** `MUSETALK_RECIPE=r5` makes `scripts/vast_onstart.sh` restore the pinned bundle
+  (engine-key check, download, sha256, per-file verify, stamp) before the engine step, and the resolver selects the
+  bundle's engines through the `bundle:` prerequisite of `configs/recipes/r5.env`. On another GPU the engine group
+  is dropped with its reason and the host serves the fast engines. See `docs/STARTUP.md` §4.
+- **A recipe selects r5**: `configs/recipes/r5.env` (the live-tested levers minus the test-rig lines).
+- **r5 does not build the `.ts` UNet** when its bundle is active (the `.ts` provisioning defaults to off).
+- **The TAESD TRT engine** comes from the bundle; its G-TAESD record still reads FAIL (5 LSB against a 3 LSB bar).
+  r5 was accepted as a whole on the labelled video review.
+- **The trt-artifacts docs** now say the RTX 3090 restore runs only for `legacy_int8`.
+
+Still open:
+
+1. **`POST /avatars/prepare` blocks the event loop** (§2.2). Run it in a thread before preparing avatars on a
    serving worker.
-7. **Video codec is VP8 by accident** (§2.5). This needs a decision.
-8. **coturn has only 41 relay ports** (§2.5). Widen the range (`TURN_INTERNAL_RELAY_MAX_PORT`, which defaults to
+2. **Video codec is VP8 by accident** (§2.5). This needs a decision.
+3. **coturn has only 41 relay ports** (§2.5). Widen the range (`TURN_INTERNAL_RELAY_MAX_PORT`, which defaults to
    49460 in the current script) before running more than about 11 relayed calls per machine.
-9. **Engines are tied to this machine's GPU, TensorRT version and driver.** A driver or TensorRT upgrade needs a
-   rebuild and a re-gate. Keep the bundle's notes current.
+4. **Engines are tied to this machine's GPU, TensorRT version and driver.** A driver or TensorRT upgrade needs a
+   rebuild, a re-gate and a new bundle plus descriptor.
+5. **The TAESD engine key hashes the exported ONNX**, so a different torch or ONNX exporter than the pinned
+   `torch 2.5.1+cu121` changes the key; with `STRICT=1` the server then stops at startup instead of serving slower.
+6. **The launchers installed on this box** (`experiments/chinese_bob_webrtc_20260927/run_local_api.sh`,
+   `/workspace/run-musetalk-local-trt.sh`) still serve the `.ts` bs8 UNet; they are the user's and were not changed.
 
 ## 6. Suggested order
 
-1. Upload the r5/r2 bundle (needs the publisher login), then record its URI and sha256 in
-   `docs/trt_artifacts/README.md`.
-2. Add the `fast300` restore step and an r5 recipe, then verify on a fresh machine that boot → restore →
-   `verify-log` passes.
-3. Back up the quality-harness avatars (irreplaceable) and check the 33 avatars against S3.
-4. Mirror the base weights to S3.
-5. After the backups, delete the cleanup candidates in §3.4 (about 9 GB).
+1. Set `MUSETALK_RECIPE=r5` in the Vast template for RTX 4070 SUPER instances and boot one fresh instance: the log
+   should show `r5 engine bundle ready` and `Recipe verification passed: vae=taesd_trt unet=trt_stagewise`.
+2. Mirror the base weights to S3.
+3. Optionally archive the evidence videos and raw captures.
+4. After the backups, delete the cleanup candidates in §3.4 (about 9 GB).

@@ -4,6 +4,8 @@
 # Boots the recipe that scripts/musetalk_host_profile.py resolves for THIS host:
 #   fast        (default) compiled TAESD + validated torch_tensorrt bs8 .ts UNet, else eager UNet
 #   fast300     fast + the 300 fps levers of configs/recipes/fast300.env whose gates pass here
+#   r5          fast + configs/recipes/r5.env: the RTX 4070 SUPER ~400 fps engines from the pinned
+#               S3 bundle (restored by vast_onstart.sh) + the live-tested serving levers
 #   legacy_int8 exec scripts/run_trt_stagewise_server.sh unchanged (one-line rollback)
 #
 # Layering, highest wins: caller env > overrides files (MUSETALK_ENV_OVERRIDES_FILE, colon list,
@@ -87,7 +89,7 @@ Options:
   --help             Show this help text
 
 Environment (see configs/musetalk_overrides.env.example for every lever):
-  MUSETALK_RECIPE=fast|fast300|legacy_int8   recipe (default fast)
+  MUSETALK_RECIPE=fast|fast300|r5|legacy_int8  recipe (default fast)
   MUSETALK_ENV_OVERRIDES_FILE=a.env:b.env    overrides files (default .runtime/musetalk_overrides.env)
   MUSETALK_UNET_MODE=auto|trt|eager          UNet selection (resolver)
   MUSETALK_VP8_FALLBACK=1                    native VP8 preflight failure -> pyav with a warning
@@ -157,7 +159,7 @@ RUNTIME_DIR="${MUSETALK_RUNTIME_DIR:-$REPO_ROOT/.runtime}"
 RESOLVED_ENV="${MUSETALK_RESOLVED_ENV_FILE:-$RUNTIME_DIR/musetalk_resolved.env}"
 RESOLVED_JSON="${MUSETALK_RESOLVED_REPORT_FILE:-$RUNTIME_DIR/musetalk_resolved.json}"
 LAUNCH_STATE="${MUSETALK_LAUNCH_STATE_FILE:-$RUNTIME_DIR/musetalk_launch_${PORT}.json}"
-RECIPE_FILE_FAST300="$REPO_ROOT/configs/recipes/fast300.env"
+RECIPE_FILES_DIR="$REPO_ROOT/configs/recipes"
 RESOLVED_ENV_USED=""
 RESOLVED_JSON_USED=""
 
@@ -198,10 +200,10 @@ case "$RECIPE" in
   legacy_int8)
     dispatch_legacy
     ;;
-  fast|fast300)
+  fast|fast300|r5)
     ;;
   *)
-    die "Unsupported MUSETALK_RECIPE=$RECIPE (source=$RECIPE_SOURCE); expected fast, fast300 or legacy_int8"
+    die "Unsupported MUSETALK_RECIPE=$RECIPE (source=$RECIPE_SOURCE); expected fast, fast300, r5 or legacy_int8"
     ;;
 esac
 
@@ -525,10 +527,12 @@ managed_keys() {
   {
     mt_env_file_keys "$RESOLVED_ENV_USED"
     printf '%s\n' "${MT_PASSTHROUGH_LEVERS[@]}" "${MT_LAUNCH_CONTROL_KNOBS[@]}"
-    if [[ -f "$RECIPE_FILE_FAST300" ]]; then
+    local recipe_file
+    for recipe_file in "$RECIPE_FILES_DIR"/*.env; do
+      [[ -f "$recipe_file" ]] || continue
       # "#KEY=VALUE" is a switched-off lever, "# ..." is prose (configs/recipes/fast300.env format)
-      sed -nE 's/^#?([A-Z][A-Z0-9_]*)=.*/\1/p' "$RECIPE_FILE_FAST300"
-    fi
+      sed -nE 's/^#?([A-Z][A-Z0-9_]*)=.*/\1/p' "$recipe_file"
+    done
     local key
     for key in "${!MT_ENV_SOURCE[@]}"; do
       case "${MT_ENV_SOURCE[$key]}" in

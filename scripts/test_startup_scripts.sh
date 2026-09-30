@@ -416,6 +416,9 @@ make_repo() {
   cp "$REAL_REPO/setup_musetalk.sh" "$repo/setup_musetalk.sh"
   cp "$REAL_REPO/scripts/setup_musetalk.sh" "$repo/scripts/setup_musetalk.sh"
   cp "$REAL_REPO/configs/recipes/fast300.env" "$repo/configs/recipes/fast300.env"
+  cp "$REAL_REPO/configs/recipes/r5.env" "$repo/configs/recipes/r5.env"
+  mkdir -p "$repo/configs/trt_bundles"
+  cp "$REAL_REPO"/configs/trt_bundles/*.json "$repo/configs/trt_bundles/"
   : > "$repo/scripts/__init__.py"
   write_stub_api_server "$repo"
   write_stub_legacy "$repo"
@@ -483,7 +486,7 @@ if selected syntax; then
 
   begin "syntax: python components parse (ast, no bytecode written)"
   for f in scripts/musetalk_host_profile.py scripts/musetalk_engine_keys.py scripts/unet_engine_store.py \
-           scripts/musetalk_selftest.py; do
+           scripts/musetalk_selftest.py scripts/trt_artifact_bundle.py; do
     [[ -f "$REAL_REPO/$f" ]] || continue
     "$TEST_PY" -c 'import ast, sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$REAL_REPO/$f" \
       2> "$TEST_ROOT/ast.err" || fail "ast.parse $f: $(tail -n 2 "$TEST_ROOT/ast.err")"
@@ -714,6 +717,15 @@ if selected launcher; then
   assert_file_contains "$TEST_ROOT/resolver_env.json" '"--recipe", "fast300"' "resolver argv"
   assert_eq "$(dump_get "$TEST_ROOT/api_env.json" MUSETALK_RECIPE)" fast300 "exported recipe"
   assert_file_contains "$TEST_ROOT/run8.out" 'recipe=fast300 \(source=overrides:' "summary names the source"
+  end
+
+  begin "launcher: r5 dispatch passes --recipe r5 and exports the recipe"
+  : > "$OVR"
+  rc=0
+  run_launcher "$L" "$TEST_ROOT/run8r5.out" MUSETALK_RECIPE=r5 -- || rc=$?
+  assert_rc "$rc" 0 "launch"
+  assert_file_contains "$TEST_ROOT/resolver_env.json" '"--recipe", "r5"' "resolver argv"
+  assert_eq "$(dump_get "$TEST_ROOT/api_env.json" MUSETALK_RECIPE)" r5 "exported recipe"
   end
 
   begin "launcher: legacy_int8 (one overrides line) execs the old chain with the same args, no resolver, no overrides"
@@ -970,6 +982,12 @@ EOF
   cat > "$O/scripts/trt_artifact_bundle.py" <<'PY'
 import os, sys
 open(os.environ["MT_TEST_LEGACY_STEPS"], "a").write("restore " + " ".join(sys.argv[1:]) + "\n")
+sys.exit(int(os.environ.get("MT_TEST_BUNDLE_RC", "0")))
+PY
+  cat > "$O/scripts/musetalk_engine_keys.py" <<'PY'
+import os, sys
+print(os.environ.get("MT_TEST_ENGINE_KEY", "sm89-nvidia-geforce-rtx-4070-super-trt10.3.0"))
+sys.exit(int(os.environ.get("MT_TEST_ENGINE_KEY_RC", "0")))
 PY
   cat > "$O/scripts/select_unet_trt_profile.py" <<'PY'
 import os, sys
@@ -1052,6 +1070,70 @@ PY
   assert_file_contains "$ON_DIR/ensure.log" '^ensure --kind unet_ts --provision auto$' "unet_ts"
   assert_file_contains "$ON_DIR/ensure.log" '^ensure --kind taesd_trt --provision auto$' "taesd_trt"
   assert_file_contains "$ON_DIR/ensure.log" '^ensure --kind unet_stagewise --provision adopt$' "unet_stagewise"
+  end
+
+  R5_SHA=8e3f4b56dfb9cd82beaca20a22f031fbce4e2bc2a9280f55effb3e73c233ebff
+  begin "onstart: r5 on the bundle's GPU -> pinned restore into the sidecar dir, no .ts ensure, ctl start"
+  run_onstart r5 MUSETALK_RECIPE=r5 TRT_ARTIFACT_S3_BUCKET=bucket-x
+  assert_rc "$ON_RC" 0 "onstart"
+  assert_eq "$(marker_count "$ON_DIR" 'VAST_ONSTART COMPLETE')" 1 "COMPLETE marker"
+  assert_file_contains "$ON_DIR/legacy_steps.log" "^restore --repo-root $O --strict --sidecar-dir \.runtime/trt_artifacts/rtx4070super-r5-srcg50-int8 restore --uri s3://bucket-x/trt-artifacts/rtx4070super/r5-srcg50-int8/sha256-$R5_SHA/musetalk-trt-r5-r2-rtx4070super\.tar\.gz --expected-sha256 $R5_SHA --stage-dir $O/tmp/trt_artifact_stage --skip-if-verified\$" "pinned restore call"
+  assert_file_lacks "$ON_DIR/legacy_steps.log" '^select ' "no legacy selector"
+  assert_eq "$(wc -l < "$ON_DIR/ensure.log" | tr -d ' ')" 0 "no .ts ensure while the bundle serves"
+  assert_eq "$(dump_argv "$ON_DIR/ctl.json")" start "ctl start"
+  assert_file_contains "$ON_DIR/onstart.log" 'r5 engine bundle ready' "logged"
+  run_onstart r5ts MUSETALK_RECIPE=r5 TRT_ARTIFACT_S3_BUCKET=bucket-x MUSETALK_UNET_ENGINE_PROVISION=auto
+  assert_file_contains "$ON_DIR/ensure.log" '^ensure --kind unet_ts --provision auto$' "explicit auto still provisions the .ts"
+  end
+
+  begin "onstart: r5 on another GPU (or no engine key) -> bundle skipped, fast .ts provisioning"
+  run_onstart r5other MUSETALK_RECIPE=r5 TRT_ARTIFACT_S3_BUCKET=bucket-x MT_TEST_ENGINE_KEY=sm89-nvidia-geforce-rtx-4090-trt10.3.0
+  assert_rc "$ON_RC" 0 "onstart"
+  assert_eq "$(wc -l < "$ON_DIR/legacy_steps.log" | tr -d ' ')" 0 "no restore"
+  assert_file_contains "$ON_DIR/onstart.log" 'this host is sm89-nvidia-geforce-rtx-4090-trt10\.3\.0' "reason logged"
+  assert_file_contains "$ON_DIR/ensure.log" '^ensure --kind unet_ts --provision auto$' "fast .ts provisioning"
+  run_onstart r5nokey MUSETALK_RECIPE=r5 TRT_ARTIFACT_S3_BUCKET=bucket-x MT_TEST_ENGINE_KEY= MT_TEST_ENGINE_KEY_RC=3
+  assert_rc "$ON_RC" 0 "no engine key is not fatal"
+  assert_eq "$(wc -l < "$ON_DIR/legacy_steps.log" | tr -d ' ')" 0 "no restore without an engine key"
+  end
+
+  begin "onstart: r5 restore failure / no bucket -> FAILED when required; auto and off boot the fast engines"
+  run_onstart r5fail MUSETALK_RECIPE=r5 TRT_ARTIFACT_S3_BUCKET=bucket-x MT_TEST_BUNDLE_RC=1
+  assert_rc "$ON_RC" nonzero "required"
+  assert_eq "$(marker_count "$ON_DIR" 'VAST_ONSTART FAILED')" 1 "FAILED marker"
+  assert_missing "$ON_DIR/ctl.json" "server not started"
+  run_onstart r5failauto MUSETALK_RECIPE=r5 TRT_ARTIFACT_S3_BUCKET=bucket-x MT_TEST_BUNDLE_RC=1 MUSETALK_R5_BUNDLE_RESTORE=auto
+  assert_rc "$ON_RC" 0 "auto"
+  assert_file_contains "$ON_DIR/ensure.log" '^ensure --kind unet_ts --provision auto$' "fast .ts provisioning"
+  run_onstart r5nobucket MUSETALK_RECIPE=r5
+  assert_rc "$ON_RC" nonzero "required without a bucket"
+  assert_file_contains "$ON_DIR/onstart.log" 'TRT_ARTIFACT_S3_BUCKET/MUSETALK_R5_BUNDLE_URI is not set' "message"
+  run_onstart r5uri MUSETALK_RECIPE=r5 MUSETALK_R5_BUNDLE_URI=file:///srv/r5.tar.gz
+  assert_rc "$ON_RC" 0 "explicit URI"
+  assert_file_contains "$ON_DIR/legacy_steps.log" ' --uri file:///srv/r5\.tar\.gz ' "URI override"
+  run_onstart r5off MUSETALK_RECIPE=r5 TRT_ARTIFACT_S3_BUCKET=bucket-x MUSETALK_R5_BUNDLE_RESTORE=off
+  assert_rc "$ON_RC" 0 "off"
+  assert_eq "$(wc -l < "$ON_DIR/legacy_steps.log" | tr -d ' ')" 0 "no restore when off"
+  run_onstart r5bad MUSETALK_RECIPE=r5 MUSETALK_R5_BUNDLE_RESTORE=maybe
+  assert_rc "$ON_RC" nonzero "bad mode"
+  end
+
+  begin "onstart: MUSETALK_RECIPE from the runtime secret -> r5 bundle step; a legacy switch is refused"
+  cat > "$O/scripts/bootstrap_aws_secrets.py" <<'PY'
+import os, sys
+out = sys.argv[sys.argv.index("--output") + 1]
+with open(out, "w") as fh:
+    fh.write("export MUSETALK_RECIPE=%s\nexport TRT_ARTIFACT_S3_BUCKET=bucket-s\n" % os.environ.get("MT_TEST_SECRET_RECIPE", "r5"))
+PY
+  run_onstart secret_r5 MUSETALK_AWS_SECRET_ID=test-secret MUSETALK_SECRETS_VERIFY_S3=0
+  assert_rc "$ON_RC" 0 "onstart"
+  assert_file_contains "$ON_DIR/onstart.log" 'recipe=r5 \(source=[^,]*, after the secret bootstrap; was fast\)' "recipe taken from the secret"
+  assert_file_contains "$ON_DIR/legacy_steps.log" ' --uri s3://bucket-s/trt-artifacts/rtx4070super/r5-srcg50-int8/' "bundle restored from the secret's bucket"
+  assert_eq "$(wc -l < "$ON_DIR/ensure.log" | tr -d ' ')" 0 "no .ts ensure"
+  run_onstart secret_legacy MUSETALK_AWS_SECRET_ID=test-secret MUSETALK_SECRETS_VERIFY_S3=0 MT_TEST_SECRET_RECIPE=legacy_int8
+  assert_rc "$ON_RC" nonzero "switch to legacy_int8 after the install check"
+  assert_eq "$(marker_count "$ON_DIR" 'VAST_ONSTART FAILED')" 1 "FAILED marker"
+  rm -f "$O/scripts/bootstrap_aws_secrets.py"
   end
 
   begin "onstart: no usable engine is fatal only with MUSETALK_UNET_MODE=trt"
@@ -1319,6 +1401,92 @@ EOF
     assert_eq "$(pe_get "$TEST_ROOT/i7.out" MUSETALK_TAESD_BACKEND)" "<unset>" "no TAESD TRT lever"
     assert_eq "$(pe_get "$TEST_ROOT/i7.out" WEBRTC_VP8_ENCODER)" pyav "vp8 stays pyav"
     assert_eq "$(pe_get "$TEST_ROOT/i7.out" HLS_GPU_PIPELINE_DEPTH)" "<unset>" "no serving lever"
+    end
+
+    r5_code_stubs() {
+      # The r5 groups' code:<path> prerequisites: each file must mention its group's first key.
+      local f
+      for f in unet_stagewise_trt.py webrtc_media_flags.py webrtc_idle_frame_cache.py gc_tuning.py \
+               hls_gpu_scheduler.py api_avatar.py; do
+        [[ -f "$I/scripts/$f" ]] || printf '# stub for the r5 code: prerequisites\n' > "$I/scripts/$f"
+      done
+      printf '"MUSETALK_UNET_BACKEND"\n' >> "$I/scripts/unet_stagewise_trt.py"
+      printf '"WEBRTC_DEADLINE_PACING" "WEBRTC_NONBLOCKING_HANDOFF" "MUSETALK_OFFLOOP_DIAGNOSTICS" "MUSETALK_THREAD_CAPS"\n' \
+        >> "$I/scripts/webrtc_media_flags.py"
+      printf '"WEBRTC_IDLE_FRAME_CACHE"\n' >> "$I/scripts/webrtc_idle_frame_cache.py"
+      printf '"MUSETALK_GC_FREEZE"\n' >> "$I/scripts/gc_tuning.py"
+      printf '"HLS_SKIP_CROSSFADE_COPY"\n' >> "$I/scripts/hls_gpu_scheduler.py"
+      printf '"MUSETALK_AVATAR_MASK_CHANNELS"\n' >> "$I/scripts/api_avatar.py"
+    }
+    make_r5_bundle() {
+      # A restored r5 bundle in the fake repo: engine files, sidecar manifest, stamp for the pinned sha.
+      mkdir -p "$I/models/tensorrt_unet_stagewise_sm89_srcg50/bs16" "$I/models/taesd/trt"
+      printf '{"schema": "musetalk_unet_stagewise_trt_v1", "batch": 16, "complete": true}\n' \
+        > "$I/models/tensorrt_unet_stagewise_sm89_srcg50/bs16/manifest.json"
+      printf 'PLAN' > "$I/models/tensorrt_unet_stagewise_sm89_srcg50/bs16/prefix.plan"
+      printf '{"key": "6111388248264a4ef2ae"}\n' > "$I/models/taesd/trt/taesd_trt_6111388248264a4ef2ae.json"
+      "$TEST_PY" - "$I" <<'PY' || fail "make_r5_bundle"
+import json, os, sys
+root = sys.argv[1]
+desc = json.load(open(os.path.join(root, "configs/trt_bundles/rtx4070super-r5-srcg50-int8.json")))
+side = os.path.join(root, desc["sidecar_dir"])
+os.makedirs(side, exist_ok=True)
+paths = ["models/tensorrt_unet_stagewise_sm89_srcg50/bs16/manifest.json",
+         "models/tensorrt_unet_stagewise_sm89_srcg50/bs16/prefix.plan",
+         "models/taesd/trt/taesd_trt_6111388248264a4ef2ae.json"]
+files = [{"path": p, "sha256": "x", "size": os.path.getsize(os.path.join(root, p))} for p in paths]
+json.dump({"schema": 1, "files": files}, open(os.path.join(side, ".musetalk_trt_artifact_manifest.json"), "w"))
+json.dump({"archive_sha256": desc["sha256"], "mode": "restored", "restored_at": "2026-09-30T00:00:00Z"},
+          open(os.path.join(side, ".musetalk_trt_artifact_restored.json"), "w"))
+PY
+    }
+
+    begin "integration: r5 without a restored bundle -> engine group dropped, serving levers on"
+    : > "$I/.runtime/musetalk_overrides.env"
+    r5_code_stubs
+    rc=0
+    run_launcher "$I" "$TEST_ROOT/i10.out" MUSETALK_RECIPE=r5 -- --print-env || rc=$?
+    assert_rc "$rc" 0 "print-env"
+    assert_eq "$(pe_get "$TEST_ROOT/i10.out" MUSETALK_RECIPE)" r5 "recipe"
+    assert_eq "$(pe_get "$TEST_ROOT/i10.out" MUSETALK_UNET_BACKEND)" eager "unet (no .ts in the empty store)"
+    assert_eq "$(pe_get "$TEST_ROOT/i10.out" MUSETALK_TAESD_BACKEND)" "<unset>" "no TAESD TRT"
+    assert_eq "$(pe_get "$TEST_ROOT/i10.out" HLS_SCHEDULER_FIXED_BATCH_SIZES)" 8 "fast buckets"
+    assert_eq "$(pe_get "$TEST_ROOT/i10.out" WEBRTC_DEADLINE_PACING)" 1 "serving lever"
+    assert_eq "$(pe_get "$TEST_ROOT/i10.out" MUSETALK_AVATAR_FRAME_STORE)" png "memory lever"
+    assert_eq "$(pe_get "$TEST_ROOT/i10.out" MUSETALK_DISABLE_LOCAL_TTS)" "<unset>" "TTS lever ships off"
+    assert_file_contains "$TEST_ROOT/i10.out.err" 'group r5_engines dropped: prerequisite bundle:rtx4070super-r5-srcg50-int8 failed: not restored' "reason"
+    end
+
+    begin "integration: r5 with its bundle restored -> bundle engines + bs16; other GPU or a changed file -> dropped"
+    make_r5_bundle
+    rc=0
+    run_launcher "$I" "$TEST_ROOT/i11.out" MUSETALK_RECIPE=r5 -- --print-env || rc=$?
+    assert_rc "$rc" 0 "print-env"
+    assert_eq "$(pe_get "$TEST_ROOT/i11.out" MUSETALK_UNET_BACKEND)" trt_stagewise "unet"
+    assert_eq "$(pe_get "$TEST_ROOT/i11.out" MUSETALK_UNET_STAGEWISE_CACHE_DIR)" "$I/models/tensorrt_unet_stagewise_sm89_srcg50" "cache dir"
+    assert_eq "$(pe_get "$TEST_ROOT/i11.out" MUSETALK_UNET_STAGEWISE_BATCH)" 16 "engine batch"
+    assert_eq "$(pe_get "$TEST_ROOT/i11.out" MUSETALK_TAESD_BACKEND)" trt "taesd"
+    assert_eq "$(pe_get "$TEST_ROOT/i11.out" MUSETALK_TAESD_TRT_DIR)" "$I/models/taesd/trt" "taesd dir"
+    assert_eq "$(pe_get "$TEST_ROOT/i11.out" MUSETALK_TAESD_TRT_BUILD)" 0 "never build"
+    assert_eq "$(pe_get "$TEST_ROOT/i11.out" MUSETALK_TAESD_TRT_STRICT)" 1 "strict"
+    for k in HLS_SCHEDULER_FIXED_BATCH_SIZES HLS_SCHEDULER_MAX_BATCH MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES; do
+      assert_eq "$(pe_get "$TEST_ROOT/i11.out" "$k")" 16 "$k"
+    done
+    assert_file_contains "$TEST_ROOT/i11.out" '^# expect: vae=taesd_trt unet=trt_stagewise' "expectation"
+    write_facts "$TEST_ROOT/facts_4090.json" '[{"index": 0, "name": "NVIDIA GeForce RTX 4090", "compute_capability": "8.9", "memory_total_mib": 24564, "memory_used_mib": 500, "power_limit_w": 450.0, "power_default_limit_w": 450.0, "driver_version": "595.84"}]'
+    rc=0
+    run_launcher "$I" "$TEST_ROOT/i12.out" MUSETALK_RECIPE=r5 "MUSETALK_HOST_FACTS_JSON=$TEST_ROOT/facts_4090.json" -- --print-env || rc=$?
+    assert_rc "$rc" 0 "print-env on another sm_89 GPU"
+    assert_eq "$(pe_get "$TEST_ROOT/i12.out" MUSETALK_UNET_BACKEND)" eager "no r5 UNet on a 4090"
+    assert_eq "$(pe_get "$TEST_ROOT/i12.out" MUSETALK_TAESD_BACKEND)" "<unset>" "no r5 TAESD on a 4090"
+    assert_file_contains "$TEST_ROOT/i12.out.err" 'bundle is for sm89-nvidia-geforce-rtx-4070-super-trt10\.3\.0; this host is sm89-nvidia-geforce-rtx-4090' "reason"
+    printf 'CHANGED' >> "$I/models/tensorrt_unet_stagewise_sm89_srcg50/bs16/prefix.plan"
+    rc=0
+    run_launcher "$I" "$TEST_ROOT/i13.out" MUSETALK_RECIPE=r5 -- --print-env || rc=$?
+    assert_rc "$rc" 0 "print-env with a changed plan"
+    assert_eq "$(pe_get "$TEST_ROOT/i13.out" MUSETALK_UNET_BACKEND)" eager "changed file drops the bundle"
+    assert_file_contains "$TEST_ROOT/i13.out.err" 'missing or changed since the restore' "reason"
+    rm -rf "$I/models/tensorrt_unet_stagewise_sm89_srcg50" "$I/models/taesd" "$I/.runtime/trt_artifacts"
     end
 
     begin "integration: overrides value is reported by the resolver (the report shows the truth)"

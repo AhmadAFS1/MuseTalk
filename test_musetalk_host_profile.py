@@ -1085,6 +1085,151 @@ class LeverGroupTests(Base):
 
 
 # --------------------------------------------------------------------------- verify-log
+REAL_R5 = REPO / "configs" / "recipes" / "r5.env"
+R5_BUNDLE = REPO / "configs" / "trt_bundles" / "rtx4070super-r5-srcg50-int8.json"
+
+
+@unittest.skipUnless(REAL_R5.is_file() and R5_BUNDLE.is_file(), "r5 recipe / bundle descriptor not present")
+class R5RecipeTests(Base):
+    """Recipe r5: the tracked configs/recipes/r5.env + the pinned bundle (bundle:<name> prerequisite)."""
+
+    CODE = (("scripts/unet_stagewise_trt.py", "MUSETALK_UNET_BACKEND"),
+            ("scripts/webrtc_media_flags.py", "WEBRTC_DEADLINE_PACING WEBRTC_NONBLOCKING_HANDOFF "
+             "MUSETALK_OFFLOOP_DIAGNOSTICS MUSETALK_THREAD_CAPS MUSETALK_DISABLE_LOCAL_TTS WEBRTC_LIFETIME_COUNTERS"),
+            ("scripts/webrtc_idle_frame_cache.py", "WEBRTC_IDLE_FRAME_CACHE"),
+            ("scripts/gc_tuning.py", "MUSETALK_GC_FREEZE"),
+            ("scripts/hls_gpu_scheduler.py", "HLS_SKIP_CROSSFADE_COPY"),
+            ("scripts/api_avatar.py", "MUSETALK_AVATAR_MASK_CHANNELS"))
+
+    def r5_tree(self, restored=True, **kw):
+        t = Tree(Path(tempfile.mkdtemp(dir=str(self.tmp))), **kw)  # several trees per test
+        for rel, keys in self.CODE:
+            (t.repo / rel).write_text(f"# reads {keys}\n")
+        t.recipe(REAL_R5.read_text(), name="r5")
+        (t.repo / "configs" / "trt_bundles").mkdir(parents=True)
+        (t.repo / "configs" / "trt_bundles" / R5_BUNDLE.name).write_text(R5_BUNDLE.read_text())
+        if restored:
+            self.restore(t)
+        return t
+
+    def restore(self, t, stamp_sha=None):
+        """What trt_artifact_bundle.py restore --sidecar-dir leaves behind (tiny stand-in files)."""
+        desc = json.loads(R5_BUNDLE.read_text())
+        unet = t.repo / desc["engines"]["unet_stagewise"]["cache_dir"] / "bs16"
+        unet.mkdir(parents=True, exist_ok=True)
+        (unet / "manifest.json").write_text(json.dumps({"batch": 16, "complete": True}))
+        (unet / "prefix.plan").write_bytes(b"p" * 32)
+        taesd = t.repo / desc["engines"]["taesd_trt"]["dir"]
+        taesd.mkdir(parents=True, exist_ok=True)
+        meta = taesd / f"taesd_trt_{desc['engines']['taesd_trt']['key']}.json"
+        meta.write_text("{}")
+        side = t.repo / desc["sidecar_dir"]
+        side.mkdir(parents=True, exist_ok=True)
+        files = [{"path": str(f.relative_to(t.repo)), "sha256": "x", "size": f.stat().st_size}
+                 for f in (unet / "manifest.json", unet / "prefix.plan", meta)]
+        (side / hp.TRT_BUNDLE_MANIFEST).write_text(json.dumps({"files": files}))
+        (side / hp.TRT_BUNDLE_STAMP).write_text(json.dumps({"archive_sha256": stamp_sha or desc["sha256"],
+                                                             "mode": "restored"}))
+        return unet
+
+    def groups(self, rep):
+        return {g["name"]: g for g in rep["recipe_groups"]}
+
+    def assertEnginesDropped(self, env, rep, reason):
+        self.assertNotEqual(env.get("MUSETALK_UNET_BACKEND"), "trt_stagewise")
+        self.assertNotIn("MUSETALK_TAESD_BACKEND", env)
+        self.assertNotIn("MUSETALK_UNET_STAGEWISE_CACHE_DIR", env)
+        group = self.groups(rep)["r5_engines"]
+        self.assertEqual(group["status"], "dropped")
+        self.assertIn(reason, group["reason"])
+        # the serving groups do not depend on the engines
+        self.assertEqual(env["WEBRTC_DEADLINE_PACING"], "1")
+        self.assertEqual(env["MUSETALK_GC_FREEZE"], "1")
+
+    def test_descriptor_matches_this_engine_key_scheme(self):
+        t = self.tree()
+        desc = json.loads(R5_BUNDLE.read_text())
+        self.assertEqual(ek.engine_key("unet_stagewise", t.host_facts()), desc["host"]["engine_key"])
+        self.assertTrue(desc["s3_key"].startswith("trt-artifacts/") and desc["sha256"] in desc["s3_key"])
+        self.assertTrue(desc["sidecar_dir"].startswith(".runtime/"))
+
+    def test_restored_bundle_selects_its_engines(self):
+        t = self.r5_tree()
+        proc, env, rep = t.resolve("r5")
+        self.assertOk(proc)
+        self.assertEqual(env["MUSETALK_RECIPE"], "r5")
+        self.assertEqual(env["MUSETALK_UNET_BACKEND"], "trt_stagewise")
+        self.assertEqual(env["MUSETALK_TRT_UNET_ENABLED"], "0")
+        self.assertEqual(env["MUSETALK_UNET_STAGEWISE_CACHE_DIR"],
+                         str(t.repo / "models" / "tensorrt_unet_stagewise_sm89_srcg50"))
+        self.assertEqual(env["MUSETALK_UNET_STAGEWISE_BATCH"], "16")
+        self.assertEqual(env["MUSETALK_TAESD_BACKEND"], "trt")
+        self.assertEqual(env["MUSETALK_TAESD_TRT_DIR"], str(t.repo / "models" / "taesd" / "trt"))
+        self.assertEqual(env["MUSETALK_TAESD_TRT_BATCH"], "8")
+        self.assertEqual(env["MUSETALK_TAESD_TRT_BUILD"], "0")
+        self.assertEqual(env["MUSETALK_TAESD_TRT_STRICT"], "1")
+        for knob in ("HLS_SCHEDULER_FIXED_BATCH_SIZES", "HLS_SCHEDULER_MAX_BATCH",
+                     "MUSETALK_TAESD_WARMUP_BATCHES", "MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES"):
+            self.assertEqual(env[knob], "16", knob)
+        self.assertEqual(env["MUSETALK_TRT_FALLBACK"], "0")
+        self.assertEqual(rep["expect"], {"vae": "taesd_trt", "unet": "trt_stagewise"})
+        self.assertEqual(rep["warnings"], [])
+        self.assertEqual(rep["unet"]["engine"]["match"], "bundle:rtx4070super-r5-srcg50-int8")
+        groups = self.groups(rep)
+        self.assertEqual({n for n, g in groups.items() if g["status"] == "enabled"},
+                         {"r5_engines", "r5_deadline_pacing", "r5_handoff", "r5_idle_frame_cache", "r5_gc",
+                          "r5_offloop", "r5_thread_caps", "r5_scheduler", "r5_avatar_layout"})
+        self.assertEqual(groups["r5_no_local_tts"]["status"], "off")
+        self.assertEqual(groups["r5_telemetry"]["status"], "off")
+        self.assertNotIn("MUSETALK_DISABLE_LOCAL_TTS", env)
+        self.assertEqual(env["WEBRTC_QUEUE_PACKED_I420"], "1")
+        self.assertEqual(env["MUSETALK_GC_THRESHOLDS"], "700,10,100")
+        self.assertEqual(env["WEBRTC_IDLE_FRAME_CACHE_MAX_MB"], "2400")
+
+    def test_not_restored_or_other_archive_drops_engines_only(self):
+        proc, env, rep = self.r5_tree(restored=False).resolve("r5")
+        self.assertOk(proc)
+        self.assertEnginesDropped(env, rep, "not restored")
+        t = self.r5_tree(restored=False)
+        self.restore(t, stamp_sha="0" * 64)
+        proc, env, rep = t.resolve("r5")
+        self.assertOk(proc)
+        self.assertEnginesDropped(env, rep, "not restored")
+
+    def test_other_gpu_or_tensorrt_drops_engines(self):
+        proc, env, rep = self.r5_tree(gpus=(GPU_4070TI,)).resolve("r5")
+        self.assertOk(proc)
+        self.assertEnginesDropped(env, rep, "this host is sm89-nvidia-geforce-rtx-4070-ti")
+        proc, env, rep = self.r5_tree(packages=CU128).resolve("r5")
+        self.assertOk(proc)
+        self.assertEnginesDropped(env, rep, "bundle is for sm89-nvidia-geforce-rtx-4070-super-trt10.3.0")
+
+    def test_changed_or_missing_file_drops_engines(self):
+        t = self.r5_tree()
+        (self.restore(t) / "prefix.plan").write_bytes(b"q" * 33)
+        proc, env, rep = t.resolve("r5")
+        self.assertOk(proc)
+        self.assertEnginesDropped(env, rep, "missing or changed since the restore")
+
+    def test_caller_pinning_another_set_drops_the_whole_group(self):
+        t = self.r5_tree()
+        other = t.repo / "models" / "other_stagewise"
+        (other / "bs16").mkdir(parents=True)
+        proc, env, rep = t.resolve("r5", MUSETALK_UNET_STAGEWISE_CACHE_DIR=str(other))
+        self.assertOk(proc)
+        self.assertNotEqual(env.get("MUSETALK_UNET_BACKEND"), "trt_stagewise")
+        self.assertNotIn("MUSETALK_TAESD_BACKEND", env)  # atomic: the TAESD half goes too
+        self.assertEqual(self.groups(rep)["r5_engines"]["status"], "dropped")
+
+    def test_other_recipes_ignore_r5(self):
+        t = self.r5_tree()
+        proc, env, rep = t.resolve("fast")
+        self.assertOk(proc)
+        self.assertNotIn("WEBRTC_DEADLINE_PACING", env)
+        self.assertEqual(rep["recipe_groups"], [])
+        self.assertNotEqual(env.get("MUSETALK_UNET_BACKEND"), "trt_stagewise")
+
+
 class VerifyLogTests(Base):
     def write(self, text, name="api.log"):
         path = self.tmp / name

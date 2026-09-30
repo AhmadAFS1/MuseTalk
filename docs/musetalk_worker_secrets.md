@@ -64,23 +64,38 @@ The bootstrap script also fills a few safe aliases:
 - `TRT_ARTIFACT_S3_BUCKET` from `AVATAR_S3_BUCKET` by default
 
 The existing runtime secret does not need new TRT fields. The repository pins
-the production artifact key and SHA-256, requires restore, and prefers split8.
-Add TRT fields to the secret only when deliberately overriding those repo
-defaults for a canary or rollback.
+every engine bundle it restores: the RTX 4070 SUPER r5 bundle for recipe `r5`
+(`configs/trt_bundles/rtx4070super-r5-srcg50-int8.json`) and the RTX 3090 split8
+bundle for recipe `legacy_int8` (`scripts/vast_onstart.sh`). Both are read from
+`TRT_ARTIFACT_S3_BUCKET`, which the bootstrap derives from `AVATAR_S3_BUCKET`.
+
+The secret may set `"MUSETALK_RECIPE": "r5"` to switch every worker at once:
+`vast_onstart.sh` re-reads the recipe after the bootstrap. That works among
+fast, fast300 and r5; `legacy_int8` must be set in the Vast template, because
+it changes the install step that runs before the secret is read. Hosts whose
+GPU is not an RTX 4070 SUPER skip the r5 bundle and serve the fast engines.
 
 ## Startup Flow
 
 `scripts/vast_onstart.sh` now runs this sequence:
 
-1. Build or validate the MuseTalk venv.
+1. `scripts/install_musetalk.sh --check`: repairs the venv in place or does a
+   clean install when needed.
 2. Run `scripts/bootstrap_aws_secrets.py` when `MUSETALK_AWS_SECRET_ID` is set.
 3. The script fetches the secret JSON from AWS Secrets Manager.
 4. It writes shell `export` statements to a temporary file with mode `0600`.
-5. `vast_onstart.sh` sources that file and deletes it immediately.
-6. The required TRT artifact is downloaded and checksum-verified from S3.
-7. The validated batch-8 split8 profile is selected.
-8. The worker starts through `scripts/vast_server_ctl.sh start`.
-9. `api_server.py` registers with Lingua and starts heartbeats when the
+5. `vast_onstart.sh` sources that file, deletes it immediately, and re-reads
+   `MUSETALK_RECIPE`.
+6. Engines, by recipe:
+   - `r5`: on an RTX 4070 SUPER with TensorRT 10.3, the pinned r5 bundle is
+     downloaded, checksum-verified and verified per file (skipped on a reboot
+     whose files still verify); on other GPUs it is skipped;
+   - `fast`, `fast300` (and `r5` without its bundle): `unet_engine_store.py ensure`;
+   - `legacy_int8`: the RTX 3090 split8 bundle is restored and its batch-8
+     profile selected.
+7. The worker starts through `scripts/vast_server_ctl.sh start`, which checks
+   the active backends in the server log after `/health`.
+8. `api_server.py` registers with Lingua and starts heartbeats when the
    `LINGUA_*` env vars are present.
 
 The bootstrap logs env var names only. It never prints raw secret values.
