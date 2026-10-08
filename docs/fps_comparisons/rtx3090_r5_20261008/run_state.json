@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "startup_syncnet_installer_contract_local_pass_linux_ci_pending",
+  "phase": "startup_syncnet_linux_installer_pass_dependency_build_running",
   "status": "in_progress",
   "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
   "branch": "codex/rtx3090-r5-delivery",
@@ -206,8 +206,8 @@
       "job_id": 113495895682,
       "url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37830969052",
       "observed_utc": "2026-10-08T19:20:18Z",
-      "status": "IN_PROGRESS_CPU_CONTRACTS",
-      "dependency_build_status": "PENDING",
+      "status": "LINUX_CPU_CONTRACT_STEP_PASS",
+      "dependency_build_status": "IN_PROGRESS",
       "scope": "Real Linux CPU installer/download regression plus GPU-less dependency-only build; not a serving/GPU/cold-start acceptance"
     },
     "independent_api_cache_stage": {
@@ -444,7 +444,7 @@
       "private_archive_sha256": "9a548f5b1db09859c7f88c3575c09f11bebff2328a42132d87f390efc042fa44",
       "fresh_get_all_payload_hashes_verified": true,
       "installer_contract_changed": true,
-      "installer_linux_ci_status": "PENDING",
+      "installer_linux_ci_status": "PASS_CPU_CONTRACT_STEP_AT7a78e4a_CI37830969052",
       "scored_timing": false,
       "release_ready": false
     }
@@ -473,5 +473,5 @@
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
   "next_action": "Verify actual Linux installer regression and dependency-only build CI37830969052 at pushed7a78e4a, then continue release dependency-layer integration and saved visual review. No GPU rental or default/image/template promotion without applicable engineering/access gates.",
-  "next_command": "Read-only gh API via protected4070: repos/AhmadAFS1/MuseTalk/actions/runs/37830969052/jobs. Linux CPU regression in progress at19:20UTC, build pending. Local76unittest cases OK(1Linux-only skip). No paid GPU retained. Native400FPS/qualityFAIL remain; new contract is not a boot-time measurement. Quota9%used/91%remaining19:18UTC, no reset or purchase."
+  "next_command": "Read-only gh API via protected4070: repos/AhmadAFS1/MuseTalk/actions/runs/37830969052/jobs. Linux CPU contract/installer regression stepPASS, actual dependency Docker build in progress; fetch exact-commit logs/artifact after completion. Local76unittest cases OK(1Linux-only skip). No paid GPU retained. Native400FPS/qualityFAIL remain; new contract is not a boot-time measurement. Quota9%used/91%remaining19:18UTC, no reset or purchase."
 }

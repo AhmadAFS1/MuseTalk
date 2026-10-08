@@ -60,7 +60,9 @@ missing opted-in SyncNet failures, and missing preparation-model failures. No
 cold-boot saving is measured or accepted, and license/release gates are unchanged.
 The change is pushed at`7a78e4abf09ffcc640e2979d5b08887fa70bdd4f`;
 [exact-revision Linux CI](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37830969052)
-is running. The19:18UTC account read remains9%weekly used/91%remaining, with
+has now passed the CPU contracts and Linux startup/installer regression step;
+the dependency-only Docker build remains in progress. Full job/artifact verification
+is pending. The19:18UTC account read remains9%weekly used/91%remaining, with
 normal usage available, credits0, and1unused reset. The weekly reset is
 October15at11:17:04UTC (06:17:04Chicago). No remaining-token balance or guarantee
 of whole-task completion is available; check major milestones, keep experiments bounded.
