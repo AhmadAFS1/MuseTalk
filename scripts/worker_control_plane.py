@@ -66,6 +66,13 @@ class LinguaWorkerControlPlane:
         self.profile = profile
         self.metrics_provider = metrics_provider
         self.log_fn = log_fn or (lambda message: print(message, flush=True))
+        # Explicit isolation for owned benchmark workers. Credentials may still
+        # be injected by the provisioner/secret bootstrap; they must not cause
+        # such a worker to register itself into the production routing pool.
+        enabled = os.getenv("LINGUA_CONTROL_PLANE_ENABLED", "1").strip().lower()
+        if enabled not in {"0", "1", "false", "true", "no", "yes", "off", "on"}:
+            raise ValueError("LINGUA_CONTROL_PLANE_ENABLED must be a boolean")
+        self.control_plane_enabled = enabled in {"1", "true", "yes", "on"}
 
         self.worker_type = os.getenv("LINGUA_WORKER_TYPE", "musetalk").strip() or "musetalk"
         self.capacity = max(1, _env_int("LINGUA_WORKER_DEFAULT_CAPACITY", 1))
@@ -120,7 +127,7 @@ class LinguaWorkerControlPlane:
         )
         self.drain_timeout_seconds = max(1, _env_int("LINGUA_DRAIN_TIMEOUT_SECONDS", 300))
 
-        self.control_plane_requested = any(
+        self.control_plane_requested = self.control_plane_enabled and any(
             [
                 control_plane_base,
                 self.register_url,
@@ -128,7 +135,7 @@ class LinguaWorkerControlPlane:
                 self.token,
             ]
         )
-        self.control_plane_configured = all(
+        self.control_plane_configured = self.control_plane_enabled and all(
             [
                 self.register_url,
                 self.heartbeat_url,
@@ -325,6 +332,9 @@ class LinguaWorkerControlPlane:
         return False
 
     def start(self) -> None:
+        if not self.control_plane_enabled:
+            self._log("Lingua control plane explicitly disabled (isolated worker)")
+            return
         if not self.control_plane_requested:
             self._log("Lingua control plane integration disabled (no env vars present)")
             return
@@ -442,6 +452,7 @@ class LinguaWorkerControlPlane:
                 "draining": self._draining,
                 "accepting_new_sessions": self.accepting_new_sessions(),
                 "local_ready": self._local_ready,
+                "control_plane_enabled": self.control_plane_enabled,
                 "control_plane_requested": self.control_plane_requested,
                 "control_plane_configured": self.control_plane_configured,
                 "registered": self._registered_event.is_set(),
