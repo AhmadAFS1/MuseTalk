@@ -1,0 +1,63 @@
+name: MuseTalk builder preflight (read-only)
+
+# Root/operator reviews before pushing. Only this task branch's workflow changes
+# run automatically; no PR triggers, secrets, image pulls, package publication,
+# cleanup, or paid larger-runner selection.
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/rtx3090-r5-delivery]
+    paths: [.github/workflows/musetalk-builder-preflight.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Record actual native x64 builder capacity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime, json, os, pathlib, platform, shutil, subprocess
+          def command(args):
+              result = subprocess.run(args, text=True, capture_output=True, timeout=20)
+              return {"exit_code": result.returncode, "stdout": result.stdout, "stderr": result.stderr}
+          report = {
+              "schema": "musetalk_builder_preflight_v1",
+              "created_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              "measurement_scope": "Fresh runner inventory only; no image build or GPU evidence",
+              "runner_arch": platform.machine(),
+              "cpu_count": os.cpu_count(),
+              "memory": command(["free", "-b"]),
+              "filesystems": {},
+              "docker_version": command(["docker", "version", "--format", "{{json .}}"]),
+              "docker_info": command(["docker", "info", "--format", '{"server_version":{{json .ServerVersion}},"driver":{{json .Driver}},"root_dir":{{json .DockerRootDir}},"cpu_count":{{json .NCPU}},"memory_bytes":{{json .MemTotal}},"security_options":{{json .SecurityOptions}},"architecture":{{json .Architecture}}}']),
+              "buildx": command(["docker", "buildx", "version"]),
+              "docker_disk_usage": command(["docker", "system", "df"]),
+              "runner_image": {key: os.environ.get(key) for key in ("ImageOS", "ImageVersion", "RUNNER_OS", "RUNNER_ARCH")},
+              "planning_free_bytes_required": 60 * 1024**3,
+          }
+          for raw in ("/", os.environ["RUNNER_TEMP"], "/var/lib/docker"):
+              path = pathlib.Path(raw)
+              if path.exists():
+                  usage = shutil.disk_usage(path)
+                  report["filesystems"][raw] = dict(zip(("total_bytes", "used_bytes", "free_bytes"), usage))
+          report["disk_planning_check"] = "PASS" if report["filesystems"]["/"]["free_bytes"] >= report["planning_free_bytes_required"] else "INSUFFICIENT_WITHOUT_REPLANNING"
+          text = json.dumps(report, indent=2)
+          (pathlib.Path(os.environ["RUNNER_TEMP"]) / "builder-preflight.json").write_text(text + "\n")
+          print(text)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as stream:
+              stream.write("## Native builder inventory\n\nNo build, image pull, cleanup, credentials or publication.\n\n")
+              stream.write("```json\n" + text + "\n```\n")
+          PY
+      - name: Preserve sanitized inventory
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: musetalk-builder-preflight
+          path: ${{ runner.temp }}/builder-preflight.json
+          if-no-files-found: error
+          retention-days: 3
