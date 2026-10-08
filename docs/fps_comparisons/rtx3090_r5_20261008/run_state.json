@@ -200,6 +200,16 @@
     "a1_cleanup": "provisioning/a1_cleanup_1900.json"
   },
   "background_operations": {
+    "syncnet_installer_linux_ci": {
+      "source_revision": "7a78e4abf09ffcc640e2979d5b08887fa70bdd4f",
+      "run_id": 37830969052,
+      "job_id": 113495895682,
+      "url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37830969052",
+      "observed_utc": "2026-10-08T19:20:18Z",
+      "status": "IN_PROGRESS_CPU_CONTRACTS",
+      "dependency_build_status": "PENDING",
+      "scope": "Real Linux CPU installer/download regression plus GPU-less dependency-only build; not a serving/GPU/cold-start acceptance"
+    },
     "independent_api_cache_stage": {
       "operator_session_id": 78289,
       "status": "TERMINAL_PASS48/48; source and target independent, no overwrite",
@@ -462,6 +472,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Push backward-compatible SyncNet installer/model contract separation, verify actual Linux installer regression CI, then continue release dependency-layer integration and saved visual review. No GPU rental or default/image/template promotion without applicable engineering/access gates.",
-  "next_command": "Local76unittest cases OK(1Linux-only skip); full Linux stubbed installer/download regression queued by next push. A1 cleanup provider absence verified, no paid GPU retained. Native400FPS/qualityFAIL remain; new contract is not a boot-time measurement."
+  "next_action": "Verify actual Linux installer regression and dependency-only build CI37830969052 at pushed7a78e4a, then continue release dependency-layer integration and saved visual review. No GPU rental or default/image/template promotion without applicable engineering/access gates.",
+  "next_command": "Read-only gh API via protected4070: repos/AhmadAFS1/MuseTalk/actions/runs/37830969052/jobs. Linux CPU regression in progress at19:20UTC, build pending. Local76unittest cases OK(1Linux-only skip). No paid GPU retained. Native400FPS/qualityFAIL remain; new contract is not a boot-time measurement. Quota9%used/91%remaining19:18UTC, no reset or purchase."
 }
