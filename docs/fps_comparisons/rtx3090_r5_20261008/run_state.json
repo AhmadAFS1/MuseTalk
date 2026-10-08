@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "native_sm86_v1_rejected_quality_performance_diagnosis_running",
+  "phase": "native_sm86_v1_rejected_diagnostics_preservation",
   "status": "in_progress",
   "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
   "branch": "codex/rtx3090-r5-delivery",
@@ -29,7 +29,12 @@
     "Native TAESD complete at 11:53:52 UTC: actual key 1e967e6e715c9f1a8375, full-height bs8, opt3, fused/repository post byte equality passed",
     "Native v1 suite preflight passed against all 878 frozen files; sequential quality, frozen-envelope comparison, paired GPU diagnostics and T/SUST evaluation started",
     "Native v1 quality comparison completed: 236 of 698 frozen bounds fail; candidate rejected with TAESD full-frame max 7 versus portable max 5, no bounds widened",
-    "Two native GPU-path repeats completed: 385.75668080919866 and 388.64419629013895 FPS over at least 180 seconds each; not full-recipe acceptance"
+    "Two native GPU-path repeats completed: 385.75668080919866 and 388.64419629013895 FPS over at least 180 seconds each; not full-recipe acceptance",
+    "Native full-recipe T2 and SUST5 completed as valid failures below400; partial batches and credit waits recorded; software-thermal slowdown observed during SUST, memory temperature unavailable",
+    "Actual fresh GPU-less dependency Docker CI passed; nine artifact reports retrieved read-only with matching archive digest; not a published or GPU-tested runtime image",
+    "Recovered portable T control completed on the same host: 253.59753865499397 / 240.87736112161846 FPS, valid FAIL against 300",
+    "Native serving-only diagnostic archive copied off-host and fresh operator CPU restore verified all 16 files; explicitly rejected, not an active release",
+    "Narrow pinned-MMEngine Adafactor backport applied to idle owned worker; actual mmcv.ops import passed"
   ],
   "budget": {
     "currency": "USD",
@@ -41,14 +46,16 @@
     "conversion": "Enforce 1.50/1024 per billed GB, also satisfying decimal TB = 1000 GB",
     "operator_selected_max_test_lifetime_hours": 24,
     "confirmed_experiment_spend_usd": null,
-    "reserved_experiment_budget_usd": 5.5847395833333335,
+    "reserved_experiment_budget_usd": 7.5847395833333335,
+    "additional_aws_audit_reserve_usd": 2.0,
+    "shared_budget_ledger_sha256": "548584fcaf402f6ab398dfc639d33e624bbfcc7909cc5dec8d5c55674cdd094a",
     "rental_started": true
   },
   "blockers": [
     "Native CI builder measured sufficient initial disk; full image build/input delivery not yet validated",
     "Registry publication access unresolved; local/EC2 ECR discovery denied",
     "Current MuseTalk draining is not sticky across healthy heartbeat; isolate before test registration",
-    "Native v1 is numerically rejected: 236 frozen bounds fail and TAESD max 7 exceeds reference max 5; aggregate performance and live acceptance still pending"
+    "Native v1 is rejected on quality and full-recipe performance: T230.4-252.6 and SUST231.1-246.6FPS; current host/partial-batch effects need paired diagnosis; live acceptance missing"
   ],
   "instances": {
     "protected_existing": {"vast_id": 51074906, "ssh_alias": "3-way-head-talk", "gpu": "RTX 4070 SUPER"},
@@ -72,7 +79,7 @@
       "readiness": "Verified portable health, one avatar warm, local media smoke; no EC2 usable-call proof",
       "development_measurement_revision": "aa1a531cabe60ce9faec45b39372db2d61ef69e9",
       "native_preparation_revision": "8112888",
-      "server_state": "Owned API/TURN drained/stopped; sequential isolated native quality/performance evaluator owns GPU",
+      "server_state": "Owned API/TURN drained/stopped; native evaluation and recovered portable control completed; GPU idle during CPU artifact preservation",
       "provider_status_observed_utc": "2026-10-08T11:17:36.914196+00:00",
       "provider_actual_status": "running",
       "recovery_reboot_sent": false,
@@ -84,6 +91,9 @@
       "native_build_operator_session": 28251,
       "native_build_finished_utc": "2026-10-08T11:53:52Z",
       "native_evaluation_operator_session": 72427,
+      "native_evaluation_completed": true,
+      "recovered_portable_control_operator_session": 24330,
+      "recovered_portable_control_completed": true,
       "replacement_purchased": false
     },
     "release": null
@@ -113,11 +123,14 @@
       "taesd_decoder_sha256": "9658154206fbee0aea38659803724ae94a78983d3858585242d62a4bae305057",
       "quality_decision": "rejected",
       "quality_decision_path": "quality/native_v1_quality_decision.json",
+      "private_diagnostic_persistence": "release/native_v1_diagnostic_persistence.json",
       "promotion": "prohibited: frozen numerical quality comparison failed"
     },
     "dependency_ci": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37769890795",
     "dependency_ci_previous_failure": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37749194641",
-    "dependency_ci_revision": "b00cc20fa5b77c051e468d993c6522a4ae921f9e"
+    "dependency_ci_revision": "b00cc20fa5b77c051e468d993c6522a4ae921f9e",
+    "dependency_ci_status": "PASS: dependency-only GPU-less build/import validation",
+    "dependency_ci_evidence": "release/dependency_ci_b00cc20/provenance.json"
   },
   "image_digest": null,
   "template_id": 756005,
@@ -125,9 +138,9 @@
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
   "quota_checkpoint": {
-    "observed_utc": "2026-10-08T11:54:00Z",
+    "observed_utc": "2026-10-08T13:42:25Z",
     "account_scope": "shared account, not this task",
-    "weekly_used_percent_reported": 1,
+    "weekly_used_percent_reported": 2,
     "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
     "purchased_credit_balance_reported": "0",
     "free_full_resets_available_reported": 1,
@@ -135,6 +148,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Observe remaining native T/SUST and dependency CI; retrieve actual comparison frames and persist rejected candidate artifacts without promotion",
-  "next_command": "Poll operator exec session 72427. Its sequence is native quality, immutable reference-envelope v2 comparison, paired GPU diagnostics, then canonical T and SUST. Valid FAIL continues diagnosis without promotion; INVALID stops the sequence. Do not change the remote checkout or run competing GPU work. After completion, persist artifacts, inspect native frames and perform avatar/live checks. A1 expiry at 19:00 UTC remains active."
+  "next_action": "Complete operator fallback private-model delivery and 48-pose CPU content audit; keep native v1 prohibited from promotion",
+  "next_command": "Native/control GPU suites and off-host report/media copies are complete. Verify checksum-pinned private S3 persistence, record actual limited native still-frame inspection, then audit 48 production pose contents before isolated live/pose tests. Keep established releases/templates unchanged; no public publication until redistribution review and registry access are resolved. A1 expiry at 19:00 UTC remains active."
 }

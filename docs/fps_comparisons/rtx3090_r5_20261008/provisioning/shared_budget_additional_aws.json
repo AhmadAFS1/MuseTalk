@@ -1,0 +1,25 @@
+{
+  "reservations": {
+    "musetalk-r5-3090-dev-20261008": {
+      "additional_reserve_usd": 2.0,
+      "approval_reference": "User approval in current Codex chat on 2026-10-08: $30 total, internet no more than $1.50/TB download or upload",
+      "hourly_usd": 0.24924913194444445,
+      "lifetime_enforcement": "external; observer does not terminate instances",
+      "lifetime_enforcer_reference": "EC2 transient systemd unit musetalk-r5-3090-dev-20261008-expiry.timer; strict own-label/ID/GPU protection; no production worker deletion",
+      "planned_lifetime_hours": 12.0,
+      "reserved_usd": 5.5847395833333335,
+      "storage_reserve_usd": 0.33333333333333326,
+      "total_usd": 30.0,
+      "transfer_reserve_usd": 0.26041666666666663
+    },
+    "musetalk-r5-20261008-additional-aws-audit": {
+      "reserved_usd": 2.0,
+      "scope": "Additional AWS S3 transfer/request/storage contingency for fresh private artifact verification and the 15,537,159,570-byte 48-pose content audit",
+      "new_rental_authorized": false,
+      "actual_invoice_usd": null,
+      "free_transfer_allowance_assumed": false
+    }
+  },
+  "schema": "musetalk_experiment_budget_v1",
+  "total_usd": 30.0
+}

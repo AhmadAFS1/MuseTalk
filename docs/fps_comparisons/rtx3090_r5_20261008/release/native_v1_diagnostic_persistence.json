@@ -1,0 +1,45 @@
+{
+  "schema": "rejected_native_diagnostic_persistence_v1",
+  "candidate": "native_sm86_r5_v1",
+  "promotion_allowed": false,
+  "release_ready": false,
+  "purpose": "Preserve a rejected candidate for diagnosis and reproducibility; never selected as the active r5 artifact",
+  "archive": {
+    "filename": "native-sm86-v1-serving-diagnostic.tar.gz",
+    "sha256": "1f766487cf9272929988d17f9a4d6f76ee9c8c8fdde9b149174e1e02dbcafc5e",
+    "bytes": 983926034,
+    "payload_files": 16,
+    "profile": "rtx3090-r5-native-v1-rejected-diagnostic",
+    "excluded": ["ONNX", "calibration", "private weights", "audio", "tool caches"]
+  },
+  "s3": {
+    "bucket": "lingua-musetalk-s3-storage",
+    "region": "us-east-1",
+    "expected_owner": "211125449207",
+    "key": "trt-artifacts/rtx3090-r5/native-rejected-diagnostics/sha256/1f766487cf9272929988d17f9a4d6f76ee9c8c8fdde9b149174e1e02dbcafc5e/native-sm86-v1-serving-diagnostic.tar.gz",
+    "version_id": "9zMITqphKo8iMe.AVek48BFjh6gLdgV2",
+    "encryption": "AES256",
+    "pre_upload_head": "404",
+    "write_condition": "If-None-Match: *",
+    "acl_requested": false,
+    "existing_objects_overwritten": false,
+    "fresh_get_completed": true,
+    "fresh_get_metadata_sha256_matches": true,
+    "fresh_get_bytes_match": true,
+    "etag_used_as_content_sha256": false,
+    "bucket_privacy_evidence": "operator_bucket_privacy_1333.json",
+    "bucket_privacy_evidence_sha256": "4778102b8ee15b1d5b6f71b9902a145f8c3a92a26cdf409d41b6b120a9f6a70f"
+  },
+  "operator_local_copy_restore": {
+    "archive_sha256_verified": true,
+    "all_16_payload_hashes_verified": true,
+    "gpu_execution_tested": false
+  },
+  "fresh_s3_copy_restore": {
+    "status": "PASS_CPU_INTEGRITY_ONLY",
+    "archive_sha256_verified": true,
+    "all_16_payload_hashes_verified": true,
+    "gpu_execution_tested": false
+  },
+  "runtime_artifact_tool_sha256": "30106e7b34b13d3873c8d340f76be86531957147708de7f6dcbba72b0a047a4b"
+}

@@ -1,0 +1,33 @@
+{
+  "label": "srccache",
+  "returncode": 0,
+  "wall_s": 17.91070069200032,
+  "log": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/native/native_v1_quality/srccache.log",
+  "command": [
+    "bash",
+    "scripts/box_guard.sh",
+    "run",
+    "--wait-min",
+    "0",
+    "--min-avail-gb",
+    "8",
+    "--label",
+    "3090_native_v1_srccache",
+    "--",
+    "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+    "/workspace/MuseTalk/scripts/repro_3090/watch.py",
+    "--out",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/native/native_v1_quality/srccache.gpu_watch.jsonl",
+    "--",
+    "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+    "scripts/repro_400fps/srccache_exact.py",
+    "--root",
+    "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1",
+    "--baseline-root",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/native/native_v1_quality/intentionally_no_sm89_baseline",
+    "--corpus",
+    "/workspace/MuseTalk/calibration/unet_multi_avatar_20260928",
+    "--out",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/native/native_v1_quality/srccache.json"
+  ]
+}

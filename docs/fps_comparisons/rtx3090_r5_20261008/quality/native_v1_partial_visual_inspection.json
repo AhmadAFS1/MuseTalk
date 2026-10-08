@@ -1,0 +1,44 @@
+{
+  "schema": "native_v1_partial_visual_inspection_v1",
+  "status": "PARTIAL_NOT_RELEASE_APPROVAL",
+  "reviewer": "Codex root, direct original-resolution image inspection",
+  "columns": ["accepted_A", "portable_ref1", "native_v1"],
+  "extraction_report": "native_v1_review/review.json",
+  "inspection_scope": {
+    "all_six_full_frames": [120],
+    "peak_aperture_mouth_crops": {
+      "black_man_short_beard": 15,
+      "black_woman": 183,
+      "east_asian_man_goatee": 182,
+      "middle_eastern_man_full_beard": 15,
+      "south_asian_woman": 182,
+      "white_man_clean_shaven": 184
+    },
+    "chin_outlier_jaw_crops": {
+      "black_man_short_beard": 183,
+      "black_woman": 182,
+      "east_asian_man_goatee": 172,
+      "middle_eastern_man_full_beard": 171,
+      "south_asian_woman": 182,
+      "white_man_clean_shaven": 174
+    },
+    "contact_sheets_inspected": 18,
+    "arm_views": 54
+  },
+  "observations": [
+    "Identity, framing, clothing, eyes, background and beard/goatee contours remain visibly stable in the six inspected midpoint full frames.",
+    "Peak-aperture native mouths are very close to portable: minor tooth/lip/texture differences, with shared soft mouth rendering relative to the accepted historical arm.",
+    "Inspected chin-outlier crops show no obvious new gross jaw seam, beard tearing, or skin-boundary discontinuity attributable to native versus portable at these sampled instants.",
+    "These observations do not establish absence of subtle numerical changes, temporal flicker, audio alignment, silence closure, or failures elsewhere."
+  ],
+  "limitations": [
+    "Decoded lossy review videos, not raw-pixel numerical verdicts.",
+    "Start/end and remaining selected outliers are not all inspected.",
+    "No continuous-motion or auditory review; acoustic-silence annotations remain missing.",
+    "The 48 production poses are not yet rendered/audited."
+  ],
+  "quality_decision": "REJECTED_BY_FROZEN_NUMERICAL_GATES",
+  "frozen_bounds_widened": false,
+  "release_ready": false,
+  "promotion_allowed": false
+}

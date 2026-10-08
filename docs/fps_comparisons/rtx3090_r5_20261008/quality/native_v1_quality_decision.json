@@ -59,8 +59,11 @@
   "performance": {
     "gpu_path_repeats_seconds_minimum": 180,
     "gpu_path_fps": [385.75668080919866, 388.64419629013895],
-    "scope": "GPU-path only; full-recipe T/SUST still running; not a 400 FPS release claim"
+    "full_recipe_T_fps": [252.59611538153948, 230.39816210925395],
+    "full_recipe_SUST_fps": [246.552153419512, 231.08910512636766, 233.40398117752895, 231.26400993583042, 231.96003877267862],
+    "full_recipe_performance_gate": "FAIL",
+    "scope": "GPU-path repeats and canonical T2/SUST5 are complete; all seven full-recipe windows miss400. No live or release acceptance. Paired current-host portable control is separate."
   },
   "selection": "Keep established 4070 release and portable rollback unchanged. No new native release selected.",
-  "next_step": "Finish performance diagnosis and actual native-frame inspection; test a separately identified improvement without changing the frozen bounds."
+  "next_step": "Complete paired current-host diagnosis and actual native-frame inspection; test a separately identified improvement without changing the frozen bounds."
 }
