@@ -37,6 +37,26 @@ class CITests(unittest.TestCase):
             with self.subTest(index=index, value=value), self.assertRaises(ValueError):
                 ci.require_inputs(*invalid)
 
+    def test_build_passes_exact_manifest_runtime_base_not_a_floating_default(self):
+        for use_runtime in (False, True):
+            work = self.root / str(use_runtime)
+            reports = work / "reports"
+            reports.mkdir(parents=True)
+            m = {"source_revision": "a" * 40, "status": "candidate",
+                 "cuda_base": ci.release.CUDA_DEVEL_BASE, "apt_packages": ["python3=3.10.6-1"]}
+            if use_runtime:
+                m["cuda_runtime_base"] = ci.release.CUDA_RUNTIME_BASE
+            expected = ci.release.CUDA_RUNTIME_BASE if use_runtime else ci.release.CUDA_DEVEL_BASE
+            with self.subTest(use_runtime=use_runtime), patch.object(ci.subprocess, "run") as run, \
+                 patch("builtins.print"):
+                ci.build(self.root, self.root / "assets", m, work, reports)
+                command = next(c.args[0] for c in run.call_args_list if c.args[0][:3] == ["docker", "buildx", "build"])
+                self.assertIn("CUDA_RUNTIME_BASE=" + expected, command)
+                self.assertIn("CUDA_BASE=" + ci.release.CUDA_DEVEL_BASE, command)
+            result = json.loads((reports / "build-result.json").read_text())
+            self.assertEqual(result["cuda_runtime_base"], expected)
+            self.assertFalse(result["promotion_eligible"])
+
     def test_parts_are_ordered_size_and_digest_pinned(self):
         m = {"archives": self.archives}
         self.assertEqual(ci.transport_parts(m)["native.tar.gz"][0]["name"], "native.tar.gz")

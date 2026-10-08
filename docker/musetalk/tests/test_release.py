@@ -51,6 +51,42 @@ class ReleaseTests(unittest.TestCase):
     def test_valid_contract_schema(self):
         self.assertEqual(release.load_manifest(self.manifest())["matrix"], "cu121")
 
+    def test_runtime_base_is_explicit_matching_pair_or_legacy_devel_choice(self):
+        self.assertEqual(release.selected_runtime_base(self.m), self.m["cuda_base"])
+        m = {**self.m, "cuda_base": release.CUDA_DEVEL_BASE, "cuda_runtime_base": release.CUDA_RUNTIME_BASE}
+        self.assertEqual(release.load_manifest(self.manifest(m)), m)
+        release.verify_build_bases(m, release.CUDA_DEVEL_BASE, release.CUDA_RUNTIME_BASE)
+        for build, runtime in ((release.CUDA_RUNTIME_BASE, release.CUDA_RUNTIME_BASE),
+                               (release.CUDA_DEVEL_BASE, release.CUDA_DEVEL_BASE),
+                               (release.CUDA_DEVEL_BASE, "nvidia/cuda:latest")):
+            with self.subTest(build=build, runtime=runtime), self.assertRaises(ValueError):
+                release.verify_build_bases(m, build, runtime)
+        for field, value in (("cuda_runtime_base", "nvidia/cuda:latest"),
+                             ("cuda_runtime_base", release.CUDA_DEVEL_BASE),
+                             ("cuda_runtime_base", "nvidia/cuda@sha256:" + "1" * 64),
+                             ("cuda_base", self.m["cuda_base"])):
+            with self.subTest(field=field, value=value), self.assertRaises(ValueError):
+                release.load_manifest(self.manifest({**m, field: value}))
+
+    def test_stage_rejects_runtime_arg_override_before_source_or_assets(self):
+        m = {**self.m, "cuda_base": release.CUDA_DEVEL_BASE, "cuda_runtime_base": release.CUDA_RUNTIME_BASE}
+        with patch.object(release, "verify_source") as verify, self.assertRaises(ValueError):
+            release.stage(self.root, m, self.root, m["source_revision"], m["cuda_base"],
+                          runtime_base=release.CUDA_DEVEL_BASE)
+        verify.assert_not_called()
+
+    def test_full_docker_uses_fresh_stage_and_rechecks_complete_payload(self):
+        source = (Path(__file__).resolve().parents[1] / "Dockerfile").read_text()
+        self.assertNotIn("FROM build AS runtime", source)
+        final = source.split("FROM ${CUDA_RUNTIME_BASE} AS runtime", 1)[1]
+        self.assertIn("COPY --from=build /opt/musetalk /opt/musetalk", final)
+        self.assertIn("release.py runtime-base", final)
+        self.assertIn("release.py apt", final)
+        self.assertIn("release.py cpu-check", final)
+        self.assertIn('CUDA_VISIBLE_DEVICES=""', final)
+        self.assertNotIn("prune_diagnostic.py --execute", source)
+        self.assertIn('--runtime-base "$CUDA_RUNTIME_BASE"', source)
+
     def test_absent_or_unvalidated_release_rejected(self):
         for state in (None, "candidate", "incomplete", "rejected"):
             self.m["status"] = state

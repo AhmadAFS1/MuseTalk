@@ -1,0 +1,483 @@
+{
+  "schema": "rtx3090_fixed_batch_occupancy_diagnostic_v1",
+  "status": "DIAGNOSTIC_NOT_ACCEPTANCE",
+  "input_files": {
+    "docs/fps_comparisons/rtx3090_r5_20261008/native/native_v1_aggregate/native_v1_T.json": "b1b408620fb1b8d52c34cb5c86c976e2bdf77859d9b56bbc8a68d2e55a366aaa",
+    "docs/fps_comparisons/rtx3090_r5_20261008/native/native_v1_aggregate/native_v1_SUST.json": "e1a148b7215bd5a634b8fc5d58df3ba4a364399ab4e9cce97383e1179a115481",
+    "docs/fps_comparisons/rtx3090_r5_20261008/native/native_v1_aggregate/environment.json": "e58b8a7a6549ee84ed1842a59908be82f0b98aecd782b9e0b6457db94f5ab041"
+  },
+  "inspected_code_files": {
+    "scripts/chin_multistream/gpu.py": "41354a8f89827edc2fb1692b8639c6d632c4d2e9e777edc0b9b69e2598c5b3b9",
+    "scripts/chin_multistream/worker.py": "2e6e88fbe106ca964b2b5e31af44203ce5dff201eb2c37436726b65520cc447b",
+    "character_factory/h3_avatar_workflow/backend.py": "9676886653aa26f5ffdf328d339a882bbf80d725df6273879c0d5389f7f96c3e",
+    "scripts/unet_stagewise_trt.py": "4ab523ab9337f1ce903a52acf7a3f06e7423669cbf2df2b3846b8ffc374b6e9c"
+  },
+  "groups": {
+    "T": [
+      {
+        "repeat": 0,
+        "valid_frames": 34560,
+        "shared_seconds": 136.8192062170001,
+        "full_recipe_fps": 252.59611538153948,
+        "unchanged_400fps_gate": "FAIL",
+        "gpu_jobs": 3104,
+        "partial_8frame_jobs": 1888,
+        "partial_job_fraction": 0.6082474226804123,
+        "useful_fixed_bs16_row_fraction": 0.6958762886597938,
+        "executed_padding_rows_inferred_from_fixed_batch": 15104,
+        "credit_wait_fraction": 0.11837950072827698,
+        "gpu_busy_fraction_events": 0.8591781192547626,
+        "workers": [
+          {
+            "stream": "0",
+            "identity": "black_man_short_beard",
+            "tracking_ipc_ms_per_frame": 14.047161020491217,
+            "facemesh_service_ms_per_frame": 13.212545724472433,
+            "composition_ms_per_frame": 8.651202700352833,
+            "worker_idle_fraction": 0.000535848657672502
+          },
+          {
+            "stream": "1",
+            "identity": "black_woman",
+            "tracking_ipc_ms_per_frame": 14.219717587315333,
+            "facemesh_service_ms_per_frame": 13.394885310952354,
+            "composition_ms_per_frame": 8.011319824653798,
+            "worker_idle_fraction": 0.0005397186628010085
+          },
+          {
+            "stream": "2",
+            "identity": "east_asian_man_goatee",
+            "tracking_ipc_ms_per_frame": 14.119062332286425,
+            "facemesh_service_ms_per_frame": 13.308832712319449,
+            "composition_ms_per_frame": 7.32745440069588,
+            "worker_idle_fraction": 0.0005035929817297046
+          },
+          {
+            "stream": "3",
+            "identity": "middle_eastern_man_full_beard",
+            "tracking_ipc_ms_per_frame": 14.140403262670828,
+            "facemesh_service_ms_per_frame": 13.33229356717709,
+            "composition_ms_per_frame": 8.301439408676792,
+            "worker_idle_fraction": 0.0005356852161125
+          },
+          {
+            "stream": "4",
+            "identity": "south_asian_woman",
+            "tracking_ipc_ms_per_frame": 13.798592140102528,
+            "facemesh_service_ms_per_frame": 13.074271964429348,
+            "composition_ms_per_frame": 6.295854515447748,
+            "worker_idle_fraction": 0.0005181533131401489
+          },
+          {
+            "stream": "5",
+            "identity": "white_man_clean_shaven",
+            "tracking_ipc_ms_per_frame": 14.026706785080023,
+            "facemesh_service_ms_per_frame": 13.233324755037124,
+            "composition_ms_per_frame": 7.164393612676652,
+            "worker_idle_fraction": 0.0005184120998523138
+          }
+        ]
+      },
+      {
+        "repeat": 1,
+        "valid_frames": 34560,
+        "shared_seconds": 150.00119655299932,
+        "full_recipe_fps": 230.39816210925395,
+        "unchanged_400fps_gate": "FAIL",
+        "gpu_jobs": 3395,
+        "partial_8frame_jobs": 2470,
+        "partial_job_fraction": 0.727540500736377,
+        "useful_fixed_bs16_row_fraction": 0.6362297496318114,
+        "executed_padding_rows_inferred_from_fixed_batch": 19760,
+        "credit_wait_fraction": 0.1416412956709312,
+        "gpu_busy_fraction_events": 0.8273813390596011,
+        "workers": [
+          {
+            "stream": "0",
+            "identity": "black_man_short_beard",
+            "tracking_ipc_ms_per_frame": 15.655574669445905,
+            "facemesh_service_ms_per_frame": 14.63133285451382,
+            "composition_ms_per_frame": 9.312414179874887,
+            "worker_idle_fraction": 0.0005172063140768135
+          },
+          {
+            "stream": "1",
+            "identity": "black_woman",
+            "tracking_ipc_ms_per_frame": 15.917238145992643,
+            "facemesh_service_ms_per_frame": 14.894529004014759,
+            "composition_ms_per_frame": 8.770325811458532,
+            "worker_idle_fraction": 0.0005262071423402828
+          },
+          {
+            "stream": "2",
+            "identity": "east_asian_man_goatee",
+            "tracking_ipc_ms_per_frame": 15.817773106065955,
+            "facemesh_service_ms_per_frame": 14.795644919443399,
+            "composition_ms_per_frame": 8.071088240627155,
+            "worker_idle_fraction": 0.0005149912452615712
+          },
+          {
+            "stream": "3",
+            "identity": "middle_eastern_man_full_beard",
+            "tracking_ipc_ms_per_frame": 15.691703959030987,
+            "facemesh_service_ms_per_frame": 14.704841505729544,
+            "composition_ms_per_frame": 9.133801561117771,
+            "worker_idle_fraction": 0.0005027140630733245
+          },
+          {
+            "stream": "4",
+            "identity": "south_asian_woman",
+            "tracking_ipc_ms_per_frame": 15.572660422055959,
+            "facemesh_service_ms_per_frame": 14.67282572883322,
+            "composition_ms_per_frame": 6.943863843400461,
+            "worker_idle_fraction": 0.0005052901160296262
+          },
+          {
+            "stream": "5",
+            "identity": "white_man_clean_shaven",
+            "tracking_ipc_ms_per_frame": 15.77123370555853,
+            "facemesh_service_ms_per_frame": 14.739945328631482,
+            "composition_ms_per_frame": 8.004484642532361,
+            "worker_idle_fraction": 0.0005003367019590396
+          }
+        ]
+      }
+    ],
+    "SUST": [
+      {
+        "repeat": 0,
+        "valid_frames": 34560,
+        "shared_seconds": 140.1731825120005,
+        "full_recipe_fps": 246.552153419512,
+        "unchanged_400fps_gate": "FAIL",
+        "gpu_jobs": 3200,
+        "partial_8frame_jobs": 2080,
+        "partial_job_fraction": 0.65,
+        "useful_fixed_bs16_row_fraction": 0.675,
+        "executed_padding_rows_inferred_from_fixed_batch": 16640,
+        "credit_wait_fraction": 0.11341092387368161,
+        "gpu_busy_fraction_events": 0.8638818121237255,
+        "workers": [
+          {
+            "stream": "0",
+            "identity": "black_man_short_beard",
+            "tracking_ipc_ms_per_frame": 14.174812113029766,
+            "facemesh_service_ms_per_frame": 13.29594450452905,
+            "composition_ms_per_frame": 8.185667260258356,
+            "worker_idle_fraction": 0.0005365357670452966
+          },
+          {
+            "stream": "1",
+            "identity": "black_woman",
+            "tracking_ipc_ms_per_frame": 14.43715373456737,
+            "facemesh_service_ms_per_frame": 13.575539951217921,
+            "composition_ms_per_frame": 8.104304565634063,
+            "worker_idle_fraction": 0.0005237544561833009
+          },
+          {
+            "stream": "2",
+            "identity": "east_asian_man_goatee",
+            "tracking_ipc_ms_per_frame": 14.304444834727784,
+            "facemesh_service_ms_per_frame": 13.455518063191285,
+            "composition_ms_per_frame": 7.492774271514374,
+            "worker_idle_fraction": 0.000544464195268133
+          },
+          {
+            "stream": "3",
+            "identity": "middle_eastern_man_full_beard",
+            "tracking_ipc_ms_per_frame": 14.323405012496298,
+            "facemesh_service_ms_per_frame": 13.480105518230012,
+            "composition_ms_per_frame": 8.976186414057944,
+            "worker_idle_fraction": 0.00054438663409853
+          },
+          {
+            "stream": "4",
+            "identity": "south_asian_woman",
+            "tracking_ipc_ms_per_frame": 14.081779392343682,
+            "facemesh_service_ms_per_frame": 13.29995983577261,
+            "composition_ms_per_frame": 6.352065146182579,
+            "worker_idle_fraction": 0.0005238280794347192
+          },
+          {
+            "stream": "5",
+            "identity": "white_man_clean_shaven",
+            "tracking_ipc_ms_per_frame": 14.283072279840148,
+            "facemesh_service_ms_per_frame": 13.446010699659105,
+            "composition_ms_per_frame": 7.328653460417121,
+            "worker_idle_fraction": 0.0005327526113552588
+          }
+        ]
+      },
+      {
+        "repeat": 1,
+        "valid_frames": 34560,
+        "shared_seconds": 149.55270167800154,
+        "full_recipe_fps": 231.08910512636766,
+        "unchanged_400fps_gate": "FAIL",
+        "gpu_jobs": 3255,
+        "partial_8frame_jobs": 2190,
+        "partial_job_fraction": 0.6728110599078341,
+        "useful_fixed_bs16_row_fraction": 0.663594470046083,
+        "executed_padding_rows_inferred_from_fixed_batch": 17520,
+        "credit_wait_fraction": 0.1574275771074749,
+        "gpu_busy_fraction_events": 0.81539417445303,
+        "workers": [
+          {
+            "stream": "0",
+            "identity": "black_man_short_beard",
+            "tracking_ipc_ms_per_frame": 15.343271665271788,
+            "facemesh_service_ms_per_frame": 14.336800723420614,
+            "composition_ms_per_frame": 8.587881979007584,
+            "worker_idle_fraction": 0.0005235964319054007
+          },
+          {
+            "stream": "1",
+            "identity": "black_woman",
+            "tracking_ipc_ms_per_frame": 15.574109079354534,
+            "facemesh_service_ms_per_frame": 14.576087206244715,
+            "composition_ms_per_frame": 8.529076216314971,
+            "worker_idle_fraction": 0.0005041294483443542
+          },
+          {
+            "stream": "2",
+            "identity": "east_asian_man_goatee",
+            "tracking_ipc_ms_per_frame": 15.314426443232934,
+            "facemesh_service_ms_per_frame": 14.375222521846354,
+            "composition_ms_per_frame": 7.907411011811405,
+            "worker_idle_fraction": 0.0005229814983310244
+          },
+          {
+            "stream": "3",
+            "identity": "middle_eastern_man_full_beard",
+            "tracking_ipc_ms_per_frame": 15.407700485229409,
+            "facemesh_service_ms_per_frame": 14.430483291153628,
+            "composition_ms_per_frame": 9.518998173947718,
+            "worker_idle_fraction": 0.0005298845162312396
+          },
+          {
+            "stream": "4",
+            "identity": "south_asian_woman",
+            "tracking_ipc_ms_per_frame": 15.18625557188279,
+            "facemesh_service_ms_per_frame": 14.278552452780799,
+            "composition_ms_per_frame": 6.694587697916808,
+            "worker_idle_fraction": 0.0005179872185893411
+          },
+          {
+            "stream": "5",
+            "identity": "white_man_clean_shaven",
+            "tracking_ipc_ms_per_frame": 15.461015053472554,
+            "facemesh_service_ms_per_frame": 14.448996958523075,
+            "composition_ms_per_frame": 7.859725166478408,
+            "worker_idle_fraction": 0.0005353573831798222
+          }
+        ]
+      },
+      {
+        "repeat": 2,
+        "valid_frames": 34560,
+        "shared_seconds": 148.0694537670006,
+        "full_recipe_fps": 233.40398117752895,
+        "unchanged_400fps_gate": "FAIL",
+        "gpu_jobs": 3281,
+        "partial_8frame_jobs": 2242,
+        "partial_job_fraction": 0.6833282535812253,
+        "useful_fixed_bs16_row_fraction": 0.6583358732093874,
+        "executed_padding_rows_inferred_from_fixed_batch": 17936,
+        "credit_wait_fraction": 0.13545378342198852,
+        "gpu_busy_fraction_events": 0.8386605924986148,
+        "workers": [
+          {
+            "stream": "0",
+            "identity": "black_man_short_beard",
+            "tracking_ipc_ms_per_frame": 15.07552322778104,
+            "facemesh_service_ms_per_frame": 14.095993881951408,
+            "composition_ms_per_frame": 8.542572961273878,
+            "worker_idle_fraction": 0.0005263147460734599
+          },
+          {
+            "stream": "1",
+            "identity": "black_woman",
+            "tracking_ipc_ms_per_frame": 15.365659112154617,
+            "facemesh_service_ms_per_frame": 14.382023798262367,
+            "composition_ms_per_frame": 8.492271253655304,
+            "worker_idle_fraction": 0.0005095435086136608
+          },
+          {
+            "stream": "2",
+            "identity": "east_asian_man_goatee",
+            "tracking_ipc_ms_per_frame": 15.155337397033009,
+            "facemesh_service_ms_per_frame": 14.236931411969067,
+            "composition_ms_per_frame": 7.814509900008994,
+            "worker_idle_fraction": 0.0005301355411085624
+          },
+          {
+            "stream": "3",
+            "identity": "middle_eastern_man_full_beard",
+            "tracking_ipc_ms_per_frame": 15.21587258577281,
+            "facemesh_service_ms_per_frame": 14.270861824317333,
+            "composition_ms_per_frame": 9.434202012834525,
+            "worker_idle_fraction": 0.0005303719505680155
+          },
+          {
+            "stream": "4",
+            "identity": "south_asian_woman",
+            "tracking_ipc_ms_per_frame": 15.012159428116295,
+            "facemesh_service_ms_per_frame": 14.119454894962283,
+            "composition_ms_per_frame": 6.6004216499951305,
+            "worker_idle_fraction": 0.0005089733167824627
+          },
+          {
+            "stream": "5",
+            "identity": "white_man_clean_shaven",
+            "tracking_ipc_ms_per_frame": 15.192057451061991,
+            "facemesh_service_ms_per_frame": 14.191370334730399,
+            "composition_ms_per_frame": 7.802379581428909,
+            "worker_idle_fraction": 0.0005412312127522043
+          }
+        ]
+      },
+      {
+        "repeat": 3,
+        "valid_frames": 34560,
+        "shared_seconds": 149.43959507399995,
+        "full_recipe_fps": 231.26400993583042,
+        "unchanged_400fps_gate": "FAIL",
+        "gpu_jobs": 3238,
+        "partial_8frame_jobs": 2156,
+        "partial_job_fraction": 0.6658431130327362,
+        "useful_fixed_bs16_row_fraction": 0.6670784434836319,
+        "executed_padding_rows_inferred_from_fixed_batch": 17248,
+        "credit_wait_fraction": 0.15370971417344945,
+        "gpu_busy_fraction_events": 0.8200423070043352,
+        "workers": [
+          {
+            "stream": "0",
+            "identity": "black_man_short_beard",
+            "tracking_ipc_ms_per_frame": 15.310892858331865,
+            "facemesh_service_ms_per_frame": 14.31797795190827,
+            "composition_ms_per_frame": 8.563469584556552,
+            "worker_idle_fraction": 0.0005136133561332365
+          },
+          {
+            "stream": "1",
+            "identity": "black_woman",
+            "tracking_ipc_ms_per_frame": 15.577843768574617,
+            "facemesh_service_ms_per_frame": 14.584095401386953,
+            "composition_ms_per_frame": 8.539639411296523,
+            "worker_idle_fraction": 0.0005117808501688321
+          },
+          {
+            "stream": "2",
+            "identity": "east_asian_man_goatee",
+            "tracking_ipc_ms_per_frame": 15.380647008518306,
+            "facemesh_service_ms_per_frame": 14.442206515970687,
+            "composition_ms_per_frame": 7.8876448506772725,
+            "worker_idle_fraction": 0.0005412646358695115
+          },
+          {
+            "stream": "3",
+            "identity": "middle_eastern_man_full_beard",
+            "tracking_ipc_ms_per_frame": 15.393138544260726,
+            "facemesh_service_ms_per_frame": 14.413002303643275,
+            "composition_ms_per_frame": 9.501031922210737,
+            "worker_idle_fraction": 0.0005286264525606795
+          },
+          {
+            "stream": "4",
+            "identity": "south_asian_woman",
+            "tracking_ipc_ms_per_frame": 15.213174317884182,
+            "facemesh_service_ms_per_frame": 14.30560889879473,
+            "composition_ms_per_frame": 6.643304584915831,
+            "worker_idle_fraction": 0.0005044012997720551
+          },
+          {
+            "stream": "5",
+            "identity": "white_man_clean_shaven",
+            "tracking_ipc_ms_per_frame": 15.44082201476,
+            "facemesh_service_ms_per_frame": 14.432039863704757,
+            "composition_ms_per_frame": 7.828997788551659,
+            "worker_idle_fraction": 0.0005309479123569031
+          }
+        ]
+      },
+      {
+        "repeat": 4,
+        "valid_frames": 34560,
+        "shared_seconds": 148.9911804759995,
+        "full_recipe_fps": 231.96003877267862,
+        "unchanged_400fps_gate": "FAIL",
+        "gpu_jobs": 3268,
+        "partial_8frame_jobs": 2216,
+        "partial_job_fraction": 0.6780905752753978,
+        "useful_fixed_bs16_row_fraction": 0.6609547123623011,
+        "executed_padding_rows_inferred_from_fixed_batch": 17728,
+        "credit_wait_fraction": 0.14117511409622369,
+        "gpu_busy_fraction_events": 0.8330831862348496,
+        "workers": [
+          {
+            "stream": "0",
+            "identity": "black_man_short_beard",
+            "tracking_ipc_ms_per_frame": 15.231674088543123,
+            "facemesh_service_ms_per_frame": 14.242552187153024,
+            "composition_ms_per_frame": 8.526597061822372,
+            "worker_idle_fraction": 0.0005222805387045521
+          },
+          {
+            "stream": "1",
+            "identity": "black_woman",
+            "tracking_ipc_ms_per_frame": 15.485586490268904,
+            "facemesh_service_ms_per_frame": 14.495149140438773,
+            "composition_ms_per_frame": 8.513727733846899,
+            "worker_idle_fraction": 0.000514434617759023
+          },
+          {
+            "stream": "2",
+            "identity": "east_asian_man_goatee",
+            "tracking_ipc_ms_per_frame": 15.298381086455809,
+            "facemesh_service_ms_per_frame": 14.379134250002165,
+            "composition_ms_per_frame": 7.818974970825504,
+            "worker_idle_fraction": 0.0005378591853631331
+          },
+          {
+            "stream": "3",
+            "identity": "middle_eastern_man_full_beard",
+            "tracking_ipc_ms_per_frame": 15.317561757467818,
+            "facemesh_service_ms_per_frame": 14.363013082471335,
+            "composition_ms_per_frame": 9.468938091496348,
+            "worker_idle_fraction": 0.0005265902099031077
+          },
+          {
+            "stream": "4",
+            "identity": "south_asian_woman",
+            "tracking_ipc_ms_per_frame": 15.165422651558755,
+            "facemesh_service_ms_per_frame": 14.261771120490607,
+            "composition_ms_per_frame": 6.633911693919635,
+            "worker_idle_fraction": 0.0005051285569361567
+          },
+          {
+            "stream": "5",
+            "identity": "white_man_clean_shaven",
+            "tracking_ipc_ms_per_frame": 15.41112880311933,
+            "facemesh_service_ms_per_frame": 14.402600891669218,
+            "composition_ms_per_frame": 7.802899620477572,
+            "worker_idle_fraction": 0.0005302580309251061
+          }
+        ]
+      }
+    ]
+  },
+  "native_quality_status": "REJECTED_UNCHANGED",
+  "release_ready": false,
+  "observations": [
+    "All seven native full-recipe windows remain below the unchanged400FPS target.",
+    "Partial jobs contain8valid rows in a fixed16-row UNet; padding rows are not valid completed output.",
+    "Worker tracking/composition is serial. FaceMesh service is already included in tracking IPC elapsed time; do not add those two timers.",
+    "CPU workers are nearly never idle and credits frequently starve. This identifies a scheduling/CPU investigation, not proof of a speedup or sole physical cause."
+  ],
+  "next_experiment": "Test bounded overlap of canonical per-stream FaceMesh tracking with prior-frame composition, preserving tracker/frame order, three-tap filter, source hashes, frame counts and original timers/acceptance. First prove exact output against the serial path; keep default off until actual GPU/full-recipe/quality trials pass.",
+  "limitations": [
+    "No new GPU run, optimization, thermal attribution or hardware-capacity claim.",
+    "Existing GPU-only388FPS is a different workload and does not establish400full-recipeFPS.",
+    "Graph/decoder numerical non-regression must be fixed independently; scheduling cannot waive it."
+  ]
+}

@@ -13,11 +13,11 @@ import release
 
 # Actual linux/amd64 image manifest from NVIDIA's Docker Hub tag API, 2026-10-08.
 # Tag: 12.1.1-cudnn8-devel-ubuntu22.04; index21196d81... is intentionally not confused with its platform digest.
-BASE = "nvidia/cuda@sha256:cc55d151af1e8e083f3210af753a5cfbcbc5455421531eb0459887026bb4699f"
+BASE = release.CUDA_DEVEL_BASE
 TAG_METADATA_URL = "https://hub.docker.com/v2/repositories/nvidia/cuda/tags/12.1.1-cudnn8-devel-ubuntu22.04"
 # Actual linux/amd64 platform digest read from NVIDIA's tag API on2026-10-08.
 # The multi-platform tag/index digest f4d8e126... is not used as this platform identity.
-RUNTIME_BASE = "nvidia/cuda@sha256:810756cab1c28ce693499a5c2ebb66f6d10a61d026998c8606bad449643a4c49"
+RUNTIME_BASE = release.CUDA_RUNTIME_BASE
 RUNTIME_METADATA_URL = "https://hub.docker.com/v2/repositories/nvidia/cuda/tags/12.1.1-cudnn8-runtime-ubuntu22.04"
 APT_PROBE = r'''set -euo pipefail
 apt-get update >&2

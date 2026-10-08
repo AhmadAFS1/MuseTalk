@@ -13,6 +13,34 @@ This is a live evidence index, not a completed release claim. The protected RTX
 | Live delivery / capacity | Both software-H264 profiles N1/N3 strictPASS/N5 validFAIL. NVENC N1FAIL,0hardware opens/18open failures; PyAV/FFmpeg standalone probes alsoFAIL. No accepted capacity or EC2 release claim |
 | Request-to-usable-call startup | Still unmeasured through EC2/TURN. Request-to-verified-health was 1,046.45 s (17m26s), not usable-call readiness |
 
+### 19:35 UTC CPU implementation and throughput diagnosis
+
+The full Dockerfile now supports an explicitly manifest-selected fresh final
+stage. Its optional smaller CUDA/cuDNN base is restricted to the exact pair used
+by the dependency experiment; omission retains the original development base.
+Both stages keep all required apt pins and the complete `/opt/musetalk` payload,
+and the final stage repeats full source/model/import/MMCV checks. Runtime-base
+overrides fail before model staging. No TensorRT resource is pruned from the
+full image. Local76Docker contract tests pass with1Linux-only skip. This is code
+preparation, not an actual full-image build, GPU pass, publication, compressed
+transfer size or measured cold-start saving.
+
+[Aggregate scheduling diagnosis](native/aggregate_occupancy_1935.json) binds the
+complete nativeT2/SUST5 reports and inspected source hashes. Fixed16-row UNet
+calls had only63.6–69.6% useful row occupancy; partial8-row jobs were padded, not
+counted as valid completed frames. CPU workers were nearly never idle, and
+tracking/composition ran serially. FaceMesh service time is contained in tracking
+IPC time and must not be added to it. These observations support testing bounded
+tracking/composition overlap with original frame order/filter/output parity;
+they do not prove a speedup, sole cause or accepted400FPS capacity. Two focused
+CPU accounting tests pass, including rejection of padding/frame/denominator
+inconsistency. Native numerical rejection and every400FPS failure remain unchanged.
+
+CI37830969052 at exact7a78e4a has passed Linux installer/startup contracts and
+is still executing the dependency-only build. It cannot validate this subsequent
+full-Dockerfile change. No paid GPU is retained and no production/template/default
+selection has changed.
+
 ### Latest isolated diagnostics, 18:43 UTC
 
 At19:00:03UTC the owned development rental54798270 was destroyed non-forced,

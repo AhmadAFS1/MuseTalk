@@ -29,6 +29,10 @@ CHECKSUM_NAME = ".musetalk_trt_artifact_SHA256SUMS"
 STAMP_NAME = ".musetalk_trt_artifact_restored.json"
 SHA = re.compile(r"[0-9a-f]{64}\Z")
 APT = re.compile(r"[a-z0-9][a-z0-9+.-]*(?::amd64)?=[A-Za-z0-9.+:~_-]+\Z")
+# Exact linux/amd64 CUDA12.1/cuDNN8 Ubuntu22.04 pair exercised by the
+# dependency-only CI experiment. An arbitrary pinned digest is not a proven pair.
+CUDA_DEVEL_BASE = "nvidia/cuda@sha256:cc55d151af1e8e083f3210af753a5cfbcbc5455421531eb0459887026bb4699f"
+CUDA_RUNTIME_BASE = "nvidia/cuda@sha256:810756cab1c28ce693499a5c2ebb66f6d10a61d026998c8606bad449643a4c49"
 REQUIRED_APT = {"python3", "python3.10", "python3.10-venv", "python3.10-dev", "ffmpeg", "coturn",
                 "curl", "git", "build-essential", "ca-certificates", "libgl1", "libglib2.0-0",
                 "libsm6", "libxext6", "libxrender1", "tini", "util-linux"}
@@ -123,6 +127,21 @@ def external_models(m):
     return external
 
 
+def selected_runtime_base(m):
+    if "cuda_runtime_base" not in m:
+        # Existing manifests keep the development base, without inheriting
+        # the dependency-install layer or duplicating payloads in a new layer.
+        return m["cuda_base"]
+    require(m["cuda_base"] == CUDA_DEVEL_BASE and m["cuda_runtime_base"] == CUDA_RUNTIME_BASE,
+            "Runtime base is not the measured matching CUDA/cuDNN pair")
+    return m["cuda_runtime_base"]
+
+
+def verify_build_bases(m, build_base, runtime_base):
+    require(build_base == m["cuda_base"] and runtime_base == selected_runtime_base(m),
+            "Build/runtime base differs from release manifest")
+
+
 def load_manifest(path):
     scan_text(Path(path))
     m = json.loads(Path(path).read_text())
@@ -133,6 +152,7 @@ def load_manifest(path):
                 "Candidate must be explicitly nonpromotable with a recorded reason")
     require(re.fullmatch(r"[0-9a-f]{40}", m.get("source_revision", "")), "Full source commit required")
     require(re.fullmatch(r"[^\s]+@sha256:[0-9a-f]{64}", m.get("cuda_base", "")), "Pinned CUDA base required")
+    selected_runtime_base(m)
     require(m.get("platform") == "linux/amd64", "Release must target linux/amd64")
     require(m.get("matrix") == "cu121", "Only validated cu121 is supported")
     require(m.get("bundle_name") == "rtx3090-r5-srcg50-int8", "Native 3090 descriptor required")
@@ -262,9 +282,10 @@ def extract(archive, root, allowed):
         require(seen == set(allowed), "Archive missing expected files")
 
 
-def stage(root, m, assets, revision, base, channel="validated"):
+def stage(root, m, assets, revision, base, channel="validated", runtime_base=None):
     require(m["status"] == channel, "Build channel must explicitly match manifest status")
     require(m["source_revision"] == revision and m["cuda_base"] == base, "Build identity mismatch")
+    verify_build_bases(m, base, selected_runtime_base(m) if runtime_base is None else runtime_base)
     verify_source(root, m)
     verify_model_contract(root, m)
     actual_source = {p.relative_to(root).as_posix() for p in Path(root).rglob("*") if p.is_file()}
@@ -499,12 +520,13 @@ def policy(m, d):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("command", choices=["stage", "apt", "install", "cpu-check", "runtime", "runtime-models", "policy", "revision"])
+    p.add_argument("command", choices=["stage", "runtime-base", "apt", "install", "cpu-check", "runtime", "runtime-models", "policy", "revision"])
     p.add_argument("--manifest", required=True, type=Path)
     p.add_argument("--root", type=Path, default=Path("/opt/musetalk/app"))
     p.add_argument("--assets", type=Path)
     p.add_argument("--revision")
     p.add_argument("--base")
+    p.add_argument("--runtime-base")
     p.add_argument("--bootstrap-python")
     p.add_argument("--channel", choices=["validated", "candidate"], default="validated")
     p.add_argument("--venv", default="/opt/musetalk/venv")
@@ -513,7 +535,9 @@ def main():
     m = load_manifest(a.manifest)
     if a.command == "stage":
         require("python3=" + str(a.bootstrap_python) in m["apt_packages"], "Bootstrap Python pin mismatch")
-        stage(a.root, m, a.assets, a.revision, a.base, a.channel)
+        stage(a.root, m, a.assets, a.revision, a.base, a.channel, a.runtime_base)
+    elif a.command == "runtime-base":
+        require(a.base == selected_runtime_base(m), "Final-stage runtime base differs from release manifest")
     elif a.command == "apt":
         subprocess.run(["apt-get", "update", "-y"], check=True)
         subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", *m["apt_packages"]],

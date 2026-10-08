@@ -118,6 +118,7 @@ def assemble_archives(manifest, tag, assets, scratch, fetch=download):
 
 
 def build(root, assets, manifest, work, reports):
+    runtime_base = release.selected_runtime_base(manifest)
     source = work / "source-context"
     with (reports / "source-inventory.json").open("x") as output:
         subprocess.run([sys.executable, str(root / "docker/musetalk/context.py"), "--root", str(root),
@@ -128,6 +129,7 @@ def build(root, assets, manifest, work, reports):
     subprocess.run(["docker", "buildx", "build", "--platform", "linux/amd64", "--progress", "plain",
                     "--build-context", "release=" + str(assets),
                     "--build-arg", "CUDA_BASE=" + manifest["cuda_base"],
+                    "--build-arg", "CUDA_RUNTIME_BASE=" + runtime_base,
                     "--build-arg", "BOOTSTRAP_PYTHON_VERSION=" + python_pin,
                     "--build-arg", "SOURCE_REVISION=" + manifest["source_revision"],
                     "--build-arg", "RELEASE_CHANNEL=" + manifest["status"],
@@ -143,6 +145,7 @@ def build(root, assets, manifest, work, reports):
             subprocess.run(command, stdout=output, stderr=subprocess.STDOUT, check=True)
     result = {"schema": "musetalk_docker_ci_build_v1", "image": image,
               "source_revision": manifest["source_revision"], "channel": manifest["status"],
+              "cuda_build_base": manifest["cuda_base"], "cuda_runtime_base": runtime_base,
               "cpu_build_check": "PASS", "published": False, "promotion_eligible": False,
               "limitation": "No GPU/container acceptance or complete image-layer audit; local runner image is ephemeral"}
     (reports / "build-result.json").write_text(json.dumps(result, indent=2) + "\n")

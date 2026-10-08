@@ -33,6 +33,7 @@ jobs:
           python3 -B -m unittest discover -s docker/musetalk/tests -v
           python3 -B -m unittest discover -s scripts -p test_patch_mmengine_compat.py -v
           python3 -B -m unittest discover -s scripts -p test_syncnet_weight_contract.py -v
+          PYTHONPATH=scripts/repro_3090 python3 -B -m unittest discover -s scripts/repro_3090 -p test_aggregate_occupancy.py -v
           bash scripts/test_startup_scripts.sh
           command -v python3.10
           mkdir -p "$RUNNER_TEMP/musetalk-cpu-contracts"

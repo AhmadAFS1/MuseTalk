@@ -80,6 +80,7 @@ S3 checksum-addressed native bundle separately for rollback.
 | `schema` / `status` | `musetalk_docker_release_v1` / `validated` |
 | `source_revision` | Actual clean 40-character Git commit used for the image |
 | `cuda_base` / `platform` / `matrix` | Tested Ubuntu 22.04 CUDA 12.1 devel image at `@sha256:<actual digest>` / `linux/amd64` / `cu121` |
+| `cuda_runtime_base` | Optional exact matching CUDA/cuDNN runtime digest supported by the helper; omission retains `cuda_base`. The final stage must use this manifest-selected base |
 | `bundle_name` | `rtx3090-r5-srcg50-int8`; matching real descriptor must exist and appear in r5 recipe |
 | `bundle_manifest_sha256` | SHA-256 of `.musetalk_trt_artifact_manifest.json` inside native bundle |
 | `redistribution_reviewed` | `true` only after all included assets/package licenses were reviewed for public distribution |
@@ -114,8 +115,13 @@ they are not inferred from these offline windows.
 inventory and repository/snapshot state alongside build evidence. A base digest
 and application constraints improve repeatability but do not promise bit-for-bit
 image reproduction from mutable external package repositories. This initial
-candidate retains development tools for full functionality; reduce layers only
-after a successful measured build.
+candidate retains all required apt packages and the complete `/opt/musetalk`
+payload. Its fresh final stage avoids shipping build/install layers. The optional
+runtime base is restricted to the exact CUDA12.1/cuDNN8 pair exercised by the
+dependency-only experiment; this is not full-image/GPU acceptance. No TensorRT
+resource pruning is applied to the full image. Record actual full-image layer
+sizes, compressed transfer and GPU/preparation tests before claiming savings or
+promoting the resulting digest.
 
 ## Optional private runtime models
 
@@ -196,6 +202,7 @@ python3 docker/musetalk/context.py --root "$PWD" \
 docker buildx build --platform linux/amd64 \
   --build-context release="$RELEASE_DIR" \
   --build-arg CUDA_BASE="$PINNED_CUDA_BASE" \
+  --build-arg CUDA_RUNTIME_BASE="$MANIFEST_SELECTED_CUDA_RUNTIME_BASE" \
   --build-arg BOOTSTRAP_PYTHON_VERSION="$PINNED_PYTHON3_APT_VERSION" \
   --build-arg SOURCE_REVISION="$RELEASE_COMMIT" \
   --file "$SOURCE_CONTEXT/docker/musetalk/Dockerfile" \
@@ -204,7 +211,7 @@ docker buildx build --platform linux/amd64 \
 ```
 
 All uppercase values above are actual resolved inputs, not defaults. The CUDA
-base must contain `apt-get`; the pinned bootstrap `python3` package must also
+build and final bases must contain `apt-get`; the pinned bootstrap `python3` package must also
 appear identically in `apt_packages`. The canonical installer uses pinned
 requirements and verifies CPU imports with CUDA hidden; driver-dependent
 TensorRT imports remain deferred to real GPU verification. Avatar-prep may
