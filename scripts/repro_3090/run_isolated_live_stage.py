@@ -25,6 +25,26 @@ def require(value, reason):
     warm.require(value, reason)
 
 
+def require_untraced_api(pid, proc_root=Path('/proc')):
+    """Refuse timing evidence while any surviving API thread has a tracer."""
+    task_root = proc_root / str(pid) / 'task'
+    threads = list(task_root.iterdir())
+    require(bool(threads), 'API thread inventory missing')
+    checked = 0
+    for thread in threads:
+        try:
+            status = (thread / 'status').read_text()
+        except FileNotFoundError:
+            # A thread may exit during the read; the main process may not.
+            require(thread.name != str(pid), 'API process exited during preflight')
+            continue
+        fields = dict(line.split(':', 1) for line in status.splitlines() if ':' in line)
+        require(fields.get('TracerPid', '').strip() == '0', 'API thread traced; scored timing forbidden')
+        checked += 1
+    require(checked > 0 and (task_root / str(pid)).is_dir(), 'API process missing during tracer check')
+    return {'status': 'PASS_ALL_SURVIVING_API_THREADS_UNTRACED', 'threads_checked': checked}
+
+
 def stage_argv(plan, stage, attempt):
     argv = list(plan['client_stage_argv'][stage])
     require(attempt == 'h264_offer_v2', 'explicit fixed codec-attempt ID required')
@@ -82,6 +102,7 @@ def main():
     live = warm.request('/webrtc/sessions/stats?view=lifetime&ring=256')[1]
     pid = live['server']['pid']
     require(type(pid) is int and b'api_server.py' in Path(f'/proc/{pid}/cmdline').read_bytes(), 'not local API PID')
+    untraced = require_untraced_api(pid)
     require(live.get('active_streams') == 0, 'live streams already active')
     # Read only these allowlisted, non-secret values; never serialize environ.
     env = dict(entry.split(b'=', 1) for entry in Path(f'/proc/{pid}/environ').read_bytes().split(b'\0') if b'=' in entry)
@@ -113,6 +134,7 @@ def main():
                'adapter_sha256': hashlib.sha256((warm.ROOT / 'scripts/repro_3090/live_client_evidence.py').read_bytes()).hexdigest(),
                'started_at_utc': dt.datetime.now(dt.timezone.utc).isoformat(), 'previous_strict_pass': prior,
                'cpu_max': Path('/sys/fs/cgroup/cpu.max').read_text().strip(), 'warmups': rows,
+               'api_tracer_check': untraced,
                'idle_before': idle, 'clock_domain': 'same_worker', 'release_ready': False,
                'scope': 'local software-H264 diagnostic only; no EC2/TURN/browser acceptance'}
     with args.out.open('x') as out:

@@ -1,0 +1,19 @@
+{
+  "schema": "owned_native_model_trace_assessment_v1",
+  "status": "INVALID_FOR_NEGATIVE_MODEL_USE_CLAIMS",
+  "trace_worker_path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/startup/native_api_model_fileopens_1638.log",
+  "positive_control": "Opening ./models/musetalkV15/unet.pth under strace -e trace=openat -P /workspace/MuseTalk/models/musetalkV15/unet.pth returned0 but produced no open record",
+  "syncnet_unused_proven": false,
+  "model_prerequisites_changed": false,
+  "scored_startup": false,
+  "tracer_detachment": {
+    "api_pid": 400470,
+    "detached_tracer_pid": 400308,
+    "exact_cmdline_and_owned_hostname_checked": true,
+    "signal": "SIGINT_TO_EXACT_TRACER_ONLY",
+    "api_threads_checked": 14,
+    "all_tracer_pids_zero": true
+  },
+  "release_ready": false,
+  "next_evidence_required": "A valid positive-control file-open trace across every required capability before inferring an optional model; fresh request-to-usable-call measurement before claiming startup savings"
+}

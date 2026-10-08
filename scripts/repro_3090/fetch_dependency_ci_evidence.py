@@ -13,6 +13,11 @@ RUN = 37794887252
 REV = 'ff8b77bd5854fe008e98be3fe1a83a65ffb2e39c'
 ARTIFACT = 11561525271
 SHA = 'c3f997ad755ea1badc66c3ca13ab676b0d5c5a95a04a19fe077d91d5bf60bf09'
+FIXED_RUNS = {
+    'ff8b77b': (RUN, REV, ARTIFACT, SHA),
+    'ead7e01': (37803474546, 'ead7e0116577a7b32da341af514c8371c187cc9c', 11564001703,
+                '0ceddda09be865dd10e0bc7a77c380ee7e6184dfd1a3f62d0be787860f2cae23'),
+}
 EXPECTED = {'source-inventory.json', 'base-identity.json', 'apt-pins.json', 'build-metadata.json',
             'image-inspect.json', 'image-history.jsonl', 'pip-freeze.txt', 'dpkg-packages.txt',
             'runtime-pruning.json', 'result.json'}
@@ -45,7 +50,10 @@ def entries(raw):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', required=True, type=Path)
+    parser.add_argument('--fixed-run', choices=tuple(FIXED_RUNS), default='ff8b77b')
     args = parser.parse_args()
+    global RUN, REV, ARTIFACT, SHA
+    RUN, REV, ARTIFACT, SHA = FIXED_RUNS[args.fixed_run]
     require(not args.out.exists() and not args.out.is_symlink(), 'output_must_be_new')
     run = json.loads(read_api(f'actions/runs/{RUN}'))
     require(run['id'] == RUN and run['head_sha'] == REV and run['status'] == 'completed'

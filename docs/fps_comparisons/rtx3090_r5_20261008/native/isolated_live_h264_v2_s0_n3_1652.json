@@ -1,0 +1,1066 @@
+{
+  "schema": "load_test_webrtc_v2/1",
+  "label": "s0_n3_h264_offer_v2",
+  "level": 3,
+  "mode": "turns=3",
+  "verdict": "PASS",
+  "checks": {
+    "all_streams_reported": true,
+    "no_client_errors": true,
+    "steady_state_s": true,
+    "output_fps_20": true,
+    "fresh_fraction": true,
+    "stall_seconds": true,
+    "held_run": true,
+    "send_interval_max": true,
+    "send_interval_avg": true
+  },
+  "unmeasured": [],
+  "validity": {
+    "client_loop_lag_p99": true,
+    "mem_available": true,
+    "poll_ok": true
+  },
+  "thresholds": {
+    "min_steady_s": 10.0,
+    "min_fresh_fraction": 0.995,
+    "max_held_run": 2,
+    "max_stall_s": 0.0,
+    "max_send_interval_s": 0.1,
+    "send_interval_avg_tol_s": 0.001,
+    "max_client_lag_ms": 20.0
+  },
+  "window": {
+    "t_go": 28571.436966248,
+    "w0": 28581.436966248,
+    "w1": 28696.899176,
+    "steady_state_s": 115.46,
+    "rule": "t_go + warmup .. last fresh"
+  },
+  "aggregate": {
+    "seconds": 115,
+    "aggregate_fresh_fps_mean": 58.739,
+    "aggregate_fresh_fps_min_1s": 0,
+    "aggregate_fresh_fps_p05_1s": 60,
+    "speakers_min": 0,
+    "speakers_max": 3,
+    "speakers_mean": 2.957,
+    "generated_fps_server": 47.235,
+    "callback_ms_per_batch": 149.215,
+    "first_frame_p50_s": 0.958,
+    "first_frame_p95_s": 3.056,
+    "first_frame_max_s": 3.056,
+    "barge_in_returns": 0,
+    "barge_in_return_p95_s": null,
+    "barge_in_return_max_s": null,
+    "fresh_fraction_min": 1.0,
+    "max_held_run": 0,
+    "stall_seconds_max": 0.0,
+    "send_interval_max_s": 0.06962,
+    "send_interval_avg_s_worst_dev": 0.0
+  },
+  "server": {
+    "pid": 400470,
+    "media_flags": {
+      "WEBRTC_NONBLOCKING_HANDOFF": "1",
+      "WEBRTC_HANDOFF_CONVERT_THREADS": "2",
+      "WEBRTC_QUEUE_PACKED_I420": "1",
+      "WEBRTC_IDLE_FRAME_CACHE": "1",
+      "WEBRTC_IDLE_FRAME_CACHE_MAX_MB": "2400",
+      "WEBRTC_IDLE_FRAME_CACHE_WARM": "1",
+      "WEBRTC_LIFETIME_COUNTERS": "1",
+      "WEBRTC_DEADLINE_PACING": "1",
+      "MUSETALK_DISABLE_LOCAL_TTS": "1",
+      "MUSETALK_THREAD_CAPS": "1",
+      "MUSETALK_CV2_THREADS": "1",
+      "MUSETALK_OFFLOOP_DIAGNOSTICS": "1"
+    },
+    "live_handoff_mode": "nonblocking",
+    "lifetime_counters": true,
+    "vp8": {
+      "encoder": "pyav",
+      "opt_in": false
+    },
+    "h264": {
+      "impl": "aiortc",
+      "codec": "libx264",
+      "installed": false,
+      "max_bitrate": 6000000,
+      "detail": "aiortc 1.14 built-in: preset=medium tune=zerolatency level=31 profile=Baseline threads=auto"
+    },
+    "loop_lag_p99_ms_max": 14.52,
+    "mem_available_min_gb": 224.109,
+    "server_cpu_cores_mean": 3.944,
+    "server_rss_max_mb": 9911.4,
+    "server_rss_end_mb": 9893.5,
+    "server_threads_max": 246,
+    "gpu_util_mean": 12.12,
+    "gpu_mem_max_mb": 4422.0,
+    "gpu_power_mean_w": 152.6,
+    "gpu_sm_mhz_min": 210.0,
+    "gpu_temp_max_c": 68.0,
+    "server_vram_max_mb": 4412.0
+  },
+  "client": {
+    "shards": 3,
+    "peers_per_shard": 1,
+    "loop_lag_p99_ms_max": 2.07,
+    "shard_cpu_s": [
+      16.904,
+      16.972,
+      16.995
+    ],
+    "shard_max_rss_mb": [
+      82.0,
+      81.5,
+      82.4
+    ],
+    "setup_s": 0.6
+  },
+  "poll": {
+    "samples": 131,
+    "errors": 0,
+    "last_error": null,
+    "rtt_p99_s": 0.0501
+  },
+  "mode_detail": {
+    "duty": null,
+    "barge_in_fraction": 0.0,
+    "turn_gap_s": 1.0
+  },
+  "audio": {
+    "distinct_max_reuse": 3,
+    "chain": null,
+    "turn_wavs": [
+      [
+        "33_long_eng.wav",
+        "33_long_eng.wav"
+      ],
+      [
+        "33_long_eng.wav",
+        "33_long_eng.wav"
+      ],
+      [
+        "33_long_eng.wav",
+        "33_long_eng.wav"
+      ]
+    ]
+  },
+  "streams": [
+    {
+      "stream": 0,
+      "session_id": "sNaD6JbfDp57rs7Y6t-W7g",
+      "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+      "turns_posted": 2,
+      "turns_ok": 2,
+      "server_ring": {
+        "speaking_slots": 2259,
+        "fresh": 2259,
+        "held": 0,
+        "fresh_fraction": 1.0,
+        "max_held_run": 0,
+        "speaking_segments": 2,
+        "speaking_span_s": 112.85,
+        "slot_deficit": 0,
+        "effective_output_fps": 20.0,
+        "send_interval_avg_s": 0.05,
+        "send_interval_p99_s": 0.0587,
+        "send_interval_max_s": 0.06962,
+        "send_gaps_over_100ms": 0,
+        "ring_gaps": 0,
+        "ring_missing_entries": 0
+      },
+      "server_counters": {
+        "samples": 115,
+        "span_s": 114.153,
+        "fresh": 2233.0,
+        "held": 0.0,
+        "fresh_fraction": 1.0,
+        "fresh_fps": 19.561,
+        "held_fps": 0.0,
+        "stall_seconds": 0.0,
+        "underruns": 0.0,
+        "fresh_fps_min_1s": 0.0,
+        "held_fps_max_1s": 0.0
+      },
+      "first_frame": [
+        {
+          "turn": 0,
+          "matched": true,
+          "generation_id": 1,
+          "accept_s": 0.3169,
+          "setup_s": 2.5791,
+          "first_frame_s": 2.9505
+        },
+        {
+          "turn": 1,
+          "matched": true,
+          "generation_id": 3,
+          "accept_s": 0.2473,
+          "setup_s": 0.5466,
+          "first_frame_s": 0.9542
+        }
+      ],
+      "barge_in": null,
+      "client_recv": {
+        "frames": 2309,
+        "interval_avg_s": 0.05001,
+        "interval_p99_s": 0.07126,
+        "interval_max_s": 0.08739
+      },
+      "output_fps_seen": [
+        20.0
+      ],
+      "stitch_resets": 0,
+      "live_handoff_last": {
+        "mode": "nonblocking",
+        "pending_frames": 0,
+        "queued_items": 0,
+        "depth_frames": 0,
+        "max_pending_frames": 64,
+        "max_pending_frames_seen": 64,
+        "max_depth_frames_seen": 464,
+        "turns_started": 2,
+        "turns_failed": 0,
+        "batches_submitted": 154,
+        "frames_submitted": 2400,
+        "frames_pushed": 2400,
+        "frames_skipped": 0,
+        "markers_run": 2,
+        "overflow_waits": 80,
+        "overflow_wait_total_s": 31.0107,
+        "overflow_wait_max_s": 0.7157,
+        "avg_submit_ms": 201.4685,
+        "max_submit_ms": 715.7794,
+        "avg_push_ms": 429.478,
+        "max_push_ms": 763.706,
+        "avg_handoff_latency_ms": 1804.097,
+        "max_handoff_latency_ms": 3216.9,
+        "preconvert_batches": 154,
+        "convert_threads": 2,
+        "errors": 0,
+        "closed": false,
+        "frames_dropped_on_close": 0
+      },
+      "stitched_totals_end": {
+        "frames_played": 2400.0,
+        "frames_duplicated": 0.0,
+        "strict_video_stall_seconds": 0.0,
+        "queue_underruns": 0.0,
+        "frames_received": 2400.0,
+        "output_frames_sent": 2587.0
+      },
+      "counters_view_last": {
+        "lifetime_enabled": true,
+        "live_handoff": {
+          "mode": "nonblocking",
+          "pending_frames": 0,
+          "queued_items": 0,
+          "depth_frames": 0,
+          "max_pending_frames": 64,
+          "max_pending_frames_seen": 64,
+          "max_depth_frames_seen": 464,
+          "turns_started": 2,
+          "turns_failed": 0,
+          "batches_submitted": 154,
+          "frames_submitted": 2400,
+          "frames_pushed": 2400,
+          "frames_skipped": 0,
+          "markers_run": 2,
+          "overflow_waits": 80,
+          "overflow_wait_total_s": 31.0107,
+          "overflow_wait_max_s": 0.7157,
+          "avg_submit_ms": 201.4685,
+          "max_submit_ms": 715.7794,
+          "avg_push_ms": 429.478,
+          "max_push_ms": 763.706,
+          "avg_handoff_latency_ms": 1804.097,
+          "max_handoff_latency_ms": 3216.9,
+          "preconvert_batches": 154,
+          "convert_threads": 2,
+          "errors": 0,
+          "closed": false,
+          "frames_dropped_on_close": 0
+        },
+        "idle_cache_backed": true
+      },
+      "idle_cache_backed": true,
+      "setup_timing": {
+        "create_s": 0.0067360009998083115,
+        "offer_connect_s": 0.09243982499901904,
+        "received_payloads": [
+          {
+            "schema": "aiortc_received_payloads_v1",
+            "aiortc_version": "1.14.0",
+            "negotiated": [
+              {
+                "payload_type": 99,
+                "mime_type": "video/h264",
+                "clock_rate": 90000,
+                "channels": null
+              },
+              {
+                "payload_type": 101,
+                "mime_type": "video/h264",
+                "clock_rate": 90000,
+                "channels": null
+              }
+            ],
+            "packets_by_payload": {
+              "99": 17995
+            }
+          },
+          {
+            "schema": "aiortc_received_payloads_v1",
+            "aiortc_version": "1.14.0",
+            "negotiated": [
+              {
+                "payload_type": 96,
+                "mime_type": "audio/opus",
+                "clock_rate": 48000,
+                "channels": 2
+              },
+              {
+                "payload_type": 9,
+                "mime_type": "audio/g722",
+                "clock_rate": 8000,
+                "channels": 1
+              },
+              {
+                "payload_type": 0,
+                "mime_type": "audio/pcmu",
+                "clock_rate": 8000,
+                "channels": 1
+              },
+              {
+                "payload_type": 8,
+                "mime_type": "audio/pcma",
+                "clock_rate": 8000,
+                "channels": 1
+              }
+            ],
+            "packets_by_payload": {
+              "96": 6468
+            }
+          }
+        ]
+      },
+      "errors": []
+    },
+    {
+      "stream": 1,
+      "session_id": "VNC6Qze8bfPqQUj3c3NZ8w",
+      "avatar_id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+      "turns_posted": 2,
+      "turns_ok": 2,
+      "server_ring": {
+        "speaking_slots": 2260,
+        "fresh": 2260,
+        "held": 0,
+        "fresh_fraction": 1.0,
+        "max_held_run": 0,
+        "speaking_segments": 2,
+        "speaking_span_s": 112.91,
+        "slot_deficit": 0,
+        "effective_output_fps": 19.998,
+        "send_interval_avg_s": 0.05,
+        "send_interval_p99_s": 0.06021,
+        "send_interval_max_s": 0.06885,
+        "send_gaps_over_100ms": 0,
+        "ring_gaps": 0,
+        "ring_missing_entries": 0
+      },
+      "server_counters": {
+        "samples": 115,
+        "span_s": 114.153,
+        "fresh": 2237.0,
+        "held": 0.0,
+        "fresh_fraction": 1.0,
+        "fresh_fps": 19.597,
+        "held_fps": 0.0,
+        "stall_seconds": 0.0,
+        "underruns": 0.0,
+        "fresh_fps_min_1s": 0.0,
+        "held_fps_max_1s": 0.0
+      },
+      "first_frame": [
+        {
+          "turn": 0,
+          "matched": true,
+          "generation_id": 1,
+          "accept_s": 0.3357,
+          "setup_s": 2.6565,
+          "first_frame_s": 3.0322
+        },
+        {
+          "turn": 1,
+          "matched": true,
+          "generation_id": 3,
+          "accept_s": 0.2442,
+          "setup_s": 0.4653,
+          "first_frame_s": 0.8133
+        }
+      ],
+      "barge_in": null,
+      "client_recv": {
+        "frames": 2309,
+        "interval_avg_s": 0.05,
+        "interval_p99_s": 0.0689,
+        "interval_max_s": 0.08842
+      },
+      "output_fps_seen": [
+        20.0
+      ],
+      "stitch_resets": 0,
+      "live_handoff_last": {
+        "mode": "nonblocking",
+        "pending_frames": 0,
+        "queued_items": 0,
+        "depth_frames": 0,
+        "max_pending_frames": 64,
+        "max_pending_frames_seen": 64,
+        "max_depth_frames_seen": 464,
+        "turns_started": 2,
+        "turns_failed": 0,
+        "batches_submitted": 154,
+        "frames_submitted": 2400,
+        "frames_pushed": 2400,
+        "frames_skipped": 0,
+        "markers_run": 2,
+        "overflow_waits": 40,
+        "overflow_wait_total_s": 20.2637,
+        "overflow_wait_max_s": 0.6259,
+        "avg_submit_ms": 131.6908,
+        "max_submit_ms": 625.9092,
+        "avg_push_ms": 432.338,
+        "max_push_ms": 764.265,
+        "avg_handoff_latency_ms": 1728.73,
+        "max_handoff_latency_ms": 3201.594,
+        "preconvert_batches": 154,
+        "convert_threads": 2,
+        "errors": 0,
+        "closed": false,
+        "frames_dropped_on_close": 0
+      },
+      "stitched_totals_end": {
+        "frames_played": 2400.0,
+        "frames_duplicated": 0.0,
+        "strict_video_stall_seconds": 0.0,
+        "queue_underruns": 0.0,
+        "frames_received": 2400.0,
+        "output_frames_sent": 2588.0
+      },
+      "counters_view_last": {
+        "lifetime_enabled": true,
+        "live_handoff": {
+          "mode": "nonblocking",
+          "pending_frames": 0,
+          "queued_items": 0,
+          "depth_frames": 0,
+          "max_pending_frames": 64,
+          "max_pending_frames_seen": 64,
+          "max_depth_frames_seen": 464,
+          "turns_started": 2,
+          "turns_failed": 0,
+          "batches_submitted": 154,
+          "frames_submitted": 2400,
+          "frames_pushed": 2400,
+          "frames_skipped": 0,
+          "markers_run": 2,
+          "overflow_waits": 40,
+          "overflow_wait_total_s": 20.2637,
+          "overflow_wait_max_s": 0.6259,
+          "avg_submit_ms": 131.6908,
+          "max_submit_ms": 625.9092,
+          "avg_push_ms": 432.338,
+          "max_push_ms": 764.265,
+          "avg_handoff_latency_ms": 1728.73,
+          "max_handoff_latency_ms": 3201.594,
+          "preconvert_batches": 154,
+          "convert_threads": 2,
+          "errors": 0,
+          "closed": false,
+          "frames_dropped_on_close": 0
+        },
+        "idle_cache_backed": true
+      },
+      "idle_cache_backed": true,
+      "setup_timing": {
+        "create_s": 0.016667553998559015,
+        "offer_connect_s": 0.062376459001825424,
+        "received_payloads": [
+          {
+            "schema": "aiortc_received_payloads_v1",
+            "aiortc_version": "1.14.0",
+            "negotiated": [
+              {
+                "payload_type": 99,
+                "mime_type": "video/h264",
+                "clock_rate": 90000,
+                "channels": null
+              },
+              {
+                "payload_type": 101,
+                "mime_type": "video/h264",
+                "clock_rate": 90000,
+                "channels": null
+              }
+            ],
+            "packets_by_payload": {
+              "99": 17606
+            }
+          },
+          {
+            "schema": "aiortc_received_payloads_v1",
+            "aiortc_version": "1.14.0",
+            "negotiated": [
+              {
+                "payload_type": 96,
+                "mime_type": "audio/opus",
+                "clock_rate": 48000,
+                "channels": 2
+              },
+              {
+                "payload_type": 9,
+                "mime_type": "audio/g722",
+                "clock_rate": 8000,
+                "channels": 1
+              },
+              {
+                "payload_type": 0,
+                "mime_type": "audio/pcmu",
+                "clock_rate": 8000,
+                "channels": 1
+              },
+              {
+                "payload_type": 8,
+                "mime_type": "audio/pcma",
+                "clock_rate": 8000,
+                "channels": 1
+              }
+            ],
+            "packets_by_payload": {
+              "96": 6445
+            }
+          }
+        ]
+      },
+      "errors": []
+    },
+    {
+      "stream": 2,
+      "session_id": "t11AvZ8m6kz7mxIYL55tsA",
+      "avatar_id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+      "turns_posted": 2,
+      "turns_ok": 2,
+      "server_ring": {
+        "speaking_slots": 2261,
+        "fresh": 2261,
+        "held": 0,
+        "fresh_fraction": 1.0,
+        "max_held_run": 0,
+        "speaking_segments": 2,
+        "speaking_span_s": 112.95,
+        "slot_deficit": 0,
+        "effective_output_fps": 20.0,
+        "send_interval_avg_s": 0.05,
+        "send_interval_p99_s": 0.06003,
+        "send_interval_max_s": 0.06918,
+        "send_gaps_over_100ms": 0,
+        "ring_gaps": 0,
+        "ring_missing_entries": 0
+      },
+      "server_counters": {
+        "samples": 115,
+        "span_s": 114.153,
+        "fresh": 2234.0,
+        "held": 0.0,
+        "fresh_fraction": 1.0,
+        "fresh_fps": 19.57,
+        "held_fps": 0.0,
+        "stall_seconds": 0.0,
+        "underruns": 0.0,
+        "fresh_fps_min_1s": 0.0,
+        "held_fps_max_1s": 0.0
+      },
+      "first_frame": [
+        {
+          "turn": 0,
+          "matched": true,
+          "generation_id": 1,
+          "accept_s": 0.3537,
+          "setup_s": 2.5286,
+          "first_frame_s": 3.0563
+        },
+        {
+          "turn": 1,
+          "matched": true,
+          "generation_id": 3,
+          "accept_s": 0.255,
+          "setup_s": 0.6027,
+          "first_frame_s": 0.9579
+        }
+      ],
+      "barge_in": null,
+      "client_recv": {
+        "frames": 2309,
+        "interval_avg_s": 0.05001,
+        "interval_p99_s": 0.06987,
+        "interval_max_s": 0.08185
+      },
+      "output_fps_seen": [
+        20.0
+      ],
+      "stitch_resets": 0,
+      "live_handoff_last": {
+        "mode": "nonblocking",
+        "pending_frames": 0,
+        "queued_items": 0,
+        "depth_frames": 0,
+        "max_pending_frames": 64,
+        "max_pending_frames_seen": 64,
+        "max_depth_frames_seen": 464,
+        "turns_started": 2,
+        "turns_failed": 0,
+        "batches_submitted": 153,
+        "frames_submitted": 2400,
+        "frames_pushed": 2400,
+        "frames_skipped": 0,
+        "markers_run": 2,
+        "overflow_waits": 28,
+        "overflow_wait_total_s": 1.8471,
+        "overflow_wait_max_s": 0.4208,
+        "avg_submit_ms": 12.1787,
+        "max_submit_ms": 420.8715,
+        "avg_push_ms": 434.778,
+        "max_push_ms": 769.241,
+        "avg_handoff_latency_ms": 1728.554,
+        "max_handoff_latency_ms": 3201.887,
+        "preconvert_batches": 153,
+        "convert_threads": 2,
+        "errors": 0,
+        "closed": false,
+        "frames_dropped_on_close": 0
+      },
+      "stitched_totals_end": {
+        "frames_played": 2400.0,
+        "frames_duplicated": 0.0,
+        "strict_video_stall_seconds": 0.0,
+        "queue_underruns": 0.0,
+        "frames_received": 2400.0,
+        "output_frames_sent": 2588.0
+      },
+      "counters_view_last": {
+        "lifetime_enabled": true,
+        "live_handoff": {
+          "mode": "nonblocking",
+          "pending_frames": 0,
+          "queued_items": 0,
+          "depth_frames": 0,
+          "max_pending_frames": 64,
+          "max_pending_frames_seen": 64,
+          "max_depth_frames_seen": 464,
+          "turns_started": 2,
+          "turns_failed": 0,
+          "batches_submitted": 153,
+          "frames_submitted": 2400,
+          "frames_pushed": 2400,
+          "frames_skipped": 0,
+          "markers_run": 2,
+          "overflow_waits": 28,
+          "overflow_wait_total_s": 1.8471,
+          "overflow_wait_max_s": 0.4208,
+          "avg_submit_ms": 12.1787,
+          "max_submit_ms": 420.8715,
+          "avg_push_ms": 434.778,
+          "max_push_ms": 769.241,
+          "avg_handoff_latency_ms": 1728.554,
+          "max_handoff_latency_ms": 3201.887,
+          "preconvert_batches": 153,
+          "convert_threads": 2,
+          "errors": 0,
+          "closed": false,
+          "frames_dropped_on_close": 0
+        },
+        "idle_cache_backed": true
+      },
+      "idle_cache_backed": true,
+      "setup_timing": {
+        "create_s": 0.013740250997216208,
+        "offer_connect_s": 0.057717656000022544,
+        "received_payloads": [
+          {
+            "schema": "aiortc_received_payloads_v1",
+            "aiortc_version": "1.14.0",
+            "negotiated": [
+              {
+                "payload_type": 99,
+                "mime_type": "video/h264",
+                "clock_rate": 90000,
+                "channels": null
+              },
+              {
+                "payload_type": 101,
+                "mime_type": "video/h264",
+                "clock_rate": 90000,
+                "channels": null
+              }
+            ],
+            "packets_by_payload": {
+              "99": 17326
+            }
+          },
+          {
+            "schema": "aiortc_received_payloads_v1",
+            "aiortc_version": "1.14.0",
+            "negotiated": [
+              {
+                "payload_type": 96,
+                "mime_type": "audio/opus",
+                "clock_rate": 48000,
+                "channels": 2
+              },
+              {
+                "payload_type": 9,
+                "mime_type": "audio/g722",
+                "clock_rate": 8000,
+                "channels": 1
+              },
+              {
+                "payload_type": 0,
+                "mime_type": "audio/pcmu",
+                "clock_rate": 8000,
+                "channels": 1
+              },
+              {
+                "payload_type": 8,
+                "mime_type": "audio/pcma",
+                "clock_rate": 8000,
+                "channels": 1
+              }
+            ],
+            "packets_by_payload": {
+              "96": 6475
+            }
+          }
+        ]
+      },
+      "errors": []
+    }
+  ],
+  "series": {
+    "fresh_per_second": [
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      59,
+      1,
+      0,
+      35,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60
+    ],
+    "speakers_per_second": [
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      1,
+      0,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ]
+  },
+  "errors": [],
+  "canonical_verdict_before_strict_evidence": "PASS",
+  "strict_additional_evidence": {
+    "status": "EVIDENCE_COMPLETE",
+    "clock_domain": "same_worker",
+    "video_codecs_by_stream": {
+      "0": [
+        "video/h264"
+      ],
+      "1": [
+        "video/h264"
+      ],
+      "2": [
+        "video/h264"
+      ]
+    },
+    "first_frame_measure": "server first fresh send minus client POST; same worker CLOCK_MONOTONIC only",
+    "not_claimed": [
+      "first decoded speech frame latency",
+      "real-browser/EC2/TURN acceptance",
+      "NVENC from wire codec alone"
+    ]
+  },
+  "server_encoder_after_level": {
+    "h264": {
+      "impl": "aiortc",
+      "installed": false,
+      "codec": "libx264",
+      "max_bitrate": 6000000
+    },
+    "nvenc_sessions": {
+      "capacity": null,
+      "in_use": null,
+      "peak": null,
+      "denied": null,
+      "opened": null,
+      "open_failures": null
+    },
+    "per_stream_encoder_proven": false,
+    "note": "H264 RTP does not prove NVENC. Review actual encoder-open log and fallback counters."
+  },
+  "strict_P1_P2_P3": {
+    "status": "PASS",
+    "scope": "local_loopback_live_not_EC2_deployment",
+    "streams": 3,
+    "per_stream_pass": [
+      true,
+      true,
+      true
+    ],
+    "summary": {
+      "level_dir": "/workspace/MuseTalk/experiments/owned3090_native_live_v1_1545/client_attempts/h264_offer_v2/s0_n3/traces/n03",
+      "streams": 3,
+      "streams_pass": 3,
+      "all_pass": true,
+      "min_anchored_1s": 20,
+      "worst_gap_ms": 88.4,
+      "gaps_over_100ms_total": 0,
+      "min_server_fresh_fraction": 1.0,
+      "max_server_held_run": 0,
+      "min_pts_join": 1.0,
+      "client_loop_spikes": 0,
+      "client_loop_spike_max_ms": 0,
+      "server_cadence_min_anchored_1s": 20,
+      "server_send_interval_max_ms": 69.6,
+      "gap_causes": {}
+    }
+  },
+  "client_topology": {
+    "cpus": [
+      14,
+      15,
+      16,
+      17
+    ],
+    "cores": "explicit_cpu_ids",
+    "siblings": {},
+    "lscpu_agrees": null
+  }
+}

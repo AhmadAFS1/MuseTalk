@@ -81,6 +81,10 @@ The separate [H264-only retry](native/isolated_live_h264_v2_s0_n1_1613.json) fin
 
 The matching-runtime-base follow-up is building in [CI37803474546](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37803474546) at exactead7e0116577a7b32da341af514c8371c187cc9c. No further size or startup saving is counted yet. Account quota at15:58UTC is4%used/96%remaining, normal usage allowed, purchased credits0, one unused free reset; exact remaining subscription tokens and full-task completion are not guaranteed. The OpenAI Docs skill informed interpretation of allowance percentages, not engineering acceptance.
 
+That CI subsequently finished success at16:26:35UTC. Its10reports were retrieved read-only and the complete ZIP SHA matches GitHub's declared0ceddda0... digest. The dependency-only image is now **12,334,990,710uncompressed bytes**, **7,324,570,953bytes /37.257% smaller** than the original19,659,561,663-byte build. Apt pins and pip freeze remain identical to the preceding pruned build; final-stage CPU imports and compiled MMCV CUDA12.1 check pass. [Verified evidence](release/dependency_ci_ead7e01/provenance.json), [size comparison](release/dependency_size_delta_ead7e01.json). No registry digest, compressed pull size, GPU/container acceptance, full model/Kokoro capability or boot savings are inferred. The full release Dockerfile still retains its original build stage pending validation.
+
+All48 native production review media are archived in3parts totaling6,217,118,253bytes, with101/100/100manifest entries; the repeated global evidence is intentional. All240frame hashes perpose and byte-exact first10s human PCM were verified before omitting duplicate silent videos. Copies offA1 are running outside scored load. A tiny private decoded-proof conditional PUT from the existing runtime credential identity returned403; its failure is preserved, no IAM/bucket policy was changed and no blind retry occurred. Operator-only conditional persistence and fresh verification remain pending. An extra$2transfer contingency was reserved within the same$30authorization, total reservations9.584739583333334USD—not confirmed spend and not another rental.
+
 The source bootstrap itself took 631 seconds and portable engine restore 72 seconds;
 one avatar warm took 23.82 seconds, including 21.77 seconds in S3 restore. Building
 native engines took 1,823 seconds in development and must never occur at normal
@@ -213,3 +217,40 @@ Accepted native engines, ≥400 FPS evidence, quality parity, production-pose re
 image publication, browser template edit, fresh Instance B, real EC2/TURN media,
 repeated startup trials, and live soak/scale-in tests remain required. No overall
 completion or release approval is implied by the CPU preparation.
+
+## 16:52 UTC checkpoint
+
+The runtime-base dependency experiment [passed Linux CI](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37803474546).
+The actual uncompressed image is 12,334,990,710 bytes, 37.257% smaller than the
+original 19,659,561,663-byte dependency image. Apt pins and pip freeze are equal;
+final-stage CPU imports and compiled MMCV CUDA12.1 checks passed. This is not a
+compressed registry size, full serving image, GPU validation, or measured cold
+startup saving. The [size comparison](release/dependency_size_delta_ead7e01.json)
+and complete matching-digest CI artifacts preserve those distinctions.
+
+The H264-only client offer passed isolated S0N1 with the unchanged strict scorer.
+The first VP8 attempt remains INVALID. S0N3 is running after all heavy worker
+archive transfers ended. The same-plan API was restarted for a separate startup
+trace; that trace failed its known-UNet positive control and cannot establish
+that SyncNet is unused. The exact detached tracer was stopped alone, and all14
+API threads had TracerPid0 before scoring. No SyncNet prerequisite was removed.
+
+All48 original-resolution audio-bearing review videos passed decoded frame-hash
+and byte-exact human-PCM integrity checks. Three private review archives total
+6,217,118,253 bytes; all copied off-worker and their complete hashes match.
+Mac-only conditional S3 persistence and fresh GET verification are in progress.
+Fresh CPU restore and full visual/audio review remain separate, unfinished gates.
+The runtime's tiny write probe failed403; no IAM/bucket policy was widened.
+
+The protected shared budget reservation is now $9.584740 of the $30 cap, including
+an additional AWS traffic contingency; this is not finalized billing. Account
+quota last checked15:58UTC was4% used/96% remaining, with no reset or purchase.
+The experimental RTX3090 still expires19:00UTC.
+
+At16:58UTC, isolated S0N3 passed all3 streams with the unchanged strict scorer:
+115.5s steady, anchored minimum20fps, worst gap88.4ms, no gaps over100ms,
+100%fresh frames, no held frames, and100%PTS joins. The five-stream stage is
+running behind the exact previous-result gate. Archive1's conditional PUT,
+version-specific fresh S3 GET and clean CPU restore passed, with101payload
+files verified; archives2/3 remain pending. A fresh account quota check reports
+5%used/95%remaining, no reset consumed and no purchased credits.

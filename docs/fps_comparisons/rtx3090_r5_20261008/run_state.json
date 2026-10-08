@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "isolated_live_codec_validation_and_lossless_media_preservation",
+  "phase": "gated_isolated_live_ramp_and_private_media_recovery",
   "status": "in_progress",
   "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
   "branch": "codex/rtx3090-r5-delivery",
@@ -63,9 +63,10 @@
     "conversion": "Enforce 1.50/1024 per billed GB, also satisfying decimal TB = 1000 GB",
     "operator_selected_max_test_lifetime_hours": 24,
     "confirmed_experiment_spend_usd": null,
-    "reserved_experiment_budget_usd": 7.5847395833333335,
-    "additional_aws_audit_reserve_usd": 2.0,
-    "shared_budget_ledger_sha256": "548584fcaf402f6ab398dfc639d33e624bbfcc7909cc5dec8d5c55674cdd094a",
+    "reserved_experiment_budget_usd": 9.584739583333334,
+    "additional_aws_audit_reserve_usd": 4.0,
+    "shared_budget_ledger_sha256": "71b62f447563e1af82ba12d7533e098d6c3038bfc5972e6701ededa148ff97a7",
+    "latest_reservation_evidence": "provisioning/native48_media_transfer_reservation.json",
     "rental_started": true
   },
   "blockers": [
@@ -96,7 +97,7 @@
       "readiness": "Verified portable health, one avatar warm, local media smoke; no EC2 usable-call proof",
       "development_measurement_revision": "aa1a531cabe60ce9faec45b39372db2d61ef69e9",
       "native_preparation_revision": "8112888",
-      "server_state": "Isolated native API PID354870 active only127.0.0.1:8300 under GPU lease; control plane and local TURN disabled. Offline GPU audit terminal. No EC2/browser readiness claim",
+      "server_state": "Matching-plan isolated native API PID400470 active only127.0.0.1:8300 under GPU lease; control plane and local TURN disabled. Earlier PID354870 stopped gracefully. Detached file-access tracer400308 stopped alone;14 API threads verified TracerPid0 before N3. No EC2/browser readiness claim",
       "provider_status_observed_utc": "2026-10-08T11:17:36.914196+00:00",
       "provider_actual_status": "running",
       "recovery_reboot_sent": false,
@@ -153,7 +154,9 @@
     "dependency_size_experiment_status": "TERMINAL_SUCCESS; dependency-only CPU imports/build and actual uncompressed size evidence collected; GPU/release/publication unverified",
     "dependency_size_experiment_evidence": "release/dependency_ci_ff8b77b/provenance.json",
     "dependency_size_delta": "release/dependency_size_delta_ff8b77b.json",
-    "dependency_runtime_base_experiment_status": "CI_IN_PROGRESS; Linux contracts passed, actual dependency build running; only final base switches to matching pinned CUDA/cuDNN runtime, apt packages and all Linux TRT resources retained",
+    "dependency_runtime_base_experiment_status": "TERMINAL_SUCCESS; all10 artifacts fetched with matching complete GitHub archive digest; actual uncompressed12.334990710GB,37.257% below original; apt pins and pip freeze equal; no GPU/publication acceptance",
+    "dependency_runtime_base_experiment_evidence": "release/dependency_ci_ead7e01/provenance.json",
+    "dependency_runtime_base_size_delta": "release/dependency_size_delta_ead7e01.json",
     "dependency_runtime_base_experiment_ci": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37803474546",
     "dependency_runtime_base_experiment_revision": "ead7e0116577a7b32da341af514c8371c187cc9c",
     "production_cache_content_audit": "avatars/content_audit_1345.json",
@@ -229,8 +232,8 @@
       "release_ready": false
     },
     "isolated_native_api": {
-      "operator_session_id": 69298,
-      "pid": 354870,
+      "operator_session_id": 3919,
+      "pid": 400470,
       "bind": "127.0.0.1:8300",
       "status": "HEALTHY_ISOLATED_DIAGNOSTIC",
       "control_plane_registered": false,
@@ -246,6 +249,15 @@
       "h264_only_retry_status": "TERMINAL_PASS_ONE_STREAM; actual H264 received; P1/P2/P3 PASS over116.1s, worst gap74.7ms, first fresh-frame latency0.6696/0.7908s",
       "h264_only_retry_report": "native/isolated_live_h264_v2_s0_n1_1613.json",
       "h264_only_retry_preflight": "native/isolated_live_h264_v2_s0_n1_preflight_1613.json",
+      "matching_plan_restart": "PID354870 stopped gracefully16:40UTC; same fixed plan SHA40702fd5 restarted as PID400470, no backend/settings change",
+      "file_access_trace_status": "INVALID_FOR_NEGATIVE_MODEL_USE_CLAIMS; even known UNet CPU positive control produced no selected open record; SyncNet skip not justified",
+      "tracer_detachment": {"tracer_pid": 400308, "signal": "SIGINT_TO_EXACT_DETACHED_TRACER_ONLY", "api_threads_checked": 14, "all_tracer_pids_zero": true},
+      "s0_n3_operator_session": 77494,
+      "s0_n3_status": "TERMINAL_STRICT_PASS3/3;115.5s steady, anchored minimum20fps, worst gap88.4ms,0gaps over100ms,100%fresh,0held,100%PTS joins, actual H264; not EC2/TURN/browser acceptance",
+      "s0_n3_report": "native/isolated_live_h264_v2_s0_n3_1652.json",
+      "s0_n3_preflight_worker": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/native/isolated_live_h264_v2_s0_n3_preflight_1652.json",
+      "ramp_n5_operator_session": 95645,
+      "ramp_n5_status": "IN_PROGRESS; exact N3 strict PASS gate checked, fixed300s duration with8human WAV turns available and240s required steady window",
       "heavy_archive_or_copy_work_during_scored_live": false
     },
     "production48_media_preservation": {
@@ -253,9 +265,19 @@
       "status": "ALL48_MUXED_PIXEL_AND_AUDIO_PROOF_PASS; initial archive creation failed on old helper empty-directory semantics, no cloud writes",
       "decoded_proof_sha256": "4eae33de59483c6a626caf3512eaf96c6d58faac76cf26193f454cfb5d035036",
       "decoded_proof_worker_path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/release/native_v1_production48_media_1608/decoded_media_proof.json",
-      "private_s3_persistence": "PENDING",
+      "private_s3_persistence": "IN_PROGRESS_OPERATOR_FALLBACK; conditional new checksum keys, version-specific fresh GET and full archive SHA verification; no runtime IAM expansion",
       "archive_retry_operator_session_id": 95515,
-      "archive_retry_status": "RUNNING_CPU_ONLY; trusted complete decoded proof reused only after all current media size/SHA rechecks; current bundle helper handles explicit empty directory lists",
+      "archive_retry_status": "TERMINAL_PASS16:21:34UTC; three archives total6217118253bytes,101/100/100payload entries; all48 muxed pixels/human PCM retained, duplicate silent video omitted only after full decode proof and current hashes reverified",
+      "worker_archive_dir": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/release/native_v1_production48_media_1616",
+      "pack_receipt_sha256": "57d446dfca7d1386100430cced8da1629103c9eeff18c424dcac3a3361f6e630",
+      "off_worker_copy_sessions": [70656, 10088, 56098],
+      "off_worker_copy_status": "TERMINAL_PASS_ALL3; all SCP sessions exit0 and all6217118253bytes match pinned archive SHA on Mac16:44UTC",
+      "runtime_write_probe": "release/native48_worker_write_probe_1630.json",
+      "runtime_write_probe_status": "INVALID_403_ACCESS_DENIED; no write success, no IAM/bucket changes, no automatic retry; operator fallback prepared",
+      "operator_persistence_session": 73525,
+      "operator_persistence_receipt": "release/native48_operator_persistence_1645.json",
+      "operator_persistence_cpu_network_scope": "Mac only, no A1 transfer during scored live; fresh CPU restore still required after all3 GET hashes",
+      "private_archive_part1": "Conditional PUT confirmed; exact version fresh GET SHA verified; clean CPU restore completed16:55:10UTC with101manifest files verified. Parts2/3 remain pending",
       "inputs_modified": false
     }
   },
@@ -265,10 +287,11 @@
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
   "quota_checkpoint": {
-    "observed_utc": "2026-10-08T15:58:00Z",
+    "observed_utc": "2026-10-08T16:58:00Z",
     "account_scope": "shared account, not this task",
-    "weekly_used_percent_reported": 4,
-    "weekly_remaining_percent_reported": 96,
+    "weekly_used_percent_reported": 5,
+    "weekly_remaining_percent_reported": 95,
+    "previous_checkpoint": {"observed_utc": "2026-10-08T15:58:00Z", "weekly_used_percent_reported": 4, "weekly_remaining_percent_reported": 96},
     "ordinary_usage_allowed": true,
     "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
     "purchased_credit_balance_reported": "0",
@@ -277,6 +300,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Finish CPU media archives and off-worker copy; advance to N3 only through strict N1 PASS gate; collect terminal runtime-base Docker CI evidence",
-  "next_command": "API69298 PID354870 healthy isolated127.0.0.1:8300, GPU lease active. First S0 session12862 ended1 INVALID actual VP8 although P1/P2/P3 PASS; preserve raw native/isolated_live_v1_s0_n1_1605.json. H264-only offer hook17CPU testsPASS; retry15563 uses separate client_attempts/h264_offer_v2 path, same server and scorer. Do not advance concurrency unless previous strict result PASS; only active-level idle clips must remain resident because2400MiB holds15 not16. All48 corrected GPU compatibility report terminalPASS SHA8d4fb71f, compact104KB index generated; numerical236/698 failures and full-recipe400 failure remain unwaived. Media13731 verified all48 muxed frames and PCM but archive failed due old worker trt_artifact_bundle explicit-empty fallback; proofSHA4eae33 remains. After live timing ends copy reviewed current bundle helper and archive with trusted proof plus all current media hashes reverified, then off-worker copy/private conditional S3/fresh restore before19:00expiry. Docker runtime-base CI37803474546/ead7e011 running; no size/pull/GPU success claim yet. Registry access, public-license basis, isolated EC2 test registration and human Cognito test account remain outstanding. Quota4%used/96%remaining at15:58UTC, no reset/purchase."
+  "next_action": "Inspect exact strict N5 result then gated10/15 only on preceding PASS; finish Mac-only private persistence and fresh CPU restores. Preserve invalid model-use trace without SyncNet absence claim",
+  "next_command": "N3 session77494 ended0 strictPASS3/3; N5 session95645 running on untraced API400470. Operator persistence73525 runs on Mac only; part1 conditional PUT, exact-version GET SHA and101file clean CPU restorePASS. Runtime-base dependency CI37803474546 terminalSUCCESS:12.334990710GB uncompressed,37.257% below original, equal apt/pip; no registry pull/GPU/full-image proof. All48 render-compatibility PASS remains separate from failed native numerical and400FPS gates. Registry access, public-license basis, isolated EC2 registration and human Cognito test account remain unresolved. Expiry19:00UTC; reserved9.584739583USD of30, invoices unavailable. Quota last5%used/95%remaining16:58UTC, no reset/purchase, no new agents."
 }
