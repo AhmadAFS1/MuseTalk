@@ -34,6 +34,13 @@ Actual FaceMesh/pixel/landmark parity and any speedup remain unmeasured. Native
 quality rejection and every400FPS failure remain unchanged; no default, template,
 production service or paid GPU changed.
 
+Subsequently [Linux3.10 CI37835666432](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37835666432)
+completed **success** on exact7699542f44fd146c20e9b09b6a734792124ade1f at19:57:22UTC.
+Run/job/log readback confirms all9overlap tests and28existing report/harness tests
+are OK, including the real owned-pipe timeout test and399.96FPS rejection.
+[Linux evidence](native/tracking_overlap_linux_ci_1959.json) is CPU-only; it does
+not establish real FaceMesh or native pixel/landmark parity or a GPU speedup.
+
 Account allowance checked19:45:36UTC: **10% used /90% remaining** in the shared
 weekly window, ordinary usage allowed, purchased credits0, one unused free full
 reset. It resetsOctober15at11:17:04UTC/06:17:04Chicago. Exact subscription tokens,

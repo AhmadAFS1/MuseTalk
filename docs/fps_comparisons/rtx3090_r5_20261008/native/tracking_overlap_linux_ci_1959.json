@@ -1,0 +1,25 @@
+{
+  "schema": "ordered_tracking_overlap_linux_ci_v1",
+  "observed_utc": "2026-10-08T19:59:03Z",
+  "status": "PASS_CPU_CONTRACTS_ONLY",
+  "ci_url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37835666432",
+  "run_id": 37835666432,
+  "job_id": 113511921671,
+  "source_revision": "7699542f44fd146c20e9b09b6a734792124ade1f",
+  "run_status": "completed",
+  "conclusion": "success",
+  "completed_updated_at_utc": "2026-10-08T19:57:22Z",
+  "runner": "Ubuntu 22.04.5 standard hosted runner",
+  "python_command": "/usr/bin/python3.10",
+  "readback": "Read-only run/jobs/job-log gh API through protected SSH alias; no remote files/auth copied or host workloads launched",
+  "test_log_counts": [
+    {"suite": "test_tracking_overlap.py", "tests": 9, "elapsed_seconds": 0.046, "verdict": "OK", "log_timestamp_utc": "2026-10-08T19:57:19.4473559Z"},
+    {"suite": "test_repro_3090.py", "tests": 28, "elapsed_seconds": 0.044, "verdict": "OK", "log_timestamp_utc": "2026-10-08T19:57:19.5564965Z"}
+  ],
+  "default_enabled": false,
+  "real_facemesh_output_parity": "NOT_MEASURED",
+  "gpu_throughput_speedup": "NOT_MEASURED",
+  "native_quality_rejection": "UNCHANGED",
+  "native_400fps_failures": "UNCHANGED",
+  "production_changes": false
+}

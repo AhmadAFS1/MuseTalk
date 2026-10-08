@@ -60,7 +60,8 @@
     "Full Docker fresh runtime stage prepared with manifest-selected exact matching CUDA/cuDNN base, legacy devel-base choice preserved, all apt/opt payloads and final CPU checks retained;76local Docker tests OK(1Linux-only skip). No full-image/GPU/build/pull acceptance or TensorRT pruning inferred.",
     "Read-only native T2/SUST5 occupancy diagnosis:63.6–69.6% useful fixed-bs16 rows, numerous padded8-row jobs; nearzero CPU worker idle and serial tracking/composition. Two CPU accounting tests PASS. Original full-recipe400FPS and native quality FAIL remain; bounded exact-output overlap experiment is next, not implemented or measured.",
     "SyncNet installer separation implemented: API default download0, explicit opt-in retained, standalone downloader default follows avatar-prep as before. Canonical full API requires13models; DWPose/S3FD remain required. Local72Docker tests OK with1Linux-only skip,2installer forwarding/contract tests PASS,2trace inventory/parser tests PASS; Bash syntax and diff checks PASS. Actual Linux sequential/parallel downloader tests newly wired into CI, not yet observed.",
-    "Default-off ordered tracking/composition overlap implemented without canonical Tracker/FaceMesh/chin/blending edits. Nine operator Python3.14.7 CPU tests PASS, including synthetic actual-worker-loop two-clip hash/filter parity, event-proven concurrency and real owned subprocess timeout cleanup. Existing78harness tests PASS and76Docker tests OK/1Linux skip. Real FaceMesh/pixel parity and GPU speedup unmeasured; Linux3.10 lightweight CI prepared; quality/performance/defaults unchanged."
+    "Default-off ordered tracking/composition overlap implemented without canonical Tracker/FaceMesh/chin/blending edits. Nine operator Python3.14.7 CPU tests PASS, including synthetic actual-worker-loop two-clip hash/filter parity, event-proven concurrency and real owned subprocess timeout cleanup. Existing78harness tests PASS and76Docker tests OK/1Linux skip. Real FaceMesh/pixel parity and GPU speedup unmeasured; quality/performance/defaults unchanged.",
+    "Lightweight Linux3.10 CI37835666432 exact7699542f44fd146c20e9b09b6a734792124ade1f completed success at19:57:22UTC. Read-only run/job/log API confirms9overlap and28existing report/harness tests OK, no real GPU/FaceMesh acceptance. Protected host unchanged."
   ],
   "budget": {
     "currency": "USD",
@@ -204,6 +205,16 @@
     "aggregate_occupancy": "native/aggregate_occupancy_1935.json"
   },
   "background_operations": {
+    "ordered_tracking_overlap_linux_ci": {
+      "source_revision": "7699542f44fd146c20e9b09b6a734792124ade1f",
+      "run_id": 37835666432,
+      "job_id": 113511921671,
+      "url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37835666432",
+      "observed_utc": "2026-10-08T19:59:03Z",
+      "status": "TERMINAL_SUCCESS",
+      "evidence": "native/tracking_overlap_linux_ci_1959.json",
+      "scope": "Linux Python3.10 nine overlap and28existing report/harness CPU contracts; not real FaceMesh/pixel/GPU performance acceptance"
+    },
     "syncnet_installer_linux_ci": {
       "source_revision": "7a78e4abf09ffcc640e2979d5b08887fa70bdd4f",
       "run_id": 37830969052,
@@ -476,6 +487,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Push default-off overlap/CPU tests and lightweight Linux3.10 CI; monitor exact long-running dependency CI37830969052 and queued37833533181 without restarting them. Fetch strict artifacts on completion. Before another paid GPU, prepare paired same-engine all-six serial/overlap raw face/landmark/delta/refined-hash parity trial and cost/lifetime controls; independently repair native numerical parity. No default/image/template promotion without applicable engineering/access gates.",
-  "next_command": "PYTHONPATH=scripts/repro_3090 python3 -B -m unittest discover -s scripts/repro_3090 -p test_tracking_overlap.py -v ; nine local CPU testsPASS, real FaceMesh/GPU parity unmeasured. Read-only gh API via protected4070 monitors exact Linux CI without host work. Native400FPS/qualityFAIL unchanged; no paid GPU retained."
+  "next_action": "Monitor exact long-running dependency CI37830969052 and queued37833533181 without restarting them; fetch strict artifacts on completion. Default-off overlap is pushed7699542 with actual Linux3.10 CPU CI success. Before another paid GPU, prepare paired same-engine all-six serial/overlap raw face/landmark/delta/refined-hash parity trial and cost/lifetime controls; independently repair native numerical parity. No default/image/template promotion without applicable engineering/access gates.",
+  "next_command": "Read-only gh API via protected4070: repos/AhmadAFS1/MuseTalk/actions/runs/37830969052/jobs. Separately implement exact paired serial/overlap capture parity gate before new rental; actual FaceMesh/GPU parity unmeasured. Native400FPS/qualityFAIL unchanged; no paid GPU retained."
 }
