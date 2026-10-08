@@ -1,0 +1,25 @@
+{
+  "schema": "owned_rental_cleanup_receipt_v1",
+  "observed_utc": "2026-10-08 19:02:31 UTC",
+  "expiry_outcome": {
+    "at_utc": "2026-10-08T19:00:03.264556+00:00",
+    "cloud_writes": true,
+    "force": false,
+    "instance_id": "54798270",
+    "label": "musetalk-r5-3090-dev-20261008",
+    "provider_absence_verified": true,
+    "status": "destroy"
+  },
+  "source": "Exact EC2 resource-expiry.json read with sudo and matching systemd journal at19:00:06UTC.",
+  "protected_existing_instance_not_targeted": "51074906",
+  "evidence": [
+    "release/private_fullfile_trace_v2_1825.json",
+    "release/private_taesd_opt5_v2_1838.json",
+    "release/private_missing_syncnet_v2_1847.json",
+    "release/native48_private_persistence_and_restore_1712.json"
+  ],
+  "complete_diagnostic_png_recovery": false,
+  "notes": "Core tensors/metadata and complete1930file diagnostic-cache hash inventory are privately preserved. Complete temporary diagnostic PNG payload is not archived; partial operator copy retained. Production48 review media/engines have separately verified preservation.",
+  "billing_invoice_verified": false,
+  "release_ready": false
+}

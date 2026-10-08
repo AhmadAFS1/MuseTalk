@@ -15,6 +15,13 @@ This is a live evidence index, not a completed release claim. The protected RTX
 
 ### Latest isolated diagnostics, 18:43 UTC
 
+At19:00:03UTC the owned development rental54798270 was destroyed non-forced,
+and provider absence was verified. [Exact cleanup receipt](provisioning/a1_cleanup_1900.json)
+was read back from EC2 and the systemd journal. The protected4070 was not targeted;
+no paid GPU is currently retained. Quota at19:02UTC is8%used/92%remaining weekly,
+credits0 and one unused reset. Independent CPU-only contract/release work remains;
+the full quality/performance/image/fresh-instance goal is not complete.
+
 [Full-file tracing](startup/fullfile_model_access_1843_v2.json) validates the known
 UNet positive-control open and observes startup, a canonical human-WAV stream,
 and a fresh canonical preparation. The original preparation client expected the
