@@ -174,3 +174,66 @@ target: no 4070 seed, no unlabelled or mismatched existing timing cache, and no
 relabeling of foreign engine manifests. Same-target cache reuse records target
 metadata and SHA-256 in `timing_cache.bin.json`, and TensorRT mismatch bypass is
 disabled. Use a fresh native root; old unlabelled caches fail closed.
+
+## Separate production 16×3 pose render audit
+
+`production_pose_audit.py` adapts **restored production caches**, not the six
+canonical fixture identities. Default is a CPU-only plan; actual GPU integration
+remains unverified until run after the candidate engine/quality freeze. It does
+not download, prepare, repair, re-encode or write into the avatar caches.
+
+```bash
+POSE=(--publication character_factory/generated/lumatalk_four_language_wardrobe_v2/s3_publication.json
+      --avatars-root /actual/restored/avatars
+      --audio /actual/known-real-speech.wav --audio-sha256 ACTUAL_64_HEX_SHA256
+      --speech-source 'Actual recording provenance / transcript reference')
+python3 scripts/repro_3090/production_pose_audit.py "${POSE[@]}" \
+  --out /actual/run/production_pose_plan
+
+# Separate, NEW output; run only after benchmark/quality candidate freeze:
+/actual/pinned/venv/bin/python scripts/repro_3090/production_pose_audit.py "${POSE[@]}" \
+  --out /actual/run/production_pose_render --execute-render \
+  --profile scripts/repro_3090/profiles/native.env \
+  --engine-root /actual/native/engine-root --taesd-dir /actual/taesd/dir \
+  --taesd-key ACTUAL_20_HEX_KEY --whisper-root /actual/local/whisper \
+  --tracker-python /actual/SoulX-FlashHead/.venv/bin/python \
+  --frozen-inputs /actual/run/production_pose_inputs.json
+```
+
+Execution self-wraps the existing GPU lease and foreign-GPU watchdog; do not nest
+another `box_guard run`. Use the pinned main Python environment. No model download
+or TensorRT build is allowed. All selected caches must already exist. The existing
+tracker/recipe requires native 512×896 source frames, 256×256 generated faces,
+24 fps and at least 240 source/cycle frames; other resolutions are rejected, never
+resized to fit. The first 240 saved cycle frames share the same first ten seconds
+of supplied speech across poses. `--avatar-id ID` (repeatable) permits a smoke
+subset, explicitly labelled incomplete—not a full-48 result.
+
+The frozen-input manifest uses the existing `files: [{path, sha256}]` schema;
+relative paths resolve against its directory. It must cover the exact real-speech
+file, **every file under the supplied local Whisper directory**, and every source
+listed in the adapter's `CRITICAL` constant (chin/tracker/blending, audio/positional
+encoding, GPU issuer, render helpers and runtime backends). The earlier six-fixture
+manifest does not necessarily contain these extra sources/audio. Create a new
+manifest with those `--extra` inputs; never overwrite the earlier measurement
+freeze. Engine plans, TAESD fingerprints and loaded backend/probe identities are
+verified separately. Selected cache files are SHA-bound before and after rendering;
+their encoder/preprocessing provenance is not inferred from tensor shape.
+
+Each pose writes `pose.json`, native-resolution source | standard | 100%-refined-chin
+contact samples, lossless `frames.mkv`, an audio-muxed `review_with_audio.mkv`, and
+source/generated landmarks plus chin deltas. Existing `GpuIssuer`, frozen chin
+functions, recipe checks and lossless clip verification are reused without changing
+their math. This offline audit deliberately makes no scheduling/throughput claim.
+
+`PASS` means only that the selected offline renders and recipe checks passed;
+`FAIL` preserves a recipe-check failure, and `INVALID` covers missing/incompatible
+inputs, backend/probe mismatch or execution failure. Every report retains
+`visual_review_status=NOT_PERFORMED` and `release_ready=false`. Inspect every pose's
+speech-linked clip/contact samples and record a separate Codex visual review before
+claiming visual approval. A single shared speech clip is not multilingual coverage.
+
+**Live API parity is a separate gap:** the current `APIAvatar.compose_frame` uses
+the standard saved-mask blend, not this refined chin-tracking path. Successful
+offline production samples cannot establish 100% chin behavior in live API calls,
+pose transitions, original encoder compatibility, or release readiness.
