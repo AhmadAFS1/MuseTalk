@@ -1,5 +1,6 @@
 """Private model transport tests use only synthetic bytes and mocked S3 clients."""
 import copy
+import ast
 import hashlib
 import io
 import os
@@ -154,6 +155,26 @@ class ExternalModelTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             release.verify_model_contract(self.root, self.manifest)
         release.verify_model_contract(self.root, {**self.manifest, "model_files": {"models/server/model.bin": {}}})
+
+    def test_actual_full_api_contract_excludes_training_but_keeps_preparation(self):
+        source = (Path(__file__).resolve().parents[3] / "scripts/musetalk_install_state.py").read_text()
+        (self.root / "scripts").mkdir()
+        (self.root / "scripts/musetalk_install_state.py").write_text(source)
+        lists = {target.id: ast.literal_eval(node.value)
+                 for node in ast.parse(source).body if isinstance(node, ast.Assign)
+                 for target in node.targets if isinstance(target, ast.Name) and
+                 target.id in {"SERVER_MODEL_FILES", "AVATAR_PREP_MODEL_FILES"}}
+        required = set(lists["SERVER_MODEL_FILES"] + lists["AVATAR_PREP_MODEL_FILES"])
+        self.assertEqual(len(required), 13)
+        self.assertNotIn("models/syncnet/latentsync_syncnet.pt", required)
+        manifest = {"model_files": dict.fromkeys(required, {}), "external_model_files": {}}
+        release.verify_model_contract(self.root, manifest)
+        for missing in ("models/dwpose/dw-ll_ucoco_384.pth", "models/face_detection/s3fd.pth",
+                        "models/taesd/diffusion_pytorch_model.safetensors"):
+            incomplete = copy.deepcopy(manifest)
+            del incomplete["model_files"][missing]
+            with self.subTest(missing=missing), self.assertRaises(ValueError):
+                release.verify_model_contract(self.root, incomplete)
 
     def test_cpu_image_check_defers_only_declared_private_models(self):
         manifest = {**self.manifest, "notices": {}, "kokoro": False}

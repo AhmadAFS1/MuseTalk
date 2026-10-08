@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # test_install_musetalk.sh - CPU-only tests for the installer component:
 #   scripts/install_musetalk.sh (--plan / --check / install-mode guards), scripts/musetalk_install_state.py,
-#   the download_weights.sh TAESD + Kokoro additions, and requirements/*.
+#   the download_weights.sh TAESD + Kokoro + optional SyncNet contract, and requirements/*.
 #
 # No network, no GPU, no torch: fake venvs (python3.10 -m venv --without-pip + synthetic dist-info),
 # injected host facts (MUSETALK_HOST_FACTS_JSON), stubbed huggingface-cli/curl/gdown/pip. Everything is
@@ -19,6 +19,7 @@ T="$(mktemp -d "${TMPDIR:-/tmp}/musetalk-install-test-XXXXXX")"
 trap 'rm -rf "$T"' EXIT
 export STEP_LOG_ROOT="$T/logs"
 unset MUSETALK_HOST_FACTS_JSON MUSETALK_NVIDIA_SMI CUDA_VISIBLE_DEVICES PIP_CONSTRAINT || true
+unset DOWNLOAD_SYNCNET_WEIGHTS || true
 
 PASS=0
 FAIL=0
@@ -264,6 +265,21 @@ run "check missing TAESD weights -> 11" 11 "${INSTALL[@]}" --check --venv "$V121
 has "check names the TAESD file" 'models/taesd/config.json'
 run "check missing weights with --skip-weights -> 0" 0 "${INSTALL[@]}" --check --venv "$V121" --skip-weights
 mv "$T/taesd_config.bak" "$FAKE/models/taesd/config.json"
+cp -a "$V121" "$T/venv_prep"
+for mod in mmcv mmdet mmengine mmpose; do
+  mkdir -p "$T/venv_prep/lib/python3.10/site-packages/$mod"
+  : >"$T/venv_prep/lib/python3.10/site-packages/$mod/__init__.py"
+done
+for rel in dwpose/dw-ll_ucoco_384.pth face_detection/s3fd.pth; do
+  mkdir -p "$FAKE/models/$(dirname "$rel")"; echo x >"$FAKE/models/$rel"
+done
+run "full avatar-prep check without training-only SyncNet -> 0" 0 "${INSTALL[@]}" --check --venv "$T/venv_prep" --with-avatar-prep
+for rel in dwpose/dw-ll_ucoco_384.pth face_detection/s3fd.pth; do
+  mv "$FAKE/models/$rel" "$T/prep_model.bak"
+  run "prep check still requires $rel -> 11" 11 "${INSTALL[@]}" --check --venv "$T/venv_prep" --with-avatar-prep
+  has "prep check identifies $rel" "models/$rel"
+  mv "$T/prep_model.bak" "$FAKE/models/$rel"
+done
 run "check explicit --with-native-vp8 but not provisioned -> 11" 11 "${INSTALL[@]}" --check --venv "$V121" --with-native-vp8
 run "check --with-chin-tools without the venv -> 11" 11 "${INSTALL[@]}" --check --venv "$V121" --with-chin-tools --chin-venv "$T/chin"
 
@@ -339,6 +355,7 @@ while [[ \$# -gt 0 ]]; do
 done
 repo="\${args[0]}"
 for f in "\${args[@]:1}"; do
+  [[ "\$f" == "\${HF_STUB_SKIP_FILE:-}" ]] && continue
   if [[ -n "\$local_dir" ]]; then dest="\$local_dir/\$f"; else dest="\$HF_HUB_CACHE/models--\${repo//\//--}/snapshots/\$revision/\$f"; fi
   mkdir -p "\$(dirname "\$dest")"; echo stub >"\$dest"
 done
@@ -382,6 +399,34 @@ hasnt "no Kokoro download when disabled" 'Kokoro-82M'
 rm -rf "$FAKE/models/taesd"
 run "download_weights DOWNLOAD_TAESD_WEIGHTS=0 keeps old behaviour" 0 bash -c "cd '$FAKE' && \"\$@\" DOWNLOAD_TAESD_WEIGHTS=0 DOWNLOAD_KOKORO_WEIGHTS=0 DOWNLOAD_GROUPS_IN_PARALLEL=0 bash ./download_weights.sh" _ "${DW_ENV[@]}"
 run "no models/taesd files when TAESD disabled" 0 test ! -e "$FAKE/models/taesd/config.json"
+
+# Both execution modes retain preparation assets, omit SyncNet when explicitly
+# disabled, preserve standalone defaults, and fail missing opted-in weights.
+for parallel in 0 1; do
+  rm -f "$FAKE/models/syncnet/latentsync_syncnet.pt"
+  : >"$T/hf.log"
+  run "prep download without SyncNet (parallel=$parallel)" 0 bash -c "cd '$FAKE' && \"\$@\" DOWNLOAD_AVATAR_PREP_WEIGHTS=1 DOWNLOAD_SYNCNET_WEIGHTS=0 DOWNLOAD_GROUPS_IN_PARALLEL='$parallel' DOWNLOAD_KOKORO_WEIGHTS=0 bash ./download_weights.sh" _ "${DW_ENV[@]}"
+  LAST_OUT="$T/hf.log"
+  hasnt "training-only SyncNet not fetched (parallel=$parallel)" 'latentsync_syncnet.pt'
+  has "DWPose still fetched (parallel=$parallel)" 'dw-ll_ucoco_384.pth'
+  has "S3FD still fetched (parallel=$parallel)" 's3fd-619a316812.pth'
+  run "SyncNet still absent (parallel=$parallel)" 0 test ! -e "$FAKE/models/syncnet/latentsync_syncnet.pt"
+  run "prepared S3FD copy retained (parallel=$parallel)" 0 test -s "$FAKE/models/face_detection/s3fd.pth"
+  : >"$T/hf.log"
+  run "standalone prep default keeps SyncNet (parallel=$parallel)" 0 bash -c "cd '$FAKE' && \"\$@\" DOWNLOAD_AVATAR_PREP_WEIGHTS=1 DOWNLOAD_GROUPS_IN_PARALLEL='$parallel' DOWNLOAD_KOKORO_WEIGHTS=0 bash ./download_weights.sh" _ "${DW_ENV[@]}"
+  LAST_OUT="$T/hf.log"
+  has "standalone default fetched SyncNet (parallel=$parallel)" 'latentsync_syncnet.pt'
+  rm -f "$FAKE/models/syncnet/latentsync_syncnet.pt"
+  : >"$T/hf.log"
+  run "training-only opt-in without prep (parallel=$parallel)" 0 bash -c "cd '$FAKE' && \"\$@\" DOWNLOAD_SYNCNET_WEIGHTS=1 DOWNLOAD_GROUPS_IN_PARALLEL='$parallel' DOWNLOAD_KOKORO_WEIGHTS=0 bash ./download_weights.sh" _ "${DW_ENV[@]}"
+  LAST_OUT="$T/hf.log"
+  has "training opt-in fetched SyncNet (parallel=$parallel)" 'latentsync_syncnet.pt'
+  hasnt "training opt-in does not fetch DWPose (parallel=$parallel)" 'dw-ll_ucoco_384.pth'
+  hasnt "training opt-in does not fetch S3FD (parallel=$parallel)" 's3fd-619a316812.pth'
+  rm -f "$FAKE/models/syncnet/latentsync_syncnet.pt"
+  run "missing opted-in SyncNet fails (parallel=$parallel)" 1 bash -c "cd '$FAKE' && \"\$@\" DOWNLOAD_SYNCNET_WEIGHTS=1 HF_STUB_SKIP_FILE=latentsync_syncnet.pt DOWNLOAD_GROUPS_IN_PARALLEL='$parallel' DOWNLOAD_KOKORO_WEIGHTS=0 bash ./download_weights.sh" _ "${DW_ENV[@]}"
+  has "missing training checkpoint named (parallel=$parallel)" 'models/syncnet/latentsync_syncnet.pt'
+done
 
 # ------------------------------------------------------------------------- 7. live venv (read-only)
 unset MUSETALK_HOST_FACTS_JSON

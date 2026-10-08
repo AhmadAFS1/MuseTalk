@@ -12,11 +12,12 @@ BASE = ROOT / 'docs/fps_comparisons/rtx3090_r5_20261008/startup'
 TRACE = BASE / 'native_api_fullfile_trace_v2_1802.log'
 
 
-def model_files():
+def model_files(source=None):
     result = []
-    for node in ast.parse((ROOT / 'scripts/musetalk_install_state.py').read_text()).body:
+    source = Path(source) if source is not None else ROOT / 'scripts/musetalk_install_state.py'
+    for node in ast.parse(source.read_text()).body:
         if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id in
-                {'SERVER_MODEL_FILES', 'AVATAR_PREP_MODEL_FILES'} for t in node.targets):
+                {'SERVER_MODEL_FILES', 'AVATAR_PREP_MODEL_FILES', 'TRAINING_MODEL_FILES'} for t in node.targets):
             result += ast.literal_eval(node.value)
     assert len(result) == 14 and len(set(result)) == 14
     return result

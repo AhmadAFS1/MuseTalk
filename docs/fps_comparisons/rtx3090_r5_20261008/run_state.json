@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "startup_syncnet_capability_verified_pending_installer_contract",
+  "phase": "startup_syncnet_installer_contract_local_pass_linux_ci_pending",
   "status": "in_progress",
   "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
   "branch": "codex/rtx3090-r5-delivery",
@@ -56,7 +56,8 @@
     "Rejected native TAESDopt5 samegraph/FP16/batch8/none compatibility: full448files/3584frames gateFAIL max7LSB unchanged fromopt3. Newdecoder SHA889488...,postSHAunchanged. Private8payload archive conditionalPUT/freshGET/allSHA PASS; no performance/default acceptance.",
     "Actual native-resolution image inspection18assets acrossall6canonical identities: sampled fullframe120 and selected mouth/jaw crops. No obviousgross native-only geometrycollapse in these stills; motion/audio/silence/transitions/all48 subjective validation remainsincomplete.",
     "Owned missing-SyncNet v2 real startup/speech/fresh canonical prep PASS. Checkpoint restored with originalSHA, API stopped,0OOM/foreign GPU. Original nested-lease failure retained. Complete1930file inventory and8core hashes verified; private16payload archive conditionalPUT/freshGET/allSHA PASS. Complete diagnostic PNG recovery not claimed; no installer or startup-SLA acceptance.",
-    "Owned A1 expiry destroyed54798270 non-forced at19:00:03UTC, provider absence verified; resource-expiry.json/journal read back. Protected51074906 not targeted. New engines/core diagnostic evidence privately preserved; original production48 recovery remains verified."
+    "Owned A1 expiry destroyed54798270 non-forced at19:00:03UTC, provider absence verified; resource-expiry.json/journal read back. Protected51074906 not targeted. New engines/core diagnostic evidence privately preserved; original production48 recovery remains verified.",
+    "SyncNet installer separation implemented: API default download0, explicit opt-in retained, standalone downloader default follows avatar-prep as before. Canonical full API requires13models; DWPose/S3FD remain required. Local72Docker tests OK with1Linux-only skip,2installer forwarding/contract tests PASS,2trace inventory/parser tests PASS; Bash syntax and diff checks PASS. Actual Linux sequential/parallel downloader tests newly wired into CI, not yet observed."
   ],
   "budget": {
     "currency": "USD",
@@ -432,7 +433,8 @@
       "private_archive_receipt": "release/private_missing_syncnet_v2_1847.json",
       "private_archive_sha256": "9a548f5b1db09859c7f88c3575c09f11bebff2328a42132d87f390efc042fa44",
       "fresh_get_all_payload_hashes_verified": true,
-      "installer_contract_changed": false,
+      "installer_contract_changed": true,
+      "installer_linux_ci_status": "PENDING",
       "scored_timing": false,
       "release_ready": false
     }
@@ -443,14 +445,14 @@
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
   "quota_checkpoint": {
-    "observed_utc": "2026-10-08 19:02:31 UTC",
+    "observed_utc": "2026-10-08 19:18:13 UTC",
     "account_scope": "shared account, not this task",
-    "weekly_used_percent_reported": 8,
-    "weekly_remaining_percent_reported": 92,
+    "weekly_used_percent_reported": 9,
+    "weekly_remaining_percent_reported": 91,
     "previous_checkpoint": {
-      "observed_utc": "2026-10-08T18:16:43Z",
-      "weekly_used_percent_reported": 7,
-      "weekly_remaining_percent_reported": 93
+      "observed_utc": "2026-10-08T19:02:31Z",
+      "weekly_used_percent_reported": 8,
+      "weekly_remaining_percent_reported": 92
     },
     "ordinary_usage_allowed": true,
     "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
@@ -460,6 +462,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Continue CPU-only backward-compatible training-only SyncNet download/check contract separation and release dependency-layer integration; inspect remaining saved visual evidence. A1 successfully destroyed and absent; no GPU rental or default/image/template promotion without applicable engineering/access gates.",
-  "next_command": "A1 cleanup PASS_PROVIDER_ABSENCE verified after non-forced destroy19:00:03UTC; protected4070 not targeted. Code/evidence pushed10be039. Missing-SyncNet startup/speech/freshprepPASS, installer change not yet implemented or freshboot timed. Native400FPS/qualityFAIL remain. Quota8%used/92%remaining19:02UTC, credits0,1unused reset; exact subscription tokens unavailable. No paid GPU currently retained."
+  "next_action": "Push backward-compatible SyncNet installer/model contract separation, verify actual Linux installer regression CI, then continue release dependency-layer integration and saved visual review. No GPU rental or default/image/template promotion without applicable engineering/access gates.",
+  "next_command": "Local76unittest cases OK(1Linux-only skip); full Linux stubbed installer/download regression queued by next push. A1 cleanup provider absence verified, no paid GPU retained. Native400FPS/qualityFAIL remain; new contract is not a boot-time measurement."
 }

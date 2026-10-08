@@ -14,6 +14,9 @@ DOWNLOAD_WAIT_FOR_NETWORK_INTERVAL_SECONDS="${DOWNLOAD_WAIT_FOR_NETWORK_INTERVAL
 DOWNLOAD_MUSETALK_V1_WEIGHTS="${DOWNLOAD_MUSETALK_V1_WEIGHTS:-1}"
 DOWNLOAD_MUSETALK_V15_WEIGHTS="${DOWNLOAD_MUSETALK_V15_WEIGHTS:-1}"
 DOWNLOAD_AVATAR_PREP_WEIGHTS="${DOWNLOAD_AVATAR_PREP_WEIGHTS:-1}"
+# Training-only checkpoint. Preserve the standalone downloader's historical full
+# set; the API installer explicitly disables this unless the operator opts in.
+DOWNLOAD_SYNCNET_WEIGHTS="${DOWNLOAD_SYNCNET_WEIGHTS:-$DOWNLOAD_AVATAR_PREP_WEIGHTS}"
 # TAESD (fast-recipe VAE decoder, scripts/vae_fast_decoder.py loads <repo>/models/taesd first).
 # Pinned HF revision; bit-identical to the vendored fp16 copy after the loader's fp32->fp16 cast.
 DOWNLOAD_TAESD_WEIGHTS="${DOWNLOAD_TAESD_WEIGHTS:-1}"
@@ -218,10 +221,13 @@ validate_required_files() {
   if env_flag_is_true "$DOWNLOAD_AVATAR_PREP_WEIGHTS"; then
     required+=(
       "$CHECKPOINTS_DIR/dwpose/dw-ll_ucoco_384.pth"
-      "$CHECKPOINTS_DIR/syncnet/latentsync_syncnet.pt"
       "$CHECKPOINTS_DIR/auxiliary/s3fd-619a316812.pth"
       "$CHECKPOINTS_DIR/face_detection/s3fd.pth"
     )
+  fi
+
+  if env_flag_is_true "$DOWNLOAD_SYNCNET_WEIGHTS"; then
+    required+=("$CHECKPOINTS_DIR/syncnet/latentsync_syncnet.pt")
   fi
 
   local missing=()
@@ -495,10 +501,16 @@ download_kokoro_group() {
 download_avatar_prep_weights_group() {
   if env_flag_is_true "$DOWNLOAD_AVATAR_PREP_WEIGHTS"; then
     download_dwpose_weights_step
-    download_syncnet_weights_step
-    download_s3fd_weights_step
   else
-    log "Skipping avatar-prep-only weights (dwpose, syncnet, s3fd)"
+    log "Skipping avatar-prep weights (dwpose, s3fd)"
+  fi
+  if env_flag_is_true "$DOWNLOAD_SYNCNET_WEIGHTS"; then
+    download_syncnet_weights_step
+  else
+    log "Skipping training-only SyncNet weights (DOWNLOAD_SYNCNET_WEIGHTS=$DOWNLOAD_SYNCNET_WEIGHTS)"
+  fi
+  if env_flag_is_true "$DOWNLOAD_AVATAR_PREP_WEIGHTS"; then
+    download_s3fd_weights_step
   fi
 }
 
@@ -516,7 +528,7 @@ phase_download_weight_groups_parallel() {
   run_parallel_steps \
     "Download MuseTalk model weights::download_musetalk_weights_group" \
     "Download base runtime model weights::download_base_runtime_weights_group" \
-    "Download avatar-preparation model weights::download_avatar_prep_weights_group" \
+    "Download avatar-preparation and optional training weights::download_avatar_prep_weights_group" \
     "Download face parsing support weights::download_face_parse_support_weights_group" \
     "Download Kokoro TTS cache (optional)::download_kokoro_group"
 }
@@ -556,10 +568,16 @@ phase_download_kokoro_weights() {
 phase_download_avatar_prep_weights() {
   if env_flag_is_true "$DOWNLOAD_AVATAR_PREP_WEIGHTS"; then
     run_step "Download DWPose weights" download_dwpose_weights_step
-    run_step "Download SyncNet weights" download_syncnet_weights_step
-    run_step "Download S3FD face detector weights" download_s3fd_weights_step
   else
-    log "Skipping avatar-prep-only weights (dwpose, syncnet, s3fd) to keep the server-only bootstrap path smaller and faster"
+    log "Skipping avatar-prep weights (dwpose, s3fd)"
+  fi
+  if env_flag_is_true "$DOWNLOAD_SYNCNET_WEIGHTS"; then
+    run_step "Download training-only SyncNet weights" download_syncnet_weights_step
+  else
+    log "Skipping training-only SyncNet weights (DOWNLOAD_SYNCNET_WEIGHTS=$DOWNLOAD_SYNCNET_WEIGHTS)"
+  fi
+  if env_flag_is_true "$DOWNLOAD_AVATAR_PREP_WEIGHTS"; then
+    run_step "Download S3FD face detector weights" download_s3fd_weights_step
   fi
 }
 
@@ -588,6 +606,7 @@ log "Download retries: $DOWNLOAD_RETRIES"
 log "MuseTalk V1 weights enabled: $DOWNLOAD_MUSETALK_V1_WEIGHTS"
 log "MuseTalk V1.5 weights enabled: $DOWNLOAD_MUSETALK_V15_WEIGHTS"
 log "Avatar-prep weights enabled: $DOWNLOAD_AVATAR_PREP_WEIGHTS"
+log "Training-only SyncNet weights enabled: $DOWNLOAD_SYNCNET_WEIGHTS"
 log "TAESD weights enabled: $DOWNLOAD_TAESD_WEIGHTS ($TAESD_REPO_ID@$TAESD_REVISION)"
 log "Kokoro TTS pre-cache: $DOWNLOAD_KOKORO_WEIGHTS ($KOKORO_REPO_ID@$KOKORO_REVISION; voices: $KOKORO_VOICES)"
 
@@ -633,8 +652,8 @@ else
     phase_download_base_runtime_weights
   run_phase \
     "Phase 4" \
-    "Download avatar-preparation model weights" \
-    "Fetch the optional DWPose, SyncNet, and S3FD checkpoints used for avatar preparation." \
+    "Download avatar-preparation and optional training weights" \
+    "Fetch DWPose and S3FD for avatar preparation, plus the independently optional training-only SyncNet checkpoint." \
     phase_download_avatar_prep_weights
   run_phase \
     "Phase 5" \

@@ -75,9 +75,10 @@ SERVER_MODEL_FILES = [
 ]
 AVATAR_PREP_MODEL_FILES = [
     "models/dwpose/dw-ll_ucoco_384.pth",
-    "models/syncnet/latentsync_syncnet.pt",
     "models/face_detection/s3fd.pth",
 ]
+# Downloadable for training, but not required by API/preparation install checks.
+TRAINING_MODEL_FILES = ["models/syncnet/latentsync_syncnet.pt"]
 KEY_VERSIONS = ["torch", "torchvision", "torchaudio", "torch-tensorrt", "tensorrt-cu12", "tensorrt", "triton",
                 "onnx", "numpy", "diffusers", "transformers", "aiortc", "av", "cffi", "kokoro", "spacy",
                 "nvidia-modelopt", "mmcv", "setuptools", "pip"]

@@ -135,6 +135,11 @@ need their own exact-byte provenance and complete notices.
 - `models/auxiliary/s3fd-619a316812.pth`
 - `models/face_detection/s3fd.pth`
 
+SyncNet remains allowlisted for optional training/historical payloads, but is not
+required by the canonical API or `/avatars/prepare` model contract. Normal API
+images should omit its unused checkpoint; this does not change any usage-rights
+or redistribution gate. DWPose and S3FD remain required for full avatar preparation.
+
 Each entry requires actual `sha256`, `size_bytes`, `public_redistribution:false`,
 and `private_delivery_authorized:true`. Its `source` requires `type:"s3"`, exact
 `bucket`, AWS `region`, 12-digit `expected_owner`, and a `key` ending in

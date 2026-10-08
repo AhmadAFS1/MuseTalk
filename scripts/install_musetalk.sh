@@ -119,6 +119,8 @@ Legacy aliases: --venv-path (= --venv), --python-bin (= --python), --full-stack 
 Environment: PIP_CACHE_DIR (respected), MUSETALK_WHEELHOUSE (extra --find-links dir),
   MUSETALK_PYTORCH_INDEX_BASE, MUSETALK_NVIDIA_INDEX_URL, MUSETALK_PIP_VERSION ($PIP_VERSION),
   MUSETALK_INSTALL_MIN_DISK_GB ($MIN_DISK_GB_FRESH, fresh venv), HF_MAX_WORKERS, HF_XET_HIGH_PERFORMANCE.
+  DOWNLOAD_SYNCNET_WEIGHTS=1 opts into the training-only checkpoint (default 0).
+  This does not install or validate a training environment; /avatars/prepare does not require it.
   PYTORCH_INDEX_URL from the base image is deliberately ignored (the matrix picks the index).
 
 Examples:
@@ -702,6 +704,7 @@ download_weights_step() {
   PATH="$VENV_PATH/bin:$PATH" \
   DOWNLOAD_MUSETALK_V1_WEIGHTS=0 \
   DOWNLOAD_AVATAR_PREP_WEIGHTS="$AVATAR_PREP" \
+  DOWNLOAD_SYNCNET_WEIGHTS="${DOWNLOAD_SYNCNET_WEIGHTS:-0}" \
   DOWNLOAD_TAESD_WEIGHTS=1 \
   DOWNLOAD_KOKORO_WEIGHTS="$KOKORO" \
   PIP_CONSTRAINT="$CONSTRAINTS" \

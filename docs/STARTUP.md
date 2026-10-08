@@ -78,6 +78,11 @@ bash scripts/install_musetalk.sh --with-chin-tools      # dedicated MediaPipe ve
 bash scripts/install_musetalk.sh --clean --matrix cu128
 ```
 
+- **SyncNet is training-only.** The API installer omits its checkpoint by default,
+  including with `--with-avatar-prep`; DWPose and S3FD remain required. Set
+  `DOWNLOAD_SYNCNET_WEIGHTS=1` for an explicit checkpoint download (not a validated
+  training environment). Running `download_weights.sh` directly retains its
+  historical full-set default; set `DOWNLOAD_SYNCNET_WEIGHTS=0` to omit it there.
 - **What gets pinned.** Top-level requirements are in `requirements/server.in` and pins in
   `requirements/constraints-cu121.txt` or `constraints-cu128.txt`. `requirements/README.md`
   explains how to regenerate them. Never `pip install -r requirements.txt`: it pulls in

@@ -50,6 +50,15 @@ now passes direct canonical startup, human-WAV speech and fresh480-frame/480-mas
 preparation. The checkpoint was restored with its original SHA and the API stopped;
 0OOM/foreign GPU was observed. This supports a separately tested training-only
 download contract, which is not yet implemented, not a measured boot saving.
+The subsequent installer change is now implemented locally, pending actual Linux
+regression CI: normal API installs (including avatar preparation) omit SyncNet;
+explicit training-checkpoint opt-in and the standalone downloader's historical
+defaults remain supported. Full API model checks still require13assets, including
+DWPose/S3FD and TAESD. Local76unittest cases are OK with1Linux-only skip; Bash
+syntax and diff checks pass. New Linux tests cover sequential/parallel downloads,
+missing opted-in SyncNet failures, and missing preparation-model failures. No
+cold-boot saving is measured or accepted, and license/release gates are unchanged.
+
 All1930 diagnostic-cache file hashes were inventoried;8core tensor/metadata files
 were bound to that inventory. [Private evidence preservation](release/private_missing_syncnet_v2_1847.json)
 passes conditionalPUT/freshGET/all16payload hashes. Complete diagnostic PNG payload

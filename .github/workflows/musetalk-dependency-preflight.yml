@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   push:
     branches: [codex/rtx3090-r5-delivery]
-    paths: [.github/workflows/musetalk-dependency-preflight.yml, docker/musetalk/**, scripts/test_startup_scripts.sh, scripts/install_musetalk.sh, scripts/patch_mmengine_compat.py]
+    paths: [.github/workflows/musetalk-dependency-preflight.yml, docker/musetalk/**, download_weights.sh, scripts/test_startup_scripts.sh, scripts/test_install_musetalk.sh, scripts/test_syncnet_weight_contract.py, scripts/musetalk_install_state.py, scripts/install_musetalk.sh, scripts/patch_mmengine_compat.py]
 
 permissions:
   contents: read
@@ -32,7 +32,11 @@ jobs:
           set -euo pipefail
           python3 -B -m unittest discover -s docker/musetalk/tests -v
           python3 -B -m unittest discover -s scripts -p test_patch_mmengine_compat.py -v
+          python3 -B -m unittest discover -s scripts -p test_syncnet_weight_contract.py -v
           bash scripts/test_startup_scripts.sh
+          command -v python3.10
+          mkdir -p "$RUNNER_TEMP/musetalk-cpu-contracts"
+          TEST_LIVE_VENV=0 bash scripts/test_install_musetalk.sh 2>&1 | tee "$RUNNER_TEMP/musetalk-cpu-contracts/installer.log"
       - name: Resolve actual apt pins and build real GPU-less dependencies
         env:
           PYTHONDONTWRITEBYTECODE: '1'
@@ -46,6 +50,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: musetalk-dependency-preflight
-          path: ${{ runner.temp }}/musetalk-dependency-preflight/reports/
+          path: |
+            ${{ runner.temp }}/musetalk-dependency-preflight/reports/
+            ${{ runner.temp }}/musetalk-cpu-contracts/
           if-no-files-found: warn
           retention-days: 3

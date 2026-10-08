@@ -1,8 +1,20 @@
 import unittest
-from analyze_fullfile_model_trace import scan
+import tempfile
+from pathlib import Path
+from analyze_fullfile_model_trace import model_files, scan
 
 
 class ModelTraceTests(unittest.TestCase):
+    def test_training_split_keeps_historical_trace_inventory_complete(self):
+        actual = model_files()
+        self.assertEqual(len(actual), 14)
+        self.assertIn('models/syncnet/latentsync_syncnet.pt', actual)
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / 'old_install_state.py'
+            source.write_text('SERVER_MODEL_FILES = ' + repr(actual[:11]) + '\n'
+                              'AVATAR_PREP_MODEL_FILES = ' + repr(actual[11:]) + '\n')
+            self.assertEqual(set(model_files(source)), set(actual))
+
     def test_control_completed_failure_unfinished_and_metadata_are_separate(self):
         model = 'models/syncnet/latentsync_syncnet.pt'
         lines = [f'11 openat(AT_FDCWD, "/workspace/MuseTalk/{model}", O_RDONLY) = 3\n',
