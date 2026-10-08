@@ -44,6 +44,9 @@ Observed timeline (UTC, October 8):
 - 11:23: native preflight passed against the exact frozen 878-file manifest. Native sm86 v1 engine build started on revision `d4e78b79105e0c1f5b732fb651e5dcd7fcb5dca3`.
 - 11:29: native FP16 `down0rest,up3,tail` build completed successfully after 324.1 seconds under its GPU lease. INT8 recipe blocks are building. Complete-chain, native TAESD, quality, and throughput remain unverified.
 - 11:45: native INT8 `down1,down2,down3,mid` plan files exist; the builder remains active on subsequent blocks. This is partial build progress, not a complete or accepted engine set.
+- 11:52:57: complete native UNet manifest finalized with all 11 blocks, graph/direct equality and repeat determinism. Probe output SHA is `23950ef8e4117aef4488a7e14e032450875c808837ef844151af30958b79908c`. Most exported ONNX hashes differ from the portable reference (tail matches); numerical parity is not inferred from successful compilation.
+- 11:53:52: native TAESD completed, actual key `1e967e6e715c9f1a8375`, opt3, full-height bs8, hardware compatibility `none`; fused/repository post probe has zero mismatched bytes. Total observed native build interval was 1,823 seconds; this is development compilation, which must not recur at normal image boot.
+- Native suite preflight then passed against all 878 frozen files. Sequential native quality/envelope, paired GPU diagnostics and full-recipe T/SUST are running; none is yet an acceptance result.
 
 This separates several minutes of provider/image startup from source cloning,
 installation, and later model/avatar warmup. Exact image-pull boundaries and
@@ -128,6 +131,9 @@ calibrated; stage durations from individual processes are reported separately.
 - [Instance A CUDA failure and host outage](provisioning/instance-a-host-outage.json)
 - [Actual portable still-frame review, with limitations](quality/portable_reference_visual_inspection.json)
 - [Recovered pinned-input native preflight](native/native_v1_preflight_recovered_v2_check/report.json)
+- [Complete native UNet manifest](native/native_v1_build/engine_manifest.json)
+- [Native decoder metadata](native/native_v1_build/taesd_trt_1e967e6e715c9f1a8375.json)
+- [Native candidate preflight](native/native_v1_check/report.json)
 
 Registry publishing access remains unresolved. A read-only native x64 GitHub
 runner probe succeeded with about 86 GiB free disk, 4 CPUs, 16 GB RAM, and Docker/

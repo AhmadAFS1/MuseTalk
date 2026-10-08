@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "native_sm86_v1_build_running",
+  "phase": "native_sm86_v1_quality_and_performance_running",
   "status": "in_progress",
   "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
   "branch": "codex/rtx3090-r5-delivery",
@@ -24,7 +24,10 @@
     "A1 recovered by 11:17 UTC without an operator reboot or replacement purchase; original source bootstrap had reset the working checkout",
     "Preserved experiment directory restored, owned API/TURN stopped, CUDA tensor allocation and full pinned-input preflight passed",
     "Owned hostname guard applied to A1 onstart to suspend destructive source reinstalls and automatic server restart",
-    "Native sm86 v1 build started at 11:23:29 UTC under canonical per-step GPU leases and workload watchdog"
+    "Native sm86 v1 build started at 11:23:29 UTC under canonical per-step GPU leases and workload watchdog",
+    "Native UNet complete at 11:52:57 UTC: all 11 blocks, graph/direct equality and repeat determinism passed",
+    "Native TAESD complete at 11:53:52 UTC: actual key 1e967e6e715c9f1a8375, full-height bs8, opt3, fused/repository post byte equality passed",
+    "Native v1 suite preflight passed against all 878 frozen files; sequential quality, frozen-envelope comparison, paired GPU diagnostics and T/SUST evaluation started"
   ],
   "budget": {
     "currency": "USD",
@@ -43,7 +46,7 @@
     "Native CI builder measured sufficient initial disk; full image build/input delivery not yet validated",
     "Registry publication access unresolved; local/EC2 ECR discovery denied",
     "Current MuseTalk draining is not sticky across healthy heartbeat; isolate before test registration",
-    "Native RTX 3090 artifacts and actual performance have not been measured"
+    "Complete native RTX 3090 artifacts exist, but full quality parity, aggregate performance and live acceptance remain unmeasured"
   ],
   "instances": {
     "protected_existing": {"vast_id": 51074906, "ssh_alias": "3-way-head-talk", "gpu": "RTX 4070 SUPER"},
@@ -67,7 +70,7 @@
       "readiness": "Verified portable health, one avatar warm, local media smoke; no EC2 usable-call proof",
       "development_measurement_revision": "aa1a531cabe60ce9faec45b39372db2d61ef69e9",
       "native_preparation_revision": "8112888",
-      "server_state": "Owned API/TURN drained/stopped after automatic recovery; native engine builder owns GPU",
+      "server_state": "Owned API/TURN drained/stopped; sequential isolated native quality/performance evaluator owns GPU",
       "provider_status_observed_utc": "2026-10-08T11:17:36.914196+00:00",
       "provider_actual_status": "running",
       "recovery_reboot_sent": false,
@@ -77,6 +80,8 @@
       "native_build_revision": "d4e78b79105e0c1f5b732fb651e5dcd7fcb5dca3",
       "native_build_started_utc": "2026-10-08T11:23:29Z",
       "native_build_operator_session": 28251,
+      "native_build_finished_utc": "2026-10-08T11:53:52Z",
+      "native_evaluation_operator_session": 72427,
       "replacement_purchased": false
     },
     "release": null
@@ -95,6 +100,18 @@
       "files": 878,
       "sha256": "6d3ab6ef31605c2231605e03042e82361a27112589ef6d7f6f8ff8f4b016eea5"
     },
+    "native_v1": {
+      "engine_key": "sm86-nvidia-geforce-rtx-3090-trt10.3.0",
+      "unet_root": "models/tensorrt_unet_stagewise_sm86_r5_v1",
+      "unet_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+      "unet_probe_output_sha256": "23950ef8e4117aef4488a7e14e032450875c808837ef844151af30958b79908c",
+      "taesd_dir": "models/taesd/trt_native_sm86_r5_v1",
+      "taesd_key": "1e967e6e715c9f1a8375",
+      "taesd_metadata_sha256": "4dcc2174a8e47a1cb918751a312f946c74f47c6e8ab4f3c9b9917cb0c20a8673",
+      "taesd_decoder_sha256": "9658154206fbee0aea38659803724ae94a78983d3858585242d62a4bae305057",
+      "quality_decision": "incomplete",
+      "promotion": "not authorized by build/preflight alone"
+    },
     "dependency_ci": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37769890795",
     "dependency_ci_previous_failure": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37749194641",
     "dependency_ci_revision": "b00cc20fa5b77c051e468d993c6522a4ae921f9e"
@@ -105,9 +122,9 @@
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
   "quota_checkpoint": {
-    "observed_utc": "2026-10-08T11:25:00Z",
+    "observed_utc": "2026-10-08T11:54:00Z",
     "account_scope": "shared account, not this task",
-    "weekly_used_percent_reported": 0,
+    "weekly_used_percent_reported": 1,
     "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
     "purchased_credit_balance_reported": "0",
     "free_full_resets_available_reported": 1,
@@ -115,6 +132,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Observe native build and actual dependency Docker CI; run native preflight and frozen-quality comparison only after complete native manifest and TAESD key exist",
-  "next_command": "Poll operator exec session 28251, or inspect the exact build process and native_v1_build logs on musetalk-3090-build-54798270. Never restart a build based only on an observation timeout. After native manifest and TAESD key are verified, run native quality and compare with frozen reference envelope v2, followed by T/SUST. A1 expiry at 19:00 UTC remains active."
+  "next_action": "Observe native evaluation session and dependency CI; inspect every verdict, preserve failures and retrieve actual comparison frames",
+  "next_command": "Poll operator exec session 72427. Its sequence is native quality, immutable reference-envelope v2 comparison, paired GPU diagnostics, then canonical T and SUST. Valid FAIL continues diagnosis without promotion; INVALID stops the sequence. Do not change the remote checkout or run competing GPU work. After completion, persist artifacts, inspect native frames and perform avatar/live checks. A1 expiry at 19:00 UTC remains active."
 }

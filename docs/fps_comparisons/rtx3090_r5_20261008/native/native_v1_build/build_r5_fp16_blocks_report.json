@@ -1,0 +1,59 @@
+{
+ "args": {
+  "batch": [
+   16
+  ],
+  "root": "models/tensorrt_unet_stagewise_sm86_r5_v1",
+  "opt_level": 5,
+  "workspace_gb": 2.0,
+  "timing_cache": "",
+  "no_timing_cache": false,
+  "strict_timing_cache": true,
+  "blocks": "down0rest,up3,tail",
+  "force": false,
+  "second_build": false,
+  "max_minutes": 1000000000.0,
+  "variant": "srccache",
+  "int8_blocks": "",
+  "int8_recipe": "",
+  "calib_dir": "calibration/unet_multi_avatar_20260928",
+  "calib_batches": 8,
+  "report": "docs/fps_comparisons/rtx3090_r5_20261008/native/native_v1_build/build_r5_fp16_blocks_report.json",
+  "hardware_compat": "none"
+ },
+ "batches": {
+  "16": {
+   "complete": false,
+   "missing": [
+    "prefix",
+    "down1",
+    "down2",
+    "down3",
+    "mid",
+    "up0",
+    "up1",
+    "up2"
+   ],
+   "probe": null,
+   "runtime": null
+  }
+ },
+ "host_mem": {
+  "start": {
+   "VmHWM_MiB": 368.2,
+   "VmRSS_MiB": 367.9,
+   "MemAvailable_MiB": 308409.7
+  },
+  "after_model": {
+   "VmHWM_MiB": 5410.7,
+   "VmRSS_MiB": 1956.0,
+   "MemAvailable_MiB": 310276.8
+  },
+  "end": {
+   "VmHWM_MiB": 6695.6,
+   "VmRSS_MiB": 6695.6,
+   "MemAvailable_MiB": 307398.3
+  }
+ },
+ "torch_max_reserved_mib": 2216.0
+}

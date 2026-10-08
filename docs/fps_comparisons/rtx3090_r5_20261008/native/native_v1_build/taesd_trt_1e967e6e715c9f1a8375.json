@@ -1,0 +1,52 @@
+{
+ "schema": "taesd_trt_engine_v1",
+ "key": "1e967e6e715c9f1a8375",
+ "fingerprint": {
+  "recipe": "taesd_decoder_fp16_full_height_v1",
+  "post_recipe": "bgr_u8_nhwc_post_fp32_rne_v1",
+  "tensorrt": "10.3.0",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "compute_capability": "8.6",
+  "onnx_sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb",
+  "batch": 8,
+  "latent_shape": [
+   8,
+   4,
+   32,
+   32
+  ],
+  "precision": "fp16",
+  "opt_level": 3,
+  "strongly_typed": false
+ },
+ "decoder_plan": "taesd_trt_1e967e6e715c9f1a8375.decoder.plan",
+ "decoder_plan_sha256": "9658154206fbee0aea38659803724ae94a78983d3858585242d62a4bae305057",
+ "decoder_plan_bytes": 3151764,
+ "post_plan": "taesd_trt_1e967e6e715c9f1a8375.post_bgr_u8.plan",
+ "post_plan_sha256": "4e78178551e3e6d25dda729d5b932220931cd0948e8a77a41b646bb188938efc",
+ "post_plan_bytes": 16244,
+ "probe": {
+  "probe_seed": 20260928,
+  "probe_shape": [
+   8,
+   4,
+   32,
+   32
+  ],
+  "fp16_sha256": "65d41d403d2662c167af05005b0ed6d0c2616410f160b29bb62c16c0c6fd285e",
+  "u8_repo_post_sha256": "0941c2778dbf909ca3af4700d173b0521790ed799136770db06bf2f9ee5a3258",
+  "u8_fused_sha256": "0941c2778dbf909ca3af4700d173b0521790ed799136770db06bf2f9ee5a3258",
+  "fused_vs_repo_post_mismatched_bytes": 0
+ },
+ "build": {
+  "created_utc": "2026-10-08T11:53:50Z",
+  "decoder_build_s": 35.43,
+  "post_build_s": 2.43,
+  "torch": "2.5.1+cu121",
+  "pid": 158555,
+  "timing_cache": "taesd_trt_timing.cache",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "compute_capability": "8.6",
+  "hardware_compatibility_level": "none"
+ }
+}
