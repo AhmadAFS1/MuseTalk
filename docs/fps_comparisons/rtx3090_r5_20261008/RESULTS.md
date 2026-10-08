@@ -55,6 +55,8 @@ Observed timeline (UTC, October 8):
 - Recovered portable control completed: 34,560 valid frames over 136.27892519499983 / 143.47550072400009 seconds, **253.59753865499397 / 240.87736112161846 FPS**, valid **FAIL** against 300. Native and portable full-pipeline ranges are close despite faster native GPU diagnostics. This is the same recovered host and frozen inputs, but not a fully interleaved full-pipeline experiment; elapsed thermal/host conditions remain confounders.
 - Native serving-only diagnostic archive copied off-host, SHA256 `1f766487cf9272929988d17f9a4d6f76ee9c8c8fdde9b149174e1e02dbcafc5e`, 983,926,034 bytes. Fresh operator CPU restore verified all 16 payload files. It is explicitly rejected diagnostic evidence, not the active r5 bundle or a releasable artifact.
 - The same archive was conditionally uploaded to a new private checksum-keyed S3 object, followed by an independent fresh GET and fresh CPU restore verifying its archive SHA and all 16 files. No existing object or active artifact mapping was overwritten.
+- All 32 native quality capture/report files were separately archived, conditionally persisted in private S3, freshly downloaded and CPU-restore verified: SHA256 `079f79938d45d62dfe5316e84be984cd86d7c648ea324023bd34b55d87090bb9`, 274,657,275 bytes. Numerical rejection and partial visual-review limitations remain unchanged.
+- Operator fallback conditionally uploaded all five private model objects after checking their exact frozen hashes. Worker-side fresh content verification then timed out at 300 seconds on its first file; delivery remains **incomplete**, not a boot-speed pass. The ongoing 48-pose audit had completed 21 objects without reported failures at the last checkpoint. Concurrent CPU/network work is disclosed; no single cause or steady-state transfer speed is established.
 
 ## Current bottleneck interpretation
 
@@ -170,6 +172,8 @@ calibrated; stage durations from individual processes are reported separately.
 - [Recovered portable control T](portable/portable_recovered_v1_aggregate/report.json)
 - [Native partial direct still-frame inspection](quality/native_v1_partial_visual_inspection.json)
 - [Private native diagnostic persistence and fresh restore](release/native_v1_diagnostic_persistence.json)
+- [Private native capture persistence and fresh restore](release/native_v1_media_persistence.json)
+- [Private-model fallback upload/read assessment](release/private_model_operator_fallback_assessment.json)
 
 Registry publishing access remains unresolved. A read-only native x64 GitHub
 runner probe succeeded with about 86 GiB free disk, 4 CPUs, 16 GB RAM, and Docker/

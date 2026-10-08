@@ -1,0 +1,37 @@
+{
+  "schema": "rejected_native_quality_media_persistence_v1",
+  "candidate": "native_sm86_r5_v1",
+  "promotion_allowed": false,
+  "release_ready": false,
+  "archive": {
+    "filename": "native-v1-quality-captures.tar.gz",
+    "sha256": "079f79938d45d62dfe5316e84be984cd86d7c648ea324023bd34b55d87090bb9",
+    "bytes": 274657275,
+    "payload_files": 32,
+    "contents": "Two capture/run reports and 30 video/raw face/landmark/chin capture files across all six canonical identities"
+  },
+  "s3": {
+    "bucket": "lingua-musetalk-s3-storage",
+    "region": "us-east-1",
+    "expected_owner": "211125449207",
+    "key": "trt-artifacts/rtx3090-r5/native-rejected-diagnostics/sha256/079f79938d45d62dfe5316e84be984cd86d7c648ea324023bd34b55d87090bb9/native-v1-quality-captures.tar.gz",
+    "version_id": "6sk3mHn7uI5ckfrYgms_BcdCtBbLZ.1s",
+    "encryption": "AES256",
+    "write_condition": "If-None-Match: *",
+    "acl_requested": false,
+    "existing_objects_overwritten": false,
+    "fresh_get_completed": true,
+    "fresh_get_metadata_sha256_matches": true,
+    "fresh_get_bytes_match": true,
+    "etag_used_as_content_sha256": false,
+    "bucket_privacy_evidence": "operator_bucket_privacy_1353.json",
+    "bucket_privacy_evidence_sha256": "e52be10a5c4ee8bfc6f9c4d30b11ceee8a5d691edb079a85460b37595b81a592"
+  },
+  "fresh_s3_copy_restore": {
+    "status": "PASS_CPU_INTEGRITY_ONLY",
+    "archive_sha256_verified": true,
+    "all_32_payload_hashes_verified": true,
+    "gpu_execution_tested": false
+  },
+  "visual_acceptance": "NOT_ESTABLISHED; candidate rejected by frozen numerical gates"
+}

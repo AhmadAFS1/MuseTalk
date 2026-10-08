@@ -132,13 +132,35 @@
     "dependency_ci_status": "PASS: dependency-only GPU-less build/import validation",
     "dependency_ci_evidence": "release/dependency_ci_b00cc20/provenance.json"
   },
+  "background_operations": {
+    "production_avatar_content_audit": {
+      "operator_session_id": 95444,
+      "report": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/content_audit_1345.json",
+      "audit_root": "/workspace/MuseTalk/tmp/production_avatar_content_audit_1345",
+      "maximum_child_runtime_seconds": 7200,
+      "last_observed_completed": 21,
+      "expected": 48,
+      "last_observed_failures": 0,
+      "status": "RUNNING; no concurrent scored GPU/live work until all download/hash/CPU work completes"
+    },
+    "private_model_runtime_read_verification": {
+      "operator_session_id": 4072,
+      "status": "TIMED_OUT_AFTER_300_SECONDS; five uploads complete but runtime content delivery remains unverified",
+      "report": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/release/private_model_delivery_operator_verify_1400.json",
+      "operator_conditional_uploads_completed": 5,
+      "operator_uploaded_bytes": 1767823261,
+      "scope": "Five original checksum-pinned files; private only, no IAM/bucket/ACL changes; usage rights still unresolved",
+      "maximum_child_runtime_seconds": 300,
+      "privacy_attestation_expires_at_utc": "2026-10-08T14:05:42.663313+00:00"
+    }
+  },
   "image_digest": null,
   "template_id": 756005,
   "target_template_hash": "210968d1e76b34e7cf34e505246e5d47",
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
   "quota_checkpoint": {
-    "observed_utc": "2026-10-08T13:42:25Z",
+    "observed_utc": "2026-10-08T14:03:08Z",
     "account_scope": "shared account, not this task",
     "weekly_used_percent_reported": 2,
     "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
@@ -148,6 +170,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Complete operator fallback private-model delivery and 48-pose CPU content audit; keep native v1 prohibited from promotion",
-  "next_command": "Native/control GPU suites and off-host report/media copies are complete. Verify checksum-pinned private S3 persistence, record actual limited native still-frame inspection, then audit 48 production pose contents before isolated live/pose tests. Keep established releases/templates unchanged; no public publication until redistribution review and registry access are resolved. A1 expiry at 19:00 UTC remains active."
+  "next_action": "Diagnose bounded runtime private-model read timeout and finish 48-pose CPU audit; keep native v1 prohibited from promotion",
+  "next_command": "Private verification session4072 timed out at300 seconds on its first file; operator uploads session19852 completed all five objects. Raw report and explicit incomplete assessment are preserved. Perform bounded CPU-only S3 range/SDK checks and independent whole-content verification without changing IAM or blindly retrying uploads. Poll CPU audit session95444 at spaced milestones (21/48 last observed, zero reported failures) and collect final report before any scored GPU/live work. Native serving and 32-file capture archives have private S3 fresh GET/CPU integrity proof. Then prepare isolated API cache copies and human-speech pose/live tests. Keep production/releases/templates unchanged. A1 expires19:00 UTC."
 }
