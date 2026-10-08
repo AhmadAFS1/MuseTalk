@@ -1,5 +1,6 @@
 """CPU-only bridge tests. No SSH, AWS, GPU, or real credential is accessed."""
 import contextlib
+import datetime as dt
 import hashlib
 import io
 import json
@@ -16,6 +17,59 @@ import run_owned_3090_with_runtime_credentials as bridge
 
 
 class CredentialBridgeTests(unittest.TestCase):
+    def target(self):
+        label = "musetalk-r5-3090-dev-synthetic-fixture"
+        return {"instance_id": "54999999", "label": label,
+                "worker_alias": "musetalk-3090-build-54999999", "worker_hostname": "fixture-host",
+                "gpu_uuid": "GPU-11111111-2222-3333-4444-555555555555",
+                "ledger": f"/home/ec2-user/.local/state/{label}/startup-ledger.json",
+                "deadline_utc": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1)).isoformat()}
+
+    def test_new_target_preserves_secret_source_and_binds_exact_identity(self):
+        original = dict(bridge.__dict__)
+        with patch.dict(bridge.__dict__, original):
+            target = self.target()
+            bridge.apply_owned_target(target)
+            self.assertEqual(bridge.INSTANCE, target["instance_id"])
+            self.assertEqual(bridge.WORKER_ALIAS, target["worker_alias"])
+            self.assertEqual(bridge.LEDGER, target["ledger"])
+            self.assertEqual(bridge.SNAPSHOT, original["SNAPSHOT"])
+            self.assertEqual(bridge.SECRET_ARN, original["SECRET_ARN"])
+            self.assertEqual(bridge.BOOTSTRAP_SHA256, original["BOOTSTRAP_SHA256"])
+            self.assertTrue(bridge.OWNED_TARGET_VALIDATED)
+            compile(bridge.remote_code(bridge.ec2_export), "<bounded-ec2>", "exec")
+            compile(bridge.remote_code(bridge.worker_run, "fixture-nonce"), "<bounded-worker>", "exec")
+
+    def test_target_rejects_production_release_unknown_keys_paths_and_deadlines(self):
+        base = self.target()
+        bad = [{**base, "instance_id": "51074906"}, {**base, "label": "musetalk-r5-3090-release-fixture"},
+               {**base, "worker_alias": "3-way-head-talk"}, {**base, "worker_hostname": "host;unsafe"},
+               {**base, "gpu_uuid": "GPU-invented"}, {**base, "ledger": "/tmp/foreign.json"},
+               {**base, "SECRET_ARN": "different"}, {**base, "deadline_utc": "2026-01-01T00:00:00+00:00"},
+               {**base, "deadline_utc": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=2)).isoformat()},
+               {**base, "deadline_utc": "2026-10-08T23:00:00"}, {**base, "instance_id": 54999999}]
+        original = dict(bridge.__dict__)
+        for target in bad:
+            with self.subTest(target=target), patch.dict(bridge.__dict__, original), self.assertRaises(ValueError):
+                bridge.apply_owned_target(target)
+        self.assertEqual(bridge.INSTANCE, original["INSTANCE"])
+
+    def test_new_target_requires_matching_create_ledger_and_deadline(self):
+        original = dict(bridge.__dict__)
+        with patch.dict(bridge.__dict__, original):
+            target = self.target()
+            bridge.apply_owned_target(target)
+            ledger = {"instance_id": target["instance_id"], "label": target["label"], "state": "created",
+                      "resource_deadline_utc": bridge.DEADLINE, "control_plane_url": "http://127.0.0.1:8000",
+                      "events": [{"name": "request_started"}]}
+            bridge.validate_ledger(ledger)
+            bridge.validate_ledger({**ledger, "state": "reconciled"})
+            for bad in ({**ledger, "instance_id": "51074906"}, {**ledger, "label": "foreign"},
+                        {**ledger, "state": "initialized"}, {**ledger, "resource_deadline_utc": "different"},
+                        {**ledger, "control_plane_url": "https://foreign.invalid"}, {**ledger, "events": []}):
+                with self.subTest(ledger=bad), self.assertRaises(ValueError):
+                    bridge.validate_ledger(bad)
+
     def credentials(self):
         return {"AWS_ACCESS_KEY_ID": "synthetic-fixture-id", "AWS_SECRET_ACCESS_KEY": "synthetic-fixture-secret",
                 "AWS_DEFAULT_REGION": "us-east-1", "MUSETALK_AWS_SECRET_ID": bridge.SECRET_ARN}

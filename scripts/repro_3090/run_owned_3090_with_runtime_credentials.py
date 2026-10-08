@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Operator-only credential bridge for the already-owned 54798270 experiment.
+"""Operator-only credential bridge for one identity-verified owned experiment.
 
 Plan-only unless --execute is present. This is not a sandbox for arbitrary code:
 the operator must authorize the child command and its file/network effects.
@@ -25,6 +25,7 @@ import logging
 import os
 from pathlib import Path
 import pwd
+import re
 import resource
 import select
 import shlex
@@ -59,6 +60,35 @@ PAYLOAD_KEYS = {"AVATAR_S3_BUCKET", "AVATAR_S3_ENABLED", "AVATAR_S3_PREFIX", "AV
                 "AWS_ACCESS_KEY_ID", "AWS_DEFAULT_REGION", "AWS_REGION", "AWS_SECRET_ACCESS_KEY",
                 "AWS_SESSION_TOKEN"}
 CHILD_KEYS = PAYLOAD_KEYS | {"TRT_ARTIFACT_S3_BUCKET", "TRT_ARTIFACT_S3_REGION"}
+OWNED_TARGET_VALIDATED = False
+
+
+def apply_owned_target(document):
+    """Bind a new development target; never broaden secret/key/source access.
+
+    This non-secret descriptor is not spending authorization. The EC2 ledger
+    must separately prove the paid create and exactly the installed deadline.
+    Release/production workers are deliberately excluded from this repair tool.
+    """
+    require(isinstance(document, dict) and set(document) == {
+        "instance_id", "label", "worker_alias", "worker_hostname", "gpu_uuid",
+        "ledger", "deadline_utc"})
+    require(all(isinstance(v, str) and 0 < len(v) <= 512 and "\0" not in v
+                for v in document.values()))
+    instance = document["instance_id"]
+    label = document["label"]
+    require(re.fullmatch(r"[1-9][0-9]{6,11}", instance) is not None and instance != "51074906")
+    require(re.fullmatch(r"musetalk-r5-3090-dev-[A-Za-z0-9_.-]{4,80}", label) is not None)
+    require(document["worker_alias"] == "musetalk-3090-build-" + instance)
+    require(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.-]{0,63}", document["worker_hostname"]) is not None)
+    require(re.fullmatch(r"GPU-[a-fA-F0-9]{8}(?:-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}", document["gpu_uuid"]) is not None)
+    require(document["ledger"] == f"/home/ec2-user/.local/state/{label}/startup-ledger.json")
+    deadline = dt.datetime.fromisoformat(document["deadline_utc"].replace("Z", "+00:00"))
+    require(deadline.tzinfo is not None and deadline.utcoffset() == dt.timedelta(0))
+    require(120 < (deadline - dt.datetime.now(dt.timezone.utc)).total_seconds() <= 24 * 3600)
+    globals().update(INSTANCE=instance, LABEL=label, WORKER_ALIAS=document["worker_alias"],
+                     WORKER_HOSTNAME=document["worker_hostname"], GPU_UUID=document["gpu_uuid"],
+                     LEDGER=document["ledger"], DEADLINE=deadline.isoformat(), OWNED_TARGET_VALIDATED=True)
 
 
 def require(condition):
@@ -98,6 +128,16 @@ def parse_snapshot(template):
     return validate_bootstrap(values)
 
 
+def validate_ledger(ledger):
+    require(isinstance(ledger, dict))
+    require(str(ledger.get("instance_id")) == INSTANCE and ledger.get("label") == LABEL)
+    require(ledger.get("state") in {"created", "reconciled"})
+    if OWNED_TARGET_VALIDATED:
+        require(ledger.get("resource_deadline_utc") == DEADLINE)
+        require(ledger.get("control_plane_url") == "http://127.0.0.1:8000")
+        require(any(e.get("name") == "request_started" for e in ledger.get("events", [])))
+
+
 def ec2_export():
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     require(seconds_remaining() > 60)
@@ -107,9 +147,13 @@ def ec2_export():
     require(snapshot.stat().st_uid in {0, uid} and stat.S_IMODE(snapshot.stat().st_mode) == 0o600)
     require(snapshot.parent.stat().st_uid in {0, uid} and stat.S_IMODE(snapshot.parent.stat().st_mode) == 0o700)
     require(snapshot.stat().st_size < 1024 * 1024)
-    ledger = json.loads(Path(LEDGER).read_text())
-    require(str(ledger.get("instance_id")) == INSTANCE and ledger.get("label") == LABEL)
-    require(ledger.get("state") == "created")
+    ledger_path = Path(LEDGER)
+    require(not ledger_path.is_symlink() and not ledger_path.parent.is_symlink())
+    require(ledger_path.stat().st_uid in {0, uid} and stat.S_IMODE(ledger_path.stat().st_mode) == 0o600)
+    require(ledger_path.parent.stat().st_uid in {0, uid} and stat.S_IMODE(ledger_path.parent.stat().st_mode) == 0o700)
+    require(ledger_path.stat().st_size < 1024 * 1024)
+    ledger = json.loads(ledger_path.read_text())
+    validate_ledger(ledger)
     values = parse_snapshot(json.loads(snapshot.read_text()))
     # This stdout is captured by the operator helper, never attached to a PTY.
     sys.stdout.write(json.dumps(values))
@@ -203,7 +247,7 @@ def remote_code(function, nonce=""):
     imports = "import contextlib, datetime as dt, hashlib, importlib.util, io, json, logging, os, pwd, resource, shlex, signal, socket, stat, subprocess, sys\nfrom pathlib import Path\n"
     constants = {k: v for k, v in globals().items() if k.isupper() and isinstance(v, (str, int, set))}
     constants["NONCE"] = nonce
-    definitions = [require, seconds_remaining, validate_bootstrap, parse_snapshot, runtime_child_env, function]
+    definitions = [require, seconds_remaining, validate_bootstrap, parse_snapshot, validate_ledger, runtime_child_env, function]
     return imports + "\n".join(f"{k}={v!r}" for k, v in constants.items()) + "\n" + "\n".join(
         inspect.getsource(f) for f in definitions) + "\ntry:\n " + function.__name__ + "()\nexcept Exception:\n sys.exit(2)\n"
 
@@ -283,8 +327,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--timeout-seconds", type=int, default=3600)
+    parser.add_argument("--owned-target-json", help="Non-secret descriptor for a separately provisioned, bounded development target")
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
+    if args.owned_target_json:
+        target = Path(args.owned_target_json)
+        require(not target.is_symlink() and target.is_file() and target.stat().st_size <= MAX_RECORD)
+        apply_owned_target(json.loads(target.read_text()))
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
     require(command and command[0].startswith("/") and 1 <= args.timeout_seconds <= 7200)
     if not args.execute:
