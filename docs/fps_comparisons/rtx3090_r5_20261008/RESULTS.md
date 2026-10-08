@@ -254,3 +254,25 @@ running behind the exact previous-result gate. Archive1's conditional PUT,
 version-specific fresh S3 GET and clean CPU restore passed, with101payload
 files verified; archives2/3 remain pending. A fresh account quota check reports
 5%used/95%remaining, no reset consumed and no purchased credits.
+
+At17:12UTC, all3 private review archives passed exact-version fresh GET and
+clean CPU restore. A combined reread verifies293unique payload files spanning
+all48poses; see [private persistence descriptor](release/native48_private_persistence_and_restore_1712.json).
+These are archival integrity passes, not subjective visual/audio or native
+quality approval. Large media remain private and excluded from Git.
+
+The baseline five-stream stage is a validFAIL, preserved with all original
+thresholds: all5streams fail strict P1/P2/P3, minimum anchored15fps, worst
+gap143.2ms,47gaps over100ms, despite100%fresh/no held frames. No10/15/soak
+escalation occurred. Its [diagnosis](native/isolated_live_h264_v2_n5_analysis_1708.json)
+records measured68.9ms server-loop p99 lag,360threads, and the actual default
+aiortc medium/automatic-thread encoder; causation is not established.
+
+A separate SHA-pinned trial enables only the existing x264tuned implementation,
+activating veryfast/one-thread settings. Engines, avatar inputs, CPU allocation
+and strict thresholds are unchanged; a new output root preserves the baseline.
+The isolated API432033 confirmed actual backend selection, warmed the same16
+talking process caches and is running fresh S0N1. It cannot inherit the baseline's
+passes. Production, native quality rejection and full-recipe400FPS failures
+remain unchanged. The [startup assessment](startup/optimization_assessment_1701.json)
+separates measured preparation from still-unmeasured cold-call readiness.

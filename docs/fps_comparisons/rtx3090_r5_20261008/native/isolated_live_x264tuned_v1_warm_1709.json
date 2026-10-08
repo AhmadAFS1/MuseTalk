@@ -1,0 +1,2102 @@
+{
+  "schema": "owned3090_isolated_api_warm_v1",
+  "status": "PASS_SELECTED16_PROCESS_CACHE_RESIDENCY",
+  "started_at_utc": "2026-10-08T17:09:35.527758+00:00",
+  "plan_sha256": "2e9f78eafd39ada6a48982a49c49316314cf7282697b2bc96405a0b41bfa5488",
+  "api_pid": 432033,
+  "gpu_uuid": "GPU-5640f670-debe-ec22-1cfb-4b1f63bc1d53",
+  "cpu_max": "1843199 100000",
+  "worker_before": {
+    "worker_id": "musetalk-a830e00ce20c",
+    "worker_type": "musetalk",
+    "instance_id": "",
+    "base_url": null,
+    "public_ip": null,
+    "public_port": null,
+    "internal_port": 8300,
+    "capacity": 1,
+    "status": "healthy",
+    "draining": false,
+    "accepting_new_sessions": true,
+    "local_ready": true,
+    "control_plane_enabled": false,
+    "control_plane_requested": false,
+    "control_plane_configured": false,
+    "registered": false,
+    "register_url": null,
+    "heartbeat_url": null,
+    "last_register_error": null,
+    "last_heartbeat_error": null,
+    "last_register_response": null,
+    "last_heartbeat_response": null,
+    "last_register_success_at": null,
+    "last_heartbeat_at": null,
+    "last_drain_reason": null,
+    "metrics": {
+      "queue_depth": 0,
+      "active_requests": 0,
+      "active_jobs": 0,
+      "active_sessions_local": 0,
+      "active_live_sessions": 0,
+      "active_sse_streams": 0,
+      "active_hls_streams": 0,
+      "active_webrtc_streams": 0,
+      "free_capacity": 1,
+      "gpu_utilization": 0.0,
+      "gpu_util_pct": 0.0,
+      "gpu_memory_pct": 0.0,
+      "memory_used_mb": 4388.0,
+      "memory_total_mb": 24576.0,
+      "cached_avatars": 0,
+      "p95_latency_ms": 0,
+      "profile": "throughput_record"
+    }
+  },
+  "live_before": {
+    "view": "lifetime",
+    "total_sessions": 0,
+    "active_streams": 0,
+    "sessions": [],
+    "server": {
+      "pid": 432033,
+      "monotonic": 29617.569745459,
+      "wall_time": 1791479375.5256517,
+      "process_cpu_s": 19.0083,
+      "rss_mb": 2179.4,
+      "rss_high_water_mb": 4626.0,
+      "threads": 12,
+      "lifetime_counters": true,
+      "live_handoff_mode": "nonblocking",
+      "live": {
+        "frames_handed_off": 0,
+        "batches_handed_off": 0,
+        "callback_total_s": 0.0,
+        "callback_max_ms": 0.0
+      },
+      "loop_lag": {
+        "running": true,
+        "samples": 1200,
+        "samples_total": 1569,
+        "p50_ms": 0.2,
+        "p99_ms": 0.679,
+        "max_window_ms": 17.448,
+        "max_lifetime_ms": 17.448
+      },
+      "media_flags": {
+        "WEBRTC_NONBLOCKING_HANDOFF": "1",
+        "WEBRTC_HANDOFF_CONVERT_THREADS": "2",
+        "WEBRTC_QUEUE_PACKED_I420": "1",
+        "WEBRTC_IDLE_FRAME_CACHE": "1",
+        "WEBRTC_IDLE_FRAME_CACHE_MAX_MB": "2400",
+        "WEBRTC_IDLE_FRAME_CACHE_WARM": "1",
+        "WEBRTC_LIFETIME_COUNTERS": "1",
+        "WEBRTC_DEADLINE_PACING": "1",
+        "MUSETALK_DISABLE_LOCAL_TTS": "1",
+        "MUSETALK_THREAD_CAPS": "1",
+        "MUSETALK_CV2_THREADS": "1",
+        "WEBRTC_H264_IMPL": "x264tuned",
+        "MUSETALK_OFFLOOP_DIAGNOSTICS": "1"
+      },
+      "thread_caps": {
+        "enabled": true,
+        "idle_decode_threads": 1,
+        "motion_decode_threads": "unchanged",
+        "torch_intraop_threads": {
+          "before": 4,
+          "after": 4
+        },
+        "cv2_threads": {
+          "before": 14,
+          "after": 1
+        },
+        "ffmpeg_executor_workers": 4
+      },
+      "vp8": {
+        "encoder": "pyav",
+        "opt_in": false
+      },
+      "h264": {
+        "impl": "x264tuned",
+        "installed": true,
+        "max_bitrate": 6000000,
+        "x264": {
+          "preset": "veryfast",
+          "threads": 1
+        },
+        "nvenc": null
+      },
+      "idle_frame_cache": {
+        "enabled": true,
+        "max_mib": 2400.0,
+        "used_mib": 0.0,
+        "clips": 0,
+        "pending_builds": 0,
+        "rejected_keys": 0,
+        "hits": 0,
+        "misses": 0,
+        "builds": 0,
+        "build_failures": 0,
+        "avg_build_ms": 0.0,
+        "evictions": 0,
+        "admission_rejected": 0,
+        "frames_served": 0,
+        "per_avatar": {},
+        "clip_detail": []
+      },
+      "scheduler": {
+        "queued_or_active_jobs": 0
+      }
+    }
+  },
+  "warmups": [
+    {
+      "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.204262564999226,
+      "response": {
+        "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+          "memory_mb": 218.1734209060669,
+          "load_count": 1,
+          "age_seconds": 0.040279388427734375
+        },
+        "warmup": {
+          "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+          "request_id": "warm_28db8837",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479375.5323293,
+          "started_at": 1791479375.5327058,
+          "updated_at": 1791479377.079092,
+          "completed_at": 1791479377.079075,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 2.9689999792026356e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.5459956509985204,
+            "total_seconds": 1.546368290000828
+          },
+          "cache": {
+            "id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+            "memory_mb": 218.1734209060669,
+            "load_count": 1,
+            "age_seconds": 0.03983926773071289
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.1669830360006017,
+      "response": {
+        "avatar_id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+          "memory_mb": 234.32794952392578,
+          "load_count": 1,
+          "age_seconds": 0.04035615921020508
+        },
+        "warmup": {
+          "avatar_id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+          "request_id": "warm_ea4a92af",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479377.734592,
+          "started_at": 1791479377.734742,
+          "updated_at": 1791479379.1881385,
+          "completed_at": 1791479379.1881256,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 1.365999924018979e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.453262585997436,
+            "total_seconds": 1.453383144998952
+          },
+          "cache": {
+            "id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+            "memory_mb": 234.32794952392578,
+            "load_count": 1,
+            "age_seconds": 0.039933204650878906
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.466141573000641,
+      "response": {
+        "avatar_id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+          "memory_mb": 237.2209529876709,
+          "load_count": 1,
+          "age_seconds": 0.03970623016357422
+        },
+        "warmup": {
+          "avatar_id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+          "request_id": "warm_4f8a4a8e",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479379.9019234,
+          "started_at": 1791479379.9021647,
+          "updated_at": 1791479381.627043,
+          "completed_at": 1791479381.6270308,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 2.6920002710539848e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.724711661998299,
+            "total_seconds": 1.7248655419971328
+          },
+          "cache": {
+            "id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+            "memory_mb": 237.2209529876709,
+            "load_count": 1,
+            "age_seconds": 0.039331912994384766
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "en_04_owen_4fd8c9da_talking_aa79df3324",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.2271204220014624,
+      "response": {
+        "avatar_id": "en_04_owen_4fd8c9da_talking_aa79df3324",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "en_04_owen_4fd8c9da_talking_aa79df3324",
+          "memory_mb": 228.64719581604004,
+          "load_count": 1,
+          "age_seconds": 0.033675432205200195
+        },
+        "warmup": {
+          "avatar_id": "en_04_owen_4fd8c9da_talking_aa79df3324",
+          "request_id": "warm_38ff6c2d",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479382.3680596,
+          "started_at": 1791479382.3682303,
+          "updated_at": 1791479383.862831,
+          "completed_at": 1791479383.86282,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 1.2420001439750195e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.4945264300004055,
+            "total_seconds": 1.494589090001682
+          },
+          "cache": {
+            "id": "en_04_owen_4fd8c9da_talking_aa79df3324",
+            "memory_mb": 228.64719581604004,
+            "load_count": 1,
+            "age_seconds": 0.03331303596496582
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "es_01_valeria_aed74c50_talking_003d585d96",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.1550993109995034,
+      "response": {
+        "avatar_id": "es_01_valeria_aed74c50_talking_003d585d96",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "es_01_valeria_aed74c50_talking_003d585d96",
+          "memory_mb": 226.32281970977783,
+          "load_count": 1,
+          "age_seconds": 0.0408475399017334
+        },
+        "warmup": {
+          "avatar_id": "es_01_valeria_aed74c50_talking_003d585d96",
+          "request_id": "warm_1b609bba",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479384.5952713,
+          "started_at": 1791479384.5954409,
+          "updated_at": 1791479386.0038161,
+          "completed_at": 1791479386.0038,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 1.311999949393794e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.408287386999291,
+            "total_seconds": 1.4083589570000186
+          },
+          "cache": {
+            "id": "es_01_valeria_aed74c50_talking_003d585d96",
+            "memory_mb": 226.32281970977783,
+            "load_count": 1,
+            "age_seconds": 0.04035639762878418
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "es_02_lucia_e554c30b_talking_e5c5d0c534",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.1488156279992836,
+      "response": {
+        "avatar_id": "es_02_lucia_e554c30b_talking_e5c5d0c534",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "es_02_lucia_e554c30b_talking_e5c5d0c534",
+          "memory_mb": 213.0120029449463,
+          "load_count": 1,
+          "age_seconds": 0.03315114974975586
+        },
+        "warmup": {
+          "avatar_id": "es_02_lucia_e554c30b_talking_e5c5d0c534",
+          "request_id": "warm_efe2518f",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479386.7499907,
+          "started_at": 1791479386.750134,
+          "updated_at": 1791479388.280786,
+          "completed_at": 1791479388.2807739,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 1.4359000488184392e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.5305304109970166,
+            "total_seconds": 1.5306394200015347
+          },
+          "cache": {
+            "id": "es_02_lucia_e554c30b_talking_e5c5d0c534",
+            "memory_mb": 213.0120029449463,
+            "load_count": 1,
+            "age_seconds": 0.03273582458496094
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "es_03_mateo_884600e1_talking_75d88cda6c",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.336882331997913,
+      "response": {
+        "avatar_id": "es_03_mateo_884600e1_talking_75d88cda6c",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "es_03_mateo_884600e1_talking_75d88cda6c",
+          "memory_mb": 232.1918706893921,
+          "load_count": 1,
+          "age_seconds": 0.04389381408691406
+        },
+        "warmup": {
+          "avatar_id": "es_03_mateo_884600e1_talking_75d88cda6c",
+          "request_id": "warm_671d4d0a",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479388.8993623,
+          "started_at": 1791479388.8995957,
+          "updated_at": 1791479390.4508474,
+          "completed_at": 1791479390.4508345,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 2.267000309075229e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.5511058080010116,
+            "total_seconds": 1.55123797700071
+          },
+          "cache": {
+            "id": "es_03_mateo_884600e1_talking_75d88cda6c",
+            "memory_mb": 232.1918706893921,
+            "load_count": 1,
+            "age_seconds": 0.043468475341796875
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "es_04_diego_532cfc1f_talking_035dba1e7a",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.1544254639993596,
+      "response": {
+        "avatar_id": "es_04_diego_532cfc1f_talking_035dba1e7a",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "es_04_diego_532cfc1f_talking_035dba1e7a",
+          "memory_mb": 223.12396335601807,
+          "load_count": 1,
+          "age_seconds": 0.04288506507873535
+        },
+        "warmup": {
+          "avatar_id": "es_04_diego_532cfc1f_talking_035dba1e7a",
+          "request_id": "warm_6fe117d3",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479391.2364001,
+          "started_at": 1791479391.2366452,
+          "updated_at": 1791479392.7256277,
+          "completed_at": 1791479392.725615,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 2.7249996492173523e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.4888297709985636,
+            "total_seconds": 1.4889695209967613
+          },
+          "cache": {
+            "id": "es_04_diego_532cfc1f_talking_035dba1e7a",
+            "memory_mb": 223.12396335601807,
+            "load_count": 1,
+            "age_seconds": 0.042452096939086914
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.221669361999375,
+      "response": {
+        "avatar_id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e",
+          "memory_mb": 232.05762386322021,
+          "load_count": 1,
+          "age_seconds": 0.04151201248168945
+        },
+        "warmup": {
+          "avatar_id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e",
+          "request_id": "warm_40ff41d7",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479393.3909962,
+          "started_at": 1791479393.3912227,
+          "updated_at": 1791479394.7807715,
+          "completed_at": 1791479394.7807567,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 2.5020002794917673e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.3893920209993667,
+            "total_seconds": 1.3895332209976914
+          },
+          "cache": {
+            "id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e",
+            "memory_mb": 232.05762386322021,
+            "load_count": 1,
+            "age_seconds": 0.04109954833984375
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.2200144739981624,
+      "response": {
+        "avatar_id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5",
+          "memory_mb": 228.46189308166504,
+          "load_count": 1,
+          "age_seconds": 0.04036664962768555
+        },
+        "warmup": {
+          "avatar_id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5",
+          "request_id": "warm_ae981b88",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479395.6127021,
+          "started_at": 1791479395.6129413,
+          "updated_at": 1791479397.0473838,
+          "completed_at": 1791479397.04737,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 2.612000025692396e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.4342834529998072,
+            "total_seconds": 1.4344280529985554
+          },
+          "cache": {
+            "id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5",
+            "memory_mb": 228.46189308166504,
+            "load_count": 1,
+            "age_seconds": 0.039908647537231445
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6",
+      "http_status": 200,
+      "operator_elapsed_seconds": 1.7493205809987558,
+      "response": {
+        "avatar_id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6",
+          "memory_mb": 182.187575340271,
+          "load_count": 1,
+          "age_seconds": 0.04009056091308594
+        },
+        "warmup": {
+          "avatar_id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6",
+          "request_id": "warm_eae8fa15",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479397.8327618,
+          "started_at": 1791479397.8329937,
+          "updated_at": 1791479399.1171682,
+          "completed_at": 1791479399.1171515,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 1.8999999156221747e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.2840212539995264,
+            "total_seconds": 1.2841571339995426
+          },
+          "cache": {
+            "id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6",
+            "memory_mb": 182.187575340271,
+            "load_count": 1,
+            "age_seconds": 0.03964424133300781
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "ur_04_bilal_b9b0df23_talking_42d5916a02",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.32187444200099,
+      "response": {
+        "avatar_id": "ur_04_bilal_b9b0df23_talking_42d5916a02",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "ur_04_bilal_b9b0df23_talking_42d5916a02",
+          "memory_mb": 225.15100955963135,
+          "load_count": 1,
+          "age_seconds": 0.04486584663391113
+        },
+        "warmup": {
+          "avatar_id": "ur_04_bilal_b9b0df23_talking_42d5916a02",
+          "request_id": "warm_1bf6ea5f",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479399.5823123,
+          "started_at": 1791479399.5825117,
+          "updated_at": 1791479401.1803017,
+          "completed_at": 1791479401.1802862,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 1.3739998394157737e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.5977015169992228,
+            "total_seconds": 1.5977745070013043
+          },
+          "cache": {
+            "id": "ur_04_bilal_b9b0df23_talking_42d5916a02",
+            "memory_mb": 225.15100955963135,
+            "load_count": 1,
+            "age_seconds": 0.04453730583190918
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "zh_01_mei_ca138def_talking_c213293f1b",
+      "http_status": 200,
+      "operator_elapsed_seconds": 1.7698307879982167,
+      "response": {
+        "avatar_id": "zh_01_mei_ca138def_talking_c213293f1b",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "zh_01_mei_ca138def_talking_c213293f1b",
+          "memory_mb": 191.78394412994385,
+          "load_count": 1,
+          "age_seconds": 0.03823351860046387
+        },
+        "warmup": {
+          "avatar_id": "zh_01_mei_ca138def_talking_c213293f1b",
+          "request_id": "warm_b04ebdf7",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479401.9041114,
+          "started_at": 1791479401.904295,
+          "updated_at": 1791479403.1709862,
+          "completed_at": 1791479403.1709764,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 1.1950000043725595e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.2666175340018526,
+            "total_seconds": 1.266681453998899
+          },
+          "cache": {
+            "id": "zh_01_mei_ca138def_talking_c213293f1b",
+            "memory_mb": 191.78394412994385,
+            "load_count": 1,
+            "age_seconds": 0.037904977798461914
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "zh_02_lan_09242cdb_talking_3d84940bd7",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.0731356169999344,
+      "response": {
+        "avatar_id": "zh_02_lan_09242cdb_talking_3d84940bd7",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "zh_02_lan_09242cdb_talking_3d84940bd7",
+          "memory_mb": 221.08625888824463,
+          "load_count": 1,
+          "age_seconds": 0.04519486427307129
+        },
+        "warmup": {
+          "avatar_id": "zh_02_lan_09242cdb_talking_3d84940bd7",
+          "request_id": "warm_4abb8539",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479403.6742578,
+          "started_at": 1791479403.674518,
+          "updated_at": 1791479405.1111064,
+          "completed_at": 1791479405.1110873,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 2.5729998014867306e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.4364407860011852,
+            "total_seconds": 1.4365691159982816
+          },
+          "cache": {
+            "id": "zh_02_lan_09242cdb_talking_3d84940bd7",
+            "memory_mb": 221.08625888824463,
+            "load_count": 1,
+            "age_seconds": 0.04480576515197754
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "zh_03_wei_44dc1943_talking_3cc9c11c9b",
+      "http_status": 200,
+      "operator_elapsed_seconds": 1.9156815210008062,
+      "response": {
+        "avatar_id": "zh_03_wei_44dc1943_talking_3cc9c11c9b",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "zh_03_wei_44dc1943_talking_3cc9c11c9b",
+          "memory_mb": 204.92223739624023,
+          "load_count": 1,
+          "age_seconds": 0.04583907127380371
+        },
+        "warmup": {
+          "avatar_id": "zh_03_wei_44dc1943_talking_3cc9c11c9b",
+          "request_id": "warm_f44854dd",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479405.747612,
+          "started_at": 1791479405.7478378,
+          "updated_at": 1791479407.1064346,
+          "completed_at": 1791479407.10642,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 3.561999983503483e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.3584469930028717,
+            "total_seconds": 1.358581893000519
+          },
+          "cache": {
+            "id": "zh_03_wei_44dc1943_talking_3cc9c11c9b",
+            "memory_mb": 204.92223739624023,
+            "load_count": 1,
+            "age_seconds": 0.04548454284667969
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    },
+    {
+      "avatar_id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+      "http_status": 200,
+      "operator_elapsed_seconds": 2.12932780799747,
+      "response": {
+        "avatar_id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+          "memory_mb": 214.20069026947021,
+          "load_count": 1,
+          "age_seconds": 0.04434680938720703
+        },
+        "warmup": {
+          "avatar_id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+          "request_id": "warm_cf74fdea",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": false,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791479407.6633382,
+          "started_at": 1791479407.6635416,
+          "updated_at": 1791479409.1131122,
+          "completed_at": 1791479409.1131022,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 2.5010001991176978e-05,
+            "s3_restore_seconds": 0.0,
+            "avatar_load_seconds": 1.4494400399998995,
+            "total_seconds": 1.4495603200011828
+          },
+          "cache": {
+            "id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+            "memory_mb": 214.20069026947021,
+            "load_count": 1,
+            "age_seconds": 0.043993234634399414
+          }
+        },
+        "idle_frame_cache": {
+          "requested": 2,
+          "ready": true
+        }
+      }
+    }
+  ],
+  "startup_acceptance": false,
+  "release_ready": false,
+  "note": "Local existing-cache warm only, not fresh-instance or EC2 readiness. Cache warm does not run a speech inference batch.",
+  "residency_after_all_warms": [
+    {
+      "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+        "memory_mb": 218.1734209060669,
+        "load_count": 1,
+        "age_seconds": 32.753612995147705
+      },
+      "warmup": {
+        "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+        "request_id": "warm_28db8837",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479375.5323293,
+        "started_at": 1791479375.5327058,
+        "updated_at": 1791479377.079092,
+        "completed_at": 1791479377.079075,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 2.9689999792026356e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.5459956509985204,
+          "total_seconds": 1.546368290000828
+        },
+        "cache": {
+          "id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+          "memory_mb": 218.1734209060669,
+          "load_count": 1,
+          "age_seconds": 0.03983926773071289
+        }
+      }
+    },
+    {
+      "avatar_id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+        "memory_mb": 234.32794952392578,
+        "load_count": 1,
+        "age_seconds": 30.647284746170044
+      },
+      "warmup": {
+        "avatar_id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+        "request_id": "warm_ea4a92af",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479377.734592,
+        "started_at": 1791479377.734742,
+        "updated_at": 1791479379.1881385,
+        "completed_at": 1791479379.1881256,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 1.365999924018979e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.453262585997436,
+          "total_seconds": 1.453383144998952
+        },
+        "cache": {
+          "id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+          "memory_mb": 234.32794952392578,
+          "load_count": 1,
+          "age_seconds": 0.039933204650878906
+        }
+      }
+    },
+    {
+      "avatar_id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+        "memory_mb": 237.2209529876709,
+        "load_count": 1,
+        "age_seconds": 28.210355520248413
+      },
+      "warmup": {
+        "avatar_id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+        "request_id": "warm_4f8a4a8e",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479379.9019234,
+        "started_at": 1791479379.9021647,
+        "updated_at": 1791479381.627043,
+        "completed_at": 1791479381.6270308,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 2.6920002710539848e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.724711661998299,
+          "total_seconds": 1.7248655419971328
+        },
+        "cache": {
+          "id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+          "memory_mb": 237.2209529876709,
+          "load_count": 1,
+          "age_seconds": 0.039331912994384766
+        }
+      }
+    },
+    {
+      "avatar_id": "en_04_owen_4fd8c9da_talking_aa79df3324",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "en_04_owen_4fd8c9da_talking_aa79df3324",
+        "memory_mb": 228.64719581604004,
+        "load_count": 1,
+        "age_seconds": 25.97111701965332
+      },
+      "warmup": {
+        "avatar_id": "en_04_owen_4fd8c9da_talking_aa79df3324",
+        "request_id": "warm_38ff6c2d",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479382.3680596,
+        "started_at": 1791479382.3682303,
+        "updated_at": 1791479383.862831,
+        "completed_at": 1791479383.86282,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 1.2420001439750195e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.4945264300004055,
+          "total_seconds": 1.494589090001682
+        },
+        "cache": {
+          "id": "en_04_owen_4fd8c9da_talking_aa79df3324",
+          "memory_mb": 228.64719581604004,
+          "load_count": 1,
+          "age_seconds": 0.03331303596496582
+        }
+      }
+    },
+    {
+      "avatar_id": "es_01_valeria_aed74c50_talking_003d585d96",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "es_01_valeria_aed74c50_talking_003d585d96",
+        "memory_mb": 226.32281970977783,
+        "load_count": 1,
+        "age_seconds": 23.839633226394653
+      },
+      "warmup": {
+        "avatar_id": "es_01_valeria_aed74c50_talking_003d585d96",
+        "request_id": "warm_1b609bba",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479384.5952713,
+        "started_at": 1791479384.5954409,
+        "updated_at": 1791479386.0038161,
+        "completed_at": 1791479386.0038,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 1.311999949393794e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.408287386999291,
+          "total_seconds": 1.4083589570000186
+        },
+        "cache": {
+          "id": "es_01_valeria_aed74c50_talking_003d585d96",
+          "memory_mb": 226.32281970977783,
+          "load_count": 1,
+          "age_seconds": 0.04035639762878418
+        }
+      }
+    },
+    {
+      "avatar_id": "es_02_lucia_e554c30b_talking_e5c5d0c534",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "es_02_lucia_e554c30b_talking_e5c5d0c534",
+        "memory_mb": 213.0120029449463,
+        "load_count": 1,
+        "age_seconds": 21.557478427886963
+      },
+      "warmup": {
+        "avatar_id": "es_02_lucia_e554c30b_talking_e5c5d0c534",
+        "request_id": "warm_efe2518f",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479386.7499907,
+        "started_at": 1791479386.750134,
+        "updated_at": 1791479388.280786,
+        "completed_at": 1791479388.2807739,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 1.4359000488184392e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.5305304109970166,
+          "total_seconds": 1.5306394200015347
+        },
+        "cache": {
+          "id": "es_02_lucia_e554c30b_talking_e5c5d0c534",
+          "memory_mb": 213.0120029449463,
+          "load_count": 1,
+          "age_seconds": 0.03273582458496094
+        }
+      }
+    },
+    {
+      "avatar_id": "es_03_mateo_884600e1_talking_75d88cda6c",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "es_03_mateo_884600e1_talking_75d88cda6c",
+        "memory_mb": 232.1918706893921,
+        "load_count": 1,
+        "age_seconds": 19.40075397491455
+      },
+      "warmup": {
+        "avatar_id": "es_03_mateo_884600e1_talking_75d88cda6c",
+        "request_id": "warm_671d4d0a",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479388.8993623,
+        "started_at": 1791479388.8995957,
+        "updated_at": 1791479390.4508474,
+        "completed_at": 1791479390.4508345,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 2.267000309075229e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.5511058080010116,
+          "total_seconds": 1.55123797700071
+        },
+        "cache": {
+          "id": "es_03_mateo_884600e1_talking_75d88cda6c",
+          "memory_mb": 232.1918706893921,
+          "load_count": 1,
+          "age_seconds": 0.043468475341796875
+        }
+      }
+    },
+    {
+      "avatar_id": "es_04_diego_532cfc1f_talking_035dba1e7a",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "es_04_diego_532cfc1f_talking_035dba1e7a",
+        "memory_mb": 223.12396335601807,
+        "load_count": 1,
+        "age_seconds": 17.12744402885437
+      },
+      "warmup": {
+        "avatar_id": "es_04_diego_532cfc1f_talking_035dba1e7a",
+        "request_id": "warm_6fe117d3",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479391.2364001,
+        "started_at": 1791479391.2366452,
+        "updated_at": 1791479392.7256277,
+        "completed_at": 1791479392.725615,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 2.7249996492173523e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.4888297709985636,
+          "total_seconds": 1.4889695209967613
+        },
+        "cache": {
+          "id": "es_04_diego_532cfc1f_talking_035dba1e7a",
+          "memory_mb": 223.12396335601807,
+          "load_count": 1,
+          "age_seconds": 0.042452096939086914
+        }
+      }
+    },
+    {
+      "avatar_id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e",
+        "memory_mb": 232.05762386322021,
+        "load_count": 1,
+        "age_seconds": 15.073404550552368
+      },
+      "warmup": {
+        "avatar_id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e",
+        "request_id": "warm_40ff41d7",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479393.3909962,
+        "started_at": 1791479393.3912227,
+        "updated_at": 1791479394.7807715,
+        "completed_at": 1791479394.7807567,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 2.5020002794917673e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.3893920209993667,
+          "total_seconds": 1.3895332209976914
+        },
+        "cache": {
+          "id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e",
+          "memory_mb": 232.05762386322021,
+          "load_count": 1,
+          "age_seconds": 0.04109954833984375
+        }
+      }
+    },
+    {
+      "avatar_id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5",
+        "memory_mb": 228.46189308166504,
+        "load_count": 1,
+        "age_seconds": 12.808026313781738
+      },
+      "warmup": {
+        "avatar_id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5",
+        "request_id": "warm_ae981b88",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479395.6127021,
+        "started_at": 1791479395.6129413,
+        "updated_at": 1791479397.0473838,
+        "completed_at": 1791479397.04737,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 2.612000025692396e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.4342834529998072,
+          "total_seconds": 1.4344280529985554
+        },
+        "cache": {
+          "id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5",
+          "memory_mb": 228.46189308166504,
+          "load_count": 1,
+          "age_seconds": 0.039908647537231445
+        }
+      }
+    },
+    {
+      "avatar_id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6",
+        "memory_mb": 182.187575340271,
+        "load_count": 1,
+        "age_seconds": 10.740563154220581
+      },
+      "warmup": {
+        "avatar_id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6",
+        "request_id": "warm_eae8fa15",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479397.8327618,
+        "started_at": 1791479397.8329937,
+        "updated_at": 1791479399.1171682,
+        "completed_at": 1791479399.1171515,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 1.8999999156221747e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.2840212539995264,
+          "total_seconds": 1.2841571339995426
+        },
+        "cache": {
+          "id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6",
+          "memory_mb": 182.187575340271,
+          "load_count": 1,
+          "age_seconds": 0.03964424133300781
+        }
+      }
+    },
+    {
+      "avatar_id": "ur_04_bilal_b9b0df23_talking_42d5916a02",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "ur_04_bilal_b9b0df23_talking_42d5916a02",
+        "memory_mb": 225.15100955963135,
+        "load_count": 1,
+        "age_seconds": 8.685139417648315
+      },
+      "warmup": {
+        "avatar_id": "ur_04_bilal_b9b0df23_talking_42d5916a02",
+        "request_id": "warm_1bf6ea5f",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479399.5823123,
+        "started_at": 1791479399.5825117,
+        "updated_at": 1791479401.1803017,
+        "completed_at": 1791479401.1802862,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 1.3739998394157737e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.5977015169992228,
+          "total_seconds": 1.5977745070013043
+        },
+        "cache": {
+          "id": "ur_04_bilal_b9b0df23_talking_42d5916a02",
+          "memory_mb": 225.15100955963135,
+          "load_count": 1,
+          "age_seconds": 0.04453730583190918
+        }
+      }
+    },
+    {
+      "avatar_id": "zh_01_mei_ca138def_talking_c213293f1b",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "zh_01_mei_ca138def_talking_c213293f1b",
+        "memory_mb": 191.78394412994385,
+        "load_count": 1,
+        "age_seconds": 6.690255641937256
+      },
+      "warmup": {
+        "avatar_id": "zh_01_mei_ca138def_talking_c213293f1b",
+        "request_id": "warm_b04ebdf7",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479401.9041114,
+        "started_at": 1791479401.904295,
+        "updated_at": 1791479403.1709862,
+        "completed_at": 1791479403.1709764,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 1.1950000043725595e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.2666175340018526,
+          "total_seconds": 1.266681453998899
+        },
+        "cache": {
+          "id": "zh_01_mei_ca138def_talking_c213293f1b",
+          "memory_mb": 191.78394412994385,
+          "load_count": 1,
+          "age_seconds": 0.037904977798461914
+        }
+      }
+    },
+    {
+      "avatar_id": "zh_02_lan_09242cdb_talking_3d84940bd7",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "zh_02_lan_09242cdb_talking_3d84940bd7",
+        "memory_mb": 221.08625888824463,
+        "load_count": 1,
+        "age_seconds": 4.75954794883728
+      },
+      "warmup": {
+        "avatar_id": "zh_02_lan_09242cdb_talking_3d84940bd7",
+        "request_id": "warm_4abb8539",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479403.6742578,
+        "started_at": 1791479403.674518,
+        "updated_at": 1791479405.1111064,
+        "completed_at": 1791479405.1110873,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 2.5729998014867306e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.4364407860011852,
+          "total_seconds": 1.4365691159982816
+        },
+        "cache": {
+          "id": "zh_02_lan_09242cdb_talking_3d84940bd7",
+          "memory_mb": 221.08625888824463,
+          "load_count": 1,
+          "age_seconds": 0.04480576515197754
+        }
+      }
+    },
+    {
+      "avatar_id": "zh_03_wei_44dc1943_talking_3cc9c11c9b",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "zh_03_wei_44dc1943_talking_3cc9c11c9b",
+        "memory_mb": 204.92223739624023,
+        "load_count": 1,
+        "age_seconds": 2.767329454421997
+      },
+      "warmup": {
+        "avatar_id": "zh_03_wei_44dc1943_talking_3cc9c11c9b",
+        "request_id": "warm_f44854dd",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479405.747612,
+        "started_at": 1791479405.7478378,
+        "updated_at": 1791479407.1064346,
+        "completed_at": 1791479407.10642,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 3.561999983503483e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.3584469930028717,
+          "total_seconds": 1.358581893000519
+        },
+        "cache": {
+          "id": "zh_03_wei_44dc1943_talking_3cc9c11c9b",
+          "memory_mb": 204.92223739624023,
+          "load_count": 1,
+          "age_seconds": 0.04548454284667969
+        }
+      }
+    },
+    {
+      "avatar_id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "cache": {
+        "id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+        "memory_mb": 214.20069026947021,
+        "load_count": 1,
+        "age_seconds": 0.7615189552307129
+      },
+      "warmup": {
+        "avatar_id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+        "request_id": "warm_cf74fdea",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": false,
+        "s3_restore_required": false,
+        "batch_size": 16,
+        "submitted_at": 1791479407.6633382,
+        "started_at": 1791479407.6635416,
+        "updated_at": 1791479409.1131122,
+        "completed_at": 1791479409.1131022,
+        "error": null,
+        "timings": {
+          "existence_check_seconds": 2.5010001991176978e-05,
+          "s3_restore_seconds": 0.0,
+          "avatar_load_seconds": 1.4494400399998995,
+          "total_seconds": 1.4495603200011828
+        },
+        "cache": {
+          "id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+          "memory_mb": 214.20069026947021,
+          "load_count": 1,
+          "age_seconds": 0.043993234634399414
+        }
+      }
+    }
+  ],
+  "stats_after": {
+    "gpu": {
+      "total_gb": 24.0,
+      "reserved_gb": 6.0,
+      "available_gb": 18.0,
+      "current_usage_gb": 0.0,
+      "free_gb": 18.0,
+      "source": "env",
+      "batch_memory_gb": {
+        "1": 2.0,
+        "2": 3.5,
+        "4": 6.0,
+        "8": 10.0,
+        "16": 14.0,
+        "32": 22.0,
+        "48": 28.0,
+        "64": 34.0
+      },
+      "recommended_scheduler": {
+        "max_combined_batch_size": 16,
+        "fixed_batch_sizes": [
+          8,
+          16
+        ],
+        "warmup_batches": [
+          8,
+          16
+        ],
+        "startup_slice_size": 4
+      },
+      "compute": {
+        "max_live_generations": 1,
+        "slots_in_use": 0,
+        "slots_free": 1,
+        "holders": {}
+      }
+    },
+    "cache": {
+      "cached_avatars": 16,
+      "max_cached_avatars": null,
+      "total_memory_mb": 3512.8714084625244,
+      "max_memory_mb": 9000.0,
+      "hit_rate": "0.00%",
+      "hits": 0,
+      "misses": 32,
+      "evictions": 0,
+      "loads": 16,
+      "avatars": [
+        {
+          "id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+          "memory_mb": 218.1734209060669,
+          "load_count": 1,
+          "age_seconds": 32.79500222206116
+        },
+        {
+          "id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+          "memory_mb": 234.32794952392578,
+          "load_count": 1,
+          "age_seconds": 30.68604803085327
+        },
+        {
+          "id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+          "memory_mb": 237.2209529876709,
+          "load_count": 1,
+          "age_seconds": 28.246540069580078
+        },
+        {
+          "id": "en_04_owen_4fd8c9da_talking_aa79df3324",
+          "memory_mb": 228.64719581604004,
+          "load_count": 1,
+          "age_seconds": 26.004733085632324
+        },
+        {
+          "id": "es_01_valeria_aed74c50_talking_003d585d96",
+          "memory_mb": 226.32281970977783,
+          "load_count": 1,
+          "age_seconds": 23.87079930305481
+        },
+        {
+          "id": "es_02_lucia_e554c30b_talking_e5c5d0c534",
+          "memory_mb": 213.0120029449463,
+          "load_count": 1,
+          "age_seconds": 21.58620524406433
+        },
+        {
+          "id": "es_03_mateo_884600e1_talking_75d88cda6c",
+          "memory_mb": 232.1918706893921,
+          "load_count": 1,
+          "age_seconds": 19.426876544952393
+        },
+        {
+          "id": "es_04_diego_532cfc1f_talking_035dba1e7a",
+          "memory_mb": 223.12396335601807,
+          "load_count": 1,
+          "age_seconds": 17.151079893112183
+        },
+        {
+          "id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e",
+          "memory_mb": 232.05762386322021,
+          "load_count": 1,
+          "age_seconds": 15.094588041305542
+        },
+        {
+          "id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5",
+          "memory_mb": 228.46189308166504,
+          "load_count": 1,
+          "age_seconds": 12.826782464981079
+        },
+        {
+          "id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6",
+          "memory_mb": 182.187575340271,
+          "load_count": 1,
+          "age_seconds": 10.75673770904541
+        },
+        {
+          "id": "ur_04_bilal_b9b0df23_talking_42d5916a02",
+          "memory_mb": 225.15100955963135,
+          "load_count": 1,
+          "age_seconds": 8.69849681854248
+        },
+        {
+          "id": "zh_01_mei_ca138def_talking_c213293f1b",
+          "memory_mb": 191.78394412994385,
+          "load_count": 1,
+          "age_seconds": 6.701172828674316
+        },
+        {
+          "id": "zh_02_lan_09242cdb_talking_3d84940bd7",
+          "memory_mb": 221.08625888824463,
+          "load_count": 1,
+          "age_seconds": 4.767965316772461
+        },
+        {
+          "id": "zh_03_wei_44dc1943_talking_3cc9c11c9b",
+          "memory_mb": 204.92223739624023,
+          "load_count": 1,
+          "age_seconds": 2.7733118534088135
+        },
+        {
+          "id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+          "memory_mb": 214.20069026947021,
+          "load_count": 1,
+          "age_seconds": 0.7651364803314209
+        }
+      ]
+    },
+    "hls_scheduler": {
+      "queued_or_active_jobs": 0,
+      "preparing_jobs": 0,
+      "prep_queue_depth": 0,
+      "max_combined_batch_size": 16,
+      "startup_slice_size": 8,
+      "startup_chunk_duration_seconds": 0.5,
+      "startup_chunk_count": 1,
+      "aggressive_fill_max_active_jobs": 4,
+      "startup_pending_jobs": 0,
+      "compose_workers": 10,
+      "encode_workers": 10,
+      "jobs": [],
+      "pipeline": {
+        "gpu_event_timing": true,
+        "gpu_stage_sync_timing": false,
+        "pipeline_depth": 1,
+        "output_ring_size": 0,
+        "gpu_blocking_wait": false,
+        "scheduler_policy": "roundrobin",
+        "max_runahead_s": 5.0,
+        "edf_startup_frames": 0,
+        "edf_urgent_s": 0.5,
+        "edf_max_queue_frames": 0,
+        "skip_gpu_for_raw": false,
+        "skip_raw_max_pending_batches": 2,
+        "skip_crossfade_copy": true,
+        "webrtc_yuv_in_compose": false,
+        "whisper_stream": false,
+        "unet_cudagraphs_mode": null
+      },
+      "capacity": {
+        "enabled": true,
+        "config": {
+          "gpu_event_timing": true,
+          "gpu_stage_sync_timing": false,
+          "pipeline_depth": 1,
+          "output_ring_size": 0,
+          "gpu_blocking_wait": false,
+          "scheduler_policy": "roundrobin",
+          "max_runahead_s": 5.0,
+          "edf_startup_frames": 0,
+          "edf_urgent_s": 0.5,
+          "edf_max_queue_frames": 0,
+          "skip_gpu_for_raw": false,
+          "skip_raw_max_pending_batches": 2,
+          "skip_crossfade_copy": true,
+          "webrtc_yuv_in_compose": false,
+          "whisper_stream": false,
+          "unet_cudagraphs_mode": null
+        },
+        "totals": {
+          "wall_s": 113.46726526400016,
+          "scheduler_thread_cpu_ms": 313.572161
+        },
+        "derived": {
+          "batches": 0,
+          "gpu_batches": 0,
+          "gpu_busy_fraction": 0.0,
+          "gpu_ms_per_batch": null,
+          "idle_gap_ms_per_batch": null,
+          "callback_ms_per_batch": null,
+          "feeder_cpu_ms_per_batch": null,
+          "host_wait_ms_per_batch": null,
+          "ring_wait_ms_total": 0.0,
+          "fill": null,
+          "jobs_per_batch": null,
+          "gpu_fps": 0.0,
+          "raw_frames": 0,
+          "h2d_ms_per_batch": null,
+          "unet_ms_per_batch": null,
+          "vae_ms_per_batch": null,
+          "d2h_ms_per_batch": null
+        }
+      }
+    },
+    "active_requests": 0
+  },
+  "live_after": {
+    "view": "lifetime",
+    "total_sessions": 0,
+    "active_streams": 0,
+    "sessions": [],
+    "server": {
+      "pid": 432033,
+      "monotonic": 29651.93377673,
+      "wall_time": 1791479409.889683,
+      "process_cpu_s": 82.0405,
+      "rss_mb": 7483.7,
+      "rss_high_water_mb": 7483.7,
+      "threads": 14,
+      "lifetime_counters": true,
+      "live_handoff_mode": "nonblocking",
+      "live": {
+        "frames_handed_off": 0,
+        "batches_handed_off": 0,
+        "callback_total_s": 0.0,
+        "callback_max_ms": 0.0
+      },
+      "loop_lag": {
+        "running": true,
+        "samples": 1200,
+        "samples_total": 2245,
+        "p50_ms": 0.214,
+        "p99_ms": 9.52,
+        "max_window_ms": 42.67,
+        "max_lifetime_ms": 42.67
+      },
+      "media_flags": {
+        "WEBRTC_NONBLOCKING_HANDOFF": "1",
+        "WEBRTC_HANDOFF_CONVERT_THREADS": "2",
+        "WEBRTC_QUEUE_PACKED_I420": "1",
+        "WEBRTC_IDLE_FRAME_CACHE": "1",
+        "WEBRTC_IDLE_FRAME_CACHE_MAX_MB": "2400",
+        "WEBRTC_IDLE_FRAME_CACHE_WARM": "1",
+        "WEBRTC_LIFETIME_COUNTERS": "1",
+        "WEBRTC_DEADLINE_PACING": "1",
+        "MUSETALK_DISABLE_LOCAL_TTS": "1",
+        "MUSETALK_THREAD_CAPS": "1",
+        "MUSETALK_CV2_THREADS": "1",
+        "WEBRTC_H264_IMPL": "x264tuned",
+        "MUSETALK_OFFLOOP_DIAGNOSTICS": "1"
+      },
+      "thread_caps": {
+        "enabled": true,
+        "idle_decode_threads": 1,
+        "motion_decode_threads": "unchanged",
+        "torch_intraop_threads": {
+          "before": 4,
+          "after": 4
+        },
+        "cv2_threads": {
+          "before": 14,
+          "after": 1
+        },
+        "ffmpeg_executor_workers": 4
+      },
+      "vp8": {
+        "encoder": "pyav",
+        "opt_in": false
+      },
+      "h264": {
+        "impl": "x264tuned",
+        "installed": true,
+        "max_bitrate": 6000000,
+        "x264": {
+          "preset": "veryfast",
+          "threads": 1
+        },
+        "nvenc": null
+      },
+      "idle_frame_cache": {
+        "enabled": true,
+        "max_mib": 2400.0,
+        "used_mib": 2362.5,
+        "clips": 15,
+        "pending_builds": 0,
+        "rejected_keys": 0,
+        "hits": 0,
+        "misses": 0,
+        "builds": 16,
+        "build_failures": 0,
+        "avg_build_ms": 642.5,
+        "evictions": 1,
+        "admission_rejected": 0,
+        "frames_served": 0,
+        "per_avatar": {
+          "en_02_claire_a833ee1f_talking_f6f244cc2a": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "en_03_marcus_19eb1ea8_talking_ada35a4a4d": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "en_04_owen_4fd8c9da_talking_aa79df3324": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "es_01_valeria_aed74c50_talking_003d585d96": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "es_02_lucia_e554c30b_talking_e5c5d0c534": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "es_03_mateo_884600e1_talking_75d88cda6c": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "es_04_diego_532cfc1f_talking_035dba1e7a": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "ur_02_zara_2fe6a913_talking_1e7fb98cf5": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "ur_03_hamza_0c24ed7f_talking_bbadac99b6": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "ur_04_bilal_b9b0df23_talking_42d5916a02": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "zh_01_mei_ca138def_talking_c213293f1b": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "zh_02_lan_09242cdb_talking_3d84940bd7": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "zh_03_wei_44dc1943_talking_3cc9c11c9b": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          },
+          "zh_04_jun_7e6a6f0b_talking_ccedca71ff": {
+            "clips": 1,
+            "frames": 240,
+            "mib": 157.5
+          }
+        },
+        "clip_detail": [
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/en_02_claire_a833ee1f_talking_f6f244cc2a/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/en_03_marcus_19eb1ea8_talking_ada35a4a4d/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/en_04_owen_4fd8c9da_talking_aa79df3324/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/es_01_valeria_aed74c50_talking_003d585d96/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/es_02_lucia_e554c30b_talking_e5c5d0c534/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/es_03_mateo_884600e1_talking_75d88cda6c/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/es_04_diego_532cfc1f_talking_035dba1e7a/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/ur_02_zara_2fe6a913_talking_1e7fb98cf5/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/ur_03_hamza_0c24ed7f_talking_bbadac99b6/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/ur_04_bilal_b9b0df23_talking_42d5916a02/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/zh_01_mei_ca138def_talking_c213293f1b/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/zh_02_lan_09242cdb_talking_3d84940bd7/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/zh_03_wei_44dc1943_talking_3cc9c11c9b/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          },
+          {
+            "path": "/workspace/MuseTalk/results/v15/avatars/zh_04_jun_7e6a6f0b_talking_ccedca71ff/input_video.mp4",
+            "frames": 240,
+            "mib": 157.5,
+            "readers": 0
+          }
+        ]
+      },
+      "scheduler": {
+        "queued_or_active_jobs": 0
+      }
+    }
+  },
+  "finished_at_utc": "2026-10-08T17:10:09.939497+00:00"
+}

@@ -76,7 +76,9 @@ def main():
     parser.add_argument('--stage', choices=STAGES, required=True)
     parser.add_argument('--attempt', choices=('h264_offer_v2',), required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--profile', choices=tuple(warm.PLAN_PROFILES), default='aiortc_v1')
     args = parser.parse_args()
+    warm.select_profile(args.profile)
     require(socket.gethostname() == 'a830e00ce20c', 'not owned A1 host')
     require(dt.datetime.now(dt.timezone.utc) < warm.DEADLINE, 'A1 deadline passed')
     require(hashlib.sha256(warm.PLAN.read_bytes()).hexdigest() == warm.PLAN_SHA, 'plan SHA mismatch')
@@ -107,7 +109,8 @@ def main():
     # Read only these allowlisted, non-secret values; never serialize environ.
     env = dict(entry.split(b'=', 1) for entry in Path(f'/proc/{pid}/environ').read_bytes().split(b'\0') if b'=' in entry)
     keys = ('MUSETALK_UNET_STAGEWISE_CACHE_DIR', 'MUSETALK_TAESD_TRT_DIR', 'MUSETALK_TAESD_BACKEND',
-            'MUSETALK_TAESD_TRT_BUILD', 'LINGUA_CONTROL_PLANE_ENABLED', 'AVATAR_S3_ENABLED', 'HOST', 'PORT')
+            'MUSETALK_TAESD_TRT_BUILD', 'LINGUA_CONTROL_PLANE_ENABLED', 'AVATAR_S3_ENABLED', 'HOST', 'PORT',
+            'WEBRTC_H264_IMPL', 'WEBRTC_H264_X264_THREADS', 'WEBRTC_H264_X264_PRESET', 'MUSETALK_RUNTIME_DIR')
     require(all(env.get(k.encode()) == plan['server_env'][k].encode() for k in keys), 'actual API environment differs from fixed plan')
     del env
     gpu_pids = subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'],
@@ -130,7 +133,7 @@ def main():
     require(warm.request('/stats')[1].get('active_requests') == 0, 'background requests active')
     receipt = {'schema': 'owned3090_live_stage_preflight_v1', 'status': 'PRECHECK_PASS_CLIENT_STARTING',
                'stage': args.stage, 'level': level, 'api_pid': pid, 'plan_sha256': warm.PLAN_SHA,
-               'client_attempt': args.attempt, 'client_argv': argv,
+               'client_attempt': args.attempt, 'profile': args.profile, 'client_argv': argv,
                'adapter_sha256': hashlib.sha256((warm.ROOT / 'scripts/repro_3090/live_client_evidence.py').read_bytes()).hexdigest(),
                'started_at_utc': dt.datetime.now(dt.timezone.utc).isoformat(), 'previous_strict_pass': prior,
                'cpu_max': Path('/sys/fs/cgroup/cpu.max').read_text().strip(), 'warmups': rows,

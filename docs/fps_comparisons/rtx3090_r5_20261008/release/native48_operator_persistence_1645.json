@@ -1,0 +1,178 @@
+{
+  "schema": "rejected_native48_operator_private_persistence_v1",
+  "status": "PASS_ALL3_PRIVATE_ARCHIVE_FRESH_GET_SHA",
+  "pack_receipt_sha256": "57d446dfca7d1386100430cced8da1629103c9eeff18c424dcac3a3361f6e630",
+  "release_ready": false,
+  "bucket": "lingua-musetalk-s3-storage",
+  "region": "us-east-1",
+  "expected_owner": "211125449207",
+  "mode": "conditional-put-verify",
+  "started_at_utc": "2026-10-08T16:45:46.183137+00:00",
+  "objects": [
+    {
+      "filename": "native-v1-production48-review-part1of3.tar.gz",
+      "sha256": "4708d9e10e21d4ae75aa7ae51c37d4ba93cc12b53576c45ad2782b208f219394",
+      "bytes": 2161050441,
+      "key": "trt-artifacts/rtx3090-r5/native-rejected-diagnostics/sha256/4708d9e10e21d4ae75aa7ae51c37d4ba93cc12b53576c45ad2782b208f219394/native-v1-production48-review-part1of3.tar.gz",
+      "privacy_configuration_observation": {
+        "schema": "musetalk_operator_bucket_privacy_v1",
+        "scope": "fixed_bucket_private_model_delivery_only",
+        "bucket": "lingua-musetalk-s3-storage",
+        "region": "us-east-1",
+        "expected_owner": "211125449207",
+        "observed_at_utc": "2026-10-08T16:45:46.183756+00:00",
+        "expires_at_utc": "2026-10-08T17:00:46.183756+00:00",
+        "operator_account": "211125449207",
+        "operator_arn_sha256": "1a193b498320bee2cc2544812b5a04016443c8517833375e6827f4ed8e7732bb",
+        "public_access_block": {
+          "BlockPublicAcls": true,
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "RestrictPublicBuckets": true
+        },
+        "bucket_policy": "absent",
+        "bucket_acl": "owner_only_canonical_user",
+        "cloud_mutations": false,
+        "cli_reads": {
+          "bucket_acl": {
+            "sha256": "db1bba760fe4e2f2cc8a90bdf841789ae742df2fdd661b0cda3b7c45d3bc71fd",
+            "hash_basis": "cli_stdout_utf8_stripped"
+          },
+          "bucket_policy_status": {
+            "sha256": "c448dbcf79a31b1f897ffff2c13af8986859b25636b6ca012bef65c22efa9234",
+            "hash_basis": "canonical_cli_error_code"
+          },
+          "bucket_public_access_block": {
+            "sha256": "12b57f15e8de8f8be9c9fc86e8ad6b6cc9da25de6eeb929674f313ebcac2ddc9",
+            "hash_basis": "cli_stdout_utf8_stripped"
+          },
+          "sts_identity": {
+            "sha256": "638518349cdb84ec859bb52dd71520d79fa17df62d546efbf5e6bf1b1cf5c507",
+            "hash_basis": "cli_stdout_utf8_stripped"
+          }
+        }
+      },
+      "put_attempted": true,
+      "acl_requested": false,
+      "overwrite_permitted": false,
+      "fresh_get_verified": true,
+      "put_outcome": "CONFIRMED_CONDITIONAL_SUCCESS",
+      "put_version_id": "euQK2BvjUYZHOp940J0wvWM9cj74QZOk",
+      "version_id": "euQK2BvjUYZHOp940J0wvWM9cj74QZOk",
+      "fresh_get_path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/release/native48_operator_persistence_1645_fresh_get/native-v1-production48-review-part1of3.tar.gz",
+      "etag_used_as_content_sha256": false,
+      "status": "PASS_PRIVATE_ARCHIVE_CONTENT_INTEGRITY"
+    },
+    {
+      "filename": "native-v1-production48-review-part2of3.tar.gz",
+      "sha256": "f9558b88dc6f6580a0921f028fd7aca5d56e0d8aeb9a6ff62597dc8fddc11f56",
+      "bytes": 2103585080,
+      "key": "trt-artifacts/rtx3090-r5/native-rejected-diagnostics/sha256/f9558b88dc6f6580a0921f028fd7aca5d56e0d8aeb9a6ff62597dc8fddc11f56/native-v1-production48-review-part2of3.tar.gz",
+      "privacy_configuration_observation": {
+        "schema": "musetalk_operator_bucket_privacy_v1",
+        "scope": "fixed_bucket_private_model_delivery_only",
+        "bucket": "lingua-musetalk-s3-storage",
+        "region": "us-east-1",
+        "expected_owner": "211125449207",
+        "observed_at_utc": "2026-10-08T16:54:04.796192+00:00",
+        "expires_at_utc": "2026-10-08T17:09:04.796192+00:00",
+        "operator_account": "211125449207",
+        "operator_arn_sha256": "1a193b498320bee2cc2544812b5a04016443c8517833375e6827f4ed8e7732bb",
+        "public_access_block": {
+          "BlockPublicAcls": true,
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "RestrictPublicBuckets": true
+        },
+        "bucket_policy": "absent",
+        "bucket_acl": "owner_only_canonical_user",
+        "cloud_mutations": false,
+        "cli_reads": {
+          "bucket_acl": {
+            "sha256": "db1bba760fe4e2f2cc8a90bdf841789ae742df2fdd661b0cda3b7c45d3bc71fd",
+            "hash_basis": "cli_stdout_utf8_stripped"
+          },
+          "bucket_policy_status": {
+            "sha256": "c448dbcf79a31b1f897ffff2c13af8986859b25636b6ca012bef65c22efa9234",
+            "hash_basis": "canonical_cli_error_code"
+          },
+          "bucket_public_access_block": {
+            "sha256": "12b57f15e8de8f8be9c9fc86e8ad6b6cc9da25de6eeb929674f313ebcac2ddc9",
+            "hash_basis": "cli_stdout_utf8_stripped"
+          },
+          "sts_identity": {
+            "sha256": "638518349cdb84ec859bb52dd71520d79fa17df62d546efbf5e6bf1b1cf5c507",
+            "hash_basis": "cli_stdout_utf8_stripped"
+          }
+        }
+      },
+      "put_attempted": true,
+      "acl_requested": false,
+      "overwrite_permitted": false,
+      "fresh_get_verified": true,
+      "put_outcome": "CONFIRMED_CONDITIONAL_SUCCESS",
+      "put_version_id": "_uaI4645edOzla0kAaqpm7emMmeU6p_E",
+      "version_id": "_uaI4645edOzla0kAaqpm7emMmeU6p_E",
+      "fresh_get_path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/release/native48_operator_persistence_1645_fresh_get/native-v1-production48-review-part2of3.tar.gz",
+      "etag_used_as_content_sha256": false,
+      "status": "PASS_PRIVATE_ARCHIVE_CONTENT_INTEGRITY"
+    },
+    {
+      "filename": "native-v1-production48-review-part3of3.tar.gz",
+      "sha256": "964aadc0adbf85918e5e1cc4f79fa17331b87ee505d62497ccaf331bd8bd47a8",
+      "bytes": 1952482732,
+      "key": "trt-artifacts/rtx3090-r5/native-rejected-diagnostics/sha256/964aadc0adbf85918e5e1cc4f79fa17331b87ee505d62497ccaf331bd8bd47a8/native-v1-production48-review-part3of3.tar.gz",
+      "privacy_configuration_observation": {
+        "schema": "musetalk_operator_bucket_privacy_v1",
+        "scope": "fixed_bucket_private_model_delivery_only",
+        "bucket": "lingua-musetalk-s3-storage",
+        "region": "us-east-1",
+        "expected_owner": "211125449207",
+        "observed_at_utc": "2026-10-08T17:02:19.652049+00:00",
+        "expires_at_utc": "2026-10-08T17:17:19.652049+00:00",
+        "operator_account": "211125449207",
+        "operator_arn_sha256": "1a193b498320bee2cc2544812b5a04016443c8517833375e6827f4ed8e7732bb",
+        "public_access_block": {
+          "BlockPublicAcls": true,
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "RestrictPublicBuckets": true
+        },
+        "bucket_policy": "absent",
+        "bucket_acl": "owner_only_canonical_user",
+        "cloud_mutations": false,
+        "cli_reads": {
+          "bucket_acl": {
+            "sha256": "db1bba760fe4e2f2cc8a90bdf841789ae742df2fdd661b0cda3b7c45d3bc71fd",
+            "hash_basis": "cli_stdout_utf8_stripped"
+          },
+          "bucket_policy_status": {
+            "sha256": "c448dbcf79a31b1f897ffff2c13af8986859b25636b6ca012bef65c22efa9234",
+            "hash_basis": "canonical_cli_error_code"
+          },
+          "bucket_public_access_block": {
+            "sha256": "12b57f15e8de8f8be9c9fc86e8ad6b6cc9da25de6eeb929674f313ebcac2ddc9",
+            "hash_basis": "cli_stdout_utf8_stripped"
+          },
+          "sts_identity": {
+            "sha256": "638518349cdb84ec859bb52dd71520d79fa17df62d546efbf5e6bf1b1cf5c507",
+            "hash_basis": "cli_stdout_utf8_stripped"
+          }
+        }
+      },
+      "put_attempted": true,
+      "acl_requested": false,
+      "overwrite_permitted": false,
+      "fresh_get_verified": true,
+      "put_outcome": "CONFIRMED_CONDITIONAL_SUCCESS",
+      "put_version_id": "i6GQcI.8FlwZtRQZ0EeUchNch_iU231w",
+      "version_id": "i6GQcI.8FlwZtRQZ0EeUchNch_iU231w",
+      "fresh_get_path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/release/native48_operator_persistence_1645_fresh_get/native-v1-production48-review-part3of3.tar.gz",
+      "etag_used_as_content_sha256": false,
+      "status": "PASS_PRIVATE_ARCHIVE_CONTENT_INTEGRITY"
+    }
+  ],
+  "scope": "Private diagnostic evidence only; no active bundle, public registry, model rights or visual acceptance changed",
+  "cloud_mutations": "conditional_new_checksum_keyed_objects_only",
+  "finished_at_utc": "2026-10-08T17:10:00.984090+00:00"
+}

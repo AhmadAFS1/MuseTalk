@@ -19,6 +19,11 @@ import urllib.request
 ROOT = Path('/workspace/MuseTalk')
 PLAN = ROOT / 'docs/fps_comparisons/rtx3090_r5_20261008/native/isolated_live_v1_plan.json'
 PLAN_SHA = '40702fd5101ef6dc8839b4f3eb0b04120a753f18bcee12ed3218a1d0f59fda64'
+PLAN_PROFILES = {
+    'aiortc_v1': (PLAN.name, PLAN_SHA),
+    'x264tuned_v1': ('isolated_live_x264tuned_v1_plan.json',
+                     '2e9f78eafd39ada6a48982a49c49316314cf7282697b2bc96405a0b41bfa5488'),
+}
 BASE = 'http://127.0.0.1:8300'
 GPU_UUID = 'GPU-5640f670-debe-ec22-1cfb-4b1f63bc1d53'
 DEADLINE = dt.datetime(2026, 10, 8, 19, tzinfo=dt.timezone.utc)
@@ -27,6 +32,15 @@ DEADLINE = dt.datetime(2026, 10, 8, 19, tzinfo=dt.timezone.utc)
 def require(value, reason):
     if not value:
         raise ValueError(reason)
+
+
+def select_profile(name):
+    global PLAN, PLAN_SHA
+    require(name in PLAN_PROFILES, 'unknown fixed diagnostic profile')
+    filename, PLAN_SHA = PLAN_PROFILES[name]
+    PLAN = ROOT / 'docs/fps_comparisons/rtx3090_r5_20261008/native' / filename
+    require(not PLAN.is_symlink() and hashlib.sha256(PLAN.read_bytes()).hexdigest() == PLAN_SHA,
+            'selected profile SHA mismatch')
 
 
 def request(path, method='GET'):
@@ -56,7 +70,9 @@ def ready_cache(row, avatar_id):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--profile', choices=tuple(PLAN_PROFILES), default='aiortc_v1')
     args = parser.parse_args()
+    select_profile(args.profile)
     require(socket.gethostname() == 'a830e00ce20c', 'not owned A1 host')
     require(dt.datetime.now(dt.timezone.utc) < DEADLINE, 'A1 deadline passed')
     require(args.out.is_absolute() and args.out.parent.resolve() == PLAN.parent

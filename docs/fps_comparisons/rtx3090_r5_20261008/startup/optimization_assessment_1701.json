@@ -1,0 +1,61 @@
+{
+  "schema": "r5_startup_optimization_assessment_v1",
+  "status": "PARTIALLY_IMPLEMENTED_NOT_COLD_BOOT_ACCEPTED",
+  "baseline": {
+    "evidence": "source_install_baseline.json",
+    "request_to_verified_health_seconds": 1046.452729,
+    "canonical_onstart_seconds": 631,
+    "canonical_onstart_includes_restore_and_server_start": true,
+    "portable_restore_seconds_inside_onstart": 72,
+    "server_start_and_health_seconds_inside_onstart": 19,
+    "pre_onstart_seconds_utc_correlated": 415.452729,
+    "cache_classification": "unknown",
+    "clock_skew_independently_calibrated": false,
+    "real_usable_call_verified": false,
+    "first_single_pose_warm_http_seconds": 23.815773,
+    "first_single_pose_s3_restore_seconds": 21.772027275001165,
+    "single_pose_warm_is_full_roster_readiness": false
+  },
+  "implemented_and_measured": [
+    {
+      "change": "Dependency runtime-base image with build tools confined to builder stage and confirmed unused Windows TRT payload omitted",
+      "evidence": "../release/dependency_size_delta_ead7e01.json",
+      "cpu_build_and_imports": "PASS",
+      "original_uncompressed_bytes": 19659561663,
+      "candidate_uncompressed_bytes": 12334990710,
+      "reduction_percent": 37.2570410193077,
+      "apt_pins_and_pip_freeze_equal": true,
+      "full_release_image_adopted": false,
+      "gpu_validated": false,
+      "cold_pull_seconds_saved": null
+    },
+    {
+      "change": "Bounded parallel private-model fetch with complete content SHA and stable HEAD-version checks",
+      "evidence": "../release/private_model_parallel_read_verify_1442.json",
+      "all_five_complete_hashes": "PASS",
+      "bytes": 1767823261,
+      "diagnostic_elapsed_seconds": 174.580358,
+      "concurrent_worker_cpu_network_audit": true,
+      "fresh_instance_startup_acceptance": false
+    }
+  ],
+  "not_safe_to_claim": [
+    "A complete machine snapshot guarantees a fast cold startup",
+    "37.257% fewer uncompressed bytes means 37.257% less boot time",
+    "SyncNet is unused: selected-path trace failed its known-model positive control",
+    "The rejected native v1 engine bundle is production eligible",
+    "A health endpoint or one warmed avatar is a real EC2/TURN usable-call proof"
+  ],
+  "remaining_critical_path_work": [
+    "Validate the final GPU runtime image with all required serving and dynamic-avatar capabilities",
+    "Publish only after registry access and redistribution rights are resolved; retain private model delivery where required",
+    "Measure compressed registry bytes, provider image-cache state and actual pull/extract time",
+    "Separate valid serving, dynamic-avatar and quality/training model contracts before dropping any readiness prerequisite",
+    "Measure pose-cache restoration and active-pose readiness without falsely declaring all48 idle clips resident",
+    "Measure create-request through real browser/EC2/TURN audio and sustained decoded fresh video, with repeated fresh and restart runs",
+    "Reconcile autoscaler timeouts and an isolated experimental pool; keep rejected diagnostics excluded from production"
+  ],
+  "production_changed": false,
+  "startup_savings_seconds_accepted": null,
+  "release_ready": false
+}
