@@ -16,13 +16,14 @@ import sys
 import time
 
 import report as checks
+import safe_capture
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 
 
-def capture(command, env=None):
-    return subprocess.check_output(command, cwd=ROOT, env=env, text=True, stderr=subprocess.PIPE).strip()
+def capture(command, env=None, *, stage="unspecified", timeout_s=30):
+    return safe_capture.capture(command, cwd=ROOT, env=env, stage=stage, timeout_s=timeout_s)
 
 
 def clean_environment(ambient, values):
@@ -43,7 +44,7 @@ def gpu_roots(candidate, comparisons, baseline_only):
 
 def verify_s3_objects(objects):
     for item in objects:
-        result = json.loads(capture(["aws", "s3api", "head-object", "--bucket", item["bucket"], "--key", item["key"], "--output", "json"]))
+        result = json.loads(capture(["aws", "s3api", "head-object", "--bucket", item["bucket"], "--key", item["key"], "--output", "json"], stage="s3_head", timeout_s=30))
         checks.require(result["ContentLength"] == item["bytes"], f"S3 object size mismatch: {item['key']}")
 
 
@@ -85,15 +86,15 @@ def engine(root):
 
 def preflight(args, env, child_env=None):
     smi_fields = "name,uuid,compute_cap,memory.total,driver_version,power.limit,clocks.sm,clocks.mem,temperature.gpu"
-    rows = list(csv.reader(capture(["nvidia-smi", f"--query-gpu={smi_fields}", "--format=csv,noheader,nounits"]).splitlines()))
+    rows = list(csv.reader(capture(["nvidia-smi", f"--query-gpu={smi_fields}", "--format=csv,noheader,nounits"], stage="nvml_identity", timeout_s=20).splitlines()))
     checks.require(len(rows) == 1, "exactly one visible physical GPU required")
     values = [s.strip() for s in rows[0]]
     gpu = dict(zip(smi_fields.split(","), values))
     actual = checks.gpu_identity(gpu["name"], gpu["compute_cap"], args.general_gpu)
-    apps = capture(["nvidia-smi", "--query-compute-apps=pid,process_name,used_memory", "--format=csv,noheader,nounits"])
+    apps = capture(["nvidia-smi", "--query-compute-apps=pid,process_name,used_memory", "--format=csv,noheader,nounits"], stage="nvml_workloads", timeout_s=20)
     checks.require(not apps, "foreign GPU workload detected; isolate/drain owned server first")
     runtime = json.loads(capture(["bash", "scripts/box_guard.sh", "run", "--wait-min", "0", "--min-avail-gb", "3", "--label", "3090_preflight", "--",
-                                 args.python, "-c", "import json,torch,tensorrt,torch_tensorrt; print(json.dumps(dict(torch=torch.__version__,cuda=torch.version.cuda,tensorrt=tensorrt.__version__,torch_tensorrt=torch_tensorrt.__version__,visible_vram_bytes=torch.cuda.get_device_properties(0).total_memory,gpu=torch.cuda.get_device_name(0),compute_capability='.'.join(map(str,torch.cuda.get_device_capability(0))))))"], env=child_env))
+                                 args.python, "-c", "import json,torch,tensorrt,torch_tensorrt; print(json.dumps(dict(torch=torch.__version__,cuda=torch.version.cuda,tensorrt=tensorrt.__version__,torch_tensorrt=torch_tensorrt.__version__,visible_vram_bytes=torch.cuda.get_device_properties(0).total_memory,gpu=torch.cuda.get_device_name(0),compute_capability='.'.join(map(str,torch.cuda.get_device_capability(0))))))"], env=child_env, stage="runtime_import", timeout_s=120))
     checks.require(runtime["gpu"] == gpu["name"], "CUDA/NVML device selection mismatch")
     checks.require(runtime["torch"] == "2.5.1+cu121" and runtime["tensorrt"].startswith("10.3.")
                    and runtime["torch_tensorrt"].startswith("2.5."), "runtime differs from pinned r5 build matrix")
@@ -149,7 +150,7 @@ def preflight(args, env, child_env=None):
             "taesd": {"key": args.taesd_key, "meta_sha256": checks.sha256(meta_path), "decoder_plan_sha256": meta["decoder_plan_sha256"], "fingerprint": meta["fingerprint"]},
             "input_manifest_sha256": checks.sha256(args.input_manifest), "input_count": len(inputs["files"]),
             "profile_sha256": checks.sha256(args.profile), "effective_profile": env,
-            "git_revision": capture(["git", "rev-parse", "HEAD"]), "git_status": capture(["git", "status", "--porcelain"]),
+            "git_revision": capture(["git", "rev-parse", "HEAD"], stage="git_revision", timeout_s=10), "git_status": capture(["git", "status", "--porcelain"], stage="git_status", timeout_s=10),
             "cpu_affinity": sorted(os.sched_getaffinity(0)), "memory": memory, "cgroup": cgroup,
             "disk_free_bytes": shutil.disk_usage(ROOT).free, "shm": dict(zip(("total", "used", "free"), shutil.disk_usage("/dev/shm"))),
             "foreign_gpu_apps_at_preflight": apps, "utc": dt.datetime.now(dt.timezone.utc).isoformat()}
@@ -358,8 +359,13 @@ def main():
         result["status"] = checks.combined_status(result["results"])
     except (checks.Invalid, KeyError, ValueError, OSError, subprocess.SubprocessError) as exc:
         result["status"] = "INVALID"
-        # subprocess stderr can contain credential material; record type/command basename only.
-        result["reason"] = type(exc).__name__ if isinstance(exc, subprocess.SubprocessError) else str(exc)
+        # Never serialize arbitrary subprocess stderr, argv, or environment.
+        if isinstance(exc, safe_capture.CaptureFailure):
+            result["preflight_failure"] = exc.record
+            result["reason"] = str(exc)
+            (out / "preflight-failure.json").write_text(json.dumps(exc.record, indent=2) + "\n")
+        else:
+            result["reason"] = type(exc).__name__ if isinstance(exc, subprocess.SubprocessError) else str(exc)
     finally:
         result["finished_utc"] = dt.datetime.now(dt.timezone.utc).isoformat()
         (out / "report.json").write_text(json.dumps(result, indent=2) + "\n")
