@@ -54,7 +54,16 @@ ensure_runtime_env() {
 guarded() {
   local label=$1 gb=$2; shift 2
   log "$label: $* (log $OUT/$label.log)"
-  $GUARD --min-avail-gb "$gb" --label "repro_$label" -- "$@" > "$OUT/$label.log" 2>&1
+  local command=("$@")
+  # Opt-in for new GPU builds: retain the canonical per-step lease, while the
+  # 3090 watchdog rejects foreign GPU work that begins after lease acquisition.
+  # Do not put a second box_guard around this script (nested leases deadlock).
+  if [ "${MUSETALK_REPRO_GPU_WATCH:-0}" = 1 ]; then
+    local watch="$REPO/scripts/repro_3090/watch.py"
+    [ -f "$watch" ] || die "GPU watchdog missing: $watch"
+    command=(python3 "$watch" --out "$OUT/$label.gpu_watch.jsonl" -- "${command[@]}")
+  fi
+  $GUARD --min-avail-gb "$gb" --label "repro_$label" -- "${command[@]}" > "$OUT/$label.log" 2>&1
   local rc=$?
   log "$label rc=$rc"
   return $rc
