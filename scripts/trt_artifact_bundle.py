@@ -193,10 +193,10 @@ def _write_sidecars(root: Path, manifest: dict) -> None:
 
 def create_bundle(args: argparse.Namespace) -> int:
     root = args.repo_root.resolve()
-    required_files = _parse_csv(args.required_files) or list(DEFAULT_REQUIRED_FILES)
-    required_dirs = _parse_csv(args.required_dirs) or list(DEFAULT_REQUIRED_DIRS)
     # argparse already supplies defaults when omitted. An explicit empty string
     # means none, not "restore the defaults" (serving-only bundles rely on this).
+    required_files = _parse_csv(args.required_files)
+    required_dirs = _parse_csv(args.required_dirs)
     optional_paths = _parse_csv(args.optional_paths)
 
     entries = _collect_entries(
@@ -207,6 +207,8 @@ def create_bundle(args: argparse.Namespace) -> int:
         strict=args.strict,
         keep_symlinks=args.keep_symlinks,
     )
+    if not entries:
+        raise ValueError("No TRT artifact payload files selected")
     if "models/tensorrt_unet_static_bs8_20260529/unet_trt_meta.json" in required_files:
         _validate_unet_meta(root, "models/tensorrt_unet_static_bs8_20260529/unet_trt_meta.json")
 
