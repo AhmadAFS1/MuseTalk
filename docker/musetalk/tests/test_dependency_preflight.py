@@ -32,7 +32,10 @@ class DependencyPreflightTests(unittest.TestCase):
 
     def test_size_experiment_is_fresh_stage_not_delete_in_shipping_layer(self):
         source = (Path(__file__).resolve().parents[1] / "Dockerfile.dependencies").read_text()
-        self.assertEqual(source.count("FROM ${CUDA_BASE}"), 2)
+        self.assertEqual(source.count("FROM ${CUDA_BASE}"), 1)
+        self.assertIn("FROM ${CUDA_RUNTIME_BASE} AS diagnostic", source)
+        self.assertRegex(dependency_preflight.RUNTIME_BASE, r"^nvidia/cuda@sha256:[0-9a-f]{64}$")
+        self.assertNotEqual(dependency_preflight.RUNTIME_BASE, dependency_preflight.BASE)
         self.assertIn("COPY --from=build /opt/musetalk /opt/musetalk", source)
         self.assertLess(source.index("prune_diagnostic.py --execute"), source.index("AS diagnostic"))
         self.assertIn("final-stage mmcv CUDA", source)

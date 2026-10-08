@@ -42,7 +42,11 @@
     "Required pose runtime/audio/Whisper inputs already covered by original878-file frozen manifest; all20 needed files verified without changing references",
     "Corrected venv interpreter handling in pose adapter; real240-frame Maya talking render recipe checks PASS and six original-resolution samples directly inspected as partial evidence only",
     "First full48 render attempt terminalINVALID32PASS/16smilingINVALID preserved off-worker; corrected forward/reverse cache-cycle adapter copied only after GPU child ended and SHA verified",
-    "Corrected full48 attempt reached8/48PASS at15:26UTC, including Maya smiling158sourceframes/316savedcycleframes; visual/native numerical acceptance remains separate"
+    "Corrected full48 attempt reached8/48PASS at15:26UTC, including Maya smiling158sourceframes/316savedcycleframes; visual/native numerical acceptance remains separate",
+    "Independent API cache staging completed48/48PASS at15:33:59:47exclusive copies plus1verified existing cache, all required hashes and separate inodes, no source modification or overwrite",
+    "Docker size experiment ff8b77b CI completed success; all10 reports fetched via read-only remote gh API and complete archive SHA matched GitHub digest",
+    "Actual dependency-only image shrank19659561663 to18176397997uncompressed bytes,7.544% with equal apt pins/pip freeze; final-stage CPU imports and compiled MMCV12.1 checks passed",
+    "Isolated16-avatar H264/aiortc plan and helpers copied with verified hashes; real canonical validation-only launch passed without API/CUDA allocation, with diagnostic engine-store-record warnings preserved"
   ],
   "budget": {
     "currency": "USD",
@@ -141,7 +145,10 @@
     "dependency_ci_evidence": "release/dependency_ci_b00cc20/provenance.json",
     "dependency_size_experiment_ci": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37794887252",
     "dependency_size_experiment_revision": "ff8b77bd5854fe008e98be3fe1a83a65ffb2e39c",
-    "dependency_size_experiment_status": "RUNNING; Linux CPU/startup tests passed, real dependency build in progress",
+    "dependency_size_experiment_status": "TERMINAL_SUCCESS; dependency-only CPU imports/build and actual uncompressed size evidence collected; GPU/release/publication unverified",
+    "dependency_size_experiment_evidence": "release/dependency_ci_ff8b77b/provenance.json",
+    "dependency_size_delta": "release/dependency_size_delta_ff8b77b.json",
+    "dependency_runtime_base_experiment_status": "PREPARED_FOR_PUSH; only final base switches to matching pinned CUDA/cuDNN runtime, apt packages and all Linux TRT resources retained; CPU contracts70PASS/1skip",
     "production_cache_content_audit": "avatars/content_audit_1345.json",
     "production_cache_content_audit_sha256": "04eaf604d6d4f823f0ff3b45d193c9c21062c1ab7e63c4965d8a37da34005c88",
     "private_model_verified_read": "release/private_model_parallel_read_verify_1442.json",
@@ -150,6 +157,18 @@
     "first_production_pose_partial_visual": "avatars/native_v1_maya_talking_partial_visual.json"
   },
   "background_operations": {
+    "independent_api_cache_stage": {
+      "operator_session_id": 78289,
+      "status": "TERMINAL_PASS48/48; source and target independent, no overwrite",
+      "report": "avatars/api_cache_stage_1535.json",
+      "report_sha256": "e1c83a309bab8a421774a54de639f4e89f4adb964f89d1411e1382de3ca045b1",
+      "helper_sha256": "35035be92042bf5576dfda1c67a97854991e9e917629282a64e83909da29b457",
+      "completed_at_utc": "2026-10-08T15:33:59.394068+00:00",
+      "elapsed_seconds": 71.99289966699871,
+      "startup_acceptance": false,
+      "gpu_allocations": false,
+      "network_access": false
+    },
     "production_avatar_content_audit": {
       "operator_session_id": 95444,
       "report": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/content_audit_1345.json",
@@ -188,9 +207,9 @@
       "report": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/report.json",
       "status": "RUNNING; corrected canonical saved-cycle check, new output; first48 attempt terminalINVALID preserved off-worker",
       "running_adapter_sha256": "4aedb2708ead0caa0f8a30cc693695413b269048034180f7ab62310ae74a3964",
-      "last_observed_utc": "2026-10-08T15:26:01Z",
-      "last_observed_completed": 8,
-      "last_observed_counts": {"PASS": 8, "FAIL": 0, "INVALID": 0},
+      "last_observed_utc": "2026-10-08T15:42:00Z",
+      "last_observed_completed": 39,
+      "last_observed_counts": {"PASS": 39, "FAIL": 0, "INVALID": 0},
       "local_adapter_cycle_check_fix_pending_remote": false,
       "first_all48_attempt_index": "avatars/native_v1_all48_1500_invalid_index.json",
       "actual_smiling_example": {"source_frames": 158, "source_fps": 24, "existing_forward_reverse_cache_frames": 316},
@@ -219,6 +238,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Continue corrected full48 run without concurrent GPU work; prepare independent API cache copies, collect Docker layout CI, then visual/live evidence",
-  "next_command": "GPU pose session13084 uses corrected adapter4aedb27 with a fresh output native_v1_all48_cycle_v2_1523. The prior session63218 ended2 with32PASS/16INVALID; raw5.48MB report was copied off-worker with SHA28fc6103, compact index saved, private S3 raw/media persistence remains pending. No remote adapter edit or second GPU job while13084 active. Original878 inputs and698 bounds remain unchanged. Docker CI37794887252/ff8b77b is in build after successful Linux contracts; collect actual imports/size/pruning report, do not claim compressed bytes or registry digest. Prepare independent hash-verified cache copies for local API, never point the API at immutable audited inputs, then staged live capacity tests. Human Cognito test account and DockerHub access remain unresolved. Native v1 remains numerically/performance rejected. A1 expiry19:00 UTC verifiedactive at14:59. Account usage3%,97%remaining as of15:19, purchasedcredits0, reset1unused; exact remaining tokens unavailable."
+  "next_action": "Finish corrected full48 run, then launch isolated live smoke with actual backend proof; push matching runtime-base Docker diagnostic and persist raw/media",
+  "next_command": "GPU pose session13084 uses corrected adapter4aedb27 with fresh output native_v1_all48_cycle_v2_1523,39/48PASS at latest snapshot. No second GPU job until terminal. API stage78289 ended0:48independent required-file hash matches, report e1c83a... committed next. Isolated live plan native/isolated_live_v1_plan.json SHA40702fd5 and both helpers are copied toA1;8300free, CPUquota18.43199 unchanged, validation-only44989 ended0 with expected missing engine-store record and TAESD8-vs16shape warnings. After pose job ends, launch plan server_argv under its GPU lease, confirm actual native engine/TAESD hashes/key and worker/state disabled, warm selected avatars before scored client stages1then3then5/10/15onlyafterPASS. Diagnostic only: numerical rejection remains. Docker CI37794887252/ff8b77b endedSUCCESS;10artifactreports fetched, GitHub archiveSHA c3f997ad verified, actual uncompressed18.176GB vs19.659GB,7.544% smaller, apt/pip equal. Runtime-base final-stage follow-up prepared; push reviewed changes and discover exact new CI run/head before claiming build evidence. Human Cognito test account, DockerHub access and public-license basis remain unresolved. Raw/pose media private S3 persistence still required before A1expiry19:00, timer active verified15:37."
 }

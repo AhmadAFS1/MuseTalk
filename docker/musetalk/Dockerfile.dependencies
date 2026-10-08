@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Dependency-only diagnostic. Contains NO weights/native r5 bundle/release manifest.
 ARG CUDA_BASE
+ARG CUDA_RUNTIME_BASE
 FROM ${CUDA_BASE} AS build
 ARG CUDA_BASE
 ARG SOURCE_REVISION
@@ -30,12 +31,15 @@ RUN CUDA_VISIBLE_DEVICES="" /opt/musetalk/venv/bin/python \
       docker/musetalk/prune_diagnostic.py --execute --out /opt/musetalk/runtime_pruning.json
 
 # A fresh stage is required: deleting bytes in a later layer cannot remove the
-# original installation layer from a pull. Keep the same ABI/base/apt pins for
-# this first size experiment; it is not yet a minimal or accepted runtime image.
-FROM ${CUDA_BASE} AS diagnostic
+# original installation layer from a pull. This next diagnostic keeps the same
+# CUDA/cuDNN runtime versions but leaves the CUDA devel layers in the builder.
+# Apt packages are unchanged; this is not yet a minimal or accepted runtime.
+FROM ${CUDA_RUNTIME_BASE} AS diagnostic
+ARG CUDA_RUNTIME_BASE
 ARG SOURCE_REVISION
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 RUN --mount=from=pins,source=/,target=/pins,ro \
+    [[ "$CUDA_RUNTIME_BASE" =~ @sha256:[0-9a-f]{64}$ ]] && \
     apt-get update -y && mapfile -t packages < /pins/apt-pins.txt && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${packages[@]}" && \
     apt-get clean && rm -rf /var/lib/apt/lists/*

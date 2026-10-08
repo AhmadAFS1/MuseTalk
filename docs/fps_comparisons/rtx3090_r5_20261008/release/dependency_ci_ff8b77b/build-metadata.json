@@ -1,0 +1,57 @@
+{
+  "buildx.build.provenance": {
+    "builder": {
+      "id": ""
+    },
+    "buildType": "https://mobyproject.org/buildkit@v1",
+    "materials": [
+      {
+        "uri": "pkg:docker/docker/dockerfile@1.7",
+        "digest": {
+          "sha256": "a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e"
+        }
+      },
+      {
+        "uri": "pkg:docker/nvidia/cuda?digest=sha256:cc55d151af1e8e083f3210af753a5cfbcbc5455421531eb0459887026bb4699f\u0026platform=linux%2Famd64",
+        "digest": {
+          "sha256": "cec17ddd4650b02a8a4b48445e84dde63a504726dbffbe26c4bf2b804d6dde1e"
+        }
+      }
+    ],
+    "invocation": {
+      "configSource": {
+        "entryPoint": "Dockerfile.dependencies"
+      },
+      "parameters": {
+        "frontend": "gateway.v0",
+        "args": {
+          "build-arg:CUDA_BASE": "nvidia/cuda@sha256:cc55d151af1e8e083f3210af753a5cfbcbc5455421531eb0459887026bb4699f",
+          "build-arg:SOURCE_REVISION": "ff8b77bd5854fe008e98be3fe1a83a65ffb2e39c",
+          "cmdline": "docker/dockerfile:1.7",
+          "context:pins": "local:pins",
+          "frontend.caps": "moby.buildkit.frontend.contexts+forward",
+          "sharedkey:localdir:pins": "pins:5e3b4131a101b5fe",
+          "source": "docker/dockerfile:1.7"
+        },
+        "locals": [
+          {
+            "name": "context"
+          },
+          {
+            "name": "dockerfile"
+          },
+          {
+            "name": "pins"
+          }
+        ]
+      },
+      "environment": {
+        "platform": "linux/amd64"
+      }
+    }
+  },
+  "buildx.build.ref": "default/default/6g31v91iue3fupjbej9a6bv3k",
+  "containerimage.config.digest": "sha256:f721d0006eea7a7d3dcf84469c9f14f8f999d5ce0b7568cdd7b508b532ac0cc1",
+  "containerimage.digest": "sha256:f721d0006eea7a7d3dcf84469c9f14f8f999d5ce0b7568cdd7b508b532ac0cc1",
+  "image.name": "docker.io/library/musetalk-dependencies-ci:ff8b77bd5854fe008e98be3fe1a83a65ffb2e39c"
+}

@@ -15,6 +15,10 @@ import release
 # Tag: 12.1.1-cudnn8-devel-ubuntu22.04; index21196d81... is intentionally not confused with its platform digest.
 BASE = "nvidia/cuda@sha256:cc55d151af1e8e083f3210af753a5cfbcbc5455421531eb0459887026bb4699f"
 TAG_METADATA_URL = "https://hub.docker.com/v2/repositories/nvidia/cuda/tags/12.1.1-cudnn8-devel-ubuntu22.04"
+# Actual linux/amd64 platform digest read from NVIDIA's tag API on2026-10-08.
+# The multi-platform tag/index digest f4d8e126... is not used as this platform identity.
+RUNTIME_BASE = "nvidia/cuda@sha256:810756cab1c28ce693499a5c2ebb66f6d10a61d026998c8606bad449643a4c49"
+RUNTIME_METADATA_URL = "https://hub.docker.com/v2/repositories/nvidia/cuda/tags/12.1.1-cudnn8-runtime-ubuntu22.04"
 APT_PROBE = r'''set -euo pipefail
 apt-get update >&2
 for package in "$@"; do
@@ -49,9 +53,11 @@ def main():
         shutil.copyfile(root / name, path)
     shutil.copyfile(root / ".dockerignore", source / ".dockerignore")
     (reports / "source-inventory.json").write_text(json.dumps({"revision": revision, "source_files": entries}, indent=2) + "\n")
-    (reports / "base-identity.json").write_text(json.dumps({"base": BASE, "platform": "linux/amd64", "source": TAG_METADATA_URL,
+    (reports / "base-identity.json").write_text(json.dumps({"base": BASE, "runtime_base": RUNTIME_BASE,
+        "platform": "linux/amd64", "source": TAG_METADATA_URL, "runtime_source": RUNTIME_METADATA_URL,
         "disk_free_before": usage.free, "scope": "Dependency-only; no model payload, GPU acceptance, native engine or publication"}, indent=2) + "\n")
     subprocess.run(["docker", "pull", "--platform", "linux/amd64", BASE], check=True)
+    subprocess.run(["docker", "pull", "--platform", "linux/amd64", RUNTIME_BASE], check=True)
     # Resolve exact apt candidate versions on the real base using apt-cache,
     # before build. No credentials, host package install or mutable model inputs.
     output = subprocess.check_output(["docker", "run", "--rm", "--platform", "linux/amd64", "--entrypoint", "/bin/bash", BASE,
@@ -66,6 +72,7 @@ def main():
     image = "musetalk-dependencies-ci:" + revision
     subprocess.run(["docker", "buildx", "build", "--platform", "linux/amd64", "--progress", "plain", "--load",
                     "--build-context", "pins=" + str(pin_dir), "--build-arg", "CUDA_BASE=" + BASE,
+                    "--build-arg", "CUDA_RUNTIME_BASE=" + RUNTIME_BASE,
                     "--build-arg", "SOURCE_REVISION=" + revision, "--metadata-file", str(reports / "build-metadata.json"),
                     "--file", str(root / "docker/musetalk/Dockerfile.dependencies"), "--tag", image, str(source)], check=True)
     for name, command in (
@@ -78,10 +85,11 @@ def main():
     ):
         with (reports / name).open("x") as stream:
             subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT, check=True)
-    result = {"schema": "musetalk_dependency_preflight_v1", "status": "PASS", "base": BASE, "source_revision": revision,
+    result = {"schema": "musetalk_dependency_preflight_v1", "status": "PASS", "base": BASE,
+              "runtime_base": RUNTIME_BASE, "source_revision": revision,
               "scope": "Actual GPU-less server+avatar-prep+nativeVP8 dependency build; Kokoro not included",
               "models_present": False, "gpu_tested": False, "published": False, "promotion_eligible": False,
-              "layout": "fresh final stage on same pinned devel base; exact Windows builder resource pruned",
+              "layout": "fresh final stage on pinned matching CUDA/cuDNN runtime base; exact Windows builder resource pruned; apt package set unchanged",
               "disk_free_after": shutil.disk_usage(args.work).free}
     (reports / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
