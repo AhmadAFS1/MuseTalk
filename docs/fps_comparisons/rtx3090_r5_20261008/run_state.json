@@ -95,13 +95,26 @@
       "files": 878,
       "sha256": "6d3ab6ef31605c2231605e03042e82361a27112589ef6d7f6f8ff8f4b016eea5"
     },
-    "dependency_ci": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37749194641"
+    "dependency_ci": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37769890795",
+    "dependency_ci_previous_failure": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37749194641",
+    "dependency_ci_revision": "b00cc20fa5b77c051e468d993c6522a4ae921f9e"
   },
   "image_digest": null,
   "template_id": 756005,
   "target_template_hash": "210968d1e76b34e7cf34e505246e5d47",
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
-  "next_action": "Observe native build; fix and rerun dependency Docker CI while GPU build runs",
+  "quota_checkpoint": {
+    "observed_utc": "2026-10-08T11:25:00Z",
+    "account_scope": "shared account, not this task",
+    "weekly_used_percent_reported": 0,
+    "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
+    "purchased_credit_balance_reported": "0",
+    "free_full_resets_available_reported": 1,
+    "free_reset_consumed": false,
+    "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
+    "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
+  },
+  "next_action": "Observe native build and actual dependency Docker CI; run native preflight and frozen-quality comparison only after complete native manifest and TAESD key exist",
   "next_command": "Poll operator exec session 28251, or inspect the exact build process and native_v1_build logs on musetalk-3090-build-54798270. Never restart a build based only on an observation timeout. After native manifest and TAESD key are verified, run native quality and compare with frozen reference envelope v2, followed by T/SUST. A1 expiry at 19:00 UTC remains active."
 }

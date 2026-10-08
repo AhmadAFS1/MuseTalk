@@ -43,6 +43,7 @@ Observed timeline (UTC, October 8):
 - 11:18–11:21: owned API/TURN drained/stopped; preserved checkout restored; builder dependencies restored on the same pinned matrix. A hostname-specific guard now suspends this development worker's automatic reinstall/autostart. No operator reboot was sent.
 - 11:23: native preflight passed against the exact frozen 878-file manifest. Native sm86 v1 engine build started on revision `d4e78b79105e0c1f5b732fb651e5dcd7fcb5dca3`.
 - 11:29: native FP16 `down0rest,up3,tail` build completed successfully after 324.1 seconds under its GPU lease. INT8 recipe blocks are building. Complete-chain, native TAESD, quality, and throughput remain unverified.
+- 11:45: native INT8 `down1,down2,down3,mid` plan files exist; the builder remains active on subsequent blocks. This is partial build progress, not a complete or accepted engine set.
 
 This separates several minutes of provider/image startup from source cloning,
 installation, and later model/avatar warmup. Exact image-pull boundaries and
@@ -132,6 +133,10 @@ Registry publishing access remains unresolved. A read-only native x64 GitHub
 runner probe succeeded with about 86 GiB free disk, 4 CPUs, 16 GB RAM, and Docker/
 Buildx available; see [builder inventory](release/builder_inventory_summary.json).
 The full image build and audited artifact delivery remain unvalidated.
+The renewed [dependency CI](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37769890795)
+uses revision `b00cc20fa5b77c051e468d993c6522a4ae921f9e`, with the narrowly scoped
+MMEngine optimizer-registration backport and an actual `mmcv.ops` import check.
+Its result is still pending; the earlier failed run remains evidence.
 Native engines, ≥400 FPS evidence, quality parity, production-pose render audit,
 image publication, browser template edit, fresh Instance B, real EC2/TURN media,
 repeated startup trials, and live soak/scale-in tests remain required. No overall
