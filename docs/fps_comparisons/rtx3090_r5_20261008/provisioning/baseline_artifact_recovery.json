@@ -1,0 +1,31 @@
+{
+  "schema": "baseline_artifact_recovery_v1",
+  "observed_utc": "2026-10-08T07:05:38Z",
+  "purpose": "Make previously configured, byte-identical portable r5 and live audio artifacts reachable before renting Instance A",
+  "credential_reference": "Operator AWS CLI default profile",
+  "source": "Existing 4070 /workspace/MuseTalk/tmp/trt_bundle (read-only copy; no GPU work)",
+  "portable": {
+    "initial_head_status": 404,
+    "s3_uri": "s3://lingua-musetalk-s3-storage/trt-artifacts/ampere-plus/r5-srcg50-int8/sha256-07644ff16a170ecbfb4eb3d39ff1150731d5508baff31e0216a5dc1bb371df2e/musetalk-trt-r5-ampere-plus.tar.gz",
+    "sha256": "07644ff16a170ecbfb4eb3d39ff1150731d5508baff31e0216a5dc1bb371df2e",
+    "size_bytes": 1000524577,
+    "source_and_local_sha256_match_descriptor": true,
+    "uploaded": true,
+    "fresh_s3_download_sha256_matches": true,
+    "s3_metadata_sha256_matches": true,
+    "fresh_local_restore": "PASS: canonical restore verified all 17 manifest files in a new local directory",
+    "restore_attempt_notes": ["First local integrity-check attempt failed because destination directory did not exist; no GPU involved. Retried after explicit mkdir."],
+    "rtx3090_gpu_validation": "not_yet_performed"
+  },
+  "live_audio": {
+    "initial_s3_listing": "not present in repro-inputs prefix",
+    "s3_uri": "s3://lingua-musetalk-s3-storage/trt-artifacts/repro-inputs/audio-corpus-throughput300/sha256-e4a62439bde6e30e2b25ce5771a8b7f1d6bf0cfd61405f3a498ffadb0550f445/musetalk-repro-audio-corpus-throughput300.tar.gz",
+    "sha256": "e4a62439bde6e30e2b25ce5771a8b7f1d6bf0cfd61405f3a498ffadb0550f445",
+    "size_bytes": 18658586,
+    "local_sha256_matches_pinned_script": true,
+    "uploaded": true,
+    "fresh_s3_download_sha256_matches": true
+  },
+  "other_input_bundles": {"canonical_six_avatars_size_bytes": 779866156, "unet_corpus_size_bytes": 198489230, "scope": "S3 listing only; full hash/content checks remain required on development worker"},
+  "production_avatars": {"report": "../avatars/s3_head_audit.json", "matching_objects": 64, "scope": "HEAD size/ETag/metadata; not archive/latent/rendering validation"}
+}

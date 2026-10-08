@@ -1,0 +1,73 @@
+{
+  "schema": "rtx3090_r5_execution_v1",
+  "run_id": "rtx3090_r5_20261008",
+  "phase": "portable_aggregate_baseline",
+  "status": "in_progress",
+  "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
+  "branch": "codex/rtx3090-r5-delivery",
+  "working_checkout": "/Users/ahmadsmacair/code/musetalk-r5-execution",
+  "completed_checks": [
+    "Read complete execution plan",
+    "Connected to existing 4070 without mutations; source revision matches",
+    "Created isolated sparse source checkout",
+    "Connected to EC2; provisioner contract discovered",
+    "Authenticated Vast browser session available",
+    "Local AWS default identity usable",
+    "Instance A provisioned once through EC2; distinct SSH alias and protected-instance isolation verified",
+    "Original source-install verified health at 17m26s; one production pose restored",
+    "Two portable GPU-path runs completed at >=180s each with exact probes and no foreign GPU work"
+  ],
+  "budget": {
+    "currency": "USD",
+    "total_limit": 30,
+    "authorization": "User reply Oct 8: $30 total; upload/download not above $1.50/TB",
+    "gpu_hourly_limit": 0.30,
+    "download_usd_per_gb_max": 0.00146484375,
+    "upload_usd_per_gb_max": 0.00146484375,
+    "conversion": "Enforce 1.50/1024 per billed GB, also satisfying decimal TB = 1000 GB",
+    "operator_selected_max_test_lifetime_hours": 24,
+    "confirmed_experiment_spend_usd": null,
+    "reserved_experiment_budget_usd": 5.5847395833333335,
+    "rental_started": true
+  },
+  "blockers": [
+    "Native CI builder measured sufficient initial disk; full image build/input delivery not yet validated",
+    "Registry publication access unresolved; local/EC2 ECR discovery denied",
+    "Current MuseTalk draining is not sticky across healthy heartbeat; isolate before test registration",
+    "Native RTX 3090 artifacts and actual performance have not been measured"
+  ],
+  "instances": {
+    "protected_existing": {"vast_id": 51074906, "ssh_alias": "3-way-head-talk", "gpu": "RTX 4070 SUPER"},
+    "development": {
+      "vast_id": 54798270,
+      "label": "musetalk-r5-3090-dev-20261008",
+      "offer_id": 54468717,
+      "machine_id": 153039,
+      "request_started_utc": "2026-10-08T07:15:25.547271+00:00",
+      "provider_accepted_utc": "2026-10-08T07:15:25.985975+00:00",
+      "source_revision": "dae1e88ad3587fddbebe6d41f85faa569001f6c1",
+      "control_plane_enabled": false,
+      "gpu": "RTX 3090",
+      "hourly_usd_adjusted_reserved": 0.24924913194444445,
+      "network_usd_per_gb_each": 0.0013020833333333333,
+      "expiry_utc": "2026-10-08T19:00:00Z",
+      "expiry_timer": "musetalk-r5-3090-dev-20261008-expiry.timer",
+      "expiry_timer_active_verified": true,
+      "expiry_retries": {"maximum_attempts": 10, "interval_seconds": 30, "attempt_timeout_seconds": 60},
+      "ssh_endpoint": {"hostname": "92.49.17.100", "port": 25232, "user": "root", "alias": "musetalk-3090-build-54798270", "browser_api_crosschecked": true},
+      "readiness": "Verified portable health, one avatar warm, local media smoke; no EC2 usable-call proof",
+      "development_measurement_revision": "aa1a531cabe60ce9faec45b39372db2d61ef69e9",
+      "server_state": "Owned API/TURN cleanly drained and stopped for isolated GPU measurements"
+    },
+    "release": null
+  },
+  "ec2": {"ssh_alias": "my-ec2", "revision": "171e169682b08054fa7505df72431914d6653c8e"},
+  "artifacts": {},
+  "image_digest": null,
+  "template_id": 756005,
+  "target_template_hash": "210968d1e76b34e7cf34e505246e5d47",
+  "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
+  "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
+  "next_action": "Await portable six-avatar aggregate T, then repeated portable quality references before native engine optimization",
+  "next_command": "Read portable/portable_v1_aggregate/report.json when complete on musetalk-3090-build-54798270; active root exec session 58733. Never run a second heavy GPU process concurrently."
+}

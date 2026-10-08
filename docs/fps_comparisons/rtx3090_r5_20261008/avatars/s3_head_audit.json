@@ -1,0 +1,1665 @@
+{
+  "schema": "rtx3090_s3_availability_v1",
+  "status": "PASS",
+  "observed_utc": "2026-10-08T06:52:16.351121+00:00",
+  "credential_reference": "AWS CLI default credential chain",
+  "manifest": "character_factory/generated/lumatalk_four_language_wardrobe_v2/s3_publication.json",
+  "manifest_sha256": "9c565780c494c048195541b5a16f60c51c8ded3600c1901b7ea9d542be3d90c6",
+  "scope": "HEAD availability/size/recorded ETag/metadata; no archive/latent/content validation",
+  "etag_is_content_sha256": false,
+  "counts": {
+    "PASS": 64,
+    "FAIL": 0,
+    "INVALID": 0
+  },
+  "objects": [
+    {
+      "character": "en_01_maya",
+      "kind": "portrait",
+      "file": "en_01_maya.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/en_01_maya.png",
+      "bytes": 2344777,
+      "sha256": "abe451d3fc8a1093980c189266497dd4f4d4f55654194da99f262463ae7c732f",
+      "actual": {
+        "bytes": 2344777,
+        "etag": "\"d6c725f20802cb32a03a4780e22d0c94\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T04:55:22+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_01_maya",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "en_01_maya_abe451d3_idle_93d291932f",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/en_01_maya_abe451d3_idle_93d291932f.tar.gz",
+      "bytes": 368182398,
+      "etag": "\"be9a5ae3c292b363b659f99832fd88f8-44\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "en_01_maya_abe451d3_idle_93d291932f"
+      },
+      "source_video_sha256": "93d291932f78f4a18e948de6d190b7cdf50b95b9fbe9549ad81f2ef92d3e5f13",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T04:53:38Z",
+      "actual": {
+        "bytes": 368182398,
+        "etag": "\"be9a5ae3c292b363b659f99832fd88f8-44\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "en_01_maya_abe451d3_idle_93d291932f"
+        },
+        "last_modified": "2026-09-30T04:53:33+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_01_maya",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/en_01_maya_abe451d3_talking_f6cf8be7fb.tar.gz",
+      "bytes": 357721536,
+      "etag": "\"fd0f573b7cda06680af6f3d77be485af-43\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "en_01_maya_abe451d3_talking_f6cf8be7fb"
+      },
+      "source_video_sha256": "f6cf8be7fbaaf30032f305444a953cc9a653631c6a6abb4ee06c3ae3ca4f49c0",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T04:54:32Z",
+      "actual": {
+        "bytes": 357721536,
+        "etag": "\"fd0f573b7cda06680af6f3d77be485af-43\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "en_01_maya_abe451d3_talking_f6cf8be7fb"
+        },
+        "last_modified": "2026-09-30T04:54:28+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_01_maya",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "en_01_maya_abe451d3_smiling_d73311869d",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/en_01_maya_abe451d3_smiling_d73311869d.tar.gz",
+      "bytes": 242802501,
+      "etag": "\"7df928410bad8984f456cf40617a4310-29\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "en_01_maya_abe451d3_smiling_d73311869d"
+      },
+      "source_video_sha256": "d73311869d6609d58b79fc9194252da309e29b48bf252c6769d91a8d9be8c572",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T04:55:08Z",
+      "actual": {
+        "bytes": 242802501,
+        "etag": "\"7df928410bad8984f456cf40617a4310-29\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "en_01_maya_abe451d3_smiling_d73311869d"
+        },
+        "last_modified": "2026-09-30T04:55:06+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_02_claire",
+      "kind": "portrait",
+      "file": "en_02_claire.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/en_02_claire.png",
+      "bytes": 2344438,
+      "sha256": "a833ee1f0712b4b35752331b57b2d021e009a63b0fd0465933196133fcadeb4d",
+      "actual": {
+        "bytes": 2344438,
+        "etag": "\"88821c584f6688d9596723e5b7fb734e\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T04:59:01+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_02_claire",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "en_02_claire_a833ee1f_idle_d6a59b64db",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/en_02_claire_a833ee1f_idle_d6a59b64db.tar.gz",
+      "bytes": 399157035,
+      "etag": "\"9a4f24a258132dfb87a64f60d74f8637-48\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "en_02_claire_a833ee1f_idle_d6a59b64db"
+      },
+      "source_video_sha256": "d6a59b64db88b4e83a0343bbb660b587cc4e8c8ebec9bdabb5588ba1a635e5ed",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T04:56:58Z",
+      "actual": {
+        "bytes": 399157035,
+        "etag": "\"9a4f24a258132dfb87a64f60d74f8637-48\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "en_02_claire_a833ee1f_idle_d6a59b64db"
+        },
+        "last_modified": "2026-09-30T04:56:41+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_02_claire",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/en_02_claire_a833ee1f_talking_f6f244cc2a.tar.gz",
+      "bytes": 397093055,
+      "etag": "\"7305cfb7530ee70fdb631218bea3e20e-48\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "en_02_claire_a833ee1f_talking_f6f244cc2a"
+      },
+      "source_video_sha256": "f6f244cc2a0f191c73ed54bb2526f55f2ccdf5f6441604986e61cdc4533cf8ce",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T04:58:03Z",
+      "actual": {
+        "bytes": 397093055,
+        "etag": "\"7305cfb7530ee70fdb631218bea3e20e-48\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "en_02_claire_a833ee1f_talking_f6f244cc2a"
+        },
+        "last_modified": "2026-09-30T04:57:46+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_02_claire",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "en_02_claire_a833ee1f_smiling_2608941838",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/en_02_claire_a833ee1f_smiling_2608941838.tar.gz",
+      "bytes": 265645464,
+      "etag": "\"c7f2d18ed77e670b894cfadf3a7cfb09-32\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "en_02_claire_a833ee1f_smiling_2608941838"
+      },
+      "source_video_sha256": "2608941838ee0489be1b1bca643cb5ab1e3380cded300247fd16297c7eb2a947",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T04:58:47Z",
+      "actual": {
+        "bytes": 265645464,
+        "etag": "\"c7f2d18ed77e670b894cfadf3a7cfb09-32\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "en_02_claire_a833ee1f_smiling_2608941838"
+        },
+        "last_modified": "2026-09-30T04:58:36+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_03_marcus",
+      "kind": "portrait",
+      "file": "en_03_marcus.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/en_03_marcus.png",
+      "bytes": 2430126,
+      "sha256": "19eb1ea8134a9cf84bdac7d3d49f298506f44f6a206a6b4d45d29428eb9b2dd5",
+      "actual": {
+        "bytes": 2430126,
+        "etag": "\"ca00c8e6f385fa75c96a7de69257b719\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T05:19:01+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_03_marcus",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "en_03_marcus_19eb1ea8_idle_0265b79d76",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/en_03_marcus_19eb1ea8_idle_0265b79d76.tar.gz",
+      "bytes": 395975612,
+      "etag": "\"44ad3a6b5677a76f2453e082368acdaa-48\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "en_03_marcus_19eb1ea8_idle_0265b79d76"
+      },
+      "source_video_sha256": "0265b79d7641a8aa9531c34bfdfc06fecbb8929250ef0647e331c72b4944cf2d",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T05:16:58Z",
+      "actual": {
+        "bytes": 395975612,
+        "etag": "\"44ad3a6b5677a76f2453e082368acdaa-48\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "en_03_marcus_19eb1ea8_idle_0265b79d76"
+        },
+        "last_modified": "2026-09-30T05:16:41+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_03_marcus",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/en_03_marcus_19eb1ea8_talking_ada35a4a4d.tar.gz",
+      "bytes": 386774306,
+      "etag": "\"3f399e48eac24d7b503949b1f1beedec-47\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d"
+      },
+      "source_video_sha256": "ada35a4a4d9a1f0854b4b04b6a2497ed625118b657b4834156823e9273d03a7c",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T05:18:04Z",
+      "actual": {
+        "bytes": 386774306,
+        "etag": "\"3f399e48eac24d7b503949b1f1beedec-47\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d"
+        },
+        "last_modified": "2026-09-30T05:17:47+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_03_marcus",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "en_03_marcus_19eb1ea8_smiling_f52c853417",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/en_03_marcus_19eb1ea8_smiling_f52c853417.tar.gz",
+      "bytes": 258759706,
+      "etag": "\"94386eb42fe0b80e9db2e6ad54e0bb02-31\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "en_03_marcus_19eb1ea8_smiling_f52c853417"
+      },
+      "source_video_sha256": "f52c8534171428f7ae35bd6c9a059930ff1bfa19e39cc5e28a745dd34361f82f",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T05:18:48Z",
+      "actual": {
+        "bytes": 258759706,
+        "etag": "\"94386eb42fe0b80e9db2e6ad54e0bb02-31\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "en_03_marcus_19eb1ea8_smiling_f52c853417"
+        },
+        "last_modified": "2026-09-30T05:18:37+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_04_owen",
+      "kind": "portrait",
+      "file": "en_04_owen.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/en_04_owen.png",
+      "bytes": 2239335,
+      "sha256": "4fd8c9da0a60841b4c94a763aff28edd2127aeeb903472986cda3a1fcdfa1f15",
+      "actual": {
+        "bytes": 2239335,
+        "etag": "\"343a7b80fb021d044b2fb2d590794bc1\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T05:38:24+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_04_owen",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "en_04_owen_4fd8c9da_idle_77ffa668f8",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/en_04_owen_4fd8c9da_idle_77ffa668f8.tar.gz",
+      "bytes": 384368381,
+      "etag": "\"5271c5735f148835699641e1e47eb552-46\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "en_04_owen_4fd8c9da_idle_77ffa668f8"
+      },
+      "source_video_sha256": "77ffa668f8b26ca67e3922c222bc4fe3c25003864445f2370a837d3908053724",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T05:36:41Z",
+      "actual": {
+        "bytes": 384368381,
+        "etag": "\"5271c5735f148835699641e1e47eb552-46\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "en_04_owen_4fd8c9da_idle_77ffa668f8"
+        },
+        "last_modified": "2026-09-30T05:36:37+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_04_owen",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "en_04_owen_4fd8c9da_talking_aa79df3324",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/en_04_owen_4fd8c9da_talking_aa79df3324.tar.gz",
+      "bytes": 383152817,
+      "etag": "\"5144e4c519bef3d4da1e34b44f79548e-46\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "en_04_owen_4fd8c9da_talking_aa79df3324"
+      },
+      "source_video_sha256": "aa79df33240cb0ad96d75f396ed44ee071b80c44bc6f925a80ee22880044926a",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T05:37:34Z",
+      "actual": {
+        "bytes": 383152817,
+        "etag": "\"5144e4c519bef3d4da1e34b44f79548e-46\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "en_04_owen_4fd8c9da_talking_aa79df3324"
+        },
+        "last_modified": "2026-09-30T05:37:29+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "en_04_owen",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "en_04_owen_4fd8c9da_smiling_1f2615da80",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/en_04_owen_4fd8c9da_smiling_1f2615da80.tar.gz",
+      "bytes": 249575955,
+      "etag": "\"50c0a86c8f43bf25ba360f4ba972f68d-30\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "en_04_owen_4fd8c9da_smiling_1f2615da80"
+      },
+      "source_video_sha256": "1f2615da80f56c957bde1c1d95e5238bc557db5b85ac9a8114b2c47ceacebcde",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T05:38:09Z",
+      "actual": {
+        "bytes": 249575955,
+        "etag": "\"50c0a86c8f43bf25ba360f4ba972f68d-30\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "en_04_owen_4fd8c9da_smiling_1f2615da80"
+        },
+        "last_modified": "2026-09-30T05:38:06+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_01_valeria",
+      "kind": "portrait",
+      "file": "es_01_valeria.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/es_01_valeria.png",
+      "bytes": 2340478,
+      "sha256": "aed74c503136205865482665fd224c605cceb960fdaf9df01109ac21b8cb5b79",
+      "actual": {
+        "bytes": 2340478,
+        "etag": "\"2600d6907b44dda4348a79e1b786b499\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T05:57:54+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_01_valeria",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "es_01_valeria_aed74c50_idle_f61f0fa657",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/es_01_valeria_aed74c50_idle_f61f0fa657.tar.gz",
+      "bytes": 392576522,
+      "etag": "\"41fed95446aeb72d633e78c3896d27ca-47\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "es_01_valeria_aed74c50_idle_f61f0fa657"
+      },
+      "source_video_sha256": "f61f0fa65769d9e368b3e0195419ac367ae6f19d5474a0d91c5bf58229da146d",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T05:56:10Z",
+      "actual": {
+        "bytes": 392576522,
+        "etag": "\"41fed95446aeb72d633e78c3896d27ca-47\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "es_01_valeria_aed74c50_idle_f61f0fa657"
+        },
+        "last_modified": "2026-09-30T05:55:58+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_01_valeria",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "es_01_valeria_aed74c50_talking_003d585d96",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/es_01_valeria_aed74c50_talking_003d585d96.tar.gz",
+      "bytes": 385832718,
+      "etag": "\"8e36d142c50f72b823a388e586760f93-46\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "es_01_valeria_aed74c50_talking_003d585d96"
+      },
+      "source_video_sha256": "003d585d960ae9daf919958f77d135b64571b567ba21ab05de2f4a8545f7ee94",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T05:57:04Z",
+      "actual": {
+        "bytes": 385832718,
+        "etag": "\"8e36d142c50f72b823a388e586760f93-46\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "es_01_valeria_aed74c50_talking_003d585d96"
+        },
+        "last_modified": "2026-09-30T05:56:59+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_01_valeria",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "es_01_valeria_aed74c50_smiling_8e6f5538ac",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/es_01_valeria_aed74c50_smiling_8e6f5538ac.tar.gz",
+      "bytes": 258607023,
+      "etag": "\"95a9cd54653360355425c6c558c1575d-31\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "es_01_valeria_aed74c50_smiling_8e6f5538ac"
+      },
+      "source_video_sha256": "8e6f5538ac1157c1c0c0fee4588c7b9abc88f780af45f38809bcd2577b4a424f",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T05:57:40Z",
+      "actual": {
+        "bytes": 258607023,
+        "etag": "\"95a9cd54653360355425c6c558c1575d-31\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "es_01_valeria_aed74c50_smiling_8e6f5538ac"
+        },
+        "last_modified": "2026-09-30T05:57:37+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_02_lucia",
+      "kind": "portrait",
+      "file": "es_02_lucia.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/es_02_lucia.png",
+      "bytes": 2133690,
+      "sha256": "e554c30b98e1eb2bb3a93368071fab1bf187ceaa5a64d7bd493422be434cf304",
+      "actual": {
+        "bytes": 2133690,
+        "etag": "\"335c834448713f93c99d7b94c7a8576c\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T06:17:14+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_02_lucia",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "es_02_lucia_e554c30b_idle_48be7f8391",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/es_02_lucia_e554c30b_idle_48be7f8391.tar.gz",
+      "bytes": 346992686,
+      "etag": "\"7359ca26322aa20d25e5ed6e97ca52dc-42\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "es_02_lucia_e554c30b_idle_48be7f8391"
+      },
+      "source_video_sha256": "48be7f8391b8e9e76ebb2367dfe3b3db0c46dbb67a3df632113553813c9e1197",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T06:15:34Z",
+      "actual": {
+        "bytes": 346992686,
+        "etag": "\"7359ca26322aa20d25e5ed6e97ca52dc-42\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "es_02_lucia_e554c30b_idle_48be7f8391"
+        },
+        "last_modified": "2026-09-30T06:15:19+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_02_lucia",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "es_02_lucia_e554c30b_talking_e5c5d0c534",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/es_02_lucia_e554c30b_talking_e5c5d0c534.tar.gz",
+      "bytes": 342886220,
+      "etag": "\"b38dfceb568e0cfd2f7c83f7b56782ed-41\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "es_02_lucia_e554c30b_talking_e5c5d0c534"
+      },
+      "source_video_sha256": "e5c5d0c534a0cf566a594ae46eabfbc6dfbda8780bc8ae62cc2ccfe9758304b8",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T06:16:26Z",
+      "actual": {
+        "bytes": 342886220,
+        "etag": "\"b38dfceb568e0cfd2f7c83f7b56782ed-41\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "es_02_lucia_e554c30b_talking_e5c5d0c534"
+        },
+        "last_modified": "2026-09-30T06:16:22+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_02_lucia",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "es_02_lucia_e554c30b_smiling_9ded7c12aa",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/es_02_lucia_e554c30b_smiling_9ded7c12aa.tar.gz",
+      "bytes": 228627652,
+      "etag": "\"4a4a45d78b2bbd3f85037528ddaaadde-28\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "es_02_lucia_e554c30b_smiling_9ded7c12aa"
+      },
+      "source_video_sha256": "9ded7c12aa5a0f38aaf6ba9893b2ce5f940647a275f3c559a3de89b275d7287e",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T06:17:01Z",
+      "actual": {
+        "bytes": 228627652,
+        "etag": "\"4a4a45d78b2bbd3f85037528ddaaadde-28\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "es_02_lucia_e554c30b_smiling_9ded7c12aa"
+        },
+        "last_modified": "2026-09-30T06:16:58+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_03_mateo",
+      "kind": "portrait",
+      "file": "es_03_mateo.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/es_03_mateo.png",
+      "bytes": 2503754,
+      "sha256": "884600e1cefbe2ff7efd930452edac54e70c6c486d27f123a8a98b30d3bcb549",
+      "actual": {
+        "bytes": 2503754,
+        "etag": "\"c3e3a81e4c5edd37bc2e8be557f563b0\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T06:36:52+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_03_mateo",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "es_03_mateo_884600e1_idle_92575566fb",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/es_03_mateo_884600e1_idle_92575566fb.tar.gz",
+      "bytes": 399903408,
+      "etag": "\"bc4b4010eac7c4c7cfdaad132728aeeb-48\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "es_03_mateo_884600e1_idle_92575566fb"
+      },
+      "source_video_sha256": "92575566fb18e7925dcefef4d283c69b5e7b876edfd492aa57c3993c9ff0672b",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T06:34:58Z",
+      "actual": {
+        "bytes": 399903408,
+        "etag": "\"bc4b4010eac7c4c7cfdaad132728aeeb-48\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "es_03_mateo_884600e1_idle_92575566fb"
+        },
+        "last_modified": "2026-09-30T06:34:54+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_03_mateo",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "es_03_mateo_884600e1_talking_75d88cda6c",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/es_03_mateo_884600e1_talking_75d88cda6c.tar.gz",
+      "bytes": 392695834,
+      "etag": "\"514ab57522fa0bdc653de7d543dac601-47\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "es_03_mateo_884600e1_talking_75d88cda6c"
+      },
+      "source_video_sha256": "75d88cda6c79f727d8c4b6559e5e8fe7a631684ce211253d9eb6e0ea5890886e",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T06:35:53Z",
+      "actual": {
+        "bytes": 392695834,
+        "etag": "\"514ab57522fa0bdc653de7d543dac601-47\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "es_03_mateo_884600e1_talking_75d88cda6c"
+        },
+        "last_modified": "2026-09-30T06:35:48+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_03_mateo",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "es_03_mateo_884600e1_smiling_f89961bdaa",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/es_03_mateo_884600e1_smiling_f89961bdaa.tar.gz",
+      "bytes": 260867095,
+      "etag": "\"68789d6100f6436fe3b4a060d9cabf00-32\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "es_03_mateo_884600e1_smiling_f89961bdaa"
+      },
+      "source_video_sha256": "f89961bdaa20ce4ab8df4198d6bfb9db89345cd36701354a543a4209ac113145",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T06:36:38Z",
+      "actual": {
+        "bytes": 260867095,
+        "etag": "\"68789d6100f6436fe3b4a060d9cabf00-32\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "es_03_mateo_884600e1_smiling_f89961bdaa"
+        },
+        "last_modified": "2026-09-30T06:36:26+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_04_diego",
+      "kind": "portrait",
+      "file": "es_04_diego.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/es_04_diego.png",
+      "bytes": 2338706,
+      "sha256": "532cfc1fe4fbc18c29c38d1e7c1bc2c861f059c68b12a31b2a50d15e197c739c",
+      "actual": {
+        "bytes": 2338706,
+        "etag": "\"76e6b3e822baf20cb4ca754208a93497\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T06:56:18+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_04_diego",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "es_04_diego_532cfc1f_idle_c325368eeb",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/es_04_diego_532cfc1f_idle_c325368eeb.tar.gz",
+      "bytes": 375573467,
+      "etag": "\"7ff52d82005ec6ff784912aba026b17e-45\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "es_04_diego_532cfc1f_idle_c325368eeb"
+      },
+      "source_video_sha256": "c325368eebfab15d449241a453873079c3cd476ece552e6db8cbc4f1419e9087",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T06:54:35Z",
+      "actual": {
+        "bytes": 375573467,
+        "etag": "\"7ff52d82005ec6ff784912aba026b17e-45\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "es_04_diego_532cfc1f_idle_c325368eeb"
+        },
+        "last_modified": "2026-09-30T06:54:30+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_04_diego",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "es_04_diego_532cfc1f_talking_035dba1e7a",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/es_04_diego_532cfc1f_talking_035dba1e7a.tar.gz",
+      "bytes": 370669231,
+      "etag": "\"37a09c9fb1504bb88cbd02ffbbee4963-45\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "es_04_diego_532cfc1f_talking_035dba1e7a"
+      },
+      "source_video_sha256": "035dba1e7a7cb8b217270a3e2e8d498ab0a328951b58e7b13f4409a49be03e15",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T06:55:28Z",
+      "actual": {
+        "bytes": 370669231,
+        "etag": "\"37a09c9fb1504bb88cbd02ffbbee4963-45\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "es_04_diego_532cfc1f_talking_035dba1e7a"
+        },
+        "last_modified": "2026-09-30T06:55:24+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "es_04_diego",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "es_04_diego_532cfc1f_smiling_22d31e41fc",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/es_04_diego_532cfc1f_smiling_22d31e41fc.tar.gz",
+      "bytes": 244385968,
+      "etag": "\"4be50ce95c2b973890b6f3f43a718a4d-30\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "es_04_diego_532cfc1f_smiling_22d31e41fc"
+      },
+      "source_video_sha256": "22d31e41fc7450f1ab9fb8a5f6e3ae15b9a8a63a2535f94c2e5be8c90f8f258f",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T06:56:04Z",
+      "actual": {
+        "bytes": 244385968,
+        "etag": "\"4be50ce95c2b973890b6f3f43a718a4d-30\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "es_04_diego_532cfc1f_smiling_22d31e41fc"
+        },
+        "last_modified": "2026-09-30T06:56:01+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_01_ayesha",
+      "kind": "portrait",
+      "file": "ur_01_ayesha.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/ur_01_ayesha.png",
+      "bytes": 2348563,
+      "sha256": "1d9f8dcfa581f33d60e492011b4025aeba21b1eb2673ec1de980d5228f3f687e",
+      "actual": {
+        "bytes": 2348563,
+        "etag": "\"3811bb3d703b1de3bb1e05b2817055c6\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T07:15:51+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_01_ayesha",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "ur_01_ayesha_1d9f8dcf_idle_2311b04b98",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/ur_01_ayesha_1d9f8dcf_idle_2311b04b98.tar.gz",
+      "bytes": 409807250,
+      "etag": "\"36672e328cbbcc1b789d7c7ee6d0a2b4-49\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "ur_01_ayesha_1d9f8dcf_idle_2311b04b98"
+      },
+      "source_video_sha256": "2311b04b983902c75538b073ff9ad93ef2ed2ada8bc8fcb668037509f476ed6d",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T07:13:56Z",
+      "actual": {
+        "bytes": 409807250,
+        "etag": "\"36672e328cbbcc1b789d7c7ee6d0a2b4-49\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "ur_01_ayesha_1d9f8dcf_idle_2311b04b98"
+        },
+        "last_modified": "2026-09-30T07:13:51+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_01_ayesha",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e.tar.gz",
+      "bytes": 407853855,
+      "etag": "\"0cedff8805a2508f7f818bd46d09b53a-49\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e"
+      },
+      "source_video_sha256": "7db7d95b4e24d2fa5fb167f0c4f3aad782e51dd8665a10501a9b3bef7041685d",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T07:14:52Z",
+      "actual": {
+        "bytes": 407853855,
+        "etag": "\"0cedff8805a2508f7f818bd46d09b53a-49\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e"
+        },
+        "last_modified": "2026-09-30T07:14:46+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_01_ayesha",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "ur_01_ayesha_1d9f8dcf_smiling_313128142a",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/ur_01_ayesha_1d9f8dcf_smiling_313128142a.tar.gz",
+      "bytes": 266204498,
+      "etag": "\"0eb203ba81abc00f68e0b06039b96f1b-32\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "ur_01_ayesha_1d9f8dcf_smiling_313128142a"
+      },
+      "source_video_sha256": "313128142a42353a29e095c81258ee735ffad07bc6cd0e32d74733ed9e9523f5",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T07:15:37Z",
+      "actual": {
+        "bytes": 266204498,
+        "etag": "\"0eb203ba81abc00f68e0b06039b96f1b-32\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "ur_01_ayesha_1d9f8dcf_smiling_313128142a"
+        },
+        "last_modified": "2026-09-30T07:15:26+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_02_zara",
+      "kind": "portrait",
+      "file": "ur_02_zara.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/ur_02_zara.png",
+      "bytes": 2292921,
+      "sha256": "2fe6a913d42cc8b62dc008a5a902b65b11756a06d512d8a1fb9e0c8cdb8edd0f",
+      "actual": {
+        "bytes": 2292921,
+        "etag": "\"563f232f3551c2cfe2a1d93315350ef4\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T07:35:20+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_02_zara",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "ur_02_zara_2fe6a913_idle_3f413b9b71",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/ur_02_zara_2fe6a913_idle_3f413b9b71.tar.gz",
+      "bytes": 397065266,
+      "etag": "\"1d8c0ef51e36ea56f9779c5eacb4a278-48\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "ur_02_zara_2fe6a913_idle_3f413b9b71"
+      },
+      "source_video_sha256": "3f413b9b719612c11db46c56e4320928eb3679dcbea787b5b00b9f10f6b3df77",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T07:33:36Z",
+      "actual": {
+        "bytes": 397065266,
+        "etag": "\"1d8c0ef51e36ea56f9779c5eacb4a278-48\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "ur_02_zara_2fe6a913_idle_3f413b9b71"
+        },
+        "last_modified": "2026-09-30T07:33:32+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_02_zara",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/ur_02_zara_2fe6a913_talking_1e7fb98cf5.tar.gz",
+      "bytes": 395168334,
+      "etag": "\"2932411c2fe880e7cccb1650fbd445cd-48\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5"
+      },
+      "source_video_sha256": "1e7fb98cf56d4aa4cc146be273e0ce505a516cd5c1a77c1e69b4aa33eb379d04",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T07:34:30Z",
+      "actual": {
+        "bytes": 395168334,
+        "etag": "\"2932411c2fe880e7cccb1650fbd445cd-48\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5"
+        },
+        "last_modified": "2026-09-30T07:34:26+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_02_zara",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "ur_02_zara_2fe6a913_smiling_95cf986f4e",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/ur_02_zara_2fe6a913_smiling_95cf986f4e.tar.gz",
+      "bytes": 260831627,
+      "etag": "\"93e481ebd075db02b725dc921ed39bc3-32\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "ur_02_zara_2fe6a913_smiling_95cf986f4e"
+      },
+      "source_video_sha256": "95cf986f4e58353f0ec121036ddc833e0bf273e9a214aa889912ab0615c0af67",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T07:35:07Z",
+      "actual": {
+        "bytes": 260831627,
+        "etag": "\"93e481ebd075db02b725dc921ed39bc3-32\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "ur_02_zara_2fe6a913_smiling_95cf986f4e"
+        },
+        "last_modified": "2026-09-30T07:35:03+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_03_hamza",
+      "kind": "portrait",
+      "file": "ur_03_hamza.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/ur_03_hamza.png",
+      "bytes": 1933677,
+      "sha256": "0c24ed7fac315faf03beee03ed074036f331935876b47324aa129f4665fa9806",
+      "actual": {
+        "bytes": 1933677,
+        "etag": "\"cdae79133963fec16714462cdf0bae36\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T07:54:07+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_03_hamza",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "ur_03_hamza_0c24ed7f_idle_1257e91a13",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/ur_03_hamza_0c24ed7f_idle_1257e91a13.tar.gz",
+      "bytes": 272571511,
+      "etag": "\"7351de417fabe5a7c4db73f52708c434-33\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "ur_03_hamza_0c24ed7f_idle_1257e91a13"
+      },
+      "source_video_sha256": "1257e91a1367b3750cc59cbe7eb2a3830b78627770328770b1d431d6b7b5e01f",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T07:52:32Z",
+      "actual": {
+        "bytes": 272571511,
+        "etag": "\"7351de417fabe5a7c4db73f52708c434-33\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "ur_03_hamza_0c24ed7f_idle_1257e91a13"
+        },
+        "last_modified": "2026-09-30T07:52:28+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_03_hamza",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/ur_03_hamza_0c24ed7f_talking_bbadac99b6.tar.gz",
+      "bytes": 270751097,
+      "etag": "\"ae4a6f01db69e89c329c12cc347ce7af-33\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6"
+      },
+      "source_video_sha256": "bbadac99b6e91cc82ed19b911a5aa6d7ec7184071b506ac54b2c7b14bb3d3e0a",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T07:53:21Z",
+      "actual": {
+        "bytes": 270751097,
+        "etag": "\"ae4a6f01db69e89c329c12cc347ce7af-33\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6"
+        },
+        "last_modified": "2026-09-30T07:53:17+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_03_hamza",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "ur_03_hamza_0c24ed7f_smiling_2738b3fb33",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/ur_03_hamza_0c24ed7f_smiling_2738b3fb33.tar.gz",
+      "bytes": 179091400,
+      "etag": "\"d774cac9f27c33b1112bc18d58c000d1-22\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "ur_03_hamza_0c24ed7f_smiling_2738b3fb33"
+      },
+      "source_video_sha256": "2738b3fb330e5b292fc41435bc77315be0942ab4ecae3eb2f5ff208ca7a86fd0",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T07:53:53Z",
+      "actual": {
+        "bytes": 179091400,
+        "etag": "\"d774cac9f27c33b1112bc18d58c000d1-22\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "ur_03_hamza_0c24ed7f_smiling_2738b3fb33"
+        },
+        "last_modified": "2026-09-30T07:53:51+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_04_bilal",
+      "kind": "portrait",
+      "file": "ur_04_bilal.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/ur_04_bilal.png",
+      "bytes": 2439424,
+      "sha256": "b9b0df231ff96c8d509bc6be899240f7678327424159e93bb2fb727841179837",
+      "actual": {
+        "bytes": 2439424,
+        "etag": "\"4b8522c34067813da7818c68cb72d065\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T08:13:28+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_04_bilal",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "ur_04_bilal_b9b0df23_idle_343e7de742",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/ur_04_bilal_b9b0df23_idle_343e7de742.tar.gz",
+      "bytes": 381281506,
+      "etag": "\"4ff27059700411e4d25039242f2c1cdb-46\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "ur_04_bilal_b9b0df23_idle_343e7de742"
+      },
+      "source_video_sha256": "343e7de74243a9fac8c6ca8bccc59f7103a74f1a3e1c6950f5b9877ef4dddfb2",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T08:11:46Z",
+      "actual": {
+        "bytes": 381281506,
+        "etag": "\"4ff27059700411e4d25039242f2c1cdb-46\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "ur_04_bilal_b9b0df23_idle_343e7de742"
+        },
+        "last_modified": "2026-09-30T08:11:41+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_04_bilal",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "ur_04_bilal_b9b0df23_talking_42d5916a02",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/ur_04_bilal_b9b0df23_talking_42d5916a02.tar.gz",
+      "bytes": 369378984,
+      "etag": "\"5abb3321e54aaa21234c524485795e39-45\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "ur_04_bilal_b9b0df23_talking_42d5916a02"
+      },
+      "source_video_sha256": "42d5916a02908daa91dc1b22ac73db37543208c050ce62a1855a0f759a7d9609",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T08:12:39Z",
+      "actual": {
+        "bytes": 369378984,
+        "etag": "\"5abb3321e54aaa21234c524485795e39-45\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "ur_04_bilal_b9b0df23_talking_42d5916a02"
+        },
+        "last_modified": "2026-09-30T08:12:34+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "ur_04_bilal",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "ur_04_bilal_b9b0df23_smiling_5421aeebde",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/ur_04_bilal_b9b0df23_smiling_5421aeebde.tar.gz",
+      "bytes": 249369170,
+      "etag": "\"8a755741359bdf66b9fcda0d4ee87d3f-30\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "ur_04_bilal_b9b0df23_smiling_5421aeebde"
+      },
+      "source_video_sha256": "5421aeebde52b8e538f5870a601cbb255eb1724dcb683b3e639c62154c3df895",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T08:13:14Z",
+      "actual": {
+        "bytes": 249369170,
+        "etag": "\"8a755741359bdf66b9fcda0d4ee87d3f-30\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "ur_04_bilal_b9b0df23_smiling_5421aeebde"
+        },
+        "last_modified": "2026-09-30T08:13:11+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_01_mei",
+      "kind": "portrait",
+      "file": "zh_01_mei.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/zh_01_mei.png",
+      "bytes": 2025264,
+      "sha256": "ca138defa9e19768f6802396c5c0f2e68df83ac47b177327cdad0dd68ee9afab",
+      "actual": {
+        "bytes": 2025264,
+        "etag": "\"76c25c21ef5d1f52227131cff4eb435a\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T08:32:35+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_01_mei",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "zh_01_mei_ca138def_idle_06b603d754",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/zh_01_mei_ca138def_idle_06b603d754.tar.gz",
+      "bytes": 303668054,
+      "etag": "\"d0b9262501873c011ce939527483ccd3-37\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "zh_01_mei_ca138def_idle_06b603d754"
+      },
+      "source_video_sha256": "06b603d7548c29537b0ed3c8ab711c1cc9a917e0f40755a4214b0bebfd1fd3ad",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T08:30:44Z",
+      "actual": {
+        "bytes": 303668054,
+        "etag": "\"d0b9262501873c011ce939527483ccd3-37\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "zh_01_mei_ca138def_idle_06b603d754"
+        },
+        "last_modified": "2026-09-30T08:30:40+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_01_mei",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "zh_01_mei_ca138def_talking_c213293f1b",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/zh_01_mei_ca138def_talking_c213293f1b.tar.gz",
+      "bytes": 305355642,
+      "etag": "\"21333264eef54a687260bc09dbe1a1d2-37\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "zh_01_mei_ca138def_talking_c213293f1b"
+      },
+      "source_video_sha256": "c213293f1b8d99907be505df432903299136557dcfe482ca01bc140a6a1d63da",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T08:31:42Z",
+      "actual": {
+        "bytes": 305355642,
+        "etag": "\"21333264eef54a687260bc09dbe1a1d2-37\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "zh_01_mei_ca138def_talking_c213293f1b"
+        },
+        "last_modified": "2026-09-30T08:31:29+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_01_mei",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "zh_01_mei_ca138def_smiling_84cf0b2550",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/zh_01_mei_ca138def_smiling_84cf0b2550.tar.gz",
+      "bytes": 198777134,
+      "etag": "\"3111f973e97bd720386cdbac1aec59f4-24\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "zh_01_mei_ca138def_smiling_84cf0b2550"
+      },
+      "source_video_sha256": "84cf0b2550b778c3ebbe7ea6310d2a86bd1f4888047f7c97dc805a77dacb01ee",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T08:32:22Z",
+      "actual": {
+        "bytes": 198777134,
+        "etag": "\"3111f973e97bd720386cdbac1aec59f4-24\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "zh_01_mei_ca138def_smiling_84cf0b2550"
+        },
+        "last_modified": "2026-09-30T08:32:13+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_02_lan",
+      "kind": "portrait",
+      "file": "zh_02_lan.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/zh_02_lan.png",
+      "bytes": 2222750,
+      "sha256": "09242cdb764532ba2375dac85e6f179eef9ffcf5d24370f4c8887a152e1d02de",
+      "actual": {
+        "bytes": 2222750,
+        "etag": "\"4fe7b49c17d2b0a77466a65c31ac5981\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T08:51:57+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_02_lan",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "zh_02_lan_09242cdb_idle_f03af7d016",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/zh_02_lan_09242cdb_idle_f03af7d016.tar.gz",
+      "bytes": 368795623,
+      "etag": "\"43af3e89153a8e02bba94926743a199a-44\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "zh_02_lan_09242cdb_idle_f03af7d016"
+      },
+      "source_video_sha256": "f03af7d0161ee846d4ba236d5afc411fa541bf7d56f929a91e50c799c48fc5fe",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T08:50:15Z",
+      "actual": {
+        "bytes": 368795623,
+        "etag": "\"43af3e89153a8e02bba94926743a199a-44\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "zh_02_lan_09242cdb_idle_f03af7d016"
+        },
+        "last_modified": "2026-09-30T08:50:11+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_02_lan",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "zh_02_lan_09242cdb_talking_3d84940bd7",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/zh_02_lan_09242cdb_talking_3d84940bd7.tar.gz",
+      "bytes": 366589402,
+      "etag": "\"82b38a4ba6effec675bd743a9909b78a-44\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "zh_02_lan_09242cdb_talking_3d84940bd7"
+      },
+      "source_video_sha256": "3d84940bd798e57c787612315b86a42f5ee7b13273e3413a894f5b0500859f57",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T08:51:08Z",
+      "actual": {
+        "bytes": 366589402,
+        "etag": "\"82b38a4ba6effec675bd743a9909b78a-44\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "zh_02_lan_09242cdb_talking_3d84940bd7"
+        },
+        "last_modified": "2026-09-30T08:51:03+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_02_lan",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "zh_02_lan_09242cdb_smiling_71e051f752",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/zh_02_lan_09242cdb_smiling_71e051f752.tar.gz",
+      "bytes": 240786832,
+      "etag": "\"db76ca61bbbfa913e31f2e67ea142673-29\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "zh_02_lan_09242cdb_smiling_71e051f752"
+      },
+      "source_video_sha256": "71e051f7524fe217178703b51b9fcff056bc29c6e5e87afb3a1856887de4aee6",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T08:51:43Z",
+      "actual": {
+        "bytes": 240786832,
+        "etag": "\"db76ca61bbbfa913e31f2e67ea142673-29\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "zh_02_lan_09242cdb_smiling_71e051f752"
+        },
+        "last_modified": "2026-09-30T08:51:40+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_03_wei",
+      "kind": "portrait",
+      "file": "zh_03_wei.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/zh_03_wei.png",
+      "bytes": 2237886,
+      "sha256": "44dc1943f9113dec89e7ae6b43505704cafb0e9577eb5e217020102e2056b5df",
+      "actual": {
+        "bytes": 2237886,
+        "etag": "\"2c1b4a1527933f07465234f890d52cbf\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T09:11:13+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_03_wei",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "zh_03_wei_44dc1943_idle_6b94b21cbb",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/zh_03_wei_44dc1943_idle_6b94b21cbb.tar.gz",
+      "bytes": 325317746,
+      "etag": "\"d6df88078adeb7bc809a9e991c80716a-39\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "zh_03_wei_44dc1943_idle_6b94b21cbb"
+      },
+      "source_video_sha256": "6b94b21cbb2359ac952bbf29799c5bad0a04d662ac6fe2d336504419be0d450b",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T09:09:22Z",
+      "actual": {
+        "bytes": 325317746,
+        "etag": "\"d6df88078adeb7bc809a9e991c80716a-39\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "zh_03_wei_44dc1943_idle_6b94b21cbb"
+        },
+        "last_modified": "2026-09-30T09:09:18+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_03_wei",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "zh_03_wei_44dc1943_talking_3cc9c11c9b",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/zh_03_wei_44dc1943_talking_3cc9c11c9b.tar.gz",
+      "bytes": 321146992,
+      "etag": "\"5632c8359ab6e360e2c70ee95bc24315-39\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "zh_03_wei_44dc1943_talking_3cc9c11c9b"
+      },
+      "source_video_sha256": "3cc9c11c9b12546f99ecf0edfa0bc66b8bd31e8c26080718aaa1ad04f3e3f5bc",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T09:10:25Z",
+      "actual": {
+        "bytes": 321146992,
+        "etag": "\"5632c8359ab6e360e2c70ee95bc24315-39\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "zh_03_wei_44dc1943_talking_3cc9c11c9b"
+        },
+        "last_modified": "2026-09-30T09:10:09+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_03_wei",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "zh_03_wei_44dc1943_smiling_8eda7006f1",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/zh_03_wei_44dc1943_smiling_8eda7006f1.tar.gz",
+      "bytes": 212685644,
+      "etag": "\"f00d27e8758b4ce314fa6be783b20c71-26\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "zh_03_wei_44dc1943_smiling_8eda7006f1"
+      },
+      "source_video_sha256": "8eda7006f183b460cf35b24660fea3f7c060814dc27125e9c2a625c8e2583ca4",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T09:10:59Z",
+      "actual": {
+        "bytes": 212685644,
+        "etag": "\"f00d27e8758b4ce314fa6be783b20c71-26\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "zh_03_wei_44dc1943_smiling_8eda7006f1"
+        },
+        "last_modified": "2026-09-30T09:10:56+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_04_jun",
+      "kind": "portrait",
+      "file": "zh_04_jun.png",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/portraits/zh_04_jun.png",
+      "bytes": 2348045,
+      "sha256": "7e6a6f0b7d3581a381ed1e71498d632a06228568d621d2456c85595e756b3b87",
+      "actual": {
+        "bytes": 2348045,
+        "etag": "\"5f2f5db38531b8803d162364a70b842b\"",
+        "metadata": {},
+        "last_modified": "2026-09-30T09:30:32+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_04_jun",
+      "kind": "pose_cache",
+      "pose": "idle",
+      "avatar_id": "zh_04_jun_7e6a6f0b_idle_4e103c1e30",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/zh_04_jun_7e6a6f0b_idle_4e103c1e30.tar.gz",
+      "bytes": 362269291,
+      "etag": "\"cb69995a9e91f82719fb2f57f3102a52-44\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "zh_04_jun_7e6a6f0b_idle_4e103c1e30"
+      },
+      "source_video_sha256": "4e103c1e30ce75ebdcd8e97c2b7c2c0604ebd3055c83ca4f2d84aed82fcaaaaf",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T09:28:50Z",
+      "actual": {
+        "bytes": 362269291,
+        "etag": "\"cb69995a9e91f82719fb2f57f3102a52-44\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "zh_04_jun_7e6a6f0b_idle_4e103c1e30"
+        },
+        "last_modified": "2026-09-30T09:28:46+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_04_jun",
+      "kind": "pose_cache",
+      "pose": "talking",
+      "avatar_id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/zh_04_jun_7e6a6f0b_talking_ccedca71ff.tar.gz",
+      "bytes": 350843310,
+      "etag": "\"b2ad1a92cc27860b29c7b0de0bb725ec-42\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff"
+      },
+      "source_video_sha256": "ccedca71ff46adf2923865fd8c77249b09e55eb6a13c345a2d9f124c01c9c65f",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T09:29:42Z",
+      "actual": {
+        "bytes": 350843310,
+        "etag": "\"b2ad1a92cc27860b29c7b0de0bb725ec-42\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff"
+        },
+        "last_modified": "2026-09-30T09:29:38+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "character": "zh_04_jun",
+      "kind": "pose_cache",
+      "pose": "smiling",
+      "avatar_id": "zh_04_jun_7e6a6f0b_smiling_f995370508",
+      "s3_uri": "s3://lingua-musetalk-s3-storage/avatars/v15/zh_04_jun_7e6a6f0b_smiling_f995370508.tar.gz",
+      "bytes": 232722812,
+      "etag": "\"84dcbaba7e1ae0efd07a52de688a583a-28\"",
+      "metadata": {
+        "source": "musetalk-avatar-s3-store",
+        "musetalk-version": "v15",
+        "avatar-id": "zh_04_jun_7e6a6f0b_smiling_f995370508"
+      },
+      "source_video_sha256": "f995370508de5f0e3c0e074dc8602bf1ff8733f161a276e5f6e8c4badbacdc40",
+      "upload_confirmed": true,
+      "uploaded_utc": "2026-09-30T09:30:17Z",
+      "actual": {
+        "bytes": 232722812,
+        "etag": "\"84dcbaba7e1ae0efd07a52de688a583a-28\"",
+        "metadata": {
+          "source": "musetalk-avatar-s3-store",
+          "musetalk-version": "v15",
+          "avatar-id": "zh_04_jun_7e6a6f0b_smiling_f995370508"
+        },
+        "last_modified": "2026-09-30T09:30:14+00:00"
+      },
+      "status": "PASS",
+      "mismatches": []
+    }
+  ]
+}

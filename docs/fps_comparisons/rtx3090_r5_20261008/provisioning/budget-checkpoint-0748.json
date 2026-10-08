@@ -1,0 +1,88 @@
+{
+  "schema": "musetalk_experiment_budget_checkpoint_v1",
+  "observed_utc": "2026-10-08T07:48:51.505299+00:00",
+  "scope": "One read-only provider inventory, owned run ledger, systemd timer, and EC2 MuseTalk registry checkpoint. No GPU, service, configuration, create, or destroy action.",
+  "instance_id": 54798270,
+  "label": "musetalk-r5-3090-dev-20261008",
+  "machine_id": 153039,
+  "actual_status": "running",
+  "provider_start_epoch": 1791443725.709298,
+  "provider_start_utc": "2026-10-08T07:15:25.709298+00:00",
+  "run_age_seconds": 2005.796001,
+  "run_age_hours": 0.5571655558333333,
+  "rates": {
+    "hourly_compute_and_storage_usd": 0.2411111111111111,
+    "hourly_compute_base_usd": 0.21333333333333335,
+    "hourly_storage_usd": 0.027777777777777773,
+    "storage_usd_per_gb_month": 0.1333333333333333,
+    "download_usd_per_gb": 0.0013020833333333333,
+    "upload_usd_per_gb": 0.0013020833333333333,
+    "rate_times_1024_usd_per_tb_each_direction": 1.3333333333333333,
+    "approved_conservative_usd_per_gb_ceiling_each_direction": 0.00146484375,
+    "hourly_ceiling_usd": 0.3,
+    "observed_rates_within_approved_limits": true
+  },
+  "storage": {
+    "allocated_gb": 150.0,
+    "provider_reported_disk_usage": 27.0,
+    "disk_usage_provider_unit_not_independently_verified": true
+  },
+  "cumulative_network_provider_fields": {
+    "inet_down_billed": 18140364.8,
+    "inet_up_billed": 252928.0,
+    "unit": "UNVERIFIED_PROVIDER_RAW_COUNTER",
+    "converted_to_bytes_or_gb": false,
+    "note": "The names indicate provider billed traffic counters, not dollar amounts. Retrieved official API/CLI documentation did not establish the raw counter unit. Do not divide by an assumed factor or present these as finalized transfer cost."
+  },
+  "actual_billed_usd": null,
+  "actual_billed_status": "Not available as a finalized per-instance monetary total in the inspected inventory response; invoices were not queried",
+  "estimates_not_invoices": {
+    "compute_storage_accrual_at_observed_rate_usd": 0.1343388062398148,
+    "formula": "run_age_hours * observed dph_total; assumes billing begins at provider start and unchanged observed rate",
+    "conservative_hourly_rate_from_create_ledger_usd": 0.24924913194444445,
+    "conservative_hourly_accrual_usd": 0.1388730311408022,
+    "full_transfer_reserve_usd": 0.26041666666666663,
+    "full_additional_storage_reserve_usd": 0.33333333333333326,
+    "additional_uncertainty_reserve_usd": 2.0,
+    "checkpoint_accrual_plus_all_full_reserves_usd": 2.732623031140802,
+    "checkpoint_reserve_formula": "elapsed * conservative_hourly + full transfer reserve + full extra storage reserve + uncertainty reserve",
+    "caveat": "A conservative planning allowance, not a verified invoice or unconditional upper bound: actual traffic must remain within the reserved 100 GB each direction, and uninspected additional providers/storage charges are excluded."
+  },
+  "approved_budget_and_owned_ledger": {
+    "human_approved_total_usd": 30.0,
+    "human_approved_download_usd_per_tb": 1.5,
+    "human_approved_upload_usd_per_tb": 1.5,
+    "ledger_state": "created",
+    "ledger_reference": "/home/ec2-user/.local/state/musetalk-r5-3090-dev-20261008/startup-ledger.json",
+    "planned_lifetime_hours": 12.0,
+    "full_run_reserved_usd": 5.5847395833333335,
+    "total_less_this_run_reservation_usd": 24.415260416666666,
+    "remaining_budget_caveat": "Subtract any other run reservations or actual shared experiment expenses before new spending. This checkpoint does not release any reservation.",
+    "account_balance_used_as_budget_authorization": false,
+    "account_balance_queried": false
+  },
+  "expiry": {
+    "timer": "musetalk-r5-3090-dev-20261008-expiry.timer",
+    "active_state": "active",
+    "sub_state": "waiting",
+    "next_elapse_utc": "2026-10-08T19:00:00Z",
+    "seconds_until_expiry_at_checkpoint": 40268.494701,
+    "trigger_service": "musetalk-r5-3090-dev-20261008-expiry.service",
+    "service_active_state": "inactive",
+    "service_sub_state": "dead",
+    "service_result": "success",
+    "note": "Inactive service is expected while its active timer waits for the future deadline; this is not proof that a future destroy has occurred."
+  },
+  "production_isolation": {
+    "protected_4070_instance_id": 51074906,
+    "protected_4070_present": true,
+    "provider_inventory_ids": [51074906, 54798270],
+    "ec2_registry_http_status": 200,
+    "ec2_dynamic_musetalk_worker_rows": [],
+    "experiment_registered": false
+  },
+  "documentation_checked_for_counter_units": [
+    "https://docs.vast.ai/api-reference/instances/show-instance",
+    "https://github.com/vast-ai/vast-cli/blob/master/vast.py"
+  ]
+}

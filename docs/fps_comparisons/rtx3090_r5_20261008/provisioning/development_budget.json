@@ -1,0 +1,15 @@
+{
+  "approval_reference": "User approval in current Codex chat on 2026-10-08: $30 total, internet no more than $1.50/TB download or upload",
+  "total_usd": 30,
+  "max_hourly_usd": 0.30,
+  "planned_lifetime_hours": 12,
+  "max_lifetime_hours": 12,
+  "lifetime_policy": "Operator-selected 12h conservative cap within approved total; actual 07:15:25UTC create has expiry scheduled 19:00UTC, with at most 10 attempts (60s timeout and 30s retry). External timer is best-effort, not a provider-enforced cap.",
+  "lifetime_enforcer_reference": "EC2 transient systemd unit musetalk-r5-3090-dev-20261008-expiry.timer; strict own-label/ID/GPU protection; no production worker deletion",
+  "max_inet_down_usd_per_gb": 0.00146484375,
+  "max_inet_up_usd_per_gb": 0.00146484375,
+  "reserved_inet_down_gb": 100,
+  "reserved_inet_up_gb": 100,
+  "additional_reserve_usd": 2,
+  "transfer_policy": "Check provider cumulative traffic/cost during work; reserve more from shared budget or stop before exhausting reservation"
+}

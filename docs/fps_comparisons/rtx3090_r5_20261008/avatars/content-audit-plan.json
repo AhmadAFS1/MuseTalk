@@ -1,0 +1,24 @@
+{
+  "schema": "rtx3090_avatar_content_audit_v1",
+  "status": "PLAN_ONLY",
+  "started_utc": "2026-10-08T07:33:49.696768+00:00",
+  "manifest": "/Users/ahmadsmacair/code/musetalk-r5-execution/character_factory/generated/lumatalk_four_language_wardrobe_v2/s3_publication.json",
+  "manifest_sha256": "9c565780c494c048195541b5a16f60c51c8ded3600c1901b7ea9d542be3d90c6",
+  "audit_root": "/private/tmp/musetalk-r5-avatar-audit-20261008-not-created",
+  "expected_characters": 16,
+  "expected_pose_caches": 48,
+  "expected_archive_download_bytes": 15537159570,
+  "credential_reference": "boto3 default credential chain",
+  "gpu_used": false,
+  "scope": "Canonical restore, fresh archive hash/size, published source-video hash, PNG decode/inventory, safe CPU latent shape/dtype/finiteness",
+  "not_claimed": [
+    "historical archive SHA match without published hash",
+    "coordinate-pickle semantics",
+    "encoder/preprocessing compatibility without provenance",
+    "visual quality",
+    "render compatibility",
+    "GPU performance"
+  ],
+  "expanded_disk_requirement_known": false,
+  "objects": []
+}

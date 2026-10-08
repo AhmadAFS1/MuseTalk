@@ -1,0 +1,25 @@
+{
+  "schema": "execution_preflight_v1",
+  "observed_utc": "2026-10-08T06:50:53Z",
+  "measurement_kind": "read_only_preflight_not_a_benchmark",
+  "operator": {"os": "macOS", "local_free_disk_approx_gib": 702, "aws_credential_reference": "AWS CLI default profile", "git_hub_cli_authenticated": false, "docker_available": false},
+  "protected_worker": {
+    "ssh_alias": "3-way-head-talk",
+    "hostname": "400445b4c77b",
+    "repository": "/workspace/MuseTalk",
+    "revision": "5cc706e90e50e93da1310628c025a84199cd8042",
+    "untracked_user_file": "docs/RTX_3090_R5_DOCKER_AUTOSCALING_EXECUTION_PLAN.md",
+    "gpu": "NVIDIA GeForce RTX 4070 SUPER",
+    "gpu_uuid": "GPU-69894a01-4488-37ac-5fd8-878224044365",
+    "nvidia_smi_total_memory_mib": 12282,
+    "nvidia_smi_used_memory_mib": 1,
+    "driver": "595.84",
+    "power_limit_w": 220,
+    "temperature_c": 30,
+    "workspace_free_approx_gib": 1.2,
+    "shared_memory_approx_gib": 15,
+    "mutated": false
+  },
+  "rtx3090": null,
+  "notes": ["Snapshot only: GPU allocation/load can change", "No 3090 benchmark, startup or quality claim is established by this file"]
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "musetalk_startup_acceptance_v1",
+  "frozen_at_utc": "2026-10-08T07:21:12Z",
+  "purpose": "Operator-selected optimization targets, not user-supplied SLA or measured results",
+  "baseline_reference": "User reports approximately 15 minute per-instance startup and 9-10 minute warmup; measure actual source-install baseline independently",
+  "cold_create_request_to_steady_call_seconds_max": 300,
+  "provider_cached_create_request_to_steady_call_seconds_max": 180,
+  "same_instance_restart_to_steady_call_seconds_max": 120,
+  "required_fresh_runs": 3,
+  "required_restart_runs": 3,
+  "readiness": "Real EC2 routing/TURN browser call has audio and sustained decoded fresh video with negotiated production codec; health or model-load success is insufficient",
+  "measurement_start": "Before the EC2 create request, or before the restart request for restart runs",
+  "cache_classification": "Unknown unless provider/local evidence establishes cold or cached; do not claim a cold pass from a cached pull",
+  "sampling": "Report every observation and min/median/max; three runs do not establish a statistically reliable p95",
+  "budget_precedence": "Do not exceed approved total or traffic rates to obtain repeat counts; missing repetitions remain incomplete",
+  "result": "NOT_MEASURED"
+}

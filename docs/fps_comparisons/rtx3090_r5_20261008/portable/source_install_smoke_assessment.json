@@ -1,0 +1,36 @@
+{
+  "schema": "musetalk_source_smoke_assessment_v1",
+  "scope": "Single local-loopback media smoke, not EC2/TURN acceptance or sustained live-capacity proof",
+  "source_revision": "dae1e88ad3587fddbebe6d41f85faa569001f6c1",
+  "legacy_tool_verdict": "PASS",
+  "strict_new_acceptance": "INVALID",
+  "reason": "Original server had no lifetime/send-ring telemetry; first-frame matching absent. Legacy summary's zero GPU/fresh FPS is missing evidence, not a throughput measurement.",
+  "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+  "turns_posted": 1,
+  "turns_accepted": 1,
+  "decoded_client_video_frames": 1371,
+  "client_interval_avg_seconds": 0.05014,
+  "client_interval_p99_seconds": 0.07648,
+  "client_interval_max_seconds": 0.27815,
+  "server_counters_fresh_frames": 1125,
+  "server_counters_held_frames": 1,
+  "server_counter_fresh_fraction": 0.999112,
+  "strict_gap_criterion_met": false,
+  "active_requests_after_teardown": 0,
+  "observer_video": {
+    "path": "source_install_smoke/traces/n01/s00_observer.mp4",
+    "sha256": "4762fe8471c897606fd1df629818c32a239a2fc6d506ba98e37117dd008aac8f",
+    "duration_seconds": 9.918,
+    "resolution": [512, 896],
+    "file_codec": "h264",
+    "file_codec_is_negotiated_wire_codec_proof": false
+  },
+  "visual_inspection": {
+    "asset": "source_install_smoke/observer-t5.png",
+    "sha256": "db178ccbcfd13275a6045bdf065aa3f52ce803518405b0cb34e2b88e87d67121",
+    "video_time_seconds": 5,
+    "inspected": true,
+    "observation": "Decoded full 512x896 talking portrait is coherent; mouth is open with visible teeth. No black frame or gross composition displacement visible in this sample. One unpaired still cannot establish temporal or candidate quality parity.",
+    "release_quality_approval": false
+  }
+}

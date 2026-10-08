@@ -1,0 +1,1512 @@
+{
+  "schema": "r5_quality_acceptance_v1",
+  "policy_frozen_utc": "2026-10-08T07:00:00Z",
+  "reference_envelope_complete": false,
+  "candidate_evaluated": false,
+  "strict_original_gates": {
+    "unet_main_and_holdout_mae_max": 0.01,
+    "unet_main_and_holdout_max_abs": 0.5,
+    "taesd_full_max_lsb": 3,
+    "taesd_full_mean_lsb": 0.2
+  },
+  "hard_invariants": [
+    "finite outputs",
+    "deterministic rerun",
+    "CUDA graph/direct equivalence",
+    "source-prefix cached/full equality including shuffled rows",
+    "same input/model/mask/chin/audio/resolution hashes",
+    "full-height decode; 100% chin; six canonical fixtures; 512x896 composition and 256x256 face"
+  ],
+  "quality_parity_policy": {
+    "original_failures_remain_failures": true,
+    "inherited_exception_requires_frozen_measured_reference": true,
+    "error_bound": "worst applicable reference + independently repeated reference measurement noise",
+    "similarity_bound": "lowest applicable reference - independently repeated reference measurement noise",
+    "noise_allowance": null,
+    "no_widening_after_candidate_results": true,
+    "per_avatar_non_regression": true,
+    "canonical_and_production_pose_visual_inspection_required": true
+  },
+  "historical_reference_sources": {
+    "docs/fps_comparisons/4070s_400fps_20260928/gate/gunet_srcg50_main.json": {
+      "sha256": "a0ce9c5a8171ab20770316d902b4ee0be61f9eda6d675c4c34eeb057299b0ecc",
+      "gpu": "RTX 4070 SUPER",
+      "historical": true,
+      "metrics": {
+        "files": 176,
+        "mae_max": 0.004442235920578241,
+        "max_abs_max": 0.776611328125
+      }
+    },
+    "docs/fps_comparisons/4070s_400fps_20260928/gate/gunet_srcg50_holdout.json": {
+      "sha256": "e83f7c8adc8f9b1592d21334296edf69a0c335226c3f19785632b131215f5e6e",
+      "gpu": "RTX 4070 SUPER",
+      "historical": true,
+      "metrics": {
+        "files": 48,
+        "mae_max": 0.003916316200047731,
+        "max_abs_max": 1.2601318359375
+      }
+    },
+    "docs/fps_comparisons/ampere_plus_r5_20260930/taesd_gate/gate_taesd_trt.json": {
+      "sha256": "829d12a865e6d45ade66965abf854cb5de40841c0fc2e0e2c749116023f3ee2c",
+      "gpu": "RTX 4070 SUPER",
+      "historical": true,
+      "metrics": {
+        "G_TAESD_full_max": 5,
+        "G_TAESD_full_mean": 0.06574700843720209,
+        "G_TAESD_rows104_max": 3,
+        "G_TAESD_rows104_mean": 0.0611282219564108,
+        "thresholds": {
+          "max_lsb": 3,
+          "mean_lsb": 0.2
+        },
+        "fused_post_mismatched_bytes": 0,
+        "fused_frames": 3584,
+        "rerun_mismatched_bytes": 0,
+        "G_TAESD": "FAIL",
+        "bit_exact_checks": "PASS",
+        "verdict": "FAIL"
+      },
+      "engine": {
+        "key": "512bfd629a5e1f4f2e40",
+        "fingerprint": {
+          "recipe": "taesd_decoder_fp16_full_height_v1",
+          "post_recipe": "bgr_u8_nhwc_post_fp32_rne_v1",
+          "tensorrt": "10.3.0",
+          "onnx_sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb",
+          "batch": 8,
+          "latent_shape": [
+            8,
+            4,
+            32,
+            32
+          ],
+          "precision": "fp16",
+          "opt_level": 3,
+          "strongly_typed": false,
+          "hardware_compatibility_level": "ampere_plus"
+        },
+        "decoder_plan": "taesd_trt_512bfd629a5e1f4f2e40.decoder.plan",
+        "decoder_plan_sha256": "7b3cf995a9bc22c5eabd04e665b79be9fe3f76cd60eb7b680ea7f65a1c893c8d",
+        "decoder_plan_bytes": 3356996,
+        "post_plan": "taesd_trt_512bfd629a5e1f4f2e40.post_bgr_u8.plan",
+        "post_plan_sha256": "8412a911f8b9885e4d3e2a0e45a27fe4f3d9bd719301059f3f90b5bd537ef2bb",
+        "post_plan_bytes": 57700,
+        "probe": {
+          "probe_seed": 20260928,
+          "probe_shape": [
+            8,
+            4,
+            32,
+            32
+          ],
+          "fp16_sha256": "1d040263acea885520ffbcba428ecdae54b0bec627ed7a6b19bad36bcb01f1f9",
+          "u8_repo_post_sha256": "0c213c55b27ba1b6a18ba2f8a9739a8b6dbd5665172a0bc1a873421a5a8bc4a6",
+          "u8_fused_sha256": "0c213c55b27ba1b6a18ba2f8a9739a8b6dbd5665172a0bc1a873421a5a8bc4a6",
+          "fused_vs_repo_post_mismatched_bytes": 0,
+          "reference_file": "taesd_trt_512bfd629a5e1f4f2e40.probe_fp16.pt",
+          "cross_gpu_rel_l2_max": 0.01
+        },
+        "build": {
+          "created_utc": "2026-09-30T19:04:20Z",
+          "decoder_build_s": 38.45,
+          "post_build_s": 1.68,
+          "torch": "2.5.1+cu121",
+          "pid": 3397596,
+          "timing_cache": "taesd_trt_timing.ampere_plus.cache",
+          "gpu": "NVIDIA GeForce RTX 4070 SUPER",
+          "compute_capability": "8.9",
+          "hardware_compatibility_level": "ampere_plus"
+        }
+      }
+    },
+    "docs/fps_comparisons/4070s_300fps_impl_20260928/quality_metrics/runs/black_man_short_beard__srcg50.json": {
+      "sha256": "a90819ce09aea92f617ed2448fdd283d8a58c90f2db1eb22e114d010a5f0025b",
+      "gpu": "RTX 4070 SUPER",
+      "historical": true,
+      "identity": {
+        "name": "black_man_short_beard",
+        "source": "/workspace/experiments/avatar_diversity_20260927/black_man_short_beard/source.mp4",
+        "source_sha256": "f942c5c4073dadfdba58404848bfda15649bd8a7d455ce05e88e08d3b1e4785a",
+        "source_landmarks_sha256": "e1b172eda9b0d8a480cd6bea385070b0872d2ef93b9f1b87b25fdda8767b33fd",
+        "cache_sha256": "7becbcdcbd625df94beb2b58743cd0de3ed38b1dd772fdd9f0214d9623272b87",
+        "masks_sha256": "f821c7d653966ffe03d204ec3f258c793bcde1ff63ae14e59f0ce01ab4ffdc66",
+        "audio": "/workspace/experiments/avatar_diversity_20260927/black_man_short_beard/speech.wav"
+      },
+      "frames": 240,
+      "original_verdict": "FAIL",
+      "gates": [
+        {
+          "gate": "lip.aperture_corr",
+          "value": 0.9996610560562113,
+          "threshold": ">= 0.97",
+          "result": "pass"
+        },
+        {
+          "gate": "lip.xcorr_lag_frames",
+          "value": 0,
+          "threshold": "== 0",
+          "result": "pass"
+        },
+        {
+          "gate": "lip.mean_abs_delta_px",
+          "value": 0.14093098044395447,
+          "threshold": "<= 0.5",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.mouth_ratio",
+          "value": 1.0011450219492528,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.jaw_ratio",
+          "value": 0.9996047964877403,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.ring_ratio",
+          "value": 0.9996416497610154,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.hf_mouth_box_ratio",
+          "value": 0.9994685358968388,
+          "threshold": "<= 1.05 (report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "flicker.hf_jaw_box_ratio",
+          "value": 0.9993127838680068,
+          "threshold": "<= 1.05 (report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "chin.target_error_mean_px",
+          "value": 1.7030887530806165,
+          "threshold": "<= A (1.7195) + 0.05",
+          "result": "pass"
+        },
+        {
+          "gate": "frames.raw_pre_encode",
+          "value": "raw",
+          "threshold": "== raw (codec noise alone exceeds the G-TRACK thresholds)",
+          "result": "pass"
+        },
+        {
+          "gate": "chin.landmark_dev_mean_px",
+          "value": 0.10365966707468033,
+          "threshold": "<= 0.05",
+          "result": "fail"
+        },
+        {
+          "gate": "chin.landmark_dev_p99_px",
+          "value": 0.3600405561923982,
+          "threshold": "<= 0.15",
+          "result": "fail"
+        },
+        {
+          "gate": "chin.landmark_dev_calibrated_proposal",
+          "value": 0.10365966707468033,
+          "threshold": "mean <= 0.1 and p99 <= 0.35 (proposed, report)",
+          "result": "report",
+          "would_pass": false
+        },
+        {
+          "gate": "track.missing_face_frames",
+          "value": 0,
+          "threshold": "== 0",
+          "result": "pass"
+        },
+        {
+          "gate": "seam.protected_lip_A",
+          "value": 0,
+          "threshold": "== 0 vs own standard compose",
+          "result": "pass"
+        },
+        {
+          "gate": "seam.protected_lip_B",
+          "value": 0,
+          "threshold": "== 0 vs own standard compose",
+          "result": "pass"
+        },
+        {
+          "gate": "overall.mouth_sharpness_ratio",
+          "value": 0.9998160458606531,
+          "threshold": ">= 0.95",
+          "result": "pass"
+        },
+        {
+          "gate": "overall.mouth_sharpness_upper",
+          "value": 0.9998160458606531,
+          "threshold": "<= 1.05 (L5 band, report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "overall.face_psnr_db",
+          "value": 58.43341660281018,
+          "threshold": "report-only",
+          "result": "report",
+          "would_pass": true
+        }
+      ],
+      "psnr": {
+        "full": {
+          "global_db": 65.08237853083628,
+          "mean_frame_db_capped": 65.31081084191533,
+          "worst_frame_db": 60.509592704015525,
+          "identical_frames": 0
+        },
+        "face_box": {
+          "global_db": 58.21870659853127,
+          "mean_frame_db_capped": 58.43341660281018,
+          "worst_frame_db": 53.63034891772517,
+          "identical_frames": 0
+        },
+        "mouth_roi": {
+          "global_db": 50.99010285861524,
+          "mean_frame_db_capped": 51.35095290154697,
+          "worst_frame_db": 44.94366447481588,
+          "identical_frames": 0
+        }
+      },
+      "A": {
+        "label": "A",
+        "compose": "refined",
+        "video": "/workspace/experiments/avatar_diversity_20260927/black_man_short_beard/refined_raw.mp4",
+        "faces": "/workspace/experiments/avatar_diversity_20260927/black_man_short_beard/faces.npz",
+        "g": "/workspace/experiments/avatar_diversity_20260927/black_man_short_beard/generated_landmarks.npy",
+        "chin_delta": "/workspace/experiments/avatar_diversity_20260927/black_man_short_beard/chin_delta.npy",
+        "raw": null,
+        "render_json": "/workspace/experiments/avatar_diversity_20260927/black_man_short_beard/render.json",
+        "retrack": false,
+        "perturb_lsb": 0,
+        "perturb_seed": 0,
+        "perturb_frac": 1.0,
+        "info": {
+          "frames_source": "raw",
+          "g_source": "/workspace/experiments/avatar_diversity_20260927/black_man_short_beard/generated_landmarks.npy",
+          "chin_delta_recomputed_equals_saved": true,
+          "raw_reconstructed_with": "chin.py fd753e7d86b1 compose=refined",
+          "frames_sha256": "7fd04eba4dc18d52cdb72f61463cbe3c9269319d3d41478e5b3c650a526bd5ba",
+          "render_json_raw_refined_sha256": "7fd04eba4dc18d52cdb72f61463cbe3c9269319d3d41478e5b3c650a526bd5ba",
+          "raw_matches_render_json": true,
+          "protected_lip": {
+            "max_rgb_difference": 0,
+            "frames": 240,
+            "frames_nonzero": 0,
+            "matches_pixel_checks_rows": true
+          },
+          "facemesh": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.911
+          },
+          "mask_samples_match": true
+        }
+      },
+      "B": {
+        "label": "srcg50",
+        "compose": "refined",
+        "video": null,
+        "faces": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/Q_srcg50/stream00_black_man_short_beard_faces.npz",
+        "g": null,
+        "chin_delta": null,
+        "raw": null,
+        "render_json": null,
+        "retrack": false,
+        "perturb_lsb": 0,
+        "perturb_seed": 0,
+        "perturb_frac": 1.0,
+        "info": {
+          "frames_source": "raw",
+          "generated_tracking": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.898
+          },
+          "g_source": "re-tracked from faces (render_stage Tracker procedure)",
+          "raw_reconstructed_with": "chin.py fd753e7d86b1 compose=refined",
+          "frames_sha256": "92cb88822f12a7b58979eeae4ad443f36004e05dedb7e0db7d976c12b2267359",
+          "protected_lip": {
+            "max_rgb_difference": 0,
+            "frames": 240,
+            "frames_nonzero": 0
+          },
+          "facemesh": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.886
+          }
+        }
+      }
+    },
+    "docs/fps_comparisons/4070s_300fps_impl_20260928/quality_metrics/runs/black_woman__srcg50.json": {
+      "sha256": "68b04d18f9b2b3a6f8624f7034a9839f49b7f5a456f25e9a60fc088da2167f1a",
+      "gpu": "RTX 4070 SUPER",
+      "historical": true,
+      "identity": {
+        "name": "black_woman",
+        "source": "/workspace/experiments/avatar_diversity_20260927/black_woman/source.mp4",
+        "source_sha256": "149952bb1e2355b4a02ab139b2446cd1dcd5e01d46e42ddf76fc7ae9efac34e7",
+        "source_landmarks_sha256": "e4a9f3dcd2c0a398e1b1a257ee1b2e51808268715770e3849428466875064039",
+        "cache_sha256": "3169a0d834e9c40f7f54a0137d2a42d8d11fb667faa2abd726a5664925c19f68",
+        "masks_sha256": "cf4547e71a3ae2b2bed0923698367f0ab96d67e615e2cbcf9d033089bf4a8a04",
+        "audio": "/workspace/experiments/avatar_diversity_20260927/black_woman/speech.wav"
+      },
+      "frames": 240,
+      "original_verdict": "FAIL",
+      "gates": [
+        {
+          "gate": "lip.aperture_corr",
+          "value": 0.9997325991990896,
+          "threshold": ">= 0.97",
+          "result": "pass"
+        },
+        {
+          "gate": "lip.xcorr_lag_frames",
+          "value": 0,
+          "threshold": "== 0",
+          "result": "pass"
+        },
+        {
+          "gate": "lip.mean_abs_delta_px",
+          "value": 0.10638286918401718,
+          "threshold": "<= 0.5",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.mouth_ratio",
+          "value": 1.0007262250749205,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.jaw_ratio",
+          "value": 1.0004706316774628,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.ring_ratio",
+          "value": 0.999670182403063,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.hf_mouth_box_ratio",
+          "value": 1.001454038491378,
+          "threshold": "<= 1.05 (report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "flicker.hf_jaw_box_ratio",
+          "value": 1.0012943092489395,
+          "threshold": "<= 1.05 (report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "chin.target_error_mean_px",
+          "value": 1.607364193041576,
+          "threshold": "<= A (1.6228) + 0.05",
+          "result": "pass"
+        },
+        {
+          "gate": "frames.raw_pre_encode",
+          "value": "raw",
+          "threshold": "== raw (codec noise alone exceeds the G-TRACK thresholds)",
+          "result": "pass"
+        },
+        {
+          "gate": "chin.landmark_dev_mean_px",
+          "value": 0.08613280206918716,
+          "threshold": "<= 0.05",
+          "result": "fail"
+        },
+        {
+          "gate": "chin.landmark_dev_p99_px",
+          "value": 0.2766321310400965,
+          "threshold": "<= 0.15",
+          "result": "fail"
+        },
+        {
+          "gate": "chin.landmark_dev_calibrated_proposal",
+          "value": 0.08613280206918716,
+          "threshold": "mean <= 0.1 and p99 <= 0.35 (proposed, report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "track.missing_face_frames",
+          "value": 0,
+          "threshold": "== 0",
+          "result": "pass"
+        },
+        {
+          "gate": "seam.protected_lip_A",
+          "value": 0,
+          "threshold": "== 0 vs own standard compose",
+          "result": "pass"
+        },
+        {
+          "gate": "seam.protected_lip_B",
+          "value": 0,
+          "threshold": "== 0 vs own standard compose",
+          "result": "pass"
+        },
+        {
+          "gate": "overall.mouth_sharpness_ratio",
+          "value": 1.0019107483116394,
+          "threshold": ">= 0.95",
+          "result": "pass"
+        },
+        {
+          "gate": "overall.mouth_sharpness_upper",
+          "value": 1.0019107483116394,
+          "threshold": "<= 1.05 (L5 band, report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "overall.face_psnr_db",
+          "value": 59.69116622953574,
+          "threshold": "report-only",
+          "result": "report",
+          "would_pass": true
+        }
+      ],
+      "psnr": {
+        "full": {
+          "global_db": 66.60905780210955,
+          "mean_frame_db_capped": 66.8885637096163,
+          "worst_frame_db": 60.66429677474035,
+          "identical_frames": 0
+        },
+        "face_box": {
+          "global_db": 59.434897142005966,
+          "mean_frame_db_capped": 59.69116622953574,
+          "worst_frame_db": 53.69553317943076,
+          "identical_frames": 0
+        },
+        "mouth_roi": {
+          "global_db": 52.352566308915726,
+          "mean_frame_db_capped": 52.76166472139203,
+          "worst_frame_db": 44.544983529760536,
+          "identical_frames": 0
+        }
+      },
+      "A": {
+        "label": "A",
+        "compose": "refined",
+        "video": "/workspace/experiments/avatar_diversity_20260927/black_woman/refined_raw.mp4",
+        "faces": "/workspace/experiments/avatar_diversity_20260927/black_woman/faces.npz",
+        "g": "/workspace/experiments/avatar_diversity_20260927/black_woman/generated_landmarks.npy",
+        "chin_delta": "/workspace/experiments/avatar_diversity_20260927/black_woman/chin_delta.npy",
+        "raw": null,
+        "render_json": "/workspace/experiments/avatar_diversity_20260927/black_woman/render.json",
+        "retrack": false,
+        "perturb_lsb": 0,
+        "perturb_seed": 0,
+        "perturb_frac": 1.0,
+        "info": {
+          "frames_source": "raw",
+          "g_source": "/workspace/experiments/avatar_diversity_20260927/black_woman/generated_landmarks.npy",
+          "chin_delta_recomputed_equals_saved": true,
+          "raw_reconstructed_with": "chin.py fd753e7d86b1 compose=refined",
+          "frames_sha256": "2b697c4fe61a9b3ca05d283bac2a6848522de758941d8a786c8d26de34682266",
+          "render_json_raw_refined_sha256": "2b697c4fe61a9b3ca05d283bac2a6848522de758941d8a786c8d26de34682266",
+          "raw_matches_render_json": true,
+          "protected_lip": {
+            "max_rgb_difference": 0,
+            "frames": 240,
+            "frames_nonzero": 0,
+            "matches_pixel_checks_rows": true
+          },
+          "facemesh": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.865
+          },
+          "mask_samples_match": true
+        }
+      },
+      "B": {
+        "label": "srcg50",
+        "compose": "refined",
+        "video": null,
+        "faces": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/Q_srcg50/stream01_black_woman_faces.npz",
+        "g": null,
+        "chin_delta": null,
+        "raw": null,
+        "render_json": null,
+        "retrack": false,
+        "perturb_lsb": 0,
+        "perturb_seed": 0,
+        "perturb_frac": 1.0,
+        "info": {
+          "frames_source": "raw",
+          "generated_tracking": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.942
+          },
+          "g_source": "re-tracked from faces (render_stage Tracker procedure)",
+          "raw_reconstructed_with": "chin.py fd753e7d86b1 compose=refined",
+          "frames_sha256": "8304cf95afacb258e632d1b1399a6027d45b071df37840c2a14e86702690d5ce",
+          "protected_lip": {
+            "max_rgb_difference": 0,
+            "frames": 240,
+            "frames_nonzero": 0
+          },
+          "facemesh": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.875
+          }
+        }
+      }
+    },
+    "docs/fps_comparisons/4070s_300fps_impl_20260928/quality_metrics/runs/east_asian_man_goatee__srcg50.json": {
+      "sha256": "323a3c6313126fad330c49430eecb2f5470be1a573026ce46ad56bc5f1b3e476",
+      "gpu": "RTX 4070 SUPER",
+      "historical": true,
+      "identity": {
+        "name": "east_asian_man_goatee",
+        "source": "/workspace/experiments/avatar_diversity_20260927/east_asian_man_goatee/source.mp4",
+        "source_sha256": "e8bb75180c4a0c83d86fb65456676238ed5bd84961d4e5f0e4a3c9bda3378a2f",
+        "source_landmarks_sha256": "6273b95e0923e349efcb15a5283340cd569426b940a9bf73ceb9daa6cd295840",
+        "cache_sha256": "32fc43ae8f6ffb8e96d25408bc46f21f77fe9c4f4d9b5094d30748c7f629f158",
+        "masks_sha256": "8b696b6c23a1b8a1a160feb941a52cd39dc90d1ec5eddb42f783bcadeae68ad0",
+        "audio": "/workspace/experiments/avatar_diversity_20260927/east_asian_man_goatee/speech.wav"
+      },
+      "frames": 240,
+      "original_verdict": "FAIL",
+      "gates": [
+        {
+          "gate": "lip.aperture_corr",
+          "value": 0.9998146226527661,
+          "threshold": ">= 0.97",
+          "result": "pass"
+        },
+        {
+          "gate": "lip.xcorr_lag_frames",
+          "value": 0,
+          "threshold": "== 0",
+          "result": "pass"
+        },
+        {
+          "gate": "lip.mean_abs_delta_px",
+          "value": 0.08409616351127625,
+          "threshold": "<= 0.5",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.mouth_ratio",
+          "value": 0.999274495316312,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.jaw_ratio",
+          "value": 0.999794431056511,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.ring_ratio",
+          "value": 1.0002764466210312,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.hf_mouth_box_ratio",
+          "value": 0.9985915414636649,
+          "threshold": "<= 1.05 (report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "flicker.hf_jaw_box_ratio",
+          "value": 0.9987970523870723,
+          "threshold": "<= 1.05 (report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "chin.target_error_mean_px",
+          "value": 2.605280779515548,
+          "threshold": "<= A (2.6024) + 0.05",
+          "result": "pass"
+        },
+        {
+          "gate": "frames.raw_pre_encode",
+          "value": "raw",
+          "threshold": "== raw (codec noise alone exceeds the G-TRACK thresholds)",
+          "result": "pass"
+        },
+        {
+          "gate": "chin.landmark_dev_mean_px",
+          "value": 0.06988309323787689,
+          "threshold": "<= 0.05",
+          "result": "fail"
+        },
+        {
+          "gate": "chin.landmark_dev_p99_px",
+          "value": 0.2201759473979475,
+          "threshold": "<= 0.15",
+          "result": "fail"
+        },
+        {
+          "gate": "chin.landmark_dev_calibrated_proposal",
+          "value": 0.06988309323787689,
+          "threshold": "mean <= 0.1 and p99 <= 0.35 (proposed, report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "track.missing_face_frames",
+          "value": 0,
+          "threshold": "== 0",
+          "result": "pass"
+        },
+        {
+          "gate": "seam.protected_lip_A",
+          "value": 0,
+          "threshold": "== 0 vs own standard compose",
+          "result": "pass"
+        },
+        {
+          "gate": "seam.protected_lip_B",
+          "value": 0,
+          "threshold": "== 0 vs own standard compose",
+          "result": "pass"
+        },
+        {
+          "gate": "overall.mouth_sharpness_ratio",
+          "value": 0.9972371517586093,
+          "threshold": ">= 0.95",
+          "result": "pass"
+        },
+        {
+          "gate": "overall.mouth_sharpness_upper",
+          "value": 0.9972371517586093,
+          "threshold": "<= 1.05 (L5 band, report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "overall.face_psnr_db",
+          "value": 59.67846147997981,
+          "threshold": "report-only",
+          "result": "report",
+          "would_pass": true
+        }
+      ],
+      "psnr": {
+        "full": {
+          "global_db": 66.8665847261928,
+          "mean_frame_db_capped": 67.05655897964108,
+          "worst_frame_db": 63.125222625724,
+          "identical_frames": 0
+        },
+        "face_box": {
+          "global_db": 59.501151894576346,
+          "mean_frame_db_capped": 59.67846147997981,
+          "worst_frame_db": 55.866705933812064,
+          "identical_frames": 0
+        },
+        "mouth_roi": {
+          "global_db": 52.00213775290983,
+          "mean_frame_db_capped": 52.33304762954008,
+          "worst_frame_db": 46.998288500863616,
+          "identical_frames": 0
+        }
+      },
+      "A": {
+        "label": "A",
+        "compose": "refined",
+        "video": "/workspace/experiments/avatar_diversity_20260927/east_asian_man_goatee/refined_raw.mp4",
+        "faces": "/workspace/experiments/avatar_diversity_20260927/east_asian_man_goatee/faces.npz",
+        "g": "/workspace/experiments/avatar_diversity_20260927/east_asian_man_goatee/generated_landmarks.npy",
+        "chin_delta": "/workspace/experiments/avatar_diversity_20260927/east_asian_man_goatee/chin_delta.npy",
+        "raw": null,
+        "render_json": "/workspace/experiments/avatar_diversity_20260927/east_asian_man_goatee/render.json",
+        "retrack": false,
+        "perturb_lsb": 0,
+        "perturb_seed": 0,
+        "perturb_frac": 1.0,
+        "info": {
+          "frames_source": "raw",
+          "g_source": "/workspace/experiments/avatar_diversity_20260927/east_asian_man_goatee/generated_landmarks.npy",
+          "chin_delta_recomputed_equals_saved": true,
+          "raw_reconstructed_with": "chin.py fd753e7d86b1 compose=refined",
+          "frames_sha256": "93322d29a2b6d60b8de149a99dd85c90e1068c7da4f511d9fc015852c8e8a84f",
+          "render_json_raw_refined_sha256": "93322d29a2b6d60b8de149a99dd85c90e1068c7da4f511d9fc015852c8e8a84f",
+          "raw_matches_render_json": true,
+          "protected_lip": {
+            "max_rgb_difference": 0,
+            "frames": 240,
+            "frames_nonzero": 0,
+            "matches_pixel_checks_rows": true
+          },
+          "facemesh": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.896
+          },
+          "mask_samples_match": true
+        }
+      },
+      "B": {
+        "label": "srcg50",
+        "compose": "refined",
+        "video": null,
+        "faces": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/Q_srcg50/stream02_east_asian_man_goatee_faces.npz",
+        "g": null,
+        "chin_delta": null,
+        "raw": null,
+        "render_json": null,
+        "retrack": false,
+        "perturb_lsb": 0,
+        "perturb_seed": 0,
+        "perturb_frac": 1.0,
+        "info": {
+          "frames_source": "raw",
+          "generated_tracking": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.91
+          },
+          "g_source": "re-tracked from faces (render_stage Tracker procedure)",
+          "raw_reconstructed_with": "chin.py fd753e7d86b1 compose=refined",
+          "frames_sha256": "6645a31d34c7e3e7903d21598e21d159fec58ef545f6ad4539705ac5151613ff",
+          "protected_lip": {
+            "max_rgb_difference": 0,
+            "frames": 240,
+            "frames_nonzero": 0
+          },
+          "facemesh": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.933
+          }
+        }
+      }
+    },
+    "docs/fps_comparisons/4070s_300fps_impl_20260928/quality_metrics/runs/middle_eastern_man_full_beard__srcg50.json": {
+      "sha256": "17eacd157db2a2c5baa9bc332ad964993f129632e3baadfbf9d9ca9c5eaf58ba",
+      "gpu": "RTX 4070 SUPER",
+      "historical": true,
+      "identity": {
+        "name": "middle_eastern_man_full_beard",
+        "source": "/workspace/experiments/avatar_diversity_20260927/middle_eastern_man_full_beard/source.mp4",
+        "source_sha256": "edb8e29bce21a6f80571d36b3347b466bfff684c32257fef6cf3caaa7d271f69",
+        "source_landmarks_sha256": "cb954e650253c4d2337e840a99273a0eafb694ae6f827cddee0caccc3550ebe0",
+        "cache_sha256": "ee4ca4dc805d45f121fff55f5cf285e218123806af15e94310e1934c1762f57e",
+        "masks_sha256": "65eeafb9ee97603da8b200e50c11feedcc238ffdbd0ef9251cbddd25d9956e53",
+        "audio": "/workspace/experiments/avatar_diversity_20260927/middle_eastern_man_full_beard/speech.wav"
+      },
+      "frames": 240,
+      "original_verdict": "FAIL",
+      "gates": [
+        {
+          "gate": "lip.aperture_corr",
+          "value": 0.999679329036617,
+          "threshold": ">= 0.97",
+          "result": "pass"
+        },
+        {
+          "gate": "lip.xcorr_lag_frames",
+          "value": 0,
+          "threshold": "== 0",
+          "result": "pass"
+        },
+        {
+          "gate": "lip.mean_abs_delta_px",
+          "value": 0.10568154603242874,
+          "threshold": "<= 0.5",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.mouth_ratio",
+          "value": 1.0005315328188573,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.jaw_ratio",
+          "value": 1.0000765651128902,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.ring_ratio",
+          "value": 0.9998815420509779,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.hf_mouth_box_ratio",
+          "value": 0.9983984240209803,
+          "threshold": "<= 1.05 (report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "flicker.hf_jaw_box_ratio",
+          "value": 0.9993324234356955,
+          "threshold": "<= 1.05 (report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "chin.target_error_mean_px",
+          "value": 2.0565018165313327,
+          "threshold": "<= A (2.0367) + 0.05",
+          "result": "pass"
+        },
+        {
+          "gate": "frames.raw_pre_encode",
+          "value": "raw",
+          "threshold": "== raw (codec noise alone exceeds the G-TRACK thresholds)",
+          "result": "pass"
+        },
+        {
+          "gate": "chin.landmark_dev_mean_px",
+          "value": 0.12625953555107117,
+          "threshold": "<= 0.05",
+          "result": "fail"
+        },
+        {
+          "gate": "chin.landmark_dev_p99_px",
+          "value": 0.4672141155600551,
+          "threshold": "<= 0.15",
+          "result": "fail"
+        },
+        {
+          "gate": "chin.landmark_dev_calibrated_proposal",
+          "value": 0.12625953555107117,
+          "threshold": "mean <= 0.1 and p99 <= 0.35 (proposed, report)",
+          "result": "report",
+          "would_pass": false
+        },
+        {
+          "gate": "track.missing_face_frames",
+          "value": 0,
+          "threshold": "== 0",
+          "result": "pass"
+        },
+        {
+          "gate": "seam.protected_lip_A",
+          "value": 0,
+          "threshold": "== 0 vs own standard compose",
+          "result": "pass"
+        },
+        {
+          "gate": "seam.protected_lip_B",
+          "value": 0,
+          "threshold": "== 0 vs own standard compose",
+          "result": "pass"
+        },
+        {
+          "gate": "overall.mouth_sharpness_ratio",
+          "value": 0.9983711082603713,
+          "threshold": ">= 0.95",
+          "result": "pass"
+        },
+        {
+          "gate": "overall.mouth_sharpness_upper",
+          "value": 0.9983711082603713,
+          "threshold": "<= 1.05 (L5 band, report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "overall.face_psnr_db",
+          "value": 57.63491344790248,
+          "threshold": "report-only",
+          "result": "report",
+          "would_pass": true
+        }
+      ],
+      "psnr": {
+        "full": {
+          "global_db": 64.12116613428238,
+          "mean_frame_db_capped": 64.33817439032279,
+          "worst_frame_db": 59.32796320051664,
+          "identical_frames": 0
+        },
+        "face_box": {
+          "global_db": 57.44166155765025,
+          "mean_frame_db_capped": 57.63491344790248,
+          "worst_frame_db": 52.999350185185676,
+          "identical_frames": 0
+        },
+        "mouth_roi": {
+          "global_db": 50.757176867522595,
+          "mean_frame_db_capped": 51.02021882869373,
+          "worst_frame_db": 45.451508714322316,
+          "identical_frames": 0
+        }
+      },
+      "A": {
+        "label": "A",
+        "compose": "refined",
+        "video": "/workspace/experiments/avatar_diversity_20260927/middle_eastern_man_full_beard/refined_raw.mp4",
+        "faces": "/workspace/experiments/avatar_diversity_20260927/middle_eastern_man_full_beard/faces.npz",
+        "g": "/workspace/experiments/avatar_diversity_20260927/middle_eastern_man_full_beard/generated_landmarks.npy",
+        "chin_delta": "/workspace/experiments/avatar_diversity_20260927/middle_eastern_man_full_beard/chin_delta.npy",
+        "raw": null,
+        "render_json": "/workspace/experiments/avatar_diversity_20260927/middle_eastern_man_full_beard/render.json",
+        "retrack": false,
+        "perturb_lsb": 0,
+        "perturb_seed": 0,
+        "perturb_frac": 1.0,
+        "info": {
+          "frames_source": "raw",
+          "g_source": "/workspace/experiments/avatar_diversity_20260927/middle_eastern_man_full_beard/generated_landmarks.npy",
+          "chin_delta_recomputed_equals_saved": true,
+          "raw_reconstructed_with": "chin.py fd753e7d86b1 compose=refined",
+          "frames_sha256": "ea63b2e61c9a12baf0cdb4adb6149ccbfc0e17c1a12718840c214f426f01b7e0",
+          "render_json_raw_refined_sha256": "ea63b2e61c9a12baf0cdb4adb6149ccbfc0e17c1a12718840c214f426f01b7e0",
+          "raw_matches_render_json": true,
+          "protected_lip": {
+            "max_rgb_difference": 0,
+            "frames": 240,
+            "frames_nonzero": 0,
+            "matches_pixel_checks_rows": true
+          },
+          "facemesh": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.914
+          },
+          "mask_samples_match": true
+        }
+      },
+      "B": {
+        "label": "srcg50",
+        "compose": "refined",
+        "video": null,
+        "faces": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/Q_srcg50/stream03_middle_eastern_man_full_beard_faces.npz",
+        "g": null,
+        "chin_delta": null,
+        "raw": null,
+        "render_json": null,
+        "retrack": false,
+        "perturb_lsb": 0,
+        "perturb_seed": 0,
+        "perturb_frac": 1.0,
+        "info": {
+          "frames_source": "raw",
+          "generated_tracking": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.892
+          },
+          "g_source": "re-tracked from faces (render_stage Tracker procedure)",
+          "raw_reconstructed_with": "chin.py fd753e7d86b1 compose=refined",
+          "frames_sha256": "b75eeb0c731e5146a5944a82838e50da0f818ae11ca31cc02b8989813f3963ed",
+          "protected_lip": {
+            "max_rgb_difference": 0,
+            "frames": 240,
+            "frames_nonzero": 0
+          },
+          "facemesh": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.886
+          }
+        }
+      }
+    },
+    "docs/fps_comparisons/4070s_300fps_impl_20260928/quality_metrics/runs/south_asian_woman__srcg50.json": {
+      "sha256": "656eb1e981fdb41af85e8b9a4435c4692497750f1c646819b20cc2d0c7cf27fe",
+      "gpu": "RTX 4070 SUPER",
+      "historical": true,
+      "identity": {
+        "name": "south_asian_woman",
+        "source": "/workspace/experiments/avatar_diversity_20260927/south_asian_woman/source.mp4",
+        "source_sha256": "1cb6057008a2abb8e22dd0a056c39212bbe76421067a4b37ddc4c4905e52431c",
+        "source_landmarks_sha256": "702a9e849b081da029a6d52446ae06052d0a86eda06312a651c11807cfeac8ea",
+        "cache_sha256": "6c1149c60646a244aacf3843fb8a19ea7507d2650f0010fc98d8083b919b6602",
+        "masks_sha256": "6efefc4fc0debb1febb0de0b4b063649160709ba8bb155baa4e5d462e0707948",
+        "audio": "/workspace/experiments/avatar_diversity_20260927/south_asian_woman/speech.wav"
+      },
+      "frames": 240,
+      "original_verdict": "FAIL",
+      "gates": [
+        {
+          "gate": "lip.aperture_corr",
+          "value": 0.9998114423198263,
+          "threshold": ">= 0.97",
+          "result": "pass"
+        },
+        {
+          "gate": "lip.xcorr_lag_frames",
+          "value": 0,
+          "threshold": "== 0",
+          "result": "pass"
+        },
+        {
+          "gate": "lip.mean_abs_delta_px",
+          "value": 0.08722318708896637,
+          "threshold": "<= 0.5",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.mouth_ratio",
+          "value": 1.0011143229249604,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.jaw_ratio",
+          "value": 0.9994279627169682,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.ring_ratio",
+          "value": 0.9998482282065394,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.hf_mouth_box_ratio",
+          "value": 1.0047874941098323,
+          "threshold": "<= 1.05 (report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "flicker.hf_jaw_box_ratio",
+          "value": 1.0046512312816724,
+          "threshold": "<= 1.05 (report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "chin.target_error_mean_px",
+          "value": 2.344301268759106,
+          "threshold": "<= A (2.3558) + 0.05",
+          "result": "pass"
+        },
+        {
+          "gate": "frames.raw_pre_encode",
+          "value": "raw",
+          "threshold": "== raw (codec noise alone exceeds the G-TRACK thresholds)",
+          "result": "pass"
+        },
+        {
+          "gate": "chin.landmark_dev_mean_px",
+          "value": 0.06401950865983963,
+          "threshold": "<= 0.05",
+          "result": "fail"
+        },
+        {
+          "gate": "chin.landmark_dev_p99_px",
+          "value": 0.2029587368667126,
+          "threshold": "<= 0.15",
+          "result": "fail"
+        },
+        {
+          "gate": "chin.landmark_dev_calibrated_proposal",
+          "value": 0.06401950865983963,
+          "threshold": "mean <= 0.1 and p99 <= 0.35 (proposed, report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "track.missing_face_frames",
+          "value": 0,
+          "threshold": "== 0",
+          "result": "pass"
+        },
+        {
+          "gate": "seam.protected_lip_A",
+          "value": 0,
+          "threshold": "== 0 vs own standard compose",
+          "result": "pass"
+        },
+        {
+          "gate": "seam.protected_lip_B",
+          "value": 0,
+          "threshold": "== 0 vs own standard compose",
+          "result": "pass"
+        },
+        {
+          "gate": "overall.mouth_sharpness_ratio",
+          "value": 1.0032032341782584,
+          "threshold": ">= 0.95",
+          "result": "pass"
+        },
+        {
+          "gate": "overall.mouth_sharpness_upper",
+          "value": 1.0032032341782584,
+          "threshold": "<= 1.05 (L5 band, report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "overall.face_psnr_db",
+          "value": 60.691558053058706,
+          "threshold": "report-only",
+          "result": "report",
+          "would_pass": true
+        }
+      ],
+      "psnr": {
+        "full": {
+          "global_db": 69.06666632839358,
+          "mean_frame_db_capped": 69.38787394738887,
+          "worst_frame_db": 63.848120657969545,
+          "identical_frames": 0
+        },
+        "face_box": {
+          "global_db": 60.417536487606476,
+          "mean_frame_db_capped": 60.691558053058706,
+          "worst_frame_db": 55.6590670947217,
+          "identical_frames": 0
+        },
+        "mouth_roi": {
+          "global_db": 53.01635279084728,
+          "mean_frame_db_capped": 53.380697352752456,
+          "worst_frame_db": 46.77326281177023,
+          "identical_frames": 0
+        }
+      },
+      "A": {
+        "label": "A",
+        "compose": "refined",
+        "video": "/workspace/experiments/avatar_diversity_20260927/south_asian_woman/refined_raw.mp4",
+        "faces": "/workspace/experiments/avatar_diversity_20260927/south_asian_woman/faces.npz",
+        "g": "/workspace/experiments/avatar_diversity_20260927/south_asian_woman/generated_landmarks.npy",
+        "chin_delta": "/workspace/experiments/avatar_diversity_20260927/south_asian_woman/chin_delta.npy",
+        "raw": null,
+        "render_json": "/workspace/experiments/avatar_diversity_20260927/south_asian_woman/render.json",
+        "retrack": false,
+        "perturb_lsb": 0,
+        "perturb_seed": 0,
+        "perturb_frac": 1.0,
+        "info": {
+          "frames_source": "raw",
+          "g_source": "/workspace/experiments/avatar_diversity_20260927/south_asian_woman/generated_landmarks.npy",
+          "chin_delta_recomputed_equals_saved": true,
+          "raw_reconstructed_with": "chin.py fd753e7d86b1 compose=refined",
+          "frames_sha256": "d8ffc50d09c64267531331d90a023dbecd29509b1ca4bf2c1c9053b852f3c173",
+          "render_json_raw_refined_sha256": "d8ffc50d09c64267531331d90a023dbecd29509b1ca4bf2c1c9053b852f3c173",
+          "raw_matches_render_json": true,
+          "protected_lip": {
+            "max_rgb_difference": 0,
+            "frames": 240,
+            "frames_nonzero": 0,
+            "matches_pixel_checks_rows": true
+          },
+          "facemesh": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.903
+          },
+          "mask_samples_match": true
+        }
+      },
+      "B": {
+        "label": "srcg50",
+        "compose": "refined",
+        "video": null,
+        "faces": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/Q_srcg50/stream04_south_asian_woman_faces.npz",
+        "g": null,
+        "chin_delta": null,
+        "raw": null,
+        "render_json": null,
+        "retrack": false,
+        "perturb_lsb": 0,
+        "perturb_seed": 0,
+        "perturb_frac": 1.0,
+        "info": {
+          "frames_source": "raw",
+          "generated_tracking": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.9
+          },
+          "g_source": "re-tracked from faces (render_stage Tracker procedure)",
+          "raw_reconstructed_with": "chin.py fd753e7d86b1 compose=refined",
+          "frames_sha256": "be7648a5ab5b356659830212516d08d0b9b6e0611fb06b0c002d844b5cae51ef",
+          "protected_lip": {
+            "max_rgb_difference": 0,
+            "frames": 240,
+            "frames_nonzero": 0
+          },
+          "facemesh": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.874
+          }
+        }
+      }
+    },
+    "docs/fps_comparisons/4070s_300fps_impl_20260928/quality_metrics/runs/white_man_clean_shaven__srcg50.json": {
+      "sha256": "ba1b13b019891d2ba35162c61bdc991fffc240ea54a23dee33abd3921b77568f",
+      "gpu": "RTX 4070 SUPER",
+      "historical": true,
+      "identity": {
+        "name": "white_man_clean_shaven",
+        "source": "/workspace/experiments/avatar_diversity_20260927/white_man_clean_shaven/source.mp4",
+        "source_sha256": "7644b8ed221c3ab23eb0f726c204a84620ad91be56f67789338bde1c40aaa305",
+        "source_landmarks_sha256": "603ee28d3e0f5f6d7ebf93fc5cff406274f2fb1d3136ae55324beecd41d9f4fd",
+        "cache_sha256": "4dec8ee209c08fed6503ac70f7fa7717e7652f3fde44f30ea55d76043d30c50a",
+        "masks_sha256": "20c2ef58e8388a130086dbde4362e3bcb44eadaa93dd7cd6c2de999b6cc966a2",
+        "audio": "/workspace/experiments/avatar_diversity_20260927/white_man_clean_shaven/speech.wav"
+      },
+      "frames": 240,
+      "original_verdict": "FAIL",
+      "gates": [
+        {
+          "gate": "lip.aperture_corr",
+          "value": 0.9996712416453096,
+          "threshold": ">= 0.97",
+          "result": "pass"
+        },
+        {
+          "gate": "lip.xcorr_lag_frames",
+          "value": 0,
+          "threshold": "== 0",
+          "result": "pass"
+        },
+        {
+          "gate": "lip.mean_abs_delta_px",
+          "value": 0.09941336512565613,
+          "threshold": "<= 0.5",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.mouth_ratio",
+          "value": 0.9994684940482101,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.jaw_ratio",
+          "value": 0.9999109440915599,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.ring_ratio",
+          "value": 0.999680189404986,
+          "threshold": "<= 1.05",
+          "result": "pass"
+        },
+        {
+          "gate": "flicker.hf_mouth_box_ratio",
+          "value": 1.0009052270902543,
+          "threshold": "<= 1.05 (report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "flicker.hf_jaw_box_ratio",
+          "value": 1.000936391576162,
+          "threshold": "<= 1.05 (report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "chin.target_error_mean_px",
+          "value": 1.130495455271254,
+          "threshold": "<= A (1.1328) + 0.05",
+          "result": "pass"
+        },
+        {
+          "gate": "frames.raw_pre_encode",
+          "value": "raw",
+          "threshold": "== raw (codec noise alone exceeds the G-TRACK thresholds)",
+          "result": "pass"
+        },
+        {
+          "gate": "chin.landmark_dev_mean_px",
+          "value": 0.08479612320661545,
+          "threshold": "<= 0.05",
+          "result": "fail"
+        },
+        {
+          "gate": "chin.landmark_dev_p99_px",
+          "value": 0.2727256110310562,
+          "threshold": "<= 0.15",
+          "result": "fail"
+        },
+        {
+          "gate": "chin.landmark_dev_calibrated_proposal",
+          "value": 0.08479612320661545,
+          "threshold": "mean <= 0.1 and p99 <= 0.35 (proposed, report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "track.missing_face_frames",
+          "value": 0,
+          "threshold": "== 0",
+          "result": "pass"
+        },
+        {
+          "gate": "seam.protected_lip_A",
+          "value": 0,
+          "threshold": "== 0 vs own standard compose",
+          "result": "pass"
+        },
+        {
+          "gate": "seam.protected_lip_B",
+          "value": 0,
+          "threshold": "== 0 vs own standard compose",
+          "result": "pass"
+        },
+        {
+          "gate": "overall.mouth_sharpness_ratio",
+          "value": 0.9969348591536242,
+          "threshold": ">= 0.95",
+          "result": "pass"
+        },
+        {
+          "gate": "overall.mouth_sharpness_upper",
+          "value": 0.9969348591536242,
+          "threshold": "<= 1.05 (L5 band, report)",
+          "result": "report",
+          "would_pass": true
+        },
+        {
+          "gate": "overall.face_psnr_db",
+          "value": 60.02370100098036,
+          "threshold": "report-only",
+          "result": "report",
+          "would_pass": true
+        }
+      ],
+      "psnr": {
+        "full": {
+          "global_db": 67.35670008056528,
+          "mean_frame_db_capped": 67.6637313927936,
+          "worst_frame_db": 60.85226438248733,
+          "identical_frames": 0
+        },
+        "face_box": {
+          "global_db": 59.73063621320151,
+          "mean_frame_db_capped": 60.02370100098036,
+          "worst_frame_db": 53.020668584117665,
+          "identical_frames": 0
+        },
+        "mouth_roi": {
+          "global_db": 52.37411645208057,
+          "mean_frame_db_capped": 52.914788725699246,
+          "worst_frame_db": 43.130948611906994,
+          "identical_frames": 0
+        }
+      },
+      "A": {
+        "label": "A",
+        "compose": "refined",
+        "video": "/workspace/experiments/avatar_diversity_20260927/white_man_clean_shaven/refined_raw.mp4",
+        "faces": "/workspace/experiments/avatar_diversity_20260927/white_man_clean_shaven/faces.npz",
+        "g": "/workspace/experiments/avatar_diversity_20260927/white_man_clean_shaven/generated_landmarks.npy",
+        "chin_delta": "/workspace/experiments/avatar_diversity_20260927/white_man_clean_shaven/chin_delta.npy",
+        "raw": null,
+        "render_json": "/workspace/experiments/avatar_diversity_20260927/white_man_clean_shaven/render.json",
+        "retrack": false,
+        "perturb_lsb": 0,
+        "perturb_seed": 0,
+        "perturb_frac": 1.0,
+        "info": {
+          "frames_source": "raw",
+          "g_source": "/workspace/experiments/avatar_diversity_20260927/white_man_clean_shaven/generated_landmarks.npy",
+          "chin_delta_recomputed_equals_saved": true,
+          "raw_reconstructed_with": "chin.py fd753e7d86b1 compose=refined",
+          "frames_sha256": "a14a2af39e14e4c007e7664a9f5e60b945006b843587541cbdb91405a498d41e",
+          "render_json_raw_refined_sha256": "a14a2af39e14e4c007e7664a9f5e60b945006b843587541cbdb91405a498d41e",
+          "raw_matches_render_json": true,
+          "protected_lip": {
+            "max_rgb_difference": 0,
+            "frames": 240,
+            "frames_nonzero": 0,
+            "matches_pixel_checks_rows": true
+          },
+          "facemesh": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.912
+          },
+          "mask_samples_match": true
+        }
+      },
+      "B": {
+        "label": "srcg50",
+        "compose": "refined",
+        "video": null,
+        "faces": "/workspace/MuseTalk-perf300/docs/fps_comparisons/4070s_400fps_20260928/chin_multistream/Q_srcg50/stream05_white_man_clean_shaven_faces.npz",
+        "g": null,
+        "chin_delta": null,
+        "raw": null,
+        "render_json": null,
+        "retrack": false,
+        "perturb_lsb": 0,
+        "perturb_seed": 0,
+        "perturb_frac": 1.0,
+        "info": {
+          "frames_source": "raw",
+          "generated_tracking": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.941
+          },
+          "g_source": "re-tracked from faces (render_stage Tracker procedure)",
+          "raw_reconstructed_with": "chin.py fd753e7d86b1 compose=refined",
+          "frames_sha256": "4404a9b08e15c490a730e3984e00b37849715ffa6a0e65a2fcd317905851837b",
+          "protected_lip": {
+            "max_rgb_difference": 0,
+            "frames": 240,
+            "frames_nonzero": 0
+          },
+          "facemesh": {
+            "frames": 240,
+            "missing_frames": [],
+            "mediapipe": "0.10.9",
+            "seconds": 0.839
+          }
+        }
+      }
+    }
+  },
+  "pending_before_candidate_tuning": [
+    "At least two same-input portable RTX3090 reference evaluations",
+    "Independently measured noise per metric; no invented epsilon",
+    "Record exact canonical input manifest hashes and all model/engine identifiers",
+    "Freeze final per-avatar envelope before evaluating native candidate"
+  ],
+  "quality_decision": "incomplete"
+}

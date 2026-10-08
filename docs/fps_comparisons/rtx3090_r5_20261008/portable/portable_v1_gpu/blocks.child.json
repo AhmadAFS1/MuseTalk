@@ -1,0 +1,33 @@
+{
+  "label": "blocks",
+  "returncode": 0,
+  "wall_s": 29.696878726012073,
+  "log": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/portable/portable_v1_gpu/blocks.log",
+  "command": [
+    "bash",
+    "scripts/box_guard.sh",
+    "run",
+    "--wait-min",
+    "0",
+    "--min-avail-gb",
+    "8",
+    "--label",
+    "3090_portable_v1_blocks",
+    "--",
+    "/usr/bin/python3",
+    "/workspace/MuseTalk/scripts/repro_3090/watch.py",
+    "--out",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/portable/portable_v1_gpu/blocks.gpu_watch.jsonl",
+    "--",
+    "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+    "scripts/bench_stagewise_blocks.py",
+    "--batch",
+    "16",
+    "--rounds",
+    "9",
+    "--out",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/portable/portable_v1_gpu/blocks.json",
+    "--root",
+    "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5"
+  ]
+}

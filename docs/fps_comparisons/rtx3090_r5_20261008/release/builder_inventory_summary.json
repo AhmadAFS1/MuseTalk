@@ -1,0 +1,30 @@
+{
+  "schema": "musetalk_builder_inventory_summary_v1",
+  "scope": "Measured native x64 CI runner inventory, not an image build or GPU test",
+  "run_url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37743477971",
+  "run_id": 37743477971,
+  "artifact_id": 11535365265,
+  "artifact_name": "musetalk-builder-preflight",
+  "workflow_revision": "cdd4d8c20e4ce12575231ebb4c03581e09c759b3",
+  "created_utc": "2026-10-08T07:26:57.711589+00:00",
+  "conclusion": "success",
+  "runner_image": "ubuntu22 / 20260927.309.1",
+  "architecture": "x86_64",
+  "cpu_count": 4,
+  "memory_bytes": 16765411328,
+  "filesystem_total_bytes": 155897610240,
+  "filesystem_free_bytes": 92680658944,
+  "docker_version": "28.0.4",
+  "docker_storage_driver": "overlay2",
+  "docker_images_count": 0,
+  "docker_build_cache_bytes": 0,
+  "buildx_version": "0.37.1",
+  "planning_free_bytes_required": 64424509440,
+  "disk_planning_check": "PASS",
+  "limitations": [
+    "One measured runner; subsequent jobs must check their own available disk",
+    "No GPU is available on this builder",
+    "No image was built, pulled, or published by this inventory job",
+    "Private artifact delivery and public registry access remain separate concerns"
+  ]
+}
