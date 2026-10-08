@@ -47,6 +47,8 @@ Observed timeline (UTC, October 8):
 - 11:52:57: complete native UNet manifest finalized with all 11 blocks, graph/direct equality and repeat determinism. Probe output SHA is `23950ef8e4117aef4488a7e14e032450875c808837ef844151af30958b79908c`. Most exported ONNX hashes differ from the portable reference (tail matches); numerical parity is not inferred from successful compilation.
 - 11:53:52: native TAESD completed, actual key `1e967e6e715c9f1a8375`, opt3, full-height bs8, hardware compatibility `none`; fused/repository post probe has zero mismatched bytes. Total observed native build interval was 1,823 seconds; this is development compilation, which must not recur at normal image boot.
 - Native suite preflight then passed against all 878 frozen files. Sequential native quality/envelope, paired GPU diagnostics and full-recipe T/SUST are running; none is yet an acceptance result.
+- Native v1 quality completed: original strict gates remain **FAIL**, and frozen-reference parity is **FAIL** with 236 of 698 bounds missed. TAESD full-frame max rose to **7 LSB** from portable **5 LSB**, so the candidate is rejected; no bounds were widened. Source-prefix and fused/repeat byte invariants pass. Actual native visual inspection and production-pose validation remain incomplete.
+- Two native GPU-path runs completed with 69,440 / 69,968 valid frames over 180.00984416999927 / 180.0309915029993 seconds: **385.75668080919866 / 388.64419629013895 FPS**. Diagnostic validity passes, but this is below 400 and excludes the full composition/live workload. Canonical full-recipe T/SUST are still running.
 
 This separates several minutes of provider/image startup from source cloning,
 installation, and later model/avatar warmup. Exact image-pull boundaries and
@@ -134,6 +136,7 @@ calibrated; stage durations from individual processes are reported separately.
 - [Complete native UNet manifest](native/native_v1_build/engine_manifest.json)
 - [Native decoder metadata](native/native_v1_build/taesd_trt_1e967e6e715c9f1a8375.json)
 - [Native candidate preflight](native/native_v1_check/report.json)
+- [Native v1 rejection decision](quality/native_v1_quality_decision.json)
 
 Registry publishing access remains unresolved. A read-only native x64 GitHub
 runner probe succeeded with about 86 GiB free disk, 4 CPUs, 16 GB RAM, and Docker/

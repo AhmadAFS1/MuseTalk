@@ -1,0 +1,66 @@
+{
+  "schema": "rtx3090_r5_candidate_quality_decision_v1",
+  "candidate": "native_sm86_r5_v1",
+  "decision": "rejected",
+  "release_ready": false,
+  "source_revision": "d4e78b79105e0c1f5b732fb651e5dcd7fcb5dca3",
+  "identity": {
+    "unet_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+    "unet_probe_output_sha256": "23950ef8e4117aef4488a7e14e032450875c808837ef844151af30958b79908c",
+    "taesd_key": "1e967e6e715c9f1a8375",
+    "taesd_metadata_sha256": "4dcc2174a8e47a1cb918751a312f946c74f47c6e8ab4f3c9b9917cb0c20a8673",
+    "input_manifest_sha256": "6d3ab6ef31605c2231605e03042e82361a27112589ef6d7f6f8ff8f4b016eea5",
+    "frozen_reference_envelope_sha256": "8c2c25961109171f5bd18f88d3bf9f0433b9cba31e48f19869cd75a25e7471e4",
+    "frozen_comparison_sha256": "dd436042cbc9052580aa68fe931f78f370795807acc645ab58032eeb9bb2fb75"
+  },
+  "strict_original_gates": "FAIL",
+  "quality_parity_with_reference": "FAIL",
+  "frozen_comparison": "native_v1_frozen_comparison.json",
+  "quality_report": "../native/native_v1_quality/report.json",
+  "bounds": {
+    "evaluated": 698,
+    "failed": 236,
+    "failed_per_avatar": {
+      "black_man_short_beard": 31,
+      "black_woman": 28,
+      "east_asian_man_goatee": 46,
+      "middle_eastern_man_full_beard": 29,
+      "south_asian_woman": 27,
+      "white_man_clean_shaven": 37
+    },
+    "failed_numerical_gate_metrics": 38,
+    "bounds_widened": false
+  },
+  "measured_original_gate_values": {
+    "unet_main_mae_max": 0.004709728993475437,
+    "unet_main_max_abs_max": 0.612060546875,
+    "unet_holdout_mae_max": 0.004221382085233927,
+    "unet_holdout_max_abs_max": 1.2513427734375,
+    "taesd_full_max_lsb": 7,
+    "taesd_full_mean_lsb": 0.06762462428637914,
+    "taesd_rows104_max_lsb": 3,
+    "taesd_rows104_mean_lsb": 0.06316437159564561,
+    "taesd_fused_frames": 3584,
+    "taesd_fused_mismatched_bytes": 0,
+    "taesd_rerun_mismatched_bytes": 0
+  },
+  "hard_invariants": {
+    "frozen_input_preflight": "PASS",
+    "unet_graph_direct_and_repeat_probe": "PASS",
+    "source_prefix_cached_full_and_permuted_rows": "PASS",
+    "taesd_fused_and_repeat_byte_equality": "PASS"
+  },
+  "rejection_reasons": [
+    "TAESD full-frame maximum increased from the portable reference's 5 LSB to 7 LSB. This is a larger exception than the frozen reference permits, not an inherited strict-gate failure.",
+    "236 measured bounds fail across all six canonical identities and numerical gates. Some measures improve, but improvement in one measure does not waive a failure in another."
+  ],
+  "visual_inspection": "incomplete; native comparison media must still be inspected and persisted",
+  "production_pose_audit": "incomplete",
+  "performance": {
+    "gpu_path_repeats_seconds_minimum": 180,
+    "gpu_path_fps": [385.75668080919866, 388.64419629013895],
+    "scope": "GPU-path only; full-recipe T/SUST still running; not a 400 FPS release claim"
+  },
+  "selection": "Keep established 4070 release and portable rollback unchanged. No new native release selected.",
+  "next_step": "Finish performance diagnosis and actual native-frame inspection; test a separately identified improvement without changing the frozen bounds."
+}

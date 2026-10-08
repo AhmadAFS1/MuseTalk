@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "native_sm86_v1_quality_and_performance_running",
+  "phase": "native_sm86_v1_rejected_quality_performance_diagnosis_running",
   "status": "in_progress",
   "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
   "branch": "codex/rtx3090-r5-delivery",
@@ -27,7 +27,9 @@
     "Native sm86 v1 build started at 11:23:29 UTC under canonical per-step GPU leases and workload watchdog",
     "Native UNet complete at 11:52:57 UTC: all 11 blocks, graph/direct equality and repeat determinism passed",
     "Native TAESD complete at 11:53:52 UTC: actual key 1e967e6e715c9f1a8375, full-height bs8, opt3, fused/repository post byte equality passed",
-    "Native v1 suite preflight passed against all 878 frozen files; sequential quality, frozen-envelope comparison, paired GPU diagnostics and T/SUST evaluation started"
+    "Native v1 suite preflight passed against all 878 frozen files; sequential quality, frozen-envelope comparison, paired GPU diagnostics and T/SUST evaluation started",
+    "Native v1 quality comparison completed: 236 of 698 frozen bounds fail; candidate rejected with TAESD full-frame max 7 versus portable max 5, no bounds widened",
+    "Two native GPU-path repeats completed: 385.75668080919866 and 388.64419629013895 FPS over at least 180 seconds each; not full-recipe acceptance"
   ],
   "budget": {
     "currency": "USD",
@@ -46,7 +48,7 @@
     "Native CI builder measured sufficient initial disk; full image build/input delivery not yet validated",
     "Registry publication access unresolved; local/EC2 ECR discovery denied",
     "Current MuseTalk draining is not sticky across healthy heartbeat; isolate before test registration",
-    "Complete native RTX 3090 artifacts exist, but full quality parity, aggregate performance and live acceptance remain unmeasured"
+    "Native v1 is numerically rejected: 236 frozen bounds fail and TAESD max 7 exceeds reference max 5; aggregate performance and live acceptance still pending"
   ],
   "instances": {
     "protected_existing": {"vast_id": 51074906, "ssh_alias": "3-way-head-talk", "gpu": "RTX 4070 SUPER"},
@@ -109,8 +111,9 @@
       "taesd_key": "1e967e6e715c9f1a8375",
       "taesd_metadata_sha256": "4dcc2174a8e47a1cb918751a312f946c74f47c6e8ab4f3c9b9917cb0c20a8673",
       "taesd_decoder_sha256": "9658154206fbee0aea38659803724ae94a78983d3858585242d62a4bae305057",
-      "quality_decision": "incomplete",
-      "promotion": "not authorized by build/preflight alone"
+      "quality_decision": "rejected",
+      "quality_decision_path": "quality/native_v1_quality_decision.json",
+      "promotion": "prohibited: frozen numerical quality comparison failed"
     },
     "dependency_ci": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37769890795",
     "dependency_ci_previous_failure": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37749194641",
@@ -132,6 +135,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Observe native evaluation session and dependency CI; inspect every verdict, preserve failures and retrieve actual comparison frames",
+  "next_action": "Observe remaining native T/SUST and dependency CI; retrieve actual comparison frames and persist rejected candidate artifacts without promotion",
   "next_command": "Poll operator exec session 72427. Its sequence is native quality, immutable reference-envelope v2 comparison, paired GPU diagnostics, then canonical T and SUST. Valid FAIL continues diagnosis without promotion; INVALID stops the sequence. Do not change the remote checkout or run competing GPU work. After completion, persist artifacts, inspect native frames and perform avatar/live checks. A1 expiry at 19:00 UTC remains active."
 }
