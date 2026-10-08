@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "exact_tracking_pair_linux_verified_fresh_gpu_preflight",
+  "phase": "isolated_a2_created_for_exact_tracking_pair",
   "status": "in_progress",
   "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
   "branch": "codex/rtx3090-r5-delivery",
@@ -64,7 +64,8 @@
     "Lightweight Linux3.10 CI37835666432 exact7699542f44fd146c20e9b09b6a734792124ade1f completed success at19:57:22UTC. Read-only run/job/log API confirms9overlap and28existing report/harness tests OK, no real GPU/FaceMesh acceptance. Protected host unchanged.",
     "Exact same-engine six-avatar tracking pair gate implemented;13synthetic tests PASS,3archive safety tests PASS,78existing harness and9overlap tests PASS. New parser read all6existing rejected-native landmark/delta arrays with canonical dtype/shape and finite payloads. Long overlap aggregate requires and recomputes same GPU/input/engine/profile/source receipt. Actual overlap/GPU parity still unmeasured; no defaults/quality/FPS bars changed.",
     "Dependency CI37830969052 exact7a78e4a completed success20:10:24UTC. All11small reports/logs fetched with complete GitHub ZIP digest match;128installer tests PASS/0FAIL,2explicit skips. Actual dependency-only image12334998487bytes, apt/pip equal prior build; no full serving/model/GPU/publication/startup acceptance.",
-    "Lightweight Linux3.10 CI37839828888 exact0cb45fd8064564dfb2db14fe1dc823bf63f6d3b7 completed success20:30:32UTC. Read-only run/job/log API confirms53tests OK:9overlap,28report/harness,13exact scheduler parity contracts,3archive safety. Actual FaceMesh/pixel/GPU parity and speedup remain unmeasured."
+    "Lightweight Linux3.10 CI37839828888 exact0cb45fd8064564dfb2db14fe1dc823bf63f6d3b7 completed success20:30:32UTC. Read-only run/job/log API confirms53tests OK:9overlap,28report/harness,13exact scheduler parity contracts,3archive safety. Actual FaceMesh/pixel/GPU parity and speedup remain unmeasured.",
+    "Bounded target credential bridge adds exact development descriptor, create-ledger and deadline binding, retaining fixed secret/source/key restrictions;16CPU tests PASS. Isolated A2 created exactly once via EC2 at20:46:25UTC as54909897 after active23:45UTC expiry, no existing owned experiments and fresh offer/caps/shared-ledger verification. No production/template promotion."
   ],
   "budget": {
     "currency": "USD",
@@ -76,10 +77,10 @@
     "conversion": "Enforce 1.50/1024 per billed GB, also satisfying decimal TB = 1000 GB",
     "operator_selected_max_test_lifetime_hours": 24,
     "confirmed_experiment_spend_usd": null,
-    "reserved_experiment_budget_usd": 9.584739583333334,
+    "reserved_experiment_budget_usd": 12.717528211805556,
     "additional_aws_audit_reserve_usd": 4,
-    "shared_budget_ledger_sha256": "71b62f447563e1af82ba12d7533e098d6c3038bfc5972e6701ededa148ff97a7",
-    "latest_reservation_evidence": "provisioning/native48_media_transfer_reservation.json",
+    "shared_budget_ledger_sha256": "200b51d13a49a918ea612fdb526ee66badbc2e727515f0611d3c7b50368bd49c",
+    "latest_reservation_evidence": "provisioning/a2_creation_2046.json",
     "rental_started": true
   },
   "blockers": [
@@ -141,6 +142,26 @@
       "recovered_portable_control_completed": true,
       "replacement_purchased": false,
       "expiry_timer_observed_utc": "2026-10-08T18:42:22Z"
+    },
+    "development_a2": {
+      "vast_id": 54909897,
+      "label": "musetalk-r5-3090-dev-20261008-a2",
+      "offer_id": 53282955,
+      "machine_id": 145698,
+      "request_started_utc": "2026-10-08T20:46:25.561804+00:00",
+      "provider_accepted_utc": "2026-10-08T20:46:25.989950+00:00",
+      "source_revision": "a6e06ff3d3b8dba805a0554ebca58e4e3ceeb64b",
+      "control_plane_enabled": false,
+      "expiry_utc": "2026-10-08T23:45:00+00:00",
+      "expiry_timer": "musetalk-r5-3090-dev-20261008-a2-expiry.timer",
+      "expiry_active_verified_before_create": true,
+      "private_preflight_directory": "/home/ec2-user/.local/state/musetalk-r5-20261008-preflight-a2-2041",
+      "private_startup_ledger": "/home/ec2-user/.local/state/musetalk-r5-3090-dev-20261008-a2/startup-ledger.json",
+      "creation_evidence": "provisioning/a2_creation_2046.json",
+      "ssh_alias": null,
+      "host_gpu_identity_verified": false,
+      "server_state": "Provider accepted; source-install bootstrap and identity verification pending",
+      "image_based_instance_b": false
     },
     "release": null
   },
@@ -502,6 +523,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Exact tracking pair gate is Linux-verified at0cb45fd. Recheck fresh offer, shared ledger and installed bounded expiry, then use one isolated owned GPU for exact all-six paired captures before any long overlap benchmarks; investigate native numerical parity separately. Existinga57 dependency run37833533181 remains live; do not restart. No default/image/template promotion without engineering/access gates.",
-  "next_command": "Read fresh scoped offers/instances/shared budget through EC2 using credentials in process memory; no create until fresh offer and active expiry are verified. Native400FPS/qualityFAIL unchanged; no paid GPU retained."
+  "next_action": "Observe already-created A254909897 and cross-check fresh browser/API SSH endpoint; verify actual GPU/host and source bootstrap without re-renting. Then isolate its API, restore exact frozen inputs/native diagnostic plans and run all-six serial/overlap captures before long overlap benchmarks; investigate numerical parity separately. Existinga57 dependency run37833533181 remains live; do not restart. No default/image/template promotion without engineering/access gates.",
+  "next_command": "EC2 read-only VastClient.show_instance(54909897), verify active exact23:45UTC expiry, browser cross-check and distinct SSH alias. No create retry; this development trial is not fresh-image InstanceB acceptance."
 }
