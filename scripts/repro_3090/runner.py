@@ -42,6 +42,16 @@ def gpu_roots(candidate, comparisons, baseline_only):
     return roots
 
 
+def aggregate_command(args, out, label, streams, repeats):
+    command = [args.python, "scripts/chin_multistream_render.py", "--backend", "stagewise16_taesdtrt",
+               "--streams", str(streams), "--loops", str(args.loops if streams == 6 else max(10, args.loops // 2)),
+               "--repeats", str(repeats), "--min-timed-s", "60", "--thermal-warmup-s", str(args.thermal_warmup_s),
+               "--out-root", out, "--label", label]
+    if args.tracking_overlap:
+        command.append("--tracking-overlap")
+    return command
+
+
 def verify_s3_objects(objects):
     for item in objects:
         result = json.loads(capture(["aws", "s3api", "head-object", "--bucket", item["bucket"], "--key", item["key"], "--output", "json"], stage="s3_head", timeout_s=30))
@@ -242,12 +252,15 @@ def main():
     p.add_argument("--loops", type=int, default=24, help="increase if a window is <60s; never relax duration")
     p.add_argument("--gpu-repeats", type=int, default=2)
     p.add_argument("--thermal-warmup-s", type=int, default=120)
+    p.add_argument("--tracking-overlap", action="store_true", help="aggregate only: default-off ordered tracking/composition experiment")
     p.add_argument("--live-avatar-file")
     p.add_argument("--live-cpus", help="available CPU IDs; local clients share these CPUs and contention is disclosed")
     p.add_argument("--live-stages", default="s0,ramp,soak")
     p.add_argument("--live-levels", default="5 10 15")
     p.add_argument("--live-soak-n", type=int, default=15)
     args = p.parse_args()
+    if args.tracking_overlap and args.suite != "aggregate":
+        p.error("tracking-overlap applies only to the aggregate suite")
     if not re.fullmatch(r"[A-Za-z0-9_.-]+", args.label):
         p.error("unsafe run label")
     out = Path(args.out).resolve() / f"{args.label}_{args.suite}"
@@ -304,13 +317,12 @@ def main():
                 loaded(data)
                 result["results"].append(checks.gpu_path(data))
         elif args.suite == "aggregate":
+            result["tracking_overlap"] = args.tracking_overlap
             for stage in args.stages:
                 n, repeats = {"T": (6, 2), "SUST": (6, 5), "N15": (15, 10)}[stage]
                 label = f"{args.label}_{stage}"
                 path = out / f"{label}.json"
-                rc = child(args, out, env, stage, [args.python, "scripts/chin_multistream_render.py", "--backend", "stagewise16_taesdtrt",
-                           "--streams", str(n), "--loops", str(args.loops if n == 6 else max(10, args.loops // 2)), "--repeats", str(repeats),
-                           "--min-timed-s", "60", "--thermal-warmup-s", str(args.thermal_warmup_s), "--out-root", out, "--label", label], 14 if n == 15 else 12)
+                rc = child(args, out, env, stage, aggregate_command(args, out, label, n, repeats), 14 if n == 15 else 12)
                 data = checks.child_result(rc, [path])[0]
                 loaded(data)
                 threshold = None if stage == "N15" else (300 if args.target == "portable" else 400)

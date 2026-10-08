@@ -149,6 +149,38 @@ For a short real-GPU sanity run, invoke the underlying canonical tool under
 directory. It is expected to fail this suite's sustained-duration acceptance until
 the full run is performed. Do not promote the diagnostic result.
 
+### Default-off ordered tracking overlap experiment
+
+`20_aggregate.sh ... --tracking-overlap` explicitly enables one outstanding
+canonical `Tracker.track()` call per stream on a helper thread. The next call
+starts before current-frame filter/composition; frame order, shared-memory writer
+count, original Tracker/FaceMesh source, copied landmarks, three-tap chin math,
+clip reset boundaries, GPU batch/decode shapes and shared FPS denominator are
+unchanged. Without the flag, the serial worker path remains selected. Serial-mode
+rendering and non-aggregate suites reject the flag instead of ignoring it.
+
+Reports bind the mode in CLI arguments and every worker; mismatches are INVALID.
+In overlap mode `tracking_ipc_ms` measures the full canonical call's service time,
+which overlaps composition/filter and is **not additive critical-path time**.
+`tracking_overlap_wait_ms` separately records main-thread blocking wait and
+`tracking_overlap_submit_ms` records submissions. FaceMesh time remains a subset
+of tracking service. Cleanup aborts only the exact retained owned Tracker process
+when a call remains outstanding; normal completion never signals it.
+
+CPU tests use synthetic inputs to exercise the actual worker loop, two clip
+resets, ordering, three-tap output/clip hashes, explicit activation, timeout/error
+cleanup, and deterministic event-based proof of concurrency. They establish no
+real FaceMesh, pixel, GPU throughput, quality or production acceptance. Before
+long GPU measurements, paired same-engine serial/overlap captures must match
+generated faces, generated landmarks, chin deltas and raw refined-frame hashes
+for all six canonical identities. Only then run the unchanged T/SUST gates. This
+scheduling experiment cannot repair or excuse an independently rejected engine.
+
+```bash
+PYTHONPATH=scripts/repro_3090 python3 -B -m unittest discover \
+  -s scripts/repro_3090 -p test_tracking_overlap.py -v
+```
+
 ## CPU validation and summary
 
 ```bash

@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "full_docker_fresh_runtime_stage_prepared_aggregate_underfill_diagnosed",
+  "phase": "ordered_tracking_overlap_cpu_verified_default_off",
   "status": "in_progress",
   "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
   "branch": "codex/rtx3090-r5-delivery",
@@ -59,7 +59,8 @@
     "Owned A1 expiry destroyed54798270 non-forced at19:00:03UTC, provider absence verified; resource-expiry.json/journal read back. Protected51074906 not targeted. New engines/core diagnostic evidence privately preserved; original production48 recovery remains verified.",
     "Full Docker fresh runtime stage prepared with manifest-selected exact matching CUDA/cuDNN base, legacy devel-base choice preserved, all apt/opt payloads and final CPU checks retained;76local Docker tests OK(1Linux-only skip). No full-image/GPU/build/pull acceptance or TensorRT pruning inferred.",
     "Read-only native T2/SUST5 occupancy diagnosis:63.6–69.6% useful fixed-bs16 rows, numerous padded8-row jobs; nearzero CPU worker idle and serial tracking/composition. Two CPU accounting tests PASS. Original full-recipe400FPS and native quality FAIL remain; bounded exact-output overlap experiment is next, not implemented or measured.",
-    "SyncNet installer separation implemented: API default download0, explicit opt-in retained, standalone downloader default follows avatar-prep as before. Canonical full API requires13models; DWPose/S3FD remain required. Local72Docker tests OK with1Linux-only skip,2installer forwarding/contract tests PASS,2trace inventory/parser tests PASS; Bash syntax and diff checks PASS. Actual Linux sequential/parallel downloader tests newly wired into CI, not yet observed."
+    "SyncNet installer separation implemented: API default download0, explicit opt-in retained, standalone downloader default follows avatar-prep as before. Canonical full API requires13models; DWPose/S3FD remain required. Local72Docker tests OK with1Linux-only skip,2installer forwarding/contract tests PASS,2trace inventory/parser tests PASS; Bash syntax and diff checks PASS. Actual Linux sequential/parallel downloader tests newly wired into CI, not yet observed.",
+    "Default-off ordered tracking/composition overlap implemented without canonical Tracker/FaceMesh/chin/blending edits. Nine operator Python3.14.7 CPU tests PASS, including synthetic actual-worker-loop two-clip hash/filter parity, event-proven concurrency and real owned subprocess timeout cleanup. Existing78harness tests PASS and76Docker tests OK/1Linux skip. Real FaceMesh/pixel parity and GPU speedup unmeasured; Linux3.10 lightweight CI prepared; quality/performance/defaults unchanged."
   ],
   "budget": {
     "currency": "USD",
@@ -458,14 +459,14 @@
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
   "quota_checkpoint": {
-    "observed_utc": "2026-10-08 19:18:13 UTC",
+    "observed_utc": "2026-10-08 19:45:36 UTC",
     "account_scope": "shared account, not this task",
-    "weekly_used_percent_reported": 9,
-    "weekly_remaining_percent_reported": 91,
+    "weekly_used_percent_reported": 10,
+    "weekly_remaining_percent_reported": 90,
     "previous_checkpoint": {
-      "observed_utc": "2026-10-08T19:02:31Z",
-      "weekly_used_percent_reported": 8,
-      "weekly_remaining_percent_reported": 92
+      "observed_utc": "2026-10-08T19:18:13Z",
+      "weekly_used_percent_reported": 9,
+      "weekly_remaining_percent_reported": 91
     },
     "ordinary_usage_allowed": true,
     "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
@@ -475,6 +476,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Persist fresh-stage full Docker contracts and occupancy diagnosis, monitor exact live CI37830969052, retrieve strict artifact/log evidence on completion. Prepare a default-off ordered tracking/composition-overlap experiment with CPU parity tests before another GPU rental; independently repair native numerical parity. No default/image/template promotion without applicable engineering/access gates.",
-  "next_command": "Read-only gh API via protected4070: repos/AhmadAFS1/MuseTalk/actions/runs/37830969052/jobs. Linux CPU contract/installer stepPASS; dependency build remainslive. New full Docker source contract76testsOK(1Linux-only skip), occupancy2testsPASS; full image notbuilt. No paid GPU retained; native400FPS/qualityFAIL unchanged."
+  "next_action": "Push default-off overlap/CPU tests and lightweight Linux3.10 CI; monitor exact long-running dependency CI37830969052 and queued37833533181 without restarting them. Fetch strict artifacts on completion. Before another paid GPU, prepare paired same-engine all-six serial/overlap raw face/landmark/delta/refined-hash parity trial and cost/lifetime controls; independently repair native numerical parity. No default/image/template promotion without applicable engineering/access gates.",
+  "next_command": "PYTHONPATH=scripts/repro_3090 python3 -B -m unittest discover -s scripts/repro_3090 -p test_tracking_overlap.py -v ; nine local CPU testsPASS, real FaceMesh/GPU parity unmeasured. Read-only gh API via protected4070 monitors exact Linux CI without host work. Native400FPS/qualityFAIL unchanged; no paid GPU retained."
 }

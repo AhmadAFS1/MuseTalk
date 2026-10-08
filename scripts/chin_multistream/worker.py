@@ -33,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from chin_multistream import paths  # noqa: E402
 from chin_multistream.telemetry import proc_cpu_s, rss_mib  # noqa: E402
+from chin_multistream.tracking_overlap import OrderedTrackingOverlap  # noqa: E402
 
 
 def import_tracker():
@@ -201,7 +202,11 @@ def _run(cfg: dict, conn) -> None:
                 conn.send(("attached", stream, dict(attach_s=time.perf_counter() - t, facemesh_pid=tracker.proc.pid,
                                                     rss_mib=rss_mib())))
             elif kind == "run":
-                stats = _repeat(cfg, conn, msg[1], msg[2], att, tracker, ring_arr, acc, chin, np)
+                if cfg.get("tracking_overlap", False):
+                    with OrderedTrackingOverlap(tracker) as overlap:
+                        stats = _repeat(cfg, conn, msg[1], msg[2], att, tracker, ring_arr, acc, chin, np, overlap)
+                else:
+                    stats = _repeat(cfg, conn, msg[1], msg[2], att, tracker, ring_arr, acc, chin, np)
                 conn.send(("repdone", stream, msg[1], stats))
             elif kind == "stop":
                 break
@@ -217,7 +222,7 @@ def _run(cfg: dict, conn) -> None:
     conn.send(("bye", stream))
 
 
-def _repeat(cfg, conn, rep, rcfg, att, tracker, ring_arr, acc, chin, np):
+def _repeat(cfg, conn, rep, rcfg, att, tracker, ring_arr, acc, chin, np, overlap=None):
     frames, d = att.frames, att.d
     boxes = d["cache"]["boxes"]
     loops = int(rcfg["loops"])
@@ -236,6 +241,8 @@ def _repeat(cfg, conn, rep, rcfg, att, tracker, ring_arr, acc, chin, np):
         enc_faces = Encoder(out_dir / f"{tag}_faces.mp4", 256, 256, crf)
     T = dict(tracking_ipc_ms=0., facemesh_ms=0., compose_ms=0., filter_ms=0., hash_ms=0., copy_ms=0.,
              reset_ms=0., idle_ms=0., encode_queue_ms=0., compare_ms=0., batches=0, frames=0)
+    if overlap is not None:
+        T.update(tracking_overlap_wait_ms=0., tracking_overlap_submit_ms=0.)
     cmp = dict(face_sse=0., face_max=0, face_identical=0, refined_sse=0., refined_max=0, refined_identical=0,
                g_max_px=0., g_sum_px=0., delta_max=0.) if compare else None
     st = dict(previous=None)
@@ -314,15 +321,33 @@ def _repeat(cfg, conn, rep, rcfg, att, tracker, ring_arr, acc, chin, np):
         T["copy_ms"] += (perf() - now) * 1000
         T["batches"] += 1
         st["loop"] = loop
+        if overlap is not None:
+            t = perf()
+            overlap.begin(frames[base], faces[0], boxes[base])
+            T["tracking_overlap_submit_ms"] += (perf() - t) * 1000
         for j, face in enumerate(faces):
             i = base + j
             t = perf()
             hasher.face(face)
             t0 = perf()
-            g, fm_s = tracker.track(frames[i], face, boxes[i])
+            if overlap is None:
+                g, fm_s = tracker.track(frames[i], face, boxes[i])
+            else:
+                g, fm_s = overlap.finish()
             t1 = perf()
             T["hash_ms"] += (t0 - t) * 1000
-            T["tracking_ipc_ms"] += (t1 - t0) * 1000
+            if overlap is None:
+                T["tracking_ipc_ms"] += (t1 - t0) * 1000
+            else:
+                # Full canonical call service time, not the shorter blocking wait.
+                # It overlaps composition and is not additive critical-path time.
+                T["tracking_ipc_ms"] += overlap.last_call_s * 1000
+                T["tracking_overlap_wait_ms"] += (t1 - t0) * 1000
+                if j + 1 < len(faces):
+                    t_submit = perf()
+                    overlap.begin(frames[i + 1], faces[j + 1], boxes[i + 1])
+                    T["tracking_overlap_submit_ms"] += (perf() - t_submit) * 1000
+                t1 = perf()
             T["facemesh_ms"] += fm_s * 1000
             source, target = chin.curves(d["p"][i], g)
             delta = source - target
@@ -375,6 +400,9 @@ def _repeat(cfg, conn, rep, rcfg, att, tracker, ring_arr, acc, chin, np):
             chin_delta_max_abs=cmp["delta_max"])
     else:
         cmp_out = None
-    return dict(timing_ms=T, arm_reset_ms=arm_reset_ms, t_first_recv=t_first, t_last_compose=st.get("t_last"),
+    return dict(timing_ms=T, tracking_overlap=overlap is not None,
+                timing_semantics=("tracking_ipc_ms is full call service; overlaps compose/filter; "
+                                  "tracking_overlap_wait_ms is main-thread blocking wait") if overlap is not None else "serial tracking then composition",
+                arm_reset_ms=arm_reset_ms, t_first_recv=t_first, t_last_compose=st.get("t_last"),
                 worker_cpu_s=cpu1 - cpu0, facemesh_cpu_s=fm1 - fm0, clips=clip_hashes, compare_accepted=cmp_out,
                 rss_mib=rss_mib(), facemesh_rss_mib=rss_mib(tracker.proc.pid))

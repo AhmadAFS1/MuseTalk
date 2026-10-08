@@ -1,0 +1,38 @@
+{
+  "schema": "ordered_tracking_overlap_cpu_v1",
+  "observed_utc": "2026-10-08T19:54:00Z",
+  "measurement_class": "operator_mac_cpu_contract_tests",
+  "python": "3.14.7",
+  "default_enabled": false,
+  "activation": "Explicit --tracking-overlap in multi-render mode or aggregate suite only",
+  "source_sha256": {
+    "scripts/chin_multistream/tracking_overlap.py": "b5aa9e38cb5a41392e4e6873ae62a33a157a83d9ef6e5a256d9997808516ea68",
+    "scripts/chin_multistream/worker.py": "935fcd94323bdd3605b819db36816932fc18cab249184b0e2647e42cba4707db",
+    "scripts/chin_multistream_render.py": "df4e290b33d752be82d6d2ab738bc5d3e21aa439ffd05f1c3c852a8af1fd4a29",
+    "scripts/repro_3090/runner.py": "ccd053d99569201e972d1c4a4fbc6e342712db1c730cc09dafa32e4cac602362",
+    "scripts/repro_3090/report.py": "a102cb4ebdf7ed2f5e7828f3c061a2a43a6ed870a6a2e7fb72767f51b573ef8d",
+    "scripts/repro_3090/test_tracking_overlap.py": "3771448bf245a4f45849823eb2340d48f15caf786fdb4681cf7857605b62a30f"
+  },
+  "canonical_sources_unchanged_in_git_diff": {
+    "character_factory/h3_avatar_workflow/backend.py": "9676886653aa26f5ffdf328d339a882bbf80d725df6273879c0d5389f7f96c3e",
+    "character_factory/h3_avatar_workflow/tracker_worker.py": "7e5ab0cec1ef7148700a15c2f47d5a0c013a941b2426f2421db972fdf631177d",
+    "character_factory/h3_avatar_workflow/chin.py": "fd753e7d86b14f1800719ec7f26663c1b362cb512ee24b4b8eb9b1e07f2b99e1",
+    "musetalk/utils/blending.py": "6e5de1bf3f30378493c098b76dfc6fe6644e354d60df2492ffb1fc27726ba121"
+  },
+  "tests": [
+    {"command": "PYTHONPATH=scripts/repro_3090 python3 -B -m unittest discover -s scripts/repro_3090 -p test_tracking_overlap.py -v", "tests": 9, "result": "PASS", "scope": "Synthetic actual-worker-loop ordering/filter/hash parity over two clips; event-proven overlap; explicit CLI/default-off and worker mode guards; exceptions and bounded exact-owned cleanup including a real subprocess pipe"},
+    {"command": "python3 -B -m unittest discover -s scripts/repro_3090 -p 'test_repro_3090*.py' -v", "tests": 78, "result": "PASS", "scope": "Existing CPU harness, quality-envelope, pose, build and report contracts; no GPU acceptance"},
+    {"command": "python3 -B -m unittest discover -s docker/musetalk/tests", "tests": 76, "result": "OK", "skipped": 1, "scope": "Docker CPU source contracts; Linux-only skipped test; no full-image build acceptance"},
+    {"command": "git diff --check", "result": "PASS"}
+  ],
+  "timing_semantics": "tracking_ipc_ms retains canonical call service duration; in overlap mode it overlaps compose/filter and cannot be summed as a serial critical path. Blocking wait and submit costs have separate fields. FaceMesh service remains a subset of tracking IPC.",
+  "real_facemesh_parity": "NOT_MEASURED",
+  "real_output_pixel_landmark_delta_hash_parity": "NOT_MEASURED",
+  "gpu_throughput_speedup": "NOT_MEASURED",
+  "linux_python310_execution": "PENDING_LIGHTWEIGHT_CI",
+  "native_v1_quality_decision": "REJECTED_UNCHANGED",
+  "native_400fps_acceptance": "FAIL_UNCHANGED",
+  "production_changes": false,
+  "paid_gpu_retained": false,
+  "next_trial": "On one isolated owned GPU, pair the same-engine serial and overlap captures for all six identities; require identical raw generated faces, landmarks, chin deltas and refined hashes before unmodified T/SUST performance tests. Do not promote a rejected engine."
+}

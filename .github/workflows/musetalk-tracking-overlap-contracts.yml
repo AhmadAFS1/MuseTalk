@@ -1,0 +1,43 @@
+name: MuseTalk ordered tracking CPU contracts
+
+# Lightweight, standard public runner only. No package/model downloads, GPU,
+# credentials, registry publication, remote host mutations or rented resources.
+on:
+  push:
+    branches: [codex/rtx3090-r5-delivery]
+    paths:
+      - .github/workflows/musetalk-tracking-overlap-contracts.yml
+      - scripts/chin_multistream/tracking_overlap.py
+      - scripts/chin_multistream/worker.py
+      - scripts/chin_multistream_render.py
+      - scripts/repro_3090/runner.py
+      - scripts/repro_3090/report.py
+      - scripts/repro_3090/test_tracking_overlap.py
+      - scripts/repro_3090/test_repro_3090.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: musetalk-tracking-cpu-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  cpu-contracts:
+    if: github.repository == 'AhmadAFS1/MuseTalk'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Python 3.10 ordered overlap and unchanged report gates
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONPATH: scripts/repro_3090
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v python3.10
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_tracking_overlap.py -v
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_repro_3090.py -v

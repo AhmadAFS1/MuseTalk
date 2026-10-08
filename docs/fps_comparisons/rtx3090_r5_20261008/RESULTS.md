@@ -13,6 +13,34 @@ This is a live evidence index, not a completed release claim. The protected RTX
 | Live delivery / capacity | Both software-H264 profiles N1/N3 strictPASS/N5 validFAIL. NVENC N1FAIL,0hardware opens/18open failures; PyAV/FFmpeg standalone probes alsoFAIL. No accepted capacity or EC2 release claim |
 | Request-to-usable-call startup | Still unmeasured through EC2/TURN. Request-to-verified-health was 1,046.45 s (17m26s), not usable-call readiness |
 
+### 19:54 UTC default-off tracking overlap and quota check
+
+The scheduling experiment is now implemented behind `--tracking-overlap`, never
+selected by default. It calls the unchanged canonical tracker on one helper
+thread, with exactly one outstanding call/shared-memory writer, while the main
+worker composes the preceding frame. Frame order, copied landmarks, three-tap
+chin filtering, reset boundaries and all GPU/quality/FPS gates are retained.
+Ignored or mixed worker modes fail report validation. Tracking call service time
+and blocking wait are separate; overlapping durations are not summed.
+
+[CPU evidence](native/tracking_overlap_cpu_1954.json): nine overlap tests pass,
+including the actual worker loop with synthetic inputs over two clips, exact
+synthetic refined/face hashes and filter state, event-proven concurrency, and
+timeout cleanup of a real owned subprocess pipe. Existing78harness tests pass;
+76Docker tests are OK with1Linux-only skip. These operator tests ran on Python
+3.14.7, not production3.10. A separate lightweight Linux3.10 CI is prepared with
+no model/dependency downloads or GPU; it does not restart the long Docker build.
+Actual FaceMesh/pixel/landmark parity and any speedup remain unmeasured. Native
+quality rejection and every400FPS failure remain unchanged; no default, template,
+production service or paid GPU changed.
+
+Account allowance checked19:45:36UTC: **10% used /90% remaining** in the shared
+weekly window, ordinary usage allowed, purchased credits0, one unused free full
+reset. It resetsOctober15at11:17:04UTC/06:17:04Chicago. Exact subscription tokens,
+model-specific missing limits and full-task consumption are unavailable. Quota
+is not currently the blocker, but this is no completion guarantee; bounded
+experiments and milestone checks remain the policy. No reset/purchase was made.
+
 ### 19:35 UTC CPU implementation and throughput diagnosis
 
 The full Dockerfile now supports an explicitly manifest-selected fresh final

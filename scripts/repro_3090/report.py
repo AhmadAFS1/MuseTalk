@@ -112,6 +112,8 @@ def aggregate(data, stage, target):
     require(data.get("status") == "complete" and not data.get("error"), "aggregate child incomplete")
     require(data["code_integrity"]["matches_accepted_render_json"] is True, "canonical composition changed")
     args = data["args"]
+    tracking_overlap = args.get("tracking_overlap", False)
+    require(isinstance(tracking_overlap, bool), "invalid tracking overlap mode")
     require(tuple(args["identity_list"]) == IDENTITIES, "noncanonical six-avatar workload")
     require(args["mode"] == "multi" and args["backend"] == "stagewise16_taesdtrt", "wrong workload/backend")
     require(args["pack"] == 16 and args["decode_split"] == 8, "wrong batch/decode split")
@@ -139,12 +141,14 @@ def aggregate(data, stage, target):
         fps = frames / wall
         require(math.isclose(fps, row["aggregate_fps"], rel_tol=1e-9), "aggregate denominator mismatch")
         for worker in workers.values():
+            require(worker.get("tracking_overlap", False) is tracking_overlap, "worker tracking overlap mode mismatch")
             require(math.isclose(worker["fps"], worker["frames"] / wall, rel_tol=1e-9), "per-stream denominator mismatch")
             require(0 <= worker["done_after_t0_s"] <= wall + 1e-6, "worker timestamp outside shared interval")
         windows.append({"window": index, "completed_frames": frames, "shared_wall_s": wall, "fps": fps})
     passed = target is None or all(w["fps"] >= target for w in windows)
     return {"status": "PASS" if passed else "FAIL", "scope": "aggregate_full_recipe_offline",
             "stage": stage, "target_fps": target, "windows": windows,
+            "tracking_overlap": tracking_overlap,
             "includes_live_encoding_or_RTP": False}
 
 

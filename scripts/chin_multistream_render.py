@@ -64,6 +64,8 @@ def parse_args(argv=None):
     ap.add_argument("--compare-accepted", action="store_true",
                     help="first clip: PSNR/max of faces and raw refined frames vs the accepted render (adds CPU work)")
     ap.add_argument("--cv2-threads", type=int, default=2, help="cv2.setNumThreads in workers (render_stage uses 2)")
+    ap.add_argument("--tracking-overlap", action="store_true",
+                    help="experimental/default-off: overlap one ordered canonical tracking call with composition")
     ap.add_argument("--blas-threads", type=int, default=1, help="OPENBLAS/OMP/MKL threads in workers")
     ap.add_argument("--label", required=True)
     ap.add_argument("--out-root", default=str(paths.OUT_ROOT))
@@ -71,6 +73,8 @@ def parse_args(argv=None):
     ap.add_argument("--thermal-warmup-s", type=float, default=0.0,
                     help="untimed GPU warmup after CPU preparation; records final 30s thermal range")
     a = ap.parse_args(argv)
+    if a.tracking_overlap and a.mode != "multi":
+        ap.error("tracking-overlap applies only to multi mode")
     a.identity_list = list(paths.IDENTITIES) if a.identities == "all" else [s for s in a.identities.split(",") if s]
     for ident in a.identity_list:
         if ident not in paths.IDENTITIES:
@@ -155,6 +159,7 @@ def run_multi(a, run_dir: Path) -> dict:
             ring_views.append(np.ndarray((a.ring_slots, paths.BATCH) + paths.FACE_SHAPE, np.uint8, buffer=shm.buf))
             parent_conn, child_conn = ctx.Pipe(duplex=True)
             cfg = dict(stream=s, identity=ident, ring_name=shm.name, ring_slots=a.ring_slots, cv2_threads=a.cv2_threads,
+                       tracking_overlap=a.tracking_overlap,
                        tracker_log=str(run_dir / "logs" / f"tracker_stream{s:02d}.log"), compare_accepted=a.compare_accepted)
             p = ctx.Process(target=worker.main, args=(cfg, child_conn), name=f"chinms-worker-{s}", daemon=True)
             p.start()
@@ -287,7 +292,11 @@ def run_multi(a, run_dir: Path) -> dict:
                                      arm_reset_ms=w["arm_reset_ms"], first_recv_after_t0_ms=(w["t_first_recv"] - t0) * 1000,
                                      done_after_t0_s=w["t_last_compose"] - t0, rss_mib=w["rss_mib"],
                                      facemesh_rss_mib=w["facemesh_rss_mib"], compare_accepted=w["compare_accepted"],
+                                     tracking_overlap=w["tracking_overlap"], timing_semantics=w["timing_semantics"],
                                      clips=w["clips"])
+                if w["tracking_overlap"]:
+                    per_worker[s]["per_frame_ms"].update({k: T[k] / max(1, T["frames"]) for k in
+                                                       ("tracking_overlap_wait_ms", "tracking_overlap_submit_ms")})
             agg = {k: sum(pw["timing_ms"][k] for pw in per_worker.values()) for k in
                    ("tracking_ipc_ms", "facemesh_ms", "compose_ms", "filter_ms", "hash_ms", "copy_ms", "reset_ms", "idle_ms")}
             r = dict(
