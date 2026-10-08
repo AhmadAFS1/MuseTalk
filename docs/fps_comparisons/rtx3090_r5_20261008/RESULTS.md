@@ -446,3 +446,22 @@ separates measured preparation from still-unmeasured cold-call readiness.
 The tuned trial's fresh S0N1 subsequently passed:114.4s steady, anchored20fps,
 worst gap70.5ms, no gaps over100ms, actual H264 and installed x264tuned/thread1.
 Its new three-stream stage is running under the exact trial-specific PASS gate.
+
+## 20:36 UTC checkpoint
+
+The development instance expired and was destroyed at19:00UTC; provider absence
+was verified. Nativev1 remains rejected for numerical quality and below400FPS.
+The complete subsequent live/archive/SyncNet evidence is indexed in run_state.json;
+earlier in-progress checkpoints above are historical, not current status.
+
+The exact scheduler pair gate passed53Linux/Python3.10 CPU tests at commit0cb45fd;
+see [CI readback](native/tracking_parity_linux_ci_2036.json). It requires all6avatars'
+saved faces, refined-frame hashes, landmarks and chin deltas to match the serial
+control on the same GPU/engine/input/source before a long overlap run. Actual
+FaceMesh/GPU parity and speedup remain unmeasured. Production defaults are unchanged.
+
+Account usage reports11%weekly used/89%remaining, zero purchased credits and one
+unused free full reset. The weekly window resets2026-10-15T11:17:04UTC. These are
+shared-account limits, not an exact task token budget or a guarantee of completion.
+No reset or credits were consumed. Execution continues with one agent and bounded
+experiments; the $30 infrastructure cap is separate from Codex quota.

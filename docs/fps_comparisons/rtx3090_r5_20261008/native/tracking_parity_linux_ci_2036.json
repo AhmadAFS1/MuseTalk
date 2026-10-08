@@ -1,0 +1,27 @@
+{
+  "schema": "tracking_parity_linux_ci_v1",
+  "observed_utc": "2026-10-08T20:36:11Z",
+  "status": "PASS_CPU_CONTRACTS_ONLY",
+  "ci_url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37839828888",
+  "run_id": 37839828888,
+  "job_id": 113526101411,
+  "source_revision": "0cb45fd8064564dfb2db14fe1dc823bf63f6d3b7",
+  "run_status": "completed",
+  "conclusion": "success",
+  "completed_updated_at_utc": "2026-10-08T20:30:32Z",
+  "runner": "ubuntu-22.04 standard hosted runner",
+  "python_command": "/usr/bin/python3.10",
+  "readback": "Read-only run/jobs/job-log gh API through protected SSH alias; no remote files/auth copied or host workloads launched",
+  "test_log_counts": [
+    {"suite": "test_tracking_overlap.py", "tests": 9, "elapsed_seconds": 0.045, "verdict": "OK"},
+    {"suite": "test_repro_3090.py", "tests": 28, "elapsed_seconds": 0.192, "verdict": "OK"},
+    {"suite": "test_tracking_parity.py", "tests": 13, "elapsed_seconds": 5.422, "verdict": "OK"},
+    {"suite": "test_fetch_dependency_ci_evidence.py", "tests": 3, "elapsed_seconds": 0.002, "verdict": "OK"}
+  ],
+  "total_tests": 53,
+  "actual_same_engine_facemesh_pixel_parity": "NOT_MEASURED",
+  "gpu_throughput_speedup": "NOT_MEASURED",
+  "native_quality_rejection": "UNCHANGED",
+  "native_400fps_failures": "UNCHANGED",
+  "production_changes": false
+}
