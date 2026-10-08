@@ -8,7 +8,10 @@ DELIVERY_FRAMES = {'idle': 240, 'talking': 240, 'smiling': 158}
 
 
 def identity(profile: dict) -> dict:
-    pronoun = profile.get('pronouns', {'woman': 'she', 'man': 'he'}.get(profile.get('gender'), 'they')).lower()
+    pronoun = profile.get('pronouns', {'woman': 'she', 'man': 'he'}.get(profile.get('gender'), 'they'))
+    if isinstance(pronoun, dict):
+        pronoun = pronoun['subject']
+    pronoun = pronoun.lower()
     if pronoun not in ('she', 'he', 'they'):
         raise ValueError('pronouns must be she, he, or they')
     possessive = {'she': 'her', 'he': 'his', 'they': 'their'}[pronoun]

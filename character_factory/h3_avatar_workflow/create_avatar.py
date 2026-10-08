@@ -10,15 +10,18 @@ GPU_STAGES={'h3','prepare','render'}
 def prompt(a):
     pronoun='She' if a['gender']=='woman' else 'He';possessive='her' if a['gender']=='woman' else 'his'
     identity=a['label'].split(',')[0]
+    wardrobe=a.get('wardrobe', 'navy crew-neck knit top')
+    background=a.get('background', 'softly blurred home office')
+    clothing_reference=a.get('wardrobe', 'navy top')
     beard='' if a['facial_hair'] in ('none','clean-shaven') else f" Maintain {possessive} {a['facial_hair']} consistently, including individual hairs and the visible lip border."
     return (f"Vertical 9:16 photorealistic FaceTime close-up. the same {identity} from the reference image, about {a['age']}, "
-        f"{a['hair']}, {a['tone']}, navy crew-neck knit top, softly blurred home office. {pronoun} looks straight into the lens "
+        f"{a['hair']}, {a['tone']}, {wardrobe}, {background}. {pronoun} looks straight into the lens "
         'and speaks this exact line in a calm friendly voice: "Hi, I\'m glad you\'re here. Let me show you how this works." '
         'Natural blinking, a nearly still head held at the reference angle throughout, with only tiny natural micro-movements. '
         'Keep the head centered at a constant size, shoulders level, and gaze into the lens. Keep head pitch, yaw, and roll nearly constant: '
         'no nodding, chin lifts, head tilts, leaning, or swaying. The camera and framing remain fixed. '
         'Maintain natural speaking lip and jaw articulation, coherent teeth and lips, stable identity, unchanged clothes and room, no captions, no logos. '
-        f"The {a['gender']} in <Picture 1> is the only person on camera. Keep {possessive} face, hair, and navy top consistent."+beard)
+        f"The {a['gender']} in <Picture 1> is the only person on camera. Keep {possessive} face, hair, and {clothing_reference} consistent."+beard)
 
 def plan(args):
     config=read(args.config);avatars=config['avatars'];ids=[a['id'] for a in avatars]

@@ -18,9 +18,22 @@ sys.path.insert(0, str(HERE))
 from batch_three_pose import plan, process_jobs
 from create_avatar import prompt as accepted_talking_prompt
 from three_pose_s3_stage import publish_one
+from three_pose_prompts import pose_prompt
 
 
 class BatchThreePoseTest(unittest.TestCase):
+    def test_four_language_roster_preserves_each_portraits_clothes_and_room(self):
+        roster = json.loads((HERE / 'config/lumatalk_four_language_pilot_20260928.json').read_text())
+        self.assertEqual(len(roster['avatars']), 16)
+        for avatar in roster['avatars']:
+            for pose in ('idle', 'talking', 'smiling'):
+                with self.subTest(avatar=avatar['id'], pose=pose):
+                    value = pose_prompt(avatar, pose)
+                    self.assertIn(avatar['wardrobe'], value)
+                    if pose == 'talking':
+                        self.assertIn(avatar['background'], value)
+                        self.assertNotIn('navy top', value)
+
     def test_plan_keeps_accepted_talking_prompt_and_rejects_changed_metadata(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
