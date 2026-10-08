@@ -1,0 +1,139 @@
+[test_install 19:20:42] 1. syntax
+PASS bash -n install_musetalk.sh (exit 0)
+PASS bash -n download_weights.sh (exit 0)
+PASS bash -n test_install_musetalk.sh (exit 0)
+PASS py_compile helper + selftest (exit 0)
+PASS helper and selftest never import torch at module level (exit 0)
+[test_install 19:20:42] 2. requirements
+PASS requirements coverage and matrix pins (exit 0)
+PASS avatar-prep never installs openmim's dependency chain (exit 0)
+[test_install 19:20:42] 3. --plan matrix and group resolution
+PASS plan sm89 -> cu121 (exit 0)
+PASS plan sm89 matrix
+PASS plan default groups
+PASS plan pip command uses constraints + pytorch cu121 index
+PASS plan does not add legacy-int8 by default
+PASS plan sm120 -> cu128 (exit 0)
+PASS plan sm120 matrix
+PASS plan sm120 index
+PASS plan no GPU -> cu121 (exit 0)
+PASS plan no GPU matrix
+PASS plan no GPU: self-test off
+PASS plan no GPU keeps an installed cu128 venv (exit 0)
+PASS plan kept cu128
+PASS plan CUDA_VISIBLE_DEVICES='' hides the GPU (exit 0)
+PASS plan hidden GPU -> cu121
+PASS plan explicit --matrix cu128 (exit 0)
+PASS plan explicit matrix
+PASS plan --without-kokoro --with-legacy-int8 (exit 0)
+PASS plan without kokoro
+PASS plan with legacy-int8
+PASS legacy flags: --full-stack --install-modelopt --artifact-dir (exit 0)
+PASS legacy --full-stack -> avatar-prep
+PASS legacy --install-modelopt -> legacy-int8
+PASS avatar-prep refused on cu128 (exit 2)
+PASS legacy-int8 refused on cu128 (exit 2)
+PASS bad --matrix value (exit 2)
+PASS unknown option (exit 2)
+PASS PYTORCH_INDEX_URL from the image is ignored (exit 0)
+PASS plan index not taken from PYTORCH_INDEX_URL
+[test_install 19:20:44] 4. --check exit codes (read-only)
+PASS check complete pre-existing venv without stamp -> 0 (exit 0)
+PASS check warns about the missing stamp
+PASS check verdict ok
+PASS check auto native VP8 missing is only a warning
+PASS check wrote nothing (exit 0)
+PASS check --json is valid JSON (exit 0)
+PASS check --report writes JSON (exit 0)
+PASS report schema (exit 0)
+PASS check missing venv -> 10 (exit 10)
+PASS check GPU needs cu128 but venv is cu121 -> 10 (exit 10)
+PASS check names the matrix problem
+PASS check no GPU visible never demands a clean install (exit 0)
+PASS check no GPU warns
+[test_install 19:20:46] SKIP wrong-interpreter test (no other python3.x found)
+PASS check missing package -> 11 (exit 11)
+PASS check lists the missing package
+PASS check pin drift -> 11 (exit 11)
+PASS check names the drifted pin
+PASS check torch_tensorrt local build != PyPI build (=== pin) -> 11 (exit 11)
+PASS check kokoro missing (default group on) -> 11 (exit 11)
+PASS check kokoro missing with --without-kokoro -> 0 (exit 0)
+PASS check missing TAESD weights -> 11 (exit 11)
+PASS check names the TAESD file
+PASS check missing weights with --skip-weights -> 0 (exit 0)
+PASS full avatar-prep check without training-only SyncNet -> 0 (exit 0)
+PASS prep check still requires dwpose/dw-ll_ucoco_384.pth -> 11 (exit 11)
+PASS prep check identifies dwpose/dw-ll_ucoco_384.pth
+PASS prep check still requires face_detection/s3fd.pth -> 11 (exit 11)
+PASS prep check identifies face_detection/s3fd.pth
+PASS check explicit --with-native-vp8 but not provisioned -> 11 (exit 11)
+PASS check --with-chin-tools without the venv -> 11 (exit 11)
+PASS check --with-chin-tools with validated pins -> 0 (exit 0)
+[test_install 19:20:48] 4b. stamp round trip
+PASS stamp writes install_state.json (exit 0)
+PASS stamp content (exit 0)
+PASS check with stamp (chin group from stamp) -> 0 (exit 0)
+PASS check reads the stamp
+PASS check verified chin tools from the stamp
+PASS check prints no spurious ERR-trap line
+PASS check chin mediapipe drift -> 11 (exit 11)
+PASS check stamp says another matrix -> 10 (exit 10)
+PASS check ignores a stamp written for another venv (exit 0)
+PASS check says the stamp is for another venv
+[test_install 19:20:49] 5. install-mode guards (no network; must stop before any change)
+PASS install refuses a matrix change without --clean -> 10 (exit 10)
+PASS install explains --clean
+PASS install cu128 venv untouched (exit 0)
+PASS install disk budget enforced (exit 1)
+PASS install disk message
+PASS install --clean refuses a non-venv dir (exit 1)
+PASS install explains the refusal
+PASS install phase summary records the failure
+PASS install left the non-venv dir intact (exit 0)
+[test_install 19:20:50] 6. download_weights.sh TAESD + Kokoro with stubbed tools
+PASS download_weights sequential (TAESD missing, kokoro auto) (exit 0)
+PASS TAESD fetched at the pinned revision
+PASS Kokoro cached at the pinned revision with default voices
+PASS TAESD files landed in models/taesd (exit 0)
+PASS Kokoro refs/main written for offline boots (exit 0)
+PASS pinned en_core_web_sm installed when missing
+PASS download_weights parallel (TAESD present -> skipped) (exit 0)
+PASS download log says TAESD skipped
+PASS no TAESD download when present
+PASS an existing Kokoro refs/main is never rewritten (exit 0)
+PASS download_weights DOWNLOAD_KOKORO_WEIGHTS=0 (exit 0)
+PASS no Kokoro download when disabled
+PASS download_weights DOWNLOAD_TAESD_WEIGHTS=0 keeps old behaviour (exit 0)
+PASS no models/taesd files when TAESD disabled (exit 0)
+PASS prep download without SyncNet (parallel=0) (exit 0)
+PASS training-only SyncNet not fetched (parallel=0)
+PASS DWPose still fetched (parallel=0)
+PASS S3FD still fetched (parallel=0)
+PASS SyncNet still absent (parallel=0) (exit 0)
+PASS prepared S3FD copy retained (parallel=0) (exit 0)
+PASS standalone prep default keeps SyncNet (parallel=0) (exit 0)
+PASS standalone default fetched SyncNet (parallel=0)
+PASS training-only opt-in without prep (parallel=0) (exit 0)
+PASS training opt-in fetched SyncNet (parallel=0)
+PASS training opt-in does not fetch DWPose (parallel=0)
+PASS training opt-in does not fetch S3FD (parallel=0)
+PASS missing opted-in SyncNet fails (parallel=0) (exit 1)
+PASS missing training checkpoint named (parallel=0)
+PASS prep download without SyncNet (parallel=1) (exit 0)
+PASS training-only SyncNet not fetched (parallel=1)
+PASS DWPose still fetched (parallel=1)
+PASS S3FD still fetched (parallel=1)
+PASS SyncNet still absent (parallel=1) (exit 0)
+PASS prepared S3FD copy retained (parallel=1) (exit 0)
+PASS standalone prep default keeps SyncNet (parallel=1) (exit 0)
+PASS standalone default fetched SyncNet (parallel=1)
+PASS training-only opt-in without prep (parallel=1) (exit 0)
+PASS training opt-in fetched SyncNet (parallel=1)
+PASS training opt-in does not fetch DWPose (parallel=1)
+PASS training opt-in does not fetch S3FD (parallel=1)
+PASS missing opted-in SyncNet fails (parallel=1) (exit 1)
+PASS missing training checkpoint named (parallel=1)
+[test_install 19:20:53] SKIP live venv check
+
+128 passed, 0 failed

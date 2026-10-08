@@ -1,0 +1,42 @@
+{
+  "schema": "ordered_tracking_parity_gate_cpu_v1",
+  "observed_utc": "2026-10-08T20:20:00Z",
+  "classification": "CPU implementation and existing-capture parser integration only",
+  "source_sha256": {
+    "scripts/repro_3090/tracking_parity.py": "34a5155f159f95e12b527959f92a447e89e918368a092fe44958b3a9f8e90e3e",
+    "scripts/repro_3090/test_tracking_parity.py": "2cb3904facab5c4a1c98cf29140f76dc513e2b12477d139425fd0b12b25dc68f",
+    "scripts/repro_3090/runner.py": "0ede69c7a6f97aae57c38aec27e530b06beb1cc22175c89aa374a0fc66fb1f1d"
+  },
+  "tests": {
+    "synthetic_tracking_parity": {"tests": 13, "result": "PASS", "scope": "Real NPZ parser with synthetic arrays; all-six exact pair; independent landmark/delta/refined/face differences; malformed/unknown/truncated/nonfinite data; missing mode/avatar/source; stale receipt; wrong GPU; two guarded-child command ordering and four UUID checks; CLI refuses long overlap runs without a receipt"},
+    "synthetic_dependency_archive": {"tests": 3, "result": "PASS", "scope": "Old root and fixed nested artifact layouts, complete archive SHA, unknown members, symlink/output-path rejection"},
+    "existing_repro_3090": {"tests": 78, "result": "PASS"},
+    "ordered_tracking_overlap": {"tests": 9, "result": "PASS"},
+    "shell_syntax_and_git_diff_check": "PASS"
+  },
+  "existing_native_capture_parser_integration": {
+    "report": "native/native_v1_quality/native_v1_quality_capture.json",
+    "report_sha256": "530c541912710db3d84f50d2087341ca12f74e204cb079170d70d7b4f20e495d",
+    "files_checked": 6,
+    "generated_landmarks": {"dtype": "<f4", "shape": [240, 478, 2], "payload_bytes_per_file": 917760, "all_finite": true},
+    "chin_delta": {"dtype": "<f8", "shape": [240, 161], "payload_bytes_per_file": 309120, "all_finite": true},
+    "payload_sha256_by_identity": {
+      "black_man_short_beard": ["3a60f163ab266c166c5d8462d0c76cb8cf155dab5a57eb03ab8157fdd9edf64b", "a889a68cd2279b17f35ac562d1c7f734fb53894edab64bbcf50a6b11b90eb402"],
+      "black_woman": ["9e6677dafdc47a0bdf4af7234c850d215ecbfcc43007cf9d70a7a6daffa0ae53", "118b89848ad5078a47fe9abf53176f38f7cb3003f942fd581c3ff73a5555ecd6"],
+      "east_asian_man_goatee": ["81e31e2aeab0f5992b1a4cba8a1fbe21bb19aaf296be3cffced13efa9c0ec00f", "2f0aff5e38e2bd7db62931ed6d3f37cf33b449b0748bc71c24688d9fa5ec5053"],
+      "middle_eastern_man_full_beard": ["8a7a4fe20ae2d25ff930afa4ec07c3f754b47f8051c4a4cb01e919043c2de3f7", "a0c56a409f7039d83f015c8da0a0c0fc4cbfde8ec3005d3ffc363c5426edc99d"],
+      "south_asian_woman": ["fba34153cf129d8db4f8fcb00f35690b9b398236de16ad458e618014405d8361", "3cfd059e515a9f8a087ac008fbe0ae1523b00c2de7424688ed12b6fecfc51879"],
+      "white_man_clean_shaven": ["bc299ce3378a1f3ec0ca4959221ee068b736853855ea63398e9a7a4e054bcdf8", "927bcf72667d5b7f1b3add450c87cefad7181a2786f97b7d25b6d5c423fb4e21"]
+    },
+    "payload_hash_order": ["generated_landmarks", "chin_delta"],
+    "scope": "Existing rejected native capture CPU parsing, not an overlap A/B test or native quality acceptance"
+  },
+  "default_enabled": false,
+  "actual_same_engine_all_six_overlap_parity": "NOT_MEASURED",
+  "gpu_speedup": "NOT_MEASURED",
+  "native_v1_quality": "REJECTED_UNCHANGED",
+  "native_400fps_gates": "FAIL_UNCHANGED",
+  "linux_python310_gate_execution": "PENDING_LIGHTWEIGHT_CI",
+  "production_changes": false,
+  "paid_gpu_retained": false
+}

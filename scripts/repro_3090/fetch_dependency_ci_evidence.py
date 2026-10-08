@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import subprocess
 import zipfile
+import re
 
 REPO = 'AhmadAFS1/MuseTalk'
 RUN = 37794887252
@@ -17,10 +18,16 @@ FIXED_RUNS = {
     'ff8b77b': (RUN, REV, ARTIFACT, SHA),
     'ead7e01': (37803474546, 'ead7e0116577a7b32da341af514c8371c187cc9c', 11564001703,
                 '0ceddda09be865dd10e0bc7a77c380ee7e6184dfd1a3f62d0be787860f2cae23'),
+    '7a78e4a': (37830969052, '7a78e4abf09ffcc640e2979d5b08887fa70bdd4f', 11575324075,
+                'c8487e775511bb7f25b931cca8e0433d1512ac4f2f711c98b36149e8e28345f7'),
 }
 EXPECTED = {'source-inventory.json', 'base-identity.json', 'apt-pins.json', 'build-metadata.json',
             'image-inspect.json', 'image-history.jsonl', 'pip-freeze.txt', 'dpkg-packages.txt',
             'runtime-pruning.json', 'result.json'}
+LAYOUTS = {
+    '7a78e4a': {**{f'musetalk-dependency-preflight/reports/{name}': name for name in EXPECTED},
+                'musetalk-cpu-contracts/installer.log': 'installer.log'},
+}
 
 
 def require(ok, code):
@@ -36,15 +43,19 @@ def read_api(endpoint):
     return result.stdout
 
 
-def entries(raw):
-    require(hashlib.sha256(raw).hexdigest() == SHA, 'artifact_archive_sha_mismatch')
+def entries(raw, *, layout=None, digest=None):
+    layout = layout if layout is not None else {name: name for name in EXPECTED}
+    require(len(set(layout.values())) == len(layout)
+            and all(re.fullmatch(r'[A-Za-z0-9_.-]+', name) and name not in ('.', '..') for name in layout.values()),
+            'unsafe_output_layout')
+    require(hashlib.sha256(raw).hexdigest() == (SHA if digest is None else digest), 'artifact_archive_sha_mismatch')
     archive = zipfile.ZipFile(io.BytesIO(raw))
-    require(len(archive.infolist()) == len(EXPECTED)
-            and {i.filename for i in archive.infolist()} == EXPECTED, 'unexpected_artifact_file_set')
+    require(len(archive.infolist()) == len(layout)
+            and {i.filename for i in archive.infolist()} == set(layout), 'unexpected_artifact_file_set')
     require(all(i.file_size <= 512 * 1024 and not i.is_dir()
                 and ((i.external_attr >> 16) & 0o170000) != 0o120000 for i in archive.infolist()),
             'unsafe_artifact_member')
-    return {name: archive.read(name) for name in sorted(EXPECTED)}
+    return {layout[name]: archive.read(name) for name in sorted(layout)}
 
 
 def main():
@@ -64,7 +75,8 @@ def main():
             and artifact['workflow_run']['id'] == RUN, 'artifact_identity_mismatch')
     raw = read_api(f'actions/artifacts/{ARTIFACT}/zip')
     require(len(raw) == artifact['size_in_bytes'], 'artifact_archive_size_mismatch')
-    files = entries(raw)
+    layout = LAYOUTS.get(args.fixed_run, {name: name for name in EXPECTED})
+    files = entries(raw, layout=layout)
     result = json.loads(files['result.json'])
     require(result['source_revision'] == REV and result['status'] == 'PASS'
             and not result['published'] and not result['gpu_tested'], 'artifact_result_scope_mismatch')
@@ -77,7 +89,8 @@ def main():
                   'artifact_id': ARTIFACT, 'artifact_archive_bytes': len(raw),
                   'artifact_archive_sha256': SHA, 'github_declared_digest_matches': True,
                   'transport': 'Read-only remote gh API through existing SSH alias; no remote file/auth copy',
-                  'files': [{'name': name, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+                  'files': [{'name': name, 'archive_path': next(k for k, v in layout.items() if v == name),
+                             'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
                             for name, data in files.items()],
                   'scope': 'Dependency-only CPU build/import and size evidence; no GPU/release/publication acceptance'}
     with (args.out / 'provenance.json').open('x') as stream:

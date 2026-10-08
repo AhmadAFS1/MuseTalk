@@ -14,6 +14,10 @@ on:
       - scripts/repro_3090/report.py
       - scripts/repro_3090/test_tracking_overlap.py
       - scripts/repro_3090/test_repro_3090.py
+      - scripts/repro_3090/tracking_parity.py
+      - scripts/repro_3090/test_tracking_parity.py
+      - scripts/repro_3090/fetch_dependency_ci_evidence.py
+      - scripts/repro_3090/test_fetch_dependency_ci_evidence.py
 
 permissions:
   contents: read
@@ -41,3 +45,5 @@ jobs:
           command -v python3.10
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_tracking_overlap.py -v
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_repro_3090.py -v
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_tracking_parity.py -v
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_fetch_dependency_ci_evidence.py -v

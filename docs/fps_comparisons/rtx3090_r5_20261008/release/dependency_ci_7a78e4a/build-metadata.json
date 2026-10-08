@@ -1,0 +1,64 @@
+{
+  "buildx.build.provenance": {
+    "builder": {
+      "id": ""
+    },
+    "buildType": "https://mobyproject.org/buildkit@v1",
+    "materials": [
+      {
+        "uri": "pkg:docker/docker/dockerfile@1.7",
+        "digest": {
+          "sha256": "a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e"
+        }
+      },
+      {
+        "uri": "pkg:docker/nvidia/cuda?digest=sha256:810756cab1c28ce693499a5c2ebb66f6d10a61d026998c8606bad449643a4c49\u0026platform=linux%2Famd64",
+        "digest": {
+          "sha256": "3c506f144eb01bf94000235984bdae17d1958cafc3444c3b9db06e09cc6e52aa"
+        }
+      },
+      {
+        "uri": "pkg:docker/nvidia/cuda?digest=sha256:cc55d151af1e8e083f3210af753a5cfbcbc5455421531eb0459887026bb4699f\u0026platform=linux%2Famd64",
+        "digest": {
+          "sha256": "cec17ddd4650b02a8a4b48445e84dde63a504726dbffbe26c4bf2b804d6dde1e"
+        }
+      }
+    ],
+    "invocation": {
+      "configSource": {
+        "entryPoint": "Dockerfile.dependencies"
+      },
+      "parameters": {
+        "frontend": "gateway.v0",
+        "args": {
+          "build-arg:CUDA_BASE": "nvidia/cuda@sha256:cc55d151af1e8e083f3210af753a5cfbcbc5455421531eb0459887026bb4699f",
+          "build-arg:CUDA_RUNTIME_BASE": "nvidia/cuda@sha256:810756cab1c28ce693499a5c2ebb66f6d10a61d026998c8606bad449643a4c49",
+          "build-arg:SOURCE_REVISION": "7a78e4abf09ffcc640e2979d5b08887fa70bdd4f",
+          "cmdline": "docker/dockerfile:1.7",
+          "context:pins": "local:pins",
+          "frontend.caps": "moby.buildkit.frontend.contexts+forward",
+          "sharedkey:localdir:pins": "pins:14281aa7491f2eed",
+          "source": "docker/dockerfile:1.7"
+        },
+        "locals": [
+          {
+            "name": "context"
+          },
+          {
+            "name": "dockerfile"
+          },
+          {
+            "name": "pins"
+          }
+        ]
+      },
+      "environment": {
+        "platform": "linux/amd64"
+      }
+    }
+  },
+  "buildx.build.ref": "default/default/yaada4n6nk7d4ap685g6za0yh",
+  "containerimage.config.digest": "sha256:9ed9a2f9e1c046943131d4d7568020364343c7fb1899622adc443bc362b77e00",
+  "containerimage.digest": "sha256:9ed9a2f9e1c046943131d4d7568020364343c7fb1899622adc443bc362b77e00",
+  "image.name": "docker.io/library/musetalk-dependencies-ci:7a78e4abf09ffcc640e2979d5b08887fa70bdd4f"
+}

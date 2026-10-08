@@ -17,6 +17,7 @@ import time
 
 import report as checks
 import safe_capture
+import tracking_parity
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
@@ -50,6 +51,21 @@ def aggregate_command(args, out, label, streams, repeats):
     if args.tracking_overlap:
         command.append("--tracking-overlap")
     return command
+
+
+def tracking_capture_command(args, out, label, overlap):
+    command = [args.python, "scripts/chin_multistream_render.py", "--backend", "stagewise16_taesdtrt",
+               "--streams", "6", "--loops", "1", "--repeats", "1", "--save-arrays", "--encode", "--crf", "12",
+               "--out-root", out, "--label", label]
+    if overlap:
+        command.append("--tracking-overlap")
+    return command
+
+
+def verify_current_gpu(environment):
+    actual = capture(["nvidia-smi", "--query-gpu=uuid", "--format=csv,noheader,nounits"],
+                     stage="tracking_pair_gpu_identity", timeout_s=20).strip()
+    checks.require(actual == environment["gpu"]["uuid"], "GPU identity changed during tracking pair")
 
 
 def verify_s3_objects(objects):
@@ -237,7 +253,7 @@ def quality(args, out, env):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("suite", choices=("check", "gpu", "aggregate", "quality", "live"))
+    p.add_argument("suite", choices=("check", "gpu", "aggregate", "quality", "live", "tracking-parity"))
     for name in ("profile", "engine-root", "taesd-key", "taesd-dir", "input-manifest", "out", "label"):
         p.add_argument("--" + name, required=True)
     p.add_argument("--comparison-root", action="append", default=[])
@@ -253,6 +269,7 @@ def main():
     p.add_argument("--gpu-repeats", type=int, default=2)
     p.add_argument("--thermal-warmup-s", type=int, default=120)
     p.add_argument("--tracking-overlap", action="store_true", help="aggregate only: default-off ordered tracking/composition experiment")
+    p.add_argument("--tracking-parity-report", help="required for overlap aggregate: successful same-host/engine/input tracking-parity report.json")
     p.add_argument("--live-avatar-file")
     p.add_argument("--live-cpus", help="available CPU IDs; local clients share these CPUs and contention is disclosed")
     p.add_argument("--live-stages", default="s0,ramp,soak")
@@ -261,6 +278,10 @@ def main():
     args = p.parse_args()
     if args.tracking_overlap and args.suite != "aggregate":
         p.error("tracking-overlap applies only to the aggregate suite")
+    if args.tracking_overlap and not args.tracking_parity_report:
+        p.error("tracking-overlap requires --tracking-parity-report before long aggregate tests")
+    if args.tracking_parity_report and not (args.suite == "aggregate" and args.tracking_overlap):
+        p.error("tracking-parity-report applies only to overlap aggregate")
     if not re.fullmatch(r"[A-Za-z0-9_.-]+", args.label):
         p.error("unsafe run label")
     out = Path(args.out).resolve() / f"{args.label}_{args.suite}"
@@ -318,6 +339,8 @@ def main():
                 result["results"].append(checks.gpu_path(data))
         elif args.suite == "aggregate":
             result["tracking_overlap"] = args.tracking_overlap
+            if args.tracking_overlap:
+                result["tracking_parity"] = tracking_parity.require_passed(args.tracking_parity_report, result["environment"])
             for stage in args.stages:
                 n, repeats = {"T": (6, 2), "SUST": (6, 5), "N15": (15, 10)}[stage]
                 label = f"{args.label}_{stage}"
@@ -327,6 +350,21 @@ def main():
                 loaded(data)
                 threshold = None if stage == "N15" else (300 if args.target == "portable" else 400)
                 result["results"].append(checks.aggregate(data, stage, threshold))
+        elif args.suite == "tracking-parity":
+            paths = []
+            for selected, name in ((False, "tracking_serial"), (True, "tracking_overlap")):
+                label = f"{args.label}_{name}"
+                path = out / f"{label}.json"
+                verify_current_gpu(result["environment"])
+                rc = child(args, out, env, name, tracking_capture_command(args, out, label, selected), 12)
+                checks.child_result(rc, [path])
+                verify_current_gpu(result["environment"])
+                paths.append(path)
+            # The same frozen files must still be present after both captures.
+            checks.verify_files(checks.read(args.input_manifest), Path(args.input_manifest).resolve().parent)
+            result["results"].append(tracking_parity.compare(*paths, result["environment"]))
+            result["quality_parity_with_reference"] = "NOT_EVALUATED"
+            result["release_quality_decision"] = "incomplete: scheduler equality only"
         elif args.suite == "quality":
             result["results"] = quality(args, out, env)
             result["strict_original_gates"] = checks.combined_status(result["results"])

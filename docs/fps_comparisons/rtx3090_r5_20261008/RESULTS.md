@@ -13,6 +13,35 @@ This is a live evidence index, not a completed release claim. The protected RTX
 | Live delivery / capacity | Both software-H264 profiles N1/N3 strictPASS/N5 validFAIL. NVENC N1FAIL,0hardware opens/18open failures; PyAV/FFmpeg standalone probes alsoFAIL. No accepted capacity or EC2 release claim |
 | Request-to-usable-call startup | Still unmeasured through EC2/TURN. Request-to-verified-health was 1,046.45 s (17m26s), not usable-call readiness |
 
+### 20:20 UTC exact scheduler gate and verified dependency CI
+
+The new `25_tracking_parity.sh` runs two isolated, same-engine six-avatar
+captures, serial then overlap, under the existing preflight/GPU watchdog.
+It checks GPU UUID before/after each child, rechecks frozen inputs, and validates
+actual face pixels, finite FP32landmarks/FP64chin arrays and completed raw refined
+hashes. The long overlap aggregate suite now requires a successful pair receipt
+and recomputes its evidence, bound to this GPU, engine/decoder/input/profile and
+current harness. Output differences remain FAIL; missing, corrupt, wrong-mode,
+changed-source or stale evidence is INVALID. It does not approve a rejected
+engine or change the400FPS/quality bars.
+
+[CPU gate evidence](native/tracking_parity_gate_cpu_2020.json):13synthetic tests
+pass, plus3strict archive tests,78existing harness tests and9overlap tests. The
+new parser also read all6existing native capture array files with their actual
+canonical shapes and finite payloads. That is parsing integration, not an actual
+overlap comparison or quality acceptance. Real GPU/parity results remain pending.
+
+[CI37830969052](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37830969052)
+finished success at20:10:24UTC. All11small reports/logs were fetched with the exact
+28002-byte ZIP SHA matching GitHub's declared digest. [Provenance](release/dependency_ci_7a78e4a/provenance.json)
+and [assessment](release/dependency_ci_7a78e4a/assessment.json) retain scope:
+128installer checks passed,0failed, with wrong-interpreter/live-venv checks
+explicitly skipped. Sequential/parallel SyncNet opt-out/opt-in and required
+DWPose/S3FD tests pass. The dependency-only image is12,334,998,487uncompressed
+bytes, just7777above the preceding build, with identical apt pins and pip freeze.
+No full serving image, GPU, publication, compressed pull or startup saving follows.
+The already queueda57f2de dependency build is now running; it was not restarted.
+
 ### 19:54 UTC default-off tracking overlap and quota check
 
 The scheduling experiment is now implemented behind `--tracking-overlap`, never

@@ -1,0 +1,20 @@
+{
+  "schema": "musetalk_dependency_ci_assessment_v1",
+  "source_revision": "7a78e4abf09ffcc640e2979d5b08887fa70bdd4f",
+  "run_id": 37830969052,
+  "completed_updated_at_utc": "2026-10-08T20:10:24Z",
+  "conclusion": "success",
+  "archive_verification": "All11allowlisted files retrieved; complete28002-byte ZIP SHA equals GitHub digest c8487e775511bb7f25b931cca8e0433d1512ac4f2f711c98b36149e8e28345f7",
+  "installer_log": {"passed": 128, "failed": 0, "explicit_skips": ["Wrong-interpreter test: no other python3.x", "Live venv check: TEST_LIVE_VENV=0"], "syncnet_sequential_parallel_and_prep_requirement_tests": "PASS"},
+  "uncompressed_dependency_image_bytes": 12334998487,
+  "previous_ead7e01_uncompressed_bytes": 12334990710,
+  "difference_bytes": 7777,
+  "apt_pins_equal_to_previous": true,
+  "pip_freeze_equal_to_previous": true,
+  "apt_pins_sha256": "3905467088fe6f7983cb2ae6b5d5be2b17bc8dd9803fb998d7067c7e936eb3a0",
+  "pip_freeze_sha256": "2ba4b03c8cfade2e29deffb41d7d12e04c9fbf72f020adff615e61273a6750b9",
+  "scope": "Actual GPU-less dependency build/imports plus synthetic installer/downloader contracts; no models, Kokoro, GPU, registry publication, full serving image or boot-time savings established",
+  "published": false,
+  "gpu_tested": false,
+  "full_serving_dockerfile_validation": false
+}

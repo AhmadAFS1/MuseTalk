@@ -151,7 +151,8 @@ the full run is performed. Do not promote the diagnostic result.
 
 ### Default-off ordered tracking overlap experiment
 
-`20_aggregate.sh ... --tracking-overlap` explicitly enables one outstanding
+`20_aggregate.sh ... --tracking-overlap --tracking-parity-report /actual/pair/report.json`
+explicitly enables one outstanding
 canonical `Tracker.track()` call per stream on a helper thread. The next call
 starts before current-frame filter/composition; frame order, shared-memory writer
 count, original Tracker/FaceMesh source, copied landmarks, three-tap chin math,
@@ -176,9 +177,36 @@ generated faces, generated landmarks, chin deltas and raw refined-frame hashes
 for all six canonical identities. Only then run the unchanged T/SUST gates. This
 scheduling experiment cannot repair or excuse an independently rejected engine.
 
+`25_tracking_parity.sh` performs the required pair under the same frozen-input
+preflight and GPU-process watchdog as the other suites. Both children use six
+streams, one240-frame clip per identity, identical code/config/backends and raw
+array/video capture; only the explicit overlap flag and output label differ.
+The wrapper checks GPU UUID before and after each child and rechecks frozen
+files. The CPU comparator validates actual uint8 faces and finite exact-shape
+FP32 landmarks/FP64 chin arrays without NumPy/pickle, plus completed refined-frame
+hashes. Byte differences are FAIL; absent, corrupt, stale, changed-source or
+wrong-mode evidence is INVALID. No encoded video bytes or capture FPS are used
+to assert parity or400FPS performance.
+
+The successful pair's `report.json` is mandatory for overlap aggregate tests.
+Before a long run the runner re-reads both captures and arrays, recomputes the
+comparison, and requires the same GPU UUID, complete engine/decoder/input/profile
+identity and current harness hashes. A receipt is not transferable to a different
+host or candidate. Quality-reference/visual acceptance remains separate.
+
+```bash
+# COMMON uses the actual verified roots/key/input manifest from above.
+bash scripts/repro_3090/25_tracking_parity.sh "${COMMON[@]}"
+# Use a distinct new label/output directory; do not reuse a prior suite path.
+bash scripts/repro_3090/20_aggregate.sh "${COMMON[@]}" \
+  --tracking-overlap --tracking-parity-report /actual/pair/report.json --stages T SUST
+```
+
 ```bash
 PYTHONPATH=scripts/repro_3090 python3 -B -m unittest discover \
   -s scripts/repro_3090 -p test_tracking_overlap.py -v
+PYTHONPATH=scripts/repro_3090 python3 -B -m unittest discover \
+  -s scripts/repro_3090 -p test_tracking_parity.py -v
 ```
 
 ## CPU validation and summary
