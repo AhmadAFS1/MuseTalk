@@ -33,6 +33,16 @@ HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 AUTO_SETUP="${AUTO_SETUP:-1}"
 SETUP_CLEAN="${SETUP_CLEAN:-0}"
+# Opt-in image contract; snapshot it before a runtime secret can change env values.
+# Non-container installs retain their existing repair/fallback behavior.
+readonly IMMUTABLE_BOOT="${MUSETALK_IMMUTABLE_RUNTIME:-0}"
+IMMUTABLE_SECRETS_LOADED=0
+BOOTSTRAP_SECRET_TMP=""
+if [[ "$IMMUTABLE_BOOT" == "1" ]]; then
+  # An env secret may carry stale operational settings, but it must never replace
+  # this supervisor's identity/PID paths.
+  readonly MUSETALK_SUPERVISOR_OWNER PID_FILE TURN_PID_FILE MUSETALK_BOOTSTRAP_SECRET_DIR
+fi
 SETUP_SKIP_APT="${SETUP_SKIP_APT:-auto}"
 SETUP_SKIP_WEIGHTS="${SETUP_SKIP_WEIGHTS:-0}"
 SETUP_FULL_STACK="${SETUP_FULL_STACK:-0}"
@@ -121,9 +131,17 @@ report_unhandled_failure() {
   exit "$status"
 }
 
+cleanup_bootstrap_secret() {
+  in_main_shell || return 0
+  if [[ -n "$BOOTSTRAP_SECRET_TMP" && -f "$BOOTSTRAP_SECRET_TMP" ]]; then
+    rm -f -- "$BOOTSTRAP_SECRET_TMP"
+  fi
+}
+
 report_exit() {
   # Catches exits the ERR trap cannot see (set -u unbound variables, explicit exit N).
   local status=$?
+  cleanup_bootstrap_secret
   if (( status != 0 )) && in_main_shell && (( ! ONSTART_MARKER_PRINTED )); then
     printf '[%s] [%s] ERROR: exiting with status %s\n' "$SCRIPT_NAME" "$(date -u '+%H:%M:%S')" "$status" >&2
     print_failed_marker
@@ -245,6 +263,9 @@ ensure_coturn_available() {
   if command -v turnserver >/dev/null 2>&1; then
     return 0
   fi
+  if env_flag_is_true "$IMMUTABLE_BOOT"; then
+    die "Immutable image is missing coturn; rebuild the image (runtime apt installation is forbidden)"
+  fi
 
   if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
     die "WebRTC TURN autostart requires coturn, but turnserver is not installed and this script is not running as root"
@@ -314,6 +335,9 @@ run_setup_if_needed() {
   fi
 
   if [[ ! -f "$INSTALLER" ]]; then
+    if env_flag_is_true "$IMMUTABLE_BOOT"; then
+      die "Immutable image is missing its canonical installer/checker: $INSTALLER"
+    fi
     if ! env_flag_is_true "$AUTO_SETUP"; then
       [[ -x "$VENV_PATH/bin/python" ]] || die "AUTO_SETUP=0 and the venv python is missing ($VENV_PATH/bin/python); installer $INSTALLER not found either"
       log "⚠️  Installer $INSTALLER not found; AUTO_SETUP=0 so continuing with the existing venv"
@@ -323,6 +347,10 @@ run_setup_if_needed() {
   fi
 
   run_install_check
+
+  if env_flag_is_true "$IMMUTABLE_BOOT" && (( INSTALL_CHECK_RC != 0 )); then
+    die "Immutable image install check failed (exit $INSTALL_CHECK_RC); rebuild instead of repairing at boot"
+  fi
 
   if ! env_flag_is_true "$AUTO_SETUP"; then
     log "AUTO_SETUP disabled: check only"
@@ -452,12 +480,33 @@ run_post_setup_validation() {
     log "✅ All post-setup validation checks passed"
   else
     log "⚠️  Some validation checks failed — check log above"
+    if env_flag_is_true "$IMMUTABLE_BOOT"; then
+      die "Immutable image post-setup validation failed"
+    fi
   fi
 }
 
+immutable_runtime_policy() {
+  env_flag_is_true "$IMMUTABLE_BOOT" || return 0
+  local policy_file="$REPO_ROOT/docker/musetalk/release.py" policy_exports
+  [[ -f "$policy_file" ]] || die "Immutable image release verifier missing"
+  [[ -f "${MUSETALK_RELEASE_MANIFEST:-}" ]] || die "Immutable image release manifest missing"
+  policy_exports="$("$VENV_PATH/bin/python" -B "$policy_file" policy --root "$REPO_ROOT" \
+    --manifest "$MUSETALK_RELEASE_MANIFEST")" || die "Immutable image release policy invalid"
+  # The checked-in verifier emits only validated fixed policy keys, never secret values.
+  eval "$policy_exports"
+}
+
 bootstrap_runtime_secrets() {
+  # Images need authorized private model inputs before the full install check.
+  # Reuse this canonical bootstrap exactly once; source installs retain old order.
+  if env_flag_is_true "$IMMUTABLE_BOOT" && (( IMMUTABLE_SECRETS_LOADED )); then
+    log "Immutable runtime secrets already bootstrapped before model verification"
+    return 0
+  fi
   local secret_id="${MUSETALK_AWS_SECRET_ID:-}"
   if [[ -z "$secret_id" ]]; then
+    if env_flag_is_true "$IMMUTABLE_BOOT"; then IMMUTABLE_SECRETS_LOADED=1; fi
     log "MuseTalk AWS Secrets Manager bootstrap skipped (MUSETALK_AWS_SECRET_ID not set)"
     return 0
   fi
@@ -468,7 +517,15 @@ bootstrap_runtime_secrets() {
   local strict="${MUSETALK_SECRETS_STRICT:-${SECRETS_STRICT:-true}}"
   local verify_s3="${MUSETALK_SECRETS_VERIFY_S3:-1}"
   local tmp_env
-  tmp_env="$(mktemp "$WORKSPACE_ROOT/.musetalk-runtime-secret.XXXXXX.env")"
+  if env_flag_is_true "$IMMUTABLE_BOOT"; then
+    [[ -d "${MUSETALK_BOOTSTRAP_SECRET_DIR:-}" ]] || die "Immutable bootstrap secret state directory missing"
+    tmp_env="$(mktemp "$MUSETALK_BOOTSTRAP_SECRET_DIR/secret-XXXXXX.env")"
+  else
+    tmp_env="$(mktemp "$WORKSPACE_ROOT/.musetalk-runtime-secret.XXXXXX.env")"
+  fi
+  # Register cleanup before writing any credentials. A stale secret cannot
+  # redirect cleanup to another path, and EXIT runs after source/TERM failure.
+  readonly BOOTSTRAP_SECRET_TMP="$tmp_env"
   chmod 600 "$tmp_env"
 
   log "Bootstrapping MuseTalk runtime env from AWS Secrets Manager"
@@ -489,12 +546,13 @@ bootstrap_runtime_secrets() {
   ); then
     # shellcheck disable=SC1090
     source "$tmp_env"
-    rm -f "$tmp_env"
+    cleanup_bootstrap_secret
+    if env_flag_is_true "$IMMUTABLE_BOOT"; then IMMUTABLE_SECRETS_LOADED=1; fi
     log "MuseTalk runtime secret env exports loaded"
     return 0
   fi
 
-  rm -f "$tmp_env"
+  cleanup_bootstrap_secret
   if env_flag_is_true "$strict"; then
     die "AWS Secrets Manager bootstrap failed and strict mode is enabled"
   fi
@@ -731,6 +789,15 @@ restore_r5_bundle() {
   local PY="$VENV_PATH/bin/python" candidates report="" rc=0 name state why uri descriptor tried=0
   local -a fits=() fields=()
   R5_BUNDLE_ACTIVE=0
+  if env_flag_is_true "$IMMUTABLE_BOOT"; then
+    [[ "$mode" == baked ]] || die "Immutable image requires baked native artifacts"
+    "$PY" -B "$REPO_ROOT/docker/musetalk/release.py" runtime --root "$REPO_ROOT" \
+      --venv "$VENV_PATH" --manifest "$MUSETALK_RELEASE_MANIFEST" \
+      || die "Baked native release integrity/host verification failed"
+    R5_BUNDLE_ACTIVE=1
+    log "Baked native r5 artifacts verified on this host; no engine download/build"
+    return 0
+  fi
   case "${mode,,}" in
     0|false|no|off)
       log "r5 engine bundle restore disabled (MUSETALK_R5_BUNDLE_RESTORE=$mode); the resolver serves what is on disk"
@@ -917,6 +984,7 @@ provision_engines() {
 
 main() {
   local phase_start phase_elapsed total_elapsed
+  immutable_runtime_policy
   local setup_mode="server-only"
   if full_stack_requested; then
     setup_mode="full-stack"
@@ -942,6 +1010,18 @@ main() {
   log "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || echo 'N/A')"
   log "Disk free: $(df -h /workspace | tail -1 | awk '{print $4}')"
 
+  if env_flag_is_true "$IMMUTABLE_BOOT"; then
+    phase_start="$(date +%s)"
+    log "Immutable runtime secret bootstrap/private model verification begin"
+    bootstrap_runtime_secrets
+    immutable_runtime_policy
+    "$VENV_PATH/bin/python" -B "$REPO_ROOT/docker/musetalk/release.py" runtime-models \
+      --root "$REPO_ROOT" --manifest "$MUSETALK_RELEASE_MANIFEST" \
+      --cache "$WORKSPACE_ROOT/private-model-cache"
+    phase_elapsed="$(( $(date +%s) - phase_start ))"
+    log "Immutable private model restore phase finished in $(format_duration "$phase_elapsed")"
+  fi
+
   phase_start="$(date +%s)"
   run_setup_if_needed
   phase_elapsed="$(( $(date +%s) - phase_start ))"
@@ -954,6 +1034,7 @@ main() {
 
   phase_start="$(date +%s)"
   bootstrap_runtime_secrets
+  immutable_runtime_policy
   refresh_recipe_after_secrets
   phase_elapsed="$(( $(date +%s) - phase_start ))"
   log "Runtime secret bootstrap phase finished in $(format_duration "$phase_elapsed")"

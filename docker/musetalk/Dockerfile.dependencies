@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.7
+# Dependency-only diagnostic. Contains NO weights/native r5 bundle/release manifest.
+ARG CUDA_BASE
+FROM ${CUDA_BASE}
+ARG CUDA_BASE
+ARG SOURCE_REVISION
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+WORKDIR /opt/musetalk/app
+COPY . /opt/musetalk/app/
+RUN --mount=from=pins,source=/,target=/pins,ro \
+    [[ "$CUDA_BASE" =~ @sha256:[0-9a-f]{64}$ ]] && \
+    apt-get update -y && mapfile -t packages < /pins/apt-pins.txt && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${packages[@]}"
+ENV VENV_PATH=/opt/musetalk/venv \
+    MUSETALK_INSTALL_STATE_FILE=/opt/musetalk/install_state.json \
+    WEBRTC_NATIVE_VP8_DIR=/opt/musetalk/native_vp8 \
+    HF_HOME=/opt/musetalk/app/models/hf-cache \
+    PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 \
+    FORCE_CUDA=1 MMCV_WITH_OPS=1 TORCH_CUDA_ARCH_LIST=8.6 MAX_JOBS=2
+RUN --mount=type=cache,target=/root/.cache/pip \
+    CUDA_VISIBLE_DEVICES="" bash scripts/install_musetalk.sh --matrix cu121 \
+      --venv /opt/musetalk/venv --skip-apt --skip-weights --no-selftest \
+      --with-avatar-prep --with-native-vp8 --without-kokoro && \
+    CUDA_VISIBLE_DEVICES="" bash scripts/install_musetalk.sh --check --check-imports \
+      --matrix cu121 --venv /opt/musetalk/venv --skip-weights \
+      --with-avatar-prep --with-native-vp8 --without-kokoro && \
+    CUDA_VISIBLE_DEVICES="" /opt/musetalk/venv/bin/python -c \
+      "from mmcv.ops import get_compiling_cuda_version; v=str(get_compiling_cuda_version()); assert v.startswith('12.1'), v; print('mmcv CUDA:',v)"
+LABEL org.opencontainers.image.title="MuseTalk dependency-only diagnostic (NONPROMOTABLE)" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}" \
+      io.musetalk.release-channel="dependency-diagnostic-no-models"
+# This image must never start or register a worker. It is not a runtime image.
+ENTRYPOINT ["/bin/bash", "-c", "echo 'Dependency-only diagnostic; no model bundle or serving entrypoint' >&2; exit 64"]

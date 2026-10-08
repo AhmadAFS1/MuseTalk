@@ -31,6 +31,12 @@ LINGUA_WORKER_CALLBACK_REQUIRED="${LINGUA_WORKER_CALLBACK_REQUIRED:-0}"
 VERIFY_STATE_FILE="${VERIFY_STATE_FILE:-$LOG_DIR/api_server_${PORT}.verify}"
 SPAWN_TS=0
 SPAWN_LOG_OFFSET=0
+if [[ -n "${MUSETALK_SUPERVISOR_OWNER:-}" ]]; then
+  LINGUA_CONTROL_PLANE_ENV_FILE=/dev/null
+  # Preserve the owner and identity checker before any mutable env file is read.
+  # Source-install ctl behavior is unchanged when there is no image supervisor.
+  readonly MUSETALK_SUPERVISOR_OWNER PID_FILE TURN_PID_FILE REPO_ROOT VENV_PATH LINGUA_CONTROL_PLANE_ENV_FILE
+fi
 # shellcheck source=lib/musetalk_env_layers.sh
 MT_ENV_LOG_PREFIX="$SCRIPT_NAME"
 source "$SCRIPT_DIR/lib/musetalk_env_layers.sh"
@@ -159,6 +165,22 @@ load_turn_env() {
   set +a
 }
 
+pid_action() {
+  # Image-only guard. The helper validates owner marker/start ticks and uses a
+  # pidfd for signaling, so a PID reused during drain cannot kill another process.
+  local pid="$1" action="${2:-check}"
+  if [[ -n "${MUSETALK_SUPERVISOR_OWNER:-}" ]]; then
+    "$VENV_PATH/bin/python" -B "$REPO_ROOT/docker/musetalk/supervise.py" process "$pid" "$action"
+    return $?
+  fi
+  case "$action" in
+    check) kill -0 "$pid" ;;
+    TERM) kill "$pid" ;;
+    KILL) kill -9 "$pid" ;;
+    *) return 2 ;;
+  esac
+}
+
 resolve_pid() {
   if [[ ! -f "$PID_FILE" ]]; then
     return 1
@@ -168,7 +190,7 @@ resolve_pid() {
   if [[ -z "$pid" ]]; then
     return 1
   fi
-  if ! kill -0 "$pid" >/dev/null 2>&1; then
+  if ! pid_action "$pid" check >/dev/null 2>&1; then
     return 1
   fi
   printf '%s\n' "$pid"
@@ -189,7 +211,7 @@ resolve_turn_pid() {
   if [[ -z "$pid" ]]; then
     return 1
   fi
-  if ! kill -0 "$pid" >/dev/null 2>&1; then
+  if ! pid_action "$pid" check >/dev/null 2>&1; then
     return 1
   fi
   printf '%s\n' "$pid"
@@ -203,6 +225,10 @@ cleanup_stale_turn_pid() {
 
 check_health() {
   if command -v curl >/dev/null 2>&1; then
+    if [[ -n "${MUSETALK_SUPERVISOR_OWNER:-}" ]]; then
+      curl --connect-timeout 2 --max-time 5 -fsS "$HEALTH_URL" >/dev/null 2>&1
+      return $?
+    fi
     curl -fsS "$HEALTH_URL" >/dev/null 2>&1
     return $?
   fi
@@ -223,6 +249,10 @@ wait_for_health() {
   local start_ts now elapsed pid
   start_ts="$(date +%s)"
   while true; do
+    if [[ -n "${MUSETALK_SUPERVISOR_OWNER:-}" ]] && ! resolve_pid >/dev/null 2>&1; then
+      log "Owned server exited before health verification"
+      return 1
+    fi
     if check_health; then
       elapsed="$(( $(date +%s) - start_ts ))"
       log "Health check passed at $HEALTH_URL after $(format_duration "$elapsed")"
@@ -258,7 +288,11 @@ request_drain() {
   if ! command -v curl >/dev/null 2>&1; then
     return 1
   fi
-  curl -fsS -X POST "$DRAIN_URL" >/dev/null 2>&1
+  if [[ -n "${MUSETALK_SUPERVISOR_OWNER:-}" ]]; then
+    curl --connect-timeout 2 --max-time 5 -fsS -X POST "$DRAIN_URL" >/dev/null 2>&1
+  else
+    curl -fsS -X POST "$DRAIN_URL" >/dev/null 2>&1
+  fi
 }
 
 worker_is_idle() {
@@ -565,11 +599,11 @@ stop_server() {
   fi
 
   log "Stopping pid=$pid"
-  kill "$pid" >/dev/null 2>&1 || true
+  pid_action "$pid" TERM >/dev/null 2>&1 || true
 
   local tries="$(( DRAIN_TIMEOUT_SECONDS > 15 ? DRAIN_TIMEOUT_SECONDS : 15 ))"
   while (( tries > 0 )); do
-    if ! kill -0 "$pid" >/dev/null 2>&1; then
+    if ! pid_action "$pid" check >/dev/null 2>&1; then
       rm -f "$PID_FILE"
       log "Server stopped"
       stop_turnserver
@@ -580,7 +614,7 @@ stop_server() {
   done
 
   log "Process did not exit in time; sending SIGKILL"
-  kill -9 "$pid" >/dev/null 2>&1 || true
+  pid_action "$pid" KILL >/dev/null 2>&1 || true
   rm -f "$PID_FILE"
   stop_turnserver
 }
@@ -597,11 +631,11 @@ stop_turnserver() {
   local pid
   pid="$(resolve_turn_pid)"
   log "Stopping TURN server pid=$pid"
-  kill "$pid" >/dev/null 2>&1 || true
+  pid_action "$pid" TERM >/dev/null 2>&1 || true
 
   local tries=10
   while (( tries > 0 )); do
-    if ! kill -0 "$pid" >/dev/null 2>&1; then
+    if ! pid_action "$pid" check >/dev/null 2>&1; then
       rm -f "$TURN_PID_FILE"
       log "TURN server stopped"
       return 0
@@ -611,7 +645,7 @@ stop_turnserver() {
   done
 
   log "TURN server did not exit in time; sending SIGKILL"
-  kill -9 "$pid" >/dev/null 2>&1 || true
+  pid_action "$pid" KILL >/dev/null 2>&1 || true
   rm -f "$TURN_PID_FILE"
 }
 
@@ -690,7 +724,9 @@ main() {
   WEBRTC_RELAY_ENABLED="${WEBRTC_RELAY_ENABLED:-0}"
   WEBRTC_TURN_AUTOSTART="${WEBRTC_TURN_AUTOSTART:-0}"
   TURN_LOG_FILE="${TURN_LOG_FILE:-$LOG_DIR/turnserver.log}"
-  TURN_PID_FILE="${TURN_PID_FILE:-$LOG_DIR/turnserver.pid}"
+  if [[ -z "${MUSETALK_SUPERVISOR_OWNER:-}" ]]; then
+    TURN_PID_FILE="${TURN_PID_FILE:-$LOG_DIR/turnserver.pid}"
+  fi
 
   local command="${1:-}"
   case "$command" in

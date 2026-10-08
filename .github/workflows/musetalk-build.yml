@@ -1,0 +1,109 @@
+name: MuseTalk audited-input build (no publication)
+
+# No build starts merely because implementation changes. Root/operator must
+# review and intentionally add/update the narrowly scoped non-secret request.
+on:
+  workflow_dispatch:
+    inputs:
+      source_revision:
+        description: Reviewed source commit (40 lowercase hex characters)
+        type: string
+        required: true
+      release_tag:
+        description: Reviewed public GitHub Release tag in this repository
+        type: string
+        required: true
+      metadata_sha256:
+        description: SHA-256 of musetalk-docker-metadata.tar.gz
+        type: string
+        required: true
+      channel:
+        description: Must match the reviewed release manifest
+        type: choice
+        options: [candidate, validated]
+        default: candidate
+        required: true
+  push:
+    branches: [codex/rtx3090-r5-delivery]
+    paths: [.github/musetalk-build-request.json]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: musetalk-image-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'AhmadAFS1/MuseTalk'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    steps:
+      - name: Read reviewed build request from workflow commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          path: request
+      - name: Validate non-secret request identity
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib, sys
+          sys.path.insert(0, str(pathlib.Path("request/docker/musetalk").resolve()))
+          import ci
+          event = json.loads(pathlib.Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+          if os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch":
+              request = event["inputs"]
+          else:
+              path = pathlib.Path("request/.github/musetalk-build-request.json")
+              ci.release.scan_text(path)
+              request = json.loads(path.read_text())
+          keys = {"source_revision", "release_tag", "metadata_sha256", "channel"}
+          ci.release.require(set(request) == keys, "Build request must contain exactly four non-secret identity fields")
+          ci.require_inputs(request["source_revision"], request["release_tag"], request["metadata_sha256"], request["channel"])
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              for key in sorted(keys):
+                  output.write(key + "=" + request[key] + "\n")
+          PY
+      - name: Check out exact image source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ steps.request.outputs.source_revision }}
+          persist-credentials: false
+          path: source
+      - name: Run CPU contracts and existing Linux startup regression
+        working-directory: source
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s docker/musetalk/tests -v
+          bash scripts/test_startup_scripts.sh
+      - name: Assemble pinned public inputs and build without publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.request.outputs.release_tag }}
+          METADATA_SHA256: ${{ steps.request.outputs.metadata_sha256 }}
+          SOURCE_REVISION: ${{ steps.request.outputs.source_revision }}
+          BUILD_CHANNEL: ${{ steps.request.outputs.channel }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B request/docker/musetalk/ci.py \
+            --root "$GITHUB_WORKSPACE/source" \
+            --work "$RUNNER_TEMP/musetalk-image-build" \
+            --release-tag "$RELEASE_TAG" --metadata-sha256 "$METADATA_SHA256" \
+            --source-revision "$SOURCE_REVISION" --channel "$BUILD_CHANNEL"
+      - name: Preserve build-only audit reports (never images or credentials)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: musetalk-image-build-reports
+          path: ${{ runner.temp }}/musetalk-image-build/reports/
+          if-no-files-found: warn
+          retention-days: 3

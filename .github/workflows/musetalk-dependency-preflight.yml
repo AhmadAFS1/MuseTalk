@@ -1,0 +1,50 @@
+name: MuseTalk dependency-only Docker preflight
+
+# Root reviews this exact workflow before pushing. No model/native release inputs,
+# registry publication, external secrets or paid larger-runner selection.
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/rtx3090-r5-delivery]
+    paths: [.github/workflows/musetalk-dependency-preflight.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: musetalk-dependency-preflight-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  dependencies:
+    if: github.repository == 'AhmadAFS1/MuseTalk'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: CPU contracts and Linux startup regression
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s docker/musetalk/tests -v
+          bash scripts/test_startup_scripts.sh
+      - name: Resolve actual apt pins and build real GPU-less dependencies
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B docker/musetalk/dependency_preflight.py \
+            --root "$GITHUB_WORKSPACE" --work "$RUNNER_TEMP/musetalk-dependency-preflight"
+      - name: Preserve dependency-only evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: musetalk-dependency-preflight
+          path: ${{ runner.temp }}/musetalk-dependency-preflight/reports/
+          if-no-files-found: warn
+          retention-days: 3
