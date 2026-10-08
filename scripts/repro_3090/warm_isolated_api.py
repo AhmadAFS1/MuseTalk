@@ -23,6 +23,8 @@ PLAN_PROFILES = {
     'aiortc_v1': (PLAN.name, PLAN_SHA),
     'x264tuned_v1': ('isolated_live_x264tuned_v1_plan.json',
                      '2e9f78eafd39ada6a48982a49c49316314cf7282697b2bc96405a0b41bfa5488'),
+    'nvenc_v1': ('isolated_live_nvenc_v1_plan.json',
+                 '688368ec3f8cba765794023d977722ec7abebf63cf46d99a63d7da254d25161e'),
 }
 BASE = 'http://127.0.0.1:8300'
 GPU_UUID = 'GPU-5640f670-debe-ec22-1cfb-4b1f63bc1d53'

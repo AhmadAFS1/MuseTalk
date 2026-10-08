@@ -71,6 +71,20 @@ def previous_summary(plan, stage, attempt):
     return file, value
 
 
+def require_nvenc_level(value, level):
+    """Aggregate no-fallback guard, not per-stream encoder or release proof."""
+    encoder = value.get('server_encoder_after_level') or {}
+    h264 = encoder.get('h264') or {}
+    slots = encoder.get('nvenc_sessions') or {}
+    require(h264.get('impl') == 'nvenc' and h264.get('installed') is True,
+            'previous NVENC implementation missing')
+    require(all(type(slots.get(k)) is int for k in ('peak', 'opened', 'denied', 'open_failures')),
+            'previous NVENC counters missing')
+    require(slots['peak'] >= level and slots['opened'] >= level
+            and slots['denied'] == slots['open_failures'] == 0,
+            'previous NVENC level lacked hardware slots or fell back')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--stage', choices=STAGES, required=True)
@@ -98,6 +112,8 @@ def main():
         require(value.get('verdict') == 'PASS' and value.get('strict_P1_P2_P3', {}).get('status') == 'PASS'
                 and value.get('strict_additional_evidence', {}).get('status') == 'EVIDENCE_COMPLETE',
                 'previous stage did not strictly pass')
+        if args.profile == 'nvenc_v1':
+            require_nvenc_level(value, value['level'])
         prior = {'path': str(file), 'sha256': hashlib.sha256(file.read_bytes()).hexdigest()}
     _, worker = warm.request('/worker/state')
     warm.isolated_state(worker)
@@ -139,7 +155,8 @@ def main():
                'cpu_max': Path('/sys/fs/cgroup/cpu.max').read_text().strip(), 'warmups': rows,
                'api_tracer_check': untraced,
                'idle_before': idle, 'clock_domain': 'same_worker', 'release_ready': False,
-               'scope': 'local software-H264 diagnostic only; no EC2/TURN/browser acceptance'}
+               'scope': 'local ' + ('NVENC' if args.profile == 'nvenc_v1' else 'software-H264')
+                        + ' diagnostic only; no EC2/TURN/browser acceptance'}
     with args.out.open('x') as out:
         json.dump(receipt, out, indent=2, allow_nan=False)
         out.write('\n')

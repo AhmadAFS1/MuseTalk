@@ -1,0 +1,27 @@
+{
+  "schema": "actual_partial_visual_review_v1",
+  "status": "PARTIAL_STILL_INSPECTION_NOT_QUALITY_ACCEPTANCE",
+  "inspector": "Codex direct view_image original-detail inspection",
+  "inspected_at_utc": "2026-10-08T17:22:38Z",
+  "source": "Private S3 fresh GET followed by strict clean CPU restore part1; combined293-file hashes verified separately",
+  "contact_dimensions_wh": [1536, 5376],
+  "tile_dimensions_wh": [512, 896],
+  "columns": ["source", "native_standard", "native_refined_chin100percent"],
+  "frame_indices": [0, 48, 96, 144, 192, 239],
+  "frame_times_seconds": [0, 2, 4, 6, 8, 9.958333333333334],
+  "poses_inspected": [
+    {"id": "en_01_maya_abe451d3_idle_93d291932f", "contact_sha256": "f8ecebddffa79c7915d48a71eb8f8a56ff952a6fb843cf20a8f21e4c1e342f78"},
+    {"id": "en_01_maya_abe451d3_smiling_d73311869d", "contact_sha256": "41fd6d801a35850d487f5aa422c5ed8be31e2420714686b69feef25fff2f9fb0"},
+    {"id": "en_01_maya_abe451d3_talking_f6cf8be7fb", "contact_sha256": "625cbb39090ce2115bd203ed23f2106fdaa94be71661823efa893a4451073db0"}
+  ],
+  "observations": [
+    "Upper face, hair, clothing and background preserve source composition in these samples",
+    "Both generated columns show softer lower-face skin texture than source, especially smiling rows2/3; this is visible shared reconstruction softness, not a native-versus-portable comparison",
+    "Standard and full-chin-refined columns are visually similar here, with no obvious gross chin-boundary tear or geometric collapse in the inspected stills",
+    "Generated mouth positions differ from source smiles; source audio differs from conditioning speech, so this alone is not a lip-sync regression"
+  ],
+  "coverage": {"production_poses": 3, "required_production_poses": 48, "continuous_motion_reviewed": false, "audio_listened": false, "pose_transition_reviewed": false, "portable_native_ab_included": false},
+  "not_claimed": ["silence and peak phonemes identified from these fixed times", "AV sync", "all48 visual PASS", "frozen native quality parity"],
+  "native_numerical_rejection_unchanged": true,
+  "release_ready": false
+}

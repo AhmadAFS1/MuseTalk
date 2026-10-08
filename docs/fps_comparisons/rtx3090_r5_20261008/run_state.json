@@ -97,7 +97,7 @@
       "readiness": "Verified portable health, one avatar warm, local media smoke; no EC2 usable-call proof",
       "development_measurement_revision": "aa1a531cabe60ce9faec45b39372db2d61ef69e9",
       "native_preparation_revision": "8112888",
-      "server_state": "Separate SHA-pinned x264tuned-only API432033 healthy through session41038, isolated127.0.0.1:8300/control plane disabled.16talking caches warm; fresh trialN1 strictPASS, trialN3 session70361 running. Baseline API400470 stopped gracefully17:07:23 after N5FAIL; no EC2/browser readiness claim",
+      "server_state": "x264tuned API432033 and NVENC API458769 both stopped gracefully after idle checks. Tuned N1/N3PASS/N5FAIL; NVENC N1FAIL opened0/open_failures18. Independent PyAV/FFmpeg probes fail OpenEncodeSessionEx unsupported device. No production/EC2/browser readiness claim",
       "provider_status_observed_utc": "2026-10-08T11:17:36.914196+00:00",
       "provider_actual_status": "running",
       "recovery_reboot_sent": false,
@@ -260,7 +260,7 @@
       "ramp_n5_status": "TERMINAL_VALID_FAIL_ALL5_P1/P2/P3;342.4s steady, anchored minimum15fps,143.2ms worst gap,47gaps over100ms; no N10/N15/soak advancement",
       "ramp_n5_report": "native/isolated_live_h264_v2_ramp_n5_1655.json",
       "ramp_n5_diagnosis": "native/isolated_live_h264_v2_n5_analysis_1708.json",
-      "x264tuned_trial": {"plan": "native/isolated_live_x264tuned_v1_plan.json", "plan_sha256": "2e9f78eafd39ada6a48982a49c49316314cf7282697b2bc96405a0b41bfa5488", "api_operator_session": 41038, "api_pid": 432033, "status": "HEALTHY_ISOLATED; FRESH_N1_IN_PROGRESS", "runtime_lever": "WEBRTC_H264_IMPL aiortc -> x264tuned; preset veryfast/thread1 activate; other runtime env unchanged except output root", "actual_startup_encoder": "x264tuned libx264 veryfast threads1; native UNet and TAESD key1e967e6e715c9f1a8375 built_nowFalse probeExact", "warm_report": "native/isolated_live_x264tuned_v1_warm_1709.json", "selected16_process_residency": "PASS; idle2400MiB still holds15 not16, active-stage residency required", "n1_operator_session": 57339, "scored_stages_required": "Restart at S0N1 then strict gatedN3/5/10/15; baseline results never copied as trial passes"},
+      "x264tuned_trial": {"plan": "native/isolated_live_x264tuned_v1_plan.json", "plan_sha256": "2e9f78eafd39ada6a48982a49c49316314cf7282697b2bc96405a0b41bfa5488", "api_operator_session": 41038, "api_pid": 432033, "status": "TERMINAL_N1_N3_PASS_N5_FAIL_API_STOPPED", "runtime_lever": "WEBRTC_H264_IMPL aiortc -> x264tuned; preset veryfast/thread1 activate; other runtime env unchanged except output root", "actual_startup_encoder": "x264tuned libx264 veryfast threads1; native UNet and TAESD key1e967e6e715c9f1a8375 built_nowFalse probeExact", "warm_report": "native/isolated_live_x264tuned_v1_warm_1709.json", "selected16_process_residency": "PASS; idle2400MiB still holds15 not16, active-stage residency required", "n1_operator_session": 57339, "scored_stages_required": "Restart at S0N1 then strict gatedN3/5/10/15; baseline results never copied as trial passes"},
       "heavy_archive_or_copy_work_during_scored_live": false
     },
     "x264tuned_latest_stage": {
@@ -269,8 +269,39 @@
       "n1_report": "native/isolated_live_x264tuned_v1_s0_n1_1712.json",
       "n1_preflight": "native/isolated_live_x264tuned_v1_s0_n1_preflight_1712.json",
       "n3_operator_session": 70361,
-      "n3_status": "IN_PROGRESS; three peers ready after this trial's exact N1 strict PASS gate",
+      "n3_status": "TERMINAL_STRICT_PASS3/3;114.0s steady, anchored minimum20fps,84.4ms worst gap,0gaps over100ms,100%fresh,0held,100%PTS joins",
+      "n3_report": "native/isolated_live_x264tuned_v1_s0_n3_1716.json",
+      "n3_preflight": "native/isolated_live_x264tuned_v1_s0_n3_preflight_1716.json",
+      "n5_operator_session": 2302,
+      "n5_status": "TERMINAL_VALID_FAIL;330.56s steady, all5 P1/P3FAIL, oneP2FAIL, anchored min18fps,166.9ms worst gap,27gaps over100ms,held run6; no higher-load advancement",
+      "n5_report": "native/isolated_live_x264tuned_v1_ramp_n5_1719.json",
+      "n5_preflight": "native/isolated_live_x264tuned_v1_ramp_n5_preflight_1719.json",
+      "n5_diagnosis": "native/isolated_live_x264tuned_v1_n5_analysis_1735.json",
       "release_ready": false
+    },
+    "nvenc_latest_trial": {
+      "profile": "nvenc_v1",
+      "plan_sha256": "688368ec3f8cba765794023d977722ec7abebf63cf46d99a63d7da254d25161e",
+      "api_pid": 458769,
+      "api_operator_session": 15707,
+      "n1_operator_session": 34884,
+      "status": "TERMINAL_N1_STRICT_FAIL;0hardware opens/18failures, API_STOPPED; NO_ESCALATION",
+      "assessment": "native/nvenc_acceptance_failure_1750.json",
+      "native_quality_status": "REJECTED_UNCHANGED",
+      "release_ready": false
+    },
+    "native_embedding_diagnostic": {
+      "operator_session": 54021,
+      "status": "TERMINAL_DIAGNOSTIC_PASS_NATIVE_GRAPH_REPRODUCED;17.5s under owned lease0OOM, GPU16repeat exact. CPU16/GPU1 change2emb elements and only emb initializer; CPU32rounded changes302. None matches portable graph; numerical rejection unchanged. No engine build/default/threshold change",
+      "expected_report": "native/time_embedding_graph_diagnostic_1750.json"
+    },
+    "private_live_evidence_preservation": {
+      "status": "PASS_PRIVATE_CONDITIONAL_PUT_FRESH_GET_ALL152_PAYLOAD_SHA",
+      "receipt": "release/private_live_baseline_tuned_1740.json",
+      "archive_sha256": "d56d04d0c1d46b1dfdd3d8234070e35a9514e610f97d002a03b6b3268d31bcb9",
+      "archive_bytes": 3915581,
+      "profiles": ["aiortc_v1", "x264tuned_v1", "nvenc_v1"],
+      "raw_payload_public_git_allowed": false
     },
     "production48_media_preservation": {
       "first_operator_session_id": 13731,
@@ -303,11 +334,11 @@
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
   "quota_checkpoint": {
-    "observed_utc": "2026-10-08T16:58:00Z",
+    "observed_utc": "2026-10-08T17:36:13Z",
     "account_scope": "shared account, not this task",
-    "weekly_used_percent_reported": 5,
-    "weekly_remaining_percent_reported": 95,
-    "previous_checkpoint": {"observed_utc": "2026-10-08T15:58:00Z", "weekly_used_percent_reported": 4, "weekly_remaining_percent_reported": 96},
+    "weekly_used_percent_reported": 6,
+    "weekly_remaining_percent_reported": 94,
+    "previous_checkpoint": {"observed_utc": "2026-10-08T16:58:00Z", "weekly_used_percent_reported": 5, "weekly_remaining_percent_reported": 95},
     "ordinary_usage_allowed": true,
     "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
     "purchased_credit_balance_reported": "0",
@@ -316,6 +347,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Inspect fresh x264tuned N3 exact strict verdict in session70361; advance5/10/15 only after preceding trial-specific PASS. Persist private raw live traces and continue native-quality/cold-start diagnosis without promoting rejected native v1",
-  "next_command": "Baseline N3 strictPASS, N5validFAIL ended1; no escalation. API400470 stopped gracefully0OOM17:07:23. x264tuned-only planSHA2e9f78ea API432033 healthy session41038; warm16PASS and N1session57339 running. All heavy A1 copies finished before this timed trial. S3 operator73525 ended0 all3 conditional PUT/exact-version GETSHA PASS; clean restores101/100/100files and293unique payloads/all48poses reverified in native48_private_persistence_and_restore_1712.json. Raw baseline traces/API log safely offworker but not yet privateS3persisted; never publicGitrawlog. Dependency CI runtime basePASS37.257% smaller, no GPU/coldboot proof; startup/optimization_assessment_1701.json measured critical-path caveats. Rejected native numerical/full400FPS gates remain failures. Expiry19:00UTC; reserved9.584739583USD of30, invoices unavailable. Quota5%used/95%remaining16:58UTC, no reset/purchase or new agents."
+  "next_action": "Preserve exact graph diagnostic then continue valid model-file tracing and actual visual/cold-start analysis; investigate native parity without altering frozen bounds. Current A1 NVENC fails both PyAV/FFmpeg, no higher live stages or production promotion",
+  "next_command": "Both x264 profiles N3PASS/N5FAIL; NVENC N1FAIL opened0/open_failures18 and single-frame PyAV16.1/FFmpeg4.4 both fail OpenEncodeSessionEx unsupported device. APIs458769/432033 stopped after idle checks, GPU idle. Embedding diagnostic54021 ended0/native down0rest graph exactly reproduced,2tiny emb elements change CPU16/GPU1 and only emb initializer changes; none of3alternatives matches portable graph. No engine build or quality fix claimed. Private raw7stage traces/logs152payloads conditional PUT/freshGET/allSHAverified d56d04d0...,3915581bytes. All3 private48 media archives/293files/48poses verified; subjective review partial3Maya poses.10of11 UNet ONNX hashes differ, tail same, TAESD graph identical. Dependency image37.257%smaller, GPU/coldboot unproven. Native numerical/full400FPSFAIL. Expiry19:00UTC; reserved9.584739583USD of30; invoices unavailable. Quota6%used/94%remaining17:36UTC; no reset/purchase/new agents."
 }

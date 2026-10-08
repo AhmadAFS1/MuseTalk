@@ -1,0 +1,157 @@
+{
+  "schema": "owned3090_nvenc_open_diagnostic_v1",
+  "status": "FAIL_SINGLE_NVENC_OPEN",
+  "started_utc": "2026-10-08T17:42:07.156530+00:00",
+  "gpu_uuid": "GPU-5640f670-debe-ec22-1cfb-4b1f63bc1d53",
+  "av_version": "16.1.0",
+  "av_library_versions": {
+    "libavutil": [
+      60,
+      8,
+      100
+    ],
+    "libavcodec": [
+      62,
+      11,
+      100
+    ],
+    "libavformat": [
+      62,
+      3,
+      100
+    ],
+    "libavdevice": [
+      62,
+      1,
+      100
+    ],
+    "libavfilter": [
+      11,
+      4,
+      100
+    ],
+    "libswscale": [
+      9,
+      1,
+      100
+    ],
+    "libswresample": [
+      6,
+      1,
+      100
+    ]
+  },
+  "driver_capabilities_environment": "compute,utility",
+  "native_quality_status": "REJECTED_UNCHANGED",
+  "release_ready": false,
+  "library_paths": {
+    "libnvidia-encode.so.1": "/usr/lib/x86_64-linux-gnu/libnvidia-encode.so.595.91.07",
+    "libnvcuvid.so.1": "/usr/lib/x86_64-linux-gnu/libnvcuvid.so.595.91.07",
+    "libcuda.so.1": "/usr/lib/x86_64-linux-gnu/libcuda.so.595.91.07"
+  },
+  "exception_type": "ExternalError",
+  "exception_message": "[Errno 542398533] Generic error in an external library: 'avcodec_open2(h264_nvenc)'; last error log: [h264_nvenc] OpenEncodeSessionEx failed: unsupported device (2): (no details)",
+  "ffmpeg_log_tail": [
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded sym: cuSignalExternalSemaphoresAsync\n"
+    },
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded sym: cuWaitExternalSemaphoresAsync\n"
+    },
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded sym: cuArrayCreate_v2\n"
+    },
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded sym: cuArray3DCreate_v2\n"
+    },
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded sym: cuArrayDestroy\n"
+    },
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded sym: cuEGLStreamProducerConnect\n"
+    },
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded sym: cuEGLStreamProducerDisconnect\n"
+    },
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded sym: cuEGLStreamConsumerDisconnect\n"
+    },
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded sym: cuEGLStreamProducerPresentFrame\n"
+    },
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded sym: cuEGLStreamProducerReturnFrame\n"
+    },
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded lib: libnvidia-encode.so.1\n"
+    },
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded sym: NvEncodeAPICreateInstance\n"
+    },
+    {
+      "level": 48,
+      "component": "h264_nvenc",
+      "message": "Loaded sym: NvEncodeAPIGetMaxSupportedVersion\n"
+    },
+    {
+      "level": 40,
+      "component": "h264_nvenc",
+      "message": "Loaded Nvenc version 13.0\n"
+    },
+    {
+      "level": 40,
+      "component": "h264_nvenc",
+      "message": "Nvenc initialized successfully\n"
+    },
+    {
+      "level": 40,
+      "component": "h264_nvenc",
+      "message": "1 CUDA capable devices found\n"
+    },
+    {
+      "level": 40,
+      "component": "h264_nvenc",
+      "message": "[ GPU #0 - < NVIDIA GeForce RTX 3090 > has Compute SM 8.6 ]\n"
+    },
+    {
+      "level": 16,
+      "component": "h264_nvenc",
+      "message": "OpenEncodeSessionEx failed: unsupported device (2): (no details)\n"
+    },
+    {
+      "level": 8,
+      "component": "h264_nvenc",
+      "message": "No capable devices found\n"
+    },
+    {
+      "level": 40,
+      "component": "h264_nvenc",
+      "message": "Nvenc unloaded\n"
+    }
+  ],
+  "finished_utc": "2026-10-08T17:42:07.509165+00:00"
+}

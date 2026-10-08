@@ -1,0 +1,282 @@
+{
+  "schema": "owned3090_live_stage_preflight_v1",
+  "status": "PRECHECK_PASS_CLIENT_STARTING",
+  "stage": "s0_n1",
+  "level": 1,
+  "api_pid": 458769,
+  "plan_sha256": "688368ec3f8cba765794023d977722ec7abebf63cf46d99a63d7da254d25161e",
+  "client_attempt": "h264_offer_v2",
+  "profile": "nvenc_v1",
+  "client_argv": [
+    "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+    "scripts/repro_3090/live_client_evidence.py",
+    "--base-url",
+    "http://127.0.0.1:8300",
+    "--avatar-ids",
+    "en_01_maya_abe451d3_talking_f6cf8be7fb,en_02_claire_a833ee1f_talking_f6f244cc2a,en_03_marcus_19eb1ea8_talking_ada35a4a4d,en_04_owen_4fd8c9da_talking_aa79df3324,es_01_valeria_aed74c50_talking_003d585d96,es_02_lucia_e554c30b_talking_e5c5d0c534,es_03_mateo_884600e1_talking_75d88cda6c,es_04_diego_532cfc1f_talking_035dba1e7a,ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e,ur_02_zara_2fe6a913_talking_1e7fb98cf5,ur_03_hamza_0c24ed7f_talking_bbadac99b6,ur_04_bilal_b9b0df23_talking_42d5916a02,zh_01_mei_ca138def_talking_c213293f1b,zh_02_lan_09242cdb_talking_3d84940bd7,zh_03_wei_44dc1943_talking_3cc9c11c9b,zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+    "--audio-dir",
+    "/workspace/MuseTalk/experiments/throughput300_candidate/audio_corpus",
+    "--audio-class",
+    "any",
+    "--musetalk-fps",
+    "20",
+    "--playback-fps",
+    "20",
+    "--batch-size",
+    "16",
+    "--chunk-duration",
+    "1",
+    "--ring",
+    "256",
+    "--poll-interval-s",
+    "1",
+    "--turn-gap-s",
+    "1",
+    "--settle-s",
+    "10",
+    "--warmup-s",
+    "10",
+    "--cooldown-s",
+    "30",
+    "--peers-per-shard",
+    "1",
+    "--client-cpus",
+    "14-17",
+    "--ignore-ice-servers",
+    "--abort-below-gb",
+    "14",
+    "--label",
+    "s0_n1_h264_offer_v2",
+    "--levels",
+    "1",
+    "--min-steady-s",
+    "10",
+    "--wav-list",
+    "/workspace/MuseTalk/experiments/throughput300_candidate/audio_corpus/33_long_eng.wav,/workspace/MuseTalk/experiments/throughput300_candidate/audio_corpus/33_long_eng.wav",
+    "--stagger-s",
+    "0",
+    "--out-dir",
+    "/workspace/MuseTalk/experiments/owned3090_native_live_nvenc_v1_1735/client_attempts/h264_offer_v2/s0_n1/lt2",
+    "--trace-dir",
+    "/workspace/MuseTalk/experiments/owned3090_native_live_nvenc_v1_1735/client_attempts/h264_offer_v2/s0_n1/traces"
+  ],
+  "adapter_sha256": "f39ceda0dab35373a529bb1cf47d7f1e40792afc2d0a497ead53789c1497a4e4",
+  "started_at_utc": "2026-10-08T17:36:45.836145+00:00",
+  "previous_strict_pass": null,
+  "cpu_max": "1843199 100000",
+  "warmups": [
+    {
+      "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+      "status": "ready",
+      "cached": true,
+      "disk_prepared": true,
+      "s3_enabled": false,
+      "s3_restore_required": false,
+      "batch_size": 16,
+      "cache": {
+        "id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+        "memory_mb": 218.1734209060669,
+        "load_count": 1,
+        "age_seconds": 48.7464120388031
+      },
+      "timings": {},
+      "deduped": false,
+      "idle_frame_cache": {
+        "requested": 2,
+        "ready": true
+      }
+    }
+  ],
+  "api_tracer_check": {
+    "status": "PASS_ALL_SURVIVING_API_THREADS_UNTRACED",
+    "threads_checked": 14
+  },
+  "idle_before": {
+    "enabled": true,
+    "max_mib": 2400.0,
+    "used_mib": 2362.5,
+    "clips": 15,
+    "pending_builds": 0,
+    "rejected_keys": 0,
+    "hits": 0,
+    "misses": 0,
+    "builds": 17,
+    "build_failures": 0,
+    "avg_build_ms": 641.8,
+    "evictions": 2,
+    "admission_rejected": 0,
+    "frames_served": 0,
+    "per_avatar": {
+      "en_03_marcus_19eb1ea8_talking_ada35a4a4d": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "en_04_owen_4fd8c9da_talking_aa79df3324": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "es_01_valeria_aed74c50_talking_003d585d96": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "es_02_lucia_e554c30b_talking_e5c5d0c534": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "es_03_mateo_884600e1_talking_75d88cda6c": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "es_04_diego_532cfc1f_talking_035dba1e7a": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "ur_02_zara_2fe6a913_talking_1e7fb98cf5": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "ur_03_hamza_0c24ed7f_talking_bbadac99b6": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "ur_04_bilal_b9b0df23_talking_42d5916a02": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "zh_01_mei_ca138def_talking_c213293f1b": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "zh_02_lan_09242cdb_talking_3d84940bd7": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "zh_03_wei_44dc1943_talking_3cc9c11c9b": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "zh_04_jun_7e6a6f0b_talking_ccedca71ff": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      },
+      "en_01_maya_abe451d3_talking_f6cf8be7fb": {
+        "clips": 1,
+        "frames": 240,
+        "mib": 157.5
+      }
+    },
+    "clip_detail": [
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/en_03_marcus_19eb1ea8_talking_ada35a4a4d/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/en_04_owen_4fd8c9da_talking_aa79df3324/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/es_01_valeria_aed74c50_talking_003d585d96/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/es_02_lucia_e554c30b_talking_e5c5d0c534/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/es_03_mateo_884600e1_talking_75d88cda6c/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/es_04_diego_532cfc1f_talking_035dba1e7a/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/ur_02_zara_2fe6a913_talking_1e7fb98cf5/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/ur_03_hamza_0c24ed7f_talking_bbadac99b6/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/ur_04_bilal_b9b0df23_talking_42d5916a02/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/zh_01_mei_ca138def_talking_c213293f1b/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/zh_02_lan_09242cdb_talking_3d84940bd7/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/zh_03_wei_44dc1943_talking_3cc9c11c9b/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/zh_04_jun_7e6a6f0b_talking_ccedca71ff/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      },
+      {
+        "path": "/workspace/MuseTalk/results/v15/avatars/en_01_maya_abe451d3_talking_f6cf8be7fb/input_video.mp4",
+        "frames": 240,
+        "mib": 157.5,
+        "readers": 0
+      }
+    ]
+  },
+  "clock_domain": "same_worker",
+  "release_ready": false,
+  "scope": "local NVENC diagnostic only; no EC2/TURN/browser acceptance"
+}

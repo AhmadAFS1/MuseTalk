@@ -1,0 +1,64 @@
+{
+ "schema": "taesd_trt_engine_v1",
+ "key": "512bfd629a5e1f4f2e40",
+ "fingerprint": {
+  "recipe": "taesd_decoder_fp16_full_height_v1",
+  "post_recipe": "bgr_u8_nhwc_post_fp32_rne_v1",
+  "tensorrt": "10.3.0",
+  "onnx_sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb",
+  "batch": 8,
+  "latent_shape": [
+   8,
+   4,
+   32,
+   32
+  ],
+  "precision": "fp16",
+  "opt_level": 3,
+  "strongly_typed": false,
+  "hardware_compatibility_level": "ampere_plus"
+ },
+ "decoder_plan": "taesd_trt_512bfd629a5e1f4f2e40.decoder.plan",
+ "decoder_plan_sha256": "7b3cf995a9bc22c5eabd04e665b79be9fe3f76cd60eb7b680ea7f65a1c893c8d",
+ "decoder_plan_bytes": 3356996,
+ "post_plan": "taesd_trt_512bfd629a5e1f4f2e40.post_bgr_u8.plan",
+ "post_plan_sha256": "8412a911f8b9885e4d3e2a0e45a27fe4f3d9bd719301059f3f90b5bd537ef2bb",
+ "post_plan_bytes": 57700,
+ "probe": {
+  "probe_seed": 20260928,
+  "probe_shape": [
+   8,
+   4,
+   32,
+   32
+  ],
+  "fp16_sha256": "1d040263acea885520ffbcba428ecdae54b0bec627ed7a6b19bad36bcb01f1f9",
+  "u8_repo_post_sha256": "0c213c55b27ba1b6a18ba2f8a9739a8b6dbd5665172a0bc1a873421a5a8bc4a6",
+  "u8_fused_sha256": "0c213c55b27ba1b6a18ba2f8a9739a8b6dbd5665172a0bc1a873421a5a8bc4a6",
+  "fused_vs_repo_post_mismatched_bytes": 0,
+  "reference_file": "taesd_trt_512bfd629a5e1f4f2e40.probe_fp16.pt",
+  "cross_gpu_rel_l2_max": 0.01
+ },
+ "build": {
+  "created_utc": "2026-09-30T19:04:20Z",
+  "decoder_build_s": 38.45,
+  "post_build_s": 1.68,
+  "torch": "2.5.1+cu121",
+  "pid": 3397596,
+  "timing_cache": "taesd_trt_timing.ampere_plus.cache",
+  "gpu": "NVIDIA GeForce RTX 4070 SUPER",
+  "compute_capability": "8.9",
+  "hardware_compatibility_level": "ampere_plus"
+ },
+ "gate": {
+  "verdict": "FAIL",
+  "report": "docs/fps_comparisons/ampere_plus_r5_20260930/taesd_gate/gate_taesd_trt.json",
+  "created_utc": "2026-09-30T19:11:59Z",
+  "frames": 3584,
+  "G_TAESD_full_max": 5,
+  "G_TAESD_full_mean": 0.06574700843720209,
+  "G_TAESD_rows104_max": 3,
+  "G_TAESD_rows104_mean": 0.0611282219564108,
+  "fused_post_mismatched_bytes": 0
+ }
+}

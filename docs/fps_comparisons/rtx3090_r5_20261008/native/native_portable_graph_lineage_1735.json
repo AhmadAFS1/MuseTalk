@@ -1,0 +1,50 @@
+{
+  "schema": "native_portable_graph_lineage_diagnostic_v1",
+  "status": "VERIFIED_MANIFEST_DIFFERENCES_CAUSE_UNPROVEN",
+  "native_manifest": "native_v1_build/engine_manifest.json",
+  "native_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+  "portable_manifest": "portable_unet_manifest_snapshot_1720.json",
+  "portable_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b",
+  "portable_taesd_metadata": "portable_taesd_metadata_snapshot_1720.json",
+  "portable_taesd_metadata_sha256": "7ceb859c79998ddb18875f34ee2bd57c72b5747f27e249d1a30b30e35729d52e",
+  "unet": {
+    "blocks_compared": 11,
+    "onnx_hashes_equal": ["tail"],
+    "onnx_hashes_different": ["prefix", "down0rest", "down1", "down2", "down3", "mid", "up0", "up1", "up2", "up3"],
+    "tail_onnx_sha256": "8219d8a31bf256b0c621b5f4662c2148613818e985a0a712bae0e2e03e4eb527",
+    "precision_by_block_equal": true,
+    "int8_recipe_sha256_16_equal": "f6f90777264b5302",
+    "calibration_filenames_equal": true,
+    "calibration_file_count": 16,
+    "calibration_batches": 8,
+    "export": "TorchScript ONNX opset17, static inputs, constant folding",
+    "observed_build_device_difference": "Portable sm89 RTX4070SUPER AMPERE_PLUS versus native sm86 RTX3090 none",
+    "source_lead": "scripts/unet_stagewise_trt.py time_embedding_t0 computes a batch-expanded timestep0 embedding on the build device; make_block_wrappers clones it into every non-tail block. scripts/build_unet_stagewise.py exports wrappers in RAM and historically retains only their graph hashes",
+    "hypothesis_not_proven": "GPU-dependent FP16 embedding arithmetic and constant folding may account for the non-tail graph differences; initializer/value comparison or reproducible export is needed",
+    "not_inferred": ["graph hashes alone prove semantic divergence", "the embedding explains all236 failed bounds", "calibration filenames prove unverified file-content equality"]
+  },
+  "taesd": {
+    "onnx_hash_equal": true,
+    "onnx_sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb",
+    "recipe": "taesd_decoder_fp16_full_height_v1",
+    "batch": 8,
+    "opt_level": 3,
+    "strongly_typed": false,
+    "portable_full_frame_max_lsb": 5,
+    "native_full_frame_max_lsb": 7,
+    "diagnosis_lead_only": "Same ONNX graph but different compatibility/tactics; UNet graph differences cannot explain this decoder-only gate by themselves"
+  },
+  "frozen_bounds_modified": false,
+  "diagnostic_followup": {
+    "report": "time_embedding_graph_diagnostic_1750.json",
+    "native_down0rest_graph_exactly_reproduced": true,
+    "gpu16_repeat_exact": true,
+    "cpu16_fp16_and_gpu1_vs_gpu16": "Two embedding elements differ by at most0.000030517578125; exactly one ONNX initializer named emb changes and node structure is identical",
+    "cpu32_fp16_weights_rounded_vs_gpu16": "302embedding elements differ by at most0.00006103515625; only emb initializer changes",
+    "tested_alternatives_match_portable_graph": false,
+    "conclusion": "Export is reproducible and device/batch arithmetic can change its baked constant; portable graph mismatch and236 quality failures are not explained or repaired by these tested alternatives"
+  },
+  "new_native_engine_built": false,
+  "native_quality_status": "REJECTED_UNCHANGED",
+  "release_ready": false
+}

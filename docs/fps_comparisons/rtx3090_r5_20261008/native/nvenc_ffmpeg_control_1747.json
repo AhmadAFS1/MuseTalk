@@ -1,0 +1,29 @@
+{
+  "schema": "owned3090_ffmpeg_nvenc_control_v1",
+  "started_utc": "2026-10-08T17:45:21.803120+00:00",
+  "returncode": 1,
+  "stderr": "[h264_nvenc @ 0x5858317ac700] OpenEncodeSessionEx failed: unsupported device (2): (no details)\n[h264_nvenc @ 0x5858317ac700] No capable devices found\nError initializing output stream 0:0 -- Error while opening encoder for output stream #0:0 - maybe incorrect parameters such as bit_rate, rate, width or height\n",
+  "command": [
+    "ffmpeg",
+    "-hide_banner",
+    "-loglevel",
+    "warning",
+    "-f",
+    "lavfi",
+    "-i",
+    "color=size=512x896:rate=20:color=black",
+    "-frames:v",
+    "1",
+    "-c:v",
+    "h264_nvenc",
+    "-preset",
+    "p2",
+    "-tune",
+    "ll",
+    "-f",
+    "null",
+    "-"
+  ],
+  "scope": "single black frame diagnostic, not live acceptance",
+  "release_ready": false
+}

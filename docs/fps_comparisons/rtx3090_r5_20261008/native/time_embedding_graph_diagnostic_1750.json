@@ -1,0 +1,110 @@
+{
+  "schema": "owned3090_time_embedding_export_diagnostic_v1",
+  "status": "PASS_DIAGNOSTIC_NATIVE_GRAPH_REPRODUCED",
+  "started_utc": "2026-10-08T17:48:14.300128+00:00",
+  "native_gpu16_repeat_exact": true,
+  "torch_version": "2.5.1+cu121",
+  "block": "down0rest",
+  "precision": "fp16",
+  "recipe": "srccache batch16; no quantization, learned recipe edits or engine building",
+  "variants": [
+    {
+      "onnx_sha256": "f299bc5eb705decaf23852c231426db15fbf4fd114879cce42c4a4c6c9304729",
+      "onnx_bytes": 15617841,
+      "node_count": 286,
+      "initializer_count": 65,
+      "node_structure_sha256": "957f5c308a96d0e72a9ea58f1ab04a7ad7cc297bffeee3ea0c5bbf0aead064b7",
+      "label": "native_gpu16",
+      "embedding_sha256": "5323335f8109ead8e3e1d20b0d6800976d6ccf4d9adf232e5b15310818377c67",
+      "embedding_diff_count": 0,
+      "embedding_max_abs_diff": 0.0,
+      "embedding_mean_abs_diff": 0.0,
+      "matches_frozen_native_onnx": true,
+      "matches_frozen_portable_onnx": false
+    },
+    {
+      "onnx_sha256": "2c4ea7534a907c837d8955de76ab15fb64c38450669b936b4ddf64b43e272430",
+      "onnx_bytes": 15617841,
+      "node_count": 286,
+      "initializer_count": 65,
+      "node_structure_sha256": "957f5c308a96d0e72a9ea58f1ab04a7ad7cc297bffeee3ea0c5bbf0aead064b7",
+      "label": "cpu_fp16_16",
+      "embedding_sha256": "c8abcfc096d366538301e49259b3a9bf061f2dc8e6c2f9851427e469e7125e50",
+      "embedding_diff_count": 2,
+      "embedding_max_abs_diff": 3.0517578125e-05,
+      "embedding_mean_abs_diff": 3.5762788286319847e-08,
+      "matches_frozen_native_onnx": false,
+      "matches_frozen_portable_onnx": false,
+      "initializer_changes_count": 1,
+      "initializer_changes": [
+        {
+          "name": "emb",
+          "before_sha256": "5578f22c1dde18d01db4cbd8396909c5b747d95ff204ec1ab85b2eb4de45dd2b",
+          "after_sha256": "43929220f0d269d93e4f3535cfd2459fe4e3797b2a7918a08c9b9bdc990c44a7",
+          "shape_equal": true,
+          "dtype_equal": true,
+          "different_elements": 2,
+          "max_abs_diff": 3.0517578125e-05
+        }
+      ],
+      "initializer_changes_truncated": false
+    },
+    {
+      "onnx_sha256": "2c4ea7534a907c837d8955de76ab15fb64c38450669b936b4ddf64b43e272430",
+      "onnx_bytes": 15617841,
+      "node_count": 286,
+      "initializer_count": 65,
+      "node_structure_sha256": "957f5c308a96d0e72a9ea58f1ab04a7ad7cc297bffeee3ea0c5bbf0aead064b7",
+      "label": "gpu_fp16_1",
+      "embedding_sha256": "c8abcfc096d366538301e49259b3a9bf061f2dc8e6c2f9851427e469e7125e50",
+      "embedding_diff_count": 2,
+      "embedding_max_abs_diff": 3.0517578125e-05,
+      "embedding_mean_abs_diff": 3.5762788286319847e-08,
+      "matches_frozen_native_onnx": false,
+      "matches_frozen_portable_onnx": false,
+      "initializer_changes_count": 1,
+      "initializer_changes": [
+        {
+          "name": "emb",
+          "before_sha256": "5578f22c1dde18d01db4cbd8396909c5b747d95ff204ec1ab85b2eb4de45dd2b",
+          "after_sha256": "43929220f0d269d93e4f3535cfd2459fe4e3797b2a7918a08c9b9bdc990c44a7",
+          "shape_equal": true,
+          "dtype_equal": true,
+          "different_elements": 2,
+          "max_abs_diff": 3.0517578125e-05
+        }
+      ],
+      "initializer_changes_truncated": false
+    },
+    {
+      "onnx_sha256": "4dab765b9481809c3cf6cab34323af3408b1963a5acfd82a8597b134cc5af8cb",
+      "onnx_bytes": 15617841,
+      "node_count": 286,
+      "initializer_count": 65,
+      "node_structure_sha256": "957f5c308a96d0e72a9ea58f1ab04a7ad7cc297bffeee3ea0c5bbf0aead064b7",
+      "label": "cpu_fp32_with_fp16_weights_rounded",
+      "embedding_sha256": "abe43e0489d2c1db6ec56f1bac6e13ba14463d45083de9af166c090fbd386c61",
+      "embedding_diff_count": 302,
+      "embedding_max_abs_diff": 6.103515625e-05,
+      "embedding_mean_abs_diff": 2.1863729671167675e-06,
+      "matches_frozen_native_onnx": false,
+      "matches_frozen_portable_onnx": false,
+      "initializer_changes_count": 1,
+      "initializer_changes": [
+        {
+          "name": "emb",
+          "before_sha256": "5578f22c1dde18d01db4cbd8396909c5b747d95ff204ec1ab85b2eb4de45dd2b",
+          "after_sha256": "256964c25b9a7ae3246b322cb63f8ab1e4e142717d3bc980470364764daf5c6a",
+          "shape_equal": true,
+          "dtype_equal": true,
+          "different_elements": 302,
+          "max_abs_diff": 6.103515625e-05
+        }
+      ],
+      "initializer_changes_truncated": false
+    }
+  ],
+  "native_quality_status": "REJECTED_UNCHANGED",
+  "release_ready": false,
+  "finished_utc": "2026-10-08T17:48:16.325115+00:00"
+}
