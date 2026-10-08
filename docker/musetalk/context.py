@@ -36,7 +36,7 @@ def allowed(name):
     if name.startswith("configs/trt_bundles/"):
         return p.suffix == ".json"
     if name.startswith("docker/musetalk/"):
-        return len(p.parts) == 3 and p.name in {"Dockerfile", "entrypoint.sh", "release.py", "context.py", "supervise.py", "validate_image.sh", "README.md"}
+        return len(p.parts) == 3 and p.name in {"Dockerfile", "entrypoint.sh", "release.py", "context.py", "supervise.py", "validate_image.sh", "README.md", "prune_diagnostic.py"}
     return False
 
 

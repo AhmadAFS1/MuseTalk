@@ -1,0 +1,38 @@
+{
+  "bucket": "lingua-musetalk-s3-storage",
+  "bucket_acl": "owner_only_canonical_user",
+  "bucket_policy": "absent",
+  "cli_reads": {
+    "bucket_acl": {
+      "hash_basis": "cli_stdout_utf8_stripped",
+      "sha256": "db1bba760fe4e2f2cc8a90bdf841789ae742df2fdd661b0cda3b7c45d3bc71fd"
+    },
+    "bucket_policy_status": {
+      "hash_basis": "canonical_cli_error_code",
+      "sha256": "c448dbcf79a31b1f897ffff2c13af8986859b25636b6ca012bef65c22efa9234"
+    },
+    "bucket_public_access_block": {
+      "hash_basis": "cli_stdout_utf8_stripped",
+      "sha256": "12b57f15e8de8f8be9c9fc86e8ad6b6cc9da25de6eeb929674f313ebcac2ddc9"
+    },
+    "sts_identity": {
+      "hash_basis": "cli_stdout_utf8_stripped",
+      "sha256": "638518349cdb84ec859bb52dd71520d79fa17df62d546efbf5e6bf1b1cf5c507"
+    }
+  },
+  "cloud_mutations": false,
+  "expected_owner": "211125449207",
+  "expires_at_utc": "2026-10-08T14:45:35.514798+00:00",
+  "observed_at_utc": "2026-10-08T14:30:35.514798+00:00",
+  "operator_account": "211125449207",
+  "operator_arn_sha256": "1a193b498320bee2cc2544812b5a04016443c8517833375e6827f4ed8e7732bb",
+  "public_access_block": {
+    "BlockPublicAcls": true,
+    "BlockPublicPolicy": true,
+    "IgnorePublicAcls": true,
+    "RestrictPublicBuckets": true
+  },
+  "region": "us-east-1",
+  "schema": "musetalk_operator_bucket_privacy_v1",
+  "scope": "fixed_bucket_private_model_delivery_only"
+}

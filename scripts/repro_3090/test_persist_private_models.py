@@ -339,6 +339,21 @@ class PersistenceTests(unittest.TestCase):
         self.assertEqual(set(report["external_model_files"]), persist.MODEL_PATHS)
         self.assertTrue(report["delivery_verified"])
 
+    def test_read_only_parallel_dispatch_never_calls_persistence(self):
+        report = {"objects": {}, "external_model_files": {}, "delivery_verified": False}
+        args = SimpleNamespace(root=self.root, manifest=self.manifest, execute=True, read_only_parallel=True)
+        with patch.object(persist, "WORKER_ROOT", str(self.root.resolve())), \
+             patch.object(persist.socket, "gethostname", return_value=persist.WORKER_HOSTNAME), \
+             patch.object(persist, "write_report"), \
+             patch.object(persist, "privacy_observations", return_value={"independent_privacy_proof": True}), \
+             patch.object(persist, "persist_one") as mutation, \
+             patch.object(persist, "verify_remote_parallel", return_value={"remote_content_verified": True}) as read:
+            self.assertEqual(persist.run(args, report, io.StringIO(), make_client=Mock()), 0)
+        mutation.assert_not_called()
+        self.assertEqual(read.call_count, 5)
+        self.assertTrue(report["delivery_verified"])
+        self.assertTrue(all("version_id" not in row["source"] for row in report["external_model_files"].values()))
+
 
 if __name__ == "__main__":
     unittest.main()

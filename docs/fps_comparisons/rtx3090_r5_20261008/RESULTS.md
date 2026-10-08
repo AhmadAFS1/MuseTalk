@@ -57,6 +57,9 @@ Observed timeline (UTC, October 8):
 - The same archive was conditionally uploaded to a new private checksum-keyed S3 object, followed by an independent fresh GET and fresh CPU restore verifying its archive SHA and all 16 files. No existing object or active artifact mapping was overwritten.
 - All 32 native quality capture/report files were separately archived, conditionally persisted in private S3, freshly downloaded and CPU-restore verified: SHA256 `079f79938d45d62dfe5316e84be984cd86d7c648ea324023bd34b55d87090bb9`, 274,657,275 bytes. Numerical rejection and partial visual-review limitations remain unchanged.
 - Operator fallback conditionally uploaded all five private model objects after checking their exact frozen hashes. Worker-side fresh content verification then timed out at 300 seconds on its first file; delivery remains **incomplete**, not a boot-speed pass. The ongoing 48-pose audit had completed 21 objects without reported failures at the last checkpoint. Concurrent CPU/network work is disclosed; no single cause or steady-state transfer speed is established.
+- At 14:19, version-specific private reads failed with HTTP 403 despite a successful ordinary HEAD. At 14:32, ordinary full/range prefixes and a four-thread whole-file download passed for the first pinned 89,843,225-byte object. Its complete SHA matched in 23.2537 seconds; before/after HEAD version was unchanged. These paired diagnostics establish different access behavior, not the cause of the earlier unversioned stream timeout or a cold-start speedup. The actual image fetch now supports bounded parallel reads with full SHA/size and stable-version checks, preserving explicit version requests without a permission fallback. A read-only all-five test is running; no IAM or bucket settings changed.
+- The production-cache CPU audit had reached **45/48 PASS** without reported failures at 14:42; it remains incomplete until its terminal report. GPU/live timings remain isolated from this download/hash work.
+- A second dependency-only Docker experiment uses a fresh final stage on the **same pinned devel base and apt versions**, with only the checksum-pinned 1,397,061,088-byte Windows TensorRT build resource eligible for removal. Linux resources remain. All 71 CPU contracts ran: 70 passed and one platform-specific check skipped. New actual Docker size/import evidence is still pending; neither a release image nor a public registry digest is claimed.
 
 ## Current bottleneck interpretation
 
@@ -133,7 +136,7 @@ calibrated; stage durations from individual processes are reported separately.
   worker. A narrow upstream registry-name backport preserves the package pins;
   actual avatar-prep imports are now included in the installer smoke. The next
   [dependency CI run](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37769890795)
-  is in progress. No serving image has been built or published; no Vast template
+  passed, with its nine audit reports preserved. No serving image has been built or published; no Vast template
   has been edited or promoted.
 - The isolated live adapter requires full lifetime telemetry, matched first
   frames, complete send rings, and observed H264 payloads. Each load level has a

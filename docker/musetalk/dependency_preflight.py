@@ -73,12 +73,15 @@ def main():
         ("image-history.jsonl", ["docker", "history", "--no-trunc", "--format", "{{json .}}", image]),
         ("pip-freeze.txt", ["docker", "run", "--rm", "--network", "none", "--entrypoint", "/opt/musetalk/venv/bin/python", image, "-m", "pip", "freeze"]),
         ("dpkg-packages.txt", ["docker", "run", "--rm", "--network", "none", "--entrypoint", "/usr/bin/dpkg-query", image, "-W"]),
+        ("runtime-pruning.json", ["docker", "run", "--rm", "--network", "none", "--entrypoint", "/usr/bin/python3", image,
+                                  "-c", "from pathlib import Path; print(Path('/opt/musetalk/runtime_pruning.json').read_text(), end='')"]),
     ):
         with (reports / name).open("x") as stream:
             subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT, check=True)
     result = {"schema": "musetalk_dependency_preflight_v1", "status": "PASS", "base": BASE, "source_revision": revision,
               "scope": "Actual GPU-less server+avatar-prep+nativeVP8 dependency build; Kokoro not included",
               "models_present": False, "gpu_tested": False, "published": False, "promotion_eligible": False,
+              "layout": "fresh final stage on same pinned devel base; exact Windows builder resource pruned",
               "disk_free_after": shutil.disk_usage(args.work).free}
     (reports / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))

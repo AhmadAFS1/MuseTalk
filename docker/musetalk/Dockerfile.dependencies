@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Dependency-only diagnostic. Contains NO weights/native r5 bundle/release manifest.
 ARG CUDA_BASE
-FROM ${CUDA_BASE}
+FROM ${CUDA_BASE} AS build
 ARG CUDA_BASE
 ARG SOURCE_REVISION
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
@@ -26,6 +26,31 @@ RUN --mount=type=cache,target=/root/.cache/pip \
       --with-avatar-prep --with-native-vp8 --without-kokoro && \
     CUDA_VISIBLE_DEVICES="" /opt/musetalk/venv/bin/python -c \
       "from mmcv.ops import get_compiling_cuda_version; v=str(get_compiling_cuda_version()); assert v.startswith('12.1'), v; print('mmcv CUDA:',v)"
+RUN CUDA_VISIBLE_DEVICES="" /opt/musetalk/venv/bin/python \
+      docker/musetalk/prune_diagnostic.py --execute --out /opt/musetalk/runtime_pruning.json
+
+# A fresh stage is required: deleting bytes in a later layer cannot remove the
+# original installation layer from a pull. Keep the same ABI/base/apt pins for
+# this first size experiment; it is not yet a minimal or accepted runtime image.
+FROM ${CUDA_BASE} AS diagnostic
+ARG SOURCE_REVISION
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+RUN --mount=from=pins,source=/,target=/pins,ro \
+    apt-get update -y && mapfile -t packages < /pins/apt-pins.txt && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${packages[@]}" && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+COPY --from=build /opt/musetalk /opt/musetalk
+WORKDIR /opt/musetalk/app
+ENV VENV_PATH=/opt/musetalk/venv \
+    MUSETALK_INSTALL_STATE_FILE=/opt/musetalk/install_state.json \
+    WEBRTC_NATIVE_VP8_DIR=/opt/musetalk/native_vp8 \
+    HF_HOME=/opt/musetalk/app/models/hf-cache \
+    PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+RUN CUDA_VISIBLE_DEVICES="" bash scripts/install_musetalk.sh --check --check-imports \
+      --matrix cu121 --venv /opt/musetalk/venv --skip-weights \
+      --with-avatar-prep --with-native-vp8 --without-kokoro && \
+    CUDA_VISIBLE_DEVICES="" /opt/musetalk/venv/bin/python -c \
+      "from mmcv.ops import get_compiling_cuda_version; v=str(get_compiling_cuda_version()); assert v.startswith('12.1'), v; print('final-stage mmcv CUDA:',v)"
 LABEL org.opencontainers.image.title="MuseTalk dependency-only diagnostic (NONPROMOTABLE)" \
       org.opencontainers.image.revision="${SOURCE_REVISION}" \
       io.musetalk.release-channel="dependency-diagnostic-no-models"

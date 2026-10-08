@@ -354,8 +354,14 @@ def runtime(root, m, venv):
 
 
 def fetch_private_model(entry, target):
-    """Only runtime-injected credentials; no anonymous fetch or endpoint override."""
+    """Bounded parallel read with pinned content; runtime-injected credentials only.
+
+    Ordinary GetObject is used unless a manifest explicitly requests a version.
+    A content-addressed key and full SHA are still mandatory. HEAD checks before
+    and after prevent a changing current version from passing this transfer.
+    """
     import boto3
+    from boto3.s3.transfer import TransferConfig
     from botocore.config import Config
     source = entry["source"]
     key, secret = os.environ.get("AWS_ACCESS_KEY_ID"), os.environ.get("AWS_SECRET_ACCESS_KEY")
@@ -370,19 +376,27 @@ def fetch_private_model(entry, target):
     if source.get("version_id"):
         arguments["VersionId"] = source["version_id"]
     try:
-        response = client.get_object(**arguments)
-        body = response["Body"]
-        try:
-            require(response.get("ContentLength") == entry["size_bytes"], "Private S3 model size mismatch")
-            count = 0
-            with target.open("wb") as output:
-                for chunk in body.iter_chunks(chunk_size=1024 * 1024):
-                    count += len(chunk)
-                    require(count <= entry["size_bytes"], "Private S3 model exceeded expected size")
-                    output.write(chunk)
-            require(count == entry["size_bytes"], "Private S3 model was truncated")
-        finally:
-            body.close()
+        before = client.head_object(**arguments)
+        require(before.get("ContentLength") == entry["size_bytes"], "Private S3 model size mismatch")
+        require(before.get("Metadata", {}).get("sha256") == entry["sha256"], "Private S3 model metadata mismatch")
+        version = before.get("VersionId")
+        require(isinstance(version, str) and 0 < len(version) <= 1024, "Private S3 model version unavailable")
+        if source.get("version_id"):
+            require(version == source["version_id"], "Private S3 model version mismatch")
+        extra = {k: v for k, v in arguments.items() if k not in ("Bucket", "Key")}
+        client.download_file(arguments["Bucket"], arguments["Key"], str(target), ExtraArgs=extra,
+                             Config=TransferConfig(max_concurrency=4, multipart_chunksize=8 * 1024**2,
+                                                   num_download_attempts=1))
+        require(target.stat().st_size == entry["size_bytes"] and sha256(target) == entry["sha256"],
+                "Private S3 model downloaded content mismatch")
+        after = client.head_object(**arguments)
+        require(after.get("VersionId") == version and after.get("ContentLength") == entry["size_bytes"]
+                and after.get("Metadata", {}).get("sha256") == entry["sha256"],
+                "Private S3 model changed during download")
+        return {"method": "parallel_download_file_sha256", "max_concurrency": 4,
+                "multipart_chunksize": 8 * 1024**2, "sha256": entry["sha256"],
+                "size_bytes": entry["size_bytes"], "observed_version_id": version,
+                "version_id_requested": bool(source.get("version_id")), "head_version_unchanged": True}
     except Exception as exc:
         # Never print SDK requests, headers, secret values or signed query strings.
         raise ValueError("Private S3 model fetch failed (" + type(exc).__name__ + ")") from None

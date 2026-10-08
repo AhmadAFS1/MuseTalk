@@ -19,6 +19,8 @@ from pathlib import Path
 import re
 import socket
 import sys
+import tempfile
+import time
 
 import privacy_attestation
 
@@ -213,6 +215,31 @@ def verify_remote(s3, entry):
     return proof
 
 
+def verify_remote_parallel(root, entry):
+    """Exercise the actual immutable-image fetch path; never upload or repair.
+
+    Retain the observed current version in evidence, not source.version_id: the
+    real worker can GetObject but cannot GetObjectVersion. SHA-pinned current
+    reads are a separate explicit contract, never a silent version fallback.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("private_delivery_release", root / "docker/musetalk/release.py")
+    image_release = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(image_release)
+    start = time.monotonic()
+    with tempfile.TemporaryDirectory(prefix="private-model-read-verify-", dir=root / "tmp") as temporary:
+        target = Path(temporary) / "payload"
+        transfer = image_release.fetch_private_model(entry, target)
+        with target.open("rb") as stream:
+            digest, count = hash_stream(stream, entry["size_bytes"])
+        require(digest == entry["sha256"], "remote_sha_mismatch")
+    return {"action": "read_only_existing_object", "remote_content_verified": True,
+            "verified_at_utc": now(), "elapsed_seconds": time.monotonic() - start,
+            "method": "actual_image_fetch_private_model_parallel_sha256", "image_fetch_proof": transfer,
+            "sha256": digest, "size_bytes": count, "etag_used_as_hash": False,
+            "temporary_download_deleted": True}
+
+
 def persist_one(s3, root, name, entry):
     exists = False
     try:
@@ -282,7 +309,10 @@ def run(args, report, handle, make_client=client):
                 raise Invalid(str(exc)) from None
         report["active_model_path"] = name
         write_report(handle, report)
-        proof = persist_one(s3, args.root, name, entry)
+        if getattr(args, "read_only_parallel", False):
+            proof = verify_remote_parallel(args.root, entry)
+        else:
+            proof = persist_one(s3, args.root, name, entry)
         report["objects"][name] = proof
         write_report(handle, report)
     require(set(report["objects"]) == MODEL_PATHS and all(p["remote_content_verified"] for p in report["objects"].values()),
@@ -299,6 +329,8 @@ def main(argv=None):
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--read-only-parallel", action="store_true",
+                        help="Verify existing objects using the actual image parallel fetch; never PUT missing objects")
     parser.add_argument("--privacy-attestation", type=Path,
                         help="optional fresh operator privacy assertion; requires explicit trusted SHA256")
     parser.add_argument("--privacy-attestation-sha256")
@@ -318,7 +350,9 @@ def main(argv=None):
               "status": "initializing", "delivery_verified": False, "external_model_files": {}, "objects": {},
               "redistribution_scope": "baked_model_files_only", "private_model_usage_rights": "unresolved",
               "public_redistribution_authorized": False, "public_acl_requested": False,
-              "existing_objects_overwritten": False, "object_deletions": False}
+              "existing_objects_overwritten": False, "object_deletions": False,
+              "read_only_parallel": args.read_only_parallel,
+              "cloud_mutations": False if args.read_only_parallel else "conditional_missing_object_put_only"}
     with os.fdopen(fd, "w") as handle:
         write_report(handle, report)
         try:

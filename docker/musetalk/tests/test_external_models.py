@@ -106,13 +106,14 @@ class ExternalModelTests(unittest.TestCase):
             release.runtime_models(self.root, self.manifest, self.cache, self.fetch)
 
     def test_s3_sdk_uses_injected_credentials_owner_and_no_configured_endpoint(self):
-        body = Mock()
-        body.iter_chunks.return_value = [self.data]
         client = Mock()
-        client.get_object.return_value = {"ContentLength": len(self.data), "Body": body}
+        client.head_object.return_value = {"ContentLength": len(self.data), "Metadata": {"sha256": self.entry["sha256"]},
+                                            "VersionId": "fixture-version"}
+        client.download_file.side_effect = lambda _b, _k, path, **_kw: Path(path).write_bytes(self.data)
         boto = SimpleNamespace(client=Mock(return_value=client))
         config = SimpleNamespace(Config=Mock(return_value="config"))
-        with patch.dict(sys.modules, {"boto3": boto, "botocore.config": config}), \
+        with patch.dict(sys.modules, {"boto3": boto, "botocore.config": config,
+                                      "boto3.s3.transfer": SimpleNamespace(TransferConfig=Mock())}), \
              patch.dict(os.environ, {"AWS_ACCESS_KEY_ID": "test-id", "AWS_SECRET_ACCESS_KEY": "test-secret",
                                      "AWS_ENDPOINT_URL": "https://untrusted.invalid"}, clear=True):
             release.fetch_private_model(self.entry, self.base / "download")
@@ -121,22 +122,25 @@ class ExternalModelTests(unittest.TestCase):
         self.assertEqual(kwargs["region_name"], "us-east-1")
         self.assertTrue(config.Config.call_args.kwargs["ignore_configured_endpoint_urls"])
         self.assertEqual(config.Config.call_args.kwargs["signature_version"], "s3v4")
-        self.assertEqual(client.get_object.call_args.kwargs["ExpectedBucketOwner"], "123456789012")
+        self.assertEqual(client.head_object.call_args.kwargs["ExpectedBucketOwner"], "123456789012")
+        self.assertEqual(client.download_file.call_args.kwargs["ExtraArgs"]["ExpectedBucketOwner"], "123456789012")
         self.assertEqual((self.base / "download").read_bytes(), self.data)
-        body.close.assert_called_once()
+        client.put_object.assert_not_called()
 
     def test_no_anonymous_or_ambient_role_credentials(self):
         boto = SimpleNamespace(client=Mock())
-        with patch.dict(sys.modules, {"boto3": boto, "botocore.config": SimpleNamespace(Config=Mock())}), \
+        with patch.dict(sys.modules, {"boto3": boto, "botocore.config": SimpleNamespace(Config=Mock()),
+                                      "boto3.s3.transfer": SimpleNamespace(TransferConfig=Mock())}), \
              patch.dict(os.environ, {}, clear=True), self.assertRaises(ValueError):
             release.fetch_private_model(self.entry, self.base / "download")
         boto.client.assert_not_called()
 
     def test_sdk_failure_suppresses_request_details(self):
         client = Mock()
-        client.get_object.side_effect = RuntimeError("test-secret signed URL contents")
+        client.head_object.side_effect = RuntimeError("test-secret signed URL contents")
         with patch.dict(sys.modules, {"boto3": SimpleNamespace(client=Mock(return_value=client)),
-                                      "botocore.config": SimpleNamespace(Config=Mock())}), \
+                                      "botocore.config": SimpleNamespace(Config=Mock()),
+                                      "boto3.s3.transfer": SimpleNamespace(TransferConfig=Mock())}), \
              patch.dict(os.environ, {"AWS_ACCESS_KEY_ID": "test-id", "AWS_SECRET_ACCESS_KEY": "test-secret"}), \
              self.assertRaises(ValueError) as caught:
             release.fetch_private_model(self.entry, self.base / "download")

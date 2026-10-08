@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   push:
     branches: [codex/rtx3090-r5-delivery]
-    paths: [.github/workflows/musetalk-dependency-preflight.yml, scripts/test_startup_scripts.sh, scripts/install_musetalk.sh, scripts/patch_mmengine_compat.py]
+    paths: [.github/workflows/musetalk-dependency-preflight.yml, docker/musetalk/**, scripts/test_startup_scripts.sh, scripts/install_musetalk.sh, scripts/patch_mmengine_compat.py]
 
 permissions:
   contents: read

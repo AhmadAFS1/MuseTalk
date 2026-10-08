@@ -1,0 +1,55 @@
+{
+  "active_probe": "parallel_whole_object",
+  "cloud_mutations": false,
+  "concurrent_cpu_network_audit": true,
+  "details_suppressed": true,
+  "downloaded_bytes_observed": 0,
+  "exception_type": "ClientError",
+  "expected_bytes": 89843225,
+  "expected_sha256": "619a31681264d3f7f7fc7a16a42cbbe8b23f31a256f75a366e5a1bcd59b33543",
+  "failure_code": null,
+  "finished_utc": "2026-10-08T14:19:21.127744+00:00",
+  "gpu_used": false,
+  "http_status": 403,
+  "model": "models/auxiliary/s3fd-619a316812.pth",
+  "privacy_proof": {
+    "attestation_used": true,
+    "expires_at_utc": "2026-10-08T14:30:30.539656+00:00",
+    "observed_at_utc": "2026-10-08T14:15:30.539656+00:00",
+    "sha256": "1485382ac3d26bd86a97e0ea6e1b471982cc7eacff53782c8bc622891086d546",
+    "source": "explicit_sha_bound_operator_attestation",
+    "trust_scope": "operator_assertion_not_aws_signed; digest_must_arrive_via_trusted_operator_invocation"
+  },
+  "probes": {
+    "full_get_first_1k": {
+      "details_suppressed": true,
+      "exception_type": "AccessDenied",
+      "failure_code": null,
+      "http_status": 403,
+      "status": "FAIL"
+    },
+    "range_first_1m": {
+      "details_suppressed": true,
+      "exception_type": "AccessDenied",
+      "failure_code": null,
+      "http_status": 403,
+      "status": "FAIL"
+    }
+  },
+  "schema": "private_model_read_diagnostic_v1",
+  "sdk_versions": {
+    "boto3": "1.42.97",
+    "botocore": "1.42.97"
+  },
+  "source": {
+    "bucket": "lingua-musetalk-s3-storage",
+    "expected_owner": "211125449207",
+    "key": "trt-artifacts/private-runtime-models/sha256/619a31681264d3f7f7fc7a16a42cbbe8b23f31a256f75a366e5a1bcd59b33543/s3fd-619a316812.pth",
+    "region": "us-east-1",
+    "type": "s3"
+  },
+  "started_utc": "2026-10-08T14:19:18.835331+00:00",
+  "startup_acceptance": false,
+  "status": "FAILED",
+  "version_id": "F_.cwHYQMGo2wqFyr1DetFMwa5GqhzR1"
+}
