@@ -1080,7 +1080,13 @@ PY
   begin "onstart: AUTO_SETUP=1 repair in place (11), clean install (10 / SETUP_CLEAN=1)"
   run_onstart repair MT_TEST_CHECK_RC=11
   assert_rc "$ON_RC" 0 "repair"
-  assert_file_contains "$ON_DIR/install.jsonl" '"argv": \["--venv", "[^"]*"\]' "install without --clean"
+  # SETUP_SKIP_APT=auto intentionally skips apt under a non-root CI user.
+  # Keep an exact argument contract for each UID instead of assuming root.
+  if (( EUID == 0 )); then
+    assert_file_contains "$ON_DIR/install.jsonl" '"argv": \["--venv", "[^"]*"\]' "root repair arguments"
+  else
+    assert_file_contains "$ON_DIR/install.jsonl" '"argv": \["--venv", "[^"]*", "--skip-apt"\]' "non-root repair arguments"
+  fi
   assert_file_lacks "$ON_DIR/install.jsonl" '"--clean"' "no clean on repair"
   run_onstart clean MT_TEST_CHECK_RC=10
   assert_file_contains "$ON_DIR/install.jsonl" '"--clean"' "clean on exit 10"
