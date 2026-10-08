@@ -237,3 +237,60 @@ claiming visual approval. A single shared speech clip is not multilingual covera
 the standard saved-mask blend, not this refined chin-tracking path. Successful
 offline production samples cannot establish 100% chin behavior in live API calls,
 pose transitions, original encoder compatibility, or release readiness.
+
+## Freeze quality noise before native candidate evaluation
+
+`quality_envelope.py` is a CPU-only, two-phase evidence comparator. First complete
+two separate canonical `30_quality` runs with the portable AMPERE_PLUS profile and
+the same frozen quality-input manifest; then freeze their bounds **before starting
+the native quality run**. Run this helper on the machine where the manifest's
+relative paths, restored fixture bundle, and calibration bundle still resolve.
+It freshly hashes those inputs and raw/video artifacts; copied JSON alone is not
+sufficient for a freeze.
+
+```bash
+python3 scripts/repro_3090/quality_envelope.py freeze \
+  --reference /actual/portable_ref1_quality/report.json \
+  --reference /actual/portable_ref2_quality/report.json \
+  --inputs /actual/frozen/quality-inputs-v1.json \
+  --fixture-root /workspace/experiments \
+  --fixture-sidecar /workspace/MuseTalk/.runtime/trt_artifacts/repro-avatar-diversity-20260927 \
+  --calibration-root /workspace/MuseTalk \
+  --calibration-sidecar /workspace/MuseTalk/.runtime/trt_artifacts/repro-calibration-unet-multi-avatar-20260928 \
+  --out /actual/quality/reference-envelope.json
+
+# Record the emitted envelope SHA before launching native candidate evaluation.
+python3 scripts/repro_3090/quality_envelope.py compare \
+  --candidate /actual/native_quality/report.json \
+  --inputs /actual/frozen/quality-inputs-v1.json \
+  --envelope /actual/quality/reference-envelope.json \
+  --envelope-sha256 ACTUAL_64_HEX_SHA256 \
+  --out /actual/quality/native-comparison.json
+```
+
+The required manifest covers canonical fixture files and audio, all 448 calibration
+captures, models, accepted chin/blending, and metric/tracker implementations. The
+helper requires the pinned historical commit `5cc706e90e50e93da1310628c025a84199cd8042`
+to be available locally for `git show`. Historical 4070 reports are eligible only
+with matching pinned report hashes, fixtures/conditioning/audio lineage, A-frame
+hashes, metric AST (only two filesystem-routing assignments may differ), library
+versions, and unchanged numerical-gate code. Missing comparability is `INVALID`,
+not a silently dropped reference. Existing bundle receipts and sidecars are checked;
+the helper does not re-download their original archive bytes.
+
+Each of 99 named metrics per canonical avatar and 104 UNet/TAESD metrics has an
+explicit error/similarity direction. TAESD includes separate errors for each of
+14 calibration avatars. Error limits are the worst applicable historical/portable
+reference plus that metric's observed portable-repeat spread; similarity limits
+are the lowest reference minus the spread. There is no rounding epsilon, invented
+4070 value, candidate-derived noise, or post-candidate widening. Unknown/missing
+metrics, changed input/engine/recipe hashes, incomplete captures, broken hard
+exactness, or an earlier candidate timestamp are `INVALID`.
+
+Outputs are exclusive-create and bind the helper, policy, reports, engines, raw
+capture pixels, arrays and review videos by SHA-256. Numerical parity can be `PASS`
+while original strict gates remain `FAIL`; both are preserved. Optional repeatable
+`--visual-evidence FILE` only hashes externally recorded review evidence. The helper
+never performs or claims visual inspection, production-pose acceptance, or release
+approval (`release_ready=false`). Exit codes are 0 for a valid freeze/numerical
+parity, 1 for numerical non-parity, and 2 for invalid evidence.
