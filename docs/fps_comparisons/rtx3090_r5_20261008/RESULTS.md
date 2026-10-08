@@ -38,7 +38,11 @@ Observed timeline (UTC, October 8):
 - 08:38:54: native-build preflight failed before any engine build. NVML queries were observed temporarily blocked for about a minute; bounded runtime diagnosis is in progress, not a successful native build.
 - 08:41:54: corrected bounded diagnostic reproduced CUDA driver initialization failure. No OOM; physical cause not established.
 - 08:48: a 14GB repository backup completed on the rented host. Subsequent SSH routes became unreachable; planned recovery guard was not applied and no reboot was sent.
-- 08:52:18: Vast reported machine153039/instance54798270 **offline**. A replacement-host offer is being checked against the same shared budget, keeping A1's full reservation counted.
+- 08:52:18: Vast reported machine153039/instance54798270 **offline**. Replacement offers were checked but no additional rental was purchased.
+- 11:17:36: Vast again reported **running**; SSH and a CUDA tensor allocation succeeded on the original hostname and GPU UUID. Automatic startup had replaced the experiment checkout with the initial source revision and restarted API/TURN. The preserved experiment directory survived.
+- 11:18–11:21: owned API/TURN drained/stopped; preserved checkout restored; builder dependencies restored on the same pinned matrix. A hostname-specific guard now suspends this development worker's automatic reinstall/autostart. No operator reboot was sent.
+- 11:23: native preflight passed against the exact frozen 878-file manifest. Native sm86 v1 engine build started on revision `d4e78b79105e0c1f5b732fb651e5dcd7fcb5dca3`.
+- 11:29: native FP16 `down0rest,up3,tail` build completed successfully after 324.1 seconds under its GPU lease. INT8 recipe blocks are building. Complete-chain, native TAESD, quality, and throughput remain unverified.
 
 This separates several minutes of provider/image startup from source cloning,
 installation, and later model/avatar warmup. Exact image-pull boundaries and
@@ -87,8 +91,17 @@ calibrated; stage durations from individual processes are reported separately.
 - Docker lifecycle/private-delivery changes passed independent review and CPU
   tests. The first dependency CI failed a root-only startup-test assumption;
   that test was corrected for non-root runners. Its successor passed Linux CPU
-  and startup tests and is building real dependencies. No serving image has been
-  built or published; no Vast template has been edited or promoted.
+  and startup tests, then exposed a real MMEngine 0.10.4/PyTorch 2.5.1 Adafactor
+  registration collision in `mmcv.ops`. That failure was reproduced on the GPU
+  worker. A narrow upstream registry-name backport preserves the package pins;
+  actual avatar-prep imports are now included in the installer smoke. The next
+  [dependency CI run](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37769890795)
+  is in progress. No serving image has been built or published; no Vast template
+  has been edited or promoted.
+- The isolated live adapter requires full lifetime telemetry, matched first
+  frames, complete send rings, and observed H264 payloads. Each load level has a
+  separate invocation so a failed level stops escalation. These CPU contracts
+  passed; native GPU/live validation remains outstanding.
 - Provider finalized-charge access returned HTTP 401 at 08:21:58 UTC. Actual
   invoiced spending remains unavailable, not zero; reservation and expiry controls
   remain in force. No permissions were widened or billing request repeatedly retried.
@@ -113,6 +126,7 @@ calibrated; stage durations from individual processes are reported separately.
 - [Finalized-charge availability check](provisioning/budget-checkpoint-0820.json)
 - [Instance A CUDA failure and host outage](provisioning/instance-a-host-outage.json)
 - [Actual portable still-frame review, with limitations](quality/portable_reference_visual_inspection.json)
+- [Recovered pinned-input native preflight](native/native_v1_preflight_recovered_v2_check/report.json)
 
 Registry publishing access remains unresolved. A read-only native x64 GitHub
 runner probe succeeded with about 86 GiB free disk, 4 CPUs, 16 GB RAM, and Docker/
