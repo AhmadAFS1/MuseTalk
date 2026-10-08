@@ -30,7 +30,7 @@ case $SET in r5) PUB=$PUBLISHED_R5 ;; r2) PUB=$PUBLISHED_R2 ;; *) die "--set r5|
 # default builds are for this GPU's compute capability (sm89 on the RTX 4070 SUPER, sm86 on an RTX 3090)
 case $HW in
   none) ARCH="sm$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | head -n 1 | tr -d '. ')"
-        [ "$ARCH" = sm ] && ARCH=sm89 ;;
+        [[ "$ARCH" =~ ^sm[0-9]+$ ]] || die "cannot detect GPU compute capability; refusing native build" ;;
   ampere_plus) ARCH=ampere_plus ;;
   *) die "--hardware-compat none|ampere_plus" ;;
 esac
@@ -39,7 +39,12 @@ run() { if [ $DRY -eq 1 ]; then echo "  $*"; else "$@" || die "step failed: $*";
 B="$PY scripts/build_unet_stagewise.py --batch 16 --opt-level 5 --variant srccache --root $ENGINE_ROOT --calib-dir $CORPUS"
 [ $HW = none ] || B="$B --hardware-compat $HW"
 SEED=docs/fps_comparisons/4070s_300fps_20260927/unet_probe/tt16_timing_cache.bin
-[ -e "$SEED" ] && log "note: $SEED exists and the builder will seed from it; the published INT8 blocks were built without it"
+if [ "$HW" = none ] && [ "$ARCH" != sm89 ]; then
+  B="$B --strict-timing-cache"
+  log "native $ARCH: no 4070 timing seed; existing timing cache must match target metadata and SHA-256"
+elif [ "$HW" = none ] && [ -e "$SEED" ]; then
+  log "note: historical 4070 SUPER builds may seed from $SEED; other GPU models require strict cache provenance"
+fi
 if [ $DRY -eq 0 ] && [ -e "$ENGINE_ROOT/bs16/manifest.json" ] && \
    python3 -c "import json,sys; sys.exit(0 if json.load(open('$ENGINE_ROOT/bs16/manifest.json')).get('complete') else 1)"; then
   die "$ENGINE_ROOT is already complete; set MUSETALK_REPRO_ROOT to a new name, or remove it yourself"

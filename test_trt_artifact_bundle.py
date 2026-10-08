@@ -10,6 +10,7 @@ Run: PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest -v test_trt_artifact_bundl
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 import shutil
@@ -17,6 +18,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent
@@ -109,6 +111,28 @@ class BundleTests(unittest.TestCase):
         self.assertEqual(list((self.tmp / "tmpdir").iterdir()), [], "archive staged in TMPDIR and removed")
 
     # -- sidecar-dir layout ----------------------------------------------------------------
+    def test_explicit_empty_optional_does_not_reintroduce_defaults(self):
+        # Exercise a nonempty default even though today's optional defaults are
+        # empty; this fails under the old `parse_csv(...) or defaults` behavior.
+        spec = importlib.util.spec_from_file_location("bundle_optional_test", TOOL)
+        bundle = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(bundle)
+        src = self.r5_source()
+        write(src / "models/legacy_optional/old.plan", b"unrelated legacy payload")
+        with mock.patch.object(bundle, "DEFAULT_OPTIONAL_PATHS", ("models/legacy_optional",)):
+            for empty in (False, True):
+                out = self.tmp / ("empty.tar.gz" if empty else "default.tar.gz")
+                argv = [str(TOOL), "--repo-root", str(src), "--strict", "--sidecar-dir", SIDE,
+                        "create", "--output", str(out), "--required-files", "models/set_alias/bs16/manifest.json",
+                        "--required-dirs", "models/set_real", *(["--optional-paths", ""] if empty else [])]
+                with mock.patch.object(sys, "argv", argv):
+                    args = bundle.parse_args()
+                self.assertEqual(bundle.create_bundle(args), 0)
+                manifest = json.loads((src / SIDE / MANIFEST).read_text())
+                paths = {entry["path"] for entry in manifest["files"]}
+                self.assertEqual("models/legacy_optional/old.plan" in paths, not empty)
+                self.assertEqual(manifest["optional_paths"], [] if empty else ["models/legacy_optional"])
+
     def test_keep_symlinks_restore_into_sidecar_dir(self):
         src = self.r5_source()
         out = self.create_r5(src)

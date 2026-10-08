@@ -54,9 +54,10 @@ def setup_backends(extra_env: dict, taesd_warmup_batches: str = "8"):
     muse = paths.WORKTREE
     os.chdir(muse)
     sys.path[:0] = [str(muse), str(muse / "scripts")]
-    env_file = muse / ".runtime" / "musetalk_trt_local_sm89.env"
+    env_file = Path(os.environ.get("MUSETALK_REPRO_RUNTIME_ENV", str(muse / ".runtime" / "musetalk_trt_local_sm89.env"))).resolve()
     applied = {}
     for line in env_file.read_text().splitlines():
+        line = line.strip()
         if line and not line.startswith("#"):
             key, value = line.split("=", 1)
             os.environ[key] = value
@@ -102,6 +103,7 @@ def describe_backends(unet, decoder) -> dict:
     if hasattr(decoder, "meta"):
         out["decoder_trt_key"] = (decoder.meta or {}).get("key")
         out["decoder_trt_gate"] = (decoder.meta or {}).get("gate")
+        out["decoder_trt_plan_sha256"] = (decoder.meta or {}).get("decoder_plan_sha256")
     return out
 
 

@@ -195,7 +195,9 @@ def create_bundle(args: argparse.Namespace) -> int:
     root = args.repo_root.resolve()
     required_files = _parse_csv(args.required_files) or list(DEFAULT_REQUIRED_FILES)
     required_dirs = _parse_csv(args.required_dirs) or list(DEFAULT_REQUIRED_DIRS)
-    optional_paths = _parse_csv(args.optional_paths) or list(DEFAULT_OPTIONAL_PATHS)
+    # argparse already supplies defaults when omitted. An explicit empty string
+    # means none, not "restore the defaults" (serving-only bundles rely on this).
+    optional_paths = _parse_csv(args.optional_paths)
 
     entries = _collect_entries(
         root,
@@ -533,7 +535,8 @@ def parse_args() -> argparse.Namespace:
     create.add_argument("--profile", default="vae-int8-unet-trt-split8")
     create.add_argument("--required-files", default=",".join(DEFAULT_REQUIRED_FILES))
     create.add_argument("--required-dirs", default=",".join(DEFAULT_REQUIRED_DIRS))
-    create.add_argument("--optional-paths", default=",".join(DEFAULT_OPTIONAL_PATHS))
+    create.add_argument("--optional-paths", default=",".join(DEFAULT_OPTIONAL_PATHS),
+                        help="Comma-separated optional payload paths; pass an empty string to include none")
     create.add_argument("--keep-symlinks", action="store_true",
                         help="Store in-repo symlinks as relative links (engine-set folders) instead of dropping them.")
     create.add_argument("--compresslevel", type=int, default=9, help="gzip level (default 9; TRT plans barely compress, 1 is ~as small).")

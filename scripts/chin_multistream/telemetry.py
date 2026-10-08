@@ -83,7 +83,7 @@ class SmiSampler:
         for line in self.proc.stdout:
             self.lines.append(line.strip())
 
-    def stop(self):
+    def stop(self, tail_samples=None):
         self.proc.terminate()
         try:
             self.proc.wait(timeout=5)
@@ -98,6 +98,8 @@ class SmiSampler:
                 continue
         if not rows:
             return dict(n=0)
+        if tail_samples is not None:
+            rows = rows[-tail_samples:]
         import statistics
 
         cols = list(zip(*rows))

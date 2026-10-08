@@ -2,22 +2,23 @@
 # Every GPU, model or RAM-heavy step goes through scripts/box_guard.sh (GPU lease, RAM watchdog, pause file),
 # because this box is shared with other sessions and the user's own servers.
 #
-# Layout is FIXED (the harness, quality tool and chin workflow hard-code these paths): the repo can live anywhere,
-# but the main venv, the FaceMesh venv, the six prepared avatars and a writable /workspace must be where they are
-# named below. Only the engine root, the output dir and the tag are configurable.
+# Historical defaults are retained. MUSETALK_REPRO_* overrides relocate the main venv,
+# corpus, accepted fixtures, comparison root and explicit runtime profile. The frozen
+# chin Tracker still expects SoulX-FlashHead/.venv under MUSETALK_REPRO_WORKSPACE.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO"
 PKG="$REPO/scripts/repro_400fps"
-PY=/workspace/.venvs/musetalk_trt_stagewise/bin/python          # torch 2.5.1+cu121, TensorRT 10.3, modelopt, diffusers
-FACEMESH_PY=/workspace/SoulX-FlashHead/.venv/bin/python          # mediapipe 0.10.9 (chin tracker; hard-coded in the workflow)
-ACCEPTED=/workspace/experiments/avatar_diversity_20260927        # the six prepared avatars (hard-coded in the harness)
-CORPUS=calibration/unet_multi_avatar_20260928                    # UNet capture corpus, 352 main + 96 holdout bs8 files
+PY="${MUSETALK_REPRO_PYTHON:-/workspace/.venvs/musetalk_trt_stagewise/bin/python}"
+FACEMESH_PY="${MUSETALK_REPRO_WORKSPACE:-/workspace}/SoulX-FlashHead/.venv/bin/python"
+ACCEPTED="${MUSETALK_REPRO_ACCEPTED:-/workspace/experiments/avatar_diversity_20260927}"
+CORPUS="${MUSETALK_REPRO_CORPUS:-calibration/unet_multi_avatar_20260928}"
 RECIPE="${MUSETALK_REPRO_RECIPE:-docs/fps_comparisons/4070s_400fps_20260928/int8_study/recipe_gmac_0.50.json}"  # builder only (--set r5)
-PUBLISHED_R5=models/tensorrt_unet_stagewise_sm89_srcg50
-PUBLISHED_R2=models/tensorrt_unet_stagewise_sm89_srcmix
-RUNTIME_ENV=.runtime/musetalk_trt_local_sm89.env                 # read by every harness run (scripts/chin_multistream/gpu.py)
+PUBLISHED_R5="${MUSETALK_REPRO_COMPARISON_ROOT:-models/tensorrt_unet_stagewise_sm89_srcg50}"
+PUBLISHED_R2="${MUSETALK_REPRO_R2_ROOT:-models/tensorrt_unet_stagewise_sm89_srcmix}"
+RUNTIME_ENV="${MUSETALK_REPRO_RUNTIME_ENV:-.runtime/musetalk_trt_local_sm89.env}"
+export MUSETALK_REPRO_RUNTIME_ENV="$RUNTIME_ENV"
 ROOT_NAME="${MUSETALK_REPRO_ROOT:-tensorrt_unet_stagewise_sm89_r5}"
 ENGINE_ROOT="models/$ROOT_NAME"
 OUT="${MUSETALK_REPRO_OUT:-docs/fps_comparisons/repro_400fps}"
@@ -28,6 +29,7 @@ mkdir -p "$OUT" "$QRUNS_OUT"
 # knobs that change engine builds or the TAESD engine key without being recorded; the package runs with them unset
 for v in MUSETALK_TRT_AVG_TIMING_ITERS MUSETALK_TAESD_TRT_OPT_LEVEL MUSETALK_TAESD_TRT_STRONGLY_TYPED MUSETALK_TAESD_TRT_DIR \
          MUSETALK_TAESD_TRT_HW_COMPAT; do
+  [ "${MUSETALK_REPRO_EXPLICIT_PROFILE:-0}" = 1 ] && continue
   [ -n "${!v:-}" ] && echo "[repro] note: unsetting $v=${!v} (it would change the engines)" >&2
   unset "$v"
 done
@@ -40,6 +42,7 @@ tag() { local t; t="${MUSETALK_REPRO_TAG:-$(basename "$1" | sed 's/tensorrt_unet
 # ensure_runtime_env: every harness run reads $RUNTIME_ENV; install the recorded one when it is absent
 ensure_runtime_env() {
   if [ ! -e "$RUNTIME_ENV" ]; then
+    [ "${MUSETALK_REPRO_EXPLICIT_PROFILE:-0}" = 1 ] && die "explicit runtime profile is missing: $RUNTIME_ENV"
     mkdir -p "$(dirname "$RUNTIME_ENV")"
     cp "$PKG/musetalk_trt_local_sm89.env" "$RUNTIME_ENV"
     log "installed $RUNTIME_ENV from the published runs' record"

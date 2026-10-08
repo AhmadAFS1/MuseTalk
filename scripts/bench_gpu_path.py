@@ -302,7 +302,7 @@ def main() -> int:
 
     ev = [torch.cuda.Event(enable_timing=True) for _ in range(5)]
 
-    def run_batch(i: int):
+    def run_batch(i: int, check_finite: bool = False):
         cond_cpu, lat_cpu = inputs[i % len(inputs)]
         ev[0].record()
         audio_feature_batch = cond_cpu.to(device, non_blocking=True)
@@ -311,6 +311,8 @@ def main() -> int:
             torch.cuda.synchronize()
         ev[1].record()
         pred_latents = unet_model(latent_batch, timesteps, encoder_hidden_states=audio_feature_batch).sample
+        if check_finite and not bool(torch.isfinite(pred_latents).all()):
+            raise RuntimeError("nonfinite UNet output in untimed golden validation")
         if stage_sync:
             torch.cuda.synchronize()
         ev[2].record()
@@ -322,6 +324,8 @@ def main() -> int:
             ev[4].synchronize()
             return frames
         image = vae.decode_latents_tensor(pred_latents)
+        if check_finite and not bool(torch.isfinite(image).all()):
+            raise RuntimeError("nonfinite decoder output in untimed golden validation")
         if decode_sync:
             torch.cuda.synchronize(device)
         ev[3].record()
@@ -336,7 +340,7 @@ def main() -> int:
         # Golden pass: one batch per distinct input, SHA-256 of the uint8 BGR frames.
         golden = []
         for i in range(len(inputs)):
-            frames = run_batch(i)
+            frames = run_batch(i, check_finite=True)
             arr = frames if isinstance(frames, np.ndarray) else frames.numpy()
             golden.append(hashlib.sha256(np.ascontiguousarray(arr).tobytes()).hexdigest())
         combined = hashlib.sha256("".join(golden).encode()).hexdigest()
@@ -401,12 +405,16 @@ def main() -> int:
                      "taesd_compile_mode": getattr(vae_backend, "compile_mode", None),
                      "taesd_compile_enabled": getattr(vae_backend, "compile_enabled", None),
                      "stage_sync": stage_sync, "decode_sync": decode_sync, "post": args.post,
-                     "load_seconds": load_s},
+                     "load_seconds": load_s,
+                     "unet_describe": unet_model.describe() if hasattr(unet_model, "describe") else None,
+                     "decoder_trt_key": (getattr(vae_backend, "meta", None) or {}).get("key"),
+                     "decoder_trt_plan_sha256": (getattr(vae_backend, "meta", None) or {}).get("decoder_plan_sha256")},
         "env": env_report,
         "versions": {"torch": torch.__version__, "torch_tensorrt": torch_tensorrt.__version__,
                      "python": platform.python_version(), "gpu": torch.cuda.get_device_name(0)},
         "inputs": {"capture_dir": args.capture_dir, "files": used, "distinct_batches": len(inputs)},
-        "golden": {"per_input_sha256": golden, "combined_sha256": combined},
+        "golden": {"per_input_sha256": golden, "combined_sha256": combined,
+                   "finite_checked": args.post == "pinned", "finite_check_scope": "all distinct inputs, untimed golden pass"},
         "warmup": {"seconds": args.warmup, "batches": warmup_batches},
         "measured": {
             "batches": n, "frames": frames_total, "wall_s": wall,

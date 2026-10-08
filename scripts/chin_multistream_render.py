@@ -68,6 +68,8 @@ def parse_args(argv=None):
     ap.add_argument("--label", required=True)
     ap.add_argument("--out-root", default=str(paths.OUT_ROOT))
     ap.add_argument("--min-timed-s", type=float, default=0.0, help="flag the run if a repeat is shorter than this")
+    ap.add_argument("--thermal-warmup-s", type=float, default=0.0,
+                    help="untimed GPU warmup after CPU preparation; records final 30s thermal range")
     a = ap.parse_args(argv)
     a.identity_list = list(paths.IDENTITIES) if a.identities == "all" else [s for s in a.identities.split(",") if s]
     for ident in a.identity_list:
@@ -233,6 +235,16 @@ def run_multi(a, run_dir: Path) -> dict:
         record["mem_available_after_attach_gb"] = telemetry.mem_available_gb()
         facemesh_pids = {s: m[2]["facemesh_pid"] for s, m in attached.items()}
 
+        # Optional extra preconditioning; default preserves historical reproductions.
+        # It runs after CPU arenas are ready so preparation cannot cool the GPU again.
+        if not replay and a.thermal_warmup_s > 0:
+            thermal = telemetry.SmiSampler(500)
+            t_thermal = time.perf_counter()
+            with torch.inference_mode():
+                while time.perf_counter() - t_thermal < a.thermal_warmup_s:
+                    issuer.warmup(unique[0])
+            record["thermal_warmup"] = {"seconds": time.perf_counter() - t_thermal,
+                                        "last_30s": thermal.stop(tail_samples=60)}
         # ---- timed repeats
         reps = []
         for rep in range(a.repeats):

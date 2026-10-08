@@ -373,6 +373,7 @@ def build_engine_from_onnx(
     log_severity: str = "ERROR",
     int8: bool = False,
     hardware_compat: str = "none",
+    timing_cache_ignore_mismatch: bool = True,
 ):
     """ONNX bytes -> (serialized FP16 engine bytes, build seconds, updated timing cache bytes).
 
@@ -405,7 +406,8 @@ def build_engine_from_onnx(
     cache = None
     if use_timing_cache:
         cache = config.create_timing_cache(timing_cache or b"")
-        config.set_timing_cache(cache, ignore_mismatch=True)
+        if not config.set_timing_cache(cache, ignore_mismatch=timing_cache_ignore_mismatch):
+            raise RuntimeError("TensorRT rejected timing-cache compatibility")
     else:
         config.set_flag(trt.BuilderFlag.DISABLE_TIMING_CACHE)
     started = time.time()
@@ -725,6 +727,7 @@ class StagewiseTrtUnetBackend(torch.nn.Module):
         got = tensor_sha256(out)
         if got == expected:
             self.probe_status = "exact"
+            self.probe_validation = {"kind": "exact", "expected_sha256": expected, "actual_sha256": got}
             return
         tol = float(os.getenv("MUSETALK_UNET_STAGEWISE_PROBE_TOL", "0") or 0)
         ref_path = self.engine_dir / probe.get("output_file", "probe_output.pt")
@@ -734,6 +737,7 @@ class StagewiseTrtUnetBackend(torch.nn.Module):
             max_abs = float((out.float().cpu() - ref.float()).abs().max())
         if max_abs is not None and max_abs <= tol:
             self.probe_status = f"within_tol:{max_abs}"
+            self.probe_validation = {"kind": "within_tolerance", "max_abs": max_abs, "limit": tol}
             logger.warning("Stagewise UNet probe hash differs but max_abs %.3g <= tol %.3g", max_abs, tol)
             return
         # A hardware-compatible set on a GPU model other than its build GPU: kernels may round differently,
@@ -747,6 +751,8 @@ class StagewiseTrtUnetBackend(torch.nn.Module):
             rel = float((out.float().cpu() - ref).norm() / ref.norm())
             if rel <= float(cross):
                 self.probe_status = f"cross_gpu:rel_l2={rel:.3g}"
+                self.probe_validation = {"kind": "cross_gpu", "rel_l2": rel, "limit": float(cross),
+                                         "max_abs": max_abs, "expected_sha256": expected, "actual_sha256": got}
                 logger.warning("Stagewise UNet probe on %s (set built on %s): rel_l2 %.3g <= %.3g, max_abs %.3g",
                                device_name, self.manifest.get("gpu"), rel, float(cross), max_abs or 0.0)
                 return
@@ -875,6 +881,7 @@ class StagewiseTrtUnetBackend(torch.nn.Module):
             "activation_mib": self._chain.activation_bytes() / 2**20,
             "device_memory_sizes_mib": {k: v / 2**20 for k, v in self._chain.device_memory_sizes.items()},
             "probe_status": getattr(self, "probe_status", None),
+            "probe_validation": getattr(self, "probe_validation", None),
             "hardware_compatibility_level": hardware_compat_level(self.manifest.get("hardware_compatibility_level")),
         }
 

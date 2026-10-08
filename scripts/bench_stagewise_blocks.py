@@ -2,8 +2,8 @@
 
 For every engine set (--root, repeatable) and every block of its chain, one single-block StageChain is
 captured into a CUDA graph and timed; sets are interleaved block by block so power-cap clock drift hits
-them alike. Inputs are the probe batch traced through each block's chain predecessors, so value
-distributions are realistic (INT8 kernels are data-independent, but this keeps the harness honest).
+them alike. Inputs are independently randomized buffers, not captured speech. This is a synthetic
+diagnostic and is not full-pipeline throughput or quality evidence.
 Run under the GPU lease:
   scripts/box_guard.sh run --min-avail-gb 6 --label bench_blocks -- /workspace/.venvs/musetalk_trt_stagewise/bin/python \
       scripts/bench_stagewise_blocks.py --root models/tensorrt_unet_stagewise_sm89_srcmix --root ... --out x.json
@@ -81,10 +81,11 @@ def main() -> int:
                 e1.record()
                 e1.synchronize()
                 times[r][b].append(e0.elapsed_time(e1) / args.reps)
-    out = {"batch": args.batch, "rounds": args.rounds, "reps": args.reps, "seconds": time.time() - t0, "sets": {}}
+    out = {"batch": args.batch, "rounds": args.rounds, "reps": args.reps, "seconds": time.time() - t0,
+           "input_kind": "synthetic_random_buffers", "measurement_scope": "isolated_blocks_not_pipeline", "sets": {}}
     for r, s in sets.items():
         med = {b: sorted(v)[len(v) // 2] for b, v in times[r].items()}
-        out["sets"][r] = {"block_ms": med, "sum_ms": sum(med.values()), "engine_files": s["files"]}
+        out["sets"][r] = {"block_ms": med, "round_ms": times[r], "sum_ms": sum(med.values()), "engine_files": s["files"]}
     hdr = "%-10s" % "block" + "".join("%14s" % Path(r).name[-14:] for r in sets)
     print(hdr)
     for b in names:

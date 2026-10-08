@@ -1461,7 +1461,13 @@ def summarize_level(args, level, t_go, t_end, events, state, sampler, plan, reus
 
 async def coordinator(args) -> int:
     import aiohttp
-    topo = client_cpus_for_cores(args.client_cores)
+    if args.client_cpus:
+        selected = parse_cpu_list(args.client_cpus)
+        if not selected or not set(selected) <= set(os.sched_getaffinity(0)):
+            raise ValueError("--client-cpus must be a nonempty subset of the allocated CPUs")
+        topo = {"cpus": selected, "cores": "explicit_cpu_ids", "siblings": {}, "lscpu_agrees": None}
+    else:
+        topo = client_cpus_for_cores(args.client_cores)
     pin_error = pin_to(topo["cpus"]) if not args.no_pin else "disabled"
     print(f"[lt2] client cores {topo['cores']} -> CPUs {topo['cpus']} (siblings {topo['siblings']}, "
           f"lscpu agrees={topo['lscpu_agrees']}) pin_error={pin_error}", flush=True)
@@ -1665,6 +1671,7 @@ def parse_args(argv=None):
                    help="how each shard learns its turns ended: GET /webrtc/sessions/{id}/status per own session "
                         "(default), or the older GET /webrtc/sessions/stats?view=lifetime of every session")
     p.add_argument("--client-cores", default=DEFAULT_CLIENT_CORES, help="physical core ids for all client processes")
+    p.add_argument("--client-cpus", default="", help="explicit allocated logical CPU IDs/ranges; overrides --client-cores")
     p.add_argument("--no-pin", action="store_true")
     p.add_argument("--ring", type=int, default=64)
     p.add_argument("--poll-interval-s", type=float, default=1.0)

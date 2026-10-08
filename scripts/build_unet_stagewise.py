@@ -42,6 +42,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts import unet_stagewise_trt as sw  # noqa: E402
+from scripts import trt_timing_cache as timing_policy  # noqa: E402
 
 SEED_TIMING_CACHE = ROOT / "docs/fps_comparisons/4070s_300fps_20260927/unet_probe/tt16_timing_cache.bin"
 
@@ -207,6 +208,7 @@ def build_batch(args, batch: int, model, device) -> dict:
         "batch": batch,
         "tensorrt_version": trt.__version__,
         "torch_version": torch.__version__,
+        "cuda_version": torch.version.cuda,
         "gpu": torch.cuda.get_device_name(device),
         "compute_capability": list(torch.cuda.get_device_capability(device)),
         "unet_weights": {"path": "models/musetalkV15/unet.pth",
@@ -219,6 +221,10 @@ def build_batch(args, batch: int, model, device) -> dict:
     }
     if hw_compat != "none":
         base["hardware_compatibility_level"] = hw_compat
+    # Only the historical 4070 SUPER target may retain its legacy unlabelled seed.
+    # Other GPUs must time fresh or reuse cache bytes with matching provenance.
+    strict_cache = args.strict_timing_cache or base["gpu"] != "NVIDIA GeForce RTX 4070 SUPER" or base["compute_capability"] != [8, 9]
+    timing_policy.validate_resume(manifest, base, strict_cache)
     if manifest.get("spec") not in (None, spec) or manifest.get("batch") not in (None, batch):
         raise SystemExit(f"{manifest_path}: existing manifest has a different spec/batch; use a fresh --root")
     if manifest.get("blocks") and sw.hardware_compat_level(manifest.get("hardware_compatibility_level")) != hw_compat:
@@ -241,10 +247,10 @@ def build_batch(args, batch: int, model, device) -> dict:
     cache_path = Path(args.timing_cache).resolve() if args.timing_cache else root / "timing_cache.bin"
     cache_bytes = None
     if not args.no_timing_cache:
-        if cache_path.exists():
-            cache_bytes = cache_path.read_bytes()
-        elif SEED_TIMING_CACHE.exists() and hw_compat == "none":  # the seed was timed without hardware compat
-            cache_bytes = SEED_TIMING_CACHE.read_bytes()
+        cache_bytes, cache_source = timing_policy.select(cache_path, SEED_TIMING_CACHE, timing_policy.fingerprint(base),
+                                                        strict=strict_cache, allow_seed=hw_compat == "none")
+        manifest["timing_cache_input"] = cache_source
+        if cache_source["source"] == "legacy_4070_seed":
             manifest["timing_cache_seed"] = str(SEED_TIMING_CACHE.relative_to(ROOT))
     wanted = order if not args.blocks else [b for b in order if b in args.blocks.split(",")]
     int8_blocks = {b for b in (args.int8_blocks or "").split(",") if b}
@@ -348,13 +354,14 @@ def build_batch(args, batch: int, model, device) -> dict:
         engine_bytes, build_s, cache_out = sw.build_engine_from_onnx(
             onnx_bytes, opt_level=args.opt_level, workspace_gb=args.workspace_gb,
             timing_cache=cache_bytes, use_timing_cache=not args.no_timing_cache, int8=is_int8,
-            hardware_compat=hw_compat)
+            hardware_compat=hw_compat, timing_cache_ignore_mismatch=not strict_cache)
         mem1 = proc_mem()
         onnx_mb = len(onnx_bytes) / 2**20
         del onnx_bytes
         if cache_out is not None:
             cache_bytes = cache_out
             write_bytes_atomic(cache_path, cache_bytes)
+            timing_policy.record(cache_path, cache_bytes, timing_policy.fingerprint(base))
         entry = {"engine_file": engine_file, "onnx_sha256": onnx_sha, "onnx_mib": onnx_mb,
                  "export_s": export_s, "build_s": build_s, "build_flags": block_flags,
                  "inputs": blk["inputs"], "outputs": blk["outputs"],
@@ -448,6 +455,8 @@ def main() -> int:
     ap.add_argument("--timing-cache", default="", help="timing cache file (default <root>/timing_cache.bin, "
                     "seeded from the probe's tt16_timing_cache.bin)")
     ap.add_argument("--no-timing-cache", action="store_true")
+    ap.add_argument("--strict-timing-cache", action="store_true",
+                    help="no historical seed; require same-target cache metadata (automatic outside RTX 4070 SUPER sm89)")
     ap.add_argument("--blocks", default="", help="comma list of blocks to (re)build; default all")
     ap.add_argument("--force", action="store_true", help="rebuild even when the engine is up to date")
     ap.add_argument("--second-build", action="store_true", help="build twice, keep the faster engine per block")

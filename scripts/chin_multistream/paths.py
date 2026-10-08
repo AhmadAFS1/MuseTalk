@@ -3,13 +3,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
 WORKTREE = Path(__file__).resolve().parents[2]
 WORKFLOW = WORKTREE / "character_factory" / "h3_avatar_workflow"
-WORKSPACE = Path("/workspace")
-ACCEPTED_ROOT = WORKSPACE / "experiments" / "avatar_diversity_20260927"
+WORKSPACE = Path(os.environ.get("MUSETALK_REPRO_WORKSPACE", "/workspace")).resolve()
+ACCEPTED_ROOT = Path(os.environ.get("MUSETALK_REPRO_ACCEPTED", str(WORKSPACE / "experiments" / "avatar_diversity_20260927"))).resolve()
 IDENTITIES = (
     "black_man_short_beard",
     "black_woman",
@@ -18,7 +19,7 @@ IDENTITIES = (
     "south_asian_woman",
     "white_man_clean_shaven",
 )
-OUT_ROOT = WORKTREE / "docs" / "fps_comparisons" / "4070s_300fps_impl_20260928" / "chin_multistream"
+OUT_ROOT = Path(os.environ.get("MUSETALK_REPRO_CHIN_OUT", str(WORKTREE / "docs" / "fps_comparisons" / "4070s_300fps_impl_20260928" / "chin_multistream")))
 FACEMESH_PY = WORKSPACE / "SoulX-FlashHead" / ".venv" / "bin" / "python"
 BLENDING = WORKTREE / "musetalk" / "utils" / "blending.py"
 N_FRAMES = 240

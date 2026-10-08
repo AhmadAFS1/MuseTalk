@@ -68,10 +68,10 @@ cv2.setNumThreads(2)
 
 import chin  # noqa: E402  (unchanged accepted chin algorithm; imports musetalk.utils.blending from ROOT)
 
-FACEMESH_PY = Path("/workspace/SoulX-FlashHead/.venv/bin/python")
+FACEMESH_PY = Path(os.environ.get("MUSETALK_REPRO_WORKSPACE", "/workspace")) / "SoulX-FlashHead/.venv/bin/python"
 FACEMESH_HELPER = ROOT / "scripts/quality_ab_facemesh.py"
 OUT_ROOT = ROOT / "docs/fps_comparisons/4070s_300fps_impl_20260928/quality_metrics"
-DIV = Path("/workspace/experiments/avatar_diversity_20260927")
+DIV = Path(os.environ.get("MUSETALK_REPRO_ACCEPTED", "/workspace/experiments/avatar_diversity_20260927"))
 DIV_IDS = ["black_man_short_beard", "black_woman", "east_asian_man_goatee",
            "middle_eastern_man_full_beard", "south_asian_woman", "white_man_clean_shaven"]
 CFV = Path("/workspace/experiments/chin_fps_validation_20260927")
