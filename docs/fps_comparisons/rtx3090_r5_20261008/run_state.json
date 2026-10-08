@@ -97,7 +97,7 @@
       "readiness": "Verified portable health, one avatar warm, local media smoke; no EC2 usable-call proof",
       "development_measurement_revision": "aa1a531cabe60ce9faec45b39372db2d61ef69e9",
       "native_preparation_revision": "8112888",
-      "server_state": "Separate SHA-pinned x264tuned-only API432033 healthy through session41038, isolated127.0.0.1:8300/control plane disabled.16talking caches warm; fresh trialN1 session57339 running. Baseline API400470 stopped gracefully17:07:23 after N5FAIL; no EC2/browser readiness claim",
+      "server_state": "Separate SHA-pinned x264tuned-only API432033 healthy through session41038, isolated127.0.0.1:8300/control plane disabled.16talking caches warm; fresh trialN1 strictPASS, trialN3 session70361 running. Baseline API400470 stopped gracefully17:07:23 after N5FAIL; no EC2/browser readiness claim",
       "provider_status_observed_utc": "2026-10-08T11:17:36.914196+00:00",
       "provider_actual_status": "running",
       "recovery_reboot_sent": false,
@@ -263,6 +263,15 @@
       "x264tuned_trial": {"plan": "native/isolated_live_x264tuned_v1_plan.json", "plan_sha256": "2e9f78eafd39ada6a48982a49c49316314cf7282697b2bc96405a0b41bfa5488", "api_operator_session": 41038, "api_pid": 432033, "status": "HEALTHY_ISOLATED; FRESH_N1_IN_PROGRESS", "runtime_lever": "WEBRTC_H264_IMPL aiortc -> x264tuned; preset veryfast/thread1 activate; other runtime env unchanged except output root", "actual_startup_encoder": "x264tuned libx264 veryfast threads1; native UNet and TAESD key1e967e6e715c9f1a8375 built_nowFalse probeExact", "warm_report": "native/isolated_live_x264tuned_v1_warm_1709.json", "selected16_process_residency": "PASS; idle2400MiB still holds15 not16, active-stage residency required", "n1_operator_session": 57339, "scored_stages_required": "Restart at S0N1 then strict gatedN3/5/10/15; baseline results never copied as trial passes"},
       "heavy_archive_or_copy_work_during_scored_live": false
     },
+    "x264tuned_latest_stage": {
+      "n1_operator_session": 57339,
+      "n1_status": "TERMINAL_STRICT_PASS;114.4s steady, min anchored20fps, worst gap70.5ms,0gaps over100ms, actual H264 and x264tuned installedTrue/thread1",
+      "n1_report": "native/isolated_live_x264tuned_v1_s0_n1_1712.json",
+      "n1_preflight": "native/isolated_live_x264tuned_v1_s0_n1_preflight_1712.json",
+      "n3_operator_session": 70361,
+      "n3_status": "IN_PROGRESS; three peers ready after this trial's exact N1 strict PASS gate",
+      "release_ready": false
+    },
     "production48_media_preservation": {
       "first_operator_session_id": 13731,
       "status": "ALL48_MUXED_PIXEL_AND_AUDIO_PROOF_PASS; initial archive creation failed on old helper empty-directory semantics, no cloud writes",
@@ -307,6 +316,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Inspect fresh x264tuned N1 exact strict verdict; advance N3/5/10/15 only after preceding trial-specific PASS. Persist private raw live traces and continue native-quality/cold-start diagnosis without promoting rejected native v1",
+  "next_action": "Inspect fresh x264tuned N3 exact strict verdict in session70361; advance5/10/15 only after preceding trial-specific PASS. Persist private raw live traces and continue native-quality/cold-start diagnosis without promoting rejected native v1",
   "next_command": "Baseline N3 strictPASS, N5validFAIL ended1; no escalation. API400470 stopped gracefully0OOM17:07:23. x264tuned-only planSHA2e9f78ea API432033 healthy session41038; warm16PASS and N1session57339 running. All heavy A1 copies finished before this timed trial. S3 operator73525 ended0 all3 conditional PUT/exact-version GETSHA PASS; clean restores101/100/100files and293unique payloads/all48poses reverified in native48_private_persistence_and_restore_1712.json. Raw baseline traces/API log safely offworker but not yet privateS3persisted; never publicGitrawlog. Dependency CI runtime basePASS37.257% smaller, no GPU/coldboot proof; startup/optimization_assessment_1701.json measured critical-path caveats. Rejected native numerical/full400FPS gates remain failures. Expiry19:00UTC; reserved9.584739583USD of30, invoices unavailable. Quota5%used/95%remaining16:58UTC, no reset/purchase or new agents."
 }

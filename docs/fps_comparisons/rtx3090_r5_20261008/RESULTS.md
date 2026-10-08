@@ -276,3 +276,7 @@ talking process caches and is running fresh S0N1. It cannot inherit the baseline
 passes. Production, native quality rejection and full-recipe400FPS failures
 remain unchanged. The [startup assessment](startup/optimization_assessment_1701.json)
 separates measured preparation from still-unmeasured cold-call readiness.
+
+The tuned trial's fresh S0N1 subsequently passed:114.4s steady, anchored20fps,
+worst gap70.5ms, no gaps over100ms, actual H264 and installed x264tuned/thread1.
+Its new three-stream stage is running under the exact trial-specific PASS gate.
