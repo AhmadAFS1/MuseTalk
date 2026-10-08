@@ -10,6 +10,10 @@ import preserve_a2_evidence as h
 
 
 class A2EvidenceTests(unittest.TestCase):
+    # Identity is mocked independently of the temporary payload/output paths.
+    # No test creates or writes to this production checkout path.
+    OPERATOR_ROOT = Path('/Users/ahmadsmacair/code/musetalk-r5-execution')
+
     def test_real_descriptor(self):
         path = Path(__file__).resolve().parents[2] / h.BASE.removeprefix('MuseTalk/') / 'provisioning/a2_owned_target.json'
         self.assertEqual(h.descriptor(path)['instance_id'], h.INSTANCE)
@@ -118,11 +122,22 @@ class A2EvidenceTests(unittest.TestCase):
         return SimpleNamespace(receipt=receipt, receipt_sha256=h.operator.sha_file(receipt),
                                mode=mode, out=base / 'persistence.json')
 
+    def test_wrong_operator_root_refused_before_payload_or_cloud_access(self):
+        with patch.object(h.operator, 'ROOT', Path('/synthetic/nonoperator-checkout')), \
+             patch.object(h, 'load_pack') as load, patch.object(h.privacy, 'produce') as privacy, \
+             patch.object(h.operator, 'cli') as cli:
+            with self.assertRaisesRegex(ValueError, 'fixed operator checkout required'):
+                h.persist(SimpleNamespace())
+        load.assert_not_called()
+        privacy.assert_not_called()
+        cli.assert_not_called()
+
     def test_no_upload_when_privacy_unavailable(self):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
             receipt, _ = self.make_pack(base)
-            with patch.object(h.operator, 'RELEASE', base), patch.object(h.privacy, 'produce', side_effect=ValueError()), \
+            with patch.object(h.operator, 'ROOT', self.OPERATOR_ROOT), patch.object(h.operator, 'RELEASE', base), \
+                 patch.object(h.privacy, 'produce', side_effect=ValueError()), \
                  patch.object(h.operator, 'cli') as cli:
                 self.assertEqual(h.persist(self.persist_args(receipt, base)), 2)
                 cli.assert_not_called()
@@ -142,7 +157,8 @@ class A2EvidenceTests(unittest.TestCase):
                     Path(arguments[-1]).write_bytes((base / row['archive']).read_bytes())
                     return {}
                 raise AssertionError(operation)
-            with patch.object(h.operator, 'RELEASE', base), patch.object(h.privacy, 'produce', return_value={}), \
+            with patch.object(h.operator, 'ROOT', self.OPERATOR_ROOT), patch.object(h.operator, 'RELEASE', base), \
+                 patch.object(h.privacy, 'produce', return_value={}), \
                  patch.object(h.operator, 'cli', side_effect=cli):
                 self.assertEqual(h.persist(self.persist_args(receipt, base)), 0)
             self.assertEqual([c[0] for c in calls], ['put-object', 'head-object', 'get-object', 'head-object'])
@@ -155,7 +171,8 @@ class A2EvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
             receipt, _ = self.make_pack(base)
-            with patch.object(h.operator, 'RELEASE', base), patch.object(h.privacy, 'produce', return_value={}), \
+            with patch.object(h.operator, 'ROOT', self.OPERATOR_ROOT), patch.object(h.operator, 'RELEASE', base), \
+                 patch.object(h.privacy, 'produce', return_value={}), \
                  patch.object(h.operator, 'cli', side_effect=ValueError()) as cli:
                 self.assertEqual(h.persist(self.persist_args(receipt, base, 'reconcile-read-only')), 2)
                 self.assertEqual(cli.call_args.args[0], 'head-object')

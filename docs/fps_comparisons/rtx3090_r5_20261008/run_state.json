@@ -82,7 +82,8 @@
     "SelectedoperatorCPUworkflow150testsPASS onPython3.12.14/NumPy2.3.5; actualA2geometry25testsPASS. IsolatedFP32-finalConv ONNXproposal14CPUtestsPASS withactualONNX onA2; noactualmodelgraphtransformation, enginebuild orquality/performanceacceptance.",
     "AllfiveprivateA2archives conditionalPUT/versionboundfreshGET/allpayloadSHA PASS. Geometry-v2 persistencefinished23:43:14UTC,79108045bytes/24payloads, andall12smalllocalfilesmatchremoteSHA. Timerfreshread23:38:46activewaiting23:45UTC; reservationtotal12.717528211805556 unchanged, notactualbilling.",
     "Final selected eleven-suite operator CPU run:164tests,157PASS,7explicit real-ONNX dependencySKIP,0FAIL onPython3.12.14/NumPy2.3.5. A2 independentlyran all14final-Conv tests withactualONNX and0SKIP/FAIL. NewLinuxCI notyetobserved.",
-    "A2 scheduled non-forced expiry destroyed exact54909897 at23:45:02.396453UTC; service journal finished successfully and independent providerGET23:45:31.937145UTC foundIDabsent. Safe cleanup evidence retained; clearedunits alone notusedasproof. Allfivearchivesprivatelyverifiedbeforeexpiry. NoownedrentedGPU remains, protected4070nottargeted, reservationsunchanged/notactualbilling."
+    "A2 scheduled non-forced expiry destroyed exact54909897 at23:45:02.396453UTC; service journal finished successfully and independent providerGET23:45:31.937145UTC foundIDabsent. Safe cleanup evidence retained; clearedunits alone notusedasproof. Allfivearchivesprivatelyverifiedbeforeexpiry. NoownedrentedGPU remains, protected4070nottargeted, reservationsunchanged/notactualbilling.",
+    "Exact3422312 lightweightLinuxCI37861781743 failed:144PASS,3NumPySKIP,3preservationfixtureERROR; finalTAESDsuite notrun. Tests omittedfixedoperatorROOTmock; unchangedproductionguard correctlyrefusedLinux. Fixture-only repair addswrong-root earlyrefusal;13testsPASSnormal andindependentsyntheticLinuxroot. Nohelper/guard/GPU/cloud/defaultchanges; correctedLinuxCIpending."
   ],
   "budget": {
     "currency": "USD",
@@ -478,8 +479,10 @@
       "final_eleven_suite_operator_tests_failed": 0,
       "power_wrapper_tests_passed": 19,
       "credential_bridge_tests_passed": 22,
-      "preservation_tests_passed": 12,
-      "new_linux_ci_outcome": "NOT_OBSERVED",
+      "preservation_tests_passed": 13,
+      "preservation_synthetic_linux_root_tests_passed": 13,
+      "failed_linux_ci_evidence": "harnesses/a2_candidate_linux_ci_failure_2355.json",
+      "new_linux_ci_outcome": "FAILED_FIXTURE_ROOT_MOCK_3422312_CORRECTED_RUN_PENDING",
       "scope": "Synthetic hardware/cloud adapters and local temporary files only; no GPU, SSH, credentials or cloud actions",
       "actual_controlled_power_result": "INVALID_POWER_SET_REFUSED_NO_BENCHMARK",
       "release_quality_accepted": false

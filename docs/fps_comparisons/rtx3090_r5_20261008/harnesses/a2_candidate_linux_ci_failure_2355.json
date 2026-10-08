@@ -1,0 +1,40 @@
+{
+  "schema": "musetalk_lightweight_cpu_ci_readback_v1",
+  "status": "FAIL_PRESERVED_TEST_FIXTURE_PORTABILITY",
+  "head_sha": "3422312acc365e34b8628469530ddf43663ed28b",
+  "workflow": "MuseTalk ordered tracking CPU contracts",
+  "run_id": 37861781743,
+  "job_id": 113598980489,
+  "url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37861781743",
+  "completed_utc": "2026-10-08T23:53:20Z",
+  "observation_method": "Public GitHub run/jobs REST metadata and established read-only protected-host gh API for the exact job log",
+  "job_log_sha256": "e3ba133c98f31d3311bedca2970367589a41c950c91681ddffa4f5444525f53f",
+  "job_log_bytes": 45600,
+  "tests_run_before_set_e_stop": 150,
+  "tests_passed": 144,
+  "tests_numpy_dependency_skipped": 3,
+  "tests_errored": 3,
+  "final_taesd_14_test_suite_reached": false,
+  "failure": {
+    "suite": "test_preserve_a2_evidence.A2EvidenceTests",
+    "tests": [
+      "test_conditional_upload_and_version_bound_fresh_get",
+      "test_no_upload_when_privacy_unavailable",
+      "test_reconcile_does_not_put"
+    ],
+    "exception": "ValueError: fixed operator checkout required",
+    "cause": "Synthetic tests patched operator.RELEASE and cloud adapters but not operator.ROOT; Linux checkout correctly fails the unchanged Mac-only production guard"
+  },
+  "local_fixture_repair": {
+    "production_helper_sha256_unchanged": "e16ad107dfc3280f6812146287c1a0e054060cd6006356427c7d6152a4cff195",
+    "test_file_sha256": "7467fb2d51c2c25bcf08602bf3ab951ade41552b698f0220738e495ec9ed45f7",
+    "changes": "Mock fixed operator identity only in three synthetic paths; add wrong-root refusal before payload/privacy/cloud access",
+    "tests_passed": 13,
+    "independent_synthetic_linux_root_invocation_passed": 13,
+    "new_linux_ci_outcome": "NOT_YET_OBSERVED"
+  },
+  "only_lightweight_workflow_triggered": true,
+  "remote_file_writes_or_gpu_actions": false,
+  "production_guard_weakened": false,
+  "release_ready": false
+}

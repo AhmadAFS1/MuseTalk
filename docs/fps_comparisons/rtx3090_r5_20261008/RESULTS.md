@@ -28,8 +28,17 @@ shared reservation remains $12.717528 of the $30 cap, not finalized billing.
 The final selected eleven-suite operator CPU run reports 164 tests: 157 passed,
 seven real-ONNX tests explicitly skipped because ONNX is absent locally, and
 zero failures. Those fourteen final-Conv tests separately passed with actual
-ONNX on A2. New Linux CI remains unobserved until the source push and readback.
+ONNX on A2.
 Quality, 400 FPS, publication and startup acceptance remain unmet.
+
+The exact checkpoint's [Linux CI failed](harnesses/a2_candidate_linux_ci_failure_2355.json):
+144 passed, three NumPy skips and three preservation-test errors; the final
+TAESD suite was not reached. The synthetic tests omitted the fixed operator-root
+mock, so the production Mac-only safety guard correctly refused the Linux path.
+Only test fixtures were repaired. All thirteen preservation tests now pass both
+normally and with an independently simulated nonoperator/Linux root, including
+new rejection-before-payload/cloud coverage. The production helper is byte-identical;
+the new Linux result is pending, not inferred from local passes.
 
 ### 23:39 UTC geometry-controlled preparation repeats exactly
 
