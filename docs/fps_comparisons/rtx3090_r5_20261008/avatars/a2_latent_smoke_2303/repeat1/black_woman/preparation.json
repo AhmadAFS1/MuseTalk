@@ -1,0 +1,29 @@
+{
+  "status": "complete",
+  "signature": "818f466969e06e83a69e13967415cc32f0234739645c880559412381d9186aff",
+  "finished_utc": "2026-10-08T23:03:32Z",
+  "artifacts": {
+    "/workspace/experiments/latent_seed123_smoke_a2_2303/repeat1/black_woman/cache.pt": "eb618a556a95e619f27ad5627cb520b8fa28b1c39b1afe54c812b4fbd40ddb4b",
+    "/workspace/experiments/latent_seed123_smoke_a2_2303/repeat1/black_woman/masks.npz": "da0090b4cc571ea814782e0c391266ca1cf5d2d2e01ef02b290e3942454627b6"
+  },
+  "seconds": 61.14114011800848,
+  "frames": 240,
+  "encoder": "Native MuseTalk FP16 SD-VAE",
+  "seed": 123,
+  "mask": "jaw, cheeks90, bbox lower margin10",
+  "source_sha256": "149952bb1e2355b4a02ab139b2446cd1dcd5e01d46e42ddf76fc7ae9efac34e7",
+  "audio_sha256": "8628701b894babe55b8e04769363925528e50c1352d3edcebf1d31a44a65247e",
+  "audio_features_sha256": "73d8986ec5207db93cfd73a1ef8b928171263d9abcd23f7f15591c3776da2955",
+  "model_and_audio_code_sha256": {
+    "models/sd-vae/diffusion_pytorch_model.bin": "1b4889b6b1d4ce7ae320a02dedaeff1780ad77d415ea0d744b476155c6377ddc",
+    "models/sd-vae/config.json": "92d3dfb746fca211a2c9e019e285f8597412211728dce3c5bcf4eda0f2d62e7e",
+    "models/whisper/pytorch_model.bin": "9607f98a2b22d9e229ae43c52ecea79dcede9e0c5cfae67e8da6eda86d8aac1d",
+    "models/whisper/config.json": "ffdccec4f3211f4c63310f2b7098f309fe70f3952cedc5e4d11e43f5b2379b98",
+    "models/whisper/preprocessor_config.json": "9b5cd03a36fbb8a627c64d98a5b5b126ead95a77720723944487311f0110b666",
+    "musetalk/models/unet.py": "05d5dadfde2e726b61d8387a4876336d4dcacc696636e8dcfec69863ce819256",
+    "musetalk/utils/audio_processor.py": "91d521a249adf5ca8426c0011f73f61a28b5fb784e9e7de788f196c24e3d8fbb"
+  },
+  "torch": "2.5.1+cu121",
+  "numpy": "1.23.5",
+  "opencv": "4.9.0"
+}

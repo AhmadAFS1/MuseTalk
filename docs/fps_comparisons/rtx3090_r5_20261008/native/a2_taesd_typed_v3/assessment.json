@@ -1,0 +1,316 @@
+{
+  "schema": "a2_typed_decoder_frozen_subset_assessment_v1",
+  "candidate_key": "6a88814164891fd4cd7a",
+  "measurement_class": "measured_on_current_owned_rtx3090",
+  "gate_sha256": "79dacd45767d6c7cd3ec49f82c9d32d3a4135302e447b0c2bf6642615d888280",
+  "reference_envelope_sha256": "8c2c25961109171f5bd18f88d3bf9f0433b9cba31e48f19869cd75a25e7471e4",
+  "scope": "Only 88 TAESD statistics. Original UNet JSON is used solely to satisfy the parser and is not reevaluated. This is not a full 698-bound quality assessment.",
+  "original_strict_gate": {
+    "G_TAESD_full_max": 6,
+    "G_TAESD_full_mean": 0.06763140644345965,
+    "G_TAESD_rows104_max": 3,
+    "G_TAESD_rows104_mean": 0.0631663267475023,
+    "thresholds": {
+      "max_lsb": 3,
+      "mean_lsb": 0.2
+    },
+    "fused_post_mismatched_bytes": 0,
+    "fused_frames": 3584,
+    "rerun_mismatched_bytes": 0,
+    "G_TAESD": "FAIL",
+    "bit_exact_checks": "PASS",
+    "verdict": "FAIL"
+  },
+  "fingerprint": {
+    "recipe": "taesd_decoder_fp16_full_height_v1",
+    "post_recipe": "bgr_u8_nhwc_post_fp32_rne_v1",
+    "tensorrt": "10.3.0",
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "compute_capability": "8.6",
+    "onnx_sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb",
+    "batch": 8,
+    "latent_shape": [
+      8,
+      4,
+      32,
+      32
+    ],
+    "precision": "fp16",
+    "opt_level": 3,
+    "strongly_typed": true
+  },
+  "engine": {
+    "key": "6a88814164891fd4cd7a",
+    "fingerprint": {
+      "recipe": "taesd_decoder_fp16_full_height_v1",
+      "post_recipe": "bgr_u8_nhwc_post_fp32_rne_v1",
+      "tensorrt": "10.3.0",
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "compute_capability": "8.6",
+      "onnx_sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb",
+      "batch": 8,
+      "latent_shape": [
+        8,
+        4,
+        32,
+        32
+      ],
+      "precision": "fp16",
+      "opt_level": 3,
+      "strongly_typed": true
+    },
+    "decoder_plan": "taesd_trt_6a88814164891fd4cd7a.decoder.plan",
+    "decoder_plan_sha256": "9f682932c6e11c1b91857733a772a56029f685bb2a85fe1ce4270bf77f11d6f9",
+    "decoder_plan_bytes": 3216708,
+    "post_plan": "taesd_trt_6a88814164891fd4cd7a.post_bgr_u8.plan",
+    "post_plan_sha256": "408c5027c1c7aaf8033cdfe41f21905200eee3529d78f75f5a963beb19b547dd",
+    "post_plan_bytes": 16244,
+    "probe": {
+      "probe_seed": 20260928,
+      "probe_shape": [
+        8,
+        4,
+        32,
+        32
+      ],
+      "fp16_sha256": "78e4298088a6b0a051beb68958b5d2369c1266b9b6222169a06fae31eefb8448",
+      "u8_repo_post_sha256": "5dd67aef8ae3d29ea9cac2900bd3ce0bd2e9f0d0aba4b511f6b4406a8d9a218e",
+      "u8_fused_sha256": "5dd67aef8ae3d29ea9cac2900bd3ce0bd2e9f0d0aba4b511f6b4406a8d9a218e",
+      "fused_vs_repo_post_mismatched_bytes": 0
+    },
+    "build": {
+      "created_utc": "2026-10-08T23:06:16Z",
+      "decoder_build_s": 14.97,
+      "post_build_s": 2.4,
+      "torch": "2.5.1+cu121",
+      "pid": 39146,
+      "timing_cache": "taesd_trt_timing.cache",
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "compute_capability": "8.6",
+      "hardware_compatibility_level": "none"
+    }
+  },
+  "bounds_evaluated": 88,
+  "bounds_failed": 36,
+  "failed_bounds": [
+    {
+      "metric": "taesd.G_TAESD_full_max",
+      "value": 6,
+      "limit": 5,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.G_TAESD_full_mean",
+      "value": 0.06763140644345965,
+      "limit": 0.06751832365989686,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chin_h3_japanese_new.full.mean",
+      "value": 0.07138643662134807,
+      "limit": 0.0712867577870687,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chin_h3_japanese_new.full.frac_nonzero",
+      "value": 0.0713688333829244,
+      "limit": 0.07127213478088379,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chin_h3_japanese_new.rows104.mean",
+      "value": 0.0691913136264734,
+      "limit": 0.06912980999862939,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chin_h3_japanese_new.rows104.frac_nonzero",
+      "value": 0.0691913136264734,
+      "limit": 0.06912977653637267,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chin_h3_latina_new.full.mean",
+      "value": 0.062427679697672524,
+      "limit": 0.06204996506373087,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chin_h3_latina_new.full.frac_nonzero",
+      "value": 0.06240880489349365,
+      "limit": 0.06203130880991618,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chin_h3_latina_new.rows104.mean",
+      "value": 0.056455913342927634,
+      "limit": 0.05631781460946066,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chin_h3_latina_new.rows104.frac_nonzero",
+      "value": 0.056455545258103756,
+      "limit": 0.056317580373663655,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chinese_bob_pink_bedroom_talking_3373c10448.full.max",
+      "value": 4,
+      "limit": 3,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chinese_bob_pink_bedroom_talking_3373c10448.full.mean",
+      "value": 0.06865113973617554,
+      "limit": 0.06852867205937704,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chinese_bob_pink_bedroom_talking_3373c10448.full.frac_nonzero",
+      "value": 0.06864456335703532,
+      "limit": 0.06852251291275024,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chinese_bob_pink_bedroom_talking_3373c10448.rows104.mean",
+      "value": 0.06715085213644463,
+      "limit": 0.06711641947428386,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.chinese_bob_pink_bedroom_talking_3373c10448.rows104.frac_nonzero",
+      "value": 0.06715055097613418,
+      "limit": 0.06711625216300028,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_black_man_short_beard.full.mean",
+      "value": 0.05883429447809855,
+      "limit": 0.058334668477376304,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_black_man_short_beard.full.frac_nonzero",
+      "value": 0.05881510178248087,
+      "limit": 0.05831803878148397,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_black_man_short_beard.rows104.mean",
+      "value": 0.053425604836982596,
+      "limit": 0.053176478335731914,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_black_man_short_beard.rows104.frac_nonzero",
+      "value": 0.05341774120665433,
+      "limit": 0.05317075628983347,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_black_woman.full.mean",
+      "value": 0.062422990798950195,
+      "limit": 0.06222593784332276,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_black_woman.full.frac_nonzero",
+      "value": 0.062404235204060875,
+      "limit": 0.0622094472249349,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_east_asian_man_goatee.full.max",
+      "value": 6,
+      "limit": 5,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_middle_eastern_man_full_beard.full.max",
+      "value": 5,
+      "limit": 3,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_middle_eastern_man_full_beard.full.mean",
+      "value": 0.07010926802953084,
+      "limit": 0.0698292056719462,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_middle_eastern_man_full_beard.full.frac_nonzero",
+      "value": 0.07009724775950114,
+      "limit": 0.06982070207595825,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_middle_eastern_man_full_beard.rows104.mean",
+      "value": 0.06314639041298314,
+      "limit": 0.06301615530984445,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_middle_eastern_man_full_beard.rows104.frac_nonzero",
+      "value": 0.06314555385656524,
+      "limit": 0.06301602146081756,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.div_south_asian_woman.full.max",
+      "value": 4,
+      "limit": 3,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.indian_realtime_talking_20f9845543.full.max",
+      "value": 4,
+      "limit": 3,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.indian_realtime_talking_20f9845543.full.mean",
+      "value": 0.06578624248504639,
+      "limit": 0.06549485524495442,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.indian_realtime_talking_20f9845543.full.frac_nonzero",
+      "value": 0.06577430168787639,
+      "limit": 0.0654845635096232,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f.rows104.max",
+      "value": 3,
+      "limit": 2,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f_fh1.rows104.mean",
+      "value": 0.06979811818976152,
+      "limit": 0.06975488495408441,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f_fh1.rows104.frac_nonzero",
+      "value": 0.06979798434073464,
+      "limit": 0.06975481802957098,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.latina_guided_20260925_talking_84c5bc80b8.full.mean",
+      "value": 0.06622312466303508,
+      "limit": 0.0660018523534139,
+      "status": "FAIL"
+    },
+    {
+      "metric": "taesd.avatar.latina_guided_20260925_talking_84c5bc80b8.full.frac_nonzero",
+      "value": 0.06620422999064128,
+      "limit": 0.06598267952601115,
+      "status": "FAIL"
+    }
+  ],
+  "frozen_bounds_changed": false,
+  "release_ready": false,
+  "decision": "rejected"
+}

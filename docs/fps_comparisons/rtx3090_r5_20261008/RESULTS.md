@@ -8,10 +8,171 @@ This is a live evidence index, not a completed release claim. The protected RTX
 | Measurement | Current result |
 |---|---|
 | GPU-path FPS | Native v1: 385.75668080919866 / 388.64419629013895; earlier portable: 278.288586320095 / 277.4908139113453. Separate ≥180 s windows; diagnostic, not full-recipe FPS |
-| Full-recipe aggregate FPS | Native T: 252.59611538153948 / 230.39816210925395; SUST: 231.089–246.552. Recovered portable control T: 253.59753865499397 / 240.87736112161846. Valid failures against their unchanged 400 / 300 targets |
-| Native quality | Rejected: 236 / 698 frozen bounds fail; full-frame TAESD max 7 LSB versus reference 5. No bounds widened |
+| Full-recipe aggregate FPS | Latest A2 native overlap T: 356.59394751135187 / 355.3897959226974 over 96.917 / 97.245 s; valid FAIL against unchanged 400. Earlier A1 native T: 252.59611538153948 / 230.39816210925395; SUST: 231.089–246.552. Recovered portable control T: 253.59753865499397 / 240.87736112161846; original failures retained |
+| Native quality | Original v1 rejected: 236 / 698 frozen bounds fail; TAESD max 7 LSB versus reference 5. Separate typed-v3 decoder also rejected: max 6 LSB and 36 / 88 TAESD bounds fail; not a new full-698 assessment. No bounds widened |
 | Live delivery / capacity | Both software-H264 profiles N1/N3 strictPASS/N5 validFAIL. NVENC N1FAIL,0hardware opens/18open failures; PyAV/FFmpeg standalone probes alsoFAIL. No accepted capacity or EC2 release claim |
 | Request-to-usable-call startup | Still unmeasured through EC2/TURN. Request-to-verified-health was 1,046.45 s (17m26s), not usable-call readiness |
+
+### 23:46 UTC A2 expiry verified; no rented test GPU remains
+
+The [scheduled-expiry observation](provisioning/a2_expiry_observation_2346.json)
+confirms non-forced destruction of the exact owned instance `54909897` at
+23:45:02.396453 UTC. The expiry service finished successfully, and an independent
+provider GET at 23:45:31.937145 UTC found that ID absent. Cleared transient units
+alone were not treated as completion proof. The protected 4070 was not targeted.
+Do not reconnect to the retired A2 SSH alias or reuse its resource descriptor.
+
+All five experiment archives were verified in private storage before expiry;
+the experiment results remain recoverable without retaining the rental. The
+shared reservation remains $12.717528 of the $30 cap, not finalized billing.
+The final selected eleven-suite operator CPU run reports 164 tests: 157 passed,
+seven real-ONNX tests explicitly skipped because ONNX is absent locally, and
+zero failures. Those fourteen final-Conv tests separately passed with actual
+ONNX on A2. New Linux CI remains unobserved until the source push and readback.
+Quality, 400 FPS, publication and startup acceptance remain unmet.
+
+### 23:39 UTC geometry-controlled preparation repeats exactly
+
+The separately named [geometry-v2 smoke](avatars/a2_latent_geometry_2335/comparison.json)
+ran 23:36:07.756870–23:38:35.892049 UTC and finished
+**PASS_REPEAT_EXACT_DIAGNOSTIC_ONLY**, both children exit 0. Both runs have
+exactly 240 successful pre-DWPose flag receipts and the original post-detector
+reset. All latent/audio/box/cropbox values and all 240 masks match exactly.
+The native FP16 encoder, seed123 placement, source, math and precision are unchanged.
+
+Audio and both geometries also match the historical cache exactly. Historical
+latents still differ (max 0.04974365234375, mean 0.000185378117748769), and 41 mask
+arrays differ: this is a distinct new preparation candidate, not a latents-only
+change or a quality/FPS acceptance. Do not replace frozen inputs or original caches.
+All-six expansion and rendered-output validation remain required.
+
+All five private archives have passed conditional upload, version-bound fresh
+download and every payload SHA check. The [geometry-v2 proof](release/a2_latent_geometry_private_persistence_2342.json)
+finished 23:43:14 UTC: 79,108,045 bytes and all 24 payload hashes verified, before
+the unchanged 23:45 UTC expiry. All 12 small local geometry files also match their
+remote SHA-256 values. Preservation never upgrades
+the experiments' original outcomes. The earlier ten-suite CPU run passed all 150
+tests on operator Python3.12.14/NumPy2.3.5, and geometry-v2's 25 tests passed on A2.
+The expanded eleven-suite result and actual expiry are recorded above.
+
+An isolated final-convolution FP32-island ONNX proposal has 14 actual CPU tests
+passing on A2, including real ONNX checker/shape-inference and mutation proofs.
+It has not transformed the actual TAESD graph, built an engine, or run a quality
+gate; canonical loaders/defaults are unchanged. A reviewed strongly typed builder
+with TF32 disabled and the full unchanged quality gate are still needed.
+
+### 23:30 UTC fixed-cuDNN repeat failed; host refused power changes
+
+The [fixed-cuDNN one-avatar smoke](avatars/a2_latent_fixed_cudnn_2318/comparison.json)
+ran 23:25:48–23:28:09 UTC and finished **FAIL_REPEAT_CHANGED**, with both children
+exiting 0. Audio now matches exactly across repeats and the historical tensor
+(`0784da8560b3a51dd26eb0c37739c96cfb2dcd68f139592f83389849c4c2ecf3`).
+This is improved audio repeatability, not an all-component pass: one face-box
+value and three cropbox values differ by 2 px; 7,809 latent values differ
+(max 2.48291015625, mean 0.0005282640837322106). The only changed mask is frame123,
+whose shape is 530×530 versus 528×528. Both runtime receipts show the intended
+post-detector `benchmark=True → False` reset. Historical versus repeat1 still
+changes geometry and 43 masks; it is not a latents-only experiment. No all-six
+expansion, quality, FPS or startup acceptance follows.
+
+All ten small plan/comparison/runtime/preparation/log/watch files were copied
+read-only and their SHA-256 values matched remote readback (353,670 bytes total).
+No cache tensors, NPZs, PNGs or media were copied in this update.
+
+The [bounded 350 W power attempt](native/a2_power350_2320_power/power-receipt.json)
+is **INVALID: power_set_refused** at 23:30:20 UTC. The 350 W setter returned 4,
+so the canonical benchmark never started and no 350 W FPS result exists. The
+300 W restore setter also returned 4: `restore.verified=false` remains intact.
+Readback in that receipt nevertheless shows the exact GPU still at 300 W,
+46°C, 0% utilization and 1 MiB used. This is unchanged-limit readback, not a
+successful restoration operation. The 5,850-byte receipt was copied with matching
+remote/local SHA-256; no permission bypass or new power attempt was made here.
+
+Local source inspection identifies a narrower remaining geometry hypothesis:
+S3FD sets benchmarking true between DWPose calls, while the v1 reset occurs only
+after all 240 detector iterations. DWPose landmarks are truncated to integers
+before box construction; a small landmark boundary change can affect geometry.
+Neither smoke log reports a fallback detector box. A distinct default-off v2
+adapter now additionally resets benchmarking immediately before each original
+`inference_topdown` call and requires 240 successful flag receipts. Its 25 CPU
+tests pass; root review/GPU evaluation remains separate. No canonical math,
+model, seed placement or precision setting changed. Its actual repeat result is
+recorded above. Preserve failed evidence and
+honor 23:45 UTC expiry; do not infer 400 FPS or quality acceptance.
+
+### Typed-v3 decoder rejection and lightweight workflow
+
+The [typed-v3 assessment](native/a2_taesd_typed_v3/assessment.json) is terminal
+**FAIL**. The [gate](native/a2_taesd_typed_v3/gate/gate_taesd_trt.json) evaluated
+448 captures / 3,584 frames: full-frame max/mean error 6 LSB /
+0.06763140644345965, and 104-row max/mean 3 / 0.0631663267475023. Fused-post and
+rerun mismatched-byte counts are both zero. Exact reruns do not imply accuracy:
+36/88 frozen TAESD bounds fail, versus 32/88 for the earlier rejected native
+decoder. Only those 88 statistics were assessed; UNet and the complete 698-bound
+quality comparison were not rerun. Original failures and quality bars remain.
+
+The expanded lightweight CPU workflow passes 145 tests locally on Python3.12.14
+with NumPy. The power wrapper's 19 tests, credential bridge's 22 tests and
+preservation helper's 12 tests pass independently. Their hardware/cloud actions
+are mocked; this is not a power experiment, private upload or new Linux CI result.
+The workflow adds only test paths/invocations, with no dependency downloads,
+Docker build, credentials or remote resource actions.
+
+### 23:05 UTC canonical preparation repeat failed; no six-avatar expansion
+
+The [one-avatar seed123 smoke](avatars/a2_latent_smoke_2303/comparison.json)
+finished **FAIL_REPEAT_CHANGED** at 23:04:53 UTC. Both canonical preparation
+children exited 0 with identical recorded host, GPU and runtime versions.
+Their image latents, face boxes and cropboxes are exact, but audio conditioning
+differs (max 0.03125, mean 0.00030931543439833653), and 26/240 mask arrays differ
+(maximum 6 intensity levels). The second audio tensor's hash equals the original
+historical tensor. This does not establish why the first differs or make it safe
+to ignore the repeat failure.
+
+Historical versus new preparation is also not a latents-only change: latent
+max/mean differences are 2.48291015625 / 0.0007145401040967651; one face-box value
+and three cropbox values change by 2 px. Forty-two masks differ, including one
+shape difference. Existing caches and frozen quality bars remain untouched.
+All-six preparation is held until repeatability is understood; no visual,
+quality, throughput or startup improvement is inferred.
+
+The small plan/comparison/runtime/preparation/log/watch evidence is retained
+under [the smoke directory](avatars/a2_latent_smoke_2303/plan.json): 10 files,
+353,471 bytes, remote/local SHA-256 matched; no `.pt`, `.npz`, PNG or media copied.
+The separate typed-decoder diagnostic started at 23:05 UTC and is now terminal
+FAIL, as recorded above. It is not a running session to resume.
+
+At this earlier checkpoint, lightweight workflow coverage passed 103 CPU tests on Python
+3.12.14 with NumPy, including all 15 latent-preparation tests. The stdlib-only
+latent test invocation reports 12 passes and 3 explicit NumPy skips. The workflow
+included this test file without dependency/model downloads or Docker work.
+The expanded local result is above; the new Linux CI outcome is not yet observed.
+
+### 23:03 UTC actual A2 scheduler parity and aggregate result
+
+The [2202 serial/overlap pair](native/a2_tracking_pair_2202_tracking-parity/report.json)
+finished **PASS** at 22:03:56 UTC: all six identities' generated face pixels, raw
+refined frames, generated landmarks and chin deltas match exactly between the
+two scheduler modes. This is same-engine scheduler parity only, not quality
+parity with the frozen 4070/portable references or release acceptance.
+
+The subsequent [2205 overlap aggregate](native/a2_overlap_T_2205_aggregate/report.json)
+finished **valid FAIL** at 22:11:19 UTC against 400 FPS. Each repeat completed 34,560
+full-recipe frames: 356.59394751135187 FPS over 96.91695622203406 s, then
+355.3897959226974 FPS over 97.24533567507751 s. Both exceed the unchanged 60 s minimum;
+neither reaches 400. [Detailed T telemetry](native/a2_overlap_T_2205_aggregate/a2_overlap_T_2205_T.json)
+records median GPU event-busy fraction 0.9959730218492162 (about 99.6%), GPU power
+medians 299.46/299.44 W at a 300 W limit, and 79°C median temperature in both repeats.
+The six-stream, full-height, full-strength refined-chin workload excludes live
+encoding and RTP. Cross-host comparison with older A1 numbers is not a controlled
+measurement of scheduler speedup. Native-v1's 236/698 frozen quality-bound failures
+and TAESD 7 LSB versus reference 5 remain unchanged; no threshold was widened.
+
+Only the aggregate report, detailed T report and [environment](native/a2_overlap_T_2205_aggregate/environment.json)
+were retrieved from owned A2 for this update (three JSON files, 185,717 bytes total); remote/local
+SHA-256 values match. No media or GPU work was copied or run by this documentation
+update. At the 23:03 UTC checkpoint, the separate seed123 canonical latent
+preparation was running; its terminal repeat failure is recorded above.
 
 ### 22:02 UTC new3090 preparation, explicit lineage and updated priority
 
@@ -29,16 +190,17 @@ installation,6fixture300files,39audiofiles and449calibrationfiles restored PASS.
 match the privately persisted rejected-v1 archive; this is not GPU acceptance.
 
 The [original878input check](harnesses/a2_original_frozen_inputs_audit_2154.json)
-failed honestly:862matched,12freshHFmetadata files and the intentionally changed
-worker differed, and4SyncNet paths were absent. SyncNet was subsequently restored
+failed honestly: 862 matched, 11 fresh HF metadata files and 1 intentionally changed
+worker differed, and 4 SyncNet paths were absent (16 failures total). SyncNet was subsequently restored
 with its original payload SHA. A strict [successor lineage](harnesses/tracking-a2-lineage-v1.json)
-keeps all878paths and original runtime bytes, allowing only13validated cache
-metadata files and the exact reviewed worker revision. No old manifest or698
+keeps all 878 paths and original runtime bytes, allowing 12 validated cache metadata
+changes plus 1 exact reviewed worker revision (13 changes total). No old manifest or 698
 quality bound was rewritten; native-v1 remains rejected. The first pair passed
 runtime/input preflight then stopped INVALID before rendering because a fixed
 diagnostic stage was not allowlisted. That narrow bug now has an actual CPU
 subprocess regression test;14parity tests pass on both operator and Linux3.10.
-The fresh2202pair is running; no overlap speedup/parity claim yet.
+The fresh2202pair subsequently passed same-engine scheduler parity; the actual
+overlap T result above remains below400FPS and is not native quality approval.
 
 [Bounded-bridge CI](native/bounded_credentials_linux_ci_2106.json) is terminal
 success with69Linux CPU tests and an actual harmless owned-worker command. The

@@ -227,6 +227,80 @@ class CredentialBridgeTests(unittest.TestCase):
                 bridge.execute(["/bin/true"], 30)
         spawn.assert_not_called()
 
+    def test_owned_shutdown_terms_before_bounded_kill_and_reaps(self):
+        child = Mock(pid=12345)
+        child.returncode = None
+        order = []
+        child.wait.side_effect = lambda **kw: order.append(('reap', kw)) or -9
+        with patch.object(bridge.os, 'killpg', side_effect=lambda pid, sig: order.append(('signal', pid, sig))) as kill, \
+             patch.object(bridge.signal, 'signal') as signals, \
+             patch.dict(bridge.os.__dict__, {'P_PID': 1, 'WEXITED': 4, 'WNOHANG': 1, 'WNOWAIT': 16777216}), \
+             patch.object(bridge.os, 'waitid', create=True, return_value=None) as waitid, \
+             patch.object(bridge.time, 'monotonic', side_effect=[0, 6]):
+            bridge.terminate_owned_process_group(child)
+        self.assertEqual(kill.call_args_list[0].args, (12345, bridge.signal.SIGTERM))
+        self.assertEqual(kill.call_args_list[1].args, (12345, bridge.signal.SIGKILL))
+        self.assertEqual([call.kwargs['timeout'] for call in child.wait.call_args_list], [1])
+        self.assertEqual(order[-1], ('reap', {'timeout': 1}))
+        self.assertTrue(all(call.args[2] & 16777216 for call in waitid.call_args_list))
+        child.poll.assert_not_called()
+        self.assertEqual(signals.call_count, 6)  # ignore during grace, then restore
+
+    def test_owned_shutdown_graceful_exit_still_cleans_exact_group(self):
+        child = Mock(pid=23456)
+        child.returncode = None
+        child.wait.return_value = 143
+        order = []
+        child.wait.side_effect = lambda **kw: order.append('reap') or 143
+        with patch.object(bridge.os, 'killpg', side_effect=lambda pid, sig: order.append(sig)) as kill, \
+             patch.object(bridge.signal, 'signal'), \
+             patch.dict(bridge.os.__dict__, {'P_PID': 1, 'WEXITED': 4, 'WNOHANG': 1, 'WNOWAIT': 16777216}), \
+             patch.object(bridge.os, 'waitid', create=True, side_effect=[None, SimpleNamespace(si_pid=23456)]) as waitid:
+            bridge.terminate_owned_process_group(child)
+        self.assertEqual([call.args for call in kill.call_args_list],
+                         [(23456, bridge.signal.SIGTERM), (23456, bridge.signal.SIGKILL)])
+        self.assertEqual(child.wait.call_args_list[0].kwargs, {'timeout': 1})
+        self.assertEqual(order, [bridge.signal.SIGTERM, bridge.signal.SIGKILL, 'reap'])
+        self.assertEqual(waitid.call_count, 2)
+        child.poll.assert_not_called()
+
+    def test_owned_shutdown_already_exited_never_signals_any_group(self):
+        child = Mock(pid=34567)
+        child.returncode = 0
+        with patch.object(bridge.os, 'killpg') as kill, patch.object(bridge.signal, 'signal'):
+            bridge.terminate_owned_process_group(child)
+        kill.assert_not_called()
+
+    def test_owned_shutdown_group_disappears_safely(self):
+        child = Mock(pid=45678)
+        child.returncode = None
+        with patch.object(bridge.os, 'killpg', side_effect=ProcessLookupError) as kill, \
+             patch.object(bridge.signal, 'signal') as signals, \
+             patch.dict(bridge.os.__dict__, {'P_PID': 1, 'WEXITED': 4, 'WNOHANG': 1, 'WNOWAIT': 16777216}), \
+             patch.object(bridge.os, 'waitid', create=True, return_value=None):
+            bridge.terminate_owned_process_group(child)
+        self.assertEqual(kill.call_count, 1)
+        self.assertEqual(signals.call_count, 6)
+
+    def test_owned_shutdown_unreserved_pid_never_signals(self):
+        child = Mock(pid=56789)
+        child.returncode = None
+        with patch.object(bridge.os, 'killpg') as kill, \
+             patch.dict(bridge.os.__dict__, {'P_PID': 1, 'WEXITED': 4, 'WNOHANG': 1, 'WNOWAIT': 16777216}), \
+             patch.object(bridge.os, 'waitid', create=True, side_effect=ChildProcessError):
+            bridge.terminate_owned_process_group(child)
+        kill.assert_not_called()
+        child.poll.assert_not_called()
+
+    def test_worker_timeout_and_signal_share_the_owned_grace_helper(self):
+        import inspect
+        source = inspect.getsource(bridge.worker_run)
+        self.assertEqual(source.count('terminate_owned_process_group(child)'), 2)
+        self.assertNotIn('killpg', source)
+        remote = bridge.remote_code(bridge.worker_run, 'fixture')
+        self.assertIn('def terminate_owned_process_group(child):', remote)
+        compile(remote, '<safe-owned-grace>', 'exec')
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -182,6 +182,46 @@ def runtime_child_env(module, payload):
     return env
 
 
+def terminate_owned_process_group(child):
+    """Give this already-created session's leader five seconds for restoration.
+
+    No PID discovery, foreign groups, sudo, daemonization, or target-policy
+    changes. Repeated termination signals cannot restart/interrupt this grace.
+    Remaining members of this exact owned group are killed after its leader's
+    exit as well, so a successful parent exit does not spare background members.
+    """
+    # poll()/wait() reap the leader and release its PID. Never call either until
+    # AFTER the last group signal: its unreaped PID reserves this exact PGID.
+    if child.returncode is not None:
+        return
+    require(hasattr(os, 'waitid') and hasattr(os, 'WNOWAIT'))
+    options = os.WEXITED | os.WNOHANG | os.WNOWAIT
+    try:
+        os.waitid(os.P_PID, child.pid, options)
+    except ChildProcessError:
+        return  # No unreaped child remains; ownership cannot be proved.
+    previous = {sig: signal.signal(sig, signal.SIG_IGN)
+                for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP)}
+    try:
+        try:
+            os.killpg(child.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            if os.waitid(os.P_PID, child.pid, options) is not None:
+                break
+            time.sleep(min(.05, max(0, deadline - time.monotonic())))
+        try:
+            os.killpg(child.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        child.wait(timeout=1)
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
+
+
 def worker_run():
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     require(os.geteuid() == 0 and socket.gethostname() == WORKER_HOSTNAME)
@@ -226,8 +266,7 @@ def worker_run():
     child = subprocess.Popen(command, cwd=WORKER_ROOT, env=env, stdin=subprocess.DEVNULL,
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     def stop(_sig, _frame):
-        if child.poll() is None:
-            os.killpg(child.pid, signal.SIGKILL)
+        terminate_owned_process_group(child)
         raise SystemExit(143)
     for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
         signal.signal(sig, stop)
@@ -236,18 +275,18 @@ def worker_run():
         result = {"phase": "finished", "instance_id": INSTANCE, "returncode": code,
                   "child_output": "suppressed", "credential_files_written_by_helper": False}
     except subprocess.TimeoutExpired:
-        os.killpg(child.pid, signal.SIGKILL)
-        child.wait(timeout=10)
+        terminate_owned_process_group(child)
         result = {"phase": "timed_out", "instance_id": INSTANCE, "returncode": 124,
                   "child_output": "suppressed", "credential_files_written_by_helper": False}
     print(json.dumps(result), flush=True)
 
 
 def remote_code(function, nonce=""):
-    imports = "import contextlib, datetime as dt, hashlib, importlib.util, io, json, logging, os, pwd, resource, shlex, signal, socket, stat, subprocess, sys\nfrom pathlib import Path\n"
+    imports = "import contextlib, datetime as dt, hashlib, importlib.util, io, json, logging, os, pwd, resource, shlex, signal, socket, stat, subprocess, sys, time\nfrom pathlib import Path\n"
     constants = {k: v for k, v in globals().items() if k.isupper() and isinstance(v, (str, int, set))}
     constants["NONCE"] = nonce
-    definitions = [require, seconds_remaining, validate_bootstrap, parse_snapshot, validate_ledger, runtime_child_env, function]
+    definitions = [require, seconds_remaining, validate_bootstrap, parse_snapshot, validate_ledger,
+                   runtime_child_env, terminate_owned_process_group, function]
     return imports + "\n".join(f"{k}={v!r}" for k, v in constants.items()) + "\n" + "\n".join(
         inspect.getsource(f) for f in definitions) + "\ntry:\n " + function.__name__ + "()\nexcept Exception:\n sys.exit(2)\n"
 

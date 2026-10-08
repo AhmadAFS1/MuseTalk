@@ -1,0 +1,47 @@
+{
+  "host": {
+    "hostname": "03f3421071ce",
+    "boot_id": "66733342-97e6-4b87-8488-1262707bc2cd"
+  },
+  "gpu": {
+    "name": "NVIDIA GeForce RTX 3090",
+    "uuid": "GPU-a39e62bc-2405-e19d-ba7f-2c51647a46b2",
+    "compute_capability": "8.6",
+    "driver": "595.84"
+  },
+  "packages": {
+    "torch": "2.5.1+cu121",
+    "numpy": "1.23.5",
+    "diffusers": "0.30.2",
+    "transformers": "4.39.2",
+    "torchvision": "0.20.1+cu121",
+    "mmcv": "2.1.0",
+    "mmengine": "0.10.4",
+    "mmpose": "1.3.1",
+    "safetensors": "0.7.0",
+    "huggingface-hub": "0.30.2",
+    "Pillow": "11.3.0",
+    "opencv_import": "4.9.0"
+  },
+  "cuda": "12.1",
+  "interpreter": "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+  "seed_policy": "canonical torch.manual_seed(123) before sequential frames",
+  "preparation_policy": {
+    "name": "prep_fixed_cudnn_selection_v1",
+    "non_historical_candidate": true,
+    "change": "cudnn.benchmark=False after original get_landmark_and_bbox returns",
+    "seed_policy": "unchanged canonical torch.manual_seed(123) before sequential frames",
+    "early_seed_added": false,
+    "deterministic_algorithms_changed": false,
+    "cublas_workspace_config_added": false,
+    "precision_tf32_attention_changed": false
+  },
+  "post_detector_cudnn_receipts": [
+    {
+      "after_original_return": true,
+      "benchmark_before_reset": true,
+      "benchmark_after_reset": false
+    }
+  ],
+  "cudnn_benchmark_after_preparation": false
+}

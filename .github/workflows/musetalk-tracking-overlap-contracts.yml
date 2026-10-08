@@ -24,6 +24,14 @@ on:
       - scripts/repro_3090/test_tracking_lineage.py
       - scripts/repro_3090/safe_capture.py
       - scripts/repro_3090/test_safe_capture.py
+      - scripts/repro_3090/avatar_latent_candidate.py
+      - scripts/repro_3090/test_avatar_latent_candidate.py
+      - scripts/repro_3090/a2_power_comparison.py
+      - scripts/repro_3090/test_a2_power_comparison.py
+      - scripts/repro_3090/preserve_a2_evidence.py
+      - scripts/repro_3090/test_preserve_a2_evidence.py
+      - scripts/repro_3090/taesd_final_conv_fp32.py
+      - scripts/repro_3090/test_taesd_final_conv_fp32.py
 
 permissions:
   contents: read
@@ -41,7 +49,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - name: Python 3.10 ordered overlap and unchanged report gates
+      - name: Python 3.10 overlap, preparation, power and preservation CPU contracts
         env:
           PYTHONDONTWRITEBYTECODE: '1'
           PYTHONPATH: scripts/repro_3090
@@ -56,3 +64,14 @@ jobs:
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_owned_3090_credentials.py -v
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_tracking_lineage.py -v
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_safe_capture.py -v
+          # Stdlib provenance/ownership tests always run. Numerical comparison
+          # tests use preinstalled NumPy when available; otherwise explicitly skip.
+          # Do not install model/runtime dependencies in this lightweight job.
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_avatar_latent_candidate.py -v
+          # Simulated power/restore and cloud/archive contracts only. These tests
+          # never invoke GPU hardware, SSH, AWS, credentials or cloud mutations.
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_a2_power_comparison.py -v
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_preserve_a2_evidence.py -v
+          # Pure graph/topology tests; real ONNX checks explicitly skip when the
+          # package is absent. No engine build or precision acceptance implied.
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_taesd_final_conv_fp32.py -v

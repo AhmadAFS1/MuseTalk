@@ -1,0 +1,25 @@
+{
+  "id": "black_woman",
+  "workspace": "/workspace",
+  "output": "/workspace/experiments/latent_fixed_cudnn_geometry_smoke_a2_2335/repeat2/black_woman",
+  "experiment": "prep_fixed_cudnn_selection_v2_native_fp16_seed123_repeat_not_accepted",
+  "original_spec_sha256": "248f99f64d845dcb16950c1156e5dde81b8dada68d0c86394ee4bed77804f861",
+  "preparation_seed": 123,
+  "historical_preparation_versions": {
+    "torch": "2.5.1+cu121",
+    "numpy": "1.23.5",
+    "opencv": "4.9.0"
+  },
+  "preparation_policy": {
+    "name": "prep_fixed_cudnn_selection_v2",
+    "non_historical_candidate": true,
+    "change": "cudnn.benchmark=False before every original inference_topdown call and after original get_landmark_and_bbox returns",
+    "seed_policy": "unchanged canonical torch.manual_seed(123) before sequential frames",
+    "early_seed_added": false,
+    "deterministic_algorithms_changed": false,
+    "cublas_workspace_config_added": false,
+    "precision_tf32_attention_changed": false,
+    "required_geometry_calls": 240
+  },
+  "signature": "0d0826ca4043fbfc19ee84b657c8089cb91d5028b13ad649b48d4f6f32874c76"
+}

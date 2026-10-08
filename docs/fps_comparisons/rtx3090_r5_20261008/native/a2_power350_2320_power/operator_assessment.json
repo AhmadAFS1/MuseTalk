@@ -1,0 +1,29 @@
+{
+  "schema": "a2_power_comparison_operator_assessment_v1",
+  "instance_id": "54909897",
+  "gpu_uuid": "GPU-a39e62bc-2405-e19d-ba7f-2c51647a46b2",
+  "status": "REFUSED_BEFORE_BENCHMARK",
+  "attempt_utc": "2026-10-08T23:30:20Z",
+  "experimental_350w_setter_returncode": 4,
+  "restoration_300w_setter_returncode": 4,
+  "documented_exit_code_meaning": "permission denied for device access or operation",
+  "exit_code_source": "https://docs.nvidia.com/deploy/nvidia-smi/index.html",
+  "original_receipt_restore_verified": false,
+  "original_receipt_restore_failure": "restore_setter_failed",
+  "independent_post_attempt_readback": {
+    "gpu_uuid": "GPU-a39e62bc-2405-e19d-ba7f-2c51647a46b2",
+    "power_limit_watts": 300,
+    "temperature_c": 45,
+    "utilization_percent": 0,
+    "memory_used_mib": 1,
+    "compute_apps_empty": true
+  },
+  "successful_power_change_proven": false,
+  "successful_restoration_command_proven": false,
+  "unchanged_original_power_readback_proven": true,
+  "canonical_benchmark_started": false,
+  "new_fps_measurement": null,
+  "privilege_workaround_attempted": false,
+  "quality_promotion": false,
+  "release_ready": false
+}

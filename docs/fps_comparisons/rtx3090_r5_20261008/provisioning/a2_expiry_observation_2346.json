@@ -1,0 +1,74 @@
+{
+  "schema": "musetalk_a2_scheduled_expiry_readonly_observation_v1",
+  "status": "PASS_SCHEDULED_EXPIRY_AND_INDEPENDENT_PROVIDER_ABSENCE",
+  "instance_id": "54909897",
+  "label": "musetalk-r5-3090-dev-20261008-a2",
+  "machine_id": 145698,
+  "scheduled_deadline_utc": "2026-10-08T23:45:00+00:00",
+  "pre_expiry_timer_observation": {
+    "observed_utc": "2026-10-08T23:44:42.325917+00:00",
+    "unit": "musetalk-r5-3090-dev-20261008-a2-expiry.timer",
+    "active_state": "active",
+    "sub_state": "waiting",
+    "next_elapse_realtime": "Thu 2026-10-08 23:45:00 UTC"
+  },
+  "scheduled_expiry_receipt": {
+    "source": "/home/ec2-user/.local/state/musetalk-r5-3090-dev-20261008-a2/resource-expiry.json",
+    "source_sha256": "6105ad0a341b08b19c68e53ce6ff9b2866347655641b702a8f8a2008f4191d6e",
+    "observed_utc": "2026-10-08T23:46:23.382875+00:00",
+    "safe_projection": {
+      "at_utc": "2026-10-08T23:45:02.396453+00:00",
+      "cloud_writes": true,
+      "force": false,
+      "instance_id": "54909897",
+      "label": "musetalk-r5-3090-dev-20261008-a2",
+      "provider_absence_verified": true,
+      "status": "destroy"
+    }
+  },
+  "systemd_journal_observation": {
+    "observed_utc": "2026-10-08T23:46:13.868997+00:00",
+    "source_scope": "Exact A2 expiry timer and service, since 2026-10-08 23:44:30 UTC",
+    "service_start_realtime_microseconds": "1791503100872501",
+    "service_deactivated_successfully_realtime_microseconds": "1791503104390396",
+    "service_finished_realtime_microseconds": "1791503104437563",
+    "service_job_result": "done",
+    "timer_deactivated_successfully_realtime_microseconds": "1791503104437782",
+    "transient_units_after_completion_load_state": "not-found",
+    "default_exec_main_status_not_used_as_completion_proof": true,
+    "raw_messages_environment_and_execstart_not_saved": true
+  },
+  "independent_provider_observation": {
+    "observed_utc": "2026-10-08T23:45:31.937145+00:00",
+    "method": "Established VastClient.list_instances GET; exact ID projection only",
+    "expected_instance_id": "54909897",
+    "provider_instance_absent": true,
+    "provider_matches": []
+  },
+  "budget_observation": {
+    "observed_utc": "2026-10-08T23:45:31.937145+00:00",
+    "total_authorized_ceiling_usd": 30,
+    "shared_reserved_usd": 12.717528211805556,
+    "a2_reserved_usd": 3.1327886284722224,
+    "shared_ledger_sha256": "200b51d13a49a918ea612fdb526ee66badbc2e727515f0611d3c7b50368bd49c",
+    "reservation_released_or_rewritten": false,
+    "confirmed_billed_usd": null,
+    "reservation_is_not_actual_billing": true
+  },
+  "fifth_archive_preservation": {
+    "receipt": "../release/a2_latent_geometry_private_persistence_2342.json",
+    "receipt_sha256": "3a995afb2937c063141cb7a42f3bf725f7cc2f48c2b142e3004c8ae41fd35370",
+    "status": "PASS_PRIVATE_FRESH_GET_ALL_FILE_SHA",
+    "finished_utc": "2026-10-08T23:43:14.882337+00:00",
+    "bytes": 79108045,
+    "payload_files": 24,
+    "archive_sha256": "baf9ac4a1930a6d87bb8915d62e4584d2ae35269d35ea91049b9a487ca1b2d54",
+    "original_experiment_status": "PASS_REPEAT_EXACT_DIAGNOSTIC_ONLY",
+    "preservation_does_not_upgrade_experiment_status": true
+  },
+  "observer_destroy_commands_sent": false,
+  "observer_provider_timer_worker_mutations": false,
+  "quality_accepted": false,
+  "throughput_accepted": false,
+  "release_ready": false
+}

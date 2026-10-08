@@ -1,0 +1,959 @@
+{
+  "schema": "repro_3090_v1",
+  "suite": "aggregate",
+  "label": "a2_overlap_T_2205",
+  "measurement_class": "measured_on_current_host",
+  "results": [
+    {
+      "status": "FAIL",
+      "scope": "aggregate_full_recipe_offline",
+      "stage": "T",
+      "target_fps": 400,
+      "windows": [
+        {
+          "window": 0,
+          "completed_frames": 34560,
+          "shared_wall_s": 96.91695622203406,
+          "fps": 356.59394751135187
+        },
+        {
+          "window": 1,
+          "completed_frames": 34560,
+          "shared_wall_s": 97.24533567507751,
+          "fps": 355.3897959226974
+        }
+      ],
+      "tracking_overlap": true,
+      "includes_live_encoding_or_RTP": false
+    }
+  ],
+  "status": "FAIL",
+  "environment": {
+    "actual_gpu": "NVIDIA GeForce RTX 3090",
+    "compute_capability": "8.6",
+    "comparison_scope": "rtx3090",
+    "gpu": {
+      "name": "NVIDIA GeForce RTX 3090",
+      "uuid": "GPU-a39e62bc-2405-e19d-ba7f-2c51647a46b2",
+      "compute_cap": "8.6",
+      "memory.total": "24576",
+      "driver_version": "595.84",
+      "power.limit": "300.00",
+      "clocks.sm": "210",
+      "clocks.mem": "405",
+      "temperature.gpu": "46"
+    },
+    "runtime": {
+      "torch": "2.5.1+cu121",
+      "cuda": "12.1",
+      "tensorrt": "10.3.0",
+      "torch_tensorrt": "2.5.0",
+      "visible_vram_bytes": 25298141184,
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "compute_capability": "8.6"
+    },
+    "engines": [
+      {
+        "root": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1",
+        "manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+        "plan_sha256": {
+          "down0rest": "595cd64f622e5a74be2960e58fd77f199cdebad23d6461eb7cc67987b5acc4c1",
+          "up1": "2cf044864b0f2e5f436389f1183473325c508eeb42ecbf6f2efc1745bd96f4ad",
+          "prefix": "319ae879b6ba49be2c3f048f07288164dbc74856d1ca516272682ac0a17e6160",
+          "mid": "0512d36d37acf6b70a0e45b9cfe1f153b35ccf4eb35bd9324c04a3948b19a217",
+          "up0": "6051d151d23aa23b8bc24778f7b76b257b3535fc38a48e6493b73780be40677b",
+          "down1": "0829fd7ef9bbacf3bf89df6e6b8e3e658043584fe926910a1025d2f6fa5cb769",
+          "down3": "782c916b72a1d7b7b89ac9f4d29d0bdd774d2a506da6b598d9e98cb66ea5e3de",
+          "up2": "ef9153afdb4cd1b3eb91eb93311b42016ae5133fe82932d6e64e3a97bd3d9e0e",
+          "up3": "9bccd8aec4824d099cc4329c60da275056ab9a94770329a4f1d4500ab2dc3dfc",
+          "down2": "e2a5f3131929517fec126debd89db0948d1f54dd0f4a35e17c213dd4a125d0d7",
+          "tail": "103c085794d1dc11429252e2274dc7d7d79cb173e621fd6c94d4d8b67cf22825"
+        },
+        "manifest": {
+          "schema": "musetalk_unet_stagewise_trt_v1",
+          "batch": 16,
+          "tensorrt_version": "10.3.0",
+          "torch_version": "2.5.1+cu121",
+          "cuda_version": "12.1",
+          "gpu": "NVIDIA GeForce RTX 3090",
+          "compute_capability": [
+            8,
+            6
+          ],
+          "unet_weights": {
+            "path": "models/musetalkV15/unet.pth",
+            "bytes": 3400074924
+          },
+          "unet_config": "models/musetalkV15/musetalk.json",
+          "timestep": 0,
+          "spec": [
+            {
+              "name": "down0rest",
+              "inputs": [
+                "a0",
+                "ehs"
+              ],
+              "outputs": [
+                "d0r0",
+                "d0r1",
+                "d0ds"
+              ]
+            },
+            {
+              "name": "down1",
+              "inputs": [
+                "d0ds",
+                "ehs"
+              ],
+              "outputs": [
+                "d1r0",
+                "d1r1",
+                "d1ds"
+              ]
+            },
+            {
+              "name": "down2",
+              "inputs": [
+                "d1ds",
+                "ehs"
+              ],
+              "outputs": [
+                "d2r0",
+                "d2r1",
+                "d2ds"
+              ]
+            },
+            {
+              "name": "down3",
+              "inputs": [
+                "d2ds"
+              ],
+              "outputs": [
+                "d3r0",
+                "d3r1"
+              ]
+            },
+            {
+              "name": "mid",
+              "inputs": [
+                "d3r1",
+                "ehs"
+              ],
+              "outputs": [
+                "m"
+              ]
+            },
+            {
+              "name": "up0",
+              "inputs": [
+                "m",
+                "d2ds",
+                "d3r0",
+                "d3r1"
+              ],
+              "outputs": [
+                "u0"
+              ]
+            },
+            {
+              "name": "up1",
+              "inputs": [
+                "u0",
+                "d1ds",
+                "d2r0",
+                "d2r1",
+                "ehs"
+              ],
+              "outputs": [
+                "u1"
+              ]
+            },
+            {
+              "name": "up2",
+              "inputs": [
+                "u1",
+                "d0ds",
+                "d1r0",
+                "d1r1",
+                "ehs"
+              ],
+              "outputs": [
+                "u2"
+              ]
+            },
+            {
+              "name": "up3",
+              "inputs": [
+                "u2",
+                "h0",
+                "d0r0",
+                "d0r1",
+                "ehs"
+              ],
+              "outputs": [
+                "u3"
+              ]
+            },
+            {
+              "name": "tail",
+              "inputs": [
+                "u3"
+              ],
+              "outputs": [
+                "out"
+              ]
+            }
+          ],
+          "variant": "srccache",
+          "build_flags": {
+            "precision": "fp16",
+            "builder_flags": [
+              "FP16"
+            ],
+            "builder_optimization_level": 5,
+            "workspace_gb": 2.0,
+            "timing_cache": true,
+            "onnx_opset": 17,
+            "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+            "network": "explicit batch, static shapes, ONNX parser"
+          },
+          "blocks": {
+            "down0rest": {
+              "engine_file": "down0rest.plan",
+              "onnx_sha256": "f299bc5eb705decaf23852c231426db15fbf4fd114879cce42c4a4c6c9304729",
+              "onnx_mib": 14.894333839416504,
+              "export_s": 0.29022669792175293,
+              "build_s": 214.32238817214966,
+              "build_flags": {
+                "precision": "fp16",
+                "builder_flags": [
+                  "FP16"
+                ],
+                "builder_optimization_level": 5,
+                "workspace_gb": 2.0,
+                "timing_cache": true,
+                "onnx_opset": 17,
+                "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+                "network": "explicit batch, static shapes, ONNX parser"
+              },
+              "inputs": [
+                "a0",
+                "ehs"
+              ],
+              "outputs": [
+                "d0r0",
+                "d0r1",
+                "d0ds"
+              ],
+              "host_mem_before_build": {
+                "VmHWM_MiB": 5410.7,
+                "VmRSS_MiB": 2140.2,
+                "MemAvailable_MiB": 310126.3
+              },
+              "host_mem_after_build": {
+                "VmHWM_MiB": 6669.4,
+                "VmRSS_MiB": 6669.4,
+                "MemAvailable_MiB": 294891.5
+              },
+              "engine_sha256": "595cd64f622e5a74be2960e58fd77f199cdebad23d6461eb7cc67987b5acc4c1",
+              "engine_mib": 16.532764434814453
+            },
+            "up3": {
+              "engine_file": "up3.plan",
+              "onnx_sha256": "c3b5fdf9f2f90cae87b14cb42f8214162842aa0756a761c44c46932e7956851d",
+              "onnx_mib": 34.57667064666748,
+              "export_s": 0.5136401653289795,
+              "build_s": 82.28079009056091,
+              "build_flags": {
+                "precision": "fp16",
+                "builder_flags": [
+                  "FP16"
+                ],
+                "builder_optimization_level": 5,
+                "workspace_gb": 2.0,
+                "timing_cache": true,
+                "onnx_opset": 17,
+                "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+                "network": "explicit batch, static shapes, ONNX parser"
+              },
+              "inputs": [
+                "u2",
+                "h0",
+                "d0r0",
+                "d0r1",
+                "ehs"
+              ],
+              "outputs": [
+                "u3"
+              ],
+              "host_mem_before_build": {
+                "VmHWM_MiB": 6669.9,
+                "VmRSS_MiB": 6669.9,
+                "MemAvailable_MiB": 294809.3
+              },
+              "host_mem_after_build": {
+                "VmHWM_MiB": 6695.5,
+                "VmRSS_MiB": 6695.5,
+                "MemAvailable_MiB": 307438.8
+              },
+              "engine_sha256": "9bccd8aec4824d099cc4329c60da275056ab9a94770329a4f1d4500ab2dc3dfc",
+              "engine_mib": 37.392276763916016
+            },
+            "tail": {
+              "engine_file": "tail.plan",
+              "onnx_sha256": "8219d8a31bf256b0c621b5f4662c2148613818e985a0a712bae0e2e03e4eb527",
+              "onnx_mib": 0.02466583251953125,
+              "export_s": 0.015067577362060547,
+              "build_s": 1.7122759819030762,
+              "build_flags": {
+                "precision": "fp16",
+                "builder_flags": [
+                  "FP16"
+                ],
+                "builder_optimization_level": 5,
+                "workspace_gb": 2.0,
+                "timing_cache": true,
+                "onnx_opset": 17,
+                "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+                "network": "explicit batch, static shapes, ONNX parser"
+              },
+              "inputs": [
+                "u3"
+              ],
+              "outputs": [
+                "out"
+              ],
+              "host_mem_before_build": {
+                "VmHWM_MiB": 6695.5,
+                "VmRSS_MiB": 6695.5,
+                "MemAvailable_MiB": 307419.7
+              },
+              "host_mem_after_build": {
+                "VmHWM_MiB": 6695.6,
+                "VmRSS_MiB": 6695.6,
+                "MemAvailable_MiB": 307398.3
+              },
+              "engine_sha256": "103c085794d1dc11429252e2274dc7d7d79cb173e621fd6c94d4d8b67cf22825",
+              "engine_mib": 0.22003555297851562
+            },
+            "down1": {
+              "engine_file": "down1.int8.plan",
+              "onnx_sha256": "0edd27ea9659878355bcb34201f01d5fb6ab2c8b3389325fd14ee691c23a021a",
+              "onnx_mib": 119.40467166900635,
+              "export_s": 63.21075701713562,
+              "build_s": 430.1997125148773,
+              "build_flags": {
+                "precision": "int8_qdq_recipe:f6f90777264b5302",
+                "builder_flags": [
+                  "FP16"
+                ],
+                "builder_optimization_level": 5,
+                "workspace_gb": 2.0,
+                "timing_cache": true,
+                "onnx_opset": 17,
+                "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+                "network": "explicit batch, static shapes, ONNX parser"
+              },
+              "inputs": [
+                "d0ds",
+                "ehs"
+              ],
+              "outputs": [
+                "d1r0",
+                "d1r1",
+                "d1ds"
+              ],
+              "host_mem_before_build": {
+                "VmHWM_MiB": 5407.6,
+                "VmRSS_MiB": 2317.9,
+                "MemAvailable_MiB": 310085.0
+              },
+              "host_mem_after_build": {
+                "VmHWM_MiB": 9861.6,
+                "VmRSS_MiB": 9830.9,
+                "MemAvailable_MiB": 304134.3
+              },
+              "engine_sha256": "0829fd7ef9bbacf3bf89df6e6b8e3e658043584fe926910a1025d2f6fa5cb769",
+              "engine_mib": 48.03267288208008
+            },
+            "down2": {
+              "engine_file": "down2.int8.plan",
+              "onnx_sha256": "9715cecf024c95eced7b5d67a94503f7e8f226499d6f075d159d064366e82f91",
+              "onnx_mib": 516.8586463928223,
+              "export_s": 3.769808292388916,
+              "build_s": 218.06395173072815,
+              "build_flags": {
+                "precision": "int8_qdq_recipe:f6f90777264b5302",
+                "builder_flags": [
+                  "FP16"
+                ],
+                "builder_optimization_level": 5,
+                "workspace_gb": 2.0,
+                "timing_cache": true,
+                "onnx_opset": 17,
+                "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+                "network": "explicit batch, static shapes, ONNX parser"
+              },
+              "inputs": [
+                "d1ds",
+                "ehs"
+              ],
+              "outputs": [
+                "d2r0",
+                "d2r1",
+                "d2ds"
+              ],
+              "host_mem_before_build": {
+                "VmHWM_MiB": 10975.5,
+                "VmRSS_MiB": 10183.1,
+                "MemAvailable_MiB": 303511.6
+              },
+              "host_mem_after_build": {
+                "VmHWM_MiB": 10975.5,
+                "VmRSS_MiB": 10543.4,
+                "MemAvailable_MiB": 297141.5
+              },
+              "engine_sha256": "e2a5f3131929517fec126debd89db0948d1f54dd0f4a35e17c213dd4a125d0d7",
+              "engine_mib": 144.47649002075195
+            },
+            "down3": {
+              "engine_file": "down3.int8.plan",
+              "onnx_sha256": "9770301cdf4c1cd2125d3f178591f8400e5c229e9c5d899840f03e46a9bfa612",
+              "onnx_mib": 231.3571081161499,
+              "export_s": 1.8970272541046143,
+              "build_s": 65.17738485336304,
+              "build_flags": {
+                "precision": "int8_qdq_recipe:f6f90777264b5302",
+                "builder_flags": [
+                  "FP16"
+                ],
+                "builder_optimization_level": 5,
+                "workspace_gb": 2.0,
+                "timing_cache": true,
+                "onnx_opset": 17,
+                "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+                "network": "explicit batch, static shapes, ONNX parser"
+              },
+              "inputs": [
+                "d2ds"
+              ],
+              "outputs": [
+                "d3r0",
+                "d3r1"
+              ],
+              "host_mem_before_build": {
+                "VmHWM_MiB": 10975.5,
+                "VmRSS_MiB": 10113.5,
+                "MemAvailable_MiB": 301294.9
+              },
+              "host_mem_after_build": {
+                "VmHWM_MiB": 10975.5,
+                "VmRSS_MiB": 10176.6,
+                "MemAvailable_MiB": 303793.6
+              },
+              "engine_sha256": "782c916b72a1d7b7b89ac9f4d29d0bdd774d2a506da6b598d9e98cb66ea5e3de",
+              "engine_mib": 63.04343795776367
+            },
+            "mid": {
+              "engine_file": "mid.int8.plan",
+              "onnx_sha256": "18611ef62dc17be63dc8a21b1a435472d5e81417e4c3cea9c7151d7c9fbc78a6",
+              "onnx_mib": 358.48279666900635,
+              "export_s": 3.134876251220703,
+              "build_s": 156.0842456817627,
+              "build_flags": {
+                "precision": "int8_qdq_recipe:f6f90777264b5302",
+                "builder_flags": [
+                  "FP16"
+                ],
+                "builder_optimization_level": 5,
+                "workspace_gb": 2.0,
+                "timing_cache": true,
+                "onnx_opset": 17,
+                "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+                "network": "explicit batch, static shapes, ONNX parser"
+              },
+              "inputs": [
+                "d3r1",
+                "ehs"
+              ],
+              "outputs": [
+                "m"
+              ],
+              "host_mem_before_build": {
+                "VmHWM_MiB": 10975.5,
+                "VmRSS_MiB": 10185.9,
+                "MemAvailable_MiB": 303108.2
+              },
+              "host_mem_after_build": {
+                "VmHWM_MiB": 12254.3,
+                "VmRSS_MiB": 12090.1,
+                "MemAvailable_MiB": 288708.4
+              },
+              "engine_sha256": "0512d36d37acf6b70a0e45b9cfe1f153b35ccf4eb35bd9324c04a3948b19a217",
+              "engine_mib": 97.19639205932617
+            },
+            "up0": {
+              "engine_file": "up0.int8.plan",
+              "onnx_sha256": "f3b53dfc32b827bd6e3108b90ad7e7a202df6704b14bdd752bceb8a8c56fab36",
+              "onnx_mib": 609.5995283126831,
+              "export_s": 5.559855222702026,
+              "build_s": 86.61904644966125,
+              "build_flags": {
+                "precision": "int8_qdq_recipe:f6f90777264b5302",
+                "builder_flags": [
+                  "FP16"
+                ],
+                "builder_optimization_level": 5,
+                "workspace_gb": 2.0,
+                "timing_cache": true,
+                "onnx_opset": 17,
+                "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+                "network": "explicit batch, static shapes, ONNX parser"
+              },
+              "inputs": [
+                "m",
+                "d2ds",
+                "d3r0",
+                "d3r1"
+              ],
+              "outputs": [
+                "u0"
+              ],
+              "host_mem_before_build": {
+                "VmHWM_MiB": 13366.5,
+                "VmRSS_MiB": 12244.0,
+                "MemAvailable_MiB": 287331.9
+              },
+              "host_mem_after_build": {
+                "VmHWM_MiB": 13366.5,
+                "VmRSS_MiB": 12450.7,
+                "MemAvailable_MiB": 299732.0
+              },
+              "engine_sha256": "6051d151d23aa23b8bc24778f7b76b257b3535fc38a48e6493b73780be40677b",
+              "engine_mib": 192.15864181518555
+            },
+            "up1": {
+              "engine_file": "up1.int8.plan",
+              "onnx_sha256": "6f492535e19fa8c9fc4a6142de96b5b1888ea1213c2031bb788b2368f185c107",
+              "onnx_mib": 959.6200037002563,
+              "export_s": 8.813901662826538,
+              "build_s": 150.72656774520874,
+              "build_flags": {
+                "precision": "int8_qdq_recipe:f6f90777264b5302",
+                "builder_flags": [
+                  "FP16"
+                ],
+                "builder_optimization_level": 5,
+                "workspace_gb": 2.0,
+                "timing_cache": true,
+                "onnx_opset": 17,
+                "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+                "network": "explicit batch, static shapes, ONNX parser"
+              },
+              "inputs": [
+                "u0",
+                "d1ds",
+                "d2r0",
+                "d2r1",
+                "ehs"
+              ],
+              "outputs": [
+                "u1"
+              ],
+              "host_mem_before_build": {
+                "VmHWM_MiB": 14218.9,
+                "VmRSS_MiB": 12609.7,
+                "MemAvailable_MiB": 299899.4
+              },
+              "host_mem_after_build": {
+                "VmHWM_MiB": 14218.9,
+                "VmRSS_MiB": 13403.1,
+                "MemAvailable_MiB": 299587.9
+              },
+              "engine_sha256": "2cf044864b0f2e5f436389f1183473325c508eeb42ecbf6f2efc1745bd96f4ad",
+              "engine_mib": 339.079532623291
+            },
+            "up2": {
+              "engine_file": "up2.int8.plan",
+              "onnx_sha256": "1467d939384e6e62841805dd49814e5f0bf635e401ccf08ddce6b58aae40ccab",
+              "onnx_mib": 255.6683645248413,
+              "export_s": 2.202995538711548,
+              "build_s": 138.4984748363495,
+              "build_flags": {
+                "precision": "int8_qdq_recipe:f6f90777264b5302",
+                "builder_flags": [
+                  "FP16"
+                ],
+                "builder_optimization_level": 5,
+                "workspace_gb": 2.0,
+                "timing_cache": true,
+                "onnx_opset": 17,
+                "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+                "network": "explicit batch, static shapes, ONNX parser"
+              },
+              "inputs": [
+                "u1",
+                "d0ds",
+                "d1r0",
+                "d1r1",
+                "ehs"
+              ],
+              "outputs": [
+                "u2"
+              ],
+              "host_mem_before_build": {
+                "VmHWM_MiB": 14218.9,
+                "VmRSS_MiB": 12360.2,
+                "MemAvailable_MiB": 300320.7
+              },
+              "host_mem_after_build": {
+                "VmHWM_MiB": 14218.9,
+                "VmRSS_MiB": 12360.2,
+                "MemAvailable_MiB": 300396.4
+              },
+              "engine_sha256": "ef9153afdb4cd1b3eb91eb93311b42016ae5133fe82932d6e64e3a97bd3d9e0e",
+              "engine_mib": 100.82458877563477
+            },
+            "prefix": {
+              "engine_file": "prefix.plan",
+              "onnx_sha256": "611161551432bc66b35d20706c516b783c817b3bd090c26f1c0f3df1bb8c4586",
+              "onnx_mib": 4.353302001953125,
+              "export_s": 0.07594895362854004,
+              "build_s": 3.5615131855010986,
+              "build_flags": {
+                "precision": "fp16",
+                "builder_flags": [
+                  "FP16"
+                ],
+                "builder_optimization_level": 5,
+                "workspace_gb": 2.0,
+                "timing_cache": true,
+                "onnx_opset": 17,
+                "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+                "network": "explicit batch, static shapes, ONNX parser"
+              },
+              "inputs": [
+                "x"
+              ],
+              "outputs": [
+                "h0",
+                "a0"
+              ],
+              "host_mem_before_build": {
+                "VmHWM_MiB": 5410.5,
+                "VmRSS_MiB": 2138.2,
+                "MemAvailable_MiB": 309272.3
+              },
+              "host_mem_after_build": {
+                "VmHWM_MiB": 5410.5,
+                "VmRSS_MiB": 5319.3,
+                "MemAvailable_MiB": 307128.9
+              },
+              "engine_sha256": "319ae879b6ba49be2c3f048f07288164dbc74856d1ca516272682ac0a17e6160",
+              "engine_mib": 4.736286163330078
+            }
+          },
+          "complete": true,
+          "eager_wrapper_chain_vs_forward_max_abs": 0.003662109375,
+          "timing_cache_input": {
+            "source": "existing",
+            "path": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/timing_cache.bin",
+            "sha256": "8c820267bf5ea5743957f51ecdeca4286062cb9f14be05c909dbc9f62ff0a2be",
+            "strict": true
+          },
+          "build_log": [
+            {
+              "block": "down0rest",
+              "utc": "2026-10-08T11:27:32Z",
+              "build_s": 214.32238817214966,
+              "VmHWM_MiB": 6669.4,
+              "MemAvailable_MiB": 294891.5
+            },
+            {
+              "block": "up3",
+              "utc": "2026-10-08T11:28:58Z",
+              "build_s": 82.28079009056091,
+              "VmHWM_MiB": 6695.5,
+              "MemAvailable_MiB": 307438.8
+            },
+            {
+              "block": "tail",
+              "utc": "2026-10-08T11:29:02Z",
+              "build_s": 1.7122759819030762,
+              "VmHWM_MiB": 6695.6,
+              "MemAvailable_MiB": 307398.3
+            },
+            {
+              "block": "down1",
+              "utc": "2026-10-08T11:37:47Z",
+              "build_s": 430.1997125148773,
+              "VmHWM_MiB": 9861.6,
+              "MemAvailable_MiB": 304134.3
+            },
+            {
+              "block": "down2",
+              "utc": "2026-10-08T11:41:33Z",
+              "build_s": 218.06395173072815,
+              "VmHWM_MiB": 10975.5,
+              "MemAvailable_MiB": 297141.5
+            },
+            {
+              "block": "down3",
+              "utc": "2026-10-08T11:42:44Z",
+              "build_s": 65.17738485336304,
+              "VmHWM_MiB": 10975.5,
+              "MemAvailable_MiB": 303793.6
+            },
+            {
+              "block": "mid",
+              "utc": "2026-10-08T11:45:28Z",
+              "build_s": 156.0842456817627,
+              "VmHWM_MiB": 12254.3,
+              "MemAvailable_MiB": 288708.4
+            },
+            {
+              "block": "up0",
+              "utc": "2026-10-08T11:47:05Z",
+              "build_s": 86.61904644966125,
+              "VmHWM_MiB": 13366.5,
+              "MemAvailable_MiB": 299732.0
+            },
+            {
+              "block": "up1",
+              "utc": "2026-10-08T11:49:50Z",
+              "build_s": 150.72656774520874,
+              "VmHWM_MiB": 14218.9,
+              "MemAvailable_MiB": 299587.9
+            },
+            {
+              "block": "up2",
+              "utc": "2026-10-08T11:52:15Z",
+              "build_s": 138.4984748363495,
+              "VmHWM_MiB": 14218.9,
+              "MemAvailable_MiB": 300396.4
+            },
+            {
+              "block": "prefix",
+              "utc": "2026-10-08T11:52:52Z",
+              "build_s": 3.5615131855010986,
+              "VmHWM_MiB": 5410.5,
+              "MemAvailable_MiB": 307128.9
+            }
+          ],
+          "missing_blocks": [],
+          "int8_calibration": {
+            "dir": "calibration/unet_multi_avatar_20260928",
+            "files": [
+              "unet_io_000001_bs8_pid3537045.pt",
+              "unet_io_000023_bs8_pid3537045.pt",
+              "unet_io_000045_bs8_pid3537045.pt",
+              "unet_io_000067_bs8_pid3537045.pt",
+              "unet_io_000089_bs8_pid3537045.pt",
+              "unet_io_000111_bs8_pid3537045.pt",
+              "unet_io_000133_bs8_pid3537045.pt",
+              "unet_io_000155_bs8_pid3537045.pt",
+              "unet_io_000177_bs8_pid3537045.pt",
+              "unet_io_000199_bs8_pid3537045.pt",
+              "unet_io_000221_bs8_pid3537045.pt",
+              "unet_io_000243_bs8_pid3537045.pt",
+              "unet_io_000265_bs8_pid3537045.pt",
+              "unet_io_000287_bs8_pid3537045.pt",
+              "unet_io_000309_bs8_pid3537045.pt",
+              "unet_io_000331_bs8_pid3537045.pt"
+            ],
+            "batches": 8,
+            "algorithm": "layer-selective recipe: weight per-channel max, input amax pinned from the recipe (scripts/int8_layer_study.py); non-recipe layers stay FP16",
+            "recipe": "docs/fps_comparisons/4070s_400fps_20260928/int8_study/recipe_gmac_0.50.json",
+            "recipe_sha256_16": "f6f90777264b5302"
+          },
+          "probe": {
+            "seed": 20260928,
+            "input_sha256": "bc70410094d8397351287b19179a486f457f7c392839ebd1ad626a189ddfb9a4",
+            "output_sha256": "23950ef8e4117aef4488a7e14e032450875c808837ef844151af30958b79908c",
+            "output_file": "probe_output.pt",
+            "deterministic_run_to_run": true,
+            "graph_equals_direct_enqueue": true,
+            "vs_eager_forward": {
+              "mae": 0.0026865904219448566,
+              "max_abs": 0.0462646484375,
+              "rel_l2": 0.003856765106320381
+            }
+          },
+          "runtime": {
+            "name": "tensorrt_unet_stagewise",
+            "engine_dir": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+            "batch": 16,
+            "cuda_graph": true,
+            "arena_mib": 191.5673828125,
+            "activation_mib": 104.4609375,
+            "device_memory_sizes_mib": {
+              "prefix": 30.0,
+              "down0rest": 151.5625,
+              "down1": 102.5390625,
+              "down2": 54.4921875,
+              "down3": 2.5048828125,
+              "mid": 10.74462890625,
+              "up0": 6.25341796875,
+              "up1": 60.7470703125,
+              "up2": 145.04150390625,
+              "up3": 191.5673828125,
+              "tail": 20.0
+            },
+            "probe_status": null,
+            "probe_validation": null,
+            "hardware_compatibility_level": "none"
+          },
+          "finalized_utc": "2026-10-08T11:52:54Z",
+          "total_engine_mib": 1043.6931190490723
+        }
+      }
+    ],
+    "taesd": {
+      "key": "1e967e6e715c9f1a8375",
+      "meta_sha256": "4dcc2174a8e47a1cb918751a312f946c74f47c6e8ab4f3c9b9917cb0c20a8673",
+      "decoder_plan_sha256": "9658154206fbee0aea38659803724ae94a78983d3858585242d62a4bae305057",
+      "fingerprint": {
+        "recipe": "taesd_decoder_fp16_full_height_v1",
+        "post_recipe": "bgr_u8_nhwc_post_fp32_rne_v1",
+        "tensorrt": "10.3.0",
+        "gpu": "NVIDIA GeForce RTX 3090",
+        "compute_capability": "8.6",
+        "onnx_sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb",
+        "batch": 8,
+        "latent_shape": [
+          8,
+          4,
+          32,
+          32
+        ],
+        "precision": "fp16",
+        "opt_level": 3,
+        "strongly_typed": false
+      }
+    },
+    "input_manifest_sha256": "4e63c1afa903b9fb52d8ce09fc4a123bd71e12d504af3c7133aa829ce7cc3abb",
+    "input_count": 878,
+    "profile_sha256": "7e5b80827c4541c4ee982e4a878496028053a07439daf7bd48b82786d6dd8b8c",
+    "effective_profile": {
+      "MUSETALK_UNET_BACKEND": "trt_stagewise",
+      "MUSETALK_UNET_STAGEWISE_BATCH": "16",
+      "MUSETALK_UNET_STAGEWISE_VERIFY_SHA": "1",
+      "MUSETALK_TRT_FALLBACK": "0",
+      "MUSETALK_VAE_BACKEND": "taesd",
+      "MUSETALK_TAESD_BACKEND": "trt",
+      "MUSETALK_TAESD_TRT_BUILD": "0",
+      "MUSETALK_TAESD_TRT_STRICT": "1",
+      "MUSETALK_TAESD_TRT_BATCH": "8",
+      "MUSETALK_TAESD_TRT_HW_COMPAT": "none",
+      "MUSETALK_TAESD_TRT_OPT_LEVEL": "3",
+      "MUSETALK_TAESD_WARMUP_BATCHES": "8",
+      "MUSETALK_TRT_STAGEWISE_WARMUP_BATCHES": "16",
+      "MUSETALK_BLEND_FIXED_POINT": "1",
+      "MUSETALK_BLEND_SHRINK_MASK_BBOX": "1",
+      "HLS_SCHEDULER_FIXED_BATCH_SIZES": "16",
+      "HLS_SCHEDULER_MAX_BATCH": "16",
+      "HLS_GPU_STAGE_SYNC_TIMING": "0",
+      "MUSETALK_VAE_DECODE_TIMING_SYNC": "0",
+      "HF_HUB_OFFLINE": "1",
+      "TRANSFORMERS_OFFLINE": "1",
+      "MUSETALK_UNET_STAGEWISE_CACHE_DIR": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1",
+      "MUSETALK_UNET_STAGEWISE_PROBE_CHECK": "1",
+      "MUSETALK_UNET_STAGEWISE_PROBE_TOL": "0",
+      "MUSETALK_TAESD_TRT_DIR": "/workspace/MuseTalk/models/taesd/trt_native_sm86_r5_v1"
+    },
+    "git_revision": "a6e06ff3d3b8dba805a0554ebca58e4e3ceeb64b",
+    "git_status": "M scripts/repro_3090/safe_capture.py\n M scripts/repro_3090/test_tracking_parity.py\n?? docs/fps_comparisons/rtx3090_r5_20261008/harnesses/tracking-a2-inputs-v1.json\n?? docs/fps_comparisons/rtx3090_r5_20261008/harnesses/tracking-a2-lineage-v1.json\n?? docs/fps_comparisons/rtx3090_r5_20261008/native/a2_overlap_T_2205_aggregate/\n?? docs/fps_comparisons/rtx3090_r5_20261008/native/a2_tracking_pair_2159_tracking-parity/\n?? docs/fps_comparisons/rtx3090_r5_20261008/native/a2_tracking_pair_2202_tracking-parity/\n?? docs/fps_comparisons/rtx3090_r5_20261008/startup/a2_native_restore_2107/\n?? scripts/repro_3090/freeze_tracking_lineage.py\n?? scripts/repro_3090/test_tracking_lineage.py",
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63
+    ],
+    "memory": {
+      "MemTotal": 270110883840,
+      "MemAvailable": 141879377920
+    },
+    "cgroup": {
+      "memory.max": "149709389824",
+      "memory.current": "14550851584",
+      "cpu.max": "2048000 100000",
+      "cpuset.cpus.effective": "0-63"
+    },
+    "disk_free_bytes": 131258273792,
+    "shm": {
+      "total": 44023414784,
+      "used": 0,
+      "free": 44023414784
+    },
+    "foreign_gpu_apps_at_preflight": "",
+    "utc": "2026-10-08T22:05:27.075067+00:00",
+    "discarded_ambient_keys": []
+  },
+  "tracking_overlap": true,
+  "tracking_parity": {
+    "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/native/a2_tracking_pair_2202_tracking-parity/report.json",
+    "sha256": "741a98179ffc2b3ff33e221581e5ab45f334749f9258f504c5ebde1daed56545",
+    "verified": true
+  },
+  "finished_utc": "2026-10-08T22:11:19.740106+00:00"
+}
