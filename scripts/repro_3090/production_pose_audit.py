@@ -301,19 +301,29 @@ def speech_conditioning(args, torch):
     return audio
 
 
-def source_timeline(item):
+def validate_source_timeline(stream, cycle_count):
+    numerator, denominator = map(int, stream["avg_frame_rate"].split("/"))
+    source_count = int(stream["nb_frames"])
+    checks.require(denominator > 0 and numerator == FPS * denominator
+                   and (stream["width"], stream["height"]) == (512, 896) and source_count > 0,
+                   "source timeline/resolution differs from frozen 24fps recipe")
+    # APIAvatar._process_frames persists forward + reverse source cycles.
+    # A short smiling source can still have >=240 approved saved cache frames.
+    # Never duplicate/resize new frames here: use the existing cycle unchanged.
+    checks.require(cycle_count == 2 * source_count and cycle_count >= N,
+                   "saved cache is not the canonical source forward/reverse cycle")
+    return {**stream, "cache_cycle_frames": cycle_count, "cache_cycle_mapping": "forward_plus_reverse",
+            "selected_cache_frames": N, "new_frames_generated_or_resampled": False}
+
+
+def source_timeline(item, cycle_count):
     source = Path(item["cache_path"]) / "input_video.mp4"
     raw = subprocess.check_output(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
                                    "stream=width,height,avg_frame_rate,nb_frames,duration", "-of", "json", str(source)],
                                   text=True, stderr=subprocess.PIPE)
     streams = json.loads(raw)["streams"]
     checks.require(len(streams) == 1, "source video stream missing")
-    stream = streams[0]
-    numerator, denominator = map(int, stream["avg_frame_rate"].split("/"))
-    checks.require(denominator > 0 and numerator == FPS * denominator
-                   and (stream["width"], stream["height"]) == (512, 896)
-                   and int(stream["nb_frames"]) >= N, "source timeline/resolution differs from frozen 24fps recipe")
-    return stream
+    return validate_source_timeline(streams[0], cycle_count)
 
 
 def render_pose(args, item, audio, unet, decoder, identity, video, chin, torch, np, cv2):
@@ -325,7 +335,8 @@ def render_pose(args, item, audio, unet, decoder, identity, video, chin, torch, 
     tracker = None
     try:
         frames, d, inventory, cache_meta = load_cache(item, torch, np, cv2)
-        row.update(cache=cache_meta, input_inventory=inventory, source_timeline=source_timeline(item))
+        row.update(cache=cache_meta, input_inventory=inventory,
+                   source_timeline=source_timeline(item, cache_meta["cycle_count"]))
         d["cache"]["audio"] = audio
         tracker = video.Tracker(ROOT, Path(args.tracker_python), dest / "tracker.log")
         tracker.reset()
@@ -462,6 +473,14 @@ def worker(args):
     return {"PASS": 0, "FAIL": 1}.get(data["status"], 2)
 
 
+def normalize_paths(args):
+    for key, value in vars(args).items():
+        if isinstance(value, Path):
+            # A venv interpreter is commonly a symlink to /usr/bin/python.
+            # Resolving it changes sys.prefix and silently discards its packages.
+            setattr(args, key, value.absolute() if key == "tracker_python" else value.resolve())
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     for flag in ("publication", "avatars-root", "audio", "out"):
@@ -475,9 +494,7 @@ def main(argv=None):
         parser.add_argument("--" + flag, type=Path)
     parser.add_argument("--taesd-key")
     args = parser.parse_args(argv)
-    for key, value in vars(args).items():
-        if isinstance(value, Path):
-            setattr(args, key, value.resolve())
+    normalize_paths(args)
     if args._worker:
         return worker(args)
     independent_output(args.out, args.avatars_root)

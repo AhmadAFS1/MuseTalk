@@ -92,6 +92,29 @@ class AuditContracts(unittest.TestCase):
         report = json.loads((self.root / "plan/report.json").read_text())
         self.assertEqual(report["status"], "PLAN_ONLY")
 
+    def test_venv_interpreter_symlink_is_not_resolved_to_system_python(self):
+        system = self.root / "system-python"
+        system.write_bytes(b"synthetic interpreter placeholder")
+        interpreter = self.root / "venv/bin/python"
+        interpreter.parent.mkdir(parents=True)
+        interpreter.symlink_to(system)
+        args = argparse.Namespace(tracker_python=interpreter, audio=self.audio)
+        audit.normalize_paths(args)
+        self.assertEqual(args.tracker_python, interpreter.absolute())
+        self.assertNotEqual(args.tracker_python, system.resolve())
+        self.assertEqual(args.audio, self.audio.resolve())
+
+    def test_short_smiling_source_uses_existing_forward_reverse_cache(self):
+        source = {"width": 512, "height": 896, "avg_frame_rate": "24/1", "nb_frames": "158"}
+        result = audit.validate_source_timeline(source, 316)
+        self.assertEqual(result["selected_cache_frames"], 240)
+        self.assertEqual(result["cache_cycle_frames"], 316)
+        self.assertFalse(result["new_frames_generated_or_resampled"])
+        for change, count in (({}, 315), ({"nb_frames": "100"}, 200), ({"avg_frame_rate": "25/1"}, 316),
+                              ({"width": 256}, 316), ({"nb_frames": "0"}, 316)):
+            with self.subTest(change=change, count=count), self.assertRaises(audit.checks.Invalid):
+                audit.validate_source_timeline({**source, **change}, count)
+
     def test_execution_missing_settings_is_invalid_without_gpu(self):
         with mock.patch.object(audit.runner, "child", side_effect=AssertionError("GPU child forbidden")):
             result = audit.main(self.arguments(self.root / "invalid") + ["--execute-render"])

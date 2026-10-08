@@ -1,0 +1,25 @@
+{
+  "schema": "startup_optimization_lead_v1",
+  "status": "STATIC_AND_DIAGNOSTIC_EVIDENCE_NOT_IMPLEMENTED_OR_ACCEPTED",
+  "source_revision": "ff8b77bd5854fe008e98be3fe1a83a65ffb2e39c",
+  "measured_read_report": "../release/private_model_parallel_read_verify_1442.json",
+  "measured_read_report_sha256": "01ac6fa6cae9b69685d50e4bf9e2f2da6663474ef82b75a25f7b682a89ebb3e4",
+  "candidate_lead": "Separate quality/training-only SyncNet availability from the serving/required-avatar readiness barrier if an actual file-open/import trace confirms it is not needed there",
+  "syncnet": {"bytes": 1488019828, "diagnostic_verified_transfer_seconds": 138.53057019700282},
+  "all_five_read_trial": {"downloaded_bytes": 1767823261, "start_utc": "2026-10-08T14:42:00.704276+00:00", "finish_utc": "2026-10-08T14:44:55.284634+00:00", "concurrent_cpu_network_audit": true},
+  "static_evidence": [
+    "scripts/musetalk_install_state.py currently includes SyncNet in AVATAR_PREP_MODEL_FILES, so the existing check can block readiness on its absence",
+    "scripts/quality_ab_metrics.py uses it for optional quality scoring/calibration",
+    "musetalk/utils/training_utils.py initializes it for training",
+    "No direct SyncNet use was found in the API avatar manager, APIAvatar, or face-preprocessing path searched",
+    "APIAvatar already imports the heavy preprocessing stack lazily; static search alone does not prove every runtime path"
+  ],
+  "required_validation_before_policy_change": [
+    "Trace actual server startup and restored-avatar warm paths with no missing-model repair or network fallback",
+    "Explicitly separate server, dynamic-avatar preparation, and quality-tool model contracts; preserve needed dwpose, face parsing and detector models",
+    "Maintain a checksum-pinned way to fetch SyncNet when quality/training tools are requested",
+    "Test negative cases and measure a fresh instance request-to-usable-call before claiming saved startup seconds"
+  ],
+  "not_claimed": ["138.5 seconds of boot savings", "fresh-instance timing", "SyncNet is unused in every runtime path", "model usage-rights clearance"],
+  "production_modified": false
+}

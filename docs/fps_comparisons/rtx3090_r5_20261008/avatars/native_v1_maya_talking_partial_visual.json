@@ -1,0 +1,27 @@
+{
+  "schema": "production_pose_partial_visual_inspection_v1",
+  "status": "PARTIAL_NOT_RELEASE_ACCEPTANCE",
+  "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+  "inspection_method": "Direct original-resolution contact-sheet inspection by root",
+  "contact_file": "native_v1_one_pose_1455_contact.png",
+  "contact_sha256": "625cbb39090ce2115bd203ed23f2106fdaa94be71661823efa893a4451073db0",
+  "render_report": "native_v1_one_pose_1455.json",
+  "render_report_sha256": "a5d606baa80b92322858c1995d5e8f68aa6cc12bb5652c0bd5f2a1489ea00531",
+  "frames_inspected": [0, 48, 96, 144, 192, 239],
+  "columns": ["source", "standard", "refined_chin_100_percent"],
+  "native_tile_shape_hwc": [896, 512, 3],
+  "observations": [
+    "Framing, hair, eyes, upper face, clothing and background remain stable across sampled columns",
+    "Generated lower-face detail is softer than source in both standard and refined columns",
+    "Mouth articulation differs appropriately from the source-video expression, but static frames do not prove speech synchronization",
+    "No gross newly introduced jaw seam, foldover or head displacement is visible in these six refined samples"
+  ],
+  "limitations": [
+    "One talking pose only; not all48",
+    "No portable-engine comparison for this production cache",
+    "Motion and audio were not directly reviewed",
+    "Cache encoder/preprocessing provenance remains unavailable",
+    "Native v1 numerical parity is rejected and is not waived by this inspection"
+  ],
+  "release_ready": false
+}
