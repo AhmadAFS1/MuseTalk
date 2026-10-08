@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 from pathlib import Path
+import posixpath
 import re
 import subprocess
 from urllib.parse import urlparse
@@ -120,6 +121,37 @@ def bind(index, root, output):
                        for status in ("MATCH", "MISSING", "DIFFERENT_REQUIRES_PROVENANCE")}, "publication_approved": False}))
 
 
+def bind_captured(index, captured, captured_sha256, captured_base, output):
+    """Compare two small frozen inventories, performing no GPU worker/model IO."""
+    release.require(release.sha256(captured) == captured_sha256, "Captured model inventory checksum differs")
+    release.relative(captured_base)
+    data = json.loads(index.read_text())
+    snapshot = json.loads(captured.read_text())
+    release.require(data.get("schema") == "musetalk_notice_reference_inventory_v1"
+                    and snapshot.get("schema") == "repro_3090_inputs_v1", "Wrong inventory schema")
+    actual_files = {}
+    for item in snapshot["files"]:
+        name = posixpath.normpath(captured_base + "/" + item["path"])
+        if name.startswith("models/"):
+            release.relative(name)
+            release.require(name not in actual_files, "Duplicate captured model path")
+            actual_files[name] = {"sha256": item["sha256"], "size_bytes": item["bytes"]}
+    records = []
+    for reference in data["models"]:
+        actual = actual_files.get(reference["target_path"])
+        status = "NOT_IN_CAPTURE" if actual is None else "MATCH" if all(actual[k] == reference[k] for k in actual) else "DIFFERENT_REQUIRES_PROVENANCE"
+        records.append({**reference, "byte_binding": status, "actual": actual})
+    result = {"schema": "musetalk_model_byte_binding_v1", "reference_inventory_sha256": release.sha256(index),
+              "captured_inventory_sha256": captured_sha256, "captured_inventory_base": captured_base,
+              "publication_approved": False, "models": records,
+              "limitation": "Matches bind captured target bytes, not license signoff. NOT_IN_CAPTURE is not a claim that a model is absent on the worker."}
+    with output.open("x") as stream:
+        json.dump(result, stream, indent=2)
+        stream.write("\n")
+    print(json.dumps({"output": str(output), "counts": {status: sum(r["byte_binding"] == status for r in records)
+                       for status in ("MATCH", "NOT_IN_CAPTURE", "DIFFERENT_REQUIRES_PROVENANCE")}, "publication_approved": False}))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -130,8 +162,16 @@ if __name__ == "__main__":
     bind_parser.add_argument("--index", type=Path, required=True)
     bind_parser.add_argument("--root", type=Path, required=True)
     bind_parser.add_argument("--output", type=Path, required=True)
+    captured_parser = commands.add_parser("bind-captured")
+    captured_parser.add_argument("--index", type=Path, required=True)
+    captured_parser.add_argument("--captured", type=Path, required=True)
+    captured_parser.add_argument("--captured-sha256", required=True)
+    captured_parser.add_argument("--captured-base", required=True)
+    captured_parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "collect":
         collect(args.review, args.output)
-    else:
+    elif args.command == "bind":
         bind(args.index, args.root, args.output)
+    else:
+        bind_captured(args.index, args.captured, args.captured_sha256, args.captured_base, args.output)

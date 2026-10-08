@@ -1,0 +1,120 @@
+{
+  "schema": "musetalk_public_payload_assessment_rules_v1",
+  "review_date_utc": "2026-10-08",
+  "scope": "Engineering assessment of exact unchanged model bytes and identified runtime distribution obligations; not legal advice, release authorization, or a complete final-image SBOM",
+  "additional_primary_runtime_sources": [
+    {"url": "https://raw.githubusercontent.com/espeak-ng/espeak-ng/1.52.0/COPYING", "finding": "eSpeak NG provides GPLv3 text; bind the loader's actual vendored version and accompanying terms if local TTS is included."},
+    {"url": "https://raw.githubusercontent.com/bastibe/python-soundfile/0.12.1/README.rst", "finding": "SoundFile distinguishes its BSD code from libsndfile under LGPL; inspect the actual selected bundled library."},
+    {"path": "runtime-package-metadata.json", "finding": "Primary uploader metadata for eleven relevant package versions, with response hashes; not a complete runtime SBOM or grant for bundled native libraries."}
+  ],
+  "model_groups": {
+    "musetalk_v15": {
+      "license_basis": "MIT",
+      "expected_paths": ["models/musetalkV15/musetalk.json", "models/musetalkV15/unet.pth"],
+      "notices": ["licenses/musetalk_model_license.txt", "licenses/musetalk_model_card.txt"],
+      "assessment": "ELIGIBLE_WITH_LISTED_NOTICES",
+      "reason": "Exact model repository declares MIT, includes its license, and expressly permits commercial use of trained models. Captured target bytes match that pinned repository. Preserve the full notice, including third-party attribution; this is not a grant for other model families or sample data.",
+      "conditions": ["Retain the complete published MIT license and model attribution in the image notice directory.", "For converted/quantized TensorRT plans, separately record input hashes and conversion/build provenance and retain the same notice."]
+    },
+    "sd_vae_ft_mse": {
+      "license_basis": "MIT declared by the exact Stability AI model card; preserve the linked original CompVis autoencoder MIT notice",
+      "expected_paths": ["models/sd-vae/config.json", "models/sd-vae/diffusion_pytorch_model.bin"],
+      "notices": ["licenses/sd_vae_model_card.txt", "supplemental/compvis_autoencoder_mit.txt"],
+      "assessment": "ELIGIBLE_WITH_LISTED_NOTICES",
+      "reason": "The pinned Stability AI card explicitly declares MIT and identifies the original CompVis kl-f8 autoencoder. The linked CompVis repository publishes the actual MIT notice: Copyright (c) 2022 Machine Vision and Learning Group, LMU Munich. Preserve this notice plus the fine-tune/conversion card. No additional Stability copyright statement was found or invented. An absent separate LICENSE in this model repository is not treated as an automatic prohibition.",
+      "conditions": ["Retain both the model card and actual linked CompVis MIT notice, without replacing them with MuseTalk's MIT license or a different Stable Diffusion model's OpenRAIL terms.", "Distribute only the exact two matched files; derived weights require their own recorded transformation provenance."]
+    },
+    "whisper_tiny_hf_conversion": {
+      "license_basis": "Apache-2.0 declared for HF conversion; underlying original Whisper model MIT",
+      "expected_paths": ["models/whisper/config.json", "models/whisper/pytorch_model.bin", "models/whisper/preprocessor_config.json"],
+      "notices": ["licenses/whisper_model_card.txt", "licenses/whisper_original_license.txt", "licenses/apache_2_0_license_text.txt"],
+      "assessment": "ELIGIBLE_WITH_LISTED_NOTICES",
+      "reason": "The exact converted package declares Apache-2.0; OpenAI's original code and weights are expressly MIT. Both stated grants permit redistribution. Carry both original and conversion notices instead of erasing the distinction. No separate NOTICE file was present in the pinned HF inventory.",
+      "conditions": ["Retain OpenAI's MIT copyright/permission notice, full Apache-2.0 text, and HF model card identifying the conversion.", "If changing any distributed Apache-covered file, identify those changes and preserve any subsequently discovered applicable upstream NOTICE."]
+    },
+    "taesd": {
+      "license_basis": "MIT",
+      "expected_paths": ["models/taesd/config.json", "models/taesd/diffusion_pytorch_model.safetensors"],
+      "notices": ["licenses/taesd_model_card.txt", "licenses/taesd_author_license.txt"],
+      "assessment": "ELIGIBLE_WITH_LISTED_NOTICES",
+      "reason": "Pinned author model card declares MIT and linked author repository provides Ollin Boer Bohan's MIT notice. The captured normal safetensors file exactly matches upstream; do not misdescribe it as a different FP16 artifact.",
+      "conditions": ["Retain author MIT notice and model card.", "Native decoder/post plans are not among these two approved-byte records: bind each output to this input, exact builder/toolchain/configuration, and preserve notices before release."]
+    },
+    "dwpose_l_384": {
+      "license_basis": "Apache-2.0",
+      "expected_paths": ["models/dwpose/dw-ll_ucoco_384.pth"],
+      "notices": ["licenses/dwpose_model_card.txt", "licenses/dwpose_code_license.txt", "licenses/dwpose_official_readme.txt"],
+      "assessment": "ELIGIBLE_WITH_LISTED_NOTICES",
+      "reason": "Author HF checkpoint repository explicitly declares Apache-2.0 and the official IDEA repository links this exact large checkpoint. Full license already includes IDEA/OpenMMLab attribution. Captured bytes match pinned upstream.",
+      "conditions": ["Retain full Apache-2.0 text and included attribution, plus model card and source reference.", "Mark modifications if any; do not extend this grant to training datasets, unrelated checkpoints or demonstration media."]
+    }
+  },
+  "excluded_model_payloads": {
+    "status": "EXCLUDE_FROM_PUBLIC_LAYERS_PRIVATE_DELIVERY_DOES_NOT_RESOLVE_USAGE_RIGHTS",
+    "paths": ["models/syncnet/latentsync_syncnet.pt", "models/face-parse-bisent/79999_iter.pth", "models/face-parse-bisent/resnet18-5c106cde.pth", "models/auxiliary/s3fd-619a316812.pth", "models/face_detection/s3fd.pth"],
+    "evidence": "../model_license_review.json",
+    "reason": "Exact OpenRAIL++ scope, face-parser weight/dataset terms, legacy ResNet weight grant, and S3FD weight redistribution remain unresolved. Public/private delivery architecture does not supply those missing rights. Two S3FD paths hold the same upstream asset."
+  },
+  "kokoro": {
+    "status": "CONDITIONAL_ON_SELECTED_CAPABILITY_AND_ACTUAL_BYTE_CAPTURE",
+    "model_basis": "Author declares Apache-licensed weights; preserve full Apache-2.0 text, model card and voice/data attribution",
+    "notices_available": ["licenses/kokoro_model_card.txt", "licenses/kokoro_voice_inventory.txt", "licenses/apache_2_0_license_text.txt"],
+    "remaining": ["Record local-TTS enabled/disabled from the actual required API capability; no silent disablement authorized.", "If enabled, capture actual config, model and selected voices including materialized HF snapshot identity. NOT_IN_CAPTURE is not proof that the worker lacks them.", "Include Koniwa/SIWIS attribution retained by the model card; review actual spaCy model and pronunciation/voice data notices.", "Kokoro/Misaki model permissiveness does not erase GPL obligations of espeak-ng/phonemizer dependencies. Inspect the selected stack and satisfy source/distribution/linking obligations before public distribution."]
+  },
+  "runtime_components": [
+    {
+      "component": "Pinned NVIDIA CUDA 12.1.1 cuDNN8 devel base",
+      "basis": "NVIDIA Deep Learning Container License, with separately applicable component terms",
+      "status": "DERIVED_CONTAINER_DISTRIBUTION_GRANT_IDENTIFIED_CONDITIONS_TO_APPLY",
+      "sources": ["supplemental/nvidia_container_license.txt", "supplemental/cuda_12_1_1_base_recipe.txt", "supplemental/cuda_12_1_1_eula.html"],
+      "findings": ["Container license section 1(c) expressly permits compatible derived containers containing the entire base plus software with primary functionality; MuseTalk application functionality is the intended basis, not resale of standalone CUDA.", "Retain /NGC-DL-CONTAINER-LICENSE and component notices. Apply section 2 downstream terms; do not blanket-license the entire image as MIT or remove the proprietary terms.", "Keep NVIDIA GPU execution scope and no-API-exposure restrictions. If slimming the base or removing components, recheck the grant rather than assuming the entire-base path still applies.", "Actual base license bytes must be compared against this reference capture in CI. Source Dockerfile proves the intended path but is not a digest-bound extraction."]
+    },
+    {
+      "component": "pip nvidia CUDA/cuDNN libraries (cuDNN 9.1.0.70 is separate from base cuDNN8)",
+      "basis": "Version-specific NVIDIA component EULAs and any bundled third-party notices",
+      "status": "RUNTIME_REDISTRIBUTION_GRANTS_IDENTIFIED_EXACT_PACKAGE_NOTICES_PENDING",
+      "sources": ["supplemental/cuda_12_1_1_eula.html", "supplemental/cudnn_9_1_0_eula.html"],
+      "findings": ["CUDA 12.1.1 attachment A lists runtime/math libraries; section 2.3 additionally addresses unmodified Linux-only object code. cuDNN 9.1 supplement expressly identifies runtime .so/.dll files as distributable.", "Preserve exact installed nvidia-*.dist-info licenses and library notices; assess each selected package version rather than treating cu121 as one license version (for example nvjitlink 12.9.86).", "NCCL has its own open-source/component terms. Image package inventory determines which copies and versions ship; these are not model-weight restrictions."]
+    },
+    {
+      "component": "TensorRT 10.3.0 proprietary wheels versus TensorRT OSS and Torch-TensorRT 2.5.0",
+      "basis": "Exact wheel SLA plus Apache/BSD notices for separately identified OSS components",
+      "status": "SPECIFIC_DISTRIBUTION_SCOPE_RECONCILIATION_REQUIRED",
+      "sources": ["supplemental/tensorrt_10_3_libs_license.txt", "supplemental/tensorrt_10_3_bindings_license.txt", "supplemental/tensorrt_10_3_oss_license.txt", "supplemental/tensorrt_10_3_oss_notice.txt", "supplemental/torch_tensorrt_2_5_license.txt"],
+      "findings": [
+        "Exact cp310 TensorRT bindings wheel license and the 2,037,510,258-byte NVIDIA-hosted libs wheel's license were read (the latter using only 15,891 bytes of HTTP range reads). Both equal the pinned v10.3 packaging license SHA-256 64bd290f0251405f783ba1d2e155c500542be69795e51147a1d9f11a57bda8cc. Its section 12.1 grants binary redistribution of libnvinfer and libnvinfer_plugin as part of a materially functional application with pass-through restrictions.",
+        "Current official web SLA instead says runtime .so/.dll files broadly. The old 10.3 archive URL redirects to latest. Do not silently replace packaged terms with latest terms or infer that the whole proprietary wheel is Apache because the GitHub OSS tree is Apache.",
+        "The observed normal libs wheel contains libnvinfer.so.10, libnvinfer_plugin.so.10, libnvonnxparser.so.10, libnvinfer_builder_resource.so.10.3.0, and libnvinfer_builder_resource_win.so.10.3.0 (no lean/dispatch files). Resolve scope for the Python binding, parser and builder-resource payload using applicable NVIDIA terms or independently applicable OSS licenses. Obtain release-owner/qualified review or NVIDIA clarification if exact scope remains unresolved. This is a concrete package-term discrepancy, not a conclusion that TensorRT redistribution is categorically forbidden.",
+        "Torch-TensorRT is separately BSD-3-Clause; preserve its notice plus TensorRT OSS LICENSE/NOTICE where applicable. Native engine plans retain their model-source provenance obligations."
+      ]
+    },
+    {
+      "component": "Native VP8 extension from aiortc 1.11.0 and libvpx 1.13.1",
+      "basis": "BSD-3-Clause with libvpx patent grant",
+      "status": "NOTICE_PACKAGING_ALREADY_IMPLEMENTED_VERIFY_IMAGE_COPY",
+      "sources": ["../../../scripts/native_vp8_manifest.json", "../../../scripts/native_vp8_licenses/libvpx-v1.13.1-LICENSE", "../../../scripts/native_vp8_licenses/libvpx-v1.13.1-PATENTS"],
+      "findings": ["Existing installer extracts the pinned aiortc wheel LICENSE and copies hashed libvpx LICENSE/PATENTS into the native bundle. Verify these files in the image; retain authorship, disclaimer and patent terms.", "This does not license arbitrary H.264/other codecs or replace codec patent review."]
+    },
+    {
+      "component": "PyAV 16.1.0, Ubuntu FFmpeg, imageio-ffmpeg 0.6.0, and OpenCV bundled multimedia libraries",
+      "basis": "Permissive wrapper licenses plus separate FFmpeg/codec LGPL/GPL/commercial terms",
+      "status": "EXACT_BINARY_BUILD_FLAGS_AND_CORRESPONDING_SOURCE_DELIVERY_REQUIRED",
+      "sources": ["supplemental/pyav_16_1_license.txt", "supplemental/pyav_16_1_vendor_reference.txt", "supplemental/pyav_ffmpeg_8_0_1_3_build.txt", "supplemental/pyav_ffmpeg_8_0_1_3_patch.txt", "supplemental/imageio_ffmpeg_0_6_license.txt", "supplemental/ffmpeg_legal.html"],
+      "findings": ["PyAV's own code is BSD-3-Clause and imageio-ffmpeg's wrapper is BSD-2-Clause; neither grants rights for bundled FFmpeg/codecs.", "Actual PyAV cp310 manylinux_2_28 wheel metadata/notice entries were inspected via 26373 bytes of HTTP range reads; its wheel-reported BSD license and auditwheel SBOM do not provide a complete FFmpeg codec-license dossier.", "The pinned PyAV source references pyav-ffmpeg 8.0.1-3. That build enables x264/x265 and patches them out of FFmpeg's GPL configure list. Do not infer LGPL-only from missing --enable-gpl or a reported license string; require the exact binary source/build/license basis, including any claimed alternate codec grant.", "Preserve Ubuntu dpkg copyright files and source-package identities. Provide corresponding FFmpeg/codec source and build scripts by an applicable compliant route; do not rely on a generic upstream link or assume the distributor's source obligation passes to an unrelated host.", "Inspect OpenCV and imageio bundled copies separately even if unused at runtime. No --enable-nonfree binary may be treated as freely redistributable. H.264/AAC patent licensing is a separate deployment-specific issue."]
+    },
+    {
+      "component": "PyTorch, OpenMMLab and remaining Python/OS dependency graph",
+      "basis": "Per-component MIT/BSD/Apache and applicable weak/strong copyleft terms",
+      "status": "KNOWN_GRANTS_DO_NOT_BLOCK_BUILD_FINAL_INVENTORY_AND_NOTICES_REQUIRED",
+      "sources": ["supplemental/pytorch_2_5_1_license.txt", "supplemental/mmcv_2_1_license.txt"],
+      "findings": ["PyTorch and Torch-TensorRT provide BSD-style redistribution grants; MMCV/MMEngine/MMDetection/MMPose are Apache-2.0. Preserve their actual distribution LICENSE/NOTICE and third-party bundled notices, not just root licenses.", "Known non-permissive notice/source obligations include certifi MPL-2.0, python-soxr/libsoxr LGPL, SoundFile's bundled libsndfile LGPL, OS GPL/LGPL programs, and optional TTS GPL dependencies. These licenses permit redistribution when their conditions are met; they are not automatic bans.", "The constraints file is a superset, not a final SBOM: it contains optional and unused packages. Capture exact installed pip distributions, RECORD-owned native libraries, dpkg binary/source versions, copyright/license files, and build-time source additions from the final image.", "Diff final inventory against the assessed set; resolve only genuinely missing/conflicting grants and source obligations. Archive complete applicable notices and source delivery evidence. No remote model/sample data or private fixtures may enter this package audit as implicitly cleared assets."]
+    }
+  ],
+  "remaining_release_gates": [
+    "Include the exact listed notices for the ten eligible unchanged files and verify their hashes in the image release inventory.",
+    "Record source-to-native-engine derivations and selected Kokoro capability/bytes; no fictitious native evidence or silent capability removal.",
+    "Maintain the five-file public exclusion; unresolved underlying private-use rights remain a release-owner decision requiring appropriate advice, not solved by S3 authentication.",
+    "Reconcile TensorRT 10.3 packaged distribution scope and final NVIDIA pass-through terms.",
+    "Complete exact final-image dependency inventory, multimedia license/build provenance and corresponding-source delivery, and preserve all installed license/notice files before publication."
+  ]
+}

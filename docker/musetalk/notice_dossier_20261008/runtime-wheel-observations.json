@@ -1,0 +1,48 @@
+{
+  "schema": "musetalk_runtime_wheel_notice_observations_v1",
+  "observed_date_utc": "2026-10-08",
+  "scope": "Primary package files inspected for notice evidence only; no install, model download or final-image identity claim",
+  "wheels": [
+    {
+      "filename": "tensorrt_cu12_bindings-10.3.0-cp310-none-manylinux_2_17_x86_64.whl",
+      "metadata_url": "https://pypi.org/pypi/tensorrt-cu12-bindings/10.3.0/json",
+      "url": "https://files.pythonhosted.org/packages/3b/68/eab45c46fdcafe08c6b21de4560fe2d3d845ce072d3e7743de4077c2d8c0/tensorrt_cu12_bindings-10.3.0-cp310-none-manylinux_2_17_x86_64.whl",
+      "size_bytes": 1108101,
+      "sha256": "1d6e4cf08ef1f54f6fd44a33cf6b253050af2fc6e9a1d92e40e1436a1d858eb0",
+      "whole_archive_sha256_verified": true,
+      "method": "Bounded in-memory archive read, no code execution or extraction of binaries",
+      "notice_member": "tensorrt_cu12_bindings-10.3.0.dist-info/LICENSE.txt",
+      "notice_sha256": "64bd290f0251405f783ba1d2e155c500542be69795e51147a1d9f11a57bda8cc",
+      "notice_preserved_as": "supplemental/tensorrt_10_3_bindings_license.txt"
+    },
+    {
+      "filename": "tensorrt_cu12_libs-10.3.0-py2.py3-none-manylinux_2_17_x86_64.whl",
+      "metadata_url": "https://pypi.nvidia.com/tensorrt-cu12-libs/",
+      "url": "https://pypi.nvidia.com/tensorrt-cu12-libs/tensorrt_cu12_libs-10.3.0-py2.py3-none-manylinux_2_17_x86_64.whl",
+      "size_bytes": 2037510258,
+      "advertised_sha256": "736cb205d2d4ece7584f3b35e2495754864161895e9cbe3ff7d46b58c9680311",
+      "whole_archive_sha256_verified": false,
+      "method": "Bounded HTTP 206 range reads of ZIP central directory and license only",
+      "bytes_read": 15891,
+      "notice_member": "tensorrt_cu12_libs-10.3.0.dist-info/LICENSE.txt",
+      "notice_size_bytes": 46961,
+      "notice_sha256": "64bd290f0251405f783ba1d2e155c500542be69795e51147a1d9f11a57bda8cc",
+      "notice_preserved_as": "supplemental/tensorrt_10_3_libs_license.txt",
+      "native_members": ["tensorrt_libs/libnvinfer.so.10", "tensorrt_libs/libnvinfer_builder_resource.so.10.3.0", "tensorrt_libs/libnvinfer_builder_resource_win.so.10.3.0", "tensorrt_libs/libnvinfer_plugin.so.10", "tensorrt_libs/libnvonnxparser.so.10"]
+    },
+    {
+      "filename": "av-16.1.0-cp310-cp310-manylinux_2_28_x86_64.whl",
+      "metadata_url": "https://pypi.org/pypi/av/16.1.0/json",
+      "url": "https://files.pythonhosted.org/packages/3a/b8/6c5795bf1f05f45c5261f8bce6154e0e5e86b158a6676650ddd77c28805e/av-16.1.0-cp310-cp310-manylinux_2_28_x86_64.whl",
+      "size_bytes": 40293006,
+      "advertised_sha256": "eb990672d97c18f99c02f31c8d5750236f770ffe354b5a52c5f4d16c5e65f619",
+      "whole_archive_sha256_verified": false,
+      "method": "Bounded HTTP 206 range reads of ZIP central directory, notice/author entries and auditwheel SBOM only",
+      "bytes_read": 26373,
+      "notice_member": "av-16.1.0.dist-info/licenses/LICENSE.txt",
+      "notice_size_bytes": 1505,
+      "declared_wrapper_license": "BSD-3-Clause",
+      "observation": "Listed notice entries cover PyAV license/authors; auditwheel SBOM lists repaired OS libraries, not a complete FFmpeg/codec source-license dossier. This is not clearance of bundled multimedia binaries."
+    }
+  ]
+}
