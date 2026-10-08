@@ -1,0 +1,53 @@
+{
+  "schema": "owned_missing_syncnet_capability_v1",
+  "status": "PASS_EXERCISED_API_CAPABILITIES_WITH_SYNCNET_ABSENT",
+  "created_utc": "2026-10-08T18:40:55.802422+00:00",
+  "checkpoint_sha256": "38fa63bad3ed2332f647c40a5dc616cb0e233db8579f698f62af4c41965c4da5",
+  "backup": "/workspace/MuseTalk/tmp/missing_syncnet_probe_v2_1841/latentsync_syncnet.pt",
+  "profile_sha256": "2e9f78eafd39ada6a48982a49c49316314cf7282697b2bc96405a0b41bfa5488",
+  "release_ready": false,
+  "scored_timing": false,
+  "installer_contract_changed": false,
+  "nested_guard_removed_under_outer_owned_lease": true,
+  "prior_trial": "missing_syncnet_capability_1835.json; failed only nested lease timeout, checkpoint restored",
+  "scope": "Only isolated direct API startup, cached human-speech serving and fresh canonical preparation; TTS disabled.",
+  "api_pid": 489647,
+  "api_ready_with_checkpoint_absent": true,
+  "speech_report": "missing_syncnet_speech_v2_1841.json",
+  "fresh_preparation": {
+    "http_status": 200,
+    "avatar_id": "startup_missing_syncnet_black_man_v2_1841",
+    "artifacts": [
+      {
+        "name": "latents.pt",
+        "bytes": 7865500,
+        "sha256": "d2e3bb5053d8ec80bec52751c935c847df951bb14eea826da5d33e293e256128"
+      },
+      {
+        "name": "coords.pkl",
+        "bytes": 14463,
+        "sha256": "bd96d0bfac70e23f3dbc69278e8201115274191598bfab6864ac42ec68d884db"
+      },
+      {
+        "name": "mask_coords.pkl",
+        "bytes": 38501,
+        "sha256": "c3ec03739fe89322a222daa24de6b478387d65b5503da293bf66bfb32472edbf"
+      },
+      {
+        "name": "avator_info.json",
+        "bytes": 564,
+        "sha256": "ba317cdc30f4e21f44452d659382d4e5e6c30955c4fc8671cebd860af2676232"
+      }
+    ],
+    "frame_pngs": 480,
+    "mask_pngs": 480,
+    "source_frames": 240,
+    "cache_cycle_policy": "Canonical API forward plus reversed source cycle, no source-video modification",
+    "source_unchanged": true,
+    "checkpoint_missing_before_after": true
+  },
+  "api_stopped": true,
+  "checkpoint_restored_sha256": "38fa63bad3ed2332f647c40a5dc616cb0e233db8579f698f62af4c41965c4da5",
+  "checkpoint_restored": true,
+  "finished_utc": "2026-10-08T18:44:22.565639+00:00"
+}

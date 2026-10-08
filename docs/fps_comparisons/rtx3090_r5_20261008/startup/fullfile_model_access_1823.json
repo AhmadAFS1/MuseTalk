@@ -1,0 +1,125 @@
+{
+  "schema": "observed_fullfile_model_access_v1",
+  "status": "PASS_VALIDATED_OBSERVATION_SCOPE_ONLY",
+  "created_utc": "2026-10-08T18:23:37.290625+00:00",
+  "trace_bytes": 128129063,
+  "trace_sha256": "4847dc9b5919a3ae186722f862dfc46c19fdff4073d7f2a45aa1713957c8f689",
+  "trace_lines": 1231504,
+  "positive_control_pid": 465875,
+  "positive_control_observed": true,
+  "all_child_file_syscalls_requested": true,
+  "path_filters_used": false,
+  "models": {
+    "models/musetalkV15/musetalk.json": {
+      "path_matching_lines": 1,
+      "successful_completed_opens": 1,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 1,
+      "matching_unfinished_lines": 0
+    },
+    "models/musetalkV15/unet.pth": {
+      "path_matching_lines": 4,
+      "successful_completed_opens": 2,
+      "control_pid_completed_opens": 1,
+      "other_pid_completed_opens": 1,
+      "matching_unfinished_lines": 0
+    },
+    "models/sd-vae/config.json": {
+      "path_matching_lines": 2,
+      "successful_completed_opens": 1,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 1,
+      "matching_unfinished_lines": 0
+    },
+    "models/sd-vae/diffusion_pytorch_model.bin": {
+      "path_matching_lines": 2,
+      "successful_completed_opens": 1,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 1,
+      "matching_unfinished_lines": 0
+    },
+    "models/whisper/config.json": {
+      "path_matching_lines": 3,
+      "successful_completed_opens": 1,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 1,
+      "matching_unfinished_lines": 0
+    },
+    "models/whisper/pytorch_model.bin": {
+      "path_matching_lines": 5,
+      "successful_completed_opens": 3,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 3,
+      "matching_unfinished_lines": 0
+    },
+    "models/whisper/preprocessor_config.json": {
+      "path_matching_lines": 2,
+      "successful_completed_opens": 1,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 1,
+      "matching_unfinished_lines": 0
+    },
+    "models/face-parse-bisent/79999_iter.pth": {
+      "path_matching_lines": 1,
+      "successful_completed_opens": 0,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 0,
+      "matching_unfinished_lines": 1
+    },
+    "models/face-parse-bisent/resnet18-5c106cde.pth": {
+      "path_matching_lines": 1,
+      "successful_completed_opens": 1,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 1,
+      "matching_unfinished_lines": 0
+    },
+    "models/taesd/config.json": {
+      "path_matching_lines": 3,
+      "successful_completed_opens": 1,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 1,
+      "matching_unfinished_lines": 0
+    },
+    "models/taesd/diffusion_pytorch_model.safetensors": {
+      "path_matching_lines": 3,
+      "successful_completed_opens": 2,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 2,
+      "matching_unfinished_lines": 0
+    },
+    "models/dwpose/dw-ll_ucoco_384.pth": {
+      "path_matching_lines": 2,
+      "successful_completed_opens": 1,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 1,
+      "matching_unfinished_lines": 0
+    },
+    "models/syncnet/latentsync_syncnet.pt": {
+      "path_matching_lines": 0,
+      "successful_completed_opens": 0,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 0,
+      "matching_unfinished_lines": 0
+    },
+    "models/face_detection/s3fd.pth": {
+      "path_matching_lines": 0,
+      "successful_completed_opens": 0,
+      "control_pid_completed_opens": 0,
+      "other_pid_completed_opens": 0,
+      "matching_unfinished_lines": 0
+    }
+  },
+  "speech_probe_status": "PASS_OBSERVED_SPEECH_PATH_NOT_TIMING_ACCEPTANCE",
+  "fresh_prep_reconciliation_status": "PASS_COMPLETED_CACHE_VERIFICATION_ORIGINAL_HARNESS_FAILED",
+  "scored_timing": false,
+  "release_ready": false,
+  "safe_asset_removal_established": false,
+  "limitations": [
+    "Only startup, one cached human-speech stream and one fresh canonical avatar preparation were exercised.",
+    "All weights were present. Missing-weight boot was not tested. TTS was disabled in this diagnostic profile.",
+    "Completed-open counts exclude unfinished/resumed pairs; path-matching line counts include unfinished attempts.",
+    "Relative bare filenames cannot be resolved without per-thread cwd tracking; model paths shown use explicit paths.",
+    "Control PID ran the bootstrap before exec; its opens are not attributed automatically to the API.",
+    "No per-operation boot duration or fresh-instance/EC2/TURN readiness claim."
+  ]
+}

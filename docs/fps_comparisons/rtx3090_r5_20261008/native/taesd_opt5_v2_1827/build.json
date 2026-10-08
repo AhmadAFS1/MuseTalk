@@ -1,0 +1,62 @@
+{
+  "schema": "owned_native_taesd_opt5_diagnostic_v1",
+  "status": "PASS_BUILD_IDENTITY_ONLY_COMPLETE_QUALITY_GATE_PENDING",
+  "created_utc": "2026-10-08T18:27:32.795403+00:00",
+  "engine_dir": "/workspace/MuseTalk/models/taesd/trt_native_sm86_opt5_v2_1827",
+  "single_changed_lever": "builder optimization level 3 to 5; same graph, FP16, batch8 and native none compatibility",
+  "quality_acceptance": false,
+  "release_ready": false,
+  "default_selection_changed": false,
+  "meta": {
+    "schema": "taesd_trt_engine_v1",
+    "key": "0ba5db9ac404878d9f05",
+    "fingerprint": {
+      "recipe": "taesd_decoder_fp16_full_height_v1",
+      "post_recipe": "bgr_u8_nhwc_post_fp32_rne_v1",
+      "tensorrt": "10.3.0",
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "compute_capability": "8.6",
+      "onnx_sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb",
+      "batch": 8,
+      "latent_shape": [
+        8,
+        4,
+        32,
+        32
+      ],
+      "precision": "fp16",
+      "opt_level": 5,
+      "strongly_typed": false
+    },
+    "decoder_plan": "taesd_trt_0ba5db9ac404878d9f05.decoder.plan",
+    "decoder_plan_sha256": "8894888a559923058af8565714131e0714a1f484c000c422cf3e3e38455199f2",
+    "decoder_plan_bytes": 3130404,
+    "post_plan": "taesd_trt_0ba5db9ac404878d9f05.post_bgr_u8.plan",
+    "post_plan_sha256": "4e78178551e3e6d25dda729d5b932220931cd0948e8a77a41b646bb188938efc",
+    "post_plan_bytes": 16244,
+    "probe": {
+      "probe_seed": 20260928,
+      "probe_shape": [
+        8,
+        4,
+        32,
+        32
+      ],
+      "fp16_sha256": "65d41d403d2662c167af05005b0ed6d0c2616410f160b29bb62c16c0c6fd285e",
+      "u8_repo_post_sha256": "0941c2778dbf909ca3af4700d173b0521790ed799136770db06bf2f9ee5a3258",
+      "u8_fused_sha256": "0941c2778dbf909ca3af4700d173b0521790ed799136770db06bf2f9ee5a3258",
+      "fused_vs_repo_post_mismatched_bytes": 0
+    },
+    "build": {
+      "created_utc": "2026-10-08T18:28:31Z",
+      "decoder_build_s": 51.81,
+      "post_build_s": 2.55,
+      "torch": "2.5.1+cu121",
+      "pid": 477844,
+      "timing_cache": "taesd_trt_timing.cache",
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "compute_capability": "8.6",
+      "hardware_compatibility_level": "none"
+    }
+  }
+}

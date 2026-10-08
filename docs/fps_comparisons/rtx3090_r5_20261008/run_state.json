@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "gated_isolated_live_ramp_and_private_media_recovery",
+  "phase": "startup_syncnet_capability_verified_pending_installer_contract",
   "status": "in_progress",
   "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
   "branch": "codex/rtx3090-r5-delivery",
@@ -51,20 +51,24 @@
     "Isolated API started at15:50:25UTC under owned GPU lease; actual native UNet and TAESD backends active, TAESD key1e967e6e715c9f1a8375 built_nowFalse probeExact, registration disabled",
     "All16 talking process caches warm and resident at16:02:45,3512.87MiB with0process-cache evictions; 2400MiB idle cache only holds15 and evicted1, not fully warm16",
     "First same-worker S0N1 strict P1/P2/P3 PASS over117s but overallINVALID because actual wire VP8 differed from explicitly intended H264; no level3 advancement or codec gate relaxation",
-    "All48 audio-bearing lossless videos independently decode to240 original frame hashes and byte-exact original10s human PCM; initial archive creation failed on old worker helper empty-directory semantics, decoded proof preserved"
+    "All48 audio-bearing lossless videos independently decode to240 original frame hashes and byte-exact original10s human PCM; initial archive creation failed on old worker helper empty-directory semantics, decoded proof preserved",
+    "Full-file trace128129063bytes/1231504lines positive-control open observed; API startup, cached speech and fresh canonical prep exercised. No observed SyncNet path accesses; absence is not all-feature/installer removal proof. Original prep harness wrong avator_info spelling failure retained; read-only completed-cache verification PASS480frames/480masks.",
+    "Rejected native TAESDopt5 samegraph/FP16/batch8/none compatibility: full448files/3584frames gateFAIL max7LSB unchanged fromopt3. Newdecoder SHA889488...,postSHAunchanged. Private8payload archive conditionalPUT/freshGET/allSHA PASS; no performance/default acceptance.",
+    "Actual native-resolution image inspection18assets acrossall6canonical identities: sampled fullframe120 and selected mouth/jaw crops. No obviousgross native-only geometrycollapse in these stills; motion/audio/silence/transitions/all48 subjective validation remainsincomplete.",
+    "Owned missing-SyncNet v2 real startup/speech/fresh canonical prep PASS. Checkpoint restored with originalSHA, API stopped,0OOM/foreign GPU. Original nested-lease failure retained. Complete1930file inventory and8core hashes verified; private16payload archive conditionalPUT/freshGET/allSHA PASS. Complete diagnostic PNG recovery not claimed; no installer or startup-SLA acceptance."
   ],
   "budget": {
     "currency": "USD",
     "total_limit": 30,
     "authorization": "User reply Oct 8: $30 total; upload/download not above $1.50/TB",
-    "gpu_hourly_limit": 0.30,
+    "gpu_hourly_limit": 0.3,
     "download_usd_per_gb_max": 0.00146484375,
     "upload_usd_per_gb_max": 0.00146484375,
     "conversion": "Enforce 1.50/1024 per billed GB, also satisfying decimal TB = 1000 GB",
     "operator_selected_max_test_lifetime_hours": 24,
     "confirmed_experiment_spend_usd": null,
     "reserved_experiment_budget_usd": 9.584739583333334,
-    "additional_aws_audit_reserve_usd": 4.0,
+    "additional_aws_audit_reserve_usd": 4,
     "shared_budget_ledger_sha256": "71b62f447563e1af82ba12d7533e098d6c3038bfc5972e6701ededa148ff97a7",
     "latest_reservation_evidence": "provisioning/native48_media_transfer_reservation.json",
     "rental_started": true
@@ -76,7 +80,11 @@
     "Native v1 is rejected on quality and full-recipe performance: T230.4-252.6 and SUST231.1-246.6FPS; current host/partial-batch effects need paired diagnosis; live acceptance missing"
   ],
   "instances": {
-    "protected_existing": {"vast_id": 51074906, "ssh_alias": "3-way-head-talk", "gpu": "RTX 4070 SUPER"},
+    "protected_existing": {
+      "vast_id": 51074906,
+      "ssh_alias": "3-way-head-talk",
+      "gpu": "RTX 4070 SUPER"
+    },
     "development": {
       "vast_id": 54798270,
       "label": "musetalk-r5-3090-dev-20261008",
@@ -92,12 +100,22 @@
       "expiry_utc": "2026-10-08T19:00:00Z",
       "expiry_timer": "musetalk-r5-3090-dev-20261008-expiry.timer",
       "expiry_timer_active_verified": true,
-      "expiry_retries": {"maximum_attempts": 10, "interval_seconds": 30, "attempt_timeout_seconds": 60},
-      "ssh_endpoint": {"hostname": "92.49.17.100", "port": 25232, "user": "root", "alias": "musetalk-3090-build-54798270", "browser_api_crosschecked": true},
+      "expiry_retries": {
+        "maximum_attempts": 10,
+        "interval_seconds": 30,
+        "attempt_timeout_seconds": 60
+      },
+      "ssh_endpoint": {
+        "hostname": "92.49.17.100",
+        "port": 25232,
+        "user": "root",
+        "alias": "musetalk-3090-build-54798270",
+        "browser_api_crosschecked": true
+      },
       "readiness": "Verified portable health, one avatar warm, local media smoke; no EC2 usable-call proof",
       "development_measurement_revision": "aa1a531cabe60ce9faec45b39372db2d61ef69e9",
       "native_preparation_revision": "8112888",
-      "server_state": "x264tuned API432033 and NVENC API458769 both stopped gracefully after idle checks. Tuned N1/N3PASS/N5FAIL; NVENC N1FAIL opened0/open_failures18. Independent PyAV/FFmpeg probes fail OpenEncodeSessionEx unsupported device. No production/EC2/browser readiness claim",
+      "server_state": "All owned APIs stopped; no GPU work active. Missing-SyncNet API489647 startup/speech/freshprepPASS; checkpoint restoredSHA exact. Native TAESDopt5 rejected full448/max7. No production/default/image/template changes.",
       "provider_status_observed_utc": "2026-10-08T11:17:36.914196+00:00",
       "provider_actual_status": "running",
       "recovery_reboot_sent": false,
@@ -112,11 +130,15 @@
       "native_evaluation_completed": true,
       "recovered_portable_control_operator_session": 24330,
       "recovered_portable_control_completed": true,
-      "replacement_purchased": false
+      "replacement_purchased": false,
+      "expiry_timer_observed_utc": "2026-10-08T18:42:22Z"
     },
     "release": null
   },
-  "ec2": {"ssh_alias": "my-ec2", "revision": "171e169682b08054fa7505df72431914d6653c8e"},
+  "ec2": {
+    "ssh_alias": "my-ec2",
+    "revision": "171e169682b08054fa7505df72431914d6653c8e"
+  },
   "artifacts": {
     "reference_envelope": {
       "path": "quality/reference-envelope-v2.json",
@@ -164,7 +186,15 @@
     "private_model_verified_read": "release/private_model_parallel_read_verify_1442.json",
     "private_model_verified_read_sha256": "01ac6fa6cae9b69685d50e4bf9e2f2da6663474ef82b75a25f7b682a89ebb3e4",
     "first_production_pose_render": "avatars/native_v1_one_pose_1455.json",
-    "first_production_pose_partial_visual": "avatars/native_v1_maya_talking_partial_visual.json"
+    "first_production_pose_partial_visual": "avatars/native_v1_maya_talking_partial_visual.json",
+    "fullfile_model_access": "startup/fullfile_model_access_1843_v2.json",
+    "private_fullfile_trace": "release/private_fullfile_trace_v2_1825.json",
+    "taesd_opt5_gate": "native/taesd_opt5_v2_1827/gate/gate_taesd_trt.json",
+    "taesd_opt5_rejection": "native/taesd_opt5_v2_assessment_1842.json",
+    "private_taesd_opt5": "release/private_taesd_opt5_v2_1838.json",
+    "canonical_partial_visual": "quality/native_v1_canonical_partial_visual_review_1828.json",
+    "syncnet_capability": "startup/syncnet_dependency_assessment_1855.json",
+    "private_syncnet_evidence": "release/private_missing_syncnet_v2_1847.json"
   },
   "background_operations": {
     "independent_api_cache_stage": {
@@ -221,10 +251,18 @@
       "running_adapter_sha256": "4aedb2708ead0caa0f8a30cc693695413b269048034180f7ab62310ae74a3964",
       "last_observed_utc": "2026-10-08T15:49:10Z",
       "last_observed_completed": 48,
-      "last_observed_counts": {"PASS": 48, "FAIL": 0, "INVALID": 0},
+      "last_observed_counts": {
+        "PASS": 48,
+        "FAIL": 0,
+        "INVALID": 0
+      },
       "local_adapter_cycle_check_fix_pending_remote": false,
       "first_all48_attempt_index": "avatars/native_v1_all48_1500_invalid_index.json",
-      "actual_smiling_example": {"source_frames": 158, "source_fps": 24, "existing_forward_reverse_cache_frames": 316},
+      "actual_smiling_example": {
+        "source_frames": 158,
+        "source_fps": 24,
+        "existing_forward_reverse_cache_frames": 316
+      },
       "recipe_or_quality_bounds_changed": false,
       "first_attempt_interpreter_failure": "avatars/native_v1_one_pose_1450_invalid.json",
       "first_corrected_talking_pose_recipe_status": "PASS",
@@ -251,7 +289,12 @@
       "h264_only_retry_preflight": "native/isolated_live_h264_v2_s0_n1_preflight_1613.json",
       "matching_plan_restart": "PID354870 stopped gracefully16:40UTC; same fixed plan SHA40702fd5 restarted as PID400470, no backend/settings change",
       "file_access_trace_status": "INVALID_FOR_NEGATIVE_MODEL_USE_CLAIMS; even known UNet CPU positive control produced no selected open record; SyncNet skip not justified",
-      "tracer_detachment": {"tracer_pid": 400308, "signal": "SIGINT_TO_EXACT_DETACHED_TRACER_ONLY", "api_threads_checked": 14, "all_tracer_pids_zero": true},
+      "tracer_detachment": {
+        "tracer_pid": 400308,
+        "signal": "SIGINT_TO_EXACT_DETACHED_TRACER_ONLY",
+        "api_threads_checked": 14,
+        "all_tracer_pids_zero": true
+      },
       "s0_n3_operator_session": 77494,
       "s0_n3_status": "TERMINAL_STRICT_PASS3/3;115.5s steady, anchored minimum20fps, worst gap88.4ms,0gaps over100ms,100%fresh,0held,100%PTS joins, actual H264; not EC2/TURN/browser acceptance",
       "s0_n3_report": "native/isolated_live_h264_v2_s0_n3_1652.json",
@@ -260,7 +303,19 @@
       "ramp_n5_status": "TERMINAL_VALID_FAIL_ALL5_P1/P2/P3;342.4s steady, anchored minimum15fps,143.2ms worst gap,47gaps over100ms; no N10/N15/soak advancement",
       "ramp_n5_report": "native/isolated_live_h264_v2_ramp_n5_1655.json",
       "ramp_n5_diagnosis": "native/isolated_live_h264_v2_n5_analysis_1708.json",
-      "x264tuned_trial": {"plan": "native/isolated_live_x264tuned_v1_plan.json", "plan_sha256": "2e9f78eafd39ada6a48982a49c49316314cf7282697b2bc96405a0b41bfa5488", "api_operator_session": 41038, "api_pid": 432033, "status": "TERMINAL_N1_N3_PASS_N5_FAIL_API_STOPPED", "runtime_lever": "WEBRTC_H264_IMPL aiortc -> x264tuned; preset veryfast/thread1 activate; other runtime env unchanged except output root", "actual_startup_encoder": "x264tuned libx264 veryfast threads1; native UNet and TAESD key1e967e6e715c9f1a8375 built_nowFalse probeExact", "warm_report": "native/isolated_live_x264tuned_v1_warm_1709.json", "selected16_process_residency": "PASS; idle2400MiB still holds15 not16, active-stage residency required", "n1_operator_session": 57339, "scored_stages_required": "Restart at S0N1 then strict gatedN3/5/10/15; baseline results never copied as trial passes"},
+      "x264tuned_trial": {
+        "plan": "native/isolated_live_x264tuned_v1_plan.json",
+        "plan_sha256": "2e9f78eafd39ada6a48982a49c49316314cf7282697b2bc96405a0b41bfa5488",
+        "api_operator_session": 41038,
+        "api_pid": 432033,
+        "status": "TERMINAL_N1_N3_PASS_N5_FAIL_API_STOPPED",
+        "runtime_lever": "WEBRTC_H264_IMPL aiortc -> x264tuned; preset veryfast/thread1 activate; other runtime env unchanged except output root",
+        "actual_startup_encoder": "x264tuned libx264 veryfast threads1; native UNet and TAESD key1e967e6e715c9f1a8375 built_nowFalse probeExact",
+        "warm_report": "native/isolated_live_x264tuned_v1_warm_1709.json",
+        "selected16_process_residency": "PASS; idle2400MiB still holds15 not16, active-stage residency required",
+        "n1_operator_session": 57339,
+        "scored_stages_required": "Restart at S0N1 then strict gatedN3/5/10/15; baseline results never copied as trial passes"
+      },
       "heavy_archive_or_copy_work_during_scored_live": false
     },
     "x264tuned_latest_stage": {
@@ -300,7 +355,11 @@
       "receipt": "release/private_live_baseline_tuned_1740.json",
       "archive_sha256": "d56d04d0c1d46b1dfdd3d8234070e35a9514e610f97d002a03b6b3268d31bcb9",
       "archive_bytes": 3915581,
-      "profiles": ["aiortc_v1", "x264tuned_v1", "nvenc_v1"],
+      "profiles": [
+        "aiortc_v1",
+        "x264tuned_v1",
+        "nvenc_v1"
+      ],
       "raw_payload_public_git_allowed": false
     },
     "production48_media_preservation": {
@@ -313,7 +372,11 @@
       "archive_retry_status": "TERMINAL_PASS16:21:34UTC; three archives total6217118253bytes,101/100/100payload entries; all48 muxed pixels/human PCM retained, duplicate silent video omitted only after full decode proof and current hashes reverified",
       "worker_archive_dir": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/release/native_v1_production48_media_1616",
       "pack_receipt_sha256": "57d446dfca7d1386100430cced8da1629103c9eeff18c424dcac3a3361f6e630",
-      "off_worker_copy_sessions": [70656, 10088, 56098],
+      "off_worker_copy_sessions": [
+        70656,
+        10088,
+        56098
+      ],
       "off_worker_copy_status": "TERMINAL_PASS_ALL3; all SCP sessions exit0 and all6217118253bytes match pinned archive SHA on Mac16:44UTC",
       "runtime_write_probe": "release/native48_worker_write_probe_1630.json",
       "runtime_write_probe_status": "INVALID_403_ACCESS_DENIED; no write success, no IAM/bucket changes, no automatic retry; operator fallback prepared",
@@ -326,6 +389,50 @@
       "private_archive_part1": "Conditional PUT confirmed; exact version fresh GET SHA verified; clean CPU restore completed16:55:10UTC with101manifest files verified. Parts2/3 remain pending",
       "private_archive_part2": "Conditional PUT confirmed; exact version fresh GET SHA verified; clean CPU restore completed17:03:17UTC with100manifest files verified. Part3 remains pending",
       "inputs_modified": false
+    },
+    "fullfile_trace_v2": {
+      "status": "TERMINAL_OBSERVATION_VALID; not startup/feature-completeness acceptance",
+      "api_pid": 466043,
+      "tracer_pid": 465872,
+      "api_stopped": true,
+      "tracer_exited": true,
+      "trace_bytes": 128129063,
+      "positive_control_observed": true,
+      "observed_syncnet_matching_lines": 0,
+      "raw_private_archive_sha256": "3f7d6a517d0e89428698eceb57cfece0515fd9a683f09de785e5448aa1201e0c",
+      "fresh_get_all_payload_hashes_verified": true
+    },
+    "taesd_opt5_v2": {
+      "status": "TERMINAL_REJECTED",
+      "operator_session_id": 3795,
+      "process_exit_code": 1,
+      "files": 448,
+      "frames": 3584,
+      "full_max_lsb": 7,
+      "portable_reference_full_max_lsb": 5,
+      "bit_exact_checks": "PASS",
+      "engine_key": "0ba5db9ac404878d9f05",
+      "archive_sha256": "32343f20377e18593560eb3424426244cd30b4d29bf7f9eaee5cefaa51da526f",
+      "fresh_get_all_payload_hashes_verified": true
+    },
+    "missing_syncnet_v2": {
+      "status": "TERMINAL_EXERCISED_CAPABILITIES_PASS",
+      "operator_session_id": 74119,
+      "api_pid": 489647,
+      "api_stopped": true,
+      "report": "startup/missing_syncnet_capability_v2_1841.json",
+      "model_checkpoint_temporarily_quarantined": false,
+      "checkpoint_restored": true,
+      "checkpoint_sha256": "38fa63bad3ed2332f647c40a5dc616cb0e233db8579f698f62af4c41965c4da5",
+      "source_manifest_files": 1930,
+      "preserved_core_files": 8,
+      "complete_diagnostic_png_payload_preserved": false,
+      "private_archive_receipt": "release/private_missing_syncnet_v2_1847.json",
+      "private_archive_sha256": "9a548f5b1db09859c7f88c3575c09f11bebff2328a42132d87f390efc042fa44",
+      "fresh_get_all_payload_hashes_verified": true,
+      "installer_contract_changed": false,
+      "scored_timing": false,
+      "release_ready": false
     }
   },
   "image_digest": null,
@@ -334,11 +441,15 @@
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
   "quota_checkpoint": {
-    "observed_utc": "2026-10-08T17:36:13Z",
+    "observed_utc": "2026-10-08T18:16:43Z",
     "account_scope": "shared account, not this task",
-    "weekly_used_percent_reported": 6,
-    "weekly_remaining_percent_reported": 94,
-    "previous_checkpoint": {"observed_utc": "2026-10-08T16:58:00Z", "weekly_used_percent_reported": 5, "weekly_remaining_percent_reported": 95},
+    "weekly_used_percent_reported": 7,
+    "weekly_remaining_percent_reported": 93,
+    "previous_checkpoint": {
+      "observed_utc": "2026-10-08T17:36:13Z",
+      "weekly_used_percent_reported": 6,
+      "weekly_remaining_percent_reported": 94
+    },
     "ordinary_usage_allowed": true,
     "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
     "purchased_credit_balance_reported": "0",
@@ -347,6 +458,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Preserve exact graph diagnostic then continue valid model-file tracing and actual visual/cold-start analysis; investigate native parity without altering frozen bounds. Current A1 NVENC fails both PyAV/FFmpeg, no higher live stages or production promotion",
-  "next_command": "Both x264 profiles N3PASS/N5FAIL; NVENC N1FAIL opened0/open_failures18 and single-frame PyAV16.1/FFmpeg4.4 both fail OpenEncodeSessionEx unsupported device. APIs458769/432033 stopped after idle checks, GPU idle. Embedding diagnostic54021 ended0/native down0rest graph exactly reproduced,2tiny emb elements change CPU16/GPU1 and only emb initializer changes; none of3alternatives matches portable graph. No engine build or quality fix claimed. Private raw7stage traces/logs152payloads conditional PUT/freshGET/allSHAverified d56d04d0...,3915581bytes. All3 private48 media archives/293files/48poses verified; subjective review partial3Maya poses.10of11 UNet ONNX hashes differ, tail same, TAESD graph identical. Dependency image37.257%smaller, GPU/coldboot unproven. Native numerical/full400FPSFAIL. Expiry19:00UTC; reserved9.584739583USD of30; invoices unavailable. Quota6%used/94%remaining17:36UTC; no reset/purchase/new agents."
+  "next_action": "Reconcile exact owned A1 expiry19:00UTC and preserve deletion evidence. Continue independent CPU-only installer/model-delivery split for training-only SyncNet, dependency-layer release integration and remaining actual visual review. No new rental or promotion before required engineering/access gates.",
+  "next_command": "No GPU work active: owned API489647 stopped; SyncNet restored exactSHA. Missing-checkpoint startup+canonical human-WAV speech+fresh480frame/480mask prep PASS. Two diagnostic caches1930file hashes inventoried;8core tensors/metadata bound and16payload private archive conditionalPUT/freshGET/allSHA PASS9a548f5b...,12743873bytes. Complete diagnostic PNG payload was not archived; partial SCP cancelled and preserved locally. Quota7%used/93%remaining18:16UTC; no reset/purchase. Expiry timer exactlabel active18:46."
 }

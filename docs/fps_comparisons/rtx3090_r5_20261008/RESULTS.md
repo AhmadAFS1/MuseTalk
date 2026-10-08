@@ -13,6 +13,44 @@ This is a live evidence index, not a completed release claim. The protected RTX
 | Live delivery / capacity | Both software-H264 profiles N1/N3 strictPASS/N5 validFAIL. NVENC N1FAIL,0hardware opens/18open failures; PyAV/FFmpeg standalone probes alsoFAIL. No accepted capacity or EC2 release claim |
 | Request-to-usable-call startup | Still unmeasured through EC2/TURN. Request-to-verified-health was 1,046.45 s (17m26s), not usable-call readiness |
 
+### Latest isolated diagnostics, 18:43 UTC
+
+[Full-file tracing](startup/fullfile_model_access_1843_v2.json) validates the known
+UNet positive-control open and observes startup, a canonical human-WAV stream,
+and a fresh canonical preparation. The original preparation client expected the
+wrong metadata spelling and failed; separate read-only verification confirms its
+completed480-frame/480-mask cache without repeating preparation. No SyncNet
+checkpoint path access was observed. This is scoped dependency evidence, not a
+missing-model, TTS, installer or cold-start pass. [Private raw trace preservation](release/private_fullfile_trace_v2_1825.json)
+passes exact-version freshGET and all8 payload hashes (128MB raw trace, 5.28MB archive).
+
+[Same-precision TAESDopt5](native/taesd_opt5_v2_assessment_1842.json) is rejected:
+all448 captures/3584 frames were evaluated; full-frame maximum remains7LSB versus
+portable reference5. The decoder plan changes, post plan is unchanged, and exactness
+checks pass. No speedup was measured or default changed. [Private plan/evidence preservation](release/private_taesd_opt5_v2_1838.json)
+passes conditionalPUT, freshGET and all8 payload hashes.
+
+[Actual canonical still inspection](quality/native_v1_canonical_partial_visual_review_1828.json)
+covers18 native-resolution assets acrossall6 identities. No obvious large new
+geometry defect is apparent in these samples, but numerical rejection remains;
+motion/audio/silence/transitions and full production48 visual validation are incomplete.
+
+Quota at18:16UTC:7%used/93%remaining weekly, purchased credits0, one unused free
+reset. Account percentages are not an exact remaining token balance or a completion
+guarantee. No reset, purchase or new agent was used. The owned19:00UTC expiry timer
+was read back active at18:42UTC and18:46UTC. [Missing-SyncNet capability v2](startup/syncnet_dependency_assessment_1855.json)
+now passes direct canonical startup, human-WAV speech and fresh480-frame/480-mask
+preparation. The checkpoint was restored with its original SHA and the API stopped;
+0OOM/foreign GPU was observed. This supports a separately tested training-only
+download contract, which is not yet implemented, not a measured boot saving.
+All1930 diagnostic-cache file hashes were inventoried;8core tensor/metadata files
+were bound to that inventory. [Private evidence preservation](release/private_missing_syncnet_v2_1847.json)
+passes conditionalPUT/freshGET/all16payload hashes. Complete diagnostic PNG payload
+was not archived: a slow partial recursive copy was cancelled and retained locally;
+canonical source and complete production48 review evidence have separate preservation.
+The first attempt failed only because its harness nested two GPU leases; the checkpoint
+was restored with its original SHA. No startup savings are accepted from these diagnostics.
+
 Instance A is Vast **54798270**, label `musetalk-r5-3090-dev-20261008`, created once
 through the existing EC2 API. Source revision is
 `dae1e88ad3587fddbebe6d41f85faa569001f6c1`, with explicit control-plane registration

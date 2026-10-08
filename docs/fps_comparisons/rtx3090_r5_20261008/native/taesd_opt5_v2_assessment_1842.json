@@ -1,0 +1,48 @@
+{
+  "schema": "native_taesd_same_precision_opt5_assessment_v1",
+  "created_utc": "2026-10-08 18:42:07 UTC",
+  "status": "REJECTED_NOT_A_QUALITY_FIX",
+  "candidate_key": "0ba5db9ac404878d9f05",
+  "same_fingerprint_except_opt_level": true,
+  "opt_levels": {
+    "baseline": 3,
+    "candidate": 5
+  },
+  "graph_sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb",
+  "decoder_plan_sha256": {
+    "baseline": "9658154206fbee0aea38659803724ae94a78983d3858585242d62a4bae305057",
+    "candidate": "8894888a559923058af8565714131e0714a1f484c000c422cf3e3e38455199f2"
+  },
+  "post_plan_unchanged": true,
+  "full_gate_files": 448,
+  "full_gate_frames": 3584,
+  "strict_original_gate": {
+    "G_TAESD_full_max": 7,
+    "G_TAESD_full_mean": 0.06762394309043884,
+    "G_TAESD_rows104_max": 3,
+    "G_TAESD_rows104_mean": 0.06316718481537095,
+    "thresholds": {
+      "max_lsb": 3,
+      "mean_lsb": 0.2
+    },
+    "fused_post_mismatched_bytes": 0,
+    "fused_frames": 3584,
+    "rerun_mismatched_bytes": 0,
+    "G_TAESD": "FAIL",
+    "bit_exact_checks": "PASS",
+    "verdict": "FAIL"
+  },
+  "observed_portable_reference_full_max": 5,
+  "opt3_full_max": 7,
+  "candidate_full_max": 7,
+  "performance_improvement_measured": false,
+  "full_native_quality_acceptance": false,
+  "default_selection_changed": false,
+  "release_ready": false,
+  "reason": "Same graph and precision with builder optimization level5 changes the decoder plan but does not lower full-frame max7LSB to the frozen portable reference5. Original3LSB strict verdict remains FAIL; other whole-native parity failures remain unresolved.",
+  "evidence": [
+    "native/taesd_opt5_v2_1827/build.json",
+    "native/taesd_opt5_v2_1827/gate/gate_taesd_trt.json",
+    "release/private_taesd_opt5_v2_1838.json"
+  ]
+}

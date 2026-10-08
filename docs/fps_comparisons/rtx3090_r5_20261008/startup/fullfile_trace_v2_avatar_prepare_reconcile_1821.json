@@ -1,0 +1,54 @@
+{
+  "schema": "traced_avatar_prepare_reconciliation_v1",
+  "status": "PASS_COMPLETED_CACHE_VERIFICATION_ORIGINAL_HARNESS_FAILED",
+  "original_probe": {
+    "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/startup/fullfile_trace_v2_avatar_prepare_probe_1811.json",
+    "sha256": "6ac58a25f3c8fc6b221d02e32ac298bc7890908aea624d81830f4834b2d45825",
+    "persisted_status": "IN_PROGRESS",
+    "process_exit_code": 1,
+    "observed_failure": "AssertionError: expected avatar_info.json; canonical API writes avator_info.json",
+    "original_response_body_persisted": false
+  },
+  "api_pid": 466043,
+  "avatar_id": "startup_trace_v2_black_man_1810",
+  "source_sha256": "064183b0d8f80105159c687858566ad271fd768037773f8cfaacb3ad3452837e",
+  "scored_timing": false,
+  "release_ready": false,
+  "prep_repeated": false,
+  "cache_mutations": false,
+  "scope": "Completed local cache verified separately; original client assertion failure retained. Not latent-parity or startup acceptance.",
+  "artifacts": [
+    {
+      "name": "latents.pt",
+      "bytes": 7865500,
+      "sha256": "c82c602f74d61a8fde5bc39b7bcabc42eff7b5c326cd6ecadb4f73d3f9c1fa53"
+    },
+    {
+      "name": "coords.pkl",
+      "bytes": 14463,
+      "sha256": "ca0244c91785a9f1e32b4f6e411d79e15b77312861dcd63a99da3e0af60d71e6"
+    },
+    {
+      "name": "mask_coords.pkl",
+      "bytes": 38501,
+      "sha256": "9f0814a050654611fdfdffd245e05d4aaab0a15c15a5752e2089a7ed305fb6b6"
+    },
+    {
+      "name": "avator_info.json",
+      "bytes": 514,
+      "sha256": "b9b1e99f92f1f52e3c787a19c9aad0a8c1fc7bd86374cfb5498d1335c61493cf"
+    }
+  ],
+  "frame_pngs": 480,
+  "mask_pngs": 480,
+  "source_frames": 240,
+  "cache_cycle_policy": "Canonical API forward plus reversed source cycle, no source-video modification",
+  "input_video_byte_exact": true,
+  "cache_status_http": 200,
+  "cache_status": {
+    "avatar_id": "startup_trace_v2_black_man_1810",
+    "status": "not_cached",
+    "disk_prepared": true,
+    "s3_enabled": false
+  }
+}

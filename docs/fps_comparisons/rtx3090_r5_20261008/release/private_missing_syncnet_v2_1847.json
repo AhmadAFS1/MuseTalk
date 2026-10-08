@@ -1,0 +1,66 @@
+{
+  "schema": "private_live_diagnostic_preservation_v1",
+  "status": "PASS_PRIVATE_CONDITIONAL_PUT_FRESH_GET_ALL_PAYLOAD_SHA",
+  "created_utc": "2026-10-08T18:52:50.865375+00:00",
+  "archive": "private_missing_syncnet_v2_1847.tar.gz",
+  "bytes": 12743873,
+  "sha256": "9a548f5b1db09859c7f88c3575c09f11bebff2328a42132d87f390efc042fa44",
+  "manifest_sha256": "8bd0c0ff6d1dd7af6b4ea4b81f4ab8db79aaa67c32fdc7319ddaec9148e70fb5",
+  "payload_files": 16,
+  "key": "trt-artifacts/rtx3090-r5/native-rejected-diagnostics/sha256/9a548f5b1db09859c7f88c3575c09f11bebff2328a42132d87f390efc042fa44/private_missing_syncnet_v2_1847.tar.gz",
+  "included_diagnostic_profiles": [
+    "missing_checkpoint_speech_and_fresh_prep",
+    "failed_nested_lease_control"
+  ],
+  "preservation_profile": "missing_syncnet_v2",
+  "bucket": "lingua-musetalk-s3-storage",
+  "expected_owner": "211125449207",
+  "region": "us-east-1",
+  "raw_payload_public_git_allowed": false,
+  "release_ready": false,
+  "cloud_mutations": "one new conditional checksum-keyed private object only",
+  "overwrite_allowed": false,
+  "acl_requested": false,
+  "privacy_configuration_observation": {
+    "schema": "musetalk_operator_bucket_privacy_v1",
+    "scope": "fixed_bucket_private_model_delivery_only",
+    "bucket": "lingua-musetalk-s3-storage",
+    "region": "us-east-1",
+    "expected_owner": "211125449207",
+    "observed_at_utc": "2026-10-08T18:52:50.865761+00:00",
+    "expires_at_utc": "2026-10-08T19:07:50.865761+00:00",
+    "operator_account": "211125449207",
+    "operator_arn_sha256": "1a193b498320bee2cc2544812b5a04016443c8517833375e6827f4ed8e7732bb",
+    "public_access_block": {
+      "BlockPublicAcls": true,
+      "IgnorePublicAcls": true,
+      "BlockPublicPolicy": true,
+      "RestrictPublicBuckets": true
+    },
+    "bucket_policy": "absent",
+    "bucket_acl": "owner_only_canonical_user",
+    "cloud_mutations": false,
+    "cli_reads": {
+      "bucket_acl": {
+        "sha256": "db1bba760fe4e2f2cc8a90bdf841789ae742df2fdd661b0cda3b7c45d3bc71fd",
+        "hash_basis": "cli_stdout_utf8_stripped"
+      },
+      "bucket_policy_status": {
+        "sha256": "c448dbcf79a31b1f897ffff2c13af8986859b25636b6ca012bef65c22efa9234",
+        "hash_basis": "canonical_cli_error_code"
+      },
+      "bucket_public_access_block": {
+        "sha256": "12b57f15e8de8f8be9c9fc86e8ad6b6cc9da25de6eeb929674f313ebcac2ddc9",
+        "hash_basis": "cli_stdout_utf8_stripped"
+      },
+      "sts_identity": {
+        "sha256": "638518349cdb84ec859bb52dd71520d79fa17df62d546efbf5e6bf1b1cf5c507",
+        "hash_basis": "cli_stdout_utf8_stripped"
+      }
+    }
+  },
+  "put_outcome": "CONFIRMED_CONDITIONAL_SUCCESS",
+  "put_version_id": "O1HWWGMvMUER.sC5AqVkE9yo1C4GgBCZ",
+  "version_id": "O1HWWGMvMUER.sC5AqVkE9yo1C4GgBCZ",
+  "finished_utc": "2026-10-08T18:52:57.665455+00:00"
+}

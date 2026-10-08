@@ -1,0 +1,29 @@
+{
+  "schema": "owned3090_fullfile_trace_start_v2",
+  "status": "TRACED_START_REQUESTED",
+  "created_utc": "2026-10-08T18:02:28.344272+00:00",
+  "profile": "x264tuned_v1",
+  "plan_sha256": "2e9f78eafd39ada6a48982a49c49316314cf7282697b2bc96405a0b41bfa5488",
+  "trace": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/startup/native_api_fullfile_trace_v2_1802.log",
+  "positive_control_receipt": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/startup/native_api_fullfile_trace_v2_1802.control.json",
+  "trace_argv": [
+    "/usr/bin/strace",
+    "-f",
+    "-e",
+    "trace=%file",
+    "-s",
+    "512",
+    "-o",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/startup/native_api_fullfile_trace_v2_1802.log",
+    "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+    "/workspace/MuseTalk/scripts/repro_3090/start_fullfile_traced_api.py",
+    "--inside-trace"
+  ],
+  "file_contents_traced": false,
+  "path_filters_used": false,
+  "scored_timing": false,
+  "fresh_instance": false,
+  "release_ready": false,
+  "scope": "Observed startup and explicitly invoked paths only; absence cannot establish all-feature independence",
+  "lifecycle": "Stop exact owned idle API first; foreground tracer exits with it. No scored client while traced."
+}
