@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   push:
     branches: [codex/rtx3090-r5-delivery]
-    paths: [.github/workflows/musetalk-dependency-preflight.yml, scripts/test_startup_scripts.sh]
+    paths: [.github/workflows/musetalk-dependency-preflight.yml, scripts/test_startup_scripts.sh, scripts/install_musetalk.sh, scripts/patch_mmengine_compat.py]
 
 permissions:
   contents: read
@@ -31,6 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -B -m unittest discover -s docker/musetalk/tests -v
+          python3 -B -m unittest discover -s scripts -p test_patch_mmengine_compat.py -v
           bash scripts/test_startup_scripts.sh
       - name: Resolve actual apt pins and build real GPU-less dependencies
         env:

@@ -258,7 +258,7 @@ if os.environ.get("SMOKE_KOKORO") == "1":
 if os.environ.get("SMOKE_LEGACY") == "1":
     required += ["modelopt.torch.quantization"]
 if os.environ.get("SMOKE_AVATAR") == "1":
-    required += ["mmengine", "mmcv", "mmcv._ext", "mmdet", "mmpose"]
+    required += ["mmengine", "mmcv", "mmcv._ext", "mmcv.ops", "mmdet", "mmpose"]
 for name in required + gpu_stack:
     started = time.time()
     try:
@@ -684,7 +684,8 @@ avatar_prep_step() {
   fi
   "$VENV_PY" -m pip install --disable-pip-version-check --no-build-isolation chumpy -c "$CONSTRAINTS"
   "$VENV_PY" -m pip install --disable-pip-version-check mmengine mmdet mmpose "${common[@]}"
-  CUDA_VISIBLE_DEVICES="" "$VENV_PY" -B -c 'import mmengine, mmcv, mmcv._ext, mmdet, mmpose; print("avatar-prep imports OK", mmcv.__version__, mmdet.__version__, mmpose.__version__)'
+  "$VENV_PY" -B "$REPO_ROOT/scripts/patch_mmengine_compat.py"
+  CUDA_VISIBLE_DEVICES="" "$VENV_PY" -B -c 'import mmengine, mmcv, mmcv._ext, mmcv.ops, mmdet, mmpose; print("avatar-prep imports OK", mmcv.__version__, mmdet.__version__, mmpose.__version__)'
 }
 
 phase_packages() {

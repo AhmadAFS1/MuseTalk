@@ -118,7 +118,9 @@ class SafeCaptureTests(unittest.TestCase):
         self.assertNotIn("credential-in-name", str(caught.exception.record))
 
     def test_invalid_bounds_and_stage_are_rejected_before_spawn(self):
-        for options in ({"timeout_s": 0}, {"timeout_s": float("inf")}, {"output_limit_bytes": 0}, {"stage": "secret_stage"}):
+        for options in ({"timeout_s": 0}, {"timeout_s": float("inf")}, {"output_limit_bytes": 0}, {"stage": "secret_stage"},
+                        {"terminate_grace_s": float("nan")}, {"terminate_grace_s": float("inf")},
+                        {"reap_grace_s": float("nan")}, {"reap_grace_s": float("inf")}):
             with mock.patch.object(subprocess, "Popen") as spawn, self.assertRaises(ValueError):
                 self.run_python("pass", **options)
             spawn.assert_not_called()

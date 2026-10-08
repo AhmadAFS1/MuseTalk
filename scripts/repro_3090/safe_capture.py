@@ -75,7 +75,8 @@ def capture(command, *, cwd, env=None, stage="unspecified", timeout_s=30,
     if stage not in _STAGES:
         raise ValueError("unknown capture stage")
     if (not math.isfinite(timeout_s) or timeout_s <= 0 or output_limit_bytes < 1
-            or terminate_grace_s < 0 or reap_grace_s <= 0):
+            or not math.isfinite(terminate_grace_s) or terminate_grace_s < 0
+            or not math.isfinite(reap_grace_s) or reap_grace_s <= 0):
         raise ValueError("invalid capture bounds")
     started = time.monotonic()
     basename = Path(str(command[0])).name
