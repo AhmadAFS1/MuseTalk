@@ -17,6 +17,45 @@ more precise identity, hair, skin, clothing, and facial-hair cues.
 
 ## Input and command
 
+On this machine, the S3-enabled creation entry point is
+`character_factory/h3_avatar_workflow/create_avatar_s3.sh`. It loads
+`.runtime/h3_avatar_s3.env`, checks bucket access before generation, and runs
+the existing three-pose pipeline with its owned local API. For example:
+
+```bash
+cd /workspace/MuseTalk
+bash character_factory/h3_avatar_workflow/create_avatar_s3.sh \
+  --images /path/to/approved_portraits --metadata /path/to/portrait_metadata.json \
+  --output /workspace/experiments/new_avatar_batch --release-local
+```
+
+Use a fresh output directory for changed portraits or prompts. The saved
+completion report for the 16-character revised-outfit batch records all 48
+pose caches uploaded and verified on 2026-09-30. Its machine-local controller is
+`/workspace/experiments/lumatalk_four_language_wardrobe_v2/run_batch.py`;
+that controller and the ignored `.runtime` configuration are outside the
+versioned workflow and must be provisioned separately on another machine.
+Do not regenerate the completed batch to check persistence: inspect its saved
+receipts and use S3 `head-object` to verify the recorded objects.
+
+The local `lumatalk-avatar-batch` AWS profile gets renewable credentials from
+`lumatalk-root` through the AWS CLI. Renew the session with
+`aws login --profile lumatalk-root --region us-east-1 --remote`.
+The batch uses refreshed credentials without a restart. Standard MuseTalk API
+launchers also load S3 defaults from `.runtime/musetalk_overrides.env`, so
+`POST /avatars/prepare` uploads prepared characters on subsequent launches.
+Those files hold configuration only; login credentials remain in the AWS cache.
+An expired login still blocks uploads even when S3 is enabled in configuration.
+
+S3 cache archives include the prepared frames, masks, latents, metadata and
+source video. The revised-outfit controller additionally archives portraits,
+prompts, provenance, roster and generation receipts under
+`s3://lingua-musetalk-s3-storage/character-factory/lumatalk_four_language_wardrobe_v2/`.
+Its published receipts point to the three objects under `avatars/v15/`.
+The portrait folder's `s3_publication.json` preserves the object mapping and
+historical verification evidence. Check its live-validation status before
+treating that evidence as a current S3 availability check.
+
 Keep the output outside the input photo tree. Paths below are examples; point
 `--images` at the actual large portrait folder. The metadata file is optional:
 
