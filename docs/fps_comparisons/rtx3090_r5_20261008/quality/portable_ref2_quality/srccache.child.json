@@ -1,0 +1,33 @@
+{
+  "label": "srccache",
+  "returncode": 0,
+  "wall_s": 17.887196376977954,
+  "log": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/quality/portable_ref2_quality/srccache.log",
+  "command": [
+    "bash",
+    "scripts/box_guard.sh",
+    "run",
+    "--wait-min",
+    "0",
+    "--min-avail-gb",
+    "8",
+    "--label",
+    "3090_portable_ref2_srccache",
+    "--",
+    "/usr/bin/python3",
+    "/workspace/MuseTalk/scripts/repro_3090/watch.py",
+    "--out",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/quality/portable_ref2_quality/srccache.gpu_watch.jsonl",
+    "--",
+    "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+    "scripts/repro_400fps/srccache_exact.py",
+    "--root",
+    "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5",
+    "--baseline-root",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/quality/portable_ref2_quality/intentionally_no_sm89_baseline",
+    "--corpus",
+    "/workspace/MuseTalk/calibration/unet_multi_avatar_20260928",
+    "--out",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/quality/portable_ref2_quality/srccache.json"
+  ]
+}

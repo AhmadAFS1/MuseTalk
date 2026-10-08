@@ -1,0 +1,64 @@
+{
+  "schema": "musetalk_experiment_budget_checkpoint_v1",
+  "observed_utc": "2026-10-08T08:21:58.804559+00:00",
+  "instance_id": 54798270,
+  "label": "musetalk-r5-3090-dev-20261008",
+  "scope": "One read-only Vast charges API request through the existing EC2 credential path; no provider inventory refresh, billing mutation, purchase, or account change. Credentials remained in EC2 process memory. No other instance/account charge rows were printed or saved.",
+  "charges_request": {
+    "method": "GET",
+    "path": "/api/v0/charges/",
+    "requests_made": 1,
+    "http_status": 401,
+    "requested_day_start_utc": "2026-10-08T00:00:00+00:00",
+    "requested_day_end_utc": "2026-10-08T23:59:59+00:00",
+    "requested_type": "instance",
+    "requested_format": "table",
+    "requested_limit": 500,
+    "required_output_source": "instance-54798270",
+    "status": "not_available",
+    "reason": "charges_api_http_error",
+    "response_body_omitted": true,
+    "credential_scope_changed": false,
+    "retried": false
+  },
+  "actual_charge_amount": null,
+  "currency_reported": null,
+  "actual_charge_coverage_start_utc": null,
+  "actual_charge_coverage_end_utc": null,
+  "actual_billed_status": "Not available: existing provider credentials received HTTP 401 from the charges endpoint. This does not mean zero charges and does not establish why the endpoint rejected authentication.",
+  "amount_precision_note": "The official charges schema describes contract totals rounded to three decimal places, not an exact invoice. No monetary amount or currency was obtained in this request.",
+  "cumulative_network_provider_fields": {
+    "source_observed_utc": "2026-10-08T07:48:51.505299+00:00",
+    "source_evidence": "budget-checkpoint-0748.json",
+    "refreshed_in_this_checkpoint": false,
+    "inet_down_billed": 18140364.8,
+    "inet_up_billed": 252928.0,
+    "unit": "UNVERIFIED_PROVIDER_RAW_COUNTER",
+    "converted_to_bytes_or_gb": false,
+    "converted_to_money": false,
+    "note": "These are historical counters, not current usage or charge amounts. Inspected official instance schemas omit these fields; the current official CLI does not define their unit. General per-byte billing and $/GB rate documentation do not establish the raw counter scale."
+  },
+  "counter_unit_research": {
+    "status": "unresolved",
+    "official_rate_unit": "inet_down_cost and inet_up_cost are documented as dollars per GB; CLI multiplies listed rates by 1024 for a dollars-per-TB display",
+    "does_rate_unit_define_counter_unit": false,
+    "sources": [
+      "https://github.com/vast-ai/vast-cli/blob/master/vast.py",
+      "https://github.com/vast-ai/docs/blob/main/api-reference/openapi/yaml/show_instance.yaml",
+      "https://github.com/vast-ai/docs/blob/main/api-reference/openapi/yaml/show_instances.yaml",
+      "https://github.com/vast-ai/docs/blob/main/api-reference/openapi/yaml/show_charges.yaml",
+      "https://github.com/vast-ai/docs/blob/main/api-reference/openapi/yaml/search_offers.yaml",
+      "https://github.com/vast-ai/docs/blob/main/guides/reference/faq/billing.mdx"
+    ]
+  },
+  "safety": {
+    "cloud_writes": false,
+    "account_balance_queried": false,
+    "account_balance_used_as_budget_authorization": false,
+    "other_instance_charge_data_saved": false,
+    "credential_values_printed_or_saved": false,
+    "expiry_timer_rechecked_in_this_checkpoint": false,
+    "production_worker_rechecked_in_this_checkpoint": false,
+    "budget_reservations_released": false
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "schema": "owned_3090_host_outage_v1",
+  "instance_id": 54798270,
+  "machine_id": 153039,
+  "label": "musetalk-r5-3090-dev-20261008",
+  "last_completed_quality_run": "portable_ref2_quality",
+  "last_quality_completion_utc": "2026-10-08T08:33:24Z",
+  "native_build_started": false,
+  "cuda_diagnostics": {
+    "initial_preflight": "INVALID; runtime child exit1 after65.7 seconds",
+    "confirmed_repeated_failure": "CUDA driver initialization failed; Torch-TensorRT unable to read CUDA-capable devices, status3",
+    "nvml": "Some query processes temporarily observed in Dl state for approximately60 seconds; later returned 0% utilization,1MiB allocation,41C",
+    "oom_counter_increase": 0,
+    "kernel_logs": "dmesg unavailable: Operation not permitted",
+    "root_cause": "UNCONFIRMED; CUDA initialization failure preceded provider host-offline state. No evidence establishes the underlying physical driver/hardware/network cause.",
+    "operator_diagnostic_error": "First manually constructed diagnostic had an extra closing parenthesis; preserved as a failed operator command, not GPU evidence. Corrected diagnostic reproduced CUDA failure."
+  },
+  "provider_observation": {
+    "observed_utc": "2026-10-08T08:52:18.227430+00:00",
+    "actual_status": "offline",
+    "cur_state": "running",
+    "intended_status": "running",
+    "direct_ssh": "connection timeout",
+    "provider_proxy_ssh": "banner exchange timeout"
+  },
+  "preservation": {
+    "local": "Portable GPU/T reports, fullQ1 output/media, Q2 JSON metrics and frozen reference envelope saved. Q2 raw/media copy interrupted; do not assume complete.",
+    "same_host_repository_backup": "/workspace/MuseTalk.before-gpu-recovery-20261008",
+    "backup_completed": true,
+    "backup_approximate_bytes": "14GiB as reported by du -sh; not exact inventory",
+    "off_host_durability_of_backup": false
+  },
+  "actions_not_taken": ["No physical-host reboot or GPU reset", "No container reboot sent", "No instance destroy/recreate", "No onstart guard applied; SCP failed before modification", "No production4070 or EC2 service restart"],
+  "budget": {"reservation_retained_usd": 5.5847395833333335, "finalized_charges_available": false, "expiry_utc": "2026-10-08T19:00:00Z"},
+  "recovery_status": "Replacement-host preflight in progress; A1 data recovery pending provider availability"
+}

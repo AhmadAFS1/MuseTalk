@@ -1,0 +1,28 @@
+{
+  "label": "taesd",
+  "returncode": 1,
+  "wall_s": 52.21270935999928,
+  "log": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/quality/portable_ref1_quality/taesd.log",
+  "command": [
+    "bash",
+    "scripts/box_guard.sh",
+    "run",
+    "--wait-min",
+    "0",
+    "--min-avail-gb",
+    "8",
+    "--label",
+    "3090_portable_ref1_taesd",
+    "--",
+    "/usr/bin/python3",
+    "/workspace/MuseTalk/scripts/repro_3090/watch.py",
+    "--out",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/quality/portable_ref1_quality/taesd.gpu_watch.jsonl",
+    "--",
+    "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+    "scripts/repro_400fps/gate_taesd_trt.py",
+    "--no-record",
+    "--corpus",
+    "/workspace/MuseTalk/calibration/unet_multi_avatar_20260928"
+  ]
+}

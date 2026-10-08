@@ -8,7 +8,7 @@ This is a live evidence index, not a completed release claim. The protected RTX
 | Measurement | Current result |
 |---|---|
 | GPU-path FPS | Portable r5: 278.288586320095 / 277.4908139113453 over separate ≥180 s windows; diagnostic, not full-recipe FPS |
-| Full-recipe aggregate FPS | Portable six-avatar T is running; native release requires every T/SUST window ≥400 unrounded |
+| Full-recipe aggregate FPS | Portable six-avatar T: 256.67195270538247 / 258.85397057089455; valid FAIL against 300 target. Native release still requires every T/SUST window ≥400 unrounded |
 | Live delivery / capacity | Local smoke decoded 1,371 frames, but a 278 ms gap and missing telemetry prevent a strict PASS; no proven capacity yet |
 | Request-to-usable-call startup | Still unmeasured through EC2/TURN. Request-to-verified-health was 1,046.45 s (17m26s), not usable-call readiness |
 
@@ -32,6 +32,13 @@ Observed timeline (UTC, October 8):
 - 07:36:29: one production talking-pose warm request began; response after 23.82 s, including 21.77 s S3 restore and 1.43 s cache load.
 - 07:43: owned API/TURN drained and stopped before isolated GPU work.
 - 07:56:50: two three-minute portable GPU-path runs completed; no foreign GPU workload observed.
+- 08:05:08: portable full-recipe T completed; 34,560 frames per shared window of 134.64657760900445 / 133.51156995497877 seconds.
+- 08:20:46 / 08:33:24: two portable quality runs completed. Exact source-prefix, batching, fused-post and repeat checks pass; original UNet max-error, TAESD max-LSB and landmark failures remain FAIL.
+- 08:35:40.744: measured reference envelope frozen before native candidate evaluation.
+- 08:38:54: native-build preflight failed before any engine build. NVML queries were observed temporarily blocked for about a minute; bounded runtime diagnosis is in progress, not a successful native build.
+- 08:41:54: corrected bounded diagnostic reproduced CUDA driver initialization failure. No OOM; physical cause not established.
+- 08:48: a 14GB repository backup completed on the rented host. Subsequent SSH routes became unreachable; planned recovery guard was not applied and no reboot was sent.
+- 08:52:18: Vast reported machine153039/instance54798270 **offline**. A replacement-host offer is being checked against the same shared budget, keeping A1's full reservation counted.
 
 This separates several minutes of provider/image startup from source cloning,
 installation, and later model/avatar warmup. Exact image-pull boundaries and
@@ -70,12 +77,21 @@ calibrated; stage durations from individual processes are reported separately.
   from the protected worker, checksum-verified, and uploaded to those missing
   content-addressed keys. Fresh S3 downloads matched both hashes. The portable
   archive also passed a clean CPU restore with 17 verified files.
-- Quality policy is frozen separately. Historical strict-gate failures remain
-  failures. Portable-3090 repeated references/noise bounds, candidate quality,
-  and actual visual inspection are still incomplete.
-- Docker source has 50 passing CPU tests and one Linux-only skip on the operator;
-  independent review is underway. No Docker image has been built
-  or published; no Vast template has been edited or promoted.
+- Quality policy and measured reference envelope are frozen separately. The two
+  portable captures have identical canonical output pixels and all 594 per-avatar
+  metrics; 104 explicitly registered UNet/TAESD metrics are also bounded, with
+  per-metric observed repeat spread only. Historical references were checked for
+  matching inputs, metric implementations and supporting artifact hashes. All
+  original strict failures remain failures. Native parity and visual acceptance
+  are still incomplete.
+- Docker lifecycle/private-delivery changes passed independent review and CPU
+  tests. The first dependency CI failed a root-only startup-test assumption;
+  that test was corrected for non-root runners. Its successor passed Linux CPU
+  and startup tests and is building real dependencies. No serving image has been
+  built or published; no Vast template has been edited or promoted.
+- Provider finalized-charge access returned HTTP 401 at 08:21:58 UTC. Actual
+  invoiced spending remains unavailable, not zero; reservation and expiry controls
+  remain in force. No permissions were widened or billing request repeatedly retried.
 
 ## Evidence and unresolved work
 
@@ -89,7 +105,14 @@ calibrated; stage durations from individual processes are reported separately.
 - [Source-install startup breakdown](startup/source_install_baseline.json)
 - [Local smoke assessment](portable/source_install_smoke_assessment.json)
 - [Sustained portable GPU-path evidence](portable/portable_v1_gpu/report.json)
+- [Portable full-recipe T](portable/portable_v1_aggregate/report.json)
+- [First portable quality reference](quality/portable_ref1_quality/report.json)
+- [Second portable quality reference](quality/portable_ref2_quality/report.json)
+- [Frozen measured quality envelope](quality/reference-envelope-v2.json)
 - [Budget checkpoint](provisioning/budget-checkpoint-0748.json)
+- [Finalized-charge availability check](provisioning/budget-checkpoint-0820.json)
+- [Instance A CUDA failure and host outage](provisioning/instance-a-host-outage.json)
+- [Actual portable still-frame review, with limitations](quality/portable_reference_visual_inspection.json)
 
 Registry publishing access remains unresolved. A read-only native x64 GitHub
 runner probe succeeded with about 86 GiB free disk, 4 CPUs, 16 GB RAM, and Docker/

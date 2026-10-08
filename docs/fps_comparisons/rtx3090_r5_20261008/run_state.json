@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "portable_aggregate_baseline",
+  "phase": "development_host_offline_replacement_preflight",
   "status": "in_progress",
   "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
   "branch": "codex/rtx3090-r5-delivery",
@@ -15,7 +15,12 @@
     "Local AWS default identity usable",
     "Instance A provisioned once through EC2; distinct SSH alias and protected-instance isolation verified",
     "Original source-install verified health at 17m26s; one production pose restored",
-    "Two portable GPU-path runs completed at >=180s each with exact probes and no foreign GPU work"
+    "Two portable GPU-path runs completed at >=180s each with exact probes and no foreign GPU work",
+    "Portable full-recipe T completed: 256.67195270538247 and 258.85397057089455 FPS; valid failure against 300 target",
+    "Two portable quality references completed with all original strict failures preserved",
+    "Measured reference envelope frozen at 08:35:40.744214 UTC before native evaluation; 698 explicit metric bounds and comparable historical references",
+    "Scoped runtime credential bridge verified with harmless owned-worker command",
+    "Linux CI CPU/startup tests passed; actual dependency Docker build in progress"
   ],
   "budget": {
     "currency": "USD",
@@ -57,17 +62,38 @@
       "ssh_endpoint": {"hostname": "92.49.17.100", "port": 25232, "user": "root", "alias": "musetalk-3090-build-54798270", "browser_api_crosschecked": true},
       "readiness": "Verified portable health, one avatar warm, local media smoke; no EC2 usable-call proof",
       "development_measurement_revision": "aa1a531cabe60ce9faec45b39372db2d61ef69e9",
-      "server_state": "Owned API/TURN cleanly drained and stopped for isolated GPU measurements"
+      "native_preparation_revision": "8112888",
+      "server_state": "Owned API/TURN drained/stopped; CUDA initialization failed before native build, then provider actual_status offline at 08:52:18 UTC",
+      "provider_status_observed_utc": "2026-10-08T08:52:18.227430+00:00",
+      "provider_actual_status": "offline",
+      "recovery_reboot_sent": false,
+      "recovery_onstart_guard_applied": false,
+      "repository_backup": "/workspace/MuseTalk.before-gpu-recovery-20261008",
+      "backup_note": "14GB recursive preserved copy completed before SSH outage; same-host backup is not off-host durability"
     },
     "release": null
   },
   "ec2": {"ssh_alias": "my-ec2", "revision": "171e169682b08054fa7505df72431914d6653c8e"},
-  "artifacts": {},
+  "artifacts": {
+    "reference_envelope": {
+      "path": "quality/reference-envelope-v2.json",
+      "sha256": "8c2c25961109171f5bd18f88d3bf9f0433b9cba31e48f19869cd75a25e7471e4",
+      "frozen_utc": "2026-10-08T08:35:40.744214+00:00",
+      "earlier_invalid_attempt_retained": "quality/reference-envelope-v1.json",
+      "earlier_failure_reason": "Historical commit tree missing in shallow checkout; fetched exact pinned revision before retry"
+    },
+    "quality_inputs": {
+      "path": "harnesses/quality-inputs-v1.json",
+      "files": 878,
+      "sha256": "6d3ab6ef31605c2231605e03042e82361a27112589ef6d7f6f8ff8f4b016eea5"
+    },
+    "dependency_ci": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37749194641"
+  },
   "image_digest": null,
   "template_id": 756005,
   "target_template_hash": "210968d1e76b34e7cf34e505246e5d47",
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
-  "next_action": "Await portable six-avatar aggregate T, then repeated portable quality references before native engine optimization",
-  "next_command": "Read portable/portable_v1_aggregate/report.json when complete on musetalk-3090-build-54798270; active root exec session 58733. Never run a second heavy GPU process concurrently."
+  "next_action": "Prepare replacement A2 on a different host within unchanged shared $30 budget; preserve A1 reservation and artifact recovery path",
+  "next_command": "Read safe A2 preparation from ec2_discovery; proposed machine145203 and label musetalk-r5-3090-dev-a2-20261008. No replacement purchased yet. Install strict A2 expiry, initialize distinct ledger, freshly validate offer and use existing EC2 create-once wrapper with shared budget ledger. Never retry an ambiguous purchase."
 }
