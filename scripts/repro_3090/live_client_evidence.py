@@ -60,6 +60,29 @@ def install_codec_hooks(receiver_class, version):
     receiver_class._handle_rtp_packet = packet
 
 
+def install_h264_offer(peer_class, sender_class, version):
+    """Opt-in adapter only: require H264 before negotiation, no VP8 fallback.
+
+    Server-side encoder configuration alone did not ensure the canonical
+    client's default VP8-first offer used H264. This changes no scorer or server.
+    """
+    require(version == '1.14.0', 'H264 offer adapter requires reviewed aiortc1.14.0')
+    original = peer_class.createOffer
+    require(inspect.iscoroutinefunction(original), 'aiortc offer hook shape changed')
+
+    async def offer(self):
+        codecs = [c for c in sender_class.getCapabilities('video').codecs
+                  if c.mimeType.lower() == 'video/h264']
+        require(codecs, 'H264 capability absent; no codec fallback allowed')
+        video = [t for t in self.getTransceivers() if t.kind == 'video']
+        require(video, 'video transceiver absent before offer')
+        for transceiver in video:
+            transceiver.setCodecPreferences(codecs)
+        return await original(self)
+
+    peer_class.createOffer = offer
+
+
 def observed_video_codecs(timing):
     codecs = set()
     for evidence in timing.get('received_payloads', []):
@@ -186,6 +209,7 @@ def main(argv=None):
         require(socket.gethostname() == 'a830e00ce20c', 'not the owned worker hostname: offhost INVALID')
     import aiortc
     install_codec_hooks(aiortc.RTCRtpReceiver, aiortc.__version__)
+    install_h264_offer(aiortc.RTCPeerConnection, aiortc.RTCRtpSender, aiortc.__version__)
     install_client_hooks(module)
     original_run_level = module.run_level
 

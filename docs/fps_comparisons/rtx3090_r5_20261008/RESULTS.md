@@ -10,7 +10,7 @@ This is a live evidence index, not a completed release claim. The protected RTX
 | GPU-path FPS | Native v1: 385.75668080919866 / 388.64419629013895; earlier portable: 278.288586320095 / 277.4908139113453. Separate ≥180 s windows; diagnostic, not full-recipe FPS |
 | Full-recipe aggregate FPS | Native T: 252.59611538153948 / 230.39816210925395; SUST: 231.089–246.552. Recovered portable control T: 253.59753865499397 / 240.87736112161846. Valid failures against their unchanged 400 / 300 targets |
 | Native quality | Rejected: 236 / 698 frozen bounds fail; full-frame TAESD max 7 LSB versus reference 5. No bounds widened |
-| Live delivery / capacity | Local smoke decoded 1,371 frames, but a 278 ms gap and missing telemetry prevent a strict PASS; no proven capacity yet |
+| Live delivery / capacity | New H264-only native S0N1 strictPASS over116.1s, actual wireH264 proved. Initial VP8 result preservedINVALID. No multi-stream capacity, NVENC or EC2 acceptance |
 | Request-to-usable-call startup | Still unmeasured through EC2/TURN. Request-to-verified-health was 1,046.45 s (17m26s), not usable-call readiness |
 
 Instance A is Vast **54798270**, label `musetalk-r5-3090-dev-20261008`, created once
@@ -70,6 +70,16 @@ Observed timeline (UTC, October 8):
 - A separately labelled follow-up keeps the pinned devel builder, unchanged apt packages, private/model exclusions and all Linux TensorRT resources, but uses the matching pinned CUDA12.1.1/cuDNN8 **runtime** final base. Its actual size/import build is pending; no extra reduction is claimed yet. Isolated live plan/preflight passed without server launch, preserving warnings about missing diagnostic engine-store records. Actual backend proof and fresh call tests remain required.
 
 ## Current bottleneck interpretation
+
+Latest checkpoint: corrected native production rendering is **48/48 compatibility PASS**, not numerical or visual acceptance. The [terminal compact index](avatars/native_v1_all48_cycle_v2_1523_index.json) binds the8.2MB raw report by SHA. All48 muxed review videos independently decode to their240 original frame hashes and byte-identical first10s human PCM. Archiving remains incomplete after the old worker bundle helper rejected explicit-empty directory arguments; successful decoded proof is preserved separately.
+
+The isolated API is healthy on127.0.0.1:8300 with registration disabled and both native TensorRT backends active. All16 talking process caches are resident in3512.87MiB with0evictions. Actual idle clips consume157.5MiB each: the2400MiB limit holds15, so warming16 evicts1. Active-stage residency is checked before timing; no all16/all48 idle-warm claim is made. The scheduler also raises compose/encode workers from requested4 to10 using visible host CPU count instead of the18.43199 container quota; this is a concrete configuration issue, not yet a proven throughput cause.
+
+[First new S0 evidence](native/isolated_live_v1_s0_n1_1605.json) passes strict P1/P2/P3:20anchored frames/s,66.1ms worst gap,100%fresh,0held frames,100%PTS joins. Overall result remains **INVALID** because RTP payload97 provesVP8, not the intendedH264. A separately tested H264-only client-offer hook retries in a new output without changing server or scorer. One stream cannot establish multi-stream capacity, native quality parity, NVENC, or EC2/browser readiness.
+
+The separate [H264-only retry](native/isolated_live_h264_v2_s0_n1_1613.json) finished strict **PASS**: actual video/H264 packets received,20anchored frames/s,74.7ms worst gap,100%fresh,0held frames,100%PTS joins over116.1seconds. Two matched first fresh-frame latencies are0.6696/0.7908seconds on the same worker clock, not first decoded speech-frame latencies. This is the software-aiortc/libx264 diagnostic profile, not a claim of NVENC or deployment acceptance. Three streams are gated on this exact strict result after media I/O finishes.
+
+The matching-runtime-base follow-up is building in [CI37803474546](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37803474546) at exactead7e0116577a7b32da341af514c8371c187cc9c. No further size or startup saving is counted yet. Account quota at15:58UTC is4%used/96%remaining, normal usage allowed, purchased credits0, one unused free reset; exact remaining subscription tokens and full-task completion are not guaranteed. The OpenAI Docs skill informed interpretation of allowance percentages, not engineering acceptance.
 
 The source bootstrap itself took 631 seconds and portable engine restore 72 seconds;
 one avatar warm took 23.82 seconds, including 21.77 seconds in S3 restore. Building

@@ -1,0 +1,2070 @@
+{
+  "schema": "production_pose_terminal_index_v1",
+  "candidate": "native_sm86_r5_v1",
+  "status": "PASS_RENDER_COMPATIBILITY_ONLY",
+  "completed_poses": 48,
+  "characters": 16,
+  "raw_report": {
+    "sha256": "8d4fb71f1b56cf844c86091ca105771fe2d0a0f702ddaeb2a0654eb0f9ee35fe",
+    "git_payload_included": false
+  },
+  "visual_review_status": "NOT_PERFORMED",
+  "release_ready": false,
+  "native_numerical_rejection_waived": false,
+  "capacity_acceptance": false,
+  "backends": {
+    "unet_name": "tensorrt_unet_stagewise",
+    "unet_class": "StagewiseTrtUnetBackend",
+    "decoder_name": "taesd_trt",
+    "decoder_class": "TaesdTrtBackend",
+    "decoder_compile_enabled": false,
+    "decoder_compile_mode": "tensorrt",
+    "unet_describe": {
+      "name": "tensorrt_unet_stagewise",
+      "engine_dir": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+      "batch": 16,
+      "cuda_graph": true,
+      "arena_mib": 191.5673828125,
+      "activation_mib": 104.4609375,
+      "device_memory_sizes_mib": {
+        "prefix": 30.0,
+        "down0rest": 151.5625,
+        "down1": 102.5390625,
+        "down2": 54.4921875,
+        "down3": 2.5048828125,
+        "mid": 10.74462890625,
+        "up0": 6.25341796875,
+        "up1": 60.7470703125,
+        "up2": 145.04150390625,
+        "up3": 191.5673828125,
+        "tail": 20.0
+      },
+      "probe_status": "exact",
+      "probe_validation": {
+        "kind": "exact",
+        "expected_sha256": "23950ef8e4117aef4488a7e14e032450875c808837ef844151af30958b79908c",
+        "actual_sha256": "23950ef8e4117aef4488a7e14e032450875c808837ef844151af30958b79908c"
+      },
+      "hardware_compatibility_level": "none"
+    },
+    "decoder_trt_key": "1e967e6e715c9f1a8375",
+    "decoder_trt_gate": null,
+    "decoder_trt_plan_sha256": "9658154206fbee0aea38659803724ae94a78983d3858585242d62a4bae305057"
+  },
+  "recipe": {
+    "frames": 240,
+    "fps": 24,
+    "native_frame_shape_hwc": [
+      896,
+      512,
+      3
+    ],
+    "generated_face_shape_hwc": [
+      256,
+      256,
+      3
+    ],
+    "chin_strength": 1.0,
+    "composition": "full saved face box and mask; no mouth-only or extra cheek/jaw attenuation",
+    "chin": "frozen chin.prepare_refined + chin.prepare + chin.corrected_refined",
+    "temporal_filter": "existing symmetric .25/.5/.25 with edge replication and [0,.18] clamp",
+    "cache_reencoding": false,
+    "source_cycle_start": 0,
+    "resize_or_crop_output": false,
+    "cache_encoder_provenance": "not inferred from latent shape; separate audit required"
+  },
+  "audio": {
+    "path": "/workspace/MuseTalk/experiments/throughput300_candidate/audio_corpus/33_long_eng.wav",
+    "bytes": 1920078,
+    "sha256": "654dcbce843d70451d1123f7649a58bee11bb9dec9a7e835c05b1e367efb2078",
+    "declared_real_speech_source": "Historical real-human C_repo_eng recording, engineering record section3.4",
+    "speech_content_verified_automatically": false,
+    "start_seconds": 0,
+    "duration_seconds": 10.0,
+    "conditioning_sha256": "7b7f0560e10532c0ce26132bc398a76381deb002652089dfd2032a16ab969ab9",
+    "conditioning_file": {
+      "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/audio_conditioning.pt",
+      "bytes": 9217235,
+      "sha256": "7c24ce47335556c25b5d479619c3e0da1dd5a04f3658812bbae5179dbf1d744e"
+    }
+  },
+  "not_claimed": [
+    "visual approval",
+    "quality equivalence to the six canonical fixtures",
+    "live API chin-path parity",
+    "live pose transitions",
+    "capacity or FPS acceptance",
+    "multilingual speech coverage",
+    "restored cache encoder provenance"
+  ],
+  "poses": [
+    {
+      "avatar_id": "en_01_maya_abe451d3_idle_93d291932f",
+      "character": "en_01_maya",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9345473647117615,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "65b4fa6e642604d53f9fd6dc5aafdcfc42e95626c6e644a14a8ad40f8725c944",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_idle_93d291932f/review_with_audio.mkv",
+        "bytes": 128842646,
+        "sha256": "117f017189326770a47c7bdf25421529915d75604126854ed97e91e1d6514016"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_idle_93d291932f/contact_source_standard_refined.png",
+        "bytes": 13404995,
+        "sha256": "f8ecebddffa79c7915d48a71eb8f8a56ff952a6fb843cf20a8f21e4c1e342f78"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_idle_93d291932f/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "0d4e76accd737e53c24ad6db635372abcae237463ff8e031331b09f2090e69e4"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_idle_93d291932f/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "23f219903abff95c5a0ad35bd5adf91c93c62f5db91e563d136b0107da4be7f1"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_idle_93d291932f/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "248b3e6a8f83252cfc726f749e54c5d302a013d22154d3f3e1c39dae3d18b7bf"
+        }
+      ]
+    },
+    {
+      "avatar_id": "en_01_maya_abe451d3_smiling_d73311869d",
+      "character": "en_01_maya",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9463197588920593,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "185388a5c971080de49a2a5fccf45f83b129e340bbd9651b0917bf65ca754302",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_smiling_d73311869d/review_with_audio.mkv",
+        "bytes": 115544010,
+        "sha256": "c4f3186352454ddd594f7f175538a2e3b633ea7bf060bb0783f782ce1cd27b2a"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_smiling_d73311869d/contact_source_standard_refined.png",
+        "bytes": 13297402,
+        "sha256": "41fd6d801a35850d487f5aa422c5ed8be31e2420714686b69feef25fff2f9fb0"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_smiling_d73311869d/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "56262b6509fb466af28091e5cd7a20ebbbe30445376938631eac64393b14a91a"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_smiling_d73311869d/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "16c8706c724429c4b4f9f9954c96e97a1deced68d350da869553f3c8bc5c6913"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_smiling_d73311869d/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "99bed7370da616497fec47184e22924dba807461054f16c42d22e4df3cefe896"
+        }
+      ]
+    },
+    {
+      "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+      "character": "en_01_maya",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.6945339441299438,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "d56433ec3d152776b67d24acc8e25f1bcceb24a7e3268e8230f7c0ef2fcfac6e",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_talking_f6cf8be7fb/review_with_audio.mkv",
+        "bytes": 134953563,
+        "sha256": "d8394a76ce2b48b84c723b23a1a03fe8fb7a8b1b6f132778525af543488d35ef"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_talking_f6cf8be7fb/contact_source_standard_refined.png",
+        "bytes": 13152141,
+        "sha256": "625cbb39090ce2115bd203ed23f2106fdaa94be71661823efa893a4451073db0"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_talking_f6cf8be7fb/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "ed97eefbb9b86ee709c739c0f7f3be4146165655f02ae998ac0e16030ced1892"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_talking_f6cf8be7fb/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "1f54bca92f57e8e3e049c68e5560c299f0637452a4d83dc509d8be7ce708f2ec"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_01_maya_abe451d3_talking_f6cf8be7fb/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "a69dda880d2022a486a11b69a24982048d2d8ccbab10cab0895b2b069172523e"
+        }
+      ]
+    },
+    {
+      "avatar_id": "en_02_claire_a833ee1f_idle_d6a59b64db",
+      "character": "en_02_claire",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9216386079788208,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "9376c251058b7252d09300e3897ad5ce1848ff32fd6c3287f56d3eff6e8e4675",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_idle_d6a59b64db/review_with_audio.mkv",
+        "bytes": 133747981,
+        "sha256": "d39e5774c1632a8b020362ef521bc1b85308619498e9d3b45ffa333b5e45febe"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_idle_d6a59b64db/contact_source_standard_refined.png",
+        "bytes": 14610949,
+        "sha256": "e59219cbdb03aaea3da80d19d2769f650de2670c4a359bb07a5c80094d2777a4"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_idle_d6a59b64db/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "7d1876aac657838fad9a81c26f05819bfed225f8d64337b00b0525d6b944f395"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_idle_d6a59b64db/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "701ba4c4f7a0f45adc1d8bf0458ec6eb9b4185d379cef12d9f1747beacf506cb"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_idle_d6a59b64db/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "7e10865766dc6e4510fb1fc8dc0960deb56018c423b3a2469a11309ad2c6d8ee"
+        }
+      ]
+    },
+    {
+      "avatar_id": "en_02_claire_a833ee1f_smiling_2608941838",
+      "character": "en_02_claire",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9451743960380554,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "103de256beb8395298047daab3028de9c40ae252e16ecd87391cd6f16d20175b",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_smiling_2608941838/review_with_audio.mkv",
+        "bytes": 122034590,
+        "sha256": "c17ea5f1edd42f1f340666465b14ef976a8d15c75759f72f7025956e6931fb5c"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_smiling_2608941838/contact_source_standard_refined.png",
+        "bytes": 14577059,
+        "sha256": "fac20919590a0e166c68cdcd58b09f7e9fae3edf71eea6880dae1b2843be0626"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_smiling_2608941838/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "ef6d0f11c867092a7fb802960eb55a79092e731d5a487d72104f3a573a033f55"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_smiling_2608941838/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "c1a7b372ead4ab7eb5f79c1ecd3fb47debb367a52e7d98aafa34d849a08eb2bb"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_smiling_2608941838/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "223b560090802d514b6668706ff72a3393e1d22e66312ceeb13cf64983da606a"
+        }
+      ]
+    },
+    {
+      "avatar_id": "en_02_claire_a833ee1f_talking_f6f244cc2a",
+      "character": "en_02_claire",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.6650983095169067,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "e1d9975d91f30adcb28473aee95a78e7c565564318f56aec7b86e2c759f4356f",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_talking_f6f244cc2a/review_with_audio.mkv",
+        "bytes": 139419762,
+        "sha256": "db51bb8146041c410666812a7d4c8e5feda4eada87997c661f7184b910d80508"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_talking_f6f244cc2a/contact_source_standard_refined.png",
+        "bytes": 14625006,
+        "sha256": "e49848f49d10354c562958f27d6c0484fb617ed896442dbfd059421795c76ae8"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_talking_f6f244cc2a/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "3cc55bcbe3efb257fe0fc519e151e5c72249ee3d981ae0b5b1b6bbc7ad7d69b1"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_talking_f6f244cc2a/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "712636568223cb35e0368eb82e69d536aac2e0e9c2a3ee9e652b581d97068913"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_02_claire_a833ee1f_talking_f6f244cc2a/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "8d7e8f1445552cacb8bd3e29d1bb25962c2fe1e4f739cfa602179a11b649eba7"
+        }
+      ]
+    },
+    {
+      "avatar_id": "en_03_marcus_19eb1ea8_idle_0265b79d76",
+      "character": "en_03_marcus",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8388440608978271,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "bfc6394cb8b4469c788d86d47ca3fc28632bd1b66971bb6725161c4b1a37ff13",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_idle_0265b79d76/review_with_audio.mkv",
+        "bytes": 125496447,
+        "sha256": "33af2f6df94734d3b8b2ba63af4e03c92a338fa218fa83407be4739d929848e7"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_idle_0265b79d76/contact_source_standard_refined.png",
+        "bytes": 14290059,
+        "sha256": "e87b7739fd15e801bc1825baeec3fdfd6995b668be6dd2c6202379fe5e32a476"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_idle_0265b79d76/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "f43280fff271461b4ee21567fe34400670e69a898f1d88e2f157c9da1d902660"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_idle_0265b79d76/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "4c41b9a450a56c091e11a555e5de31ee9d23464b136aad8558e8ace06178627f"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_idle_0265b79d76/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "b728d086f4cb45cd6224647e3a05ee82f4d1cacbec0db94b0f992bc272916052"
+        }
+      ]
+    },
+    {
+      "avatar_id": "en_03_marcus_19eb1ea8_smiling_f52c853417",
+      "character": "en_03_marcus",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8463672399520874,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "11a37df4ec2f241a6a2c7f65e9659a8e5f60ae940f87d25316400fa43abeca2d",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_smiling_f52c853417/review_with_audio.mkv",
+        "bytes": 119468720,
+        "sha256": "64d9f263f926f18daf47f542e7c410c6f8023d786b7feaa21d3a393852842911"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_smiling_f52c853417/contact_source_standard_refined.png",
+        "bytes": 14149095,
+        "sha256": "f75f5ec51d0004698678dd94018bf666594b67d998e2fb700e7effa1a83dad22"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_smiling_f52c853417/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "d1d7b420dd301a74c6a94a88aaae3ea75d8d33664d71a29c108b0650693d373d"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_smiling_f52c853417/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "329e22b6072f3db8d12cc94bcf3c778a2f7679145b24a797fd436d7258aaf317"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_smiling_f52c853417/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "284cb85877b8f58a993941ec4174bac1cb7edca4f6b2fd8d040e35e4576f4ca7"
+        }
+      ]
+    },
+    {
+      "avatar_id": "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+      "character": "en_03_marcus",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8055246472358704,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "4947f23f00f7670d15a225961e11b2ed564797aa9f682cb7feb97895b0252b0d",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_talking_ada35a4a4d/review_with_audio.mkv",
+        "bytes": 135495008,
+        "sha256": "60146deb073d9188b30df6645d74c53e41e8145948d1428cf297e1820f86827b"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_talking_ada35a4a4d/contact_source_standard_refined.png",
+        "bytes": 14140179,
+        "sha256": "6cf0a3997b19ed687ff3f0a756bc0e5a465b7240d5168f595e42d50b7c25d2dc"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_talking_ada35a4a4d/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "7fef82c57ab0a0c5387ce1114c68a0bc4a8b0200607faca9c1962c7331637ada"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_talking_ada35a4a4d/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "02870d728bc10e908049d87ea46d25756c613f9cb5dd41a04274baedbe587b72"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_03_marcus_19eb1ea8_talking_ada35a4a4d/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "4043dcfedf633e57bc34ef0b9326477b68b0eb470540b5e97cc48ba3223b8e67"
+        }
+      ]
+    },
+    {
+      "avatar_id": "en_04_owen_4fd8c9da_idle_77ffa668f8",
+      "character": "en_04_owen",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.938782274723053,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "7ea3ce072d363352105cba5df813d45149517d17011422956849080a0b520c44",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_idle_77ffa668f8/review_with_audio.mkv",
+        "bytes": 126084230,
+        "sha256": "d9ed58adc14a548614a8257adfe2ead20019c547d686ef675cdcc8e2d048510d"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_idle_77ffa668f8/contact_source_standard_refined.png",
+        "bytes": 13915799,
+        "sha256": "4e4fbe0eaf7f5f642170493dcbc2411294370a663e7212dd40f0a064ab317da7"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_idle_77ffa668f8/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "a85090981e4e22fed0dea38762f6eb871d5469e7b51afe51e5084f4c0654ba07"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_idle_77ffa668f8/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "d23452a5524634386cc8082d1fa90c31c22b1bba038c934eb455699c12a5153c"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_idle_77ffa668f8/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "1f3113c989e2168213d0ce63599dfd2105eeea97c94c6c309175891f39ea398e"
+        }
+      ]
+    },
+    {
+      "avatar_id": "en_04_owen_4fd8c9da_smiling_1f2615da80",
+      "character": "en_04_owen",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.976242184638977,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "d82669e497e9f286cbb99993b20deb950dabeb14f3f8ac2695574156dbd1e992",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_smiling_1f2615da80/review_with_audio.mkv",
+        "bytes": 110020360,
+        "sha256": "03981cacb4546d718c12d6bcd615c9e7fe738c5c2831b9df7be07e3f66507721"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_smiling_1f2615da80/contact_source_standard_refined.png",
+        "bytes": 13757684,
+        "sha256": "bb2b87ffd1aaf783dbea84886b1c842433d9618c3b6a7f9a4b6a830ccf3dec15"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_smiling_1f2615da80/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "12ea0a11ace81e5c1958a610cbbf3a6ae9d2c05eefaecf817a0255da1e89d071"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_smiling_1f2615da80/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "8ad507b35576cab067c9e6d1426fa54cb8e018782c27eb1e31b08b28f4c14941"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_smiling_1f2615da80/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "922397566efe6cc11f9c3518c7a5d38ce87c6550700874aebd8fee6304f4dc51"
+        }
+      ]
+    },
+    {
+      "avatar_id": "en_04_owen_4fd8c9da_talking_aa79df3324",
+      "character": "en_04_owen",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.5851902365684509,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "171d1fcb4a3f069cf6a41b34be150ded6e71bdce74b3efd63a1e12aee369fcfd",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_talking_aa79df3324/review_with_audio.mkv",
+        "bytes": 129450937,
+        "sha256": "8ff9039bb494e9e5999f2d65ec9d30002f20e0fcc6041c79e1a792b8c0dd5807"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_talking_aa79df3324/contact_source_standard_refined.png",
+        "bytes": 13843537,
+        "sha256": "d7905dc4fef45ea405a80325f5dddebc912298e713117c8e517d6107de4c3cae"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_talking_aa79df3324/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "96d33c4dcbc4d2c22d084b3793071cc31f9a535758a2b10d78d5c596a05ba06d"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_talking_aa79df3324/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "4054dfddd2cc7906f7ba87ccce2e112ce8d31eba8d1b9666095f01ae9c90deea"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/en_04_owen_4fd8c9da_talking_aa79df3324/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "1b7695cdd9b86d4d4c35235a1811991439b5919ca57541de21114539286fbf1f"
+        }
+      ]
+    },
+    {
+      "avatar_id": "es_01_valeria_aed74c50_idle_f61f0fa657",
+      "character": "es_01_valeria",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9884949326515198,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "6e1182dba4c09b20fad3f2f113e3bb26279012a1301280e93f709d1751cd589a",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_idle_f61f0fa657/review_with_audio.mkv",
+        "bytes": 130893201,
+        "sha256": "e4564a642534ece724b169eef65d6841cca7a6265f0da8120c864f25c195df8a"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_idle_f61f0fa657/contact_source_standard_refined.png",
+        "bytes": 14196587,
+        "sha256": "9eef9d3783c26cf6a339a54bb664d0cba23ba5ed7bd52c25bf3578a09a3a0641"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_idle_f61f0fa657/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "46275dd876410a720a2725a0123c4d5c8b4463593fe4251f6cd30b3535a73854"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_idle_f61f0fa657/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "4620a015da68c229c96d8fda291f4e78129e3fb3ef526254ef1822d4c2be491a"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_idle_f61f0fa657/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "3d85e61a527468ec359f6601971832f00c77757ee0f3039be58e7a120802506f"
+        }
+      ]
+    },
+    {
+      "avatar_id": "es_01_valeria_aed74c50_smiling_8e6f5538ac",
+      "character": "es_01_valeria",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9536740779876709,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "9f1745ba0af9e595628877e2d50792c3c5dd9d556ee43e85fc116324ae828ce9",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_smiling_8e6f5538ac/review_with_audio.mkv",
+        "bytes": 120639476,
+        "sha256": "2e0e4192139cc7da4f8000f14239d0a104aa56587390a17f7de3089f40ca17bf"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_smiling_8e6f5538ac/contact_source_standard_refined.png",
+        "bytes": 14085883,
+        "sha256": "634868946eaf25b388b56be793e7b2a086d4bd010786e94d0753c83a3d579410"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_smiling_8e6f5538ac/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "2f4f9ba48480e2c41208e33fa9bb870f1a8a0745f0572fcb16b3f132c330552b"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_smiling_8e6f5538ac/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "427516320f4227c33703def996c8bbf00b0e6c9086ffd49b008404274a75b8e5"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_smiling_8e6f5538ac/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "44281a52921a4cda530cce43d6dac63e477370eb2391301ae25e3f43ea65b2d2"
+        }
+      ]
+    },
+    {
+      "avatar_id": "es_01_valeria_aed74c50_talking_003d585d96",
+      "character": "es_01_valeria",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.5823814272880554,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "175ae9625a2e4b8ba529fe331629c1f7e33900d28379120d1b2af142545a5d58",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_talking_003d585d96/review_with_audio.mkv",
+        "bytes": 137797118,
+        "sha256": "1be980a51d88e334cfe6c1788be1ddacac086c7f450f3b63d76f7ad5d66b346c"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_talking_003d585d96/contact_source_standard_refined.png",
+        "bytes": 14009751,
+        "sha256": "e712c3abf6a116fa5698698ecd36d4dcd0aa5b3dbd291bf21aa975dc8be67b0f"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_talking_003d585d96/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "595e0591c0ec52fd87d40b2b071498cc559b0cf03a125bf0987eb4e8c64930b5"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_talking_003d585d96/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "d6d5c0d3a93c4781f69801beb5d743d9e36fde0fa6487a468ce7d69cbc34fc36"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_01_valeria_aed74c50_talking_003d585d96/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "3be7feb8c34cef2f1f9936496acabd69b59438e45bd2a51151c4caf1b04edda7"
+        }
+      ]
+    },
+    {
+      "avatar_id": "es_02_lucia_e554c30b_idle_48be7f8391",
+      "character": "es_02_lucia",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9084551930427551,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "cd77ce10ae8cdd80bc4ddae23e61f570002e8a1a444ee383427a0593544fdde7",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_idle_48be7f8391/review_with_audio.mkv",
+        "bytes": 121355862,
+        "sha256": "599803387250e02a25aa23d6c329d5088c76ab00d8f9973892a5bc90b88dcca4"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_idle_48be7f8391/contact_source_standard_refined.png",
+        "bytes": 12561297,
+        "sha256": "a4e5ddad24be532617120f887d3ab34c918dac46f3c5037542f8b56ea874619e"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_idle_48be7f8391/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "c5399c1feb64f3d67977b13ff9a0fb149b3eb5a69fdc5a89154f4f15cf8ea4cc"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_idle_48be7f8391/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "6c2c14b74beef24b2f26660c90e8ff3c8c309f5c025c2b2ca7b12b99a665e451"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_idle_48be7f8391/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "b676fcc9d1db8f90b24bd65b94f6ff3c61d758168bb1ab49829f1c729a868bd1"
+        }
+      ]
+    },
+    {
+      "avatar_id": "es_02_lucia_e554c30b_smiling_9ded7c12aa",
+      "character": "es_02_lucia",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8940428495407104,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "a27703888ff75307c12d958e679c67a41f23a78557eb6e071e4d29df90cb8edb",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_smiling_9ded7c12aa/review_with_audio.mkv",
+        "bytes": 110521750,
+        "sha256": "dd2da3536d1580dc4392b78e035fd5502f9f43f1e01415ef8eab2e1047599201"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_smiling_9ded7c12aa/contact_source_standard_refined.png",
+        "bytes": 12455609,
+        "sha256": "5b586d55cd5221a888644fdf0ca1480acb76b499999daf0b366c6951536f45da"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_smiling_9ded7c12aa/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "7833acb9c59efe5df47d04af24f7e14563307a2447ca3b42c91e79e881c2743c"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_smiling_9ded7c12aa/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "594824e5e597fff83dcc32c4fec151d663bb41d2851093a2a2ce02c741685093"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_smiling_9ded7c12aa/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "ff89c159700d999560b4cac1c5463b05e846131ab37803db6196e3b040b6e846"
+        }
+      ]
+    },
+    {
+      "avatar_id": "es_02_lucia_e554c30b_talking_e5c5d0c534",
+      "character": "es_02_lucia",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.709199845790863,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "10effaea1983480d834a719aff87d1a6682de442fef6329fd0131b3efeb91f2d",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_talking_e5c5d0c534/review_with_audio.mkv",
+        "bytes": 124963103,
+        "sha256": "f2fd079595af9dbd1d585818f74fa1e868ea159ffa1754a7e6c4e198ec5101ae"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_talking_e5c5d0c534/contact_source_standard_refined.png",
+        "bytes": 12448923,
+        "sha256": "67569cca8a7176e9f8521fdf80751824ad89d6be3083a0702a959344a3ce744a"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_talking_e5c5d0c534/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "93d9f92e6efc52e4712e660e109490e6b7b52caa8d046c1c0b2e5f5af137986d"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_talking_e5c5d0c534/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "94e97fba65b8ceb02758a576c5e65bd5b64d194176c1d34e70f3715b82c55331"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_02_lucia_e554c30b_talking_e5c5d0c534/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "46bd893b50064d49b70405ec063f47ae8a09d56be1beee54fed7d8d58e98de18"
+        }
+      ]
+    },
+    {
+      "avatar_id": "es_03_mateo_884600e1_idle_92575566fb",
+      "character": "es_03_mateo",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8729485869407654,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "2d2e5586458f726a3fb78a02557fe69ecb09f58458e1f61ba19781e6e9154bcb",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_idle_92575566fb/review_with_audio.mkv",
+        "bytes": 130837429,
+        "sha256": "2de7d33b5c7a637a404f68dd538a5e2bb53d4d8622b81eb9aca6d055f4d41bb4"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_idle_92575566fb/contact_source_standard_refined.png",
+        "bytes": 14489891,
+        "sha256": "a0d71e00fb5071dab759d50569f3823e83aa63bda982dc1cb1813d407268c29d"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_idle_92575566fb/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "446207900d847ead70c60990f055a3871c18508cfb73746dc8df2fc5434a83cc"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_idle_92575566fb/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "39f1d504d73d2dfc371460690d77cd07966ebd6fb10d0634a3b93f1a6e04a891"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_idle_92575566fb/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "c9a8561c65a5c8577792f83d7d8936efc719c81140694fb4c9547dfaee4bd4ed"
+        }
+      ]
+    },
+    {
+      "avatar_id": "es_03_mateo_884600e1_smiling_f89961bdaa",
+      "character": "es_03_mateo",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8766331076622009,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "113d2168eab651009101ea6c27c95ca24047e2a345ca573977f9ad408b321206",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_smiling_f89961bdaa/review_with_audio.mkv",
+        "bytes": 122220706,
+        "sha256": "9673835e4f7346c9dc3c4659214468fcf18669650f05bfb227f3d812690abbf1"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_smiling_f89961bdaa/contact_source_standard_refined.png",
+        "bytes": 14201432,
+        "sha256": "2bacf6d8d2163e22681b37975f06ac2e669fe4099890b518d547b592c9a9242a"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_smiling_f89961bdaa/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "60fc6577480b2b49fa985c9a030f4758363a5cef10e1a03754d07195eda8d18c"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_smiling_f89961bdaa/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "6aca72d7bc9d144c5c70436efe32851d573da920b4f6be790f26d0e9c032b756"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_smiling_f89961bdaa/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "971aa0838f2609ed45ce9fd832f25b90740624c4c3b69b95efbb74d04ea53d9f"
+        }
+      ]
+    },
+    {
+      "avatar_id": "es_03_mateo_884600e1_talking_75d88cda6c",
+      "character": "es_03_mateo",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.6371091604232788,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "26e8fbb9ef1c1f9c91843146e205a7b06e2821824d6bfe11f485a8c4fd79b484",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_talking_75d88cda6c/review_with_audio.mkv",
+        "bytes": 135063056,
+        "sha256": "bd1ad1f1b5d91fb5a65eb7beb021c47733355cf1a6e133f033a33829957af0d1"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_talking_75d88cda6c/contact_source_standard_refined.png",
+        "bytes": 14368420,
+        "sha256": "d0f1bbe835eea103d32bef6260f1b911d4836fb2338da2a34f0e4201c5c4c527"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_talking_75d88cda6c/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "27d13212f9bb63ed4050ad553119a0abd2fe2162907c4bd228cee96ea9b1d74e"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_talking_75d88cda6c/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "f3b55c71126eecf425a66dd1ab45ee45d32e0c94d6acaf395b9778c2d3c1f854"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_03_mateo_884600e1_talking_75d88cda6c/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "4b40e069711d79f9948355aec15107df271344e51856050cd67b1a6cb5835c0e"
+        }
+      ]
+    },
+    {
+      "avatar_id": "es_04_diego_532cfc1f_idle_c325368eeb",
+      "character": "es_04_diego",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8772666454315186,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "564131a344f1a20b11cfd578b7e017f26ca1aca54a261e945ed5999b87adafbe",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_idle_c325368eeb/review_with_audio.mkv",
+        "bytes": 124178623,
+        "sha256": "69df9a5596d518c90e54baafe1b823f3d4972860fd07a80419118e46919737c7"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_idle_c325368eeb/contact_source_standard_refined.png",
+        "bytes": 13641540,
+        "sha256": "0352dafbb529224dba5f8035d98ae5f1a422d2ea9c7dcbf4a3a8833049f2edfb"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_idle_c325368eeb/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "f43dd766004336f8e86eb0565d34d792439153f6a46693794f9f23aee6558a5a"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_idle_c325368eeb/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "5e4be9df86120311fa8dcfd54f4c8c37d87dd20613e9bc36179c1a358e481329"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_idle_c325368eeb/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "94b5ad0522a4d795c3f8b7c038a640814e09c6d7adeb8221437d6e796a573359"
+        }
+      ]
+    },
+    {
+      "avatar_id": "es_04_diego_532cfc1f_smiling_22d31e41fc",
+      "character": "es_04_diego",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8671950697898865,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "cc0eec99a2b37a0c29f9bf4c58ddd28f4a927ae3ac2fcd98b81c1ab6d05ac1d2",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_smiling_22d31e41fc/review_with_audio.mkv",
+        "bytes": 116775710,
+        "sha256": "35ee1aa47e197f4ae85df980346c6c98f99524779ba7974fa320dcc3b1ad195f"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_smiling_22d31e41fc/contact_source_standard_refined.png",
+        "bytes": 13397703,
+        "sha256": "1a4e0d988e1b8e0a3c7b367f5976b24d1b16b7d2537a3d108ad9f07cb06941b5"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_smiling_22d31e41fc/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "4f8c0eb715b39a70f7ce086f70a6f5989768e2f6513984b7906c5259b8f022f5"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_smiling_22d31e41fc/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "2ec5f289fb0f51b90745d17fab6d00f7af58f61b735baa673960a4f8ba6e7540"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_smiling_22d31e41fc/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "a8ea9427e8fa47c73cfdc6f982be83c7f8213a0239fb82ac311f6c8afa7e1049"
+        }
+      ]
+    },
+    {
+      "avatar_id": "es_04_diego_532cfc1f_talking_035dba1e7a",
+      "character": "es_04_diego",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.6239020228385925,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "529952f82e3b92f0393af2440a7cfc32cd38e8eba1fba4e7511aee596d56cc63",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_talking_035dba1e7a/review_with_audio.mkv",
+        "bytes": 131034972,
+        "sha256": "43bfd64991dcb737d888fb7efb9fd02a5b5a69f0d10c4c0ae6d2824d182af9f7"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_talking_035dba1e7a/contact_source_standard_refined.png",
+        "bytes": 13506505,
+        "sha256": "06dbeb7ed2d9d2386cf148b154b12c39a37332159f208c7e155a85c98341bccc"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_talking_035dba1e7a/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "ac90fb099f717073a0ec405b3c2345352c385b004be97d92b30c3942f0469531"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_talking_035dba1e7a/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "8ad7e5df323bc57ac10ac2a7d163d2606360748bbe4665c7273ce42164364721"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/es_04_diego_532cfc1f_talking_035dba1e7a/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "94dd0097e4f6439a6f00597315bd7de6778e0c67f3e44053ae96e8f2fa0fa7fc"
+        }
+      ]
+    },
+    {
+      "avatar_id": "ur_01_ayesha_1d9f8dcf_idle_2311b04b98",
+      "character": "ur_01_ayesha",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.791929304599762,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "68db314a9496b0cb2e4496696a0ad2f21aa626e4fceda040c2ec77596d843cca",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_idle_2311b04b98/review_with_audio.mkv",
+        "bytes": 127877945,
+        "sha256": "31e59612bd432ddde22f8ef761e24d5ede5c0f3c2661e72f7e8fc14105e6d481"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_idle_2311b04b98/contact_source_standard_refined.png",
+        "bytes": 14571372,
+        "sha256": "b45bd3b8ca6524488aa761baf5674e21859fe12fdc7ea43d7f362f017ff81ecc"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_idle_2311b04b98/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "fc80f752411e4e076155feda6239360f039ce55feb7cd94de5df62169650afd2"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_idle_2311b04b98/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "cb03a3fef6002c97c0959f1831cea49ebdf743a84e48dd8635e78ff52cf8a0af"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_idle_2311b04b98/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "7188c2d8da4f8888f31354fa27447bf3916efc33adde1381aa292a53d306ccdc"
+        }
+      ]
+    },
+    {
+      "avatar_id": "ur_01_ayesha_1d9f8dcf_smiling_313128142a",
+      "character": "ur_01_ayesha",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8012523651123047,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "87499ea97779e39dac93dd6d56b84c64370930c4457c2b696b8d48ab7b068aa9",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_smiling_313128142a/review_with_audio.mkv",
+        "bytes": 120780263,
+        "sha256": "9c7e29deae0a0821bb239a71aa0df9cb35efc31cf2c82576cba898e064d5a539"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_smiling_313128142a/contact_source_standard_refined.png",
+        "bytes": 14352038,
+        "sha256": "e993cdba240efcdfccdfbaee5bc36136b653df134bffaac593944f5ba41430ef"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_smiling_313128142a/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "c0d5d63765a7e61a8b9dbe624cbf9ef79f8140a13bdab0affe6c7362636123e9"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_smiling_313128142a/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "679b9c268a71adbbb83a7c601d1a0601430a9584e7bf1c3fce04b5e0de3e427f"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_smiling_313128142a/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "2a5055874909b3c07098d2d6ed5934f0d5db897abc88763ddfb75a4434701187"
+        }
+      ]
+    },
+    {
+      "avatar_id": "ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e",
+      "character": "ur_01_ayesha",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.5808279514312744,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "d1e05b306d292851835e3c5e6affac93eb0e8de61fbd86120eaed02ef1b4cf63",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e/review_with_audio.mkv",
+        "bytes": 137815246,
+        "sha256": "a8eec38b795872105ab1d9fe2448aebb461cd28a09e40b992f29e8d774dde886"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e/contact_source_standard_refined.png",
+        "bytes": 14507322,
+        "sha256": "3dc3b0b62fc67979f77f8af2bab1bafcf9dcdc0a9f481d09e5046c380dd59404"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "ebb67eb4364ad6579c6b59f80bad29ce554562c17be7bf2d059b242754ec5283"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "cee131116ee908bea7bbfa84a2be68158c7f8616929de2434f377766d4467f40"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "fcf3b0692616941763ec4f96bc4a14f28208d93778ddde4d6f68bdd4b3603efa"
+        }
+      ]
+    },
+    {
+      "avatar_id": "ur_02_zara_2fe6a913_idle_3f413b9b71",
+      "character": "ur_02_zara",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9378662705421448,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "001337a636ec9549b4eb83747cac768bceb8b700076c8c01234e15671ad277cc",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_idle_3f413b9b71/review_with_audio.mkv",
+        "bytes": 132065526,
+        "sha256": "8e6718fc19c44312d746f6721768db9d59921f8aed1c222149ec57b991f241f7"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_idle_3f413b9b71/contact_source_standard_refined.png",
+        "bytes": 14161758,
+        "sha256": "cd78324bf78e54045fb16ea9792dce8655ea7e62aaadf6a1da6bc69dbbc68c4b"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_idle_3f413b9b71/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "6bea545da17f2b800feebbf585a75e3dfa7df9df81a5bd690e1bf576187d60c7"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_idle_3f413b9b71/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "06e8ef31e68362e6be3a05714eaebf15daa6f7e6b5729d2d56b569d33e47d1af"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_idle_3f413b9b71/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "06ce695391572d8f7864b25a2d986ae1f23c37e211ee1281a9ab4b18df0b3b68"
+        }
+      ]
+    },
+    {
+      "avatar_id": "ur_02_zara_2fe6a913_smiling_95cf986f4e",
+      "character": "ur_02_zara",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9395982027053833,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "8dcec249100d0673cb837feb2ab4c32d5e910f08f53a2a0f32f9489061982609",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_smiling_95cf986f4e/review_with_audio.mkv",
+        "bytes": 124634740,
+        "sha256": "d472099e8884e215659fc42def74744ae35515b1f5cd5c3e2669904f8efdfc1c"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_smiling_95cf986f4e/contact_source_standard_refined.png",
+        "bytes": 14034409,
+        "sha256": "b5db05186f128b38fddf81a3dc7981140305cf63ff9e56db2e586d8ef036844a"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_smiling_95cf986f4e/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "9c64ac627e12837285c17199f4b0c94d92121a4c9337e268071cd7337a2b4900"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_smiling_95cf986f4e/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "90389fe20258b4ece34edb9e3d5a70606437fe060b841fc436c9fd6df558e44d"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_smiling_95cf986f4e/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "e820d7b3bc107b43ce8b3ce8d59d82c055a114daa69cfa7500a743996cdfbf1e"
+        }
+      ]
+    },
+    {
+      "avatar_id": "ur_02_zara_2fe6a913_talking_1e7fb98cf5",
+      "character": "ur_02_zara",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.5821219086647034,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "d714cf666e4855efd7d13469bacc501da265069dc7ac151c98ac2f35c91b69ba",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_talking_1e7fb98cf5/review_with_audio.mkv",
+        "bytes": 140614696,
+        "sha256": "e15e5731faed4b07a9fc0039cdf197f1635cc26efc539253db32beef2c8fd472"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_talking_1e7fb98cf5/contact_source_standard_refined.png",
+        "bytes": 14099910,
+        "sha256": "886aa34020ff6d9e5b2360972811f0e91fe7d0b044af3cbe69f9292948fd02e3"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_talking_1e7fb98cf5/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "d331aa176ef1cf6266366835a454b985628e8053dfd39675e79ed13de50777f2"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_talking_1e7fb98cf5/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "c6d7a63e46c24ff5558906a313062c6725a982c960e115d4eb247f18f5542f2b"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_02_zara_2fe6a913_talking_1e7fb98cf5/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "50b6c39fef9c6f65f4483c022e29085e00dc61b1d382bc4d72550fa959242e97"
+        }
+      ]
+    },
+    {
+      "avatar_id": "ur_03_hamza_0c24ed7f_idle_1257e91a13",
+      "character": "ur_03_hamza",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8695986866950989,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "609126415da63ed3850762677f4f6c6a1a17d46ea1ce04eaf0d48708175affd4",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_idle_1257e91a13/review_with_audio.mkv",
+        "bytes": 97926971,
+        "sha256": "cf8fc620e0f07d8ceead5ca33fee63cb50578a6d579d9b73318e89d0bd7a36a5"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_idle_1257e91a13/contact_source_standard_refined.png",
+        "bytes": 10271982,
+        "sha256": "ffa3775c6a30edbb614cd7aa851449dcca11f44cb9b62c1b1aa0a02e63f70749"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_idle_1257e91a13/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "43196f7b60a053dc45f987d130348d6ccf116bccd83d67e5ee61da97f5f34aa6"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_idle_1257e91a13/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "ea35ea46cfd22ce3ffa0afb782a59504b204c28f72e2c4d2a7a0506a9f57c39d"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_idle_1257e91a13/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "60e6d71cbc95f7e57038d4bc14075e60946bda3844a427dd551c74d8b025188f"
+        }
+      ]
+    },
+    {
+      "avatar_id": "ur_03_hamza_0c24ed7f_smiling_2738b3fb33",
+      "character": "ur_03_hamza",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8582231402397156,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "2595ffe00acdbfe0264a6b7a265f8f68c814bc8cd4eeebb8819d33da7dfaf248",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_smiling_2738b3fb33/review_with_audio.mkv",
+        "bytes": 91363550,
+        "sha256": "b8e67395ef2dd9cf6853dfb0d4b393e24cbcfcef876148c4f8a022b54b144e42"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_smiling_2738b3fb33/contact_source_standard_refined.png",
+        "bytes": 10183013,
+        "sha256": "2517eb2d1bea5d1e184be6cad0e58725ed3d4279b246d4139590e138d8e498c3"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_smiling_2738b3fb33/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "7fbbc6d5d25d63b320f96c29a7d8a818b7aaf1716c7b5ef08534e08ac1ec9779"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_smiling_2738b3fb33/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "d5ded8ca931a380891898f2bb505555d3b6f7ef77e145d197447626848cb876e"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_smiling_2738b3fb33/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "1a43f6e44332afdf06c99ef86d12696655446e38fb5011891fb72b1abbe1a40f"
+        }
+      ]
+    },
+    {
+      "avatar_id": "ur_03_hamza_0c24ed7f_talking_bbadac99b6",
+      "character": "ur_03_hamza",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.6403618454933167,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "b85b71871581b5df9a97661d9b0916a020ea1f5936e13d6273e46a88b8805c0e",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_talking_bbadac99b6/review_with_audio.mkv",
+        "bytes": 102204016,
+        "sha256": "bbab8b29116fc826144b532178895c3f07e347746d3f83e9de74cf8841ae82a6"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_talking_bbadac99b6/contact_source_standard_refined.png",
+        "bytes": 10231160,
+        "sha256": "26ef0d443cebf37e1c675cf161be6e20d63997b62a917e2c516b077e8071ad85"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_talking_bbadac99b6/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "8655d451d20b25e3c1a2ba4973e9b1d5607cc8845602e040522a28108f3acbbf"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_talking_bbadac99b6/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "086185231ae854253fe169f9ea4c31139ea1740719c2720c30467af161ae8e9c"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_03_hamza_0c24ed7f_talking_bbadac99b6/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "4c8af7666985b0258904916046c6ce8dc0dcc2fd9ca8fb72aa82791591e811b3"
+        }
+      ]
+    },
+    {
+      "avatar_id": "ur_04_bilal_b9b0df23_idle_343e7de742",
+      "character": "ur_04_bilal",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8218920230865479,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "e57839b7b291daa26a07135edbd20c8fa9dd5b213dc7763be37142dc100d5a01",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_idle_343e7de742/review_with_audio.mkv",
+        "bytes": 127837504,
+        "sha256": "3f9f5edf3465202a4b2bf135e22c402651605409ab17d1fcea0fbbb98453b47a"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_idle_343e7de742/contact_source_standard_refined.png",
+        "bytes": 13829611,
+        "sha256": "7f210d27accf5447697b4e2e46825aa8542321a7bd1d2b89f8de93f7c639581c"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_idle_343e7de742/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "6b1d383ca051a491e96343ac87346edd05830bbcdf616f15a4886e9f30934660"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_idle_343e7de742/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "ea58689609aacf3329987b86368e8226f432170fcb78b42c074baab3c54f3c5e"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_idle_343e7de742/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "79631cc44874400bd0b20a584358707a61cf469c4cf67d1cc60847d00184463e"
+        }
+      ]
+    },
+    {
+      "avatar_id": "ur_04_bilal_b9b0df23_smiling_5421aeebde",
+      "character": "ur_04_bilal",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8179076910018921,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "7a26e26b55f97f847b688b4d0123d43edfb60093f5c90d71ec2a6a0874aa02db",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_smiling_5421aeebde/review_with_audio.mkv",
+        "bytes": 119501956,
+        "sha256": "590bd815c12617e3c36c13214009bf4602b9b88032cc47f0cee22445380d3841"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_smiling_5421aeebde/contact_source_standard_refined.png",
+        "bytes": 13647059,
+        "sha256": "cd9bf05cb8705eecba8113d9f4d4313c269722ccba4ad23db661cdb712e8e44d"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_smiling_5421aeebde/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "58c360dba32fdba1cd95bf39fc9f1908ba50114089dc3cd175d2e1022c6a4f96"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_smiling_5421aeebde/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "91685c3dc1163edb1eed5934f9204b5e01ad67e9c66b4b12bbde487715ce5429"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_smiling_5421aeebde/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "051a56fb28f82ad0a50da797867d5fb5424c65f779d72a1e0818a97ba3c762a8"
+        }
+      ]
+    },
+    {
+      "avatar_id": "ur_04_bilal_b9b0df23_talking_42d5916a02",
+      "character": "ur_04_bilal",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.6306912302970886,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "2acd08724904e37f780e74aa4ffde1007bf3d764cd37f835b7b750f4c439a104",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_talking_42d5916a02/review_with_audio.mkv",
+        "bytes": 139078125,
+        "sha256": "eee729ab33dcdff0bdf80e7cef5a4269fe1f8460554228de1b5b10bc9225c0b3"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_talking_42d5916a02/contact_source_standard_refined.png",
+        "bytes": 13470921,
+        "sha256": "65773c46df8421c4b3e244b4934fe07f908e97b855e5254053ef3ebe02b5c2f7"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_talking_42d5916a02/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "50981a6e9efa55245172470963e3b998046f5e3b3cb1fbd8f6316123b105573e"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_talking_42d5916a02/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "e255cd85fdf25567a6cbe5deab718b16ff46f6deb92441b5d39bccdf8d2d4a58"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/ur_04_bilal_b9b0df23_talking_42d5916a02/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "d2fb4cd9aa2a4dfc18bf62b5cd7bec983e75183352678daafdb8d017cbf14ac2"
+        }
+      ]
+    },
+    {
+      "avatar_id": "zh_01_mei_ca138def_idle_06b603d754",
+      "character": "zh_01_mei",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8920749425888062,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "4940635d720c54c29fa5519cfc179a62d24752c47ffa03026f506b8f12317c57",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_idle_06b603d754/review_with_audio.mkv",
+        "bytes": 103273369,
+        "sha256": "9b86b3458dd2fc7858fe8c7ffe66a21122cc9ba207ea214107296709976b7725"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_idle_06b603d754/contact_source_standard_refined.png",
+        "bytes": 11216261,
+        "sha256": "68ddf8c3c2c9027b74736562fc4cb83c1b4b30a601b3a473e539d576771b6329"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_idle_06b603d754/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "b1d498cb0bd92c89ba26bae7cee0885b7d6a4d1533dfee2dba8cb16d0a892e29"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_idle_06b603d754/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "f39cfce58541af36d556752565fceb6ae2331f5aaf3d7d57db3c241cb07c1860"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_idle_06b603d754/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "e9eb8a20b5ebb0deca93314f4e93e3e0a218d9109dc5635f72f912d512388b7a"
+        }
+      ]
+    },
+    {
+      "avatar_id": "zh_01_mei_ca138def_smiling_84cf0b2550",
+      "character": "zh_01_mei",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9044491052627563,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "176b26e3c8d2cf34ebf745db81988f822e6c6c7338d9cc40aacbd66c436736b5",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_smiling_84cf0b2550/review_with_audio.mkv",
+        "bytes": 87778706,
+        "sha256": "3b118f6411a62fa1e0b6bdbaa200b46a4afc958062e5f8db705edc3e77229a66"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_smiling_84cf0b2550/contact_source_standard_refined.png",
+        "bytes": 11170252,
+        "sha256": "8250a1f817b46a0a66251f27f7650bf2c27e7f0d9488dc44d1c23a7ce878a361"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_smiling_84cf0b2550/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "c2d2f7cd06f2dced3275cfb72e0306d6734370cc3884a8e11c1e94d31853ba81"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_smiling_84cf0b2550/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "67a69323a74260cdfe3106cf889c61d8f4bfd616ef404e96973da41724d75af6"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_smiling_84cf0b2550/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "2e3230f8d337a85a24045fd0a5875efa23b7fd4e772ce9ec7525d1910cd9d7cf"
+        }
+      ]
+    },
+    {
+      "avatar_id": "zh_01_mei_ca138def_talking_c213293f1b",
+      "character": "zh_01_mei",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.6566462516784668,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "be625a678bac40ace1d916a8a71534574886901964a9d6b1bc359d99fbc31dc7",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_talking_c213293f1b/review_with_audio.mkv",
+        "bytes": 105990546,
+        "sha256": "0117c54df7017aae92197c65876bcf7969feda84eee64c678448bd44f198fd40"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_talking_c213293f1b/contact_source_standard_refined.png",
+        "bytes": 11315774,
+        "sha256": "56af2bc3975b633e969a345d942bb4266544a3ff90f49621f4616a3a21e88aec"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_talking_c213293f1b/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "fdaad04386211e2f7f97e6d97d82dce8a2e232ac83e131e79b7334ce6dde46da"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_talking_c213293f1b/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "e66b4805530a476fd6c4170183f01e4b429639373eabb71cd47ed5428b4a59ec"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_01_mei_ca138def_talking_c213293f1b/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "8240d2cda6de455312c19073b2fb7ccd604ff1f992f90eb59a53cca97c5fadcc"
+        }
+      ]
+    },
+    {
+      "avatar_id": "zh_02_lan_09242cdb_idle_f03af7d016",
+      "character": "zh_02_lan",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9527587890625,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "f3f8a3a5248c7ede147a3e7213c231ee6b101f1ef3ec22a26ee8e1b34597f9e3",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_idle_f03af7d016/review_with_audio.mkv",
+        "bytes": 122169977,
+        "sha256": "cfa2b33cac61a223d58d39ff1baf662b20f8875027c1292e2156379a9e155ef8"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_idle_f03af7d016/contact_source_standard_refined.png",
+        "bytes": 13427562,
+        "sha256": "e4b982ea4d625cc5a3222f84f5b584c3fb0786ced4553a9b90debd6668805435"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_idle_f03af7d016/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "359b4b9cb1f516b8d659d4c7b7a63524df3c5252cd9cc15d0eda2faa10a5650a"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_idle_f03af7d016/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "4ff80f983371aa1c1fbfd9b7628a3f98587f07483889f85c78a33b3a0ed78a5f"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_idle_f03af7d016/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "458c8635799d5cb5c90f3a75056ab746d8715f2c8b33796a4198c60b9efb2e33"
+        }
+      ]
+    },
+    {
+      "avatar_id": "zh_02_lan_09242cdb_smiling_71e051f752",
+      "character": "zh_02_lan",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9334338307380676,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "ef9bce4f5c9e70dfed4441e9433a0f12fb4974973bf9a3769201f919372b68c7",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_smiling_71e051f752/review_with_audio.mkv",
+        "bytes": 112919619,
+        "sha256": "49f7caa9b29c3b38d50be2d43a83cfbb661e8c6335c768092533ca24c9835886"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_smiling_71e051f752/contact_source_standard_refined.png",
+        "bytes": 13246035,
+        "sha256": "55c2a956cb26809e3cdfa57a236274d4fc40d6448c4d9493cbbeead30d810720"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_smiling_71e051f752/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "5948a30f1edcd8b6d85208a7425b900a1d64150de6cdd305cde2695367e244a9"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_smiling_71e051f752/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "72876fceb66e20b6c304bc6cd30f8707e4417688f0f9363a41d60c2491478a98"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_smiling_71e051f752/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "27cfa635aed533f9d1de1bcb9360715944765f3624fb6b71e2d9e8fd8c7a6c33"
+        }
+      ]
+    },
+    {
+      "avatar_id": "zh_02_lan_09242cdb_talking_3d84940bd7",
+      "character": "zh_02_lan",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.6184823513031006,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "557048be35ad8afcd0d4ead55029bce183dccf93c74746accf92ebe0c84792d7",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_talking_3d84940bd7/review_with_audio.mkv",
+        "bytes": 129767452,
+        "sha256": "e8e28a30f5d452913e4de8afc28ceb06fbaf3b3713a55051dff6dea939199d7b"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_talking_3d84940bd7/contact_source_standard_refined.png",
+        "bytes": 13395137,
+        "sha256": "a4756ad0a83895659a98e08e6b0fe7b29481995d293f2c9b8179bdba92138a52"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_talking_3d84940bd7/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "84cb6726009ad4c8f5f0180dd112dc594f05d2d510d1d1d41c21e3c41f42fdfd"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_talking_3d84940bd7/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "41937fe61b52d2176970f2201ae02c4c2137d387aaef8a4b4619a2fbf869a404"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_02_lan_09242cdb_talking_3d84940bd7/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "2aeb5123a3c0b7595f004c7ba4e9063243d7f179a4c9488690a9ed5126b4877e"
+        }
+      ]
+    },
+    {
+      "avatar_id": "zh_03_wei_44dc1943_idle_6b94b21cbb",
+      "character": "zh_03_wei",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.832885205745697,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "1e9b47f72430a49da7b82eea21523fe79b679f2cdfa6c2ef68a6dbb18efb4e39",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_idle_6b94b21cbb/review_with_audio.mkv",
+        "bytes": 114001886,
+        "sha256": "ce9f67d37b983500238f7ab13b37d5911571340c2cd8f4fac7aac9dc7707fba0"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_idle_6b94b21cbb/contact_source_standard_refined.png",
+        "bytes": 12375927,
+        "sha256": "d80a33489b5ecad64b39dbcfd8bf80c7bfc4657a62231c5194fe44f3d6ebc718"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_idle_6b94b21cbb/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "ffdc6da1db08b98cdc7041975ddf70f327a1598ec8f157b64442eb1330816994"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_idle_6b94b21cbb/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "b9b37db3d1a441ef453e60ea8c97b9942b995933f9f9eca3d8209b1c8bd536dd"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_idle_6b94b21cbb/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "0cd70003ac5d3cb7c063dd2043e45573947630f62accd1b55b3bb3e5c9a37a8b"
+        }
+      ]
+    },
+    {
+      "avatar_id": "zh_03_wei_44dc1943_smiling_8eda7006f1",
+      "character": "zh_03_wei",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.8733593821525574,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "93cf4474f40f9095b40184e8fffab2225508c026ada5c7e38e8d3a75f4ab0070",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_smiling_8eda7006f1/review_with_audio.mkv",
+        "bytes": 103494573,
+        "sha256": "45517d4c7c39cb6253abf8fda8b035a951a24fdd941fe799d744902efd4ce6a6"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_smiling_8eda7006f1/contact_source_standard_refined.png",
+        "bytes": 12148641,
+        "sha256": "392dc2e56b12f4587c10ab72d270e5d80eb2fbce1dc71876cb5dad0539dfe9c8"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_smiling_8eda7006f1/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "d78b23bb23ee79e853e8b2104793426ad48a85ee3c27fe7623dd095d3a5f8b5e"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_smiling_8eda7006f1/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "102ba015695a348706f25c3b2369dde2d92809c94e1fa969b04fc667d4e95fc8"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_smiling_8eda7006f1/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "71db8302ac30a733914d39ca15cf3c3d07af970dca67de9e2e4ef926f25be8d2"
+        }
+      ]
+    },
+    {
+      "avatar_id": "zh_03_wei_44dc1943_talking_3cc9c11c9b",
+      "character": "zh_03_wei",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.5803854465484619,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "fd0370c2dc56b3c5d109636087c72fde73232ea443fbc8b706289d13305bbfa3",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_talking_3cc9c11c9b/review_with_audio.mkv",
+        "bytes": 118411741,
+        "sha256": "a928a7ab4de8f43aff67b2946e36aa9ae05db35a5ae6b40b8b7cef6bf00ad5f6"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_talking_3cc9c11c9b/contact_source_standard_refined.png",
+        "bytes": 12228326,
+        "sha256": "bd960cdc5e98de4b44d1dcb1fdfdb39d1864c341fa795363285a474d4aaf44ad"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_talking_3cc9c11c9b/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "1dc8b3117ca78a544795adf67c3e573e85746357b27ef2e642808528c2d6cc58"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_talking_3cc9c11c9b/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "d95b17f365fe10310844224257eb990b791af6c67a98d85ccfa8faf0a9e78b0f"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_03_wei_44dc1943_talking_3cc9c11c9b/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "cc568f565ed7105e94e14f2d30d0ea64b79b8f6ed8b63b1a37f2dc304a349e52"
+        }
+      ]
+    },
+    {
+      "avatar_id": "zh_04_jun_7e6a6f0b_idle_4e103c1e30",
+      "character": "zh_04_jun",
+      "pose": "idle",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9425128698348999,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "9a14b341b9e220df161972152dae80d76c02a74ca6d64c05ff826ce6d0a27bc5",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_idle_4e103c1e30/review_with_audio.mkv",
+        "bytes": 122210223,
+        "sha256": "23f64916380010f175ac234297e895648bd9db92c35eef01b2e71000abab8c8e"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_idle_4e103c1e30/contact_source_standard_refined.png",
+        "bytes": 13073193,
+        "sha256": "ec6d49d8d82cb5672d27f2be8395e3147ddbd5aa18c81b29bbdbffacbca779e2"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_idle_4e103c1e30/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "c593e73bf10f60ebd5fd2449ed927860bcc5d4f659f3f0d109a42c857dd7d814"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_idle_4e103c1e30/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "f6772c924d4ba5ce4f28e946a2e7f29c3995ffded88837cc4bcc343883422c34"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_idle_4e103c1e30/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "109f5236ca4d3449ea853550983ba15bd37a4cb23d9562edc1f75eda490181af"
+        }
+      ]
+    },
+    {
+      "avatar_id": "zh_04_jun_7e6a6f0b_smiling_f995370508",
+      "character": "zh_04_jun",
+      "pose": "smiling",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.9351196885108948,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "13d19517301c4770a7787a95945d58f02e68bf5ab61e0bfddd431661936461c3",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_smiling_f995370508/review_with_audio.mkv",
+        "bytes": 113591508,
+        "sha256": "41ab4d4b70cde3a2448c4477954da9629f2a08ea1cd62c122a66c97ba1f84e11"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_smiling_f995370508/contact_source_standard_refined.png",
+        "bytes": 12765642,
+        "sha256": "687f4f4fa722129c37d80aa84077c05cbcef878876cd35df4b95d1b3a55436d7"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_smiling_f995370508/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "9d58958d92c6c526c66fe1763af9c0e5336dbdc70409787f95a2c2f5183ec3af"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_smiling_f995370508/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "458e601bdb49c977a270929077a265b884f73a7b5e4046cfed6b1a13658747fe"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_smiling_f995370508/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "8a208edc248591627cb5b0b450404c999e3c55809343025720083f78a18dc8af"
+        }
+      ]
+    },
+    {
+      "avatar_id": "zh_04_jun_7e6a6f0b_talking_ccedca71ff",
+      "character": "zh_04_jun",
+      "pose": "talking",
+      "recipe_checks": {
+        "frames": 240,
+        "protected_lip_max_rgb_difference": 0,
+        "reference_max_rgb_difference": 0,
+        "minimum_jacobian": 0.5816488862037659,
+        "aligned_assertion_failures": [],
+        "passes": true
+      },
+      "frames_digest": "5c5092246421737a500091b3146ff775e464524fc7bfbaefa1e55d54f80cd24d",
+      "review_clip": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_talking_ccedca71ff/review_with_audio.mkv",
+        "bytes": 126059519,
+        "sha256": "8286c30f0dfa0ea0bc8ea0d7fcd15b229ed4a1fefa40df0d5404af8e06b61f4b"
+      },
+      "contact": {
+        "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_talking_ccedca71ff/contact_source_standard_refined.png",
+        "bytes": 12802527,
+        "sha256": "cbcc126bc0fbb94af9dfa3423a97ca2f9ab6d8eb330df0780ce013fc959c1fb4"
+      },
+      "arrays": [
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_talking_ccedca71ff/source_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "509b9c2905619500f4d775e843e436bd1eabbb0e2a3a721df5a40858d81e5107"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_talking_ccedca71ff/generated_landmarks.npy",
+          "bytes": 917888,
+          "sha256": "259d1f67a91c2f7746806b73add10fd6bfe996a712e168f7afdd14f9d3969ebf"
+        },
+        {
+          "path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/zh_04_jun_7e6a6f0b_talking_ccedca71ff/chin_delta.npy",
+          "bytes": 309248,
+          "sha256": "0b3033c643a69a7d8a41c7b60895ea7faf462eec36ffc16a7af1b52a7b4fef97"
+        }
+      ]
+    }
+  ]
+}

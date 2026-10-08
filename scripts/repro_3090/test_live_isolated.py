@@ -67,6 +67,27 @@ class PlanTests(unittest.TestCase):
 
 
 class TelemetryTests(unittest.TestCase):
+    def test_h264_offer_hook_precedes_original_offer_and_has_no_fallback(self):
+        h264 = SimpleNamespace(mimeType='video/H264')
+        vp8 = SimpleNamespace(mimeType='video/VP8')
+        order = []
+        transceiver = SimpleNamespace(kind='video', setCodecPreferences=lambda c: order.append(c))
+        sender = SimpleNamespace(getCapabilities=lambda kind: SimpleNamespace(codecs=[vp8, h264]))
+        class Peer:
+            def getTransceivers(self):
+                return [transceiver]
+            async def createOffer(self):
+                order.append('original_offer')
+                return 'offer'
+        client.install_h264_offer(Peer, sender, '1.14.0')
+        self.assertEqual(asyncio.run(Peer().createOffer()), 'offer')
+        self.assertEqual(order, [[h264], 'original_offer'])
+        sender.getCapabilities = lambda kind: SimpleNamespace(codecs=[vp8])
+        with self.assertRaisesRegex(ValueError, 'no codec fallback'):
+            asyncio.run(Peer().createOffer())
+        with self.assertRaisesRegex(ValueError, 'aiortc1.14.0'):
+            client.install_h264_offer(Peer, sender, '1.15.0')
+
     def summary(self):
         return {'level': 1, 'server': {'lifetime_counters': True}, 'unmeasured': [],
                 'streams': [{'stream': 0, 'turns_ok': 1, 'turns_posted': 1,
