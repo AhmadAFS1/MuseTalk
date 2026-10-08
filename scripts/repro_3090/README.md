@@ -76,6 +76,16 @@ main pinned environment. Nothing silently installs either environment.
 
 ## Commands
 
+The A2 scheduler pair has an explicit successor input lineage, not a rewritten
+reference manifest. `freeze_tracking_lineage.py` requires the original 878-file
+manifest digest and retains every path. Only the reviewed default-off worker
+revision and 13 allowlisted Hugging Face download-metadata files may differ;
+each metadata ETag must identify its unchanged original model payload. Missing
+files, changed weights/fixtures/canonical math, unknown worker bytes and any
+other change fail closed. `tracking-a2-lineage-v1.json` records every difference.
+This scope is scheduler equality only: the old input-check failure and 698
+frozen quality bounds remain intact, and native release quality stays rejected.
+
 Use a shell array so paths containing spaces remain intact:
 
 ```bash

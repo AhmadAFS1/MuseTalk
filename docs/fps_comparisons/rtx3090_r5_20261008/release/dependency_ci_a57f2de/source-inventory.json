@@ -1,0 +1,829 @@
+{
+  "revision": "a57f2de33f7d9441734b1a0868c5d8987b14a88b",
+  "source_files": {
+    "LICENSE": {
+      "sha256": "992ec5fd1dd4964cfa003665196cd0c0c10a7a5aa10109991e964eebd2c7f116",
+      "size_bytes": 13427
+    },
+    "api_server.py": {
+      "sha256": "a1c23946ecec2dc7cf18a2f167c08166011dfe6b8da7a5a590b6eb6597836309",
+      "size_bytes": 252701
+    },
+    "configs/recipes/fast300.env": {
+      "sha256": "05c15b9e2e73ba6d1b48ae65a5b0f2451e079be5cae018b18ce037648c4b6e05",
+      "size_bytes": 7649
+    },
+    "configs/recipes/r5.env": {
+      "sha256": "ac0d74242a868b6f7ddff4fe3175748f4cfa44b00f2ebad31005b7aa43910eab",
+      "size_bytes": 8989
+    },
+    "configs/trt_bundles/ampere-plus-r5-srcg50-int8.json": {
+      "sha256": "de0e48cea6f4da3ad7223b969fd132abbebb38104c78999eabe86eb9cb501894",
+      "size_bytes": 1437
+    },
+    "configs/trt_bundles/rtx4070super-r5-srcg50-int8.json": {
+      "sha256": "b7611aa2cfd4e97ef7605b8bb7908797276d5190d3a3a1e370c6d0c70aed2cef",
+      "size_bytes": 1379
+    },
+    "docker/musetalk/Dockerfile": {
+      "sha256": "660df8fc85bbe9b08f4be35a672964c03deb3fc19733d71104181c8210fa5cf8",
+      "size_bytes": 4803
+    },
+    "docker/musetalk/README.md": {
+      "sha256": "bff2c8e7361f7a8f2b8bbe711e4d35c632d6673be60da9aaf348647ebd120dad",
+      "size_bytes": 19281
+    },
+    "docker/musetalk/context.py": {
+      "sha256": "00152f2429e86be5883449db6180e3f9d0044c9ef20c2c0ff90a8a70ab94782d",
+      "size_bytes": 3667
+    },
+    "docker/musetalk/entrypoint.sh": {
+      "sha256": "886009fb54a4658294706dcc55225a3811cc711c486fc96537dd0ac90e63dc27",
+      "size_bytes": 2448
+    },
+    "docker/musetalk/prune_diagnostic.py": {
+      "sha256": "b03e275fd8eab2cac4d184eb018c09ad8835faac0adacc465ec4fcd8e936cfdb",
+      "size_bytes": 3500
+    },
+    "docker/musetalk/release.py": {
+      "sha256": "951d966e7704733272c3b24ccdb33bb958c66ab7aaef12ff49e4ac61aaf918ad",
+      "size_bytes": 32393
+    },
+    "docker/musetalk/supervise.py": {
+      "sha256": "03d977ce0698c561f1c6da1eff6d4864aebf3b68c7e34a5c73382beff057c5e1",
+      "size_bytes": 9259
+    },
+    "docker/musetalk/validate_image.sh": {
+      "sha256": "2b8735fcda92d4eb1381c41463d2255a0474ff028dcd40d78babe8dffa48e76d",
+      "size_bytes": 1028
+    },
+    "download_weights.sh": {
+      "sha256": "f406e81350dabfe8a8bbfa01c364ccba40dbff556241aea36a1d2a5b436f4aac",
+      "size_bytes": 21844
+    },
+    "musetalk/data/audio.py": {
+      "sha256": "962ab27111f75baadfc6a838b8941228a49fa7eaa4c6058f37309489ec524205",
+      "size_bytes": 5471
+    },
+    "musetalk/data/dataset.py": {
+      "sha256": "eb7a2f2ab2e54e89ee56f83772a71a78935eab9834c520bcdac18a4fa59c3140",
+      "size_bytes": 22776
+    },
+    "musetalk/data/sample_method.py": {
+      "sha256": "104972ed1215af9abaaa3a829e73a9a89fbce7e4287edbddd04862d974754120",
+      "size_bytes": 10979
+    },
+    "musetalk/loss/basic_loss.py": {
+      "sha256": "616bf9e089c1794a362786fae6e1f4358d178fdc5869e07a11046df4f926cff4",
+      "size_bytes": 3338
+    },
+    "musetalk/loss/conv.py": {
+      "sha256": "72caaee80ae72552aec2c3e08220c7a400c075bcfb8a580a5d5a23f6e80709d3",
+      "size_bytes": 1619
+    },
+    "musetalk/loss/discriminator.py": {
+      "sha256": "775d37c520d1e1024939183cfc3c156b3c8e48baaa33f917541c22951a0732aa",
+      "size_bytes": 5145
+    },
+    "musetalk/loss/resnet.py": {
+      "sha256": "4bd0d246186f5e47eb23eea219a47f572a41f4228ce308a1bc689041c433ef3f",
+      "size_bytes": 4645
+    },
+    "musetalk/loss/syncnet.py": {
+      "sha256": "78c54618796e52317851a574bf7440deb49fb3abe957b9c0bcce8da78f9c41e2",
+      "size_bytes": 4214
+    },
+    "musetalk/loss/vgg_face.py": {
+      "sha256": "80d1bb895b092595564d2068f8f13ecfa05df65f5e41d7abdb5ecb8dc1a36f6e",
+      "size_bytes": 8307
+    },
+    "musetalk/models/syncnet.py": {
+      "sha256": "fc3caaba34baae5ef2490a997aad7de2700bf43b1d8c1715ebcc78ceb2470470",
+      "size_bytes": 8987
+    },
+    "musetalk/models/unet.py": {
+      "sha256": "05d5dadfde2e726b61d8387a4876336d4dcacc696636e8dcfec69863ce819256",
+      "size_bytes": 1686
+    },
+    "musetalk/models/vae.py": {
+      "sha256": "831dcbd8f389e9a77d8169674cb966ef52725ccc6bdacbceed81c0ee0d46966c",
+      "size_bytes": 11258
+    },
+    "musetalk/utils/__init__.py": {
+      "sha256": "ccd6f1e5ebcc92d26d7322a565c120d93aeda34c6ccba5e9aaa6f1138d7d91fb",
+      "size_bytes": 160
+    },
+    "musetalk/utils/audio_processor.py": {
+      "sha256": "91d521a249adf5ca8426c0011f73f61a28b5fb784e9e7de788f196c24e3d8fbb",
+      "size_bytes": 9267
+    },
+    "musetalk/utils/audio_utils.py": {
+      "sha256": "c38ff3f95a83577612f9a0ff867fff3f28df7de18b1b9563cdee4bfd45e60b9c",
+      "size_bytes": 718
+    },
+    "musetalk/utils/blending.py": {
+      "sha256": "6e5de1bf3f30378493c098b76dfc6fe6644e354d60df2492ffb1fc27726ba121",
+      "size_bytes": 14305
+    },
+    "musetalk/utils/dwpose/default_runtime.py": {
+      "sha256": "bb7df18270b1ca337192faae7a416b2dea23b45e798e832caab5781f41189d06",
+      "size_bytes": 1431
+    },
+    "musetalk/utils/dwpose/rtmpose-l_8xb32-270e_coco-ubody-wholebody-384x288.py": {
+      "sha256": "7c0da61ee9517ee6c97ec10dd6be592eb51501434a93fa0a8e7f3f3739b5e477",
+      "size_bytes": 7364
+    },
+    "musetalk/utils/face_detection/__init__.py": {
+      "sha256": "39b9365b1fd90ae823be551c6d55dce6b253fe1ecb015853b724eee3bdcfa470",
+      "size_bytes": 196
+    },
+    "musetalk/utils/face_detection/api.py": {
+      "sha256": "f16098febe99d47b8886ccad9fc75ef9aecbf3a97eb51f3b459ec8da42aa0561",
+      "size_bytes": 10100
+    },
+    "musetalk/utils/face_detection/detection/__init__.py": {
+      "sha256": "1f3233930bfb7ac8b1726e4af8ed9b93925046d16edc640afd218f9d02b6d235",
+      "size_bytes": 30
+    },
+    "musetalk/utils/face_detection/detection/core.py": {
+      "sha256": "ba16a80fac378da9b5bbfc9c190975ab4fe153b13b0d18d892ab5bbfcbb9c71e",
+      "size_bytes": 4868
+    },
+    "musetalk/utils/face_detection/detection/sfd/__init__.py": {
+      "sha256": "6fbfb62eccc1a14de7c0a8cb1ca6f3c59af42479955ac08acbf548f28ec1feed",
+      "size_bytes": 53
+    },
+    "musetalk/utils/face_detection/detection/sfd/bbox.py": {
+      "sha256": "3ed1487243bbde8ab47c567f46ee4b177a549e31440db8d71376bffc70a7bd86",
+      "size_bytes": 4279
+    },
+    "musetalk/utils/face_detection/detection/sfd/detect.py": {
+      "sha256": "2bb9e9383e6a582d216515aab36759652cb9e7800a1910a6394ff721c4291a90",
+      "size_bytes": 3792
+    },
+    "musetalk/utils/face_detection/detection/sfd/net_s3fd.py": {
+      "sha256": "80960aaefd9fb97a5e9784dc0a48bc38f43bdcaacb268782ede16a959e77a5a9",
+      "size_bytes": 5291
+    },
+    "musetalk/utils/face_detection/detection/sfd/sfd_detector.py": {
+      "sha256": "2cbb7cd33936dc8f180f57ad33bcd4ec7b9c80d83cbb37fb27e4c6ced2234dfd",
+      "size_bytes": 3065
+    },
+    "musetalk/utils/face_detection/models.py": {
+      "sha256": "2cde93a32467b9c5cfd009499c917afe8c89f512622237c2d865ba8fbb8a37e9",
+      "size_bytes": 8619
+    },
+    "musetalk/utils/face_detection/utils.py": {
+      "sha256": "561bfe5ec349a28f086e04efbb2d43cbc45c15fbcac48c311d497cb2bd2efe9a",
+      "size_bytes": 11808
+    },
+    "musetalk/utils/face_parsing/__init__.py": {
+      "sha256": "c2824281e80458b81b7ecdde6cfd2b5f0224b022f41aaf1c61144a52163b2494",
+      "size_bytes": 4700
+    },
+    "musetalk/utils/face_parsing/model.py": {
+      "sha256": "05d69d1bd77fbca7b537602fe3f7851e8b2e1a3ea0279f383b4223598157e2d2",
+      "size_bytes": 10676
+    },
+    "musetalk/utils/face_parsing/resnet.py": {
+      "sha256": "a3419dabeff41c535e24f4d056b054c1bfc70d56f9ee430808b440005cc3189f",
+      "size_bytes": 3706
+    },
+    "musetalk/utils/mmlab_compat.py": {
+      "sha256": "b2abf0ff7fdfb2f052ac53d1fa7ca459007ce2f0b0b7627ccba006dc2117ea04",
+      "size_bytes": 573
+    },
+    "musetalk/utils/preprocessing.py": {
+      "sha256": "d1345ac6bc483b7f9185a73607ca98c1826322ac292e1c191f25b293756bf0fd",
+      "size_bytes": 7060
+    },
+    "musetalk/utils/training_utils.py": {
+      "sha256": "90f678c9ba7cfcb4d7097608d0a35342e1513864013cc5957b50083c21e90e8c",
+      "size_bytes": 12167
+    },
+    "musetalk/utils/utils.py": {
+      "sha256": "3715eacedefc97d0ef97b98c2f3bf06929bf9e312393752b75b708e43a99a055",
+      "size_bytes": 11737
+    },
+    "musetalk/whisper/audio2feature.py": {
+      "sha256": "8a8ec3a934ef59484417ba64d95c3de6d72d9a49eb07fb3f68d67a740faacf76",
+      "size_bytes": 4859
+    },
+    "musetalk/whisper/whisper/__init__.py": {
+      "sha256": "206da24046aea7ed799a11e210ecb9a0a7cdbf6f1dd5a4c4b98319d2aedcc586",
+      "size_bytes": 5442
+    },
+    "musetalk/whisper/whisper/__main__.py": {
+      "sha256": "260236595af0a0df76a5121229593502d46b8dcc4acc16eb6b64b2b62be2f278",
+      "size_bytes": 36
+    },
+    "musetalk/whisper/whisper/assets/gpt2/merges.txt": {
+      "sha256": "fe36cab26d4f4421ed725e10a2e9ddb7f799449c603a96e7f29b5a3c82a95862",
+      "size_bytes": 456356
+    },
+    "musetalk/whisper/whisper/assets/gpt2/special_tokens_map.json": {
+      "sha256": "c0b3c279b6ecdb71996a86ffb4d4ab94dfdb5df95f00bac9515688faef2ff5dd",
+      "size_bytes": 90
+    },
+    "musetalk/whisper/whisper/assets/gpt2/tokenizer_config.json": {
+      "sha256": "1e664fe1a5bc404dcb204a76c76bc4100c91bd12c66098d8a8090b11b6ee6f0d",
+      "size_bytes": 236
+    },
+    "musetalk/whisper/whisper/assets/gpt2/vocab.json": {
+      "sha256": "3ba3c3109ff33976c4bd966589c11ee14fcaa1f4c9e5e154c2ed7f99d80709e7",
+      "size_bytes": 798156
+    },
+    "musetalk/whisper/whisper/assets/mel_filters.npz": {
+      "sha256": "dd2cc75e70e36fcbdd8ffbc2499062f30094093e6bf2cbafa9859f59972b420b",
+      "size_bytes": 2048
+    },
+    "musetalk/whisper/whisper/assets/multilingual/added_tokens.json": {
+      "sha256": "f1acda6b99dd830d4ad39012259cd256d7e44cb2e3e4836b9804ac3f8e6805b9",
+      "size_bytes": 25
+    },
+    "musetalk/whisper/whisper/assets/multilingual/merges.txt": {
+      "sha256": "9ec394d4060fee3cdbf52479ed021ed8bf7a4662d06a10ee45d8bbe95d267c45",
+      "size_bytes": 493855
+    },
+    "musetalk/whisper/whisper/assets/multilingual/special_tokens_map.json": {
+      "sha256": "c0b3c279b6ecdb71996a86ffb4d4ab94dfdb5df95f00bac9515688faef2ff5dd",
+      "size_bytes": 90
+    },
+    "musetalk/whisper/whisper/assets/multilingual/tokenizer_config.json": {
+      "sha256": "b4594fd40712d072d4d637a42a8fb92abdb65c094dd5cb8d1da8d5cebb7b3473",
+      "size_bytes": 604
+    },
+    "musetalk/whisper/whisper/assets/multilingual/vocab.json": {
+      "sha256": "4e8036c8f80442384c12c2eaceb2f1c25d3ee38b8b07584bae6e74fe75ba4de4",
+      "size_bytes": 936041
+    },
+    "musetalk/whisper/whisper/audio.py": {
+      "sha256": "bc56ce6dd84c10de96db5400448f46afa384408e5f3132a7221ebca273837a08",
+      "size_bytes": 4071
+    },
+    "musetalk/whisper/whisper/decoding.py": {
+      "sha256": "f97702a1257580765d0be41c43dbc433d5a983a0d66082b18b8e3b63e4dad53c",
+      "size_bytes": 30930
+    },
+    "musetalk/whisper/whisper/model.py": {
+      "sha256": "93c0671d35aace5c97278232258345176ddac95b293de456d50babbb97120d0b",
+      "size_bytes": 10591
+    },
+    "musetalk/whisper/whisper/normalizers/__init__.py": {
+      "sha256": "678cbbf410bb76fcfe7edf90c6c26242c80c55e280bc831a1893b86999eeba2a",
+      "size_bytes": 82
+    },
+    "musetalk/whisper/whisper/normalizers/basic.py": {
+      "sha256": "d75a266f48f8e3a2a1e9df0fa6fee2859818e1991fe6d18c5f0c5ba98851c927",
+      "size_bytes": 1882
+    },
+    "musetalk/whisper/whisper/normalizers/english.json": {
+      "sha256": "d67f3595953324659e454e354496509144c45ff6ac105943c98bb2bd7fb55292",
+      "size_bytes": 56145
+    },
+    "musetalk/whisper/whisper/normalizers/english.py": {
+      "sha256": "d2944d4db1221a7ee3db453ae5597310bc01d45e683764c57476f514e25f4651",
+      "size_bytes": 20793
+    },
+    "musetalk/whisper/whisper/tokenizer.py": {
+      "sha256": "ade4fa8792a1eed6e50ec6d2079a3e61c7df67a1d358d14c6d40db70fe57443f",
+      "size_bytes": 9837
+    },
+    "musetalk/whisper/whisper/transcribe.py": {
+      "sha256": "eb832d8873d16c0c4a28d9869d7b5062da9ccdaf9b2a509b02c9f5e13f4f91fe",
+      "size_bytes": 10580
+    },
+    "musetalk/whisper/whisper/utils.py": {
+      "sha256": "51396c6da293a3d8276f0cbdcf97f38ce1ec7bdd8198923f6b0737ea72927406",
+      "size_bytes": 2660
+    },
+    "requirements/avatar-prep.in": {
+      "sha256": "876ec1aba1fa0140c8ee9682d65906ed99b6eb6a77d0a06256382c51e43e16c7",
+      "size_bytes": 1124
+    },
+    "requirements/chin-tools.in": {
+      "sha256": "bc1e798d9a683a747b67639a0d0c99b043dbcf295adbb746b38b330818d8a168",
+      "size_bytes": 789
+    },
+    "requirements/constraints-chin-tools.txt": {
+      "sha256": "cecb72dd69c7ae44bb8bd36e9dbd919ad4a5dcf5f2fba1f6f97a96dd936fb06b",
+      "size_bytes": 722
+    },
+    "requirements/constraints-cu121.txt": {
+      "sha256": "a2a4acdd81244964d9ed20180a78c51e30e51c9cbc2c14788c308c7421c94d35",
+      "size_bytes": 5697
+    },
+    "requirements/kokoro.in": {
+      "sha256": "fb4f8b539ccdb3b1f47f8d652ef027505dd9435d5e07bf3049fdf72bd79d3ca2",
+      "size_bytes": 835
+    },
+    "requirements/legacy-int8.in": {
+      "sha256": "e0bcecc06f764ad493d8de62ec3f0a4e854a98ec8c43f4841fae5a77148d3724",
+      "size_bytes": 543
+    },
+    "requirements/server.in": {
+      "sha256": "53bfc58316affb1b0caadbb527ca853d9c71be5203e6a7314963ab45082420ba",
+      "size_bytes": 2789
+    },
+    "scripts/__init__.py": {
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "size_bytes": 1
+    },
+    "scripts/api_avatar.py": {
+      "sha256": "a841faf13822b5caf09776975c8ba7105c26edc8e46c2b50bde02a9999ba131a",
+      "size_bytes": 104801
+    },
+    "scripts/assemble_stagewise_set.py": {
+      "sha256": "5e063df38c6adfc5f5280fd1ced49d6534589aa1f18098c65c9844af016c17aa",
+      "size_bytes": 2972
+    },
+    "scripts/attach_motion_current_profile.py": {
+      "sha256": "f0e146b0f05b810f3c23be5050ceacb974a49aecce7d49590e4087bd97447163",
+      "size_bytes": 2227
+    },
+    "scripts/attach_motion_eye_profile.py": {
+      "sha256": "abffa2edc40df02f572443d6ad7279a20aea5bbc9d710cea345f8b20c0ea53df",
+      "size_bytes": 3031
+    },
+    "scripts/audit_3090_avatar_contents.py": {
+      "sha256": "004542db558d3b950014539fbce30b52caf2a246bc25783c593b4aedb44822ab",
+      "size_bytes": 17795
+    },
+    "scripts/audit_3090_s3_inputs.py": {
+      "sha256": "36fc239a5d3342e1ae7d1b9bc2c115d47fdd70d087994c9b7aa8186045081507",
+      "size_bytes": 3937
+    },
+    "scripts/audit_motion_bank.py": {
+      "sha256": "2f8923ad554a25b276c07cc0e615a466a6bb36ab9a9402d5a3ba701f72ee02db",
+      "size_bytes": 3357
+    },
+    "scripts/avatar_cache.py": {
+      "sha256": "14ee5d7cf67ea4c8329d86bc928ee41acf7662af493675f18653b033fc603285",
+      "size_bytes": 9889
+    },
+    "scripts/avatar_generation.py": {
+      "sha256": "f9e69e4a27bd7c1ecae4c4e14238f1753b59bd818fa88669d232ce786ee10ff9",
+      "size_bytes": 34149
+    },
+    "scripts/avatar_manager_parallel.py": {
+      "sha256": "6bf49035a859463ad072a650c9276f557baef3014b7c1a9305b9a34690343eff",
+      "size_bytes": 43589
+    },
+    "scripts/avatar_s3_store.py": {
+      "sha256": "b739fd9befcd0aec712587732757d3200c94090fd752ffbdf8f6db197e65f5bb",
+      "size_bytes": 22949
+    },
+    "scripts/bench_gpu_path.py": {
+      "sha256": "551dc12518c64d8d3e1f6ac489fdf9d734eaa3d3dc2e710730db854892dd9ba9",
+      "size_bytes": 20956
+    },
+    "scripts/bench_stagewise_blocks.py": {
+      "sha256": "151884525e2e0a409262a448a2f1e884d62e23de439d0c87d1fd6497b34151e3",
+      "size_bytes": 4558
+    },
+    "scripts/benchmark_compose_frame.py": {
+      "sha256": "49bc38fc2a667b0ecb87a88d4676d54a6ab1d43682685816f6890c07a01c89b0",
+      "size_bytes": 4593
+    },
+    "scripts/benchmark_pipeline.py": {
+      "sha256": "3701b89d448195eeb40b7df1183461ae296bffe3bd7ba559282693ca2423daea",
+      "size_bytes": 15872
+    },
+    "scripts/benchmark_vae_stagewise_decode.py": {
+      "sha256": "f029b3fcdfeb1f3962c4be9022cacde7600d4a7d6a61a219f54e6f2636a89c99",
+      "size_bytes": 5662
+    },
+    "scripts/bootstrap_aws_secrets.py": {
+      "sha256": "de8b1ccf14d1aa282d8855ae46ae8ba84a13fd9659a3b6c204626f747379d433",
+      "size_bytes": 8355
+    },
+    "scripts/box_guard.sh": {
+      "sha256": "6a381569e725a53ff190f076558e80f93d7287aa94707f85dc5c7bdbbd0a373a",
+      "size_bytes": 21798
+    },
+    "scripts/build_motion_atlas.py": {
+      "sha256": "fea49e568289c3664b23297cd08b1ddb6a824e3ddde1505e9fff0ee158deef46",
+      "size_bytes": 6643
+    },
+    "scripts/build_unet_multi_avatar_corpus.py": {
+      "sha256": "f8c64f59f92a6dbd4e122299caafe74e89a8fabc61e72d43c46d5d743d9f4248",
+      "size_bytes": 18313
+    },
+    "scripts/build_unet_stagewise.py": {
+      "sha256": "1f0c0c54f2d94dc7358a7b79f4e0176dfdb747b78140552fad35c34d32917d49",
+      "size_bytes": 27685
+    },
+    "scripts/chin_multistream_render.py": {
+      "sha256": "26495de08a2e4c2a706092fe8638b4b3b5570064a0f9873313dc24362c8c26dc",
+      "size_bytes": 25887
+    },
+    "scripts/concurrent_gpu_manager.py": {
+      "sha256": "71651e53892877acae3128f4de2291ca4ccf98778c830631ba52541238e9c684",
+      "size_bytes": 12035
+    },
+    "scripts/experiment_vae_decoder_int8.py": {
+      "sha256": "d312047369b2b72dc0dbff67007b6120e68b71ac04208d46612d12a805b9fefe",
+      "size_bytes": 9795
+    },
+    "scripts/gc_tuning.py": {
+      "sha256": "1614db0c41144c784a56157ad5e422e9f3ea4c70c30a20f65da642fac5ba2017",
+      "size_bytes": 10268
+    },
+    "scripts/hls_gpu_scheduler.py": {
+      "sha256": "01b6531a1714f76f74e2e504745b12d6ddaa9060ff40964391a1a04f1101d4e2",
+      "size_bytes": 167240
+    },
+    "scripts/hls_session_manager.py": {
+      "sha256": "27d56956924319f76fc5dd652a968d65fbbdefcb96df8bd923159f9061c30cfd",
+      "size_bytes": 14540
+    },
+    "scripts/inference.py": {
+      "sha256": "e3add0a1b6da51575b4de79f59c47d7b51b184edf4dbaef4b9543b82cda94597",
+      "size_bytes": 14289
+    },
+    "scripts/inspect_vae_trt_stages.py": {
+      "sha256": "fb82f705cb23a98b23b9e10cec6bc7cb1ea6aeb765e63c3320a5d48855610de7",
+      "size_bytes": 9734
+    },
+    "scripts/install_musetalk.sh": {
+      "sha256": "030075e1fcbc678ba71d657ad5d3319093f5a89b1923071259235411751ac70e",
+      "size_bytes": 40701
+    },
+    "scripts/install_native_vp8.py": {
+      "sha256": "db2c997db6722c1c874d769d52a359733b06db4bc5936e7c9d8ea23d94fa10be",
+      "size_bytes": 5794
+    },
+    "scripts/install_webrtc_deps.sh": {
+      "sha256": "1145a9eedc4f13ce2ac4bd22c14ee0a86d9908f4235bb8afea54130e87820780",
+      "size_bytes": 234
+    },
+    "scripts/int8_layer_study.py": {
+      "sha256": "753a6b2ac0750157c7adafeff6e7ca41956ed2bd08b28ff7c4523f6493ac8116",
+      "size_bytes": 44052
+    },
+    "scripts/kokoro_tts.py": {
+      "sha256": "8bce29796653d34aef401d23dcee4959b0bad97294095d352e3f3d8b30675ee0",
+      "size_bytes": 6772
+    },
+    "scripts/lib/musetalk_env_layers.sh": {
+      "sha256": "f5ddb447238ebf27cafc63003733e1c5b79abbd595d23ee565a6bfcae9c24e1a",
+      "size_bytes": 14885
+    },
+    "scripts/lib/step_logging.sh": {
+      "sha256": "9c83c13e52a74f745ee9b071c093094ba10c8823e29c6c8b4045a6e8e821e81c",
+      "size_bytes": 6538
+    },
+    "scripts/measure_motion_eyes.py": {
+      "sha256": "3f2695e8d5d9bfc8a4e81b4fff53fccbd9186285ebd0801cc9b545e9cd6d437f",
+      "size_bytes": 5191
+    },
+    "scripts/measure_motion_sources.py": {
+      "sha256": "1f92d1510080902bce6beef0af46016b0db0060b23e58141119b80784ea325ee",
+      "size_bytes": 3521
+    },
+    "scripts/motion_current_phoneme.py": {
+      "sha256": "8c2d888e9107f753f2d8672123e3307b4dc7a021bf8539a27269bae8fed6467c",
+      "size_bytes": 8832
+    },
+    "scripts/motion_eye_blend.py": {
+      "sha256": "b98f3b0a1cf1a4112689a2a02d2da80857d3438c9063e05c13e714c116fae5f8",
+      "size_bytes": 5902
+    },
+    "scripts/motion_transitions.py": {
+      "sha256": "d6798e7679e1131057f435e33e9be7cd3eae38b8bdce97295999cef1d9907c72",
+      "size_bytes": 18200
+    },
+    "scripts/musetalk_engine_keys.py": {
+      "sha256": "b41001ab383e25f2dce69a53ee96f328113ade63e0110e6e65c2417a9ba4f4b6",
+      "size_bytes": 57820
+    },
+    "scripts/musetalk_host_profile.py": {
+      "sha256": "e61726d6d76d66207b8b9d2d095ae370e4bd3001d097a90da5eb145d5e7a2362",
+      "size_bytes": 151539
+    },
+    "scripts/musetalk_install_state.py": {
+      "sha256": "48a5d07bb816dd8986e955a60b04c9f7fc81a0c8c7091eec7c83b809156f90e4",
+      "size_bytes": 35760
+    },
+    "scripts/musetalk_selftest.py": {
+      "sha256": "c326d8ac8716aaddd32a9b22ef5f74a539e82321252be6eb9c5685e033b39132",
+      "size_bytes": 23300
+    },
+    "scripts/native_vp8_licenses/libvpx-v1.13.1-LICENSE": {
+      "sha256": "8267348d5af1262c11d1a08de2f5afc77457755f1ac658627dd9acf71011d615",
+      "size_bytes": 1537
+    },
+    "scripts/native_vp8_licenses/libvpx-v1.13.1-PATENTS": {
+      "sha256": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c",
+      "size_bytes": 1436
+    },
+    "scripts/native_vp8_manifest.json": {
+      "sha256": "960e0555ef10d85c1f0b1fecbdc73c384e32cc44be32cd14c74047282c8b35d5",
+      "size_bytes": 2262
+    },
+    "scripts/patch_mmengine_compat.py": {
+      "sha256": "678ded8b88efe33c0b35a2178e3dea0d9485c51cfdf3dc8c3965ec797b3cdd11",
+      "size_bytes": 3022
+    },
+    "scripts/pose_protocol.py": {
+      "sha256": "33e3a07b2b18679afe4ceadbe78479aae0b29ec0b3a54f46d5fe34699a528898",
+      "size_bytes": 17241
+    },
+    "scripts/preprocess.py": {
+      "sha256": "a6239c6a78af1e7ebae88d6462b0c2a1d6eccaf12016ad8057eceb2b0de31c82",
+      "size_bytes": 13029
+    },
+    "scripts/profile_stagewise_block.py": {
+      "sha256": "dcfb1fb75414060f14d66f1bb7dc6b35e5cef740ccfa1bdcd96f7e704d2840e6",
+      "size_bytes": 3837
+    },
+    "scripts/profile_vae_up_block.py": {
+      "sha256": "906df2428aa145498af71c358c99fc7fe63312bd6b2d61ea444dfedaf1661e37",
+      "size_bytes": 7144
+    },
+    "scripts/quality_ab_facemesh.py": {
+      "sha256": "c8641615fceeb92d6d45e207ddfaba6b2257d90051ff770f75f84426c85857d3",
+      "size_bytes": 3206
+    },
+    "scripts/quality_ab_metrics.py": {
+      "sha256": "31f5142b28c8b53a9e6e61e2c8814dfdb1caf46a5a11cb9a93def52f6eb9f00f",
+      "size_bytes": 77139
+    },
+    "scripts/realtime_inference.py": {
+      "sha256": "15a84627a112cb7b11a0703d394d15d4fd421b5b69dbb720e2d382a67dc3e051",
+      "size_bytes": 19770
+    },
+    "scripts/record_webrtc_session.py": {
+      "sha256": "31832d5c415325cf9ea819fdc668eadb47fe310e70e3e56a8bc089f9afea5970",
+      "size_bytes": 12433
+    },
+    "scripts/replay_scheduler_exactness.py": {
+      "sha256": "7d44c34e5d27e4d367e11d9e583f55afa002623afbbdf98234204f709c01f997",
+      "size_bytes": 67065
+    },
+    "scripts/review_motion_evidence.py": {
+      "sha256": "855cbf44c438f809fbbc591fe74eacef11b5ed88da257748e05c8ac89b6b81c1",
+      "size_bytes": 17570
+    },
+    "scripts/run_api_server.sh": {
+      "sha256": "9f7381718cdc553b5c14d6f8d900648d97d9170a1d3db171af958059a0bb91bd",
+      "size_bytes": 792
+    },
+    "scripts/run_musetalk_server.sh": {
+      "sha256": "0855317666047ac52294991f036b0321783909bf8bfce2ae50ee8222e3acf405",
+      "size_bytes": 25923
+    },
+    "scripts/run_trt_stagewise_server.sh": {
+      "sha256": "b7953b077d0a4095fe79b39f39db1e15e400e46cdab8c5216ed077e0bb538c6f",
+      "size_bytes": 22881
+    },
+    "scripts/run_turnserver.sh": {
+      "sha256": "337e7d143f9d246cf61409729e8aebea63418524e20ab7f14d64e99fe3d1e3bc",
+      "size_bytes": 385
+    },
+    "scripts/run_turnserver_tcp_relay.sh": {
+      "sha256": "a359ae670a10c184e8fdf6aebbd36be3f3539ddd68c2694a3d884e61a0e9fa9f",
+      "size_bytes": 5855
+    },
+    "scripts/run_webrtc_relay_api_server.sh": {
+      "sha256": "f143fcc27625269de37424c1c4f3d32e599e4304d5167688779d0844e696b088",
+      "size_bytes": 5838
+    },
+    "scripts/runtime_av_logging.py": {
+      "sha256": "e01419b5662c99d046e728a5352672da8a881d6882e355f9dc2001cf233d9b03",
+      "size_bytes": 1448
+    },
+    "scripts/runtime_cpu_tuning.py": {
+      "sha256": "a9399c3fdd124c200958c7a156d68420f6f78a81ab884eda1ef6e99ca2b206e4",
+      "size_bytes": 6195
+    },
+    "scripts/select_unet_trt_profile.py": {
+      "sha256": "f4ebca915ab783f183acbbca44f12ee77652f732ee0f7f26f91067f79f7a0089",
+      "size_bytes": 6840
+    },
+    "scripts/session_manager.py": {
+      "sha256": "584758530b23e6decc3af1064571ff595b7f70fd94a3b7d59c6554f2041a9ebb",
+      "size_bytes": 5355
+    },
+    "scripts/setup_musetalk.sh": {
+      "sha256": "6b7c0905078fdedaa8fb7265c6fceae2d6a66d3210226a01b80521acef7a9fe1",
+      "size_bytes": 250
+    },
+    "scripts/setup_trt_experiment_env.sh": {
+      "sha256": "644329f38b4f6666452ce6f08dd69233ca9335f82bd334fdbd5be2a9bf9aabd5",
+      "size_bytes": 41006
+    },
+    "scripts/setup_trt_stagewise_server_env.sh": {
+      "sha256": "3353210ea9a87516583b5286873196a0d1c4bda258b2df7f5d9f4ae567995f6f",
+      "size_bytes": 9062
+    },
+    "scripts/tensorrt_export.py": {
+      "sha256": "f310b402e4d3a0ca661a64ae44767d53b6127942b1d17e52757729a53cec9ba6",
+      "size_bytes": 58319
+    },
+    "scripts/test_box_guard.sh": {
+      "sha256": "08cb8e0daa8b56bc02b72b333c68524d8573dca3376cf3c597122bd71c38217c",
+      "size_bytes": 3477
+    },
+    "scripts/test_hls_scheduler_pipeline.py": {
+      "sha256": "160c5d0f153ffc1ee5e7d8ac67bb26fe5774cd5b39238333cdbcec7939196c57",
+      "size_bytes": 47006
+    },
+    "scripts/test_install_musetalk.sh": {
+      "sha256": "50fce1421981cd6110f7d03ad84446cddfae5b82f732b1b4a093d35f1f02726d",
+      "size_bytes": 28293
+    },
+    "scripts/test_patch_mmengine_compat.py": {
+      "sha256": "4c1129cfbd353758b0d9501cf612c332e079340de2f836dbd9f50b686607f2ae",
+      "size_bytes": 2626
+    },
+    "scripts/test_pose_webrtc.py": {
+      "sha256": "59afa2f788676749f9612bcf5b279261781fa8de589ea452f1dcd7687d7f624a",
+      "size_bytes": 102658
+    },
+    "scripts/test_startup_scripts.sh": {
+      "sha256": "82499927274f86594aac319d408b10ab4fe2cc40b119627de1bdbf639b1e2c72",
+      "size_bytes": 85173
+    },
+    "scripts/test_syncnet_weight_contract.py": {
+      "sha256": "5d9fefe0f697f245649d9fc674f3446a0068377ce2a618baf8df3209794c911f",
+      "size_bytes": 2670
+    },
+    "scripts/test_trt_artifact_bundle.py": {
+      "sha256": "16a19c8edcbb0ff4e081bb50539e2dcd565ce951c562c1ff8c6d11ff0be0fc85",
+      "size_bytes": 3781
+    },
+    "scripts/test_webrtc_motion_sentence.py": {
+      "sha256": "4ba7a1527e081943b92d4ed0954ce16252b4874d4aa6148df3447d01e5137a2c",
+      "size_bytes": 4913
+    },
+    "scripts/test_webrtc_motion_transitions.py": {
+      "sha256": "7bc62b2038c04cdedcfc59db9bcda6c707992ec7c2056950971abe52fc2453b4",
+      "size_bytes": 26421
+    },
+    "scripts/test_webrtc_wall_audio_browser.py": {
+      "sha256": "677a39d94894dd8ffef91c8ab34648af5f64f54d145e306666f615236d390d21",
+      "size_bytes": 7217
+    },
+    "scripts/trt_artifact_bundle.py": {
+      "sha256": "30106e7b34b13d3873c8d340f76be86531957147708de7f6dcbba72b0a047a4b",
+      "size_bytes": 24129
+    },
+    "scripts/trt_runtime.py": {
+      "sha256": "29841be8cc47f2cc7b442315fd447f3eeed6d50f717ef83c41e4e0efc6b6e5af",
+      "size_bytes": 87156
+    },
+    "scripts/trt_timing_cache.py": {
+      "sha256": "7fb2294e37f8e31470a86728f22a25d926ce87ea7f3751f5339a044496ce2e75",
+      "size_bytes": 2634
+    },
+    "scripts/unet_engine_store.py": {
+      "sha256": "4f721bb0abb0394af0cb89ae9daefef8d03e41f0425397d5c2dd0f615b1a707f",
+      "size_bytes": 108616
+    },
+    "scripts/unet_int8_smooth.py": {
+      "sha256": "230b8a77613f64d8ffc011d32d9acb04b7b561c1115737eef9b07d27fcff9563",
+      "size_bytes": 2998
+    },
+    "scripts/unet_stagewise_trt.py": {
+      "sha256": "4ab523ab9337f1ce903a52acf7a3f06e7423669cbf2df2b3846b8ffc374b6e9c",
+      "size_bytes": 42263
+    },
+    "scripts/vae_fast_decoder.py": {
+      "sha256": "aea1eb059085c1799c6162d516d028d385be107c36da8a105fa1f838eb5e9882",
+      "size_bytes": 49438
+    },
+    "scripts/validate_segmind_motion_references.py": {
+      "sha256": "f8b45237332ffc197cd9346d2089a9a421684c5d3dbc4f57fae24fd35a517460",
+      "size_bytes": 6798
+    },
+    "scripts/validate_unet_backend.py": {
+      "sha256": "81b74eddf5aaff8348ac27cce67b92763e937e09309762d137062b0a23f1d7a0",
+      "size_bytes": 14980
+    },
+    "scripts/validate_vae_backend.py": {
+      "sha256": "9c8a5822d713a6dff38af8c3d846c088364d6f2e34c43ccb5f62ec77a140d42f",
+      "size_bytes": 8716
+    },
+    "scripts/validate_vae_trt_inmemory.py": {
+      "sha256": "3887b65e59ee87bdaac072d27dc05f74716fec9432de24ae5fae603abc525bb4",
+      "size_bytes": 4232
+    },
+    "scripts/vast_onstart.sh": {
+      "sha256": "c1d2b03b4db8817ac2ba4df587d0de3ba4a7a07f4dab4002894c65a60365615b",
+      "size_bytes": 43001
+    },
+    "scripts/vast_server_ctl.sh": {
+      "sha256": "a048d2ea5a2e6cb52b8fa93cd79e84ea413cf8eeaf8389ea6ad3aff5a3ce3020",
+      "size_bytes": 24071
+    },
+    "scripts/video_ab.py": {
+      "sha256": "a3733509697b7ecbe04a65bab8a15e90ec996b1b0b79fcec6f820aa7f8767174",
+      "size_bytes": 100149
+    },
+    "scripts/video_ab_chin_render.py": {
+      "sha256": "8e576ad9e8c9a9036da1ab367c843109f93800b62265bf14bfda5ec364d4c017",
+      "size_bytes": 32842
+    },
+    "scripts/video_ab_round.py": {
+      "sha256": "c2f90da29d77a2c651f084c7e73812a721ab4587e9a629d4a129b8d5544afbe5",
+      "size_bytes": 8160
+    },
+    "scripts/video_lineage.py": {
+      "sha256": "739127bea3db2eafcde91748cf792fd3d02fb1b907fbac2c0bd37b94301e230a",
+      "size_bytes": 21867
+    },
+    "scripts/video_signoff.py": {
+      "sha256": "7fef09c251e29ec42cdc7ebf95cb8a80fb8ffc21cdeb94057836a4790ac00d1a",
+      "size_bytes": 7128
+    },
+    "scripts/webrtc_audio_timeline.py": {
+      "sha256": "a10547cd56c68d76c009e81bd4de3a60ff659cb8e1967a91c4d8b3cf5242c673",
+      "size_bytes": 10371
+    },
+    "scripts/webrtc_exact_silence.py": {
+      "sha256": "1ae9d7055e5f2a5a8b6fb867373eb20df4e2fdfd0380ff89d3587a6afed5d280",
+      "size_bytes": 2126
+    },
+    "scripts/webrtc_h264_override.py": {
+      "sha256": "0e63616107123837dbea88407dbf8f737c991b386e05280e869f102a0cac78c6",
+      "size_bytes": 11080
+    },
+    "scripts/webrtc_idle_frame_cache.py": {
+      "sha256": "f5982a80a6659ecc34f622439dc2944244e5bf0a0a2f4b090c6d9021ad47a85e",
+      "size_bytes": 14629
+    },
+    "scripts/webrtc_live_handoff.py": {
+      "sha256": "ee6ede92c527e9de1e7a69f3b3cf30d9af8ed8b6f74f0f4769c55bc659c71ccc",
+      "size_bytes": 25285
+    },
+    "scripts/webrtc_manager.py": {
+      "sha256": "2308da6965c77fbfb79f372f9f7906c05a418020c10b70f76b1746b70d4d1d85",
+      "size_bytes": 48157
+    },
+    "scripts/webrtc_media_flags.py": {
+      "sha256": "116be539a238d83eabd7a36d2ebdcaeabf06d734322814ca591f22a327cfa211",
+      "size_bytes": 13715
+    },
+    "scripts/webrtc_motion_playback.py": {
+      "sha256": "a25294502865224e2b43cd5595dad59dec5dff8d8ae0d711e9c86f7c3bb0cca2",
+      "size_bytes": 28350
+    },
+    "scripts/webrtc_native_vp8.py": {
+      "sha256": "f723359aba0ad91fbe1484316f053693ecfb6031b868f4c0c885d900897ff394",
+      "size_bytes": 14442
+    },
+    "scripts/webrtc_pose_lab_catalog.py": {
+      "sha256": "c22725fbe12031ec854fdb84acb7bb718f6d90b916cf1f329fe327aae7e01675",
+      "size_bytes": 6891
+    },
+    "scripts/webrtc_pose_router.py": {
+      "sha256": "641490e9d6b4fb8b10372efee61a003a42a961e624c180d05ccd340c41b1eafc",
+      "size_bytes": 44718
+    },
+    "scripts/webrtc_tracks.py": {
+      "sha256": "2797fcd83d1ea94babf397526fa28c2fe0e3dca5eafdc5f6097e59e97ccfa3bb",
+      "size_bytes": 151720
+    },
+    "scripts/worker_control_plane.py": {
+      "sha256": "42c0d1bafc69380074d99d8b70b081692ba7822147514f2debcfbceb85881a33",
+      "size_bytes": 18693
+    },
+    "templates/hls_player.py": {
+      "sha256": "2207dc7f0cee4ec49d3b42feedb1341fe86c92cf4584c0663645e7dc046657e2",
+      "size_bytes": 29210
+    },
+    "templates/hls_wall.py": {
+      "sha256": "939f68d4aa8756d0d1efce31140a3a10ce3370b802c6653574f6eaba40ce32ab",
+      "size_bytes": 23510
+    },
+    "templates/mobile_player.py": {
+      "sha256": "32ccd274cf81613452457e64a84bb25a75fe3200c563294964a78fa0dd9bc84f",
+      "size_bytes": 11937
+    },
+    "templates/session_player.py": {
+      "sha256": "e418e8d996709f47237913262943383090139cbde638efd6f0a816e92697755d",
+      "size_bytes": 17408
+    },
+    "templates/session_player_mse.py": {
+      "sha256": "e418e8d996709f47237913262943383090139cbde638efd6f0a816e92697755d",
+      "size_bytes": 17408
+    },
+    "templates/streaming_ui.py": {
+      "sha256": "642bf2bf4f18cfd1bb98400c64188a61e99e78332c82a603203ecab1a41e95c0",
+      "size_bytes": 30687
+    },
+    "templates/webrtc_player.py": {
+      "sha256": "dea074bb529f79478b0bbdfcc0054f17ed22f492223295d31a97fddf1d89e4a2",
+      "size_bytes": 18104
+    },
+    "templates/webrtc_pose_lab.py": {
+      "sha256": "d763f0d334b4e7b1f5ba7c606c6d2b45a85a66bb2c8c20d25b1910db3d5b3107",
+      "size_bytes": 33741
+    },
+    "templates/webrtc_wall.py": {
+      "sha256": "c80c82afa7e067e1dc60f19f2fa013e0409bdbf3f2c80637091bce35c2a59a5a",
+      "size_bytes": 25920
+    }
+  }
+}

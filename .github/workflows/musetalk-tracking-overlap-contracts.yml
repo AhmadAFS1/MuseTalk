@@ -20,6 +20,10 @@ on:
       - scripts/repro_3090/test_fetch_dependency_ci_evidence.py
       - scripts/repro_3090/run_owned_3090_with_runtime_credentials.py
       - scripts/repro_3090/test_owned_3090_credentials.py
+      - scripts/repro_3090/freeze_tracking_lineage.py
+      - scripts/repro_3090/test_tracking_lineage.py
+      - scripts/repro_3090/safe_capture.py
+      - scripts/repro_3090/test_safe_capture.py
 
 permissions:
   contents: read
@@ -50,3 +54,5 @@ jobs:
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_tracking_parity.py -v
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_fetch_dependency_ci_evidence.py -v
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_owned_3090_credentials.py -v
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_tracking_lineage.py -v
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_safe_capture.py -v

@@ -20,6 +20,8 @@ FIXED_RUNS = {
                 '0ceddda09be865dd10e0bc7a77c380ee7e6184dfd1a3f62d0be787860f2cae23'),
     '7a78e4a': (37830969052, '7a78e4abf09ffcc640e2979d5b08887fa70bdd4f', 11575324075,
                 'c8487e775511bb7f25b931cca8e0433d1512ac4f2f711c98b36149e8e28345f7'),
+    'a57f2de': (37833533181, 'a57f2de33f7d9441734b1a0868c5d8987b14a88b', 11578438305,
+                'b8f6ab30f029dba4e42dc331e0eb6282ecf0e9f65d7df6f66131d04ca9ed21f8'),
 }
 EXPECTED = {'source-inventory.json', 'base-identity.json', 'apt-pins.json', 'build-metadata.json',
             'image-inspect.json', 'image-history.jsonl', 'pip-freeze.txt', 'dpkg-packages.txt',
@@ -28,6 +30,7 @@ LAYOUTS = {
     '7a78e4a': {**{f'musetalk-dependency-preflight/reports/{name}': name for name in EXPECTED},
                 'musetalk-cpu-contracts/installer.log': 'installer.log'},
 }
+LAYOUTS['a57f2de'] = dict(LAYOUTS['7a78e4a'])
 
 
 def require(ok, code):

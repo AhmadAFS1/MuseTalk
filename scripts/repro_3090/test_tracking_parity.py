@@ -137,6 +137,14 @@ class TrackingParityTests(unittest.TestCase):
             with self.assertRaisesRegex(report.Invalid, "GPU identity changed"):
                 runner.verify_current_gpu(self.environment)
 
+    def test_uuid_stage_runs_through_real_bounded_cpu_subprocess(self):
+        def synthetic_nvml(command, **kwargs):
+            self.assertEqual(command[0], "nvidia-smi")
+            return runner.safe_capture.capture(
+                [sys.executable, "-c", "print('SYNTHETIC_CPU_ONLY')"], cwd=pair.ROOT, **kwargs)
+        with mock.patch.object(runner, "capture", side_effect=synthetic_nvml):
+            runner.verify_current_gpu(self.environment)
+
     def test_missing_avatar_ignored_mode_source_and_workload_changes_are_invalid(self):
         original = self.b.read_text()
         changes = [lambda d: d["repeats"][0]["per_worker"].pop("5"),

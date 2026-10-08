@@ -1,0 +1,37 @@
+{
+  "schema": "owned_a2_first_ssh_identity_v1",
+  "instance_id": 54909897,
+  "label": "musetalk-r5-3090-dev-20261008-a2",
+  "provider_actual_status": "running",
+  "provider_status_scope": "Container state only, not API/usable call readiness",
+  "machine_id": 145698,
+  "ssh": {
+    "alias": "musetalk-3090-build-54909897",
+    "hostname": "74.113.233.93",
+    "port": 16448,
+    "user": "root",
+    "endpoint_source": "Authenticated EC2 VastClient.show_instance ports22/tcp and public_ipaddr",
+    "browser_crosschecked": false,
+    "browser_limitation": "Native Chrome existing console first returned stale destroyedA1. Explicit refresh returns no page content; no stale connection details were used. In-app browser was logged out; no auth data transferred.",
+    "initial_trust": "OpenSSH accept-new for this freshly provisioned/API-verified endpoint; changed keys still rejected. Subsequent alias uses StrictHostKeyChecking=yes.",
+    "config_backup": "/Users/ahmadsmacair/.ssh/config.r5-a2-before-20261008-2055",
+    "private_keys_copied": false
+  },
+  "actual_host": {
+    "hostname": "03f3421071ce",
+    "gpu_name": "NVIDIA GeForce RTX 3090",
+    "gpu_uuid": "GPU-a39e62bc-2405-e19d-ba7f-2c51647a46b2",
+    "compute_capability": "8.6",
+    "physical_vram_mib": 24576,
+    "driver_version": "595.84",
+    "power_limit_watts": 300,
+    "power_limit_changed": false,
+    "source_revision": "a6e06ff3d3b8dba805a0554ebca58e4e3ceeb64b",
+    "workspace_free_gb_df_rounded": 143,
+    "shared_memory_gb_df_rounded": 41
+  },
+  "bootstrap_status": "Python/source installer active; completion not yet verified",
+  "actual_native_probe_or_benchmark": "NOT_RUN",
+  "image_based_instance_b": false,
+  "production_changed": false
+}

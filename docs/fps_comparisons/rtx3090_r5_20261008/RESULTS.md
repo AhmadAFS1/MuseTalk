@@ -13,6 +13,41 @@ This is a live evidence index, not a completed release claim. The protected RTX
 | Live delivery / capacity | Both software-H264 profiles N1/N3 strictPASS/N5 validFAIL. NVENC N1FAIL,0hardware opens/18open failures; PyAV/FFmpeg standalone probes alsoFAIL. No accepted capacity or EC2 release claim |
 | Request-to-usable-call startup | Still unmeasured through EC2/TURN. Request-to-verified-health was 1,046.45 s (17m26s), not usable-call readiness |
 
+### 22:02 UTC new3090 preparation, explicit lineage and updated priority
+
+The updated user priority is native3090 full-recipe400+FPS at the highest passing
+4070-level quality, controlled new latents following that preparation path, then
+the complete downloadable Docker and approximately60-second create-to-health.
+Health and EC2-routed usable-call timing remain separate; neither has a new SLA
+pass. The full prior quality/FPS requirements have not been lowered.
+
+[A2 preparation](startup/a2_health_preparation_2202.json): owned54909897 reached
+portable TensorRT backend/health verification21:03:58UTC but was unregistered,
+with0cachedavatars. Its API/TURN are stopped and GPU isolated. Canonical FaceMesh
+installation,6fixture300files,39audiofiles and449calibrationfiles restored PASS.
+[All16native payload hashes](native/a2_native_restore_integrity_2153.json)
+match the privately persisted rejected-v1 archive; this is not GPU acceptance.
+
+The [original878input check](harnesses/a2_original_frozen_inputs_audit_2154.json)
+failed honestly:862matched,12freshHFmetadata files and the intentionally changed
+worker differed, and4SyncNet paths were absent. SyncNet was subsequently restored
+with its original payload SHA. A strict [successor lineage](harnesses/tracking-a2-lineage-v1.json)
+keeps all878paths and original runtime bytes, allowing only13validated cache
+metadata files and the exact reviewed worker revision. No old manifest or698
+quality bound was rewritten; native-v1 remains rejected. The first pair passed
+runtime/input preflight then stopped INVALID before rendering because a fixed
+diagnostic stage was not allowlisted. That narrow bug now has an actual CPU
+subprocess regression test;14parity tests pass on both operator and Linux3.10.
+The fresh2202pair is running; no overlap speedup/parity claim yet.
+
+[Bounded-bridge CI](native/bounded_credentials_linux_ci_2106.json) is terminal
+success with69Linux CPU tests and an actual harmless owned-worker command. The
+existing [a57dependency build](release/dependency_ci_a57f2de/assessment.json) is
+also terminal success; all11reports were fetched with the matching archive SHA.
+It built only `Dockerfile.dependencies`,12,335,002,076uncompressed bytes, with
+unchanged apt/pip pins. No full serving image/publication/GPU/startup claim.
+Budget remains12.7175reserved/30, not final billing; ownedA2 expiry23:45UTC.
+
 ### 20:20 UTC exact scheduler gate and verified dependency CI
 
 The new `25_tracking_parity.sh` runs two isolated, same-engine six-avatar

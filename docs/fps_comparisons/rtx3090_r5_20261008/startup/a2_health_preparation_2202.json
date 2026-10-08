@@ -1,0 +1,40 @@
+{
+  "schema": "a2_isolated_preparation_checkpoint_v1",
+  "instance_id": 54909897,
+  "hostname": "03f3421071ce",
+  "gpu_uuid": "GPU-a39e62bc-2405-e19d-ba7f-2c51647a46b2",
+  "source_revision": "a6e06ff3d3b8dba805a0554ebca58e4e3ceeb64b",
+  "source_onstart_sha256": "0b8c1433ca882b5d784d8a09dc9bb9f2ce6374abb8191efb7e4e19bc8778f9bd",
+  "portable_backend_verification_utc": "2026-10-08T21:03:58Z",
+  "portable_backend_verification": {"result": "PASS", "vae": "taesd_trt", "unet": "trt_stagewise"},
+  "http_health_observed": true,
+  "registered": false,
+  "active_requests_at_health": 0,
+  "cached_avatars_at_health": 0,
+  "owned_api_and_turn_drained_stopped": true,
+  "foreign_gpu_apps_after_stop": [],
+  "canonical_chin_install": {
+    "returncode": 0,
+    "completed_utc": "2026-10-08T21:52:57Z",
+    "command": "bash scripts/install_musetalk.sh --matrix cu121 --with-chin-tools --chin-venv /workspace/SoulX-FlashHead/.venv --skip-apt --skip-weights --no-selftest",
+    "cpu_import_smoke_and_post_install_check": "PASS",
+    "gpu_selftest_rerun": false
+  },
+  "canonical_fixture_restore": {
+    "returncode": 0,
+    "completed_utc": "2026-10-08T21:53:14Z",
+    "avatars": {"files": 300, "archive_sha256": "4fbb421484b119814c52ed40840ae41c0481086a53960847b9e215e01b015149"},
+    "audio": {"files": 39, "archive_sha256": "e4a62439bde6e30e2b25ce5771a8b7f1d6bf0cfd61405f3a498ffadb0550f445"},
+    "calibration": {"files": 449, "archive_sha256": "5b38ed6d0d776b43d405d85839cabeeaf143972ea67c56dd4eaac7e46bab3ded"}
+  },
+  "syncnet": "Restored canonical original checkpoint only for frozen diagnostic coverage; API default omission unchanged. Successor lineage verifies original1,488,019,828bytes/SHA38fa63bad3ed2332f647c40a5dc616cb0e233db8579f698f62af4c41965c4da5.",
+  "original_878_manifest_exact_match": false,
+  "tracking_successor_manifest_sha256": "4e63c1afa903b9fb52d8ce09fc4a123bd71e12d504af3c7133aa829ce7cc3abb",
+  "successor_scope": "All878paths retained, runtimeassets exact, only13freshHFmetadata and reviewedworker change. Separate scheduler comparison, not originalreferencequality acceptance.",
+  "first_pair": {"label": "a2_tracking_pair_2159", "status": "INVALID", "reason": "unknown capture stage", "render_children_started": false},
+  "narrow_harness_fix": "Allowlisted fixed tracking_pair_gpu_identity diagnostic stage; added actual CPU subprocess test.14parity tests PASS on operatorPython3.14.7 and workerPython3.10;14safe-capture tests PASS on operator.",
+  "actual_fresh_image_trial": false,
+  "ec2_usable_call_or_startup_sla_acceptance": false,
+  "native_quality_or_performance_acceptance": false,
+  "resource_expiry_utc": "2026-10-08T23:45:00Z"
+}

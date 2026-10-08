@@ -38,7 +38,7 @@ _NEEDLES = {
     "AWS_CREDENTIALS_UNAVAILABLE": (b"Unable to locate credentials", b"(InvalidAccessKeyId)", b"(ExpiredToken)"),
     "AWS_BUCKET_POLICY_ABSENT": (b"(NoSuchBucketPolicy)",),
 }
-_STAGES = {"nvml_identity", "nvml_workloads", "runtime_import", "git_revision", "git_status", "s3_head", "operator_privacy_read", "unspecified"}
+_STAGES = {"nvml_identity", "nvml_workloads", "runtime_import", "git_revision", "git_status", "s3_head", "operator_privacy_read", "tracking_pair_gpu_identity", "unspecified"}
 
 
 class CaptureFailure(subprocess.SubprocessError):
