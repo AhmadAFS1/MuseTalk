@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "development_host_offline_replacement_preflight",
+  "phase": "native_sm86_v1_build_running",
   "status": "in_progress",
   "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
   "branch": "codex/rtx3090-r5-delivery",
@@ -20,7 +20,11 @@
     "Two portable quality references completed with all original strict failures preserved",
     "Measured reference envelope frozen at 08:35:40.744214 UTC before native evaluation; 698 explicit metric bounds and comparable historical references",
     "Scoped runtime credential bridge verified with harmless owned-worker command",
-    "Linux CI CPU/startup tests passed; actual dependency Docker build in progress"
+    "Linux CI CPU/startup tests passed; first actual dependency build failed on MMEngine Adafactor collision, reproducible on the worker",
+    "A1 recovered by 11:17 UTC without an operator reboot or replacement purchase; original source bootstrap had reset the working checkout",
+    "Preserved experiment directory restored, owned API/TURN stopped, CUDA tensor allocation and full pinned-input preflight passed",
+    "Owned hostname guard applied to A1 onstart to suspend destructive source reinstalls and automatic server restart",
+    "Native sm86 v1 build started at 11:23:29 UTC under canonical per-step GPU leases and workload watchdog"
   ],
   "budget": {
     "currency": "USD",
@@ -63,13 +67,17 @@
       "readiness": "Verified portable health, one avatar warm, local media smoke; no EC2 usable-call proof",
       "development_measurement_revision": "aa1a531cabe60ce9faec45b39372db2d61ef69e9",
       "native_preparation_revision": "8112888",
-      "server_state": "Owned API/TURN drained/stopped; CUDA initialization failed before native build, then provider actual_status offline at 08:52:18 UTC",
-      "provider_status_observed_utc": "2026-10-08T08:52:18.227430+00:00",
-      "provider_actual_status": "offline",
+      "server_state": "Owned API/TURN drained/stopped after automatic recovery; native engine builder owns GPU",
+      "provider_status_observed_utc": "2026-10-08T11:17:36.914196+00:00",
+      "provider_actual_status": "running",
       "recovery_reboot_sent": false,
-      "recovery_onstart_guard_applied": false,
-      "repository_backup": "/workspace/MuseTalk.before-gpu-recovery-20261008",
-      "backup_note": "14GB recursive preserved copy completed before SSH outage; same-host backup is not off-host durability"
+      "recovery_onstart_guard_applied": true,
+      "repository_backup": "/workspace/MuseTalk.source-reboot-20261008",
+      "backup_note": "Pre-outage experiment backup restored to /workspace/MuseTalk; automatic source reinstall preserved separately. Original reports also preserved in docs/fps_comparisons/rtx3090_r5_20261008.before-tracked-d4e78b7",
+      "native_build_revision": "d4e78b79105e0c1f5b732fb651e5dcd7fcb5dca3",
+      "native_build_started_utc": "2026-10-08T11:23:29Z",
+      "native_build_operator_session": 28251,
+      "replacement_purchased": false
     },
     "release": null
   },
@@ -94,6 +102,6 @@
   "target_template_hash": "210968d1e76b34e7cf34e505246e5d47",
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
-  "next_action": "Prepare replacement A2 on a different host within unchanged shared $30 budget; preserve A1 reservation and artifact recovery path",
-  "next_command": "Read safe A2 preparation from ec2_discovery; proposed machine145203 and label musetalk-r5-3090-dev-a2-20261008. No replacement purchased yet. Install strict A2 expiry, initialize distinct ledger, freshly validate offer and use existing EC2 create-once wrapper with shared budget ledger. Never retry an ambiguous purchase."
+  "next_action": "Observe native build; fix and rerun dependency Docker CI while GPU build runs",
+  "next_command": "Poll operator exec session 28251, or inspect the exact build process and native_v1_build logs on musetalk-3090-build-54798270. Never restart a build based only on an observation timeout. After native manifest and TAESD key are verified, run native quality and compare with frozen reference envelope v2, followed by T/SUST. A1 expiry at 19:00 UTC remains active."
 }

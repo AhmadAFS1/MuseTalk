@@ -20,6 +20,8 @@ import re
 import socket
 import sys
 
+import privacy_attestation
+
 MODEL_PATHS = {
     "models/syncnet/latentsync_syncnet.pt",
     "models/face-parse-bisent/79999_iter.pth",
@@ -27,9 +29,9 @@ MODEL_PATHS = {
     "models/auxiliary/s3fd-619a316812.pth",
     "models/face_detection/s3fd.pth",
 }
-BUCKET = "lingua-musetalk-s3-storage"
-REGION = "us-east-1"
-OWNER = "211125449207"
+BUCKET = privacy_attestation.BUCKET
+REGION = privacy_attestation.REGION
+OWNER = privacy_attestation.OWNER
 PREFIX = "trt-artifacts/private-runtime-models/sha256"
 WORKER_ROOT = "/workspace/MuseTalk"
 WORKER_HOSTNAME = "a830e00ce20c"
@@ -38,7 +40,7 @@ QUALITY_MANIFEST_SHA256 = "6d3ab6ef31605c2231605e03042e82361a27112589ef6d7f6f8ff
 SHA = re.compile(r"[0-9a-f]{64}\Z")
 PUBLIC_GROUPS = {"http://acs.amazonaws.com/groups/global/AllUsers",
                  "http://acs.amazonaws.com/groups/global/AuthenticatedUsers"}
-PUBLIC_ACCESS_BLOCK_FLAGS = ("BlockPublicAcls", "IgnorePublicAcls", "BlockPublicPolicy", "RestrictPublicBuckets")
+PUBLIC_ACCESS_BLOCK_FLAGS = privacy_attestation.FLAGS
 
 
 class Invalid(RuntimeError):
@@ -161,6 +163,30 @@ def privacy_observations(s3):
     return result
 
 
+def choose_privacy_proof(observed, attestation_path=None, attestation_sha256=None):
+    """Never let a historical assertion override current contrary evidence."""
+    require(bool(attestation_path) == bool(attestation_sha256), "privacy_attestation_path_and_sha_required_together")
+    for key in ("bucket_policy_public", "bucket_public_acl_grants"):
+        require(observed.get(key, {}).get("value") is not True, "bucket_public_access_observed")
+    block = observed.get("bucket_public_access_block", {})
+    if block.get("status") == "observed":
+        require(all(block.get("value", {}).get(k) is True for k in PUBLIC_ACCESS_BLOCK_FLAGS),
+                "live_bucket_privacy_block_not_all_true")
+    attestation = None
+    if attestation_path:
+        try:
+            attestation = privacy_attestation.load_bound(attestation_path, attestation_sha256)
+        except privacy_attestation.Invalid as exc:
+            raise Invalid(str(exc)) from None
+    if observed.get("independent_privacy_proof") is True:
+        return {"source": "live_worker_bucket_public_access_block", "attestation_used": False}, None
+    require(attestation is not None, "affirmative_bucket_privacy_proof_required_before_object_access")
+    return {"source": "explicit_sha_bound_operator_attestation", "attestation_used": True,
+            "sha256": attestation_sha256, "observed_at_utc": attestation["observed_at_utc"],
+            "expires_at_utc": attestation["expires_at_utc"],
+            "trust_scope": "operator_assertion_not_aws_signed; digest_must_arrive_via_trusted_operator_invocation"}, attestation
+
+
 def verify_remote(s3, entry):
     response = s3.get_object(Bucket=BUCKET, Key=entry["source"]["key"], ExpectedBucketOwner=OWNER)
     body = response["Body"]
@@ -241,12 +267,19 @@ def run(args, report, handle, make_client=client):
     s3 = make_client()
     report["privacy_observations"] = privacy_observations(s3)
     write_report(handle, report)
-    for key in ("bucket_policy_public", "bucket_public_acl_grants"):
-        require(report["privacy_observations"][key].get("value") is not True, "bucket_public_access_observed")
-    require(report["privacy_observations"].get("independent_privacy_proof") is True,
-            "affirmative_bucket_privacy_proof_required_before_object_access")
+    proof_source, attestation = choose_privacy_proof(report["privacy_observations"],
+                                                   getattr(args, "privacy_attestation", None),
+                                                   getattr(args, "privacy_attestation_sha256", None))
+    report["privacy_proof"] = proof_source
     report["status"] = "in_progress"
     for name, entry in rows.items():
+        if attestation is not None:
+            try:
+                # Recheck before each object sequence, not only before hashing
+                # the five local files or at the start of a long upload batch.
+                report["privacy_proof"]["latest_freshness_check"] = privacy_attestation.validate(attestation)
+            except privacy_attestation.Invalid as exc:
+                raise Invalid(str(exc)) from None
         report["active_model_path"] = name
         write_report(handle, report)
         proof = persist_one(s3, args.root, name, entry)
@@ -266,7 +299,12 @@ def main(argv=None):
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--privacy-attestation", type=Path,
+                        help="optional fresh operator privacy assertion; requires explicit trusted SHA256")
+    parser.add_argument("--privacy-attestation-sha256")
     args = parser.parse_args(argv)
+    if bool(args.privacy_attestation) != bool(args.privacy_attestation_sha256):
+        parser.error("--privacy-attestation and --privacy-attestation-sha256 must be supplied together")
     logging.disable(logging.CRITICAL)
     args.root = args.root.resolve()
     args.manifest = args.manifest.absolute()

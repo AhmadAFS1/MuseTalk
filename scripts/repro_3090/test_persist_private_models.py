@@ -15,6 +15,8 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import persist_private_models as persist
+import privacy_attestation
+from test_privacy_attestation import valid_fixture
 
 
 class SDKFailure(Exception):
@@ -57,6 +59,12 @@ class PersistenceTests(unittest.TestCase):
     def entry(self):
         name = sorted(persist.MODEL_PATHS)[0]
         return name, persist.plan(self.root, self.manifest)[name]
+
+    def attestation(self):
+        data = valid_fixture()
+        path = self.root / "privacy.json"
+        path.write_text(json.dumps(data))
+        return path, hashlib.sha256(path.read_bytes()).hexdigest(), data
 
     def s3(self, name):
         result = Mock()
@@ -236,6 +244,59 @@ class PersistenceTests(unittest.TestCase):
         self.assertTrue(config.Config.call_args.kwargs["ignore_configured_endpoint_urls"])
         with patch.dict(os.environ, {}, clear=True), self.assertRaises(persist.Invalid):
             persist.client()
+
+    def test_explicit_bound_attestation_allows_denied_reads_but_live_proof_wins(self):
+        path, digest, data = self.attestation()
+        unavailable = {"independent_privacy_proof": False, "bucket_public_access_block": {"status": "not_available"},
+                       "bucket_policy_public": {}, "bucket_public_acl_grants": {}}
+        source, loaded = persist.choose_privacy_proof(unavailable, path, digest)
+        self.assertTrue(source["attestation_used"])
+        self.assertEqual(source["sha256"], digest)
+        self.assertEqual(loaded, data)
+        source, loaded = persist.choose_privacy_proof({**unavailable, "independent_privacy_proof": True}, path, digest)
+        self.assertFalse(source["attestation_used"])
+        self.assertIsNone(loaded)
+        with self.assertRaisesRegex(persist.Invalid, "sha_mismatch"):
+            persist.choose_privacy_proof({**unavailable, "independent_privacy_proof": True}, path, "0" * 64)
+
+    def test_attestation_cannot_override_any_live_public_or_false_block_observation(self):
+        path, digest, _ = self.attestation()
+        for observation in (
+                {"bucket_policy_public": {"value": True}}, {"bucket_public_acl_grants": {"value": True}},
+                {"bucket_public_access_block": {"status": "observed", "value": {key: False for key in persist.PUBLIC_ACCESS_BLOCK_FLAGS}}}):
+            with self.subTest(observation=observation), self.assertRaises(persist.Invalid):
+                persist.choose_privacy_proof(observation, path, digest)
+        for arguments in ((path, None), (None, digest), (None, None)):
+            with self.assertRaises(persist.Invalid):
+                persist.choose_privacy_proof({}, *arguments)
+
+    def test_attested_full_run_and_freshness_recheck_before_every_object(self):
+        path, digest, data = self.attestation()
+        for expires_after_first in (False, True):
+            report = {"objects": {}, "external_model_files": {}, "delivery_verified": False}
+            args = SimpleNamespace(root=self.root, manifest=self.manifest, execute=True,
+                                   privacy_attestation=path, privacy_attestation_sha256=digest)
+            # load_bound normally validates first. Mock only that completed
+            # validation so this check isolates the per-object expiry checks.
+            freshness = ([{"age_seconds": 899}, privacy_attestation.Invalid("privacy_attestation_stale_or_future")]
+                         if expires_after_first else [{"age_seconds": 1}] * 5)
+            with patch.object(persist, "WORKER_ROOT", str(self.root.resolve())), \
+                 patch.object(persist.socket, "gethostname", return_value=persist.WORKER_HOSTNAME), \
+                 patch.object(persist, "write_report"), \
+                 patch.object(persist, "privacy_observations", return_value={"independent_privacy_proof": False}), \
+                 patch.object(privacy_attestation, "load_bound", return_value=data), \
+                 patch.object(privacy_attestation, "validate", side_effect=freshness) as validate, \
+                 patch.object(persist, "persist_one", return_value={"remote_content_verified": True}) as operation:
+                if expires_after_first:
+                    with self.assertRaisesRegex(persist.Invalid, "stale_or_future"):
+                        persist.run(args, report, io.StringIO(), make_client=Mock())
+                    self.assertEqual(operation.call_count, 1)
+                    self.assertEqual(report["external_model_files"], {})
+                else:
+                    self.assertEqual(persist.run(args, report, io.StringIO(), make_client=Mock()), 0)
+                    self.assertEqual(operation.call_count, 5)
+                    self.assertEqual(validate.call_count, 5)
+                    self.assertTrue(report["privacy_proof"]["attestation_used"])
 
     def test_plan_only_writes_nonconsumable_proposal_without_sdk(self):
         output = self.root / "report.json"
