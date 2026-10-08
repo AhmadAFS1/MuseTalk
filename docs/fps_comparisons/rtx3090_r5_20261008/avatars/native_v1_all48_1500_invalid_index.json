@@ -1,0 +1,32 @@
+{
+  "schema": "production_pose_attempt_index_v1",
+  "candidate": "native_sm86_r5_v1",
+  "status": "INVALID",
+  "selected_poses": 48,
+  "completed_poses": 48,
+  "counts": {"PASS": 32, "FAIL": 0, "INVALID": 16},
+  "invalid_pose_group": "All 16 smiling poses",
+  "reason": "Adapter required 240 original source-video frames instead of validating the existing canonical forward/reverse saved cache cycle",
+  "raw_report": {
+    "operator_filename": "native_v1_all48_1500_invalid_report.json",
+    "worker_path": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_1500/report.json",
+    "bytes": 5481669,
+    "sha256": "28fc6103829b3f6f26f0fc671cccc28a6c762c75deffedec4331426e73c9cd8d",
+    "copied_off_worker": true,
+    "private_s3_persistence": "PENDING; do not treat worker storage as durable",
+    "git_payload_included": false
+  },
+  "executed_adapter_sha256": "8ac964808fa7caa3368ebb6cffa103ccf6d0509935d94d883ca8064ea70f2d9e",
+  "corrected_adapter_sha256": "4aedb2708ead0caa0f8a30cc693695413b269048034180f7ab62310ae74a3964",
+  "correction": "Require cache_cycle_count == 2 * positive original source_frame_count and at least 240 cached frames, while preserving 512x896, 24fps, and saved indices 0..239",
+  "reference_bounds_changed": false,
+  "new_frames_created_or_latents_reencoded": false,
+  "visual_review_status": "NOT_PERFORMED_FOR_THIS_ATTEMPT",
+  "release_ready": false,
+  "native_quality_rejection_waived": false,
+  "retry": {
+    "operator_session_id": 13084,
+    "out": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523",
+    "status_at_launch": "RUNNING; new output, old attempt preserved"
+  }
+}

@@ -40,7 +40,9 @@
     "All48 production-cache CPU content audits completed PASS at14:42:56; source videos, PNGs and safe CPU latent shape/finiteness verified, encoder provenance unavailable",
     "All five private objects verified by actual image parallel fetch at14:44:55; complete SHA/size, stable HEAD versions, no cloud mutation; timings are diagnostic, not startup acceptance",
     "Required pose runtime/audio/Whisper inputs already covered by original878-file frozen manifest; all20 needed files verified without changing references",
-    "Corrected venv interpreter handling in pose adapter; real240-frame Maya talking render recipe checks PASS and six original-resolution samples directly inspected as partial evidence only"
+    "Corrected venv interpreter handling in pose adapter; real240-frame Maya talking render recipe checks PASS and six original-resolution samples directly inspected as partial evidence only",
+    "First full48 render attempt terminalINVALID32PASS/16smilingINVALID preserved off-worker; corrected forward/reverse cache-cycle adapter copied only after GPU child ended and SHA verified",
+    "Corrected full48 attempt reached8/48PASS at15:26UTC, including Maya smiling158sourceframes/316savedcycleframes; visual/native numerical acceptance remains separate"
   ],
   "budget": {
     "currency": "USD",
@@ -85,7 +87,7 @@
       "readiness": "Verified portable health, one avatar warm, local media smoke; no EC2 usable-call proof",
       "development_measurement_revision": "aa1a531cabe60ce9faec45b39372db2d61ef69e9",
       "native_preparation_revision": "8112888",
-      "server_state": "Owned API/TURN drained/stopped; native evaluation and recovered portable control completed; GPU idle during CPU artifact preservation",
+      "server_state": "Owned API/TURN drained/stopped; native evaluation and recovered portable control completed; one guarded untimed production-pose GPU compatibility audit active",
       "provider_status_observed_utc": "2026-10-08T11:17:36.914196+00:00",
       "provider_actual_status": "running",
       "recovery_reboot_sent": false,
@@ -182,11 +184,15 @@
       "delivery_verified": true
     },
     "production_pose_render": {
-      "operator_session_id": 63218,
-      "report": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_1500/report.json",
-      "status": "RUNNING; short smiling source clips hit an overly strict source-length check; no all48PASS claim",
-      "running_adapter_sha256": "8ac964808fa7caa3368ebb6cffa103ccf6d0509935d94d883ca8064ea70f2d9e",
-      "local_adapter_cycle_check_fix_pending_remote": true,
+      "operator_session_id": 13084,
+      "report": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/native_v1_all48_cycle_v2_1523/report.json",
+      "status": "RUNNING; corrected canonical saved-cycle check, new output; first48 attempt terminalINVALID preserved off-worker",
+      "running_adapter_sha256": "4aedb2708ead0caa0f8a30cc693695413b269048034180f7ab62310ae74a3964",
+      "last_observed_utc": "2026-10-08T15:26:01Z",
+      "last_observed_completed": 8,
+      "last_observed_counts": {"PASS": 8, "FAIL": 0, "INVALID": 0},
+      "local_adapter_cycle_check_fix_pending_remote": false,
+      "first_all48_attempt_index": "avatars/native_v1_all48_1500_invalid_index.json",
       "actual_smiling_example": {"source_frames": 158, "source_fps": 24, "existing_forward_reverse_cache_frames": 316},
       "recipe_or_quality_bounds_changed": false,
       "first_attempt_interpreter_failure": "avatars/native_v1_one_pose_1450_invalid.json",
@@ -201,9 +207,11 @@
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
   "quota_checkpoint": {
-    "observed_utc": "2026-10-08T15:03:12Z",
+    "observed_utc": "2026-10-08T15:19:23Z",
     "account_scope": "shared account, not this task",
     "weekly_used_percent_reported": 3,
+    "weekly_remaining_percent_reported": 97,
+    "ordinary_usage_allowed": true,
     "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
     "purchased_credit_balance_reported": "0",
     "free_full_resets_available_reported": 1,
@@ -211,6 +219,6 @@
     "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
     "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
   },
-  "next_action": "Preserve first all48 run, then test corrected existing forward/reverse cache-cycle contract; collect actual Docker layout CI; continue visual/live evidence",
-  "next_command": "Private read session37344 and CPU audit95444 are terminal successful; their small raw reports are local and ready for Git. GPU pose session63218 runs with adapter8ac9648; do not edit its remote adapter or start another GPU job while active. Short smiling clips are24fps/512x896 but158sourceframes/316approved cache frames in the first observed example; a new local adapter check validates2xsourcecount and uses existing saved indices0..239 unchanged. Local16CPU tests pass. Preserve this running attempt and invalid results, then narrow-SCP the reviewed adapter only after it ends, verify SHA and use new output for corrected full48 coverage. Original878 inputs and698 bounds remain unchanged. Docker CI37794887252/ff8b77b is in build after successful Linux contracts; collect actual imports/size/pruning report, do not claim compressed bytes or registry digest. Then safe independent cache copies for local API and staged live capacity tests; human Cognito test account and DockerHub access still unresolved. Native v1 remains numerically/performance rejected. A1 expiry19:00 UTC verifiedactive at14:59."
+  "next_action": "Continue corrected full48 run without concurrent GPU work; prepare independent API cache copies, collect Docker layout CI, then visual/live evidence",
+  "next_command": "GPU pose session13084 uses corrected adapter4aedb27 with a fresh output native_v1_all48_cycle_v2_1523. The prior session63218 ended2 with32PASS/16INVALID; raw5.48MB report was copied off-worker with SHA28fc6103, compact index saved, private S3 raw/media persistence remains pending. No remote adapter edit or second GPU job while13084 active. Original878 inputs and698 bounds remain unchanged. Docker CI37794887252/ff8b77b is in build after successful Linux contracts; collect actual imports/size/pruning report, do not claim compressed bytes or registry digest. Prepare independent hash-verified cache copies for local API, never point the API at immutable audited inputs, then staged live capacity tests. Human Cognito test account and DockerHub access remain unresolved. Native v1 remains numerically/performance rejected. A1 expiry19:00 UTC verifiedactive at14:59. Account usage3%,97%remaining as of15:19, purchasedcredits0, reset1unused; exact remaining tokens unavailable."
 }
