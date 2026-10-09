@@ -85,7 +85,8 @@
     "A2 scheduled non-forced expiry destroyed exact54909897 at23:45:02.396453UTC; service journal finished successfully and independent providerGET23:45:31.937145UTC foundIDabsent. Safe cleanup evidence retained; clearedunits alone notusedasproof. Allfivearchivesprivatelyverifiedbeforeexpiry. NoownedrentedGPU remains, protected4070nottargeted, reservationsunchanged/notactualbilling.",
     "Exact3422312 lightweightLinuxCI37861781743 failed:144PASS,3NumPySKIP,3preservationfixtureERROR; finalTAESDsuite notrun. Tests omittedfixedoperatorROOTmock; unchangedproductionguard correctlyrefusedLinux. Fixture-only repair addswrong-root earlyrefusal;13testsPASSnormal andindependentsyntheticLinuxroot. Nohelper/guard/GPU/cloud/defaultchanges; correctedLinuxCIpending.",
     "Corrected exacte6d38eaf lightweightLinuxCI37862170385 completedSUCCESS23:57:33UTC:165tests,155PASS,10explicitdependencySKIP,0FAIL/ERROR. All13preservationtestsPASS. Skipsnotnumericalproof; actualA2ONNXCPU14PASS remainsseparate. Noheavyworkflow/GPU/cloud/build/publicationactions.",
-    "Fresh sharedaccountusage23:56:56UTC reports32%weeklyused/68%remaining,0purchasedcredits/1unusedfullreset; ordinaryusageallowed. Reset2026-10-15T11:17:04UTC. Notexacttasktokenbalance orcompletionguarantee, notsolelyattributabletothistask. Noreset/purchase."
+    "Fresh sharedaccountusage23:56:56UTC reports32%weeklyused/68%remaining,0purchasedcredits/1unusedfullreset; ordinaryusageallowed. Reset2026-10-15T11:17:04UTC. Notexacttasktokenbalance orcompletionguarantee, notsolelyattributabletothistask. Noreset/purchase.",
+    "Separate default-off FP32finalConv candidatebuilder/explicitverifiedloader prepared00:05UTC, rootandpeerreviewnofindingatfrozenhashes.25CPUcontracts:24PASS/1explicitactualONNXdependencySKIP/0FAIL. AllTRT/CUDA actionsmocked. Exactsource/proofregeneration andtruthfulfingerprint required; TF32clear/readback,strongtyped,opt3,batch8,nativenone,freshcache/artifacts,exactdoubleprobes. Canonicalvfd/gates/defaults unchanged; noactualgraphtransformation/GPUengine/engineprecision/quality/FPS result. Futureexplicit scopedchildrouting stillrequired."
   ],
   "budget": {
     "currency": "USD",
@@ -470,6 +471,22 @@
       "small_files_remote_local_sha256_equal": 12,
       "release_quality_accepted": false
     },
+    "taesd_fp32_candidate_runtime": {
+      "status": "PASS_MOCK_CPU_CONTRACTS_GPU_INTEGRATION_UNTESTED",
+      "receipt": "harnesses/taesd_fp32_candidate_runtime_cpu_0005.json",
+      "source": "scripts/repro_3090/taesd_fp32_candidate_runtime.py",
+      "source_sha256": "b4c358d3ebab73db127ea3c6ea69497cd85013e58bd31f3c573a6a9404d22835",
+      "test_sha256": "60836af9d8486bc5a23aa8e3814d5ffd9359ce5d8ee09779f4d56e1b839f0395",
+      "tests_passed": 24,
+      "real_onnx_tests_explicitly_skipped": 1,
+      "default_off_no_registration_autobuild_or_fallback": true,
+      "canonical_vfd_and_gates_unchanged": true,
+      "actual_gpu_engine_built": false,
+      "full_quality_gate_captured": false,
+      "performance_measured": false,
+      "new_linux_ci_outcome": "NOT_YET_OBSERVED",
+      "release_quality_accepted": false
+    },
     "power_and_preservation_cpu_contracts": {
       "status": "PASS_OPERATOR_ONLY",
       "operator_python": "3.12.14",
@@ -805,6 +822,6 @@
     "historical_sla_not_a_new_health_pass": true,
     "quality_bounds_or_400fps_threshold_changed": false
   },
-  "next_action": "Corrected lightweightLinuxCI observedPASS155/165 with10explicitdependencySKIPs; preserve failedCI too. Finish root/peer review andCPUtests ofisolated candidatebuilder/fingerprint/loader before anyGPUtrial; canonicalvfd/gates/manifests remainbyte-identical. A2scheduledexpiry/providerabsence verified; allfiveprivatearchivesPASS. GeometryrepeatPASS is oneidentitydiagnostic only; newcache needsall-six andfullrenderquality. No350Wbenchmark ran duehostpermission4; unchanged300Wreadback is notsuccessfulrestorecommand. Native236/698qualityFAIL and355.4-356.6validFAIL400 remain; noqualitybounds/defaults/productionchanges.",
-  "next_command": "Review/test isolated newprecision APIs, record exactcandidate/source fingerprints andcommit onlyreviewedsmallfiles. Future explicitlauncher mustroute unchangedfullgate/capture children; GPUtests needfresh authorized-cost/identity/ledger/expiry preflight. NoownedtestGPU islive; do not SSHretiredA2 orrerentfromstaleoffers. Registry namespace/login remainsunresolved; optionalnamespacequestion submittedwithoutrequestingsecrets."
+  "next_action": "Isolated candidatebuilder/fingerprint/loader rootandpeerreview complete;25mockCPUtests24PASS/1dependencySKIP. Commit/push exactreviewedsources and observe newlightweightLinuxCI, then implementexplicit scopedchild-specific gate/capture launcher; canonicalvfd/gates/manifests remainbyte-identical. A2scheduledexpiry/providerabsence verified; allfiveprivatearchivesPASS. GeometryrepeatPASS is oneidentitydiagnostic only; newcache needsall-six andfullrenderquality. No350Wbenchmark ran duehostpermission4; unchanged300Wreadback is notsuccessfulrestorecommand. Native236/698qualityFAIL and355.4-356.6validFAIL400 remain; noqualitybounds/defaults/productionchanges.",
+  "next_command": "Commit isolated APIs/CPUproof/testcoverage and inspect exactnewLinuxCI. Designreview scopedlaunchers to route unchangedfullgate/capture children withoutglobal defaults/sitecustomize. GPUtests needfresh authorized-cost/identity/ledger/expiry preflight. NoownedtestGPU islive; do not SSHretiredA2 orrerentfromstaleoffers. Registry namespace/login remainsunresolved; optionalnamespacequestion submittedwithoutrequestingsecrets."
 }

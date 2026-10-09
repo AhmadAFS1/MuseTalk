@@ -32,6 +32,8 @@ on:
       - scripts/repro_3090/test_preserve_a2_evidence.py
       - scripts/repro_3090/taesd_final_conv_fp32.py
       - scripts/repro_3090/test_taesd_final_conv_fp32.py
+      - scripts/repro_3090/taesd_fp32_candidate_runtime.py
+      - scripts/repro_3090/test_taesd_fp32_candidate_runtime.py
 
 permissions:
   contents: read
@@ -75,3 +77,6 @@ jobs:
           # Pure graph/topology tests; real ONNX checks explicitly skip when the
           # package is absent. No engine build or precision acceptance implied.
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_taesd_final_conv_fp32.py -v
+          # Explicit candidate API contracts use mocked TRT/CUDA and synthetic
+          # artifacts only; import never builds, loads or registers a GPU path.
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_taesd_fp32_candidate_runtime.py -v

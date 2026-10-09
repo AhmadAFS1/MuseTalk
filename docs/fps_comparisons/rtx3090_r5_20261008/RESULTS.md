@@ -13,6 +13,23 @@ This is a live evidence index, not a completed release claim. The protected RTX
 | Live delivery / capacity | Both software-H264 profiles N1/N3 strictPASS/N5 validFAIL. NVENC N1FAIL,0hardware opens/18open failures; PyAV/FFmpeg standalone probes alsoFAIL. No accepted capacity or EC2 release claim |
 | Request-to-usable-call startup | Still unmeasured through EC2/TURN. Request-to-verified-health was 1,046.45 s (17m26s), not usable-call readiness |
 
+### 00:05 UTC isolated decoder candidate APIs prepared, not GPU-tested
+
+The separate [FP32 candidate runtime](../../../scripts/repro_3090/taesd_fp32_candidate_runtime.py)
+and [CPU review](harnesses/taesd_fp32_candidate_runtime_cpu_0005.json) are prepared:
+24 mock/stdlib contracts passed and one real-ONNX dependency test explicitly
+skipped locally. Root and independent peer review found no concrete blocker at
+the recorded hashes. Imports are stdlib-only/default-off. The builder requires
+fresh artifacts, strongly typed batch8/opt3/native-none configuration and TF32
+clear/readback; the loader has explicit manifest SHA, regenerated graph/proof,
+plan hashes and exact double probes, without automatic build or fallback.
+Verified source bytes execute directly without a second read or bytecode cache.
+
+Canonical decoder/gate/defaults remain byte-identical. No actual original graph
+has been transformed, engine built, FP32 execution observed, quality gate run,
+or FPS measured for this candidate. The explicit scoped gate/capture launcher
+and fresh owned GPU preflight are still needed; new Linux coverage is pending.
+
 ### 23:46 UTC A2 expiry verified; no rented test GPU remains
 
 The [scheduled-expiry observation](provisioning/a2_expiry_observation_2346.json)
