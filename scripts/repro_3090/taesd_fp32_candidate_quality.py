@@ -20,7 +20,7 @@ import types
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
-RUNTIME_SHA = 'b4c358d3ebab73db127ea3c6ea69497cd85013e58bd31f3c573a6a9404d22835'
+RUNTIME_SHA = 'e348ceb6cc5ca8b3255716da07ca88c04bf46b4a499f04a66f8a7bc540cfc31b'
 PINS = {
     'report': 'a102cb4ebdf7ed2f5e7828f3c061a2a43a6ed870a6a2e7fb72767f51b573ef8d',
     'safe_capture': 'd65738f27337641c2da919a572974f007a1445dfaa88c26d2eb1e6784393182a',

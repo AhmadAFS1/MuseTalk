@@ -16,6 +16,16 @@ import taesd_fp32_candidate_runtime as runtime
 
 PROBE = {'probe_seed': 20260928, 'probe_shape': [8, 4, 32, 32], 'fp16_sha256': 'a' * 64,
          'u8_repo_post_sha256': 'b' * 64, 'u8_fused_sha256': 'b' * 64, 'fused_vs_repo_post_mismatched_bytes': 0}
+INSPECTION = {'Layers': [{'Name': 'final/Conv', 'LayerType': 'CaskConvolution',
+    'Inputs': [{'Name': runtime.PREFIX + 'activation_fp32', 'Format/Datatype': 'Row major linear FP32'}],
+    'Outputs': [{'Name': runtime.PREFIX + 'conv_fp32', 'Format/Datatype': 'Row major linear FP32'}],
+    'TacticName': 'synthetic-not-real-engine'}], 'Bindings': []}
+
+
+def mock_decoder(raw=None, verbosity='DETAILED'):
+    inspector = NS(get_engine_information=lambda fmt: json.dumps(INSPECTION) if raw is None else raw)
+    return NS(context=NS(nvtx_verbosity='DETAILED'),
+              engine=NS(profiling_verbosity=verbosity, create_engine_inspector=lambda: inspector))
 
 
 class Config:
@@ -39,7 +49,9 @@ class Config:
 def trt_constants():
     return NS(BuilderFlag=NS(TF32='TF32', FP16='FP16'), MemoryPoolType=NS(WORKSPACE='WORKSPACE'),
               HardwareCompatibilityLevel=NS(NONE='NONE'), DataType=NS(HALF='HALF', FLOAT='FLOAT'),
-              NetworkDefinitionCreationFlag=NS(STRONGLY_TYPED=1))
+              NetworkDefinitionCreationFlag=NS(STRONGLY_TYPED=1),
+              ProfilingVerbosity=NS(DETAILED='DETAILED', LAYER_NAMES_ONLY='LAYER_NAMES_ONLY'),
+              LayerInformationFormat=NS(JSON='JSON'))
 
 
 class PureContracts(unittest.TestCase):
@@ -87,6 +99,18 @@ class PureContracts(unittest.TestCase):
         self.assertIn(('attach-cache', 'fresh-cache', False), config.calls)
         self.assertEqual(config.hardware_compatibility_level, 'NONE')
         self.assertEqual(config.builder_optimization_level, 3)
+        self.assertEqual(config.profiling_verbosity, 'DETAILED')
+
+    def test_detailed_profiling_refusal_fails_closed(self):
+        class RefusingConfig(Config):
+            @property
+            def profiling_verbosity(self):
+                return 'LAYER_NAMES_ONLY'
+            @profiling_verbosity.setter
+            def profiling_verbosity(self, value):
+                pass
+        with self.assertRaisesRegex(runtime.CandidateRejected, 'detailed_profiling_readback'):
+            runtime.configure_builder(trt_constants(), RefusingConfig())
 
     def test_tf32_refusal_or_fp16_flag_fails_closed(self):
         config = Config(); config.clear_flag = lambda flag: None
@@ -141,6 +165,32 @@ class PureContracts(unittest.TestCase):
                 runtime._gpu_dependencies('cuda:0')
         module.assert_not_called()
 
+    def test_engine_inspector_unavailable_wrong_verbosity_or_invalid_json_rejected(self):
+        trt = trt_constants()
+        for decoder, reason in ((mock_decoder(verbosity='LAYER_NAMES_ONLY'), 'engine_detailed_profiling'),
+                                (mock_decoder(raw=b'not-text'), 'inspector_body_not_text')):
+            decoder.context.nvtx_verbosity = 'LAYER_NAMES_ONLY'
+            with self.assertRaisesRegex(runtime.CandidateRejected, reason):
+                runtime.capture_decoder_inspection(trt, NS(decoder_engine=decoder))
+        decoder = mock_decoder(); decoder.context.nvtx_verbosity = 'LAYER_NAMES_ONLY'
+        decoder.engine.create_engine_inspector = lambda: None
+        with self.assertRaisesRegex(runtime.CandidateRejected, 'engine_inspector_unavailable'):
+            runtime.capture_decoder_inspection(trt, NS(decoder_engine=decoder))
+
+    def test_fp32_tensor_formats_never_claim_compute_precision(self):
+        lineage = {'candidate_sha256': 'a' * 64, 'proof_sha256': 'b' * 64,
+            'proof': {'target': {'node_name': 'final/Conv', 'original_input_names': ['activation', 'weight'],
+                                 'original_output_names': ['decoded']}}}
+        summary = runtime.inspection_summary(runtime.json_bytes(INSPECTION), lineage, 'c' * 64)
+        self.assertEqual(summary['source_target_matching_layer_indices'], [0])
+        self.assertFalse(summary['final_conv_compute_fp32_verified'])
+        self.assertEqual(summary['observed_precision_status'], 'UNPROVEN_COMPUTE_PRECISION_FROM_ENGINE_INSPECTOR')
+        for raw, reason in ((b'not-json', 'invalid_json'), (b'{"Layers":[]}', 'detailed_layers'),
+                            (b'{"Layers":[{"Name":"only name"}]}', 'detailed_parameters'),
+                            (b'{"Layers":[{"Name":null,"LayerType":"Conv"}]}', 'layer_record')):
+            with self.assertRaisesRegex(runtime.CandidateRejected, reason):
+                runtime.inspection_summary(raw, lineage, 'c' * 64)
+
 
 class SyntheticArtifactContracts(unittest.TestCase):
     """Explicit synthetic source pin and transformer mocks; NOT actual model proof."""
@@ -152,7 +202,8 @@ class SyntheticArtifactContracts(unittest.TestCase):
         pin = patch.object(runtime, 'SOURCE_SHA256', runtime.sha(self.source)); pin.start(); self.addCleanup(pin.stop)
         self.proof = {'recipe': runtime.RECIPE, 'source_sha256': runtime.SOURCE_SHA256,
                       'transformed_sha256': runtime.sha(self.candidate),
-                      'target': {'original_output_names': ['decoded']}}
+                      'target': {'node_name': 'final/Conv', 'original_input_names': ['activation', 'weight'],
+                                 'original_output_names': ['decoded']}}
         self.paths = {}
         for name, data in [('source', self.source), ('candidate', self.candidate), ('proof', runtime.json_bytes(self.proof))]:
             path = self.root / name; path.write_bytes(data); self.paths[name] = path
@@ -163,12 +214,16 @@ class SyntheticArtifactContracts(unittest.TestCase):
         self.probes = [copy.deepcopy(PROBE)]
         self.fused = True
         self.backend = None
+        self.decoder = mock_decoder()
+        self.post = mock_decoder(verbosity='LAYER_NAMES_ONLY')
         def backend(*args, **kwargs):
             obj = NS(meta=kwargs['meta'], fused_post_enabled=self.fused,
+                     decoder_engine=args[0], post_engine=args[1],
                      probe_hashes=lambda: copy.deepcopy(self.probes.pop(0) if len(self.probes) > 1 else self.probes[0]))
             self.backend = obj
             return obj
-        self.vfd = NS(_TrtEngine=lambda data, label: NS(data=data), TaesdTrtBackend=backend,
+        self.vfd = NS(_TrtEngine=lambda data, label: self.decoder if data == b'synthetic-decoder' else self.post,
+                      TaesdTrtBackend=backend,
                       build_bgr_u8_post_plan=Mock(return_value=b'synthetic-post'),
                       export_taesd_decoder_onnx=Mock(return_value=self.source))
         self.gpu_patch = patch.object(runtime, '_gpu_dependencies', return_value=(NS(float16='float16'), trt_constants(), self.vfd, dict(runtime.RUNTIME)))
@@ -215,6 +270,13 @@ class SyntheticArtifactContracts(unittest.TestCase):
         meta = runtime.parse_json(Path(record['manifest_path']).read_bytes())
         self.assertEqual(meta['fingerprint']['precision'], 'fp16_with_final_conv_fp32')
         self.assertFalse(meta['fingerprint']['tf32']); self.assertTrue(meta['fingerprint']['strongly_typed'])
+        self.assertEqual(meta['fingerprint']['profiling_verbosity'], 'DETAILED')
+        self.assertEqual(meta['fingerprint']['decoder_runtime_nvtx_verbosity'], 'LAYER_NAMES_ONLY')
+        self.assertEqual(self.decoder.context.nvtx_verbosity, 'LAYER_NAMES_ONLY')
+        self.assertEqual(self.post.context.nvtx_verbosity, 'DETAILED')  # unchanged canonical post context
+        self.assertFalse(meta['decoder_inspection']['final_conv_compute_fp32_verified'])
+        self.assertEqual(meta['decoder_inspection']['source_semantics']['target_node_name'], 'final/Conv')
+        self.assertEqual((Path(record['manifest_path']).parent / runtime.INSPECTION_NAME).stat().st_mode & 0o777, 0o600)
         self.assertNotEqual(meta['key'], '6a88814164891fd4cd7a')
         self.assertEqual(meta['key'], runtime.key_for(meta['fingerprint']))
         self.assertFalse(record['quality_accepted'] or record['full_gate_captured'] or record['release_ready'])
@@ -251,6 +313,56 @@ class SyntheticArtifactContracts(unittest.TestCase):
         with self.assertRaisesRegex(runtime.CandidateRejected, 'artifact_sha256'):
             self.load(record)
         self.gpu.assert_not_called()
+
+    def test_corrupt_inspector_artifact_never_deserializes(self):
+        record = self.build(); self.gpu.reset_mock()
+        (Path(record['manifest_path']).parent / runtime.INSPECTION_NAME).write_bytes(b'corrupt')
+        with self.assertRaisesRegex(runtime.CandidateRejected, 'artifact_sha256'):
+            self.load(record)
+        self.gpu.assert_not_called()
+
+    def test_inspector_semantics_precision_claim_or_foreign_path_rejected_before_gpu(self):
+        record = self.build(); original = Path(record['manifest_path']).read_bytes()
+        for fn in (lambda m: m['decoder_inspection']['source_semantics'].update(target_node_name='foreign/Conv'),
+                   lambda m: m['decoder_inspection'].update(final_conv_compute_fp32_verified=True),
+                   lambda m: m['decoder_inspection'].update(artifact='../foreign.json'),
+                   lambda m: m['decoder_inspection'].update(decoder_plan_sha256='f' * 64),
+                   lambda m: m['decoder_inspection'].update(bytes=True)):
+            Path(record['manifest_path']).write_bytes(original)
+            modified = self.mutate_meta(record, fn); self.gpu.reset_mock()
+            with self.assertRaises(runtime.CandidateRejected):
+                self.load(modified)
+            self.gpu.assert_not_called()
+
+    def test_loaded_engine_metadata_or_verbosity_change_rejected(self):
+        record = self.build()
+        self.decoder.engine.profiling_verbosity = 'LAYER_NAMES_ONLY'
+        with self.assertRaisesRegex(runtime.CandidateRejected, 'engine_detailed_profiling'):
+            self.load(record)
+        self.decoder.engine.profiling_verbosity = 'DETAILED'
+        self.decoder.engine.create_engine_inspector = lambda: NS(get_engine_information=lambda fmt:
+            json.dumps({'Layers': [{'Name': 'different', 'LayerType': 'CaskConvolution'}]}))
+        with self.assertRaisesRegex(runtime.CandidateRejected, 'loaded_engine_inspection_not_exact'):
+            self.load(record)
+
+    def test_invalid_inspector_body_or_nvtx_refusal_leaves_no_manifest(self):
+        self.decoder = mock_decoder(raw='not-json')
+        with self.assertRaisesRegex(runtime.CandidateRejected, 'invalid_json'):
+            self.build()
+        self.assertEqual(list((self.root / 'fresh').glob('taesd_trt_*.json')), [])
+
+    def test_nvtx_refusal_leaves_no_manifest(self):
+        class Context:
+            @property
+            def nvtx_verbosity(self):
+                return 'DETAILED'
+            @nvtx_verbosity.setter
+            def nvtx_verbosity(self, value):
+                pass
+        self.decoder.context = Context()
+        with self.assertRaisesRegex(runtime.CandidateRejected, 'decoder_nvtx_readback'):
+            self.build()
+        self.assertEqual(list((self.root / 'fresh').glob('taesd_trt_*.json')), [])
 
     def test_mislabeled_precision_and_changed_helper_or_tf32_rejected(self):
         record = self.build(); original = Path(record['manifest_path']).read_bytes()

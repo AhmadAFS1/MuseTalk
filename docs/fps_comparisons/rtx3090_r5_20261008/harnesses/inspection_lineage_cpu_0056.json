@@ -1,0 +1,31 @@
+{
+  "schema": "candidate_inspection_metadata_lineage_cpu_v1",
+  "status": "PASS_CPU_CONTRACTS_ONLY",
+  "started_utc": "2026-10-09T00:56:17.796929+00:00",
+  "finished_utc": "2026-10-09T00:56:26.026490+00:00",
+  "tests_run": 283,
+  "tests_passed": 272,
+  "tests_dependency_skipped": 11,
+  "tests_failed_or_errored": 0,
+  "focused_suites": {
+    "runtime": {"tests": 33, "passes": 32, "real_onnx_dependency_skips": 1},
+    "metadata_lineage": {"tests": 18, "passes": 18},
+    "child": {"tests": 22, "passes": 22},
+    "parent": {"tests": 19, "passes": 19},
+    "startup": {"tests": 26, "passes": 26}
+  },
+  "source_sha256": {
+    "taesd_fp32_candidate_runtime.py": "e348ceb6cc5ca8b3255716da07ca88c04bf46b4a499f04a66f8a7bc540cfc31b",
+    "taesd_fp32_candidate_child.py": "7eef834dd47846ab7083fae06ac2432df9e4a723509d20625a03d351010d7f8f",
+    "taesd_fp32_candidate_quality.py": "d0f6b152639ecfe542accc736a633b4a7132adc6002e9938c2f96131b9e82f0f",
+    "preregister_metadata_quality_lineage.py": "d5036b697c06efedcf95c9e81b99efd61129f0f07be50572f03296fabfc3e1ae"
+  },
+  "review": "Root read complete metadata helper and inspection runtime diff; reran selected workflow suites. Runtime pins updated in both child and parent; original helpers/defaults/698bounds unchanged.",
+  "linux_ci_status": "PENDING_FOR_NEW_REVISION",
+  "actual_metadata_preregistration": false,
+  "actual_candidate_graph_or_gpu_build": false,
+  "engine_compute_precision_verified": false,
+  "quality_accepted": false,
+  "performance_accepted": false,
+  "release_ready": false
+}

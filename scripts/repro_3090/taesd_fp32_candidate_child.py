@@ -28,7 +28,7 @@ import types
 ROOT = Path(__file__).resolve().parents[2]
 VFD_NAME = 'scripts.vae_fast_decoder'
 VFD_SHA = 'aea1eb059085c1799c6162d516d028d385be107c36da8a105fa1f838eb5e9882'
-RUNTIME_SHA = 'b4c358d3ebab73db127ea3c6ea69497cd85013e58bd31f3c573a6a9404d22835'
+RUNTIME_SHA = 'e348ceb6cc5ca8b3255716da07ca88c04bf46b4a499f04a66f8a7bc540cfc31b'
 TARGETS = {
     'gate': ('scripts/repro_400fps/gate_taesd_trt.py', '3baf8976e4fb25a908809e68d6ac126c07ea525baed7475a6443263221e28e99'),
     'render': ('scripts/chin_multistream_render.py', 'df4e290b33d752be82d6d2ab738bc5d3e21aa439ffd05f1c3c852a8af1fd4a29'),

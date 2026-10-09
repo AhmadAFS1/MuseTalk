@@ -1,0 +1,17 @@
+{
+  "schema": "musetalk_experiment_budget_authorization_v1",
+  "total_usd": 30,
+  "max_hourly_usd": 0.30,
+  "planned_lifetime_hours": 2.25,
+  "max_lifetime_hours": 2.25,
+  "approval_reference": "Human approved $30 total including internet costs, each download/upload no more than $1.50/TB; existing GPU hourly ceiling $0.30",
+  "lifetime_enforcer_reference": "EC2 systemd musetalk-r5-3090-dev-20261009-a3-expiry.timer/service; bound resource deadline 2026-10-09T02:45:00+00:00; require active timer and exact ExecStart readback before one create; Restart=on-failure retries non-forced pending cleanup",
+  "resource_deadline_utc": "2026-10-09T02:45:00+00:00",
+  "physical_lifetime_policy": "Deadline caps development work at approximately two hours; 2.25 hours is a conservative reservation including cleanup margin, not a deadline extension",
+  "max_inet_down_usd_per_gb": 0.00146484375,
+  "max_inet_up_usd_per_gb": 0.00146484375,
+  "reserved_inet_down_gb": 100,
+  "reserved_inet_up_gb": 100,
+  "additional_reserve_usd": 1.275,
+  "reservation_not_actual_billed_spend": true
+}

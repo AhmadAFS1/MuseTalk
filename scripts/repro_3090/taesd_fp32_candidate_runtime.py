@@ -32,7 +32,10 @@ PREFIX = '__musetalk_taesd_final_conv_fp32_v1_'
 BUILD_SETTINGS = {'network': 'STRONGLY_TYPED', 'tf32_requested': False, 'tf32_readback': False,
                   'fp16_builder_flag_readback': False, 'optimization_level': 3,
                   'workspace_bytes': 1 << 30, 'hardware_compatibility_level': 'none',
-                  'timing_cache_initial_bytes': 0}
+                  'timing_cache_initial_bytes': 0, 'profiling_verbosity_requested': 'DETAILED',
+                  'profiling_verbosity_readback': 'DETAILED', 'decoder_runtime_nvtx_verbosity': 'LAYER_NAMES_ONLY'}
+INSPECTION_NAME = 'decoder_inspection.json'
+INSPECTION_LIMIT = 8 << 20
 
 
 class CandidateRejected(ValueError):
@@ -153,7 +156,8 @@ def fingerprint(lineage, runtime):
             'latent_shape': INPUT_SHAPE, 'image_shape': OUTPUT_SHAPE,
             'precision': 'fp16_with_final_conv_fp32', 'input_dtype': 'fp16', 'output_dtype': 'fp16',
             'strongly_typed': True, 'tf32': False, 'opt_level': 3,
-            'hardware_compatibility_level': 'none', 'workspace_bytes': 1 << 30}
+            'hardware_compatibility_level': 'none', 'workspace_bytes': 1 << 30,
+            'profiling_verbosity': 'DETAILED', 'decoder_runtime_nvtx_verbosity': 'LAYER_NAMES_ONLY'}
 
 
 def key_for(fp):
@@ -187,8 +191,10 @@ def configure_builder(trt, config):
     config.builder_optimization_level = 3
     config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 1 << 30)
     config.hardware_compatibility_level = trt.HardwareCompatibilityLevel.NONE
+    config.profiling_verbosity = trt.ProfilingVerbosity.DETAILED
     require(config.builder_optimization_level == 3, 'optimization_level_readback_failed')
     require(config.hardware_compatibility_level == trt.HardwareCompatibilityLevel.NONE, 'native_compatibility_readback_failed')
+    require(config.profiling_verbosity == trt.ProfilingVerbosity.DETAILED, 'detailed_profiling_readback_failed')
     cache = config.create_timing_cache(b'')
     require(config.set_timing_cache(cache, ignore_mismatch=False) is True, 'fresh_timing_cache_rejected')
     return dict(BUILD_SETTINGS)
@@ -238,13 +244,91 @@ def validate_probe(probe):
     require(probe['u8_repo_post_sha256'] == probe['u8_fused_sha256'], 'fused_post_probe_hash_mismatch')
 
 
-def _backend(torch, vfd, device, decoder, post, meta, directory, model=None):
+def _backend(torch, trt, vfd, device, decoder, post, meta, directory, model=None):
     backend = vfd.TaesdTrtBackend(vfd._TrtEngine(decoder, 'candidate final-conv fp32 decoder'),
         vfd._TrtEngine(post, 'canonical taesd bgr_u8 post'), device, torch.float16, 8,
         meta=meta, paths={'decoder': directory / meta['decoder_plan'], 'post': directory / meta['post_plan'],
                          'meta': directory / f"taesd_trt_{meta['key']}.json"}, model=model)
     require(backend.fused_post_enabled is True, 'canonical_fused_post_must_be_enabled')
+    # TensorRT 10.3 preserves detailed inspector metadata independently from
+    # runtime NVTX verbosity. Keep the canonical marker level, not DETAILED's
+    # additional enqueue overhead. The unchanged canonical post is untouched.
+    try:
+        backend.decoder_engine.context.nvtx_verbosity = trt.ProfilingVerbosity.LAYER_NAMES_ONLY
+        require(backend.decoder_engine.context.nvtx_verbosity == trt.ProfilingVerbosity.LAYER_NAMES_ONLY,
+                'decoder_nvtx_readback_failed')
+    except CandidateRejected:
+        raise
+    except Exception:
+        raise CandidateRejected('decoder_nvtx_configuration_failed') from None
     return backend
+
+
+def inspection_summary(raw, lineage, decoder_sha256):
+    """Bind captured optimized metadata to checked source semantics, not a claim.
+
+    Tensor format strings/tactic names are observations, not proof of a kernel's
+    arithmetic/accumulation precision. Even a matched FLOAT boundary never turns
+    final_conv_compute_fp32_verified true. The complete raw body is retained for
+    review; missing/fused/unreported internals remain explicitly unproven.
+    """
+    require(isinstance(raw, bytes) and 0 < len(raw) <= INSPECTION_LIMIT, 'inspector_body_size_invalid')
+    body = parse_json(raw)
+    require(isinstance(body, dict) and isinstance(body.get('Layers'), list) and body['Layers'],
+            'inspector_detailed_layers_required')
+    require(all(isinstance(row, dict) and isinstance(row.get('Name'), str) and row['Name']
+                for row in body['Layers']), 'inspector_layer_record_invalid')
+    require(any(isinstance(row.get('LayerType'), str) and row['LayerType'] for row in body['Layers']),
+            'inspector_detailed_parameters_required')
+    target = lineage['proof'].get('target')
+    require(isinstance(target, dict) and isinstance(target.get('node_name'), str)
+            and all(isinstance(target.get(k), list) and target[k]
+                    and all(isinstance(name, str) and name for name in target[k])
+                    for k in ('original_input_names', 'original_output_names')),
+            'inspector_source_semantics_invalid')
+    matches = []
+    for index, row in enumerate(body['Layers']):
+        named = bool(target['node_name']) and target['node_name'] in row['Name'].split(' + ')
+        outputs = row.get('Outputs', [])
+        output_named = isinstance(outputs, list) and any(isinstance(item, dict)
+            and item.get('Name') == PREFIX + 'conv_fp32' for item in outputs)
+        if named or output_named:
+            matches.append(index)
+    return {'schema': 'taesd_fp32_decoder_inspection_v1', 'artifact': INSPECTION_NAME,
+            'sha256': sha(raw), 'bytes': len(raw), 'decoder_plan_sha256': decoder_sha256,
+            'profiling_verbosity': 'DETAILED', 'decoder_runtime_nvtx_verbosity': 'LAYER_NAMES_ONLY',
+            'source_semantics': {'recipe': RECIPE, 'source_onnx_sha256': SOURCE_SHA256,
+                'candidate_onnx_sha256': lineage['candidate_sha256'],
+                'transformation_receipt_sha256': lineage['proof_sha256'],
+                'target_node_name': target['node_name'], 'original_input_names': target['original_input_names'],
+                'original_output_names': target['original_output_names'],
+                'island_activation_tensor': PREFIX + 'activation_fp32',
+                'island_conv_tensor': PREFIX + 'conv_fp32'},
+            'layer_count': len(body['Layers']), 'source_target_matching_layer_indices': matches,
+            'observed_precision_status': 'UNPROVEN_COMPUTE_PRECISION_FROM_ENGINE_INSPECTOR',
+            'final_conv_compute_fp32_verified': False}
+
+
+def capture_decoder_inspection(trt, backend):
+    """Observe the deserialized candidate decoder; never inspect/build the post."""
+    try:
+        engine = backend.decoder_engine.engine
+        require(engine.profiling_verbosity == trt.ProfilingVerbosity.DETAILED,
+                'engine_detailed_profiling_required')
+        require(backend.decoder_engine.context.nvtx_verbosity == trt.ProfilingVerbosity.LAYER_NAMES_ONLY,
+                'decoder_nvtx_readback_failed')
+        inspector = engine.create_engine_inspector()
+        require(inspector is not None, 'engine_inspector_unavailable')
+        inspector.execution_context = backend.decoder_engine.context
+        raw = inspector.get_engine_information(trt.LayerInformationFormat.JSON)
+        require(isinstance(raw, str), 'inspector_body_not_text')
+        encoded = raw.encode('utf-8')
+        require(0 < len(encoded) <= INSPECTION_LIMIT, 'inspector_body_size_invalid')
+        return encoded
+    except CandidateRejected:
+        raise
+    except Exception:
+        raise CandidateRejected('engine_inspection_failed') from None
 
 
 def _write_new(path, data):
@@ -286,14 +370,17 @@ def build_candidate(*, source_path, candidate_path, proof_path, expected_candida
                   'timing_cache_sha256': sha(cache), 'timing_cache_bytes': len(cache)},
         'status': 'BUILD_AND_PROBE_ONLY_QUALITY_UNTESTED', 'quality_accepted': False,
         'full_gate_captured': False, 'performance_measured': False, 'default_selection_changed': False, 'release_ready': False}
-    backend = _backend(torch, vfd, device, decoder, post, meta, directory)
+    backend = _backend(torch, trt, vfd, device, decoder, post, meta, directory)
+    inspection = capture_decoder_inspection(trt, backend)
+    meta['decoder_inspection'] = inspection_summary(inspection, lineage, sha(decoder))
     first = backend.probe_hashes()
     validate_probe(first)
     second = backend.probe_hashes()
     validate_probe(second)
     require(first == second, 'build_probe_not_deterministic')
     meta['probe'] = first
-    for name, data in ((meta['decoder_plan'], decoder), (meta['post_plan'], post), ('candidate_timing.cache', cache)):
+    for name, data in ((meta['decoder_plan'], decoder), (meta['post_plan'], post), ('candidate_timing.cache', cache),
+                       (INSPECTION_NAME, inspection)):
         _write_new(directory / name, data)
     encoded = json_bytes(meta)
     manifest = directory / f'taesd_trt_{key}.json'
@@ -310,7 +397,8 @@ def load_candidate(*, manifest_path, expected_manifest_sha256, device, model=Non
     meta = parse_json(raw)
     required = {'schema', 'key', 'fingerprint', 'decoder_plan', 'decoder_plan_sha256', 'decoder_plan_bytes',
         'post_plan', 'post_plan_sha256', 'post_plan_bytes', 'source_artifacts', 'build', 'probe', 'status',
-        'quality_accepted', 'full_gate_captured', 'performance_measured', 'default_selection_changed', 'release_ready'}
+        'quality_accepted', 'full_gate_captured', 'performance_measured', 'default_selection_changed', 'release_ready',
+        'decoder_inspection'}
     require(isinstance(meta, dict) and set(meta) == required and meta['schema'] == SCHEMA, 'candidate_manifest_schema_mismatch')
     require(meta['status'] == 'BUILD_AND_PROBE_ONLY_QUALITY_UNTESTED'
             and all(meta[k] is False for k in ('quality_accepted', 'full_gate_captured', 'performance_measured',
@@ -347,13 +435,24 @@ def load_candidate(*, manifest_path, expected_manifest_sha256, device, model=Non
         plans[kind] = checked_bytes(directory / name, meta[kind + '_plan_sha256'], 128 << 20)
         require(type(meta[kind + '_plan_bytes']) is int and len(plans[kind]) == meta[kind + '_plan_bytes'], 'plan_size_mismatch')
     validate_probe(meta['probe'])
+    inspection_record = meta['decoder_inspection']
+    require(isinstance(inspection_record, dict) and inspection_record.get('artifact') == INSPECTION_NAME,
+            'inspector_artifact_record_invalid')
+    inspection = checked_bytes(directory / INSPECTION_NAME, inspection_record.get('sha256'), INSPECTION_LIMIT)
+    require(json_bytes(inspection_record) == json_bytes(inspection_summary(inspection, lineage,
+            meta['decoder_plan_sha256'])), 'inspector_record_or_semantics_mismatch')
     # No heavy imports/GPU action until all static artifacts have passed.
-    torch, _trt, vfd, runtime = _gpu_dependencies(device)
+    torch, trt, vfd, runtime = _gpu_dependencies(device)
     require(runtime == meta['build']['runtime'], 'loaded_runtime_changed')
     if model is not None:
         original = vfd.export_taesd_decoder_onnx(model, 8, device)
         require(sha(original) == SOURCE_SHA256, 'reference_model_export_mismatch')
-    backend = _backend(torch, vfd, device, plans['decoder'], plans['post'], meta, directory, model)
+    backend = _backend(torch, trt, vfd, device, plans['decoder'], plans['post'], meta, directory, model)
+    observed_inspection = capture_decoder_inspection(trt, backend)
+    require(json_bytes(parse_json(observed_inspection)) == json_bytes(parse_json(inspection)),
+            'loaded_engine_inspection_not_exact')
+    require(json_bytes(inspection_summary(observed_inspection, lineage, meta['decoder_plan_sha256']))
+            == json_bytes(inspection_record), 'loaded_engine_inspection_record_mismatch')
     actual = backend.probe_hashes()
     validate_probe(actual)
     require(actual == meta['probe'], 'loaded_probe_not_exact')
