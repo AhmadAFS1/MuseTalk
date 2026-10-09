@@ -783,3 +783,35 @@ identifies it. MPS exclusion, exact UUID binding, parent acknowledgment, child
 lifetime binding, and continuous foreign-process rejection are required. It
 will not replace the original watchdog or initialize CUDA in CPU-spawn workers.
 This design is not yet an actual GPU ownership, quality, or performance pass.
+
+## October 9, 01:46 UTC checkpoint
+
+The default-off single-leaf watcher passed 20 CPU tests and independent review.
+Actual A3 execution then bound container PID10503 to NVML host PID727877 through
+a retained CUDA allocation, exact GPU UUID, complete singleton enumeration,
+private MPS exclusion and parent acknowledgments. The guarded build completed
+with exit0 and OOM0->0 at01:44:12UTC. The original watchdog remains unchanged.
+
+The fresh final-Conv FP32 graph candidate has key6dc9e3fa6d5f9b9eeeaf and manifest
+SHAce10ce170e3311bbd9013a9585597a610adc8d279edf5df38c0a29bf9608487f.
+Canonical source export SHA and the narrowly scoped graph transformation match
+their preregistered identities. Actual arithmetic precision is not established
+merely by graph tensor formats or engine-inspector labels.
+
+The full448-file/3584-frame decoder gate is running, after another complete
+metadata-ancestry verification. Original strict thresholds and all698 frozen
+bounds remain unchanged. No decoder-quality, full-recipe400FPS, image release,
+or startup-SLA acceptance follows from the successful build/probes.
+
+At01:46:25UTC the full decoder gate completed with preserved strict exit1:
+max5LSB, mean0.05141798655192057LSB, all3584 frames and hard bit-exact/batching/
+dispatch checks passed. The unchanged frozen88 decoder bounds reject three
+per-avatar maxima: Middle Eastern4>3, South Asian4>3 and guided Latina5>4.
+The candidate remains rejected; full698 was not assessed. The inspected saved
+worst-frame strip shows small distributed pixel differences, not a reason to
+waive the numerical bounds or claim all-avatar motion validation.
+
+The guarded native-v1 serial T2 benchmark is running on the actual420W host,
+with canonical six-avatar composition, loops24, at least60-second windows and
+120-second thermal preconditioning. This isolates host capability; nativev1's
+existing quality rejection remains in force even if throughput improves.

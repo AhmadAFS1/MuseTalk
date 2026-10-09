@@ -1,0 +1,39 @@
+{
+  "candidate_attempts": 1,
+  "candidate_calls": 1,
+  "candidate_key": "6dc9e3fa6d5f9b9eeeaf",
+  "canonical_vfd_sha256": "aea1eb059085c1799c6162d516d028d385be107c36da8a105fa1f838eb5e9882",
+  "decoder_plan_sha256": "80bd48e876801163cbd53df5dae188f39993b0bf376729b0f3a941ae6ae3d6bb",
+  "finished_utc": "2026-10-09T01:46:24.639341+00:00",
+  "invocations": [
+    {
+      "candidate_key": "6dc9e3fa6d5f9b9eeeaf",
+      "decoder_plan_sha256": "80bd48e876801163cbd53df5dae188f39993b0bf376729b0f3a941ae6ae3d6bb",
+      "device": "cuda:0",
+      "dtype": "torch.float16",
+      "manifest_sha256": "ce10ce170e3311bbd9013a9585597a610adc8d279edf5df38c0a29bf9608487f",
+      "post_plan_sha256": "2843888aa5a7adcf52e4cfcae059c7da14b627d898d03c198907d5208ea765fa",
+      "reference_model_supplied": true
+    }
+  ],
+  "manifest_sha256": "ce10ce170e3311bbd9013a9585597a610adc8d279edf5df38c0a29bf9608487f",
+  "performance_accepted": false,
+  "post_plan_sha256": "2843888aa5a7adcf52e4cfcae059c7da14b627d898d03c198907d5208ea765fa",
+  "quality_accepted": false,
+  "release_ready": false,
+  "returncode": 1,
+  "runtime_helper_sha256": "e348ceb6cc5ca8b3255716da07ca88c04bf46b4a499f04a66f8a7bc540cfc31b",
+  "schema": "taesd_fp32_candidate_child_v1",
+  "started_utc": "2026-10-09T01:45:55.165978+00:00",
+  "status": "failed",
+  "target": "gate",
+  "target_returncode": 1,
+  "target_sha256": "3baf8976e4fb25a908809e68d6ac126c07ea525baed7475a6443263221e28e99",
+  "workload": {
+    "corpus_path": "/workspace/MuseTalk/calibration/unet_multi_avatar_20260928",
+    "files_expected": 448,
+    "frames_expected": 3584,
+    "holdout_files_expected": 96,
+    "main_files_expected": 352
+  }
+}

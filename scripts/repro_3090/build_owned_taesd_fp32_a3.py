@@ -11,8 +11,8 @@ import sys
 import types
 
 ROOT = Path('/workspace/MuseTalk')
-OUT = ROOT / 'docs/fps_comparisons/rtx3090_r5_20261008/native/a3_taesd_fp32_0110'
-ENGINE = ROOT / 'models/taesd/trt_native_sm86_fp32_final_conv_a3_0110'
+OUT = ROOT / 'docs/fps_comparisons/rtx3090_r5_20261008/native/a3_taesd_fp32_0132'
+ENGINE = ROOT / 'models/taesd/trt_native_sm86_fp32_final_conv_a3_0132'
 DEADLINE = dt.datetime(2026, 10, 9, 2, 45, tzinfo=dt.timezone.utc)
 RUNTIME_SHA = 'e348ceb6cc5ca8b3255716da07ca88c04bf46b4a499f04a66f8a7bc540cfc31b'
 

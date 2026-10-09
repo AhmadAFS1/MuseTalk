@@ -1,0 +1,177 @@
+{
+  "builder_source_sha256": "d0d8d7b0599d3ced8d09dead25b5488c66d7fb5fb4690fbac26b8a640929b058",
+  "candidate": {
+    "full_gate_captured": false,
+    "key": "6dc9e3fa6d5f9b9eeeaf",
+    "manifest_path": "/workspace/MuseTalk/models/taesd/trt_native_sm86_fp32_final_conv_a3_0132/taesd_trt_6dc9e3fa6d5f9b9eeeaf.json",
+    "manifest_sha256": "ce10ce170e3311bbd9013a9585597a610adc8d279edf5df38c0a29bf9608487f",
+    "quality_accepted": false,
+    "release_ready": false
+  },
+  "cpu_affinity": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "default_selection_changed": false,
+  "engine_dir": "/workspace/MuseTalk/models/taesd/trt_native_sm86_fp32_final_conv_a3_0132",
+  "finished_utc": "2026-10-09T01:44:11.839990+00:00",
+  "gpu_uuid": "GPU-ea6411bc-775f-6685-f1a4-28b6b4011a3d",
+  "hostname": "1e7c09cffcb3",
+  "instance_id": 54939993,
+  "mutation": {
+    "default_selection_changed": false,
+    "mutation": {
+      "added_cast_nodes": 2,
+      "added_value_annotations": 2,
+      "all_other_protobuf_fields_unchanged": true,
+      "existing_constants_other_than_target_parameters_unchanged": true,
+      "promoted_initializers": 2,
+      "rewired_conv_nodes": 1
+    },
+    "numpy_version": "1.23.5",
+    "onnx_version": "1.17.0",
+    "parameters": [
+      {
+        "fp16_roundtrip_bit_exact": true,
+        "name": "model.decoder.layers.18.weight",
+        "promoted_fp32_value_bytes_sha256": "6ffb687dc4b8125ba1679789d565aa62b0ae7847bb04579ff0776710d2315b2c",
+        "shape": [
+          3,
+          64,
+          3,
+          3
+        ],
+        "source_dtype": "FLOAT16",
+        "source_fp16_value_bytes_sha256": "d4a39e6be48153770db23dfc13e3cfcea99a5a74e159b4bd1f9165f8943a5938",
+        "source_initializer_sha256": "46403336b6e7167b764243bf1299b7761899a34756ea17a2befb1647759568f7",
+        "target_dtype": "FLOAT",
+        "target_initializer_sha256": "24a0ab6277931944c87b51d24ae64fe42386d05110cb6860feca2271fc3ec9ec"
+      },
+      {
+        "fp16_roundtrip_bit_exact": true,
+        "name": "model.decoder.layers.18.bias",
+        "promoted_fp32_value_bytes_sha256": "5184de162730c4bc1964ff1883ace54358715455ed1fbb780892d2b806fc4a9a",
+        "shape": [
+          3
+        ],
+        "source_dtype": "FLOAT16",
+        "source_fp16_value_bytes_sha256": "f4eb4bf0047daff937b1a7f5dff488600091f02db399757b37d651d2ddbf2869",
+        "source_initializer_sha256": "f92fd6e51968ef6c5d664737b31612d0ab4e5c4b2efdb250d06078821e58920f",
+        "target_dtype": "FLOAT",
+        "target_initializer_sha256": "95ae1e7bd9d093f9f4cae62f5e10b611dd666da887b9f3f3830dbf31bff508e4"
+      }
+    ],
+    "performance_measured": false,
+    "proof": {
+      "candidate_checker": true,
+      "exactly_one_final_conv": true,
+      "fp16_input_shape": [
+        8,
+        4,
+        32,
+        32
+      ],
+      "fp16_output_shape": [
+        8,
+        3,
+        256,
+        256
+      ],
+      "no_downstream_conv": true,
+      "source_checker": true,
+      "strict_shape_inference": true
+    },
+    "quality_accepted": false,
+    "recipe": "taesd_final_conv_fp32_island_v1",
+    "release_ready": false,
+    "required_future_builder": {
+      "batch": 8,
+      "fresh_engine_directory_and_fingerprint": true,
+      "hardware_compatibility": "none",
+      "optimization_level": 3,
+      "strongly_typed": true,
+      "tf32_disabled": true
+    },
+    "schema": "taesd_final_conv_fp32_mutation_v1",
+    "source_bytes": 2468462,
+    "source_parsed_proto_sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb",
+    "source_sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb",
+    "status": "GRAPH_TRANSFORM_VERIFIED_NOT_ENGINE_OR_QUALITY_ACCEPTANCE",
+    "target": {
+      "downstream_node_indices": [
+        88,
+        90,
+        92,
+        94,
+        97
+      ],
+      "node_name": "/decoder/layers/layers.18/Conv",
+      "original_input_names": [
+        "/decoder/layers/layers.17/fuse/Relu_output_0",
+        "model.decoder.layers.18.weight",
+        "model.decoder.layers.18.bias"
+      ],
+      "original_output_names": [
+        "/decoder/layers/layers.18/Conv_output_0"
+      ],
+      "output_reachable_conv_count": 35,
+      "parameter_names": [
+        "model.decoder.layers.18.weight",
+        "model.decoder.layers.18.bias"
+      ],
+      "source_node_sha256": "12999113c5d4cef746513ee96cd02b4ae84435302434237664e18e18e1350a4b",
+      "target_index": 86
+    },
+    "tensorrt_precision_verified": false,
+    "transformed_bytes": 2472411,
+    "transformed_sha256": "57063f561a8d4c448096abc3d159361cfe93ff83c781897d4f208f8f12215e81",
+    "weights_identity_scope": "embedded already-rounded FP16 ONNX values; original checkpoint not independently hashed here"
+  },
+  "observed_gpu": "NVIDIA GeForce RTX 3090, GPU-ea6411bc-775f-6685-f1a4-28b6b4011a3d, 8.6, 24576 MiB, 595.91.07, 420.00 W, 210 MHz, 405 MHz, 37",
+  "performance_measured": false,
+  "quality_accepted": false,
+  "release_ready": false,
+  "runtime": {
+    "compute_capability": "8.6",
+    "cuda": "12.1",
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "tensorrt": "10.3.0",
+    "torch": "2.5.1+cu121"
+  },
+  "runtime_source_sha256": "e348ceb6cc5ca8b3255716da07ca88c04bf46b4a499f04a66f8a7bc540cfc31b",
+  "schema": "owned_a3_taesd_fp32_build_v1",
+  "source_revision": "2bd91269a3336d7db93057f80d1392a631309e03",
+  "started_utc": "2026-10-09T01:43:58.997181+00:00",
+  "status": "BUILD_AND_PROBE_COMPLETE_QUALITY_AND_PERFORMANCE_PENDING",
+  "tracked_source_status": "M scripts/chin_multistream/worker.py"
+}
