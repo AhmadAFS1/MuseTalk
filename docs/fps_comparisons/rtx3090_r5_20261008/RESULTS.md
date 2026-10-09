@@ -900,3 +900,23 @@ were not assessed. Frozen bounds remain unchanged; no candidate was promoted.
 The last account-usage checkpoint at02:51UTC reported58% weekly used/42% remaining,
 shared across the account, with no reset or purchased credit used. It is not a
 guarantee that the whole remaining goal fits the available quota.
+
+## October 9, 03:15 UTC — bounded UNet diagnosis prepared
+
+Committed/pushed A3 evidence at4713b87. The fresh offer search did not include
+the420W machine143947. No replacement was purchased from that failed preflight.
+The shared budget remains14.717528211805556USD reserved against30USD authorized;
+this is a conservative reservation, not confirmed provider billing.
+
+Three fixed literal-plan overlays are preregistered before any GPU evaluation:
+portable prefix; portable prefix+down0rest; and portable core with native up3.
+They preserve plan bytes, precision and block-interface provenance and require
+fresh on-device finalization/probes. The time-embedding/graph lead remains a
+hypothesis, not a cause or fix. No candidate output or quality pass exists yet.
+
+The exact-allocation wrapper retains the reviewed single-leaf CUDA/NVML protocol
+and binds a new instance/hostname/GPU/deadline through an explicit descriptor
+hash. The quality launcher accepts that same binding and metadata-only lineage,
+retains all numerical thresholds, and bounds cleanup on child timeouts. Eighteen
+new synthetic CPU contracts pass (80 focused contracts total). These do not prove
+actual new-host CUDA ownership, model loading, quality or throughput.

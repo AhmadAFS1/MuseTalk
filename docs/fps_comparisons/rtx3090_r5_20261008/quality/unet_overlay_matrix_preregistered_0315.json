@@ -1,0 +1,47 @@
+{
+  "schema": "unet_literal_overlay_diagnostic_preregistration_v1",
+  "preregistered_utc": "2026-10-09T03:15:26Z",
+  "state": "CPU_PREPARED_GPU_NOT_RUN",
+  "native_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+  "portable_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b",
+  "frozen_original_envelope_sha256": "8c2c25961109171f5bd18f88d3bf9f0433b9cba31e48f19869cd75a25e7471e4",
+  "source_pins": {
+    "unet_plan_overlay.py": "3c84b305e9906151dadc7d4985f6ee94ac641924d48684251a7f8678d7deaf1f",
+    "watch_owned_single_leaf_target.py": "e4e429e0dd2a42cbc1b5791a26eb8361a2c0dcd5fa6c5af320c7bcf8ffa0d4f9",
+    "run_owned_unet_overlay.py": "c5d318f664ccd7bb632c9c99526f5451745b9f2ef68b57aee6035c7ad5a8c7d3",
+    "launch_owned_a3_quality_checks.py": "2a7581a8de9bd4860d33878e82aad6585327356ebd673034d03161b24aefe161"
+  },
+  "variants": [
+    {"name": "portable_prefix", "portable_blocks": ["prefix"], "native_blocks": 10},
+    {"name": "portable_prefix_down0rest", "portable_blocks": ["prefix", "down0rest"], "native_blocks": 9},
+    {"name": "portable_core_native_up3", "portable_blocks": ["prefix", "down0rest", "down1", "down2", "down3", "mid", "up0", "up1", "up2", "tail"], "native_blocks": 1}
+  ],
+  "hypotheses_not_findings": [
+    "Prefix and first-down-path differences may contribute to the native UNet quality gap.",
+    "Portable core with native up3 is a bounded diagnostic control, not a predicted 400FPS solution.",
+    "Ten non-tail source graph hashes differ; the known time-embedding lead has not explained all differences."
+  ],
+  "evaluation": {
+    "fresh_native_device_finalize_probe_required": true,
+    "direct_graph_equality_and_determinism_required": true,
+    "all878_input_lineage_verified_before_gpu": true,
+    "main_grouped_comparisons": 176,
+    "holdout_grouped_comparisons": 48,
+    "original_unet_mae_max": 0.01,
+    "original_unet_max_abs": 0.5,
+    "frozen_unet_bounds": 16,
+    "full698_required_before_selection": true,
+    "portable_decoder_requires_fresh_actual_host_check": true,
+    "no_workload_precision_or_tolerance_changes": true,
+    "T_every_window_fps_min": 400,
+    "SUST_every_window_fps_min": 400,
+    "SUST_windows": 5,
+    "each_measured_window_min_seconds": 60,
+    "thermal_preconditioning_seconds": 120
+  },
+  "cpu_tests": {"new_contracts_passed": 18, "focused_total_passed": 80, "actual_gpu_execution": false},
+  "paid_gpu_allocation_created": false,
+  "quality_accepted": false,
+  "performance_accepted": false,
+  "release_ready": false
+}

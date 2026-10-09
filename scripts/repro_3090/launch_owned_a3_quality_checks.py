@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import socket
 import subprocess
 import sys
@@ -14,6 +15,7 @@ import time
 ROOT = Path('/workspace/MuseTalk')
 BASE = ROOT / 'docs/fps_comparisons/rtx3090_r5_20261008'
 WATCH_SHA = '2f03d2761e6319e27a58917099722bf279ce5d695e4682eaa5637de9d4db737f'
+BOUND_WATCH_SHA = 'e4e429e0dd2a42cbc1b5791a26eb8361a2c0dcd5fa6c5af320c7bcf8ffa0d4f9'
 TARGETS = {'unet': ('scripts/validate_unet_backend.py', '81b74eddf5aaff8348ac27cce67b92763e937e09309762d137062b0a23f1d7a0'),
            'srccache': ('scripts/repro_400fps/srccache_exact.py', '59d27983e85f7c438d655dc4bc6dfc0fa739ac38f8d22482372a48e8e8908895'),
            'taesd': ('scripts/repro_400fps/gate_taesd_trt.py', '3baf8976e4fb25a908809e68d6ac126c07ea525baed7475a6443263221e28e99')}
@@ -34,9 +36,17 @@ def main(argv=None):
     p.add_argument('--taesd-dir', type=Path, required=True)
     p.add_argument('--taesd-key', required=True)
     p.add_argument('--taesd-hardware', choices=('none', 'ampere_plus'), required=True)
+    p.add_argument('--owned-target-json', type=Path)
+    p.add_argument('--owned-target-sha256')
+    p.add_argument('--successor-inputs', type=Path, default=BASE / 'harnesses/quality-inputs-a3-metadata-v1.json')
+    p.add_argument('--successor-envelope', type=Path, default=BASE / 'quality/reference-envelope-a3-metadata-v1.json')
+    p.add_argument('--lineage-receipt', type=Path, default=BASE / 'quality/a3-metadata-lineage-v1.json')
+    p.add_argument('--lineage-receipt-sha256', default='16b252f9006c8888fabe82e026872e998ef4c2e958da8c02db876aa6e13a3bf4')
     a = p.parse_args(argv)
-    if not a.execute or socket.gethostname() != '1e7c09cffcb3':
-        p.error('explicit owned A3 execution required')
+    if not a.execute:
+        p.error('explicit owned execution required')
+    if bool(a.owned_target_json) != bool(a.owned_target_sha256):
+        p.error('exact owned descriptor and hash required together')
     if not re.fullmatch('[a-zA-Z0-9_-]{1,100}', a.label):
         p.error('safe label required')
     here = ROOT / 'scripts/repro_3090'; sys.path.insert(0, str(here))
@@ -47,6 +57,23 @@ def main(argv=None):
     for name, digest in pins.items():
         if hashlib.sha256((here / name).read_bytes()).hexdigest() != digest:
             raise ValueError('source pin mismatch: ' + name)
+    deadline = '2026-10-09T02:45:00Z'
+    watch_prefix = [str(here / 'watch_owned_single_leaf.py')]
+    owned_target = None
+    if a.owned_target_json:
+        bound_path = here / 'watch_owned_single_leaf_target.py'
+        if hashlib.sha256(bound_path.read_bytes()).hexdigest() != BOUND_WATCH_SHA:
+            raise ValueError('bound watch source changed')
+        import watch_owned_single_leaf_target as bound
+        owned_target, end = bound.binding(a.owned_target_json, a.owned_target_sha256)
+        if socket.gethostname() != owned_target['worker_hostname']:
+            raise ValueError('wrong owned hostname')
+        deadline = end.strftime('%Y-%m-%dT%H:%M:%SZ')
+        watch_prefix = [str(bound_path), '--enable', '--owned-target-json', str(a.owned_target_json),
+                        '--owned-target-sha256', a.owned_target_sha256, '--']
+        pins['watch_owned_single_leaf_target.py'] = BOUND_WATCH_SHA
+    elif socket.gethostname() != '1e7c09cffcb3':
+        p.error('owned A3 identity required unless exact new descriptor supplied')
     import runner
     import report as checks
     import preregister_metadata_quality_lineage as lineage
@@ -59,9 +86,9 @@ def main(argv=None):
     for kind in ('decoder', 'post'):
         checks.require(checks.sha256(a.taesd_dir / meta[kind + '_plan']) == meta[kind + '_plan_sha256'], 'corrupt TAESD plan')
     verification = lineage.verify_preregistration(parent_inputs=BASE / 'harnesses/quality-inputs-v1.json',
-        parent_envelope=BASE / 'quality/reference-envelope-v2.json', successor_inputs=BASE / 'harnesses/quality-inputs-a3-metadata-v1.json',
-        successor_envelope=BASE / 'quality/reference-envelope-a3-metadata-v1.json', receipt_path=BASE / 'quality/a3-metadata-lineage-v1.json',
-        expected_receipt_sha256='16b252f9006c8888fabe82e026872e998ef4c2e958da8c02db876aa6e13a3bf4')
+        parent_envelope=BASE / 'quality/reference-envelope-v2.json', successor_inputs=a.successor_inputs,
+        successor_envelope=a.successor_envelope, receipt_path=a.lineage_receipt,
+        expected_receipt_sha256=a.lineage_receipt_sha256)
     os.umask(0o077); out = BASE / 'quality' / a.label; out.mkdir(mode=0o700, exist_ok=False)
     write(out / 'input_lineage_verified.json', {**verification, 'verified_utc': dt.datetime.now(dt.timezone.utc).isoformat()})
     values = runner.profile(here / 'profiles/native.env')
@@ -76,7 +103,7 @@ def main(argv=None):
     env.update(BOX_GUARD_LEASE_FILE='/workspace/.gpu_lease', MUSETALK_REPRO_RUNTIME_ENV=str(profile),
         MUSETALK_REPRO_ACCEPTED='/workspace/experiments/avatar_diversity_20260927', MUSETALK_REPRO_WORKSPACE='/workspace', REPRO_GATE_OUT=str(out / 'taesd'))
     write(out / 'selection.json', {'engine': engine, 'taesd': meta, 'source_pins': pins, 'effective_profile': values,
-        'discarded_ambient_keys': removed, 'quality_accepted': False, 'release_ready': False})
+        'discarded_ambient_keys': removed, 'owned_target': owned_target, 'quality_accepted': False, 'release_ready': False})
     target, target_sha = TARGETS[a.stage]
     calls = []
     corpus = ROOT / 'calibration/unet_multi_avatar_20260928'
@@ -93,18 +120,27 @@ def main(argv=None):
     records = []
     for name, arguments in calls:
         command = ['/bin/bash', 'scripts/box_guard.sh', 'run', '--wait-min', '0', '--min-avail-gb', '8', '--label', a.label + '_' + name,
-            '--', '/workspace/.venvs/musetalk_trt_stagewise/bin/python', str(here / 'watch_owned_single_leaf.py'), '--enable',
+            '--', '/workspace/.venvs/musetalk_trt_stagewise/bin/python', *watch_prefix, '--enable',
             '--out', str(out / (name + '.owned_watch.jsonl')), '--target', str(ROOT / target), '--target-sha256', target_sha,
-            '--deadline-utc', '2026-10-09T02:45:00Z', '--', *arguments]
+            '--deadline-utc', deadline, '--', *arguments]
         start = time.monotonic(); started = dt.datetime.now(dt.timezone.utc).isoformat()
         with (out / (name + '.log')).open('x') as handle:
             run = subprocess.Popen(command, cwd=ROOT, env=env, stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
             print(json.dumps({'status': 'RUNNING', 'stage': name, 'guard_pid': run.pid, 'out': str(out)}), flush=True)
-            rc = run.wait(timeout=600)
+            timed_out = False
+            try:
+                rc = run.wait(timeout=600)
+            except subprocess.TimeoutExpired:
+                timed_out = True; os.killpg(run.pid, signal.SIGTERM)
+                try:
+                    rc = run.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    os.killpg(run.pid, signal.SIGKILL); rc = run.wait(timeout=10)
         record = {'stage': name, 'returncode': rc, 'started_utc': started,
-                  'finished_utc': dt.datetime.now(dt.timezone.utc).isoformat(), 'wall_s': time.monotonic() - start, 'command': command}
+                  'finished_utc': dt.datetime.now(dt.timezone.utc).isoformat(), 'wall_s': time.monotonic() - start, 'command': command,
+                  'timed_out': timed_out}
         write(out / (name + '.child.json'), record); records.append(record)
-        checks.require(rc in (0, 1), 'canonical gate invalid/crashed')
+        checks.require(not timed_out and rc in (0, 1), 'canonical gate invalid/crashed/timed out')
         if a.stage == 'unet':
             summary = checks.read(out / ('unet_' + name + '.json'))['summary']
             checks.require(summary['files'] == (176 if name == 'main' else 48), 'incomplete UNet corpus')
