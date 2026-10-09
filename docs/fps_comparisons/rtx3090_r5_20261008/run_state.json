@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "a4_combined_fp16_rejected_all6_and_engine_deltas_preserved",
+  "phase": "a4_sustained_fail_resource_absent_startup_experiment_cpu_verified",
   "current_experiment": {
     "instance_id": 54957508,
     "source_revision": "5a53ca908b90909621829717b9a36c2d92296771",
@@ -90,6 +90,17 @@
     "engine_delta_private_receipt": "release/a4_private_engine_delta_persistence_0502.json",
     "engine_delta_private_archive_sha256": "5105c5afdcc0e4e1b245cc2ef53f17daaea2d76e848dc66bea3988aaa5ab9b4a",
     "engine_delta_preservation_finished_utc": "2026-10-09T05:05:06.417914+00:00",
+    "native_baseline_SUST_status": "TERMINAL_VALID_FAIL400: five six-avatar windows 253.2502/231.4082/203.6289/203.5024/200.6119 FPS; every window >=60s, after120.1688s thermal preconditioning. Guard child exit0/no timeout, launcher scoring exit1. Exact600clip hash pairs match already rejected native-v1 capture; quality rejection unchanged.",
+    "native_baseline_SUST_finished_utc": "2026-10-09T05:27:25.968063+00:00",
+    "native_baseline_SUST_fps": [253.25019799555042, 231.40822360388148, 203.62892926901614, 203.50235706207937, 200.61186935140293],
+    "native_baseline_SUST_assessment": "native/a4_native350w_SUST_assessment_0551.json",
+    "native_baseline_SUST_session": 10787,
+    "native_baseline_SUST_root": "native/a4_native350w_serial_SUST_0513",
+    "native_baseline_SUST_preregistration": "native/a4_native350w_SUST_preregistered_0513.json",
+    "native_baseline_SUST_preregistration_sha256": "8a008c18e81d9d8595beb6ebffc490af25d33911179054383542d26c5cdf52b7",
+    "native_baseline_SUST_started_utc": "2026-10-09T05:13:46.233838+00:00",
+    "native_baseline_SUST_power_limit_w": 350,
+    "native_baseline_SUST_power_setter_used": false,
     "gpu_experiment_running": false,
     "quality_accepted": false,
     "performance_accepted": false,
@@ -432,7 +443,12 @@
     "vast_id": 54957508,
     "label": "musetalk-r5-3090-dev-20261009-a4",
     "machine_id": 153039,
-    "resource_state": "source_boot_verified_owned_api_turn_stopped_isolated_gpu_experiments",
+    "resource_state": "absent_provider_verified",
+    "ssh_alias_retired_do_not_reuse": true,
+    "destroyed_utc": "2026-10-09T05:30:04.435744+00:00",
+    "destruction_forced": false,
+    "provider_absence_verified_utc": "2026-10-09T05:49:04.049539+00:00",
+    "expiry_evidence": "provisioning/a4_expiry_and_absence_0549.json",
     "source_revision_expected": "5a53ca908b90909621829717b9a36c2d92296771",
     "ssh_alias": "musetalk-3090-build-54957508",
     "hostname": "9dad9291adec",
@@ -1050,15 +1066,15 @@
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
   "quota_checkpoint": {
-    "observed_utc": "2026-10-09T04:32:26Z",
+    "observed_utc": "2026-10-09T05:18:26Z",
     "account_scope": "shared account, not this task",
-    "weekly_used_percent_reported": 66,
-    "weekly_remaining_percent_reported": 34,
+    "weekly_used_percent_reported": 67,
+    "weekly_remaining_percent_reported": 33,
     "previous_checkpoint": {
-      "observed_utc": "2026-10-09T03:29:53Z",
+      "observed_utc": "2026-10-09T04:32:26Z",
       "observation_timestamp_precision": "second-level observed account readback",
-      "weekly_used_percent_reported": 60,
-      "weekly_remaining_percent_reported": 40
+      "weekly_used_percent_reported": 66,
+      "weekly_remaining_percent_reported": 34
     },
     "ordinary_usage_allowed": true,
     "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
@@ -1077,6 +1093,30 @@
     "historical_sla_not_a_new_health_pass": true,
     "quality_bounds_or_400fps_threshold_changed": false
   },
-  "next_action": "Finish preregistered combined FP16-mid/up0 build and unchanged UNet quality comparison; preserve actual new plans/probes/all6 caches privately before allocation cleanup. Full698, new-cache geometry/visual review, selected400+quality, SUST, all48 production/live, Docker and fresh-instance60s readiness remain required.",
-  "next_command": "Poll live combinedUNet quality session6131, never restart while live. On terminal, copy full224 actual reports/watch and compare all16unchangedUNetbounds. Run actualA4 full448portabledecoder checks/88frozenbounds and source-prefix exactness sequentially as needed; no rejected-candidate FPS promotion. Finish18fileengine delta pack session32867, SCP and conditionalPUT/exact-versionGET/cleanCPUrestore before05:28cleanupcutoff. All6latentpreservationPASS; full698,new-cacheoutputvalidation,400+SUST/live,Docker/60s remain required."
+  "docker_model_input_staging": {
+    "root": "release/docker-model-stage-0515.oaOuVq",
+    "status": "TEN_PINNED_PUBLIC_MODEL_FILES_DOWNLOADED_AND_SHA_SIZE_MATCH: operator-only staging; five optional Kokoro reference files absent, capability not silently disabled. Full-image/native derivation/package notice/publication gates remain.",
+    "byte_binding_receipt": "release/docker_model_stage_binding_0518.json",
+    "weights_archive_status": "TERMINAL_VERIFIED_ARCHIVE_AND_FRESH_CPU_RESTORE: 3951486311 bytes, ten exact eligible files; all10 fresh restored SHA/size MATCH, five optional Kokoro references MISSING. No private models/media/credentials. Not an image or approved publication.",
+    "weights_archive_sha256": "acff525e22a9ee80917e2ae394ed0746dbaa8cf13b0762b6a9de2104265d2d19",
+    "weights_archive_bytes": 3951486311,
+    "clean_restore_binding": "release/docker_model_clean_restore_binding_0524.json",
+    "archive_receipt": "release/docker_model_archive_receipt_0551.json",
+    "publication_approved": false,
+    "release_ready": false
+  },
+  "startup_model_load_experiment": {
+    "receipt": "startup/skip_eager_unet_cpu_contracts_0551.json",
+    "flag": "MUSETALK_SKIP_EAGER_UNET",
+    "default_enabled": false,
+    "production_or_image_enabled": false,
+    "operator_cpu_tests": "9PASS; Docker76OK with1Linux-only skip",
+    "linux_ci": "NOT_YET_PUSHED",
+    "gpu_output_and_preparation_parity": "NOT_RUN",
+    "paired_startup_timing": "NOT_RUN",
+    "weights_removed_from_image": false,
+    "release_ready": false
+  },
+  "next_action": "Commit the default-off actual API model-load experiment and evidence; verify existing lightweight Linux CI. Investigate CPU/ring backpressure and same-precision native tactics without changing frozen698 bounds or fitting the holdout. Full quality/400+ SUST/live/production, complete public Docker and ~60s fresh usable-call readiness remain required.",
+  "next_command": "Run python3 -B -m unittest test_avatar_model_startup -v and Docker CPU contracts; explicit-file commit/push, then read-only gh inspect exact-head existing CPU workflow. SUST10787 and weights pack33284 are TERMINAL; do not poll/restart. A4 provider absence freshly verified; never SSH retired alias. Startup flag stays off pending actual GPU/prep/live/paired timing."
 }

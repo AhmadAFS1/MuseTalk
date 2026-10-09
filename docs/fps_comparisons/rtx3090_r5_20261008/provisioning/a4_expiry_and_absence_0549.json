@@ -1,0 +1,28 @@
+{
+  "schema": "owned_a4_expiry_and_independent_absence_v1",
+  "expiry_receipt_source": "my-ec2:/home/ec2-user/.local/state/musetalk-r5-3090-dev-20261009-a4/resource-expiry.json",
+  "expiry": {
+    "at_utc": "2026-10-09T05:30:04.435744+00:00",
+    "cloud_writes": true,
+    "force": false,
+    "instance_id": "54957508",
+    "label": "musetalk-r5-3090-dev-20261009-a4",
+    "provider_absence_verified": true,
+    "status": "destroy"
+  },
+  "independent_provider_read": {
+    "schema": "owned_a4_provider_reconciliation_v1",
+    "observed_utc": "2026-10-09T05:49:04.049539+00:00",
+    "target_instance_id": 54957508,
+    "target_label": "musetalk-r5-3090-dev-20261009-a4",
+    "target_rows": [],
+    "target_absent": true,
+    "protected_4070_present": true,
+    "cloud_mutations": false
+  },
+  "credential_scope": "Existing EC2 canonical service/Secrets Manager bootstrap in process memory; no credential values copied or printed",
+  "ssh_alias": "musetalk-3090-build-54957508",
+  "ssh_alias_retired_do_not_reuse": true,
+  "archive_before_expiry": "New latents and engine deltas privately fresh-restored; complete sustained report/environment/watch copied to operator before expiration",
+  "new_rental_created": false
+}

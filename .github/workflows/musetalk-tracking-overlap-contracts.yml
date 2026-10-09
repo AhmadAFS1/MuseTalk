@@ -10,6 +10,8 @@ on:
       - scripts/chin_multistream/tracking_overlap.py
       - scripts/chin_multistream/worker.py
       - scripts/chin_multistream_render.py
+      - scripts/avatar_manager_parallel.py
+      - test_avatar_model_startup.py
       - scripts/repro_3090/runner.py
       - scripts/repro_3090/report.py
       - scripts/repro_3090/test_tracking_overlap.py
@@ -98,3 +100,6 @@ jobs:
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_preregister_metadata_quality_lineage.py -v
           # Bound expiry deadlines are checked before credentials/provider calls.
           python3.10 -B -m unittest test_startup_observer -v
+          # Actual manager method bodies with synthetic CPU model/backend mocks;
+          # no CUDA initialization, real quality or startup-speed claim.
+          python3.10 -B -m unittest test_avatar_model_startup -v

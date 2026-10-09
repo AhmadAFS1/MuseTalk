@@ -1009,3 +1009,37 @@ The established 427.005 / 426.630 FPS six-avatar offline T result remains valid
 but quality-rejected. Sustained five-window/live tests, highest-quality 400+
 selection, complete public Docker and approximately 60s usable-call startup
 remain unfinished. No GPU experiment is running; A4's 05:30 UTC expiry is unchanged.
+
+## October 9, 05:51 UTC — sustained diagnostic failed; cleanup and model archive verified
+
+The actual A4 native-baseline SUST finished at05:27:25UTC: five valid six-avatar
+windows measured253.250/231.408/203.629/203.502/200.612FPS. Each completed28800
+frames over113.72–143.56s after120.17s thermal preconditioning. Guard child exit0,
+no timeout; scoring exit1 correctly reports FAIL400. No encoding/RTP/overlap.
+All600clip hash pairs exactly match the already rejected native quality capture.
+The earlier427.005/426.630FPS result on a different3090 remains valid, but this
+does not satisfy sustained400+ across hosts. [Assessment](native/a4_native350w_SUST_assessment_0551.json).
+
+GPU job time stayed35.99→35.45ms while credit-wait fraction rose10.72→23.05%,
+partial jobs rose1870→2280 and CPU tracking/composition costs increased. These
+measurements point to CPU/ring backpressure and packing as the next diagnostic
+lead; they do not prove a particular host/NUMA cause or a420W causal benefit.
+GPU core temperatures peaked64C in both first and last windows.
+
+A4's bound timer destroyed only54957508, non-forced, at05:30:04.435744UTC.
+Independent read-only provider GET at05:49:04UTC verified it absent and the
+protected4070 present. Evidence/caches/engine deltas were preserved before
+expiry; the A4 SSH alias is retired. No new rental. [Cleanup](provisioning/a4_expiry_and_absence_0549.json).
+
+Ten checksum-pinned eligible public model files were downloaded on the operator,
+packed into a3951486311-byte archive, and restored to a fresh CPU directory.
+All ten size/SHA bindings match; five optional Kokoro reference files are absent,
+not silently removed from promised capabilities. This is not a complete serving
+image or publication approval. [Archive receipt](release/docker_model_archive_receipt_0551.json).
+
+The actual API now has a default-off strict `MUSETALK_SKIP_EAGER_UNET=1` experiment:
+omit the eager UNet that TensorRT immediately replaces, retaining original avatar
+VAE preparation and runtime warming. Nine actual-method CPU mock contracts pass;
+existing Docker suite76OK/1Linux-only skip. No runtime/image enables it, checkpoint
+bytes remain required, and actual GPU inference/preparation/live equality plus
+paired startup timings remain unmeasured. [CPU receipt](startup/skip_eager_unet_cpu_contracts_0551.json).

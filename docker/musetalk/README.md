@@ -31,6 +31,25 @@ readiness stamp. CUDA contexts, graphs, load probes, registration and avatar
 warming still run on the target worker. Repeated full hashing is deliberately
 not optimized until its measured cost is available.
 
+### Default-off model-load experiment
+
+`MUSETALK_SKIP_EAGER_UNET=1` skips constructing/loading the eager UNet that the
+API otherwise loads before replacing it with TensorRT. It retains the original
+SD-VAE encoder, positional encoding, Whisper, face parsing and runtime warming.
+The default remains `0`; no production configuration or image policy enables it.
+The canonical checkpoint remains required by the image inventory/install checks.
+This change does not yet reduce image bytes or establish a startup-speed result.
+
+Opt-in requires CUDA, `MUSETALK_UNET_BACKEND=trt_stagewise`,
+`MUSETALK_TRT_FALLBACK=0`, stagewise SHA verification and exact probes enabled,
+and probe tolerance `0`. Missing/corrupt/unexpected backends are fatal: no eager
+fallback or engine repair. The loaded backend must be FP16-interface srccache,
+batch16. `MODEL_STARTUP` records base-model loading and full initialization/warm
+durations without credentials. Nine operator CPU contracts pass using actual
+manager method bodies with mocked models; actual GPU output equality,
+controlled-seed avatar preparation, live behavior and paired boot timing remain
+required before enabling this in an image or claiming a latency improvement.
+
 The supervisor serializes lifecycle ownership with `flock`, watches API/TURN
 processes, and calls canonical drain/stop on SIGTERM. Python handles TERM during
 bootstrap immediately, interrupts/reaps that process group before drain, and
