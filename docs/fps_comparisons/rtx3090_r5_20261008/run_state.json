@@ -1,8 +1,22 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "a3_T400_proven_quality_rejected_artifacts_verified_resource_absent",
+  "phase": "a4_created_bounded_UNet_quality_diagnosis_source_bootstrap_running",
   "current_experiment": {
+    "instance_id": 54957508,
+    "source_revision": "5a53ca908b90909621829717b9a36c2d92296771",
+    "status": "SOURCE_BOOTSTRAP_RUNNING_NOT_HEALTHY",
+    "owned_target": "provisioning/a4_owned_target.json",
+    "matrix_preregistration": "quality/unet_overlay_matrix_preregistered_0315.json",
+    "watch_source": "scripts/repro_3090/watch_owned_single_leaf_target.py",
+    "watch_source_sha256": "e4e429e0dd2a42cbc1b5791a26eb8361a2c0dcd5fa6c5af320c7bcf8ffa0d4f9",
+    "cpu_contracts_passed": 80,
+    "gpu_experiment_running": false,
+    "quality_accepted": false,
+    "performance_accepted": false,
+    "expiry_utc": "2026-10-09T05:30:00+00:00"
+  },
+  "prior_a3_experiment": {
     "instance_id": 54939993,
     "source_revision": "2bd91269a3336d7db93057f80d1392a631309e03",
     "builder_source": "scripts/repro_3090/build_owned_taesd_fp32_a3.py",
@@ -206,10 +220,10 @@
     "conversion": "Enforce 1.50/1024 per billed GB, also satisfying decimal TB = 1000 GB",
     "operator_selected_max_test_lifetime_hours": 24,
     "confirmed_experiment_spend_usd": null,
-    "reserved_experiment_budget_usd": 14.717528211805556,
+    "reserved_experiment_budget_usd": 16.717528211805558,
     "additional_aws_audit_reserve_usd": 4,
-    "shared_budget_ledger_sha256": "d1294c113fd3254ba137c5842fc090e0829aa2a37424821a5f20ae4dc94b1c34",
-    "latest_reservation_evidence": "provisioning/a3_creation_0045.json",
+    "shared_budget_ledger_sha256": "2b12f11acbbdfa8fb5aa7a7683a702c0c0ae5ea8853ce043a1331d265e390ac8",
+    "latest_reservation_evidence": "provisioning/a4_creation_0319.json",
     "rental_started": true
   },
   "blockers": [
@@ -335,6 +349,27 @@
       "quality_accepted": false,
       "performance_accepted": false
     },
+  "development_a4": {
+    "vast_id": 54957508,
+    "label": "musetalk-r5-3090-dev-20261009-a4",
+    "machine_id": 153039,
+    "resource_state": "running_source_install_in_progress",
+    "source_revision_expected": "5a53ca908b90909621829717b9a36c2d92296771",
+    "ssh_alias": "musetalk-3090-build-54957508",
+    "hostname": "9dad9291adec",
+    "gpu_uuid": "GPU-050b4bc5-99f6-305e-8c7f-fd00ea44551f",
+    "actual_power_limit_watts": 350,
+    "power_limit_changed_by_operator": false,
+    "expiry_utc": "2026-10-09T05:30:00+00:00",
+    "expiry_timer_active_verified_before_create": true,
+    "bound_ledger_deadline": true,
+    "credential_bridge_descriptor": "provisioning/a4_owned_target.json",
+    "creation_evidence": "provisioning/a4_creation_0319.json",
+    "usable_call_readiness_verified": false,
+    "image_based_instance_b": false,
+    "quality_accepted": false,
+    "performance_accepted": false
+  },
     "release": null
   },
   "ec2": {
@@ -963,6 +998,6 @@
     "historical_sla_not_a_new_health_pass": true,
     "quality_bounds_or_400fps_threshold_changed": false
   },
-  "next_action": "Commit and push completed A3 evidence and tested helpers, then run a focused quality-preserving UNet diagnosis under a new separately bounded rental within the established $30 shared budget. Preserve frozen bounds, production4070 and EC2. SUST, selected400+quality, canonical latents, Docker publication, live capacity and fresh60s usable-call startup remain required.",
-  "next_command": "Read-only recheck eligible420W-host offer and shared budget, prepare unique A4 label and protected payload at the pushed source revision, initialize deadline-bound ledger and verify expiry timer before one EC2 create request. Do not extend A3 or reuse its alias, watcher identity, descriptor or deadline."
+  "next_action": "Observe existing A4 bootstrap, do not rent again. After canonical installation and health complete, stop owned API/TURN, recover original878 inputs and historical worker, restore hash-pinned native diagnostic plans, preregister actual A4 metadata-only ancestry before any candidate. Run fixed UNet overlays and unchanged numerical gates. Maintain05:30expiry and archive before05:28watch cutoff. Full698, selected400+quality, SUST, canonical latents, Docker/live/startup remain required.",
+  "next_command": "SSH only musetalk-3090-build-54957508 for current A4 hostname9dad9291adec / GPU050b4bc5. Bootstrap PID555/bash and gitPID575 confirmed03:21UTC; reobserve exact process or descendants before judging termination. Source revision expected5a53ca908b90909621829717b9a36c2d92296771, health000 atfirstSSH. Never reuse retired A1/A2/A3 aliases. Bound descriptor provisioning/a4_owned_target.json."
 }

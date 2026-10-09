@@ -1,0 +1,198 @@
+{
+  "schema": "owned_development_a4_creation_v1",
+  "state": "created",
+  "instance_id": "54957508",
+  "label": "musetalk-r5-3090-dev-20261009-a4",
+  "source_revision": "5a53ca908b90909621829717b9a36c2d92296771",
+  "offer_id": "54468718",
+  "machine_id": 153039,
+  "creation_attempts": 1,
+  "request_sha256": "50d79f29e98c3b0ba74bb3254274a9448dddca3e79fc8c0dd321ff4dd4757ec7",
+  "request_started": {
+    "clock_domain": "ip-10-0-13-100.ec2.internal:973b13f6-4e94-46bb-bcde-6b53d1fc3b34",
+    "evidence_ref": null,
+    "monotonic_ns": 11234377486222384,
+    "name": "request_started",
+    "observed_at_utc": "2026-10-09T03:19:10.803312+00:00",
+    "source": "ec2_create_client",
+    "uncertainty_seconds": null,
+    "utc": "2026-10-09T03:19:10.803285+00:00"
+  },
+  "provider_accepted": {
+    "clock_domain": "ip-10-0-13-100.ec2.internal:973b13f6-4e94-46bb-bcde-6b53d1fc3b34",
+    "evidence_ref": null,
+    "monotonic_ns": 11234378032766828,
+    "name": "provider_accepted",
+    "observed_at_utc": "2026-10-09T03:19:11.349848+00:00",
+    "source": "ec2_create_response",
+    "uncertainty_seconds": null,
+    "utc": "2026-10-09T03:19:11.349825+00:00"
+  },
+  "expiry_utc": "2026-10-09T05:30:00+00:00",
+  "expiry_timer": "musetalk-r5-3090-dev-20261009-a4-expiry.timer",
+  "expiry_timer_active_verified_before_create": true,
+  "expiry_service_type": "oneshot",
+  "expiry_service_restart": "on-failure",
+  "expiry_service_restart_seconds": 60,
+  "expiry_accuracy_seconds": 1,
+  "expiry_force": false,
+  "budget": {
+    "additional_reserve_usd": 1.2334602864583333,
+    "approval_reference": "User Oct8: $30 total including instance internet costs; each direction at most $1.50/TB. Lifetime is an operator-selected shorter bound, not additional spending authority.",
+    "hourly_usd": 0.24924913194444445,
+    "lifetime_enforcement": "external; observer does not terminate instances",
+    "lifetime_enforcer_reference": "EC2 musetalk-r5-3090-dev-20261009-a4-expiry.timer at 2026-10-09T05:30:00Z; exact ledger deadline bound; active timer and non-forced retrying service must be verified before create.",
+    "planned_lifetime_hours": 2.25,
+    "reserved_usd": 2,
+    "storage_reserve_usd": 0.06249999999999999,
+    "total_usd": 30,
+    "transfer_reserve_usd": 0.14322916666666666
+  },
+  "shared_reserved_usd": 16.717528211805558,
+  "shared_ledger_sha256": "2b12f11acbbdfa8fb5aa7a7683a702c0c0ae5ea8853ce043a1331d265e390ac8",
+  "provider_observation": {
+    "observed_utc": "2026-10-09T03:19:50.795095+00:00",
+    "instances": [
+      {
+        "id": 54957508,
+        "label": "musetalk-r5-3090-dev-20261009-a4",
+        "actual_status": "running",
+        "intended_status": "running",
+        "ssh_host": "ssh4.vast.ai",
+        "ssh_port": 37176,
+        "public_ipaddr": "92.49.17.100",
+        "ports": {
+          "1111/tcp": [
+            {
+              "HostIp": "0.0.0.0",
+              "HostPort": "25304"
+            },
+            {
+              "HostIp": "::",
+              "HostPort": "25304"
+            }
+          ],
+          "1455/tcp": [
+            {
+              "HostIp": "0.0.0.0",
+              "HostPort": "25764"
+            },
+            {
+              "HostIp": "::",
+              "HostPort": "25764"
+            }
+          ],
+          "22/tcp": [
+            {
+              "HostIp": "0.0.0.0",
+              "HostPort": "25147"
+            },
+            {
+              "HostIp": "::",
+              "HostPort": "25147"
+            }
+          ],
+          "25436/tcp": [
+            {
+              "HostIp": "0.0.0.0",
+              "HostPort": "25436"
+            },
+            {
+              "HostIp": "::",
+              "HostPort": "25436"
+            }
+          ],
+          "3478/udp": [
+            {
+              "HostIp": "0.0.0.0",
+              "HostPort": "25186"
+            },
+            {
+              "HostIp": "::",
+              "HostPort": "25186"
+            }
+          ],
+          "443/tcp": [
+            {
+              "HostIp": "0.0.0.0",
+              "HostPort": "25348"
+            },
+            {
+              "HostIp": "::",
+              "HostPort": "25348"
+            }
+          ],
+          "6006/tcp": [
+            {
+              "HostIp": "0.0.0.0",
+              "HostPort": "25485"
+            },
+            {
+              "HostIp": "::",
+              "HostPort": "25485"
+            }
+          ],
+          "8000/tcp": [
+            {
+              "HostIp": "0.0.0.0",
+              "HostPort": "25367"
+            },
+            {
+              "HostIp": "::",
+              "HostPort": "25367"
+            }
+          ],
+          "8080/tcp": [
+            {
+              "HostIp": "0.0.0.0",
+              "HostPort": "25732"
+            },
+            {
+              "HostIp": "::",
+              "HostPort": "25732"
+            }
+          ],
+          "8384/tcp": [
+            {
+              "HostIp": "0.0.0.0",
+              "HostPort": "25383"
+            },
+            {
+              "HostIp": "::",
+              "HostPort": "25383"
+            }
+          ]
+        },
+        "machine_id": 153039,
+        "gpu_name": "RTX 3090",
+        "num_gpus": 1,
+        "image_uuid": "vastai/pytorch:cuda-12.1-auto",
+        "disk_space": 150,
+        "cpu_cores_effective": 19.200000000000003,
+        "cpu_ram": 321805
+      }
+    ]
+  },
+  "first_ssh_observation": {
+    "hostname": "9dad9291adec",
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "gpu_uuid": "GPU-050b4bc5-99f6-305e-8c7f-fd00ea44551f",
+    "compute_capability": "8.6",
+    "driver": "595.91.07",
+    "visible_memory_mib": 24576,
+    "actual_power_limit_watts": 350,
+    "default_power_limit_watts": 350,
+    "max_power_limit_watts": 385,
+    "power_changed_by_operator": false,
+    "shm_observed_gib": 31,
+    "health_http": "000",
+    "health_ready": false
+  },
+  "control_plane_registration_enabled": false,
+  "browser_crosscheck": "INCOMPLETE: available browser logged out; API endpoint and actual SSH hardware crosschecked.",
+  "image_based_instance_b": false,
+  "quality_accepted": false,
+  "performance_accepted": false,
+  "startup_accepted": false,
+  "secret_values_logged_or_committed": false
+}
