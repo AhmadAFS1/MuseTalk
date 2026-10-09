@@ -1,0 +1,14 @@
+{
+  "schema": "fixed_startup_model_probe_retry_preregistration_v1",
+  "instance_id": 54976782,
+  "sequence": ["0", "1", "1", "0"],
+  "registered_before_retry": true,
+  "child_sha256": "8c9d6274afbe8aaeb8356edd4006ef6c8cf7835d2c7c6f5816383ebeda78678c",
+  "previous_attempt": "a5_startup_0_1_0811.watch.jsonl",
+  "previous_source_preserved": "failed_sources/startup_model_probe_v1.py; exact a3f11fbbd09ecf6bddc6eedc8b48555be14fbb4f8f06cc1d1047605c04bc24be verified against actual first watch enrollment target SHA",
+  "previous_outcome": "Original model init/warm completed8.774706s, but post-init diagnostic raised nonfinite output; exact previous attempt preserved, not counted as a parity pass or scored pair.",
+  "retry_change": "Generate the fixed encoder diagnostic ramp in float32 before casting tofloat16 and require finite input; record separate nonfinite counts for UNet, decoder and encoder in the receipt. Output finite gates remain mandatory. No production/model/engine or startup-treatment change.",
+  "original_preregistration": "a5_model_probe_preregistered_0810.json",
+  "startup_acceptance": false,
+  "release_ready": false
+}

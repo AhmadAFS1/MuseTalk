@@ -1,0 +1,79 @@
+{
+  "schema": "fixed_startup_model_pair_summary_v1",
+  "status": "PASS_LOCAL_MODEL_PROBE_PARITY",
+  "sequence": [
+    "0",
+    "1",
+    "1",
+    "0"
+  ],
+  "manager_init_s": [
+    9.122635867446661,
+    3.1885441578924656,
+    3.1809168830513954,
+    9.095443353056908
+  ],
+  "import_init_wall_s": [
+    10.38556756451726,
+    4.460950542241335,
+    4.457727134227753,
+    10.3804373703897
+  ],
+  "baseline_mean_manager_init_s": 9.109039610251784,
+  "treatment_mean_manager_init_s": 3.1847305204719305,
+  "mean_manager_init_saving_s": 5.924309089779854,
+  "mean_manager_init_reduction_percent": 65.03769160375951,
+  "all_three_output_hashes_equal": true,
+  "retained_vae_encoder": true,
+  "peak_torch_allocated_vram_bytes": [
+    7179050496,
+    798192640,
+    798192640,
+    7179050496
+  ],
+  "ownership": "All four exact same child enrolled, live-context-bound and COMPLETE0",
+  "scope": "Fresh local processes on same owned A5; warm filesystem cache, fixed one real bs8 capture padded16 and seeded diagnostic encoder input",
+  "limitations": [
+    "NOT full avatars/prepare or local WebRTC validation",
+    "NOT cold image pull, provider/secrets/registration/avatar-ready or request-to-usable-call",
+    "Original failed pre-retry diagnostic remains preserved and is not part of this four-trial pair",
+    "No selected quality-approved400FPS release; tested native-v1 artifacts remain quality-rejected diagnostics"
+  ],
+  "startup_acceptance": false,
+  "production_or_image_enabled": false,
+  "release_ready": false,
+  "evidence": [
+    {
+      "path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/startup/a5_startup_v2_1_mode0_0814.json",
+      "sha256": "aafb53b4b56032d23db16b58439b86791d9431ca06784190742643c0be3e5f8c"
+    },
+    {
+      "path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/startup/a5_startup_v2_1_mode0_0814.watch.jsonl",
+      "sha256": "35d04d73eea7dff186bc51009547fa1f2f7503bac39ed1cf7344ae91ea9a29d0"
+    },
+    {
+      "path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/startup/a5_startup_v2_2_mode1_0814.json",
+      "sha256": "b7f11444a0a2d1fb88c1ca7b0b3b3640359b13ab8a8baa074d540e87e521c352"
+    },
+    {
+      "path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/startup/a5_startup_v2_2_mode1_0814.watch.jsonl",
+      "sha256": "2c89dea1ce074f9fb09883d614befbf53e6e74b7f218e7e885ea49dbc84d9b34"
+    },
+    {
+      "path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/startup/a5_startup_v2_3_mode1_0814.json",
+      "sha256": "ce7477ecc84f4d5e3ea66523962413907fd3c4e46eb4301045472471b3fbc00e"
+    },
+    {
+      "path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/startup/a5_startup_v2_3_mode1_0814.watch.jsonl",
+      "sha256": "c3fb3c7ac5ccc726902628b491926fb00501268df1b1e25fd58387a1485172a4"
+    },
+    {
+      "path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/startup/a5_startup_v2_4_mode0_0814.json",
+      "sha256": "6b7e6e701c7948b99f5c3f2da6a4d1b1ec775f59c956ae31b1cd8651c2331694"
+    },
+    {
+      "path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/startup/a5_startup_v2_4_mode0_0814.watch.jsonl",
+      "sha256": "0d8dd9f3c58e710549f073f335ff2172cf7f914aff2cb13b35e87ed784bbc645"
+    }
+  ]
+}

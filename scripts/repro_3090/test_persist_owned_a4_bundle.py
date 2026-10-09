@@ -80,6 +80,14 @@ class PersistenceTests(unittest.TestCase):
             with self.assertRaises(ValueError): persistence.validate_manifest(data, 'engines', 'a5')
         with self.assertRaises(ValueError): persistence.validate_manifest(data, 'latents', 'a5')
 
+    def test_a5_media_complete_six_scoped_outputs_only(self):
+        data = {'schema':1, 'profile':'private-a5-quality-media-diagnostic', 'files':[
+            {'path':persistence.A5_MEDIA_ROOT+n,'size':2,'sha256':'a'*64} for n in persistence.A5_MEDIA_NAMES]}
+        self.assertEqual(len(persistence.validate_manifest(data,'quality-media','a5')),30)
+        with self.assertRaises(ValueError): persistence.validate_manifest(data,'quality-media','a4')
+        data['files'].pop()
+        with self.assertRaises(ValueError): persistence.validate_manifest(data,'quality-media','a5')
+
 
 if __name__ == '__main__':
     unittest.main()

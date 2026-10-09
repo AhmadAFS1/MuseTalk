@@ -34,6 +34,11 @@ A5_ROOTS = tuple('models/' + name + '/bs16/' for name in (
 A5_NAMES = {'manifest.json', 'probe_output.pt'} | {
     name + suffix for name in ('prefix','down0rest','down1','down2','down3','mid','up0','up1','up2','up3','tail')
     for suffix in ('.plan', '.int8.plan')}
+A5_MEDIA_ROOT = 'docs/fps_comparisons/rtx3090_r5_20261008/quality/a5_whole_fp16_full_0743_quality/a5_whole_fp16_full_0743_quality_capture/'
+A5_MEDIA_NAMES = {f'stream{i:02d}_{name}_{suffix}' for i, name in enumerate((
+    'black_man_short_beard','black_woman','east_asian_man_goatee','middle_eastern_man_full_beard',
+    'south_asian_woman','white_man_clean_shaven')) for suffix in ('faces.mp4','refined.mp4','arrays.npz','faces.npz')}
+A5_MEDIA_NAMES |= {f'logs/tracker_stream{i:02d}.log' for i in range(6)}
 require = operator.require
 SAFE_FAILURE_REASONS = {
     'private object metadata/size/encryption mismatch', 'object version missing',
@@ -43,7 +48,8 @@ SAFE_FAILURE_REASONS = {
 
 
 def validate_manifest(data, profile, allocation='a4'):
-    require(allocation in ('a4', 'a5') and (allocation != 'a5' or profile == 'engines'), 'allocation/profile mismatch')
+    require((allocation == 'a4' and profile in ('engines', 'latents'))
+            or (allocation == 'a5' and profile in ('engines', 'quality-media')), 'allocation/profile mismatch')
     require(data.get('schema') == 1 and data.get('profile') == 'private-' + allocation + '-' + profile + '-diagnostic',
             'exact canonical diagnostic profile required')
     rows = data.get('files') or []
@@ -59,9 +65,13 @@ def validate_manifest(data, profile, allocation='a4'):
             require(any(name.startswith(root) and Path(name).parent.as_posix() + '/' == root for root in roots)
                     and Path(name).name in names,
                     'unexpected engine diagnostic payload')
-        else:
+        elif profile == 'latents':
             require(name.startswith(LATENT_ROOT) and not any(part.startswith('.') for part in Path(name).parts),
                     'unexpected latent diagnostic payload')
+        else:
+            require(name in {A5_MEDIA_ROOT + n for n in A5_MEDIA_NAMES}, 'unexpected quality-media payload')
+    if profile == 'quality-media':
+        require({r['path'] for r in rows} == {A5_MEDIA_ROOT + n for n in A5_MEDIA_NAMES}, 'complete six-avatar capture required')
     require(sum(r['size'] for r in rows) < 4 * 1024**3, 'payload exceeds private budget ceiling')
     return rows
 
@@ -97,7 +107,7 @@ def restore_archive(archive, root, digest):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    p.add_argument('--profile', choices=('engines', 'latents'), required=True)
+    p.add_argument('--profile', choices=('engines', 'latents', 'quality-media'), required=True)
     p.add_argument('--allocation', choices=('a4', 'a5'), default='a4')
     p.add_argument('--archive', type=Path, required=True)
     p.add_argument('--sha256', required=True)

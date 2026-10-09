@@ -1,0 +1,63 @@
+{
+  "schema": "owned_fresh_process_startup_model_probe_v1",
+  "status": "PASS_DIAGNOSTIC",
+  "skip_eager_unet": "0",
+  "imports_s": 1.2629316970705986,
+  "manager_init_s": 9.122635867446661,
+  "import_init_wall_s": 10.38556756451726,
+  "model_startup_profile": {
+    "schema": "musetalk_model_startup_v1",
+    "skip_eager_unet": false,
+    "base_models_load_s": 6.377462603151798,
+    "model_init_and_warm_s": 8.55184717476368,
+    "unet_backend": "tensorrt_unet_stagewise",
+    "avatar_vae_encoder_retained": true
+  },
+  "unet": {
+    "shape": [
+      16,
+      4,
+      32,
+      32
+    ],
+    "dtype": "torch.float16",
+    "nonfinite_count": 0,
+    "sha256": "3824829bd21aab19b1aebff41969094655447a961aacd684ccb531c51715f4be"
+  },
+  "decoded": {
+    "shape": [
+      16,
+      3,
+      256,
+      256
+    ],
+    "dtype": "torch.float16",
+    "nonfinite_count": 0,
+    "sha256": "22681670890ef7256562c39e6010c3c7e00c81c00a5d93e3406b93727c70de6d"
+  },
+  "retained_vae_encoder": {
+    "shape": [
+      1,
+      4,
+      32,
+      32
+    ],
+    "dtype": "torch.float16",
+    "nonfinite_count": 0,
+    "sha256": "73be91753326665799dae6c6d8e6dc099b5cc40c1061d6eaa3c3b352a9f66244"
+  },
+  "input_capture_sha256": "e8d12ebc968722726820e5d79c0f223de76b4cf8b54ad665e3cabee1a95cb41c",
+  "source_pins": {
+    "scripts/avatar_manager_parallel.py": "202ba063d3a1e089243f0199f37f889f059c81e2dbdda3fe06f4e5b7dbc3dc03",
+    "scripts/trt_runtime.py": "29841be8cc47f2cc7b442315fd447f3eeed6d50f717ef83c41e4e0efc6b6e5af",
+    "musetalk/models/vae.py": "831dcbd8f389e9a77d8169674cb966ef52725ccc6bdacbceed81c0ee0d46966c",
+    "models/tensorrt_unet_stagewise_sm86_r5_v1/bs16/manifest.json": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+    "calibration/unet_multi_avatar_20260928/unet_io_000001_bs8_pid3537045.pt": "e8d12ebc968722726820e5d79c0f223de76b4cf8b54ad665e3cabee1a95cb41c"
+  },
+  "peak_allocated_vram_bytes": 7179050496,
+  "preparation_scope": "seeded fixed diagnostic encoder tensor only; NOT full avatars/prepare validation",
+  "startup_acceptance": false,
+  "quality_accepted": false,
+  "release_ready": false,
+  "measurement_scope": "Fresh local process; excludes image pull/provider/secrets/HTTP/EC2/avatar readiness/live call"
+}
