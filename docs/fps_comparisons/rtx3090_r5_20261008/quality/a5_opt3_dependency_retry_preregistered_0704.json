@@ -1,0 +1,23 @@
+{
+  "schema": "same_experiment_dependency_retry_v1",
+  "preregistered_utc": "2026-10-09T07:03:38Z",
+  "parent_preregistration_sha256": "2e88373643baa035e4491119ade134551de3e22bac75c3e9184bfa9d7f8585bf",
+  "failed_attempt": "native/a5_opt3_v2_0702.build.json",
+  "failed_attempt_sha256": "f18baf8b9c2d4977bec5c34b43c980a0322ccac022b20a512593d06ca22030dd",
+  "failure": "Missing ModelOpt at INT8 calibration; first three FP16 blocks had identical baseline ONNX hashes. No quality or throughput results were evaluated.",
+  "fresh_candidate_root": "models/tensorrt_unet_stagewise_sm86_r5_opt3_v3",
+  "old_partial_candidate_preserved": true,
+  "automatic_resume": false,
+  "dependency_policy": "Install only the canonical legacy-int8 requirements under existing cu121 constraints. CPU dry run changes only four missing build packages, no existing runtime upgrades.",
+  "required_packages": {"nvidia-modelopt": "0.23.2", "nvidia-modelopt-core": "0.23.2", "PuLP": "3.3.2", "torchprofile": "0.1.0", "onnx": "1.17.0"},
+  "requirements_sha256": "e0bcecc06f764ad493d8de62ec3f0a4e854a98ec8c43f4841fae5a77148d3724",
+  "constraints_sha256": "a2a4acdd81244964d9ed20180a78c51e30e51c9cbc2c14788c308c7421c94d35",
+  "graph_precision_calibration_build_policy_unchanged": true,
+  "all11_baseline_onnx_hashes_required": true,
+  "quality_bounds_changed": false,
+  "candidate_quality_results_consumed": false,
+  "deadline_utc": "2026-10-09T08:35:00+00:00",
+  "quality_accepted": false,
+  "performance_accepted": false,
+  "release_ready": false
+}

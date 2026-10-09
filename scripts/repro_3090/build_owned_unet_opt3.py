@@ -7,6 +7,7 @@ No quality, throughput or release acceptance is issued by a successful build.
 import argparse
 import datetime as dt
 import hashlib
+import importlib.metadata as metadata
 import json
 import os
 from pathlib import Path
@@ -17,10 +18,13 @@ import types
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / 'docs/fps_comparisons/rtx3090_r5_20261008'
-ENGINE = ROOT / 'models/tensorrt_unet_stagewise_sm86_r5_opt3_v2'
+ENGINE = ROOT / 'models/tensorrt_unet_stagewise_sm86_r5_opt3_v3'
 BASELINE = ROOT / 'models/tensorrt_unet_stagewise_sm86_r5_v1/bs16/manifest.json'
 BASELINE_SHA = 'f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316'
 PREREG_SHA = '2e88373643baa035e4491119ade134551de3e22bac75c3e9184bfa9d7f8585bf'
+RETRY_SHA = '8e75a1b5d8a9d5d76bf7fdb6d7eaae91a650c8e45d18e5b5ad38f351187b9d99'
+BUILD_PACKAGES = {'nvidia-modelopt': '0.23.2', 'nvidia-modelopt-core': '0.23.2',
+                  'PuLP': '3.3.2', 'torchprofile': '0.1.0', 'onnx': '1.17.0'}
 RECIPE = ROOT / 'docs/fps_comparisons/4070s_400fps_20260928/int8_study/recipe_gmac_0.50.json'
 RECIPE_SHA = 'f6f90777264b53027af586a3991598c9f1c89bd7761eaecbe2084c7d119dad12'
 PINS = {
@@ -28,6 +32,8 @@ PINS = {
     'scripts/unet_stagewise_trt.py': '4ab523ab9337f1ce903a52acf7a3f06e7423669cbf2df2b3846b8ffc374b6e9c',
     'scripts/repro_3090/watch_owned_single_leaf_target.py': 'e4e429e0dd2a42cbc1b5791a26eb8361a2c0dcd5fa6c5af320c7bcf8ffa0d4f9',
     'scripts/repro_3090/preregister_metadata_quality_lineage.py': 'd5036b697c06efedcf95c9e81b99efd61129f0f07be50572f03296fabfc3e1ae',
+    'requirements/legacy-int8.in': 'e0bcecc06f764ad493d8de62ec3f0a4e854a98ec8c43f4841fae5a77148d3724',
+    'requirements/constraints-cu121.txt': 'a2a4acdd81244964d9ed20180a78c51e30e51c9cbc2c14788c308c7421c94d35',
 }
 STAGES = (('down0rest', 'up3', 'tail'),
           ('down1', 'down2', 'down3', 'mid', 'up0', 'up1', 'up2'), ('prefix',))
@@ -37,6 +43,17 @@ BLOCKS = set().union(*map(set, STAGES))
 def require(value, reason):
     if not value:
         raise ValueError(reason)
+
+
+def build_dependencies():
+    versions = {}
+    for name, expected in BUILD_PACKAGES.items():
+        try:
+            versions[name] = metadata.version(name)
+        except metadata.PackageNotFoundError:
+            raise ValueError('missing pinned build dependency:' + name) from None
+        require(versions[name] == expected, 'wrong pinned build dependency:' + name)
+    return versions
 
 
 def sha(path):
@@ -124,6 +141,10 @@ def main(argv=None):
         successor_envelope=a.successor_envelope, receipt_path=a.lineage_receipt,
         expected_receipt_sha256=a.lineage_receipt_sha256)
     checked(BASE / 'quality/next_same_precision_opt3_preregistered_0610.json', PREREG_SHA)
+    retry = json.loads(checked(BASE / 'quality/a5_opt3_dependency_retry_preregistered_0704.json', RETRY_SHA))
+    require(retry['fresh_candidate_root'] == str(ENGINE.relative_to(ROOT))
+            and retry['required_packages'] == BUILD_PACKAGES, 'retry preregistration differs')
+    packages = build_dependencies()
     checked(RECIPE, RECIPE_SHA)
     baseline = json.loads(checked(BASELINE, BASELINE_SHA))
     require(baseline['complete'] is True and set(baseline['blocks']) == BLOCKS, 'baseline incomplete')
@@ -136,6 +157,7 @@ def main(argv=None):
     report = dict(schema='owned_same_precision_opt3_build_v1', status='BUILDING', owned_target=owned,
         input_lineage=lineage, started_utc=dt.datetime.now(dt.timezone.utc).isoformat(),
         preregistration_sha256=PREREG_SHA, baseline_manifest_sha256=BASELINE_SHA, stages=[],
+        dependency_retry_preregistration_sha256=RETRY_SHA, build_package_versions=packages,
         quality_accepted=False, performance_accepted=False, release_ready=False)
     try:
         os.chdir(ROOT); sys.path.insert(0, str(ROOT))

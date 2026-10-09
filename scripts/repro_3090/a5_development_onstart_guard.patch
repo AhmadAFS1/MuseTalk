@@ -1,0 +1,12 @@
+--- onstart.sh
++++ onstart.sh
+@@ -1 +1,9 @@
+ #!/usr/bin/env bash
++# A5 development-only guard installed after the first healthy source boot.
++# Keep the original credential-bearing wrapper on this owned worker only.
++# Never apply this patch to release, production, or another instance.
++if [[ "$(hostname)" == "8a2a09dff54d" ]]; then
++  printf '%s\n' 'A5 development bootstrap already completed; automatic reinstall/start disabled.'
++  exit 0
++fi
++

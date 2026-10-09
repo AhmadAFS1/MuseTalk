@@ -3,6 +3,7 @@ import copy
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 path = Path(__file__).with_name('build_owned_unet_opt3.py')
 spec = importlib.util.spec_from_file_location('opt3', path)
@@ -27,6 +28,16 @@ def fixture():
 
 
 class Contracts(unittest.TestCase):
+    def test_build_dependency_pins_before_cuda(self):
+        with patch.object(b.metadata, 'version', side_effect=lambda name: b.BUILD_PACKAGES[name]):
+            self.assertEqual(b.build_dependencies(), b.BUILD_PACKAGES)
+        with patch.object(b.metadata, 'version', side_effect=b.metadata.PackageNotFoundError):
+            with self.assertRaisesRegex(ValueError, 'missing pinned build dependency'):
+                b.build_dependencies()
+        with patch.object(b.metadata, 'version', return_value='wrong'):
+            with self.assertRaisesRegex(ValueError, 'wrong pinned build dependency'):
+                b.build_dependencies()
+
     def test_exact_registered_options(self):
         for stage in b.STAGES:
             o = b.options(stage)

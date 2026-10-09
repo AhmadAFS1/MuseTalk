@@ -1,0 +1,41 @@
+{
+  "schema": "owned_same_precision_opt3_build_v1",
+  "status": "INVALID_BUILD",
+  "owned_target": {
+    "instance_id": "54976782",
+    "label": "musetalk-r5-3090-dev-20261009-a5",
+    "worker_alias": "musetalk-3090-build-54976782",
+    "worker_hostname": "8a2a09dff54d",
+    "gpu_uuid": "GPU-0a54f35e-c3a1-256e-aa21-0042ad52a039",
+    "ledger": "/home/ec2-user/.local/state/musetalk-r5-3090-dev-20261009-a5/startup-ledger.json",
+    "deadline_utc": "2026-10-09T08:35:00+00:00"
+  },
+  "input_lineage": {
+    "status": "VERIFIED_METADATA_EQUIVALENCE_ONLY",
+    "input_manifest_sha256": "764978dc27a92681da0f9419c6f4c9b1a7f4f20e766465eb5fa7e4e64d21d1c3",
+    "envelope_sha256": "457925bc07cdf2b10386a472b5d967bca48869b10805e1fbd066233a57a77bc5",
+    "preregistered_utc": "2026-10-09T06:52:57.567563+00:00",
+    "quality_accepted": false,
+    "release_ready": false
+  },
+  "started_utc": "2026-10-09T07:00:50.304797+00:00",
+  "preregistration_sha256": "2e88373643baa035e4491119ade134551de3e22bac75c3e9184bfa9d7f8585bf",
+  "baseline_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+  "stages": [
+    {
+      "blocks": [
+        "down0rest",
+        "up3",
+        "tail"
+      ],
+      "onnx_hashes_match": true,
+      "completed_utc": "2026-10-09T07:01:50.308158+00:00"
+    }
+  ],
+  "quality_accepted": false,
+  "performance_accepted": false,
+  "release_ready": false,
+  "error_type": "ModuleNotFoundError",
+  "reason": "build_or_probe_failure",
+  "finished_utc": "2026-10-09T07:01:50.962916+00:00"
+}

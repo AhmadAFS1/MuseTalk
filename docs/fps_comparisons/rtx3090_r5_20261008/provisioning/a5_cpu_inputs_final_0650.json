@@ -1,0 +1,93 @@
+{
+  "schema": "owned_cpu_original_input_audit_v2",
+  "instance_id": "54976782",
+  "hostname": "8a2a09dff54d",
+  "gpu_uuid": "GPU-0a54f35e-c3a1-256e-aa21-0042ad52a039",
+  "finished_utc": "2026-10-09T06:50:37.232068+00:00",
+  "status": "INCOMPLETE",
+  "parent_input_manifest_sha256": "6d3ab6ef31605c2231605e03042e82361a27112589ef6d7f6f8ff8f4b016eea5",
+  "input_paths": 878,
+  "exact_paths": 865,
+  "missing": [],
+  "changed_nonmetadata": [
+    {
+      "expected": {
+        "path": "../../../../scripts/chin_multistream/telemetry.py",
+        "bytes": 3526,
+        "sha256": "738c8b0873ddaffe3ec495503d30cd7ca7d7eb72a1378916f9306063b05e31ed"
+      },
+      "observed": {
+        "path": "../../../../scripts/chin_multistream/telemetry.py",
+        "bytes": 7416,
+        "sha256": "531c9702a1b6b28d709e40a236d51fefb6ab269bbe5aa9409c931b5f0c027825"
+      }
+    }
+  ],
+  "changed_metadata": [
+    {
+      "path": "../../../../models/.cache/huggingface/download/auxiliary/s3fd-619a316812.pth.metadata",
+      "bytes": 125,
+      "sha256": "5b694f11bf6a91de279494d26d7a6fb1ffbcc190f009cf5c40a605e1cec50793"
+    },
+    {
+      "path": "../../../../models/.cache/huggingface/download/musetalkV15/musetalk.json.metadata",
+      "bytes": 101,
+      "sha256": "0f9cd7ebfba8f6a64295018f65089cf8dac6502fa32b320c067f6280b5007eb5"
+    },
+    {
+      "path": "../../../../models/.cache/huggingface/download/musetalkV15/unet.pth.metadata",
+      "bytes": 125,
+      "sha256": "fb402d5adf3e6517442c59043cb47f2b38b3a98cc23bd3911af99221da2f2c2b"
+    },
+    {
+      "path": "../../../../models/dwpose/.cache/huggingface/download/dw-ll_ucoco_384.pth.metadata",
+      "bytes": 123,
+      "sha256": "f9a58f6d1885b5e845cb4099a8505d0aa2535dec54e16e39b6f9b24251f271fe"
+    },
+    {
+      "path": "../../../../models/sd-vae/.cache/huggingface/download/config.json.metadata",
+      "bytes": 100,
+      "sha256": "9d5f23105b307ace030b0b3954c3d7cf75e78eb9b2a1c264eb0d7a3dbed8769b"
+    },
+    {
+      "path": "../../../../models/sd-vae/.cache/huggingface/download/diffusion_pytorch_model.bin.metadata",
+      "bytes": 125,
+      "sha256": "ddf173bc54ea8d285affdf91e754b39ff913a815d2430a6b95babe3bf44fd861"
+    },
+    {
+      "path": "../../../../models/syncnet/.cache/huggingface/download/latentsync_syncnet.pt.metadata",
+      "bytes": 125,
+      "sha256": "57e66dc0115d5280def4c21df1ae478bd4b2f8fdd64f294edf17c5375349012d"
+    },
+    {
+      "path": "../../../../models/taesd/.cache/huggingface/download/config.json.metadata",
+      "bytes": 100,
+      "sha256": "ee14dd0a107670efddcb5fac93722ac006c19e1aba7272f8753d27143509293f"
+    },
+    {
+      "path": "../../../../models/taesd/.cache/huggingface/download/diffusion_pytorch_model.safetensors.metadata",
+      "bytes": 125,
+      "sha256": "b42653edf9c1c74fdb8d0d315ea65e792e5017f45d797e330d221602116dee09"
+    },
+    {
+      "path": "../../../../models/whisper/.cache/huggingface/download/config.json.metadata",
+      "bytes": 100,
+      "sha256": "710ad22c6d8300911287c2fb8c33cd24d7fe244a9d367ddbc9a0e74e4ac62657"
+    },
+    {
+      "path": "../../../../models/whisper/.cache/huggingface/download/preprocessor_config.json.metadata",
+      "bytes": 101,
+      "sha256": "2b9219121e238b754cb10a8478dcd893803ce4d36001fe5773d81103fbbb1f0e"
+    },
+    {
+      "path": "../../../../models/whisper/.cache/huggingface/download/pytorch_model.bin.metadata",
+      "bytes": 125,
+      "sha256": "9dc77cf4e7dc1dfc6732f2c072d89221097a678798b3d0f9c85d631755d3ca8f"
+    }
+  ],
+  "syncnet_restored": false,
+  "original_manifest_modified": false,
+  "gpu_imports": false,
+  "quality_accepted": false,
+  "release_ready": false
+}

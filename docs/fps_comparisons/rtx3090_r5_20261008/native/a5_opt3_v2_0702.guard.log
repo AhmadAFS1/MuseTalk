@@ -1,0 +1,27 @@
+[box_guard 07:00:42] GPU lease acquired after 4s with a quiet GPU (label: a5-same-graph-opt3-0702)
+[box_guard 07:00:42] before: avail=45.52GB oom_kill=0 disk_free=122.78GB shm=0_used_of_15G load1=0.58 gpu[util%,memMiB,totMiB,smMHz,W,C]=0,2,24576,210,26.30,40
+[box_guard 07:00:42] running: /workspace/.venvs/musetalk_trt_stagewise/bin/python scripts/repro_3090/watch_owned_single_leaf_565.py --enable --owned-target-json /workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/provisioning/a5_owned_target.json --owned-target-sha256 5022cf99b58a56801ccb1958d5d220ba63f5ea20b68543303fbddc466fabb750 -- --enable --out /workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/native/a5_opt3_v2_0702.watch.jsonl --target /workspace/MuseTalk/scripts/repro_3090/build_owned_unet_opt3.py --target-sha256 ccc9f02d1544e63494e1e184841c542c15d8ac1b8e1b04c288c2ef2da6b37c03 --deadline-utc 2026-10-09T08:35:00Z -- --execute --owned-target-json /workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/provisioning/a5_owned_target.json --owned-target-sha256 5022cf99b58a56801ccb1958d5d220ba63f5ea20b68543303fbddc466fabb750 --successor-inputs /workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/harnesses/quality-inputs-a5-metadata-v1.json --successor-envelope /workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/quality/reference-envelope-a5-metadata-v1.json --lineage-receipt /workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/quality/a5-metadata-lineage-v1.json --lineage-receipt-sha256 ec1acb2a141f28ee254dffa5dec0f1ce7d49a195aa5d66d2659cf4cf3fd12c3f --out /workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/native/a5_opt3_v2_0702
+/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/diffusers/models/downsampling.py:136: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+  assert hidden_states.shape[1] == self.channels
+/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages/diffusers/models/downsampling.py:145: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+  assert hidden_states.shape[1] == self.channels
+[bs16] down0rest: built in 29.1s (onnx 14.9 MiB, engine 16.9 MiB)  mem={'VmHWM_MiB': 6403.4, 'VmRSS_MiB': 6403.4, 'MemAvailable_MiB': 42289.8}
+[bs16] up3: built in 16.2s (onnx 34.6 MiB, engine 37.4 MiB)  mem={'VmHWM_MiB': 6521.7, 'VmRSS_MiB': 6462.1, 'MemAvailable_MiB': 42290.9}
+[bs16] tail: built in 1.1s (onnx 0.0 MiB, engine 0.2 MiB)  mem={'VmHWM_MiB': 6521.7, 'VmRSS_MiB': 6424.9, 'MemAvailable_MiB': 41872.6}
+[bs16] incomplete; missing ['prefix', 'down1', 'down2', 'down3', 'mid', 'up0', 'up1', 'up2']
+/workspace/MuseTalk/scripts/build_unet_stagewise.py:276: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ds = [torch.load(f, map_location="cpu") for f in picked[k:k + batch // 8]]
+Traceback (most recent call last):
+  File "<string>", line 7, in <module>
+  File "/workspace/MuseTalk/scripts/repro_3090/watch_owned_single_leaf_565.py", line 90, in leaf_with_binding
+    return watch.leaf(spec)
+  File "/workspace/MuseTalk/scripts/repro_3090/watch_owned_single_leaf_565.py", line 214, in leaf
+  File "/workspace/MuseTalk/scripts/repro_3090/build_owned_unet_opt3.py", line 173, in <module>
+    main()
+  File "/workspace/MuseTalk/scripts/repro_3090/build_owned_unet_opt3.py", line 154, in main
+    manifest = builder.build_batch(options(stage), 16, model, device)
+  File "/workspace/MuseTalk/scripts/build_unet_stagewise.py", line 313, in build_batch
+    import modelopt.torch.quantization as mtq
+ModuleNotFoundError: No module named 'modelopt'
+[box_guard 07:01:52] after:  avail=46.61GB oom_kill=0 disk_free=122.73GB shm=0_used_of_15G load1=0.86 gpu[util%,memMiB,totMiB,smMHz,W,C]=0,2,24576,1950,179.97,57
+[box_guard 07:01:52] done: rc=143 (child rc=143) elapsed=69.3s lease_wait=4s min_avail=40.76GB peak_group_rss=6.37GB oom_kill 0->0 verdict=ok

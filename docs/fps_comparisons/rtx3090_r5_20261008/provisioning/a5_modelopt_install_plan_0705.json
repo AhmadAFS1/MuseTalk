@@ -1,0 +1,408 @@
+{
+  "version": "1",
+  "pip_version": "26.2.1",
+  "install": [
+    {
+      "download_info": {
+        "url": "https://files.pythonhosted.org/packages/dd/6e/d674f1dde91c71e2ac19e5e5cf1ee6d5845e3aefecd9c39ed9c4b0c9a696/pulp-3.3.2-py3-none-any.whl",
+        "archive_info": {
+          "hashes": {
+            "sha256": "631b166f72086971a9597f7a0233ababa99bb8d50a01cd543f7758be5a9f86c0"
+          },
+          "hash": "sha256=631b166f72086971a9597f7a0233ababa99bb8d50a01cd543f7758be5a9f86c0"
+        }
+      },
+      "is_direct": false,
+      "is_yanked": false,
+      "requested": true,
+      "metadata": {
+        "metadata_version": "2.4",
+        "name": "PuLP",
+        "version": "3.3.2",
+        "dynamic": [
+          "license-file"
+        ],
+        "summary": "PuLP is an LP modeler written in python. PuLP can generate MPS or LP files and call GLPK, COIN CLP/CBC, CPLEX, and GUROBI to solve linear problems.",
+        "description_content_type": "text/x-rst",
+        "keywords": [
+          "Optimization",
+          "Linear Programming",
+          "Operations Research"
+        ],
+        "author": "J.S. Roy",
+        "author_email": "\"S.A. Mitchell\" <pulp@stuartmitchell.com>, Franco Peschiera <pchtsp@gmail.com>",
+        "maintainer_email": "Franco Peschiera <pchtsp@gmail.com>",
+        "license_expression": "MIT",
+        "license_file": [
+          "LICENSE"
+        ],
+        "classifier": [
+          "Development Status :: 5 - Production/Stable",
+          "Environment :: Console",
+          "Intended Audience :: Science/Research",
+          "Natural Language :: English",
+          "Programming Language :: Python",
+          "Topic :: Scientific/Engineering :: Mathematics"
+        ],
+        "requires_dist": [
+          "cbcbox; extra == \"cbc\"",
+          "highspy==1.13; extra == \"open-py\"",
+          "pyscipopt; extra == \"open-py\"",
+          "gurobipy; extra == \"public-py\"",
+          "coptpy; extra == \"public-py\"",
+          "xpress; extra == \"public-py\"",
+          "cplex; (sys_platform != \"darwin\" or python_full_version < \"3.12\") and extra == \"public-py\"",
+          "highspy==1.13; extra == \"highs\"",
+          "pyscipopt; extra == \"scip\"",
+          "gurobipy; extra == \"gurobi\"",
+          "xpress; extra == \"xpress\"",
+          "coptpy; extra == \"copt\"",
+          "cplex; (sys_platform != \"darwin\" or python_full_version < \"3.12\") and extra == \"cplex\"",
+          "mosek; extra == \"mosek\""
+        ],
+        "requires_python": ">=3.10",
+        "project_url": [
+          "source, https://github.com/coin-or/pulp",
+          "download, https://github.com/coin-or/pulp/archive/master.zip"
+        ],
+        "provides_extra": [
+          "cbc",
+          "open-py",
+          "public-py",
+          "highs",
+          "scip",
+          "gurobi",
+          "xpress",
+          "copt",
+          "cplex",
+          "mosek"
+        ],
+        "description": "pulp\n**************************\n\n.. image:: https://travis-ci.org/coin-or/pulp.svg?branch=master\n    :target: https://travis-ci.org/coin-or/pulp\n.. image:: https://img.shields.io/pypi/v/pulp\n    :target: https://pypi.org/project/PuLP/\n    :alt: PyPI\n.. image:: https://img.shields.io/pypi/dm/pulp\n    :target: https://pypi.org/project/PuLP/\n    :alt: PyPI - Downloads\n\nPuLP is an linear and mixed integer programming modeler written in Python. With PuLP, it is simple to create MILP optimisation problems and solve them with the latest open-source (or proprietary) solvers.  PuLP can generate MPS or LP files and call solvers such as GLPK_, COIN-OR CLP/`CBC`_, CPLEX_, GUROBI_, MOSEK_, XPRESS_, CHOCO_, MIPCL_, HiGHS_, SCIP_/FSCIP_.\n\nThe documentation for PuLP can be `found here <https://coin-or.github.io/pulp/>`_.\n\nPuLP is part of the `COIN-OR project <https://www.coin-or.org/>`_. \n\nInstallation\n================\n\nPuLP requires Python 3.10 or newer.\n\nThe easiest way to install PuLP is with ``pip``. If ``pip`` is available on your system, type::\n\n     python -m pip install pulp\n\nOtherwise follow the download instructions on the `PyPi page <https://pypi.python.org/pypi/PuLP>`_.\n\nInstalling solvers\n----------------------\n\nPuLP can use a variety of solvers. The default solver is the COIN-OR CBC solver via the ``COIN_CMD`` API. Install CBC with::\n\n    python -m pip install pulp[cbc]\n\nIf CBC is not available on your system, PuLP falls back to other solvers such as the legacy bundled CBC (``PULP_CBC_CMD``) or GLPK.\n\nTo install other solvers, PuLP offers a quick way to install most solvers via their pypi package (some require a commercial license for running or for running large models)::\n\n    python -m pip install pulp[cbc]\n    python -m pip install pulp[gurobi]\n    python -m pip install pulp[cplex]\n    python -m pip install pulp[xpress]\n    python -m pip install pulp[scip]\n    python -m pip install pulp[highs]\n    python -m pip install pulp[copt]\n    python -m pip install pulp[mosek]\n\n\nIf you want to install all open source solvers (scip, highs, cylp), you can use the shortcut::\n    python -m pip install pulp[open_py]\n\nFor more information on how to install solvers, see the `guide on configuring solvers <https://coin-or.github.io/pulp/guides/how_to_configure_solvers.html>`_.\n\nQuickstart \n===============\n\nCreate a problem first, then add variables with ``add_variable`` (variables are owned by the model). To create a variable ``x`` with 0  ≤  x  ≤  3 and a binary variable ``y``::\n\n     from pulp import *\n     prob = LpProblem(\"myProblem\", LpMinimize)\n     x = prob.add_variable(\"x\", 0, 3)\n     y = prob.add_variable(\"y\", cat=\"Binary\")\n\nCombine variables in order to create expressions and constraints, and then add them to the problem.::\n\n     prob += x + y <= 2\n\nAn expression is a constraint without a right-hand side (RHS) sense (one of ``=``, ``<=`` or ``>=``). If you add an expression to a problem, it will become the objective::\n\n     prob += -4*x + y\n\nTo solve the problem with the default solver (CBC via ``COIN_CMD`` when installed with ``pulp[cbc]``)::\n\n     status = prob.solve()\n\nTo solve explicitly with CBC::\n\n     status = prob.solve(COIN_CMD(msg=0))\n\nIf you want to try another solver to solve the problem::\n\n     status = prob.solve(GLPK(msg = 0))\n\nDisplay the status of the solution::\n\n     LpStatus[status]\n     > 'Optimal'\n\nYou can get the value of the variables using ``value``. ex::\n\n     value(x)\n     > 2.0\n\n\nEssential Classes\n------------------\n\n\n* ``LpProblem`` -- Container class for a Linear or Integer programming problem\n* ``LpVariable`` -- Variables that are added into constraints in the LP problem\n* ``LpConstraint`` -- Constraints of the general form\n\n      a1x1 + a2x2 + ... + anxn (<=, =, >=) b\n\n* ``LpConstraintVar`` -- A special type of constraint for constructing column of the model in column-wise modelling\n\nUseful Functions\n------------------\n\n* ``value()`` -- Finds the value of a variable or expression\n* ``lpSum()`` -- Given a list of the form [a1*x1, a2*x2, ..., an*xn] will construct a linear expression to be used as a constraint or variable\n* ``lpDot()`` -- Given two lists of the form [a1, a2, ..., an] and [x1, x2, ..., xn] will construct a linear expression to be used as a constraint or variable\n\nMore Examples\n================\n\nSeveral tutorial are given in `documentation <https://coin-or.github.io/pulp/CaseStudies/index.html>`_ and pure code examples are available in `examples/ directory <https://github.com/coin-or/pulp/tree/master/examples>`_ .\n\nThe examples use the default solver (CBC via ``COIN_CMD`` when available). To use other solvers they must be available (installed and accessible). For more information on how to do that, see the `guide on configuring solvers <https://coin-or.github.io/pulp/guides/how_to_configure_solvers.html>`_.\n\n\nFor Developers \n================\n\n\nIf you want to install the latest version from GitHub you can run::\n\n    python -m pip install -U git+https://github.com/coin-or/pulp\n\n\n\nBuilding the documentation\n--------------------------\n\nThe PuLP documentation is built with `Sphinx <https://www.sphinx-doc.org>`_.  We recommended using a\n`virtual environment <https://docs.python.org/3/library/venv.html>`_ to build the documentation locally.\n\nTo build, run the following in a terminal window, in the PuLP root directory\n\n::\n\n    python3 -m pip install --upgrade pip\n    pip install --group=dev .\n    cd doc\n    make html\n\nA folder named html will be created inside the ``build/`` directory.\nThe home page for the documentation is ``doc/build/html/index.html`` which can be opened in a browser.\n\nContributing to PuLP\n-----------------------\nInstructions for making your first contribution to PuLP are given `here <https://coin-or.github.io/pulp/develop/contribute.html>`_.\n\n**Comments, bug reports, patches and suggestions are very welcome!**\n\n* Comments and suggestions: https://github.com/coin-or/pulp/discussions\n* Bug reports: https://github.com/coin-or/pulp/issues\n* Patches: https://github.com/coin-or/pulp/pulls\n\nCopyright and License \n=======================\nPuLP is distributed under an MIT license. \n\n     Copyright J.S. Roy, 2003-2005\n     Copyright Stuart A. Mitchell\n     See the LICENSE file for copyright information.\n\n.. _Python: http://www.python.org/\n\n.. _GLPK: http://www.gnu.org/software/glpk/glpk.html\n.. _CBC: https://github.com/coin-or/Cbc\n.. _CPLEX: http://www.cplex.com/\n.. _GUROBI: http://www.gurobi.com/\n.. _MOSEK: https://www.mosek.com/\n.. _XPRESS: https://www.fico.com/es/products/fico-xpress-solver\n.. _CHOCO: https://choco-solver.org/\n.. _MIPCL: http://mipcl-cpp.appspot.com/\n.. _SCIP: https://www.scipopt.org/\n.. _HiGHS: https://highs.dev\n.. _FSCIP: https://ug.zib.de\n"
+      }
+    },
+    {
+      "download_info": {
+        "url": "https://files.pythonhosted.org/packages/a9/04/a373145bd572c6d7cd7e6626ab78f77e6228722d26e99a642ab2b92a00c0/nvidia_modelopt-0.23.2-py3-none-manylinux2014_x86_64.whl",
+        "archive_info": {
+          "hashes": {
+            "sha256": "3fdefe9aa95e014cc6a65db68eef001dbf14ec190f8af0669f4f6b2f1573706c"
+          },
+          "hash": "sha256=3fdefe9aa95e014cc6a65db68eef001dbf14ec190f8af0669f4f6b2f1573706c"
+        }
+      },
+      "is_direct": false,
+      "is_yanked": false,
+      "requested": true,
+      "metadata": {
+        "metadata_version": "2.2",
+        "name": "nvidia-modelopt",
+        "version": "0.23.2",
+        "dynamic": [
+          "author",
+          "classifier",
+          "description",
+          "description-content-type",
+          "home-page",
+          "license",
+          "provides-extra",
+          "requires-dist",
+          "requires-python",
+          "summary"
+        ],
+        "summary": "Nvidia TensorRT Model Optimizer: a unified model optimization and deployment toolkit.",
+        "description_content_type": "text/markdown",
+        "home_page": "https://github.com/NVIDIA/TensorRT-Model-Optimizer",
+        "author": "NVIDIA Corporation",
+        "license": "Apache 2.0",
+        "license_file": [
+          "LICENSE"
+        ],
+        "classifier": [
+          "Programming Language :: Python :: 3",
+          "Intended Audience :: Developers",
+          "Intended Audience :: Science/Research",
+          "Topic :: Scientific/Engineering :: Artificial Intelligence"
+        ],
+        "requires_dist": [
+          "nvidia-modelopt-core==0.23.2",
+          "cloudpickle>=1.6.0",
+          "ninja",
+          "numpy<2",
+          "packaging",
+          "pydantic>=2.0",
+          "rich",
+          "scipy",
+          "tqdm",
+          "setuptools; python_version >= \"3.12\"",
+          "cppimport; extra == \"onnx\"",
+          "cupy-cuda12x; (platform_machine != \"aarch64\" and platform_system != \"Darwin\") and extra == \"onnx\"",
+          "onnx; extra == \"onnx\"",
+          "onnxconverter-common; extra == \"onnx\"",
+          "onnxmltools; extra == \"onnx\"",
+          "onnx-graphsurgeon; extra == \"onnx\"",
+          "onnxruntime~=1.18.1; python_version < \"3.10\" and extra == \"onnx\"",
+          "onnxruntime~=1.20.1; (python_version >= \"3.10\" and (platform_machine == \"aarch64\" or platform_system == \"Darwin\")) and extra == \"onnx\"",
+          "onnxruntime-gpu~=1.20.1; (python_version >= \"3.10\" and platform_machine != \"aarch64\" and platform_system != \"Darwin\") and extra == \"onnx\"",
+          "pulp; extra == \"torch\"",
+          "regex; extra == \"torch\"",
+          "safetensors; extra == \"torch\"",
+          "torch>=2.1; extra == \"torch\"",
+          "torchprofile>=0.0.4; extra == \"torch\"",
+          "torchvision; extra == \"torch\"",
+          "accelerate>=0.27.2; extra == \"hf\"",
+          "datasets>=2.16.1; extra == \"hf\"",
+          "diffusers>=0.27.2; extra == \"hf\"",
+          "huggingface_hub>=0.24.0; extra == \"hf\"",
+          "transformers>=4.40.2; extra == \"hf\"",
+          "peft>=0.12.0; extra == \"hf\"",
+          "bandit[toml]==1.7.9; extra == \"dev-lint\"",
+          "mypy==1.11.2; extra == \"dev-lint\"",
+          "pre-commit==4.0.1; extra == \"dev-lint\"",
+          "ruff==0.6.4; extra == \"dev-lint\"",
+          "coverage; extra == \"dev-test\"",
+          "onnxscript; extra == \"dev-test\"",
+          "pytest; extra == \"dev-test\"",
+          "pytest-asyncio; extra == \"dev-test\"",
+          "pytest-cov; extra == \"dev-test\"",
+          "pytest-timeout; extra == \"dev-test\"",
+          "timm; extra == \"dev-test\"",
+          "toml; extra == \"dev-test\"",
+          "tox; extra == \"dev-test\"",
+          "tox-current-env>=0.0.12; extra == \"dev-test\"",
+          "autodoc_pydantic>=2.1.0; extra == \"dev-docs\"",
+          "ipython; extra == \"dev-docs\"",
+          "ipywidgets; extra == \"dev-docs\"",
+          "nbsphinx>=0.9.3; extra == \"dev-docs\"",
+          "pypandoc; extra == \"dev-docs\"",
+          "sphinx~=7.2.0; extra == \"dev-docs\"",
+          "sphinx-autobuild>=2024.10.3; extra == \"dev-docs\"",
+          "sphinx-copybutton>=0.5.2; extra == \"dev-docs\"",
+          "sphinx-inline-tabs>=2023.4.21; extra == \"dev-docs\"",
+          "sphinx-rtd-theme~=3.0.0; extra == \"dev-docs\"",
+          "sphinx-togglebutton>=0.3.2; extra == \"dev-docs\"",
+          "cython; extra == \"dev-build\"",
+          "setuptools>=67.8.0; extra == \"dev-build\"",
+          "setuptools_scm>=7.1.0; extra == \"dev-build\"",
+          "twine; extra == \"dev-build\"",
+          "cppimport; extra == \"all\"",
+          "cupy-cuda12x; (platform_machine != \"aarch64\" and platform_system != \"Darwin\") and extra == \"all\"",
+          "onnx; extra == \"all\"",
+          "onnxconverter-common; extra == \"all\"",
+          "onnxmltools; extra == \"all\"",
+          "onnx-graphsurgeon; extra == \"all\"",
+          "onnxruntime~=1.18.1; python_version < \"3.10\" and extra == \"all\"",
+          "onnxruntime~=1.20.1; (python_version >= \"3.10\" and (platform_machine == \"aarch64\" or platform_system == \"Darwin\")) and extra == \"all\"",
+          "onnxruntime-gpu~=1.20.1; (python_version >= \"3.10\" and platform_machine != \"aarch64\" and platform_system != \"Darwin\") and extra == \"all\"",
+          "pulp; extra == \"all\"",
+          "regex; extra == \"all\"",
+          "safetensors; extra == \"all\"",
+          "torch>=2.1; extra == \"all\"",
+          "torchprofile>=0.0.4; extra == \"all\"",
+          "torchvision; extra == \"all\"",
+          "accelerate>=0.27.2; extra == \"all\"",
+          "datasets>=2.16.1; extra == \"all\"",
+          "diffusers>=0.27.2; extra == \"all\"",
+          "huggingface_hub>=0.24.0; extra == \"all\"",
+          "transformers>=4.40.2; extra == \"all\"",
+          "peft>=0.12.0; extra == \"all\"",
+          "cppimport; extra == \"dev\"",
+          "cupy-cuda12x; (platform_machine != \"aarch64\" and platform_system != \"Darwin\") and extra == \"dev\"",
+          "onnx; extra == \"dev\"",
+          "onnxconverter-common; extra == \"dev\"",
+          "onnxmltools; extra == \"dev\"",
+          "onnx-graphsurgeon; extra == \"dev\"",
+          "onnxruntime~=1.18.1; python_version < \"3.10\" and extra == \"dev\"",
+          "onnxruntime~=1.20.1; (python_version >= \"3.10\" and (platform_machine == \"aarch64\" or platform_system == \"Darwin\")) and extra == \"dev\"",
+          "onnxruntime-gpu~=1.20.1; (python_version >= \"3.10\" and platform_machine != \"aarch64\" and platform_system != \"Darwin\") and extra == \"dev\"",
+          "pulp; extra == \"dev\"",
+          "regex; extra == \"dev\"",
+          "safetensors; extra == \"dev\"",
+          "torch>=2.1; extra == \"dev\"",
+          "torchprofile>=0.0.4; extra == \"dev\"",
+          "torchvision; extra == \"dev\"",
+          "accelerate>=0.27.2; extra == \"dev\"",
+          "datasets>=2.16.1; extra == \"dev\"",
+          "diffusers>=0.27.2; extra == \"dev\"",
+          "huggingface_hub>=0.24.0; extra == \"dev\"",
+          "transformers>=4.40.2; extra == \"dev\"",
+          "peft>=0.12.0; extra == \"dev\"",
+          "bandit[toml]==1.7.9; extra == \"dev\"",
+          "mypy==1.11.2; extra == \"dev\"",
+          "pre-commit==4.0.1; extra == \"dev\"",
+          "ruff==0.6.4; extra == \"dev\"",
+          "coverage; extra == \"dev\"",
+          "onnxscript; extra == \"dev\"",
+          "pytest; extra == \"dev\"",
+          "pytest-asyncio; extra == \"dev\"",
+          "pytest-cov; extra == \"dev\"",
+          "pytest-timeout; extra == \"dev\"",
+          "timm; extra == \"dev\"",
+          "toml; extra == \"dev\"",
+          "tox; extra == \"dev\"",
+          "tox-current-env>=0.0.12; extra == \"dev\"",
+          "autodoc_pydantic>=2.1.0; extra == \"dev\"",
+          "ipython; extra == \"dev\"",
+          "ipywidgets; extra == \"dev\"",
+          "nbsphinx>=0.9.3; extra == \"dev\"",
+          "pypandoc; extra == \"dev\"",
+          "sphinx~=7.2.0; extra == \"dev\"",
+          "sphinx-autobuild>=2024.10.3; extra == \"dev\"",
+          "sphinx-copybutton>=0.5.2; extra == \"dev\"",
+          "sphinx-inline-tabs>=2023.4.21; extra == \"dev\"",
+          "sphinx-rtd-theme~=3.0.0; extra == \"dev\"",
+          "sphinx-togglebutton>=0.3.2; extra == \"dev\"",
+          "cython; extra == \"dev\"",
+          "setuptools>=67.8.0; extra == \"dev\"",
+          "setuptools_scm>=7.1.0; extra == \"dev\"",
+          "twine; extra == \"dev\"",
+          "cppimport; extra == \"dev\"",
+          "cupy-cuda12x; (platform_machine != \"aarch64\" and platform_system != \"Darwin\") and extra == \"dev\"",
+          "onnx; extra == \"dev\"",
+          "onnxconverter-common; extra == \"dev\"",
+          "onnxmltools; extra == \"dev\"",
+          "onnx-graphsurgeon; extra == \"dev\"",
+          "onnxruntime~=1.18.1; python_version < \"3.10\" and extra == \"dev\"",
+          "onnxruntime~=1.20.1; (python_version >= \"3.10\" and (platform_machine == \"aarch64\" or platform_system == \"Darwin\")) and extra == \"dev\"",
+          "onnxruntime-gpu~=1.20.1; (python_version >= \"3.10\" and platform_machine != \"aarch64\" and platform_system != \"Darwin\") and extra == \"dev\"",
+          "pulp; extra == \"dev\"",
+          "regex; extra == \"dev\"",
+          "safetensors; extra == \"dev\"",
+          "torch>=2.1; extra == \"dev\"",
+          "torchprofile>=0.0.4; extra == \"dev\"",
+          "torchvision; extra == \"dev\"",
+          "accelerate>=0.27.2; extra == \"dev\"",
+          "datasets>=2.16.1; extra == \"dev\"",
+          "diffusers>=0.27.2; extra == \"dev\"",
+          "huggingface_hub>=0.24.0; extra == \"dev\"",
+          "transformers>=4.40.2; extra == \"dev\"",
+          "peft>=0.12.0; extra == \"dev\""
+        ],
+        "requires_python": ">=3.9,<3.13",
+        "provides_extra": [
+          "deploy",
+          "onnx",
+          "torch",
+          "hf",
+          "dev-lint",
+          "dev-test",
+          "dev-docs",
+          "dev-build",
+          "all",
+          "dev"
+        ],
+        "description": "Checkout https://github.com/nvidia/TensorRT-Model-Optimizer for more information.\n"
+      }
+    },
+    {
+      "download_info": {
+        "url": "https://files.pythonhosted.org/packages/c6/b7/2f182c3160b626fbd74c1f71d0cd0df86168bb3d948530ca74886a3b2779/nvidia_modelopt_core-0.23.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "archive_info": {
+          "hashes": {
+            "sha256": "194c6f4c70504286aa88fa9bce3cdeed78fa3ce34881627c6788480441f82020"
+          },
+          "hash": "sha256=194c6f4c70504286aa88fa9bce3cdeed78fa3ce34881627c6788480441f82020"
+        }
+      },
+      "is_direct": false,
+      "is_yanked": false,
+      "requested": false,
+      "metadata": {
+        "metadata_version": "2.2",
+        "name": "nvidia-modelopt-core",
+        "version": "0.23.2",
+        "dynamic": [
+          "author",
+          "classifier",
+          "description",
+          "description-content-type",
+          "home-page",
+          "license",
+          "requires-python",
+          "summary"
+        ],
+        "summary": "Nvidia TensorRT Model Optimizer: a unified model optimization and deployment toolkit.",
+        "description_content_type": "text/markdown",
+        "home_page": "https://github.com/NVIDIA/TensorRT-Model-Optimizer",
+        "author": "NVIDIA Corporation",
+        "license": "Apache 2.0",
+        "license_file": [
+          "LICENSE"
+        ],
+        "classifier": [
+          "Programming Language :: Python :: 3",
+          "Intended Audience :: Developers",
+          "Intended Audience :: Science/Research",
+          "Topic :: Scientific/Engineering :: Artificial Intelligence"
+        ],
+        "requires_python": ">=3.9,<3.13",
+        "description": "Checkout https://github.com/nvidia/TensorRT-Model-Optimizer for more information.\n"
+      }
+    },
+    {
+      "download_info": {
+        "url": "https://files.pythonhosted.org/packages/13/76/82c336b80fcd19ad9eedd7c17e459d69a0024aed7229dbcf663c975c5ded/torchprofile-0.1.0-py3-none-any.whl",
+        "archive_info": {
+          "hashes": {
+            "sha256": "39aefcd194927befb0cfe7ed886be565dee384e3889d0b6890bace5ae1614578"
+          },
+          "hash": "sha256=39aefcd194927befb0cfe7ed886be565dee384e3889d0b6890bace5ae1614578"
+        }
+      },
+      "is_direct": false,
+      "is_yanked": false,
+      "requested": true,
+      "metadata": {
+        "metadata_version": "2.4",
+        "name": "torchprofile",
+        "version": "0.1.0",
+        "dynamic": [
+          "license-file"
+        ],
+        "summary": "Count the MACs / FLOPs of PyTorch models",
+        "description_content_type": "text/markdown",
+        "author": "Zhijian Liu",
+        "license": "MIT",
+        "license_file": [
+          "LICENSE"
+        ],
+        "classifier": [
+          "Development Status :: 4 - Beta",
+          "Intended Audience :: Developers",
+          "Intended Audience :: Science/Research",
+          "License :: OSI Approved :: MIT License",
+          "Programming Language :: Python :: 3",
+          "Topic :: Scientific/Engineering :: Artificial Intelligence"
+        ],
+        "requires_dist": [
+          "torch>=2.0",
+          "pytest; extra == \"test\"",
+          "torchvision>=0.15; extra == \"test\"",
+          "transformers; extra == \"test\""
+        ],
+        "requires_python": ">=3.9",
+        "project_url": [
+          "Homepage, https://github.com/zhijian-liu/torchprofile",
+          "Repository, https://github.com/zhijian-liu/torchprofile",
+          "Issues, https://github.com/zhijian-liu/torchprofile/issues"
+        ],
+        "provides_extra": [
+          "test"
+        ],
+        "description": "# TorchProfile\n\n[![PyPI](https://img.shields.io/pypi/v/torchprofile)](https://pypi.org/project/torchprofile/)\n[![License](https://img.shields.io/github/license/zhijian-liu/torchprofile)](LICENSE)\n[![PyTorch](https://img.shields.io/badge/PyTorch-%3E%3D2.0-ee4c2c)](https://pytorch.org/)\n\nTorchProfile counts the number of MACs (multiply-accumulate operations) in a PyTorch model. It works by tracing the computation graph with `torch.jit.trace`, making it more accurate than hook-based profilers and more general than ONNX-based ones.\n\n## Installation\n\n```bash\npip install torchprofile\n```\n\n## Quick Start\n\n```python\nimport torch\nfrom transformers import AutoModel\nfrom torchprofile import profile_macs\n\nmodel = AutoModel.from_pretrained(\"meta-llama/Llama-3.2-1B\").eval()\ninputs = torch.randint(0, model.config.vocab_size, (1, 128))\n\nmacs = profile_macs(model, inputs)\nprint(f\"{macs / 1e9:.2f} GMACs\")\n```\n\nTo get a per-operator breakdown, pass `reduction=None`:\n\n```python\nresults = profile_macs(model, inputs, reduction=None)\nfor node, macs in results.items():\n    if macs > 0:\n        print(f\"{node.scope:40s} {node.operator:30s} {macs / 1e6:>8.2f} MMACs\")\n```\n\n## License\n\nThis repository is released under the MIT license. See [LICENSE](LICENSE) for additional details.\n"
+      }
+    }
+  ],
+  "environment": {
+    "implementation_name": "cpython",
+    "implementation_version": "3.10.12",
+    "os_name": "posix",
+    "platform_machine": "x86_64",
+    "platform_release": "6.8.0-87-generic",
+    "platform_system": "Linux",
+    "platform_version": "#88~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Oct 14 14:03:14 UTC 2",
+    "python_full_version": "3.10.12",
+    "platform_python_implementation": "CPython",
+    "python_version": "3.10",
+    "sys_platform": "linux"
+  }
+}
