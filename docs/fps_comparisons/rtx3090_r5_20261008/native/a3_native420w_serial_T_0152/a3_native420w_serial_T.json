@@ -1,0 +1,65 @@
+{
+ "schema": "chin_multistream_v1",
+ "label": "a3_native420w_serial_T",
+ "started_utc": "2026-10-09T01:53:31Z",
+ "tags": "[M] measured by this run",
+ "args": {
+  "mode": "multi",
+  "backend": "stagewise16_taesdtrt",
+  "flags": "",
+  "identities": "all",
+  "streams": 6,
+  "loops": 24,
+  "repeats": 2,
+  "align": "stream8",
+  "pack": 16,
+  "decode_split": 8,
+  "depth": 2,
+  "ring_slots": 3,
+  "encode": false,
+  "crf": 12,
+  "save_arrays": false,
+  "compare_accepted": false,
+  "cv2_threads": 2,
+  "tracking_overlap": false,
+  "blas_threads": 1,
+  "label": "a3_native420w_serial_T",
+  "out_root": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/native/a3_native420w_serial_T_0152",
+  "min_timed_s": 60.0,
+  "thermal_warmup_s": 120.0,
+  "identity_list": [
+   "black_man_short_beard",
+   "black_woman",
+   "east_asian_man_goatee",
+   "middle_eastern_man_full_beard",
+   "south_asian_woman",
+   "white_man_clean_shaven"
+  ],
+  "extra_flags": {}
+ },
+ "code_integrity": {
+  "files": {
+   "chin.py": "fd753e7d86b14f1800719ec7f26663c1b362cb512ee24b4b8eb9b1e07f2b99e1",
+   "backend.py": "9676886653aa26f5ffdf328d339a882bbf80d725df6273879c0d5389f7f96c3e",
+   "render_stage.py": "774fe698471cd8d0c39ec83fd31bf73f6f42c54a12ed7d629ec91de1192a2ecf",
+   "tracker_worker.py": "7e5ab0cec1ef7148700a15c2f47d5a0c013a941b2426f2421db972fdf631177d"
+  },
+  "blending_py": "6e5de1bf3f30378493c098b76dfc6fe6644e354d60df2492ffb1fc27726ba121",
+  "matches_accepted_render_json": true
+ },
+ "harness_code_sha256": {
+  "chin_multistream_render.py": "df4e290b33d752be82d6d2ab738bc5d3e21aa439ffd05f1c3c852a8af1fd4a29",
+  "__init__.py": "5da441e276301a29e393822d056eac82ec5ca6a961d537bddc6df237cb36b53f",
+  "arena.py": "4d79e728255a73868e6a187090e42679e2f154e447d8a19d974cf627f96a96b2",
+  "check_prep.py": "0fe8be858c184d590e2c77147af8ea23c6ec8ca6b952482fd455b98cfda344c2",
+  "gpu.py": "41354a8f89827edc2fb1692b8639c6d632c4d2e9e777edc0b9b69e2598c5b3b9",
+  "paths.py": "b1bb4978141f78a6a85c82a0cc3dae019f0e0eb1d304ddf73cb15507ee35e35b",
+  "serial.py": "41e926a5a2b51a8ff4763d73140839e44384b5078eb90abe741244c8d8ea275f",
+  "telemetry.py": "738c8b0873ddaffe3ec495503d30cd7ca7d7eb72a1378916f9306063b05e31ed",
+  "tracking_overlap.py": "b5aa9e38cb5a41392e4e6873ae62a33a157a83d9ef6e5a256d9997808516ea68",
+  "worker.py": "2e6e88fbe106ca964b2b5e31af44203ce5dff201eb2c37436726b65520cc447b"
+ },
+ "error": "Traceback (most recent call last):\n  File \"/workspace/MuseTalk/scripts/chin_multistream_render.py\", line 429, in main\n    rec.update(run_multi(a, run_dir))\n  File \"/workspace/MuseTalk/scripts/chin_multistream_render.py\", line 295, in run_multi\n    tracking_overlap=w[\"tracking_overlap\"], timing_semantics=w[\"timing_semantics\"],\nKeyError: 'tracking_overlap'\n",
+ "status": "error",
+ "finished_utc": "2026-10-09T01:58:04Z"
+}

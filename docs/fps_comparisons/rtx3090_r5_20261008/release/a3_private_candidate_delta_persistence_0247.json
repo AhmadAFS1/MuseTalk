@@ -1,0 +1,91 @@
+{
+  "schema": "a3_private_candidate_delta_persistence_v1",
+  "bucket": "lingua-musetalk-s3-storage",
+  "region": "us-east-1",
+  "expected_owner": "211125449207",
+  "key": "trt-artifacts/rtx3090/private-diagnostics/sha256-e10aaae4572f6d75abf282098d6712febd66646db9911e1f37d3a15762c99841/a3-candidate-deltas.tar.gz",
+  "version_id": "MHSdB0AOVLn3S3xWIrocL9S9SkN9LLKN",
+  "archive_sha256": "e10aaae4572f6d75abf282098d6712febd66646db9911e1f37d3a15762c99841",
+  "archive_bytes": 122625263,
+  "conditional_put_succeeded": true,
+  "exact_version_fresh_get_verified": true,
+  "clean_cpu_restore_verified": true,
+  "restore_path": "/tmp/musetalk-a3-restore.v0MT0o",
+  "payload_files_verified": 14,
+  "payload_files": [
+    {
+      "path": "a3_fp16_down3_delta_v1/down3.plan",
+      "bytes": 124986092,
+      "sha256": "3d0f1f8fa567c391d1eb0353dd3ab98a2b082f5c0ef92f78bd016743bdbf5fe4"
+    },
+    {
+      "path": "a3_fp16_down3_delta_v1/manifest.json",
+      "bytes": 16595,
+      "sha256": "1be2dc7462cd44eaf68a26e1fdccd1243139846afe21723fdf2d99b7a6f535b9"
+    },
+    {
+      "path": "a3_fp16_down3_delta_v1/probe_output.pt",
+      "bytes": 132277,
+      "sha256": "7147a18c63b0f76fe350352817bda181aef5435456dee7a49fe7ecd2adf4d569"
+    },
+    {
+      "path": "a3_mixed_tail_delta_v1/manifest.json",
+      "bytes": 22552,
+      "sha256": "b36e925eedc94d4e847c81fe9d00823b348de6741b0950b9f6b408489f88248d"
+    },
+    {
+      "path": "a3_mixed_tail_delta_v1/probe_output.pt",
+      "bytes": 132277,
+      "sha256": "2feff506ef9c1bfde72a3c1bc380ce42ce69b150528ca89053e3966afef83c00"
+    },
+    {
+      "path": "a3_mixed_tail_delta_v1/tail.plan",
+      "bytes": 370500,
+      "sha256": "b22c71e91ea5e5b5fe6078448d1a6c3f899a5638234c7c5275cdf72362809ccf"
+    },
+    {
+      "path": "trt_native_sm86_fp32_final_conv_a3_0132/candidate.onnx",
+      "bytes": 2472411,
+      "sha256": "57063f561a8d4c448096abc3d159361cfe93ff83c781897d4f208f8f12215e81"
+    },
+    {
+      "path": "trt_native_sm86_fp32_final_conv_a3_0132/candidate_timing.cache",
+      "bytes": 181338,
+      "sha256": "ddad409272c6f86c23eb914b7c703a6cb10ad598578a4425a2695c43ebf90ef7"
+    },
+    {
+      "path": "trt_native_sm86_fp32_final_conv_a3_0132/decoder_inspection.json",
+      "bytes": 58006,
+      "sha256": "8a48bc0ee2ea1e979f7c6c6deac1206282240811239a2d13ba414843a77631d4"
+    },
+    {
+      "path": "trt_native_sm86_fp32_final_conv_a3_0132/source.onnx",
+      "bytes": 2468462,
+      "sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb"
+    },
+    {
+      "path": "trt_native_sm86_fp32_final_conv_a3_0132/taesd_trt_6dc9e3fa6d5f9b9eeeaf.decoder.plan",
+      "bytes": 3207052,
+      "sha256": "80bd48e876801163cbd53df5dae188f39993b0bf376729b0f3a941ae6ae3d6bb"
+    },
+    {
+      "path": "trt_native_sm86_fp32_final_conv_a3_0132/taesd_trt_6dc9e3fa6d5f9b9eeeaf.json",
+      "bytes": 5289,
+      "sha256": "ce10ce170e3311bbd9013a9585597a610adc8d279edf5df38c0a29bf9608487f"
+    },
+    {
+      "path": "trt_native_sm86_fp32_final_conv_a3_0132/taesd_trt_6dc9e3fa6d5f9b9eeeaf.post_bgr_u8.plan",
+      "bytes": 16244,
+      "sha256": "2843888aa5a7adcf52e4cfcae059c7da14b627d898d03c198907d5208ea765fa"
+    },
+    {
+      "path": "trt_native_sm86_fp32_final_conv_a3_0132/transform-proof.json",
+      "bytes": 3647,
+      "sha256": "b6d37c7a9ba2cca844198f78966941cacb594be511854a1e02bd01c87ccfb51b"
+    }
+  ],
+  "public_redistribution": false,
+  "quality_accepted": false,
+  "release_ready": false,
+  "note": "Private diagnostic delta only. Complete UNet reconstruction additionally requires unchanged source-native plans from the separately persisted native-v1 bundle."
+}

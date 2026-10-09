@@ -32,10 +32,12 @@ QUERY_SECONDS = 3
 FINISH_SECONDS = 10
 TARGET_NAMES = {'build_owned_taesd_fp32_a3.py', 'taesd_fp32_candidate_child.py',
                 'taesd_fp32_candidate_aggregate.py', 'run_owned_legacy_serial_render_a3.py',
-                'assemble_owned_unet_tail_a3.py'}
+                'assemble_owned_unet_tail_a3.py', 'build_owned_unet_fp16_down3_a3.py'}
 CANONICAL_TARGETS = {
     'gate_taesd_trt.py': '3baf8976e4fb25a908809e68d6ac126c07ea525baed7475a6443263221e28e99',
     'chin_multistream_render.py': 'df4e290b33d752be82d6d2ab738bc5d3e21aa439ffd05f1c3c852a8af1fd4a29',
+    'validate_unet_backend.py': '81b74eddf5aaff8348ac27cce67b92763e937e09309762d137062b0a23f1d7a0',
+    'srccache_exact.py': '59d27983e85f7c438d655dc4bc6dfc0fa739ac38f8d22482372a48e8e8908895',
 }
 BOOTSTRAP = """import hashlib,sys,types,json
 p,h,s=sys.argv[1:];b=open(p,'rb').read(1<<20)

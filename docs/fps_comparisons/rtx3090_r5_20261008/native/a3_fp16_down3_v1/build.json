@@ -1,0 +1,73 @@
+{
+  "schema": "a3_fp16_down3_restoration_v1",
+  "status": "BUILT_AND_PROBED_QUALITY_PERFORMANCE_UNTESTED",
+  "instance_id": 54939993,
+  "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+  "source_code_sha256": {
+    "trt_timing_cache": "7fb2294e37f8e31470a86728f22a25d926ce87ea7f3751f5339a044496ce2e75",
+    "unet_stagewise_trt": "4ab523ab9337f1ce903a52acf7a3f06e7423669cbf2df2b3846b8ffc374b6e9c",
+    "build_unet_stagewise": "1f0c0c54f2d94dc7358a7b79f4e0176dfdb747b78140552fad35c34d32917d49"
+  },
+  "engine_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_fp16_down3_a3_v1/bs16",
+  "precision_restorations": {
+    "down3": "int8_qdq_to_fp16"
+  },
+  "quality_accepted": false,
+  "performance_measured": false,
+  "default_selection_changed": false,
+  "release_ready": false,
+  "started_utc": "2026-10-09T02:31:06.094670+00:00",
+  "probe": {
+    "seed": 20260928,
+    "input_sha256": "bc70410094d8397351287b19179a486f457f7c392839ebd1ad626a189ddfb9a4",
+    "output_sha256": "48103fecd3afb660666f55d54cd8c70713533eb3f4fd3b1c73d0aed454b570d8",
+    "output_file": "probe_output.pt",
+    "deterministic_run_to_run": true,
+    "graph_equals_direct_enqueue": true,
+    "vs_eager_forward": {
+      "mae": 0.0026939758099615574,
+      "max_abs": 0.044921875,
+      "rel_l2": 0.00386268412694335
+    }
+  },
+  "down3": {
+    "engine_file": "down3.plan",
+    "onnx_sha256": "c4122be191bca02710828f4412a44720ab869050e3806e60563e4362d0ff58f4",
+    "onnx_mib": 118.79798984527588,
+    "export_s": 0.8216886520385742,
+    "build_s": 44.757609128952026,
+    "build_flags": {
+      "precision": "fp16",
+      "builder_flags": [
+        "FP16"
+      ],
+      "builder_optimization_level": 5,
+      "workspace_gb": 2.0,
+      "timing_cache": false,
+      "onnx_opset": 17,
+      "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+      "network": "explicit batch, static shapes, ONNX parser"
+    },
+    "inputs": [
+      "d2ds"
+    ],
+    "outputs": [
+      "d3r0",
+      "d3r1"
+    ],
+    "host_mem_before_build": {
+      "VmHWM_MiB": 5795.8,
+      "VmRSS_MiB": 3043.7,
+      "MemAvailable_MiB": 121935.4
+    },
+    "host_mem_after_build": {
+      "VmHWM_MiB": 6192.2,
+      "VmRSS_MiB": 6077.6,
+      "MemAvailable_MiB": 120595.5
+    },
+    "engine_sha256": "3d0f1f8fa567c391d1eb0353dd3ab98a2b082f5c0ef92f78bd016743bdbf5fe4",
+    "engine_mib": 119.19602584838867
+  },
+  "manifest_sha256": "1be2dc7462cd44eaf68a26e1fdccd1243139846afe21723fdf2d99b7a6f535b9",
+  "finished_utc": "2026-10-09T02:32:02.779625+00:00"
+}

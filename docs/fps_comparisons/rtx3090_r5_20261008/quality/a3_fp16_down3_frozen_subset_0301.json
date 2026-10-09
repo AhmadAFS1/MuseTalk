@@ -1,0 +1,758 @@
+{
+  "candidate_manifest_sha256": "1be2dc7462cd44eaf68a26e1fdccd1243139846afe21723fdf2d99b7a6f535b9",
+  "coupled_avatar_pipeline_tested": false,
+  "envelope_sha256": "e8299227d00d745dfc7419170b4f74469a0bfd8e4a1a708f70fca36ca159c6e8",
+  "full698_assessed": false,
+  "metrics": [
+    {
+      "direction": "error",
+      "limit": 0.0034972068149892784,
+      "metric": "unet.main.mae_mean",
+      "status": "FAIL",
+      "value": 0.003504314147655598
+    },
+    {
+      "direction": "error",
+      "limit": 0.004701611585915089,
+      "metric": "unet.main.mae_max",
+      "status": "PASS",
+      "value": 0.004700993187725544
+    },
+    {
+      "direction": "error",
+      "limit": 0.006624411773042415,
+      "metric": "unet.main.rmse_mean",
+      "status": "FAIL",
+      "value": 0.006635273981373757
+    },
+    {
+      "direction": "error",
+      "limit": 0.009878764860332012,
+      "metric": "unet.main.rmse_max",
+      "status": "PASS",
+      "value": 0.00937075074762106
+    },
+    {
+      "direction": "error",
+      "limit": 0.012097302824258804,
+      "metric": "unet.main.p95_abs_mean",
+      "status": "FAIL",
+      "value": 0.012121048840609465
+    },
+    {
+      "direction": "error",
+      "limit": 0.017578125,
+      "metric": "unet.main.p95_abs_max",
+      "status": "PASS",
+      "value": 0.017578125
+    },
+    {
+      "direction": "error",
+      "limit": 0.25252207842740143,
+      "metric": "unet.main.max_abs_mean",
+      "status": "PASS",
+      "value": 0.2460632107474587
+    },
+    {
+      "direction": "error",
+      "limit": 0.776611328125,
+      "metric": "unet.main.max_abs_max",
+      "status": "FAIL",
+      "value": 0.93896484375
+    },
+    {
+      "direction": "error",
+      "limit": 0.0036256184054460996,
+      "metric": "unet.holdout.mae_mean",
+      "status": "FAIL",
+      "value": 0.003643334814114496
+    },
+    {
+      "direction": "error",
+      "limit": 0.004188018850982189,
+      "metric": "unet.holdout.mae_max",
+      "status": "FAIL",
+      "value": 0.004331617616117001
+    },
+    {
+      "direction": "error",
+      "limit": 0.006894362023255478,
+      "metric": "unet.holdout.rmse_mean",
+      "status": "FAIL",
+      "value": 0.006917618981484945
+    },
+    {
+      "direction": "error",
+      "limit": 0.01229102723300457,
+      "metric": "unet.holdout.rmse_max",
+      "status": "PASS",
+      "value": 0.012250188738107681
+    },
+    {
+      "direction": "error",
+      "limit": 0.012560288111368815,
+      "metric": "unet.holdout.p95_abs_mean",
+      "status": "FAIL",
+      "value": 0.012606104214986166
+    },
+    {
+      "direction": "error",
+      "limit": 0.01513671875,
+      "metric": "unet.holdout.p95_abs_max",
+      "status": "FAIL",
+      "value": 0.015625
+    },
+    {
+      "direction": "error",
+      "limit": 0.3041553497314453,
+      "metric": "unet.holdout.max_abs_mean",
+      "status": "PASS",
+      "value": 0.293002446492513
+    },
+    {
+      "direction": "error",
+      "limit": 1.2601318359375,
+      "metric": "unet.holdout.max_abs_max",
+      "status": "PASS",
+      "value": 1.2347412109375
+    },
+    {
+      "direction": "error",
+      "limit": 5,
+      "metric": "taesd.G_TAESD_full_max",
+      "status": "PASS",
+      "value": 5
+    },
+    {
+      "direction": "error",
+      "limit": 0.06751832365989686,
+      "metric": "taesd.G_TAESD_full_mean",
+      "status": "PASS",
+      "value": 0.06751824276787895
+    },
+    {
+      "direction": "error",
+      "limit": 3,
+      "metric": "taesd.G_TAESD_rows104_max",
+      "status": "PASS",
+      "value": 3
+    },
+    {
+      "direction": "error",
+      "limit": 0.06318901415755575,
+      "metric": "taesd.G_TAESD_rows104_mean",
+      "status": "PASS",
+      "value": 0.06318659531442743
+    },
+    {
+      "direction": "error",
+      "limit": 5,
+      "metric": "taesd.avatar.chin_h3_japanese_new.full.max",
+      "status": "PASS",
+      "value": 4
+    },
+    {
+      "direction": "error",
+      "limit": 0.0712867577870687,
+      "metric": "taesd.avatar.chin_h3_japanese_new.full.mean",
+      "status": "PASS",
+      "value": 0.07126975059509277
+    },
+    {
+      "direction": "error",
+      "limit": 0.07127213478088379,
+      "metric": "taesd.avatar.chin_h3_japanese_new.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.07125496864318848
+    },
+    {
+      "direction": "error",
+      "limit": 2,
+      "metric": "taesd.avatar.chin_h3_japanese_new.rows104.max",
+      "status": "PASS",
+      "value": 2
+    },
+    {
+      "direction": "error",
+      "limit": 0.06912980999862939,
+      "metric": "taesd.avatar.chin_h3_japanese_new.rows104.mean",
+      "status": "PASS",
+      "value": 0.06911997209515489
+    },
+    {
+      "direction": "error",
+      "limit": 0.06912977653637267,
+      "metric": "taesd.avatar.chin_h3_japanese_new.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06911993863289817
+    },
+    {
+      "direction": "error",
+      "limit": 5,
+      "metric": "taesd.avatar.chin_h3_latina_new.full.max",
+      "status": "PASS",
+      "value": 5
+    },
+    {
+      "direction": "error",
+      "limit": 0.06204996506373087,
+      "metric": "taesd.avatar.chin_h3_latina_new.full.mean",
+      "status": "PASS",
+      "value": 0.0620457132657369
+    },
+    {
+      "direction": "error",
+      "limit": 0.06203130880991618,
+      "metric": "taesd.avatar.chin_h3_latina_new.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06202864646911621
+    },
+    {
+      "direction": "error",
+      "limit": 2,
+      "metric": "taesd.avatar.chin_h3_latina_new.rows104.max",
+      "status": "PASS",
+      "value": 2
+    },
+    {
+      "direction": "error",
+      "limit": 0.05631781460946066,
+      "metric": "taesd.avatar.chin_h3_latina_new.rows104.mean",
+      "status": "PASS",
+      "value": 0.056311256007144324
+    },
+    {
+      "direction": "error",
+      "limit": 0.056317580373663655,
+      "metric": "taesd.avatar.chin_h3_latina_new.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.05631115562037418
+    },
+    {
+      "direction": "error",
+      "limit": 3,
+      "metric": "taesd.avatar.chinese_bob_pink_bedroom_talking_3373c10448.full.max",
+      "status": "PASS",
+      "value": 3
+    },
+    {
+      "direction": "error",
+      "limit": 0.06852867205937704,
+      "metric": "taesd.avatar.chinese_bob_pink_bedroom_talking_3373c10448.full.mean",
+      "status": "PASS",
+      "value": 0.06852398316065471
+    },
+    {
+      "direction": "error",
+      "limit": 0.06852251291275024,
+      "metric": "taesd.avatar.chinese_bob_pink_bedroom_talking_3373c10448.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06851810216903687
+    },
+    {
+      "direction": "error",
+      "limit": 2,
+      "metric": "taesd.avatar.chinese_bob_pink_bedroom_talking_3373c10448.rows104.max",
+      "status": "PASS",
+      "value": 2
+    },
+    {
+      "direction": "error",
+      "limit": 0.06711641947428386,
+      "metric": "taesd.avatar.chinese_bob_pink_bedroom_talking_3373c10448.rows104.mean",
+      "status": "PASS",
+      "value": 0.0671071169669168
+    },
+    {
+      "direction": "error",
+      "limit": 0.06711625216300028,
+      "metric": "taesd.avatar.chinese_bob_pink_bedroom_talking_3373c10448.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06710681580660637
+    },
+    {
+      "direction": "error",
+      "limit": 4,
+      "metric": "taesd.avatar.codex_smoke.full.max",
+      "status": "PASS",
+      "value": 2
+    },
+    {
+      "direction": "error",
+      "limit": 0.07440127929051717,
+      "metric": "taesd.avatar.codex_smoke.full.mean",
+      "status": "PASS",
+      "value": 0.07439245780309041
+    },
+    {
+      "direction": "error",
+      "limit": 0.07440004746119182,
+      "metric": "taesd.avatar.codex_smoke.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.07439146439234416
+    },
+    {
+      "direction": "error",
+      "limit": 1,
+      "metric": "taesd.avatar.codex_smoke.rows104.max",
+      "status": "PASS",
+      "value": 1
+    },
+    {
+      "direction": "error",
+      "limit": 0.0741288369162041,
+      "metric": "taesd.avatar.codex_smoke.rows104.mean",
+      "status": "PASS",
+      "value": 0.0741246875963713
+    },
+    {
+      "direction": "error",
+      "limit": 0.0741288369162041,
+      "metric": "taesd.avatar.codex_smoke.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.0741246875963713
+    },
+    {
+      "direction": "error",
+      "limit": 5,
+      "metric": "taesd.avatar.div_black_man_short_beard.full.max",
+      "status": "PASS",
+      "value": 5
+    },
+    {
+      "direction": "error",
+      "limit": 0.058334668477376304,
+      "metric": "taesd.avatar.div_black_man_short_beard.full.mean",
+      "status": "PASS",
+      "value": 0.0583345890045166
+    },
+    {
+      "direction": "error",
+      "limit": 0.05831803878148397,
+      "metric": "taesd.avatar.div_black_man_short_beard.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.058317979176839195
+    },
+    {
+      "direction": "error",
+      "limit": 3,
+      "metric": "taesd.avatar.div_black_man_short_beard.rows104.max",
+      "status": "PASS",
+      "value": 3
+    },
+    {
+      "direction": "error",
+      "limit": 0.053176478335731914,
+      "metric": "taesd.avatar.div_black_man_short_beard.rows104.mean",
+      "status": "PASS",
+      "value": 0.05317232901589912
+    },
+    {
+      "direction": "error",
+      "limit": 0.05317075628983347,
+      "metric": "taesd.avatar.div_black_man_short_beard.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.05316687466805441
+    },
+    {
+      "direction": "error",
+      "limit": 3,
+      "metric": "taesd.avatar.div_black_woman.full.max",
+      "status": "PASS",
+      "value": 3
+    },
+    {
+      "direction": "error",
+      "limit": 0.06222593784332276,
+      "metric": "taesd.avatar.div_black_woman.full.mean",
+      "status": "PASS",
+      "value": 0.06222097078959147
+    },
+    {
+      "direction": "error",
+      "limit": 0.0622094472249349,
+      "metric": "taesd.avatar.div_black_woman.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.062203447024027504
+    },
+    {
+      "direction": "error",
+      "limit": 2,
+      "metric": "taesd.avatar.div_black_woman.rows104.max",
+      "status": "PASS",
+      "value": 2
+    },
+    {
+      "direction": "error",
+      "limit": 0.05662215383429277,
+      "metric": "taesd.avatar.div_black_woman.rows104.mean",
+      "status": "PASS",
+      "value": 0.056616699486448055
+    },
+    {
+      "direction": "error",
+      "limit": 0.0566215849759286,
+      "metric": "taesd.avatar.div_black_woman.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.056616130628083884
+    },
+    {
+      "direction": "error",
+      "limit": 5,
+      "metric": "taesd.avatar.div_east_asian_man_goatee.full.max",
+      "status": "PASS",
+      "value": 5
+    },
+    {
+      "direction": "error",
+      "limit": 0.07224335273106894,
+      "metric": "taesd.avatar.div_east_asian_man_goatee.full.mean",
+      "status": "PASS",
+      "value": 0.07223806778589885
+    },
+    {
+      "direction": "error",
+      "limit": 0.07223087549209595,
+      "metric": "taesd.avatar.div_east_asian_man_goatee.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.07222568988800049
+    },
+    {
+      "direction": "error",
+      "limit": 2,
+      "metric": "taesd.avatar.div_east_asian_man_goatee.rows104.max",
+      "status": "PASS",
+      "value": 2
+    },
+    {
+      "direction": "error",
+      "limit": 0.06856366207725123,
+      "metric": "taesd.avatar.div_east_asian_man_goatee.rows104.mean",
+      "status": "PASS",
+      "value": 0.06856155395507812
+    },
+    {
+      "direction": "error",
+      "limit": 0.0685635951527378,
+      "metric": "taesd.avatar.div_east_asian_man_goatee.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.0685614870305647
+    },
+    {
+      "direction": "error",
+      "limit": 3,
+      "metric": "taesd.avatar.div_middle_eastern_man_full_beard.full.max",
+      "status": "PASS",
+      "value": 3
+    },
+    {
+      "direction": "error",
+      "limit": 0.0698292056719462,
+      "metric": "taesd.avatar.div_middle_eastern_man_full_beard.full.mean",
+      "status": "PASS",
+      "value": 0.06980162858963013
+    },
+    {
+      "direction": "error",
+      "limit": 0.06982070207595825,
+      "metric": "taesd.avatar.div_middle_eastern_man_full_beard.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06979244947433472
+    },
+    {
+      "direction": "error",
+      "limit": 2,
+      "metric": "taesd.avatar.div_middle_eastern_man_full_beard.rows104.max",
+      "status": "PASS",
+      "value": 2
+    },
+    {
+      "direction": "error",
+      "limit": 0.06301615530984445,
+      "metric": "taesd.avatar.div_middle_eastern_man_full_beard.rows104.mean",
+      "status": "PASS",
+      "value": 0.06299012167411938
+    },
+    {
+      "direction": "error",
+      "limit": 0.06301602146081756,
+      "metric": "taesd.avatar.div_middle_eastern_man_full_beard.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06298992090057909
+    },
+    {
+      "direction": "error",
+      "limit": 3,
+      "metric": "taesd.avatar.div_south_asian_woman.full.max",
+      "status": "PASS",
+      "value": 3
+    },
+    {
+      "direction": "error",
+      "limit": 0.06196121374766032,
+      "metric": "taesd.avatar.div_south_asian_woman.full.mean",
+      "status": "PASS",
+      "value": 0.06195894877115885
+    },
+    {
+      "direction": "error",
+      "limit": 0.06195483605066936,
+      "metric": "taesd.avatar.div_south_asian_woman.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06195273001988729
+    },
+    {
+      "direction": "error",
+      "limit": 2,
+      "metric": "taesd.avatar.div_south_asian_woman.rows104.max",
+      "status": "PASS",
+      "value": 2
+    },
+    {
+      "direction": "error",
+      "limit": 0.05696243152283786,
+      "metric": "taesd.avatar.div_south_asian_woman.rows104.mean",
+      "status": "PASS",
+      "value": 0.05695587292052152
+    },
+    {
+      "direction": "error",
+      "limit": 0.05696226421155428,
+      "metric": "taesd.avatar.div_south_asian_woman.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.05695570560923794
+    },
+    {
+      "direction": "error",
+      "limit": 5,
+      "metric": "taesd.avatar.div_white_man_clean_shaven.full.max",
+      "status": "PASS",
+      "value": 4
+    },
+    {
+      "direction": "error",
+      "limit": 0.06811781724294028,
+      "metric": "taesd.avatar.div_white_man_clean_shaven.full.mean",
+      "status": "PASS",
+      "value": 0.06811145941416423
+    },
+    {
+      "direction": "error",
+      "limit": 0.06811102231343587,
+      "metric": "taesd.avatar.div_white_man_clean_shaven.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06810474395751953
+    },
+    {
+      "direction": "error",
+      "limit": 2,
+      "metric": "taesd.avatar.div_white_man_clean_shaven.rows104.max",
+      "status": "PASS",
+      "value": 2
+    },
+    {
+      "direction": "error",
+      "limit": 0.06093282866896244,
+      "metric": "taesd.avatar.div_white_man_clean_shaven.rows104.mean",
+      "status": "PASS",
+      "value": 0.0609289805094401
+    },
+    {
+      "direction": "error",
+      "limit": 0.060932594433165434,
+      "metric": "taesd.avatar.div_white_man_clean_shaven.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06092877973589981
+    },
+    {
+      "direction": "error",
+      "limit": 3,
+      "metric": "taesd.avatar.indian_realtime_talking_20f9845543.full.max",
+      "status": "PASS",
+      "value": 3
+    },
+    {
+      "direction": "error",
+      "limit": 0.06549485524495442,
+      "metric": "taesd.avatar.indian_realtime_talking_20f9845543.full.mean",
+      "status": "PASS",
+      "value": 0.06547888120015462
+    },
+    {
+      "direction": "error",
+      "limit": 0.0654845635096232,
+      "metric": "taesd.avatar.indian_realtime_talking_20f9845543.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06546986103057861
+    },
+    {
+      "direction": "error",
+      "limit": 3,
+      "metric": "taesd.avatar.indian_realtime_talking_20f9845543.rows104.max",
+      "status": "PASS",
+      "value": 3
+    },
+    {
+      "direction": "error",
+      "limit": 0.06031458001387746,
+      "metric": "taesd.avatar.indian_realtime_talking_20f9845543.rows104.mean",
+      "status": "PASS",
+      "value": 0.060274960701925714
+    },
+    {
+      "direction": "error",
+      "limit": 0.06031364307068942,
+      "metric": "taesd.avatar.indian_realtime_talking_20f9845543.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.060273689136170504
+    },
+    {
+      "direction": "error",
+      "limit": 4,
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f.full.max",
+      "status": "PASS",
+      "value": 4
+    },
+    {
+      "direction": "error",
+      "limit": 0.07204848527908327,
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f.full.mean",
+      "status": "PASS",
+      "value": 0.07203553120295207
+    },
+    {
+      "direction": "error",
+      "limit": 0.07203187545140584,
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.07201892137527466
+    },
+    {
+      "direction": "error",
+      "limit": 2,
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f.rows104.max",
+      "status": "PASS",
+      "value": 2
+    },
+    {
+      "direction": "error",
+      "limit": 0.06954353734066612,
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f.rows104.mean",
+      "status": "PASS",
+      "value": 0.06952255650570519
+    },
+    {
+      "direction": "error",
+      "limit": 0.06954213192588404,
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06952121801543654
+    },
+    {
+      "direction": "error",
+      "limit": 4,
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f_fh1.full.max",
+      "status": "PASS",
+      "value": 4
+    },
+    {
+      "direction": "error",
+      "limit": 0.07286192973454794,
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f_fh1.full.mean",
+      "status": "PASS",
+      "value": 0.07285422086715698
+    },
+    {
+      "direction": "error",
+      "limit": 0.07284245888392131,
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f_fh1.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.07283494869867961
+    },
+    {
+      "direction": "error",
+      "limit": 2,
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f_fh1.rows104.max",
+      "status": "PASS",
+      "value": 2
+    },
+    {
+      "direction": "error",
+      "limit": 0.06975488495408441,
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f_fh1.rows104.mean",
+      "status": "PASS",
+      "value": 0.0697247019985266
+    },
+    {
+      "direction": "error",
+      "limit": 0.06975481802957098,
+      "metric": "taesd.avatar.japanese_realtime_talking_7d94520b7f_fh1.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06972463507401316
+    },
+    {
+      "direction": "error",
+      "limit": 4,
+      "metric": "taesd.avatar.latina_guided_20260925_talking_84c5bc80b8.full.max",
+      "status": "PASS",
+      "value": 4
+    },
+    {
+      "direction": "error",
+      "limit": 0.0660018523534139,
+      "metric": "taesd.avatar.latina_guided_20260925_talking_84c5bc80b8.full.mean",
+      "status": "PASS",
+      "value": 0.06598919630050659
+    },
+    {
+      "direction": "error",
+      "limit": 0.06598267952601115,
+      "metric": "taesd.avatar.latina_guided_20260925_talking_84c5bc80b8.full.frac_nonzero",
+      "status": "PASS",
+      "value": 0.06597087780634563
+    },
+    {
+      "direction": "error",
+      "limit": 3,
+      "metric": "taesd.avatar.latina_guided_20260925_talking_84c5bc80b8.rows104.max",
+      "status": "PASS",
+      "value": 3
+    },
+    {
+      "direction": "error",
+      "limit": 0.05921055977804619,
+      "metric": "taesd.avatar.latina_guided_20260925_talking_84c5bc80b8.rows104.mean",
+      "status": "PASS",
+      "value": 0.05920152496873287
+    },
+    {
+      "direction": "error",
+      "limit": 0.05920808357104921,
+      "metric": "taesd.avatar.latina_guided_20260925_talking_84c5bc80b8.rows104.frac_nonzero",
+      "status": "PASS",
+      "value": 0.059199216073019464
+    }
+  ],
+  "metrics_assessed": 104,
+  "note": "Independent component checks only. Fresh FP16 down3 failed 9 of 16 unchanged UNet bounds; portable decoder failed 0 of 88. No throughput result or full-pipeline acceptance.",
+  "quality_accepted": false,
+  "quality_helper_sha256": "a5a98185dad4db0d1b89c2d3e04b8832721d99461cca7381605b62b035697e55",
+  "release_ready": false,
+  "schema": "a3_fp16_down3_component_frozen_subset_v1",
+  "sources": {
+    "holdout": {
+      "path": "docs/fps_comparisons/rtx3090_r5_20261008/quality/a3_fp16_down3_unet_0233/unet_holdout.json",
+      "sha256": "91480da55c52b1874c48452e7b0e7390fdc47ee6df7c740e6e61affcb65e3b7c"
+    },
+    "main": {
+      "path": "docs/fps_comparisons/rtx3090_r5_20261008/quality/a3_fp16_down3_unet_0233/unet_main.json",
+      "sha256": "35dcab292365020871f959a64ff73cb17cf54b97c822bb00c1420550ee90aa77"
+    },
+    "taesd": {
+      "path": "docs/fps_comparisons/rtx3090_r5_20261008/quality/a3_portable_decoder_0225/taesd/gate_taesd_trt.json",
+      "sha256": "8c090b540901b5057c85ef2503d502b6effca352cbe6c24f012f00ab4eaa7482"
+    }
+  },
+  "taesd_failures": 0,
+  "unet_failures": 9
+}

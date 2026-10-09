@@ -57,7 +57,7 @@ class AdapterTests(unittest.TestCase):
     def test_canonical_contract_no_overlap_or_capture(self):
         for stage, repeats in (('T', '2'), ('SUST', '5')):
             argv = adapter.renderer_args(stage, Path('/test'), 'label')
-            for flag, expected in (('--streams', '6'), ('--loops', '24'), ('--repeats', repeats),
+            for flag, expected in (('--streams', '6'), ('--loops', '24' if stage == 'T' else '20'), ('--repeats', repeats),
                                    ('--min-timed-s', '60'), ('--thermal-warmup-s', '120')):
                 self.assertEqual(argv[argv.index(flag) + 1], expected)
             for flag in ('--tracking-overlap', '--encode', '--save-arrays', '--compare-accepted'):

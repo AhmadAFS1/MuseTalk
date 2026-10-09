@@ -1,4 +1,4 @@
-"""CPU-only, default-off A3 T launcher; exact inputs, one guarded CUDA leaf."""
+"""CPU-only, default-off A3 T/SUST launcher; exact inputs, one guarded CUDA leaf."""
 import argparse
 import csv
 import datetime as dt
@@ -17,8 +17,8 @@ import time
 ROOT = Path('/workspace/MuseTalk')
 BASE = ROOT / 'docs/fps_comparisons/rtx3090_r5_20261008'
 PINS = {
-    'watch_owned_single_leaf.py': 'b25c3db443fbe08ee00f14f9164f3124759817f0a043f4deb06fec5114a1205a',
-    'run_owned_legacy_serial_render_a3.py': '91a12437eb9be6c55905626218592c5680b7f8010d783ea1f16d3e23354c06dd',
+    'watch_owned_single_leaf.py': '2f03d2761e6319e27a58917099722bf279ce5d695e4682eaa5637de9d4db737f',
+    'run_owned_legacy_serial_render_a3.py': '58b2afd664c09d0804dcf3c1d787f9f4c074f1472b6284f16fce34a8155d49e0',
     'runner.py': '0ede69c7a6f97aae57c38aec27e530b06beb1cc22175c89aa374a0fc66fb1f1d',
     'report.py': 'a102cb4ebdf7ed2f5e7828f3c061a2a43a6ed870a6a2e7fb72767f51b573ef8d',
     'preregister_metadata_quality_lineage.py': 'd5036b697c06efedcf95c9e81b99efd61129f0f07be50572f03296fabfc3e1ae',
@@ -37,6 +37,7 @@ def capture(command):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     p.add_argument('--execute', action='store_true')
+    p.add_argument('--stage', choices=('T', 'SUST'), default='T')
     p.add_argument('--label', required=True)
     p.add_argument('--engine-root', type=Path, required=True)
     p.add_argument('--taesd-dir', type=Path, required=True)
@@ -111,7 +112,7 @@ def main(argv=None):
         '--', '/workspace/.venvs/musetalk_trt_stagewise/bin/python', str(here / 'watch_owned_single_leaf.py'), '--enable',
         '--out', str(out / 'owned_watch.jsonl'), '--target', str(here / 'run_owned_legacy_serial_render_a3.py'),
         '--target-sha256', PINS['run_owned_legacy_serial_render_a3.py'], '--deadline-utc', '2026-10-09T02:45:00Z', '--',
-        '--enable', '--stage', 'T', '--output-dir', str(out), '--label', args.label]
+        '--enable', '--stage', args.stage, '--output-dir', str(out), '--label', args.label]
     start = time.monotonic(); started = dt.datetime.now(dt.timezone.utc).isoformat(); timed_out = False
     with (out / 'child.log').open('x') as handle:
         process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
@@ -131,8 +132,8 @@ def main(argv=None):
         print(json.dumps(child), flush=True); return 2
     data = checks.read(out / (args.label + '.json'))
     checks.loaded_backend(data, args.engine_root, args.taesd_key, meta['decoder_plan_sha256'], engine['manifest'])
-    result = checks.aggregate(data, 'T', 400)
-    write(out / 'full_recipe_result.json', {'schema': 'owned_a3_full_recipe_T_v1', 'result': result,
+    result = checks.aggregate(data, args.stage, 400)
+    write(out / 'full_recipe_result.json', {'schema': 'owned_a3_full_recipe_aggregate_v1', 'result': result,
         'quality_accepted': False, 'release_ready': False, 'runtime': data['versions'], 'environment': environment,
         'finished_utc': dt.datetime.now(dt.timezone.utc).isoformat()})
     print(json.dumps(result), flush=True)

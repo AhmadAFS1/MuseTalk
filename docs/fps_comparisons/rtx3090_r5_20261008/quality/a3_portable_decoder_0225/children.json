@@ -1,0 +1,40 @@
+{
+  "children": [
+    {
+      "stage": "taesd",
+      "returncode": 1,
+      "started_utc": "2026-10-09T02:25:43.935630+00:00",
+      "finished_utc": "2026-10-09T02:26:20.509223+00:00",
+      "wall_s": 36.57360459299525,
+      "command": [
+        "/bin/bash",
+        "scripts/box_guard.sh",
+        "run",
+        "--wait-min",
+        "0",
+        "--min-avail-gb",
+        "8",
+        "--label",
+        "a3_portable_decoder_0225_taesd",
+        "--",
+        "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+        "/workspace/MuseTalk/scripts/repro_3090/watch_owned_single_leaf.py",
+        "--enable",
+        "--out",
+        "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/quality/a3_portable_decoder_0225/taesd.owned_watch.jsonl",
+        "--target",
+        "/workspace/MuseTalk/scripts/repro_400fps/gate_taesd_trt.py",
+        "--target-sha256",
+        "3baf8976e4fb25a908809e68d6ac126c07ea525baed7475a6443263221e28e99",
+        "--deadline-utc",
+        "2026-10-09T02:45:00Z",
+        "--",
+        "--no-record",
+        "--corpus",
+        "/workspace/MuseTalk/calibration/unet_multi_avatar_20260928"
+      ]
+    }
+  ],
+  "quality_accepted": false,
+  "full698_assessed": false
+}

@@ -1,0 +1,178 @@
+{
+  "block_provenance": {
+    "down0rest": {
+      "engine_file": "down0rest.plan",
+      "engine_sha256": "595cd64f622e5a74be2960e58fd77f199cdebad23d6461eb7cc67987b5acc4c1",
+      "hardware_compatibility_level": "none",
+      "onnx_sha256": "f299bc5eb705decaf23852c231426db15fbf4fd114879cce42c4a4c6c9304729",
+      "source_compute_capability": [
+        8,
+        6
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 3090",
+      "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316"
+    },
+    "down1": {
+      "engine_file": "down1.int8.plan",
+      "engine_sha256": "0829fd7ef9bbacf3bf89df6e6b8e3e658043584fe926910a1025d2f6fa5cb769",
+      "hardware_compatibility_level": "none",
+      "onnx_sha256": "0edd27ea9659878355bcb34201f01d5fb6ab2c8b3389325fd14ee691c23a021a",
+      "source_compute_capability": [
+        8,
+        6
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 3090",
+      "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316"
+    },
+    "down2": {
+      "engine_file": "down2.int8.plan",
+      "engine_sha256": "e2a5f3131929517fec126debd89db0948d1f54dd0f4a35e17c213dd4a125d0d7",
+      "hardware_compatibility_level": "none",
+      "onnx_sha256": "9715cecf024c95eced7b5d67a94503f7e8f226499d6f075d159d064366e82f91",
+      "source_compute_capability": [
+        8,
+        6
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 3090",
+      "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316"
+    },
+    "down3": {
+      "engine_file": "down3.int8.plan",
+      "engine_sha256": "782c916b72a1d7b7b89ac9f4d29d0bdd774d2a506da6b598d9e98cb66ea5e3de",
+      "hardware_compatibility_level": "none",
+      "onnx_sha256": "9770301cdf4c1cd2125d3f178591f8400e5c229e9c5d899840f03e46a9bfa612",
+      "source_compute_capability": [
+        8,
+        6
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 3090",
+      "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316"
+    },
+    "mid": {
+      "engine_file": "mid.int8.plan",
+      "engine_sha256": "0512d36d37acf6b70a0e45b9cfe1f153b35ccf4eb35bd9324c04a3948b19a217",
+      "hardware_compatibility_level": "none",
+      "onnx_sha256": "18611ef62dc17be63dc8a21b1a435472d5e81417e4c3cea9c7151d7c9fbc78a6",
+      "source_compute_capability": [
+        8,
+        6
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 3090",
+      "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316"
+    },
+    "prefix": {
+      "engine_file": "prefix.plan",
+      "engine_sha256": "319ae879b6ba49be2c3f048f07288164dbc74856d1ca516272682ac0a17e6160",
+      "hardware_compatibility_level": "none",
+      "onnx_sha256": "611161551432bc66b35d20706c516b783c817b3bd090c26f1c0f3df1bb8c4586",
+      "source_compute_capability": [
+        8,
+        6
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 3090",
+      "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316"
+    },
+    "tail": {
+      "engine_file": "tail.plan",
+      "engine_sha256": "b22c71e91ea5e5b5fe6078448d1a6c3f899a5638234c7c5275cdf72362809ccf",
+      "hardware_compatibility_level": "ampere_plus",
+      "onnx_sha256": "8219d8a31bf256b0c621b5f4662c2148613818e985a0a712bae0e2e03e4eb527",
+      "source_compute_capability": [
+        8,
+        9
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 4070 SUPER",
+      "source_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b"
+    },
+    "up0": {
+      "engine_file": "up0.int8.plan",
+      "engine_sha256": "6051d151d23aa23b8bc24778f7b76b257b3535fc38a48e6493b73780be40677b",
+      "hardware_compatibility_level": "none",
+      "onnx_sha256": "f3b53dfc32b827bd6e3108b90ad7e7a202df6704b14bdd752bceb8a8c56fab36",
+      "source_compute_capability": [
+        8,
+        6
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 3090",
+      "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316"
+    },
+    "up1": {
+      "engine_file": "up1.int8.plan",
+      "engine_sha256": "2cf044864b0f2e5f436389f1183473325c508eeb42ecbf6f2efc1745bd96f4ad",
+      "hardware_compatibility_level": "none",
+      "onnx_sha256": "6f492535e19fa8c9fc4a6142de96b5b1888ea1213c2031bb788b2368f185c107",
+      "source_compute_capability": [
+        8,
+        6
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 3090",
+      "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316"
+    },
+    "up2": {
+      "engine_file": "up2.int8.plan",
+      "engine_sha256": "ef9153afdb4cd1b3eb91eb93311b42016ae5133fe82932d6e64e3a97bd3d9e0e",
+      "hardware_compatibility_level": "none",
+      "onnx_sha256": "1467d939384e6e62841805dd49814e5f0bf635e401ccf08ddce6b58aae40ccab",
+      "source_compute_capability": [
+        8,
+        6
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 3090",
+      "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316"
+    },
+    "up3": {
+      "engine_file": "up3.plan",
+      "engine_sha256": "9bccd8aec4824d099cc4329c60da275056ab9a94770329a4f1d4500ab2dc3dfc",
+      "hardware_compatibility_level": "none",
+      "onnx_sha256": "c3b5fdf9f2f90cae87b14cb42f8214162842aa0756a761c44c46932e7956851d",
+      "source_compute_capability": [
+        8,
+        6
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 3090",
+      "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316"
+    }
+  },
+  "default_selection_changed": false,
+  "engine_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_mixed_native_portable_tail_a3_v1/bs16",
+  "finished_utc": "2026-10-09T02:22:44.316549+00:00",
+  "gpu_uuid": "GPU-ea6411bc-775f-6685-f1a4-28b6b4011a3d",
+  "instance_id": 54939993,
+  "manifest_sha256": "b36e925eedc94d4e847c81fe9d00823b348de6741b0950b9f6b408489f88248d",
+  "native_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+  "performance_measured": false,
+  "portable_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b",
+  "probe": {
+    "deterministic_run_to_run": true,
+    "graph_equals_direct_enqueue": true,
+    "input_sha256": "bc70410094d8397351287b19179a486f457f7c392839ebd1ad626a189ddfb9a4",
+    "output_file": "probe_output.pt",
+    "output_sha256": "23950ef8e4117aef4488a7e14e032450875c808837ef844151af30958b79908c",
+    "seed": 20260928,
+    "vs_eager_forward": {
+      "mae": 0.002686436055228114,
+      "max_abs": 0.04547119140625,
+      "rel_l2": 0.0038558808155357838
+    }
+  },
+  "quality_accepted": false,
+  "release_ready": false,
+  "schema": "owned_a3_mixed_unet_tail_v1",
+  "source_code_sha256": {
+    "build_unet_stagewise": "1f0c0c54f2d94dc7358a7b79f4e0176dfdb747b78140552fad35c34d32917d49",
+    "trt_timing_cache": "7fb2294e37f8e31470a86728f22a25d926ce87ea7f3751f5339a044496ce2e75",
+    "unet_stagewise_trt": "4ab523ab9337f1ce903a52acf7a3f06e7423669cbf2df2b3846b8ffc374b6e9c"
+  },
+  "status": "FINALIZED_QUALITY_AND_PERFORMANCE_UNTESTED"
+}

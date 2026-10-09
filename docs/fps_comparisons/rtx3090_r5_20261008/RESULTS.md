@@ -848,3 +848,55 @@ Fresh T3 launched02:14:58UTC (operator14316, guard22451) after another878-file
 ancestry verification. The watcher bound the actual retained native CUDA context
 to hostPID752608; the canonical native decoder loaded with exact probe and no
 build. This is verified running work, not yet a throughput/quality acceptance.
+
+## October 9, 02:43 UTC — first valid 400+ full-recipe result
+
+Native-v1 on the actual420W-default RTX3090 passed both offline T windows:
+**427.0053712386704** and **426.6299075227456FPS**. Each completed34,560six-avatar
+frames over a shared80.93575005800813/81.00697909500741s. There is no encoding,
+RTP or tracking overlap. Thermal preconditioning was120.14197s; its60final
+samples were82–83C. Normal exit0/OOM0->0 occurred02:20:05UTC, with actual exact
+engine probes and no fallback/build. All evidence is copied off-host.
+
+All288clip hash pairs (69,120frames) exactly match the already-rejected native-v1
+quality capture. The speed result did not change those pixels. CPU/driver/
+physical GPU also differ from earlier hosts;420W alone is not a proven causal
+explanation, and400FPS on every3090 remains unproved.
+
+The portable-tail candidate built/probed correctly but still fails6/16frozen
+UNet metrics on224grouped comparisons: rejected. The portable decoder passed
+all88frozen decoder bounds on448captures/3584frames; strictmax5>3remainsFAIL,
+with all hard invariantsPASS. A separate genuine FP16-down3 restoration, with
+10native plans preserved, failed9/16frozen UNet metrics after build/probes passed:
+also rejected. No numerical bound was changed and full698was not assessed.
+
+SUST is not run: too little bound rental time remains for five>=60s windows,
+120s preconditioning and cleanup before02:43. Prospective code allows20clip
+repetitions/window but still rejects every sub60s/sub400FPS result. It was not
+launched; no partial run or expiry extension is claimed. All new plans/probes
+are off-host and hash-verified. The122,625,263-byte private delta archive was
+conditionally uploaded; exact-version freshGET verification is running.
+
+Highest-quality passing400+ selection, sustained/live/full visual/numerical
+gates, canonical new-latent completion, Docker publication and fresh60s startup
+remain unfinished. The4070 and EC2production remain intact; no candidate promoted.
+
+## October 9, 02:58 UTC — persistence and rental cleanup verified
+
+The new private candidate archive completed exact-version S3 fresh-GET verification:
+122,625,263 bytes, SHA256 e10aaae4572f6d75abf282098d6712febd66646db9911e1f37d3a15762c99841.
+A fresh CPU-only restore verified all14 payload-file sizes and hashes. The two
+UNet deltas depend on the previously verified native-v1 bundle for unchanged
+plans; the archive is diagnostic, not a standalone approved serving release.
+
+Fresh EC2 provider reconciliation verified A3 ID54939993 and its unique label
+absent. It made no cloud writes. Exact scheduled deletion time is unavailable;
+the02:45 deadline is not asserted as the deletion timestamp. Its SSH alias is
+retired and must not be used again. No GPU experiment is currently running.
+
+The independent FP16-down3 component comparison is preserved as9/16 frozen UNet
+failures plus0/88 portable-decoder failures. Full698 and coupled avatar output
+were not assessed. Frozen bounds remain unchanged; no candidate was promoted.
+The last account-usage checkpoint at02:51UTC reported58% weekly used/42% remaining,
+shared across the account, with no reset or purchased credit used. It is not a
+guarantee that the whole remaining goal fits the available quota.

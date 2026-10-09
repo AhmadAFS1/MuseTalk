@@ -52,7 +52,7 @@ def renderer_args(stage, output, label):
     if stage not in ('T', 'SUST'):
         raise ValueError('only canonical T/SUST stages supported')
     return ['--mode', 'multi', '--backend', 'stagewise16_taesdtrt', '--identities', 'all',
-            '--streams', '6', '--loops', '24', '--repeats', '2' if stage == 'T' else '5',
+            '--streams', '6', '--loops', '24' if stage == 'T' else '20', '--repeats', '2' if stage == 'T' else '5',
             '--align', 'stream8', '--pack', '16', '--decode-split', '8', '--depth', '2',
             '--ring-slots', '3', '--cv2-threads', '2', '--blas-threads', '1',
             '--min-timed-s', '60', '--thermal-warmup-s', '120',
