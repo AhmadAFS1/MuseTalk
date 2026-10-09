@@ -14,6 +14,8 @@ on:
       - scripts/repro_3090/test_cpu_window_telemetry.py
       - scripts/repro_3090/watch_owned_single_leaf_565.py
       - scripts/repro_3090/test_watch_owned_single_leaf_565.py
+      - scripts/repro_3090/build_owned_unet_opt3.py
+      - scripts/repro_3090/test_build_owned_unet_opt3.py
       - scripts/chin_multistream_render.py
       - scripts/avatar_manager_parallel.py
       - test_avatar_model_startup.py
@@ -114,5 +116,6 @@ jobs:
           # Same exact ownership protocol with an explicitly versioned driver
           # comparison; CUDA/NVML behavior is mocked, never hardware accepted.
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p 'test_watch_owned_single_leaf*.py' -v
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_build_owned_unet_opt3.py -v
           # Read-only actual runner counter availability, not GPU/host performance.
           python3.10 -B -c "import sys,json;sys.path.insert(0,'scripts');from chin_multistream.telemetry import cgroup_cpu_snapshot;print('CPU_CGROUP '+json.dumps(cgroup_cpu_snapshot(),sort_keys=True))"

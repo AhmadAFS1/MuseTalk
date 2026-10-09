@@ -29,6 +29,7 @@ class DriverBinding(unittest.TestCase):
             self.assertEqual(hashlib.sha256((HERE / name).read_bytes()).hexdigest(), digest)
         builder = HERE.parent / 'build_unet_stagewise.py'
         self.assertEqual(hashlib.sha256(builder.read_bytes()).hexdigest(), w.BUILDER_SHA)
+        self.assertEqual(hashlib.sha256((HERE / 'build_owned_unet_opt3.py').read_bytes()).hexdigest(), w.OPT3_CHILD_SHA)
 
     def test_only_one_literal_changes(self):
         raw = (HERE / 'watch_owned_single_leaf.py').read_bytes()

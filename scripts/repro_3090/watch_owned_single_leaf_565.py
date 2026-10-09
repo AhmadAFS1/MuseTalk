@@ -16,6 +16,7 @@ import types
 WATCH_SHA = '2f03d2761e6319e27a58917099722bf279ce5d695e4682eaa5637de9d4db737f'
 BINDING_SHA = 'e4e429e0dd2a42cbc1b5791a26eb8361a2c0dcd5fa6c5af320c7bcf8ffa0d4f9'
 BUILDER_SHA = '1f0c0c54f2d94dc7358a7b79f4e0176dfdb747b78140552fad35c34d32917d49'
+OPT3_CHILD_SHA = 'ccc9f02d1544e63494e1e184841c542c15d8ac1b8e1b04c288c2ef2da6b37c03'
 DRIVER = '565.77'
 OLD_COMPARISON = b"require(version.value == b'595.91.07', 'unexpected_nvml_driver')"
 NEW_COMPARISON = b"require(version.value == b'565.77', 'unexpected_nvml_driver')"
@@ -63,7 +64,8 @@ def configure(watch, document):
     watch.DEADLINE = document['deadline_utc'].replace('+00:00', 'Z')
     # New builder admission remains exact-source-pinned, not an arbitrary name.
     watch.CANONICAL_TARGETS = {
-        **watch.CANONICAL_TARGETS, 'build_unet_stagewise.py': BUILDER_SHA}
+        **watch.CANONICAL_TARGETS, 'build_unet_stagewise.py': BUILDER_SHA,
+        'build_owned_unet_opt3.py': OPT3_CHILD_SHA}
 
 
 def identity(document):
