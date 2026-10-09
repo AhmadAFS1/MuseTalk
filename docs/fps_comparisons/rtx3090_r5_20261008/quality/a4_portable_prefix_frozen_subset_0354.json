@@ -1,0 +1,145 @@
+{
+  "candidate_manifest_sha256": "f10323f055ff1f04889459f4616ea8a541e1809676b110765c5bfc983d0e9fc3",
+  "coupled_avatar_pipeline_tested": false,
+  "decision": "REJECTED_FROZEN_UNET_NONREGRESSION",
+  "envelope_sha256": "a911a3133d52d2ebf16f54284fa492cfc571621f590a1a2fbe9ed030474fa60a",
+  "failed": 8,
+  "full698_assessed": false,
+  "instance_id": "54957508",
+  "metrics": [
+    {
+      "direction": "error",
+      "limit": 0.0034972068149892784,
+      "metric": "unet.main.mae_mean",
+      "status": "FAIL",
+      "value": 0.003502985085519454
+    },
+    {
+      "direction": "error",
+      "limit": 0.004701611585915089,
+      "metric": "unet.main.mae_max",
+      "status": "FAIL",
+      "value": 0.0047368016093969345
+    },
+    {
+      "direction": "error",
+      "limit": 0.006624411773042415,
+      "metric": "unet.main.rmse_mean",
+      "status": "FAIL",
+      "value": 0.006634975227908316
+    },
+    {
+      "direction": "error",
+      "limit": 0.009878764860332012,
+      "metric": "unet.main.rmse_max",
+      "status": "FAIL",
+      "value": 0.010173638351261616
+    },
+    {
+      "direction": "error",
+      "limit": 0.012097302824258804,
+      "metric": "unet.main.p95_abs_mean",
+      "status": "FAIL",
+      "value": 0.012100631540471857
+    },
+    {
+      "direction": "error",
+      "limit": 0.017578125,
+      "metric": "unet.main.p95_abs_max",
+      "status": "PASS",
+      "value": 0.017578125
+    },
+    {
+      "direction": "error",
+      "limit": 0.25252207842740143,
+      "metric": "unet.main.max_abs_mean",
+      "status": "PASS",
+      "value": 0.239640474319458
+    },
+    {
+      "direction": "error",
+      "limit": 0.776611328125,
+      "metric": "unet.main.max_abs_max",
+      "status": "PASS",
+      "value": 0.76123046875
+    },
+    {
+      "direction": "error",
+      "limit": 0.0036256184054460996,
+      "metric": "unet.holdout.mae_mean",
+      "status": "FAIL",
+      "value": 0.0036472208060634634
+    },
+    {
+      "direction": "error",
+      "limit": 0.004188018850982189,
+      "metric": "unet.holdout.mae_max",
+      "status": "FAIL",
+      "value": 0.0042419228702783585
+    },
+    {
+      "direction": "error",
+      "limit": 0.006894362023255478,
+      "metric": "unet.holdout.rmse_mean",
+      "status": "PASS",
+      "value": 0.006868678086902946
+    },
+    {
+      "direction": "error",
+      "limit": 0.01229102723300457,
+      "metric": "unet.holdout.rmse_max",
+      "status": "PASS",
+      "value": 0.011820673011243343
+    },
+    {
+      "direction": "error",
+      "limit": 0.012560288111368815,
+      "metric": "unet.holdout.p95_abs_mean",
+      "status": "FAIL",
+      "value": 0.012666523456573486
+    },
+    {
+      "direction": "error",
+      "limit": 0.01513671875,
+      "metric": "unet.holdout.p95_abs_max",
+      "status": "PASS",
+      "value": 0.01513671875
+    },
+    {
+      "direction": "error",
+      "limit": 0.3041553497314453,
+      "metric": "unet.holdout.max_abs_mean",
+      "status": "PASS",
+      "value": 0.2760518391927083
+    },
+    {
+      "direction": "error",
+      "limit": 1.2601318359375,
+      "metric": "unet.holdout.max_abs_max",
+      "status": "PASS",
+      "value": 1.2318115234375
+    }
+  ],
+  "metrics_assessed": 16,
+  "performance_measured": false,
+  "quality_accepted": false,
+  "release_ready": false,
+  "reports": {
+    "holdout": {
+      "comparisons": 48,
+      "path": "docs/fps_comparisons/rtx3090_r5_20261008/quality/a4_portable_prefix_unet_0351/unet_holdout.json",
+      "sha256": "7ed0d6f3448a5688e752adab4cb3b2f89034c9cf82b4b860fd32224c5792521a"
+    },
+    "main": {
+      "comparisons": 176,
+      "path": "docs/fps_comparisons/rtx3090_r5_20261008/quality/a4_portable_prefix_unet_0351/unet_main.json",
+      "sha256": "49ca0e392dc03c650ae2d8076708f35b558a088eb641b069c04e689319ac1d9c"
+    }
+  },
+  "schema": "owned_a4_frozen_unet_subset_v1",
+  "strict_original_gates": {
+    "holdout": "FAIL",
+    "main": "FAIL"
+  },
+  "variant": "portable_prefix"
+}

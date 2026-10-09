@@ -1,0 +1,190 @@
+{
+  "block_provenance": {
+    "down0rest": {
+      "engine_file": "down0rest.plan",
+      "engine_sha256": "8b3113a708f3a655be50087b5256d9d2c0b124b562087f456ca3bbfb59f4802c",
+      "hardware_compatibility_level": "ampere_plus",
+      "onnx_sha256": "3a46428a09320be5b615d26e1204bd280f589c957439d1411b197e4d3df589f0",
+      "source_compute_capability": [
+        8,
+        9
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 4070 SUPER",
+      "source_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b"
+    },
+    "down1": {
+      "engine_file": "down1.int8.plan",
+      "engine_sha256": "dfc007f9819d9d4135cd2db9647792464c7c48bde6ff6bbc39de5a4367009344",
+      "hardware_compatibility_level": "ampere_plus",
+      "onnx_sha256": "9c307ec3a9ceac3b0a64717948f15632c44b4fc3604b0617ae7c165d7884205d",
+      "source_compute_capability": [
+        8,
+        9
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 4070 SUPER",
+      "source_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b"
+    },
+    "down2": {
+      "engine_file": "down2.int8.plan",
+      "engine_sha256": "377aab8d6d69db00de97adf1d4931f7889f3d85f275596a3b86b2c6e4725eb17",
+      "hardware_compatibility_level": "ampere_plus",
+      "onnx_sha256": "3477c463c40a515848e87f7a7d33dd1c377efd9ced54938cacc35b562c46ee5c",
+      "source_compute_capability": [
+        8,
+        9
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 4070 SUPER",
+      "source_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b"
+    },
+    "down3": {
+      "engine_file": "down3.int8.plan",
+      "engine_sha256": "3626ca1060318283e110b6da13792cce5e259fb95458a7415314fa6497475f68",
+      "hardware_compatibility_level": "ampere_plus",
+      "onnx_sha256": "3bbedbff39713470b615f11eb1c14cdfe8e8416a60b18edcf90d1aa6a82a495a",
+      "source_compute_capability": [
+        8,
+        9
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 4070 SUPER",
+      "source_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b"
+    },
+    "mid": {
+      "engine_file": "mid.int8.plan",
+      "engine_sha256": "f62f36c39c0b9ed53f9aff2c23bc17d06b1f440499b89ce8689552c32ad08d4f",
+      "hardware_compatibility_level": "ampere_plus",
+      "onnx_sha256": "f5f5aa76d116e88acb381fa3785aa38fe571b3e6b8012ff7612404b88274ff46",
+      "source_compute_capability": [
+        8,
+        9
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 4070 SUPER",
+      "source_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b"
+    },
+    "prefix": {
+      "engine_file": "prefix.plan",
+      "engine_sha256": "e6073ef5ecf4807e5747dc67886500ed2ad651d055e19d73b7b69c0e7ac287c7",
+      "hardware_compatibility_level": "ampere_plus",
+      "onnx_sha256": "b630a86ed62b9d8e57eda5696ed5b1ed20ed460f89c0ebf1febcf1334e24aa8f",
+      "source_compute_capability": [
+        8,
+        9
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 4070 SUPER",
+      "source_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b"
+    },
+    "tail": {
+      "engine_file": "tail.plan",
+      "engine_sha256": "b22c71e91ea5e5b5fe6078448d1a6c3f899a5638234c7c5275cdf72362809ccf",
+      "hardware_compatibility_level": "ampere_plus",
+      "onnx_sha256": "8219d8a31bf256b0c621b5f4662c2148613818e985a0a712bae0e2e03e4eb527",
+      "source_compute_capability": [
+        8,
+        9
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 4070 SUPER",
+      "source_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b"
+    },
+    "up0": {
+      "engine_file": "up0.int8.plan",
+      "engine_sha256": "45672502676067685885df08ea4bab4aae7a29b6b7eefc6f619493a75e21a3a1",
+      "hardware_compatibility_level": "ampere_plus",
+      "onnx_sha256": "8568ac0fe50d7d070460566064fae76e362968f7d04851e72994bf7cd56d63c4",
+      "source_compute_capability": [
+        8,
+        9
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 4070 SUPER",
+      "source_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b"
+    },
+    "up1": {
+      "engine_file": "up1.int8.plan",
+      "engine_sha256": "699b5c5850085d69b760d19e42cafe4249458fca775f2c20320493c051273281",
+      "hardware_compatibility_level": "ampere_plus",
+      "onnx_sha256": "aae256734a573183a6824425b83d45ee3084018f535c7dbc737ea3405392c92e",
+      "source_compute_capability": [
+        8,
+        9
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 4070 SUPER",
+      "source_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b"
+    },
+    "up2": {
+      "engine_file": "up2.int8.plan",
+      "engine_sha256": "b80a57d21e1c76d4899b4846838c530f34bbc3b082f0243de28a9b002d37bbfd",
+      "hardware_compatibility_level": "ampere_plus",
+      "onnx_sha256": "9291cd8e9c95703f44e147b1947f51255b2066e7c3b768aa8d25e65954e95a11",
+      "source_compute_capability": [
+        8,
+        9
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 4070 SUPER",
+      "source_manifest_sha256": "89eb27dc385e52fcae1602cc65f2c2a1e136383e5072ccf31b792978e84be24b"
+    },
+    "up3": {
+      "engine_file": "up3.plan",
+      "engine_sha256": "9bccd8aec4824d099cc4329c60da275056ab9a94770329a4f1d4500ab2dc3dfc",
+      "hardware_compatibility_level": "none",
+      "onnx_sha256": "c3b5fdf9f2f90cae87b14cb42f8214162842aa0756a761c44c46932e7956851d",
+      "source_compute_capability": [
+        8,
+        6
+      ],
+      "source_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_v1/bs16",
+      "source_gpu": "NVIDIA GeForce RTX 3090",
+      "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316"
+    }
+  },
+  "builder_source_pins": {
+    "build_unet_stagewise": "1f0c0c54f2d94dc7358a7b79f4e0176dfdb747b78140552fad35c34d32917d49",
+    "trt_timing_cache": "7fb2294e37f8e31470a86728f22a25d926ce87ea7f3751f5339a044496ce2e75",
+    "unet_stagewise_trt": "4ab523ab9337f1ce903a52acf7a3f06e7423669cbf2df2b3846b8ffc374b6e9c"
+  },
+  "default_selection_changed": false,
+  "finished_utc": "2026-10-09T03:58:12.698173+00:00",
+  "gpu_uuid": "GPU-050b4bc5-99f6-305e-8c7f-fd00ea44551f",
+  "input_lineage": {
+    "envelope_sha256": "a911a3133d52d2ebf16f54284fa492cfc571621f590a1a2fbe9ed030474fa60a",
+    "input_manifest_sha256": "3f28aa2b4f6333047ef375cfbb3f68b177d5c0596a3190c168365f0685c1a795",
+    "preregistered_utc": "2026-10-09T03:48:41.221948+00:00",
+    "quality_accepted": false,
+    "release_ready": false,
+    "status": "VERIFIED_METADATA_EQUIVALENCE_ONLY"
+  },
+  "instance_id": "54957508",
+  "manifest_sha256": "6797576288f39373a2999ad52bdfad3cc2a44b044475d002dffd1469a00f0d54",
+  "owned_target_sha256": "bd5702d79c02fb99845ea33b5c02b7cb23d8e2935145b37c43f6c6867f3681c6",
+  "performance_measured": false,
+  "probe": {
+    "deterministic_run_to_run": true,
+    "graph_equals_direct_enqueue": true,
+    "input_sha256": "bc70410094d8397351287b19179a486f457f7c392839ebd1ad626a189ddfb9a4",
+    "output_file": "probe_output.pt",
+    "output_sha256": "cf600589e7ddff150f733d4e6173fc4bac43a005016967c2aaaccd739f5a547f",
+    "seed": 20260928,
+    "vs_eager_forward": {
+      "mae": 0.002699195872992277,
+      "max_abs": 0.04931640625,
+      "rel_l2": 0.003887457074597478
+    }
+  },
+  "quality_accepted": false,
+  "release_ready": false,
+  "schema": "owned_preregistered_unet_overlay_v1",
+  "source_pins": {
+    "preregister_metadata_quality_lineage.py": "d5036b697c06efedcf95c9e81b99efd61129f0f07be50572f03296fabfc3e1ae",
+    "unet_plan_overlay.py": "3c84b305e9906151dadc7d4985f6ee94ac641924d48684251a7f8678d7deaf1f",
+    "watch_owned_single_leaf_target.py": "e4e429e0dd2a42cbc1b5791a26eb8361a2c0dcd5fa6c5af320c7bcf8ffa0d4f9"
+  },
+  "status": "FINALIZED_QUALITY_PERFORMANCE_UNTESTED",
+  "variant": "portable_core_native_up3"
+}

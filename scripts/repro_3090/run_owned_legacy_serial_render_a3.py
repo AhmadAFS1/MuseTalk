@@ -20,6 +20,21 @@ DEADLINE = dt.datetime(2026, 10, 9, 2, 45, tzinfo=dt.timezone.utc)
 RENDERER_SHA = 'df4e290b33d752be82d6d2ab738bc5d3e21aa439ffd05f1c3c852a8af1fd4a29'
 WORKER_SHA = '2e6e88fbe106ca964b2b5e31af44203ce5dff201eb2c37436726b65520cc447b'
 REPORT_FIELDS = {'tracking_overlap': False, 'timing_semantics': 'serial tracking then composition'}
+BOUND_WATCH_SHA = 'e4e429e0dd2a42cbc1b5791a26eb8361a2c0dcd5fa6c5af320c7bcf8ffa0d4f9'
+
+
+def owned_binding(path=None, digest=None):
+    if bool(path) != bool(digest):
+        raise ValueError('owned descriptor and exact hash required together')
+    if path is None:
+        return None, HOST, DEADLINE
+    source = ROOT / 'scripts/repro_3090/watch_owned_single_leaf_target.py'
+    if source.is_symlink() or hashlib.sha256(source.read_bytes()).hexdigest() != BOUND_WATCH_SHA:
+        raise ValueError('checked allocation binding changed')
+    sys.path.insert(0, str(source.parent))
+    import watch_owned_single_leaf_target as bound
+    target, deadline = bound.binding(path, digest)
+    return target, target['worker_hostname'], deadline
 
 
 def serial_reporting(messages):
@@ -82,12 +97,15 @@ def main(argv=None):
     parser.add_argument('--stage', choices=('T', 'SUST'), required=True)
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--label', required=True)
+    parser.add_argument('--owned-target-json', type=Path)
+    parser.add_argument('--owned-target-sha256')
     args = parser.parse_args(argv)
     if not args.enable:
         parser.error('explicit --enable required')
-    if socket.gethostname() != HOST or not Path(os.environ.get('BOX_GUARD_LEASE_FILE', '/workspace/.gpu_lease') + '.holder').is_file():
-        raise ValueError('owned A3 canonical guard required')
-    if (DEADLINE - dt.datetime.now(dt.timezone.utc)).total_seconds() <= 600:
+    target, host, deadline = owned_binding(args.owned_target_json, args.owned_target_sha256)
+    if socket.gethostname() != host or not Path(os.environ.get('BOX_GUARD_LEASE_FILE', '/workspace/.gpu_lease') + '.holder').is_file():
+        raise ValueError('exact owned canonical guard required')
+    if (deadline - dt.datetime.now(dt.timezone.utc)).total_seconds() <= 600:
         raise ValueError('insufficient allocation cleanup margin')
     if not args.output_dir.is_absolute() or not re.fullmatch('[a-zA-Z0-9_-]{1,100}', args.label):
         raise ValueError('absolute output and safe label required')
@@ -99,6 +117,7 @@ def main(argv=None):
                'renderer_sha256': RENDERER_SHA, 'worker_sha256': WORKER_SHA,
                'added_reporting_fields': REPORT_FIELDS, 'rendering_changes': False,
                'original_timing_values_changed': False, 'renderer_arguments': argv,
+               'owned_target': target, 'deadline_utc': deadline.isoformat(),
                'started_utc': dt.datetime.now(dt.timezone.utc).isoformat()}
     with (args.output_dir / 'reporting_adapter.json').open('x') as handle:
         json.dump(receipt, handle, indent=2)

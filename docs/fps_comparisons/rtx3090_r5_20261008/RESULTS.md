@@ -920,3 +920,33 @@ hash. The quality launcher accepts that same binding and metadata-only lineage,
 retains all numerical thresholds, and bounds cleanup on child timeouts. Eighteen
 new synthetic CPU contracts pass (80 focused contracts total). These do not prove
 actual new-host CUDA ownership, model loading, quality or throughput.
+
+## October 9, 04:26 UTC — A4 quality experiments and six-avatar preparation
+
+A4 ID54957508 booted the original source-install baseline and first observed
+HTTP200 at03:30:33UTC, about682.2 seconds after its creation request. This is
+not image-based or usable-call readiness. Its owned API/TURN were gracefully
+stopped. Actual default power is350W; no power setter was used. Its05:30UTC
+expiry was installed before purchase and has not been extended.
+
+All866 nonmetadata inputs match the original878-entry manifest. Twelve genuine
+HuggingFace download metadata changes were preregistered at03:48:41UTC, with
+all698 original numerical bounds unchanged. The three literal-plan overlays
+completed actual load/probes and224 grouped UNet comparisons; they fail8,8,6
+of16 frozen UNet metrics. Fresh FP16-mid and FP16-up0 builds/probes also passed,
+but quality comparisons fail7 and3 metrics respectively. All five are rejected;
+no full-pipeline quality or throughput acceptance is implied.
+
+The preregistered six-avatar preparation is now running: two independent
+preparations per identity using the canonical native FP16 SD-VAE, seed123,
+source clips/audio and mask math. The separate candidate uses fixed cuDNN
+selection before each unchanged DWPose inference and after detector return.
+It preserves the original caches and all frozen engine-comparison inputs.
+The new optional exact-host/deadline cleanup contract passed28 actual Linux
+CPU tests on A4. First preparation exited0; complete repeat/visual/quality
+results are not yet available. New latents alone are not a warm-FPS speedup.
+
+The earlier actual427.005/426.630FPS T result on a different420W-default3090
+remains valid offline throughput evidence, but its quality remains rejected.
+SUST, selected400+quality, live/full visual/production validation, public Docker,
+and fresh-instance approximately60-second readiness remain unfinished.

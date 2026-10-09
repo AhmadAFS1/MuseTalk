@@ -1,0 +1,93 @@
+{
+  "schema": "owned_fp16_precision_restoration_v2",
+  "status": "BUILT_AND_PROBED_QUALITY_PERFORMANCE_UNTESTED",
+  "instance_id": "54957508",
+  "owned_target": {
+    "instance_id": "54957508",
+    "label": "musetalk-r5-3090-dev-20261009-a4",
+    "worker_alias": "musetalk-3090-build-54957508",
+    "worker_hostname": "9dad9291adec",
+    "gpu_uuid": "GPU-050b4bc5-99f6-305e-8c7f-fd00ea44551f",
+    "ledger": "/home/ec2-user/.local/state/musetalk-r5-3090-dev-20261009-a4/startup-ledger.json",
+    "deadline_utc": "2026-10-09T05:30:00+00:00"
+  },
+  "input_lineage": {
+    "status": "VERIFIED_METADATA_EQUIVALENCE_ONLY",
+    "input_manifest_sha256": "3f28aa2b4f6333047ef375cfbb3f68b177d5c0596a3190c168365f0685c1a795",
+    "envelope_sha256": "a911a3133d52d2ebf16f54284fa492cfc571621f590a1a2fbe9ed030474fa60a",
+    "preregistered_utc": "2026-10-09T03:48:41.221948+00:00",
+    "quality_accepted": false,
+    "release_ready": false
+  },
+  "resource_deadline_utc": "2026-10-09T05:30:00+00:00",
+  "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+  "source_code_sha256": {
+    "trt_timing_cache": "7fb2294e37f8e31470a86728f22a25d926ce87ea7f3751f5339a044496ce2e75",
+    "unet_stagewise_trt": "4ab523ab9337f1ce903a52acf7a3f06e7423669cbf2df2b3846b8ffc374b6e9c",
+    "build_unet_stagewise": "1f0c0c54f2d94dc7358a7b79f4e0176dfdb747b78140552fad35c34d32917d49"
+  },
+  "engine_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_a4_fp16_mid_v1/bs16",
+  "precision_restorations": {
+    "mid": "int8_qdq_to_fp16"
+  },
+  "quality_accepted": false,
+  "performance_measured": false,
+  "default_selection_changed": false,
+  "release_ready": false,
+  "started_utc": "2026-10-09T04:05:40.692160+00:00",
+  "probe": {
+    "seed": 20260928,
+    "input_sha256": "bc70410094d8397351287b19179a486f457f7c392839ebd1ad626a189ddfb9a4",
+    "output_sha256": "ea3b24e4e53b2bbbb40d0d78f7a2033f823ef3e5b4b4ff8e55ee9ab8b15fa636",
+    "output_file": "probe_output.pt",
+    "deterministic_run_to_run": true,
+    "graph_equals_direct_enqueue": true,
+    "vs_eager_forward": {
+      "mae": 0.0026980217080563307,
+      "max_abs": 0.05572509765625,
+      "rel_l2": 0.003896281821653247
+    }
+  },
+  "restored_blocks": {
+    "mid": {
+      "engine_file": "mid.plan",
+      "onnx_sha256": "b52e9f903a5cf9249db0a3cac999f58ea943bb078d58410e264ec4202f328696",
+      "onnx_mib": 183.2522325515747,
+      "export_s": 1.3762266635894775,
+      "build_s": 303.1403682231903,
+      "build_flags": {
+        "precision": "fp16",
+        "builder_flags": [
+          "FP16"
+        ],
+        "builder_optimization_level": 5,
+        "workspace_gb": 2.0,
+        "timing_cache": false,
+        "onnx_opset": 17,
+        "onnx_exporter": "torch.onnx.export (TorchScript), do_constant_folding=True, in RAM",
+        "network": "explicit batch, static shapes, ONNX parser"
+      },
+      "inputs": [
+        "d3r1",
+        "ehs"
+      ],
+      "outputs": [
+        "m"
+      ],
+      "host_mem_before_build": {
+        "VmHWM_MiB": 5678.0,
+        "VmRSS_MiB": 2597.6,
+        "MemAvailable_MiB": 296424.3
+      },
+      "host_mem_after_build": {
+        "VmHWM_MiB": 7682.7,
+        "VmRSS_MiB": 7537.0,
+        "MemAvailable_MiB": 295191.2
+      },
+      "engine_sha256": "969cb10613f40bbe3bc4ee2e3ce1dcbbee48ed205b01d8d6ad8af131a36ea085",
+      "engine_mib": 184.08829879760742
+    }
+  },
+  "manifest_sha256": "29c7fb767f95c427d82a8ecb2912cb7763c522364f3774cf76cc9b98a34bccb5",
+  "finished_utc": "2026-10-09T04:11:04.217665+00:00"
+}

@@ -1,17 +1,61 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "a4_created_bounded_UNet_quality_diagnosis_source_bootstrap_running",
+  "phase": "a4_five_quality_rejections_all6_canonical_latent_preparation_running",
   "current_experiment": {
     "instance_id": 54957508,
     "source_revision": "5a53ca908b90909621829717b9a36c2d92296771",
-    "status": "SOURCE_BOOTSTRAP_RUNNING_NOT_HEALTHY",
+    "status": "FIVE_UNET_VARIANTS_REJECTED_ALL6_CANONICAL_PREPARATION_RUNNING",
+    "source_boot_isolation_receipt": "provisioning/a4_source_boot_and_isolation_0337.json",
+    "cpu_restoration_status": "TERMINAL_COMPLETE: 866 nonmetadata files exact; 12 genuine HuggingFace metadata changes preregistered before GPU evaluation. Interrupted partial SCP was not used; checksum-pinned private S3 native archive restore succeeded.",
+    "cpu_input_audit": "provisioning/a4_cpu_inputs_final_0348.json",
+    "input_lineage_receipt": "quality/a4-metadata-lineage-v1.json",
+    "input_lineage_sha256": "2e1e92508b6b728e524e465dae6631c6f27928775714e0cdb83abe81ebfbb52b",
+    "original_698_bounds_changed": false,
     "owned_target": "provisioning/a4_owned_target.json",
     "matrix_preregistration": "quality/unet_overlay_matrix_preregistered_0315.json",
     "watch_source": "scripts/repro_3090/watch_owned_single_leaf_target.py",
     "watch_source_sha256": "e4e429e0dd2a42cbc1b5791a26eb8361a2c0dcd5fa6c5af320c7bcf8ffa0d4f9",
     "cpu_contracts_passed": 80,
-    "gpu_experiment_running": false,
+    "overlay_results": [
+      {"variant": "portable_prefix", "decision": "REJECTED", "failed_unet_metrics": 8, "metrics_assessed": 16, "receipt": "quality/a4_portable_prefix_frozen_subset_0354.json"},
+      {"variant": "portable_prefix_down0rest", "decision": "REJECTED", "failed_unet_metrics": 8, "metrics_assessed": 16, "receipt": "quality/a4_portable_prefix_down0rest_frozen_subset_0402.json"},
+      {"variant": "portable_core_native_up3", "decision": "REJECTED", "failed_unet_metrics": 6, "metrics_assessed": 16, "receipt": "quality/a4_portable_core_native_up3_frozen_subset_0403.json"}
+    ],
+    "fp16_matrix_preregistration": "quality/a4_fp16_matrix_preregistered_0401.json",
+    "fp16_mid_build_returncode": 0,
+    "fp16_mid_build_finished_utc": "2026-10-09T04:11:04.217665+00:00",
+    "fp16_mid_build_receipt": "native/a4_fp16_mid_0403/build.json",
+    "fp16_mid_manifest_sha256": "29c7fb767f95c427d82a8ecb2912cb7763c522364f3774cf76cc9b98a34bccb5",
+    "fp16_mid_quality_root": "quality/a4_fp16_mid_unet_0414",
+    "fp16_mid_quality_session": 94368,
+    "fp16_mid_quality_observed_guard_pid": 28781,
+    "fp16_mid_quality_status": "TERMINAL_VALID_224_COMPARISONS_7_OF_16_FROZEN_UNET_METRICS_FAIL",
+    "fp16_mid_quality_returncode": 1,
+    "fp16_mid_quality_finished_utc": "2026-10-09T04:15:16.671899+00:00",
+    "fp16_mid_frozen_subset": "quality/a4_fp16_mid_frozen_subset_0419.json",
+    "fp16_up0_first_attempt": "native/a4_fp16_up0_0416.watch.jsonl",
+    "fp16_up0_first_returncode": 143,
+    "fp16_up0_first_result": "INVALID_PRE_CUDA: required BOX_GUARD_LEASE_FILE variable was absent. Target failed before output creation/export; GPU empty and zero OOM. Corrected inherited variable for a fresh attempt; original watch preserved.",
+    "fp16_up0_build_session": 83387,
+    "fp16_up0_build_root": "native/a4_fp16_up0_0419",
+    "fp16_up0_build_status": "TERMINAL_VALID_BUILT_PROBED",
+    "fp16_up0_build_returncode": 0,
+    "fp16_up0_build_finished_utc": "2026-10-09T04:20:55.613136+00:00",
+    "fp16_up0_manifest_sha256": "a9c6b5312159bae8b156f41f26c13dce47f3b0c4050a4c3d3d4c938f3df5cd03",
+    "fp16_up0_quality_status": "TERMINAL_VALID_224_COMPARISONS_3_OF_16_FROZEN_UNET_METRICS_FAIL",
+    "fp16_up0_quality_returncode": 1,
+    "fp16_up0_quality_finished_utc": "2026-10-09T04:23:02.272719+00:00",
+    "fp16_up0_quality_root": "quality/a4_fp16_up0_unet_0421",
+    "fp16_up0_frozen_subset": "quality/a4_fp16_up0_frozen_subset_0425.json",
+    "all6_latent_preparation_status": "RUNNING: first preparation exited0 at04:25:09; next child GPU PID50053 observed04:25. Six-avatar repeat/quality acceptance not yet established.",
+    "all6_latent_session": 45454,
+    "all6_latent_preregistration": "avatars/a4_all6_preparation_preregistered_0418.json",
+    "all6_latent_candidate_root": "avatars/a4_fixed_geometry_all6_v1",
+    "all6_latent_helper_sha256": "272f500ecd930f74fdf92067c2821026bfbd5bf13148094825a6cb0bc0879780",
+    "all6_latent_helper_cpu_tests": {"operator": "25PASS_3DEPENDENCY_SKIP", "actual_A4_Linux": "28PASS_0SKIP"},
+    "all6_latent_deadline_policy": "Optional exact-host UTC binding verified in CPU plan before execution; owned guard child timeout600s with120s allocation cleanup margin, TERM trap cleanup and failure propagation. Original canonical preparation math/seed unchanged.",
+    "gpu_experiment_running": true,
     "quality_accepted": false,
     "performance_accepted": false,
     "expiry_utc": "2026-10-09T05:30:00+00:00"
@@ -231,7 +275,7 @@
     "Registry publication access unresolved; local/EC2 ECR discovery denied",
     "Available Vast browser session is logged out; required browser endpoint/template verification incomplete, sign-in asked asynchronously. GPU/API work continues independently",
     "Current MuseTalk draining is not sticky across healthy heartbeat; isolate before test registration",
-    "Native v1 remains rejected on236/698frozen quality bounds and full-recipe performance: latest A2 overlapT355.3897959226974-356.59394751135187FPS is validFAIL400. Earlier A1 T230.4-252.6/SUST231.1-246.6 failures retained. Same-engine scheduler parity is not reference-quality acceptance; live acceptance missing."
+    "Native v1 remains rejected on236/698frozen quality bounds. A3 native420W full offline T measured427.005/426.630FPS, but quality rejected and SUST/live unverified. Earlier A1/A2 failures retained. A4 mixed plans and FP16-mid also fail frozen UNet bounds; no selected quality-acceptable400FPS configuration yet."
   ],
   "instances": {
     "protected_existing": {
@@ -353,7 +397,7 @@
     "vast_id": 54957508,
     "label": "musetalk-r5-3090-dev-20261009-a4",
     "machine_id": 153039,
-    "resource_state": "running_source_install_in_progress",
+    "resource_state": "source_boot_verified_owned_api_turn_stopped_isolated_gpu_experiments",
     "source_revision_expected": "5a53ca908b90909621829717b9a36c2d92296771",
     "ssh_alias": "musetalk-3090-build-54957508",
     "hostname": "9dad9291adec",
@@ -971,15 +1015,15 @@
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
   "quota_checkpoint": {
-    "observed_utc": "2026-10-09T02:51:01Z",
+    "observed_utc": "2026-10-09T03:29:53Z",
     "account_scope": "shared account, not this task",
-    "weekly_used_percent_reported": 58,
-    "weekly_remaining_percent_reported": 42,
+    "weekly_used_percent_reported": 60,
+    "weekly_remaining_percent_reported": 40,
     "previous_checkpoint": {
-      "observed_utc": "2026-10-08T23:56:56Z",
+      "observed_utc": "2026-10-09T02:51:01Z",
       "observation_timestamp_precision": "minute-level checkpoint retained from prior account readback",
-      "weekly_used_percent_reported": 32,
-      "weekly_remaining_percent_reported": 68
+      "weekly_used_percent_reported": 58,
+      "weekly_remaining_percent_reported": 42
     },
     "ordinary_usage_allowed": true,
     "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
@@ -998,6 +1042,6 @@
     "historical_sla_not_a_new_health_pass": true,
     "quality_bounds_or_400fps_threshold_changed": false
   },
-  "next_action": "Observe existing A4 bootstrap, do not rent again. After canonical installation and health complete, stop owned API/TURN, recover original878 inputs and historical worker, restore hash-pinned native diagnostic plans, preregister actual A4 metadata-only ancestry before any candidate. Run fixed UNet overlays and unchanged numerical gates. Maintain05:30expiry and archive before05:28watch cutoff. Full698, selected400+quality, SUST, canonical latents, Docker/live/startup remain required.",
-  "next_command": "SSH only musetalk-3090-build-54957508 for current A4 hostname9dad9291adec / GPU050b4bc5. Bootstrap PID555/bash and gitPID575 confirmed03:21UTC; reobserve exact process or descendants before judging termination. Source revision expected5a53ca908b90909621829717b9a36c2d92296771, health000 atfirstSSH. Never reuse retired A1/A2/A3 aliases. Bound descriptor provisioning/a4_owned_target.json."
+  "next_action": "Finish preregistered FP16-up0 quality and execute the verified deadline-bound all6 repeated canonical preparation; preserve new artifacts privately before allocation cleanup. Full698, selected400+quality, SUST, all48 production/visual/live, Docker and fresh-instance60s readiness remain required.",
+  "next_command": "Poll actual all6 canonical preparation session45454, never restart while live. Inspect per-child GPU watch/prepare receipts if needed; timeout600s and existing05:30expiry stay bound. On terminal and GPU idle, run preregistered FP16-mid+up0 build and unchanged224-comparison UNet quality. Pack actual new plans/probes/latents with canonical bundle tool; new private checksum-key conditionalPUT/exact-version GET/clean CPU restore using persist_owned_a4_bundle.py. Archive before05:28cleanupcutoff. No quality/release or Docker/60s acceptance claim."
 }

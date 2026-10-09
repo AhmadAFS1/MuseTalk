@@ -18,11 +18,12 @@ ROOT = Path('/workspace/MuseTalk')
 BASE = ROOT / 'docs/fps_comparisons/rtx3090_r5_20261008'
 PINS = {
     'watch_owned_single_leaf.py': '2f03d2761e6319e27a58917099722bf279ce5d695e4682eaa5637de9d4db737f',
-    'run_owned_legacy_serial_render_a3.py': '58b2afd664c09d0804dcf3c1d787f9f4c074f1472b6284f16fce34a8155d49e0',
+    'run_owned_legacy_serial_render_a3.py': '439dad996b7777dd87473bd85ddd2a6e05c1144dec7c2e27a91b17a3a3352e8e',
     'runner.py': '0ede69c7a6f97aae57c38aec27e530b06beb1cc22175c89aa374a0fc66fb1f1d',
     'report.py': 'a102cb4ebdf7ed2f5e7828f3c061a2a43a6ed870a6a2e7fb72767f51b573ef8d',
     'preregister_metadata_quality_lineage.py': 'd5036b697c06efedcf95c9e81b99efd61129f0f07be50572f03296fabfc3e1ae',
 }
+BOUND_WATCH_SHA = 'e4e429e0dd2a42cbc1b5791a26eb8361a2c0dcd5fa6c5af320c7bcf8ffa0d4f9'
 
 
 def write(path, value):
@@ -43,9 +44,18 @@ def main(argv=None):
     p.add_argument('--taesd-dir', type=Path, required=True)
     p.add_argument('--taesd-key', required=True)
     p.add_argument('--taesd-hardware', choices=('none', 'ampere_plus'), required=True)
+    p.add_argument('--engine-manifest-sha256')
+    p.add_argument('--owned-target-json', type=Path)
+    p.add_argument('--owned-target-sha256')
+    p.add_argument('--successor-inputs', type=Path, default=BASE / 'harnesses/quality-inputs-a3-metadata-v1.json')
+    p.add_argument('--successor-envelope', type=Path, default=BASE / 'quality/reference-envelope-a3-metadata-v1.json')
+    p.add_argument('--lineage-receipt', type=Path, default=BASE / 'quality/a3-metadata-lineage-v1.json')
+    p.add_argument('--lineage-receipt-sha256', default='16b252f9006c8888fabe82e026872e998ef4c2e958da8c02db876aa6e13a3bf4')
     args = p.parse_args(argv)
-    if not args.execute or socket.gethostname() != '1e7c09cffcb3':
-        p.error('explicit owned A3 execution required')
+    if not args.execute:
+        p.error('explicit owned execution required')
+    if bool(args.owned_target_json) != bool(args.owned_target_sha256):
+        p.error('owned descriptor and exact hash required together')
     if not re.fullmatch('[a-zA-Z0-9_-]{1,100}', args.label) or not re.fullmatch('[0-9a-f]{20}', args.taesd_key):
         p.error('invalid label or TAESD key')
     here = ROOT / 'scripts/repro_3090'
@@ -53,6 +63,26 @@ def main(argv=None):
     for name, digest in PINS.items():
         if hashlib.sha256((here / name).read_bytes()).hexdigest() != digest:
             raise ValueError('checked source mismatch: ' + name)
+    deadline = '2026-10-09T02:45:00Z'
+    gpu_uuid = 'GPU-ea6411bc-775f-6685-f1a4-28b6b4011a3d'
+    watch_prefix = [str(here / 'watch_owned_single_leaf.py')]
+    target_arguments = []
+    target = None
+    if args.owned_target_json:
+        bound_path = here / 'watch_owned_single_leaf_target.py'
+        if hashlib.sha256(bound_path.read_bytes()).hexdigest() != BOUND_WATCH_SHA:
+            raise ValueError('checked allocation binding changed')
+        import watch_owned_single_leaf_target as bound
+        target, end = bound.binding(args.owned_target_json, args.owned_target_sha256)
+        if socket.gethostname() != target['worker_hostname'] or (end - dt.datetime.now(dt.timezone.utc)).total_seconds() <= 600:
+            raise ValueError('owned identity or cleanup margin mismatch')
+        if not args.engine_manifest_sha256:
+            p.error('exact engine manifest hash required for a new allocation')
+        deadline, gpu_uuid = end.strftime('%Y-%m-%dT%H:%M:%SZ'), target['gpu_uuid']
+        target_arguments = ['--owned-target-json', str(args.owned_target_json), '--owned-target-sha256', args.owned_target_sha256]
+        watch_prefix = [str(bound_path), '--enable', *target_arguments, '--']
+    elif socket.gethostname() != '1e7c09cffcb3':
+        p.error('exact new allocation binding required')
     import runner
     import report as checks
     import preregister_metadata_quality_lineage as lineage
@@ -61,13 +91,15 @@ def main(argv=None):
     verification = lineage.verify_preregistration(
         parent_inputs=BASE / 'harnesses/quality-inputs-v1.json',
         parent_envelope=BASE / 'quality/reference-envelope-v2.json',
-        successor_inputs=BASE / 'harnesses/quality-inputs-a3-metadata-v1.json',
-        successor_envelope=BASE / 'quality/reference-envelope-a3-metadata-v1.json',
-        receipt_path=BASE / 'quality/a3-metadata-lineage-v1.json',
-        expected_receipt_sha256='16b252f9006c8888fabe82e026872e998ef4c2e958da8c02db876aa6e13a3bf4')
+        successor_inputs=args.successor_inputs,
+        successor_envelope=args.successor_envelope,
+        receipt_path=args.lineage_receipt,
+        expected_receipt_sha256=args.lineage_receipt_sha256)
     verification['verified_utc'] = dt.datetime.now(dt.timezone.utc).isoformat()
     write(out / 'input_lineage_verified.json', verification)
     engine = runner.engine(args.engine_root)
+    if args.engine_manifest_sha256:
+        checks.require(engine['manifest_sha256'] == args.engine_manifest_sha256, 'engine manifest mismatch')
     meta_path = args.taesd_dir / ('taesd_trt_' + args.taesd_key + '.json')
     meta = checks.read(meta_path)
     checks.require(meta['key'] == args.taesd_key, 'TAESD key mismatch')
@@ -80,7 +112,7 @@ def main(argv=None):
     rows = list(csv.reader(capture(['nvidia-smi', '--query-gpu=' + smi_fields, '--format=csv,noheader,nounits']).splitlines()))
     checks.require(len(rows) == 1, 'one physical GPU required')
     gpu = dict(zip(smi_fields.split(','), (x.strip() for x in rows[0])))
-    checks.require(gpu['uuid'] == 'GPU-ea6411bc-775f-6685-f1a4-28b6b4011a3d' and gpu['name'] == 'NVIDIA GeForce RTX 3090'
+    checks.require(gpu['uuid'] == gpu_uuid and gpu['name'] == 'NVIDIA GeForce RTX 3090'
                    and gpu['compute_cap'] == '8.6' and gpu['driver_version'] == '595.91.07', 'owned GPU identity changed')
     apps = capture(['nvidia-smi', '--query-compute-apps=pid,process_name,used_memory', '--format=csv,noheader,nounits'])
     checks.require(not apps, 'GPU not isolated')
@@ -98,7 +130,8 @@ def main(argv=None):
               if line.startswith(('MemTotal:', 'MemAvailable:'))}
     cgroup = {name: (Path('/sys/fs/cgroup') / name).read_text().strip() for name in
               ('memory.max', 'memory.current', 'cpu.max', 'cpuset.cpus.effective') if (Path('/sys/fs/cgroup') / name).is_file()}
-    environment = {'schema': 'owned_a3_serial_T_environment_v1', 'measurement_class': 'current_owned_host',
+    environment = {'schema': 'owned_serial_T_environment_v2', 'measurement_class': 'current_owned_host',
+        'owned_target': target, 'resource_deadline_utc': deadline,
         'gpu': gpu, 'engines': [engine], 'taesd': {'key': args.taesd_key, 'manifest_sha256': checks.sha256(meta_path),
         'fingerprint': fp, 'decoder_plan_sha256': meta['decoder_plan_sha256'], 'post_plan_sha256': meta['post_plan_sha256']},
         'input_lineage': verification, 'source_pins': PINS, 'profile_sha256': checks.sha256(profile),
@@ -109,10 +142,10 @@ def main(argv=None):
         'foreign_gpu_apps_at_preflight': apps, 'utc': dt.datetime.now(dt.timezone.utc).isoformat()}
     write(out / 'environment.json', environment)
     command = ['/bin/bash', 'scripts/box_guard.sh', 'run', '--wait-min', '0', '--min-avail-gb', '12', '--label', args.label,
-        '--', '/workspace/.venvs/musetalk_trt_stagewise/bin/python', str(here / 'watch_owned_single_leaf.py'), '--enable',
+        '--', '/workspace/.venvs/musetalk_trt_stagewise/bin/python', *watch_prefix, '--enable',
         '--out', str(out / 'owned_watch.jsonl'), '--target', str(here / 'run_owned_legacy_serial_render_a3.py'),
-        '--target-sha256', PINS['run_owned_legacy_serial_render_a3.py'], '--deadline-utc', '2026-10-09T02:45:00Z', '--',
-        '--enable', '--stage', args.stage, '--output-dir', str(out), '--label', args.label]
+        '--target-sha256', PINS['run_owned_legacy_serial_render_a3.py'], '--deadline-utc', deadline, '--',
+        '--enable', *target_arguments, '--stage', args.stage, '--output-dir', str(out), '--label', args.label]
     start = time.monotonic(); started = dt.datetime.now(dt.timezone.utc).isoformat(); timed_out = False
     with (out / 'child.log').open('x') as handle:
         process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
@@ -133,7 +166,7 @@ def main(argv=None):
     data = checks.read(out / (args.label + '.json'))
     checks.loaded_backend(data, args.engine_root, args.taesd_key, meta['decoder_plan_sha256'], engine['manifest'])
     result = checks.aggregate(data, args.stage, 400)
-    write(out / 'full_recipe_result.json', {'schema': 'owned_a3_full_recipe_aggregate_v1', 'result': result,
+    write(out / 'full_recipe_result.json', {'schema': 'owned_full_recipe_aggregate_v2', 'result': result,
         'quality_accepted': False, 'release_ready': False, 'runtime': data['versions'], 'environment': environment,
         'finished_utc': dt.datetime.now(dt.timezone.utc).isoformat()})
     print(json.dumps(result), flush=True)

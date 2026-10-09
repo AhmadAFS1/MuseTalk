@@ -31,6 +31,7 @@ import os
 from pathlib import Path
 import re
 import runpy
+import signal
 import shutil
 import socket
 import subprocess
@@ -428,17 +429,66 @@ def guarded_command(target, identity, repeat, uuid, fixed_cudnn=False, fixed_geo
                       ["--fixed-cudnn-geometry"] if fixed_geometry else [])
 
 
+def allocation_deadline(value, hostname, now=None):
+    """Optional exact-host UTC bound; never extends a rental or changes math."""
+    require(bool(value) == bool(hostname), "deadline and exact hostname required together")
+    if not value:
+        return None
+    end = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    require(end.tzinfo is not None and end.utcoffset() == dt.timedelta(0), "explicit UTC deadline required")
+    require(socket.gethostname() == hostname, "wrong exact preparation host")
+    require((end - (now or dt.datetime.now(dt.timezone.utc))).total_seconds() > 600,
+            "preparation requires 600-second cleanup margin")
+    return end
+
+
+def run_guarded_child(command, repo, env, log, deadline=None):
+    """Terminate the owned guard so its trap reaps its isolated GPU group."""
+    timeout = None
+    if deadline is not None:
+        remaining = (deadline - dt.datetime.now(dt.timezone.utc)).total_seconds() - 120
+        require(remaining > 0, "allocation cleanup cutoff reached")
+        timeout = min(600, remaining)
+    process = subprocess.Popen(command, cwd=repo, env=env, stdout=log,
+                               stderr=subprocess.STDOUT, start_new_session=True)
+    previous = signal.getsignal(signal.SIGTERM)
+
+    def interrupted(signum, frame):
+        raise InterruptedError("preparation interrupted; stopping owned guard")
+
+    signal.signal(signal.SIGTERM, interrupted)
+    try:
+        print(json.dumps({"status": "RUNNING_PREPARATION_CHILD", "guard_pid": process.pid,
+                          "timeout_s": timeout, "command": command}), flush=True)
+        return process.wait(timeout=timeout)
+    except BaseException:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGTERM)
+            try:
+                process.wait(timeout=20)
+            except subprocess.TimeoutExpired:
+                # Canonical guard's TERM trap has first received its cleanup
+                # opportunity. Never target an operator/foreign process group.
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait(timeout=10)
+        raise
+    finally:
+        signal.signal(signal.SIGTERM, previous)
+
+
 def execute(a, bindings, snapshot):
     source, out, repo = a.source_root, a.out, ROOT
     require(sys.platform == "linux", "GPU execution is Linux-only")
     host = host_identity()
     gpu = gpu_identity(repo, a.expected_gpu_uuid, True)
+    deadline = allocation_deadline(a.deadline_utc, a.expected_hostname)
     out.mkdir(parents=True, exist_ok=False)
     report = {"schema": "canonical_avatar_latent_candidate_v1", "status": "INVALID_INCOMPLETE",
               "started_utc": dt.datetime.now(dt.timezone.utc).isoformat(), "host": host, "gpu": gpu,
               "parent_manifest_sha256": PARENT_SHA, "validation_scope": "listed preparation/source inputs only; NOT full-original-878 PASS",
               "validated_inputs": bindings, "current_code_sha256": snapshot,
               "preparation_policy": preparation_policy(a.fixed_cudnn_preparation, a.fixed_cudnn_geometry),
+              "resource_deadline_utc": deadline.isoformat() if deadline else None,
               "supplemental_current_code_is_historically_proven": False, "children": [], "identities": {},
               "visual_acceptance": "NOT_PERFORMED", "quality_acceptance": "NOT_EVALUATED",
               "warm_fps_speedup_claim": False, "frozen_quality_bounds_changed": False, "production_modified": False}
@@ -447,6 +497,8 @@ def execute(a, bindings, snapshot):
         for identity in a.identities:
             paths = []
             for repeat in ("repeat1", "repeat2"):
+                if deadline is not None:
+                    allocation_deadline(a.deadline_utc, a.expected_hostname)
                 require(host_identity() == host and gpu_identity(repo, a.expected_gpu_uuid, True) == gpu, "host/GPU changed")
                 require(code_snapshot(repo) == snapshot, "preparation code changed during experiment")
                 target = stage_repeat(out, repeat, identity, source, repo.parent, bindings,
@@ -454,9 +506,8 @@ def execute(a, bindings, snapshot):
                 command = guarded_command(target, identity, repeat, a.expected_gpu_uuid,
                                           a.fixed_cudnn_preparation, a.fixed_cudnn_geometry)
                 with (target / "prepare.log").open("x") as log:
-                    rc = subprocess.run(command, cwd=repo, env=child_environment(repo, a.expected_gpu_uuid,
-                                        a.fixed_cudnn_preparation, a.fixed_cudnn_geometry),
-                                        stdout=log, stderr=subprocess.STDOUT).returncode
+                    rc = run_guarded_child(command, repo, child_environment(repo, a.expected_gpu_uuid,
+                                           a.fixed_cudnn_preparation, a.fixed_cudnn_geometry), log, deadline)
                 report["children"].append({"identity": identity, "repeat": repeat, "returncode": rc, "path": str(target)})
                 require(rc == 0, "canonical preparation child failed; inspect retained log, do not resume")
                 require(host_identity() == host and gpu_identity(repo, a.expected_gpu_uuid, True) == gpu, "host/GPU changed")
@@ -496,6 +547,8 @@ def main(argv=None):
     p.add_argument("--identity", action="append", choices=IDS)
     p.add_argument("--expected-gpu-uuid", required=True)
     p.add_argument("--run", action="store_true")
+    p.add_argument("--deadline-utc", help="optional existing allocation expiry, paired with exact hostname")
+    p.add_argument("--expected-hostname", help="optional exact owned host, paired with UTC deadline")
     policies = p.add_mutually_exclusive_group()
     policies.add_argument("--fixed-cudnn-preparation", action="store_true",
                    help="non-historical single-setting candidate: reset cuDNN benchmark=False after canonical detection")
@@ -510,6 +563,7 @@ def main(argv=None):
         worker(a.worker_spec.resolve(), a.expected_gpu_uuid, a.fixed_cudnn_preparation, a.fixed_cudnn_geometry)
         return 0
     require(a.inputs is not None and a.out is not None, "--inputs and --out required")
+    deadline = allocation_deadline(a.deadline_utc, a.expected_hostname)
     a.identities = a.identity or list(IDS)
     a.source_root, a.out, _ = prepare_paths(a.source_root, a.out, ROOT, a.identities)
     bindings = verify_inputs(a.inputs, a.source_root, ROOT, a.identities)
@@ -519,6 +573,7 @@ def main(argv=None):
                           "out": str(a.out), "validated_input_count": len(bindings), "full_original_878_verified": False,
                           "supplemental_current_code_count": len(snapshot), "gpu_execution": False,
                           "preparation_policy": preparation_policy(a.fixed_cudnn_preparation, a.fixed_cudnn_geometry),
+                          "resource_deadline_utc": deadline.isoformat() if deadline else None,
                           "warm_fps_speedup_claim": False, "next": "append --run after owned API/pipeline is idle"}, indent=2))
         return 0
     return execute(a, bindings, snapshot)

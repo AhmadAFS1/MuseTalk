@@ -1,0 +1,12 @@
+--- onstart.sh
++++ onstart.sh
+@@ -1 +1,9 @@
+ #!/usr/bin/env bash
++# A4 development-only recovery guard installed after the initial healthy boot.
++# Preserve the original credential-bearing wrapper on this worker only.
++# Never apply this patch to a release, production, or different instance.
++if [[ "$(hostname)" == "9dad9291adec" ]]; then
++  printf '%s\n' 'A4 development bootstrap already completed; automatic reinstall/start disabled.'
++  exit 0
++fi
++

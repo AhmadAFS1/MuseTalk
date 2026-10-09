@@ -1,0 +1,54 @@
+{
+  "schema": "owned_preregistered_fp16_precision_restoration_matrix_v1",
+  "preregistered_utc": "2026-10-09T04:01:37Z",
+  "instance_id": "54957508",
+  "owned_descriptor_sha256": "bd5702d79c02fb99845ea33b5c02b7cb23d8e2935145b37c43f6c6867f3681c6",
+  "resource_deadline_utc": "2026-10-09T05:30:00Z",
+  "source_native_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+  "builder_helper_sha256": "1f7ab2758eb4f6453642314d4d4adad2bd8e3df3739d9ca6ff4f641eefeac80a",
+  "original_envelope_sha256": "8c2c25961109171f5bd18f88d3bf9f0433b9cba31e48f19869cd75a25e7471e4",
+  "successor_envelope_sha256": "a911a3133d52d2ebf16f54284fa492cfc571621f590a1a2fbe9ed030474fa60a",
+  "lineage_receipt_sha256": "2e1e92508b6b728e524e465dae6631c6f27928775714e0cdb83abe81ebfbb52b",
+  "hypothesis": "Restore precision in relatively inexpensive INT8 mid/up0 blocks while retaining the literal native plans for all other blocks. No new calibration, holdout fitting, lowered resolution or workload change.",
+  "selection_basis": {
+    "path": "native/native_v1_gpu/blocks.json",
+    "sha256": "3bc2f96b199b295f732df0893c3bb04f318b2b8483b43bcad738202556707002",
+    "scope": "Prior A1 same-model RTX3090 isolated synthetic-block timings; not current A4 pipeline or FP16 cost evidence",
+    "native_int8_mid_ms": 0.4789930661519369,
+    "native_int8_up0_ms": 0.7948287963867188
+  },
+  "variants": [
+    {
+      "id": "fp16_mid",
+      "blocks": [
+        "mid"
+      ]
+    },
+    {
+      "id": "fp16_up0",
+      "blocks": [
+        "up0"
+      ]
+    },
+    {
+      "id": "fp16_mid_up0",
+      "blocks": [
+        "mid",
+        "up0"
+      ]
+    }
+  ],
+  "requirements": [
+    "Exactly bound canonical box_guard and unchanged CUDA/NVML ownership protocol",
+    "All878 actual inputs and preregistered metadata-only ancestry before CUDA",
+    "Fresh FP16 graph/build only for named blocks, native compatibility none; unchanged literal remaining plans",
+    "Fresh direct/graph/repeat probes and every actual plan hash",
+    "Full352main/96holdout captures,224grouped UNet comparisons and all16 unchanged frozen UNet bounds",
+    "Actual full448 portable decoder checks, all88 frozen decoder bounds, then full698 coupled/avatar comparison and visual inspection",
+    "Only quality-acceptable configurations may be selected; both T and every one of5>=60s SUST windows >=400FPS"
+  ],
+  "candidate_evaluation_started": false,
+  "quality_bounds_changed": false,
+  "quality_accepted": false,
+  "release_ready": false
+}

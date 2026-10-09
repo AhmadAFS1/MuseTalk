@@ -5,6 +5,28 @@ import build_owned_unet_fp16_down3_a3 as builder
 
 
 class Tests(unittest.TestCase):
+    def test_fixed_matrix_preserves_fp16_only_build_options(self):
+        for blocks in (('mid',), ('up0',), ('mid', 'up0')):
+            a = builder.builder_options(blocks)
+            self.assertEqual(a.blocks, ','.join(blocks))
+            self.assertEqual(a.int8_blocks, '')
+            self.assertEqual(a.int8_recipe, '')
+            self.assertEqual(a.hardware_compat, 'none')
+        with self.assertRaises(ValueError):
+            builder.builder_options(('down1',))
+
+    def test_selected_plans_only_removed_and_original_unchanged(self):
+        native = {'blocks': {b: {'bytes': b} for b in ('mid', 'up0', 'down1')}, 'probe': {'old': True}}
+        for blocks in (('mid',), ('up0',), ('mid', 'up0')):
+            candidate = builder.candidate_manifest(native, blocks)
+            self.assertEqual(set(candidate['blocks']), set(native['blocks']) - set(blocks))
+            self.assertEqual(set(candidate['precision_restorations']), set(blocks))
+        self.assertEqual(set(native['blocks']), {'mid', 'up0', 'down1'})
+
+    def test_nonlegacy_variant_requires_exact_allocation_before_io(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            builder.main(['--execute', '--blocks', 'mid'])
+
     def test_default_off(self):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             builder.main([])

@@ -5,11 +5,25 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 import run_owned_legacy_serial_render_a3 as adapter
 
 
 class AdapterTests(unittest.TestCase):
+    def test_legacy_binding_retains_original_expired_deadline(self):
+        self.assertEqual(adapter.owned_binding(), (None, adapter.HOST, adapter.DEADLINE))
+
+    def test_incomplete_new_binding_fails_before_access(self):
+        for args in ((Path('/example'), None), (None, 'a' * 64)):
+            with self.assertRaises(ValueError):
+                adapter.owned_binding(*args)
+
+    def test_new_binding_checks_reviewed_source_before_import(self):
+        with mock.patch.object(Path, 'is_symlink', return_value=False), mock.patch.object(Path, 'read_bytes', return_value=b'changed'):
+            with self.assertRaisesRegex(ValueError, 'binding changed'):
+                adapter.owned_binding(Path('/example'), 'a' * 64)
+
     def test_only_reporting_added_and_values_unchanged(self):
         timing = {'frames': 5760, 'compose_ms': 42.5}
         clips = [{'raw_refined_sha256': 'same'}]

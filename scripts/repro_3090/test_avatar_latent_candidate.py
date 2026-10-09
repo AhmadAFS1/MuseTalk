@@ -1,18 +1,57 @@
 """CPU-only staging/negative provenance tests; never launch GPU preparation."""
 import hashlib
+import datetime as dt
 import io
 import json
 import os
+import signal
+import subprocess
 from pathlib import Path
 import tempfile
 import types
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import avatar_latent_candidate as candidate
 
 
 class CandidateTests(unittest.TestCase):
+    def test_optional_allocation_binding_is_paired_utc_exact_and_not_expired(self):
+        now = dt.datetime(2026, 10, 9, 4, tzinfo=dt.timezone.utc)
+        self.assertIsNone(candidate.allocation_deadline(None, None, now))
+        with patch.object(candidate.socket, "gethostname", return_value="owned"):
+            self.assertEqual(candidate.allocation_deadline("2026-10-09T05:30:00Z", "owned", now).hour, 5)
+            for value, host in ((None, "owned"), ("2026-10-09T05:30:00Z", None),
+                                ("2026-10-09T05:30:00", "owned"),
+                                ("2026-10-09T05:30:00+01:00", "owned"),
+                                ("2026-10-09T04:10:00Z", "owned"),
+                                ("2026-10-09T05:30:00Z", "foreign")):
+                with self.assertRaises(ValueError):
+                    candidate.allocation_deadline(value, host, now)
+
+    def test_child_timeout_stops_only_new_owned_guard_group_and_propagates(self):
+        process = Mock(pid=424242)
+        process.poll.return_value = None
+        process.wait.side_effect = [subprocess.TimeoutExpired(["guard"], 600), 143]
+        deadline = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1)
+        with patch.object(candidate.subprocess, "Popen", return_value=process) as popen, \
+             patch.object(candidate.os, "killpg") as kill, patch("sys.stdout", io.StringIO()):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                candidate.run_guarded_child(["guard"], self.workspace, {}, io.StringIO(), deadline)
+        self.assertTrue(popen.call_args.kwargs["start_new_session"])
+        self.assertEqual(process.wait.call_args_list[0].kwargs["timeout"], 600)
+        kill.assert_called_once_with(424242, signal.SIGTERM)
+        self.assertEqual(process.wait.call_args_list[1].kwargs["timeout"], 20)
+
+    def test_child_default_preserves_unbounded_wait_and_success_exit(self):
+        process = Mock(pid=424242)
+        process.wait.return_value = 0
+        with patch.object(candidate.subprocess, "Popen", return_value=process), \
+             patch.object(candidate.os, "killpg") as kill, patch("sys.stdout", io.StringIO()):
+            self.assertEqual(candidate.run_guarded_child(["guard"], self.workspace, {}, io.StringIO()), 0)
+        process.wait.assert_called_once_with(timeout=None)
+        kill.assert_not_called()
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

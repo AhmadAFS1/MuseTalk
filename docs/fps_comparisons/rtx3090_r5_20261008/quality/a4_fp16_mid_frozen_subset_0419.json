@@ -1,0 +1,145 @@
+{
+  "candidate_manifest_sha256": "29c7fb767f95c427d82a8ecb2912cb7763c522364f3774cf76cc9b98a34bccb5",
+  "coupled_avatar_pipeline_tested": false,
+  "decision": "REJECTED_FROZEN_UNET_NONREGRESSION",
+  "envelope_sha256": "a911a3133d52d2ebf16f54284fa492cfc571621f590a1a2fbe9ed030474fa60a",
+  "failed": 7,
+  "full698_assessed": false,
+  "instance_id": "54957508",
+  "metrics": [
+    {
+      "direction": "error",
+      "limit": 0.0034972068149892784,
+      "metric": "unet.main.mae_mean",
+      "status": "FAIL",
+      "value": 0.00349806159184399
+    },
+    {
+      "direction": "error",
+      "limit": 0.004701611585915089,
+      "metric": "unet.main.mae_max",
+      "status": "PASS",
+      "value": 0.004623250104486942
+    },
+    {
+      "direction": "error",
+      "limit": 0.006624411773042415,
+      "metric": "unet.main.rmse_mean",
+      "status": "PASS",
+      "value": 0.0065910863102710045
+    },
+    {
+      "direction": "error",
+      "limit": 0.009878764860332012,
+      "metric": "unet.main.rmse_max",
+      "status": "PASS",
+      "value": 0.009164450690150261
+    },
+    {
+      "direction": "error",
+      "limit": 0.012097302824258804,
+      "metric": "unet.main.p95_abs_mean",
+      "status": "FAIL",
+      "value": 0.01210203089497306
+    },
+    {
+      "direction": "error",
+      "limit": 0.017578125,
+      "metric": "unet.main.p95_abs_max",
+      "status": "PASS",
+      "value": 0.017578125
+    },
+    {
+      "direction": "error",
+      "limit": 0.25252207842740143,
+      "metric": "unet.main.max_abs_mean",
+      "status": "PASS",
+      "value": 0.23611528223211115
+    },
+    {
+      "direction": "error",
+      "limit": 0.776611328125,
+      "metric": "unet.main.max_abs_max",
+      "status": "PASS",
+      "value": 0.728759765625
+    },
+    {
+      "direction": "error",
+      "limit": 0.0036256184054460996,
+      "metric": "unet.holdout.mae_mean",
+      "status": "FAIL",
+      "value": 0.0036464784595106416
+    },
+    {
+      "direction": "error",
+      "limit": 0.004188018850982189,
+      "metric": "unet.holdout.mae_max",
+      "status": "FAIL",
+      "value": 0.004251597449183464
+    },
+    {
+      "direction": "error",
+      "limit": 0.006894362023255478,
+      "metric": "unet.holdout.rmse_mean",
+      "status": "FAIL",
+      "value": 0.006943089790487041
+    },
+    {
+      "direction": "error",
+      "limit": 0.01229102723300457,
+      "metric": "unet.holdout.rmse_max",
+      "status": "PASS",
+      "value": 0.011814376339316368
+    },
+    {
+      "direction": "error",
+      "limit": 0.012560288111368815,
+      "metric": "unet.holdout.p95_abs_mean",
+      "status": "FAIL",
+      "value": 0.012637992699941
+    },
+    {
+      "direction": "error",
+      "limit": 0.01513671875,
+      "metric": "unet.holdout.p95_abs_max",
+      "status": "FAIL",
+      "value": 0.0155029296875
+    },
+    {
+      "direction": "error",
+      "limit": 0.3041553497314453,
+      "metric": "unet.holdout.max_abs_mean",
+      "status": "PASS",
+      "value": 0.30011940002441406
+    },
+    {
+      "direction": "error",
+      "limit": 1.2601318359375,
+      "metric": "unet.holdout.max_abs_max",
+      "status": "PASS",
+      "value": 1.2064208984375
+    }
+  ],
+  "metrics_assessed": 16,
+  "performance_measured": false,
+  "quality_accepted": false,
+  "release_ready": false,
+  "reports": {
+    "holdout": {
+      "comparisons": 48,
+      "path": "docs/fps_comparisons/rtx3090_r5_20261008/quality/a4_fp16_mid_unet_0414/unet_holdout.json",
+      "sha256": "b7e8393a16965bb7b55876bdc0bfa59a9e66212902b9b2c8fda7621ed419ee05"
+    },
+    "main": {
+      "comparisons": 176,
+      "path": "docs/fps_comparisons/rtx3090_r5_20261008/quality/a4_fp16_mid_unet_0414/unet_main.json",
+      "sha256": "a2f3a49df4ada2a372094e78cb3bc828f5f9943a87ee2bb159830d81045113f9"
+    }
+  },
+  "schema": "owned_a4_frozen_unet_subset_v1",
+  "strict_original_gates": {
+    "holdout": "FAIL",
+    "main": "FAIL"
+  },
+  "variant": "fp16_mid"
+}
