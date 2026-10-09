@@ -1,0 +1,26 @@
+{
+  "schema": "cpu_telemetry_actual_linux_ci_v1",
+  "run_id": 37892034262,
+  "job_id": 113694888201,
+  "source_revision": "a911298e81a9818d028591ab9145c960c18e4b48",
+  "ci_url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37892034262",
+  "conclusion": "success",
+  "completed_job_utc": "2026-10-09T06:10:35Z",
+  "total_tests": 312,
+  "passed": 301,
+  "explicit_skips": 11,
+  "telemetry_and_wrapper_tests_seen_pass": 17,
+  "actual_runner_cpu_counter_snapshot": {
+    "counters": {"nr_periods": 0, "nr_throttled": 0, "system_usec": 24826741, "throttled_usec": 0, "usage_usec": 75887165, "user_usec": 51060424},
+    "sample_monotonic_s": 112.911149113,
+    "source": "/sys/fs/cgroup/system.slice/hosted-compute-agent.service/cpu.stat",
+    "status": "AVAILABLE"
+  },
+  "raw_log_sha256": "f1bce9017975d975307b63e8f99663c0dd4569fadd4b6084a9bfe624f80ac301",
+  "wrapper_sha256": "e2087ed7372942dcb364a215a744b52517ef72ebb37d7d81c4a35cd08fc073ec",
+  "wrapper_test_sha256": "85627ba4f6c9dcbc5f2c75e3185235b3226f385bf4e7ab87aa63b6f1d308d04a",
+  "canonical_renderer_sha256_restored": "df4e290b33d752be82d6d2ab738bc5d3e21aa439ffd05f1c3c852a8af1fd4a29",
+  "transport": "Read-only existing remote gh; no credential extraction, GPU or remote file mutation",
+  "scope": "Synthetic contracts and one actual CI-runner current-cgroup counter read. No paid GPU run, image/startup/performance/quality acceptance; zero counters here are not evidence about historical Vast hosts",
+  "gpu_host_performance_or_quality_accepted": false
+}

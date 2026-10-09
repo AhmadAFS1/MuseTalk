@@ -1085,3 +1085,27 @@ the measured fast5950X machine was absent. The advertised5900X option is12CPU,
 advertisements and now time-limited discovery, not confirmed performance/runtime
 compatibility or a purchase. No reservation/rental was created.
 [Offer evidence](provisioning/next_offer_discovery_0603.json).
+
+## October 9, 06:13 UTC — isolated telemetry Linux verification and next experiment frozen
+
+Exacta911298 [CI37892034262](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37892034262)
+completed at06:10:35UTC:312tests,301PASS,11explicit skips, including all17
+telemetry/wrapper contracts and the original renderer-source-pin test. The actual
+Linux runner's current-cgroup counters are AVAILABLE; these are not Vast host
+throttling evidence. Canonical renderer SHA is restored and every historical
+quality launcher pin remains unchanged. [Linux receipt](native/cpu_telemetry_linux_ci_0613.json).
+
+One next native UNet candidate is preregistered at actual06:11:42UTC: unchanged
+graph/precision/checkpoint/selective-INT8 recipe, opt3 rather than opt5, fresh
+same-target timing cache. All11 exported ONNX hashes must match the baseline;
+otherwise the same-graph experiment is invalid. Main/holdout and all698 frozen
+bounds remain unchanged, with no held-out calibration or failure-targeted recipe
+changes. A separate default-off0/1/1/0 startup pair requires actual GPU inference,
+explicit-seed original VAE preparation and local media behavior. It measures
+process initialization, not EC2 cold-image/60s usable-call readiness.
+[Preregistration](quality/next_same_precision_opt3_preregistered_0610.json).
+
+No reservation or rental was made in this continuation. Next execution requires
+fresh offers, current shared budget and independent expiry before any creation.
+Highest-quality sustained400+, full production/live gates, full public image,
+browser template and repeated~60s fresh-instance usable calls remain unmet.
