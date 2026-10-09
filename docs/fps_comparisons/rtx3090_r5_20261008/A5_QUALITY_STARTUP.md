@@ -22,7 +22,8 @@ private conditional S3 PUT, exact-version GET, clean CPU restore and every
 payload SHA check. Receipts are in `release/a5_*private_persistence*.json`.
 No private media/plans are committed or made public.
 
-The independent ownedA5 expiry remains08:35UTC on October9,2026; fresh provider
-absence must still be reconciled. Full quality-approved400+FPS, production48
+Independent ownedA5 expiry completed08:35:03UTC on October9,2026: nonforced
+destroy and fresh provider absence verified. No owned paid GPU remains.
+Full quality-approved400+FPS, production48
 pose/live acceptance, complete published image/template and approximately60s
 EC2 usable-call startup remain unmet. Existing production is unchanged.

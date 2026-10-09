@@ -1,11 +1,13 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "a5_whole_fp16_full_quality_rejected_preserving_artifacts_and_testing_startup",
+  "phase": "a5_quality_rejected_startup_diagnostic_verified_private_artifacts_preserved_gpu_retired",
   "current_experiment": {
     "instance_id": 54976782,
     "source_revision": "209b2749ddeabb4be1a7c1f68f2a249cf8f5abb1",
-    "status": "OPT3_V3_REJECTED;WHOLE_FP16_COMPONENT_PASS_BUT_FULL_698_QUALITY_REJECTED",
+    "status": "PROVIDER_ABSENT;OPT3_V3_AND_WHOLE_FP16_QUALITY_REJECTED;LOCAL_STARTUP_PAIR_PASS_ONLY",
+    "retirement_receipt": "provisioning/a5_expiry_0835.json",
+    "retirement_status": "Independent EC2 service completed0 at08:35:03.068792UTC, exact instance54976782 nonforced destroy, fresh provider absence verified. Do not SSH this retired alias or restart/reuse its dead process handles.",
     "coupled_quality_final": {
       "report": "quality/a5_whole_fp16_full_0743_quality/report.json",
       "comparison": "quality/a5_whole_fp16_full_frozen_comparison_v2_0802.json",
@@ -403,6 +405,17 @@
     "Native v1 remains rejected on236/698frozen quality bounds. A3 native420W full offline T measured427.005/426.630FPS, but quality rejected and SUST/live unverified. Earlier A1/A2 failures retained. A4 mixed plans and FP16-mid also fail frozen UNet bounds; no selected quality-acceptable400FPS configuration yet."
   ],
   "instances": {
+    "development_a5": {
+      "instance_id": "54976782",
+      "label": "musetalk-r5-3090-dev-20261009-a5",
+      "ssh_alias": "musetalk-3090-build-54976782",
+      "status": "PROVIDER_ABSENT",
+      "retired_at_utc": "2026-10-09T08:35:03.068792+00:00",
+      "force": false,
+      "provider_absence_verified": true,
+      "receipt": "provisioning/a5_expiry_0835.json",
+      "artifacts": ["release/a5_engines_private_persistence_0806.json", "release/a5_quality_media_private_persistence_0819.json"]
+    },
     "protected_existing": {
       "vast_id": 51074906,
       "ssh_alias": "3-way-head-talk",
@@ -1195,7 +1208,8 @@
     "gpu_output_and_preparation_parity": "Four fresh local0/1/1/0 processes PASS: tested UNet16, full decoder16 and retained-VAE seeded fixed diagnostic encoder hashes bit-exact/all finite. NOT full avatars/prepare or WebRTC validation; flag remains off.",
     "paired_startup_timing": "Actual sameA5 local original-native-v1 diagnostic: model init9.122636/3.188544/3.180917/9.095443s, mean9.109040->3.184731s,5.924309s saved (65.037692%); warm filesystem cache. Excludes provider/image/secrets/HTTP/EC2/avatar/call readiness and does not establish60s total startup.",
     "paired_startup_report": "startup/a5_model_startup_pair_summary_0824.json",
-    "startup_watch_result": "All four authenticated own CUDA leaf, three ACKs and COMPLETE0; original0811 failed diagnostic preserved. GPU deadline still08:35UTC, independent timer reverified active08:22.",
+    "startup_watch_result": "All four authenticated own CUDA leaf, three ACKs and COMPLETE0; original0811 failed diagnostic source exactSHA and watch preserved. A5 retired08:35:03UTC with provider absence verified.",
+    "startup_probe_linux_ci": "Actual37905358978 completed success for exact2585b7196b8ba29c1f8410f5610775c7500352b0; six new synthetic startup guard/pair tests included. CPU-only CI, actual GPU measurements are separately recorded.",
     "weights_removed_from_image": false,
     "release_ready": false
   },
@@ -1218,6 +1232,6 @@
     "spend_or_reservation": true,
     "quality_or_performance_accepted": false
   },
-  "next_action": "New A5 builds and actual full-quality clips are privately persisted/clean-restored. Commit/push completed startup probes/pair report and persistence receipts; verify LinuxCPU CI. Reconcile independent A5 expiry at08:35UTC and fresh provider absence. Preserve full native400+ quality/SUST/GPU/live/production48 and Docker/public registry/browser/fresh usable-call/repeated-startup scope as unmet; no rejected candidate promotion or new rental without fresh budget/host/quality-path validation.",
-  "next_command": "At08:35UTC inspect EC2 fixedA5 resource-expiry.json, timer/service and provider absence; do not SSH after provider confirms absent. Continue independent full Docker preparation with accurately labelled non-release artifacts; resolve existing registry authentication/namespace and logged-out Vast browser before their dependent publication/template steps. Startup flag remains0 until full prep/local-call validation."
+  "next_action": "A5 is now absent after independent nonforced expiry; all unique new engines/media persisted privately and code/reports pushed. Actual startup code CI PASS. Continue independent full Docker preparation and an evidence-supported quality/performance path without promoting rejected artifacts; full quality-approved400+ T/SUST/GPU/live/production48 and public registry/browser/fresh usable-call/repeated-startup outcomes remain unmet. Fresh rental requires budget/host/quality-path validation; no retired aliases or expired handles.",
+  "next_command": "Use A5_QUALITY_STARTUP.md and immutable S3 receipts to resume; no owned rented GPU remains. Review complete image model/native bundle/notices and release-context prerequisites; registry authentication/namespace and logged-out Vast browser remain access-dependent. Keep startup flag0 until full preparation/local-call verification; keep protected4070 and production deployment unchanged."
 }

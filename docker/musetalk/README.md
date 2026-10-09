@@ -38,7 +38,13 @@ API otherwise loads before replacing it with TensorRT. It retains the original
 SD-VAE encoder, positional encoding, Whisper, face parsing and runtime warming.
 The default remains `0`; no production configuration or image policy enables it.
 The canonical checkpoint remains required by the image inventory/install checks.
-This change does not yet reduce image bytes or establish a startup-speed result.
+This change does not reduce image bytes. A strict-owned3090 local0/1/1/0 test
+now measures original model initialization at9.12/9.10s versus3.19/3.18s with
+the flag: about5.92s saved, with identical tested UNet, decoder and seeded
+diagnostic VAE-encoder output hashes. See the
+[paired diagnostic report](../../docs/fps_comparisons/rtx3090_r5_20261008/startup/a5_model_startup_pair_summary_0824.json).
+These fresh local processes used warm filesystem cache and quality-rejected
+native-v1 artifacts; this is not Docker boot or EC2 usable-call acceptance.
 
 Opt-in requires CUDA, `MUSETALK_UNET_BACKEND=trt_stagewise`,
 `MUSETALK_TRT_FALLBACK=0`, stagewise SHA verification and exact probes enabled,
@@ -46,9 +52,10 @@ and probe tolerance `0`. Missing/corrupt/unexpected backends are fatal: no eager
 fallback or engine repair. The loaded backend must be FP16-interface srccache,
 batch16. `MODEL_STARTUP` records base-model loading and full initialization/warm
 durations without credentials. Nine operator CPU contracts pass using actual
-manager method bodies with mocked models; actual GPU output equality,
-controlled-seed avatar preparation, live behavior and paired boot timing remain
-required before enabling this in an image or claiming a latency improvement.
+manager method bodies with mocked models. The narrow real-GPU diagnostic
+equality test now passes; full controlled-seed avatar preparation, live behavior
+and paired image-based boot timing remain required before enabling this in an
+image or claiming end-to-end startup improvement.
 
 The supervisor serializes lifecycle ownership with `flock`, watches API/TURN
 processes, and calls canonical drain/stop on SIGTERM. Python handles TERM during
