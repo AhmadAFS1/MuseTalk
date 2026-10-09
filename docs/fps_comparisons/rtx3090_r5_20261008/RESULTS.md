@@ -1066,3 +1066,22 @@ Ten synthetic telemetry contracts plus9 tracking and9 startup contracts pass on
 the operator. Linux verification is next. Historical pinned renderers/launchers
 remain unchanged; a new benchmark requires explicit source binding rather than
 silently treating instrumentation as historical bytes. No new rental launched.
+
+## October 9, 06:08 UTC — source-pinning failure repaired without weakening pins
+
+Telemetry revisionfa54598c failed [CI37891413008](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37891413008)
+because the existing candidate quality launcher correctly rejected the renderer's
+changed SHA. The three direct telemetry calls are now removed, restoring exact
+canonical renderer SHA `df4e290b33d752be82d6d2ab738bc5d3e21aa439ffd05f1c3c852a8af1fd4a29`.
+No historical launcher pin or quality bound changed. A separately named opt-in
+wrapper adds counter fields after the unchanged canonical windows complete,
+restores temporary hooks on failure, and rejects incomplete/unmatched coverage.
+Actual Linux rerun remains required. No GPU/paid host used the failed revision.
+[Repair receipt](native/cpu_telemetry_ci_failure_and_repair_0608.json).
+
+Read-only06:03UTC provider search returned four price/transfer-eligible3090offers;
+the measured fast5950X machine was absent. The advertised5900X option is12CPU,
+480.7Mbps down,300W,driver565.77,~$0.2498/h plus1.333/TB each direction. These are
+advertisements and now time-limited discovery, not confirmed performance/runtime
+compatibility or a purchase. No reservation/rental was created.
+[Offer evidence](provisioning/next_offer_discovery_0603.json).

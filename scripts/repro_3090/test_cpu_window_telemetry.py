@@ -1,11 +1,14 @@
 """Synthetic cgroup reads/deltas only; no GPU, remote host or performance proof."""
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from chin_multistream.telemetry import cgroup_cpu_interval, cgroup_cpu_snapshot
+import chin_multistream_cpu_telemetry as wrapper
 
 
 class CPUWindowTelemetryTests(unittest.TestCase):
@@ -102,6 +105,86 @@ class CPUWindowTelemetryTests(unittest.TestCase):
         data = cgroup_cpu_interval(before, after)
         self.assertEqual(data["status"], "AVAILABLE")
         self.assertIsNone(data["throttled_period_fraction"])
+
+
+class WrapperTests(unittest.TestCase):
+    def test_import_inert_and_no_gpu_packages(self):
+        code = ('import sys;sys.path.insert(0,sys.argv[1]);import chin_multistream_cpu_telemetry;'
+                'assert not any(n in sys.modules for n in ("torch","numpy","tensorrt","cv2"))')
+        result = subprocess.run([sys.executable, "-B", "-c", code, str(Path(wrapper.__file__).parent)],
+                                capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_bad_renderer_bytes_fail_before_hooks_or_sampling(self):
+        with mock.patch.object(wrapper, "RENDERER_SHA256", "0" * 64), \
+             mock.patch.object(wrapper.telemetry, "cgroup_cpu_snapshot") as sample, \
+             mock.patch.object(wrapper, "_original_run_multi") as run:
+            with self.assertRaisesRegex(RuntimeError, "bytes changed"):
+                wrapper.run_multi(None, None)
+        sample.assert_not_called()
+        run.assert_not_called()
+
+    def invoke(self, run, snapshots=None):
+        with mock.patch.object(wrapper, "_original_run_multi", run), \
+             mock.patch.object(wrapper.gpu, "run_repeat", return_value=({"unchanged": True}, "drain")), \
+             mock.patch.object(wrapper.renderer.Collector, "wait_for", return_value={}), \
+             mock.patch.object(wrapper.telemetry, "cgroup_cpu_snapshot", side_effect=snapshots or [{"status": "UNAVAILABLE"}] * 4):
+            issue = wrapper.gpu.run_repeat
+            collect = wrapper.renderer.Collector.wait_for
+            try:
+                return wrapper.run_multi(None, None)
+            finally:
+                self.assertIs(wrapper.gpu.run_repeat, issue)
+                self.assertIs(wrapper.renderer.Collector.wait_for, collect)
+                self.assertFalse(wrapper._lock.locked())
+
+    def test_two_windows_keep_frames_fps_and_gpu_result(self):
+        rows = [{"frames": 240, "wall_s": 2, "aggregate_fps": 120},
+                {"frames": 240, "wall_s": 3, "aggregate_fps": 80}]
+        def run(args, directory):
+            for row in rows:
+                self.assertEqual(wrapper.gpu.run_repeat(), ({"unchanged": True}, "drain"))
+                wrapper.renderer.Collector.wait_for(object(), "repdone", [0])
+            return {"repeats": rows}
+        result = self.invoke(run)
+        self.assertEqual([r["aggregate_fps"] for r in result["repeats"]], [120, 80])
+        self.assertEqual([r["cgroup_cpu"]["status"] for r in result["repeats"]], ["UNAVAILABLE"] * 2)
+        self.assertFalse(result["cpu_window_telemetry"]["renderer_bytes_changed"])
+
+    def test_original_failure_restores_hooks(self):
+        def run(args, directory):
+            wrapper.gpu.run_repeat()
+            raise RuntimeError("synthetic original failure")
+        with self.assertRaisesRegex(RuntimeError, "synthetic original failure"):
+            self.invoke(run)
+
+    def test_missing_extra_or_unmatched_window_rejected(self):
+        def pending(args, directory):
+            wrapper.gpu.run_repeat()
+            return {"repeats": [{}]}
+        def missing(args, directory):
+            return {"repeats": [{}]}
+        def unmatched(args, directory):
+            wrapper.renderer.Collector.wait_for(object(), "repdone", [0])
+        for run in (pending, missing, unmatched):
+            with self.subTest(run=run), self.assertRaises(RuntimeError):
+                self.invoke(run)
+
+    def test_uncollected_previous_window_rejected(self):
+        def run(args, directory):
+            wrapper.gpu.run_repeat()
+            wrapper.gpu.run_repeat()
+        with self.assertRaises(RuntimeError):
+            self.invoke(run)
+
+    def test_main_serial_rejected_and_original_main_restored(self):
+        original = wrapper.renderer.run_multi
+        with self.assertRaises(ValueError):
+            wrapper.main(["--label", "synthetic", "--mode", "serial"])
+        with mock.patch.object(wrapper.renderer, "main", side_effect=RuntimeError("synthetic")):
+            with self.assertRaises(RuntimeError):
+                wrapper.main(["--label", "synthetic"])
+        self.assertIs(wrapper.renderer.run_multi, original)
 
 
 if __name__ == "__main__":

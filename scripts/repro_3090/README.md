@@ -176,13 +176,14 @@ without rounding for T/SUST. N15 reports every FPS but gates integrity/stability
   its final ~30 seconds require at least 40 telemetry samples and ≤3°C range.
   If still warming, rerun with greater `--thermal-warmup-s`. These explicit
   preconditioning bounds are recorded, not inferred from a fast first window.
-  New renderer revisions also record current-cgroup-v2 CPU counters before and
-  after each window. Missing, unsupported, reset or migrated counters remain
+  A separate opt-in `scripts/chin_multistream_cpu_telemetry.py` entry point records
+  current-cgroup-v2 CPU counters before and after each window, without editing
+  the canonical renderer. Missing, unsupported, reset or migrated counters remain
   unavailable/invalid, never zero-throttling claims. This interval includes final
   worker-report collection and does not replace the composed-frame FPS clock.
   Kernel throttled time is not lost wall time or causal proof. Historical pinned
-  renderers/launchers are unchanged and will refuse the new renderer bytes unless
-  a separately versioned/preregistered harness binding explicitly selects them.
+  renderers/launchers remain unchanged; use the wrapper only through a separately
+  versioned/preregistered harness binding, never a hidden historical pin update.
 - `30_quality.sh`: original main/holdout UNet limits, source-prefix cached/permuted
   equality, original TAESD limits/exactness, then separate six-avatar full-height
   video/array captures and per-avatar lip/aperture/pixel/landmark/flicker/chin metrics.

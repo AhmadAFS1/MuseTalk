@@ -1120,10 +1120,12 @@
   },
   "cpu_backpressure_diagnostic": {
     "receipt": "native/cpu_backpressure_comparison_0600.json",
-    "telemetry_operator_tests": "10PASS_0SKIP",
-    "telemetry_linux_ci": "PENDING_COMMIT_PUSH",
+    "telemetry_operator_tests": "17PASS_0SKIP after separate-wrapper repair; original candidate-child22PASS",
+    "telemetry_linux_ci": "fa54598c CI37891413008 failed correctly on original renderer source pin. Three added calls removed; exact renderer bytes restored. Separate opt-in wrapper repair pending fresh Linux CI.",
+    "repair_receipt": "native/cpu_telemetry_ci_failure_and_repair_0608.json",
+    "readonly_offer_discovery": "provisioning/next_offer_discovery_0603.json",
     "new_paid_gpu_measurement": "NOT_RUN",
-    "legacy_source_binding": "New renderer requires explicit versioned/preregistered binding; original launcher pins unchanged"
+    "legacy_source_binding": "Canonical renderer exactdf4e290 restored; original launcher pins unchanged. Instrumentation now separate wrapper, requiring explicit versioned/preregistered binding"
   },
   "next_action": "Push/test current-cgroup per-window instrumentation in existing lightweight Linux CI. Then preregister the next same-precision graph/tactic experiment and strict startup paired GPU checks on an eligible host with measured CPU capacity. Full quality/400+ SUST/live/production, complete public Docker and ~60s fresh usable-call readiness remain required.",
   "next_command": "Explicit-file commit/push telemetry and Linux receipts; read-only inspect exact-head existing CPU workflow. Do not SSH retired A4 or poll terminal SUST/weights sessions. Before next rental, fresh provider search, budget ledger reservation and independently installed bounded expiry are required. Do not widen698 bounds or fit the holdout; startup flag stays off pending actual GPU/prep/live/paired timing."

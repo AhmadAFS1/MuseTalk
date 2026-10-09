@@ -1,0 +1,24 @@
+{
+  "schema": "readonly_vast_offer_discovery_v1",
+  "observed_at_utc": "2026-10-09T06:03:12.177427+00:00",
+  "cloud_writes": false,
+  "instances_created_reserved_or_modified": false,
+  "returned_count": 4,
+  "eligible_count": 4,
+  "rejected_count": 0,
+  "allocated_storage_gb": 150,
+  "caps": {"hourly_usd": 0.30, "each_transfer_direction_usd_per_1024gb": 1.50},
+  "offers": [
+    {"offer_id": 32750800, "machine_id": 17295, "cpu": "AMD Ryzen 9 5900X 12-Core Processor", "effective_cpus": 12, "ram_mb": 32109, "download_mbps": 480.7, "upload_mbps": 478.9, "driver": "565.77", "conservative_hourly_usd": 0.24980468749999998, "download_usd_per_1024gb": 1.3333333333333333, "upload_usd_per_1024gb": 1.3333333333333333, "advertised_max_gpu_power_w": 300, "reliability": 0.9972379},
+    {"offer_id": 54902643, "machine_id": 13204, "cpu": "Xeon E5-2697 v2", "effective_cpus": 24, "ram_mb": 128942, "download_mbps": 126.6, "upload_mbps": 36.6, "driver": "595.71.05", "conservative_hourly_usd": 0.21897026909722225, "download_usd_per_1024gb": 0.013333333333333334, "upload_usd_per_1024gb": 0.013333333333333334, "advertised_max_gpu_power_w": 350, "reliability": 0.9698433},
+    {"offer_id": 54468718, "machine_id": 153039, "cpu": "AMD EPYC 7K62 48-Core Processor", "effective_cpus": 19.200000000000003, "ram_mb": 64361, "download_mbps": 754.9, "upload_mbps": 641.9, "driver": "595.91.07", "conservative_hourly_usd": 0.24924913194444445, "download_usd_per_1024gb": 1.3333333333333333, "upload_usd_per_1024gb": 1.3333333333333333, "advertised_max_gpu_power_w": 350, "reliability": 0.9578754},
+    {"offer_id": 54648257, "machine_id": 47324, "cpu": "13th Gen Core i3-13100F", "effective_cpus": 8, "ram_mb": 31936, "download_mbps": 932.2, "upload_mbps": 514.9, "driver": "580.126.09", "conservative_hourly_usd": 0.2764713541666667, "download_usd_per_1024gb": 1.3333333333333333, "upload_usd_per_1024gb": 1.3333333333333333, "advertised_max_gpu_power_w": 300, "reliability": 0.9983139}
+  ],
+  "cost_formula": "max(dph_base + storage_cost*150/720, all present dph_total/dph_total_adj/discounted_total_per_hour); finite nonnegative required, both transfer caps independently checked",
+  "ordering": "Previously measured fast machine143947 first if available; then advertised5950X/5800X/5900X; otherwise hourly cost. Machine143947 not returned. Not proven performance or a purchase decision.",
+  "valid_for_seconds": 300,
+  "revalidate_before_any_purchase": true,
+  "facts_kind": "Provider advertisements, not actual GPU/CPU/startup observations",
+  "driver_native_plan_and_ownership_compatibility": "Unverified on every unmeasured offered host; fail-closed actual probes remain required",
+  "new_reservation_or_rental": false
+}

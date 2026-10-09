@@ -260,7 +260,6 @@ def run_multi(a, run_dir: Path) -> dict:
             smi = telemetry.SmiSampler(500) if not replay else None
             mem = telemetry.MemSampler(1.0)
             mem.start()
-            cgroup_cpu0 = telemetry.cgroup_cpu_snapshot()
             cpu_parent0 = telemetry.proc_cpu_s()
             sys0 = telemetry.system_cpu()
             with torch.inference_mode():
@@ -269,7 +268,6 @@ def run_multi(a, run_dir: Path) -> dict:
             t_all = time.perf_counter()
             cpu_parent1 = telemetry.proc_cpu_s()
             sys1 = telemetry.system_cpu()
-            cgroup_cpu1 = telemetry.cgroup_cpu_snapshot()
             smi_stats = smi.stop() if smi is not None else None
             mem_stats = mem.stop()
             wstats = {s: m[3] for s, m in done.items()}
@@ -319,7 +317,6 @@ def run_multi(a, run_dir: Path) -> dict:
                 workers_mean_idle_frac=statistics.mean(pw["idle_frac"] for pw in per_worker.values()),
                 cores=dict(parent=parent_cpu / wall, workers=worker_cpu / wall, facemesh=fm_cpu / wall,
                            harness_total=(parent_cpu + worker_cpu + fm_cpu) / wall, system_busy=sys_busy),
-                cgroup_cpu=telemetry.cgroup_cpu_interval(cgroup_cpu0, cgroup_cpu1),
                 mem_available_gb=mem_stats,
                 per_worker=per_worker,
             )

@@ -1,0 +1,19 @@
+{
+  "schema": "cpu_telemetry_source_pinning_repair_v1",
+  "failed_revision": "fa54598c53bd927ffb8405bce61e0786efa7ac23",
+  "failed_ci_run_id": 37891413008,
+  "failed_ci_job_id": 113692949904,
+  "ci_url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37891413008",
+  "conclusion": "failure",
+  "actual_failing_test": "test_taesd_fp32_candidate_child.PureContracts.test_real_pinned_files_match",
+  "actual_error": "RoutingRejected: pinned_bytes_mismatch",
+  "cause": "Adding three telemetry calls to the canonical renderer changed its SHA and correctly broke the existing quality launcher's immutable target binding",
+  "repair": "Remove only those three added calls, restoring exact renderer SHA; retain read-only telemetry functions and route them through a separate explicit opt-in wrapper with its own source identity and canonical-renderer SHA check",
+  "restored_renderer_sha256": "df4e290b33d752be82d6d2ab738bc5d3e21aa439ffd05f1c3c852a8af1fd4a29",
+  "historical_launcher_pins_changed": false,
+  "renderer_math_or_fps_clock_changed": false,
+  "quality_bounds_changed": false,
+  "post_repair_operator_checks": "Telemetry/wrapper tests and22 original candidate-child contracts pass; Linux rerun required",
+  "gpu_or_paid_host_affected": false,
+  "release_ready": false
+}
