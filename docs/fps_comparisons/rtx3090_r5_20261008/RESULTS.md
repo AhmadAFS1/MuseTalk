@@ -28,7 +28,12 @@ Verified source bytes execute directly without a second read or bytecode cache.
 Canonical decoder/gate/defaults remain byte-identical. No actual original graph
 has been transformed, engine built, FP32 execution observed, quality gate run,
 or FPS measured for this candidate. The explicit scoped gate/capture launcher
-and fresh owned GPU preflight are still needed; new Linux coverage is pending.
+and fresh owned GPU preflight are still needed.
+
+The exact candidate commit `2cdfe99` [passed Linux CI](harnesses/taesd_fp32_candidate_linux_ci_0008.json)
+at 00:07:57 UTC: 190 tests, 179 passes, eleven explicit dependency skips, zero
+failures/errors. The new runtime suite passed 24 with one real-ONNX skip. This
+validates mocked CPU contracts, not actual TensorRT precision or quality.
 
 ### 23:46 UTC A2 expiry verified; no rented test GPU remains
 
