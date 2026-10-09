@@ -1109,3 +1109,27 @@ No reservation or rental was made in this continuation. Next execution requires
 fresh offers, current shared budget and independent expiry before any creation.
 Highest-quality sustained400+, full production/live gates, full public image,
 browser template and repeated~60s fresh-instance usable calls remain unmet.
+
+## October 9, 06:30 UTC — next owned experiment created with independent expiry
+
+The single EC2 create at06:24:21.749769UTC returned instance54976782 on machine17295,
+advertised Ryzen5900X, driver565.77. Provider observations06:24/06:27 report
+`loading`, not healthy or GPU-ready; one SSH gateway probe closed before
+authentication. No second create or reboot was issued. Actual hardware/runtime
+verification and source boot remain pending. The4070 is present and untouched.
+[Creation evidence](provisioning/a5_creation_0625.json).
+
+The exact ledger deadline08:35UTC and independently active one-shot timer were
+verified before creation, with non-forced cleanup and60-second failure retries.
+The conservative all-in reservation is$2, including100GBdown/10GBup, disk and
+additional contingency; shared reservations are$18.717528211805558 of$30.
+These are reserves, not confirmed invoices. Current transfer prices meet the
+user's1.50/1024GB limit. [Budget](provisioning/a5_budget_0624.json).
+
+A separately named565.77 monitor authenticates the original ownership source,
+changes only its one exact driver-comparison literal, and applies the same
+adaptation to both parent and CUDA leaf. Original ownership checks/source pins
+remain unchanged; the newly admitted canonical builder has its exact SHA pin.
+All44 focused CPU contracts pass (11new/33original); actual Linux/GPU ownership
+verification is not yet claimed. Original numerical/visual gates and the frozen
+opt3 build preregistration are unchanged. No GPU build/benchmark has started.

@@ -1,8 +1,23 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "a4_sustained_fail_resource_absent_startup_experiment_cpu_verified",
+  "phase": "a5_created_bounded_provider_image_loading",
   "current_experiment": {
+    "instance_id": 54976782,
+    "source_revision": "209b2749ddeabb4be1a7c1f68f2a249cf8f5abb1",
+    "status": "CREATED_PROVIDER_LOADING_NO_GPU_EXPERIMENT_STARTED",
+    "creation_evidence": "provisioning/a5_creation_0625.json",
+    "deadline_utc": "2026-10-09T08:35:00+00:00",
+    "preregistration": "quality/next_same_precision_opt3_preregistered_0610.json",
+    "ssh_alias": "musetalk-3090-build-54976782",
+    "ssh_status": "Gateway probe06:29 closed before authentication; provider had reported loading. No retry create or reboot.",
+    "driver_monitor": "scripts/repro_3090/watch_owned_single_leaf_565.py",
+    "driver_monitor_tests": "11new and33original CPU contracts PASS; actual Linux CI/GPU ownership not yet assessed",
+    "quality_accepted": false,
+    "performance_accepted": false,
+    "release_ready": false
+  },
+  "development_a4_experiments": {
     "instance_id": 54957508,
     "source_revision": "5a53ca908b90909621829717b9a36c2d92296771",
     "status": "SIX_UNET_VARIANTS_REJECTED_ALL6_REPEAT_EXACT_ENGINE_DELTAS_PRIVATE_VERIFIED",
@@ -310,10 +325,10 @@
     "conversion": "Enforce 1.50/1024 per billed GB, also satisfying decimal TB = 1000 GB",
     "operator_selected_max_test_lifetime_hours": 24,
     "confirmed_experiment_spend_usd": null,
-    "reserved_experiment_budget_usd": 16.717528211805558,
+    "reserved_experiment_budget_usd": 18.717528211805558,
     "additional_aws_audit_reserve_usd": 4,
-    "shared_budget_ledger_sha256": "2b12f11acbbdfa8fb5aa7a7683a702c0c0ae5ea8853ce043a1331d265e390ac8",
-    "latest_reservation_evidence": "provisioning/a4_creation_0319.json",
+    "shared_budget_ledger_sha256": "1becbe21aadba5464b9e70426a50077b8640686ae01b6158e978e201e619dd2e",
+    "latest_reservation_evidence": "provisioning/a5_creation_0625.json",
     "rental_started": true
   },
   "blockers": [
@@ -1131,12 +1146,12 @@
   "next_preregistered_gpu_experiment": {
     "receipt": "quality/next_same_precision_opt3_preregistered_0610.json",
     "receipt_sha256": "2e88373643baa035e4491119ade134551de3e22bac75c3e9184bfa9d7f8585bf",
-    "status": "NOT_RENTED_NOT_BUILT",
+    "status": "A5_CREATED_PROVIDER_LOADING_NOT_BUILT",
     "candidate": "Complete native opt3 same-precision/graph UNet with fresh timing cache; baseline11ONNX hashes must match",
     "startup_pair": "Strict default-off skip-eager0/1/1/0 on identical baseline; GPU/prep/local media checks and process timing, not60s EC2 cold-start acceptance",
-    "spend_or_reservation": false,
+    "spend_or_reservation": true,
     "quality_or_performance_accepted": false
   },
-  "next_action": "Prepare the next single owned3090 trial against the frozen opt3 same-precision experiment and strict startup pair. Fresh eligible offer/actual budget/independent expiry must be validated before creation. Instrumentation and startup CPU/Linux contracts pass; no GPU experiment is live. Full quality/400+ SUST/live/production, complete public Docker and ~60s fresh usable-call readiness remain required.",
-  "next_command": "Re-read actual EC2 shared budget ledger and prepare_ec2_development CLI before any purchase; re-search offers because06:03 discovery expires after300s. Bind a new label/deadline/owned descriptor and source lineage; canonical renderer remains exactdf4e290, CPU telemetry is an explicit separate wrapper. Do not SSH retired A4 or poll terminal sessions. Execute one GPU-heavy child at a time; no698-bound widening/holdout fitting; startup flag remains off outside isolated test."
+  "next_action": "Observe existing A5 instance54976782 (not a new create), verify actual boot/isolation and host/GPU/driver, restore exact private inputs and register actual metadata-only lineage. Execute the frozen opt3 same-precision build and default-off startup pair serially with the independently installed08:35UTC cleanup. Full quality/400+ SUST/live/production, complete public Docker and ~60s fresh usable-call readiness remain required.",
+  "next_command": "Fresh provider list through EC2 for54976782 and its exact label/machine17295; use current ports, do not infer readiness from loading. New watch565 version must be CPU/Linux tested and source-pinned before GPU use; original watch/renderer stay byte-identical. Bind actual new hostname/UUID into a fresh owned descriptor, persist artifacts before08:35 expiry, and never SSH retired A1/A2/A3/A4. Do not re-create or restart on observation timeout."
 }
