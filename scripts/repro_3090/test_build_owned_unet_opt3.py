@@ -3,6 +3,7 @@ import copy
 import importlib.util
 from pathlib import Path
 import unittest
+import types
 from unittest.mock import patch
 
 path = Path(__file__).with_name('build_owned_unet_opt3.py')
@@ -28,6 +29,38 @@ def fixture():
 
 
 class Contracts(unittest.TestCase):
+    def test_whole_fp16_options_never_calibrate(self):
+        for stage in b.STAGES:
+            o = b.options(stage, 'all_fp16')
+            self.assertEqual(o.root, str(b.FP16_ENGINE))
+            self.assertEqual((o.int8_recipe, o.int8_blocks), ('', ''))
+        with self.assertRaises(ValueError): b.engine_root('per_holdout_tuning')
+
+    def test_whole_fp16_manifest_truthful_changed_graphs(self):
+        baseline, candidate = fixture()
+        candidate.pop('int8_calibration')
+        for name in b.STAGES[1]:
+            candidate['blocks'][name]['onnx_sha256'] = 'fp16-' + name
+            candidate['blocks'][name]['build_flags']['precision'] = 'fp16'
+        b.assert_stage(candidate, baseline, b.BLOCKS, final=True, mode='all_fp16')
+        for mutation in ('same_quantized_graph', 'changed_unchanged_block', 'calibration', 'precision'):
+            bad = copy.deepcopy(candidate)
+            if mutation == 'same_quantized_graph': bad['blocks']['down1']['onnx_sha256'] = baseline['blocks']['down1']['onnx_sha256']
+            elif mutation == 'changed_unchanged_block': bad['blocks']['prefix']['onnx_sha256'] = 'changed'
+            elif mutation == 'calibration': bad['int8_calibration'] = {}
+            else: bad['blocks']['mid']['build_flags']['precision'] = 'int8'
+            with self.assertRaises(ValueError): b.assert_stage(bad, baseline, b.BLOCKS, mode='all_fp16')
+
+    def test_qdq_and_quantized_initializers_rejected_recursively(self):
+        def graph(op='Conv', dtype=10, attrs=()):
+            return types.SimpleNamespace(initializer=[types.SimpleNamespace(data_type=dtype)],
+                node=[types.SimpleNamespace(op_type=op, attribute=attrs)])
+        b.assert_unquantized_graph(graph())
+        for bad in [graph('QuantizeLinear'), graph('DequantizeLinear'), graph(dtype=2), graph(dtype=3),
+            graph(attrs=[types.SimpleNamespace(type=5, g=graph('QuantizeLinear'))]),
+            graph(attrs=[types.SimpleNamespace(type=10, graphs=[graph('DequantizeLinear')])])]:
+            with self.assertRaises(ValueError): b.assert_unquantized_graph(bad)
+
     def test_build_dependency_pins_before_cuda(self):
         with patch.object(b.metadata, 'version', side_effect=lambda name: b.BUILD_PACKAGES[name]):
             self.assertEqual(b.build_dependencies(), b.BUILD_PACKAGES)

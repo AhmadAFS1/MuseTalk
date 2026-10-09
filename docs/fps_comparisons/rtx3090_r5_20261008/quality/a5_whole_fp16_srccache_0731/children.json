@@ -1,0 +1,52 @@
+{
+  "children": [
+    {
+      "stage": "srccache",
+      "returncode": 0,
+      "started_utc": "2026-10-09T07:31:41.325967+00:00",
+      "finished_utc": "2026-10-09T07:31:56.760426+00:00",
+      "wall_s": 15.434475887566805,
+      "command": [
+        "/bin/bash",
+        "scripts/box_guard.sh",
+        "run",
+        "--wait-min",
+        "0",
+        "--min-avail-gb",
+        "8",
+        "--label",
+        "a5_whole_fp16_srccache_0731_srccache",
+        "--",
+        "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+        "/workspace/MuseTalk/scripts/repro_3090/watch_owned_single_leaf_565.py",
+        "--enable",
+        "--owned-target-json",
+        "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/provisioning/a5_owned_target.json",
+        "--owned-target-sha256",
+        "5022cf99b58a56801ccb1958d5d220ba63f5ea20b68543303fbddc466fabb750",
+        "--",
+        "--enable",
+        "--out",
+        "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/quality/a5_whole_fp16_srccache_0731/srccache.owned_watch.jsonl",
+        "--target",
+        "/workspace/MuseTalk/scripts/repro_400fps/srccache_exact.py",
+        "--target-sha256",
+        "59d27983e85f7c438d655dc4bc6dfc0fa739ac38f8d22482372a48e8e8908895",
+        "--deadline-utc",
+        "2026-10-09T08:35:00Z",
+        "--",
+        "--root",
+        "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_all_fp16_v1",
+        "--baseline-root",
+        "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/quality/a5_whole_fp16_srccache_0731/intentionally_no_sm89_baseline",
+        "--corpus",
+        "/workspace/MuseTalk/calibration/unet_multi_avatar_20260928",
+        "--out",
+        "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/quality/a5_whole_fp16_srccache_0731/srccache.json"
+      ],
+      "timed_out": false
+    }
+  ],
+  "quality_accepted": false,
+  "full698_assessed": false
+}

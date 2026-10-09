@@ -1,0 +1,34 @@
+{
+  "schema": "native_unet_portable_decoder_selection_v1",
+  "preregistered_utc": "2026-10-09T07:41:25Z",
+  "timestamp_source": "UTC read before this selection was saved, before coupled quality evaluation",
+  "engine_root": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_sm86_r5_all_fp16_v1",
+  "engine_manifest_sha256": "2be61c95ea7b9e2d87cea541ccd36faad4bda996d6153c20fc4ba2a29f786977",
+  "taesd_dir": "/workspace/MuseTalk/models/taesd/trt",
+  "taesd": {
+    "key": "512bfd629a5e1f4f2e40",
+    "meta_sha256": "7ceb859c79998ddb18875f34ee2bd57c72b5747f27e249d1a30b30e35729d52e",
+    "decoder_plan_sha256": "7b3cf995a9bc22c5eabd04e665b79be9fe3f76cd60eb7b680ea7f65a1c893c8d",
+    "fingerprint": {
+      "recipe": "taesd_decoder_fp16_full_height_v1",
+      "post_recipe": "bgr_u8_nhwc_post_fp32_rne_v1",
+      "tensorrt": "10.3.0",
+      "onnx_sha256": "466225e995f0e70a194eccd8136f3c08fe2b5ca4c93f888c522ea2070a2044bb",
+      "batch": 8,
+      "latent_shape": [
+        8,
+        4,
+        32,
+        32
+      ],
+      "precision": "fp16",
+      "opt_level": 3,
+      "strongly_typed": false,
+      "hardware_compatibility_level": "ampere_plus"
+    }
+  },
+  "artifact_composition": "NATIVE_UNET_ORIGINAL_PORTABLE_TAESD_NOT_ALL_NATIVE",
+  "basis": "Whole-model FP16 candidate; original portable TAESD previously passed all88 frozen decoder metrics. No mixed-pipeline result consumed; no bounds changed.",
+  "quality_accepted": false,
+  "release_ready": false
+}

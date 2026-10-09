@@ -1,0 +1,20 @@
+{
+  "schema": "codex_actual_partial_visual_inspection_v1",
+  "candidate": "native whole-FP16 opt3 UNet 2be61c95ea7b9e2d87cea541ccd36faad4bda996d6153c20fc4ba2a29f786977 plus original AMPERE_PLUS TAESD 512bfd629a5e1f4f2e40",
+  "reviewer": "Codex",
+  "method": "Actual image-tool viewing of native-resolution paired 1024x896 full PNGs: accepted A left, candidate right, frame120 of240 at24FPS.",
+  "extraction_manifest": "a5_whole_fp16_review_0800/review.json",
+  "inspected_assets": [
+    "a5_whole_fp16_review_0800/black_man_short_beard/frame_120_full.png",
+    "a5_whole_fp16_review_0800/black_woman/frame_120_full.png",
+    "a5_whole_fp16_review_0800/east_asian_man_goatee/frame_120_full.png",
+    "a5_whole_fp16_review_0800/middle_eastern_man_full_beard/frame_120_full.png",
+    "a5_whole_fp16_review_0800/south_asian_woman/frame_120_full.png",
+    "a5_whole_fp16_review_0800/white_man_clean_shaven/frame_120_full.png"
+  ],
+  "observations": "These six middle frames appear close in mouth/teeth, beard, skin, eyes and full-frame geometry; no gross new seam, identity or chin-shape defect is visible in these particular samples. Small local appearance differences do not override failed numerical bounds.",
+  "status": "PARTIAL_VISUAL_REVIEW_NOT_ACCEPTED",
+  "limitations": ["Lossy review-video frames are not raw numerical gate pixels", "Only frame120 per canonical avatar viewed here", "Full motion, silence, highest-error frames and16x3 production poses not inspected for this candidate"],
+  "quality_accepted": false,
+  "release_ready": false
+}

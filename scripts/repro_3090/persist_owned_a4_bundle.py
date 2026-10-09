@@ -29,6 +29,11 @@ MODEL_ROOTS = tuple('models/tensorrt_unet_stagewise_a4_' + name + '_v1/bs16/' fo
                      'fp16_mid', 'fp16_up0', 'fp16_mid_up0')) + (
                          'models/tensorrt_unet_stagewise_a4_fp16_mid_up0_v2/bs16/',)
 LATENT_ROOT = 'docs/fps_comparisons/rtx3090_r5_20261008/avatars/a4_fixed_geometry_all6_v1/'
+A5_ROOTS = tuple('models/' + name + '/bs16/' for name in (
+    'tensorrt_unet_stagewise_sm86_r5_opt3_v3', 'tensorrt_unet_stagewise_sm86_r5_all_fp16_v1'))
+A5_NAMES = {'manifest.json', 'probe_output.pt'} | {
+    name + suffix for name in ('prefix','down0rest','down1','down2','down3','mid','up0','up1','up2','up3','tail')
+    for suffix in ('.plan', '.int8.plan')}
 require = operator.require
 SAFE_FAILURE_REASONS = {
     'private object metadata/size/encryption mismatch', 'object version missing',
@@ -37,8 +42,9 @@ SAFE_FAILURE_REASONS = {
 }
 
 
-def validate_manifest(data, profile):
-    require(data.get('schema') == 1 and data.get('profile') == 'private-a4-' + profile + '-diagnostic',
+def validate_manifest(data, profile, allocation='a4'):
+    require(allocation in ('a4', 'a5') and (allocation != 'a5' or profile == 'engines'), 'allocation/profile mismatch')
+    require(data.get('schema') == 1 and data.get('profile') == 'private-' + allocation + '-' + profile + '-diagnostic',
             'exact canonical diagnostic profile required')
     rows = data.get('files') or []
     require(0 < len(rows) <= 5000 and len({r.get('path') for r in rows}) == len(rows), 'file coverage invalid')
@@ -48,8 +54,10 @@ def validate_manifest(data, profile):
                 and SHA.fullmatch(row.get('sha256', '')) and type(row.get('size')) is int
                 and 0 <= row['size'] < 2 * 1024**3 and 'symlink' not in row, 'unsafe payload entry')
         if profile == 'engines':
-            require(any(name.startswith(root) for root in MODEL_ROOTS)
-                    and Path(name).name in {'manifest.json', 'probe_output.pt', 'mid.plan', 'up0.plan'},
+            roots = MODEL_ROOTS if allocation == 'a4' else A5_ROOTS
+            names = {'manifest.json', 'probe_output.pt', 'mid.plan', 'up0.plan'} if allocation == 'a4' else A5_NAMES
+            require(any(name.startswith(root) and Path(name).parent.as_posix() + '/' == root for root in roots)
+                    and Path(name).name in names,
                     'unexpected engine diagnostic payload')
         else:
             require(name.startswith(LATENT_ROOT) and not any(part.startswith('.') for part in Path(name).parts),
@@ -58,14 +66,14 @@ def validate_manifest(data, profile):
     return rows
 
 
-def manifest_from_archive(path, digest, profile):
+def manifest_from_archive(path, digest, profile, allocation='a4'):
     require(SHA.fullmatch(digest or '') and operator.sha_file(path) == digest, 'explicit archive SHA mismatch')
     with tarfile.open(path, 'r:gz') as archive:
         member = archive.getmember(MANIFEST)
         require(member.isfile() and member.size < 4 * 1024**2, 'invalid canonical manifest')
         raw = archive.extractfile(member).read()
         data = json.loads(raw)
-        rows = validate_manifest(data, profile)
+        rows = validate_manifest(data, profile, allocation)
         expected = {r['path']: r for r in rows}
         seen = set()
         for member in archive:
@@ -90,6 +98,7 @@ def restore_archive(archive, root, digest):
 def main():
     p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     p.add_argument('--profile', choices=('engines', 'latents'), required=True)
+    p.add_argument('--allocation', choices=('a4', 'a5'), default='a4')
     p.add_argument('--archive', type=Path, required=True)
     p.add_argument('--sha256', required=True)
     p.add_argument('--mode', choices=('conditional-put-verify', 'reconcile-read-only'), required=True)
@@ -97,19 +106,20 @@ def main():
     a = p.parse_args()
     require(operator.ROOT == ROOT and a.archive.is_file() and not a.archive.is_symlink()
             and a.archive.resolve().is_relative_to(RELEASE), 'fixed operator archive required')
-    require(a.archive.name == 'a4-' + a.profile + '-diagnostic.tar.gz'
+    require(a.archive.name == a.allocation + '-' + a.profile + '-diagnostic.tar.gz'
             and 0 < a.archive.stat().st_size < 4 * 1024**3, 'archive identity/size invalid')
     require(a.out.parent.resolve() == RELEASE and a.out.suffix == '.json'
             and not a.out.exists() and not a.out.is_symlink(), 'fresh fixed receipt required')
-    manifest, rows = manifest_from_archive(a.archive, a.sha256, a.profile)
+    manifest, rows = manifest_from_archive(a.archive, a.sha256, a.profile, a.allocation)
     fresh = a.out.with_suffix('.fresh-get.tar.gz')
     require(not fresh.exists() and not fresh.is_symlink(), 'fresh GET destination required')
     require(shutil.disk_usage(RELEASE).free > a.archive.stat().st_size + sum(r['size'] for r in rows) + 1024**3,
             'fresh GET and clean restore disk reserve missing')
     os.umask(0o077)
     key = operator.PREFIX + '/' + a.sha256 + '/' + a.archive.name
-    report = {'schema': 'owned_a4_private_bundle_persistence_v1', 'status': 'IN_PROGRESS',
-              'profile': a.profile, 'instance_id': '54957508', 'bucket': privacy.BUCKET,
+    report = {'schema': 'owned_private_bundle_persistence_v2', 'status': 'IN_PROGRESS',
+              'profile': a.profile, 'allocation': a.allocation,
+              'instance_id': '54957508' if a.allocation == 'a4' else '54976782', 'bucket': privacy.BUCKET,
               'region': privacy.REGION, 'expected_owner': privacy.OWNER, 'key': key,
               'sha256': a.sha256, 'bytes': a.archive.stat().st_size, 'payload_files': rows,
               'mode': a.mode, 'quality_accepted': False, 'release_ready': False,
@@ -126,7 +136,7 @@ def main():
             try:
                 response = operator.cli('put-object', ['--key', key, '--body', str(a.archive), '--if-none-match', '*',
                     '--server-side-encryption', 'AES256', '--checksum-algorithm', 'SHA256',
-                    '--metadata', 'sha256=' + a.sha256 + ',source=a4-private-diagnostic'], timeout=600)
+                    '--metadata', 'sha256=' + a.sha256 + ',source=' + a.allocation + '-private-diagnostic'], timeout=600)
                 report.update(put_outcome='CONFIRMED_CONDITIONAL_SUCCESS', put_version_id=response.get('VersionId'))
             except safe_capture.CaptureFailure as exc:
                 report.update(put_outcome='ERROR_OR_AMBIGUOUS_NO_REPUT', safe_put_failure=exc.record)

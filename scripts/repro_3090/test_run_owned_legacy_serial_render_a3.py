@@ -77,7 +77,16 @@ class AdapterTests(unittest.TestCase):
             for flag in ('--tracking-overlap', '--encode', '--save-arrays', '--compare-accepted'):
                 self.assertNotIn(flag, argv)
         with self.assertRaises(ValueError):
-            adapter.renderer_args('Q', Path('/test'), 'label')
+            adapter.renderer_args('unknown', Path('/test'), 'label')
+
+    def test_quality_capture_is_canonical_and_not_scored_throughput(self):
+        argv = adapter.renderer_args('Q', Path('/test'), 'label')
+        for flag, value in (('--streams','6'),('--loops','1'),('--repeats','1'),('--pack','16'),('--decode-split','8')):
+            self.assertEqual(argv[argv.index(flag)+1], value)
+        for flag in ('--save-arrays','--encode','--compare-accepted'):
+            self.assertIn(flag, argv)
+        for flag in ('--tracking-overlap','--min-timed-s','--thermal-warmup-s'):
+            self.assertNotIn(flag, argv)
 
     def test_default_off_before_machine_or_gpu_access(self):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):

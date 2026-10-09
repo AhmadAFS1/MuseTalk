@@ -20,6 +20,13 @@ on:
       - scripts/repro_3090/test_prepare_owned_cpu_inputs.py
       - scripts/repro_3090/launch_owned_a3_quality_checks.py
       - scripts/repro_3090/test_owned_quality_monitor.py
+      - scripts/repro_3090/quality_mixed_decoder.py
+      - scripts/repro_3090/test_quality_mixed_decoder.py
+      - scripts/repro_3090/run_owned_quality_a5.py
+      - scripts/repro_3090/test_owned_quality_execution.py
+      - scripts/repro_3090/owned_runtime_probe.py
+      - scripts/repro_3090/run_owned_legacy_serial_render_a3.py
+      - scripts/repro_3090/test_run_owned_legacy_serial_render_a3.py
       - scripts/chin_multistream_render.py
       - scripts/avatar_manager_parallel.py
       - test_avatar_model_startup.py
@@ -123,5 +130,8 @@ jobs:
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_build_owned_unet_opt3.py -v
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_prepare_owned_cpu_inputs.py -v
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_owned_quality_monitor.py -v
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_quality_mixed_decoder.py -v
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_owned_quality_execution.py -v
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_run_owned_legacy_serial_render_a3.py -v
           # Read-only actual runner counter availability, not GPU/host performance.
           python3.10 -B -c "import sys,json;sys.path.insert(0,'scripts');from chin_multistream.telemetry import cgroup_cpu_snapshot;print('CPU_CGROUP '+json.dumps(cgroup_cpu_snapshot(),sort_keys=True))"

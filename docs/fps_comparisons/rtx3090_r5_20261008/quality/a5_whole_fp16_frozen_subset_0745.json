@@ -1,0 +1,146 @@
+{
+  "schema": "frozen_unet_subset_comparison_v1",
+  "instance_id": "54976782",
+  "candidate_manifest_sha256": "2be61c95ea7b9e2d87cea541ccd36faad4bda996d6153c20fc4ba2a29f786977",
+  "precision_policy": "whole_UNet_FP16_restoration",
+  "envelope_sha256": "457925bc07cdf2b10386a472b5d967bca48869b10805e1fbd066233a57a77bc5",
+  "metric_helper_sha256": "a5a98185dad4db0d1b89c2d3e04b8832721d99461cca7381605b62b035697e55",
+  "reports": {
+    "main": {
+      "path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/quality/a5_whole_fp16_unet_0731/unet_main.json",
+      "sha256": "3a9fa5ba4c76751ef194b04b3b3e2ff86976d1599a5e2b7ea9444b1a38930215",
+      "bytes": 193738
+    },
+    "holdout": {
+      "path": "/Users/ahmadsmacair/code/musetalk-r5-execution/docs/fps_comparisons/rtx3090_r5_20261008/quality/a5_whole_fp16_unet_0731/unet_holdout.json",
+      "sha256": "e17ad7fa5a4d2c15aaedda9dbc38dfd41c81ebaae99e5d6587458f8aad704fba",
+      "bytes": 50002
+    }
+  },
+  "metrics": [
+    {
+      "metric": "unet.main.mae_mean",
+      "value": 0.001809317789924204,
+      "limit": 0.0034972068149892784,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.main.mae_max",
+      "value": 0.0025214466731995344,
+      "limit": 0.004701611585915089,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.main.rmse_mean",
+      "value": 0.0031359084069580686,
+      "limit": 0.006624411773042415,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.main.rmse_max",
+      "value": 0.00520576536655426,
+      "limit": 0.009878764860332012,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.main.p95_abs_mean",
+      "value": 0.005925853144038807,
+      "limit": 0.012097302824258804,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.main.p95_abs_max",
+      "value": 0.0087890625,
+      "limit": 0.017578125,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.main.max_abs_mean",
+      "value": 0.10803517428311435,
+      "limit": 0.25252207842740143,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.main.max_abs_max",
+      "value": 0.41009521484375,
+      "limit": 0.776611328125,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.holdout.mae_mean",
+      "value": 0.0018480804186159123,
+      "limit": 0.0036256184054460996,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.holdout.mae_max",
+      "value": 0.0020994115620851517,
+      "limit": 0.004188018850982189,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.holdout.rmse_mean",
+      "value": 0.0031629982452917225,
+      "limit": 0.006894362023255478,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.holdout.rmse_max",
+      "value": 0.004168778657913208,
+      "limit": 0.01229102723300457,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.holdout.p95_abs_mean",
+      "value": 0.006048838297526042,
+      "limit": 0.012560288111368815,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.holdout.p95_abs_max",
+      "value": 0.0068359375,
+      "limit": 0.01513671875,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.holdout.max_abs_mean",
+      "value": 0.11567290623982747,
+      "limit": 0.3041553497314453,
+      "direction": "error",
+      "status": "PASS"
+    },
+    {
+      "metric": "unet.holdout.max_abs_max",
+      "value": 0.4013671875,
+      "limit": 1.2601318359375,
+      "direction": "error",
+      "status": "PASS"
+    }
+  ],
+  "passed": 16,
+  "failed": 0,
+  "decision": "COMPONENT_PASS_FULL_QUALITY_UNTESTED",
+  "strict_original_gates": {
+    "main": "PASS",
+    "holdout": "PASS"
+  },
+  "full698_assessed": false,
+  "coupled_avatar_pipeline_tested": false,
+  "quality_accepted": false,
+  "performance_accepted": false,
+  "release_ready": false
+}

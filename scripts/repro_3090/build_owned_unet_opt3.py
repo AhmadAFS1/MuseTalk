@@ -1,7 +1,9 @@
-"""One default-off native opt3 build with unchanged graph/precision and lineage.
+"""Default-off native opt3 builds with explicit preregistered precision policy.
 
 Run only inside the canonical lease and versioned single-CUDA-leaf monitor.
-Stops at the first ONNX/precision mismatch, even when the builder returns zero.
+Unchanged mode pins all baseline graphs. Whole-FP16 mode explicitly restores
+all seven INT8 blocks and checks each export is unquantized before its build.
+Stops at a registered ONNX/precision mismatch, even if the builder returns zero.
 No quality, throughput or release acceptance is issued by a successful build.
 """
 import argparse
@@ -19,6 +21,8 @@ import types
 ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / 'docs/fps_comparisons/rtx3090_r5_20261008'
 ENGINE = ROOT / 'models/tensorrt_unet_stagewise_sm86_r5_opt3_v3'
+FP16_ENGINE = ROOT / 'models/tensorrt_unet_stagewise_sm86_r5_all_fp16_v1'
+FP16_PREREG_SHA = 'fec4a3402fd9fa08d976a075075cd1d3395e1a3a0a07e89b08ef2e11404e4ca4'
 BASELINE = ROOT / 'models/tensorrt_unet_stagewise_sm86_r5_v1/bs16/manifest.json'
 BASELINE_SHA = 'f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316'
 PREREG_SHA = '2e88373643baa035e4491119ade134551de3e22bac75c3e9184bfa9d7f8585bf'
@@ -56,6 +60,19 @@ def build_dependencies():
     return versions
 
 
+def assert_unquantized_graph(graph):
+    for tensor in getattr(graph, 'initializer', ()):
+        require(tensor.data_type not in (2, 3), 'quantized initializer in FP16 graph')
+    for node in graph.node:
+        require(node.op_type not in ('QuantizeLinear', 'DequantizeLinear'), 'QDQ node in FP16 graph')
+        for attr in node.attribute:
+            if attr.type == 5:
+                assert_unquantized_graph(attr.g)
+            elif attr.type == 10:
+                for nested in attr.graphs:
+                    assert_unquantized_graph(nested)
+
+
 def sha(path):
     h = hashlib.sha256()
     with Path(path).open('rb') as f:
@@ -80,17 +97,23 @@ def imported(relative):
     return module
 
 
-def options(stage):
+def engine_root(mode):
+    require(mode in ('unchanged', 'all_fp16'), 'unregistered precision mode')
+    return FP16_ENGINE if mode == 'all_fp16' else ENGINE
+
+
+def options(stage, mode='unchanged'):
     require(stage in STAGES, 'unregistered stage')
-    return types.SimpleNamespace(root=str(ENGINE), opt_level=3, workspace_gb=2.0,
+    return types.SimpleNamespace(root=str(engine_root(mode)), opt_level=3, workspace_gb=2.0,
         no_timing_cache=False, hardware_compat='none', strict_timing_cache=True,
         variant='srccache', timing_cache='', blocks=','.join(stage), int8_blocks='',
-        int8_recipe=str(RECIPE) if stage == STAGES[1] else '', max_minutes=20,
+        int8_recipe=str(RECIPE) if stage == STAGES[1] and mode == 'unchanged' else '', max_minutes=20,
         force=False, second_build=False, calib_dir=str(ROOT / 'calibration/unet_multi_avatar_20260928'),
         calib_batches=8)
 
 
-def assert_stage(manifest, baseline, wanted, final=False):
+def assert_stage(manifest, baseline, wanted, final=False, mode='unchanged'):
+    engine_root(mode)
     require(set(manifest['blocks']) == set(wanted), 'incomplete or unregistered blocks')
     for key in ('batch', 'gpu', 'compute_capability', 'tensorrt_version', 'torch_version',
                 'cuda_version', 'spec', 'variant', 'unet_weights', 'unet_config', 'timestep'):
@@ -100,12 +123,21 @@ def assert_stage(manifest, baseline, wanted, final=False):
     require(manifest['build_flags'] == expected_flags, 'global build policy changed')
     for name in wanted:
         got, old = manifest['blocks'][name], baseline['blocks'][name]
-        require(got['onnx_sha256'] == old['onnx_sha256'], 'same-graph experiment invalid:' + name)
-        require(got['build_flags'] == {**old['build_flags'], 'builder_optimization_level': 3},
+        restored = mode == 'all_fp16' and name in STAGES[1]
+        require((got['onnx_sha256'] != old['onnx_sha256']) if restored else (
+                got['onnx_sha256'] == old['onnx_sha256']),
+                ('restored graph identity invalid:' if restored else 'same-graph experiment invalid:') + name)
+        block_flags = {**old['build_flags'], 'builder_optimization_level': 3}
+        if restored:
+            block_flags['precision'] = 'fp16'
+        require(got['build_flags'] == block_flags,
                 'precision or other block policy changed:' + name)
         for key in ('inputs', 'outputs', 'engine_file'):
-            require(got[key] == old[key], 'block interface changed:' + name)
-    if set(STAGES[1]).issubset(wanted):
+            expected = old[key].replace('.int8.plan', '.plan') if restored and key == 'engine_file' else old[key]
+            require(got[key] == expected, 'block interface changed:' + name)
+    if mode == 'all_fp16':
+        require('int8_calibration' not in manifest, 'FP16 must not consume calibration')
+    elif set(STAGES[1]).issubset(wanted):
         require(manifest['int8_calibration']['files'] == baseline['int8_calibration']['files']
                 and manifest['int8_calibration']['batches'] == 8, 'main calibration selection changed')
     if final:
@@ -117,6 +149,7 @@ def assert_stage(manifest, baseline, wanted, final=False):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     p.add_argument('--execute', action='store_true')
+    p.add_argument('--precision-mode', choices=('unchanged', 'all_fp16'), default='unchanged')
     p.add_argument('--owned-target-json', type=Path, required=True)
     p.add_argument('--owned-target-sha256', required=True)
     p.add_argument('--successor-inputs', type=Path, required=True)
@@ -126,6 +159,7 @@ def main(argv=None):
     p.add_argument('--out', type=Path, required=True)
     a = p.parse_args(argv)
     require(a.execute, 'explicit execution required')
+    engine = engine_root(a.precision_mode)
     require(ROOT == Path('/workspace/MuseTalk'), 'owned worker path required')
     owned, deadline = imported('scripts/repro_3090/watch_owned_single_leaf_target.py').binding(
         a.owned_target_json, a.owned_target_sha256)
@@ -141,8 +175,10 @@ def main(argv=None):
         successor_envelope=a.successor_envelope, receipt_path=a.lineage_receipt,
         expected_receipt_sha256=a.lineage_receipt_sha256)
     checked(BASE / 'quality/next_same_precision_opt3_preregistered_0610.json', PREREG_SHA)
-    retry = json.loads(checked(BASE / 'quality/a5_opt3_dependency_retry_preregistered_0704.json', RETRY_SHA))
-    require(retry['fresh_candidate_root'] == str(ENGINE.relative_to(ROOT))
+    policy_path, policy_sha = (('quality/a5_whole_fp16_preregistered_0719.json', FP16_PREREG_SHA)
+        if a.precision_mode == 'all_fp16' else ('quality/a5_opt3_dependency_retry_preregistered_0704.json', RETRY_SHA))
+    retry = json.loads(checked(BASE / policy_path, policy_sha))
+    require(retry['fresh_candidate_root'] == str(engine.relative_to(ROOT))
             and retry['required_packages'] == BUILD_PACKAGES, 'retry preregistration differs')
     packages = build_dependencies()
     checked(RECIPE, RECIPE_SHA)
@@ -150,19 +186,34 @@ def main(argv=None):
     require(baseline['complete'] is True and set(baseline['blocks']) == BLOCKS, 'baseline incomplete')
     for relative, digest in PINS.items():
         checked(ROOT / relative, digest)
-    require(not ENGINE.exists() and not ENGINE.is_symlink(), 'fresh candidate required; no automatic resume')
+    require(not engine.exists() and not engine.is_symlink(), 'fresh candidate required; no automatic resume')
     require(a.out.is_absolute() and a.out.parent.resolve() == BASE / 'native'
             and not any(p.is_symlink() for p in (a.out, *a.out.parents)) and not a.out.exists(), 'fresh scoped report required')
     a.out.mkdir(mode=0o700)
-    report = dict(schema='owned_same_precision_opt3_build_v1', status='BUILDING', owned_target=owned,
+    report = dict(schema='owned_registered_precision_opt3_build_v2', status='BUILDING', owned_target=owned,
+        precision_mode=a.precision_mode, candidate_root=str(engine), same_graph_with_baseline=a.precision_mode == 'unchanged',
         input_lineage=lineage, started_utc=dt.datetime.now(dt.timezone.utc).isoformat(),
         preregistration_sha256=PREREG_SHA, baseline_manifest_sha256=BASELINE_SHA, stages=[],
-        dependency_retry_preregistration_sha256=RETRY_SHA, build_package_versions=packages,
+        build_policy_preregistration_sha256=policy_sha, build_package_versions=packages, fp16_onnx_audits=[],
         quality_accepted=False, performance_accepted=False, release_ready=False)
     try:
         os.chdir(ROOT); sys.path.insert(0, str(ROOT))
         os.environ.update(HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1', MUSETALK_UNET_STAGEWISE_VERIFY_SHA='1')
         from scripts import build_unet_stagewise as builder
+        require(not builder.SEED_TIMING_CACHE.exists(), 'foreign legacy timing seed must not be imported')
+        if a.precision_mode == 'all_fp16':
+            import onnx
+            original_build = builder.sw.build_engine_from_onnx
+            def checked_fp16_graph(raw, **kwargs):
+                require(kwargs.get('int8') is False, 'INT8 builder flag in FP16 candidate')
+                proto = onnx.load_model_from_string(raw)
+                assert_unquantized_graph(proto.graph)
+                for function in proto.functions: assert_unquantized_graph(function)
+                report['fp16_onnx_audits'].append(dict(sha256=hashlib.sha256(raw).hexdigest(),
+                    no_qdq=True, no_quantized_initializers=True, int8_builder_flag=False))
+                del proto
+                return original_build(raw, **kwargs)
+            builder.sw.build_engine_from_onnx = checked_fp16_graph
         torch = builder.torch
         require(torch.__version__ == '2.5.1+cu121' and torch.version.cuda == '12.1', 'pinned runtime required')
         torch.backends.cuda.matmul.allow_tf32 = True
@@ -173,15 +224,17 @@ def main(argv=None):
         wanted = set()
         for stage in STAGES:
             require((deadline - dt.datetime.now(dt.timezone.utc)).total_seconds() > 600, 'cleanup margin reached')
-            manifest = builder.build_batch(options(stage), 16, model, device)
+            manifest = builder.build_batch(options(stage, a.precision_mode), 16, model, device)
             wanted.update(stage)
-            assert_stage(manifest, baseline, wanted, final=stage == STAGES[-1])
+            assert_stage(manifest, baseline, wanted, final=stage == STAGES[-1], mode=a.precision_mode)
             for entry in manifest['blocks'].values():
-                require(sha(ENGINE / 'bs16' / entry['engine_file']) == entry['engine_sha256'], 'plan changed')
-            report['stages'].append(dict(blocks=list(stage), onnx_hashes_match=True,
+                require(sha(engine / 'bs16' / entry['engine_file']) == entry['engine_sha256'], 'plan changed')
+            report['stages'].append(dict(blocks=list(stage), registered_graph_and_precision_checks=True,
                 completed_utc=dt.datetime.now(dt.timezone.utc).isoformat()))
-        report.update(status='BUILT_PROBED_ALL11_SAME_GRAPH_QUALITY_PERFORMANCE_UNTESTED',
-                      manifest_sha256=sha(ENGINE / 'bs16/manifest.json'), probe=manifest['probe'])
+        if a.precision_mode == 'all_fp16':
+            require(len(report['fp16_onnx_audits']) == 11, 'missing FP16 ONNX audit')
+        report.update(status='BUILT_PROBED_ALL11_' + ('FP16_RESTORED' if a.precision_mode == 'all_fp16' else 'SAME_GRAPH') + '_QUALITY_PERFORMANCE_UNTESTED',
+                      manifest_sha256=sha(engine / 'bs16/manifest.json'), probe=manifest['probe'])
     except BaseException as exc:
         report.update(status='INVALID_BUILD', error_type=type(exc).__name__,
                       reason=str(exc) if isinstance(exc, ValueError) else 'build_or_probe_failure')

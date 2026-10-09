@@ -68,6 +68,18 @@ class PersistenceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 persistence.manifest_from_archive(path, '0' * 64, 'engines')
 
+    def test_a5_only_exact_native_engine_directories(self):
+        data = self.data(); data['profile'] = 'private-a5-engines-diagnostic'
+        for root in persistence.A5_ROOTS:
+            data['files'][0]['path'] = root + 'manifest.json'
+            persistence.validate_manifest(data, 'engines', 'a5')
+            with self.assertRaises(ValueError): persistence.validate_manifest(data, 'engines')
+        for path in (persistence.A5_ROOTS[0] + 'secret.env', persistence.A5_ROOTS[0] + 'nested/mid.plan',
+                     persistence.MODEL_ROOTS[0] + 'manifest.json', '.runtime/credentials'):
+            data['files'][0]['path'] = path
+            with self.assertRaises(ValueError): persistence.validate_manifest(data, 'engines', 'a5')
+        with self.assertRaises(ValueError): persistence.validate_manifest(data, 'latents', 'a5')
+
 
 if __name__ == '__main__':
     unittest.main()

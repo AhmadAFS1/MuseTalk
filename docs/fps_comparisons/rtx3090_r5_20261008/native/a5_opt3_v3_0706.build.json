@@ -1,0 +1,81 @@
+{
+  "schema": "owned_same_precision_opt3_build_v1",
+  "status": "BUILT_PROBED_ALL11_SAME_GRAPH_QUALITY_PERFORMANCE_UNTESTED",
+  "owned_target": {
+    "instance_id": "54976782",
+    "label": "musetalk-r5-3090-dev-20261009-a5",
+    "worker_alias": "musetalk-3090-build-54976782",
+    "worker_hostname": "8a2a09dff54d",
+    "gpu_uuid": "GPU-0a54f35e-c3a1-256e-aa21-0042ad52a039",
+    "ledger": "/home/ec2-user/.local/state/musetalk-r5-3090-dev-20261009-a5/startup-ledger.json",
+    "deadline_utc": "2026-10-09T08:35:00+00:00"
+  },
+  "input_lineage": {
+    "status": "VERIFIED_METADATA_EQUIVALENCE_ONLY",
+    "input_manifest_sha256": "764978dc27a92681da0f9419c6f4c9b1a7f4f20e766465eb5fa7e4e64d21d1c3",
+    "envelope_sha256": "457925bc07cdf2b10386a472b5d967bca48869b10805e1fbd066233a57a77bc5",
+    "preregistered_utc": "2026-10-09T06:52:57.567563+00:00",
+    "quality_accepted": false,
+    "release_ready": false
+  },
+  "started_utc": "2026-10-09T07:06:14.690917+00:00",
+  "preregistration_sha256": "2e88373643baa035e4491119ade134551de3e22bac75c3e9184bfa9d7f8585bf",
+  "baseline_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+  "stages": [
+    {
+      "blocks": [
+        "down0rest",
+        "up3",
+        "tail"
+      ],
+      "onnx_hashes_match": true,
+      "completed_utc": "2026-10-09T07:07:14.661096+00:00"
+    },
+    {
+      "blocks": [
+        "down1",
+        "down2",
+        "down3",
+        "mid",
+        "up0",
+        "up1",
+        "up2"
+      ],
+      "onnx_hashes_match": true,
+      "completed_utc": "2026-10-09T07:11:25.276338+00:00"
+    },
+    {
+      "blocks": [
+        "prefix"
+      ],
+      "onnx_hashes_match": true,
+      "completed_utc": "2026-10-09T07:11:31.704787+00:00"
+    }
+  ],
+  "dependency_retry_preregistration_sha256": "8e75a1b5d8a9d5d76bf7fdb6d7eaae91a650c8e45d18e5b5ad38f351187b9d99",
+  "build_package_versions": {
+    "nvidia-modelopt": "0.23.2",
+    "nvidia-modelopt-core": "0.23.2",
+    "PuLP": "3.3.2",
+    "torchprofile": "0.1.0",
+    "onnx": "1.17.0"
+  },
+  "quality_accepted": false,
+  "performance_accepted": false,
+  "release_ready": false,
+  "manifest_sha256": "29ceecb475dffb061998cc10b80b8257e5165acba996f8aba255ca247b590e9e",
+  "probe": {
+    "seed": 20260928,
+    "input_sha256": "bc70410094d8397351287b19179a486f457f7c392839ebd1ad626a189ddfb9a4",
+    "output_sha256": "8c0196685cc667c1e7ba9243834198a58c0c8460a4815923c5ac06286836c3c3",
+    "output_file": "probe_output.pt",
+    "deterministic_run_to_run": true,
+    "graph_equals_direct_enqueue": true,
+    "vs_eager_forward": {
+      "mae": 0.0023778295144438744,
+      "max_abs": 0.06658935546875,
+      "rel_l2": 0.0034165713004767895
+    }
+  },
+  "finished_utc": "2026-10-09T07:11:31.704926+00:00"
+}

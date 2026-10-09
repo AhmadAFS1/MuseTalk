@@ -64,8 +64,14 @@ def adapt_collector(collector):
 
 
 def renderer_args(stage, output, label):
+    if stage == 'Q':
+        return ['--mode','multi','--backend','stagewise16_taesdtrt','--identities','all',
+                '--streams','6','--loops','1','--repeats','1','--align','stream8',
+                '--pack','16','--decode-split','8','--depth','2','--ring-slots','3',
+                '--cv2-threads','2','--blas-threads','1','--save-arrays','--encode',
+                '--compare-accepted','--out-root',str(output),'--label',label]
     if stage not in ('T', 'SUST'):
-        raise ValueError('only canonical T/SUST stages supported')
+        raise ValueError('only canonical Q/T/SUST stages supported')
     return ['--mode', 'multi', '--backend', 'stagewise16_taesdtrt', '--identities', 'all',
             '--streams', '6', '--loops', '24' if stage == 'T' else '20', '--repeats', '2' if stage == 'T' else '5',
             '--align', 'stream8', '--pack', '16', '--decode-split', '8', '--depth', '2',
@@ -94,7 +100,7 @@ def load_renderer(root):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--enable', action='store_true')
-    parser.add_argument('--stage', choices=('T', 'SUST'), required=True)
+    parser.add_argument('--stage', choices=('Q', 'T', 'SUST'), required=True)
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--label', required=True)
     parser.add_argument('--owned-target-json', type=Path)

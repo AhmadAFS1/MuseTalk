@@ -1,0 +1,23 @@
+{
+  "schema": "whole_unet_precision_restoration_v1",
+  "preregistered_utc": "2026-10-09T07:18:20Z",
+  "timestamp_source": "UTC clock read before this file was created and before any full-FP16 candidate was built or evaluated",
+  "fresh_candidate_root": "models/tensorrt_unet_stagewise_sm86_r5_all_fp16_v1",
+  "selection_basis": "One whole-model higher-precision candidate to remove INT8 quantization error, following the objective of highest acceptable quality at400FPS. Not a per-block/amax/held-out-file search.",
+  "parent_baseline_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+  "precision_change": "All seven previously selective-INT8 blocks become FP16:down1,down2,down3,mid,up0,up1,up2. Audio cross-attention K/V remains FP16; all other blocks retain exact original FP16 graphs.",
+  "expected_onnx_identity": "Four unchanged FP16 blocks must retain baseline hashes; seven dequantized exports legitimately have different hashes. Do not label this an unchanged-graph/precision experiment.",
+  "new_onnx_validation": "Reject QuantizeLinear/DequantizeLinear anywhere in graph/subgraphs/functions and any INT8/UINT8 initializer before building a full-FP16 engine",
+  "unchanged": {"checkpoint": true,"config": true,"batch":16,"variant":"srccache","opt_level":3,"workspace_gb":2,"hardware_compatibility":"none","tf32":true,"cudnn_benchmark":true,"source_resolution_masks_chin_audio":true,"fresh_timing_cache":true},
+  "required_packages": {"nvidia-modelopt":"0.23.2","nvidia-modelopt-core":"0.23.2","PuLP":"3.3.2","torchprofile":"0.1.0","onnx":"1.17.0"},
+  "calibration": "None for the new FP16 plans; no main/holdout data is used for recipe tuning or calibration",
+  "validation_order": ["Complete11-block manifest and all plan hashes","Native load and direct/graph/repeat/cached/shuffled exactness","Unchanged full main and holdout component gates and all16 frozen metrics","Honest coupled decoder/avatar full698 and visual/production pose checks","Paired same-host aggregate T2/SUST5 and repeated180s GPU path","Live ramp/soak and image/fresh-instance startup"],
+  "quality_bounds_changed": false,
+  "new_candidate_results_consumed": false,
+  "previous_candidate_decision": "Native opt3 v3 rejected13/16 component metrics; original strict failures preserved. No production or default selection changes.",
+  "deadline_utc": "2026-10-09T08:35:00+00:00",
+  "new_rental_or_budget_reservation": false,
+  "quality_accepted": false,
+  "performance_accepted": false,
+  "release_ready": false
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "r5_candidate_quality_decision_v1",
+  "decision": "rejected",
+  "candidate_manifest_sha256": "2be61c95ea7b9e2d87cea541ccd36faad4bda996d6153c20fc4ba2a29f786977",
+  "decoder_key": "512bfd629a5e1f4f2e40",
+  "artifact_composition": "NATIVE_UNET_WITH_ORIGINAL_PORTABLE_TAESD_NOT_ALL_NATIVE",
+  "frozen_envelope_sha256": "457925bc07cdf2b10386a472b5d967bca48869b10805e1fbd066233a57a77bc5",
+  "selection_sha256": "b377c4eaada2601e3afc3a24810fd9a34aae44ec3f06bb1ac0585f775af2b6ed",
+  "comparison": "a5_whole_fp16_full_frozen_comparison_v2_0802.json",
+  "quality_parity_with_reference": "FAIL",
+  "metrics": {"total": 698, "passed": 595, "failed": 103},
+  "failed_by_scope": {"black_man_short_beard": 18, "black_woman": 9, "east_asian_man_goatee": 10, "middle_eastern_man_full_beard": 11, "south_asian_woman": 13, "white_man_clean_shaven": 17, "numerical_gates": 25},
+  "strict_original_gates": {"unet_main": "PASS", "unet_holdout": "PASS", "taesd": "FAIL"},
+  "reason": "Whole-FP16 restoration fixes the original UNet main/holdout gates and all16 UNet frozen metrics, but103 full-output/decoder/chin/temporal/sharpness checks exceed independently frozen reference limits. No bounds or direction changes allowed.",
+  "visual_review": "a5_whole_fp16_visual_inspection_0804.json",
+  "performance": "NOT_EVALUATED_FOR_REJECTED_CANDIDATE",
+  "alternative_selected_for_production": "Existing unchanged production release retained",
+  "quality_accepted": false,
+  "release_ready": false,
+  "production_modified": false
+}

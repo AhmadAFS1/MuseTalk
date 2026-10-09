@@ -16,7 +16,7 @@ ROOT = Path('/workspace/MuseTalk')
 BASE = ROOT / 'docs/fps_comparisons/rtx3090_r5_20261008'
 WATCH_SHA = '2f03d2761e6319e27a58917099722bf279ce5d695e4682eaa5637de9d4db737f'
 BOUND_WATCH_SHA = 'e4e429e0dd2a42cbc1b5791a26eb8361a2c0dcd5fa6c5af320c7bcf8ffa0d4f9'
-WATCH565_SHA = 'dfe2d787d015733949c7bf392e26119a6d83401681bbc7170d580a4c9066e3a0'
+WATCH565_SHA = '72d89c1917c15600560d64eec9c6a304bbe7f0ee4ec8864beee85eebe08b4606'
 TARGETS = {'unet': ('scripts/validate_unet_backend.py', '81b74eddf5aaff8348ac27cce67b92763e937e09309762d137062b0a23f1d7a0'),
            'srccache': ('scripts/repro_400fps/srccache_exact.py', '59d27983e85f7c438d655dc4bc6dfc0fa739ac38f8d22482372a48e8e8908895'),
            'taesd': ('scripts/repro_400fps/gate_taesd_trt.py', '3baf8976e4fb25a908809e68d6ac126c07ea525baed7475a6443263221e28e99')}

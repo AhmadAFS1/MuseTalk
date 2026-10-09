@@ -1,0 +1,123 @@
+{
+  "owned_target": {
+    "instance_id": "54976782",
+    "label": "musetalk-r5-3090-dev-20261009-a5",
+    "worker_alias": "musetalk-3090-build-54976782",
+    "worker_hostname": "8a2a09dff54d",
+    "gpu_uuid": "GPU-0a54f35e-c3a1-256e-aa21-0042ad52a039",
+    "ledger": "/home/ec2-user/.local/state/musetalk-r5-3090-dev-20261009-a5/startup-ledger.json",
+    "deadline_utc": "2026-10-09T08:35:00+00:00"
+  },
+  "source_pins": {
+    "runner.py": "0ede69c7a6f97aae57c38aec27e530b06beb1cc22175c89aa374a0fc66fb1f1d",
+    "watch_owned_single_leaf_target.py": "e4e429e0dd2a42cbc1b5791a26eb8361a2c0dcd5fa6c5af320c7bcf8ffa0d4f9",
+    "watch_owned_single_leaf_565.py": "72d89c1917c15600560d64eec9c6a304bbe7f0ee4ec8864beee85eebe08b4606"
+  },
+  "targets": {
+    "validate_unet_backend.py": [
+      "scripts/validate_unet_backend.py",
+      "81b74eddf5aaff8348ac27cce67b92763e937e09309762d137062b0a23f1d7a0"
+    ],
+    "srccache_exact.py": [
+      "scripts/repro_400fps/srccache_exact.py",
+      "59d27983e85f7c438d655dc4bc6dfc0fa739ac38f8d22482372a48e8e8908895"
+    ],
+    "gate_taesd_trt.py": [
+      "scripts/repro_400fps/gate_taesd_trt.py",
+      "3baf8976e4fb25a908809e68d6ac126c07ea525baed7475a6443263221e28e99"
+    ],
+    "run_owned_legacy_serial_render_a3.py": [
+      "scripts/repro_3090/run_owned_legacy_serial_render_a3.py",
+      "e23604396244ecdc68c3531a2c072b93b1ad784849fe991c7abcb7a1a072fd78"
+    ],
+    "owned_runtime_probe.py": [
+      "scripts/repro_3090/owned_runtime_probe.py",
+      "67bc64fb3d3330459ddc42df040525f32652230f32dd584697d2220df19e76ae"
+    ]
+  },
+  "children": [
+    {
+      "label": "runtime_probe",
+      "returncode": 0,
+      "wall_s": 15.098434314131737,
+      "target_sha256": "67bc64fb3d3330459ddc42df040525f32652230f32dd584697d2220df19e76ae",
+      "ownership_monitor_sha256": "72d89c1917c15600560d64eec9c6a304bbe7f0ee4ec8864beee85eebe08b4606"
+    },
+    {
+      "label": "unet_main",
+      "returncode": 0,
+      "wall_s": 44.49115915223956,
+      "target_sha256": "81b74eddf5aaff8348ac27cce67b92763e937e09309762d137062b0a23f1d7a0",
+      "ownership_monitor_sha256": "72d89c1917c15600560d64eec9c6a304bbe7f0ee4ec8864beee85eebe08b4606"
+    },
+    {
+      "label": "unet_holdout",
+      "returncode": 0,
+      "wall_s": 24.354333274066448,
+      "target_sha256": "81b74eddf5aaff8348ac27cce67b92763e937e09309762d137062b0a23f1d7a0",
+      "ownership_monitor_sha256": "72d89c1917c15600560d64eec9c6a304bbe7f0ee4ec8864beee85eebe08b4606"
+    },
+    {
+      "label": "srccache",
+      "returncode": 0,
+      "wall_s": 16.14576919004321,
+      "target_sha256": "59d27983e85f7c438d655dc4bc6dfc0fa739ac38f8d22482372a48e8e8908895",
+      "ownership_monitor_sha256": "72d89c1917c15600560d64eec9c6a304bbe7f0ee4ec8864beee85eebe08b4606"
+    },
+    {
+      "label": "taesd",
+      "returncode": 1,
+      "wall_s": 47.292121198028326,
+      "target_sha256": "3baf8976e4fb25a908809e68d6ac126c07ea525baed7475a6443263221e28e99",
+      "ownership_monitor_sha256": "72d89c1917c15600560d64eec9c6a304bbe7f0ee4ec8864beee85eebe08b4606"
+    },
+    {
+      "label": "quality_capture",
+      "returncode": 0,
+      "wall_s": 45.86651091277599,
+      "target_sha256": "e23604396244ecdc68c3531a2c072b93b1ad784849fe991c7abcb7a1a072fd78",
+      "ownership_monitor_sha256": "72d89c1917c15600560d64eec9c6a304bbe7f0ee4ec8864beee85eebe08b4606"
+    },
+    {
+      "label": "black_man_short_beard__a5_whole_fp16_full_0743",
+      "returncode": 1,
+      "wall_s": 34.809659603983164,
+      "measurement_scope": "original CPU pair metrics; CUDA hidden"
+    },
+    {
+      "label": "black_woman__a5_whole_fp16_full_0743",
+      "returncode": 1,
+      "wall_s": 32.94231545180082,
+      "measurement_scope": "original CPU pair metrics; CUDA hidden"
+    },
+    {
+      "label": "east_asian_man_goatee__a5_whole_fp16_full_0743",
+      "returncode": 0,
+      "wall_s": 33.005569878965616,
+      "measurement_scope": "original CPU pair metrics; CUDA hidden"
+    },
+    {
+      "label": "middle_eastern_man_full_beard__a5_whole_fp16_full_0743",
+      "returncode": 1,
+      "wall_s": 34.344065111130476,
+      "measurement_scope": "original CPU pair metrics; CUDA hidden"
+    },
+    {
+      "label": "south_asian_woman__a5_whole_fp16_full_0743",
+      "returncode": 0,
+      "wall_s": 30.499588668346405,
+      "measurement_scope": "original CPU pair metrics; CUDA hidden"
+    },
+    {
+      "label": "white_man_clean_shaven__a5_whole_fp16_full_0743",
+      "returncode": 1,
+      "wall_s": 33.60465018451214,
+      "measurement_scope": "original CPU pair metrics; CUDA hidden"
+    }
+  ],
+  "canonical_quality_math_changed": false,
+  "canonical_renderer_changed": false,
+  "all_native_artifact_claim": false,
+  "quality_accepted": false,
+  "release_ready": false
+}
