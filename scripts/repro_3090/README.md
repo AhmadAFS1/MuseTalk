@@ -167,7 +167,7 @@ defaults unless the new explicit parameters are selected.
   N15=15×10 windows. Every window must be at least 60 seconds. Frames are validated
   against completed worker counts, divided by **one shared wall interval**, never
   independently timed per-stream FPS. Portable target is 300; native target is 400,
-  without rounding for T/SUST. N15 reports every FPS but gates integrity/stability,
+without rounding for T/SUST. N15 reports every FPS but gates integrity/stability,
   not an additional invented 400 FPS requirement. All requested native T/SUST
   windows must pass. Throughput runs
   exclude capture/encoding overhead. Default 24 clip loops gives headroom against
@@ -176,6 +176,13 @@ defaults unless the new explicit parameters are selected.
   its final ~30 seconds require at least 40 telemetry samples and ≤3°C range.
   If still warming, rerun with greater `--thermal-warmup-s`. These explicit
   preconditioning bounds are recorded, not inferred from a fast first window.
+  New renderer revisions also record current-cgroup-v2 CPU counters before and
+  after each window. Missing, unsupported, reset or migrated counters remain
+  unavailable/invalid, never zero-throttling claims. This interval includes final
+  worker-report collection and does not replace the composed-frame FPS clock.
+  Kernel throttled time is not lost wall time or causal proof. Historical pinned
+  renderers/launchers are unchanged and will refuse the new renderer bytes unless
+  a separately versioned/preregistered harness binding explicitly selects them.
 - `30_quality.sh`: original main/holdout UNet limits, source-prefix cached/permuted
   equality, original TAESD limits/exactness, then separate six-avatar full-height
   video/array captures and per-avatar lip/aperture/pixel/landmark/flicker/chin metrics.

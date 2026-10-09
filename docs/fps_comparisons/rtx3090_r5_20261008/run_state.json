@@ -1111,12 +1111,20 @@
     "default_enabled": false,
     "production_or_image_enabled": false,
     "operator_cpu_tests": "9PASS; Docker76OK with1Linux-only skip",
-    "linux_ci": "NOT_YET_PUSHED",
+    "linux_ci": "PASS exactf039d6f CI37890697460:295tests284PASS11explicitSKIP; all9 new startup method contracts PASS. CPU-only, no latency/quality acceptance.",
+    "linux_ci_receipt": "startup/skip_eager_unet_linux_ci_0558.json",
     "gpu_output_and_preparation_parity": "NOT_RUN",
     "paired_startup_timing": "NOT_RUN",
     "weights_removed_from_image": false,
     "release_ready": false
   },
-  "next_action": "Commit the default-off actual API model-load experiment and evidence; verify existing lightweight Linux CI. Investigate CPU/ring backpressure and same-precision native tactics without changing frozen698 bounds or fitting the holdout. Full quality/400+ SUST/live/production, complete public Docker and ~60s fresh usable-call readiness remain required.",
-  "next_command": "Run python3 -B -m unittest test_avatar_model_startup -v and Docker CPU contracts; explicit-file commit/push, then read-only gh inspect exact-head existing CPU workflow. SUST10787 and weights pack33284 are TERMINAL; do not poll/restart. A4 provider absence freshly verified; never SSH retired alias. Startup flag stays off pending actual GPU/prep/live/paired timing."
+  "cpu_backpressure_diagnostic": {
+    "receipt": "native/cpu_backpressure_comparison_0600.json",
+    "telemetry_operator_tests": "10PASS_0SKIP",
+    "telemetry_linux_ci": "PENDING_COMMIT_PUSH",
+    "new_paid_gpu_measurement": "NOT_RUN",
+    "legacy_source_binding": "New renderer requires explicit versioned/preregistered binding; original launcher pins unchanged"
+  },
+  "next_action": "Push/test current-cgroup per-window instrumentation in existing lightweight Linux CI. Then preregister the next same-precision graph/tactic experiment and strict startup paired GPU checks on an eligible host with measured CPU capacity. Full quality/400+ SUST/live/production, complete public Docker and ~60s fresh usable-call readiness remain required.",
+  "next_command": "Explicit-file commit/push telemetry and Linux receipts; read-only inspect exact-head existing CPU workflow. Do not SSH retired A4 or poll terminal SUST/weights sessions. Before next rental, fresh provider search, budget ledger reservation and independently installed bounded expiry are required. Do not widen698 bounds or fit the holdout; startup flag stays off pending actual GPU/prep/live/paired timing."
 }

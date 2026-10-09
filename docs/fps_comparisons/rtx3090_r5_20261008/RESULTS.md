@@ -1043,3 +1043,26 @@ VAE preparation and runtime warming. Nine actual-method CPU mock contracts pass;
 existing Docker suite76OK/1Linux-only skip. No runtime/image enables it, checkpoint
 bytes remain required, and actual GPU inference/preparation/live equality plus
 paired startup timings remain unmeasured. [CPU receipt](startup/skip_eager_unet_cpu_contracts_0551.json).
+
+## October 9, 06:00 UTC — startup Linux contracts and CPU bottleneck evidence
+
+Exactf039d6f [Linux CI37890697460](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37890697460)
+completed successfully at05:54:23UTC:295tests,284PASS,11explicit dependency skips,
+including all9 new actual-method startup contracts. Read-only job logs were
+checked; no GPU, runtime deployment, latency or quality acceptance follows.
+
+Normalized native reports show useful fixed16 packing99.9% on the427FPS host,
+versus65.8→61.2% on A4. FaceMesh service13.31→16.39ms/frame and composition
+7.59→9.65ms/frame on A4, versus6.41–6.56 and4.16–4.19ms/frame on the faster host.
+Actual quotas were18.43 versus30.72CPU equivalents; visible affinity96 versus32
+is not effective capacity. Both recorded driver595.91.07. These are cross-host
+diagnostics, not proof of CPU quota/architecture/power causality.
+[Comparison](native/cpu_backpressure_comparison_0600.json).
+
+The current renderer now records current-cgroup-v2 CPU counter deltas outside GPU
+issuance, including explicit missing/reset/migration status. It does not change
+the composed-frame FPS denominator, frames, GPU math, precision or quality bars.
+Ten synthetic telemetry contracts plus9 tracking and9 startup contracts pass on
+the operator. Linux verification is next. Historical pinned renderers/launchers
+remain unchanged; a new benchmark requires explicit source binding rather than
+silently treating instrumentation as historical bytes. No new rental launched.

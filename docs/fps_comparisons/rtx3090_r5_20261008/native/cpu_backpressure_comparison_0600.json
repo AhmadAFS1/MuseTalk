@@ -1,0 +1,47 @@
+{
+  "schema": "cross_host_native_cpu_backpressure_diagnostic_v1",
+  "facts_kind": "Derived from actual saved windows; provider CPU names remain advertisements",
+  "first_fast_host": {
+    "instance_id": 54939993,
+    "provider_advertised_cpu": "Ryzen9 5950X",
+    "actual_cgroup_cpu_max": "3071999 100000",
+    "actual_affinity": "0-31",
+    "actual_driver": "595.91.07",
+    "report": "native/a3_native420w_serial_T3_0215/a3_native420w_serial_T3_0215.json",
+    "first_last_windows": [
+      {"fps": 427.0053712386704, "useful_fixed16_batch_fraction": 0.9990749306197965, "partial_job_fraction": 0.0018501387604070306, "tracking_ipc_ms_per_frame": 6.97965950670786, "facemesh_ms_per_frame": 6.55852010158208, "compose_ms_per_frame": 4.1870313013797995, "harness_cpu_ms_per_frame": 17.07667824074074},
+      {"fps": 426.6299075227456, "useful_fixed16_batch_fraction": 0.999537251272559, "partial_job_fraction": 0.0009254974548819991, "tracking_ipc_ms_per_frame": 6.825844527471266, "facemesh_ms_per_frame": 6.4131912246896015, "compose_ms_per_frame": 4.163621184449295, "harness_cpu_ms_per_frame": 16.88773148148148}
+    ]
+  },
+  "latest_slow_host": {
+    "instance_id": 54957508,
+    "provider_advertised_cpu": "AMD EPYC 7K62 48-Core Processor",
+    "actual_cgroup_cpu_max": "1843199 100000",
+    "actual_affinity": "0-95",
+    "actual_driver": "595.91.07",
+    "report": "native/a4_native350w_serial_SUST_0513/a4_native350w_serial_SUST_0513.json",
+    "first_last_windows": [
+      {"fps": 253.25019799555042, "useful_fixed16_batch_fraction": 0.6581352833638026, "partial_job_fraction": 0.6837294332723949, "tracking_ipc_ms_per_frame": 14.119872134907988, "facemesh_ms_per_frame": 13.311682769776276, "compose_ms_per_frame": 7.588669298219328, "harness_cpu_ms_per_frame": 31.873958333333334},
+      {"fps": 200.61186935140293, "useful_fixed16_batch_fraction": 0.6122448979591837, "partial_job_fraction": 0.7755102040816326, "tracking_ipc_ms_per_frame": 17.93901185945995, "facemesh_ms_per_frame": 16.392934505217152, "compose_ms_per_frame": 9.645696575050554, "harness_cpu_ms_per_frame": 38.72291666666667}
+    ]
+  },
+  "formulas": {
+    "useful_fixed16_batch_fraction": "valid_completed_frames/(gpu_jobs*16); partial padding never counts as output",
+    "partial_job_fraction": "partial_jobs/gpu_jobs",
+    "stage_ms_per_frame": "summed worker stage milliseconds/valid_completed_frames",
+    "harness_cpu_ms_per_frame": "harness_total_cores*shared_wall_s*1000/valid_completed_frames"
+  },
+  "inference": "CPU service cost and packing differ greatly with the same native pixel hashes. Next paired experiment should prefer measured CPU service capacity, not visible vCPU count or GPU power alone. Do not mistake18.43 quota with96 affinity CPUs for96 effective cores.",
+  "limitations": "Different physical hosts, power limits, elapsed thermal/co-tenant conditions and24-versus20 clip loops. Not an interleaved causal test; no actual historical per-window cpu.stat or CPU frequency/topology record. Driver version happens to match, not evidence all software/firmware matches.",
+  "next_instrumentation": {
+    "source": "scripts/chin_multistream/telemetry.py",
+    "source_sha256": "531c9702a1b6b28d709e40a236d51fefb6ab269bbe5aa9409c931b5f0c027825",
+    "renderer_sha256": "1d07da891b7898d05d3a71b0b20f3ff67370d82075f7ff07321db66b2b841024",
+    "operator_tests": "10new telemetry +9tracking +9startup PASS",
+    "actual_paid_gpu_measurement": "NOT_RUN",
+    "legacy_pinned_harness_behavior": "Still fails closed on new renderer SHA; next use requires an explicit versioned/preregistered harness binding, not a hidden pin update"
+  },
+  "quality_bounds_changed": false,
+  "quality_accepted": false,
+  "performance_accepted": false
+}

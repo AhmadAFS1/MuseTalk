@@ -5,9 +5,75 @@ import os
 import subprocess
 import threading
 import time
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 CLK = os.sysconf("SC_CLK_TCK")
+
+
+def cgroup_cpu_snapshot(membership="/proc/self/cgroup", mountinfo="/proc/self/mountinfo"):
+    """Read this process's cgroup-v2 CPU counters, never assume host-root stats.
+
+    Missing/ambiguous/unsupported data is explicitly unavailable. No mutation,
+    GPU operation, sampling thread or benchmark acceptance decision occurs here.
+    """
+    try:
+        groups = [line.split(":", 2)[2] for line in Path(membership).read_text().splitlines()
+                  if line.startswith("0::")]
+        mounts = []
+        for line in Path(mountinfo).read_text().splitlines():
+            fields = line.split()
+            separator = fields.index("-")
+            if fields[separator + 1] == "cgroup2":
+                mounts.append((fields[3], fields[4]))
+        if len(groups) != 1 or len(mounts) != 1:
+            raise ValueError("ambiguous_or_unsupported_cgroup")
+        group = PurePosixPath(groups[0])
+        mount_root, mount_point = map(PurePosixPath, mounts[0])
+        if any(not p.is_absolute() or ".." in p.parts or "\\" in str(p)
+               for p in (group, mount_root, mount_point)):
+            raise ValueError("unresolved_cgroup_path")
+        # In a cgroup namespace / is its own root, even when mountinfo retains
+        # the host-side mount root. Otherwise require an exact descendant.
+        relative = PurePosixPath(".") if group == PurePosixPath("/") else group.relative_to(mount_root)
+        directory = Path(str(mount_point / relative))
+        counters = {}
+        allowed = {"usage_usec", "user_usec", "system_usec", "nr_periods", "nr_throttled", "throttled_usec"}
+        for line in (directory / "cpu.stat").read_text().splitlines():
+            key, value = line.split()
+            if key in allowed:
+                if key in counters or not value.isdigit():
+                    raise ValueError("malformed_cpu_counter")
+                counters[key] = int(value)
+        if not {"usage_usec", "nr_periods", "nr_throttled", "throttled_usec"} <= counters.keys():
+            raise ValueError("missing_cpu_counters")
+        return {"status": "AVAILABLE", "source": str(directory / "cpu.stat"),
+                "sample_monotonic_s": time.monotonic(), "counters": counters}
+    except (OSError, ValueError, IndexError) as exc:
+        return {"status": "UNAVAILABLE", "reason": type(exc).__name__}
+
+
+def cgroup_cpu_interval(before, after):
+    """Counter delta around a window, including final worker message collection.
+
+    throttled_usec is a kernel cgroup counter, not lost wall time or proof of
+    causality. Keep it distinct from the composed-frame FPS denominator.
+    """
+    out = {"schema": "cgroup_cpu_interval_v1", "before": before, "after": after,
+           "scope": "Parent cgroup, includes all descendants; interval includes worker report collection"}
+    if before.get("status") != "AVAILABLE" or after.get("status") != "AVAILABLE":
+        return {**out, "status": "UNAVAILABLE"}
+    if before["source"] != after["source"] or before["counters"].keys() != after["counters"].keys():
+        return {**out, "status": "INVALID", "reason": "source_or_counter_set_changed"}
+    elapsed = after["sample_monotonic_s"] - before["sample_monotonic_s"]
+    delta = {key: after["counters"][key] - value for key, value in before["counters"].items()}
+    if elapsed <= 0 or any(value < 0 for value in delta.values()):
+        return {**out, "status": "INVALID", "reason": "counter_reset_or_nonpositive_interval"}
+    periods = delta["nr_periods"]
+    if delta["nr_throttled"] > periods:
+        return {**out, "status": "INVALID", "reason": "inconsistent_period_counters"}
+    return {**out, "status": "AVAILABLE", "sample_elapsed_s": elapsed, "counters_delta": delta,
+            "throttled_period_fraction": delta["nr_throttled"] / periods if periods else None,
+            "throttled_time_s": delta["throttled_usec"] / 1_000_000}
 
 
 def proc_cpu_s(pid="self") -> float:
