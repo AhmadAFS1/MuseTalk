@@ -1,0 +1,164 @@
+{
+  "cloud_mutations": false,
+  "finished_utc": "2026-10-09T00:30:53.993527+00:00",
+  "gpu_actions": false,
+  "measurement_class": "operator_CPU_contracts_only",
+  "passes": 246,
+  "performance_accepted": false,
+  "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "quality_accepted": false,
+  "release_ready": false,
+  "schema": "candidate_routing_selected_operator_cpu_v1",
+  "skips": 11,
+  "started_utc": "2026-10-09T00:30:49.145569+00:00",
+  "status": "PASS_CPU_CONTRACTS_ONLY",
+  "suites": [
+    {
+      "log_sha256": "3438aa538c27b9f73b06dcdaae5759951b842b6f4b32b0347e052eb9176ed87d",
+      "passes": 9,
+      "returncode": 0,
+      "skips": 0,
+      "suite": "test_tracking_overlap.py",
+      "tests": 9
+    },
+    {
+      "log_sha256": "03a6cdb5a467efbcb8b482b2782a8b2603e1a8b7bd4194f29446f8e7f2f47d49",
+      "passes": 28,
+      "returncode": 0,
+      "skips": 0,
+      "suite": "test_repro_3090.py",
+      "tests": 28
+    },
+    {
+      "log_sha256": "2269768313792fe99d4a0b940ea9efe1bf7934317c6f90299ff1d9fa9a0e2830",
+      "passes": 14,
+      "returncode": 0,
+      "skips": 0,
+      "suite": "test_tracking_parity.py",
+      "tests": 14
+    },
+    {
+      "log_sha256": "d7a54db841d55abe8a63a39309e8e256f4c2ecc09400857fe64871045a4f257a",
+      "passes": 3,
+      "returncode": 0,
+      "skips": 0,
+      "suite": "test_fetch_dependency_ci_evidence.py",
+      "tests": 3
+    },
+    {
+      "log_sha256": "9ab25dde141ed4d2d9c4388718eeb92a78c96c99f1417fefa94841f5ca6f4573",
+      "passes": 22,
+      "returncode": 0,
+      "skips": 0,
+      "suite": "test_owned_3090_credentials.py",
+      "tests": 22
+    },
+    {
+      "log_sha256": "e462e3c255cd3ad2e9238efb0105b768d4e12a610865ac0768cb503668e5b5e3",
+      "passes": 4,
+      "returncode": 0,
+      "skips": 0,
+      "suite": "test_tracking_lineage.py",
+      "tests": 4
+    },
+    {
+      "log_sha256": "16c0343e3ad74881619b21daac23962e65b128d187afc347038c19ad22b4a5ab",
+      "passes": 14,
+      "returncode": 0,
+      "skips": 0,
+      "suite": "test_safe_capture.py",
+      "tests": 14
+    },
+    {
+      "log_sha256": "c6d3c45707f33ce82ec874f3457f7d80a15be5be76794cada97662fe564675a6",
+      "passes": 22,
+      "returncode": 0,
+      "skips": 3,
+      "suite": "test_avatar_latent_candidate.py",
+      "tests": 25
+    },
+    {
+      "log_sha256": "c9f8deb11e3b3f4d60665c7484afe460f5d37603cf493153315cab8a9dd4c3a7",
+      "passes": 19,
+      "returncode": 0,
+      "skips": 0,
+      "suite": "test_a2_power_comparison.py",
+      "tests": 19
+    },
+    {
+      "log_sha256": "a648f141898f0051c6c26b5fc246bbe889778041b606ae1d91c5e805c9f9dfad",
+      "passes": 13,
+      "returncode": 0,
+      "skips": 0,
+      "suite": "test_preserve_a2_evidence.py",
+      "tests": 13
+    },
+    {
+      "log_sha256": "9f18a24db167376fc15f82d1164bb0fe0d84e30703f3e20ea3841852f3bc4e6e",
+      "passes": 7,
+      "returncode": 0,
+      "skips": 7,
+      "suite": "test_taesd_final_conv_fp32.py",
+      "tests": 14
+    },
+    {
+      "log_sha256": "c86695e23219760941d9cb0ec31f1827b92f047783f0d6e73d114aba4be158d9",
+      "passes": 24,
+      "returncode": 0,
+      "skips": 1,
+      "suite": "test_taesd_fp32_candidate_runtime.py",
+      "tests": 25
+    },
+    {
+      "log_sha256": "aef1cad4ab21c07af015f4b649a1e589aaffede302a0e229f258d0d26f59711d",
+      "passes": 22,
+      "returncode": 0,
+      "skips": 0,
+      "suite": "test_taesd_fp32_candidate_child.py",
+      "tests": 22
+    },
+    {
+      "log_sha256": "f575984c84d385976a1e08c7f43de3c127455fa50d57d09a75967cfbfcd622eb",
+      "passes": 19,
+      "returncode": 0,
+      "skips": 0,
+      "suite": "test_taesd_fp32_candidate_quality.py",
+      "tests": 19
+    },
+    {
+      "log_sha256": "601b63988ad5ca0ba7c5570acf69c91b7e0cf1f58b3dfd57a8cf5fdba44935da",
+      "passes": 26,
+      "returncode": 0,
+      "skips": 0,
+      "suite": "test_startup_observer",
+      "tests": 26
+    }
+  ],
+  "tests": 257,
+  "source_sha256": {
+    "scripts/repro_3090/taesd_fp32_candidate_child.py": "ac92d121fe915d6b80eeb969ae3b32e0af535479dbd6ad16060051edb5246228",
+    "scripts/repro_3090/test_taesd_fp32_candidate_child.py": "c27b3b14a404d7048434866e382322a710d1ac1f94b579efbbe84c84a0dd5f50",
+    "scripts/repro_3090/taesd_fp32_candidate_quality.py": "b78658f1d131344aa0b14fed72387e374135d574f7024323c443eea366947434",
+    "scripts/repro_3090/test_taesd_fp32_candidate_quality.py": "f2c8196c4460021b9dae5694302fb75048baf6d53a117c74c01854aa411793e1",
+    "scripts/repro_3090/ec2_startup_runner.py": "7c5c1b83ba3195ac830669095426df3ca0be466c7e9086dc18df6219c221be63",
+    "scripts/repro_3090/50_startup.py": "4a57b8c1504d3f98b33819841485b9c17daf4321aafb9e8197083b42922346bc",
+    "test_startup_observer.py": "1b2b9fbe33b40e401f6924c90b16d080cdd4039660d12de0ac682ade08cdb7de",
+    "scripts/vae_fast_decoder.py": "aea1eb059085c1799c6162d516d028d385be107c36da8a105fa1f838eb5e9882",
+    "scripts/repro_400fps/gate_taesd_trt.py": "3baf8976e4fb25a908809e68d6ac126c07ea525baed7475a6443263221e28e99",
+    "scripts/repro_3090/quality_envelope.py": "a5a98185dad4db0d1b89c2d3e04b8832721d99461cca7381605b62b035697e55",
+    "docs/fps_comparisons/rtx3090_r5_20261008/quality/reference-envelope-v2.json": "8c2c25961109171f5bd18f88d3bf9f0433b9cba31e48f19869cd75a25e7471e4",
+    "docs/fps_comparisons/rtx3090_r5_20261008/harnesses/quality-inputs-v1.json": "6d3ab6ef31605c2231605e03042e82361a27112589ef6d7f6f8ff8f4b016eea5"
+  },
+  "review": {
+    "parent_peer": "Two concrete findings fixed: abbreviated general-GPU flag bypass and child-source check-to-execution gap. Read-only second review at recorded SHA found no remaining concrete blocker.",
+    "child_peer": "Root inspected frozen launcher/tests; deferred exact-name import preserves original worker-first spawn and strict gate exits.",
+    "expiry_review": "Root inspected initializer/expiry changes and negative tests. Timer binding is not timer installation; local code is not yet deployed."
+  },
+  "linux_ci_status": "PENDING_FOR_THIS_SOURCE_REVISION",
+  "limitations": [
+    "No actual graph transformation, GPU engine build/load, observed engine precision, corpus inference, frozen-bound assessment or throughput.",
+    "Eleven explicit dependency skips are not numerical passes.",
+    "Original frozen878manifest and698bounds/qualityhelper/canonicaldecoder/gates are byte-identical.",
+    "Original metadata restoration unknown; quality adapter does not waive full input identity."
+  ]
+}

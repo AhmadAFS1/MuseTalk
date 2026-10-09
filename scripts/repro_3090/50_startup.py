@@ -177,18 +177,32 @@ def add_event(ledger, name, *, source, utc=None, evidence_ref=None,
     ledger["events"].append(event)
 
 
-def initialize(run_dir, label, control_plane, cache_state="unknown", sla_seconds=None):
+def initialize(run_dir, label, control_plane, cache_state="unknown", sla_seconds=None,
+               resource_deadline_utc=None):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{3,119}", label):
         raise Invalid("Use a unique 4-120 character alphanumeric run label")
     path = Path(run_dir) / "startup-ledger.json"
     with locked(path.with_suffix(".lock")):
         if path.exists():
             raise Invalid("Run ledger already exists; observe or reconcile it")
-        ledger = {"schema": SCHEMA, "label": label, "created_at_utc": utc_now(),
+        created_at = utc_now()
+        deadline = None
+        if resource_deadline_utc is not None:
+            if not isinstance(resource_deadline_utc, str):
+                raise Invalid("Resource deadline must be a UTC timestamp")
+            deadline = utc_parse(resource_deadline_utc)
+            remaining = (deadline - utc_parse(created_at)).total_seconds()
+            if not 120 < remaining <= 24 * 3600:
+                raise Invalid("Resource deadline must be more than 120 seconds and at most 24 hours ahead")
+        ledger = {"schema": SCHEMA, "label": label, "created_at_utc": created_at,
                   "control_plane_url": safe_base_url(control_plane),
                   "cache_state": cache_state, "startup_sla_seconds": sla_seconds,
                   "state": "initialized", "instance_id": None, "events": [],
                   "observations": [], "errors": [], "media_verified": False}
+        if deadline is not None:
+            # An immutable intent binding, not timer installation or permission
+            # to create a resource. Legacy ledgers omit this field entirely.
+            ledger["resource_deadline_utc"] = deadline.isoformat()
         atomic_json(path, ledger)
     return ledger
 
@@ -501,6 +515,7 @@ def main(argv=None):
     init.add_argument("--control-plane-url", required=True)
     init.add_argument("--cache-state", choices=("cold_proven", "provider_cached_proven", "restart", "unknown"), default="unknown")
     init.add_argument("--startup-sla-seconds", type=float)
+    init.add_argument("--resource-deadline-utc", help="Optional UTC deadline bound into a fresh ledger; does not install an expiry timer")
     create = sub.add_parser("create", help="One real paid EC2 create request; never auto-retries")
     create.add_argument("--request-json", required=True); create.add_argument("--budget-json", required=True)
     create.add_argument("--offer-json", required=True); create.add_argument("--budget-ledger", required=True)
@@ -520,7 +535,8 @@ def main(argv=None):
         if args.command == "init":
             if args.startup_sla_seconds is not None:
                 number(args.startup_sla_seconds, "startup SLA", .001)
-            initialize(args.run_dir, args.label, args.control_plane_url, args.cache_state, args.startup_sla_seconds)
+            initialize(args.run_dir, args.label, args.control_plane_url, args.cache_state,
+                       args.startup_sla_seconds, args.resource_deadline_utc)
             return 0
         path = Path(args.run_dir) / "startup-ledger.json"
         if args.command == "create":

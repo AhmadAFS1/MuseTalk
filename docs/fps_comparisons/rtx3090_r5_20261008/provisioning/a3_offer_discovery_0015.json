@@ -1,0 +1,175 @@
+{
+  "schema": "fresh_3090_offer_discovery_v1",
+  "observed_utc": "2026-10-09T00:15:24.599516+00:00",
+  "source": "read-only existing EC2 VastClient search",
+  "cloud_mutations": false,
+  "rental_created": false,
+  "query": {
+    "type": "ondemand",
+    "verified": {
+      "eq": true
+    },
+    "rentable": {
+      "eq": true
+    },
+    "rented": {
+      "eq": false
+    },
+    "gpu_name": {
+      "eq": "RTX 3090"
+    },
+    "num_gpus": {
+      "eq": 1
+    },
+    "cpu_cores_effective": {
+      "gte": 8
+    },
+    "disk_space": {
+      "gte": 150
+    },
+    "allocated_storage": 150,
+    "dph_total": {
+      "lte": 0.3
+    },
+    "inet_down_cost": {
+      "lte": 0.00146484375
+    },
+    "inet_up_cost": {
+      "lte": 0.00146484375
+    },
+    "order": [
+      [
+        "dph_total",
+        "asc"
+      ]
+    ],
+    "limit": 200
+  },
+  "local_filters": {
+    "driver_major_min": 570,
+    "verified_exact": true,
+    "hourly_max_usd": 0.3,
+    "each_transfer_max_usd_per_gb": 0.00146484375,
+    "ram_hard_min_mb": null,
+    "ram_preference_mb": 24000,
+    "network_min_mbps": null,
+    "power_min_w": null
+  },
+  "cost_formula": "Conservative maximum of all present total/adjusted/discounted hourly fields and dph_base + storage_cost*150/720. Essential cost fields missing/nonfinite/negative fail closed.",
+  "facts_kind": "provider_advertisements_not_guest_observations",
+  "power_change_permission": "unknown",
+  "returned_count": 9,
+  "eligible_count": 5,
+  "eligible": [
+    {
+      "id": 54745206,
+      "machine_id": 143947,
+      "location": "Florida US",
+      "cpu": "Ryzen9 5950X",
+      "effective_cpus": 32,
+      "ram_mb": 128724,
+      "disk_available_gb": 1275,
+      "download_mbps": 2120.7,
+      "upload_mbps": 1758.6,
+      "driver": "595.91.07",
+      "conservative_hourly_usd": 0.29444444444444445,
+      "download_usd_per_1024gb": 0,
+      "upload_usd_per_1024gb": 0,
+      "reliability": 0.9943447,
+      "advertised_max_gpu_power_w": 420
+    },
+    {
+      "id": 53293154,
+      "machine_id": 148500,
+      "location": "UAE",
+      "cpu": "XeonE5-2650v4",
+      "effective_cpus": 24,
+      "ram_mb": 31994,
+      "disk_available_gb": 367,
+      "download_mbps": 840.8,
+      "upload_mbps": 492.1,
+      "driver": "595.71.05",
+      "conservative_hourly_usd": 0.21444444444444444,
+      "download_usd_per_1024gb": 0,
+      "upload_usd_per_1024gb": 0,
+      "reliability": 0.9898916,
+      "advertised_max_gpu_power_w": 350
+    },
+    {
+      "id": 51664529,
+      "machine_id": 147887,
+      "location": "Chile",
+      "cpu": "Ryzen7 3700X",
+      "effective_cpus": 16,
+      "ram_mb": 64224,
+      "disk_available_gb": 535,
+      "download_mbps": 728.3,
+      "upload_mbps": 736.8,
+      "driver": "595.91.07",
+      "conservative_hourly_usd": 0.27660590277777775,
+      "download_usd_per_1024gb": 1.3333333333333333,
+      "upload_usd_per_1024gb": 1.3333333333333333,
+      "reliability": 0.9966176,
+      "advertised_max_gpu_power_w": 370
+    },
+    {
+      "id": 53030590,
+      "machine_id": 152396,
+      "location": "UAE",
+      "cpu": "XeonE5-2630v4",
+      "effective_cpus": 20,
+      "ram_mb": 31995,
+      "disk_available_gb": 609,
+      "download_mbps": 676.4,
+      "upload_mbps": 450.9,
+      "driver": "595.91.07",
+      "conservative_hourly_usd": 0.21444444444444444,
+      "download_usd_per_1024gb": 0,
+      "upload_usd_per_1024gb": 0,
+      "reliability": 0.9762167,
+      "advertised_max_gpu_power_w": 350
+    },
+    {
+      "id": 53282955,
+      "machine_id": 145698,
+      "location": "Japan",
+      "cpu": "EPYC7502",
+      "effective_cpus": 21.333333333333332,
+      "ram_mb": 85866,
+      "disk_available_gb": 388,
+      "download_mbps": 269.5,
+      "upload_mbps": 243.9,
+      "driver": "595.84",
+      "conservative_hourly_usd": 0.2760503472222222,
+      "download_usd_per_1024gb": 1.3333333333333333,
+      "upload_usd_per_1024gb": 1.3333333333333333,
+      "reliability": 0.9909715,
+      "advertised_max_gpu_power_w": 300,
+      "previous_owned_host": "A2"
+    }
+  ],
+  "rejected": [
+    {
+      "offer_id": 35571173,
+      "reason": "driver_below570"
+    },
+    {
+      "offer_id": 53246717,
+      "reason": "driver_below570"
+    },
+    {
+      "offer_id": 54648257,
+      "reason": "adjusted_or_allocated_hourly_above0.30"
+    },
+    {
+      "offer_id": 53194861,
+      "reason": "adjusted_or_allocated_hourly_above0.30"
+    }
+  ],
+  "limitations": [
+    "No current GPU power limit/change permission observed.",
+    "150GB allocation was priced, but guest peak disk/free RAM/shared memory not measured.",
+    "Offers must be searched and cost-revalidated again immediately before purchase; do not rent from this stale discovery receipt.",
+    "Prior strict350W/12CPU/32000MB/2Gbps search failure did not establish absence of eligible hardware. User price/transfer caps unchanged."
+  ]
+}

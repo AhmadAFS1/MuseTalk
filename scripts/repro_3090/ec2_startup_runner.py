@@ -40,10 +40,28 @@ def load_credentials():
         raise RuntimeError("Required admin/provider credentials are unavailable")
 
 
+def validate_expiry_deadline(ledger, deadline, observer):
+    """Validate the ledger binding before credentials or provider operations.
+
+    Legacy ledgers without resource_deadline_utc retain their explicit CLI
+    deadline. A present binding, including a malformed/null value, is never
+    treated as legacy or silently replaced by the invocation's deadline.
+    """
+    requested = observer.utc_parse(deadline)
+    if "resource_deadline_utc" in ledger:
+        bound = ledger["resource_deadline_utc"]
+        if not isinstance(bound, str):
+            raise observer.Invalid("Bound resource deadline must be a UTC timestamp")
+        if observer.utc_parse(bound) != requested:
+            raise observer.Invalid("Expiry deadline differs from the bound resource deadline")
+    return requested
+
+
 def expire_owned(ledger, deadline, instances, api_fn, token, observer, now=None):
     """One reconciled, non-forced destroy attempt. Safe to rerun from a timer."""
+    requested = validate_expiry_deadline(ledger, deadline, observer)
     now = now or dt.datetime.now(dt.timezone.utc)
-    if now < observer.utc_parse(deadline):
+    if now < requested:
         return {"status": "not_due", "cloud_writes": False}
     label = ledger.get("label", "")
     if not re.fullmatch(r"musetalk-r5-3090-(dev|release)-[A-Za-z0-9_.-]+", label):
@@ -89,12 +107,14 @@ def main(argv=None):
     args = parser.parse_args(argv)
     observer = load_observer()
     try:
-        load_credentials()
         if args.mode == "observer":
+            load_credentials()
             return observer.main(args.arguments)
         path = Path(args.run_dir) / "startup-ledger.json"
         with observer.locked(path.with_suffix(".lock")):
             ledger = observer.load_json(path)
+            validate_expiry_deadline(ledger, args.not_before_utc, observer)
+            load_credentials()
             from services.vast_client import VastClient
             client = VastClient()
             outcome = expire_owned(ledger, args.not_before_utc, client.list_instances(), observer.api,

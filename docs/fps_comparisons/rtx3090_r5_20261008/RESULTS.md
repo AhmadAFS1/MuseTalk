@@ -13,6 +13,44 @@ This is a live evidence index, not a completed release claim. The protected RTX
 | Live delivery / capacity | Both software-H264 profiles N1/N3 strictPASS/N5 validFAIL. NVENC N1FAIL,0hardware opens/18open failures; PyAV/FFmpeg standalone probes alsoFAIL. No accepted capacity or EC2 release claim |
 | Request-to-usable-call startup | Still unmeasured through EC2/TURN. Request-to-verified-health was 1,046.45 s (17m26s), not usable-call readiness |
 
+### 00:28 UTC explicit gate/capture routing implemented, still not GPU-tested
+
+The additive [single-child launcher](../../../scripts/repro_3090/taesd_fp32_candidate_child.py)
+and [quality adapter](../../../scripts/repro_3090/taesd_fp32_candidate_quality.py)
+now route the isolated candidate through the unchanged full-corpus gate and
+six-avatar capture. The parent preserves original UNet/metric children and
+guard/watch execution. Deferred decoder import preserves CPU-worker-first
+spawn. Separate receipts require actual successful candidate invocations and
+matching manifest/key/plan hashes; original strict failures stay failures.
+
+Root and peer review caught and fixed abbreviated-flag and launcher
+check-to-execution gaps. Exact quality flags are required, and each launcher
+executes the exact bytes whose SHA is checked at execution time. Real CPU spawn
+tests also verify that workers do not import GPU code or re-import unchecked
+launcher source. Focused child22/parent19 tests passed; the
+[final operator CPU run](harnesses/candidate_routing_cpu_0031.json) passed246/257
+with eleven explicit dependency skips. Linux CI is pending for this new revision.
+No original decoder/gate/default/698-bound changes occurred.
+
+The [metadata recovery check](harnesses/original_metadata_recovery_check_0016.json)
+found zero exact matches among the twelve original download-metadata files on
+the protected 4070 (ten differ, two are absent). Known off-host archive inventories
+do not prove an exact A1 metadata copy. This is not proof changed weights, nor
+global unrecoverability, and no original878-input PASS is claimed. Exact
+restoration or an explicit preregistered successor comparison lineage remains
+necessary; preserve every original quality bound and actual payload/source hash.
+
+The [corrected fresh offer search](provisioning/a3_offer_discovery_0015.json)
+found five eligible advertised 3090 offers without unnecessary 350W/12CPU/32GB
+hard filters. Best advertised fit was Florida machine143947, $0.294444/hour
+including150GB storage, $0 transfer, 2.1Gbps download. This stale receipt must
+not be used to purchase; actual current power, guest resources and speed remain
+unmeasured. [Read-only EC2 refresh](provisioning/ec2_resume_preflight_0022.json)
+found production revision970fa989 and no owned GPU experiments, with unchanged
+$12.7175 reservations—not billed spending. No production mutation or A3 rental
+occurred. New local expiry checks bind the timer deadline before credentials or
+provider calls; they are not yet deployed.
+
 ### 00:05 UTC isolated decoder candidate APIs prepared, not GPU-tested
 
 The separate [FP32 candidate runtime](../../../scripts/repro_3090/taesd_fp32_candidate_runtime.py)
@@ -28,7 +66,8 @@ Verified source bytes execute directly without a second read or bytecode cache.
 Canonical decoder/gate/defaults remain byte-identical. No actual original graph
 has been transformed, engine built, FP32 execution observed, quality gate run,
 or FPS measured for this candidate. The explicit scoped gate/capture launcher
-and fresh owned GPU preflight are still needed.
+was implemented in the later section above; fresh owned GPU preflight and actual
+graph/build/quality/performance work are still needed.
 
 The exact candidate commit `2cdfe99` [passed Linux CI](harnesses/taesd_fp32_candidate_linux_ci_0008.json)
 at 00:07:57 UTC: 190 tests, 179 passes, eleven explicit dependency skips, zero

@@ -34,6 +34,13 @@ on:
       - scripts/repro_3090/test_taesd_final_conv_fp32.py
       - scripts/repro_3090/taesd_fp32_candidate_runtime.py
       - scripts/repro_3090/test_taesd_fp32_candidate_runtime.py
+      - scripts/repro_3090/taesd_fp32_candidate_child.py
+      - scripts/repro_3090/test_taesd_fp32_candidate_child.py
+      - scripts/repro_3090/taesd_fp32_candidate_quality.py
+      - scripts/repro_3090/test_taesd_fp32_candidate_quality.py
+      - scripts/repro_3090/ec2_startup_runner.py
+      - scripts/repro_3090/50_startup.py
+      - test_startup_observer.py
 
 permissions:
   contents: read
@@ -80,3 +87,9 @@ jobs:
           # Explicit candidate API contracts use mocked TRT/CUDA and synthetic
           # artifacts only; import never builds, loads or registers a GPU path.
           python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_taesd_fp32_candidate_runtime.py -v
+          # Lazy scoped routing must leave CPU spawn workers free of GPU imports;
+          # numerical gate failures remain failures. No real engine is loaded.
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_taesd_fp32_candidate_child.py -v
+          python3.10 -B -m unittest discover -s scripts/repro_3090 -p test_taesd_fp32_candidate_quality.py -v
+          # Bound expiry deadlines are checked before credentials/provider calls.
+          python3.10 -B -m unittest test_startup_observer -v

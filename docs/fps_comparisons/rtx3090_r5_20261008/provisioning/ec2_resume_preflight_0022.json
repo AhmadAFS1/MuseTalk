@@ -1,0 +1,34 @@
+{
+  "schema": "read_only_ec2_resume_preflight_v1",
+  "observed_utc": "2026-10-09T00:22:17.939652+00:00",
+  "ssh_alias": "my-ec2",
+  "production_revision": "970fa989c9f39703bc43ad852db92687db634a25",
+  "tracked_change_count": 0,
+  "production_mutations": false,
+  "cloud_mutations": false,
+  "deployed_wrapper": {
+    "path": "/home/ec2-user/.local/state/musetalk-r5-20261008-tools/ec2_startup_runner.py",
+    "sha256": "03f8240c49e0b81bb69440141613d5ffa646f23ac5d241b58f52b50371846136",
+    "new_local_hardening_deployed": false
+  },
+  "deployed_observer_sha256": "430e8697b8ec33889c8584ff84bd5d29e571fc7ccef85fa7d788bf9aef7f44dd",
+  "budget_ledger": {
+    "path": "/home/ec2-user/.local/state/musetalk-r5-20261008-tools/shared-budget-ledger.json",
+    "sha256": "200b51d13a49a918ea612fdb526ee66badbc2e727515f0611d3c7b50368bd49c",
+    "total_limit_usd": 30,
+    "reserved_usd": 12.717528211805556,
+    "actual_billed_spend_usd": null
+  },
+  "provider_inventory": {
+    "a1_54798270_absent": true,
+    "a2_54909897_absent": true,
+    "owned_3090_experiments": []
+  },
+  "metadata_recovery": {
+    "exact_a1_metadata_copy": "UNKNOWN",
+    "known_private_archive_manifests_include_exact_metadata": false,
+    "whole_repo_backup_was_same_host_only": true,
+    "all_remote_archives_searched": false
+  },
+  "next_action": "Recheck actual production provisioning contract at the current revision; preserve it. Deploy only reviewed private operator helper copies before A3, bind fresh ledger deadline and verify exact timer before one create. No A3 reservation or purchase was issued by this check."
+}

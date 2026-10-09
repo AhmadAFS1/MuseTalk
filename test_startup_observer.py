@@ -6,7 +6,9 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+from types import ModuleType
 import unittest
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location("startup_observer", ROOT / "scripts/repro_3090/50_startup.py")
@@ -49,6 +51,67 @@ class StartupTests(unittest.TestCase):
     def create(self, api_fn=None):
         return observer.create_once(self.run, self.request, self.budget, self.offer,
                                     self.root / "budget-ledger.json", "test-token", api_fn or self.fake_create)
+
+    def test_initialize_deadline_normalized_and_bound_in_first_ledger(self):
+        fresh = self.root / "bound"
+        with patch.object(observer, "utc_now", return_value="2026-10-09T00:00:00Z"):
+            ledger = observer.initialize(fresh, "bound-test", "http://127.0.0.1:8000",
+                                         resource_deadline_utc="2026-10-09T02:00:00.000000Z")
+        self.assertEqual(ledger["resource_deadline_utc"], "2026-10-09T02:00:00+00:00")
+        self.assertEqual(observer.load_json(fresh / "startup-ledger.json"), ledger)
+        self.assertEqual(ledger["state"], "initialized")
+        self.assertIsNone(ledger["instance_id"])
+        self.assertFalse(ledger["events"])
+
+    def test_initialize_deadline_rejects_malformed_non_utc_past_and_out_of_bounds(self):
+        values = ("", "not-a-time", 123, False, {}, [], "2026-10-09T02:00:00",
+                  "2026-10-09T03:00:00+01:00", "2026-10-08T23:59:59Z",
+                  "2026-10-09T00:00:00Z", "2026-10-09T00:01:59Z",
+                  "2026-10-09T00:02:00Z", "2026-10-10T00:00:00.000001Z")
+        for index, value in enumerate(values):
+            fresh = self.root / f"invalid-deadline-{index}"
+            with self.subTest(value=value), patch.object(observer, "utc_now", return_value="2026-10-09T00:00:00Z"), \
+                 self.assertRaises(observer.Invalid):
+                observer.initialize(fresh, "invalid-test", "http://127.0.0.1:8000", resource_deadline_utc=value)
+            self.assertFalse((fresh / "startup-ledger.json").exists())
+
+    def test_initialize_deadline_accepts_only_open_lower_and_closed_upper_boundaries(self):
+        for index, value in enumerate(("2026-10-09T00:02:00.000001Z", "2026-10-10T00:00:00Z")):
+            with self.subTest(value=value), patch.object(observer, "utc_now", return_value="2026-10-09T00:00:00Z"):
+                result = observer.initialize(self.root / f"boundary-{index}", "boundary-test",
+                    "http://127.0.0.1:8000", resource_deadline_utc=value)
+            self.assertEqual(observer.utc_parse(result["resource_deadline_utc"]), observer.utc_parse(value))
+
+    def test_initialize_cannot_rebind_existing_ledger(self):
+        fresh = self.root / "immutable-deadline"
+        with patch.object(observer, "utc_now", return_value="2026-10-09T00:00:00Z"):
+            observer.initialize(fresh, "immutable-test", "http://127.0.0.1:8000",
+                                resource_deadline_utc="2026-10-09T02:00:00Z")
+            before = (fresh / "startup-ledger.json").read_bytes()
+            with self.assertRaisesRegex(observer.Invalid, "already exists"):
+                observer.initialize(fresh, "immutable-test", "http://127.0.0.1:8000",
+                                    resource_deadline_utc="2026-10-09T03:00:00Z")
+        self.assertEqual((fresh / "startup-ledger.json").read_bytes(), before)
+
+    def test_initialize_legacy_omits_deadline_field(self):
+        self.assertNotIn("resource_deadline_utc", self.ledger)
+        self.assertNotIn("resource_deadline_utc", observer.load_json(self.run / "startup-ledger.json"))
+
+    def test_init_cli_threads_deadline_and_rejects_invalid_without_ledger(self):
+        for name, deadline, expected in (("valid", "2026-10-09T02:00:00Z", 0),
+                                         ("invalid", "2026-10-09T00:00:00Z", 2)):
+            fresh = self.root / ("cli-" + name)
+            with self.subTest(name=name), patch.object(observer, "utc_now", return_value="2026-10-09T00:00:00Z"), \
+                 patch.object(observer, "api") as api:
+                result = observer.main(["init", "--run-dir", str(fresh), "--label", "cli-deadline-test",
+                    "--control-plane-url", "http://127.0.0.1:8000", "--resource-deadline-utc", deadline])
+            self.assertEqual(result, expected)
+            api.assert_not_called()
+            if expected == 0:
+                self.assertEqual(observer.load_json(fresh / "startup-ledger.json")["resource_deadline_utc"],
+                                 "2026-10-09T02:00:00+00:00")
+            else:
+                self.assertFalse((fresh / "startup-ledger.json").exists())
 
     def test_create_exact_contract_and_no_secret_persistence(self):
         self.request["create_request"]["env"] = {"AWS_SECRET_ACCESS_KEY": "SECRET-NEVER-PERSIST"}
@@ -220,6 +283,72 @@ class StartupTests(unittest.TestCase):
         duplicated = [{"id": 456, "label": ledger["label"]}] * 2
         with self.assertRaises(observer.Invalid):
             runner.expire_owned(ledger, "2020-01-01T00:00:00Z", duplicated, forbidden, "token", observer)
+
+    def test_bound_expiry_normalizes_utc_and_keeps_nonforced_target_contract(self):
+        ledger = self.expiry_ledger()
+        ledger["resource_deadline_utc"] = "2020-01-01T00:00:00+00:00"
+        instance = {"id": 456, "label": ledger["label"], "gpu_name": "RTX 3090", "num_gpus": 1}
+        destroy = Mock(return_value={"success": True, "result": {"action": "destroy"}})
+        outcome = runner.expire_owned(ledger, "2020-01-01T00:00:00.000000Z", [instance], destroy, "token", observer)
+        self.assertEqual(outcome["status"], "destroy")
+        self.assertEqual(destroy.call_args.kwargs["payload"], {"instance_id": "456", "force": False})
+        destroy.reset_mock()
+        with self.assertRaises(observer.Invalid):
+            runner.expire_owned(ledger, "2020-01-01T00:00:00Z", [dict(instance, id=51074906)], destroy, "token", observer)
+        destroy.assert_not_called()
+
+    def test_bound_expiry_early_and_late_invocations_fail_before_not_due_or_api(self):
+        ledger = self.expiry_ledger()
+        ledger["resource_deadline_utc"] = "2026-10-09T02:00:00Z"
+        destroy = Mock()
+        for requested in ("2026-10-09T01:59:59Z", "2026-10-09T02:00:01Z"):
+            with self.subTest(requested=requested), self.assertRaises(observer.Invalid):
+                runner.expire_owned(ledger, requested, [], destroy, "token", observer,
+                    now=dt.datetime(2026, 10, 9, tzinfo=dt.timezone.utc))
+        destroy.assert_not_called()
+
+    def test_malformed_bound_expiry_never_falls_back_to_legacy(self):
+        ledger = self.expiry_ledger()
+        destroy = Mock()
+        for bound in (None, "", "invalid", 123, False, {}, [],
+                      "2020-01-01T00:00:00", "2020-01-01T01:00:00+01:00"):
+            with self.subTest(bound=bound), self.assertRaises(observer.Invalid):
+                runner.expire_owned(dict(ledger, resource_deadline_utc=bound),
+                                    "2020-01-01T00:00:00Z", [], destroy, "token", observer)
+        destroy.assert_not_called()
+
+    def test_bound_expiry_cli_rejects_before_credentials_provider_or_receipt_write(self):
+        ledger = self.expiry_ledger()
+        provider_module = ModuleType("services.vast_client")
+        provider_module.VastClient = Mock()
+        for bound, requested in (("2026-10-09T02:00:00Z", "2026-10-09T01:59:59Z"),
+                                 ("2026-10-09T02:00:00Z", "2026-10-09T02:00:01Z"),
+                                 (None, "2026-10-09T02:00:00Z"),
+                                 ("not-a-time", "2026-10-09T02:00:00Z"),
+                                 ("2026-10-09T02:00:00Z", "2026-10-09T02:00:00")):
+            observer.atomic_json(self.run / "startup-ledger.json", dict(ledger, resource_deadline_utc=bound))
+            with self.subTest(bound=bound, requested=requested), \
+                 patch.object(runner, "load_observer", return_value=observer), \
+                 patch.object(runner, "load_credentials") as credentials, \
+                 patch.object(runner, "expire_owned") as expiry, \
+                 patch.dict("sys.modules", {"services": ModuleType("services"),
+                                            "services.vast_client": provider_module}), \
+                 patch.object(observer, "api") as api, \
+                 patch.object(observer, "atomic_json") as write_receipt:
+                self.assertEqual(runner.main(["expire", "--run-dir", str(self.run),
+                                              "--not-before-utc", requested]), 2)
+            credentials.assert_not_called()
+            expiry.assert_not_called()
+            provider_module.VastClient.assert_not_called()
+            api.assert_not_called()
+            write_receipt.assert_not_called()
+
+    def test_legacy_expiry_missing_binding_retains_cli_deadline(self):
+        ledger = self.expiry_ledger()
+        self.assertNotIn("resource_deadline_utc", ledger)
+        expected = dt.datetime(2020, 1, 1, tzinfo=dt.timezone.utc)
+        self.assertEqual(runner.validate_expiry_deadline(ledger, "2020-01-01T00:00:00Z", observer), expected)
+        self.assertEqual(runner.expire_owned(ledger, "2099-01-01T00:00:00Z", [], Mock(), "token", observer)["status"], "not_due")
 
 
 if __name__ == "__main__":

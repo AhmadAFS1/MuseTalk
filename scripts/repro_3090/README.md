@@ -1,6 +1,7 @@
 # RTX 3090 r5 measurement wrappers
 
-Status: **CPU contract tests only; real RTX 3090 integration remains unverified.**
+Status: actual RTX 3090 measurements exist, but 400 FPS/quality release acceptance
+is unmet. The isolated final-Conv FP32 candidate routing is CPU-tested only.
 These entry points wrap the existing GPU path, six-avatar chin renderer, numerical
 gates, pixel/landmark tool and local WebRTC rig. They do not redefine the composition
 or call an HTTP health response deployment readiness.
@@ -76,10 +77,51 @@ main pinned environment. Nothing silently installs either environment.
 
 ## Commands
 
+### Explicit final-Conv FP32 diagnostic candidate
+
+`taesd_fp32_candidate_child.py` is an opt-in, single-child launcher for the
+unchanged full TAESD gate or canonical six-avatar capture. It binds an explicit
+absolute manifest and SHA, requires the full 352-main/96-holdout corpus, prevents
+gate metadata writes and rejects reduced/tuned captures. A scoped import hook
+selects the isolated loader only when the original target imports the decoder;
+CPU spawn workers remain free of GPU imports. Loader, argv, environment, path
+and working directory are restored even on failure. Numerical failure exits are
+not changed into passes. Successful candidate invocations and engine identities
+must appear in the separate child receipt.
+
+`taesd_fp32_candidate_quality.py` wraps the original quality runner without
+editing it. Only the gate and capture children are routed; UNet/source-prefix
+and per-avatar metric children, GPU guard/watch, full input preflight and
+original report schema remain unchanged. Exact runner flags are required (no
+abbreviations or general-GPU escape). Each launcher executes its SHA-verified
+bytes at execution time, not a stale earlier check or bytecode-cache import.
+The inert true `-c` main lets spawn import only the CPU worker module.
+
+After an actual explicit candidate build, use the real manifest/key/digests:
+
+```bash
+python scripts/repro_3090/taesd_fp32_candidate_quality.py --enable \
+  --manifest /absolute/candidate/taesd_trt_ACTUAL_KEY.json \
+  --manifest-sha256 ACTUAL_MANIFEST_SHA256 \
+  --child-sha256 ACTUAL_LAUNCHER_SHA256 --proof /absolute/new-routing-proof.json \
+  -- quality --profile scripts/repro_3090/profiles/native.env \
+  --engine-root /absolute/native-unet --taesd-dir /absolute/candidate \
+  --taesd-key ACTUAL_KEY --input-manifest /absolute/frozen-inputs.json \
+  --out /absolute/new-output --label actual_candidate_quality
+```
+
+This is not an input-lineage waiver. The original 878-file preflight must still
+pass for its original lineage. A reviewed successor comparison needs explicit
+provenance; never substitute a successor SHA for an original-input PASS or
+widen the frozen 698 bounds. Current protected-host download metadata cannot
+restore the exact original metadata bytes. All candidate acceptance fields
+remain false: CPU routing tests are not a GPU build, actual precision evidence,
+quality-parity decision, FPS measurement or release authorization.
+
 The A2 scheduler pair has an explicit successor input lineage, not a rewritten
 reference manifest. `freeze_tracking_lineage.py` requires the original 878-file
 manifest digest and retains every path. Only the reviewed default-off worker
-revision and 13 allowlisted Hugging Face download-metadata files may differ;
+revision and 12 allowlisted Hugging Face download-metadata files may differ;
 each metadata ETag must identify its unchanged original model payload. Missing
 files, changed weights/fixtures/canonical math, unknown worker bytes and any
 other change fail closed. `tracking-a2-lineage-v1.json` records every difference.

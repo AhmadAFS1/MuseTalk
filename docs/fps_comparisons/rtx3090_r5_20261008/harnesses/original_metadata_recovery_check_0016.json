@@ -1,0 +1,105 @@
+{
+  "files": [
+    {
+      "bytes": 125,
+      "expected_sha256": "822342eba2522a2b811663cd94e36631f982484cab29c3bab5fa9ff208be8168",
+      "path": "models/.cache/huggingface/download/auxiliary/s3fd-619a316812.pth.metadata",
+      "sha256": "c1a77545f2ef3876b39673b40178c94797c98827f670f9709c07edcad2dc9ab1",
+      "status": "MISMATCH"
+    },
+    {
+      "bytes": 100,
+      "expected_sha256": "edbf651cf97faec54e3e98975a43e63b12eb75b16473f0dd3ebbced776f29552",
+      "path": "models/.cache/huggingface/download/musetalkV15/musetalk.json.metadata",
+      "sha256": "ff07229e668903ca75c2b2b24da3ae7735db26a9f3be8d9fdcfa2e202a6adea5",
+      "status": "MISMATCH"
+    },
+    {
+      "bytes": 125,
+      "expected_sha256": "12fd423ae1bfe3e99f5c4ddda499812ca7881019b07d6fc87023b2f5492f7153",
+      "path": "models/.cache/huggingface/download/musetalkV15/unet.pth.metadata",
+      "sha256": "9a9e7c2cf0a215c70e930f3d8713e00ac5268b6b205054d77724ec05f0e94de9",
+      "status": "MISMATCH"
+    },
+    {
+      "bytes": 123,
+      "expected_sha256": "57eb5422b8f029d74be3b4402b1a0562de65087cdb4b440ea310c57515148374",
+      "path": "models/dwpose/.cache/huggingface/download/dw-ll_ucoco_384.pth.metadata",
+      "sha256": "4c1d934e1977a717fd57869c6c61e5b25e306dcca5cd8d5e12d920582311854c",
+      "status": "MISMATCH"
+    },
+    {
+      "bytes": 101,
+      "expected_sha256": "3025ebccd864e51ef2947c1e15664941b6b491ccda8b7e23dca7cecdcc1b52e7",
+      "path": "models/sd-vae/.cache/huggingface/download/config.json.metadata",
+      "sha256": "b50ae344dba3e261a52fb770debab1a3c69dc5928dbe1df01d377d91429ae2b2",
+      "status": "MISMATCH"
+    },
+    {
+      "bytes": 125,
+      "expected_sha256": "ce88ac79d9b3cc9a246a2a766cce04158b5942d34d7264db69e3a81133e7c706",
+      "path": "models/sd-vae/.cache/huggingface/download/diffusion_pytorch_model.bin.metadata",
+      "sha256": "05c2a53084b8af5a9b98f7fa95ef53f0cf2f3288815febd9c4833b0ac3dc0782",
+      "status": "MISMATCH"
+    },
+    {
+      "bytes": 125,
+      "expected_sha256": "ec1b24e518b04280c01b678c4476e0e637c1e3f85e50ddadbbaa21b4f3a9dc5a",
+      "path": "models/syncnet/.cache/huggingface/download/latentsync_syncnet.pt.metadata",
+      "sha256": "1713d224b506821c15797b6b16e4230b0cb60627e84c7da06349206026d6061b",
+      "status": "MISMATCH"
+    },
+    {
+      "expected_sha256": "bab8502627b0cd376effa19c515a36333b6a7baa101cb40c42bf85cc613a6331",
+      "path": "models/taesd/.cache/huggingface/download/config.json.metadata",
+      "status": "MISSING"
+    },
+    {
+      "expected_sha256": "6836bdd687dc0fc2293fd798ed58aa7535b9b76a36bed66bf5e0a4618aad5091",
+      "path": "models/taesd/.cache/huggingface/download/diffusion_pytorch_model.safetensors.metadata",
+      "status": "MISSING"
+    },
+    {
+      "bytes": 101,
+      "expected_sha256": "fda77ac9e435c7fe4553d5dfb001d21d96814aa07e58b87355f57828841d7feb",
+      "path": "models/whisper/.cache/huggingface/download/config.json.metadata",
+      "sha256": "7291b2800a01c036b3522e77615966673f223b4edc11d0398ce99f3dfe6741ee",
+      "status": "MISMATCH"
+    },
+    {
+      "bytes": 100,
+      "expected_sha256": "31f8fee0e3ab7444d1b803d3659281db17fc53e9ca45c00341fd21c2df9306fc",
+      "path": "models/whisper/.cache/huggingface/download/preprocessor_config.json.metadata",
+      "sha256": "7196543e1739d5d2a2418150540df63f0f294df1e10cc2a08c1e7b1191f03e1f",
+      "status": "MISMATCH"
+    },
+    {
+      "bytes": 125,
+      "expected_sha256": "703d16e775a8e2d42e53c344c8395f8b1c0f7ecffeb0fe3031cb467ae6b689de",
+      "path": "models/whisper/.cache/huggingface/download/pytorch_model.bin.metadata",
+      "sha256": "d8c517dbbbe81554d27a0d11e8b14fb3e1f5595ea0b332bbcbf6f79bc5825ffb",
+      "status": "MISMATCH"
+    }
+  ],
+  "gpu_imports": false,
+  "hostname": "400445b4c77b",
+  "observed_utc": "2026-10-09T00:16:05.699369+00:00",
+  "protected_instance_id": 51074906,
+  "schema": "protected_reference_metadata_read_v1",
+  "source_mutations": false,
+  "summary": {
+    "expected_metadata_files": 12,
+    "exact_matches": 0,
+    "mismatches": 10,
+    "missing": 2
+  },
+  "original_input_manifest_sha256": "6d3ab6ef31605c2231605e03042e82361a27112589ef6d7f6f8ff8f4b016eea5",
+  "original_worker_sha256_verified_from_historical_git_blob": "2e6e88fbe106ca964b2b5e31af44203ce5dff201eb2c37436726b65520cc447b",
+  "frozen_input_restoration_proven": false,
+  "next_action": "Do not copy current protected-host metadata as original frozen bytes or relabel original878audit PASS. Seek exact archived metadata or preregister an explicit input-equivalent comparison lineage retaining every original quality bound and payload/source/corpus hash. Keep original manifests, gate implementations and bounds unchanged.",
+  "limitations": [
+    "File reads only; no GPU imports,exports,builds,installs,service changes or writes on protected4070.",
+    "Metadata differences do not themselves prove changed model payloads; this check did not hash model payloads.",
+    "Prior attempted full read stopped on a missingTAESDmetadata file; this completed follow-up explicitly reports all12paths."
+  ]
+}
