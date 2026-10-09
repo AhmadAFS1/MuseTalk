@@ -982,3 +982,30 @@ the two-block build, without extending the rental expiry or altering precision,
 graphs, imported plans or quality bars. Fresh v2 build is live: mid301.7s, up0
 building. No combined quality/FPS result exists yet. Focused CPU tests pass:
 builder6, private-scope/restore-invocation5, preprocessing guard4.
+
+## October 9, 05:10 UTC — combined quality terminal, artifacts preserved
+
+The combined FP16-mid/up0 v2 build and direct/graph/repeat probes completed
+successfully. Its actual 224 grouped UNet comparisons finished at 04:58:11 UTC:
+14/16 frozen component metrics pass, but holdout MAE-max and p95-absolute-max
+fail. All 8 main metrics pass. Original strict main/holdout failures remain
+visible. The candidate is rejected; full698, coupled avatar quality and its
+throughput are not assessed. No reference bound, holdout or tolerance changed.
+
+The portable decoder completed all 448 captures / 3584 frames on A4. All 88 frozen
+decoder bounds and hard exactness invariants pass, while its inherited strict
+max 5 LSB > 3 test still fails. This is a component result, not full-pipeline approval.
+Combined source-prefix checking passed 125 frames, cached/forward equality and
+exact shuffled rows at 05:02:45 UTC; this does not clear the UNet rejection.
+
+All 18 actual engine-delta files are preserved in a 1,133,728,376-byte private
+archive, SHA256 `5105c5afdcc0e4e1b245cc2ef53f17daaea2d76e848dc66bea3988aaa5ab9b4a`.
+Conditional PUT, exact-version fresh GET, clean CPU restore and every payload
+SHA passed at 05:05:06 UTC. Native/portable ancestor bundles are separately required.
+The archive is neither public nor an approved standalone serving release.
+New caches and every fresh candidate plan are now safely off the rented host.
+
+The established 427.005 / 426.630 FPS six-avatar offline T result remains valid
+but quality-rejected. Sustained five-window/live tests, highest-quality 400+
+selection, complete public Docker and approximately 60s usable-call startup
+remain unfinished. No GPU experiment is running; A4's 05:30 UTC expiry is unchanged.

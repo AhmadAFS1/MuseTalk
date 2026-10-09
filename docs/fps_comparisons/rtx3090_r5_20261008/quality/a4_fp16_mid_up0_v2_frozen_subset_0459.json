@@ -1,0 +1,145 @@
+{
+  "candidate_manifest_sha256": "690d7a00128d520ed247d1a717f36d38752e0f9490aed067271c48b2cae39581",
+  "coupled_avatar_pipeline_tested": false,
+  "decision": "REJECTED_FROZEN_UNET_NONREGRESSION",
+  "envelope_sha256": "a911a3133d52d2ebf16f54284fa492cfc571621f590a1a2fbe9ed030474fa60a",
+  "failed": 2,
+  "full698_assessed": false,
+  "instance_id": "54957508",
+  "metrics": [
+    {
+      "direction": "error",
+      "limit": 0.0034972068149892784,
+      "metric": "unet.main.mae_mean",
+      "status": "PASS",
+      "value": 0.003481300944589417
+    },
+    {
+      "direction": "error",
+      "limit": 0.004701611585915089,
+      "metric": "unet.main.mae_max",
+      "status": "PASS",
+      "value": 0.004620661959052086
+    },
+    {
+      "direction": "error",
+      "limit": 0.006624411773042415,
+      "metric": "unet.main.rmse_mean",
+      "status": "PASS",
+      "value": 0.006578301394421776
+    },
+    {
+      "direction": "error",
+      "limit": 0.009878764860332012,
+      "metric": "unet.main.rmse_max",
+      "status": "PASS",
+      "value": 0.009657603688538074
+    },
+    {
+      "direction": "error",
+      "limit": 0.012097302824258804,
+      "metric": "unet.main.p95_abs_mean",
+      "status": "PASS",
+      "value": 0.012022269043055448
+    },
+    {
+      "direction": "error",
+      "limit": 0.017578125,
+      "metric": "unet.main.p95_abs_max",
+      "status": "PASS",
+      "value": 0.01708984375
+    },
+    {
+      "direction": "error",
+      "limit": 0.25252207842740143,
+      "metric": "unet.main.max_abs_mean",
+      "status": "PASS",
+      "value": 0.23999628153714267
+    },
+    {
+      "direction": "error",
+      "limit": 0.776611328125,
+      "metric": "unet.main.max_abs_max",
+      "status": "PASS",
+      "value": 0.689453125
+    },
+    {
+      "direction": "error",
+      "limit": 0.0036256184054460996,
+      "metric": "unet.holdout.mae_mean",
+      "status": "PASS",
+      "value": 0.0036233136003526547
+    },
+    {
+      "direction": "error",
+      "limit": 0.004188018850982189,
+      "metric": "unet.holdout.mae_max",
+      "status": "FAIL",
+      "value": 0.004404931794852018
+    },
+    {
+      "direction": "error",
+      "limit": 0.006894362023255478,
+      "metric": "unet.holdout.rmse_mean",
+      "status": "PASS",
+      "value": 0.006869556100961442
+    },
+    {
+      "direction": "error",
+      "limit": 0.01229102723300457,
+      "metric": "unet.holdout.rmse_max",
+      "status": "PASS",
+      "value": 0.011798921972513199
+    },
+    {
+      "direction": "error",
+      "limit": 0.012560288111368815,
+      "metric": "unet.holdout.p95_abs_mean",
+      "status": "PASS",
+      "value": 0.0125445028146108
+    },
+    {
+      "direction": "error",
+      "limit": 0.01513671875,
+      "metric": "unet.holdout.p95_abs_max",
+      "status": "FAIL",
+      "value": 0.016081809997558594
+    },
+    {
+      "direction": "error",
+      "limit": 0.3041553497314453,
+      "metric": "unet.holdout.max_abs_mean",
+      "status": "PASS",
+      "value": 0.28221861521402997
+    },
+    {
+      "direction": "error",
+      "limit": 1.2601318359375,
+      "metric": "unet.holdout.max_abs_max",
+      "status": "PASS",
+      "value": 1.2464599609375
+    }
+  ],
+  "metrics_assessed": 16,
+  "performance_measured": false,
+  "quality_accepted": false,
+  "release_ready": false,
+  "reports": {
+    "holdout": {
+      "comparisons": 48,
+      "path": "docs/fps_comparisons/rtx3090_r5_20261008/quality/a4_fp16_mid_up0_v2_unet_0456/unet_holdout.json",
+      "sha256": "b559ce8e452da111f28619b7496c8104ae17b03984fc42c13f643d68eb84875e"
+    },
+    "main": {
+      "comparisons": 176,
+      "path": "docs/fps_comparisons/rtx3090_r5_20261008/quality/a4_fp16_mid_up0_v2_unet_0456/unet_main.json",
+      "sha256": "f04745714d84afa8f0914d7b73a5429249a2d56077c3bf331da426227b4d3521"
+    }
+  },
+  "schema": "owned_a4_frozen_unet_subset_v1",
+  "strict_original_gates": {
+    "holdout": "FAIL",
+    "main": "FAIL"
+  },
+  "variant": "fp16_mid_up0_v2"
+}
