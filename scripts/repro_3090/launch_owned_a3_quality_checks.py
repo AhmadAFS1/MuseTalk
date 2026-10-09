@@ -16,6 +16,7 @@ ROOT = Path('/workspace/MuseTalk')
 BASE = ROOT / 'docs/fps_comparisons/rtx3090_r5_20261008'
 WATCH_SHA = '2f03d2761e6319e27a58917099722bf279ce5d695e4682eaa5637de9d4db737f'
 BOUND_WATCH_SHA = 'e4e429e0dd2a42cbc1b5791a26eb8361a2c0dcd5fa6c5af320c7bcf8ffa0d4f9'
+WATCH565_SHA = 'dfe2d787d015733949c7bf392e26119a6d83401681bbc7170d580a4c9066e3a0'
 TARGETS = {'unet': ('scripts/validate_unet_backend.py', '81b74eddf5aaff8348ac27cce67b92763e937e09309762d137062b0a23f1d7a0'),
            'srccache': ('scripts/repro_400fps/srccache_exact.py', '59d27983e85f7c438d655dc4bc6dfc0fa739ac38f8d22482372a48e8e8908895'),
            'taesd': ('scripts/repro_400fps/gate_taesd_trt.py', '3baf8976e4fb25a908809e68d6ac126c07ea525baed7475a6443263221e28e99')}
@@ -24,6 +25,18 @@ TARGETS = {'unet': ('scripts/validate_unet_backend.py', '81b74eddf5aaff8348ac27c
 def write(path, value):
     with path.open('x') as handle:
         json.dump(value, handle, indent=2); handle.write('\n')
+
+
+def owned_watch(here, document, digest, driver):
+    if not document or not digest or driver not in ('595.91.07', '565.77'):
+        raise ValueError('explicit owned descriptor and supported driver required')
+    name, expected = ('watch_owned_single_leaf_565.py', WATCH565_SHA) if driver == '565.77' else (
+        'watch_owned_single_leaf_target.py', BOUND_WATCH_SHA)
+    path = here / name
+    if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+        raise ValueError('selected owned monitor source changed')
+    return [str(path), '--enable', '--owned-target-json', str(document),
+            '--owned-target-sha256', digest, '--'], {name: expected}
 
 
 def main(argv=None):
@@ -38,6 +51,7 @@ def main(argv=None):
     p.add_argument('--taesd-hardware', choices=('none', 'ampere_plus'), required=True)
     p.add_argument('--owned-target-json', type=Path)
     p.add_argument('--owned-target-sha256')
+    p.add_argument('--owned-driver', choices=('595.91.07', '565.77'), default='595.91.07')
     p.add_argument('--successor-inputs', type=Path, default=BASE / 'harnesses/quality-inputs-a3-metadata-v1.json')
     p.add_argument('--successor-envelope', type=Path, default=BASE / 'quality/reference-envelope-a3-metadata-v1.json')
     p.add_argument('--lineage-receipt', type=Path, default=BASE / 'quality/a3-metadata-lineage-v1.json')
@@ -69,9 +83,10 @@ def main(argv=None):
         if socket.gethostname() != owned_target['worker_hostname']:
             raise ValueError('wrong owned hostname')
         deadline = end.strftime('%Y-%m-%dT%H:%M:%SZ')
-        watch_prefix = [str(bound_path), '--enable', '--owned-target-json', str(a.owned_target_json),
-                        '--owned-target-sha256', a.owned_target_sha256, '--']
-        pins['watch_owned_single_leaf_target.py'] = BOUND_WATCH_SHA
+        watch_prefix, selected_pins = owned_watch(here, a.owned_target_json, a.owned_target_sha256, a.owned_driver)
+        pins.update(selected_pins)
+    elif a.owned_driver != '595.91.07':
+        p.error('driver565 requires an explicit owned descriptor')
     elif socket.gethostname() != '1e7c09cffcb3':
         p.error('owned A3 identity required unless exact new descriptor supplied')
     import runner
