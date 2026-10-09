@@ -40,6 +40,12 @@ normally and with an independently simulated nonoperator/Linux root, including
 new rejection-before-payload/cloud coverage. The production helper is byte-identical;
 the new Linux result is pending, not inferred from local passes.
 
+The corrected exact commit `e6d38eaf` subsequently [passed Linux CI](harnesses/a2_candidate_linux_ci_success_2357.json)
+at 23:57:33 UTC: 165 tests, 155 passes, ten explicit optional-dependency skips,
+zero failures/errors. All thirteen preservation tests passed. NumPy/ONNX skips
+are not numerical execution evidence; actual A2 ONNX CPU validation is separate.
+No Docker build, GPU, publication, or resource mutation occurred in this CI run.
+
 ### 23:39 UTC geometry-controlled preparation repeats exactly
 
 The separately named [geometry-v2 smoke](avatars/a2_latent_geometry_2335/comparison.json)

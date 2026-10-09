@@ -83,7 +83,9 @@
     "AllfiveprivateA2archives conditionalPUT/versionboundfreshGET/allpayloadSHA PASS. Geometry-v2 persistencefinished23:43:14UTC,79108045bytes/24payloads, andall12smalllocalfilesmatchremoteSHA. Timerfreshread23:38:46activewaiting23:45UTC; reservationtotal12.717528211805556 unchanged, notactualbilling.",
     "Final selected eleven-suite operator CPU run:164tests,157PASS,7explicit real-ONNX dependencySKIP,0FAIL onPython3.12.14/NumPy2.3.5. A2 independentlyran all14final-Conv tests withactualONNX and0SKIP/FAIL. NewLinuxCI notyetobserved.",
     "A2 scheduled non-forced expiry destroyed exact54909897 at23:45:02.396453UTC; service journal finished successfully and independent providerGET23:45:31.937145UTC foundIDabsent. Safe cleanup evidence retained; clearedunits alone notusedasproof. Allfivearchivesprivatelyverifiedbeforeexpiry. NoownedrentedGPU remains, protected4070nottargeted, reservationsunchanged/notactualbilling.",
-    "Exact3422312 lightweightLinuxCI37861781743 failed:144PASS,3NumPySKIP,3preservationfixtureERROR; finalTAESDsuite notrun. Tests omittedfixedoperatorROOTmock; unchangedproductionguard correctlyrefusedLinux. Fixture-only repair addswrong-root earlyrefusal;13testsPASSnormal andindependentsyntheticLinuxroot. Nohelper/guard/GPU/cloud/defaultchanges; correctedLinuxCIpending."
+    "Exact3422312 lightweightLinuxCI37861781743 failed:144PASS,3NumPySKIP,3preservationfixtureERROR; finalTAESDsuite notrun. Tests omittedfixedoperatorROOTmock; unchangedproductionguard correctlyrefusedLinux. Fixture-only repair addswrong-root earlyrefusal;13testsPASSnormal andindependentsyntheticLinuxroot. Nohelper/guard/GPU/cloud/defaultchanges; correctedLinuxCIpending.",
+    "Corrected exacte6d38eaf lightweightLinuxCI37862170385 completedSUCCESS23:57:33UTC:165tests,155PASS,10explicitdependencySKIP,0FAIL/ERROR. All13preservationtestsPASS. Skipsnotnumericalproof; actualA2ONNXCPU14PASS remainsseparate. Noheavyworkflow/GPU/cloud/build/publicationactions.",
+    "Fresh sharedaccountusage23:56:56UTC reports32%weeklyused/68%remaining,0purchasedcredits/1unusedfullreset; ordinaryusageallowed. Reset2026-10-15T11:17:04UTC. Notexacttasktokenbalance orcompletionguarantee, notsolelyattributabletothistask. Noreset/purchase."
   ],
   "budget": {
     "currency": "USD",
@@ -482,7 +484,8 @@
       "preservation_tests_passed": 13,
       "preservation_synthetic_linux_root_tests_passed": 13,
       "failed_linux_ci_evidence": "harnesses/a2_candidate_linux_ci_failure_2355.json",
-      "new_linux_ci_outcome": "FAILED_FIXTURE_ROOT_MOCK_3422312_CORRECTED_RUN_PENDING",
+      "new_linux_ci_outcome": "PASS_E6D38EAF_155_PASS_10_EXPLICIT_DEPENDENCY_SKIP",
+      "corrected_linux_ci_evidence": "harnesses/a2_candidate_linux_ci_success_2357.json",
       "scope": "Synthetic hardware/cloud adapters and local temporary files only; no GPU, SSH, credentials or cloud actions",
       "actual_controlled_power_result": "INVALID_POWER_SET_REFUSED_NO_BENCHMARK",
       "release_quality_accepted": false
@@ -495,7 +498,7 @@
       "latent_tests_passed_with_numpy": 15,
       "stdlib_only_latent_tests_passed": 12,
       "stdlib_only_latent_numpy_tests_skipped": 3,
-      "new_linux_ci_outcome": "NOT_OBSERVED",
+      "new_linux_ci_outcome": "PASS_E6D38EAF_WITH_3_EXPLICIT_NUMPY_SKIPS",
       "gpu_execution": false
     },
     "tracking_pair_linux_ci": {
@@ -775,22 +778,24 @@
   "target_template_name": "-(NEEDS UPDATE )PyTorch (Vast) - Musetalk w/ NVENC enabled & 12.1 CUDA",
   "previous_template_hash": "4dc0868ee56886c667c217d6c3634a58",
   "quota_checkpoint": {
-    "observed_utc": "2026-10-08 20:36:11 UTC",
+    "observed_utc": "2026-10-08 23:56:56 UTC",
     "account_scope": "shared account, not this task",
-    "weekly_used_percent_reported": 11,
-    "weekly_remaining_percent_reported": 89,
+    "weekly_used_percent_reported": 32,
+    "weekly_remaining_percent_reported": 68,
     "previous_checkpoint": {
-      "observed_utc": "2026-10-08T19:45:36Z",
-      "weekly_used_percent_reported": 10,
-      "weekly_remaining_percent_reported": 90
+      "observed_utc": "2026-10-08T22:19:00Z",
+      "observation_timestamp_precision": "minute-level checkpoint retained from prior account readback",
+      "weekly_used_percent_reported": 15,
+      "weekly_remaining_percent_reported": 85
     },
     "ordinary_usage_allowed": true,
     "weekly_resets_at_utc": "2026-10-15T11:17:04Z",
     "purchased_credit_balance_reported": "0",
     "free_full_resets_available_reported": 1,
     "free_reset_consumed": false,
-    "limitations": "Earlier subagents encountered quota errors; missing/model-specific limits and subscription-token conversion are unavailable. Full-task fit is not guaranteed.",
-    "execution_policy": "One agent, compact evidence, no duplicate runs; check account usage at major milestones"
+    "limitations": "Shared account consumption cannot be attributed exclusively to this task. Missing/model-specific limits and exact subscription-token balance are unavailable. Current percentage is not a full-task completion guarantee; no reset or credits used.",
+    "official_guidance": "https://learn.chatgpt.com/docs/pricing#what-are-the-usage-limits-for-my-plan",
+    "execution_policy": "One focused implementation with bounded independent CI/review; compact evidence and no duplicate GPU runs. Check account usage at major milestones; do not infer exact tokens or purchase/reset authority."
   },
   "objective_priority_update": {
     "checkpoint_utc": "2026-10-08T22:00:00Z",
@@ -800,6 +805,6 @@
     "historical_sla_not_a_new_health_pass": true,
     "quality_bounds_or_400fps_threshold_changed": false
   },
-  "next_action": "Commit/push small source/evidence and inspect exact new lightweight CI. A2 scheduledexpiry/providerabsence verified; allfiveprivatearchivesPASS. GeometryrepeatPASS is oneidentitydiagnostic only; newcache needsall-six andfullrenderquality. No350Wbenchmark ran duehostpermission4; unchanged300Wreadback is notsuccessfulrestorecommand. Nextprecisioncandidate has14actualONNXCPUtests only, needs reviewedbuilder/explicitcandidate fingerprint/loader/fullunchangedgate. Native236/698qualityFAIL and355.4-356.6validFAIL400 remain; noqualitybounds/defaults/productionchanges.",
-  "next_command": "Commit scoped small files, push codex/rtx3090-r5-delivery and read exact-SHA lightweight CI. Continue isolated CPU precision integration without changing canonical defaults. NoownedtestGPU islive; do not SSH retiredA2 or rerent fromstaleoffers. Any nextGPU needs fresh authorized-cost/identity/ledger/expiry preflight before oneboundedownedexperiment."
+  "next_action": "Corrected lightweightLinuxCI observedPASS155/165 with10explicitdependencySKIPs; preserve failedCI too. Finish root/peer review andCPUtests ofisolated candidatebuilder/fingerprint/loader before anyGPUtrial; canonicalvfd/gates/manifests remainbyte-identical. A2scheduledexpiry/providerabsence verified; allfiveprivatearchivesPASS. GeometryrepeatPASS is oneidentitydiagnostic only; newcache needsall-six andfullrenderquality. No350Wbenchmark ran duehostpermission4; unchanged300Wreadback is notsuccessfulrestorecommand. Native236/698qualityFAIL and355.4-356.6validFAIL400 remain; noqualitybounds/defaults/productionchanges.",
+  "next_command": "Review/test isolated newprecision APIs, record exactcandidate/source fingerprints andcommit onlyreviewedsmallfiles. Future explicitlauncher mustroute unchangedfullgate/capture children; GPUtests needfresh authorized-cost/identity/ledger/expiry preflight. NoownedtestGPU islive; do not SSHretiredA2 orrerentfromstaleoffers. Registry namespace/login remainsunresolved; optionalnamespacequestion submittedwithoutrequestingsecrets."
 }
