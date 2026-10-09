@@ -1,0 +1,29 @@
+{
+  "status": "complete",
+  "signature": "532abf24a8dece9dbdfa7645cfc4464a5009d0a985b0b35c91216361a86b2c62",
+  "finished_utc": "2026-10-09T04:35:00Z",
+  "artifacts": {
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/a4_fixed_geometry_all6_v1/repeat1/south_asian_woman/cache.pt": "889f9bbc75a4b5a2f894fd65ab3cd11d9d294793e2153f08a1c07a6ae1f54586",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/a4_fixed_geometry_all6_v1/repeat1/south_asian_woman/masks.npz": "dd0cebbaf421606ddfcabe7e887e202e488ff3fef130f3b080410f4928b7bf1b"
+  },
+  "seconds": 43.90963040200586,
+  "frames": 240,
+  "encoder": "Native MuseTalk FP16 SD-VAE",
+  "seed": 123,
+  "mask": "jaw, cheeks90, bbox lower margin10",
+  "source_sha256": "1cb6057008a2abb8e22dd0a056c39212bbe76421067a4b37ddc4c4905e52431c",
+  "audio_sha256": "8628701b894babe55b8e04769363925528e50c1352d3edcebf1d31a44a65247e",
+  "audio_features_sha256": "0784da8560b3a51dd26eb0c37739c96cfb2dcd68f139592f83389849c4c2ecf3",
+  "model_and_audio_code_sha256": {
+    "models/sd-vae/diffusion_pytorch_model.bin": "1b4889b6b1d4ce7ae320a02dedaeff1780ad77d415ea0d744b476155c6377ddc",
+    "models/sd-vae/config.json": "92d3dfb746fca211a2c9e019e285f8597412211728dce3c5bcf4eda0f2d62e7e",
+    "models/whisper/pytorch_model.bin": "9607f98a2b22d9e229ae43c52ecea79dcede9e0c5cfae67e8da6eda86d8aac1d",
+    "models/whisper/config.json": "ffdccec4f3211f4c63310f2b7098f309fe70f3952cedc5e4d11e43f5b2379b98",
+    "models/whisper/preprocessor_config.json": "9b5cd03a36fbb8a627c64d98a5b5b126ead95a77720723944487311f0110b666",
+    "musetalk/models/unet.py": "05d5dadfde2e726b61d8387a4876336d4dcacc696636e8dcfec69863ce819256",
+    "musetalk/utils/audio_processor.py": "91d521a249adf5ca8426c0011f73f61a28b5fb784e9e7de788f196c24e3d8fbb"
+  },
+  "torch": "2.5.1+cu121",
+  "numpy": "1.23.5",
+  "opencv": "4.9.0"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "south_asian_woman",
+  "workspace": "/workspace",
+  "output": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/a4_fixed_geometry_all6_v1/repeat2/south_asian_woman",
+  "experiment": "prep_fixed_cudnn_selection_v2_native_fp16_seed123_repeat_not_accepted",
+  "original_spec_sha256": "c2acb99494baedb495ad4caa9b2f8a267846409439a447c52677130da214ba23",
+  "preparation_seed": 123,
+  "historical_preparation_versions": {
+    "torch": "2.5.1+cu121",
+    "numpy": "1.23.5",
+    "opencv": "4.9.0"
+  },
+  "preparation_policy": {
+    "name": "prep_fixed_cudnn_selection_v2",
+    "non_historical_candidate": true,
+    "change": "cudnn.benchmark=False before every original inference_topdown call and after original get_landmark_and_bbox returns",
+    "seed_policy": "unchanged canonical torch.manual_seed(123) before sequential frames",
+    "early_seed_added": false,
+    "deterministic_algorithms_changed": false,
+    "cublas_workspace_config_added": false,
+    "precision_tf32_attention_changed": false,
+    "required_geometry_calls": 240
+  },
+  "signature": "8305ef28e935aff6b653f7115ad7bdfef1891702555d55eafe1f736c115d7a11"
+}

@@ -950,3 +950,35 @@ The earlier actual427.005/426.630FPS T result on a different420W-default3090
 remains valid offline throughput evidence, but its quality remains rejected.
 SUST, selected400+quality, live/full visual/production validation, public Docker,
 and fresh-instance approximately60-second readiness remain unfinished.
+
+## October 9, 04:55 UTC — six-avatar repeat evidence and private preservation
+
+All12 canonical preparations completed at04:38:38.677183UTC. Every identity's
+two runs match exactly for latents, audio, face/crop boxes and all240 masks.
+This is reproducible new-cache evidence, not output-quality or warm-FPS approval.
+Historical audio is exact; all six have changed latents and some changed masks.
+Black-man frames5/169 and white-man frame224 additionally differ in geometry
+(face-box maximum2px, outer-crop maximum3px), so this is not a latent-only swap.
+Original inputs/caches and all698 frozen quality bounds remain unchanged.
+
+Actual six-identity source-crop/mask review covered30 selected frames, including
+all changed-box frames and maximum latent/mask differences. No gross missing
+face/mouth or broken jaw alpha was seen in those preprocessing samples.
+This is expressly not generated/composed-video validation; the new caches are
+not selected. See `avatars/a4_preparation_preprocessing_visual_inspection_0454.json`.
+
+The canonical126-file private archive is409,284,590bytes, SHA256
+`a9ccb0879e15b87595b784dd86110557005b67bf172dd015ce8f7613b6bc3f9d`.
+Conditional S3 PUT succeeded once. Two initial helper attempts failed before
+CPU restore because a diagnostic label was outside the safe-capture vocabulary;
+after the supported-label correction, read-only reconciliation passed exact-version
+GET, archive SHA, clean CPU restore and every126 payload SHA. Original failed
+receipts remain. No second PUT, public payload, active cache or bucket-policy change.
+
+The first combined FP16-mid/up0 attempt is invalid/incomplete: mid built304.0s,
+then the canonical global5min budget stopped before up0; guard exited143/OOM0.
+A preregistered budget-only correction retains5min for singles and10min for
+the two-block build, without extending the rental expiry or altering precision,
+graphs, imported plans or quality bars. Fresh v2 build is live: mid301.7s, up0
+building. No combined quality/FPS result exists yet. Focused CPU tests pass:
+builder6, private-scope/restore-invocation5, preprocessing guard4.

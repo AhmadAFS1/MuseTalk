@@ -1,0 +1,1730 @@
+{
+  "host": {
+    "hostname": "9dad9291adec",
+    "boot_id": "085e12ad-b754-468f-a7a5-d3dd89d79442"
+  },
+  "gpu": {
+    "name": "NVIDIA GeForce RTX 3090",
+    "uuid": "GPU-050b4bc5-99f6-305e-8c7f-fd00ea44551f",
+    "compute_capability": "8.6",
+    "driver": "595.91.07"
+  },
+  "packages": {
+    "torch": "2.5.1+cu121",
+    "numpy": "1.23.5",
+    "diffusers": "0.30.2",
+    "transformers": "4.39.2",
+    "torchvision": "0.20.1+cu121",
+    "mmcv": "2.1.0",
+    "mmengine": "0.10.4",
+    "mmpose": "1.3.1",
+    "safetensors": "0.7.0",
+    "huggingface-hub": "0.30.2",
+    "Pillow": "11.3.0",
+    "opencv_import": "4.9.0"
+  },
+  "cuda": "12.1",
+  "interpreter": "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+  "seed_policy": "canonical torch.manual_seed(123) before sequential frames",
+  "preparation_policy": {
+    "name": "prep_fixed_cudnn_selection_v2",
+    "non_historical_candidate": true,
+    "change": "cudnn.benchmark=False before every original inference_topdown call and after original get_landmark_and_bbox returns",
+    "seed_policy": "unchanged canonical torch.manual_seed(123) before sequential frames",
+    "early_seed_added": false,
+    "deterministic_algorithms_changed": false,
+    "cublas_workspace_config_added": false,
+    "precision_tf32_attention_changed": false,
+    "required_geometry_calls": 240
+  },
+  "post_detector_cudnn_receipts": [
+    {
+      "after_original_return": true,
+      "benchmark_before_reset": true,
+      "benchmark_after_reset": false
+    }
+  ],
+  "geometry_cudnn_receipts": [
+    {
+      "call_index": 0,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 1,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 2,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 3,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 4,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 5,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 6,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 7,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 8,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 9,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 10,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 11,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 12,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 13,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 14,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 15,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 16,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 17,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 18,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 19,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 20,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 21,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 22,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 23,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 24,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 25,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 26,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 27,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 28,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 29,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 30,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 31,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 32,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 33,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 34,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 35,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 36,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 37,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 38,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 39,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 40,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 41,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 42,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 43,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 44,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 45,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 46,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 47,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 48,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 49,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 50,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 51,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 52,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 53,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 54,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 55,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 56,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 57,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 58,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 59,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 60,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 61,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 62,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 63,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 64,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 65,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 66,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 67,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 68,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 69,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 70,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 71,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 72,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 73,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 74,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 75,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 76,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 77,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 78,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 79,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 80,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 81,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 82,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 83,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 84,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 85,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 86,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 87,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 88,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 89,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 90,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 91,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 92,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 93,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 94,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 95,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 96,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 97,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 98,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 99,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 100,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 101,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 102,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 103,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 104,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 105,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 106,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 107,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 108,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 109,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 110,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 111,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 112,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 113,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 114,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 115,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 116,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 117,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 118,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 119,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 120,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 121,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 122,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 123,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 124,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 125,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 126,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 127,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 128,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 129,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 130,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 131,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 132,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 133,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 134,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 135,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 136,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 137,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 138,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 139,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 140,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 141,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 142,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 143,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 144,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 145,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 146,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 147,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 148,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 149,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 150,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 151,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 152,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 153,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 154,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 155,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 156,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 157,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 158,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 159,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 160,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 161,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 162,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 163,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 164,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 165,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 166,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 167,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 168,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 169,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 170,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 171,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 172,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 173,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 174,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 175,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 176,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 177,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 178,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 179,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 180,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 181,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 182,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 183,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 184,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 185,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 186,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 187,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 188,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 189,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 190,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 191,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 192,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 193,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 194,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 195,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 196,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 197,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 198,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 199,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 200,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 201,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 202,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 203,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 204,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 205,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 206,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 207,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 208,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 209,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 210,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 211,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 212,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 213,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 214,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 215,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 216,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 217,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 218,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 219,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 220,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 221,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 222,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 223,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 224,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 225,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 226,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 227,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 228,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 229,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 230,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 231,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 232,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 233,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 234,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 235,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 236,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 237,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 238,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    },
+    {
+      "call_index": 239,
+      "benchmark_before_reset": true,
+      "original_returned_successfully": true,
+      "benchmark_before_original_call": false,
+      "benchmark_after_original_return": false
+    }
+  ],
+  "cudnn_benchmark_after_preparation": false
+}

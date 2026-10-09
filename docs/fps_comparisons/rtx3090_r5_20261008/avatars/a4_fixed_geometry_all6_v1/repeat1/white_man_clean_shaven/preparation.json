@@ -1,0 +1,29 @@
+{
+  "status": "complete",
+  "signature": "d05eb41428d7ddf8aa7acf6ea3a48f7c4a3ae7b56b87b0e2fcb42470e105e8e1",
+  "finished_utc": "2026-10-09T04:37:12Z",
+  "artifacts": {
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/a4_fixed_geometry_all6_v1/repeat1/white_man_clean_shaven/cache.pt": "783fbe279f37a39fbe2f3808268c08719a8d5215c9542a9ac464d832be506ea0",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/a4_fixed_geometry_all6_v1/repeat1/white_man_clean_shaven/masks.npz": "a72dd92a0be39591180b4b93ca221a5cc8ba18e4d4472b35bc739a4f21a13f4f"
+  },
+  "seconds": 46.81980699500127,
+  "frames": 240,
+  "encoder": "Native MuseTalk FP16 SD-VAE",
+  "seed": 123,
+  "mask": "jaw, cheeks90, bbox lower margin10",
+  "source_sha256": "7644b8ed221c3ab23eb0f726c204a84620ad91be56f67789338bde1c40aaa305",
+  "audio_sha256": "6945fc361adf030910861d3a8e22cca6d7ddef5f3d99d7c1a29427fbd8184e35",
+  "audio_features_sha256": "19b23dfb8ebe42be1aede50cd70c37062809a1c615cb22d89d132601d2a19f4a",
+  "model_and_audio_code_sha256": {
+    "models/sd-vae/diffusion_pytorch_model.bin": "1b4889b6b1d4ce7ae320a02dedaeff1780ad77d415ea0d744b476155c6377ddc",
+    "models/sd-vae/config.json": "92d3dfb746fca211a2c9e019e285f8597412211728dce3c5bcf4eda0f2d62e7e",
+    "models/whisper/pytorch_model.bin": "9607f98a2b22d9e229ae43c52ecea79dcede9e0c5cfae67e8da6eda86d8aac1d",
+    "models/whisper/config.json": "ffdccec4f3211f4c63310f2b7098f309fe70f3952cedc5e4d11e43f5b2379b98",
+    "models/whisper/preprocessor_config.json": "9b5cd03a36fbb8a627c64d98a5b5b126ead95a77720723944487311f0110b666",
+    "musetalk/models/unet.py": "05d5dadfde2e726b61d8387a4876336d4dcacc696636e8dcfec69863ce819256",
+    "musetalk/utils/audio_processor.py": "91d521a249adf5ca8426c0011f73f61a28b5fb784e9e7de788f196c24e3d8fbb"
+  },
+  "torch": "2.5.1+cu121",
+  "numpy": "1.23.5",
+  "opencv": "4.9.0"
+}

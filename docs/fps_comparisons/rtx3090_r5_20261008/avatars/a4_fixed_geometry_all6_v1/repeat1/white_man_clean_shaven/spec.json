@@ -1,0 +1,25 @@
+{
+  "id": "white_man_clean_shaven",
+  "workspace": "/workspace",
+  "output": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/a4_fixed_geometry_all6_v1/repeat1/white_man_clean_shaven",
+  "experiment": "prep_fixed_cudnn_selection_v2_native_fp16_seed123_repeat_not_accepted",
+  "original_spec_sha256": "d6aaa31c28658d6704484d36d882598460132705893d0d4964675cf7e9d90f53",
+  "preparation_seed": 123,
+  "historical_preparation_versions": {
+    "torch": "2.5.1+cu121",
+    "numpy": "1.23.5",
+    "opencv": "4.9.0"
+  },
+  "preparation_policy": {
+    "name": "prep_fixed_cudnn_selection_v2",
+    "non_historical_candidate": true,
+    "change": "cudnn.benchmark=False before every original inference_topdown call and after original get_landmark_and_bbox returns",
+    "seed_policy": "unchanged canonical torch.manual_seed(123) before sequential frames",
+    "early_seed_added": false,
+    "deterministic_algorithms_changed": false,
+    "cublas_workspace_config_added": false,
+    "precision_tf32_attention_changed": false,
+    "required_geometry_calls": 240
+  },
+  "signature": "2fae80dad3c4e1288dc66a8e8270aed752d4dc81c87a2279687ea68e8792c242"
+}

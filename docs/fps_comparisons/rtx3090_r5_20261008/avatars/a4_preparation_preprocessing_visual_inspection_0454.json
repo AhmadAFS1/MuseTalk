@@ -1,0 +1,31 @@
+{
+  "schema": "a4_preparation_preprocessing_visual_inspection_v1",
+  "inspected_utc_checkpoint": "2026-10-09T04:54:14Z",
+  "scope": "Actual matched source crops and source-bound jaw alpha masks, not generated faces or composed talking video",
+  "assets": "avatars/a4_preparation_preprocessing_review_0449/assets.json",
+  "assets_sha256": "3c95d34dc7f5cb1537476fccd5b7ff93e4fcc8b38a8b937006872fbd9fd4fe76",
+  "comparison": "avatars/a4_fixed_geometry_all6_v1/comparison.json",
+  "comparison_sha256": "984e9f7026db94b7f44831ee6978ba6bf9f2a0ebfd04e65ab835cd1d94d618e5",
+  "method": "Viewed six actual labelled contact PNGs with image tools, including first/middle/last source frames, maximum per-frame latent and equal-shape mask differences, and every changed-box frame. Re-viewed black_man_short_beard using explicit original image detail; first overview of black_man and east_asian was downscaled by viewer. Other source patches were generated at256x256, full context at256x448. No generated-output/native-full-frame acceptance is inferred.",
+  "inspected_frames": {
+    "black_man_short_beard": [0,5,119,169,214,239],
+    "black_woman": [0,82,119,239],
+    "east_asian_man_goatee": [0,87,116,119,239],
+    "middle_eastern_man_full_beard": [0,119,142,233,239],
+    "south_asian_woman": [0,119,123,213,239],
+    "white_man_clean_shaven": [0,82,119,224,239]
+  },
+  "observations": [
+    "No gross source-face loss, missing-mouth crop or visibly broken lower-jaw alpha shape appears in these30matched preprocessing samples.",
+    "The jaw alpha panels retain broad soft lower-face support and an upper notch. Tiny numeric mask differences are not resolved as a quality verdict from these views.",
+    "Black-man frames5/169 have different vertical crop geometry; white-man frame224 has a different lower boundary. Source-crop framing shifts slightly, consistent with the recorded2px face-box and up-to3px outer-crop changes, not a pure latent-only candidate.",
+    "The other four identities have exact saved face/crop boxes but new VAE latent values and small per-pixel mask differences. Source-crop visual similarity cannot establish output equivalence."
+  ],
+  "decision": "INCOMPLETE_NOT_SELECTED",
+  "reason": "Repeatability is established, but historical geometry/mask equivalence is not. New caches require an explicit same-input comparison lineage, decoded/composed motion and lip/teeth/chin/temporal validation before replacement. Existing frozen signatures and all698bounds remain unchanged.",
+  "decoder_or_composed_output_review": "NOT_PERFORMED",
+  "warm_fps_speedup_claim": false,
+  "quality_accepted": false,
+  "production_modified": false,
+  "release_ready": false
+}

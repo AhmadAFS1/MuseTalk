@@ -12,6 +12,10 @@ class Tests(unittest.TestCase):
             self.assertEqual(a.int8_blocks, '')
             self.assertEqual(a.int8_recipe, '')
             self.assertEqual(a.hardware_compat, 'none')
+            self.assertEqual(a.max_minutes, 5 * len(blocks))
+            self.assertEqual(a.opt_level, 5)
+            self.assertEqual(a.workspace_gb, 2.0)
+            self.assertTrue(a.no_timing_cache)
         with self.assertRaises(ValueError):
             builder.builder_options(('down1',))
 

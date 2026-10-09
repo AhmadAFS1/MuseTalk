@@ -6,11 +6,25 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
 
 import persist_owned_a4_bundle as persistence
 
 
 class PersistenceTests(unittest.TestCase):
+    def test_restore_uses_supported_bounded_capture_stage(self):
+        with mock.patch.object(persistence.safe_capture, 'capture', return_value='verified') as capture:
+            result = persistence.restore_archive(Path('/fresh/archive.tar.gz'), Path('/fresh/restore'), 'a' * 64)
+        self.assertEqual(result, 'verified')
+        argv = capture.call_args.args[0]
+        self.assertIn('--strict', argv)
+        self.assertEqual(argv[argv.index('--repo-root') + 1], '/fresh/restore')
+        self.assertEqual(argv[argv.index('--uri') + 1], '/fresh/archive.tar.gz')
+        self.assertEqual(argv[argv.index('--expected-sha256') + 1], 'a' * 64)
+        self.assertEqual(capture.call_args.kwargs['stage'], 'unspecified')
+        self.assertEqual(capture.call_args.kwargs['timeout_s'], 600)
+        self.assertEqual(capture.call_args.kwargs['output_limit_bytes'], 64 * 1024)
+
     def data(self, profile='engines'):
         name = persistence.MODEL_ROOTS[0] + 'manifest.json' if profile == 'engines' else persistence.LATENT_ROOT + 'comparison.json'
         return {'schema': 1, 'profile': 'private-a4-' + profile + '-diagnostic',

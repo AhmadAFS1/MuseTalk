@@ -30,7 +30,7 @@ def builder_options(blocks=('down3',)):
         raise ValueError('only fixed precision-restoration matrix permitted')
     return types.SimpleNamespace(root=str(ENGINE), opt_level=5, workspace_gb=2.0, no_timing_cache=True,
         hardware_compat='none', strict_timing_cache=True, variant='srccache', timing_cache='',
-        blocks=','.join(blocks), int8_blocks='', int8_recipe='', max_minutes=5, force=True, second_build=False)
+        blocks=','.join(blocks), int8_blocks='', int8_recipe='', max_minutes=5 * len(blocks), force=True, second_build=False)
 
 
 def candidate_manifest(native, blocks=('down3',)):

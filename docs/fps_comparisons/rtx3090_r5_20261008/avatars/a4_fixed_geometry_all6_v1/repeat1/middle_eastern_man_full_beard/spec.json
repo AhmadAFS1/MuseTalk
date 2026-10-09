@@ -1,0 +1,25 @@
+{
+  "id": "middle_eastern_man_full_beard",
+  "workspace": "/workspace",
+  "output": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/avatars/a4_fixed_geometry_all6_v1/repeat1/middle_eastern_man_full_beard",
+  "experiment": "prep_fixed_cudnn_selection_v2_native_fp16_seed123_repeat_not_accepted",
+  "original_spec_sha256": "e6ba4e7d548a407910648aade663b8bbb7e5c8100906b2ed37beab775d5a9126",
+  "preparation_seed": 123,
+  "historical_preparation_versions": {
+    "torch": "2.5.1+cu121",
+    "numpy": "1.23.5",
+    "opencv": "4.9.0"
+  },
+  "preparation_policy": {
+    "name": "prep_fixed_cudnn_selection_v2",
+    "non_historical_candidate": true,
+    "change": "cudnn.benchmark=False before every original inference_topdown call and after original get_landmark_and_bbox returns",
+    "seed_policy": "unchanged canonical torch.manual_seed(123) before sequential frames",
+    "early_seed_added": false,
+    "deterministic_algorithms_changed": false,
+    "cublas_workspace_config_added": false,
+    "precision_tf32_attention_changed": false,
+    "required_geometry_calls": 240
+  },
+  "signature": "c987f609e02a476d972feab3c2f03db1778e24ce68cb35bde4030e958e3ed72b"
+}

@@ -26,9 +26,15 @@ MANIFEST = '.musetalk_trt_artifact_manifest.json'
 CHECKSUMS = '.musetalk_trt_artifact_SHA256SUMS'
 MODEL_ROOTS = tuple('models/tensorrt_unet_stagewise_a4_' + name + '_v1/bs16/' for name in
                     ('portable_prefix', 'portable_prefix_down0rest', 'portable_core_native_up3',
-                     'fp16_mid', 'fp16_up0', 'fp16_mid_up0'))
+                     'fp16_mid', 'fp16_up0', 'fp16_mid_up0')) + (
+                         'models/tensorrt_unet_stagewise_a4_fp16_mid_up0_v2/bs16/',)
 LATENT_ROOT = 'docs/fps_comparisons/rtx3090_r5_20261008/avatars/a4_fixed_geometry_all6_v1/'
 require = operator.require
+SAFE_FAILURE_REASONS = {
+    'private object metadata/size/encryption mismatch', 'object version missing',
+    'version changed after PUT', 'fresh GET integrity failed',
+    'clean CPU restore payload differs', 'version moved during fresh GET',
+}
 
 
 def validate_manifest(data, profile):
@@ -72,6 +78,15 @@ def manifest_from_archive(path, digest, profile):
     return data, rows
 
 
+def restore_archive(archive, root, digest):
+    # safe_capture's diagnostic vocabulary is closed. Keep the detailed step
+    # in our receipt rather than inventing a stage that fails before execution.
+    return safe_capture.capture([sys.executable, str(ROOT / 'scripts/trt_artifact_bundle.py'),
+        '--repo-root', str(root), '--strict', '--sidecar-dir', str(root / 'sidecars'),
+        'restore', '--uri', str(archive), '--expected-sha256', digest], cwd=ROOT, stage='unspecified',
+        timeout_s=600, output_limit_bytes=64 * 1024)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     p.add_argument('--profile', choices=('engines', 'latents'), required=True)
@@ -103,9 +118,11 @@ def main():
     with a.out.open('x') as stream:
         json.dump(report, stream, indent=2); stream.write('\n')
     try:
+        report['operation_stage'] = 'privacy_observation'
         report['privacy_configuration_observation'] = privacy.produce()
         operator.save(a.out, report)
         if a.mode == 'conditional-put-verify':
+            report['operation_stage'] = 'conditional_put'
             try:
                 response = operator.cli('put-object', ['--key', key, '--body', str(a.archive), '--if-none-match', '*',
                     '--server-side-encryption', 'AES256', '--checksum-algorithm', 'SHA256',
@@ -114,27 +131,36 @@ def main():
             except safe_capture.CaptureFailure as exc:
                 report.update(put_outcome='ERROR_OR_AMBIGUOUS_NO_REPUT', safe_put_failure=exc.record)
                 operator.save(a.out, report)
+        report['operation_stage'] = 'head_before_get'
+        operator.save(a.out, report)
         head = operator.cli('head-object', ['--key', key]); operator.validate_head(head, report)
         version = head['VersionId']
         if report.get('put_outcome') == 'CONFIRMED_CONDITIONAL_SUCCESS':
             require(report.get('put_version_id') == version, 'version changed after PUT')
+        report['operation_stage'] = 'exact_version_get'
+        operator.save(a.out, report)
         operator.cli('get-object', ['--key', key, '--version-id', version, str(fresh)], timeout=600)
         require(fresh.stat().st_size == report['bytes'] and operator.sha_file(fresh) == a.sha256, 'fresh GET integrity failed')
+        report['operation_stage'] = 'clean_cpu_restore'
+        operator.save(a.out, report)
         restored = Path(tempfile.mkdtemp(prefix='musetalk-a4-' + a.profile + '-restore.'))
-        safe_capture.capture([sys.executable, str(ROOT / 'scripts/trt_artifact_bundle.py'), '--repo-root', str(restored),
-            '--strict', '--sidecar-dir', str(restored / 'sidecars'), 'restore', '--uri', str(fresh),
-            '--expected-sha256', a.sha256], cwd=ROOT, stage='a4_clean_cpu_restore', timeout_s=600,
-            output_limit_bytes=64 * 1024)
+        restore_archive(fresh, restored, a.sha256)
+        report['operation_stage'] = 'restored_payload_hashes'
         for row in rows:
             path = restored / row['path']
             require(path.is_file() and path.stat().st_size == row['size'] and operator.sha_file(path) == row['sha256'],
                     'clean CPU restore payload differs')
+        report['operation_stage'] = 'head_after_restore'
         after = operator.cli('head-object', ['--key', key]); operator.validate_head(after, report)
         require(after['VersionId'] == version, 'version moved during fresh GET')
         report.update(status='PASS_PRIVATE_EXACT_VERSION_GET_CLEAN_CPU_RESTORE_ALL_SHA', version_id=version,
-                      clean_restore_path=str(restored), finished_utc=dt.datetime.now(dt.timezone.utc).isoformat())
+                      clean_restore_path=str(restored), operation_stage='complete',
+                      finished_utc=dt.datetime.now(dt.timezone.utc).isoformat())
     except Exception as exc:
         report.update(status='INVALID_NO_REPUT', failure_type=type(exc).__name__)
+        report['safe_failure_reason'] = str(exc) if type(exc) is ValueError and str(exc) in SAFE_FAILURE_REASONS else 'details_suppressed'
+        if isinstance(exc, safe_capture.CaptureFailure):
+            report['safe_failure_record'] = exc.record
     operator.save(a.out, report)
     print(json.dumps({key: report[key] for key in ('status', 'profile', 'sha256', 'bytes', 'release_ready')}))
     return 0 if report['status'].startswith('PASS') else 2

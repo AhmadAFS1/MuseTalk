@@ -1,0 +1,41 @@
+{
+  "schema": "owned_fp16_precision_restoration_v2",
+  "status": "FAILED",
+  "instance_id": "54957508",
+  "owned_target": {
+    "instance_id": "54957508",
+    "label": "musetalk-r5-3090-dev-20261009-a4",
+    "worker_alias": "musetalk-3090-build-54957508",
+    "worker_hostname": "9dad9291adec",
+    "gpu_uuid": "GPU-050b4bc5-99f6-305e-8c7f-fd00ea44551f",
+    "ledger": "/home/ec2-user/.local/state/musetalk-r5-3090-dev-20261009-a4/startup-ledger.json",
+    "deadline_utc": "2026-10-09T05:30:00+00:00"
+  },
+  "input_lineage": {
+    "status": "VERIFIED_METADATA_EQUIVALENCE_ONLY",
+    "input_manifest_sha256": "3f28aa2b4f6333047ef375cfbb3f68b177d5c0596a3190c168365f0685c1a795",
+    "envelope_sha256": "a911a3133d52d2ebf16f54284fa492cfc571621f590a1a2fbe9ed030474fa60a",
+    "preregistered_utc": "2026-10-09T03:48:41.221948+00:00",
+    "quality_accepted": false,
+    "release_ready": false
+  },
+  "resource_deadline_utc": "2026-10-09T05:30:00+00:00",
+  "source_manifest_sha256": "f66b46ca38d0e34af69ee5c01be52d93cc3d2f1ba3ac7b8a68ae0426c3658316",
+  "source_code_sha256": {
+    "trt_timing_cache": "7fb2294e37f8e31470a86728f22a25d926ce87ea7f3751f5339a044496ce2e75",
+    "unet_stagewise_trt": "4ab523ab9337f1ce903a52acf7a3f06e7423669cbf2df2b3846b8ffc374b6e9c",
+    "build_unet_stagewise": "1f0c0c54f2d94dc7358a7b79f4e0176dfdb747b78140552fad35c34d32917d49"
+  },
+  "engine_directory": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_a4_fp16_mid_up0_v1/bs16",
+  "precision_restorations": {
+    "mid": "int8_qdq_to_fp16",
+    "up0": "int8_qdq_to_fp16"
+  },
+  "quality_accepted": false,
+  "performance_measured": false,
+  "default_selection_changed": false,
+  "release_ready": false,
+  "started_utc": "2026-10-09T04:39:54.488264+00:00",
+  "error_type": "ValueError",
+  "finished_utc": "2026-10-09T04:45:15.628024+00:00"
+}
