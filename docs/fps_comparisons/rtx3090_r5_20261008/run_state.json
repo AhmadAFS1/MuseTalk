@@ -1,7 +1,7 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "a3_fp32_decoder_rejected_3_of_88_native420w_T_running",
+  "phase": "a3_report_only_serial_adapter_native420w_T3_running",
   "current_experiment": {
     "instance_id": 54939993,
     "source_revision": "2bd91269a3336d7db93057f80d1392a631309e03",
@@ -32,6 +32,29 @@
     "native420w_T_root": "native/a3_native420w_serial_T_0152",
     "native420w_T_exec_session": 90579,
     "native420w_T_watch_sha256": "0c6db7612b077d8f193c4fb174841371efd0d59c9ee1575aea8a132badd1b454",
+    "native420w_T_returncode": 143,
+    "native420w_T_finished_utc": "2026-10-09T01:58:04.916077+00:00",
+    "native420w_T_result": "INVALID: renderer recorded KeyError tracking_overlap because frozen historical worker lacks newly required diagnostic metadata. Zero reported measured windows. Watch also rejected CUDA teardown before child terminal; explicit target-finished ACK fix in progress.",
+    "serial_reporting_adapter_source": "scripts/repro_3090/run_owned_legacy_serial_render_a3.py",
+    "serial_reporting_adapter_sha256": "91a12437eb9be6c55905626218592c5680b7f8010d783ea1f16d3e23354c06dd",
+    "serial_reporting_adapter_changes": "Adds only tracking_overlap=false and truthful serial timing_semantics to completed historical repdone messages. No rendering, frame, timing, hash, worker or canonical renderer source changes.",
+    "target_finished_watch_sha256": "b25c3db443fbe08ee00f14f9164f3124759817f0a043f4deb06fec5114a1205a",
+    "adapter_and_watch_cpu_tests_passed": 36,
+    "native420w_T2_root": "native/a3_native420w_serial_T2_0213",
+    "native420w_T2_exec_session": 28807,
+    "native420w_T2_outer_pid": 22119,
+    "native420w_T2_guard_pid": 22132,
+    "native420w_T2_started_utc": "2026-10-09T02:12:45.061842+00:00",
+    "native420w_T2_status": "TERMINAL_INVALID before CUDA enrollment: adapter helper import path unavailable under inert bootstrap. Preserved original attempt; fixed helper path and added subprocess regression test.",
+    "native420w_T2_returncode": 143,
+    "native420w_T2_finished_utc": "2026-10-09T02:12:56.647957+00:00",
+    "native420w_T3_root": "native/a3_native420w_serial_T3_0215",
+    "native420w_T3_exec_session": 14316,
+    "native420w_T3_outer_pid": 22438,
+    "native420w_T3_guard_pid": 22451,
+    "native420w_T3_started_utc": "2026-10-09T02:14:58.563253+00:00",
+    "native420w_T3_bound_host_pid": 752608,
+    "native420w_T3_status": "RUNNING; own live CUDA context bound and native decoder actually loaded with exact probe/build-disabled. All878 inputs independently reverified; no new FPS/quality claim yet.",
     "first_build_attempt": "native/a3_fp32_build_0110.child.json",
     "first_build_returncode": 143,
     "first_build_result": "INVALID before export: NVML host PID714396 not visible in container /proc; canonical watchdog stopped owned group. No foreign workload identity established, no candidate engine or numerical result.",
@@ -908,6 +931,6 @@
     "historical_sla_not_a_new_health_pass": true,
     "quality_bounds_or_400fps_threshold_changed": false
   },
-  "next_action": "Observe live native420W serial T2 session90579. FP32 decoder remains rejected3/88, not full698 assessed. CPU-only assemble mixed-tail graph-preserving diagnostic using exact portable tail ONNX equality and genuine new finalize/probe; no defaults changed. Continue controlled new latents/full698 and T/SUST with a viable candidate. Archive before bound02:45UTC expiry.",
-  "next_command": "Poll exec90579 and native/a3_native420w_serial_T_0152/child.log, owned_watch.jsonl, a3_native420w_serial_T.json and full_recipe_result.json. Canonical six avatars/240frames/loops24/T2, >=60s windows,120s thermal, original historicalworker/source, nativev1 plans, actual420W. Newwatch explicit rendererSHA pin; never nest old runner.child watcher. Build23939terminal0/gate55888terminal1; decoder max5,3/88 frozen subsetFAIL, all exactnessPASS. No quality/performance/default/image/startup acceptance. Protected4070/EC2production unchanged."
+  "next_action": "Observe live native420W serial T3 session14316, not terminal28807/90579. Then actual guarded mixed-tail finalize/probe and quality tests with unchanged frozen bounds; continue canonical new-latent work. Archive all new plans/probes/receipts before bound02:45UTC expiry. FP32 decoder remains rejected3/88, full698 not assessed; production defaults unchanged.",
+  "next_command": "Poll exec14316 and native/a3_native420w_serial_T3_0215/child.log, owned_watch.jsonl, a3_native420w_serial_T3_0215.json and full_recipe_result.json. A3outer22438/guard22451 started02:14:58UTC, realGPUowner752608. Exact canonical rendererdf4e/historicalworker2e6; report-only adapter91a1, target-finished watchb25c. Original sixavatars/240frames/loops24/T2 >=60s/thermal120 unchanged. Prior28807/90579terminal143 INVALID with no FPS. No quality/performance/default/image/startup acceptance."
 }

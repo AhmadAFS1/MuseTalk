@@ -57,6 +57,13 @@ class WatchTests(unittest.TestCase):
         self.assertEqual(C.sizeof(w.Process), 24)
         self.assertEqual([getattr(w.Process, name).offset for name in ('pid', 'memory', 'gpu_instance', 'compute_instance')], [0, 8, 16, 20])
 
+    def test_canonical_target_pins_are_explicit(self):
+        self.assertEqual(w.CANONICAL_TARGETS, {
+            'gate_taesd_trt.py': '3baf8976e4fb25a908809e68d6ac126c07ea525baed7475a6443263221e28e99',
+            'chin_multistream_render.py': 'df4e290b33d752be82d6d2ab738bc5d3e21aa439ffd05f1c3c852a8af1fd4a29',
+        })
+        self.assertNotIn('runner.py', w.TARGET_NAMES)
+
     def test_full_success_enumeration(self):
         self.assertEqual(self.nvml().rows(), [(1234, w.ALLOCATION_BYTES)])
         self.assertEqual(self.nvml(count=0).rows(), [])
@@ -118,7 +125,7 @@ class WatchTests(unittest.TestCase):
         lib.cuDeviceGetUuid_v2 = None
         with patch.object(w.C, 'CDLL', return_value=lib), self.assertRaises(w.Rejected): w.cuda_uuid()
 
-    def leaf_setup(self, acknowledgments=b'01', uuid=None):
+    def leaf_setup(self, acknowledgments=b'012', uuid=None):
         digest = self.source(b'import torch\ntorch.cuda._lazy_init()\nassert len(_owned_context_retained)==1\n')
         report_r, report_w = os.pipe(); ack_r, ack_w = os.pipe()
         for fd in (report_r, report_w, ack_r, ack_w): self.addCleanup(os.close, fd)
@@ -131,14 +138,51 @@ class WatchTests(unittest.TestCase):
                          mps=str(self.mps), report_fd=report_w, ack_fd=ack_r, parent_pid=os.getpid())
         return leaf_spec, torch, report_r, original
 
-    def test_deferred_init_two_acks_recursion_and_retention(self):
+    def test_deferred_init_three_acks_recursion_and_retention(self):
         leaf_spec, torch, report_r, original = self.leaf_setup()
         with patch.object(w, 'parent_death_signal'), patch.dict(sys.modules, torch=torch), patch.object(w, 'cuda_uuid', return_value=w.UUID), patch.object(w, 'Nvml', return_value=self.nvml()):
             w.leaf(leaf_spec)
         receipts = [json.loads(row) for row in os.read(report_r, 4096).splitlines()]
         self.assertEqual(receipts[0], dict(phase='BEGIN_INIT', container_pid=os.getpid()))
         self.assertEqual(w.validate_receipt(receipts[1], os.getpid(), w.UUID), 1234)
+        self.assertEqual(w.validate_finished(receipts[2], os.getpid(), w.UUID, 1234), 0)
         self.assertEqual(original.call_count, 3)
+
+    def test_target_finished_ack_required_before_normal_return(self):
+        leaf_spec, torch, report_r, original = self.leaf_setup(acknowledgments=b'01x')
+        with patch.object(w, 'parent_death_signal'), patch.dict(sys.modules, torch=torch), patch.object(w, 'cuda_uuid', return_value=w.UUID), patch.object(w, 'Nvml', return_value=self.nvml()):
+            with self.assertRaisesRegex(w.Rejected, 'target_finished_ack_missing'):
+                w.leaf(leaf_spec)
+        receipts = [json.loads(row) for row in os.read(report_r, 4096).splitlines()]
+        self.assertEqual(w.validate_finished(receipts[-1], os.getpid(), w.UUID, 1234), 0)
+
+    def test_target_system_exit_one_preserved_after_done_ack(self):
+        leaf_spec, torch, report_r, original = self.leaf_setup()
+        leaf_spec['target_sha256'] = self.source(b'import torch\ntorch.cuda._lazy_init()\nraise SystemExit(1)\n')
+        with patch.object(w, 'parent_death_signal'), patch.dict(sys.modules, torch=torch), patch.object(w, 'cuda_uuid', return_value=w.UUID), patch.object(w, 'Nvml', return_value=self.nvml()):
+            with self.assertRaises(SystemExit) as error:
+                w.leaf(leaf_spec)
+        self.assertEqual(error.exception.code, 1)
+        receipts = [json.loads(row) for row in os.read(report_r, 4096).splitlines()]
+        self.assertEqual(w.validate_finished(receipts[-1], os.getpid(), w.UUID, 1234), 1)
+
+    def test_original_target_exception_not_converted_to_finished(self):
+        leaf_spec, torch, report_r, original = self.leaf_setup()
+        leaf_spec['target_sha256'] = self.source(b'import torch\ntorch.cuda._lazy_init()\nraise RuntimeError("target_failed")\n')
+        with patch.object(w, 'parent_death_signal'), patch.dict(sys.modules, torch=torch), patch.object(w, 'cuda_uuid', return_value=w.UUID), patch.object(w, 'Nvml', return_value=self.nvml()):
+            with self.assertRaisesRegex(RuntimeError, 'target_failed'):
+                w.leaf(leaf_spec)
+        self.assertEqual(len(os.read(report_r, 4096).splitlines()), 2)
+
+    def test_finished_exact_identity_and_status(self):
+        done = dict(phase='TARGET_FINISHED', returncode=1, container_pid=123,
+                    host_pid=456, cuda_uuid=w.UUID, allocation_bytes=w.ALLOCATION_BYTES)
+        self.assertEqual(w.validate_finished(done, 123, w.UUID, 456), 1)
+        for change in ({'phase': 'DONE'}, {'returncode': True}, {'returncode': -1}, {'returncode': 256},
+                       {'container_pid': 124}, {'host_pid': 789}, {'cuda_uuid': 'GPU-other'},
+                       {'allocation_bytes': 0}, {'extra': 1}):
+            with self.subTest(change=change), self.assertRaises(w.Rejected):
+                w.validate_finished({**done, **change}, 123, w.UUID, 456)
 
     def test_wrong_cuda_uuid_cannot_bind(self):
         leaf_spec, torch, report_r, original = self.leaf_setup()
@@ -160,13 +204,17 @@ class WatchTests(unittest.TestCase):
         with patch.object(w, 'Nvml') as observer, self.assertRaises(w.Rejected): w.main(['--enable', *arguments])
         observer.assert_not_called()
 
-    def test_completed_nonzero_leaf_returncode_and_exit_race(self):
+    def run_parent(self, *, empty_before_done=False, finish_seconds=10, actual_code=1):
         digest = self.source(); host_pid, child_pid = 7654, 4321
-        child = types.SimpleNamespace(pid=child_pid, returncode=1, poll=Mock(side_effect=[None, None, None, 1]))
+        child = types.SimpleNamespace(pid=child_pid, returncode=actual_code,
+                                      poll=Mock(side_effect=[None, None, None, None, actual_code]))
         own = [(host_pid, w.ALLOCATION_BYTES)]
-        observer = types.SimpleNamespace(rows=Mock(side_effect=[[], [], [], own, own, []]))
+        observer = types.SimpleNamespace(rows=Mock(side_effect=[[], [], [], own, own,
+                                         [] if empty_before_done else own, own, []]))
         messages = [dict(phase='BEGIN_INIT', container_pid=child_pid),
-                    dict(container_pid=child_pid, host_pid=host_pid, cuda_uuid=w.UUID, allocation_bytes=w.ALLOCATION_BYTES)]
+                    dict(container_pid=child_pid, host_pid=host_pid, cuda_uuid=w.UUID, allocation_bytes=w.ALLOCATION_BYTES),
+                    dict(phase='TARGET_FINISHED', returncode=1, container_pid=child_pid,
+                         host_pid=host_pid, cuda_uuid=w.UUID, allocation_bytes=w.ALLOCATION_BYTES)]
         fixed = w.dt.datetime(2026, 10, 9, 1, 0, tzinfo=w.dt.timezone.utc)
         clock = Mock(wraps=w.dt.datetime); clock.now.return_value = fixed
         output = self.root / 'watch.jsonl'
@@ -177,13 +225,39 @@ class WatchTests(unittest.TestCase):
              patch.object(w.Path, 'is_file', return_value=True), patch.object(w.dt, 'datetime', clock), \
              patch.object(w.tempfile, 'tempdir', str(self.root)), \
              patch.object(w, 'Nvml', return_value=observer), patch.object(w.subprocess, 'Popen', return_value=child), \
+             patch.object(w, 'FINISH_SECONDS', finish_seconds), \
              patch.object(w.select, 'select', return_value=([1], [], [])), patch.object(w.time, 'sleep'), \
              patch.object(w.os, 'read', side_effect=[(json.dumps(m) + '\n').encode() for m in messages]), \
-             patch.object(w.os, 'write', return_value=1), patch.object(w.os, 'killpg') as kill:
-            self.assertEqual(w.main(argv), 1, output.read_text() if output.exists() else 'no receipt')
+             patch.object(w.os, 'write', return_value=1) as write, patch.object(w.os, 'killpg') as kill:
+            result = w.main(argv)
+        return result, [json.loads(row) for row in output.read_text().splitlines()], kill, write
+
+    def test_completed_nonzero_leaf_done_ack_then_empty_teardown(self):
+        result, receipts, kill, write = self.run_parent()
+        self.assertEqual(result, 1, receipts)
         kill.assert_not_called()
-        receipt = json.loads(output.read_text().splitlines()[-1])
-        self.assertEqual((receipt['status'], receipt['returncode']), ('COMPLETE', 1))
+        self.assertEqual([call.args[1] for call in write.call_args_list], [b'0', b'1', b'2'])
+        self.assertIn('TARGET_FINISHED_ACK', [row['status'] for row in receipts])
+        self.assertEqual((receipts[-1]['status'], receipts[-1]['returncode']), ('COMPLETE', 1))
+
+    def test_empty_query_before_done_rejected_without_ack(self):
+        result, receipts, kill, write = self.run_parent(empty_before_done=True)
+        self.assertEqual(result, 2)
+        self.assertEqual(receipts[-1]['reason'], 'sole_live_compute_process_required')
+        self.assertEqual([call.args[1] for call in write.call_args_list], [b'0', b'1'])
+        kill.assert_called_once_with(123, w.signal.SIGTERM)
+
+    def test_finished_child_teardown_is_bounded(self):
+        result, receipts, kill, write = self.run_parent(finish_seconds=0)
+        self.assertEqual(result, 2)
+        self.assertEqual(receipts[-1]['reason'], 'target_finished_exit_timeout')
+        kill.assert_called_once_with(123, w.signal.SIGTERM)
+
+    def test_finished_exit_code_must_match_actual_child(self):
+        result, receipts, kill, write = self.run_parent(actual_code=0)
+        self.assertEqual(result, 2)
+        self.assertEqual(receipts[-1]['reason'], 'target_finished_exit_code_mismatch')
+        kill.assert_called_once_with(123, w.signal.SIGTERM)
 
     def test_bootstrap_real_main_inert_for_cpu_spawn(self):
         # A fake Torch module proves CPU spawn, not CUDA correctness or ownership.

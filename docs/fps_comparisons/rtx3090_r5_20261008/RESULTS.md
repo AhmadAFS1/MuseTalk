@@ -815,3 +815,36 @@ The guarded native-v1 serial T2 benchmark is running on the actual420W host,
 with canonical six-avatar composition, loops24, at least60-second windows and
 120-second thermal preconditioning. This isolates host capability; nativev1's
 existing quality rejection remains in force even if throughput improves.
+
+## October 9, 02:13 UTC checkpoint
+
+The prior 420W-host test ended INVALID at01:58:04UTC: the frozen historical
+worker lacks two diagnostic fields expected by the newer renderer. No valid
+measured windows were reported. It also exposed a CUDA teardown observation
+race; this is not a400FPS measurement or evidence of a pixel-quality failure.
+
+A default-off reporting adapter now adds only `tracking_overlap=false` and
+the truthful serial timing description to already-completed worker messages.
+The original worker/renderer bytes, frames, hashes and timing values are unchanged.
+The ownership watcher now authenticates target completion with the retained
+CUDA allocation still live, then requires a matching process exit within10s.
+All foreign-workload checks before target completion remain strict. Adapter+
+watcher passed35CPU tests; the canonical original watchdog remains unchanged.
+
+After re-reading all878 inputs and verifying their metadata-only ancestry,
+fresh native-v1 T2 launched at02:12:45UTC as guard22132, operator session28807.
+It is running the original six-avatar workload with loops24, two at-least60s
+windows and120s thermal preconditioning. The GPU's420W default was not changed.
+Native-v1 remains quality-rejected regardless of this diagnostic's speed.
+The bound02:45UTC expiry remains active; Docker/full698/startup are not accepted.
+
+That first adapter attempt stopped before CUDA enrollment because the inert
+watch bootstrap does not automatically add the helper directory to `sys.path`.
+The adapter now resolves its checked helper directory explicitly; an isolated
+subprocess regression test covers that launch mode. Adapter+watch tests pass36.
+The failure is preserved, not counted as a performance measurement.
+
+Fresh T3 launched02:14:58UTC (operator14316, guard22451) after another878-file
+ancestry verification. The watcher bound the actual retained native CUDA context
+to hostPID752608; the canonical native decoder loaded with exact probe and no
+build. This is verified running work, not yet a throughput/quality acceptance.
