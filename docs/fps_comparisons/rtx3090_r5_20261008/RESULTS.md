@@ -29,7 +29,10 @@ executes the exact bytes whose SHA is checked at execution time. Real CPU spawn
 tests also verify that workers do not import GPU code or re-import unchecked
 launcher source. Focused child22/parent19 tests passed; the
 [final operator CPU run](harnesses/candidate_routing_cpu_0031.json) passed246/257
-with eleven explicit dependency skips. Linux CI is pending for this new revision.
+with eleven explicit dependency skips. The exact `2d8623e` revision subsequently
+[passed Linux CI](harnesses/candidate_routing_linux_ci_0034.json) at 00:33:49 UTC:
+246 passes, eleven explicit dependency skips, and zero failures among257 tests.
+CPU contracts and mock GPU calls do not establish actual precision, quality or FPS.
 No original decoder/gate/default/698-bound changes occurred.
 
 The [metadata recovery check](harnesses/original_metadata_recovery_check_0016.json)

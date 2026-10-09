@@ -1,0 +1,33 @@
+{
+  "schema": "musetalk_lightweight_cpu_ci_readback_v1",
+  "status": "PASS_CPU_CONTRACTS_WITH_EXPLICIT_DEPENDENCY_SKIPS",
+  "head_sha": "2d8623e90bac3a675d4841f88dcb6186245194e0",
+  "workflow": "MuseTalk ordered tracking CPU contracts",
+  "run_id": 37865297100,
+  "run_attempt": 1,
+  "job_id": 113610465880,
+  "url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37865297100",
+  "completed_utc": "2026-10-09T00:33:49Z",
+  "observation_method": "Read-only public GitHub run/jobs REST metadata and established protected-host gh API for the exact job log",
+  "job_log_sha256": "503f517ec155783be01d2ceff59f0e6e5553078aeae485d9744a37d1f5d98afd",
+  "job_log_bytes": 60165,
+  "tests_run": 257,
+  "tests_passed": 246,
+  "tests_dependency_skipped": 11,
+  "tests_failed_or_errored": 0,
+  "child_launcher_suite": {"tests_run": 22, "tests_passed": 22},
+  "quality_adapter_suite": {"tests_run": 19, "tests_passed": 19},
+  "startup_observer_suite": {"tests_run": 26, "tests_passed": 26},
+  "explicit_dependency_skips": {
+    "avatar_latent_candidate_numpy": 3,
+    "taesd_final_conv_fp32_real_onnx_numpy": 7,
+    "taesd_fp32_candidate_runtime_real_onnx_regeneration": 1
+  },
+  "source_sha256_evidence": "candidate_routing_cpu_0031.json",
+  "only_lightweight_workflow_triggered": true,
+  "gpu_and_tensorrt_execution_in_tests": "Mocked only",
+  "remote_file_writes_or_gpu_actions": false,
+  "numerical_skips_counted_as_executed_proof": false,
+  "quality_or_throughput_accepted": false,
+  "release_ready": false
+}
