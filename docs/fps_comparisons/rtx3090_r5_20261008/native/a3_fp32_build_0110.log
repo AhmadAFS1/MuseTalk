@@ -1,0 +1,6 @@
+[box_guard 01:08:31] GPU lease acquired after 10s with a quiet GPU (label: 3090_a3_fp32_0110_a3_fp32_build_0110)
+[box_guard 01:08:31] before: avail=120.59GB oom_kill=0 disk_free=123.25GB shm=0_used_of_62G load1=0.03 gpu[util%,memMiB,totMiB,smMHz,W,C]=0,1,24576,210,27.98,39
+[box_guard 01:08:31] running: /workspace/.venvs/musetalk_trt_stagewise/bin/python /workspace/MuseTalk/scripts/repro_3090/watch.py --out /workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/native/a3_fp32_build_0110.gpu_watch.jsonl -- /workspace/.venvs/musetalk_trt_stagewise/bin/python /workspace/MuseTalk/scripts/repro_3090/build_owned_taesd_fp32_a3.py --execute
+INVALID: foreign GPU workload or observer failure
+[box_guard 01:08:34] after:  avail=120.14GB oom_kill=0 disk_free=123.24GB shm=0_used_of_62G load1=0.11 gpu[util%,memMiB,totMiB,smMHz,W,C]=3,402,24576,1800,102.50,42
+[box_guard 01:08:34] done: rc=143 (child rc=143) elapsed=3.2s lease_wait=10s min_avail=119.52GB peak_group_rss=1.96GB oom_kill 0->0 verdict=ok

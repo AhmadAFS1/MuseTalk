@@ -1,0 +1,43 @@
+{
+  "schema": "inspection_lineage_linux_cpu_ci_observation_v1",
+  "commit": "2bd91269a3336d7db93057f80d1392a631309e03",
+  "workflow": "MuseTalk ordered tracking CPU contracts",
+  "run_id": 37867412893,
+  "run_attempt": 1,
+  "job_id": 113617348200,
+  "job_name": "cpu-contracts",
+  "status": "completed",
+  "conclusion": "success",
+  "completed_utc": "2026-10-09T00:59:12Z",
+  "primary_url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37867412893/job/113617348200",
+  "run_url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/37867412893",
+  "tests": {
+    "total": 283,
+    "passed": 272,
+    "explicit_dependency_skips": 11,
+    "failures": 0,
+    "metadata_lineage": {"total": 18, "passed": 18, "skipped": 0},
+    "candidate_runtime": {"total": 33, "passed": 32, "skipped": 1},
+    "candidate_child": {"total": 22, "passed": 22, "skipped": 0},
+    "candidate_quality_wrapper": {"total": 19, "passed": 19, "skipped": 0},
+    "skip_reasons": {
+      "avatar_array_tests_numpy_unavailable": 3,
+      "transformer_actual_onnx_numpy_unavailable": 7,
+      "runtime_actual_onnx_numpy_regeneration_unavailable": 1
+    },
+    "suite_totals_in_log_order": [9, 28, 14, 3, 22, 4, 14, 25, 19, 13, 14, 33, 22, 19, 18, 26]
+  },
+  "raw_job_log": {
+    "bytes": 64677,
+    "sha256": "64da9b1bf47ee47487ce327d760c04d232216603adf1634f4739673ca1690b09",
+    "method": "Existing approved gh API GET for the exact job log; bytes hashed and unittest summaries parsed in memory"
+  },
+  "status_source": "Read-only public GitHub API for the exact commit, then the fixed run and job handles",
+  "workflow_dispatched_by_observer": false,
+  "remote_mutations": false,
+  "gpu_execution": false,
+  "quality_accepted": false,
+  "performance_accepted": false,
+  "release_ready": false,
+  "scope": "Linux CPU contracts only; dependency skips are not passes and this does not establish actual graph, TensorRT engine, full quality gate, performance, or deployment acceptance"
+}

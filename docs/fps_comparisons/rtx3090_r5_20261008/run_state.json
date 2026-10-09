@@ -1,7 +1,29 @@
 {
   "schema": "rtx3090_r5_execution_v1",
   "run_id": "rtx3090_r5_20261008",
-  "phase": "a3_created_booting_at_observed_420w_candidate_gpu_pending",
+  "phase": "a3_inputs_restored_metadata_lineage_verified_single_leaf_watch_implementation",
+  "current_experiment": {
+    "instance_id": 54939993,
+    "source_revision": "2bd91269a3336d7db93057f80d1392a631309e03",
+    "builder_source": "scripts/repro_3090/build_owned_taesd_fp32_a3.py",
+    "builder_sha256": "e74b2b7cf056488ebe9697a0c5af829081521f1f774469565653d57a91b7d2ae",
+    "first_build_attempt": "native/a3_fp32_build_0110.child.json",
+    "first_build_returncode": 143,
+    "first_build_result": "INVALID before export: NVML host PID714396 not visible in container /proc; canonical watchdog stopped owned group. No foreign workload identity established, no candidate engine or numerical result.",
+    "metadata_lineage_receipt": "quality/a3-metadata-lineage-v1.json",
+    "metadata_lineage_receipt_sha256": "16b252f9006c8888fabe82e026872e998ef4c2e958da8c02db876aa6e13a3bf4",
+    "metadata_lineage_preregistered_utc": "2026-10-09T01:11:52.004622+00:00",
+    "metadata_lineage_verified_utc": "2026-10-09T01:13:28.531793+00:00",
+    "metadata_lineage_verification": "provisioning/a3_metadata_lineage_verified_0116.json",
+    "metadata_lineage_verification_sha256": "4ef97d980f4e36df2a59fac379d9af59e75afc02f5422aae9b3a418345780f09",
+    "direct_driver_mapping_probe": "provisioning/a3_rm_pid_mapping_probe_0115.json",
+    "direct_driver_mapping_result": "FAILED_CLOSED: controlstatus74, ownPID sentinel unchanged, ownclient freed. No guessed PID accepted.",
+    "successor_inputs_sha256": "d9e29bd7be260381c50ab35200bc9197c95ab1d07a0363265354e57953ec03c4",
+    "successor_envelope_sha256": "e8299227d00d745dfc7419170b4f74469a0bfd8e4a1a708f70fca36ca159c6e8",
+    "original_698_bounds_changed": false,
+    "quality_accepted": false,
+    "performance_accepted": false
+  },
   "status": "in_progress",
   "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
   "branch": "codex/rtx3090-r5-delivery",
@@ -92,7 +114,11 @@
     "Boundexpirydeadline hardening andoptionalinitializedledger resource_deadline_utc implemented; malformed/mismatched deadlines fail beforecredentials/provider, boundUTC120s-24h andexistingledger cannotrebind; legacyabsence preserved.26startupCPUtestsPASS. Notyetdeployed; initialization isnotaninstalledtimer orpurchaseauthorization.",
     "Finalselected15suite operatorCPU00:30:49-53UTC257tests246PASS11explicitdependencySKIP0FAIL onPython3.14.7. Canonicaldecoder/gate/qualityhelper/frozen878manifest/698bounds exacthashes unchanged; sourcepins andreview savedcandidate_routing_cpu_0031.json. Exact2d8623eLinuxCI37865297100 PASS00:33:49UTC246PASS11explicitdependencySKIP0FAIL; candidate_routing_linux_ci_0034.json. MockCPUcontracts only, noGPUquality/FPSacceptance.",
     "Read-onlymetadatarecovery00:16UTC onprotected4070 found0/12 originaldownloadmetadata matches,10mismatch/2missing; historicalworker exactGitblob verified. Knownoffhostarchive inventories donotproveoldmetadata bytes; recoveryUNKNOWNnotgloballyimpossible. Nooriginal878PASSclaimed; exactrestoration orexplicitpreregisteredlineage retainingoriginalbounds stillneeded.",
-    "Freshcorrectedoffersearch00:15UTC found5eligible advertised3090offers within$.30/h150GB andboth$1.50/TB caps, withoutunneeded350W/12CPU/strict32GB/2Gbps filters. BestadvertisedFlorida machine143947$.294444/h,$0transfer,2120.7Mbps; actualpower/resourcesunknown. Discoveryisstale,nopurchase. EC2read-only00:22UTCactualproduction970fa989 cleantracked; ownedA1/A2absent,sharedreserve12.717528unchangednotbilling."
+    "Freshcorrectedoffersearch00:15UTC found5eligible advertised3090offers within$.30/h150GB andboth$1.50/TB caps, withoutunneeded350W/12CPU/strict32GB/2Gbps filters. BestadvertisedFlorida machine143947$.294444/h,$0transfer,2120.7Mbps; actualpower/resourcesunknown. Discoveryisstale,nopurchase. EC2read-only00:22UTCactualproduction970fa989 cleantracked; ownedA1/A2absent,sharedreserve12.717528unchangednotbilling.",
+    "A3 created exactlyonce through EC2 at00:44:55UTC after bound02:45UTC expiry timer readback and$2reservation. ActualRTX3090sm86/driver595.91.07/default420W, no power setter. Source-install HTTP200 healthy observed00:53:51.795552UTC (~536.865s fromrequest), not image/usablecall/60s acceptance. OwnedAPI/TURN stopped00:55, noGPU workload afterward.",
+    "FreshA3 reference audit01:05:07UTC verified18/18 canonical source_raw/standard_raw/refined_raw videos acrosssixavatars with exact4070manifestSHA/size. Nativev1 diagnosticbundle restored but remains rejected. Exact2bd9126LinuxCI37867412893 SUCCESS272PASS/11dependencySKIP/0FAIL; actualA3 CPU realONNX14PASS andruntime33PASS/0skip, noTensorRT arithmetic/quality/FPS acceptance.",
+    "A3 CPU-only prerequisites restored: authenticSyncNet payloadSHA38fa63ba exact, historicalworker2e6e88fb exact with935fcd94 backup, isolated canonicalMediaPipe0.10.9 matchesall11frozenfiles (0.10.14 rejected10/11). Full878audit866nonmetadataexact/12genuineETag-boundmetadatachanges. Metadata-only successor preregistered01:11:52UTC retainingall698originalbounds, originals unchanged, no candidate results consumed.",
+    "FirstA3 FP32finalConv build guard/watch launched01:08:31UTC thenINVALID143beforeexport: NVMLhostPID714396 cannot be resolved in containerPIDnamespace. Groupstopped andGPUemptyverified. Originalwatch unchanged; precise driver-provided ownPIDmapping underCPU-only investigation, no arbitrarysinglePID allowlist or400/quality acceptance."
   ],
   "budget": {
     "currency": "USD",
@@ -209,8 +235,12 @@
       "vast_id": 54939993,
       "label": "musetalk-r5-3090-dev-20261009-a3",
       "machine_id": 143947,
-      "resource_state": "provider_running_bootstrap_pending",
-      "source_revision": "2d8623e90bac3a675d4841f88dcb6186245194e0",
+      "resource_state": "running_owned_server_stopped_for_isolated_experiments",
+      "source_revision": "2bd91269a3336d7db93057f80d1392a631309e03",
+      "historical_worker_restored_sha256": "2e6e88fbe106ca964b2b5e31af44203ce5dff201eb2c37436726b65520cc447b",
+      "health_first_observed_utc": "2026-10-09T00:53:51.795552+00:00",
+      "request_to_observed_health_seconds": 536.86478,
+      "usable_call_readiness_verified": false,
       "expiry_utc": "2026-10-09T02:45:00+00:00",
       "expiry_timer_active_verified_before_create": true,
       "bound_ledger_deadline": true,
@@ -853,6 +883,6 @@
     "historical_sla_not_a_new_health_pass": true,
     "quality_bounds_or_400fps_threshold_changed": false
   },
-  "next_action": "Scopedcandidatechild+qualityadapter rootandpeerreview done;257operatorCPUtests246PASS11depsSKIP, exact2d8623eLinuxCI PASS246/257with11explicitdepsSKIP. FreshA3preflight/re-resolvebesteligibleoffer/cost caps/currentEC2contract; deployonlyprivateoperatorhelpers, bindfreshledgerdeadline, installandreadbackexacttimer beforeoneEC2create. Actualgraphbuild/precision/full448gate/88TAESDassessment andfull698quality+allsixnewcache+T/SUST stillrequired. OriginalmetadatarecoveryUNKNOWN; original878failure cannotrelabeled, useexactrestoration orexplicitpreregisteredcomparisonlineage preservingoriginalbounds. Canonicalcode/defaults/4070/productionunchanged; native236/698qualityFAIL and355.4-356.6validFAIL400 remain.",
-  "next_command": "ExactlightweightLinuxCI passed; finishprivateA3preflight and reverifyfresh<=300soffer/currentEC2rev970fa989notold171e, conservativeallhourly/transfer/storage/sharedbudget/timer checks beforeonecreate. NoownedGPUlive; neverSSHretiredA2. Noledger/timer/reservation/A3createyet. Registry namespace/login unresolved; existingquestionpending,no secretsrequested."
+  "next_action": "ReviewandCPUtest explicitdefault-off singleGPUleaf ownershipwatch undercanonicalbox_guard. Originalwatchunchanged. Native non-MPS retainedownCUDAcontext + sameUUID successfulCOMPLETE NVMLactivecontext enumeration ofexactlyonePID provesownPID; requireparentprivatepipe ACK/lifetimebinding andcontinuousforeign/error checks. CUDAinit hook deferreduntiloriginalleaf firstinitialization (afterrendererCPUspawn). Noactualimplementation/GPUproofyet. ThenfreshFP32build/full448gate/unchanged88bounds/full698quality/all6newlatents/T2/SUST5 at420W. Preserveoriginalfailures, archivebefore02:45expiry.",
+  "next_command": "A3 remainsrunning/APIstopped/GPUempty. Precisionagent implementing watch_owned_single_leaf.py+CPUtests; mainmustreviewwholefile/sourcepins/exactNVMLv3ABI, nonMPS/privatepipe/UUID/lifetime andinertCPUspawn beforeGPU. GPU74876terminal143; preserveold0110partialoutput/logs/sourcee74b, usefreshbuildoutput. DriverownPIDqueryfailedstatus74. MetadataancestryverifyPASS01:13:28/all878. ActualA3CPU14+33PASS01:19:49. A4read-onlyoffersproof saved; noeligibleVMoffers/nohostPIDflagestablished, NOnewreservation/purchase. NeverSSHretiredA1/A2; protected4070/EC2productionunchanged."
 }

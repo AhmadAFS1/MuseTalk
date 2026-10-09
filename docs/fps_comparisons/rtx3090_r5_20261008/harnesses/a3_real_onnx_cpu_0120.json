@@ -1,0 +1,41 @@
+{
+  "schema": "a3_real_onnx_cpu_contracts_v1",
+  "instance_id": 54939993,
+  "started_utc": "2026-10-09T01:19:48.755401+00:00",
+  "finished_utc": "2026-10-09T01:19:49.367151+00:00",
+  "tests": [
+    {
+      "module": "scripts.repro_3090.test_taesd_final_conv_fp32",
+      "returncode": 0,
+      "log_sha256": "c3d57513eee69e02de44f8c8f5e992dde42213c72ef22863b584a1cc424366df",
+      "summary": [
+        "",
+        "----------------------------------------------------------------------",
+        "Ran 14 tests in 0.105s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "module": "scripts.repro_3090.test_taesd_fp32_candidate_runtime",
+      "returncode": 0,
+      "log_sha256": "925f4752a8315e8d6eec12cf743fea39c4620e1f1d46c93af8affe683761003f",
+      "summary": [
+        "",
+        "----------------------------------------------------------------------",
+        "Ran 33 tests in 0.343s",
+        "",
+        "OK"
+      ]
+    }
+  ],
+  "counts": {
+    "passed": 47,
+    "skipped": 0,
+    "failed": 0
+  },
+  "gpu_compute_apps_after": [],
+  "actual_trt_build_or_arithmetic_tested": false,
+  "quality_accepted": false,
+  "performance_accepted": false
+}

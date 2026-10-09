@@ -1,0 +1,77 @@
+{
+  "schema": "readonly_vast_offer_discovery_v1",
+  "observed_at_utc": "2026-10-09T01:20:04.689333+00:00",
+  "valid_for_seconds": 300,
+  "revalidate_before_any_purchase": true,
+  "cloud_writes": false,
+  "instances_created_reserved_or_modified": false,
+  "source": "Existing EC2 production VastClient.search_offers, credentials loaded in memory without output",
+  "excluded_machine_ids": [142138, 143947, 153039],
+  "query": {
+    "type": "ondemand", "verified": {"eq": true}, "rentable": {"eq": true},
+    "rented": {"eq": false}, "gpu_name": {"eq": "RTX 3090"}, "num_gpus": {"eq": 1},
+    "cpu_cores_effective": {"gte": 8}, "disk_space": {"gte": 150}, "allocated_storage": 150,
+    "dph_total": {"lte": 0.30}, "inet_down_cost": {"lte": 0.00146484375},
+    "inet_up_cost": {"lte": 0.00146484375}, "reliability": {"gte": 0.90},
+    "duration": {"gte": 86400}, "order": [["dph_total", "asc"]], "limit": 200
+  },
+  "returned_count": 8,
+  "eligible_after_exclusions_and_numeric_cost_recheck": 7,
+  "cost_formula": "max(dph_base + storage_cost * 150 / 720, dph_total, dph_total_adj, discounted_total_per_hour when present)",
+  "cost_units": "USD; storage_cost is provider per-GB-month; internet costs below are provider per-GB rates multiplied by 1024",
+  "limitations": [
+    "Advertisements are not actual measured clock, allocated resources, throughput, power permission, or CUDA compatibility.",
+    "No returned replacement has advertised download >=2000 Mbps.",
+    "No additional RAM or network speed hard minimum was imposed; all actual values are reported. Machine48962 is below32GB;152018 is31995MB.",
+    "Shared-memory capacity and host-PID/container-PID compatibility are UNKNOWN for all candidates.",
+    "Changing host or driver does not establish safety-watch compatibility; a future owned instance still requires the unchanged ownership probe.",
+    "Driver535.288.01 and565.77 require explicit workload/CUDA compatibility review before selection; no such test was performed."
+  ],
+  "offers": [
+    {"offer_id":51780145,"machine_id":17472,"gpu_name":"RTX 3090","num_gpus":1,"verification":"verified","rentable":true,"rented":false,"cpu_name":"AMD Ryzen 7 5800X 8-Core Processor","cpu_cores_effective":8,"cpu_ghz":4.850194800000001,"cpu_ram_mb":32110,"disk_space_gb":223.5,"disk_bw":3897.0,"inet_down_mbps":432.7,"inet_up_mbps":475.2,"inet_down_cost_usd_per_gb":0.0013020833333333333,"inet_up_cost_usd_per_gb":0.0013020833333333333,"each_direction_usd_per_1024gb":1.3333333333333333,"storage_cost":0.19999999999999998,"dph_base":0.17333333333333334,"dph_total":0.215,"dph_total_adj":0.22313802083333334,"all_in_150gb_usd_per_hour":0.22313802083333334,"reliability":0.9945162,"duration_seconds":3256202.46443367,"driver_version":"565.77","gpu_max_power_w":300,"location":"North Macedonia, MK","pcie_bw":12.8},
+    {"offer_id":54166081,"machine_id":143971,"gpu_name":"RTX 3090","num_gpus":1,"verification":"verified","rentable":true,"rented":false,"cpu_name":"AMD Ryzen 5 5500","cpu_cores_effective":12,"cpu_ghz":4.267,"cpu_ram_mb":64100,"disk_space_gb":373,"disk_bw":2533.7000000000003,"inet_down_mbps":943.2,"inet_up_mbps":914.0,"inet_down_cost_usd_per_gb":0.0000013020833333333333,"inet_up_cost_usd_per_gb":0.0000013020833333333333,"each_direction_usd_per_1024gb":0.0013333333333333333,"storage_cost":0.013333333333333334,"dph_base":0.24000000000000002,"dph_total":0.2427777777777778,"dph_total_adj":0.2427859157986111,"all_in_150gb_usd_per_hour":0.2427859157986111,"reliability":0.9976754,"duration_seconds":2500195.46443367,"driver_version":"595.84","gpu_max_power_w":270,"location":"Missouri, US","pcie_bw":12.7},
+    {"offer_id":35571173,"machine_id":53896,"gpu_name":"RTX 3090","num_gpus":1,"verification":"verified","rentable":true,"rented":false,"cpu_name":"AMD Ryzen 9 5950X 16-Core Processor","cpu_cores_effective":32,"cpu_ghz":3.4,"cpu_ram_mb":64221,"disk_space_gb":1485,"disk_bw":4648.988317040952,"inet_down_mbps":213.1,"inet_up_mbps":327.0,"inet_down_cost_usd_per_gb":0.00013020833333333333,"inet_up_cost_usd_per_gb":0.00013020833333333333,"each_direction_usd_per_1024gb":0.13333333333333333,"storage_cost":0.11866666666666664,"dph_base":0.19999999999999998,"dph_total":0.2247222222222222,"dph_total_adj":0.22553602430555555,"all_in_150gb_usd_per_hour":0.22553602430555555,"reliability":0.9970785,"duration_seconds":7205995.46443367,"driver_version":"535.288.01","gpu_max_power_w":350,"location":"Poland, PL","pcie_bw":24.5},
+    {"offer_id":54656263,"machine_id":27359,"gpu_name":"RTX 3090","num_gpus":1,"verification":"verified","rentable":true,"rented":false,"cpu_name":"Xeon E5-2680 v4","cpu_cores_effective":28,"cpu_ghz":3.3,"cpu_ram_mb":32083,"disk_space_gb":240.95,"disk_bw":938.0802702281202,"inet_down_mbps":904.0,"inet_up_mbps":937.7,"inet_down_cost_usd_per_gb":0.0006510416666666666,"inet_up_cost_usd_per_gb":0.0006510416666666666,"each_direction_usd_per_1024gb":0.6666666666666666,"storage_cost":0.17333333333333334,"dph_base":0.16666666666666666,"dph_total":0.20277777777777778,"dph_total_adj":0.20684678819444444,"all_in_150gb_usd_per_hour":0.20684678819444444,"reliability":0.9606011,"duration_seconds":2815613.46443367,"driver_version":"570.133.20","gpu_max_power_w":350,"location":"Ontario, CA","pcie_bw":11.3},
+    {"offer_id":52441518,"machine_id":152018,"gpu_name":"RTX 3090","num_gpus":1,"verification":"verified","rentable":true,"rented":false,"cpu_name":"Xeon E5-2630 v4","cpu_cores_effective":20,"cpu_ghz":3.1,"cpu_ram_mb":31995,"disk_space_gb":464,"disk_bw":2493.0,"inet_down_mbps":699.4,"inet_up_mbps":472.8,"inet_down_cost_usd_per_gb":0.0,"inet_up_cost_usd_per_gb":0.0,"each_direction_usd_per_1024gb":0.0,"storage_cost":0.1333333333333333,"dph_base":0.18666666666666668,"dph_total":0.21444444444444444,"dph_total_adj":0.21444444444444444,"all_in_150gb_usd_per_hour":0.21444444444444444,"reliability":0.9871728,"duration_seconds":2677683.9261016846,"driver_version":"595.91.07","gpu_max_power_w":350,"location":"United Arab Emirates, AE","pcie_bw":10.6},
+    {"offer_id":46739600,"machine_id":114019,"gpu_name":"RTX 3090","num_gpus":1,"verification":"verified","rentable":true,"rented":false,"cpu_name":"Xeon E5-2683 v4","cpu_cores_effective":21.333333333333332,"cpu_ghz":3.0,"cpu_ram_mb":42935,"disk_space_gb":432.3333333333333,"disk_bw":3364.0,"inet_down_mbps":895.5,"inet_up_mbps":933.1,"inet_down_cost_usd_per_gb":0.0013020833333333333,"inet_up_cost_usd_per_gb":0.0013020833333333333,"each_direction_usd_per_1024gb":1.3333333333333333,"storage_cost":0.19999999999999998,"dph_base":0.17333333333333334,"dph_total":0.215,"dph_total_adj":0.22313802083333334,"all_in_150gb_usd_per_hour":0.22313802083333334,"reliability":0.9957118,"duration_seconds":1492795.46443367,"driver_version":"595.58.03","gpu_max_power_w":300,"location":"Hungary, HU","pcie_bw":11.0},
+    {"offer_id":28195556,"machine_id":48962,"gpu_name":"RTX 3090","num_gpus":1,"verification":"verified","rentable":true,"rented":false,"cpu_name":"AMD EPYC 7R32 48-Core Processor","cpu_cores_effective":24,"cpu_ghz":2.8,"cpu_ram_mb":28130,"disk_space_gb":192.5,"disk_bw":1095.2,"inet_down_mbps":943.8,"inet_up_mbps":883.9,"inet_down_cost_usd_per_gb":0.0013020833333333333,"inet_up_cost_usd_per_gb":0.0013020833333333333,"each_direction_usd_per_1024gb":1.3333333333333333,"storage_cost":0.3333333333333333,"dph_base":0.14666666666666667,"dph_total":0.2161111111111111,"dph_total_adj":0.22424913194444443,"all_in_150gb_usd_per_hour":0.22424913194444443,"reliability":0.9733629,"duration_seconds":14979806.46443367,"driver_version":"580.95.05","gpu_max_power_w":300,"location":"United States, US","pcie_bw":16.6}
+  ],
+  "pid_namespace_review": {
+    "supported_host_pid_request": "NOT_ESTABLISHED",
+    "create_api_schema": "https://docs.vast.ai/api-reference/instances/create-instance",
+    "docker_options_documentation": "https://docs.vast.ai/guides/instances/docker-environment",
+    "current_cli_commit": "485c97497e1fb6434d95cd8d53b489645688747a",
+    "current_cli_api_source": "https://github.com/vast-ai/vast-cli/blob/485c97497e1fb6434d95cd8d53b489645688747a/vastai/api/instances.py",
+    "current_cli_api_sha256": "0fe3dcddd971e38f5d48cf5d20a8704c9a4e5afbdb6888e7846042ea332fca77",
+    "current_cli_parser_source": "https://github.com/vast-ai/vast-cli/blob/485c97497e1fb6434d95cd8d53b489645688747a/vastai/utils.py",
+    "current_cli_parser_sha256": "3a1e33711510458a199710e2bbf7baebb6dacdd0759b8287b61f076f035ef7c7",
+    "findings": [
+      "Documented create schema has runtype launch modes, env, onstart, entrypoint args, and vm; no pid/pid_mode/host_pid field.",
+      "Current CLI parse_env recognizes -e,-p,-h,-v,-n only; --pid=host is not a recognized option.",
+      "Current CLI API does transmit a separate extra field; CLI --extra help is suppressed. That establishes a transport field, not provider permission/support for Docker --pid=host.",
+      "The official SkyPilot article describes extra as Docker-run arguments using --shm-size as an example; it does not document a host-PID exception.",
+      "Onstart runs inside an already-created container; changing a normal environment variable or runtype is not proof of changing its PID namespace.",
+      "No create request, dry-run create, guessed env key, host namespace operation, or safety bypass was attempted. Provider-confirmed support would be needed before relying on shared host PID."
+    ],
+    "vm_route": {
+      "documentation": "https://docs.vast.ai/guides/instances/virtual-machines",
+      "documented_rest_create_field": {"vm": true},
+      "documented_offer_filter": {"vms_enabled": {"eq": true}},
+      "documented_image_requirement": "All VM templates must use docker.io/vastai/kvm images; example docker.io/vastai/kvm:ubuntu_terminal",
+      "documented_launch_mode": "SSH only",
+      "unsupported_or_unestablished_alias": "use_vm",
+      "current_sdk_create_function_vm_parameter": "Absent from reviewed current SDK function; REST schema explicitly documents vm boolean",
+      "tradeoffs": ["Slower creation/boot", "Higher disk overhead", "Smaller host/template selection", "Existing source container template is not a VM image"],
+      "namespace_inference": "A native process inside a GPU-capable VM may remove the outer Docker PID mismatch, but actual NVML/process mapping must still be verified; not claimed established by documentation alone.",
+      "readonly_search": {
+        "observed_at_utc": "2026-10-09T01:22:06.237975+00:00",
+        "valid_for_seconds": 300,
+        "query": "Exactly the top-level query plus vms_enabled eq true, with identical exclusions/cost/resource caps",
+        "returned_count": 0,
+        "postfilter_rejected_count": 0,
+        "eligible_count": 0,
+        "offers": []
+      }
+    }
+  }
+}

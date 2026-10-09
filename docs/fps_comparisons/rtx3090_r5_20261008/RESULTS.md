@@ -741,3 +741,45 @@ unused free full reset. The weekly window resets2026-10-15T11:17:04UTC. These ar
 shared-account limits, not an exact task token budget or a guarantee of completion.
 No reset or credits were consumed. Execution continues with one agent and bounded
 experiments; the $30 infrastructure cap is separate from Codex quota.
+
+## October 9, 01:14 UTC checkpoint
+
+A3 (54939993) was created once through EC2, with a bound 02:45 UTC expiry and
+$2 reservation. Its actual RTX3090 has a 420W default limit; no power setting
+was changed. Source-install health was observed after about 537 seconds, not
+the requested 60-second image boot or usable-call readiness. The owned API and
+TURN were stopped for isolated experiments; production and the 4070 are intact.
+
+All18 canonical reference videos match the saved 4070 hashes. CPU restoration
+now proves all866 nonmetadata inputs exact, including SyncNet, the historical
+worker, and the eleven MediaPipe files from the canonical 0.10.9 wheel. Twelve
+genuine Hugging Face download metadata records have new bytes. A separate
+metadata-only lineage was preregistered at01:11:52UTC; all698 numerical bounds
+and original reference files remain unchanged. This does not accept a candidate.
+
+[Linux CI for 2bd9126](https://github.com/AhmadAFS1/MuseTalk/actions/runs/37867412893)
+passed272 tests with11 explicit dependency skips. ActualA3 CPU tests also passed
+the14 real-ONNX transformer tests and all33 runtime contracts; TensorRT behavior
+is not established by those CPU tests.
+
+The first isolated FP32-final-convolution build was stopped by the unchanged
+watchdog before export: NVML reports hostPID714396, which is outside this
+container's visible PID namespace. The attempt is INVALID, not a quality result.
+Logs and partial fresh output are retained. A precise driver-provided process
+mapping is being investigated; foreign-workload protection is not disabled.
+No new400FPS, quality, image, publication, or startup-SLA pass is claimed.
+
+The exact metadata-lineage verifier independently re-read all878 files at
+01:13:28UTC and passed. The direct driver identity query then failed closed
+(status74, unchanged PID sentinel, own client freed). A fresh alternate-offer
+search found seven budget-eligible advertisements, but no matching VM offers
+and no established host-PID option; none were purchased. Older driver versions
+alone do not prove namespace compatibility.
+
+An explicit single-process ownership watchdog is now being implemented for
+review: a retained real native CUDA context must be present in a successful
+complete NVML enumeration on the same physical GPU; a sole PID therefore
+identifies it. MPS exclusion, exact UUID binding, parent acknowledgment, child
+lifetime binding, and continuous foreign-process rejection are required. It
+will not replace the original watchdog or initialize CUDA in CPU-spawn workers.
+This design is not yet an actual GPU ownership, quality, or performance pass.

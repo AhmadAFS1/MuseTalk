@@ -1,0 +1,26 @@
+{
+  "label": "a3_fp32_build_0110",
+  "returncode": 143,
+  "wall_s": 13.713744561988278,
+  "log": "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/native/a3_fp32_build_0110.log",
+  "command": [
+    "bash",
+    "scripts/box_guard.sh",
+    "run",
+    "--wait-min",
+    "0",
+    "--min-avail-gb",
+    "12",
+    "--label",
+    "3090_a3_fp32_0110_a3_fp32_build_0110",
+    "--",
+    "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+    "/workspace/MuseTalk/scripts/repro_3090/watch.py",
+    "--out",
+    "/workspace/MuseTalk/docs/fps_comparisons/rtx3090_r5_20261008/native/a3_fp32_build_0110.gpu_watch.jsonl",
+    "--",
+    "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+    "/workspace/MuseTalk/scripts/repro_3090/build_owned_taesd_fp32_a3.py",
+    "--execute"
+  ]
+}
