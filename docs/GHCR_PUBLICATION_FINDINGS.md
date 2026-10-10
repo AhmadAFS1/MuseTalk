@@ -664,3 +664,26 @@ increment and test/run result.
 - Added a metadata assembly helper from the exact preserved inputs and a
   [script handoff](VAST_RTX3090_DOCKER_BOOT.md). No full-image dispatch, rental,
   production/template change or startup measurement has happened in this step.
+
+### 21:04 UTC — Source pushed and private build inputs staged
+
+- The new bootstrap/private metadata policy is pushed as
+  `c06624da9d7cebd6aa8f3dd6ad4a0dc8306ec6d6`; GitHub readback matches and the
+  protected 4070 checkout remains unchanged. All 122 local Docker tests pass
+  (one macOS skip), bash syntax and selected-file credential scans pass.
+- Actual metadata roundtrip passes: 26 baked files, 22 notices, four external
+  runtime models, no Kokoro, no promotion. Metadata archive is 83,864 bytes,
+  SHA `944e0bc3a49ab5919c418fa7adf9e49376f0d0870f8817ee978e9b909c36a7bf`.
+- EC2-role conditional metadata PUT was denied. No IAM scope was enlarged:
+  the existing local `lingua-backend-user` uploaded this small approved build
+  input with `If-None-Match:*`, expected owner and AES256 after confirmed 404.
+  EC2 then verified its exact version, fresh complete content and anonymous 403.
+  [Non-secret staging receipt](fps_comparisons/rtx3090_r5_20261008/release/private_candidate_ci_staging_2057.json).
+- EC2 can read exact versions of all three build inputs. Presigned URLs use
+  explicitly regional S3; an initial SDK global-endpoint URL was rejected by
+  the CI allowlist before secret installation and corrected. Three <=1-hour
+  URLs were passed in memory via stdin to the Actions secret setter. No URL,
+  AWS credential, GHCR token or private model bytes were put in Git/logs.
+- Added an exact two-hash task-branch build request. Its push will dispatch the
+  full build and subsequent private publication/independent pull checks. It
+  does not create a GPU or change a production template/autoscaler setting.
