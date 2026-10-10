@@ -49,6 +49,8 @@ EXTERNAL_MODEL_ALLOWLIST = {
     "models/auxiliary/s3fd-619a316812.pth",
     "models/face_detection/s3fd.pth",
 }
+NATIVE_V1_CANDIDATE = "rtx3090-r5-native-v1-candidate"
+NATIVE_V1_RECIPE = "configs/recipes/r5_3090_candidate.env"
 
 
 def require(condition, message):
@@ -155,7 +157,10 @@ def load_manifest(path):
     selected_runtime_base(m)
     require(m.get("platform") == "linux/amd64", "Release must target linux/amd64")
     require(m.get("matrix") == "cu121", "Only validated cu121 is supported")
-    require(m.get("bundle_name") == "rtx3090-r5-srcg50-int8", "Native 3090 descriptor required")
+    allowed_bundles = {"rtx3090-r5-srcg50-int8"}
+    if m["status"] == "candidate":
+        allowed_bundles.add(NATIVE_V1_CANDIDATE)
+    require(m.get("bundle_name") in allowed_bundles, "Native 3090 descriptor required; diagnostic cannot be promoted")
     require(m.get("redistribution_reviewed") is True, "Public redistribution review required")
     require(m.get("avatar_prep") is True, "This full API image requires avatar-prep dependencies")
     require(type(m.get("kokoro")) is bool, "Declare local TTS capability explicitly")
@@ -185,6 +190,14 @@ def load_manifest(path):
     return m
 
 
+def recipe_path(m):
+    if m["bundle_name"] == NATIVE_V1_CANDIDATE:
+        require(m["status"] == "candidate" and m.get("promotion_eligible") is False,
+                "Native-v1 diagnostic recipe cannot be used for a validated release")
+        return NATIVE_V1_RECIPE
+    return "configs/recipes/r5.env"
+
+
 def descriptor(root, m):
     path = Path(root) / "configs/trt_bundles" / (m["bundle_name"] + ".json")
     d = json.loads(path.read_text())
@@ -197,7 +210,10 @@ def descriptor(root, m):
     require(sidecar.startswith(".runtime/trt_artifacts/"), "Unexpected sidecar location")
     require(d.get("engines", {}).get("unet_stagewise", {}).get("batch") == 16, "UNet bs16 required")
     require(d.get("engines", {}).get("taesd_trt", {}).get("batch") == 8, "TAESD bs8 required")
-    recipe = (Path(root) / "configs/recipes/r5.env").read_text()
+    if m["bundle_name"] == NATIVE_V1_CANDIDATE:
+        require(d.get("promotion_eligible") is False and d.get("status") == "candidate",
+                "Diagnostic descriptor must remain explicitly nonpromotable")
+    recipe = (Path(root) / recipe_path(m)).read_text()
     require(m["bundle_name"] in recipe, "r5 recipe does not select native 3090 bundle")
     return d
 
@@ -494,6 +510,7 @@ def policy(m, d):
         "AUTO_SETUP": "0", "SETUP_CLEAN": "0", "SETUP_SELFTEST": "0", "SETUP_MATRIX": "cu121", "SETUP_SKIP_WEIGHTS": "0",
         "SETUP_FULL_STACK": "1", "SETUP_KOKORO": "1" if m["kokoro"] else "0", "SETUP_NATIVE_VP8": "1",
         "MUSETALK_RECIPE": "r5", "MUSETALK_VERIFY_RECIPE": "strict", "MUSETALK_R5_BUNDLE_RESTORE": "baked",
+        "MUSETALK_RECIPE_FILE": "/opt/musetalk/app/" + recipe_path(m),
         "MUSETALK_UNET_ENGINE_PROVISION": "off", "MUSETALK_TAESD_TRT_PROVISION": "off",
         "MUSETALK_UNET_STAGEWISE_PROVISION": "off", "MUSETALK_TAESD_TRT_BUILD": "0",
         "MUSETALK_TAESD_TRT_STRICT": "1", "MUSETALK_UNET_STAGEWISE_VERIFY_SHA": "1",

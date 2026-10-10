@@ -1,0 +1,28 @@
+{
+  "schema": "musetalk_trt_bundle_v1",
+  "name": "rtx3090-r5-native-v1-candidate",
+  "status": "candidate",
+  "promotion_eligible": false,
+  "description": "Preserved native-v1 diagnostic only. The latest A6 six-avatar aggregate is 315.352860 FPS with base latents and 308.571727 FPS with fresh 3090 latents; neither passes 400 FPS. This descriptor is NOT selected by the default r5 recipe and does not grant quality, startup or production acceptance.",
+  "s3_key": "trt-artifacts/rtx3090-r5/native-rejected-diagnostics/sha256/1f766487cf9272929988d17f9a4d6f76ee9c8c8fdde9b149174e1e02dbcafc5e/native-sm86-v1-serving-diagnostic.tar.gz",
+  "sha256": "1f766487cf9272929988d17f9a4d6f76ee9c8c8fdde9b149174e1e02dbcafc5e",
+  "size_bytes": 983926034,
+  "sidecar_dir": ".runtime/trt_artifacts/rtx3090-r5-native-v1-candidate",
+  "host": {
+    "engine_key": "sm86-nvidia-geforce-rtx-3090-trt10.3.0",
+    "gpu_name": "NVIDIA GeForce RTX 3090",
+    "compute_capability": "8.6",
+    "tensorrt_version": "10.3.0"
+  },
+  "engines": {
+    "unet_stagewise": {
+      "cache_dir": "models/tensorrt_unet_stagewise_sm86_r5_v1",
+      "batch": 16
+    },
+    "taesd_trt": {
+      "dir": "models/taesd/trt_native_sm86_r5_v1",
+      "batch": 8,
+      "key": "1e967e6e715c9f1a8375"
+    }
+  }
+}

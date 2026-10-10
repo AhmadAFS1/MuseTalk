@@ -107,6 +107,28 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             release.load_manifest(self.manifest())
 
+    def test_preserved_native_candidate_is_isolated_and_cannot_be_promoted(self):
+        m = {**self.m, "bundle_name": release.NATIVE_V1_CANDIDATE, "status": "candidate",
+             "promotion_eligible": False, "candidate_reason": "Synthetic diagnostic"}
+        self.assertEqual(release.load_manifest(self.manifest(m))["status"], "candidate")
+        self.assertEqual(release.recipe_path(m), release.NATIVE_V1_RECIPE)
+        with self.assertRaises(ValueError):
+            release.load_manifest(self.manifest({**m, "status": "validated"}))
+        with self.assertRaises(ValueError):
+            release.recipe_path({**m, "status": "validated"})
+        repo = Path(__file__).resolve().parents[3]
+        default = (repo / "configs/recipes/r5.env").read_text()
+        candidate = (repo / release.NATIVE_V1_RECIPE).read_text()
+        enabled = lambda text: [line for line in text.splitlines() if line and not line.startswith("#")]
+        self.assertEqual(enabled(default), enabled(candidate))
+        self.assertNotIn(release.NATIVE_V1_CANDIDATE, default)
+        d = json.loads((repo / "configs/trt_bundles" / (release.NATIVE_V1_CANDIDATE + ".json")).read_text())
+        self.assertFalse(d["promotion_eligible"])
+        self.assertEqual(d["sha256"], "1f766487cf9272929988d17f9a4d6f76ee9c8c8fdde9b149174e1e02dbcafc5e")
+        settings = release.policy(m, d)
+        self.assertEqual(settings["MUSETALK_RECIPE_FILE"], "/opt/musetalk/app/" + release.NATIVE_V1_RECIPE)
+        self.assertEqual(settings["LINGUA_CONTROL_PLANE_ENABLED"], "0")
+
     def test_candidate_does_not_implicitly_pass_release_or_register(self):
         self.m.update(status="candidate", promotion_eligible=False, candidate_reason="Synthetic test")
         self.evidence()
@@ -130,7 +152,8 @@ class ReleaseTests(unittest.TestCase):
         unsafe = {"MUSETALK_UNET_STAGEWISE_PROBE_CHECK": "0", "MUSETALK_UNET_STAGEWISE_PROBE_TOL": "0.5",
                   "MUSETALK_TRT_FALLBACK": "1", "MUSETALK_VP8_FALLBACK": "1",
                   "LINGUA_CONTROL_PLANE_ENABLED": "0", "LINGUA_WORKER_CALLBACK_REQUIRED": "0",
-                  "LINGUA_CONTROL_PLANE_ENV_FILE": "/workspace/stale.env", "TURN_ENV_FORCE": "0"}
+                  "LINGUA_CONTROL_PLANE_ENV_FILE": "/workspace/stale.env", "TURN_ENV_FORCE": "0",
+                  "MUSETALK_RECIPE_FILE": "/workspace/stale-recipe.env"}
         descriptor = {"engines": {"unet_stagewise": {"cache_dir": "models/native"}, "taesd_trt": {"dir": "models/taesd"}}}
         with patch.dict(os.environ, unsafe):
             settings = release.policy(self.m, descriptor)

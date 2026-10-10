@@ -5,9 +5,11 @@ fresh-instance boot-latency measurement/rollout, use the
 [Docker fast-startup plan](../../docs/DOCKER_FAST_STARTUP_PLAN.md).
 
 This is an **unbuilt candidate implementation**, not a published image or a claim
-of 400 FPS/startup latency. No real native-3090 descriptor, bundle, registry
-namespace, base digest, or acceptance manifest is invented here. Assembly fails
-until those independently validated inputs exist. Do not point production or
+of 400 FPS/startup latency. The preserved native-v1 archive now has an explicitly
+nonpromotable descriptor and `r5_3090_candidate.env` recipe. Neither is selected
+by the default r5 configuration. Its exact archive/hash and engine paths are
+preserved; this does not invent a validated release manifest. Assembly fails
+until all required reviewed inputs exist. Do not point production or
 the named Vast template at an unvalidated candidate.
 
 ## Runtime contract
@@ -26,6 +28,9 @@ verify before launch. The normal source installer remains unchanged. The image
 forces r5, strict backend verification, exact native probes (zero tolerance),
 native sm86 plans, no engine provisioning, no TAESD builds, no TensorRT/encoder
 fallback, and offline Hugging Face model access.
+The release policy also pins the recipe file, overriding caller/secret values.
+Native-v1 diagnostics are allowed only in the standalone candidate channel;
+they cannot be relabeled as a validated release.
 Release policy is reapplied after runtime secret bootstrap. It never clones,
 pulls, invokes apt/pip, or constructs engines during successful normal boot.
 

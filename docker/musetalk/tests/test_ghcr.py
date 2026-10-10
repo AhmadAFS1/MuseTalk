@@ -80,6 +80,17 @@ class GHCRTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ghcr.scan_layer(self.layer("opt/file.txt", payload), "synthetic")
 
+    def test_layer_root_directory_marker_is_safe_but_absolute_path_is_not(self):
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode="w") as tar:
+            member = tarfile.TarInfo("./")
+            member.type = tarfile.DIRTYPE
+            tar.addfile(member)
+        stream.seek(0)
+        self.assertEqual(ghcr.scan_layer(stream, "synthetic")["regular_files_scanned"], 0)
+        with self.assertRaises(ValueError):
+            ghcr.scan_layer(self.layer("/escape", b"synthetic"), "synthetic")
+
     def test_only_diagnostic_tags_are_supported(self):
         for tag in ("latest", "validated-" + "a" * 40, "candidate-" + "a" * 40, "--bad"):
             with patch.object(ghcr, "command") as run, self.assertRaises(ValueError):

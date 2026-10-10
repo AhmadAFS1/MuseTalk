@@ -64,18 +64,28 @@ or `dependencies`; ordinary helper/docs edits no longer launch duplicate legacy
 dependency builds. Full serving publication/private build-input transport are
 separate remaining steps; the foundation image must not be launched as a worker.
 
-Execution checkpoint (October 9, approximately 8:38 p.m. CDT): implementation
-commit `3e70b1c43553ee47d49eef49c9fe8c3c65e76a2c` is local. GitHub rejected its
-push because the existing OAuth login lacks `workflow` scope. Repository admin/
-push access is verified, but does not supply that credential scope. A GitHub CLI
-device-authorization refresh has been requested; the human must approve the added
-scope. No GHCR package/image or Actions run has been created by this implementation
-yet, and no new AWS resources or production settings were changed.
+Execution checkpoint (October 9, approximately 9:10 p.m. CDT): the human approved
+the OAuth workflow scope and commits through `30274b565bbe69a2a1b286697b603a5b2739262e`
+were pushed. The first two registry checks failed closed: GitHub made the linked
+package public, so no dependency/model payload was transmitted. Only a `FROM
+scratch` placeholder, with labels and no runtime/files, was uploaded. GitHub's
+settings subsequently accepted Private visibility; the UI confirms private and
+an independent anonymous request for the exact placeholder digest is denied.
+Run [38015633524](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38015633524)
+was rerun to verify authorized publication/pull against the corrected settings.
+Do not assume repository linkage or the documented private default proves privacy.
+No new AWS resources or production settings were changed.
 
-Local validation: 85 Docker CPU unit tests passed, with one real-Linux-pidfd test
+Local validation: 88 Docker CPU unit tests passed, with one real-Linux-pidfd test
 skipped on macOS. The startup suite passed syntax checks, then could not run its
 behavioral checks under macOS's Bash 3.2 (`declare -g` unsupported); those checks
 remain in the native Linux CI job. Do not report them as a new Linux pass.
+
+The preserved native-v1 diagnostic now has an exact RTX 3090 descriptor and an
+isolated candidate recipe with the same enabled serving levers as the default r5.
+Only a nonpromotable candidate manifest can select it; immutable policy pins the
+recipe and forbids control-plane registration. Default r5 remains unchanged.
+This is packaging groundwork, not a fresh-container GPU/quality/boot-time pass.
 
 Package:
 

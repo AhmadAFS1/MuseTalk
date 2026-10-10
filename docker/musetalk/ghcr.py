@@ -125,6 +125,8 @@ def scan_layer(stream, name):
     files = 0
     with tarfile.open(fileobj=stream, mode="r|") as layer:
         for member in layer:
+            if member.isdir() and member.name in {".", "./"}:
+                continue  # A root directory marker is not a payload path.
             path = member.name.removeprefix("./")
             release.relative(path)
             forbidden = ("root/.ssh/", "root/.aws/", "root/.config/gh/", "root/.docker/",
