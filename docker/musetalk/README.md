@@ -34,7 +34,10 @@ exactly the keys `musetalk-docker-metadata.tar.gz`, `weights.tar.gz`, and
 of at most one hour. Prepare fresh URLs just before dispatch, pass them through
 the secret channel, and delete/rotate the secret after the run. Never put URLs,
 AWS keys, registry tokens or private inputs in Git/GitHub public release assets.
-These secret/object operations have **not** been performed. No new AWS role,
+The exact weight archive is now staged privately in the existing S3 bucket, with
+version-pinned size/SHA/encryption readback and anonymous denial. The native archive
+was preserved previously. Metadata upload, Actions secret provisioning and full
+candidate dispatch have **not** been performed. No new AWS role,
 builder, bucket, ECR resource or permanent compute is required by this path.
 
 To dispatch on the task branch before the workflow is registered on the default

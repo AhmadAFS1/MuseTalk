@@ -397,3 +397,17 @@ increment and test/run result.
   credential (or human-assisted setup), not for repository license paperwork.
   No publisher/OAuth token was extracted or sent to a rented host. Full metadata,
   full private candidate publication, runtime access and the GPU test are pending.
+- Upload **completed successfully**. Version-pinned authenticated `HeadObject`
+  confirms 3,951,486,311 bytes, SHA-256 checksum
+  `rP9SXiKp7oCRfirjlO0HRtuqjPE7B2K2qd4hBCZdLRk=`, AES256 encryption and version
+  `eOxBtMevZGxnA395QPPt9Lep2Z18W8k3`. Anonymous HEAD of the now-existing object
+  returns **403**. No full object re-download is claimed by this readback.
+- This is one temporary build-input object in the existing bucket, not an AWS
+  registry or worker-ready image. Retain until the full-image build verifies it;
+  then reconcile/remove only this task-owned staging version if no longer needed.
+  No bucket policy/lifecycle, IAM, production secret or permanent compute change.
+- Observer/doc changes are pushed at `81dabfb`; the unrelated tracked worktree
+  edit is still excluded. Production EC2 readback is active with 2.8 GB free:
+  it remains unsuitable for image compilation. Latest retry readback has bootstrap
+  and independent placeholder pull PASS; credential-free dependency compilation
+  in progress. A full serving digest and measured boot saving remain unavailable.

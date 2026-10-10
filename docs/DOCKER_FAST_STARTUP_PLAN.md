@@ -81,8 +81,12 @@ ephemeral Actions secret, using the existing regional S3 bucket; AWS credentials
 and URLs are removed before build subprocesses and never enter image arguments,
 source or reports. Native/weights archive sizes and SHA-256s are manifest-pinned;
 direct S3 transport supports the actual approximately 3.95GB weight archive
-without public GitHub asset chunking. No input upload/Actions secret or candidate
-dispatch has been performed. Actual reviewed release metadata, remaining runtime
+without public GitHub asset chunking. The verified 3,951,486,311-byte weight
+archive is now staged in the existing private S3 bucket at
+`docker-build-inputs/sha256/<archive SHA-256>/weights.tar.gz`; version-pinned
+size/SHA/encryption readback and anonymous denial pass. Native archive storage
+was already preserved separately. No metadata upload, Actions secret or full
+candidate dispatch has been performed. Actual reviewed release metadata, remaining runtime
 license/source obligations and input authorization remain required. This code
 does not set review flags or overwrite historical failed quality/FPS verdicts.
 See [dispatch details](../docker/musetalk/README.md#private-ghcr-buildpublish-implementation).
