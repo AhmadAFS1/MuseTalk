@@ -26,17 +26,29 @@ def rules(data):
             if pattern.search(data)]
 
 rows = []
-for project in ('boto3', 'botocore'):
-    metadata_url = f'https://pypi.org/pypi/{project}/1.42.97/json'
+for project, version in (('boto3', '1.42.97'), ('botocore', '1.42.97'), ('future', '1.0.0')):
+    metadata_url = f'https://pypi.org/pypi/{project}/{version}/json'
     metadata = json.loads(fetch(metadata_url))
     wheel = next(item for item in metadata['urls'] if item['filename'].endswith('.whl'))
     payload = fetch(wheel['url'])
     assert hashlib.sha256(payload).hexdigest() == wheel['digests']['sha256']
+    if project == 'future':
+        assert wheel['filename'] == 'future-1.0.0-py3-none-any.whl'
+        assert hashlib.sha256(payload).hexdigest() == '929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216'
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         for name in archive.namelist():
             data = archive.read(name)
             findings = rules(data)
             if findings:
+                if project == 'future':
+                    assert name in {
+                        'future/backports/test/badcert.pem',
+                        'future/backports/test/keycert.passwd.pem',
+                        'future/backports/test/keycert.pem',
+                        'future/backports/test/keycert2.pem',
+                        'future/backports/test/ssl_key.passwd.pem',
+                        'future/backports/test/ssl_key.pem',
+                    } and findings == ['private-key-material']
                 rows.append({'path': 'opt/musetalk/venv/lib/python3.10/site-packages/' + name,
                              'sha256': hashlib.sha256(data).hexdigest(), 'size_bytes': len(data),
                              'rules': findings, 'public_artifact_url': wheel['url'],
@@ -124,5 +136,7 @@ assert found
 expected = ghcr.scan_exceptions()
 observed = {(item['path'], item['sha256']): frozenset(item['rules']) for item in rows}
 assert observed == expected, 'Public fixtures differ from reviewed exact-file exceptions'
-assert hashlib.sha256(source).hexdigest() == json.loads(Path(__file__).with_name('credential_scan_exceptions.json').read_text())['files'][0]['provenance']['test_source_sha256']
+base_fixture = next(item for item in json.loads(Path(__file__).with_name('credential_scan_exceptions.json').read_text())['files']
+                    if item['path'] == target)
+assert hashlib.sha256(source).hexdigest() == base_fixture['provenance']['test_source_sha256']
 print(json.dumps({'schema': 'musetalk_public_scanner_provenance_v1', 'files': rows}, indent=2))

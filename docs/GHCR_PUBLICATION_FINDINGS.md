@@ -411,3 +411,43 @@ increment and test/run result.
   it remains unsuitable for image compilation. Latest retry readback has bootstrap
   and independent placeholder pull PASS; credential-free dependency compilation
   in progress. A full serving digest and measured boot saving remain unavailable.
+
+## 2026-10-10 — EC2 pull credential verified / change 11: public SSL fixtures
+
+- The operator reported replacing the screenshot-exposed pull token and saving
+  the expected username/token fields in the existing `lingua/api-keys` secret,
+  region `us-east-1`. A read-only EC2 diagnostic using its IAM role confirmed
+  successful secret retrieval, a classic token, exactly `read:packages`, an
+  expiration header, and GitHub package visibility `private` (HTTP 200).
+- GHCR pull authorization and HEAD of the existing non-serving placeholder
+  returned HTTP 200 and the expected manifest digest. This proves credential
+  transport only: no full serving pull, running container, cold-start timing,
+  old-token revocation history or deployed autoscaler acceptance is claimed.
+  No token values were displayed, written locally or sent to a rented worker.
+  No AWS/IAM mutation, backend restart or GPU rental was performed.
+- Latest delivery run remains
+  [38049282097](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38049282097),
+  completed `failure` at source `ca2c34dc514e07a259f16c00604a47119644656e`.
+  Bootstrap and its independent private pull passed; dependencies failed in
+  the all-layer publication audit, and independent dependency pull was skipped.
+- Hash-verified artifact `11669780644` (archive SHA-256
+  `2e5f4db07642f203e7b544b47d9c4812690b5d989be456a9744bae37f12c8354`)
+  identifies `future/backports/test/badcert.pem`, 1,928 bytes, SHA-256
+  `262a107916641c7f211ac5898c0177535cd0bdc5aa872cc6e883842694d8f521`,
+  as the exact `private-key-material` finding in stage `audit-layer`.
+- Verified the complete official future 1.0.0 wheel against PyPI's declared
+  SHA-256 `929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216`
+  and scanned every member without printing key material. The failed file
+  exactly matches its public SSL test fixture. Six public test-key files were
+  found; each now has a separate exact-path/full-hash/private-key-rule allowance.
+  No wildcard, GitHub-token exception or blanket library allowance was added.
+- Extended the reproducible public provenance verifier to the whole future
+  wheel and added a synthetic SSL-fixture test that rejects changed bytes,
+  moved paths and co-located GitHub credentials. Validation and publication
+  retry results are recorded separately; the full serving image and GPU boot
+  experiment remain pending.
+- Change 11 validation: the **115-test Docker suite passes**, with one expected
+  Linux-pidfd test skipped on macOS. The read-only public provenance verifier
+  reproduces **all 11 exact-file exceptions** successfully, including the six
+  future fixtures. `git diff --check` passes. Unrelated tracked/untracked
+  preparation and media evidence remain excluded from this change.

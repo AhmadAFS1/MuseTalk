@@ -149,6 +149,21 @@ class GHCRTests(unittest.TestCase):
             ghcr.scan_layer(self.layer(name, mixed), "synthetic", mixed_allowance)
         self.assertEqual(caught.exception.detail["rule"], "github-token")
 
+    def test_public_ssl_fixture_does_not_allow_mutations_or_github_credentials(self):
+        name = "opt/musetalk/venv/lib/python3.10/site-packages/future/backports/test/badcert.pem"
+        data = b"-----BEGIN RSA PRIVATE KEY-----\n" + b"M" * 64
+        exceptions = {(name, ghcr.hashlib.sha256(data).hexdigest()): frozenset({"private-key-material"})}
+        result = ghcr.scan_layer(self.layer(name, data), "synthetic", exceptions)
+        self.assertEqual(len(result["exact_public_fixture_exceptions"]), 1)
+        for path, payload in ((name, data + b" changed"), ("opt/copied-fixture.pem", data)):
+            with self.subTest(path=path), self.assertRaises(ghcr.AuditFinding):
+                ghcr.scan_layer(self.layer(path, payload), "synthetic", exceptions)
+        mixed = data + b"\n" + b"ghp_" + b"s" * 40
+        mixed_allowance = {(name, ghcr.hashlib.sha256(mixed).hexdigest()): frozenset({"private-key-material"})}
+        with self.assertRaises(ghcr.AuditFinding) as caught:
+            ghcr.scan_layer(self.layer(name, mixed), "synthetic", mixed_allowance)
+        self.assertEqual(caught.exception.detail["rule"], "github-token")
+
     def test_reviewed_exception_schema_rejects_broad_or_malformed_entries(self):
         item = {"path": "opt/synthetic-example.txt", "sha256": "a" * 64,
                 "rules": ["aws-access-key-id"], "reason": "synthetic public fixture", "provenance": {"test": True}}
