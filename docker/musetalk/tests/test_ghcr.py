@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sys
 import tarfile
+import tempfile
 import unittest
 from unittest.mock import patch
 import urllib.error
@@ -91,11 +92,53 @@ class GHCRTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ghcr.scan_layer(self.layer("/escape", b"synthetic"), "synthetic")
 
-    def test_only_diagnostic_tags_are_supported(self):
-        for tag in ("latest", "validated-" + "a" * 40, "candidate-" + "a" * 40, "--bad"):
+    def test_only_explicit_nonpromotable_tags_are_supported(self):
+        for tag in ("latest", "validated-" + "a" * 40, "candidate-short", "--bad"):
             with patch.object(ghcr, "command") as run, self.assertRaises(ValueError):
                 ghcr.push("local", tag)
             run.assert_not_called()
+
+    def test_candidate_publication_requires_matching_manifest_build_and_baked_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest_path = root / "release.json"
+            manifest = {"source_revision": "a" * 40, "status": "candidate", "promotion_eligible": False,
+                        "cuda_base": ghcr.release.CUDA_DEVEL_BASE}
+            manifest_path.write_text(json.dumps(manifest))
+            receipt = {"schema": "musetalk_docker_ci_build_v1", "image": "local-candidate",
+                       "source_revision": "a" * 40, "channel": "candidate", "cpu_build_check": "PASS",
+                       "promotion_eligible": False}
+            (root / "build-result.json").write_text(json.dumps(receipt))
+            inspect = {"Id": "sha256:" + "b" * 64, "Config": {"Labels": {
+                "org.opencontainers.image.revision": "a" * 40, "io.musetalk.release-channel": "candidate",
+                "io.musetalk.cuda-runtime-base": ghcr.release.CUDA_DEVEL_BASE}}}
+            remote = {"config": {"digest": inspect["Id"]}, "layers": [{"size": 123}]}
+            with patch.object(ghcr.release, "load_manifest", return_value=manifest), \
+                 patch.object(ghcr, "private_package", return_value={"visibility": "private"}), \
+                 patch.object(ghcr, "anonymous_denied", return_value=True), patch.object(ghcr, "audit", return_value={}), \
+                 patch.object(ghcr, "push", return_value=(ghcr.IMAGE + "@sha256:" + "c" * 64, "sha256:" + "c" * 64)) as push, \
+                 patch.object(ghcr, "command", side_effect=[json.dumps([inspect]), json.dumps(manifest), json.dumps(remote)]):
+                result = ghcr.publish_candidate("local-candidate", root / "audit", "a" * 40, manifest_path, root)
+            self.assertTrue(result["serving_image"])
+            self.assertFalse(result["production_ready"])
+            self.assertFalse(result["promotion_eligible"])
+            self.assertEqual(result["compressed_layer_bytes"], 123)
+            push.assert_called_once_with("local-candidate", "candidate-" + "a" * 40)
+            for key, value in (("cpu_build_check", "FAIL"), ("source_revision", "b" * 40)):
+                bad = {**receipt, key: value}
+                (root / "build-result.json").write_text(json.dumps(bad))
+                with patch.object(ghcr.release, "load_manifest", return_value=manifest), \
+                     patch.object(ghcr, "private_package") as privacy, self.assertRaises(ValueError):
+                    ghcr.publish_candidate("local-candidate", root / "audit", "a" * 40, manifest_path, root)
+                privacy.assert_not_called()
+
+    def test_candidate_cannot_promote_or_publish_a_validated_manifest(self):
+        for manifest in ({"source_revision": "a" * 40, "status": "validated", "promotion_eligible": False},
+                         {"source_revision": "a" * 40, "status": "candidate", "promotion_eligible": True}):
+            with patch.object(ghcr.release, "load_manifest", return_value=manifest), \
+                 patch.object(ghcr, "private_package") as privacy, self.assertRaises(ValueError):
+                ghcr.publish_candidate("local", Path("synthetic"), "a" * 40, Path("synthetic"), Path("synthetic"))
+            privacy.assert_not_called()
 
     def test_foreign_or_floating_independent_pull_is_rejected(self):
         for reference in (ghcr.IMAGE + ":latest", "ghcr.io/other/image@sha256:" + "a" * 64):

@@ -12,6 +12,46 @@ preserved; this does not invent a validated release manifest. Assembly fails
 until all required reviewed inputs exist. Do not point production or
 the named Vast template at an unvalidated candidate.
 
+### Private GHCR build/publish implementation
+
+`musetalk-ghcr.yml` establishes the package with a non-sensitive placeholder,
+verifies actual private visibility/anonymous denial, and independently pulls it.
+Its dependency image remains a non-serving diagnostic.
+
+`musetalk-ghcr-candidate.yml` now implements the **full candidate** build path:
+exact clean source commit, separately hashed metadata, direct private S3 archive
+downloads, existing manifest/source/model/license/evidence checks, full Docker
+build/CPU check, every-layer credential scan, private candidate publication,
+then an independent digest pull and offline CPU check on a fresh runner. It has
+not yet built or published a full candidate. It cannot publish a validated tag
+or make a candidate eligible for production.
+
+The one-time Actions secret `MUSETALK_PRIVATE_BUILD_INPUTS` is a JSON object with
+exactly the keys `musetalk-docker-metadata.tar.gz`, `weights.tar.gz`, and
+`native.tar.gz`. Each value must be a presigned HTTPS URL for the existing
+`lingua-musetalk-s3-storage.s3.us-east-1.amazonaws.com` endpoint, an approved
+`docker-build-inputs/` or `trt-artifacts/` object prefix, and a signature lifetime
+of at most one hour. Prepare fresh URLs just before dispatch, pass them through
+the secret channel, and delete/rotate the secret after the run. Never put URLs,
+AWS keys, registry tokens or private inputs in Git/GitHub public release assets.
+These secret/object operations have **not** been performed. No new AWS role,
+builder, bucket, ECR resource or permanent compute is required by this path.
+
+To dispatch on the task branch before the workflow is registered on the default
+branch, commit `.github/musetalk-candidate-request.json` with exactly
+`source_revision` (reviewed earlier clean 40-character commit) and
+`metadata_sha256` (actual 64-character metadata tarball hash). The request commit
+is not the image source commit: generate and verify the source inventory for
+the pinned earlier commit. There is intentionally no live request file yet.
+Once registered, manual workflow inputs offer the same pinned contract.
+Do not dispatch until the reviewed actual manifest and secure inputs exist.
+No build/publish request overrides existing redistribution or evidence gates.
+
+Lingua's companion `codex/musetalk-ghcr-rollout` branch supplies default-off,
+digest-pinned headless launches with a separate pull-only token, per-launch
+secret refresh, response redaction, and both-direction $1.50/TB transfer caps.
+See its `backend/docs/MUSETALK_GHCR_ROLLOUT.md`; production remains unchanged.
+
 ## Runtime contract
 
 The image keeps code at `/opt/musetalk/app`, Python 3.10/cu121 at

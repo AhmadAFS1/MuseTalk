@@ -32,7 +32,7 @@ def require_inputs(revision, tag, digest, channel):
     release.require(channel in {"candidate", "validated"}, "Explicit build channel required")
 
 
-def read_metadata(archive, digest, assets, revision, channel):
+def read_metadata(archive, digest, assets, revision, channel, *, validate_transport=None):
     release.require(archive.stat().st_size <= MAX_METADATA, "Metadata archive too large")
     release.require(release.sha256(archive) == digest, "Metadata archive checksum mismatch")
     names = set()
@@ -63,7 +63,7 @@ def read_metadata(archive, digest, assets, revision, channel):
     for name, entry in manifest["notices"].items():
         release.scan_text(release.check_file(assets, name, entry))
     release.verify_evidence(assets, manifest)
-    transport_parts(manifest)  # validate all names, hashes and sizes before downloads
+    (validate_transport or transport_parts)(manifest)  # validate before downloads
     return manifest
 
 

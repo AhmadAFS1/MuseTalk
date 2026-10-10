@@ -89,7 +89,7 @@ def pushed_digest(output):
 
 
 def push(image, tag):
-    release.require(re.fullmatch(r"(?:bootstrap|dependency)-[0-9a-f]{40}", tag), "Unsafe/non-diagnostic tag")
+    release.require(re.fullmatch(r"(?:bootstrap|dependency|candidate)-[0-9a-f]{40}", tag), "Unsafe/nonpromotable tag")
     destination = IMAGE + ":" + tag
     command(["docker", "tag", image, destination])
     digest = pushed_digest(command(["docker", "push", destination]))
@@ -210,12 +210,52 @@ def verify(reference):
             "status": "PASS", "gpu_tested": False, "serving_accepted": False}
 
 
+def publish_candidate(image, work, revision, manifest_path, reports):
+    """Publish only an already CPU-checked, explicitly nonpromotable full image."""
+    manifest = release.load_manifest(manifest_path)
+    release.require(manifest["source_revision"] == revision and manifest["status"] == "candidate"
+                    and manifest.get("promotion_eligible") is False,
+                    "Only a reviewed nonpromotable candidate manifest is supported")
+    receipt = json.loads((reports / "build-result.json").read_text())
+    release.require(receipt.get("schema") == "musetalk_docker_ci_build_v1"
+                    and receipt.get("image") == image and receipt.get("source_revision") == revision
+                    and receipt.get("channel") == "candidate" and receipt.get("cpu_build_check") == "PASS"
+                    and receipt.get("promotion_eligible") is False,
+                    "Matching full candidate CPU-build receipt required")
+    privacy = private_package()  # Before any model-bearing transmission.
+    inspect = json.loads(command(["docker", "image", "inspect", image]))[0]
+    labels = inspect.get("Config", {}).get("Labels", {})
+    release.require(labels.get("org.opencontainers.image.revision") == revision
+                    and labels.get("io.musetalk.release-channel") == "candidate"
+                    and labels.get("io.musetalk.cuda-runtime-base") == release.selected_runtime_base(manifest),
+                    "Candidate image identity differs from reviewed build")
+    baked = json.loads(command(["docker", "run", "--rm", "--network", "none", "--entrypoint", "/bin/cat",
+                               image, "/opt/musetalk/release.json"]))
+    release.require(baked == manifest, "Baked release manifest differs from reviewed inputs")
+    scan = audit(image, work)
+    reference, digest = push(image, "candidate-" + revision)
+    private_package()
+    anonymous_denied(digest)
+    remote = json.loads(command(["docker", "buildx", "imagetools", "inspect", "--raw", reference]))
+    release.require(bool(remote.get("layers")) and remote.get("config", {}).get("digest") == inspect["Id"],
+                    "Registry candidate differs from audited local image")
+    return {"schema": "musetalk_ghcr_candidate_publication_v1", "image": reference, "digest": digest,
+            "source_revision": revision, "release_manifest_sha256": release.sha256(manifest_path),
+            "package": privacy, "anonymous_pull": "DENIED", "layer_scan": scan,
+            "compressed_layer_bytes": sum(layer["size"] for layer in remote["layers"]),
+            "published": True, "serving_image": True, "promotion_eligible": False,
+            "gpu_tested": False, "production_ready": False,
+            "limitation": "Nonpromotable full candidate; fresh GPU, quality, external calls and cold-host timing still required"}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["bootstrap", "dependency", "verify"])
+    parser.add_argument("action", choices=["bootstrap", "dependency", "candidate", "verify"])
     parser.add_argument("--work", type=Path, required=True)
     parser.add_argument("--revision", required=True)
     parser.add_argument("--image")
+    parser.add_argument("--release-manifest", type=Path)
+    parser.add_argument("--build-reports", type=Path)
     args = parser.parse_args()
     release.require(re.fullmatch(r"[0-9a-f]{40}", args.revision), "Full reviewed commit required")
     login()
@@ -225,6 +265,11 @@ def main():
     elif args.action == "dependency":
         release.require(bool(args.image), "Audited local image required")
         result = publish_dependency(args.image, args.work, args.revision)
+        output = args.work / "result.json"
+    elif args.action == "candidate":
+        release.require(bool(args.image) and args.release_manifest and args.build_reports,
+                        "Full candidate image, reviewed manifest and CPU receipts required")
+        result = publish_candidate(args.image, args.work, args.revision, args.release_manifest, args.build_reports)
         output = args.work / "result.json"
     else:
         release.require(bool(args.image) and not args.work.exists(), "Fresh independent-pull output required")

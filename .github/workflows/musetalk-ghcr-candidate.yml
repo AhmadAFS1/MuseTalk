@@ -1,0 +1,134 @@
+name: MuseTalk private full candidate
+
+# No PRs or automatic rebuild on code edits. A task-branch request file is the
+# dispatch alternative while this workflow is not on the default branch.
+on:
+  workflow_dispatch:
+    inputs:
+      source_revision:
+        description: Reviewed clean 40-character source commit
+        required: true
+      metadata_sha256:
+        description: SHA-256 of the private metadata tarball
+        required: true
+  push:
+    branches: [codex/rtx3090-r5-delivery]
+    paths: [.github/musetalk-candidate-request.json]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: musetalk-private-ghcr
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    if: github.repository == 'AhmadAFS1/MuseTalk'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.publish.outputs.image }}
+      revision: ${{ steps.request.outputs.revision }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Validate non-secret pinned request and CPU contracts
+        id: request
+        env:
+          REQUEST_EVENT: ${{ github.event_name }}
+          REQUEST_REVISION: ${{ inputs.source_revision }}
+          REQUEST_METADATA: ${{ inputs.metadata_sha256 }}
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s docker/musetalk/tests -v
+          python3 - <<'PY'
+          import json, os, pathlib, re
+          if os.environ['REQUEST_EVENT'] == 'push':
+              request = json.loads(pathlib.Path('.github/musetalk-candidate-request.json').read_text())
+              assert set(request) == {'source_revision', 'metadata_sha256'}
+          else:
+              request = {'source_revision': os.environ['REQUEST_REVISION'], 'metadata_sha256': os.environ['REQUEST_METADATA']}
+          assert re.fullmatch('[0-9a-f]{40}', request['source_revision'])
+          assert re.fullmatch('[0-9a-f]{64}', request['metadata_sha256'])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('revision=' + request['source_revision'] + '\n')
+              output.write('metadata=' + request['metadata_sha256'] + '\n')
+          PY
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ steps.request.outputs.revision }}
+          path: build-source
+          persist-credentials: false
+      - name: Verify existing package is private before building
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B -c 'import sys; sys.path.insert(0,"docker/musetalk"); import ghcr; ghcr.private_package()'
+      - name: Assemble private pinned inputs, build and CPU-check without cloud credentials
+        env:
+          MUSETALK_PRIVATE_BUILD_INPUTS: ${{ secrets.MUSETALK_PRIVATE_BUILD_INPUTS }}
+          BUILD_REVISION: ${{ steps.request.outputs.revision }}
+          BUILD_METADATA: ${{ steps.request.outputs.metadata }}
+        run: |
+          python3 -B docker/musetalk/private_ci.py --root "$GITHUB_WORKSPACE/build-source" \
+            --work "$RUNNER_TEMP/musetalk-private-candidate" \
+            --source-revision "$BUILD_REVISION" --metadata-sha256 "$BUILD_METADATA"
+      - name: Audit every layer and privately publish a nonpromotable full candidate
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_REVISION: ${{ steps.request.outputs.revision }}
+        run: |
+          python3 -B docker/musetalk/ghcr.py candidate \
+            --image "musetalk-r5-ci:candidate-$BUILD_REVISION" --revision "$BUILD_REVISION" \
+            --release-manifest "$RUNNER_TEMP/musetalk-private-candidate/release/release.json" \
+            --build-reports "$RUNNER_TEMP/musetalk-private-candidate/reports" \
+            --work "$RUNNER_TEMP/ghcr-candidate-publication"
+      - name: Preserve small non-secret receipts only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: musetalk-ghcr-full-candidate
+          path: |
+            ${{ runner.temp }}/musetalk-private-candidate/reports/
+            ${{ runner.temp }}/ghcr-candidate-publication/*.json
+          if-no-files-found: warn
+          retention-days: 3
+      - name: Remove ephemeral registry login
+        if: always()
+        run: docker logout ghcr.io
+
+  verify-candidate:
+    needs: candidate
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Independent private exact-digest pull and offline CPU check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.candidate.outputs.image }}
+          BUILD_REVISION: ${{ needs.candidate.outputs.revision }}
+        run: |
+          set -euo pipefail
+          python3 -B docker/musetalk/ghcr.py verify --image "$IMAGE" \
+            --work "$RUNNER_TEMP/ghcr-independent-candidate" --revision "$BUILD_REVISION"
+          docker run --rm --network none "$IMAGE" check
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: musetalk-ghcr-independent-candidate
+          path: ${{ runner.temp }}/ghcr-independent-candidate/result.json
+          retention-days: 3
+      - name: Remove ephemeral registry login
+        if: always()
+        run: docker logout ghcr.io

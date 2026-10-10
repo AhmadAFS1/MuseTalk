@@ -32,7 +32,8 @@ the current private-registry delivery choice.
 | Latest 3090 latent A/B | Base/reference: 315.352860 FPS; fresh 3090 latents: 308.571727 FPS. Six concurrent avatars, full tracking and 100% chin composition, five sustained windows per arm, no encoding/network overhead. Fresh latents were 2.15% slower in sequential tests; causation is not established. [Results](fps_comparisons/rtx3090_r5_20261008/native/a6_latent_ab_20261009/a6-latents-ab-summary.json). |
 | Video evidence | Six labeled base-versus-native comparisons plus original clips, with hashes and capture reports. [Receipt](fps_comparisons/rtx3090_r5_20261008/native/a6_latent_ab_20261009/videos/video-evidence.json). |
 | Small model-load experiment | Default-off eager-UNet skipping saved approximately 5.924 seconds in same-host fresh processes with warm filesystem cache and equal tested output hashes. Not Docker cold boot, full avatar preparation, or live-call acceptance. Keep disabled pending broader validation. [Evidence](fps_comparisons/rtx3090_r5_20261008/startup/a5_model_startup_pair_summary_0824.json). |
-| Registry access | GitHub access as `AhmadAFS1` and repository admin/push permissions verified via the existing authenticated CLI without copying its token. Private GHCR bootstrap/publication workflow implemented; actual publication, independent pull and production pull credential still need verification. |
+| Registry access | GitHub workflow authorization works; actual package privacy, anonymous denial and independent authorized placeholder pull passed. Dependency publication is running separately. Full serving publication and a separate production pull credential are still pending. |
+| Autoscaler integration | Implemented and pushed in Lingua `codex/musetalk-ghcr-rollout` at `afd25274ac1f61c55efca947a0bce343a404a151`; 23 focused tests pass. Default-off digest-pinned headless launches, fresh read-only credential lookup, redaction and both-direction $1.50/TB caps. Production unchanged. |
 | Remaining AWS access | Local `lingua-backend-user` was denied EC2 inspection. If an AWS builder is used, scoped provisioning/input access is still needed. Earlier ECR denials no longer block registry setup; do not add ECR permissions to work around them. Existing S3/runtime-secret dependencies remain. |
 | Production EC2 builder suitability | Existing control plane had approximately 2.9 GB free on a 20 GB root disk and no Docker runtime. Do not build the image there. Recheck facts when execution resumes. |
 | Fresh image startup | Not measured. No production Docker launch-template change has been made. |
@@ -61,8 +62,21 @@ Implementation checkpoint: `.github/workflows/musetalk-ghcr.yml` and
 by optional dependency-only publication, all-layer credential/path checks and an
 independent clean-runner pull. A reviewed non-secret request selects `bootstrap`
 or `dependencies`; ordinary helper/docs edits no longer launch duplicate legacy
-dependency builds. Full serving publication/private build-input transport are
-separate remaining steps; the foundation image must not be launched as a worker.
+dependency builds. The foundation image must not be launched as a worker.
+
+The separate `.github/workflows/musetalk-ghcr-candidate.yml` and
+`docker/musetalk/private_ci.py` now implement private full-candidate transport,
+build/CPU checks, full-layer audit, candidate publication and independent digest
+pull/offline CPU check. Secure inputs are three bounded presigned URLs in one
+ephemeral Actions secret, using the existing regional S3 bucket; AWS credentials
+and URLs are removed before build subprocesses and never enter image arguments,
+source or reports. Native/weights archive sizes and SHA-256s are manifest-pinned;
+direct S3 transport supports the actual approximately 3.95GB weight archive
+without public GitHub asset chunking. No input upload/Actions secret or candidate
+dispatch has been performed. Actual reviewed release metadata, remaining runtime
+license/source obligations and input authorization remain required. This code
+does not set review flags or overwrite historical failed quality/FPS verdicts.
+See [dispatch details](../docker/musetalk/README.md#private-ghcr-buildpublish-implementation).
 
 Execution checkpoint (October 9, approximately 9:10 p.m. CDT): the human approved
 the OAuth workflow scope and commits through `30274b565bbe69a2a1b286697b603a5b2739262e`
@@ -72,14 +86,21 @@ scratch` placeholder, with labels and no runtime/files, was uploaded. GitHub's
 settings subsequently accepted Private visibility; the UI confirms private and
 an independent anonymous request for the exact placeholder digest is denied.
 Run [38015633524](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38015633524)
-was rerun to verify authorized publication/pull against the corrected settings.
+was rerun and both bootstrap and independent authorized pull passed. The package
+remains private. Run
+[38016153305](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38016153305)
+has passed those same checks and is building the dependency image; no dependency
+digest or full serving publication is claimed before its receipts confirm them.
 Do not assume repository linkage or the documented private default proves privacy.
 No new AWS resources or production settings were changed.
 
-Local validation: 88 Docker CPU unit tests passed, with one real-Linux-pidfd test
-skipped on macOS. The startup suite passed syntax checks, then could not run its
-behavioral checks under macOS's Bash 3.2 (`declare -g` unsupported); those checks
-remain in the native Linux CI job. Do not report them as a new Linux pass.
+Local validation: 97 Docker CPU unit tests pass, with one real-Linux-pidfd test
+skipped on macOS; candidate workflow YAML parsing passes. Linux CI runs its own
+CPU/startup suite. Local macOS Bash 3.2 cannot run the behavioral startup suite
+(`declare -g` unsupported), so do not treat local syntax checks as a Linux pass.
+Lingua's clean published base passes 14 registry/autoscaler contracts and nine
+existing offer-selection regressions. These are synthetic/mock tests, not live
+rentals, private-model fetches, GPU acceptance or startup timing.
 
 The preserved native-v1 diagnostic now has an exact RTX 3090 descriptor and an
 isolated candidate recipe with the same enabled serving levers as the default r5.
@@ -400,7 +421,10 @@ before any reuse; the Docker plan must not depend on keeping it indefinitely.
 - [x] User selects private GHCR instead of the earlier ECR proposal; temporary builder approval remains.
 - [x] Verify current GHCR free storage/bandwidth policy and document remaining costs.
 - [x] Remove ECR resource/IAM/token requirements; preserve minimal AWS cost guardrails.
-- [ ] Verify GHCR namespace, private visibility, publishing access and pull-only credentials.
+- [x] Verify GHCR namespace, private visibility, placeholder publishing access and independent pull.
+- [ ] Obtain/verify the separate expiring read-only Vast pull credential (requested securely; never paste in chat).
+- [x] Implement the private full-candidate CI transport/build/publish/digest-pull path; not yet executed with actual release inputs.
+- [x] Implement/test/push the default-off Lingua autoscaler integration without deploying or changing production secrets.
 - [ ] Select a capable ephemeral builder and establish secure private-input delivery.
 - [ ] If using EC2, obtain/verify scoped AWS provisioning and input permissions.
 - [ ] Confirm remaining costs, resources, lifetimes and cleanup; establish private package/builder.
@@ -412,6 +436,9 @@ before any reuse; the Docker plan must not depend on keeping it indefinitely.
 - [ ] Switch the intended launch configuration, retain rollback, and test real autoscaler scale-out/in.
 - [ ] Record the final commit/bundle/image/template/provisioner tuple and clean up temporary resources.
 
-Resume with GHCR credentials/package visibility, builder selection and resource
-reconciliation first. Then build and test the image; ECR access is no longer a
-prerequisite. Do not restart unrelated throughput tuning or public publication work.
+Resume with the separate pull-only credential, exact reviewed release metadata,
+secure private-input handoff and remaining dependency publication receipt. Then
+build and test the full image; ECR access is no longer a prerequisite. Do not
+restart unrelated throughput tuning or public publication work. Creating the
+one-time CI secret/object inputs or merging pull credentials into the existing
+AWS secret must use approved secure channels; production stays off meanwhile.
