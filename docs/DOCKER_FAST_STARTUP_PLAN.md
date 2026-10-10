@@ -38,6 +38,9 @@ the current private-registry delivery choice.
 | Production EC2 builder suitability | Existing control plane had approximately 2.9 GB free on a 20 GB root disk and no Docker runtime. Do not build the image there. Recheck facts when execution resumes. |
 | Fresh image startup | Not measured. No production Docker launch-template change has been made. |
 
+The active publication repair and its per-change evidence are recorded in
+[GHCR publication findings](GHCR_PUBLICATION_FINDINGS.md).
+
 The user accepted the latest lower FPS for now. That is not a 400+ FPS pass or
 blanket numerical quality acceptance. Existing release gates must retain their
 actual verdicts; see the candidate/production distinction below.
@@ -89,8 +92,10 @@ Run [38015633524](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38015633524
 was rerun and both bootstrap and independent authorized pull passed. The package
 remains private. Run
 [38016153305](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38016153305)
-has passed those same checks and is building the dependency image; no dependency
-digest or full serving publication is claimed before its receipts confirm them.
+passed those same checks and completed the dependency build/CPU checks, but
+failed its combined audit/publication step. Its independent dependency pull was
+skipped. No successful dependency digest or full serving publication is claimed;
+the findings journal tracks the repair and its exact verified outcomes.
 Do not assume repository linkage or the documented private default proves privacy.
 No new AWS resources or production settings were changed.
 

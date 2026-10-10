@@ -1,0 +1,46 @@
+name: MuseTalk GHCR audit reproduction
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/rtx3090-r5-delivery]
+    paths: [.github/musetalk-audit-request.json]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: musetalk-ghcr-audit-reproduction
+  cancel-in-progress: false
+
+jobs:
+  public-base-audit:
+    if: github.repository == 'AhmadAFS1/MuseTalk'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Diagnostic request and CPU contracts
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s docker/musetalk/tests -v
+          python3 - <<'PY'
+          import json, pathlib
+          request = json.loads(pathlib.Path('.github/musetalk-audit-request.json').read_text())
+          assert set(request) == {'purpose', 'iteration'} and request['purpose'] == 'publication-diagnostics'
+          assert type(request['iteration']) is int and request['iteration'] > 0
+          PY
+      - name: Reproduce audit using the public pinned runtime base, no publication credentials
+        run: |
+          docker version --format '{{json .Server}}'
+          python3 -B docker/musetalk/audit_diagnostic.py --work "$RUNNER_TEMP/musetalk-audit-diagnostic"
+      - name: Preserve small sanitized diagnostics, never layers or file contents
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: musetalk-public-base-audit
+          path: ${{ runner.temp }}/musetalk-audit-diagnostic/**/*.json
+          if-no-files-found: warn
+          retention-days: 3

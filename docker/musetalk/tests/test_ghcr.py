@@ -14,6 +14,29 @@ import ghcr
 
 
 class GHCRTests(unittest.TestCase):
+    def test_failure_receipt_never_reflects_exception_text_or_matching_content(self):
+        secret = "ghp_" + "s" * 40
+        record = ghcr.failure_record(ValueError("https://fixture.invalid?token=" + secret))
+        self.assertNotIn(secret, json.dumps(record))
+        self.assertNotIn("fixture.invalid", json.dumps(record))
+        finding = ghcr.AuditFinding("github-token", path="opt/" + secret, layer="synthetic",
+                                   file_sha256="a" * 64, file_size=123)
+        record = ghcr.failure_record(finding)
+        self.assertNotIn(secret, json.dumps(record))
+        self.assertNotIn("path", record["finding"])
+        self.assertIn("path_sha256", record["finding"])
+        self.assertEqual(record["finding"]["rule"], "github-token")
+
+    def test_failure_receipt_is_persistent_and_never_overwrites_existing_file(self):
+        with tempfile.TemporaryDirectory() as directory, patch("builtins.print"):
+            work = Path(directory) / "new"
+            ghcr.report_failure(ValueError("synthetic secret body"), work)
+            before = (work / "failure.json").read_text()
+            self.assertEqual(json.loads(before)["exception_type"], "ValueError")
+            self.assertNotIn("synthetic secret body", before)
+            ghcr.report_failure(TypeError("different secret"), work)
+            self.assertEqual((work / "failure.json").read_text(), before)
+
     def test_command_failure_exposes_only_fixed_operation_and_status(self):
         result = ghcr.subprocess.CompletedProcess([], 1, "synthetic-secret-output", "synthetic-secret-body (HTTP 403)")
         with patch.object(ghcr.subprocess, "run", return_value=result):
@@ -80,6 +103,16 @@ class GHCRTests(unittest.TestCase):
         payload = b" " * (1024 * 1024 - 10) + b"-----BEGIN OPENSSH PRIVATE KEY-----"
         with self.assertRaises(ValueError):
             ghcr.scan_layer(self.layer("opt/file.txt", payload), "synthetic")
+
+    def test_scanner_failure_identifies_rule_path_and_complete_file_hash_only(self):
+        data = b"prefix\n-----BEGIN OPENSSH PRIVATE KEY-----\nsynthetic body\nsuffix"
+        with self.assertRaises(ghcr.AuditFinding) as caught:
+            ghcr.scan_layer(self.layer("usr/lib/synthetic.txt", data), "synthetic")
+        detail = caught.exception.detail
+        self.assertEqual(detail["path"], "usr/lib/synthetic.txt")
+        self.assertEqual(detail["rule"], "private-key-marker")
+        self.assertEqual(detail["file_sha256"], ghcr.hashlib.sha256(data).hexdigest())
+        self.assertNotIn("synthetic body", json.dumps(detail))
 
     def test_layer_root_directory_marker_is_safe_but_absolute_path_is_not(self):
         stream = io.BytesIO()

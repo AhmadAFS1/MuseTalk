@@ -8,6 +8,7 @@ checks, separately from this registry transport implementation.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -23,6 +24,66 @@ REPOSITORY = "AhmadAFS1/MuseTalk"
 IMAGE = "ghcr.io/ahmadafs1/musetalk-rtx3090"
 PACKAGE_API = "users/AhmadAFS1/packages/container/musetalk-rtx3090"
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
+SECRET_RULES = ("private-key-marker", "aws-access-key-id", "github-token", "github-fine-grained-token")
+_stage = "request-validation"
+_diagnostic_work = None
+
+
+class AuditFinding(ValueError):
+    """Fixed-rule diagnostic; never contains matched bytes or exception text."""
+    def __init__(self, rule, *, path=None, layer=None, file_sha256=None, file_size=None):
+        release.require(rule in {"unsafe-path", "credential-path", *SECRET_RULES}, "Unknown audit rule")
+        self.detail = {"rule": rule}
+        for key, value in (("path", path), ("layer", layer)):
+            if value is not None:
+                self.detail[key + "_sha256"] = hashlib.sha256(str(value).encode()).hexdigest()
+                # Ordinary installed paths are useful; unsafe/arbitrary values
+                # are fingerprint-only, never reflected verbatim into CI logs.
+                if (len(str(value)) <= 240 and re.fullmatch(r"[A-Za-z0-9_./+-]+", str(value))
+                        and not any(p.search(str(value).encode()) for p in release.SECRET_PATTERNS)):
+                    self.detail[key] = str(value)
+        if file_sha256 is not None:
+            release.require(release.SHA.fullmatch(file_sha256), "Audit file hash invalid")
+            self.detail["file_sha256"] = file_sha256
+        if file_size is not None:
+            self.detail["file_size_bytes"] = int(file_size)
+        super().__init__("Image audit rejected (matched content suppressed)")
+
+
+def stage(name):
+    global _stage
+    release.require(re.fullmatch(r"[a-z][a-z-]{0,63}", name), "Invalid fixed stage")
+    _stage = name
+    print("GHCR stage: " + name, flush=True)
+
+
+def failure_record(exc):
+    # Exception messages, subprocess output and URLs are deliberately excluded.
+    known_types = {"ValueError", "KeyError", "TypeError", "OSError", "FileNotFoundError", "JSONDecodeError",
+                   "ReadError", "StreamError", "CompressionError", "HeaderError", "URLError", "HTTPError",
+                   "RegistryOperationError", "AuditFinding"}
+    kind = type(exc).__name__
+    result = {"schema": "musetalk_ghcr_failure_v1", "status": "FAIL", "stage": _stage,
+              "exception_type": kind if kind in known_types else "OtherError",
+              "details_suppressed": True, "publication_verified": False}
+    if isinstance(exc, AuditFinding):
+        result["finding"] = exc.detail
+    if isinstance(exc, RegistryOperationError):
+        # This class already contains fixed operation names and numeric status.
+        result["operation"] = str(exc)
+    return result
+
+
+def report_failure(exc, work=None):
+    result = failure_record(exc)
+    if work is not None:
+        try:
+            work.mkdir(parents=True, exist_ok=True)
+            with (work / "failure.json").open("x") as output:
+                output.write(json.dumps(result, indent=2) + "\n")
+        except OSError:
+            pass  # Never overwrite a receipt or obscure the original failure.
+    print(json.dumps(result, sort_keys=True), file=__import__("sys").stderr)
 
 
 class RegistryOperationError(RuntimeError):
@@ -47,6 +108,7 @@ def command(argv, *, payload=None):
 
 
 def login():
+    stage("registry-login")
     token = os.environ.get("GH_TOKEN", "")
     actor = os.environ.get("GITHUB_ACTOR", "")
     release.require(os.environ.get("GITHUB_REPOSITORY") == REPOSITORY,
@@ -56,6 +118,7 @@ def login():
 
 
 def private_package():
+    stage("package-visibility")
     package = json.loads(command(["gh", "api", PACKAGE_API]))
     release.require(package.get("name") == "musetalk-rtx3090" and package.get("visibility") == "private",
                     "GHCR package is absent or not private; refusing publication")
@@ -63,6 +126,7 @@ def private_package():
 
 
 def anonymous_denied(digest, opener=urllib.request.urlopen):
+    stage("anonymous-denial")
     release.require(DIGEST.fullmatch(digest), "Actual manifest digest required")
     token_url = "https://ghcr.io/token?service=ghcr.io&scope=repository:ahmadafs1/musetalk-rtx3090:pull"
     try:
@@ -91,7 +155,9 @@ def pushed_digest(output):
 def push(image, tag):
     release.require(re.fullmatch(r"(?:bootstrap|dependency|candidate)-[0-9a-f]{40}", tag), "Unsafe/nonpromotable tag")
     destination = IMAGE + ":" + tag
+    stage("image-tag")
     command(["docker", "tag", image, destination])
+    stage("registry-push")
     digest = pushed_digest(command(["docker", "push", destination]))
     return IMAGE + "@" + digest, digest
 
@@ -122,43 +188,59 @@ def bootstrap(work, revision):
 
 
 def scan_layer(stream, name):
+    stage("audit-layer")
     files = 0
     with tarfile.open(fileobj=stream, mode="r|") as layer:
         for member in layer:
             if member.isdir() and member.name in {".", "./"}:
                 continue  # A root directory marker is not a payload path.
             path = member.name.removeprefix("./")
-            release.relative(path)
+            try:
+                release.relative(path)
+            except (ValueError, TypeError):
+                raise AuditFinding("unsafe-path", path=path, layer=name) from None
             forbidden = ("root/.ssh/", "root/.aws/", "root/.config/gh/", "root/.docker/",
                          "opt/musetalk/app/.git/", "opt/musetalk/app/.env")
-            release.require(not any(path.startswith(prefix) for prefix in forbidden),
-                            "Credential/developer path found in image layer (value suppressed)")
+            if any(path.startswith(prefix) for prefix in forbidden):
+                raise AuditFinding("credential-path", path=path, layer=name)
             if not member.isreg():
                 continue
             files += 1
             tail = b""
+            checksum = hashlib.sha256()
+            finding = None
             with layer.extractfile(member) as content:
                 for block in iter(lambda: content.read(1024 * 1024), b""):
+                    checksum.update(block)
                     data = tail + block
-                    release.require(not any(p.search(data) for p in release.SECRET_PATTERNS),
-                                    "Possible credential found in image layer (value suppressed)")
+                    if finding is None:
+                        finding = next((rule for rule, p in zip(SECRET_RULES, release.SECRET_PATTERNS)
+                                        if p.search(data)), None)
                     tail = data[-256:]
+            if finding is not None:
+                raise AuditFinding(finding, path=path, layer=name, file_sha256=checksum.hexdigest(),
+                                   file_size=member.size)
     return {"layer": name, "regular_files_scanned": files}
 
 
 def audit(image, work):
     release.require(not work.exists(), "Layer audit output must be new")
     work.mkdir(parents=True)
+    stage("audit-image-inspect")
     inspect = json.loads(command(["docker", "image", "inspect", image]))[0]
     release.require(inspect.get("Architecture") == "amd64" and inspect.get("Os") == "linux", "Wrong image platform")
     config = inspect.get("Config", {})
+    stage("audit-image-config")
     metadata = json.dumps(config).encode()
     release.require(not any(p.search(metadata) for p in release.SECRET_PATTERNS), "Possible image-config credential")
+    stage("audit-image-history")
     history = command(["docker", "history", "--no-trunc", "--format", "{{json .}}", image]).encode()
     release.require(not any(p.search(history) for p in release.SECRET_PATTERNS), "Possible image-history credential")
     archive = work / "image-layer-audit.tar"
+    stage("audit-layer-export")
     command(["docker", "save", "--output", str(archive), image])
     rows = []
+    stage("audit-archive-layout")
     with tarfile.open(archive) as exported:
         manifests = json.load(exported.extractfile("manifest.json"))
         release.require(len(manifests) == 1, "Audit needs exactly one image")
@@ -176,6 +258,7 @@ def audit(image, work):
 
 def publish_dependency(image, work, revision):
     privacy = private_package()  # Before transmitting any dependency payload.
+    stage("dependency-identity")
     inspect = json.loads(command(["docker", "image", "inspect", image]))[0]
     labels = inspect.get("Config", {}).get("Labels", {})
     release.require(labels.get("org.opencontainers.image.revision") == revision
@@ -185,6 +268,7 @@ def publish_dependency(image, work, revision):
     reference, digest = push(image, "dependency-" + revision)
     private_package()  # Detect visibility changes during the build/push window.
     anonymous_denied(digest)
+    stage("published-manifest-identity")
     manifest = json.loads(command(["docker", "buildx", "imagetools", "inspect", "--raw", reference]))
     release.require(bool(manifest.get("layers")) and manifest.get("config", {}).get("digest") == inspect["Id"],
                     "Registry manifest differs from audited local image")
@@ -202,6 +286,7 @@ def verify(reference):
                     "Exact intended image digest required")
     private_package()
     anonymous_denied(reference.split("@", 1)[1])
+    stage("registry-pull")
     command(["docker", "pull", "--platform", "linux/amd64", reference])
     inspect = json.loads(command(["docker", "image", "inspect", reference]))[0]
     release.require(inspect.get("Os") == "linux" and inspect.get("Architecture") == "amd64", "Wrong pulled platform")
@@ -212,6 +297,7 @@ def verify(reference):
 
 def publish_candidate(image, work, revision, manifest_path, reports):
     """Publish only an already CPU-checked, explicitly nonpromotable full image."""
+    stage("candidate-manifest")
     manifest = release.load_manifest(manifest_path)
     release.require(manifest["source_revision"] == revision and manifest["status"] == "candidate"
                     and manifest.get("promotion_eligible") is False,
@@ -223,6 +309,7 @@ def publish_candidate(image, work, revision, manifest_path, reports):
                     and receipt.get("promotion_eligible") is False,
                     "Matching full candidate CPU-build receipt required")
     privacy = private_package()  # Before any model-bearing transmission.
+    stage("candidate-image-identity")
     inspect = json.loads(command(["docker", "image", "inspect", image]))[0]
     labels = inspect.get("Config", {}).get("Labels", {})
     release.require(labels.get("org.opencontainers.image.revision") == revision
@@ -249,6 +336,7 @@ def publish_candidate(image, work, revision, manifest_path, reports):
 
 
 def main():
+    global _diagnostic_work
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["bootstrap", "dependency", "candidate", "verify"])
     parser.add_argument("--work", type=Path, required=True)
@@ -257,6 +345,8 @@ def main():
     parser.add_argument("--release-manifest", type=Path)
     parser.add_argument("--build-reports", type=Path)
     args = parser.parse_args()
+    release.require(not args.work.exists(), "Diagnostic/publication work must be new")
+    _diagnostic_work = args.work
     release.require(re.fullmatch(r"[0-9a-f]{40}", args.revision), "Full reviewed commit required")
     login()
     if args.action == "bootstrap":
@@ -286,10 +376,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except RegistryOperationError as exc:
-        print(str(exc), file=__import__("sys").stderr)
-        raise SystemExit(1)
-    except Exception:
-        # Do not echo HTTP URLs, response bodies, subprocess output or credentials.
-        print("GHCR operation rejected; authentication/visibility/audit check failed (details suppressed)", file=__import__("sys").stderr)
+    except Exception as exc:
+        report_failure(exc, _diagnostic_work)
         raise SystemExit(1)
