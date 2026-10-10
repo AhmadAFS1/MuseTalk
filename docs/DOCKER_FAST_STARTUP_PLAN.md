@@ -64,6 +64,19 @@ or `dependencies`; ordinary helper/docs edits no longer launch duplicate legacy
 dependency builds. Full serving publication/private build-input transport are
 separate remaining steps; the foundation image must not be launched as a worker.
 
+Execution checkpoint (October 9, approximately 8:38 p.m. CDT): implementation
+commit `3e70b1c43553ee47d49eef49c9fe8c3c65e76a2c` is local. GitHub rejected its
+push because the existing OAuth login lacks `workflow` scope. Repository admin/
+push access is verified, but does not supply that credential scope. A GitHub CLI
+device-authorization refresh has been requested; the human must approve the added
+scope. No GHCR package/image or Actions run has been created by this implementation
+yet, and no new AWS resources or production settings were changed.
+
+Local validation: 85 Docker CPU unit tests passed, with one real-Linux-pidfd test
+skipped on macOS. The startup suite passed syntax checks, then could not run its
+behavioral checks under macOS's Bash 3.2 (`declare -g` unsupported); those checks
+remain in the native Linux CI job. Do not report them as a new Linux pass.
+
 Package:
 
 - The exact MuseTalk code revision and RTX 3090 runtime configuration.
