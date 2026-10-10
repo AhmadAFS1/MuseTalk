@@ -7,9 +7,25 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import dependency_inventory
+import context
+from unittest.mock import patch
 
 
 class DependencyInventoryTests(unittest.TestCase):
+    def test_inventory_helper_survives_tracked_source_allowlist(self):
+        name = 'docker/musetalk/dependency_inventory.py'
+        self.assertTrue(context.allowed(name))
+        self.assertFalse(context.allowed('docker/musetalk/notice_dossier_20261008/private.pem'))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / name
+            path.parent.mkdir(parents=True)
+            path.write_text('# synthetic source helper\n')
+            with patch.object(context.subprocess, 'check_output', return_value=(name + '\0').encode()):
+                entries = context.inventory(root)
+            self.assertEqual(set(entries), {name})
+            self.assertEqual(entries[name]['sha256'], hashlib.sha256(path.read_bytes()).hexdigest())
+
     def test_installed_native_notices_and_dpkg_source_are_fingerprinted_without_auth_metadata(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -243,3 +243,64 @@ increment and test/run result.
 - Latest readback: **native Linux CPU contracts and startup-shell regression
   passed** in the dependency job. Credential-free compilation is now in progress.
   This resolves the local Bash 3 test limitation without installing a local shell.
+
+## 2026-10-10 — repository evidence and responsibility clarified
+
+- The user has no separate TensorRT/FFmpeg review or source-delivery records.
+  Rechecked the repository: root `LICENSE` contains MuseTalk's MIT license and
+  references several model dependencies; `README.md` explicitly distinguishes
+  MuseTalk from other models' own license requirements.
+- Our supplemental dossier already contains the exact TensorRT 10.3 packaged
+  license texts, TensorRT OSS notices, PyAV license, pinned FFmpeg vendor build
+  script/patch and source URLs/SHA-256s in `supplemental/sources.json`.
+- Those records are available engineering inputs, not missing paperwork the user
+  must supply. Their `built_image_binding:NOT_YET_CAPTURED` entries and the
+  forthcoming installed-dependency inventory distinguish captured upstream terms
+  from a verified finished-image payload/source-delivery record.
+- Asking the user for preexisting records was premature as a prerequisite for
+  completing that engineering reconciliation. Continue checking repository and
+  official exact-package sources under the approved private GHCR/worker scope;
+  escalate only a concrete remaining ambiguity requiring an owner decision or
+  qualified interpretation. Do not silently turn pending review flags into PASS
+  or treat private registry visibility as a blanket license exemption.
+- Read-only CI check: dependency run `38025750175` is still in credential-free
+  compilation; previous bootstrap, independent pull and Linux startup gates passed.
+  This clarification changes no validator, package selection or production state.
+
+## 2026-10-10 — verified the user's fork directly / retry failure diagnosed
+
+- Confirmed via authenticated GitHub API that the working repository is
+  **AhmadAFS1/MuseTalk**, not only upstream TMElyralab/MuseTalk. Its default branch
+  is `main`; our implementation records are committed on
+  `codex/rtx3090-r5-delivery`, remote SHA
+  `2fa55ddafc4d3a5ab63ab0b31461af9c8371161e` at inspection.
+- Remote blob SHA for `supplemental/sources.json` is
+  `904dafdd7716da11b1c67363d260d1495aa298dc`; the model-file assessment blob is
+  `7bb4a32be937d2232a0ea046221a871dc6234f8f`. Both match the local committed
+  checkout. These notices/build references are present in the user's own fork.
+- Retrieved run `38025750175` logs and its 25,028-byte build-report artifact.
+  The image **compiled and passed final-stage CPU/import/MMCV CUDA 12.1 checks**,
+  producing config
+  `sha256:2e8600e9f5499a1191fd9e1e0a826b17009be6c2f26e6024c296760d400a2cc1`,
+  12,335,019,078 uncompressed bytes. The overall build/report step then failed;
+  registry audit/publication and independent dependency pull were skipped.
+- Actual failure: the new offline inventory subprocess exited 2 because
+  `/opt/musetalk/app/docker/musetalk/dependency_inventory.py` was absent.
+  `context.py`'s explicit tracked-source allowlist omitted the helper. The saved
+  `installed-dependencies.json` is an error message, **not a valid inventory**.
+  This is my source-packaging defect, not missing information from the user or a
+  compilation failure. No dependency image reached GHCR in this run.
+
+## 2026-10-10 — change 7: include and precheck the inventory helper
+
+- Added only `dependency_inventory.py` to the existing tracked-source allowlist;
+  no credential, model/media, notice-dossier or broad directory bypass was added.
+- Dependency preflight now rejects a missing helper before Docker pulls and
+  compilation. Dependency and full Dockerfiles also check its presence before
+  installation, preventing a late missing-file error after a long compilation.
+- Added a tracked-context regression test that verifies helper inclusion and
+  byte hash while retaining private-path exclusions. Updated the dependency
+  workflow for a clean retry; actual results are recorded separately below.
+- Change 7 local validation: **108 Docker tests successful**, one macOS-only skip;
+  whitespace checks pass. The new tracked-context test reproduces the omitted
+  helper condition that the earlier inventory-only synthetic tests missed.

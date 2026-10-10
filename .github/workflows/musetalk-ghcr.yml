@@ -115,6 +115,9 @@ jobs:
           bash scripts/test_startup_scripts.sh
       - name: Build and CPU-check native amd64 dependencies, without any credentials
         run: |
+          set -euo pipefail
+          # Context membership is checked before compilation, including the
+          # offline inventory helper omitted from the preceding diagnostic run.
           python3 -B docker/musetalk/dependency_preflight.py --root "$GITHUB_WORKSPACE" \
             --work "$RUNNER_TEMP/musetalk-dependency-build"
       - name: Audit all layers and publish private nonpromotable dependency image

@@ -45,6 +45,8 @@ def main():
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
     release.require(not subprocess.check_output(["git", "status", "--porcelain"], cwd=root), "Commit reviewed source before diagnostic build")
     entries = context.inventory(root)
+    release.require("docker/musetalk/dependency_inventory.py" in entries,
+                    "Installed inventory helper missing from allowlisted source; refusing expensive build")
     source = args.work / "source-context"
     source.mkdir()
     for name in entries:

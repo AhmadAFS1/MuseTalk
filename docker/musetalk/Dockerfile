@@ -16,7 +16,7 @@ SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 WORKDIR /opt/musetalk/app
 COPY . /opt/musetalk/app/
 COPY --from=release /release.json /opt/musetalk/release.json
-RUN test "$TARGETARCH" = amd64 && \
+RUN test -f docker/musetalk/dependency_inventory.py && test "$TARGETARCH" = amd64 && \
     [[ "$CUDA_BASE" =~ @sha256:[0-9a-f]{64}$ ]] && \
     [[ "$SOURCE_REVISION" =~ ^[0-9a-f]{40}$ ]] && \
     [[ "$BOOTSTRAP_PYTHON_VERSION" =~ ^[A-Za-z0-9.+:~_-]+$ ]] && \
