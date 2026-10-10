@@ -79,7 +79,7 @@ class VastDockerOnstartTests(unittest.TestCase):
         import context
         self.assertTrue(context.allowed("scripts/vast_docker_onstart.sh"))
         dockerfile = (ROOT / "docker/musetalk/Dockerfile").read_text()
-        self.assertIn('"/opt/musetalk/app/scripts/vast_docker_onstart.sh"', dockerfile)
+        self.assertIn('"/opt/musetalk/app/scripts/vast_3090_docker_boot.sh"', dockerfile)
         self.assertIn('CMD ["serve"]', dockerfile)
         executable = "\n".join(line for line in SCRIPT.read_text().splitlines()
                                if not line.lstrip().startswith("#"))

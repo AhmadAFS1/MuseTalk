@@ -97,7 +97,7 @@ class CITests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ci.assemble_archives({"archives": self.archives}, "fixture", assets, scratch, fetch)
 
-    def metadata(self, extra=None):
+    def metadata(self, extra=None, manifest_changes=None):
         files = {"licenses/fixture.txt": b"Synthetic fixture; no redistribution claim"}
         evidence = {
             "evidence/quality.json": {"decision": "incomplete", "strict_original_gates": "NOT_RUN",
@@ -106,6 +106,13 @@ class CITests(unittest.TestCase):
                                          "limitation": "Synthetic fixture; no GPU evidence",
                                          "bundle_sha256": self.archives["native.tar.gz"]["sha256"]},
         }
+        if (manifest_changes or {}).get("image_visibility") == "private":
+            evidence["evidence/packaging.json"] = {
+                "schema": "musetalk_private_packaging_findings_v1", "scope": "private_deployment",
+                "source_revision": "a" * 40, "bundle_sha256": self.archives["native.tar.gz"]["sha256"],
+                "public_redistribution_reviewed": True, "blanket_use_rights_clearance": False,
+                "notice_policy": "preserve_bundled_and_model_notices", "remaining_findings": ["Synthetic only"]}
+            manifest_changes = {**manifest_changes, "packaging_review_file": "evidence/packaging.json"}
         files.update({name: json.dumps(data).encode() for name, data in evidence.items()})
         m = {"schema": ci.release.SCHEMA, "status": "candidate", "promotion_eligible": False,
              "candidate_reason": "Synthetic test only", "source_revision": "a" * 40,
@@ -119,6 +126,7 @@ class CITests(unittest.TestCase):
              "bundle_manifest_sha256": "c" * 64,
              "apt_packages": [name + "=1.0" for name in sorted(ci.release.REQUIRED_APT)],
              "quality_decision_file": "evidence/quality.json", "aggregate_acceptance_file": "evidence/aggregate.json"}
+        m.update(manifest_changes or {})
         files["release.json"] = json.dumps(m).encode()
         files.update(extra or {})
         path = self.root / "metadata.tar.gz"
@@ -144,6 +152,13 @@ class CITests(unittest.TestCase):
             with self.subTest(extra=extra), self.assertRaises(ValueError):
                 ci.read_metadata(archive, ci.release.sha256(archive), self.root / "release", "a" * 40, "candidate")
         self.assertFalse((self.root / "release").exists())
+
+    def test_private_metadata_rejected_by_public_transport(self):
+        archive = self.metadata(manifest_changes={"image_visibility": "private"})
+        with self.assertRaisesRegex(ValueError, "Private"):
+            ci.read_metadata(archive, ci.release.sha256(archive), self.root / "private", "a" * 40, "candidate")
+        ci.read_metadata(archive, ci.release.sha256(archive), self.root / "accepted", "a" * 40,
+                         "candidate", private_transport=True)
 
     def test_download_has_fixed_repository_and_no_shell(self):
         def complete(command, **kwargs):

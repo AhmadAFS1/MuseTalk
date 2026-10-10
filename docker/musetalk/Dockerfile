@@ -84,5 +84,5 @@ ENV PATH=/opt/musetalk/venv/bin:$PATH \
     LINGUA_WORKER_CALLBACK_REQUIRED=1
 EXPOSE 8000/tcp
 STOPSIGNAL SIGTERM
-ENTRYPOINT ["/usr/bin/tini", "--", "/bin/bash", "/opt/musetalk/app/scripts/vast_docker_onstart.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/bin/bash", "/opt/musetalk/app/scripts/vast_3090_docker_boot.sh"]
 CMD ["serve"]

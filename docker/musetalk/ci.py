@@ -32,7 +32,7 @@ def require_inputs(revision, tag, digest, channel):
     release.require(channel in {"candidate", "validated"}, "Explicit build channel required")
 
 
-def read_metadata(archive, digest, assets, revision, channel, *, validate_transport=None):
+def read_metadata(archive, digest, assets, revision, channel, *, validate_transport=None, private_transport=False):
     release.require(archive.stat().st_size <= MAX_METADATA, "Metadata archive too large")
     release.require(release.sha256(archive) == digest, "Metadata archive checksum mismatch")
     names = set()
@@ -56,6 +56,8 @@ def read_metadata(archive, digest, assets, revision, channel, *, validate_transp
     assets.mkdir(parents=True)
     release.extract(archive, assets, names)
     manifest = release.load_manifest(assets / "release.json")
+    release.require(private_transport or manifest.get("image_visibility", "public") != "private",
+                    "Private manifest cannot use public GitHub release input transport")
     release.require(manifest["source_revision"] == revision and manifest["status"] == channel,
                     "Metadata source/channel differs from reviewed build request")
     release.require(names == {"release.json", *manifest["notices"], *manifest["evidence"]},

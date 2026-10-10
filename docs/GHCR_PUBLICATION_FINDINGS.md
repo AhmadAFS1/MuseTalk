@@ -627,3 +627,40 @@ increment and test/run result.
 - Full manifest/metadata upload, ephemeral CI inputs, full build/publication,
   independent pull and fresh RTX 3090 measurement are **not started**. No GPU
   rental or production/template mutation has occurred.
+
+### 20:33 UTC — Checkpoint committed and pushed
+
+- Committed the selected non-secret documents, verified CI receipts, assembly
+  inventory and helper/tests as `b8431cf2cf4e6fe3cf3ffce1bdf7e7858bbabb8d` and
+  pushed only `codex/rtx3090-r5-delivery`. GitHub branch readback matches the
+  exact commit. The unrelated development-preparation edit and private/untracked
+  media remained excluded. All 23 selected files passed the source credential
+  pattern scan and staged diff whitespace checks before commit.
+- The small task-owned Git bundle was removed locally and remotely after
+  successful push; it is recoverable from the pushed Git commit. The protected
+  RTX 4070 checkout HEAD remained `5cc706e90e50e93da1310628c025a84199cd8042`;
+  no checkout, restart or GPU operation was performed there.
+- No candidate request/dispatch or serving-image publication was triggered by
+  this checkpoint. Restricted owner-only test-image approval remains pending;
+  no new permission, secret value, rental or production setting changed.
+
+### 20:55 UTC — Docker bootstrap and private candidate policy correction
+
+- The user clarified that private GHCR was already selected and authorized the
+  updated Vast script plus startup/app-boot test. No redundant privacy approval
+  is needed. The temporary standalone candidate stage prevents production
+  registration during validation; it is not an owner-only distribution demand.
+- Added `scripts/vast_3090_docker_boot.sh` and selected it as the full image
+  ENTRYPOINT. It delegates to the existing supervisor, removes clone/install
+  work, defaults to EC2-injected worker runtime values and does not embed keys.
+  Vast image selection and `image_login` happen before bash runs. The exposed
+  AWS keys in the old pasted script should be rotated; rotation is not verified.
+- Corrected the metadata validator's public-only packaging requirement for an
+  explicitly private, nonpromotable candidate. It now requires hashed findings
+  bound to source/native hashes, retained notices, honest public review status
+  and no blanket use-rights clearance. Public/validated gates stay unchanged;
+  public GitHub release transport rejects private metadata. Original quality
+  and aggregate FAIL verdicts are retained. This is not legal/license clearance.
+- Added a metadata assembly helper from the exact preserved inputs and a
+  [script handoff](VAST_RTX3090_DOCKER_BOOT.md). No full-image dispatch, rental,
+  production/template change or startup measurement has happened in this step.

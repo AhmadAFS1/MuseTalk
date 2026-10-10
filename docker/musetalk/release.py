@@ -161,7 +161,19 @@ def load_manifest(path):
     if m["status"] == "candidate":
         allowed_bundles.add(NATIVE_V1_CANDIDATE)
     require(m.get("bundle_name") in allowed_bundles, "Native 3090 descriptor required; diagnostic cannot be promoted")
-    require(m.get("redistribution_reviewed") is True, "Public redistribution review required")
+    visibility = m.get("image_visibility", "public")
+    require(visibility in {"public", "private"}, "Explicit public/private image visibility required")
+    private_candidate = visibility == "private" and m["status"] == "candidate"
+    if private_candidate:
+        # Private packaging is not an assertion that public redistribution or
+        # unresolved underlying use rights have been cleared. Retain a hashed
+        # findings record; the GHCR publisher separately enforces private access.
+        require(type(m.get("redistribution_reviewed")) is bool,
+                "Record public redistribution review honestly")
+        require(m.get("packaging_review_file") in m.get("evidence", {}),
+                "Private candidate needs a hashed packaging findings record")
+    else:
+        require(m.get("redistribution_reviewed") is True, "Public redistribution review required")
     require(m.get("avatar_prep") is True, "This full API image requires avatar-prep dependencies")
     require(type(m.get("kokoro")) is bool, "Declare local TTS capability explicitly")
     require(m.get("vp8_encoder") in {"native", "pyav"}, "Declare validated VP8 encoder")
@@ -178,7 +190,9 @@ def load_manifest(path):
     require(SHA.fullmatch(m.get("bundle_manifest_sha256", "")), "Bundle manifest digest required")
     for name, entry in m["model_files"].items():
         require(name.startswith("models/") and len(PurePosixPath(name).parts) >= 3, "Only model assets may be baked")
-        require(entry.get("public_redistribution") is True and entry.get("license_id"),
+        require(entry.get("license_id") and (entry.get("public_redistribution") is True
+                or private_candidate and entry.get("public_redistribution") is False
+                and entry.get("private_delivery_authorized") is True),
                 f"Missing model redistribution/license decision: {name}")
     external_models(m)
     require(all(n.startswith("licenses/") for n in m["notices"]), "Notices must be under licenses/")
@@ -222,6 +236,20 @@ def verify_evidence(assets, m):
     for name, entry in m["evidence"].items():
         check_file(assets, name, entry)
         scan_text(Path(assets) / name)
+    if m.get("image_visibility") == "private" and m["status"] == "candidate":
+        review = json.loads((Path(assets) / m["packaging_review_file"]).read_text())
+        require(review.get("schema") == "musetalk_private_packaging_findings_v1"
+                and review.get("scope") == "private_deployment"
+                and review.get("source_revision") == m["source_revision"]
+                and review.get("bundle_sha256") == m["archives"]["native.tar.gz"]["sha256"],
+                "Private packaging findings identity mismatch")
+        require(review.get("public_redistribution_reviewed") == m["redistribution_reviewed"]
+                and review.get("blanket_use_rights_clearance") is False
+                and review.get("notice_policy") == "preserve_bundled_and_model_notices"
+                and isinstance(review.get("remaining_findings"), list)
+                and bool(review["remaining_findings"])
+                and all(isinstance(item, str) and item.strip() for item in review["remaining_findings"]),
+                "Private packaging must retain notices and actual unresolved findings")
     quality_name = m.get("quality_decision_file", "")
     aggregate_name = m.get("aggregate_acceptance_file", "")
     require(quality_name in m["evidence"] and aggregate_name in m["evidence"], "Acceptance evidence required")

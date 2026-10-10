@@ -116,7 +116,7 @@ def assemble(root, work, revision, metadata_sha256, urls, fetch=download):
     metadata = fetch(urls[ci.METADATA_NAME], work / ci.METADATA_NAME, metadata_sha256, limit=ci.MAX_METADATA)
     assets = work / "release"
     manifest = ci.read_metadata(metadata, metadata_sha256, assets, revision, "candidate",
-                                validate_transport=validate_archives)
+                                validate_transport=validate_archives, private_transport=True)
     # Fail before downloading multi-GB payloads if descriptor/license/source
     # contracts are inconsistent. Never set a review/acceptance flag here.
     release.descriptor(root, manifest)

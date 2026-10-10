@@ -170,7 +170,9 @@ S3 checksum-addressed native bundle separately for rollback.
 | `cuda_runtime_base` | Optional exact matching CUDA/cuDNN runtime digest supported by the helper; omission retains `cuda_base`. The final stage must use this manifest-selected base |
 | `bundle_name` | `rtx3090-r5-srcg50-int8`; matching real descriptor must exist and appear in r5 recipe |
 | `bundle_manifest_sha256` | SHA-256 of `.musetalk_trt_artifact_manifest.json` inside native bundle |
-| `redistribution_reviewed` | `true` only after all included assets/package licenses were reviewed for public distribution |
+| `redistribution_reviewed` | Public/validated images require `true`. An explicitly private candidate may retain `false` with hashed packaging findings; no blanket use-rights clearance is inferred. |
+| `image_visibility` | `private` for the selected candidate; public release transport rejects this metadata. Missing means legacy public policy. |
+| `packaging_review_file` | Required private-candidate evidence, bound to exact source/native hashes, preserving notices and remaining findings. |
 | `avatar_prep` / `kokoro` / `vp8_encoder` | `true` / explicit boolean matching production TTS / actual tested `native` or `pyav` |
 | `apt_packages` | Array of exact `name=version` pins resolved on selected base; helper lists required package names |
 | `source_files` | Map of every exported code-relative path → `{sha256, size_bytes}`; obtained after commit from context inventory |

@@ -174,6 +174,34 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             release.load_manifest(self.manifest())
 
+    def test_private_candidate_retains_findings_without_fabricating_public_clearance(self):
+        self.m.update(status="candidate", promotion_eligible=False, candidate_reason="Synthetic private test",
+                      image_visibility="private", redistribution_reviewed=False,
+                      packaging_review_file="packaging.json")
+        self.evidence()
+        self.aggregate.update(status="NOT_RUN", limitation="Synthetic fixture; no GPU evidence")
+        self.refresh_evidence()
+        review = {"schema": "musetalk_private_packaging_findings_v1", "scope": "private_deployment",
+                  "source_revision": self.m["source_revision"], "bundle_sha256": "d" * 64,
+                  "public_redistribution_reviewed": False, "blanket_use_rights_clearance": False,
+                  "notice_policy": "preserve_bundled_and_model_notices",
+                  "remaining_findings": ["Synthetic unresolved distribution finding"]}
+        self.m["evidence"]["packaging.json"] = self.write("packaging.json", json.dumps(review).encode())
+        self.m["model_files"]["models/fixture/plan"].update(public_redistribution=False,
+                                                           private_delivery_authorized=True)
+        release.load_manifest(self.manifest())
+        release.verify_evidence(self.root, self.m)
+        for field, value in (("blanket_use_rights_clearance", True), ("source_revision", "b" * 40),
+                             ("remaining_findings", []), ("public_redistribution_reviewed", True)):
+            bad = {**review, field: value}
+            self.m["evidence"]["packaging.json"] = self.write("packaging.json", json.dumps(bad).encode())
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                release.verify_evidence(self.root, self.m)
+        for values in ({"image_visibility": "public"}, {"status": "validated"},
+                       {"packaging_review_file": "missing.json"}, {"image_visibility": "unknown"}):
+            with self.subTest(values=values), self.assertRaises(ValueError):
+                release.load_manifest(self.manifest({**self.m, **values}))
+
     def test_kokoro_cannot_defer_first_request_download(self):
         self.m["kokoro"] = True
         with self.assertRaises(ValueError):
