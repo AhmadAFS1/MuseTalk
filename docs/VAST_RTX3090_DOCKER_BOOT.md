@@ -60,3 +60,27 @@ Logs: `/workspace/bootstrap.log` and the canonical supervisor's startup logs.
 No new startup timing has been measured yet. The existing 9–10 minute warmup
 and approximately 15 minute startup are user-reported reference values, not a
 paired benchmark for this image.
+
+## October 10 execution
+
+The bootstrap is pushed at `c06624da9d7cebd6aa8f3dd6ad4a0dc8306ec6d6`.
+The full-image build is
+[run 38085895073](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38085895073).
+Its existing dependency predecessor took approximately 56 minutes to build,
+audit and publish; this is context, not an ETA guarantee for the full image.
+
+`scripts/repro_3090/run_docker_boot_sequence.py` is a bounded one-shot execution
+driver for this exact build, not a recurring automation. It verifies publication,
+the independent digest pull and offline CPU-check job before one EC2-created
+RTX 3090 rental. The owned test has a verified four-hour expiry before creation,
+the $0.30/hour ceiling and $1.50/decimal-TB upload/download caps. Its $12
+conservative reservation includes compute, allocated disk, transfer and margin.
+It never retries an ambiguous create or enables production rollout.
+
+Generated progress is saved to
+`docs/fps_comparisons/rtx3090_r5_20261008/startup/docker_boot_test_20261010/progress.md`.
+The test targets `/health`, one existing avatar's S3 restore/cache warm, REST
+generation and a locally decoded MP4 frame. This is not a live WebRTC/RTP test,
+48-avatar warm readiness, matched cache-empty-host comparison or a 400 FPS pass.
+Failures stop the sequence with safe diagnostics; any created worker keeps its
+bound expiry. The worker may remain available until that four-hour deadline.

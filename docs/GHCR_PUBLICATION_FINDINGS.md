@@ -665,7 +665,7 @@ increment and test/run result.
   [script handoff](VAST_RTX3090_DOCKER_BOOT.md). No full-image dispatch, rental,
   production/template change or startup measurement has happened in this step.
 
-### 21:04 UTC — Source pushed and private build inputs staged
+### 20:59 UTC — Source pushed and private build inputs staged
 
 - The new bootstrap/private metadata policy is pushed as
   `c06624da9d7cebd6aa8f3dd6ad4a0dc8306ec6d6`; GitHub readback matches and the
@@ -687,3 +687,40 @@ increment and test/run result.
 - Added an exact two-hash task-branch build request. Its push will dispatch the
   full build and subsequent private publication/independent pull checks. It
   does not create a GPU or change a production template/autoscaler setting.
+
+### 21:03 UTC — Full build running; isolated rental guards prepared
+
+- Build request commit `8ed5be05af7c9d8c7e5589cd3cb6aa4947f05281` is pushed.
+  [Full candidate run 38085895073](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38085895073)
+  is running and reached private input assembly/build. Initial checkout, CPU
+  contract tests and package privacy check passed. No serving digest yet.
+- Added an EC2-only standalone lease helper with a verified full-image gate,
+  fresh pull-only credential lookup, in-memory worker-secret injection,
+  durable one-attempt creation and exact four-hour expiry readback before PUT.
+  The test retains $0.30/hour and $0.0015/GB both-direction transfer ceilings,
+  64 GB allocated storage and a conservative $12 all-in reservation ceiling.
+  This prepares a test; no timer, lease or production rollout is created yet.
+
+### 21:15 UTC — Bounded background test sequence prepared
+
+- Full build remains in progress. The dependency predecessor's actual build/
+  audit/publication job ran 19:03:59–19:59:44 UTC (about 56 minutes), followed by
+  an independent pull. No full digest, GPU lease or new startup result yet.
+- Four lease/input tests, two full-artifact transport tests, three sequence
+  safety tests and the existing 30 startup-observer tests pass. The sequence
+  waits for this one exact build, verifies both jobs/artifact hashes, then
+  attempts at most one bounded standalone 3090. Generated progress Markdown
+  records every meaningful stage without raw credentials/provider error bodies.
+- A read-only live search found one currently qualifying offer (54468717,
+  machine 153039), adjusted price $0.239074/hour, 64 GB requested disk,
+  both transfer prices $0.001302083/GB. This is not a reservation and must be
+  rechecked immediately before create. EC2 credential bootstrap still uses
+  `iam-role`; no pasted key was used. Stable root-readable test tools were
+  copied outside the production app. A first unprivileged directory copy was
+  denied; scoped sudo installation to the task tools directory succeeded.
+- Lingua's default-off Docker branch now performs fresh worker-secret reads
+  with EC2's role, forwards allowlisted worker/S3 values in memory and removes
+  stale caller AWS/secret-reader values. The GHCR token remains `image_login`
+  only. All 26 focused backend registry/offer tests pass in the existing test
+  venv (system Python initially lacked `dotenv`). Production is not deployed,
+  restarted or enabled. No additional AWS resource/IAM grant was made.
