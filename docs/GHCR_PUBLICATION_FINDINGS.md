@@ -240,3 +240,6 @@ increment and test/run result.
 - Dependency retry has passed private bootstrap and independent placeholder
   pull on fresh runners. Native Linux dependency/startup validation and compilation
   are next; dependency/full-image publication and serving readiness remain pending.
+- Latest readback: **native Linux CPU contracts and startup-shell regression
+  passed** in the dependency job. Credential-free compilation is now in progress.
+  This resolves the local Bash 3 test limitation without installing a local shell.
