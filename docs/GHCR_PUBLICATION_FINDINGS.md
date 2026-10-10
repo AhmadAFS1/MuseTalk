@@ -220,3 +220,23 @@ increment and test/run result.
 - This workflow change requests a fresh dependency rebuild/publication on the
   next clean pushed commit. Current local Docker suite: 107 tests, successful
   with one macOS-only skip. Full release/runtime review gates remain separate.
+
+## 2026-10-10 — dependency retry dispatched / remaining evidence question
+
+- Pushed `795bb4c625295fe0ac647fab83c9732e8eef8f80` without modifying the
+  protected worker's runtime checkout. Run
+  [38025750175](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38025750175)
+  is executing the bounded dependency publication sequence. Its preceding
+  build took 48m48s; the new run is not a serving image or cold-start measurement.
+- Asked for any existing exact-package TensorRT/FFmpeg review and
+  corresponding-source delivery record. Those saved dossier gates cannot be
+  changed to PASS just because Kokoro is now excluded. Continue the in-scope
+  publication diagnostics and installed-inventory collection while awaiting
+  evidence; do not trigger an unreviewed full-image publication or rental.
+- Downloaded actual base receipt: config
+  `sha256:02f0c5f1a54bd88a5242a21ef690ab6826c7d36eb2b8134b32860a258427d97e`,
+  3,379,534,165 uncompressed bytes, **ten layers scanned**. Exactly the reviewed
+  GnuTLS fixture allowance was applied; all other base payloads passed unchanged.
+- Dependency retry has passed private bootstrap and independent placeholder
+  pull on fresh runners. Native Linux dependency/startup validation and compilation
+  are next; dependency/full-image publication and serving readiness remain pending.
