@@ -84,3 +84,15 @@ generation and a locally decoded MP4 frame. This is not a live WebRTC/RTP test,
 48-avatar warm readiness, matched cache-empty-host comparison or a 400 FPS pass.
 Failures stop the sequence with safe diagnostics; any created worker keeps its
 bound expiry. The worker may remain available until that four-hour deadline.
+
+### Publication retry
+
+The original run built/CPU-checked the image but failed at the layer export
+before publication. Its boot sequence stopped before renting a GPU.
+The corrected publisher scans `docker save` stdout without creating another
+19 GB image archive and has a real tiny-image export smoke gate.
+[Retry run 38093257223](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38093257223)
+uses request commit `874203e1157f74a6cf581d3c175155c4c54a0362`, with the
+same `c06624da` serving source and input hashes. Publication/independent pull
+must pass before using its immutable digest. The failed boot driver is not
+automatically restarted by this publication retry.

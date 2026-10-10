@@ -35,22 +35,26 @@ def verified_zip(raw, artifact, layout):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--run-id', type=int, default=RUN)
+    parser.add_argument('--request-revision', default=REQUEST_REV)
     args = parser.parse_args()
+    run_id, request_revision = args.run_id, args.request_revision
+    require(run_id > 0 and re.fullmatch('[0-9a-f]{40}', request_revision), 'Exact run/request identity required')
     require(not args.out.exists() and not args.out.is_symlink(), 'Evidence output must be new')
-    run = json.loads(read_api(f'actions/runs/{RUN}'))
-    require(run['id'] == RUN and run['head_sha'] == REQUEST_REV and run['status'] == 'completed'
+    run = json.loads(read_api(f'actions/runs/{run_id}'))
+    require(run['id'] == run_id and run['head_sha'] == request_revision and run['status'] == 'completed'
             and run['conclusion'] == 'success', 'Successful fixed full-image run not proved')
-    jobs = json.loads(read_api(f'actions/runs/{RUN}/jobs'))['jobs']
+    jobs = json.loads(read_api(f'actions/runs/{run_id}/jobs'))['jobs']
     require({job['name'] for job in jobs} == {'candidate', 'verify-candidate'}
             and all(job['conclusion'] == 'success' for job in jobs), 'Full build/independent CPU check not proved')
-    artifacts = json.loads(read_api(f'actions/runs/{RUN}/artifacts'))['artifacts']
+    artifacts = json.loads(read_api(f'actions/runs/{run_id}/artifacts'))['artifacts']
     files, receipts = {}, []
     for name, layout in (('musetalk-ghcr-full-candidate', LAYOUT),
                           ('musetalk-ghcr-independent-candidate', {'result.json': 'independent-pull.json'})):
         matches = [a for a in artifacts if a['name'] == name]
         require(len(matches) == 1 and not matches[0]['expired'], 'Unique unexpired artifact required')
         item = matches[0]
-        require(item['workflow_run']['id'] == RUN, 'Artifact run identity mismatch')
+        require(item['workflow_run']['id'] == run_id, 'Artifact run identity mismatch')
         raw = read_api(f"actions/artifacts/{item['id']}/zip")
         files.update(verified_zip(raw, item, layout))
         receipts.append({key: item[key] for key in ('id', 'name', 'size_in_bytes', 'digest')})
@@ -67,8 +71,8 @@ def main():
             and independent['image'] == image and independent['status'] == 'PASS'
             and independent['private_visibility'] == 'VERIFIED' and independent['anonymous_pull'] == 'DENIED'
             and build['source_revision'] == SOURCE_REV and build['cpu_build_check'] == 'PASS', 'Independent digest/build mismatch')
-    proof = {'schema': 'musetalk_full_candidate_verification_v1', 'ci_url': run['html_url'], 'run_id': RUN,
-             'request_revision': REQUEST_REV, 'source_revision': SOURCE_REV, 'workflow_conclusion': 'success',
+    proof = {'schema': 'musetalk_full_candidate_verification_v1', 'ci_url': run['html_url'], 'run_id': run_id,
+             'request_revision': request_revision, 'source_revision': SOURCE_REV, 'workflow_conclusion': 'success',
              'image': image, 'compressed_layer_bytes': publication['compressed_layer_bytes'],
              'published': True, 'serving_image': True, 'independent_pull': 'PASS', 'offline_cpu_check': 'PASS',
              'private_visibility': 'VERIFIED', 'anonymous_pull': 'DENIED', 'promotion_eligible': False,

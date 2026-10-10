@@ -748,3 +748,18 @@ increment and test/run result.
   AWS infrastructure, GPU lease or production template change.
 - Local Docker contracts: 131 tests pass, with one expected macOS-only skip.
   The real runner export smoke test and publication retry are still pending.
+
+### 22:57 UTC — Corrected publication retry dispatched
+
+- Repair commit `b3ef70d` and retry request commit
+  `874203e1157f74a6cf581d3c175155c4c54a0362` are pushed. The two request values
+  are unchanged; only key order changed to explicitly trigger the task-branch
+  workflow with the corrected publisher, without repinning serving code.
+- [Retry run 38093257223](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38093257223)
+  is in progress. The same three exact private S3 input versions were checked
+  and fresh <=one-hour URLs passed in memory to the Actions secret setter.
+  No credentials or URLs were saved in source, local files or build arguments.
+- The evidence collector accepts an explicit exact retry run/request identity;
+  it still requires the unchanged serving source, successful build and separate
+  exact-digest pull/CPU jobs, private visibility, anonymous denial and matched
+  artifact ZIP hashes. It does not accept a running/failed run or rent a GPU.
