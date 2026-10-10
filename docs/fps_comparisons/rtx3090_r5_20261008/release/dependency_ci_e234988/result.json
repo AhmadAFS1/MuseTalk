@@ -1,0 +1,14 @@
+{
+  "schema": "musetalk_dependency_preflight_v1",
+  "status": "PASS",
+  "base": "nvidia/cuda@sha256:cc55d151af1e8e083f3210af753a5cfbcbc5455421531eb0459887026bb4699f",
+  "runtime_base": "nvidia/cuda@sha256:810756cab1c28ce693499a5c2ebb66f6d10a61d026998c8606bad449643a4c49",
+  "source_revision": "e2349882620d6f26e82b613c5dc38e8d7cc31d88",
+  "scope": "Actual GPU-less server+avatar-prep+nativeVP8 dependency build; Kokoro not included",
+  "models_present": false,
+  "gpu_tested": false,
+  "published": false,
+  "promotion_eligible": false,
+  "layout": "fresh final stage on pinned matching CUDA/cuDNN runtime base; exact Windows builder resource pruned; apt package set unchanged",
+  "disk_free_after": 53683773440
+}

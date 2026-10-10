@@ -22,6 +22,8 @@ FIXED_RUNS = {
                 'c8487e775511bb7f25b931cca8e0433d1512ac4f2f711c98b36149e8e28345f7'),
     'a57f2de': (37833533181, 'a57f2de33f7d9441734b1a0868c5d8987b14a88b', 11578438305,
                 'b8f6ab30f029dba4e42dc331e0eb6282ecf0e9f65d7df6f66131d04ca9ed21f8'),
+    'e234988': (38078158793, 'e2349882620d6f26e82b613c5dc38e8d7cc31d88', 11680369661,
+                'abcadaba3955fd1d5ab576af157af867ed0dcb2c13057db72e47bb2eec4a80df'),
 }
 EXPECTED = {'source-inventory.json', 'base-identity.json', 'apt-pins.json', 'build-metadata.json',
             'image-inspect.json', 'image-history.jsonl', 'pip-freeze.txt', 'dpkg-packages.txt',
@@ -31,6 +33,13 @@ LAYOUTS = {
                 'musetalk-cpu-contracts/installer.log': 'installer.log'},
 }
 LAYOUTS['a57f2de'] = dict(LAYOUTS['7a78e4a'])
+LAYOUTS['e234988'] = {
+    **{f'musetalk-dependency-build/reports/{name}': name
+       for name in EXPECTED | {'installed-dependencies.json'}},
+    'ghcr-dependency-publication/layer-scan.json': 'layer-scan.json',
+    'ghcr-dependency-publication/result.json': 'publication-result.json',
+    'musetalk-scanner-provenance.json': 'scanner-provenance.json',
+}
 
 
 def require(ok, code):
@@ -73,7 +82,9 @@ def main():
     require(run['id'] == RUN and run['head_sha'] == REV and run['status'] == 'completed'
             and run['conclusion'] == 'success', 'expected_successful_ci_not_proven')
     artifact = json.loads(read_api(f'actions/artifacts/{ARTIFACT}'))
-    require(artifact['id'] == ARTIFACT and artifact['name'] == 'musetalk-dependency-preflight'
+    artifact_name = ('musetalk-ghcr-dependency-publication' if args.fixed_run == 'e234988'
+                     else 'musetalk-dependency-preflight')
+    require(artifact['id'] == ARTIFACT and artifact['name'] == artifact_name
             and artifact['digest'] == 'sha256:' + SHA and not artifact['expired']
             and artifact['workflow_run']['id'] == RUN, 'artifact_identity_mismatch')
     raw = read_api(f'actions/artifacts/{ARTIFACT}/zip')

@@ -451,3 +451,179 @@ increment and test/run result.
   reproduces **all 11 exact-file exceptions** successfully, including the six
   future fixtures. `git diff --check` passes. Unrelated tracked/untracked
   preparation and media evidence remain excluded from this change.
+- Repair committed and pushed as `e2349882620d6f26e82b613c5dc38e8d7cc31d88`.
+  Explicitly dispatched private delivery retry
+  [38078158793](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38078158793);
+  GitHub readback confirms `in_progress` at that exact source revision.
+  Its eventual success/failure is not yet known. The protected RTX 4070 checkout
+  remains at `5cc706e90e50e93da1310628c025a84199cd8042`; no checkout, restart or
+  GPU operation was performed. Task-owned temporary Git-bundle copies were
+  removed after the push; committed source remains recoverable in Git.
+
+## 2026-10-10 — Planned `main`-merge image builds documented
+
+- At the operator's request, added the image-update lifecycle and future
+  build-on-merge plan to
+  [Docker fast-startup plan](DOCKER_FAST_STARTUP_PLAN.md#planned-automated-image-builds-after-merging-to-main).
+  Existing images/workers do not change when GitHub source changes; runtime
+  changes require a new image, while documentation-only changes can skip it.
+- Read back both local GHCR workflow definitions: their automatic push triggers
+  still target only `codex/rtx3090-r5-delivery` with explicit path filters, not
+  `main`. Recorded the intended full-image build, private publication, exact
+  digest verification and separately approved promotion sequence, including
+  layer-cache limits and unchanged existing workers.
+- Documentation only: no workflow edit/dispatch, production digest change,
+  credential mutation, GPU rental, AWS resource or external push. Main-merge
+  automation remains planned, not implemented. No fresh CI status or cold-start
+  measurement is claimed by this entry.
+
+## 2026-10-10 19:45 UTC — Vast template readiness check
+
+- Read live GitHub run/job state for
+  [38078158793](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38078158793)
+  at source `e2349882620d6f26e82b613c5dc38e8d7cc31d88`: bootstrap and
+  independent placeholder pull succeeded; dependencies remain `in_progress`
+  in the credential-free native amd64 build/CPU-check step. No successful
+  dependency publication or independent dependency pull is reported yet.
+- Rechecked the publisher contract: dependency receipts explicitly set
+  `serving_image:false` and `promotion_eligible:false`, with no model weights
+  or native serving bundle. Even a successful dependency publication is not
+  an image usable as a MuseTalk worker in a new Vast template.
+- GitHub's workflow inventory does not yet list the full-candidate workflow;
+  the latest ten delivery-branch runs contain no full-candidate run. Local
+  full-candidate request metadata is absent, and the documented full-image
+  assembly/publication remains pending. No runnable full-image digest or
+  fresh-container RTX 3090/cold-start acceptance evidence is available.
+- Verdict: **not ready for a serving Vast template**. Updated the main plan's
+  stale registry/credential checkpoint. This check made no workflow dispatch,
+  registry/credential change, rental or production/template mutation; only
+  local documentation was updated. Existing source-install startup remains
+  the usable fallback while the full image is completed and tested.
+
+## 2026-10-10 20:05 UTC — Dependency publication and independent pull PASS
+
+- Run [38078158793](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38078158793)
+  completed `success` at `20:04:55Z` for source
+  `e2349882620d6f26e82b613c5dc38e8d7cc31d88`. All four jobs passed:
+  bootstrap, verify-bootstrap, dependencies and verify-dependencies.
+- Retrieved the publication and independent-pull artifacts in memory; both
+  ZIP sizes/SHA-256s match GitHub's artifact metadata. The exact published
+  manifest digest is
+  `sha256:7cd567bd77d421565c6813e5372561be31a8b3cab73f307430abd6b95d0067f6`.
+  The receipt records **6,860,592,912 compressed layer bytes**, plus 16,470
+  config bytes. This is registry payload size, not measured transfer time or
+  a full serving-image size. All-layer audit, private visibility, anonymous
+  denial and independent fresh-runner pull passed.
+- Saved selected verified non-secret fields and artifact provenance in
+  [publication readback](fps_comparisons/rtx3090_r5_20261008/release/ghcr_dependency_publication_e234988_verified.json).
+  It explicitly preserves `serving_image:false`, `promotion_eligible:false`,
+  no GPU acceptance and no Docker cold-start measurement. Do not use this
+  dependency-only digest as the new serving Vast template.
+- Next-stage read-only EC2 preflight confirms its IAM role can HEAD the exact
+  previously staged weight/native archive **versions**, with matching sizes
+  and SHA metadata. No multi-GB re-download or fresh full-content hash proof
+  is claimed. Its saved pull credential authenticates to GHCR, and HEAD of
+  the new dependency digest returns HTTP 200 with matching manifest identity.
+- A concrete runtime handoff gap remains: `linguaEc2role` receives
+  `AccessDeniedException` for `GetSecretValue` on the existing worker-runtime
+  secret ARN ending `Dof4b8`. The existing local AWS identity is denied too.
+  Therefore this preflight did not obtain worker credentials or test private
+  model access; it does not prove that the worker's separate identity is denied.
+  Requested operator approval for **only** this role/action/secret read grant;
+  no IAM/secret changes have been made. This access gap affects startup
+  credential transport, not the already-passed dependency publication.
+- Full-image metadata/notice and native provenance assembly, private candidate
+  build/publication/independent pull, and the fresh RTX 3090 usable-output boot
+  test remain next. Preserve documented TensorRT/multimedia review obligations
+  and historical quality/FPS verdicts rather than manufacturing a release pass.
+  No GPU rental, production/template update, new AWS resource or background
+  full-candidate dispatch was performed in this progress check.
+
+## 2026-10-10 — Approved runtime-secret grant, CLI denied / console review
+
+- Operator authorized the exact existing worker-runtime secret read grant,
+  followed by a full private image build/publication and fresh RTX 3090 startup
+  test. `iam:GetRole` confirms the actual role spelling is `linguaEc2role`,
+  ARN `arn:aws:iam::211125449207:role/linguaEc2role`; do not target a guessed
+  case variant or change its trust relationship.
+- Existing CLI identity `lingua-backend-user` cannot list/read inline policies
+  or perform `iam:PutRolePolicy`. The attempted new, uniquely named policy
+  `MuseTalkWorkerRuntimeSecretRead-20261010-c51cb4d1` returned `AccessDenied`:
+  **no CLI grant was applied**. No escalation of the local user's permissions
+  or other IAM edit was attempted.
+- Signed-in AWS console successfully shows the exact role and its eight
+  existing policies. Prepared a separate new inline policy, leaving them
+  untouched: sole action `secretsmanager:GetSecretValue`, sole resource the
+  existing secret ARN ending `Dof4b8`, no wildcard or KMS/IAM/S3 grant. The
+  policy is at Review/Create, **not saved**; browser policy requires final
+  action-time confirmation, requested separately from the earlier CLI approval.
+- A reproducible non-secret JSON policy is saved in Lingua's prepared rollout
+  worktree at `backend/docs/iam/musetalk-worker-runtime-secret-read.json`.
+  Full-image source/model/native assembly continues independently; successful
+  permission readback, full publication and fresh GPU timing are not claimed.
+
+## 2026-10-10 20:26 UTC — Runtime-secret grant saved and model access verified
+
+- After the operator reported completion, AWS console readback showed success
+  for `MuseTalkWorkerRuntimeSecretRead-20261010-c51cb4d1` on `linguaEc2role`,
+  with nine policies rather than the previous eight. EC2's `iam-role`
+  credential provider now successfully reads the existing worker-runtime secret.
+  Values were consumed in process memory only and never printed or saved.
+- The stored key pair authenticates as
+  `arn:aws:iam::211125449207:user/musetalk-s3-runtime`. Initial combined probes
+  incorrectly suggested model access was denied: the denied operation was an
+  explicit-version object read, not the ordinary current-object startup path.
+  Separated HEAD/current Range-GET checks pass for all four required face-parse
+  and S3FD objects, with exact size/SHA metadata and unchanged observed versions.
+  Only four bytes were fetched; this is access verification, not a fresh full
+  content hash or GPU/runtime acceptance test.
+- The existing `release.fetch_private_model` already uses ordinary `GetObject`
+  when no `version_id` is requested, checks full downloaded SHA-256, and checks
+  HEAD versions before/after. Use this existing checked path; do not request
+  `s3:GetObjectVersion`, broaden IAM or insert current observed versions as new
+  manifest version requests. No further policy or secret changes were made.
+- Full-image reviewed input assembly/publication and a fresh GPU startup test
+  remain pending. Dependency publication remains successful; no rental,
+  production/template update, full-candidate dispatch or boot-time claim was
+  made during this readback.
+
+## 2026-10-10 20:31 UTC — Actual full-image input assembly checkpoint
+
+- Extended the fixed read-only CI evidence collector for the successful
+  `e234988` GHCR artifact layout. Verified the run/commit, exact artifact ID,
+  GitHub-declared ZIP SHA/size and all 14 expected members before writing them
+  locally. Build and publication `result.json` files remain distinct; no remote
+  files, authentication or protected worker checkout were copied/changed.
+  [Verified dependency evidence](fps_comparisons/rtx3090_r5_20261008/release/dependency_ci_e234988/provenance.json)
+  now supplies actual OS pins and installed dependency fingerprints: 156 pip
+  distributions, 419 dpkg packages, 415 OS copyright-file records. These are
+  dependency-image facts, not the unbuilt full image's final SBOM or license pass.
+- Added a reproducible, network-free assembly inventory helper. Its actual run
+  verifies 211 allowlisted runtime source files against the committed `e234988`
+  bytes, rehashes both preserved archives (3,951,486,311 and 983,926,034 bytes),
+  streams/rechecks all 16 native payload hashes and the two canonical sidecars,
+  and checks all 12 retained notices for the ten unchanged eligible weight files.
+  Four required private runtime models remain external; unused SyncNet and
+  optional Kokoro are not selected. No credentials, media or readiness stamps
+  are assembled. Individual weight members were not rehashed again in this
+  run; the hashed prior clean-restore receipt supplies that earlier evidence.
+- [Full candidate assembly inventory](fps_comparisons/rtx3090_r5_20261008/release/full_candidate_assembly_e234988.json)
+  is explicitly **not** `release.json`, not publication authorization and not a
+  quality/FPS/GPU acceptance verdict. Preserved native build metadata does not
+  supply a complete input-hash trace; the record retains that limitation.
+  Remaining TensorRT/multimedia redistribution/source findings remain visible.
+- The full-image loader still requires `redistribution_reviewed:true` for all
+  included assets/packages, even for the selected private nonpromotable candidate.
+  Requested an explicit operator choice for a restricted owner-only test-image
+  path with unresolved public-redistribution findings retained, versus keeping
+  the existing gate. No review flag, gate, workflow or package visibility was
+  changed. No legal/public-release clearance is inferred from private storage.
+- Seven focused synthetic collector/assembly tests pass (four collector, three
+  assembly), including changed native bytes, duplicate/traversal members,
+  symlink inputs and distinct build/publication receipt names. A first local
+  assembly attempt failed on the sidecar's actual `size` field; the reader was
+  corrected to the existing schema and the real assembly then passed. No
+  partial deployable metadata was emitted by the failed attempt.
+- Full manifest/metadata upload, ephemeral CI inputs, full build/publication,
+  independent pull and fresh RTX 3090 measurement are **not started**. No GPU
+  rental or production/template mutation has occurred.

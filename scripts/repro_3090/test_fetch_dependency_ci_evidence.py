@@ -24,11 +24,18 @@ class DependencyArchiveTests(unittest.TestCase):
         return raw, hashlib.sha256(raw).hexdigest()
 
     def test_old_root_and_fixed_nested_layouts_have_exact_outputs(self):
-        for layout in ({name: name for name in fetch.EXPECTED}, fetch.LAYOUTS["7a78e4a"]):
+        for layout in ({name: name for name in fetch.EXPECTED},
+                       fetch.LAYOUTS["7a78e4a"], fetch.LAYOUTS["e234988"]):
             raw, digest = self.archive(layout)
             result = fetch.entries(raw, layout=layout, digest=digest)
             self.assertEqual(set(result), set(layout.values()))
             self.assertTrue(all(data == b"synthetic" for data in result.values()))
+
+    def test_publication_and_build_receipts_do_not_collide(self):
+        layout = fetch.LAYOUTS["e234988"]
+        self.assertEqual(len(layout), 14)
+        self.assertEqual(layout["musetalk-dependency-build/reports/result.json"], "result.json")
+        self.assertEqual(layout["ghcr-dependency-publication/result.json"], "publication-result.json")
 
     def test_extra_members_wrong_digest_and_layout_are_rejected(self):
         layout = fetch.LAYOUTS["7a78e4a"]

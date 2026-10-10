@@ -28,11 +28,11 @@ the current private-registry delivery choice.
 | Item | Status and evidence |
 |---|---|
 | Docker build/runtime implementation | Exists in [docker/musetalk](../docker/musetalk/README.md), including a Dockerfile, manifest validation, immutable startup, and supervised shutdown. Dedicated [Vast Docker startup script](../scripts/vast_docker_onstart.sh) selected by the full Dockerfile; 114 Docker tests successful (one macOS skip). Full serving image remains unbuilt/unpublished. |
-| Dependency-only build | Built and CPU-checked in CI: 12,334,990,710 uncompressed bytes, 37.257% smaller than the original dependency build. No models/native release/Kokoro, published digest, compressed pull size, or GPU/boot acceptance. [Evidence](fps_comparisons/rtx3090_r5_20261008/release/dependency_size_delta_ead7e01.json). |
+| Dependency-only build | Run 38078158793 completed successfully at source `e2349882620d6f26e82b613c5dc38e8d7cc31d88`: build/CPU checks, all-layer audit, private publication and independent digest pull passed. Published digest `sha256:7cd567bd77d421565c6813e5372561be31a8b3cab73f307430abd6b95d0067f6`; compressed layer bytes 6,860,592,912. No models/native release/Kokoro or GPU/boot acceptance; this digest cannot serve MuseTalk. [Verified publication receipt](fps_comparisons/rtx3090_r5_20261008/release/ghcr_dependency_publication_e234988_verified.json). Earlier uncompressed-size comparison remains [historical evidence](fps_comparisons/rtx3090_r5_20261008/release/dependency_size_delta_ead7e01.json). |
 | Latest 3090 latent A/B | Base/reference: 315.352860 FPS; fresh 3090 latents: 308.571727 FPS. Six concurrent avatars, full tracking and 100% chin composition, five sustained windows per arm, no encoding/network overhead. Fresh latents were 2.15% slower in sequential tests; causation is not established. [Results](fps_comparisons/rtx3090_r5_20261008/native/a6_latent_ab_20261009/a6-latents-ab-summary.json). |
 | Video evidence | Six labeled base-versus-native comparisons plus original clips, with hashes and capture reports. [Receipt](fps_comparisons/rtx3090_r5_20261008/native/a6_latent_ab_20261009/videos/video-evidence.json). |
 | Small model-load experiment | Default-off eager-UNet skipping saved approximately 5.924 seconds in same-host fresh processes with warm filesystem cache and equal tested output hashes. Not Docker cold boot, full avatar preparation, or live-call acceptance. Keep disabled pending broader validation. [Evidence](fps_comparisons/rtx3090_r5_20261008/startup/a5_model_startup_pair_summary_0824.json). |
-| Registry access | Private visibility, anonymous denial and independent placeholder pull pass. All ten runtime-base layers passed in run 38025387316. Run 38030025665 compiled and CPU-checked successfully and captured 156 pip/419 dpkg packages; publication then stopped on PyAV's public GnuTLS self-test fixture. Its exact whole-wheel/source provenance is verified and the narrow scanner repair is prepared. No dependency/full serving digest or fresh cold-start result is claimed yet. A separate Vast pull credential remains pending. |
+| Registry/runtime access | Private visibility, anonymous denial and independent dependency-image pull passed in run 38078158793; EC2's saved pull credential returned HTTP 200 for the exact dependency digest. The operator saved the scoped worker-secret read policy, and EC2 IAM-role `GetSecretValue` now passes. The separate worker identity can HEAD/read all four required private models using ordinary `GetObject`; explicitly requested historical versions are denied and are not required by the existing content-addressed, full-SHA/before-and-after-version checked restore. No extra IAM grant was made. No full serving digest or Docker cold-start result exists yet. [Latest findings](GHCR_PUBLICATION_FINDINGS.md). |
 | Autoscaler integration | Implemented and pushed in Lingua `codex/musetalk-ghcr-rollout` at `afd25274ac1f61c55efca947a0bce343a404a151`; 23 focused tests pass. Default-off digest-pinned headless launches, fresh read-only credential lookup, redaction and both-direction $1.50/TB caps. Production unchanged. |
 | Remaining AWS access | Local `lingua-backend-user` was denied EC2 inspection. If an AWS builder is used, scoped provisioning/input access is still needed. Earlier ECR denials no longer block registry setup; do not add ECR permissions to work around them. Existing S3/runtime-secret dependencies remain. |
 | Production EC2 builder suitability | Existing control plane had approximately 2.9 GB free on a 20 GB root disk and no Docker runtime. Do not build the image there. Recheck facts when execution resumes. |
@@ -90,6 +90,18 @@ candidate dispatch has been performed. Actual reviewed release metadata, remaini
 license/source obligations and input authorization remain required. This code
 does not set review flags or overwrite historical failed quality/FPS verdicts.
 See [dispatch details](../docker/musetalk/README.md#private-ghcr-buildpublish-implementation).
+
+October 10 assembly checkpoint: the successful dependency run's actual pins,
+installed inventory and all 14 small reports are preserved locally with verified
+artifact provenance. A network-free input assembler verified the two existing
+archives, all 16 native payloads, 12 required model notices and 211 committed
+runtime-source files; see the
+[nondeployable assembly inventory](fps_comparisons/rtx3090_r5_20261008/release/full_candidate_assembly_e234988.json).
+It selects ten baked weights, four external private runtime files and no Kokoro.
+No `release.json`, secure CI input or full build request has been created.
+The existing public-redistribution gate remains unchanged; an operator choice
+for a restricted owner-only test candidate is pending. Do not turn remaining
+native provenance or runtime redistribution findings into an asserted pass.
 
 Execution checkpoint (October 9, approximately 9:10 p.m. CDT): the human approved
 the OAuth workflow scope and commits through `30274b565bbe69a2a1b286697b603a5b2739262e`
@@ -164,7 +176,8 @@ automatic installation repair. Preserve the canonical source-install path for ro
 
 Use private GHCR. Based on the existing Git remote, the proposed image name is
 `ghcr.io/ahmadafs1/musetalk-rtx3090`; ownership and private package bootstrap are
-now verified. Only a non-serving placeholder is published so far. The implemented
+now verified. The non-serving placeholder and dependency-only diagnostic are
+published; a full serving image is not. The implemented
 publisher permits candidate tags `candidate-<full-40-character-git-sha>`, but deploy
 and retain rollback references as `ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:<digest>`.
 A tag is mutable and must not be treated as the deployment identity.
@@ -269,6 +282,60 @@ bytes, including private-model downloads. Confirm the remaining AWS/S3 and
 Vast-side costs, and retain the $1.50/TB Vast requirement. Review GHCR pricing and
 service limits if GitHub announces a policy change; changing registry or visibility
 again requires an explicit decision, not a silent fallback.
+
+### Planned automated image builds after merging to `main`
+
+Requested October 10, 2026; this is a future implementation plan, not an enabled
+workflow or production rollout. A GitHub source change does **not** modify an
+already-published image or a running worker. Runtime code, dependencies, packaged
+configuration, model inputs or native-engine changes require a new image build.
+Documentation-only changes do not require a new serving image.
+
+Current implementation: `musetalk-ghcr.yml` and `musetalk-ghcr-candidate.yml`
+support manual dispatch and narrowly filtered pushes to
+`codex/rtx3090-r5-delivery`. Neither currently builds automatically from `main`.
+The dependency-only workflow is not a substitute for a full serving-image build.
+
+The planned sequence is:
+
+1. Trigger the full-image workflow on a push to `main` after a merge, using the
+   exact resulting commit SHA as source identity. A direct push to `main` also
+   produces a push event; branch protection should enforce the intended merge
+   policy. Include all runtime/build-input paths in the trigger and skip
+   documentation-only changes. Do not publish from untrusted pull-request code.
+2. Reuse the existing private full-image build/audit machinery. Pin dependencies,
+   model/native inputs and release metadata to reviewed hashes. Obtain fresh
+   authorized private-input access per build rather than relying on today's
+   expiring presigned URLs. Missing or incompatible inputs must fail closed;
+   changes invalidating native plans require rebuilt and validated plans.
+3. Run CPU/contracts and all-layer credential/provenance checks, then publish a
+   commit-labeled candidate to private GHCR using the narrowly scoped workflow
+   publishing identity. Preserve source SHA, input hashes and immutable image
+   digest in the receipt; never embed runtime or pull credentials in the image.
+4. Independently pull the exact digest and validate it. Retain the required GPU,
+   output-quality, throughput, runtime-access and cold-start acceptance gates
+   before treating a candidate as production eligible. Do not turn historical
+   failed gates into successful release metadata.
+5. Keep build/publication separate from deployment. A successful build alone
+   must not change the EC2 autoscaler's approved digest. Production promotion
+   requires a separately approved rollout; retain the previous digest for
+   rollback and reject promotion of an older, superseded merge.
+
+After a separately approved promotion, **new** Vast instances pull the selected
+digest. Existing workers remain on their original image until deliberately
+drained and replaced; they do not automatically pull GitHub `main` at boot or
+while serving. Keep the installation-free immutable startup path intact.
+
+Reuse cached dependency/model layers where possible; a code-only change need
+not reinstall dependencies or redownload weights during the build. This depends
+on the actual Docker layer layout and CI cache, not a guarantee. A fresh Vast
+host without those layers still downloads every required layer of the selected
+image. Do not confuse build-cache savings with measured cold-start savings.
+
+Use the existing GHCR package and bounded CI jobs; this plan adds no permanent
+AWS builder or registry. Check Actions build/cache/artifact costs and avoid
+duplicate or superseded builds. Automated paid GPU tests and automatic
+production rollout are not enabled by this documentation change.
 
 ## 3. Launch the image through the existing EC2 autoscaler
 

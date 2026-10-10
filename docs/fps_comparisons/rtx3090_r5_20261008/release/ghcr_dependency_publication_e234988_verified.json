@@ -1,0 +1,48 @@
+{
+  "schema": "musetalk_dependency_publication_readback_v1",
+  "checked_at_utc": "2026-10-10T20:05:35Z",
+  "source_revision": "e2349882620d6f26e82b613c5dc38e8d7cc31d88",
+  "run": {
+    "id": 38078158793,
+    "url": "https://github.com/AhmadAFS1/MuseTalk/actions/runs/38078158793",
+    "status": "completed",
+    "conclusion": "success",
+    "updated_at_utc": "2026-10-10T20:04:55Z",
+    "jobs": {
+      "bootstrap": "success",
+      "verify-bootstrap": "success",
+      "dependencies": "success",
+      "verify-dependencies": "success"
+    }
+  },
+  "verified_artifacts": {
+    "publication": {
+      "id": 11680369661,
+      "archive_size_bytes": 100310,
+      "archive_sha256": "abcadaba3955fd1d5ab576af157af867ed0dcb2c13057db72e47bb2eec4a80df",
+      "result_path": "ghcr-dependency-publication/result.json"
+    },
+    "independent_pull": {
+      "id": 11681061000,
+      "archive_size_bytes": 418,
+      "archive_sha256": "c368940c92ab250a6c6c997ba55bc677725bf79e5eda3987b1b536835c7dfa01",
+      "result_path": "result.json"
+    }
+  },
+  "image": "ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:7cd567bd77d421565c6813e5372561be31a8b3cab73f307430abd6b95d0067f6",
+  "image_config_id": "sha256:141752ca13415bcf2d9bb996f0c6c97bfa48c04b69ab60434ffeb7b062b17d22",
+  "compressed_layer_bytes": 6860592912,
+  "compressed_config_bytes": 16470,
+  "layer_audit": "PASS",
+  "published": true,
+  "independent_pull": "PASS",
+  "private_visibility": "VERIFIED",
+  "anonymous_pull": "DENIED",
+  "serving_image": false,
+  "promotion_eligible": false,
+  "gpu_tested": false,
+  "serving_accepted": false,
+  "full_serving_image_published": false,
+  "docker_cold_start_measured": false,
+  "limitation": "Dependency-only diagnostic: no model weights, native serving bundle or accepted serving release. Do not use this digest as a MuseTalk worker template. Artifact archives were verified by size and SHA-256 in memory; this is a selected-field readback, not a copy of every original report."
+}
