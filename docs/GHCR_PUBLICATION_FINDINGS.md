@@ -763,3 +763,23 @@ increment and test/run result.
   it still requires the unchanged serving source, successful build and separate
   exact-digest pull/CPU jobs, private visibility, anonymous denial and matched
   artifact ZIP hashes. It does not accept a running/failed run or rent a GPU.
+
+### 22:59 UTC — Real Docker streaming export gate passed
+
+- Run 38093257223 passed its local CPU contracts and actual scratch-image
+  Docker export/audit smoke step. This proves the runner's archive layout,
+  manifest handling and config/diff-ID binding work without an on-disk tar.
+  Full-image build/publication/independent pull are still pending; no digest
+  or Vast readiness is claimed yet.
+
+### 23:00 UTC — Bounded publication evidence wait started
+
+- A read-only two-hour checker is observing this exact run/request SHA. It
+  writes meaningful phase changes to
+  `fps_comparisons/rtx3090_r5_20261008/release/publication_retry_2257/progress.md`
+  and will collect checksum-verified full/independent artifacts after success.
+  Two synthetic identity/redaction tests pass. It cannot publish, rent a GPU,
+  install a timer, change production or accept a failed build.
+- The task-owned Actions input secret was last updated at 22:56:14 UTC.
+  Its three URLs expire after at most one hour; cleanup must first verify this
+  update timestamp still matches, so a newer operator secret is not removed.
