@@ -178,9 +178,12 @@ def add_event(ledger, name, *, source, utc=None, evidence_ref=None,
 
 
 def initialize(run_dir, label, control_plane, cache_state="unknown", sla_seconds=None,
-               resource_deadline_utc=None):
+               resource_deadline_utc=None, image_digest=None):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{3,119}", label):
         raise Invalid("Use a unique 4-120 character alphanumeric run label")
+    if image_digest is not None and (not isinstance(image_digest, str) or not re.fullmatch(
+            r"ghcr\.io/ahmadafs1/musetalk-rtx3090@sha256:[0-9a-f]{64}", image_digest)):
+        raise Invalid("Docker experiments require the exact intended private GHCR digest, not a tag")
     path = Path(run_dir) / "startup-ledger.json"
     with locked(path.with_suffix(".lock")):
         if path.exists():
@@ -203,6 +206,10 @@ def initialize(run_dir, label, control_plane, cache_state="unknown", sla_seconds
             # An immutable intent binding, not timer installation or permission
             # to create a resource. Legacy ledgers omit this field entirely.
             ledger["resource_deadline_utc"] = deadline.isoformat()
+        if image_digest is not None:
+            # This freezes request intent only. Actual provider/image readback
+            # must still prove the tested container identity before acceptance.
+            ledger["requested_image_digest"] = image_digest
         atomic_json(path, ledger)
     return ledger
 
@@ -275,6 +282,12 @@ def create_once(run_dir, request, budget, offer_document, budget_ledger, token, 
             raise Invalid("Exactly count=1 and a preflighted explicit offer_id are required")
         if request.get("create_request", {}).get("label") != ledger["label"]:
             raise Invalid("Creation label must equal the ledger's unique label")
+        if ledger.get("requested_image_digest"):
+            create_request = request["create_request"]
+            if (create_request.get("image") != ledger["requested_image_digest"]
+                    or create_request.get("runtype") != "args"
+                    or create_request.get("template_id") is not None):
+                raise Invalid("Docker experiment must retain its frozen digest and headless runtime without a template")
         if not token:
             raise Invalid("Admin token environment variable is empty")
         reservation = validate_budget(budget, offer_document, request)
@@ -474,6 +487,8 @@ def report(ledger):
         issues.append("Steady-call readiness exceeded the frozen startup SLA")
     return {"schema": SCHEMA, "verdict": verdict, "instance_id": ledger.get("instance_id"),
             "label": ledger["label"], "cache_state": ledger["cache_state"], "durations": durations,
+            "requested_image_digest": ledger.get("requested_image_digest"),
+            "image_identity_scope": "Frozen request intent only; requires independent actual-container readback",
             "missing_readiness_evidence": missing, "issues": issues,
             "unavailable_stages": [name for name in EVENTS if name not in indexed],
             "interval_policy": "Parallel intervals are not summed; missing stages remain unavailable",
@@ -500,6 +515,9 @@ def write_report(run_dir, ledger, result):
             lines.append(f"| {name} | {event['utc']} | {seconds} | {method}; {note} |")
     lines.extend(["", "Parallel intervals are not summed. First usable frame and validation completion are distinct.",
                   "Polled event timestamps are observation upper bounds, not exact underlying transition times."])
+    if ledger.get("requested_image_digest"):
+        lines.extend(["", "Requested image: `" + ledger["requested_image_digest"] + "`.",
+                      "Digest is frozen request intent, not independent proof of the actual running image."])
     if result["missing_readiness_evidence"]:
         lines.extend(["", "Missing readiness evidence: " + ", ".join(result["missing_readiness_evidence"]) + "."])
     if result["issues"]:
@@ -516,6 +534,7 @@ def main(argv=None):
     init.add_argument("--cache-state", choices=("cold_proven", "provider_cached_proven", "restart", "unknown"), default="unknown")
     init.add_argument("--startup-sla-seconds", type=float)
     init.add_argument("--resource-deadline-utc", help="Optional UTC deadline bound into a fresh ledger; does not install an expiry timer")
+    init.add_argument("--image-digest", help="Freeze exact private GHCR image intent for a headless Docker experiment")
     create = sub.add_parser("create", help="One real paid EC2 create request; never auto-retries")
     create.add_argument("--request-json", required=True); create.add_argument("--budget-json", required=True)
     create.add_argument("--offer-json", required=True); create.add_argument("--budget-ledger", required=True)
@@ -536,7 +555,7 @@ def main(argv=None):
             if args.startup_sla_seconds is not None:
                 number(args.startup_sla_seconds, "startup SLA", .001)
             initialize(args.run_dir, args.label, args.control_plane_url, args.cache_state,
-                       args.startup_sla_seconds, args.resource_deadline_utc)
+                       args.startup_sla_seconds, args.resource_deadline_utc, args.image_digest)
             return 0
         path = Path(args.run_dir) / "startup-ledger.json"
         if args.command == "create":

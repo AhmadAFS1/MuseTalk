@@ -97,6 +97,51 @@ class StartupTests(unittest.TestCase):
         self.assertNotIn("resource_deadline_utc", self.ledger)
         self.assertNotIn("resource_deadline_utc", observer.load_json(self.run / "startup-ledger.json"))
 
+    def test_docker_digest_is_frozen_without_claiming_actual_container_identity(self):
+        image = "ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:" + "a" * 64
+        fresh = self.root / "docker"
+        ledger = observer.initialize(fresh, "docker-test", "http://127.0.0.1:8000", image_digest=image)
+        self.assertEqual(ledger["requested_image_digest"], image)
+        result = observer.report(ledger)
+        self.assertEqual(result["requested_image_digest"], image)
+        self.assertIn("requires independent", result["image_identity_scope"])
+        self.assertEqual(result["verdict"], "INCOMPLETE")
+        self.assertNotIn("requested_image_digest", self.ledger)
+
+    def test_docker_image_tags_wrong_repository_or_credentials_are_rejected(self):
+        for i, image in enumerate(("ghcr.io/ahmadafs1/musetalk-rtx3090:latest",
+                                   "ghcr.io/other/project@sha256:" + "a" * 64,
+                                   "https://user:secret@ghcr.io/ahmadafs1/musetalk-rtx3090",
+                                   "ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:" + "A" * 64,
+                                   "", False)):
+            with self.subTest(image=image), self.assertRaises(observer.Invalid):
+                observer.initialize(self.root / f"bad-image-{i}", "docker-test", "http://127.0.0.1:8000",
+                                    image_digest=image)
+
+    def test_docker_request_cannot_change_frozen_image_or_enter_ssh_template_mode(self):
+        image = "ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:" + "a" * 64
+        ledger = observer.load_json(self.run / "startup-ledger.json")
+        ledger["requested_image_digest"] = image
+        observer.atomic_json(self.run / "startup-ledger.json", ledger)
+        for overrides in ({"image": image + "bad", "runtype": "args"},
+                          {"image": image, "runtype": "ssh"},
+                          {"image": image, "runtype": "args", "template_id": 1}):
+            self.request["create_request"].update(overrides)
+            with self.subTest(overrides=overrides), self.assertRaises(observer.Invalid):
+                self.create()
+        self.assertFalse(self.calls)
+        self.assertFalse((self.root / "budget-ledger.json").exists())
+
+    def test_docker_exact_headless_request_preserves_secret_nonpersistence(self):
+        image = "ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:" + "a" * 64
+        ledger = observer.load_json(self.run / "startup-ledger.json")
+        ledger["requested_image_digest"] = image
+        observer.atomic_json(self.run / "startup-ledger.json", ledger)
+        self.request["create_request"].update(image=image, runtype="args", image_login="SECRET-NEVER-PERSIST")
+        result = self.create()
+        self.assertEqual(result["requested_image_digest"], image)
+        self.assertNotIn("SECRET-NEVER-PERSIST", (self.run / "startup-ledger.json").read_text())
+
     def test_init_cli_threads_deadline_and_rejects_invalid_without_ledger(self):
         for name, deadline, expected in (("valid", "2026-10-09T02:00:00Z", 0),
                                          ("invalid", "2026-10-09T00:00:00Z", 2)):

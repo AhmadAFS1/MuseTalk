@@ -346,3 +346,54 @@ increment and test/run result.
   test skipped on macOS. The read-only network provenance verifier passed all
   five exact fixture entries (whole boto3/botocore/PyAV wheels and pinned base).
   Dependency CI now reruns this cheap check before lengthy compilation.
+- Pushed `ca2c34dc514e07a259f16c00604a47119644656e`; dependency publication
+  retry [38049282097](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38049282097)
+  is running. Bootstrap and independent private placeholder pull already passed.
+
+## 2026-10-10 — change 10: bind cold-start observer to the requested image
+
+- Reused the existing EC2 startup observer rather than introducing another
+  rental/timing implementation. Optional `init --image-digest` binds a full
+  private GHCR digest into the fresh ledger; Docker creates reject image drift,
+  source-template IDs and SSH-mode replacement before budget reservation/POST.
+- Reports carry that requested digest, explicitly **not** claiming it proves
+  actual running-container identity. Provider/image readback remains required.
+  Existing secret nonpersistence, no ambiguous-create retries, expiry intent,
+  cache-state labeling and first usable media gates are unchanged.
+- Standalone GPU/model readiness is not EC2 routability or live-call acceptance.
+  Unknown provider cache stays `unknown`; a new instance does not prove a cold
+  host or absence of cached Docker layers. No measured latency is claimed yet.
+- Change 10 validation: **30 startup-observer tests pass** (synthetic requests,
+  no cloud writes); the 114-test Docker suite remains successful with one macOS
+  skip. The unrelated `prepare_ec2_development.py` worktree edits are preserved
+  and excluded from our commits.
+
+## 2026-10-10 — full-image input staging and actual notice binding
+
+- Rehashed the existing no-Kokoro ten-file model archive: 3,951,486,311 bytes,
+  SHA-256 `acff525e22a9ee80917e2ae394ed0746dbaa8cf13b0762b6a9de2104265d2d19`.
+  Its destination in the existing regional S3 bucket returned authenticated
+  404 (absent). All four public-access-block settings are true; there is no
+  bucket policy. Began a checksum-verified AES256 `PutObject` with expected-owner
+  check and `If-None-Match:*` at
+  `docker-build-inputs/sha256/<archive SHA-256>/weights.tar.gz`. This cannot
+  overwrite a previous object. Upload completion/readback is recorded separately.
+- Run 38030025665's actual dependency image is
+  `sha256:2cd9327f0363906750234dabfec39ad62bc7082fb3a60c294f93fc5076d6600e`,
+  12,335,024,109 uncompressed bytes. Its installed inventory SHA-256 is
+  `b5bc5fa1534a04a7516983551b13084f0f1630c6c1ed138b5a04dd54255a45cd`.
+- Exact **installed** TensorRT 10.3 libs/bindings notice hashes now both match
+  the fork's captured packaged terms:
+  `64bd290f0251405f783ba1d2e155c500542be69795e51147a1d9f11a57bda8cc`.
+  Four Linux libraries and the binding are present; the deliberately pruned
+  Windows resource remains visible as missing in raw RECORD inventory.
+- Installed PyAV 16.1.0 wrapper notice SHA-256 matches its captured upstream
+  BSD notice (`76af0461ffb92e19f1c14449e95557d83a2dfaa1baf202d49e5f1d8746c0da19`).
+  This is not a blanket license for its 87 native files or bundled codecs.
+  OpenCV retains its 151,157-byte third-party notice; imageio-ffmpeg retains its
+  wrapper notice. Do not confuse notice byte binding with a qualified resolution
+  of the previously documented TensorRT distribution/FFmpeg source questions.
+- Asked only for the secure location of a separate expiring `read:packages`
+  credential (or human-assisted setup), not for repository license paperwork.
+  No publisher/OAuth token was extracted or sent to a rented host. Full metadata,
+  full private candidate publication, runtime access and the GPU test are pending.

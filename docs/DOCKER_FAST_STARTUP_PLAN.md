@@ -1,6 +1,6 @@
 # Docker fast-startup plan for Vast.ai autoscaling
 
-Updated October 9, 2026 (America/Chicago).
+Updated October 10, 2026 (America/Chicago).
 
 ## Objective and current priority
 
@@ -27,7 +27,7 @@ the current private-registry delivery choice.
 
 | Item | Status and evidence |
 |---|---|
-| Docker build/runtime implementation | Exists in [docker/musetalk](../docker/musetalk/README.md), including a Dockerfile, manifest validation, immutable startup, and supervised shutdown. Full serving image remains unbuilt/unpublished. |
+| Docker build/runtime implementation | Exists in [docker/musetalk](../docker/musetalk/README.md), including a Dockerfile, manifest validation, immutable startup, and supervised shutdown. Dedicated [Vast Docker startup script](../scripts/vast_docker_onstart.sh) selected by the full Dockerfile; 114 Docker tests successful (one macOS skip). Full serving image remains unbuilt/unpublished. |
 | Dependency-only build | Built and CPU-checked in CI: 12,334,990,710 uncompressed bytes, 37.257% smaller than the original dependency build. No models/native release/Kokoro, published digest, compressed pull size, or GPU/boot acceptance. [Evidence](fps_comparisons/rtx3090_r5_20261008/release/dependency_size_delta_ead7e01.json). |
 | Latest 3090 latent A/B | Base/reference: 315.352860 FPS; fresh 3090 latents: 308.571727 FPS. Six concurrent avatars, full tracking and 100% chin composition, five sustained windows per arm, no encoding/network overhead. Fresh latents were 2.15% slower in sequential tests; causation is not established. [Results](fps_comparisons/rtx3090_r5_20261008/native/a6_latent_ab_20261009/a6-latents-ab-summary.json). |
 | Video evidence | Six labeled base-versus-native comparisons plus original clips, with hashes and capture reports. [Receipt](fps_comparisons/rtx3090_r5_20261008/native/a6_latent_ab_20261009/videos/video-evidence.json). |
@@ -159,9 +159,9 @@ automatic installation repair. Preserve the canonical source-install path for ro
 ## 2. Publish privately and make downloads efficient
 
 Use private GHCR. Based on the existing Git remote, the proposed image name is
-`ghcr.io/ahmadafs1/musetalk-rtx3090`; confirm namespace ownership, existing package
-state, and publish access before use. No package has been created by this plan.
-Use versioned candidate tags such as `candidate-rtx3090-<date>-<git-sha>`, but deploy
+`ghcr.io/ahmadafs1/musetalk-rtx3090`; ownership and private package bootstrap are
+now verified. Only a non-serving placeholder is published so far. The implemented
+publisher permits candidate tags `candidate-<full-40-character-git-sha>`, but deploy
 and retain rollback references as `ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:<digest>`.
 A tag is mutable and must not be treated as the deployment identity.
 
@@ -284,7 +284,7 @@ installation inside the rented container.
 
 Test direct ENTRYPOINT mode (`runtype: args`) for the production path. Vast's
 SSH/Jupyter modes replace the image entrypoint; an SSH diagnostic launch must
-explicitly invoke `bash /opt/musetalk/app/docker/musetalk/entrypoint.sh onstart`.
+explicitly invoke `bash /opt/musetalk/app/scripts/vast_docker_onstart.sh onstart`.
 Keep SSH access for diagnostics where needed, and verify API/TURN/relay port mappings
 in either mode. [Vast API launch documentation](https://docs.vast.ai/api-reference/creating-instances-with-api).
 
@@ -303,6 +303,31 @@ request dumps. Use an explicit expiry and rotation procedure tested before expir
 GHCR does not use ECR's 12-hour token exchange. Reconcile retries after rotation,
 and test that missing/revoked credentials fail without repeated rental creation.
 Do not grant ECR IAM access to the EC2 role for this route.
+
+### Dedicated Docker startup and experiment binding
+
+The full Dockerfile now selects `scripts/vast_docker_onstart.sh` under `tini`.
+The normal headless command remains `serve`. It verifies fixed baked paths and
+execs the canonical immutable supervisor; it performs no registry login,
+source installation, package repair or engine construction. Its UTC/Unix
+`VAST_DOCKER ENTRYPOINT` marker starts **after the provider image pull**. Count
+allocation/pull before it and private-model restore/GPU/avatar warmup after it.
+
+The existing `scripts/repro_3090/50_startup.py init --image-digest <actual digest>`
+can freeze the requested full GHCR image in a new experiment ledger. Before POST,
+it rejects digest drift, source-template IDs and non-headless runtime selection.
+It stores request hashes, never `image_login` or AWS values. Independent actual
+provider/container identity readback remains required; frozen request intent is
+not proof of which image ran. Thirty CPU-only observer tests pass.
+
+Use a bounded owned experimental RTX 3090 only after the full image, independent
+pull and secure runtime access work. Keep production disabled for the preserved
+candidate. Recheck both transfer prices and the approved hourly/lifetime limits,
+install/read back its independent expiry mechanism, and reconcile any ambiguous
+create instead of POSTing again. A fresh instance may reuse host-cached layers:
+label cache state `unknown` unless provider/cache evidence proves otherwise.
+Standalone model/health timing is useful diagnostic evidence, not proof of EC2
+registration, assignability, first usable output or a successful live call.
 
 Preserve the existing runtime secret bootstrap, S3 access, unique worker identity,
 control-plane callbacks, current endpoint mappings, and measured capacity settings.
