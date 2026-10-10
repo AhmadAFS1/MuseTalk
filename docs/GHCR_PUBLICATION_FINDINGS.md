@@ -783,3 +783,17 @@ increment and test/run result.
 - The task-owned Actions input secret was last updated at 22:56:14 UTC.
   Its three URLs expire after at most one hour; cleanup must first verify this
   update timestamp still matches, so a newer operator secret is not removed.
+
+### 23:03 UTC — Deployment pull-only credential verified separately
+
+- Added a bounded, redirect-rejecting registry manifest probe using the EC2
+  role and the existing backend Secrets Manager entry. It checks exactly
+  `read:packages`, private visibility, authenticated GHCR token exchange and
+  the complete downloaded manifest SHA against the requested immutable digest.
+  Three synthetic scope/privacy/hash/identity tests pass.
+- Live EC2 check passes for the already published dependency digest
+  `7cd567bd77d421565c6813e5372561be31a8b3cab73f307430abd6b95d0067f6`,
+  with 6,860,592,912 compressed layer bytes. This verifies the actual deployment
+  credential, not only CI authentication. No layers, login file, secret values
+  or GPU were persisted/created. The full serving digest must be checked again
+  after its publication; this dependency image remains unsuitable for serving.
