@@ -43,14 +43,48 @@ for project in ('boto3', 'botocore'):
                              'public_artifact_sha256': hashlib.sha256(payload).hexdigest(),
                              'public_artifact_member': name, 'metadata_url': metadata_url})
 
+def self_test_constants(source):
+    constants = []
+    for section in re.findall(rb'static const char \w+\[\]\s*=\s*(.*?);', source, re.S):
+        strings = re.findall(rb'"(?:[^"\\]|\\.)*"', section)
+        value = b''.join(ast.literal_eval('b' + s.decode('ascii')) for s in strings)
+        if ghcr.PRIVATE_KEY_MATERIAL.search(value):
+            constants.append(value)
+    return constants
+
+# Scan the entire exact wheel, not only the file implicated by a failed build.
+# Never print the embedded PEM text. This is credential provenance, not a
+# conclusion about the separate license/source obligations of bundled FFmpeg.
+metadata_url = 'https://pypi.org/pypi/av/16.1.0/json'
+metadata = json.loads(fetch(metadata_url))
+wheel = next(item for item in metadata['urls']
+             if item['filename'] == 'av-16.1.0-cp310-cp310-manylinux_2_28_x86_64.whl')
+payload = fetch(wheel['url'])
+assert hashlib.sha256(payload).hexdigest() == wheel['digests']['sha256']
+av_source_url = 'https://raw.githubusercontent.com/gnutls/gnutls/3.8.11/lib/crypto-selftests-pk.c'
+av_source = fetch(av_source_url)
+assert hashlib.sha256(av_source).hexdigest() == '6e596be00754107fd7f7d1f132c2dc8cd0ff12bbdfc6de08c162a1dd5eedc7e8'
+av_constants = self_test_constants(av_source)
+with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+    for name in archive.namelist():
+        data = archive.read(name)
+        findings = rules(data)
+        if findings:
+            pem_blocks = re.findall(rb'-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----\r?\n.*?-----END (?:[A-Z]+ )?PRIVATE KEY-----\r?\n', data, re.S)
+            assert len(pem_blocks) == 8 and all(pem in av_constants for pem in pem_blocks)
+            rows.append({'path': 'opt/musetalk/venv/lib/python3.10/site-packages/' + name,
+                         'sha256': hashlib.sha256(data).hexdigest(), 'size_bytes': len(data),
+                         'rules': findings, 'public_artifact_url': wheel['url'],
+                         'public_artifact_sha256': hashlib.sha256(payload).hexdigest(),
+                         'public_artifact_member': name, 'metadata_url': metadata_url,
+                         'test_source_url': av_source_url,
+                         'test_source_sha256': hashlib.sha256(av_source).hexdigest(),
+                         'embedded_pem_blocks': len(pem_blocks),
+                         'all_pem_blocks_match_public_self_tests': True})
+
 source_url = 'https://raw.githubusercontent.com/gnutls/gnutls/3.7.3/lib/crypto-selftests-pk.c'
 source = fetch(source_url)
-constants = []
-for section in re.findall(rb'static const char \w+\[\]\s*=\s*(.*?);', source, re.S):
-    strings = re.findall(rb'"(?:[^"\\]|\\.)*"', section)
-    value = b''.join(ast.literal_eval('b' + s.decode('ascii')) for s in strings)
-    if ghcr.PRIVATE_KEY_MATERIAL.search(value):
-        constants.append(value)
+constants = self_test_constants(source)
 
 token = json.loads(fetch('https://auth.docker.io/token?service=registry.docker.io&scope=repository:nvidia/cuda:pull'))['token']
 headers = {'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.docker.distribution.manifest.list.v2+json'}

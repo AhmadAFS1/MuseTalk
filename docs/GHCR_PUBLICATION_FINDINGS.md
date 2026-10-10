@@ -308,3 +308,41 @@ increment and test/run result.
   Retry [38030025665](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38030025665)
   is running at that exact source revision. No model-bearing publication,
   worker launch, rental, AWS resource or permission change has occurred.
+
+## 2026-10-10 — dependency inventory succeeds / change 8: PyAV fixture
+
+- Run [38030025665](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38030025665)
+  compiled and passed CPU/import/startup checks, including the repaired offline
+  inventory: **156 pip distributions and 419 dpkg packages**. Publication failed
+  in `audit-layer`; independent dependency pull was skipped.
+- Its sanitized receipt identifies only
+  `av.libs/libgnutls-b786e1df.so.30.41.0`, 2,309,529 bytes, SHA-256
+  `a372925fcc5697819476f4e67b22147669cbdff58cb398b01ce0c540d1c5a92e`.
+  Downloaded the official exact PyAV 16.1.0 CPython 3.10 amd64 wheel, verified
+  its whole SHA-256 against PyPI metadata, and scanned **every wheel member**.
+  This library was its only scanner finding. All eight embedded PEM blocks
+  exactly match public GnuTLS self-test constants in the hash-pinned source.
+- Added one exact path/hash/rule allowance and extended the public provenance
+  verifier to reproduce the whole-wheel check. No broad library exemption,
+  credential output or license-acceptance flag change. FFmpeg/TensorRT payload
+  and source review remain separate from this false-positive repair.
+- User requested completion followed by a fresh Vast RTX 3090 cold-boot test
+  and a separate Docker-specific startup bash script. Continue that preparation;
+  do not rent a non-serving dependency diagnostic or change production defaults.
+
+## 2026-10-10 — change 9: dedicated Vast Docker startup script
+
+- Added `scripts/vast_docker_onstart.sh` and selected it under `tini` in the full
+  Dockerfile. It runs inside the selected, digest-pinned headless Vast image;
+  it is not a nested-Docker launcher or source installer. Fixed baked-path checks
+  fail closed, then it execs the existing supervised immutable lifecycle.
+- Its timestamped `VAST_DOCKER ENTRYPOINT` marker measures post-pull execution,
+  explicitly not readiness. Provider request/allocation/pull timestamps must be
+  combined with canonical model/GPU/health/usable-call evidence for cold start.
+- Added behavioral tests for modes, missing files, symlinked metadata, argument
+  rejection without echoing inputs and Dockerfile/context selection. No live
+  launch template, running worker or production recipe was changed.
+- Change 8/9 validation: **114 local Docker tests passed**, with one Linux pidfd
+  test skipped on macOS. The read-only network provenance verifier passed all
+  five exact fixture entries (whole boto3/botocore/PyAV wheels and pinned base).
+  Dependency CI now reruns this cheap check before lengthy compilation.

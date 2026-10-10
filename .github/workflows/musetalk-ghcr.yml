@@ -113,6 +113,8 @@ jobs:
           set -euo pipefail
           python3 -B -m unittest discover -s docker/musetalk/tests -v
           bash scripts/test_startup_scripts.sh
+      - name: Reverify public scanner fixtures before lengthy compilation
+        run: python3 -B docker/musetalk/verify_public_scan_fixtures.py > "$RUNNER_TEMP/musetalk-scanner-provenance.json"
       - name: Build and CPU-check native amd64 dependencies, without any credentials
         run: |
           set -euo pipefail
@@ -136,6 +138,7 @@ jobs:
           path: |
             ${{ runner.temp }}/musetalk-dependency-build/reports/
             ${{ runner.temp }}/ghcr-dependency-publication/*.json
+            ${{ runner.temp }}/musetalk-scanner-provenance.json
           if-no-files-found: warn
           retention-days: 3
       - name: Remove ephemeral registry login

@@ -60,6 +60,15 @@ The image keeps code at `/opt/musetalk/app`, Python 3.10/cu121 at
 `/workspace/musetalk-runtime` (`MUSETALK_STATE_DIR` can choose another absolute
 persistent location). Never mount over `/opt/musetalk`.
 
+The dedicated `scripts/vast_docker_onstart.sh` is the Dockerfile's entrypoint
+(under `tini`). Use the digest-pinned image with Vast **headless `runtype:"args"`**
+and its default `serve` command. Do not layer the source-install template over it,
+run nested Docker, or pass a registry token into the worker environment. The host
+pulls through `image_login`; the startup script runs **inside the pulled image**.
+It rejects missing baked files, emits a timestamped `VAST_DOCKER ENTRYPOINT`
+marker, and execs the existing lifecycle wrapper. This timestamp is after pull,
+not scale-up-to-ready time. `check` runs the existing offline CPU contract only.
+
 `entrypoint.sh` invokes the existing `vast_onstart.sh` → `vast_server_ctl.sh` →
 `run_musetalk_server.sh` chain. Only the opt-in `MUSETALK_IMMUTABLE_RUNTIME=1`
 changes source-install behavior: every nonzero install check is fatal, coturn
