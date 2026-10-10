@@ -71,3 +71,44 @@ increment and test/run result.
 - Validation after adding the workflow: Docker suite remains 100 tests with one
   macOS skip; diagnostic YAML parsing and whitespace checks pass. No dependency
   rebuild or registry push is triggered by this diagnostic request.
+
+## 2026-10-10 04:32 UTC — diagnostic dispatched
+
+- Pushed commit `d0762c0a4cfd314c8c45d412254671f470a4e4bc` through the
+  existing protected CLI login, without copying its token or changing the
+  working runtime checkout.
+- Run [38024375746](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38024375746)
+  is executing the pinned-runtime-base audit. No dependency rebuild, GHCR push,
+  AWS change or GPU rental has been triggered.
+- Independently reviewed full-release readiness: the existing ten-file model
+  assessment identifies eligible exact bytes, but specifically retains TensorRT
+  runtime distribution-scope and multimedia source/notice gates. Full metadata
+  must not relabel those pending decisions as completed review. Existing candidate
+  quality/FPS failures remain explicit and do not prevent diagnostic transport.
+
+## 2026-10-10 04:35 UTC — first reproduced blocker / change 3
+
+- Diagnostic run `38024375746` rejected the **public pinned runtime base**, before
+  any registry login/push. The failure is `AuditFinding`, stage `audit-layer`,
+  rule `private-key-marker`, path
+  `usr/lib/x86_64-linux-gnu/libgnutls.so.30.31.0`, size 2,000,320 bytes, SHA-256
+  `31890d4c10c55e8756cd7f721fdf787065107a31ffd81de5efe3b3b0eb7431c2`.
+  This is a concrete reproducible scanner blocker, not a publishing-permission
+  problem. The original full dependency run could have additional blockers.
+- Changed **image-layer** PEM detection to require header plus key material,
+  rather than treating a parser's literal header string as a credential.
+  No binary/library path exemption was added. Raw, JSON-escaped, RSA/EC/DSA,
+  OpenSSH, encrypted and legacy encrypted PEM are covered; read overlap is
+  expanded to retain encryption headers across chunk boundaries.
+- GitHub/AWS credential rules, forbidden credential paths, image config/history
+  checks, private visibility and anonymous-denial requirements remain enforced.
+  The stricter release-source marker check is unchanged.
+- Added regression tests for harmless marker literals **and** embedded key
+  material in the same synthetic binary path. Iteration 2 will test the classifier
+  against the actual public base; no successful actual-image audit is claimed yet.
+- Additional full-image capability check: the protected 4070's local API was not
+  reachable on port 8000. This is not proof that Kokoro is absent/disabled and
+  does not authorize silently dropping TTS from a full serving image.
+- Change 3 local validation: 102 Docker tests complete successfully with one
+  macOS-only skip; whitespace checks pass. The saved export diagnostic identifies
+  tar layers, not a gzip parser failure, so no archive-format workaround was added.

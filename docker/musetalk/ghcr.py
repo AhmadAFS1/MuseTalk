@@ -25,6 +25,14 @@ IMAGE = "ghcr.io/ahmadafs1/musetalk-rtx3090"
 PACKAGE_API = "users/AhmadAFS1/packages/container/musetalk-rtx3090"
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 SECRET_RULES = ("private-key-marker", "aws-access-key-id", "github-token", "github-fine-grained-token")
+# Crypto parsers contain literal PEM headers; a header alone is not a key.
+# Detect raw and JSON-escaped key bodies, including legacy encrypted PEM.
+_PEM_NEWLINE = rb"(?:\r?\n|\\n|\\r\\n)"
+PRIVATE_KEY_MATERIAL = re.compile(
+    rb"-----BEGIN (?:(?:RSA|EC|DSA|OPENSSH|ENCRYPTED) )?PRIVATE KEY-----[ \t]*" + _PEM_NEWLINE
+    + rb"(?:Proc-Type:[^\r\n\\]{1,120}" + _PEM_NEWLINE
+    + rb"DEK-Info:[^\r\n\\]{1,120}" + _PEM_NEWLINE + _PEM_NEWLINE + rb")?"
+    + rb"[A-Za-z0-9+/]{32,}")
 _stage = "request-validation"
 _diagnostic_work = None
 
@@ -32,7 +40,7 @@ _diagnostic_work = None
 class AuditFinding(ValueError):
     """Fixed-rule diagnostic; never contains matched bytes or exception text."""
     def __init__(self, rule, *, path=None, layer=None, file_sha256=None, file_size=None):
-        release.require(rule in {"unsafe-path", "credential-path", *SECRET_RULES}, "Unknown audit rule")
+        release.require(rule in {"unsafe-path", "credential-path", "private-key-material", *SECRET_RULES}, "Unknown audit rule")
         self.detail = {"rule": rule}
         for key, value in (("path", path), ("layer", layer)):
             if value is not None:
@@ -190,6 +198,7 @@ def bootstrap(work, revision):
 def scan_layer(stream, name):
     stage("audit-layer")
     files = 0
+    marker_literal_files = 0
     with tarfile.open(fileobj=stream, mode="r|") as layer:
         for member in layer:
             if member.isdir() and member.name in {".", "./"}:
@@ -209,18 +218,25 @@ def scan_layer(stream, name):
             tail = b""
             checksum = hashlib.sha256()
             finding = None
+            marker_literal = False
             with layer.extractfile(member) as content:
                 for block in iter(lambda: content.read(1024 * 1024), b""):
                     checksum.update(block)
                     data = tail + block
                     if finding is None:
-                        finding = next((rule for rule, p in zip(SECRET_RULES, release.SECRET_PATTERNS)
-                                        if p.search(data)), None)
-                    tail = data[-256:]
+                        if PRIVATE_KEY_MATERIAL.search(data):
+                            finding = "private-key-material"
+                        else:
+                            marker_literal = marker_literal or bool(release.SECRET_PATTERNS[0].search(data))
+                            finding = next((rule for rule, p in zip(SECRET_RULES[1:], release.SECRET_PATTERNS[1:])
+                                            if p.search(data)), None)
+                    tail = data[-4096:]  # Covers headers/encryption metadata across read boundaries.
             if finding is not None:
                 raise AuditFinding(finding, path=path, layer=name, file_sha256=checksum.hexdigest(),
                                    file_size=member.size)
-    return {"layer": name, "regular_files_scanned": files}
+            marker_literal_files += int(marker_literal)
+    return {"layer": name, "regular_files_scanned": files,
+            "pem_marker_literal_files_without_key_material": marker_literal_files}
 
 
 def audit(image, work):

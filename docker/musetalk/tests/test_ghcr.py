@@ -94,25 +94,43 @@ class GHCRTests(unittest.TestCase):
     def test_every_layer_rejects_developer_credentials_and_secret_content(self):
         for name, content in (("root/.aws/credentials", b"synthetic"), ("opt/musetalk/app/.env", b"synthetic"),
                               ("root/.config/gh/hosts.yml", b"synthetic"),
-                              ("opt/file.txt", b"-----BEGIN OPENSSH PRIVATE KEY-----"), ("../escape", b"synthetic")):
+                              ("opt/file.txt", b"-----BEGIN OPENSSH PRIVATE KEY-----\n" + b"M" * 64), ("../escape", b"synthetic")):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 ghcr.scan_layer(self.layer(name, content), "synthetic")
         self.assertEqual(ghcr.scan_layer(self.layer("opt/file.txt", b"synthetic"), "synthetic")["regular_files_scanned"], 1)
 
     def test_chunk_boundary_secret_is_not_missed(self):
-        payload = b" " * (1024 * 1024 - 10) + b"-----BEGIN OPENSSH PRIVATE KEY-----"
+        payload = b" " * (1024 * 1024 - 10) + b"-----BEGIN OPENSSH PRIVATE KEY-----\n" + b"M" * 64
         with self.assertRaises(ValueError):
             ghcr.scan_layer(self.layer("opt/file.txt", payload), "synthetic")
 
     def test_scanner_failure_identifies_rule_path_and_complete_file_hash_only(self):
-        data = b"prefix\n-----BEGIN OPENSSH PRIVATE KEY-----\nsynthetic body\nsuffix"
+        data = b"prefix\n-----BEGIN OPENSSH PRIVATE KEY-----\n" + b"M" * 64 + b"\nsuffix"
         with self.assertRaises(ghcr.AuditFinding) as caught:
             ghcr.scan_layer(self.layer("usr/lib/synthetic.txt", data), "synthetic")
         detail = caught.exception.detail
         self.assertEqual(detail["path"], "usr/lib/synthetic.txt")
-        self.assertEqual(detail["rule"], "private-key-marker")
+        self.assertEqual(detail["rule"], "private-key-material")
         self.assertEqual(detail["file_sha256"], ghcr.hashlib.sha256(data).hexdigest())
         self.assertNotIn("synthetic body", json.dumps(detail))
+
+    def test_crypto_header_literals_are_not_keys_but_binary_embedded_keys_are_rejected(self):
+        header = b"-----BEGIN PRIVATE KEY-----"
+        result = ghcr.scan_layer(self.layer("usr/lib/synthetic-crypto.so", b"binary\0" + header + b"\0parser"), "synthetic")
+        self.assertEqual(result["pem_marker_literal_files_without_key_material"], 1)
+        with self.assertRaises(ghcr.AuditFinding):
+            ghcr.scan_layer(self.layer("usr/lib/synthetic-crypto.so", header + b"\n" + b"M" * 64), "synthetic")
+
+    def test_raw_json_escaped_encrypted_and_dsa_key_material_are_rejected(self):
+        for name in (b"PRIVATE KEY", b"RSA PRIVATE KEY", b"EC PRIVATE KEY", b"DSA PRIVATE KEY",
+                     b"OPENSSH PRIVATE KEY", b"ENCRYPTED PRIVATE KEY"):
+            key = b"-----BEGIN " + name + b"-----\n" + b"M" * 64 + b"\n-----END " + name + b"-----"
+            for payload in (key, json.dumps({"synthetic": key.decode()}).encode()):
+                with self.subTest(name=name, escaped=payload != key), self.assertRaises(ghcr.AuditFinding):
+                    ghcr.scan_layer(self.layer("opt/synthetic.txt", payload), "synthetic")
+        legacy = b"-----BEGIN RSA PRIVATE KEY-----\nProc-Type: 4,ENCRYPTED\nDEK-Info: AES-256-CBC,SYNTHETIC\n\n" + b"M" * 64
+        with self.assertRaises(ghcr.AuditFinding):
+            ghcr.scan_layer(self.layer("opt/synthetic.txt", b" " * (1024 * 1024 - 200) + legacy), "synthetic")
 
     def test_layer_root_directory_marker_is_safe_but_absolute_path_is_not(self):
         stream = io.BytesIO()
