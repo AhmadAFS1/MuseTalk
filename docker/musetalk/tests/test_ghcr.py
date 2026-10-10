@@ -13,6 +13,13 @@ import ghcr
 
 
 class GHCRTests(unittest.TestCase):
+    def test_command_failure_exposes_only_fixed_operation_and_status(self):
+        result = ghcr.subprocess.CompletedProcess([], 1, "synthetic-secret-output", "synthetic-secret-body (HTTP 403)")
+        with patch.object(ghcr.subprocess, "run", return_value=result):
+            with self.assertRaises(ghcr.RegistryOperationError) as caught:
+                ghcr.command(["gh", "api", "synthetic-secret-url"], payload="synthetic-secret-input")
+        self.assertEqual(str(caught.exception), "package API failed (exit 1 HTTP 403; output suppressed)")
+
     def test_digest_is_actual_and_unambiguous(self):
         digest = "sha256:" + "a" * 64
         self.assertEqual(ghcr.pushed_digest("tag: digest: " + digest + " size: 123"), digest)

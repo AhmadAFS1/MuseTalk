@@ -8,7 +8,6 @@ checks, separately from this registry transport implementation.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -26,11 +25,24 @@ PACKAGE_API = "users/AhmadAFS1/packages/container/musetalk-rtx3090"
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 
 
+class RegistryOperationError(RuntimeError):
+    """Diagnostic containing only a fixed operation name and numeric status."""
+
+
 def command(argv, *, payload=None):
     # On error, do not reproduce subprocess output: authentication/request details
     # must not leak through diagnostics. Commands contain no credential arguments.
     result = subprocess.run(argv, input=payload, text=True, capture_output=True)
-    release.require(result.returncode == 0, f"{argv[0]} operation failed (output suppressed)")
+    if result.returncode:
+        operations = {("docker", "login"): "registry login", ("docker", "buildx"): "image build/inspect",
+                      ("docker", "tag"): "local tagging", ("docker", "push"): "registry push",
+                      ("docker", "pull"): "registry pull", ("gh", "api"): "package API",
+                      ("docker", "save"): "layer export", ("docker", "image"): "local image inspect",
+                      ("docker", "history"): "local history inspect"}
+        operation = operations.get(tuple(argv[:2]), "registry subprocess")
+        status = re.search(r"\(HTTP (\d{3})\)", result.stderr)
+        suffix = " HTTP " + status[1] if status else ""
+        raise RegistryOperationError(f"{operation} failed (exit {result.returncode}{suffix}; output suppressed)")
     return result.stdout
 
 
@@ -94,11 +106,15 @@ def bootstrap(work, revision):
         'org.opencontainers.image.title="PRIVATE registry bootstrap; NOT A SERVING IMAGE" '
         'io.musetalk.release-channel="bootstrap-no-runtime"\n')
     local = "musetalk-registry-bootstrap:" + revision
+    print("GHCR stage: build non-serving placeholder", flush=True)
     command(["docker", "buildx", "build", "--platform", "linux/amd64", "--load", "--tag", local, str(work)])
     # A brand-new package defaults private. Only this non-sensitive placeholder
     # may be sent before API verification; never a dependency/model-bearing image.
+    print("GHCR stage: push non-serving placeholder", flush=True)
     reference, digest = push(local, "bootstrap-" + revision)
+    print("GHCR stage: verify private package visibility", flush=True)
     privacy = private_package()
+    print("GHCR stage: verify anonymous denial", flush=True)
     anonymous_denied(digest)
     return {"schema": "musetalk_ghcr_bootstrap_v1", "image": reference, "digest": digest,
             "source_revision": revision, "package": privacy, "anonymous_pull": "DENIED",
@@ -223,6 +239,9 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+    except RegistryOperationError as exc:
+        print(str(exc), file=__import__("sys").stderr)
+        raise SystemExit(1)
     except Exception:
         # Do not echo HTTP URLs, response bodies, subprocess output or credentials.
         print("GHCR operation rejected; authentication/visibility/audit check failed (details suppressed)", file=__import__("sys").stderr)
