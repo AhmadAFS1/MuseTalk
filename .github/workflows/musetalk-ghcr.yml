@@ -1,0 +1,168 @@
+name: MuseTalk private GHCR delivery
+
+# Explicit task-branch request; no PR execution, public model assets or AWS roles.
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/rtx3090-r5-delivery]
+    paths: [.github/workflows/musetalk-ghcr.yml, .github/musetalk-ghcr-request.json]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: musetalk-private-ghcr
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    if: github.repository == 'AhmadAFS1/MuseTalk'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.registry.outputs.image }}
+      mode: ${{ steps.request.outputs.mode }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Read non-secret request and run registry contracts
+        id: request
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s docker/musetalk/tests -v
+          python3 - <<'PY'
+          import json, os, pathlib
+          p = pathlib.Path('.github/musetalk-ghcr-request.json')
+          request = json.loads(p.read_text()) if p.exists() else {'mode': 'bootstrap'}
+          assert set(request) == {'mode'} and request['mode'] in {'bootstrap', 'dependencies'}
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('mode=' + request['mode'] + '\n')
+          PY
+      - name: Establish private package using an empty non-serving image
+        id: registry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          python3 -B docker/musetalk/ghcr.py bootstrap \
+            --work "$RUNNER_TEMP/ghcr-bootstrap" --revision "$GITHUB_SHA"
+      - name: Preserve non-secret registry receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: musetalk-ghcr-bootstrap
+          path: ${{ runner.temp }}/ghcr-bootstrap/result.json
+          if-no-files-found: warn
+          retention-days: 3
+      - name: Remove ephemeral registry login
+        if: always()
+        run: docker logout ghcr.io
+
+  verify-bootstrap:
+    needs: bootstrap
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Independently authenticate and pull exact digest on a fresh runner
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.bootstrap.outputs.image }}
+        run: |
+          python3 -B docker/musetalk/ghcr.py verify --image "$IMAGE" \
+            --work "$RUNNER_TEMP/ghcr-independent-bootstrap" --revision "$GITHUB_SHA"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: musetalk-ghcr-independent-bootstrap
+          path: ${{ runner.temp }}/ghcr-independent-bootstrap/result.json
+          retention-days: 3
+      - name: Remove ephemeral registry login
+        if: always()
+        run: docker logout ghcr.io
+
+  dependencies:
+    needs: [bootstrap, verify-bootstrap]
+    if: needs.bootstrap.outputs.mode == 'dependencies'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.publish.outputs.image }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: CPU contracts and startup regression
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s docker/musetalk/tests -v
+          bash scripts/test_startup_scripts.sh
+      - name: Build and CPU-check native amd64 dependencies, without any credentials
+        run: |
+          python3 -B docker/musetalk/dependency_preflight.py --root "$GITHUB_WORKSPACE" \
+            --work "$RUNNER_TEMP/musetalk-dependency-build"
+      - name: Audit all layers and publish private nonpromotable dependency image
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B docker/musetalk/ghcr.py dependency \
+            --image "musetalk-dependencies-ci:$GITHUB_SHA" --revision "$GITHUB_SHA" \
+            --work "$RUNNER_TEMP/ghcr-dependency-publication"
+      - name: Preserve small receipts, never images or credentials
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: musetalk-ghcr-dependency-publication
+          path: |
+            ${{ runner.temp }}/musetalk-dependency-build/reports/
+            ${{ runner.temp }}/ghcr-dependency-publication/*.json
+          if-no-files-found: warn
+          retention-days: 3
+      - name: Remove ephemeral registry login
+        if: always()
+        run: docker logout ghcr.io
+
+  verify-dependencies:
+    needs: dependencies
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Independent exact-digest dependency pull
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.dependencies.outputs.image }}
+        run: |
+          set -euo pipefail
+          python3 -B docker/musetalk/ghcr.py verify --image "$IMAGE" \
+            --work "$RUNNER_TEMP/ghcr-independent-dependencies" --revision "$GITHUB_SHA"
+          docker run --rm --network none --entrypoint /bin/bash "$IMAGE" -c \
+            'CUDA_VISIBLE_DEVICES="" bash scripts/install_musetalk.sh --check --check-imports --matrix cu121 --venv /opt/musetalk/venv --skip-weights --with-avatar-prep --with-native-vp8 --without-kokoro'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: musetalk-ghcr-independent-dependencies
+          path: ${{ runner.temp }}/ghcr-independent-dependencies/result.json
+          retention-days: 3
+      - name: Remove ephemeral registry login
+        if: always()
+        run: docker logout ghcr.io

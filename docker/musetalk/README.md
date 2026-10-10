@@ -1,5 +1,9 @@
 # MuseTalk r5 native RTX 3090 image — release groundwork
 
+For the current private-GHCR delivery sequence, GitHub/AWS access handoff, and
+fresh-instance boot-latency measurement/rollout, use the
+[Docker fast-startup plan](../../docs/DOCKER_FAST_STARTUP_PLAN.md).
+
 This is an **unbuilt candidate implementation**, not a published image or a claim
 of 400 FPS/startup latency. No real native-3090 descriptor, bundle, registry
 namespace, base digest, or acceptance manifest is invented here. Assembly fails
@@ -297,19 +301,36 @@ disabled. This does not publish and does not certify all-layer secret scanning.
 The manifest inside the image is `/opt/musetalk/release.json`; retain it with the
 matching Git revision, native bundle SHA, image digest and template version.
 
-Before promoting/publicizing the image, record all of:
+The current delivery target is private GHCR, not a public/searchable registry.
+Follow the fast-startup plan for private package permissions, separate publisher/
+pull credentials and digest-pinned deployment; no ECR resources or IAM grants are
+required. The existing build-only CI workflow does not yet publish to GHCR.
+
+`.github/workflows/musetalk-ghcr.yml` adds private registry bootstrap, a native
+amd64 dependency build, all-layer credential/path scanning, exact-digest publication,
+and a second clean runner's authenticated pull/CPU import check. It uses job-scoped
+`GITHUB_TOKEN` permissions, never copied interactive credentials or an AWS builder.
+Its reviewed task-branch request is `.github/musetalk-ghcr-request.json` with only
+`{"mode":"bootstrap"}` or `{"mode":"dependencies"}`. A `dependency-<commit>` image
+contains no model/native release or Kokoro and exits instead of serving. Publication
+of that foundation is not full-serving-image, GPU or startup acceptance. The legacy
+dependency-only workflow now requires an explicit request to avoid duplicate builds.
+
+Before promoting the image, record all of:
 
 - Successful real build, CPU import checks and complete layer/license/secret audit.
 - Clean RTX 3090 run, native backend/probes and production avatar restore.
 - T/SUST still >=400 FPS inside the image; quality unchanged; measured live capacity.
 - Missing credentials, corrupt/missing bundle, wrong GPU, restart and drain tests.
-- Pushed digest pulled elsewhere, registry page and actual public search result.
+- Pushed digest pulled elsewhere with the intended pull-only identity, private
+  package visibility/readback, and denied anonymous/publish/delete access for pullers.
 - Existing exact Vast template edited in the browser with rollback/readback.
 - Different fresh instance through EC2, with no manual repair, usable external call,
   complete request-to-frame/steady-readiness trace, repeated fresh/restart trials.
 
-Registry description must state only measured results and limitations. A pending
-search index is pending, not passed. Keep the previous template/image/code tuple,
+Registry description must state only measured results and limitations. Public
+searchability is not a requirement for private delivery. Keep the previous
+template/image/code tuple,
 portable bundle, and control-plane settings for rollback. This directory contains
 none of that external completion evidence yet.
 

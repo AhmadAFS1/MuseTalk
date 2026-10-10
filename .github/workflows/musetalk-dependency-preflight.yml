@@ -6,7 +6,9 @@ on:
   workflow_dispatch:
   push:
     branches: [codex/rtx3090-r5-delivery]
-    paths: [.github/workflows/musetalk-dependency-preflight.yml, docker/musetalk/**, download_weights.sh, scripts/test_startup_scripts.sh, scripts/test_install_musetalk.sh, scripts/test_syncnet_weight_contract.py, scripts/musetalk_install_state.py, scripts/install_musetalk.sh, scripts/patch_mmengine_compat.py]
+    # Explicit legacy build request only. The private-GHCR pipeline now owns
+    # dependency publication; docs/helper edits must not launch duplicate builds.
+    paths: [.github/musetalk-dependency-request.json]
 
 permissions:
   contents: read

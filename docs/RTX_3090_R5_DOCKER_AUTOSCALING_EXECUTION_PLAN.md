@@ -1,5 +1,13 @@
 # RTX 3090 r5 performance, Docker delivery, and EC2 autoscaling execution plan
 
+**Current priority — October 9, 2026:** follow the
+[Docker fast-startup plan](DOCKER_FAST_STARTUP_PLAN.md) for the private GHCR image,
+ephemeral builder, measured boot-to-usable-capacity work, GitHub/AWS access handoff,
+and rollout. It supersedes the original Docker execution order and public/searchable
+registry choice below, as well as the later ECR proposal. The original October 8 plan
+is preserved as historical context; its 400 FPS and quality verdicts must not be
+silently changed.
+
 Prepared October 8, 2026. Repository inspected at `5cc706e90e50e93da1310628c025a84199cd8042`.
 
 **Objective:** provision a new RTX 3090 through the existing EC2/Vast integration; validate portable r5; build reusable RTX 3090 benchmark harnesses; achieve sustained **400+ aggregate FPS** with quality at least matching the established RTX 4070 SUPER r5 reference; publish the validated runtime as a usable, searchable Docker image; update **Templates → My Templates → `(NEEDS UPDATES) Musetalk`** in the user's browser; launch another new RTX 3090 through EC2 with that template; minimize and measure the time until it can serve a real call.
