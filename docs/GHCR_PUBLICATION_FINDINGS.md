@@ -304,3 +304,7 @@ increment and test/run result.
 - Change 7 local validation: **108 Docker tests successful**, one macOS-only skip;
   whitespace checks pass. The new tracked-context test reproduces the omitted
   helper condition that the earlier inventory-only synthetic tests missed.
+- Pushed fix `8d4c8e2fd68882e04a95abb3e7dd5a3e921d6778` to the user's fork.
+  Retry [38030025665](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38030025665)
+  is running at that exact source revision. No model-bearing publication,
+  worker launch, rental, AWS resource or permission change has occurred.
