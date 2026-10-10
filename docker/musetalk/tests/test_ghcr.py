@@ -6,7 +6,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import urllib.error
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -91,6 +91,103 @@ class GHCRTests(unittest.TestCase):
             tar.addfile(member, io.BytesIO(payload))
         stream.seek(0)
         return stream
+
+    def export_fixture(self, *, legacy=False, manifest_first=False, payload=b"synthetic", mutate=None):
+        layer = self.layer("opt/synthetic.txt", payload).getvalue()
+        layer_sha = ghcr.hashlib.sha256(layer).hexdigest()
+        config = json.dumps({"rootfs": {"type": "layers", "diff_ids": ["sha256:" + layer_sha]}}).encode()
+        config_sha = ghcr.hashlib.sha256(config).hexdigest()
+        layer_name = "a" * 64 + "/layer.tar" if legacy else "blobs/sha256/" + layer_sha
+        config_name = config_sha + ".json" if legacy else "blobs/sha256/" + config_sha
+        entries = [(layer_name, layer), (config_name, config),
+                   ("manifest.json", json.dumps([{"Config": config_name, "Layers": [layer_name]}]).encode())]
+        if manifest_first:
+            entries = entries[-1:] + entries[:-1]
+        if mutate:
+            entries = mutate(entries)
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode="w") as archive:
+            for name, data in entries:
+                member = tarfile.TarInfo(name)
+                member.size = len(data)
+                archive.addfile(member, io.BytesIO(data))
+        stream.seek(0)
+        return stream, {"Id": "sha256:" + config_sha, "RootFS": {"Layers": ["sha256:" + layer_sha]}}
+
+    def test_streaming_export_scans_oci_and_legacy_with_manifest_first_or_last(self):
+        for legacy in (False, True):
+            for first in (False, True):
+                stream, inspect = self.export_fixture(legacy=legacy, manifest_first=first)
+                with self.subTest(legacy=legacy, manifest_first=first):
+                    rows = ghcr.scan_export(stream, inspect, {})
+                    self.assertEqual(len(rows), 1)
+                    self.assertEqual(rows[0]["regular_files_scanned"], 1)
+                    self.assertEqual("sha256:" + rows[0]["uncompressed_sha256"], inspect["RootFS"]["Layers"][0])
+
+    def test_streaming_export_rejects_secrets_before_manifest_arrives(self):
+        stream, inspect = self.export_fixture(payload=b"ghp_" + b"s" * 40)
+        with self.assertRaises(ghcr.AuditFinding):
+            ghcr.scan_export(stream, inspect, {})
+
+    def test_streaming_export_binds_config_and_complete_layer_bytes(self):
+        for field in ("config", "layers"):
+            stream, inspect = self.export_fixture()
+            if field == "config":
+                inspect["Id"] = "sha256:" + "f" * 64
+            else:
+                inspect["RootFS"]["Layers"] = ["sha256:" + "f" * 64]
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                ghcr.scan_export(stream, inspect, {})
+
+    def test_streaming_export_rejects_duplicates_missing_or_unreferenced_layers(self):
+        for mutate in (lambda e: e + [e[0]], lambda e: e[1:], lambda e: e[:-1],
+                       lambda e: e + [("extra/layer.tar", e[0][1])]):
+            stream, inspect = self.export_fixture(mutate=mutate)
+            with self.assertRaises(ValueError):
+                ghcr.scan_export(stream, inspect, {})
+
+    def test_streaming_export_rejects_unsafe_paths_and_non_json_metadata(self):
+        for extra in (("../escape", b"{}"), ("unknown", b"not metadata"),
+                      ("oversized", b" " * (1024 * 1024 + 1))):
+            stream, inspect = self.export_fixture(mutate=lambda e: e + [extra])
+            with self.subTest(path=extra[0]), self.assertRaises(ValueError):
+                ghcr.scan_export(stream, inspect, {})
+
+    def test_streaming_export_rejects_links(self):
+        stream, inspect = self.export_fixture()
+        out = io.BytesIO()
+        with tarfile.open(fileobj=out, mode="w") as archive:
+            member = tarfile.TarInfo("link")
+            member.type = tarfile.SYMTYPE
+            member.linkname = "manifest.json"
+            archive.addfile(member)
+        out.seek(0)
+        with self.assertRaises(ValueError):
+            ghcr.scan_export(out, inspect, {})
+
+    def test_export_process_uses_stdout_not_a_disk_archive(self):
+        stream, inspect = self.export_fixture()
+        process = Mock(stdout=stream, stderr=io.BytesIO(), poll=Mock(return_value=0), wait=Mock(return_value=0))
+        with patch.object(ghcr.subprocess, "Popen", return_value=process) as start:
+            self.assertEqual(len(ghcr.streamed_layer_audit("local-image", inspect, {})), 1)
+        self.assertEqual(start.call_args.args[0], ["docker", "save", "local-image"])
+        process.terminate.assert_not_called()
+
+    def test_failed_export_classifies_space_error_without_reflecting_stderr(self):
+        process = Mock(stdout=io.BytesIO(), stderr=io.BytesIO(b"no space left on device; ghp_" + b"s" * 40),
+                       poll=Mock(return_value=1), wait=Mock(return_value=1))
+        with patch.object(ghcr.subprocess, "Popen", return_value=process), self.assertRaises(ghcr.RegistryOperationError) as caught:
+            ghcr.streamed_layer_audit("local-image", {}, {})
+        record = ghcr.failure_record(caught.exception)
+        self.assertEqual(record["reason"], "no-space-left")
+        self.assertNotIn("ghp_", json.dumps(record))
+
+    def test_streaming_scan_rejection_terminates_live_exporter(self):
+        stream, inspect = self.export_fixture(payload=b"ghp_" + b"s" * 40)
+        process = Mock(stdout=stream, stderr=io.BytesIO(), poll=Mock(return_value=None), wait=Mock(return_value=-15))
+        with patch.object(ghcr.subprocess, "Popen", return_value=process), self.assertRaises(ghcr.AuditFinding):
+            ghcr.streamed_layer_audit("local-image", inspect, {})
+        process.terminate.assert_called_once()
 
     def test_every_layer_rejects_developer_credentials_and_secret_content(self):
         for name, content in (("root/.aws/credentials", b"synthetic"), ("opt/musetalk/app/.env", b"synthetic"),

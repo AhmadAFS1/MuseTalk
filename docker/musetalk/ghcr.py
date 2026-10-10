@@ -13,8 +13,10 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tarfile
+import threading
 import urllib.error
 import urllib.request
 
@@ -82,6 +84,8 @@ def failure_record(exc):
             r"\(exit -?\d+(?: HTTP \d{3})?; output suppressed\)", str(exc)):
         # Validate the fixed format even if a caller constructs the class directly.
         result["operation"] = str(exc)
+        if getattr(exc, "reason", None) in {"no-space-left", "export-process-failed"}:
+            result["reason"] = exc.reason
     return result
 
 
@@ -99,6 +103,10 @@ def report_failure(exc, work=None):
 
 class RegistryOperationError(RuntimeError):
     """Diagnostic containing only a fixed operation name and numeric status."""
+
+    def __init__(self, message, *, reason=None):
+        self.reason = reason
+        super().__init__(message)
 
 
 def command(argv, *, payload=None):
@@ -273,6 +281,117 @@ def scan_layer(stream, name, exceptions=None):
             "exact_public_fixture_exceptions": applied}
 
 
+class LayerReader:
+    """Replay the tar probe and hash the complete layer without seeking/spooling."""
+    def __init__(self, prefix, stream):
+        self.prefix = prefix
+        self.stream = stream
+        self.digest = hashlib.sha256()
+
+    def read(self, size):
+        release.require(size >= 0, "Streaming layer reads must be bounded")
+        prefix, self.prefix = self.prefix[:size], self.prefix[size:]
+        data = prefix + self.stream.read(size - len(prefix))
+        self.digest.update(data)
+        return data
+
+
+def scan_export(stream, inspect, exceptions):
+    """Scan legacy/OCI Docker-save layers, even when manifest.json comes last."""
+    layers, documents, seen = {}, {}, set()
+    with tarfile.open(fileobj=stream, mode="r|") as exported:
+        for member in exported:
+            if member.isdir() and member.name in {".", "./"}:
+                continue
+            name = member.name.removeprefix("./")
+            release.relative(name)
+            release.require(name not in seen and len(seen) < 8192, "Duplicate/oversized export layout")
+            seen.add(name)
+            if member.isdir():
+                continue
+            release.require(member.isreg(), "Export links/special entries are forbidden")
+            content = exported.extractfile(member)
+            probe = content.read(512)
+            try:
+                header = tarfile.TarInfo.frombuf(probe, "utf-8", "surrogateescape")
+                is_tar = bool(header)
+            except tarfile.HeaderError:
+                is_tar = probe == b"\0" * 512  # Empty filesystem layer.
+            if name.endswith("/layer.tar") or is_tar:
+                reader = LayerReader(probe, content)
+                layers[name] = scan_layer(reader, name, exceptions)
+                # Hash all trailing tar padding, not only payload read by tarfile.
+                while reader.read(1024 * 1024):
+                    pass
+                layers[name]["uncompressed_sha256"] = reader.digest.hexdigest()
+            else:
+                release.require(member.size <= 1024 * 1024, "Non-layer export metadata exceeds bound")
+                raw = probe + content.read(1024 * 1024)
+                release.require(len(raw) == member.size, "Truncated export metadata")
+                documents[name] = (json.loads(raw), hashlib.sha256(raw).hexdigest())
+    release.require("manifest.json" in documents, "Docker export manifest missing")
+    manifests = documents["manifest.json"][0]
+    release.require(isinstance(manifests, list) and len(manifests) == 1, "Audit needs exactly one image")
+    manifest = manifests[0]
+    names = manifest.get("Layers", [])
+    release.require(isinstance(names, list) and names and all(isinstance(n, str) for n in names)
+                    and len(names) == len(set(names)) and set(names) == set(layers),
+                    "Export manifest does not bind every scanned layer")
+    config_name = manifest.get("Config")
+    release.require(isinstance(config_name, str) and config_name in documents
+                    and "sha256:" + documents[config_name][1] == inspect["Id"],
+                    "Exported image config differs from inspected image")
+    diff_ids = ["sha256:" + layers[name]["uncompressed_sha256"] for name in names]
+    release.require(diff_ids == inspect.get("RootFS", {}).get("Layers")
+                    and diff_ids == documents[config_name][0].get("rootfs", {}).get("diff_ids"),
+                    "Exported layer hashes/order differ from inspected image")
+    return [layers[name] for name in names]
+
+
+def streamed_layer_audit(image, inspect, exceptions):
+    """Never persist a second image-sized tar; suppress bounded daemon stderr."""
+    process = subprocess.Popen(["docker", "save", image], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    diagnostic = bytearray()
+
+    def consume_stderr():
+        for block in iter(lambda: process.stderr.read(4096), b""):
+            diagnostic.extend(block[:max(0, 65536 - len(diagnostic))])
+
+    reader = threading.Thread(target=consume_stderr, daemon=True)
+    reader.start()
+    try:
+        try:
+            rows = scan_export(process.stdout, inspect, exceptions)
+            # Drain outer archive padding so the exporter cannot block on stdout.
+            while process.stdout.read(1024 * 1024):
+                pass
+        except Exception:
+            # A completed failed exporter is more informative than truncated tar.
+            code = process.poll()
+            if code not in {None, 0}:
+                reader.join(timeout=10)
+                reason = "no-space-left" if b"no space left" in diagnostic.lower() else "export-process-failed"
+                raise RegistryOperationError(f"layer export failed (exit {code}; output suppressed)", reason=reason) from None
+            raise
+        code = process.wait(timeout=60)
+        reader.join(timeout=10)
+        if code:
+            reason = "no-space-left" if b"no space left" in diagnostic.lower() else "export-process-failed"
+            raise RegistryOperationError(f"layer export failed (exit {code}; output suppressed)", reason=reason)
+        return rows
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=10)
+        reader.join(timeout=10)
+        process.stdout.close()
+        process.stderr.close()
+
+
 def audit(image, work):
     release.require(not work.exists(), "Layer audit output must be new")
     work.mkdir(parents=True)
@@ -286,22 +405,12 @@ def audit(image, work):
     stage("audit-image-history")
     history = command(["docker", "history", "--no-trunc", "--format", "{{json .}}", image]).encode()
     release.require(not any(p.search(history) for p in release.SECRET_PATTERNS), "Possible image-history credential")
-    archive = work / "image-layer-audit.tar"
     stage("audit-layer-export")
-    command(["docker", "save", "--output", str(archive), image])
-    rows = []
-    exceptions = scan_exceptions()
-    stage("audit-archive-layout")
-    with tarfile.open(archive) as exported:
-        manifests = json.load(exported.extractfile("manifest.json"))
-        release.require(len(manifests) == 1, "Audit needs exactly one image")
-        for name in manifests[0]["Layers"]:
-            release.relative(name)
-            rows.append(scan_layer(exported.extractfile(name), name, exceptions))
-    # Delete only the exact newly created, successfully audited task-local export.
-    archive.unlink()
+    free_before = shutil.disk_usage(work).free
+    rows = streamed_layer_audit(image, inspect, scan_exceptions())
     report = {"schema": "musetalk_ghcr_layer_scan_v1", "status": "PASS", "image_config_id": inspect["Id"],
               "uncompressed_image_bytes": inspect["Size"], "layers": rows,
+              "export_mode": "stdout-stream-no-image-archive", "free_disk_bytes_before_export": free_before,
               "scanner_exception_manifest_sha256": release.sha256(Path(__file__).with_name("credential_scan_exceptions.json")),
               "limitation": "Heuristic credential/path scan of every exported layer; not license, GPU, quality or serving acceptance"}
     (work / "layer-scan.json").write_text(json.dumps(report, indent=2) + "\n")

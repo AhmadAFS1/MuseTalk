@@ -59,6 +59,18 @@ jobs:
               output.write('revision=' + request['source_revision'] + '\n')
               output.write('metadata=' + request['metadata_sha256'] + '\n')
           PY
+      - name: Verify streaming audit against this runner's Docker export format
+        run: |
+          set -euo pipefail
+          docker build --tag musetalk-stream-audit:fixture docker/musetalk/tests/stream_export_fixture
+          python3 -B - <<'PY'
+          import os, pathlib, sys
+          sys.path.insert(0, 'docker/musetalk')
+          import ghcr
+          result = ghcr.audit('musetalk-stream-audit:fixture', pathlib.Path(os.environ['RUNNER_TEMP']) / 'stream-audit-smoke')
+          assert result['status'] == 'PASS' and len(result['layers']) == 1
+          assert result['export_mode'] == 'stdout-stream-no-image-archive'
+          PY
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ steps.request.outputs.revision }}

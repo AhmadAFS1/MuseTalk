@@ -724,3 +724,27 @@ increment and test/run result.
   only. All 26 focused backend registry/offer tests pass in the existing test
   venv (system Python initially lacked `dotenv`). Production is not deployed,
   restarted or enabled. No additional AWS resource/IAM grant was made.
+
+### 22:55 UTC — Full build passed; publication export repair
+
+- Run 38085895073 built the full pinned `c06624da` image and passed the
+  offline CPU check. Its inspected uncompressed size is 19,219,671,328 bytes.
+  Publication failed at `audit-layer-export`: `docker save --output` exited 1
+  before layer scanning or push. The old diagnostic intentionally suppressed
+  stderr, so disk exhaustion is a plausible cause, **not a confirmed finding**.
+  The independent pull was skipped; no 3090 was rented or timed.
+- Replaced the second image-sized on-disk tar with a bounded-memory stdout
+  stream, as supported by [Docker save](https://docs.docker.com/reference/cli/docker/image/save/).
+  The scanner still checks every layer and now binds the complete layer hashes
+  and order to both the inspected image and exported config. Manifest-first
+  and manifest-last legacy/OCI layouts are supported; extra/missing/duplicate
+  layers, config changes, special entries and secret findings fail closed.
+- Export stderr remains undisclosed and bounded in memory; a fixed
+  `no-space-left` classification can be recorded without revealing paths,
+  tokens or arbitrary daemon output. No audit exception was enlarged.
+- Added an actual tiny Docker export/audit smoke gate before expensive input
+  downloads/builds. The serving source, input hashes, native bundle, license/
+  quality findings and nonpromotable status are unchanged. This repair adds no
+  AWS infrastructure, GPU lease or production template change.
+- Local Docker contracts: 131 tests pass, with one expected macOS-only skip.
+  The real runner export smoke test and publication retry are still pending.
