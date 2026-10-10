@@ -76,8 +76,11 @@ def failure_record(exc):
               "details_suppressed": True, "publication_verified": False}
     if isinstance(exc, AuditFinding):
         result["finding"] = exc.detail
-    if isinstance(exc, RegistryOperationError):
-        # This class already contains fixed operation names and numeric status.
+    if isinstance(exc, RegistryOperationError) and re.fullmatch(
+            r"(?:registry login|image build/inspect|local tagging|registry push|registry pull|package API|"
+            r"layer export|local image inspect|local history inspect|registry subprocess) failed "
+            r"\(exit -?\d+(?: HTTP \d{3})?; output suppressed\)", str(exc)):
+        # Validate the fixed format even if a caller constructs the class directly.
         result["operation"] = str(exc)
     return result
 
@@ -195,10 +198,37 @@ def bootstrap(work, revision):
             "published": True, "serving_image": False, "promotion_eligible": False}
 
 
-def scan_layer(stream, name):
+def scan_exceptions(path=None):
+    """Only reviewed public fixtures at an exact path, full hash and rule."""
+    path = path or Path(__file__).with_name("credential_scan_exceptions.json")
+    value = json.loads(path.read_text())
+    release.require(set(value) == {"schema", "files"} and value["schema"] == "musetalk_public_scan_exceptions_v1",
+                    "Unknown scanner exception schema")
+    release.require(isinstance(value["files"], list) and len(value["files"]) <= 32, "Invalid exception list")
+    result = {}
+    for item in value["files"]:
+        release.require(set(item) == {"path", "sha256", "rules", "reason", "provenance"}, "Invalid exception fields")
+        release.relative(item["path"])
+        release.require(re.fullmatch(r"[A-Za-z0-9_./+-]+", item["path"])
+                        and release.SHA.fullmatch(item["sha256"]), "Invalid exact exception identity")
+        release.require(isinstance(item["rules"], list) and item["rules"]
+                        and len(item["rules"]) == len(set(item["rules"]))
+                        and set(item["rules"]) <= {"private-key-material", "aws-access-key-id"},
+                        "Invalid exception rule")
+        release.require(isinstance(item["reason"], str) and 1 <= len(item["reason"]) <= 400
+                        and isinstance(item["provenance"], dict) and item["provenance"], "Missing public provenance")
+        key = (item["path"], item["sha256"])
+        release.require(key not in result, "Duplicate exact exception")
+        result[key] = frozenset(item["rules"])
+    return result
+
+
+def scan_layer(stream, name, exceptions=None):
     stage("audit-layer")
+    exceptions = scan_exceptions() if exceptions is None else exceptions
     files = 0
     marker_literal_files = 0
+    applied = []
     with tarfile.open(fileobj=stream, mode="r|") as layer:
         for member in layer:
             if member.isdir() and member.name in {".", "./"}:
@@ -217,26 +247,30 @@ def scan_layer(stream, name):
             files += 1
             tail = b""
             checksum = hashlib.sha256()
-            finding = None
+            findings = set()
             marker_literal = False
             with layer.extractfile(member) as content:
                 for block in iter(lambda: content.read(1024 * 1024), b""):
                     checksum.update(block)
                     data = tail + block
-                    if finding is None:
-                        if PRIVATE_KEY_MATERIAL.search(data):
-                            finding = "private-key-material"
-                        else:
-                            marker_literal = marker_literal or bool(release.SECRET_PATTERNS[0].search(data))
-                            finding = next((rule for rule, p in zip(SECRET_RULES[1:], release.SECRET_PATTERNS[1:])
-                                            if p.search(data)), None)
+                    if PRIVATE_KEY_MATERIAL.search(data):
+                        findings.add("private-key-material")
+                    marker_literal = marker_literal or bool(release.SECRET_PATTERNS[0].search(data))
+                    findings.update(rule for rule, p in zip(SECRET_RULES[1:], release.SECRET_PATTERNS[1:])
+                                    if p.search(data))
                     tail = data[-4096:]  # Covers headers/encryption metadata across read boundaries.
-            if finding is not None:
-                raise AuditFinding(finding, path=path, layer=name, file_sha256=checksum.hexdigest(),
+            file_sha = checksum.hexdigest()
+            allowed = exceptions.get((path, file_sha), frozenset())
+            rejected = findings - allowed
+            if rejected:
+                raise AuditFinding(sorted(rejected)[0], path=path, layer=name, file_sha256=file_sha,
                                    file_size=member.size)
-            marker_literal_files += int(marker_literal)
+            if findings:
+                applied.append({"path": path, "file_sha256": file_sha, "allowed_rules": sorted(findings)})
+            marker_literal_files += int(marker_literal and "private-key-material" not in findings)
     return {"layer": name, "regular_files_scanned": files,
-            "pem_marker_literal_files_without_key_material": marker_literal_files}
+            "pem_marker_literal_files_without_key_material": marker_literal_files,
+            "exact_public_fixture_exceptions": applied}
 
 
 def audit(image, work):
@@ -256,17 +290,19 @@ def audit(image, work):
     stage("audit-layer-export")
     command(["docker", "save", "--output", str(archive), image])
     rows = []
+    exceptions = scan_exceptions()
     stage("audit-archive-layout")
     with tarfile.open(archive) as exported:
         manifests = json.load(exported.extractfile("manifest.json"))
         release.require(len(manifests) == 1, "Audit needs exactly one image")
         for name in manifests[0]["Layers"]:
             release.relative(name)
-            rows.append(scan_layer(exported.extractfile(name), name))
+            rows.append(scan_layer(exported.extractfile(name), name, exceptions))
     # Delete only the exact newly created, successfully audited task-local export.
     archive.unlink()
     report = {"schema": "musetalk_ghcr_layer_scan_v1", "status": "PASS", "image_config_id": inspect["Id"],
               "uncompressed_image_bytes": inspect["Size"], "layers": rows,
+              "scanner_exception_manifest_sha256": release.sha256(Path(__file__).with_name("credential_scan_exceptions.json")),
               "limitation": "Heuristic credential/path scan of every exported layer; not license, GPU, quality or serving acceptance"}
     (work / "layer-scan.json").write_text(json.dumps(report, indent=2) + "\n")
     return report

@@ -26,6 +26,7 @@ class GHCRTests(unittest.TestCase):
         self.assertNotIn("path", record["finding"])
         self.assertIn("path_sha256", record["finding"])
         self.assertEqual(record["finding"]["rule"], "github-token")
+        self.assertNotIn(secret, json.dumps(ghcr.failure_record(ghcr.RegistryOperationError(secret))))
 
     def test_failure_receipt_is_persistent_and_never_overwrites_existing_file(self):
         with tempfile.TemporaryDirectory() as directory, patch("builtins.print"):
@@ -131,6 +132,39 @@ class GHCRTests(unittest.TestCase):
         legacy = b"-----BEGIN RSA PRIVATE KEY-----\nProc-Type: 4,ENCRYPTED\nDEK-Info: AES-256-CBC,SYNTHETIC\n\n" + b"M" * 64
         with self.assertRaises(ghcr.AuditFinding):
             ghcr.scan_layer(self.layer("opt/synthetic.txt", b" " * (1024 * 1024 - 200) + legacy), "synthetic")
+
+    def test_public_fixture_allowance_requires_exact_path_full_hash_and_rule(self):
+        data = b"AKIA" + b"A" * 16 + b" synthetic example"
+        name = "opt/synthetic-example.txt"
+        identity = (name, ghcr.hashlib.sha256(data).hexdigest())
+        exceptions = {identity: frozenset({"aws-access-key-id"})}
+        result = ghcr.scan_layer(self.layer(name, data), "synthetic", exceptions)
+        self.assertEqual(result["exact_public_fixture_exceptions"][0]["file_sha256"], identity[1])
+        for path, payload in ((name, data + b" changed"), ("opt/other.txt", data)):
+            with self.subTest(path=path), self.assertRaises(ghcr.AuditFinding):
+                ghcr.scan_layer(self.layer(path, payload), "synthetic", exceptions)
+        mixed = data + b"\n" + b"ghp_" + b"s" * 40
+        mixed_allowance = {(name, ghcr.hashlib.sha256(mixed).hexdigest()): frozenset({"aws-access-key-id"})}
+        with self.assertRaises(ghcr.AuditFinding) as caught:
+            ghcr.scan_layer(self.layer(name, mixed), "synthetic", mixed_allowance)
+        self.assertEqual(caught.exception.detail["rule"], "github-token")
+
+    def test_reviewed_exception_schema_rejects_broad_or_malformed_entries(self):
+        item = {"path": "opt/synthetic-example.txt", "sha256": "a" * 64,
+                "rules": ["aws-access-key-id"], "reason": "synthetic public fixture", "provenance": {"test": True}}
+        value = {"schema": "musetalk_public_scan_exceptions_v1", "files": [item]}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "exceptions.json"
+            path.write_text(json.dumps(value))
+            self.assertEqual(ghcr.scan_exceptions(path)[(item["path"], item["sha256"])], frozenset(item["rules"]))
+            for field, bad in (("path", "opt/*"), ("path", "../escape"), ("sha256", "short"),
+                               ("rules", ["github-token"]), ("rules", []), ("provenance", {})):
+                path.write_text(json.dumps({**value, "files": [{**item, field: bad}]}))
+                with self.subTest(field=field, bad=bad), self.assertRaises(ValueError):
+                    ghcr.scan_exceptions(path)
+            path.write_text(json.dumps({**value, "files": [item, item]}))
+            with self.assertRaises(ValueError):
+                ghcr.scan_exceptions(path)
 
     def test_layer_root_directory_marker_is_safe_but_absolute_path_is_not(self):
         stream = io.BytesIO()

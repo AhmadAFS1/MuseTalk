@@ -45,6 +45,12 @@ The user accepted the latest lower FPS for now. That is not a 400+ FPS pass or
 blanket numerical quality acceptance. Existing release gates must retain their
 actual verdicts; see the candidate/production distinction below.
 
+The user now explicitly confirms this image does **not** require local Kokoro
+TTS: a separate OmniVoice-TTS worker supplies speech. Select `kokoro:false` in the
+full-image manifest, explicitly disable the local endpoint and exclude optional
+Kokoro model/voice bytes. Combining OmniVoice and MuseTalk is a future decision,
+not part of this release. See the publication journal for the confirmation.
+
 ## 1. Build once, rather than install on every instance
 
 Use a separate, temporary native Linux `amd64` builder. Build a reproducible image

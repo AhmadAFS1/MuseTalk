@@ -32,6 +32,8 @@ jobs:
           assert set(request) == {'purpose', 'iteration'} and request['purpose'] == 'publication-diagnostics'
           assert type(request['iteration']) is int and request['iteration'] > 0
           PY
+      - name: Reverify exact public test fixtures without credentials
+        run: python3 -B docker/musetalk/verify_public_scan_fixtures.py > "$RUNNER_TEMP/musetalk-audit-provenance.json"
       - name: Reproduce audit using the public pinned runtime base, no publication credentials
         run: |
           docker version --format '{{json .Server}}'
@@ -41,6 +43,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: musetalk-public-base-audit
-          path: ${{ runner.temp }}/musetalk-audit-diagnostic/**/*.json
+          path: |
+            ${{ runner.temp }}/musetalk-audit-diagnostic/**/*.json
+            ${{ runner.temp }}/musetalk-audit-provenance.json
           if-no-files-found: warn
           retention-days: 3
