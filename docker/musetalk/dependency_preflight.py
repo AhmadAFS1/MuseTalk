@@ -80,6 +80,8 @@ def main():
         ("image-history.jsonl", ["docker", "history", "--no-trunc", "--format", "{{json .}}", image]),
         ("pip-freeze.txt", ["docker", "run", "--rm", "--network", "none", "--entrypoint", "/opt/musetalk/venv/bin/python", image, "-m", "pip", "freeze"]),
         ("dpkg-packages.txt", ["docker", "run", "--rm", "--network", "none", "--entrypoint", "/usr/bin/dpkg-query", image, "-W"]),
+        ("installed-dependencies.json", ["docker", "run", "--rm", "--network", "none", "--entrypoint", "/opt/musetalk/venv/bin/python", image,
+                                         "docker/musetalk/dependency_inventory.py"]),
         ("runtime-pruning.json", ["docker", "run", "--rm", "--network", "none", "--entrypoint", "/usr/bin/python3", image,
                                   "-c", "from pathlib import Path; print(Path('/opt/musetalk/runtime_pruning.json').read_text(), end='')"]),
     ):

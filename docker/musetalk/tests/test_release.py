@@ -179,6 +179,23 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             release.load_manifest(self.manifest())
 
+    def test_separate_tts_worker_profile_omits_kokoro_and_disables_local_tts(self):
+        # Audio is supplied externally; the MuseTalk image must not install or
+        # lazily fetch the optional local speech stack.
+        self.m["kokoro"] = False
+        release.load_manifest(self.manifest())
+        args = release.install_args(self.m)
+        self.assertIn("--without-kokoro", args)
+        self.assertNotIn("--with-kokoro", args)
+        descriptor = {"engines": {"unet_stagewise": {"cache_dir": "models/native"},
+                                   "taesd_trt": {"dir": "models/taesd"}}}
+        settings = release.policy(self.m, descriptor)
+        self.assertEqual(settings["SETUP_KOKORO"], "0")
+        self.assertEqual(settings["MUSETALK_DISABLE_LOCAL_TTS"], "1")
+        self.assertEqual(settings["AUTO_SETUP"], "0")
+        self.assertEqual(settings["HF_HUB_OFFLINE"], "1")
+        self.assertEqual(settings["TRANSFORMERS_OFFLINE"], "1")
+
     def test_apt_pins_reject_unpinned_and_injection(self):
         for value in ("curl", "curl=1;bad", "$(bad)", "--allow-unauthenticated=1"):
             m = {**self.m, "apt_packages": [*self.m["apt_packages"], value]}

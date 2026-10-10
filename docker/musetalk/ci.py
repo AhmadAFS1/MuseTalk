@@ -138,6 +138,9 @@ def build(root, assets, manifest, work, reports):
     for name, command in (
         ("image-inspect.json", ["docker", "image", "inspect", image]),
         ("image-history.jsonl", ["docker", "history", "--no-trunc", "--format", "{{json .}}", image]),
+        ("installed-dependencies.json", ["docker", "run", "--rm", "--platform", "linux/amd64", "--network", "none",
+                                         "--entrypoint", "/opt/musetalk/venv/bin/python", image,
+                                         "docker/musetalk/dependency_inventory.py"]),
         ("cpu-check.log", ["docker", "run", "--rm", "--platform", "linux/amd64", "--network", "none",
                            "--entrypoint", "/bin/bash", image, "/opt/musetalk/app/docker/musetalk/entrypoint.sh", "check"]),
     ):

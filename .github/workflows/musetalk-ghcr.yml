@@ -58,7 +58,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: musetalk-ghcr-bootstrap
-          path: ${{ runner.temp }}/ghcr-bootstrap/result.json
+          path: ${{ runner.temp }}/ghcr-bootstrap/*.json
           if-no-files-found: warn
           retention-days: 3
       - name: Remove ephemeral registry login
@@ -84,9 +84,11 @@ jobs:
           python3 -B docker/musetalk/ghcr.py verify --image "$IMAGE" \
             --work "$RUNNER_TEMP/ghcr-independent-bootstrap" --revision "$GITHUB_SHA"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
         with:
           name: musetalk-ghcr-independent-bootstrap
-          path: ${{ runner.temp }}/ghcr-independent-bootstrap/result.json
+          path: ${{ runner.temp }}/ghcr-independent-bootstrap/*.json
+          if-no-files-found: warn
           retention-days: 3
       - name: Remove ephemeral registry login
         if: always()
@@ -159,9 +161,11 @@ jobs:
           docker run --rm --network none --entrypoint /bin/bash "$IMAGE" -c \
             'CUDA_VISIBLE_DEVICES="" bash scripts/install_musetalk.sh --check --check-imports --matrix cu121 --venv /opt/musetalk/venv --skip-weights --with-avatar-prep --with-native-vp8 --without-kokoro'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
         with:
           name: musetalk-ghcr-independent-dependencies
-          path: ${{ runner.temp }}/ghcr-independent-dependencies/result.json
+          path: ${{ runner.temp }}/ghcr-independent-dependencies/*.json
+          if-no-files-found: warn
           retention-days: 3
       - name: Remove ephemeral registry login
         if: always()

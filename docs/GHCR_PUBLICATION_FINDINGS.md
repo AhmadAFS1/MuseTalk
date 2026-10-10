@@ -163,3 +163,60 @@ increment and test/run result.
   equality with all four reviewed allowances. CI iteration 3 now repeats that
   verification before auditing every pinned-base layer. No successful actual
   base audit or dependency publication is claimed until its run completes.
+
+## 2026-10-10 — iteration 3 dispatched
+
+- Pushed `88ff504a18a2fe8e4f4bb758a70d64f9001fb4bf`, including the approved
+  no-Kokoro capability decision and exact public-fixture scanner repair.
+- Run [38025387316](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38025387316)
+  is executing provenance verification and the actual public-base audit.
+- Publication/privacy/token requirements remain unchanged. The dependency
+  rebuild will start only after this inexpensive gate passes.
+
+## 2026-10-10 — change 5: separate-TTS capability regression
+
+- Verified the existing full-image implementation selects `--without-kokoro`
+  from `kokoro:false`, sets `SETUP_KOKORO=0` and
+  `MUSETALK_DISABLE_LOCAL_TTS=1`, disables automatic installation, and forces
+  Hugging Face/Transformers offline. No new installer rewrite is needed.
+- Added a regression contract for that exact external-speech-worker profile.
+  105 Docker tests complete successfully, with one macOS-only skip. No Kokoro
+  model/voice/cache bytes are added to the full-image input set.
+- CI iteration 3 has passed independent public-fixture provenance verification
+  and CPU contracts; the actual base-image layer audit is still running.
+
+## 2026-10-10 — change 6: actual installed dependency evidence
+
+- Added a read-only inventory collector to both dependency and full-image CPU
+  build reports. It runs offline inside the built image, not on a live GPU worker.
+- Captures installed pip names/versions, declared-license metadata, complete
+  native-library/notice file SHA-256s, missing RECORD-owned native files, dpkg
+  binary/source package versions and installed OS copyright file hashes.
+- The collector does not report direct-URL/auth metadata, follow files outside
+  bounded package/doc roots, run GPU inference, mutate an image or assert legal
+  acceptance. It explicitly retains `publication_review_accepted:false`.
+- This supplies concrete final-byte evidence for the existing runtime review
+  gates; it does not satisfy corresponding-source delivery by itself. Source
+  builds and exact package scope still need reconciliation before full release.
+- Inventory validation: initially caught a Python-version difference where
+  `importlib.metadata.files` omits missing RECORD entries. The collector now reads
+  raw RECORD ownership explicitly, preserving the pruned-library evidence.
+  All 107 Docker tests now complete successfully, with one macOS-only skip.
+- Local startup-shell suite cannot execute beyond its initial syntax checks with
+  macOS's bundled Bash 3 (`declare -g` unsupported); Homebrew Bash is not installed.
+  No shell was installed or production worker touched. The existing native Linux
+  dependency workflow runs this suite before building and remains the actual
+  startup-shell validation gate.
+
+## 2026-10-10 — actual base audit PASS / dependency retry request
+
+- Run [38025387316](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38025387316)
+  completed successfully. Native Linux CPU contracts, independent public-fixture
+  verification and **all exported layers of the pinned runtime base** passed.
+  The exact GnuTLS allowance is reported; no model/runtime serving claim follows.
+- Updated the publication workflow to preserve sanitized failure receipts even
+  when bootstrap or independent pull fails, not only successful result receipts.
+  The dependency job already preserves its failure receipt.
+- This workflow change requests a fresh dependency rebuild/publication on the
+  next clean pushed commit. Current local Docker suite: 107 tests, successful
+  with one macOS-only skip. Full release/runtime review gates remain separate.
