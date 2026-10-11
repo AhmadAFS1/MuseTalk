@@ -1,5 +1,6 @@
 """Synthetic overlay policy tests: no Docker, registry or usable models."""
 import copy
+import hashlib
 from pathlib import Path
 import sys
 import tempfile
@@ -11,6 +12,12 @@ import repair_startup as repair
 
 
 class StartupRepairTests(unittest.TestCase):
+    def test_expected_old_block_reconstructs_exact_published_script(self):
+        source = Path(__file__).resolve().parents[3] / repair.PATCH_PATH
+        old = source.read_text().replace(repair.NEW_BLOCK, repair.OLD_BLOCK)
+        self.assertEqual(hashlib.sha256(old.encode()).hexdigest(),
+                         'c1d2b03b4db8817ac2ba4df587d0de3ba4a7a07f4dab4002894c65a60365615b')
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

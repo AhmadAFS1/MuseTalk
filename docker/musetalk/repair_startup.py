@@ -20,8 +20,8 @@ BASE_IMAGE = ('ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:'
 PATCH_PATH = 'scripts/vast_onstart.sh'
 OLD_BLOCK = '''  if avatar_prep_requested; then
     model_files+=(
-      "models/syncnet/latentsync_syncnet.pt"
       "models/dwpose/dw-ll_ucoco_384.pth"
+      "models/syncnet/latentsync_syncnet.pt"
       "models/face_detection/s3fd.pth"
     )
   fi'''
