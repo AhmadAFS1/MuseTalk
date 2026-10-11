@@ -76,6 +76,14 @@ def failure_record(exc):
     result = {"schema": "musetalk_ghcr_failure_v1", "status": "FAIL", "stage": _stage,
               "exception_type": kind if kind in known_types else "OtherError",
               "details_suppressed": True, "publication_verified": False}
+    audit_codes = {
+        'Export manifest does not bind every scanned layer': 'manifest-layer-binding',
+        'Exported image config differs from inspected image': 'image-config-binding',
+        'Exported layer hashes/order differ from inspected image': 'layer-hash-order-binding',
+        'Duplicate/oversized export layout': 'duplicate-export-member',
+    }
+    if type(exc) is ValueError and str(exc) in audit_codes:
+        result['audit_code'] = audit_codes[str(exc)]
     if isinstance(exc, AuditFinding):
         result["finding"] = exc.detail
     if isinstance(exc, RegistryOperationError) and re.fullmatch(
@@ -335,8 +343,12 @@ def scan_export(stream, inspect, exceptions):
     manifest = manifests[0]
     names = manifest.get("Layers", [])
     release.require(isinstance(names, list) and names and all(isinstance(n, str) for n in names)
-                    and len(names) == len(set(names)) and set(names) == set(layers),
+                    and set(names) == set(layers),
                     "Export manifest does not bind every scanned layer")
+    # Docker-save can store a content-addressed blob once but reference it at
+    # multiple rootfs positions (e.g. repeated empty RUN layers). Scan every
+    # unique blob; below, bind *every ordered reference* to both exact configs.
+    # Duplicate actual archive members and unreferenced blobs remain forbidden.
     config_name = manifest.get("Config")
     release.require(isinstance(config_name, str) and config_name in documents
                     and "sha256:" + documents[config_name][1] == inspect["Id"],

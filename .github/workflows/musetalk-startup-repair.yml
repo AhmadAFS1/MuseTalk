@@ -9,6 +9,8 @@ on:
       - docker/musetalk/repair_startup.py
       - docker/musetalk/tests/test_startup_repair.py
       - docker/musetalk/tests/test_startup_model_contract.py
+      - docker/musetalk/ghcr.py
+      - docker/musetalk/tests/test_ghcr.py
       - .github/workflows/musetalk-startup-repair.yml
 
 permissions:
@@ -34,6 +36,22 @@ jobs:
           persist-credentials: false
       - name: Regression and existing CPU contracts
         run: python3 -B -m unittest discover -s docker/musetalk/tests -v
+      - name: Real Docker export audit for repeated layer references
+        run: |
+          set -euo pipefail
+          docker build --tag musetalk-repeated-export:fixture \
+            -f docker/musetalk/tests/stream_export_fixture/Repeat.Dockerfile \
+            docker/musetalk/tests/stream_export_fixture
+          python3 -B - <<'PY'
+          import os, pathlib, sys
+          sys.path.insert(0, 'docker/musetalk')
+          import ghcr
+          image = 'musetalk-repeated-export:fixture'
+          result = ghcr.audit(image, pathlib.Path(os.environ['RUNNER_TEMP']) / 'repeated-export-smoke')
+          assert result['status'] == 'PASS'
+          assert len(result['layers']) == 3
+          assert result['layers'][1]['uncompressed_sha256'] == result['layers'][2]['uncompressed_sha256']
+          PY
       - name: Verify private package, pull exact base and prepare narrow overlay
         env:
           GH_TOKEN: ${{ github.token }}

@@ -92,15 +92,15 @@ class GHCRTests(unittest.TestCase):
         stream.seek(0)
         return stream
 
-    def export_fixture(self, *, legacy=False, manifest_first=False, payload=b"synthetic", mutate=None):
+    def export_fixture(self, *, legacy=False, manifest_first=False, payload=b"synthetic", mutate=None, repeats=1):
         layer = self.layer("opt/synthetic.txt", payload).getvalue()
         layer_sha = ghcr.hashlib.sha256(layer).hexdigest()
-        config = json.dumps({"rootfs": {"type": "layers", "diff_ids": ["sha256:" + layer_sha]}}).encode()
+        config = json.dumps({"rootfs": {"type": "layers", "diff_ids": ["sha256:" + layer_sha] * repeats}}).encode()
         config_sha = ghcr.hashlib.sha256(config).hexdigest()
         layer_name = "a" * 64 + "/layer.tar" if legacy else "blobs/sha256/" + layer_sha
         config_name = config_sha + ".json" if legacy else "blobs/sha256/" + config_sha
         entries = [(layer_name, layer), (config_name, config),
-                   ("manifest.json", json.dumps([{"Config": config_name, "Layers": [layer_name]}]).encode())]
+                   ("manifest.json", json.dumps([{"Config": config_name, "Layers": [layer_name] * repeats}]).encode())]
         if manifest_first:
             entries = entries[-1:] + entries[:-1]
         if mutate:
@@ -112,7 +112,27 @@ class GHCRTests(unittest.TestCase):
                 member.size = len(data)
                 archive.addfile(member, io.BytesIO(data))
         stream.seek(0)
-        return stream, {"Id": "sha256:" + config_sha, "RootFS": {"Layers": ["sha256:" + layer_sha]}}
+        return stream, {"Id": "sha256:" + config_sha, "RootFS": {"Layers": ["sha256:" + layer_sha] * repeats}}
+
+    def test_repeated_content_addressed_refs_are_bound_in_order_not_duplicate_archive_members(self):
+        for legacy in (False, True):
+            stream, inspect = self.export_fixture(legacy=legacy, repeats=2)
+            with self.subTest(legacy=legacy):
+                rows = ghcr.scan_export(stream, inspect, {})
+                self.assertEqual(len(rows), 2)
+                self.assertEqual(rows[0], rows[1])
+            stream, inspect = self.export_fixture(legacy=legacy, repeats=2)
+            inspect['RootFS']['Layers'].pop()
+            with self.assertRaises(ValueError):
+                ghcr.scan_export(stream, inspect, {})
+
+    def test_repeated_reference_does_not_hide_secret_or_unreferenced_blob(self):
+        stream, inspect = self.export_fixture(repeats=2, payload=b'ghp_' + b's' * 40)
+        with self.assertRaises(ghcr.AuditFinding):
+            ghcr.scan_export(stream, inspect, {})
+        stream, inspect = self.export_fixture(repeats=2, mutate=lambda e: e + [('extra/layer.tar', e[0][1])])
+        with self.assertRaises(ValueError):
+            ghcr.scan_export(stream, inspect, {})
 
     def test_streaming_export_scans_oci_and_legacy_with_manifest_first_or_last(self):
         for legacy in (False, True):
