@@ -1,0 +1,122 @@
+name: MuseTalk private startup repair
+
+# Deliberately isolated repair branch; no main/production/template rollout.
+on:
+  push:
+    branches: [codex/rtx3090-syncnet-startup-repair]
+    paths:
+      - scripts/vast_onstart.sh
+      - docker/musetalk/repair_startup.py
+      - .github/workflows/musetalk-startup-repair.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: musetalk-private-ghcr
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.repository == 'AhmadAFS1/MuseTalk'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.publish.outputs.image }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Regression and existing CPU contracts
+        run: python3 -B -m unittest discover -s docker/musetalk/tests -v
+      - name: Verify private package, pull exact base and prepare narrow overlay
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 -B -c 'import sys; sys.path.insert(0,"docker/musetalk"); import ghcr; ghcr.private_package(); ghcr.login()'
+          BASE=ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:388ebf73de4de996ed2fff9c1d88d669a288c32cf603ce2e41c69eef26d5e6fc
+          docker pull --platform linux/amd64 "$BASE"
+          mkdir "$RUNNER_TEMP/repair-work"
+          docker run --rm --network none --user "$(id -u):$(id -g)" \
+            --entrypoint /usr/bin/python3 -v "$GITHUB_WORKSPACE:/source:ro" \
+            -v "$RUNNER_TEMP/repair-work:/repair" "$BASE" \
+            /source/docker/musetalk/repair_startup.py prepare --source-root /source \
+            --out /repair/context --revision "$GITHUB_SHA"
+      - name: Build small overlay, verify offline CPU and evidence before receipt
+        run: |
+          set -euo pipefail
+          IMAGE="musetalk-startup-repair:candidate-$GITHUB_SHA"
+          CONTEXT="$RUNNER_TEMP/repair-work/context"
+          docker build --tag "$IMAGE" "$CONTEXT"
+          docker run --rm --network none "$IMAGE" check
+          docker run --rm --network none --entrypoint /usr/bin/python3 \
+            -v "$GITHUB_WORKSPACE:/source:ro" "$IMAGE" \
+            /source/docker/musetalk/repair_startup.py verify-evidence
+          REPAIR_CONTEXT="$CONTEXT" python3 - <<'PY'
+          import json, os, pathlib
+          revision = os.environ['GITHUB_SHA']
+          path = pathlib.Path(os.environ['REPAIR_CONTEXT']) / 'reports/build-result.json'
+          path.write_text(json.dumps({'schema': 'musetalk_docker_ci_build_v1',
+              'image': 'musetalk-startup-repair:candidate-' + revision,
+              'source_revision': revision, 'channel': 'candidate',
+              'cpu_build_check': 'PASS', 'promotion_eligible': False}) + '\n')
+          PY
+      - name: Audit every layer and publish only to private GHCR
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B docker/musetalk/ghcr.py candidate \
+            --image "musetalk-startup-repair:candidate-$GITHUB_SHA" --revision "$GITHUB_SHA" \
+            --release-manifest "$RUNNER_TEMP/repair-work/context/release.json" \
+            --build-reports "$RUNNER_TEMP/repair-work/context/reports" \
+            --work "$RUNNER_TEMP/repair-publication"
+      - name: Preserve small non-secret receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: musetalk-startup-repair-publication
+          path: |
+            ${{ runner.temp }}/repair-work/context/reports/
+            ${{ runner.temp }}/repair-work/context/release.json
+            ${{ runner.temp }}/repair-publication/*.json
+          retention-days: 3
+          if-no-files-found: warn
+      - name: Remove ephemeral registry login
+        if: always()
+        run: docker logout ghcr.io
+  verify:
+    needs: repair
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Independent exact-digest private pull and offline checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.repair.outputs.image }}
+        run: |
+          set -euo pipefail
+          python3 -B docker/musetalk/ghcr.py verify --image "$IMAGE" \
+            --revision "$GITHUB_SHA" --work "$RUNNER_TEMP/repair-independent"
+          docker run --rm --network none "$IMAGE" check
+          docker run --rm --network none --entrypoint /usr/bin/python3 \
+            -v "$GITHUB_WORKSPACE:/source:ro" "$IMAGE" \
+            /source/docker/musetalk/repair_startup.py verify-evidence
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: musetalk-startup-repair-independent
+          path: ${{ runner.temp }}/repair-independent/result.json
+          retention-days: 3
+      - name: Remove ephemeral registry login
+        if: always()
+        run: docker logout ghcr.io

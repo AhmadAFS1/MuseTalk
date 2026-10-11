@@ -431,9 +431,10 @@ run_post_setup_validation() {
   fi
 
   if avatar_prep_requested; then
+    # Match AVATAR_PREP_MODEL_FILES in musetalk_install_state.py. SyncNet is
+    # training/quality-only and must not block serving or avatar preparation.
     model_files+=(
       "models/dwpose/dw-ll_ucoco_384.pth"
-      "models/syncnet/latentsync_syncnet.pt"
       "models/face_detection/s3fd.pth"
     )
   fi
