@@ -7,6 +7,8 @@ on:
     paths:
       - scripts/vast_onstart.sh
       - docker/musetalk/repair_startup.py
+      - docker/musetalk/tests/test_startup_repair.py
+      - docker/musetalk/tests/test_startup_model_contract.py
       - .github/workflows/musetalk-startup-repair.yml
 
 permissions:

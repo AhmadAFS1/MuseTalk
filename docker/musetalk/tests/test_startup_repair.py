@@ -29,8 +29,10 @@ class StartupRepairTests(unittest.TestCase):
             'notices': {'synthetic-notice': {'sha256': 'f' * 64}},
             'candidate_reason': 'Synthetic unresolved gates',
         }
-        self.enterContext(patch.object(repair.release, 'verify_source'))
-        self.enterContext(patch.object(repair.release, 'verify_evidence'))
+        for name in ('verify_source', 'verify_evidence'):
+            mocked = patch.object(repair.release, name)
+            mocked.start()
+            self.addCleanup(mocked.stop)
 
     def run_repair(self):
         return repair.repaired_manifest(self.base, self.source, self.manifest, 'a' * 40)
