@@ -14,8 +14,19 @@ this script. Vast pulls the image before running its entrypoint/on-start script.
 
 The published dependency digest `7cd567bd77d421565c6813e5372561be31a8b3cab73f307430abd6b95d0067f6`
 does **not** include models/native release metadata and cannot boot MuseTalk.
-The full serving digest and fresh startup measurement are pending; do not use
-the dependency image as the new production template.
+The full private serving candidate is now published and independently pulled:
+
+```text
+ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:388ebf73de4de996ed2fff9c1d88d669a288c32cf603ce2e41c69eef26d5e6fc
+```
+
+All-layer audit, private visibility/anonymous denial, clean-runner pull/offline
+CPU check and the actual Secrets Manager pull-only deployment credential pass.
+Compressed registry layers total 12,792,965,703 bytes (about 12.8 GB).
+This is ready for an **isolated RTX 3090 startup/app test**, not a production
+rollout: no fresh GPU boot or startup speedup has been measured for this image.
+Use the standalone candidate flag described below. Do not use the dependency
+image as a serving template.
 
 For headless/args mode preserve the baked ENTRYPOINT and its default `serve`
 argument. Vast SSH/Jupyter mode can override ENTRYPOINT: paste the new script
@@ -96,3 +107,18 @@ uses request commit `874203e1157f74a6cf581d3c175155c4c54a0362`, with the
 same `c06624da` serving source and input hashes. Publication/independent pull
 must pass before using its immutable digest. The failed boot driver is not
 automatically restarted by this publication retry.
+
+### Verified publication — October 11 UTC
+
+Both jobs in retry run 38093257223 passed. Verified artifact ZIP hashes and
+the exact image/config identity are preserved in
+[`publication_retry_2257/evidence/verified-full-image.json`](fps_comparisons/rtx3090_r5_20261008/release/publication_retry_2257/evidence/verified-full-image.json).
+The deployment pull credential separately passed an authenticated, hash-checked
+manifest fetch for the same full digest; no token was written to disk or logs.
+
+CI timings: build/offline CPU check 54m28s; full streaming audit/private push
+25m16s; separate pull/offline CPU check 7m02s. These are **CI execution times,
+not Vast startup benchmarks**. The serving code remains pinned to `c06624da`,
+with the same reviewed models/native configuration and original quality/FPS
+limitations. No new GPU, timer, production template or autoscaler setting was
+created/enabled. The next step is the bounded fresh-3090 startup/video test.

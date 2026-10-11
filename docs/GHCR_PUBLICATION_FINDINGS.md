@@ -797,3 +797,52 @@ increment and test/run result.
   credential, not only CI authentication. No layers, login file, secret values
   or GPU were persisted/created. The full serving digest must be checked again
   after its publication; this dependency image remains unsuitable for serving.
+
+### 2026-10-11 00:01 UTC — Full build passed; expired build-link cleanup
+
+- At 23:53 UTC the retry advanced from the full build/offline CPU check to
+  layer audit/private publication. The streaming smoke gate had already passed.
+  The full publication and independent pull are still running/pending.
+- Removed only `MUSETALK_PRIVATE_BUILD_INPUTS` after confirming its update
+  timestamp was still this task's 22:56:14 UTC value. Its <=one-hour URLs had
+  expired and the input-consuming build step had completed. Fresh signed URLs
+  can be regenerated through the existing role-only bridge for a future build.
+  No backend/worker Secrets Manager entry, permanent GHCR pull credential, IAM
+  policy or GPU was changed. Cleanup API returned success.
+
+### 2026-10-11 00:21 UTC — Full private image published; deployment token passes
+
+- The candidate job passed and published
+  `ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:388ebf73de4de996ed2fff9c1d88d669a288c32cf603ce2e41c69eef26d5e6fc`.
+  All 14 layers passed the streaming audit, bound to the inspected config and
+  complete layer hashes/order. Uncompressed size: 19,219,671,328 bytes;
+  compressed registry layer bytes: 12,792,965,703. The audit had 25,013,268,480
+  free bytes before export and wrote no second image archive.
+- Fresh EC2-role lookup of the existing backend Secrets Manager credential
+  passes private visibility, exactly `read:packages`, GHCR token exchange and
+  complete exact-digest manifest download/hash verification for this full image.
+  [Deployment credential receipt](fps_comparisons/rtx3090_r5_20261008/release/publication_retry_2257/deployment-pull.json).
+- The separate clean-runner pull/offline CPU check is still running. Source
+  remains `c06624da`; no startup timing, new GPU test, quality/400 FPS acceptance
+  or production rollout is claimed. This is a private nonpromotable candidate.
+
+### 2026-10-11 00:27 UTC — Publication fully verified and ready for isolated Vast test
+
+- Retry run 38093257223 completed successfully. Candidate job: 22:56:26–00:18:15
+  UTC; independent verification job: 00:18:18–00:26:17 UTC. Step timings were
+  54m28s build/CPU check, 25m16s streaming audit/private push, and 7m02s separate
+  pull/offline CPU check. These are CI timings, not worker startup measurements.
+- Collected both artifacts after validating run/request identity, exact file
+  layouts, sizes and GitHub ZIP digest declarations. Source `c06624da`, image
+  manifest `388ebf73...`, and config
+  `sha256:d1b24dba277803ca7c0fb6e03da36ac5b2acb32ad682bd4bb2d6a949fb204ff8`
+  match publication/independent evidence. Full visibility and anonymous-denial
+  checks pass. [Durable verification receipt](fps_comparisons/rtx3090_r5_20261008/release/publication_retry_2257/evidence/verified-full-image.json).
+- Scanned all 14 local journal/receipt files for credential patterns/private
+  key material before Git preservation: no findings. Updated startup handoff
+  and plan checklist with the exact full digest. The layer-export error is
+  resolved; the private candidate can now be selected for the bounded fresh
+  3090 startup/app/video test. That test has **not** run yet.
+- Original source/native hashes, quality/FPS FAIL verdicts and nonpromotable
+  status remain unchanged. No GPU was rented, no AWS infrastructure or IAM was
+  added, and production/autoscaling/template settings remain unchanged.

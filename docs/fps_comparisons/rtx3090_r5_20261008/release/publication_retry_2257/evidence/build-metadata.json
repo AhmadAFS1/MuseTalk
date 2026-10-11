@@ -1,0 +1,66 @@
+{
+  "buildx.build.provenance": {
+    "builder": {
+      "id": ""
+    },
+    "buildType": "https://mobyproject.org/buildkit@v1",
+    "materials": [
+      {
+        "uri": "pkg:docker/docker/dockerfile@1.7",
+        "digest": {
+          "sha256": "a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e"
+        }
+      },
+      {
+        "uri": "pkg:docker/nvidia/cuda?digest=sha256:810756cab1c28ce693499a5c2ebb66f6d10a61d026998c8606bad449643a4c49\u0026platform=linux%2Famd64",
+        "digest": {
+          "sha256": "810756cab1c28ce693499a5c2ebb66f6d10a61d026998c8606bad449643a4c49"
+        }
+      },
+      {
+        "uri": "pkg:docker/nvidia/cuda?digest=sha256:cc55d151af1e8e083f3210af753a5cfbcbc5455421531eb0459887026bb4699f\u0026platform=linux%2Famd64",
+        "digest": {
+          "sha256": "cc55d151af1e8e083f3210af753a5cfbcbc5455421531eb0459887026bb4699f"
+        }
+      }
+    ],
+    "invocation": {
+      "configSource": {
+        "entryPoint": "Dockerfile"
+      },
+      "parameters": {
+        "frontend": "gateway.v0",
+        "args": {
+          "build-arg:BOOTSTRAP_PYTHON_VERSION": "3.10.6-1~22.04.1",
+          "build-arg:CUDA_BASE": "nvidia/cuda@sha256:cc55d151af1e8e083f3210af753a5cfbcbc5455421531eb0459887026bb4699f",
+          "build-arg:CUDA_RUNTIME_BASE": "nvidia/cuda@sha256:810756cab1c28ce693499a5c2ebb66f6d10a61d026998c8606bad449643a4c49",
+          "build-arg:RELEASE_CHANNEL": "candidate",
+          "build-arg:SOURCE_REVISION": "c06624da9d7cebd6aa8f3dd6ad4a0dc8306ec6d6",
+          "cmdline": "docker/dockerfile:1.7",
+          "context:release": "local:release",
+          "frontend.caps": "moby.buildkit.frontend.contexts+forward",
+          "sharedkey:localdir:release": "release:b546d3267ca139b0",
+          "source": "docker/dockerfile:1.7"
+        },
+        "locals": [
+          {
+            "name": "context"
+          },
+          {
+            "name": "dockerfile"
+          },
+          {
+            "name": "release"
+          }
+        ]
+      },
+      "environment": {
+        "platform": "linux/amd64"
+      }
+    }
+  },
+  "buildx.build.ref": "default/default/i49gpsc7g2a0cqoymyhvk1sze",
+  "containerimage.config.digest": "sha256:d1b24dba277803ca7c0fb6e03da36ac5b2acb32ad682bd4bb2d6a949fb204ff8",
+  "containerimage.digest": "sha256:d1b24dba277803ca7c0fb6e03da36ac5b2acb32ad682bd4bb2d6a949fb204ff8",
+  "image.name": "docker.io/library/musetalk-r5-ci:candidate-c06624da9d7cebd6aa8f3dd6ad4a0dc8306ec6d6"
+}

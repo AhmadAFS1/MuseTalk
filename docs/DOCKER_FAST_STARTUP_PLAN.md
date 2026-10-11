@@ -529,19 +529,28 @@ before any reuse; the Docker plan must not depend on keeping it indefinitely.
 - [x] Verify current GHCR free storage/bandwidth policy and document remaining costs.
 - [x] Remove ECR resource/IAM/token requirements; preserve minimal AWS cost guardrails.
 - [x] Verify GHCR namespace, private visibility, placeholder publishing access and independent pull.
-- [ ] Obtain/verify the separate expiring read-only Vast pull credential (requested securely; never paste in chat).
-- [x] Implement the private full-candidate CI transport/build/publish/digest-pull path; not yet executed with actual release inputs.
+- [x] Obtain/verify the separate read-only Vast pull credential securely from Secrets Manager; exact full-image manifest access and `read:packages` scope pass.
+- [x] Implement and execute the private full-candidate CI transport/build/publish/digest-pull path with actual pinned release inputs.
 - [x] Implement/test/push the default-off Lingua autoscaler integration without deploying or changing production secrets.
-- [ ] Select a capable ephemeral builder and establish secure private-input delivery.
-- [ ] If using EC2, obtain/verify scoped AWS provisioning and input permissions.
-- [ ] Confirm remaining costs, resources, lifetimes and cleanup; establish private package/builder.
-- [ ] Assemble clean, exact source/model/native inputs and the candidately labeled manifest.
-- [ ] Build, CPU-check, audit, privately publish, and independently pull the full serving image.
+- [x] Use ephemeral GitHub-hosted builders and checksum/version-pinned, <=one-hour private input delivery.
+- [x] No EC2 builder/provisioning grant required; existing EC2 role input/secret reads verified with narrow approved access.
+- [x] Establish private package/ephemeral CI; remove the task-owned expired build-link secret. No permanent AWS builder/ECR or new GPU cost was added.
+- [x] Assemble clean, exact source/model/native inputs and the candidately labeled manifest.
+- [x] Build, CPU-check, audit all layers, privately publish, and independently pull the full serving candidate.
 - [ ] Validate fresh-container GPU behavior, preparation, quality, throughput, and external calls.
 - [ ] Measure repeated cold-host request-to-usable-output traces; optimize the measured bottleneck.
 - [ ] Resolve applicable production release criteria without misrepresenting 400 FPS/quality gates.
 - [ ] Switch the intended launch configuration, retain rollback, and test real autoscaler scale-out/in.
 - [ ] Record the final commit/bundle/image/template/provisioner tuple and clean up temporary resources.
+
+Verified full candidate (October 11 UTC):
+`ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:388ebf73de4de996ed2fff9c1d88d669a288c32cf603ce2e41c69eef26d5e6fc`.
+[Run 38093257223](https://github.com/AhmadAFS1/MuseTalk/actions/runs/38093257223)
+and the separate actual deployment-token manifest check pass. The serving source
+is `c06624da`; compressed layers are approximately 12.8 GB. This repairs the
+failed on-disk layer export by streaming its audit. It does not establish GPU,
+400 FPS, quality, startup improvement or production/autoscaler readiness.
+Use the [new startup handoff](VAST_RTX3090_DOCKER_BOOT.md) for the next isolated test.
 
 Resume with the separate pull-only credential, exact reviewed release metadata,
 secure private-input handoff and remaining dependency publication receipt. Then

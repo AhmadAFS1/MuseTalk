@@ -1,0 +1,142 @@
+[
+    {
+        "Id": "sha256:d1b24dba277803ca7c0fb6e03da36ac5b2acb32ad682bd4bb2d6a949fb204ff8",
+        "RepoTags": [
+            "musetalk-r5-ci:candidate-c06624da9d7cebd6aa8f3dd6ad4a0dc8306ec6d6"
+        ],
+        "RepoDigests": [],
+        "Parent": "",
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-10-10T23:51:20.969422458Z",
+        "DockerVersion": "",
+        "Author": "",
+        "Config": {
+            "Hostname": "",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "8000/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/opt/musetalk/venv/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NVARCH=x86_64",
+                "NVIDIA_REQUIRE_CUDA=cuda>=12.1 brand=tesla,driver>=470,driver<471 brand=unknown,driver>=470,driver<471 brand=nvidia,driver>=470,driver<471 brand=nvidiartx,driver>=470,driver<471 brand=geforce,driver>=470,driver<471 brand=geforcertx,driver>=470,driver<471 brand=quadro,driver>=470,driver<471 brand=quadrortx,driver>=470,driver<471 brand=titan,driver>=470,driver<471 brand=titanrtx,driver>=470,driver<471 brand=tesla,driver>=525,driver<526 brand=unknown,driver>=525,driver<526 brand=nvidia,driver>=525,driver<526 brand=nvidiartx,driver>=525,driver<526 brand=geforce,driver>=525,driver<526 brand=geforcertx,driver>=525,driver<526 brand=quadro,driver>=525,driver<526 brand=quadrortx,driver>=525,driver<526 brand=titan,driver>=525,driver<526 brand=titanrtx,driver>=525,driver<526",
+                "NV_CUDA_CUDART_VERSION=12.1.105-1",
+                "NV_CUDA_COMPAT_PACKAGE=cuda-compat-12-1",
+                "CUDA_VERSION=12.1.1",
+                "LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64",
+                "NVIDIA_VISIBLE_DEVICES=all",
+                "NVIDIA_DRIVER_CAPABILITIES=compute,utility",
+                "NV_CUDA_LIB_VERSION=12.1.1-1",
+                "NV_NVTX_VERSION=12.1.105-1",
+                "NV_LIBNPP_VERSION=12.1.0.40-1",
+                "NV_LIBNPP_PACKAGE=libnpp-12-1=12.1.0.40-1",
+                "NV_LIBCUSPARSE_VERSION=12.1.0.106-1",
+                "NV_LIBCUBLAS_PACKAGE_NAME=libcublas-12-1",
+                "NV_LIBCUBLAS_VERSION=12.1.3.1-1",
+                "NV_LIBCUBLAS_PACKAGE=libcublas-12-1=12.1.3.1-1",
+                "NV_LIBNCCL_PACKAGE_NAME=libnccl2",
+                "NV_LIBNCCL_PACKAGE_VERSION=2.17.1-1",
+                "NCCL_VERSION=2.17.1-1",
+                "NV_LIBNCCL_PACKAGE=libnccl2=2.17.1-1+cuda12.1",
+                "NVIDIA_PRODUCT_NAME=CUDA",
+                "NV_CUDNN_VERSION=8.9.0.131",
+                "NV_CUDNN_PACKAGE_NAME=libcudnn8",
+                "NV_CUDNN_PACKAGE=libcudnn8=8.9.0.131-1+cuda12.1",
+                "VENV_PATH=/opt/musetalk/venv",
+                "MUSETALK_INSTALL_STATE_FILE=/opt/musetalk/install_state.json",
+                "WEBRTC_NATIVE_VP8_DIR=/opt/musetalk/native_vp8",
+                "HF_HOME=/opt/musetalk/app/models/hf-cache",
+                "PYTHONNOUSERSITE=1",
+                "PYTHONDONTWRITEBYTECODE=1",
+                "MUSETALK_IMAGE_ROOT=/opt/musetalk/app",
+                "MUSETALK_RELEASE_MANIFEST=/opt/musetalk/release.json",
+                "MUSETALK_IMMUTABLE_RUNTIME=1",
+                "AUTO_SETUP=0",
+                "SETUP_CLEAN=0",
+                "SETUP_SELFTEST=0",
+                "MUSETALK_RECIPE=r5",
+                "MUSETALK_VERIFY_RECIPE=strict",
+                "MUSETALK_UNET_ENGINE_PROVISION=off",
+                "MUSETALK_TAESD_TRT_PROVISION=off",
+                "MUSETALK_UNET_STAGEWISE_PROVISION=off",
+                "MUSETALK_TAESD_TRT_BUILD=0",
+                "MUSETALK_TAESD_TRT_STRICT=1",
+                "MUSETALK_VP8_FALLBACK=0",
+                "LINGUA_WORKER_CALLBACK_REQUIRED=1"
+            ],
+            "Cmd": [
+                "serve"
+            ],
+            "ArgsEscaped": true,
+            "Image": "",
+            "Volumes": null,
+            "WorkingDir": "/opt/musetalk/app",
+            "Entrypoint": [
+                "/usr/bin/tini",
+                "--",
+                "/bin/bash",
+                "/opt/musetalk/app/scripts/vast_3090_docker_boot.sh"
+            ],
+            "OnBuild": null,
+            "Labels": {
+                "com.nvidia.cudnn.version": "8.9.0.131",
+                "io.musetalk.cuda-runtime-base": "nvidia/cuda@sha256:810756cab1c28ce693499a5c2ebb66f6d10a61d026998c8606bad449643a4c49",
+                "io.musetalk.release-channel": "candidate",
+                "maintainer": "NVIDIA CORPORATION <cudatools@nvidia.com>",
+                "org.opencontainers.image.description": "Native sm86 r5; acceptance scope is in /opt/musetalk/release.json",
+                "org.opencontainers.image.ref.name": "ubuntu",
+                "org.opencontainers.image.revision": "c06624da9d7cebd6aa8f3dd6ad4a0dc8306ec6d6",
+                "org.opencontainers.image.title": "MuseTalk r5 RTX 3090",
+                "org.opencontainers.image.version": "22.04"
+            },
+            "StopSignal": "SIGTERM",
+            "Shell": [
+                "/bin/bash",
+                "-euo",
+                "pipefail",
+                "-c"
+            ]
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 19219671328,
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/99f4t9v5k5pqn98zk0bx000am/diff:/var/lib/docker/overlay2/0yi1wyatjm9txi3zaapht0zn2/diff:/var/lib/docker/overlay2/b700e3vsx0hjmyc40jcx70psy/diff:/var/lib/docker/overlay2/59e7da16b54bd9165b8caceb65aaa1ab2b189bb5d82fc5e8cc58f2e357c34a6c/diff:/var/lib/docker/overlay2/79f0627d936625c38ccab58b317f950800b9a02d56e220a412d93e8ef33bd25f/diff:/var/lib/docker/overlay2/f8651683d42ed203479f063248fbc1652592535884a4450f265c3a033547b1e1/diff:/var/lib/docker/overlay2/be08757b9241675a89a1ecc64fcc87db47c790e7388770249f954024dd7d528a/diff:/var/lib/docker/overlay2/28f67d31ab0e79eb26c01257fc56ee1ac175b611efe26e3842215e0704427831/diff:/var/lib/docker/overlay2/49c31c0383ddc205abc4f7efe2d1d7fd191a702595d3dd6c85ea51ea3a50af77/diff:/var/lib/docker/overlay2/125d881394258ed5bb730033b664f9c674a57e72a32db99c747738dded37141b/diff:/var/lib/docker/overlay2/667821da806bbc686911e0ed5b8cc92f529e4d161027ac885f693483f620e846/diff:/var/lib/docker/overlay2/fca4679408badb913d8ceb5e2ce46d48a602f45c1dee04108f70c031b676b935/diff:/var/lib/docker/overlay2/69015e26f3e65c88286818baae77c5fb3cea60d150c450b1ee0df6867ba2c6bf/diff",
+                "MergedDir": "/var/lib/docker/overlay2/pjzwm3z320iyee51v33aucc01/merged",
+                "UpperDir": "/var/lib/docker/overlay2/pjzwm3z320iyee51v33aucc01/diff",
+                "WorkDir": "/var/lib/docker/overlay2/pjzwm3z320iyee51v33aucc01/work"
+            },
+            "Name": "overlay2"
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:256d88da41857db513b95b50ba9a9b28491b58c954e25477d5dad8abb465430b",
+                "sha256:566cd9dd29d693cf0360da8a73391b843bb6ac8f11b4148acf69c4dc79fa87c5",
+                "sha256:6ec2b659c9ab00e2b0fc0acd056577e609cc28649650ec7068b81686f6d1a996",
+                "sha256:8afeff4e91d72f3de9232ffc0803f70236e316c27b23ee003e6d47fbfcb6e1c4",
+                "sha256:bea30ebbe84377ed36503599c2087cd6bda6f4c96cb59525d238d4a00cf902d3",
+                "sha256:b15b1df4adac82b2b46124c743a32d5e982cb6b5ee8a3c04949f809abf8962c9",
+                "sha256:83ecbf43a888c43f43b0cd9ec7cf551770790c7aeab17f9536b8820db2c5d45d",
+                "sha256:83687aeafbbf74a164a51590ffa36c46e9c41ce4ba3eae9daba1d381c64e5f4b",
+                "sha256:3416903c2cc4c9f83472b397741f30365f53543862b03ff5727b42b1a2f938cb",
+                "sha256:dbed25d6c95d032bc3492f4d7f33feba0572f6ba4e2ac00ac94f26c6ec83f4fb",
+                "sha256:77299ef10a2e48137f15148810ef19ed0384eda5baa2b4399ab0080c1284779a",
+                "sha256:a80abf48ee53f9cb6ea2192f5cd4758fc736661b4d485e79dcb58b29e88897d5",
+                "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+                "sha256:7540cf488eb852736deaac607ce43b01bb52241fbc8c71f78abe53b6a013152a"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-10-10T23:52:04.447651287Z"
+        }
+    }
+]
