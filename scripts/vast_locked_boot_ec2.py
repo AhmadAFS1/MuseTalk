@@ -219,13 +219,14 @@ def active_runs():
     return count
 
 
-def expiry_timer(run, deadline):
+def expiry_timer(run, deadline, unit=None):
+    unit = unit or run.label + "-expiry"
     when = dt.datetime.fromisoformat(deadline).strftime("%Y-%m-%d %H:%M:%S UTC")
-    subprocess.run(["systemd-run", "--quiet", "--unit=" + run.label + "-expiry", "--on-calendar=" + when,
+    subprocess.run(["systemd-run", "--quiet", "--unit=" + unit, "--on-calendar=" + when,
                     "--timer-property=AccuracySec=1s", "--property=Restart=on-failure", "--property=RestartSec=30s",
                     "/home/ec2-user/lingua/venv/bin/python", "-B", str(Path(__file__).resolve()), "expire", run.name],
                    check=True, capture_output=True, timeout=15)
-    require(subprocess.run(["systemctl", "is-active", run.label + "-expiry.timer"], capture_output=True,
+    require(subprocess.run(["systemctl", "is-active", unit + ".timer"], capture_output=True,
                            timeout=10).returncode == 0, "Expiry timer not active")
 
 
@@ -354,6 +355,36 @@ def preflight(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US
           "ticket_wheels": len(json.loads(p["env"]["MUSETALK_DEPENDENCY_TICKETS_JSON"])["wheels"]),
           "session_expires_utc": p["credentials"]["Expiration"].isoformat(), "protected_present": sorted(
           str(r["id"]) for r in p["existing"] if str(r["id"]) in PROTECTED)}), flush=True)
+
+
+MAX_TOTAL_LIFETIME = 4 * 3600
+
+
+def extend(run, minutes):
+    """Move the lease deadline later (bounded: 4 h after the create request).
+    The new independent timer is armed BEFORE the old one is stopped."""
+    ledger = run.load()
+    require(ledger["state"] == "created" and 10 <= minutes <= 120, "Extend a live run by 10-120 minutes")
+    started = dt.datetime.fromisoformat(ledger["request_started_utc"])
+    old = dt.datetime.fromisoformat(ledger["deadline_utc"])
+    new = old + dt.timedelta(minutes=minutes)
+    require((new - started).total_seconds() <= MAX_TOTAL_LIFETIME, "Total lease would exceed 4 hours")
+    require(dt.datetime.now(dt.timezone.utc) < old - dt.timedelta(seconds=120), "Too close to the current deadline")
+    n = len(ledger.get("extensions", [])) + 1
+    unit = "%s-expiry-e%d" % (run.label, n)
+    ledger["deadline_utc"] = new.replace(microsecond=0).isoformat()
+    ledger.setdefault("extensions", []).append({"at_utc": utc(), "from": old.isoformat(), "to": ledger["deadline_utc"], "unit": unit})
+    run.save("ledger.json", ledger)  # Saved first: the new timer's expire reads this deadline.
+    expiry_timer(run, ledger["deadline_utc"], unit)
+    previous = ledger["extensions"][-2]["unit"] if n > 1 else run.label + "-expiry"
+    subprocess.run(["systemctl", "stop", previous + ".timer"], capture_output=True, timeout=10)
+    run.event("LEASE_EXTENDED", deadline_utc=ledger["deadline_utc"], unit=unit)
+
+
+def stop_expiry_timers(run):
+    units = [run.label + "-expiry"] + [e["unit"] for e in run.load().get("extensions", [])]
+    for unit in units:
+        subprocess.run(["systemctl", "stop", unit + ".timer"], capture_output=True, timeout=10)
 
 
 def owned(run, b, client, ledger):
@@ -706,11 +737,12 @@ def cleanup(run, expire=False):
     client = b.bootstrap()
     owned(run, b, client, ledger)  # Refuses production/non-owned before any destroy.
     b.cleanup(client, ledger)
+    stop_expiry_timers(run)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("preflight", "create", "status", "probe", "reboot", "rerun", "accept", "collect", "cleanup", "expire"))
+    parser.add_argument("mode", choices=("preflight", "create", "extend", "status", "probe", "reboot", "rerun", "accept", "collect", "cleanup", "expire"))
     parser.add_argument("run")
     parser.add_argument("--revision")
     parser.add_argument("--lifetime", type=int, default=DEFAULT_LIFETIME)
@@ -718,6 +750,7 @@ def main():
     parser.add_argument("--machine", type=int)
     parser.add_argument("--wipe", action="store_true")
     parser.add_argument("--cases", type=int, default=2)
+    parser.add_argument("--minutes", type=int, default=60)
     parser.add_argument("--max-transfer-cost", type=float, default=.005)
     parser.add_argument("--geo", choices=("US", "any"), default="US")
     parser.add_argument("--max-price", type=float, default=.30, help="$/h cap for the test rental (<= 0.50)")
@@ -731,6 +764,8 @@ def main():
         preflight(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings, args.max_price)
     elif args.mode == "create":
         create(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings, args.max_price)
+    elif args.mode == "extend":
+        extend(run, args.minutes)
     elif args.mode == "status":
         status(run)
     elif args.mode == "probe":

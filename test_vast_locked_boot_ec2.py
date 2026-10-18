@@ -156,6 +156,36 @@ class OwnershipTests(unittest.TestCase):
         self.assertNotIn("/root", m.WIPE_PATHS)
 
 
+class ExtendTests(unittest.TestCase):
+    def test_extension_is_bounded_and_arms_new_timer_before_stopping_old(self):
+        import datetime as dt
+        now = dt.datetime.now(dt.timezone.utc)
+        calls = []
+        def fake_run(cmd, **kw):
+            calls.append(cmd)
+            return types.SimpleNamespace(returncode=0, stdout="", stderr="")
+        with tempfile.TemporaryDirectory() as folder, patch.object(m, "STATE", Path(folder)), \
+                patch.object(m.subprocess, "run", side_effect=fake_run):
+            run = m.Run("ext-a1")
+            run.root.mkdir()
+            run.save("ledger.json", {"label": run.label, "state": "created",
+                                     "request_started_utc": (now - dt.timedelta(minutes=30)).isoformat(),
+                                     "deadline_utc": (now + dt.timedelta(minutes=90)).isoformat()})
+            m.extend(run, 60)
+            ledger = run.load()
+            self.assertEqual(ledger["extensions"][0]["unit"], "mtboot-ext-a1-expiry-e1")
+            armed = next(i for i, c in enumerate(calls) if c[0] == "systemd-run")
+            stopped = next(i for i, c in enumerate(calls) if c[:2] == ["systemctl", "stop"])
+            self.assertLess(armed, stopped)
+            self.assertIn("mtboot-ext-a1-expiry.timer", calls[stopped])
+            m.extend(run, 60)  # 30 min elapsed + 90 + 60 + 60 = 4 h exactly
+            with self.assertRaisesRegex(ValueError, "exceed 4 hours"):
+                m.extend(run, 10)
+            for bad in (5, 121):
+                with self.assertRaises(ValueError):
+                    m.extend(run, bad)
+
+
 BOOT = """[bootstrap] [2026-10-18T10:00:00Z] start boot_id=old
 [bootstrap] [2026-10-18T10:05:00Z] Code ready (300s); revision=aaa
 [bootstrap] [2026-10-18T19:00:00Z] start boot_id=new
