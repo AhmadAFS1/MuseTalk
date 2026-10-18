@@ -198,6 +198,31 @@ restore_prefetched_bundle() {
   fi
 }
 
+# Download priority on fresh workers. The dependency wheels gate the whole boot
+# (Phase 3), while the weights (needed at Phase 4) and the r5 bundle (needed at
+# server start) have slack. Started together, the many-connection weight download
+# starved the wheels: on c5-a (2026-10-18) acquisition moved 40 MB in its first
+# 35 s. The prefetches below therefore wait for this gate, which
+# install_locked_dependencies.py removes once acquisition ends (even on failure);
+# the wait is bounded so a stuck installer never blocks them.
+DOWNLOAD_GATE="${MUSETALK_DOWNLOAD_GATE_PATH:-/workspace/.mtboot/deps-gate}"
+arm_download_gate() {
+  rm -f "$DOWNLOAD_GATE"
+  [[ "${MUSETALK_DOWNLOAD_GATE_ENABLED:-1}" != 0 ]] || return 0
+  [[ -f "$REPO_DIR/.runtime/install_state.json" ]] && return 0  # Installed before: nothing to prioritize.
+  mkdir -p "${DOWNLOAD_GATE%/*}"
+  date -u +%Y-%m-%dT%H:%M:%SZ > "$DOWNLOAD_GATE"
+  export MUSETALK_DOWNLOAD_GATE="$DOWNLOAD_GATE"
+  bootstrap_log 'Download gate armed: weight and r5 prefetches wait for dependency acquisition'
+}
+
+wait_for_download_gate() {
+  local what="$1" waited=0 limit="${MUSETALK_DOWNLOAD_GATE_WAIT_SECONDS:-180}"
+  [[ -e "$DOWNLOAD_GATE" ]] || return 0
+  while [[ -e "$DOWNLOAD_GATE" ]] && (( waited < limit )); do sleep 1; waited=$(( waited + 1 )); done
+  bootstrap_log "$what: download gate $([[ -e "$DOWNLOAD_GATE" ]] && echo "still closed after ${limit}s; proceeding" || echo "opened after ${waited}s")"
+}
+
 start_r5_prefetch() {
   [[ -n "${MUSETALK_R5_PREFETCH_JSON:-}" ]] || return 0
   local dir="${MUSETALK_R5_PREFETCH_DIR:-/workspace/.cache/r5-prefetch}" url sha size fields
@@ -221,8 +246,9 @@ print(d["sha256"],int(d["bytes"]));print(d["url"])' 2>/dev/null)" || { bootstrap
     ( restore_prefetched_bundle "$dir" "$sha"; rm -f "$dir/$sha.pending" ) 8<&- 9<&- &
     return 0
   fi
-  bootstrap_log "r5 bundle prefetch started ($size bytes)"
+  bootstrap_log "r5 bundle prefetch queued ($size bytes)"
   (
+    wait_for_download_gate 'r5 bundle prefetch'
     started=$SECONDS
     # Multi-connection ranged fetch (8 streams; single-connection S3 measured
     # 1.36 MB/s on a slow host). URL on stdin only; publishes after sha256.
@@ -259,14 +285,15 @@ start_weights_prefetch() {
   rm -f "$dir/rc"
   touch "$dir/pending"
   export MUSETALK_WEIGHTS_PREFETCH_DIR="$dir"
-  bootstrap_log 'Weight prefetch started (image interpreter)'
+  bootstrap_log 'Weight prefetch queued (image interpreter)'
   (
-    started=$SECONDS
     if [[ ! -d "$tools/hf_xet" ]]; then
       "$py" -m pip install --disable-pip-version-check --no-cache-dir --no-deps --require-hashes \
         --target "$tools" -r "$REPO_DIR/configs/dependencies/weights-prefetch-tools.txt" >"$dir/tools.log" 2>&1 \
         || bootstrap_log 'hf_xet unavailable for prefetch; plain HTTP downloads'
     fi
+    wait_for_download_gate 'Weight prefetch'
+    started=$SECONDS
     cd "$REPO_DIR"
     rc=0
     PATH="/venv/main/bin:$PATH" PYTHONPATH="$tools" DOWNLOAD_WEIGHTS_PREFETCH_ONLY=1 \
@@ -365,6 +392,7 @@ main() {
   bootstrap_log "Code ready ($((SECONDS-started))s); revision=$MUSETALK_SOURCE_REVISION"
   stamp_stage code_ready
   start_apt_prefetch
+  arm_download_gate
   start_r5_prefetch
   start_weights_prefetch
   configure_locked_boot

@@ -980,6 +980,8 @@ main() {
   phase_start="$(date +%s)"
   run_setup_if_needed
   close_bootstrap_dependency_ticket
+  # Never leave the bootstrap's prefetches gated once setup is over (no-op if open).
+  if [[ -n "${MUSETALK_DOWNLOAD_GATE:-}" ]]; then rm -f "$MUSETALK_DOWNLOAD_GATE"; fi
   stamp_stage setup_done
   phase_elapsed="$(( $(date +%s) - phase_start ))"
   log "Bootstrap/setup phase finished in $(format_duration "$phase_elapsed")"

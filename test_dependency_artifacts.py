@@ -1787,7 +1787,7 @@ class SeedInstallerRunTests(unittest.TestCase):
         (self.cache / m["artifact_id"]).mkdir(parents=True)
         (self.cache / m["artifact_id"] / "manifest.json").write_text(json.dumps(m))
 
-    def run_installer(self, name, seed_index=True, seed_site=True, environ=None):
+    def run_installer(self, name, seed_index=True, seed_site=True, environ=None, acquire_error=None):
         from types import SimpleNamespace
         m = self.manifest
         config = dict(base_contract(), artifact_id=m["artifact_id"], prefix=f.PRIVATE_PREFIX + m["artifact_id"] + "/",
@@ -1820,7 +1820,7 @@ class SeedInstallerRunTests(unittest.TestCase):
             calls["seen"] = found
             return dict({a["name"]: a["version"] for a in d.selected(m, "server")}, **found)
 
-        acquire = MagicMock(return_value={"state": "acquisition-complete", "artifacts": []})
+        acquire = MagicMock(return_value={"state": "acquisition-complete", "artifacts": []}, side_effect=acquire_error)
         with patch.object(locked, "check_platform"), patch.object(locked.fetch, "acquire", acquire), \
                 patch.object(locked.bench, "command", command), patch.object(locked, "inventory", inventory), \
                 patch.object(locked.shutil, "disk_usage", return_value=MagicMock(free=10**15)), \
@@ -1830,6 +1830,7 @@ class SeedInstallerRunTests(unittest.TestCase):
                     os.environ.pop(key, None)
             result = locked.run(args, lambda: {"manifest": None, "wheels": {}})
         calls["acquire"] = acquire.call_args
+        calls["acquire_all"] = acquire.call_args_list
         return result, calls, venv
 
     def test_seeded_artifacts_are_not_acquired_and_locks_are_unchanged(self):
@@ -1841,7 +1842,11 @@ class SeedInstallerRunTests(unittest.TestCase):
         self.assertEqual(view["artifact_id"], self.manifest["artifact_id"])
         installed = sum(e["installed_bytes"] for e in seed.load_index(dict(base_contract(), seed_index=self.pin),
                                                                        self.manifest, self.repo)["artifacts"])
-        self.assertEqual(calls["acquire"].kwargs["reserve_bytes"], 30 * 1024**3 - installed)
+        # Acquisition runs while the seed is staged, before staging writes: full reserve.
+        self.assertGreater(installed, 0)
+        self.assertEqual(calls["acquire"].kwargs["reserve_bytes"], 30 * 1024**3)
+        self.assertEqual(len(calls["acquire_all"]), 1)
+        self.assertNotIn("seed_fallback_acquisition", result)
         self.assertEqual(calls["locks"]["install-server"], d.offline_lock(self.manifest, "server"))
         self.assertEqual(calls["steps"], ["venv", "bootstrap", "install-server", "pip-check"])
         self.assertEqual(calls["seen"], {"torch": "2.5.1+cu121", "torchvision": "0.20.1+cu121"})
@@ -1862,12 +1867,30 @@ class SeedInstallerRunTests(unittest.TestCase):
         (self.site / "torch/_impl.py").write_bytes(b"VALUE = 99\n\ndef main():\n    print(VALUE)\n    return 0\n")
         result, calls, venv = self.run_installer("tampered")
         self.assertEqual(result["state"], "accepted")
-        names = {a["name"] for a in calls["acquire"].args[0]["artifacts"]}
-        self.assertIn("torch", names)
-        self.assertNotIn("torchvision", names)
+        first, late = calls["acquire_all"]
+        self.assertFalse({"torch", "torchvision"} & {a["name"] for a in first.args[0]["artifacts"]})
+        self.assertEqual([a["name"] for a in late.args[0]["artifacts"]], ["torch"])  # rejected by verification
+        self.assertEqual(late.kwargs["reserve_bytes"], 4 * 1024**3)
+        self.assertIn("seed_fallback_acquisition", result)
         self.assertEqual(result["seed"]["rejected"], ["torch"])
         self.assertEqual(calls["seen"], {"torchvision": "0.20.1+cu121"})
         self.assertFalse((venv / "lib/python3.10/site-packages/torch").exists())
+
+    def test_download_gate_is_released_after_acquisition_even_on_failure(self):
+        for label, error in (("gate-ok", None), ("gate-fail", ValueError("Artifact HTTP failure 403"))):
+            with self.subTest(label=label):
+                gate = self.root / (label + ".pending")
+                gate.write_text("held\n")
+                env = {locked.DOWNLOAD_GATE_ENV: str(gate)}
+                if error is None:
+                    result, _, _ = self.run_installer(label, environ=env)
+                    self.assertEqual(result["state"], "accepted")
+                else:
+                    with self.assertRaises(ValueError):
+                        self.run_installer(label, environ=env, acquire_error=error)
+                self.assertFalse(gate.exists())
+        locked.release_download_gate({locked.DOWNLOAD_GATE_ENV: str(self.root / "absent")})  # idempotent
+        locked.release_download_gate({})
 
     def test_without_seed_index_or_seed_site_installation_is_unchanged(self):
         runs = {"no-site": self.run_installer("no-site", seed_site=False),

@@ -33,6 +33,7 @@ RANGE_STREAMS_ENV = 'MUSETALK_DEPENDENCY_RANGE_STREAMS'
 MAX_CONNECTIONS_ENV = 'MUSETALK_DEPENDENCY_MAX_CONNECTIONS'
 SEED_SITE_ENV = 'MUSETALK_DEPENDENCY_SEED_SITE'
 SEED_BYTECODE_ENV = 'MUSETALK_DEPENDENCY_SEED_BYTECODE'
+DOWNLOAD_GATE_ENV = 'MUSETALK_DOWNLOAD_GATE'
 SEED_INDEX_MAX_BYTES = 32*1024**2
 
 
@@ -89,6 +90,15 @@ def wait_for_apt_prefetch(environ=None,limit=900):
     return round(time.monotonic()-start,3)
 
 
+def release_download_gate(environ=None):
+    """The bootstrap holds its weight/r5 prefetches behind a gate file until the
+    dependency wheels (the boot's critical path) are acquired. Idempotent."""
+    raw=(os.environ if environ is None else environ).get(DOWNLOAD_GATE_ENV,'').strip()
+    if raw:
+        try:os.unlink(raw)
+        except FileNotFoundError:pass
+
+
 def transfer_settings(args,environ=None):
     """Ranged-download settings: flags win, then environment, then defaults
     (0 range streams = original single-stream behaviour; connection cap = workers)."""
@@ -121,6 +131,16 @@ def seed_settings(args,environ=None):
     raw=environ.get(SEED_BYTECODE_ENV,'').strip()
     require(raw in ('','0','1'),SEED_BYTECODE_ENV+' must be 0 or 1')
     return site,raw=='1'
+
+
+def seed_candidates(contract,manifest,repo,group,fresh):
+    """Names the seed index may supply for this group, known before staging, so the
+    remaining wheels can be acquired while the seed is verified. Staging may still
+    reject some; those are acquired afterwards."""
+    if not contract.get('seed_index') or not fresh:return set()
+    import dependency_seed as seed
+    wanted={a['name'] for a in selected(manifest,group)}
+    return {e['name'] for e in seed.load_index(contract,manifest,repo)['artifacts'] if e['name'] in wanted}
 
 
 def seed_plan(contract,manifest,repo,venv,group,site,bytecode,fresh,workers):
@@ -253,23 +273,39 @@ def run(args,ticket_loader=None):
                 'artifact_id':manifest['artifact_id'],'group':args.group,'fallback':None,'steps':[]}
         try:
             if ticket is None:ticket=ticket_loader()
-            view=manifest;seeding=None;reserve=None
+            view=manifest;seeding=None;candidates=set();staging=None
             if seed_site is not None:
-                seeding=seed_plan(contract,manifest,repo,venv,args.group,seed_site,seed_bytecode,fresh,args.workers)
+                import dependency_seed as seed
+                from concurrent.futures import ThreadPoolExecutor
+                # Seed verification (local hashing) runs while everything it cannot
+                # supply downloads. Candidates are never acquired here.
+                candidates=seed_candidates(contract,manifest,repo,args.group,fresh)
+                view=seed.without(manifest,candidates)
+                staging=ThreadPoolExecutor(max_workers=1,thread_name_prefix='seed-stage')
+                seeding_future=staging.submit(seed_plan,contract,manifest,repo,venv,args.group,seed_site,
+                                              seed_bytecode,fresh,args.workers)
+            def acquire(rows_view,reserve_bytes):
+                needed={a['sha256'] for a in selected(rows_view,args.group) if a['source'].startswith('build:')}
+                return fetch.acquire(rows_view,artifact/'wheels',args.group,args.workers,repo,
+                    reserve_bytes=reserve_bytes,
+                    tickets={k:v for k,v in ticket['wheels'].items() if k in needed},
+                    range_streams=range_streams,max_connections=max_connections)
+            try:
+                cached=all((artifact/'wheels'/a['filename']).is_file() for a in selected(view,args.group))
+                # Checked before the concurrent staging writes, so the full reserve applies.
+                result['acquisition']=acquire(view,(4 if cached else 30)*1024**3)
+            finally:
+                release_download_gate()  # Also on failure: never hold the prefetches longer.
+                if staging is not None:
+                    seeding=seeding_future.result();staging.shutdown()
+            if seeding is not None:
                 result['seed']=seeding['receipt']
-                if seeding['staged']:
-                    import dependency_seed as seed
-                    # Seeded artifacts are never acquired; their staged bytes already used disk.
-                    view=seed.without(manifest,[e['name'] for e in seeding['staged']])
-                    reserve=seeding['receipt']['installed_bytes']
-            needed={a['sha256'] for a in selected(view,args.group) if a['source'].startswith('build:')}
-            cached=all((artifact/'wheels'/a['filename']).is_file() for a in selected(view,args.group))
-            reserve_bytes=(4 if cached else 30)*1024**3
-            if reserve is not None:reserve_bytes=max(4*1024**3,reserve_bytes-reserve)
-            result['acquisition']=fetch.acquire(view,artifact/'wheels',args.group,args.workers,repo,
-                reserve_bytes=reserve_bytes,
-                tickets={k:v for k,v in ticket['wheels'].items() if k in needed},
-                range_streams=range_streams,max_connections=max_connections)
+                staged={e['name'] for e in seeding['staged']}
+                late=candidates-staged
+                if late:
+                    # Rejected by seed verification: acquire them now, as without a seed.
+                    result['seed_fallback_acquisition']=acquire(
+                        dict(manifest,artifacts=[a for a in manifest['artifacts'] if a['name'] in late]),4*1024**3)
             uv=None
             if args.mode=='locked-wheelhouse-uv':
                 uv=artifact/'uv-tool/uv'

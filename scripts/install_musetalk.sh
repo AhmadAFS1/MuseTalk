@@ -1000,6 +1000,9 @@ run_install_phase "Phase 1" "System packages" "apt: python3.10(+venv,dev), ffmpe
 run_install_phase "Phase 2" "Venv" "Create the CPython 3.10 venv, or reuse it and repair in place." phase_venv
 run_install_phase "Phase 3" "Python packages" "Separate server and optional Kokoro pip steps against constraints-$TARGET_MATRIX.txt; avatar-prep timed separately." phase_packages
 wait_for_apt_prefetch  # Later phases need the system packages even when Phase 3 reused a venv.
+# The locked installer opens the bootstrap's download gate after acquisition; also
+# open it here for paths that never acquire (reused venv, pip mode).
+if [[ -n "${MUSETALK_DOWNLOAD_GATE:-}" ]]; then rm -f "$MUSETALK_DOWNLOAD_GATE"; fi
 start_numba_prewarm
 run_install_phase "Phase 4" "Weights" "download_weights.sh (+ pinned TAESD, optional Kokoro cache)." phase_weights
 run_install_phase "Phase 5" "Native VP8" "Pinned native VP8 encoder files + CPU preflight (default encoder stays pyav)." phase_native_vp8

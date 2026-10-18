@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -313,6 +314,41 @@ wait
             self.assertFalse((d/(sha+'.pending')).exists())
             self.assertIn('r5 bundle prefetch done',proc.stdout);self.assertNotIn('X-Amz-Signature',proc.stdout+proc.stderr)
 
+    def test_download_gate_is_armed_only_for_fresh_installs(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);gate=root/'mtboot/deps-gate';(root/'repo/.runtime').mkdir(parents=True)
+            code=('REPO_DIR="$2/repo"; DOWNLOAD_GATE="$2/mtboot/deps-gate"; %s\n'
+                  'arm_download_gate\n'
+                  '[[ -e "$DOWNLOAD_GATE" ]] && echo "ARMED=${MUSETALK_DOWNLOAD_GATE:-}" || echo "OPEN=${MUSETALK_DOWNLOAD_GATE:-}"\n')
+            r=self.run_shell(code%'',root);self.assertEqual(r.returncode,0,r.stderr)
+            self.assertIn('ARMED='+str(gate),r.stdout)
+            r=self.run_shell(code%'export MUSETALK_DOWNLOAD_GATE_ENABLED=0',root)
+            self.assertIn('OPEN=',r.stdout);self.assertFalse(gate.exists())
+            gate.parent.mkdir(exist_ok=True);gate.write_text('stale')
+            (root/'repo/.runtime/install_state.json').write_text('{}')
+            r=self.run_shell(code%'',root)
+            self.assertIn('OPEN=',r.stdout);self.assertFalse(gate.exists())  # A stale gate never survives a warm boot.
+
+    def test_r5_prefetch_waits_for_the_download_gate_with_a_bound(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);payload=b'engine-bundle'*100;sha=hashlib.sha256(payload).hexdigest()
+            src=root/'bundle.bin';src.write_bytes(payload)
+            ticket=json.dumps({'url':'https://bucket.s3.amazonaws.com/k?X-Amz-Signature=fixture','sha256':sha,'bytes':len(payload)})
+            code=('REPO_DIR="$2/repo"; export MUSETALK_R5_PREFETCH_DIR="$2/prefetch"\n'
+                  'export MUSETALK_R5_PREFETCH_JSON="$3"; export FIXTURE_SRC="$4"; DOWNLOAD_GATE="$2/gate"; echo held > "$DOWNLOAD_GATE"\n'
+                  'curl() { local out=""; while (( $# )); do [[ "$1" == -o ]] && { out="$2"; shift; }; shift; done\n'
+                  '  [[ ! -e "$DOWNLOAD_GATE" || -n "${ALLOW_CLOSED:-}" ]] || return 7; cp "$FIXTURE_SRC" "$out"; }\n'
+                  'export -f curl\n%s\nstart_r5_prefetch\nwait\n')
+            r=self.run_shell(code%'( sleep 1; rm -f "$DOWNLOAD_GATE" ) &',root,ticket,src)
+            self.assertEqual(r.returncode,0,r.stderr)
+            self.assertRegex(r.stdout,r'r5 bundle prefetch: download gate opened after [12]s')
+            self.assertTrue((root/'prefetch'/(sha+'.ok')).exists())
+            shutil.rmtree(root/'prefetch')
+            r=self.run_shell(code%'export MUSETALK_DOWNLOAD_GATE_WAIT_SECONDS=1 ALLOW_CLOSED=1',root,ticket,src)
+            self.assertIn('download gate still closed after 1s; proceeding',r.stdout)
+            self.assertTrue((root/'prefetch'/(sha+'.ok')).exists())
+
     def test_prefetched_bundle_is_restored_in_background(self):
         import hashlib
         with tempfile.TemporaryDirectory() as folder:
@@ -462,7 +498,7 @@ wait
         self.assertIn('apt_packages.txt',installer);self.assertNotIn('libgl1 libglib2.0-0',installer)
         self.assertIn('wait_for_apt_prefetch  # Later phases',installer)
         boot=(REPO/'scripts/vast_bootstrap_locked.sh').read_text()
-        self.assertLess(boot.index('start_apt_prefetch\n  start_r5_prefetch'),boot.index('configure_locked_boot\n  cd'))
+        self.assertLess(boot.index('start_apt_prefetch\n  arm_download_gate\n  start_r5_prefetch'),boot.index('configure_locked_boot\n  cd'))
 
     def test_proc1_environ_readers_never_exit_early(self):
         # awk 'exit' closes the pipe early; tr then dies with SIGPIPE and
