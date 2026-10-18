@@ -401,6 +401,9 @@ wait
         helpers=re.search(r'^NUMBA_PREWARM_PID="".*?^wait_for_numba_prewarm\(\) \{\n.*?^\}\n',source,re.M|re.S).group()
         self.assertLess(source.index('\nstart_numba_prewarm\n'),source.index('run_install_phase "Phase 4"'))
         self.assertLess(source.index('\nwait_for_numba_prewarm\n'),source.index('run_install_phase "Phase 8"'))
+        # librosa.util is a lazy_loader package: its submodules must be imported, not accessed.
+        self.assertIn('import librosa.core.audio, librosa.util.utils',helpers)
+        self.assertNotIn('; librosa.util.utils;',helpers)
         with tempfile.TemporaryDirectory() as folder:
             d=Path(folder);py=d/'python'
             def run(body,env=''):

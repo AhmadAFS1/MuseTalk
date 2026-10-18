@@ -836,11 +836,13 @@ start_numba_prewarm() {
   # when librosa.core.audio / librosa.util are first imported: ~12 s on a fresh venv,
   # previously paid inside the server's uploaded-audio warmup. Compile once, in the
   # background, while weights/verify/r5 run. uv does not keep wheel mtimes, so the
-  # cache cannot be shipped prebuilt. MUSETALK_NUMBA_PREWARM=0 disables.
+  # cache cannot be shipped prebuilt. Use import statements: librosa's lazy loader
+  # does not expose librosa.util.utils as an attribute (c5-a, 2026-10-18).
+  # MUSETALK_NUMBA_PREWARM=0 disables.
   flag_on "${MUSETALK_NUMBA_PREWARM:-1}" || return 0
   [[ -x "$VENV_PY" ]] || return 0
   CUDA_VISIBLE_DEVICES="" PYTHONNOUSERSITE=1 "$VENV_PY" -c \
-    'import time; t = time.time(); import librosa; librosa.load; librosa.util.utils; print("numba prewarm %.1fs" % (time.time() - t))' \
+    'import time; t = time.time(); import librosa.core.audio, librosa.util.utils; print("numba prewarm %.1fs" % (time.time() - t))' \
     >"$WORK_DIR/numba_prewarm.log" 2>&1 8<&- 9<&- &
   NUMBA_PREWARM_PID=$!
   log "Started background numba prewarm (pid=$NUMBA_PREWARM_PID)"
