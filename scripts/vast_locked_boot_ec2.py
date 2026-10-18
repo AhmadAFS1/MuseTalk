@@ -34,6 +34,7 @@ LIBRARY = HERE / "python_s3_venv_source_library.py"
 REPO_RAW = "https://raw.githubusercontent.com/AhmadAFS1/MuseTalk/"
 BOOTSTRAP_PATH = "scripts/vast_bootstrap_locked.sh"
 CONTRACT_PATH = "configs/dependencies/rtx3090-cp310-cu121-screening.json"
+R5_BUNDLE_DESCRIPTOR = "configs/trt_bundles/ampere-plus-r5-srcg50-int8.json"  # The bundle that fits an RTX 3090.
 RUNTIME_SECRET = "lingua/musetalk-worker-runtime"
 RUNTIME_USER_SUFFIX = ":user/musetalk-s3-runtime"
 LABEL_PREFIX = "mtboot-"
@@ -146,7 +147,7 @@ def parse_settings(items):
     return out
 
 
-def compose_env(template_env, revision, tickets, session, secret, settings=None):
+def compose_env(template_env, revision, tickets, session, secret, settings=None, prefetch=None):
     """Launch environment exactly as the locked-boot autoscaler path composes it."""
     env = dict(template_env)
     env.update({
@@ -159,6 +160,8 @@ def compose_env(template_env, revision, tickets, session, secret, settings=None)
         "PYTHONUNBUFFERED": "1",
     })
     env.update(settings or {})
+    if prefetch:
+        env["MUSETALK_R5_PREFETCH_JSON"] = json.dumps(prefetch, separators=(",", ":"))
     env.update({k: str(secret[k]) for k in ("AVATAR_S3_BUCKET", "AVATAR_S3_REGION", "AVATAR_S3_PREFIX", "AVATAR_S3_ENABLED") if secret.get(k)})
     for key in ("MUSETALK_AWS_SECRET_ID", "LINGUA_CONTROL_PLANE_BASE_URL", "LINGUA_WORKER_TOKEN", "VENV_PATH", "SETUP_CLEAN"):
         require(key not in env, "Template environment must not carry " + key)
@@ -212,7 +215,19 @@ def runtime_identity(seconds):
     session = boto3.Session(aws_access_key_id=secret["AWS_ACCESS_KEY_ID"], aws_secret_access_key=secret["AWS_SECRET_ACCESS_KEY"], region_name="us-east-1")
     require(session.client("sts").get_caller_identity()["Arn"].endswith(RUNTIME_USER_SUFFIX), "Unexpected worker read identity")
     credentials = session.client("sts").get_session_token(DurationSeconds=min(max(seconds, 900), 129600))["Credentials"]
-    return credentials, {k: v for k, v in secret.items() if not k.startswith("AWS_")}
+    return credentials, {k: v for k, v in secret.items() if not k.startswith("AWS_")}, session
+
+
+def r5_prefetch_ticket(revision, session, bucket, expires=3600):
+    """Presigned GET for the pinned r5 bundle so the worker can fetch it before its venv exists."""
+    from botocore.config import Config
+    d = json.loads(fetch_revision_file(revision, R5_BUNDLE_DESCRIPTOR))
+    require(re.fullmatch(r"[a-f0-9]{64}", d.get("sha256", "")) and d.get("s3_key") and int(d.get("size_bytes", 0)) > 0,
+            "Bundle descriptor lacks sha256/s3_key/size")
+    s3 = session.client("s3", region_name="us-east-1", config=Config(signature_version="s3v4"))
+    require(s3.head_object(Bucket=bucket, Key=d["s3_key"])["ContentLength"] == int(d["size_bytes"]), "Pinned r5 bundle differs in S3")
+    url = s3.generate_presigned_url("get_object", Params={"Bucket": bucket, "Key": d["s3_key"]}, ExpiresIn=expires)
+    return {"url": url, "sha256": d["sha256"], "bytes": int(d["size_bytes"])}
 
 
 def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None):
@@ -248,8 +263,9 @@ def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", se
     require(len(templates) == 1, "Ambiguous stock template")
     template_env, _, _ = b.frozen_template(templates[0])
     tickets = issue_tickets(contract)
-    credentials, secret = runtime_identity(lifetime + 1800)
-    env = compose_env(template_env, revision, tickets, credentials, secret, settings)
+    credentials, secret, session = runtime_identity(lifetime + 1800)
+    prefetch = r5_prefetch_ticket(revision, session, secret["AVATAR_S3_BUCKET"])
+    env = compose_env(template_env, revision, tickets, credentials, secret, settings, prefetch)
     return {"b": b, "client": client, "existing": existing, "offer": offer, "env": env, "onstart": onstart,
             "bootstrap_sha256": bootstrap_sha256, "contract": contract, "credentials": credentials}
 
@@ -512,12 +528,16 @@ def rerun(run, revision=None, wipe=False, settings=None):
     subprocess.run(["bash", "-n"], input=onstart.encode(), check=True, capture_output=True)
     contract = json.loads(fetch_revision_file(revision, CONTRACT_PATH))
     tickets = json.dumps(issue_tickets(contract), separators=(",", ":"))
+    _, secret, session = runtime_identity(900)
+    settings = dict(settings or {})
+    settings["MUSETALK_R5_PREFETCH_JSON"] = json.dumps(r5_prefetch_ticket(revision, session, secret["AVATAR_S3_BUCKET"]), separators=(",", ":"))
     payload = (RERUN.replace("__REVISION__", repr(revision)).replace("__TICKETS__", repr(tickets))
                .replace("__WIPE__", repr(bool(wipe))).replace("__ONSTART__", repr(onstart)).replace("__PATHS__", repr(WIPE_PATHS)).replace("__SETTINGS__", repr(settings or {})))
-    run.event("RERUN_REQUESTED", revision=revision, wipe=bool(wipe), settings=settings or {}, onstart_sha256=hashlib.sha256(onstart.encode()).hexdigest())
+    run.event("RERUN_REQUESTED", revision=revision, wipe=bool(wipe), settings=sorted(settings or {}), onstart_sha256=hashlib.sha256(onstart.encode()).hexdigest())
     result = json.loads(worker(run, payload, timeout=180))
     ledger.setdefault("reruns", []).append({"at_utc": utc(), "revision": revision, "wipe": bool(wipe),
-                                            "settings": settings or {}, "removed": result["removed"]})
+                                            "settings": {k: v for k, v in (settings or {}).items() if k in TUNABLE_ENV},
+                                            "removed": result["removed"]})
     run.save("ledger.json", ledger)
     run.event("RERUN_STARTED", **result)
 

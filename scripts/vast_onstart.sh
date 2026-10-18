@@ -731,6 +731,21 @@ refresh_recipe_after_secrets() {
   ONSTART_RECIPE_SOURCE="$MT_ENV_RECIPE_SOURCE"
 }
 
+# Prints the bootstrap's verified background download of the bundle with this
+# sha256, waiting (bounded) while it is still in flight. Absent, failed or timed
+# out: returns 1 and the caller uses the normal URI.
+r5_prefetched_archive() {
+  local dir="${MUSETALK_R5_PREFETCH_DIR:-}" sha="$1" waited=0 limit="${MUSETALK_R5_PREFETCH_WAIT_SECONDS:-900}"
+  [[ -n "$dir" && -d "$dir" && "$sha" =~ ^[a-f0-9]{64}$ ]] || return 1
+  if [[ -e "$dir/$sha.pending" ]]; then
+    log "Waiting for the r5 bundle prefetch (up to ${limit}s)"
+    while [[ -e "$dir/$sha.pending" ]] && (( waited < limit )); do sleep 2; waited=$(( waited + 2 )); done
+  fi
+  [[ -f "$dir/$sha.ok" && -f "$dir/$sha.tar.gz" ]] || return 1
+  log "r5 bundle prefetch ready (waited ${waited}s)"
+  printf '%s\n' "$dir/$sha.tar.gz"
+}
+
 restore_r5_bundle() {
   # Sets R5_BUNDLE_ACTIVE=1 when a bundle's engines are on disk, verified and stamped for the resolver.
   # Candidates come from the bundle:<a>|<b> prerequisite of configs/recipes/r5.env, in order of preference
@@ -781,7 +796,10 @@ print(d.get("sha256", "")); print(d.get("s3_key", "")); print(d.get("sidecar_dir
     [[ -n "$sha" && -n "$s3_key" && -n "$sidecar" ]] || die "$descriptor lacks sha256/s3_key/sidecar_dir"
     # MUSETALK_R5_BUNDLE_URI replaces the first candidate's URI only (tests, mirrors); the sha256 stays pinned.
     uri=""
-    if (( tried == 0 )) && [[ -n "${MUSETALK_R5_BUNDLE_URI:-}" ]]; then
+    local prefetched=""
+    if prefetched="$(r5_prefetched_archive "$sha")"; then
+      uri="$prefetched"
+    elif (( tried == 0 )) && [[ -n "${MUSETALK_R5_BUNDLE_URI:-}" ]]; then
       uri="$MUSETALK_R5_BUNDLE_URI"
     elif [[ -n "${TRT_ARTIFACT_S3_BUCKET:-}" ]]; then
       uri="s3://${TRT_ARTIFACT_S3_BUCKET}/${s3_key}"
@@ -802,6 +820,7 @@ print(d.get("sha256", "")); print(d.get("s3_key", "")); print(d.get("sidecar_dir
         --stage-dir "$MUSETALK_TRT_ARTIFACT_STAGE_DIR" --skip-if-verified
     ); then
       R5_BUNDLE_ACTIVE=1
+      [[ -n "$prefetched" ]] && rm -f -- "$prefetched"  # Restored and stamped; free the 1 GB copy.
       log "✅ r5 engine bundle $name ready (stamp: $sidecar/.musetalk_trt_artifact_restored.json)"
       return 0
     fi

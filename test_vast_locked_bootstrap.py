@@ -279,6 +279,48 @@ verify_worker_checkout "$2"
         for line in (REPO/'configs/worker-sparse-checkout').read_text().split():
             self.assertTrue(line.lstrip('!').startswith('/'),'every sparse pattern must be anchored: '+line)
 
+    def _prefetch(self,root,payload,ticket_sha=None):
+        import hashlib
+        sha=ticket_sha or hashlib.sha256(payload).hexdigest()
+        src=root/'bundle.bin';src.write_bytes(payload)
+        ticket=json.dumps({'url':'https://bucket.s3.amazonaws.com/k?X-Amz-Signature=fixture','sha256':sha,'bytes':len(payload)})
+        proc=self.run_shell('''REPO_DIR="$2/repo"; export MUSETALK_R5_PREFETCH_DIR="$2/prefetch"
+export MUSETALK_R5_PREFETCH_JSON="$3"; export FIXTURE_SRC="$4"
+curl() { local out=""; while (( $# )); do [[ "$1" == -o ]] && { out="$2"; shift; }; shift; done
+  grep -q 'X-Amz-Signature=fixture' || return 9; cp "$FIXTURE_SRC" "$out"; }
+export -f curl
+start_r5_prefetch
+wait
+[[ -z "${MUSETALK_R5_PREFETCH_JSON+set}" ]]
+''',root,ticket,src)
+        return proc,root/'prefetch',sha
+
+    def test_r5_prefetch_downloads_verified_archive_in_background(self):
+        with tempfile.TemporaryDirectory() as folder:
+            proc,d,sha=self._prefetch(Path(folder),b'engine-bundle'*100)
+            self.assertEqual(proc.returncode,0,proc.stderr)
+            self.assertTrue((d/(sha+'.ok')).exists() and (d/(sha+'.tar.gz')).read_bytes()==b'engine-bundle'*100)
+            self.assertFalse((d/(sha+'.pending')).exists())
+            self.assertIn('r5 bundle prefetch done',proc.stdout);self.assertNotIn('X-Amz-Signature',proc.stdout+proc.stderr)
+
+    def test_r5_prefetch_sha_mismatch_leaves_no_archive(self):
+        with tempfile.TemporaryDirectory() as folder:
+            proc,d,sha=self._prefetch(Path(folder),b'tampered',ticket_sha='a'*64)
+            self.assertEqual(proc.returncode,0,proc.stderr)
+            self.assertFalse(any(d.iterdir()));self.assertIn('prefetch failed',proc.stdout)
+
+    def test_onstart_uses_only_a_verified_prefetch(self):
+        source=(REPO/'scripts/vast_onstart.sh').read_text()
+        helper=re.search(r'^r5_prefetched_archive\(\) \{\n.*?^\}\n',source,re.M|re.S).group()
+        self.assertIn('prefetched="$(r5_prefetched_archive "$sha")"',source)
+        with tempfile.TemporaryDirectory() as folder:
+            d=Path(folder);sha='b'*64
+            run=lambda: subprocess.run(['bash','-c','log(){ :; }\n'+helper+'MUSETALK_R5_PREFETCH_DIR="$1" MUSETALK_R5_PREFETCH_WAIT_SECONDS=2 r5_prefetched_archive "$2"','-',str(d),sha],capture_output=True,text=True,timeout=10)
+            self.assertNotEqual(run().returncode,0)
+            (d/(sha+'.tar.gz')).write_bytes(b'x');self.assertNotEqual(run().returncode,0)  # no .ok marker
+            (d/(sha+'.ok')).touch();r=run();self.assertEqual(r.returncode,0);self.assertEqual(r.stdout.strip(),str(d/(sha+'.tar.gz')))
+            (d/(sha+'.ok')).unlink();(d/(sha+'.pending')).touch();self.assertNotEqual(run().returncode,0)  # timed-out wait
+
     def test_proc1_environ_readers_never_exit_early(self):
         # awk 'exit' closes the pipe early; tr then dies with SIGPIPE and
         # pipefail turns that into exit 141 under set -e (18 KB Vast env).

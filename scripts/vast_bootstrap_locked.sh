@@ -26,6 +26,7 @@ api_pid_file_is_stale() {
   return 0
 }
 bootstrap_die() { bootstrap_log "ERROR: $*" >&2; exit 2; }
+file_sha256() { { sha256sum 2>/dev/null || shasum -a 256; } < "$1" | cut -d' ' -f1; }
 
 # Workers check out a sparse, blob-filtered tree: the revision's own spec drops
 # ~3 GB of showcase media (generated/, assets/ banks, docs/) that no runtime
@@ -64,7 +65,7 @@ verify_worker_checkout() {
   for path in "${REQUIRED_WORKER_PATHS[@]}"; do
     [[ -e "$repo/$path" ]] || bootstrap_die "Required worker path missing from sparse checkout: $path"
   done
-  bootstrap_log "Sparse worker checkout: $skipped paths skipped; spec $( (sha256sum 2>/dev/null || shasum -a 256) < "$repo/.git/info/sparse-checkout" | cut -c1-16); $(git --version)"
+  bootstrap_log "Sparse worker checkout: $skipped paths skipped; spec $(file_sha256 "$repo/.git/info/sparse-checkout" | cut -c1-16); $(git --version)"
 }
 
 checkout_code() {
@@ -150,6 +151,46 @@ configure_locked_boot() {
   export MUSETALK_DEPENDENCY_TICKET_FD=8 MUSETALK_BOOTSTRAP_TICKET_FD=8
 }
 
+# The ~1 GB r5 engine bundle does not depend on the venv: fetch it in the
+# background from an EC2-presigned URL while dependencies install. Onstart's
+# restore still verifies the pinned sha256 and falls back to S3 on any failure.
+start_r5_prefetch() {
+  [[ -n "${MUSETALK_R5_PREFETCH_JSON:-}" ]] || return 0
+  local dir="${MUSETALK_R5_PREFETCH_DIR:-/workspace/.cache/r5-prefetch}" url sha size fields
+  fields="$(python3 -B -c 'import json,os,re
+d=json.loads(os.environ["MUSETALK_R5_PREFETCH_JSON"])
+assert re.fullmatch("[a-f0-9]{64}",d["sha256"]) and d["url"].startswith("https://") and int(d["bytes"])>0
+print(d["sha256"],int(d["bytes"]));print(d["url"])' 2>/dev/null)" || { bootstrap_log 'Ignoring malformed r5 prefetch ticket'; return 0; }
+  export -n MUSETALK_R5_PREFETCH_JSON
+  unset MUSETALK_R5_PREFETCH_JSON
+  read -r sha size <<< "$(head -n 1 <<< "$fields")"
+  url="$(sed -n 2p <<< "$fields")"
+  export MUSETALK_R5_PREFETCH_DIR="$dir"
+  mkdir -p "$dir"
+  [[ -f "$dir/$sha.ok" && -f "$dir/$sha.tar.gz" ]] && return 0
+  if compgen -G "$REPO_DIR/.runtime/trt_artifacts/*/.musetalk_trt_artifact_restored.json" >/dev/null; then
+    bootstrap_log 'r5 bundle already restored on this disk; no prefetch'
+    return 0
+  fi
+  touch "$dir/$sha.pending"
+  bootstrap_log "r5 bundle prefetch started ($size bytes)"
+  (
+    started=$SECONDS
+    # URL via curl's config on stdin: never in argv or a file.
+    if printf 'url = "%s"\n' "$url" | curl -fsS --retry 3 --retry-delay 2 --max-time 1800 -K - -o "$dir/$sha.tar.gz.part" \
+       && [[ "$(wc -c < "$dir/$sha.tar.gz.part" | tr -d " ")" == "$size" ]] \
+       && [[ "$(file_sha256 "$dir/$sha.tar.gz.part")" == "$sha" ]]; then
+      mv -f "$dir/$sha.tar.gz.part" "$dir/$sha.tar.gz"
+      touch "$dir/$sha.ok"
+      bootstrap_log "r5 bundle prefetch done ($((SECONDS - started))s)"
+    else
+      rm -f "$dir/$sha.tar.gz.part"
+      bootstrap_log "r5 bundle prefetch failed after $((SECONDS - started))s; onstart falls back to S3"
+    fi
+    rm -f "$dir/$sha.pending"
+  ) 8<&- 9<&- &
+}
+
 configure_runtime_auth() {
   # EC2 role credentials do not automatically exist on Vast. The launcher must
   # supply a reviewed worker identity/runtime payload, never the publisher role.
@@ -206,6 +247,7 @@ main() {
   local started="$SECONDS"
   checkout_code
   bootstrap_log "Code ready ($((SECONDS-started))s); revision=$MUSETALK_SOURCE_REVISION"
+  start_r5_prefetch
   configure_locked_boot
   cd "$REPO_DIR"
   # Parent retains the bootstrap lock while it waits; daemons must not inherit
