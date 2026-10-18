@@ -62,6 +62,19 @@ def utc():
     return dt.datetime.now(dt.timezone.utc).isoformat()
 
 
+def provider_error_summary(error, secrets=()):
+    """Status + provider error fields only; every known secret and URL scrubbed."""
+    text = str(error)
+    for value in secrets:
+        if value and len(str(value)) >= 8:
+            text = text.replace(str(value), "[REDACTED]")
+    text = re.sub(r"https?://\S+", "[URL]", text)
+    text = re.sub(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b", "[KEY]", text)
+    status = re.search(r"status (\d{3})", text)
+    fields = dict(re.findall(r"'(error|msg|message|error_description)':\s*'([^']{0,200})'", text))
+    return {"status": int(status.group(1)) if status else None, **fields, "excerpt": text[:300]}
+
+
 class Run:
     """Per-run state directory and ledger; label mtboot-<name>."""
 
@@ -315,7 +328,14 @@ def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", 
     started = time.monotonic()
     request = {"client_id": "me", "template_hash_id": b.TEMPLATE, "image": b.IMAGE, "disk": disk,
                "label": run.label, "env": env, "onstart": onstart, "cancel_unavail": True}
-    result = client.create_instance(offer_id=int(offer["id"]), create_request=request)
+    try:
+        result = client.create_instance(offer_id=int(offer["id"]), create_request=request)
+    except Exception as error:
+        summary = provider_error_summary(error, [v for k, v in env.items() if not k.startswith("-p ")] + [onstart])
+        ledger.update(state="create-failed", create_error=summary, create_failed_utc=utc())
+        run.save("ledger.json", ledger)
+        run.event("CREATE_FAILED", **{k: v for k, v in summary.items() if k != "excerpt"})
+        raise ValueError("Provider refused create: %s %s" % (summary.get("status"), summary.get("error") or summary.get("msg") or "")) from None
     identifier = str(result.get("new_contract") or result.get("contract") or result.get("instance_id") or "")
     require(result.get("success") is True and identifier.isdigit() and identifier not in ledger["protected_instance_ids"],
             "Create uncertain: reconcile only")
@@ -676,6 +696,8 @@ def cleanup(run, expire=False):
     ledger = run.load()
     if expire:
         require(dt.datetime.now(dt.timezone.utc) >= dt.datetime.fromisoformat(ledger["deadline_utc"]), "Expiry too early")
+    if ledger.get("state") == "create-failed":
+        ledger["state"] = "submitting"  # An ambiguous create still needs a provider absence check.
     if ledger.get("state") == "initialized":
         subprocess.run(["systemctl", "stop", run.label + "-expiry.timer"], capture_output=True, timeout=10)
         print(json.dumps({"state": "never-submitted"}), flush=True)
