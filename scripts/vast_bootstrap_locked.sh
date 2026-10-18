@@ -138,6 +138,7 @@ configure_locked_boot() {
   fi
   export VENV_PATH="$locked_venv"
   export SETUP_CLEAN=0 SETUP_FULL_STACK=1 SETUP_MATRIX=cu121 AUTO_SETUP=1
+  export DOWNLOAD_SYNCNET_WEIGHTS=0  # Training/offline-metrics weight only; 1.4 GB per fresh worker.
   export WORKSPACE=/workspace
   export PROFILE=throughput_record PORT
   export MUSETALK_RECIPE="${MUSETALK_RECIPE:-r5}"

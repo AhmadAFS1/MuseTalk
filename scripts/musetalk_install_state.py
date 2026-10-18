@@ -627,7 +627,8 @@ def cmd_check(args) -> int:
     # 6. model files.
     model_files = list(SERVER_MODEL_FILES)
     if groups["avatar_prep"][0]:
-        model_files += AVATAR_PREP_MODEL_FILES
+        model_files += [f for f in AVATAR_PREP_MODEL_FILES
+                        if "syncnet" not in f or os.environ.get("DOWNLOAD_SYNCNET_WEIGHTS", "1") not in ("0", "false", "no", "off")]
     missing_files = [rel for rel in model_files
                      if not ((repo / rel).is_file() and (repo / rel).stat().st_size > 0)]
     if missing_files:

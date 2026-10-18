@@ -79,6 +79,7 @@ export MUSETALK_DEPENDENCY_TICKETS_JSON='{"fixture":"ticket"}'
 configure_locked_boot
 [[ -z "${MUSETALK_DEPENDENCY_TICKETS_JSON+set}" ]]
 [[ "$SETUP_CLEAN" == 0 && "$SETUP_FULL_STACK" == 1 && "$MUSETALK_DEPENDENCY_WORKERS" == 4 ]]
+[[ "$DOWNLOAD_SYNCNET_WEIGHTS" == 0 ]]
 [[ "$MUSETALK_DEPENDENCY_INSTALL_MODE" == locked-wheelhouse-uv ]]
 line=""; IFS= read -r -u 8 line || [[ -n "$line" ]]
 [[ "$line" == '{"fixture":"ticket"}' ]]
@@ -320,6 +321,17 @@ wait
             (d/(sha+'.tar.gz')).write_bytes(b'x');self.assertNotEqual(run().returncode,0)  # no .ok marker
             (d/(sha+'.ok')).touch();r=run();self.assertEqual(r.returncode,0);self.assertEqual(r.stdout.strip(),str(d/(sha+'.tar.gz')))
             (d/(sha+'.ok')).unlink();(d/(sha+'.pending')).touch();self.assertNotEqual(run().returncode,0)  # timed-out wait
+
+    def test_syncnet_weights_are_optional_and_not_required_when_skipped(self):
+        weights=(REPO/'download_weights.sh').read_text()
+        self.assertIn('DOWNLOAD_SYNCNET_WEIGHTS="${DOWNLOAD_SYNCNET_WEIGHTS:-1}"',weights)
+        step=re.search(r'^download_syncnet_weights_step\(\) \{\n.*?^\}\n',weights,re.M|re.S).group()
+        self.assertIn('env_flag_is_true "$DOWNLOAD_SYNCNET_WEIGHTS"',step)
+        sys.path.insert(0,str(REPO/'scripts'))
+        import musetalk_install_state as st
+        self.assertTrue(any('syncnet' in f for f in st.AVATAR_PREP_MODEL_FILES))
+        source=(REPO/'scripts/musetalk_install_state.py').read_text()
+        self.assertIn('if "syncnet" not in f or os.environ.get("DOWNLOAD_SYNCNET_WEIGHTS", "1")',source)
 
     def test_proc1_environ_readers_never_exit_early(self):
         # awk 'exit' closes the pipe early; tr then dies with SIGPIPE and

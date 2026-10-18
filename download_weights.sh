@@ -14,6 +14,9 @@ DOWNLOAD_WAIT_FOR_NETWORK_INTERVAL_SECONDS="${DOWNLOAD_WAIT_FOR_NETWORK_INTERVAL
 DOWNLOAD_MUSETALK_V1_WEIGHTS="${DOWNLOAD_MUSETALK_V1_WEIGHTS:-1}"
 DOWNLOAD_MUSETALK_V15_WEIGHTS="${DOWNLOAD_MUSETALK_V15_WEIGHTS:-1}"
 DOWNLOAD_AVATAR_PREP_WEIGHTS="${DOWNLOAD_AVATAR_PREP_WEIGHTS:-1}"
+# LatentSync SyncNet (1.4 GB) is only used by training and offline quality metrics
+# (scripts/quality_ab_metrics.py), never by serving or avatar preparation; workers set 0.
+DOWNLOAD_SYNCNET_WEIGHTS="${DOWNLOAD_SYNCNET_WEIGHTS:-1}"
 # TAESD (fast-recipe VAE decoder, scripts/vae_fast_decoder.py loads <repo>/models/taesd first).
 # Pinned HF revision; bit-identical to the vendored fp16 copy after the loader's fp32->fp16 cast.
 DOWNLOAD_TAESD_WEIGHTS="${DOWNLOAD_TAESD_WEIGHTS:-1}"
@@ -218,10 +221,12 @@ validate_required_files() {
   if env_flag_is_true "$DOWNLOAD_AVATAR_PREP_WEIGHTS"; then
     required+=(
       "$CHECKPOINTS_DIR/dwpose/dw-ll_ucoco_384.pth"
-      "$CHECKPOINTS_DIR/syncnet/latentsync_syncnet.pt"
       "$CHECKPOINTS_DIR/auxiliary/s3fd-619a316812.pth"
       "$CHECKPOINTS_DIR/face_detection/s3fd.pth"
     )
+    if env_flag_is_true "$DOWNLOAD_SYNCNET_WEIGHTS"; then
+      required+=("$CHECKPOINTS_DIR/syncnet/latentsync_syncnet.pt")
+    fi
   fi
 
   local missing=()
@@ -343,6 +348,10 @@ download_dwpose_weights_step() {
 }
 
 download_syncnet_weights_step() {
+  if ! env_flag_is_true "$DOWNLOAD_SYNCNET_WEIGHTS"; then
+    log "Skipping SyncNet weights (DOWNLOAD_SYNCNET_WEIGHTS=0; offline quality tooling only)"
+    return 0
+  fi
   hf_download ByteDance/LatentSync "$CHECKPOINTS_DIR/syncnet" \
     latentsync_syncnet.pt
 }
