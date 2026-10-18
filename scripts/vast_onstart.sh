@@ -194,6 +194,12 @@ webrtc_turn_required() {
   esac
 }
 
+stamp_stage() {
+  # Same contract as vast_bootstrap_locked.sh: stage=epoch lines for the control plane.
+  [[ -n "${MUSETALK_STARTUP_TIMINGS_FILE:-}" ]] || return 0
+  printf '%s=%s\n' "$1" "$(date +%s.%N | cut -c1-14)" >> "$MUSETALK_STARTUP_TIMINGS_FILE" 2>/dev/null || true
+}
+
 read_proc1_env() {
   local key="$1"
   if [[ -r /proc/1/environ ]]; then
@@ -970,9 +976,11 @@ main() {
   log "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || echo 'N/A')"
   log "Disk free: $(df -h /workspace | tail -1 | awk '{print $4}')"
 
+  stamp_stage onstart_begin
   phase_start="$(date +%s)"
   run_setup_if_needed
   close_bootstrap_dependency_ticket
+  stamp_stage setup_done
   phase_elapsed="$(( $(date +%s) - phase_start ))"
   log "Bootstrap/setup phase finished in $(format_duration "$phase_elapsed")"
 
@@ -1020,6 +1028,7 @@ main() {
     if [[ "$ONSTART_RECIPE" == "r5" ]]; then
       phase_start="$(date +%s)"
       restore_r5_bundle
+      stamp_stage r5_ready
       phase_elapsed="$(( $(date +%s) - phase_start ))"
       log "r5 engine bundle phase finished in $(format_duration "$phase_elapsed")"
     fi
@@ -1034,6 +1043,7 @@ main() {
     REPO_ROOT="$REPO_ROOT" \
     VENV_PATH="$VENV_PATH" \
     bash "$REPO_ROOT/scripts/vast_server_ctl.sh" start
+    stamp_stage server_healthy
     phase_elapsed="$(( $(date +%s) - phase_start ))"
     log "Server start-to-health-and-verify phase finished in $(format_duration "$phase_elapsed")"
   fi
@@ -1042,6 +1052,7 @@ main() {
   log "Overall on-start completed in $(format_duration "$total_elapsed")"
   log "Vast.ai MuseTalk on-start complete"
 
+  stamp_stage onstart_complete
   ONSTART_MARKER_PRINTED=1
   echo "========================================"
   echo "VAST_ONSTART COMPLETE: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"

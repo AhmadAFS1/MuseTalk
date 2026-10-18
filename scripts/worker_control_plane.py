@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -80,6 +81,9 @@ class LinguaWorkerControlPlane:
         ).strip()
         self.region = (os.getenv("LINGUA_WORKER_REGION") or os.getenv("VAST_REGION") or "").strip()
         self.version = (os.getenv("LINGUA_WORKER_BUILD") or os.getenv("GIT_COMMIT") or "").strip()
+        revision = (os.getenv("MUSETALK_SOURCE_REVISION") or "").strip().lower()
+        self.source_revision = revision if re.fullmatch(r"[0-9a-f]{40}", revision) else None
+        self.startup_timings_file = (os.getenv("MUSETALK_STARTUP_TIMINGS_FILE") or "").strip()
         self.public_ip = (
             os.getenv("LINGUA_WORKER_PUBLIC_IP")
             or os.getenv("VAST_PUBLIC_IP")
@@ -257,6 +261,8 @@ class LinguaWorkerControlPlane:
                 "profile": self.profile,
                 "draining": self.is_draining(),
                 "build": self.version or None,
+                "source_revision": self.source_revision,
+                "startup_timings": self._startup_timings(),
             },
         }
         if self.region:
@@ -271,6 +277,28 @@ class LinguaWorkerControlPlane:
             except ValueError:
                 payload["public_port"] = self.public_port
         return payload
+
+    def _startup_timings(self) -> dict:
+        """stage=epoch lines stamped by the boot scripts for this boot (bounded)."""
+        timings: dict = {}
+        if not self.startup_timings_file:
+            return timings
+        try:
+            with open(self.startup_timings_file, "r", encoding="utf-8") as handle:
+                lines = handle.read(16384).splitlines()
+        except OSError:
+            return timings
+        for line in lines:
+            stage, _, value = line.partition("=")
+            if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,64}", stage):
+                continue
+            try:
+                timestamp = float(value)
+            except ValueError:
+                continue
+            if timestamp > 0 and (stage in timings or len(timings) < 32):
+                timings[stage] = timestamp
+        return timings
 
     def _post_json(self, url: str, payload: dict, timeout_seconds: int) -> str:
         body = json.dumps(payload).encode("utf-8")

@@ -26,6 +26,12 @@ api_pid_file_is_stale() {
   return 0
 }
 bootstrap_die() { bootstrap_log "ERROR: $*" >&2; exit 2; }
+# Stage -> epoch stamps for the control plane (worker_control_plane.py reports
+# them as metadata.startup_timings); one file per boot, truncated at start.
+stamp_stage() {
+  [[ -n "${MUSETALK_STARTUP_TIMINGS_FILE:-}" ]] || return 0
+  printf '%s=%s\n' "$1" "$(date +%s.%N | cut -c1-14)" >> "$MUSETALK_STARTUP_TIMINGS_FILE" 2>/dev/null || true
+}
 file_sha256() { { sha256sum 2>/dev/null || shasum -a 256; } < "$1" | cut -d' ' -f1; }
 
 # Workers check out a sparse, blob-filtered tree: the revision's own spec drops
@@ -226,6 +232,10 @@ main() {
   mkdir -p /workspace
   exec > >(tee -a /workspace/bootstrap.log) 2>&1
   bootstrap_log "start boot_id=$(cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo unknown)"
+  export MUSETALK_STARTUP_TIMINGS_FILE="${MUSETALK_STARTUP_TIMINGS_FILE:-/workspace/.mtboot/startup_timings}"
+  mkdir -p "$(dirname "$MUSETALK_STARTUP_TIMINGS_FILE")"
+  : > "$MUSETALK_STARTUP_TIMINGS_FILE"
+  stamp_stage bootstrap_start
   trap 'bootstrap_log "Failed at line $LINENO (exit $?)"' ERR
   STAGE_DIR="";trap bootstrap_cleanup EXIT
   command -v flock >/dev/null 2>&1 || bootstrap_die 'Stock template must provide flock'
@@ -247,6 +257,7 @@ main() {
   local started="$SECONDS"
   checkout_code
   bootstrap_log "Code ready ($((SECONDS-started))s); revision=$MUSETALK_SOURCE_REVISION"
+  stamp_stage code_ready
   start_r5_prefetch
   configure_locked_boot
   cd "$REPO_DIR"
