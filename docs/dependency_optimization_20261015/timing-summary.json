@@ -1,0 +1,336 @@
+{
+  "scope": "same-host measurement summary; no fleet p95 or rollout certification",
+  "goal_complete": false,
+  "source_prepared_utc": "2026-10-16T06:17:46.411558+00:00",
+  "trials": [
+    {
+      "trial": "delivery-a2-source-control-1",
+      "method": "source-pip",
+      "workers": 1,
+      "packages_ready_seconds": 277.77568269497715,
+      "validated_ready_seconds": 293.0496586000081,
+      "acquisition_seconds": 1.1715136379934847,
+      "scope": "continuous full-stack dependency delivery, not full Vast boot",
+      "observer_note": null
+    },
+    {
+      "trial": "delivery-a2-locked-pip-serial-1",
+      "method": "wheelhouse-pip",
+      "workers": 1,
+      "packages_ready_seconds": 249.60070630908012,
+      "validated_ready_seconds": 265.82827067002654,
+      "acquisition_seconds": 130.08194414619356,
+      "scope": "continuous full-stack dependency delivery, not full Vast boot",
+      "observer_note": null
+    },
+    {
+      "trial": "delivery-a2-uv-prefetch-2-1",
+      "method": "wheelhouse-uv",
+      "workers": 2,
+      "packages_ready_seconds": 130.63514523790218,
+      "validated_ready_seconds": 147.58227429399267,
+      "acquisition_seconds": 94.08963793609291,
+      "scope": "continuous full-stack dependency delivery, not full Vast boot",
+      "observer_note": null
+    },
+    {
+      "trial": "delivery-a2-uv-prefetch-4-1",
+      "method": "wheelhouse-uv",
+      "workers": 4,
+      "packages_ready_seconds": 136.8062267259229,
+      "validated_ready_seconds": 153.32734176283702,
+      "acquisition_seconds": 100.83904722193256,
+      "scope": "continuous full-stack dependency delivery, not full Vast boot",
+      "observer_note": null
+    },
+    {
+      "trial": "delivery-a2-source-control-2",
+      "method": "source-pip",
+      "workers": 1,
+      "packages_ready_seconds": 278.8437715850305,
+      "validated_ready_seconds": 294.19081204594113,
+      "acquisition_seconds": 1.034976010909304,
+      "scope": "continuous full-stack dependency delivery, not full Vast boot",
+      "observer_note": null
+    },
+    {
+      "trial": "delivery-a2-uv-prefetch-4-2",
+      "method": "wheelhouse-uv",
+      "workers": 4,
+      "packages_ready_seconds": 116.0560055479873,
+      "validated_ready_seconds": 132.17552757798694,
+      "acquisition_seconds": 80.11666369717568,
+      "scope": "continuous full-stack dependency delivery, not full Vast boot",
+      "observer_note": null
+    },
+    {
+      "trial": "delivery-a2-source-control-3",
+      "method": "source-pip",
+      "workers": 1,
+      "packages_ready_seconds": 282.1896592990961,
+      "validated_ready_seconds": 297.6233644071035,
+      "acquisition_seconds": 0.9994630750734359,
+      "scope": "continuous full-stack dependency delivery, not full Vast boot",
+      "observer_note": null
+    },
+    {
+      "trial": "delivery-a2-uv-prefetch-4-3",
+      "method": "wheelhouse-uv",
+      "workers": 4,
+      "packages_ready_seconds": 117.76763721508905,
+      "validated_ready_seconds": 133.95289252814837,
+      "acquisition_seconds": 81.15966330398805,
+      "scope": "continuous full-stack dependency delivery, not full Vast boot",
+      "observer_note": "12.6 MB evidence collection occurred after acquisition, during install"
+    },
+    {
+      "trial": "delivery-clean-confirmation-4-4",
+      "method": "wheelhouse-uv",
+      "workers": 4,
+      "packages_ready_seconds": 115.33633901597932,
+      "validated_ready_seconds": 131.17682345304638,
+      "acquisition_seconds": 79.3892274859827,
+      "scope": "continuous full-stack dependency delivery, not full Vast boot",
+      "observer_note": null
+    }
+  ],
+  "summary": [
+    {
+      "method": "source-pip",
+      "workers": 1,
+      "n": 3,
+      "trials": [
+        "delivery-a2-source-control-1",
+        "delivery-a2-source-control-2",
+        "delivery-a2-source-control-3"
+      ],
+      "packages_ready_seconds": {
+        "individual": [
+          277.77568269497715,
+          278.8437715850305,
+          282.1896592990961
+        ],
+        "median": 278.8437715850305,
+        "min": 277.77568269497715,
+        "max": 282.1896592990961
+      },
+      "validated_ready_seconds": {
+        "individual": [
+          293.0496586000081,
+          294.19081204594113,
+          297.6233644071035
+        ],
+        "median": 294.19081204594113,
+        "min": 293.0496586000081,
+        "max": 297.6233644071035
+      },
+      "acquisition_seconds": {
+        "individual": [
+          1.1715136379934847,
+          1.034976010909304,
+          0.9994630750734359
+        ],
+        "median": 1.034976010909304,
+        "min": 0.9994630750734359,
+        "max": 1.1715136379934847
+      },
+      "median_validated_reduction_vs_source_percent": 0.0
+    },
+    {
+      "method": "wheelhouse-pip",
+      "workers": 1,
+      "n": 1,
+      "trials": [
+        "delivery-a2-locked-pip-serial-1"
+      ],
+      "packages_ready_seconds": {
+        "individual": [
+          249.60070630908012
+        ],
+        "median": 249.60070630908012,
+        "min": 249.60070630908012,
+        "max": 249.60070630908012
+      },
+      "validated_ready_seconds": {
+        "individual": [
+          265.82827067002654
+        ],
+        "median": 265.82827067002654,
+        "min": 265.82827067002654,
+        "max": 265.82827067002654
+      },
+      "acquisition_seconds": {
+        "individual": [
+          130.08194414619356
+        ],
+        "median": 130.08194414619356,
+        "min": 130.08194414619356,
+        "max": 130.08194414619356
+      },
+      "median_validated_reduction_vs_source_percent": 9.640865796816744
+    },
+    {
+      "method": "wheelhouse-uv",
+      "workers": 2,
+      "n": 1,
+      "trials": [
+        "delivery-a2-uv-prefetch-2-1"
+      ],
+      "packages_ready_seconds": {
+        "individual": [
+          130.63514523790218
+        ],
+        "median": 130.63514523790218,
+        "min": 130.63514523790218,
+        "max": 130.63514523790218
+      },
+      "validated_ready_seconds": {
+        "individual": [
+          147.58227429399267
+        ],
+        "median": 147.58227429399267,
+        "min": 147.58227429399267,
+        "max": 147.58227429399267
+      },
+      "acquisition_seconds": {
+        "individual": [
+          94.08963793609291
+        ],
+        "median": 94.08963793609291,
+        "min": 94.08963793609291,
+        "max": 94.08963793609291
+      },
+      "median_validated_reduction_vs_source_percent": 49.83450595630904
+    },
+    {
+      "method": "wheelhouse-uv",
+      "workers": 4,
+      "n": 4,
+      "trials": [
+        "delivery-a2-uv-prefetch-4-1",
+        "delivery-a2-uv-prefetch-4-2",
+        "delivery-a2-uv-prefetch-4-3",
+        "delivery-clean-confirmation-4-4"
+      ],
+      "packages_ready_seconds": {
+        "individual": [
+          136.8062267259229,
+          116.0560055479873,
+          117.76763721508905,
+          115.33633901597932
+        ],
+        "median": 116.91182138153818,
+        "min": 115.33633901597932,
+        "max": 136.8062267259229
+      },
+      "validated_ready_seconds": {
+        "individual": [
+          153.32734176283702,
+          132.17552757798694,
+          133.95289252814837,
+          131.17682345304638
+        ],
+        "median": 133.06421005306765,
+        "min": 131.17682345304638,
+        "max": 153.32734176283702
+      },
+      "acquisition_seconds": {
+        "individual": [
+          100.83904722193256,
+          80.11666369717568,
+          81.15966330398805,
+          79.3892274859827
+        ],
+        "median": 80.63816350058187,
+        "min": 79.3892274859827,
+        "max": 100.83904722193256
+      },
+      "median_validated_reduction_vs_source_percent": 54.76942018424145
+    }
+  ],
+  "clean_summary": [
+    {
+      "method": "source-pip",
+      "workers": 1,
+      "n": 3,
+      "trials": [
+        "delivery-a2-source-control-1",
+        "delivery-a2-source-control-2",
+        "delivery-a2-source-control-3"
+      ],
+      "validated_ready_seconds": {
+        "individual": [
+          293.0496586000081,
+          294.19081204594113,
+          297.6233644071035
+        ],
+        "median": 294.19081204594113,
+        "min": 293.0496586000081,
+        "max": 297.6233644071035
+      },
+      "median_validated_reduction_vs_source_percent": 0.0
+    },
+    {
+      "method": "wheelhouse-pip",
+      "workers": 1,
+      "n": 1,
+      "trials": [
+        "delivery-a2-locked-pip-serial-1"
+      ],
+      "validated_ready_seconds": {
+        "individual": [
+          265.82827067002654
+        ],
+        "median": 265.82827067002654,
+        "min": 265.82827067002654,
+        "max": 265.82827067002654
+      },
+      "median_validated_reduction_vs_source_percent": 9.640865796816744
+    },
+    {
+      "method": "wheelhouse-uv",
+      "workers": 2,
+      "n": 1,
+      "trials": [
+        "delivery-a2-uv-prefetch-2-1"
+      ],
+      "validated_ready_seconds": {
+        "individual": [
+          147.58227429399267
+        ],
+        "median": 147.58227429399267,
+        "min": 147.58227429399267,
+        "max": 147.58227429399267
+      },
+      "median_validated_reduction_vs_source_percent": 49.83450595630904
+    },
+    {
+      "method": "wheelhouse-uv",
+      "workers": 4,
+      "n": 3,
+      "trials": [
+        "delivery-a2-uv-prefetch-4-1",
+        "delivery-a2-uv-prefetch-4-2",
+        "delivery-clean-confirmation-4-4"
+      ],
+      "validated_ready_seconds": {
+        "individual": [
+          153.32734176283702,
+          132.17552757798694,
+          131.17682345304638
+        ],
+        "median": 132.17552757798694,
+        "min": 131.17682345304638,
+        "max": 153.32734176283702
+      },
+      "median_validated_reduction_vs_source_percent": 55.071497080831236
+    }
+  ],
+  "coverage_note": "This first-host input alone cannot decide whole-goal completion. See the separate canary/final-screen datasets and requirement coverage audit.",
+  "not_proven_by_this_input": [
+    "different-host confirmation",
+    "fresh-worker canary",
+    "final cleanup verification"
+  ],
+  "input_sha256": "66b74ae6806717235f5007b48b24ca289cde673fbbe0fd9e356af0fa1cb88ee0"
+}

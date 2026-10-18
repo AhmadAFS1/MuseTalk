@@ -1,0 +1,1335 @@
+{
+  "experiment": "musetalk-python-s3-venv-20261011-a2",
+  "ledger": {
+    "label": "musetalk-python-s3-venv-20261011-a2",
+    "state": "cleaned",
+    "instance_id": "55481655",
+    "machine_id": 136634,
+    "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
+    "template_hash": "4dc0868ee56886c667c217d6c3634a58",
+    "image": "vastai/pytorch:cuda-12.1-auto",
+    "deadline_utc": "2026-10-12T03:05:38+00:00",
+    "protected_instance_ids": [
+      "51074906"
+    ],
+    "budget_usd": 2,
+    "lifetime_seconds": 3600,
+    "poll_interval_seconds": 5,
+    "clock_domain": "EC2_collector_monotonic_single_process",
+    "stock_image_cache_state": "unknown",
+    "s3_session_expires_utc": "2026-10-12T03:05:38+00:00",
+    "ready_avatar_set": [
+      "en_01_maya_abe451d3_talking_f6cf8be7fb"
+    ],
+    "call_acceptance": "NOT_MEASURED_NO_ISOLATED_CONTROL_PLANE_ROUTE",
+    "allow_unverified": false,
+    "host_limit": null,
+    "request_started_utc": "2026-10-12T02:05:38.557288+00:00"
+  },
+  "offer": {
+    "id": 48396264,
+    "machine_id": 136634,
+    "host_id": 399360,
+    "geolocation": "United States, US",
+    "gpu_name": "RTX 3090",
+    "num_gpus": 1,
+    "cpu_cores_effective": 10,
+    "cpu_ram": 32224,
+    "disk_bw": 919.1,
+    "disk_space": 137.1375,
+    "inet_down": 927.2,
+    "inet_up": 874.6,
+    "inet_down_cost": 0.0013020833333333333,
+    "inet_up_cost": 0.0013020833333333333,
+    "dph_total": 0.2311111111111111,
+    "dph_total_adj": 0.2727777777777778,
+    "storage_cost": 0.39999999999999997,
+    "verification": "verified",
+    "reliability": 0.986161
+  },
+  "cleanup": {
+    "at_utc": "2026-10-12T03:05:39.767210+00:00",
+    "instance_id": "55481655",
+    "provider_absence_verified": true,
+    "protected_production_running": true
+  },
+  "manifest": {
+    "schema": "musetalk_python_venv_experiment_v1",
+    "label": "musetalk-python-s3-venv-20261011-a2",
+    "contract": {
+      "venv_path": "/workspace/.venvs/musetalk_trt_stagewise",
+      "platform": "linux-x86_64",
+      "matrix": "cu121",
+      "facts": {
+        "packages": {
+          "networkx": "3.4.2",
+          "msgpack": "1.2.2",
+          "markupsafe": "3.0.3",
+          "llvmlite": "0.49.0",
+          "lazy-loader": "0.5",
+          "jmespath": "1.1.0",
+          "imageio-ffmpeg": "0.6.0",
+          "idna": "3.19",
+          "setuptools": "60.2.0",
+          "pip": "26.2.1",
+          "packaging": "24.2",
+          "wheel": "0.48.0",
+          "tensorrt-cu12-bindings": "10.3.0",
+          "mpmath": "1.3.0",
+          "ifaddr": "0.2.0",
+          "antlr4-python3-runtime": "4.9.3",
+          "zipp": "4.1.0",
+          "urllib3": "1.26.20",
+          "typing_extensions": "4.16.0",
+          "tqdm": "4.65.2",
+          "threadpoolctl": "3.6.0",
+          "sympy": "1.13.1",
+          "soupsieve": "2.9.2",
+          "six": "1.17.0",
+          "safetensors": "0.7.0",
+          "regex": "2026.9.10",
+          "pyyaml": "6.0.3",
+          "python-multipart": "0.0.22",
+          "pysocks": "1.7.1",
+          "pycparser": "3.0",
+          "psutil": "7.2.2",
+          "protobuf": "7.36.1",
+          "propcache": "0.5.2",
+          "platformdirs": "4.11.8",
+          "pillow": "11.3.0",
+          "nvidia-nvtx-cu12": "12.1.105",
+          "nvidia-nvjitlink-cu12": "12.9.86",
+          "nvidia-nccl-cu12": "2.21.5",
+          "nvidia-curand-cu12": "10.3.2.106",
+          "nvidia-cufft-cu12": "11.0.2.54",
+          "nvidia-cuda-runtime-cu12": "12.1.105",
+          "nvidia-cuda-nvrtc-cu12": "12.1.105",
+          "nvidia-cuda-cupti-cu12": "12.1.105",
+          "nvidia-cublas-cu12": "12.1.3.1",
+          "numpy": "1.23.5",
+          "hf-xet": "1.6.0",
+          "h11": "0.16.0",
+          "google-crc32c": "1.8.0",
+          "future": "1.0.0",
+          "fsspec": "2026.7.0",
+          "frozenlist": "1.8.0",
+          "filelock": "3.14.0",
+          "einops": "0.8.1",
+          "dnspython": "2.8.0",
+          "decorator": "5.3.1",
+          "cloudpickle": "3.1.2",
+          "click": "8.5.0",
+          "charset-normalizer": "3.5.1",
+          "certifi": "2026.7.22",
+          "av": "16.1.0",
+          "audioread": "3.1.0",
+          "attrs": "26.1.0",
+          "async-timeout": "5.0.1",
+          "annotated-types": "0.8.0",
+          "annotated-doc": "0.0.5",
+          "aiohappyeyeballs": "2.7.1",
+          "aiofiles": "24.1.0",
+          "uvicorn": "0.42.0",
+          "typing-inspection": "0.4.4",
+          "triton": "3.1.0",
+          "tensorrt-cu12-libs": "10.3.0",
+          "soxr": "1.1.0",
+          "scipy": "1.15.3",
+          "requests": "2.28.2",
+          "python-dateutil": "2.9.0.post0",
+          "pyee": "13.0.1",
+          "pydantic_core": "2.46.5",
+          "opencv-python": "4.9.0.80",
+          "onnx": "1.17.0",
+          "omegaconf": "2.3.0",
+          "nvidia-cusparse-cu12": "12.1.0.106",
+          "nvidia-cudnn-cu12": "9.1.0.70",
+          "numba": "0.67.0",
+          "multidict": "6.8.0",
+          "joblib": "1.6.0",
+          "jinja2": "3.1.6",
+          "importlib_metadata": "9.0.1",
+          "imageio": "2.37.3",
+          "ffmpeg-python": "0.2.0",
+          "exceptiongroup": "1.3.1",
+          "cffi": "2.1.1",
+          "beautifulsoup4": "4.15.0",
+          "aiosignal": "1.4.0",
+          "aioice": "0.10.1",
+          "yarl": "1.24.5",
+          "tensorrt-cu12": "10.3.0",
+          "soundfile": "0.12.1",
+          "scikit-learn": "1.7.2",
+          "pylibsrtp": "1.0.0",
+          "pydantic": "2.13.5",
+          "pooch": "1.9.0",
+          "nvidia-cusolver-cu12": "11.4.5.107",
+          "huggingface-hub": "0.30.2",
+          "cryptography": "50.0.1",
+          "botocore": "1.42.97",
+          "anyio": "4.15.1",
+          "torch": "2.5.1+cu121",
+          "tokenizers": "0.15.2",
+          "starlette": "1.6.0",
+          "s3transfer": "0.16.1",
+          "pyopenssl": "26.4.0",
+          "librosa": "0.11.0",
+          "gdown": "6.2.0",
+          "diffusers": "0.30.2",
+          "aiohttp": "3.13.3",
+          "transformers": "4.39.2",
+          "torchvision": "0.20.1+cu121",
+          "torchaudio": "2.5.1+cu121",
+          "torch_tensorrt": "2.5.0",
+          "fastapi": "0.135.1",
+          "boto3": "1.42.97",
+          "aiortc": "1.14.0",
+          "accelerate": "0.28.0",
+          "rfc3986": "1.5.0",
+          "en_core_web_sm": "3.8.0",
+          "docopt": "0.6.2",
+          "addict": "2.4.0",
+          "wrapt": "2.5.0",
+          "wasabi": "1.1.3",
+          "uritemplate": "4.2.0",
+          "termcolor": "3.3.0",
+          "spacy-loggers": "1.0.5",
+          "spacy-legacy": "3.0.12",
+          "shellingham": "1.5.4",
+          "rpds-py": "0.30.0",
+          "pyparsing": "3.3.2",
+          "pygments": "2.21.0",
+          "num2words": "0.5.14",
+          "murmurhash": "1.0.15",
+          "misaki": "0.9.4",
+          "mdurl": "0.1.2",
+          "loguru": "0.7.3",
+          "language-tags": "1.3.1",
+          "isodate": "0.7.2",
+          "httpcore": "1.0.9",
+          "espeakng-loader": "0.2.4",
+          "dlinfo": "2.0.0",
+          "cymem": "2.0.13",
+          "curated-tokenizers": "0.0.10",
+          "confection": "1.3.3",
+          "cloudpathlib": "0.25.0",
+          "catalogue": "2.0.10",
+          "blis": "1.3.3",
+          "babel": "2.18.0",
+          "srsly": "2.5.3",
+          "smart_open": "8.0.1",
+          "referencing": "0.37.0",
+          "rdflib": "7.6.0",
+          "preshed": "3.0.13",
+          "markdown-it-py": "4.2.0",
+          "thinc": "8.3.13",
+          "rich": "15.0.0",
+          "jsonschema-specifications": "2025.9.1",
+          "httpx": "0.28.1",
+          "typer": "0.27.2",
+          "jsonschema": "4.26.0",
+          "curated-transformers": "0.1.1",
+          "weasel": "1.0.0",
+          "spacy-curated-transformers": "0.3.1",
+          "csvw": "4.1.0",
+          "spacy": "3.8.16",
+          "segments": "2.4.0",
+          "phonemizer-fork": "3.3.2",
+          "kokoro": "0.9.4",
+          "ninja": "1.13.2",
+          "mmcv": "2.1.0",
+          "chumpy": "0.70",
+          "munkres": "1.1.4",
+          "json-tricks": "3.17.3",
+          "tomli": "2.4.1",
+          "terminaltables": "3.1.10",
+          "shapely": "2.1.2",
+          "pycocotools": "2.0.11",
+          "kiwisolver": "1.5.1",
+          "fonttools": "4.65.0",
+          "cython": "3.3.0",
+          "cycler": "0.12.1",
+          "contourpy": "1.3.2",
+          "yapf": "0.43.0",
+          "matplotlib": "3.10.9",
+          "xtcocotools": "1.14.3",
+          "mmengine": "0.10.4",
+          "mmdet": "3.2.0",
+          "mmpose": "1.3.1"
+        },
+        "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+        "base_prefix": "/usr",
+        "base_executable": "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+        "editable_packages": []
+      },
+      "requirements_sha256": {
+        "requirements/README.md": "e923170cd2f24c30d09fb72cf61c67508639f2779a56889b21e0bae944377231",
+        "requirements/avatar-prep.in": "876ec1aba1fa0140c8ee9682d65906ed99b6eb6a77d0a06256382c51e43e16c7",
+        "requirements/chin-tools.in": "bc1e798d9a683a747b67639a0d0c99b043dbcf295adbb746b38b330818d8a168",
+        "requirements/constraints-chin-tools.txt": "cecb72dd69c7ae44bb8bd36e9dbd919ad4a5dcf5f2fba1f6f97a96dd936fb06b",
+        "requirements/constraints-cu121.txt": "a2a4acdd81244964d9ed20180a78c51e30e51c9cbc2c14788c308c7421c94d35",
+        "requirements/constraints-cu128.txt": "2b87acbffb70e688c02a7400e1a395e0ac36ae253f968984491a80d33a578ff9",
+        "requirements/kokoro.in": "fb4f8b539ccdb3b1f47f8d652ef027505dd9435d5e07bf3049fdf72bd79d3ca2",
+        "requirements/legacy-int8.in": "e0bcecc06f764ad493d8de62ec3f0a4e854a98ec8c43f4841fae5a77148d3724",
+        "requirements/server.in": "53bfc58316affb1b0caadbb527ca853d9c71be5203e6a7314963ab45082420ba"
+      },
+      "groups": {
+        "server": true,
+        "kokoro": true,
+        "avatar_prep": true,
+        "legacy_int8": false,
+        "chin_tools": false
+      },
+      "pyvenv_cfg": "home = /usr/bin\ninclude-system-site-packages = false\nversion = 3.10.12\n",
+      "symlinks": [
+        {
+          "path": "lib64",
+          "target": "lib"
+        },
+        {
+          "path": "bin/python3.10",
+          "target": "/usr/bin/python3.10"
+        },
+        {
+          "path": "bin/python",
+          "target": "python3.10"
+        },
+        {
+          "path": "bin/python3",
+          "target": "python3.10"
+        }
+      ],
+      "distro": "PRETTY_NAME=\"Ubuntu 22.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"22.04\"\nVERSION=\"22.04.5 LTS (Jammy Jellyfish)\"\nVERSION_CODENAME=jammy\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=jammy\n",
+      "libc": [
+        "glibc",
+        "2.35"
+      ]
+    },
+    "contract_sha256": "4cf134d4749f3fa5719a8df075c1f7b02b9f5a379feb7b4bea5eddcff2bd8599",
+    "archive_bytes": 4509211440,
+    "payload_file_bytes": 9883578602,
+    "archive_sha256": "cb3ff3402393debda89ff9e1db060c917ebf9649d7c1bea9be078ba62e3a538f",
+    "compression_seconds": 34.291,
+    "finalized_after_ssh_disconnect": true,
+    "hash_seconds": 19.955,
+    "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
+    "installer_sha256": "f11426550dc6e56e7e5a66e010443ff56417d53ad21cb9e6a0970c7e34b41eb8",
+    "external_assets_included": false,
+    "base_image": "vastai/pytorch:cuda-12.1-auto",
+    "base_image_digest": "provider image_uuid recorded separately; immutable digest not supplied"
+  },
+  "events": [
+    {
+      "stage": "PREFLIGHT_PASS",
+      "at_utc": "2026-10-12T02:05:38.556947+00:00",
+      "offer_id": 48396264,
+      "disk_gb": 128,
+      "lifetime_seconds": 3600,
+      "budget_usd": 2,
+      "note": "No production config/IAM/template changes; installation unchanged"
+    },
+    {
+      "stage": "REQUEST_STARTED",
+      "at_utc": "2026-10-12T02:05:38.557528+00:00",
+      "elapsed_seconds": 0
+    },
+    {
+      "stage": "PROVIDER_ACCEPTED",
+      "at_utc": "2026-10-12T02:05:38.907596+00:00",
+      "instance_id": "55481655",
+      "elapsed_seconds": 0.35
+    },
+    {
+      "stage": "TEST_SSH_KEY_ATTACH",
+      "at_utc": "2026-10-12T02:05:39.073807+00:00",
+      "instance_id": "55481655",
+      "http_status": 200,
+      "key_sha256": "427f73446a3568ea389169ae731fe840a9bca145827904794f9e2673f1cc05f3",
+      "scope": "Owned retry worker only",
+      "elapsed_seconds": 0.517
+    },
+    {
+      "stage": "PROVIDER_STATE",
+      "at_utc": "2026-10-12T02:05:39.076044+00:00",
+      "actual_status": null,
+      "cur_state": "running",
+      "elapsed_seconds": 0.519
+    },
+    {
+      "stage": "PROVIDER_STATE",
+      "at_utc": "2026-10-12T02:06:10.017768+00:00",
+      "actual_status": "loading",
+      "cur_state": "running",
+      "elapsed_seconds": 31.461
+    },
+    {
+      "stage": "PROVIDER_STATE",
+      "at_utc": "2026-10-12T02:06:30.410182+00:00",
+      "actual_status": "running",
+      "cur_state": "running",
+      "elapsed_seconds": 51.853
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:07:08.946286+00:00",
+      "mode": "probe",
+      "part": null,
+      "returncode": 0,
+      "stdout_bytes": 232,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false,
+      "elapsed_seconds": 90.389
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:07:08.946539+00:00",
+      "mode": "probe",
+      "worker_stage": "WORKER_STARTED",
+      "elapsed_seconds": 90.389
+    },
+    {
+      "stage": "SSH_READY",
+      "at_utc": "2026-10-12T02:07:08.947095+00:00",
+      "worker_utc": "2026-10-12T02:07:06.166387+00:00",
+      "cache_state": "unknown",
+      "elapsed_seconds": 90.39
+    },
+    {
+      "stage": "PROVIDER_READ_RETRY",
+      "at_utc": "2026-10-12T02:10:46.004195+00:00",
+      "consecutive_failures": 1,
+      "http_status": 429,
+      "timeout_mentioned": false,
+      "create_retried": false,
+      "raw_error_body_saved": false,
+      "elapsed_seconds": 307.447
+    },
+    {
+      "stage": "PROVIDER_READ_RETRY",
+      "at_utc": "2026-10-12T02:25:44.355939+00:00",
+      "consecutive_failures": 1,
+      "http_status": 429,
+      "timeout_mentioned": false,
+      "create_retried": false,
+      "raw_error_body_saved": false,
+      "elapsed_seconds": 1205.799
+    },
+    {
+      "stage": "PROVIDER_READ_RETRY",
+      "at_utc": "2026-10-12T02:26:13.405227+00:00",
+      "consecutive_failures": 1,
+      "http_status": 429,
+      "timeout_mentioned": false,
+      "create_retried": false,
+      "raw_error_body_saved": false,
+      "elapsed_seconds": 1234.848
+    },
+    {
+      "stage": "PROVIDER_READ_RETRY",
+      "at_utc": "2026-10-12T02:28:32.486853+00:00",
+      "consecutive_failures": 1,
+      "http_status": 429,
+      "timeout_mentioned": false,
+      "create_retried": false,
+      "raw_error_body_saved": false,
+      "elapsed_seconds": 1373.93
+    },
+    {
+      "stage": "HEALTH_READY",
+      "at_utc": "2026-10-12T02:32:43.868154+00:00",
+      "health_not_full_call_acceptance": true,
+      "elapsed_seconds": 1625.311
+    },
+    {
+      "stage": "BASELINE_VIDEO_DEFERRED",
+      "at_utc": "2026-10-12T02:32:44.225655+00:00",
+      "reason": "Validate after restoring identical dependency environment",
+      "elapsed_seconds": 1625.668
+    },
+    {
+      "stage": "BASELINE_DIAGNOSTIC_COMPLETE",
+      "at_utc": "2026-10-12T02:32:47.199088+00:00",
+      "full_scaleout_call_acceptance": false,
+      "elapsed_seconds": 1628.642
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:33:43.822706+00:00",
+      "mode": "build",
+      "part": null,
+      "returncode": 255,
+      "stdout_bytes": 1469,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [],
+      "raw_stderr_saved": false,
+      "elapsed_seconds": 1685.265
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:33:43.823074+00:00",
+      "mode": "build",
+      "worker_stage": "WORKER_STARTED",
+      "elapsed_seconds": 1685.266
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:33:43.823241+00:00",
+      "worker_monotonic": 692590.560128559,
+      "executable": "python",
+      "log": null,
+      "worker_stage": "COMMAND_STARTED",
+      "elapsed_seconds": 1685.266
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:33:43.823389+00:00",
+      "worker_monotonic": 692590.963557395,
+      "executable": "python",
+      "log": null,
+      "returncode": 0,
+      "seconds": 0.403,
+      "worker_stage": "COMMAND_COMPLETED",
+      "elapsed_seconds": 1685.266
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:33:43.823530+00:00",
+      "worker_monotonic": 692590.964323748,
+      "executable": "bash",
+      "log": "install-check.log",
+      "worker_stage": "COMMAND_STARTED",
+      "elapsed_seconds": 1685.266
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:33:43.823670+00:00",
+      "worker_monotonic": 692601.738864823,
+      "executable": "bash",
+      "log": "install-check.log",
+      "returncode": 0,
+      "seconds": 10.775,
+      "worker_stage": "COMMAND_COMPLETED",
+      "elapsed_seconds": 1685.266
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:33:43.823789+00:00",
+      "worker_monotonic": 692601.739386741,
+      "executable": "python",
+      "log": "gpu-selftest.log",
+      "worker_stage": "COMMAND_STARTED",
+      "elapsed_seconds": 1685.267
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:33:43.823908+00:00",
+      "worker_monotonic": 692614.380234025,
+      "executable": "python",
+      "log": "gpu-selftest.log",
+      "returncode": 0,
+      "seconds": 12.641,
+      "worker_stage": "COMMAND_COMPLETED",
+      "elapsed_seconds": 1685.267
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:33:43.824034+00:00",
+      "worker_monotonic": 692614.380645617,
+      "seconds": 23.416,
+      "cuda_ok": true,
+      "trt_import_ok": true,
+      "pip_install_executed": false,
+      "note": "check-only installer; selftest does not torch.compile or build TensorRT plans",
+      "worker_stage": "VALIDATION_PASS",
+      "elapsed_seconds": 1685.267
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:33:43.824155+00:00",
+      "worker_monotonic": 692614.381184093,
+      "executable": "bash",
+      "log": "baseline-stop.log",
+      "worker_stage": "COMMAND_STARTED",
+      "elapsed_seconds": 1685.267
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:33:43.824291+00:00",
+      "worker_monotonic": 692622.715933854,
+      "executable": "bash",
+      "log": "baseline-stop.log",
+      "returncode": 0,
+      "seconds": 8.335,
+      "worker_stage": "COMMAND_COMPLETED",
+      "elapsed_seconds": 1685.267
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:33:43.824407+00:00",
+      "worker_monotonic": 692625.890473644,
+      "executable": "tar",
+      "log": "archive-build.log",
+      "worker_stage": "COMMAND_STARTED",
+      "elapsed_seconds": 1685.267
+    },
+    {
+      "stage": "VENV_EXPERIMENT_FAILED",
+      "at_utc": "2026-10-12T02:33:43.824531+00:00",
+      "error_type": "ValueError",
+      "safe_detail": "Owned-worker operation failed; inspect safe worker evidence",
+      "elapsed_seconds": 1685.267
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:33:49.872282+00:00",
+      "mode": "diagnose",
+      "part": null,
+      "returncode": 0,
+      "stdout_bytes": 14261,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false,
+      "elapsed_seconds": 1691.315
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:33:49.872565+00:00",
+      "mode": "diagnose",
+      "worker_stage": "WORKER_STARTED",
+      "elapsed_seconds": 1691.315
+    },
+    {
+      "stage": "FAILED_WORKER_PRESERVED_UNTIL_EXPIRY",
+      "at_utc": "2026-10-12T02:33:49.873332+00:00",
+      "deadline_utc": "2026-10-12T03:05:38+00:00",
+      "remaining_seconds": 1908.1,
+      "new_instance_created": false,
+      "elapsed_seconds": 1691.316
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:41:18.288951+00:00",
+      "mode": "diagnose",
+      "part": null,
+      "returncode": 0,
+      "stdout_bytes": 14491,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:41:18.289268+00:00",
+      "mode": "diagnose",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:41:18.947182+00:00",
+      "mode": "finalize",
+      "part": null,
+      "returncode": 255,
+      "stdout_bytes": 0,
+      "stderr_bytes": 47,
+      "stderr_sha256": "dfada725c640a6e08deba02c1ec71389f5d3dde25baf87e7b12b2b44f55f77c1",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:46:52.232301+00:00",
+      "mode": "diagnose",
+      "part": null,
+      "returncode": 0,
+      "stdout_bytes": 14491,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:46:52.232629+00:00",
+      "mode": "diagnose",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:47:22.882313+00:00",
+      "mode": "finalize",
+      "part": null,
+      "returncode": 255,
+      "stdout_bytes": 1355,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:47:22.882661+00:00",
+      "mode": "finalize",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:47:22.882841+00:00",
+      "worker_monotonic": 693435.672718656,
+      "executable": "python",
+      "log": null,
+      "worker_stage": "COMMAND_STARTED"
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:47:22.882972+00:00",
+      "worker_monotonic": 693436.070514221,
+      "executable": "python",
+      "log": null,
+      "returncode": 0,
+      "seconds": 0.398,
+      "worker_stage": "COMMAND_COMPLETED"
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:47:22.883086+00:00",
+      "worker_monotonic": 693436.071143752,
+      "executable": "bash",
+      "log": "install-check.log",
+      "worker_stage": "COMMAND_STARTED"
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:47:22.883197+00:00",
+      "worker_monotonic": 693446.072855406,
+      "executable": "bash",
+      "log": "install-check.log",
+      "returncode": 0,
+      "seconds": 10.002,
+      "worker_stage": "COMMAND_COMPLETED"
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:47:22.883312+00:00",
+      "worker_monotonic": 693446.073251836,
+      "executable": "python",
+      "log": "gpu-selftest.log",
+      "worker_stage": "COMMAND_STARTED"
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:47:22.883424+00:00",
+      "worker_monotonic": 693455.999072019,
+      "executable": "python",
+      "log": "gpu-selftest.log",
+      "returncode": 0,
+      "seconds": 9.926,
+      "worker_stage": "COMMAND_COMPLETED"
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:47:22.883543+00:00",
+      "worker_monotonic": 693455.999822691,
+      "seconds": 19.929,
+      "cuda_ok": true,
+      "trt_import_ok": true,
+      "pip_install_executed": false,
+      "note": "check-only installer; selftest does not torch.compile or build TensorRT plans",
+      "worker_stage": "VALIDATION_PASS"
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:47:22.883656+00:00",
+      "worker_monotonic": 693456.000784378,
+      "executable": "bash",
+      "log": "baseline-stop.log",
+      "worker_stage": "COMMAND_STARTED"
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:47:22.883772+00:00",
+      "worker_monotonic": 693456.024472973,
+      "executable": "bash",
+      "log": "baseline-stop.log",
+      "returncode": 0,
+      "seconds": 0.024,
+      "worker_stage": "COMMAND_COMPLETED"
+    },
+    {
+      "stage": "SAME_INSTANCE_RECOVERY_STARTED",
+      "at_utc": "2026-10-12T02:55:30.028795+00:00",
+      "deadline_utc": "2026-10-12T03:05:38+00:00",
+      "lease_extended": false
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:56:01.827401+00:00",
+      "mode": "verify_archive",
+      "part": null,
+      "returncode": 0,
+      "stdout_bytes": 7849,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:56:01.827673+00:00",
+      "mode": "verify_archive",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:56:01.830301+00:00",
+      "worker_monotonic": 693981.988557546,
+      "executable": "python",
+      "log": null,
+      "worker_stage": "COMMAND_STARTED"
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:56:01.830504+00:00",
+      "worker_monotonic": 693982.38432722,
+      "executable": "python",
+      "log": null,
+      "returncode": 0,
+      "seconds": 0.396,
+      "worker_stage": "COMMAND_COMPLETED"
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:56:01.830648+00:00",
+      "worker_monotonic": 693982.385024644,
+      "archive_bytes": 4509211440,
+      "worker_stage": "COMPLETED_ARCHIVE_REVERIFIED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:56:22.835175+00:00",
+      "mode": "upload_part",
+      "part": 3,
+      "returncode": 0,
+      "stdout_bytes": 175,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:56:22.835432+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_TRANSPORT_RETRY",
+      "at_utc": "2026-10-12T02:56:28.638710+00:00",
+      "mode": "upload_part",
+      "part": 5,
+      "attempt": 1,
+      "returncode": 255,
+      "stdout_bytes": 51,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_TRANSPORT_RETRY",
+      "at_utc": "2026-10-12T02:56:28.638971+00:00",
+      "mode": "upload_part",
+      "part": 4,
+      "attempt": 1,
+      "returncode": 255,
+      "stdout_bytes": 51,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_TRANSPORT_RETRY",
+      "at_utc": "2026-10-12T02:56:28.639110+00:00",
+      "mode": "upload_part",
+      "part": 2,
+      "attempt": 1,
+      "returncode": 255,
+      "stdout_bytes": 51,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_TRANSPORT_RETRY",
+      "at_utc": "2026-10-12T02:56:28.638258+00:00",
+      "mode": "upload_part",
+      "part": 1,
+      "attempt": 1,
+      "returncode": 255,
+      "stdout_bytes": 51,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:56:54.105361+00:00",
+      "mode": "upload_part",
+      "part": 2,
+      "returncode": 0,
+      "stdout_bytes": 175,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:56:54.105721+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:56:58.275086+00:00",
+      "mode": "upload_part",
+      "part": 5,
+      "returncode": 0,
+      "stdout_bytes": 175,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:56:58.275797+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:57:02.944804+00:00",
+      "mode": "upload_part",
+      "part": 1,
+      "returncode": 0,
+      "stdout_bytes": 175,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:57:02.946801+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:57:19.025487+00:00",
+      "mode": "upload_part",
+      "part": 4,
+      "returncode": 0,
+      "stdout_bytes": 175,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:57:19.025759+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:57:22.768181+00:00",
+      "mode": "upload_part",
+      "part": 8,
+      "returncode": 0,
+      "stdout_bytes": 175,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:57:22.768428+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:57:26.564269+00:00",
+      "mode": "upload_part",
+      "part": 6,
+      "returncode": 0,
+      "stdout_bytes": 175,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:57:26.564523+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:57:31.993863+00:00",
+      "mode": "upload_part",
+      "part": 7,
+      "returncode": 0,
+      "stdout_bytes": 175,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:57:31.994119+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:57:51.988520+00:00",
+      "mode": "upload_part",
+      "part": 10,
+      "returncode": 0,
+      "stdout_bytes": 176,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:57:51.988771+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:57:53.339836+00:00",
+      "mode": "upload_part",
+      "part": 9,
+      "returncode": 0,
+      "stdout_bytes": 174,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:57:53.340082+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_TRANSPORT_RETRY",
+      "at_utc": "2026-10-12T02:57:59.549729+00:00",
+      "mode": "upload_part",
+      "part": 11,
+      "attempt": 1,
+      "returncode": 255,
+      "stdout_bytes": 51,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_TRANSPORT_RETRY",
+      "at_utc": "2026-10-12T02:57:59.550134+00:00",
+      "mode": "upload_part",
+      "part": 12,
+      "attempt": 1,
+      "returncode": 255,
+      "stdout_bytes": 51,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_TRANSPORT_RETRY",
+      "at_utc": "2026-10-12T02:57:59.551246+00:00",
+      "mode": "upload_part",
+      "part": 13,
+      "attempt": 1,
+      "returncode": 255,
+      "stdout_bytes": 51,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_TRANSPORT_RETRY",
+      "at_utc": "2026-10-12T02:57:59.551820+00:00",
+      "mode": "upload_part",
+      "part": 14,
+      "attempt": 1,
+      "returncode": 255,
+      "stdout_bytes": 51,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:58:28.691579+00:00",
+      "mode": "upload_part",
+      "part": 14,
+      "returncode": 0,
+      "stdout_bytes": 176,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:58:28.691826+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:58:38.058461+00:00",
+      "mode": "upload_part",
+      "part": 11,
+      "returncode": 0,
+      "stdout_bytes": 176,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:58:38.058847+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:58:38.229657+00:00",
+      "mode": "upload_part",
+      "part": 13,
+      "returncode": 0,
+      "stdout_bytes": 176,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:58:38.229994+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:58:41.761600+00:00",
+      "mode": "upload_part",
+      "part": 12,
+      "returncode": 0,
+      "stdout_bytes": 176,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:58:41.761839+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_INVOCATION_RESULT",
+      "at_utc": "2026-10-12T02:58:57.157755+00:00",
+      "mode": "upload_part",
+      "part": 15,
+      "returncode": 0,
+      "stdout_bytes": 175,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T02:58:57.158079+00:00",
+      "mode": "upload_part",
+      "worker_stage": "WORKER_STARTED"
+    },
+    {
+      "stage": "WORKER_TRANSPORT_RETRY",
+      "at_utc": "2026-10-12T02:59:30.577817+00:00",
+      "mode": "upload_part",
+      "part": 18,
+      "attempt": 1,
+      "returncode": 255,
+      "stdout_bytes": 51,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_TRANSPORT_RETRY",
+      "at_utc": "2026-10-12T02:59:30.578268+00:00",
+      "mode": "upload_part",
+      "part": 16,
+      "attempt": 1,
+      "returncode": 255,
+      "stdout_bytes": 51,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_TRANSPORT_RETRY",
+      "at_utc": "2026-10-12T02:59:30.579344+00:00",
+      "mode": "upload_part",
+      "part": 17,
+      "attempt": 1,
+      "returncode": 255,
+      "stdout_bytes": 51,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "WORKER_TRANSPORT_RETRY",
+      "at_utc": "2026-10-12T02:59:30.580385+00:00",
+      "mode": "upload_part",
+      "part": 19,
+      "attempt": 1,
+      "returncode": 255,
+      "stdout_bytes": 51,
+      "stderr_bytes": 169,
+      "stderr_sha256": "14e21caffe35376541f3fffafffd361a9088b067bfc433b061ef7b47b5812735",
+      "error_categories": [
+        "peer_closed"
+      ],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "DURABLE_MULTIPART_RESUME",
+      "at_utc": "2026-10-12T03:04:34.890970+00:00",
+      "known_parts": 19,
+      "missing_parts": [
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34
+      ],
+      "create_retried": false
+    },
+    {
+      "stage": "MANUAL_PUBLICATION_FAILED",
+      "at_utc": "2026-10-12T03:05:27.133389+00:00",
+      "error_type": "ValueError"
+    },
+    {
+      "stage": "CLEANUP_VERIFIED",
+      "at_utc": "2026-10-12T03:05:39.767210+00:00",
+      "instance_id": "55481655",
+      "provider_absence_verified": true,
+      "protected_production_running": true
+    }
+  ],
+  "installer_phases": [
+    "[install_musetalk.sh][PHASE][2026-10-12T02:11:01+0000] DONE: Phase 0: Preflight (0s)",
+    "[install_musetalk.sh][STEP][2026-10-12T02:11:29+0000] DONE: Phase 1: System packages :: Install system packages (apt) (28s)",
+    "[install_musetalk.sh][PHASE][2026-10-12T02:11:29+0000] DONE: Phase 1: System packages (28s)",
+    "[install_musetalk.sh][STEP][2026-10-12T02:11:45+0000] DONE: Phase 2: Venv :: Create venv (python3.10) (16s)",
+    "[install_musetalk.sh][PHASE][2026-10-12T02:11:45+0000] DONE: Phase 2: Venv (16s)",
+    "[install_musetalk.sh][STEP][2026-10-12T02:25:21+0000] DONE: Phase 3: Python packages :: Install server packages (server.in) (13m36s)",
+    "[install_musetalk.sh][STEP][2026-10-12T02:27:13+0000] DONE: Phase 3: Python packages :: Install Kokoro packages (kokoro.in) (1m52s)",
+    "[install_musetalk.sh][STEP][2026-10-12T02:28:19+0000] DONE: Phase 3: Python packages :: Install avatar-prep stack (mmcv/mmdet/mmpose) (1m06s)",
+    "[install_musetalk.sh][PHASE][2026-10-12T02:28:19+0000] DONE: Phase 3: Python packages (16m34s)",
+    "[install_musetalk.sh][STEP][2026-10-12T02:29:37+0000] DONE: Phase 4: Weights :: Download weights (MuseTalk V1.5, SD-VAE, Whisper, face-parse, TAESD, Kokoro cache) (1m18s)",
+    "[install_musetalk.sh][PHASE][2026-10-12T02:29:37+0000] DONE: Phase 4: Weights (1m18s)",
+    "[install_musetalk.sh][STEP][2026-10-12T02:29:40+0000] DONE: Phase 5: Native VP8 :: Install + verify + preflight native VP8 (auto) (3s)",
+    "[install_musetalk.sh][PHASE][2026-10-12T02:29:40+0000] DONE: Phase 5: Native VP8 (3s)",
+    "[install_musetalk.sh][PHASE][2026-10-12T02:29:40+0000] DONE: Phase 6: Chin tools (0s)",
+    "[install_musetalk.sh][STEP][2026-10-12T02:29:53+0000] DONE: Phase 7: Verify :: CPU import smoke (CUDA hidden) (13s)",
+    "[install_musetalk.sh][STEP][2026-10-12T02:30:56+0000] DONE: Phase 7: Verify :: GPU self-test (TAESD compile/timing, TRT import, engine keys) (1m03s)",
+    "[install_musetalk.sh][PHASE][2026-10-12T02:30:56+0000] DONE: Phase 7: Verify (1m16s)",
+    "[install_musetalk.sh][STEP][2026-10-12T02:30:56+0000] DONE: Phase 8: Stamp :: Write /workspace/MuseTalk/.runtime/install_state.json (0s)",
+    "[install_musetalk.sh][PHASE][2026-10-12T02:30:56+0000] DONE: Phase 8: Stamp (0s)",
+    "[install_musetalk.sh][STEP][2026-10-12T02:30:57+0000] DONE: Phase 9: Post-install check :: Post-install --check (1s)",
+    "[install_musetalk.sh][PHASE][2026-10-12T02:30:57+0000] DONE: Phase 9: Post-install check (1s)"
+  ],
+  "startup_timings": [
+    "[vast_onstart.sh] [02:30:57] Bootstrap/setup phase finished in 19m56s",
+    "[vast_onstart.sh] [02:31:04] Runtime secret bootstrap phase finished in 0s",
+    "[vast_onstart.sh] [02:31:05] WebRTC TURN bootstrap phase finished in 1s",
+    "[vast_onstart.sh] [02:32:02] r5 engine bundle phase finished in 57s",
+    "[vast_onstart.sh] [02:32:02] Engine provisioning phase finished in 0s",
+    "[vast_onstart.sh] [02:32:40] Server start-to-health-and-verify phase finished in 38s",
+    "TOTAL ELAPSED: 21m40s"
+  ],
+  "archive_published": false,
+  "restore_measured": false,
+  "multipart_cleanup_reverified": true,
+  "diagnostic_manifest_s3_key": "python-venv/20261011/musetalk-python-s3-venv-20261011-a2/diagnostics/environment-manifest-only.json"
+}

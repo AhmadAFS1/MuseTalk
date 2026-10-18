@@ -1,0 +1,3051 @@
+{
+  "scope": "interim different-host canary; not a matched source-pip effect estimate",
+  "goal_complete": false,
+  "offer": {
+    "id": 48396264,
+    "machine_id": 136634,
+    "host_id": 399360,
+    "geolocation": "United States, US",
+    "verification": "verified",
+    "gpu_name": "RTX 3090",
+    "num_gpus": 1,
+    "cpu_cores_effective": 10.0,
+    "cpu_ram": 32224,
+    "disk_bw": 1079.0,
+    "disk_space": 131.0,
+    "storage_cost": 0.39999999999999997,
+    "inet_down": 938.7,
+    "inet_up": 818.8,
+    "inet_down_cost": 0.0013020833333333333,
+    "inet_up_cost": 0.0013020833333333333,
+    "dph_total": 0.21555555555555556,
+    "dph_total_adj": 0.24810763888888887,
+    "reliability": 0.9895039
+  },
+  "ledger": {
+    "label": "musetalk-dependency-canary-20261016-a1",
+    "state": "cleaned",
+    "instance_id": "56211950",
+    "machine_id": 136634,
+    "protected_instance_ids": [
+      "51074906",
+      "56208380"
+    ],
+    "deadline_utc": "2026-10-16T07:38:00+00:00",
+    "lifetime_seconds": 3600,
+    "budget_usd": 2,
+    "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
+    "purpose": "fresh verified US second-host canary; final locked installer on stock template",
+    "s3_session_expires_utc": "2026-10-16T07:38:00+00:00",
+    "create_requests": 1,
+    "request_started_utc": "2026-10-16T06:38:00.224719+00:00",
+    "provider_accepted_utc": "2026-10-16T06:38:00.517917+00:00",
+    "create_seconds": 0.2927103377878666,
+    "ssh_key_attached": true
+  },
+  "worker_latest": {
+    "worker_utc": "2026-10-16T07:02:49.499469+00:00",
+    "health": {
+      "status": 200,
+      "ok": true,
+      "service": "musetalk"
+    },
+    "timing_lines": [
+      "[download_weights.sh][STEP][2026-10-16T06:57:03+0000] DONE: Phase 1: Prepare weight download environment :: Install download helper utilities (2s)",
+      "[download_weights.sh][PHASE][2026-10-16T06:57:03+0000] DONE: Phase 1: Prepare weight download environment (3s)",
+      "[download_weights.sh][STEP][2026-10-16T06:58:18+0000] DONE: Phase 2: Download model weight groups in parallel :: Download MuseTalk model weights (1m15s)",
+      "[download_weights.sh][STEP][2026-10-16T06:58:18+0000] DONE: Phase 2: Download model weight groups in parallel :: Download base runtime model weights (1m11s)",
+      "[download_weights.sh][STEP][2026-10-16T06:58:58+0000] DONE: Phase 2: Download model weight groups in parallel :: Download avatar-preparation model weights (1m55s)",
+      "[download_weights.sh][STEP][2026-10-16T06:58:59+0000] DONE: Phase 2: Download model weight groups in parallel :: Download face parsing support weights (56s)",
+      "[download_weights.sh][STEP][2026-10-16T06:58:59+0000] DONE: Phase 2: Download model weight groups in parallel :: Download Kokoro TTS cache (optional) (47s)",
+      "[download_weights.sh][PHASE][2026-10-16T06:58:59+0000] DONE: Phase 2: Download model weight groups in parallel (1m56s)",
+      "[download_weights.sh][STEP][2026-10-16T06:58:59+0000] DONE: Phase 3: Validate downloaded model set :: Validate required model files (0s)",
+      "[download_weights.sh][PHASE][2026-10-16T06:58:59+0000] DONE: Phase 3: Validate downloaded model set (0s)",
+      "[install_musetalk.sh][STEP][2026-10-16T06:58:59+0000] DONE: Phase 4: Weights :: Download weights (MuseTalk V1.5, SD-VAE, Whisper, face-parse, TAESD, Kokoro cache) (1m59s)",
+      "[install_musetalk.sh][PHASE][2026-10-16T06:58:59+0000] DONE: Phase 4: Weights (1m59s)",
+      "[install_musetalk.sh][STEP][2026-10-16T06:59:03+0000] DONE: Phase 5: Native VP8 :: Install + verify + preflight native VP8 (auto) (4s)",
+      "[install_musetalk.sh][PHASE][2026-10-16T06:59:03+0000] DONE: Phase 5: Native VP8 (4s)",
+      "[install_musetalk.sh][PHASE][2026-10-16T06:59:03+0000] DONE: Phase 6: Chin tools (0s)",
+      "[install_musetalk.sh][STEP][2026-10-16T06:59:17+0000] DONE: Phase 7: Verify :: CPU import smoke (CUDA hidden) (14s)",
+      "[install_musetalk.sh][STEP][2026-10-16T07:00:24+0000] DONE: Phase 7: Verify :: GPU self-test (TAESD compile/timing, TRT import, engine keys) (1m07s)",
+      "[install_musetalk.sh][PHASE][2026-10-16T07:00:24+0000] DONE: Phase 7: Verify (1m21s)",
+      "[install_musetalk.sh][STEP][2026-10-16T07:00:25+0000] DONE: Phase 8: Stamp :: Write /workspace/MuseTalk/.runtime/install_state.json (1s)",
+      "[install_musetalk.sh][PHASE][2026-10-16T07:00:25+0000] DONE: Phase 8: Stamp (1s)",
+      "[install_musetalk.sh][STEP][2026-10-16T07:00:25+0000] DONE: Phase 9: Post-install check :: Post-install --check (0s)",
+      "[install_musetalk.sh][PHASE][2026-10-16T07:00:25+0000] DONE: Phase 9: Post-install check (0s)",
+      "[vast_onstart.sh] [07:00:25] Bootstrap/setup phase finished in 12m26s",
+      "[vast_onstart.sh] [07:00:33] Runtime secret bootstrap phase finished in 0s",
+      "[vast_onstart.sh] [07:00:35] WebRTC TURN bootstrap phase finished in 2s",
+      "[vast_onstart.sh] [07:01:43] r5 engine bundle phase finished in 1m08s",
+      "[vast_onstart.sh] [07:01:43] Engine provisioning phase finished in 0s",
+      "[vast_onstart.sh] [07:02:17] Server start-to-health-and-verify phase finished in 34s",
+      "VAST_ONSTART COMPLETE: 2026-10-16 07:02:17 UTC",
+      "TOTAL ELAPSED: 14m18s"
+    ],
+    "free_disk_bytes": 67808174080
+  },
+  "dependency_stage": {
+    "receipt_present": true,
+    "state": "accepted",
+    "seconds": 511.09709611395374,
+    "acquisition_seconds": 431.2745555958245,
+    "steps": [
+      {
+        "step": "venv",
+        "seconds": 4.780502784997225,
+        "exit_status": 0,
+        "child_cpu_seconds": 4.7374909999999995,
+        "child_output_blocks": 42536,
+        "child_maxrss_kib_cumulative_high_water": 116536,
+        "log": "venv.log"
+      },
+      {
+        "step": "bootstrap",
+        "seconds": 3.324210191844031,
+        "exit_status": 0,
+        "child_cpu_seconds": 3.2401300000000006,
+        "child_output_blocks": 34240,
+        "child_maxrss_kib_cumulative_high_water": 116536,
+        "log": "bootstrap.log"
+      },
+      {
+        "step": "install-server",
+        "seconds": 55.213334317086264,
+        "exit_status": 0,
+        "child_cpu_seconds": 184.15257899999997,
+        "child_output_blocks": 18467488,
+        "child_maxrss_kib_cumulative_high_water": 205120,
+        "log": "install-server.log"
+      },
+      {
+        "step": "install-server+kokoro",
+        "seconds": 2.5209078940097243,
+        "exit_status": 0,
+        "child_cpu_seconds": 11.671991999999989,
+        "child_output_blocks": 638280,
+        "child_maxrss_kib_cumulative_high_water": 205120,
+        "log": "install-server+kokoro.log"
+      },
+      {
+        "step": "install-full",
+        "seconds": 3.1235069818794727,
+        "exit_status": 0,
+        "child_cpu_seconds": 15.599482000000023,
+        "child_output_blocks": 481496,
+        "child_maxrss_kib_cumulative_high_water": 205120,
+        "log": "install-full.log"
+      },
+      {
+        "step": "pip-check",
+        "seconds": 1.2682962289545685,
+        "exit_status": 0,
+        "child_cpu_seconds": 1.2470509999999706,
+        "child_output_blocks": 8,
+        "child_maxrss_kib_cumulative_high_water": 205120,
+        "log": "pip-check.log"
+      }
+    ],
+    "slow_artifacts": [
+      {
+        "name": "tensorrt-cu12-libs",
+        "state": "downloaded-verified",
+        "bytes": 2037510258,
+        "transferred_bytes": 2037510258,
+        "remote_transferred_bytes": 2037510258,
+        "local_copied_bytes": 0,
+        "attempts": 1,
+        "seconds": 431.2702956961002,
+        "origin": "pypi.nvidia.com"
+      },
+      {
+        "name": "nvidia-cudnn-cu12",
+        "state": "downloaded-verified",
+        "bytes": 664752741,
+        "transferred_bytes": 664752741,
+        "remote_transferred_bytes": 664752741,
+        "local_copied_bytes": 0,
+        "attempts": 1,
+        "seconds": 156.11660307715647,
+        "origin": "download.pytorch.org"
+      },
+      {
+        "name": "torch",
+        "state": "downloaded-verified",
+        "bytes": 780429430,
+        "transferred_bytes": 780429430,
+        "remote_transferred_bytes": 780429430,
+        "local_copied_bytes": 0,
+        "attempts": 1,
+        "seconds": 143.37824662192725,
+        "origin": "download-r2.pytorch.org"
+      },
+      {
+        "name": "nvidia-cublas-cu12",
+        "state": "downloaded-verified",
+        "bytes": 410594774,
+        "transferred_bytes": 410594774,
+        "remote_transferred_bytes": 410594774,
+        "local_copied_bytes": 0,
+        "attempts": 1,
+        "seconds": 87.30167377996258,
+        "origin": "pypi.nvidia.com"
+      },
+      {
+        "name": "nvidia-cusparse-cu12",
+        "state": "downloaded-verified",
+        "bytes": 195958278,
+        "transferred_bytes": 195958278,
+        "remote_transferred_bytes": 195958278,
+        "local_copied_bytes": 0,
+        "attempts": 1,
+        "seconds": 49.9694780879654,
+        "origin": "pypi.nvidia.com"
+      },
+      {
+        "name": "triton",
+        "state": "downloaded-verified",
+        "bytes": 209460013,
+        "transferred_bytes": 209460013,
+        "remote_transferred_bytes": 209460013,
+        "local_copied_bytes": 0,
+        "attempts": 1,
+        "seconds": 47.23707328597084,
+        "origin": "download-r2.pytorch.org"
+      },
+      {
+        "name": "nvidia-nccl-cu12",
+        "state": "downloaded-verified",
+        "bytes": 188654414,
+        "transferred_bytes": 188654414,
+        "remote_transferred_bytes": 188654414,
+        "local_copied_bytes": 0,
+        "attempts": 1,
+        "seconds": 41.3635299638845,
+        "origin": "pypi.nvidia.com"
+      },
+      {
+        "name": "nvidia-cufft-cu12",
+        "state": "downloaded-verified",
+        "bytes": 121635161,
+        "transferred_bytes": 121635161,
+        "remote_transferred_bytes": 121635161,
+        "local_copied_bytes": 0,
+        "attempts": 1,
+        "seconds": 36.910385956056416,
+        "origin": "pypi.nvidia.com"
+      }
+    ]
+  },
+  "acceptance_a1": {
+    "state": "failed",
+    "cases": [],
+    "error_type": "ValueError",
+    "detail": "Canary API health deadline"
+  },
+  "acceptance_a2": {
+    "state": "passed",
+    "cases": [
+      {
+        "case": 0,
+        "avatar_warm_plus_generation_poll_download_decode_seconds": 72.27112529426813,
+        "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 512,
+            "height": 896,
+            "avg_frame_rate": "25/1",
+            "duration": "9.960000",
+            "nb_read_frames": "249"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ],
+        "video_sha256": "2715c44caab05a6aee931e52d6a0a00b02fb9a2bd821f5c61dbb2f56203ad642",
+        "input_audio_sha256": "8628701b894babe55b8e04769363925528e50c1352d3edcebf1d31a44a65247e",
+        "video_bytes": 1334918,
+        "scope": "EC2_to_owned_worker_REST_video_not_WebRTC_TURN_or_registration"
+      },
+      {
+        "case": 1,
+        "avatar_warm_plus_generation_poll_download_decode_seconds": 20.386782113462687,
+        "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 512,
+            "height": 896,
+            "avg_frame_rate": "25/1",
+            "duration": "9.960000",
+            "nb_read_frames": "249"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ],
+        "video_sha256": "2715c44caab05a6aee931e52d6a0a00b02fb9a2bd821f5c61dbb2f56203ad642",
+        "input_audio_sha256": "8628701b894babe55b8e04769363925528e50c1352d3edcebf1d31a44a65247e",
+        "video_bytes": 1334918,
+        "scope": "EC2_to_owned_worker_REST_video_not_WebRTC_TURN_or_registration"
+      }
+    ],
+    "native_install_evidence": {
+      "source_overlay": {
+        "sha256": "4163f1ec30760c24d2a94857d20c35c99f84e9782eb26e179de482129df56bda",
+        "files": {
+          "scripts/install_musetalk.sh": "f6689bd98d44c458a8aa220c33b29aec9a61a16a78bd663828f7b42ba0d9484e",
+          "scripts/musetalk_install_state.py": "a878c1488c989646ce61cdca06266547673ea78bb63340c68e91097669b63c4b",
+          "scripts/install_locked_dependencies.py": "65be3636508041511d10175f057f4cfbd26f0c8fc4c995ff7e747401bdb7086c",
+          "scripts/dependency_artifacts.py": "19022486cb8d240f5570f3483f7e8cfccf84d37fa7e9ab2e843e80b1545ee4c1",
+          "scripts/fetch_dependency_tool.py": "6a0bba6b3faffe16c0df5ebefcdbc4cad0d1de498461971ffaa81e0e0835fe3a",
+          "scripts/fetch_dependency_wheels.py": "29338813a7acaf8181f95f3073c71d3731785307e6882a3f23938891353b75e3",
+          "scripts/benchmark_dependency_install.py": "41a8a0d9a655886fa6968db846979bbc6d8e9fca28f16561e85f7574d6e8f4d9",
+          "configs/dependencies/rtx3090-cp310-cu121-screening.json": "edfe07e808eb318def143d9cefd50e2d66142bf74fcb5b682951cfa48009573f"
+        }
+      },
+      "install_check": {
+        "schema": "musetalk_install_check_v1",
+        "created_utc": "2026-10-16T07:04:18Z",
+        "repo_root": "/workspace/MuseTalk",
+        "venv": "/workspace/.venvs/musetalk_trt_stagewise",
+        "venv_facts": {
+          "venv": "/workspace/.venvs/musetalk_trt_stagewise",
+          "exists": true,
+          "python": "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+          "python_executable": true,
+          "pyvenv_version": "3.10.12",
+          "python_version": "3.10.12",
+          "machine": "x86_64",
+          "site_packages": "/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages",
+          "dist_count": 194,
+          "torch_cuda_tag": "cu121",
+          "versions": {
+            "torch": "2.5.1+cu121",
+            "torchvision": "0.20.1+cu121",
+            "torchaudio": "2.5.1+cu121",
+            "torch-tensorrt": "2.5.0",
+            "tensorrt-cu12": "10.3.0",
+            "triton": "3.1.0",
+            "onnx": "1.17.0",
+            "numpy": "1.23.5",
+            "diffusers": "0.30.2",
+            "transformers": "4.39.2",
+            "aiortc": "1.14.0",
+            "av": "16.1.0",
+            "cffi": "2.1.1",
+            "kokoro": "0.9.4",
+            "spacy": "3.8.16",
+            "mmcv": "2.1.0",
+            "setuptools": "60.2.0",
+            "pip": "26.2.1"
+          }
+        },
+        "matrix": {
+          "matrix": "cu121",
+          "reason": "compute capability 8.6 < 10.0",
+          "gpu": {
+            "index": 0,
+            "name": "NVIDIA GeForce RTX 3090",
+            "compute_capability": "8.6"
+          },
+          "gpu_source": "nvidia-smi",
+          "gpu_error": null,
+          "gpu_visible": true
+        },
+        "groups": {
+          "server": {
+            "enabled": true,
+            "source": "always"
+          },
+          "kokoro": {
+            "enabled": true,
+            "source": "stamp"
+          },
+          "legacy_int8": {
+            "enabled": false,
+            "source": "stamp"
+          },
+          "avatar_prep": {
+            "enabled": true,
+            "source": "flag"
+          },
+          "chin_tools": {
+            "enabled": false,
+            "source": "stamp"
+          },
+          "native_vp8": {
+            "enabled": true,
+            "source": "stamp"
+          }
+        },
+        "module_specs": {
+          "torch": true,
+          "torchvision": true,
+          "torchaudio": true,
+          "torch_tensorrt": true,
+          "tensorrt": true,
+          "onnx": true,
+          "diffusers": true,
+          "transformers": true,
+          "cv2": true,
+          "numpy": true,
+          "aiortc": true,
+          "av": true,
+          "cffi": true,
+          "fastapi": true,
+          "uvicorn": true,
+          "boto3": true,
+          "librosa": true,
+          "soundfile": true,
+          "numba": true,
+          "imageio": true,
+          "ffmpeg": true,
+          "omegaconf": true,
+          "multipart": true,
+          "kokoro": true,
+          "misaki": true,
+          "spacy": true,
+          "en_core_web_sm": true,
+          "espeakng_loader": true,
+          "mmcv": true,
+          "mmdet": true,
+          "mmengine": true,
+          "mmpose": true
+        },
+        "native_vp8": {
+          "directory": "/workspace/MuseTalk/.runtime/native_vp8",
+          "verified": true,
+          "detail": "8 files verified in /workspace/MuseTalk/.runtime/native_vp8"
+        },
+        "checks": [
+          {
+            "check": "venv",
+            "status": "ok",
+            "detail": "/workspace/.venvs/musetalk_trt_stagewise (CPython 3.10.12, 194 dists)"
+          },
+          {
+            "check": "matrix",
+            "status": "ok",
+            "detail": "cu121: torch 2.5.1+cu121 (compute capability 8.6 < 10.0)"
+          },
+          {
+            "check": "stamp",
+            "status": "ok",
+            "detail": "/workspace/MuseTalk/.runtime/install_state.json (2026-10-16T07:00:24Z)"
+          },
+          {
+            "check": "locked_contract",
+            "status": "ok",
+            "detail": "725c6fe7564f9641fce16845a1346da99a75bf3cb54d993a273f34ceb6de7194 / full: manifest, inputs, owner and full inventory verified"
+          },
+          {
+            "check": "packages",
+            "status": "ok",
+            "detail": "all top-level requirements of the selected groups are installed"
+          },
+          {
+            "check": "pins",
+            "status": "ok",
+            "detail": "every installed package matches constraints-cu121.txt (211 pins)"
+          },
+          {
+            "check": "modules",
+            "status": "ok",
+            "detail": "32 top-level modules resolvable (find_spec, not imported)"
+          },
+          {
+            "check": "weights",
+            "status": "ok",
+            "detail": "14 model files present (incl. models/taesd)"
+          },
+          {
+            "check": "kokoro_cache",
+            "status": "ok",
+            "detail": "Kokoro-82M cached (3 voices) in /root/.cache/huggingface/hub/models--hexgrad--Kokoro-82M"
+          },
+          {
+            "check": "native_vp8",
+            "status": "ok",
+            "detail": "8 files verified in /workspace/MuseTalk/.runtime/native_vp8"
+          }
+        ],
+        "warnings": [],
+        "needs_clean": [],
+        "needs_repair": [],
+        "exit_code": 0,
+        "verdict": "ok"
+      },
+      "locked_install": {
+        "state": "accepted",
+        "requested_mode": "locked-wheelhouse-uv",
+        "actual_mode": "locked-wheelhouse-uv",
+        "artifact_id": "725c6fe7564f9641fce16845a1346da99a75bf3cb54d993a273f34ceb6de7194",
+        "group": "full",
+        "fallback": null,
+        "steps": [
+          {
+            "step": "venv",
+            "seconds": 4.780502784997225,
+            "exit_status": 0,
+            "child_cpu_seconds": 4.7374909999999995,
+            "child_output_blocks": 42536,
+            "child_maxrss_kib_cumulative_high_water": 116536,
+            "log": "venv.log"
+          },
+          {
+            "step": "bootstrap",
+            "seconds": 3.324210191844031,
+            "exit_status": 0,
+            "child_cpu_seconds": 3.2401300000000006,
+            "child_output_blocks": 34240,
+            "child_maxrss_kib_cumulative_high_water": 116536,
+            "log": "bootstrap.log"
+          },
+          {
+            "step": "install-server",
+            "seconds": 55.213334317086264,
+            "exit_status": 0,
+            "child_cpu_seconds": 184.15257899999997,
+            "child_output_blocks": 18467488,
+            "child_maxrss_kib_cumulative_high_water": 205120,
+            "log": "install-server.log"
+          },
+          {
+            "step": "install-server+kokoro",
+            "seconds": 2.5209078940097243,
+            "exit_status": 0,
+            "child_cpu_seconds": 11.671991999999989,
+            "child_output_blocks": 638280,
+            "child_maxrss_kib_cumulative_high_water": 205120,
+            "log": "install-server+kokoro.log"
+          },
+          {
+            "step": "install-full",
+            "seconds": 3.1235069818794727,
+            "exit_status": 0,
+            "child_cpu_seconds": 15.599482000000023,
+            "child_output_blocks": 481496,
+            "child_maxrss_kib_cumulative_high_water": 205120,
+            "log": "install-full.log"
+          },
+          {
+            "step": "pip-check",
+            "seconds": 1.2682962289545685,
+            "exit_status": 0,
+            "child_cpu_seconds": 1.2470509999999706,
+            "child_output_blocks": 8,
+            "child_maxrss_kib_cumulative_high_water": 205120,
+            "log": "pip-check.log"
+          }
+        ],
+        "acquisition": {
+          "state": "acquisition-complete",
+          "artifact_id": "725c6fe7564f9641fce16845a1346da99a75bf3cb54d993a273f34ceb6de7194",
+          "group": "full",
+          "workers": 4,
+          "seconds": 431.2745555958245,
+          "transferred_bytes": 5400054683,
+          "remote_transferred_bytes": 5361408398,
+          "local_copied_bytes": 38646285,
+          "cache_hits": 0,
+          "artifacts": [
+            {
+              "name": "accelerate",
+              "state": "downloaded-verified",
+              "bytes": 290088,
+              "transferred_bytes": 290088,
+              "remote_transferred_bytes": 290088,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.75180490501225,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "addict",
+              "state": "downloaded-verified",
+              "bytes": 3832,
+              "transferred_bytes": 3832,
+              "remote_transferred_bytes": 3832,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.8340790160000324,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "aiofiles",
+              "state": "downloaded-verified",
+              "bytes": 15896,
+              "transferred_bytes": 15896,
+              "remote_transferred_bytes": 15896,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.7549557099118829,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "aiohappyeyeballs",
+              "state": "downloaded-verified",
+              "bytes": 15038,
+              "transferred_bytes": 15038,
+              "remote_transferred_bytes": 15038,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.013800647109747,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "aiohttp",
+              "state": "downloaded-verified",
+              "bytes": 1672604,
+              "transferred_bytes": 1672604,
+              "remote_transferred_bytes": 1672604,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.6581882329192013,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "aioice",
+              "state": "downloaded-verified",
+              "bytes": 24872,
+              "transferred_bytes": 24872,
+              "remote_transferred_bytes": 24872,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.1277565630152822,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "aiortc",
+              "state": "downloaded-verified",
+              "bytes": 93183,
+              "transferred_bytes": 93183,
+              "remote_transferred_bytes": 93183,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.4729182510636747,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "aiosignal",
+              "state": "downloaded-verified",
+              "bytes": 7490,
+              "transferred_bytes": 7490,
+              "remote_transferred_bytes": 7490,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.0332585819996893,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "annotated-doc",
+              "state": "downloaded-verified",
+              "bytes": 5302,
+              "transferred_bytes": 5302,
+              "remote_transferred_bytes": 5302,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.8343479831237346,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "annotated-types",
+              "state": "downloaded-verified",
+              "bytes": 13427,
+              "transferred_bytes": 13427,
+              "remote_transferred_bytes": 13427,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.989596582017839,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "antlr4-python3-runtime",
+              "state": "downloaded-verified",
+              "bytes": 144573,
+              "transferred_bytes": 144573,
+              "remote_transferred_bytes": 144573,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.1882941769436,
+              "origin": "lingua-musetalk-s3-storage.s3.amazonaws.com"
+            },
+            {
+              "name": "anyio",
+              "state": "downloaded-verified",
+              "bytes": 132079,
+              "transferred_bytes": 132079,
+              "remote_transferred_bytes": 132079,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.185881752986461,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "async-timeout",
+              "state": "downloaded-verified",
+              "bytes": 6233,
+              "transferred_bytes": 6233,
+              "remote_transferred_bytes": 6233,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.8877608920447528,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "attrs",
+              "state": "downloaded-verified",
+              "bytes": 67548,
+              "transferred_bytes": 67548,
+              "remote_transferred_bytes": 67548,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.452319978037849,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "audioread",
+              "state": "downloaded-verified",
+              "bytes": 23143,
+              "transferred_bytes": 23143,
+              "remote_transferred_bytes": 23143,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.1696565391030163,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "av",
+              "state": "downloaded-verified",
+              "bytes": 40293006,
+              "transferred_bytes": 40293006,
+              "remote_transferred_bytes": 40293006,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 11.874706977978349,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "babel",
+              "state": "downloaded-verified",
+              "bytes": 10196845,
+              "transferred_bytes": 10196845,
+              "remote_transferred_bytes": 10196845,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 4.559761804994196,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "beautifulsoup4",
+              "state": "downloaded-verified",
+              "bytes": 109924,
+              "transferred_bytes": 109924,
+              "remote_transferred_bytes": 109924,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.4041693359613419,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "blis",
+              "state": "downloaded-verified",
+              "bytes": 11300520,
+              "transferred_bytes": 11300520,
+              "remote_transferred_bytes": 11300520,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 4.725961836054921,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "boto3",
+              "state": "downloaded-verified",
+              "bytes": 140556,
+              "transferred_bytes": 140556,
+              "remote_transferred_bytes": 140556,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.6415130109526217,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "botocore",
+              "state": "downloaded-verified",
+              "bytes": 14950367,
+              "transferred_bytes": 14950367,
+              "remote_transferred_bytes": 14950367,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 6.252397333970293,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "catalogue",
+              "state": "downloaded-verified",
+              "bytes": 17325,
+              "transferred_bytes": 17325,
+              "remote_transferred_bytes": 17325,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.910150762880221,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "certifi",
+              "state": "downloaded-verified",
+              "bytes": 136983,
+              "transferred_bytes": 136983,
+              "remote_transferred_bytes": 136983,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.3400421941187233,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "cffi",
+              "state": "downloaded-verified",
+              "bytes": 218742,
+              "transferred_bytes": 218742,
+              "remote_transferred_bytes": 218742,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.486208757152781,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "charset-normalizer",
+              "state": "downloaded-verified",
+              "bytes": 261644,
+              "transferred_bytes": 261644,
+              "remote_transferred_bytes": 261644,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.8150248781312257,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "chumpy",
+              "state": "downloaded-verified",
+              "bytes": 58281,
+              "transferred_bytes": 58281,
+              "remote_transferred_bytes": 58281,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.0546328669879586,
+              "origin": "lingua-musetalk-s3-storage.s3.amazonaws.com"
+            },
+            {
+              "name": "click",
+              "state": "downloaded-verified",
+              "bytes": 125251,
+              "transferred_bytes": 125251,
+              "remote_transferred_bytes": 125251,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.5443396461196244,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "cloudpathlib",
+              "state": "downloaded-verified",
+              "bytes": 66109,
+              "transferred_bytes": 66109,
+              "remote_transferred_bytes": 66109,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.5623742030002177,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "cloudpickle",
+              "state": "downloaded-verified",
+              "bytes": 22228,
+              "transferred_bytes": 22228,
+              "remote_transferred_bytes": 22228,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.3109388269949704,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "confection",
+              "state": "downloaded-verified",
+              "bytes": 35902,
+              "transferred_bytes": 35902,
+              "remote_transferred_bytes": 35902,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.9466348409187049,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "contourpy",
+              "state": "downloaded-verified",
+              "bytes": 325027,
+              "transferred_bytes": 325027,
+              "remote_transferred_bytes": 325027,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.9053301960229874,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "cryptography",
+              "state": "downloaded-verified",
+              "bytes": 4772694,
+              "transferred_bytes": 4772694,
+              "remote_transferred_bytes": 4772694,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.8505666069686413,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "csvw",
+              "state": "downloaded-verified",
+              "bytes": 69495,
+              "transferred_bytes": 69495,
+              "remote_transferred_bytes": 69495,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.3758792800363153,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "curated-tokenizers",
+              "state": "downloaded-verified",
+              "bytes": 6243034,
+              "transferred_bytes": 6243034,
+              "remote_transferred_bytes": 6243034,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.888241702923551,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "curated-transformers",
+              "state": "downloaded-verified",
+              "bytes": 25972,
+              "transferred_bytes": 25972,
+              "remote_transferred_bytes": 25972,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.0674014070536941,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "cycler",
+              "state": "downloaded-verified",
+              "bytes": 8321,
+              "transferred_bytes": 8321,
+              "remote_transferred_bytes": 8321,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.9705545739270747,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "cymem",
+              "state": "downloaded-verified",
+              "bytes": 229674,
+              "transferred_bytes": 229674,
+              "remote_transferred_bytes": 229674,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.809287181822583,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "cython",
+              "state": "downloaded-verified",
+              "bytes": 3478868,
+              "transferred_bytes": 3478868,
+              "remote_transferred_bytes": 3478868,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.1056029179599136,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "decorator",
+              "state": "downloaded-verified",
+              "bytes": 10365,
+              "transferred_bytes": 10365,
+              "remote_transferred_bytes": 10365,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.9564867259468883,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "diffusers",
+              "state": "downloaded-verified",
+              "bytes": 2636928,
+              "transferred_bytes": 2636928,
+              "remote_transferred_bytes": 2636928,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.8576471710111946,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "dlinfo",
+              "state": "downloaded-verified",
+              "bytes": 3654,
+              "transferred_bytes": 3654,
+              "remote_transferred_bytes": 3654,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.9385883728973567,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "dnspython",
+              "state": "downloaded-verified",
+              "bytes": 331094,
+              "transferred_bytes": 331094,
+              "remote_transferred_bytes": 331094,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.126388720003888,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "docopt",
+              "state": "downloaded-verified",
+              "bytes": 13723,
+              "transferred_bytes": 13723,
+              "remote_transferred_bytes": 13723,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.6357825451996177,
+              "origin": "lingua-musetalk-s3-storage.s3.amazonaws.com"
+            },
+            {
+              "name": "einops",
+              "state": "downloaded-verified",
+              "bytes": 64359,
+              "transferred_bytes": 64359,
+              "remote_transferred_bytes": 64359,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.3455231708940119,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "en-core-web-sm",
+              "state": "downloaded-verified",
+              "bytes": 12806118,
+              "transferred_bytes": 12806118,
+              "remote_transferred_bytes": 12806118,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 5.949439567979425,
+              "origin": "github.com"
+            },
+            {
+              "name": "espeakng-loader",
+              "state": "downloaded-verified",
+              "bytes": 10078484,
+              "transferred_bytes": 10078484,
+              "remote_transferred_bytes": 10078484,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.0188232879154384,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "exceptiongroup",
+              "state": "downloaded-verified",
+              "bytes": 16740,
+              "transferred_bytes": 16740,
+              "remote_transferred_bytes": 16740,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.9269337060395628,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "fastapi",
+              "state": "downloaded-verified",
+              "bytes": 116999,
+              "transferred_bytes": 116999,
+              "remote_transferred_bytes": 116999,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.24341248604469,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "ffmpeg-python",
+              "state": "downloaded-verified",
+              "bytes": 25024,
+              "transferred_bytes": 25024,
+              "remote_transferred_bytes": 25024,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.133991421898827,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "filelock",
+              "state": "downloaded-verified",
+              "bytes": 12001,
+              "transferred_bytes": 12001,
+              "remote_transferred_bytes": 12001,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.8944223008584231,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "fonttools",
+              "state": "downloaded-verified",
+              "bytes": 5253649,
+              "transferred_bytes": 5253649,
+              "remote_transferred_bytes": 5253649,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.27526168897748,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "frozenlist",
+              "state": "downloaded-verified",
+              "bytes": 219464,
+              "transferred_bytes": 219464,
+              "remote_transferred_bytes": 219464,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.77821497595869,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "fsspec",
+              "state": "downloaded-verified",
+              "bytes": 206583,
+              "transferred_bytes": 206583,
+              "remote_transferred_bytes": 206583,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.8873521250206977,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "future",
+              "state": "downloaded-verified",
+              "bytes": 491326,
+              "transferred_bytes": 491326,
+              "remote_transferred_bytes": 491326,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.1247984080109745,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "gdown",
+              "state": "downloaded-verified",
+              "bytes": 44686,
+              "transferred_bytes": 44686,
+              "remote_transferred_bytes": 44686,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.0914315241388977,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "google-crc32c",
+              "state": "downloaded-verified",
+              "bytes": 33214,
+              "transferred_bytes": 33214,
+              "remote_transferred_bytes": 33214,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.9125162519048899,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "h11",
+              "state": "downloaded-verified",
+              "bytes": 37515,
+              "transferred_bytes": 37515,
+              "remote_transferred_bytes": 37515,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.2723386939615011,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "hf-xet",
+              "state": "downloaded-verified",
+              "bytes": 4464663,
+              "transferred_bytes": 4464663,
+              "remote_transferred_bytes": 4464663,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 4.912737351143733,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "httpcore",
+              "state": "downloaded-verified",
+              "bytes": 78784,
+              "transferred_bytes": 78784,
+              "remote_transferred_bytes": 78784,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.4772981579881161,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "httpx",
+              "state": "downloaded-verified",
+              "bytes": 73517,
+              "transferred_bytes": 73517,
+              "remote_transferred_bytes": 73517,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.28731438703835,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "huggingface-hub",
+              "state": "downloaded-verified",
+              "bytes": 481433,
+              "transferred_bytes": 481433,
+              "remote_transferred_bytes": 481433,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.8498016470111907,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "idna",
+              "state": "downloaded-verified",
+              "bytes": 68550,
+              "transferred_bytes": 68550,
+              "remote_transferred_bytes": 68550,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.7023347960785031,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "ifaddr",
+              "state": "downloaded-verified",
+              "bytes": 12314,
+              "transferred_bytes": 12314,
+              "remote_transferred_bytes": 12314,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.8816749618854374,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "imageio",
+              "state": "downloaded-verified",
+              "bytes": 317646,
+              "transferred_bytes": 317646,
+              "remote_transferred_bytes": 317646,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.6645912760868669,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "imageio-ffmpeg",
+              "state": "downloaded-verified",
+              "bytes": 29498237,
+              "transferred_bytes": 29498237,
+              "remote_transferred_bytes": 29498237,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 7.5672040320932865,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "importlib-metadata",
+              "state": "downloaded-verified",
+              "bytes": 27920,
+              "transferred_bytes": 27920,
+              "remote_transferred_bytes": 27920,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.0505316909402609,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "isodate",
+              "state": "downloaded-verified",
+              "bytes": 22320,
+              "transferred_bytes": 22320,
+              "remote_transferred_bytes": 22320,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.0256872470490634,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "jinja2",
+              "state": "downloaded-verified",
+              "bytes": 134899,
+              "transferred_bytes": 134899,
+              "remote_transferred_bytes": 134899,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.059408182045445,
+              "origin": "download.pytorch.org"
+            },
+            {
+              "name": "jmespath",
+              "state": "downloaded-verified",
+              "bytes": 20419,
+              "transferred_bytes": 20419,
+              "remote_transferred_bytes": 20419,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.8217053909320384,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "joblib",
+              "state": "downloaded-verified",
+              "bytes": 306115,
+              "transferred_bytes": 306115,
+              "remote_transferred_bytes": 306115,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.8300095580052584,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "json-tricks",
+              "state": "downloaded-verified",
+              "bytes": 27613,
+              "transferred_bytes": 27613,
+              "remote_transferred_bytes": 27613,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.249005408026278,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "jsonschema",
+              "state": "downloaded-verified",
+              "bytes": 90630,
+              "transferred_bytes": 90630,
+              "remote_transferred_bytes": 90630,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.423489011125639,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "jsonschema-specifications",
+              "state": "downloaded-verified",
+              "bytes": 18437,
+              "transferred_bytes": 18437,
+              "remote_transferred_bytes": 18437,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.0254395389929414,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "kiwisolver",
+              "state": "downloaded-verified",
+              "bytes": 1628782,
+              "transferred_bytes": 1628782,
+              "remote_transferred_bytes": 1628782,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.1435329727828503,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "kokoro",
+              "state": "downloaded-verified",
+              "bytes": 32592,
+              "transferred_bytes": 32592,
+              "remote_transferred_bytes": 32592,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.1868599851150066,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "language-tags",
+              "state": "downloaded-verified",
+              "bytes": 216654,
+              "transferred_bytes": 216654,
+              "remote_transferred_bytes": 216654,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.683048431063071,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "lazy-loader",
+              "state": "downloaded-verified",
+              "bytes": 8044,
+              "transferred_bytes": 8044,
+              "remote_transferred_bytes": 8044,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.845482419943437,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "librosa",
+              "state": "downloaded-verified",
+              "bytes": 260749,
+              "transferred_bytes": 260749,
+              "remote_transferred_bytes": 260749,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.861608429113403,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "llvmlite",
+              "state": "downloaded-verified",
+              "bytes": 59890659,
+              "transferred_bytes": 59890659,
+              "remote_transferred_bytes": 59890659,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 15.183055825065821,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "loguru",
+              "state": "downloaded-verified",
+              "bytes": 61595,
+              "transferred_bytes": 61595,
+              "remote_transferred_bytes": 61595,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.2491959610488266,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "markdown-it-py",
+              "state": "downloaded-verified",
+              "bytes": 91687,
+              "transferred_bytes": 91687,
+              "remote_transferred_bytes": 91687,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.4623366850428283,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "markupsafe",
+              "state": "downloaded-verified",
+              "bytes": 20681,
+              "transferred_bytes": 20681,
+              "remote_transferred_bytes": 20681,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.9296934981830418,
+              "origin": "download.pytorch.org"
+            },
+            {
+              "name": "matplotlib",
+              "state": "downloaded-verified",
+              "bytes": 8769389,
+              "transferred_bytes": 8769389,
+              "remote_transferred_bytes": 8769389,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 4.036274876911193,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "mdurl",
+              "state": "downloaded-verified",
+              "bytes": 9979,
+              "transferred_bytes": 9979,
+              "remote_transferred_bytes": 9979,
+              "local_copied_bytes": 0,
+              "attempts": 2,
+              "seconds": 32.66965388995595,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "misaki",
+              "state": "downloaded-verified",
+              "bytes": 3617774,
+              "transferred_bytes": 3617774,
+              "remote_transferred_bytes": 3617774,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.8297353500965983,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "mmcv",
+              "state": "downloaded-verified",
+              "bytes": 38646285,
+              "transferred_bytes": 38646285,
+              "remote_transferred_bytes": 0,
+              "local_copied_bytes": 38646285,
+              "attempts": 1,
+              "seconds": 0.29594909213483334,
+              "origin": "repo-local"
+            },
+            {
+              "name": "mmdet",
+              "state": "downloaded-verified",
+              "bytes": 2087762,
+              "transferred_bytes": 2087762,
+              "remote_transferred_bytes": 2087762,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.5011616030242294,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "mmengine",
+              "state": "downloaded-verified",
+              "bytes": 451672,
+              "transferred_bytes": 451672,
+              "remote_transferred_bytes": 451672,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.0375627849716693,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "mmpose",
+              "state": "downloaded-verified",
+              "bytes": 1710462,
+              "transferred_bytes": 1710462,
+              "remote_transferred_bytes": 1710462,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.1009819449391216,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "mpmath",
+              "state": "downloaded-verified",
+              "bytes": 536198,
+              "transferred_bytes": 536198,
+              "remote_transferred_bytes": 536198,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.388837571023032,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "msgpack",
+              "state": "downloaded-verified",
+              "bytes": 407183,
+              "transferred_bytes": 407183,
+              "remote_transferred_bytes": 407183,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.094483789987862,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "multidict",
+              "state": "downloaded-verified",
+              "bytes": 259314,
+              "transferred_bytes": 259314,
+              "remote_transferred_bytes": 259314,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.8397201949264854,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "munkres",
+              "state": "downloaded-verified",
+              "bytes": 7015,
+              "transferred_bytes": 7015,
+              "remote_transferred_bytes": 7015,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.9567412929609418,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "murmurhash",
+              "state": "downloaded-verified",
+              "bytes": 122570,
+              "transferred_bytes": 122570,
+              "remote_transferred_bytes": 122570,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.4376401198096573,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "networkx",
+              "state": "downloaded-verified",
+              "bytes": 1723263,
+              "transferred_bytes": 1723263,
+              "remote_transferred_bytes": 1723263,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.7385033359751105,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "ninja",
+              "state": "downloaded-verified",
+              "bytes": 183365,
+              "transferred_bytes": 183365,
+              "remote_transferred_bytes": 183365,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.6167675119359046,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "num2words",
+              "state": "downloaded-verified",
+              "bytes": 163525,
+              "transferred_bytes": 163525,
+              "remote_transferred_bytes": 163525,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.1198362200520933,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "numba",
+              "state": "downloaded-verified",
+              "bytes": 3821881,
+              "transferred_bytes": 3821881,
+              "remote_transferred_bytes": 3821881,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.353333108825609,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "numpy",
+              "state": "downloaded-verified",
+              "bytes": 17059657,
+              "transferred_bytes": 17059657,
+              "remote_transferred_bytes": 17059657,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 5.705086052883416,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "nvidia-cublas-cu12",
+              "state": "downloaded-verified",
+              "bytes": 410594774,
+              "transferred_bytes": 410594774,
+              "remote_transferred_bytes": 410594774,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 87.30167377996258,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "nvidia-cuda-cupti-cu12",
+              "state": "downloaded-verified",
+              "bytes": 14109015,
+              "transferred_bytes": 14109015,
+              "remote_transferred_bytes": 14109015,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 5.688313402002677,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "nvidia-cuda-nvrtc-cu12",
+              "state": "downloaded-verified",
+              "bytes": 23671734,
+              "transferred_bytes": 23671734,
+              "remote_transferred_bytes": 23671734,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 6.29956018505618,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "nvidia-cuda-runtime-cu12",
+              "state": "downloaded-verified",
+              "bytes": 823596,
+              "transferred_bytes": 823596,
+              "remote_transferred_bytes": 823596,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.6280592649709433,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "nvidia-cudnn-cu12",
+              "state": "downloaded-verified",
+              "bytes": 664752741,
+              "transferred_bytes": 664752741,
+              "remote_transferred_bytes": 664752741,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 156.11660307715647,
+              "origin": "download.pytorch.org"
+            },
+            {
+              "name": "nvidia-cufft-cu12",
+              "state": "downloaded-verified",
+              "bytes": 121635161,
+              "transferred_bytes": 121635161,
+              "remote_transferred_bytes": 121635161,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 36.910385956056416,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "nvidia-curand-cu12",
+              "state": "downloaded-verified",
+              "bytes": 56467784,
+              "transferred_bytes": 56467784,
+              "remote_transferred_bytes": 56467784,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 15.950427756877616,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "nvidia-cusolver-cu12",
+              "state": "downloaded-verified",
+              "bytes": 124161928,
+              "transferred_bytes": 124161928,
+              "remote_transferred_bytes": 124161928,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 30.21577010699548,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "nvidia-cusparse-cu12",
+              "state": "downloaded-verified",
+              "bytes": 195958278,
+              "transferred_bytes": 195958278,
+              "remote_transferred_bytes": 195958278,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 49.9694780879654,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "nvidia-nccl-cu12",
+              "state": "downloaded-verified",
+              "bytes": 188654414,
+              "transferred_bytes": 188654414,
+              "remote_transferred_bytes": 188654414,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 41.3635299638845,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "nvidia-nvjitlink-cu12",
+              "state": "downloaded-verified",
+              "bytes": 39748338,
+              "transferred_bytes": 39748338,
+              "remote_transferred_bytes": 39748338,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 12.63366756401956,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "nvidia-nvtx-cu12",
+              "state": "downloaded-verified",
+              "bytes": 99138,
+              "transferred_bytes": 99138,
+              "remote_transferred_bytes": 99138,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.7518025401514024,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "omegaconf",
+              "state": "downloaded-verified",
+              "bytes": 79500,
+              "transferred_bytes": 79500,
+              "remote_transferred_bytes": 79500,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.7875559399835765,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "onnx",
+              "state": "downloaded-verified",
+              "bytes": 16046244,
+              "transferred_bytes": 16046244,
+              "remote_transferred_bytes": 16046244,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 4.846803498920053,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "opencv-python",
+              "state": "downloaded-verified",
+              "bytes": 62208946,
+              "transferred_bytes": 62208946,
+              "remote_transferred_bytes": 62208946,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 17.95857851486653,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "packaging",
+              "state": "downloaded-verified",
+              "bytes": 65451,
+              "transferred_bytes": 65451,
+              "remote_transferred_bytes": 65451,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.2240639778319746,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "phonemizer-fork",
+              "state": "downloaded-verified",
+              "bytes": 82700,
+              "transferred_bytes": 82700,
+              "remote_transferred_bytes": 82700,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.4406424688640982,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pillow",
+              "state": "downloaded-verified",
+              "bytes": 6631840,
+              "transferred_bytes": 6631840,
+              "remote_transferred_bytes": 6631840,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.9267480380367488,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pip",
+              "state": "downloaded-verified",
+              "bytes": 1816632,
+              "transferred_bytes": 1816632,
+              "remote_transferred_bytes": 1816632,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.912126950919628,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "platformdirs",
+              "state": "downloaded-verified",
+              "bytes": 24027,
+              "transferred_bytes": 24027,
+              "remote_transferred_bytes": 24027,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.2115595401264727,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pooch",
+              "state": "downloaded-verified",
+              "bytes": 67175,
+              "transferred_bytes": 67175,
+              "remote_transferred_bytes": 67175,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.1549325920641422,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "preshed",
+              "state": "downloaded-verified",
+              "bytes": 779722,
+              "transferred_bytes": 779722,
+              "remote_transferred_bytes": 779722,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.4736668539699167,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "propcache",
+              "state": "downloaded-verified",
+              "bytes": 60140,
+              "transferred_bytes": 60140,
+              "remote_transferred_bytes": 60140,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.3398043669294566,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "protobuf",
+              "state": "downloaded-verified",
+              "bytes": 343228,
+              "transferred_bytes": 343228,
+              "remote_transferred_bytes": 343228,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.9599438589066267,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "psutil",
+              "state": "downloaded-verified",
+              "bytes": 155560,
+              "transferred_bytes": 155560,
+              "remote_transferred_bytes": 155560,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.205319836968556,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pycocotools",
+              "state": "downloaded-verified",
+              "bytes": 472455,
+              "transferred_bytes": 472455,
+              "remote_transferred_bytes": 472455,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.9968826179392636,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pycparser",
+              "state": "downloaded-verified",
+              "bytes": 48172,
+              "transferred_bytes": 48172,
+              "remote_transferred_bytes": 48172,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.1164876390248537,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pydantic",
+              "state": "downloaded-verified",
+              "bytes": 472589,
+              "transferred_bytes": 472589,
+              "remote_transferred_bytes": 472589,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.2787657321896404,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pydantic-core",
+              "state": "downloaded-verified",
+              "bytes": 2064073,
+              "transferred_bytes": 2064073,
+              "remote_transferred_bytes": 2064073,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.6504628208931535,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pyee",
+              "state": "downloaded-verified",
+              "bytes": 15659,
+              "transferred_bytes": 15659,
+              "remote_transferred_bytes": 15659,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.2661502549890429,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pygments",
+              "state": "downloaded-verified",
+              "bytes": 1250147,
+              "transferred_bytes": 1250147,
+              "remote_transferred_bytes": 1250147,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.5569891000632197,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pylibsrtp",
+              "state": "downloaded-verified",
+              "bytes": 2434534,
+              "transferred_bytes": 2434534,
+              "remote_transferred_bytes": 2434534,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.586266224971041,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pyopenssl",
+              "state": "downloaded-verified",
+              "bytes": 56026,
+              "transferred_bytes": 56026,
+              "remote_transferred_bytes": 56026,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.588224122999236,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pyparsing",
+              "state": "downloaded-verified",
+              "bytes": 122781,
+              "transferred_bytes": 122781,
+              "remote_transferred_bytes": 122781,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.5839881801512092,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pysocks",
+              "state": "downloaded-verified",
+              "bytes": 16725,
+              "transferred_bytes": 16725,
+              "remote_transferred_bytes": 16725,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.4075029091909528,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "python-dateutil",
+              "state": "downloaded-verified",
+              "bytes": 229892,
+              "transferred_bytes": 229892,
+              "remote_transferred_bytes": 229892,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.8259078320115805,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "python-multipart",
+              "state": "downloaded-verified",
+              "bytes": 24579,
+              "transferred_bytes": 24579,
+              "remote_transferred_bytes": 24579,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.4921275868546218,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "pyyaml",
+              "state": "downloaded-verified",
+              "bytes": 770293,
+              "transferred_bytes": 770293,
+              "remote_transferred_bytes": 770293,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.8101400057785213,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "rdflib",
+              "state": "downloaded-verified",
+              "bytes": 615416,
+              "transferred_bytes": 615416,
+              "remote_transferred_bytes": 615416,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.4007616960443556,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "referencing",
+              "state": "downloaded-verified",
+              "bytes": 26766,
+              "transferred_bytes": 26766,
+              "remote_transferred_bytes": 26766,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.4179621720686555,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "regex",
+              "state": "downloaded-verified",
+              "bytes": 796252,
+              "transferred_bytes": 796252,
+              "remote_transferred_bytes": 796252,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.336075474973768,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "requests",
+              "state": "downloaded-verified",
+              "bytes": 62822,
+              "transferred_bytes": 62822,
+              "remote_transferred_bytes": 62822,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.3415325118694454,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "rfc3986",
+              "state": "downloaded-verified",
+              "bytes": 31976,
+              "transferred_bytes": 31976,
+              "remote_transferred_bytes": 31976,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.9753683449234813,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "rich",
+              "state": "downloaded-verified",
+              "bytes": 310654,
+              "transferred_bytes": 310654,
+              "remote_transferred_bytes": 310654,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.8978841549251229,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "rpds-py",
+              "state": "downloaded-verified",
+              "bytes": 390522,
+              "transferred_bytes": 390522,
+              "remote_transferred_bytes": 390522,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.7578834670130163,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "s3transfer",
+              "state": "downloaded-verified",
+              "bytes": 86825,
+              "transferred_bytes": 86825,
+              "remote_transferred_bytes": 86825,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.6365616549737751,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "safetensors",
+              "state": "downloaded-verified",
+              "bytes": 507152,
+              "transferred_bytes": 507152,
+              "remote_transferred_bytes": 507152,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.0086507990490645,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "scikit-learn",
+              "state": "downloaded-verified",
+              "bytes": 9660938,
+              "transferred_bytes": 9660938,
+              "remote_transferred_bytes": 9660938,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.999817708041519,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "scipy",
+              "state": "downloaded-verified",
+              "bytes": 37662964,
+              "transferred_bytes": 37662964,
+              "remote_transferred_bytes": 37662964,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 11.835954759968445,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "segments",
+              "state": "downloaded-verified",
+              "bytes": 16321,
+              "transferred_bytes": 16321,
+              "remote_transferred_bytes": 16321,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.8662243310827762,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "setuptools",
+              "state": "downloaded-verified",
+              "bytes": 953071,
+              "transferred_bytes": 953071,
+              "remote_transferred_bytes": 953071,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.5851242050994188,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "shapely",
+              "state": "downloaded-verified",
+              "bytes": 3058666,
+              "transferred_bytes": 3058666,
+              "remote_transferred_bytes": 3058666,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.1990121968556195,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "shellingham",
+              "state": "downloaded-verified",
+              "bytes": 9755,
+              "transferred_bytes": 9755,
+              "remote_transferred_bytes": 9755,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.6244956240989268,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "six",
+              "state": "downloaded-verified",
+              "bytes": 11050,
+              "transferred_bytes": 11050,
+              "remote_transferred_bytes": 11050,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.8684826840180904,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "smart-open",
+              "state": "downloaded-verified",
+              "bytes": 73504,
+              "transferred_bytes": 73504,
+              "remote_transferred_bytes": 73504,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.0658475579693913,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "soundfile",
+              "state": "downloaded-verified",
+              "bytes": 1174746,
+              "transferred_bytes": 1174746,
+              "remote_transferred_bytes": 1174746,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.666826094966382,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "soupsieve",
+              "state": "downloaded-verified",
+              "bytes": 37370,
+              "transferred_bytes": 37370,
+              "remote_transferred_bytes": 37370,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.2098369949962944,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "soxr",
+              "state": "downloaded-verified",
+              "bytes": 245032,
+              "transferred_bytes": 245032,
+              "remote_transferred_bytes": 245032,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.4341088959481567,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "spacy",
+              "state": "downloaded-verified",
+              "bytes": 33407019,
+              "transferred_bytes": 33407019,
+              "remote_transferred_bytes": 33407019,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 10.073839199962094,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "spacy-curated-transformers",
+              "state": "downloaded-verified",
+              "bytes": 237943,
+              "transferred_bytes": 237943,
+              "remote_transferred_bytes": 237943,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.852734424173832,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "spacy-legacy",
+              "state": "downloaded-verified",
+              "bytes": 29971,
+              "transferred_bytes": 29971,
+              "remote_transferred_bytes": 29971,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.9194558549206704,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "spacy-loggers",
+              "state": "downloaded-verified",
+              "bytes": 22343,
+              "transferred_bytes": 22343,
+              "remote_transferred_bytes": 22343,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.01835769508034,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "srsly",
+              "state": "downloaded-verified",
+              "bytes": 1120674,
+              "transferred_bytes": 1120674,
+              "remote_transferred_bytes": 1120674,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.230843545868993,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "starlette",
+              "state": "downloaded-verified",
+              "bytes": 75969,
+              "transferred_bytes": 75969,
+              "remote_transferred_bytes": 75969,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.7437940938398242,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "sympy",
+              "state": "downloaded-verified",
+              "bytes": 6189177,
+              "transferred_bytes": 6189177,
+              "remote_transferred_bytes": 6189177,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 4.2425306749064475,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "tensorrt-cu12",
+              "state": "downloaded-verified",
+              "bytes": 17591,
+              "transferred_bytes": 17591,
+              "remote_transferred_bytes": 17591,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.6757694599218667,
+              "origin": "lingua-musetalk-s3-storage.s3.amazonaws.com"
+            },
+            {
+              "name": "tensorrt-cu12-bindings",
+              "state": "downloaded-verified",
+              "bytes": 1108101,
+              "transferred_bytes": 1108101,
+              "remote_transferred_bytes": 1108101,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.2420087191276252,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "tensorrt-cu12-libs",
+              "state": "downloaded-verified",
+              "bytes": 2037510258,
+              "transferred_bytes": 2037510258,
+              "remote_transferred_bytes": 2037510258,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 431.2702956961002,
+              "origin": "pypi.nvidia.com"
+            },
+            {
+              "name": "termcolor",
+              "state": "downloaded-verified",
+              "bytes": 7734,
+              "transferred_bytes": 7734,
+              "remote_transferred_bytes": 7734,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.9292081610765308,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "terminaltables",
+              "state": "downloaded-verified",
+              "bytes": 15155,
+              "transferred_bytes": 15155,
+              "remote_transferred_bytes": 15155,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.8770004250109196,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "thinc",
+              "state": "downloaded-verified",
+              "bytes": 3912947,
+              "transferred_bytes": 3912947,
+              "remote_transferred_bytes": 3912947,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.949157177004963,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "threadpoolctl",
+              "state": "downloaded-verified",
+              "bytes": 18638,
+              "transferred_bytes": 18638,
+              "remote_transferred_bytes": 18638,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.9247366089839488,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "tokenizers",
+              "state": "downloaded-verified",
+              "bytes": 3577319,
+              "transferred_bytes": 3577319,
+              "remote_transferred_bytes": 3577319,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.810141794849187,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "tomli",
+              "state": "downloaded-verified",
+              "bytes": 14583,
+              "transferred_bytes": 14583,
+              "remote_transferred_bytes": 14583,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.294230888132006,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "torch",
+              "state": "downloaded-verified",
+              "bytes": 780429430,
+              "transferred_bytes": 780429430,
+              "remote_transferred_bytes": 780429430,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 143.37824662192725,
+              "origin": "download-r2.pytorch.org"
+            },
+            {
+              "name": "torch-tensorrt",
+              "state": "downloaded-verified",
+              "bytes": 3577721,
+              "transferred_bytes": 3577721,
+              "remote_transferred_bytes": 3577721,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.145521361147985,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "torchaudio",
+              "state": "downloaded-verified",
+              "bytes": 3410949,
+              "transferred_bytes": 3410949,
+              "remote_transferred_bytes": 3410949,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 3.5537288580089808,
+              "origin": "download-r2.pytorch.org"
+            },
+            {
+              "name": "torchvision",
+              "state": "downloaded-verified",
+              "bytes": 7282142,
+              "transferred_bytes": 7282142,
+              "remote_transferred_bytes": 7282142,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 4.756097411969677,
+              "origin": "download-r2.pytorch.org"
+            },
+            {
+              "name": "tqdm",
+              "state": "downloaded-verified",
+              "bytes": 77079,
+              "transferred_bytes": 77079,
+              "remote_transferred_bytes": 77079,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.4038602649234235,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "transformers",
+              "state": "downloaded-verified",
+              "bytes": 8803741,
+              "transferred_bytes": 8803741,
+              "remote_transferred_bytes": 8803741,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 4.34011488687247,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "triton",
+              "state": "downloaded-verified",
+              "bytes": 209460013,
+              "transferred_bytes": 209460013,
+              "remote_transferred_bytes": 209460013,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 47.23707328597084,
+              "origin": "download-r2.pytorch.org"
+            },
+            {
+              "name": "typer",
+              "state": "downloaded-verified",
+              "bytes": 123130,
+              "transferred_bytes": 123130,
+              "remote_transferred_bytes": 123130,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.6109499540179968,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "typing-extensions",
+              "state": "downloaded-verified",
+              "bytes": 45571,
+              "transferred_bytes": 45571,
+              "remote_transferred_bytes": 45571,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.2854386640246958,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "typing-inspection",
+              "state": "downloaded-verified",
+              "bytes": 14750,
+              "transferred_bytes": 14750,
+              "remote_transferred_bytes": 14750,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.8713435889221728,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "uritemplate",
+              "state": "downloaded-verified",
+              "bytes": 11488,
+              "transferred_bytes": 11488,
+              "remote_transferred_bytes": 11488,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.0221457059960812,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "urllib3",
+              "state": "downloaded-verified",
+              "bytes": 144225,
+              "transferred_bytes": 144225,
+              "remote_transferred_bytes": 144225,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.7849554801359773,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "uvicorn",
+              "state": "downloaded-verified",
+              "bytes": 68830,
+              "transferred_bytes": 68830,
+              "remote_transferred_bytes": 68830,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.3641656131949276,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "wasabi",
+              "state": "downloaded-verified",
+              "bytes": 27880,
+              "transferred_bytes": 27880,
+              "remote_transferred_bytes": 27880,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.046869294019416,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "weasel",
+              "state": "downloaded-verified",
+              "bytes": 50713,
+              "transferred_bytes": 50713,
+              "remote_transferred_bytes": 50713,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.4359124130569398,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "wheel",
+              "state": "downloaded-verified",
+              "bytes": 33320,
+              "transferred_bytes": 33320,
+              "remote_transferred_bytes": 33320,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.9016039501875639,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "wrapt",
+              "state": "downloaded-verified",
+              "bytes": 231084,
+              "transferred_bytes": 231084,
+              "remote_transferred_bytes": 231084,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.7288973999675363,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "xtcocotools",
+              "state": "downloaded-verified",
+              "bytes": 436012,
+              "transferred_bytes": 436012,
+              "remote_transferred_bytes": 436012,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 2.7435583090409636,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "yapf",
+              "state": "downloaded-verified",
+              "bytes": 256158,
+              "transferred_bytes": 256158,
+              "remote_transferred_bytes": 256158,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.4433787250891328,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "yarl",
+              "state": "downloaded-verified",
+              "bytes": 110758,
+              "transferred_bytes": 110758,
+              "remote_transferred_bytes": 110758,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 1.5324439469259232,
+              "origin": "files.pythonhosted.org"
+            },
+            {
+              "name": "zipp",
+              "state": "downloaded-verified",
+              "bytes": 10238,
+              "transferred_bytes": 10238,
+              "remote_transferred_bytes": 10238,
+              "local_copied_bytes": 0,
+              "attempts": 1,
+              "seconds": 0.784084287006408,
+              "origin": "files.pythonhosted.org"
+            }
+          ],
+          "native_compatibility_proven": false
+        },
+        "tool_acquisition": {
+          "state": "verified-tool",
+          "version": "uv 0.13.1 (x86_64-unknown-linux-gnu)",
+          "binary_sha256": "db919fb9428cc8ad04377ba3c898e0ec5fbee83700da5b982b1c9539f1e1b34f",
+          "wheel_sha256": "696dcf6d807d85da978f4db8472da81dccc1254b18b52cbd1367c4d923c421e0",
+          "seconds": 5.984899783972651,
+          "acquisition": {
+            "name": "uv",
+            "state": "downloaded-verified",
+            "bytes": 17279385,
+            "transferred_bytes": 17279385,
+            "remote_transferred_bytes": 17279385,
+            "local_copied_bytes": 0,
+            "attempts": 1,
+            "seconds": 5.342008085921407,
+            "origin": "files.pythonhosted.org"
+          },
+          "tool_bootstrap_must_be_charged_to_fresh_delivery": true
+        },
+        "inventory_diff": {},
+        "seconds": 511.09709611395374
+      }
+    },
+    "scope": "fresh second-host canonical startup/check plus decoded internal REST; not direct WebRTC/TURN",
+    "output_byte_identical_between_two_requests": true
+  },
+  "s3_second_job": {
+    "job_id": "ce2fe97d762747deb2f662149a5277ac",
+    "deadline_utc": "2026-10-16T07:38:00+00:00",
+    "files": {
+      "dependency_s3_full_worker.py": "5bdc0c448850dbd73fd3a0d9644971698aebeed822141681c928a121450f69af",
+      "dependency_s3_range_probe.py": "fa79832a4d65e378cc2fe00371dedd0d8f10629bc1006a062d7aee956e30d678",
+      "python_s3_venv_worker.py": "a211f0bfdf4dfc508434d8bc92a7c82c4051a959051b479fef085d241c9dfca2",
+      "python_s3_venv_source_library.py": "718ddef76eff4d41f598ff2f78cca2ccf2aa8b23ae28aa0a520e2d3c08efbd5f",
+      "startup-speech.wav": "8628701b894babe55b8e04769363925528e50c1352d3edcebf1d31a44a65247e"
+    },
+    "manifest_sha256": "ed34c6440e796d43341e6dab76287c84cc2ce48a98ab7e4293a26ebe1e09a920",
+    "scope": "second-host complete ranged restore, original canonical env retained and restored"
+  },
+  "s3_second_latest": {
+    "state": "complete",
+    "result": {
+      "result": {
+        "state": "failed",
+        "scope": "same-host full dependency restore; code/system/models/engines retained",
+        "single_get": {
+          "state": "not-repeated",
+          "reason": "second-host confirmation of previously screened four-range restore"
+        },
+        "ranged_get": {
+          "workers": 4,
+          "payload_bytes": 4509210997,
+          "requests": 135,
+          "download_seconds": 501.4886081048753,
+          "decimal_MB_per_second": 8.991651902204321,
+          "checksum_seconds": 28.59678715793416,
+          "trusted_sha256_verified": true,
+          "sha256": "d8a1fada0b0f59dc7c7df1c289e9101f2b215313f08895fd9ee92acb669195d6"
+        },
+        "archive_audit_seconds": 70.48558379500173,
+        "extraction_seconds": 74.23170075193048,
+        "restore_to_packages_seconds": 685.7855932670645,
+        "restore_to_matched_validated_seconds": 713.4250190688763,
+        "archive_native_check": "baseline read-only pins/imports plus independently verified archive inventory/SHA; no pip installation",
+        "restore_to_native_validated_seconds": 732.2736301349942,
+        "error_type": "ValueError",
+        "detail": "Command failed: bash",
+        "original_venv_restored": true,
+        "original_API_healthy": false,
+        "events": [
+          {
+            "stage": "OWNED_INSTALLER_CACHE_CLEANED",
+            "utc": "2026-10-16T07:07:24.314768+00:00",
+            "reclaimed_bytes": 9783021568,
+            "installed_env_removed": false
+          },
+          {
+            "stage": "FULL_RANGED_RESTORE_STARTED",
+            "utc": "2026-10-16T07:07:24.314941+00:00"
+          },
+          {
+            "stage": "RANGED_GET_VERIFIED",
+            "utc": "2026-10-16T07:16:14.405789+00:00",
+            "workers": 4,
+            "payload_bytes": 4509210997,
+            "requests": 135,
+            "download_seconds": 501.4886081048753,
+            "decimal_MB_per_second": 8.991651902204321,
+            "checksum_seconds": 28.59678715793416,
+            "trusted_sha256_verified": true,
+            "sha256": "d8a1fada0b0f59dc7c7df1c289e9101f2b215313f08895fd9ee92acb669195d6"
+          },
+          {
+            "stage": "FULL_RESTORE_FAILED",
+            "utc": "2026-10-16T07:19:37.619353+00:00",
+            "error_type": "ValueError",
+            "detail": "Command failed: bash"
+          }
+        ]
+      }
+    },
+    "completed_epoch": 1792135178.678962
+  },
+  "cleanup": {
+    "at_utc": "2026-10-16T07:37:29.039178+00:00",
+    "instance_id": "56211950",
+    "provider_absence_verified": true,
+    "protected_production_running": false
+  },
+  "s3_recovery_latest": {
+    "state": "complete",
+    "result": {
+      "result": {
+        "state": "failed",
+        "scope": "internal API recovery only; original TURN-autostart restart remains failed",
+        "configuration_files_modified": false,
+        "error_type": "ValueError",
+        "detail": "Command failed: bash"
+      }
+    },
+    "completed_epoch": 1792135524.9562788
+  },
+  "s3_recovery_a2_latest": {
+    "state": "complete",
+    "result": {
+      "result": {
+        "state": "failed",
+        "configuration_files_modified": false,
+        "public_launch_keys_preserved": [
+          "VAST_TCP_PORT_1455",
+          "PUBLIC_IPADDR",
+          "VAST_UDP_PORT_3478"
+        ],
+        "TURN_autostart_disabled": false,
+        "error_type": "ValueError",
+        "detail": "API PID file remains"
+      }
+    },
+    "completed_epoch": 1792135901.9197018
+  },
+  "link_screen_latest": {
+    "state": "complete",
+    "result": {
+      "result": {
+        "state": "failed",
+        "scope": "one ordered local-wheel copy/hardlink pair; not fresh delivery or full boot",
+        "cases": [],
+        "error_type": "ValueError",
+        "detail": "Explicit experiment root required"
+      }
+    },
+    "completed_epoch": 1792135669.936442
+  },
+  "proc1_read_helper_diagnostic": {
+    "PID1_environment_bytes": 18336,
+    "exact_helper_results": [
+      {
+        "key": "VAST_TCP_PORT_1455",
+        "exit": 141,
+        "stderr_bytes": 0
+      },
+      {
+        "key": "VAST_UDP_PORT_3478",
+        "exit": 0,
+        "stderr_bytes": 0
+      },
+      {
+        "key": "PUBLIC_IPADDR",
+        "exit": 0,
+        "stderr_bytes": 0
+      }
+    ]
+  },
+  "final_preservation": {
+    "at_utc": "2026-10-16T07:37:22.089186+00:00",
+    "final_health": null,
+    "files": [
+      {
+        "path": "s3-full-a1/cache-maintenance.log",
+        "sha256": "c2e856697adfb474b8878fd99ffe1e33a46a20cd31abd0c6a69edcbd06a9d5d7",
+        "bytes": 169
+      },
+      {
+        "path": "s3-full-a1/extract.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "s3-full-a1/source-stop.log",
+        "sha256": "06104ba29f5252f698af252a85d0f0d52a19388b855fdbe1a809be4d9cf6c492",
+        "bytes": 279
+      },
+      {
+        "path": "s3-full-a1/pip-check.log",
+        "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+        "bytes": 30
+      },
+      {
+        "path": "s3-full-a1/first-imports.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "s3-full-a1/second-process-imports.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "s3-full-a1/gpu-imports-and-execution.log",
+        "sha256": "8d60607c56c774748d3911573273d4f75ddc73b18909b2a7ec884abab4e31a29",
+        "bytes": 326
+      },
+      {
+        "path": "s3-full-a1/install-check.log",
+        "sha256": "793a8d01b935e56f3b929b433e7e93dab6245c66489bcc872af5fbfed3101de8",
+        "bytes": 2496
+      },
+      {
+        "path": "s3-full-a1/gpu-selftest.log",
+        "sha256": "dd9af0fc7dfa8a712afc800b47c377194ad3ed549326019f4b128b63c767dbcf",
+        "bytes": 445
+      },
+      {
+        "path": "s3-full-a1/restored-start.log",
+        "sha256": "28c45d25dc034d5bffa8b15edc4abd56cc39c9db21b0119a8e92b9757c54dd16",
+        "bytes": 2435
+      },
+      {
+        "path": "s3-full-a1/restored-stop.log",
+        "sha256": "31973fe0c63da05474a2110677f49dc84fea47b657cc243664b5d943e3646d06",
+        "bytes": 43
+      },
+      {
+        "path": "s3-full-a1/original-restart.log",
+        "sha256": "28c45d25dc034d5bffa8b15edc4abd56cc39c9db21b0119a8e92b9757c54dd16",
+        "bytes": 2435
+      },
+      {
+        "path": "s3-full-a1/receipt.json",
+        "sha256": "25476de63821624adf50984d7c70f171108dbb1fa2290931dc9f211137f0eea6",
+        "bytes": 2040
+      },
+      {
+        "path": "s3-recovery-a1/internal-api-restart.log",
+        "sha256": "e00696a840c5543506371036767ac6edff1b8d2798fbd343cfa1df8e23f053a9",
+        "bytes": 15733
+      },
+      {
+        "path": "s3-recovery-a1/receipt.json",
+        "sha256": "dc9e0458db9328b8ab49bed3a31bdc5bd2252ee79cc8e9bc45c17e905bd79a66",
+        "bytes": 219
+      },
+      {
+        "path": "s3-recovery-a2/receipt.json",
+        "sha256": "86324ec7bf8d9fc685dd84bc4c144c358357bc955b36e4ebba7e253707056bf5",
+        "bytes": 279
+      },
+      {
+        "path": "link-screen-a1/receipt.json",
+        "sha256": "2e2d8ef95eb36df5a0a74f7dc1a2ad85aea1c8a641b971ffca5cfea0c5ad00d6",
+        "bytes": 208
+      }
+    ]
+  },
+  "extra_test_receipts": {
+    "s3-full-a1": {
+      "state": "failed",
+      "scope": "same-host full dependency restore; code/system/models/engines retained",
+      "single_get": {
+        "state": "not-repeated",
+        "reason": "second-host confirmation of previously screened four-range restore"
+      },
+      "ranged_get": {
+        "workers": 4,
+        "payload_bytes": 4509210997,
+        "requests": 135,
+        "download_seconds": 501.4886081048753,
+        "decimal_MB_per_second": 8.991651902204321,
+        "checksum_seconds": 28.59678715793416,
+        "trusted_sha256_verified": true,
+        "sha256": "d8a1fada0b0f59dc7c7df1c289e9101f2b215313f08895fd9ee92acb669195d6"
+      },
+      "archive_audit_seconds": 70.48558379500173,
+      "extraction_seconds": 74.23170075193048,
+      "restore_to_packages_seconds": 685.7855932670645,
+      "restore_to_matched_validated_seconds": 713.4250190688763,
+      "archive_native_check": "baseline read-only pins/imports plus independently verified archive inventory/SHA; no pip installation",
+      "restore_to_native_validated_seconds": 732.2736301349942,
+      "error_type": "ValueError",
+      "detail": "Command failed: bash",
+      "original_venv_restored": true,
+      "original_API_healthy": false,
+      "events": [
+        {
+          "stage": "OWNED_INSTALLER_CACHE_CLEANED",
+          "utc": "2026-10-16T07:07:24.314768+00:00",
+          "reclaimed_bytes": 9783021568,
+          "installed_env_removed": false
+        },
+        {
+          "stage": "FULL_RANGED_RESTORE_STARTED",
+          "utc": "2026-10-16T07:07:24.314941+00:00"
+        },
+        {
+          "stage": "RANGED_GET_VERIFIED",
+          "utc": "2026-10-16T07:16:14.405789+00:00",
+          "workers": 4,
+          "payload_bytes": 4509210997,
+          "requests": 135,
+          "download_seconds": 501.4886081048753,
+          "decimal_MB_per_second": 8.991651902204321,
+          "checksum_seconds": 28.59678715793416,
+          "trusted_sha256_verified": true,
+          "sha256": "d8a1fada0b0f59dc7c7df1c289e9101f2b215313f08895fd9ee92acb669195d6"
+        },
+        {
+          "stage": "FULL_RESTORE_FAILED",
+          "utc": "2026-10-16T07:19:37.619353+00:00",
+          "error_type": "ValueError",
+          "detail": "Command failed: bash"
+        }
+      ]
+    },
+    "s3-recovery-a1": {
+      "state": "failed",
+      "scope": "internal API recovery only; original TURN-autostart restart remains failed",
+      "configuration_files_modified": false,
+      "error_type": "ValueError",
+      "detail": "Command failed: bash"
+    },
+    "s3-recovery-a2": {
+      "state": "failed",
+      "configuration_files_modified": false,
+      "public_launch_keys_preserved": [
+        "VAST_TCP_PORT_1455",
+        "PUBLIC_IPADDR",
+        "VAST_UDP_PORT_3478"
+      ],
+      "TURN_autostart_disabled": false,
+      "error_type": "ValueError",
+      "detail": "API PID file remains"
+    },
+    "link-screen-a1": {
+      "state": "failed",
+      "scope": "one ordered local-wheel copy/hardlink pair; not fresh delivery or full boot",
+      "cases": [],
+      "error_type": "ValueError",
+      "detail": "Explicit experiment root required"
+    }
+  },
+  "prepared_utc": "2026-10-16T07:37:40.143997+00:00"
+}

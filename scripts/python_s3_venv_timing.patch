@@ -1,0 +1,94 @@
+diff --git a/scripts/install_musetalk.sh b/scripts/install_musetalk.sh
+index c8a80e2..dfedbd0 100644
+--- a/scripts/install_musetalk.sh
++++ b/scripts/install_musetalk.sh
+@@ -87,7 +87,7 @@ Modes:
+   --check-imports         with --check: also run the CPU import smoke (imports torch; CUDA hidden)
+   --report FILE           with --check: write the JSON report to FILE
+   --json                  with --check: print the JSON report to stdout
+-  --plan                  print the resolved plan (matrix, groups, pip command) and exit; no changes
++  --plan                  print the resolved plan (matrix, groups, pip commands) and exit; no changes
+ 
+ Options:
+   --venv PATH             server venv (default: \$WORKSPACE/.venvs/musetalk_trt_stagewise)
+@@ -406,14 +406,24 @@ resolve_plan() {
+   [[ -f "$REQ_DIR/server.in" ]] || die "requirements/server.in missing under $REPO_ROOT"
+   PYTORCH_INDEX="$PYTORCH_INDEX_BASE/$TARGET_MATRIX"
+ 
++  resolve_package_commands
++  SELFTEST_BUCKETS="${HLS_SCHEDULER_FIXED_BATCH_SIZES:-${MUSETALK_TAESD_WARMUP_BATCHES:-8}}"
++}
++
++resolve_package_commands() {
++  local -a common=(-c "$CONSTRAINTS" --extra-index-url "$PYTORCH_INDEX" --extra-index-url "$NVIDIA_INDEX_URL")
++  if [[ -n "$WHEELHOUSE" && -d "$WHEELHOUSE" ]]; then
++    common+=(--find-links "$WHEELHOUSE")
++  fi
++  # Separate pip calls make Kokoro's incremental install cost observable. Both use the
++  # same pins/indexes; leave dependency resolution enabled and reuse installed shared deps.
+   PIP_INSTALL_ARGS=(install --disable-pip-version-check -r "$REQ_DIR/server.in")
+-  if flag_on "$KOKORO"; then PIP_INSTALL_ARGS+=(-r "$REQ_DIR/kokoro.in"); fi
+   if flag_on "$LEGACY_INT8"; then PIP_INSTALL_ARGS+=(-r "$REQ_DIR/legacy-int8.in"); fi
+-  PIP_INSTALL_ARGS+=(-c "$CONSTRAINTS" --extra-index-url "$PYTORCH_INDEX" --extra-index-url "$NVIDIA_INDEX_URL")
+-  if [[ -n "$WHEELHOUSE" && -d "$WHEELHOUSE" ]]; then
+-    PIP_INSTALL_ARGS+=(--find-links "$WHEELHOUSE")
++  PIP_INSTALL_ARGS+=("${common[@]}")
++  PIP_KOKORO_ARGS=()
++  if flag_on "$KOKORO"; then
++    PIP_KOKORO_ARGS=(install --disable-pip-version-check -r "$REQ_DIR/kokoro.in" "${common[@]}")
+   fi
+-  SELFTEST_BUCKETS="${HLS_SCHEDULER_FIXED_BATCH_SIZES:-${MUSETALK_TAESD_WARMUP_BATCHES:-8}}"
+ }
+ 
+ print_plan() {
+@@ -443,6 +453,13 @@ print_plan() {
+   printf 'PIP_COMMAND=%s -m pip' "$VENV_PY"
+   printf ' %q' "${PIP_INSTALL_ARGS[@]}"
+   printf '\n'
++  if flag_on "$KOKORO"; then
++    printf 'PIP_KOKORO_COMMAND=%s -m pip' "$VENV_PY"
++    printf ' %q' "${PIP_KOKORO_ARGS[@]}"
++    printf '\n'
++  else
++    printf 'PIP_KOKORO_COMMAND=disabled\n'
++  fi
+ }
+ 
+ if [[ -z "$HOST_PY" ]]; then
+@@ -653,6 +670,10 @@ pip_install_groups_step() {
+   "$VENV_PY" -m pip "${PIP_INSTALL_ARGS[@]}"
+ }
+ 
++pip_install_kokoro_step() {
++  "$VENV_PY" -m pip "${PIP_KOKORO_ARGS[@]}"
++}
++
+ avatar_prep_step() {
+   local -a common=(-c "$CONSTRAINTS" --extra-index-url "$PYTORCH_INDEX" --extra-index-url "$NVIDIA_INDEX_URL")
+   # openmim is NOT installed up front: its dependency chain (opendatalab -> openxlab) requires rich~=13.4.2, while
+@@ -688,8 +709,14 @@ avatar_prep_step() {
+ }
+ 
+ phase_packages() {
+-  log "pip:$(printf ' %q' "${PIP_INSTALL_ARGS[@]}")"
+-  run_strict_step "Install server packages (server.in$(flag_on "$KOKORO" && echo ' + kokoro.in')$(flag_on "$LEGACY_INT8" && echo ' + legacy-int8.in'))" pip_install_groups_step
++  log "server pip:$(printf ' %q' "${PIP_INSTALL_ARGS[@]}")"
++  run_strict_step "Install server packages (server.in$(flag_on "$LEGACY_INT8" && echo ' + legacy-int8.in'))" pip_install_groups_step
++  if flag_on "$KOKORO"; then
++    log "Kokoro pip:$(printf ' %q' "${PIP_KOKORO_ARGS[@]}")"
++    run_strict_step "Install Kokoro packages (kokoro.in)" pip_install_kokoro_step
++  else
++    log "Skipping Kokoro packages (group disabled)"
++  fi
+   if flag_on "$AVATAR_PREP"; then
+     run_strict_step "Install avatar-prep stack (mmcv/mmdet/mmpose)" avatar_prep_step
+   fi
+@@ -838,7 +865,7 @@ resolve_plan
+ run_install_phase "Phase 0" "Preflight" "Resolve matrix, groups and disk budget; refuse a matrix change without --clean." preflight
+ run_install_phase "Phase 1" "System packages" "apt: python3.10(+venv,dev), ffmpeg, coturn, build tools, GL libs (root only)." phase_apt
+ run_install_phase "Phase 2" "Venv" "Create the CPython 3.10 venv, or reuse it and repair in place." phase_venv
+-run_install_phase "Phase 3" "Python packages" "One pip resolve of the selected requirements/*.in against constraints-$TARGET_MATRIX.txt." phase_packages
++run_install_phase "Phase 3" "Python packages" "Separate server and optional Kokoro pip steps against constraints-$TARGET_MATRIX.txt; avatar-prep timed separately." phase_packages
+ run_install_phase "Phase 4" "Weights" "download_weights.sh (+ pinned TAESD, optional Kokoro cache)." phase_weights
+ run_install_phase "Phase 5" "Native VP8" "Pinned native VP8 encoder files + CPU preflight (default encoder stays pyav)." phase_native_vp8
+ run_install_phase "Phase 6" "Chin tools" "Optional dedicated MediaPipe venv for the offline chin tracker." phase_chin_tools

@@ -1,0 +1,2489 @@
+{
+  "schema": "musetalk_python_s3_venv_a3_receipts_v1",
+  "collected_utc": "2026-10-12T05:30:31.894924+00:00",
+  "records": {
+    "ledger.json": {
+      "label": "musetalk-python-s3-venv-20261011-a3",
+      "state": "cleaned",
+      "instance_id": "55492021",
+      "machine_id": 136634,
+      "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
+      "template_hash": "4dc0868ee56886c667c217d6c3634a58",
+      "image": "vastai/pytorch:cuda-12.1-auto",
+      "deadline_utc": "2026-10-12T05:34:15+00:00",
+      "protected_instance_ids": [
+        "51074906"
+      ],
+      "budget_usd": 2,
+      "lifetime_seconds": 7200,
+      "poll_interval_seconds": 5,
+      "clock_domain": "EC2_collector_monotonic_single_process",
+      "stock_image_cache_state": "unknown",
+      "s3_session_expires_utc": "2026-10-12T05:34:15+00:00",
+      "ready_avatar_set": [
+        "en_01_maya_abe451d3_talking_f6cf8be7fb"
+      ],
+      "call_acceptance": "NOT_MEASURED_NO_ISOLATED_CONTROL_PLANE_ROUTE",
+      "allow_unverified": false,
+      "host_limit": null,
+      "request_started_utc": "2026-10-12T03:34:15.120705+00:00"
+    },
+    "offer.json": {
+      "id": 48396264,
+      "machine_id": 136634,
+      "host_id": 399360,
+      "geolocation": "United States, US",
+      "gpu_name": "RTX 3090",
+      "num_gpus": 1,
+      "cpu_cores_effective": 10.0,
+      "cpu_ram": 32224,
+      "disk_bw": 1100.0,
+      "disk_space": 135.25,
+      "inet_down": 927.2,
+      "inet_up": 874.6,
+      "inet_down_cost": 0.0013020833333333333,
+      "inet_up_cost": 0.0013020833333333333,
+      "dph_total": 0.2311111111111111,
+      "dph_total_adj": 0.2727777777777778,
+      "storage_cost": 0.39999999999999997,
+      "verification": "verified",
+      "reliability": 0.986285
+    },
+    "template.json": {
+      "hash_id": "4dc0868ee56886c667c217d6c3634a58",
+      "image": "vastai/pytorch:cuda-12.1-auto",
+      "runtype": "jupyter_direc ssh_direc ssh_proxy",
+      "disk_gb": 128,
+      "template_recommended_disk_gb": 50.0,
+      "original_onstart_sha256": "14ccb8011f7b5b2cb10e77551ea32826fd729f24eef2570cea9493a086eb8c39",
+      "run_onstart_sha256": "eb1a25e7209a77a3437913101b656cd81183fb40ddf67cab6a09ddac5111ad3a",
+      "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
+      "setup_clean": 1,
+      "setup_full_stack": 1,
+      "changes": [
+        "remove invalid port 72299",
+        "remove malformed trailing Docker-option bytes",
+        "replace plaintext AWS bootstrap with expiring EC2-mediated S3 session",
+        "pin/check source main SHA",
+        "two checkout timestamps",
+        "no production callbacks",
+        "separate main/Kokoro timers; dependency pins/groups unchanged"
+      ],
+      "registration_and_ec2_turn_call": "NOT_TESTED_NO_ISOLATED_PRODUCTION_ROUTE",
+      "custom_docker_used": false,
+      "production_template_modified": false,
+      "environment_keys": [
+        "-p 1111:1111",
+        "-p 1455:1455",
+        "-p 3478:3478/udp",
+        "-p 443:443",
+        "-p 6006:6006",
+        "-p 8000:8000",
+        "-p 8080:8080",
+        "-p 8384:8384",
+        "DATA_DIRECTORY",
+        "JUPYTER_DIR",
+        "NVIDIA_DRIVER_CAPABILITIES",
+        "NVIDIA_VISIBLE_DEVICES",
+        "OPEN_BUTTON_PORT",
+        "OPEN_BUTTON_TOKEN",
+        "PORTAL_CONFIG"
+      ],
+      "ports": [
+        "1111:1111",
+        "1455:1455",
+        "3478:3478/udp",
+        "443:443",
+        "6006:6006",
+        "8000:8000",
+        "8080:8080",
+        "8384:8384"
+      ],
+      "dependency_timing_patch_sha256": "216d12c5fc6cd12cd135ecf60df8125948f4e0d83c1028cf0708c1a2ee784a68",
+      "bandwidth_exception": "Not used: replacement meets original 0.0015/GB caps",
+      "selected_machine_id": 136634,
+      "selected_offer_id": "Resolved from fresh search; see offer.json",
+      "download_cost_cap_per_GB": 0.0015,
+      "upload_cost_cap_per_GB": 0.0015
+    },
+    "venv-manifest.json": {
+      "schema": "musetalk_python_venv_experiment_v1",
+      "label": "musetalk-python-s3-venv-20261011-a3",
+      "contract": {
+        "venv_path": "/workspace/.venvs/musetalk_trt_stagewise",
+        "platform": "linux-x86_64",
+        "matrix": "cu121",
+        "facts": {
+          "packages": {
+            "networkx": "3.4.2",
+            "msgpack": "1.2.2",
+            "markupsafe": "3.0.3",
+            "llvmlite": "0.49.0",
+            "lazy-loader": "0.5",
+            "jmespath": "1.1.0",
+            "imageio-ffmpeg": "0.6.0",
+            "idna": "3.19",
+            "setuptools": "60.2.0",
+            "pip": "26.2.1",
+            "packaging": "24.2",
+            "wheel": "0.48.0",
+            "tensorrt-cu12-bindings": "10.3.0",
+            "mpmath": "1.3.0",
+            "ifaddr": "0.2.0",
+            "antlr4-python3-runtime": "4.9.3",
+            "zipp": "4.1.0",
+            "urllib3": "1.26.20",
+            "typing_extensions": "4.16.0",
+            "tqdm": "4.65.2",
+            "threadpoolctl": "3.6.0",
+            "sympy": "1.13.1",
+            "soupsieve": "2.9.2",
+            "six": "1.17.0",
+            "safetensors": "0.7.0",
+            "regex": "2026.9.10",
+            "pyyaml": "6.0.3",
+            "python-multipart": "0.0.22",
+            "pysocks": "1.7.1",
+            "pycparser": "3.0",
+            "psutil": "7.2.2",
+            "protobuf": "7.36.1",
+            "propcache": "0.5.2",
+            "platformdirs": "4.11.8",
+            "pillow": "11.3.0",
+            "nvidia-nvtx-cu12": "12.1.105",
+            "nvidia-nvjitlink-cu12": "12.9.86",
+            "nvidia-nccl-cu12": "2.21.5",
+            "nvidia-curand-cu12": "10.3.2.106",
+            "nvidia-cufft-cu12": "11.0.2.54",
+            "nvidia-cuda-runtime-cu12": "12.1.105",
+            "nvidia-cuda-nvrtc-cu12": "12.1.105",
+            "nvidia-cuda-cupti-cu12": "12.1.105",
+            "nvidia-cublas-cu12": "12.1.3.1",
+            "numpy": "1.23.5",
+            "hf-xet": "1.6.0",
+            "h11": "0.16.0",
+            "google-crc32c": "1.8.0",
+            "future": "1.0.0",
+            "fsspec": "2026.7.0",
+            "frozenlist": "1.8.0",
+            "filelock": "3.14.0",
+            "einops": "0.8.1",
+            "dnspython": "2.8.0",
+            "decorator": "5.3.1",
+            "cloudpickle": "3.1.2",
+            "click": "8.5.0",
+            "charset-normalizer": "3.5.1",
+            "certifi": "2026.7.22",
+            "av": "16.1.0",
+            "audioread": "3.1.0",
+            "attrs": "26.1.0",
+            "async-timeout": "5.0.1",
+            "annotated-types": "0.8.0",
+            "annotated-doc": "0.0.5",
+            "aiohappyeyeballs": "2.7.1",
+            "aiofiles": "24.1.0",
+            "uvicorn": "0.42.0",
+            "typing-inspection": "0.4.4",
+            "triton": "3.1.0",
+            "tensorrt-cu12-libs": "10.3.0",
+            "soxr": "1.1.0",
+            "scipy": "1.15.3",
+            "requests": "2.28.2",
+            "python-dateutil": "2.9.0.post0",
+            "pyee": "13.0.1",
+            "pydantic_core": "2.46.5",
+            "opencv-python": "4.9.0.80",
+            "onnx": "1.17.0",
+            "omegaconf": "2.3.0",
+            "nvidia-cusparse-cu12": "12.1.0.106",
+            "nvidia-cudnn-cu12": "9.1.0.70",
+            "numba": "0.67.0",
+            "multidict": "6.8.0",
+            "joblib": "1.6.0",
+            "jinja2": "3.1.6",
+            "importlib_metadata": "9.0.1",
+            "imageio": "2.37.3",
+            "ffmpeg-python": "0.2.0",
+            "exceptiongroup": "1.3.1",
+            "cffi": "2.1.1",
+            "beautifulsoup4": "4.15.0",
+            "aiosignal": "1.4.0",
+            "aioice": "0.10.1",
+            "yarl": "1.24.5",
+            "tensorrt-cu12": "10.3.0",
+            "soundfile": "0.12.1",
+            "scikit-learn": "1.7.2",
+            "pylibsrtp": "1.0.0",
+            "pydantic": "2.13.5",
+            "pooch": "1.9.0",
+            "nvidia-cusolver-cu12": "11.4.5.107",
+            "huggingface-hub": "0.30.2",
+            "cryptography": "50.0.1",
+            "botocore": "1.42.97",
+            "anyio": "4.15.1",
+            "torch": "2.5.1+cu121",
+            "tokenizers": "0.15.2",
+            "starlette": "1.6.0",
+            "s3transfer": "0.16.1",
+            "pyopenssl": "26.4.0",
+            "librosa": "0.11.0",
+            "gdown": "6.2.0",
+            "diffusers": "0.30.2",
+            "aiohttp": "3.13.3",
+            "transformers": "4.39.2",
+            "torchvision": "0.20.1+cu121",
+            "torchaudio": "2.5.1+cu121",
+            "torch_tensorrt": "2.5.0",
+            "fastapi": "0.135.1",
+            "boto3": "1.42.97",
+            "aiortc": "1.14.0",
+            "accelerate": "0.28.0",
+            "rfc3986": "1.5.0",
+            "en_core_web_sm": "3.8.0",
+            "docopt": "0.6.2",
+            "addict": "2.4.0",
+            "wrapt": "2.5.0",
+            "wasabi": "1.1.3",
+            "uritemplate": "4.2.0",
+            "termcolor": "3.3.0",
+            "spacy-loggers": "1.0.5",
+            "spacy-legacy": "3.0.12",
+            "shellingham": "1.5.4",
+            "rpds-py": "0.30.0",
+            "pyparsing": "3.3.2",
+            "pygments": "2.21.0",
+            "num2words": "0.5.14",
+            "murmurhash": "1.0.15",
+            "misaki": "0.9.4",
+            "mdurl": "0.1.2",
+            "loguru": "0.7.3",
+            "language-tags": "1.3.1",
+            "isodate": "0.7.2",
+            "httpcore": "1.0.9",
+            "espeakng-loader": "0.2.4",
+            "dlinfo": "2.0.0",
+            "cymem": "2.0.13",
+            "curated-tokenizers": "0.0.10",
+            "confection": "1.3.3",
+            "cloudpathlib": "0.25.0",
+            "catalogue": "2.0.10",
+            "blis": "1.3.3",
+            "babel": "2.18.0",
+            "srsly": "2.5.3",
+            "smart_open": "8.0.1",
+            "referencing": "0.37.0",
+            "rdflib": "7.6.0",
+            "preshed": "3.0.13",
+            "markdown-it-py": "4.2.0",
+            "thinc": "8.3.13",
+            "rich": "15.0.0",
+            "jsonschema-specifications": "2025.9.1",
+            "httpx": "0.28.1",
+            "typer": "0.27.2",
+            "jsonschema": "4.26.0",
+            "curated-transformers": "0.1.1",
+            "weasel": "1.0.0",
+            "spacy-curated-transformers": "0.3.1",
+            "csvw": "4.1.0",
+            "spacy": "3.8.16",
+            "segments": "2.4.0",
+            "phonemizer-fork": "3.3.2",
+            "kokoro": "0.9.4",
+            "ninja": "1.13.2",
+            "mmcv": "2.1.0",
+            "chumpy": "0.70",
+            "munkres": "1.1.4",
+            "json-tricks": "3.17.3",
+            "tomli": "2.4.1",
+            "terminaltables": "3.1.10",
+            "shapely": "2.1.2",
+            "pycocotools": "2.0.11",
+            "kiwisolver": "1.5.1",
+            "fonttools": "4.65.0",
+            "cython": "3.3.0",
+            "cycler": "0.12.1",
+            "contourpy": "1.3.2",
+            "yapf": "0.43.0",
+            "matplotlib": "3.10.9",
+            "xtcocotools": "1.14.3",
+            "mmengine": "0.10.4",
+            "mmdet": "3.2.0",
+            "mmpose": "1.3.1"
+          },
+          "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+          "base_prefix": "/usr",
+          "base_executable": "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+          "editable_packages": []
+        },
+        "requirements_sha256": {
+          "requirements/README.md": "e923170cd2f24c30d09fb72cf61c67508639f2779a56889b21e0bae944377231",
+          "requirements/avatar-prep.in": "876ec1aba1fa0140c8ee9682d65906ed99b6eb6a77d0a06256382c51e43e16c7",
+          "requirements/chin-tools.in": "bc1e798d9a683a747b67639a0d0c99b043dbcf295adbb746b38b330818d8a168",
+          "requirements/constraints-chin-tools.txt": "cecb72dd69c7ae44bb8bd36e9dbd919ad4a5dcf5f2fba1f6f97a96dd936fb06b",
+          "requirements/constraints-cu121.txt": "a2a4acdd81244964d9ed20180a78c51e30e51c9cbc2c14788c308c7421c94d35",
+          "requirements/constraints-cu128.txt": "2b87acbffb70e688c02a7400e1a395e0ac36ae253f968984491a80d33a578ff9",
+          "requirements/kokoro.in": "fb4f8b539ccdb3b1f47f8d652ef027505dd9435d5e07bf3049fdf72bd79d3ca2",
+          "requirements/legacy-int8.in": "e0bcecc06f764ad493d8de62ec3f0a4e854a98ec8c43f4841fae5a77148d3724",
+          "requirements/server.in": "53bfc58316affb1b0caadbb527ca853d9c71be5203e6a7314963ab45082420ba"
+        },
+        "groups": {
+          "server": true,
+          "kokoro": true,
+          "avatar_prep": true,
+          "legacy_int8": false,
+          "chin_tools": false
+        },
+        "pyvenv_cfg": "home = /usr/bin\ninclude-system-site-packages = false\nversion = 3.10.12\n",
+        "symlinks": [
+          {
+            "path": "lib64",
+            "target": "lib"
+          },
+          {
+            "path": "bin/python3.10",
+            "target": "/usr/bin/python3.10"
+          },
+          {
+            "path": "bin/python",
+            "target": "python3.10"
+          },
+          {
+            "path": "bin/python3",
+            "target": "python3.10"
+          }
+        ],
+        "distro": "PRETTY_NAME=\"Ubuntu 22.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"22.04\"\nVERSION=\"22.04.5 LTS (Jammy Jellyfish)\"\nVERSION_CODENAME=jammy\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=jammy\n",
+        "libc": [
+          "glibc",
+          "2.35"
+        ]
+      },
+      "contract_sha256": "4cf134d4749f3fa5719a8df075c1f7b02b9f5a379feb7b4bea5eddcff2bd8599",
+      "archive_bytes": 4509210997,
+      "payload_file_bytes": 9883578602,
+      "archive_sha256": "d8a1fada0b0f59dc7c7df1c289e9101f2b215313f08895fd9ee92acb669195d6",
+      "compression_seconds": 31.475,
+      "finalized_after_ssh_disconnect": false,
+      "hash_seconds": 21.028,
+      "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
+      "installer_sha256": "f11426550dc6e56e7e5a66e010443ff56417d53ad21cb9e6a0970c7e34b41eb8",
+      "external_assets_included": false,
+      "base_image": "vastai/pytorch:cuda-12.1-auto",
+      "base_image_digest": "provider image_uuid recorded separately; immutable digest not supplied",
+      "s3_bucket": "lingua-musetalk-s3-storage",
+      "s3_key": "python-venv/20261011/musetalk-python-s3-venv-20261011-a3/4cf134d4749f3fa5719a8df075c1f7b02b9f5a379feb7b4bea5eddcff2bd8599/venv.tar.zst",
+      "upload_seconds": 773.883,
+      "upload_decimal_MB_per_second": 5.827
+    },
+    "worker-archive-restore-evidence.json": {
+      "manifest.json": {
+        "schema": "musetalk_python_venv_experiment_v1",
+        "label": "musetalk-python-s3-venv-20261011-a3",
+        "contract": {
+          "venv_path": "/workspace/.venvs/musetalk_trt_stagewise",
+          "platform": "linux-x86_64",
+          "matrix": "cu121",
+          "facts": {
+            "packages": {
+              "networkx": "3.4.2",
+              "msgpack": "1.2.2",
+              "markupsafe": "3.0.3",
+              "llvmlite": "0.49.0",
+              "lazy-loader": "0.5",
+              "jmespath": "1.1.0",
+              "imageio-ffmpeg": "0.6.0",
+              "idna": "3.19",
+              "setuptools": "60.2.0",
+              "pip": "26.2.1",
+              "packaging": "24.2",
+              "wheel": "0.48.0",
+              "tensorrt-cu12-bindings": "10.3.0",
+              "mpmath": "1.3.0",
+              "ifaddr": "0.2.0",
+              "antlr4-python3-runtime": "4.9.3",
+              "zipp": "4.1.0",
+              "urllib3": "1.26.20",
+              "typing_extensions": "4.16.0",
+              "tqdm": "4.65.2",
+              "threadpoolctl": "3.6.0",
+              "sympy": "1.13.1",
+              "soupsieve": "2.9.2",
+              "six": "1.17.0",
+              "safetensors": "0.7.0",
+              "regex": "2026.9.10",
+              "pyyaml": "6.0.3",
+              "python-multipart": "0.0.22",
+              "pysocks": "1.7.1",
+              "pycparser": "3.0",
+              "psutil": "7.2.2",
+              "protobuf": "7.36.1",
+              "propcache": "0.5.2",
+              "platformdirs": "4.11.8",
+              "pillow": "11.3.0",
+              "nvidia-nvtx-cu12": "12.1.105",
+              "nvidia-nvjitlink-cu12": "12.9.86",
+              "nvidia-nccl-cu12": "2.21.5",
+              "nvidia-curand-cu12": "10.3.2.106",
+              "nvidia-cufft-cu12": "11.0.2.54",
+              "nvidia-cuda-runtime-cu12": "12.1.105",
+              "nvidia-cuda-nvrtc-cu12": "12.1.105",
+              "nvidia-cuda-cupti-cu12": "12.1.105",
+              "nvidia-cublas-cu12": "12.1.3.1",
+              "numpy": "1.23.5",
+              "hf-xet": "1.6.0",
+              "h11": "0.16.0",
+              "google-crc32c": "1.8.0",
+              "future": "1.0.0",
+              "fsspec": "2026.7.0",
+              "frozenlist": "1.8.0",
+              "filelock": "3.14.0",
+              "einops": "0.8.1",
+              "dnspython": "2.8.0",
+              "decorator": "5.3.1",
+              "cloudpickle": "3.1.2",
+              "click": "8.5.0",
+              "charset-normalizer": "3.5.1",
+              "certifi": "2026.7.22",
+              "av": "16.1.0",
+              "audioread": "3.1.0",
+              "attrs": "26.1.0",
+              "async-timeout": "5.0.1",
+              "annotated-types": "0.8.0",
+              "annotated-doc": "0.0.5",
+              "aiohappyeyeballs": "2.7.1",
+              "aiofiles": "24.1.0",
+              "uvicorn": "0.42.0",
+              "typing-inspection": "0.4.4",
+              "triton": "3.1.0",
+              "tensorrt-cu12-libs": "10.3.0",
+              "soxr": "1.1.0",
+              "scipy": "1.15.3",
+              "requests": "2.28.2",
+              "python-dateutil": "2.9.0.post0",
+              "pyee": "13.0.1",
+              "pydantic_core": "2.46.5",
+              "opencv-python": "4.9.0.80",
+              "onnx": "1.17.0",
+              "omegaconf": "2.3.0",
+              "nvidia-cusparse-cu12": "12.1.0.106",
+              "nvidia-cudnn-cu12": "9.1.0.70",
+              "numba": "0.67.0",
+              "multidict": "6.8.0",
+              "joblib": "1.6.0",
+              "jinja2": "3.1.6",
+              "importlib_metadata": "9.0.1",
+              "imageio": "2.37.3",
+              "ffmpeg-python": "0.2.0",
+              "exceptiongroup": "1.3.1",
+              "cffi": "2.1.1",
+              "beautifulsoup4": "4.15.0",
+              "aiosignal": "1.4.0",
+              "aioice": "0.10.1",
+              "yarl": "1.24.5",
+              "tensorrt-cu12": "10.3.0",
+              "soundfile": "0.12.1",
+              "scikit-learn": "1.7.2",
+              "pylibsrtp": "1.0.0",
+              "pydantic": "2.13.5",
+              "pooch": "1.9.0",
+              "nvidia-cusolver-cu12": "11.4.5.107",
+              "huggingface-hub": "0.30.2",
+              "cryptography": "50.0.1",
+              "botocore": "1.42.97",
+              "anyio": "4.15.1",
+              "torch": "2.5.1+cu121",
+              "tokenizers": "0.15.2",
+              "starlette": "1.6.0",
+              "s3transfer": "0.16.1",
+              "pyopenssl": "26.4.0",
+              "librosa": "0.11.0",
+              "gdown": "6.2.0",
+              "diffusers": "0.30.2",
+              "aiohttp": "3.13.3",
+              "transformers": "4.39.2",
+              "torchvision": "0.20.1+cu121",
+              "torchaudio": "2.5.1+cu121",
+              "torch_tensorrt": "2.5.0",
+              "fastapi": "0.135.1",
+              "boto3": "1.42.97",
+              "aiortc": "1.14.0",
+              "accelerate": "0.28.0",
+              "rfc3986": "1.5.0",
+              "en_core_web_sm": "3.8.0",
+              "docopt": "0.6.2",
+              "addict": "2.4.0",
+              "wrapt": "2.5.0",
+              "wasabi": "1.1.3",
+              "uritemplate": "4.2.0",
+              "termcolor": "3.3.0",
+              "spacy-loggers": "1.0.5",
+              "spacy-legacy": "3.0.12",
+              "shellingham": "1.5.4",
+              "rpds-py": "0.30.0",
+              "pyparsing": "3.3.2",
+              "pygments": "2.21.0",
+              "num2words": "0.5.14",
+              "murmurhash": "1.0.15",
+              "misaki": "0.9.4",
+              "mdurl": "0.1.2",
+              "loguru": "0.7.3",
+              "language-tags": "1.3.1",
+              "isodate": "0.7.2",
+              "httpcore": "1.0.9",
+              "espeakng-loader": "0.2.4",
+              "dlinfo": "2.0.0",
+              "cymem": "2.0.13",
+              "curated-tokenizers": "0.0.10",
+              "confection": "1.3.3",
+              "cloudpathlib": "0.25.0",
+              "catalogue": "2.0.10",
+              "blis": "1.3.3",
+              "babel": "2.18.0",
+              "srsly": "2.5.3",
+              "smart_open": "8.0.1",
+              "referencing": "0.37.0",
+              "rdflib": "7.6.0",
+              "preshed": "3.0.13",
+              "markdown-it-py": "4.2.0",
+              "thinc": "8.3.13",
+              "rich": "15.0.0",
+              "jsonschema-specifications": "2025.9.1",
+              "httpx": "0.28.1",
+              "typer": "0.27.2",
+              "jsonschema": "4.26.0",
+              "curated-transformers": "0.1.1",
+              "weasel": "1.0.0",
+              "spacy-curated-transformers": "0.3.1",
+              "csvw": "4.1.0",
+              "spacy": "3.8.16",
+              "segments": "2.4.0",
+              "phonemizer-fork": "3.3.2",
+              "kokoro": "0.9.4",
+              "ninja": "1.13.2",
+              "mmcv": "2.1.0",
+              "chumpy": "0.70",
+              "munkres": "1.1.4",
+              "json-tricks": "3.17.3",
+              "tomli": "2.4.1",
+              "terminaltables": "3.1.10",
+              "shapely": "2.1.2",
+              "pycocotools": "2.0.11",
+              "kiwisolver": "1.5.1",
+              "fonttools": "4.65.0",
+              "cython": "3.3.0",
+              "cycler": "0.12.1",
+              "contourpy": "1.3.2",
+              "yapf": "0.43.0",
+              "matplotlib": "3.10.9",
+              "xtcocotools": "1.14.3",
+              "mmengine": "0.10.4",
+              "mmdet": "3.2.0",
+              "mmpose": "1.3.1"
+            },
+            "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+            "base_prefix": "/usr",
+            "base_executable": "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+            "editable_packages": []
+          },
+          "requirements_sha256": {
+            "requirements/README.md": "e923170cd2f24c30d09fb72cf61c67508639f2779a56889b21e0bae944377231",
+            "requirements/avatar-prep.in": "876ec1aba1fa0140c8ee9682d65906ed99b6eb6a77d0a06256382c51e43e16c7",
+            "requirements/chin-tools.in": "bc1e798d9a683a747b67639a0d0c99b043dbcf295adbb746b38b330818d8a168",
+            "requirements/constraints-chin-tools.txt": "cecb72dd69c7ae44bb8bd36e9dbd919ad4a5dcf5f2fba1f6f97a96dd936fb06b",
+            "requirements/constraints-cu121.txt": "a2a4acdd81244964d9ed20180a78c51e30e51c9cbc2c14788c308c7421c94d35",
+            "requirements/constraints-cu128.txt": "2b87acbffb70e688c02a7400e1a395e0ac36ae253f968984491a80d33a578ff9",
+            "requirements/kokoro.in": "fb4f8b539ccdb3b1f47f8d652ef027505dd9435d5e07bf3049fdf72bd79d3ca2",
+            "requirements/legacy-int8.in": "e0bcecc06f764ad493d8de62ec3f0a4e854a98ec8c43f4841fae5a77148d3724",
+            "requirements/server.in": "53bfc58316affb1b0caadbb527ca853d9c71be5203e6a7314963ab45082420ba"
+          },
+          "groups": {
+            "server": true,
+            "kokoro": true,
+            "avatar_prep": true,
+            "legacy_int8": false,
+            "chin_tools": false
+          },
+          "pyvenv_cfg": "home = /usr/bin\ninclude-system-site-packages = false\nversion = 3.10.12\n",
+          "symlinks": [
+            {
+              "path": "lib64",
+              "target": "lib"
+            },
+            {
+              "path": "bin/python3.10",
+              "target": "/usr/bin/python3.10"
+            },
+            {
+              "path": "bin/python",
+              "target": "python3.10"
+            },
+            {
+              "path": "bin/python3",
+              "target": "python3.10"
+            }
+          ],
+          "distro": "PRETTY_NAME=\"Ubuntu 22.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"22.04\"\nVERSION=\"22.04.5 LTS (Jammy Jellyfish)\"\nVERSION_CODENAME=jammy\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=jammy\n",
+          "libc": [
+            "glibc",
+            "2.35"
+          ]
+        },
+        "contract_sha256": "4cf134d4749f3fa5719a8df075c1f7b02b9f5a379feb7b4bea5eddcff2bd8599",
+        "archive_bytes": 4509210997,
+        "payload_file_bytes": 9883578602,
+        "archive_sha256": "d8a1fada0b0f59dc7c7df1c289e9101f2b215313f08895fd9ee92acb669195d6",
+        "compression_seconds": 31.475,
+        "finalized_after_ssh_disconnect": false,
+        "hash_seconds": 21.028,
+        "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
+        "installer_sha256": "f11426550dc6e56e7e5a66e010443ff56417d53ad21cb9e6a0970c7e34b41eb8",
+        "external_assets_included": false,
+        "base_image": "vastai/pytorch:cuda-12.1-auto",
+        "base_image_digest": "provider image_uuid recorded separately; immutable digest not supplied"
+      },
+      "restore-result.json": {
+        "restore_to_packages_seconds": 1361.72,
+        "restart_to_health_seconds": 33.893,
+        "removed_venv_to_health_seconds": 1415.966,
+        "pip_install_executed": false,
+        "health": {
+          "ok": true,
+          "service": "musetalk",
+          "status": "healthy",
+          "gpu_available": true,
+          "cached_avatars": 0,
+          "active_requests": 0,
+          "worker": {
+            "worker_id": "musetalk-b2ccf2639120",
+            "instance_id": "",
+            "base_url": "http://154.64.230.50:50287",
+            "registered": false,
+            "draining": false,
+            "accepting_new_sessions": true
+          }
+        },
+        "scope": "same-host dependency replacement; code/system/models/engines retained"
+      },
+      "gpu-selftest.json": {
+        "schema": "musetalk_gpu_selftest_v1",
+        "created_utc": "2026-10-12T05:11:44Z",
+        "host": "b2ccf2639120",
+        "repo_root": "/workspace/MuseTalk",
+        "python": "3.10.12",
+        "gpu": {
+          "index": 0,
+          "name": "NVIDIA GeForce RTX 3090",
+          "compute_capability": "8.6",
+          "memory_total_mib": 24126,
+          "multiprocessors": 82
+        },
+        "torch_version": "2.5.1+cu121",
+        "cuda_ok": true,
+        "taesd": {
+          "compile_ok": null,
+          "compile_mode": "max-autotune",
+          "warmup_s": null,
+          "ms_bs8": null,
+          "eager_ms_bs8": 11.051,
+          "buckets": [
+            8
+          ],
+          "per_bucket_ms": {},
+          "source": "/workspace/MuseTalk/models/taesd",
+          "error": "compile skipped (--skip-compile)",
+          "eager_error": null
+        },
+        "taesd_trt": {
+          "engine_present": true,
+          "layout": "legacy_flat",
+          "engine_dir": "/workspace/MuseTalk/models/taesd/trt",
+          "store_key": null,
+          "ok": false,
+          "key": null,
+          "ms_bs8": null,
+          "ms_bs8_bgr_u8": null,
+          "load_s": null,
+          "error": "no engine for this GPU/TensorRT/recipe fingerprint: FileNotFoundError: TAESD TRT engine taesd_trt_1e967e6e715c9f1a8375.json is missing in /workspace/MuseTalk/models/taesd/trt and MUSETALK_TAESD_TRT_BUILD=0 (build it with: python scripts/vae_fast_decoder.py build)"
+        },
+        "unet_eager": {
+          "ok": null,
+          "ms_bs8": null,
+          "error": "not requested (--unet)"
+        },
+        "trt_import_ok": true,
+        "engine_keys": {
+          "source": "scripts.musetalk_engine_keys",
+          "facts": {
+            "gpu_name": "NVIDIA GeForce RTX 3090",
+            "compute_capability": "8.6",
+            "tensorrt_version": "10.3.0",
+            "torch_tensorrt_version": "2.5.0",
+            "torch_version": "2.5.1+cu121"
+          },
+          "keys": {
+            "unet_ts": "sm86-nvidia-geforce-rtx-3090-trt10.3.0-tt2.5.0",
+            "unet_stagewise": "sm86-nvidia-geforce-rtx-3090-trt10.3.0",
+            "taesd_trt": "sm86-nvidia-geforce-rtx-3090-trt10.3.0"
+          },
+          "errors": {}
+        },
+        "engines_found": {
+          "source": "scripts.musetalk_engine_keys",
+          "store": {
+            "unet_ts": [],
+            "unet_stagewise": [],
+            "taesd_trt": []
+          },
+          "legacy": {
+            "unet_ts": [],
+            "unet_stagewise": [
+              {
+                "kind": "unet_stagewise",
+                "layout": "legacy",
+                "path": "/workspace/MuseTalk/models/tensorrt_unet_stagewise_ampere_plus_r5/bs16",
+                "schema": "musetalk_unet_stagewise_trt_v1",
+                "schema_ok": true,
+                "complete": true,
+                "batch": 16,
+                "gpu_name": "NVIDIA GeForce RTX 4070 SUPER",
+                "compute_capability": "8.9",
+                "tensorrt_version": "10.3.0",
+                "torch_version": "2.5.1+cu121",
+                "blocks": [
+                  "down0rest",
+                  "down1",
+                  "down2",
+                  "down3",
+                  "mid",
+                  "prefix",
+                  "tail",
+                  "up0",
+                  "up1",
+                  "up2",
+                  "up3"
+                ],
+                "missing_blocks": [
+                  "head",
+                  "down0"
+                ],
+                "probe_output_sha256": "2519789cd06503eae8bc4589002572c52f5246bb6fac7df68cd128bdda775e56"
+              }
+            ],
+            "taesd_trt": [
+              {
+                "kind": "taesd_trt",
+                "layout": "legacy",
+                "path": "/workspace/MuseTalk/models/taesd/trt/taesd_trt_512bfd629a5e1f4f2e40.json",
+                "schema": "taesd_trt_engine_v1",
+                "schema_ok": true,
+                "runtime_key": "512bfd629a5e1f4f2e40",
+                "batch": 8,
+                "gpu_name": null,
+                "compute_capability": null,
+                "tensorrt_version": "10.3.0",
+                "opt_level": 3,
+                "strongly_typed": false,
+                "decoder_plan": "taesd_trt_512bfd629a5e1f4f2e40.decoder.plan",
+                "post_plan": "taesd_trt_512bfd629a5e1f4f2e40.post_bgr_u8.plan",
+                "gate_verdict": "FAIL"
+              }
+            ]
+          },
+          "errors": {}
+        },
+        "estimate": {
+          "vae_ms_bs8": 11.051,
+          "vae_path": "eager",
+          "unet_eager_ms_bs8": null,
+          "note": "GPU-path only (UNet + TAESD per bs8 batch); serving adds H2D/compose/encode"
+        },
+        "torch_cuda": "12.1",
+        "torch_arch_flags": "sm_50 sm_60 sm_70 sm_75 sm_80 sm_86 sm_90",
+        "trt_versions": {
+          "tensorrt": "10.3.0",
+          "torch_tensorrt": "2.5.0"
+        },
+        "peak_vram_mib": 324,
+        "duration_s": 8.61
+      },
+      "install-check.json": {
+        "schema": "musetalk_install_check_v1",
+        "created_utc": "2026-10-12T05:11:33Z",
+        "repo_root": "/workspace/MuseTalk",
+        "venv": "/workspace/.venvs/musetalk_trt_stagewise",
+        "venv_facts": {
+          "venv": "/workspace/.venvs/musetalk_trt_stagewise",
+          "exists": true,
+          "python": "/workspace/.venvs/musetalk_trt_stagewise/bin/python",
+          "python_executable": true,
+          "pyvenv_version": "3.10.12",
+          "python_version": "3.10.12",
+          "machine": "x86_64",
+          "site_packages": "/workspace/.venvs/musetalk_trt_stagewise/lib/python3.10/site-packages",
+          "dist_count": 194,
+          "torch_cuda_tag": "cu121",
+          "versions": {
+            "torch": "2.5.1+cu121",
+            "torchvision": "0.20.1+cu121",
+            "torchaudio": "2.5.1+cu121",
+            "torch-tensorrt": "2.5.0",
+            "tensorrt-cu12": "10.3.0",
+            "triton": "3.1.0",
+            "onnx": "1.17.0",
+            "numpy": "1.23.5",
+            "diffusers": "0.30.2",
+            "transformers": "4.39.2",
+            "aiortc": "1.14.0",
+            "av": "16.1.0",
+            "cffi": "2.1.1",
+            "kokoro": "0.9.4",
+            "spacy": "3.8.16",
+            "mmcv": "2.1.0",
+            "setuptools": "60.2.0",
+            "pip": "26.2.1"
+          }
+        },
+        "matrix": {
+          "matrix": "cu121",
+          "reason": "requested explicitly",
+          "gpu": {
+            "index": 0,
+            "name": "NVIDIA GeForce RTX 3090",
+            "compute_capability": "8.6"
+          },
+          "gpu_source": "nvidia-smi",
+          "gpu_error": null,
+          "gpu_visible": true
+        },
+        "groups": {
+          "server": {
+            "enabled": true,
+            "source": "always"
+          },
+          "kokoro": {
+            "enabled": true,
+            "source": "flag"
+          },
+          "legacy_int8": {
+            "enabled": false,
+            "source": "stamp"
+          },
+          "avatar_prep": {
+            "enabled": true,
+            "source": "flag"
+          },
+          "chin_tools": {
+            "enabled": false,
+            "source": "stamp"
+          },
+          "native_vp8": {
+            "enabled": true,
+            "source": "flag"
+          }
+        },
+        "module_specs": {
+          "torch": true,
+          "torchvision": true,
+          "torchaudio": true,
+          "torch_tensorrt": true,
+          "tensorrt": true,
+          "onnx": true,
+          "diffusers": true,
+          "transformers": true,
+          "cv2": true,
+          "numpy": true,
+          "aiortc": true,
+          "av": true,
+          "cffi": true,
+          "fastapi": true,
+          "uvicorn": true,
+          "boto3": true,
+          "librosa": true,
+          "soundfile": true,
+          "numba": true,
+          "imageio": true,
+          "ffmpeg": true,
+          "omegaconf": true,
+          "multipart": true,
+          "kokoro": true,
+          "misaki": true,
+          "spacy": true,
+          "en_core_web_sm": true,
+          "espeakng_loader": true,
+          "mmcv": true,
+          "mmdet": true,
+          "mmengine": true,
+          "mmpose": true
+        },
+        "native_vp8": {
+          "directory": "/workspace/MuseTalk/.runtime/native_vp8",
+          "verified": true,
+          "detail": "8 files verified in /workspace/MuseTalk/.runtime/native_vp8"
+        },
+        "checks": [
+          {
+            "check": "venv",
+            "status": "ok",
+            "detail": "/workspace/.venvs/musetalk_trt_stagewise (CPython 3.10.12, 194 dists)"
+          },
+          {
+            "check": "matrix",
+            "status": "ok",
+            "detail": "cu121: torch 2.5.1+cu121 (requested explicitly)"
+          },
+          {
+            "check": "stamp",
+            "status": "ok",
+            "detail": "/workspace/MuseTalk/.runtime/install_state.json (2026-10-12T04:30:54Z)"
+          },
+          {
+            "check": "packages",
+            "status": "ok",
+            "detail": "all top-level requirements of the selected groups are installed"
+          },
+          {
+            "check": "pins",
+            "status": "ok",
+            "detail": "every installed package matches constraints-cu121.txt (211 pins)"
+          },
+          {
+            "check": "modules",
+            "status": "ok",
+            "detail": "32 top-level modules resolvable (find_spec, not imported)"
+          },
+          {
+            "check": "weights",
+            "status": "ok",
+            "detail": "14 model files present (incl. models/taesd)"
+          },
+          {
+            "check": "kokoro_cache",
+            "status": "ok",
+            "detail": "Kokoro-82M cached (3 voices) in /root/.cache/huggingface/hub/models--hexgrad--Kokoro-82M"
+          },
+          {
+            "check": "native_vp8",
+            "status": "ok",
+            "detail": "8 files verified in /workspace/MuseTalk/.runtime/native_vp8"
+          }
+        ],
+        "warnings": [],
+        "needs_clean": [],
+        "needs_repair": [],
+        "exit_code": 0,
+        "verdict": "ok"
+      },
+      "events": [
+        {
+          "stage": "COMMAND_STARTED",
+          "worker_monotonic": 699817.86539611,
+          "executable": "python",
+          "log": null
+        },
+        {
+          "stage": "COMMAND_COMPLETED",
+          "worker_monotonic": 699818.22318878,
+          "executable": "python",
+          "log": null,
+          "returncode": 0,
+          "seconds": 0.358
+        },
+        {
+          "stage": "COMMAND_STARTED",
+          "worker_monotonic": 699818.22405306,
+          "executable": "bash",
+          "log": "install-check.log"
+        },
+        {
+          "stage": "COMMAND_COMPLETED",
+          "worker_monotonic": 699829.206963803,
+          "executable": "bash",
+          "log": "install-check.log",
+          "returncode": 0,
+          "seconds": 10.983
+        },
+        {
+          "stage": "COMMAND_STARTED",
+          "worker_monotonic": 699829.207305415,
+          "executable": "python",
+          "log": "gpu-selftest.log"
+        },
+        {
+          "stage": "COMMAND_COMPLETED",
+          "worker_monotonic": 699840.990758796,
+          "executable": "python",
+          "log": "gpu-selftest.log",
+          "returncode": 0,
+          "seconds": 11.783
+        },
+        {
+          "stage": "VALIDATION_PASS",
+          "worker_monotonic": 699840.99155603,
+          "seconds": 22.768,
+          "cuda_ok": true,
+          "trt_import_ok": true,
+          "pip_install_executed": false,
+          "note": "check-only installer; selftest does not torch.compile or build TensorRT plans"
+        },
+        {
+          "stage": "COMMAND_STARTED",
+          "worker_monotonic": 699840.99251463,
+          "executable": "bash",
+          "log": "baseline-stop.log"
+        },
+        {
+          "stage": "COMMAND_COMPLETED",
+          "worker_monotonic": 699849.340221572,
+          "executable": "bash",
+          "log": "baseline-stop.log",
+          "returncode": 0,
+          "seconds": 8.348
+        },
+        {
+          "stage": "COMMAND_STARTED",
+          "worker_monotonic": 699852.358978975,
+          "executable": "tar",
+          "log": "archive-build.log"
+        },
+        {
+          "stage": "COMMAND_COMPLETED",
+          "worker_monotonic": 699883.833336644,
+          "executable": "tar",
+          "log": "archive-build.log",
+          "returncode": 0,
+          "seconds": 31.474
+        },
+        {
+          "stage": "ARCHIVE_SAFETY_PASS",
+          "worker_monotonic": 699953.749647049,
+          "members": 70873,
+          "seconds": 69.916
+        },
+        {
+          "stage": "COMMAND_STARTED",
+          "worker_monotonic": 699974.901078966,
+          "executable": "git",
+          "log": null
+        },
+        {
+          "stage": "COMMAND_COMPLETED",
+          "worker_monotonic": 699974.905120117,
+          "executable": "git",
+          "log": null,
+          "returncode": 0,
+          "seconds": 0.004
+        },
+        {
+          "stage": "ARCHIVE_BUILT",
+          "worker_monotonic": 699974.906482914,
+          "archive_bytes": 4509210997,
+          "payload_file_bytes": 9883578602,
+          "compression_seconds": 31.475,
+          "archive_sha256": "d8a1fada0b0f59dc7c7df1c289e9101f2b215313f08895fd9ee92acb669195d6",
+          "contract_sha256": "4cf134d4749f3fa5719a8df075c1f7b02b9f5a379feb7b4bea5eddcff2bd8599",
+          "package_count": 194
+        },
+        {
+          "stage": "RESTORE_DISK_BUDGET_PASS",
+          "worker_monotonic": 700752.546136438,
+          "free_bytes": 106423459840,
+          "needed_bytes": 16540273247
+        },
+        {
+          "stage": "COMMAND_STARTED",
+          "worker_monotonic": 700752.546891046,
+          "executable": "bash",
+          "log": "restore-stop.log"
+        },
+        {
+          "stage": "COMMAND_COMPLETED",
+          "worker_monotonic": 700752.569888705,
+          "executable": "bash",
+          "log": "restore-stop.log",
+          "returncode": 0,
+          "seconds": 0.023
+        },
+        {
+          "stage": "VENV_REMOVED_FROM_WORKING_PATH",
+          "worker_monotonic": 700752.571723632,
+          "recoverable_backup": "/workspace/.venvs/musetalk_trt_stagewise.s3-rollback-20261011-a3",
+          "final_path_absent": true
+        },
+        {
+          "stage": "S3_DOWNLOAD_COMPLETE",
+          "worker_monotonic": 702016.483731741,
+          "bytes": 4509210997,
+          "seconds": 1263.912,
+          "decimal_MB_per_second": 3.568,
+          "requests": 1,
+          "local_archive_reused": false
+        },
+        {
+          "stage": "S3_CHECKSUM_PASS",
+          "worker_monotonic": 702037.291753134,
+          "seconds": 20.807
+        },
+        {
+          "stage": "ARCHIVE_SAFETY_REUSED_FOR_IDENTICAL_BYTES",
+          "worker_monotonic": 702037.292635855,
+          "sha256": "d8a1fada0b0f59dc7c7df1c289e9101f2b215313f08895fd9ee92acb669195d6",
+          "note": "Fresh GET checksum matches this same worker\u2019s previously audited archive"
+        },
+        {
+          "stage": "COMMAND_STARTED",
+          "worker_monotonic": 702037.292985349,
+          "executable": "tar",
+          "log": "archive-extract.log"
+        },
+        {
+          "stage": "COMMAND_COMPLETED",
+          "worker_monotonic": 702113.944187874,
+          "executable": "tar",
+          "log": "archive-extract.log",
+          "returncode": 0,
+          "seconds": 76.651
+        },
+        {
+          "stage": "EXTRACTION_PUBLISHED",
+          "worker_monotonic": 702113.944585912,
+          "seconds": 76.652,
+          "path": "/workspace/.venvs/musetalk_trt_stagewise"
+        },
+        {
+          "stage": "COMMAND_STARTED",
+          "worker_monotonic": 702113.944775952,
+          "executable": "python",
+          "log": null
+        },
+        {
+          "stage": "COMMAND_COMPLETED",
+          "worker_monotonic": 702114.291317854,
+          "executable": "python",
+          "log": null,
+          "returncode": 0,
+          "seconds": 0.347
+        },
+        {
+          "stage": "PACKAGE_MANIFEST_MATCH",
+          "worker_monotonic": 702114.292082722,
+          "seconds": 0.347
+        },
+        {
+          "stage": "COMMAND_STARTED",
+          "worker_monotonic": 702114.292422815,
+          "executable": "bash",
+          "log": "install-check.log"
+        },
+        {
+          "stage": "COMMAND_COMPLETED",
+          "worker_monotonic": 702124.513278032,
+          "executable": "bash",
+          "log": "install-check.log",
+          "returncode": 0,
+          "seconds": 10.221
+        },
+        {
+          "stage": "COMMAND_STARTED",
+          "worker_monotonic": 702124.513788007,
+          "executable": "python",
+          "log": "gpu-selftest.log"
+        },
+        {
+          "stage": "COMMAND_COMPLETED",
+          "worker_monotonic": 702134.643684548,
+          "executable": "python",
+          "log": "gpu-selftest.log",
+          "returncode": 0,
+          "seconds": 10.13
+        },
+        {
+          "stage": "VALIDATION_PASS",
+          "worker_monotonic": 702134.644333405,
+          "seconds": 20.352,
+          "cuda_ok": true,
+          "trt_import_ok": true,
+          "pip_install_executed": false,
+          "note": "check-only installer; selftest does not torch.compile or build TensorRT plans"
+        },
+        {
+          "stage": "COMMAND_STARTED",
+          "worker_monotonic": 702134.644611433,
+          "executable": "bash",
+          "log": "restored-server-start.log"
+        },
+        {
+          "stage": "COMMAND_COMPLETED",
+          "worker_monotonic": 702168.486844897,
+          "executable": "bash",
+          "log": "restored-server-start.log",
+          "returncode": 0,
+          "seconds": 33.842
+        },
+        {
+          "stage": "RESTORE_ACCEPTED",
+          "worker_monotonic": 702168.538544981,
+          "restore_to_packages_seconds": 1361.72,
+          "restart_to_health_seconds": 33.893,
+          "removed_venv_to_health_seconds": 1415.966,
+          "pip_install_executed": false,
+          "health": {
+            "ok": true,
+            "service": "musetalk",
+            "status": "healthy",
+            "gpu_available": true,
+            "cached_avatars": 0,
+            "active_requests": 0,
+            "worker": {
+              "worker_id": "musetalk-b2ccf2639120",
+              "instance_id": "",
+              "base_url": "http://154.64.230.50:50287",
+              "registered": false,
+              "draining": false,
+              "accepting_new_sessions": true
+            }
+          },
+          "scope": "same-host dependency replacement; code/system/models/engines retained"
+        }
+      ]
+    },
+    "venv-restore-result.json": {
+      "restore_to_packages_seconds": 1361.72,
+      "restart_to_health_seconds": 33.893,
+      "removed_venv_to_health_seconds": 1415.966,
+      "pip_install_executed": false,
+      "health": {
+        "ok": true,
+        "service": "musetalk",
+        "status": "healthy",
+        "gpu_available": true,
+        "cached_avatars": 0,
+        "active_requests": 0,
+        "worker": {
+          "worker_id": "musetalk-b2ccf2639120",
+          "instance_id": "",
+          "base_url": "http://154.64.230.50:50287",
+          "registered": false,
+          "draining": false,
+          "accepting_new_sessions": true
+        }
+      },
+      "scope": "same-host dependency replacement; code/system/models/engines retained"
+    },
+    "reconciled-restored-health.json": {
+      "ok": true,
+      "service": "musetalk",
+      "status": "healthy",
+      "gpu_available": true,
+      "cached_avatars": 0,
+      "active_requests": 0,
+      "worker": {
+        "worker_id": "musetalk-b2ccf2639120",
+        "instance_id": "",
+        "base_url": "http://154.64.230.50:50287",
+        "registered": false,
+        "draining": false,
+        "accepting_new_sessions": true
+      }
+    },
+    "cleanup.json": {
+      "at_utc": "2026-10-12T05:27:22.651614+00:00",
+      "instance_id": "55492021",
+      "provider_absence_verified": true,
+      "protected_production_running": true
+    },
+    "final-audit.json": {
+      "at_utc": "2026-10-12T05:30:31.894924+00:00",
+      "owned_instance_absent": true,
+      "production_running": true,
+      "pending_multipart_count": 0,
+      "archive_persisted": true,
+      "archive_bytes": 4509210997,
+      "sse": "AES256",
+      "ephemeral_local_key_files_removed": [
+        "a3-test-ssh-key",
+        "a3-test-ssh-key.pub"
+      ],
+      "original_ec2_key_untouched": true,
+      "expiry_timer_state": "inactive"
+    },
+    "avatar-warm-request.json": {
+      "http_status": 202,
+      "body": {
+        "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+        "request_id": "warm_b7c87d08",
+        "status": "queued",
+        "cached": false,
+        "disk_prepared": false,
+        "s3_enabled": true,
+        "s3_restore_required": true,
+        "batch_size": 16,
+        "submitted_at": 1791782734.118295,
+        "started_at": null,
+        "updated_at": 1791782734.118295,
+        "completed_at": null,
+        "error": null,
+        "timings": {},
+        "cache": null,
+        "deduped": false,
+        "idle_frame_cache": {
+          "requested": 1,
+          "ready": true
+        }
+      }
+    },
+    "avatar-warm-status.json": {
+      "http_status": 200,
+      "body": {
+        "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+        "status": "ready",
+        "cached": true,
+        "disk_prepared": true,
+        "s3_enabled": true,
+        "s3_restore_required": false,
+        "cache": {
+          "id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+          "memory_mb": 218.1734209060669,
+          "load_count": 1,
+          "age_seconds": 1.4920096397399902
+        },
+        "warmup": {
+          "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+          "request_id": "warm_b7c87d08",
+          "status": "ready",
+          "cached": true,
+          "disk_prepared": true,
+          "s3_enabled": true,
+          "s3_restore_required": false,
+          "batch_size": 16,
+          "submitted_at": 1791782734.118295,
+          "started_at": 1791782734.1188672,
+          "updated_at": 1791782794.5130718,
+          "completed_at": 1791782794.5130596,
+          "error": null,
+          "timings": {
+            "existence_check_seconds": 57.94068934896495,
+            "s3_restore_seconds": 57.94068934896495,
+            "avatar_load_seconds": 2.452972711995244,
+            "total_seconds": 60.39419173297938
+          },
+          "cache": {
+            "id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+            "memory_mb": 218.1734209060669,
+            "load_count": 1,
+            "age_seconds": 0.06987547874450684
+          }
+        }
+      }
+    },
+    "generation-request.json": {
+      "http_status": 200,
+      "body": {
+        "status": "queued",
+        "request_id": "gen_123d2577",
+        "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+        "message": "Video generation queued. Check status at /generate/gen_123d2577/status"
+      }
+    },
+    "generation-status.json": {
+      "http_status": 200,
+      "body": {
+        "status": "completed",
+        "result": {
+          "success": true,
+          "output_path": "./results/v15/avatars/en_01_maya_abe451d3_talking_f6cf8be7fb/vid_output/None.mp4"
+        }
+      }
+    },
+    "video-download-failure-evidence.json": {
+      "log_found": true,
+      "matching_lines": [
+        "\u2705 [gen_123d2577] Complete: ./results/v15/avatars/en_01_maya_abe451d3_talking_f6cf8be7fb/vid_output/None.mp4",
+        "\ud83c\udf10 API request start id=00e918a4bcc4 method=GET path=/generate/gen_123d2577/download session_id=- group_id=- client=172.17.0.1 counts={'active_requests': 1, 'active_webrtc_streams': 0, 'total_webrtc_sessions': 0, 'active_hls_streams': 0, 'total_hls_sessions': 0, 'queue_depth': 0}",
+        "\ud83c\udf10 API request done id=00e918a4bcc4 method=GET path=/generate/gen_123d2577/download status=404 elapsed_ms=8.2 session_id=- group_id=- counts={'active_requests': 1, 'active_webrtc_streams': 0, 'total_webrtc_sessions': 0, 'active_hls_streams': 0, 'total_hls_sessions': 0, 'queue_depth': 0}"
+      ],
+      "raw_body_or_headers_saved": false
+    },
+    "setup-monitor-handoff.json": {
+      "monitor_transfer_needed": true,
+      "old_supervisor_pid": 1969,
+      "installer_pid": 1970,
+      "original_expiry_unchanged": true,
+      "installer_signaled": false,
+      "installer_still_running": true,
+      "installer_parent": "1"
+    },
+    "apt-failure-diagnostic.json": {
+      "apt_errors": [
+        "[install_musetalk.sh][PHASE][2026-10-12T03:44:53+0000] DONE: Phase 0: Preflight (1s)",
+        "Err:1 http://security.ubuntu.com/ubuntu jammy-security InRelease",
+        "Err:5 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64  InRelease",
+        "Err:3 http://archive.ubuntu.com/ubuntu jammy InRelease",
+        "Err:2 https://ppa.launchpadcontent.net/deadsnakes/nightly/ubuntu jammy InRelease",
+        "Err:6 http://archive.ubuntu.com/ubuntu jammy-updates InRelease",
+        "Err:7 http://archive.ubuntu.com/ubuntu jammy-backports InRelease",
+        "Err:4 https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu jammy InRelease",
+        "W: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease  Could not resolve 'archive.ubuntu.com'",
+        "W: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/jammy-updates/InRelease  Could not resolve 'archive.ubuntu.com'",
+        "W: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/jammy-backports/InRelease  Could not resolve 'archive.ubuntu.com'",
+        "W: Failed to fetch http://security.ubuntu.com/ubuntu/dists/jammy-security/InRelease  Could not resolve 'security.ubuntu.com'",
+        "W: Failed to fetch https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/InRelease  Could not resolve 'developer.download.nvidia.com'",
+        "W: Failed to fetch https://ppa.launchpadcontent.net/deadsnakes/nightly/ubuntu/dists/jammy/InRelease  Could not resolve 'ppa.launchpadcontent.net'",
+        "W: Failed to fetch https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu/dists/jammy/InRelease  Could not resolve 'ppa.launchpadcontent.net'",
+        "Err:14 http://archive.ubuntu.com/ubuntu jammy/main amd64 telnet amd64 0.17-44build1",
+        "Err:19 http://archive.ubuntu.com/ubuntu jammy/universe amd64 libhiredis0.14 amd64 0.14.1-2",
+        "Err:23 http://archive.ubuntu.com/ubuntu jammy-updates/universe amd64 coturn amd64 4.5.2-3.1~ubuntu22.04.1",
+        "Err:13 http://archive.ubuntu.com/ubuntu jammy/main amd64 netbase all 6.3",
+        "Err:26 http://archive.ubuntu.com/ubuntu jammy/main amd64 libice6 amd64 2:1.0.10-1build2",
+        "Err:27 http://archive.ubuntu.com/ubuntu jammy/main amd64 libsm6 amd64 2:1.2.3-1build2",
+        "Err:20 http://archive.ubuntu.com/ubuntu jammy/main amd64 mysql-common all 5.8+1.0.8",
+        "Err:2 http://security.ubuntu.com/ubuntu jammy-updates/universe amd64 python3.10-full amd64 3.10.12-1~22.04.18",
+        "Err:3 http://security.ubuntu.com/ubuntu jammy-updates/universe amd64 python3.10-venv amd64 3.10.12-1~22.04.18",
+        "Err:4 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 python3.10-dev amd64 3.10.12-1~22.04.18",
+        "Err:5 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libpython3.10-dev amd64 3.10.12-1~22.04.18",
+        "Err:6 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libpython3.10 amd64 3.10.12-1~22.04.18",
+        "Err:7 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 python3.10 amd64 3.10.12-1~22.04.18",
+        "Err:8 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libpython3.10-stdlib amd64 3.10.12-1~22.04.18",
+        "Err:9 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 python3.10-minimal amd64 3.10.12-1~22.04.18",
+        "Err:10 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libpython3.10-minimal amd64 3.10.12-1~22.04.18",
+        "Err:11 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libsqlite3-0 amd64 3.37.2-2ubuntu0.8",
+        "Err:12 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 sqlite3 amd64 3.37.2-2ubuntu0.8",
+        "Err:1 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 ca-certificates all 20260601~22.04.1",
+        "Err:15 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libevent-core-2.1-7 amd64 2.1.12-stable-1ubuntu0.2",
+        "Err:16 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libevent-extra-2.1-7 amd64 2.1.12-stable-1ubuntu0.2",
+        "Err:17 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libevent-openssl-2.1-7 amd64 2.1.12-stable-1ubuntu0.2",
+        "Err:18 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libevent-pthreads-2.1-7 amd64 2.1.12-stable-1ubuntu0.2",
+        "Err:21 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libmysqlclient21 amd64 8.0.46-0ubuntu0.22.04.4",
+        "Err:22 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libpq5 amd64 14.24-0ubuntu0.22.04.1",
+        "Err:24 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libglib2.0-bin amd64 2.72.4-0ubuntu2.10",
+        "Err:25 http://security.ubuntu.com/ubuntu jammy-updates/main amd64 libglib2.0-0 amd64 2.72.4-0ubuntu2.10",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/c/ca-certificates/ca-certificates_20260601%7e22.04.1_all.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/universe/p/python3.10/python3.10-full_3.10.12-1%7e22.04.18_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/universe/p/python3.10/python3.10-venv_3.10.12-1%7e22.04.18_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/p/python3.10/python3.10-dev_3.10.12-1%7e22.04.18_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/p/python3.10/libpython3.10-dev_3.10.12-1%7e22.04.18_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/p/python3.10/libpython3.10_3.10.12-1%7e22.04.18_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/p/python3.10/python3.10_3.10.12-1%7e22.04.18_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/p/python3.10/libpython3.10-stdlib_3.10.12-1%7e22.04.18_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/p/python3.10/python3.10-minimal_3.10.12-1%7e22.04.18_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/p/python3.10/libpython3.10-minimal_3.10.12-1%7e22.04.18_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/s/sqlite3/libsqlite3-0_3.37.2-2ubuntu0.8_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/s/sqlite3/sqlite3_3.37.2-2ubuntu0.8_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://archive.ubuntu.com/ubuntu/pool/main/n/netbase/netbase_6.3_all.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://archive.ubuntu.com/ubuntu/pool/main/n/netkit-telnet/telnet_0.17-44build1_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/libe/libevent/libevent-core-2.1-7_2.1.12-stable-1ubuntu0.2_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/libe/libevent/libevent-extra-2.1-7_2.1.12-stable-1ubuntu0.2_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/libe/libevent/libevent-openssl-2.1-7_2.1.12-stable-1ubuntu0.2_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/libe/libevent/libevent-pthreads-2.1-7_2.1.12-stable-1ubuntu0.2_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://archive.ubuntu.com/ubuntu/pool/universe/h/hiredis/libhiredis0.14_0.14.1-2_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://archive.ubuntu.com/ubuntu/pool/main/m/mysql-defaults/mysql-common_5.8%2b1.0.8_all.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/m/mysql-8.0/libmysqlclient21_8.0.46-0ubuntu0.22.04.4_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/p/postgresql-14/libpq5_14.24-0ubuntu0.22.04.1_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://archive.ubuntu.com/ubuntu/pool/universe/c/coturn/coturn_4.5.2-3.1%7eubuntu22.04.1_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/g/glib2.0/libglib2.0-bin_2.72.4-0ubuntu2.10_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://security.ubuntu.com/ubuntu/pool/main/g/glib2.0/libglib2.0-0_2.72.4-0ubuntu2.10_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://archive.ubuntu.com/ubuntu/pool/main/libi/libice/libice6_1.0.10-1build2_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Failed to fetch http://archive.ubuntu.com/ubuntu/pool/main/libs/libsm/libsm6_1.2.3-1build2_amd64.deb  Could not resolve 'archive.ubuntu.com'",
+        "E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?",
+        "LOG FILE: /workspace/onstart.log"
+      ],
+      "checkout_markers": [
+        "[source-baseline] checkout_start 2026-10-12T03:38:06.725212367Z",
+        "[source-baseline] checkout_ready 2026-10-12T03:44:52.345328818Z"
+      ]
+    },
+    "dns-diagnostic.json": {
+      "resolver": [
+        "nameserver 1.1.1.1",
+        "nameserver 8.8.8.8"
+      ],
+      "getent": {
+        "archive.ubuntu.com": {
+          "status": 0,
+          "resolved": true
+        },
+        "pypi.org": {
+          "status": 0,
+          "resolved": true
+        },
+        "lingua-musetalk-s3-storage.s3.amazonaws.com": {
+          "status": 0,
+          "resolved": true
+        }
+      },
+      "public_dns": {
+        "1.1.1.1": {
+          "response_bytes": 180,
+          "rcode": 0,
+          "answer_count": 9
+        },
+        "8.8.8.8": {
+          "response_bytes": 180,
+          "rcode": 0,
+          "answer_count": 9
+        }
+      }
+    },
+    "multipart-receipts.json": {
+      "parts": [
+        {
+          "PartNumber": 1,
+          "ETag": "\"206468ba2053af9607d381fb3401988d\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 2,
+          "ETag": "\"8c129704af3493800f06d16f873a3a6a\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 3,
+          "ETag": "\"f40a39075e497a9acb222f53329be55d\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 4,
+          "ETag": "\"1da8df492fb95c0236b9678dc389b540\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 5,
+          "ETag": "\"8fa8664b017d183a476e9c669bafd17c\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 6,
+          "ETag": "\"567b4fc936eb6d9f819c52506c8e6be7\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 7,
+          "ETag": "\"a507b17cbbf886d0ed17a57964a413d5\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 8,
+          "ETag": "\"235cc165e9b568f20a223ac806ce342e\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 9,
+          "ETag": "\"399f69c9cdc3632220e10e950078aed1\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 10,
+          "ETag": "\"3a26bb31cac8044d1f488fa1ee5337c7\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 11,
+          "ETag": "\"b018504b6da5bd9542a79abb2035a1c4\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 12,
+          "ETag": "\"35d5a4ec736091421672a928f9062269\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 13,
+          "ETag": "\"69227607a72f787bbda6a92bc47a3e72\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 14,
+          "ETag": "\"5a092e695534ebefc4c8542dde6426e0\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 15,
+          "ETag": "\"2a7f98b67a74b9417e142075f52718ee\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 16,
+          "ETag": "\"1dbb6fd85b6e9571c373395515845330\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 17,
+          "ETag": "\"6221ce046e3fd79fdc9126b332f5a38f\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 18,
+          "ETag": "\"64fb9e7e3b0735cd8b516289721ca538\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 19,
+          "ETag": "\"a3ab8465b4e784ec2ad5aa7a8c8810e3\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 20,
+          "ETag": "\"1e00bc0f9cbcae46a157654ec7cb4588\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 21,
+          "ETag": "\"1ba98647aeda10f7b184cb7ef22a4774\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 22,
+          "ETag": "\"6f7b7e5a4d81b540ef801dcc0110aa41\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 23,
+          "ETag": "\"22fb2f54d6cec5d9f1fbf33cc625919a\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 24,
+          "ETag": "\"64b0fa4dea372e35da532f48402ffd48\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 25,
+          "ETag": "\"9618138dcfd8e6a0b03ee398b5720551\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 26,
+          "ETag": "\"89dd3f2bebc38d9e9cb12c5e8baa3752\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 27,
+          "ETag": "\"e55194a49fc3b032312127cfc371e78b\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 28,
+          "ETag": "\"0f93b0b651007ad65bf0e1459986f35c\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 29,
+          "ETag": "\"41ae413c7d90c0be01df382ff1ea83b1\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 30,
+          "ETag": "\"f108c03f8c1ef067b0827f41c84f84ad\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 31,
+          "ETag": "\"0f5043e7467fbde227ab1eea2a033b49\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 32,
+          "ETag": "\"1c7007f6ad8d3156968408faf3631b40\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 33,
+          "ETag": "\"72abfd84f35edfc54084a5dd0a33528a\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 34,
+          "ETag": "\"3c0e31aa600b73cc2965a62335cd58a3\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 35,
+          "ETag": "\"a07ca51998c6d2e3bcf22190283c3e1b\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 36,
+          "ETag": "\"b11df32d99f6756f7218c639c163f901\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 37,
+          "ETag": "\"592c1aebf2bf5befcaab06a9a9e6c383\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 38,
+          "ETag": "\"478a46fdbc2300a3a08f20f62c5689a1\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 39,
+          "ETag": "\"2cc847584eb99d774b88aa1acbb5da18\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 40,
+          "ETag": "\"5882ab04e3cda915f22c7302e5e92201\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 41,
+          "ETag": "\"711efb95ced0342a927357b2ff8c1001\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 42,
+          "ETag": "\"cbe1eb680ce08ae39837daa0dd3c6aab\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 43,
+          "ETag": "\"1b5d650aba56a8efe423057f846ea46b\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 44,
+          "ETag": "\"dd6ce276b00f1e882f56ef3e6206d162\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 45,
+          "ETag": "\"91267bd3cf8a69a275ccd1e7d191d0eb\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 46,
+          "ETag": "\"5025f35a149c75a6da0a24b958be8c4d\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 47,
+          "ETag": "\"4fb32916cd1622a41265183a3d016685\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 48,
+          "ETag": "\"c29e858638f4d1062451893069f73aa4\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 49,
+          "ETag": "\"0f3805db2051e94d616056d701907422\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 50,
+          "ETag": "\"0194955b258843dcb199d5d897736d93\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 51,
+          "ETag": "\"89a3e6edcbe73e9b80915480ac5f9836\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 52,
+          "ETag": "\"382f16b4ffb22e40e80e90954b8c8471\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 53,
+          "ETag": "\"b848320bc5c34bb46b732a11e6786ef5\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 54,
+          "ETag": "\"9232fb220e66d093acd4168d41fffc45\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 55,
+          "ETag": "\"85431e6e3a7bd1ffbf1b479360abc466\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 56,
+          "ETag": "\"ad8ddcfb57eb74d8dcc46952dfdb0feb\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 57,
+          "ETag": "\"618bc63a00db9b89ced6f9e83928804d\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 58,
+          "ETag": "\"3ab91bec2ace0555c7e990bc71f7b2bc\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 59,
+          "ETag": "\"70ced6704f0ff840eaabc6ffdff25bcf\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 60,
+          "ETag": "\"d8d6e39565592eb9d821e0b14dc1d086\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 61,
+          "ETag": "\"da3937d93b7970ba387f7bdc2304798c\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 62,
+          "ETag": "\"5177494941d9f0f6a3aa3c7ffe73a18c\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 63,
+          "ETag": "\"59e60387218691adf1f25c8edc0efab8\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 64,
+          "ETag": "\"9b4645bb213261782506a75f4b77b951\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 65,
+          "ETag": "\"27f973f5243461b2d4e5ca2f5214a903\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 66,
+          "ETag": "\"503fb6af2d0c2bbb3df44aa11bfe23e4\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 67,
+          "ETag": "\"0ee93fedb52a0eb65988bb827aeceeec\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 68,
+          "ETag": "\"36b651d2889bf0b2c0dc9e152609e293\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 69,
+          "ETag": "\"a022bf322b67147da7d0bca8e30456a5\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 70,
+          "ETag": "\"d1ee937ef70882fa80026e7d1899acd9\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 71,
+          "ETag": "\"7cc9e9469251a7cc049171750f31abf5\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 72,
+          "ETag": "\"32a2ba438c6c5f6b461a76b9a45f5fee\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 73,
+          "ETag": "\"72cfb247e1273bdcd17c4ce198c0d2e8\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 74,
+          "ETag": "\"cc8be8e768fbed3914245cea7f88b468\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 75,
+          "ETag": "\"3023c89db41d366e3e51b03544790fe8\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 76,
+          "ETag": "\"31c436d21326b7d88a5d7bdbae75e9d7\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 77,
+          "ETag": "\"5c8ba584f7f4f4f1bbe6edb6c1565cf6\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 78,
+          "ETag": "\"fb4aa7773b0b71ec90202de2ee9a3573\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 79,
+          "ETag": "\"868eeb4f6ae8378b53a6f8a317f7d1f2\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 80,
+          "ETag": "\"4ad0792280a9658f0ec2a91d0029d1ce\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 81,
+          "ETag": "\"b71bcd4c8fd120f978b519f3464638ce\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 82,
+          "ETag": "\"f43c0d408e639a6615021bb46a533d57\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 83,
+          "ETag": "\"2c2b399fd9ec9e7be5d87e5e973bced1\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 84,
+          "ETag": "\"0dfc41364bb066da8781d3c8dc6c294b\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 85,
+          "ETag": "\"fc3ab34ba6a5b896643b87683208f028\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 86,
+          "ETag": "\"709b84e0dfe2780691a14e8df481ca4c\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 87,
+          "ETag": "\"ac74f2c6baf5be5ececdff3376f37d00\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 88,
+          "ETag": "\"67a7b3a04a187f20a8003d6694a24f58\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 89,
+          "ETag": "\"2346e89fb32c5335741793502abba9d3\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 90,
+          "ETag": "\"0e38ab6c94da69d4be955fef3d14dceb\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 91,
+          "ETag": "\"c113270e86a6c426823d78bf5f750ff0\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 92,
+          "ETag": "\"e16f10d21cf4f0ee03befb073702cbc9\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 93,
+          "ETag": "\"dcd0fa2c7a3d2056ba5842b7bcfe384f\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 94,
+          "ETag": "\"f269c0a600560d25c74cac50e066d3f8\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 95,
+          "ETag": "\"10be5bb03530bfe60a8683cc0b401a3f\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 96,
+          "ETag": "\"2f5bd97354b3cd01d3e0226b670f02a7\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 97,
+          "ETag": "\"6fbc4595b3f4a048fafc1d65248543a5\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 98,
+          "ETag": "\"da1d44fcec0e0a0bd7d3e53be9dc603c\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 99,
+          "ETag": "\"f5182492837f9cc1f1a850699187eba8\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 100,
+          "ETag": "\"214b41994f7b7a9cd9337040d32dbb53\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 101,
+          "ETag": "\"5405ed1dddb34af0b8cb071df1ce8ba6\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 102,
+          "ETag": "\"dd928643c550f1c15f91817c5bd0df21\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 103,
+          "ETag": "\"31ec81101ac99ba954c6ffe324a0f945\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 104,
+          "ETag": "\"65a35daefc3420c45133358a75ab89f1\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 105,
+          "ETag": "\"3ab238c37e2fe3fadd38c99c0b0cc684\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 106,
+          "ETag": "\"9fa9f5e53243f830e05b97a5f0704e8d\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 107,
+          "ETag": "\"371eb4b95610b66f7a40e2ea69da6ab1\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 108,
+          "ETag": "\"9f6fdf8e08d053d03adb2962265dfdd9\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 109,
+          "ETag": "\"cd382963472a0bff3e0453a7f77d9126\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 110,
+          "ETag": "\"e0b2f460828a76ba2b1f1edf6db082b7\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 111,
+          "ETag": "\"db7984fa18a1faf026797ee3cc445130\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 112,
+          "ETag": "\"2c3e64464b46787dfcf0b75ef82bcc8e\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 113,
+          "ETag": "\"144114425065ef5b6b504f7183782997\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 114,
+          "ETag": "\"17bcc3f2997d1136a08128a7457ce43e\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 115,
+          "ETag": "\"5994e973fe4d21d3032c759ae79ecf70\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 116,
+          "ETag": "\"78c80496f23bf8784b87631181419853\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 117,
+          "ETag": "\"3c276a703145a482e2d4957f31ff4616\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 118,
+          "ETag": "\"2e7ca3c8187f52dd7f2740a7f394466e\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 119,
+          "ETag": "\"21705d77edf2bf2a5e6a30a19080f4bf\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 120,
+          "ETag": "\"2c839f57a690cf4245cf46a24b550ae2\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 121,
+          "ETag": "\"2e9ef52b52b0ed24f5ed4a49b3b98efa\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 122,
+          "ETag": "\"495df92f90c58cc51df3def6c836ae03\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 123,
+          "ETag": "\"b2e47e4e4197c9686fbe658460edd156\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 124,
+          "ETag": "\"747e442aeed4952c46c27ba77b790c2c\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 125,
+          "ETag": "\"bf36183350b496d214cea992e74346ec\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 126,
+          "ETag": "\"deb5224747d50299aa107846f96ab0eb\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 127,
+          "ETag": "\"7475995c80b82b6b3a808e772d4ae425\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 128,
+          "ETag": "\"eccf520d93ac47997184a308f18e4c5f\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 129,
+          "ETag": "\"44e997d1421c4c04de5cd8d9861595a7\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 130,
+          "ETag": "\"68b14b695c75137926c7d31183422968\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 131,
+          "ETag": "\"384f619d9b296cc944c06738a42e44c1\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 132,
+          "ETag": "\"993d26ba4fc35b38cf0a41062cc3cf96\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 133,
+          "ETag": "\"b7ab27548b4048109ae4b5cf1b81f65c\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 134,
+          "ETag": "\"8bbff2257a13a9179b7ff84d084954c1\"",
+          "Size": 33554432
+        },
+        {
+          "PartNumber": 135,
+          "ETag": "\"f2c9b7760906f1fc366fd49a967bdc8a\"",
+          "Size": 12917109
+        }
+      ]
+    }
+  },
+  "events": [
+    {
+      "stage": "PREFLIGHT_PASS",
+      "at_utc": "2026-10-12T03:34:15.120360+00:00",
+      "offer_id": 48396264,
+      "disk_gb": 128,
+      "lifetime_seconds": 7200,
+      "budget_usd": 2,
+      "note": "No production config/IAM/template changes; installation unchanged"
+    },
+    {
+      "stage": "REQUEST_STARTED",
+      "at_utc": "2026-10-12T03:34:15.120992+00:00",
+      "elapsed_seconds": 0.0
+    },
+    {
+      "stage": "PROVIDER_ACCEPTED",
+      "at_utc": "2026-10-12T03:34:15.445050+00:00",
+      "instance_id": "55492021",
+      "elapsed_seconds": 0.324
+    },
+    {
+      "stage": "TEST_SSH_KEY_ATTACH",
+      "at_utc": "2026-10-12T03:34:15.612055+00:00",
+      "instance_id": "55492021",
+      "http_status": 200,
+      "key_sha256": "427f73446a3568ea389169ae731fe840a9bca145827904794f9e2673f1cc05f3",
+      "scope": "Owned retry worker only",
+      "elapsed_seconds": 0.491
+    },
+    {
+      "stage": "PROVIDER_STATE",
+      "at_utc": "2026-10-12T03:34:15.614067+00:00",
+      "actual_status": null,
+      "cur_state": "running",
+      "elapsed_seconds": 0.493
+    },
+    {
+      "stage": "PROVIDER_STATE",
+      "at_utc": "2026-10-12T03:34:30.907786+00:00",
+      "actual_status": "loading",
+      "cur_state": "running",
+      "elapsed_seconds": 15.787
+    },
+    {
+      "stage": "PROVIDER_STATE",
+      "at_utc": "2026-10-12T03:37:40.196786+00:00",
+      "actual_status": "running",
+      "cur_state": "running",
+      "elapsed_seconds": 205.076
+    },
+    {
+      "stage": "SSH_KEY_REATTACH_AFTER_RUNNING",
+      "at_utc": "2026-10-12T03:39:42.612021+00:00",
+      "instance_id": "55492021",
+      "http_status": 200,
+      "success": false,
+      "public_private_key_match": true,
+      "key_sha256": "427f73446a3568ea389169ae731fe840a9bca145827904794f9e2673f1cc05f3",
+      "scope": "Owned A3 only; repeat attachment after container running"
+    },
+    {
+      "stage": "A3_EPHEMERAL_SSH_ATTACH",
+      "at_utc": "2026-10-12T03:42:47.459463+00:00",
+      "instance_id": "55492021",
+      "http_status": 200,
+      "success": true,
+      "message": "SSH key added to instance.",
+      "scope": "New A3-only ephemeral public key; EC2 private key untouched",
+      "public_sha256": "4f3d122442bdaf4102b51d86c541e9953b45912192467b1ca899b4176b4ed9c7"
+    },
+    {
+      "stage": "DETACHED_JOB_LAUNCH",
+      "at_utc": "2026-10-12T03:43:35.761366+00:00",
+      "job_id": "4b34299623b84e6783c23c2883c49425",
+      "mode": "probe",
+      "returncode": 0,
+      "stdout_bytes": 80,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false,
+      "elapsed_seconds": 560.641
+    },
+    {
+      "stage": "DETACHED_JOB_COMPLETE",
+      "at_utc": "2026-10-12T03:43:43.456431+00:00",
+      "job_id": "4b34299623b84e6783c23c2883c49425",
+      "mode": "probe",
+      "elapsed_seconds": 568.336
+    },
+    {
+      "stage": "SSH_READY",
+      "at_utc": "2026-10-12T03:43:43.456776+00:00",
+      "worker_utc": "2026-10-12T03:43:32.868602+00:00",
+      "cache_state": "unknown",
+      "elapsed_seconds": 568.336
+    },
+    {
+      "stage": "SAME_INSTANCE_SETUP_RETRY_LAUNCH",
+      "at_utc": "2026-10-12T03:50:08.966714+00:00",
+      "job_id": "e786b236a0c642b8898441d6f04b9d89",
+      "returncode": 0,
+      "stdout_bytes": 80,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "PROVIDER_READ_RETRY",
+      "at_utc": "2026-10-12T04:03:24.633617+00:00",
+      "consecutive_failures": 1,
+      "http_status": 429,
+      "timeout_mentioned": false,
+      "create_retried": false,
+      "raw_error_body_saved": false,
+      "elapsed_seconds": 1749.513
+    },
+    {
+      "stage": "BASELINE_FAILED",
+      "at_utc": "2026-10-12T04:14:21.695623+00:00",
+      "error_type": "ValueError",
+      "detail": "Health observation deadline",
+      "elapsed_seconds": 2406.575
+    },
+    {
+      "stage": "DETACHED_JOB_LAUNCH",
+      "at_utc": "2026-10-12T04:14:28.992047+00:00",
+      "job_id": "9ff920afa3594d0787fe87b0bd207f34",
+      "mode": "diagnose",
+      "returncode": 0,
+      "stdout_bytes": 80,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false,
+      "elapsed_seconds": 2413.871
+    },
+    {
+      "stage": "DETACHED_JOB_COMPLETE",
+      "at_utc": "2026-10-12T04:14:36.830477+00:00",
+      "job_id": "9ff920afa3594d0787fe87b0bd207f34",
+      "mode": "diagnose",
+      "elapsed_seconds": 2421.71
+    },
+    {
+      "stage": "FAILED_WORKER_PRESERVED_UNTIL_EXPIRY",
+      "at_utc": "2026-10-12T04:14:36.830979+00:00",
+      "deadline_utc": "2026-10-12T05:34:15+00:00",
+      "remaining_seconds": 4778.2,
+      "new_instance_created": false,
+      "elapsed_seconds": 2421.71
+    },
+    {
+      "stage": "SAME_INSTANCE_BASELINE_OBSERVATION_RESUMED",
+      "at_utc": "2026-10-12T04:16:28.698436+00:00",
+      "new_instance": false,
+      "lease_extended": false
+    },
+    {
+      "stage": "SETUP_MONITOR_HANDOFF",
+      "at_utc": "2026-10-12T04:24:42.947983+00:00",
+      "monitor_transfer_needed": true,
+      "old_supervisor_pid": 1969,
+      "installer_pid": 1970,
+      "original_expiry_unchanged": true,
+      "installer_signaled": false,
+      "installer_still_running": true,
+      "installer_parent": "1"
+    },
+    {
+      "stage": "RECOVERED_BASELINE_HEALTH_READY",
+      "at_utc": "2026-10-12T04:33:14.315805+00:00",
+      "full_call_acceptance": false
+    },
+    {
+      "stage": "DETACHED_JOB_LAUNCH",
+      "at_utc": "2026-10-12T04:33:17.236782+00:00",
+      "job_id": "dc55f17cd348481bafc8499cb55f006f",
+      "mode": "build",
+      "returncode": 0,
+      "stdout_bytes": 81,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "DETACHED_JOB_COMPLETE",
+      "at_utc": "2026-10-12T04:35:54.910903+00:00",
+      "job_id": "dc55f17cd348481bafc8499cb55f006f",
+      "mode": "build"
+    },
+    {
+      "stage": "DETACHED_JOB_LAUNCH",
+      "at_utc": "2026-10-12T04:35:59.612261+00:00",
+      "job_id": "3a6ef063b716472295c835f375604a80",
+      "mode": "upload_batch",
+      "returncode": 0,
+      "stdout_bytes": 81,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "DETACHED_JOB_COMPLETE",
+      "at_utc": "2026-10-12T04:46:15.049251+00:00",
+      "job_id": "3a6ef063b716472295c835f375604a80",
+      "mode": "upload_batch"
+    },
+    {
+      "stage": "DETACHED_JOB_LAUNCH",
+      "at_utc": "2026-10-12T04:46:18.992958+00:00",
+      "job_id": "23d6671fff0c47ecb19f851e9fd57dd6",
+      "mode": "upload_batch",
+      "returncode": 0,
+      "stdout_bytes": 81,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "DETACHED_JOB_COMPLETE",
+      "at_utc": "2026-10-12T04:48:48.700603+00:00",
+      "job_id": "23d6671fff0c47ecb19f851e9fd57dd6",
+      "mode": "upload_batch"
+    },
+    {
+      "stage": "S3_ARCHIVE_PUBLISHED",
+      "at_utc": "2026-10-12T04:48:49.046530+00:00",
+      "key": "python-venv/20261011/musetalk-python-s3-venv-20261011-a3/4cf134d4749f3fa5719a8df075c1f7b02b9f5a379feb7b4bea5eddcff2bd8599/venv.tar.zst",
+      "bytes": 4509210997,
+      "sha256": "d8a1fada0b0f59dc7c7df1c289e9101f2b215313f08895fd9ee92acb669195d6",
+      "upload_seconds": 773.883,
+      "decimal_MB_per_second": 5.827
+    },
+    {
+      "stage": "DETACHED_JOB_LAUNCH",
+      "at_utc": "2026-10-12T04:48:51.923650+00:00",
+      "job_id": "e889f6996a2e49eab661862c79249c4d",
+      "mode": "restore",
+      "returncode": 0,
+      "stdout_bytes": 81,
+      "stderr_bytes": 117,
+      "stderr_sha256": "b480c7ebd32cfb6a73350317b4232710dbcd5ea463b2b573cf3e92e8df56cca0",
+      "error_categories": [],
+      "raw_stderr_saved": false
+    },
+    {
+      "stage": "RESTORE_RESULT_RECONCILED_FROM_WORKER_EVIDENCE",
+      "at_utc": "2026-10-12T05:18:38.248456+00:00",
+      "restore_to_packages_seconds": 1361.72,
+      "removed_venv_to_health_seconds": 1415.966,
+      "new_download_started": false
+    },
+    {
+      "stage": "AVATAR_READY",
+      "at_utc": "2026-10-12T05:26:35.830955+00:00",
+      "avatar_id": "en_01_maya_abe451d3_talking_f6cf8be7fb",
+      "restore_warm_seconds": 62.172,
+      "scope": "one_existing_avatar_not_full_roster"
+    },
+    {
+      "stage": "GENERATION_ACCEPTED",
+      "at_utc": "2026-10-12T05:26:37.138988+00:00"
+    },
+    {
+      "stage": "RESTORED_VIDEO_SMOKE_FAILED",
+      "at_utc": "2026-10-12T05:27:18.438111+00:00",
+      "error_type": "ValueError",
+      "safe_detail": "Bad video download"
+    },
+    {
+      "stage": "CLEANUP_VERIFIED",
+      "at_utc": "2026-10-12T05:27:22.651614+00:00",
+      "instance_id": "55492021",
+      "provider_absence_verified": true,
+      "protected_production_running": true
+    }
+  ]
+}

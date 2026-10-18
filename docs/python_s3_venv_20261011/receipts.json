@@ -1,0 +1,236 @@
+{
+  "experiment": "musetalk-python-s3-venv-20261011",
+  "ledger": {
+    "label": "musetalk-python-s3-venv-20261011",
+    "state": "cleaned",
+    "instance_id": "55446768",
+    "machine_id": 136634,
+    "source_revision": "5cc706e90e50e93da1310628c025a84199cd8042",
+    "template_hash": "4dc0868ee56886c667c217d6c3634a58",
+    "image": "vastai/pytorch:cuda-12.1-auto",
+    "deadline_utc": "2026-10-11T22:04:25+00:00",
+    "protected_instance_ids": [
+      "51074906"
+    ],
+    "budget_usd": 2,
+    "lifetime_seconds": 3600,
+    "poll_interval_seconds": 5,
+    "clock_domain": "EC2_collector_monotonic_single_process",
+    "stock_image_cache_state": "unknown",
+    "s3_session_expires_utc": "2026-10-11T22:04:25+00:00",
+    "ready_avatar_set": [
+      "en_01_maya_abe451d3_talking_f6cf8be7fb"
+    ],
+    "call_acceptance": "NOT_MEASURED_NO_ISOLATED_CONTROL_PLANE_ROUTE",
+    "allow_unverified": false,
+    "host_limit": null,
+    "request_started_utc": "2026-10-11T21:04:25.370958+00:00"
+  },
+  "cleanup": {
+    "at_utc": "2026-10-11T21:39:18.612893+00:00",
+    "instance_id": "55446768",
+    "provider_absence_verified": true,
+    "protected_production_running": true
+  },
+  "events": [
+    {
+      "stage": "PREFLIGHT_PASS",
+      "at_utc": "2026-10-11T21:04:25.370510+00:00",
+      "offer_id": 48396264,
+      "disk_gb": 150,
+      "lifetime_seconds": 3600,
+      "budget_usd": 2,
+      "note": "No production config/IAM/template changes; installation unchanged"
+    },
+    {
+      "stage": "REQUEST_STARTED",
+      "at_utc": "2026-10-11T21:04:25.371195+00:00",
+      "elapsed_seconds": 0
+    },
+    {
+      "stage": "PROVIDER_ACCEPTED",
+      "at_utc": "2026-10-11T21:04:25.644958+00:00",
+      "instance_id": "55446768",
+      "elapsed_seconds": 0.274
+    },
+    {
+      "stage": "PROVIDER_STATE",
+      "at_utc": "2026-10-11T21:04:25.755522+00:00",
+      "actual_status": null,
+      "cur_state": "running",
+      "elapsed_seconds": 0.385
+    },
+    {
+      "stage": "PROVIDER_STATE",
+      "at_utc": "2026-10-11T21:04:56.315835+00:00",
+      "actual_status": "loading",
+      "cur_state": "running",
+      "elapsed_seconds": 30.945
+    },
+    {
+      "stage": "PROVIDER_STATE",
+      "at_utc": "2026-10-11T21:05:16.942219+00:00",
+      "actual_status": "running",
+      "cur_state": "running",
+      "elapsed_seconds": 51.571
+    },
+    {
+      "stage": "PROVIDER_READ_RETRY",
+      "at_utc": "2026-10-11T21:06:02.105457+00:00",
+      "consecutive_failures": 1,
+      "http_status": 429,
+      "timeout_mentioned": false,
+      "create_retried": false,
+      "raw_error_body_saved": false,
+      "elapsed_seconds": 96.735
+    },
+    {
+      "stage": "TEST_SSH_KEY_ATTACH",
+      "at_utc": "2026-10-11T21:07:56.895356+00:00",
+      "instance_id": "55446768",
+      "http_status": 308,
+      "success": false,
+      "key_sha256": "427f73446a3568ea389169ae731fe840a9bca145827904794f9e2673f1cc05f3",
+      "scope": "existing EC2 public key attached only to owned one-hour test instance"
+    },
+    {
+      "stage": "TEST_SSH_KEY_ATTACH_RESULT",
+      "at_utc": "2026-10-11T21:08:21.622049+00:00",
+      "instance_id": "55446768",
+      "http_status": 200,
+      "success": true,
+      "scope": "owned temporary worker only"
+    },
+    {
+      "stage": "SSH_READY",
+      "at_utc": "2026-10-11T21:08:39.619943+00:00",
+      "worker_utc": "2026-10-11T21:08:39.626213+00:00",
+      "cache_state": "unknown",
+      "elapsed_seconds": 254.249
+    },
+    {
+      "stage": "MULTIPART_PERMISSION_PASS",
+      "at_utc": "2026-10-11T21:09:11.680191+00:00",
+      "prefix": "python-venv/20261011/musetalk-python-s3-venv-20261011/",
+      "empty_upload_aborted": true
+    },
+    {
+      "stage": "PROVIDER_READ_RETRY",
+      "at_utc": "2026-10-11T21:26:17.008550+00:00",
+      "consecutive_failures": 1,
+      "http_status": 429,
+      "timeout_mentioned": false,
+      "create_retried": false,
+      "raw_error_body_saved": false,
+      "elapsed_seconds": 1311.638
+    },
+    {
+      "stage": "PROVIDER_READ_RETRY",
+      "at_utc": "2026-10-11T21:30:26.222441+00:00",
+      "consecutive_failures": 1,
+      "http_status": 429,
+      "timeout_mentioned": false,
+      "create_retried": false,
+      "raw_error_body_saved": false,
+      "elapsed_seconds": 1560.852
+    },
+    {
+      "stage": "HEALTH_READY",
+      "at_utc": "2026-10-11T21:38:55.682458+00:00",
+      "health_not_full_call_acceptance": true,
+      "elapsed_seconds": 2070.312
+    },
+    {
+      "stage": "BASELINE_VIDEO_DEFERRED",
+      "at_utc": "2026-10-11T21:38:56.056319+00:00",
+      "reason": "Validate after restoring identical dependency environment",
+      "elapsed_seconds": 2070.685
+    },
+    {
+      "stage": "BASELINE_DIAGNOSTIC_COMPLETE",
+      "at_utc": "2026-10-11T21:38:59.798507+00:00",
+      "full_scaleout_call_acceptance": false,
+      "elapsed_seconds": 2074.428
+    },
+    {
+      "stage": "VENV_EXPERIMENT_FAILED",
+      "at_utc": "2026-10-11T21:39:18.040768+00:00",
+      "error_type": "ValueError",
+      "safe_detail": "Owned-worker operation failed; inspect safe worker evidence",
+      "elapsed_seconds": 2092.67
+    },
+    {
+      "stage": "CLEANUP_VERIFIED",
+      "at_utc": "2026-10-11T21:39:18.612893+00:00",
+      "instance_id": "55446768",
+      "provider_absence_verified": true,
+      "protected_production_running": true,
+      "elapsed_seconds": 2093.243
+    }
+  ],
+  "offer": {
+    "id": 48396264,
+    "machine_id": 136634,
+    "host_id": 399360,
+    "geolocation": "United States, US",
+    "gpu_name": "RTX 3090",
+    "num_gpus": 1,
+    "cpu_cores_effective": 10,
+    "cpu_ram": 32224,
+    "inet_down": 923,
+    "inet_up": 876,
+    "inet_down_cost": 0.0013020833333333333,
+    "inet_up_cost": 0.0013020833333333333,
+    "dph_total": 0.24333333333333335,
+    "dph_total_adj": 0.29216145833333335,
+    "disk_space": 150.25
+  },
+  "installer_completed_phases": [
+    "[install_musetalk.sh][PHASE][2026-10-11T21:12:32+0000] DONE: Phase 0: Preflight (0s)",
+    "[install_musetalk.sh][STEP][2026-10-11T21:13:00+0000] DONE: Phase 1: System packages :: Install system packages (apt) (28s)",
+    "[install_musetalk.sh][PHASE][2026-10-11T21:13:00+0000] DONE: Phase 1: System packages (28s)",
+    "[install_musetalk.sh][STEP][2026-10-11T21:13:15+0000] DONE: Phase 2: Venv :: Create venv (python3.10) (15s)",
+    "[install_musetalk.sh][PHASE][2026-10-11T21:13:15+0000] DONE: Phase 2: Venv (15s)",
+    "[install_musetalk.sh][STEP][2026-10-11T21:29:44+0000] DONE: Phase 3: Python packages :: Install server packages (server.in) (16m29s)",
+    "[install_musetalk.sh][STEP][2026-10-11T21:32:01+0000] DONE: Phase 3: Python packages :: Install Kokoro packages (kokoro.in) (2m17s)",
+    "[install_musetalk.sh][STEP][2026-10-11T21:33:06+0000] DONE: Phase 3: Python packages :: Install avatar-prep stack (mmcv/mmdet/mmpose) (1m05s)",
+    "[install_musetalk.sh][PHASE][2026-10-11T21:33:06+0000] DONE: Phase 3: Python packages (19m51s)",
+    "[install_musetalk.sh][STEP][2026-10-11T21:35:19+0000] DONE: Phase 4: Weights :: Download weights (MuseTalk V1.5, SD-VAE, Whisper, face-parse, TAESD, Kokoro cache) (2m13s)",
+    "[install_musetalk.sh][PHASE][2026-10-11T21:35:19+0000] DONE: Phase 4: Weights (2m13s)",
+    "[install_musetalk.sh][STEP][2026-10-11T21:35:23+0000] DONE: Phase 5: Native VP8 :: Install + verify + preflight native VP8 (auto) (4s)",
+    "[install_musetalk.sh][PHASE][2026-10-11T21:35:23+0000] DONE: Phase 5: Native VP8 (4s)",
+    "[install_musetalk.sh][PHASE][2026-10-11T21:35:23+0000] DONE: Phase 6: Chin tools (0s)",
+    "[install_musetalk.sh][STEP][2026-10-11T21:35:32+0000] DONE: Phase 7: Verify :: CPU import smoke (CUDA hidden) (9s)",
+    "[install_musetalk.sh][STEP][2026-10-11T21:36:33+0000] DONE: Phase 7: Verify :: GPU self-test (TAESD compile/timing, TRT import, engine keys) (1m01s)",
+    "[install_musetalk.sh][PHASE][2026-10-11T21:36:33+0000] DONE: Phase 7: Verify (1m10s)",
+    "[install_musetalk.sh][STEP][2026-10-11T21:36:33+0000] DONE: Phase 8: Stamp :: Write /workspace/MuseTalk/.runtime/install_state.json (0s)",
+    "[install_musetalk.sh][PHASE][2026-10-11T21:36:33+0000] DONE: Phase 8: Stamp (0s)",
+    "[install_musetalk.sh][STEP][2026-10-11T21:36:34+0000] DONE: Phase 9: Post-install check :: Post-install --check (1s)",
+    "[install_musetalk.sh][PHASE][2026-10-11T21:36:34+0000] DONE: Phase 9: Post-install check (1s)"
+  ],
+  "startup_timings": [
+    "[vast_onstart.sh] [21:36:34] Bootstrap/setup phase finished in 24m02s",
+    "[vast_onstart.sh] [21:36:41] Runtime secret bootstrap phase finished in 0s",
+    "[vast_onstart.sh] [21:36:42] WebRTC TURN bootstrap phase finished in 1s",
+    "[vast_onstart.sh] [21:38:18] r5 engine bundle phase finished in 1m36s",
+    "[vast_onstart.sh] [21:38:18] Engine provisioning phase finished in 0s",
+    "[vast_onstart.sh] [21:38:51] Server start-to-health-and-verify phase finished in 33s",
+    "TOTAL ELAPSED: 26m20s"
+  ],
+  "checkout_markers": [
+    "[source-baseline] checkout_start 2026-10-11T21:05:45.223993433Z",
+    "[source-baseline] checkout_ready 2026-10-11T21:12:31.008131685Z"
+  ],
+  "baseline_health": {
+    "ok": true,
+    "service": "musetalk",
+    "uptime_seconds": null,
+    "recipe": null,
+    "gpu": null
+  },
+  "archive_uploaded": false,
+  "restore_measured": false,
+  "rest_video_tested": false,
+  "webrtc_tested": false,
+  "failure_detail": "Worker command returned unsuccessful without saved stdout/stderr diagnostics. Exact cause not established; worker destroyed by automatic cleanup."
+}
