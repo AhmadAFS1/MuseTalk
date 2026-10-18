@@ -182,8 +182,13 @@ print(d["sha256"],int(d["bytes"]));print(d["url"])' 2>/dev/null)" || { bootstrap
   bootstrap_log "r5 bundle prefetch started ($size bytes)"
   (
     started=$SECONDS
-    # URL via curl's config on stdin: never in argv or a file.
-    if printf 'url = "%s"\n' "$url" | curl -fsS --retry 3 --retry-delay 2 --max-time 1800 -K - -o "$dir/$sha.tar.gz.part" \
+    # Multi-connection ranged fetch (8 streams; single-connection S3 measured
+    # 1.36 MB/s on a slow host). URL on stdin only; publishes after sha256.
+    if [[ -f "$REPO_DIR/scripts/fetch_ranged_url.py" ]] \
+       && printf '%s\n' "$url" | python3 -B "$REPO_DIR/scripts/fetch_ranged_url.py" --sha256 "$sha" --bytes "$size" \
+            --out "$dir/$sha.tar.gz" --streams 8; then
+      touch "$dir/$sha.ok"
+    elif printf 'url = "%s"\n' "$url" | curl -fsS --retry 3 --retry-delay 2 --max-time 1800 -K - -o "$dir/$sha.tar.gz.part" \
        && [[ "$(wc -c < "$dir/$sha.tar.gz.part" | tr -d " ")" == "$size" ]] \
        && [[ "$(file_sha256 "$dir/$sha.tar.gz.part")" == "$sha" ]]; then
       mv -f "$dir/$sha.tar.gz.part" "$dir/$sha.tar.gz"
