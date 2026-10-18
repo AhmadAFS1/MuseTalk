@@ -168,14 +168,30 @@ def compose_env(template_env, revision, tickets, session, secret, settings=None,
     return env
 
 
-def choose_offer(rows, b, machine=None, any_geo=False):
-    def ok(r):
-        # Geography is a latency choice, not a safety cap: --geo any keeps every other cap.
-        return b.acceptable({**r, "geolocation": "Anywhere, US"} if any_geo else r, allow_unverified=False)
-    offers = [r for r in rows if ok(r)
+def acceptable(o, max_price=.30, max_transfer=.005, any_geo=False, disk=DEFAULT_DISK):
+    """Verified 1x RTX 3090 inside explicit caps (test rentals; production has its own filters)."""
+    import math
+
+    def finite(name, low, high):
+        v = o.get(name)
+        return type(v) in (int, float) and math.isfinite(v) and low <= v <= high
+    prices = [o[k] for k in ("dph_total", "dph_total_adj", "discounted_total_per_hour") if o.get(k) is not None]
+    return (o.get("gpu_name") == "RTX 3090" and o.get("num_gpus") == 1 and o.get("cpu_arch") == "amd64"
+            and o.get("verification") == "verified"
+            and (any_geo or str(o.get("geolocation", "")).endswith(", US"))
+            and finite("cpu_cores_effective", 10, 1000) and finite("cpu_ram", 32000, 10**9)
+            and finite("disk_space", disk, 10**9) and finite("inet_down", 500, 10**9)
+            and finite("cuda_max_good", 12.1, 100) and finite("reliability", .90, 1)
+            and finite("inet_down_cost", 0, max_transfer) and finite("inet_up_cost", 0, max_transfer)
+            and finite("storage_cost", 0, .40) and bool(prices)
+            and all(type(v) in (int, float) and math.isfinite(v) and 0 < v <= max_price for v in prices))
+
+
+def choose_offer(rows, machine=None, any_geo=False, max_price=.30, max_transfer=.005, disk=DEFAULT_DISK):
+    offers = [r for r in rows if acceptable(r, max_price, max_transfer, any_geo, disk)
               and (machine is None or r.get("machine_id") == machine)
               and str(r.get("id")) not in PROTECTED]
-    require(offers, "No offer inside caps (verified RTX 3090, <=$0.30/h, transfer cap, >=10 cores, >=32 GB, >=500 Mbps)")
+    require(offers, "No offer inside caps (verified RTX 3090, price/transfer caps, >=10 cores, >=32 GB, >=500 Mbps)")
     return min(offers, key=lambda r: (r["dph_total_adj"], r["id"]))
 
 
@@ -230,7 +246,7 @@ def r5_prefetch_ticket(revision, session, bucket, expires=3600):
     return {"url": url, "sha256": d["sha256"], "bytes": int(d["size_bytes"])}
 
 
-def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None):
+def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30):
     """Everything a create needs, without provider writes or local state."""
     require(3600 <= lifetime <= 4 * 3600, "Lifetime must be 1-4 hours")
     require(autoscaler_quiet(), "Autoscaler is not provably off; refuse test rental with the production template hash")
@@ -247,15 +263,15 @@ def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", se
     import requests
     existing = client.list_instances()
     require(not any(r.get("label") == run.label for r in existing), "Existing label; reconcile, do not create")
-    require(0 < max_transfer <= .01 and geo in {"US", "any"}, "Transfer cap must be <= $0.01/GB; geo US|any")
+    require(0 < max_transfer <= .01 and geo in {"US", "any"} and 0 < max_price <= .50,
+            "Caps: transfer <= $0.01/GB, price <= $0.50/h, geo US|any")
     query = {"limit": 400, "type": "ondemand", "rentable": {"eq": True}, "num_gpus": {"eq": 1},
-             "gpu_name": {"eq": "RTX 3090"}, "allocated_storage": disk, "dph_total": {"lte": .30},
+             "gpu_name": {"eq": "RTX 3090"}, "allocated_storage": disk, "dph_total": {"lte": max_price},
              "inet_down_cost": {"lte": max_transfer}, "inet_up_cost": {"lte": max_transfer}, "order": [["dph_total", "asc"]]}
     if geo == "US":
         query["geolocation"] = {"in": ["US"]}
     rows = client.search_offers(query)
-    b.DISK, b.TRANSFER_CAP = disk, max_transfer
-    offer = choose_offer(rows, b, machine, any_geo=geo == "any")
+    offer = choose_offer(rows, machine, geo == "any", max_price, max_transfer, disk)
     response = requests.get(client.base_url + "/api/v0/template/", headers=client._headers(),
         params={"select_filters": json.dumps({"hash_id": {"eq": b.TEMPLATE}})}, timeout=20, allow_redirects=False)
     require(response.status_code == 200, "Template lookup failed")
@@ -270,10 +286,10 @@ def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", se
             "bootstrap_sha256": bootstrap_sha256, "contract": contract, "credentials": credentials}
 
 
-def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None):
+def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30):
     require(os.getuid() == 0 and not run.root.exists(), "Fresh root-owned run only; never repeat create")
     os.umask(0o077)
-    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings)
+    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings, max_price)
     b, client, existing, offer, env, onstart = p["b"], p["client"], p["existing"], p["offer"], p["env"], p["onstart"]
     bootstrap_sha256, contract, credentials = p["bootstrap_sha256"], p["contract"], p["credentials"]
     run.root.mkdir(mode=0o700, parents=False)
@@ -289,7 +305,7 @@ def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", 
               "contract_artifact_id": contract["artifact_id"], "template_hash_id": b.TEMPLATE, "disk_gb": disk,
               "tickets_issued_utc": utc(), "ticket_seconds": TICKET_SECONDS,
               "s3_session_expires_utc": credentials["Expiration"].isoformat(), "create_requests": 0,
-              "rent_per_hour": offer["dph_total_adj"], "transfer_cap_per_gb": max_transfer, "geo": geo, "settings": settings or {}, "env_keys": sorted(env)}
+              "rent_per_hour": offer["dph_total_adj"], "transfer_cap_per_gb": max_transfer, "price_cap_per_hour": max_price, "geo": geo, "settings": settings or {}, "env_keys": sorted(env)}
     run.save("ledger.json", ledger)
     expiry_timer(run, deadline)
     ledger.update(state="submitting", create_requests=1, request_started_utc=utc())
@@ -308,9 +324,9 @@ def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", 
     run.event("CREATED", instance_id=identifier, deadline_utc=deadline)
 
 
-def preflight(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None):
+def preflight(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30):
     """Dry run of create: offer, template, tickets, identity, stub. No provider write."""
-    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings)
+    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings, max_price)
     o = p["offer"]
     print(json.dumps({"state": "preflight-ok", "label": run.label, "offer": {k: o.get(k) for k in ("id", "machine_id", "geolocation",
           "dph_total_adj", "inet_down", "cpu_cores_effective", "cpu_ram", "reliability", "driver_version")},
@@ -682,6 +698,7 @@ def main():
     parser.add_argument("--cases", type=int, default=2)
     parser.add_argument("--max-transfer-cost", type=float, default=.005)
     parser.add_argument("--geo", choices=("US", "any"), default="US")
+    parser.add_argument("--max-price", type=float, default=.30, help="$/h cap for the test rental (<= 0.50)")
     parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="Allowlisted experiment setting")
     args = parser.parse_args()
     require(os.getuid() == 0, "Root-owned EC2 control plane only")
@@ -689,9 +706,9 @@ def main():
     run = Run(args.run)
     settings = parse_settings(args.set)
     if args.mode == "preflight":
-        preflight(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings)
+        preflight(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings, args.max_price)
     elif args.mode == "create":
-        create(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings)
+        create(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings, args.max_price)
     elif args.mode == "status":
         status(run)
     elif args.mode == "probe":

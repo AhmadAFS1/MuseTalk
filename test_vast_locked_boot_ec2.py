@@ -69,22 +69,41 @@ class StubTests(unittest.TestCase):
                 m.onstart_stub(*bad)
 
 
-class OfferTests(unittest.TestCase):
-    def setUp(self):
-        self.b = types.SimpleNamespace(acceptable=lambda row, allow_unverified=False: row.get("ok", True))
+GOOD = {"gpu_name": "RTX 3090", "num_gpus": 1, "cpu_arch": "amd64", "verification": "verified",
+        "geolocation": "Utah, US", "cpu_cores_effective": 16, "cpu_ram": 64000, "disk_space": 200,
+        "inet_down": 900, "cuda_max_good": 12.4, "reliability": .97, "inet_down_cost": .002,
+        "inet_up_cost": .002, "storage_cost": .1, "dph_total": .25, "dph_total_adj": .25}
 
+
+class OfferTests(unittest.TestCase):
     def test_cheapest_acceptable_offer_and_machine_pin(self):
-        rows = [{"id": 3, "machine_id": 30, "dph_total_adj": .25}, {"id": 1, "machine_id": 10, "dph_total_adj": .20},
-                {"id": 2, "machine_id": 20, "dph_total_adj": .10, "ok": False}]
-        self.assertEqual(m.choose_offer(rows, self.b)["id"], 1)
-        self.assertEqual(m.choose_offer(rows, self.b, machine=30)["id"], 3)
+        rows = [{**GOOD, "id": 3, "machine_id": 30, "dph_total": .25, "dph_total_adj": .25},
+                {**GOOD, "id": 1, "machine_id": 10, "dph_total": .20, "dph_total_adj": .20},
+                {**GOOD, "id": 2, "machine_id": 20, "dph_total": .10, "dph_total_adj": .10, "verification": "unverified"}]
+        self.assertEqual(m.choose_offer(rows)["id"], 1)
+        self.assertEqual(m.choose_offer(rows, machine=30)["id"], 3)
         with self.assertRaises(ValueError):
-            m.choose_offer(rows, self.b, machine=20)
+            m.choose_offer(rows, machine=20)
+
+    def test_explicit_caps(self):
+        pricey = [{**GOOD, "id": 7, "machine_id": 70, "dph_total": .40, "dph_total_adj": .40}]
+        with self.assertRaises(ValueError):
+            m.choose_offer(pricey)
+        self.assertEqual(m.choose_offer(pricey, max_price=.45)["id"], 7)
+        abroad = [{**GOOD, "id": 8, "machine_id": 80, "geolocation": "The Netherlands, NL"}]
+        with self.assertRaises(ValueError):
+            m.choose_offer(abroad)
+        self.assertEqual(m.choose_offer(abroad, any_geo=True)["id"], 8)
+        costly = [{**GOOD, "id": 9, "machine_id": 90, "inet_down_cost": .006}]
+        with self.assertRaises(ValueError):
+            m.choose_offer(costly)
+        for bad in ({"cpu_ram": 16000}, {"cpu_cores_effective": 6}, {"inet_down": 300}, {"gpu_name": "RTX 4070S"}):
+            self.assertFalse(m.acceptable({**GOOD, **bad}))
 
     def test_production_id_is_never_an_offer(self):
-        rows = [{"id": 51074906, "machine_id": 150024, "dph_total_adj": .01}]
+        rows = [{**GOOD, "id": 51074906, "machine_id": 150024, "dph_total_adj": .01, "dph_total": .01}]
         with self.assertRaises(ValueError):
-            m.choose_offer(rows, self.b)
+            m.choose_offer(rows)
 
 
 class OwnershipTests(unittest.TestCase):
