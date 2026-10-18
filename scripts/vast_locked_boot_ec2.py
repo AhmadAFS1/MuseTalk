@@ -45,7 +45,8 @@ TICKET_SECONDS = 3600
 DEFAULT_LIFETIME = 7200
 DEFAULT_DISK = 100
 WIPE_PATHS = ("/workspace/MuseTalk", "/workspace/.venvs", "/workspace/.cache/musetalk-dependencies",
-              "/workspace/logs", "/workspace/bootstrap.log", "/workspace/onstart.log")
+              "/workspace/logs", "/workspace/bootstrap.log", "/workspace/onstart.log", "/workspace/.mtboot",
+              "/root/.cache/huggingface")
 
 
 def require(ok, message):
@@ -198,12 +199,11 @@ def runtime_identity(seconds):
     return credentials, {k: v for k, v in secret.items() if not k.startswith("AWS_")}
 
 
-def create(run, revision, lifetime, disk, machine):
-    require(os.getuid() == 0 and not run.root.exists(), "Fresh root-owned run only; never repeat create")
+def plan(run, revision, lifetime, disk, machine):
+    """Everything a create needs, without provider writes or local state."""
     require(3600 <= lifetime <= 4 * 3600, "Lifetime must be 1-4 hours")
     require(autoscaler_quiet(), "Autoscaler is not provably off; refuse test rental with the production template hash")
     require(active_runs() < MAX_ACTIVE_RUNS, "Too many active test runs")
-    os.umask(0o077)
     b = library(run)
     bootstrap = fetch_revision_file(revision, BOOTSTRAP_PATH)
     subprocess.run(["bash", "-n"], input=bootstrap, check=True, capture_output=True)
@@ -219,7 +219,7 @@ def create(run, revision, lifetime, disk, machine):
     rows = client.search_offers({"limit": 200, "type": "ondemand", "rentable": {"eq": True}, "num_gpus": {"eq": 1},
         "gpu_name": {"eq": "RTX 3090"}, "allocated_storage": disk, "geolocation": {"in": ["US"]},
         "dph_total": {"lte": .30}, "inet_down_cost": {"lte": .0015}, "inet_up_cost": {"lte": .0015},
-        "verified": {"eq": True}, "order": [["dph_total", "asc"]]})
+        "order": [["dph_total", "asc"]]})
     b.DISK = disk
     offer = choose_offer(rows, b, machine)
     response = requests.get(client.base_url + "/api/v0/template/", headers=client._headers(),
@@ -231,6 +231,16 @@ def create(run, revision, lifetime, disk, machine):
     tickets = issue_tickets(contract)
     credentials, secret = runtime_identity(lifetime + 1800)
     env = compose_env(template_env, revision, tickets, credentials, secret)
+    return {"b": b, "client": client, "existing": existing, "offer": offer, "env": env, "onstart": onstart,
+            "bootstrap_sha256": bootstrap_sha256, "contract": contract, "credentials": credentials}
+
+
+def create(run, revision, lifetime, disk, machine):
+    require(os.getuid() == 0 and not run.root.exists(), "Fresh root-owned run only; never repeat create")
+    os.umask(0o077)
+    p = plan(run, revision, lifetime, disk, machine)
+    b, client, existing, offer, env, onstart = p["b"], p["client"], p["existing"], p["offer"], p["env"], p["onstart"]
+    bootstrap_sha256, contract, credentials = p["bootstrap_sha256"], p["contract"], p["credentials"]
     run.root.mkdir(mode=0o700, parents=False)
     keys = ("id", "machine_id", "host_id", "geolocation", "verification", "gpu_name", "num_gpus", "cpu_cores_effective",
             "cpu_ram", "disk_bw", "disk_space", "storage_cost", "inet_down", "inet_up", "inet_down_cost", "inet_up_cost",
@@ -261,6 +271,18 @@ def create(run, revision, lifetime, disk, machine):
     ledger.update(state="created", instance_id=identifier, provider_accepted_utc=utc(), create_seconds=time.monotonic() - started)
     run.save("ledger.json", ledger)
     run.event("CREATED", instance_id=identifier, deadline_utc=deadline)
+
+
+def preflight(run, revision, lifetime, disk, machine):
+    """Dry run of create: offer, template, tickets, identity, stub. No provider write."""
+    p = plan(run, revision, lifetime, disk, machine)
+    o = p["offer"]
+    print(json.dumps({"state": "preflight-ok", "label": run.label, "offer": {k: o.get(k) for k in ("id", "machine_id", "geolocation",
+          "dph_total_adj", "inet_down", "cpu_cores_effective", "cpu_ram", "reliability", "driver_version")},
+          "env_keys": sorted(p["env"]), "onstart_bytes": len(p["onstart"].encode()), "bootstrap_sha256": p["bootstrap_sha256"],
+          "ticket_wheels": len(json.loads(p["env"]["MUSETALK_DEPENDENCY_TICKETS_JSON"])["wheels"]),
+          "session_expires_utc": p["credentials"]["Expiration"].isoformat(), "protected_present": sorted(
+          str(r["id"]) for r in p["existing"] if str(r["id"]) in PROTECTED)}), flush=True)
 
 
 def owned(run, b, client, ledger):
@@ -603,7 +625,7 @@ def cleanup(run, expire=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("create", "status", "probe", "reboot", "rerun", "accept", "collect", "cleanup", "expire"))
+    parser.add_argument("mode", choices=("preflight", "create", "status", "probe", "reboot", "rerun", "accept", "collect", "cleanup", "expire"))
     parser.add_argument("run")
     parser.add_argument("--revision")
     parser.add_argument("--lifetime", type=int, default=DEFAULT_LIFETIME)
@@ -615,7 +637,9 @@ def main():
     require(os.getuid() == 0, "Root-owned EC2 control plane only")
     os.umask(0o077)
     run = Run(args.run)
-    if args.mode == "create":
+    if args.mode == "preflight":
+        preflight(run, args.revision, args.lifetime, args.disk, args.machine)
+    elif args.mode == "create":
         create(run, args.revision, args.lifetime, args.disk, args.machine)
     elif args.mode == "status":
         status(run)

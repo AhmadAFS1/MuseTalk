@@ -123,8 +123,10 @@ class OwnershipTests(unittest.TestCase):
 
     def test_wipe_paths_are_exact_worker_workspace_paths(self):
         for p in m.WIPE_PATHS:
-            self.assertTrue(p.startswith("/workspace/") and ".." not in p and p.count("/") >= 2, p)
+            self.assertTrue((p.startswith("/workspace/") or p == "/root/.cache/huggingface")
+                            and ".." not in p and p.count("/") >= 2, p)
         self.assertNotIn("/workspace", m.WIPE_PATHS)
+        self.assertNotIn("/root", m.WIPE_PATHS)
 
 
 BOOT = """[bootstrap] [2026-10-18T10:00:00Z] start boot_id=old
