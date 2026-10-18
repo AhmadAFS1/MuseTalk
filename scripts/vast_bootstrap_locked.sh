@@ -129,6 +129,12 @@ configure_locked_boot() {
     || bootstrap_die 'Reviewed dependency contract has no valid artifact identity'
   export MUSETALK_DEPENDENCY_CACHE=/workspace/.cache/musetalk-dependencies
   export MUSETALK_DEPENDENCY_WORKERS=4
+  # The stock image's /venv/main already holds 2.8 GB of the pinned GPU wheels
+  # (torch, triton, nvidia-*), file-for-file identical; the installer verifies
+  # every file against the contract-pinned seed index before reusing it.
+  if [[ -d /venv/main/lib/python3.10/site-packages ]]; then
+    export MUSETALK_DEPENDENCY_SEED_SITE=/venv/main/lib/python3.10/site-packages
+  fi
   # The locked installer owns its venv. An inherited generic VENV_PATH (e.g.
   # the legacy musetalk_trt_stagewise venv) would be refused as foreign, so it
   # is ignored; only the explicit locked override is honoured.

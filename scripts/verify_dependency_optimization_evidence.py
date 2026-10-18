@@ -24,7 +24,10 @@ def verify(folder):
                               raw,re.I),'Credential pattern in evidence')
         data[name]=json.loads(raw);hashes[name]=hashlib.sha256(raw).hexdigest()
     a,b,c=(data[n] for n in names[:3]);manifest=validate_manifest(data[names[3]])
-    contract=json.loads((folder.parent.parent/'configs/dependencies/rtx3090-cp310-cu121-screening.json').read_text())
+    # Evidence is verified against the contract it was captured under; later
+    # artifacts (e.g. the runtime-TRT repack) change the live contract.
+    pinned=folder/'contract-at-capture.json'
+    contract=json.loads((pinned if pinned.is_file() else folder.parent.parent/'configs/dependencies/rtx3090-cp310-cu121-screening.json').read_text())
     require(hashes[names[3]]==contract['manifest_sha256']
             and manifest['artifact_id']==contract['artifact_id'],'Independent manifest trust differs')
     require(len(manifest['artifacts'])==194,'Different full package closure')

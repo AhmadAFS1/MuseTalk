@@ -29,14 +29,15 @@ class FakeS3:
 class TicketIssuerTests(unittest.TestCase):
     def setUp(self):
         self.contract=json.loads((REPO/'configs/dependencies/rtx3090-cp310-cu121-screening.json').read_text())
-        self.raw=(REPO/'docs/dependency_optimization_20261015/wheelhouse-manifest-a2.json').read_bytes()
+        self.raw=(REPO/'docs/dependency_optimization_20261018/wheelhouse-manifest-runtime-trt.json').read_bytes()
         self.manifest=json.loads(self.raw);self.s3=FakeS3(self.raw,self.manifest)
         self.identity={'Account':self.contract['owner'],
                        'Arn':'arn:aws:sts::'+self.contract['owner']+':assumed-role/linguaEc2Role/fixture'}
     def test_only_five_owner_bound_gets_no_cloud_mutations(self):
         value=issuer.issue(self.contract,self.s3,self.identity)
-        self.assertEqual(set(value),{'manifest','wheels'});self.assertEqual(len(value['wheels']),4)
-        self.assertEqual(len(self.s3.signed),5)
+        expected=self.contract.get('private_wheels',4)
+        self.assertEqual(set(value),{'manifest','wheels'});self.assertEqual(len(value['wheels']),expected)
+        self.assertEqual(len(self.s3.signed),expected+1)
         for operation,params in self.s3.signed:
             self.assertEqual(operation,'get_object');self.assertEqual(params['ExpiresIn'],3600)
             self.assertEqual(params['Params']['ExpectedBucketOwner'],self.contract['owner'])
@@ -54,10 +55,11 @@ class TicketIssuerTests(unittest.TestCase):
             with self.assertRaises(ValueError):issuer.issue(self.contract,self.s3,self.identity,expiry)
         self.assertFalse(self.s3.gets)
     def test_private_closure_size_comes_from_the_contract(self):
+        reviewed=self.contract.get('private_wheels',4)
         with self.assertRaisesRegex(ValueError,'private-wheel closure'):
-            issuer.issue({**self.contract,'private_wheels':5},self.s3,self.identity)
+            issuer.issue({**self.contract,'private_wheels':reviewed+1},self.s3,self.identity)
         self.assertFalse(self.s3.signed)
-        self.assertEqual(len(issuer.issue({**self.contract,'private_wheels':4},self.s3,self.identity)['wheels']),4)
+        self.assertEqual(len(issuer.issue(self.contract,self.s3,self.identity)['wheels']),reviewed)
     def test_wrong_private_wheel_size_refused(self):
         self.s3.sizes={k:1 for k in self.s3.sizes}
         with self.assertRaisesRegex(ValueError,'wheel missing'):

@@ -1159,6 +1159,7 @@ class LockedInstallerTests(unittest.TestCase):
         m=manifest();repo=root/'repo';repo.mkdir();venv=root/'venvs/example';venv.mkdir(parents=True)
         cache=root/'cache';artifact=cache/m['artifact_id'];artifact.mkdir(parents=True)
         p=artifact/'manifest.json';p.write_text(json.dumps(m));config=self.contract()
+        config.pop('seed_index',None);config.pop('private_wheels',None)  # Fixture manifest: no real seed/private closure.
         config.update(artifact_id=m['artifact_id'],prefix=f.PRIVATE_PREFIX+m['artifact_id']+'/',
                       manifest_sha256=f.sha256_file(p))
         contract=root/'contract.json';contract.write_text(json.dumps(config))
@@ -1726,8 +1727,11 @@ class SeedStageTests(unittest.TestCase):
         locked.check_contract(contract)
         if "seed_index" not in contract:
             self.skipTest("Contract pins no seed index yet (seeding stays off)")
-        m = f.read_trusted(repo / "docs/dependency_optimization_20261015/wheelhouse-manifest-a2.json",
-                           contract["manifest_sha256"])
+        reviewed = {"725c6fe7564f9641fce16845a1346da99a75bf3cb54d993a273f34ceb6de7194":
+                    "docs/dependency_optimization_20261015/wheelhouse-manifest-a2.json",
+                    "52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1":
+                    "docs/dependency_optimization_20261018/wheelhouse-manifest-runtime-trt.json"}
+        m = f.read_trusted(repo / reviewed[contract["artifact_id"]], contract["manifest_sha256"])
         index = seed.load_index(contract, m, repo)
         self.assertTrue(all(not e["has_data_dir"] for e in index["artifacts"]))
 

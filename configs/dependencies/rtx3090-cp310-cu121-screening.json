@@ -1,16 +1,22 @@
 {
-  "status": "experimental; not a production default",
-  "artifact_id": "725c6fe7564f9641fce16845a1346da99a75bf3cb54d993a273f34ceb6de7194",
-  "manifest_sha256": "ef70f31aa4681df7658d9c8014a11db96c199502de6efe0708af2f32e7750d5c",
-  "manifest_bytes": 253253,
+  "status": "reviewed; runtime-only tensorrt-cu12-libs repack (builder resources removed) + base-image seed index; derived from 725c6fe7 on 2026-10-18",
+  "artifact_id": "52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1",
+  "manifest_sha256": "ee702320179a5628d67659d2c7b4eeefd1e7cddc6429d2edf3b86109f1dba2ec",
+  "manifest_bytes": 253960,
   "bucket": "lingua-musetalk-s3-storage",
   "owner": "211125449207",
-  "prefix": "python-venv/wheelhouse/725c6fe7564f9641fce16845a1346da99a75bf3cb54d993a273f34ceb6de7194/",
+  "prefix": "python-venv/wheelhouse/52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/",
   "python": "3.10",
   "os": "Linux",
   "machine": "x86_64",
   "matrix": "cu121",
   "minimum_glibc": "2.35",
   "uv_version": "0.13.1",
-  "uv_binary_sha256": "db919fb9428cc8ad04377ba3c898e0ec5fbee83700da5b982b1c9539f1e1b34f"
+  "uv_binary_sha256": "db919fb9428cc8ad04377ba3c898e0ec5fbee83700da5b982b1c9539f1e1b34f",
+  "private_wheels": 5,
+  "seed_index": {
+    "path": "configs/dependencies/seed-index-52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1.json.gz",
+    "sha256": "12e0b03ccde414fca3938fefa2f22bb3dbfc3238e08fb9aa8520d49af2e9accc",
+    "bytes": 510054
+  }
 }

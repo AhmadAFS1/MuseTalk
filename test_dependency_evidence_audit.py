@@ -17,7 +17,8 @@ EVIDENCE=REPO/'docs/dependency_optimization_20261015'
 def copied_fixture():
     with tempfile.TemporaryDirectory() as folder:
         root=Path(folder);dest=root/'docs/evidence';dest.mkdir(parents=True)
-        for name in ('results.json','canary-results.json','final-screen-results.json','wheelhouse-manifest-a2.json'):
+        for name in ('results.json','canary-results.json','final-screen-results.json','wheelhouse-manifest-a2.json',
+                     'contract-at-capture.json'):
             (dest/name).write_bytes((EVIDENCE/name).read_bytes())
         path=root/'configs/dependencies/rtx3090-cp310-cu121-screening.json';path.parent.mkdir(parents=True)
         path.write_bytes((REPO/'configs/dependencies'/path.name).read_bytes())
