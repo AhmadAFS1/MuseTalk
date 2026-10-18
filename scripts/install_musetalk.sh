@@ -264,9 +264,14 @@ wait_for_apt_prefetch() {
 # It imports the heavy stack in ONE CPU-only process (CUDA hidden) and writes a JSON summary with
 # versions, PyAV encoder availability (H.264 levers) and torch's compiled arch list.
 run_import_smoke() {
-  local out_json="$1" kokoro="$2" legacy="$3" avatar="$4"
+  # 5th argument 1: write bytecode (install time), so the server's first start does not
+  # compile the heavy stack (fresh c8-a: imports 8.6 s vs 4.5 s with .pyc present).
+  # The read-only --check path keeps -B.
+  local out_json="$1" kokoro="$2" legacy="$3" avatar="$4" bytecode="${5:-0}"
+  local -a pyflags=(-B)
+  if [[ "$bytecode" == 1 ]]; then pyflags=(); fi
   CUDA_VISIBLE_DEVICES="" PYTHONNOUSERSITE=1 SMOKE_KOKORO="$kokoro" SMOKE_LEGACY="$legacy" SMOKE_AVATAR="$avatar" \
-    "$VENV_PY" -B - "$out_json" <<'PY'
+    "$VENV_PY" ${pyflags[@]+"${pyflags[@]}"} - "$out_json" <<'PY'
 import ctypes, importlib, json, os, sys, time
 out = {"schema": "musetalk_import_smoke_v1", "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"), "modules": {}, "failed": [], "deferred": []}
@@ -941,11 +946,12 @@ phase_chin_tools() {
 # Phase 3 and runs while Phase 4 waits for weights; Phase 7 collects its result.
 # MUSETALK_EARLY_SMOKE=0 runs it in Phase 7 as before.
 EARLY_SMOKE_PID=""
+INSTALL_BYTECODE="${MUSETALK_INSTALL_WRITE_BYTECODE:-1}"
 start_early_smoke() {
   flag_on "${MUSETALK_EARLY_SMOKE:-1}" || return 0
   [[ -x "$VENV_PY" ]] || return 0
   rm -f "$WORK_DIR/smoke.json" "$WORK_DIR/smoke.rc"
-  ( rc=0; run_import_smoke "$WORK_DIR/smoke.json" "$KOKORO" "$LEGACY_INT8" "$AVATAR_PREP" || rc=$?
+  ( rc=0; run_import_smoke "$WORK_DIR/smoke.json" "$KOKORO" "$LEGACY_INT8" "$AVATAR_PREP" "$INSTALL_BYTECODE" || rc=$?
     echo "$rc" > "$WORK_DIR/smoke.rc" ) >"$WORK_DIR/smoke.log" 2>&1 8<&- 9<&- &
   EARLY_SMOKE_PID=$!
   log "Started the CPU import smoke in the background (pid=$EARLY_SMOKE_PID)"
@@ -965,7 +971,7 @@ smoke_step() {
     cat "$WORK_DIR/smoke.log"
     return "$(cat "$WORK_DIR/smoke.rc")"
   fi
-  run_import_smoke "$WORK_DIR/smoke.json" "$KOKORO" "$LEGACY_INT8" "$AVATAR_PREP"
+  run_import_smoke "$WORK_DIR/smoke.json" "$KOKORO" "$LEGACY_INT8" "$AVATAR_PREP" "$INSTALL_BYTECODE"
 }
 
 selftest_step() {
@@ -976,7 +982,9 @@ selftest_step() {
   [[ "${MUSETALK_SELFTEST_SKIP_COMPILE:-0}" == 1 ]] && args+=(--skip-compile)
   mkdir -p "$(dirname "$SELFTEST_OUT")"
   cd "$REPO_ROOT"
-  timeout "$SELFTEST_TIMEOUT_S" "$VENV_PY" -B "$REPO_ROOT/scripts/musetalk_selftest.py" "${args[@]}"
+  local -a pyflags=(-B)
+  if [[ "$INSTALL_BYTECODE" == 1 ]]; then pyflags=(); fi  # Prepays the server's torch/TensorRT bytecode.
+  timeout "$SELFTEST_TIMEOUT_S" "$VENV_PY" ${pyflags[@]+"${pyflags[@]}"} "$REPO_ROOT/scripts/musetalk_selftest.py" "${args[@]}"
 }
 
 phase_verify() {
