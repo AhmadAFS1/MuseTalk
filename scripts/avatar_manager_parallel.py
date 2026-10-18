@@ -22,6 +22,31 @@ from scripts.avatar_s3_store import AvatarS3Store
 from scripts.trt_runtime import load_unet_trt_backend, load_vae_trt_decoder
 
 
+def _process_age_seconds():
+    """Seconds since this process started (Linux /proc), or None."""
+    try:
+        start_ticks = int(Path("/proc/self/stat").read_text().rsplit(")", 1)[1].split()[19])
+        uptime = float(Path("/proc/uptime").read_text().split()[0])
+        return uptime - start_ticks / os.sysconf("SC_CLK_TCK")
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+class _StartupClock:
+    """Prints one line per startup step: its duration and the process age, so a
+    fresh worker's log shows where server start-to-health time goes."""
+
+    def __init__(self):
+        self.last = time.monotonic()
+
+    def __call__(self, label):
+        now = time.monotonic()
+        age = _process_age_seconds()
+        suffix = f" (process +{age:.1f}s)" if age is not None else ""
+        print(f"⏱️  startup {label}: {now - self.last:.1f}s{suffix}", flush=True)
+        self.last = now
+
+
 class ParallelAvatarManager:
     """
     Supports concurrent inference on single GPU with:
@@ -146,13 +171,16 @@ class ParallelAvatarManager:
     def _init_models(self):
         """Load models once"""
         print("🔧 Loading models...")
-        
+        mark = self._startup_mark = _StartupClock()
+        mark("imports")
+
         self.vae, self.unet, self.pe = load_all_model(
             unet_model_path=self.args.unet_model_path,
             vae_type=self.args.vae_type,
             unet_config=self.args.unet_config,
             device=self.device
         )
+        mark("load_all_model")
 
         if torch.cuda.is_available():
             torch.backends.cuda.matmul.allow_tf32 = True
@@ -180,6 +208,7 @@ class ParallelAvatarManager:
         )
         self.unet.model_dtype = self.unet_dtype
         self.vae.runtime_dtype = self.vae_dtype
+        mark("eager models to GPU fp16")
         self.vae_backend = load_vae_trt_decoder(
             device=self.device,
             scaling_factor=self.vae.scaling_factor,
@@ -192,11 +221,13 @@ class ParallelAvatarManager:
         else:
             print("ℹ️  VAE decode backend: PyTorch")
         
+        mark("VAE decode backend")
         self.audio_processor = AudioProcessor(feature_extractor_path=self.args.whisper_dir)
         weight_dtype = self.unet_dtype
         self.whisper = WhisperModel.from_pretrained(self.args.whisper_dir)
         self.whisper = self.whisper.to(device=self.device, dtype=weight_dtype).eval()
         self.whisper.requires_grad_(False)
+        mark("whisper")
         
         if self.args.version == "v15":
             self.fp = FaceParsing(
@@ -208,10 +239,13 @@ class ParallelAvatarManager:
         
         self.timesteps = torch.tensor([0], device=self.device)
         
+        mark("face parsing")
         print("✅ Models loaded!")
         
         self._activate_unet_backend()
+        mark("UNet backend")
         self.compile_models()
+        mark("compile")
         self._warm_runtime_paths()
 
     @staticmethod
@@ -455,7 +489,10 @@ class ParallelAvatarManager:
             print("✅ Audio + Whisper warmup complete")
         except Exception as exc:
             print(f"⚠️  Audio + Whisper warmup failed: {exc}")
+        mark = getattr(self, "_startup_mark", None) or (lambda label: None)
+        mark("audio + Whisper warmup")
         self._warm_uploaded_audio_path()
+        mark("uploaded-audio warmup")
 
     def _warm_uploaded_audio_path(self):
         """Run the exact per-request audio path (file decode + resample, Whisper
