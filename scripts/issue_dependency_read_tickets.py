@@ -38,7 +38,9 @@ def issue(contract, s3, identity, expires=3600):
                                 ExpectedBucketOwner=contract['owner'])
             require(head['ContentLength']==row['size_bytes'],'Required private wheel missing or different size')
             wheels[row['sha256']]=ticket(row['filename'],row['sha256'])
-    require(len(wheels)==4,'Different reviewed private-wheel closure')
+    # The contract pins the reviewed private closure size (4 built sdists; 5 with the
+    # runtime-only TensorRT libs repack).
+    require(len(wheels)==contract.get('private_wheels',4),'Different reviewed private-wheel closure')
     return {'manifest':ticket('manifest.json',contract['manifest_sha256']),'wheels':wheels}
 
 

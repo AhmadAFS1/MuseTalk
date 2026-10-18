@@ -53,6 +53,11 @@ class TicketIssuerTests(unittest.TestCase):
         for expiry in (0,299,3601,True):
             with self.assertRaises(ValueError):issuer.issue(self.contract,self.s3,self.identity,expiry)
         self.assertFalse(self.s3.gets)
+    def test_private_closure_size_comes_from_the_contract(self):
+        with self.assertRaisesRegex(ValueError,'private-wheel closure'):
+            issuer.issue({**self.contract,'private_wheels':5},self.s3,self.identity)
+        self.assertFalse(self.s3.signed)
+        self.assertEqual(len(issuer.issue({**self.contract,'private_wheels':4},self.s3,self.identity)['wheels']),4)
     def test_wrong_private_wheel_size_refused(self):
         self.s3.sizes={k:1 for k in self.s3.sizes}
         with self.assertRaisesRegex(ValueError,'wheel missing'):
