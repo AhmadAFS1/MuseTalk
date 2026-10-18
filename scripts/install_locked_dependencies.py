@@ -4,6 +4,11 @@
 No synchronization/removal, no engine builds, no implicit source fallback. Private
 read tickets enter a protected file descriptor, never argv or a stored manifest.
 Existing accepted environments are checked before any ticket/network request.
+
+Opt-in base-image seeding (--seed-site / MUSETALK_DEPENDENCY_SEED_SITE, unset =
+off): when the contract pins a seed index, artifacts whose every wheel RECORD
+file is present and hash-identical in that site-packages are copied instead of
+downloaded (see dependency_seed.py); anything else is acquired as before.
 """
 import argparse
 import datetime as dt
@@ -26,6 +31,9 @@ MARKER = '.musetalk-locked-dependencies.json'
 UV_BINARY_SHA256 = 'db919fb9428cc8ad04377ba3c898e0ec5fbee83700da5b982b1c9539f1e1b34f'
 RANGE_STREAMS_ENV = 'MUSETALK_DEPENDENCY_RANGE_STREAMS'
 MAX_CONNECTIONS_ENV = 'MUSETALK_DEPENDENCY_MAX_CONNECTIONS'
+SEED_SITE_ENV = 'MUSETALK_DEPENDENCY_SEED_SITE'
+SEED_BYTECODE_ENV = 'MUSETALK_DEPENDENCY_SEED_BYTECODE'
+SEED_INDEX_MAX_BYTES = 32*1024**2
 
 
 def atomic_json(path, data):
@@ -51,6 +59,13 @@ def check_contract(contract):
             'Manifest digest must be independently pinned')
     require(contract.get('uv_binary_sha256')==UV_BINARY_SHA256,
             'Installer binary differs from reviewed version')
+    if 'seed_index' in contract:
+        pin=contract['seed_index']
+        require(isinstance(pin,dict) and set(pin)=={'path','sha256','bytes'}
+                and pin['path']=='configs/dependencies/seed-index-'+contract['artifact_id']+'.json.gz'
+                and isinstance(pin['sha256'],str) and re.fullmatch('[a-f0-9]{64}',pin['sha256']) is not None
+                and type(pin['bytes']) is int and 0<pin['bytes']<=SEED_INDEX_MAX_BYTES,
+                'Seed index must be pinned by reviewed path, digest and size')
 
 
 def check_platform():
@@ -79,6 +94,32 @@ def transfer_settings(args,environ=None):
     else:require(connections in (4,8),MAX_CONNECTIONS_ENV+' must be 4 or 8')
     require(connections in fetch.CONNECTION_CHOICES,'Unsupported dependency connection cap')
     return streams,connections
+
+
+def seed_settings(args,environ=None):
+    """Base-image seeding: flag wins, then environment; unset (the default) = off.
+    Bytecode copying is a separate opt-in because no wheel RECORD covers pycs."""
+    environ=os.environ if environ is None else environ
+    site=getattr(args,'seed_site',None)
+    if site is None:site=environ.get(SEED_SITE_ENV,'').strip() or None
+    if site is None:return None,False
+    site=Path(site)
+    require(site.is_absolute(),SEED_SITE_ENV+' must be an absolute path')
+    raw=environ.get(SEED_BYTECODE_ENV,'').strip()
+    require(raw in ('','0','1'),SEED_BYTECODE_ENV+' must be 0 or 1')
+    return site,raw=='1'
+
+
+def seed_plan(contract,manifest,repo,venv,group,site,bytecode,fresh,workers):
+    """Lazy import: without a configured seed site nothing here runs."""
+    if not contract.get('seed_index'):
+        return {'receipt':{'state':'disabled','reason':'contract-pins-no-seed-index','site':str(site)},'staged':[]}
+    if not fresh:
+        return {'receipt':{'state':'skipped','reason':'existing-venv-repair','site':str(site)},'staged':[]}
+    import dependency_seed as seed
+    index=seed.load_index(contract,manifest,repo)
+    return seed.stage(index,selected(manifest,group),site,venv,workers=workers,bytecode=bytecode,
+                      index_sha256=contract['seed_index']['sha256'])
 
 
 def check_inputs(manifest,repo):
@@ -137,6 +178,7 @@ def active_venv(venv):
 def run(args,ticket_loader=None):
     check_platform()
     range_streams,max_connections=transfer_settings(args)
+    seed_site,seed_bytecode=seed_settings(args)
     started=time.monotonic()
     contract=json.loads(args.contract.read_text());check_contract(contract)
     repo=args.repo_root.resolve(strict=True)
@@ -163,6 +205,7 @@ def run(args,ticket_loader=None):
         check_inputs(manifest,repo)
         marker=venv/MARKER
         prior=json.loads(marker.read_text()) if marker.is_file() and not marker.is_symlink() else None
+        fresh=not venv.exists()
         if venv.exists():
             require(prior and prior.get('uid')==os.getuid() and prior.get('venv')==str(venv),
                     'Existing venv is not owned by this locked installer; leave it unchanged')
@@ -197,10 +240,21 @@ def run(args,ticket_loader=None):
                 'artifact_id':manifest['artifact_id'],'group':args.group,'fallback':None,'steps':[]}
         try:
             if ticket is None:ticket=ticket_loader()
-            needed={a['sha256'] for a in selected(manifest,args.group) if a['source'].startswith('build:')}
-            cached=all((artifact/'wheels'/a['filename']).is_file() for a in selected(manifest,args.group))
-            result['acquisition']=fetch.acquire(manifest,artifact/'wheels',args.group,args.workers,repo,
-                reserve_bytes=(4 if cached else 30)*1024**3,
+            view=manifest;seeding=None;reserve=None
+            if seed_site is not None:
+                seeding=seed_plan(contract,manifest,repo,venv,args.group,seed_site,seed_bytecode,fresh,args.workers)
+                result['seed']=seeding['receipt']
+                if seeding['staged']:
+                    import dependency_seed as seed
+                    # Seeded artifacts are never acquired; their staged bytes already used disk.
+                    view=seed.without(manifest,[e['name'] for e in seeding['staged']])
+                    reserve=seeding['receipt']['installed_bytes']
+            needed={a['sha256'] for a in selected(view,args.group) if a['source'].startswith('build:')}
+            cached=all((artifact/'wheels'/a['filename']).is_file() for a in selected(view,args.group))
+            reserve_bytes=(4 if cached else 30)*1024**3
+            if reserve is not None:reserve_bytes=max(4*1024**3,reserve_bytes-reserve)
+            result['acquisition']=fetch.acquire(view,artifact/'wheels',args.group,args.workers,repo,
+                reserve_bytes=reserve_bytes,
                 tickets={k:v for k,v in ticket['wheels'].items() if k in needed},
                 range_streams=range_streams,max_connections=max_connections)
             uv=None
@@ -215,6 +269,8 @@ def run(args,ticket_loader=None):
                 value=bench.command(cmd,name,logs,env);result['steps'].append(value)
                 require(value['exit_status']==0,'Locked installer step failed: '+name)
             if not (venv/'bin/python').exists():step([sys.executable,'-m','venv',str(venv)],'venv')
+            if seeding and seeding['staged']:
+                result['seed'].update(seed.publish(seeding,venv))
             py=venv/'bin/python';wheels=artifact/'wheels';package_cache=artifact/'installer-cache'
             bootstrap=logs/'bootstrap.lock';bootstrap.write_text(offline_lock(manifest,'bootstrap'))
             step(bench.install_command('pip',py,None,package_cache,wheels,bootstrap,True,'copy'),'bootstrap')
@@ -252,6 +308,8 @@ def main():
                    help='Byte ranges per large public wheel (default: $'+RANGE_STREAMS_ENV+' or 0 = off)')
     p.add_argument('--max-connections',type=int,choices=(4,8),
                    help='Global open-connection cap (default: $'+MAX_CONNECTIONS_ENV+' or --workers)')
+    p.add_argument('--seed-site',type=Path,
+                   help='Base-image site-packages to seed verified artifacts from (default: $'+SEED_SITE_ENV+' or off)')
     p.add_argument('--tickets-fd',type=int,default=0)
     p.add_argument('--check',action='store_true')
     p.add_argument('--repair',action='store_true')
