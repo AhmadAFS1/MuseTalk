@@ -59,6 +59,17 @@ TRANSIENT_STATUS = frozenset({408, 429, 500, 502, 503, 504})
 # 10 s, and acquire() allows more attempts so the failure bound stays similar.
 SOCKET_TIMEOUT_SECONDS = 10
 ACQUIRE_RETRIES = 4
+# Trickling single-stream connections (data keeps arriving, so no timeout fires):
+# c8-a's diffusers (2.6 MB) took 37 s and pylibsrtp (2.4 MB) 30 s at ~70 KB/s while
+# siblings ran at MB/s. A transfer slower than STALL_RATIO of its concurrent siblings
+# over this window restarts at once on a fresh connection (relative, so a uniformly
+# slow host never trips it); at most STALL_RETRIES restarts per artifact.
+TRICKLE_WINDOW_SECONDS = 8.0
+TRICKLE_MIN_REMAINING_BYTES = 256 * 1024
+
+
+class SlowTransfer(Exception):
+    """A single-stream transfer trickled far below its siblings; restart it."""
 # socket.timeout is TimeoutError from 3.10; listed for older interpreters.
 PART_TRANSPORT_ERRORS = (urllib.error.URLError, TimeoutError, socket.timeout, ConnectionError,
                          ssl.SSLError, http.client.IncompleteRead)
@@ -410,7 +421,8 @@ def acquire_ranged(a, cache, opener, budget, retries, streams, ticket=None):
             os.unlink(temporary)  # Exact mkstemp-owned partial only.
 
 
-def acquire_one(a, cache, repo_root=None, retries=2, opener=None, ticket=None, budget=None, range_streams=0):
+def acquire_one(a, cache, repo_root=None, retries=2, opener=None, ticket=None, budget=None, range_streams=0,
+                monitor=None):
     """Never expose URL-bearing exceptions; partials are never published.
 
     budget bounds open connections across all artifacts (held only around HTTP
@@ -456,8 +468,11 @@ def acquire_one(a, cache, repo_root=None, retries=2, opener=None, ticket=None, b
                         "parts": len(value["parts"]), "range_part_bytes": RANGE_PART,
                         "range_requests": value["requests"], "preallocation": value["preallocation"],
                         "hash_seconds": value["hash_seconds"], "part_timings": value["parts"]}
-        slot = contextlib.nullcontext() if a["source"].startswith("repo:") else budget
-        for attempt in range(retries + 1):
+        local = a["source"].startswith("repo:")
+        slot = contextlib.nullcontext() if local else budget
+        watch = monitor if not local else None
+        errors = restarts = 0
+        while True:
             attempts += 1
             fd, temporary = tempfile.mkstemp(prefix=".partial-", dir=cache)
             try:
@@ -469,12 +484,25 @@ def acquire_one(a, cache, repo_root=None, retries=2, opener=None, ticket=None, b
                         length = int(length)
                         require(0 < length <= MAX_FILE, "Invalid source length")
                         require(a["size_bytes"] in (None, length), "Source size mismatch")
-                    while chunk := source.read(CHUNK):
+                    # read1 returns per network read, so the trickle check runs while data trickles.
+                    read = (getattr(source, "read1", None) if watch is not None else None) or source.read
+                    expected = a["size_bytes"] or length or 0
+                    window_start, window_bytes = time.monotonic(), 0
+                    while chunk := read(CHUNK):
                         size += len(chunk)
                         transferred += len(chunk)
                         require(size <= (a["size_bytes"] or MAX_FILE), "Artifact exceeds trusted size/limit")
                         h.update(chunk)
                         out.write(chunk)
+                        if watch is not None:
+                            watch.add(len(chunk))
+                            window_bytes += len(chunk)
+                            window = time.monotonic() - window_start
+                            if window >= TRICKLE_WINDOW_SECONDS:
+                                if (expected - size > TRICKLE_MIN_REMAINING_BYTES
+                                        and watch.stalled(a["name"], window_bytes, window)):
+                                    raise SlowTransfer()
+                                window_start, window_bytes = time.monotonic(), 0
                     out.flush()
                     os.fsync(out.fileno())
                 require(size > 0 and a["size_bytes"] in (None, size), "Incomplete artifact size")
@@ -488,7 +516,13 @@ def acquire_one(a, cache, repo_root=None, retries=2, opener=None, ticket=None, b
                         "attempts": attempts,
                         "seconds": time.monotonic() - start,
                         "origin": urllib.parse.urlsplit(ticket["url"] if ticket else a["source"]).hostname or "repo-local",
-                        "started_utc": started_utc, "finished_utc": utc_now(), **ranged}
+                        "started_utc": started_utc, "finished_utc": utc_now(), **ranged,
+                        **({"trickle_restarts": restarts} if restarts else {})}
+            except SlowTransfer:
+                restarts += 1
+                if restarts > STALL_RETRIES:
+                    raise ValueError("Artifact transfer kept trickling") from None
+                # Fresh connection at once; the partial is discarded below.
             except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
                 # Auth failures and not-found are not transient. Integrity errors
                 # deliberately do not enter this retry path.
@@ -498,13 +532,15 @@ def acquire_one(a, cache, repo_root=None, retries=2, opener=None, ticket=None, b
                         error.close()
                     if status not in {408, 429, 500, 502, 503, 504}:
                         raise ValueError("Artifact HTTP failure " + str(status)) from None
-                if attempt == retries:
+                if errors == retries:
                     raise ValueError("Bounded artifact transport retries exhausted") from None
-                time.sleep(min(2**attempt, 4))
+                time.sleep(min(2**errors, 4))
+                errors += 1
             finally:
+                if watch is not None:
+                    watch.finished(a["name"])
                 if os.path.exists(temporary):
                     os.unlink(temporary)  # Exact mkstemp-owned partial only.
-    raise AssertionError("Unreachable acquisition state")
 
 
 def acquisition_order(rows, private_shas):
@@ -547,10 +583,11 @@ def acquire(manifest, cache, group, workers, repo_root=None, reserve_bytes=30 * 
             require(tickets[sha]["key"] == PRIVATE_PREFIX+manifest["artifact_id"]+"/"+a["filename"], "Ticket artifact identity mismatch")
         rows = acquisition_order(rows, built)
         receipts = []
+        trickle = StallMonitor(connections)  # Shared: single-stream rates are compared across artifacts.
         with ThreadPoolExecutor(max_workers=workers) as pool:
             futures = {pool.submit(acquire_one, a, cache, repo_root, retries=ACQUIRE_RETRIES,
                                    ticket=tickets.get(a["sha256"]), budget=budget,
-                                   range_streams=range_streams): a["name"] for a in rows}
+                                   range_streams=range_streams, monitor=trickle): a["name"] for a in rows}
             for future in as_completed(futures):
                 try:
                     receipts.append(future.result())

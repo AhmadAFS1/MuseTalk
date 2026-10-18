@@ -282,6 +282,56 @@ class AcquisitionTests(unittest.TestCase):
         self.assertTrue(one.call_args_list)
         self.assertTrue(all(c.kwargs["retries"] == f.ACQUIRE_RETRIES == 4 for c in one.call_args_list))
 
+    def test_trickling_single_stream_restarts_on_a_fresh_connection(self):
+        data = bytes(range(256)) * 4096  # 1 MiB, so >256 KiB remains after the first chunk
+
+        class Chunked(FakeResponse):
+            def read1(self, n=-1):
+                return super().read1(64 * 1024)
+
+        class Opener(FakeOpener):
+            def open(self, *args, **kwargs):
+                self.calls += 1
+                return Chunked(self.data)
+
+        class Monitor:  # Stalled on the first window only, as if a sibling ran far faster.
+            def __init__(self, stalls):
+                self.stalls, self.checks, self.finished_calls = stalls, 0, 0
+            def add(self, count):
+                pass
+            def stalled(self, index, window_bytes, window_seconds):
+                self.checks += 1
+                return self.checks <= self.stalls
+            def finished(self, index):
+                self.finished_calls += 1
+        a = d.artifact(row(content=data), "server")
+        a["size_bytes"] = len(data)
+        with tempfile.TemporaryDirectory() as folder, patch.object(f, "TRICKLE_WINDOW_SECONDS", 0.0), \
+                patch.object(f.time, "sleep") as sleep:
+            opener, monitor = Opener(data), Monitor(1)
+            receipt = f.acquire_one(a, folder, opener=opener, monitor=monitor)
+            self.assertEqual((receipt["state"], receipt["attempts"], receipt["trickle_restarts"]), ("downloaded-verified", 2, 1))
+            self.assertEqual(Path(folder, a["filename"]).read_bytes(), data)
+            self.assertEqual(opener.calls, 2)
+            sleep.assert_not_called()  # A trickle restarts at once, unlike transport errors.
+            self.assertEqual(monitor.finished_calls, 2)
+            self.assertEqual(list(Path(folder).glob(".partial-*")), [])
+        with tempfile.TemporaryDirectory() as folder, patch.object(f, "TRICKLE_WINDOW_SECONDS", 0.0):
+            with self.assertRaisesRegex(ValueError, "^Artifact transfer kept trickling$"):
+                f.acquire_one(a, folder, opener=Opener(data), monitor=Monitor(10**6))
+            self.assertFalse(Path(folder, a["filename"]).exists())
+        # Without a monitor (or for repo-local files) nothing is checked.
+        with tempfile.TemporaryDirectory() as folder, patch.object(f, "TRICKLE_WINDOW_SECONDS", 0.0):
+            self.assertNotIn("trickle_restarts", f.acquire_one(a, folder, opener=Opener(data)))
+
+    def test_trickle_monitor_is_relative_to_concurrent_transfers(self):
+        m = f.StallMonitor(4)
+        self.assertFalse(m.stalled("a", 100_000, 1.0))          # alone: compared with the average, not a floor
+        self.assertFalse(m.stalled("b", 90_000, 1.0))           # a uniformly slow host never trips
+        self.assertTrue(m.stalled("c", 5_000, 1.0))             # 5% of the fastest sibling
+        m.finished("a"); m.finished("b")
+        self.assertFalse(m.stalled("c", 5_000, 1.0))            # no siblings and no recorded bytes: no reference
+
     def test_simultaneous_installer_lock_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             p = Path(folder)/"claim"
