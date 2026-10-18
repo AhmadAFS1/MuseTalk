@@ -277,6 +277,19 @@ print(d["sha256"],int(d["bytes"]));print(d["url"])' 2>/dev/null)" || { bootstrap
 # The image's own interpreter already has the pinned huggingface_hub, so the big
 # Hugging Face weights start downloading now, overlapping dependency install.
 # hf_xet goes to a --target dir (hash-pinned); the image venv is never modified.
+# r5 workers serve from the checked TensorRT stagewise engines with fallback forbidden,
+# so the 3.4 GB eager UNet checkpoint is neither downloaded nor loaded. Decided before
+# the weight prefetch starts; MUSETALK_SKIP_EAGER_UNET=0 (e.g. benchmark hosts that
+# render with the eager UNet) keeps it.
+select_eager_unet_mode() {
+  if [[ "${MUSETALK_RECIPE:-r5}" == r5 ]]; then
+    export MUSETALK_SKIP_EAGER_UNET="${MUSETALK_SKIP_EAGER_UNET:-1}"
+  else
+    export MUSETALK_SKIP_EAGER_UNET=0
+  fi
+  bootstrap_log "MUSETALK_SKIP_EAGER_UNET=$MUSETALK_SKIP_EAGER_UNET"
+}
+
 start_weights_prefetch() {
   [[ "${MUSETALK_WEIGHTS_PREFETCH:-1}" != 0 ]] || return 0
   local py=/venv/main/bin/python dir=/workspace/.mtboot/weights-prefetch tools=/workspace/.mtboot/hftools
@@ -396,6 +409,7 @@ main() {
   stamp_stage code_ready
   start_apt_prefetch
   arm_download_gate
+  select_eager_unet_mode
   start_r5_prefetch
   start_weights_prefetch
   configure_locked_boot

@@ -209,10 +209,11 @@ validate_required_files() {
   fi
 
   if env_flag_is_true "$DOWNLOAD_MUSETALK_V15_WEIGHTS"; then
-    required+=(
-      "$CHECKPOINTS_DIR/musetalkV15/musetalk.json"
-      "$CHECKPOINTS_DIR/musetalkV15/unet.pth"
-    )
+    required+=("$CHECKPOINTS_DIR/musetalkV15/musetalk.json")
+    # Strict r5 serving never loads the eager UNet (MUSETALK_SKIP_EAGER_UNET=1).
+    if [[ "${MUSETALK_SKIP_EAGER_UNET:-0}" != 1 ]]; then
+      required+=("$CHECKPOINTS_DIR/musetalkV15/unet.pth")
+    fi
   fi
 
   if env_flag_is_true "$DOWNLOAD_TAESD_WEIGHTS"; then
@@ -269,6 +270,13 @@ download_musetalk_v1_weights_step() {
 }
 
 download_musetalk_v15_weights_step() {
+  if [[ "${MUSETALK_SKIP_EAGER_UNET:-0}" == 1 ]]; then
+    # Strict r5 serving: the checked TensorRT engines replace the eager UNet, whose
+    # 3.4 GB checkpoint (~55% of a fresh worker's downloads) is never loaded.
+    log "MUSETALK_SKIP_EAGER_UNET=1: UNet config only (no unet.pth)"
+    hf_download TMElyralab/MuseTalk "$CHECKPOINTS_DIR" musetalkV15/musetalk.json
+    return
+  fi
   hf_download TMElyralab/MuseTalk "$CHECKPOINTS_DIR" \
     musetalkV15/musetalk.json \
     musetalkV15/unet.pth

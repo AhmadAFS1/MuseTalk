@@ -47,6 +47,8 @@ def _install_import_stubs():
 
     utils = types.ModuleType("musetalk.utils.utils")
     utils.load_all_model = lambda *args, **kwargs: (None, None, None)
+    utils.VAE = object
+    utils.PositionalEncoding = object
     install("musetalk.utils.utils", utils)
 
     audio_processor = types.ModuleType("musetalk.utils.audio_processor")

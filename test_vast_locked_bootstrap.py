@@ -539,7 +539,7 @@ wait
         self.assertIn('apt_packages.txt',installer);self.assertNotIn('libgl1 libglib2.0-0',installer)
         self.assertIn('wait_for_apt_prefetch  # Later phases',installer)
         boot=(REPO/'scripts/vast_bootstrap_locked.sh').read_text()
-        self.assertLess(boot.index('start_apt_prefetch\n  arm_download_gate\n  start_r5_prefetch'),boot.index('configure_locked_boot\n  cd'))
+        self.assertLess(boot.index('start_apt_prefetch\n  arm_download_gate\n  select_eager_unet_mode\n  start_r5_prefetch'),boot.index('configure_locked_boot\n  cd'))
 
     def test_proc1_environ_readers_never_exit_early(self):
         # awk 'exit' closes the pipe early; tr then dies with SIGPIPE and

@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import threading
@@ -5,6 +6,7 @@ import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from types import SimpleNamespace
 import uuid
 import numpy as np
 import torch
@@ -12,7 +14,7 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from musetalk.utils.face_parsing import FaceParsing
-from musetalk.utils.utils import load_all_model
+from musetalk.utils.utils import load_all_model, VAE, PositionalEncoding
 from musetalk.utils.audio_processor import AudioProcessor
 from transformers import WhisperModel
 from scripts.api_avatar import APIAvatar  # ✅ Use new API-friendly class
@@ -174,13 +176,30 @@ class ParallelAvatarManager:
         mark = self._startup_mark = _StartupClock()
         mark("imports")
 
-        self.vae, self.unet, self.pe = load_all_model(
-            unet_model_path=self.args.unet_model_path,
-            vae_type=self.args.vae_type,
-            unet_config=self.args.unet_config,
-            device=self.device
-        )
-        mark("load_all_model")
+        self.skip_eager_unet = self._skip_eager_unet_requested()
+        if self.skip_eager_unet:
+            # Strict r5 serving only: the checked TensorRT stagewise engines replace the
+            # eager UNet immediately and fallback is forbidden, so its 3.4 GB checkpoint
+            # is neither downloaded nor loaded. The SD-VAE (avatar preparation) stays.
+            # Ported from musetalk-r5-execution (default-off there).
+            with open(self.args.unet_config, "r") as handle:
+                config = json.load(handle)
+            if not isinstance(config, dict) or any(
+                type(config.get(key)) is not int or config[key] != value
+                for key, value in (("in_channels", 8), ("out_channels", 4), ("cross_attention_dim", 384))
+            ):
+                raise RuntimeError("Skipping the eager UNet requires the canonical MuseTalk UNet interface")
+            self.vae = VAE(model_path=os.path.join("models", self.args.vae_type))
+            self.pe = PositionalEncoding(d_model=384)
+            self.unet = SimpleNamespace(model=None, pe=PositionalEncoding(d_model=384), device=self.device)
+        else:
+            self.vae, self.unet, self.pe = load_all_model(
+                unet_model_path=self.args.unet_model_path,
+                vae_type=self.args.vae_type,
+                unet_config=self.args.unet_config,
+                device=self.device
+            )
+        mark("load_all_model" + (" (eager UNet skipped)" if self.skip_eager_unet else ""))
 
         if torch.cuda.is_available():
             torch.backends.cuda.matmul.allow_tf32 = True
@@ -193,11 +212,15 @@ class ParallelAvatarManager:
         self.pe.requires_grad_(False)
         self.vae.vae = self.vae.vae.half().to(self.device).eval()
         self.vae.vae.requires_grad_(False)
-        self.unet.model = self.unet.model.half().to(self.device).eval()
-        self.unet.model.requires_grad_(False)
-        self.eager_unet_model = self.unet.model
+        if self.skip_eager_unet:
+            self.eager_unet_model = None
+            self.unet_dtype = torch.float16
+        else:
+            self.unet.model = self.unet.model.half().to(self.device).eval()
+            self.unet.model.requires_grad_(False)
+            self.eager_unet_model = self.unet.model
+            self.unet_dtype = self.unet.model.dtype
         self.eager_vae_model = self.vae.vae
-        self.unet_dtype = self.unet.model.dtype
         self.vae_dtype = self.vae.vae.dtype
         self.unet_in_channels = int(
             getattr(
@@ -247,6 +270,37 @@ class ParallelAvatarManager:
         self.compile_models()
         mark("compile")
         self._warm_runtime_paths()
+
+    def _skip_eager_unet_requested(self):
+        """MUSETALK_SKIP_EAGER_UNET=1 is honoured only for strict, checked r5 stagewise
+        serving on CUDA (fallback forbidden, engine SHA and exact probe verification on);
+        anything else is a configuration error, never a silent eager fallback.
+        Unset (auto, e.g. a manual restart without the boot environment): skip only when
+        the checkpoint is absent (the worker was installed without it) and the strict
+        conditions hold; otherwise load the eager UNet exactly as before."""
+        value = os.getenv("MUSETALK_SKIP_EAGER_UNET", "").strip()
+        if value not in {"", "0", "1"}:
+            raise RuntimeError("MUSETALK_SKIP_EAGER_UNET must be exactly 0 or 1")
+        if value == "0":
+            return False
+        if value == "" and Path(self.args.unet_model_path).is_file():
+            return False
+        required = {  # name: (effective value required, default when unset)
+            "MUSETALK_UNET_BACKEND": ("trt_stagewise", ""),
+            "MUSETALK_TRT_FALLBACK": ("0", ""),
+            "MUSETALK_UNET_STAGEWISE_VERIFY_SHA": ("1", "1"),
+            "MUSETALK_UNET_STAGEWISE_PROBE_CHECK": ("1", "1"),
+            "MUSETALK_UNET_STAGEWISE_PROBE_TOL": ("0", "0"),
+        }
+        wrong = [key for key, (expected, default) in required.items() if os.getenv(key, default).strip() != expected]
+        if self.device.type != "cuda" or wrong:
+            if value == "":
+                return False  # Auto: not strict r5, so the (missing) checkpoint load fails as before.
+            raise RuntimeError("Skipping the eager UNet requires CUDA and strict checked stagewise r5 "
+                               "(fallback forbidden); unmet: " + ", ".join(wrong or ["cuda"]))
+        if value == "":
+            print("ℹ️  Eager UNet checkpoint absent and strict r5 stagewise active: serving without it")
+        return True
 
     @staticmethod
     def _env_enabled(name, default="1"):
@@ -367,9 +421,18 @@ class ParallelAvatarManager:
     def _activate_unet_backend(self):
         self.unet_backend = load_unet_trt_backend(device=self.device)
         if self.unet_backend is None:
+            if getattr(self, "skip_eager_unet", False):
+                raise RuntimeError("Eager UNet skipped but no TensorRT UNet backend loaded")
             print("ℹ️  UNet backend: PyTorch")
             return
 
+        if getattr(self, "skip_eager_unet", False) and (
+            getattr(self.unet_backend, "name", None) != "tensorrt_unet_stagewise"
+            or getattr(self.unet_backend, "variant", None) != "srccache"
+            or getattr(self.unet_backend, "batch", None) != 16
+            or getattr(self.unet_backend, "dtype", None) != torch.float16
+        ):
+            raise RuntimeError("Eager UNet skipped but the checked FP16 srccache bs16 stagewise backend did not load")
         self.unet.model = self.unet_backend
         self.unet_backend_name = getattr(self.unet_backend, "name", "tensorrt_unet")
         self.unet_compiled = False

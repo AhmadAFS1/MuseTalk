@@ -626,6 +626,9 @@ def cmd_check(args) -> int:
 
     # 6. model files.
     model_files = list(SERVER_MODEL_FILES)
+    if os.environ.get("MUSETALK_SKIP_EAGER_UNET", "0") == "1":
+        # Strict r5 serving never loads the eager UNet; see scripts/avatar_manager_parallel.py.
+        model_files = [f for f in model_files if f != "models/musetalkV15/unet.pth"]
     if groups["avatar_prep"][0]:
         model_files += [f for f in AVATAR_PREP_MODEL_FILES
                         if "syncnet" not in f or os.environ.get("DOWNLOAD_SYNCNET_WEIGHTS", "1") not in ("0", "false", "no", "off")]
