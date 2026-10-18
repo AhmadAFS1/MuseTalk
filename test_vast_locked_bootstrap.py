@@ -62,6 +62,7 @@ class TicketIssuerTests(unittest.TestCase):
         self.s3.sizes={k:1 for k in self.s3.sizes}
         with self.assertRaisesRegex(ValueError,'wheel missing'):
             issuer.issue(self.contract,self.s3,self.identity)
+        self.assertFalse(self.s3.signed)
 
 
 class BootstrapTests(unittest.TestCase):

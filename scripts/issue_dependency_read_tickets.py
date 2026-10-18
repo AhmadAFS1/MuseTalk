@@ -31,16 +31,16 @@ def issue(contract, s3, identity, expires=3600):
         return {'key':object_key,'owner':contract['owner'],'sha256':sha,
                 'url':s3.generate_presigned_url('get_object',Params={'Bucket':contract['bucket'],
                        'Key':object_key,'ExpectedBucketOwner':contract['owner']},ExpiresIn=expires)}
-    wheels={}
-    for row in manifest['artifacts']:
-        if row['source'].startswith('build:'):
-            head=s3.head_object(Bucket=contract['bucket'],Key=contract['prefix']+row['filename'],
-                                ExpectedBucketOwner=contract['owner'])
-            require(head['ContentLength']==row['size_bytes'],'Required private wheel missing or different size')
-            wheels[row['sha256']]=ticket(row['filename'],row['sha256'])
+    # Verify the whole private closure (count, then every size) before signing anything.
+    builds=[row for row in manifest['artifacts'] if row['source'].startswith('build:')]
     # The contract pins the reviewed private closure size (4 built sdists; 5 with the
     # runtime-only TensorRT libs repack).
-    require(len(wheels)==contract.get('private_wheels',4),'Different reviewed private-wheel closure')
+    require(len(builds)==contract.get('private_wheels',4),'Different reviewed private-wheel closure')
+    for row in builds:
+        head=s3.head_object(Bucket=contract['bucket'],Key=contract['prefix']+row['filename'],
+                            ExpectedBucketOwner=contract['owner'])
+        require(head['ContentLength']==row['size_bytes'],'Required private wheel missing or different size')
+    wheels={row['sha256']:ticket(row['filename'],row['sha256']) for row in builds}
     return {'manifest':ticket('manifest.json',contract['manifest_sha256']),'wheels':wheels}
 
 
