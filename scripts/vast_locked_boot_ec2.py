@@ -152,11 +152,14 @@ def compose_env(template_env, revision, tickets, session, secret):
     return env
 
 
-def choose_offer(rows, b, machine=None):
-    offers = [r for r in rows if b.acceptable(r, allow_unverified=False)
+def choose_offer(rows, b, machine=None, any_geo=False):
+    def ok(r):
+        # Geography is a latency choice, not a safety cap: --geo any keeps every other cap.
+        return b.acceptable({**r, "geolocation": "Anywhere, US"} if any_geo else r, allow_unverified=False)
+    offers = [r for r in rows if ok(r)
               and (machine is None or r.get("machine_id") == machine)
               and str(r.get("id")) not in PROTECTED]
-    require(offers, "No offer inside caps (verified US RTX 3090, <=$0.30/h, transfer <=$0.0015/GB)")
+    require(offers, "No offer inside caps (verified RTX 3090, <=$0.30/h, transfer cap, >=10 cores, >=32 GB, >=500 Mbps)")
     return min(offers, key=lambda r: (r["dph_total_adj"], r["id"]))
 
 
@@ -199,7 +202,7 @@ def runtime_identity(seconds):
     return credentials, {k: v for k, v in secret.items() if not k.startswith("AWS_")}
 
 
-def plan(run, revision, lifetime, disk, machine):
+def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US"):
     """Everything a create needs, without provider writes or local state."""
     require(3600 <= lifetime <= 4 * 3600, "Lifetime must be 1-4 hours")
     require(autoscaler_quiet(), "Autoscaler is not provably off; refuse test rental with the production template hash")
@@ -216,12 +219,15 @@ def plan(run, revision, lifetime, disk, machine):
     import requests
     existing = client.list_instances()
     require(not any(r.get("label") == run.label for r in existing), "Existing label; reconcile, do not create")
-    rows = client.search_offers({"limit": 200, "type": "ondemand", "rentable": {"eq": True}, "num_gpus": {"eq": 1},
-        "gpu_name": {"eq": "RTX 3090"}, "allocated_storage": disk, "geolocation": {"in": ["US"]},
-        "dph_total": {"lte": .30}, "inet_down_cost": {"lte": .0015}, "inet_up_cost": {"lte": .0015},
-        "order": [["dph_total", "asc"]]})
-    b.DISK = disk
-    offer = choose_offer(rows, b, machine)
+    require(0 < max_transfer <= .01 and geo in {"US", "any"}, "Transfer cap must be <= $0.01/GB; geo US|any")
+    query = {"limit": 400, "type": "ondemand", "rentable": {"eq": True}, "num_gpus": {"eq": 1},
+             "gpu_name": {"eq": "RTX 3090"}, "allocated_storage": disk, "dph_total": {"lte": .30},
+             "inet_down_cost": {"lte": max_transfer}, "inet_up_cost": {"lte": max_transfer}, "order": [["dph_total", "asc"]]}
+    if geo == "US":
+        query["geolocation"] = {"in": ["US"]}
+    rows = client.search_offers(query)
+    b.DISK, b.TRANSFER_CAP = disk, max_transfer
+    offer = choose_offer(rows, b, machine, any_geo=geo == "any")
     response = requests.get(client.base_url + "/api/v0/template/", headers=client._headers(),
         params={"select_filters": json.dumps({"hash_id": {"eq": b.TEMPLATE}})}, timeout=20, allow_redirects=False)
     require(response.status_code == 200, "Template lookup failed")
@@ -235,10 +241,10 @@ def plan(run, revision, lifetime, disk, machine):
             "bootstrap_sha256": bootstrap_sha256, "contract": contract, "credentials": credentials}
 
 
-def create(run, revision, lifetime, disk, machine):
+def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US"):
     require(os.getuid() == 0 and not run.root.exists(), "Fresh root-owned run only; never repeat create")
     os.umask(0o077)
-    p = plan(run, revision, lifetime, disk, machine)
+    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo)
     b, client, existing, offer, env, onstart = p["b"], p["client"], p["existing"], p["offer"], p["env"], p["onstart"]
     bootstrap_sha256, contract, credentials = p["bootstrap_sha256"], p["contract"], p["credentials"]
     run.root.mkdir(mode=0o700, parents=False)
@@ -254,7 +260,7 @@ def create(run, revision, lifetime, disk, machine):
               "contract_artifact_id": contract["artifact_id"], "template_hash_id": b.TEMPLATE, "disk_gb": disk,
               "tickets_issued_utc": utc(), "ticket_seconds": TICKET_SECONDS,
               "s3_session_expires_utc": credentials["Expiration"].isoformat(), "create_requests": 0,
-              "rent_per_hour": offer["dph_total_adj"], "env_keys": sorted(env)}
+              "rent_per_hour": offer["dph_total_adj"], "transfer_cap_per_gb": max_transfer, "geo": geo, "env_keys": sorted(env)}
     run.save("ledger.json", ledger)
     expiry_timer(run, deadline)
     ledger.update(state="submitting", create_requests=1, request_started_utc=utc())
@@ -273,9 +279,9 @@ def create(run, revision, lifetime, disk, machine):
     run.event("CREATED", instance_id=identifier, deadline_utc=deadline)
 
 
-def preflight(run, revision, lifetime, disk, machine):
+def preflight(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US"):
     """Dry run of create: offer, template, tickets, identity, stub. No provider write."""
-    p = plan(run, revision, lifetime, disk, machine)
+    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo)
     o = p["offer"]
     print(json.dumps({"state": "preflight-ok", "label": run.label, "offer": {k: o.get(k) for k in ("id", "machine_id", "geolocation",
           "dph_total_adj", "inet_down", "cpu_cores_effective", "cpu_ram", "reliability", "driver_version")},
@@ -633,14 +639,16 @@ def main():
     parser.add_argument("--machine", type=int)
     parser.add_argument("--wipe", action="store_true")
     parser.add_argument("--cases", type=int, default=2)
+    parser.add_argument("--max-transfer-cost", type=float, default=.005)
+    parser.add_argument("--geo", choices=("US", "any"), default="US")
     args = parser.parse_args()
     require(os.getuid() == 0, "Root-owned EC2 control plane only")
     os.umask(0o077)
     run = Run(args.run)
     if args.mode == "preflight":
-        preflight(run, args.revision, args.lifetime, args.disk, args.machine)
+        preflight(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo)
     elif args.mode == "create":
-        create(run, args.revision, args.lifetime, args.disk, args.machine)
+        create(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo)
     elif args.mode == "status":
         status(run)
     elif args.mode == "probe":
