@@ -1,4 +1,5 @@
 """Stdlib fixtures only: no pip, CUDA, external network or package installation."""
+import contextlib
 import datetime as dt
 import errno
 import hashlib
@@ -404,6 +405,60 @@ def large(data=RANGE_PAYLOAD, host="pypi.nvidia.com", name="tensorrt-cu12-libs")
     return {"name": name, "version": "10.3.0", "filename": filename,
             "source": "https://" + host + "/" + name + "/" + filename,
             "sha256": hashlib.sha256(data).hexdigest(), "size_bytes": len(data)}
+
+
+class StallDetectionTests(unittest.TestCase):
+    def test_monitor_flags_only_relative_trickles(self):
+        m = f.StallMonitor(streams=4)
+        m.rates[1] = 4_000_000.0
+        self.assertTrue(m.stalled(0, 140_000 * 20, 20.0))     # 0.14 MB/s beside a 4 MB/s sibling.
+        self.assertFalse(m.stalled(2, 3_000_000 * 20, 20.0))  # Healthy sibling.
+        slow = f.StallMonitor(streams=4)
+        slow.rates[1] = 200_000.0
+        self.assertFalse(slow.stalled(0, 150_000 * 20, 20.0))  # Uniformly slow host never trips.
+        alone = f.StallMonitor(streams=4)
+        alone.add(40_000_000)
+        alone.started -= 10.0                                  # 4 MB/s aggregate => 1 MB/s per stream.
+        self.assertTrue(alone.stalled(0, 50_000 * 20, 20.0))
+        self.assertFalse(alone.stalled(0, 900_000 * 20, 20.0))
+
+    def test_stalled_part_reconnects_and_resumes_from_written_offset(self):
+        data = bytes(range(64))
+        a = large(data)
+        monitor = f.StallMonitor(streams=2)
+        monitor.rates[99] = 1e15  # A very fast sibling: the first connection counts as a trickle.
+
+        def hook(n, first, last):
+            if n == 1:
+                monitor.ratio = 0.0  # The reconnected stream is healthy.
+            return None
+
+        opener = RangeOpener(data, hook=hook)
+        record = {"index": 0, "first_byte": 0, "last_byte": 31, "bytes": 0, "attempts": 0, "resume_offsets": [],
+                  "wait_seconds": 0.0, "started_utc": None, "finished_utc": None, "seconds": None}
+        with tempfile.TemporaryFile() as out, patch.object(f, "STALL_WINDOW_SECONDS", 0.0), \
+                patch.object(f, "CHUNK", 4), patch.object(f.time, "sleep"):
+            f.fetch_part(a, opener, contextlib.nullcontext(), out.fileno(), (0, 31), f.RangeIdentity(), 2,
+                         threading.Event(), record, None, monitor)
+            out.seek(0)
+            self.assertEqual(out.read(32), data[:32])
+        self.assertEqual(record["stalls"], 1)
+        self.assertEqual(opener.ranges, [(0, 31), (4, 31)])  # Resumed after the first 4-byte chunk.
+        self.assertEqual(record["resume_offsets"], [4])
+        self.assertEqual(record["bytes"], 32)
+
+    def test_part_that_keeps_stalling_fails_bounded(self):
+        data = bytes(range(64))
+        monitor = f.StallMonitor(streams=2)
+        monitor.rates[99] = 1e15
+        record = {"index": 0, "first_byte": 0, "last_byte": 31, "bytes": 0, "attempts": 0, "resume_offsets": [],
+                  "wait_seconds": 0.0, "started_utc": None, "finished_utc": None, "seconds": None}
+        with tempfile.TemporaryFile() as out, patch.object(f, "STALL_WINDOW_SECONDS", 0.0), \
+                patch.object(f, "CHUNK", 1), patch.object(f.time, "sleep"):
+            with self.assertRaisesRegex(ValueError, "kept stalling"):
+                f.fetch_part(large(data), RangeOpener(data), contextlib.nullcontext(), out.fileno(), (0, 31),
+                             f.RangeIdentity(), 2, threading.Event(), record, None, monitor)
+        self.assertEqual(record["stalls"], f.STALL_RETRIES + 1)
 
 
 class RangedAcquisitionTests(unittest.TestCase):

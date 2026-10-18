@@ -64,6 +64,45 @@ class RangeTruncated(ConnectionError):
     """A 206 body ended early. Retryable at the part level only."""
 
 
+class RangeStalled(ConnectionError):
+    """A part far slower than its siblings: reconnect and resume from its offset."""
+
+
+# A CDN connection can degrade to a trickle without ever timing out (observed:
+# pypi.nvidia.com at ~0.14 MB/s on one connection of an otherwise idle 820 Mbps
+# host). Relative, not absolute: a uniformly slow host never trips it.
+STALL_WINDOW_SECONDS = 20.0
+STALL_RATIO = 0.15
+STALL_RETRIES = 8
+
+
+class StallMonitor:
+    def __init__(self, streams, ratio=STALL_RATIO):
+        self.lock = threading.Lock()
+        self.rates = {}
+        self.bytes = 0
+        self.started = time.monotonic()
+        self.streams = max(1, streams)
+        self.ratio = ratio
+
+    def add(self, count):
+        with self.lock:
+            self.bytes += count
+
+    def stalled(self, index, window_bytes, window_seconds):
+        rate = window_bytes / window_seconds
+        with self.lock:
+            self.rates[index] = rate
+            siblings = [r for i, r in self.rates.items() if i != index]
+            elapsed = time.monotonic() - self.started
+            reference = max(siblings) if siblings else (self.bytes / elapsed / self.streams if elapsed > 0 else 0)
+        return reference > 0 and rate < self.ratio * reference
+
+    def finished(self, index):
+        with self.lock:
+            self.rates.pop(index, None)
+
+
 class RangeAborted(Exception):
     """A sibling part failed; stop this part without retrying."""
 
@@ -201,7 +240,7 @@ def write_at(fd, data, offset):
         offset += written
 
 
-def fetch_part(a, opener, budget, fd, part, identity, retries, stop, record, on_validated=None):
+def fetch_part(a, opener, budget, fd, part, identity, retries, stop, record, on_validated=None, monitor=None):
     """Fetch one inclusive byte range into fd. Transient failures (including a clean
     early end of body, TLS errors and IncompleteRead) resume from the last written
     offset; 4xx/416 are hard failures. Only the HTTP request holds a budget slot."""
@@ -209,7 +248,9 @@ def fetch_part(a, opener, budget, fd, part, identity, retries, stop, record, on_
     position = first
     record["started_utc"] = utc_now()
     started = time.monotonic()
-    for attempt in range(retries + 1):
+    errors = stalls = 0
+    record.setdefault("stalls", 0)
+    for attempt in range(retries + 1 + STALL_RETRIES):
         if stop.is_set():
             raise RangeAborted()
         record["attempts"] += 1
@@ -225,6 +266,7 @@ def fetch_part(a, opener, budget, fd, part, identity, retries, stop, record, on_
                     check_range_response(source, a, position, last, identity)
                     if on_validated is not None:
                         on_validated()
+                    window_start, window_bytes = time.monotonic(), 0
                     while position <= last:
                         if stop.is_set():
                             raise RangeAborted()
@@ -235,11 +277,29 @@ def fetch_part(a, opener, budget, fd, part, identity, retries, stop, record, on_
                         write_at(fd, chunk, position)
                         position += len(chunk)
                         record["bytes"] += len(chunk)
+                        window_bytes += len(chunk)
+                        if monitor is not None:
+                            monitor.add(len(chunk))
+                            window = time.monotonic() - window_start
+                            if window >= STALL_WINDOW_SECONDS and position <= last:
+                                if monitor.stalled(record["index"], window_bytes, window):
+                                    raise RangeStalled()
+                                window_start, window_bytes = time.monotonic(), 0
             if position <= last:
                 raise RangeTruncated()
             record["finished_utc"] = utc_now()
             record["seconds"] = time.monotonic() - started
+            if monitor is not None:
+                monitor.finished(record["index"])
             return
+        except RangeStalled:
+            stalls += 1
+            record["stalls"] = stalls
+            if monitor is not None:
+                monitor.finished(record["index"])
+            if stalls > STALL_RETRIES:
+                raise ValueError("Range part kept stalling") from None
+            continue  # Reconnect at once and resume from the written offset.
         except PART_TRANSPORT_ERRORS as error:
             # Same status policy as the single-stream loop; never expose URLs.
             if isinstance(error, urllib.error.HTTPError):
@@ -247,10 +307,11 @@ def fetch_part(a, opener, budget, fd, part, identity, retries, stop, record, on_
                 error.close()
                 if status not in TRANSIENT_STATUS:
                     raise ValueError("Artifact HTTP failure " + str(status)) from None
-            if attempt == retries:
+            errors += 1
+            if errors > retries:
                 raise ValueError("Bounded range retries exhausted") from None
-            time.sleep(min(2**attempt, 4))
-    raise AssertionError("Unreachable range state")
+            time.sleep(min(2**errors, 4))
+    raise ValueError("Bounded range retries exhausted")
 
 
 def preallocate(fd, size):
@@ -287,6 +348,7 @@ def acquire_ranged(a, cache, opener, budget, retries, streams):
                 "resume_offsets": [], "wait_seconds": 0.0, "started_utc": None, "finished_utc": None,
                 "seconds": None} for i, (first, last) in enumerate(parts)]
     identity = RangeIdentity()
+    monitor = StallMonitor(streams)
     stop = threading.Event()
     probe_ready = threading.Event()
     futures = []
@@ -296,13 +358,13 @@ def acquire_ranged(a, cache, opener, budget, retries, streams):
         pool = ThreadPoolExecutor(max_workers=streams, thread_name_prefix="range-part")
         try:
             probe = pool.submit(fetch_part, a, opener, budget, fd, parts[0], identity, retries, stop,
-                                records[0], probe_ready.set)
+                                records[0], probe_ready.set, monitor)
             probe.add_done_callback(lambda _: probe_ready.set())
             probe_ready.wait()
             if probe.done():
                 probe.result()  # RangeUnsupported here means nothing else was requested.
             futures = [probe] + [pool.submit(fetch_part, a, opener, budget, fd, parts[i], identity, retries,
-                                             stop, records[i]) for i in range(1, len(parts))]
+                                             stop, records[i], None, monitor) for i in range(1, len(parts))]
             for future in as_completed(futures):
                 future.result()
         except BaseException as error:
@@ -325,6 +387,7 @@ def acquire_ranged(a, cache, opener, budget, retries, streams):
         require(digest == a["sha256"], "Artifact integrity mismatch")  # Full re-read; never retried.
         os.replace(temporary, cache / a["filename"])
         return {"transferred": transferred, "requests": sum(r["attempts"] for r in records),
+                "stalls_resumed": sum(r.get("stalls", 0) for r in records),
                 "parts": records, "preallocation": preallocation, "hash_seconds": hash_seconds}
     finally:
         os.close(fd)
