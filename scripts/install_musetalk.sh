@@ -50,6 +50,9 @@ PIP_VERSION="${MUSETALK_PIP_VERSION:-26.2.1}"
 PYTORCH_INDEX_BASE="${MUSETALK_PYTORCH_INDEX_BASE:-https://download.pytorch.org/whl}"
 NVIDIA_INDEX_URL="${MUSETALK_NVIDIA_INDEX_URL:-https://pypi.nvidia.com}"
 WHEELHOUSE="${MUSETALK_WHEELHOUSE:-}"
+DEPENDENCY_INSTALL_MODE="${MUSETALK_DEPENDENCY_INSTALL_MODE:-source-pip}"
+DEPENDENCY_CONTRACT="${MUSETALK_DEPENDENCY_CONTRACT:-}"
+DEPENDENCY_CACHE="${MUSETALK_DEPENDENCY_CACHE:-}"
 MIN_DISK_GB_FRESH="${MUSETALK_INSTALL_MIN_DISK_GB:-20}"
 MIN_DISK_GB_REPAIR="${MUSETALK_INSTALL_MIN_DISK_GB_REPAIR:-4}"
 SELFTEST_TIMEOUT_S="${MUSETALK_SELFTEST_TIMEOUT_S:-1200}"
@@ -87,7 +90,7 @@ Modes:
   --check-imports         with --check: also run the CPU import smoke (imports torch; CUDA hidden)
   --report FILE           with --check: write the JSON report to FILE
   --json                  with --check: print the JSON report to stdout
-  --plan                  print the resolved plan (matrix, groups, pip command) and exit; no changes
+  --plan                  print the resolved plan (matrix, groups, pip commands) and exit; no changes
 
 Options:
   --venv PATH             server venv (default: \$WORKSPACE/.venvs/musetalk_trt_stagewise)
@@ -120,6 +123,11 @@ Environment: PIP_CACHE_DIR (respected), MUSETALK_WHEELHOUSE (extra --find-links 
   MUSETALK_PYTORCH_INDEX_BASE, MUSETALK_NVIDIA_INDEX_URL, MUSETALK_PIP_VERSION ($PIP_VERSION),
   MUSETALK_INSTALL_MIN_DISK_GB ($MIN_DISK_GB_FRESH, fresh venv), HF_MAX_WORKERS, HF_XET_HIGH_PERFORMANCE.
   PYTORCH_INDEX_URL from the base image is deliberately ignored (the matrix picks the index).
+  MUSETALK_DEPENDENCY_INSTALL_MODE=source-pip (default) | locked-wheelhouse-pip |
+    locked-wheelhouse-uv (experimental opt-in, cu121 only; --clean only if venv absent).
+  Locked modes require MUSETALK_DEPENDENCY_CONTRACT and MUSETALK_DEPENDENCY_CACHE;
+    private read tickets are JSON on stdin (or MUSETALK_DEPENDENCY_TICKET_FD).
+    No silent source fallback. Existing foreign venvs are never adopted/overwritten.
 
 Examples:
   $SCRIPT_NAME                               # install or repair the default venv
@@ -209,7 +217,14 @@ done
 
 state_helper() {
   [[ -n "$HOST_PY" ]] || die "No python >= 3.8 found to run $STATE_HELPER (install python3.10 first)"
-  "$HOST_PY" -B "$STATE_HELPER" "$@"
+  if [[ "${1:-}" == check && "$DEPENDENCY_INSTALL_MODE" != source-pip ]]; then
+    [[ -f "$DEPENDENCY_CONTRACT" && -n "$DEPENDENCY_CACHE" ]] \
+      || die 2 "Locked read-only check requires reviewed dependency contract and cache"
+    "$HOST_PY" -B "$STATE_HELPER" "$@" \
+      --dependency-contract "$DEPENDENCY_CONTRACT" --dependency-cache "$DEPENDENCY_CACHE"
+  else
+    "$HOST_PY" -B "$STATE_HELPER" "$@"
+  fi
 }
 
 # apt is defined early: a bare image may need it before any python exists.
@@ -406,14 +421,24 @@ resolve_plan() {
   [[ -f "$REQ_DIR/server.in" ]] || die "requirements/server.in missing under $REPO_ROOT"
   PYTORCH_INDEX="$PYTORCH_INDEX_BASE/$TARGET_MATRIX"
 
-  PIP_INSTALL_ARGS=(install --disable-pip-version-check -r "$REQ_DIR/server.in")
-  if flag_on "$KOKORO"; then PIP_INSTALL_ARGS+=(-r "$REQ_DIR/kokoro.in"); fi
-  if flag_on "$LEGACY_INT8"; then PIP_INSTALL_ARGS+=(-r "$REQ_DIR/legacy-int8.in"); fi
-  PIP_INSTALL_ARGS+=(-c "$CONSTRAINTS" --extra-index-url "$PYTORCH_INDEX" --extra-index-url "$NVIDIA_INDEX_URL")
-  if [[ -n "$WHEELHOUSE" && -d "$WHEELHOUSE" ]]; then
-    PIP_INSTALL_ARGS+=(--find-links "$WHEELHOUSE")
-  fi
+  resolve_package_commands
   SELFTEST_BUCKETS="${HLS_SCHEDULER_FIXED_BATCH_SIZES:-${MUSETALK_TAESD_WARMUP_BATCHES:-8}}"
+}
+
+resolve_package_commands() {
+  local -a common=(-c "$CONSTRAINTS" --extra-index-url "$PYTORCH_INDEX" --extra-index-url "$NVIDIA_INDEX_URL")
+  if [[ -n "$WHEELHOUSE" && -d "$WHEELHOUSE" ]]; then
+    common+=(--find-links "$WHEELHOUSE")
+  fi
+  # Separate pip calls make Kokoro's incremental install cost observable. Both use the
+  # same pins/indexes; leave dependency resolution enabled and reuse installed shared deps.
+  PIP_INSTALL_ARGS=(install --disable-pip-version-check -r "$REQ_DIR/server.in")
+  if flag_on "$LEGACY_INT8"; then PIP_INSTALL_ARGS+=(-r "$REQ_DIR/legacy-int8.in"); fi
+  PIP_INSTALL_ARGS+=("${common[@]}")
+  PIP_KOKORO_ARGS=()
+  if flag_on "$KOKORO"; then
+    PIP_KOKORO_ARGS=(install --disable-pip-version-check -r "$REQ_DIR/kokoro.in" "${common[@]}")
+  fi
 }
 
 print_plan() {
@@ -440,9 +465,17 @@ print_plan() {
   printf 'SELFTEST=%s\n' "$(( SELFTEST && GPU_VISIBLE ))"
   printf 'SELFTEST_BUCKETS=%s\n' "$SELFTEST_BUCKETS"
   printf 'STATE_FILE=%s\n' "$STATE_FILE"
+  printf 'DEPENDENCY_INSTALL_MODE=%s\n' "$DEPENDENCY_INSTALL_MODE"
   printf 'PIP_COMMAND=%s -m pip' "$VENV_PY"
   printf ' %q' "${PIP_INSTALL_ARGS[@]}"
   printf '\n'
+  if flag_on "$KOKORO"; then
+    printf 'PIP_KOKORO_COMMAND=%s -m pip' "$VENV_PY"
+    printf ' %q' "${PIP_KOKORO_ARGS[@]}"
+    printf '\n'
+  else
+    printf 'PIP_KOKORO_COMMAND=disabled\n'
+  fi
 }
 
 if [[ -z "$HOST_PY" ]]; then
@@ -557,6 +590,10 @@ PY
 }
 
 # ---- phase: preflight
+locked_clean_is_safe() {
+  (( CLEAN == 0 )) || [[ ! -e "$VENV_PATH" && ! -L "$VENV_PATH" ]]
+}
+
 preflight() {
   log "Repo root: $REPO_ROOT"
   log "Venv: $VENV_PATH (exists=$VENV_EXISTS${VENV_TORCH_TAG:+, torch tag $VENV_TORCH_TAG})"
@@ -564,6 +601,20 @@ preflight() {
   log "Matrix: $TARGET_MATRIX ($MATRIX_REASON)"
   log "Constraints: $CONSTRAINTS"
   log "Groups: kokoro=$KOKORO native_vp8=$NATIVE_VP8 avatar_prep=$AVATAR_PREP legacy_int8=$LEGACY_INT8 chin_tools=$CHIN_TOOLS"
+  case "$DEPENDENCY_INSTALL_MODE" in
+    source-pip) ;;
+    locked-wheelhouse-pip|locked-wheelhouse-uv)
+      [[ "$TARGET_MATRIX" == cu121 ]] && locked_clean_is_safe \
+        || die 2 "Locked mode requires cu121 and cannot --clean an existing venv; retain it for rollback"
+      ! flag_on "$LEGACY_INT8" || die 2 "Legacy INT8 retains the source-pip installer"
+      if flag_on "$AVATAR_PREP" && ! flag_on "$KOKORO"; then
+        die 2 "Avatar-prep without Kokoro needs a separately validated locked contract"
+      fi
+      [[ -f "$DEPENDENCY_CONTRACT" && -n "$DEPENDENCY_CACHE" ]] || die 2 "Locked mode requires reviewed dependency contract and dedicated cache"
+      log "Experimental dependency mode: $DEPENDENCY_INSTALL_MODE (no implicit fallback)"
+      ;;
+    *) die 2 "Unknown dependency installation mode: $DEPENDENCY_INSTALL_MODE" ;;
+  esac
   log "PIP_CACHE_DIR=${PIP_CACHE_DIR:-<pip default>}${WHEELHOUSE:+ wheelhouse=$WHEELHOUSE}"
   if [[ -n "${PYTORCH_INDEX_URL:-}" && "${PYTORCH_INDEX_URL%/}" != "$PYTORCH_INDEX" ]]; then
     warn "Ignoring PYTORCH_INDEX_URL from the environment (it points at another CUDA family); using $PYTORCH_INDEX"
@@ -630,6 +681,11 @@ phase_venv() {
   "$PYTHON_BIN" -c 'import sys; sys.exit(0 if sys.version_info[:2] == (3, 10) else 1)' \
     || die "$PYTHON_BIN is not CPython 3.10 (the pinned stack needs 3.10)"
   "$PYTHON_BIN" -c 'import ensurepip, venv' 2>/dev/null || die "$PYTHON_BIN lacks venv/ensurepip (apt install python3.10-venv)"
+  if [[ "$DEPENDENCY_INSTALL_MODE" != source-pip ]]; then
+    log "Locked dependency phase owns venv/bootstrap timing; do not bootstrap from indexes twice"
+    mkdir -p "$(dirname "$VENV_PATH")"
+    return 0
+  fi
   if (( CLEAN )) && [[ -e "$VENV_PATH" ]]; then
     run_strict_step "Remove existing venv (--clean)" remove_venv_step
   fi
@@ -651,6 +707,10 @@ phase_venv() {
 # ---- phase: python packages
 pip_install_groups_step() {
   "$VENV_PY" -m pip "${PIP_INSTALL_ARGS[@]}"
+}
+
+pip_install_kokoro_step() {
+  "$VENV_PY" -m pip "${PIP_KOKORO_ARGS[@]}"
 }
 
 avatar_prep_step() {
@@ -688,8 +748,25 @@ avatar_prep_step() {
 }
 
 phase_packages() {
-  log "pip:$(printf ' %q' "${PIP_INSTALL_ARGS[@]}")"
-  run_strict_step "Install server packages (server.in$(flag_on "$KOKORO" && echo ' + kokoro.in')$(flag_on "$LEGACY_INT8" && echo ' + legacy-int8.in'))" pip_install_groups_step
+  if [[ "$DEPENDENCY_INSTALL_MODE" != source-pip ]]; then
+    local group=server
+    flag_on "$KOKORO" && group=server+kokoro
+    flag_on "$AVATAR_PREP" && group=full
+    run_strict_step "Locked dependency acquisition + packages ($DEPENDENCY_INSTALL_MODE, $group)" \
+      "$PYTHON_BIN" -B "$SCRIPT_DIR/install_locked_dependencies.py" \
+      --contract "$DEPENDENCY_CONTRACT" --repo-root "$REPO_ROOT" --venv "$VENV_PATH" \
+      --cache-root "$DEPENDENCY_CACHE" --mode "$DEPENDENCY_INSTALL_MODE" --group "$group" \
+      --workers "${MUSETALK_DEPENDENCY_WORKERS:-4}" --tickets-fd "${MUSETALK_DEPENDENCY_TICKET_FD:-0}"
+    return 0
+  fi
+  log "server pip:$(printf ' %q' "${PIP_INSTALL_ARGS[@]}")"
+  run_strict_step "Install server packages (server.in$(flag_on "$LEGACY_INT8" && echo ' + legacy-int8.in'))" pip_install_groups_step
+  if flag_on "$KOKORO"; then
+    log "Kokoro pip:$(printf ' %q' "${PIP_KOKORO_ARGS[@]}")"
+    run_strict_step "Install Kokoro packages (kokoro.in)" pip_install_kokoro_step
+  else
+    log "Skipping Kokoro packages (group disabled)"
+  fi
   if flag_on "$AVATAR_PREP"; then
     run_strict_step "Install avatar-prep stack (mmcv/mmdet/mmpose)" avatar_prep_step
   fi
@@ -838,7 +915,7 @@ resolve_plan
 run_install_phase "Phase 0" "Preflight" "Resolve matrix, groups and disk budget; refuse a matrix change without --clean." preflight
 run_install_phase "Phase 1" "System packages" "apt: python3.10(+venv,dev), ffmpeg, coturn, build tools, GL libs (root only)." phase_apt
 run_install_phase "Phase 2" "Venv" "Create the CPython 3.10 venv, or reuse it and repair in place." phase_venv
-run_install_phase "Phase 3" "Python packages" "One pip resolve of the selected requirements/*.in against constraints-$TARGET_MATRIX.txt." phase_packages
+run_install_phase "Phase 3" "Python packages" "Separate server and optional Kokoro pip steps against constraints-$TARGET_MATRIX.txt; avatar-prep timed separately." phase_packages
 run_install_phase "Phase 4" "Weights" "download_weights.sh (+ pinned TAESD, optional Kokoro cache)." phase_weights
 run_install_phase "Phase 5" "Native VP8" "Pinned native VP8 encoder files + CPU preflight (default encoder stays pyav)." phase_native_vp8
 run_install_phase "Phase 6" "Chin tools" "Optional dedicated MediaPipe venv for the offline chin tracker." phase_chin_tools

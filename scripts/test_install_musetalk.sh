@@ -194,11 +194,14 @@ V128="$T/venv128"; make_fake_venv "$V128" cu128
 run "plan sm89 -> cu121" 0 env MUSETALK_HOST_FACTS_JSON="$T/facts_89.json" "${INSTALL[@]}" --plan --venv "$T/none"
 has "plan sm89 matrix" '^MATRIX=cu121$'
 has "plan default groups" '^GROUP_KOKORO=1$'
-has "plan pip command uses constraints + pytorch cu121 index" 'PIP_COMMAND=.*server\.in.*kokoro\.in.*constraints-cu121\.txt.*download\.pytorch\.org/whl/cu121.*pypi\.nvidia\.com'
+has "plan server pip command uses constraints + pytorch cu121 index" '^PIP_COMMAND=.*server\.in.*constraints-cu121\.txt.*download\.pytorch\.org/whl/cu121.*pypi\.nvidia\.com'
+hasnt "plan server pip command excludes Kokoro" '^PIP_COMMAND=.*kokoro\.in'
+has "plan separate Kokoro pip command shares constraints and indexes" '^PIP_KOKORO_COMMAND=.*kokoro\.in.*constraints-cu121\.txt.*download\.pytorch\.org/whl/cu121.*pypi\.nvidia\.com'
 hasnt "plan does not add legacy-int8 by default" 'legacy-int8\.in'
 run "plan sm120 -> cu128" 0 env MUSETALK_HOST_FACTS_JSON="$T/facts_120.json" "${INSTALL[@]}" --plan --venv "$T/none"
 has "plan sm120 matrix" '^MATRIX=cu128$'
 has "plan sm120 index" '^PYTORCH_INDEX=https://download.pytorch.org/whl/cu128$'
+has "plan Kokoro uses cu128 constraints and index too" '^PIP_KOKORO_COMMAND=.*constraints-cu128\.txt.*download\.pytorch\.org/whl/cu128'
 run "plan no GPU -> cu121" 0 env MUSETALK_HOST_FACTS_JSON="$T/facts_none.json" "${INSTALL[@]}" --plan --venv "$T/none"
 has "plan no GPU matrix" '^MATRIX=cu121$'
 has "plan no GPU: self-test off" '^SELFTEST=0$'
@@ -210,6 +213,7 @@ run "plan explicit --matrix cu128" 0 env MUSETALK_HOST_FACTS_JSON="$T/facts_89.j
 has "plan explicit matrix" '^MATRIX=cu128$'
 run "plan --without-kokoro --with-legacy-int8" 0 env MUSETALK_HOST_FACTS_JSON="$T/facts_89.json" "${INSTALL[@]}" --plan --venv "$T/none" --without-kokoro --with-legacy-int8
 hasnt "plan without kokoro" 'kokoro\.in'
+has "plan disabled Kokoro has no pip command" '^PIP_KOKORO_COMMAND=disabled$'
 has "plan with legacy-int8" 'legacy-int8\.in'
 run "legacy flags: --full-stack --install-modelopt --artifact-dir" 0 env MUSETALK_HOST_FACTS_JSON="$T/facts_89.json" "${INSTALL[@]}" --plan --venv-path "$T/none" --python-bin python3.10 --full-stack --install-modelopt --artifact-dir /x
 has "legacy --full-stack -> avatar-prep" '^GROUP_AVATAR_PREP=1$'

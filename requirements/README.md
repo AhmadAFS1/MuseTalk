@@ -15,10 +15,15 @@ validated server stack, so never install it into the server venv.
 | `constraints-cu128.txt` | exact pins, CUDA 12.8 matrix (Blackwell, cc >= 10.0). Resolves; **untested on hardware** | matrix `cu128` |
 | `constraints-chin-tools.txt` | closure of the validated chin-tracker env | chin-tools venv |
 
-The installer runs one pip resolve for all selected groups:
+The installer times server dependencies and optional Kokoro dependencies in separate pip steps:
 
 ```bash
-<venv>/bin/python -m pip install -r requirements/server.in [-r requirements/kokoro.in] [-r requirements/legacy-int8.in] \
+<venv>/bin/python -m pip install -r requirements/server.in [-r requirements/legacy-int8.in] \
+  -c requirements/constraints-<matrix>.txt \
+  --extra-index-url https://download.pytorch.org/whl/<matrix> --extra-index-url https://pypi.nvidia.com
+
+# Only when Kokoro is enabled (default); shared server dependencies are reused:
+<venv>/bin/python -m pip install -r requirements/kokoro.in \
   -c requirements/constraints-<matrix>.txt \
   --extra-index-url https://download.pytorch.org/whl/<matrix> --extra-index-url https://pypi.nvidia.com
 ```
@@ -26,7 +31,11 @@ The installer runs one pip resolve for all selected groups:
 `--matrix auto` picks `cu128` only when the selected GPU has compute capability >= 10.0. With no GPU
 it picks `cu121`, or keeps the matrix of an existing venv. The installer ignores
 `PYTORCH_INDEX_URL` from the base image on purpose, because the matrix chooses the index.
-`bash scripts/install_musetalk.sh --plan` prints the exact command without running it.
+`bash scripts/install_musetalk.sh --plan` prints both commands without running them:
+`PIP_COMMAND` is the server step, and `PIP_KOKORO_COMMAND` is the optional TTS step (or `disabled`).
+Avatar preparation retains its separate timer. Kokoro's elapsed time is its **incremental** cost
+after server installation, not the cost of a second independent clean environment. See
+[dependency timing](../docs/DEPENDENCY_INSTALL_TIMING_20261011.md).
 
 ## Pinning rules worth knowing
 

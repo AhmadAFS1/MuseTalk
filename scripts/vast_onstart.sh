@@ -197,7 +197,7 @@ webrtc_turn_required() {
 read_proc1_env() {
   local key="$1"
   if [[ -r /proc/1/environ ]]; then
-    tr '\0' '\n' < /proc/1/environ 2>/dev/null | awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}'
+    tr '\0' '\n' < /proc/1/environ 2>/dev/null | awk -F= -v key="$key" '!found && $1 == key {sub(/^[^=]*=/, ""); print; found=1}'
   fi
 }
 
@@ -376,6 +376,15 @@ run_setup_if_needed() {
   log "Using HF_MAX_WORKERS=$HF_MAX_WORKERS for setup/download flow"
   log "Running install ($mode): scripts/install_musetalk.sh ${install_args[*]}"
   bash "$INSTALLER" "${install_args[@]}"
+}
+
+close_bootstrap_dependency_ticket() {
+  # Only the pipe explicitly owned by vast_bootstrap_locked.sh. Close it even
+  # on reuse, when no ticket bytes were consumed, before spawning the API/TURN.
+  if [[ "${MUSETALK_BOOTSTRAP_TICKET_FD:-}" == 8 ]]; then
+    exec 8<&-
+    unset MUSETALK_BOOTSTRAP_TICKET_FD MUSETALK_DEPENDENCY_TICKET_FD
+  fi
 }
 
 # ── Post-setup validation (logged) ──────────────────────────────────────────
@@ -944,6 +953,7 @@ main() {
 
   phase_start="$(date +%s)"
   run_setup_if_needed
+  close_bootstrap_dependency_ticket
   phase_elapsed="$(( $(date +%s) - phase_start ))"
   log "Bootstrap/setup phase finished in $(format_duration "$phase_elapsed")"
 

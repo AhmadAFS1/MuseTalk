@@ -49,7 +49,7 @@ export LINGUA_WORKER_TYPE=musetalk
 read_proc1_env() {
   local key="$1"
   if [[ -r /proc/1/environ ]]; then
-    tr '\0' '\n' < /proc/1/environ 2>/dev/null | awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}'
+    tr '\0' '\n' < /proc/1/environ 2>/dev/null | awk -F= -v key="$key" '!found && $1 == key {sub(/^[^=]*=/, ""); print; found=1}'
   fi
 }
 

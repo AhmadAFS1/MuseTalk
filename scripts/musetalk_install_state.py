@@ -460,6 +460,45 @@ def check_chin_venv(chin_venv: Path, pins_file: Path, report: Report) -> dict:
     return info
 
 
+def check_locked_contract(args, repo, venv, groups, dists, report):
+    """Read-only full closure/fingerprint/ownership gate for explicit locked mode."""
+    if not getattr(args, "dependency_contract", ""):
+        return
+    try:
+        import install_locked_dependencies as locked
+        import fetch_dependency_wheels as fetch
+        from dependency_artifacts import require
+        contract = json.loads(Path(args.dependency_contract).read_text())
+        locked.check_contract(contract)
+        cache = Path(args.dependency_cache)
+        require(cache.is_absolute() and cache.is_dir() and not cache.is_symlink()
+                and cache.resolve() == cache and cache.stat().st_uid == os.getuid(),
+                "Reviewed dependency cache missing or unsafe")
+        artifact = cache / contract["artifact_id"]
+        require(artifact.is_dir() and not artifact.is_symlink(), "Artifact cache missing or unsafe")
+        manifest_path = artifact / "manifest.json"
+        require(manifest_path.is_file() and not manifest_path.is_symlink(), "Cached manifest missing or unsafe")
+        manifest = fetch.read_trusted(manifest_path, contract["manifest_sha256"])
+        require(manifest["artifact_id"] == contract["artifact_id"], "Different locked artifact identity")
+        locked.check_inputs(manifest, repo)
+        kokoro, avatar = groups["kokoro"][0], groups["avatar_prep"][0]
+        require(not groups["legacy_int8"][0] and (not avatar or kokoro), "Unsupported locked capability combination")
+        group = "full" if avatar else ("server+kokoro" if kokoro else "server")
+        marker_path = Path(venv) / locked.MARKER
+        require(marker_path.is_file() and not marker_path.is_symlink(), "Accepted locked installer marker missing")
+        owner = json.loads(marker_path.read_text())
+        require(owner.get("state") == "accepted" and owner.get("uid") == os.getuid()
+                and owner.get("venv") == str(Path(venv).absolute())
+                and owner.get("artifact_id") == manifest["artifact_id"] and owner.get("group") == group,
+                "Locked marker ownership/contract differs")
+        diff = locked.inventory_diff(manifest, group, {k: v["version"] for k, v in dists.items()})
+        require(not diff, "Full locked package inventory differs")
+        report.ok("locked_contract", f"{manifest['artifact_id']} / {group}: manifest, inputs, owner and full inventory verified")
+    except Exception as error:
+        detail = str(error) if isinstance(error, ValueError) else "Locked contract evidence unavailable or malformed"
+        report.need_repair("locked_contract", detail)
+
+
 def cmd_check(args) -> int:
     repo = Path(args.repo_root).resolve()
     venv = Path(args.venv)
@@ -541,6 +580,7 @@ def cmd_check(args) -> int:
     # 5. packages + pins (only meaningful when the interpreter works).
     if facts.get("python_version"):
         sp_dists = installed_dists(Path(facts["site_packages"])) if facts.get("site_packages") else {}
+        check_locked_contract(args, repo, venv, groups, sp_dists, report)
         pins = parse_constraints(constraints)
         if not pins:
             report.need_repair("constraints", f"{constraints} missing or empty")
@@ -738,6 +778,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--chin-venv", default="")
     p.add_argument("--state-file", default="")
     p.add_argument("--skip-weights", action="store_true")
+    p.add_argument("--dependency-contract", default="", help="opt-in reviewed locked contract (read-only verification)")
+    p.add_argument("--dependency-cache", default="", help="existing verified manifest cache; check never creates it")
     p.add_argument("--report", default="", help="also write the JSON report here")
     p.add_argument("--json", action="store_true", help="print the JSON report to stdout")
 

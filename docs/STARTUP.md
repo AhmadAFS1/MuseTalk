@@ -84,6 +84,11 @@ bash scripts/install_musetalk.sh --clean --matrix cu128
   tensorflow and gradio.
 - **No CUDA needed.** Installing never requires CUDA, so GPU-less image builds work. The GPU
   self-test runs only when a GPU is visible.
+- **Dependency timing.** Phase 3 logs separate `Install server packages` and `Install Kokoro packages`
+  steps; avatar preparation remains separately timed. Both pip commands share the selected matrix's
+  constraints/indexes. Kokoro remains on by default, and its timer measures incremental work after
+  the shared server dependencies. [Timing details](DEPENDENCY_INSTALL_TIMING_20261011.md) and
+  [S3 environment archive analysis](PYTHON_ENV_S3_ANALYSIS_20261011.md).
 - **The venv is never deleted implicitly.** Only `--clean`, or a `--check` that exits 10 in
   `vast_onstart.sh` with `AUTO_SETUP=1`, rebuilds it.
 - **Chin tools.** Chin alignment is an offline avatar-creation stage and is not part of serving.
