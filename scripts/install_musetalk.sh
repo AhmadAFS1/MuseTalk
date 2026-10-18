@@ -793,11 +793,24 @@ download_weights_step() {
     bash "$REPO_ROOT/download_weights.sh"
 }
 
+wait_for_weight_prefetch() {
+  # vast_bootstrap_locked.sh may already be downloading the Hugging Face groups in the
+  # background; never run a second download into the same files concurrently.
+  local dir="${MUSETALK_WEIGHTS_PREFETCH_DIR:-}" waited=0 limit="${MUSETALK_WEIGHTS_PREFETCH_WAIT_SECONDS:-2400}"
+  [[ -n "$dir" && -d "$dir" ]] || return 0
+  while [[ -e "$dir/pending" ]] && (( waited < limit )); do sleep 5; waited=$(( waited + 5 )); done
+  if [[ -e "$dir/pending" ]]; then
+    die "Boot-time weight prefetch still running after ${limit}s; refusing a concurrent download"
+  fi
+  log "Boot-time weight prefetch finished rc=$(cat "$dir/rc" 2>/dev/null || echo '?') (waited ${waited}s); downloading only what is missing"
+}
+
 phase_weights() {
   if (( SKIP_WEIGHTS )); then
     log "Skipping weight downloads (--skip-weights)"
     return 0
   fi
+  wait_for_weight_prefetch
   run_strict_step "Download weights (MuseTalk V1.5, SD-VAE, Whisper, face-parse, TAESD$(flag_on "$KOKORO" && echo ', Kokoro cache'))" download_weights_step
 }
 

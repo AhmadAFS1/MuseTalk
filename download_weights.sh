@@ -30,6 +30,10 @@ KOKORO_REVISION="${KOKORO_REVISION:-f3ff3571791e39611d31c381e3a41a3af07b4987}"
 KOKORO_VOICES="${KOKORO_VOICES:-af_heart af_bella am_michael}"
 EN_CORE_WEB_SM_URL="${EN_CORE_WEB_SM_URL:-https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl#sha256=1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85}"
 DOWNLOAD_GROUPS_IN_PARALLEL="${DOWNLOAD_GROUPS_IN_PARALLEL:-1}"
+# Boot-time prefetch (vast_bootstrap_locked.sh): only the huggingface-cli groups, with the
+# image's interpreter, no helper pip installs and no final validation; the installer's
+# Phase 4 run afterwards fills face-parse/Kokoro and validates the whole set.
+DOWNLOAD_WEIGHTS_PREFETCH_ONLY="${DOWNLOAD_WEIGHTS_PREFETCH_ONLY:-0}"
 EXPECTED_FACE_PARSE_ITER_BYTES="${EXPECTED_FACE_PARSE_ITER_BYTES:-53289463}"
 EXPECTED_RESNET18_BYTES="${EXPECTED_RESNET18_BYTES:-46827520}"
 STEP_LOG_ROOT="${STEP_LOG_ROOT:-$REPO_ROOT/logs/setup}"
@@ -518,10 +522,21 @@ download_face_parse_support_weights_group() {
 
 phase_prepare_weight_downloads() {
   run_step "Wait for outbound HTTPS to become ready" wait_for_hf_endpoint_step
+  if env_flag_is_true "$DOWNLOAD_WEIGHTS_PREFETCH_ONLY"; then
+    log "Prefetch mode: no helper installs into this interpreter"
+    return 0
+  fi
   run_step "Install download helper utilities" install_download_helpers_step
 }
 
 phase_download_weight_groups_parallel() {
+  if env_flag_is_true "$DOWNLOAD_WEIGHTS_PREFETCH_ONLY"; then
+    run_parallel_steps \
+      "Download MuseTalk model weights::download_musetalk_weights_group" \
+      "Download base runtime model weights::download_base_runtime_weights_group" \
+      "Download avatar-preparation model weights::download_avatar_prep_weights_group"
+    return
+  fi
   run_parallel_steps \
     "Download MuseTalk model weights::download_musetalk_weights_group" \
     "Download base runtime model weights::download_base_runtime_weights_group" \
@@ -618,7 +633,15 @@ run_phase \
   "Prepare weight download environment" \
   "Wait for outbound connectivity and install helper tooling used by the model download path." \
   phase_prepare_weight_downloads
-if env_flag_is_true "$DOWNLOAD_GROUPS_IN_PARALLEL"; then
+if env_flag_is_true "$DOWNLOAD_WEIGHTS_PREFETCH_ONLY"; then
+  run_phase \
+    "Phase 2" \
+    "Prefetch Hugging Face weight groups" \
+    "Boot-time prefetch of the huggingface-cli groups; the installer validates the full set later." \
+    phase_download_weight_groups_parallel
+  log "Weight prefetch finished (validation deferred to the installer)"
+  exit 0
+elif env_flag_is_true "$DOWNLOAD_GROUPS_IN_PARALLEL"; then
   run_phase \
     "Phase 2" \
     "Download model weight groups in parallel" \

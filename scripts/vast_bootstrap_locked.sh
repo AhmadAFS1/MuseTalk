@@ -203,6 +203,39 @@ print(d["sha256"],int(d["bytes"]));print(d["url"])' 2>/dev/null)" || { bootstrap
   ) 8<&- 9<&- &
 }
 
+# The image's own interpreter already has the pinned huggingface_hub, so the big
+# Hugging Face weights start downloading now, overlapping dependency install.
+# hf_xet goes to a --target dir (hash-pinned); the image venv is never modified.
+start_weights_prefetch() {
+  [[ "${MUSETALK_WEIGHTS_PREFETCH:-1}" != 0 ]] || return 0
+  local py=/venv/main/bin/python dir=/workspace/.mtboot/weights-prefetch tools=/workspace/.mtboot/hftools
+  [[ -x "$py" && -x /venv/main/bin/huggingface-cli ]] && "$py" -c 'import huggingface_hub' 2>/dev/null \
+    || { bootstrap_log 'Image has no huggingface_hub; weights download in installer Phase 4'; return 0; }
+  [[ -f "$REPO_DIR/.runtime/install_state.json" ]] && return 0  # Installed before; Phase 4 re-validates only.
+  mkdir -p "$dir"
+  rm -f "$dir/rc"
+  touch "$dir/pending"
+  export MUSETALK_WEIGHTS_PREFETCH_DIR="$dir"
+  bootstrap_log 'Weight prefetch started (image interpreter)'
+  (
+    started=$SECONDS
+    if [[ ! -d "$tools/hf_xet" ]]; then
+      "$py" -m pip install --disable-pip-version-check --no-cache-dir --no-deps --require-hashes \
+        --target "$tools" -r "$REPO_DIR/configs/dependencies/weights-prefetch-tools.txt" >"$dir/tools.log" 2>&1 \
+        || bootstrap_log 'hf_xet unavailable for prefetch; plain HTTP downloads'
+    fi
+    cd "$REPO_DIR"
+    rc=0
+    PATH="/venv/main/bin:$PATH" PYTHONPATH="$tools" DOWNLOAD_WEIGHTS_PREFETCH_ONLY=1 \
+      DOWNLOAD_MUSETALK_V1_WEIGHTS=0 DOWNLOAD_AVATAR_PREP_WEIGHTS=1 DOWNLOAD_TAESD_WEIGHTS=1 \
+      DOWNLOAD_KOKORO_WEIGHTS=0 DOWNLOAD_SYNCNET_WEIGHTS=0 \
+      bash download_weights.sh >"$dir/download.log" 2>&1 || rc=$?
+    echo "$rc" > "$dir/rc"
+    rm -f "$dir/pending"
+    bootstrap_log "Weight prefetch finished rc=$rc ($((SECONDS - started))s)"
+  ) 8<&- 9<&- &
+}
+
 configure_runtime_auth() {
   # EC2 role credentials do not automatically exist on Vast. The launcher must
   # supply a reviewed worker identity/runtime payload, never the publisher role.
@@ -265,6 +298,7 @@ main() {
   bootstrap_log "Code ready ($((SECONDS-started))s); revision=$MUSETALK_SOURCE_REVISION"
   stamp_stage code_ready
   start_r5_prefetch
+  start_weights_prefetch
   configure_locked_boot
   cd "$REPO_DIR"
   # Parent retains the bootstrap lock while it waits; daemons must not inherit

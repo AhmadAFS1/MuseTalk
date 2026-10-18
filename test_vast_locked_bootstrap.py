@@ -334,6 +334,43 @@ wait
         source=(REPO/'scripts/musetalk_install_state.py').read_text()
         self.assertIn('if "syncnet" not in f or os.environ.get("DOWNLOAD_SYNCNET_WEIGHTS", "1")',source)
 
+    def test_weight_prefetch_tools_pin_matches_locked_manifest(self):
+        manifest=json.loads((REPO/'docs/dependency_optimization_20261015/wheelhouse-manifest-a2.json').read_text())
+        pins={a['name']:(a['version'],a['sha256']) for a in manifest['artifacts']}
+        lines=[l for l in (REPO/'configs/dependencies/weights-prefetch-tools.txt').read_text().splitlines()
+               if l.strip() and not l.startswith('#')]
+        self.assertEqual(len(lines),1)
+        m=re.fullmatch(r'([A-Za-z0-9_.-]+)==(\S+) --hash=sha256:([0-9a-f]{64})',lines[0])
+        self.assertEqual((m[2],m[3]),pins[m[1]])
+
+    def test_weight_prefetch_mode_is_hf_only_and_never_installs_into_the_image(self):
+        weights=(REPO/'download_weights.sh').read_text()
+        prep=re.search(r'^phase_prepare_weight_downloads\(\) \{\n.*?^\}\n',weights,re.M|re.S).group()
+        self.assertLess(prep.index('DOWNLOAD_WEIGHTS_PREFETCH_ONLY'),prep.index('install_download_helpers_step'))
+        groups=re.search(r'^phase_download_weight_groups_parallel\(\) \{\n.*?^\}\n',weights,re.M|re.S).group()
+        prefetch=groups.split('return')[0]
+        self.assertNotIn('face_parse',prefetch);self.assertNotIn('kokoro',prefetch)
+        self.assertIn('download_musetalk_weights_group',prefetch)
+        boot=(REPO/'scripts/vast_bootstrap_locked.sh').read_text()
+        fn=re.search(r'^start_weights_prefetch\(\) \{\n.*?^\}\n',boot,re.M|re.S).group()
+        for needle in ('--target "$tools"','--require-hashes','DOWNLOAD_SYNCNET_WEIGHTS=0','DOWNLOAD_KOKORO_WEIGHTS=0',
+                       'DOWNLOAD_WEIGHTS_PREFETCH_ONLY=1','8<&- 9<&- &'):
+            self.assertIn(needle,fn)
+        self.assertNotIn('pip install --disable-pip-version-check --no-cache-dir --no-deps --require-hashes \\\n        -r',fn)
+
+    def test_installer_waits_for_weight_prefetch_then_proceeds(self):
+        source=(REPO/'scripts/install_musetalk.sh').read_text()
+        helper=re.search(r'^wait_for_weight_prefetch\(\) \{\n.*?^\}\n',source,re.M|re.S).group()
+        with tempfile.TemporaryDirectory() as folder:
+            d=Path(folder)
+            run=lambda limit: subprocess.run(['bash','-c','log(){ echo "$*"; }\ndie(){ echo "DIE $*"; exit 3; }\nsleep(){ :; }\n'+helper+
+                'MUSETALK_WEIGHTS_PREFETCH_DIR="$1" MUSETALK_WEIGHTS_PREFETCH_WAIT_SECONDS=%d wait_for_weight_prefetch'%limit,'-',str(d)],
+                capture_output=True,text=True,timeout=10)
+            (d/'pending').touch()
+            r=run(10);self.assertEqual(r.returncode,3);self.assertIn('refusing a concurrent download',r.stdout)
+            (d/'pending').unlink();(d/'rc').write_text('0\n')
+            r=run(10);self.assertEqual(r.returncode,0);self.assertIn('rc=0',r.stdout)
+
     def test_proc1_environ_readers_never_exit_early(self):
         # awk 'exit' closes the pipe early; tr then dies with SIGPIPE and
         # pipefail turns that into exit 141 under set -e (18 KB Vast env).
