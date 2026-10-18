@@ -41,6 +41,14 @@ class EnvTests(unittest.TestCase):
         for absent in ("MUSETALK_AWS_SECRET_ID", "VENV_PATH", "SETUP_CLEAN", "LINGUA_WORKER_TOKEN"):
             self.assertNotIn(absent, env)
 
+    def test_only_allowlisted_experiment_settings_reach_the_worker(self):
+        settings = m.parse_settings(["MUSETALK_DEPENDENCY_RANGE_STREAMS=4", "MUSETALK_DEPENDENCY_MAX_CONNECTIONS=8"])
+        env = m.compose_env(TEMPLATE_ENV, "a" * 40, {}, SESSION, SECRET, settings)
+        self.assertEqual(env["MUSETALK_DEPENDENCY_RANGE_STREAMS"], "4")
+        for bad in (["MUSETALK_DEPENDENCY_RANGE_STREAMS=16"], ["VENV_PATH=/x"], ["AWS_ACCESS_KEY_ID=x"], ["noequals"]):
+            with self.assertRaises(ValueError):
+                m.parse_settings(bad)
+
     def test_template_env_must_not_carry_registration_or_legacy_keys(self):
         for key in ("LINGUA_WORKER_TOKEN", "VENV_PATH", "SETUP_CLEAN", "MUSETALK_AWS_SECRET_ID"):
             with self.assertRaises(ValueError):

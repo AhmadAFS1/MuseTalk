@@ -44,6 +44,9 @@ MAX_ACTIVE_RUNS = 3
 TICKET_SECONDS = 3600
 DEFAULT_LIFETIME = 7200
 DEFAULT_DISK = 100
+# Experiment knobs a test run may pass to the worker; everything else is refused.
+TUNABLE_ENV = {"MUSETALK_DEPENDENCY_RANGE_STREAMS": {"0", "2", "4"}, "MUSETALK_DEPENDENCY_MAX_CONNECTIONS": {"4", "8"},
+               "HF_MAX_WORKERS": {"4", "8", "16"}, "ONSTART_POST_VALIDATE_IMPORTS": {"0", "1"}}
 WIPE_PATHS = ("/workspace/MuseTalk", "/workspace/.venvs", "/workspace/.cache/musetalk-dependencies",
               "/workspace/logs", "/workspace/bootstrap.log", "/workspace/onstart.log", "/workspace/.mtboot",
               "/root/.cache/huggingface")
@@ -134,7 +137,16 @@ def autoscaler_quiet():
     return active != "active" and all(e.split(b"=", 1)[1].strip().lower() in (b"0", b"false", b"no", b"off", b"") for e in enabled)
 
 
-def compose_env(template_env, revision, tickets, session, secret):
+def parse_settings(items):
+    out = {}
+    for item in items or []:
+        key, _, value = item.partition("=")
+        require(key in TUNABLE_ENV and value in TUNABLE_ENV[key], "Unreviewed experiment setting: " + item)
+        out[key] = value
+    return out
+
+
+def compose_env(template_env, revision, tickets, session, secret, settings=None):
     """Launch environment exactly as the locked-boot autoscaler path composes it."""
     env = dict(template_env)
     env.update({
@@ -146,6 +158,7 @@ def compose_env(template_env, revision, tickets, session, secret):
         "TRT_ARTIFACT_S3_BUCKET": secret["AVATAR_S3_BUCKET"], "TRT_ARTIFACT_S3_REGION": "us-east-1",
         "PYTHONUNBUFFERED": "1",
     })
+    env.update(settings or {})
     env.update({k: str(secret[k]) for k in ("AVATAR_S3_BUCKET", "AVATAR_S3_REGION", "AVATAR_S3_PREFIX", "AVATAR_S3_ENABLED") if secret.get(k)})
     for key in ("MUSETALK_AWS_SECRET_ID", "LINGUA_CONTROL_PLANE_BASE_URL", "LINGUA_WORKER_TOKEN", "VENV_PATH", "SETUP_CLEAN"):
         require(key not in env, "Template environment must not carry " + key)
@@ -202,7 +215,7 @@ def runtime_identity(seconds):
     return credentials, {k: v for k, v in secret.items() if not k.startswith("AWS_")}
 
 
-def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US"):
+def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None):
     """Everything a create needs, without provider writes or local state."""
     require(3600 <= lifetime <= 4 * 3600, "Lifetime must be 1-4 hours")
     require(autoscaler_quiet(), "Autoscaler is not provably off; refuse test rental with the production template hash")
@@ -236,15 +249,15 @@ def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US"):
     template_env, _, _ = b.frozen_template(templates[0])
     tickets = issue_tickets(contract)
     credentials, secret = runtime_identity(lifetime + 1800)
-    env = compose_env(template_env, revision, tickets, credentials, secret)
+    env = compose_env(template_env, revision, tickets, credentials, secret, settings)
     return {"b": b, "client": client, "existing": existing, "offer": offer, "env": env, "onstart": onstart,
             "bootstrap_sha256": bootstrap_sha256, "contract": contract, "credentials": credentials}
 
 
-def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US"):
+def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None):
     require(os.getuid() == 0 and not run.root.exists(), "Fresh root-owned run only; never repeat create")
     os.umask(0o077)
-    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo)
+    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings)
     b, client, existing, offer, env, onstart = p["b"], p["client"], p["existing"], p["offer"], p["env"], p["onstart"]
     bootstrap_sha256, contract, credentials = p["bootstrap_sha256"], p["contract"], p["credentials"]
     run.root.mkdir(mode=0o700, parents=False)
@@ -260,7 +273,7 @@ def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US"):
               "contract_artifact_id": contract["artifact_id"], "template_hash_id": b.TEMPLATE, "disk_gb": disk,
               "tickets_issued_utc": utc(), "ticket_seconds": TICKET_SECONDS,
               "s3_session_expires_utc": credentials["Expiration"].isoformat(), "create_requests": 0,
-              "rent_per_hour": offer["dph_total_adj"], "transfer_cap_per_gb": max_transfer, "geo": geo, "env_keys": sorted(env)}
+              "rent_per_hour": offer["dph_total_adj"], "transfer_cap_per_gb": max_transfer, "geo": geo, "settings": settings or {}, "env_keys": sorted(env)}
     run.save("ledger.json", ledger)
     expiry_timer(run, deadline)
     ledger.update(state="submitting", create_requests=1, request_started_utc=utc())
@@ -279,9 +292,9 @@ def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US"):
     run.event("CREATED", instance_id=identifier, deadline_utc=deadline)
 
 
-def preflight(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US"):
+def preflight(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None):
     """Dry run of create: offer, template, tickets, identity, stub. No provider write."""
-    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo)
+    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings)
     o = p["offer"]
     print(json.dumps({"state": "preflight-ok", "label": run.label, "offer": {k: o.get(k) for k in ("id", "machine_id", "geolocation",
           "dph_total_adj", "inet_down", "cpu_cores_effective", "cpu_ram", "reliability", "driver_version")},
@@ -463,12 +476,12 @@ def reboot(run):
 
 RERUN = r'''
 import json,os,pathlib,shutil,subprocess,time
-REVISION=__REVISION__;TICKETS=__TICKETS__;WIPE=__WIPE__;ONSTART=__ONSTART__;PATHS=__PATHS__
+REVISION=__REVISION__;TICKETS=__TICKETS__;WIPE=__WIPE__;ONSTART=__ONSTART__;PATHS=__PATHS__;SETTINGS=__SETTINGS__
 env={}
 for item in pathlib.Path('/proc/1/environ').read_bytes().split(b'\0'):
  if b'=' in item:
   k,v=item.split(b'=',1);env[k.decode()]=v.decode(errors='replace')
-env.update({'MUSETALK_SOURCE_REVISION':REVISION,'MUSETALK_DEPENDENCY_TICKETS_JSON':TICKETS})
+env.update({'MUSETALK_SOURCE_REVISION':REVISION,'MUSETALK_DEPENDENCY_TICKETS_JSON':TICKETS});env.update(SETTINGS)
 ctl=pathlib.Path('/workspace/MuseTalk/scripts/vast_server_ctl.sh')
 if ctl.is_file():
  subprocess.run(['bash',str(ctl),'stop'],cwd='/workspace/MuseTalk',capture_output=True,timeout=120)
@@ -488,7 +501,7 @@ print(json.dumps({'pid':p.pid,'removed':removed}))
 '''
 
 
-def rerun(run, revision=None, wipe=False):
+def rerun(run, revision=None, wipe=False, settings=None):
     """Re-execute the pinned bootstrap over SSH with fresh tickets (optional wipe).
 
     Mirrors a fresh/updated On-start without waiting for provider reboot and
@@ -500,10 +513,11 @@ def rerun(run, revision=None, wipe=False):
     contract = json.loads(fetch_revision_file(revision, CONTRACT_PATH))
     tickets = json.dumps(issue_tickets(contract), separators=(",", ":"))
     payload = (RERUN.replace("__REVISION__", repr(revision)).replace("__TICKETS__", repr(tickets))
-               .replace("__WIPE__", repr(bool(wipe))).replace("__ONSTART__", repr(onstart)).replace("__PATHS__", repr(WIPE_PATHS)))
-    run.event("RERUN_REQUESTED", revision=revision, wipe=bool(wipe), onstart_sha256=hashlib.sha256(onstart.encode()).hexdigest())
+               .replace("__WIPE__", repr(bool(wipe))).replace("__ONSTART__", repr(onstart)).replace("__PATHS__", repr(WIPE_PATHS)).replace("__SETTINGS__", repr(settings or {})))
+    run.event("RERUN_REQUESTED", revision=revision, wipe=bool(wipe), settings=settings or {}, onstart_sha256=hashlib.sha256(onstart.encode()).hexdigest())
     result = json.loads(worker(run, payload, timeout=180))
-    ledger.setdefault("reruns", []).append({"at_utc": utc(), "revision": revision, "wipe": bool(wipe), "removed": result["removed"]})
+    ledger.setdefault("reruns", []).append({"at_utc": utc(), "revision": revision, "wipe": bool(wipe),
+                                            "settings": settings or {}, "removed": result["removed"]})
     run.save("ledger.json", ledger)
     run.event("RERUN_STARTED", **result)
 
@@ -641,14 +655,16 @@ def main():
     parser.add_argument("--cases", type=int, default=2)
     parser.add_argument("--max-transfer-cost", type=float, default=.005)
     parser.add_argument("--geo", choices=("US", "any"), default="US")
+    parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="Allowlisted experiment setting")
     args = parser.parse_args()
     require(os.getuid() == 0, "Root-owned EC2 control plane only")
     os.umask(0o077)
     run = Run(args.run)
+    settings = parse_settings(args.set)
     if args.mode == "preflight":
-        preflight(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo)
+        preflight(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings)
     elif args.mode == "create":
-        create(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo)
+        create(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings)
     elif args.mode == "status":
         status(run)
     elif args.mode == "probe":
@@ -656,7 +672,7 @@ def main():
     elif args.mode == "reboot":
         reboot(run)
     elif args.mode == "rerun":
-        rerun(run, args.revision, args.wipe)
+        rerun(run, args.revision, args.wipe, settings)
     elif args.mode == "accept":
         accept(run, args.cases)
     elif args.mode == "collect":
