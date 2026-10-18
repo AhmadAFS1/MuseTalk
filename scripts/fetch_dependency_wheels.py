@@ -53,6 +53,12 @@ RANGED_HOSTS = frozenset({"pypi.nvidia.com", "download.pytorch.org", "download-r
 RANGE_STREAM_CHOICES = (0, 2, 4)
 CONNECTION_CHOICES = (1, 2, 4, 8, 16)
 TRANSIENT_STATUS = frozenset({408, 429, 500, 502, 503, 504})
+# Per-socket connect/recv timeout. Fresh Vast hosts showed stalled CDN connections
+# (packet loss): c6-a's cython and hf-xet first attempts hung for the old 30 s timeout
+# before a retry finished at once, on the boot's critical path. A stall now costs
+# 10 s, and acquire() allows more attempts so the failure bound stays similar.
+SOCKET_TIMEOUT_SECONDS = 10
+ACQUIRE_RETRIES = 4
 # socket.timeout is TimeoutError from 3.10; listed for older interpreters.
 PART_TRANSPORT_ERRORS = (urllib.error.URLError, TimeoutError, socket.timeout, ConnectionError,
                          ssl.SSLError, http.client.IncompleteRead)
@@ -177,7 +183,7 @@ def stream_source(a, repo_root, opener, ticket=None, byte_range=None):
         # urllib's redirect handler carries Range to the (https-only) target.
         headers["Range"] = "bytes=%d-%d" % byte_range
     request = urllib.request.Request(url, headers=headers)
-    return opener.open(request, timeout=30)
+    return opener.open(request, timeout=SOCKET_TIMEOUT_SECONDS)
 
 
 def ranged_eligible(a, ticket=None):
@@ -542,7 +548,8 @@ def acquire(manifest, cache, group, workers, repo_root=None, reserve_bytes=30 * 
         rows = acquisition_order(rows, built)
         receipts = []
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            futures = {pool.submit(acquire_one, a, cache, repo_root, ticket=tickets.get(a["sha256"]), budget=budget,
+            futures = {pool.submit(acquire_one, a, cache, repo_root, retries=ACQUIRE_RETRIES,
+                                   ticket=tickets.get(a["sha256"]), budget=budget,
                                    range_streams=range_streams): a["name"] for a in rows}
             for future in as_completed(futures):
                 try:

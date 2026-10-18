@@ -261,6 +261,27 @@ class AcquisitionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "^Bounded artifact transport retries exhausted$"):
                 f.acquire_one(d.artifact(row(), "server"), folder, opener=opener)
 
+    def test_stalled_connections_cost_seconds_not_half_a_minute(self):
+        # c6-a: stalled first attempts hung for the old 30 s socket timeout.
+        self.assertEqual(f.SOCKET_TIMEOUT_SECONDS, 10)
+        seen = []
+
+        class Recorder(FakeOpener):
+            def open(self, request, timeout=None):
+                seen.append(timeout)
+                return super().open(request, timeout)
+        with tempfile.TemporaryDirectory() as folder:
+            f.acquire_one(d.artifact(row(), "server"), folder, opener=Recorder())
+        self.assertEqual(seen, [10])
+        with tempfile.TemporaryDirectory() as folder, patch.object(f, "acquire_one",
+                return_value={"name": "x", "state": "verified-cache-hit", "bytes": 1}) as one:
+            try:
+                f.acquire(manifest(), Path(folder), "full", 2, reserve_bytes=0)
+            except Exception:
+                pass
+        self.assertTrue(one.call_args_list)
+        self.assertTrue(all(c.kwargs["retries"] == f.ACQUIRE_RETRIES == 4 for c in one.call_args_list))
+
     def test_simultaneous_installer_lock_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             p = Path(folder)/"claim"
