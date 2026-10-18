@@ -380,6 +380,29 @@ wait
             (d/'pending').unlink();(d/'rc').write_text('0\n')
             r=run(10);self.assertEqual(r.returncode,0);self.assertIn('rc=0',r.stdout)
 
+    def test_background_apt_contract(self):
+        import importlib
+        sys.path.insert(0,str(REPO/'scripts'))
+        locked=importlib.import_module('install_locked_dependencies')
+        with tempfile.TemporaryDirectory() as folder:
+            d=Path(folder)
+            self.assertIsNone(locked.wait_for_apt_prefetch({}))
+            (d/'rc').write_text('0\n')
+            self.assertEqual(locked.wait_for_apt_prefetch({'MUSETALK_APT_PREFETCH_DIR':str(d)}),0)
+            (d/'rc').write_text('100\n')
+            with self.assertRaisesRegex(ValueError,'apt failed'):
+                locked.wait_for_apt_prefetch({'MUSETALK_APT_PREFETCH_DIR':str(d)})
+            (d/'pending').touch()
+            with self.assertRaisesRegex(ValueError,'still running'):
+                locked.wait_for_apt_prefetch({'MUSETALK_APT_PREFETCH_DIR':str(d)},limit=0)
+        packages=[l for l in (REPO/'scripts/lib/apt_packages.txt').read_text().splitlines() if l.strip() and not l.startswith('#')]
+        self.assertIn('python3.10-venv',packages);self.assertIn('coturn',packages)
+        installer=(REPO/'scripts/install_musetalk.sh').read_text()
+        self.assertIn('apt_packages.txt',installer);self.assertNotIn('libgl1 libglib2.0-0',installer)
+        self.assertIn('wait_for_apt_prefetch  # Later phases',installer)
+        boot=(REPO/'scripts/vast_bootstrap_locked.sh').read_text()
+        self.assertLess(boot.index('start_apt_prefetch\n  start_r5_prefetch'),boot.index('configure_locked_boot\n  cd'))
+
     def test_proc1_environ_readers_never_exit_early(self):
         # awk 'exit' closes the pipe early; tr then dies with SIGPIPE and
         # pipefail turns that into exit 141 under set -e (18 KB Vast env).

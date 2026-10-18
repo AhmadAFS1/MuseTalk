@@ -127,8 +127,8 @@ Environment: PIP_CACHE_DIR (respected), MUSETALK_WHEELHOUSE (extra --find-links 
     locked-wheelhouse-uv (experimental opt-in, cu121 only; --clean only if venv absent).
   Locked modes require MUSETALK_DEPENDENCY_CONTRACT and MUSETALK_DEPENDENCY_CACHE;
     private read tickets are JSON on stdin (or MUSETALK_DEPENDENCY_TICKET_FD).
-    MUSETALK_DEPENDENCY_RANGE_STREAMS=0 (default, off) | 2 | 4 fetches public wheels >= 256 MiB
-    as parallel byte ranges; MUSETALK_DEPENDENCY_MAX_CONNECTIONS=4 | 8 caps open connections
+    MUSETALK_DEPENDENCY_RANGE_STREAMS=0 (default, off) | 2 | 4 fetches public wheels >= 64 MiB
+    as parallel byte ranges; MUSETALK_DEPENDENCY_MAX_CONNECTIONS=4 | 8 | 16 caps open connections
     (default: MUSETALK_DEPENDENCY_WORKERS).
     MUSETALK_DEPENDENCY_SEED_SITE=<base image site-packages> (default unset = off) copies
     contract-indexed artifacts whose every wheel file is hash-identical there instead of
@@ -243,10 +243,20 @@ apt_packages_step() {
     add-apt-repository -y ppa:deadsnakes/ppa
     apt-get update -y
   fi
-  apt-get install -y \
-    python3.10 python3.10-venv python3.10-dev \
-    coturn ffmpeg git curl build-essential ca-certificates \
-    libgl1 libglib2.0-0 libsm6 libxext6 libxrender1
+  local -a packages=()
+  mapfile -t packages < <(grep -v -E '^\s*(#|$)' "$REPO_ROOT/scripts/lib/apt_packages.txt")
+  (( ${#packages[@]} > 0 )) || die "scripts/lib/apt_packages.txt lists no packages"
+  apt-get install -y "${packages[@]}"
+}
+
+wait_for_apt_prefetch() {
+  # vast_bootstrap_locked.sh may run apt in the background, overlapping downloads.
+  local dir="${MUSETALK_APT_PREFETCH_DIR:-}" waited=0 limit="${MUSETALK_APT_PREFETCH_WAIT_SECONDS:-900}"
+  [[ -n "$dir" && -d "$dir" ]] || return 0
+  while [[ -e "$dir/pending" ]] && (( waited < limit )); do sleep 2; waited=$(( waited + 2 )); done
+  [[ ! -e "$dir/pending" ]] || die "Background apt still running after ${limit}s"
+  [[ "$(cat "$dir/rc" 2>/dev/null)" == 0 ]] || die "Background apt failed (see $dir/apt.log)"
+  log "Background apt finished (waited ${waited}s)"
 }
 
 # ------------------------------------------------------------------------------- check mode
@@ -660,6 +670,14 @@ phase_apt() {
     return 0
   fi
   command -v apt-get >/dev/null 2>&1 || { warn "apt-get not found; skipping system packages"; return 0; }
+  if [[ -n "${MUSETALK_APT_PREFETCH_DIR:-}" && -d "${MUSETALK_APT_PREFETCH_DIR}" ]]; then
+    if [[ "$DEPENDENCY_INSTALL_MODE" != source-pip ]]; then
+      log "apt runs in the background (bootstrap); the locked installer waits for it before creating the venv"
+      return 0
+    fi
+    wait_for_apt_prefetch
+    return 0
+  fi
   run_strict_step "Install system packages (apt)" apt_packages_step
 }
 
@@ -948,6 +966,7 @@ run_install_phase "Phase 0" "Preflight" "Resolve matrix, groups and disk budget;
 run_install_phase "Phase 1" "System packages" "apt: python3.10(+venv,dev), ffmpeg, coturn, build tools, GL libs (root only)." phase_apt
 run_install_phase "Phase 2" "Venv" "Create the CPython 3.10 venv, or reuse it and repair in place." phase_venv
 run_install_phase "Phase 3" "Python packages" "Separate server and optional Kokoro pip steps against constraints-$TARGET_MATRIX.txt; avatar-prep timed separately." phase_packages
+wait_for_apt_prefetch  # Later phases need the system packages even when Phase 3 reused a venv.
 run_install_phase "Phase 4" "Weights" "download_weights.sh (+ pinned TAESD, optional Kokoro cache)." phase_weights
 run_install_phase "Phase 5" "Native VP8" "Pinned native VP8 encoder files + CPU preflight (default encoder stays pyav)." phase_native_vp8
 run_install_phase "Phase 6" "Chin tools" "Optional dedicated MediaPipe venv for the offline chin tracker." phase_chin_tools

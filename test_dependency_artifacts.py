@@ -1248,7 +1248,7 @@ class LockedInstallerTests(unittest.TestCase):
         self.assertEqual(locked.transfer_settings(args(range_streams=2,max_connections=4),env),(2,4))
         self.assertEqual(locked.transfer_settings(args(),{locked.RANGE_STREAMS_ENV:' '}),(0,4))
         for bad in ({locked.RANGE_STREAMS_ENV:'3'},{locked.RANGE_STREAMS_ENV:'on'},{locked.RANGE_STREAMS_ENV:'-2'},
-                    {locked.MAX_CONNECTIONS_ENV:'2'},{locked.MAX_CONNECTIONS_ENV:'16'}):
+                    {locked.MAX_CONNECTIONS_ENV:'2'},{locked.MAX_CONNECTIONS_ENV:'32'}):
             with self.subTest(bad=bad),self.assertRaises(ValueError):
                 locked.transfer_settings(args(),bad)
 

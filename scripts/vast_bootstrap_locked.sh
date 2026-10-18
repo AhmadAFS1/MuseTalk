@@ -128,7 +128,12 @@ configure_locked_boot() {
   artifact="$(python3 -B -c 'import json,re,sys;v=json.load(open(sys.argv[1]))["artifact_id"];assert isinstance(v,str) and re.fullmatch("[a-f0-9]{64}",v);print(v)' "$MUSETALK_DEPENDENCY_CONTRACT" 2>/dev/null)" \
     || bootstrap_die 'Reviewed dependency contract has no valid artifact identity'
   export MUSETALK_DEPENDENCY_CACHE=/workspace/.cache/musetalk-dependencies
-  export MUSETALK_DEPENDENCY_WORKERS=4
+  # Package CDNs are limited per connection (fresh 3090s measured 1-5 MB/s per
+  # stream while the same hosts pulled Hugging Face at ~74 MB/s): run 8 artifact
+  # workers, ranged 4-way for files >= 64 MiB, up to 16 open connections.
+  export MUSETALK_DEPENDENCY_WORKERS="${MUSETALK_DEPENDENCY_WORKERS:-8}"
+  export MUSETALK_DEPENDENCY_RANGE_STREAMS="${MUSETALK_DEPENDENCY_RANGE_STREAMS:-4}"
+  export MUSETALK_DEPENDENCY_MAX_CONNECTIONS="${MUSETALK_DEPENDENCY_MAX_CONNECTIONS:-16}"
   # The stock image's /venv/main already holds 2.8 GB of the pinned GPU wheels
   # (torch, triton, nvidia-*), file-for-file identical; the installer verifies
   # every file against the contract-pinned seed index before reusing it.
@@ -150,6 +155,8 @@ configure_locked_boot() {
   export MUSETALK_RECIPE="${MUSETALK_RECIPE:-r5}"
   # The compiled-TAESD self-test timing only matters for the fast recipe.
   if [[ "$MUSETALK_RECIPE" == r5 ]]; then export MUSETALK_SELFTEST_SKIP_COMPILE=1; fi
+  # Phase 7's import smoke and the server's strict start verification cover these.
+  export ONSTART_POST_VALIDATE_IMPORTS="${ONSTART_POST_VALIDATE_IMPORTS:-0}"
   export STARTUP_TIMEOUT_SECONDS="${STARTUP_TIMEOUT_SECONDS:-1800}"
   # Keep read URLs in a pipe, not a template literal, argv or a temporary file.
   if [[ -n "${MUSETALK_DEPENDENCY_TICKETS_JSON:-}" ]]; then
@@ -244,6 +251,30 @@ start_weights_prefetch() {
   ) 8<&- 9<&- &
 }
 
+# System packages (python3.10-venv, ffmpeg, coturn, ...) install in the
+# background while wheels download; the locked installer waits before it
+# creates the venv. Fresh workers only.
+start_apt_prefetch() {
+  [[ "$(id -u)" == 0 ]] && command -v apt-get >/dev/null 2>&1 || return 0
+  [[ -f "$REPO_DIR/.runtime/install_state.json" ]] && return 0
+  local dir=/workspace/.mtboot/apt list="$REPO_DIR/scripts/lib/apt_packages.txt"
+  [[ -f "$list" ]] || return 0
+  mkdir -p "$dir"
+  rm -f "$dir/rc"
+  touch "$dir/pending"
+  export MUSETALK_APT_PREFETCH_DIR="$dir"
+  bootstrap_log 'Background apt started'
+  (
+    started=$SECONDS rc=0
+    mapfile -t packages < <(grep -v -E '^\s*(#|$)' "$list")
+    { DEBIAN_FRONTEND=noninteractive apt-get update -y \
+        && DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"; } >"$dir/apt.log" 2>&1 || rc=$?
+    echo "$rc" > "$dir/rc"
+    rm -f "$dir/pending"
+    bootstrap_log "Background apt finished rc=$rc ($((SECONDS - started))s)"
+  ) 8<&- 9<&- &
+}
+
 configure_runtime_auth() {
   # EC2 role credentials do not automatically exist on Vast. The launcher must
   # supply a reviewed worker identity/runtime payload, never the publisher role.
@@ -305,6 +336,7 @@ main() {
   checkout_code
   bootstrap_log "Code ready ($((SECONDS-started))s); revision=$MUSETALK_SOURCE_REVISION"
   stamp_stage code_ready
+  start_apt_prefetch
   start_r5_prefetch
   start_weights_prefetch
   configure_locked_boot

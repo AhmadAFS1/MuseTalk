@@ -76,6 +76,19 @@ def check_platform():
             'glibc below validated floor')
 
 
+def wait_for_apt_prefetch(environ=None,limit=900):
+    """The bootstrap may run apt (python3.10-venv etc.) in the background while
+    wheels download; the venv must not be created before it finished."""
+    raw=(os.environ if environ is None else environ).get('MUSETALK_APT_PREFETCH_DIR','').strip()
+    if not raw:return None
+    folder=Path(raw);pending=folder/'pending';start=time.monotonic()
+    while pending.exists() and time.monotonic()-start<limit:time.sleep(1)
+    require(not pending.exists(),'Background apt still running; refusing to create the venv')
+    rc=(folder/'rc').read_text().strip() if (folder/'rc').exists() else '?'
+    require(rc=='0','Background apt failed (rc '+rc+')')
+    return round(time.monotonic()-start,3)
+
+
 def transfer_settings(args,environ=None):
     """Ranged-download settings: flags win, then environment, then defaults
     (0 range streams = original single-stream behaviour; connection cap = workers)."""
@@ -91,7 +104,7 @@ def transfer_settings(args,environ=None):
     require(streams in (0,2,4),RANGE_STREAMS_ENV+' must be 0, 2 or 4')
     connections=pick(getattr(args,'max_connections',None),MAX_CONNECTIONS_ENV)
     if connections is None:connections=args.workers
-    else:require(connections in (4,8),MAX_CONNECTIONS_ENV+' must be 4 or 8')
+    else:require(connections in (4,8,16),MAX_CONNECTIONS_ENV+' must be 4, 8 or 16')
     require(connections in fetch.CONNECTION_CHOICES,'Unsupported dependency connection cap')
     return streams,connections
 
@@ -268,7 +281,9 @@ def run(args,ticket_loader=None):
             def step(cmd,name):
                 value=bench.command(cmd,name,logs,env);result['steps'].append(value)
                 require(value['exit_status']==0,'Locked installer step failed: '+name)
-            if not (venv/'bin/python').exists():step([sys.executable,'-m','venv',str(venv)],'venv')
+            if not (venv/'bin/python').exists():
+                result['apt_wait_seconds']=wait_for_apt_prefetch()
+                step([sys.executable,'-m','venv',str(venv)],'venv')
             if seeding and seeding['staged']:
                 result['seed'].update(seed.publish(seeding,venv))
             py=venv/'bin/python';wheels=artifact/'wheels';package_cache=artifact/'installer-cache'
@@ -303,7 +318,7 @@ def main():
     p.add_argument('--cache-root',type=Path,required=True)
     p.add_argument('--mode',choices=('locked-wheelhouse-pip','locked-wheelhouse-uv'),required=True)
     p.add_argument('--group',choices=('server','server+kokoro','full'),required=True)
-    p.add_argument('--workers',type=int,choices=(1,2,4),default=4)
+    p.add_argument('--workers',type=int,choices=(1,2,4,8,16),default=4)
     p.add_argument('--range-streams',type=int,choices=(0,2,4),
                    help='Byte ranges per large public wheel (default: $'+RANGE_STREAMS_ENV+' or 0 = off)')
     p.add_argument('--max-connections',type=int,choices=(4,8),

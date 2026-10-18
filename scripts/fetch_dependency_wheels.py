@@ -44,12 +44,12 @@ PRIVATE_PREFIX = "python-venv/wheelhouse/"
 
 # Ranged mode qualifies only TensorRT libs, torch, cuDNN and cuBLAS in the
 # current manifest (triton is below the threshold).
-RANGED_MIN_BYTES = 256 * 1024**2
-RANGE_PART = 64 * 1024**2
+RANGED_MIN_BYTES = 64 * 1024**2
+RANGE_PART = 32 * 1024**2
 RANGED_HOSTS = frozenset({"pypi.nvidia.com", "download.pytorch.org", "download-r2.pytorch.org",
                           "files.pythonhosted.org"})
 RANGE_STREAM_CHOICES = (0, 2, 4)
-CONNECTION_CHOICES = (1, 2, 4, 8)
+CONNECTION_CHOICES = (1, 2, 4, 8, 16)
 TRANSIENT_STATUS = frozenset({408, 429, 500, 502, 503, 504})
 # socket.timeout is TimeoutError from 3.10; listed for older interpreters.
 PART_TRANSPORT_ERRORS = (urllib.error.URLError, TimeoutError, socket.timeout, ConnectionError,
@@ -503,7 +503,7 @@ def acquisition_order(rows, private_shas):
 
 def acquire(manifest, cache, group, workers, repo_root=None, reserve_bytes=30 * 1024**3, tickets=None,
             range_streams=0, max_connections=None):
-    require(workers in (1, 2, 4, 8), "Bounded concurrency required")
+    require(workers in (1, 2, 4, 8, 16), "Bounded concurrency required")
     require(range_streams in RANGE_STREAM_CHOICES, "Bounded range streams required")
     connections = workers if max_connections is None else max_connections
     require(connections in CONNECTION_CHOICES, "Bounded connection cap required")
@@ -560,10 +560,10 @@ def main():
     p.add_argument("--manifest-sha256", required=True)
     p.add_argument("--cache", type=Path, required=True)
     p.add_argument("--group", choices=("server", "server+kokoro", "full"), default="full")
-    p.add_argument("--workers", type=int, choices=(1, 2, 4, 8), required=True)
+    p.add_argument("--workers", type=int, choices=(1, 2, 4, 8, 16), required=True)
     p.add_argument("--range-streams", type=int, choices=(0, 2, 4), default=0,
                    help="Parallel byte ranges per large public wheel; 0 (default) keeps one stream per artifact")
-    p.add_argument("--max-connections", type=int, choices=(4, 8),
+    p.add_argument("--max-connections", type=int, choices=(4, 8, 16),
                    help="Global cap on open HTTP connections (default: --workers)")
     p.add_argument("--repo-root", type=Path)
     p.add_argument("--receipt", type=Path, required=True)
