@@ -501,9 +501,16 @@ env.update({'MUSETALK_SOURCE_REVISION':REVISION,'MUSETALK_DEPENDENCY_TICKETS_JSO
 ctl=pathlib.Path('/workspace/MuseTalk/scripts/vast_server_ctl.sh')
 if ctl.is_file():
  subprocess.run(['bash',str(ctl),'stop'],cwd='/workspace/MuseTalk',capture_output=True,timeout=120)
-subprocess.run(['pkill','-f','turnserver'],capture_output=True)
-subprocess.run(['pkill','-f','api_server.py'],capture_output=True)
-time.sleep(2)
+# An in-flight boot (bootstrap/onstart/installer/downloads) holds the onstart lock: stop it first.
+for pattern in ('vast_bootstrap_locked','vast_onstart.sh','install_musetalk.sh','install_locked_dependencies.py',
+                'fetch_dependency_wheels.py','download_weights.sh','huggingface-cli','turnserver','api_server.py'):
+ subprocess.run(['pkill','-f',pattern],capture_output=True)
+time.sleep(3)
+for pattern in ('vast_bootstrap_locked','install_locked_dependencies.py','api_server.py'):
+ subprocess.run(['pkill','-9','-f',pattern],capture_output=True)
+lock=subprocess.run(['flock','-n','-x','/tmp/musetalk-onstart.lock','true'],capture_output=True).returncode
+assert lock==0,'onstart lock still held; refusing to start a second bootstrap'
+time.sleep(1)
 removed=[]
 if WIPE:
  for p in PATHS:
