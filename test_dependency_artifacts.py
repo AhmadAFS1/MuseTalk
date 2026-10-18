@@ -514,13 +514,13 @@ class RangedAcquisitionTests(unittest.TestCase):
         repo = self.cache / "repo"
         (repo / "third_party_wheels").mkdir(parents=True)
         (repo / "third_party_wheels/local.whl").write_bytes(RANGE_PAYLOAD)
-        built = large(name="private-wheel")
+        built = large(RANGE_PAYLOAD[:15], name="private-wheel")
         built["source"] = "build:" + "0" * 64
         repo_row = large(name="mmcv")
         repo_row["source"] = "repo:third_party_wheels/local.whl"
         cases = (("below-threshold", large(RANGE_PAYLOAD[:15]), {}, 4),
                  ("unknown-host", large(host="github.com"), {}, 4),
-                 ("ticketed-build", built, {"ticket": self.private_ticket(built)}, 4),
+                 ("small-ticketed-build", built, {"ticket": self.private_ticket(built)}, 4),
                  ("repo-local", repo_row, {"repo_root": repo}, 4),
                  ("default-off", large(), {}, 0))
         for label, a, extra, streams in cases:
@@ -532,6 +532,37 @@ class RangedAcquisitionTests(unittest.TestCase):
                 self.assertEqual(opener.calls, 0 if label == "repo-local" else 1)
                 self.assertEqual(set(receipt), LEGACY_RECEIPT_KEYS | TIMESTAMP_KEYS)
                 self.assertEqual(receipt["attempts"], 1)
+
+    def test_ticketed_private_wheel_is_ranged_against_the_private_bucket_only(self):
+        built = large(name="tensorrt-cu12-libs")
+        built["source"] = "build:" + "0" * 64
+        ticket = self.private_ticket(built)
+        seen = []
+        opener = RangeOpener()
+        original = opener.open
+        def record(request, timeout=None):
+            seen.append((urllib.parse.urlsplit(request.full_url).hostname,
+                         request.get_header("X-amz-expected-bucket-owner")))
+            return original(request, timeout)
+        opener.open = record
+        receipt = f.acquire_one(built, self.cache, opener=opener, ticket=ticket, range_streams=4)
+        self.assertEqual((self.cache / built["filename"]).read_bytes(), RANGE_PAYLOAD)
+        self.assertEqual((receipt["transfer_mode"], receipt["parts"], receipt["origin"]),
+                         ("ranged", 8, f.BUCKET + ".s3.us-east-1.amazonaws.com"))
+        self.assertEqual(set(seen), {(f.BUCKET + ".s3.us-east-1.amazonaws.com", f.OWNER)})
+        self.assertEqual(len(seen), 8)
+        self.assertNotIn("secret", json.dumps(receipt))
+        # No ticket, or a ticket for another destination, never ranges and never touches the network.
+        self.assertFalse(f.ranged_eligible(built))
+        for bad in ({"url": ticket["url"].replace(f.BUCKET, "other-bucket")}, {"owner": "0" * 12}):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                f.ranged_eligible(built, dict(ticket, **bad))
+        (self.cache / built["filename"]).unlink()
+        opener = RangeOpener()
+        with self.assertRaises(ValueError):
+            f.acquire_one(built, self.cache, opener=opener, ticket=dict(ticket, owner="0" * 12), range_streams=4)
+        self.assertEqual(opener.calls, 0)
+        self.assert_unpublished(built)
 
     # 3
     def test_probe_answered_200_falls_back_once_without_reading_body(self):

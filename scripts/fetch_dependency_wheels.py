@@ -5,10 +5,12 @@ The initial acquisition candidate can include sdists. A successful download is
 not an offline-wheelhouse or native-compatibility pass.
 
 Opt-in ranged mode (--range-streams 2|4, default 0 = one stream per artifact)
-splits large public wheels into byte ranges fetched over several connections.
-Only reviewed public CDN hosts qualify; repo-local, private (build:) and
-ticketed sources never do. The pinned manifest sha256 over the whole file is
-still the only publication gate.
+splits large wheels into byte ranges fetched over several connections.
+Reviewed public CDN hosts qualify, and so do private (build:) wheels whose
+validated ticket names the private bucket (one transatlantic TCP stream to
+us-east-1 made the 115 MB runtime TensorRT wheel the acquisition critical
+path). Repo-local sources never do. The pinned manifest sha256 over the whole
+file is still the only publication gate.
 """
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -166,7 +168,6 @@ def stream_source(a, repo_root, opener, ticket=None, byte_range=None):
         return path.open("rb")
     headers = {"User-Agent": "MuseTalk-dependency-fetch/1"}
     if a["source"].startswith("build:"):
-        require(byte_range is None, "Ranged reads are for reviewed public sources only")
         url = check_ticket(a, ticket)
         headers["x-amz-expected-bucket-owner"] = OWNER
     else:
@@ -180,15 +181,22 @@ def stream_source(a, repo_root, opener, ticket=None, byte_range=None):
 
 
 def ranged_eligible(a, ticket=None):
-    """Public reviewed CDN wheels of at least RANGED_MIN_BYTES; never repo:, build: or ticketed."""
+    """Wheels of at least RANGED_MIN_BYTES from a reviewed public CDN, or private
+    build: wheels with a valid ticket for the private bucket; never repo:."""
     source = a.get("source") or ""
     size = a.get("size_bytes")
-    if ticket is not None or source.startswith(("repo:", "build:")) or type(size) is not int:
+    if source.startswith("repo:") or type(size) is not int or not RANGED_MIN_BYTES <= size <= MAX_FILE:
+        return False
+    if source.startswith("build:"):
+        if ticket is None:
+            return False
+        check_ticket(a, ticket)  # A bad ticket fails here exactly as it would single-stream.
+        return True
+    if ticket is not None:
         return False
     u = urllib.parse.urlsplit(source)
     return (u.scheme == "https" and u.hostname in RANGED_HOSTS and u.port in (None, 443)
-            and not u.username and not u.password and not u.query and not u.fragment
-            and RANGED_MIN_BYTES <= size <= MAX_FILE)
+            and not u.username and not u.password and not u.query and not u.fragment)
 
 
 class RangeIdentity:
@@ -240,7 +248,8 @@ def write_at(fd, data, offset):
         offset += written
 
 
-def fetch_part(a, opener, budget, fd, part, identity, retries, stop, record, on_validated=None, monitor=None):
+def fetch_part(a, opener, budget, fd, part, identity, retries, stop, record, on_validated=None, monitor=None,
+               ticket=None):
     """Fetch one inclusive byte range into fd. Transient failures (including a clean
     early end of body, TLS errors and IncompleteRead) resume from the last written
     offset; 4xx/416 are hard failures. Only the HTTP request holds a budget slot."""
@@ -262,7 +271,7 @@ def fetch_part(a, opener, budget, fd, part, identity, retries, stop, record, on_
                 record["wait_seconds"] += time.monotonic() - waiting
                 if stop.is_set():
                     raise RangeAborted()
-                with stream_source(a, None, opener, byte_range=(position, last)) as source:
+                with stream_source(a, None, opener, ticket, byte_range=(position, last)) as source:
                     check_range_response(source, a, position, last, identity)
                     if on_validated is not None:
                         on_validated()
@@ -339,7 +348,7 @@ def sha256_fd(fd, size):
     return value.hexdigest()
 
 
-def acquire_ranged(a, cache, opener, budget, retries, streams):
+def acquire_ranged(a, cache, opener, budget, retries, streams, ticket=None):
     """Probe part first; fan out only once its 206 headers validate. Raises
     RangeUnsupported (with .stage/.transferred) so the caller can fall back once."""
     size = a["size_bytes"]
@@ -358,13 +367,13 @@ def acquire_ranged(a, cache, opener, budget, retries, streams):
         pool = ThreadPoolExecutor(max_workers=streams, thread_name_prefix="range-part")
         try:
             probe = pool.submit(fetch_part, a, opener, budget, fd, parts[0], identity, retries, stop,
-                                records[0], probe_ready.set, monitor)
+                                records[0], probe_ready.set, monitor, ticket)
             probe.add_done_callback(lambda _: probe_ready.set())
             probe_ready.wait()
             if probe.done():
                 probe.result()  # RangeUnsupported here means nothing else was requested.
             futures = [probe] + [pool.submit(fetch_part, a, opener, budget, fd, parts[i], identity, retries,
-                                             stop, records[i], None, monitor) for i in range(1, len(parts))]
+                                             stop, records[i], None, monitor, ticket) for i in range(1, len(parts))]
             for future in as_completed(futures):
                 future.result()
         except BaseException as error:
@@ -421,7 +430,7 @@ def acquire_one(a, cache, repo_root=None, retries=2, opener=None, ticket=None, b
         ranged = {}
         if range_streams and ranged_eligible(a, ticket):
             try:
-                value = acquire_ranged(a, cache, opener, budget, retries, range_streams)
+                value = acquire_ranged(a, cache, opener, budget, retries, range_streams, ticket)
             except RangeUnsupported as error:
                 # Exactly one fallback to the original single-stream path below.
                 transferred = getattr(error, "transferred", 0)
@@ -435,7 +444,7 @@ def acquire_one(a, cache, repo_root=None, retries=2, opener=None, ticket=None, b
                         "local_copied_bytes": 0,
                         "attempts": 1 + retried,  # 1 + part-level retries; range_requests counts every GET.
                         "seconds": time.monotonic() - start,
-                        "origin": urllib.parse.urlsplit(a["source"]).hostname,
+                        "origin": urllib.parse.urlsplit(ticket["url"] if ticket else a["source"]).hostname,
                         "started_utc": started_utc, "finished_utc": utc_now(),
                         "transfer_mode": "ranged", "range_streams": range_streams, "range_fallback": None,
                         "parts": len(value["parts"]), "range_part_bytes": RANGE_PART,
