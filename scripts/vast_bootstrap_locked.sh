@@ -211,12 +211,16 @@ print(d["sha256"],int(d["bytes"]));print(d["url"])' 2>/dev/null)" || { bootstrap
   url="$(sed -n 2p <<< "$fields")"
   export MUSETALK_R5_PREFETCH_DIR="$dir"
   mkdir -p "$dir"
-  [[ -f "$dir/$sha.ok" && -f "$dir/$sha.tar.gz" ]] && return 0
   if compgen -G "$REPO_DIR/.runtime/trt_artifacts/*/.musetalk_trt_artifact_restored.json" >/dev/null; then
     bootstrap_log 'r5 bundle already restored on this disk; no prefetch'
     return 0
   fi
   touch "$dir/$sha.pending"
+  if [[ -f "$dir/$sha.ok" && -f "$dir/$sha.tar.gz" ]]; then
+    # Verified archive from an earlier boot: just restore it in the background.
+    ( restore_prefetched_bundle "$dir" "$sha"; rm -f "$dir/$sha.pending" ) 8<&- 9<&- &
+    return 0
+  fi
   bootstrap_log "r5 bundle prefetch started ($size bytes)"
   (
     started=$SECONDS

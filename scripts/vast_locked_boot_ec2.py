@@ -50,6 +50,7 @@ TUNABLE_ENV = {"MUSETALK_DEPENDENCY_RANGE_STREAMS": {"0", "2", "4"}, "MUSETALK_D
                "HF_MAX_WORKERS": {"4", "8", "16"}, "ONSTART_POST_VALIDATE_IMPORTS": {"0", "1"}}
 WIPE_PATHS = ("/workspace/MuseTalk", "/workspace/.venvs", "/workspace/.cache/musetalk-dependencies",
               "/workspace/logs", "/workspace/bootstrap.log", "/workspace/onstart.log", "/workspace/.mtboot",
+              "/workspace/.cache/r5-prefetch",
               "/root/.cache/huggingface")
 
 
