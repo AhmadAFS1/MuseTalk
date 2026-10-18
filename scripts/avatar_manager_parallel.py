@@ -455,6 +455,35 @@ class ParallelAvatarManager:
             print("✅ Audio + Whisper warmup complete")
         except Exception as exc:
             print(f"⚠️  Audio + Whisper warmup failed: {exc}")
+        self._warm_uploaded_audio_path()
+
+    def _warm_uploaded_audio_path(self):
+        """Run the exact per-request audio path (file decode + resample, Whisper
+        chunking) once at startup. On a fresh RTX 3090 worker the first request
+        otherwise spent ~24.5 s in "Audio processing" (one-time JIT/kernel setup)
+        versus ~1 s afterwards."""
+        if os.getenv("MUSETALK_WARM_UPLOADED_AUDIO", "1").strip().lower() not in {"1", "true", "yes", "on"}:
+            return
+        try:
+            import tempfile
+            import soundfile as sf
+
+            started = time.time()
+            for rate in (24000, 44100):  # Common TTS / upload sample rates.
+                with tempfile.NamedTemporaryFile(suffix=".wav") as tmp:
+                    tone = (0.1 * np.sin(2 * np.pi * 220 * np.arange(rate) / rate)).astype(np.float32)
+                    sf.write(tmp.name, tone, rate)
+                    features, length = self.audio_processor.get_audio_feature(tmp.name, weight_dtype=self.unet_dtype)
+                    with torch.no_grad():
+                        _ = self.audio_processor.get_whisper_chunk(
+                            features, self.device, self.unet_dtype, self.whisper, length, fps=25,
+                            audio_padding_length_left=2, audio_padding_length_right=2,
+                        )
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            print(f"✅ Uploaded-audio path warmup complete ({time.time() - started:.1f}s)")
+        except Exception as exc:
+            print(f"⚠️  Uploaded-audio path warmup failed: {exc}")
     
     def _get_or_load_avatar(self, avatar_id, batch_size):
         """Get avatar from cache or load from disk"""
