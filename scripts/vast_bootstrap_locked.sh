@@ -176,6 +176,28 @@ configure_locked_boot() {
 # The ~1 GB r5 engine bundle does not depend on the venv: fetch it in the
 # background from an EC2-presigned URL while dependencies install. Onstart's
 # restore still verifies the pinned sha256 and falls back to S3 on any failure.
+# Extract + verify + stamp the prefetched bundle in the background too (stdlib-only
+# tool, image interpreter). Onstart's restore then takes its --skip-if-verified path
+# (seconds) instead of copying/extracting 1 GB on the critical path. Any failure
+# leaves the verified archive for onstart's normal restore.
+restore_prefetched_bundle() {
+  local dir="$1" sha="$2" desc sidecar
+  [[ -f "$REPO_DIR/scripts/trt_artifact_bundle.py" ]] || return 0
+  desc="$(grep -l "\"sha256\": \"$sha\"" "$REPO_DIR"/configs/trt_bundles/*.json 2>/dev/null | head -n 1)"
+  [[ -n "$desc" ]] || return 0
+  sidecar="$(python3 -B -c 'import json,sys;print(json.load(open(sys.argv[1]))["sidecar_dir"])' "$desc" 2>/dev/null)" || return 0
+  [[ -n "$sidecar" ]] || return 0
+  local started=$SECONDS
+  if python3 -B "$REPO_DIR/scripts/trt_artifact_bundle.py" --repo-root "$REPO_DIR" --strict --sidecar-dir "$sidecar" \
+       restore --uri "$dir/$sha.tar.gz" --expected-sha256 "$sha" --stage-dir "$REPO_DIR/tmp/trt_artifact_stage" \
+       >"$dir/restore.log" 2>&1; then
+    rm -f "$dir/$sha.tar.gz"
+    bootstrap_log "r5 bundle restored in the background ($((SECONDS - started))s)"
+  else
+    bootstrap_log "Background r5 restore failed; onstart restores from the verified archive"
+  fi
+}
+
 start_r5_prefetch() {
   [[ -n "${MUSETALK_R5_PREFETCH_JSON:-}" ]] || return 0
   local dir="${MUSETALK_R5_PREFETCH_DIR:-/workspace/.cache/r5-prefetch}" url sha size fields
@@ -204,11 +226,13 @@ print(d["sha256"],int(d["bytes"]));print(d["url"])' 2>/dev/null)" || { bootstrap
        && printf '%s\n' "$url" | python3 -B "$REPO_DIR/scripts/fetch_ranged_url.py" --sha256 "$sha" --bytes "$size" \
             --out "$dir/$sha.tar.gz" --streams 8; then
       touch "$dir/$sha.ok"
+      restore_prefetched_bundle "$dir" "$sha"
     elif printf 'url = "%s"\n' "$url" | curl -fsS --retry 3 --retry-delay 2 --max-time 1800 -K - -o "$dir/$sha.tar.gz.part" \
        && [[ "$(wc -c < "$dir/$sha.tar.gz.part" | tr -d " ")" == "$size" ]] \
        && [[ "$(file_sha256 "$dir/$sha.tar.gz.part")" == "$sha" ]]; then
       mv -f "$dir/$sha.tar.gz.part" "$dir/$sha.tar.gz"
       touch "$dir/$sha.ok"
+      restore_prefetched_bundle "$dir" "$sha"
       bootstrap_log "r5 bundle prefetch done ($((SECONDS - started))s)"
     else
       rm -f "$dir/$sha.tar.gz.part"

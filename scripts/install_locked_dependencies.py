@@ -310,7 +310,7 @@ def run(args,ticket_loader=None):
         return result
 
 
-def main():
+def build_parser():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--contract',type=Path,required=True)
     p.add_argument('--repo-root',type=Path,required=True)
@@ -321,14 +321,18 @@ def main():
     p.add_argument('--workers',type=int,choices=(1,2,4,8,16),default=4)
     p.add_argument('--range-streams',type=int,choices=(0,2,4),
                    help='Byte ranges per large public wheel (default: $'+RANGE_STREAMS_ENV+' or 0 = off)')
-    p.add_argument('--max-connections',type=int,choices=(4,8),
+    p.add_argument('--max-connections',type=int,choices=(4,8,16),
                    help='Global open-connection cap (default: $'+MAX_CONNECTIONS_ENV+' or --workers)')
     p.add_argument('--seed-site',type=Path,
                    help='Base-image site-packages to seed verified artifacts from (default: $'+SEED_SITE_ENV+' or off)')
     p.add_argument('--tickets-fd',type=int,default=0)
     p.add_argument('--check',action='store_true')
     p.add_argument('--repair',action='store_true')
-    args=p.parse_args()
+    return p
+
+
+def main():
+    args=build_parser().parse_args()
     def tickets():
         with os.fdopen(os.dup(args.tickets_fd)) as source:raw=source.read(256001)
         require(len(raw)<=256000,'Ticket envelope too large')

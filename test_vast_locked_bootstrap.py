@@ -313,6 +313,22 @@ wait
             self.assertFalse((d/(sha+'.pending')).exists())
             self.assertIn('r5 bundle prefetch done',proc.stdout);self.assertNotIn('X-Amz-Signature',proc.stdout+proc.stderr)
 
+    def test_prefetched_bundle_is_restored_in_background(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);payload=b'engine-bundle'*100;sha=hashlib.sha256(payload).hexdigest()
+            repo=root/'repo';(repo/'configs/trt_bundles').mkdir(parents=True);(repo/'scripts').mkdir()
+            (repo/'configs/trt_bundles/ampere.json').write_text(json.dumps({'sha256':sha,'sidecar_dir':'.runtime/trt_artifacts/ampere'},indent=2))
+            (repo/'scripts/trt_artifact_bundle.py').write_text('import json,pathlib,sys\npathlib.Path(sys.argv[0]).with_name("argv.json").write_text(json.dumps(sys.argv[1:]))\n')
+            proc,d,_=self._prefetch(root,payload)
+            self.assertEqual(proc.returncode,0,proc.stderr)
+            argv=json.loads((repo/'scripts/argv.json').read_text())
+            self.assertEqual(argv[:6],['--repo-root',str(repo),'--strict','--sidecar-dir','.runtime/trt_artifacts/ampere','restore'])
+            self.assertIn('--expected-sha256',argv);self.assertEqual(argv[argv.index('--expected-sha256')+1],sha)
+            self.assertFalse((d/(sha+'.tar.gz')).exists())  # consumed after a verified restore
+            self.assertTrue((d/(sha+'.ok')).exists());self.assertFalse((d/(sha+'.pending')).exists())
+            self.assertIn('restored in the background',proc.stdout)
+
     def test_r5_prefetch_sha_mismatch_leaves_no_archive(self):
         with tempfile.TemporaryDirectory() as folder:
             proc,d,sha=self._prefetch(Path(folder),b'tampered',ticket_sha='a'*64)
@@ -379,6 +395,23 @@ wait
             r=run(10);self.assertEqual(r.returncode,3);self.assertIn('refusing a concurrent download',r.stdout)
             (d/'pending').unlink();(d/'rc').write_text('0\n')
             r=run(10);self.assertEqual(r.returncode,0);self.assertIn('rc=0',r.stdout)
+
+    def test_installer_cli_accepts_the_bootstrap_transfer_defaults(self):
+        # Fresh worker pe-h1 died in Phase 3: the bootstrap exported 16 connections
+        # but the installer's argparse still only allowed 4|8.
+        import importlib
+        sys.path.insert(0,str(REPO/'scripts'))
+        locked=importlib.import_module('install_locked_dependencies')
+        boot=(REPO/'scripts/vast_bootstrap_locked.sh').read_text()
+        default=lambda name: re.search(name+r'="\$\{'+name+r':-(\d+)\}"',boot).group(1)
+        workers,streams,connections=(default(n) for n in ('MUSETALK_DEPENDENCY_WORKERS','MUSETALK_DEPENDENCY_RANGE_STREAMS',
+                                                          'MUSETALK_DEPENDENCY_MAX_CONNECTIONS'))
+        args=locked.build_parser().parse_args(['--contract','c','--repo-root','r','--venv','v','--cache-root','x',
+            '--mode','locked-wheelhouse-uv','--group','full','--workers',workers,'--range-streams',streams,
+            '--max-connections',connections])
+        self.assertEqual(locked.transfer_settings(args,{}),(int(streams),int(connections)))
+        installer=(REPO/'scripts/install_musetalk.sh').read_text()
+        self.assertIn('--max-connections "$MUSETALK_DEPENDENCY_MAX_CONNECTIONS"',installer)
 
     def test_background_apt_contract(self):
         import importlib
