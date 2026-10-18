@@ -397,9 +397,12 @@ wait
         pins={a['name']:(a['version'],a['sha256']) for a in manifest['artifacts']}
         lines=[l for l in (REPO/'configs/dependencies/weights-prefetch-tools.txt').read_text().splitlines()
                if l.strip() and not l.startswith('#')]
-        self.assertEqual(len(lines),1)
-        m=re.fullmatch(r'([A-Za-z0-9_.-]+)==(\S+) --hash=sha256:([0-9a-f]{64})',lines[0])
-        self.assertEqual((m[2],m[3]),pins[m[1]])
+        self.assertEqual(len(lines),4)
+        names=set()
+        for line in lines:
+            m=re.fullmatch(r'([A-Za-z0-9_.-]+)==(\S+) --hash=sha256:([0-9a-f]{64})',line)
+            self.assertEqual((m[2],m[3]),pins[m[1]]);names.add(m[1])
+        self.assertEqual(names,{'hf-xet','gdown','beautifulsoup4','soupsieve'})
 
     def test_weight_prefetch_mode_is_hf_only_and_never_installs_into_the_image(self):
         weights=(REPO/'download_weights.sh').read_text()
@@ -407,14 +410,55 @@ wait
         self.assertLess(prep.index('DOWNLOAD_WEIGHTS_PREFETCH_ONLY'),prep.index('install_download_helpers_step'))
         groups=re.search(r'^phase_download_weight_groups_parallel\(\) \{\n.*?^\}\n',weights,re.M|re.S).group()
         prefetch=groups.split('return')[0]
-        self.assertNotIn('face_parse',prefetch);self.assertNotIn('kokoro',prefetch)
-        self.assertIn('download_musetalk_weights_group',prefetch)
+        self.assertIn('download_musetalk_weights_group',prefetch);self.assertIn('download_kokoro_group',prefetch)
+        # face-parse only when the pinned gdown is on PATH; Kokoro never installs spaCy into the image.
+        self.assertLess(prefetch.index('command -v gdown'),prefetch.index('download_face_parse_support_weights_group'))
+        kokoro=re.search(r'^download_kokoro_weights_step\(\) \{\n.*?^\}\n',weights,re.M|re.S).group()
+        self.assertLess(kokoro.index('DOWNLOAD_WEIGHTS_PREFETCH_ONLY'),kokoro.index('pip install'))
         boot=(REPO/'scripts/vast_bootstrap_locked.sh').read_text()
         fn=re.search(r'^start_weights_prefetch\(\) \{\n.*?^\}\n',boot,re.M|re.S).group()
-        for needle in ('--target "$tools"','--require-hashes','DOWNLOAD_SYNCNET_WEIGHTS=0','DOWNLOAD_KOKORO_WEIGHTS=0',
-                       'DOWNLOAD_WEIGHTS_PREFETCH_ONLY=1','8<&- 9<&- &'):
+        for needle in ('--target "$tools"','--require-hashes','--no-deps','DOWNLOAD_SYNCNET_WEIGHTS=0','DOWNLOAD_KOKORO_WEIGHTS=1',
+                       'DOWNLOAD_WEIGHTS_PREFETCH_ONLY=1','PATH="$tools/bin:/venv/main/bin:$PATH"','8<&- 9<&- &'):
             self.assertIn(needle,fn)
         self.assertNotIn('pip install --disable-pip-version-check --no-cache-dir --no-deps --require-hashes \\\n        -r',fn)
+
+    def test_kokoro_prefetch_skips_spacy_install_on_the_image_interpreter(self):
+        weights=(REPO/'download_weights.sh').read_text()
+        step=re.search(r'^download_kokoro_weights_step\(\) \{\n.*?^\}\n',weights,re.M|re.S).group()
+        with tempfile.TemporaryDirectory() as folder:
+            log=Path(folder)/'calls'
+            code=('env_flag_is_true(){ [[ "$1" == 1 || "$1" == true ]]; }\nretry(){ "$@"; }\nlog(){ :; }\n'
+                  'python(){ echo "python $*" >> "$LOGF"; case "$1" in -) cat >/dev/null;; -c) return 1;; esac; }\n'
+                  'huggingface-cli(){ echo hf >> "$LOGF"; }\n'+step+
+                  'KOKORO_VOICES=af_heart KOKORO_REVISION=r KOKORO_REPO_ID=x/y HF_MAX_WORKERS=4 EN_CORE_WEB_SM_URL=u\n'
+                  'DOWNLOAD_WEIGHTS_PREFETCH_ONLY="$2" download_kokoro_weights_step\n')
+            for flag,expect_pip in (('1',False),('0',True)):
+                log.write_text('')
+                r=subprocess.run(['bash','-c','LOGF="$1"; '+code,'-',str(log),flag],capture_output=True,text=True,timeout=10)
+                calls=log.read_text()
+                self.assertIn('hf',calls)
+                self.assertEqual('pip install' in calls,expect_pip,calls)
+
+    def test_cpu_import_smoke_runs_early_and_phase7_collects_its_result(self):
+        source=(REPO/'scripts/install_musetalk.sh').read_text()
+        helpers=re.search(r'^EARLY_SMOKE_PID="".*?^smoke_step\(\) \{\n.*?^\}\n',source,re.M|re.S).group()
+        self.assertLess(source.index('\nstart_early_smoke\n'),source.index('run_install_phase "Phase 4"'))
+        verify=re.search(r'^phase_verify\(\) \{\n.*?^\}\n',source,re.M|re.S).group()
+        self.assertLess(verify.index('collect_early_smoke'),verify.index('smoke_step'))
+        with tempfile.TemporaryDirectory() as folder:
+            d=Path(folder);py=d/'python';py.write_text('#!/bin/sh\n');py.chmod(0o755)
+            def run(rc,env=''):
+                code=('set -Eeuo pipefail\nlog(){ echo "$*"; }\nflag_on(){ [[ "$1" == 1 ]]; }\n'
+                      'run_import_smoke(){ echo "SMOKE $1"; echo "{}" > "$1"; return %d; }\n'%rc+helpers+env+
+                      'VENV_PY="$1"; WORK_DIR="$2"; KOKORO=1; LEGACY_INT8=0; AVATAR_PREP=1\n'
+                      'start_early_smoke\ncollect_early_smoke\nset +e; ( smoke_step ); echo "STEP_RC=$?"\n')
+                return subprocess.run(['bash','-c',code,'-',str(py),str(d)],capture_output=True,text=True,timeout=10)
+            r=run(0);self.assertIn('Started the CPU import smoke in the background',r.stdout)
+            self.assertIn('SMOKE '+str(d/'smoke.json'),r.stdout);self.assertIn('STEP_RC=0',r.stdout)
+            r=run(3);self.assertIn('STEP_RC=3',r.stdout)  # a failed early smoke still fails Phase 7
+            (d/'smoke.rc').unlink()
+            r=run(0,'MUSETALK_EARLY_SMOKE=0\n')
+            self.assertNotIn('in the background',r.stdout);self.assertIn('STEP_RC=0',r.stdout)  # runs in Phase 7
 
     def test_installer_waits_for_weight_prefetch_then_proceeds(self):
         source=(REPO/'scripts/install_musetalk.sh').read_text()

@@ -1,3 +1,9 @@
-# hf_xet for the boot-time weight prefetch, installed into a --target dir with the
-# image interpreter (never into the image venv). Pinned to the locked manifest entry.
+# Tools for the boot-time weight prefetch, installed with --no-deps into a --target dir
+# with the image interpreter (never into the image venv). Pinned to the locked manifest.
+# hf_xet: Hugging Face downloads. gdown (+ beautifulsoup4, soupsieve): the face-parse
+# checkpoint on Google Drive; its other dependencies (requests, filelock, tqdm) ship
+# with the image's huggingface_hub.
 hf-xet==1.6.0 --hash=sha256:d62671bb130879cef0ee4c9ebe47a14af6c66ec53e6d84dc15936e5ffdfac82f
+gdown==6.2.0 --hash=sha256:72541f5671dff3f412b8a66e2b995895c9df0569284cc135b64745e501667f55
+beautifulsoup4==4.15.0 --hash=sha256:d6f88de62e1d4e38ecb1077eb9724cd0eff29d2a08ca16a401e9b9e93f117cf9
+soupsieve==2.9.2 --hash=sha256:8089a26fd974ca7a1f30276d3d8492ab266ab15af581642dfe8aa162e0c1c823

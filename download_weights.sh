@@ -340,6 +340,10 @@ else:
     print(f"kept existing {ref} -> {ref.read_text().strip()}")
 PY
   # misaki[en] loads en_core_web_sm; without it spaCy downloads an unpinned model at runtime.
+  # Prefetch mode runs on the image interpreter: never install into it (Phase 4 does this).
+  if env_flag_is_true "$DOWNLOAD_WEIGHTS_PREFETCH_ONLY"; then
+    return 0
+  fi
   if ! python -c 'import importlib.util, sys; sys.exit(0 if importlib.util.find_spec("en_core_web_sm") else 1)' >/dev/null 2>&1; then
     log "Installing the pinned spaCy model en_core_web_sm 3.8.0"
     retry python -m pip install --disable-pip-version-check --no-deps "en_core_web_sm @ $EN_CORE_WEB_SM_URL" || return $?
@@ -531,10 +535,16 @@ phase_prepare_weight_downloads() {
 
 phase_download_weight_groups_parallel() {
   if env_flag_is_true "$DOWNLOAD_WEIGHTS_PREFETCH_ONLY"; then
-    run_parallel_steps \
-      "Download MuseTalk model weights::download_musetalk_weights_group" \
-      "Download base runtime model weights::download_base_runtime_weights_group" \
+    local -a prefetch=(
+      "Download MuseTalk model weights::download_musetalk_weights_group"
+      "Download base runtime model weights::download_base_runtime_weights_group"
       "Download avatar-preparation model weights::download_avatar_prep_weights_group"
+      "Download Kokoro TTS cache (optional)::download_kokoro_group")
+    # The face-parse checkpoint needs gdown (pinned into the prefetch tools dir).
+    if command -v gdown >/dev/null 2>&1; then
+      prefetch+=("Download face parsing support weights::download_face_parse_support_weights_group")
+    fi
+    run_parallel_steps "${prefetch[@]}"
     return
   fi
   run_parallel_steps \

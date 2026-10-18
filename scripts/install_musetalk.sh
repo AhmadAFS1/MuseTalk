@@ -937,7 +937,34 @@ phase_chin_tools() {
 }
 
 # ---- phase: smoke + self-test
+# The CPU import smoke needs only the venv (CUDA hidden), so it starts right after
+# Phase 3 and runs while Phase 4 waits for weights; Phase 7 collects its result.
+# MUSETALK_EARLY_SMOKE=0 runs it in Phase 7 as before.
+EARLY_SMOKE_PID=""
+start_early_smoke() {
+  flag_on "${MUSETALK_EARLY_SMOKE:-1}" || return 0
+  [[ -x "$VENV_PY" ]] || return 0
+  rm -f "$WORK_DIR/smoke.json" "$WORK_DIR/smoke.rc"
+  ( rc=0; run_import_smoke "$WORK_DIR/smoke.json" "$KOKORO" "$LEGACY_INT8" "$AVATAR_PREP" || rc=$?
+    echo "$rc" > "$WORK_DIR/smoke.rc" ) >"$WORK_DIR/smoke.log" 2>&1 8<&- 9<&- &
+  EARLY_SMOKE_PID=$!
+  log "Started the CPU import smoke in the background (pid=$EARLY_SMOKE_PID)"
+}
+
+collect_early_smoke() {
+  # Parent shell only: run_strict_step runs steps in a subshell, which cannot wait for this job.
+  [[ -n "$EARLY_SMOKE_PID" ]] || return 0
+  local started=$SECONDS
+  wait "$EARLY_SMOKE_PID" || true
+  EARLY_SMOKE_PID=""
+  log "Background CPU import smoke collected (waited $((SECONDS - started))s)"
+}
+
 smoke_step() {
+  if [[ -f "$WORK_DIR/smoke.rc" ]]; then
+    cat "$WORK_DIR/smoke.log"
+    return "$(cat "$WORK_DIR/smoke.rc")"
+  fi
   run_import_smoke "$WORK_DIR/smoke.json" "$KOKORO" "$LEGACY_INT8" "$AVATAR_PREP"
 }
 
@@ -953,6 +980,7 @@ selftest_step() {
 }
 
 phase_verify() {
+  collect_early_smoke
   run_strict_step "CPU import smoke (CUDA hidden)" smoke_step
   local deferred
   deferred="$("$HOST_PY" -c 'import json,sys; print(",".join(json.load(open(sys.argv[1])).get("deferred") or []))' "$WORK_DIR/smoke.json" 2>/dev/null || true)"
@@ -1004,6 +1032,7 @@ wait_for_apt_prefetch  # Later phases need the system packages even when Phase 3
 # open it here for paths that never acquire (reused venv, pip mode).
 if [[ -n "${MUSETALK_DOWNLOAD_GATE:-}" ]]; then rm -f "$MUSETALK_DOWNLOAD_GATE"; fi
 start_numba_prewarm
+start_early_smoke
 run_install_phase "Phase 4" "Weights" "download_weights.sh (+ pinned TAESD, optional Kokoro cache)." phase_weights
 run_install_phase "Phase 5" "Native VP8" "Pinned native VP8 encoder files + CPU preflight (default encoder stays pyav)." phase_native_vp8
 run_install_phase "Phase 6" "Chin tools" "Optional dedicated MediaPipe venv for the offline chin tracker." phase_chin_tools

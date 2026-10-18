@@ -289,18 +289,19 @@ start_weights_prefetch() {
   export MUSETALK_WEIGHTS_PREFETCH_DIR="$dir"
   bootstrap_log 'Weight prefetch queued (image interpreter)'
   (
-    if [[ ! -d "$tools/hf_xet" ]]; then
+    if [[ ! -d "$tools/hf_xet" || ! -d "$tools/gdown" ]]; then
       "$py" -m pip install --disable-pip-version-check --no-cache-dir --no-deps --require-hashes \
         --target "$tools" -r "$REPO_DIR/configs/dependencies/weights-prefetch-tools.txt" >"$dir/tools.log" 2>&1 \
-        || bootstrap_log 'hf_xet unavailable for prefetch; plain HTTP downloads'
+        || bootstrap_log 'Prefetch tools unavailable; plain HTTP downloads, face-parse left to Phase 4'
     fi
     wait_for_download_gate 'Weight prefetch'
     started=$SECONDS
     cd "$REPO_DIR"
     rc=0
-    PATH="/venv/main/bin:$PATH" PYTHONPATH="$tools" DOWNLOAD_WEIGHTS_PREFETCH_ONLY=1 \
+    # Kokoro and face-parse too: left to Phase 4 they cost ~8 s after the wait (c5-a).
+    PATH="$tools/bin:/venv/main/bin:$PATH" PYTHONPATH="$tools" DOWNLOAD_WEIGHTS_PREFETCH_ONLY=1 \
       DOWNLOAD_MUSETALK_V1_WEIGHTS=0 DOWNLOAD_AVATAR_PREP_WEIGHTS=1 DOWNLOAD_TAESD_WEIGHTS=1 \
-      DOWNLOAD_KOKORO_WEIGHTS=0 DOWNLOAD_SYNCNET_WEIGHTS=0 \
+      DOWNLOAD_KOKORO_WEIGHTS=1 DOWNLOAD_SYNCNET_WEIGHTS=0 \
       bash download_weights.sh >"$dir/download.log" 2>&1 || rc=$?
     echo "$rc" > "$dir/rc"
     rm -f "$dir/pending"
