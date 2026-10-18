@@ -142,6 +142,8 @@ configure_locked_boot() {
   export WORKSPACE=/workspace
   export PROFILE=throughput_record PORT
   export MUSETALK_RECIPE="${MUSETALK_RECIPE:-r5}"
+  # The compiled-TAESD self-test timing only matters for the fast recipe.
+  if [[ "$MUSETALK_RECIPE" == r5 ]]; then export MUSETALK_SELFTEST_SKIP_COMPILE=1; fi
   export STARTUP_TIMEOUT_SECONDS="${STARTUP_TIMEOUT_SECONDS:-1800}"
   # Keep read URLs in a pipe, not a template literal, argv or a temporary file.
   if [[ -n "${MUSETALK_DEPENDENCY_TICKETS_JSON:-}" ]]; then

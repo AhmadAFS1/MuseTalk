@@ -80,6 +80,7 @@ configure_locked_boot
 [[ -z "${MUSETALK_DEPENDENCY_TICKETS_JSON+set}" ]]
 [[ "$SETUP_CLEAN" == 0 && "$SETUP_FULL_STACK" == 1 && "$MUSETALK_DEPENDENCY_WORKERS" == 4 ]]
 [[ "$DOWNLOAD_SYNCNET_WEIGHTS" == 0 ]]
+[[ "$MUSETALK_SELFTEST_SKIP_COMPILE" == 1 ]]
 [[ "$MUSETALK_DEPENDENCY_INSTALL_MODE" == locked-wheelhouse-uv ]]
 line=""; IFS= read -r -u 8 line || [[ -n "$line" ]]
 [[ "$line" == '{"fixture":"ticket"}' ]]

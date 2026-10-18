@@ -886,6 +886,9 @@ smoke_step() {
 selftest_step() {
   local -a args=(--repo-root "$REPO_ROOT" --out "$SELFTEST_OUT" --buckets "$SELFTEST_BUCKETS")
   (( SELFTEST_UNET )) && args+=(--unet)
+  # r5 serves TAESD from its prebuilt TRT engine; the compiled-TAESD timing (~44 s on a
+  # 3090) only informs the fast recipe, and a skipped compile reads as "unknown" there.
+  [[ "${MUSETALK_SELFTEST_SKIP_COMPILE:-0}" == 1 ]] && args+=(--skip-compile)
   mkdir -p "$(dirname "$SELFTEST_OUT")"
   cd "$REPO_ROOT"
   timeout "$SELFTEST_TIMEOUT_S" "$VENV_PY" -B "$REPO_ROOT/scripts/musetalk_selftest.py" "${args[@]}"
