@@ -130,6 +130,9 @@ Environment: PIP_CACHE_DIR (respected), MUSETALK_WHEELHOUSE (extra --find-links 
     MUSETALK_DEPENDENCY_RANGE_STREAMS=0 (default, off) | 2 | 4 fetches public wheels >= 256 MiB
     as parallel byte ranges; MUSETALK_DEPENDENCY_MAX_CONNECTIONS=4 | 8 caps open connections
     (default: MUSETALK_DEPENDENCY_WORKERS).
+    MUSETALK_DEPENDENCY_SEED_SITE=<base image site-packages> (default unset = off) copies
+    contract-indexed artifacts whose every wheel file is hash-identical there instead of
+    downloading them (MUSETALK_DEPENDENCY_SEED_BYTECODE=1 also copies their unverified pycs).
     No silent source fallback. Existing foreign venvs are never adopted/overwritten.
 
 Examples:
@@ -759,6 +762,10 @@ phase_packages() {
     local -a transfer_args=(--range-streams "${MUSETALK_DEPENDENCY_RANGE_STREAMS:-0}")
     if [[ -n "${MUSETALK_DEPENDENCY_MAX_CONNECTIONS:-}" ]]; then
       transfer_args+=(--max-connections "$MUSETALK_DEPENDENCY_MAX_CONNECTIONS")
+    fi
+    # Opt-in base-image seeding (unset = off); needs a contract-pinned seed index.
+    if [[ -n "${MUSETALK_DEPENDENCY_SEED_SITE:-}" ]]; then
+      transfer_args+=(--seed-site "$MUSETALK_DEPENDENCY_SEED_SITE")
     fi
     run_strict_step "Locked dependency acquisition + packages ($DEPENDENCY_INSTALL_MODE, $group)" \
       "$PYTHON_BIN" -B "$SCRIPT_DIR/install_locked_dependencies.py" \

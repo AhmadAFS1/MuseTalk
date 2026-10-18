@@ -1,15 +1,18 @@
 """Stdlib fixtures only: no pip, CUDA, external network or package installation."""
 import contextlib
+import csv
 import datetime as dt
 import errno
 import hashlib
 import http.client
 import http.server
+import importlib.metadata
 import io
 import json
 import os
 from pathlib import Path
 import re
+import shutil
 import ssl
 import subprocess
 import sys
@@ -40,6 +43,8 @@ import dependency_canonical_integration_worker as canonical_integration
 import dependency_delivery_confirmation_worker as confirmation
 import dependency_warm_start_worker as warm_start
 import musetalk_install_state as install_state
+import dependency_seed as seed
+import build_dependency_seed_index as seed_builder
 
 
 def row(name="example", version="1.0", url="https://files.pythonhosted.org/example-1.0-py3-none-any.whl", content=b"wheel"):
@@ -1326,6 +1331,630 @@ class LockedInstallerTests(unittest.TestCase):
         self.assertIn('DEPENDENCY_INSTALL_MODE="${MUSETALK_DEPENDENCY_INSTALL_MODE:-source-pip}"',text)
         self.assertIn('Locked dependency phase owns venv/bootstrap timing',text)
         self.assertIn('install_locked_dependencies.py',text)
+
+
+# ---- Base-image seeding ---------------------------------------------------------------
+
+TORCH_FILES = {
+    "torch/__init__.py": b"from torch._impl import VALUE, main\n",
+    "torch/_impl.py": b"VALUE = 41\n\ndef main():\n    print(VALUE)\n    return 0\n",
+    "torch/lib/libfixture.so": bytes(range(256)) * 64,
+    "nsfixture/__init__.py": b"",
+}
+TORCHVISION_FILES = {
+    "torchvision/__init__.py": b"import torch\nVALUE = torch.VALUE + 1\n",
+    "nsfixture/__init__.py": b"",
+}
+
+
+def seed_wheel(folder, name, version, files, requires=(), entry_points=None, record_override=None, extra=None):
+    """Minimal but well-formed wheel; deterministic bytes."""
+    dist = name.replace("-", "_")
+    info = dist + "-" + version + ".dist-info"
+    entries = dict(files)
+    entries[info + "/METADATA"] = ("Metadata-Version: 2.1\nName: " + name + "\nVersion: " + version + "\n"
+                                   + "".join("Requires-Dist: " + r + "\n" for r in requires)).encode()
+    entries[info + "/WHEEL"] = b"Wheel-Version: 1.0\nGenerator: fixture\nRoot-Is-Purelib: true\nTag: py3-none-any\n"
+    if entry_points:
+        entries[info + "/entry_points.txt"] = entry_points.encode()
+    rows = [[p, seed.record_hash(hashlib.sha256(data).digest()), str(len(data))] for p, data in entries.items()]
+    for p, value in (record_override or {}).items():
+        rows = [r if r[0] != p else [p, *value] for r in rows]
+    rows.append([info + "/RECORD", "", ""])
+    text = io.StringIO()
+    csv.writer(text, lineterminator="\n").writerows(rows)
+    entries[info + "/RECORD"] = text.getvalue().encode()
+    entries.update(extra or {})
+    path = Path(folder) / (dist + "-" + version + "-py3-none-any.whl")
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        for p, data in entries.items():
+            member = zipfile.ZipInfo(p, (2020, 1, 1, 0, 0, 0))
+            member.external_attr = (0o755 if p.endswith(".so") else 0o644) << 16
+            archive.writestr(member, data)
+    return path
+
+
+def fixture_wheels(folder, torch_extra=None, torch_entry=None):
+    folder = Path(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    files = dict(TORCH_FILES, **(torch_extra or {}))
+    torch = seed_wheel(folder, "torch", "2.5.1+cu121", files,
+                       entry_points=torch_entry or "[console_scripts]\ntorchrun-fixture = torch._impl:main\n")
+    vision = seed_wheel(folder, "torchvision", "0.20.1+cu121", TORCHVISION_FILES, requires=("torch==2.5.1+cu121",))
+    return {"torch": torch, "torchvision": vision}
+
+
+def seed_manifest(wheels):
+    """Valid locked manifest whose torch/torchvision rows are the fixture wheels."""
+    m = manifest()
+    for a in m["artifacts"]:
+        if a["name"] in wheels:
+            data = Path(wheels[a["name"]]).read_bytes()
+            new = d.artifact(row(a["name"], a["version"], "https://files.pythonhosted.org/" + Path(wheels[a["name"]]).name,
+                                 content=data), a["introduced_by"])
+            new["size_bytes"] = len(data)
+            a.clear()
+            a.update(new)
+    m["artifact_id"] = d.digest(d.identity(m))
+    return d.validate_manifest(m)
+
+
+def pip_like_install(wheel, site):
+    """What a base image holds: wheel files plus installer-written metadata."""
+    site = Path(site)
+    with zipfile.ZipFile(wheel) as archive:
+        for member in archive.infolist():
+            target = site / member.filename
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(archive.read(member))
+            target.chmod((member.external_attr >> 16) & 0o777 or 0o644)
+        info = next(n.split("/")[0] for n in archive.namelist() if n.split("/")[0].endswith(".dist-info"))
+    (site / info / "INSTALLER").write_text("pip\n")
+    (site / info / "REQUESTED").write_text("")
+    with (site / info / "RECORD").open("a") as out:
+        out.write(info + "/INSTALLER,sha256=not-a-wheel-file,4\n")
+
+
+def write_seed_index(manifest_value, wheels_dir, repo, names=("torch", "torchvision")):
+    document = seed_builder.build(manifest_value, wheels_dir, names)
+    relative = seed_builder.index_path(manifest_value["artifact_id"])
+    pin = seed_builder.write(document, Path(repo) / relative)
+    return document, dict(path=relative, **pin)
+
+
+def base_contract():
+    config = json.loads((Path(__file__).parent / "configs/dependencies/rtx3090-cp310-cu121-screening.json").read_text())
+    config.pop("seed_index", None)
+    return config
+
+
+class SeedIndexTests(unittest.TestCase):
+    def test_index_build_is_deterministic_and_mirrors_wheel_record(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            wheels = fixture_wheels(root / "wheels")
+            m = seed_manifest(wheels)
+            first, pin = write_seed_index(m, root / "wheels", root / "a")
+            again, pin_again = write_seed_index(m, root / "wheels", root / "b", names=("torchvision", "torch"))
+            self.assertEqual(pin, pin_again)
+            self.assertEqual((root / "a" / pin["path"]).read_bytes(), (root / "b" / pin["path"]).read_bytes())
+            self.assertEqual(pin["path"], "configs/dependencies/seed-index-" + m["artifact_id"] + ".json.gz")
+            raw = (root / "a" / pin["path"]).read_bytes()
+            self.assertEqual(raw[4:8], b"\x00\x00\x00\x00")  # gzip mtime zeroed
+            self.assertEqual(json.loads(__import__("gzip").decompress(raw)), first)
+            torch = first["artifacts"][0]
+            self.assertEqual([e["name"] for e in first["artifacts"]], ["torch", "torchvision"])
+            self.assertEqual((torch["dist_info"], torch["has_data_dir"], torch["sha256"], torch["size_bytes"]),
+                             ("torch-2.5.1+cu121.dist-info", False, next(a["sha256"] for a in m["artifacts"]
+                              if a["name"] == "torch"), wheels["torch"].stat().st_size))
+            with zipfile.ZipFile(wheels["torch"]) as archive:
+                listed = list(csv.reader(io.StringIO(archive.read("torch-2.5.1+cu121.dist-info/RECORD").decode())))
+            self.assertEqual(torch["record"], [[p, h, int(s)] for p, h, s in listed if h])
+            self.assertEqual(torch["files"], len(listed) - 1)
+            self.assertEqual(torch["installed_bytes"], sum(int(s) for _, h, s in listed if h))
+
+    def test_builder_rejects_wheels_that_differ_from_manifest_or_their_record(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            wheels = fixture_wheels(root / "wheels")
+            m = seed_manifest(wheels)
+            data = bytearray(wheels["torch"].read_bytes())
+            data[-30] ^= 1
+            wheels["torch"].write_bytes(bytes(data))
+            with self.assertRaisesRegex(ValueError, "differs from the locked manifest"):
+                seed_builder.build(m, root / "wheels", ("torch",))
+            with self.assertRaisesRegex(ValueError, "absent from manifest"):
+                seed_builder.build(m, root / "wheels")  # Default set names the real CUDA wheels.
+            bad = root / "bad"
+            for case, kwargs, message in (
+                    ("hash", {"record_override": {"torch/_impl.py": ["sha256=" + "A" * 43, "41"]}}, "RECORD"),
+                    ("unlisted", {"extra": {"torch/unlisted.py": b"x = 1\n"}}, "members and RECORD differ"),
+                    ("unhashed", {"record_override": {"torch/_impl.py": ["", ""]}}, "Unhashed")):
+                with self.subTest(case=case):
+                    shutil.rmtree(bad, ignore_errors=True)
+                    bad.mkdir()
+                    wheel = seed_wheel(bad, "torch", "2.5.1+cu121", TORCH_FILES, **kwargs)
+                    vision = seed_wheel(bad, "torchvision", "0.20.1+cu121", TORCHVISION_FILES)
+                    case_manifest = seed_manifest({"torch": wheel, "torchvision": vision})
+                    with self.assertRaisesRegex(ValueError, message):
+                        seed_builder.build(case_manifest, bad, ("torch",))
+
+    def test_contract_seed_index_field_is_optional_and_strict(self):
+        config = base_contract()
+        locked.check_contract(config)
+        good = {"path": "configs/dependencies/seed-index-" + config["artifact_id"] + ".json.gz",
+                "sha256": "a" * 64, "bytes": 1234}
+        locked.check_contract(dict(config, seed_index=good))
+        for mutation in ({"path": "../seed.json.gz"}, {"path": "configs/dependencies/seed-index-" + "b" * 64 + ".json.gz"},
+                         {"sha256": "A" * 64}, {"bytes": 0}, {"bytes": "1234"}, {"bytes": 64 * 1024**2},
+                         {"extra": 1}):
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, "Seed index"):
+                locked.check_contract(dict(config, seed_index=dict(good, **mutation)))
+        with self.assertRaisesRegex(ValueError, "Seed index"):
+            locked.check_contract(dict(config, seed_index=None))
+
+    def test_load_index_requires_pinned_bytes_and_matching_manifest(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            wheels = fixture_wheels(root / "wheels")
+            m = seed_manifest(wheels)
+            repo = root / "repo"
+            document, pin = write_seed_index(m, root / "wheels", repo)
+            contract = dict(base_contract(), artifact_id=m["artifact_id"], seed_index=pin)
+            self.assertEqual(seed.load_index(contract, m, repo), document)
+            for change, message in (({"sha256": "0" * 64}, "digest"), ({"bytes": pin["bytes"] + 1}, "size")):
+                with self.subTest(change=change), self.assertRaisesRegex(ValueError, message):
+                    seed.load_index(dict(contract, seed_index=dict(pin, **change)), m, repo)
+            other = json.loads(json.dumps(m))
+            next(a for a in other["artifacts"] if a["name"] == "torch")["sha256"] = "f" * 64
+            with self.assertRaisesRegex(ValueError, "differs from the locked manifest"):
+                seed.load_index(contract, other, repo)
+            path = repo / pin["path"]
+            path.rename(root / "real.gz")
+            path.symlink_to(root / "real.gz")
+            with self.assertRaisesRegex(ValueError, "missing or unsafe"):
+                seed.load_index(contract, m, repo)
+
+    def test_index_with_traversal_or_installer_files_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            m = seed_manifest(fixture_wheels(root / "wheels"))
+            document = seed_builder.build(m, root / "wheels", ("torch", "torchvision"))
+            torch = document["artifacts"][0]
+            for path in ("../escape.py", "/abs.py", "torch/../../x.py", "torch//x.py", "torch\\x.py",
+                         torch["dist_info"] + "/RECORD", torch["dist_info"] + "/INSTALLER",
+                         "other-1.0.dist-info/METADATA"):
+                with self.subTest(path=path):
+                    bad = json.loads(json.dumps(document))
+                    bad["artifacts"][0]["record"][0][0] = path
+                    with self.assertRaises(ValueError):
+                        seed.validate_index(bad, m)
+
+
+class SeedStageTests(unittest.TestCase):
+    def prepare(self, root, torch_extra=None, torch_entry=None):
+        wheels = fixture_wheels(root / "wheels", torch_extra, torch_entry)
+        m = seed_manifest(wheels)
+        site = root / "image/lib/python3.10/site-packages"
+        site.mkdir(parents=True)
+        for wheel in wheels.values():
+            pip_like_install(wheel, site)
+        document = seed_builder.build(m, root / "wheels", ("torch", "torchvision"))
+        venv = root / "venvs/new"
+        venv.mkdir(parents=True)
+        return m, site, document, venv
+
+    def stage(self, m, site, document, venv, **kwargs):
+        return seed.stage(document, d.selected(m, "server"), site, venv, workers=2, **kwargs)
+
+    def test_verified_artifacts_publish_as_importable_distributions(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            m, site, document, venv = self.prepare(root)
+            plan = self.stage(m, site, document, venv)
+            receipt = plan["receipt"]
+            self.assertEqual((receipt["state"], receipt["seeded"], receipt["rejected"]),
+                             ("seeded", ["torch", "torchvision"], []))
+            self.assertEqual(receipt["bytes_avoided"], sum(a["size_bytes"] for a in m["artifacts"]
+                                                           if a["name"] in ("torch", "torchvision")))
+            self.assertEqual(receipt["files_verified"], sum(e["files"] for e in document["artifacts"]))
+            for artifact in receipt["artifacts"]:
+                self.assertLessEqual({"name", "wheel_bytes_avoided", "files_verified", "seconds"}, set(artifact))
+            subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(venv)], check=True)
+            published = seed.publish(plan, venv)
+            self.assertEqual(published["scripts_written"], 1)
+            self.assertFalse((venv / seed.STAGING).exists())
+            target = seed.site_packages(venv)
+            info = target / "torch-2.5.1+cu121.dist-info"
+            self.assertEqual((info / "INSTALLER").read_text(), "musetalk-seed\n")
+            self.assertFalse((info / "REQUESTED").exists())
+            rows = list(csv.reader(io.StringIO((info / "RECORD").read_text())))
+            self.assertEqual(rows[:len(document["artifacts"][0]["record"])],
+                             [[p, h, str(s)] for p, h, s in document["artifacts"][0]["record"]])
+            self.assertEqual(rows[-1], ["torch-2.5.1+cu121.dist-info/RECORD", "", ""])
+            self.assertIn("../../../bin/torchrun-fixture", {r[0] for r in rows})
+            self.assertTrue(os.access(target / "torch/lib/libfixture.so", os.X_OK))
+            self.assertEqual((target / "torch/_impl.py").stat().st_mtime_ns,
+                             (site / "torch/_impl.py").stat().st_mtime_ns)
+            code = ("import importlib.metadata as m,json,torchvision;print(json.dumps([torchvision.VALUE,"
+                    "m.version('torch'),m.version('torchvision'),m.distribution('torch').read_text('INSTALLER')]))")
+            out = subprocess.check_output([str(venv / "bin/python"), "-I", "-c", code], text=True)
+            self.assertEqual(json.loads(out), [42, "2.5.1+cu121", "0.20.1+cu121", "musetalk-seed\n"])
+            self.assertEqual(locked.inventory(venv), {"torch": "2.5.1+cu121", "torchvision": "0.20.1+cu121"})
+            self.assertEqual(subprocess.check_output([str(venv / "bin/torchrun-fixture")], text=True), "41\n")
+
+    def test_any_single_file_problem_rejects_only_that_artifact(self):
+        def tamper_hash(site, root):
+            (site / "torch/_impl.py").write_bytes(b"VALUE = 99\n\ndef main():\n    print(VALUE)\n    return 0\n")
+
+        def tamper_size(site, root):
+            with (site / "torch/_impl.py").open("ab") as out:
+                out.write(b"#")
+
+        def tamper_missing(site, root):
+            (site / "torch/lib/libfixture.so").unlink()
+
+        def tamper_symlink(site, root):
+            target = site / "torch/_impl.py"
+            shutil.copy2(target, site / "same-bytes.py")
+            target.unlink()
+            target.symlink_to(site / "same-bytes.py")
+
+        def tamper_escape(site, root):
+            shutil.copytree(site / "torch/lib", root / "outside-lib")
+            shutil.rmtree(site / "torch/lib")
+            (site / "torch/lib").symlink_to(root / "outside-lib")
+
+        def tamper_fifo(site, root):
+            (site / "torch/_impl.py").unlink()
+            os.mkfifo(site / "torch/_impl.py")
+
+        def tamper_directory(site, root):
+            (site / "torch/_impl.py").unlink()
+            (site / "torch/_impl.py").mkdir()
+
+        cases = (("hash", tamper_hash), ("size", tamper_size), ("missing", tamper_missing), ("symlink", tamper_symlink),
+                 ("symlinked-escaping-or-missing-directory", tamper_escape), ("not-a-regular-file", tamper_fifo),
+                 ("not-a-regular-file", tamper_directory))
+        for reason, tamper in cases:
+            with self.subTest(reason=reason), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder).resolve()
+                m, site, document, venv = self.prepare(root)
+                tamper(site, root)
+                plan = self.stage(m, site, document, venv)
+                receipt = plan["receipt"]
+                self.assertEqual((receipt["seeded"], receipt["rejected"]), (["torchvision"], ["torch"]))
+                torch = next(a for a in receipt["artifacts"] if a["name"] == "torch")
+                self.assertEqual((torch["state"], torch["reason"]), ("rejected", reason))
+                self.assertEqual(torch["wheel_bytes_avoided"], 0)
+                self.assertFalse((venv / seed.STAGING / "torch").exists())
+                self.assertEqual([e["name"] for e in plan["staged"]], ["torchvision"])
+                self.assertEqual(seed.without(m, receipt["seeded"])["artifacts"],
+                                 [a for a in m["artifacts"] if a["name"] != "torchvision"])
+
+    def test_data_dirs_conflicts_and_bad_entry_points_are_never_seeded(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            m, site, document, venv = self.prepare(root, torch_extra={"torch-2.5.1+cu121.data/scripts/tool": b"#!python\n"})
+            torch = next(e for e in document["artifacts"] if e["name"] == "torch")
+            self.assertTrue(torch["has_data_dir"])
+            receipt = self.stage(m, site, document, venv)["receipt"]
+            self.assertEqual((receipt["seeded"], receipt["artifacts"][0]["reason"]), (["torchvision"], "wheel-data-dir"))
+        with tempfile.TemporaryDirectory() as folder:
+            # A shared path with different bytes: only the wheel matching the site file verifies.
+            root = Path(folder).resolve()
+            m, site, document, venv = self.prepare(root, torch_extra={"nsfixture/__init__.py": b"# differs\n"})
+            receipt = self.stage(m, site, document, venv)["receipt"]
+            self.assertEqual((receipt["seeded"], receipt["artifacts"][0]["reason"]), (["torchvision"], "size"))
+            # Should the site change between two verifications, the later artifact is still refused.
+            shutil.rmtree(venv / seed.STAGING)
+            (site / "nsfixture/__init__.py").write_bytes(b"# differs\n")
+            original = seed.stage_artifact
+
+            def swap_after_torch(entry, *args):
+                value = original(entry, *args)
+                if entry["name"] == "torch":
+                    (site / "nsfixture/__init__.py").write_bytes(b"")
+                return value
+            with patch.object(seed, "stage_artifact", swap_after_torch):
+                plan = seed.stage(document, d.selected(m, "server"), site, venv, workers=1)
+            receipt = plan["receipt"]
+            self.assertEqual(receipt["seeded"], ["torch"])
+            self.assertEqual(next(a for a in receipt["artifacts"] if a["name"] == "torchvision")["reason"], "path-conflict")
+            self.assertFalse((venv / seed.STAGING / "torchvision").exists())
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            m, site, document, venv = self.prepare(root, torch_entry="[console_scripts]\nbad/name = torch:main\n")
+            receipt = self.stage(m, site, document, venv)["receipt"]
+            self.assertEqual(next(a for a in receipt["artifacts"] if a["name"] == "torch")["reason"], "entry-points")
+
+    def test_unavailable_site_and_bytecode_opt_in(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            m, site, document, venv = self.prepare(root)
+            plan = seed.stage(document, d.selected(m, "server"), root / "absent", venv)
+            self.assertEqual((plan["receipt"]["state"], plan["receipt"]["reason"], plan["staged"]),
+                             ("skipped", "seed-site-unavailable", []))
+            self.assertFalse((venv / seed.STAGING).exists())
+            self.assertEqual(seed.stage(document, d.selected(m, "server"), venv, venv)["receipt"]["reason"],
+                             "seed-site-inside-target-venv")
+            import py_compile
+            source = site / "torch/_impl.py"
+            pyc = Path(py_compile.compile(str(source), doraise=True))
+            plan = self.stage(m, site, document, venv)
+            self.assertFalse(list((venv / seed.STAGING).rglob("*.pyc")))
+            shutil.rmtree(venv / seed.STAGING)
+            plan = self.stage(m, site, document, venv, bytecode=True)
+            self.assertTrue(plan["receipt"]["bytecode"])
+            staged = next(e for e in plan["staged"] if e["name"] == "torch")
+            self.assertEqual([r[0] for r in staged["bytecode"]], ["torch/__pycache__/" + pyc.name])
+            copied = staged["root"] / "torch/__pycache__" / pyc.name
+            self.assertEqual((copied.read_bytes(), copied.stat().st_mtime_ns), (pyc.read_bytes(), pyc.stat().st_mtime_ns))
+
+    def test_seed_settings_from_flag_and_environment(self):
+        from types import SimpleNamespace
+        site = "/venv/main/lib/python3.10/site-packages"
+        self.assertEqual(locked.seed_settings(SimpleNamespace(), {}), (None, False))
+        self.assertEqual(locked.seed_settings(SimpleNamespace(), {locked.SEED_SITE_ENV: " "}), (None, False))
+        self.assertEqual(locked.seed_settings(SimpleNamespace(), {locked.SEED_SITE_ENV: site}), (Path(site), False))
+        self.assertEqual(locked.seed_settings(SimpleNamespace(seed_site=Path("/other")), {locked.SEED_SITE_ENV: site,
+                         locked.SEED_BYTECODE_ENV: "1"}), (Path("/other"), True))
+        for bad in ({locked.SEED_SITE_ENV: "relative/site"}, {locked.SEED_SITE_ENV: site, locked.SEED_BYTECODE_ENV: "yes"}):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                locked.seed_settings(SimpleNamespace(), bad)
+
+    def test_canonical_installer_passes_seed_site_through(self):
+        text = (Path(__file__).parent / "scripts/install_musetalk.sh").read_text()
+        body = re.search(r"(?ms)^phase_packages\(\) \{\n.*?^\}", text).group(0)
+        stub = ('set -Eeuo pipefail\nflag_on() { [[ "$1" == 1 ]]; }\nlog() { :; }\n'
+                'run_strict_step() { shift; printf "|%s" "$@"; }\n'
+                'DEPENDENCY_INSTALL_MODE=locked-wheelhouse-uv KOKORO=0 AVATAR_PREP=0 PYTHON_BIN=py SCRIPT_DIR=/s\n'
+                'DEPENDENCY_CONTRACT=/c REPO_ROOT=/r VENV_PATH=/v DEPENDENCY_CACHE=/d\n')
+        clean = {k: v for k, v in os.environ.items() if not k.startswith("MUSETALK_")}
+        site = "/venv/main/lib/python3.10/site-packages"
+        for env, expected in (({}, "|--range-streams|0"), ({"MUSETALK_DEPENDENCY_SEED_SITE": ""}, "|--range-streams|0"),
+                              ({"MUSETALK_DEPENDENCY_SEED_SITE": site}, "|--range-streams|0|--seed-site|" + site)):
+            with self.subTest(env=env):
+                result = subprocess.run(["/bin/bash", "-c", stub + body + "\nphase_packages\n"], env=dict(clean, **env),
+                                        capture_output=True, text=True, timeout=5)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertTrue(result.stdout.endswith(expected), result.stdout)
+
+    def test_reviewed_contract_seed_index_matches_reviewed_manifest(self):
+        repo = Path(__file__).resolve().parent
+        contract = json.loads((repo / "configs/dependencies/rtx3090-cp310-cu121-screening.json").read_text())
+        locked.check_contract(contract)
+        if "seed_index" not in contract:
+            self.skipTest("Contract pins no seed index yet (seeding stays off)")
+        m = f.read_trusted(repo / "docs/dependency_optimization_20261015/wheelhouse-manifest-a2.json",
+                           contract["manifest_sha256"])
+        index = seed.load_index(contract, m, repo)
+        self.assertTrue(all(not e["has_data_dir"] for e in index["artifacts"]))
+
+
+class SeedInstallerRunTests(unittest.TestCase):
+    """run() with platform, network, subprocess and disk probes replaced by fakes."""
+
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.root = root = Path(folder.name).resolve()
+        self.wheels = fixture_wheels(root / "wheels")
+        self.manifest = m = seed_manifest(self.wheels)
+        self.repo = root / "repo"
+        self.repo.mkdir()
+        _, self.pin = write_seed_index(m, root / "wheels", self.repo)
+        self.site = root / "image/lib/python3.10/site-packages"
+        self.site.mkdir(parents=True)
+        for wheel in self.wheels.values():
+            pip_like_install(wheel, self.site)
+        self.cache = root / "cache"
+        (self.cache / m["artifact_id"]).mkdir(parents=True)
+        (self.cache / m["artifact_id"] / "manifest.json").write_text(json.dumps(m))
+
+    def run_installer(self, name, seed_index=True, seed_site=True, environ=None):
+        from types import SimpleNamespace
+        m = self.manifest
+        config = dict(base_contract(), artifact_id=m["artifact_id"], prefix=f.PRIVATE_PREFIX + m["artifact_id"] + "/",
+                      manifest_sha256=f.sha256_file(self.cache / m["artifact_id"] / "manifest.json"))
+        if seed_index:
+            config["seed_index"] = self.pin
+        contract = self.root / (name + "-contract.json")
+        contract.write_text(json.dumps(config))
+        venv = self.root / "venvs" / name
+        venv.parent.mkdir(exist_ok=True)
+        args = SimpleNamespace(contract=contract, repo_root=self.repo, venv=venv, cache_root=self.cache,
+                               mode="locked-wheelhouse-pip", group="server", workers=2, range_streams=None,
+                               max_connections=None, seed_site=self.site if seed_site else None, check=False, repair=False)
+        calls = {"steps": [], "locks": {}, "seen": {}}
+
+        def command(cmd, step, logs, env):
+            calls["steps"].append(step)
+            if "-r" in cmd:
+                calls["locks"][step] = Path(cmd[cmd.index("-r") + 1]).read_text()
+            if step == "venv":
+                (venv / "lib/python3.10/site-packages").mkdir(parents=True)
+                (venv / "bin").mkdir()
+                (venv / "bin/python").write_text("")
+            return {"step": step, "exit_status": 0}
+
+        def inventory(path):
+            site = path / "lib/python3.10/site-packages"
+            found = {re.sub(r"[-_.]+", "-", dist.metadata["Name"]).lower(): dist.version
+                     for dist in importlib.metadata.distributions(path=[str(site)])}
+            calls["seen"] = found
+            return dict({a["name"]: a["version"] for a in d.selected(m, "server")}, **found)
+
+        acquire = MagicMock(return_value={"state": "acquisition-complete", "artifacts": []})
+        with patch.object(locked, "check_platform"), patch.object(locked.fetch, "acquire", acquire), \
+                patch.object(locked.bench, "command", command), patch.object(locked, "inventory", inventory), \
+                patch.object(locked.shutil, "disk_usage", return_value=MagicMock(free=10**15)), \
+                patch.dict(os.environ, environ or {}, clear=False):
+            for key in (locked.SEED_SITE_ENV, locked.SEED_BYTECODE_ENV):
+                if key not in (environ or {}):
+                    os.environ.pop(key, None)
+            result = locked.run(args, lambda: {"manifest": None, "wheels": {}})
+        calls["acquire"] = acquire.call_args
+        return result, calls, venv
+
+    def test_seeded_artifacts_are_not_acquired_and_locks_are_unchanged(self):
+        result, calls, venv = self.run_installer("seeded")
+        self.assertEqual(result["state"], "accepted")
+        view = calls["acquire"].args[0]
+        self.assertEqual({a["name"] for a in self.manifest["artifacts"]} - {a["name"] for a in view["artifacts"]},
+                         {"torch", "torchvision"})
+        self.assertEqual(view["artifact_id"], self.manifest["artifact_id"])
+        installed = sum(e["installed_bytes"] for e in seed.load_index(dict(base_contract(), seed_index=self.pin),
+                                                                       self.manifest, self.repo)["artifacts"])
+        self.assertEqual(calls["acquire"].kwargs["reserve_bytes"], 30 * 1024**3 - installed)
+        self.assertEqual(calls["locks"]["install-server"], d.offline_lock(self.manifest, "server"))
+        self.assertEqual(calls["steps"], ["venv", "bootstrap", "install-server", "pip-check"])
+        self.assertEqual(calls["seen"], {"torch": "2.5.1+cu121", "torchvision": "0.20.1+cu121"})
+        receipt = result["seed"]
+        self.assertEqual((receipt["state"], receipt["seeded"], receipt["index_sha256"]),
+                         ("seeded", ["torch", "torchvision"], self.pin["sha256"]))
+        self.assertEqual(receipt["bytes_avoided"], sum(p.stat().st_size for p in self.wheels.values()))
+        self.assertGreater(receipt["files_published"], 0)
+        self.assertIn("publish_seconds", receipt)
+        self.assertFalse((venv / seed.STAGING).exists())
+        for key in ("state", "requested_mode", "actual_mode", "artifact_id", "group", "fallback", "steps",
+                    "acquisition", "inventory_diff", "seconds"):
+            self.assertIn(key, result)
+        logged = json.loads(next((self.cache / self.manifest["artifact_id"]).glob("install-*/receipt.json")).read_text())
+        self.assertEqual(logged["seed"]["seeded"], ["torch", "torchvision"])
+
+    def test_mismatched_seed_artifact_is_downloaded_instead(self):
+        (self.site / "torch/_impl.py").write_bytes(b"VALUE = 99\n\ndef main():\n    print(VALUE)\n    return 0\n")
+        result, calls, venv = self.run_installer("tampered")
+        self.assertEqual(result["state"], "accepted")
+        names = {a["name"] for a in calls["acquire"].args[0]["artifacts"]}
+        self.assertIn("torch", names)
+        self.assertNotIn("torchvision", names)
+        self.assertEqual(result["seed"]["rejected"], ["torch"])
+        self.assertEqual(calls["seen"], {"torchvision": "0.20.1+cu121"})
+        self.assertFalse((venv / "lib/python3.10/site-packages/torch").exists())
+
+    def test_without_seed_index_or_seed_site_installation_is_unchanged(self):
+        runs = {"no-site": self.run_installer("no-site", seed_site=False),
+                "no-site-index-pinned": self.run_installer("no-site-index-pinned", seed_index=True, seed_site=False),
+                "no-index": self.run_installer("no-index", seed_index=False)}
+        (self.repo / self.pin["path"]).unlink()  # Never read unless a seed site is configured.
+        runs["no-site-missing-index"] = self.run_installer("no-site-missing-index", seed_site=False)
+        for name, (result, calls, venv) in runs.items():
+            with self.subTest(run=name):
+                self.assertEqual(result["state"], "accepted")
+                self.assertEqual(calls["acquire"].args[0]["artifacts"], self.manifest["artifacts"])
+                self.assertEqual(calls["acquire"].kwargs["reserve_bytes"], 30 * 1024**3)
+                self.assertEqual(calls["steps"], ["venv", "bootstrap", "install-server", "pip-check"])
+                self.assertEqual(calls["locks"], runs["no-site"][1]["locks"])
+                self.assertEqual(calls["seen"], {})
+                self.assertFalse((venv / seed.STAGING).exists())
+                if name == "no-index":
+                    self.assertEqual(result["seed"]["state"], "disabled")
+                else:
+                    self.assertNotIn("seed", result)
+        self.assertEqual(set(runs["no-site"][0]) | {"seed"}, set(runs["no-index"][0]))
+
+    def test_seed_site_from_environment_and_repair_skips_seeding(self):
+        result, calls, venv = self.run_installer("from-env", seed_site=False,
+                                                 environ={locked.SEED_SITE_ENV: str(self.site)})
+        self.assertEqual(result["seed"]["seeded"], ["torch", "torchvision"])
+        marker = json.loads((venv / locked.MARKER).read_text())
+        self.assertEqual(marker["state"], "accepted")
+        bad = dict(base_contract(), seed_index=dict(self.pin, sha256="0" * 64))
+        self.assertEqual(locked.seed_plan(bad, self.manifest, self.repo, venv, "server", self.site, False, False, 2)
+                         ["receipt"]["reason"], "existing-venv-repair")
+
+
+def uv_binary():
+    candidate = os.environ.get("MUSETALK_TEST_UV") or shutil.which("uv") or "/opt/miniconda3/bin/uv"
+    return candidate if candidate and os.access(candidate, os.X_OK) else None
+
+
+@unittest.skipUnless(uv_binary(), "uv not available")
+class SeedUvIntegrationTests(unittest.TestCase):
+    """Real uv, loopback-free: offline --require-hashes installs over seeded distributions."""
+
+    def test_uv_offline_hash_install_keeps_seeded_exact_versions(self):
+        uv = uv_binary()
+        version = tuple(int(x) for x in re.search(r"(\d+)\.(\d+)", subprocess.check_output([uv, "--version"], text=True)).groups())
+        # Production locks use '==='; uv releases before 0.13 reject it in hash mode, so local runs use '=='.
+        op = "===" if version >= (0, 13) else "=="
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            env = {k: v for k, v in os.environ.items() if not k.startswith(("UV_", "PIP_", "VIRTUAL_ENV", "PYTHON"))}
+            env.update(UV_PYTHON_DOWNLOADS="never", UV_NO_PROGRESS="1", PIP_CONFIG_FILE="/dev/null")
+            wheels = fixture_wheels(root / "all")
+            wheels["otherpkg"] = seed_wheel(root / "all", "otherpkg", "1.0",
+                                            {"otherpkg/__init__.py": b"import torchvision\n", "nsfixture/__init__.py": b""},
+                                            requires=("torchvision==0.20.1+cu121",))
+            rows = []
+            for name, wheel in wheels.items():
+                version_text = wheel.name.split("-")[1]
+                rows.append({"name": name, "version": version_text, "filename": wheel.name,
+                             "sha256": f.sha256_file(wheel), "size_bytes": wheel.stat().st_size})
+            fake_manifest = {"artifact_id": "0" * 64, "artifacts": rows}
+            document = seed.validate_index({"schema": seed.SCHEMA, "kind": seed.KIND, "artifact_id": "0" * 64,
+                                            "artifacts": [seed_builder.wheel_entry(r, wheels[r["name"]])
+                                                          for r in rows if r["name"] != "otherpkg"]}, fake_manifest)
+            # The "image": uv installs torch/torchvision (with bytecode) into a base venv.
+            base = root / "image"
+            subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(base)], check=True)
+            image_install = subprocess.run([uv, "--no-config", "pip", "install", "--python", str(base / "bin/python"),
+                                            "--offline", "--no-index", "--find-links", str(root / "all"), "--compile-bytecode",
+                                            "--cache-dir", str(root / "uv-cache-image"), "torch", "torchvision"],
+                                           env=env, capture_output=True, text=True, timeout=120)
+            self.assertEqual(image_install.returncode, 0, image_install.stderr)
+            site = seed.site_packages(base)
+            # Production wheelhouse holds only the non-seeded wheel.
+            wheelhouse = root / "wheelhouse"
+            wheelhouse.mkdir()
+            shutil.copy2(wheels["otherpkg"], wheelhouse)
+            lock_lines = {r["name"]: r["name"] + op + r["version"] + " --hash=sha256:" + r["sha256"] for r in rows}
+            locks = {"server": [lock_lines["torch"], lock_lines["torchvision"]],
+                     "full": [lock_lines["torch"], lock_lines["torchvision"], lock_lines["otherpkg"]]}
+
+            def install(venv, group):
+                lock = root / (venv.name + "-" + group + ".lock")
+                lock.write_text("\n".join(locks[group]) + "\n")
+                command = bench.install_command("uv", venv / "bin/python", uv, root / "uv-cache", wheelhouse, lock, True, "copy")
+                return subprocess.run(command, env=env, capture_output=True, text=True, timeout=120)
+
+            # Control: without seeding the offline hash install cannot proceed.
+            control_venv = root / "control"
+            subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(control_venv)], check=True)
+            control = install(control_venv, "server")
+            self.assertNotEqual(control.returncode, 0)
+            self.assertIn("torch", control.stderr)
+
+            venv = root / "venvs/seeded"
+            venv.mkdir(parents=True)
+            plan = seed.stage(document, rows, site, venv, bytecode=True)
+            self.assertEqual(plan["receipt"]["seeded"], ["torch", "torchvision"])
+            subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(venv)], check=True)
+            seed.publish(plan, venv)
+            target = seed.site_packages(venv)
+            pyc = next((target / "torch/__pycache__").glob("_impl.*.pyc"))
+            pyc_before = (pyc.stat().st_ino, pyc.read_bytes())
+            for group in ("server", "full"):
+                with self.subTest(group=group):
+                    done = install(venv, group)
+                    self.assertEqual(done.returncode, 0, done.stderr)
+                    self.assertNotIn("+ torch", done.stderr)
+                    self.assertNotIn("- torch", done.stderr)
+            self.assertIn("otherpkg", done.stderr)
+            for name in ("torch-2.5.1+cu121.dist-info", "torchvision-0.20.1+cu121.dist-info"):
+                self.assertEqual((target / name / "INSTALLER").read_text(), "musetalk-seed\n")
+            self.assertEqual((pyc.stat().st_ino, pyc.read_bytes()), pyc_before)  # Valid pyc kept by uv's compile pass.
+            self.assertEqual(locked.inventory(venv), {"torch": "2.5.1+cu121", "torchvision": "0.20.1+cu121",
+                                                      "otherpkg": "1.0"})
+            check = subprocess.run([sys.executable, "-m", "pip", "--python", str(venv / "bin/python"), "check"],
+                                   env=dict(env, PIP_DISABLE_PIP_VERSION_CHECK="1"), capture_output=True, text=True, timeout=60)
+            if "No module named pip" not in check.stderr:
+                self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
+            out = subprocess.check_output([str(venv / "bin/python"), "-I", "-c", "import otherpkg,torchvision;print(torchvision.VALUE)"],
+                                          text=True)
+            self.assertEqual(out, "42\n")
 
 
 if __name__ == "__main__":
