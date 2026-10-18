@@ -64,7 +64,7 @@ def main():
     p.add_argument("--sha256", required=True)
     p.add_argument("--bytes", type=int, required=True)
     p.add_argument("--out", type=Path, required=True)
-    p.add_argument("--streams", type=int, choices=(1, 2, 4, 8), default=8)
+    p.add_argument("--streams", type=int, choices=(1, 2, 4, 8, 16), default=8)
     a = p.parse_args()
     try:
         url = sys.stdin.readline().strip()

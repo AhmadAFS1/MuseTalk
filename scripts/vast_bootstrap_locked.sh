@@ -199,12 +199,14 @@ restore_prefetched_bundle() {
 }
 
 # Download priority on fresh workers. The dependency wheels gate the whole boot
-# (Phase 3), while the weights (needed at Phase 4) and the r5 bundle (needed at
-# server start) have slack. Started together, the many-connection weight download
-# starved the wheels: on c5-a (2026-10-18) acquisition moved 40 MB in its first
-# 35 s. The prefetches below therefore wait for this gate, which
-# install_locked_dependencies.py removes once acquisition ends (even on failure);
-# the wait is bounded so a stuck installer never blocks them.
+# (Phase 3) while the Hugging Face weights (needed at Phase 4) have slack. Started
+# together, the many-connection weight download starved the wheels: on c5-a
+# (2026-10-18) acquisition moved 40 MB in its first 35 s. The weight prefetch
+# therefore waits for this gate, which install_locked_dependencies.py removes once
+# acquisition ends (even on failure); the wait is bounded. The r5 bundle is NOT
+# gated: from distant hosts S3 us-east-1 is per-connection latency-bound (~1 MB/s
+# per stream from Taiwan), so it barely competes, and gating it put it on the
+# critical path (c5-a rerun: r5 phase 1 s -> 58 s).
 DOWNLOAD_GATE="${MUSETALK_DOWNLOAD_GATE_PATH:-/workspace/.mtboot/deps-gate}"
 arm_download_gate() {
   rm -f "$DOWNLOAD_GATE"
@@ -213,7 +215,7 @@ arm_download_gate() {
   mkdir -p "${DOWNLOAD_GATE%/*}"
   date -u +%Y-%m-%dT%H:%M:%SZ > "$DOWNLOAD_GATE"
   export MUSETALK_DOWNLOAD_GATE="$DOWNLOAD_GATE"
-  bootstrap_log 'Download gate armed: weight and r5 prefetches wait for dependency acquisition'
+  bootstrap_log 'Download gate armed: the weight prefetch waits for dependency acquisition'
 }
 
 wait_for_download_gate() {
@@ -246,15 +248,15 @@ print(d["sha256"],int(d["bytes"]));print(d["url"])' 2>/dev/null)" || { bootstrap
     ( restore_prefetched_bundle "$dir" "$sha"; rm -f "$dir/$sha.pending" ) 8<&- 9<&- &
     return 0
   fi
-  bootstrap_log "r5 bundle prefetch queued ($size bytes)"
+  bootstrap_log "r5 bundle prefetch started ($size bytes)"
   (
-    wait_for_download_gate 'r5 bundle prefetch'
     started=$SECONDS
-    # Multi-connection ranged fetch (8 streams; single-connection S3 measured
-    # 1.36 MB/s on a slow host). URL on stdin only; publishes after sha256.
+    # Multi-connection ranged fetch (16 streams: single-connection S3 measured
+    # 1.36 MB/s on a slow host and ~1 MB/s per stream from Taiwan). URL on stdin
+    # only; publishes after sha256.
     if [[ -f "$REPO_DIR/scripts/fetch_ranged_url.py" ]] \
        && printf '%s\n' "$url" | python3 -B "$REPO_DIR/scripts/fetch_ranged_url.py" --sha256 "$sha" --bytes "$size" \
-            --out "$dir/$sha.tar.gz" --streams 8; then
+            --out "$dir/$sha.tar.gz" --streams 16; then
       touch "$dir/$sha.ok"
       restore_prefetched_bundle "$dir" "$sha"
     elif printf 'url = "%s"\n' "$url" | curl -fsS --retry 3 --retry-delay 2 --max-time 1800 -K - -o "$dir/$sha.tar.gz.part" \

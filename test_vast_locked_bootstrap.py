@@ -329,25 +329,22 @@ wait
             r=self.run_shell(code%'',root)
             self.assertIn('OPEN=',r.stdout);self.assertFalse(gate.exists())  # A stale gate never survives a warm boot.
 
-    def test_r5_prefetch_waits_for_the_download_gate_with_a_bound(self):
-        import hashlib
+    def test_download_gate_waits_with_a_bound_and_gates_only_the_weight_prefetch(self):
         with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder);payload=b'engine-bundle'*100;sha=hashlib.sha256(payload).hexdigest()
-            src=root/'bundle.bin';src.write_bytes(payload)
-            ticket=json.dumps({'url':'https://bucket.s3.amazonaws.com/k?X-Amz-Signature=fixture','sha256':sha,'bytes':len(payload)})
-            code=('REPO_DIR="$2/repo"; export MUSETALK_R5_PREFETCH_DIR="$2/prefetch"\n'
-                  'export MUSETALK_R5_PREFETCH_JSON="$3"; export FIXTURE_SRC="$4"; DOWNLOAD_GATE="$2/gate"; echo held > "$DOWNLOAD_GATE"\n'
-                  'curl() { local out=""; while (( $# )); do [[ "$1" == -o ]] && { out="$2"; shift; }; shift; done\n'
-                  '  [[ ! -e "$DOWNLOAD_GATE" || -n "${ALLOW_CLOSED:-}" ]] || return 7; cp "$FIXTURE_SRC" "$out"; }\n'
-                  'export -f curl\n%s\nstart_r5_prefetch\nwait\n')
-            r=self.run_shell(code%'( sleep 1; rm -f "$DOWNLOAD_GATE" ) &',root,ticket,src)
+            root=Path(folder)
+            code=('DOWNLOAD_GATE="$2/gate"; echo held > "$DOWNLOAD_GATE"\n%s\n'
+                  'wait_for_download_gate Probe; [[ -e "$DOWNLOAD_GATE" ]] && echo CLOSED || echo OPEN\n')
+            r=self.run_shell(code%'( sleep 1; rm -f "$DOWNLOAD_GATE" ) &',root)
             self.assertEqual(r.returncode,0,r.stderr)
-            self.assertRegex(r.stdout,r'r5 bundle prefetch: download gate opened after [12]s')
-            self.assertTrue((root/'prefetch'/(sha+'.ok')).exists())
-            shutil.rmtree(root/'prefetch')
-            r=self.run_shell(code%'export MUSETALK_DOWNLOAD_GATE_WAIT_SECONDS=1 ALLOW_CLOSED=1',root,ticket,src)
-            self.assertIn('download gate still closed after 1s; proceeding',r.stdout)
-            self.assertTrue((root/'prefetch'/(sha+'.ok')).exists())
+            self.assertRegex(r.stdout,r'Probe: download gate opened after [12]s');self.assertIn('OPEN',r.stdout)
+            r=self.run_shell(code%'export MUSETALK_DOWNLOAD_GATE_WAIT_SECONDS=1',root)
+            self.assertIn('Probe: download gate still closed after 1s; proceeding',r.stdout);self.assertIn('CLOSED',r.stdout)
+        source=(REPO/'scripts/vast_bootstrap_locked.sh').read_text()
+        body=lambda name:re.search(r'^'+name+r'\(\) \{\n.*?^\}\n',source,re.M|re.S).group()
+        self.assertIn("wait_for_download_gate 'Weight prefetch'",body('start_weights_prefetch'))
+        # S3 from distant hosts is latency-bound: gating r5 put it on the critical path (c5-a).
+        self.assertNotIn('wait_for_download_gate',body('start_r5_prefetch'))
+        self.assertIn('--streams 16',body('start_r5_prefetch'))
 
     def test_prefetched_bundle_is_restored_in_background(self):
         import hashlib
