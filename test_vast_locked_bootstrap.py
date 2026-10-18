@@ -316,7 +316,8 @@ wait
         self.assertIn('prefetched="$(r5_prefetched_archive "$sha")"',source)
         with tempfile.TemporaryDirectory() as folder:
             d=Path(folder);sha='b'*64
-            run=lambda: subprocess.run(['bash','-c','log(){ :; }\n'+helper+'MUSETALK_R5_PREFETCH_DIR="$1" MUSETALK_R5_PREFETCH_WAIT_SECONDS=2 r5_prefetched_archive "$2"','-',str(d),sha],capture_output=True,text=True,timeout=10)
+            # A real-looking log() writing to stdout: the captured value must still be only the path.
+            run=lambda: subprocess.run(['bash','-c','log(){ printf "[vast_onstart.sh] %s\\n" "$*"; }\n'+helper+'MUSETALK_R5_PREFETCH_DIR="$1" MUSETALK_R5_PREFETCH_WAIT_SECONDS=2 r5_prefetched_archive "$2"','-',str(d),sha],capture_output=True,text=True,timeout=10)
             self.assertNotEqual(run().returncode,0)
             (d/(sha+'.tar.gz')).write_bytes(b'x');self.assertNotEqual(run().returncode,0)  # no .ok marker
             (d/(sha+'.ok')).touch();r=run();self.assertEqual(r.returncode,0);self.assertEqual(r.stdout.strip(),str(d/(sha+'.tar.gz')))

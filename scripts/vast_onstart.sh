@@ -744,11 +744,11 @@ r5_prefetched_archive() {
   local dir="${MUSETALK_R5_PREFETCH_DIR:-}" sha="$1" waited=0 limit="${MUSETALK_R5_PREFETCH_WAIT_SECONDS:-900}"
   [[ -n "$dir" && -d "$dir" && "$sha" =~ ^[a-f0-9]{64}$ ]] || return 1
   if [[ -e "$dir/$sha.pending" ]]; then
-    log "Waiting for the r5 bundle prefetch (up to ${limit}s)"
+    log "Waiting for the r5 bundle prefetch (up to ${limit}s)" >&2  # stdout is the caller's capture
     while [[ -e "$dir/$sha.pending" ]] && (( waited < limit )); do sleep 2; waited=$(( waited + 2 )); done
   fi
   [[ -f "$dir/$sha.ok" && -f "$dir/$sha.tar.gz" ]] || return 1
-  log "r5 bundle prefetch ready (waited ${waited}s)"
+  log "r5 bundle prefetch ready (waited ${waited}s)" >&2
   printf '%s\n' "$dir/$sha.tar.gz"
 }
 
