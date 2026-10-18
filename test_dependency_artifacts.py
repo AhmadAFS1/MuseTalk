@@ -1,13 +1,23 @@
 """Stdlib fixtures only: no pip, CUDA, external network or package installation."""
+import datetime as dt
+import errno
 import hashlib
+import http.client
+import http.server
 import io
 import json
+import os
 from pathlib import Path
+import re
+import ssl
+import subprocess
 import sys
 import tempfile
+import threading
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 import urllib.error
+import urllib.request
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
@@ -282,6 +292,570 @@ class AcquisitionTests(unittest.TestCase):
     def test_insecure_redirect_rejected(self):
         with self.assertRaises(ValueError):
             f.SecureRedirect().redirect_request(None, None, 302, "", {}, "http://example.test/file")
+
+
+LEGACY_RECEIPT_KEYS = {"name", "state", "bytes", "transferred_bytes", "remote_transferred_bytes",
+                       "local_copied_bytes", "attempts", "seconds", "origin"}
+LEGACY_CACHE_KEYS = LEGACY_RECEIPT_KEYS - {"origin"}
+LEGACY_ACQUISITION_KEYS = {"state", "artifact_id", "group", "workers", "seconds", "transferred_bytes",
+                           "remote_transferred_bytes", "local_copied_bytes", "cache_hits", "artifacts",
+                           "native_compatibility_proven"}
+TIMESTAMP_KEYS = {"started_utc", "finished_utc"}
+RANGE_PAYLOAD = bytes((i * 7 + 3) % 251 for i in range(60))  # 8 parts of 8 bytes (last part 4 bytes)
+
+
+def pause(seconds):
+    # time.sleep is patched out in these tests to skip retry backoff.
+    threading.Event().wait(seconds)
+
+
+class ConnectionTracker:
+    def __init__(self):
+        self.lock, self.current, self.peak = threading.Lock(), 0, 0
+
+    def opened(self):
+        with self.lock:
+            self.current += 1
+            self.peak = max(self.peak, self.current)
+
+    def closed(self):
+        with self.lock:
+            self.current -= 1
+
+
+class RangeResponse(io.BytesIO):
+    """A 206/200 fixture that records how many body bytes the client read."""
+    def __init__(self, data, status=206, headers=None, delay=0.0, tracker=None, fail_after=None):
+        super().__init__(data)
+        self.status, self.headers, self.delay, self.tracker = status, dict(headers or {}), delay, tracker
+        self.read_bytes, self.fail_after = 0, fail_after
+        if tracker:
+            tracker.opened()
+
+    def read(self, n=-1):
+        if self.delay:
+            pause(self.delay)
+        if self.fail_after is not None and self.read_bytes >= self.fail_after[0]:
+            raise self.fail_after[1]
+        if self.fail_after is not None:
+            n = min(n, self.fail_after[0] - self.read_bytes) if n >= 0 else self.fail_after[0] - self.read_bytes
+        chunk = super().read(n)
+        self.read_bytes += len(chunk)
+        return chunk
+
+    def close(self):
+        if not self.closed and self.tracker:
+            self.tracker.closed()
+        super().close()
+
+
+class RangeOpener:
+    """Serves one payload: 206 for a single Range header, 200 otherwise. hook(n, first, last)
+    may raise, return a response, or return None for the correct default response."""
+    def __init__(self, data=RANGE_PAYLOAD, hook=None, etag='"fixture-etag"',
+                 modified="Sat, 17 Oct 2026 00:00:00 GMT", delay=0.0, tracker=None):
+        self.data, self.hook, self.etag, self.modified = data, hook, etag, modified
+        self.delay, self.tracker = delay, tracker
+        self.lock, self.ranges, self.responses = threading.Lock(), [], []
+
+    @property
+    def calls(self):
+        return len(self.ranges)
+
+    def open(self, request, timeout=None):
+        header = request.get_header("Range")
+        first = last = None
+        if header is not None:
+            match = re.fullmatch(r"bytes=(\d+)-(\d+)", header)
+            first, last = int(match[1]), int(match[2])
+        with self.lock:
+            n = len(self.ranges)
+            self.ranges.append((first, last))
+        response = self.hook(n, first, last) if self.hook else None
+        if response is None:
+            response = self.full() if first is None else self.part(first, last)
+        with self.lock:
+            self.responses.append(response)
+        return response
+
+    def part(self, first, last, body=None, delay=None, fail_after=None, **headers):
+        body = self.data[first:last + 1] if body is None else body
+        value = {"Content-Range": "bytes %d-%d/%d" % (first, last, len(self.data)),
+                 "Content-Length": str(last - first + 1), "ETag": self.etag, "Last-Modified": self.modified}
+        for key, change in headers.items():
+            key = key.replace("_", "-")
+            if change is None:
+                value.pop(key, None)
+            else:
+                value[key] = change
+        return RangeResponse(body, 206, value, self.delay if delay is None else delay, self.tracker, fail_after)
+
+    def full(self, status=200):
+        return RangeResponse(self.data, status, {"Content-Length": str(len(self.data))}, self.delay, self.tracker)
+
+
+def http_error(status):
+    # A body object keeps HTTPError.close() valid on Python 3.9 as well.
+    return urllib.error.HTTPError("https://private/?secret", status, "No", {}, io.BytesIO())
+
+
+def large(data=RANGE_PAYLOAD, host="pypi.nvidia.com", name="tensorrt-cu12-libs"):
+    filename = name.replace("-", "_") + "-10.3.0-py2.py3-none-manylinux_2_17_x86_64.whl"
+    return {"name": name, "version": "10.3.0", "filename": filename,
+            "source": "https://" + host + "/" + name + "/" + filename,
+            "sha256": hashlib.sha256(data).hexdigest(), "size_bytes": len(data)}
+
+
+class RangedAcquisitionTests(unittest.TestCase):
+    def setUp(self):
+        for name, value in (("RANGED_MIN_BYTES", 16), ("RANGE_PART", 8)):
+            patcher = patch.object(f, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        sleeper = patch.object(f.time, "sleep")
+        sleeper.start()
+        self.addCleanup(sleeper.stop)
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.cache = Path(folder.name)
+
+    def assert_unpublished(self, a):
+        self.assertFalse((self.cache / a["filename"]).exists())
+        self.assertEqual(list(self.cache.glob(".partial-*")), [])
+
+    def private_ticket(self, a):
+        key = f.PRIVATE_PREFIX + "a" * 64 + "/" + a["filename"]
+        return {"url": "https://" + f.BUCKET + ".s3.us-east-1.amazonaws.com/" + key + "?X-Amz-Signature=secret",
+                "sha256": a["sha256"], "owner": f.OWNER, "key": key}
+
+    # 1
+    def test_ranged_success_publishes_verified_file(self):
+        for streams in (2, 4):
+            with self.subTest(streams=streams):
+                a = large()
+                opener = RangeOpener()
+                receipt = f.acquire_one(a, self.cache, opener=opener, range_streams=streams)
+                self.assertEqual((self.cache / a["filename"]).read_bytes(), RANGE_PAYLOAD)
+                self.assertEqual(opener.calls, 8)
+                self.assertEqual(sorted(opener.ranges), [(i, min(i + 8, 60) - 1) for i in range(0, 60, 8)])
+                self.assertEqual(opener.ranges[0], (0, 7))  # Probe part first.
+                self.assertEqual(list(self.cache.glob(".partial-*")), [])
+                self.assertEqual((receipt["transfer_mode"], receipt["parts"], receipt["range_streams"]),
+                                 ("ranged", 8, streams))
+                self.assertEqual((receipt["range_requests"], receipt["attempts"], receipt["range_fallback"]), (8, 1, None))
+                self.assertEqual((receipt["bytes"], receipt["transferred_bytes"]), (60, 60))
+                self.assertEqual(receipt["origin"], "pypi.nvidia.com")
+                self.assertTrue(all(r["finished_utc"] and r["seconds"] is not None and r["attempts"] == 1
+                                    for r in receipt["part_timings"]))
+                (self.cache / a["filename"]).unlink()
+
+    # 2
+    def test_ineligible_or_disabled_sources_never_send_range(self):
+        repo = self.cache / "repo"
+        (repo / "third_party_wheels").mkdir(parents=True)
+        (repo / "third_party_wheels/local.whl").write_bytes(RANGE_PAYLOAD)
+        built = large(name="private-wheel")
+        built["source"] = "build:" + "0" * 64
+        repo_row = large(name="mmcv")
+        repo_row["source"] = "repo:third_party_wheels/local.whl"
+        cases = (("below-threshold", large(RANGE_PAYLOAD[:15]), {}, 4),
+                 ("unknown-host", large(host="github.com"), {}, 4),
+                 ("ticketed-build", built, {"ticket": self.private_ticket(built)}, 4),
+                 ("repo-local", repo_row, {"repo_root": repo}, 4),
+                 ("default-off", large(), {}, 0))
+        for label, a, extra, streams in cases:
+            with self.subTest(label=label):
+                opener = RangeOpener(RANGE_PAYLOAD[:a["size_bytes"]])
+                (self.cache / label).mkdir()
+                receipt = f.acquire_one(a, self.cache / label, opener=opener, range_streams=streams, **extra)
+                self.assertEqual([r for r in opener.ranges if r != (None, None)], [])
+                self.assertEqual(opener.calls, 0 if label == "repo-local" else 1)
+                self.assertEqual(set(receipt), LEGACY_RECEIPT_KEYS | TIMESTAMP_KEYS)
+                self.assertEqual(receipt["attempts"], 1)
+
+    # 3
+    def test_probe_answered_200_falls_back_once_without_reading_body(self):
+        a = large()
+        def hook(n, first, last):
+            if n == 0:
+                pause(0.05)  # A slow probe: nothing else may be requested while it is pending.
+                return opener.full()
+        opener = RangeOpener(hook=hook)
+        receipt = f.acquire_one(a, self.cache, opener=opener, range_streams=4)
+        self.assertEqual(opener.ranges, [(0, 7), (None, None)])
+        self.assertEqual(opener.responses[0].read_bytes, 0)
+        self.assertTrue(opener.responses[0].closed)
+        self.assertEqual((receipt["transfer_mode"], receipt["range_fallback"], receipt["attempts"]),
+                         ("single", "range-unsupported", 1))
+        self.assertEqual((self.cache / a["filename"]).read_bytes(), RANGE_PAYLOAD)
+        self.assertEqual(list(self.cache.glob(".partial-*")), [])
+
+    # 4
+    def test_wrong_range_headers_rejected_on_any_part(self):
+        changes = (("start", lambda a, b: {"Content_Range": "bytes %d-%d/60" % (a + 1, b)}, "Wrong range response"),
+                   ("end", lambda a, b: {"Content_Range": "bytes %d-%d/60" % (a, b + 1)}, "Wrong range response"),
+                   ("total", lambda a, b: {"Content_Range": "bytes %d-%d/61" % (a, b)}, "Wrong range response"),
+                   ("no-range", lambda a, b: {"Content_Range": None}, "Wrong range response"),
+                   ("length", lambda a, b: {"Content_Length": str(b - a + 2)}, "Range length differs"),
+                   ("no-length", lambda a, b: {"Content_Length": None}, "Range length differs"))
+        for target in (0, 24):  # The probe part and a fanned-out part.
+            for label, change, message in changes:
+                with self.subTest(target=target, change=label):
+                    a = large()
+                    def hook(n, first, last, change=change, target=target):
+                        if first == target:
+                            return opener.part(first, last, **change(first, last))
+                    opener = RangeOpener(hook=hook)
+                    with self.assertRaisesRegex(ValueError, "^" + message + "$"):
+                        f.acquire_one(a, self.cache, opener=opener, range_streams=4)
+                    self.assert_unpublished(a)
+
+    # 5
+    def test_object_identity_change_between_parts_refused(self):
+        for header in ("ETag", "Last_Modified"):
+            with self.subTest(header=header):
+                a = large()
+                hook = lambda n, first, last, header=header: opener.part(first, last, **{header: "changed"}) \
+                    if first == 32 else None
+                opener = RangeOpener(hook=hook)
+                with self.assertRaisesRegex(ValueError, "^Object identity changed between ranges$"):
+                    f.acquire_one(a, self.cache, opener=opener, range_streams=4)
+                self.assert_unpublished(a)
+
+    # 6
+    def test_short_or_broken_part_resumes_from_written_offset(self):
+        failures = (("clean-eof", None), ("incomplete-read", http.client.IncompleteRead(b"")),
+                    ("tls", ssl.SSLError("fixture")), ("reset", ConnectionResetError()))
+        for label, failure in failures:
+            with self.subTest(label=label):
+                a = large()
+                seen = []
+                def hook(n, first, last, failure=failure):
+                    if first == 16 and not seen:
+                        seen.append(n)
+                        if failure is None:
+                            return opener.part(first, last, body=RANGE_PAYLOAD[16:19])
+                        return opener.part(first, last, fail_after=(3, failure))
+                opener = RangeOpener(hook=hook)
+                receipt = f.acquire_one(a, self.cache, opener=opener, range_streams=2)
+                self.assertIn((19, 23), opener.ranges)
+                self.assertEqual(opener.calls, 9)
+                self.assertEqual(receipt["part_timings"][2]["resume_offsets"], [19])
+                self.assertEqual((receipt["attempts"], receipt["transferred_bytes"]), (2, 60))
+                self.assertEqual((self.cache / a["filename"]).read_bytes(), RANGE_PAYLOAD)
+                (self.cache / a["filename"]).unlink()
+
+    # 7
+    def test_part_status_policy_and_cancellation(self):
+        a = large()
+        failed = []
+        def transient(n, first, last):
+            if first == 16 and not failed:
+                failed.append(n)
+                raise http_error(503)
+        opener = RangeOpener(hook=transient)
+        receipt = f.acquire_one(a, self.cache, opener=opener, range_streams=4)
+        self.assertEqual((opener.calls, receipt["attempts"]), (9, 2))
+        self.assertEqual(receipt["part_timings"][2]["resume_offsets"], [16])
+        for status in (403, 404, 416):
+            with self.subTest(status=status), patch.object(f, "CHUNK", 1):
+                a = large(name="nvidia-cublas-cu12")
+                def hard(n, first, last, status=status):
+                    if first == 16:
+                        pause(0.15)  # Fails while part 1 is mid-body.
+                        raise http_error(status)
+                    if first:
+                        return opener.part(first, last, delay=0.1)  # 1-byte reads: 0.8 s per part.
+                opener = RangeOpener(hook=hard)
+                with self.assertRaisesRegex(ValueError, "^Artifact HTTP failure %d$" % status) as caught:
+                    f.acquire_one(a, self.cache, opener=opener, range_streams=2)
+                self.assertNotIn("secret", str(caught.exception))
+                self.assertNotIn("https", str(caught.exception))
+                self.assertLess(opener.calls, 8)  # Queued parts cancelled, never requested.
+                in_flight = [r for r in opener.responses if r.delay]
+                self.assertIn((8, 15), opener.ranges)
+                self.assertTrue(in_flight and all(r.read_bytes < 8 and r.closed for r in in_flight))  # Aborted mid-part.
+                self.assert_unpublished(a)
+
+    # 8
+    def test_part_retries_exhausted_leaves_no_partial(self):
+        a = large()
+        def broken(n, first, last):
+            if first == 8:
+                raise urllib.error.URLError("https://private/?secret")
+        opener = RangeOpener(hook=broken)
+        with self.assertRaisesRegex(ValueError, "^Bounded range retries exhausted$"):
+            f.acquire_one(a, self.cache, opener=opener, range_streams=4)
+        self.assertEqual(opener.ranges.count((8, 15)), 3)
+        self.assert_unpublished(a)
+
+    # 9
+    def test_corrupted_range_bytes_fail_integrity_without_retry(self):
+        a = large()
+        opener = RangeOpener(hook=lambda n, first, last: opener.part(first, last, body=b"X" * 8) if first == 16 else None)
+        with self.assertRaisesRegex(ValueError, "^Artifact integrity mismatch$"):
+            f.acquire_one(a, self.cache, opener=opener, range_streams=4)
+        self.assertEqual(opener.calls, 8)
+        self.assert_unpublished(a)
+
+    # 10
+    def test_encoded_range_rejected(self):
+        a = large()
+        opener = RangeOpener(hook=lambda n, first, last: opener.part(first, last, Content_Encoding="gzip") if first == 40 else None)
+        with self.assertRaisesRegex(ValueError, "^Encoded range rejected$"):
+            f.acquire_one(a, self.cache, opener=opener, range_streams=4)
+        self.assert_unpublished(a)
+        opener = RangeOpener(hook=lambda n, first, last: opener.part(first, last, Content_Encoding="identity"))
+        self.assertEqual(f.acquire_one(a, self.cache, opener=opener, range_streams=4)["transfer_mode"], "ranged")
+
+    # 11
+    def test_connection_cap_bounds_open_responses_without_deadlock(self):
+        for streams, cap in ((4, 4), (4, 1), (0, 1)):
+            with self.subTest(streams=streams, cap=cap), patch.object(f, "RANGED_MIN_BYTES", 4), \
+                 patch.object(f, "RANGE_PART", 2):
+                tracker = ConnectionTracker()
+                opener = RangeOpener(b"wheel", delay=0.002, tracker=tracker)
+                outcome = {}
+                def run():
+                    try:
+                        outcome["value"] = f.acquire(manifest(), self.cache / ("cap-%d-%d" % (streams, cap)), "full", 4,
+                                                     reserve_bytes=0, range_streams=streams, max_connections=cap)
+                    except BaseException as error:
+                        outcome["error"] = error
+                with patch.object(f.urllib.request, "build_opener", return_value=opener):
+                    worker = threading.Thread(target=run, daemon=True)
+                    worker.start()
+                    worker.join(timeout=30)
+                self.assertFalse(worker.is_alive(), "acquisition deadlocked")
+                self.assertNotIn("error", outcome)
+                value = outcome["value"]
+                self.assertEqual((value["state"], value["max_connections"], value["range_streams"]),
+                                 ("acquisition-complete", cap, streams))
+                self.assertLessEqual(tracker.peak, cap)
+                self.assertEqual(tracker.current, 0)
+                if cap > 1:
+                    self.assertGreater(tracker.peak, 1)
+                modes = {r.get("transfer_mode", "single") for r in value["artifacts"]}
+                self.assertEqual(modes, {"ranged"} if streams else {"single"})
+                self.assertEqual(opener.calls, len(value["artifacts"]) * (3 if streams else 1))
+        for streams, cap in ((3, 4), (2, 3), (True, 4)):
+            with self.subTest(invalid=(streams, cap)), self.assertRaisesRegex(ValueError, "Bounded"):
+                f.acquire(manifest(), self.cache / "invalid", "full", 4, reserve_bytes=0,
+                          range_streams=streams, max_connections=cap)
+
+    # 12
+    def test_preallocation_enospc_is_fatal_and_unsupported_falls_back(self):
+        a = large()
+        opener = RangeOpener()
+        with patch.object(f.os, "posix_fallocate", side_effect=OSError(errno.ENOSPC, "No space"), create=True):
+            with self.assertRaisesRegex(ValueError, "^Insufficient disk for ranged artifact$"):
+                f.acquire_one(a, self.cache, opener=opener, range_streams=4)
+        self.assertEqual(opener.calls, 0)
+        self.assert_unpublished(a)
+        for label, replacement in (("unsupported", MagicMock(side_effect=OSError(errno.EOPNOTSUPP, "No"))),
+                                   ("absent", None)):
+            with self.subTest(label=label), patch.object(f.os, "posix_fallocate", replacement, create=True):
+                receipt = f.acquire_one(a, self.cache, opener=RangeOpener(), range_streams=4)
+                self.assertEqual((receipt["preallocation"], receipt["transfer_mode"]), ("ftruncate", "ranged"))
+                self.assertEqual((self.cache / a["filename"]).read_bytes(), RANGE_PAYLOAD)
+                (self.cache / a["filename"]).unlink()
+
+    # 13
+    def test_cache_hit_is_offline_and_redirect_keeps_range_https_only(self):
+        a = large()
+        (self.cache / a["filename"]).write_bytes(RANGE_PAYLOAD)
+        opener = RangeOpener()
+        receipt = f.acquire_one(a, self.cache, opener=opener, range_streams=4)
+        self.assertEqual((receipt["state"], opener.calls), ("verified-cache-hit", 0))
+        request = urllib.request.Request(a["source"], headers={"Range": "bytes=8-15", "User-Agent": "fixture"})
+        redirected = f.SecureRedirect().redirect_request(request, None, 302, "Found", {},
+                                                         "https://download-r2.pytorch.org/redirected.whl")
+        self.assertEqual(redirected.get_header("Range"), "bytes=8-15")
+        with self.assertRaisesRegex(ValueError, "Unsafe artifact redirect"):
+            f.SecureRedirect().redirect_request(request, None, 302, "Found", {}, "http://pypi.nvidia.com/x.whl")
+
+    # 15
+    def test_receipts_keep_summarizer_fields_and_contain_no_secrets(self):
+        built = large(name="private-wheel")
+        built["source"] = "build:" + "0" * 64
+        receipts = {
+            "ranged": f.acquire_one(large(), self.cache, opener=RangeOpener(), range_streams=4),
+            "fallback": f.acquire_one(large(name="torch"), self.cache, range_streams=4,
+                                      opener=RangeOpener(hook=lambda n, first, last: RangeOpener().full() if n == 0 else None)),
+            "private": f.acquire_one(built, self.cache, opener=RangeOpener(), ticket=self.private_ticket(built),
+                                     range_streams=4),
+            "single": f.acquire_one(large(name="nvidia-cudnn-cu12"), self.cache, opener=RangeOpener()),
+            "cache-hit": f.acquire_one(large(), self.cache, opener=RangeOpener(), range_streams=4),
+        }
+        for label, receipt in receipts.items():
+            with self.subTest(label=label):
+                expected = LEGACY_CACHE_KEYS if label == "cache-hit" else LEGACY_RECEIPT_KEYS
+                self.assertLessEqual(expected | TIMESTAMP_KEYS, set(receipt))
+                text = json.dumps(receipt, allow_nan=False)
+                for forbidden in ("secret", "https://", "X-Amz", "?"):
+                    self.assertNotIn(forbidden, text)
+                for key in TIMESTAMP_KEYS:
+                    self.assertIsNotNone(dt.datetime.fromisoformat(receipt[key]).tzinfo)
+        for timing in receipts["ranged"]["part_timings"]:
+            self.assertLessEqual(dt.datetime.fromisoformat(timing["started_utc"]),
+                                 dt.datetime.fromisoformat(timing["finished_utc"]))
+        with patch.object(f, "RANGED_MIN_BYTES", 4), patch.object(f, "RANGE_PART", 2), \
+             patch.object(f.urllib.request, "build_opener", return_value=RangeOpener(b"wheel")):
+            value = f.acquire(manifest(), self.cache / "acquisition", "full", 2, reserve_bytes=0, range_streams=2)
+        self.assertLessEqual(LEGACY_ACQUISITION_KEYS | TIMESTAMP_KEYS, set(value))
+        self.assertEqual(value["max_connections"], 2)
+        summarized = summary.summarize({"prepared_utc": "fixture", "trials_and_builds": {"delivery-ranged-1": {
+            "trial": "ranged-1", "state": "delivery-trial-passed", "method": "wheelhouse-uv", "workers": 2,
+            "packages_ready_seconds": 1, "validated_ready_seconds": 2, "acquisition": value}}})
+        self.assertEqual(summarized["trials"][0]["acquisition_seconds"], value["seconds"])
+
+    def test_cli_and_eligibility_bounds(self):
+        self.assertTrue(f.ranged_eligible(large()))
+        for change in ({"source": "http://pypi.nvidia.com/x.whl"}, {"source": "https://pypi.nvidia.com:8443/x.whl"},
+                       {"source": "https://u:p@pypi.nvidia.com/x.whl"}, {"source": "https://pypi.nvidia.com/x.whl?t=1"},
+                       {"size_bytes": None}, {"size_bytes": True}, {"size_bytes": f.MAX_FILE + 1}):
+            with self.subTest(change=change):
+                self.assertFalse(f.ranged_eligible(dict(large(), **change)))
+        self.assertFalse(f.ranged_eligible(large(), ticket={"url": "https://example"}))
+        with patch.object(f, "RANGED_MIN_BYTES", 256 * 1024**2):
+            self.assertFalse(f.ranged_eligible(dict(large(), size_bytes=209_460_013)))  # triton stays single-stream
+            self.assertTrue(f.ranged_eligible(dict(large(), size_bytes=2_037_510_258)))
+        base = ["fetch", "--manifest", "m.json", "--manifest-sha256", "0" * 64, "--cache", str(self.cache),
+                "--workers", "4", "--receipt"]
+        for bad in (["--range-streams", "3"], ["--max-connections", "2"]):
+            with self.subTest(bad=bad), patch.object(sys, "argv", base + [str(self.cache / "r.json")] + bad), \
+                 patch("sys.stderr", io.StringIO()), self.assertRaises(SystemExit):
+                f.main()
+        receipt = self.cache / "receipt.json"
+        with patch.object(sys, "argv", base + [str(receipt), "--range-streams", "4", "--max-connections", "8"]), \
+             patch.object(f, "read_trusted", return_value=manifest()), \
+             patch.object(f, "acquire", return_value={"state": "acquisition-complete"}) as acquire, \
+             patch("sys.stdout", io.StringIO()):
+            self.assertEqual(f.main(), 0)
+        self.assertEqual((acquire.call_args.kwargs["range_streams"], acquire.call_args.kwargs["max_connections"]), (4, 8))
+        receipt.unlink()
+        with patch.object(sys, "argv", base + [str(receipt)]), patch.object(f, "read_trusted", return_value=manifest()), \
+             patch.object(f, "acquire", return_value={"state": "acquisition-complete"}) as acquire, \
+             patch("sys.stdout", io.StringIO()):
+            f.main()
+        self.assertEqual((acquire.call_args.kwargs["range_streams"], acquire.call_args.kwargs["max_connections"]), (0, None))
+
+
+class LoopbackRangeServerTests(unittest.TestCase):
+    """Real http.server + urllib over loopback: 206s, a mid-part disconnect with
+    resume, a server that ignores Range, and an ETag change between parts."""
+    PART = 16 * 1024
+    PAYLOAD = b"".join(hashlib.sha256(i.to_bytes(4, "big")).digest() for i in range(3200))  # 100 KiB, 7 parts
+    CUT = (2 * 16 * 1024, 5000)  # Part 2 sends 5000 of its bytes once, then closes.
+
+    def setUp(self):
+        payload, cut, seen, lock = self.PAYLOAD, self.CUT, [], threading.Lock()
+        self.seen = seen
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def do_GET(self):
+                mode, header = self.path.strip("/"), self.headers.get("Range")
+                with lock:
+                    seen.append((mode, header))
+                    count = sum(m == mode for m, _ in seen)
+                    cut_now = mode == "disconnect" and header is not None \
+                        and header.startswith("bytes=%d-" % cut[0]) and (mode, header) not in seen[:-1]
+                etag = '"v2"' if mode == "etag" and count > 1 else '"v1"'
+                if header is None or mode == "ignore":
+                    self.send_response(200)
+                    self.send_header("Content-Length", str(len(payload)))
+                    self.send_header("ETag", etag)
+                    self.end_headers()
+                    self.wfile.write(payload)
+                    return
+                match = re.fullmatch(r"bytes=(\d+)-(\d+)", header)
+                first, last = int(match[1]), int(match[2])
+                body = payload[first:last + 1]
+                self.send_response(206)
+                self.send_header("Content-Range", "bytes %d-%d/%d" % (first, last, len(payload)))
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("ETag", etag)
+                self.send_header("Last-Modified", "Sat, 17 Oct 2026 00:00:00 GMT")
+                self.end_headers()
+                self.wfile.write(body[:cut[1]] if cut_now else body)
+                self.wfile.flush()
+                self.close_connection = True
+
+        class Server(http.server.ThreadingHTTPServer):
+            daemon_threads = True
+
+            def handle_error(self, request, client_address):
+                pass  # Client hang-ups after an unread 200 body are expected.
+
+        self.server = Server(("127.0.0.1", 0), Handler)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.addCleanup(self.thread.join, 5)
+        self.addCleanup(self.server.server_close)
+        self.addCleanup(self.server.shutdown)
+        for patcher in (patch.object(f, "RANGED_MIN_BYTES", 1), patch.object(f, "RANGE_PART", self.PART),
+                        patch.object(f.time, "sleep"),
+                        patch.dict(os.environ, {"no_proxy": "127.0.0.1,localhost", "NO_PROXY": "127.0.0.1,localhost"})):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.cache = Path(folder.name)
+
+    def opener(self, mode):
+        real = urllib.request.build_opener(f.SecureRedirect())  # Built after no_proxy is set.
+        port = self.server.server_port
+
+        class Loopback:
+            def open(self, request, timeout=None):
+                # Same headers (Range, User-Agent) as the reviewed https request, sent to loopback.
+                local = urllib.request.Request("http://127.0.0.1:%d/%s" % (port, mode),
+                                               headers=dict(request.header_items()))
+                return real.open(local, timeout=5)
+        return Loopback()
+
+    def artifact(self):
+        return large(self.PAYLOAD, host="download-r2.pytorch.org", name="torch")
+
+    def requests(self, mode):
+        return [header for m, header in self.seen if m == mode]
+
+    def test_real_206_ranges(self):
+        a = self.artifact()
+        receipt = f.acquire_one(a, self.cache, opener=self.opener("ok"), range_streams=4)
+        self.assertEqual((self.cache / a["filename"]).read_bytes(), self.PAYLOAD)
+        self.assertEqual((receipt["transfer_mode"], receipt["parts"], receipt["range_requests"]), ("ranged", 7, 7))
+        self.assertEqual(len(self.requests("ok")), 7)
+        self.assertTrue(all(h and h.startswith("bytes=") for h in self.requests("ok")))
+
+    def test_mid_part_disconnect_resumes_from_written_offset(self):
+        a = self.artifact()
+        receipt = f.acquire_one(a, self.cache, opener=self.opener("disconnect"), range_streams=4)
+        first, sent = self.CUT
+        resumed = "bytes=%d-%d" % (first + sent, first + self.PART - 1)
+        self.assertIn(resumed, self.requests("disconnect"))
+        self.assertEqual(len(self.requests("disconnect")), 8)
+        self.assertEqual(receipt["part_timings"][2]["resume_offsets"], [first + sent])
+        self.assertEqual((receipt["attempts"], receipt["transferred_bytes"]), (2, len(self.PAYLOAD)))
+        self.assertEqual((self.cache / a["filename"]).read_bytes(), self.PAYLOAD)
+
+    def test_server_ignoring_range_falls_back_to_single_stream(self):
+        a = self.artifact()
+        receipt = f.acquire_one(a, self.cache, opener=self.opener("ignore"), range_streams=4)
+        self.assertEqual(self.requests("ignore"), ["bytes=0-%d" % (self.PART - 1), None])
+        self.assertEqual((receipt["transfer_mode"], receipt["range_fallback"]), ("single", "range-unsupported"))
+        self.assertEqual((self.cache / a["filename"]).read_bytes(), self.PAYLOAD)
+        self.assertEqual(list(self.cache.glob(".partial-*")), [])
+
+    def test_etag_change_between_parts_refused(self):
+        a = self.artifact()
+        with self.assertRaisesRegex(ValueError, "^Object identity changed between ranges$"):
+            f.acquire_one(a, self.cache, opener=self.opener("etag"), range_streams=4)
+        self.assertFalse((self.cache / a["filename"]).exists())
+        self.assertEqual(list(self.cache.glob(".partial-*")), [])
 
 
 class LinuxHarnessTests(unittest.TestCase):
@@ -601,6 +1175,40 @@ class LockedInstallerTests(unittest.TestCase):
         self.assertIn('/application-a3/fixture',payload)
         self.assertIn("'NUMBA_CACHE_DIR':str(cache)",payload)
         self.assertIn('assert not list(cache.iterdir())',payload)
+
+    def test_range_settings_from_flags_environment_and_defaults(self):
+        from types import SimpleNamespace
+        def args(**changes):
+            return SimpleNamespace(**dict({'workers':4,'range_streams':None,'max_connections':None},**changes))
+        self.assertEqual(locked.transfer_settings(args(),{}),(0,4))
+        self.assertEqual(locked.transfer_settings(args(workers=2),{}),(0,2))
+        env={locked.RANGE_STREAMS_ENV:'4',locked.MAX_CONNECTIONS_ENV:'8'}
+        self.assertEqual(locked.transfer_settings(args(),env),(4,8))
+        self.assertEqual(locked.transfer_settings(args(range_streams=2,max_connections=4),env),(2,4))
+        self.assertEqual(locked.transfer_settings(args(),{locked.RANGE_STREAMS_ENV:' '}),(0,4))
+        for bad in ({locked.RANGE_STREAMS_ENV:'3'},{locked.RANGE_STREAMS_ENV:'on'},{locked.RANGE_STREAMS_ENV:'-2'},
+                    {locked.MAX_CONNECTIONS_ENV:'2'},{locked.MAX_CONNECTIONS_ENV:'16'}):
+            with self.subTest(bad=bad),self.assertRaises(ValueError):
+                locked.transfer_settings(args(),bad)
+
+    def test_canonical_installer_passes_range_settings_through(self):
+        text=(Path(__file__).parent/'scripts/install_musetalk.sh').read_text()
+        body=re.search(r'(?ms)^phase_packages\(\) \{\n.*?^\}',text).group(0)
+        stub=('set -Eeuo pipefail\nflag_on() { [[ "$1" == 1 ]]; }\nlog() { :; }\n'
+              'run_strict_step() { shift; printf "|%s" "$@"; }\n'
+              'DEPENDENCY_INSTALL_MODE=locked-wheelhouse-uv KOKORO=0 AVATAR_PREP=0 PYTHON_BIN=py SCRIPT_DIR=/s\n'
+              'DEPENDENCY_CONTRACT=/c REPO_ROOT=/r VENV_PATH=/v DEPENDENCY_CACHE=/d\n')
+        clean={k:v for k,v in os.environ.items() if not k.startswith('MUSETALK_')}
+        for env,expected,absent in (({},'|--range-streams|0','--max-connections'),
+                                    ({'MUSETALK_DEPENDENCY_RANGE_STREAMS':'4','MUSETALK_DEPENDENCY_MAX_CONNECTIONS':'8'},
+                                     '|--range-streams|4|--max-connections|8',None)):
+            with self.subTest(env=env):
+                result=subprocess.run(['/bin/bash','-c',stub+body+'\nphase_packages\n'],env=dict(clean,**env),
+                                      capture_output=True,text=True,timeout=5)
+                self.assertEqual(result.returncode,0,result.stderr)
+                self.assertTrue(result.stdout.endswith(expected),result.stdout)
+                self.assertIn('|--workers|4|--tickets-fd|0|',result.stdout)
+                if absent:self.assertNotIn(absent,result.stdout)
 
     def contract(self):
         return json.loads((Path(__file__).parent/'configs/dependencies/rtx3090-cp310-cu121-screening.json').read_text())

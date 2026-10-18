@@ -24,6 +24,8 @@ import fetch_dependency_wheels as fetch
 
 MARKER = '.musetalk-locked-dependencies.json'
 UV_BINARY_SHA256 = 'db919fb9428cc8ad04377ba3c898e0ec5fbee83700da5b982b1c9539f1e1b34f'
+RANGE_STREAMS_ENV = 'MUSETALK_DEPENDENCY_RANGE_STREAMS'
+MAX_CONNECTIONS_ENV = 'MUSETALK_DEPENDENCY_MAX_CONNECTIONS'
 
 
 def atomic_json(path, data):
@@ -57,6 +59,26 @@ def check_platform():
     require(sys.version_info[:2]==(3,10),'Host interpreter must be CPython 3.10')
     require(tuple(map(int,platform.libc_ver()[1].split('.'))) >= (2,35),
             'glibc below validated floor')
+
+
+def transfer_settings(args,environ=None):
+    """Ranged-download settings: flags win, then environment, then defaults
+    (0 range streams = original single-stream behaviour; connection cap = workers)."""
+    environ=os.environ if environ is None else environ
+    def pick(flag,name):
+        if flag is not None:return flag
+        raw=environ.get(name,'').strip()
+        if not raw:return None
+        require(raw.isdigit(),'Invalid '+name)
+        return int(raw)
+    streams=pick(getattr(args,'range_streams',None),RANGE_STREAMS_ENV)
+    streams=0 if streams is None else streams
+    require(streams in (0,2,4),RANGE_STREAMS_ENV+' must be 0, 2 or 4')
+    connections=pick(getattr(args,'max_connections',None),MAX_CONNECTIONS_ENV)
+    if connections is None:connections=args.workers
+    else:require(connections in (4,8),MAX_CONNECTIONS_ENV+' must be 4 or 8')
+    require(connections in fetch.CONNECTION_CHOICES,'Unsupported dependency connection cap')
+    return streams,connections
 
 
 def check_inputs(manifest,repo):
@@ -114,6 +136,7 @@ def active_venv(venv):
 
 def run(args,ticket_loader=None):
     check_platform()
+    range_streams,max_connections=transfer_settings(args)
     started=time.monotonic()
     contract=json.loads(args.contract.read_text());check_contract(contract)
     repo=args.repo_root.resolve(strict=True)
@@ -178,7 +201,8 @@ def run(args,ticket_loader=None):
             cached=all((artifact/'wheels'/a['filename']).is_file() for a in selected(manifest,args.group))
             result['acquisition']=fetch.acquire(manifest,artifact/'wheels',args.group,args.workers,repo,
                 reserve_bytes=(4 if cached else 30)*1024**3,
-                tickets={k:v for k,v in ticket['wheels'].items() if k in needed})
+                tickets={k:v for k,v in ticket['wheels'].items() if k in needed},
+                range_streams=range_streams,max_connections=max_connections)
             uv=None
             if args.mode=='locked-wheelhouse-uv':
                 uv=artifact/'uv-tool/uv'
@@ -224,6 +248,10 @@ def main():
     p.add_argument('--mode',choices=('locked-wheelhouse-pip','locked-wheelhouse-uv'),required=True)
     p.add_argument('--group',choices=('server','server+kokoro','full'),required=True)
     p.add_argument('--workers',type=int,choices=(1,2,4),default=4)
+    p.add_argument('--range-streams',type=int,choices=(0,2,4),
+                   help='Byte ranges per large public wheel (default: $'+RANGE_STREAMS_ENV+' or 0 = off)')
+    p.add_argument('--max-connections',type=int,choices=(4,8),
+                   help='Global open-connection cap (default: $'+MAX_CONNECTIONS_ENV+' or --workers)')
     p.add_argument('--tickets-fd',type=int,default=0)
     p.add_argument('--check',action='store_true')
     p.add_argument('--repair',action='store_true')

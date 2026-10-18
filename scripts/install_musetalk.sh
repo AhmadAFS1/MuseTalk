@@ -127,6 +127,9 @@ Environment: PIP_CACHE_DIR (respected), MUSETALK_WHEELHOUSE (extra --find-links 
     locked-wheelhouse-uv (experimental opt-in, cu121 only; --clean only if venv absent).
   Locked modes require MUSETALK_DEPENDENCY_CONTRACT and MUSETALK_DEPENDENCY_CACHE;
     private read tickets are JSON on stdin (or MUSETALK_DEPENDENCY_TICKET_FD).
+    MUSETALK_DEPENDENCY_RANGE_STREAMS=0 (default, off) | 2 | 4 fetches public wheels >= 256 MiB
+    as parallel byte ranges; MUSETALK_DEPENDENCY_MAX_CONNECTIONS=4 | 8 caps open connections
+    (default: MUSETALK_DEPENDENCY_WORKERS).
     No silent source fallback. Existing foreign venvs are never adopted/overwritten.
 
 Examples:
@@ -752,11 +755,17 @@ phase_packages() {
     local group=server
     flag_on "$KOKORO" && group=server+kokoro
     flag_on "$AVATAR_PREP" && group=full
+    # Opt-in ranged downloads for large public wheels (0 = off, the default).
+    local -a transfer_args=(--range-streams "${MUSETALK_DEPENDENCY_RANGE_STREAMS:-0}")
+    if [[ -n "${MUSETALK_DEPENDENCY_MAX_CONNECTIONS:-}" ]]; then
+      transfer_args+=(--max-connections "$MUSETALK_DEPENDENCY_MAX_CONNECTIONS")
+    fi
     run_strict_step "Locked dependency acquisition + packages ($DEPENDENCY_INSTALL_MODE, $group)" \
       "$PYTHON_BIN" -B "$SCRIPT_DIR/install_locked_dependencies.py" \
       --contract "$DEPENDENCY_CONTRACT" --repo-root "$REPO_ROOT" --venv "$VENV_PATH" \
       --cache-root "$DEPENDENCY_CACHE" --mode "$DEPENDENCY_INSTALL_MODE" --group "$group" \
-      --workers "${MUSETALK_DEPENDENCY_WORKERS:-4}" --tickets-fd "${MUSETALK_DEPENDENCY_TICKET_FD:-0}"
+      --workers "${MUSETALK_DEPENDENCY_WORKERS:-4}" --tickets-fd "${MUSETALK_DEPENDENCY_TICKET_FD:-0}" \
+      "${transfer_args[@]}"
     return 0
   fi
   log "server pip:$(printf ' %q' "${PIP_INSTALL_ARGS[@]}")"
