@@ -396,6 +396,31 @@ wait
             (d/'pending').unlink();(d/'rc').write_text('0\n')
             r=run(10);self.assertEqual(r.returncode,0);self.assertIn('rc=0',r.stdout)
 
+    def test_numba_prewarm_runs_in_background_and_never_fails_the_install(self):
+        source=(REPO/'scripts/install_musetalk.sh').read_text()
+        helpers=re.search(r'^NUMBA_PREWARM_PID="".*?^wait_for_numba_prewarm\(\) \{\n.*?^\}\n',source,re.M|re.S).group()
+        self.assertLess(source.index('\nstart_numba_prewarm\n'),source.index('run_install_phase "Phase 4"'))
+        self.assertLess(source.index('\nwait_for_numba_prewarm\n'),source.index('run_install_phase "Phase 8"'))
+        with tempfile.TemporaryDirectory() as folder:
+            d=Path(folder);py=d/'python'
+            def run(body,env=''):
+                py.write_text('#!/bin/bash\n'+body+'\n');py.chmod(0o755)
+                return subprocess.run(['bash','-c','set -Eeuo pipefail\nlog(){ echo "$*"; }\nflag_on(){ [[ "$1" == 1 ]]; }\n'
+                    +helpers+env+'VENV_PY="$1"; WORK_DIR="$2"\nstart_numba_prewarm\necho started\nwait_for_numba_prewarm\necho after',
+                    '-',str(py),str(d)],capture_output=True,text=True,timeout=20)
+            r=run('echo "numba prewarm 1.0s"')
+            self.assertEqual(r.returncode,0,r.stderr)
+            self.assertIn('Numba prewarm finished: numba prewarm 1.0s',r.stdout)
+            self.assertLess(r.stdout.index('started'),r.stdout.index('Numba prewarm finished'))
+            r=run('echo boom >&2; exit 4')
+            self.assertEqual(r.returncode,0,r.stderr)
+            self.assertIn('Numba prewarm failed (non-fatal): boom',r.stdout)
+            r=run('sleep 5','MUSETALK_NUMBA_PREWARM_WAIT_SECONDS=1\n')
+            self.assertEqual(r.returncode,0,r.stderr)
+            self.assertIn('still running after 1s',r.stdout)
+            r=run('exit 9','MUSETALK_NUMBA_PREWARM=0\n')
+            self.assertEqual((r.returncode,'Numba' in r.stdout,'after' in r.stdout),(0,False,True))
+
     def test_installer_cli_accepts_the_bootstrap_transfer_defaults(self):
         # Fresh worker pe-h1 died in Phase 3: the bootstrap exported 16 connections
         # but the installer's argparse still only allowed 4|8.

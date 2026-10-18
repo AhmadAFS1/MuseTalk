@@ -830,6 +830,37 @@ wait_for_weight_prefetch() {
   log "Boot-time weight prefetch finished rc=$(cat "$dir/rc" 2>/dev/null || echo '?') (waited ${waited}s); downloading only what is missing"
 }
 
+NUMBA_PREWARM_PID=""
+start_numba_prewarm() {
+  # librosa compiles ~10 numba kernels (cache=True, written to site-packages __pycache__)
+  # when librosa.core.audio / librosa.util are first imported: ~12 s on a fresh venv,
+  # previously paid inside the server's uploaded-audio warmup. Compile once, in the
+  # background, while weights/verify/r5 run. uv does not keep wheel mtimes, so the
+  # cache cannot be shipped prebuilt. MUSETALK_NUMBA_PREWARM=0 disables.
+  flag_on "${MUSETALK_NUMBA_PREWARM:-1}" || return 0
+  [[ -x "$VENV_PY" ]] || return 0
+  CUDA_VISIBLE_DEVICES="" PYTHONNOUSERSITE=1 "$VENV_PY" -c \
+    'import time; t = time.time(); import librosa; librosa.load; librosa.util.utils; print("numba prewarm %.1fs" % (time.time() - t))' \
+    >"$WORK_DIR/numba_prewarm.log" 2>&1 8<&- 9<&- &
+  NUMBA_PREWARM_PID=$!
+  log "Started background numba prewarm (pid=$NUMBA_PREWARM_PID)"
+}
+
+wait_for_numba_prewarm() {
+  # Non-fatal: a failed or slow prewarm only means the server compiles on first use.
+  [[ -n "$NUMBA_PREWARM_PID" ]] || return 0
+  local waited=0 limit="${MUSETALK_NUMBA_PREWARM_WAIT_SECONDS:-120}"
+  while kill -0 "$NUMBA_PREWARM_PID" 2>/dev/null && (( waited < limit )); do sleep 1; waited=$(( waited + 1 )); done
+  if kill -0 "$NUMBA_PREWARM_PID" 2>/dev/null; then
+    log "Numba prewarm still running after ${limit}s; continuing without it"
+  elif wait "$NUMBA_PREWARM_PID"; then
+    log "Numba prewarm finished: $(tail -n 1 "$WORK_DIR/numba_prewarm.log" 2>/dev/null) (waited ${waited}s)"
+  else
+    log "Numba prewarm failed (non-fatal): $(tail -n 3 "$WORK_DIR/numba_prewarm.log" 2>/dev/null | tr '\n' ' ')"
+  fi
+  NUMBA_PREWARM_PID=""
+}
+
 phase_weights() {
   if (( SKIP_WEIGHTS )); then
     log "Skipping weight downloads (--skip-weights)"
@@ -967,10 +998,12 @@ run_install_phase "Phase 1" "System packages" "apt: python3.10(+venv,dev), ffmpe
 run_install_phase "Phase 2" "Venv" "Create the CPython 3.10 venv, or reuse it and repair in place." phase_venv
 run_install_phase "Phase 3" "Python packages" "Separate server and optional Kokoro pip steps against constraints-$TARGET_MATRIX.txt; avatar-prep timed separately." phase_packages
 wait_for_apt_prefetch  # Later phases need the system packages even when Phase 3 reused a venv.
+start_numba_prewarm
 run_install_phase "Phase 4" "Weights" "download_weights.sh (+ pinned TAESD, optional Kokoro cache)." phase_weights
 run_install_phase "Phase 5" "Native VP8" "Pinned native VP8 encoder files + CPU preflight (default encoder stays pyav)." phase_native_vp8
 run_install_phase "Phase 6" "Chin tools" "Optional dedicated MediaPipe venv for the offline chin tracker." phase_chin_tools
 run_install_phase "Phase 7" "Verify" "CPU import smoke with CUDA hidden; GPU self-test when a GPU is visible." phase_verify
+wait_for_numba_prewarm
 run_install_phase "Phase 8" "Stamp" "Write the install stamp, then re-run the read-only check." run_strict_step "Write $STATE_FILE" stamp_step
 run_install_phase "Phase 9" "Post-install check" "musetalk_install_state.py check with the resolved groups (must exit 0)." run_strict_step "Post-install --check" final_check_step
 log "MuseTalk install complete: venv=$VENV_PATH matrix=$TARGET_MATRIX stamp=$STATE_FILE"
