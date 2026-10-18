@@ -6,7 +6,7 @@ not an offline-wheelhouse or native-compatibility pass.
 """
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 import fcntl
 import hashlib
 import json
@@ -145,7 +145,8 @@ def acquire_one(a, cache, repo_root=None, retries=2, opener=None, ticket=None):
                 # deliberately do not enter this retry path.
                 if isinstance(error, urllib.error.HTTPError):
                     status = error.code
-                    error.close()
+                    with suppress(Exception):  # Python 3.9: body-less HTTPError.close() raises KeyError.
+                        error.close()
                     if status not in {408, 429, 500, 502, 503, 504}:
                         raise ValueError("Artifact HTTP failure " + str(status)) from None
                 if attempt == retries:

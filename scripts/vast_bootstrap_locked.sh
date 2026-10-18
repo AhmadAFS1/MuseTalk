@@ -27,6 +27,46 @@ api_pid_file_is_stale() {
 }
 bootstrap_die() { bootstrap_log "ERROR: $*" >&2; exit 2; }
 
+# Workers check out a sparse, blob-filtered tree: the revision's own spec drops
+# ~3 GB of showcase media (generated/, assets/ banks, docs/) that no runtime
+# path reads. The guard makes a wrong spec fail in seconds, never as a silent
+# 3 GB lazy fetch or a per-request 404 later.
+WORKER_SPARSE_SPEC=configs/worker-sparse-checkout
+REQUIRED_WORKER_PATHS=(api_server.py download_weights.sh scripts/vast_onstart.sh scripts/install_musetalk.sh
+  scripts/vast_server_ctl.sh scripts/run_musetalk_server.sh scripts/lib configs/recipes/r5.env configs/trt_bundles
+  configs/dependencies requirements/server.in calibration/unet_portable_bs8 calibration/vae_decoder
+  musetalk/whisper/whisper/assets/mel_filters.npz third_party_wheels templates/webrtc_pose_lab.py
+  assets/segmind_motion_references)
+DENIED_WORKER_PATHS=(generated assets/ltx23_pose_banks character_factory/generated docs)
+
+apply_worker_sparse_spec() {
+  local repo="$1"
+  git -C "$repo" config core.sparseCheckout true
+  git -C "$repo" config core.sparseCheckoutCone false
+  mkdir -p "$repo/.git/info"
+  if ! git -C "$repo" show "$MUSETALK_SOURCE_REVISION:$WORKER_SPARSE_SPEC" > "$repo/.git/info/sparse-checkout.new" 2>/dev/null; then
+    rm -f "$repo/.git/info/sparse-checkout.new"
+    git -C "$repo" config core.sparseCheckout false
+    bootstrap_log "Revision has no $WORKER_SPARSE_SPEC; full (lazy) checkout"
+    return 1
+  fi
+  mv -f "$repo/.git/info/sparse-checkout.new" "$repo/.git/info/sparse-checkout"
+}
+
+verify_worker_checkout() {
+  local repo="$1" path skipped
+  [[ "$(git -C "$repo" config --get core.sparseCheckout)" == true ]] || return 0
+  skipped="$(git -C "$repo" ls-files -t | grep -c '^S ' || true)"
+  (( skipped > 0 )) || bootstrap_die 'Sparse spec excluded nothing; refusing a full worker checkout'
+  for path in "${DENIED_WORKER_PATHS[@]}"; do
+    [[ ! -e "$repo/$path" ]] || bootstrap_die "Excluded path present in worker checkout: $path"
+  done
+  for path in "${REQUIRED_WORKER_PATHS[@]}"; do
+    [[ -e "$repo/$path" ]] || bootstrap_die "Required worker path missing from sparse checkout: $path"
+  done
+  bootstrap_log "Sparse worker checkout: $skipped paths skipped; spec $( (sha256sum 2>/dev/null || shasum -a 256) < "$repo/.git/info/sparse-checkout" | cut -c1-16); $(git --version)"
+}
+
 checkout_code() {
   local current=""
   if [[ -e "$REPO_DIR" || -L "$REPO_DIR" ]]; then
@@ -49,14 +89,21 @@ checkout_code() {
         || bootstrap_die 'API PID file exists; stop/inspect worker before changing code'
       bootstrap_log 'Stale API PID file from a previous container; continuing with code update'
     fi
+    # A blob-filtered checkout keeps its filter for this fetch (promisor remote).
     git -C "$REPO_DIR" -c core.hooksPath=/dev/null fetch --depth 1 origin "$MUSETALK_SOURCE_REVISION"
+    local sparse=0
+    apply_worker_sparse_spec "$REPO_DIR" && sparse=1
     git -C "$REPO_DIR" -c core.hooksPath=/dev/null checkout --detach --no-overwrite-ignore "$MUSETALK_SOURCE_REVISION"
+    if (( sparse )); then git -C "$REPO_DIR" sparse-checkout reapply; fi
+    verify_worker_checkout "$REPO_DIR"
   else
     STAGE_DIR="$(mktemp -d /workspace/MuseTalk.stage.XXXXXX)"
     git -C "$STAGE_DIR" init -q
     git -C "$STAGE_DIR" remote add origin "$REPO_URL"
-    git -C "$STAGE_DIR" -c core.hooksPath=/dev/null fetch --depth 1 origin "$MUSETALK_SOURCE_REVISION"
+    git -C "$STAGE_DIR" -c core.hooksPath=/dev/null fetch --depth 1 --filter=blob:none origin "$MUSETALK_SOURCE_REVISION"
+    apply_worker_sparse_spec "$STAGE_DIR" || true
     git -C "$STAGE_DIR" -c core.hooksPath=/dev/null checkout --detach "$MUSETALK_SOURCE_REVISION"
+    verify_worker_checkout "$STAGE_DIR"
     [[ ! -e "$REPO_DIR" && ! -L "$REPO_DIR" ]] || bootstrap_die 'Repo path appeared during staging'
     mv -T "$STAGE_DIR" "$REPO_DIR"
     STAGE_DIR=""

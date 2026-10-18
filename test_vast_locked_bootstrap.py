@@ -230,6 +230,55 @@ exec 8<&-
         proc=self.run_shell('bootstrap_log probe\n')
         self.assertRegex(proc.stdout,r'^\[bootstrap\] \[\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ\] probe$')
 
+    def _sparse_fixture(self,root,spec_text=None):
+        """Scratch repo with an empty file for every tracked path, real git sparse semantics."""
+        names=subprocess.run(['git','-C',str(REPO),'ls-tree','-r','--name-only','HEAD'],capture_output=True,text=True,check=True).stdout.split('\n')
+        names=[n for n in names if n]+['configs/worker-sparse-checkout']
+        src=root/'src'
+        for n in set(names):
+            p=src/n;p.parent.mkdir(parents=True,exist_ok=True);p.touch()
+        spec=spec_text if spec_text is not None else (REPO/'configs/worker-sparse-checkout').read_text()
+        (src/'configs/worker-sparse-checkout').write_text(spec)
+        git=lambda *a:subprocess.run(['git','-C',str(src),*a],capture_output=True,text=True,check=True).stdout.strip()
+        git('init','-q');git('add','-A')
+        git('-c','user.name=t','-c','user.email=t@t','commit','-qm','fixture')
+        return src,git('rev-parse','HEAD')
+
+    def _apply_and_verify(self,src,sha):
+        return self.run_shell('''MUSETALK_SOURCE_REVISION="$3"
+apply_worker_sparse_spec "$2"
+git -C "$2" read-tree -mu HEAD
+verify_worker_checkout "$2"
+''',src,sha)
+
+    def test_worker_sparse_spec_keeps_runtime_paths_and_drops_media(self):
+        with tempfile.TemporaryDirectory() as folder:
+            src,sha=self._sparse_fixture(Path(folder))
+            proc=self._apply_and_verify(src,sha)
+            self.assertEqual(proc.returncode,0,proc.stderr);self.assertIn('Sparse worker checkout:',proc.stdout)
+            # Unanchored patterns would also drop these nested runtime files.
+            for kept in ('musetalk/whisper/whisper/assets/mel_filters.npz','third_party_wheels','calibration/vae_decoder',
+                         'assets/segmind_motion_references','configs/dependencies/rtx3090-cp310-cu121-screening.json'):
+                self.assertTrue((src/kept).exists(),kept)
+            for dropped in ('generated','docs','assets/ltx23_pose_banks','character_factory/generated','uploads'):
+                self.assertFalse((src/dropped).exists(),dropped)
+            self.assertTrue((src/'character_factory').exists())
+
+    def test_worker_sparse_guard_dies_when_a_required_path_is_excluded(self):
+        spec=(REPO/'configs/worker-sparse-checkout').read_text().replace('/assets/segmind_motion_references/\n','')
+        with tempfile.TemporaryDirectory() as folder:
+            src,sha=self._sparse_fixture(Path(folder),spec)
+            proc=self._apply_and_verify(src,sha)
+            self.assertEqual(proc.returncode,2);self.assertIn('Required worker path missing',proc.stderr)
+
+    def test_fresh_checkout_is_blob_filtered_and_sparse(self):
+        source=(REPO/'scripts/vast_bootstrap_locked.sh').read_text()
+        self.assertIn('fetch --depth 1 --filter=blob:none origin "$MUSETALK_SOURCE_REVISION"',source)
+        self.assertIn('apply_worker_sparse_spec "$STAGE_DIR"',source)
+        self.assertIn('verify_worker_checkout "$STAGE_DIR"',source)
+        for line in (REPO/'configs/worker-sparse-checkout').read_text().split():
+            self.assertTrue(line.lstrip('!').startswith('/'),'every sparse pattern must be anchored: '+line)
+
     def test_proc1_environ_readers_never_exit_early(self):
         # awk 'exit' closes the pipe early; tr then dies with SIGPIPE and
         # pipefail turns that into exit 141 under set -e (18 KB Vast env).
