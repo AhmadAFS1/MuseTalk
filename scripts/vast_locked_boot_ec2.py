@@ -190,8 +190,10 @@ def compose_env(template_env, revision, tickets, session, secret, settings=None,
     return env
 
 
-def acceptable(o, max_price=.30, max_transfer=.005, any_geo=False, disk=DEFAULT_DISK):
-    """Verified 1x RTX 3090 inside explicit caps (test rentals; production has its own filters)."""
+def acceptable(o, max_price=.30, max_transfer=.005, any_geo=False, disk=DEFAULT_DISK, relax=None):
+    """Verified 1x RTX 3090 inside explicit caps (test rentals; production has its own filters).
+    relax (benchmark hosts only, recorded in the ledger): allow_unverified, min_inet_down (>= 300)."""
+    relax = relax or {}
     import math
 
     def finite(name, low, high):
@@ -199,18 +201,18 @@ def acceptable(o, max_price=.30, max_transfer=.005, any_geo=False, disk=DEFAULT_
         return type(v) in (int, float) and math.isfinite(v) and low <= v <= high
     prices = [o[k] for k in ("dph_total", "dph_total_adj", "discounted_total_per_hour") if o.get(k) is not None]
     return (o.get("gpu_name") == "RTX 3090" and o.get("num_gpus") == 1 and o.get("cpu_arch") == "amd64"
-            and o.get("verification") == "verified"
+            and (o.get("verification") == "verified" or (relax.get("allow_unverified") and o.get("verification") == "unverified"))
             and (any_geo or str(o.get("geolocation", "")).endswith(", US"))
             and finite("cpu_cores_effective", 10, 1000) and finite("cpu_ram", 32000, 10**9)
-            and finite("disk_space", disk, 10**9) and finite("inet_down", 500, 10**9)
+            and finite("disk_space", disk, 10**9) and finite("inet_down", max(300, int(relax.get("min_inet_down", 500))), 10**9)
             and finite("cuda_max_good", 12.1, 100) and finite("reliability", .90, 1)
             and finite("inet_down_cost", 0, max_transfer) and finite("inet_up_cost", 0, max_transfer)
             and finite("storage_cost", 0, .40) and bool(prices)
             and all(type(v) in (int, float) and math.isfinite(v) and 0 < v <= max_price for v in prices))
 
 
-def choose_offer(rows, machine=None, any_geo=False, max_price=.30, max_transfer=.005, disk=DEFAULT_DISK):
-    offers = [r for r in rows if acceptable(r, max_price, max_transfer, any_geo, disk)
+def choose_offer(rows, machine=None, any_geo=False, max_price=.30, max_transfer=.005, disk=DEFAULT_DISK, relax=None):
+    offers = [r for r in rows if acceptable(r, max_price, max_transfer, any_geo, disk, relax)
               and (machine is None or r.get("machine_id") == machine)
               and str(r.get("id")) not in PROTECTED]
     require(offers, "No offer inside caps (verified RTX 3090, price/transfer caps, >=10 cores, >=32 GB, >=500 Mbps)")
@@ -269,7 +271,8 @@ def r5_prefetch_ticket(revision, session, bucket, expires=3600):
     return {"url": url, "sha256": d["sha256"], "bytes": int(d["size_bytes"])}
 
 
-def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30, launch="template"):
+def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30, launch="template",
+         relax=None):
     """Everything a create needs, without provider writes or local state."""
     require(3600 <= lifetime <= 4 * 3600, "Lifetime must be 1-4 hours")
     require(launch in LAUNCH_MODES, "Unknown launch mode")
@@ -295,7 +298,9 @@ def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", se
     if geo == "US":
         query["geolocation"] = {"in": ["US"]}
     rows = client.search_offers(query)
-    offer = choose_offer(rows, machine, geo == "any", max_price, max_transfer, disk)
+    require(relax is None or (set(relax) <= {"allow_unverified", "min_inet_down"} and machine is not None
+            and 300 <= int(relax.get("min_inet_down", 500)) <= 500), "Relaxed filters need a pinned --machine; min net 300-500")
+    offer = choose_offer(rows, machine, geo == "any", max_price, max_transfer, disk, relax)
     response = requests.get(client.base_url + "/api/v0/template/", headers=client._headers(),
         params={"select_filters": json.dumps({"hash_id": {"eq": b.TEMPLATE}})}, timeout=20, allow_redirects=False)
     require(response.status_code == 200, "Template lookup failed")
@@ -330,10 +335,11 @@ def request_shape(request):
             "env_keys": sorted(env), "onstart_bytes": len((request.get("onstart") or "").encode())}
 
 
-def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30, launch="template"):
+def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30, launch="template",
+           relax=None):
     require(os.getuid() == 0 and not run.root.exists(), "Fresh root-owned run only; never repeat create")
     os.umask(0o077)
-    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings, max_price, launch)
+    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings, max_price, launch, relax)
     b, client, existing, offer, env, onstart = p["b"], p["client"], p["existing"], p["offer"], p["env"], p["onstart"]
     bootstrap_sha256, contract, credentials = p["bootstrap_sha256"], p["contract"], p["credentials"]
     run.root.mkdir(mode=0o700, parents=False)
@@ -346,7 +352,7 @@ def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", 
               "protected_instance_ids": sorted(PROTECTED | {str(r["id"]) for r in existing}),
               "deadline_utc": deadline, "lifetime_seconds": lifetime, "source_revision": revision,
               "onstart_sha256": hashlib.sha256(onstart.encode()).hexdigest(), "bootstrap_sha256": bootstrap_sha256,
-              "contract_artifact_id": contract["artifact_id"], "disk_gb": disk, "launch": launch,
+              "contract_artifact_id": contract["artifact_id"], "disk_gb": disk, "launch": launch, "relaxed_filters": relax or {},
               "template_hash_id": b.TEMPLATE if launch == "template" else None,
               "tickets_issued_utc": utc(), "ticket_seconds": TICKET_SECONDS,
               "s3_session_expires_utc": credentials["Expiration"].isoformat(), "create_requests": 0,
@@ -376,9 +382,10 @@ def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", 
     run.event("CREATED", instance_id=identifier, deadline_utc=deadline)
 
 
-def preflight(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30, launch="template"):
+def preflight(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30, launch="template",
+              relax=None):
     """Dry run of create: offer, template, tickets, identity, stub. No provider write."""
-    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings, max_price, launch)
+    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings, max_price, launch, relax)
     o = p["offer"]
     shape = request_shape(create_request(p["b"], launch, disk, run.label, p["env"], p["onstart"]))
     print(json.dumps({"state": "preflight-ok", "label": run.label, "launch": launch,
@@ -789,6 +796,8 @@ def main():
     parser.add_argument("--geo", choices=("US", "any"), default="US")
     parser.add_argument("--max-price", type=float, default=.30, help="$/h cap for the test rental (<= 0.50)")
     parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="Allowlisted experiment setting")
+    parser.add_argument("--allow-unverified", action="store_true", help="Benchmark hosts only (needs --machine)")
+    parser.add_argument("--min-inet-down", type=int, default=500, help="Mbps floor, 300-500 (needs --machine)")
     parser.add_argument("--launch", choices=LAUNCH_MODES, default="template",
                         help="template: production template hash, On-start replaced; stock: the autoscaler's template-less shape")
     args = parser.parse_args()
@@ -796,12 +805,15 @@ def main():
     os.umask(0o077)
     run = Run(args.run)
     settings = parse_settings(args.set)
+    relax = None
+    if args.allow_unverified or args.min_inet_down != 500:
+        relax = {"allow_unverified": bool(args.allow_unverified), "min_inet_down": args.min_inet_down}
     if args.mode == "preflight":
         preflight(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings,
-                  args.max_price, args.launch)
+                  args.max_price, args.launch, relax)
     elif args.mode == "create":
         create(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings,
-               args.max_price, args.launch)
+               args.max_price, args.launch, relax)
     elif args.mode == "extend":
         extend(run, args.minutes)
     elif args.mode == "status":
