@@ -63,6 +63,11 @@ class StubTests(unittest.TestCase):
         self.assertFalse(m.acceptable({**fast, "verification": "deverified"}, relax={"allow_unverified": True, "min_inet_down": 450}))
         self.assertFalse(m.acceptable({**fast, "inet_down": 250}, relax={"allow_unverified": True, "min_inet_down": 100}))  # floor 300
         self.assertFalse(m.acceptable({**fast, "inet_down_cost": 0.009}, relax={"allow_unverified": True, "min_inet_down": 450}))
+        lean = {**fast, "cpu_ram": 31992}
+        self.assertFalse(m.acceptable(lean, relax={"allow_unverified": True, "min_inet_down": 450}))
+        self.assertTrue(m.acceptable(lean, relax={"allow_unverified": True, "min_inet_down": 450, "min_cpu_ram_mb": 31000}))
+        self.assertFalse(m.acceptable({**lean, "cpu_ram": 16000}, relax={"allow_unverified": True, "min_inet_down": 450,
+                                                                         "min_cpu_ram_mb": 8000}))  # floor 24 GB
 
     def test_stock_launch_matches_the_locked_autoscaler_shape(self):
         b = type("B", (), {"IMAGE": "vastai/pytorch:cuda-12.1-auto", "TEMPLATE": "4dc0868ee56886c667c217d6c3634a58"})

@@ -192,7 +192,8 @@ def compose_env(template_env, revision, tickets, session, secret, settings=None,
 
 def acceptable(o, max_price=.30, max_transfer=.005, any_geo=False, disk=DEFAULT_DISK, relax=None):
     """Verified 1x RTX 3090 inside explicit caps (test rentals; production has its own filters).
-    relax (benchmark hosts only, recorded in the ledger): allow_unverified, min_inet_down (>= 300)."""
+    relax (benchmark hosts only, recorded in the ledger): allow_unverified, min_inet_down (>= 300 Mbps),
+    min_cpu_ram_mb (>= 24000)."""
     relax = relax or {}
     import math
 
@@ -203,7 +204,7 @@ def acceptable(o, max_price=.30, max_transfer=.005, any_geo=False, disk=DEFAULT_
     return (o.get("gpu_name") == "RTX 3090" and o.get("num_gpus") == 1 and o.get("cpu_arch") == "amd64"
             and (o.get("verification") == "verified" or (relax.get("allow_unverified") and o.get("verification") == "unverified"))
             and (any_geo or str(o.get("geolocation", "")).endswith(", US"))
-            and finite("cpu_cores_effective", 10, 1000) and finite("cpu_ram", 32000, 10**9)
+            and finite("cpu_cores_effective", 10, 1000) and finite("cpu_ram", max(24000, int(relax.get("min_cpu_ram_mb", 32000))), 10**9)
             and finite("disk_space", disk, 10**9) and finite("inet_down", max(300, int(relax.get("min_inet_down", 500))), 10**9)
             and finite("cuda_max_good", 12.1, 100) and finite("reliability", .90, 1)
             and finite("inet_down_cost", 0, max_transfer) and finite("inet_up_cost", 0, max_transfer)
@@ -298,8 +299,9 @@ def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", se
     if geo == "US":
         query["geolocation"] = {"in": ["US"]}
     rows = client.search_offers(query)
-    require(relax is None or (set(relax) <= {"allow_unverified", "min_inet_down"} and machine is not None
-            and 300 <= int(relax.get("min_inet_down", 500)) <= 500), "Relaxed filters need a pinned --machine; min net 300-500")
+    require(relax is None or (set(relax) <= {"allow_unverified", "min_inet_down", "min_cpu_ram_mb"} and machine is not None
+            and 300 <= int(relax.get("min_inet_down", 500)) <= 500 and 24000 <= int(relax.get("min_cpu_ram_mb", 32000)) <= 32000),
+            "Relaxed filters need a pinned --machine; min net 300-500 Mbps, min RAM 24000-32000 MB")
     offer = choose_offer(rows, machine, geo == "any", max_price, max_transfer, disk, relax)
     response = requests.get(client.base_url + "/api/v0/template/", headers=client._headers(),
         params={"select_filters": json.dumps({"hash_id": {"eq": b.TEMPLATE}})}, timeout=20, allow_redirects=False)
@@ -798,6 +800,7 @@ def main():
     parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="Allowlisted experiment setting")
     parser.add_argument("--allow-unverified", action="store_true", help="Benchmark hosts only (needs --machine)")
     parser.add_argument("--min-inet-down", type=int, default=500, help="Mbps floor, 300-500 (needs --machine)")
+    parser.add_argument("--min-cpu-ram-mb", type=int, default=32000, help="RAM floor, 24000-32000 MB (needs --machine)")
     parser.add_argument("--launch", choices=LAUNCH_MODES, default="template",
                         help="template: production template hash, On-start replaced; stock: the autoscaler's template-less shape")
     args = parser.parse_args()
@@ -806,8 +809,9 @@ def main():
     run = Run(args.run)
     settings = parse_settings(args.set)
     relax = None
-    if args.allow_unverified or args.min_inet_down != 500:
-        relax = {"allow_unverified": bool(args.allow_unverified), "min_inet_down": args.min_inet_down}
+    if args.allow_unverified or args.min_inet_down != 500 or args.min_cpu_ram_mb != 32000:
+        relax = {"allow_unverified": bool(args.allow_unverified), "min_inet_down": args.min_inet_down,
+                 "min_cpu_ram_mb": args.min_cpu_ram_mb}
     if args.mode == "preflight":
         preflight(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings,
                   args.max_price, args.launch, relax)
