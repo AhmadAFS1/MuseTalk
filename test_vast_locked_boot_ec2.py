@@ -56,6 +56,26 @@ class EnvTests(unittest.TestCase):
 
 
 class StubTests(unittest.TestCase):
+    def test_stock_launch_matches_the_locked_autoscaler_shape(self):
+        b = type("B", (), {"IMAGE": "vastai/pytorch:cuda-12.1-auto", "TEMPLATE": "4dc0868ee56886c667c217d6c3634a58"})
+        env = m.compose_env(TEMPLATE_ENV, "a" * 40, {"wheels": {}}, SESSION, SECRET)
+        stock = m.create_request(b, "stock", 100, "mtboot-x", env, "stub")
+        self.assertNotIn("template_hash_id", stock)  # the autoscaler refuses the legacy template
+        self.assertEqual((stock["image"], stock["runtype"]), ("vastai/pytorch:cuda-12.1-auto", "ssh_direc ssh_proxy"))
+        template = m.create_request(b, "template", 100, "mtboot-x", env, "stub")
+        self.assertEqual(template["template_hash_id"], b.TEMPLATE)
+        self.assertNotIn("runtype", template)
+        for request in (stock, template):
+            self.assertEqual((request["env"], request["onstart"], request["disk"], request["cancel_unavail"]), (env, "stub", 100, True))
+        shape = m.request_shape(stock)
+        self.assertEqual(shape["ports"], ["-p 3478:3478/udp", "-p 8000:8000"])
+        text = json.dumps(shape)
+        for secret in (SESSION["SecretAccessKey"], SESSION["SessionToken"], SESSION["AccessKeyId"]):
+            self.assertNotIn(secret, text)  # the shape is safe to record and to copy into config
+        self.assertIn("AWS_SECRET_ACCESS_KEY", shape["env_keys"])
+        self.assertIn("MUSETALK_SKIP_EAGER_UNET", m.TUNABLE_ENV)
+        self.assertEqual(m.parse_settings(["MUSETALK_SKIP_EAGER_UNET=0"]), {"MUSETALK_SKIP_EAGER_UNET": "0"})
+
     def test_onstart_stub_is_small_pinned_and_valid_bash(self):
         import subprocess
         stub = m.onstart_stub("b" * 40, "c" * 64)

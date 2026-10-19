@@ -47,7 +47,15 @@ DEFAULT_LIFETIME = 7200
 DEFAULT_DISK = 100
 # Experiment knobs a test run may pass to the worker; everything else is refused.
 TUNABLE_ENV = {"MUSETALK_DEPENDENCY_RANGE_STREAMS": {"0", "2", "4"}, "MUSETALK_DEPENDENCY_MAX_CONNECTIONS": {"4", "8"},
-               "HF_MAX_WORKERS": {"4", "8", "16"}, "ONSTART_POST_VALIDATE_IMPORTS": {"0", "1"}}
+               "HF_MAX_WORKERS": {"4", "8", "16"}, "ONSTART_POST_VALIDATE_IMPORTS": {"0", "1"},
+               # Benchmark hosts: the Phase E harness hashes unet.pth and its live server loads the eager UNet.
+               "MUSETALK_SKIP_EAGER_UNET": {"0", "1"}}
+# Launch shapes. "template": the production template hash with its On-start replaced (earlier
+# cycles). "stock": what the locked-boot autoscaler sends, which refuses the legacy template:
+# no template hash, the stock image, SSH (direct + proxy) runtype, and the template's
+# non-secret env/ports passed explicitly (backend/tests/test_musetalk_locked_autoscaler.py).
+LAUNCH_MODES = ("template", "stock")
+STOCK_RUNTYPE = "ssh_direc ssh_proxy"
 WIPE_PATHS = ("/workspace/MuseTalk", "/workspace/.venvs", "/workspace/.cache/musetalk-dependencies",
               "/workspace/logs", "/workspace/bootstrap.log", "/workspace/onstart.log", "/workspace/.mtboot",
               "/workspace/.cache/r5-prefetch",
@@ -261,9 +269,10 @@ def r5_prefetch_ticket(revision, session, bucket, expires=3600):
     return {"url": url, "sha256": d["sha256"], "bytes": int(d["size_bytes"])}
 
 
-def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30):
+def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30, launch="template"):
     """Everything a create needs, without provider writes or local state."""
     require(3600 <= lifetime <= 4 * 3600, "Lifetime must be 1-4 hours")
+    require(launch in LAUNCH_MODES, "Unknown launch mode")
     require(autoscaler_quiet(), "Autoscaler is not provably off; refuse test rental with the production template hash")
     require(active_runs() < MAX_ACTIVE_RUNS, "Too many active test runs")
     b = library(run)
@@ -298,13 +307,33 @@ def plan(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", se
     prefetch = r5_prefetch_ticket(revision, session, secret["AVATAR_S3_BUCKET"])
     env = compose_env(template_env, revision, tickets, credentials, secret, settings, prefetch)
     return {"b": b, "client": client, "existing": existing, "offer": offer, "env": env, "onstart": onstart,
-            "bootstrap_sha256": bootstrap_sha256, "contract": contract, "credentials": credentials}
+            "bootstrap_sha256": bootstrap_sha256, "contract": contract, "credentials": credentials, "launch": launch}
 
 
-def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30):
+def create_request(b, launch, disk, label, env, onstart):
+    request = {"client_id": "me", "image": b.IMAGE, "disk": disk, "label": label, "env": env, "onstart": onstart,
+               "cancel_unavail": True}
+    if launch == "template":
+        request["template_hash_id"] = b.TEMPLATE
+    else:
+        request["runtype"] = STOCK_RUNTYPE
+    return request
+
+
+def request_shape(request):
+    """Non-secret shape of a create request: what VAST_MUSETALK_CREATE_JSON must carry."""
+    env = request.get("env") or {}
+    return {"image": request.get("image"), "runtype": request.get("runtype"), "template_hash_id": request.get("template_hash_id"),
+            "disk": request.get("disk"), "ports": sorted(k for k in env if k.startswith("-p ")),
+            "plain_env": {k: v for k, v in env.items() if k in {"OPEN_BUTTON_PORT", "JUPYTER_DIR", "DATA_DIRECTORY",
+                                                                 "NVIDIA_DRIVER_CAPABILITIES", "NVIDIA_VISIBLE_DEVICES"}},
+            "env_keys": sorted(env), "onstart_bytes": len((request.get("onstart") or "").encode())}
+
+
+def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30, launch="template"):
     require(os.getuid() == 0 and not run.root.exists(), "Fresh root-owned run only; never repeat create")
     os.umask(0o077)
-    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings, max_price)
+    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings, max_price, launch)
     b, client, existing, offer, env, onstart = p["b"], p["client"], p["existing"], p["offer"], p["env"], p["onstart"]
     bootstrap_sha256, contract, credentials = p["bootstrap_sha256"], p["contract"], p["credentials"]
     run.root.mkdir(mode=0o700, parents=False)
@@ -317,7 +346,8 @@ def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", 
               "protected_instance_ids": sorted(PROTECTED | {str(r["id"]) for r in existing}),
               "deadline_utc": deadline, "lifetime_seconds": lifetime, "source_revision": revision,
               "onstart_sha256": hashlib.sha256(onstart.encode()).hexdigest(), "bootstrap_sha256": bootstrap_sha256,
-              "contract_artifact_id": contract["artifact_id"], "template_hash_id": b.TEMPLATE, "disk_gb": disk,
+              "contract_artifact_id": contract["artifact_id"], "disk_gb": disk, "launch": launch,
+              "template_hash_id": b.TEMPLATE if launch == "template" else None,
               "tickets_issued_utc": utc(), "ticket_seconds": TICKET_SECONDS,
               "s3_session_expires_utc": credentials["Expiration"].isoformat(), "create_requests": 0,
               "rent_per_hour": offer["dph_total_adj"], "transfer_cap_per_gb": max_transfer, "price_cap_per_hour": max_price, "geo": geo, "settings": settings or {}, "env_keys": sorted(env)}
@@ -328,8 +358,8 @@ def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", 
     run.event("T0_CREATE_REQUESTED", offer_id=offer["id"], machine_id=offer["machine_id"], geolocation=offer.get("geolocation"),
               inet_down=offer.get("inet_down"), rent_per_hour=offer["dph_total_adj"], revision=revision)
     started = time.monotonic()
-    request = {"client_id": "me", "template_hash_id": b.TEMPLATE, "image": b.IMAGE, "disk": disk,
-               "label": run.label, "env": env, "onstart": onstart, "cancel_unavail": True}
+    request = create_request(b, launch, disk, run.label, env, onstart)
+    run.save("create_shape.json", request_shape(request))
     try:
         result = client.create_instance(offer_id=int(offer["id"]), create_request=request)
     except Exception as error:
@@ -346,11 +376,14 @@ def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", 
     run.event("CREATED", instance_id=identifier, deadline_utc=deadline)
 
 
-def preflight(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30):
+def preflight(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30, launch="template"):
     """Dry run of create: offer, template, tickets, identity, stub. No provider write."""
-    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings, max_price)
+    p = plan(run, revision, lifetime, disk, machine, max_transfer, geo, settings, max_price, launch)
     o = p["offer"]
-    print(json.dumps({"state": "preflight-ok", "label": run.label, "offer": {k: o.get(k) for k in ("id", "machine_id", "geolocation",
+    shape = request_shape(create_request(p["b"], launch, disk, run.label, p["env"], p["onstart"]))
+    print(json.dumps({"state": "preflight-ok", "label": run.label, "launch": launch,
+          "request_shape": {k: shape[k] for k in ("image", "runtype", "template_hash_id", "ports")},
+          "offer": {k: o.get(k) for k in ("id", "machine_id", "geolocation",
           "dph_total_adj", "inet_down", "cpu_cores_effective", "cpu_ram", "reliability", "driver_version")},
           "env_keys": sorted(p["env"]), "onstart_bytes": len(p["onstart"].encode()), "bootstrap_sha256": p["bootstrap_sha256"],
           "ticket_wheels": len(json.loads(p["env"]["MUSETALK_DEPENDENCY_TICKETS_JSON"])["wheels"]),
@@ -756,15 +789,19 @@ def main():
     parser.add_argument("--geo", choices=("US", "any"), default="US")
     parser.add_argument("--max-price", type=float, default=.30, help="$/h cap for the test rental (<= 0.50)")
     parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="Allowlisted experiment setting")
+    parser.add_argument("--launch", choices=LAUNCH_MODES, default="template",
+                        help="template: production template hash, On-start replaced; stock: the autoscaler's template-less shape")
     args = parser.parse_args()
     require(os.getuid() == 0, "Root-owned EC2 control plane only")
     os.umask(0o077)
     run = Run(args.run)
     settings = parse_settings(args.set)
     if args.mode == "preflight":
-        preflight(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings, args.max_price)
+        preflight(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings,
+                  args.max_price, args.launch)
     elif args.mode == "create":
-        create(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings, args.max_price)
+        create(run, args.revision, args.lifetime, args.disk, args.machine, args.max_transfer_cost, args.geo, settings,
+               args.max_price, args.launch)
     elif args.mode == "extend":
         extend(run, args.minutes)
     elif args.mode == "status":
