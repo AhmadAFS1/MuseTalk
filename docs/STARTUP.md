@@ -153,7 +153,7 @@ What `vast_onstart.sh` does, in order:
 3. **Secrets and TURN.** The AWS Secrets Manager bootstrap and the TURN env autogen run exactly as
    before.
 4. **r5 bundle** (recipe r5, the default). Takes the candidate bundles that `configs/recipes/r5.env` names in its
-   `r5_engines` group (`bundle:rtx4070super-r5-srcg50-int8|ampere-plus-r5-srcg50-int8`, each described by
+   `r5_engines` group (`bundle:rtx4070super-r5-srcg50-int8|rtx3090-r5-native-v1-candidate|ampere-plus-r5-srcg50-int8`, each described by
    `configs/trt_bundles/<name>.json`, so the boot restores exactly what the resolver checks) and asks the resolver
    which ones this host fits (`musetalk_host_profile.py bundle-check --host-only`: the exact GPU model for a
    GPU-specific bundle; compute capability 8.0-9.0, TensorRT 10.3.0 and >= 8 GB VRAM for the portable one; the same
@@ -196,7 +196,7 @@ PORT=8000 bash scripts/run_musetalk_server.sh          # foreground server
 |---|---|---|
 | `fast` | `MUSETALK_VAE_BACKEND=taesd`, compiled TAESD warmed for every scheduler bucket. The UNet is TRT `.ts` bs8 when a validated engine exists for this GPU key, VRAM >= 8 GB and MemAvailable >= 10 GB; otherwise eager (the reason is in the report). `MUSETALK_TRT_FALLBACK=0`. Buckets `8/8/8`, `MUSETALK_TRT_ENABLED=0`, workers and cache sized from CPU and host RAM. | `MUSETALK_RECIPE=fast` |
 | `fast300` | fast, plus each lever group of `configs/recipes/fast300.env` whose prerequisites hold on this host (engine validated for this key, code present, preflight ok). Every dropped group is recorded with its reason. **All groups are commented out today**, so fast300 currently equals fast. | `MUSETALK_RECIPE=fast300` |
-| `r5` (default) | fast, plus the groups of `configs/recipes/r5.env`. Group `r5_engines` requires `bundle:rtx4070super-r5-srcg50-int8|ampere-plus-r5-srcg50-int8` (first that fits and is restored): the UNet is the stagewise INT8 srcg50 set bs16 and the VAE is TensorRT TAESD (`BUILD=0`, `STRICT=1`; `HW_COMPAT=ampere_plus` for the portable bundle), buckets 16. The serving and memory groups (deadline pacing, non-blocking handoff with packed I420, idle frame cache + warm, GC freeze and thresholds, off-loop diagnostics, thread caps, scheduler syncs off, lean avatar layout) apply on any GPU. Local Kokoro and the load-test telemetry ship off. | nothing |
+| `r5` (default) | fast, plus the groups of `configs/recipes/r5.env`. Group `r5_engines` requires `bundle:rtx4070super-r5-srcg50-int8|rtx3090-r5-native-v1-candidate|ampere-plus-r5-srcg50-int8` (first that fits and is restored): the UNet is the stagewise INT8 srcg50 set bs16 and the VAE is TensorRT TAESD (`BUILD=0`, `STRICT=1`; `HW_COMPAT=ampere_plus` for the portable bundle), buckets 16. The serving and memory groups (deadline pacing, non-blocking handoff with packed I420, idle frame cache + warm, GC freeze and thresholds, off-loop diagnostics, thread caps, scheduler syncs off, lean avatar layout) apply on any GPU. Local Kokoro and the load-test telemetry ship off. | nothing |
 | `legacy_int8` | The old chain, exactly: `run_trt_stagewise_server.sh` with its profile env (INT8 SD-VAE, about 4x slower on the decoder). Overrides files and the resolver are not applied. | `MUSETALK_RECIPE=legacy_int8` |
 
 **fast300 levers.** Each group in `configs/recipes/fast300.env` names its human gate, which must

@@ -16,7 +16,7 @@ the archive sha256 and then every file's sha256. Bundles are checksum-addressed
 
 TensorRT plans are compiled for a GPU architecture: plans built on an RTX 4070 SUPER (sm_89) do not load on an
 RTX 3090 (sm_86). `configs/recipes/r5.env` therefore lists candidates in order of preference,
-`bundle:rtx4070super-r5-srcg50-int8|ampere-plus-r5-srcg50-int8`, and a host gets the first one it fits
+`bundle:rtx4070super-r5-srcg50-int8|rtx3090-r5-native-v1-candidate|ampere-plus-r5-srcg50-int8`, and a host gets the first one it fits
 (`scripts/musetalk_host_profile.py bundle-check`; `vast_onstart.sh` restores it, the resolver serves it):
 
 - **RTX 4070 SUPER** -> the GPU-specific bundle: ~400 fps (6-stream full recipe, 401.8 / 400.1).
@@ -78,7 +78,7 @@ $PY scripts/trt_artifact_bundle.py --repo-root . --strict --sidecar-dir .runtime
 $PY scripts/trt_artifact_bundle.py --repo-root . --strict --sidecar-dir .runtime/trt_artifacts/$N \
   adopt --uri s3://$TRT_ARTIFACT_S3_BUCKET/$KEY --expected-sha256 $SHA
 $PY scripts/musetalk_host_profile.py bundle-check \
-  --bundle 'rtx4070super-r5-srcg50-int8|ampere-plus-r5-srcg50-int8'     # which candidates fit / are restored here
+  --bundle 'rtx4070super-r5-srcg50-int8|rtx3090-r5-native-v1-candidate|ampere-plus-r5-srcg50-int8'     # which candidates fit / are restored here
 ```
 
 ## Publishing a bundle

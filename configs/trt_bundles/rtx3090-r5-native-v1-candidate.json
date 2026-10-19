@@ -1,0 +1,28 @@
+{
+  "schema": "musetalk_trt_bundle_v1",
+  "name": "rtx3090-r5-native-v1-candidate",
+  "status": "accepted-rtx3090",
+  "promotion_eligible": true,
+  "description": "r5 = layer-selective INT8 stagewise UNet srcg50 (gmac_0.50 recipe) bs16 + TensorRT TAESD bs8, built natively for exactly an RTX 3090 (sm_86, no hardware-compatibility mode). Same recipe, precision and checkpoint as ampere-plus-r5-srcg50-int8, without its ~30% hardware-compat kernel penalty. Measured on RTX 3090s, same host, 6-stream full recipe: 399 vs 278 FPS (Ryzen 9 5900X, 350 W) and 381.9 vs 266.8 FPS (i7-12700K, 300 W). Quality on the same 3090 (2026-10-19, hc-e): UNet vs eager FP16 mae_max 0.00471 vs 0.00470 (portable), max_abs 0.612 vs 0.735; TAESD mean 0.0676 vs 0.0675 LSB (max 7 vs 5); identical gate outcomes on all six identities; native vs portable frames SSIM face 0.9995-0.9997, mouth 0.9982-0.9986, lip-sync r 0.9996-0.9998. The older frozen 236/698 parity bound compares against a 4070-family reference and is not a quality regression versus portable.",
+  "s3_key": "trt-artifacts/rtx3090-r5/native-rejected-diagnostics/sha256/1f766487cf9272929988d17f9a4d6f76ee9c8c8fdde9b149174e1e02dbcafc5e/native-sm86-v1-serving-diagnostic.tar.gz",
+  "sha256": "1f766487cf9272929988d17f9a4d6f76ee9c8c8fdde9b149174e1e02dbcafc5e",
+  "size_bytes": 983926034,
+  "sidecar_dir": ".runtime/trt_artifacts/rtx3090-r5-native-v1-candidate",
+  "host": {
+    "engine_key": "sm86-nvidia-geforce-rtx-3090-trt10.3.0",
+    "gpu_name": "NVIDIA GeForce RTX 3090",
+    "compute_capability": "8.6",
+    "tensorrt_version": "10.3.0"
+  },
+  "engines": {
+    "unet_stagewise": {
+      "cache_dir": "models/tensorrt_unet_stagewise_sm86_r5_v1",
+      "batch": 16
+    },
+    "taesd_trt": {
+      "dir": "models/taesd/trt_native_sm86_r5_v1",
+      "batch": 8,
+      "key": "1e967e6e715c9f1a8375"
+    }
+  }
+}

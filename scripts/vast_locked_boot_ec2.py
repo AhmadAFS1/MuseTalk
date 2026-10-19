@@ -34,7 +34,8 @@ LIBRARY = HERE / "python_s3_venv_source_library.py"
 REPO_RAW = "https://raw.githubusercontent.com/AhmadAFS1/MuseTalk/"
 BOOTSTRAP_PATH = "scripts/vast_bootstrap_locked.sh"
 CONTRACT_PATH = "configs/dependencies/rtx3090-cp310-cu121-screening.json"
-R5_BUNDLE_DESCRIPTOR = "configs/trt_bundles/ampere-plus-r5-srcg50-int8.json"  # The bundle that fits an RTX 3090.
+# The bundle that fits an RTX 3090: its native sm_86 build (r5.env lists it before the portable set).
+R5_BUNDLE_DESCRIPTOR = "configs/trt_bundles/rtx3090-r5-native-v1-candidate.json"
 RUNTIME_SECRET = "lingua/musetalk-worker-runtime"
 RUNTIME_USER_SUFFIX = ":user/musetalk-s3-runtime"
 LABEL_PREFIX = "mtboot-"

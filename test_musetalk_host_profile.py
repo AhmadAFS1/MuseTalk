@@ -1168,7 +1168,14 @@ class R5RecipeTests(Base):
         self.assertTrue(desc["s3_key"].startswith("trt-artifacts/") and desc["sha256"] in desc["s3_key"])
         self.assertTrue(desc["sidecar_dir"].startswith(".runtime/"))
         candidates = re.search(r"requires=bundle:([^,\s]+)", REAL_R5.read_text()).group(1).split("|")
-        self.assertEqual(candidates, [json.loads(R5_NATIVE.read_text())["name"], desc["name"]])  # portable last
+        rtx3090 = json.loads((REPO / "configs/trt_bundles/rtx3090-r5-native-v1-candidate.json").read_text())
+        # GPU-specific native sets first (4070 SUPER, then 3090), the portable set last.
+        self.assertEqual(candidates, [json.loads(R5_NATIVE.read_text())["name"], rtx3090["name"], desc["name"]])
+        self.assertEqual(rtx3090["host"]["engine_key"], "sm86-nvidia-geforce-rtx-3090-trt10.3.0")
+        self.assertNotIn("hardware_compatibility", rtx3090["host"])
+        self.assertTrue(rtx3090["s3_key"].startswith("trt-artifacts/") and rtx3090["sha256"] in rtx3090["s3_key"])
+        self.assertTrue(rtx3090["sidecar_dir"].startswith(".runtime/"))
+        self.assertEqual((rtx3090["engines"]["unet_stagewise"]["batch"], rtx3090["engines"]["taesd_trt"]["batch"]), (16, 8))
 
     def test_restored_bundle_selects_its_engines(self):
         t = self.r5_tree()
