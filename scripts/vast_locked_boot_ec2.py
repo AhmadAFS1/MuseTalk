@@ -327,14 +327,23 @@ def create_request(b, launch, disk, label, env, onstart):
     return request
 
 
+# Non-secret launch keys copied from the template (frozen_template's allowlist). OPEN_BUTTON_TOKEN
+# is a Vast portal flag; its value is recorded only when it is a plain 0/1 flag.
+SHAPE_ENV_KEYS = {"OPEN_BUTTON_PORT", "OPEN_BUTTON_TOKEN", "JUPYTER_DIR", "DATA_DIRECTORY", "PORTAL_CONFIG",
+                  "NVIDIA_DRIVER_CAPABILITIES", "NVIDIA_VISIBLE_DEVICES"}
+
+
 def request_shape(request):
-    """Non-secret shape of a create request: what VAST_MUSETALK_CREATE_JSON must carry."""
+    """Non-secret shape of a create request: what VAST_MUSETALK_CREATE_JSON must carry
+    (top-level fields other than env/onstart/label, the port mappings and the plain launch env)."""
     env = request.get("env") or {}
+    plain = {k: v for k, v in env.items() if k in SHAPE_ENV_KEYS}
+    if plain.get("OPEN_BUTTON_TOKEN") not in (None, "0", "1"):
+        plain["OPEN_BUTTON_TOKEN"] = "<redacted>"
+    fields = {k: v for k, v in request.items() if k not in {"env", "onstart", "label"}}
     return {"image": request.get("image"), "runtype": request.get("runtype"), "template_hash_id": request.get("template_hash_id"),
-            "disk": request.get("disk"), "ports": sorted(k for k in env if k.startswith("-p ")),
-            "plain_env": {k: v for k, v in env.items() if k in {"OPEN_BUTTON_PORT", "JUPYTER_DIR", "DATA_DIRECTORY",
-                                                                 "NVIDIA_DRIVER_CAPABILITIES", "NVIDIA_VISIBLE_DEVICES"}},
-            "env_keys": sorted(env), "onstart_bytes": len((request.get("onstart") or "").encode())}
+            "disk": request.get("disk"), "fields": fields, "ports": sorted(k for k in env if k.startswith("-p ")),
+            "plain_env": plain, "env_keys": sorted(env), "onstart_bytes": len((request.get("onstart") or "").encode())}
 
 
 def create(run, revision, lifetime, disk, machine, max_transfer=.005, geo="US", settings=None, max_price=.30, launch="template",

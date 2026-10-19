@@ -82,6 +82,15 @@ class StubTests(unittest.TestCase):
             self.assertEqual((request["env"], request["onstart"], request["disk"], request["cancel_unavail"]), (env, "stub", 100, True))
         shape = m.request_shape(stock)
         self.assertEqual(shape["ports"], ["-p 3478:3478/udp", "-p 8000:8000"])
+        # Every top-level field production must copy, including cancel_unavail (fail fast on a lost offer).
+        self.assertEqual(shape["fields"], {"client_id": "me", "image": "vastai/pytorch:cuda-12.1-auto", "disk": 100,
+                                           "cancel_unavail": True, "runtype": "ssh_direc ssh_proxy"})
+        portal = m.request_shape(m.create_request(b, "stock", 100, "x", {**env, "PORTAL_CONFIG": "localhost:1111:11111:/:Portal",
+                                                                          "OPEN_BUTTON_TOKEN": "1"}, "stub"))
+        self.assertEqual((portal["plain_env"]["PORTAL_CONFIG"], portal["plain_env"]["OPEN_BUTTON_TOKEN"]),
+                         ("localhost:1111:11111:/:Portal", "1"))
+        odd = m.request_shape(m.create_request(b, "stock", 100, "x", {**env, "OPEN_BUTTON_TOKEN": "tok-abc"}, "stub"))
+        self.assertEqual(odd["plain_env"]["OPEN_BUTTON_TOKEN"], "<redacted>")
         text = json.dumps(shape)
         for secret in (SESSION["SecretAccessKey"], SESSION["SessionToken"], SESSION["AccessKeyId"]):
             self.assertNotIn(secret, text)  # the shape is safe to record and to copy into config
