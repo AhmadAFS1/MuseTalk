@@ -1,0 +1,277 @@
+{
+  "_doc": "Thresholds for qc/video_qc.py. Per pose; a key missing from a pose falls back to '_default'. 'hard' checks fail the clip; 'soft' checks only warn. Calibrated 2026-10-25 against 19 accepted clips (11 minimax-h3-workflows references, the three-pose pilot idle/smile, six diversity-batch talking plates): every hard check passes on all of them except anchor.first_frame_ssim on the two 'certify'-delivery short clips, whose frame 0 is raw H3 output rather than the anchor (the three-pose pipeline always places the anchor at frame 0). Mouth checks use the mouth/face motion ratio: closed-mouth references measured 0.86-1.01, talking references 1.07-1.56. See qc/calibration/.",
+  "strict": {
+    "_default": {
+      "contract": {
+        "width": 512,
+        "height": 896,
+        "fps": "24/1",
+        "duration_tolerance_s": 0.002
+      },
+      "handles": 9,
+      "frozen": {
+        "severity": "hard",
+        "diff_floor": 0.35,
+        "max_run_frames": 5
+      },
+      "jump": {
+        "severity": "hard",
+        "ratio_to_median": 6.0,
+        "abs_floor": 14.0
+      },
+      "luma_step": {
+        "severity": "hard",
+        "max_step": 12.0
+      },
+      "blank": {
+        "severity": "hard",
+        "min_mean_luma": 10.0,
+        "max_mean_luma": 245.0,
+        "min_std": 4.0
+      },
+      "flicker": {
+        "severity": "soft",
+        "max_sign_flip_fraction": 0.45,
+        "min_amplitude": 1.5
+      },
+      "face": {
+        "severity": "hard",
+        "min_detection_fraction": 0.985,
+        "max_center_drift_fraction": 0.12,
+        "max_size_drift_fraction": 0.35,
+        "max_consecutive_jump_fraction": 0.08,
+        "max_missing_run": 6
+      },
+      "background": {
+        "severity": "soft",
+        "max_mean_abs_diff_vs_first": 26.0
+      },
+      "anchor": {
+        "severity": "hard",
+        "min_ssim_first_frame": 0.97,
+        "min_ssim_mid_frames": 0.35
+      },
+      "mouth": {
+        "severity": "soft"
+      },
+      "audio": {
+        "severity": "hard"
+      }
+    },
+    "idle": {
+      "mouth": {
+        "severity": "soft",
+        "mode": "closed",
+        "max_open_fraction": 0.15,
+        "max_p95_gap_ratio": 0.045,
+        "max_motion_ratio": 1.15
+      },
+      "audio": {
+        "severity": "hard",
+        "expected": false
+      },
+      "face": {
+        "severity": "hard",
+        "min_detection_fraction": 0.985,
+        "max_center_drift_fraction": 0.14,
+        "max_size_drift_fraction": 0.35,
+        "max_consecutive_jump_fraction": 0.08,
+        "max_missing_run": 6
+      }
+    },
+    "smiling": {
+      "mouth": {
+        "severity": "soft",
+        "mode": "closed",
+        "max_open_fraction": 0.2,
+        "max_p95_gap_ratio": 0.05,
+        "max_motion_ratio": 1.15
+      },
+      "audio": {
+        "severity": "hard",
+        "expected": false
+      }
+    },
+    "talking": {
+      "mouth": {
+        "severity": "soft",
+        "mode": "moving",
+        "min_open_fraction": 0.12,
+        "min_gap_std_ratio": 0.012,
+        "min_motion_ratio": 1.04
+      },
+      "audio": {
+        "severity": "hard",
+        "expected": true,
+        "min_rms_dbfs": -42.0,
+        "max_clip_fraction": 0.001,
+        "duration_tolerance_s": 0.05
+      }
+    },
+    "smoke": {
+      "contract": {
+        "width": null,
+        "height": null,
+        "fps": null,
+        "duration_tolerance_s": null
+      },
+      "handles": 0,
+      "anchor": {
+        "severity": "soft",
+        "min_ssim_first_frame": 0.0,
+        "min_ssim_mid_frames": 0.0
+      },
+      "mouth": {
+        "severity": "soft",
+        "mode": "moving",
+        "min_open_fraction": 0.1,
+        "min_gap_std_ratio": 0.01,
+        "min_motion_ratio": 1.0
+      },
+      "audio": {
+        "severity": "hard",
+        "expected": true,
+        "min_rms_dbfs": -42.0,
+        "max_clip_fraction": 0.001,
+        "duration_tolerance_s": 0.25
+      },
+      "background": {
+        "severity": "soft",
+        "max_mean_abs_diff_vs_first": 40.0
+      }
+    }
+  },
+  "lenient": {
+    "_default": {
+      "contract": {
+        "width": 512,
+        "height": 896,
+        "fps": "24/1",
+        "duration_tolerance_s": 0.002
+      },
+      "handles": 9,
+      "frozen": {
+        "severity": "hard",
+        "diff_floor": 0.25,
+        "max_run_frames": 8
+      },
+      "jump": {
+        "severity": "hard",
+        "ratio_to_median": 9.0,
+        "abs_floor": 20.0
+      },
+      "luma_step": {
+        "severity": "soft",
+        "max_step": 16.0
+      },
+      "blank": {
+        "severity": "hard",
+        "min_mean_luma": 6.0,
+        "max_mean_luma": 250.0,
+        "min_std": 2.0
+      },
+      "flicker": {
+        "severity": "soft",
+        "max_sign_flip_fraction": 0.55,
+        "min_amplitude": 2.0
+      },
+      "face": {
+        "severity": "hard",
+        "min_detection_fraction": 0.95,
+        "max_center_drift_fraction": 0.2,
+        "max_size_drift_fraction": 0.5,
+        "max_consecutive_jump_fraction": 0.12,
+        "max_missing_run": 12
+      },
+      "background": {
+        "severity": "soft",
+        "max_mean_abs_diff_vs_first": 40.0
+      },
+      "anchor": {
+        "severity": "hard",
+        "min_ssim_first_frame": 0.95,
+        "min_ssim_mid_frames": 0.25
+      },
+      "mouth": {
+        "severity": "soft"
+      },
+      "audio": {
+        "severity": "hard"
+      }
+    },
+    "idle": {
+      "mouth": {
+        "severity": "soft",
+        "mode": "closed",
+        "max_open_fraction": 0.3,
+        "max_p95_gap_ratio": 0.06,
+        "max_motion_ratio": 1.3
+      },
+      "audio": {
+        "severity": "hard",
+        "expected": false
+      }
+    },
+    "smiling": {
+      "mouth": {
+        "severity": "soft",
+        "mode": "closed",
+        "max_open_fraction": 0.3,
+        "max_p95_gap_ratio": 0.06,
+        "max_motion_ratio": 1.3
+      },
+      "audio": {
+        "severity": "hard",
+        "expected": false
+      }
+    },
+    "talking": {
+      "mouth": {
+        "severity": "soft",
+        "mode": "moving",
+        "min_open_fraction": 0.05,
+        "min_gap_std_ratio": 0.008,
+        "min_motion_ratio": 1.0
+      },
+      "audio": {
+        "severity": "hard",
+        "expected": true,
+        "min_rms_dbfs": -48.0,
+        "max_clip_fraction": 0.005,
+        "duration_tolerance_s": 0.1
+      }
+    },
+    "smoke": {
+      "contract": {
+        "width": null,
+        "height": null,
+        "fps": null,
+        "duration_tolerance_s": null
+      },
+      "handles": 0,
+      "anchor": {
+        "severity": "soft",
+        "min_ssim_first_frame": 0.0,
+        "min_ssim_mid_frames": 0.0
+      },
+      "mouth": {
+        "severity": "soft",
+        "mode": "moving",
+        "min_open_fraction": 0.05,
+        "min_gap_std_ratio": 0.008,
+        "min_motion_ratio": 0.95
+      },
+      "audio": {
+        "severity": "hard",
+        "expected": true,
+        "min_rms_dbfs": -48.0,
+        "max_clip_fraction": 0.005,
+        "duration_tolerance_s": 0.5
+      },
+      "background": {
+        "severity": "soft",
+        "max_mean_abs_diff_vs_first": 60.0
+      }
+    }
+  }
+}

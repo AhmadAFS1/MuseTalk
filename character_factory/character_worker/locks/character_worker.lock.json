@@ -1,0 +1,43 @@
+{
+  "_doc": "Pins for the Vast.ai character-creation worker. Change a pin here, never in the scripts.",
+  "recipe": {
+    "name": "h3-three-pose-20260927-v1",
+    "description": "Three MiniMax H3 FL2VA pose loops (idle, talking, smiling) from one portrait, shared exact anchor endpoints, production MuseTalk v15 caches published to S3 through POST /avatars/prepare.",
+    "generator": "character_factory/h3_avatar_workflow/batch_three_pose.py"
+  },
+  "h3_workflows": {
+    "repo": "https://github.com/AhmadAFS1/minimax-h3-workflows.git",
+    "commit": "168f143c2f09c0343a8ac97af3922544556789ff",
+    "install_paths": {
+      "H3_RUNTIME": "/workspace/minimax-h3",
+      "H3_COMFY": "/workspace/ComfyUI",
+      "H3_VENV": "/workspace/.venvs/comfy-h3",
+      "H3_MODEL_DIR": "/workspace/minimax-h3/models"
+    },
+    "lib_copies": ["run_h3_lowvram.py", "make_exact_10s.py", "package_spoken_transition_bank.py", "certify_endpoints.py", "motion_metrics.py"],
+    "models_lock_sha256_prefix": "206eb9865dabe7da",
+    "wheels_lock_sha256_prefix": "db243944e8285d9b",
+    "weights_bytes": 61044221775
+  },
+  "musetalk": {
+    "install": "scripts/install_musetalk.sh --with-avatar-prep --with-chin-tools",
+    "avatar_cache_version": "v15",
+    "prepare_batch_size": 8
+  },
+  "host_requirements": {
+    "min_vram_mib": 12000,
+    "min_ram_mib": 29000,
+    "min_free_disk_gib_fresh": 150,
+    "min_free_disk_gib_resume": 20,
+    "min_driver_version": "580.65",
+    "compute_capability": {"min": 8.9, "max_exclusive": 10.0, "note": "H3 was accepted on an RTX 4070 SUPER (sm89). Ampere (8.6) is untested for the NVFP4 text encoder; Blackwell (>= 10.0) has no MuseTalk avatar-prep (cu121) build."},
+    "python": "3.10"
+  },
+  "worker": {
+    "port": 8010,
+    "musetalk_private_port": 8198,
+    "h3_private_port": 8197,
+    "status_file": "/workspace/character_worker/status.json",
+    "runtime_env_file": "/workspace/character_worker/runtime.env"
+  }
+}

@@ -61,14 +61,14 @@ def plan(args) -> list[dict]:
         signature=digest(dict(version=VERSION,photo=relative,image_sha256=image_hash,profile=profile,prompts=prompts,
                               graph_sha256=sha(HERE/'h3_template.json'),prompt_code_sha256=sha(HERE/'three_pose_prompts.py')))
         entry=dict(id=ident,photo=relative,portrait=str(photo),portrait_sha256=image_hash,profile=profile,
-                   prompts=prompts,signature=signature,workspace=str(args.workspace),output=str(target),version=VERSION)
+                   prompts=prompts,signature=signature,workspace=str(args.workspace),output=str(target),version=VERSION,seed=args.seed)
         old=target/'plan.json'
         if old.exists() and read(old)['signature']!=signature:
             raise RuntimeError(f'Photo, prompt or graph changed for {ident}; use a new output directory')
         target.mkdir(parents=True,exist_ok=True);dump(old,entry)
         for pose in POSES:
             pose_dir=target/pose;pose_dir.mkdir(exist_ok=True)
-            spec=dict(id=ident,pose=pose,prompt=prompts[pose],seed=42,portrait=str(photo),
+            spec=dict(id=ident,pose=pose,prompt=prompts[pose],seed=args.seed,portrait=str(photo),
                       workspace=str(args.workspace),output=str(pose_dir),parent_signature=signature)
             spec['signature']=digest(spec)
             pose_path=pose_dir/'spec.json'
@@ -253,6 +253,7 @@ def main() -> int:
     p.add_argument('--stage',choices=('plan','generate','prepare','all'),default='plan')
     p.add_argument('--poses',nargs='+',choices=POSES,default=list(POSES))
     p.add_argument('--limit',type=int);p.add_argument('--only',nargs='+')
+    p.add_argument('--seed',type=int,default=42,help='H3 sampler seed for every pose (default 42, the accepted recipe); a QC reroll uses a new output directory and a new seed')
     api=p.add_mutually_exclusive_group();api.add_argument('--prepare-url');api.add_argument('--local-api',action='store_true')
     p.add_argument('--local-api-port',type=int,default=8198);p.add_argument('--expected-version',default='v15')
     p.add_argument('--expected-bucket');p.add_argument('--batch-size',type=int,default=8);p.add_argument('--timeout',type=int,default=1800)
@@ -264,6 +265,7 @@ def main() -> int:
     if args.release_local and args.stage not in ('prepare','all'):p.error('--release-local needs prepare/all')
     if args.limit is not None and args.limit<1:p.error('--limit must be positive')
     if args.batch_size<1:p.error('--batch-size must be positive')
+    if not 0<=args.seed<2**64:p.error('--seed must be a 64-bit unsigned integer')
     if args.local_api and (os.getenv('AVATAR_S3_ENABLED','').lower() not in ('1','true','yes','on') or not os.getenv('AVATAR_S3_BUCKET')):
         p.error('--local-api needs AVATAR_S3_ENABLED=1 and AVATAR_S3_BUCKET')
     jobs=plan(args)

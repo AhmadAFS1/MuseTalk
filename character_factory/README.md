@@ -1,5 +1,9 @@
 # Character factory
 
+**Automated creation on Vast.ai (2026-10-25):** [character_worker/README.md](character_worker/README.md) packages the
+three-pose H3 + MuseTalk recipe as a Vast template worker with a `/createCharacter` API, a glitch/technical QC gate,
+and an EC2-side orchestrator that rents workers by template hash and queues jobs.
+
 **Current LumaTalk pilot (formerly Lingua):** one character and three physical
 poses (idle, talking, smiling). Start with
 [CHARACTER_CREATION_WORKFLOW.md](CHARACTER_CREATION_WORKFLOW.md) and the approved

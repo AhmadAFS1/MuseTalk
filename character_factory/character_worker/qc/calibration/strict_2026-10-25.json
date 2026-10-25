@@ -1,0 +1,3974 @@
+{
+  "profile": "strict",
+  "profiles_file": "/workspace/MuseTalk/character_factory/character_worker/qc/profiles.json",
+  "generated_utc": "2026-10-25T00:10:30Z",
+  "clips": [
+    {
+      "label": "idle/source.mp4",
+      "pose": "idle",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 6.3,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.1878,
+        "max_frame_diff": 2.1381,
+        "p95_frame_diff": 1.9141
+      },
+      "face": {
+        "median_center": [
+          259.5,
+          319.5
+        ],
+        "median_height_px": 313.0,
+        "center_drift_fraction": 0.0258,
+        "size_drift_fraction": 0.0511,
+        "max_consecutive_jump_fraction": 0.0051
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 3.46,
+        "motion_energy_p95": 6.1001,
+        "face_energy_mean": 3.8139,
+        "motion_ratio_mean": 0.9376,
+        "motion_ratio_p95": 1.0678
+      },
+      "anchor_ssim": {
+        "0": 0.9933,
+        "60": 0.8139,
+        "120": 0.754,
+        "180": 0.8251,
+        "239": 0.9933
+      },
+      "audio": null,
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "fe9ca3d589391c99",
+          "threshold": "fe9ca3d589391c99",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0258,
+          "threshold": 0.14,
+          "margin": 0.1142,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0511,
+          "threshold": 0.35,
+          "margin": 0.2989,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0051,
+          "threshold": 0.08,
+          "margin": 0.0749,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 6.397,
+          "threshold": 26.0,
+          "margin": 19.603,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9933,
+          "threshold": 0.97,
+          "margin": 0.0233,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.754,
+          "threshold": 0.35,
+          "margin": 0.404,
+          "pass": true
+        },
+        "mouth.closed.motion_ratio": {
+          "value": 0.9376,
+          "threshold": 1.15,
+          "margin": 0.2124,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 0,
+          "threshold": 0,
+          "margin": 0,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "smiling/source.mp4",
+      "pose": "smiling",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 4.0,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 0.8017,
+        "max_frame_diff": 1.2929,
+        "p95_frame_diff": 1.1007
+      },
+      "face": {
+        "median_center": [
+          258.0,
+          319.5
+        ],
+        "median_height_px": 315.0,
+        "center_drift_fraction": 0.006,
+        "size_drift_fraction": 0.0349,
+        "max_consecutive_jump_fraction": 0.004
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 3.2634,
+        "motion_energy_p95": 7.1479,
+        "face_energy_mean": 3.4852,
+        "motion_ratio_mean": 1.0052,
+        "motion_ratio_p95": 1.2688
+      },
+      "anchor_ssim": {
+        "0": 0.9933,
+        "39": 0.9317,
+        "79": 0.8429,
+        "118": 0.9326,
+        "157": 0.9933
+      },
+      "audio": null,
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 158,
+          "threshold": 158,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 6.5833,
+          "threshold": 6.5833,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "fe9ca3d589391c99",
+          "threshold": "fe9ca3d589391c99",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.006,
+          "threshold": 0.12,
+          "margin": 0.114,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0349,
+          "threshold": 0.35,
+          "margin": 0.3151,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.004,
+          "threshold": 0.08,
+          "margin": 0.076,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 4.195,
+          "threshold": 26.0,
+          "margin": 21.805,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9933,
+          "threshold": 0.97,
+          "margin": 0.0233,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.8429,
+          "threshold": 0.35,
+          "margin": 0.4929,
+          "pass": true
+        },
+        "mouth.closed.motion_ratio": {
+          "value": 1.0052,
+          "threshold": 1.15,
+          "margin": 0.1448,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 0,
+          "threshold": 0,
+          "margin": 0,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "black_man_short_beard/source.mp4",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 6.5,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.5066,
+        "max_frame_diff": 3.0946,
+        "p95_frame_diff": 2.6992
+      },
+      "face": {
+        "median_center": [
+          257.5,
+          296.5
+        ],
+        "median_height_px": 300.0,
+        "center_drift_fraction": 0.0141,
+        "size_drift_fraction": 0.0667,
+        "max_consecutive_jump_fraction": 0.0085
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 7.2343,
+        "motion_energy_p95": 12.1388,
+        "face_energy_mean": 5.5558,
+        "motion_ratio_mean": 1.3347,
+        "motion_ratio_p95": 1.8849
+      },
+      "anchor_ssim": {
+        "0": 0.993,
+        "60": 0.8394,
+        "120": 0.8701,
+        "180": 0.8306,
+        "239": 0.993
+      },
+      "audio": {
+        "rms_dbfs": -20.17,
+        "clip_fraction": 0.0,
+        "samples": 160256
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "ac29cb5cabf3a0f6",
+          "threshold": "ac29cb5cabf3a0f6",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0141,
+          "threshold": 0.12,
+          "margin": 0.1059,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0667,
+          "threshold": 0.35,
+          "margin": 0.2833,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0085,
+          "threshold": 0.08,
+          "margin": 0.0715,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 4.593,
+          "threshold": 26.0,
+          "margin": 21.407,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.993,
+          "threshold": 0.97,
+          "margin": 0.023,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.8306,
+          "threshold": 0.35,
+          "margin": 0.4806,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.3347,
+          "threshold": 1.04,
+          "margin": 0.2947,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -20.17,
+          "threshold": -42.0,
+          "margin": 21.83,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "black_woman/source.mp4",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 6.2,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 2.0746,
+        "max_frame_diff": 4.2156,
+        "p95_frame_diff": 3.6495
+      },
+      "face": {
+        "median_center": [
+          256.5,
+          310.0
+        ],
+        "median_height_px": 310.0,
+        "center_drift_fraction": 0.0287,
+        "size_drift_fraction": 0.0516,
+        "max_consecutive_jump_fraction": 0.0075
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 7.7824,
+        "motion_energy_p95": 13.9921,
+        "face_energy_mean": 6.2271,
+        "motion_ratio_mean": 1.2043,
+        "motion_ratio_p95": 1.9191
+      },
+      "anchor_ssim": {
+        "0": 0.9933,
+        "60": 0.7653,
+        "120": 0.7869,
+        "180": 0.7786,
+        "239": 0.9933
+      },
+      "audio": {
+        "rms_dbfs": -22.98,
+        "clip_fraction": 0.0,
+        "samples": 160256
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "fe9ca3d589391c99",
+          "threshold": "fe9ca3d589391c99",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0287,
+          "threshold": 0.12,
+          "margin": 0.0913,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0516,
+          "threshold": 0.35,
+          "margin": 0.2984,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0075,
+          "threshold": 0.08,
+          "margin": 0.0725,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 5.454,
+          "threshold": 26.0,
+          "margin": 20.546,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9933,
+          "threshold": 0.97,
+          "margin": 0.0233,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.7653,
+          "threshold": 0.35,
+          "margin": 0.4153,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.2043,
+          "threshold": 1.04,
+          "margin": 0.1643,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -22.98,
+          "threshold": -42.0,
+          "margin": 19.02,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "east_asian_man_goatee/source.mp4",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 5.3,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.8056,
+        "max_frame_diff": 5.4578,
+        "p95_frame_diff": 3.4751
+      },
+      "face": {
+        "median_center": [
+          260.5,
+          363.8
+        ],
+        "median_height_px": 321.0,
+        "center_drift_fraction": 0.0228,
+        "size_drift_fraction": 0.0436,
+        "max_consecutive_jump_fraction": 0.0089
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 7.1822,
+        "motion_energy_p95": 10.6834,
+        "face_energy_mean": 5.9215,
+        "motion_ratio_mean": 1.2646,
+        "motion_ratio_p95": 1.6786
+      },
+      "anchor_ssim": {
+        "0": 0.9932,
+        "60": 0.8549,
+        "120": 0.8642,
+        "180": 0.8424,
+        "239": 0.9932
+      },
+      "audio": {
+        "rms_dbfs": -20.55,
+        "clip_fraction": 0.0,
+        "samples": 160256
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "1cac3531c352a7dc",
+          "threshold": "1cac3531c352a7dc",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0228,
+          "threshold": 0.12,
+          "margin": 0.0972,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0436,
+          "threshold": 0.35,
+          "margin": 0.3064,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0089,
+          "threshold": 0.08,
+          "margin": 0.0711,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 4.874,
+          "threshold": 26.0,
+          "margin": 21.126,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9932,
+          "threshold": 0.97,
+          "margin": 0.0232,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.8424,
+          "threshold": 0.35,
+          "margin": 0.4924,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.2646,
+          "threshold": 1.04,
+          "margin": 0.2246,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -20.55,
+          "threshold": -42.0,
+          "margin": 21.45,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "middle_eastern_man_full_beard/source.mp4",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 5.6,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 2.2257,
+        "max_frame_diff": 4.5845,
+        "p95_frame_diff": 3.6905
+      },
+      "face": {
+        "median_center": [
+          252.0,
+          292.0
+        ],
+        "median_height_px": 328.0,
+        "center_drift_fraction": 0.0207,
+        "size_drift_fraction": 0.0427,
+        "max_consecutive_jump_fraction": 0.0074
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 8.8063,
+        "motion_energy_p95": 15.0246,
+        "face_energy_mean": 6.9561,
+        "motion_ratio_mean": 1.3088,
+        "motion_ratio_p95": 1.8051
+      },
+      "anchor_ssim": {
+        "0": 0.9935,
+        "60": 0.7847,
+        "120": 0.7837,
+        "180": 0.7827,
+        "239": 0.9935
+      },
+      "audio": {
+        "rms_dbfs": -19.58,
+        "clip_fraction": 0.0,
+        "samples": 160256
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "3cb755a9e3d6cfdd",
+          "threshold": "3cb755a9e3d6cfdd",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0207,
+          "threshold": 0.12,
+          "margin": 0.0993,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0427,
+          "threshold": 0.35,
+          "margin": 0.3073,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0074,
+          "threshold": 0.08,
+          "margin": 0.0726,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 5.16,
+          "threshold": 26.0,
+          "margin": 20.84,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9935,
+          "threshold": 0.97,
+          "margin": 0.0235,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.7827,
+          "threshold": 0.35,
+          "margin": 0.4327,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.3088,
+          "threshold": 1.04,
+          "margin": 0.2688,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -19.58,
+          "threshold": -42.0,
+          "margin": 22.42,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "south_asian_woman/source.mp4",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 6.4,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.815,
+        "max_frame_diff": 3.9066,
+        "p95_frame_diff": 3.0651
+      },
+      "face": {
+        "median_center": [
+          258.0,
+          297.0
+        ],
+        "median_height_px": 272.0,
+        "center_drift_fraction": 0.0251,
+        "size_drift_fraction": 0.0588,
+        "max_consecutive_jump_fraction": 0.0078
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 5.8085,
+        "motion_energy_p95": 12.2087,
+        "face_energy_mean": 4.7223,
+        "motion_ratio_mean": 1.2909,
+        "motion_ratio_p95": 2.0882
+      },
+      "anchor_ssim": {
+        "0": 0.9924,
+        "60": 0.8188,
+        "120": 0.8022,
+        "180": 0.7656,
+        "239": 0.9924
+      },
+      "audio": {
+        "rms_dbfs": -19.65,
+        "clip_fraction": 0.0,
+        "samples": 160256
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "9accbf04a3215d9b",
+          "threshold": "9accbf04a3215d9b",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0251,
+          "threshold": 0.12,
+          "margin": 0.0949,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0588,
+          "threshold": 0.35,
+          "margin": 0.2912,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0078,
+          "threshold": 0.08,
+          "margin": 0.0722,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 5.164,
+          "threshold": 26.0,
+          "margin": 20.836,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9924,
+          "threshold": 0.97,
+          "margin": 0.0224,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.7656,
+          "threshold": 0.35,
+          "margin": 0.4156,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.2909,
+          "threshold": 1.04,
+          "margin": 0.2509,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -19.65,
+          "threshold": -42.0,
+          "margin": 22.35,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "white_man_clean_shaven/source.mp4",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 6.4,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.5288,
+        "max_frame_diff": 4.174,
+        "p95_frame_diff": 2.8279
+      },
+      "face": {
+        "median_center": [
+          255.0,
+          315.5
+        ],
+        "median_height_px": 300.0,
+        "center_drift_fraction": 0.0218,
+        "size_drift_fraction": 0.0533,
+        "max_consecutive_jump_fraction": 0.0065
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 5.0507,
+        "motion_energy_p95": 7.9983,
+        "face_energy_mean": 4.4046,
+        "motion_ratio_mean": 1.232,
+        "motion_ratio_p95": 1.7321
+      },
+      "anchor_ssim": {
+        "0": 0.9929,
+        "60": 0.8046,
+        "120": 0.8187,
+        "180": 0.8442,
+        "239": 0.9929
+      },
+      "audio": {
+        "rms_dbfs": -18.57,
+        "clip_fraction": 0.0,
+        "samples": 160256
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "9b9ec0890c765ac2",
+          "threshold": "9b9ec0890c765ac2",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0218,
+          "threshold": 0.12,
+          "margin": 0.0982,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0533,
+          "threshold": 0.35,
+          "margin": 0.2967,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0065,
+          "threshold": 0.08,
+          "margin": 0.0735,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 5.009,
+          "threshold": 26.0,
+          "margin": 20.991,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9929,
+          "threshold": 0.97,
+          "margin": 0.0229,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.8046,
+          "threshold": 0.35,
+          "margin": 0.4546,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.232,
+          "threshold": 1.04,
+          "margin": 0.192,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -18.57,
+          "threshold": -42.0,
+          "margin": 23.43,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "accepted-japanese",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 5.4,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.6314,
+        "max_frame_diff": 4.5977,
+        "p95_frame_diff": 3.3871
+      },
+      "face": {
+        "median_center": [
+          259.5,
+          363.5
+        ],
+        "median_height_px": 275.0,
+        "center_drift_fraction": 0.024,
+        "size_drift_fraction": 0.04,
+        "max_consecutive_jump_fraction": 0.0074
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 5.0495,
+        "motion_energy_p95": 10.3817,
+        "face_energy_mean": 4.2641,
+        "motion_ratio_mean": 1.1994,
+        "motion_ratio_p95": 1.9165
+      },
+      "anchor_ssim": {
+        "0": 0.9933,
+        "60": 0.7748,
+        "120": 0.806,
+        "180": 0.8142,
+        "239": 0.9933
+      },
+      "audio": {
+        "rms_dbfs": -20.95,
+        "clip_fraction": 0.0,
+        "samples": 160256
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "eb07aa71ab9a259d",
+          "threshold": "eb07aa71ab9a259d",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.024,
+          "threshold": 0.12,
+          "margin": 0.096,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.04,
+          "threshold": 0.35,
+          "margin": 0.31,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0074,
+          "threshold": 0.08,
+          "margin": 0.0726,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 4.644,
+          "threshold": 26.0,
+          "margin": 21.356,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9933,
+          "threshold": 0.97,
+          "margin": 0.0233,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.7748,
+          "threshold": 0.35,
+          "margin": 0.4248,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.1994,
+          "threshold": 1.04,
+          "margin": 0.1594,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -20.95,
+          "threshold": -42.0,
+          "margin": 21.05,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "quiet-japanese",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 5.4,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.1172,
+        "max_frame_diff": 2.6035,
+        "p95_frame_diff": 2.1537
+      },
+      "face": {
+        "median_center": [
+          259.0,
+          365.0
+        ],
+        "median_height_px": 272.0,
+        "center_drift_fraction": 0.0134,
+        "size_drift_fraction": 0.0515,
+        "max_consecutive_jump_fraction": 0.0056
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 2.9071,
+        "motion_energy_p95": 7.3796,
+        "face_energy_mean": 2.6823,
+        "motion_ratio_mean": 1.0698,
+        "motion_ratio_p95": 1.6716
+      },
+      "anchor_ssim": {
+        "0": 0.9933,
+        "60": 0.8054,
+        "120": 0.8184,
+        "180": 0.9362,
+        "239": 0.9933
+      },
+      "audio": {
+        "rms_dbfs": -20.16,
+        "clip_fraction": 0.0,
+        "samples": 160256
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "eb07aa71ab9a259d",
+          "threshold": "eb07aa71ab9a259d",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0134,
+          "threshold": 0.12,
+          "margin": 0.1066,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0515,
+          "threshold": 0.35,
+          "margin": 0.2985,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0056,
+          "threshold": 0.08,
+          "margin": 0.0744,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 4.4,
+          "threshold": 26.0,
+          "margin": 21.6,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9933,
+          "threshold": 0.97,
+          "margin": 0.0233,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.8054,
+          "threshold": 0.35,
+          "margin": 0.4554,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.0698,
+          "threshold": 1.04,
+          "margin": 0.0298,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -20.16,
+          "threshold": -42.0,
+          "margin": 21.84,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "short-japanese",
+      "pose": "talking",
+      "passed": false,
+      "hard": [
+        "anchor.first_frame_ssim"
+      ],
+      "soft": [],
+      "seconds": 1.7,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.5125,
+        "max_frame_diff": 4.0629,
+        "p95_frame_diff": 3.0823
+      },
+      "face": {
+        "median_center": [
+          259.5,
+          343.0
+        ],
+        "median_height_px": 281.0,
+        "center_drift_fraction": 0.0115,
+        "size_drift_fraction": 0.0463,
+        "max_consecutive_jump_fraction": 0.0101
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 6.4597,
+        "motion_energy_p95": 11.964,
+        "face_energy_mean": 4.8271,
+        "motion_ratio_mean": 1.3807,
+        "motion_ratio_p95": 2.1599
+      },
+      "anchor_ssim": {
+        "0": 0.9452,
+        "18": 0.8092,
+        "36": 0.8677,
+        "54": 0.9215,
+        "72": 0.9452
+      },
+      "audio": {
+        "rms_dbfs": -16.88,
+        "clip_fraction": 0.0,
+        "samples": 49152
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 73,
+          "threshold": 73,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 3.0417,
+          "threshold": 3.0417,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "def423356432d677",
+          "threshold": "def423356432d677",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0115,
+          "threshold": 0.12,
+          "margin": 0.1085,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0463,
+          "threshold": 0.35,
+          "margin": 0.3037,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0101,
+          "threshold": 0.08,
+          "margin": 0.0699,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 1.622,
+          "threshold": 26.0,
+          "margin": 24.378,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9452,
+          "threshold": 0.97,
+          "margin": -0.0248,
+          "pass": false
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.8092,
+          "threshold": 0.35,
+          "margin": 0.4592,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.3807,
+          "threshold": 1.04,
+          "margin": 0.3407,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 3.042,
+          "threshold": 3.0417,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -16.88,
+          "threshold": -42.0,
+          "margin": 25.12,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "accepted-latina",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 5.5,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.3824,
+        "max_frame_diff": 3.0808,
+        "p95_frame_diff": 2.6868
+      },
+      "face": {
+        "median_center": [
+          258.0,
+          357.0
+        ],
+        "median_height_px": 262.0,
+        "center_drift_fraction": 0.0257,
+        "size_drift_fraction": 0.042,
+        "max_consecutive_jump_fraction": 0.0081
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 4.709,
+        "motion_energy_p95": 10.5228,
+        "face_energy_mean": 3.9068,
+        "motion_ratio_mean": 1.1716,
+        "motion_ratio_p95": 1.8749
+      },
+      "anchor_ssim": {
+        "0": 0.993,
+        "60": 0.829,
+        "120": 0.8964,
+        "180": 0.8827,
+        "239": 0.993
+      },
+      "audio": {
+        "rms_dbfs": -21.5,
+        "clip_fraction": 0.0,
+        "samples": 160256
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "54c6a5d68956924d",
+          "threshold": "54c6a5d68956924d",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0257,
+          "threshold": 0.12,
+          "margin": 0.0943,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.042,
+          "threshold": 0.35,
+          "margin": 0.308,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0081,
+          "threshold": 0.08,
+          "margin": 0.0719,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 4.557,
+          "threshold": 26.0,
+          "margin": 21.443,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.993,
+          "threshold": 0.97,
+          "margin": 0.023,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.829,
+          "threshold": 0.35,
+          "margin": 0.479,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.1716,
+          "threshold": 1.04,
+          "margin": 0.1316,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -21.5,
+          "threshold": -42.0,
+          "margin": 20.5,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "quiet-latina",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 5.6,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.0881,
+        "max_frame_diff": 1.9936,
+        "p95_frame_diff": 1.733
+      },
+      "face": {
+        "median_center": [
+          259.0,
+          358.5
+        ],
+        "median_height_px": 261.0,
+        "center_drift_fraction": 0.0145,
+        "size_drift_fraction": 0.0421,
+        "max_consecutive_jump_fraction": 0.0042
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 3.9168,
+        "motion_energy_p95": 9.6064,
+        "face_energy_mean": 3.5438,
+        "motion_ratio_mean": 1.0816,
+        "motion_ratio_p95": 1.5014
+      },
+      "anchor_ssim": {
+        "0": 0.993,
+        "60": 0.8567,
+        "120": 0.8753,
+        "180": 0.9284,
+        "239": 0.993
+      },
+      "audio": {
+        "rms_dbfs": -23.31,
+        "clip_fraction": 0.0,
+        "samples": 160256
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "54c6a5d68956924d",
+          "threshold": "54c6a5d68956924d",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0145,
+          "threshold": 0.12,
+          "margin": 0.1055,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0421,
+          "threshold": 0.35,
+          "margin": 0.3079,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0042,
+          "threshold": 0.08,
+          "margin": 0.0758,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 4.644,
+          "threshold": 26.0,
+          "margin": 21.356,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.993,
+          "threshold": 0.97,
+          "margin": 0.023,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.8567,
+          "threshold": 0.35,
+          "margin": 0.5067,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.0816,
+          "threshold": 1.04,
+          "margin": 0.0416,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -23.31,
+          "threshold": -42.0,
+          "margin": 18.69,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "short-latina",
+      "pose": "talking",
+      "passed": false,
+      "hard": [
+        "anchor.first_frame_ssim"
+      ],
+      "soft": [],
+      "seconds": 1.8,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.3167,
+        "max_frame_diff": 3.3311,
+        "p95_frame_diff": 2.8348
+      },
+      "face": {
+        "median_center": [
+          258.5,
+          341.5
+        ],
+        "median_height_px": 272.0,
+        "center_drift_fraction": 0.0134,
+        "size_drift_fraction": 0.0294,
+        "max_consecutive_jump_fraction": 0.0064
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 5.0382,
+        "motion_energy_p95": 10.3163,
+        "face_energy_mean": 3.4846,
+        "motion_ratio_mean": 1.5617,
+        "motion_ratio_p95": 2.3311
+      },
+      "anchor_ssim": {
+        "0": 0.9391,
+        "18": 0.8228,
+        "36": 0.8682,
+        "54": 0.9158,
+        "72": 0.9391
+      },
+      "audio": {
+        "rms_dbfs": -16.13,
+        "clip_fraction": 0.0,
+        "samples": 49152
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 73,
+          "threshold": 73,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 3.0417,
+          "threshold": 3.0417,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "e985577bb7d0a23a",
+          "threshold": "e985577bb7d0a23a",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0134,
+          "threshold": 0.12,
+          "margin": 0.1066,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0294,
+          "threshold": 0.35,
+          "margin": 0.3206,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0064,
+          "threshold": 0.08,
+          "margin": 0.0736,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 1.886,
+          "threshold": 26.0,
+          "margin": 24.114,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9391,
+          "threshold": 0.97,
+          "margin": -0.0309,
+          "pass": false
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.8228,
+          "threshold": 0.35,
+          "margin": 0.4728,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.5617,
+          "threshold": 1.04,
+          "margin": 0.5217,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 3.042,
+          "threshold": 3.0417,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -16.13,
+          "threshold": -42.0,
+          "margin": 25.87,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "chinese-bob-idle",
+      "pose": "idle",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 6.1,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.0885,
+        "max_frame_diff": 2.8252,
+        "p95_frame_diff": 2.1452
+      },
+      "face": {
+        "median_center": [
+          260.0,
+          317.0
+        ],
+        "median_height_px": 270.0,
+        "center_drift_fraction": 0.0302,
+        "size_drift_fraction": 0.0296,
+        "max_consecutive_jump_fraction": 0.0053
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 3.2057,
+        "motion_energy_p95": 6.6293,
+        "face_energy_mean": 3.6975,
+        "motion_ratio_mean": 0.8638,
+        "motion_ratio_p95": 1.074
+      },
+      "anchor_ssim": {
+        "0": 0.9927,
+        "60": 0.8132,
+        "120": 0.7008,
+        "180": 0.8606,
+        "239": 0.9927
+      },
+      "audio": null,
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "8e5e75202479689f",
+          "threshold": "8e5e75202479689f",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0302,
+          "threshold": 0.14,
+          "margin": 0.1098,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0296,
+          "threshold": 0.35,
+          "margin": 0.3204,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0053,
+          "threshold": 0.08,
+          "margin": 0.0747,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 5.489,
+          "threshold": 26.0,
+          "margin": 20.511,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9927,
+          "threshold": 0.97,
+          "margin": 0.0227,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.7008,
+          "threshold": 0.35,
+          "margin": 0.3508,
+          "pass": true
+        },
+        "mouth.closed.motion_ratio": {
+          "value": 0.8638,
+          "threshold": 1.15,
+          "margin": 0.2862,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 0,
+          "threshold": 0,
+          "margin": 0,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "chinese-bob-talking",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 6.5,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.6338,
+        "max_frame_diff": 2.9077,
+        "p95_frame_diff": 2.4917
+      },
+      "face": {
+        "median_center": [
+          261.0,
+          315.0
+        ],
+        "median_height_px": 273.0,
+        "center_drift_fraction": 0.015,
+        "size_drift_fraction": 0.0403,
+        "max_consecutive_jump_fraction": 0.0056
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 6.1915,
+        "motion_energy_p95": 10.3161,
+        "face_energy_mean": 4.8326,
+        "motion_ratio_mean": 1.2733,
+        "motion_ratio_p95": 1.9934
+      },
+      "anchor_ssim": {
+        "0": 0.9927,
+        "60": 0.7394,
+        "120": 0.7707,
+        "180": 0.812,
+        "239": 0.9927
+      },
+      "audio": {
+        "rms_dbfs": -22.99,
+        "clip_fraction": 0.0,
+        "samples": 160256
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "8e5e75202479689f",
+          "threshold": "8e5e75202479689f",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.015,
+          "threshold": 0.12,
+          "margin": 0.105,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0403,
+          "threshold": 0.35,
+          "margin": 0.3097,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0056,
+          "threshold": 0.08,
+          "margin": 0.0744,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 5.154,
+          "threshold": 26.0,
+          "margin": 20.846,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9927,
+          "threshold": 0.97,
+          "margin": 0.0227,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.7394,
+          "threshold": 0.35,
+          "margin": 0.3894,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.2733,
+          "threshold": 1.04,
+          "margin": 0.2333,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -22.99,
+          "threshold": -42.0,
+          "margin": 19.01,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "chinese-bob-smiling",
+      "pose": "smiling",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 4.3,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 0.8475,
+        "max_frame_diff": 1.386,
+        "p95_frame_diff": 1.1576
+      },
+      "face": {
+        "median_center": [
+          262.0,
+          315.5
+        ],
+        "median_height_px": 272.0,
+        "center_drift_fraction": 0.0044,
+        "size_drift_fraction": 0.0147,
+        "max_consecutive_jump_fraction": 0.0028
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 2.418,
+        "motion_energy_p95": 6.105,
+        "face_energy_mean": 2.5786,
+        "motion_ratio_mean": 0.9889,
+        "motion_ratio_p95": 1.2257
+      },
+      "anchor_ssim": {
+        "0": 0.9927,
+        "39": 0.9097,
+        "79": 0.8866,
+        "118": 0.9144,
+        "157": 0.9927
+      },
+      "audio": null,
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 158,
+          "threshold": 158,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 6.5833,
+          "threshold": 6.5833,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "8e5e75202479689f",
+          "threshold": "8e5e75202479689f",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0044,
+          "threshold": 0.12,
+          "margin": 0.1156,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0147,
+          "threshold": 0.35,
+          "margin": 0.3353,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0028,
+          "threshold": 0.08,
+          "margin": 0.0772,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 4.179,
+          "threshold": 26.0,
+          "margin": 21.821,
+          "pass": true
+        },
+        "anchor.first_frame_ssim": {
+          "value": 0.9927,
+          "threshold": 0.97,
+          "margin": 0.0227,
+          "pass": true
+        },
+        "anchor.mid_frames_min_ssim": {
+          "value": 0.8866,
+          "threshold": 0.35,
+          "margin": 0.5366,
+          "pass": true
+        },
+        "mouth.closed.motion_ratio": {
+          "value": 0.9889,
+          "threshold": 1.15,
+          "margin": 0.1611,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 0,
+          "threshold": 0,
+          "margin": 0,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "musetalk-japanese",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 5.3,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.5897,
+        "max_frame_diff": 4.4761,
+        "p95_frame_diff": 3.1669
+      },
+      "face": {
+        "median_center": [
+          260.0,
+          364.0
+        ],
+        "median_height_px": 275.0,
+        "center_drift_fraction": 0.024,
+        "size_drift_fraction": 0.04,
+        "max_consecutive_jump_fraction": 0.0103
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 4.4756,
+        "motion_energy_p95": 8.7293,
+        "face_energy_mean": 4.5663,
+        "motion_ratio_mean": 1.0994,
+        "motion_ratio_p95": 1.9216
+      },
+      "anchor_ssim": null,
+      "audio": {
+        "rms_dbfs": -25.72,
+        "clip_fraction": 0.0,
+        "samples": 160427
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "eb07aa71ab9a259d",
+          "threshold": "eb07aa71ab9a259d",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.024,
+          "threshold": 0.12,
+          "margin": 0.096,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.04,
+          "threshold": 0.35,
+          "margin": 0.31,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0103,
+          "threshold": 0.08,
+          "margin": 0.0697,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 7.783,
+          "threshold": 26.0,
+          "margin": 18.217,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.0994,
+          "threshold": 1.04,
+          "margin": 0.0594,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -25.72,
+          "threshold": -42.0,
+          "margin": 16.28,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    },
+    {
+      "label": "musetalk-latina",
+      "pose": "talking",
+      "passed": true,
+      "hard": [],
+      "soft": [],
+      "seconds": 5.3,
+      "backend": "haar",
+      "motion": {
+        "median_frame_diff": 1.3916,
+        "max_frame_diff": 3.1158,
+        "p95_frame_diff": 2.6401
+      },
+      "face": {
+        "median_center": [
+          258.5,
+          356.0
+        ],
+        "median_height_px": 264.0,
+        "center_drift_fraction": 0.0262,
+        "size_drift_fraction": 0.0455,
+        "max_consecutive_jump_fraction": 0.0071
+      },
+      "mouth": {
+        "backend": "motion_proxy",
+        "motion_energy_mean": 3.8271,
+        "motion_energy_p95": 6.5803,
+        "face_energy_mean": 3.2799,
+        "motion_ratio_mean": 1.3093,
+        "motion_ratio_p95": 1.9687
+      },
+      "anchor_ssim": null,
+      "audio": {
+        "rms_dbfs": -24.38,
+        "clip_fraction": 0.0,
+        "samples": 160427
+      },
+      "checks": {
+        "contract.geometry": {
+          "value": [
+            512,
+            896
+          ],
+          "threshold": [
+            512,
+            896
+          ],
+          "margin": null,
+          "pass": true
+        },
+        "contract.fps": {
+          "value": "24/1",
+          "threshold": "24/1",
+          "margin": null,
+          "pass": true
+        },
+        "contract.frames": {
+          "value": 240,
+          "threshold": 240,
+          "margin": 0,
+          "pass": true
+        },
+        "contract.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "contract.full_decode": {
+          "value": null,
+          "threshold": null,
+          "margin": null,
+          "pass": true
+        },
+        "endpoints.first_last_exact": {
+          "value": "54c6a5d68956924d",
+          "threshold": "54c6a5d68956924d",
+          "margin": null,
+          "pass": true
+        },
+        "frozen.runs": {
+          "value": [],
+          "threshold": {
+            "diff_floor": 0.35,
+            "max_run_frames": 5
+          },
+          "margin": null,
+          "pass": true
+        },
+        "jump.frames": {
+          "value": [],
+          "threshold": 14.0,
+          "margin": null,
+          "pass": true
+        },
+        "luma.steps": {
+          "value": [],
+          "threshold": 12.0,
+          "margin": null,
+          "pass": true
+        },
+        "blank.frames": {
+          "value": [],
+          "threshold": {
+            "min_mean_luma": 10.0,
+            "max_mean_luma": 245.0,
+            "min_std": 4.0
+          },
+          "margin": null,
+          "pass": true
+        },
+        "flicker.sign_flip_fraction": {
+          "value": 0.0,
+          "threshold": 0.45,
+          "margin": 0.45,
+          "pass": true
+        },
+        "face.detection_fraction": {
+          "value": 1.0,
+          "threshold": 0.985,
+          "margin": 0.015,
+          "pass": true
+        },
+        "face.max_missing_run": {
+          "value": 0,
+          "threshold": 6,
+          "margin": 6,
+          "pass": true
+        },
+        "face.center_drift": {
+          "value": 0.0262,
+          "threshold": 0.12,
+          "margin": 0.0938,
+          "pass": true
+        },
+        "face.size_drift": {
+          "value": 0.0455,
+          "threshold": 0.35,
+          "margin": 0.3045,
+          "pass": true
+        },
+        "face.consecutive_jump": {
+          "value": 0.0071,
+          "threshold": 0.08,
+          "margin": 0.0729,
+          "pass": true
+        },
+        "background.max_mean_abs_diff_vs_first": {
+          "value": 7.375,
+          "threshold": 26.0,
+          "margin": 18.625,
+          "pass": true
+        },
+        "mouth.moving.motion_ratio": {
+          "value": 1.3093,
+          "threshold": 1.04,
+          "margin": 0.2693,
+          "pass": true
+        },
+        "audio.presence": {
+          "value": 1,
+          "threshold": 1,
+          "margin": 0,
+          "pass": true
+        },
+        "audio.duration": {
+          "value": 10.0,
+          "threshold": 10.0,
+          "margin": null,
+          "pass": true
+        },
+        "audio.rms_dbfs": {
+          "value": -24.38,
+          "threshold": -42.0,
+          "margin": 17.62,
+          "pass": true
+        },
+        "audio.clip_fraction": {
+          "value": 0.0,
+          "threshold": 0.001,
+          "margin": 0.001,
+          "pass": true
+        }
+      }
+    }
+  ],
+  "smallest_margins": {
+    "idle:contract.frames": {
+      "margin": 0,
+      "value": 240,
+      "threshold": 240,
+      "clip": "idle/source.mp4"
+    },
+    "idle:flicker.sign_flip_fraction": {
+      "margin": 0.45,
+      "value": 0.0,
+      "threshold": 0.45,
+      "clip": "idle/source.mp4"
+    },
+    "idle:face.detection_fraction": {
+      "margin": 0.015,
+      "value": 1.0,
+      "threshold": 0.985,
+      "clip": "idle/source.mp4"
+    },
+    "idle:face.max_missing_run": {
+      "margin": 6,
+      "value": 0,
+      "threshold": 6,
+      "clip": "idle/source.mp4"
+    },
+    "idle:face.center_drift": {
+      "margin": 0.1098,
+      "value": 0.0302,
+      "threshold": 0.14,
+      "clip": "chinese-bob-idle"
+    },
+    "idle:face.size_drift": {
+      "margin": 0.2989,
+      "value": 0.0511,
+      "threshold": 0.35,
+      "clip": "idle/source.mp4"
+    },
+    "idle:face.consecutive_jump": {
+      "margin": 0.0747,
+      "value": 0.0053,
+      "threshold": 0.08,
+      "clip": "chinese-bob-idle"
+    },
+    "idle:background.max_mean_abs_diff_vs_first": {
+      "margin": 19.603,
+      "value": 6.397,
+      "threshold": 26.0,
+      "clip": "idle/source.mp4"
+    },
+    "idle:anchor.first_frame_ssim": {
+      "margin": 0.0227,
+      "value": 0.9927,
+      "threshold": 0.97,
+      "clip": "chinese-bob-idle"
+    },
+    "idle:anchor.mid_frames_min_ssim": {
+      "margin": 0.3508,
+      "value": 0.7008,
+      "threshold": 0.35,
+      "clip": "chinese-bob-idle"
+    },
+    "idle:mouth.closed.motion_ratio": {
+      "margin": 0.2124,
+      "value": 0.9376,
+      "threshold": 1.15,
+      "clip": "idle/source.mp4"
+    },
+    "idle:audio.presence": {
+      "margin": 0,
+      "value": 0,
+      "threshold": 0,
+      "clip": "idle/source.mp4"
+    },
+    "smiling:contract.frames": {
+      "margin": 0,
+      "value": 158,
+      "threshold": 158,
+      "clip": "smiling/source.mp4"
+    },
+    "smiling:flicker.sign_flip_fraction": {
+      "margin": 0.45,
+      "value": 0.0,
+      "threshold": 0.45,
+      "clip": "smiling/source.mp4"
+    },
+    "smiling:face.detection_fraction": {
+      "margin": 0.015,
+      "value": 1.0,
+      "threshold": 0.985,
+      "clip": "smiling/source.mp4"
+    },
+    "smiling:face.max_missing_run": {
+      "margin": 6,
+      "value": 0,
+      "threshold": 6,
+      "clip": "smiling/source.mp4"
+    },
+    "smiling:face.center_drift": {
+      "margin": 0.114,
+      "value": 0.006,
+      "threshold": 0.12,
+      "clip": "smiling/source.mp4"
+    },
+    "smiling:face.size_drift": {
+      "margin": 0.3151,
+      "value": 0.0349,
+      "threshold": 0.35,
+      "clip": "smiling/source.mp4"
+    },
+    "smiling:face.consecutive_jump": {
+      "margin": 0.076,
+      "value": 0.004,
+      "threshold": 0.08,
+      "clip": "smiling/source.mp4"
+    },
+    "smiling:background.max_mean_abs_diff_vs_first": {
+      "margin": 21.805,
+      "value": 4.195,
+      "threshold": 26.0,
+      "clip": "smiling/source.mp4"
+    },
+    "smiling:anchor.first_frame_ssim": {
+      "margin": 0.0227,
+      "value": 0.9927,
+      "threshold": 0.97,
+      "clip": "chinese-bob-smiling"
+    },
+    "smiling:anchor.mid_frames_min_ssim": {
+      "margin": 0.4929,
+      "value": 0.8429,
+      "threshold": 0.35,
+      "clip": "smiling/source.mp4"
+    },
+    "smiling:mouth.closed.motion_ratio": {
+      "margin": 0.1448,
+      "value": 1.0052,
+      "threshold": 1.15,
+      "clip": "smiling/source.mp4"
+    },
+    "smiling:audio.presence": {
+      "margin": 0,
+      "value": 0,
+      "threshold": 0,
+      "clip": "smiling/source.mp4"
+    },
+    "talking:contract.frames": {
+      "margin": 0,
+      "value": 240,
+      "threshold": 240,
+      "clip": "black_man_short_beard/source.mp4"
+    },
+    "talking:flicker.sign_flip_fraction": {
+      "margin": 0.45,
+      "value": 0.0,
+      "threshold": 0.45,
+      "clip": "black_man_short_beard/source.mp4"
+    },
+    "talking:face.detection_fraction": {
+      "margin": 0.015,
+      "value": 1.0,
+      "threshold": 0.985,
+      "clip": "black_man_short_beard/source.mp4"
+    },
+    "talking:face.max_missing_run": {
+      "margin": 6,
+      "value": 0,
+      "threshold": 6,
+      "clip": "black_man_short_beard/source.mp4"
+    },
+    "talking:face.center_drift": {
+      "margin": 0.0913,
+      "value": 0.0287,
+      "threshold": 0.12,
+      "clip": "black_woman/source.mp4"
+    },
+    "talking:face.size_drift": {
+      "margin": 0.2833,
+      "value": 0.0667,
+      "threshold": 0.35,
+      "clip": "black_man_short_beard/source.mp4"
+    },
+    "talking:face.consecutive_jump": {
+      "margin": 0.0697,
+      "value": 0.0103,
+      "threshold": 0.08,
+      "clip": "musetalk-japanese"
+    },
+    "talking:background.max_mean_abs_diff_vs_first": {
+      "margin": 18.217,
+      "value": 7.783,
+      "threshold": 26.0,
+      "clip": "musetalk-japanese"
+    },
+    "talking:anchor.first_frame_ssim": {
+      "margin": -0.0309,
+      "value": 0.9391,
+      "threshold": 0.97,
+      "clip": "short-latina"
+    },
+    "talking:anchor.mid_frames_min_ssim": {
+      "margin": 0.3894,
+      "value": 0.7394,
+      "threshold": 0.35,
+      "clip": "chinese-bob-talking"
+    },
+    "talking:mouth.moving.motion_ratio": {
+      "margin": 0.0298,
+      "value": 1.0698,
+      "threshold": 1.04,
+      "clip": "quiet-japanese"
+    },
+    "talking:audio.presence": {
+      "margin": 0,
+      "value": 1,
+      "threshold": 1,
+      "clip": "black_man_short_beard/source.mp4"
+    },
+    "talking:audio.rms_dbfs": {
+      "margin": 16.28,
+      "value": -25.72,
+      "threshold": -42.0,
+      "clip": "musetalk-japanese"
+    },
+    "talking:audio.clip_fraction": {
+      "margin": 0.001,
+      "value": 0.0,
+      "threshold": 0.001,
+      "clip": "black_man_short_beard/source.mp4"
+    }
+  }
+}
