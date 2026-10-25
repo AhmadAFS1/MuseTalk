@@ -349,4 +349,4 @@ characters on one instance spreads the install cost across them.
 | `orchestrator/charfactory.py`, `engine.py`, `vast_client.py`, `job_store.py`, `config.example.env` | Reference EC2 orchestrator |
 | `tests/` | API, orchestrator and QC tests |
 | `README.md` | Full worker documentation |
-| `validation/japanese_20261024/` | Local validation records from 2026-10-25: the test portrait, requests, the four run results and their logs |
+| `validation/japanese_20261024/` | Local validation records from 2026-10-25: the test portrait, requests and the four run results. The repository ignores `*.log`, so the H3 server logs stay on the RTX 4070 SUPER box |
