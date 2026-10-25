@@ -24,6 +24,9 @@ Lingua backend ──POST /createCharacter──▶ charfactory.py serve (EC2)
                                   ─▶ smoke lip-sync render + QC ─▶ records to S3 ─▶ release local media ─▶ callback
 ```
 
+**Integrating with the EC2 autoscaler:** [EC2_AUTOSCALER_HANDOFF.md](EC2_AUTOSCALER_HANDOFF.md) has the exact Vast calls,
+the worker contract, the pool settings, a test ladder and troubleshooting for temporary instances.
+
 ## Files
 
 | Path | Role |
