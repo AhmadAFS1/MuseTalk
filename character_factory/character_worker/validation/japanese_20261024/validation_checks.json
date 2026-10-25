@@ -1,0 +1,69 @@
+{
+  "worker_api_tests": {
+    "passed": 9,
+    "fake_pipeline": true
+  },
+  "orchestrator_tests": {
+    "passed": 7,
+    "fake_vast": true,
+    "real_worker_http": true
+  },
+  "image_generation": {
+    "mode": "built-in image_gen",
+    "prompt_file": "image_prompt.txt",
+    "portrait_file": "portrait.png"
+  },
+  "local_runtime": {
+    "h3_doctor_passed": true,
+    "installer_check_passed": false,
+    "installer_check_reason": "Existing hand-installed H3 runtime has no character-worker installation stamp; doctor passes"
+  },
+  "fresh_vast_boot_tested": false,
+  "lingua_ec2_deployment_tested": false,
+  "qc_glitch_tests": {
+    "passed": 12,
+    "seconds": 99.281,
+    "log": "qc_tests.log"
+  },
+  "end_to_end_passed": false,
+  "jobs": [
+    {
+      "job_id": "20261025T025253Z_5b37b0ca",
+      "status": "failed",
+      "seconds": 348.0,
+      "error": "generate: H3 generation failed: [{\"id\": \"test_jp_20261024_d1383190\", \"stage\": \"generate\", \"error\": \"H3 idle failed; inspect /workspace/character_worker/validation_japanese_20261024/jobs/20261025T025253Z_5b37b0ca/attempts/01/test_jp_20261024_d1383190/idle/h3_stage.log\"}]",
+      "result_path": "/workspace/character_worker/validation_japanese_20261024/jobs/20261025T025253Z_5b37b0ca/result.json"
+    },
+    {
+      "job_id": "20261025T025928Z_87433639",
+      "status": "cancelled",
+      "seconds": 906.8,
+      "error": "cancelled by request",
+      "result_path": "/workspace/character_worker/validation_japanese_20261024/jobs/20261025T025928Z_87433639/result.json"
+    },
+    {
+      "job_id": "20261025T031507Z_a1037899",
+      "status": "failed",
+      "seconds": 5.8,
+      "error": "generate: H3 generation failed: [{\"id\": \"test_jp_20261024_d1383190\", \"stage\": \"generate\", \"error\": \"H3 idle failed; inspect /workspace/character_worker/validation_japanese_20261024/jobs/20261025T031507Z_a1037899/attempts/01/test_jp_20261024_d1383190/idle/h3_stage.log\"}]",
+      "result_path": "/workspace/character_worker/validation_japanese_20261024/jobs/20261025T031507Z_a1037899/result.json"
+    },
+    {
+      "job_id": "20261025T031740Z_3a671420",
+      "status": "failed",
+      "seconds": 316.5,
+      "error": "generate: H3 generation failed: [{\"id\": \"test_jp_20261024_d1383190\", \"stage\": \"generate\", \"error\": \"H3 idle failed; inspect /workspace/character_worker/validation_japanese_20261024/jobs/20261025T031740Z_3a671420/attempts/01/test_jp_20261024_d1383190/idle/h3_stage.log\"}]",
+      "result_path": "/workspace/character_worker/validation_japanese_20261024/jobs/20261025T031740Z_3a671420/result.json"
+    }
+  ],
+  "gpu_observations": {
+    "graphics_clock_mhz": 210,
+    "memory_clock_mhz": 405,
+    "performance_state": "P8",
+    "fp16_4096_matmul_ms": 160.007,
+    "clock_reset_permitted": false,
+    "power_limit_watts": 120
+  },
+  "core_pipeline_changes_retained": false,
+  "pending": "User choice: isolated Vast worker with $2 maximum budget, or shared-host remediation"
+}

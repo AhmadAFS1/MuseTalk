@@ -1,0 +1,28 @@
+{
+  "character_id": "test_jp_20261024",
+  "portrait": {"filename": "portrait.png"},
+  "metadata": {
+    "label": "Japanese woman",
+    "age": 27,
+    "gender": "woman",
+    "hair": "straight shoulder-length dark hair tucked behind her ears",
+    "tone": "light warm neutral skin",
+    "facial_hair": "none",
+    "wardrobe": "plain muted teal crew-neck top",
+    "background": "softly blurred neutral home interior",
+    "pronouns": "she"
+  },
+  "poses": ["idle", "talking", "smiling"],
+  "options": {
+    "seed": 42,
+    "max_attempts": 2,
+    "qc_profile": "strict",
+    "smoke_render": true,
+    "smoke_render_required": true,
+    "release_local": false,
+    "release_failed_attempts": false,
+    "publish_records": true,
+    "batch_size": 8
+  },
+  "notes": "End-to-end local worker validation before Lingua EC2 integration. The submitter adds portrait.base64."
+}

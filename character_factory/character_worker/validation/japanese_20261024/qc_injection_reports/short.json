@@ -1,0 +1,276 @@
+{
+ "video": "/tmp/video_qc_test_yuqlmcgg/short.mp4",
+ "sha256": "231d464fab4e2c82fdc36a5c4dc860401afdb84b41ca03415dbe15900922df75",
+ "pose": "talking",
+ "checks": [
+  {
+   "name": "contract.geometry",
+   "severity": "hard",
+   "pass": true,
+   "value": [
+    512,
+    896
+   ],
+   "threshold": [
+    512,
+    896
+   ],
+   "detail": null
+  },
+  {
+   "name": "contract.fps",
+   "severity": "hard",
+   "pass": true,
+   "value": "24/1",
+   "threshold": "24/1",
+   "detail": null
+  },
+  {
+   "name": "contract.frames",
+   "severity": "hard",
+   "pass": false,
+   "value": 235,
+   "threshold": 240,
+   "detail": null
+  },
+  {
+   "name": "contract.duration",
+   "severity": "hard",
+   "pass": false,
+   "value": 9.7917,
+   "threshold": 10.0,
+   "detail": "tolerance 0.002s"
+  },
+  {
+   "name": "contract.full_decode",
+   "severity": "hard",
+   "pass": true,
+   "value": null,
+   "threshold": null,
+   "detail": null
+  },
+  {
+   "name": "endpoints.first_last_exact",
+   "severity": "hard",
+   "pass": false,
+   "value": "1f251189ab259d4d",
+   "threshold": "b732bcb0bc1b7cf1",
+   "detail": null
+  },
+  {
+   "name": "frozen.runs",
+   "severity": "hard",
+   "pass": true,
+   "value": [],
+   "threshold": {
+    "diff_floor": 0.35,
+    "max_run_frames": 5
+   },
+   "detail": "interior runs of near-identical consecutive frames [start_frame, length]"
+  },
+  {
+   "name": "jump.frames",
+   "severity": "hard",
+   "pass": true,
+   "value": [],
+   "threshold": 14.0,
+   "detail": "frames whose change from the previous frame exceeds the limit [frame, mean_abs_diff]"
+  },
+  {
+   "name": "luma.steps",
+   "severity": "hard",
+   "pass": true,
+   "value": [],
+   "threshold": 12.0,
+   "detail": "global brightness steps between consecutive frames [frame, delta]"
+  },
+  {
+   "name": "blank.frames",
+   "severity": "hard",
+   "pass": true,
+   "value": [],
+   "threshold": {
+    "min_mean_luma": 10.0,
+    "max_mean_luma": 245.0,
+    "min_std": 4.0
+   },
+   "detail": "black, white or flat frames"
+  },
+  {
+   "name": "flicker.sign_flip_fraction",
+   "severity": "soft",
+   "pass": true,
+   "value": 0.0,
+   "threshold": 0.45,
+   "detail": null
+  },
+  {
+   "name": "face.detection_fraction",
+   "severity": "hard",
+   "pass": true,
+   "value": 1.0,
+   "threshold": 0.985,
+   "detail": "backend=haar"
+  },
+  {
+   "name": "face.max_missing_run",
+   "severity": "hard",
+   "pass": true,
+   "value": 0,
+   "threshold": 6,
+   "detail": null
+  },
+  {
+   "name": "face.center_drift",
+   "severity": "hard",
+   "pass": true,
+   "value": 0.014,
+   "threshold": 0.12,
+   "detail": "max distance of face centre from its median, / frame height"
+  },
+  {
+   "name": "face.size_drift",
+   "severity": "hard",
+   "pass": true,
+   "value": 0.0403,
+   "threshold": 0.35,
+   "detail": "max |face height - median| / median"
+  },
+  {
+   "name": "face.consecutive_jump",
+   "severity": "hard",
+   "pass": true,
+   "value": 0.0071,
+   "threshold": 0.08,
+   "detail": "largest centre move between adjacent frames, / frame height"
+  },
+  {
+   "name": "background.max_mean_abs_diff_vs_first",
+   "severity": "soft",
+   "pass": true,
+   "value": 5.05,
+   "threshold": 26.0,
+   "detail": "outside the expanded first-frame face box"
+  },
+  {
+   "name": "anchor.first_frame_ssim",
+   "severity": "hard",
+   "pass": true,
+   "value": 0.987,
+   "threshold": 0.97,
+   "detail": "frame 0 should be the anchor itself after packaging"
+  },
+  {
+   "name": "anchor.mid_frames_min_ssim",
+   "severity": "hard",
+   "pass": true,
+   "value": 0.7375,
+   "threshold": 0.35,
+   "detail": "identity/scene stability proxy, not a face-recognition score"
+  },
+  {
+   "name": "mouth.moving.motion_ratio",
+   "severity": "soft",
+   "pass": true,
+   "value": 1.2819,
+   "threshold": 1.04,
+   "detail": "mouth-region motion relative to whole-face motion"
+  },
+  {
+   "name": "audio.presence",
+   "severity": "hard",
+   "pass": true,
+   "value": 1,
+   "threshold": 1,
+   "detail": null
+  },
+  {
+   "name": "audio.duration",
+   "severity": "hard",
+   "pass": true,
+   "value": 9.792,
+   "threshold": 9.7917,
+   "detail": "tolerance 0.05s"
+  },
+  {
+   "name": "audio.rms_dbfs",
+   "severity": "hard",
+   "pass": true,
+   "value": -22.91,
+   "threshold": -42.0,
+   "detail": "silent or near-silent audio"
+  },
+  {
+   "name": "audio.clip_fraction",
+   "severity": "hard",
+   "pass": true,
+   "value": 0.0,
+   "threshold": 0.001,
+   "detail": null
+  }
+ ],
+ "width": 512,
+ "height": 896,
+ "frames": 235,
+ "fps": "24/1",
+ "duration": 9.791667,
+ "audio_streams": 1,
+ "face_backend": "haar",
+ "decoded_frames": 235,
+ "endpoint_proof": {
+  "first_rgb_sha256": "1f251189ab259d4dd7ede3a4b8138b488cc7530d1b0b2b3fc3d6505e485aea5a",
+  "last_rgb_sha256": "b732bcb0bc1b7cf13e49c10bb3e5f83ea41fd53bb6c9e60270f8cb619d8d6bbf",
+  "first_last_exact": false
+ },
+ "motion": {
+  "median_frame_diff": 1.7289,
+  "max_frame_diff": 2.9819,
+  "p95_frame_diff": 2.5687
+ },
+ "face": {
+  "median_center": [
+   261.0,
+   314.0
+  ],
+  "median_height_px": 273.0,
+  "center_drift_fraction": 0.014,
+  "size_drift_fraction": 0.0403,
+  "max_consecutive_jump_fraction": 0.0071
+ },
+ "anchor_ssim": {
+  "0": 0.987,
+  "58": 0.7375,
+  "117": 0.7651,
+  "176": 0.784,
+  "234": 0.9484
+ },
+ "mouth": {
+  "backend": "motion_proxy",
+  "motion_energy_mean": 6.5093,
+  "motion_energy_p95": 11.1887,
+  "face_energy_mean": 5.1113,
+  "motion_ratio_mean": 1.2819,
+  "motion_ratio_p95": 1.9223
+ },
+ "audio": {
+  "rms_dbfs": -22.91,
+  "clip_fraction": 0.0,
+  "samples": 156672
+ },
+ "contact_sheet": "/tmp/video_qc_test_yuqlmcgg/short.jpg",
+ "flagged_frames": [],
+ "hard_failures": [
+  "contract.frames",
+  "contract.duration",
+  "endpoints.first_last_exact"
+ ],
+ "warnings": [],
+ "pass": false,
+ "seconds": 6.78,
+ "tool": {
+  "name": "video_qc",
+  "version": 1,
+  "opencv": "4.9.0",
+  "numpy": "1.23.5"
+ }
+}

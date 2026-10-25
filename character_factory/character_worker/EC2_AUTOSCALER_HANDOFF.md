@@ -1,6 +1,6 @@
 # Handoff: temporary character-creation instances from the EC2 autoscaler
 
-Prepared 2026-10-25 from the MuseTalk repository at commit `e5c7615` (local `main`, not yet pushed).
+Prepared 2026-10-25 from the MuseTalk repository. The worker code is on `origin/main` (pushed 2026-10-25).
 
 **Goal.** When the Lingua backend receives a "create character" request, the EC2 autoscaler rents a temporary Vast.ai
 GPU instance from a dedicated template, waits for it to report ready, sends it one `POST /createCharacter`, collects
@@ -15,19 +15,17 @@ implementation to copy from. The EC2 side still has to be read before changing i
 
 | Item | State |
 | --- | --- |
-| Worker code (`character_factory/character_worker/`) | Committed locally as `e5c7615`. **Not pushed.** The template clones `main` from GitHub, so a fresh instance cannot run it until it is pushed. |
+| Worker code (`character_factory/character_worker/`) | On `origin/main`, which is what the template clones. |
 | QC gate | Calibrated on 19 accepted clips. 12 glitch-injection tests pass. |
 | Worker API | 9 tests pass with the fake pipeline. |
 | Reference orchestrator (`orchestrator/charfactory.py`) | 7 tests pass against a fake Vast API and the real worker API. |
 | Vast offer search | A live read-only query returned 25 matching Ada GPU offers on 2026-10-25. |
 | Fresh Vast boot from the template | **Never run.** |
-| Full GPU job through `pipeline.py` | **Not completed yet.** Three local runs on the shared RTX 4070 SUPER box stopped at the H3 start-up guard. The guard refuses a GPU that already has more than 1,000 MiB in use, and the production MuseTalk server was holding it (records in `validation/japanese_20261024/`). A dedicated instance does not have this conflict. |
+| Full GPU job through `pipeline.py` | **Not completed yet.** Four local runs on the shared RTX 4070 SUPER box ended before H3 produced a clip (records in `validation/japanese_20261024/`). Two stopped at the H3 start-up guard, which refuses a GPU that already has more than 1,000 MiB in use; the production MuseTalk server was holding it. One was cancelled after its first of eight H3 sampler steps took 10 min 39 s. The September clips took about 5.5 minutes in total, so that box's disk was the bottleneck. One trial without the `--fast-disk --disable-pinned-memory` launch flags lost its ComfyUI server after about five minutes, so the flags stay as committed. |
 | EC2 integration | Not started. |
 
-An uncommitted change from another session removes `--fast-disk --disable-pinned-memory` from the H3 launch in
-`h3_avatar_workflow/three_pose_h3_stage.py`, to speed up H3 on slow volumes. The accepted September runs used those
-flags on a 30 GB RAM host. Decide whether that change is committed before the first real run. Without the flags, H3
-holds more model weight in host RAM, so give the first instance at least 32 GB of RAM.
+Two lessons from those runs shape this handoff. A character worker needs **its own GPU**, and it needs a **fast disk**:
+with `--fast-disk`, H3 reads weights from disk at every sampler step. Section 4 adds a disk-speed filter for that.
 
 ## 2. How it fits together
 
@@ -53,9 +51,9 @@ for them ([docs/avatar_s3_persistence.md](../../docs/avatar_s3_persistence.md)).
 
 ## 3. Blocking prerequisites
 
-1. **Push MuseTalk `main`.** The on-start script clones `https://github.com/AhmadAFS1/MuseTalk.git` (public; it
-   answered HTTP 200 without credentials) at `main`. To pin a revision instead, set `MUSETALK_REF=<commit>` in the
-   template env.
+1. **Pick the MuseTalk revision.** The on-start script clones `https://github.com/AhmadAFS1/MuseTalk.git` (public; it
+   answered HTTP 200 without credentials) at `main`. Every new instance therefore picks up whatever is on `main` that
+   day. To freeze a tested revision, set `MUSETALK_REF=<commit>` in the template env.
 2. **A read-only GitHub token for `AhmadAFS1/minimax-h3-workflows`.** That repository is private (HTTP 404 without
    credentials). Pass it as `H3_WORKFLOWS_GIT_TOKEN`. The installer hands it to git through `GIT_ASKPASS`, so it never
    appears on a command line or in a log.
@@ -104,7 +102,12 @@ reference H3 run peaked at 11.5 GB VRAM and 27.6 GiB host RAM. The weights are 6
 an Ada GPU (compute capability 8.9). Ampere is untested for H3's NVFP4 text encoder, and Blackwell has no MuseTalk
 avatar-prep build. The on-start preflight enforces the same limits and fails fast with a readable message.
 
-For the **first real run**, narrow the GPU to models with known H3 timings, for example
+**Add a disk-speed filter: `disk_bw>=2000`.** Vast reports each host's disk read bandwidth in MB/s. Among the 40
+matching offers on 2026-10-25 it ranged from 182 to 9,932 (median 2,819), and 26 offers had 2,000 or more. Section 1
+explains why H3 needs it. Set it in `TEMPLATE_SEARCH` for `create_template.sh`, in `CHARFACTORY_OFFER_QUERY` for the
+reference orchestrator, or in your autoscaler's offer query.
+
+For the **first real run**, also narrow the GPU to models with known H3 timings, for example
 `gpu_name in [RTX_4070S,RTX_4070S_Ti,RTX_4090]`. The cheapest matching offers on 2026-10-25 were RTX 4060 Ti 16 GB
 cards, whose H3 speed has never been measured.
 
@@ -315,6 +318,7 @@ characters on one instance spreads the install cost across them.
 | `models.lock.json differs from the pinned lock` | The H3 repo moved or the lock was edited | Update `locks/character_worker.lock.json` on purpose, or pin the old commit |
 | `H3 doctor failed after install` | Wheel or CUDA mismatch on that host | Read `logs/h3_install.log` and `logs/h3_doctor.log`, then try another host |
 | `GPU is occupied; stop a local MuseTalk API before H3 generation` | Something else holds more than 1 GB of VRAM | Use a dedicated instance. See the hard rule in section 6 |
+| H3 sampler steps take minutes each (`h3_server.log` shows `s/it` in the hundreds) | Slow disk: H3 streams weights from disk at every step | Rent with `disk_bw>=2000` (section 4) |
 | `MuseTalk API not ready after 1200s` | The private prepare server failed | `musetalk_api.log` in the job directory |
 | `status: qc_failed` | Both H3 attempts, or the smoke render, failed a hard check | Inspect `attempts/*/qc/<pose>.jpg`. Retry with a new `seed`, a better portrait, or richer metadata |
 | `records.ok: false` | Runtime IAM key cannot write `character-factory/jobs/*` | Section 3, item 5. The job itself is fine |
@@ -326,7 +330,9 @@ characters on one instance spreads the install cost across them.
   character. Decide whether `done` characters go live automatically or wait for review in the backend.
 - **Registration.** If the autoscaler can only track workers that register, add a register and heartbeat call to
   `character_api.py` with `worker_type: "character"`. It is not implemented, and polling `/health` is sufficient.
-- **H3 launch flags.** Commit or drop the other session's flag change (section 1) before the first real run.
+- **H3 speed on slow disks.** The committed launch keeps `--fast-disk --disable-pinned-memory`, which a 30 GB RAM
+  host needs. Removing them failed in the one trial. Until H3 can keep weights in RAM safely, the disk filter is the
+  mitigation.
 - **GPU range.** Widening to Ampere (an RTX 3090 at about $0.20/h) needs one validated end-to-end run first.
 - **Fresh boot.** A fresh boot is untested. Expect to fix something on the first instance, and keep it alive (do not
   auto-destroy) until the logs have been read.
@@ -343,4 +349,4 @@ characters on one instance spreads the install cost across them.
 | `orchestrator/charfactory.py`, `engine.py`, `vast_client.py`, `job_store.py`, `config.example.env` | Reference EC2 orchestrator |
 | `tests/` | API, orchestrator and QC tests |
 | `README.md` | Full worker documentation |
-| `validation/japanese_20261024/` | Another session's local validation records, including the GPU-guard failures (not committed by this handoff) |
+| `validation/japanese_20261024/` | Local validation records from 2026-10-25: the test portrait, requests, the four run results and their logs |

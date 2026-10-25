@@ -1,0 +1,79 @@
+{
+  "job_id": "20261025T025253Z_5b37b0ca",
+  "character_id": "test_jp_20261024",
+  "status": "running",
+  "stage": "generate",
+  "created_utc": "2026-10-25T02:52:53Z",
+  "updated_utc": "2026-10-25T02:52:56Z",
+  "request": {
+    "character_id": "test_jp_20261024",
+    "portrait": {
+      "path": "/workspace/character_worker/validation_japanese_20261024/jobs/20261025T025253Z_5b37b0ca/upload.png",
+      "uploaded_bytes": 2301101,
+      "filename": "portrait.png"
+    },
+    "metadata": {
+      "label": "Japanese woman",
+      "age": 27,
+      "gender": "woman",
+      "hair": "straight shoulder-length dark hair tucked behind her ears",
+      "tone": "light warm neutral skin",
+      "facial_hair": "none",
+      "wardrobe": "plain muted teal crew-neck top",
+      "background": "softly blurred neutral home interior",
+      "pronouns": "she"
+    },
+    "poses": [
+      "idle",
+      "talking",
+      "smiling"
+    ],
+    "options": {
+      "seed": 42,
+      "max_attempts": 2,
+      "qc_profile": "strict",
+      "smoke_render": true,
+      "smoke_render_required": true,
+      "release_local": false,
+      "release_failed_attempts": false,
+      "publish_records": true,
+      "batch_size": 8
+    },
+    "callback_url": "http://127.0.0.1:8011/result",
+    "client": {
+      "notes": "End-to-end local worker validation before Lingua EC2 integration. The submitter adds portrait.base64."
+    }
+  },
+  "progress": {
+    "attempt": 1,
+    "seed": 42,
+    "pose": null
+  },
+  "result": null,
+  "error": null,
+  "api_version": 1,
+  "started_utc": "2026-10-25T02:52:54Z",
+  "portrait": {
+    "file": "/workspace/character_worker/validation_japanese_20261024/jobs/20261025T025253Z_5b37b0ca/portraits/test_jp_20261024.png",
+    "sha256": "d1383190aa3a95b709aff195d75de07a5ff4b669a032c58f35c905ff1e004c42",
+    "bytes": 2301101,
+    "check": {
+      "portrait": "/workspace/character_worker/validation_japanese_20261024/jobs/20261025T025253Z_5b37b0ca/portraits/test_jp_20261024.png",
+      "errors": [],
+      "warnings": [],
+      "width": 948,
+      "height": 1659,
+      "faces": [
+        [
+          230,
+          409,
+          484,
+          484
+        ]
+      ],
+      "face_height_fraction": 0.2917,
+      "face_center_x_fraction": 0.4979,
+      "ok": true
+    }
+  }
+}

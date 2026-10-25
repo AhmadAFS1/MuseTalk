@@ -1,0 +1,38 @@
+{
+  "job_id": "20261025T031507Z_a1037899",
+  "character_id": "test_jp_20261024",
+  "recipe": "h3-three-pose-20260927-v1",
+  "poses_requested": [
+    "idle",
+    "talking",
+    "smiling"
+  ],
+  "worker": {
+    "instance_id": null,
+    "public_ip": null,
+    "hostname": "400445b4c77b",
+    "gpu": "NVIDIA GeForce RTX 4070 SUPER, 12282 MiB, 595.84"
+  },
+  "started_utc": "2026-10-25T03:15:07Z",
+  "attempts": [],
+  "status": "failed",
+  "portrait_sha256": "d1383190aa3a95b709aff195d75de07a5ff4b669a032c58f35c905ff1e004c42",
+  "error": "generate: H3 generation failed: [{\"id\": \"test_jp_20261024_d1383190\", \"stage\": \"generate\", \"error\": \"H3 idle failed; inspect /workspace/character_worker/validation_japanese_20261024/jobs/20261025T031507Z_a1037899/attempts/01/test_jp_20261024_d1383190/idle/h3_stage.log\"}]",
+  "failed_stage": "generate",
+  "failure_detail": {
+    "version": "h3-three-pose-20260927-v1",
+    "stage": "generate",
+    "updated_utc": "2026-10-25T03:15:13Z",
+    "total": 1,
+    "published": 0,
+    "failures": [
+      {
+        "id": "test_jp_20261024_d1383190",
+        "stage": "generate",
+        "error": "H3 idle failed; inspect /workspace/character_worker/validation_japanese_20261024/jobs/20261025T031507Z_a1037899/attempts/01/test_jp_20261024_d1383190/idle/h3_stage.log"
+      }
+    ]
+  },
+  "finished_utc": "2026-10-25T03:15:13Z",
+  "seconds": 5.8
+}

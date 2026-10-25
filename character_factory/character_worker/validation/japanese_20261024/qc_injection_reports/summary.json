@@ -1,0 +1,86 @@
+{
+ "black": {
+  "pass": false,
+  "hard": [
+   "jump.frames",
+   "luma.steps",
+   "blank.frames",
+   "anchor.mid_frames_min_ssim"
+  ],
+  "soft": [
+   "background.max_mean_abs_diff_vs_first"
+  ]
+ },
+ "loop": {
+  "pass": false,
+  "hard": [
+   "endpoints.first_last_exact"
+  ],
+  "soft": []
+ },
+ "clean": {
+  "pass": true,
+  "hard": [],
+  "soft": []
+ },
+ "faceloss": {
+  "pass": false,
+  "hard": [
+   "jump.frames",
+   "luma.steps",
+   "face.detection_fraction",
+   "face.max_missing_run"
+  ],
+  "soft": []
+ },
+ "flash": {
+  "pass": false,
+  "hard": [
+   "jump.frames",
+   "luma.steps"
+  ],
+  "soft": [
+   "background.max_mean_abs_diff_vs_first"
+  ]
+ },
+ "frozen": {
+  "pass": false,
+  "hard": [
+   "frozen.runs"
+  ],
+  "soft": []
+ },
+ "jump": {
+  "pass": false,
+  "hard": [
+   "jump.frames",
+   "luma.steps"
+  ],
+  "soft": []
+ },
+ "noaudio": {
+  "pass": false,
+  "hard": [
+   "audio.presence"
+  ],
+  "soft": []
+ },
+ "idle_with_audio": {
+  "pass": false,
+  "hard": [
+   "audio.presence"
+  ],
+  "soft": [
+   "mouth.closed.motion_ratio"
+  ]
+ },
+ "short": {
+  "pass": false,
+  "hard": [
+   "contract.frames",
+   "contract.duration",
+   "endpoints.first_last_exact"
+  ],
+  "soft": []
+ }
+}
