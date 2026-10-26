@@ -149,13 +149,39 @@ class FrameSource:
 
 # ----------------------------------------------------------------------------- face backends
 
+HAAR_FILE = 'haarcascade_frontalface_default.xml'
+
+
+def haar_cascade_path() -> str | None:
+    """The frontal-face cascade: this OpenCV's own, else a sibling venv's copy.
+
+    OpenCV 5 wheels (the chin-tools venv pins opencv-contrib-python 5.x for mediapipe)
+    no longer ship cv2/data/*.xml, while the MuseTalk server venv's OpenCV 4.x does.
+    CHARACTER_WORKER_HAAR_CASCADE overrides the search.
+    """
+    import glob
+    import os
+    candidates = [os.environ.get('CHARACTER_WORKER_HAAR_CASCADE', '')]
+    data_dir = getattr(getattr(cv2, 'data', None), 'haarcascades', '')
+    if data_dir:
+        candidates.append(os.path.join(data_dir, HAAR_FILE))
+    workspace = os.environ.get('WORKSPACE', '/workspace')
+    candidates += sorted(glob.glob(os.path.join(workspace, '.venvs', '*', 'lib', 'python*', 'site-packages', 'cv2', 'data', HAAR_FILE)))
+    for path in candidates:
+        if path and os.path.isfile(path):
+            return path
+    return None
+
+
 class HaarFaces:
     name = 'haar'
 
     def __init__(self):
-        self.cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        if self.cascade.empty():
-            raise RuntimeError('Haar cascade not found in this OpenCV build')
+        path = haar_cascade_path()
+        self.cascade = cv2.CascadeClassifier(path) if path else None
+        if self.cascade is None or self.cascade.empty():
+            raise RuntimeError('Haar cascade not found in this OpenCV build or any workspace venv')
+        self.cascade_path = path
         self.previous = None
 
     def detect(self, frame_rgb: np.ndarray):
@@ -187,12 +213,17 @@ class MediaPipeFaces:
         self.mp = mp
         self.mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, refine_landmarks=True,
                                                     min_detection_confidence=0.5, min_tracking_confidence=0.5)
-        self.fallback = HaarFaces()
+        try:
+            self.fallback = HaarFaces()   # boxes for frames FaceMesh misses; optional
+        except RuntimeError:
+            self.fallback = None
 
     def detect(self, frame_rgb: np.ndarray):
         h, w = frame_rgb.shape[:2]
         result = self.mesh.process(frame_rgb)
         if not result.multi_face_landmarks:
+            if self.fallback is None:
+                return None, None
             box, _ = self.fallback.detect(frame_rgb)
             return box, None
         pts = np.array([(p.x * w, p.y * h) for p in result.multi_face_landmarks[0].landmark], np.float32)
