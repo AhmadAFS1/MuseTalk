@@ -849,6 +849,9 @@ class ParallelAvatarManager:
                 avatar = self._get_or_load_avatar(avatar_id, batch_size)
                 
                 # ✅ Pass models explicitly (no globals!)
+                # One name for both the render and the reported path (a None output_name used to
+                # render to a random name but report vid_output/None.mp4, so /download 404ed).
+                output_name = output_name or f"{avatar_id}_{uuid.uuid4().hex[:8]}"
                 with self.model_lock:
                     avatar.inference(
                         audio_path=audio_path,
@@ -856,7 +859,7 @@ class ParallelAvatarManager:
                         whisper=self.whisper,
                         timesteps=self.timesteps,
                         device=self.device,
-                        out_vid_name=output_name or f"{avatar_id}_{uuid.uuid4().hex[:8]}",
+                        out_vid_name=output_name,
                         fps=fps,
                         skip_save_images=False
                     )

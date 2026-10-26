@@ -524,7 +524,8 @@ def smoke_render(rt: Runtime, job: Job, server: MuseTalkServer, published: dict)
     talking = published['poses'].get('talking') or next(iter(published['poses'].values()))
     avatar_id = talking['avatar_id']
     body, ctype = multipart({}, {'audio_file': audio})
-    query = urllib.parse.urlencode({'avatar_id': avatar_id, 'batch_size': int(options.get('batch_size') or 8), 'fps': 24})
+    query = urllib.parse.urlencode({'avatar_id': avatar_id, 'batch_size': int(options.get('batch_size') or 8), 'fps': 24,
+                                    'output_name': f'smoke_{job.id}'})
     req = urllib.request.Request(f'{server.base}/generate?{query}', data=body, headers={'Content-Type': ctype}, method='POST')
     with urllib.request.urlopen(req, timeout=120) as resp:
         queued = json.load(resp)
