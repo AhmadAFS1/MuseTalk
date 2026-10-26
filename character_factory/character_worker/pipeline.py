@@ -405,6 +405,10 @@ class MuseTalkServer:
         env = self.rt.env(strip_control_plane=True)
         env.update(AVATAR_S3_ENABLED='1', HOST='127.0.0.1', PORT=str(self.port), WEBRTC_RELAY_ENABLED='0',
                    WEBRTC_TURN_AUTOSTART='0', SETUP_WEBRTC_TURN='0', MUSETALK_LOAD_TEST_TELEMETRY='0')
+        # The smoke render goes through /generate, whose inference runs on a worker thread. Compiled
+        # TAESD in max-autotune mode records CUDA graphs per thread (cudagraph trees) and asserts
+        # there ("_is_key_in_tls"), so this private server keeps the compile but without CUDA graphs.
+        env.setdefault('MUSETALK_TAESD_COMPILE_MODE', 'max-autotune-no-cudagraphs')
         if not env.get('AVATAR_S3_BUCKET'):
             raise StageFailed('prepare', 'AVATAR_S3_BUCKET is not set; refusing to prepare caches that cannot be published')
         cmd = ['bash', self.rt.repo / 'scripts' / 'run_musetalk_server.sh', '--host', '127.0.0.1', '--port', str(self.port),
