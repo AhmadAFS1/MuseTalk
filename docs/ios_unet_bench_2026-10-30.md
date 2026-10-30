@@ -32,7 +32,7 @@ Branch `claude/ios-unet-bench`, worktree `~/code/musetalk-ios-bench`. Nothing he
 | Audio | `data/audio/ai-assistant.mpga` (17.8 s; the first 10 s = 250 frames at 25 fps are used) |
 
 Scripts (all under `scripts/ios/`): `bench_torch_baseline.py`, `export_coreml.py`, `bench_coreml.py`,
-`render_evidence.py`. Results JSON under `docs/ios_unet_bench/`. Core ML models and videos are under
+`render_evidence.py`, `bench_latency.py`. Results JSON under `docs/ios_unet_bench/`. Core ML models and videos are under
 `models/ios_bench/` (not in git).
 
 ## 2. What was converted
@@ -190,6 +190,28 @@ Every one of the 24 turns finished well inside its own 10 s, with no slowdown ov
 the server's 20 fps the same turn is 200 frames, 5.1 s (int8w) / 5.8 s (fp16): 1.96× / 1.72× real time. Phone
 thermals are not represented here (§7).
 
+### 6.1 What a streaming client feels: load, first frame, jitter, blend (`latency_int8w_b1_m5pro.json`)
+
+`scripts/ios/bench_latency.py`, int8w batch 1 on the Neural Engine, Latina avatar (512×832, face box 215×332):
+
+| Stage | Measured | Note |
+|---|---|---|
+| `.mlpackage` → `.mlmodelc` compile | 0.22 s (UNet), 0.03 s (TAESD) | build-time step (Xcode does it); not paid on device |
+| Load compiled UNet, first time in a process | **6.7 s** | Neural Engine specialisation of the 812 MB program; the OS caches it per model, so this is app launch / character load, not utterance start |
+| Load again in the same process | 0.05 s | |
+| First prediction after load | 37.5 ms; second 23.8 ms | one warm-up frame |
+| Per-frame UNet, 750 frames | mean 23.7, p99 24.3, max 26.9 ms | |
+| Per-frame TAESD | mean 1.6, p99 1.8, max 2.2 ms | |
+| Per-frame UNet + TAESD | **mean 25.3, p99 26.1, max 28.5 ms** | 0 of 750 frames over 40 ms (25 fps budget), 0 over 50 ms (20 fps) |
+| Resize face to box + `get_image_blending` (CPU) | 0.07 + 0.81 ms (p99 0.98, max 2.5) | runs on the CPU in parallel with the ANE; a phone CPU is a few × slower, still a few ms |
+
+So on this ANE the inference side of the first frame is ~30 ms after the first Whisper window exists, and the
+per-frame cost is flat (max − p50 = 3.3 ms over 30 s of frames). The latency a user would see for the first
+frame is set by what is upstream of the UNet, not by it: TTS first-audio latency plus MuseTalk's audio look-ahead
+(the 50×384 window for frame *i* spans ±2 frames, so the first frame needs ~80–100 ms of audio after its own
+timestamp) plus the Whisper-tiny encoder, which is not yet converted (see §9). Nothing here is measured on a
+phone (§7).
+
 ## 7. From this Mac to a phone
 
 Per frame, the UNet reads its whole weight set once (the ANE has no cache that holds 0.8–1.6 GB), so a phone's
@@ -235,12 +257,24 @@ footprint on an app that also holds the avatar's frames and pose caches, and bat
 None of these are needed to hit 20 fps on an iPhone 17 Pro-class ANE if the projection holds; 2 is what makes
 the 15/16 Pro comfortable.
 
-## 9. What a product build still needs (unchanged from the desk analysis)
+## 9. What a product build still needs
 
-A native module in the Lingua app running the Core ML pipeline; the avatar pose caches (3–6 poses × 160–350
-MB) downloaded per character; the pose router, idle/live switching and A/V sync logic ported from
-`webrtc_tracks.py` / `webrtc_pose_router.py`; TTS stays remote; a labelled video review of the int8w build like
-the one r5 went through; and the device measurement that this doc could not do.
+What exists is two Core ML models (`unet_int8w_b1`, `taesd_fp16_b1`) and Python harnesses that drive them on a
+Mac; it is not a runnable iOS pipeline. Still missing, in dependency order:
+
+1. **Audio features on device.** The Whisper-tiny encoder and the repo's `AudioProcessor` windowing
+   (`audio_windows()` in `render_evidence.py` is the reference) are PyTorch only. Either convert them (the
+   encoder is ~8M parameters, a small Core ML model) or have the server send the 50×384 windows alongside the
+   TTS audio, since it computes them anyway. The second removes a model from the phone and a conversion from
+   the gate.
+2. A native module in the Lingua app running UNet → TAESD → blend per frame, loading the UNet once at character
+   select (6.7 s on this ANE, §6.1) and pacing frames to the audio clock.
+3. The avatar pose caches (3–6 poses × 160–350 MB) downloaded per character; the pose router, idle/live
+   switching and A/V sync logic ported from `webrtc_tracks.py` / `webrtc_pose_router.py`; TTS stays remote.
+4. A labelled video review of the int8w build like the one r5 went through.
+5. The device measurement this doc could not do: per-frame p99 and a 10-minute thermal run on an iPhone 15 Pro
+   or newer. On a phone the per-frame floor is memory bandwidth (§7), and sustained ANE + CPU load throttles in
+   a way this fan-cooled Mac never showed.
 
 ## 10. Reproduce
 
@@ -257,6 +291,7 @@ aws s3 cp s3://lingua-musetalk-s3-storage/avatars/v15/codex_smoke.tar.gz /tmp/ &
 .venv-ct/bin/python scripts/ios/bench_coreml.py --compare --check
 .venv-ct/bin/python scripts/ios/bench_coreml.py --turn-model unet_int8w_b1 --turns 12 --turn-seconds 10 --turn-fps 25
 .venv-ct/bin/python scripts/ios/render_evidence.py --avatar /tmp/codex_smoke --audio data/audio/ai-assistant.mpga --seconds 10 --fps 25
+.venv-ct/bin/python scripts/ios/bench_latency.py --unet unet_int8w_b1 --avatar /tmp/latina_guided_20260925_talking_84c5bc80b8 --frames 750 --out docs/ios_unet_bench/latency_int8w_b1_m5pro.json
 ```
 
 (The baseline above was measured with torch 2.15.0 in `.venv-ios`; the export needs torch ≤ 2.7 for coremltools 9.)
