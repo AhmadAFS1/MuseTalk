@@ -7,9 +7,14 @@ SUPER / 3090 with TensorRT INT8 engines, but that is 15–20 streams at 20 fps e
 **Verdict.** On this Mac's M5 Pro Neural Engine, the same ANE generation as the iPhone 17 Pro's, the whole
 per-frame path runs at **28.9 ms/frame in fp16 and 25.3 ms/frame with int8 weights**, against a 50 ms budget at
 the server's 20 fps (40 ms at 25 fps). A 10 s turn renders in 6.3–7.2 s of inference, chunk by chunk. Both
-builds pass the server's numeric gate (latent max-abs ≤ 0.5 against fp32) and are visually indistinguishable
-from the PyTorch reference on the two 9:16 production characters (Japanese, Latina) and a smoke avatar
-(face-crop error 0.16–0.30/255, 46–54 dB PSNR over 250 frames each; §5). Naive int8 activations are
+builds are visually indistinguishable from the PyTorch reference on the two 9:16 production characters
+(Japanese, Latina) and a smoke avatar (face-crop error 0.16–0.30/255, 46–54 dB PSNR over 250 frames each;
+§5). **Correction, same day (§11):** on the repo's own UNet gate (`scripts/validate_unet_backend.py`: production
+captures, fp16 PyTorch reference, per-file mae ≤ 0.01 and max_abs ≤ 0.5) both builds **fail**, mae 0.013 and
+max_abs up to 1.0, about 4× the error of the shipping TensorRT INT8 engines. The cause is the Neural Engine's own
+fp16 arithmetic in the conv/linear layers: the identical Core ML model run on this Mac's GPU scores mae 0.0004,
+the same as fp32. Earlier sections quote the 16-frame max-abs figure (0.37–0.41) that led to the wrong "passes
+the gate" claim; §11 has the real numbers. Naive int8 activations are
 faster (20.6 ms) but fail the gate. The audio front end (log-mel + Whisper-tiny encoder) is in Core ML too: ~13 ms
 per 30 s turn on the Neural Engine, and the all-Core-ML chain sits as close to the reference as the UNet alone
 (§6.2). **No iPhone was measured**: the only phone available is an iPhone 12 Pro,
@@ -34,8 +39,9 @@ Branch `claude/ios-unet-bench`, worktree `~/code/musetalk-ios-bench`. Nothing he
 | Audio | `data/audio/ai-assistant.mpga` (17.8 s; the first 10 s = 250 frames at 25 fps are used) |
 
 Scripts (all under `scripts/ios/`): `bench_torch_baseline.py`, `export_coreml.py`, `bench_coreml.py`,
-`render_evidence.py`, `bench_latency.py`, `export_whisper_coreml.py`, `bench_whisper_coreml.py`. Results JSON
-under `docs/ios_unet_bench/`. Core ML models and videos are under
+`render_evidence.py`, `bench_latency.py`, `export_whisper_coreml.py`, `bench_whisper_coreml.py`, and for §11
+`validate_unet_coreml_gate.py`, `profile_coreml.py`, `export_coreml_ane.py`, `export_coreml_precision.py`,
+`palettize_coreml.py`. Results JSON under `docs/ios_unet_bench/`. Core ML models and videos are under
 `models/ios_bench/` (not in git).
 
 ## 2. What was converted
@@ -288,14 +294,18 @@ footprint on an app that also holds the avatar's frames and pose caches, and bat
 
 ## 8. Where the remaining speed is (ordered by value)
 
-1. **Ship int8 weights, batch 1, on the ANE** — done here, passes the gate, halves memory traffic. This is the
-   phone build.
+*(Written before §11; items 1, 2 and 4 were then measured. See §11 for what held up.)*
+
+1. **Ship int8 weights, batch 1, on the ANE** — done here, halves memory traffic. It does not pass the repo
+   gate (§11.1), but the int8 weights are not why: they add 0.0003 to a 0.0128 mae that the ANE's arithmetic
+   already causes.
 2. **Make batching run on the ANE.** Today batch > 1 is rejected and falls to the CPU. The likely cause is the
    attention layout at batch×heads = 32 (`baddbmm` over [32,1024,1024]); Apple's Stable Diffusion conversion
    solved the same problem with a split-einsum attention (conv-1×1 + chunked einsums) and, on iOS 18+, the fused
    `scaled_dot_product_attention` op. Batch 4 would cut weight traffic per frame 4× (the fp16 floor on an iPhone
    15 Pro drops from 32 to 8 ms) at the cost of 160 ms of extra latency at 25 fps, well under the server's 2 s
-   prebuffer. This is the lever for the A17/A18 phones.
+   prebuffer. This is the lever for the A17/A18 phones. *Done in §11.3 with Apple's layout: batch 4 runs
+   entirely on the ANE, and batch 1 got 17–20% faster as a side effect.*
 3. **Fuse TAESD and the BGR/uint8 post-processing into the UNet model** so a frame is one Core ML call and one
    buffer copy (saves ~1–2 ms and the fp16 round trip).
 4. **Mixed-bit palettization of insensitive layers** (Apple's MBP recipe, 4–6 bit, decompressed in flight by the
@@ -347,3 +357,140 @@ aws s3 cp s3://lingua-musetalk-s3-storage/avatars/v15/codex_smoke.tar.gz /tmp/ &
 ```
 
 (The baseline above was measured with torch 2.15.0 in `.venv-ios`; the export needs torch ≤ 2.7 for coremltools 9.)
+
+§11 additionally needs `torchvision==0.22.0` in `.venv-ct` (the gate script's import chain) and a clone of
+`https://github.com/apple/ml-stable-diffusion` (imported, not installed):
+
+```bash
+uv pip install --python .venv-ct/bin/python torch==2.7.0 torchvision==0.22.0
+git clone --depth 1 https://github.com/apple/ml-stable-diffusion /tmp/ml-stable-diffusion
+.venv-ct/bin/python scripts/ios/validate_unet_coreml_gate.py --model unet_int8w_b1          # repo gate on a Core ML model
+.venv-ct/bin/python scripts/ios/validate_unet_coreml_gate.py --model unet_fp16_b1 --units ALL  # same model on the GPU
+.venv-ct/bin/python scripts/ios/validate_unet_coreml_gate.py --model pytorch_fp32             # fp32 anchor
+.venv-ct/bin/python scripts/ios/profile_coreml.py --model unet_int8w_b1
+.venv-ct/bin/python scripts/ios/export_coreml_ane.py --apple-repo /tmp/ml-stable-diffusion --batches 1,4 --variants fp16,int8w --exporter export
+.venv-ct/bin/python scripts/ios/export_coreml_precision.py --variants gn32,sm32,mm32,gnsm32,region_early,region_mid,region_late
+.venv-ct/bin/python scripts/ios/palettize_coreml.py --model unet_ane_fp16_b1 --nbits 6,4
+```
+
+## 11. Speed and quality for an A14-class phone, measured where this Mac can measure (2026-10-30, later)
+
+The question behind this section: can the on-device build match the Vast.ai workers' output on an iPhone 12
+Pro, at the same quality and speed. Three things were measured: the Core ML build against the repo's own UNet
+gate (the one the server's TensorRT engines are gated with, so the two are judged on identical inputs), where
+the Neural Engine's error comes from, and what each speed lever actually buys.
+
+### 11.1 Quality: the repo gate (`gate_*_m5pro.json`)
+
+`scripts/ios/validate_unet_coreml_gate.py` runs `scripts/validate_unet_backend.py`'s statistics on the
+production captures in `calibration/unet_portable_bs8/` (16 files, 128 frames, avatar `chin_h3_japanese_new`
+among others; inputs as the server's UNet saw them, reference = the fp16 PyTorch production outputs). The
+server's numbers come from `docs/fps_comparisons/*/gate/*.json` on its larger 176-file set. Gate: per-file
+mae ≤ 0.01 and max_abs ≤ 0.5.
+
+| UNet | runs on | mae mean / max | max_abs mean / max | gate |
+|---|---|---|---|---|
+| PyTorch fp32 (anchor: fp32 vs the fp16 reference) | Mac CPU | 0.00038 / 0.00048 | 0.015 / 0.047 | pass |
+| **server TensorRT fp16** (`gunet_srcfp16_main`) | 4070S | 0.0018 / 0.0025 | 0.109 / 0.414 | pass |
+| **server TensorRT INT8, shipping recipe** (`gunet_srcg50_main`) | 4070S | 0.0032 / 0.0044 | 0.253 / 0.777 | mae pass, max_abs over on its set |
+| server TensorRT INT8 (`gunet_srcblkA8_main`) | 4070S | 0.0050 / 0.0071 | 0.449 / 1.284 | mae pass, max_abs over |
+| Core ML fp16 (same model as below) | **Mac GPU** | 0.00041 / 0.00053 | 0.017 / 0.055 | pass, = fp32 |
+| Core ML fp16 | Mac CPU | 0.0064 / 0.0080 | 0.236 / 0.470 | pass |
+| Core ML fp16 | **Neural Engine** | 0.0128 / 0.0184 | 0.521 / 1.001 | **fail (mae, 16 of 16 files)** |
+| Core ML int8 weights (the "phone build" of §4–6) | Neural Engine | 0.0131 / 0.0187 | 0.544 / 1.027 | fail |
+| Core ML Apple layout fp16 / int8w (§11.3) | Neural Engine | 0.0128 / 0.0184, 0.0131 / 0.0187 | 0.52 / 1.00 | fail |
+| Core ML Apple layout, 6-bit palettized | Neural Engine | 0.0186 / 0.0232 | 0.565 / 1.004 | fail |
+| Core ML Apple layout, 4-bit palettized | Neural Engine | 0.0565 / 0.0750 | 1.47 / 2.46 | fail, visibly (2.3/255) |
+
+So the device build is not at the server's quality by the server's own measure: 4× the shipping INT8 engines'
+mae, 7× TensorRT fp16's, and over the 0.01 line on every file. In pixels this is the 0.18/255 composed-face /
+0.57/255 raw-face distance of §5–6 (54 dB), which no one has seen in a video, but it is a real, measured gap, and
+it is not the int8 weights: fp16 and int8w score the same.
+
+### 11.2 Where the Neural Engine's error comes from
+
+The identical fp16 model is exact on the GPU and 30× worse on the ANE, so the error is in how the ANE executes
+fp16, not in the conversion. To find which ops, `export_coreml_precision.py` holds one op class in fp32 (Core ML
+then runs those ops on the CPU, splitting the graph) and the gate is rerun:
+
+| fp32 island | ops moved off the ANE | gate mae mean / max | change |
+|---|---|---|---|
+| none (baseline fp16) | 0 | 0.0128 / 0.0184 | — |
+| GroupNorm statistics (`reduce_mean, sub, square, sqrt, real_div`) | 610 of 1,961 | 0.0126 / 0.0181 | none |
+| softmax | 101 | 0.0128 / 0.0184 | none |
+| attention matmuls + softmax | 224 | 0.0128 / 0.0184 | none |
+| GroupNorm + softmax | 711 | 0.0126 / 0.0182 | none |
+| GroupNorm rewritten as chained short reductions, all on the ANE (`--groupnorm hier`) | 0 | 0.0128 / 0.0184 | none |
+| first third of the 345 conv/linear/matmul ops (conv_in, down blocks 0–1) in fp32 | 722 | 0.0127 / 0.0180 | none |
+| last third (up blocks 2–3, conv_out) in fp32 | 634 | 0.0119 / 0.0175 | −7% |
+| middle third (down 2–3, mid block, up 0–1: the 1,280-channel layers) in fp32 | compiler put *all* 1,999 ops on the CPU | 0.0060 / 0.0076 (pass) | = the CPU-only row of §11.1, so not a hybrid result |
+| every conv/linear with ≥ 10,000 accumulation terms (the 1,280-channel 3×3 convs) in fp32 | compiler put all 1,834 ops on the CPU | 0.0060 / 0.0075 (pass) | CPU-only again, not a hybrid |
+| every conv/linear with ≥ 5,000 terms in fp32 | all 1,872 ops on the CPU | 0.0047 / 0.0052 (pass) | " |
+
+Normalisation and attention are not it. The error sits in the convolution and linear layers themselves, i.e. in
+the ANE's multiply-accumulate precision (the GPU accumulates fp16 products in fp32; the ANE evidently does not,
+or not fully). The depth rows point at the middle of the network, the 1,280-channel layers whose accumulations
+are the longest (up to 11,520 terms per output), which is what fp16 accumulation would predict; the first third
+being exact buys nothing and the last third 7%. The test that would confirm it, those layers in fp32 with the
+rest on the ANE, could not be run as a hybrid: whenever the fp32 islands sit in the middle of the graph, Core
+ML's planner gives up on splitting and schedules the whole model on the CPU (three attempts, all 100% CPU). A
+real hybrid would have to be two Core ML models, the outer blocks on the ANE and the middle on the GPU, with the
+activations handed across; on an A14 the GPU half alone would cost more than the whole budget.
+
+That rules out every cheap fix: there is no op class to reformulate, and int8 weights, layout and batching do not
+change it. What is left is a product decision on the 0.013 mae (§11.4), a manual two-model ANE/GPU split for
+phones with a GPU fast enough to carry the 1,280-channel middle (not an A14), or a newer ANE if a later
+generation accumulates differently (unknown; untested).
+
+### 11.3 Speed: where the time goes and what the levers bought (`profile_*`, `coreml_ane_layout_m5pro.json`, `coreml_gn_pal_m5pro.json`)
+
+Compute-plan cost profile of the int8w batch-1 UNet (all ops on the ANE): conv 35.7%, linear 24.0%,
+**reshape + transpose + split 15.9%**, softmax 6.9%, matmul 2.8%, GroupNorm pieces ~7%. The 16% of layout
+shuffling is the signature of running a [B, S, C] transformer on hardware that wants [B, C, 1, S].
+
+Apple's `ml-stable-diffusion` UNet is that re-layout (Conv2d everywhere, LayerNormANE, split-einsum attention);
+it loads MuseTalk's weights directly (0 missing / 0 unexpected keys) and reproduces the diffusers UNet to
+1.6e-5 in fp32 (`export_coreml_ane.py`). Measured on the ANE, batch-1 per frame unless noted:
+
+| UNet build | weight MB per frame | ms/frame on this ANE | vs §4 | ops on ANE | gate mae |
+|---|---|---|---|---|---|
+| diffusers layout fp16 (§4) | 1,624 | 27.1 | — | 1,778 / 1,778 | 0.0128 |
+| diffusers layout int8w (§4) | 812 | 23.5 | — | all | 0.0131 |
+| **Apple layout fp16** | 1,624 | **22.6** | −17% | 3,049 / 3,049 | 0.0128 |
+| **Apple layout int8w** | 812 | **18.9** | −20% | all | 0.0131 |
+| Apple layout fp16, batch 4 | 406 | 25.1 | batch now runs on the ANE | all | 0.0128 |
+| Apple layout int8w, batch 4 | 203 | 20.1 | " | all | 0.0131 |
+| Apple layout, 6-bit palettized | 610 | 18.6 | | all | 0.0186 |
+| Apple layout, 4-bit palettized | 408 | 17.9 | | all | 0.0565 |
+| Apple layout + chained-reduction GroupNorm | 1,624 | 23.0 | +0.4 | all | 0.0128 |
+
+Readings: the layout alone is worth 17–20% on this ANE at identical numerics. Batch 4 is now accepted by the ANE
+compiler (the diffusers-layout model was not), but on this Mac it is *slower* per frame than batch 1: here the
+UNet is compute-bound and batching only adds latency. Its value is on a phone bus, where 203 MB of weights per
+frame instead of 812 MB turns a 24 ms floor (iPhone 12 Pro, 34 GB/s) into 6 ms. Palettization to 6 bits saves
+25% of bytes for a 45% rise in gate error and a visible 0.7/255; 4 bits is out. Int8 weights remain the right
+compression: free in quality, half the bytes.
+
+### 11.4 What it means for an iPhone 12 Pro (A14), still unmeasured
+
+- **Speed.** With the Apple-layout int8w build the Mac ANE does 18.9 ms + 1.5 ms TAESD. The A14's Neural
+  Engine is roughly a third to a half of this one per op and its bus a quarter; with batch 4 removing the
+  bandwidth floor the frame time is set by compute: **~40–60 ms/frame is the projection**, against the 50 ms
+  budget at the server's 20 fps. That is on the line, not comfortably inside it, and the 12 Pro has no fan.
+  Only a device run settles it (§9 item 5).
+- **Quality.** The ANE cannot run this UNet at the server's numeric quality (§11.1–11.2). The choice is
+  explicit: accept the 0.013-mae ANE output after the same labelled human review r5's INT8 recipe went through
+  (the pixel distance, 0.18/255 composed, is far below what such a review has ever failed), or move the
+  error-carrying layers to the GPU at a speed cost no A14 can pay. "Same quality as Vast" in the gate's terms is
+  not available on an A14 Neural Engine with this network.
+
+### 11.5 Order of work from here
+
+1. Device measurement with the Apple-layout int8w batch-1 and batch-4 models (a 30-line Xcode harness; the
+   12 Pro calibrates the projection for the 14/15 Pro).
+2. Labelled review of the ANE output against the fp16 reference on the production characters, as r5 did,
+   to decide whether the 0.013 gate miss is acceptable for the product.
+3. If a hybrid is wanted: a manual two-model split (outer blocks on the ANE, the 1,280-channel middle on the
+   GPU), since Core ML will not split it for us (§11.2); only worth building for phones whose GPU can carry the
+   middle in the budget, measured on the device, not here.
+4. Only then the pipeline work of §9 (window gather, native module, pose logic).
