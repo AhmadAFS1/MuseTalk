@@ -405,6 +405,10 @@ class MuseTalkServer:
         env = self.rt.env(strip_control_plane=True)
         env.update(AVATAR_S3_ENABLED='1', HOST='127.0.0.1', PORT=str(self.port), WEBRTC_RELAY_ENABLED='0',
                    WEBRTC_TURN_AUTOSTART='0', SETUP_WEBRTC_TURN='0', MUSETALK_LOAD_TEST_TELEMETRY='0')
+        # The smoke render goes through /generate, whose inference runs on a worker thread. Compiled
+        # TAESD in max-autotune mode records CUDA graphs per thread (cudagraph trees) and asserts
+        # there ("_is_key_in_tls"), so this private server keeps the compile but without CUDA graphs.
+        env.setdefault('MUSETALK_TAESD_COMPILE_MODE', 'max-autotune-no-cudagraphs')
         if not env.get('AVATAR_S3_BUCKET'):
             raise StageFailed('prepare', 'AVATAR_S3_BUCKET is not set; refusing to prepare caches that cannot be published')
         cmd = ['bash', self.rt.repo / 'scripts' / 'run_musetalk_server.sh', '--host', '127.0.0.1', '--port', str(self.port),
@@ -520,7 +524,8 @@ def smoke_render(rt: Runtime, job: Job, server: MuseTalkServer, published: dict)
     talking = published['poses'].get('talking') or next(iter(published['poses'].values()))
     avatar_id = talking['avatar_id']
     body, ctype = multipart({}, {'audio_file': audio})
-    query = urllib.parse.urlencode({'avatar_id': avatar_id, 'batch_size': int(options.get('batch_size') or 8), 'fps': 24})
+    query = urllib.parse.urlencode({'avatar_id': avatar_id, 'batch_size': int(options.get('batch_size') or 8), 'fps': 24,
+                                    'output_name': f'smoke_{job.id}'})
     req = urllib.request.Request(f'{server.base}/generate?{query}', data=body, headers={'Content-Type': ctype}, method='POST')
     with urllib.request.urlopen(req, timeout=120) as resp:
         queued = json.load(resp)
