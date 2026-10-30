@@ -10,7 +10,9 @@ the server's 20 fps (40 ms at 25 fps). A 10 s turn renders in 6.3–7.2 s of inf
 builds pass the server's numeric gate (latent max-abs ≤ 0.5 against fp32) and are visually indistinguishable
 from the PyTorch reference on the two 9:16 production characters (Japanese, Latina) and a smoke avatar
 (face-crop error 0.16–0.30/255, 46–54 dB PSNR over 250 frames each; §5). Naive int8 activations are
-faster (20.6 ms) but fail the gate. **No iPhone was measured**: the only phone available is an iPhone 12 Pro,
+faster (20.6 ms) but fail the gate. The audio front end (log-mel + Whisper-tiny encoder) is in Core ML too: ~13 ms
+per 30 s turn on the Neural Engine, and the all-Core-ML chain sits as close to the reference as the UNet alone
+(§6.2). **No iPhone was measured**: the only phone available is an iPhone 12 Pro,
 whose A14 Neural Engine and 34 GB/s memory bus put it well below real time. Expected on real devices, unmeasured:
 iPhone 17 Pro ~25–30 ms/frame, iPhone 15/16 Pro ~30–40 ms (real time at 20 fps, thin at 25), iPhone 12 Pro
 ~50–80 ms (not real time). "Same exact quality and speed" as the server is not on the table: ~10× slower per
@@ -32,7 +34,8 @@ Branch `claude/ios-unet-bench`, worktree `~/code/musetalk-ios-bench`. Nothing he
 | Audio | `data/audio/ai-assistant.mpga` (17.8 s; the first 10 s = 250 frames at 25 fps are used) |
 
 Scripts (all under `scripts/ios/`): `bench_torch_baseline.py`, `export_coreml.py`, `bench_coreml.py`,
-`render_evidence.py`, `bench_latency.py`. Results JSON under `docs/ios_unet_bench/`. Core ML models and videos are under
+`render_evidence.py`, `bench_latency.py`, `export_whisper_coreml.py`, `bench_whisper_coreml.py`. Results JSON
+under `docs/ios_unet_bench/`. Core ML models and videos are under
 `models/ios_bench/` (not in git).
 
 ## 2. What was converted
@@ -48,6 +51,14 @@ explicit `AttnProcessor` (matmul + softmax), target iOS 17, fp16 compute.
   **int8wa** (int8 weights and per-tensor activations, calibrated on 16 real frames, 813 MB). One model per batch
   size 1, 4, 8 (int8wa at 8 was not built; the variant fails quality at 1 and 4).
 - TAESD decoder [B,4,32,32] → [B,3,256,256] in [0,1], fp16, 2.4 MB, with the server's `(x/2+0.5).clamp`.
+- **Audio front end** (`export_whisper_coreml.py`, §6.2). MuseTalk's conditioning is the Whisper-tiny *encoder*
+  (`musetalk/utils/audio_processor.py`): `whisper_logmel_fp32`, waveform [1,480000] (one 30 s segment) → log-mel
+  [1,80,3000], the `WhisperFeatureExtractor` math written as a conv1d STFT so it converts without the complex
+  dialect (fp32, 0.7 MB, matches the extractor to 2e-5); `whisper_encoder_fp16`, log-mel → `features`
+  [1,1500,5,384], the 4-layer encoder with its five hidden states stacked exactly as
+  `AudioProcessor.encode_whisper_feature` does (equal to `transformers`' `output_hidden_states` to 0.0; fp16,
+  15.7 MB, `torch.jit.trace` works here). The per-frame 50×384 gather (`build_audio_prompts`) is indexing, not
+  a model.
 
 ## 3. PyTorch baseline on this Mac (`baseline_torch_m5pro.json`)
 
@@ -209,8 +220,48 @@ So on this ANE the inference side of the first frame is ~30 ms after the first W
 per-frame cost is flat (max − p50 = 3.3 ms over 30 s of frames). The latency a user would see for the first
 frame is set by what is upstream of the UNet, not by it: TTS first-audio latency plus MuseTalk's audio look-ahead
 (the 50×384 window for frame *i* spans ±2 frames, so the first frame needs ~80–100 ms of audio after its own
-timestamp) plus the Whisper-tiny encoder, which is not yet converted (see §9). Nothing here is measured on a
-phone (§7).
+timestamp) plus the Whisper-tiny encoder (12 ms on the ANE per 30 s segment, §6.2). Nothing here is measured
+on a phone (§7).
+
+### 6.2 Audio front end in Core ML (`whisper_coreml_m5pro.json`)
+
+`scripts/ios/bench_whisper_coreml.py`, Latina avatar, `ai-assistant.mpga`. Timing is per 30 s segment, which
+is one call per TTS turn (the server encodes a turn's audio in one go, then windows it per frame):
+
+| Model | CPU | Neural Engine | GPU | placement with CPU_AND_NE |
+|---|---|---|---|---|
+| log-mel fp32 | 1.28 ms | 1.24 ms (stays on the CPU) | 1.47 ms | 18 of 18 ops CPU |
+| encoder fp16 | 18.4 ms | **12.2 ms** | **3.1 ms** | 100 of 100 ops Neural Engine |
+
+Feature error against fp32 PyTorch, max / mean abs over the 1500×5×384 stack (Whisper features have outlier
+channels up to |249|, so the max is dominated by them):
+
+| encoder on | HF log-mel | Core ML log-mel |
+|---|---|---|
+| Neural Engine | 9.46 / 0.0043 | 9.21 / 0.0043 |
+| GPU | 2.17 / 0.0007 | 1.96 / 0.0007 |
+
+The log-mel model is not the error source; the Neural Engine's fp16 accumulation is. What counts is the effect
+after the UNet. The same 250 frames through the Core ML int8w UNet + Core ML TAESD, against the fp32 reference
+(fp32 Whisper → fp32 UNet → fp32 TAESD):
+
+| Features into the int8w UNet | composed face crop (as §5) | raw 256² decoder output | latent vs fp32: max / p99.9 / share > 0.5 |
+|---|---|---|---|
+| PyTorch fp32 features | 0.177/255, 54.0 dB, worst px 31 | 0.571/255, 48.8 dB, worst 38 | 1.143 / 0.117 / 2.6e-5 |
+| **all Core ML: log-mel → ANE encoder** | 0.178/255, 53.9 dB, worst px 31 | 0.572/255, 48.8 dB, worst 38 | 1.176 / 0.118 / 2.9e-5 |
+| Core ML vs PyTorch features, same UNet | 0.015/255, 66.3 dB, worst px 8 | 0.044/255, 61.7 dB, worst 9 | 0.191 |
+
+The Core ML front end moves the output by 0.015/255 on the composed face, an order of magnitude under the int8
+UNet's own distance from fp32, which does not change. Video: `coreml_full_chain_int8w.mp4` next to the other
+Latina renders in `models/ios_bench/evidence/latina_guided_20260925_talking_84c5bc80b8/`; stills
+`evidence/latina_guided_20260925_talking_84c5bc80b8/full_chain_vs_ref_{2,5,8}s.png` (reference left, all
+Core ML right).
+
+Two things this run shows that §5 did not: the raw decoder output is ~0.57/255 from fp32, three times the
+composed-crop figure, because composition pastes only the blended mouth region into an otherwise identical
+frame; and over 250 frames the int8w UNet's worst single latent element is 1.14 from fp32 (p99.9 = 0.12, 26 per
+million over 0.5), where the 16-frame figure in §5 was 0.41. Whether that is a pass or a fail of the r5 gate is
+not decided here: the gate has to be run on its own frame set, with its own statistic.
 
 ## 7. From this Mac to a phone
 
@@ -262,11 +313,10 @@ the 15/16 Pro comfortable.
 What exists is two Core ML models (`unet_int8w_b1`, `taesd_fp16_b1`) and Python harnesses that drive them on a
 Mac; it is not a runnable iOS pipeline. Still missing, in dependency order:
 
-1. **Audio features on device.** The Whisper-tiny encoder and the repo's `AudioProcessor` windowing
-   (`audio_windows()` in `render_evidence.py` is the reference) are PyTorch only. Either convert them (the
-   encoder is ~8M parameters, a small Core ML model) or have the server send the 50×384 windows alongside the
-   TTS audio, since it computes them anyway. The second removes a model from the phone and a conversion from
-   the gate.
+1. **Audio features on device: models done (§6.2).** `whisper_logmel_fp32` and `whisper_encoder_fp16` exist and
+   are validated through the UNet. What remains is Swift for the 30 s segmenting, the trim/pad and the per-frame
+   50×384 gather (`encode_whisper_feature` / `build_audio_prompts`, pure indexing). Having the server send the
+   windows with the TTS audio is still an option that removes all of this from the phone.
 2. A native module in the Lingua app running UNet → TAESD → blend per frame, loading the UNet once at character
    select (6.7 s on this ANE, §6.1) and pacing frames to the audio clock.
 3. The avatar pose caches (3–6 poses × 160–350 MB) downloaded per character; the pose router, idle/live
@@ -292,6 +342,8 @@ aws s3 cp s3://lingua-musetalk-s3-storage/avatars/v15/codex_smoke.tar.gz /tmp/ &
 .venv-ct/bin/python scripts/ios/bench_coreml.py --turn-model unet_int8w_b1 --turns 12 --turn-seconds 10 --turn-fps 25
 .venv-ct/bin/python scripts/ios/render_evidence.py --avatar /tmp/codex_smoke --audio data/audio/ai-assistant.mpga --seconds 10 --fps 25
 .venv-ct/bin/python scripts/ios/bench_latency.py --unet unet_int8w_b1 --avatar /tmp/latina_guided_20260925_talking_84c5bc80b8 --frames 750 --out docs/ios_unet_bench/latency_int8w_b1_m5pro.json
+.venv-ct/bin/python scripts/ios/export_whisper_coreml.py
+.venv-ct/bin/python scripts/ios/bench_whisper_coreml.py --avatar /tmp/latina_guided_20260925_talking_84c5bc80b8 --audio data/audio/ai-assistant.mpga --seconds 10 --fps 25
 ```
 
 (The baseline above was measured with torch 2.15.0 in `.venv-ios`; the export needs torch ≤ 2.7 for coremltools 9.)
