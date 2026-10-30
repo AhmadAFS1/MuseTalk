@@ -1,0 +1,105 @@
+{
+  "host": {
+    "chip": "Apple M5 Pro",
+    "macos": "27.0.1"
+  },
+  "units": "CPU_AND_NE",
+  "measured_at": "2026-10-30T01:44:12-0500",
+  "turn_test": {
+    "model": "unet_fp16_b1",
+    "with_taesd": true,
+    "batch": 1,
+    "fps": 25,
+    "turn_seconds": 10,
+    "frames_per_turn": 250,
+    "chunks_per_turn": 250,
+    "turns": [
+      {
+        "turn": 1,
+        "first_chunk_ms": 28.9,
+        "render_s": 7.23,
+        "realtime_factor": 1.38,
+        "ms_per_frame": 28.91
+      },
+      {
+        "turn": 2,
+        "first_chunk_ms": 28.8,
+        "render_s": 7.23,
+        "realtime_factor": 1.38,
+        "ms_per_frame": 28.93
+      },
+      {
+        "turn": 3,
+        "first_chunk_ms": 29.0,
+        "render_s": 7.24,
+        "realtime_factor": 1.38,
+        "ms_per_frame": 28.95
+      },
+      {
+        "turn": 4,
+        "first_chunk_ms": 28.7,
+        "render_s": 7.2,
+        "realtime_factor": 1.39,
+        "ms_per_frame": 28.8
+      },
+      {
+        "turn": 5,
+        "first_chunk_ms": 28.8,
+        "render_s": 7.22,
+        "realtime_factor": 1.39,
+        "ms_per_frame": 28.87
+      },
+      {
+        "turn": 6,
+        "first_chunk_ms": 28.7,
+        "render_s": 7.26,
+        "realtime_factor": 1.38,
+        "ms_per_frame": 29.04
+      },
+      {
+        "turn": 7,
+        "first_chunk_ms": 28.7,
+        "render_s": 7.2,
+        "realtime_factor": 1.39,
+        "ms_per_frame": 28.82
+      },
+      {
+        "turn": 8,
+        "first_chunk_ms": 28.8,
+        "render_s": 7.22,
+        "realtime_factor": 1.38,
+        "ms_per_frame": 28.89
+      },
+      {
+        "turn": 9,
+        "first_chunk_ms": 29.0,
+        "render_s": 7.24,
+        "realtime_factor": 1.38,
+        "ms_per_frame": 28.95
+      },
+      {
+        "turn": 10,
+        "first_chunk_ms": 28.7,
+        "render_s": 7.21,
+        "realtime_factor": 1.39,
+        "ms_per_frame": 28.83
+      },
+      {
+        "turn": 11,
+        "first_chunk_ms": 28.8,
+        "render_s": 7.23,
+        "realtime_factor": 1.38,
+        "ms_per_frame": 28.94
+      },
+      {
+        "turn": 12,
+        "first_chunk_ms": 29.2,
+        "render_s": 7.26,
+        "realtime_factor": 1.38,
+        "ms_per_frame": 29.04
+      }
+    ],
+    "drift_pct_first_to_last": 0.4,
+    "worst_realtime_factor": 1.38
+  }
+}

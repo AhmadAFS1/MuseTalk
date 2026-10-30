@@ -4,8 +4,7 @@
     "macos": "27.0.1"
   },
   "units": "CPU_AND_NE",
-  "measured_at": "2026-10-30T01:35:53-0500",
-  "note": "batch 4/8 UNet models re-measured separately with fewer iterations",
+  "measured_at": "2026-10-30T01:47:11-0500",
   "results": [
     {
       "name": "taesd_fp16_b1",
@@ -237,6 +236,58 @@
       "all_ms_per_frame": 10.239,
       "all_p90_ms_per_frame": 10.281,
       "all_load_s": 2.0
+    },
+    {
+      "name": "unet_fp16_b8",
+      "kind": "unet",
+      "variant": "fp16",
+      "batch": 8,
+      "bytes": 1700676434,
+      "mb": 1622,
+      "ane_ms_per_call": 2561.68,
+      "ane_ms_per_frame": 320.21,
+      "ane_p90_ms_per_frame": 323.852,
+      "ane_load_s": 11.0,
+      "rss_mb_after": 5489,
+      "weight_bytes_per_frame_mb": 202.7,
+      "fps_single_stream_unet_only": 3.1,
+      "compute_plan_ops_by_device": {
+        "CPU": 1778
+      },
+      "cpu_ms_per_call": 485.72,
+      "cpu_ms_per_frame": 60.715,
+      "cpu_p90_ms_per_frame": 60.799,
+      "cpu_load_s": 2.9,
+      "all_ms_per_call": 68.61,
+      "all_ms_per_frame": 8.576,
+      "all_p90_ms_per_frame": 8.586,
+      "all_load_s": 3.2
+    },
+    {
+      "name": "unet_int8w_b8",
+      "kind": "unet",
+      "variant": "int8w",
+      "batch": 8,
+      "bytes": 851581734,
+      "mb": 812,
+      "ane_ms_per_call": 2518.01,
+      "ane_ms_per_frame": 314.751,
+      "ane_p90_ms_per_frame": 316.812,
+      "ane_load_s": 17.5,
+      "rss_mb_after": 5541,
+      "weight_bytes_per_frame_mb": 101.5,
+      "fps_single_stream_unet_only": 3.2,
+      "compute_plan_ops_by_device": {
+        "CPU": 1778
+      },
+      "cpu_ms_per_call": 482.24,
+      "cpu_ms_per_frame": 60.28,
+      "cpu_p90_ms_per_frame": 60.353,
+      "cpu_load_s": 1.4,
+      "all_ms_per_call": 77.74,
+      "all_ms_per_frame": 9.717,
+      "all_p90_ms_per_frame": 9.757,
+      "all_load_s": 2.1
     }
   ]
 }
