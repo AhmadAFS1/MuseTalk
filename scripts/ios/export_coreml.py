@@ -125,6 +125,7 @@ def main() -> None:
     ap.add_argument("--unet-dir", default=str(REPO_ROOT / "models" / "musetalkV15"))
     ap.add_argument("--bench-inputs", type=Path, default=REPO_ROOT / "models" / "ios_bench" / "bench_inputs.pt")
     ap.add_argument("--target", default="iOS17", choices=["iOS17", "iOS18"])
+    ap.add_argument("--exporter", default="export", choices=["export", "trace"])
     ap.add_argument("--skip-unet", action="store_true")
     ap.add_argument("--skip-taesd", action="store_true")
     ap.add_argument("--out-dir", type=Path, default=OUT_DIR)
@@ -170,10 +171,17 @@ def main() -> None:
     step = UNetStep(unet, wrap.pe).eval()
 
     for b in batches:
-        print(f"UNet batch {b}: tracing", flush=True)
+        print(f"UNet batch {b}: exporting ({args.exporter})", flush=True)
         ex_sample, ex_audio = torch.randn(b, 8, 32, 32), torch.randn(b, 50, 384)
-        with torch.inference_mode():
-            traced = torch.jit.trace(step, (ex_sample, ex_audio), check_trace=False)
+        with torch.no_grad():
+            if args.exporter == "export":
+                # torch.export specializes the shape arithmetic (height*width,
+                # batch//heads) to constants; torch.jit.trace leaves aten::Int
+                # casts on 1-element tensors that coremltools 9 cannot fold.
+                traced = torch.export.export(step, (ex_sample, ex_audio), strict=False)
+                traced = traced.run_decompositions({})  # coremltools wants the ATEN dialect
+            else:
+                traced = torch.jit.trace(step, (ex_sample, ex_audio), check_trace=False)
         base = convert(traced, [ct.TensorType(name="sample", shape=(b, 8, 32, 32), dtype=np.float16),
                                 ct.TensorType(name="audio", shape=(b, 50, 384), dtype=np.float16)],
                        "pred_latents", target)
