@@ -8,7 +8,8 @@ SUPER / 3090 with TensorRT INT8 engines, but that is 15–20 streams at 20 fps e
 per-frame path runs at **28.9 ms/frame in fp16 and 25.3 ms/frame with int8 weights**, against a 50 ms budget at
 the server's 20 fps (40 ms at 25 fps). A 10 s turn renders in 6.3–7.2 s of inference, chunk by chunk. Both
 builds pass the server's numeric gate (latent max-abs ≤ 0.5 against fp32) and are visually indistinguishable
-from the PyTorch reference (face-crop error 0.16/255, 53 dB PSNR over 250 frames). Naive int8 activations are
+from the PyTorch reference on the two 9:16 production characters (Japanese, Latina) and a smoke avatar
+(face-crop error 0.16–0.30/255, 46–54 dB PSNR over 250 frames each; §5). Naive int8 activations are
 faster (20.6 ms) but fail the gate. **No iPhone was measured**: the only phone available is an iPhone 12 Pro,
 whose A14 Neural Engine and 34 GB/s memory bus put it well below real time. Expected on real devices, unmeasured:
 iPhone 17 Pro ~25–30 ms/frame, iPhone 15/16 Pro ~30–40 ms (real time at 20 fps, thin at 25), iPhone 12 Pro
@@ -129,6 +130,50 @@ What this does and does not validate: the Core ML UNet and decoder reproduce the
 a real avatar with real speech, frame for frame, within the gate. It does not validate lip-sync against the
 audio beyond "identical to PyTorch" (the PyTorch pipeline is the ground truth here), and it is not a labelled
 human review of the kind the server's r5 went through.
+
+### 5.1 Production characters (9:16): Japanese and Latina
+
+The same render on the two prepared talking caches the server docs use for decoder comparisons,
+`japanese_realtime_talking_7d94520b7f` and `latina_guided_20260925_talking_84c5bc80b8` (482 frames each, 512×832
+portrait), same audio, same 10 s. Metrics are against each character's own fp32 + TAESD reference.
+
+**Japanese** (`evidence/japanese_realtime_talking_7d94520b7f/`):
+
+| Path | render ms/frame | face err vs ref | worst pixel | PSNR (face) | full-frame err |
+|---|---|---|---|---|---|
+| fp32 + SD-VAE | 521.1 (CPU) | 0.79 | 80 | 42.7 dB | 0.14 |
+| MPS fp16 + TAESD | 107.9* | 0.01 | 2 | 67.6 dB | 0.002 |
+| **Core ML fp16 (ANE)** | **28.8** | **0.28** | 94 | 46.7 dB | 0.05 |
+| **Core ML int8w (ANE)** | **25.2** | **0.30** | 97 | 46.1 dB | 0.05 |
+| Core ML int8wa (ANE) | 20.7 | 0.74 | 156 | 39.2 dB | 0.13 |
+
+![Japanese face grid at 5 s](ios_unet_bench/evidence/japanese_realtime_talking_7d94520b7f/face_grid_5s.png)
+
+![Japanese full frame at 5 s](ios_unet_bench/evidence/japanese_realtime_talking_7d94520b7f/full_frame_5s.png)
+
+The ×8 difference heatmap shows the fp16 Core ML error confined to the lip region the UNet repaints, with the
+rest of the face at zero; the per-pixel worst case (94/255) is a single lip-edge pixel in one frame, while the
+mean stays a third of the decoder's own TAESD-vs-SD-VAE difference (0.79).
+
+**Latina** (`evidence/latina_guided_20260925_talking_84c5bc80b8/`):
+
+| Path | render ms/frame | face err vs ref | worst pixel | PSNR (face) | full-frame err |
+|---|---|---|---|---|---|
+| fp32 + SD-VAE | 500.2 (CPU) | 0.74 | 68 | 43.1 dB | 0.13 |
+| MPS fp16 + TAESD | 108.1* | 0.01 | 2 | 67.9 dB | 0.002 |
+| **Core ML fp16 (ANE)** | **28.8** | **0.17** | 28 | 54.1 dB | 0.03 |
+| **Core ML int8w (ANE)** | **25.1** | **0.18** | 31 | 54.0 dB | 0.03 |
+| Core ML int8wa (ANE) | 20.6 | 0.65 | 109 | 41.9 dB | 0.11 |
+
+![Latina face grid at 5 s](ios_unet_bench/evidence/latina_guided_20260925_talking_84c5bc80b8/face_grid_5s.png)
+
+![Latina full frame at 5 s](ios_unet_bench/evidence/latina_guided_20260925_talking_84c5bc80b8/full_frame_5s.png)
+
+Across the three characters the Core ML fp16 and int8w builds stay within 0.16–0.30/255 of the PyTorch
+reference on the face crop (46–54 dB), always below the 0.74–1.03/255 that the production decoder itself
+differs from the stock SD-VAE by; int8wa is 0.56–0.74/255 with 109–156/255 worst pixels, consistently the
+worst. Speed does not depend on the character: 28.8–28.9 ms/frame fp16 and 25.1–25.3 ms/frame int8w on all
+three, end to end on the Neural Engine.
 
 ## 6. Back-to-back turns (`turns_*_m5pro.json`)
 
