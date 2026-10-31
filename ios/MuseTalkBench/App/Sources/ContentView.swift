@@ -2,8 +2,21 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var model: BenchViewModel
+    @ObservedObject var lipsync: LipsyncPlayer
+    @Binding var tab: Int
 
     var body: some View {
+        TabView(selection: $tab) {
+            benchView
+                .tabItem { Label("Bench", systemImage: "speedometer") }
+                .tag(0)
+            NavigationStack { LipsyncView(player: lipsync) }
+                .tabItem { Label("Lipsync", systemImage: "person.wave.2") }
+                .tag(1)
+        }
+    }
+
+    private var benchView: some View {
         NavigationStack {
             List {
                 Section("Device") {

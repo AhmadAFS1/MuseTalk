@@ -100,6 +100,21 @@ Expect the first load of each UNet on the phone to be slow (the ANE compiles the
 850M-parameter program once and caches it) and the whole default run to take a
 few minutes on an A14. Keep the app in the foreground; it keeps the screen on.
 
+## Lipsync tab (streaming view, first version)
+
+`scripts/ios/prepare_avatar_bundle.py --avatar <avatar dir> --audio <clip>` exports one avatar cache
+(unique frames as JPEG, masks, latents, the clip as 16 kHz float32 plus an m4a for playback, the repo's
+per-frame Whisper windows and a few Python-composed check frames) into `HarnessBundle/avatar/`. The app's
+Lipsync tab loads the chunked UNet, TAESD and the Whisper models on the Neural Engine, builds the per-frame
+audio windows (`HarnessCore/Lipsync.swift`: the repo's gather and fixed-point blend ported to Swift), renders
+frames ahead of an `AVAudioPlayer` clock on a background thread, skips frames when generation falls behind
+the audio (what the server does when it drops), and displays through a `CADisplayLink`. Launch with
+`--lipsync --exit` to autoplay and print a `LIPSYNC_RESULT` JSON line (generated fps, skipped, stalls).
+`bench-mac --lipsync-check HarnessBundle/avatar` runs the same frame loop on the Mac against the Python
+references: windows within the ANE encoder's error, composed frames within 0.17/255, 27 ms/frame on the M5 Pro.
+Status: ran on the Mac; on the iPhone 12 Pro it was installed and had started its first-launch compile when
+the phone was unplugged, so no phone playback figure yet.
+
 ## Notes
 
 - The iOS Simulator has no Neural Engine: Core ML runs on the Mac CPU there, so

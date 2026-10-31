@@ -50,7 +50,11 @@ public struct TensorFile: Decodable {
     public let file: String
     public let shape: [Int]
     public let dtype: String
-    public let bytes: Int
+    public let bytes: Int?
+
+    public init(file: String, shape: [Int], dtype: String, bytes: Int? = nil) {
+        self.file = file; self.shape = shape; self.dtype = dtype; self.bytes = bytes
+    }
 }
 
 public struct CaptureFile: Decodable {

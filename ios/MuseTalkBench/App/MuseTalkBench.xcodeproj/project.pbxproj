@@ -9,7 +9,9 @@
 /* Begin PBXBuildFile section */
 		09D9DC148CFED682A75628F8 /* HarnessCore in Frameworks */ = {isa = PBXBuildFile; productRef = F9714277009AE97120C13728 /* HarnessCore */; };
 		237B1C7AE0DC5976B89F32C4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A88CBEF9365B837A3AED734F /* ContentView.swift */; };
+		42D1E193F370E52F07683FBE /* LipsyncPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC88097F44BD9823FA1A4F4 /* LipsyncPlayer.swift */; };
 		684FD52711A23296121B9B65 /* MuseTalkBenchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA6F2884D8BB54EFAC694EB5 /* MuseTalkBenchApp.swift */; };
+		68C25DF984C84ED514ACAB39 /* LipsyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9F4D43078B9BF92847A4908 /* LipsyncView.swift */; };
 		6BD0A71DE2996705DDC9AC25 /* BenchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67938F3BFF35A6F4EB40889B /* BenchViewModel.swift */; };
 		71BA4AC70AFE2EE8CED1F924 /* HarnessBundle in Resources */ = {isa = PBXBuildFile; fileRef = 11E18F3968EB9F005C3BC01F /* HarnessBundle */; };
 /* End PBXBuildFile section */
@@ -17,9 +19,11 @@
 /* Begin PBXFileReference section */
 		11E18F3968EB9F005C3BC01F /* HarnessBundle */ = {isa = PBXFileReference; lastKnownFileType = folder; name = HarnessBundle; path = ../HarnessBundle; sourceTree = SOURCE_ROOT; };
 		4D7DA28A5D35F882A31E86AB /* MuseTalkBench */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MuseTalkBench; path = ..; sourceTree = SOURCE_ROOT; };
+		5FC88097F44BD9823FA1A4F4 /* LipsyncPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LipsyncPlayer.swift; sourceTree = "<group>"; };
 		67938F3BFF35A6F4EB40889B /* BenchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchViewModel.swift; sourceTree = "<group>"; };
 		A88CBEF9365B837A3AED734F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		B551C3CACA5E81E206FD409C /* MuseTalkBench.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MuseTalkBench.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D9F4D43078B9BF92847A4908 /* LipsyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LipsyncView.swift; sourceTree = "<group>"; };
 		EA6F2884D8BB54EFAC694EB5 /* MuseTalkBenchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuseTalkBenchApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -40,6 +44,8 @@
 			children = (
 				67938F3BFF35A6F4EB40889B /* BenchViewModel.swift */,
 				A88CBEF9365B837A3AED734F /* ContentView.swift */,
+				5FC88097F44BD9823FA1A4F4 /* LipsyncPlayer.swift */,
+				D9F4D43078B9BF92847A4908 /* LipsyncView.swift */,
 				EA6F2884D8BB54EFAC694EB5 /* MuseTalkBenchApp.swift */,
 			);
 			path = Sources;
@@ -158,6 +164,8 @@
 			files = (
 				6BD0A71DE2996705DDC9AC25 /* BenchViewModel.swift in Sources */,
 				237B1C7AE0DC5976B89F32C4 /* ContentView.swift in Sources */,
+				42D1E193F370E52F07683FBE /* LipsyncPlayer.swift in Sources */,
+				68C25DF984C84ED514ACAB39 /* LipsyncView.swift in Sources */,
 				684FD52711A23296121B9B65 /* MuseTalkBenchApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
