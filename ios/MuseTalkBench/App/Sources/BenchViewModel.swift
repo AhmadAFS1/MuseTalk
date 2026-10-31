@@ -28,6 +28,16 @@ final class BenchViewModel: ObservableObject {
     @Published var includeBatch4 = true
     @Published var gpuCheck = true
     @Published var whisper = true
+    @Published var reload = true
+    @Published var units: [MLComputeUnits] = [.all, .cpuAndNeuralEngine]
+    @Published var accuracyFrames: Int? = nil
+    var modelNames: [String]? = nil
+    var unetPhases = true
+    var taesdUnits: [MLComputeUnits] = [.all]
+    var chainFrames = 100
+    var settleSeconds = 5.0
+    var computePlan = true
+    var phaseUnits: MLComputeUnits = .all
 
     let device = DeviceInfo.current()
     private(set) var meta: BundleMeta? = nil
@@ -66,10 +76,21 @@ final class BenchViewModel: ObservableObject {
         o.includeBatch4 = includeBatch4
         o.gpuCheck = gpuCheck
         o.whisper = whisper
+        o.reload = reload
+        o.unetUnits = units
+        o.accuracyFrames = accuracyFrames
+        o.modelNames = modelNames
+        o.unet = unetPhases
+        o.taesdUnits = taesdUnits
+        o.chainFrames = chainFrames
+        o.settleSeconds = settleSeconds
+        o.computePlan = computePlan
+        o.phaseUnits = phaseUnits
         return o
     }
 
-    /// Launch arguments (xcodebuild / devicectl): --autorun [--frames N] [--sustained S] [--no-b4] [--no-gpu] [--no-whisper] [--exit]
+    /// Launch arguments (xcodebuild / devicectl): --autorun [--frames N] [--sustained S] [--accuracy-frames N] [--units ALL,CPU_AND_NE]
+    /// [--models a,b] [--taesd-units ALL,CPU_ONLY] [--no-unet] [--no-b4] [--no-gpu] [--no-whisper] [--no-reload] [--exit]
     func autorunIfRequested() {
         var args = Array(CommandLine.arguments.dropFirst())
         guard args.contains("--autorun"), !running, !finished else { return }
@@ -82,6 +103,16 @@ final class BenchViewModel: ObservableObject {
             case "--no-gpu": gpuCheck = false
             case "--no-whisper": whisper = false
             case "--exit": exitAfterRun = true
+            case "--no-reload": reload = false
+            case "--units": units = (args.isEmpty ? "" : args.removeFirst()).split(separator: ",").compactMap { unitsFromName(String($0)) }
+            case "--accuracy-frames": accuracyFrames = Int(args.isEmpty ? "" : args.removeFirst())
+            case "--models": modelNames = (args.isEmpty ? "" : args.removeFirst()).split(separator: ",").map(String.init)
+            case "--no-unet": unetPhases = false
+            case "--chain": chainFrames = Int(args.isEmpty ? "" : args.removeFirst()) ?? chainFrames
+            case "--settle": settleSeconds = Double(args.isEmpty ? "" : args.removeFirst()) ?? settleSeconds
+            case "--no-plan": computePlan = false
+            case "--phase-units": phaseUnits = unitsFromName(args.isEmpty ? "" : args.removeFirst()) ?? .all
+            case "--taesd-units": taesdUnits = (args.isEmpty ? "" : args.removeFirst()).split(separator: ",").compactMap { unitsFromName(String($0)) }
             default: break
             }
         }

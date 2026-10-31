@@ -40,7 +40,7 @@ from scripts.validate_unet_backend import _load_capture_group, discover_captures
 
 MANIFEST = REPO_ROOT / "models" / "ios_bench" / "coreml" / "manifest.json"
 RESULTS_DIR = REPO_ROOT / "docs" / "ios_unet_bench"
-DEFAULT_MODELS = "unet_ane_int8w_b1,unet_ane_int8w_b4,taesd_fp16_b1,whisper_encoder_fp16,whisper_logmel_fp32"
+DEFAULT_MODELS = "unet_anec0_int8w_b1_chunk1,unet_anec0_int8w_b1_chunk2,taesd_fp16_b1,whisper_encoder_fp16,whisper_logmel_fp32"
 SAMPLES_30S = 16000 * 30
 DTYPE_NAMES = {65552: "float16", 65568: "float32", 131104: "int32", 65600: "float64"}
 
@@ -188,7 +188,8 @@ def main() -> None:
         compiled = compile_model(src, args.out)
         models.append({"name": name, "file": compiled.name, "kind": entry["kind"], "batch": entry.get("batch", 1),
                        "variant": entry.get("variant"), "layout": entry.get("layout", "diffusers"),
-                       "mlpackage_bytes": entry.get("bytes"), **io_description(src)})
+                       "mlpackage_bytes": entry.get("bytes"), "chunk_of": entry.get("chunk_of"),
+                       "chunk_index": entry.get("chunk_index"), **io_description(src)})
 
     print("exporting UNet gate captures", flush=True)
     unet = export_unet_captures(args.out, args.capture_dir, args.limit, args.unet_dir)

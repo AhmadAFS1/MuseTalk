@@ -38,6 +38,8 @@ public struct ModelMeta: Decodable {
     public let variant: String?
     public let layout: String?
     public let mlpackage_bytes: Int?
+    public let chunk_of: String?
+    public let chunk_index: Int?
     public let inputs: [IOFeature]
     public let outputs: [IOFeature]
 

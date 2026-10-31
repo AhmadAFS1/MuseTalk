@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 public struct DeviceInfo: Codable {
     public let machine: String        // hw.machine: "iPhone13,3" on the phone, "arm64" on a Mac
@@ -54,4 +55,42 @@ func sysctlString(_ name: String) -> String {
     var buf = [CChar](repeating: 0, count: size)
     guard sysctlbyname(name, &buf, &size, nil, 0) == 0 else { return "" }
     return String(cString: buf)
+}
+
+// MARK: - memory
+
+/// Physical footprint of this process (what jetsam counts), in MB.
+public func memoryFootprintMB() -> Double {
+    var info = task_vm_info_data_t()
+    var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<natural_t>.size)
+    let kr = withUnsafeMutablePointer(to: &info) {
+        $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+            task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+        }
+    }
+    return kr == KERN_SUCCESS ? Double(info.phys_footprint) / 1048576 : -1
+}
+
+/// Memory the process may still allocate before the system kills it (iOS only), in MB.
+public func availableMemoryMB() -> Double {
+    #if os(iOS)
+    return Double(os_proc_available_memory()) / 1048576
+    #else
+    return -1
+    #endif
+}
+
+public func memLine() -> String {
+    let avail = availableMemoryMB()
+    return "mem \(Int(memoryFootprintMB())) MB" + (avail >= 0 ? ", \(Int(avail)) MB left" : "")
+}
+
+/// Free space on the data volume, in MB (what the Core ML / Neural Engine caches write to).
+public func freeDiskMB() -> Int {
+    let home = URL(fileURLWithPath: NSHomeDirectory())
+    if let v = try? home.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]),
+       let free = v.volumeAvailableCapacityForImportantUsage {
+        return Int(free / 1_048_576)
+    }
+    return -1
 }

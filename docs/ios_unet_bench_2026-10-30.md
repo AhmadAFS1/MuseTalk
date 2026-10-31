@@ -376,7 +376,9 @@ git clone --depth 1 https://github.com/apple/ml-stable-diffusion /tmp/ml-stable-
 §12, the on-device harness (Xcode 27, `brew install xcodegen` only to regenerate the project):
 
 ```bash
-.venv-ct/bin/python scripts/ios/prepare_harness_bundle.py                      # -> ios/MuseTalkBench/HarnessBundle (1.66 GB)
+.venv-ct/bin/python scripts/ios/chunk_coreml.py --model unet_ane_int8w_b1 --check   # coremltools bisect (fp32 boundary; CPU on the phone)
+.venv-ct/bin/python scripts/ios/export_coreml_ane_chunks.py --apple-repo /tmp/ml-stable-diffusion --cut 0 --check  # torch cut, fp16 boundary
+.venv-ct/bin/python scripts/ios/prepare_harness_bundle.py                      # -> ios/MuseTalkBench/HarnessBundle (chunks: 0.83 GB)
 cd ios/MuseTalkBench && swift build -c release
 .build/release/bench-mac --resources HarnessBundle --out ../../docs/ios_unet_bench/harness_mac_m5pro.json --frames 300 --sustained 20
 cd App && xcodebuild -project MuseTalkBench.xcodeproj -scheme MuseTalkBench -configuration Release \
@@ -554,3 +556,59 @@ size (§11.4), but it is now measured rather than inferred.
 Simulator (iPhone 17, iOS 26.2): the app runs end to end on the Mac CPU (no Neural Engine there);
 CPU_AND_NE gives mae 0.0074 (fp32 accumulate), while ALL in the simulator returns garbage (mae 0.67), a
 known simulator GPU-path artifact, not a device result.
+
+### 12.3 iPhone 12 Pro, measured (2026-10-30 night; `harness_iphone12pro_*.json`)
+
+Device: iPhone13,3 (A14, 6 GB; 5.58 GB visible to the app, 3.07 GB allowance per process), iOS 26.2, no
+low-power mode. Six of the first eight launches were killed by the system (signal 9, no crash report) and
+the kill took most of the evening to pin down, so the result comes with its cause.
+
+**The single 850M-parameter program does not survive on an iPhone.** The first launch after each install
+loaded (24–28 s, the Neural Engine compile) and ran; every later instantiation died during the load. The
+instrumented run showed why: during the compile the app's footprint reached **2,464 MB with 607 MB left**
+before the allowance (the int8 weights are expanded to fp16 inside the process, the A14 ANE having no int8
+weight path), and the phone had **1,040 MB of free disk**, so the 1.6 GB compiled program could never be
+cached and every launch recompiled. Apple's ml-stable-diffusion README states the rule for the same network:
+chunking "is **required** for Neural Engine deployment on iOS and iPadOS if weights are not quantized to
+6-bits or less". With the single program, the phone measured once, on a cold launch: **51.8 ms/frame** (p99
+54.2), gate mae 0.0137 on 32 frames; the next launch's 128-frame pass gave **54.3 ms/frame**, gate mae
+0.0132 / max_abs 1.02, 100% of 3,049 ops on the ANE, before the kill.
+
+**Chunking, two ways.** `coremltools.models.utils.bisect_model` (Apple's chunk script) cut the program at
+420 + 393 MB, bit-identical to the whole on this Mac's ANE, but it declares the 13 boundary tensors fp32,
+and the A14 compiler then dropped **both chunks to the CPU** (placement `["CPU": 3066]`, 870 ms/frame
+under CPU_AND_NE; under ALL the planner chose the GPU: 388 ms/frame, 1.95 GB resident). Cutting the network
+in PyTorch at the mid/up boundary (`scripts/ios/export_coreml_ane_chunks.py --cut 0`: chunk 1 = time
+embedding, `conv_in`, down blocks, mid block, 344M parameters, 330 MB int8; chunk 2 = up blocks and
+`conv_out`, 506M, 486 MB; boundary = the 4×4 hidden state plus 12 residuals, 3.4 MB, all fp16) is exact
+against the diffusers UNet in fp32 (1.25e-5) and bit-identical to the single program on the Mac ANE, and
+**the A14 compiler keeps all 3,056 ops on the Neural Engine**, with the process footprint at 53 MB after
+both compiles. The compile is 12–32 s per chunk; with disk freed to 12 GB the second compile in the same
+process still happened for the other compute-unit setting, so the cache is keyed per setting.
+
+| iPhone 12 Pro, chunked int8w UNet (`unet_anec0_int8w_b1_chunk1/2`) | ms/frame | note |
+|---|---|---|
+| CPU_AND_NE, 200 frames after a 128-frame gate pass | **59.6** (p50 59.6, p99 61.8, max 62.1) | 100% ANE, footprint 64 MB |
+| ALL, same, immediately after the compile | 130.5 | transient: the next ALL load ran at 54 |
+| sustained 30 s under ALL, 509 frames | **58.9** mean; buckets 54.5 → 57.2 → 59.0 → 60.2 → 61.2 → 62.4 | thermal "serious" throughout, from the earlier runs |
+| chain UNet → TAESD (TAESD placed by Core ML) | **59.7** = 54.6 + 5.1 | no slow-down from alternating programs |
+| chain with TAESD on the CPU | 81.5 = 55.1 + 26.4 | keep the decoder off the CPU |
+| gate on 128 production frames | mae 0.01317 / max 0.01876, max_abs 1.03, FAIL | identical to the single program and to this Mac's ANE (0.0131) |
+| Whisper encoder, 30 s segment | 28.1 (ANE), log-mel 3.7 (CPU) | feature error mean 0.0043, as on the Mac ANE |
+| first prediction after a compile | 65–78 | |
+| **warm relaunch** (compiled chunks cached, 9.6 GB free): load **0.59 s** (0.17 + 0.42), first prediction 61.5, then **54.7** (p99 56.3) over 50 frames | | the product's launch path |
+
+**Reading.** At 20 fps the budget is 50 ms per frame; the A14 does the UNet in 52–55 ms when cool and
+59–62 ms when hot, plus 5 ms for the decoder. That is 16–17 fps sustained, not 20: the §11.4 projection
+(40–60 ms) was right and the phone sits at its upper end. The chunk hand-off costs at most a few ms (the
+cool single program was 52, the first hot chunked bucket 54.5). Quality is exactly the Mac ANE's: the
+0.013 gate miss travels with the Neural Engine, not with the device generation. An iPhone 14 Pro (A16,
+~1.6× the A14's ANE) would land near 35 ms by the same arithmetic; 15 Pro and later also keep the int8
+weights as int8 on the ANE, which removes the 2.4 GB compile peak that made chunking mandatory here.
+
+What the product build must do, learned the hard way: ship the UNet as two chunks with fp16 boundaries
+(not `bisect_model`'s fp32 ones), pin `MLComputeUnits.cpuAndNeuralEngine` (ALL was 2× slower on the
+first pass and sends the decoder wherever it likes), load once per session and never hold two
+instances, expect 30–60 s of compile on first launch per setting with ~1.7 GB of cache writes, and check
+free disk before compiling. The CPU_AND_GPU accuracy anchor and the batch-4 model were not measured on
+the phone (both were killed at load with the single program; batch 4 is pointless on an A14 anyway).

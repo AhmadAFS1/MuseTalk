@@ -72,6 +72,9 @@ public struct UNetRun: Codable {
     public let layout: String?
     public let batch: Int
     public let compute_units: String
+    public var stages: Int = 1
+    public var stage_files: [String] = []
+    public var stage_load_s: [Double]? = nil
     public var load_first_s: Double? = nil
     public var load_cached_s: Double? = nil
     public var first_predict_ms: Double? = nil
@@ -109,6 +112,7 @@ public struct ChainRun: Codable {
     public let unet_model: String
     public let taesd_model: String
     public let compute_units: String
+    public let taesd_units: String
     public let frames: Int
     public let unet_ms: TimingStats
     public let taesd_ms: TimingStats
@@ -139,6 +143,10 @@ public struct OptionsRecord: Codable {
     public let sustained_seconds: Double
     public let chain_frames: Int
     public let whisper: Bool
+    public let reload: Bool
+    public let settle_seconds: Double
+    public let compute_plan: Bool
+    public let phase_units: String
 }
 
 public struct BenchReport: Codable {
@@ -152,7 +160,7 @@ public struct BenchReport: Codable {
     public var options: OptionsRecord
     public var unet_runs: [UNetRun] = []
     public var sustained: SustainedRun? = nil
-    public var chain: ChainRun? = nil
+    public var chains: [ChainRun] = []
     public var whisper: WhisperRun? = nil
     public var mac_reference: JSONValue? = nil
     public var log: [String] = []
@@ -189,8 +197,8 @@ public struct BenchReport: Codable {
             let first = s.buckets.first?.mean_ms ?? .nan, last = s.buckets.last?.mean_ms ?? .nan
             lines.append("sustained \(String(format: "%.0f", s.seconds)) s: \(String(format: "%.1f", first)) → \(String(format: "%.1f", last)) ms/frame, thermal \(s.thermal_start) → \(s.thermal_end)")
         }
-        if let c = chain {
-            lines.append("UNet+TAESD chain: \(String(format: "%.1f", c.total_ms.mean_ms)) ms/frame (TAESD \(String(format: "%.1f", c.taesd_ms.mean_ms)))")
+        for c in chains {
+            lines.append("UNet+TAESD chain [TAESD \(c.taesd_units)]: \(String(format: "%.1f", c.total_ms.mean_ms)) ms/frame (UNet \(String(format: "%.1f", c.unet_ms.mean_ms)) + TAESD \(String(format: "%.1f", c.taesd_ms.mean_ms)))")
         }
         if let w = whisper {
             for (u, t) in w.encoder_ms.sorted(by: { $0.key < $1.key }) {

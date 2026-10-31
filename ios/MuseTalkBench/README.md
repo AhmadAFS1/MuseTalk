@@ -37,9 +37,17 @@ From the repo root, in `.venv-ct` (torch 2.7 + coremltools 9, see the bench doc 
 .venv-ct/bin/python scripts/ios/prepare_harness_bundle.py
 ```
 
-Default models: `unet_ane_int8w_b1`, `unet_ane_int8w_b4` (Apple ANE layout, int8
-weights, 814 MB each), `taesd_fp16_b1`, `whisper_encoder_fp16`,
-`whisper_logmel_fp32`; `--models` picks others from `models/ios_bench/coreml/manifest.json`.
+Default models: the two chunks of the Apple-layout int8 UNet cut in PyTorch at the mid/up
+boundary with fp16 boundaries (`unet_anec0_int8w_b1_chunk1/2`, 330 + 486 MB, made by
+`scripts/ios/export_coreml_ane_chunks.py --cut 0 --check`; coremltools' `bisect_model`, in
+`scripts/ios/chunk_coreml.py`, cuts with fp32 boundaries, which the iPhone 12 Pro's Neural
+Engine compiler rejected: those chunks ran on the CPU/GPU at 388–870 ms/frame),
+`taesd_fp16_b1`, `whisper_encoder_fp16`, `whisper_logmel_fp32`; `--models` picks others
+from `models/ios_bench/coreml/manifest.json`. The chunks are what a phone needs: a single
+850M-parameter program is compiled inside the app's process (2.46 GB peak measured on an
+iPhone 12 Pro against a 3.07 GB allowance) and writes a 1.6 GB cache, which is what killed
+the unchunked runs; the harness runs chunk1 → chunk2 per frame, outputs feeding inputs by
+name, and reports them as one UNet named `<parent>_chunked`.
 It also writes the 128 gate frames (positional encoding removed, since the Core ML
 graph adds it) and a 30 s Whisper segment with fp32 reference features. Total ≈ 1.66 GB.
 
@@ -74,6 +82,12 @@ xcrun devicectl device install app --device <device udid> "$APP"
 xcrun devicectl device process launch --device <device udid> --console --terminate-existing \
   com.lingua.musetalkbench --autorun --frames 200 --sustained 30 --exit
 ```
+
+Flags the phone runs used: `--units ALL,CPU_AND_NE --no-b4 --no-gpu --sustained 30 --frames 200
+--accuracy-frames 128 --no-reload --taesd-units ALL,CPU_ONLY --settle 10` (`--settle` pauses between
+model loads; `--no-reload` skips the second load; `--models <name>` and `--no-unet` select phases;
+`--chain N`, `--no-plan` too). The console shows every phase with the process footprint, the memory
+headroom iOS grants, free disk, and memory-pressure / thermal events.
 
 `--autorun` runs with the given options as soon as the app is up, prints the JSON
 report between `BENCH_JSON_BEGIN` / `BENCH_JSON_END` on the console, saves it in

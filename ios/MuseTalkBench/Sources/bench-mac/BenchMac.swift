@@ -10,7 +10,8 @@ struct BenchMac {
     static func usage() -> Never {
         print("""
         usage: bench-mac --resources <dir> [--out <file.json>] [--frames N] [--sustained S] [--chain N]
-                         [--units ALL,CPU_AND_NE] [--no-gpu] [--no-b4] [--no-whisper] [--accuracy-frames N]
+                         [--units ALL,CPU_AND_NE] [--no-gpu] [--no-b4] [--no-whisper] [--no-reload] [--accuracy-frames N]
+                         [--models a,b] [--no-unet] [--taesd-units ALL,CPU_AND_GPU,CPU_ONLY]
         """)
         exit(2)
     }
@@ -35,6 +36,12 @@ struct BenchMac {
             case "--no-b4": options.includeBatch4 = false
             case "--no-whisper": options.whisper = false
             case "--no-plan": options.computePlan = false
+            case "--no-reload": options.reload = false
+            case "--models": options.modelNames = take().split(separator: ",").map(String.init)
+            case "--no-unet": options.unet = false
+            case "--settle": options.settleSeconds = Double(take()) ?? 0
+            case "--phase-units": options.phaseUnits = unitsFromName(take()) ?? .all
+            case "--taesd-units": options.taesdUnits = take().split(separator: ",").compactMap { unitsFromName(String($0)) }
             default: usage()
             }
         }
