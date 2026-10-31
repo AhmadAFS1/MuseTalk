@@ -25,6 +25,11 @@ frame (one stream's worth) and a different, gated numeric path.
 
 Branch `claude/ios-unet-bench`, worktree `~/code/musetalk-ios-bench`. Nothing here touches the server path.
 
+**Companion document.** This file is the chronological measurement log (§1–12, each section as it was measured).
+`docs/ios_coreml_implementation.md` is the system description and tracker: how the Core ML pipeline works end to end
+(models, chunking, audio windows, blend, pacing), the status of every component, the measured figures in one place,
+the repository map and the open items. Read that first; come here for the tables and the JSON pointers.
+
 ## 1. Setup
 
 | Item | Value |

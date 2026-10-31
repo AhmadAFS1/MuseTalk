@@ -3,6 +3,8 @@
 Measures the Core ML MuseTalk models on a real iPhone (or this Mac) and scores the
 UNet with the repo's own gate, so a phone run is directly comparable to the Mac
 numbers in `docs/ios_unet_bench_2026-10-30.md` and to the server TensorRT engines.
+How the whole Core ML pipeline works (models, chunking, audio windows, blend, pacing)
+and where every component stands is in `docs/ios_coreml_implementation.md`.
 
 What it reports per UNet model and compute-unit setting:
 
