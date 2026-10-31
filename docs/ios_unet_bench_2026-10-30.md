@@ -660,3 +660,46 @@ has at least one clip where B was not called worse overall, and B is called wors
 often than A over the 12 clips. One failing identity → accepted with a reservation for that character; otherwise
 rejected, with the labelled clips and the B / N / Btd columns saying whether the UNet precision or the decoder
 carries the difference.
+
+**Rendered 2026-10-30 23:00–23:27** on this Mac: 12 clips, 3,000 frames per arm, FaceMesh tracked every frame of
+every arm (0 misses). UNet cost per frame: A 152–175 ms (fp32 CPU), N 91–102 ms (fp16 GPU, batch 1), B 19.6–20.0 ms
+(Neural Engine chunks). `metrics.md`, with the fp16 noise arm N beside B in every column:
+
+| identity | audio | latent mae B / N | raw face mae /255 B / N | face PSNR dB B / N | mouth PSNR dB B / N | mouth SSIM B / N | flicker mouth B / N | sharpness mouth B / N | lip corr B / N | lip mean\|Δ\| px B / N | lag B | r5 gates B |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| en_01_maya | ai-assistant | 0.0125 / 0.0003 | 0.639 / 0.012 | 53.0 / 73.5 | 47.0 / 67.9 | 0.9970 / 0.9999 | 0.995 / 1.000 | 1.000 / 1.000 | 0.9982 / 1.0000 | 0.24 / 0.03 | 0 | 6/6 |
+| en_01_maya | eng | 0.0122 / 0.0003 | 0.622 / 0.012 | 53.8 / 73.5 | 47.7 / 67.8 | 0.9970 / 0.9999 | 0.995 / 1.000 | 0.999 / 1.000 | 0.9989 / 1.0000 | 0.20 / 0.03 | 0 | 6/6 |
+| en_03_marcus | ai-assistant | 0.0118 / 0.0003 | 0.568 / 0.015 | 54.2 / 71.6 | 47.3 / 65.4 | 0.9965 / 0.9999 | 0.992 / 1.000 | 0.975 / 1.000 | 0.9989 / 1.0000 | 0.21 / 0.04 | 0 | 6/6 |
+| en_03_marcus | eng | 0.0115 / 0.0003 | 0.556 / 0.015 | 54.2 / 71.5 | 47.2 / 65.2 | 0.9963 / 0.9999 | 0.992 / 1.000 | 0.977 / 1.000 | 0.9986 / 1.0000 | 0.23 / 0.04 | 0 | 6/6 |
+| es_01_valeria | ai-assistant | 0.0132 / 0.0003 | 0.594 / 0.010 | 53.3 / 74.3 | 47.4 / 68.8 | 0.9971 / 0.9999 | 1.003 / 1.000 | 0.994 / 1.000 | 0.9986 / 1.0000 | 0.21 / 0.03 | 0 | 6/6 |
+| es_01_valeria | eng | 0.0130 / 0.0003 | 0.583 / 0.010 | 53.6 / 74.3 | 47.8 / 68.8 | 0.9971 / 0.9999 | 1.003 / 1.000 | 0.993 / 1.000 | 0.9976 / 1.0000 | 0.24 / 0.03 | 0 | 6/6 |
+| es_03_mateo | ai-assistant | 0.0132 / 0.0003 | 0.747 / 0.015 | 52.9 / 72.0 | 45.9 / 65.8 | 0.9962 / 0.9999 | 0.995 / 1.000 | 0.986 / 1.000 | 0.9952 / 0.9999 | 0.28 / 0.04 | 0 | 6/6 |
+| es_03_mateo | eng | 0.0132 / 0.0003 | 0.748 / 0.015 | 52.7 / 71.9 | 45.5 / 65.6 | 0.9960 / 0.9999 | 0.995 / 1.000 | 0.983 / 1.000 | 0.9968 / 1.0000 | 0.25 / 0.03 | 0 | 6/6 |
+| japanese | ai-assistant | 0.0168 / 0.0003 | 0.762 / 0.014 | 47.1 / 73.0 | 39.5 / 66.6 | 0.9919 / 0.9999 | 1.001 / 1.000 | 0.983 / 1.000 | 0.9632 / 1.0000 | 0.90 / 0.04 | 0 | 4/6 |
+| japanese | eng | 0.0159 / 0.0003 | 0.724 / 0.011 | 48.1 / 74.1 | 40.5 / 67.6 | 0.9928 / 0.9999 | 1.006 / 1.000 | 0.989 / 1.000 | 0.9557 / 1.0000 | 0.78 / 0.04 | 0 | 4/6 |
+| latina | ai-assistant | 0.0114 / 0.0003 | 0.572 / 0.011 | 55.1 / 74.0 | 48.6 / 67.8 | 0.9968 / 0.9999 | 0.996 / 1.000 | 0.993 / 1.000 | 0.9992 / 1.0000 | 0.19 / 0.03 | 0 | 6/6 |
+| latina | eng | 0.0114 / 0.0003 | 0.562 / 0.011 | 55.3 / 74.1 | 48.8 / 67.9 | 0.9968 / 0.9999 | 0.995 / 1.000 | 0.997 / 1.000 | 0.9992 / 1.0000 | 0.21 / 0.03 | 0 | 6/6 |
+
+**What the numbers say before anyone watches a clip.**
+
+- **Five of the six characters** sit together: latent mae 0.0114–0.0132, raw generated face 0.56–0.75/255, face
+  PSNR 52.7–55.3 dB, mouth PSNR 45.5–48.8 dB, mouth SSIM 0.996–0.997, flicker ratios 0.992–1.006, mouth sharpness
+  0.975–1.000, lip aperture correlation 0.9952–0.9992 at lag 0 with a mean |Δ| of 0.19–0.28 px. All six r5
+  thresholds pass on all ten of their clips. Against the record, that is **r4's accepted band** (lip correlation
+  0.9989–0.9994, Δ 0.13–0.24 px, mouth PSNR 47.7–50.1 dB, "every perceptual gate passes") and short of r5's
+  (0.9997–0.9998, 0.08–0.14 px, 51–53 dB).
+- **The Japanese character is the outlier on both audios**: latent mae 0.0159–0.0168 (its gate mae was also the
+  highest of the set), face PSNR 47–48 dB, mouth PSNR 39.5–40.5 dB, lip correlation 0.956–0.963 and a mean |Δ| of
+  0.78–0.90 px (p95 3.3 px): the two aperture thresholds fail, flicker and sharpness pass. Its stills show nothing
+  at full frame; in the 3× zoom the difference is at the teeth and the lip edge. B's latents through the torch
+  decoder give the same mouth PSNR, so it is the UNet's error, not the decoder's.
+- **The noise arm calibrates all of it**: fp16 on the GPU differs from fp32 by 0.0003 in latent mae, 0.010–0.015/255
+  in the face, 65–69 dB mouth PSNR, correlation ≥ 0.9999 and 0.03–0.04 px of aperture, on every clip including the
+  Japanese one. The server's own precision loss is 50× smaller than the Neural Engine's in the face and 5–20× in
+  the lip metrics; whatever a reviewer sees in B is the ANE, not fp16.
+
+So the human review has one question to settle, on one character first: does the Japanese clip pair read as a
+lip-sync difference at severity ≥ 2 in the blind pass? If not, B meets r5's bar as r4 did; if it does, the rule
+gives "accepted with a reservation" for that character, and the next engineering step is the fp32-on-GPU
+treatment of the error-carrying middle blocks (§11.2) measured on that face. The sheet, key and clips are ready;
+nothing in this section is a verdict.
