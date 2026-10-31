@@ -612,3 +612,51 @@ first pass and sends the decoder wherever it likes), load once per session and n
 instances, expect 30–60 s of compile on first launch per setting with ~1.7 GB of cache writes, and check
 free disk before compiling. The CPU_AND_GPU accuracy anchor and the batch-4 model were not measured on
 the phone (both were killed at load with the single program; batch 4 is pointless on an A14 anyway).
+
+### 12.4 Labelled quality review of the Neural Engine output (`docs/ios_unet_bench/review_ane_vs_fp16/`)
+
+The 0.013 gate miss of §11.1 and §12.3 is a number; whether it is visible is a human verdict, and r5 (the INT8
+TensorRT recipe the servers run) was accepted on exactly such a verdict: labelled A/B clips per identity with a
+mouth zoom and a raw-face difference panel, a per-identity metrics table, and a review of the whole set
+(`docs/fps_comparisons/4070s_400fps_20260928/README.md` §8.1–8.5, `scripts/video_ab_round.py`,
+`scripts/quality_ab_metrics.py`). `scripts/ios/review_ane_vs_fp16.py` builds the same package for the phone
+chain, on this Mac, because the phone's Neural Engine output is bit-identical to this Mac's on the gate frames.
+
+**Arms**, per character and audio clip, sharing the avatar cache, the Whisper windows and the blend:
+
+| arm | what | why |
+|---|---|---|
+| A, reference | PyTorch fp32 UNet (CPU) + torch TAESD fp32 | the gate's reference is the server's fp16 PyTorch; fp32 differs from it by ~0.0004 latent mae, a thirtieth of B's |
+| N, noise arm | PyTorch fp16 UNet (Mac GPU) + torch TAESD fp32 | the server's own precision: the size of difference shipping already accepts, in every metric. It is r5's "±1 LSB noise arm" |
+| B, candidate | Core ML int8 UNet in two fp16-boundary chunks on the Neural Engine + Core ML TAESD | the iPhone chain, bit-identical to the 12 Pro's output |
+| Btd (metrics only) | B's latents through torch TAESD fp32 | separates the UNet's error from the decoder's |
+
+**Characters**: six production avatars, as r5 had six identities: `japanese_realtime_talking`, `latina_guided`,
+`en_01_maya`, `en_03_marcus`, `es_01_valeria`, `es_03_mateo` (the last four pulled from
+`s3://lingua-musetalk-s3-storage/avatars/v15/`). **Audio**: `ai-assistant.mpga` (TTS) and `eng.wav` (a real
+recording), 10 s each at 25 fps: 12 clips, 3,000 frames per arm.
+
+**Per clip**: `A.mp4`, `B.mp4`, `N.mp4`; the labelled `<clip>_ab.mp4` (A | B full frame, 3× nearest mouth zoom
+A | B, the raw 256 px generated face |A−B| ×8, burned-in labels and a metrics line); a blind `<clip>_blind.mp4`
+(LEFT | RIGHT with the sides randomised per clip, mouth zoom, no difference panel, no metrics; the assignment only
+in `key/blind_key.json`); the raw generated faces and latents of A and B, and the FaceMesh landmarks of all arms
+(`experiments/video_validation/ane_vs_fp16/<identity>__<audio>/`, gitignored). In `docs/…/review_ane_vs_fp16/`:
+`review_sheet.csv` (one row per clip in a shuffled blind order, columns for the worse side and a 0–3 severity for
+lip sync, mouth artefacts, flicker, seam, overall), `key/blind_key.json`, `metrics.json` and `metrics.md`,
+`stills/` (a labelled frame at 3 s and 7 s per clip), and `README.md` with the reviewer's steps.
+
+**Metrics** are quality_ab_metrics' where they can be had on this Mac, computed on raw composed frames (no codec
+noise): latent mae / max_abs vs A; raw-face mae and PSNR; face-box and mouth-ROI PSNR and SSIM; flicker ratio
+B/A (mean |f(t)−f(t−1)|) in the mouth ROI and face box; mouth Laplacian-variance sharpness ratio; Lab shift in the
+face box; and the FaceMesh inner-lip aperture series per arm (mediapipe 0.10.14 in `.venv-mp`, the same tracker
+configuration as the h3 workflow via `scripts/quality_ab_facemesh.py`): Pearson A vs B, lag of maximum
+cross-correlation, mean |Δ| px. r5's thresholds apply where they exist: aperture corr ≥ 0.97, lag 0, mean |Δ| ≤
+0.5 px, flicker ratio ≤ 1.05, sharpness ratio ≥ 0.95. SyncNet (GPU, server) and the chin-geometry gates (they need
+the h3 workflow's generated landmarks) are not reproduced.
+
+**Acceptance rule** (r5's "every identity acceptable, no systematic artefact", made countable): after the blind
+pass and unblinding, B is accepted when no clip has a severity ≥ 2 attributed to B in any column, every identity
+has at least one clip where B was not called worse overall, and B is called worse overall at most three times more
+often than A over the 12 clips. One failing identity → accepted with a reservation for that character; otherwise
+rejected, with the labelled clips and the B / N / Btd columns saying whether the UNet precision or the decoder
+carries the difference.
