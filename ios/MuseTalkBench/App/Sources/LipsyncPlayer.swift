@@ -6,20 +6,16 @@ import HarnessCore
 import QuartzCore
 import UIKit
 
-/// Frames rendered ahead of the audio clock, shared between the render thread and the display link.
+/// Composed frames waiting for the display link, shared between the pipeline's CPU stage and the main thread.
 final class FrameBuffer: @unchecked Sendable {
     private let lock = NSLock()
     private var frames: [Int: CGImage] = [:]
-    var stop = false
     var audioStart: Double? = nil      // monotonic seconds when the audio started
-    var generated = 0
-    var skipped = 0
-    var genMsSum = 0.0
-    var genCount = 0
+    var startRequested = false
     var done = false
 
-    func reset() { lock.lock(); frames = [:]; stop = false; audioStart = nil; generated = 0; skipped = 0; genMsSum = 0; genCount = 0; done = false; lock.unlock() }
-    func put(_ i: Int, _ img: CGImage, ms: Double) { lock.lock(); frames[i] = img; generated += 1; genMsSum += ms; genCount += 1; lock.unlock() }
+    func reset() { lock.lock(); frames = [:]; audioStart = nil; startRequested = false; done = false; lock.unlock() }
+    func put(_ i: Int, _ img: CGImage) { lock.lock(); frames[i] = img; lock.unlock() }
     var count: Int { lock.lock(); defer { lock.unlock() }; return frames.count }
     /// The newest frame at or before `target`; drops everything older than it.
     func take(upTo target: Int) -> (Int, CGImage)? {
@@ -28,7 +24,6 @@ final class FrameBuffer: @unchecked Sendable {
         for k in frames.keys where k < best { frames[k] = nil }
         return (best, img)
     }
-    func drop(below i: Int) { lock.lock(); for k in frames.keys where k < i { frames[k] = nil }; lock.unlock() }
     func with<T>(_ body: (FrameBuffer) -> T) -> T { lock.lock(); defer { lock.unlock() }; return body(self) }
 }
 
@@ -43,10 +38,10 @@ final class LipsyncPlayer: NSObject, ObservableObject {
     @Published var avatarName = ""
 
     private var engine: LipsyncEngine? = nil
+    private var pipeline: LipsyncPipeline? = nil
     private var player: AVAudioPlayer? = nil
     private var displayLink: CADisplayLink? = nil
     private let buffer = FrameBuffer()
-    private var renderThread: Thread? = nil
     private var exitAfter = false
     private var shownIndex = -1
     private var shown = 0
@@ -119,40 +114,31 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         buffer.reset()
         shownIndex = -1; shown = 0; stalls = 0; ticks = 0
         state = .preroll
-        status = "pre-rolling \(min(total, fps)) frames…"
         let preroll = min(total, fps)
+        status = "pre-rolling \(preroll) frames…"
         let buf = buffer
-        let fps = self.fps, total = self.total
-        let t = Thread { [weak self] in
-            var i = 0
-            var started = false
-            while !buf.with({ $0.stop }) && i < total {
-                if let start = buf.with({ $0.audioStart }) {
-                    // the audio clock runs: a frame already behind it is never worth rendering, skip ahead
-                    let target = Int((now() - start) * Double(fps)) + 1
-                    if target > i { buf.with { $0.skipped += target - i }; i = target }
-                    if i >= total { break }
-                }
-                if buf.count >= fps { usleep(2000); continue }   // at most ~1 s ahead
-                do {
-                    let t0 = now()
-                    let (img, _) = try engine.renderFrame(i)
-                    if let cg = img.cgImage() { buf.put(i, cg, ms: (now() - t0) * 1000) }
-                } catch {
-                    print("[lipsync] render \(i): \(error)")
-                }
-                i += 1
-                if !started && (buf.count >= preroll || i >= total) {
-                    started = true
-                    DispatchQueue.main.async { [weak self] in self?.startAudio() }
-                }
+        let fps = self.fps
+        // Two stages on two threads: the Neural Engine (UNet chunks + TAESD) and the CPU (JPEG decode + blend + CGImage),
+        // kept about one second ahead of the audio clock; frames the clock has passed are skipped, never rendered.
+        let pipe = LipsyncPipeline(engine: engine, aheadFrames: fps)
+        pipe.log = { print("[lipsync] \($0)") }
+        pipe.targetIndex = { buf.with { $0.audioStart }.map { Int((now() - $0) * Double(fps)) } }
+        pipe.downstreamCount = { buf.count }
+        pipeline = pipe
+        pipe.start(emit: { [weak self] i, img in
+            guard let cg = img.cgImage() else { return }
+            buf.put(i, cg)
+            let request = buf.with { b -> Bool in
+                if b.startRequested || b.count < preroll { return false }
+                b.startRequested = true
+                return true
             }
-            buf.with { $0.done = true }
-        }
-        t.name = "lipsync.render"
-        t.qualityOfService = .userInteractive
-        renderThread = t
-        t.start()
+            if request { DispatchQueue.main.async { self?.startAudio() } }
+        }, done: { [weak self] in
+            // a clip shorter than the pre-roll: start anyway
+            let request = buf.with { b -> Bool in b.done = true; if b.startRequested { return false }; b.startRequested = true; return true }
+            if request { DispatchQueue.main.async { self?.startAudio() } }
+        })
         displayLink?.invalidate()
         let dl = CADisplayLink(target: self, selector: #selector(tick))
         dl.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
@@ -189,23 +175,25 @@ final class LipsyncPlayer: NSObject, ObservableObject {
     }
 
     private func updateStats(t: Double) {
-        let (gen, skip, ms) = buffer.with { ($0.generated, $0.skipped, $0.genCount > 0 ? $0.genMsSum / Double($0.genCount) : 0) }
-        let genFps = t > 0 ? Double(gen) / t : 0
-        stats = String(format: "generated %d (%.1f fps, %.0f ms/frame) · skipped %d · shown %d · stalls %d · buffer %d · t %.1f s",
-                       gen, genFps, ms, skip, shown, stalls, buffer.count, t)
+        guard let s = pipeline?.snapshot else { return }
+        let genFps = t > 0 ? Double(s.generated) / t : 0
+        stats = String(format: "generated %d (%.1f fps) · ANE %.0f ms · CPU %.0f ms · skipped %d · late %d · shown %d · stalls %d · buffer %d · t %.1f s",
+                       s.generated, genFps, s.inferMs, s.composeMs, s.skipped, s.droppedLate, shown, stalls, buffer.count, t)
     }
 
     private func finish(t: Double) {
         displayLink?.invalidate(); displayLink = nil
-        buffer.with { $0.stop = true }
+        pipeline?.cancel()
         player?.stop()
         updateStats(t: t)
         state = .finished
         status = "finished"
         UIApplication.shared.isIdleTimerDisabled = false
-        let (gen, skip, ms) = buffer.with { ($0.generated, $0.skipped, $0.genCount > 0 ? $0.genMsSum / Double($0.genCount) : 0) }
-        let result: [String: Any] = ["avatar": avatarName, "fps": fps, "frames": total, "seconds": t, "generated": gen,
-                                     "generated_fps": t > 0 ? Double(gen) / t : 0, "gen_ms_per_frame": ms, "skipped": skip,
+        let s = pipeline?.snapshot ?? LipsyncPipeline.Stats()
+        let result: [String: Any] = ["avatar": avatarName, "fps": fps, "frames": total, "seconds": t, "generated": s.generated,
+                                     "generated_fps": t > 0 ? Double(s.generated) / t : 0,
+                                     "gen_ms_per_frame": s.inferMs + s.composeMs, "stage_infer_ms": s.inferMs, "stage_compose_ms": s.composeMs,
+                                     "skipped": s.skipped, "dropped_late": s.droppedLate, "pipelined": true,
                                      "shown": shown, "stalls": stalls, "load_s": engine?.loadSeconds ?? 0,
                                      "audio_prep_s": engine?.audioSeconds ?? 0, "unet": engine?.spec.name ?? ""]
         if let data = try? JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]) {
@@ -215,7 +203,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
     }
 
     func stop() {
-        buffer.with { $0.stop = true }
+        pipeline?.cancel()
         finish(t: buffer.with { $0.audioStart }.map { now() - $0 } ?? 0)
     }
 }

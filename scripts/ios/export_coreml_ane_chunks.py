@@ -67,7 +67,9 @@ class Chunk1(torch.nn.Module):
             n = len(blk.resnets)
             sample = _block(blk, sample, emb, hidden, res[-n:])
             res = res[:-n]
-        return (sample,) + tuple(res)
+        # plain dim order on every boundary tensor: at batch > 1 the Apple layout's permutes leave strides that
+        # torch.export records and coremltools rejects ("non-contiguous dim order") when they become chunk 2's inputs
+        return tuple(t.contiguous() for t in (sample,) + tuple(res))
 
 
 class Chunk2(torch.nn.Module):
@@ -98,6 +100,8 @@ def main() -> None:
     ap.add_argument("--apple-repo", type=Path, required=True)
     ap.add_argument("--cut", type=int, default=0, help="up blocks included in chunk 1 (0 = cut at the mid/up boundary)")
     ap.add_argument("--variants", default="fp16,int8w")
+    ap.add_argument("--batch", type=int, default=1,
+                    help="frames per call (1 = the phone's batch-1 chunks; 4 = the bandwidth lever: weights read once per 4 frames)")
     ap.add_argument("--attention", default="SPLIT_EINSUM")
     ap.add_argument("--unet-dir", type=Path, default=REPO_ROOT / "models" / "musetalkV15")
     ap.add_argument("--bench-inputs", type=Path, default=REPO_ROOT / "models" / "ios_bench" / "bench_inputs.pt")
@@ -110,10 +114,13 @@ def main() -> None:
     print(f"building Apple-layout UNet ({args.attention})", flush=True)
     unet, ref_unet, pe = build_ane_unet(args.apple_repo, args.unet_dir, args.attention)
     c1 = Chunk1(unet, pe, args.cut).eval()
+    B = args.batch
     d = torch.load(args.bench_inputs, map_location="cpu", weights_only=True)
-    lat, aud = d["latents"][:4].float(), d["audio"][:4].float()
+    lat, aud = d["latents"].float(), d["audio"].float()
+    reps = -(-max(4, B) // lat.shape[0])
+    lat, aud = lat.repeat(reps, 1, 1, 1)[:max(4, B)], aud.repeat(reps, 1, 1)[:max(4, B)]
     with torch.no_grad():
-        outs1 = c1(lat[:1], aud[:1])
+        outs1 = c1(lat[:B], aud[:B])
     n_res = len(outs1) - 1
     c2 = Chunk2(unet, pe, args.cut, n_res).eval()
     res_names = [f"res_{i}" for i in range(n_res)]
@@ -153,29 +160,29 @@ def main() -> None:
     # chunk 1
     t0 = time.time()
     print("chunk1: exporting", flush=True)
-    m1 = convert(c1, (torch.randn(1, 8, 32, 32), torch.randn(1, 50, 384)),
-                 [ct.TensorType(name="sample", shape=(1, 8, 32, 32), dtype=f16), ct.TensorType(name="audio", shape=(1, 50, 384), dtype=f16)],
+    m1 = convert(c1, (torch.randn(B, 8, 32, 32), torch.randn(B, 50, 384)),
+                 [ct.TensorType(name="sample", shape=(B, 8, 32, 32), dtype=f16), ct.TensorType(name="audio", shape=(B, 50, 384), dtype=f16)],
                  [ct.TensorType(name="h", dtype=f16)] + [ct.TensorType(name=n, dtype=f16) for n in res_names])
     print(f"  converted in {time.time() - t0:.0f}s", flush=True)
     # chunk 2
     t0 = time.time()
     print("chunk2: exporting", flush=True)
-    ex2 = (outs1[0],) + tuple(outs1[1:]) + (aud[:1],)
+    ex2 = tuple(t.contiguous() for t in (outs1[0],) + tuple(outs1[1:]) + (aud[:B],))
     in2 = [ct.TensorType(name="h", shape=tuple(outs1[0].shape), dtype=f16)]
     in2 += [ct.TensorType(name=n, shape=tuple(r.shape), dtype=f16) for n, r in zip(res_names, outs1[1:])]
-    in2 += [ct.TensorType(name="audio", shape=(1, 50, 384), dtype=f16)]
+    in2 += [ct.TensorType(name="audio", shape=(B, 50, 384), dtype=f16)]
     m2 = convert(c2, ex2, in2, [ct.TensorType(name="pred_latents", dtype=f16)])
     print(f"  converted in {time.time() - t0:.0f}s", flush=True)
 
     for variant in args.variants.split(","):
-        parent = f"{tag}_{variant}_b1"
+        parent = f"{tag}_{variant}_b{B}"
         for i, m in ((1, m1), (2, m2)):
             model = quantize_weights(m) if variant == "int8w" else m
             path = args.out_dir / f"{parent}_chunk{i}.mlpackage"
             model.save(str(path))
             spec = model.get_spec()
             record(f"{parent}_chunk{i}", path, {
-                "kind": "unet_chunk", "chunk_of": parent, "chunk_index": i, "batch": 1, "variant": f"anec{args.cut}_{variant}",
+                "kind": "unet_chunk", "chunk_of": parent, "chunk_index": i, "batch": B, "variant": f"anec{args.cut}_{variant}",
                 "layout": "apple-ane", "cut": args.cut,
                 "inputs": [x.name for x in spec.description.input], "outputs": [x.name for x in spec.description.output]})
             if variant == "int8w":
@@ -187,37 +194,45 @@ def main() -> None:
     from scripts.validate_unet_backend import _load_capture_group, discover_captures, tensor_stats
 
     units = getattr(ct.ComputeUnit, args.units)
-    parent = f"{tag}_int8w_b1" if "int8w" in args.variants else f"{tag}_fp16_b1"
+    parent = f"{tag}_int8w_b{B}" if "int8w" in args.variants else f"{tag}_fp16_b{B}"
     base_name = "unet_ane_int8w_b1" if "int8w" in args.variants else "unet_ane_fp16_b1"
     man = json.loads(manifest_path.read_text())
     full = ct.models.MLModel(man[base_name]["path"], compute_units=units)
     parts = [ct.models.MLModel(man[f"{parent}_chunk{i}"]["path"], compute_units=units) for i in (1, 2)]
+    names2 = [x.name for x in parts[1].get_spec().description.input]
     pe_t = PositionalEncoding(d_model=384).pe[:, :50, :].float()
-    full_out, chain_out, refs = [], [], []
-    t_full = t_chain = 0.0
+    Ls, As, Rs = [], [], []
     for path in discover_captures(REPO_ROOT / "calibration" / "unet_portable_bs8", 2):
         payload = _load_capture_group([path])
         n = int(payload.get("actual_batch", payload["latent_batch"].shape[0]))
-        L, A, R = payload["latent_batch"].float()[:n], payload["audio_feature_batch"].float()[:n] - pe_t, payload["pred_latents"].float()[:n]
-        for s in range(n):
-            feed = {"sample": L[s:s + 1].numpy().astype(f16), "audio": A[s:s + 1].numpy().astype(f16)}
-            t = time.perf_counter(); fo = np.asarray(full.predict(feed)["pred_latents"], dtype=np.float32); t_full += time.perf_counter() - t
-            t = time.perf_counter()
-            o1 = parts[0].predict(feed)
-            feats = {**feed, **o1}
-            names2 = [x.name for x in parts[1].get_spec().description.input]
-            co = np.asarray(parts[1].predict({k: feats[k] for k in names2})["pred_latents"], dtype=np.float32)
-            t_chain += time.perf_counter() - t
-            full_out.append(fo); chain_out.append(co); refs.append(R[s:s + 1].numpy())
-    F, C, Rf = (torch.from_numpy(np.concatenate(x)) for x in (full_out, chain_out, refs))
-    n = F.shape[0]
+        Ls.append(payload["latent_batch"].float()[:n])
+        As.append(payload["audio_feature_batch"].float()[:n] - pe_t)
+        Rs.append(payload["pred_latents"].float()[:n])
+    L, A, Rf = torch.cat(Ls), torch.cat(As), torch.cat(Rs)
+    n = L.shape[0]
+    full_out, chain_out = [], []
+    t_full = t_chain = 0.0
+    for s in range(n):  # the unchunked batch-1 model frame by frame: the gate's own path
+        feed = {"sample": L[s:s + 1].numpy().astype(f16), "audio": A[s:s + 1].numpy().astype(f16)}
+        t = time.perf_counter(); full_out.append(np.asarray(full.predict(feed)["pred_latents"], dtype=np.float32)); t_full += time.perf_counter() - t
+    for g in range(0, n, B):  # the chunks in calls of B frames (the last call padded with its last frame)
+        idx = list(range(g, min(g + B, n)))
+        pad = idx + [idx[-1]] * (B - len(idx))
+        feed = {"sample": L[pad].numpy().astype(f16), "audio": A[pad].numpy().astype(f16)}
+        t = time.perf_counter()
+        o1 = parts[0].predict(feed)
+        feats = {**feed, **o1}
+        co = np.asarray(parts[1].predict({k: feats[k] for k in names2})["pred_latents"], dtype=np.float32)
+        t_chain += time.perf_counter() - t
+        chain_out.extend(co[j:j + 1] for j in range(len(idx)))
+    F, C = torch.from_numpy(np.concatenate(full_out)), torch.from_numpy(np.concatenate(chain_out))
     dd = (F - C).abs()
     sf, sc = tensor_stats(F, Rf), tensor_stats(C, Rf)
-    print(f"\n[{args.units}] torch-cut chunks vs unchunked on {n} real frames: max |diff| {dd.max():.2e}, mean {dd.mean():.2e}")
+    print(f"\n[{args.units}] torch-cut chunks (batch {B}) vs unchunked batch-1 on {n} real frames: max |diff| {dd.max():.2e}, mean {dd.mean():.2e}")
     print(f"  vs capture reference: unchunked mae {sf['mae']:.5f} max_abs {sf['max_abs']:.4f}; chunked mae {sc['mae']:.5f} max_abs {sc['max_abs']:.4f}")
     print(f"  ms/frame incl. Python I/O: unchunked {t_full / n * 1000:.1f}, chunked {t_chain / n * 1000:.1f}")
     out = REPO_ROOT / "docs" / "ios_unet_bench" / f"chunk_{parent}_m5pro.json"
-    out.write_text(json.dumps({"parent": parent, "cut": args.cut, "units": args.units, "frames": n,
+    out.write_text(json.dumps({"parent": parent, "cut": args.cut, "batch": B, "units": args.units, "frames": n,
                                "chunk_vs_full_max_abs": float(dd.max()), "chunk_vs_full_mean_abs": float(dd.mean()),
                                "unchunked_vs_ref": sf, "chunked_vs_ref": sc,
                                "ms_per_frame_unchunked": t_full / n * 1000, "ms_per_frame_chunked": t_chain / n * 1000,

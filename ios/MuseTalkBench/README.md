@@ -109,11 +109,14 @@ few minutes on an A14. Keep the app in the foreground; it keeps the screen on.
 per-frame Whisper windows and a few Python-composed check frames) into `HarnessBundle/avatar/`. The app's
 Lipsync tab loads the chunked UNet, TAESD and the Whisper models on the Neural Engine, builds the per-frame
 audio windows (`HarnessCore/Lipsync.swift`: the repo's gather and fixed-point blend ported to Swift), renders
-frames ahead of an `AVAudioPlayer` clock on a background thread, skips frames when generation falls behind
-the audio (what the server does when it drops), and displays through a `CADisplayLink`. Launch with
-`--lipsync --exit` to autoplay and print a `LIPSYNC_RESULT` JSON line (generated fps, skipped, stalls).
-`bench-mac --lipsync-check HarnessBundle/avatar` runs the same frame loop on the Mac against the Python
-references: windows within the ANE encoder's error, composed frames within 0.17/255, 27 ms/frame on the M5 Pro.
+frames ahead of an `AVAudioPlayer` clock, skips frames when generation falls behind the audio (what the server
+does when it drops), and displays through a `CADisplayLink`. The frame loop is a two-stage pipeline
+(`LipsyncPipeline`): the Neural Engine stage (UNet chunks + TAESD) and the CPU stage (JPEG decode, resize, blend,
+CGImage) run on two threads joined by a short queue, so a frame costs the slower stage, not the sum. Launch with
+`--lipsync --exit` to autoplay and print a `LIPSYNC_RESULT` JSON line (generated fps, stage times, skipped, stalls).
+`bench-mac --lipsync-check HarnessBundle/avatar` runs the same loop on the Mac against the Python references:
+windows within the ANE encoder's error, composed frames within 0.17/255; sequential 23.6 ms/frame
+(UNet 18.9 + TAESD 1.7 + compose 3.0), pipelined 20.8 ms/frame wall = the Neural Engine stage alone.
 Status: ran on the Mac; on the iPhone 12 Pro it was installed and had started its first-launch compile when
 the phone was unplugged, so no phone playback figure yet.
 

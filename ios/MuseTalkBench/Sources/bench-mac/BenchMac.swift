@@ -36,8 +36,18 @@ struct BenchMac {
                 if i >= 3 { u.append(t.unetMs); d.append(t.decodeMs); c.append(t.composeMs) }
             }
             let mean = { (a: [Double]) in a.reduce(0, +) / Double(max(1, a.count)) }
-            print(String(format: "frame loop over %d frames: UNet %.1f + TAESD %.1f + compose %.1f = %.1f ms/frame",
+            print(String(format: "frame loop over %d frames: UNet %.1f + TAESD %.1f + compose %.1f = %.1f ms/frame (sequential)",
                          n, mean(u), mean(d), mean(c), mean(u) + mean(d) + mean(c)))
+            // the two-stage pipeline, free-running (no clock); wall time per frame should approach the Neural Engine stage alone
+            let pipe = LipsyncPipeline(engine: engine, aheadFrames: Int.max)
+            pipe.log = { print($0) }
+            let sem = DispatchSemaphore(value: 0)
+            let t0 = now()
+            pipe.start(from: 0, count: n, emit: { _, img in _ = img.cgImage() }, done: { sem.signal() })
+            sem.wait()
+            let s = pipe.snapshot
+            print(String(format: "pipelined over %d frames: %.1f ms/frame wall (ANE stage %.1f, CPU stage %.1f + CGImage, in parallel)",
+                         s.composed, (now() - t0) * 1000 / Double(max(1, s.composed)), s.inferMs, s.composeMs))
         } catch {
             FileHandle.standardError.write("lipsync-check: \(error)\n".data(using: .utf8)!)
             exit(1)

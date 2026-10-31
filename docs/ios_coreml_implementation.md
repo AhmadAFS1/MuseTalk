@@ -41,14 +41,15 @@ the next step.
 | 8 | Avatar cache → phone bundle exporter | done (one avatar, 46 MB) | `scripts/ios/prepare_avatar_bundle.py` |
 | 9 | On-device timing harness (Swift package + CLI + iOS app) with the repo gate | done, reproduces the Python bench on the Mac | §12.1–12.2; `ios/MuseTalkBench/` |
 | 10 | iPhone 12 Pro measured (UNet, chain, sustained, Whisper, gate) | done | §12.3; `harness_iphone12pro_*.json` |
-| 11 | Streaming lipsync view (avatar + clip, audio-clock pacing, frame skipping) | built, Mac-verified; **phone playback not yet measured** | README "Lipsync tab"; `App/Sources/LipsyncPlayer.swift` |
+| 11 | Streaming lipsync view (avatar + clip, audio-clock pacing, frame skipping, two-stage pipeline) | built, Mac-verified: 20.8 ms/frame wall = the ANE stage alone; **phone playback not yet measured** | README "Lipsync tab"; `HarnessCore/Lipsync.swift` (`LipsyncPipeline`), `App/Sources/LipsyncPlayer.swift` |
 | 12 | Repo quality gate on the Core ML UNet and attribution of the ANE error | done: fails at mae 0.013, cause is ANE conv/linear fp16 accumulate | §11.1–11.2 |
 | 13 | r5-style labelled A/B review package (12 clips, 6 characters) | rendered, metrics computed; **human blind pass pending** | §12.4; `docs/ios_unet_bench/review_ane_vs_fp16/` |
 | 14 | Speed levers tried and rejected (int8 activations, 6/4-bit palettization, fp32 islands, GroupNorm rewrite) | measured, rejected | §4, §11.2, §11.3 |
-| 15 | GPU accuracy anchor and batch-4 UNet on the phone | not measured (killed with the single program; batch 4 pointless on an A14) | §12.3 |
-| 16 | Audio from a microphone or TTS stream instead of a bundled clip | not started | §9 below |
-| 17 | Avatar download from S3 at runtime; multiple avatars; pose router | not started | §9 below |
-| 18 | Integration into the Lingua app (native module) | not started | §9 below |
+| 15 | Batch-4 two-chunk UNet: the experiment that tells bandwidth-bound from compute-bound on the A14 (§5.4) | exported 2026-10-31, bit-identical to batch 1 on the Mac ANE, in the bundle; **phone run pending** | bench doc §12.5; `chunk_unet_anec0_int8w_b4_m5pro.json`, `harness_mac_b4_chunked_m5pro.json` |
+| 16 | GPU accuracy anchor on the phone | not measured (killed with the single program); low value | §12.3 |
+| 17 | Audio from a microphone or TTS stream instead of a bundled clip | not started | §9 below |
+| 18 | Avatar download from S3 at runtime; multiple avatars; pose router | not started | §9 below |
+| 19 | Integration into the Lingua app (native module) | not started | §9 below |
 
 ---
 
@@ -158,23 +159,28 @@ decoder ~2, compose ~6 in unoptimised Swift).
 
 - **Load** on a detached task: `LipsyncEngine.load()` (both chunks + TAESD, first launch compiles) then
   `prepareAudio()` (log-mel, encoder, windows for the whole clip). Progress lines print as `[lipsync] …`.
-- **Pre-roll**: a `lipsync.render` thread (QoS user-interactive) renders frames 0, 1, 2 … into a `FrameBuffer`
-  (lock-protected dictionary); when `min(total, fps)` frames (1 s) are buffered, the `AVAudioPlayer` starts and the
-  start time becomes the clock.
-- **Render-ahead**: the thread keeps at most `fps` frames (≈1 s) ahead of the clock. When the clock passes frame `i`
-  before it was rendered, `target = floor((now − start) × fps) + 1` and the thread jumps to `target`, counting the
-  gap as **skipped**. The server does the same when it drops frames.
+- **Two stages on two threads** (`LipsyncPipeline` in `HarnessCore/Lipsync.swift`): the Neural Engine stage
+  (`inferFace`: UNet chunks + TAESD → 256 px face) and the CPU stage (`composeFrame`: JPEG decode, resize, blend;
+  then the CGImage in the app's emit closure), joined by a queue three frames deep. A frame costs the slower stage,
+  not the sum: on the Mac 23.6 ms sequential became 20.8 ms wall, equal to the ANE stage alone.
+- **Pre-roll**: the pipeline renders frames 0, 1, 2 … into a `FrameBuffer` (lock-protected dictionary); when
+  `min(total, fps)` frames (1 s) are buffered, the `AVAudioPlayer` starts and the start time becomes the clock.
+- **Render-ahead and skipping**: the pipeline keeps at most `fps` frames (≈1 s) finished or in flight. When the
+  clock has passed frame `i` before the UNet ran it, the Neural Engine stage jumps to `clock + 1` and counts the gap
+  as **skipped** (the server does the same when it drops); a face that is already late by the time it reaches the
+  CPU stage is **dropped late** instead of blended.
 - **Display**: a `CADisplayLink` (30–60 Hz) takes the newest buffered frame with index ≤ `floor(t × fps)`, drops
   older ones, and counts a **stall** when nothing new is available for a frame the clock has reached.
 - **Finish**: when the clip is done (or 2 s past its end) the player prints one line
   `LIPSYNC_RESULT {"avatar", "fps", "frames", "seconds", "generated", "generated_fps", "gen_ms_per_frame",
-  "skipped", "shown", "stalls", "load_s", "audio_prep_s", "unet"}`; with `--exit` the app quits (exit 0, or 1 on a
-  load error).
+  "stage_infer_ms", "stage_compose_ms", "skipped", "dropped_late", "pipelined", "shown", "stalls", "load_s",
+  "audio_prep_s", "unet"}`; with `--exit` the app quits (exit 0, or 1 on a load error).
 - Launch flags: `--lipsync` opens the Lipsync tab and autoplays; `--exit` as above. Without flags: Play / Stop
   buttons in the tab.
 
-On the A14 the UNet alone is ~55–60 ms, so the expectation is ~13–16 generated fps with the remaining frames
-skipped; the audio never waits for the video.
+On the A14 the Neural Engine stage alone is ~60–65 ms (UNet 55–60 + TAESD 5), and with the CPU stage off the
+critical path that is the expected frame cost: ~15–16 generated fps with the remaining frames skipped; the audio
+never waits for the video.
 
 ---
 
@@ -225,7 +231,10 @@ required for Neural Engine deployment on iOS and iPadOS if weights are not quant
   states itself (2M params) so it needs only `h`, the residuals and `audio`. Exact against the diffusers UNet in fp32
   (1.25e-5), bit-identical to the single program on the Mac ANE, and on the A14 **all 3,056 ops stay on the Neural
   Engine** with the process footprint at 53–64 MB after both compiles. `--cut k` moves the first `k` up blocks into
-  chunk 1 if a different balance is ever wanted.
+  chunk 1 if a different balance is ever wanted. `--batch 4` exports the same cut at four frames per call
+  (`unet_anec0_int8w_b4_chunk1/2`, same bytes, bit-identical output on the Mac ANE): the bandwidth experiment of
+  §5.4. At batch > 1 the Apple layout's permutes leave non-contiguous boundary tensors that coremltools rejects as
+  chunk-2 inputs, so chunk 1 returns them contiguous.
 
 ### 3.3 TAESD decoder
 
@@ -330,7 +339,8 @@ for the phone chain (bench doc §12.4, package `README.md`):
 | Whisper encoder / log-mel per 30 s | 12.2 ms ANE (3.1 GPU) / 1.2 ms CPU |
 | First load of the 812 MB program / again in-process | 6.7 s / 0.05 s |
 | 12 back-to-back 10 s turns, int8w | 1.57× real time every turn, no drift |
-| Lipsync view frame loop | 27 ms/frame |
+| Batch-4 two-chunk int8w, per frame | Swift harness 20.6 ms (batch-1 chunks: 18.8), 100 % ANE; Python incl. I/O 22.8 (unchunked batch 1: 20.3); output bit-identical to batch 1 |
+| Lipsync view frame loop | 23.6 ms sequential (UNet 18.9 + TAESD 1.7 + compose 3.0); **20.8 ms wall pipelined** (ANE stage 20.7, CPU stage 1.4 + CGImage) |
 
 ### 5.2 iPhone 12 Pro (A14, 6 GB, iOS 26.2; `harness_iphone12pro_*.json`)
 
@@ -361,6 +371,30 @@ compile peak that made chunking mandatory here.
 4. Expect 30–60 s of compile on first launch per compute-unit setting (the cache is keyed per setting) and ~1.7 GB
    of cache writes; check free disk first (the kills were a full disk plus the in-process fp16 expansion).
 5. `devicectl` can only launch while the phone is unlocked; the harness retries on "Locked".
+
+### 5.4 Where the bottleneck is (2026-10-31; bench doc §12.5)
+
+Asked as "is it RAM, CPU, or the accelerator", the phone's situation is three separate answers.
+
+- **RAM: was the problem, solved.** The kills were the in-process fp16 expansion of the int8 weights during the
+  single program's compile (2,464 MB of a 3,070 MB allowance) plus a full disk. Chunked, the process sits at
+  53–64 MB after compile; the lipsync view adds ~80 MB (frame cache 41, audio windows 33, latents 4). Not a limit.
+- **CPU: was 15 % of the frame, now off the critical path.** The CPU stage (JPEG decode, resize, blend, CGImage) ran
+  in series after the two Neural Engine calls on one thread while the CPU idled during them. The two-stage pipeline
+  (§2.6) overlaps it: Mac 23.6 → 20.8 ms wall, equal to the ANE stage. On the A14 the CPU stage is ~8–10 ms, hidden
+  the same way as long as it stays under the ~60 ms ANE stage.
+- **Neural Engine: the bottleneck, bound by either bandwidth or compute.** 52–55 ms cool / 59–62 ms hot per UNet
+  frame. Bandwidth: the compiled program on the phone is ~1.6 GB for the 813 MB int8 model, so the A14 streams fp16
+  weights every frame; 1.6 GB at ~34 GB/s is a 48 ms floor, within 10 % of the cool measurement. Compute: the M5 Pro
+  ANE is compute-bound at 18.9 ms and the A14 ANE is roughly a third per op, ~57 ms, also matching. **Batch 4
+  separates them**: weights read once per four frames (12 ms floor), compute unchanged. Bandwidth-bound → the frame
+  time drops toward the compute limit, possibly to the 50 ms line; compute-bound → no change, as on the Mac. The
+  batch-4 chunks are exported, bit-identical, and in the bundle; the phone run is open item 1. Cost of batch 4:
+  four frames of latency (167 ms at 24 fps), inside the server's prebuffer.
+- **If compute-bound**, no cheap ANE lever remains (int8 activations fail quality, palettization saves bytes not
+  operations, the FLOPs are fixed): the A14 is below the line and the 15 Pro and later are the answer. Levers worth
+  a few ms each, not yet taken: output backings for the 13 boundary tensors (3.4 MB allocated per frame), TAESD
+  fused into chunk 2, the blend in Metal. Thermal throttling costs 13 % over 30 s and is part of the product figure.
 
 ---
 
@@ -496,8 +530,11 @@ cd ios/MuseTalkBench && swift build -c release
 
 ## 9. Open items, in order
 
-1. **Measure the Lipsync view on the iPhone 12 Pro** (`--lipsync --exit`, capture `LIPSYNC_RESULT`); record it in the
-   bench doc as §12.5 and in §5.2 here.
+1. **Two phone runs on the iPhone 12 Pro** (unlocked, foreground, free disk ≥ 4 GB): the batch-4 vs batch-1 chunked
+   UNets (`--autorun --models unet_anec0_int8w_b4_chunked,unet_anec0_int8w_b1_chunked --units CPU_AND_NE
+   --phase-units CPU_AND_NE --frames 200 --sustained 30 --accuracy-frames 32 --no-gpu --no-reload --settle 10
+   --exit`), which decides bandwidth-bound vs compute-bound (§5.4), and the pipelined Lipsync view (`--lipsync
+   --exit`, capture `LIPSYNC_RESULT`). Record both in the bench doc §12.5 and in §5.2 here.
 2. **Human blind pass** of the review package (`docs/ios_unet_bench/review_ane_vs_fp16/README.md`), unblind, apply
    the acceptance rule. The one question is the Japanese character's lip aperture.
 3. If the Japanese result needs fixing: the only known lever is moving the error-carrying 1,280-channel middle blocks
@@ -534,4 +571,5 @@ cd ios/MuseTalkBench && swift build -c release
 | `bbe9967` | 2026-10-30 | Labelled A/B quality review package for the Neural Engine UNet (r5 protocol) |
 | `c77437a` | 2026-10-30 | Streaming lipsync view (avatar bundle export, Swift frame loop, paced player) |
 | `6ea7532` | 2026-10-30 | Review package rendered for six production characters; metrics and findings in the bench doc §12.4 |
-| — | 2026-10-31 | This document |
+| `79e3535` | 2026-10-31 | This document |
+| — | 2026-10-31 | Bottleneck pinpointing: two-stage lipsync pipeline (CPU stage off the critical path, Mac 23.6 → 20.8 ms); batch-4 two-chunk UNet exported for the bandwidth-vs-compute test on the A14; bench doc §12.5 |

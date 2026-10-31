@@ -708,3 +708,57 @@ lip-sync difference at severity ≥ 2 in the blind pass? If not, B meets r5's ba
 gives "accepted with a reservation" for that character, and the next engineering step is the fp32-on-GPU
 treatment of the error-carrying middle blocks (§11.2) measured on that face. The sheet, key and clips are ready;
 nothing in this section is a verdict.
+
+### 12.5 Pinpointing what is left: memory, CPU, Neural Engine (2026-10-31)
+
+The question after §12.3 was whether the phone is held back by a resource it is short of (RAM, CPU) and, if so,
+where. Three separate answers.
+
+**Memory: was the problem, is solved.** The kills were the first-launch compile of the single 850M program
+(2,464 MB footprint against a 3,070 MB allowance, the int8 weights expanded to fp16 in-process) plus a full disk
+(1,040 MB free for a 1.6 GB compiled program, so every launch recompiled). With the two chunks the footprint after
+both compiles is 53–64 MB, and the lipsync view adds about 80 MB (decoded-frame cache 41 MB, audio windows 33 MB,
+prebuilt latents 4 MB). Steady-state memory is not a bottleneck.
+
+**CPU: was on the critical path of the lipsync view, now off it.** The frame loop ran its stages in series on one
+thread: UNet (ANE) → TAESD (ANE) → JPEG decode + resize + fixed-point blend + CGImage (CPU). On this Mac that is
+18.9 + 1.7 + 3.0 = 23.6 ms/frame sequential; on an A14 the CPU part would be roughly 8–10 ms, about 15 % of the
+frame, while the CPU sits idle during the Neural Engine call. `LipsyncPipeline` (`HarnessCore/Lipsync.swift`) now
+runs the Neural Engine stage and the CPU stage on two threads joined by a three-deep queue, with the audio-clock
+skip before the UNet and a late-drop before the blend. Measured on this Mac (`bench-mac --lipsync-check`): **20.8
+ms/frame wall, equal to the ANE stage alone (20.7), CPU stage 1.4 ms + CGImage in parallel**. Composed frames are
+unchanged (0.17/255 vs Python). The app's Lipsync tab uses the same class; `LIPSYNC_RESULT` now carries
+`stage_infer_ms`, `stage_compose_ms`, `dropped_late` and `pipelined: true`.
+
+**Neural Engine: the bottleneck, with one open question.** 52–55 ms per UNet frame cool, 59–62 hot, is the whole
+budget. Whether the A14's ANE is bound by memory bandwidth or by compute cannot be told from the batch-1 numbers,
+because both predictions land on the measurement:
+
+| hypothesis | arithmetic | predicts |
+|---|---|---|
+| bandwidth-bound | the compiled program on the phone is ~1.6 GB for the 813 MB int8 model, i.e. the A14 streams **fp16** weights every frame; 1.6 GB at ~34 GB/s LPDDR4X | 48 ms floor (measured 52–55 cool: within 10 %) |
+| compute-bound | the M5 Pro ANE is compute-bound at 18.9 ms; the A14 ANE at roughly a third per op | ~57 ms (measured 52–62) |
+
+The experiment that separates them is **batch 4**: the weights are read once per call, so bandwidth per frame drops
+4× (floor 12 ms) while compute per frame is unchanged. If the phone is bandwidth-bound the frame time falls toward
+the compute limit (a large gain, possibly to the 50 ms line); if compute-bound it does not move, as on this Mac
+(Apple-layout b4: 20.1 vs 18.9 ms single-program, §11.3). Prepared today: `export_coreml_ane_chunks.py --batch 4`
+(the chunk exporter now takes `--batch`; at batch > 1 the Apple layout's permutes leave non-contiguous boundary
+tensors that coremltools rejects, so chunk 1 returns them contiguous) gives `unet_anec0_int8w_b4_chunk1/2`
+(330 + 486 MB), **bit-identical to the batch-1 output on 16 real frames (max |diff| 0.0, gate mae 0.01316)**, 22.8
+ms/frame on this Mac through Python (`chunk_unet_anec0_int8w_b4_m5pro.json`); the Swift harness runs them as
+`unet_anec0_int8w_b4_chunked` (`harness_mac_b4_chunked_m5pro.json`). Batch 4 costs four frames of latency
+(167 ms at 24 fps), inside the server's prebuffer. The bundle now carries both chunk sets (1.7 GB); on the phone the
+batch-4 compile will write another ~1.6 GB of cache, so free disk must be checked first.
+
+If the phone turns out compute-bound, no cheap ANE-side lever remains: int8 activations fail quality (§4),
+palettization saves bytes not operations (§11.3), and the network's FLOPs are fixed; the A14 is then simply below
+the line and the 15 Pro and later are the answer. Smaller levers worth a few ms each, not yet taken: output
+backings for the 13 boundary tensors (3.4 MB allocated per frame), fusing TAESD into chunk 2 (one fewer dispatch),
+the blend in Metal. Thermal throttling already costs 13 % over 30 s (54.5 → 62.4 ms at "serious"); the sustained
+figure is the product figure.
+
+**Phone runs to do** (unlocked, in the foreground; results go here): the batch-4 vs batch-1 chunked UNets,
+`--autorun --models unet_anec0_int8w_b4_chunked,unet_anec0_int8w_b1_chunked --units CPU_AND_NE --phase-units
+CPU_AND_NE --frames 200 --sustained 30 --accuracy-frames 32 --no-gpu --no-reload --settle 10 --exit`, and the
+pipelined lipsync view, `--lipsync --exit`.

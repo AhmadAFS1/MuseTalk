@@ -458,8 +458,9 @@ public final class LipsyncEngine {
         return rgb
     }
 
-    /// One composed frame for clip position `i`.
-    public func renderFrame(_ i: Int) throws -> (RGBAImage, FrameTiming) {
+    /// Stage A (Neural Engine): UNet chunks + TAESD for clip position `i` -> the 256x256 RGB face.
+    /// Safe to run concurrently with `composeFrame`: it touches only the models, the windows and the prebuilt latents.
+    public func inferFace(_ i: Int) throws -> (face: [UInt8], unetMs: Double, decodeMs: Double) {
         guard let unet = unet, let taesd = taesd, let tm = taesdMeta, let w = windows else {
             throw HarnessError.noModel("engine not loaded")
         }
@@ -474,11 +475,24 @@ public final class LipsyncEngine {
                                tm.outputs.first?.name ?? "faces")
         let rgb = faceRGB(faces)
         let t2 = now()
+        return (rgb, (t1 - t0) * 1000, (t2 - t1) * 1000)
+    }
+
+    /// Stage B (CPU): the cached frame for clip position `i` with the face pasted in (JPEG decode on a cache miss, resize, blend).
+    public func composeFrame(_ i: Int, face: [UInt8]) throws -> (RGBAImage, composeMs: Double) {
+        let u = avatar.uniqueIndex(i)
+        let t0 = now()
         let frame = try avatar.frame(u)
         let plan = try avatar.plan(u)
-        let img = compose(frame: frame, face256: rgb, plan: plan)
-        let t3 = now()
-        return (img, FrameTiming(unetMs: (t1 - t0) * 1000, decodeMs: (t2 - t1) * 1000, composeMs: (t3 - t2) * 1000))
+        let img = compose(frame: frame, face256: face, plan: plan)
+        return (img, (now() - t0) * 1000)
+    }
+
+    /// One composed frame for clip position `i` (both stages, sequentially).
+    public func renderFrame(_ i: Int) throws -> (RGBAImage, FrameTiming) {
+        let a = try inferFace(i)
+        let b = try composeFrame(i, face: a.face)
+        return (b.0, FrameTiming(unetMs: a.unetMs, decodeMs: a.decodeMs, composeMs: b.composeMs))
     }
 
     /// Mean abs pixel difference against the Python-composed check frames (whole frame, and inside the face box).
@@ -506,6 +520,111 @@ public final class LipsyncEngine {
         }
         return out
     }
+}
+
+// MARK: - two-stage pipeline
+
+/// The frame loop split over two threads: the Neural Engine stage (`inferFace`: UNet chunks + TAESD) and the CPU stage
+/// (`composeFrame`: JPEG decode + resize + blend), joined by a short queue, so a frame costs max(ANE, CPU) instead of
+/// their sum. The owner paces it: `targetIndex` is the frame the audio clock has reached (nil while the clock is not
+/// running); frames already behind it are skipped before the UNet (what the server does when it drops) or dropped
+/// before the blend. `downstreamCount` is how many finished frames the owner still holds; the pipeline keeps at most
+/// `aheadFrames` finished or in flight.
+public final class LipsyncPipeline {
+    public struct Stats {
+        public var generated = 0        // faces inferred on the Neural Engine
+        public var composed = 0         // frames composed and emitted
+        public var skipped = 0          // never inferred: the clock had passed them
+        public var droppedLate = 0      // inferred, then too late to compose
+        public var inferMsSum = 0.0
+        public var composeMsSum = 0.0
+        public var inferMs: Double { generated > 0 ? inferMsSum / Double(generated) : 0 }
+        public var composeMs: Double { composed > 0 ? composeMsSum / Double(composed) : 0 }
+    }
+
+    public let engine: LipsyncEngine
+    public var aheadFrames: Int
+    public var queueDepth = 3
+    public var targetIndex: () -> Int? = { nil }
+    public var downstreamCount: () -> Int = { 0 }
+    public var log: (String) -> Void = { _ in }
+
+    private let lock = NSLock()
+    private var queue: [(Int, [UInt8])] = []
+    private var stats = Stats()
+    private var stopped = false
+    private var inferDone = false
+    private var threads: [Thread] = []
+
+    public init(engine: LipsyncEngine, aheadFrames: Int) {
+        self.engine = engine
+        self.aheadFrames = aheadFrames
+    }
+
+    public var snapshot: Stats { lock.lock(); defer { lock.unlock() }; return stats }
+    public var queued: Int { lock.lock(); defer { lock.unlock() }; return queue.count }
+
+    /// Starts both stages. `emit` runs on the CPU stage's thread with every composed frame; `done` once, when the
+    /// last frame has left the pipeline (or after `cancel`).
+    public func start(from first: Int = 0, count: Int? = nil,
+                      emit: @escaping (Int, RGBAImage) -> Void, done: @escaping () -> Void) {
+        let total = min(first + (count ?? engine.frameCount), engine.frameCount)
+        let infer = Thread { [self] in
+            var i = first
+            while i < total {
+                if lock.withLock({ stopped }) { break }
+                if let t = targetIndex(), t + 1 > i {
+                    lock.withLock { stats.skipped += t + 1 - i }
+                    i = t + 1
+                    if i >= total { break }
+                }
+                if downstreamCount() + queued >= aheadFrames || queued >= queueDepth { usleep(1000); continue }
+                do {
+                    let r = try engine.inferFace(i)
+                    lock.withLock {
+                        queue.append((i, r.face))
+                        stats.generated += 1
+                        stats.inferMsSum += r.unetMs + r.decodeMs
+                    }
+                } catch {
+                    log("infer \(i): \(error)")
+                }
+                i += 1
+            }
+            lock.withLock { inferDone = true }
+        }
+        let compose = Thread { [self] in
+            while true {
+                let (item, finished): ((Int, [UInt8])?, Bool) = lock.withLock {
+                    (queue.isEmpty ? nil : queue.removeFirst(), stopped || (inferDone && queue.isEmpty))
+                }
+                guard let (i, face) = item else {
+                    if finished { break }
+                    usleep(500)
+                    continue
+                }
+                if let t = targetIndex(), i < t {
+                    lock.withLock { stats.droppedLate += 1 }
+                    continue
+                }
+                do {
+                    let (img, ms) = try engine.composeFrame(i, face: face)
+                    emit(i, img)
+                    lock.withLock { stats.composed += 1; stats.composeMsSum += ms }
+                } catch {
+                    log("compose \(i): \(error)")
+                }
+            }
+            done()
+        }
+        infer.name = "lipsync.infer"; infer.qualityOfService = .userInteractive
+        compose.name = "lipsync.compose"; compose.qualityOfService = .userInteractive
+        threads = [infer, compose]
+        infer.start()
+        compose.start()
+    }
+
+    public func cancel() { lock.withLock { stopped = true } }
 }
 
 // MARK: - staged UNet shared with the harness
