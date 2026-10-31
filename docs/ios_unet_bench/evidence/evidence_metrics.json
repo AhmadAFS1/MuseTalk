@@ -1,0 +1,142 @@
+{
+  "avatar": "/private/tmp/claude-501/-Users-ahmadsmacair-code-lingua-lingua/f0f23d41-3e43-42a1-916d-19f56c854684/scratchpad/avatar_dl/codex_smoke",
+  "audio": "data/audio/ai-assistant.mpga",
+  "fps": 25,
+  "frames": 250,
+  "seconds": 10.0,
+  "reference": "ref_fp32_taesd",
+  "videos_dir": "/Users/ahmadsmacair/code/musetalk-ios-bench/models/ios_bench/evidence",
+  "results": {
+    "ref_fp32_sdvae": {
+      "render_ms_per_frame": 504.72,
+      "wall_s": 127.2,
+      "vs_ref_fp32_taesd": {
+        "face_crop": {
+          "mae_255": 1.029,
+          "max_abs_255": 40.0,
+          "psnr_db": 40.15
+        },
+        "full_frame": {
+          "mae_255": 0.137,
+          "max_abs_255": 44.0,
+          "psnr_db": 48.86
+        }
+      }
+    },
+    "ref_fp32_taesd": {
+      "render_ms_per_frame": null,
+      "wall_s": 24.9,
+      "vs_ref_fp32_taesd": {
+        "face_crop": {
+          "mae_255": 0.0,
+          "max_abs_255": 0.0,
+          "psnr_db": null
+        },
+        "full_frame": {
+          "mae_255": 0.0,
+          "max_abs_255": 0.0,
+          "psnr_db": null
+        }
+      },
+      "vs_ref_fp32_sdvae": {
+        "face_crop": {
+          "mae_255": 1.029,
+          "max_abs_255": 40.0,
+          "psnr_db": 40.15
+        }
+      }
+    },
+    "torch_mps_fp16": {
+      "render_ms_per_frame": 127.92,
+      "wall_s": 36.1,
+      "vs_ref_fp32_taesd": {
+        "face_crop": {
+          "mae_255": 0.01,
+          "max_abs_255": 2.0,
+          "psnr_db": 68.19
+        },
+        "full_frame": {
+          "mae_255": 0.001,
+          "max_abs_255": 1.0,
+          "psnr_db": 76.97
+        }
+      },
+      "vs_ref_fp32_sdvae": {
+        "face_crop": {
+          "mae_255": 1.03,
+          "max_abs_255": 40.0,
+          "psnr_db": 40.15
+        }
+      }
+    },
+    "coreml_fp16": {
+      "render_ms_per_frame": 28.89,
+      "wall_s": 17.5,
+      "vs_ref_fp32_taesd": {
+        "face_crop": {
+          "mae_255": 0.157,
+          "max_abs_255": 32.0,
+          "psnr_db": 53.25
+        },
+        "full_frame": {
+          "mae_255": 0.021,
+          "max_abs_255": 33.0,
+          "psnr_db": 61.82
+        }
+      },
+      "vs_ref_fp32_sdvae": {
+        "face_crop": {
+          "mae_255": 1.012,
+          "max_abs_255": 54.0,
+          "psnr_db": 40.28
+        }
+      }
+    },
+    "coreml_int8w": {
+      "render_ms_per_frame": 25.27,
+      "wall_s": 13.3,
+      "vs_ref_fp32_taesd": {
+        "face_crop": {
+          "mae_255": 0.166,
+          "max_abs_255": 30.0,
+          "psnr_db": 52.96
+        },
+        "full_frame": {
+          "mae_255": 0.022,
+          "max_abs_255": 32.0,
+          "psnr_db": 61.54
+        }
+      },
+      "vs_ref_fp32_sdvae": {
+        "face_crop": {
+          "mae_255": 1.009,
+          "max_abs_255": 52.0,
+          "psnr_db": 40.31
+        }
+      }
+    },
+    "coreml_int8wa": {
+      "render_ms_per_frame": 20.6,
+      "wall_s": 13.1,
+      "vs_ref_fp32_taesd": {
+        "face_crop": {
+          "mae_255": 0.561,
+          "max_abs_255": 138.0,
+          "psnr_db": 42.48
+        },
+        "full_frame": {
+          "mae_255": 0.075,
+          "max_abs_255": 142.0,
+          "psnr_db": 51.03
+        }
+      },
+      "vs_ref_fp32_sdvae": {
+        "face_crop": {
+          "mae_255": 1.101,
+          "max_abs_255": 137.0,
+          "psnr_db": 38.89
+        }
+      }
+    }
+  }
+}

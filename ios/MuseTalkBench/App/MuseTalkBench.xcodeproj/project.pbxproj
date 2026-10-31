@@ -1,0 +1,381 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		09D9DC148CFED682A75628F8 /* HarnessCore in Frameworks */ = {isa = PBXBuildFile; productRef = F9714277009AE97120C13728 /* HarnessCore */; };
+		237B1C7AE0DC5976B89F32C4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A88CBEF9365B837A3AED734F /* ContentView.swift */; };
+		42D1E193F370E52F07683FBE /* LipsyncPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC88097F44BD9823FA1A4F4 /* LipsyncPlayer.swift */; };
+		684FD52711A23296121B9B65 /* MuseTalkBenchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA6F2884D8BB54EFAC694EB5 /* MuseTalkBenchApp.swift */; };
+		68C25DF984C84ED514ACAB39 /* LipsyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9F4D43078B9BF92847A4908 /* LipsyncView.swift */; };
+		6BD0A71DE2996705DDC9AC25 /* BenchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67938F3BFF35A6F4EB40889B /* BenchViewModel.swift */; };
+		71BA4AC70AFE2EE8CED1F924 /* HarnessBundle in Resources */ = {isa = PBXBuildFile; fileRef = 11E18F3968EB9F005C3BC01F /* HarnessBundle */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		11E18F3968EB9F005C3BC01F /* HarnessBundle */ = {isa = PBXFileReference; lastKnownFileType = folder; name = HarnessBundle; path = ../HarnessBundle; sourceTree = SOURCE_ROOT; };
+		4D7DA28A5D35F882A31E86AB /* MuseTalkBench */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MuseTalkBench; path = ..; sourceTree = SOURCE_ROOT; };
+		5FC88097F44BD9823FA1A4F4 /* LipsyncPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LipsyncPlayer.swift; sourceTree = "<group>"; };
+		67938F3BFF35A6F4EB40889B /* BenchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchViewModel.swift; sourceTree = "<group>"; };
+		A88CBEF9365B837A3AED734F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B551C3CACA5E81E206FD409C /* MuseTalkBench.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MuseTalkBench.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D9F4D43078B9BF92847A4908 /* LipsyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LipsyncView.swift; sourceTree = "<group>"; };
+		EA6F2884D8BB54EFAC694EB5 /* MuseTalkBenchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuseTalkBenchApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0968D5EC44F21D5ED9705074 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				09D9DC148CFED682A75628F8 /* HarnessCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		51537043BEF0569E7FC67F03 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				67938F3BFF35A6F4EB40889B /* BenchViewModel.swift */,
+				A88CBEF9365B837A3AED734F /* ContentView.swift */,
+				5FC88097F44BD9823FA1A4F4 /* LipsyncPlayer.swift */,
+				D9F4D43078B9BF92847A4908 /* LipsyncView.swift */,
+				EA6F2884D8BB54EFAC694EB5 /* MuseTalkBenchApp.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		597903B951F27F6F1CA1D13B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B551C3CACA5E81E206FD409C /* MuseTalkBench.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		626EDA34A556521346B07A0B /* MuseTalkBench */ = {
+			isa = PBXGroup;
+			children = (
+				11E18F3968EB9F005C3BC01F /* HarnessBundle */,
+			);
+			name = MuseTalkBench;
+			path = ..;
+			sourceTree = "<group>";
+		};
+		ACF576089320A76A0975F185 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				4D7DA28A5D35F882A31E86AB /* MuseTalkBench */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		D2F17853EAB06F17CB38C2C4 = {
+			isa = PBXGroup;
+			children = (
+				626EDA34A556521346B07A0B /* MuseTalkBench */,
+				ACF576089320A76A0975F185 /* Packages */,
+				51537043BEF0569E7FC67F03 /* Sources */,
+				597903B951F27F6F1CA1D13B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8F5D4FEFFCF7C4272598F063 /* MuseTalkBench */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2BBD9130B123C695F4537E8B /* Build configuration list for PBXNativeTarget "MuseTalkBench" */;
+			buildPhases = (
+				72A82F631D9C714DE499E8D0 /* Sources */,
+				9E4A6C4239BC9E950735A0D5 /* Resources */,
+				0968D5EC44F21D5ED9705074 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MuseTalkBench;
+			packageProductDependencies = (
+				F9714277009AE97120C13728 /* HarnessCore */,
+			);
+			productName = MuseTalkBench;
+			productReference = B551C3CACA5E81E206FD409C /* MuseTalkBench.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		26AF350751113D3D04F9733F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					8F5D4FEFFCF7C4272598F063 = {
+						DevelopmentTeam = 563AETFKT9;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = C2D4B410588459C51A06D4EE /* Build configuration list for PBXProject "MuseTalkBench" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = D2F17853EAB06F17CB38C2C4;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5D2AFA258D83F2234F1E4478 /* XCLocalSwiftPackageReference ".." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 597903B951F27F6F1CA1D13B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8F5D4FEFFCF7C4272598F063 /* MuseTalkBench */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9E4A6C4239BC9E950735A0D5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71BA4AC70AFE2EE8CED1F924 /* HarnessBundle in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		72A82F631D9C714DE499E8D0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6BD0A71DE2996705DDC9AC25 /* BenchViewModel.swift in Sources */,
+				237B1C7AE0DC5976B89F32C4 /* ContentView.swift in Sources */,
+				42D1E193F370E52F07683FBE /* LipsyncPlayer.swift in Sources */,
+				68C25DF984C84ED514ACAB39 /* LipsyncView.swift in Sources */,
+				684FD52711A23296121B9B65 /* MuseTalkBenchApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		213EDE93A9EB47AE93D6F6A2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 563AETFKT9;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		88EB71BD1FEEB49BB682625C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = NO;
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingua.musetalkbench;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A3CDDE84C57577AC17B997B2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = NO;
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lingua.musetalkbench;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D3C01C7A72A5F6128B5EAD01 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 563AETFKT9;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2BBD9130B123C695F4537E8B /* Build configuration list for PBXNativeTarget "MuseTalkBench" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				88EB71BD1FEEB49BB682625C /* Debug */,
+				A3CDDE84C57577AC17B997B2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C2D4B410588459C51A06D4EE /* Build configuration list for PBXProject "MuseTalkBench" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D3C01C7A72A5F6128B5EAD01 /* Debug */,
+				213EDE93A9EB47AE93D6F6A2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		5D2AFA258D83F2234F1E4478 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F9714277009AE97120C13728 /* HarnessCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HarnessCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 26AF350751113D3D04F9733F /* Project object */;
+}

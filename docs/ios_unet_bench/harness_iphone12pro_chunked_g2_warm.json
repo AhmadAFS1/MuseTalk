@@ -1,0 +1,257 @@
+{
+  "bundle_created": "2026-10-30T22:26:57",
+  "chains": [],
+  "device": {
+    "chip": "",
+    "cpu_count": 6,
+    "low_power_mode": false,
+    "machine": "iPhone13,3",
+    "memory_gb": 5.58,
+    "model": "D53pAP",
+    "os": "iOS",
+    "os_version": "Version 26.2 (Build 23C55)",
+    "runtime": "iOS",
+    "thermal_state": "serious"
+  },
+  "finished": "2026-10-31T03:33:55Z",
+  "gate": {
+    "mae": 0.01,
+    "max_abs": 0.5,
+    "source": "scripts/validate_unet_backend.py per-file thresholds"
+  },
+  "harness_version": "1",
+  "log": [
+    "free disk 9626 MB (mem 13 MB, 3058 MB left)",
+    "device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal serious, runtime iOS",
+    "UNets: unet_anec0_int8w_b1_chunked (2 stages)",
+    "unet_anec0_int8w_b1_chunked [CPU_AND_NE]: loading 2 stage(s) (mem 13 MB, 3058 MB left)",
+    "unet_anec0_int8w_b1_chunked [CPU_AND_NE]: loaded in 0.59 s [\"0.17\", \"0.42\"] (mem 39 MB, 3032 MB left)",
+    "unet_anec0_int8w_b1_chunked [CPU_AND_NE]: first prediction 61.47 ms (mem 53 MB, 3018 MB left)",
+    "unet_anec0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01326 / max 0.01452; max_abs max 0.8480; 16 frames; FAIL",
+    "unet_anec0_int8w_b1_chunked [CPU_AND_NE]: 54.66 ms/frame mean, p99 56.25, max 56.54 over 50 calls of 1 (mem 41 MB, 3030 MB left)",
+    "settling 5.0 s (mem 27 MB, 3044 MB left)"
+  ],
+  "mac_reference": {
+    "ane_layout_bench": {
+      "host": {
+        "chip": "Apple M5 Pro",
+        "macos": "27.0.1"
+      },
+      "measured_at": "2026-10-30T17:59:04-0500",
+      "results": [
+        {
+          "ane_load_s": 11.6,
+          "ane_ms_per_call": 22.63,
+          "ane_ms_per_frame": 22.626,
+          "ane_p90_ms_per_frame": 22.69,
+          "batch": 1,
+          "bytes": 1703013161,
+          "compute_plan_ops_by_device": {
+            "NeuralEngine": 3049
+          },
+          "face_mae_255": 0.4336286187171936,
+          "face_max_abs_255": 12.75041389465332,
+          "fps_single_stream_unet_only": 44.2,
+          "kind": "unet",
+          "latent_mae": 0.012313341721892357,
+          "latent_max_abs": 0.3589463233947754,
+          "mb": 1624,
+          "name": "unet_ane_fp16_b1",
+          "rss_mb_after": 548,
+          "variant": "ane_fp16",
+          "weight_bytes_per_frame_mb": 1624.1
+        },
+        {
+          "ane_load_s": 8.9,
+          "ane_ms_per_call": 18.87,
+          "ane_ms_per_frame": 18.867,
+          "ane_p90_ms_per_frame": 18.974,
+          "batch": 1,
+          "bytes": 852743287,
+          "compute_plan_ops_by_device": {
+            "NeuralEngine": 3049
+          },
+          "face_mae_255": 0.482073575258255,
+          "face_max_abs_255": 15.357020378112793,
+          "fps_single_stream_unet_only": 53,
+          "kind": "unet",
+          "latent_mae": 0.012812141329050064,
+          "latent_max_abs": 0.3892197608947754,
+          "mb": 813,
+          "name": "unet_ane_int8w_b1",
+          "rss_mb_after": 1638,
+          "variant": "ane_int8w",
+          "weight_bytes_per_frame_mb": 813.2
+        },
+        {
+          "ane_load_s": 16.2,
+          "ane_ms_per_call": 100.56,
+          "ane_ms_per_frame": 25.141,
+          "ane_p90_ms_per_frame": 25.247,
+          "batch": 4,
+          "bytes": 1703013161,
+          "compute_plan_ops_by_device": {
+            "NeuralEngine": 3049
+          },
+          "face_mae_255": 0.4336286187171936,
+          "face_max_abs_255": 12.75041389465332,
+          "fps_single_stream_unet_only": 39.8,
+          "kind": "unet",
+          "latent_mae": 0.012313341721892357,
+          "latent_max_abs": 0.3589463233947754,
+          "mb": 1624,
+          "name": "unet_ane_fp16_b4",
+          "rss_mb_after": 1592,
+          "variant": "ane_fp16",
+          "weight_bytes_per_frame_mb": 406
+        },
+        {
+          "ane_load_s": 13.4,
+          "ane_ms_per_call": 80.29,
+          "ane_ms_per_frame": 20.074,
+          "ane_p90_ms_per_frame": 20.142,
+          "batch": 4,
+          "bytes": 852743287,
+          "compute_plan_ops_by_device": {
+            "NeuralEngine": 3049
+          },
+          "face_mae_255": 0.482073575258255,
+          "face_max_abs_255": 15.357020378112793,
+          "fps_single_stream_unet_only": 49.8,
+          "kind": "unet",
+          "latent_mae": 0.012812141329050064,
+          "latent_max_abs": 0.3892197608947754,
+          "mb": 813,
+          "name": "unet_ane_int8w_b4",
+          "rss_mb_after": 1596,
+          "variant": "ane_int8w",
+          "weight_bytes_per_frame_mb": 203.3
+        }
+      ],
+      "units": "CPU_AND_NE"
+    },
+    "gate": {
+      "pytorch_fp32": {
+        "mae_max": 0.00048121900181286037,
+        "mae_mean": 0.0003826273441518424,
+        "max_abs_max": 0.04686196148395538,
+        "max_abs_mean": 0.014692156575620174,
+        "pass": true
+      },
+      "unet_fp16_b1": {
+        "mae_max": 0.01835004612803459,
+        "mae_mean": 0.01278440683381632,
+        "max_abs_max": 1.0009765625,
+        "max_abs_mean": 0.5215401649475098,
+        "pass": false
+      }
+    },
+    "host": "arm64",
+    "note": "M5 Pro Neural Engine, coremltools 9 Python bench",
+    "server_engines": {
+      "trt_fp16": {
+        "mae_max": 0.0025,
+        "mae_mean": 0.0018,
+        "max_abs_max": 0.414
+      },
+      "trt_int8_srcg50_shipping": {
+        "mae_max": 0.0044,
+        "mae_mean": 0.0032,
+        "max_abs_max": 0.777
+      }
+    }
+  },
+  "options": {
+    "chain_frames": 0,
+    "compute_plan": false,
+    "gpu_check": false,
+    "gpu_check_frames": 64,
+    "include_batch4": false,
+    "reload": false,
+    "settle_seconds": 5,
+    "sustained_seconds": 0,
+    "unet_frames": 50,
+    "unet_units": [
+      "CPU_AND_NE"
+    ],
+    "whisper": false
+  },
+  "repo_commit": "18d105e",
+  "started": "2026-10-31T03:33:46Z",
+  "unet_runs": [
+    {
+      "accuracy": {
+        "files": 2,
+        "frames": 16,
+        "mae_max": 0.014523081845254637,
+        "mae_mean": 0.01326153097943461,
+        "max_abs_max": 0.8479690551757812,
+        "max_abs_mean": 0.6703834533691406,
+        "p95_abs_max": 0.04248046875,
+        "pass": false,
+        "per_file": [
+          {
+            "avatar": "chin_h3_japanese_new",
+            "frames": 8,
+            "mae": 0.014523081845254637,
+            "max_abs": 0.8479690551757812,
+            "name": "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs": 0.04248046875,
+            "pass": false,
+            "rmse": 0.02901597208998043
+          },
+          {
+            "avatar": "chin_h3_latina_new",
+            "frames": 8,
+            "mae": 0.011999980113614583,
+            "max_abs": 0.4927978515625,
+            "name": "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs": 0.03500747680664046,
+            "pass": false,
+            "rmse": 0.01895830014556457
+          }
+        ]
+      },
+      "batch": 1,
+      "compute_units": "CPU_AND_NE",
+      "first_predict_ms": 61.47,
+      "frames_timed": 50,
+      "layout": "apple-ane",
+      "load_first_s": 0.5896,
+      "model": "unet_anec0_int8w_b1_chunked",
+      "stage_files": [
+        "unet_anec0_int8w_b1_chunk1.mlmodelc",
+        "unet_anec0_int8w_b1_chunk2.mlmodelc"
+      ],
+      "stage_load_s": [
+        0.172,
+        0.4175
+      ],
+      "stages": 2,
+      "thermal_after": "serious",
+      "timing_per_call": {
+        "count": 50,
+        "max_ms": 56.5420410130173,
+        "mean_ms": 54.659617454744875,
+        "min_ms": 53.10879193712026,
+        "over_40ms": 50,
+        "over_50ms": 50,
+        "p50_ms": 54.643458453938365,
+        "p90_ms": 55.28487920528278,
+        "p99_ms": 56.246020232792944
+      },
+      "timing_per_frame": {
+        "count": 50,
+        "max_ms": 56.5420410130173,
+        "mean_ms": 54.659617454744875,
+        "min_ms": 53.10879193712026,
+        "over_40ms": 50,
+        "over_50ms": 50,
+        "p50_ms": 54.643458453938365,
+        "p90_ms": 55.28487920528278,
+        "p99_ms": 56.246020232792944
+      },
+      "variant": "anec0_int8w"
+    }
+  ]
+}
