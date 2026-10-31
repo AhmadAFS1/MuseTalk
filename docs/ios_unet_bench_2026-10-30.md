@@ -373,6 +373,19 @@ git clone --depth 1 https://github.com/apple/ml-stable-diffusion /tmp/ml-stable-
 .venv-ct/bin/python scripts/ios/palettize_coreml.py --model unet_ane_fp16_b1 --nbits 6,4
 ```
 
+§12, the on-device harness (Xcode 27, `brew install xcodegen` only to regenerate the project):
+
+```bash
+.venv-ct/bin/python scripts/ios/prepare_harness_bundle.py                      # -> ios/MuseTalkBench/HarnessBundle (1.66 GB)
+cd ios/MuseTalkBench && swift build -c release
+.build/release/bench-mac --resources HarnessBundle --out ../../docs/ios_unet_bench/harness_mac_m5pro.json --frames 300 --sustained 20
+cd App && xcodebuild -project MuseTalkBench.xcodeproj -scheme MuseTalkBench -configuration Release \
+    -destination 'id=<iphone udid>' -derivedDataPath DerivedData -allowProvisioningUpdates build
+xcrun devicectl device install app --device <udid> DerivedData/Build/Products/Release-iphoneos/MuseTalkBench.app
+xcrun devicectl device process launch --device <udid> --console --terminate-existing com.lingua.musetalkbench \
+    --autorun --frames 200 --sustained 30 --exit                                 # phone unlocked, app in front
+```
+
 ## 11. Speed and quality for an A14-class phone, measured where this Mac can measure (2026-10-30, later)
 
 The question behind this section: can the on-device build match the Vast.ai workers' output on an iPhone 12
@@ -486,7 +499,7 @@ compression: free in quality, half the bytes.
 
 ### 11.5 Order of work from here
 
-1. Device measurement with the Apple-layout int8w batch-1 and batch-4 models (a 30-line Xcode harness; the
+1. Device measurement with the Apple-layout int8w batch-1 and batch-4 models (the harness of §12; the
    12 Pro calibrates the projection for the 14/15 Pro).
 2. Labelled review of the ANE output against the fp16 reference on the production characters, as r5 did,
    to decide whether the 0.013 gate miss is acceptable for the product.
@@ -494,3 +507,50 @@ compression: free in quality, half the bytes.
    GPU), since Core ML will not split it for us (§11.2); only worth building for phones whose GPU can carry the
    middle in the budget, measured on the device, not here.
 4. Only then the pipeline work of §9 (window gather, native module, pose logic).
+
+## 12. The on-device harness (2026-10-30, late)
+
+### 12.1 What it is (`ios/MuseTalkBench/`)
+
+A Swift package `HarnessCore` plus two front ends that run the same code: `bench-mac`, a command-line runner
+for this Mac, and an iOS app (`App/`, xcodegen project, SwiftUI) that bundles the models and inputs. The
+bundle (`HarnessBundle/`, 1.66 GB, gitignored) is assembled by `scripts/ios/prepare_harness_bundle.py`:
+`xcrun coremlcompiler` output of `unet_ane_int8w_b1` and `_b4`, `taesd_fp16_b1`, `whisper_encoder_fp16`,
+`whisper_logmel_fp32`; the 128 gate frames of §11.1 as flat fp16 binaries (positional encoding removed, the
+server's fp16 outputs as reference); a 30 s Whisper segment with fp32 torch features; and the Mac gate
+figures for display next to the device's. Per UNet model and compute-unit setting the report has load time
+(first and cached), first-prediction latency, the §11.1 gate statistics per capture file, per-frame timing
+(mean, p50/p90/p99, max, frames over 40/50 ms), and the `MLComputePlan` placement (ops and estimated cost
+per device). Then a sustained run (back-to-back frames for N seconds in 5 s buckets with the thermal state),
+the UNet → TAESD chain per frame, and the Whisper front end with its feature error. The JSON goes to the
+app's Documents folder, the Xcode / `devicectl` console, and the share sheet; `--autorun … --exit` makes it
+scriptable from the Mac. README in the folder has the commands.
+
+Two things learned building it: an iOS bundle must not contain a top-level folder named `Resources`
+(codesign then refuses the whole app), and inside an `async` Swift function `MLModel.prediction(from:)`
+resolves to the asynchronous overload, so the timed calls go through a synchronous helper.
+
+### 12.2 Validation on this Mac (`harness_mac_m5pro.json`)
+
+The harness must reproduce the Python bench before a phone number means anything. It does:
+
+| run | Python bench (§11) | Swift harness |
+|---|---|---|
+| `unet_ane_int8w_b1`, CPU_AND_NE, ms/frame | 18.9 | 18.7 (p99 19.0), 100% ops on the ANE |
+| same, gate mae mean / max_abs max | 0.0131 / 1.03 | 0.0131 / 1.04, FAIL on every file |
+| `unet_ane_int8w_b4`, CPU_AND_NE, ms/frame | 20.1 | 20.1, 100% ANE, gate 0.0131 |
+| Whisper encoder, ANE / GPU, ms per 30 s | 12.2 / 3.1 | 11.1 / 2.2; feature error 9.44 / 2.17 max |
+| log-mel, CPU, ms per 30 s | 1.24 | 1.1 |
+| sustained 20 s, ms/frame first → last bucket | — | 18.2 → 18.4, thermal nominal |
+| UNet → TAESD chain, ALL, ms/frame | 25.2 (§6.1, TAESD on CPU_AND_NE) | 23.7 (UNet 18.6 + TAESD 5.2 when the planner picks its own unit) |
+
+Two results the Python bench had not produced. Under ALL (Core ML's choice) the planner puts the batch-4
+model entirely on the Mac GPU: 13.0 ms/frame, and it then **passes the gate (mae 0.0034, max_abs 0.35)**,
+since the GPU accumulates in fp32. And the int8w model gated on the GPU (CPU_AND_GPU, 64 frames) scores mae
+0.0032 / max_abs 0.23: the int8 weights alone cost what the shipping TensorRT INT8 engine costs (0.0032), so
+the whole remaining gap on the ANE is the ANE's arithmetic. On a phone, the GPU is not an option at this
+size (§11.4), but it is now measured rather than inferred.
+
+Simulator (iPhone 17, iOS 26.2): the app runs end to end on the Mac CPU (no Neural Engine there);
+CPU_AND_NE gives mae 0.0074 (fp32 accumulate), while ALL in the simulator returns garbage (mae 0.67), a
+known simulator GPU-path artifact, not a device result.
