@@ -110,15 +110,22 @@ per-frame Whisper windows and a few Python-composed check frames) into `HarnessB
 Lipsync tab loads the chunked UNet, TAESD and the Whisper models on the Neural Engine, builds the per-frame
 audio windows (`HarnessCore/Lipsync.swift`: the repo's gather and fixed-point blend ported to Swift), renders
 frames ahead of an `AVAudioPlayer` clock, skips frames when generation falls behind the audio (what the server
-does when it drops), and displays through a `CADisplayLink`. The frame loop is a two-stage pipeline
+does when it drops; the skip aims at the clock plus the pipeline's own latency in frames, so the frame it
+produces is still in the future when it comes out), and displays through a `CADisplayLink`. The frame loop is a two-stage pipeline
 (`LipsyncPipeline`): the Neural Engine stage (UNet chunks + TAESD) and the CPU stage (JPEG decode, resize, blend,
 CGImage) run on two threads joined by a short queue, so a frame costs the slower stage, not the sum. Launch with
 `--lipsync --exit` to autoplay and print a `LIPSYNC_RESULT` JSON line (generated fps, stage times, skipped, stalls).
 `bench-mac --lipsync-check HarnessBundle/avatar` runs the same loop on the Mac against the Python references:
 windows within the ANE encoder's error, composed frames within 0.17/255; sequential 23.6 ms/frame
 (UNet 18.9 + TAESD 1.7 + compose 3.0), pipelined 20.8 ms/frame wall = the Neural Engine stage alone.
-Status: ran on the Mac; on the iPhone 12 Pro it was installed and had started its first-launch compile when
-the phone was unplugged, so no phone playback figure yet.
+On the iPhone 12 Pro (2026-10-31, `docs/ios_unet_bench/lipsync_iphone12pro_pipelined_run2.json`): the 426-frame
+Latina clip plays end to end with **291 faces generated and 290 shown in 17.7 s = 16.4 fps, 0 stalls, 0 late
+drops**, 135 frames skipped by the clock; Neural Engine stage 65.7 ms, CPU stage 10.4 ms in parallel; 25 frames
+pre-rolled; first launch after an install compiles the chunks (28 s) and the Whisper models (4 s). Two bugs the Mac
+path never reached were found on the phone and fixed: the frame buffer read its own `count` inside a locked
+closure (NSLock is not re-entrant; the view hung on its title with frame 0 stored), and the skip-ahead aimed at
+the clock itself, so a 64 ms inference landed 1.5 frames late and 130 of 298 faces were dropped (9.4 fps shown);
+it now aims `clock + lead`, lead = pipeline latency in frames + 1 (3 on the A14).
 
 ## Notes
 

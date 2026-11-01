@@ -7,16 +7,38 @@ import QuartzCore
 import UIKit
 
 /// Composed frames waiting for the display link, shared between the pipeline's CPU stage and the main thread.
+/// Every method takes the (non-recursive) lock once and never calls another method while holding it: the first
+/// phone run hung because a locked closure read `count`, which locks again.
 final class FrameBuffer: @unchecked Sendable {
     private let lock = NSLock()
     private var frames: [Int: CGImage] = [:]
-    var audioStart: Double? = nil      // monotonic seconds when the audio started
-    var startRequested = false
-    var done = false
+    private var audioStartValue: Double? = nil   // monotonic seconds when the audio started
+    private var startRequested = false
+    private var doneValue = false
 
-    func reset() { lock.lock(); frames = [:]; audioStart = nil; startRequested = false; done = false; lock.unlock() }
-    func put(_ i: Int, _ img: CGImage) { lock.lock(); frames[i] = img; lock.unlock() }
+    func reset() { lock.lock(); frames = [:]; audioStartValue = nil; startRequested = false; doneValue = false; lock.unlock() }
+    /// Stores a composed frame; true the first time the buffer holds `preroll` frames (the caller then starts the audio).
+    func put(_ i: Int, _ img: CGImage, preroll: Int) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        frames[i] = img
+        if startRequested || frames.count < preroll { return false }
+        startRequested = true
+        return true
+    }
+    /// Marks the pipeline finished; true if the audio has not been started yet (a clip shorter than the pre-roll).
+    func markDone() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        doneValue = true
+        if startRequested { return false }
+        startRequested = true
+        return true
+    }
     var count: Int { lock.lock(); defer { lock.unlock() }; return frames.count }
+    var done: Bool { lock.lock(); defer { lock.unlock() }; return doneValue }
+    var audioStart: Double? {
+        get { lock.lock(); defer { lock.unlock() }; return audioStartValue }
+        set { lock.lock(); audioStartValue = newValue; lock.unlock() }
+    }
     /// The newest frame at or before `target`; drops everything older than it.
     func take(upTo target: Int) -> (Int, CGImage)? {
         lock.lock(); defer { lock.unlock() }
@@ -24,7 +46,6 @@ final class FrameBuffer: @unchecked Sendable {
         for k in frames.keys where k < best { frames[k] = nil }
         return (best, img)
     }
-    func with<T>(_ body: (FrameBuffer) -> T) -> T { lock.lock(); defer { lock.unlock() }; return body(self) }
 }
 
 @MainActor
@@ -121,23 +142,17 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         // Two stages on two threads: the Neural Engine (UNet chunks + TAESD) and the CPU (JPEG decode + blend + CGImage),
         // kept about one second ahead of the audio clock; frames the clock has passed are skipped, never rendered.
         let pipe = LipsyncPipeline(engine: engine, aheadFrames: fps)
+        pipe.frameMs = 1000.0 / Double(fps)
         pipe.log = { print("[lipsync] \($0)") }
-        pipe.targetIndex = { buf.with { $0.audioStart }.map { Int((now() - $0) * Double(fps)) } }
+        pipe.targetIndex = { buf.audioStart.map { Int((now() - $0) * Double(fps)) } }
         pipe.downstreamCount = { buf.count }
         pipeline = pipe
         pipe.start(emit: { [weak self] i, img in
-            guard let cg = img.cgImage() else { return }
-            buf.put(i, cg)
-            let request = buf.with { b -> Bool in
-                if b.startRequested || b.count < preroll { return false }
-                b.startRequested = true
-                return true
-            }
-            if request { DispatchQueue.main.async { self?.startAudio() } }
+            guard let cg = img.cgImage() else { print("[lipsync] frame \(i): CGImage failed"); return }
+            if buf.put(i, cg, preroll: preroll) { DispatchQueue.main.async { self?.startAudio() } }
         }, done: { [weak self] in
             // a clip shorter than the pre-roll: start anyway
-            let request = buf.with { b -> Bool in b.done = true; if b.startRequested { return false }; b.startRequested = true; return true }
-            if request { DispatchQueue.main.async { self?.startAudio() } }
+            if buf.markDone() { DispatchQueue.main.async { self?.startAudio() } }
         })
         displayLink?.invalidate()
         let dl = CADisplayLink(target: self, selector: #selector(tick))
@@ -150,14 +165,14 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         guard state == .preroll else { return }
         let t0 = now()
         player?.play()
-        buffer.with { $0.audioStart = t0 }
+        buffer.audioStart = t0
         state = .playing
         status = "streaming \(avatarName) at \(fps) fps · \(total) frames"
         print("[lipsync] audio started after pre-roll; \(buffer.count) frames buffered")
     }
 
     @objc private func tick() {
-        guard let start = buffer.with({ $0.audioStart }) else {
+        guard let start = buffer.audioStart else {
             if let (i, img) = buffer.take(upTo: 0), i != shownIndex { image = img; shownIndex = i }
             return
         }
@@ -170,15 +185,15 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         }
         ticks += 1
         if ticks % 15 == 0 { updateStats(t: t) }
-        let finished = buffer.with { $0.done } && (shownIndex >= total - 1 || t * Double(fps) > Double(total) + 0.5)
+        let finished = buffer.done && (shownIndex >= total - 1 || t * Double(fps) > Double(total) + 0.5)
         if finished || t > Double(total) / Double(fps) + 2 { finish(t: t) }
     }
 
     private func updateStats(t: Double) {
         guard let s = pipeline?.snapshot else { return }
         let genFps = t > 0 ? Double(s.generated) / t : 0
-        stats = String(format: "generated %d (%.1f fps) · ANE %.0f ms · CPU %.0f ms · skipped %d · late %d · shown %d · stalls %d · buffer %d · t %.1f s",
-                       s.generated, genFps, s.inferMs, s.composeMs, s.skipped, s.droppedLate, shown, stalls, buffer.count, t)
+        stats = String(format: "generated %d (%.1f fps) · ANE %.0f ms · CPU %.0f ms · lead %d · skipped %d · late %d · shown %d · stalls %d · buffer %d · t %.1f s",
+                       s.generated, genFps, s.inferMs, s.composeMs, s.leadFrames, s.skipped, s.droppedLate, shown, stalls, buffer.count, t)
     }
 
     private func finish(t: Double) {
@@ -193,7 +208,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         let result: [String: Any] = ["avatar": avatarName, "fps": fps, "frames": total, "seconds": t, "generated": s.generated,
                                      "generated_fps": t > 0 ? Double(s.generated) / t : 0,
                                      "gen_ms_per_frame": s.inferMs + s.composeMs, "stage_infer_ms": s.inferMs, "stage_compose_ms": s.composeMs,
-                                     "skipped": s.skipped, "dropped_late": s.droppedLate, "pipelined": true,
+                                     "skipped": s.skipped, "dropped_late": s.droppedLate, "lead_frames": s.leadFrames, "pipelined": true,
                                      "shown": shown, "stalls": stalls, "load_s": engine?.loadSeconds ?? 0,
                                      "audio_prep_s": engine?.audioSeconds ?? 0, "unet": engine?.spec.name ?? ""]
         if let data = try? JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]) {
@@ -204,6 +219,6 @@ final class LipsyncPlayer: NSObject, ObservableObject {
 
     func stop() {
         pipeline?.cancel()
-        finish(t: buffer.with { $0.audioStart }.map { now() - $0 } ?? 0)
+        finish(t: buffer.audioStart.map { now() - $0 } ?? 0)
     }
 }

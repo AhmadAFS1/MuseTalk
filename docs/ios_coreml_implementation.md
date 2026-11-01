@@ -22,8 +22,9 @@ the ANE's fp16 arithmetic puts the UNet at latent mae 0.013 against the server's
 TensorRT INT8 is 0.003); in pixels that is 0.18/255 on the composed face, and an r5-style labelled review shows five
 of six production characters inside the band the servers already accepted and one (Japanese) failing the lip
 aperture thresholds. A human blind pass is still pending. A streaming lipsync view (bundled avatar + bundled clip,
-audio-clock pacing, frame skipping) is built into the harness app and verified on the Mac; its first iPhone run is
-the next step.
+audio-clock pacing, frame skipping, a two-stage pipeline) plays on the iPhone 12 Pro at **16.4 fps shown, no
+stalls**, the audio never waiting for the video. The A14's Neural Engine is **compute-bound** (batch 4 moved the
+frame by 3.8 %), so this phone stays below the 20 fps line and newer phones are the way to real time.
 
 ---
 
@@ -41,11 +42,11 @@ the next step.
 | 8 | Avatar cache → phone bundle exporter | done (one avatar, 46 MB) | `scripts/ios/prepare_avatar_bundle.py` |
 | 9 | On-device timing harness (Swift package + CLI + iOS app) with the repo gate | done, reproduces the Python bench on the Mac | §12.1–12.2; `ios/MuseTalkBench/` |
 | 10 | iPhone 12 Pro measured (UNet, chain, sustained, Whisper, gate) | done | §12.3; `harness_iphone12pro_*.json` |
-| 11 | Streaming lipsync view (avatar + clip, audio-clock pacing, frame skipping, two-stage pipeline) | built, Mac-verified: 20.8 ms/frame wall = the ANE stage alone; **phone playback not yet measured** | README "Lipsync tab"; `HarnessCore/Lipsync.swift` (`LipsyncPipeline`), `App/Sources/LipsyncPlayer.swift` |
+| 11 | Streaming lipsync view (avatar + clip, audio-clock pacing, frame skipping, two-stage pipeline) | **played end to end on the iPhone 12 Pro 2026-10-31: 16.4 fps generated and shown, 0 stalls, 0 late drops, audio never waited** (ANE stage 65.7 ms, CPU stage 10.4 ms hidden by the pipeline); two phone-only bugs fixed on the way (a frame-buffer self-deadlock, and a skip-ahead that aimed at the clock itself) | README "Lipsync tab"; `lipsync_iphone12pro_pipelined_run{1,2}.json`; `HarnessCore/Lipsync.swift` (`LipsyncPipeline`), `App/Sources/LipsyncPlayer.swift` |
 | 12 | Repo quality gate on the Core ML UNet and attribution of the ANE error | done: fails at mae 0.013, cause is ANE conv/linear fp16 accumulate | §11.1–11.2 |
 | 13 | r5-style labelled A/B review package (12 clips, 6 characters) | rendered, metrics computed; **human blind pass pending** | §12.4; `docs/ios_unet_bench/review_ane_vs_fp16/` |
 | 14 | Speed levers tried and rejected (int8 activations, 6/4-bit palettization, fp32 islands, GroupNorm rewrite) | measured, rejected | §4, §11.2, §11.3 |
-| 15 | Batch-4 two-chunk UNet: the experiment that tells bandwidth-bound from compute-bound on the A14 (§5.4) | exported 2026-10-31, bit-identical to batch 1 on the Mac ANE, in the bundle; **phone run pending** | bench doc §12.5; `chunk_unet_anec0_int8w_b4_m5pro.json`, `harness_mac_b4_chunked_m5pro.json` |
+| 15 | Batch-4 two-chunk UNet: the experiment that tells bandwidth-bound from compute-bound on the A14 (§5.4) | **measured on the phone 2026-10-31: 54.2 vs 56.4 ms/frame (−3.8 %), gate identical; verdict: the A14 ANE is compute-bound** | bench doc §12.5; `harness_iphone12pro_b4_vs_b1.json`, `chunk_unet_anec0_int8w_b4_m5pro.json`, `harness_mac_b4_chunked_m5pro.json` |
 | 16 | GPU accuracy anchor on the phone | not measured (killed with the single program); low value | §12.3 |
 | 17 | Audio from a microphone or TTS stream instead of a bundled clip | not started | §9 below |
 | 18 | Avatar download from S3 at runtime; multiple avatars; pose router | not started | §9 below |
@@ -166,9 +167,12 @@ decoder ~2, compose ~6 in unoptimised Swift).
 - **Pre-roll**: the pipeline renders frames 0, 1, 2 … into a `FrameBuffer` (lock-protected dictionary); when
   `min(total, fps)` frames (1 s) are buffered, the `AVAudioPlayer` starts and the start time becomes the clock.
 - **Render-ahead and skipping**: the pipeline keeps at most `fps` frames (≈1 s) finished or in flight. When the
-  clock has passed frame `i` before the UNet ran it, the Neural Engine stage jumps to `clock + 1` and counts the gap
-  as **skipped** (the server does the same when it drops); a face that is already late by the time it reaches the
-  CPU stage is **dropped late** instead of blended.
+  clock has passed frame `i` before the UNet ran it, the Neural Engine stage jumps to `clock + lead` and counts the
+  gap as **skipped** (the server does the same when it drops), where `lead` is the pipeline's own latency in
+  frames plus one (a moving average of UNet + TAESD + compose over the frame duration, `Stats.leadFrames`; 1 until
+  the first frame is timed). Aiming at `clock + 1` was the first phone run's mistake: a 64 ms inference lands
+  1.5 frames after the clock position it was aimed at, so 130 of 298 generated faces arrived late and were
+  dropped. A face that is still late by the time it reaches the CPU stage is **dropped late** instead of blended.
 - **Display**: a `CADisplayLink` (30–60 Hz) takes the newest buffered frame with index ≤ `floor(t × fps)`, drops
   older ones, and counts a **stall** when nothing new is available for a frame the clock has reached.
 - **Finish**: when the clip is done (or 2 s past its end) the player prints one line
@@ -178,9 +182,11 @@ decoder ~2, compose ~6 in unoptimised Swift).
 - Launch flags: `--lipsync` opens the Lipsync tab and autoplays; `--exit` as above. Without flags: Play / Stop
   buttons in the tab.
 
-On the A14 the Neural Engine stage alone is ~60–65 ms (UNet 55–60 + TAESD 5), and with the CPU stage off the
-critical path that is the expected frame cost: ~15–16 generated fps with the remaining frames skipped; the audio
-never waits for the video.
+Measured on the A14 (2026-10-31, `lipsync_iphone12pro_pipelined_run2.json`): the Neural Engine stage is 65.7 ms
+(UNet ~60 + TAESD ~5, phone warm after the compile), the CPU stage 10.4 ms in parallel, so the frame costs the ANE
+stage alone: **291 faces generated and 290 shown over the 17.7 s clip = 16.4 fps, 0 stalls, 0 late drops, 135
+frames skipped**, lead settled at 3 frames (125 ms behind the clock position it aims at, inside the 1 s
+pre-roll). The audio never waits for the video.
 
 ---
 
@@ -263,7 +269,7 @@ baked in: [B, 4, 32, 32] → [B, 3, 256, 256] in [0, 1], 2.4 MB, 1.5 ms on the M
 | fp32 islands for GroupNorm / softmax / attention matmuls | no change in gate mae (0.0126–0.0128) | §11.2 |
 | fp32 for the 1,280-channel middle or long accumulations | Core ML put the whole model on the CPU; not a hybrid | §11.2 |
 | GroupNorm as chained short reductions on the ANE | no change | §11.2–11.3 |
-| batch 4 on the ANE | compiles with the Apple layout; slower per frame on the Mac (compute-bound); not measured on the A14 | §11.3, §12.3 |
+| batch 4 on the ANE | compiles with the Apple layout; slower per frame on the Mac (compute-bound); on the A14 54.2 vs 56.4 ms/frame (−3.8 %), so compute-bound there too, at four frames of latency | §11.3, §12.5 |
 | `MLComputeUnits.all` on the phone | 130 ms transient after a compile; moves TAESD to the CPU | §12.3 |
 | `bisect_model` chunks | fp32 boundaries → CPU/GPU on the A14 | §12.3 |
 
@@ -333,7 +339,7 @@ for the phone chain (bench doc §12.4, package `README.md`):
 |---|---|
 | UNet diffusers layout fp16 / int8w, batch 1 | 27.1 / 23.5 ms |
 | UNet Apple layout fp16 / int8w, batch 1 | 22.6 / **18.9** ms (Swift harness: 18.7, p99 19.0) |
-| UNet Apple layout fp16 / int8w, batch 4 (per frame) | 25.1 / 20.1 ms (compute-bound here; the batch win is bandwidth on phones) |
+| UNet Apple layout fp16 / int8w, batch 4 (per frame) | 25.1 / 20.1 ms (compute-bound here, and on the A14 too: §5.2) |
 | TAESD | 1.5 ms |
 | UNet + TAESD chain | 23.7–25.3 ms; 750 frames p99 26.1, max 28.5, none over 40 ms |
 | Whisper encoder / log-mel per 30 s | 12.2 ms ANE (3.1 GPU) / 1.2 ms CPU |
@@ -356,12 +362,18 @@ for the phone chain (bench doc §12.4, package `README.md`):
 | First prediction after a compile | 65–78 ms |
 | Compile (first launch) | 12–32 s per chunk, per compute-unit setting, ~1.7 GB cache writes |
 | Warm relaunch (compiled chunks cached) | load 0.59 s (0.17 + 0.42), first prediction 61.5, then 54.7 ms (p99 56.3) |
-| Lipsync view playback | **not yet measured** |
+| **Batch-4 two-chunk UNet, 50 calls of 4, phone at "fair"** (2026-10-31; `harness_iphone12pro_b4_vs_b1.json`) | **54.2 ms/frame** (p50 54.4, p99 55.7, max 55.8) = 217 ms per call; batch 1 in the same session 56.4 (p50 56.3, p99 58.1); gate identical (mae 0.01369); 100 % ANE |
+| Batch-4 compile / first call | 46.4 s (19.7 + 26.7) / 222 ms |
+| Sustained 30 s from a warm start ("fair" after 70 s of compiles) | 67.1 mean (p99 83.6, 448 frames); buckets 54.1 → 55.6 → 69.7 → 78.4 → 78.5 → 76.4 |
+| **Lipsync view, Latina clip, 426 frames at 24 fps** (2026-10-31; `lipsync_iphone12pro_pipelined_run2.json`) | **291 faces generated and 290 shown in 17.7 s = 16.4 fps, 0 stalls, 0 late drops**, 135 frames skipped by the clock; ANE stage 65.7 ms (UNet + TAESD, phone warm), CPU stage 10.4 ms in parallel; 25 frames pre-rolled; load 27.7 s (compile after a reinstall), audio prep 4.4 s (Whisper compile included) |
+| Same, with the skip aimed at the clock itself (run 1) | 298 generated but only 167 shown (9.4 fps): 130 faces arrived 1–2 frames late and were dropped |
 
-Reading: 52–55 ms cool, 59–62 ms hot, plus 5 ms decoder, so 16–17 fps sustained against the server's 20 fps
-(50 ms budget). Projections by the same arithmetic, unmeasured: iPhone 14 Pro ~35 ms, 15/16 Pro 30–40 ms (real time
-at 20 fps), 17 Pro 25–30 ms. Phones from the A17 Pro on also keep int8 weights as int8 on the ANE, which removes the
-compile peak that made chunking mandatory here.
+Reading: 52–56 ms cool, 59–62 ms hot and up to 78 ms when the phone starts warm, plus 5 ms decoder, so 16–17 fps
+sustained from cool and 13–15 fps warm, against the server's 20 fps (50 ms budget). **Batch 4 moved the frame by
+2 ms (−3.8 %), so the A14 Neural Engine is compute-bound, not starved for weight bandwidth** (§5.4). Projections by
+the same arithmetic, unmeasured: iPhone 14 Pro ~35 ms, 15/16 Pro 30–40 ms (real time at 20 fps), 17 Pro 25–30 ms.
+Phones from the A17 Pro on also keep int8 weights as int8 on the ANE, which removes the compile peak that made
+chunking mandatory here.
 
 ### 5.3 Operating rules learned on the phone
 
@@ -371,6 +383,12 @@ compile peak that made chunking mandatory here.
 4. Expect 30–60 s of compile on first launch per compute-unit setting (the cache is keyed per setting) and ~1.7 GB
    of cache writes; check free disk first (the kills were a full disk plus the in-process fp16 expansion).
 5. `devicectl` can only launch while the phone is unlocked; the harness retries on "Locked".
+6. A reinstall empties the Core ML compile cache: the first launch after every install compiles again (27 s for
+   the batch-1 chunks, 46 s for the batch-4 pair, ~4 s for the Whisper models). In product terms every app update
+   costs one compile; do not measure playback in the same minute (the chip is at "fair" afterwards).
+7. Never call a lock-taking method from inside a closure that already holds the same `NSLock`: the first phone run
+   of the Lipsync view hung on exactly that (the frame buffer's `count` read inside its own `with`), with the
+   title on screen and no frames; the Mac path never exercised it. `FrameBuffer` now takes its lock once per method.
 
 ### 5.4 Where the bottleneck is (2026-10-31; bench doc §12.5)
 
@@ -383,18 +401,24 @@ Asked as "is it RAM, CPU, or the accelerator", the phone's situation is three se
   in series after the two Neural Engine calls on one thread while the CPU idled during them. The two-stage pipeline
   (§2.6) overlaps it: Mac 23.6 → 20.8 ms wall, equal to the ANE stage. On the A14 the CPU stage is ~8–10 ms, hidden
   the same way as long as it stays under the ~60 ms ANE stage.
-- **Neural Engine: the bottleneck, bound by either bandwidth or compute.** 52–55 ms cool / 59–62 ms hot per UNet
-  frame. Bandwidth: the compiled program on the phone is ~1.6 GB for the 813 MB int8 model, so the A14 streams fp16
-  weights every frame; 1.6 GB at ~34 GB/s is a 48 ms floor, within 10 % of the cool measurement. Compute: the M5 Pro
-  ANE is compute-bound at 18.9 ms and the A14 ANE is roughly a third per op, ~57 ms, also matching. **Batch 4
-  separates them**: weights read once per four frames (12 ms floor), compute unchanged. Bandwidth-bound → the frame
-  time drops toward the compute limit, possibly to the 50 ms line; compute-bound → no change, as on the Mac. The
-  batch-4 chunks are exported, bit-identical, and in the bundle; the phone run is open item 1. Cost of batch 4:
-  four frames of latency (167 ms at 24 fps), inside the server's prebuffer.
-- **If compute-bound**, no cheap ANE lever remains (int8 activations fail quality, palettization saves bytes not
-  operations, the FLOPs are fixed): the A14 is below the line and the 15 Pro and later are the answer. Levers worth
-  a few ms each, not yet taken: output backings for the 13 boundary tensors (3.4 MB allocated per frame), TAESD
-  fused into chunk 2, the blend in Metal. Thermal throttling costs 13 % over 30 s and is part of the product figure.
+- **Neural Engine: the bottleneck, and it is compute-bound.** 52–56 ms cool / 59–62 ms hot per UNet frame. Two
+  hypotheses fit the batch-1 numbers. Bandwidth: the compiled program on the phone is ~1.6 GB for the 813 MB int8
+  model, so the A14 streams fp16 weights every frame; 1.6 GB at ~34 GB/s is a 48 ms floor, within 10 % of the cool
+  measurement. Compute: the M5 Pro ANE is compute-bound at 18.9 ms and the A14 ANE is roughly a third per op,
+  ~57 ms, also matching. **Batch 4 separated them** (weights read once per four frames, 12 ms floor, compute
+  unchanged): measured 2026-10-31 in one session, **54.2 ms/frame at batch 4 against 56.4 at batch 1, −3.8 %**, with
+  the phone a thermal step warmer for the batch-4 run and the gate identical. A bandwidth-bound frame would have
+  lost most of its 48 ms; it lost 2. Weight streaming is a few milliseconds of the frame and the rest is
+  arithmetic. Batch 4 stays available as a 2 ms lever that costs four frames of latency (167 ms at 24 fps) and a
+  222 ms first call; not worth taking alone.
+- **Compute-bound means no cheap ANE lever remains** (int8 activations fail quality, palettization saves bytes not
+  operations, the FLOPs are fixed): the A14 is below the 20 fps line and the 15 Pro and later are the answer.
+  Levers worth a few ms each, not yet taken: output backings for the 13 boundary tensors (3.4 MB allocated per
+  frame), TAESD fused into chunk 2, the blend in Metal.
+- **Thermal state is the larger variable.** From a cool start the sustained run lost 13 % over 30 s (54.5 → 62.4 ms);
+  from a warm start (after 70 s of compiles) it lost 45 % within 15 s (54.1 → 78.4 ms, 67.1 mean). The product
+  figure for this phone is the warm one, 13–15 fps, and keeping the chip cool (no compile in the same minute as
+  playback, shorter turns) is worth more than the remaining levers.
 
 ---
 
@@ -494,7 +518,7 @@ ios/MuseTalkBench/
   turns, latency, Whisper, phone projection, levers, product gaps, reproduce, gate + attribution, harness, iPhone,
   review).
 - `ios_unet_bench/*.json`: every measurement (`baseline_torch_*`, `coreml_*`, `gate_*`, `profile_*`, `latency_*`,
-  `turns_*`, `whisper_coreml_*`, `chunk_*`, `harness_mac_*`, `harness_iphone12pro_*`).
+  `turns_*`, `whisper_coreml_*`, `chunk_*`, `harness_mac_*`, `harness_iphone12pro_*`, `lipsync_iphone12pro_*`).
 - `ios_unet_bench/evidence/`: stills and metrics for codex_smoke, Japanese, Latina.
 - `ios_unet_bench/review_ane_vs_fp16/`: README, `review_sheet.csv`, `key/blind_key.json`, `metrics.{json,md}`, stills.
 - This file.
@@ -530,27 +554,26 @@ cd ios/MuseTalkBench && swift build -c release
 
 ## 9. Open items, in order
 
-1. **Two phone runs on the iPhone 12 Pro** (unlocked, foreground, free disk ≥ 4 GB): the batch-4 vs batch-1 chunked
-   UNets (`--autorun --models unet_anec0_int8w_b4_chunked,unet_anec0_int8w_b1_chunked --units CPU_AND_NE
-   --phase-units CPU_AND_NE --frames 200 --sustained 30 --accuracy-frames 32 --no-gpu --no-reload --settle 10
-   --exit`), which decides bandwidth-bound vs compute-bound (§5.4), and the pipelined Lipsync view (`--lipsync
-   --exit`, capture `LIPSYNC_RESULT`). Record both in the bench doc §12.5 and in §5.2 here.
-2. **Human blind pass** of the review package (`docs/ios_unet_bench/review_ane_vs_fp16/README.md`), unblind, apply
+1. **Human blind pass** of the review package (`docs/ios_unet_bench/review_ane_vs_fp16/README.md`), unblind, apply
    the acceptance rule. The one question is the Japanese character's lip aperture.
-3. If the Japanese result needs fixing: the only known lever is moving the error-carrying 1,280-channel middle blocks
+2. If the Japanese result needs fixing: the only known lever is moving the error-carrying 1,280-channel middle blocks
    to the GPU as a separate model (Core ML will not split it; bench doc §11.2), worth it only on phones whose GPU can
    carry it; not an A14.
+3. **Newer phone**: an iPhone 15 Pro or later run (int8 weights stay int8 on the ANE; 30–40 ms projected) decides
+   whether real time at 20 fps is reachable without a GPU split. The A14 is settled: compute-bound at 54–66 ms per
+   frame, 16.4 fps shown, 13–15 fps when warm (§5.2, §5.4).
 4. **Streaming audio**: replace the bundled clip with a ring buffer fed by the microphone or a TTS stream; the window
    gather already works per frame, the encoder needs the 30 s segment re-run as audio arrives (28 ms on the A14) or
    the server can send the windows with the audio.
 5. **Avatar download**: fetch a character's cache from S3 and convert on device (or publish the phone bundle format
    from the character factory); multiple avatars; the pose router / idle-live switching from `webrtc_pose_router.py`.
-6. **Compose in Metal or Accelerate** (the Swift blend is ~6 ms on the Mac, more on an A14) and double-buffer the
-   UNet inputs so the ANE never waits on the decoder or the blend.
-7. **Newer phone**: an iPhone 15 Pro or later run (int8 weights stay int8 on the ANE; 30–40 ms projected) decides
-   whether real time at 20 fps is reachable without a GPU split.
-8. **Lingua integration**: a native module around `HarnessCore` (the Lingua app is Expo 53 / React Native 0.79 with no
-   on-device ML today; it consumes WebRTC from the server).
+6. **Thermal budget and the few-ms levers**: the warm phone loses up to 45 % of its Neural Engine speed within 15 s
+   (§5.4), which outweighs the remaining levers (output backings for the 13 boundary tensors, TAESD fused into
+   chunk 2, the 10 ms CPU stage in Metal or Accelerate, already hidden by the pipeline). A product build should
+   compile at install time, not before a call, and measure a 5-minute call, not a 30 s burst.
+7. **Lingua integration**: a native module around `HarnessCore` (the Lingua app is Expo 53 / React Native 0.79 with no
+   on-device ML today; it consumes WebRTC from the server). The Lipsync tab is the reference for what the module
+   does: the phone renders and displays its own frames, no WebRTC and no server in the loop.
 
 ---
 
@@ -572,4 +595,5 @@ cd ios/MuseTalkBench && swift build -c release
 | `c77437a` | 2026-10-30 | Streaming lipsync view (avatar bundle export, Swift frame loop, paced player) |
 | `6ea7532` | 2026-10-30 | Review package rendered for six production characters; metrics and findings in the bench doc §12.4 |
 | `79e3535` | 2026-10-31 | This document |
-| — | 2026-10-31 | Bottleneck pinpointing: two-stage lipsync pipeline (CPU stage off the critical path, Mac 23.6 → 20.8 ms); batch-4 two-chunk UNet exported for the bandwidth-vs-compute test on the A14; bench doc §12.5 |
+| `9d4904e` | 2026-10-31 | Bottleneck pinpointing: two-stage lipsync pipeline (CPU stage off the critical path, Mac 23.6 → 20.8 ms); batch-4 two-chunk UNet exported for the bandwidth-vs-compute test on the A14; bench doc §12.5 |
+| — | 2026-10-31 | Phone runs: batch 4 vs batch 1 on the iPhone 12 Pro (54.2 vs 56.4 ms: compute-bound), warm-start sustained run (54 → 78 ms), the lipsync view played on the phone (16.4 fps shown, 0 stalls); fixes: `Stats` public init (app build), `FrameBuffer` self-deadlock, skip-ahead aims `clock + lead`; results in §5.2, §5.4 and bench doc §12.5 |

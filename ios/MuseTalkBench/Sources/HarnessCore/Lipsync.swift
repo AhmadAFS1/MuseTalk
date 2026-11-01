@@ -538,13 +538,17 @@ public final class LipsyncPipeline {
         public var droppedLate = 0      // inferred, then too late to compose
         public var inferMsSum = 0.0
         public var composeMsSum = 0.0
+        public var leadFrames = 1       // how far ahead of the audio clock the last catch-up aimed
         public var inferMs: Double { generated > 0 ? inferMsSum / Double(generated) : 0 }
         public var composeMs: Double { composed > 0 ? composeMsSum / Double(composed) : 0 }
+        public init() {}
     }
 
     public let engine: LipsyncEngine
     public var aheadFrames: Int
     public var queueDepth = 3
+    /// Clip frame duration; with `targetIndex` it sets how far ahead of the clock a catch-up aims.
+    public var frameMs = 1000.0 / 24
     public var targetIndex: () -> Int? = { nil }
     public var downstreamCount: () -> Int = { 0 }
     public var log: (String) -> Void = { _ in }
@@ -552,6 +556,7 @@ public final class LipsyncPipeline {
     private let lock = NSLock()
     private var queue: [(Int, [UInt8])] = []
     private var stats = Stats()
+    private var recentMs = 0.0           // moving average of one frame's time through both stages
     private var stopped = false
     private var inferDone = false
     private var threads: [Thread] = []
@@ -564,6 +569,17 @@ public final class LipsyncPipeline {
     public var snapshot: Stats { lock.lock(); defer { lock.unlock() }; return stats }
     public var queued: Int { lock.lock(); defer { lock.unlock() }; return queue.count }
 
+    /// Frames to aim ahead of the clock when catching up: the pipeline's own latency in frames, plus one. A frame
+    /// inferred *at* the clock comes out 1–2 frames late on an A14 and is dropped; aimed ahead, it is shown.
+    private func leadFrames() -> Int {
+        let ms = lock.withLock { recentMs }
+        return ms > 0 ? Int((ms / frameMs).rounded(.up)) + 1 : 1
+    }
+
+    private func observe(frameMs ms: Double) {
+        lock.withLock { recentMs = recentMs > 0 ? recentMs * 0.8 + ms * 0.2 : ms }
+    }
+
     /// Starts both stages. `emit` runs on the CPU stage's thread with every composed frame; `done` once, when the
     /// last frame has left the pipeline (or after `cancel`).
     public func start(from first: Int = 0, count: Int? = nil,
@@ -573,10 +589,13 @@ public final class LipsyncPipeline {
             var i = first
             while i < total {
                 if lock.withLock({ stopped }) { break }
-                if let t = targetIndex(), t + 1 > i {
-                    lock.withLock { stats.skipped += t + 1 - i }
-                    i = t + 1
-                    if i >= total { break }
+                if let t = targetIndex() {
+                    let lead = leadFrames()
+                    if t + lead > i {
+                        lock.withLock { stats.skipped += t + lead - i; stats.leadFrames = lead }
+                        i = t + lead
+                        if i >= total { break }
+                    }
                 }
                 if downstreamCount() + queued >= aheadFrames || queued >= queueDepth { usleep(1000); continue }
                 do {
@@ -586,6 +605,7 @@ public final class LipsyncPipeline {
                         stats.generated += 1
                         stats.inferMsSum += r.unetMs + r.decodeMs
                     }
+                    observe(frameMs: r.unetMs + r.decodeMs + lock.withLock { stats.composeMs })
                 } catch {
                     log("infer \(i): \(error)")
                 }
