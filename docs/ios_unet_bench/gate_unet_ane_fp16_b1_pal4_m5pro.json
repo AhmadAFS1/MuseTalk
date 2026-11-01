@@ -1,0 +1,184 @@
+{
+  "model": "unet_ane_fp16_b1_pal4",
+  "units": "CPU_AND_NE",
+  "capture_dir": "/Users/ahmadsmacair/code/musetalk-ios-bench/calibration/unet_portable_bs8",
+  "summary": {
+    "files": 16,
+    "mae_mean": 0.05647475062869489,
+    "mae_max": 0.07501465082168579,
+    "rmse_mean": 0.09121208684518933,
+    "rmse_max": 0.12740448117256165,
+    "p95_abs_mean": 0.1807535756379366,
+    "p95_abs_max": 0.2696479856967926,
+    "max_abs_mean": 1.4747371673583984,
+    "max_abs_max": 2.4638671875,
+    "gate": {
+      "mae": 0.01,
+      "max_abs": 0.5
+    },
+    "pass": false,
+    "ms_per_frame_incl_io": 18.61
+  },
+  "files": [
+    {
+      "path": "unet_io_000001_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "chin_h3_japanese_new",
+      "mae": 0.054123010486364365,
+      "rmse": 0.09189408272504807,
+      "p95_abs": 0.173095703125,
+      "max_abs": 1.7574462890625,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000044_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "chin_h3_latina_new",
+      "mae": 0.05695900693535805,
+      "rmse": 0.09581973403692245,
+      "p95_abs": 0.17919921875,
+      "max_abs": 1.624755859375,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000054_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "chin_h3_latina_new",
+      "mae": 0.0501951202750206,
+      "rmse": 0.07741662114858627,
+      "p95_abs": 0.15230107307434082,
+      "max_abs": 1.4024658203125,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000072_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "japanese_realtime_talking_7d94520b7f",
+      "mae": 0.05282053351402283,
+      "rmse": 0.08270338922739029,
+      "p95_abs": 0.170654296875,
+      "max_abs": 0.875244140625,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000125_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "japanese_realtime_talking_7d94520b7f_fh1",
+      "mae": 0.056316982954740524,
+      "rmse": 0.09211564064025879,
+      "p95_abs": 0.1845703125,
+      "max_abs": 1.424072265625,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000133_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "latina_guided_20260925_talking_84c5bc80b8",
+      "mae": 0.05403383821249008,
+      "rmse": 0.08488904684782028,
+      "p95_abs": 0.16633915901184082,
+      "max_abs": 1.5712890625,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000171_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "chinese_bob_pink_bedroom_talking_3373c10448",
+      "mae": 0.053877778351306915,
+      "rmse": 0.0871899351477623,
+      "p95_abs": 0.173828125,
+      "max_abs": 1.13818359375,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000211_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "indian_realtime_talking_20f9845543",
+      "mae": 0.05667944997549057,
+      "rmse": 0.0878337100148201,
+      "p95_abs": 0.177734375,
+      "max_abs": 1.202880859375,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000256_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "div_black_woman",
+      "mae": 0.055507760494947433,
+      "rmse": 0.08800017833709717,
+      "p95_abs": 0.17138671875,
+      "max_abs": 1.263671875,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000260_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "div_east_asian_man_goatee",
+      "mae": 0.059087350964546204,
+      "rmse": 0.09458303451538086,
+      "p95_abs": 0.19465947151184082,
+      "max_abs": 1.48974609375,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000313_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "div_middle_eastern_man_full_beard",
+      "mae": 0.07501465082168579,
+      "rmse": 0.12740448117256165,
+      "p95_abs": 0.2696479856967926,
+      "max_abs": 1.59375,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000334_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "div_white_man_clean_shaven",
+      "mae": 0.06256924569606781,
+      "rmse": 0.11619031429290771,
+      "p95_abs": 0.2060546875,
+      "max_abs": 2.240234375,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000367_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "div_south_asian_woman",
+      "mae": 0.052648283541202545,
+      "rmse": 0.08210662007331848,
+      "p95_abs": 0.157958984375,
+      "max_abs": 2.4638671875,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000370_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "div_south_asian_woman",
+      "mae": 0.0507635660469532,
+      "rmse": 0.0760861486196518,
+      "p95_abs": 0.1528106927871704,
+      "max_abs": 1.04541015625,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000410_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "div_black_man_short_beard",
+      "mae": 0.0659605860710144,
+      "rmse": 0.10491727292537689,
+      "p95_abs": 0.22021484375,
+      "max_abs": 1.60205078125,
+      "benchmark": null
+    },
+    {
+      "path": "unet_io_000423_bs8_pid3537045.pt",
+      "frames": 8,
+      "avatar": "codex_smoke",
+      "mae": 0.04703884571790695,
+      "rmse": 0.07024317979812622,
+      "p95_abs": 0.1416015625,
+      "max_abs": 0.900726318359375,
+      "benchmark": null
+    }
+  ]
+}

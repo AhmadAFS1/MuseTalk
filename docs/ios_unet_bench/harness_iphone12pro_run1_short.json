@@ -1,0 +1,321 @@
+{
+  "bundle_created": "2026-10-30T21:24:21",
+  "chain": {
+    "compute_units": "ALL",
+    "frames": 100,
+    "taesd_load_s": 0.3191,
+    "taesd_model": "taesd_fp16_b1",
+    "taesd_ms": {
+      "count": 100,
+      "max_ms": 7.229083916172385,
+      "mean_ms": 6.598956675734371,
+      "min_ms": 3.9347090059891343,
+      "over_40ms": 0,
+      "over_50ms": 0,
+      "p50_ms": 6.92572898697108,
+      "p90_ms": 7.151716970838606,
+      "p99_ms": 7.187049509957433
+    },
+    "total_ms": {
+      "count": 100,
+      "max_ms": 80.76079201418906,
+      "mean_ms": 74.81943373684771,
+      "min_ms": 53.096416988410056,
+      "over_40ms": 100,
+      "over_50ms": 100,
+      "p50_ms": 77.92754151159897,
+      "p90_ms": 79.88304578466341,
+      "p99_ms": 80.6472715723794
+    },
+    "unet_model": "unet_ane_int8w_b1",
+    "unet_ms": {
+      "count": 100,
+      "max_ms": 73.6345830373466,
+      "mean_ms": 68.22047706111334,
+      "min_ms": 49.16170798242092,
+      "over_40ms": 100,
+      "over_50ms": 99,
+      "p50_ms": 70.75789547525346,
+      "p90_ms": 72.82438329420984,
+      "p99_ms": 73.55657989392057
+    }
+  },
+  "device": {
+    "chip": "",
+    "cpu_count": 6,
+    "low_power_mode": false,
+    "machine": "iPhone13,3",
+    "memory_gb": 5.58,
+    "model": "D53pAP",
+    "os": "iOS",
+    "os_version": "Version 26.2 (Build 23C55)",
+    "runtime": "iOS",
+    "thermal_state": "nominal"
+  },
+  "finished": "2026-10-31T02:52:52Z",
+  "gate": {
+    "mae": 0.01,
+    "max_abs": 0.5,
+    "source": "scripts/validate_unet_backend.py per-file thresholds"
+  },
+  "harness_version": "1",
+  "log": [
+    "device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal nominal, runtime iOS",
+    "unet_ane_int8w_b1 [ALL]: loading (mem 10 MB, 3061 MB left)",
+    "unet_ane_int8w_b1 [ALL]: loaded in 28.44 s (mem 38 MB, 3033 MB left)",
+    "unet_ane_int8w_b1 [ALL]: first prediction 62.59 ms (mem 41 MB, 3030 MB left)",
+    "unet_ane_int8w_b1 [ALL]: gate mae mean 0.01370 / max 0.01678; max_abs max 1.0249; 32 frames; FAIL",
+    "unet_ane_int8w_b1 [ALL]: 51.83 ms/frame mean, p99 54.15, max 54.65 over 50 calls of 1 (mem 41 MB, 3030 MB left)",
+    "unet_ane_int8w_b1 [ALL]: placement [\"ANE\": 3049] cost share [\"ANE\": 100.0]%",
+    "chain unet_ane_int8w_b1 \u2192 taesd_fp16_b1 [ALL]: starting",
+    "chain unet_ane_int8w_b1 \u2192 taesd_fp16_b1 [ALL]: 74.82 ms/frame (UNet 68.22 + TAESD 6.60), faces [1, 3, 256, 256]"
+  ],
+  "mac_reference": {
+    "ane_layout_bench": {
+      "host": {
+        "chip": "Apple M5 Pro",
+        "macos": "27.0.1"
+      },
+      "measured_at": "2026-10-30T17:59:04-0500",
+      "results": [
+        {
+          "ane_load_s": 11.6,
+          "ane_ms_per_call": 22.63,
+          "ane_ms_per_frame": 22.626,
+          "ane_p90_ms_per_frame": 22.69,
+          "batch": 1,
+          "bytes": 1703013161,
+          "compute_plan_ops_by_device": {
+            "NeuralEngine": 3049
+          },
+          "face_mae_255": 0.4336286187171936,
+          "face_max_abs_255": 12.75041389465332,
+          "fps_single_stream_unet_only": 44.2,
+          "kind": "unet",
+          "latent_mae": 0.012313341721892357,
+          "latent_max_abs": 0.3589463233947754,
+          "mb": 1624,
+          "name": "unet_ane_fp16_b1",
+          "rss_mb_after": 548,
+          "variant": "ane_fp16",
+          "weight_bytes_per_frame_mb": 1624.1
+        },
+        {
+          "ane_load_s": 8.9,
+          "ane_ms_per_call": 18.87,
+          "ane_ms_per_frame": 18.867,
+          "ane_p90_ms_per_frame": 18.974,
+          "batch": 1,
+          "bytes": 852743287,
+          "compute_plan_ops_by_device": {
+            "NeuralEngine": 3049
+          },
+          "face_mae_255": 0.482073575258255,
+          "face_max_abs_255": 15.357020378112793,
+          "fps_single_stream_unet_only": 53,
+          "kind": "unet",
+          "latent_mae": 0.012812141329050064,
+          "latent_max_abs": 0.3892197608947754,
+          "mb": 813,
+          "name": "unet_ane_int8w_b1",
+          "rss_mb_after": 1638,
+          "variant": "ane_int8w",
+          "weight_bytes_per_frame_mb": 813.2
+        },
+        {
+          "ane_load_s": 16.2,
+          "ane_ms_per_call": 100.56,
+          "ane_ms_per_frame": 25.141,
+          "ane_p90_ms_per_frame": 25.247,
+          "batch": 4,
+          "bytes": 1703013161,
+          "compute_plan_ops_by_device": {
+            "NeuralEngine": 3049
+          },
+          "face_mae_255": 0.4336286187171936,
+          "face_max_abs_255": 12.75041389465332,
+          "fps_single_stream_unet_only": 39.8,
+          "kind": "unet",
+          "latent_mae": 0.012313341721892357,
+          "latent_max_abs": 0.3589463233947754,
+          "mb": 1624,
+          "name": "unet_ane_fp16_b4",
+          "rss_mb_after": 1592,
+          "variant": "ane_fp16",
+          "weight_bytes_per_frame_mb": 406
+        },
+        {
+          "ane_load_s": 13.4,
+          "ane_ms_per_call": 80.29,
+          "ane_ms_per_frame": 20.074,
+          "ane_p90_ms_per_frame": 20.142,
+          "batch": 4,
+          "bytes": 852743287,
+          "compute_plan_ops_by_device": {
+            "NeuralEngine": 3049
+          },
+          "face_mae_255": 0.482073575258255,
+          "face_max_abs_255": 15.357020378112793,
+          "fps_single_stream_unet_only": 49.8,
+          "kind": "unet",
+          "latent_mae": 0.012812141329050064,
+          "latent_max_abs": 0.3892197608947754,
+          "mb": 813,
+          "name": "unet_ane_int8w_b4",
+          "rss_mb_after": 1596,
+          "variant": "ane_int8w",
+          "weight_bytes_per_frame_mb": 203.3
+        }
+      ],
+      "units": "CPU_AND_NE"
+    },
+    "gate": {
+      "pytorch_fp32": {
+        "mae_max": 0.00048121900181286037,
+        "mae_mean": 0.0003826273441518424,
+        "max_abs_max": 0.04686196148395538,
+        "max_abs_mean": 0.014692156575620174,
+        "pass": true
+      },
+      "unet_ane_int8w_b1": {
+        "mae_max": 0.01871136575937271,
+        "mae_mean": 0.013108655461110175,
+        "max_abs_max": 1.03515625,
+        "max_abs_mean": 0.5423340797424316,
+        "pass": false
+      },
+      "unet_fp16_b1": {
+        "mae_max": 0.01835004612803459,
+        "mae_mean": 0.01278440683381632,
+        "max_abs_max": 1.0009765625,
+        "max_abs_mean": 0.5215401649475098,
+        "pass": false
+      }
+    },
+    "host": "arm64",
+    "note": "M5 Pro Neural Engine, coremltools 9 Python bench",
+    "server_engines": {
+      "trt_fp16": {
+        "mae_max": 0.0025,
+        "mae_mean": 0.0018,
+        "max_abs_max": 0.414
+      },
+      "trt_int8_srcg50_shipping": {
+        "mae_max": 0.0044,
+        "mae_mean": 0.0032,
+        "max_abs_max": 0.777
+      }
+    }
+  },
+  "options": {
+    "chain_frames": 100,
+    "gpu_check": false,
+    "gpu_check_frames": 64,
+    "include_batch4": false,
+    "reload": false,
+    "sustained_seconds": 0,
+    "unet_frames": 50,
+    "unet_units": [
+      "ALL"
+    ],
+    "whisper": false
+  },
+  "repo_commit": "3e6ff8c",
+  "started": "2026-10-31T02:51:05Z",
+  "unet_runs": [
+    {
+      "accuracy": {
+        "files": 4,
+        "frames": 32,
+        "mae_max": 0.01677762271174288,
+        "mae_mean": 0.013695435991849081,
+        "max_abs_max": 1.02490234375,
+        "max_abs_mean": 0.8179187774658203,
+        "p95_abs_max": 0.053790283203124734,
+        "pass": false,
+        "per_file": [
+          {
+            "avatar": "chin_h3_japanese_new",
+            "frames": 8,
+            "mae": 0.014524753194564255,
+            "max_abs": 0.8465042114257812,
+            "name": "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs": 0.042724609375,
+            "pass": false,
+            "rmse": 0.028986455861825414
+          },
+          {
+            "avatar": "chin_h3_latina_new",
+            "frames": 8,
+            "mae": 0.012000212125713006,
+            "max_abs": 0.4879150390625,
+            "name": "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs": 0.03515625,
+            "pass": false,
+            "rmse": 0.018947403471714662
+          },
+          {
+            "avatar": "chin_h3_latina_new",
+            "frames": 8,
+            "mae": 0.011479155935376184,
+            "max_abs": 0.912353515625,
+            "name": "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs": 0.03125,
+            "pass": false,
+            "rmse": 0.018566314101252094
+          },
+          {
+            "avatar": "japanese_realtime_talking_7d94520b7f",
+            "frames": 8,
+            "mae": 0.01677762271174288,
+            "max_abs": 1.02490234375,
+            "name": "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs": 0.053790283203124734,
+            "pass": false,
+            "rmse": 0.03539925511535221
+          }
+        ]
+      },
+      "batch": 1,
+      "compute_units": "ALL",
+      "first_predict_ms": 62.59,
+      "frames_timed": 50,
+      "layout": "apple-ane",
+      "load_first_s": 28.4403,
+      "model": "unet_ane_int8w_b1",
+      "placement": {
+        "cost_share": {
+          "ANE": 1
+        },
+        "ops": {
+          "ANE": 3049
+        },
+        "total_ops": 3049
+      },
+      "thermal_after": "nominal",
+      "timing_per_call": {
+        "count": 50,
+        "max_ms": 54.648624965921044,
+        "mean_ms": 51.833718260750175,
+        "min_ms": 50.25833297986537,
+        "over_40ms": 50,
+        "over_50ms": 50,
+        "p50_ms": 51.54250003397465,
+        "p90_ms": 52.80116255162284,
+        "p99_ms": 54.147130561759695
+      },
+      "timing_per_frame": {
+        "count": 50,
+        "max_ms": 54.648624965921044,
+        "mean_ms": 51.833718260750175,
+        "min_ms": 50.25833297986537,
+        "over_40ms": 50,
+        "over_50ms": 50,
+        "p50_ms": 51.54250003397465,
+        "p90_ms": 52.80116255162284,
+        "p99_ms": 54.147130561759695
+      },
+      "variant": "ane_int8w"
+    }
+  ]
+}

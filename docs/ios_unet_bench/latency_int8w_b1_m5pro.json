@@ -1,0 +1,78 @@
+{
+  "unet": "unet_int8w_b1",
+  "compute_units": "CPU_AND_NE",
+  "unet_load": {
+    "compile_s": 0.22,
+    "load_s": [
+      6.67,
+      0.05,
+      0.05
+    ],
+    "first_predict_ms": 37.5,
+    "second_predict_ms": 23.8
+  },
+  "taesd_load": {
+    "compile_s": 0.03,
+    "load_s": [
+      0.21,
+      0.01,
+      0.01
+    ],
+    "first_predict_ms": 3.2
+  },
+  "jitter": {
+    "unet": {
+      "mean_ms": 23.7,
+      "p50_ms": 23.63,
+      "p90_ms": 24.1,
+      "p99_ms": 24.33,
+      "max_ms": 26.87,
+      "n": 750
+    },
+    "taesd": {
+      "mean_ms": 1.6,
+      "p50_ms": 1.58,
+      "p90_ms": 1.71,
+      "p99_ms": 1.81,
+      "max_ms": 2.19,
+      "n": 750
+    },
+    "frame": {
+      "mean_ms": 25.31,
+      "p50_ms": 25.21,
+      "p90_ms": 25.82,
+      "p99_ms": 26.14,
+      "max_ms": 28.54,
+      "n": 750
+    },
+    "frames_over_40ms": 0,
+    "frames_over_50ms": 0,
+    "first_frame_ms": 28.54
+  },
+  "blend": {
+    "frame_size": [
+      512,
+      832
+    ],
+    "face_box_px": [
+      215,
+      332
+    ],
+    "resize": {
+      "mean_ms": 0.07,
+      "p50_ms": 0.07,
+      "p90_ms": 0.07,
+      "p99_ms": 0.09,
+      "max_ms": 1.2,
+      "n": 150
+    },
+    "blend": {
+      "mean_ms": 0.81,
+      "p50_ms": 0.8,
+      "p90_ms": 0.88,
+      "p99_ms": 0.98,
+      "max_ms": 2.54,
+      "n": 150
+    }
+  }
+}

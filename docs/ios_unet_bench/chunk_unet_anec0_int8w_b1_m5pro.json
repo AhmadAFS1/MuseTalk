@@ -1,0 +1,26 @@
+{
+  "parent": "unet_anec0_int8w_b1",
+  "cut": 0,
+  "units": "CPU_AND_NE",
+  "frames": 16,
+  "chunk_vs_full_max_abs": 0.0,
+  "chunk_vs_full_mean_abs": 0.0,
+  "unchunked_vs_ref": {
+    "mae": 0.013163712806999683,
+    "rmse": 0.024377290159463882,
+    "p95_abs": 0.0380859375,
+    "max_abs": 0.8465042114257812
+  },
+  "chunked_vs_ref": {
+    "mae": 0.013163712806999683,
+    "rmse": 0.024377290159463882,
+    "p95_abs": 0.0380859375,
+    "max_abs": 0.8465042114257812
+  },
+  "ms_per_frame_unchunked": 19.475812718155794,
+  "ms_per_frame_chunked": 23.713531365501694,
+  "chunks": {
+    "chunk1": 345545513,
+    "chunk2": 509304784
+  }
+}

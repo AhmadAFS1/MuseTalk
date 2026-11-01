@@ -1,0 +1,1339 @@
+{
+  "bundle_created" : "2026-10-30T21:24:21",
+  "chain" : {
+    "compute_units" : "ALL",
+    "frames" : 100,
+    "taesd_load_s" : 0.0567,
+    "taesd_model" : "taesd_fp16_b1",
+    "taesd_ms" : {
+      "count" : 100,
+      "max_ms" : 8.507959078997374,
+      "mean_ms" : 5.1621408318169415,
+      "min_ms" : 2.2338340058922768,
+      "over_40ms" : 0,
+      "over_50ms" : 0,
+      "p50_ms" : 5.69035392254591,
+      "p90_ms" : 7.780796126462519,
+      "p99_ms" : 7.9823095630854395
+    },
+    "total_ms" : {
+      "count" : 100,
+      "max_ms" : 27.390750125050545,
+      "mean_ms" : 23.735165449324995,
+      "min_ms" : 20.687583135440946,
+      "over_40ms" : 0,
+      "over_50ms" : 0,
+      "p50_ms" : 24.316666880622506,
+      "p90_ms" : 26.200562459416687,
+      "p99_ms" : 26.820180313661698
+    },
+    "unet_model" : "unet_ane_int8w_b1",
+    "unet_ms" : {
+      "count" : 100,
+      "max_ms" : 19.240833120420575,
+      "mean_ms" : 18.573024617508054,
+      "min_ms" : 18.262082943692803,
+      "over_40ms" : 0,
+      "over_50ms" : 0,
+      "p50_ms" : 18.59091653022915,
+      "p90_ms" : 18.87814160436392,
+      "p99_ms" : 19.14533969014883
+    }
+  },
+  "device" : {
+    "chip" : "Apple M5 Pro",
+    "cpu_count" : 18,
+    "low_power_mode" : false,
+    "machine" : "arm64",
+    "memory_gb" : 24,
+    "model" : "Mac17,8",
+    "os" : "macOS",
+    "os_version" : "Version 27.0.1 (Build 26A434)",
+    "runtime" : "macOS CLI",
+    "thermal_state" : "nominal"
+  },
+  "finished" : "2026-10-31T02:45:34Z",
+  "gate" : {
+    "mae" : 0.01,
+    "max_abs" : 0.5,
+    "source" : "scripts\/validate_unet_backend.py per-file thresholds"
+  },
+  "harness_version" : "1",
+  "log" : [
+    "device: arm64 Mac17,8 macOS Version 27.0.1 (Build 26A434), 24.0 GB, thermal nominal, runtime macOS CLI",
+    "unet_ane_int8w_b1 [ALL]: loading",
+    "unet_ane_int8w_b1 [ALL]: loaded in 9.08 s; reloading for the cached figure",
+    "unet_ane_int8w_b1 [ALL]: first prediction 32.1 ms",
+    "unet_ane_int8w_b1 [ALL]: gate mae mean 0.01311 \/ max 0.01871; max_abs max 1.0352; 128 frames; FAIL",
+    "unet_ane_int8w_b1 [ALL]: 18.29 ms\/frame mean, p99 18.88, max 18.91 over 300 calls of 1",
+    "unet_ane_int8w_b1 [ALL]: placement [\"ANE\": 3049] cost share [\"ANE\": 100.0]%",
+    "unet_ane_int8w_b1 [CPU_AND_NE]: loading",
+    "unet_ane_int8w_b1 [CPU_AND_NE]: loaded in 8.26 s; reloading for the cached figure",
+    "unet_ane_int8w_b1 [CPU_AND_NE]: first prediction 26.85 ms",
+    "unet_ane_int8w_b1 [CPU_AND_NE]: gate mae mean 0.01311 \/ max 0.01871; max_abs max 1.0352; 128 frames; FAIL",
+    "unet_ane_int8w_b1 [CPU_AND_NE]: 18.37 ms\/frame mean, p99 18.92, max 20.57 over 300 calls of 1",
+    "unet_ane_int8w_b1 [CPU_AND_NE]: placement [\"ANE\": 3049] cost share [\"ANE\": 100.0]%",
+    "unet_ane_int8w_b1 [CPU_AND_GPU]: loading",
+    "unet_ane_int8w_b1 [CPU_AND_GPU]: loaded in 1.39 s; reloading for the cached figure",
+    "unet_ane_int8w_b1 [CPU_AND_GPU]: first prediction 16407.04 ms",
+    "unet_ane_int8w_b1 [CPU_AND_GPU]: gate mae mean 0.00320 \/ max 0.00368; max_abs max 0.2314; 64 frames; PASS",
+    "unet_ane_int8w_b4 [ALL]: loading",
+    "unet_ane_int8w_b4 [ALL]: loaded in 2.25 s; reloading for the cached figure",
+    "unet_ane_int8w_b4 [ALL]: first prediction 16543.84 ms",
+    "unet_ane_int8w_b4 [ALL]: gate mae mean 0.00336 \/ max 0.00456; max_abs max 0.3499; 128 frames; PASS",
+    "unet_ane_int8w_b4 [ALL]: 12.80 ms\/frame mean, p99 13.25, max 13.35 over 75 calls of 4",
+    "unet_ane_int8w_b4 [ALL]: placement [\"GPU\": 3049] cost share [\"GPU\": 100.0]%",
+    "unet_ane_int8w_b4 [CPU_AND_NE]: loading",
+    "unet_ane_int8w_b4 [CPU_AND_NE]: loaded in 12.35 s; reloading for the cached figure",
+    "unet_ane_int8w_b4 [CPU_AND_NE]: first prediction 89.65 ms",
+    "unet_ane_int8w_b4 [CPU_AND_NE]: gate mae mean 0.01311 \/ max 0.01871; max_abs max 1.0352; 128 frames; FAIL",
+    "unet_ane_int8w_b4 [CPU_AND_NE]: 20.00 ms\/frame mean, p99 20.48, max 20.49 over 75 calls of 4",
+    "unet_ane_int8w_b4 [CPU_AND_NE]: placement [\"ANE\": 3049] cost share [\"ANE\": 100.0]%",
+    "unet_ane_int8w_b1 sustained 20 s [ALL]: starting",
+    "unet_ane_int8w_b1 sustained 20 s [ALL]: 1083 frames, 18.48 ms\/frame mean; first bucket 18.25 → last 18.4 ms; thermal nominal → nominal",
+    "chain unet_ane_int8w_b1 → taesd_fp16_b1 [ALL]: starting",
+    "chain unet_ane_int8w_b1 → taesd_fp16_b1 [ALL]: 23.74 ms\/frame (UNet 18.57 + TAESD 5.16), faces [1, 3, 256, 256]",
+    "whisper log-mel [CPU_ONLY]: 1.10 ms \/ 30 s, max |diff| vs HF 0.0005",
+    "whisper encoder [ALL]: 2.26 ms \/ 30 s; vs fp32 features max 2.168 mean 0.00067",
+    "whisper encoder [CPU_AND_NE]: 11.17 ms \/ 30 s; vs fp32 features max 9.438 mean 0.00433"
+  ],
+  "mac_reference" : {
+    "ane_layout_bench" : {
+      "host" : {
+        "chip" : "Apple M5 Pro",
+        "macos" : "27.0.1"
+      },
+      "measured_at" : "2026-10-30T17:59:04-0500",
+      "results" : [
+        {
+          "ane_load_s" : 11.6,
+          "ane_ms_per_call" : 22.63,
+          "ane_ms_per_frame" : 22.626,
+          "ane_p90_ms_per_frame" : 22.69,
+          "batch" : 1,
+          "bytes" : 1703013161,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.4336286187171936,
+          "face_max_abs_255" : 12.75041389465332,
+          "fps_single_stream_unet_only" : 44.2,
+          "kind" : "unet",
+          "latent_mae" : 0.012313341721892357,
+          "latent_max_abs" : 0.3589463233947754,
+          "mb" : 1624,
+          "name" : "unet_ane_fp16_b1",
+          "rss_mb_after" : 548,
+          "variant" : "ane_fp16",
+          "weight_bytes_per_frame_mb" : 1624.1
+        },
+        {
+          "ane_load_s" : 8.9,
+          "ane_ms_per_call" : 18.87,
+          "ane_ms_per_frame" : 18.867,
+          "ane_p90_ms_per_frame" : 18.974,
+          "batch" : 1,
+          "bytes" : 852743287,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.482073575258255,
+          "face_max_abs_255" : 15.357020378112793,
+          "fps_single_stream_unet_only" : 53,
+          "kind" : "unet",
+          "latent_mae" : 0.012812141329050064,
+          "latent_max_abs" : 0.3892197608947754,
+          "mb" : 813,
+          "name" : "unet_ane_int8w_b1",
+          "rss_mb_after" : 1638,
+          "variant" : "ane_int8w",
+          "weight_bytes_per_frame_mb" : 813.2
+        },
+        {
+          "ane_load_s" : 16.2,
+          "ane_ms_per_call" : 100.56,
+          "ane_ms_per_frame" : 25.141,
+          "ane_p90_ms_per_frame" : 25.247,
+          "batch" : 4,
+          "bytes" : 1703013161,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.4336286187171936,
+          "face_max_abs_255" : 12.75041389465332,
+          "fps_single_stream_unet_only" : 39.8,
+          "kind" : "unet",
+          "latent_mae" : 0.012313341721892357,
+          "latent_max_abs" : 0.3589463233947754,
+          "mb" : 1624,
+          "name" : "unet_ane_fp16_b4",
+          "rss_mb_after" : 1592,
+          "variant" : "ane_fp16",
+          "weight_bytes_per_frame_mb" : 406
+        },
+        {
+          "ane_load_s" : 13.4,
+          "ane_ms_per_call" : 80.29,
+          "ane_ms_per_frame" : 20.074,
+          "ane_p90_ms_per_frame" : 20.142,
+          "batch" : 4,
+          "bytes" : 852743287,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.482073575258255,
+          "face_max_abs_255" : 15.357020378112793,
+          "fps_single_stream_unet_only" : 49.8,
+          "kind" : "unet",
+          "latent_mae" : 0.012812141329050064,
+          "latent_max_abs" : 0.3892197608947754,
+          "mb" : 813,
+          "name" : "unet_ane_int8w_b4",
+          "rss_mb_after" : 1596,
+          "variant" : "ane_int8w",
+          "weight_bytes_per_frame_mb" : 203.3
+        }
+      ],
+      "units" : "CPU_AND_NE"
+    },
+    "gate" : {
+      "pytorch_fp32" : {
+        "mae_max" : 0.00048121900181286037,
+        "mae_mean" : 0.0003826273441518424,
+        "max_abs_max" : 0.04686196148395538,
+        "max_abs_mean" : 0.014692156575620174,
+        "pass" : true
+      },
+      "unet_ane_int8w_b1" : {
+        "mae_max" : 0.01871136575937271,
+        "mae_mean" : 0.013108655461110175,
+        "max_abs_max" : 1.03515625,
+        "max_abs_mean" : 0.5423340797424316,
+        "pass" : false
+      },
+      "unet_fp16_b1" : {
+        "mae_max" : 0.01835004612803459,
+        "mae_mean" : 0.01278440683381632,
+        "max_abs_max" : 1.0009765625,
+        "max_abs_mean" : 0.5215401649475098,
+        "pass" : false
+      }
+    },
+    "host" : "arm64",
+    "note" : "M5 Pro Neural Engine, coremltools 9 Python bench",
+    "server_engines" : {
+      "trt_fp16" : {
+        "mae_max" : 0.0025,
+        "mae_mean" : 0.0018,
+        "max_abs_max" : 0.414
+      },
+      "trt_int8_srcg50_shipping" : {
+        "mae_max" : 0.0044,
+        "mae_mean" : 0.0032,
+        "max_abs_max" : 0.777
+      }
+    }
+  },
+  "options" : {
+    "chain_frames" : 100,
+    "gpu_check" : true,
+    "gpu_check_frames" : 64,
+    "include_batch4" : true,
+    "sustained_seconds" : 20,
+    "unet_frames" : 300,
+    "unet_units" : [
+      "ALL",
+      "CPU_AND_NE"
+    ],
+    "whisper" : true
+  },
+  "repo_commit" : "3e6ff8c",
+  "started" : "2026-10-31T02:42:50Z",
+  "sustained" : {
+    "buckets" : [
+      {
+        "frames" : 274,
+        "mean_ms" : 18.25,
+        "p99_ms" : 18.91,
+        "t0_s" : 0,
+        "t1_s" : 5,
+        "thermal" : "nominal"
+      },
+      {
+        "frames" : 271,
+        "mean_ms" : 18.49,
+        "p99_ms" : 18.9,
+        "t0_s" : 5,
+        "t1_s" : 10,
+        "thermal" : "nominal"
+      },
+      {
+        "frames" : 266,
+        "mean_ms" : 18.77,
+        "p99_ms" : 19.09,
+        "t0_s" : 10,
+        "t1_s" : 15,
+        "thermal" : "nominal"
+      },
+      {
+        "frames" : 272,
+        "mean_ms" : 18.4,
+        "p99_ms" : 18.97,
+        "t0_s" : 15,
+        "t1_s" : 20,
+        "thermal" : "nominal"
+      }
+    ],
+    "compute_units" : "ALL",
+    "model" : "unet_ane_int8w_b1",
+    "overall" : {
+      "count" : 1083,
+      "max_ms" : 19.506124779582024,
+      "mean_ms" : 18.475812017730163,
+      "min_ms" : 18.104416085407138,
+      "over_40ms" : 0,
+      "over_50ms" : 0,
+      "p50_ms" : 18.339624861255288,
+      "p90_ms" : 18.86934139765799,
+      "p99_ms" : 19.00977256707847
+    },
+    "seconds" : 20,
+    "thermal_end" : "nominal",
+    "thermal_start" : "nominal",
+    "total_frames" : 1083
+  },
+  "unet_runs" : [
+    {
+      "accuracy" : {
+        "files" : 16,
+        "frames" : 128,
+        "mae_max" : 0.018711364928094554,
+        "mae_mean" : 0.013108655397786606,
+        "max_abs_max" : 1.03515625,
+        "max_abs_mean" : 0.5423340797424316,
+        "p95_abs_max" : 0.0625,
+        "pass" : false,
+        "per_file" : [
+          {
+            "avatar" : "chin_h3_japanese_new",
+            "frames" : 8,
+            "mae" : 0.014445289692957886,
+            "max_abs" : 0.8465042114257812,
+            "name" : "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs" : 0.0423583984375,
+            "pass" : false,
+            "rmse" : 0.02894779943244016
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.01188213497880497,
+            "max_abs" : 0.4801025390625,
+            "name" : "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs" : 0.034423828125,
+            "pass" : false,
+            "rmse" : 0.01872242982601797
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.011397151789424242,
+            "max_abs" : 0.858642578125,
+            "name" : "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.018258848977310057
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f",
+            "frames" : 8,
+            "mae" : 0.016740394376029144,
+            "max_abs" : 1.03515625,
+            "name" : "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs" : 0.0537109375,
+            "pass" : false,
+            "rmse" : 0.03542265721203315
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f_fh1",
+            "frames" : 8,
+            "mae" : 0.016673951666234643,
+            "max_abs" : 0.5166015625,
+            "name" : "unet_io_000125_bs8_pid3537045.pt",
+            "p95_abs" : 0.05517578125,
+            "pass" : false,
+            "rmse" : 0.030563900403273753
+          },
+          {
+            "avatar" : "latina_guided_20260925_talking_84c5bc80b8",
+            "frames" : 8,
+            "mae" : 0.010821702271641698,
+            "max_abs" : 0.3203125,
+            "name" : "unet_io_000133_bs8_pid3537045.pt",
+            "p95_abs" : 0.029296875,
+            "pass" : false,
+            "rmse" : 0.015590868728572495
+          },
+          {
+            "avatar" : "chinese_bob_pink_bedroom_talking_3373c10448",
+            "frames" : 8,
+            "mae" : 0.012787195826604147,
+            "max_abs" : 0.490081787109375,
+            "name" : "unet_io_000171_bs8_pid3537045.pt",
+            "p95_abs" : 0.037109375,
+            "pass" : false,
+            "rmse" : 0.02009890547285336
+          },
+          {
+            "avatar" : "indian_realtime_talking_20f9845543",
+            "frames" : 8,
+            "mae" : 0.010941783755697543,
+            "max_abs" : 0.1787109375,
+            "name" : "unet_io_000211_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.015483972198176248
+          },
+          {
+            "avatar" : "div_black_woman",
+            "frames" : 8,
+            "mae" : 0.011822932476206915,
+            "max_abs" : 0.67138671875,
+            "name" : "unet_io_000256_bs8_pid3537045.pt",
+            "p95_abs" : 0.033203125,
+            "pass" : false,
+            "rmse" : 0.019405167997684283
+          },
+          {
+            "avatar" : "div_east_asian_man_goatee",
+            "frames" : 8,
+            "mae" : 0.013579566779299057,
+            "max_abs" : 0.35009765625,
+            "name" : "unet_io_000260_bs8_pid3537045.pt",
+            "p95_abs" : 0.04052734375,
+            "pass" : false,
+            "rmse" : 0.020680033616452008
+          },
+          {
+            "avatar" : "div_middle_eastern_man_full_beard",
+            "frames" : 8,
+            "mae" : 0.01293805976092699,
+            "max_abs" : 0.57208251953125,
+            "name" : "unet_io_000313_bs8_pid3537045.pt",
+            "p95_abs" : 0.03955078125,
+            "pass" : false,
+            "rmse" : 0.021899222728577625
+          },
+          {
+            "avatar" : "div_white_man_clean_shaven",
+            "frames" : 8,
+            "mae" : 0.018711364928094554,
+            "max_abs" : 0.9326171875,
+            "name" : "unet_io_000334_bs8_pid3537045.pt",
+            "p95_abs" : 0.0625,
+            "pass" : false,
+            "rmse" : 0.04037384856448981
+          },
+          {
+            "avatar" : "div_south_asian_woman",
+            "frames" : 8,
+            "mae" : 0.01127645767701324,
+            "max_abs" : 0.28515625,
+            "name" : "unet_io_000367_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.016254313360806617
+          },
+          {
+            "avatar" : "div_south_asian_woman",
+            "frames" : 8,
+            "mae" : 0.011600789523072308,
+            "max_abs" : 0.390380859375,
+            "name" : "unet_io_000370_bs8_pid3537045.pt",
+            "p95_abs" : 0.0322265625,
+            "pass" : false,
+            "rmse" : 0.016884122813231008
+          },
+          {
+            "avatar" : "div_black_man_short_beard",
+            "frames" : 8,
+            "mae" : 0.011713291907653911,
+            "max_abs" : 0.38134765625,
+            "name" : "unet_io_000410_bs8_pid3537045.pt",
+            "p95_abs" : 0.0341796875,
+            "pass" : false,
+            "rmse" : 0.01748179873297512
+          },
+          {
+            "avatar" : "codex_smoke",
+            "frames" : 8,
+            "mae" : 0.012406418954924447,
+            "max_abs" : 0.3681640625,
+            "name" : "unet_io_000423_bs8_pid3537045.pt",
+            "p95_abs" : 0.03515625,
+            "pass" : false,
+            "rmse" : 0.01866339536850823
+          }
+        ]
+      },
+      "batch" : 1,
+      "compute_units" : "ALL",
+      "first_predict_ms" : 32.1,
+      "frames_timed" : 300,
+      "layout" : "apple-ane",
+      "load_cached_s" : 0.0953,
+      "load_first_s" : 9.0792,
+      "model" : "unet_ane_int8w_b1",
+      "placement" : {
+        "cost_share" : {
+          "ANE" : 1
+        },
+        "ops" : {
+          "ANE" : 3049
+        },
+        "total_ops" : 3049
+      },
+      "thermal_after" : "nominal",
+      "timing_per_call" : {
+        "count" : 300,
+        "max_ms" : 18.91391701065004,
+        "mean_ms" : 18.287945420015603,
+        "min_ms" : 18.136583035811782,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 18.211687449365854,
+        "p90_ms" : 18.54713757056743,
+        "p99_ms" : 18.883638503029943
+      },
+      "timing_per_frame" : {
+        "count" : 300,
+        "max_ms" : 18.91391701065004,
+        "mean_ms" : 18.287945420015603,
+        "min_ms" : 18.136583035811782,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 18.211687449365854,
+        "p90_ms" : 18.54713757056743,
+        "p99_ms" : 18.883638503029943
+      },
+      "variant" : "ane_int8w"
+    },
+    {
+      "accuracy" : {
+        "files" : 16,
+        "frames" : 128,
+        "mae_max" : 0.018711364928094554,
+        "mae_mean" : 0.013108655397786606,
+        "max_abs_max" : 1.03515625,
+        "max_abs_mean" : 0.5423340797424316,
+        "p95_abs_max" : 0.0625,
+        "pass" : false,
+        "per_file" : [
+          {
+            "avatar" : "chin_h3_japanese_new",
+            "frames" : 8,
+            "mae" : 0.014445289692957886,
+            "max_abs" : 0.8465042114257812,
+            "name" : "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs" : 0.0423583984375,
+            "pass" : false,
+            "rmse" : 0.02894779943244016
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.01188213497880497,
+            "max_abs" : 0.4801025390625,
+            "name" : "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs" : 0.034423828125,
+            "pass" : false,
+            "rmse" : 0.01872242982601797
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.011397151789424242,
+            "max_abs" : 0.858642578125,
+            "name" : "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.018258848977310057
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f",
+            "frames" : 8,
+            "mae" : 0.016740394376029144,
+            "max_abs" : 1.03515625,
+            "name" : "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs" : 0.0537109375,
+            "pass" : false,
+            "rmse" : 0.03542265721203315
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f_fh1",
+            "frames" : 8,
+            "mae" : 0.016673951666234643,
+            "max_abs" : 0.5166015625,
+            "name" : "unet_io_000125_bs8_pid3537045.pt",
+            "p95_abs" : 0.05517578125,
+            "pass" : false,
+            "rmse" : 0.030563900403273753
+          },
+          {
+            "avatar" : "latina_guided_20260925_talking_84c5bc80b8",
+            "frames" : 8,
+            "mae" : 0.010821702271641698,
+            "max_abs" : 0.3203125,
+            "name" : "unet_io_000133_bs8_pid3537045.pt",
+            "p95_abs" : 0.029296875,
+            "pass" : false,
+            "rmse" : 0.015590868728572495
+          },
+          {
+            "avatar" : "chinese_bob_pink_bedroom_talking_3373c10448",
+            "frames" : 8,
+            "mae" : 0.012787195826604147,
+            "max_abs" : 0.490081787109375,
+            "name" : "unet_io_000171_bs8_pid3537045.pt",
+            "p95_abs" : 0.037109375,
+            "pass" : false,
+            "rmse" : 0.02009890547285336
+          },
+          {
+            "avatar" : "indian_realtime_talking_20f9845543",
+            "frames" : 8,
+            "mae" : 0.010941783755697543,
+            "max_abs" : 0.1787109375,
+            "name" : "unet_io_000211_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.015483972198176248
+          },
+          {
+            "avatar" : "div_black_woman",
+            "frames" : 8,
+            "mae" : 0.011822932476206915,
+            "max_abs" : 0.67138671875,
+            "name" : "unet_io_000256_bs8_pid3537045.pt",
+            "p95_abs" : 0.033203125,
+            "pass" : false,
+            "rmse" : 0.019405167997684283
+          },
+          {
+            "avatar" : "div_east_asian_man_goatee",
+            "frames" : 8,
+            "mae" : 0.013579566779299057,
+            "max_abs" : 0.35009765625,
+            "name" : "unet_io_000260_bs8_pid3537045.pt",
+            "p95_abs" : 0.04052734375,
+            "pass" : false,
+            "rmse" : 0.020680033616452008
+          },
+          {
+            "avatar" : "div_middle_eastern_man_full_beard",
+            "frames" : 8,
+            "mae" : 0.01293805976092699,
+            "max_abs" : 0.57208251953125,
+            "name" : "unet_io_000313_bs8_pid3537045.pt",
+            "p95_abs" : 0.03955078125,
+            "pass" : false,
+            "rmse" : 0.021899222728577625
+          },
+          {
+            "avatar" : "div_white_man_clean_shaven",
+            "frames" : 8,
+            "mae" : 0.018711364928094554,
+            "max_abs" : 0.9326171875,
+            "name" : "unet_io_000334_bs8_pid3537045.pt",
+            "p95_abs" : 0.0625,
+            "pass" : false,
+            "rmse" : 0.04037384856448981
+          },
+          {
+            "avatar" : "div_south_asian_woman",
+            "frames" : 8,
+            "mae" : 0.01127645767701324,
+            "max_abs" : 0.28515625,
+            "name" : "unet_io_000367_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.016254313360806617
+          },
+          {
+            "avatar" : "div_south_asian_woman",
+            "frames" : 8,
+            "mae" : 0.011600789523072308,
+            "max_abs" : 0.390380859375,
+            "name" : "unet_io_000370_bs8_pid3537045.pt",
+            "p95_abs" : 0.0322265625,
+            "pass" : false,
+            "rmse" : 0.016884122813231008
+          },
+          {
+            "avatar" : "div_black_man_short_beard",
+            "frames" : 8,
+            "mae" : 0.011713291907653911,
+            "max_abs" : 0.38134765625,
+            "name" : "unet_io_000410_bs8_pid3537045.pt",
+            "p95_abs" : 0.0341796875,
+            "pass" : false,
+            "rmse" : 0.01748179873297512
+          },
+          {
+            "avatar" : "codex_smoke",
+            "frames" : 8,
+            "mae" : 0.012406418954924447,
+            "max_abs" : 0.3681640625,
+            "name" : "unet_io_000423_bs8_pid3537045.pt",
+            "p95_abs" : 0.03515625,
+            "pass" : false,
+            "rmse" : 0.01866339536850823
+          }
+        ]
+      },
+      "batch" : 1,
+      "compute_units" : "CPU_AND_NE",
+      "first_predict_ms" : 26.85,
+      "frames_timed" : 300,
+      "layout" : "apple-ane",
+      "load_cached_s" : 0.0899,
+      "load_first_s" : 8.2571,
+      "model" : "unet_ane_int8w_b1",
+      "placement" : {
+        "cost_share" : {
+          "ANE" : 1
+        },
+        "ops" : {
+          "ANE" : 3049
+        },
+        "total_ops" : 3049
+      },
+      "thermal_after" : "nominal",
+      "timing_per_call" : {
+        "count" : 300,
+        "max_ms" : 20.56750003248453,
+        "mean_ms" : 18.37355403151984,
+        "min_ms" : 18.1594998575747,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 18.259979551658034,
+        "p90_ms" : 18.677058210596442,
+        "p99_ms" : 18.91768072033301
+      },
+      "timing_per_frame" : {
+        "count" : 300,
+        "max_ms" : 20.56750003248453,
+        "mean_ms" : 18.37355403151984,
+        "min_ms" : 18.1594998575747,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 18.259979551658034,
+        "p90_ms" : 18.677058210596442,
+        "p99_ms" : 18.91768072033301
+      },
+      "variant" : "ane_int8w"
+    },
+    {
+      "accuracy" : {
+        "files" : 8,
+        "frames" : 64,
+        "mae_max" : 0.0036793303552258294,
+        "mae_mean" : 0.0032003564251681382,
+        "max_abs_max" : 0.2314453125,
+        "max_abs_mean" : 0.1319103240966797,
+        "p95_abs_max" : 0.01171875,
+        "pass" : true,
+        "per_file" : [
+          {
+            "avatar" : "chin_h3_japanese_new",
+            "frames" : 8,
+            "mae" : 0.0031032791248435387,
+            "max_abs" : 0.1107177734375,
+            "name" : "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs" : 0.009765625,
+            "pass" : true,
+            "rmse" : 0.005009126932790115
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.0029883085899200523,
+            "max_abs" : 0.1244964599609375,
+            "name" : "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs" : 0.00927734375,
+            "pass" : true,
+            "rmse" : 0.0046385776395708855
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.003043776479898952,
+            "max_abs" : 0.0751953125,
+            "name" : "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs" : 0.009521484375,
+            "pass" : true,
+            "rmse" : 0.004679235634578435
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f",
+            "frames" : 8,
+            "mae" : 0.0035385094342927914,
+            "max_abs" : 0.1474609375,
+            "name" : "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs" : 0.01171875,
+            "pass" : true,
+            "rmse" : 0.0061779398024610025
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f_fh1",
+            "frames" : 8,
+            "mae" : 0.003218990284949541,
+            "max_abs" : 0.1396484375,
+            "name" : "unet_io_000125_bs8_pid3537045.pt",
+            "p95_abs" : 0.01025390625,
+            "pass" : true,
+            "rmse" : 0.005471048554326934
+          },
+          {
+            "avatar" : "latina_guided_20260925_talking_84c5bc80b8",
+            "frames" : 8,
+            "mae" : 0.0028752713042194955,
+            "max_abs" : 0.111083984375,
+            "name" : "unet_io_000133_bs8_pid3537045.pt",
+            "p95_abs" : 0.0084228515625,
+            "pass" : true,
+            "rmse" : 0.004467557992712567
+          },
+          {
+            "avatar" : "chinese_bob_pink_bedroom_talking_3373c10448",
+            "frames" : 8,
+            "mae" : 0.0031553858279949054,
+            "max_abs" : 0.115234375,
+            "name" : "unet_io_000171_bs8_pid3537045.pt",
+            "p95_abs" : 0.009765625,
+            "pass" : true,
+            "rmse" : 0.004996975261471753
+          },
+          {
+            "avatar" : "indian_realtime_talking_20f9845543",
+            "frames" : 8,
+            "mae" : 0.0036793303552258294,
+            "max_abs" : 0.2314453125,
+            "name" : "unet_io_000211_bs8_pid3537045.pt",
+            "p95_abs" : 0.0115966796875,
+            "pass" : true,
+            "rmse" : 0.006376142057787135
+          }
+        ]
+      },
+      "batch" : 1,
+      "compute_units" : "CPU_AND_GPU",
+      "first_predict_ms" : 16407.04,
+      "frames_timed" : 0,
+      "layout" : "apple-ane",
+      "load_cached_s" : 0.0006,
+      "load_first_s" : 1.3904,
+      "model" : "unet_ane_int8w_b1",
+      "thermal_after" : "nominal",
+      "variant" : "ane_int8w"
+    },
+    {
+      "accuracy" : {
+        "files" : 16,
+        "frames" : 128,
+        "mae_max" : 0.004560141644105897,
+        "mae_mean" : 0.0033608297663931808,
+        "max_abs_max" : 0.349853515625,
+        "max_abs_mean" : 0.1494131088256836,
+        "p95_abs_max" : 0.0146484375,
+        "pass" : true,
+        "per_file" : [
+          {
+            "avatar" : "chin_h3_japanese_new",
+            "frames" : 8,
+            "mae" : 0.00310526555585966,
+            "max_abs" : 0.10546875,
+            "name" : "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs" : 0.009765625,
+            "pass" : true,
+            "rmse" : 0.004996684395200362
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.002989880376844667,
+            "max_abs" : 0.1266021728515625,
+            "name" : "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs" : 0.00927734375,
+            "pass" : true,
+            "rmse" : 0.0046395536371301085
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.0030318603512569098,
+            "max_abs" : 0.07470703125,
+            "name" : "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs" : 0.009521484375,
+            "pass" : true,
+            "rmse" : 0.004642455846864309
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f",
+            "frames" : 8,
+            "mae" : 0.003540648820489878,
+            "max_abs" : 0.1552734375,
+            "name" : "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs" : 0.011474609375,
+            "pass" : true,
+            "rmse" : 0.006200333280419869
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f_fh1",
+            "frames" : 8,
+            "mae" : 0.003202591873559868,
+            "max_abs" : 0.1259765625,
+            "name" : "unet_io_000125_bs8_pid3537045.pt",
+            "p95_abs" : 0.01025390625,
+            "pass" : true,
+            "rmse" : 0.005415264764140237
+          },
+          {
+            "avatar" : "latina_guided_20260925_talking_84c5bc80b8",
+            "frames" : 8,
+            "mae" : 0.0028815668065362843,
+            "max_abs" : 0.10791015625,
+            "name" : "unet_io_000133_bs8_pid3537045.pt",
+            "p95_abs" : 0.008554840087890592,
+            "pass" : true,
+            "rmse" : 0.004468113640031504
+          },
+          {
+            "avatar" : "chinese_bob_pink_bedroom_talking_3373c10448",
+            "frames" : 8,
+            "mae" : 0.003154673971948796,
+            "max_abs" : 0.120361328125,
+            "name" : "unet_io_000171_bs8_pid3537045.pt",
+            "p95_abs" : 0.009765625,
+            "pass" : true,
+            "rmse" : 0.004991405523385795
+          },
+          {
+            "avatar" : "indian_realtime_talking_20f9845543",
+            "frames" : 8,
+            "mae" : 0.003684672747112927,
+            "max_abs" : 0.23486328125,
+            "name" : "unet_io_000211_bs8_pid3537045.pt",
+            "p95_abs" : 0.01171875,
+            "pass" : true,
+            "rmse" : 0.006381845675645354
+          },
+          {
+            "avatar" : "div_black_woman",
+            "frames" : 8,
+            "mae" : 0.0035036862645938527,
+            "max_abs" : 0.2255859375,
+            "name" : "unet_io_000256_bs8_pid3537045.pt",
+            "p95_abs" : 0.0107421875,
+            "pass" : true,
+            "rmse" : 0.006506382881267629
+          },
+          {
+            "avatar" : "div_east_asian_man_goatee",
+            "frames" : 8,
+            "mae" : 0.0034156090259784833,
+            "max_abs" : 0.169952392578125,
+            "name" : "unet_io_000260_bs8_pid3537045.pt",
+            "p95_abs" : 0.01025390625,
+            "pass" : true,
+            "rmse" : 0.00542741261383867
+          },
+          {
+            "avatar" : "div_middle_eastern_man_full_beard",
+            "frames" : 8,
+            "mae" : 0.004560141644105897,
+            "max_abs" : 0.349853515625,
+            "name" : "unet_io_000313_bs8_pid3537045.pt",
+            "p95_abs" : 0.0146484375,
+            "pass" : true,
+            "rmse" : 0.00971726154184631
+          },
+          {
+            "avatar" : "div_white_man_clean_shaven",
+            "frames" : 8,
+            "mae" : 0.003395614796318114,
+            "max_abs" : 0.232421875,
+            "name" : "unet_io_000334_bs8_pid3537045.pt",
+            "p95_abs" : 0.00927734375,
+            "pass" : true,
+            "rmse" : 0.007019169539200498
+          },
+          {
+            "avatar" : "div_south_asian_woman",
+            "frames" : 8,
+            "mae" : 0.003490321698336629,
+            "max_abs" : 0.119384765625,
+            "name" : "unet_io_000367_bs8_pid3537045.pt",
+            "p95_abs" : 0.0107421875,
+            "pass" : true,
+            "rmse" : 0.005665728748231689
+          },
+          {
+            "avatar" : "div_south_asian_woman",
+            "frames" : 8,
+            "mae" : 0.0029798915202263743,
+            "max_abs" : 0.0650634765625,
+            "name" : "unet_io_000370_bs8_pid3537045.pt",
+            "p95_abs" : 0.0087890625,
+            "pass" : true,
+            "rmse" : 0.004439482226739857
+          },
+          {
+            "avatar" : "div_black_man_short_beard",
+            "frames" : 8,
+            "mae" : 0.0037143373156141024,
+            "max_abs" : 0.11761474609375,
+            "name" : "unet_io_000410_bs8_pid3537045.pt",
+            "p95_abs" : 0.01171875,
+            "pass" : true,
+            "rmse" : 0.00599948915918298
+          },
+          {
+            "avatar" : "codex_smoke",
+            "frames" : 8,
+            "mae" : 0.0031225134935084498,
+            "max_abs" : 0.0595703125,
+            "name" : "unet_io_000423_bs8_pid3537045.pt",
+            "p95_abs" : 0.009650993347167944,
+            "pass" : true,
+            "rmse" : 0.0046343135391528146
+          }
+        ]
+      },
+      "batch" : 4,
+      "compute_units" : "ALL",
+      "first_predict_ms" : 16543.84,
+      "frames_timed" : 300,
+      "layout" : "apple-ane",
+      "load_cached_s" : 0.0892,
+      "load_first_s" : 2.2506,
+      "model" : "unet_ane_int8w_b4",
+      "placement" : {
+        "cost_share" : {
+          "GPU" : 1
+        },
+        "ops" : {
+          "GPU" : 3049
+        },
+        "total_ops" : 3049
+      },
+      "thermal_after" : "nominal",
+      "timing_per_call" : {
+        "count" : 75,
+        "max_ms" : 53.396542090922594,
+        "mean_ms" : 51.204736779133476,
+        "min_ms" : 50.73516699485481,
+        "over_40ms" : 75,
+        "over_50ms" : 75,
+        "p50_ms" : 51.05912499129772,
+        "p90_ms" : 51.49856680072844,
+        "p99_ms" : 53.01664370112121
+      },
+      "timing_per_frame" : {
+        "count" : 75,
+        "max_ms" : 13.349135522730649,
+        "mean_ms" : 12.801184194783369,
+        "min_ms" : 12.683791748713702,
+        "over_40ms" : 75,
+        "over_50ms" : 75,
+        "p50_ms" : 12.76478124782443,
+        "p90_ms" : 12.87464170018211,
+        "p99_ms" : 13.254160925280303
+      },
+      "variant" : "ane_int8w"
+    },
+    {
+      "accuracy" : {
+        "files" : 16,
+        "frames" : 128,
+        "mae_max" : 0.018711364928094554,
+        "mae_mean" : 0.013108790250043967,
+        "max_abs_max" : 1.03515625,
+        "max_abs_mean" : 0.5423340797424316,
+        "p95_abs_max" : 0.0625,
+        "pass" : false,
+        "per_file" : [
+          {
+            "avatar" : "chin_h3_japanese_new",
+            "frames" : 8,
+            "mae" : 0.014445289692957886,
+            "max_abs" : 0.8465042114257812,
+            "name" : "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs" : 0.0423583984375,
+            "pass" : false,
+            "rmse" : 0.02894779943244016
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.01188213497880497,
+            "max_abs" : 0.4801025390625,
+            "name" : "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs" : 0.034423828125,
+            "pass" : false,
+            "rmse" : 0.01872242982601797
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.011397151789424242,
+            "max_abs" : 0.858642578125,
+            "name" : "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.018258848977310057
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f",
+            "frames" : 8,
+            "mae" : 0.016740394376029144,
+            "max_abs" : 1.03515625,
+            "name" : "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs" : 0.0537109375,
+            "pass" : false,
+            "rmse" : 0.03542265721203315
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f_fh1",
+            "frames" : 8,
+            "mae" : 0.016676109302352415,
+            "max_abs" : 0.5166015625,
+            "name" : "unet_io_000125_bs8_pid3537045.pt",
+            "p95_abs" : 0.05517578125,
+            "pass" : false,
+            "rmse" : 0.030565907243670143
+          },
+          {
+            "avatar" : "latina_guided_20260925_talking_84c5bc80b8",
+            "frames" : 8,
+            "mae" : 0.010821702271641698,
+            "max_abs" : 0.3203125,
+            "name" : "unet_io_000133_bs8_pid3537045.pt",
+            "p95_abs" : 0.029296875,
+            "pass" : false,
+            "rmse" : 0.015590868728572495
+          },
+          {
+            "avatar" : "chinese_bob_pink_bedroom_talking_3373c10448",
+            "frames" : 8,
+            "mae" : 0.012787195826604147,
+            "max_abs" : 0.490081787109375,
+            "name" : "unet_io_000171_bs8_pid3537045.pt",
+            "p95_abs" : 0.037109375,
+            "pass" : false,
+            "rmse" : 0.02009890547285336
+          },
+          {
+            "avatar" : "indian_realtime_talking_20f9845543",
+            "frames" : 8,
+            "mae" : 0.010941783755697543,
+            "max_abs" : 0.1787109375,
+            "name" : "unet_io_000211_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.015483972198176248
+          },
+          {
+            "avatar" : "div_black_woman",
+            "frames" : 8,
+            "mae" : 0.011822932476206915,
+            "max_abs" : 0.67138671875,
+            "name" : "unet_io_000256_bs8_pid3537045.pt",
+            "p95_abs" : 0.033203125,
+            "pass" : false,
+            "rmse" : 0.019405167997684283
+          },
+          {
+            "avatar" : "div_east_asian_man_goatee",
+            "frames" : 8,
+            "mae" : 0.013579566779299057,
+            "max_abs" : 0.35009765625,
+            "name" : "unet_io_000260_bs8_pid3537045.pt",
+            "p95_abs" : 0.04052734375,
+            "pass" : false,
+            "rmse" : 0.020680033616452008
+          },
+          {
+            "avatar" : "div_middle_eastern_man_full_beard",
+            "frames" : 8,
+            "mae" : 0.01293805976092699,
+            "max_abs" : 0.57208251953125,
+            "name" : "unet_io_000313_bs8_pid3537045.pt",
+            "p95_abs" : 0.03955078125,
+            "pass" : false,
+            "rmse" : 0.021899222728577625
+          },
+          {
+            "avatar" : "div_white_man_clean_shaven",
+            "frames" : 8,
+            "mae" : 0.018711364928094554,
+            "max_abs" : 0.9326171875,
+            "name" : "unet_io_000334_bs8_pid3537045.pt",
+            "p95_abs" : 0.0625,
+            "pass" : false,
+            "rmse" : 0.04037384856448981
+          },
+          {
+            "avatar" : "div_south_asian_woman",
+            "frames" : 8,
+            "mae" : 0.01127645767701324,
+            "max_abs" : 0.28515625,
+            "name" : "unet_io_000367_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.016254313360806617
+          },
+          {
+            "avatar" : "div_south_asian_woman",
+            "frames" : 8,
+            "mae" : 0.011600789523072308,
+            "max_abs" : 0.390380859375,
+            "name" : "unet_io_000370_bs8_pid3537045.pt",
+            "p95_abs" : 0.0322265625,
+            "pass" : false,
+            "rmse" : 0.016884122813231008
+          },
+          {
+            "avatar" : "div_black_man_short_beard",
+            "frames" : 8,
+            "mae" : 0.011713291907653911,
+            "max_abs" : 0.38134765625,
+            "name" : "unet_io_000410_bs8_pid3537045.pt",
+            "p95_abs" : 0.0341796875,
+            "pass" : false,
+            "rmse" : 0.01748179873297512
+          },
+          {
+            "avatar" : "codex_smoke",
+            "frames" : 8,
+            "mae" : 0.012406418954924447,
+            "max_abs" : 0.3681640625,
+            "name" : "unet_io_000423_bs8_pid3537045.pt",
+            "p95_abs" : 0.03515625,
+            "pass" : false,
+            "rmse" : 0.01866339536850823
+          }
+        ]
+      },
+      "batch" : 4,
+      "compute_units" : "CPU_AND_NE",
+      "first_predict_ms" : 89.65,
+      "frames_timed" : 300,
+      "layout" : "apple-ane",
+      "load_cached_s" : 0.0914,
+      "load_first_s" : 12.353,
+      "model" : "unet_ane_int8w_b4",
+      "placement" : {
+        "cost_share" : {
+          "ANE" : 1
+        },
+        "ops" : {
+          "ANE" : 3049
+        },
+        "total_ops" : 3049
+      },
+      "thermal_after" : "nominal",
+      "timing_per_call" : {
+        "count" : 75,
+        "max_ms" : 81.96324994787574,
+        "mean_ms" : 79.99955222010612,
+        "min_ms" : 79.75862501189113,
+        "over_40ms" : 75,
+        "over_50ms" : 75,
+        "p50_ms" : 79.85816709697247,
+        "p90_ms" : 80.29892477206886,
+        "p99_ms" : 81.92140887491405
+      },
+      "timing_per_frame" : {
+        "count" : 75,
+        "max_ms" : 20.490812486968935,
+        "mean_ms" : 19.99988805502653,
+        "min_ms" : 19.93965625297278,
+        "over_40ms" : 75,
+        "over_50ms" : 75,
+        "p50_ms" : 19.964541774243116,
+        "p90_ms" : 20.074731193017215,
+        "p99_ms" : 20.480352218728513
+      },
+      "variant" : "ane_int8w"
+    }
+  ],
+  "whisper" : {
+    "encoder_load_s" : {
+      "ALL" : 0.1037,
+      "CPU_AND_NE" : 0.5487
+    },
+    "encoder_model" : "whisper_encoder_fp16",
+    "encoder_ms" : {
+      "ALL" : {
+        "count" : 20,
+        "max_ms" : 3.0486248433589935,
+        "mean_ms" : 2.2551250411197543,
+        "min_ms" : 2.179292030632496,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 2.2072294959798455,
+        "p90_ms" : 2.266458631493151,
+        "p99_ms" : 2.909062078688293
+      },
+      "CPU_AND_NE" : {
+        "count" : 20,
+        "max_ms" : 11.319500161334872,
+        "mean_ms" : 11.168614577036351,
+        "min_ms" : 11.097459122538567,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 11.150707956403494,
+        "p90_ms" : 11.275283386930823,
+        "p99_ms" : 11.312010874971747
+      }
+    },
+    "features_vs_fp32" : {
+      "ALL" : {
+        "mae" : 0.000668792301002476,
+        "max_abs" : 2.16796875,
+        "p95_abs" : 0.001953125,
+        "rmse" : 0.0051370587692102345
+      },
+      "CPU_AND_NE" : {
+        "mae" : 0.004325806800669266,
+        "max_abs" : 9.4375,
+        "p95_abs" : 0.0126953125,
+        "rmse" : 0.01608427458940464
+      }
+    },
+    "front_end_ms" : 5.09,
+    "logmel_model" : "whisper_logmel_fp32",
+    "logmel_ms" : {
+      "count" : 10,
+      "max_ms" : 1.143542118370533,
+      "mean_ms" : 1.1019042925909162,
+      "min_ms" : 1.078207977116108,
+      "over_40ms" : 0,
+      "over_50ms" : 0,
+      "p50_ms" : 1.0998544748872519,
+      "p90_ms" : 1.126104616560042,
+      "p99_ms" : 1.1417983681894839
+    },
+    "logmel_vs_hf_max_abs" : 0.0005,
+    "placement" : {
+      "cost_share" : {
+        "ANE" : 1
+      },
+      "ops" : {
+        "ANE" : 100
+      },
+      "total_ops" : 100
+    }
+  }
+}

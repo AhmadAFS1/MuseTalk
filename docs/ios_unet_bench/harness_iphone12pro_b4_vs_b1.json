@@ -1,0 +1,591 @@
+{
+  "bundle_created": "2026-10-31T17:46:14",
+  "chains": [
+    {
+      "compute_units": "CPU_AND_NE",
+      "frames": 100,
+      "taesd_load_s": 0.3991,
+      "taesd_model": "taesd_fp16_b1",
+      "taesd_ms": {
+        "count": 100,
+        "max_ms": 5.293875001370907,
+        "mean_ms": 5.020513758063316,
+        "min_ms": 4.439625074155629,
+        "over_40ms": 0,
+        "over_50ms": 0,
+        "p50_ms": 5.027729028370231,
+        "p90_ms": 5.212291365023702,
+        "p99_ms": 5.279314168728888
+      },
+      "taesd_units": "ALL",
+      "total_ms": {
+        "count": 100,
+        "max_ms": 60.20054197870195,
+        "mean_ms": 58.730694137047976,
+        "min_ms": 56.61258299369365,
+        "over_40ms": 100,
+        "over_50ms": 100,
+        "p50_ms": 58.82252048468217,
+        "p90_ms": 59.69111629528925,
+        "p99_ms": 60.13507724041119
+      },
+      "unet_model": "unet_anec0_int8w_b1_chunked",
+      "unet_ms": {
+        "count": 100,
+        "max_ms": 55.062250001356006,
+        "mean_ms": 53.71018037898466,
+        "min_ms": 51.69387499336153,
+        "over_40ms": 100,
+        "over_50ms": 100,
+        "p50_ms": 53.798729029949754,
+        "p90_ms": 54.54007083317265,
+        "p99_ms": 54.842758069280535
+      }
+    }
+  ],
+  "device": {
+    "chip": "",
+    "cpu_count": 6,
+    "low_power_mode": false,
+    "machine": "iPhone13,3",
+    "memory_gb": 5.58,
+    "model": "D53pAP",
+    "os": "iOS",
+    "os_version": "Version 26.2 (Build 23C55)",
+    "runtime": "iOS",
+    "thermal_state": "nominal"
+  },
+  "finished": "2026-11-01T02:46:01Z",
+  "gate": {
+    "mae": 0.01,
+    "max_abs": 0.5,
+    "source": "scripts/validate_unet_backend.py per-file thresholds"
+  },
+  "harness_version": "1",
+  "log": [
+    "free disk 19461 MB (mem 14 MB, 3057 MB left)",
+    "device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal nominal, runtime iOS",
+    "UNets: unet_anec0_int8w_b1_chunked (2 stages), unet_anec0_int8w_b4_chunked (2 stages)",
+    "unet_anec0_int8w_b1_chunked [CPU_AND_NE]: loading 2 stage(s) (mem 14 MB, 3057 MB left)",
+    "unet_anec0_int8w_b1_chunked [CPU_AND_NE]: loaded in 24.14 s [\"10.79\", \"13.35\"] (mem 29 MB, 3042 MB left)",
+    "unet_anec0_int8w_b1_chunked [CPU_AND_NE]: first prediction 77.09 ms (mem 46 MB, 3025 MB left)",
+    "unet_anec0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01369 / max 0.01677; max_abs max 1.0264; 32 frames; FAIL",
+    "unet_anec0_int8w_b1_chunked [CPU_AND_NE]: 56.37 ms/frame mean, p99 58.06, max 58.32 over 200 calls of 1 (mem 45 MB, 3026 MB left)",
+    "settling 10.0 s (mem 30 MB, 3041 MB left)",
+    "settling 10.0 s (mem 33 MB, 3038 MB left)",
+    "settling 10.0 s (mem 33 MB, 3038 MB left)",
+    "unet_anec0_int8w_b1_chunked [CPU_AND_NE]: placement [\"ANE\": 3056] cost share [\"ANE\": 100.0]%",
+    "unet_anec0_int8w_b4_chunked [CPU_AND_NE]: loading 2 stage(s) (mem 33 MB, 3038 MB left)",
+    "unet_anec0_int8w_b4_chunked [CPU_AND_NE]: loaded in 46.40 s [\"19.71\", \"26.69\"] (mem 46 MB, 3025 MB left)",
+    "unet_anec0_int8w_b4_chunked [CPU_AND_NE]: first prediction 222.11 ms (mem 99 MB, 2972 MB left)",
+    "unet_anec0_int8w_b4_chunked [CPU_AND_NE]: gate mae mean 0.01369 / max 0.01678; max_abs max 1.0278; 32 frames; FAIL",
+    "thermal state -> fair",
+    "unet_anec0_int8w_b4_chunked [CPU_AND_NE]: 54.25 ms/frame mean, p99 55.66, max 55.80 over 50 calls of 4 (mem 100 MB, 2971 MB left)",
+    "settling 10.0 s (mem 47 MB, 3024 MB left)",
+    "settling 10.0 s (mem 43 MB, 3028 MB left)",
+    "settling 10.0 s (mem 36 MB, 3035 MB left)",
+    "unet_anec0_int8w_b4_chunked [CPU_AND_NE]: placement [\"ANE\": 3056] cost share [\"ANE\": 100.0]%",
+    "unet_anec0_int8w_b1_chunked sustained 30 s [CPU_AND_NE]: starting (mem 36 MB, 3035 MB left)",
+    "unet_anec0_int8w_b1_chunked sustained 30 s [CPU_AND_NE]: 448 frames, 67.11 ms/frame mean; first bucket 54.07 \u2192 last 76.43 ms; thermal fair \u2192 fair (mem 31 MB, 3040 MB left)",
+    "settling 10.0 s (mem 31 MB, 3040 MB left)",
+    "chain unet_anec0_int8w_b1_chunked [CPU_AND_NE] \u2192 taesd_fp16_b1 [ALL]: starting (mem 31 MB, 3040 MB left)",
+    "chain unet_anec0_int8w_b1_chunked [CPU_AND_NE] \u2192 taesd_fp16_b1 [ALL]: 58.73 ms/frame (UNet 53.71 + TAESD 5.02), faces [1, 3, 256, 256] (mem 33 MB, 3038 MB left)",
+    "settling 10.0 s (mem 32 MB, 3039 MB left)",
+    "whisper log-mel [CPU_ONLY]: 3.68 ms / 30 s, max |diff| vs HF 0.0005",
+    "whisper encoder [ALL]: 27.86 ms / 30 s; vs fp32 features max 11.812 mean 0.00430",
+    "whisper encoder [CPU_AND_NE]: 27.89 ms / 30 s; vs fp32 features max 11.812 mean 0.00430"
+  ],
+  "mac_reference": {
+    "ane_layout_bench": {
+      "host": {
+        "chip": "Apple M5 Pro",
+        "macos": "27.0.1"
+      },
+      "measured_at": "2026-10-30T17:59:04-0500",
+      "results": [
+        {
+          "ane_load_s": 11.6,
+          "ane_ms_per_call": 22.63,
+          "ane_ms_per_frame": 22.626,
+          "ane_p90_ms_per_frame": 22.69,
+          "batch": 1,
+          "bytes": 1703013161,
+          "compute_plan_ops_by_device": {
+            "NeuralEngine": 3049
+          },
+          "face_mae_255": 0.4336286187171936,
+          "face_max_abs_255": 12.75041389465332,
+          "fps_single_stream_unet_only": 44.2,
+          "kind": "unet",
+          "latent_mae": 0.012313341721892357,
+          "latent_max_abs": 0.3589463233947754,
+          "mb": 1624,
+          "name": "unet_ane_fp16_b1",
+          "rss_mb_after": 548,
+          "variant": "ane_fp16",
+          "weight_bytes_per_frame_mb": 1624.1
+        },
+        {
+          "ane_load_s": 8.9,
+          "ane_ms_per_call": 18.87,
+          "ane_ms_per_frame": 18.867,
+          "ane_p90_ms_per_frame": 18.974,
+          "batch": 1,
+          "bytes": 852743287,
+          "compute_plan_ops_by_device": {
+            "NeuralEngine": 3049
+          },
+          "face_mae_255": 0.482073575258255,
+          "face_max_abs_255": 15.357020378112793,
+          "fps_single_stream_unet_only": 53,
+          "kind": "unet",
+          "latent_mae": 0.012812141329050064,
+          "latent_max_abs": 0.3892197608947754,
+          "mb": 813,
+          "name": "unet_ane_int8w_b1",
+          "rss_mb_after": 1638,
+          "variant": "ane_int8w",
+          "weight_bytes_per_frame_mb": 813.2
+        },
+        {
+          "ane_load_s": 16.2,
+          "ane_ms_per_call": 100.56,
+          "ane_ms_per_frame": 25.141,
+          "ane_p90_ms_per_frame": 25.247,
+          "batch": 4,
+          "bytes": 1703013161,
+          "compute_plan_ops_by_device": {
+            "NeuralEngine": 3049
+          },
+          "face_mae_255": 0.4336286187171936,
+          "face_max_abs_255": 12.75041389465332,
+          "fps_single_stream_unet_only": 39.8,
+          "kind": "unet",
+          "latent_mae": 0.012313341721892357,
+          "latent_max_abs": 0.3589463233947754,
+          "mb": 1624,
+          "name": "unet_ane_fp16_b4",
+          "rss_mb_after": 1592,
+          "variant": "ane_fp16",
+          "weight_bytes_per_frame_mb": 406
+        },
+        {
+          "ane_load_s": 13.4,
+          "ane_ms_per_call": 80.29,
+          "ane_ms_per_frame": 20.074,
+          "ane_p90_ms_per_frame": 20.142,
+          "batch": 4,
+          "bytes": 852743287,
+          "compute_plan_ops_by_device": {
+            "NeuralEngine": 3049
+          },
+          "face_mae_255": 0.482073575258255,
+          "face_max_abs_255": 15.357020378112793,
+          "fps_single_stream_unet_only": 49.8,
+          "kind": "unet",
+          "latent_mae": 0.012812141329050064,
+          "latent_max_abs": 0.3892197608947754,
+          "mb": 813,
+          "name": "unet_ane_int8w_b4",
+          "rss_mb_after": 1596,
+          "variant": "ane_int8w",
+          "weight_bytes_per_frame_mb": 203.3
+        }
+      ],
+      "units": "CPU_AND_NE"
+    },
+    "gate": {
+      "pytorch_fp32": {
+        "mae_max": 0.00048121900181286037,
+        "mae_mean": 0.0003826273441518424,
+        "max_abs_max": 0.04686196148395538,
+        "max_abs_mean": 0.014692156575620174,
+        "pass": true
+      },
+      "unet_fp16_b1": {
+        "mae_max": 0.01835004612803459,
+        "mae_mean": 0.01278440683381632,
+        "max_abs_max": 1.0009765625,
+        "max_abs_mean": 0.5215401649475098,
+        "pass": false
+      }
+    },
+    "host": "arm64",
+    "note": "M5 Pro Neural Engine, coremltools 9 Python bench",
+    "server_engines": {
+      "trt_fp16": {
+        "mae_max": 0.0025,
+        "mae_mean": 0.0018,
+        "max_abs_max": 0.414
+      },
+      "trt_int8_srcg50_shipping": {
+        "mae_max": 0.0044,
+        "mae_mean": 0.0032,
+        "max_abs_max": 0.777
+      }
+    }
+  },
+  "options": {
+    "chain_frames": 100,
+    "compute_plan": true,
+    "gpu_check": false,
+    "gpu_check_frames": 64,
+    "include_batch4": true,
+    "phase_units": "CPU_AND_NE",
+    "reload": false,
+    "settle_seconds": 10,
+    "sustained_seconds": 30,
+    "unet_frames": 200,
+    "unet_units": [
+      "CPU_AND_NE"
+    ],
+    "whisper": true
+  },
+  "repo_commit": "79e3535",
+  "started": "2026-11-01T02:40:39Z",
+  "sustained": {
+    "buckets": [
+      {
+        "frames": 93,
+        "mean_ms": 54.07,
+        "p99_ms": 55.91,
+        "t0_s": 0,
+        "t1_s": 5,
+        "thermal": "fair"
+      },
+      {
+        "frames": 90,
+        "mean_ms": 55.62,
+        "p99_ms": 58.88,
+        "t0_s": 5,
+        "t1_s": 10,
+        "thermal": "fair"
+      },
+      {
+        "frames": 72,
+        "mean_ms": 69.74,
+        "p99_ms": 76.73,
+        "t0_s": 10,
+        "t1_s": 15,
+        "thermal": "fair"
+      },
+      {
+        "frames": 64,
+        "mean_ms": 78.4,
+        "p99_ms": 83.95,
+        "t0_s": 15,
+        "t1_s": 20,
+        "thermal": "fair"
+      },
+      {
+        "frames": 63,
+        "mean_ms": 78.49,
+        "p99_ms": 82.76,
+        "t0_s": 20,
+        "t1_s": 25,
+        "thermal": "fair"
+      },
+      {
+        "frames": 66,
+        "mean_ms": 76.43,
+        "p99_ms": 77.54,
+        "t0_s": 25,
+        "t1_s": 30,
+        "thermal": "fair"
+      }
+    ],
+    "compute_units": "CPU_AND_NE",
+    "model": "unet_anec0_int8w_b1_chunked",
+    "overall": {
+      "count": 448,
+      "max_ms": 84.14187503512949,
+      "mean_ms": 67.10563107844791,
+      "min_ms": 52.545957965776324,
+      "over_40ms": 448,
+      "over_50ms": 448,
+      "p50_ms": 70.19533350830898,
+      "p90_ms": 78.57181268045679,
+      "p99_ms": 83.64715824835002
+    },
+    "seconds": 30,
+    "thermal_end": "fair",
+    "thermal_start": "fair",
+    "total_frames": 448
+  },
+  "unet_runs": [
+    {
+      "accuracy": {
+        "files": 4,
+        "frames": 32,
+        "mae_max": 0.01677305835437437,
+        "mae_mean": 0.013693847752620059,
+        "max_abs_max": 1.0263671875,
+        "max_abs_mean": 0.8198719024658203,
+        "p95_abs_max": 0.05413494110107413,
+        "pass": false,
+        "per_file": [
+          {
+            "avatar": "chin_h3_japanese_new",
+            "frames": 8,
+            "mae": 0.014523081845254637,
+            "max_abs": 0.8479690551757812,
+            "name": "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs": 0.04248046875,
+            "pass": false,
+            "rmse": 0.02901597208998043
+          },
+          {
+            "avatar": "chin_h3_latina_new",
+            "frames": 8,
+            "mae": 0.011999980113614583,
+            "max_abs": 0.4927978515625,
+            "name": "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs": 0.03500747680664046,
+            "pass": false,
+            "rmse": 0.01895830014556457
+          },
+          {
+            "avatar": "chin_h3_latina_new",
+            "frames": 8,
+            "mae": 0.011479270697236643,
+            "max_abs": 0.912353515625,
+            "name": "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs": 0.03125,
+            "pass": false,
+            "rmse": 0.01856562178678568
+          },
+          {
+            "avatar": "japanese_realtime_talking_7d94520b7f",
+            "frames": 8,
+            "mae": 0.01677305835437437,
+            "max_abs": 1.0263671875,
+            "name": "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs": 0.05413494110107413,
+            "pass": false,
+            "rmse": 0.03538034286774049
+          }
+        ]
+      },
+      "batch": 1,
+      "compute_units": "CPU_AND_NE",
+      "first_predict_ms": 77.09,
+      "frames_timed": 200,
+      "layout": "apple-ane",
+      "load_first_s": 24.1445,
+      "model": "unet_anec0_int8w_b1_chunked",
+      "placement": {
+        "cost_share": {
+          "ANE": 1
+        },
+        "ops": {
+          "ANE": 3056
+        },
+        "total_ops": 3056
+      },
+      "stage_files": [
+        "unet_anec0_int8w_b1_chunk1.mlmodelc",
+        "unet_anec0_int8w_b1_chunk2.mlmodelc"
+      ],
+      "stage_load_s": [
+        10.7939,
+        13.3506
+      ],
+      "stages": 2,
+      "thermal_after": "nominal",
+      "timing_per_call": {
+        "count": 200,
+        "max_ms": 58.32354200538248,
+        "mean_ms": 56.36896767478902,
+        "min_ms": 54.55270898528397,
+        "over_40ms": 200,
+        "over_50ms": 200,
+        "p50_ms": 56.3139584264718,
+        "p90_ms": 57.153879513498396,
+        "p99_ms": 58.06071970844641
+      },
+      "timing_per_frame": {
+        "count": 200,
+        "max_ms": 58.32354200538248,
+        "mean_ms": 56.36896767478902,
+        "min_ms": 54.55270898528397,
+        "over_40ms": 200,
+        "over_50ms": 200,
+        "p50_ms": 56.3139584264718,
+        "p90_ms": 57.153879513498396,
+        "p99_ms": 58.06071970844641
+      },
+      "variant": "anec0_int8w"
+    },
+    {
+      "accuracy": {
+        "files": 4,
+        "frames": 32,
+        "mae_max": 0.016780152705905493,
+        "mae_mean": 0.013694971677523426,
+        "max_abs_max": 1.02783203125,
+        "max_abs_mean": 0.8267078399658203,
+        "p95_abs_max": 0.053790283203124734,
+        "pass": false,
+        "per_file": [
+          {
+            "avatar": "chin_h3_japanese_new",
+            "frames": 8,
+            "mae": 0.014511409179249313,
+            "max_abs": 0.8450393676757812,
+            "name": "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs": 0.04248046875,
+            "pass": false,
+            "rmse": 0.02896980217593197
+          },
+          {
+            "avatar": "chin_h3_latina_new",
+            "frames": 8,
+            "mae": 0.012001486575172748,
+            "max_abs": 0.4957275390625,
+            "name": "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs": 0.03515625,
+            "pass": false,
+            "rmse": 0.018955359977123366
+          },
+          {
+            "avatar": "chin_h3_latina_new",
+            "frames": 8,
+            "mae": 0.011486838249766151,
+            "max_abs": 0.938232421875,
+            "name": "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs": 0.03125,
+            "pass": false,
+            "rmse": 0.01866928149419076
+          },
+          {
+            "avatar": "japanese_realtime_talking_7d94520b7f",
+            "frames": 8,
+            "mae": 0.016780152705905493,
+            "max_abs": 1.02783203125,
+            "name": "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs": 0.053790283203124734,
+            "pass": false,
+            "rmse": 0.03539432781032247
+          }
+        ]
+      },
+      "batch": 4,
+      "compute_units": "CPU_AND_NE",
+      "first_predict_ms": 222.11,
+      "frames_timed": 200,
+      "layout": "apple-ane",
+      "load_first_s": 46.4009,
+      "model": "unet_anec0_int8w_b4_chunked",
+      "placement": {
+        "cost_share": {
+          "ANE": 1
+        },
+        "ops": {
+          "ANE": 3056
+        },
+        "total_ops": 3056
+      },
+      "stage_files": [
+        "unet_anec0_int8w_b4_chunk1.mlmodelc",
+        "unet_anec0_int8w_b4_chunk2.mlmodelc"
+      ],
+      "stage_load_s": [
+        19.7097,
+        26.6912
+      ],
+      "stages": 2,
+      "thermal_after": "fair",
+      "timing_per_call": {
+        "count": 50,
+        "max_ms": 223.18766603711993,
+        "mean_ms": 216.99579319916666,
+        "min_ms": 202.91254110634327,
+        "over_40ms": 50,
+        "over_50ms": 50,
+        "p50_ms": 217.66120847314596,
+        "p90_ms": 221.18851218838245,
+        "p99_ms": 222.64784969040193
+      },
+      "timing_per_frame": {
+        "count": 50,
+        "max_ms": 55.79691650927998,
+        "mean_ms": 54.248948299791664,
+        "min_ms": 50.72813527658582,
+        "over_40ms": 50,
+        "over_50ms": 50,
+        "p50_ms": 54.41530211828649,
+        "p90_ms": 55.29712804709561,
+        "p99_ms": 55.66196242260048
+      },
+      "variant": "anec0_int8w"
+    }
+  ],
+  "whisper": {
+    "encoder_load_s": {
+      "ALL": 3.4669,
+      "CPU_AND_NE": 3.6408
+    },
+    "encoder_model": "whisper_encoder_fp16",
+    "encoder_ms": {
+      "ALL": {
+        "count": 20,
+        "max_ms": 28.335125069133937,
+        "mean_ms": 27.855227066902444,
+        "min_ms": 27.488625026308,
+        "over_40ms": 0,
+        "over_50ms": 0,
+        "p50_ms": 27.85110450349748,
+        "p90_ms": 28.146420570556074,
+        "p99_ms": 28.315024774055928
+      },
+      "CPU_AND_NE": {
+        "count": 20,
+        "max_ms": 29.071124969050288,
+        "mean_ms": 27.885760442586616,
+        "min_ms": 27.271582977846265,
+        "over_40ms": 0,
+        "over_50ms": 0,
+        "p50_ms": 27.86908345296979,
+        "p90_ms": 28.322241676505655,
+        "p99_ms": 28.933097942499444
+      }
+    },
+    "features_vs_fp32": {
+      "ALL": {
+        "mae": 0.00429718930537088,
+        "max_abs": 11.8125,
+        "p95_abs": 0.0126953125,
+        "rmse": 0.016771157836313867
+      },
+      "CPU_AND_NE": {
+        "mae": 0.00429718930537088,
+        "max_abs": 11.8125,
+        "p95_abs": 0.0126953125,
+        "rmse": 0.016771157836313867
+      }
+    },
+    "front_end_ms": 98.86,
+    "logmel_model": "whisper_logmel_fp32",
+    "logmel_ms": {
+      "count": 10,
+      "max_ms": 3.7151669384911656,
+      "mean_ms": 3.6835541832260787,
+      "min_ms": 3.656208049505949,
+      "over_40ms": 0,
+      "over_50ms": 0,
+      "p50_ms": 3.680437512230128,
+      "p90_ms": 3.7130663287825882,
+      "p99_ms": 3.714956877520308
+    },
+    "logmel_vs_hf_max_abs": 0.0005,
+    "placement": {
+      "cost_share": {
+        "ANE": 1
+      },
+      "ops": {
+        "ANE": 100
+      },
+      "total_ops": 100
+    }
+  }
+}

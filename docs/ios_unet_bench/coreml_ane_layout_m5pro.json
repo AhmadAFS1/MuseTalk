@@ -1,0 +1,98 @@
+{
+  "host": {
+    "chip": "Apple M5 Pro",
+    "macos": "27.0.1"
+  },
+  "units": "CPU_AND_NE",
+  "measured_at": "2026-10-30T17:59:04-0500",
+  "results": [
+    {
+      "name": "unet_ane_fp16_b1",
+      "kind": "unet",
+      "variant": "ane_fp16",
+      "batch": 1,
+      "bytes": 1703013161,
+      "mb": 1624,
+      "ane_ms_per_call": 22.63,
+      "ane_ms_per_frame": 22.626,
+      "ane_p90_ms_per_frame": 22.69,
+      "ane_load_s": 11.6,
+      "rss_mb_after": 548,
+      "weight_bytes_per_frame_mb": 1624.1,
+      "fps_single_stream_unet_only": 44.2,
+      "compute_plan_ops_by_device": {
+        "NeuralEngine": 3049
+      },
+      "latent_mae": 0.012313341721892357,
+      "latent_max_abs": 0.3589463233947754,
+      "face_mae_255": 0.4336286187171936,
+      "face_max_abs_255": 12.75041389465332
+    },
+    {
+      "name": "unet_ane_int8w_b1",
+      "kind": "unet",
+      "variant": "ane_int8w",
+      "batch": 1,
+      "bytes": 852743287,
+      "mb": 813,
+      "ane_ms_per_call": 18.87,
+      "ane_ms_per_frame": 18.867,
+      "ane_p90_ms_per_frame": 18.974,
+      "ane_load_s": 8.9,
+      "rss_mb_after": 1638,
+      "weight_bytes_per_frame_mb": 813.2,
+      "fps_single_stream_unet_only": 53.0,
+      "compute_plan_ops_by_device": {
+        "NeuralEngine": 3049
+      },
+      "latent_mae": 0.012812141329050064,
+      "latent_max_abs": 0.3892197608947754,
+      "face_mae_255": 0.482073575258255,
+      "face_max_abs_255": 15.357020378112793
+    },
+    {
+      "name": "unet_ane_fp16_b4",
+      "kind": "unet",
+      "variant": "ane_fp16",
+      "batch": 4,
+      "bytes": 1703013161,
+      "mb": 1624,
+      "ane_ms_per_call": 100.56,
+      "ane_ms_per_frame": 25.141,
+      "ane_p90_ms_per_frame": 25.247,
+      "ane_load_s": 16.2,
+      "rss_mb_after": 1592,
+      "weight_bytes_per_frame_mb": 406.0,
+      "fps_single_stream_unet_only": 39.8,
+      "compute_plan_ops_by_device": {
+        "NeuralEngine": 3049
+      },
+      "latent_mae": 0.012313341721892357,
+      "latent_max_abs": 0.3589463233947754,
+      "face_mae_255": 0.4336286187171936,
+      "face_max_abs_255": 12.75041389465332
+    },
+    {
+      "name": "unet_ane_int8w_b4",
+      "kind": "unet",
+      "variant": "ane_int8w",
+      "batch": 4,
+      "bytes": 852743287,
+      "mb": 813,
+      "ane_ms_per_call": 80.29,
+      "ane_ms_per_frame": 20.074,
+      "ane_p90_ms_per_frame": 20.142,
+      "ane_load_s": 13.4,
+      "rss_mb_after": 1596,
+      "weight_bytes_per_frame_mb": 203.3,
+      "fps_single_stream_unet_only": 49.8,
+      "compute_plan_ops_by_device": {
+        "NeuralEngine": 3049
+      },
+      "latent_mae": 0.012812141329050064,
+      "latent_max_abs": 0.3892197608947754,
+      "face_mae_255": 0.482073575258255,
+      "face_max_abs_255": 15.357020378112793
+    }
+  ]
+}
