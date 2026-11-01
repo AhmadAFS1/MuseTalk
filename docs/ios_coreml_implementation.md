@@ -579,7 +579,14 @@ cd ios/MuseTalkBench && swift build -c release
    compile at install time, not before a call, and measure a 5-minute call, not a 30 s burst.
 7. **Lingua integration**: a native module around `HarnessCore` (the Lingua app is Expo 53 / React Native 0.79 with no
    on-device ML today; it consumes WebRTC from the server). The Lipsync tab is the reference for what the module
-   does: the phone renders and displays its own frames, no WebRTC and no server in the loop.
+   does: the phone renders and displays its own frames, no WebRTC and no server in the loop. **Planned 2026-10-31**
+   in the Lingua repo, `docs/musetalk-on-device-renderer-plan.md`: the Lingua client already holds the TTS WAV
+   before uploading it to the worker, so device mode is a local branch at that point (no new server transport); an
+   Expo module + view over `HarnessCore`, a `musetalk.renderer` flag (server / device / auto, with a server kill
+   switch), phone avatar bundles exported server-side from the v15 cache, and a per-turn latency timeline recorded
+   in both modes. Phase 0 there asks this repo for: the player logic (`FrameBuffer`, pre-roll, display link, audio
+   clock) moved from the harness app into `HarnessCore`, WAV → 16 kHz resampling, > 30 s audio segmenting, and a
+   pre-roll parameter.
 
 ---
 
