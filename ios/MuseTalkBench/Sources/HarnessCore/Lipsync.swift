@@ -36,7 +36,8 @@ public struct AvatarMeta: Decodable {
     public let coords: [[Int]]
     public let mask_coords: [[Int]]
     public let latents: TensorFile
-    public let audio: AvatarAudioMeta
+    /// The harness clip; absent in phone-only bundles (`prepare_avatar_bundle.py --phone-only`).
+    public let audio: AvatarAudioMeta?
     public let check: AvatarCheckMeta?
 }
 
@@ -254,7 +255,8 @@ public final class AvatarBundle {
     }
 
     public var fps: Int { meta.fps }
-    public var totalFrames: Int { meta.audio.frames }
+    /// Frames of the bundled harness clip (0 for a phone-only bundle).
+    public var totalFrames: Int { meta.audio?.frames ?? 0 }
 
     /// Cycle position -> unique frame index (ping-pong caches store the reversed half only once).
     public func uniqueIndex(_ i: Int) -> Int {
@@ -300,27 +302,37 @@ public struct AudioWindows {
     public func window(_ i: Int) -> ArraySlice<Float> { data[(i * 50 * 384) ..< ((i + 1) * 50 * 384)] }
 }
 
-/// waveform (16 kHz, <= 30 s) -> per-frame UNet audio windows, through the Core ML log-mel and encoder.
+/// waveform (16 kHz, any length) -> per-frame UNet audio windows, through the Core ML log-mel and encoder. Audio
+/// longer than one Whisper segment (30 s) is encoded segment by segment and the features concatenated before the
+/// gather, as the repo's AudioProcessor does, so a window at a segment boundary sees both sides.
 public func computeAudioWindows(waveform: [Float], fps: Int, logmel: MLModel, logmelMeta: ModelMeta,
                                 encoder: MLModel, encoderMeta: ModelMeta) throws -> AudioWindows {
     let segSamples = 16000 * 30
-    var seg = [Float](repeating: 0, count: segSamples)
-    let n = min(waveform.count, segSamples)
-    seg.replaceSubrange(0 ..< n, with: waveform[0 ..< n])
-    let lmIn = logmelMeta.inputs[0]
-    let wave = try makeArray(seg, shape: lmIn.shape, dtype: try mlDataType(lmIn.dtype))
-    let mel = try output(logmel.prediction(from: MLDictionaryFeatureProvider(dictionary: [lmIn.name: wave])),
-                         logmelMeta.outputs.first?.name ?? "logmel")
-    let encIn = encoderMeta.inputs[0]
-    let melIn = try convert(mel, to: try mlDataType(encIn.dtype))
-    let feat = try output(encoder.prediction(from: MLDictionaryFeatureProvider(dictionary: [encIn.name: melIn])),
-                          encoderMeta.outputs.first?.name ?? "features")
-    let features = floats(feat)  // [1500, 5, 384]
     let layers = 5, dim = 384, steps = 10
-    let actual = Int((Double(n) / 16000.0 * 50.0).rounded(.down))
-    let frames = Int((Double(n) / 16000.0 * Double(fps)).rounded(.down))
+    let lmIn = logmelMeta.inputs[0]
+    let encIn = encoderMeta.inputs[0]
+    var features: [Float] = []  // [actualTotal, 5, 384], 50 steps per second of audio
+    var actualTotal = 0
+    var offset = 0
+    repeat {
+        let n = max(0, min(waveform.count - offset, segSamples))
+        var seg = [Float](repeating: 0, count: segSamples)
+        if n > 0 { seg.replaceSubrange(0 ..< n, with: waveform[offset ..< offset + n]) }
+        let wave = try makeArray(seg, shape: lmIn.shape, dtype: try mlDataType(lmIn.dtype))
+        let mel = try output(logmel.prediction(from: MLDictionaryFeatureProvider(dictionary: [lmIn.name: wave])),
+                             logmelMeta.outputs.first?.name ?? "logmel")
+        let melIn = try convert(mel, to: try mlDataType(encIn.dtype))
+        let feat = try output(encoder.prediction(from: MLDictionaryFeatureProvider(dictionary: [encIn.name: melIn])),
+                              encoderMeta.outputs.first?.name ?? "features")
+        let f = floats(feat)  // [1500, 5, 384]
+        let actual = min(1500, Int((Double(n) / 16000.0 * 50.0).rounded(.down)))
+        features.append(contentsOf: f[0 ..< actual * layers * dim])
+        actualTotal += actual
+        offset += segSamples
+    } while offset < waveform.count
+    let frames = Int((Double(waveform.count) / 16000.0 * Double(fps)).rounded(.down))
     let padL = 4, padR = 12
-    let total = padL + actual + padR
+    let total = padL + actualTotal + padR
     var data = [Float](repeating: 0, count: frames * steps * layers * dim)
     data.withUnsafeMutableBufferPointer { out in
         features.withUnsafeBufferPointer { f in
@@ -329,7 +341,7 @@ public func computeAudioWindows(waveform: [Float], fps: Int, logmel: MLModel, lo
                 for s in 0 ..< steps {
                     let t = a + s  // index into the padded timeline
                     let src = t - padL
-                    guard t < total, src >= 0, src < actual, src < 1500 else { continue }  // zero padding
+                    guard t < total, src >= 0, src < actualTotal else { continue }  // zero padding
                     for l in 0 ..< layers {
                         let o = ((i * steps + s) * layers + l) * dim
                         let si = (src * layers + l) * dim
@@ -405,29 +417,49 @@ public final class LipsyncEngine {
         log("lipsync: models loaded in \(String(format: "%.2f", loadSeconds)) s, \(sampleArrays.count) frame latents ready (\(memLine()))")
     }
 
-    /// Run the clip's audio through log-mel + encoder + the window gather.
-    public func prepareAudio() throws {
+    /// The harness clip's 16 kHz waveform, when the bundle carries one.
+    public func bundledWaveform() throws -> [Float] {
+        guard let a = avatar.meta.audio else { throw HarnessError.noModel("this avatar bundle has no clip (phone-only)") }
+        return try FlatTensor.load(TensorFile(file: a.waveform, shape: [1, a.samples], dtype: "float32"), in: avatar.dir).frame(0)
+    }
+
+    /// The harness clip's playable file, when the bundle carries one.
+    public var playbackURL: URL? { avatar.meta.audio.map { avatar.dir.appendingPathComponent($0.playback) } }
+
+    /// Run the bundled clip through log-mel + encoder + the window gather.
+    public func prepareAudio() throws { try prepareAudio(waveform: try bundledWaveform()) }
+
+    private var logmel: MLModel? = nil
+    private var encoder: MLModel? = nil
+    private var logmelMeta: ModelMeta? = nil
+    private var encoderMeta: ModelMeta? = nil
+
+    /// Run a 16 kHz mono waveform (any length) through log-mel + encoder + the window gather. The Whisper models are
+    /// loaded on first use and kept (log-mel on the CPU, encoder on the Neural Engine).
+    public func prepareAudio(waveform: [Float]) throws {
         let t0 = now()
-        let a = avatar.meta.audio
-        let wave = try FlatTensor.load(TensorFile(file: a.waveform, shape: [1, a.samples], dtype: "float32"),
-                                       in: avatar.dir).frame(0)
-        guard let lm = harness.meta.models(ofKind: "whisper_logmel").first,
-              let em = harness.meta.models(ofKind: "whisper_encoder").first else {
-            throw HarnessError.noModel("whisper models")
+        if logmel == nil || encoder == nil {
+            guard let lm = harness.meta.models(ofKind: "whisper_logmel").first,
+                  let em = harness.meta.models(ofKind: "whisper_encoder").first else {
+                throw HarnessError.noModel("whisper models")
+            }
+            let cpu = MLModelConfiguration(); cpu.computeUnits = .cpuOnly
+            let ne = MLModelConfiguration(); ne.computeUnits = .cpuAndNeuralEngine
+            logmel = try MLModel(contentsOf: harness.resources.appendingPathComponent(lm.file), configuration: cpu)
+            encoder = try MLModel(contentsOf: harness.resources.appendingPathComponent(em.file), configuration: ne)
+            logmelMeta = lm; encoderMeta = em
         }
-        let cpu = MLModelConfiguration(); cpu.computeUnits = .cpuOnly
-        let ne = MLModelConfiguration(); ne.computeUnits = .cpuAndNeuralEngine
-        let logmel = try MLModel(contentsOf: harness.resources.appendingPathComponent(lm.file), configuration: cpu)
-        let encoder = try MLModel(contentsOf: harness.resources.appendingPathComponent(em.file), configuration: ne)
-        windows = try computeAudioWindows(waveform: wave, fps: avatar.fps, logmel: logmel, logmelMeta: lm, encoder: encoder, encoderMeta: em)
+        windows = try computeAudioWindows(waveform: waveform, fps: avatar.fps, logmel: logmel!, logmelMeta: logmelMeta!,
+                                          encoder: encoder!, encoderMeta: encoderMeta!)
         audioSeconds = now() - t0
-        log("lipsync: audio windows for \(windows!.frames) frames at \(avatar.fps) fps in \(String(format: "%.2f", audioSeconds)) s")
+        log("lipsync: audio windows for \(windows!.frames) frames at \(avatar.fps) fps (\(String(format: "%.1f", Double(waveform.count) / 16000)) s of audio) in \(String(format: "%.2f", audioSeconds)) s")
     }
 
     /// Max / mean abs difference of the Swift windows against the repo's windows exported with the avatar.
     public func checkWindows() throws -> (maxAbs: Double, meanAbs: Double, frames: Int) {
         guard let w = windows else { throw HarnessError.noModel("windows not prepared") }
-        let ref = try FlatTensor.load(avatar.meta.audio.windows_ref, in: avatar.dir)
+        guard let a = avatar.meta.audio else { throw HarnessError.noModel("no reference windows in a phone-only bundle") }
+        let ref = try FlatTensor.load(a.windows_ref, in: avatar.dir)
         let n = min(w.frames, ref.frameCount)
         var mx = 0.0, sum = 0.0, cnt = 0
         for i in 0 ..< n {

@@ -13,6 +13,7 @@ struct BenchMac {
                          [--units ALL,CPU_AND_NE] [--no-gpu] [--no-b4] [--no-whisper] [--no-reload] [--accuracy-frames N]
                          [--models a,b] [--no-unet] [--taesd-units ALL,CPU_AND_GPU,CPU_ONLY]
                          [--lipsync-check <avatar dir> [--lipsync-frames N]]
+                         [--lipsync-session <avatar dir> --wav <file> [--preroll S]]
         """)
         exit(2)
     }
@@ -54,6 +55,33 @@ struct BenchMac {
         }
     }
 
+    /// A whole spoken turn through `LipsyncSession` on this Mac: a WAV (any rate) → 16 kHz → windows → paced
+    /// pipeline → frames polled at 60 Hz, silent (no audio device needed). Prints the same LIPSYNC_RESULT as the phone.
+    static func lipsyncSession(resources: URL, avatarDir: URL, wav: URL, preroll: Double) {
+        do {
+            let engine = try LipsyncEngine(resources: resources, avatarDir: avatarDir)
+            engine.log = { print($0) }
+            try engine.load()
+            let waveform = try loadWaveform16k(url: wav)
+            print(String(format: "wav %@: %.2f s at 16 kHz (%d samples)", wav.lastPathComponent, Double(waveform.count) / 16000, waveform.count))
+            let session = LipsyncSession(engine: engine)
+            session.config.prerollSeconds = preroll
+            session.config.playAudio = false
+            session.log = { print($0) }
+            try session.speak(waveform: waveform, playbackURL: nil)
+            var frames = 0
+            while session.state != .finished && session.state != .failed {
+                if session.currentFrame() != nil { frames += 1 }
+                usleep(16_000)
+            }
+            print("frames delivered to the display: \(frames)")
+            if let r = session.lastResult { print("LIPSYNC_RESULT " + r.json) }
+        } catch {
+            FileHandle.standardError.write("lipsync-session: \(error)\n".data(using: .utf8)!)
+            exit(1)
+        }
+    }
+
     static func main() async {
         var args = Array(CommandLine.arguments.dropFirst())
         var resources: URL? = nil
@@ -61,6 +89,9 @@ struct BenchMac {
         var options = BenchOptions()
         var lipsyncAvatar: URL? = nil
         var lipsyncFrames = 48
+        var sessionAvatar: URL? = nil
+        var sessionWav: URL? = nil
+        var sessionPreroll = 0.4
         func take() -> String { args.isEmpty ? { usage() }() : args.removeFirst() }
         while !args.isEmpty {
             let a = args.removeFirst()
@@ -83,11 +114,24 @@ struct BenchMac {
             case "--phase-units": options.phaseUnits = unitsFromName(take()) ?? .all
             case "--lipsync-check": lipsyncAvatar = URL(fileURLWithPath: take())
             case "--lipsync-frames": lipsyncFrames = Int(take()) ?? lipsyncFrames
+            case "--unpack-tar":  // HarnessCore's tar reader on a pack_phone_bundle.py / pack_model_pack.py tar
+                let tar = URL(fileURLWithPath: take()), dir = URL(fileURLWithPath: take())
+                do { try TarArchive.extract(tar, to: dir); print("unpacked \(tar.lastPathComponent) into \(dir.path)") }
+                catch { FileHandle.standardError.write("unpack: \(error)\n".data(using: .utf8)!); exit(1) }
+                return
+            case "--lipsync-session": sessionAvatar = URL(fileURLWithPath: take())
+            case "--wav": sessionWav = URL(fileURLWithPath: take())
+            case "--preroll": sessionPreroll = Double(take()) ?? sessionPreroll
             case "--taesd-units": options.taesdUnits = take().split(separator: ",").compactMap { unitsFromName(String($0)) }
             default: usage()
             }
         }
         guard let resources = resources else { usage() }
+        if let avatarDir = sessionAvatar {
+            guard let wav = sessionWav else { usage() }
+            lipsyncSession(resources: resources, avatarDir: avatarDir, wav: wav, preroll: sessionPreroll)
+            return
+        }
         if let avatarDir = lipsyncAvatar {
             lipsyncCheck(resources: resources, avatarDir: avatarDir, frames: lipsyncFrames)
             return

@@ -1,4 +1,3 @@
-import AVFoundation
 import Combine
 import CoreGraphics
 import Foundation
@@ -6,51 +5,44 @@ import HarnessCore
 import QuartzCore
 import UIKit
 
-/// Composed frames waiting for the display link, shared between the pipeline's CPU stage and the main thread.
-/// Every method takes the (non-recursive) lock once and never calls another method while holding it: the first
-/// phone run hung because a locked closure read `count`, which locks again.
-final class FrameBuffer: @unchecked Sendable {
-    private let lock = NSLock()
-    private var frames: [Int: CGImage] = [:]
-    private var audioStartValue: Double? = nil   // monotonic seconds when the audio started
-    private var startRequested = false
-    private var doneValue = false
-
-    func reset() { lock.lock(); frames = [:]; audioStartValue = nil; startRequested = false; doneValue = false; lock.unlock() }
-    /// Stores a composed frame; true the first time the buffer holds `preroll` frames (the caller then starts the audio).
-    func put(_ i: Int, _ img: CGImage, preroll: Int) -> Bool {
-        lock.lock(); defer { lock.unlock() }
-        frames[i] = img
-        if startRequested || frames.count < preroll { return false }
-        startRequested = true
-        return true
-    }
-    /// Marks the pipeline finished; true if the audio has not been started yet (a clip shorter than the pre-roll).
-    func markDone() -> Bool {
-        lock.lock(); defer { lock.unlock() }
-        doneValue = true
-        if startRequested { return false }
-        startRequested = true
-        return true
-    }
-    var count: Int { lock.lock(); defer { lock.unlock() }; return frames.count }
-    var done: Bool { lock.lock(); defer { lock.unlock() }; return doneValue }
-    var audioStart: Double? {
-        get { lock.lock(); defer { lock.unlock() }; return audioStartValue }
-        set { lock.lock(); audioStartValue = newValue; lock.unlock() }
-    }
-    /// The newest frame at or before `target`; drops everything older than it.
-    func take(upTo target: Int) -> (Int, CGImage)? {
-        lock.lock(); defer { lock.unlock() }
-        guard let best = frames.keys.filter({ $0 <= target }).max(), let img = frames[best] else { return nil }
-        for k in frames.keys where k < best { frames[k] = nil }
-        return (best, img)
-    }
-}
-
+/// The Lipsync tab's view model: a thin UIKit wrapper around `LipsyncSession` (HarnessCore), which owns the
+/// pipeline, the pre-roll, the audio clock and the stats. This class only loads the engine, drives a
+/// `CADisplayLink`, publishes the frames and prints `LIPSYNC_RESULT`.
+///
+/// Launch arguments: --lipsync [--exit] [--avatar-url <tar url> [--avatar-sha256 <hex>] [--avatar-id <id>]]
+///                   [--wav <file path or url>] [--preroll <seconds>] [--silent]
+/// Without --avatar-url the avatar bundled in HarnessBundle/avatar is used; without --wav, its bundled clip.
 @MainActor
 final class LipsyncPlayer: NSObject, ObservableObject {
     enum State: String { case idle, loading, preroll, playing, finished, failed }
+
+    struct LaunchOptions {
+        var avatarURL: URL? = nil
+        var avatarSHA256: String? = nil
+        var avatarId: String? = nil
+        var wav: String? = nil
+        var preroll = 0.4
+        var silent = false
+
+        static func parse(_ args: [String]) -> LaunchOptions {
+            var o = LaunchOptions()
+            var i = 0
+            func value() -> String? { i + 1 < args.count ? args[i + 1] : nil }
+            while i < args.count {
+                switch args[i] {
+                case "--avatar-url": o.avatarURL = value().flatMap(URL.init(string:)); i += 1
+                case "--avatar-sha256": o.avatarSHA256 = value(); i += 1
+                case "--avatar-id": o.avatarId = value(); i += 1
+                case "--wav": o.wav = value(); i += 1
+                case "--preroll": o.preroll = value().flatMap(Double.init) ?? o.preroll; i += 1
+                case "--silent": o.silent = true
+                default: break
+                }
+                i += 1
+            }
+            return o
+        }
+    }
 
     @Published var state: State = .idle
     @Published var status = "Tap Play: loads the UNet chunks, TAESD and Whisper, then streams the clip."
@@ -59,27 +51,18 @@ final class LipsyncPlayer: NSObject, ObservableObject {
     @Published var avatarName = ""
 
     private var engine: LipsyncEngine? = nil
-    private var pipeline: LipsyncPipeline? = nil
-    private var player: AVAudioPlayer? = nil
+    private var session: LipsyncSession? = nil
     private var displayLink: CADisplayLink? = nil
-    private let buffer = FrameBuffer()
     private var exitAfter = false
-    private var shownIndex = -1
-    private var shown = 0
-    private var stalls = 0
     private var ticks = 0
-    private var total = 0
-    private var fps = 24
-    private var audioRoute = ""
-    private var systemVolume = 0.0
-    private var audioPlayed = false
+    private let options = LaunchOptions.parse(CommandLine.arguments)
 
     var hasAvatar: Bool {
+        if options.avatarURL != nil { return true }
         guard let res = Bundle.main.url(forResource: "HarnessBundle", withExtension: nil) else { return false }
         return FileManager.default.fileExists(atPath: res.appendingPathComponent("avatar/avatar.json").path)
     }
 
-    /// Launch arguments: --lipsync [--exit]
     func autostartIfRequested() {
         guard CommandLine.arguments.contains("--lipsync"), state == .idle else { return }
         exitAfter = CommandLine.arguments.contains("--exit")
@@ -92,25 +75,65 @@ final class LipsyncPlayer: NSObject, ObservableObject {
             state = .failed; status = "HarnessBundle missing"; return
         }
         state = .loading
-        status = "loading models (a first launch compiles for the Neural Engine, 30–60 s)…"
+        status = options.avatarURL != nil ? "downloading the avatar…" : "loading models (a first launch compiles for the Neural Engine, 30–60 s)…"
         image = nil
+        stats = ""
         UIApplication.shared.isIdleTimerDisabled = true
-        let avatarDir = resources.appendingPathComponent("avatar")
+        let opts = options
         Task.detached(priority: .userInitiated) { [weak self] in
             do {
-                let engine = try LipsyncEngine(resources: resources, avatarDir: avatarDir)
-                engine.log = { line in
+                let log: (String) -> Void = { line in
                     print("[lipsync] \(line)")
                     Task { @MainActor [weak self] in self?.status = line }
                 }
+                // the avatar: bundled, or a phone bundle downloaded into Application Support/avatars/<id>/
+                let avatarDir: URL
+                if let url = opts.avatarURL {
+                    let root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                        .appendingPathComponent("avatars")
+                    let id = opts.avatarId ?? url.deletingPathExtension().lastPathComponent
+                    avatarDir = try await RemoteBundle.fetchAvatarBundle(tarURL: url, sha256: opts.avatarSHA256, avatarId: id, root: root, log: log)
+                } else {
+                    avatarDir = resources.appendingPathComponent("avatar")
+                }
+                let engine = try LipsyncEngine(resources: resources, avatarDir: avatarDir)
+                engine.log = log
                 try engine.load()
-                try engine.prepareAudio()
+                let resting = try engine.avatar.frame(0).cgImage()
+                await MainActor.run { [weak self] in
+                    self?.engine = engine
+                    self?.avatarName = engine.avatar.meta.avatar_id
+                    self?.image = resting
+                }
+                // the audio: --wav (a file path or a URL) or the bundled clip
+                var playback = engine.playbackURL
+                let waveform: [Float]
+                if let w = opts.wav {
+                    var local = URL(fileURLWithPath: w)
+                    if let u = URL(string: w), let scheme = u.scheme, scheme.hasPrefix("http") {
+                        local = FileManager.default.temporaryDirectory.appendingPathComponent("speak-" + (u.lastPathComponent.isEmpty ? "clip.wav" : u.lastPathComponent))
+                        try await RemoteBundle.download(u, to: local, log: log)
+                    }
+                    waveform = try loadWaveform16k(url: local)
+                    playback = local
+                    log(String(format: "wav %@: %.1f s at 16 kHz", local.lastPathComponent, Double(waveform.count) / 16000))
+                } else {
+                    waveform = try engine.bundledWaveform()
+                }
+                let session = LipsyncSession(engine: engine)
+                session.config.prerollSeconds = opts.preroll
+                session.config.playAudio = !opts.silent
+                session.log = log
+                session.onStateChange = { [weak self] s in Task { @MainActor [weak self] in self?.apply(s) } }
+                session.onFinished = { [weak self] r in Task { @MainActor [weak self] in self?.finish(r) } }
                 await MainActor.run { [weak self] in
                     guard let self = self else { return }
-                    self.engine = engine
-                    self.avatarName = engine.avatar.meta.avatar_id
-                    self.beginPlayback(engine)
+                    self.session = session
+                    self.state = .preroll
+                    self.status = "pre-rolling \(opts.preroll) s…"
+                    self.startDisplayLink()
                 }
+                try session.speak(waveform: waveform, playbackURL: playback)
             } catch {
                 print("[lipsync] ERROR \(error)")
                 await MainActor.run { [weak self] in
@@ -123,114 +146,45 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         }
     }
 
-    private func beginPlayback(_ engine: LipsyncEngine) {
-        fps = engine.avatar.fps
-        total = engine.frameCount
-        let url = engine.avatar.dir.appendingPathComponent(engine.avatar.meta.audio.playback)
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [])   // .playback ignores the silent switch
-            try session.setActive(true)
-            player = try AVAudioPlayer(contentsOf: url)
-            player?.volume = 1
-            player?.prepareToPlay()
-            audioRoute = session.currentRoute.outputs.map { $0.portName }.joined(separator: " + ")
-            systemVolume = Double(session.outputVolume)
-            print(String(format: "[lipsync] audio: %@, %.1f s, route %@, system volume %.2f", url.lastPathComponent,
-                         player?.duration ?? 0, audioRoute, systemVolume))
-            if systemVolume < 0.05 { print("[lipsync] audio: the phone's volume is at zero; turn it up to hear the clip") }
-        } catch {
-            print("[lipsync] audio player: \(error)")
-        }
-        buffer.reset()
-        shownIndex = -1; shown = 0; stalls = 0; ticks = 0
-        state = .preroll
-        let preroll = min(total, fps)
-        status = "pre-rolling \(preroll) frames…"
-        let buf = buffer
-        let fps = self.fps
-        // Two stages on two threads: the Neural Engine (UNet chunks + TAESD) and the CPU (JPEG decode + blend + CGImage),
-        // kept about one second ahead of the audio clock; frames the clock has passed are skipped, never rendered.
-        let pipe = LipsyncPipeline(engine: engine, aheadFrames: fps)
-        pipe.frameMs = 1000.0 / Double(fps)
-        pipe.log = { print("[lipsync] \($0)") }
-        pipe.targetIndex = { buf.audioStart.map { Int((now() - $0) * Double(fps)) } }
-        pipe.downstreamCount = { buf.count }
-        pipeline = pipe
-        pipe.start(emit: { [weak self] i, img in
-            guard let cg = img.cgImage() else { print("[lipsync] frame \(i): CGImage failed"); return }
-            if buf.put(i, cg, preroll: preroll) { DispatchQueue.main.async { self?.startAudio() } }
-        }, done: { [weak self] in
-            // a clip shorter than the pre-roll: start anyway
-            if buf.markDone() { DispatchQueue.main.async { self?.startAudio() } }
-        })
+    private func startDisplayLink() {
         displayLink?.invalidate()
+        ticks = 0
         let dl = CADisplayLink(target: self, selector: #selector(tick))
         dl.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
         dl.add(to: .main, forMode: .common)
         displayLink = dl
     }
 
-    private func startAudio() {
-        guard state == .preroll else { return }
-        let t0 = now()
-        audioPlayed = player?.play() ?? false
-        buffer.audioStart = t0
-        state = .playing
-        status = String(format: "streaming %@ at %d fps · %d frames · audio %@ via %@, volume %.0f %%", avatarName, fps, total,
-                        audioPlayed ? "playing" : "NOT PLAYING", audioRoute, systemVolume * 100)
-        print("[lipsync] audio started after pre-roll: play() \(audioPlayed), isPlaying \(player?.isPlaying ?? false), route \(audioRoute), system volume \(String(format: "%.2f", systemVolume)); \(buffer.count) frames buffered")
+    private func apply(_ s: LipsyncSession.State) {
+        switch s {
+        case .playing:
+            state = .playing
+            let r = session?.lastResult
+            status = "streaming \(avatarName) at \(engine?.avatar.fps ?? 0) fps · \(engine?.frameCount ?? 0) frames" + (r == nil ? "" : "")
+        case .failed:
+            state = .failed
+        default:
+            break
+        }
     }
 
     @objc private func tick() {
-        guard let start = buffer.audioStart else {
-            if let (i, img) = buffer.take(upTo: 0), i != shownIndex { image = img; shownIndex = i }
-            return
-        }
-        let t = now() - start
-        let target = min(total - 1, Int(t * Double(fps)))
-        if let (i, img) = buffer.take(upTo: target) {
-            if i != shownIndex { image = img; shownIndex = i; shown += 1 }
-        } else if target > shownIndex {
-            stalls += 1
-        }
+        guard let s = session else { return }
+        if let (_, img) = s.currentFrame() { image = img }
         ticks += 1
-        if ticks % 15 == 0 { updateStats(t: t) }
-        let finished = buffer.done && (shownIndex >= total - 1 || t * Double(fps) > Double(total) + 0.5)
-        if finished || t > Double(total) / Double(fps) + 2 { finish(t: t) }
+        if ticks % 15 == 0 { stats = s.statsLine }
     }
 
-    private func updateStats(t: Double) {
-        guard let s = pipeline?.snapshot else { return }
-        let genFps = t > 0 ? Double(s.generated) / t : 0
-        stats = String(format: "generated %d (%.1f fps) · ANE %.0f ms · CPU %.0f ms · lead %d · skipped %d · late %d · shown %d · stalls %d · buffer %d · t %.1f s",
-                       s.generated, genFps, s.inferMs, s.composeMs, s.leadFrames, s.skipped, s.droppedLate, shown, stalls, buffer.count, t)
-    }
-
-    private func finish(t: Double) {
+    private func finish(_ r: LipsyncSession.Result) {
         displayLink?.invalidate(); displayLink = nil
-        pipeline?.cancel()
-        player?.stop()
-        updateStats(t: t)
+        stats = session?.statsLine ?? ""
         state = .finished
-        status = "finished"
+        status = String(format: "finished · %d shown of %d (%.1f fps) · audio %@ via %@, volume %.0f %%", r.shown, r.frames, r.shownFps,
+                        r.audioPlayed ? "played" : "NOT played", r.audioRoute, r.systemVolume * 100)
         UIApplication.shared.isIdleTimerDisabled = false
-        let s = pipeline?.snapshot ?? LipsyncPipeline.Stats()
-        let result: [String: Any] = ["avatar": avatarName, "fps": fps, "frames": total, "seconds": t, "generated": s.generated,
-                                     "generated_fps": t > 0 ? Double(s.generated) / t : 0,
-                                     "gen_ms_per_frame": s.inferMs + s.composeMs, "stage_infer_ms": s.inferMs, "stage_compose_ms": s.composeMs,
-                                     "skipped": s.skipped, "dropped_late": s.droppedLate, "lead_frames": s.leadFrames, "pipelined": true,
-                                     "shown": shown, "stalls": stalls, "load_s": engine?.loadSeconds ?? 0,
-                                     "audio_played": audioPlayed, "audio_route": audioRoute, "system_volume": systemVolume,
-                                     "audio_prep_s": engine?.audioSeconds ?? 0, "unet": engine?.spec.name ?? ""]
-        if let data = try? JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]) {
-            print("LIPSYNC_RESULT " + String(decoding: data, as: UTF8.self))
-        }
+        print("LIPSYNC_RESULT " + r.json)
         if exitAfter { exit(0) }
     }
 
-    func stop() {
-        pipeline?.cancel()
-        finish(t: buffer.audioStart.map { now() - $0 } ?? 0)
-    }
+    func stop() { session?.stop() }
 }
