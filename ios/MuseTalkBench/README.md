@@ -114,7 +114,9 @@ does when it drops; the skip aims at the clock plus the pipeline's own latency i
 produces is still in the future when it comes out), and displays through a `CADisplayLink`. The frame loop is a two-stage pipeline
 (`LipsyncPipeline`): the Neural Engine stage (UNet chunks + TAESD) and the CPU stage (JPEG decode, resize, blend,
 CGImage) run on two threads joined by a short queue, so a frame costs the slower stage, not the sum. Launch with
-`--lipsync --exit` to autoplay and print a `LIPSYNC_RESULT` JSON line (generated fps, stage times, skipped, stalls).
+`--lipsync --exit` to autoplay and print a `LIPSYNC_RESULT` JSON line (generated fps, stage times, skipped, stalls,
+and the audio route, system volume and whether `play()` started; the same appears in the status line under the
+picture, so a silent run can be told from a muted phone or a Bluetooth route).
 `bench-mac --lipsync-check HarnessBundle/avatar` runs the same loop on the Mac against the Python references:
 windows within the ANE encoder's error, composed frames within 0.17/255; sequential 23.6 ms/frame
 (UNet 18.9 + TAESD 1.7 + compose 3.0), pipelined 20.8 ms/frame wall = the Neural Engine stage alone.

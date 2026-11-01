@@ -70,6 +70,9 @@ final class LipsyncPlayer: NSObject, ObservableObject {
     private var ticks = 0
     private var total = 0
     private var fps = 24
+    private var audioRoute = ""
+    private var systemVolume = 0.0
+    private var audioPlayed = false
 
     var hasAvatar: Bool {
         guard let res = Bundle.main.url(forResource: "HarnessBundle", withExtension: nil) else { return false }
@@ -125,10 +128,17 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         total = engine.frameCount
         let url = engine.avatar.dir.appendingPathComponent(engine.avatar.meta.audio.playback)
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback)
-            try AVAudioSession.sharedInstance().setActive(true)
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [])   // .playback ignores the silent switch
+            try session.setActive(true)
             player = try AVAudioPlayer(contentsOf: url)
+            player?.volume = 1
             player?.prepareToPlay()
+            audioRoute = session.currentRoute.outputs.map { $0.portName }.joined(separator: " + ")
+            systemVolume = Double(session.outputVolume)
+            print(String(format: "[lipsync] audio: %@, %.1f s, route %@, system volume %.2f", url.lastPathComponent,
+                         player?.duration ?? 0, audioRoute, systemVolume))
+            if systemVolume < 0.05 { print("[lipsync] audio: the phone's volume is at zero; turn it up to hear the clip") }
         } catch {
             print("[lipsync] audio player: \(error)")
         }
@@ -164,11 +174,12 @@ final class LipsyncPlayer: NSObject, ObservableObject {
     private func startAudio() {
         guard state == .preroll else { return }
         let t0 = now()
-        player?.play()
+        audioPlayed = player?.play() ?? false
         buffer.audioStart = t0
         state = .playing
-        status = "streaming \(avatarName) at \(fps) fps · \(total) frames"
-        print("[lipsync] audio started after pre-roll; \(buffer.count) frames buffered")
+        status = String(format: "streaming %@ at %d fps · %d frames · audio %@ via %@, volume %.0f %%", avatarName, fps, total,
+                        audioPlayed ? "playing" : "NOT PLAYING", audioRoute, systemVolume * 100)
+        print("[lipsync] audio started after pre-roll: play() \(audioPlayed), isPlaying \(player?.isPlaying ?? false), route \(audioRoute), system volume \(String(format: "%.2f", systemVolume)); \(buffer.count) frames buffered")
     }
 
     @objc private func tick() {
@@ -210,6 +221,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                                      "gen_ms_per_frame": s.inferMs + s.composeMs, "stage_infer_ms": s.inferMs, "stage_compose_ms": s.composeMs,
                                      "skipped": s.skipped, "dropped_late": s.droppedLate, "lead_frames": s.leadFrames, "pipelined": true,
                                      "shown": shown, "stalls": stalls, "load_s": engine?.loadSeconds ?? 0,
+                                     "audio_played": audioPlayed, "audio_route": audioRoute, "system_volume": systemVolume,
                                      "audio_prep_s": engine?.audioSeconds ?? 0, "unet": engine?.spec.name ?? ""]
         if let data = try? JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]) {
             print("LIPSYNC_RESULT " + String(decoding: data, as: UTF8.self))

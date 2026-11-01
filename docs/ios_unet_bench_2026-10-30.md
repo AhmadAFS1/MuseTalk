@@ -794,6 +794,13 @@ playback starts; 25 frames pre-rolled, 1 s):
 |---|---|---|---|---|---|---|---|---|
 | 1: skip-ahead aims at the clock (`clock + 1`) | 298 (16.8/s) | 167 | 128 | **130** | 0 | 64.4 ms | 10.3 ms | **9.4** |
 | 2: aims at `clock + lead`, lead = pipeline latency in frames + 1 (= 3) | 291 (16.4/s) | **290** | 135 | **0** | 0 | 65.7 ms | 10.4 ms | **16.4** |
+| 3: same build, warm compile cache (load 0.6 s, no compile before playback, phone cooler) | 305 (17.2/s) | **303** | 121 | **0** | 0 | 62.5 ms | 9.1 ms | **17.1** |
+| 4: audio-diagnostics build, after a reinstall (compile) | 296 (16.7/s) | **295** | 130 | **0** | 0 | 64.8 ms | 9.8 ms | **16.6** |
+
+Run 4 also answers "is the audio on": the session is `.playback` (silent switch ignored), `AVAudioPlayer.play()`
+returned true and `isPlaying` was true, the route was **Speaker**, and the phone's **system volume was 0.25**, so
+the clip played quietly through the speaker; the only knob is the phone's volume buttons. The console line
+`[lipsync] audio: …` and the status line under the picture now show route and volume on every run.
 
 The Neural Engine produced the same 16.4–16.8 faces per second both times (65 ms a face: UNet ~60 + TAESD ~5,
 the warm figure), and the CPU stage's 10 ms sat in parallel, as designed. The difference is pacing. Aimed at the

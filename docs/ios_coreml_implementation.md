@@ -22,7 +22,7 @@ the ANE's fp16 arithmetic puts the UNet at latent mae 0.013 against the server's
 TensorRT INT8 is 0.003); in pixels that is 0.18/255 on the composed face, and an r5-style labelled review shows five
 of six production characters inside the band the servers already accepted and one (Japanese) failing the lip
 aperture thresholds. A human blind pass is still pending. A streaming lipsync view (bundled avatar + bundled clip,
-audio-clock pacing, frame skipping, a two-stage pipeline) plays on the iPhone 12 Pro at **16.4 fps shown, no
+audio-clock pacing, frame skipping, a two-stage pipeline) plays on the iPhone 12 Pro at **16–17 fps shown, no
 stalls**, the audio never waiting for the video. The A14's Neural Engine is **compute-bound** (batch 4 moved the
 frame by 3.8 %), so this phone stays below the 20 fps line and newer phones are the way to real time.
 
@@ -42,7 +42,7 @@ frame by 3.8 %), so this phone stays below the 20 fps line and newer phones are 
 | 8 | Avatar cache → phone bundle exporter | done (one avatar, 46 MB) | `scripts/ios/prepare_avatar_bundle.py` |
 | 9 | On-device timing harness (Swift package + CLI + iOS app) with the repo gate | done, reproduces the Python bench on the Mac | §12.1–12.2; `ios/MuseTalkBench/` |
 | 10 | iPhone 12 Pro measured (UNet, chain, sustained, Whisper, gate) | done | §12.3; `harness_iphone12pro_*.json` |
-| 11 | Streaming lipsync view (avatar + clip, audio-clock pacing, frame skipping, two-stage pipeline) | **played end to end on the iPhone 12 Pro 2026-10-31: 16.4 fps generated and shown, 0 stalls, 0 late drops, audio never waited** (ANE stage 65.7 ms, CPU stage 10.4 ms hidden by the pipeline); two phone-only bugs fixed on the way (a frame-buffer self-deadlock, and a skip-ahead that aimed at the clock itself) | README "Lipsync tab"; `lipsync_iphone12pro_pipelined_run{1,2}.json`; `HarnessCore/Lipsync.swift` (`LipsyncPipeline`), `App/Sources/LipsyncPlayer.swift` |
+| 11 | Streaming lipsync view (avatar + clip, audio-clock pacing, frame skipping, two-stage pipeline) | **played end to end on the iPhone 12 Pro 2026-10-31: 16.4–17.1 fps generated and shown, 0 stalls, 0 late drops, audio never waited** (ANE stage 65.7 ms, CPU stage 10.4 ms hidden by the pipeline); two phone-only bugs fixed on the way (a frame-buffer self-deadlock, and a skip-ahead that aimed at the clock itself) | README "Lipsync tab"; `lipsync_iphone12pro_pipelined_run{1,2}.json`; `HarnessCore/Lipsync.swift` (`LipsyncPipeline`), `App/Sources/LipsyncPlayer.swift` |
 | 12 | Repo quality gate on the Core ML UNet and attribution of the ANE error | done: fails at mae 0.013, cause is ANE conv/linear fp16 accumulate | §11.1–11.2 |
 | 13 | r5-style labelled A/B review package (12 clips, 6 characters) | rendered, metrics computed; **human blind pass pending** | §12.4; `docs/ios_unet_bench/review_ane_vs_fp16/` |
 | 14 | Speed levers tried and rejected (int8 activations, 6/4-bit palettization, fp32 islands, GroupNorm rewrite) | measured, rejected | §4, §11.2, §11.3 |
@@ -177,8 +177,11 @@ decoder ~2, compose ~6 in unoptimised Swift).
   older ones, and counts a **stall** when nothing new is available for a frame the clock has reached.
 - **Finish**: when the clip is done (or 2 s past its end) the player prints one line
   `LIPSYNC_RESULT {"avatar", "fps", "frames", "seconds", "generated", "generated_fps", "gen_ms_per_frame",
-  "stage_infer_ms", "stage_compose_ms", "skipped", "dropped_late", "pipelined", "shown", "stalls", "load_s",
-  "audio_prep_s", "unet"}`; with `--exit` the app quits (exit 0, or 1 on a load error).
+  "stage_infer_ms", "stage_compose_ms", "skipped", "dropped_late", "lead_frames", "pipelined", "shown", "stalls",
+  "load_s", "audio_prep_s", "audio_played", "audio_route", "system_volume", "unet"}`; with `--exit` the app quits
+  (exit 0, or 1 on a load error). The audio session is `.playback` (it ignores the silent switch); the player's
+  own volume is 1, so what you hear is the phone's volume on the route the console line `[lipsync] audio: …`
+  names (Speaker, or whatever Bluetooth device is connected), also shown in the status line under the picture.
 - Launch flags: `--lipsync` opens the Lipsync tab and autoplays; `--exit` as above. Without flags: Play / Stop
   buttons in the tab.
 
@@ -186,7 +189,8 @@ Measured on the A14 (2026-10-31, `lipsync_iphone12pro_pipelined_run2.json`): the
 (UNet ~60 + TAESD ~5, phone warm after the compile), the CPU stage 10.4 ms in parallel, so the frame costs the ANE
 stage alone: **291 faces generated and 290 shown over the 17.7 s clip = 16.4 fps, 0 stalls, 0 late drops, 135
 frames skipped**, lead settled at 3 frames (125 ms behind the clock position it aims at, inside the 1 s
-pre-roll). The audio never waits for the video.
+pre-roll). With the compile cache warm and no compile before playback (run 3) the same clip gives 305 generated,
+303 shown = 17.1 fps, ANE stage 62.5 ms, CPU stage 9.1 ms. The audio never waits for the video.
 
 ---
 
@@ -366,6 +370,8 @@ for the phone chain (bench doc §12.4, package `README.md`):
 | Batch-4 compile / first call | 46.4 s (19.7 + 26.7) / 222 ms |
 | Sustained 30 s from a warm start ("fair" after 70 s of compiles) | 67.1 mean (p99 83.6, 448 frames); buckets 54.1 → 55.6 → 69.7 → 78.4 → 78.5 → 76.4 |
 | **Lipsync view, Latina clip, 426 frames at 24 fps** (2026-10-31; `lipsync_iphone12pro_pipelined_run2.json`) | **291 faces generated and 290 shown in 17.7 s = 16.4 fps, 0 stalls, 0 late drops**, 135 frames skipped by the clock; ANE stage 65.7 ms (UNet + TAESD, phone warm), CPU stage 10.4 ms in parallel; 25 frames pre-rolled; load 27.7 s (compile after a reinstall), audio prep 4.4 s (Whisper compile included) |
+| Same, warm compile cache (run 3: load 0.57 s, audio prep 0.17 s, no compile before playback) | **305 generated, 303 shown = 17.1 fps**, 0 stalls, 0 late drops, 121 skipped; ANE stage 62.5 ms, CPU stage 9.1 ms |
+| Same, audio-diagnostics build after a reinstall (run 4) | 296 generated, 295 shown = 16.6 fps, 0 stalls; audio: route Speaker, `play()` true, system volume 0.25 (quiet, the phone's own setting) |
 | Same, with the skip aimed at the clock itself (run 1) | 298 generated but only 167 shown (9.4 fps): 130 faces arrived 1–2 frames late and were dropped |
 
 Reading: 52–56 ms cool, 59–62 ms hot and up to 78 ms when the phone starts warm, plus 5 ms decoder, so 16–17 fps
