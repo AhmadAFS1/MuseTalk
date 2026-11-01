@@ -153,7 +153,11 @@ public final class LipsyncSession {
                 #if os(iOS)
                 let session = AVAudioSession.sharedInstance()
                 try session.setCategory(.playback, mode: .default, options: [])  // .playback ignores the silent switch
-                try session.setActive(true)
+                do { try session.setActive(true) } catch {
+                    // a speech recognizer being torn down can still hold the session: one retry
+                    usleep(100_000)
+                    try session.setActive(true)
+                }
                 audioRoute = session.currentRoute.outputs.map { $0.portName }.joined(separator: " + ")
                 systemVolume = Double(session.outputVolume)
                 #else
@@ -227,6 +231,9 @@ public final class LipsyncSession {
     /// Stop early (or after the end): cancels the pipeline, stops the audio, reports.
     public func stop() { finish(seconds: buffer.audioStart.map { now() - $0 } ?? 0) }
 
+    /// The turn so far (the same fields as the final result), for a once-a-second stats report.
+    public func snapshotResult() -> Result { buildResult(seconds: buffer.audioStart.map { now() - $0 } ?? 0) }
+
     private func finish(seconds: Double) {
         lock.lock()
         if finished { lock.unlock(); return }
@@ -234,6 +241,13 @@ public final class LipsyncSession {
         lock.unlock()
         pipeline?.cancel()
         player?.stop()
+        let r = buildResult(seconds: seconds)
+        lastResult = r
+        setState(.finished)
+        onFinished?(r)
+    }
+
+    private func buildResult(seconds: Double) -> Result {
         let s = pipeline?.snapshot ?? LipsyncPipeline.Stats()
         var r = Result()
         r.avatar = engine.avatar.meta.avatar_id; r.unet = engine.spec.name; r.fps = fps; r.frames = total; r.seconds = seconds
@@ -243,8 +257,6 @@ public final class LipsyncSession {
         r.startLatencySeconds = (buffer.audioStart ?? now()) - speakAt
         r.audioPrepSeconds = engine.audioSeconds; r.loadSeconds = engine.loadSeconds
         r.audioPlayed = audioPlayed; r.audioRoute = audioRoute; r.systemVolume = systemVolume
-        lastResult = r
-        setState(.finished)
-        onFinished?(r)
+        return r
     }
 }

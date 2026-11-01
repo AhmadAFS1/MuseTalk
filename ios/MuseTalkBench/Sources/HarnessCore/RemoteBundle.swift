@@ -79,17 +79,20 @@ public enum RemoteBundle {
     }
 
     /// Fetch a model pack into `dir` (which then loads like a HarnessBundle folder): the manifest, `meta.json`, and
-    /// every tar whose unpacked model is not already present. `baseURL` is the folder the manifest lives in.
+    /// every tar whose unpacked model is not already present. `baseURL` is the folder the manifest lives in;
+    /// `resolve` maps a manifest file name to the URL to fetch it from (presigned URLs), overriding `baseURL`.
     public static func fetchModelPack(manifestURL: URL, baseURL: URL? = nil, into dir: URL,
+                                      resolve: ((String) -> URL?)? = nil,
                                       progress: ((String, Int, Int) -> Void)? = nil,
                                       log: (String) -> Void = { _ in }) async throws -> ModelPackManifest {
         let fm = FileManager.default
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         let base = baseURL ?? manifestURL.deletingLastPathComponent()
+        let source: (String) -> URL = { name in resolve?(name) ?? base.appendingPathComponent(name) }
         let manifestFile = dir.appendingPathComponent("manifest.json")
         try await download(manifestURL, to: manifestFile, log: log)
         let manifest = try JSONDecoder().decode(ModelPackManifest.self, from: Data(contentsOf: manifestFile))
-        try await download(base.appendingPathComponent(manifest.meta), to: dir.appendingPathComponent("meta.json"), log: log)
+        try await download(source(manifest.meta), to: dir.appendingPathComponent("meta.json"), log: log)
         for (i, f) in manifest.files.enumerated() {
             progress?(f.name, i, manifest.files.count)
             let target = dir.appendingPathComponent(f.name)
@@ -98,7 +101,7 @@ public enum RemoteBundle {
                 continue
             }
             let local = dir.appendingPathComponent(f.file)
-            try await download(base.appendingPathComponent(f.file), to: local, sha256: f.sha256, log: log)
+            try await download(source(f.file), to: local, sha256: f.sha256, log: log)
             if f.file.hasSuffix(".tar") {
                 try TarArchive.extract(local, to: dir)
                 try? fm.removeItem(at: local)

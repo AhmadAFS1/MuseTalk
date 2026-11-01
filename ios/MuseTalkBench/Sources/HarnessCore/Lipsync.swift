@@ -554,6 +554,14 @@ public final class LipsyncEngine {
     }
 }
 
+extension NSLock {
+    /// `NSLock.withLock` needs iOS 16; this runs on the Lingua app's iOS 15.1 floor.
+    @inline(__always) func sync<T>(_ body: () throws -> T) rethrows -> T {
+        lock(); defer { unlock() }
+        return try body()
+    }
+}
+
 // MARK: - two-stage pipeline
 
 /// The frame loop split over two threads: the Neural Engine stage (`inferFace`: UNet chunks + TAESD) and the CPU stage
@@ -604,12 +612,12 @@ public final class LipsyncPipeline {
     /// Frames to aim ahead of the clock when catching up: the pipeline's own latency in frames, plus one. A frame
     /// inferred *at* the clock comes out 1–2 frames late on an A14 and is dropped; aimed ahead, it is shown.
     private func leadFrames() -> Int {
-        let ms = lock.withLock { recentMs }
+        let ms = lock.sync { recentMs }
         return ms > 0 ? Int((ms / frameMs).rounded(.up)) + 1 : 1
     }
 
     private func observe(frameMs ms: Double) {
-        lock.withLock { recentMs = recentMs > 0 ? recentMs * 0.8 + ms * 0.2 : ms }
+        lock.sync { recentMs = recentMs > 0 ? recentMs * 0.8 + ms * 0.2 : ms }
     }
 
     /// Starts both stages. `emit` runs on the CPU stage's thread with every composed frame; `done` once, when the
@@ -620,11 +628,11 @@ public final class LipsyncPipeline {
         let infer = Thread { [self] in
             var i = first
             while i < total {
-                if lock.withLock({ stopped }) { break }
+                if lock.sync({ stopped }) { break }
                 if let t = targetIndex() {
                     let lead = leadFrames()
                     if t + lead > i {
-                        lock.withLock { stats.skipped += t + lead - i; stats.leadFrames = lead }
+                        lock.sync { stats.skipped += t + lead - i; stats.leadFrames = lead }
                         i = t + lead
                         if i >= total { break }
                     }
@@ -632,22 +640,22 @@ public final class LipsyncPipeline {
                 if downstreamCount() + queued >= aheadFrames || queued >= queueDepth { usleep(1000); continue }
                 do {
                     let r = try engine.inferFace(i)
-                    lock.withLock {
+                    lock.sync {
                         queue.append((i, r.face))
                         stats.generated += 1
                         stats.inferMsSum += r.unetMs + r.decodeMs
                     }
-                    observe(frameMs: r.unetMs + r.decodeMs + lock.withLock { stats.composeMs })
+                    observe(frameMs: r.unetMs + r.decodeMs + lock.sync { stats.composeMs })
                 } catch {
                     log("infer \(i): \(error)")
                 }
                 i += 1
             }
-            lock.withLock { inferDone = true }
+            lock.sync { inferDone = true }
         }
         let compose = Thread { [self] in
             while true {
-                let (item, finished): ((Int, [UInt8])?, Bool) = lock.withLock {
+                let (item, finished): ((Int, [UInt8])?, Bool) = lock.sync {
                     (queue.isEmpty ? nil : queue.removeFirst(), stopped || (inferDone && queue.isEmpty))
                 }
                 guard let (i, face) = item else {
@@ -656,13 +664,13 @@ public final class LipsyncPipeline {
                     continue
                 }
                 if let t = targetIndex(), i < t {
-                    lock.withLock { stats.droppedLate += 1 }
+                    lock.sync { stats.droppedLate += 1 }
                     continue
                 }
                 do {
                     let (img, ms) = try engine.composeFrame(i, face: face)
                     emit(i, img)
-                    lock.withLock { stats.composed += 1; stats.composeMsSum += ms }
+                    lock.sync { stats.composed += 1; stats.composeMsSum += ms }
                 } catch {
                     log("compose \(i): \(error)")
                 }
@@ -676,7 +684,7 @@ public final class LipsyncPipeline {
         compose.start()
     }
 
-    public func cancel() { lock.withLock { stopped = true } }
+    public func cancel() { lock.sync { stopped = true } }
 }
 
 // MARK: - staged UNet shared with the harness
