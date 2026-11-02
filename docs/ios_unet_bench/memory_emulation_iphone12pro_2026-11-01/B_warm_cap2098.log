@@ -1,0 +1,20 @@
+== 19:49:34 label=B_warm_cap2098 install=0 args: --lipsync --exit --silent --emulate-limit-mb 2098
+[mem] trace started (mem 10 MB, 3061 MB left)
+[mem] this process may use 3072 MB here (footprint 11 + headroom 3061); emulating a 2098 MB limit
+[mem] t=0.0 s footprint 11 MB, 3061 MB left (peak 11)
+[mem] ballast 974 MB held in 0.2 s (mem 985 MB, 2086 MB left)
+[lipsync] lipsync: loading unet_anec0_int8w_b1_chunked (2 stage(s)) on CPU_AND_NE (mem 986 MB, 2085 MB left)
+[mem] t=0.3 s footprint 994 MB, 2078 MB left (peak 994)
+[lipsync] lipsync: models loaded in 0.74 s, 241 frame latents ready (mem 1013 MB, 2058 MB left)
+[lipsync] lipsync: audio windows for 426 frames at 24 fps (17.8 s of audio) in 0.18 s
+[mem] t=1.3 s footprint 1094 MB, 1978 MB left (peak 1094)
+[lipsync] clock started after pre-roll: play() false, route , system volume 0.00, 10 frames buffered, 0.80 s after speak()
+[mem] t=6.5 s footprint 1135 MB, 1937 MB left (peak 1135)
+[mem] t=11.8 s footprint 1144 MB, 1928 MB left (peak 1144)
+[mem] t=17.0 s footprint 1143 MB, 1929 MB left (peak 1145)
+LIPSYNC_RESULT {"audio_played":false,"audio_prep_s":0.17643441702239215,"audio_route":"","avatar":"latina_guided_20260925_talking_84c5bc80b8","dropped_late":0,"fps":24,"frames":426,"gen_ms_per_frame":73.380229902182919,"generated":282,"generated_fps":15.918854223592616,"lead_frames":3,"load_s":0.74221120798029006,"pipelined":true,"preroll_frames":10,"preroll_s":0.40000000000000002,"seconds":17.714842792018317,"shown":281,"shown_fps":15.862404385920302,"skipped":144,"stage_compose_ms":8.5369897940268746,"stage_infer_ms":64.843240108156039,"stalls":0,"start_latency_s":0.79559766699094325,"system_volume":0,"unet":"unet_anec0_int8w_b1_chunked"}
+MEM_RESULT {"ballast_mb":974,"footprint_now_mb":1143,"headroom_now_mb":1929,"min_headroom_mb":1927,"peak_footprint_mb":1145,"pressure_criticals":0,"pressure_warnings":0,"samples":80,"seconds":19.5}
+Launched application with com.lingua.musetalkbench bundle identifier.
+Waiting for the application to terminate...
+The app terminated with the exit code 0.
+== 19:49:54 launch exit 0
