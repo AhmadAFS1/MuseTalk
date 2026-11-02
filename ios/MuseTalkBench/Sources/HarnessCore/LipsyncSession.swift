@@ -304,7 +304,14 @@ public final class LipsyncSession {
         if idleStart != nil { idleFrozenPhase = phase }
         let anchor = idleLastImage
         lock.unlock()
-        try engine.prepareAudio(waveform: waveform)
+        do {
+            try engine.prepareAudio(waveform: waveform)
+        } catch {
+            // the idle track must not stay frozen behind a turn that never started
+            lock.lock(); idleFrozenPhase = nil; lock.unlock()
+            setState(.failed)
+            throw error
+        }
         total = engine.frameCount
         buffer.reset()
         shownIndex = -1; shown = 0; stalls = 0

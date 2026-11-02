@@ -647,8 +647,9 @@ public final class LipsyncPipeline {
     public var plan: FramePlan? = nil
     /// The frame on screen when the turn starts (the frozen idle frame): the anchor of the first segment's crossfade.
     public var seamAnchor: RGBAImage? = nil
-    /// The last composed frame of the turn, for the seam back to the idle track.
-    public private(set) var lastEmitted: RGBAImage? = nil
+    /// The last composed frame of the turn, for the seam back to the idle track (read from any thread).
+    public var lastEmitted: RGBAImage? { lock.sync { lastEmittedValue } }
+    private var lastEmittedValue: RGBAImage? = nil
 
     private let lock = NSLock()
     private var queue: [(Int, [UInt8])] = []
@@ -735,7 +736,7 @@ public final class LipsyncPipeline {
                         // the scheduler's crossfade: the old pose's last frame fades under the incoming frames
                         if anchorSegment != e.segmentStart {
                             anchorSegment = e.segmentStart
-                            anchor = lastEmitted ?? seamAnchor
+                            anchor = lock.sync { lastEmittedValue } ?? seamAnchor
                         }
                         if let an = anchor {
                             let t0 = now()
@@ -744,7 +745,7 @@ public final class LipsyncPipeline {
                             blended = true
                         }
                     }
-                    lastEmitted = img
+                    lock.sync { lastEmittedValue = img }
                     emit(i, img)
                     lock.sync { stats.composed += 1; stats.composeMsSum += ms; if blended { stats.crossfaded += 1 } }
                 } catch {
