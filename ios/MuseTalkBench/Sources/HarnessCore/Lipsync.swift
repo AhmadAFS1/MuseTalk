@@ -366,7 +366,10 @@ public struct FrameTiming {
 /// Everything one talking-head frame needs, loaded once.
 public final class LipsyncEngine {
     public let harness: Harness
+    /// The talking cache: what a single-avatar caller (the harness app, the gate) lipsyncs on.
     public let avatar: AvatarBundle
+    /// Every cache the session can draw or lipsync on, by slot (Poses.swift); `.talking` is always present.
+    public let avatars: [PoseSlot: AvatarBundle]
     public let spec: UNetSpec
     public let units: MLComputeUnits
     public var log: (String) -> Void = { print($0) }
@@ -374,22 +377,45 @@ public final class LipsyncEngine {
     private var unet: StagedUNet? = nil
     private var taesd: MLModel? = nil
     private var taesdMeta: ModelMeta? = nil
-    private var sampleArrays: [MLMultiArray] = []
+    private var sampleArrays: [PoseSlot: [MLMultiArray]] = [:]
     private var sampleName = "sample", audioName = "audio"
     private var audioDType: MLMultiArrayDataType = .float16
     public private(set) var windows: AudioWindows? = nil
     public private(set) var loadSeconds = 0.0
     public private(set) var audioSeconds = 0.0
 
-    public init(resources: URL, avatarDir: URL, units: MLComputeUnits = .cpuAndNeuralEngine, preferChunked: Bool = true) throws {
+    public convenience init(resources: URL, avatarDir: URL, units: MLComputeUnits = .cpuAndNeuralEngine, preferChunked: Bool = true) throws {
+        try self.init(resources: resources, avatarDirs: [.talking: avatarDir], units: units, preferChunked: preferChunked)
+    }
+
+    /// `avatarDirs` must hold `.talking`; `.idle` and `.smiling` are what the character has on this phone.
+    public init(resources: URL, avatarDirs: [PoseSlot: URL], units: MLComputeUnits = .cpuAndNeuralEngine, preferChunked: Bool = true) throws {
         harness = try Harness(resources: resources)
-        avatar = try AvatarBundle(dir: avatarDir)
+        var loaded: [PoseSlot: AvatarBundle] = [:]
+        for (slot, dir) in avatarDirs { loaded[slot] = try AvatarBundle(dir: dir) }
+        guard let talking = loaded[.talking] else { throw HarnessError.noModel("no talking avatar bundle") }
+        avatars = loaded
+        avatar = talking
         self.units = units
         let specs = harness.unetSpecs().filter { $0.batch == 1 }
         guard let s = (preferChunked ? specs.first(where: { $0.stages.count > 1 }) : nil) ?? specs.first else {
             throw HarnessError.noModel("no batch-1 UNet in the bundle")
         }
         spec = s
+    }
+
+    public var availableSlots: Set<PoseSlot> { Set(avatars.keys) }
+
+    /// The cache for a slot, falling back the way a three-cache pose set does (smiling → idle → talking).
+    public func bundle(_ slot: PoseSlot) -> AvatarBundle {
+        avatars[FramePlan.resolve(slot, available: availableSlots)] ?? avatar
+    }
+
+    /// Clip cycle lengths per slot (the ping-pong cycle, as the latents and frames are indexed).
+    public var cycleLengths: [PoseSlot: Int] {
+        var out: [PoseSlot: Int] = [:]
+        for (slot, b) in avatars { out[slot] = max(1, b.meta.cycle_length) }
+        return out
     }
 
     /// Load the UNet and TAESD (the compile happens here on a first launch) and prebuild the per-frame latents.
@@ -410,11 +436,15 @@ public final class LipsyncEngine {
         sampleName = sIn.name; audioName = aIn.name
         audioDType = try mlDataType(aIn.dtype)
         let sType = try mlDataType(sIn.dtype)
-        sampleArrays = try (0 ..< avatar.meta.unique_frames).map { u in
-            try makeArray(avatar.latents.frame(u), shape: [1] + avatar.latents.frameShape, dtype: sType)
+        var latentCount = 0
+        for (slot, b) in avatars {
+            sampleArrays[slot] = try (0 ..< b.meta.unique_frames).map { u in
+                try makeArray(b.latents.frame(u), shape: [1] + b.latents.frameShape, dtype: sType)
+            }
+            latentCount += b.meta.unique_frames
         }
         loadSeconds = now() - t0
-        log("lipsync: models loaded in \(String(format: "%.2f", loadSeconds)) s, \(sampleArrays.count) frame latents ready (\(memLine()))")
+        log("lipsync: models loaded in \(String(format: "%.2f", loadSeconds)) s, \(latentCount) frame latents ready for \(avatars.keys.map { $0.rawValue }.sorted().joined(separator: "/")) (\(memLine()))")
     }
 
     /// The harness clip's 16 kHz waveform, when the bundle carries one.
@@ -490,16 +520,24 @@ public final class LipsyncEngine {
         return rgb
     }
 
-    /// Stage A (Neural Engine): UNet chunks + TAESD for clip position `i` -> the 256x256 RGB face.
+    /// Stage A (Neural Engine): UNet chunks + TAESD for clip position `i` of the talking cache -> the 256x256 RGB face.
     /// Safe to run concurrently with `composeFrame`: it touches only the models, the windows and the prebuilt latents.
     public func inferFace(_ i: Int) throws -> (face: [UInt8], unetMs: Double, decodeMs: Double) {
+        try inferFace(audioFrame: i, slot: .talking, cycle: i)
+    }
+
+    /// Stage A for audio window `i` on clip position `cycle` of `slot`'s cache (a turn whose pose plan switches caches).
+    public func inferFace(audioFrame i: Int, slot: PoseSlot, cycle: Int) throws -> (face: [UInt8], unetMs: Double, decodeMs: Double) {
         guard let unet = unet, let taesd = taesd, let tm = taesdMeta, let w = windows else {
             throw HarnessError.noModel("engine not loaded")
         }
-        let u = avatar.uniqueIndex(i)
+        let resolved = FramePlan.resolve(slot, available: availableSlots)
+        let b = bundle(resolved)
+        guard let samples = sampleArrays[resolved], !samples.isEmpty else { throw HarnessError.noModel("no latents for \(resolved.rawValue)") }
+        let u = b.uniqueIndex(cycle)
         let t0 = now()
         let audio = try makeArray(Array(w.window(i)), shape: [1, 50, 384], dtype: audioDType)
-        let pred = try output(unet.predict(MLDictionaryFeatureProvider(dictionary: [sampleName: sampleArrays[u], audioName: audio])),
+        let pred = try output(unet.predict(MLDictionaryFeatureProvider(dictionary: [sampleName: samples[u], audioName: audio])),
                               spec.outputName)
         let t1 = now()
         let latIn = tm.inputs[0]
@@ -510,14 +548,26 @@ public final class LipsyncEngine {
         return (rgb, (t1 - t0) * 1000, (t2 - t1) * 1000)
     }
 
-    /// Stage B (CPU): the cached frame for clip position `i` with the face pasted in (JPEG decode on a cache miss, resize, blend).
+    /// Stage B (CPU): the talking cache's frame for clip position `i` with the face pasted in (JPEG decode on a cache miss, resize, blend).
     public func composeFrame(_ i: Int, face: [UInt8]) throws -> (RGBAImage, composeMs: Double) {
-        let u = avatar.uniqueIndex(i)
+        try composeFrame(slot: .talking, cycle: i, face: face)
+    }
+
+    /// Stage B on clip position `cycle` of `slot`'s cache.
+    public func composeFrame(slot: PoseSlot, cycle: Int, face: [UInt8]) throws -> (RGBAImage, composeMs: Double) {
+        let b = bundle(slot)
+        let u = b.uniqueIndex(cycle)
         let t0 = now()
-        let frame = try avatar.frame(u)
-        let plan = try avatar.plan(u)
+        let frame = try b.frame(u)
+        let plan = try b.plan(u)
         let img = compose(frame: frame, face256: face, plan: plan)
         return (img, (now() - t0) * 1000)
+    }
+
+    /// A cache's frame as it is, no lipsync (the idle track between turns).
+    public func plainFrame(slot: PoseSlot, cycle: Int) throws -> RGBAImage {
+        let b = bundle(slot)
+        return try b.frame(b.uniqueIndex(cycle))
     }
 
     /// One composed frame for clip position `i` (both stages, sequentially).
@@ -576,6 +626,7 @@ public final class LipsyncPipeline {
         public var composed = 0         // frames composed and emitted
         public var skipped = 0          // never inferred: the clock had passed them
         public var droppedLate = 0      // inferred, then too late to compose
+        public var crossfaded = 0       // emitted frames blended with the previous pose's anchor
         public var inferMsSum = 0.0
         public var composeMsSum = 0.0
         public var leadFrames = 1       // how far ahead of the audio clock the last catch-up aimed
@@ -592,6 +643,12 @@ public final class LipsyncPipeline {
     public var targetIndex: () -> Int? = { nil }
     public var downstreamCount: () -> Int = { 0 }
     public var log: (String) -> Void = { _ in }
+    /// Which cache and clip position each live frame uses, and the crossfades (nil = the talking cache at position i).
+    public var plan: FramePlan? = nil
+    /// The frame on screen when the turn starts (the frozen idle frame): the anchor of the first segment's crossfade.
+    public var seamAnchor: RGBAImage? = nil
+    /// The last composed frame of the turn, for the seam back to the idle track.
+    public private(set) var lastEmitted: RGBAImage? = nil
 
     private let lock = NSLock()
     private var queue: [(Int, [UInt8])] = []
@@ -639,7 +696,8 @@ public final class LipsyncPipeline {
                 }
                 if downstreamCount() + queued >= aheadFrames || queued >= queueDepth { usleep(1000); continue }
                 do {
-                    let r = try engine.inferFace(i)
+                    let e = plan?.entry(i)
+                    let r = try engine.inferFace(audioFrame: i, slot: e?.slot ?? .talking, cycle: e?.cycle ?? i)
                     lock.sync {
                         queue.append((i, r.face))
                         stats.generated += 1
@@ -654,6 +712,8 @@ public final class LipsyncPipeline {
             lock.sync { inferDone = true }
         }
         let compose = Thread { [self] in
+            var anchor: RGBAImage? = nil          // the previous pose's last composed frame, frozen at a switch
+            var anchorSegment = Int.min
             while true {
                 let (item, finished): ((Int, [UInt8])?, Bool) = lock.sync {
                     (queue.isEmpty ? nil : queue.removeFirst(), stopped || (inferDone && queue.isEmpty))
@@ -668,9 +728,25 @@ public final class LipsyncPipeline {
                     continue
                 }
                 do {
-                    let (img, ms) = try engine.composeFrame(i, face: face)
+                    let e = plan?.entry(i)
+                    var (img, ms) = try engine.composeFrame(slot: e?.slot ?? .talking, cycle: e?.cycle ?? i, face: face)
+                    var blended = false
+                    if let e = e, let (k, n) = e.crossfade {
+                        // the scheduler's crossfade: the old pose's last frame fades under the incoming frames
+                        if anchorSegment != e.segmentStart {
+                            anchorSegment = e.segmentStart
+                            anchor = lastEmitted ?? seamAnchor
+                        }
+                        if let an = anchor {
+                            let t0 = now()
+                            img = crossfade(anchor: an, incoming: img, alpha: crossfadeAlpha(k, of: n))
+                            ms += (now() - t0) * 1000
+                            blended = true
+                        }
+                    }
+                    lastEmitted = img
                     emit(i, img)
-                    lock.sync { stats.composed += 1; stats.composeMsSum += ms }
+                    lock.sync { stats.composed += 1; stats.composeMsSum += ms; if blended { stats.crossfaded += 1 } }
                 } catch {
                     log("compose \(i): \(error)")
                 }

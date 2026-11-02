@@ -171,7 +171,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
 
     @objc private func tick() {
         guard let s = session else { return }
-        if let (_, img) = s.currentFrame() { image = img }
+        if let f = s.currentFrame() { image = f.image }
         ticks += 1
         if ticks % 15 == 0 { stats = s.statsLine }
     }

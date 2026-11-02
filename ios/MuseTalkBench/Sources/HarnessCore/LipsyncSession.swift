@@ -48,9 +48,56 @@ final class FrameBuffer: @unchecked Sendable {
     }
 }
 
-/// One spoken turn on an avatar: the windows for a waveform, the two-stage pipeline paced by an audio clock, a
-/// pre-roll, and the frames the display asks for. Owns the audio player, which is the clock. Platform-neutral: the
-/// iOS app drives `currentFrame()` from a `CADisplayLink`, the Mac bench from a loop. This is what the Lingua
+/// A frame for the display: a live (lipsynced) frame of the turn, or a frame of the idle track between turns.
+public struct DisplayFrame {
+    public let index: Int
+    public let image: CGImage
+    public let live: Bool
+}
+
+/// Decodes the idle track's next frames ahead of the display thread, so a 24 fps loop costs the display thread a
+/// dictionary lookup instead of a JPEG decode. Bounded: keys more than two frames behind the last request go.
+final class IdlePrefetch {
+    private let lock = NSLock()
+    private var cache: [String: (RGBAImage, CGImage)] = [:]
+    private var inFlight: Set<String> = []
+    private let queue = DispatchQueue(label: "lipsync.idle.prefetch", qos: .userInteractive)
+
+    private func key(_ slot: PoseSlot, _ cycle: Int) -> String { "\(slot.rawValue)#\(cycle)" }
+
+    func take(_ slot: PoseSlot, _ cycle: Int) -> (RGBAImage, CGImage)? {
+        lock.lock(); defer { lock.unlock() }
+        return cache[key(slot, cycle)]
+    }
+
+    func put(_ slot: PoseSlot, _ cycle: Int, _ value: (RGBAImage, CGImage)) {
+        lock.lock(); cache[key(slot, cycle)] = value; lock.unlock()
+    }
+
+    /// Decode `cycles` of `slot` in the background when they are not cached; drop everything not in `keep`.
+    func prefetch(_ slot: PoseSlot, cycles: [Int], keep: Set<Int>, decode: @escaping (Int) throws -> RGBAImage) {
+        lock.lock()
+        let keepKeys = Set(keep.map { key(slot, $0) })
+        for k in cache.keys where !keepKeys.contains(k) { cache[k] = nil }
+        let missing = cycles.filter { cache[key(slot, $0)] == nil && !inFlight.contains(key(slot, $0)) }
+        for c in missing { inFlight.insert(key(slot, c)) }
+        lock.unlock()
+        for c in missing {
+            queue.async { [weak self] in
+                guard let self = self else { return }
+                if let img = try? decode(c), let cg = img.cgImage() { self.put(slot, c, (img, cg)) }
+                self.lock.lock(); self.inFlight.remove(self.key(slot, c)); self.lock.unlock()
+            }
+        }
+    }
+
+    func clear() { lock.lock(); cache = [:]; lock.unlock() }
+}
+
+/// One avatar on screen: the idle track between turns (the worker's pose protocol on the phone's caches), and
+/// one spoken turn at a time: the windows for a waveform, the two-stage pipeline paced by an audio clock, a
+/// pre-roll, and the frames the display asks for. Owns the audio player, which is the clock. Platform-neutral:
+/// the iOS app drives `currentFrame()` from a `CADisplayLink`, the Mac bench from a loop. This is what the Lingua
 /// native module wraps.
 public final class LipsyncSession {
     public struct Config {
@@ -61,6 +108,8 @@ public final class LipsyncSession {
         public var aheadSeconds = 1.0
         /// Play `playbackURL` through AVAudioPlayer. Off, the clock is a free-running timer (Mac checks).
         public var playAudio = true
+        /// The router's drift limit and crossfade lengths (Poses.swift).
+        public var poses = FramePlan.Settings()
         public init() {}
     }
 
@@ -74,6 +123,8 @@ public final class LipsyncSession {
         public var prerollSeconds = 0.0, prerollFrames = 0, startLatencySeconds = 0.0  // speak() → clock start
         public var audioPrepSeconds = 0.0, loadSeconds = 0.0
         public var audioPlayed = false, audioRoute = "", systemVolume = 0.0
+        public var poseSwitches = 0, crossfaded = 0
+        public var plan = ""
         public var generatedFps: Double { seconds > 0 ? Double(generated) / seconds : 0 }
         public var shownFps: Double { seconds > 0 ? Double(shown) / seconds : 0 }
 
@@ -84,7 +135,8 @@ public final class LipsyncSession {
              "gen_ms_per_frame": stageInferMs + stageComposeMs, "stage_infer_ms": stageInferMs, "stage_compose_ms": stageComposeMs,
              "pipelined": true, "preroll_s": prerollSeconds, "preroll_frames": prerollFrames, "start_latency_s": startLatencySeconds,
              "audio_prep_s": audioPrepSeconds, "load_s": loadSeconds,
-             "audio_played": audioPlayed, "audio_route": audioRoute, "system_volume": systemVolume]
+             "audio_played": audioPlayed, "audio_route": audioRoute, "system_volume": systemVolume,
+             "pose_switches": poseSwitches, "crossfaded": crossfaded, "plan": plan]
         }
 
         public var json: String {
@@ -114,11 +166,28 @@ public final class LipsyncSession {
     private var speakAt = 0.0
     private var audioRoute = "", systemVolume = 0.0, audioPlayed = false
     private var finished = false
+    private var plan: FramePlan? = nil
+
+    // the idle track (all under `lock`, read on the display thread)
+    private var idleStart: Double? = nil          // monotonic seconds the idle clock started; nil = not running
+    private var idlePhase0 = 0                    // cycle index at `idleStart`
+    private var idleSlot: PoseSlot = .idle
+    private var pendingIdleSlot: PoseSlot? = nil  // applied at the next loop boundary
+    private var reactionShown = false             // one reaction pose per turn, as the worker does
+    private var idleFrozenPhase: Int? = nil       // the worker's idle sync hold: held from speak() to the turn's end
+    private var idleShownCycle = -1
+    private var idleLastImage: RGBAImage? = nil   // what the idle track showed last (anchors for its crossfades)
+    private var idleAnchor: RGBAImage? = nil
+    private var idleSeamK = 0                     // frames already blended of the current idle-track crossfade
+    private var idleSeamN = 0
+    private var lastBoundaryCycle = -1
+    private let prefetch = IdlePrefetch()
 
     public init(engine: LipsyncEngine, config: Config = Config()) {
         self.engine = engine
         self.config = config
         fps = engine.avatar.fps
+        idleSlot = FramePlan.resolve(.idle, available: engine.availableSlots)
     }
 
     public var state: State { lock.lock(); defer { lock.unlock() }; return stateValue }
@@ -130,17 +199,111 @@ public final class LipsyncSession {
         if changed { onStateChange?(s) }
     }
 
-    /// The avatar's first frame, to show before anything is spoken.
+    /// The avatar's first frame, to show before anything is spoken (callers that do not run the idle track).
     public func restingFrame() throws -> CGImage? { try engine.avatar.frame(0).cgImage() }
 
-    /// Speak `waveform` (16 kHz mono): builds the windows (Whisper on the Neural Engine), pre-rolls, then starts
-    /// the audio and the video together. Returns when the pipeline is running; progress arrives through the
-    /// callbacks and `currentFrame()`. Call off the main thread: the window build takes 0.2–4 s.
-    public func speak(waveform: [Float], playbackURL: URL?) throws {
+    // MARK: - the idle track
+
+    /// Starts the idle track at clip position `phase` of the idle cache: between turns `currentFrame()` plays it.
+    public func startIdle(phase: Int = 0) {
+        lock.lock()
+        idleStart = now(); idlePhase0 = phase; idleFrozenPhase = nil; idleShownCycle = -1
+        idleAnchor = nil; idleSeamK = 0; idleSeamN = 0; lastBoundaryCycle = -1
+        lock.unlock()
+    }
+
+    public var idleRunning: Bool { lock.lock(); defer { lock.unlock() }; return idleStart != nil }
+
+    /// The cycle index the idle track is at now (frozen while a turn runs).
+    private func idleCycleNow() -> Int? {
+        guard let start = idleStart else { return nil }
+        if let frozen = idleFrozenPhase { return frozen }
+        let cyc = max(1, engine.cycleLengths[idleSlot] ?? engine.bundle(idleSlot).meta.cycle_length)
+        return (idlePhase0 + Int((now() - start) * Double(fps))) % cyc
+    }
+
+    /// A worker session event (`webrtc_manager.py`): a reaction queues its pose on the idle track at the next loop
+    /// boundary, once per turn; the listening events and an abort put the track back on the idle cache.
+    public func event(_ name: String, reactionIntent: String? = nil) {
+        lock.lock(); defer { lock.unlock() }
+        switch name {
+        case "assistant_reaction_ready":
+            guard let pose = reactionPoseId(reactionIntent ?? "none") else { return }
+            let slot = FramePlan.resolve(poseSlot(forPoseId: pose), available: engine.availableSlots)
+            if slot != idleSlot && !reactionShown { pendingIdleSlot = slot; reactionShown = true }
+        case "assistant_turn_aborted", "user_speech_started", "user_speech_ended", "assistant_thinking":
+            let neutral = FramePlan.resolve(.idle, available: engine.availableSlots)
+            pendingIdleSlot = idleSlot == neutral ? nil : neutral
+        default:
+            break
+        }
+    }
+
+    private func idleFrame() -> DisplayFrame? {
+        lock.lock()
+        guard var cycle = idleCycleNow() else { lock.unlock(); return nil }
+        let frozen = idleFrozenPhase != nil
+        // a pending pose switch lands on a loop boundary (every half cycle: the worker's MP4 wraps once per clip)
+        let unique = max(1, engine.bundle(idleSlot).meta.unique_frames)
+        if !frozen, let pending = pendingIdleSlot, cycle % unique == 0, cycle != lastBoundaryCycle {
+            lastBoundaryCycle = cycle
+            pendingIdleSlot = nil
+            idleAnchor = idleLastImage
+            idleSeamK = 0; idleSeamN = config.poses.boundaryCrossfade
+            idleSlot = pending
+            // keep the phase: the new clip continues from the same position, modulo its own cycle
+            let cyc = max(1, engine.cycleLengths[idleSlot] ?? 1)
+            idlePhase0 = cycle % cyc
+            idleStart = now()
+            cycle = idlePhase0
+        }
+        if cycle == idleShownCycle { lock.unlock(); return nil }
+        let slot = idleSlot
+        let anchor = idleAnchor, k = idleSeamK, n = idleSeamN
+        lock.unlock()
+
+        let decode: (Int) throws -> RGBAImage = { [engine] c in try engine.plainFrame(slot: slot, cycle: c) }
+        let cyc = max(1, engine.cycleLengths[slot] ?? 1)
+        var frame: (RGBAImage, CGImage)? = prefetch.take(slot, cycle)
+        if frame == nil, let img = try? decode(cycle), let cg = img.cgImage() { frame = (img, cg) }
+        if !frozen {
+            prefetch.prefetch(slot, cycles: [(cycle + 1) % cyc, (cycle + 2) % cyc, (cycle + 3) % cyc],
+                              keep: Set([cycle, (cycle + 1) % cyc, (cycle + 2) % cyc, (cycle + 3) % cyc]), decode: decode)
+        }
+        guard var (img, cg) = frame else { return nil }
+        if let an = anchor, k < n {
+            img = crossfade(anchor: an, incoming: img, alpha: crossfadeAlpha(k, of: n))
+            guard let blended = img.cgImage() else { return nil }
+            cg = blended
+        }
+        lock.lock()
+        idleShownCycle = cycle
+        idleLastImage = img
+        if k < n { idleSeamK = k + 1 } else { idleAnchor = nil }
+        lock.unlock()
+        return DisplayFrame(index: cycle, image: cg, live: false)
+    }
+
+    // MARK: - a turn
+
+    /// Speak `waveform` (16 kHz mono) on the talking cache, no pose plan.
+    public func speak(waveform: [Float], playbackURL: URL?) throws { try speak(waveform: waveform, playbackURL: playbackURL, cues: []) }
+
+    /// Speak `waveform` (16 kHz mono) with a `pose_plan` v2's cues: builds the windows (Whisper on the Neural
+    /// Engine), compiles the plan onto the frames from the idle track's phase, pre-rolls, then starts the audio and
+    /// the video together. Returns when the pipeline is running; progress arrives through the callbacks and
+    /// `currentFrame()`. Call off the main thread: the window build takes 0.2–4 s.
+    public func speak(waveform: [Float], playbackURL: URL?, cues: [PoseCue]) throws {
         let s = state
         guard s == .idle || s == .finished || s == .failed else { throw BundleError.busy("session is \(s.rawValue)") }
         speakAt = now()
         setState(.preparing)
+        // the worker's idle sync hold: the idle track freezes at its phase, the first live segment starts there
+        lock.lock()
+        let phase = idleCycleNow() ?? 0
+        if idleStart != nil { idleFrozenPhase = phase }
+        let anchor = idleLastImage
+        lock.unlock()
         try engine.prepareAudio(waveform: waveform)
         total = engine.frameCount
         buffer.reset()
@@ -173,9 +336,15 @@ public final class LipsyncSession {
                 log("audio player: \(error)")
             }
         }
+        let compiled = FramePlan.compile(total: total, fps: fps, cycles: engine.cycleLengths, available: engine.availableSlots,
+                                         idlePhase: phase, cues: cues, settings: config.poses)
+        lock.lock(); plan = compiled; lock.unlock()
+        log("poses: \(compiled.description) (idle phase \(phase), \(total) frames)")
         let pipe = LipsyncPipeline(engine: engine, aheadFrames: max(preroll, Int(config.aheadSeconds * Double(fps))))
         pipe.frameMs = 1000.0 / Double(fps)
         pipe.log = log
+        pipe.plan = compiled
+        pipe.seamAnchor = anchor
         let buf = buffer, fps = self.fps, preroll = self.preroll
         pipe.targetIndex = { buf.audioStart.map { Int((now() - $0) * Double(fps)) } }
         pipe.downstreamCount = { buf.count }
@@ -199,18 +368,21 @@ public final class LipsyncSession {
         onClockStart?(t0)
     }
 
-    /// Call at display rate: the frame to show now (nil = keep the last one). Counts stalls and detects the end.
-    public func currentFrame() -> (index: Int, image: CGImage)? {
+    /// Call at display rate: the frame to show now (nil = keep the last one). During a turn these are the lipsynced
+    /// frames (stalls counted, the end detected); between turns the idle track's frames.
+    public func currentFrame() -> DisplayFrame? {
+        let s = state
+        if s == .idle || s == .finished || s == .failed { return idleFrame() }
         guard let start = buffer.audioStart else {
-            // during the pre-roll, show frame 0 of the turn as it lands
-            if let (i, img) = buffer.take(upTo: 0), i != shownIndex { shownIndex = i; return (i, img) }
+            // during the pre-roll, show frame 0 of the turn as it lands (a crossfade from the frozen idle frame)
+            if let (i, img) = buffer.take(upTo: 0), i != shownIndex { shownIndex = i; return DisplayFrame(index: i, image: img, live: true) }
             return nil
         }
         let t = now() - start
         let target = min(total - 1, Int(t * Double(fps)))
-        var out: (Int, CGImage)? = nil
+        var out: DisplayFrame? = nil
         if let (i, img) = buffer.take(upTo: target) {
-            if i != shownIndex { shownIndex = i; shown += 1; out = (i, img) }
+            if i != shownIndex { shownIndex = i; shown += 1; out = DisplayFrame(index: i, image: img, live: true) }
         } else if target > shownIndex {
             stalls += 1
         }
@@ -223,9 +395,9 @@ public final class LipsyncSession {
     public var statsLine: String {
         let s = pipeline?.snapshot ?? LipsyncPipeline.Stats()
         let t = buffer.audioStart.map { now() - $0 } ?? 0
-        return String(format: "generated %d (%.1f fps) · ANE %.0f ms · CPU %.0f ms · lead %d · skipped %d · late %d · shown %d · stalls %d · buffer %d · t %.1f s",
+        return String(format: "generated %d (%.1f fps) · ANE %.0f ms · CPU %.0f ms · lead %d · skipped %d · late %d · shown %d · stalls %d · buffer %d · fades %d · t %.1f s",
                       s.generated, t > 0 ? Double(s.generated) / t : 0, s.inferMs, s.composeMs, s.leadFrames, s.skipped, s.droppedLate,
-                      shown, stalls, buffer.count, t)
+                      shown, stalls, buffer.count, s.crossfaded, t)
     }
 
     /// Stop early (or after the end): cancels the pipeline, stops the audio, reports.
@@ -243,6 +415,25 @@ public final class LipsyncSession {
         player?.stop()
         let r = buildResult(seconds: seconds)
         lastResult = r
+        // the idle track resumes one frame past the last live phase, on the idle cache, under a short crossfade
+        // (the worker cuts to idle frame 0 here)
+        lock.lock()
+        if idleStart != nil {
+            let neutral = FramePlan.resolve(.idle, available: engine.availableSlots)
+            idleSlot = neutral
+            pendingIdleSlot = nil
+            let cyc = max(1, engine.cycleLengths[neutral] ?? 1)
+            idlePhase0 = ((plan?.lastCycle ?? 0) + 1) % cyc
+            idleStart = now()
+            idleFrozenPhase = nil
+            idleShownCycle = -1
+            idleAnchor = pipeline?.lastEmitted
+            idleSeamK = 0; idleSeamN = idleAnchor == nil ? 0 : config.poses.seamCrossfade
+            lastBoundaryCycle = -1
+        }
+        reactionShown = false
+        lock.unlock()
+        prefetch.clear()
         setState(.finished)
         onFinished?(r)
     }
@@ -257,6 +448,11 @@ public final class LipsyncSession {
         r.startLatencySeconds = (buffer.audioStart ?? now()) - speakAt
         r.audioPrepSeconds = engine.audioSeconds; r.loadSeconds = engine.loadSeconds
         r.audioPlayed = audioPlayed; r.audioRoute = audioRoute; r.systemVolume = systemVolume
+        lock.lock()
+        r.poseSwitches = plan?.switches ?? 0
+        r.plan = plan?.description ?? ""
+        lock.unlock()
+        r.crossfaded = s.crossfaded
         return r
     }
 }
