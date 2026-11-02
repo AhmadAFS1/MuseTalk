@@ -98,6 +98,13 @@ the app's Documents folder (visible in Files → On My iPhone → MuseTalk Bench
 --domain-identifier com.lingua.musetalkbench --source Documents/<file> --destination .`),
 and `--exit` quits when done. Other flags: `--no-b4`, `--no-gpu`, `--no-whisper`.
 
+Memory emulation (both tabs): `--emulate-limit-mb 2098` holds enough dirty, incompressible memory before the
+models load that the process keeps only the headroom a 4 GB iPhone (12, 12 mini, 13, 13 mini, SE 2022; about
+2,098 MB foreground limit) would grant; `--ballast-mb N` holds N MB more (a host app's own footprint);
+`--mem-trace` (implied by either) prints the footprint every time it moves 64 MB, memory-pressure events, and one
+`MEM_RESULT` JSON line after `LIPSYNC_RESULT` / `BENCH_JSON_END` with the peak footprint and the smallest headroom
+seen. A jetsam kill leaves the last `[mem]` line on the console as the footprint the process died at.
+
 Expect the first load of each UNet on the phone to be slow (the ANE compiles the
 850M-parameter program once and caches it) and the whole default run to take a
 few minutes on an A14. Keep the app in the foreground; it keeps the screen on.

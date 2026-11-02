@@ -10,6 +10,9 @@ struct MuseTalkBenchApp: App {
         WindowGroup {
             ContentView(model: model, lipsync: lipsync, tab: $tab)
                 .onAppear {
+                    // memory emulation first, so the models load with the headroom a smaller phone would give
+                    if MemoryTrace.requested() { MemoryTrace.shared.start() }
+                    MemoryBallast.applyFromLaunchArguments()
                     model.autorunIfRequested()
                     lipsync.autostartIfRequested()
                 }

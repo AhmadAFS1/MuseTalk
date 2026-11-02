@@ -1,0 +1,215 @@
+{
+ "log": "A_cold_nocap.log",
+ "trace_points": 10,
+ "peak_footprint_mb_from_trace": 135,
+ "min_headroom_mb_from_trace": 2937,
+ "last_trace": [
+  46.0,
+  135,
+  2937
+ ],
+ "models_loaded": "[lipsync] lipsync: models loaded in 26.76 s, 241 frame latents ready (mem 28 MB, 3043 MB left)",
+ "lipsync": {
+  "shown": 280,
+  "frames": 426,
+  "stalls": 0,
+  "dropped_late": 0,
+  "skipped": 145,
+  "stage_infer_ms": 65.05036210347949,
+  "stage_compose_ms": 10.01037753334607,
+  "seconds": 17.785760374972597,
+  "generated": 281,
+  "shown_fps": 15.7
+ },
+ "mem_result": {
+  "ballast_mb": 0,
+  "footprint_now_mb": 135,
+  "headroom_now_mb": 2937,
+  "min_headroom_mb": 2924,
+  "peak_footprint_mb": 148,
+  "pressure_criticals": 0,
+  "pressure_warnings": 0,
+  "samples": 197,
+  "seconds": 48.8
+ },
+ "launch_exit": 0,
+ "ended": true,
+ "notable": [
+  "The app terminated with the exit code 0."
+ ]
+}
+{
+ "log": "B_warm_cap2098.log",
+ "trace_points": 6,
+ "peak_footprint_mb_from_trace": 1144,
+ "min_headroom_mb_from_trace": 1928,
+ "last_trace": [
+  17.0,
+  1143,
+  1929
+ ],
+ "limit_line": "[mem] this process may use 3072 MB here (footprint 11 + headroom 3061); emulating a 2098 MB limit",
+ "ballast_line": "[mem] ballast 974 MB held in 0.2 s (mem 985 MB, 2086 MB left)",
+ "models_loaded": "[lipsync] lipsync: models loaded in 0.74 s, 241 frame latents ready (mem 1013 MB, 2058 MB left)",
+ "lipsync": {
+  "shown": 281,
+  "frames": 426,
+  "stalls": 0,
+  "dropped_late": 0,
+  "skipped": 144,
+  "stage_infer_ms": 64.84324010815604,
+  "stage_compose_ms": 8.536989794026875,
+  "seconds": 17.714842792018317,
+  "generated": 282,
+  "shown_fps": 15.9
+ },
+ "mem_result": {
+  "ballast_mb": 974,
+  "footprint_now_mb": 1143,
+  "headroom_now_mb": 1929,
+  "min_headroom_mb": 1927,
+  "peak_footprint_mb": 1145,
+  "pressure_criticals": 0,
+  "pressure_warnings": 0,
+  "samples": 80,
+  "seconds": 19.5
+ },
+ "launch_exit": 0,
+ "ended": true,
+ "notable": [
+  "The app terminated with the exit code 0."
+ ]
+}
+{
+ "log": "C_cold_cap2098.log",
+ "trace_points": 11,
+ "peak_footprint_mb_from_trace": 1161,
+ "min_headroom_mb_from_trace": 1911,
+ "last_trace": [
+  46.5,
+  1161,
+  1911
+ ],
+ "limit_line": "[mem] this process may use 3072 MB here (footprint 11 + headroom 3061); emulating a 2098 MB limit",
+ "ballast_line": "[mem] ballast 974 MB held in 0.2 s (mem 985 MB, 2086 MB left)",
+ "models_loaded": "[lipsync] lipsync: models loaded in 26.42 s, 241 frame latents ready (mem 1032 MB, 2039 MB left)",
+ "lipsync": {
+  "shown": 199,
+  "frames": 426,
+  "stalls": 0,
+  "dropped_late": 0,
+  "skipped": 227,
+  "stage_infer_ms": 94.49145538092125,
+  "stage_compose_ms": 12.445878307917155,
+  "seconds": 17.77829795901198,
+  "generated": 200,
+  "shown_fps": 11.2
+ },
+ "mem_result": {
+  "ballast_mb": 974,
+  "footprint_now_mb": 1161,
+  "headroom_now_mb": 1911,
+  "min_headroom_mb": 1911,
+  "peak_footprint_mb": 1161,
+  "pressure_criticals": 0,
+  "pressure_warnings": 0,
+  "samples": 201,
+  "seconds": 49.8
+ },
+ "launch_exit": 0,
+ "ended": true,
+ "notable": [
+  "The app terminated with the exit code 0."
+ ]
+}
+{
+ "log": "D_cold_cap2098_host300.log",
+ "trace_points": 12,
+ "peak_footprint_mb_from_trace": 1460,
+ "min_headroom_mb_from_trace": 1612,
+ "last_trace": [
+  47.0,
+  1460,
+  1612
+ ],
+ "limit_line": "[mem] this process may use 3072 MB here (footprint 11 + headroom 3061); emulating a 2098 MB limit",
+ "ballast_line": "[mem] ballast 1274 MB held in 0.3 s (mem 1285 MB, 1786 MB left)",
+ "models_loaded": "[lipsync] lipsync: models loaded in 26.94 s, 241 frame latents ready (mem 1332 MB, 1739 MB left)",
+ "pressure_events": [
+  "[mem] t=31.6 s memory pressure warning (mem 1430 MB, 1641 MB left)"
+ ],
+ "lipsync": {
+  "shown": 183,
+  "frames": 426,
+  "stalls": 0,
+  "dropped_late": 0,
+  "skipped": 242,
+  "stage_infer_ms": 99.55817234067186,
+  "stage_compose_ms": 14.35624905950491,
+  "seconds": 17.78162304207217,
+  "generated": 184,
+  "shown_fps": 10.3
+ },
+ "mem_result": {
+  "ballast_mb": 1274,
+  "footprint_now_mb": 1460,
+  "headroom_now_mb": 1612,
+  "min_headroom_mb": 1612,
+  "peak_footprint_mb": 1460,
+  "pressure_criticals": 0,
+  "pressure_warnings": 1,
+  "samples": 200,
+  "seconds": 49.6
+ },
+ "launch_exit": 0,
+ "ended": true,
+ "notable": [
+  "The app terminated with the exit code 0."
+ ]
+}
+{
+ "log": "C2_cold_cap2098_cooled.log",
+ "trace_points": 11,
+ "peak_footprint_mb_from_trace": 1168,
+ "min_headroom_mb_from_trace": 1904,
+ "last_trace": [
+  45.5,
+  1168,
+  1904
+ ],
+ "limit_line": "[mem] this process may use 3072 MB here (footprint 11 + headroom 3061); emulating a 2098 MB limit",
+ "ballast_line": "[mem] ballast 974 MB held in 0.2 s (mem 985 MB, 2086 MB left)",
+ "models_loaded": "[lipsync] lipsync: models loaded in 25.67 s, 241 frame latents ready (mem 1032 MB, 2039 MB left)",
+ "thermal_lines": [
+  "MEM_RESULT {\"ballast_mb\":974,\"footprint_now_mb\":1172,\"headroom_now_mb\":1900,\"min_headroom_mb\":1900,\"peak_footprint_mb\":1172,\"pressure_criticals\":0,\"pressure_warnings\":0,\"samples\":194,\"seconds\":48,\"thermal_at_end\":\"nominal\"}"
+ ],
+ "lipsync": {
+  "shown": 266,
+  "frames": 426,
+  "stalls": 0,
+  "dropped_late": 0,
+  "skipped": 159,
+  "stage_infer_ms": 68.38972565206988,
+  "stage_compose_ms": 9.700723159412961,
+  "seconds": 17.77095575002022,
+  "generated": 267,
+  "shown_fps": 15.0
+ },
+ "mem_result": {
+  "ballast_mb": 974,
+  "footprint_now_mb": 1172,
+  "headroom_now_mb": 1900,
+  "min_headroom_mb": 1900,
+  "peak_footprint_mb": 1172,
+  "pressure_criticals": 0,
+  "pressure_warnings": 0,
+  "samples": 194,
+  "seconds": 48,
+  "thermal_at_end": "nominal"
+ },
+ "launch_exit": 0,
+ "ended": true,
+ "notable": [
+  "The app terminated with the exit code 0."
+ ]
+}

@@ -136,6 +136,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                 try session.speak(waveform: waveform, playbackURL: playback)
             } catch {
                 print("[lipsync] ERROR \(error)")
+                if MemoryTrace.shared.running { print(MemoryTrace.shared.resultLine()) }
                 await MainActor.run { [weak self] in
                     self?.state = .failed
                     self?.status = "\(error)"
@@ -183,6 +184,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                         r.audioPlayed ? "played" : "NOT played", r.audioRoute, r.systemVolume * 100)
         UIApplication.shared.isIdleTimerDisabled = false
         print("LIPSYNC_RESULT " + r.json)
+        if MemoryTrace.shared.running { print(MemoryTrace.shared.resultLine()) }
         if exitAfter { exit(0) }
     }
 

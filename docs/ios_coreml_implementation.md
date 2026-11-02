@@ -51,6 +51,7 @@ frame by 3.8 %), so this phone stays below the 20 fps line and newer phones are 
 | 17 | Audio from a TTS WAV (any sample rate, any length) instead of the bundled clip | **done 2026-10-31**: `loadWaveform16k` + segmented windows; an OmniVoice 24 kHz WAV played on the phone (§5.2). A microphone / streaming source is still open | §2.4; `AudioInput.swift` |
 | 18 | Avatar download from S3 at runtime | **done 2026-10-31** for one avatar: phone-only bundle format, `pack_phone_bundle.py`, `RemoteBundle` + `TarArchive`; Latina downloaded (27 MB in 5.4 s) and played on the phone. Multiple avatars and the pose router are open | §2.3; `avatars/ios/v1/` |
 | 19 | Integration into the Lingua app (native module) | **Phase 0 done 2026-10-31**: `LipsyncSession` (the player core the module wraps) in HarnessCore, pre-roll parameter, model pack on S3 with a manifest; the Lingua backend half runs in its own session; plan in the Lingua repo | §6; Lingua `docs/musetalk-on-device-renderer-plan.md` |
+| 20 | 4 GB phones: the memory allowance emulated on the 12 Pro (`--emulate-limit-mb`, `--ballast-mb`, `--mem-trace`) | **measured 2026-11-01**: the chunked cold compile peaks at 54 MB of process footprint (148 MB over the whole run, playback included); under a 2,098 MB cap compile + playback keep ≥ 1.9 GB (≥ 1.6 GB with a 300 MB host app), no kill; a real 4 GB device remains the check for system-wide pressure | §5.5; `memory_emulation_iphone12pro_2026-11-01/` |
 
 ---
 
@@ -443,6 +444,42 @@ Asked as "is it RAM, CPU, or the accelerator", the phone's situation is three se
   from a warm start (after 70 s of compiles) it lost 45 % within 15 s (54.1 → 78.4 ms, 67.1 mean). The product
   figure for this phone is the warm one, 13–15 fps, and keeping the chip cool (no compile in the same minute as
   playback, shorter turns) is worth more than the remaining levers.
+
+### 5.5 Memory: a 4 GB phone emulated on the 12 Pro (2026-11-01)
+
+The question: do the 4 GB iPhones after the 12 Pro (12, 12 mini, 13, 13 mini, SE 2022; about 2,098 MB of
+foreground allowance, the "ActiveHard 2098 MB" of their jetsam reports) survive the cold compile that killed the
+single program here (2,464 MB of this phone's 3,071 MB)? The harness app can now emulate that allowance:
+`--emulate-limit-mb N` holds (this process's limit − N) MB of dirty, incompressible memory before the models load
+(`App/Sources/MemoryBallast.swift`; 974 MB here, limit measured as footprint 11 + headroom 3,061 MB at launch),
+`--ballast-mb N` adds a host app's own footprint, and a 250 ms footprint trace prints on the console so a kill
+leaves its last footprint behind. Lipsync tab, bundled Latina avatar, the 17.8 s clip, `--silent`; a reinstall
+before each cold run empties the Core ML compile cache. Logs, `summary.json` and the parser:
+`docs/ios_unet_bench/memory_emulation_iphone12pro_2026-11-01/`.
+
+| Run | Allowance | Compile | Ballast | Peak footprint | Engine's share | Least headroom | Pressure | ANE stage | Shown |
+|---|---|---|---|---|---|---|---|---|---|
+| A | none (3,072 MB) | cold, 26.8 s | 0 | 148 MB | 148 MB | 2,924 MB | none | 65.1 ms | 280/426, 15.7 fps, 0 stalls |
+| B | 2,098 MB | warm, 0.7 s | 974 MB | 1,145 MB | 171 MB | 1,927 MB | none | 64.8 ms | 281, 15.9 fps, 0 stalls |
+| C | 2,098 MB | cold, 26.4 s | 974 MB | 1,161 MB | 187 MB | 1,911 MB | none | 94.5 ms | 199, 11.2 fps, 0 stalls |
+| D | 2,098 MB + 300 MB host app | cold, 26.9 s | 1,274 MB | 1,460 MB | 186 MB | 1,612 MB | 1 warning at 31.6 s (playback) | 99.6 ms | 183, 10.3 fps, 0 stalls |
+| C2 (C repeated after a 4 min cool-down, thermal nominal before and after) | 2,098 MB | cold, 25.7 s | 974 MB | 1,172 MB | 198 MB | 1,900 MB | none | 68.4 ms | 266, 15.0 fps, 0 stalls |
+
+- **The chunked compile does not inflate the process.** During the 27 s cold compile the footprint peaked at
+  54 MB (the single program's compile reached 2,464 MB); the uncapped run's 148 MB peak is playback (frame cache,
+  audio windows, the displayed images), ~170–190 MB of engine under the caps. Under
+  the 4 GB allowance the process kept ≥ 1.9 GB of headroom, and ≥ 1.6 GB with a 300 MB host app on top: no kill,
+  no critical pressure. **The per-process limit of the 4 GB phones is not a risk for the chunked models**; the
+  Lingua gate's 3.5 GB memory floor can stay.
+- **Speed under the cap.** B equals A, so the ballast itself costs nothing. C and D were slower (94–100 ms per face
+  against 65) with the four runs back to back, four compiles in three minutes. C2, the same capped cold run after a
+  four-minute cool-down, came back at 68.4 ms and 15.0 fps with the thermal state nominal at both ends: the slow
+  runs were heat, the cap costs nothing. (§5.3 rule 6 again: no compile in the same minute as a measurement.)
+- **What the emulation cannot show.** It caps this process; a real 4 GB phone also has 2 GB less for everything
+  else (the ANE compiler service's own working set during the compile, the compressor, other apps). D's one
+  warning at a 1,430 MB footprint is this phone's system-wide pressure with 1.3 GB of ballast resident, not a
+  number a 4 GB phone reproduces. The remaining check for that tier is one real device (an iPhone 13 or SE 2022)
+  through the Lingua app's cold compile and a call.
 
 ---
 
