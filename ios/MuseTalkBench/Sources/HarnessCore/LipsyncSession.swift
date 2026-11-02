@@ -218,8 +218,9 @@ public final class LipsyncSession {
     private func idleCycleNow() -> Int? {
         guard let start = idleStart else { return nil }
         if let frozen = idleFrozenPhase { return frozen }
-        let cyc = max(1, engine.cycleLengths[idleSlot] ?? engine.bundle(idleSlot).meta.cycle_length)
-        return (idlePhase0 + Int((now() - start) * Double(fps))) % cyc
+        // forward over the clip's original range, wrapping (the body playback policy never uses the reversed half)
+        let len = max(1, engine.forwardLengths[idleSlot] ?? engine.bundle(idleSlot).meta.unique_frames)
+        return (idlePhase0 + Int((now() - start) * Double(fps))) % len
     }
 
     /// A worker session event (`webrtc_manager.py`): a reaction queues its pose on the idle track at the next loop
@@ -230,7 +231,7 @@ public final class LipsyncSession {
         case "assistant_reaction_ready":
             guard let pose = reactionPoseId(reactionIntent ?? "none") else { return }
             let slot = FramePlan.resolve(poseSlot(forPoseId: pose), available: engine.availableSlots)
-            if slot != idleSlot && !reactionShown { pendingIdleSlot = slot; reactionShown = true }
+            if config.poses.idleReactions && slot != idleSlot && !reactionShown { pendingIdleSlot = slot; reactionShown = true }
         case "assistant_turn_aborted", "user_speech_started", "user_speech_ended", "assistant_thinking":
             let neutral = FramePlan.resolve(.idle, available: engine.availableSlots)
             pendingIdleSlot = idleSlot == neutral ? nil : neutral
@@ -249,11 +250,11 @@ public final class LipsyncSession {
             lastBoundaryCycle = cycle
             pendingIdleSlot = nil
             idleAnchor = idleLastImage
-            idleSeamK = 0; idleSeamN = config.poses.boundaryCrossfade
+            idleSeamK = 0; idleSeamN = config.poses.bridgeFrames(fps: fps)
             idleSlot = pending
-            // keep the phase: the new clip continues from the same position, modulo its own cycle
-            let cyc = max(1, engine.cycleLengths[idleSlot] ?? 1)
-            idlePhase0 = cycle % cyc
+            // keep the phase: the new clip continues from the same position, modulo its own length
+            let len = max(1, engine.forwardLengths[idleSlot] ?? 1)
+            idlePhase0 = cycle % len
             idleStart = now()
             cycle = idlePhase0
         }
@@ -263,7 +264,7 @@ public final class LipsyncSession {
         lock.unlock()
 
         let decode: (Int) throws -> RGBAImage = { [engine] c in try engine.plainFrame(slot: slot, cycle: c) }
-        let cyc = max(1, engine.cycleLengths[slot] ?? 1)
+        let cyc = max(1, engine.forwardLengths[slot] ?? 1)
         var frame: (RGBAImage, CGImage)? = prefetch.take(slot, cycle)
         if frame == nil, let img = try? decode(cycle), let cg = img.cgImage() { frame = (img, cg) }
         if !frozen {
@@ -343,7 +344,7 @@ public final class LipsyncSession {
                 log("audio player: \(error)")
             }
         }
-        let compiled = FramePlan.compile(total: total, fps: fps, cycles: engine.cycleLengths, available: engine.availableSlots,
+        let compiled = FramePlan.compile(total: total, fps: fps, lengths: engine.forwardLengths, available: engine.availableSlots,
                                          idlePhase: phase, cues: cues, settings: config.poses)
         lock.lock(); plan = compiled; lock.unlock()
         log("poses: \(compiled.description) (idle phase \(phase), \(total) frames)")
@@ -422,20 +423,19 @@ public final class LipsyncSession {
         player?.stop()
         let r = buildResult(seconds: seconds)
         lastResult = r
-        // the idle track resumes one frame past the last live phase, on the idle cache, under a short crossfade
-        // (the worker cuts to idle frame 0 here)
+        // the idle track continues on the phase it would have reached had it kept running (never frame 0), under
+        // the bank's return bridge from the last displayed composite
         lock.lock()
         if idleStart != nil {
             let neutral = FramePlan.resolve(.idle, available: engine.availableSlots)
             idleSlot = neutral
             pendingIdleSlot = nil
-            let cyc = max(1, engine.cycleLengths[neutral] ?? 1)
-            idlePhase0 = ((plan?.lastCycle ?? 0) + 1) % cyc
+            idlePhase0 = plan?.idleResumePhase ?? 0
             idleStart = now()
             idleFrozenPhase = nil
             idleShownCycle = -1
             idleAnchor = pipeline?.lastEmitted
-            idleSeamK = 0; idleSeamN = idleAnchor == nil ? 0 : config.poses.seamCrossfade
+            idleSeamK = 0; idleSeamN = idleAnchor == nil ? 0 : config.poses.bridgeFrames(fps: fps)
             lastBoundaryCycle = -1
         }
         reactionShown = false

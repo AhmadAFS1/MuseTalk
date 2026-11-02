@@ -66,22 +66,33 @@ public func crossfade(anchor: RGBAImage, incoming: RGBAImage, alpha: Double) -> 
     return out
 }
 
-/// A turn's pose plan compiled onto frames, the way `webrtc_pose_router.py` compiles a v2 plan once the audio is
-/// decoded: `desired = round(T × at ÷ 1000)`; a cue within `driftSeconds` of the end is skipped; a cue within
-/// `driftSeconds` of the current clip's next loop end snaps to that boundary (the clip keeps its phase, a short
-/// crossfade); otherwise the switch is on the exact frame with a longer crossfade and the incoming clip restarts
-/// at frame 0. The first segment starts at the idle track's phase (the worker's idle sync hold).
+/// A turn's body-motion plan compiled onto frames: the motion-bank policy of the worker's three-cache characters
+/// (`docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md` "Runtime algorithm", `three_pose_transition_analysis`), with
+/// the bank's optical-flow bridge replaced by the scheduler's cosine crossfade over the same 0.3 s.
+///
+/// - A reply shorter than `shortReplySeconds`: every body frame is the idle clip, continuing its phase under the
+///   lipsync.
+/// - A longer reply: 0.3 s of idle, then a bridge into the talking clip at its frame 0; a smile cue (`light_smile`)
+///   enters through the same bridge once the cooldown since the last switch has passed and never inside the
+///   terminal window; the final return into idle starts 0.5 s before the end (a 0.3 s bridge plus ~0.2 s of idle
+///   lipsync), landing on the phase the idle clip would have reached had it kept running.
+/// - Clips play their original forward range and wrap (the bank never uses the reversed half); the idle phase is
+///   never reset to zero.
 public struct FramePlan {
     public struct Settings {
-        /// WEBRTC_POSE_MAX_SEMANTIC_DRIFT_SECONDS
-        public var driftSeconds = 0.75
-        /// WEBRTC_POSE_CROSSFADE_FRAMES as the launcher sets it (a snapped switch, and idle-track switches)
-        public var boundaryCrossfade = 2
-        /// WEBRTC_POSE_FORCED_CROSSFADE_FRAMES (a switch on the exact frame)
-        public var forcedCrossfade = 4
-        /// idle → live and live → idle (the worker cuts here; the phone blends)
-        public var seamCrossfade = 2
+        /// `short_reply_seconds`: below it the whole reply stays on the idle body (the docs' pilot used 3; set to 10).
+        public var shortReplySeconds = 10.0
+        /// `bridge_seconds`: the blend between two bodies, and the lead of idle before the talking entry.
+        public var bridgeSeconds = 0.3
+        /// Idle lipsync after the terminal bridge, before the audio ends.
+        public var terminalIdleSeconds = 0.2
+        /// Minimum time after a switch before the next (plus the bridge).
+        public var cooldownSeconds = 0.25
+        /// Whether a reaction event may switch the idle track between turns (the six-pose path's behaviour; off under the bank policy).
+        public var idleReactions = false
         public init() {}
+
+        public func bridgeFrames(fps: Int) -> Int { max(2, Int((bridgeSeconds * Double(fps)).rounded(.up))) }
     }
 
     public struct Segment: Equatable {
@@ -104,9 +115,13 @@ public struct FramePlan {
     public let total: Int
     public let fps: Int
     public let segments: [Segment]
-    public let cycles: [PoseSlot: Int]
+    /// Forward clip lengths per slot (the unique frames; clips wrap, never reverse).
+    public let lengths: [PoseSlot: Int]
+    /// The idle clip's phase at frame 0 of the turn.
+    public let idlePhase: Int
 
     public var switches: Int { max(0, segments.count - 1) }
+    public var shortReply: Bool { segments.count == 1 }
 
     /// `available` are the slots the engine really has; a missing slot falls back (smiling/idle → idle → talking).
     public static func resolve(_ slot: PoseSlot, available: Set<PoseSlot>) -> PoseSlot {
@@ -115,48 +130,56 @@ public struct FramePlan {
         return .talking
     }
 
-    public static func compile(total: Int, fps: Int, cycles: [PoseSlot: Int], available: Set<PoseSlot>, idlePhase: Int,
+    /// `lengths` are the forward clip lengths (unique frames) per slot; `idlePhase` the idle track's position at the
+    /// turn's first frame; `cues` the v2 plan's segments (its first cue names the initial speaking pose, which the
+    /// bank policy replaces with its own idle lead-in and talking entry).
+    public static func compile(total: Int, fps: Int, lengths: [PoseSlot: Int], available: Set<PoseSlot>, idlePhase: Int,
                                cues: [PoseCue], settings s: Settings = Settings()) -> FramePlan {
-        let drift = max(0, Int((Double(fps) * s.driftSeconds).rounded()))
-        var segments: [Segment] = []
-        let firstPose = cues.first?.poseId ?? "speaking_direct"
-        let firstSlot = resolve(poseSlot(forPoseId: firstPose), available: available)
-        let firstCycle = max(1, cycles[firstSlot] ?? 1)
-        segments.append(Segment(start: 0, slot: firstSlot, poseId: firstPose, sourceOffset: ((idlePhase % firstCycle) + firstCycle) % firstCycle,
-                                crossfadeFrames: s.seamCrossfade))
-        for cue in cues.dropFirst() {
-            guard let prev = segments.last else { break }
+        let idle = resolve(.idle, available: available)
+        let talking = resolve(.talking, available: available)
+        let idleLen = max(1, lengths[idle] ?? 1)
+        let phase0 = ((idlePhase % idleLen) + idleLen) % idleLen
+        var segments = [Segment(start: 0, slot: idle, poseId: "neutral_resting", sourceOffset: phase0, crossfadeFrames: 0)]
+        let plan = { FramePlan(total: total, fps: fps, segments: segments, lengths: lengths, idlePhase: phase0) }
+        // a short reply: the idle body all the way, continuing its phase
+        if Double(total) / Double(fps) < s.shortReplySeconds || talking == idle { return plan() }
+        let bridge = s.bridgeFrames(fps: fps)
+        let terminalStart = total - bridge - Int((s.terminalIdleSeconds * Double(fps)).rounded(.up))
+        let cooldown = bridge + Int((s.cooldownSeconds * Double(fps)).rounded(.up))
+        // the entry: 0.3 s of idle, then the bridge into the talking clip at its frame 0
+        guard bridge + bridge < terminalStart else { return plan() }
+        segments.append(Segment(start: bridge, slot: talking, poseId: "speaking_direct", sourceOffset: 0, crossfadeFrames: bridge))
+        var lastSwitch = bridge
+        // semantic cues (a smile, or a pose the bank plays on the idle body): after the cooldown, never into the terminal window
+        for cue in cues where cue.atPermille > 0 {
             let slot = resolve(poseSlot(forPoseId: cue.poseId), available: available)
-            if slot == prev.slot { continue }  // no adjacent duplicates once mapped onto the caches
-            let desired = Int((Double(total) * Double(cue.atPermille) / 1000).rounded())
-            if desired >= total - drift || desired <= prev.start { continue }
-            let cyc = max(1, cycles[prev.slot] ?? 1)
-            let rel = prev.sourceOffset + (desired - prev.start)   // cycle position of the current clip at `desired`
-            let down = desired - (rel % cyc)                          // its loop end at or before `desired`
-            var best: Int? = nil
-            for b in [down, down + cyc] where b > prev.start && b < total - drift && abs(b - desired) <= drift {
-                if best == nil || abs(b - desired) < abs(best! - desired) { best = b }
-            }
-            if let b = best {
-                segments.append(Segment(start: b, slot: slot, poseId: cue.poseId, sourceOffset: 0, crossfadeFrames: s.boundaryCrossfade))
-            } else {
-                segments.append(Segment(start: desired, slot: slot, poseId: cue.poseId, sourceOffset: 0, crossfadeFrames: s.forcedCrossfade))
-            }
+            guard let current = segments.last, slot != current.slot else { continue }
+            var at = Int((Double(total) * Double(cue.atPermille) / 1000).rounded())
+            if at < lastSwitch + cooldown { at = lastSwitch + cooldown }   // deferred, as the bank defers a late smile
+            if at + bridge > terminalStart { continue }                     // refused: it would overlap the return
+            let offset = slot == idle ? (phase0 + at) % idleLen : 0
+            segments.append(Segment(start: at, slot: slot, poseId: cue.poseId, sourceOffset: offset, crossfadeFrames: bridge))
+            lastSwitch = at
         }
-        return FramePlan(total: total, fps: fps, segments: segments, cycles: cycles)
+        // the terminal return into idle, on the phase the idle clip would have reached
+        if let last = segments.last, last.slot != idle, terminalStart > lastSwitch {
+            segments.append(Segment(start: terminalStart, slot: idle, poseId: "neutral_resting",
+                                    sourceOffset: (phase0 + terminalStart) % idleLen, crossfadeFrames: bridge))
+        }
+        return plan()
     }
 
     public func entry(_ i: Int) -> Entry {
         var seg = segments[0]
         for s in segments where s.start <= i { seg = s }
-        let cyc = max(1, cycles[seg.slot] ?? 1)
+        let len = max(1, lengths[seg.slot] ?? 1)
         let k = i - seg.start
-        return Entry(slot: seg.slot, cycle: (seg.sourceOffset + k) % cyc, segmentStart: seg.start,
+        return Entry(slot: seg.slot, cycle: (seg.sourceOffset + k) % len, segmentStart: seg.start,
                      crossfade: k < seg.crossfadeFrames ? (k, seg.crossfadeFrames) : nil)
     }
 
-    /// The clip phase the last live frame leaves off at (the idle track resumes one past it).
-    public var lastCycle: Int { total > 0 ? entry(total - 1).cycle : 0 }
+    /// Where the idle track continues after the turn: the phase the idle clip would have reached had it kept running.
+    public var idleResumePhase: Int { (idlePhase + total) % max(1, lengths[FramePlan.resolve(.idle, available: Set(lengths.keys))] ?? 1) }
     public var lastSlot: PoseSlot { total > 0 ? entry(total - 1).slot : .talking }
 
     public var description: String {

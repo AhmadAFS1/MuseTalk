@@ -418,6 +418,13 @@ public final class LipsyncEngine {
         return out
     }
 
+    /// Forward clip lengths per slot (the unique frames): the body playback policy plays the original range and wraps.
+    public var forwardLengths: [PoseSlot: Int] {
+        var out: [PoseSlot: Int] = [:]
+        for (slot, b) in avatars { out[slot] = max(1, b.meta.unique_frames) }
+        return out
+    }
+
     /// Load the UNet and TAESD (the compile happens here on a first launch) and prebuild the per-frame latents.
     public func load() throws {
         let t0 = now()
