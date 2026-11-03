@@ -36,8 +36,13 @@ struct BenchMac {
             }
             var u: [Double] = [], d: [Double] = [], c: [Double] = []
             let n = min(frames, engine.frameCount)
+            // the first frames of the sequential loop, to check the pipeline's frames against (several workers share
+            // the models: a frame from another worker's call, or out of order, would show up here)
+            let kept = min(n, 96)
+            var sequential: [[UInt8]] = []
             for i in 0 ..< n {
-                let (_, t) = try engine.renderFrame(i)
+                let (img, t) = try engine.renderFrame(i)
+                if i < kept { sequential.append(img.pixels) }
                 if i >= 3 { u.append(t.unetMs); d.append(t.decodeMs); c.append(t.composeMs) }
             }
             let mean = { (a: [Double]) in a.reduce(0, +) / Double(max(1, a.count)) }
@@ -48,13 +53,30 @@ struct BenchMac {
             pipe.inferWorkers = inferWorkers
             pipe.log = { print($0) }
             let sem = DispatchSemaphore(value: 0)
+            var compared = 0, maxDiff = 0, diffSum = 0, outOfOrder = 0, last = -1
             let t0 = now()
-            pipe.start(from: 0, count: n, emit: { _, img in _ = img.cgImage() }, done: { sem.signal() })
+            pipe.start(from: 0, count: n, emit: { i, img in
+                _ = img.cgImage()
+                if i <= last { outOfOrder += 1 }
+                last = i
+                if i < kept {
+                    let ref = sequential[i]
+                    for k in 0 ..< min(ref.count, img.pixels.count) {
+                        let dd = abs(Int(ref[k]) - Int(img.pixels[k]))
+                        diffSum += dd
+                        if dd > maxDiff { maxDiff = dd }
+                    }
+                    compared += 1
+                }
+            }, done: { sem.signal() })
             sem.wait()
             let s = pipe.snapshot
             print(String(format: "pipelined over %d frames: %.1f ms/frame wall (ANE stage %.1f, CPU stage %.1f + CGImage, in parallel; TAESD %.1f in the %@ stage)",
                          s.composed, (now() - t0) * 1000 / Double(max(1, s.composed)), s.inferMs, s.composeMs, s.decodeMs,
                          deferDecode ? "compose" : "ANE"))
+            let px = Double(max(1, compared * (sequential.first?.count ?? 1)))
+            print(String(format: "pipelined frames vs sequential (%d workers, first %d frames): max |diff| %d, mean %.4f/255, out of order %d",
+                         inferWorkers, compared, maxDiff, Double(diffSum) / px, outOfOrder))
         } catch {
             FileHandle.standardError.write("lipsync-check: \(error)\n".data(using: .utf8)!)
             exit(1)

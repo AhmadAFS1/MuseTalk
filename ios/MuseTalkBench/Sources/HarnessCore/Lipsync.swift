@@ -692,7 +692,8 @@ public final class LipsyncPipeline {
     private let lock = NSLock()
     private var queue: [(Int, Pending)] = []
     private var stats = Stats()
-    private var recentMs = 0.0           // moving average of one frame's time through both stages
+    private var recentMs = 0.0           // moving average of one frame's time through both stages (its latency, not
+                                         // the throughput: with several workers a frame still takes a whole call)
     private var stopped = false
     private var inferDone = false
     private var nextIndex = 0
@@ -772,7 +773,7 @@ public final class LipsyncPipeline {
                                 stats.generated += 1
                                 stats.inferMsSum += r.unetMs
                             }
-                            observe(frameMs: r.unetMs / Double(workers) + lock.sync { stats.composeMs })
+                            observe(frameMs: r.unetMs + lock.sync { stats.composeMs })
                         } else {
                             let r = try engine.inferFace(audioFrame: i, slot: e?.slot ?? .talking, cycle: e?.cycle ?? i)
                             lock.sync {
@@ -781,7 +782,7 @@ public final class LipsyncPipeline {
                                 stats.inferMsSum += r.unetMs + r.decodeMs
                                 stats.decodeMsSum += r.decodeMs
                             }
-                            observe(frameMs: (r.unetMs + r.decodeMs) / Double(workers) + lock.sync { stats.composeMs })
+                            observe(frameMs: r.unetMs + r.decodeMs + lock.sync { stats.composeMs })
                         }
                     } catch {
                         lock.sync { _ = inFlight.remove(i) }
