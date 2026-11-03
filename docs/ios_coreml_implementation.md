@@ -54,7 +54,7 @@ frame by 3.8 %), so this phone stays below the 20 fps line and newer phones are 
 | 20 | 4 GB phones: the memory allowance emulated on the 12 Pro (`--emulate-limit-mb`, `--ballast-mb`, `--mem-trace`) | **measured 2026-11-01**: the chunked cold compile peaks at 54 MB of process footprint (148 MB over the whole run, playback included); under a 2,098 MB cap compile + playback keep ≥ 1.9 GB (≥ 1.6 GB with a 300 MB host app), no kill; a real 4 GB device remains the check for system-wide pressure | §5.5; `memory_emulation_iphone12pro_2026-11-01/` |
 | 21 | The motion-bank body policy on the phone's three caches (`docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md` "Runtime algorithm"): idle body under the lipsync for replies under `short_reply_seconds` (10 here), else 0.3 s of idle → bridge into talking at frame 0 → smile cues after a cooldown → return into idle 0.5 s before the end on the continued idle phase; forward-only clips; the bank's optical-flow bridge is the cosine crossfade over the same 0.3 s | **built 2026-11-02** (`Poses.swift` `FramePlan.compile`, `LipsyncSession` idle track + seams, `LipsyncPipeline` blends; `currentFrame()` returns a `DisplayFrame`). A first version replicated the six-pose cue router instead and was replaced the same day at the user's correction. Simulator-validated through the Lingua bench; phone run pending | Lingua build plan §3.12 "design as built" |
 | 22 | Toward 25 fps on the A14 (§5.6): SPLIT_EINSUM_V2 attention, the constant time embedding folded out of the UNet, TAESD decoded on the GPU in the compose stage, two Neural Engine workers | **measured on the Mac 2026-11-02: full pipeline 21.0 → 15.5 ms/frame (1.34×), gate unchanged (mae 0.01309 vs 0.01311), composed frames unchanged**. **iPhone 12 Pro (hot, thermal "serious"): the UNet changes give only 3–4 %, and TAESD on the A14 GPU is a regression (67 ms per decode)**. **Second matrix: two workers carry over (+20 % on the shipped chunks), folded V2 + two workers = 1.26× (14.8 → 18.6 fps, hot), TAESD stays in the ANE stage; 25 fps not reached**; three workers queued | §5.6; `fps25_mac_2026-11-02/`, `fps25_iphone12pro_2026-11-02/`; branch `claude/ios-25fps` |
-| 23 | A GPU worker next to the Neural Engine workers (§5.7): whole frames, UNet + TAESD, on the GPU, taken far enough ahead that the in-order compose stage never waits for them | **measured on the Mac 2026-11-03: 15.5 → 9.8 ms/frame with one GPU worker on a plain fp16 UNet (1.58×), 8.3 with two (1.87×), 11.4 on the same chunks with no new model files (1.36×)**; every frame bit-identical to one of the two engines' sequential loops; **video review (12 clips): the mixed output is closer to fp32 than the all-Neural-Engine one on every clip, r5 pass 11/12 vs 10/12, mouth flicker +0.7–1.9 % (limit 5 %)**. iPhone 12 Pro not measured (the A14 GPU took 67 ms for TAESD alone, §5.6): `run_phone_gpu_worker.sh` | §5.7; `review_mixed_units/`, `fps30_2026-11-03/` |
+| 23 | A GPU worker next to the Neural Engine workers (§5.7): whole frames, UNet + TAESD, on the GPU, taken far enough ahead that the in-order compose stage never waits for them | **measured on the Mac 2026-11-03: 15.5 → 9.8 ms/frame with one GPU worker on a plain fp16 UNet (1.58×), 8.3 with two (1.87×), 11.4 on the same chunks with no new model files (1.36×)**; every frame bit-identical to one of the two engines' sequential loops; **video review (12 clips): the mixed output is closer to fp32 than the all-Neural-Engine one on every clip, r5 pass 11/12 vs 10/12, mouth flicker +0.7–1.9 % (limit 5 %)**. **iPhone 12 Pro 2026-11-03 (thermal "nominal"): a regression, 18.9 → 15.1 fps (0.80×). A GPU frame takes ~500 ms, and the Neural Engine slows from ~109 to ~164 ms per frame while it runs. Off by default; not for the A14** | §5.7; `review_mixed_units/`, `fps30_2026-11-03/` |
 
 ---
 
@@ -605,7 +605,7 @@ Reproduce:
 # phone, no new model pack (config B): MuseTalkBench --lipsync --exit --unet unet_anec0_int8w_b1_chunked --infer-workers 2
 ```
 
-### 5.7 A GPU worker next to the Neural Engine workers (2026-11-03, Mac M5 Pro)
+### 5.7 A GPU worker next to the Neural Engine workers (2026-11-03, Mac M5 Pro and iPhone 12 Pro)
 
 Goal: another 30 % over §5.6's best, 15.5 ms/frame on the Mac (folded V2 chunks, TAESD on the GPU in the compose
 stage, two Neural Engine workers).
@@ -718,15 +718,33 @@ Reading: the GPU worker keeps lipsync quality at least as good as before, and it
 GPU share is the high end: the pipeline gives the GPU 32–51 % of the frames, so a real turn's gain over D lies
 between D and M, and its mouth flicker cost at or below M's, since M switches engines on every frame.
 
-**The iPhone 12 Pro: not measured yet.** The A14's GPU is weak for this work. It took 67 ms for TAESD alone (§5.6),
-so a UNet there is likely several hundred ms, and a GPU worker would add a few frames per second at most. It also
-heats a phone that is already at thermal "serious" in these runs. On the phone a GPU worker would run the same
-chunks, since the plain fp16 UNet is 1.6 GB more to download and hold. The chunks need int8 dequantization on the GPU,
-whose first prediction took 17 s on the Mac and peaked at 1.9 GB of process footprint. That is a real risk against
-the 12 Pro's ~3 GB allowance, and it rules out 4 GB phones. Newer phones are where this lever should pay, since their GPUs
-are much stronger than the A14's (not measured here). `docs/ios_unet_bench/fps30_2026-11-03/run_phone_gpu_worker.sh` runs D (two Neural
-Engine workers, folded V2) against D + one GPU worker on the same chunks, D H H D, with the SoulX watchdog. The app
-in `App/DerivedData` is built with the flags.
+**The iPhone 12 Pro (measured 2026-11-03, 16:39–16:48): the GPU worker is a regression on the A14, 0.80×.** The
+phone started at thermal "nominal" (brightness low, other apps closed), the coolest start of any run here. On the phone
+the GPU worker runs the same folded chunks, since the plain fp16 UNet is 1.6 GB more to download and hold.
+`docs/ios_unet_bench/fps30_2026-11-03/run_phone_gpu_worker.sh` ran D (two Neural Engine workers, folded V2, §5.6's
+best) against H (D + one GPU worker) on the Lipsync tab's 17.8 s clip, in the order D H H D, with the SoulX watchdog. The
+compile step first checks that the UNet runs on the Neural Engine (53.4 ms/frame here; a phone that lost the Neural
+Engine runs ~1 s/frame) and stops otherwise. Results are in `phone_gpu_summary.txt` and `phone_gpu_results.jsonl`.
+
+| Run | Generated of 426 | fps | Neural Engine stage, ms per frame per worker | GPU frames | GPU ms per frame |
+|---|---|---|---|---|---|
+| 1 D | 339 | 19.13 | 107.3 | — | — |
+| 2 H | 270 | 15.24 | 166.4 | 36 | 508 (warm-up 38.6 s) |
+| 3 H | 267 | 15.02 | 161.3 | 36 | 494 (warm-up 35.2 s) |
+| 4 D | 329 | 18.57 | 110.6 | — | — |
+
+D averages 18.85 fps and H 15.13. No run stalled or dropped a late frame, so H is slower, not broken. There are two
+causes. First, a GPU frame takes about 500 ms: the int8 chunks are dequantized on the A14's GPU, which also took 67 ms
+for TAESD alone (§5.6). So the GPU adds only 36 frames over the clip. Second, while the GPU runs, each Neural Engine
+frame slows from 107–111 ms to 161–166 ms. That costs about 100 frames, nearly three times what the GPU adds. The likely
+reason is that the GPU and the Neural Engine share the chip's memory bandwidth and power budget; it was not measured
+apart. D at "nominal" gave 19.1 fps, the best on this phone so far (18.6 at "serious" on 11-02), and D's 3 % drop from
+run 1 to run 4 is the phone warming.
+
+So the GPU worker stays off by default (`gpuWorkers` is 0 unless asked for), and Lingua does not get it for the A14.
+A plain fp16 UNet on the GPU would be faster than the chunks (19.6 against 32.3 ms on the Mac), but it costs 1.6 GB
+more and would still have to make up the Neural Engine slowdown. Newer phones' GPUs are much stronger than the A14's
+and remain unmeasured.
 
 ## 6. The harness app (`ios/MuseTalkBench/`)
 
@@ -942,4 +960,5 @@ cd ios/MuseTalkBench && swift build -c release
 | `704d6c5`, next | 2026-11-02 | Branch `claude/ios-25fps` (from main `a5e75f9`): TAESD decodable in the compose stage on the GPU, UNet picked by name, `fastPrediction` option, `inferWorkers`; the chunk exporter's `--fold-time-embedding`, `--v2-chunk-size`, `--prefix`; `check_deep_reuse.py`; Mac results in §5.6 (1.34× on the full pipeline) |
 | next | 2026-11-03 | `bench-mac --lipsync-check` compares the pipeline's frames against the sequential loop (two and three workers bit-identical); the catch-up lead uses a frame's full latency, not latency ÷ workers (late drops with two workers on slow hardware); no skips counted past the last frame |
 | next | 2026-11-03 | GPU workers (`LipsyncEngine.gpuUNetName`, `LipsyncPipeline.gpuWorkers`, `warmUpGPU`, per-unit catch-up leads, GPU frames taken ahead); bench-mac and app `--unet`, `--gpu-unet`, `--gpu-workers`, bench-mac `--lipsync-units`; `review_mixed_units.py` and its package; Mac results in §5.7 (1.58–1.87× over §5.6's best) |
+| next | 2026-11-03 | iPhone 12 Pro GPU worker A/B, D H H D at thermal "nominal": 0.80×, so the GPU worker is rejected on the A14 (§5.7); `run_phone_gpu_worker.sh` stops if the UNet is not on the Neural Engine; `phone_gpu_summary.txt`, `phone_gpu_results.jsonl` |
 | `a917fe6`, `452ad2d` | 2026-11-02 | iPhone 12 Pro: first A/B, then the second matrix (two workers +20 %, folded V2 + two workers 1.26×, TAESD off the ANE stage rejected on the A14); app `--taesd-units`; `run_phone_matrix2.sh` / `run_phone_matrix3.sh` and the logs in `fps25_iphone12pro_2026-11-02/` |

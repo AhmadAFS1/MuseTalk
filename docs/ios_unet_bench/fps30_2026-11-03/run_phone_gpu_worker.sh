@@ -52,6 +52,12 @@ echo "== $(date '+%H:%M:%S') phone ready" | tee -a "$SUM"
 BENCH=(--autorun --frames 20 --sustained 0 --chain 0 --no-gpu --no-b4 --no-whisper --no-plan --no-reload --units CPU_AND_NE --exit)
 "$RUN" gpu_compile --install -- "${BENCH[@]}" --models "$CAND" >>"$STEPS" 2>&1
 grep -hE "thermal|ms/frame mean" "$SCRATCH/phone_gpu_compile.log" | head -3 | sed 's/^/[compile] /' >> "$SUM"
+# A phone that lost the Neural Engine (seen after a SoulX interruption until a restart) runs the UNet on the CPU at
+# ~1 s/frame; healthy is 55-66 ms. Stop rather than measure that.
+ms=$(grep -hoE "[0-9.]+ ms/frame mean" "$SCRATCH/phone_gpu_compile.log" | head -1 | cut -d' ' -f1)
+if [[ -z "$ms" ]] || (( ${ms%.*} > 150 )); then
+  echo "== Neural Engine looks unavailable (UNet ${ms:-no result} ms/frame): restart the phone" | tee -a "$SUM"; exit 4
+fi
 sleep 120
 
 typeset -A ARGS
