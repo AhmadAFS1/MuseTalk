@@ -511,7 +511,9 @@ Full pipeline over 400 frames (`bench-mac --lipsync-check`, UNet + TAESD + blend
 | V2 | 18.2, 18.6 | 1.15× |
 | V2 + TAESD on the GPU in the compose stage | 16.5, 17.0 | 1.26× |
 | V2 folded + TAESD on the GPU | 16.6, 16.8, 16.5, 16.2, 16.3 | 1.29× |
-| **V2 folded + TAESD on the GPU + 2 workers** | **15.5, 15.6** | **1.34×** (against the shipped runs of the same session, 21.0 / 20.8) |
+| **V2 folded + TAESD on the GPU + 2 workers** | **15.5, 15.6, 15.6, 15.7** | **1.34–1.35×** (against the shipped runs of the same sessions, 21.0 / 20.8 / 21.0 / 21.3) |
+| Same with 3 workers | 15.3, 15.5 | 1.37×, at three frames in flight (46 ms per frame through the ANE stage): not worth the latency |
+| Shipped chunks + TAESD on the GPU + 2 workers (no new model pack) | 18.6, 18.7 | 1.13× |
 
 The paced session (`bench-mac --lipsync-session`, a 60 s WAV, 1,440 frames at 24 fps) with the full candidate:
 1,440 generated, 1,439 shown, 0 skipped, 0 late, 0 stalls, clock start 0.23 s (shipped: same counts, 0.29 s).
