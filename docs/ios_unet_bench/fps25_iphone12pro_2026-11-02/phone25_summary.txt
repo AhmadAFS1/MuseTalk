@@ -1,0 +1,21 @@
+== 22:39:29 SoulX closed and phone unlocked; cooling 180 s
+== 22:42:29 phone ready
+[1 unet_anec0_int8w_b1_chunked] [bench] device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal serious, runtime iOS
+[1 unet_anec0_int8w_b1_chunked] [bench] unet_anec0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01317 / max 0.01876; max_abs max 1.0264; 128 frames; FAIL
+[1 unet_anec0_int8w_b1_chunked] [bench] unet_anec0_int8w_b1_chunked [CPU_AND_NE]: 71.75 ms/frame mean, p99 73.73, max 75.18 over 200 calls of 1 (mem 49 MB, 3022 MB left)
+[1 unet_anec0_int8w_b1_chunked]     "thermal_state" : "serious"
+[2 unet_anev2fc0_int8w_b1_chunked] [bench] device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal serious, runtime iOS
+[2 unet_anev2fc0_int8w_b1_chunked] [bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01316 / max 0.01875; max_abs max 1.0327; 128 frames; FAIL
+[2 unet_anev2fc0_int8w_b1_chunked] [bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 69.15 ms/frame mean, p99 70.72, max 71.23 over 200 calls of 1 (mem 50 MB, 3021 MB left)
+[2 unet_anev2fc0_int8w_b1_chunked]     "thermal_state" : "serious"
+[3 unet_anec0_int8w_b1_chunked] [bench] device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal serious, runtime iOS
+[3 unet_anec0_int8w_b1_chunked] [bench] unet_anec0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01317 / max 0.01876; max_abs max 1.0264; 128 frames; FAIL
+[3 unet_anec0_int8w_b1_chunked] [bench] unet_anec0_int8w_b1_chunked [CPU_AND_NE]: 69.99 ms/frame mean, p99 70.79, max 70.84 over 200 calls of 1 (mem 51 MB, 3020 MB left)
+[3 unet_anec0_int8w_b1_chunked]     "thermal_state" : "serious"
+[4 unet_anev2fc0_int8w_b1_chunked] [bench] device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal serious, runtime iOS
+[4 unet_anev2fc0_int8w_b1_chunked] [bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01316 / max 0.01875; max_abs max 1.0327; 128 frames; FAIL
+[4 unet_anev2fc0_int8w_b1_chunked] [bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 67.01 ms/frame mean, p99 68.16, max 68.46 over 200 calls of 1 (mem 50 MB, 3021 MB left)
+[4 unet_anev2fc0_int8w_b1_chunked]     "thermal_state" : "serious"
+[lipsync base] LIPSYNC_RESULT {"audio_played":false,"audio_prep_s":3.422307499917224,"audio_route":"","avatar":"latina_guided_20260925_talking_84c5bc80b8","crossfaded":0,"decode_ms":7.9812113430436744,"defer_decode":false,"dropped_late":0,"fps":24,"frames":426,"gen_ms_per_frame":87.987512733911984,"generated":239,"generated_fps":13.48471721332173,"infer_workers":1,"lead_frames":4,"load_s":0.68731437507085502,"pipelined":true,"plan":"neutral_resting@0(talking, offset 0, fade 0)","pose_switches":0,"preroll_frames":10,"preroll_s":0.40000000000000002,"seconds":17.723768041934818,"shown":238,"shown_fps":13.428295802387328,"skipped":187,"stage_compose_ms":11.589993863019734,"stage_infer_ms":76.397518870892256,"stalls":0,"start_latency_s":4.0739538330817595,"system_volume":0,"unet":"unet_anec0_int8w_b1_chunked"}
+[lipsync cand] LIPSYNC_RESULT {"audio_played":false,"audio_prep_s":0.14704054198227823,"audio_route":"","avatar":"latina_guided_20260925_talking_84c5bc80b8","crossfaded":0,"decode_ms":67.393290273885299,"defer_decode":true,"dropped_late":0,"fps":24,"frames":426,"gen_ms_per_frame":256.41645237014734,"generated":209,"generated_fps":11.767166372672044,"infer_workers":2,"lead_frames":6,"load_s":0.6807290829019621,"pipelined":true,"plan":"neutral_resting@0(talking, offset 0, fade 0)","pose_switches":0,"preroll_frames":10,"preroll_s":0.40000000000000002,"seconds":17.761285374988802,"shown":208,"shown_fps":11.710864141223853,"skipped":220,"stage_compose_ms":81.220053857121101,"stage_infer_ms":175.19639851302622,"stalls":0,"start_latency_s":1.7106916659977287,"system_volume":0,"unet":"unet_anev2fc0_int8w_b1_chunked"}
+== 22:52:32 done

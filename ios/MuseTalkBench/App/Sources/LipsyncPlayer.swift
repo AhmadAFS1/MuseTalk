@@ -25,6 +25,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         var silent = false
         var unet: String? = nil          // --unet <spec name>, e.g. unet_anev2c0_int8w_b1_chunked
         var taesdGPU = false             // --taesd-gpu: TAESD on CPU_AND_GPU
+        var taesdUnits: String? = nil    // --taesd-units CPU_ONLY|CPU_AND_GPU|CPU_AND_NE|ALL (overrides --taesd-gpu)
         var deferDecode = false          // --defer-decode: TAESD in the compose stage, the ANE stage runs the UNet alone
         var fastPrediction = false       // --fast-prediction: MLOptimizationHints.specializationStrategy = .fastPrediction
         var inferWorkers = 1             // --infer-workers N: Neural Engine stage threads
@@ -43,6 +44,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                 case "--silent": o.silent = true
                 case "--unet": o.unet = value(); i += 1
                 case "--taesd-gpu": o.taesdGPU = true
+                case "--taesd-units": o.taesdUnits = value(); i += 1
                 case "--defer-decode": o.deferDecode = true
                 case "--fast-prediction": o.fastPrediction = true
                 case "--infer-workers": o.inferWorkers = value().flatMap(Int.init) ?? 1; i += 1
@@ -110,6 +112,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                 let engine = try LipsyncEngine(resources: resources, avatarDir: avatarDir, unetName: opts.unet)
                 engine.log = log
                 if opts.taesdGPU { engine.taesdUnits = .cpuAndGPU }
+                if let u = opts.taesdUnits.flatMap(unitsFromName) { engine.taesdUnits = u }
                 engine.deferDecode = opts.deferDecode
                 try engine.load()
                 let resting = try engine.avatar.frame(0).cgImage()
