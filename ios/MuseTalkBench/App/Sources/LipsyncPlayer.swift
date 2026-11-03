@@ -23,6 +23,10 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         var wav: String? = nil
         var preroll = 0.4
         var silent = false
+        var unet: String? = nil          // --unet <spec name>, e.g. unet_anev2c0_int8w_b1_chunked
+        var taesdGPU = false             // --taesd-gpu: TAESD on CPU_AND_GPU
+        var deferDecode = false          // --defer-decode: TAESD in the compose stage, the ANE stage runs the UNet alone
+        var fastPrediction = false       // --fast-prediction: MLOptimizationHints.specializationStrategy = .fastPrediction
 
         static func parse(_ args: [String]) -> LaunchOptions {
             var o = LaunchOptions()
@@ -36,6 +40,10 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                 case "--wav": o.wav = value(); i += 1
                 case "--preroll": o.preroll = value().flatMap(Double.init) ?? o.preroll; i += 1
                 case "--silent": o.silent = true
+                case "--unet": o.unet = value(); i += 1
+                case "--taesd-gpu": o.taesdGPU = true
+                case "--defer-decode": o.deferDecode = true
+                case "--fast-prediction": o.fastPrediction = true
                 default: break
                 }
                 i += 1
@@ -96,8 +104,11 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                 } else {
                     avatarDir = resources.appendingPathComponent("avatar")
                 }
-                let engine = try LipsyncEngine(resources: resources, avatarDir: avatarDir)
+                ModelTuning.fastPrediction = opts.fastPrediction
+                let engine = try LipsyncEngine(resources: resources, avatarDir: avatarDir, unetName: opts.unet)
                 engine.log = log
+                if opts.taesdGPU { engine.taesdUnits = .cpuAndGPU }
+                engine.deferDecode = opts.deferDecode
                 try engine.load()
                 let resting = try engine.avatar.frame(0).cgImage()
                 await MainActor.run { [weak self] in

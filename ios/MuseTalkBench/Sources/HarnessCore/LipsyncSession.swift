@@ -120,6 +120,7 @@ public final class LipsyncSession {
         public var avatar = "", unet = "", fps = 0, frames = 0, seconds = 0.0
         public var generated = 0, shown = 0, skipped = 0, droppedLate = 0, stalls = 0, leadFrames = 1
         public var stageInferMs = 0.0, stageComposeMs = 0.0
+        public var decodeMs = 0.0, deferDecode = false   // TAESD + RGB alone; whether it ran in the compose stage
         public var prerollSeconds = 0.0, prerollFrames = 0, startLatencySeconds = 0.0  // speak() → clock start
         public var audioPrepSeconds = 0.0, loadSeconds = 0.0
         public var audioPlayed = false, audioRoute = "", systemVolume = 0.0
@@ -133,6 +134,7 @@ public final class LipsyncSession {
              "generated": generated, "generated_fps": generatedFps, "shown": shown, "shown_fps": shownFps,
              "skipped": skipped, "dropped_late": droppedLate, "stalls": stalls, "lead_frames": leadFrames,
              "gen_ms_per_frame": stageInferMs + stageComposeMs, "stage_infer_ms": stageInferMs, "stage_compose_ms": stageComposeMs,
+             "decode_ms": decodeMs, "defer_decode": deferDecode,
              "pipelined": true, "preroll_s": prerollSeconds, "preroll_frames": prerollFrames, "start_latency_s": startLatencySeconds,
              "audio_prep_s": audioPrepSeconds, "load_s": loadSeconds,
              "audio_played": audioPlayed, "audio_route": audioRoute, "system_volume": systemVolume,
@@ -451,6 +453,7 @@ public final class LipsyncSession {
         r.avatar = engine.avatar.meta.avatar_id; r.unet = engine.spec.name; r.fps = fps; r.frames = total; r.seconds = seconds
         r.generated = s.generated; r.shown = shown; r.skipped = s.skipped; r.droppedLate = s.droppedLate; r.stalls = stalls
         r.leadFrames = s.leadFrames; r.stageInferMs = s.inferMs; r.stageComposeMs = s.composeMs
+        r.decodeMs = s.decodeMs; r.deferDecode = engine.deferDecode
         r.prerollSeconds = config.prerollSeconds; r.prerollFrames = preroll
         r.startLatencySeconds = (buffer.audioStart ?? now()) - speakAt
         r.audioPrepSeconds = engine.audioSeconds; r.loadSeconds = engine.loadSeconds

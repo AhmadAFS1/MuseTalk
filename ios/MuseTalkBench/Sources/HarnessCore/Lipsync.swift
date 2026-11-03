@@ -373,6 +373,11 @@ public final class LipsyncEngine {
     public let spec: UNetSpec
     public let units: MLComputeUnits
     public var log: (String) -> Void = { print($0) }
+    /// Compute units for the TAESD decoder; nil = the UNet's (`units`). Set before `load()`.
+    public var taesdUnits: MLComputeUnits? = nil
+    /// Decode in the pipeline's compose stage instead of the Neural Engine stage: the ANE stage then runs only the
+    /// UNet chunks, and TAESD (on `taesdUnits`, e.g. the GPU) + the RGB conversion overlap the next frame's UNet.
+    public var deferDecode = false
 
     private var unet: StagedUNet? = nil
     private var taesd: MLModel? = nil
@@ -384,12 +389,15 @@ public final class LipsyncEngine {
     public private(set) var loadSeconds = 0.0
     public private(set) var audioSeconds = 0.0
 
-    public convenience init(resources: URL, avatarDir: URL, units: MLComputeUnits = .cpuAndNeuralEngine, preferChunked: Bool = true) throws {
-        try self.init(resources: resources, avatarDirs: [.talking: avatarDir], units: units, preferChunked: preferChunked)
+    public convenience init(resources: URL, avatarDir: URL, units: MLComputeUnits = .cpuAndNeuralEngine, preferChunked: Bool = true,
+                            unetName: String? = nil) throws {
+        try self.init(resources: resources, avatarDirs: [.talking: avatarDir], units: units, preferChunked: preferChunked, unetName: unetName)
     }
 
     /// `avatarDirs` must hold `.talking`; `.idle` and `.smiling` are what the character has on this phone.
-    public init(resources: URL, avatarDirs: [PoseSlot: URL], units: MLComputeUnits = .cpuAndNeuralEngine, preferChunked: Bool = true) throws {
+    /// `unetName` picks a UNet spec by name (e.g. "unet_anev2c0_int8w_b1_chunked"); nil = the first batch-1 chunked one.
+    public init(resources: URL, avatarDirs: [PoseSlot: URL], units: MLComputeUnits = .cpuAndNeuralEngine, preferChunked: Bool = true,
+                unetName: String? = nil) throws {
         harness = try Harness(resources: resources)
         var loaded: [PoseSlot: AvatarBundle] = [:]
         for (slot, dir) in avatarDirs { loaded[slot] = try AvatarBundle(dir: dir) }
@@ -398,10 +406,15 @@ public final class LipsyncEngine {
         avatar = talking
         self.units = units
         let specs = harness.unetSpecs().filter { $0.batch == 1 }
-        guard let s = (preferChunked ? specs.first(where: { $0.stages.count > 1 }) : nil) ?? specs.first else {
-            throw HarnessError.noModel("no batch-1 UNet in the bundle")
+        if let name = unetName {
+            guard let s = specs.first(where: { $0.name == name }) else { throw HarnessError.noModel(name) }
+            spec = s
+        } else {
+            guard let s = (preferChunked ? specs.first(where: { $0.stages.count > 1 }) : nil) ?? specs.first else {
+                throw HarnessError.noModel("no batch-1 UNet in the bundle")
+            }
+            spec = s
         }
-        spec = s
     }
 
     public var availableSlots: Set<PoseSlot> { Set(avatars.keys) }
@@ -435,8 +448,12 @@ public final class LipsyncEngine {
         }
         taesdMeta = tm
         let cfg = MLModelConfiguration()
-        cfg.computeUnits = units
+        cfg.computeUnits = taesdUnits ?? units
+        ModelTuning.configure(cfg)
         taesd = try MLModel(contentsOf: harness.resources.appendingPathComponent(tm.file), configuration: cfg)
+        if taesdUnits != nil || deferDecode {
+            log("lipsync: TAESD on \(unitsName(taesdUnits ?? units)), decoded in the \(deferDecode ? "compose" : "Neural Engine") stage")
+        }
         let ins = spec.inputs
         let sIn = ins.first { $0.name == "sample" } ?? ins[0]
         let aIn = ins.first { $0.name == "audio" } ?? ins[ins.count - 1]
@@ -535,9 +552,14 @@ public final class LipsyncEngine {
 
     /// Stage A for audio window `i` on clip position `cycle` of `slot`'s cache (a turn whose pose plan switches caches).
     public func inferFace(audioFrame i: Int, slot: PoseSlot, cycle: Int) throws -> (face: [UInt8], unetMs: Double, decodeMs: Double) {
-        guard let unet = unet, let taesd = taesd, let tm = taesdMeta, let w = windows else {
-            throw HarnessError.noModel("engine not loaded")
-        }
+        let l = try inferLatent(audioFrame: i, slot: slot, cycle: cycle)
+        let d = try decodeFace(l.latent)
+        return (d.face, l.unetMs, d.decodeMs)
+    }
+
+    /// The UNet chunks alone for audio window `i` on clip position `cycle` of `slot`'s cache -> pred_latents.
+    public func inferLatent(audioFrame i: Int, slot: PoseSlot, cycle: Int) throws -> (latent: MLMultiArray, unetMs: Double) {
+        guard let unet = unet, let w = windows else { throw HarnessError.noModel("engine not loaded") }
         let resolved = FramePlan.resolve(slot, available: availableSlots)
         let b = bundle(resolved)
         guard let samples = sampleArrays[resolved], !samples.isEmpty else { throw HarnessError.noModel("no latents for \(resolved.rawValue)") }
@@ -546,13 +568,17 @@ public final class LipsyncEngine {
         let audio = try makeArray(Array(w.window(i)), shape: [1, 50, 384], dtype: audioDType)
         let pred = try output(unet.predict(MLDictionaryFeatureProvider(dictionary: [sampleName: samples[u], audioName: audio])),
                               spec.outputName)
-        let t1 = now()
+        return (pred, (now() - t0) * 1000)
+    }
+
+    /// TAESD + the 8-bit RGB conversion: pred_latents -> the 256x256 face. Thread-safe against `inferLatent`.
+    public func decodeFace(_ pred: MLMultiArray) throws -> (face: [UInt8], decodeMs: Double) {
+        guard let taesd = taesd, let tm = taesdMeta else { throw HarnessError.noModel("engine not loaded") }
+        let t0 = now()
         let latIn = tm.inputs[0]
         let faces = try output(taesd.prediction(from: MLDictionaryFeatureProvider(dictionary: [latIn.name: try convert(pred, to: try mlDataType(latIn.dtype))])),
                                tm.outputs.first?.name ?? "faces")
-        let rgb = faceRGB(faces)
-        let t2 = now()
-        return (rgb, (t1 - t0) * 1000, (t2 - t1) * 1000)
+        return (faceRGB(faces), (now() - t0) * 1000)
     }
 
     /// Stage B (CPU): the talking cache's frame for clip position `i` with the face pasted in (JPEG decode on a cache miss, resize, blend).
@@ -634,11 +660,13 @@ public final class LipsyncPipeline {
         public var skipped = 0          // never inferred: the clock had passed them
         public var droppedLate = 0      // inferred, then too late to compose
         public var crossfaded = 0       // emitted frames blended with the previous pose's anchor
-        public var inferMsSum = 0.0
-        public var composeMsSum = 0.0
+        public var inferMsSum = 0.0     // the Neural Engine stage: UNet (+ TAESD unless the engine defers the decode)
+        public var composeMsSum = 0.0   // the compose stage (+ TAESD when deferred)
+        public var decodeMsSum = 0.0    // TAESD + RGB conversion alone, wherever it ran
         public var leadFrames = 1       // how far ahead of the audio clock the last catch-up aimed
         public var inferMs: Double { generated > 0 ? inferMsSum / Double(generated) : 0 }
         public var composeMs: Double { composed > 0 ? composeMsSum / Double(composed) : 0 }
+        public var decodeMs: Double { generated > 0 ? decodeMsSum / Double(generated) : 0 }
         public init() {}
     }
 
@@ -658,8 +686,11 @@ public final class LipsyncPipeline {
     public var lastEmitted: RGBAImage? { lock.sync { lastEmittedValue } }
     private var lastEmittedValue: RGBAImage? = nil
 
+    /// What the Neural Engine stage hands the compose stage: a decoded face, or (`engine.deferDecode`) the latent.
+    private enum Pending { case face([UInt8]), latent(MLMultiArray) }
+
     private let lock = NSLock()
-    private var queue: [(Int, [UInt8])] = []
+    private var queue: [(Int, Pending)] = []
     private var stats = Stats()
     private var recentMs = 0.0           // moving average of one frame's time through both stages
     private var stopped = false
@@ -705,13 +736,24 @@ public final class LipsyncPipeline {
                 if downstreamCount() + queued >= aheadFrames || queued >= queueDepth { usleep(1000); continue }
                 do {
                     let e = plan?.entry(i)
-                    let r = try engine.inferFace(audioFrame: i, slot: e?.slot ?? .talking, cycle: e?.cycle ?? i)
-                    lock.sync {
-                        queue.append((i, r.face))
-                        stats.generated += 1
-                        stats.inferMsSum += r.unetMs + r.decodeMs
+                    if engine.deferDecode {
+                        let r = try engine.inferLatent(audioFrame: i, slot: e?.slot ?? .talking, cycle: e?.cycle ?? i)
+                        lock.sync {
+                            queue.append((i, .latent(r.latent)))
+                            stats.generated += 1
+                            stats.inferMsSum += r.unetMs
+                        }
+                        observe(frameMs: r.unetMs + lock.sync { stats.composeMs })
+                    } else {
+                        let r = try engine.inferFace(audioFrame: i, slot: e?.slot ?? .talking, cycle: e?.cycle ?? i)
+                        lock.sync {
+                            queue.append((i, .face(r.face)))
+                            stats.generated += 1
+                            stats.inferMsSum += r.unetMs + r.decodeMs
+                            stats.decodeMsSum += r.decodeMs
+                        }
+                        observe(frameMs: r.unetMs + r.decodeMs + lock.sync { stats.composeMs })
                     }
-                    observe(frameMs: r.unetMs + r.decodeMs + lock.sync { stats.composeMs })
                 } catch {
                     log("infer \(i): \(error)")
                 }
@@ -723,10 +765,10 @@ public final class LipsyncPipeline {
             var anchor: RGBAImage? = nil          // the previous pose's last composed frame, frozen at a switch
             var anchorSegment = Int.min
             while true {
-                let (item, finished): ((Int, [UInt8])?, Bool) = lock.sync {
+                let (item, finished): ((Int, Pending)?, Bool) = lock.sync {
                     (queue.isEmpty ? nil : queue.removeFirst(), stopped || (inferDone && queue.isEmpty))
                 }
-                guard let (i, face) = item else {
+                guard let (i, pending) = item else {
                     if finished { break }
                     usleep(500)
                     continue
@@ -737,7 +779,16 @@ public final class LipsyncPipeline {
                 }
                 do {
                     let e = plan?.entry(i)
+                    let face: [UInt8], decodeMs: Double
+                    switch pending {
+                    case .face(let f): face = f; decodeMs = 0
+                    case .latent(let l):
+                        let d = try engine.decodeFace(l)
+                        face = d.face; decodeMs = d.decodeMs
+                        lock.sync { stats.decodeMsSum += d.decodeMs }
+                    }
                     var (img, ms) = try engine.composeFrame(slot: e?.slot ?? .talking, cycle: e?.cycle ?? i, face: face)
+                    ms += decodeMs
                     var blended = false
                     if let e = e, let (k, n) = e.crossfade {
                         // the scheduler's crossfade: the old pose's last frame fades under the incoming frames
@@ -771,6 +822,25 @@ public final class LipsyncPipeline {
     public func cancel() { lock.sync { stopped = true } }
 }
 
+// MARK: - model load options
+
+/// Core ML load options shared by the harness and the lipsync engine (the UNet chunks, TAESD, the Whisper models).
+public enum ModelTuning {
+    /// `MLOptimizationHints.specializationStrategy = .fastPrediction` (iOS 18 / macOS 15): the compiler may spend
+    /// more specialization time, memory and cache space for lower prediction latency. The compile cache is keyed per
+    /// configuration, so switching it costs one recompile. Ignored before iOS 18.
+    public static var fastPrediction = false
+
+    public static func configure(_ cfg: MLModelConfiguration) {
+        guard fastPrediction else { return }
+        if #available(iOS 18.0, macOS 15.0, *) {
+            var hints = cfg.optimizationHints
+            hints.specializationStrategy = .fastPrediction
+            cfg.optimizationHints = hints
+        }
+    }
+}
+
 // MARK: - staged UNet shared with the harness
 
 public struct StagedUNet {
@@ -802,6 +872,7 @@ extension Harness {
         for stage in spec.stages {
             let cfg = MLModelConfiguration()
             cfg.computeUnits = units
+            ModelTuning.configure(cfg)
             models.append(try MLModel(contentsOf: resources.appendingPathComponent(stage.file), configuration: cfg))
         }
         return StagedUNet(spec: spec, models: models)

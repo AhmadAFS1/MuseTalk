@@ -153,6 +153,7 @@ public final class Harness {
     private func loadModel(_ m: ModelMeta, units: MLComputeUnits) throws -> MLModel {
         let cfg = MLModelConfiguration()
         cfg.computeUnits = units
+        ModelTuning.configure(cfg)
         return try MLModel(contentsOf: modelURL(m), configuration: cfg)
     }
 

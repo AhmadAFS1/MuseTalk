@@ -12,17 +12,20 @@ struct BenchMac {
         usage: bench-mac --resources <dir> [--out <file.json>] [--frames N] [--sustained S] [--chain N]
                          [--units ALL,CPU_AND_NE] [--no-gpu] [--no-b4] [--no-whisper] [--no-reload] [--accuracy-frames N]
                          [--models a,b] [--no-unet] [--taesd-units ALL,CPU_AND_GPU,CPU_ONLY]
-                         [--lipsync-check <avatar dir> [--lipsync-frames N]]
+                         [--lipsync-check <avatar dir> [--lipsync-frames N] [--lipsync-taesd-units GPU] [--defer-decode]] [--fast-prediction]
                          [--lipsync-session <avatar dir> --wav <file> [--preroll S]]
         """)
         exit(2)
     }
 
     /// Swift frame loop vs the Python references exported with the avatar, plus per-frame timing on this Mac.
-    static func lipsyncCheck(resources: URL, avatarDir: URL, frames: Int) {
+    static func lipsyncCheck(resources: URL, avatarDir: URL, frames: Int, taesdUnits: MLComputeUnits? = nil, deferDecode: Bool = false) {
         do {
             let engine = try LipsyncEngine(resources: resources, avatarDir: avatarDir)
             engine.log = { print($0) }
+            engine.taesdUnits = taesdUnits
+            engine.deferDecode = deferDecode
+            print("lipsync-check: UNet \(engine.spec.name)")
             try engine.load()
             try engine.prepareAudio()
             let w = try engine.checkWindows()
@@ -47,8 +50,9 @@ struct BenchMac {
             pipe.start(from: 0, count: n, emit: { _, img in _ = img.cgImage() }, done: { sem.signal() })
             sem.wait()
             let s = pipe.snapshot
-            print(String(format: "pipelined over %d frames: %.1f ms/frame wall (ANE stage %.1f, CPU stage %.1f + CGImage, in parallel)",
-                         s.composed, (now() - t0) * 1000 / Double(max(1, s.composed)), s.inferMs, s.composeMs))
+            print(String(format: "pipelined over %d frames: %.1f ms/frame wall (ANE stage %.1f, CPU stage %.1f + CGImage, in parallel; TAESD %.1f in the %@ stage)",
+                         s.composed, (now() - t0) * 1000 / Double(max(1, s.composed)), s.inferMs, s.composeMs, s.decodeMs,
+                         deferDecode ? "compose" : "ANE"))
         } catch {
             FileHandle.standardError.write("lipsync-check: \(error)\n".data(using: .utf8)!)
             exit(1)
@@ -89,6 +93,8 @@ struct BenchMac {
         var options = BenchOptions()
         var lipsyncAvatar: URL? = nil
         var lipsyncFrames = 48
+        var lipsyncTaesdUnits: MLComputeUnits? = nil
+        var deferDecode = false
         var sessionAvatar: URL? = nil
         var sessionWav: URL? = nil
         var sessionPreroll = 0.4
@@ -114,6 +120,9 @@ struct BenchMac {
             case "--phase-units": options.phaseUnits = unitsFromName(take()) ?? .all
             case "--lipsync-check": lipsyncAvatar = URL(fileURLWithPath: take())
             case "--lipsync-frames": lipsyncFrames = Int(take()) ?? lipsyncFrames
+            case "--lipsync-taesd-units": lipsyncTaesdUnits = unitsFromName(take())
+            case "--defer-decode": deferDecode = true
+            case "--fast-prediction": ModelTuning.fastPrediction = true
             case "--unpack-tar":  // HarnessCore's tar reader on a pack_phone_bundle.py / pack_model_pack.py tar
                 let tar = URL(fileURLWithPath: take()), dir = URL(fileURLWithPath: take())
                 do { try TarArchive.extract(tar, to: dir); print("unpacked \(tar.lastPathComponent) into \(dir.path)") }
@@ -133,7 +142,8 @@ struct BenchMac {
             return
         }
         if let avatarDir = lipsyncAvatar {
-            lipsyncCheck(resources: resources, avatarDir: avatarDir, frames: lipsyncFrames)
+            lipsyncCheck(resources: resources, avatarDir: avatarDir, frames: lipsyncFrames,
+                         taesdUnits: lipsyncTaesdUnits, deferDecode: deferDecode)
             return
         }
         do {
