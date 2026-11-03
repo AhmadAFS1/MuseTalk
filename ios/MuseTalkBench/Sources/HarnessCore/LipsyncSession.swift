@@ -108,6 +108,8 @@ public final class LipsyncSession {
         public var aheadSeconds = 1.0
         /// Play `playbackURL` through AVAudioPlayer. Off, the clock is a free-running timer (Mac checks).
         public var playAudio = true
+        /// Neural Engine stage threads (`LipsyncPipeline.inferWorkers`); 2 keeps the engine fed between chunk calls.
+        public var inferWorkers = 1
         /// The router's drift limit and crossfade lengths (Poses.swift).
         public var poses = FramePlan.Settings()
         public init() {}
@@ -121,6 +123,7 @@ public final class LipsyncSession {
         public var generated = 0, shown = 0, skipped = 0, droppedLate = 0, stalls = 0, leadFrames = 1
         public var stageInferMs = 0.0, stageComposeMs = 0.0
         public var decodeMs = 0.0, deferDecode = false   // TAESD + RGB alone; whether it ran in the compose stage
+        public var inferWorkers = 1
         public var prerollSeconds = 0.0, prerollFrames = 0, startLatencySeconds = 0.0  // speak() → clock start
         public var audioPrepSeconds = 0.0, loadSeconds = 0.0
         public var audioPlayed = false, audioRoute = "", systemVolume = 0.0
@@ -134,7 +137,7 @@ public final class LipsyncSession {
              "generated": generated, "generated_fps": generatedFps, "shown": shown, "shown_fps": shownFps,
              "skipped": skipped, "dropped_late": droppedLate, "stalls": stalls, "lead_frames": leadFrames,
              "gen_ms_per_frame": stageInferMs + stageComposeMs, "stage_infer_ms": stageInferMs, "stage_compose_ms": stageComposeMs,
-             "decode_ms": decodeMs, "defer_decode": deferDecode,
+             "decode_ms": decodeMs, "defer_decode": deferDecode, "infer_workers": inferWorkers,
              "pipelined": true, "preroll_s": prerollSeconds, "preroll_frames": prerollFrames, "start_latency_s": startLatencySeconds,
              "audio_prep_s": audioPrepSeconds, "load_s": loadSeconds,
              "audio_played": audioPlayed, "audio_route": audioRoute, "system_volume": systemVolume,
@@ -352,6 +355,7 @@ public final class LipsyncSession {
         log("poses: \(compiled.description) (idle phase \(phase), \(total) frames)")
         let pipe = LipsyncPipeline(engine: engine, aheadFrames: max(preroll, Int(config.aheadSeconds * Double(fps))))
         pipe.frameMs = 1000.0 / Double(fps)
+        pipe.inferWorkers = config.inferWorkers
         pipe.log = log
         pipe.plan = compiled
         pipe.seamAnchor = anchor
@@ -453,7 +457,7 @@ public final class LipsyncSession {
         r.avatar = engine.avatar.meta.avatar_id; r.unet = engine.spec.name; r.fps = fps; r.frames = total; r.seconds = seconds
         r.generated = s.generated; r.shown = shown; r.skipped = s.skipped; r.droppedLate = s.droppedLate; r.stalls = stalls
         r.leadFrames = s.leadFrames; r.stageInferMs = s.inferMs; r.stageComposeMs = s.composeMs
-        r.decodeMs = s.decodeMs; r.deferDecode = engine.deferDecode
+        r.decodeMs = s.decodeMs; r.deferDecode = engine.deferDecode; r.inferWorkers = config.inferWorkers
         r.prerollSeconds = config.prerollSeconds; r.prerollFrames = preroll
         r.startLatencySeconds = (buffer.audioStart ?? now()) - speakAt
         r.audioPrepSeconds = engine.audioSeconds; r.loadSeconds = engine.loadSeconds

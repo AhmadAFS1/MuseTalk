@@ -27,6 +27,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         var taesdGPU = false             // --taesd-gpu: TAESD on CPU_AND_GPU
         var deferDecode = false          // --defer-decode: TAESD in the compose stage, the ANE stage runs the UNet alone
         var fastPrediction = false       // --fast-prediction: MLOptimizationHints.specializationStrategy = .fastPrediction
+        var inferWorkers = 1             // --infer-workers N: Neural Engine stage threads
 
         static func parse(_ args: [String]) -> LaunchOptions {
             var o = LaunchOptions()
@@ -44,6 +45,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                 case "--taesd-gpu": o.taesdGPU = true
                 case "--defer-decode": o.deferDecode = true
                 case "--fast-prediction": o.fastPrediction = true
+                case "--infer-workers": o.inferWorkers = value().flatMap(Int.init) ?? 1; i += 1
                 default: break
                 }
                 i += 1
@@ -134,6 +136,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                 let session = LipsyncSession(engine: engine)
                 session.config.prerollSeconds = opts.preroll
                 session.config.playAudio = !opts.silent
+                session.config.inferWorkers = opts.inferWorkers
                 session.log = log
                 session.onStateChange = { [weak self] s in Task { @MainActor [weak self] in self?.apply(s) } }
                 session.onFinished = { [weak self] r in Task { @MainActor [weak self] in self?.finish(r) } }

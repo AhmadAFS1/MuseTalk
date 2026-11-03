@@ -12,14 +12,15 @@ struct BenchMac {
         usage: bench-mac --resources <dir> [--out <file.json>] [--frames N] [--sustained S] [--chain N]
                          [--units ALL,CPU_AND_NE] [--no-gpu] [--no-b4] [--no-whisper] [--no-reload] [--accuracy-frames N]
                          [--models a,b] [--no-unet] [--taesd-units ALL,CPU_AND_GPU,CPU_ONLY]
-                         [--lipsync-check <avatar dir> [--lipsync-frames N] [--lipsync-taesd-units GPU] [--defer-decode]] [--fast-prediction]
+                         [--lipsync-check <avatar dir> [--lipsync-frames N] [--lipsync-taesd-units GPU] [--defer-decode] [--infer-workers N]] [--fast-prediction]
                          [--lipsync-session <avatar dir> --wav <file> [--preroll S]]
         """)
         exit(2)
     }
 
     /// Swift frame loop vs the Python references exported with the avatar, plus per-frame timing on this Mac.
-    static func lipsyncCheck(resources: URL, avatarDir: URL, frames: Int, taesdUnits: MLComputeUnits? = nil, deferDecode: Bool = false) {
+    static func lipsyncCheck(resources: URL, avatarDir: URL, frames: Int, taesdUnits: MLComputeUnits? = nil, deferDecode: Bool = false,
+                             inferWorkers: Int = 1) {
         do {
             let engine = try LipsyncEngine(resources: resources, avatarDir: avatarDir)
             engine.log = { print($0) }
@@ -44,6 +45,7 @@ struct BenchMac {
                          n, mean(u), mean(d), mean(c), mean(u) + mean(d) + mean(c)))
             // the two-stage pipeline, free-running (no clock); wall time per frame should approach the Neural Engine stage alone
             let pipe = LipsyncPipeline(engine: engine, aheadFrames: Int.max)
+            pipe.inferWorkers = inferWorkers
             pipe.log = { print($0) }
             let sem = DispatchSemaphore(value: 0)
             let t0 = now()
@@ -61,16 +63,20 @@ struct BenchMac {
 
     /// A whole spoken turn through `LipsyncSession` on this Mac: a WAV (any rate) → 16 kHz → windows → paced
     /// pipeline → frames polled at 60 Hz, silent (no audio device needed). Prints the same LIPSYNC_RESULT as the phone.
-    static func lipsyncSession(resources: URL, avatarDir: URL, wav: URL, preroll: Double) {
+    static func lipsyncSession(resources: URL, avatarDir: URL, wav: URL, preroll: Double, taesdUnits: MLComputeUnits? = nil,
+                               deferDecode: Bool = false, sessionWorkers: Int = 1) {
         do {
             let engine = try LipsyncEngine(resources: resources, avatarDir: avatarDir)
             engine.log = { print($0) }
+            engine.taesdUnits = taesdUnits
+            engine.deferDecode = deferDecode
             try engine.load()
             let waveform = try loadWaveform16k(url: wav)
             print(String(format: "wav %@: %.2f s at 16 kHz (%d samples)", wav.lastPathComponent, Double(waveform.count) / 16000, waveform.count))
             let session = LipsyncSession(engine: engine)
             session.config.prerollSeconds = preroll
             session.config.playAudio = false
+            session.config.inferWorkers = sessionWorkers
             session.log = { print($0) }
             try session.speak(waveform: waveform, playbackURL: nil)
             var frames = 0
@@ -95,6 +101,7 @@ struct BenchMac {
         var lipsyncFrames = 48
         var lipsyncTaesdUnits: MLComputeUnits? = nil
         var deferDecode = false
+        var inferWorkers = 1
         var sessionAvatar: URL? = nil
         var sessionWav: URL? = nil
         var sessionPreroll = 0.4
@@ -122,6 +129,7 @@ struct BenchMac {
             case "--lipsync-frames": lipsyncFrames = Int(take()) ?? lipsyncFrames
             case "--lipsync-taesd-units": lipsyncTaesdUnits = unitsFromName(take())
             case "--defer-decode": deferDecode = true
+            case "--infer-workers": inferWorkers = Int(take()) ?? 1
             case "--fast-prediction": ModelTuning.fastPrediction = true
             case "--unpack-tar":  // HarnessCore's tar reader on a pack_phone_bundle.py / pack_model_pack.py tar
                 let tar = URL(fileURLWithPath: take()), dir = URL(fileURLWithPath: take())
@@ -138,12 +146,13 @@ struct BenchMac {
         guard let resources = resources else { usage() }
         if let avatarDir = sessionAvatar {
             guard let wav = sessionWav else { usage() }
-            lipsyncSession(resources: resources, avatarDir: avatarDir, wav: wav, preroll: sessionPreroll)
+            lipsyncSession(resources: resources, avatarDir: avatarDir, wav: wav, preroll: sessionPreroll,
+                           taesdUnits: lipsyncTaesdUnits, deferDecode: deferDecode, sessionWorkers: inferWorkers)
             return
         }
         if let avatarDir = lipsyncAvatar {
             lipsyncCheck(resources: resources, avatarDir: avatarDir, frames: lipsyncFrames,
-                         taesdUnits: lipsyncTaesdUnits, deferDecode: deferDecode)
+                         taesdUnits: lipsyncTaesdUnits, deferDecode: deferDecode, inferWorkers: inferWorkers)
             return
         }
         do {

@@ -53,6 +53,7 @@ frame by 3.8 %), so this phone stays below the 20 fps line and newer phones are 
 | 19 | Integration into the Lingua app (native module) | **Phase 0 done 2026-10-31**: `LipsyncSession` (the player core the module wraps) in HarnessCore, pre-roll parameter, model pack on S3 with a manifest; the Lingua backend half runs in its own session; plan in the Lingua repo | §6; Lingua `docs/musetalk-on-device-renderer-plan.md` |
 | 20 | 4 GB phones: the memory allowance emulated on the 12 Pro (`--emulate-limit-mb`, `--ballast-mb`, `--mem-trace`) | **measured 2026-11-01**: the chunked cold compile peaks at 54 MB of process footprint (148 MB over the whole run, playback included); under a 2,098 MB cap compile + playback keep ≥ 1.9 GB (≥ 1.6 GB with a 300 MB host app), no kill; a real 4 GB device remains the check for system-wide pressure | §5.5; `memory_emulation_iphone12pro_2026-11-01/` |
 | 21 | The motion-bank body policy on the phone's three caches (`docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md` "Runtime algorithm"): idle body under the lipsync for replies under `short_reply_seconds` (10 here), else 0.3 s of idle → bridge into talking at frame 0 → smile cues after a cooldown → return into idle 0.5 s before the end on the continued idle phase; forward-only clips; the bank's optical-flow bridge is the cosine crossfade over the same 0.3 s | **built 2026-11-02** (`Poses.swift` `FramePlan.compile`, `LipsyncSession` idle track + seams, `LipsyncPipeline` blends; `currentFrame()` returns a `DisplayFrame`). A first version replicated the six-pose cue router instead and was replaced the same day at the user's correction. Simulator-validated through the Lingua bench; phone run pending | Lingua build plan §3.12 "design as built" |
+| 22 | Toward 25 fps on the A14 (§5.6): SPLIT_EINSUM_V2 attention, the constant time embedding folded out of the UNet, TAESD decoded on the GPU in the compose stage, two Neural Engine workers | **measured on the Mac 2026-11-02: full pipeline 21.0 → 15.5 ms/frame (1.34×), gate unchanged (mae 0.01309 vs 0.01311), composed frames unchanged**; phone run pending (the phone was not connected) | §5.6; `fps25_mac_2026-11-02/`; branch `claude/ios-25fps` |
 
 ---
 
@@ -294,6 +295,9 @@ baked in: [B, 4, 32, 32] → [B, 3, 256, 256] in [0, 1], 2.4 MB, 1.5 ms on the M
 | batch 4 on the ANE | compiles with the Apple layout; slower per frame on the Mac (compute-bound); on the A14 54.2 vs 56.4 ms/frame (−3.8 %), so compute-bound there too, at four frames of latency | §11.3, §12.5 |
 | `MLComputeUnits.all` on the phone | 130 ms transient after a compile; moves TAESD to the CPU | §12.3 |
 | `bisect_model` chunks | fp32 boundaries → CPU/GPU on the A14 | §12.3 |
+| Deep-feature reuse across adjacent frames (DeepCache-style: on alternate frames run only the 32×32 level, or the 32×32 and 16×16 levels, on the previous frame's deeper features) | latent mae 0.045 / 0.027 and max_abs 4.1 / 4.3 against the server reference (the full UNet: 0.0004 in fp32, 0.0131 on the ANE): the avatar's head moves between frames, so the cached features are misaligned. Fails the self-test limits (0.02 / 1.2) | §5.6; `scripts/ios/check_deep_reuse.py` |
+| SPLIT_EINSUM_V2 query chunk 128 or 256 instead of 512 | 16.69 / 16.4 vs 16.66 ms on the Mac: within noise | §5.6 |
+| `MLOptimizationHints.specializationStrategy = .fastPrediction` | 16.67 / 16.49 vs 16.63 / 16.56 ms on the Mac: no effect there; kept as an option (`ModelTuning.fastPrediction`) for the phone | §5.6 |
 
 ---
 
@@ -483,6 +487,55 @@ before each cold run empties the Core ML compile cache. Logs, `summary.json` and
   through the Lingua app's cold compile and a call.
 
 ---
+
+### 5.6 Toward 25 fps: four levers that stack (2026-11-02, Mac M5 Pro; phone pending)
+
+Goal: a 30 % faster frame than the 2026-11-01 baseline, on the way to 25 fps on the A14 (40 ms per frame). All
+numbers below are the M5 Pro's Neural Engine, measured with baseline and candidate alternating in one session
+(another user's Core ML test was running on the same Mac part of the time). The phone was not connected, so the
+A14 effect of each lever is still to measure; `run_phone_25fps.sh` in the session scratchpad does it on one
+install (UNet A/B, then the Lipsync tab A/B).
+
+| Lever | What it is | Mac effect |
+|---|---|---|
+| **SPLIT_EINSUM_V2** attention | ml-stable-diffusion's ANE attention that chunks the query sequence (512); here it applies to the 1,024-token 32×32 level | UNet 19.5 → 16.3–16.7 ms (−16 %), gate identical (same numerics) |
+| **Fold the time embedding** (`--fold-time-embedding`) | MuseTalk runs t = 0 only, but coremltools kept the embedding MLP and all 22 resnets' `time_emb_proj` 1×1 convs (12–14 per chunk on constant inputs). Replaced by their values: 25.8M parameters fewer (−29 MB int8; the A14, which expands int8 to fp16, reads ~52 MB fewer weight bytes per frame) | UNet 16.63 → 16.43 ms; gate mae 0.01309 / max_abs 1.030 (was 0.01311 / 1.035). Expected to matter more on the A14 |
+| **TAESD in the compose stage, on the GPU** (`LipsyncEngine.taesdUnits = .cpuAndGPU`, `deferDecode`) | the Neural Engine stage runs the UNet alone; the compose thread decodes (4–6 ms on the GPU) and blends while the next UNet runs | ANE stage −1.8 ms (TAESD) − the RGB conversion; composed frames unchanged (0.176/255 vs 0.175/255 against Python) |
+| **Two Neural Engine workers** (`LipsyncPipeline.inferWorkers = 2`) | the next frame's chunk 1 is queued on the engine while the previous frame's outputs are converted and its chunk 2 submitted; frames still leave the compose stage in order | 16.2–16.3 → 15.5–15.6 ms/frame wall |
+
+Full pipeline over 400 frames (`bench-mac --lipsync-check`, UNet + TAESD + blend + CGImage, free-running):
+
+| Configuration | ms/frame wall (rounds) | vs shipped |
+|---|---|---|
+| Shipped (SPLIT_EINSUM chunks, TAESD on the ANE stage) | 21.0, 21.2, 21.0, 21.3, 21.8, 21.5, 21.4, 21.4, 21.0, 20.8 | 1.00× |
+| V2 | 18.2, 18.6 | 1.15× |
+| V2 + TAESD on the GPU in the compose stage | 16.5, 17.0 | 1.26× |
+| V2 folded + TAESD on the GPU | 16.6, 16.8, 16.5, 16.2, 16.3 | 1.29× |
+| **V2 folded + TAESD on the GPU + 2 workers** | **15.5, 15.6** | **1.34×** (against the shipped runs of the same session, 21.0 / 20.8) |
+
+The paced session (`bench-mac --lipsync-session`, a 60 s WAV, 1,440 frames at 24 fps) with the full candidate:
+1,440 generated, 1,439 shown, 0 skipped, 0 late, 0 stalls, clock start 0.23 s (shipped: same counts, 0.29 s).
+
+Rejected on the way: deep-feature reuse across frames and the V2 chunk size (§3.5). Not yet tried: output backings
+for the 13 boundary tensors, TAESD fused into chunk 2 (moot once it runs on the GPU).
+
+What to expect on the A14 (estimates until the phone run): V2's gain was −16 % on the M5 Pro; Apple reports larger
+V2 gains on iPhones. The fold removes ~52 MB of per-frame weight reads there (~1.5 ms at the A14's ~34 GB/s). TAESD
+on the ANE stage is 5.1 ms on the A14 (§5.2), off the critical path once it moves to the GPU, as long as the
+compose stage (~9–10 ms) plus the GPU decode stays under the UNet. From the 2026-11-01 ANE stage of 62–64 ms in
+calls, these give roughly 62 → 45–48 ms (21–22 fps) before the second worker, whose gain depends on how long the
+A14's CPU takes between the chunk calls.
+
+Reproduce:
+
+```bash
+.venv-ct/bin/python scripts/ios/export_coreml_ane_chunks.py --apple-repo <ml-stable-diffusion> --cut 0 --variants int8w \
+    --attention SPLIT_EINSUM_V2 --fold-time-embedding --prefix unet_anev2fc0
+# compile both chunks with `xcrun coremlcompiler compile`, add them to a bundle's meta.json as unet_anev2fc0_int8w_b1_chunk{1,2}
+.build/release/bench-mac --resources <bundle> --lipsync-check <bundle>/avatar --lipsync-frames 400 \
+    --lipsync-taesd-units GPU --defer-decode --infer-workers 2
+# phone: MuseTalkBench --lipsync --exit --unet unet_anev2fc0_int8w_b1_chunked --taesd-gpu --defer-decode --infer-workers 2
+```
 
 ## 6. The harness app (`ios/MuseTalkBench/`)
 
@@ -694,3 +747,4 @@ cd ios/MuseTalkBench && swift build -c release
 | `8f05b0e` | 2026-10-31 | Phone runs: batch 4 vs batch 1 on the iPhone 12 Pro (54.2 vs 56.4 ms: compute-bound), warm-start sustained run (54 → 78 ms), the lipsync view played on the phone (16.4 fps shown, 0 stalls); fixes: `Stats` public init (app build), `FrameBuffer` self-deadlock, skip-ahead aims `clock + lead`; results in §5.2, §5.4 and bench doc §12.5 |
 | `704f4a2`, `11b8884` | 2026-10-31 | Two more lipsync runs (17.1 / 16.6 fps), audio route and volume reported; open item 7 points at the Lingua plan. PR #5 merged to main as `fad1f08` |
 | — | 2026-10-31 | Lingua Phase 0, this repo's half: `LipsyncSession` + `AudioInput` + `TarArchive` + `RemoteBundle` in HarnessCore; windows for any-length audio; `prepare_avatar_bundle.py --phone-only`; `pack_phone_bundle.py`, `pack_model_pack.py`; model pack and the Latina bundle on S3; harness `--avatar-url/--wav/--preroll`; bench-mac `--lipsync-session`, `--unpack-tar`; phone plays the S3 bundle with an OmniVoice WAV at 17.2 fps |
+| `704d6c5`, next | 2026-11-02 | Branch `claude/ios-25fps` (from main `a5e75f9`): TAESD decodable in the compose stage on the GPU, UNet picked by name, `fastPrediction` option, `inferWorkers`; the chunk exporter's `--fold-time-embedding`, `--v2-chunk-size`, `--prefix`; `check_deep_reuse.py`; Mac results in §5.6 (1.34× on the full pipeline) |

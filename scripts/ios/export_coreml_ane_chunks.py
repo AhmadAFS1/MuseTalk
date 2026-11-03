@@ -17,6 +17,9 @@ outputs so both chunks look to the ANE compiler exactly like the whole model did
 
 Usage (repo root, .venv-ct):
   python scripts/ios/export_coreml_ane_chunks.py --apple-repo /tmp/ml-stable-diffusion --cut 0 --variants fp16,int8w --check
+  # the 2026-11-02 phone candidate: SPLIT_EINSUM_V2 attention, the constant time embedding folded
+  python scripts/ios/export_coreml_ane_chunks.py --apple-repo /tmp/ml-stable-diffusion --cut 0 --variants int8w \
+      --attention SPLIT_EINSUM_V2 --fold-time-embedding --prefix unet_anev2fc0
 """
 from __future__ import annotations
 
@@ -44,6 +47,49 @@ def _block(blk, sample, emb, hidden, res=None):
     if has_attn:
         return blk(hidden_states=sample, temb=emb, res_hidden_states_tuple=res, encoder_hidden_states=hidden)
     return blk(hidden_states=sample, temb=emb, res_hidden_states_tuple=res)
+
+
+class ConstOut(torch.nn.Module):
+    """A resnet's `time_emb_proj` replaced by its output at timestep 0 (MuseTalk only ever runs t = 0)."""
+
+    def __init__(self, value: torch.Tensor):
+        super().__init__()
+        self.register_buffer("value", value.detach().clone())
+
+    def forward(self, x):  # noqa: ARG002 - the input is the constant time embedding
+        return self.value
+
+
+def fold_time_embedding(unet) -> tuple[int, int]:
+    """Replace every ResnetBlock2D's `time_emb_proj(silu(emb))` by its constant value. coremltools does not fold this
+    chain: each chunk kept 12-14 1x1 convs on constant inputs whose weights (25.8M parameters; ~52 MB as fp16 on an
+    A14, which expands int8) are read every frame. The embedding MLP is left without consumers and is dropped."""
+    with torch.no_grad():
+        emb = unet.time_embedding(unet.time_proj(torch.zeros(1, dtype=torch.long)))
+        n = params = 0
+        for m in unet.modules():
+            if type(m).__name__ == "ResnetBlock2D" and getattr(m, "time_emb_proj", None) is not None:
+                params += sum(p.numel() for p in m.time_emb_proj.parameters())
+                m.time_emb_proj = ConstOut(m.time_emb_proj(m.nonlinearity(emb)))
+                n += 1
+    return n, params
+
+
+def set_v2_chunk_size(apple_repo: Path, chunk: int) -> None:
+    """SPLIT_EINSUM_V2's query chunk (ml-stable-diffusion default 512). A sequence of exactly one chunk would export
+    as a full-length slice (`alias`, unsupported by coremltools), so it takes the plain split-einsum path, as V2 itself
+    does for sequences shorter than one chunk."""
+    sys.path.insert(0, str(apple_repo))
+    from python_coreml_stable_diffusion import attention
+    attention.CHUNK_SIZE = chunk
+    v2 = attention.split_einsum_v2
+
+    def v2_or_v1(q, k, v, mask, heads, dim_head):
+        if q.size(3) // attention.CHUNK_SIZE <= 1:
+            return attention.split_einsum(q, k, v, mask, heads, dim_head)
+        return v2(q, k, v, mask, heads, dim_head)
+
+    attention.split_einsum_v2 = v2_or_v1
 
 
 class Chunk1(torch.nn.Module):
@@ -108,11 +154,22 @@ def main() -> None:
     ap.add_argument("--check", action="store_true", help="Core ML chunk1->chunk2 vs the unchunked int8w model on real frames")
     ap.add_argument("--units", default="CPU_AND_NE")
     ap.add_argument("--out-dir", type=Path, default=OUT_DIR)
+    ap.add_argument("--fold-time-embedding", action="store_true",
+                    help="replace the constant time-embedding projections by their values (25.8M parameters fewer)")
+    ap.add_argument("--v2-chunk-size", type=int, default=None, help="SPLIT_EINSUM_V2 query chunk (default 512)")
+    ap.add_argument("--prefix", default=None,
+                    help="model name prefix (default unet_anec<cut>; give V2 / folded exports their own, e.g. unet_anev2fc0)")
     args = ap.parse_args()
     manifest_path = args.out_dir / "manifest.json"
 
     print(f"building Apple-layout UNet ({args.attention})", flush=True)
+    if args.v2_chunk_size:
+        set_v2_chunk_size(args.apple_repo, args.v2_chunk_size)
+        print(f"  SPLIT_EINSUM_V2 query chunk {args.v2_chunk_size}", flush=True)
     unet, ref_unet, pe = build_ane_unet(args.apple_repo, args.unet_dir, args.attention)
+    if args.fold_time_embedding:
+        n, params = fold_time_embedding(unet)
+        print(f"  folded the time embedding into {n} resnets ({params / 1e6:.1f}M parameters removed)", flush=True)
     c1 = Chunk1(unet, pe, args.cut).eval()
     B = args.batch
     d = torch.load(args.bench_inputs, map_location="cpu", weights_only=True)
@@ -140,7 +197,7 @@ def main() -> None:
     print(f"  fp32 torch chunk1->chunk2 vs diffusers UNet: max |diff| {(want - got).abs().max():.2e}", flush=True)
     del ref_unet
 
-    tag = f"unet_anec{args.cut}"
+    tag = args.prefix or f"unet_anec{args.cut}"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
 
     def record(name, path, extra):

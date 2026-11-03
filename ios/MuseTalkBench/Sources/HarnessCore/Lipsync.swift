@@ -695,6 +695,12 @@ public final class LipsyncPipeline {
     private var recentMs = 0.0           // moving average of one frame's time through both stages
     private var stopped = false
     private var inferDone = false
+    private var nextIndex = 0
+    private var inFlight = Set<Int>()
+    private var workersLeft = 0
+    /// Neural Engine stage threads (1 = one frame at a time, as before). 2 keeps the engine fed across the gaps
+    /// between a frame's chunk calls; frames still leave the compose stage in order.
+    public var inferWorkers = 1
     private var threads: [Thread] = []
 
     public init(engine: LipsyncEngine, aheadFrames: Int) {
@@ -721,52 +727,80 @@ public final class LipsyncPipeline {
     public func start(from first: Int = 0, count: Int? = nil,
                       emit: @escaping (Int, RGBAImage) -> Void, done: @escaping () -> Void) {
         let total = min(first + (count ?? engine.frameCount), engine.frameCount)
-        let infer = Thread { [self] in
-            var i = first
-            while i < total {
-                if lock.sync({ stopped }) { break }
-                if let t = targetIndex() {
-                    let lead = leadFrames()
-                    if t + lead > i {
-                        lock.sync { stats.skipped += t + lead - i; stats.leadFrames = lead }
-                        i = t + lead
-                        if i >= total { break }
+        // Neural Engine stage: `inferWorkers` threads claim frames in order. With 2, the next frame's chunk 1 is already
+        // queued on the engine while the previous frame's outputs are converted and its chunk 2 submitted.
+        let workers = max(1, inferWorkers)
+        lock.sync { nextIndex = first; inFlight = []; workersLeft = workers }
+        func claim() -> Int? {
+            while true {
+                if lock.sync({ stopped }) { return nil }
+                let t = targetIndex()
+                let lead = t != nil ? leadFrames() : 0
+                let downstream = downstreamCount()
+                let r: (index: Int?, done: Bool) = lock.sync {
+                    var i = nextIndex
+                    if let t = t, t + lead > i {
+                        stats.skipped += t + lead - i; stats.leadFrames = lead
+                        i = t + lead; nextIndex = i
                     }
+                    if i >= total { return (nil, true) }
+                    if downstream + queue.count + inFlight.count >= aheadFrames || queue.count >= queueDepth { return (nil, false) }
+                    nextIndex = i + 1
+                    inFlight.insert(i)
+                    return (i, false)
                 }
-                if downstreamCount() + queued >= aheadFrames || queued >= queueDepth { usleep(1000); continue }
-                do {
-                    let e = plan?.entry(i)
-                    if engine.deferDecode {
-                        let r = try engine.inferLatent(audioFrame: i, slot: e?.slot ?? .talking, cycle: e?.cycle ?? i)
-                        lock.sync {
-                            queue.append((i, .latent(r.latent)))
-                            stats.generated += 1
-                            stats.inferMsSum += r.unetMs
-                        }
-                        observe(frameMs: r.unetMs + lock.sync { stats.composeMs })
-                    } else {
-                        let r = try engine.inferFace(audioFrame: i, slot: e?.slot ?? .talking, cycle: e?.cycle ?? i)
-                        lock.sync {
-                            queue.append((i, .face(r.face)))
-                            stats.generated += 1
-                            stats.inferMsSum += r.unetMs + r.decodeMs
-                            stats.decodeMsSum += r.decodeMs
-                        }
-                        observe(frameMs: r.unetMs + r.decodeMs + lock.sync { stats.composeMs })
-                    }
-                } catch {
-                    log("infer \(i): \(error)")
-                }
-                i += 1
+                if r.done { return nil }
+                if let i = r.index { return i }
+                usleep(1000)
             }
-            lock.sync { inferDone = true }
+        }
+        func enqueue(_ i: Int, _ p: Pending) {  // caller holds the lock; the queue stays sorted by frame index
+            inFlight.remove(i)
+            let at = queue.firstIndex { $0.0 > i } ?? queue.count
+            queue.insert((i, p), at: at)
+        }
+        var inferThreads: [Thread] = []
+        for w in 0 ..< workers {
+            let infer = Thread { [self] in
+                while let i = claim() {
+                    do {
+                        let e = plan?.entry(i)
+                        if engine.deferDecode {
+                            let r = try engine.inferLatent(audioFrame: i, slot: e?.slot ?? .talking, cycle: e?.cycle ?? i)
+                            lock.sync {
+                                enqueue(i, .latent(r.latent))
+                                stats.generated += 1
+                                stats.inferMsSum += r.unetMs
+                            }
+                            observe(frameMs: r.unetMs / Double(workers) + lock.sync { stats.composeMs })
+                        } else {
+                            let r = try engine.inferFace(audioFrame: i, slot: e?.slot ?? .talking, cycle: e?.cycle ?? i)
+                            lock.sync {
+                                enqueue(i, .face(r.face))
+                                stats.generated += 1
+                                stats.inferMsSum += r.unetMs + r.decodeMs
+                                stats.decodeMsSum += r.decodeMs
+                            }
+                            observe(frameMs: (r.unetMs + r.decodeMs) / Double(workers) + lock.sync { stats.composeMs })
+                        }
+                    } catch {
+                        lock.sync { _ = inFlight.remove(i) }
+                        log("infer \(i): \(error)")
+                    }
+                }
+                lock.sync { workersLeft -= 1; if workersLeft == 0 { inferDone = true } }
+            }
+            infer.name = "lipsync.infer\(w)"; infer.qualityOfService = .userInteractive
+            inferThreads.append(infer)
         }
         let compose = Thread { [self] in
             var anchor: RGBAImage? = nil          // the previous pose's last composed frame, frozen at a switch
             var anchorSegment = Int.min
             while true {
                 let (item, finished): ((Int, Pending)?, Bool) = lock.sync {
-                    (queue.isEmpty ? nil : queue.removeFirst(), stopped || (inferDone && queue.isEmpty))
+                    // in order: never take a frame while an earlier one is still on the Neural Engine
+                    if let f = queue.first, !inFlight.contains(where: { $0 < f.0 }) { return (queue.removeFirst(), false) }
+                    return (nil, stopped || (inferDone && queue.isEmpty && inFlight.isEmpty))
                 }
                 guard let (i, pending) = item else {
                     if finished { break }
@@ -812,10 +846,9 @@ public final class LipsyncPipeline {
             }
             done()
         }
-        infer.name = "lipsync.infer"; infer.qualityOfService = .userInteractive
         compose.name = "lipsync.compose"; compose.qualityOfService = .userInteractive
-        threads = [infer, compose]
-        infer.start()
+        threads = inferThreads + [compose]
+        inferThreads.forEach { $0.start() }
         compose.start()
     }
 

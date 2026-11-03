@@ -1,0 +1,18 @@
+--- fold r1
+   unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01309 / max 0.01869; max_abs max 1.0303; 128 frames; FAIL
+   unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 16.12 ms/frame mean, p99 16.68, max 16.80 over 300 calls of 1 (mem 31 MB)
+--- fold256 r1
+   unet_anev2fk256c0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01309 / max 0.01869; max_abs max 1.0303; 128 frames; FAIL
+   unet_anev2fk256c0_int8w_b1_chunked [CPU_AND_NE]: 18.99 ms/frame mean, p99 154.29, max 154.54 over 300 calls of 1 (mem 34 MB)
+--- fold r2
+   unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01309 / max 0.01869; max_abs max 1.0303; 128 frames; FAIL
+   unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 16.27 ms/frame mean, p99 16.79, max 16.97 over 300 calls of 1 (mem 31 MB)
+--- fold256 r2
+   unet_anev2fk256c0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01309 / max 0.01869; max_abs max 1.0303; 128 frames; FAIL
+   unet_anev2fk256c0_int8w_b1_chunked [CPU_AND_NE]: 16.36 ms/frame mean, p99 16.95, max 17.53 over 300 calls of 1 (mem 38 MB)
+--- fold r3
+   unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01309 / max 0.01869; max_abs max 1.0303; 128 frames; FAIL
+   unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 16.57 ms/frame mean, p99 16.77, max 17.20 over 300 calls of 1 (mem 35 MB)
+--- fold256 r3
+   unet_anev2fk256c0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01309 / max 0.01869; max_abs max 1.0303; 128 frames; FAIL
+   unet_anev2fk256c0_int8w_b1_chunked [CPU_AND_NE]: 16.06 ms/frame mean, p99 16.68, max 16.73 over 300 calls of 1 (mem 34 MB)
