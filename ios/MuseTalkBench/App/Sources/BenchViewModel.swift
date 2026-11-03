@@ -151,6 +151,7 @@ final class BenchViewModel: ObservableObject {
                 print("BENCH_JSON_BEGIN")
                 print(String(decoding: data, as: UTF8.self))
                 print("BENCH_JSON_END")
+                if MemoryTrace.shared.running { print(MemoryTrace.shared.resultLine()) }
                 let summary = report.summaryLines()
                 await MainActor.run { [weak self] in
                     self?.reportURL = out

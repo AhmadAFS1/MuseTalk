@@ -1,0 +1,35 @@
+== 19:50:53 label=D_cold_cap2098_host300 install=1 args: --lipsync --exit --silent --emulate-limit-mb 2098 --ballast-mb 300
+App installed:
+? bundleID: com.lingua.musetalkbench
+? installationURL: file:///private/var/containers/Bundle/Application/716EC33E-8461-41AF-B43D-1F0ADD4D3694/MuseTalkBench.app/
+? launchServicesIdentifier: unknown
+? databaseUUID: 8D0F175A-B2D9-492D-91E5-4AA20D4DB5BB
+? databaseSequenceNumber: 29184
+? options: 
+== install exit 0
+[mem] trace started (mem 10 MB, 3061 MB left)
+[mem] this process may use 3072 MB here (footprint 11 + headroom 3061); emulating a 2098 MB limit
+[mem] t=0.0 s footprint 11 MB, 3061 MB left (peak 11)
+[mem] t=0.3 s footprint 1255 MB, 1816 MB left (peak 1255)
+[mem] ballast 1274 MB held in 0.3 s (mem 1285 MB, 1786 MB left)
+[lipsync] lipsync: loading unet_anec0_int8w_b1_chunked (2 stage(s)) on CPU_AND_NE (mem 1286 MB, 1785 MB left)
+[mem] t=0.8 s footprint 1320 MB, 1752 MB left (peak 1320)
+[mem] t=6.0 s footprint 1321 MB, 1751 MB left (peak 1322)
+[mem] t=11.0 s footprint 1321 MB, 1751 MB left (peak 1322)
+[mem] t=16.3 s footprint 1329 MB, 1743 MB left (peak 1329)
+[mem] t=21.5 s footprint 1329 MB, 1743 MB left (peak 1329)
+[mem] t=26.8 s footprint 1329 MB, 1743 MB left (peak 1329)
+[lipsync] lipsync: models loaded in 26.94 s, 241 frame latents ready (mem 1332 MB, 1739 MB left)
+[lipsync] lipsync: audio windows for 426 frames at 24 fps (17.8 s of audio) in 3.90 s
+[mem] t=31.3 s footprint 1413 MB, 1659 MB left (peak 1413)
+[mem] t=31.6 s memory pressure warning (mem 1430 MB, 1641 MB left)
+[lipsync] clock started after pre-roll: play() false, route , system volume 0.00, 10 frames buffered, 4.61 s after speak()
+[mem] t=36.5 s footprint 1457 MB, 1615 MB left (peak 1457)
+[mem] t=41.8 s footprint 1458 MB, 1614 MB left (peak 1458)
+[mem] t=47.0 s footprint 1460 MB, 1612 MB left (peak 1460)
+LIPSYNC_RESULT {"audio_played":false,"audio_prep_s":3.9028237080201507,"audio_route":"","avatar":"latina_guided_20260925_talking_84c5bc80b8","dropped_late":0,"fps":24,"frames":426,"gen_ms_per_frame":113.91442140017676,"generated":184,"generated_fps":10.347761819303402,"lead_frames":4,"load_s":26.942133459029719,"pipelined":true,"preroll_frames":10,"preroll_s":0.40000000000000002,"seconds":17.781623042072169,"shown":183,"shown_fps":10.291523983328927,"skipped":242,"stage_compose_ms":14.356249059504909,"stage_infer_ms":99.55817234067186,"stalls":0,"start_latency_s":4.6148671249393374,"system_volume":0,"unet":"unet_anec0_int8w_b1_chunked"}
+MEM_RESULT {"ballast_mb":1274,"footprint_now_mb":1460,"headroom_now_mb":1612,"min_headroom_mb":1612,"peak_footprint_mb":1460,"pressure_criticals":0,"pressure_warnings":1,"samples":200,"seconds":49.600000000000001}
+Launched application with com.lingua.musetalkbench bundle identifier.
+Waiting for the application to terminate...
+The app terminated with the exit code 0.
+== 19:51:46 launch exit 0

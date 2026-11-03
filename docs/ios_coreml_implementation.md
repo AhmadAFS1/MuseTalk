@@ -48,9 +48,11 @@ frame by 3.8 %), so this phone stays below the 20 fps line and newer phones are 
 | 14 | Speed levers tried and rejected (int8 activations, 6/4-bit palettization, fp32 islands, GroupNorm rewrite) | measured, rejected | §4, §11.2, §11.3 |
 | 15 | Batch-4 two-chunk UNet: the experiment that tells bandwidth-bound from compute-bound on the A14 (§5.4) | **measured on the phone 2026-10-31: 54.2 vs 56.4 ms/frame (−3.8 %), gate identical; verdict: the A14 ANE is compute-bound** | bench doc §12.5; `harness_iphone12pro_b4_vs_b1.json`, `chunk_unet_anec0_int8w_b4_m5pro.json`, `harness_mac_b4_chunked_m5pro.json` |
 | 16 | GPU accuracy anchor on the phone | not measured (killed with the single program); low value | §12.3 |
-| 17 | Audio from a microphone or TTS stream instead of a bundled clip | not started | §9 below |
-| 18 | Avatar download from S3 at runtime; multiple avatars; pose router | not started | §9 below |
-| 19 | Integration into the Lingua app (native module) | not started | §9 below |
+| 17 | Audio from a TTS WAV (any sample rate, any length) instead of the bundled clip | **done 2026-10-31**: `loadWaveform16k` + segmented windows; an OmniVoice 24 kHz WAV played on the phone (§5.2). A microphone / streaming source is still open | §2.4; `AudioInput.swift` |
+| 18 | Avatar download from S3 at runtime | **done 2026-10-31** for one avatar: phone-only bundle format, `pack_phone_bundle.py`, `RemoteBundle` + `TarArchive`; Latina downloaded (27 MB in 5.4 s) and played on the phone. Multiple avatars and the pose router are open | §2.3; `avatars/ios/v1/` |
+| 19 | Integration into the Lingua app (native module) | **Phase 0 done 2026-10-31**: `LipsyncSession` (the player core the module wraps) in HarnessCore, pre-roll parameter, model pack on S3 with a manifest; the Lingua backend half runs in its own session; plan in the Lingua repo | §6; Lingua `docs/musetalk-on-device-renderer-plan.md` |
+| 20 | 4 GB phones: the memory allowance emulated on the 12 Pro (`--emulate-limit-mb`, `--ballast-mb`, `--mem-trace`) | **measured 2026-11-01**: the chunked cold compile peaks at 54 MB of process footprint (148 MB over the whole run, playback included); under a 2,098 MB cap compile + playback keep ≥ 1.9 GB (≥ 1.6 GB with a 300 MB host app), no kill; a real 4 GB device remains the check for system-wide pressure | §5.5; `memory_emulation_iphone12pro_2026-11-01/` |
+| 21 | The motion-bank body policy on the phone's three caches (`docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md` "Runtime algorithm"): idle body under the lipsync for replies under `short_reply_seconds` (10 here), else 0.3 s of idle → bridge into talking at frame 0 → smile cues after a cooldown → return into idle 0.5 s before the end on the continued idle phase; forward-only clips; the bank's optical-flow bridge is the cosine crossfade over the same 0.3 s | **built 2026-11-02** (`Poses.swift` `FramePlan.compile`, `LipsyncSession` idle track + seams, `LipsyncPipeline` blends; `currentFrame()` returns a `DisplayFrame`). A first version replicated the six-pose cue router instead and was replaced the same day at the user's correction. Simulator-validated through the Lingua bench; phone run pending | Lingua build plan §3.12 "design as built" |
 
 ---
 
@@ -112,6 +114,17 @@ Compute units are pinned to `cpuAndNeuralEngine` for the UNet chunks and TAESD, 
 Bundled today: `latina_guided_20260925_talking_84c5bc80b8` (512×832 portrait, 24 fps, 241 unique of 482 cycle
 entries, masks 480×480) with 17.76 s of `data/audio/ai-assistant.mpga` (426 frames at 24 fps). 46 MB.
 
+**Phone-only bundles (2026-10-31, Lingua Phase 0).** `prepare_avatar_bundle.py --phone-only` writes just the first
+four rows (`avatar.json` without the `audio`/`check` keys; `AvatarMeta.audio` is optional); it needs no audio,
+Whisper or Core ML models, so it can run wherever the v15 cache is. `pack_phone_bundle.py <avatar dir> --out
+<dest>` packs those four items as a **plain ustar tar** (frames and masks are already compressed; iOS has no zstd)
+plus a sidecar `<avatar_id>.json` (`avatar_id, bytes, sha256, frames, cycle_length, fps, width, height, format,
+exporter_commit, created_at`), with fixed metadata so the same input gives the same sha256. The phone downloads
+the tar (`RemoteBundle.fetchAvatarBundle`: SHA-256 check, `TarArchive.extract` streaming in 1 MB chunks) into
+`Application Support/avatars/<avatar_id>/`, which `AvatarBundle(dir:)` then loads unchanged. Published:
+`s3://lingua-musetalk-s3-storage/avatars/ios/v1/latina_guided_20260925_talking_84c5bc80b8.{tar,json}` (27.3 MB,
+241 frames). The Lingua backend's export job (its Phase 0 session) runs the same two scripts from the v15 tarball.
+
 Cycle mapping (`AvatarBundle.uniqueIndex`): `j = i mod cycle_length`; if the cache is ping-pong and `j ≥ N`, the
 unique index is `cycle_length − 1 − j`. The server's `realtime_inference.py` indexes the 2N-entry cache the same
 way, so the pose motion is identical.
@@ -121,9 +134,14 @@ way, so the pose motion is identical.
 `computeAudioWindows` in `HarnessCore/Lipsync.swift` mirrors `musetalk/utils/audio_processor.py`
 (`encode_whisper_feature` + `build_audio_prompts`):
 
-1. Zero-pad the 16 kHz waveform to 480,000 samples (30 s), run the log-mel model (CPU, fp32), convert to fp16, run
-   the encoder (ANE). The encoder output is the five hidden states (embeddings + four layers, the last after the
-   final layer norm) stacked as [1500, 5, 384] at 50 Hz.
+0. Any audio file AVFoundation reads (the OmniVoice and Kokoro 24 kHz WAVs, m4a, mp3) becomes mono float32 at
+   16 kHz through `loadWaveform16k` (`HarnessCore/AudioInput.swift`, `AVAudioConverter`), the resample librosa does
+   on the server. The bundled harness clip ships pre-resampled (`audio_f32.bin`).
+1. Cut the waveform into 30 s segments (480,000 samples, the last one zero-padded); for each, run the log-mel model
+   (CPU, fp32), convert to fp16, run the encoder (ANE). The encoder output is the five hidden states (embeddings +
+   four layers, the last after the final layer norm) stacked as [1500, 5, 384] at 50 Hz; the segments' first
+   `floor(segment samples / 16000 × 50)` steps are concatenated into one feature timeline, as the repo's
+   `AudioProcessor` does, so a window at a segment boundary sees both sides. A TTS reply is one segment.
 2. `actual = floor(samples / 16000 × 50)` feature steps carry audio; `frames = floor(samples / 16000 × fps)`.
 3. The feature timeline is padded with 4 zero steps on the left and 12 on the right. For frame `i`,
    `a = (i × 50) / fps` (integer division) and the window takes padded steps `a … a+9` (10 steps = 200 ms, 4 steps
@@ -373,6 +391,8 @@ for the phone chain (bench doc §12.4, package `README.md`):
 | Same, warm compile cache (run 3: load 0.57 s, audio prep 0.17 s, no compile before playback) | **305 generated, 303 shown = 17.1 fps**, 0 stalls, 0 late drops, 121 skipped; ANE stage 62.5 ms, CPU stage 9.1 ms |
 | Same, audio-diagnostics build after a reinstall (run 4) | 296 generated, 295 shown = 16.6 fps, 0 stalls; audio: route Speaker, `play()` true, system volume 0.25 (quiet, the phone's own setting) |
 | Same, with the skip aimed at the clock itself (run 1) | 298 generated but only 167 shown (9.4 fps): 130 faces arrived 1–2 frames late and were dropped |
+| **Phone bundle from S3 + OmniVoice WAV, warm** (2026-10-31; `lipsync_iphone12pro_s3_bundle_run2_warm.json`) | bundle already on the device, models loaded 0.96 s, 0.4 MB WAV downloaded 0.6 s, windows 0.16 s; **clock start 0.79 s after `speak()`** (= windows + 10-frame pre-roll at 62 ms); 157 generated, 156 shown over the 9.1 s clip = **17.2 fps**, 0 stalls, 0 late; ANE 61.6 ms, CPU 9.2 ms; audio via Speaker |
+| Same, cold (first launch after a reinstall; `…_run1_cold.json`) | bundle 27.3 MB downloaded in 5.4 s, unpacked 1.1 s; UNet compile 25.7 s; Whisper compile inside the 3.4 s window build → clock start 4.0 s after `speak()`; 155 generated, 154 shown = 16.9 fps, 0 stalls |
 
 Reading: 52–56 ms cool, 59–62 ms hot and up to 78 ms when the phone starts warm, plus 5 ms decoder, so 16–17 fps
 sustained from cool and 13–15 fps warm, against the server's 20 fps (50 ms budget). **Batch 4 moved the frame by
@@ -426,6 +446,42 @@ Asked as "is it RAM, CPU, or the accelerator", the phone's situation is three se
   figure for this phone is the warm one, 13–15 fps, and keeping the chip cool (no compile in the same minute as
   playback, shorter turns) is worth more than the remaining levers.
 
+### 5.5 Memory: a 4 GB phone emulated on the 12 Pro (2026-11-01)
+
+The question: do the 4 GB iPhones after the 12 Pro (12, 12 mini, 13, 13 mini, SE 2022; about 2,098 MB of
+foreground allowance, the "ActiveHard 2098 MB" of their jetsam reports) survive the cold compile that killed the
+single program here (2,464 MB of this phone's 3,071 MB)? The harness app can now emulate that allowance:
+`--emulate-limit-mb N` holds (this process's limit − N) MB of dirty, incompressible memory before the models load
+(`App/Sources/MemoryBallast.swift`; 974 MB here, limit measured as footprint 11 + headroom 3,061 MB at launch),
+`--ballast-mb N` adds a host app's own footprint, and a 250 ms footprint trace prints on the console so a kill
+leaves its last footprint behind. Lipsync tab, bundled Latina avatar, the 17.8 s clip, `--silent`; a reinstall
+before each cold run empties the Core ML compile cache. Logs, `summary.json` and the parser:
+`docs/ios_unet_bench/memory_emulation_iphone12pro_2026-11-01/`.
+
+| Run | Allowance | Compile | Ballast | Peak footprint | Engine's share | Least headroom | Pressure | ANE stage | Shown |
+|---|---|---|---|---|---|---|---|---|---|
+| A | none (3,072 MB) | cold, 26.8 s | 0 | 148 MB | 148 MB | 2,924 MB | none | 65.1 ms | 280/426, 15.7 fps, 0 stalls |
+| B | 2,098 MB | warm, 0.7 s | 974 MB | 1,145 MB | 171 MB | 1,927 MB | none | 64.8 ms | 281, 15.9 fps, 0 stalls |
+| C | 2,098 MB | cold, 26.4 s | 974 MB | 1,161 MB | 187 MB | 1,911 MB | none | 94.5 ms | 199, 11.2 fps, 0 stalls |
+| D | 2,098 MB + 300 MB host app | cold, 26.9 s | 1,274 MB | 1,460 MB | 186 MB | 1,612 MB | 1 warning at 31.6 s (playback) | 99.6 ms | 183, 10.3 fps, 0 stalls |
+| C2 (C repeated after a 4 min cool-down, thermal nominal before and after) | 2,098 MB | cold, 25.7 s | 974 MB | 1,172 MB | 198 MB | 1,900 MB | none | 68.4 ms | 266, 15.0 fps, 0 stalls |
+
+- **The chunked compile does not inflate the process.** During the 27 s cold compile the footprint peaked at
+  54 MB (the single program's compile reached 2,464 MB); the uncapped run's 148 MB peak is playback (frame cache,
+  audio windows, the displayed images), ~170–190 MB of engine under the caps. Under
+  the 4 GB allowance the process kept ≥ 1.9 GB of headroom, and ≥ 1.6 GB with a 300 MB host app on top: no kill,
+  no critical pressure. **The per-process limit of the 4 GB phones is not a risk for the chunked models**; the
+  Lingua gate's 3.5 GB memory floor can stay.
+- **Speed under the cap.** B equals A, so the ballast itself costs nothing. C and D were slower (94–100 ms per face
+  against 65) with the four runs back to back, four compiles in three minutes. C2, the same capped cold run after a
+  four-minute cool-down, came back at 68.4 ms and 15.0 fps with the thermal state nominal at both ends: the slow
+  runs were heat, the cap costs nothing. (§5.3 rule 6 again: no compile in the same minute as a measurement.)
+- **What the emulation cannot show.** It caps this process; a real 4 GB phone also has 2 GB less for everything
+  else (the ANE compiler service's own working set during the compile, the compressor, other apps). D's one
+  warning at a 1,430 MB footprint is this phone's system-wide pressure with 1.3 GB of ballast resident, not a
+  number a 4 GB phone reproduces. The remaining check for that tier is one real device (an iPhone 13 or SE 2022)
+  through the Lingua app's cold compile and a call.
+
 ---
 
 ## 6. The harness app (`ios/MuseTalkBench/`)
@@ -440,17 +496,26 @@ ios/MuseTalkBench/
     DeviceInfo.swift                  device model, OS, memory footprint / available memory, free disk, thermal state
     Report.swift                      the JSON report (UNet runs, sustained buckets, chain, Whisper, options)
     Harness.swift                     BenchOptions, model loading, gate scoring, timing, MLComputePlan placement, sustained/chain/whisper phases
-    Lipsync.swift                     AvatarBundle, window gather, BlendPlan/compose, LipsyncEngine, StagedUNet
+    Lipsync.swift                     AvatarBundle, window gather (any length), BlendPlan/compose, LipsyncEngine, LipsyncPipeline, StagedUNet
+    LipsyncSession.swift              FrameBuffer + one spoken turn: speak(waveform:playbackURL:), pre-roll, the AVAudioPlayer clock,
+                                      currentFrame() for a display link, stats line, Result (LIPSYNC_RESULT); what the Lingua module wraps
+    AudioInput.swift                  loadWaveform16k: any audio file -> mono float32 16 kHz (AVAudioConverter)
+    TarArchive.swift                  streaming ustar reader for the phone bundles and model packs; BundleError
+    RemoteBundle.swift                download with SHA-256, fetchAvatarBundle, fetchModelPack (manifest -> HarnessBundle-shaped folder)
   Sources/bench-mac/BenchMac.swift    CLI: --resources --out --frames --sustained --chain --accuracy-frames --units --models
                                       --no-gpu --no-b4 --no-whisper --no-plan --no-reload --no-unet --taesd-units --settle
                                       --phase-units --lipsync-check <avatar dir> --lipsync-frames N
+                                      --lipsync-session <avatar dir> --wav <file> [--preroll S]   (a whole turn, silent, on the Mac)
+                                      --unpack-tar <tar> <dir>                                   (the tar reader)
   App/project.yml                     xcodegen spec (bundle id com.lingua.musetalkbench, team 563AETFKT9, HarnessBundle as a folder reference)
   App/MuseTalkBench.xcodeproj         generated, committed
   App/Sources/
     MuseTalkBenchApp.swift            @main; tabs; autorun / autostart from launch arguments
     ContentView.swift                 TabView: Bench (options, run, log, share JSON) and Lipsync
     BenchViewModel.swift              runs the harness; --autorun flags; prints [bench] lines and BENCH_JSON_BEGIN/END; saves to Documents
-    LipsyncPlayer.swift               FrameBuffer, render thread, AVAudioPlayer clock, CADisplayLink, LIPSYNC_RESULT
+    LipsyncPlayer.swift               thin wrapper over LipsyncSession: engine load, optional bundle/WAV download, CADisplayLink, prints LIPSYNC_RESULT
+                                      flags: --lipsync [--exit] [--avatar-url <tar> [--avatar-sha256 <hex>] [--avatar-id <id>]]
+                                             [--wav <path|url>] [--preroll <s>] [--silent]
     LipsyncView.swift                 the image, status, stats, Play/Stop
   HarnessBundle/                      GENERATED, gitignored: compiled models, gate captures, Whisper segment, avatar/
   README.md                           build, run, phone steps, flags
@@ -479,9 +544,13 @@ ios/MuseTalkBench/
   xcrun devicectl device process launch --device <udid> --console --terminate-existing com.lingua.musetalkbench \
     --autorun --units CPU_AND_NE --phase-units CPU_AND_NE --frames 200 --sustained 30 --accuracy-frames 128 \
     --no-b4 --no-gpu --no-reload --settle 10 --exit
-  # streaming lipsync view
+  # streaming lipsync view, bundled avatar and clip
   xcrun devicectl device process launch --device <udid> --console --terminate-existing com.lingua.musetalkbench \
     --lipsync --exit
+  # streaming lipsync view from a downloaded phone bundle and a TTS WAV (presigned S3 URLs; what Lingua will do)
+  xcrun devicectl device process launch --device <udid> --console --terminate-existing com.lingua.musetalkbench \
+    --lipsync --exit --avatar-url "$(aws s3 presign s3://lingua-musetalk-s3-storage/avatars/ios/v1/<avatar_id>.tar)" \
+    --avatar-sha256 <sha256 from the sidecar> --avatar-id <avatar_id> --wav "$(aws s3 presign s3://…/clip.wav)" --preroll 0.4
   ```
 
   The JSON report also lands in the app's Documents folder (Files → On My iPhone → MuseTalk Bench, or
@@ -516,7 +585,9 @@ ios/MuseTalkBench/
 | `render_evidence.py` | labelled video evidence of each build vs the PyTorch reference |
 | `review_ane_vs_fp16.py` | the r5-style A/B review package (arms A/N/B, blind + labelled clips, metrics, FaceMesh) |
 | `prepare_harness_bundle.py` | builds `HarnessBundle/` for the app |
-| `prepare_avatar_bundle.py` | builds `HarnessBundle/avatar/` for the Lipsync tab |
+| `prepare_avatar_bundle.py` | builds `HarnessBundle/avatar/` for the Lipsync tab; `--phone-only` writes just what the phone needs |
+| `pack_phone_bundle.py` | phone avatar bundle → `<avatar_id>.tar` (plain ustar) + sidecar json for `avatars/ios/v1/` |
+| `pack_model_pack.py` | the lipsync path's compiled models → one tar each + trimmed `meta.json` + `manifest.json` for `musetalk/ios/<version>/` |
 
 ### 7.2 Documents and results (`docs/`)
 
@@ -528,6 +599,12 @@ ios/MuseTalkBench/
 - `ios_unet_bench/evidence/`: stills and metrics for codex_smoke, Japanese, Latina.
 - `ios_unet_bench/review_ane_vs_fp16/`: README, `review_sheet.csv`, `key/blind_key.json`, `metrics.{json,md}`, stills.
 - This file.
+- Published for the phone (bucket `lingua-musetalk-s3-storage`, 2026-10-31): `musetalk/ios/v1/` = the model pack
+  (`manifest.json`, `meta.json`, `unet_anec0_int8w_b1_chunk1/2.mlmodelc.tar` 346 + 509 MB, `taesd_fp16_b1`,
+  `whisper_encoder_fp16`, `whisper_logmel_fp32` tars, the three gate capture bins; 879 MB) and `avatars/ios/v1/` =
+  phone avatar bundles (`<avatar_id>.tar` + `.json`; Latina talking so far). Served by presigned URLs (or a
+  CloudFront origin on that bucket, not set up yet). `musetalk/ios/test/omnivoice_broad-0084.wav` is the 9.15 s
+  OmniVoice test clip. The Lingua plan is `docs/musetalk-on-device-renderer-plan.md` in the Lingua repo.
 
 ### 7.3 Generated, not in git
 
@@ -586,7 +663,12 @@ cd ios/MuseTalkBench && swift build -c release
    switch), phone avatar bundles exported server-side from the v15 cache, and a per-turn latency timeline recorded
    in both modes. Phase 0 there asks this repo for: the player logic (`FrameBuffer`, pre-roll, display link, audio
    clock) moved from the harness app into `HarnessCore`, WAV → 16 kHz resampling, > 30 s audio segmenting, and a
-   pre-roll parameter.
+   pre-roll parameter. **Phase 0, this repo's half, done 2026-10-31**: `LipsyncSession` (+ `AudioInput`,
+   `TarArchive`, `RemoteBundle`), `--phone-only` export, `pack_phone_bundle.py`, `pack_model_pack.py`, the model
+   pack and the Latina bundle on S3, the harness playing a downloaded bundle with a downloaded OmniVoice WAV on the
+   iPhone 12 Pro: 17.2 fps shown, 0 stalls, clock start 0.79 s after `speak()` warm (§5.2). Phase 1 note: the
+   0.4 s pre-roll is 10 frames, which the A14 takes 0.62 s to make; 0.2 s would start ~0.3 s sooner at the cost of
+   skipping from the first second (the clock outruns generation either way).
 
 ---
 
@@ -609,4 +691,6 @@ cd ios/MuseTalkBench && swift build -c release
 | `6ea7532` | 2026-10-30 | Review package rendered for six production characters; metrics and findings in the bench doc §12.4 |
 | `79e3535` | 2026-10-31 | This document |
 | `9d4904e` | 2026-10-31 | Bottleneck pinpointing: two-stage lipsync pipeline (CPU stage off the critical path, Mac 23.6 → 20.8 ms); batch-4 two-chunk UNet exported for the bandwidth-vs-compute test on the A14; bench doc §12.5 |
-| — | 2026-10-31 | Phone runs: batch 4 vs batch 1 on the iPhone 12 Pro (54.2 vs 56.4 ms: compute-bound), warm-start sustained run (54 → 78 ms), the lipsync view played on the phone (16.4 fps shown, 0 stalls); fixes: `Stats` public init (app build), `FrameBuffer` self-deadlock, skip-ahead aims `clock + lead`; results in §5.2, §5.4 and bench doc §12.5 |
+| `8f05b0e` | 2026-10-31 | Phone runs: batch 4 vs batch 1 on the iPhone 12 Pro (54.2 vs 56.4 ms: compute-bound), warm-start sustained run (54 → 78 ms), the lipsync view played on the phone (16.4 fps shown, 0 stalls); fixes: `Stats` public init (app build), `FrameBuffer` self-deadlock, skip-ahead aims `clock + lead`; results in §5.2, §5.4 and bench doc §12.5 |
+| `704f4a2`, `11b8884` | 2026-10-31 | Two more lipsync runs (17.1 / 16.6 fps), audio route and volume reported; open item 7 points at the Lingua plan. PR #5 merged to main as `fad1f08` |
+| — | 2026-10-31 | Lingua Phase 0, this repo's half: `LipsyncSession` + `AudioInput` + `TarArchive` + `RemoteBundle` in HarnessCore; windows for any-length audio; `prepare_avatar_bundle.py --phone-only`; `pack_phone_bundle.py`, `pack_model_pack.py`; model pack and the Latina bundle on S3; harness `--avatar-url/--wav/--preroll`; bench-mac `--lipsync-session`, `--unpack-tar`; phone plays the S3 bundle with an OmniVoice WAV at 17.2 fps |

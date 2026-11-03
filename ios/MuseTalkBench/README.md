@@ -98,9 +98,38 @@ the app's Documents folder (visible in Files → On My iPhone → MuseTalk Bench
 --domain-identifier com.lingua.musetalkbench --source Documents/<file> --destination .`),
 and `--exit` quits when done. Other flags: `--no-b4`, `--no-gpu`, `--no-whisper`.
 
+Memory emulation (both tabs): `--emulate-limit-mb 2098` holds enough dirty, incompressible memory before the
+models load that the process keeps only the headroom a 4 GB iPhone (12, 12 mini, 13, 13 mini, SE 2022; about
+2,098 MB foreground limit) would grant; `--ballast-mb N` holds N MB more (a host app's own footprint);
+`--mem-trace` (implied by either) prints the footprint every time it moves 64 MB, memory-pressure events, and one
+`MEM_RESULT` JSON line after `LIPSYNC_RESULT` / `BENCH_JSON_END` with the peak footprint and the smallest headroom
+seen. A jetsam kill leaves the last `[mem]` line on the console as the footprint the process died at.
+
 Expect the first load of each UNet on the phone to be slow (the ANE compiles the
 850M-parameter program once and caches it) and the whole default run to take a
 few minutes on an A14. Keep the app in the foreground; it keeps the screen on.
+
+### Playing a downloaded avatar bundle with your own audio (what the Lingua module does)
+
+```bash
+# export + pack a phone bundle from a v15 avatar cache, upload it
+.venv-ct/bin/python scripts/ios/prepare_avatar_bundle.py --avatar <v15 dir>/<avatar_id> --phone-only --out /tmp/pb
+python3 scripts/ios/pack_phone_bundle.py /tmp/pb/avatar --out /tmp/pb/dist      # <avatar_id>.tar + .json
+aws s3 cp /tmp/pb/dist/<avatar_id>.tar  s3://lingua-musetalk-s3-storage/avatars/ios/v1/
+aws s3 cp /tmp/pb/dist/<avatar_id>.json s3://lingua-musetalk-s3-storage/avatars/ios/v1/
+# Mac check: a whole turn from that bundle and a TTS WAV (any sample rate), silent
+swift run -c release bench-mac --resources HarnessBundle --lipsync-session /tmp/pb/avatar --wav clip.wav --preroll 0.4
+# phone: the app downloads the bundle (SHA-256 checked) and the WAV, then plays
+xcrun devicectl device process launch --device <udid> --console --terminate-existing com.lingua.musetalkbench \
+  --lipsync --exit --avatar-url "$(aws s3 presign s3://lingua-musetalk-s3-storage/avatars/ios/v1/<avatar_id>.tar)" \
+  --avatar-sha256 "$(jq -r .sha256 /tmp/pb/dist/<avatar_id>.json)" --avatar-id <avatar_id> \
+  --wav "$(aws s3 presign s3://<bucket>/<clip>.wav)" --preroll 0.4
+```
+
+The models the phone needs are packed the same way by `scripts/ios/pack_model_pack.py --out /tmp/mp` (one tar per
+`.mlmodelc`, a trimmed `meta.json`, `manifest.json`) and live at `s3://lingua-musetalk-s3-storage/musetalk/ios/v1/`;
+`RemoteBundle.fetchModelPack` downloads a manifest into a folder that loads exactly like `HarnessBundle`. The
+harness app still ships its models in the bundle; the Lingua module downloads them.
 
 ## Lipsync tab (streaming view, first version)
 

@@ -58,6 +58,9 @@ def main() -> None:
     ap.add_argument("--unet", default="unet_anec0_int8w_b1", help="chunk parent used for the check frames")
     ap.add_argument("--check-frames", default="0,24,48,96")
     ap.add_argument("--whisper-dir", type=Path, default=REPO_ROOT / "models" / "whisper")
+    ap.add_argument("--phone-only", action="store_true",
+                    help="write only what the phone needs (avatar.json, frames/, masks/, latents_f16.bin): no clip, "
+                         "no reference windows, no check frames; needs no audio, Whisper or Core ML models")
     args = ap.parse_args()
 
     out = args.out / "avatar"
@@ -65,7 +68,8 @@ def main() -> None:
         shutil.rmtree(out)
     (out / "frames").mkdir(parents=True)
     (out / "masks").mkdir()
-    (out / "check").mkdir()
+    if not args.phone_only:
+        (out / "check").mkdir()
 
     frames, masks, coords, mask_coords, latents = load_avatar(args.avatar)
     total = len(frames)
@@ -95,6 +99,32 @@ def main() -> None:
     lat = latents[:n].to(torch.float16).contiguous().numpy()
     (out / "latents_f16.bin").write_bytes(lat.tobytes())
     print(f"  wrote {n} frames (jpg), {n} masks (png), latents {lat.shape}", flush=True)
+
+    geometry = {
+        "avatar_id": args.avatar.name,
+        "fps": fps,
+        "video_fps": video_fps,
+        "frame_width": int(frames[0].shape[1]),
+        "frame_height": int(frames[0].shape[0]),
+        "unique_frames": n,
+        "cycle_length": total,
+        "ping_pong": symmetric,
+        "frames": [f"frames/{i:04d}.jpg" for i in range(n)],
+        "masks": [f"masks/{i:04d}.png" for i in range(n)],
+        "mask_width": int(masks[0].shape[1]),
+        "mask_height": int(masks[0].shape[0]),
+        "coords": [[int(v) for v in coords[i]] for i in range(n)],
+        "mask_coords": [[int(v) for v in mask_coords[i]] for i in range(n)],
+        "latents": {"file": "latents_f16.bin", "shape": [n, 8, 32, 32], "dtype": "float16"},
+        "window": {"padding_left_steps": 4, "padding_right_steps": 12, "steps": 10, "layers": 5, "feature_fps": 50,
+                   "layout": "(step, layer) -> 50 rows of 384"},
+        "blend": {"fixed_point": True, "shrink_mask_bbox": True, "face_resize": "cv2 INTER_LINEAR"},
+    }
+    if args.phone_only:
+        (out / "avatar.json").write_text(json.dumps(geometry, indent=2) + "\n")
+        size = sum(p.stat().st_size for p in out.rglob("*") if p.is_file())
+        print(f"wrote {out / 'avatar.json'} (phone-only); avatar bundle {size / 2**20:.0f} MB", flush=True)
+        return
 
     # audio: 16 kHz float32 for the log-mel model, and a playable cut of the same seconds
     wav, _ = librosa.load(str(args.audio), sr=16000)
@@ -146,32 +176,13 @@ def main() -> None:
         cv2.imwrite(str(out / "check" / f"{i:04d}_composed.png"), composed)
     print(f"  check frames {check}: Core ML chain {np.mean(t_ms[1:]) if len(t_ms) > 1 else t_ms[0]:.1f} ms/frame on the Mac", flush=True)
 
-    meta = {
-        "avatar_id": args.avatar.name,
-        "fps": fps,
-        "video_fps": video_fps,
-        "frame_width": int(frames[0].shape[1]),
-        "frame_height": int(frames[0].shape[0]),
-        "unique_frames": n,
-        "cycle_length": total,
-        "ping_pong": symmetric,
-        "frames": [f"frames/{i:04d}.jpg" for i in range(n)],
-        "masks": [f"masks/{i:04d}.png" for i in range(n)],
-        "mask_width": int(masks[0].shape[1]),
-        "mask_height": int(masks[0].shape[0]),
-        "coords": [[int(v) for v in coords[i]] for i in range(n)],
-        "mask_coords": [[int(v) for v in mask_coords[i]] for i in range(n)],
-        "latents": {"file": "latents_f16.bin", "shape": [n, 8, 32, 32], "dtype": "float16"},
-        "audio": {"source": args.audio.name, "seconds": seconds, "sample_rate": 16000, "samples": samples,
-                  "waveform": "audio_f32.bin", "playback": "audio.m4a",
-                  "windows_ref": {"file": "windows_ref_f16.bin", "shape": list(windows.shape), "dtype": "float16"},
-                  "frames": int(windows.shape[0])},
-        "window": {"padding_left_steps": 4, "padding_right_steps": 12, "steps": 10, "layers": 5, "feature_fps": 50,
-                   "layout": "(step, layer) -> 50 rows of 384"},
-        "check": {"frames": check, "unet": args.unet, "units": "CPU_AND_NE",
-                  "note": "composed in Python with the same Core ML models onto the shipped JPEG frame; face = raw 256 px decoder output (BGR png)"},
-        "blend": {"fixed_point": True, "shrink_mask_bbox": True, "face_resize": "cv2 INTER_LINEAR"},
-    }
+    meta = dict(geometry)
+    meta["audio"] = {"source": args.audio.name, "seconds": seconds, "sample_rate": 16000, "samples": samples,
+                     "waveform": "audio_f32.bin", "playback": "audio.m4a",
+                     "windows_ref": {"file": "windows_ref_f16.bin", "shape": list(windows.shape), "dtype": "float16"},
+                     "frames": int(windows.shape[0])}
+    meta["check"] = {"frames": check, "unet": args.unet, "units": "CPU_AND_NE",
+                     "note": "composed in Python with the same Core ML models onto the shipped JPEG frame; face = raw 256 px decoder output (BGR png)"}
     (out / "avatar.json").write_text(json.dumps(meta, indent=2) + "\n")
     size = sum(p.stat().st_size for p in out.rglob("*") if p.is_file())
     print(f"wrote {out / 'avatar.json'}; avatar bundle {size / 2**20:.0f} MB", flush=True)

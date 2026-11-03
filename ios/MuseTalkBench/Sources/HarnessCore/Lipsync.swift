@@ -36,7 +36,8 @@ public struct AvatarMeta: Decodable {
     public let coords: [[Int]]
     public let mask_coords: [[Int]]
     public let latents: TensorFile
-    public let audio: AvatarAudioMeta
+    /// The harness clip; absent in phone-only bundles (`prepare_avatar_bundle.py --phone-only`).
+    public let audio: AvatarAudioMeta?
     public let check: AvatarCheckMeta?
 }
 
@@ -254,7 +255,8 @@ public final class AvatarBundle {
     }
 
     public var fps: Int { meta.fps }
-    public var totalFrames: Int { meta.audio.frames }
+    /// Frames of the bundled harness clip (0 for a phone-only bundle).
+    public var totalFrames: Int { meta.audio?.frames ?? 0 }
 
     /// Cycle position -> unique frame index (ping-pong caches store the reversed half only once).
     public func uniqueIndex(_ i: Int) -> Int {
@@ -300,27 +302,37 @@ public struct AudioWindows {
     public func window(_ i: Int) -> ArraySlice<Float> { data[(i * 50 * 384) ..< ((i + 1) * 50 * 384)] }
 }
 
-/// waveform (16 kHz, <= 30 s) -> per-frame UNet audio windows, through the Core ML log-mel and encoder.
+/// waveform (16 kHz, any length) -> per-frame UNet audio windows, through the Core ML log-mel and encoder. Audio
+/// longer than one Whisper segment (30 s) is encoded segment by segment and the features concatenated before the
+/// gather, as the repo's AudioProcessor does, so a window at a segment boundary sees both sides.
 public func computeAudioWindows(waveform: [Float], fps: Int, logmel: MLModel, logmelMeta: ModelMeta,
                                 encoder: MLModel, encoderMeta: ModelMeta) throws -> AudioWindows {
     let segSamples = 16000 * 30
-    var seg = [Float](repeating: 0, count: segSamples)
-    let n = min(waveform.count, segSamples)
-    seg.replaceSubrange(0 ..< n, with: waveform[0 ..< n])
-    let lmIn = logmelMeta.inputs[0]
-    let wave = try makeArray(seg, shape: lmIn.shape, dtype: try mlDataType(lmIn.dtype))
-    let mel = try output(logmel.prediction(from: MLDictionaryFeatureProvider(dictionary: [lmIn.name: wave])),
-                         logmelMeta.outputs.first?.name ?? "logmel")
-    let encIn = encoderMeta.inputs[0]
-    let melIn = try convert(mel, to: try mlDataType(encIn.dtype))
-    let feat = try output(encoder.prediction(from: MLDictionaryFeatureProvider(dictionary: [encIn.name: melIn])),
-                          encoderMeta.outputs.first?.name ?? "features")
-    let features = floats(feat)  // [1500, 5, 384]
     let layers = 5, dim = 384, steps = 10
-    let actual = Int((Double(n) / 16000.0 * 50.0).rounded(.down))
-    let frames = Int((Double(n) / 16000.0 * Double(fps)).rounded(.down))
+    let lmIn = logmelMeta.inputs[0]
+    let encIn = encoderMeta.inputs[0]
+    var features: [Float] = []  // [actualTotal, 5, 384], 50 steps per second of audio
+    var actualTotal = 0
+    var offset = 0
+    repeat {
+        let n = max(0, min(waveform.count - offset, segSamples))
+        var seg = [Float](repeating: 0, count: segSamples)
+        if n > 0 { seg.replaceSubrange(0 ..< n, with: waveform[offset ..< offset + n]) }
+        let wave = try makeArray(seg, shape: lmIn.shape, dtype: try mlDataType(lmIn.dtype))
+        let mel = try output(logmel.prediction(from: MLDictionaryFeatureProvider(dictionary: [lmIn.name: wave])),
+                             logmelMeta.outputs.first?.name ?? "logmel")
+        let melIn = try convert(mel, to: try mlDataType(encIn.dtype))
+        let feat = try output(encoder.prediction(from: MLDictionaryFeatureProvider(dictionary: [encIn.name: melIn])),
+                              encoderMeta.outputs.first?.name ?? "features")
+        let f = floats(feat)  // [1500, 5, 384]
+        let actual = min(1500, Int((Double(n) / 16000.0 * 50.0).rounded(.down)))
+        features.append(contentsOf: f[0 ..< actual * layers * dim])
+        actualTotal += actual
+        offset += segSamples
+    } while offset < waveform.count
+    let frames = Int((Double(waveform.count) / 16000.0 * Double(fps)).rounded(.down))
     let padL = 4, padR = 12
-    let total = padL + actual + padR
+    let total = padL + actualTotal + padR
     var data = [Float](repeating: 0, count: frames * steps * layers * dim)
     data.withUnsafeMutableBufferPointer { out in
         features.withUnsafeBufferPointer { f in
@@ -329,7 +341,7 @@ public func computeAudioWindows(waveform: [Float], fps: Int, logmel: MLModel, lo
                 for s in 0 ..< steps {
                     let t = a + s  // index into the padded timeline
                     let src = t - padL
-                    guard t < total, src >= 0, src < actual, src < 1500 else { continue }  // zero padding
+                    guard t < total, src >= 0, src < actualTotal else { continue }  // zero padding
                     for l in 0 ..< layers {
                         let o = ((i * steps + s) * layers + l) * dim
                         let si = (src * layers + l) * dim
@@ -354,7 +366,10 @@ public struct FrameTiming {
 /// Everything one talking-head frame needs, loaded once.
 public final class LipsyncEngine {
     public let harness: Harness
+    /// The talking cache: what a single-avatar caller (the harness app, the gate) lipsyncs on.
     public let avatar: AvatarBundle
+    /// Every cache the session can draw or lipsync on, by slot (Poses.swift); `.talking` is always present.
+    public let avatars: [PoseSlot: AvatarBundle]
     public let spec: UNetSpec
     public let units: MLComputeUnits
     public var log: (String) -> Void = { print($0) }
@@ -362,22 +377,52 @@ public final class LipsyncEngine {
     private var unet: StagedUNet? = nil
     private var taesd: MLModel? = nil
     private var taesdMeta: ModelMeta? = nil
-    private var sampleArrays: [MLMultiArray] = []
+    private var sampleArrays: [PoseSlot: [MLMultiArray]] = [:]
     private var sampleName = "sample", audioName = "audio"
     private var audioDType: MLMultiArrayDataType = .float16
     public private(set) var windows: AudioWindows? = nil
     public private(set) var loadSeconds = 0.0
     public private(set) var audioSeconds = 0.0
 
-    public init(resources: URL, avatarDir: URL, units: MLComputeUnits = .cpuAndNeuralEngine, preferChunked: Bool = true) throws {
+    public convenience init(resources: URL, avatarDir: URL, units: MLComputeUnits = .cpuAndNeuralEngine, preferChunked: Bool = true) throws {
+        try self.init(resources: resources, avatarDirs: [.talking: avatarDir], units: units, preferChunked: preferChunked)
+    }
+
+    /// `avatarDirs` must hold `.talking`; `.idle` and `.smiling` are what the character has on this phone.
+    public init(resources: URL, avatarDirs: [PoseSlot: URL], units: MLComputeUnits = .cpuAndNeuralEngine, preferChunked: Bool = true) throws {
         harness = try Harness(resources: resources)
-        avatar = try AvatarBundle(dir: avatarDir)
+        var loaded: [PoseSlot: AvatarBundle] = [:]
+        for (slot, dir) in avatarDirs { loaded[slot] = try AvatarBundle(dir: dir) }
+        guard let talking = loaded[.talking] else { throw HarnessError.noModel("no talking avatar bundle") }
+        avatars = loaded
+        avatar = talking
         self.units = units
         let specs = harness.unetSpecs().filter { $0.batch == 1 }
         guard let s = (preferChunked ? specs.first(where: { $0.stages.count > 1 }) : nil) ?? specs.first else {
             throw HarnessError.noModel("no batch-1 UNet in the bundle")
         }
         spec = s
+    }
+
+    public var availableSlots: Set<PoseSlot> { Set(avatars.keys) }
+
+    /// The cache for a slot, falling back the way a three-cache pose set does (smiling → idle → talking).
+    public func bundle(_ slot: PoseSlot) -> AvatarBundle {
+        avatars[FramePlan.resolve(slot, available: availableSlots)] ?? avatar
+    }
+
+    /// Clip cycle lengths per slot (the ping-pong cycle, as the latents and frames are indexed).
+    public var cycleLengths: [PoseSlot: Int] {
+        var out: [PoseSlot: Int] = [:]
+        for (slot, b) in avatars { out[slot] = max(1, b.meta.cycle_length) }
+        return out
+    }
+
+    /// Forward clip lengths per slot (the unique frames): the body playback policy plays the original range and wraps.
+    public var forwardLengths: [PoseSlot: Int] {
+        var out: [PoseSlot: Int] = [:]
+        for (slot, b) in avatars { out[slot] = max(1, b.meta.unique_frames) }
+        return out
     }
 
     /// Load the UNet and TAESD (the compile happens here on a first launch) and prebuild the per-frame latents.
@@ -398,36 +443,60 @@ public final class LipsyncEngine {
         sampleName = sIn.name; audioName = aIn.name
         audioDType = try mlDataType(aIn.dtype)
         let sType = try mlDataType(sIn.dtype)
-        sampleArrays = try (0 ..< avatar.meta.unique_frames).map { u in
-            try makeArray(avatar.latents.frame(u), shape: [1] + avatar.latents.frameShape, dtype: sType)
+        var latentCount = 0
+        for (slot, b) in avatars {
+            sampleArrays[slot] = try (0 ..< b.meta.unique_frames).map { u in
+                try makeArray(b.latents.frame(u), shape: [1] + b.latents.frameShape, dtype: sType)
+            }
+            latentCount += b.meta.unique_frames
         }
         loadSeconds = now() - t0
-        log("lipsync: models loaded in \(String(format: "%.2f", loadSeconds)) s, \(sampleArrays.count) frame latents ready (\(memLine()))")
+        log("lipsync: models loaded in \(String(format: "%.2f", loadSeconds)) s, \(latentCount) frame latents ready for \(avatars.keys.map { $0.rawValue }.sorted().joined(separator: "/")) (\(memLine()))")
     }
 
-    /// Run the clip's audio through log-mel + encoder + the window gather.
-    public func prepareAudio() throws {
+    /// The harness clip's 16 kHz waveform, when the bundle carries one.
+    public func bundledWaveform() throws -> [Float] {
+        guard let a = avatar.meta.audio else { throw HarnessError.noModel("this avatar bundle has no clip (phone-only)") }
+        return try FlatTensor.load(TensorFile(file: a.waveform, shape: [1, a.samples], dtype: "float32"), in: avatar.dir).frame(0)
+    }
+
+    /// The harness clip's playable file, when the bundle carries one.
+    public var playbackURL: URL? { avatar.meta.audio.map { avatar.dir.appendingPathComponent($0.playback) } }
+
+    /// Run the bundled clip through log-mel + encoder + the window gather.
+    public func prepareAudio() throws { try prepareAudio(waveform: try bundledWaveform()) }
+
+    private var logmel: MLModel? = nil
+    private var encoder: MLModel? = nil
+    private var logmelMeta: ModelMeta? = nil
+    private var encoderMeta: ModelMeta? = nil
+
+    /// Run a 16 kHz mono waveform (any length) through log-mel + encoder + the window gather. The Whisper models are
+    /// loaded on first use and kept (log-mel on the CPU, encoder on the Neural Engine).
+    public func prepareAudio(waveform: [Float]) throws {
         let t0 = now()
-        let a = avatar.meta.audio
-        let wave = try FlatTensor.load(TensorFile(file: a.waveform, shape: [1, a.samples], dtype: "float32"),
-                                       in: avatar.dir).frame(0)
-        guard let lm = harness.meta.models(ofKind: "whisper_logmel").first,
-              let em = harness.meta.models(ofKind: "whisper_encoder").first else {
-            throw HarnessError.noModel("whisper models")
+        if logmel == nil || encoder == nil {
+            guard let lm = harness.meta.models(ofKind: "whisper_logmel").first,
+                  let em = harness.meta.models(ofKind: "whisper_encoder").first else {
+                throw HarnessError.noModel("whisper models")
+            }
+            let cpu = MLModelConfiguration(); cpu.computeUnits = .cpuOnly
+            let ne = MLModelConfiguration(); ne.computeUnits = .cpuAndNeuralEngine
+            logmel = try MLModel(contentsOf: harness.resources.appendingPathComponent(lm.file), configuration: cpu)
+            encoder = try MLModel(contentsOf: harness.resources.appendingPathComponent(em.file), configuration: ne)
+            logmelMeta = lm; encoderMeta = em
         }
-        let cpu = MLModelConfiguration(); cpu.computeUnits = .cpuOnly
-        let ne = MLModelConfiguration(); ne.computeUnits = .cpuAndNeuralEngine
-        let logmel = try MLModel(contentsOf: harness.resources.appendingPathComponent(lm.file), configuration: cpu)
-        let encoder = try MLModel(contentsOf: harness.resources.appendingPathComponent(em.file), configuration: ne)
-        windows = try computeAudioWindows(waveform: wave, fps: avatar.fps, logmel: logmel, logmelMeta: lm, encoder: encoder, encoderMeta: em)
+        windows = try computeAudioWindows(waveform: waveform, fps: avatar.fps, logmel: logmel!, logmelMeta: logmelMeta!,
+                                          encoder: encoder!, encoderMeta: encoderMeta!)
         audioSeconds = now() - t0
-        log("lipsync: audio windows for \(windows!.frames) frames at \(avatar.fps) fps in \(String(format: "%.2f", audioSeconds)) s")
+        log("lipsync: audio windows for \(windows!.frames) frames at \(avatar.fps) fps (\(String(format: "%.1f", Double(waveform.count) / 16000)) s of audio) in \(String(format: "%.2f", audioSeconds)) s")
     }
 
     /// Max / mean abs difference of the Swift windows against the repo's windows exported with the avatar.
     public func checkWindows() throws -> (maxAbs: Double, meanAbs: Double, frames: Int) {
         guard let w = windows else { throw HarnessError.noModel("windows not prepared") }
-        let ref = try FlatTensor.load(avatar.meta.audio.windows_ref, in: avatar.dir)
+        guard let a = avatar.meta.audio else { throw HarnessError.noModel("no reference windows in a phone-only bundle") }
+        let ref = try FlatTensor.load(a.windows_ref, in: avatar.dir)
         let n = min(w.frames, ref.frameCount)
         var mx = 0.0, sum = 0.0, cnt = 0
         for i in 0 ..< n {
@@ -458,16 +527,24 @@ public final class LipsyncEngine {
         return rgb
     }
 
-    /// Stage A (Neural Engine): UNet chunks + TAESD for clip position `i` -> the 256x256 RGB face.
+    /// Stage A (Neural Engine): UNet chunks + TAESD for clip position `i` of the talking cache -> the 256x256 RGB face.
     /// Safe to run concurrently with `composeFrame`: it touches only the models, the windows and the prebuilt latents.
     public func inferFace(_ i: Int) throws -> (face: [UInt8], unetMs: Double, decodeMs: Double) {
+        try inferFace(audioFrame: i, slot: .talking, cycle: i)
+    }
+
+    /// Stage A for audio window `i` on clip position `cycle` of `slot`'s cache (a turn whose pose plan switches caches).
+    public func inferFace(audioFrame i: Int, slot: PoseSlot, cycle: Int) throws -> (face: [UInt8], unetMs: Double, decodeMs: Double) {
         guard let unet = unet, let taesd = taesd, let tm = taesdMeta, let w = windows else {
             throw HarnessError.noModel("engine not loaded")
         }
-        let u = avatar.uniqueIndex(i)
+        let resolved = FramePlan.resolve(slot, available: availableSlots)
+        let b = bundle(resolved)
+        guard let samples = sampleArrays[resolved], !samples.isEmpty else { throw HarnessError.noModel("no latents for \(resolved.rawValue)") }
+        let u = b.uniqueIndex(cycle)
         let t0 = now()
         let audio = try makeArray(Array(w.window(i)), shape: [1, 50, 384], dtype: audioDType)
-        let pred = try output(unet.predict(MLDictionaryFeatureProvider(dictionary: [sampleName: sampleArrays[u], audioName: audio])),
+        let pred = try output(unet.predict(MLDictionaryFeatureProvider(dictionary: [sampleName: samples[u], audioName: audio])),
                               spec.outputName)
         let t1 = now()
         let latIn = tm.inputs[0]
@@ -478,14 +555,26 @@ public final class LipsyncEngine {
         return (rgb, (t1 - t0) * 1000, (t2 - t1) * 1000)
     }
 
-    /// Stage B (CPU): the cached frame for clip position `i` with the face pasted in (JPEG decode on a cache miss, resize, blend).
+    /// Stage B (CPU): the talking cache's frame for clip position `i` with the face pasted in (JPEG decode on a cache miss, resize, blend).
     public func composeFrame(_ i: Int, face: [UInt8]) throws -> (RGBAImage, composeMs: Double) {
-        let u = avatar.uniqueIndex(i)
+        try composeFrame(slot: .talking, cycle: i, face: face)
+    }
+
+    /// Stage B on clip position `cycle` of `slot`'s cache.
+    public func composeFrame(slot: PoseSlot, cycle: Int, face: [UInt8]) throws -> (RGBAImage, composeMs: Double) {
+        let b = bundle(slot)
+        let u = b.uniqueIndex(cycle)
         let t0 = now()
-        let frame = try avatar.frame(u)
-        let plan = try avatar.plan(u)
+        let frame = try b.frame(u)
+        let plan = try b.plan(u)
         let img = compose(frame: frame, face256: face, plan: plan)
         return (img, (now() - t0) * 1000)
+    }
+
+    /// A cache's frame as it is, no lipsync (the idle track between turns).
+    public func plainFrame(slot: PoseSlot, cycle: Int) throws -> RGBAImage {
+        let b = bundle(slot)
+        return try b.frame(b.uniqueIndex(cycle))
     }
 
     /// One composed frame for clip position `i` (both stages, sequentially).
@@ -522,6 +611,14 @@ public final class LipsyncEngine {
     }
 }
 
+extension NSLock {
+    /// `NSLock.withLock` needs iOS 16; this runs on the Lingua app's iOS 15.1 floor.
+    @inline(__always) func sync<T>(_ body: () throws -> T) rethrows -> T {
+        lock(); defer { unlock() }
+        return try body()
+    }
+}
+
 // MARK: - two-stage pipeline
 
 /// The frame loop split over two threads: the Neural Engine stage (`inferFace`: UNet chunks + TAESD) and the CPU stage
@@ -536,6 +633,7 @@ public final class LipsyncPipeline {
         public var composed = 0         // frames composed and emitted
         public var skipped = 0          // never inferred: the clock had passed them
         public var droppedLate = 0      // inferred, then too late to compose
+        public var crossfaded = 0       // emitted frames blended with the previous pose's anchor
         public var inferMsSum = 0.0
         public var composeMsSum = 0.0
         public var leadFrames = 1       // how far ahead of the audio clock the last catch-up aimed
@@ -552,6 +650,13 @@ public final class LipsyncPipeline {
     public var targetIndex: () -> Int? = { nil }
     public var downstreamCount: () -> Int = { 0 }
     public var log: (String) -> Void = { _ in }
+    /// Which cache and clip position each live frame uses, and the crossfades (nil = the talking cache at position i).
+    public var plan: FramePlan? = nil
+    /// The frame on screen when the turn starts (the frozen idle frame): the anchor of the first segment's crossfade.
+    public var seamAnchor: RGBAImage? = nil
+    /// The last composed frame of the turn, for the seam back to the idle track (read from any thread).
+    public var lastEmitted: RGBAImage? { lock.sync { lastEmittedValue } }
+    private var lastEmittedValue: RGBAImage? = nil
 
     private let lock = NSLock()
     private var queue: [(Int, [UInt8])] = []
@@ -572,12 +677,12 @@ public final class LipsyncPipeline {
     /// Frames to aim ahead of the clock when catching up: the pipeline's own latency in frames, plus one. A frame
     /// inferred *at* the clock comes out 1–2 frames late on an A14 and is dropped; aimed ahead, it is shown.
     private func leadFrames() -> Int {
-        let ms = lock.withLock { recentMs }
+        let ms = lock.sync { recentMs }
         return ms > 0 ? Int((ms / frameMs).rounded(.up)) + 1 : 1
     }
 
     private func observe(frameMs ms: Double) {
-        lock.withLock { recentMs = recentMs > 0 ? recentMs * 0.8 + ms * 0.2 : ms }
+        lock.sync { recentMs = recentMs > 0 ? recentMs * 0.8 + ms * 0.2 : ms }
     }
 
     /// Starts both stages. `emit` runs on the CPU stage's thread with every composed frame; `done` once, when the
@@ -588,34 +693,37 @@ public final class LipsyncPipeline {
         let infer = Thread { [self] in
             var i = first
             while i < total {
-                if lock.withLock({ stopped }) { break }
+                if lock.sync({ stopped }) { break }
                 if let t = targetIndex() {
                     let lead = leadFrames()
                     if t + lead > i {
-                        lock.withLock { stats.skipped += t + lead - i; stats.leadFrames = lead }
+                        lock.sync { stats.skipped += t + lead - i; stats.leadFrames = lead }
                         i = t + lead
                         if i >= total { break }
                     }
                 }
                 if downstreamCount() + queued >= aheadFrames || queued >= queueDepth { usleep(1000); continue }
                 do {
-                    let r = try engine.inferFace(i)
-                    lock.withLock {
+                    let e = plan?.entry(i)
+                    let r = try engine.inferFace(audioFrame: i, slot: e?.slot ?? .talking, cycle: e?.cycle ?? i)
+                    lock.sync {
                         queue.append((i, r.face))
                         stats.generated += 1
                         stats.inferMsSum += r.unetMs + r.decodeMs
                     }
-                    observe(frameMs: r.unetMs + r.decodeMs + lock.withLock { stats.composeMs })
+                    observe(frameMs: r.unetMs + r.decodeMs + lock.sync { stats.composeMs })
                 } catch {
                     log("infer \(i): \(error)")
                 }
                 i += 1
             }
-            lock.withLock { inferDone = true }
+            lock.sync { inferDone = true }
         }
         let compose = Thread { [self] in
+            var anchor: RGBAImage? = nil          // the previous pose's last composed frame, frozen at a switch
+            var anchorSegment = Int.min
             while true {
-                let (item, finished): ((Int, [UInt8])?, Bool) = lock.withLock {
+                let (item, finished): ((Int, [UInt8])?, Bool) = lock.sync {
                     (queue.isEmpty ? nil : queue.removeFirst(), stopped || (inferDone && queue.isEmpty))
                 }
                 guard let (i, face) = item else {
@@ -624,13 +732,29 @@ public final class LipsyncPipeline {
                     continue
                 }
                 if let t = targetIndex(), i < t {
-                    lock.withLock { stats.droppedLate += 1 }
+                    lock.sync { stats.droppedLate += 1 }
                     continue
                 }
                 do {
-                    let (img, ms) = try engine.composeFrame(i, face: face)
+                    let e = plan?.entry(i)
+                    var (img, ms) = try engine.composeFrame(slot: e?.slot ?? .talking, cycle: e?.cycle ?? i, face: face)
+                    var blended = false
+                    if let e = e, let (k, n) = e.crossfade {
+                        // the scheduler's crossfade: the old pose's last frame fades under the incoming frames
+                        if anchorSegment != e.segmentStart {
+                            anchorSegment = e.segmentStart
+                            anchor = lock.sync { lastEmittedValue } ?? seamAnchor
+                        }
+                        if let an = anchor {
+                            let t0 = now()
+                            img = crossfade(anchor: an, incoming: img, alpha: crossfadeAlpha(k, of: n))
+                            ms += (now() - t0) * 1000
+                            blended = true
+                        }
+                    }
+                    lock.sync { lastEmittedValue = img }
                     emit(i, img)
-                    lock.withLock { stats.composed += 1; stats.composeMsSum += ms }
+                    lock.sync { stats.composed += 1; stats.composeMsSum += ms; if blended { stats.crossfaded += 1 } }
                 } catch {
                     log("compose \(i): \(error)")
                 }
@@ -644,7 +768,7 @@ public final class LipsyncPipeline {
         compose.start()
     }
 
-    public func cancel() { lock.withLock { stopped = true } }
+    public func cancel() { lock.sync { stopped = true } }
 }
 
 // MARK: - staged UNet shared with the harness

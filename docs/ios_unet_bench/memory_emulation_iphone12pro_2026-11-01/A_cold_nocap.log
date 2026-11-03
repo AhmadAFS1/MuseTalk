@@ -1,0 +1,22 @@
+== 19:48:42 label=A_cold_nocap install=0 args: --lipsync --exit --silent --mem-trace
+[mem] trace started (mem 10 MB, 3061 MB left)
+[mem] t=0.0 s footprint 11 MB, 3061 MB left (peak 11)
+[lipsync] lipsync: loading unet_anec0_int8w_b1_chunked (2 stage(s)) on CPU_AND_NE (mem 11 MB, 3060 MB left)
+[mem] t=5.0 s footprint 37 MB, 3035 MB left (peak 47)
+[mem] t=10.3 s footprint 37 MB, 3035 MB left (peak 47)
+[mem] t=15.5 s footprint 41 MB, 3031 MB left (peak 54)
+[mem] t=20.5 s footprint 41 MB, 3031 MB left (peak 54)
+[mem] t=25.8 s footprint 41 MB, 3031 MB left (peak 54)
+[lipsync] lipsync: models loaded in 26.76 s, 241 frame latents ready (mem 28 MB, 3043 MB left)
+[lipsync] lipsync: audio windows for 426 frames at 24 fps (17.8 s of audio) in 3.61 s
+[mem] t=30.5 s footprint 107 MB, 2965 MB left (peak 107)
+[lipsync] clock started after pre-roll: play() false, route , system volume 0.00, 10 frames buffered, 4.25 s after speak()
+[mem] t=35.8 s footprint 128 MB, 2944 MB left (peak 148)
+[mem] t=40.8 s footprint 131 MB, 2941 MB left (peak 148)
+[mem] t=46.0 s footprint 135 MB, 2937 MB left (peak 148)
+LIPSYNC_RESULT {"audio_played":false,"audio_prep_s":3.6073605839628726,"audio_route":"","avatar":"latina_guided_20260925_talking_84c5bc80b8","dropped_late":0,"fps":24,"frames":426,"gen_ms_per_frame":75.060739636825559,"generated":281,"generated_fps":15.799155845786151,"lead_frames":3,"load_s":26.763952000066638,"pipelined":true,"preroll_frames":10,"preroll_s":0.40000000000000002,"seconds":17.785760374972597,"shown":280,"shown_fps":15.742931091886557,"skipped":145,"stage_compose_ms":10.01037753334607,"stage_infer_ms":65.050362103479486,"stalls":0,"start_latency_s":4.247973749996163,"system_volume":0,"unet":"unet_anec0_int8w_b1_chunked"}
+MEM_RESULT {"ballast_mb":0,"footprint_now_mb":135,"headroom_now_mb":2937,"min_headroom_mb":2924,"peak_footprint_mb":148,"pressure_criticals":0,"pressure_warnings":0,"samples":197,"seconds":48.799999999999997}
+Launched application with com.lingua.musetalkbench bundle identifier.
+Waiting for the application to terminate...
+The app terminated with the exit code 0.
+== 19:49:31 launch exit 0
