@@ -1,0 +1,13 @@
+[1 A] gen 262/426 = 14.79 fps, shown 261, infer 69.7 ms, compose 9.8 ms, decode 7.1 ms, skipped 164, late 0, stalls 0, lead 3, workers 1, unet unet_anec0_int8w_b1_chunked
+[2 B] gen 319/426 = 18.01 fps, shown 318, infer 114.5 ms, compose 7.5 ms, decode 25.0 ms, skipped 108, late 0, stalls 0, lead 3, workers 2, unet unet_anec0_int8w_b1_chunked
+[3 C] gen 304/426 = 17.16 fps, shown 303, infer 120.0 ms, compose 40.4 ms, decode 33.2 ms, skipped 123, late 0, stalls 0, lead 4, workers 2, unet unet_anev2fc0_int8w_b1_chunked
+[4 D] gen 330/426 = 18.62 fps, shown 328, infer 110.7 ms, compose 6.1 ms, decode 24.0 ms, skipped 98, late 0, stalls 0, lead 3, workers 2, unet unet_anev2fc0_int8w_b1_chunked
+[5 D] gen 330/426 = 18.61 fps, shown 328, infer 110.6 ms, compose 5.7 ms, decode 23.9 ms, skipped 98, late 0, stalls 0, lead 3, workers 2, unet unet_anev2fc0_int8w_b1_chunked
+[6 C] gen 303/426 = 17.10 fps, shown 301, infer 120.6 ms, compose 39.6 ms, decode 33.5 ms, skipped 125, late 0, stalls 0, lead 4, workers 2, unet unet_anev2fc0_int8w_b1_chunked
+[7 B] gen 314/426 = 17.72 fps, shown 312, infer 116.3 ms, compose 6.5 ms, decode 25.5 ms, skipped 113, late 0, stalls 0, lead 3, workers 2, unet unet_anec0_int8w_b1_chunked
+== 22:54:04 SoulX closed and phone unlocked; cooling 300 s
+== 23:15:48 phone ready
+[compile] [bench] device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal fair, runtime iOS
+[compile] [bench] thermal state -> serious
+[compile] [bench] unet_anec0_int8w_b1_chunked [CPU_AND_NE]: 66.52 ms/frame mean, p99 68.24, max 68.32 over 20 calls of 1 (mem 54 MB, 3017 MB left)
+[8 A] hung at load: SoulX Studio opened on the phone at ~23:32; stopped at 00:16, mirror rerun in matrix3
