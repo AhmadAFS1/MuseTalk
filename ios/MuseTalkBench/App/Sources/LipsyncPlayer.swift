@@ -29,10 +29,13 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         var deferDecode = false          // --defer-decode: TAESD in the compose stage, the ANE stage runs the UNet alone
         var fastPrediction = false       // --fast-prediction: MLOptimizationHints.specializationStrategy = .fastPrediction
         var inferWorkers = 1             // --infer-workers N: Neural Engine stage threads
+        var gpuUNet: String? = nil       // --gpu-unet <spec name>: a GPU worker's UNet (the same chunks, or a plain-layout one)
+        var gpuWorkers = 0               // --gpu-workers N (default 1 with --gpu-unet, else 0)
 
         static func parse(_ args: [String]) -> LaunchOptions {
             var o = LaunchOptions()
             var i = 0
+            var workers: Int? = nil
             func value() -> String? { i + 1 < args.count ? args[i + 1] : nil }
             while i < args.count {
                 switch args[i] {
@@ -48,10 +51,13 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                 case "--defer-decode": o.deferDecode = true
                 case "--fast-prediction": o.fastPrediction = true
                 case "--infer-workers": o.inferWorkers = value().flatMap(Int.init) ?? 1; i += 1
+                case "--gpu-unet": o.gpuUNet = value(); i += 1
+                case "--gpu-workers": workers = value().flatMap(Int.init) ?? 0; i += 1
                 default: break
                 }
                 i += 1
             }
+            o.gpuWorkers = workers ?? (o.gpuUNet != nil ? 1 : 0)
             return o
         }
     }
@@ -114,6 +120,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                 if opts.taesdGPU { engine.taesdUnits = .cpuAndGPU }
                 if let u = opts.taesdUnits.flatMap(unitsFromName) { engine.taesdUnits = u }
                 engine.deferDecode = opts.deferDecode
+                engine.gpuUNetName = opts.gpuWorkers > 0 ? opts.gpuUNet : nil
                 try engine.load()
                 let resting = try engine.avatar.frame(0).cgImage()
                 await MainActor.run { [weak self] in
@@ -140,6 +147,12 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                 session.config.prerollSeconds = opts.preroll
                 session.config.playAudio = !opts.silent
                 session.config.inferWorkers = opts.inferWorkers
+                session.config.gpuWorkers = opts.gpuWorkers
+                if engine.gpuSpec != nil {
+                    let t0 = now()
+                    let ms = try engine.warmUpGPU()
+                    log(String(format: "lipsync: GPU worker warm-up %.1f s, then %.1f ms per frame", now() - t0, ms))
+                }
                 session.log = log
                 session.onStateChange = { [weak self] s in Task { @MainActor [weak self] in self?.apply(s) } }
                 session.onFinished = { [weak self] r in Task { @MainActor [weak self] in self?.finish(r) } }

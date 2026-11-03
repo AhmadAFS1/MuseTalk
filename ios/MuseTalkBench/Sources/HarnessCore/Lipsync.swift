@@ -378,8 +378,15 @@ public final class LipsyncEngine {
     /// Decode in the pipeline's compose stage instead of the Neural Engine stage: the ANE stage then runs only the
     /// UNet chunks, and TAESD (on `taesdUnits`, e.g. the GPU) + the RGB conversion overlap the next frame's UNet.
     public var deferDecode = false
+    /// A second UNet for `LipsyncPipeline.gpuWorkers`, loaded on the GPU next to the Neural Engine one: the same
+    /// chunks, or a plain-layout UNet (faster on a GPU). nil = none. Set before `load()`; its first prediction (the
+    /// GPU's compile) is `warmUpGPU()`, which the pipeline's GPU worker runs before it takes frames.
+    public var gpuUNetName: String? = nil
+    public private(set) var gpuSpec: UNetSpec? = nil
 
     private var unet: StagedUNet? = nil
+    private var gpuUnet: StagedUNet? = nil
+    private var gpuTaesd: MLModel? = nil
     private var taesd: MLModel? = nil
     private var taesdMeta: ModelMeta? = nil
     private var sampleArrays: [PoseSlot: [MLMultiArray]] = [:]
@@ -453,6 +460,19 @@ public final class LipsyncEngine {
         taesd = try MLModel(contentsOf: harness.resources.appendingPathComponent(tm.file), configuration: cfg)
         if taesdUnits != nil || deferDecode {
             log("lipsync: TAESD on \(unitsName(taesdUnits ?? units)), decoded in the \(deferDecode ? "compose" : "Neural Engine") stage")
+        }
+        if let name = gpuUNetName {
+            guard let gs = harness.unetSpecs().first(where: { $0.batch == 1 && $0.name == name }) else { throw HarnessError.noModel(name) }
+            guard Set(gs.inputs.map { $0.name }) == Set(spec.inputs.map { $0.name }) else {
+                throw HarnessError.noModel("\(name): inputs \(gs.inputs.map { $0.name }) differ from \(spec.name)'s")
+            }
+            gpuSpec = gs
+            gpuUnet = try harness.makeStagedUNet(gs, units: .cpuAndGPU)
+            let gcfg = MLModelConfiguration()
+            gcfg.computeUnits = .cpuAndGPU
+            ModelTuning.configure(gcfg)
+            gpuTaesd = try MLModel(contentsOf: harness.resources.appendingPathComponent(tm.file), configuration: gcfg)
+            log("lipsync: GPU worker UNet \(name) (\(gs.stages.count) stage(s)) + TAESD on CPU_AND_GPU")
         }
         let ins = spec.inputs
         let sIn = ins.first { $0.name == "sample" } ?? ins[0]
@@ -551,15 +571,44 @@ public final class LipsyncEngine {
     }
 
     /// Stage A for audio window `i` on clip position `cycle` of `slot`'s cache (a turn whose pose plan switches caches).
-    public func inferFace(audioFrame i: Int, slot: PoseSlot, cycle: Int) throws -> (face: [UInt8], unetMs: Double, decodeMs: Double) {
-        let l = try inferLatent(audioFrame: i, slot: slot, cycle: cycle)
-        let d = try decodeFace(l.latent)
+    /// `gpu`: the GPU worker's UNet and TAESD (`gpuUNetName`) instead of the Neural Engine's.
+    public func inferFace(audioFrame i: Int, slot: PoseSlot, cycle: Int, gpu: Bool = false) throws -> (face: [UInt8], unetMs: Double, decodeMs: Double) {
+        let l = try inferLatent(audioFrame: i, slot: slot, cycle: cycle, gpu: gpu)
+        let d = try decodeFace(l.latent, gpu: gpu)
         return (d.face, l.unetMs, d.decodeMs)
     }
 
+    /// The GPU worker's first predictions (its compile: 0.5 s for the plain fp16 UNet, 17 s for int8 weights on an
+    /// M5 Pro) on the talking cache's first frame, once per load; returns the last call's UNet + TAESD time, in ms.
+    /// Call it off the main thread after `load()` so a turn's GPU worker starts warm (it needs no audio).
+    public func warmUpGPU(calls: Int = 2) throws -> Double {
+        if let ms = gpuLock.sync({ gpuWarmMs }) { return ms }
+        guard let unet = gpuUnet, let sample = sampleArrays[.talking]?.first else { throw HarnessError.noModel("no GPU UNet loaded") }
+        let silence = try makeArray([Float](repeating: 0, count: 50 * 384), shape: [1, 50, 384], dtype: audioDType)  // no turn's windows needed
+        var ms = 0.0
+        for _ in 0 ..< max(1, calls) {
+            let t0 = now()
+            let pred = try output(unet.predict(MLDictionaryFeatureProvider(dictionary: [sampleName: sample, audioName: silence])), unet.spec.outputName)
+            let unetMs = (now() - t0) * 1000
+            ms = unetMs + (try decodeFace(pred, gpu: true)).decodeMs
+        }
+        gpuLock.sync { gpuWarmMs = ms }
+        return ms
+    }
+
+    /// The warm GPU frame time once `warmUpGPU` has run, else nil.
+    public var gpuWarm: Double? { gpuLock.sync { gpuWarmMs } }
+    /// The GPU workers' frame latency (compose included) at the end of the last turn: the next turn's first estimate,
+    /// closer to a loaded GPU than the warm-up's idle call.
+    public var gpuLatencyHint: Double? { gpuLock.sync { gpuLatencyMs } }
+    func recordGPULatency(_ ms: Double) { gpuLock.sync { gpuLatencyMs = ms } }
+    private var gpuWarmMs: Double? = nil
+    private var gpuLatencyMs: Double? = nil
+    private let gpuLock = NSLock()
+
     /// The UNet chunks alone for audio window `i` on clip position `cycle` of `slot`'s cache -> pred_latents.
-    public func inferLatent(audioFrame i: Int, slot: PoseSlot, cycle: Int) throws -> (latent: MLMultiArray, unetMs: Double) {
-        guard let unet = unet, let w = windows else { throw HarnessError.noModel("engine not loaded") }
+    public func inferLatent(audioFrame i: Int, slot: PoseSlot, cycle: Int, gpu: Bool = false) throws -> (latent: MLMultiArray, unetMs: Double) {
+        guard let unet = gpu ? gpuUnet : unet, let w = windows else { throw HarnessError.noModel(gpu ? "no GPU UNet loaded" : "engine not loaded") }
         let resolved = FramePlan.resolve(slot, available: availableSlots)
         let b = bundle(resolved)
         guard let samples = sampleArrays[resolved], !samples.isEmpty else { throw HarnessError.noModel("no latents for \(resolved.rawValue)") }
@@ -567,13 +616,13 @@ public final class LipsyncEngine {
         let t0 = now()
         let audio = try makeArray(Array(w.window(i)), shape: [1, 50, 384], dtype: audioDType)
         let pred = try output(unet.predict(MLDictionaryFeatureProvider(dictionary: [sampleName: samples[u], audioName: audio])),
-                              spec.outputName)
+                              unet.spec.outputName)
         return (pred, (now() - t0) * 1000)
     }
 
     /// TAESD + the 8-bit RGB conversion: pred_latents -> the 256x256 face. Thread-safe against `inferLatent`.
-    public func decodeFace(_ pred: MLMultiArray) throws -> (face: [UInt8], decodeMs: Double) {
-        guard let taesd = taesd, let tm = taesdMeta else { throw HarnessError.noModel("engine not loaded") }
+    public func decodeFace(_ pred: MLMultiArray, gpu: Bool = false) throws -> (face: [UInt8], decodeMs: Double) {
+        guard let taesd = gpu ? gpuTaesd : taesd, let tm = taesdMeta else { throw HarnessError.noModel(gpu ? "no GPU TAESD loaded" : "engine not loaded") }
         let t0 = now()
         let latIn = tm.inputs[0]
         let faces = try output(taesd.prediction(from: MLDictionaryFeatureProvider(dictionary: [latIn.name: try convert(pred, to: try mlDataType(latIn.dtype))])),
@@ -604,18 +653,19 @@ public final class LipsyncEngine {
     }
 
     /// One composed frame for clip position `i` (both stages, sequentially).
-    public func renderFrame(_ i: Int) throws -> (RGBAImage, FrameTiming) {
-        let a = try inferFace(i)
+    public func renderFrame(_ i: Int, gpu: Bool = false) throws -> (RGBAImage, FrameTiming) {
+        let a = try inferFace(audioFrame: i, slot: .talking, cycle: i, gpu: gpu)
         let b = try composeFrame(i, face: a.face)
         return (b.0, FrameTiming(unetMs: a.unetMs, decodeMs: a.decodeMs, composeMs: b.composeMs))
     }
 
-    /// Mean abs pixel difference against the Python-composed check frames (whole frame, and inside the face box).
-    public func checkFrames() throws -> [(frame: Int, frameMeanAbs: Double, faceMeanAbs: Double, maxAbs: Int)] {
+    /// Mean abs pixel difference against the Python-composed check frames (whole frame, and inside the face box);
+    /// `gpu`: the GPU worker's models.
+    public func checkFrames(gpu: Bool = false) throws -> [(frame: Int, frameMeanAbs: Double, faceMeanAbs: Double, maxAbs: Int)] {
         guard let ck = avatar.meta.check else { return [] }
         var out: [(Int, Double, Double, Int)] = []
         for i in ck.frames where i < frameCount {
-            let (img, _) = try renderFrame(i)
+            let (img, _) = try renderFrame(i, gpu: gpu)
             let ref = try decodeRGBA(avatar.dir.appendingPathComponent(String(format: "check/%04d_composed.png", i)))
             let u = avatar.uniqueIndex(i)
             let box = avatar.meta.coords[u]
@@ -662,11 +712,15 @@ public final class LipsyncPipeline {
         public var crossfaded = 0       // emitted frames blended with the previous pose's anchor
         public var inferMsSum = 0.0     // the Neural Engine stage: UNet (+ TAESD unless the engine defers the decode)
         public var composeMsSum = 0.0   // the compose stage (+ TAESD when deferred)
-        public var decodeMsSum = 0.0    // TAESD + RGB conversion alone, wherever it ran
+        public var decodeMsSum = 0.0    // TAESD + RGB conversion alone, wherever it ran (Neural Engine frames)
+        public var decoded = 0          // the decodes in `decodeMsSum` (a deferred latent dropped late is never decoded)
         public var leadFrames = 1       // how far ahead of the audio clock the last catch-up aimed
-        public var inferMs: Double { generated > 0 ? inferMsSum / Double(generated) : 0 }
+        public var gpuGenerated = 0     // of `generated`, the faces the GPU workers made
+        public var gpuMsSum = 0.0       // their UNet + TAESD on the GPU (not in `inferMsSum`)
+        public var inferMs: Double { generated > gpuGenerated ? inferMsSum / Double(generated - gpuGenerated) : 0 }
+        public var gpuMs: Double { gpuGenerated > 0 ? gpuMsSum / Double(gpuGenerated) : 0 }
         public var composeMs: Double { composed > 0 ? composeMsSum / Double(composed) : 0 }
-        public var decodeMs: Double { generated > 0 ? decodeMsSum / Double(generated) : 0 }
+        public var decodeMs: Double { decoded > 0 ? decodeMsSum / Double(decoded) : 0 }
         public init() {}
     }
 
@@ -694,14 +748,25 @@ public final class LipsyncPipeline {
     private var stats = Stats()
     private var recentMs = 0.0           // moving average of one frame's time through both stages (its latency, not
                                          // the throughput: with several workers a frame still takes a whole call)
+    private var recentGPUMs = 0.0        // the same for the GPU workers' frames (seeded before the first one)
+    private var gpuSamples = 0
     private var stopped = false
     private var inferDone = false
     private var nextIndex = 0
     private var inFlight = Set<Int>()
+    private var reserved = Set<Int>()    // frames at or past `nextIndex` a GPU worker took ahead of the clock
     private var workersLeft = 0
     /// Neural Engine stage threads (1 = one frame at a time, as before). 2 keeps the engine fed across the gaps
     /// between a frame's chunk calls; frames still leave the compose stage in order.
     public var inferWorkers = 1
+    /// GPU threads alongside them (needs `engine.gpuUNetName`): each runs whole frames, UNet + TAESD, on the GPU,
+    /// once its model is warm. A GPU frame takes longer than a Neural Engine one, so a GPU worker takes the frame it
+    /// will finish about when the Neural Engine workers reach it (on a clock, no earlier than its own latency ahead)
+    /// and leaves the frames before it to them.
+    public var gpuWorkers = 0
+    /// Frames the owner buffers before it starts the clock (the session's pre-roll): a GPU worker takes none of them,
+    /// so a slow GPU call never holds up the start.
+    public var prerollFrames = 0
     private var threads: [Thread] = []
 
     public init(engine: LipsyncEngine, aheadFrames: Int) {
@@ -714,13 +779,17 @@ public final class LipsyncPipeline {
 
     /// Frames to aim ahead of the clock when catching up: the pipeline's own latency in frames, plus one. A frame
     /// inferred *at* the clock comes out 1–2 frames late on an A14 and is dropped; aimed ahead, it is shown.
-    private func leadFrames() -> Int {
-        let ms = lock.sync { recentMs }
+    private func leadFrames(gpu: Bool = false) -> Int {
+        let ms = lock.sync { gpu && recentGPUMs > 0 ? recentGPUMs : recentMs }
         return ms > 0 ? Int((ms / frameMs).rounded(.up)) + 1 : 1
     }
 
-    private func observe(frameMs ms: Double) {
-        lock.sync { recentMs = recentMs > 0 ? recentMs * 0.8 + ms * 0.2 : ms }
+    private func observe(frameMs ms: Double, gpu: Bool = false) {
+        lock.sync {
+            // the first measured GPU frame replaces the seed rather than blending into it
+            if gpu { recentGPUMs = gpuSamples > 0 ? recentGPUMs * 0.8 + ms * 0.2 : ms; gpuSamples += 1 }
+            else { recentMs = recentMs > 0 ? recentMs * 0.8 + ms * 0.2 : ms }
+        }
     }
 
     /// Starts both stages. `emit` runs on the CPU stage's thread with every composed frame; `done` once, when the
@@ -731,26 +800,56 @@ public final class LipsyncPipeline {
         // Neural Engine stage: `inferWorkers` threads claim frames in order. With 2, the next frame's chunk 1 is already
         // queued on the engine while the previous frame's outputs are converted and its chunk 2 submitted.
         let workers = max(1, inferWorkers)
-        lock.sync { nextIndex = first; inFlight = []; workersLeft = workers }
-        func claim() -> Int? {
+        let gpus = engine.gpuSpec != nil ? max(0, gpuWorkers) : 0
+        // frames finished behind a GPU frame wait in the queue for it: room for what the Neural Engine makes meanwhile
+        let depth = queueDepth + 4 * gpus
+        // a GPU worker joins once its model is warm (`warmUpGPU`), so a turn never waits for the GPU's compile
+        lock.sync { nextIndex = first; inFlight = []; reserved = []; workersLeft = workers }
+        func claim(gpu: Bool = false) -> Int? {
             while true {
                 if lock.sync({ stopped }) { return nil }
                 let t = targetIndex()
                 let lead = t != nil ? leadFrames() : 0
+                let gpuLead = t != nil && gpu ? leadFrames(gpu: true) : 0
                 let downstream = downstreamCount()
                 let r: (index: Int?, done: Bool) = lock.sync {
                     var i = nextIndex
+                    while reserved.remove(i) != nil { i += 1 }  // already on a GPU worker
+                    nextIndex = i
                     if i >= total { return (nil, true) }  // past the last frame: nothing left to skip either
                     if let t = t, t + lead > i {
                         let to = min(t + lead, total)
-                        stats.skipped += to - i; stats.leadFrames = lead
+                        let ahead = reserved.filter { $0 < to }
+                        stats.skipped += to - i - ahead.count; stats.leadFrames = lead
+                        reserved.subtract(ahead)
                         i = to; nextIndex = i
+                        while reserved.remove(i) != nil { i += 1; nextIndex = i }
                     }
                     if i >= total { return (nil, true) }
-                    if downstream + queue.count + inFlight.count >= aheadFrames || queue.count >= queueDepth { return (nil, false) }
-                    nextIndex = i + 1
-                    inFlight.insert(i)
-                    return (i, false)
+                    // frames finished ahead (a GPU worker's) wait in the queue for frame i: it may always be claimed,
+                    // or a queue full of them would stall the turn until the clock skips past it
+                    let waitingOnI = queue.first.map { $0.0 > i } ?? false
+                    let full = downstream + queue.count + inFlight.count >= aheadFrames || queue.count >= depth
+                    if full && !waitingOnI { return (nil, false) }
+                    var j = i
+                    if gpu {
+                        // only a Neural Engine worker goes past the limits (for frame i). A GPU worker also waits for
+                        // the turn's first Neural Engine frame (before it, how far ahead to go is unknown), and while
+                        // its earlier frames still wait for the Neural Engine
+                        let ane = recentMs / Double(workers)  // the Neural Engine workers' time per frame
+                        if full || ane <= 0 || reserved.count >= 2 * gpus { return (nil, false) }
+                        // the frame it finishes about when the Neural Engine reaches it, and on a clock no earlier
+                        // than it can still make in time; the ones before it stay with the Neural Engine
+                        j = i + Int((recentGPUMs / ane).rounded())
+                        if let t = t { j = max(j, t + gpuLead) } else { j = max(j, first + prerollFrames) }
+                        while reserved.contains(j) { j += 1 }
+                        // never an in-order frame it would hold up: with a clock it is done, free-running the
+                        // Neural Engine finishes the last frames
+                        if j >= total { return (nil, t != nil) }
+                    }
+                    if j == i { nextIndex = i + 1 } else { reserved.insert(j) }
+                    inFlight.insert(j)
+                    return (j, false)
                 }
                 if r.done { return nil }
                 if let i = r.index { return i }
@@ -782,7 +881,7 @@ public final class LipsyncPipeline {
                                 enqueue(i, .face(r.face))
                                 stats.generated += 1
                                 stats.inferMsSum += r.unetMs + r.decodeMs
-                                stats.decodeMsSum += r.decodeMs
+                                stats.decodeMsSum += r.decodeMs; stats.decoded += 1
                             }
                             observe(frameMs: r.unetMs + r.decodeMs + lock.sync { stats.composeMs })
                         }
@@ -796,13 +895,56 @@ public final class LipsyncPipeline {
             infer.name = "lipsync.infer\(w)"; infer.qualityOfService = .userInteractive
             inferThreads.append(infer)
         }
+        for g in 0 ..< gpus {
+            let gpuThread = Thread { [self] in
+                do {
+                    let cold = engine.gpuWarm == nil
+                    let warm = try engine.warmUpGPU()
+                    // first estimate: the last turn's loaded latency, else the idle warm-up time × the GPU workers
+                    // sharing the GPU
+                    let seed = engine.gpuLatencyHint ?? warm * Double(gpus)
+                    lock.sync { if recentGPUMs == 0 { recentGPUMs = seed } }
+                    if cold { log(String(format: "lipsync: GPU worker %d warm (%.1f ms per frame)", g, warm)) }
+                } catch {
+                    log("GPU worker \(g): \(error)")
+                    return
+                }
+                let joined: Bool = lock.sync { if inferDone || stopped { return false }; workersLeft += 1; return true }
+                guard joined else { return }
+                while let i = claim(gpu: true) {
+                    do {
+                        let e = plan?.entry(i)
+                        let r = try engine.inferFace(audioFrame: i, slot: e?.slot ?? .talking, cycle: e?.cycle ?? i, gpu: true)
+                        lock.sync {
+                            enqueue(i, .face(r.face))
+                            stats.generated += 1
+                            stats.gpuGenerated += 1
+                            stats.gpuMsSum += r.unetMs + r.decodeMs
+                        }
+                        observe(frameMs: r.unetMs + r.decodeMs + lock.sync { stats.composeMs }, gpu: true)
+                    } catch {
+                        lock.sync { _ = inFlight.remove(i); _ = reserved.remove(i) }
+                        log("GPU infer \(i): \(error)")
+                    }
+                }
+                let ms = lock.sync { recentGPUMs }
+                if ms > 0 { engine.recordGPULatency(ms) }
+                lock.sync { workersLeft -= 1; if workersLeft == 0 { inferDone = true } }
+            }
+            gpuThread.name = "lipsync.gpu\(g)"; gpuThread.qualityOfService = .userInteractive
+            inferThreads.append(gpuThread)
+        }
         let compose = Thread { [self] in
             var anchor: RGBAImage? = nil          // the previous pose's last composed frame, frozen at a switch
             var anchorSegment = Int.min
             while true {
+                let tNow = targetIndex()
+                let passed = { (k: Int) in tNow.map { k < $0 } ?? false }
                 let (item, finished): ((Int, Pending)?, Bool) = lock.sync {
-                    // in order: never take a frame while an earlier one is still on the Neural Engine
-                    if let f = queue.first, !inFlight.contains(where: { $0 < f.0 }) { return (queue.removeFirst(), false) }
+                    // in order: never take a frame while an earlier one is still being made, or (a GPU frame taken
+                    // ahead) not claimed yet. An earlier frame the clock has already passed is not waited for: it would
+                    // be dropped when it lands, and on time frames behind it with it
+                    if let f = queue.first, f.0 <= nextIndex, !inFlight.contains(where: { $0 < f.0 && !passed($0) }) { return (queue.removeFirst(), false) }
                     return (nil, stopped || (inferDone && queue.isEmpty && inFlight.isEmpty))
                 }
                 guard let (i, pending) = item else {
@@ -822,7 +964,7 @@ public final class LipsyncPipeline {
                     case .latent(let l):
                         let d = try engine.decodeFace(l)
                         face = d.face; decodeMs = d.decodeMs
-                        lock.sync { stats.decodeMsSum += d.decodeMs }
+                        lock.sync { stats.decodeMsSum += d.decodeMs; stats.decoded += 1 }
                     }
                     var (img, ms) = try engine.composeFrame(slot: e?.slot ?? .talking, cycle: e?.cycle ?? i, face: face)
                     ms += decodeMs

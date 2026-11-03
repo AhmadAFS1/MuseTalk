@@ -1,0 +1,15 @@
+[2060903.8] free disk 438388 MB (mem 4 MB)
+[2060903.8] device: arm64 Mac17,8 macOS Version 27.0.1 (Build 26A434), 24.0 GB, thermal nominal, runtime macOS CLI
+[2060903.8] UNets: unet_anev2fc0_int8w_b1_chunked (2 stages)
+[2060903.8] unet_anev2fc0_int8w_b1_chunked [CPU_AND_GPU]: loading 2 stage(s) (mem 5 MB)
+[2060905.3] unet_anev2fc0_int8w_b1_chunked [CPU_AND_GPU]: loaded in 1.51 s ["0.63", "0.88"] (mem 11 MB)
+[2060922.9] unet_anev2fc0_int8w_b1_chunked [CPU_AND_GPU]: first prediction 17603.27 ms (mem 1895 MB)
+[2060923.0] unet_anev2fc0_int8w_b1_chunked [CPU_AND_GPU]: gate mae mean 0.00000 / max nan; max_abs max nan; 0 frames; PASS
+[2060923.7] unet_anev2fc0_int8w_b1_chunked [CPU_AND_GPU]: 33.36 ms/frame mean, p99 34.07, max 34.08 over 20 calls of 1 (mem 1220 MB)
+[2060923.8] unet_anev2fc0_int8w_b1_chunked sustained 45 s [CPU_AND_GPU]: starting (mem 89 MB)
+[2060987.3] unet_anev2fc0_int8w_b1_chunked sustained 45 s [CPU_AND_GPU]: 1403 frames, 32.07 ms/frame mean; first bucket 32.41 → last 32.14 ms; thermal nominal → nominal (mem 72 MB)
+[2060987.3] done
+wrote /private/tmp/claude-501/-Users-ahmadsmacair-code-lingua-lingua/f0f23d41-3e43-42a1-916d-19f56c854684/scratchpad/fps30/conc_gpu.json
+arm64 macOS Version 27.0.1 (Build 26A434) · 24.0 GB · macOS CLI
+unet_anev2fc0_int8w_b1_chunked [CPU_AND_GPU]: 33.4 ms/frame (p99 34.1) · gate mae 0.0000 max_abs nan PASS · load 1.5 s
+sustained 45 s: 32.4 → 32.1 ms/frame, thermal nominal → nominal

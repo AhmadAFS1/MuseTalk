@@ -1,0 +1,20 @@
+--- H2: 2 ANE + 2 GPU fp16
+GPU worker warm-up 0.6 s, then 22.4 ms per frame (UNet + TAESD)
+pipelined over 400 frames: 8.3 ms/frame wall (ANE stage 33.4, CPU stage 1.7 + CGImage, in parallel; TAESD 4.9 in the ANE stage)
+GPU workers 2: 202 of 400 frames (50 %), 32.0 ms per frame on the GPU; 47 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- H3: 3 ANE + 1 GPU fp16
+GPU worker warm-up 0.4 s, then 22.0 ms per frame (UNet + TAESD)
+pipelined over 400 frames: 9.8 ms/frame wall (ANE stage 49.9, CPU stage 1.5 + CGImage, in parallel; TAESD 8.4 in the ANE stage)
+GPU workers 1: 165 of 400 frames (41 %), 23.5 ms per frame on the GPU; 38 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- H8: 2 ANE + 1 GPU int8w plain
+GPU worker warm-up 17.2 s, then 26.5 ms per frame (UNet + TAESD)
+pipelined over 400 frames: 10.3 ms/frame wall (ANE stage 33.2, CPU stage 1.6 + CGImage, in parallel; TAESD 5.4 in the ANE stage)
+GPU workers 1: 152 of 400 frames (38 %), 26.6 ms per frame on the GPU; 36 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- Hc: 2 ANE + 1 GPU on the same fold chunks
+GPU worker warm-up 17.5 s, then 40.5 ms per frame (UNet + TAESD)
+pipelined over 400 frames: 11.4 ms/frame wall (ANE stage 33.4, CPU stage 1.7 + CGImage, in parallel; TAESD 5.7 in the ANE stage)
+GPU workers 1: 127 of 400 frames (32 %), 35.4 ms per frame on the GPU; 29 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- H again
+GPU worker warm-up 0.5 s, then 23.5 ms per frame (UNet + TAESD)
+pipelined over 400 frames: 9.8 ms/frame wall (ANE stage 33.3, CPU stage 1.6 + CGImage, in parallel; TAESD 5.2 in the ANE stage)
+GPU workers 1: 165 of 400 frames (41 %), 23.5 ms per frame on the GPU; 39 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's

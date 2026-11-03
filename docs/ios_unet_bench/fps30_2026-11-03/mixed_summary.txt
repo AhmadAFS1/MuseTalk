@@ -1,0 +1,18 @@
+| Clip | D lip corr | D lip abs delta px | D mouth PSNR | D flicker ratio | D error flicker | D sharpness | D r5 | M lip corr | M lip abs delta px | M mouth PSNR | M flicker ratio | M error flicker | M sharpness | M r5 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| japanese_realtime / ai-assistant | 0.9629 | 0.90 | 39.5 | 1.001 | 1.184 | 0.983 | FAIL (aperture_corr_ge_0.97, aperture_mean_abs_delta_le_0.5px) | 0.9808 | 0.53 | 42.5 | 1.020 | 1.113 | 0.991 | FAIL (aperture_mean_abs_delta_le_0.5px) |
+| japanese_realtime / eng | 0.9560 | 0.78 | 40.5 | 1.006 | 1.047 | 0.990 | FAIL (aperture_corr_ge_0.97, aperture_mean_abs_delta_le_0.5px) | 0.9855 | 0.42 | 43.6 | 1.024 | 0.992 | 0.995 | pass |
+| latina_guided_20260925 / ai-assistant | 0.9992 | 0.19 | 48.6 | 0.996 | 0.571 | 0.993 | pass | 0.9995 | 0.13 | 51.5 | 1.008 | 0.572 | 0.996 | pass |
+| latina_guided_20260925 / eng | 0.9992 | 0.21 | 48.8 | 0.995 | 0.560 | 0.998 | pass | 0.9996 | 0.13 | 51.7 | 1.009 | 0.555 | 0.999 | pass |
+| en_01_maya_abe451d3 / ai-assistant | 0.9982 | 0.25 | 47.0 | 0.995 | 0.615 | 1.000 | pass | 0.9990 | 0.16 | 50.0 | 1.003 | 0.555 | 1.000 | pass |
+| en_01_maya_abe451d3 / eng | 0.9989 | 0.20 | 47.7 | 0.995 | 0.585 | 0.999 | pass | 0.9994 | 0.13 | 50.5 | 1.004 | 0.535 | 0.999 | pass |
+| en_03_marcus_19eb1ea8 / ai-assistant | 0.9989 | 0.21 | 47.3 | 0.992 | 0.750 | 0.975 | pass | 0.9995 | 0.14 | 50.3 | 1.000 | 0.645 | 0.988 | pass |
+| en_03_marcus_19eb1ea8 / eng | 0.9986 | 0.24 | 47.2 | 0.992 | 0.768 | 0.978 | pass | 0.9994 | 0.14 | 50.1 | 1.000 | 0.656 | 0.989 | pass |
+| es_01_valeria_aed74c50 / ai-assistant | 0.9986 | 0.21 | 47.4 | 1.003 | 0.554 | 0.994 | pass | 0.9992 | 0.14 | 50.5 | 1.011 | 0.535 | 0.997 | pass |
+| es_01_valeria_aed74c50 / eng | 0.9976 | 0.24 | 47.8 | 1.003 | 0.527 | 0.993 | pass | 0.9989 | 0.15 | 50.7 | 1.012 | 0.515 | 0.996 | pass |
+| es_03_mateo_884600e1 / ai-assistant | 0.9953 | 0.28 | 45.9 | 0.995 | 0.859 | 0.986 | pass | 0.9976 | 0.17 | 48.6 | 1.002 | 0.780 | 0.993 | pass |
+| es_03_mateo_884600e1 / eng | 0.9968 | 0.25 | 45.5 | 0.995 | 0.895 | 0.983 | pass | 0.9983 | 0.15 | 48.4 | 1.004 | 0.812 | 0.992 | pass |
+D: latent mae 0.0114-0.0168; lip corr 0.9560-0.9992; |d| 0.19-0.90 px; lag {0}; mouth PSNR 39.5-48.8; flicker mouth 0.992-1.006 face 0.997-1.001; error flicker 0.527-1.184; sharpness 0.975-1.000; r5 pass 10/12
+G: latent mae 0.0002-0.0003; lip corr 0.9999-1.0000; |d| 0.03-0.05 px; lag {0}; mouth PSNR 62.7-64.3; flicker mouth 1.000-1.000 face 1.000-1.000; error flicker 0.047-0.067; sharpness 1.000-1.000; r5 pass 12/12
+M: latent mae 0.0058-0.0085; lip corr 0.9808-0.9996; |d| 0.13-0.53 px; lag {0}; mouth PSNR 42.5-51.7; flicker mouth 1.000-1.024 face 1.000-1.006; error flicker 0.515-1.113; sharpness 0.988-1.000; r5 pass 11/12
+M vs D: mouth flicker ratio 1.007-1.019, face 1.002-1.005

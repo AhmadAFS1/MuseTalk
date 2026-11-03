@@ -1,0 +1,15 @@
+[2060912.8] free disk 438388 MB (mem 5 MB)
+[2060912.8] device: arm64 Mac17,8 macOS Version 27.0.1 (Build 26A434), 24.0 GB, thermal nominal, runtime macOS CLI
+[2060912.8] UNets: unet_anev2fc0_int8w_b1_chunked (2 stages)
+[2060912.8] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: loading 2 stage(s) (mem 5 MB)
+[2060913.1] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: loaded in 0.35 s ["0.18", "0.17"] (mem 10 MB)
+[2060913.1] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: first prediction 26.58 ms (mem 24 MB)
+[2060913.2] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.00000 / max nan; max_abs max nan; 0 frames; PASS
+[2060913.5] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 16.39 ms/frame mean, p99 16.53, max 16.53 over 20 calls of 1 (mem 24 MB)
+[2060913.5] unet_anev2fc0_int8w_b1_chunked sustained 30 s [CPU_AND_NE]: starting (mem 24 MB)
+[2060943.7] unet_anev2fc0_int8w_b1_chunked sustained 30 s [CPU_AND_NE]: 1831 frames, 16.39 ms/frame mean; first bucket 16.37 → last 16.42 ms; thermal nominal → nominal (mem 32 MB)
+[2060943.7] done
+wrote /private/tmp/claude-501/-Users-ahmadsmacair-code-lingua-lingua/f0f23d41-3e43-42a1-916d-19f56c854684/scratchpad/fps30/conc_ane.json
+arm64 macOS Version 27.0.1 (Build 26A434) · 24.0 GB · macOS CLI
+unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 16.4 ms/frame (p99 16.5) · gate mae 0.0000 max_abs nan PASS · load 0.3 s
+sustained 30 s: 16.4 → 16.4 ms/frame, thermal nominal → nominal
