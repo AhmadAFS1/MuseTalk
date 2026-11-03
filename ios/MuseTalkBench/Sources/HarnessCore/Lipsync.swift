@@ -740,9 +740,11 @@ public final class LipsyncPipeline {
                 let downstream = downstreamCount()
                 let r: (index: Int?, done: Bool) = lock.sync {
                     var i = nextIndex
+                    if i >= total { return (nil, true) }  // past the last frame: nothing left to skip either
                     if let t = t, t + lead > i {
-                        stats.skipped += t + lead - i; stats.leadFrames = lead
-                        i = t + lead; nextIndex = i
+                        let to = min(t + lead, total)
+                        stats.skipped += to - i; stats.leadFrames = lead
+                        i = to; nextIndex = i
                     }
                     if i >= total { return (nil, true) }
                     if downstream + queue.count + inFlight.count >= aheadFrames || queue.count >= queueDepth { return (nil, false) }

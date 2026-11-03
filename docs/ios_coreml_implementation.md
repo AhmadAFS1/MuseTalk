@@ -573,6 +573,9 @@ Reading:
   iOS Simulator (CPU-only Core ML, 413 ms per call) one turn showed 21 frames with 81 inferred too late, against
   71 shown and 0 late with one worker. The phone's margin hid it (0 late at 115 ms per call). The lead now uses
   the full call time plus the compose stage.
+- Skip count: since the worker change, claim() ran the catch-up skip once more after the last frame and
+  counted frames past the end (0–2 per turn on the phone, ~10 in the Simulator), breaking
+  generated + skipped = frames. It now stops at the last frame and clamps a catch-up to it.
 
 Next levers for the A14, in order: a third worker (matrix3 did not run: the phone's Neural Engine was
 unavailable to the app after the SoulX interruption, 17.7 s loads and 1 s per frame on the CPU, so a restart comes first); output backings for the 13 boundary tensors,
@@ -812,5 +815,5 @@ cd ios/MuseTalkBench && swift build -c release
 | `704f4a2`, `11b8884` | 2026-10-31 | Two more lipsync runs (17.1 / 16.6 fps), audio route and volume reported; open item 7 points at the Lingua plan. PR #5 merged to main as `fad1f08` |
 | — | 2026-10-31 | Lingua Phase 0, this repo's half: `LipsyncSession` + `AudioInput` + `TarArchive` + `RemoteBundle` in HarnessCore; windows for any-length audio; `prepare_avatar_bundle.py --phone-only`; `pack_phone_bundle.py`, `pack_model_pack.py`; model pack and the Latina bundle on S3; harness `--avatar-url/--wav/--preroll`; bench-mac `--lipsync-session`, `--unpack-tar`; phone plays the S3 bundle with an OmniVoice WAV at 17.2 fps |
 | `704d6c5`, next | 2026-11-02 | Branch `claude/ios-25fps` (from main `a5e75f9`): TAESD decodable in the compose stage on the GPU, UNet picked by name, `fastPrediction` option, `inferWorkers`; the chunk exporter's `--fold-time-embedding`, `--v2-chunk-size`, `--prefix`; `check_deep_reuse.py`; Mac results in §5.6 (1.34× on the full pipeline) |
-| next | 2026-11-03 | `bench-mac --lipsync-check` compares the pipeline's frames against the sequential loop (two and three workers bit-identical); the catch-up lead uses a frame's full latency, not latency ÷ workers (late drops with two workers on slow hardware) |
+| next | 2026-11-03 | `bench-mac --lipsync-check` compares the pipeline's frames against the sequential loop (two and three workers bit-identical); the catch-up lead uses a frame's full latency, not latency ÷ workers (late drops with two workers on slow hardware); no skips counted past the last frame |
 | `a917fe6`, `452ad2d` | 2026-11-02 | iPhone 12 Pro: first A/B, then the second matrix (two workers +20 %, folded V2 + two workers 1.26×, TAESD off the ANE stage rejected on the A14); app `--taesd-units`; `run_phone_matrix2.sh` / `run_phone_matrix3.sh` and the logs in `fps25_iphone12pro_2026-11-02/` |
