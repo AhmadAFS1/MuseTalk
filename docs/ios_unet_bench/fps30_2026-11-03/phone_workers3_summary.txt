@@ -1,0 +1,16 @@
+== 17:05:50 SoulX closed and phone unlocked; cooling 300 s
+== 17:10:51 phone ready
+[compile] [bench] device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal nominal, runtime iOS
+[compile] [bench] unet_anec0_int8w_b1_chunked [CPU_AND_NE]: 55.34 ms/frame mean, p99 56.34, max 56.36 over 20 calls of 1 (mem 53 MB, 3018 MB left)
+[compile] [bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 52.90 ms/frame mean, p99 54.56, max 54.70 over 20 calls of 1 (mem 56 MB, 3015 MB left)
+[1 A] gen 281/426 = 15.81 fps, shown 280, ANE stage 65.0 ms, compose 9.9 ms, decode 5.8 ms, skipped 145, late 0, stalls 0, lead 3, workers 1, unet unet_anec0_int8w_b1_chunked
+[2 D] attempt 1 aborted at 17:17:05: no result
+[2 D] ERROR: An error occurred while communicating with a remote process. (com.apple.dt.CoreDeviceError error 3 (0x03))
+[2 D]            The connection was invalidated. (com.apple.Mercury.error error 1001 (0x3E9))
+[2 D] gen 339/426 = 19.13 fps, shown 338, ANE stage 107.3 ms, compose 7.5 ms, decode 23.1 ms, skipped 87, late 0, stalls 0, lead 4, workers 2, unet unet_anev2fc0_int8w_b1_chunked
+[3 E] gen 338/426 = 19.07 fps, shown 337, ANE stage 161.2 ms, compose 7.1 ms, decode 40.4 ms, skipped 88, late 0, stalls 0, lead 6, workers 3, unet unet_anev2fc0_int8w_b1_chunked
+[4 E] gen 336/426 = 18.96 fps, shown 334, ANE stage 162.4 ms, compose 6.9 ms, decode 40.8 ms, skipped 90, late 0, stalls 0, lead 6, workers 3, unet unet_anev2fc0_int8w_b1_chunked
+[5 D] gen 337/426 = 19.02 fps, shown 336, ANE stage 107.9 ms, compose 6.5 ms, decode 23.2 ms, skipped 89, late 0, stalls 0, lead 4, workers 2, unet unet_anev2fc0_int8w_b1_chunked
+[6 A] gen 276/426 = 15.57 fps, shown 275, ANE stage 66.2 ms, compose 8.7 ms, decode 6.1 ms, skipped 150, late 0, stalls 0, lead 3, workers 1, unet unet_anec0_int8w_b1_chunked
+[after] [bench] device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal fair, runtime iOS
+== 17:27:43 done
