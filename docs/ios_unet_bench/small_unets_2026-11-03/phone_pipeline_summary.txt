@@ -1,0 +1,17 @@
+== 19:54:21 order D S T T S D; UNets unet_anev2fc0_int8w_b1_chunked, unet_bk_small_int8w_b1, unet_bk_tiny_int8w_b1
+   D: --unet unet_anev2fc0_int8w_b1_chunked --infer-workers 2
+   S: --unet unet_bk_small_int8w_b1 --infer-workers 2
+   T: --unet unet_bk_tiny_int8w_b1 --infer-workers 2
+[check] [bench] free disk 11984 MB (mem 14 MB, 3057 MB left)
+[check] [bench] device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal fair, runtime iOS
+[check] [bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 51.91 ms/frame mean, p99 52.79, max 52.84 over 20 calls of 1 (mem 51 MB, 3020 MB left)
+[check] [bench] unet_bk_small_int8w_b1 [CPU_AND_NE]: 37.48 ms/frame mean, p99 38.53, max 38.54 over 20 calls of 1 (mem 38 MB, 3033 MB left)
+[check] [bench] unet_bk_tiny_int8w_b1 [CPU_AND_NE]: 32.47 ms/frame mean, p99 33.60, max 33.64 over 20 calls of 1 (mem 37 MB, 3034 MB left)
+== 19:54:58 thermal fair: starting the runs
+[1 D] 17.33 fps (308 of 426 generated, 307 shown), ANE stage 117.7 ms, 2 workers, skipped 118, late 0, stalls 0, thermal fair -> fair
+[2 S] 21.45 fps (380 of 426 generated, 379 shown), ANE stage 95.1 ms, 2 workers, skipped 46, late 0, stalls 0, thermal fair -> serious (serious at 15.7 s)
+[3 T] 24.04 fps (426 of 426 generated, 424 shown), ANE stage 72.4 ms, 2 workers, skipped 0, late 0, stalls 0, thermal serious -> serious
+[4 T] 24.05 fps (426 of 426 generated, 424 shown), ANE stage 76.5 ms, 2 workers, skipped 0, late 0, stalls 0, thermal serious -> serious
+[5 S] 18.22 fps (323 of 426 generated, 321 shown), ANE stage 111.9 ms, 2 workers, skipped 103, late 0, stalls 0, thermal serious -> serious
+[6 D] 17.32 fps (307 of 426 generated, 305 shown), ANE stage 118.4 ms, 2 workers, skipped 119, late 0, stalls 0, thermal serious -> serious
+== 19:58:13 done

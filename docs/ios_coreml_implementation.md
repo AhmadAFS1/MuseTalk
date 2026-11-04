@@ -55,6 +55,7 @@ frame by 3.8 %), so this phone stays below the 20 fps line and newer phones are 
 | 21 | The motion-bank body policy on the phone's three caches (`docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md` "Runtime algorithm"): idle body under the lipsync for replies under `short_reply_seconds` (10 here), else 0.3 s of idle → bridge into talking at frame 0 → smile cues after a cooldown → return into idle 0.5 s before the end on the continued idle phase; forward-only clips; the bank's optical-flow bridge is the cosine crossfade over the same 0.3 s | **built 2026-11-02** (`Poses.swift` `FramePlan.compile`, `LipsyncSession` idle track + seams, `LipsyncPipeline` blends; `currentFrame()` returns a `DisplayFrame`). A first version replicated the six-pose cue router instead and was replaced the same day at the user's correction. Simulator-validated through the Lingua bench; phone run pending | Lingua build plan §3.12 "design as built" |
 | 22 | Toward 25 fps on the A14 (§5.6): SPLIT_EINSUM_V2 attention, the constant time embedding folded out of the UNet, TAESD decoded on the GPU in the compose stage, two Neural Engine workers | **measured on the Mac 2026-11-02: full pipeline 21.0 → 15.5 ms/frame (1.34×), gate unchanged (mae 0.01309 vs 0.01311), composed frames unchanged**. **iPhone 12 Pro (hot, thermal "serious"): the UNet changes give only 3–4 %, and TAESD on the A14 GPU is a regression (67 ms per decode)**. **Second matrix: two workers carry over (+20 % on the shipped chunks), folded V2 + two workers = 1.26× (14.8 → 18.6 fps, hot), TAESD stays in the ANE stage; 25 fps not reached**. **Rerun cool (thermal "nominal") 2026-11-03: 15.7 → 19.1 fps (1.22×); three workers 19.0, no gain (the Neural Engine is saturated with two)** | §5.6; `fps25_mac_2026-11-02/`, `fps25_iphone12pro_2026-11-02/`; branch `claude/ios-25fps` |
 | 23 | A GPU worker next to the Neural Engine workers (§5.7): whole frames, UNet + TAESD, on the GPU, taken far enough ahead that the in-order compose stage never waits for them | **measured on the Mac 2026-11-03: 15.5 → 9.8 ms/frame with one GPU worker on a plain fp16 UNet (1.58×), 8.3 with two (1.87×), 11.4 on the same chunks with no new model files (1.36×)**; every frame bit-identical to one of the two engines' sequential loops; **video review (12 clips): the mixed output is closer to fp32 than the all-Neural-Engine one on every clip, r5 pass 11/12 vs 10/12, mouth flicker +0.7–1.9 % (limit 5 %)**. **iPhone 12 Pro 2026-11-03 (thermal "nominal"): a regression, 18.9 → 15.1 fps (0.80×). A GPU frame takes ~500 ms, and the Neural Engine slows from ~109 to ~164 ms per frame while it runs. Off by default; not for the A14** | §5.7; `review_mixed_units/`, `fps30_2026-11-03/` |
+| 24 | A smaller UNet for the A14 (§5.8): BK-SDM block removal, then distillation from the full UNet | **speed measured on the phone 2026-11-03, untrained: bk_tiny renders every frame of the 24 fps clip (24.0 fps, 0 skipped, at "serious"; capacity 26–28 fps) against 17.3 fps for today's model; bk_small 18.2–21.5 fps.** Quality not yet: untrained mae 0.73; distillation is next | §5.8; `small_unets_2026-11-03/`; branch `claude/ios-smaller-unet` |
 
 ---
 
@@ -785,6 +786,48 @@ So the GPU worker stays off by default (`gpuWorkers` is 0 unless asked for), and
 A plain fp16 UNet on the GPU would be faster than the chunks (19.6 against 32.3 ms on the Mac), but it costs 1.6 GB
 more and would still have to make up the Neural Engine slowdown. Newer phones' GPUs are much stronger than the A14's
 and remain unmeasured.
+
+### 5.8 A smaller UNet: 25 fps on the A14 needs one, and the speed is there (2026-11-03, before any training)
+
+Every lever that keeps the network the same is spent on the A14 (§3.5, §5.6, §5.7): its Neural Engine does about
+53 ms of real compute per frame, and 25 fps needs about 40 ms. So the network has to shrink. This section measures,
+before any training, how much smaller it has to be. The shapes are BK-SDM's (Kim et al., 2023), which removes whole
+blocks of the same SD 1.x layout and recovers quality by distilling from the full model, starting from the full
+model's weights for every block it keeps (`scripts/ios/export_small_unets.py`; plain layout, int8 weights, fp16
+compute, untrained, so only the speed means anything):
+
+| Variant | What is removed | Parameters | GFLOPs | Mac Neural Engine (plain) | iPhone 12 Pro Neural Engine, UNet alone |
+|---|---|---|---|---|---|
+| full | — | 850M | 177.8 | 23.8 ms | 52.0–53.9 ms (Apple-layout chunks, today's phone model) |
+| bk_base | one resnet + attention per down stage, one per up stage | 573M | 117.0 (−34 %) | 15.2 ms | did not reach the Neural Engine as one plain program (492 ms on the CPU) |
+| bk_small | bk_base and the mid block | 477M | 113.9 (−36 %) | 14.2 ms | **37.5–37.9 ms** |
+| bk_tiny | bk_small and the innermost (4×4, 1,280-channel) stage | 318M | 107.6 (−39 %) | 13.1 ms | **32.5–33.0 ms** |
+
+The full model and bk_base do not run as one plain program on the 12 Pro: the full one ran out of memory (2.46 GB,
+the app killed), bk_base fell back to the CPU. Both need the two-chunk Apple layout the phone already ships (§2.2),
+which was not built here. bk_small and bk_tiny run as one plain program, without the Apple layout's −20 % (§3.1).
+
+**The lipsync pipeline on the phone** (`run_phone_ab.sh`, the Lipsync tab's 17.8 s clip at 24 fps, two Neural
+Engine workers, D S T T S D, thermal "fair" at the start and "serious" from run 2; `small_unets_2026-11-03/`):
+
+| UNet | Runs (generated fps) | Frames generated | Skipped |
+|---|---|---|---|
+| today's phone model (folded V2 chunks) | 17.33, 17.32 | 308, 307 of 426 | 118, 119 |
+| bk_small | 21.45, 18.22 | 380, 323 | 46, 103 |
+| **bk_tiny** | **24.04, 24.05** | **426, 426: every frame** | **0, 0** |
+
+0 stalls and 0 late drops in every run. **bk_tiny keeps up with the clip's 24 fps with frames to spare, even at
+"serious"**: the generated rate is capped by the clip, and the Neural Engine stage (72–77 ms per call with two
+workers, so 36–38 ms per frame) puts its capacity at 26–28 fps. bk_small's two runs differ by 15 %: the second ran
+after minutes at "serious". In the pipeline TAESD adds 5–10 ms per frame on the Neural Engine, which the full
+UNet's second worker had hidden. The Apple layout and the fold would add margin on top.
+
+**What this is not yet:** a usable model. Untrained, bk_small scores mae 0.73 against the server reference
+(the full model 0.0004 in fp32, 0.013 on the Neural Engine). The next step is distillation: the full UNet as
+teacher, the student starting from its weights, output and per-up-block feature losses, scored on the gate frames
+and then by the video review (`scripts/ios/distill_small_unet.py`, data from server avatar folders' `latents.pt`
+and any speech). A 30-step smoke run on the Mac's GPU had not finished after 8 minutes (over 15 s a step, with the
+Mac swapping 30 GB), so a real run of thousands of steps needs a CUDA GPU.
 
 ## 6. The harness app (`ios/MuseTalkBench/`)
 
