@@ -42,9 +42,10 @@
 #   DISTILL_LOCAL_DIR=$HOME/.local/state/mtboot-distill   (per run: urls.tsv, create.requested, results.tar)
 #   DISTILL_S3_BUCKET=lingua-musetalk-s3-storage, region us-east-1, AWS_PROFILE as set. The URLs live only as long as
 #                                the credentials that signed them: presign with long-lived keys, not a short session.
-#   TRAIN_AVATARS=all            phone bundles s3://<bucket>/avatars/ios/v1/<id>.tar (+ <id>.json sidecar, checked on
-#                                the box): "all" = every .tar under that prefix (the 48 roster bundles + the Latina
-#                                fixture), or comma-separated ids. Only latents_f16.bin (+ avatar.json) is kept.
+#   TRAIN_AVATARS=roster12       phone bundles s3://<bucket>/avatars/ios/v1/<id>.tar (+ <id>.json sidecar, checked on
+#                                the box): "roster12" = the 12 talking-pose roster characters after excluding the six review
+#                                identities and every gate identity; or exactly 12 explicit eligible ids. Ten train,
+#                                two validate. Only latents_f16.bin (+ avatar.json) is kept.
 #   REVIEW_AVATARS=en_01_maya_abe451d3_talking_f6cf8be7fb,en_03_marcus_19eb1ea8_talking_ada35a4a4d,
 #                  es_01_valeria_aed74c50_talking_003d585d96,es_03_mateo_884600e1_talking_75d88cda6c,
 #                  japanese_realtime_talking_7d94520b7f,latina_guided_20260925_talking_84c5bc80b8
@@ -54,8 +55,8 @@
 #   TRAIN_AUDIO                  comma-separated; default every clip in data/audio except the REVIEW_AUDIO ones (9
 #                                clips, 151 s)
 #   DISTILL_SHA=HEAD of this checkout (the box clones AhmadAFS1/MuseTalk, so it must be pushed)
-#   DISTILL_VARIANT=bk_tiny  DISTILL_MAX_MINUTES=150  DISTILL_STEPS=30000  DISTILL_RESERVE_MINUTES=50 (lease kept
-#                                for review + pull)  DISTILL_EXTRA_ARGS  REVIEW_SECONDS=10  REVIEW_MAX_MINUTES=40
+#   DISTILL_VARIANT=bk_tiny  DISTILL_MAX_MINUTES=150  DISTILL_STEPS=30000  DISTILL_RESERVE_MINUTES=60 (lease kept
+#                                for review + pull)  DISTILL_EXTRA_ARGS  REVIEW_SECONDS=10  REVIEW_MAX_MINUTES=50
 #                                REVIEW_EXTRA_ARGS  FACEMESH=1   (written to job.env; box_job.sh's header has them)
 #   WATCH_LINES=40
 set -Eeuo pipefail
@@ -82,17 +83,17 @@ AVATAR_PREFIX=avatars/v15
 URL_SECONDS=14400
 HB="$BENCH_REPO/ios/MuseTalkBench/HarnessBundle"
 GATE_FILES="unet_latents_f16.bin:2097152 unet_audio_f16.bin:4915200 unet_ref_f16.bin:1048576"
-TRAIN_AVATARS="${TRAIN_AVATARS:-all}"
+TRAIN_AVATARS="${TRAIN_AVATARS:-roster12}"
 REVIEW_AVATARS="${REVIEW_AVATARS:-en_01_maya_abe451d3_talking_f6cf8be7fb,en_03_marcus_19eb1ea8_talking_ada35a4a4d,es_01_valeria_aed74c50_talking_003d585d96,es_03_mateo_884600e1_talking_75d88cda6c,japanese_realtime_talking_7d94520b7f,latina_guided_20260925_talking_84c5bc80b8}"
 REVIEW_AUDIO="${REVIEW_AUDIO:-data/audio/ai-assistant.mpga,data/audio/eng.wav}"
 TRAIN_AUDIO="${TRAIN_AUDIO:-}"
 DISTILL_VARIANT="${DISTILL_VARIANT:-bk_tiny}"
 DISTILL_MAX_MINUTES="${DISTILL_MAX_MINUTES:-150}"
 DISTILL_STEPS="${DISTILL_STEPS:-30000}"
-DISTILL_RESERVE_MINUTES="${DISTILL_RESERVE_MINUTES:-50}"
+DISTILL_RESERVE_MINUTES="${DISTILL_RESERVE_MINUTES:-60}"
 DISTILL_EXTRA_ARGS="${DISTILL_EXTRA_ARGS:-}"
 REVIEW_SECONDS="${REVIEW_SECONDS:-10}"
-REVIEW_MAX_MINUTES="${REVIEW_MAX_MINUTES:-40}"
+REVIEW_MAX_MINUTES="${REVIEW_MAX_MINUTES:-50}"
 REVIEW_EXTRA_ARGS="${REVIEW_EXTRA_ARGS:-}"
 FACEMESH="${FACEMESH:-1}"
 WATCH_LINES="${WATCH_LINES:-40}"
@@ -100,6 +101,7 @@ SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o Ser
 DRY="${DRY_RUN:-0}"
 HOP_SHOWN=0
 
+redact() { sed -E 's#https?://[^[:space:]"]+#[URL]#g'; }
 say() { printf '[drive] %s\n' "$*"; }
 die() { printf '[drive] ERROR: %s\n' "$*" >&2; exit 2; }
 usage() { sed -n '2,/^set -Eeuo/p' "${BASH_SOURCE[0]}" | sed '$d' | sed 's/^# \{0,1\}//'; }
@@ -110,7 +112,7 @@ csv_items() { tr ',' '\n' <<<"$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]
 
 ec2() {  # $1 = command for bash on EC2 (as ec2-user); stdin passes through
   if (( DRY )); then printf "[dry-run] ssh %s %s '%s'\n" "${SSH_OPTS[*]}" "$EC2_HOST" "$1"; return 0; fi
-  ssh "${SSH_OPTS[@]}" "$EC2_HOST" "$1"
+  ssh "${SSH_OPTS[@]}" "$EC2_HOST" "$1" 2> >(redact >&2)
 }
 
 ctl_cmd() {  # controller mode + arguments -> the EC2 command that runs it as root
@@ -124,7 +126,7 @@ ctl_cmd() {  # controller mode + arguments -> the EC2 command that runs it as ro
 guarded() {  # run an EC2 command; stop if its output names the protected instance as an instance
   local out rc=0
   out=$(ec2 "$1" </dev/null) || rc=$?
-  [[ -z $out ]] || printf '%s\n' "$out"
+  [[ -z $out ]] || printf '%s\n' "$out" | redact
   if grep -qE "\"(id|instance_id)\": *\"?$PROTECTED([^0-9]|\$)" <<<"$out"; then die "output names $PROTECTED (protected RTX 4070 SUPER) as an instance; stopping"; fi
   return "$rc"
 }
@@ -193,6 +195,7 @@ install -m 700 "$I/box_job.sh" "$R/box_job.sh"
 install -m 600 "$I/job.env" "$R/job.env"
 mkdir -p "$R/inputs/harness" "$R/inputs/audio" "$R/state"
 cp -f "$I"/inputs/harness/*.bin "$R/inputs/harness/"
+cp -f "$I/inputs/harness/meta.json" "$R/inputs/harness/meta.json"
 for d in train review; do rm -rf "$R/inputs/audio/$d"; mv "$I/inputs/audio/$d" "$R/inputs/audio/$d"; done
 if [ -f "$I/inputs/urls.tsv" ]; then install -m 600 "$I/inputs/urls.tsv" "$R/inputs/urls.tsv"; rm -f "$R/state/inputs.done"; fi
 printf '%s\n' "${MTBOOT_DEADLINE_UTC:-}" > "$R/lease_deadline_utc"
@@ -261,13 +264,21 @@ cmd_create() {
   local mark="$LOCAL/$RUN/create.requested"
   [[ ! -e $mark ]] || die "a create for $LABEL was already sent from this Mac ($(cat "$mark")); reconcile with status, never create twice"
   say "create $LABEL: one create request; the controller arms $LABEL-expiry before it and refuses an existing state dir"
-  if (( ! DRY )); then mkdir -p "$LOCAL/$RUN" && date -u +%Y-%m-%dT%H:%M:%SZ > "$mark"; fi
+  if (( ! DRY )); then
+    mkdir -p "$LOCAL/$RUN"
+    (set -o noclobber; date -u +%Y-%m-%dT%H:%M:%SZ > "$mark") || die "create intent already exists; use status only"
+  fi
   guarded "if sudo -n test -e $EC2_STATE/$LABEL; then echo 'refusing: $EC2_STATE/$LABEL exists on EC2 (one create per run)' >&2; exit 3; fi; $(ctl_cmd create "$RUN" "${LAUNCH_ARGS[@]}")"
 }
 
 cmd_status() {
   say "status $LABEL: provider state (the controller attaches EC2's SSH key once the box runs)"
   guarded "$(ctl_cmd status "$RUN")"
+}
+
+cmd_collect() {
+  say "collect $LABEL: bootstrap diagnostics retained on EC2 (no job interruption)"
+  guarded "$(ctl_cmd collect "$RUN")"
 }
 
 cmd_probe() {
@@ -291,22 +302,46 @@ cmd_presign() {
     done < "$KEYS_FILE"
   else
     say "presign $LABEL: training bundles ($TRAIN_AVATARS) from s3://$BUCKET/$BUNDLE_PREFIX/, review avatars from s3://$BUCKET/$AVATAR_PREFIX/"
-    if [[ $TRAIN_AVATARS == all ]]; then
-      names=$(s3_names "$BUNDLE_PREFIX/")
-      if (( DRY )); then keys+=("bundles/<id>.json"$'\t'"s3://$BUCKET/$BUNDLE_PREFIX/<id>.json" "bundles/<id>.tar"$'\t'"s3://$BUCKET/$BUNDLE_PREFIX/<id>.tar"); fi
-      for id in $(sed -n 's/\.tar$//p' <<<"$names"); do
-        if grep -qx "$id.json" <<<"$names"; then keys+=("bundles/$id.json"$'\t'"s3://$BUCKET/$BUNDLE_PREFIX/$id.json"); fi
-        keys+=("bundles/$id.tar"$'\t'"s3://$BUCKET/$BUNDLE_PREFIX/$id.tar")
-      done
-      (( DRY )) || grep -q '\.tar$' <<<"$names" || die "no .tar under s3://$BUCKET/$BUNDLE_PREFIX/"
-    else
-      for id in $(csv_items "$TRAIN_AVATARS"); do
-        names=$(s3_names "$BUNDLE_PREFIX/$id.")
-        (( DRY )) || grep -qx "$id.tar" <<<"$names" || die "no phone bundle s3://$BUCKET/$BUNDLE_PREFIX/$id.tar"
+    names=$(s3_names "$BUNDLE_PREFIX/")
+    # Select distinct characters, never another pose of a review character. The source capture metadata
+    # names all 14 gate identities; no full model is loaded by this stdlib-only eligibility check.
+    local selected
+    selected=$(python3 - "$HB/meta.json" "$TRAIN_AVATARS" "$REVIEW_AVATARS" "$DRY" "$names" <<'PY_IDS'
+import json, re, sys
+from pathlib import Path
+meta, requested, review, dry, names = sys.argv[1:]
+rows = json.loads(Path(meta).read_text())["unet"]["files"]
+gate = {r["avatar"] for r in rows}
+if len(gate) != 14 or any(not isinstance(x, str) or not x for x in gate):
+    sys.exit("expected complete metadata for the 14 gate avatars")
+def identity(s):
+    return re.split(r"_(?:idle|smiling|talking)_", s, maxsplit=1)[0]
+blocked = {identity(s) for s in gate | set(review.split(","))}
+available = sorted(n[:-4] for n in names.splitlines() if n.endswith(".tar"))
+ids = ([s for s in available if "_talking_" in s and re.match(r"^(en|es|ur|zh)_\d{2}_", s)
+        and identity(s) not in blocked] if requested == "roster12" else requested.split(","))
+if dry == "1" and requested == "roster12" and not available:
+    # Explain selection without issuing aws calls or inventing a trainable data manifest.
+    print("<12-eligible-roster-talking-ids>")
+    sys.exit()
+if len(ids) != 12 or len(set(map(identity, ids))) != 12:
+    sys.exit("need exactly 12 distinct eligible roster characters (10 train + 2 validation)")
+for s in ids:
+    if not re.fullmatch(r"(?:en|es|ur|zh)_\d{2}_[A-Za-z0-9_]+", s) or identity(s) in blocked:
+        sys.exit("ineligible or held-out character in bundle selection: " + s)
+    if s not in available and dry != "1":
+        sys.exit("missing phone bundle: " + s)
+print("\n".join(ids))
+PY_IDS
+    ) || die "roster selection failed"
+    for id in $selected; do
+      if (( DRY )) && [[ $id == '<12-eligible-roster-talking-ids>' ]]; then
+        keys+=("bundles/<id>.json"$'\t'"s3://$BUCKET/$BUNDLE_PREFIX/<id>.json" "bundles/<id>.tar"$'\t'"s3://$BUCKET/$BUNDLE_PREFIX/<id>.tar")
+      else
         if (( DRY )) || grep -qx "$id.json" <<<"$names"; then keys+=("bundles/$id.json"$'\t'"s3://$BUCKET/$BUNDLE_PREFIX/$id.json"); fi
         keys+=("bundles/$id.tar"$'\t'"s3://$BUCKET/$BUNDLE_PREFIX/$id.tar")
-      done
-    fi
+      fi
+    done
     for id in $(csv_items "$REVIEW_AVATARS"); do
       names=$(s3_names "$AVATAR_PREFIX/$id.tar.gz")
       (( DRY )) || grep -qx "$id.tar.gz" <<<"$names" || die "no v15 avatar s3://$BUCKET/$AVATAR_PREFIX/$id.tar.gz"
@@ -373,6 +408,11 @@ cmd_push() {
     name=${spec%%:*} size=${spec##*:}
     [[ -f $HB/$name && "$(wc -c < "$HB/$name" | tr -d ' ')" == "$size" ]] || die "gate file $HB/$name missing or not $size bytes"
   done
+  python3 - "$HB/meta.json" <<'PY_META'
+import json, sys
+m = json.load(open(sys.argv[1]))["unet"]
+assert m["frames"] == 128 and len({r["avatar"] for r in m["files"]}) == 14, "incomplete gate metadata"
+PY_META
   while IFS= read -r f; do review+=("$f"); done < <(audio_files "$REVIEW_AUDIO")
   if [[ -n $TRAIN_AUDIO ]]; then
     while IFS= read -r f; do train+=("$f"); done < <(audio_files "$TRAIN_AUDIO")
@@ -403,6 +443,7 @@ cmd_push() {
   stage=$PUSH_STAGE
   mkdir -p "$stage/inputs/harness" "$stage/inputs/audio/train" "$stage/inputs/audio/review"
   ln -s "$HERE/box_job.sh" "$stage/box_job.sh"
+  ln -s "$HB/meta.json" "$stage/inputs/harness/meta.json"
   write_job_env "$stage/job.env"
   [[ ! -f $list ]] || ln -s "$list" "$stage/inputs/urls.tsv"
   for spec in $GATE_FILES; do ln -s "$HB/${spec%%:*}" "$stage/inputs/harness/${spec%%:*}"; done
@@ -457,7 +498,7 @@ units=$(systemctl list-units --all --plain --no-legend --type=timer "$L-expiry*"
 for u in "$L-expiry.timer" $units; do
   s=$(systemctl is-active "$u" 2>/dev/null || true)
   echo "timer $u: ${s:-unknown}"
-  [ "$s" != active ] || bad=1
+  [ "$s" = inactive ] || bad=1
 done
 exit $bad
 EOF
@@ -509,6 +550,7 @@ case $CMD in
   create) cmd_create ;;
   status) cmd_status ;;
   probe) cmd_probe ;;
+  collect) cmd_collect ;;
   push) cmd_push ;;
   start) cmd_start ;;
   watch) cmd_watch ;;

@@ -19,8 +19,9 @@ Verdict on S: PASS when
       mouth and face flicker ratio <= 1.05, mouth sharpness ratio >= 0.95; and
   (2) every clip is non-inferior to the chain the app ships today. The bar is the Neural Engine chain's D-vs-A
       numbers on the same clip (--mixed-metrics, review_mixed_units' arm D), within the margins below.
-FAIL when any scored check fails. INCOMPLETE when nothing failed but something went unscored: no FaceMesh, a clip
-outside the D set or shorter than D's, or a D clip not run.
+FAIL when any scored check fails. INCOMPLETE when nothing failed but something went unscored: no FaceMesh,
+reduced landmark coverage, mismatched frame count/fps/ROIs, a clip outside D's set or a D clip not run. All six
+visual no-worse comparisons use zero deterioration margins. Latent error is reported but is not a visual gate.
 
 One UNet sits on the device at a time. Every clip runs through the teacher (A, then the same weights cast once to
 fp16 for N), then through the student (S, then S16), and only then is anything decoded. The weights are never cast
@@ -43,6 +44,7 @@ import argparse
 import gc
 import hashlib
 import json
+import math
 import sys
 import time
 from pathlib import Path
@@ -67,18 +69,14 @@ MIXED_METRICS = REPO_ROOT / "docs" / "ios_unet_bench" / "review_mixed_units" / "
 ARMS = ("A", "N", "S", "S16")
 SCORED = ("N", "S", "S16")
 
-# Non-inferiority margins against D, the Neural Engine chain the app ships (review_mixed_units/metrics.json,
-# 2026-11-03, the same 12 clips). D ran once per clip, so there is no run-to-run spread to size them from. Five of
-# them are the largest change in D's own score between the two audios of one character, over the five characters
-# that pass r5 (the Japanese one fails it), rounded up to one significant figure. A student worse than D by less
-# than that is within what changing the clip alone does to the shipped chain. The flicker ratio margin is the cost
-# 5.7 accepted for the mixed Neural Engine + GPU arm.
-LIP_CORR_MARGIN = 0.002         # es_03_mateo 0.9953 / 0.9968, 0.0015 apart
-LIP_DELTA_MARGIN_PX = 0.05      # en_01_maya 0.246 / 0.202 px, 0.044 apart; the GPU arm G, numerically A, scores 0.03-0.05
-MOUTH_PSNR_MARGIN_DB = 0.8      # en_01_maya 46.95 / 47.69 dB, 0.74 apart
-MOUTH_SHARPNESS_MARGIN = 0.005  # latina_guided 0.9933 / 0.9977, 0.0044 apart (blur is a distilled student's likely failure)
-ERROR_FLICKER_MARGIN = 0.04     # es_03_mateo 0.859 / 0.895, 0.036 apart; G scores 0.047-0.067
-FLICKER_RATIO_MARGIN = 0.02     # arm M's mouth flicker ratio was 0.007-0.019 above D's, accepted within r5's 1.05
+# The user's acceptance criterion is literal: no worse than today's phone chain on the six visual checks.
+# The unreviewed WIP allowed deterioration margins; those are deliberately zero for the overnight verdict.
+LIP_CORR_MARGIN = 0.0
+LIP_DELTA_MARGIN_PX = 0.0
+MOUTH_PSNR_MARGIN_DB = 0.0
+MOUTH_SHARPNESS_MARGIN = 0.0
+ERROR_FLICKER_MARGIN = 0.0
+FLICKER_RATIO_MARGIN = 0.0
 # (key, higher is better, margin)
 CHECKS = (("lip_corr", True, LIP_CORR_MARGIN), ("lip_mean_abs_delta_px", False, LIP_DELTA_MARGIN_PX),
           ("mouth_psnr_db", True, MOUTH_PSNR_MARGIN_DB), ("mouth_sharpness_ratio", True, MOUTH_SHARPNESS_MARGIN),
@@ -121,7 +119,7 @@ def unet_arms(clips: list[dict], nets: list[tuple], batch) -> tuple[dict, dict]:
         unet, pe = w.model.eval().requires_grad_(False), w.pe
         params[name] = sum(p.numel() for p in unet.parameters())
         for arm, dtype, dev in arms:
-            unet, pe = unet.to(dev, dtype), pe.to(dev)
+            unet, pe = unet.to(dev, dtype), pe.to(dev, dtype)
             for c in clips:
                 out[c["clip"]][arm] = run_unet(unet, pe, c["lat"], c["aud"], dev, dtype, batch)
                 print(f"  {arm} {c['clip']}: {out[c['clip']][arm][1]:.1f} ms/frame on {dev.type}", flush=True)
@@ -151,7 +149,8 @@ def numbers(m: dict, arm: str) -> dict:
     c = m[f"{arm}_vs_A"]
     ap = (m.get("aperture") or {}).get(f"{arm}_vs_A") or {}
     g = m[f"r5_gates_{arm}"]
-    return {"frames": m["frames"], "latent_mae": m["latent_vs_A"][arm]["mae"], "lip_corr": ap.get("corr"),
+    return {"frames": m["frames"], "fps": m["fps"], "face_box": m["face_box"], "mouth_box": m["mouth_box"],
+            "aperture_frames": ap.get("frames", 0), "latent_mae": m["latent_vs_A"][arm]["mae"], "lip_corr": ap.get("corr"),
             "lip_lag_frames": ap.get("lag_frames"), "lip_mean_abs_delta_px": ap.get("mean_abs_delta_px"),
             "mouth_psnr_db": c["mouth_roi"]["psnr_db"], "mouth_flicker_ratio": c["mouth_roi"]["flicker_ratio"],
             "error_flicker_mouth": m["error_flicker_mouth"][arm], "mouth_sharpness_ratio": c["mouth_sharpness"]["ratio"],
@@ -161,18 +160,20 @@ def numbers(m: dict, arm: str) -> dict:
 def non_inferiority(x: dict, d: dict | None) -> dict:
     if d is None:
         return {"status": "incomplete", "checks": {}, "incomplete_because": ["clip not in the D set"]}
-    checks = {}
+    checks, why = {}, []
     for key, higher, margin in CHECKS:
         if x.get(key) is None or d.get(key) is None:
+            why.append(f"{key} not scored for student or D")
             continue
         bound = d[key] - margin if higher else d[key] + margin
-        checks[key] = {"value": x[key], "D": d[key], "bound": round(bound, 5),
-                       "pass": bool(x[key] >= bound if higher else x[key] <= bound)}
-    why = []
-    if "lip_corr" not in checks:
-        why.append("lip aperture not scored (no FaceMesh)")
-    if x["frames"] != d["frames"]:
-        why.append(f"{x['frames']} frames, D has {d['frames']}")
+        finite = math.isfinite(x[key]) and math.isfinite(d[key])
+        checks[key] = {"value": x[key], "D": d[key], "delta_vs_D": x[key] - d[key], "bound": bound,
+                       "pass": bool(finite and (x[key] >= bound if higher else x[key] <= bound))}
+    for key in ("frames", "fps", "face_box", "mouth_box"):
+        if x.get(key) != d.get(key):
+            why.append(f"{key} differs from D: {x.get(key)} vs {d.get(key)}")
+    if x.get("aperture_frames", 0) < d.get("aperture_frames", 0):
+        why.append(f"aperture coverage {x.get('aperture_frames', 0)} frames, D has {d.get('aperture_frames', 0)}")
     status = "FAIL" if any(not c["pass"] for c in checks.values()) else ("incomplete" if why else "pass")
     return {"status": status, "checks": checks, "incomplete_because": why}
 
@@ -187,6 +188,8 @@ def failures(m: dict, arm: str) -> list[str]:
 
 def verdict(clips: list[dict], d_clips: dict, arm: str) -> tuple[str, list[str]]:
     reasons, failed = [], False
+    if not clips:
+        return "INCOMPLETE", ["no clips scored"]
     for m in clips:
         f = failures(m, arm)
         if f:
@@ -224,6 +227,8 @@ def main() -> None:
     ap.add_argument("--unet-dir", type=Path, default=REPO_ROOT / "models" / "musetalkV15")
     ap.add_argument("--whisper-dir", type=Path, default=REPO_ROOT / "models" / "whisper")
     args = ap.parse_args()
+    if args.seconds <= 0 or args.fps <= 0 or args.batch <= 0 or (args.frames is not None and args.frames <= 0):
+        ap.error("seconds, fps, batch and frames must be positive")
     if args.facemesh_python is not None and not FACEMESH_HELPER.exists():
         sys.exit(f"--facemesh-python given but {FACEMESH_HELPER} is missing")
     # A and S are the fp32 references; TF32 would round their convolutions and matmuls to a 10-bit mantissa.
@@ -238,7 +243,12 @@ def main() -> None:
 
     avatars = [Path(p) for a in args.avatars for p in a.split(",") if p]
     audios = [Path(p) if Path(p).is_absolute() else REPO_ROOT / p for a in args.audio for p in a.split(",") if p]
-    d_clips = {c["clip"]: c for c in json.loads(args.mixed_metrics.read_text())["clips"]}
+    d_list = json.loads(args.mixed_metrics.read_text())["clips"]
+    d_clips = {c["clip"]: c for c in d_list}
+    if not d_clips or len(d_clips) != len(d_list):
+        ap.error("D metrics must have unique, nonempty clips")
+    if len(avatars) != len(set(avatars)) or len(audios) != len(set(audios)):
+        ap.error("duplicate avatars or audio inputs")
 
     windows = {a: audio_windows(a, args.whisper_dir, args.fps) for a in audios}
     clips = []
@@ -249,6 +259,10 @@ def main() -> None:
             clips.append({"clip": f"{avatar.name}__{audio.stem}", "avatar": avatar, "audio": audio, "n": n,
                           "lat": torch.stack([av_latents[i % av_latents.shape[0]] for i in range(n)]),
                           "aud": windows[audio][:n]})
+    if len({c["clip"] for c in clips}) != len(clips):
+        ap.error("avatar names and audio stems must form unique clip identifiers")
+    if any(c["n"] < 10 for c in clips):
+        ap.error("every clip needs at least 10 frames for aperture/flicker scoring")
     print(f"{len(clips)} clips, {sum(c['n'] for c in clips)} frames per arm, on {dev_name}", flush=True)
 
     nets = [("teacher", args.unet_dir / "musetalk.json", args.unet_dir / "unet.pth",
@@ -259,7 +273,7 @@ def main() -> None:
     with args.student_weights.open("rb") as fh:
         for block in iter(lambda: fh.read(1 << 24), b""):
             sha.update(block)
-    student = {"json": rel(args.student_json), "weights": rel(args.student_weights), "sha256_12": sha.hexdigest()[:12],
+    student = {"json": rel(args.student_json), "weights": rel(args.student_weights), "sha256": sha.hexdigest(), "sha256_12": sha.hexdigest()[:12],
                "params_m": round(params["student"] / 1e6, 1), "teacher_params_m": round(params["teacher"] / 1e6, 1)}
     dec = taesd_torch(dev, torch.float32)
 
@@ -284,7 +298,7 @@ def main() -> None:
                     lms[arm] = facemesh(full[arm], args.facemesh_python, clip_dir / f"landmarks_{arm}.npy")
             # D's boxes when the clip is in the D set, so S and D are scored on the same pixels
             dm = d_clips.get(clip)
-            fits = lambda b: b[0] + b[2] <= W and b[1] + b[3] <= H  # noqa: E731
+            fits = lambda b: len(b) == 4 and b[0] >= 0 and b[1] >= 0 and b[2] > 0 and b[3] > 0 and b[0] + b[2] <= W and b[1] + b[3] <= H  # noqa: E731
             if dm is not None and fits(dm["face_box"]) and fits(dm["mouth_box"]):
                 face_box, mouth_box, box_source = tuple(dm["face_box"]), tuple(dm["mouth_box"]), "review_mixed_units (D's boxes)"
             else:
@@ -376,7 +390,10 @@ def summarize(results: list[dict], d_clips: dict, student: dict, env: dict, args
     v, reasons = verdict(results, d_clips, "S")
     v16, reasons16 = verdict(results, d_clips, "S16")
     n_r5 = {arm: sum(r5_status(m[f"r5_gates_{arm}"]) == "pass" for m in results) for arm in SCORED}
-    summary = {"verdict": v, "reasons": reasons, "verdict_S16_informational": v16, "reasons_S16": reasons16,
+    summary = {"acceptance": {"arm": "S", "all_clips_required": True,
+                              "all_r5_gates_required": True, "no_worse_visual_metrics_vs_D": [k for k, _, _ in CHECKS],
+                              "deterioration_margins": "zero", "latent_mae_is_informational": True,
+                              "matching_frames_fps_rois_and_full_D_aperture_coverage_required": True}, "verdict": v, "reasons": reasons, "verdict_S16_informational": v16, "reasons_S16": reasons16,
                "student": student, "env": env, "frames_per_clip": sorted({m["frames"] for m in results}), "fps": args.fps,
                "r5_gates": R5_GATES, "r5_pass_clips": n_r5, "clips_run": len(results), "d_set": rel(args.mixed_metrics),
                "d_clips": len(d_clips),
@@ -386,7 +403,7 @@ def summarize(results: list[dict], d_clips: dict, student: dict, env: dict, args
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
 
     rows = table(results)
-    widths = [max(len(h), *(len(r[i]) for r in rows)) for i, h in enumerate(HEADER)]
+    widths = [max([len(h)] + [len(r[i]) for r in rows]) for i, h in enumerate(HEADER)]
     print(f"\n{'  '.join(h.ljust(w) for h, w in zip(HEADER, widths))}")
     for r in rows:
         print("  ".join(c.ljust(w) for c, w in zip(r, widths)))
@@ -410,13 +427,14 @@ from `{summary['d_set']}`, the same clips.
 **Verdict on S: {v}.** S passes when every clip passes r5 against A (aperture corr ≥ {R5_GATES['aperture_corr_min']},
 lag {R5_GATES['aperture_lag_frames']}, mean |Δ| ≤ {R5_GATES['aperture_mean_abs_delta_px_max']} px, mouth and face flicker ratio
 ≤ {R5_GATES['flicker_ratio_max']}, mouth sharpness ratio ≥ {R5_GATES['sharpness_ratio_min']}) and is non-inferior to D on
-every one of D's {len(d_clips)} clips.
+every one of D's {len(d_clips)} clips. The six visual comparisons below allow zero deterioration. Latent MAE
+is informational. Comparisons require matching frame count, fps and ROIs, and at least D's valid aperture coverage.
 
 {chr(10).join(f'- {r}' for r in reasons) or '- every clip passes both'}
 
 S16 (informational): {v16}. r5 passes on {n_r5['N']} (N), {n_r5['S']} (S), {n_r5['S16']} (S16) of {len(results)} clips.
 
-## Non-inferiority margins against D (per clip; sources in the script's constants)
+## No-worse checks against D (per clip; all deterioration margins are zero)
 
 | metric | S must be |
 |---|---|

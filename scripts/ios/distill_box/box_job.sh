@@ -41,11 +41,10 @@
 #
 # Settings (job.env or environment; defaults):
 #   DISTILL_SHA (required, 40 hex)    DISTILL_VARIANT=bk_tiny          DISTILL_MAX_MINUTES=150
-#   DISTILL_STEPS=100000 (the time cap ends the run first; the LR cosine follows whichever ends first)
-#   DISTILL_RESERVE_MINUTES=60        DISTILL_EXTRA_ARGS (appended, word-split, e.g. "--batch 16 --val-count 4")
-#   DISTILL_TRAIN_GLOB=$ROOT/inputs/bundles/*/latents_f16.bin (comma-separated globs; add $ROOT/inputs/avatars/*/latents.pt
-#                                     to train on the review avatars' server caches too)
-#   REVIEW_AVATARS (comma ids; empty: every extracted avatar)        REVIEW_SECONDS=10   REVIEW_MAX_MINUTES=40
+#   DISTILL_STEPS=30000 (the time cap ends the run first; the LR cosine follows whichever ends first)
+#   DISTILL_RESERVE_MINUTES=60        DISTILL_EXTRA_ARGS (only training tuning flags; controlled data/time flags refused)
+#   DISTILL_TRAIN_GLOB is fixed to the 12 eligible roster characters' bundle latents (10 train + 2 val)
+#   REVIEW_AVATARS (the fixed six held-out ids)        REVIEW_SECONDS=10   REVIEW_MAX_MINUTES=50
 #   REVIEW_EXTRA_ARGS                 FACEMESH=1                       BOOT_WAIT_MINUTES=40
 #   RESULTS_INCLUDE_CKPT=0 (1 also packs the optimizer checkpoint)   FORCE=0 (1 re-runs a job whose DONE says ok)
 # Local test only: DISTILL_ROOT, DISTILL_BOOT_REPO, DISTILL_CLONE, BOX_PY.
@@ -84,7 +83,7 @@ SPARSE_PATTERNS='/*
 !/third_party_wheels/
 !/uploads/'
 JOB_KEYS="RUN_LABEL DISTILL_SHA DISTILL_VARIANT DISTILL_MAX_MINUTES DISTILL_STEPS DISTILL_RESERVE_MINUTES DISTILL_EXTRA_ARGS
-DISTILL_TRAIN_GLOB REVIEW_AVATARS REVIEW_SECONDS REVIEW_MAX_MINUTES REVIEW_EXTRA_ARGS FACEMESH BOOT_WAIT_MINUTES
+REVIEW_AVATARS REVIEW_SECONDS REVIEW_MAX_MINUTES REVIEW_EXTRA_ARGS FACEMESH BOOT_WAIT_MINUTES
 RESULTS_INCLUDE_CKPT DIFFUSERS_FALLBACK"
 # import name -> pip requirement, for modules the scripts may need that the server venv might lack
 PIP_NAMES="cv2=opencv-python-headless PIL=pillow skimage=scikit-image sklearn=scikit-learn yaml=pyyaml einops=einops
@@ -127,9 +126,10 @@ load_job_env() {
 
 settings() {
   load_job_env
-  : "${DISTILL_SHA:=}" "${DISTILL_VARIANT:=bk_tiny}" "${DISTILL_MAX_MINUTES:=150}" "${DISTILL_STEPS:=100000}"
-  : "${DISTILL_RESERVE_MINUTES:=60}" "${DISTILL_EXTRA_ARGS:=}" "${DISTILL_TRAIN_GLOB:=$INPUTS/bundles/*/latents_f16.bin}"
-  : "${REVIEW_AVATARS:=}" "${REVIEW_SECONDS:=10}" "${REVIEW_MAX_MINUTES:=40}" "${REVIEW_EXTRA_ARGS:=}"
+  : "${DISTILL_SHA:=}" "${DISTILL_VARIANT:=bk_tiny}" "${DISTILL_MAX_MINUTES:=150}" "${DISTILL_STEPS:=30000}"
+  : "${DISTILL_RESERVE_MINUTES:=60}" "${DISTILL_EXTRA_ARGS:=}"
+  DISTILL_TRAIN_GLOB="$INPUTS/bundles/*/latents_f16.bin"
+  : "${REVIEW_AVATARS:=}" "${REVIEW_SECONDS:=10}" "${REVIEW_MAX_MINUTES:=50}" "${REVIEW_EXTRA_ARGS:=}"
   : "${FACEMESH:=1}" "${BOOT_WAIT_MINUTES:=40}" "${RESULTS_INCLUDE_CKPT:=0}" "${DIFFUSERS_FALLBACK:=diffusers==0.31.0}"
   : "${FORCE:=0}"
   [[ $DISTILL_SHA =~ ^[a-f0-9]{40}$ ]] || die "DISTILL_SHA must be a full 40-hex commit (job.env)"
@@ -138,6 +138,10 @@ settings() {
   for n in DISTILL_MAX_MINUTES DISTILL_STEPS DISTILL_RESERVE_MINUTES REVIEW_MAX_MINUTES BOOT_WAIT_MINUTES; do
     [[ ${!n} =~ ^[0-9]+$ ]] || die "$n must be a whole number"
   done
+  (( DISTILL_MAX_MINUTES > 0 && DISTILL_MAX_MINUTES <= 150 )) || die "DISTILL_MAX_MINUTES must be 1-150"
+  (( DISTILL_RESERVE_MINUTES >= REVIEW_MAX_MINUTES + 10 )) || die "reserve must leave review plus at least 10 minutes to pull/cleanup"
+  [[ $REVIEW_SECONDS == 10 && $FACEMESH == 1 ]] || die "the complete standard review requires REVIEW_SECONDS=10 and FACEMESH=1"
+  [[ -z $REVIEW_EXTRA_ARGS ]] || die "REVIEW_EXTRA_ARGS could weaken the required review; use the fixed review flags"
   log "settings: sha=$DISTILL_SHA variant=$DISTILL_VARIANT max_minutes=$DISTILL_MAX_MINUTES steps=$DISTILL_STEPS" \
       "reserve=$DISTILL_RESERVE_MINUTES review_avatars=${REVIEW_AVATARS:-all} facemesh=$FACEMESH dry_run=$DRY"
 }
@@ -264,7 +268,9 @@ pip_overlay() {
   local pip=()
   if "$BOX_PY" -m pip --version >/dev/null 2>&1; then pip=("$BOX_PY" -m pip)
   elif /venv/main/bin/python -m pip --version >/dev/null 2>&1; then pip=(/venv/main/bin/python -m pip)
-  elif command -v uv >/dev/null 2>&1; then pip=(uv pip --python "$BOX_PY")
+  elif command -v uv >/dev/null 2>&1; then
+    run uv pip install --python "$BOX_PY" --no-deps --target "$OVERLAY" "$@"
+    return
   else soft_die "no pip for the overlay install"; return 0
   fi
   run "${pip[@]}" install --disable-pip-version-check --no-deps --target "$OVERLAY" "$@"
@@ -481,6 +487,8 @@ step_inputs() {
     [[ $have == "$size" ]] || soft_die "gate file inputs/harness/$name is ${have:-missing} bytes, expected $size (drive.sh push)"
     run cp -f "$INPUTS/harness/$name" "$hb/$name"
   done
+  [[ -s $INPUTS/harness/meta.json ]] || soft_die "missing gate metadata (drive.sh push)"
+  run cp -f "$INPUTS/harness/meta.json" "$hb/meta.json"
   if [[ -f $INPUTS/urls.tsv ]]; then
     fetch_all "$INPUTS/urls.tsv"
   elif ! marked inputs ok; then
@@ -491,7 +499,37 @@ step_inputs() {
   bundles=$(count $(tr ',' ' ' <<<"$DISTILL_TRAIN_GLOB"))
   log "inputs: $bundles training latent files, $(count "$INPUTS"/avatars/*/latents.pt) review avatars," \
       "$(count "$INPUTS"/audio/train/*) training clips, $(count "$INPUTS"/audio/review/*) review clips"
-  (( bundles > 0 )) || soft_die "no training latents match $DISTILL_TRAIN_GLOB"
+  (( bundles == 12 )) || soft_die "expected exactly 12 eligible roster bundle latents, found $bundles"
+  if (( ! DRY )); then
+    python3 -I - "$INPUTS" "$REVIEW_AVATARS" "$OUT/data_manifest.json" <<'PY_DATA'
+import json, re, sys
+from pathlib import Path
+root, review, dest = Path(sys.argv[1]), sys.argv[2].split(","), Path(sys.argv[3])
+fixed = {"en_01_maya_abe451d3_talking_f6cf8be7fb", "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+         "es_01_valeria_aed74c50_talking_003d585d96", "es_03_mateo_884600e1_talking_75d88cda6c",
+         "japanese_realtime_talking_7d94520b7f", "latina_guided_20260925_talking_84c5bc80b8"}
+assert set(review) == fixed and len(review) == 6, "review must contain the fixed six avatars"
+meta = json.loads((root / "harness/meta.json").read_text())["unet"]
+gate = {r["avatar"] for r in meta["files"]}
+assert meta["frames"] == 128 and len(gate) == 14, "incomplete gate metadata"
+def identity(s): return re.split(r"_(?:idle|smiling|talking)_", s, maxsplit=1)[0]
+blocked = {identity(s) for s in gate | fixed}
+ids = sorted(p.parent.name for p in (root / "bundles").glob("*/latents_f16.bin"))
+assert len(ids) == 12 and len(set(map(identity, ids))) == 12, "need 12 distinct roster characters"
+assert all(re.fullmatch(r"(?:en|es|ur|zh)_\d{2}_[A-Za-z0-9_]+", s) and identity(s) not in blocked for s in ids), "ineligible/heldout roster input"
+val = [ids[int((i + 0.5) * len(ids) / 2)] for i in range(2)]
+train = [s for s in ids if s not in val]
+ra = sorted(p.name for p in (root / "audio/review").iterdir() if p.is_file())
+ta = sorted(p.name for p in (root / "audio/train").iterdir() if p.is_file())
+assert ra == ["ai-assistant.mpga", "eng.wav"], "incorrect heldout review audio"
+assert ta and not (set(ta) & set(ra)), "review audio must never train"
+assert all((root / "avatars" / s / "latents.pt").is_file() for s in review), "missing review cache"
+manifest = {"train_avatars":train, "val_avatars":val, "excluded_gate_avatars":sorted(gate),
+            "review_avatars":sorted(review), "train_audio":ta, "review_audio":ra}
+dest.write_text(json.dumps(manifest, indent=2) + "\n")
+print("data split verified:", len(train), "train,", len(val), "validation; 14 gate + 6 review identities excluded")
+PY_DATA
+  fi
   mark inputs ok
 }
 
@@ -507,7 +545,7 @@ step_facemesh() {
      && { (( DRY )) || "$venv/bin/python" -c 'import mediapipe, cv2'; }; then
     MP_PY="$venv/bin/python"
   else
-    log "WARNING: no mediapipe venv; the review runs without FaceMesh lip aperture"
+    die "mediapipe setup failed; complete lip-aperture review is mandatory"
   fi
 }
 
@@ -528,10 +566,19 @@ train_budget() {  # <out dir>
   if [[ -n $lease ]] && lease=$(epoch_of "$lease"); then
     if (( (lease - now) / 60 - DISTILL_RESERVE_MINUTES < wall )); then wall=$(( (lease - now) / 60 - DISTILL_RESERVE_MINUTES )); fi
   else
-    log "no lease deadline on the box (drive.sh push and start write it); capped by DISTILL_MAX_MINUTES only"
+    soft_die "no valid lease deadline on the box (drive.sh push and start write it)"
   fi
-  TRAIN_WALL=$wall
   TRAIN_TOTAL=$(( ${trained:-0} + wall ))
+  # Never extend a resume's original allowance, even if elapsed-minute rounding or a shorter setup
+  # would now suggest a larger budget. The trainer independently refuses budget extension too.
+  local capfile="$STATE/train_budget_total_minutes" previous
+  if [[ -f $capfile ]]; then
+    previous=$(cat "$capfile")
+    [[ $previous =~ ^[0-9]+$ ]] || die "invalid saved training budget"
+    (( TRAIN_TOTAL <= previous )) || TRAIN_TOTAL=$previous
+  fi
+  TRAIN_WALL=$(( TRAIN_TOTAL - ${trained:-0} ))
+  if (( ! DRY )); then printf '%s\n' "$TRAIN_TOTAL" > "$capfile.tmp" && mv -f "$capfile.tmp" "$capfile"; fi
 }
 
 newest_ckpt() {
@@ -555,7 +602,8 @@ step_train() {
   local args=("$script" --variant "$DISTILL_VARIANT")
   # --latents (comma-separated globs) is the current name; --avatars the first version's
   if has_flag "$help" --latents; then args+=(--latents "$DISTILL_TRAIN_GLOB"); else args+=(--avatars "$DISTILL_TRAIN_GLOB"); fi
-  args+=(--audio "$INPUTS/audio/train/*" --steps "$DISTILL_STEPS" --device cuda --out "$out")
+  args+=(--audio "$INPUTS/audio/train/*" --steps "$DISTILL_STEPS" --device cuda --out "$out"
+          --val-count 2 --expected-train-avatars 10 --expected-val-avatars 2 --gate-frames 128 --batch 8 --grad-ckpt --eval-every 250 --ckpt-minutes 5)
   if has_flag "$help" --max-minutes; then args+=(--max-minutes "$TRAIN_TOTAL")
   else log "WARNING: $script has no --max-minutes; only the timeout backstop caps it"; fi
   ckpt=$(newest_ckpt "$out")
@@ -567,12 +615,20 @@ step_train() {
   fi
   local extra=()
   read -r -a extra <<<"$DISTILL_EXTRA_ARGS"
+  local a
+  for a in ${extra[@]+"${extra[@]}"}; do
+    case "$a" in
+      --lr|--batch|--warmup|--feat-weight|--eval-every|--log-every|--ckpt-minutes|--val-pairs|--seed|--grad-ckpt) ;;
+      --*) die "unapproved training override $a" ;;
+      *) [[ $a =~ ^[0-9.eE+-]+$ ]] || die "training override must be numeric: $a" ;;
+    esac
+  done
   args+=(${extra[@]+"${extra[@]}"})
-  # The backstop leaves the script 10 minutes past its own cap for the last eval and save.
-  log "+ (cd $CLONE && timeout -s INT -k 120 $(( (TRAIN_WALL + 10) * 60 )) $(printf '%q ' "$BOX_PY" "${args[@]}")) | tee -a $out/train.log"
+  # The backstop leaves the script 2 minutes past its own cap for the last eval and save.
+  log "+ (cd $CLONE && timeout -s INT -k 120 $(( (TRAIN_WALL + 2) * 60 )) $(printf '%q ' "$BOX_PY" "${args[@]}")) | tee -a $out/train.log"
   if (( DRY )); then return 0; fi
   set +e
-  (cd "$CLONE" && exec timeout -s INT -k 120 $(( (TRAIN_WALL + 10) * 60 )) "$BOX_PY" "${args[@]}") 2>&1 | tee -a "$out/train.log"
+  (cd "$CLONE" && exec timeout -s INT -k 120 $(( (TRAIN_WALL + 2) * 60 )) "$BOX_PY" "${args[@]}") 2>&1 | tee -a "$out/train.log"
   rc=${PIPESTATUS[0]}
   set -e
   if (( rc == 124 )) && [[ -s $out/${DISTILL_VARIANT}_best.pt ]]; then
@@ -605,6 +661,7 @@ step_review() {
   fi
   for f in "$INPUTS"/audio/review/*; do if [[ -f $f ]]; then clips+=("$f"); fi; done
   [[ -n $dirs && ${#clips[@]} -gt 0 ]] || soft_die "the review needs avatars (inputs/avatars) and clips (inputs/audio/review)"
+  if (( DRY && ${#clips[@]} == 0 )); then clips=("$INPUTS/audio/review/<clip>"); fi
   help=$(cd "$CLONE" && "$BOX_PY" "$script" --help 2>/dev/null || true)
   local args=("$script")
   has_flag "$help" --variant && args+=(--variant "$DISTILL_VARIANT")
@@ -629,6 +686,13 @@ step_review() {
   read -r -a extra <<<"$REVIEW_EXTRA_ARGS"
   args+=(${extra[@]+"${extra[@]}"})
   minutes=$REVIEW_MAX_MINUTES
+  if (( ! DRY )); then
+    local lease now
+    now=$(date -u +%s)
+    lease=$(epoch_of "$(cat "$ROOT/lease_deadline_utc")") || die "invalid review lease deadline"
+    if (( (lease - now) / 60 - 10 < minutes )); then minutes=$(( (lease - now) / 60 - 10 )); fi
+    (( minutes >= 5 )) || die "not enough lease left for review and results collection"
+  fi
   run mkdir -p "$out"
   if (( ! DRY )); then touch "$STATE/review.started"; fi
   log "+ (cd $CLONE && timeout -s INT -k 60 $(( minutes * 60 )) $(printf '%q ' "$BOX_PY" "${args[@]}")) | tee -a $out/review.log"

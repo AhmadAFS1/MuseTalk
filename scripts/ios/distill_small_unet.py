@@ -17,8 +17,8 @@ Three sets, kept apart:
          pairs scored against the teacher, the only number a checkpoint is chosen on
   test   the 128 harness gate frames against the server fp16 reference, the test every other UNet change took
          (ios_coreml_implementation.md 4.1: the full model in fp32 is mae 0.0004 there, the Neural Engine's own
-         error 0.013). Reported at every eval, never selected on. The gate captures come from production avatars:
-         the start record's gate_overlap names the loaded avatars whose frames are gate inputs.
+         error 0.013). Reported at every eval, never selected on. Review/gate avatar ids and byte-identical gate
+         inputs are rejected before training, including validation avatars.
 
 Precision: on CUDA the teacher runs in fp16 (the server's precision, and the gate reference's), and the student keeps
 fp32 master weights and trains under bf16 autocast; on mps/cpu both are fp32. Both nets use SDPA attention here;
@@ -49,6 +49,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -67,6 +68,12 @@ from musetalk.models.unet import PositionalEncoding  # noqa: E402
 
 HB = REPO_ROOT / "ios" / "MuseTalkBench" / "HarnessBundle"
 AUDIO_SUFFIXES = (".wav", ".mpga", ".mp3", ".m4a", ".flac")
+REVIEW_AVATARS = {
+    "en_01_maya_abe451d3_talking_f6cf8be7fb", "en_03_marcus_19eb1ea8_talking_ada35a4a4d",
+    "es_01_valeria_aed74c50_talking_003d585d96", "es_03_mateo_884600e1_talking_75d88cda6c",
+    "japanese_realtime_talking_7d94520b7f", "latina_guided_20260925_talking_84c5bc80b8",
+}
+REVIEW_AUDIO = {"ai-assistant.mpga", "eng.wav"}
 FRAME = 8 * 32 * 32
 
 
@@ -122,6 +129,8 @@ def load_avatars(files: list[Path]) -> dict[str, torch.Tensor]:
 def split(ids: list[str], val_avatars: str | None, val_count: int | None) -> tuple[list[str], list[str]]:
     if val_avatars:
         val = [s.strip() for s in val_avatars.split(",") if s.strip()]
+        if len(set(val)) != len(val):
+            raise SystemExit("--val-avatars contains duplicates")
         missing = [v for v in val if v not in ids]
         if missing:
             raise SystemExit(f"--val-avatars not among the loaded avatars: {missing}")
@@ -137,10 +146,18 @@ def split(ids: list[str], val_avatars: str | None, val_count: int | None) -> tup
     return train, val
 
 
+def file_digest(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def audio_windows(files: list[Path], cache: Path, device) -> torch.Tensor:
     """[windows, 50, 384] fp16 on the CPU: every clip's Whisper windows at 25 fps, without the positional encoding
     (UNetStep adds it). Cached under the clips' names and sizes."""
-    key = [[f.name, f.stat().st_size] for f in files]
+    key = [[f.name, file_digest(f)] for f in files]
     if cache.exists():
         c = torch.load(cache, map_location="cpu", weights_only=True)
         if c["files"] == key:
@@ -178,6 +195,29 @@ def gate_overlap(gate_lat: torch.Tensor, avatars: dict[str, torch.Tensor]) -> di
     keys = {g.numpy().tobytes() for g in gate_lat}
     hits = {aid: sum(f.numpy().tobytes() in keys for f in lat) for aid, lat in avatars.items()}
     return {aid: n for aid, n in hits.items() if n}
+
+
+def forbidden_avatars(meta_path: Path) -> set[str]:
+    """Use every capture's identity, even for a smoke test scoring only one gate frame."""
+    meta = json.loads(meta_path.read_text())
+    captures = meta["unet"]["files"]
+    if not captures or any(not f.get("avatar") for f in captures):
+        raise SystemExit(f"{meta_path}: gate avatar identities are missing")
+    return REVIEW_AVATARS | {f["avatar"] for f in captures}
+
+
+def avatar_identity(avatar: str) -> str:
+    return re.split(r"_(?:idle|smiling|talking)_", avatar, maxsplit=1)[0]
+
+
+def validate_data(avatars: dict[str, torch.Tensor], all_gate_lat: torch.Tensor, meta_path: Path) -> None:
+    excluded = {avatar_identity(a) for a in forbidden_avatars(meta_path)}
+    forbidden = sorted(a for a in avatars if avatar_identity(a) in excluded)
+    if forbidden:
+        raise SystemExit(f"review/gate avatars cannot be used for training or selection: {forbidden}")
+    overlap = gate_overlap(all_gate_lat, avatars)
+    if overlap:
+        raise SystemExit(f"loaded avatars contain held-out gate frames: {overlap}")
 
 
 class Taps:
@@ -228,6 +268,8 @@ def main() -> None:
     ap.add_argument("--exclude-audio", default="ai-assistant.mpga,eng.wav", help="basenames left out (the video review's clips)")
     ap.add_argument("--val-avatars", help="comma-separated avatar ids held out for checkpoint selection")
     ap.add_argument("--val-count", type=int, help="or hold out this many (default: a tenth of the avatars, at least one)")
+    ap.add_argument("--expected-train-avatars", type=int, help="fail unless this many avatars are in training")
+    ap.add_argument("--expected-val-avatars", type=int, help="fail unless this many avatars are held out for selection")
     ap.add_argument("--val-pairs", type=int, default=256)
     ap.add_argument("--gate-frames", type=int, default=128, help="fewer only for a smoke test")
     ap.add_argument("--steps", type=int, default=20000)
@@ -246,6 +288,13 @@ def main() -> None:
     ap.add_argument("--resume", action="store_true", help="continue from <out>/ckpt.pt if it exists")
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
+    for name in ("steps", "batch", "val_pairs", "eval_every", "log_every"):
+        if getattr(args, name) < 1:
+            ap.error(f"--{name.replace('_', '-')} must be positive")
+    if not 1 <= args.gate_frames <= 128:
+        ap.error("--gate-frames must be in [1,128]")
+    if args.max_minutes < 0 or args.ckpt_minutes <= 0 or args.lr <= 0 or args.warmup < 0:
+        ap.error("invalid training budget, checkpoint interval, learning rate or warmup")
     dev = torch.device(args.device)
     cuda = dev.type == "cuda"
     t_dtype = torch.float16 if cuda else torch.float32
@@ -262,16 +311,28 @@ def main() -> None:
     avatars = load_avatars(expand(args.latents))
     if not avatars:
         raise SystemExit("no latents")
+    g_lat, g_aud, g_ref = gate_frames(128)
+    validate_data(avatars, g_lat, HB / "meta.json")
     train_ids, val_ids = split(list(avatars), args.val_avatars, args.val_count)
-    g_lat, g_aud, g_ref = gate_frames(args.gate_frames)
-    overlap = gate_overlap(g_lat, avatars)
+    for actual, expected, name in ((len(train_ids), args.expected_train_avatars, "train"),
+                                   (len(val_ids), args.expected_val_avatars, "val")):
+        if expected is not None and actual != expected:
+            raise SystemExit(f"expected {expected} {name} avatars, found {actual}")
+    overlap = {}  # validate_data rejected all overlaps against the complete gate above
+    g_lat, g_aud, g_ref = g_lat[:args.gate_frames], g_aud[:args.gate_frames], g_ref[:args.gate_frames]
     print(f"{len(avatars)} avatars, {sum(len(v) for v in avatars.values())} frames; val: {', '.join(val_ids)}", flush=True)
-    if overlap:
-        print(f"  gate inputs that are also frames of the loaded avatars: {overlap}", flush=True)
-    excluded = {s.strip() for s in args.exclude_audio.split(",") if s.strip()}
+    excluded = REVIEW_AUDIO | {s.strip() for s in args.exclude_audio.split(",") if s.strip()}
     audio_files = [p for p in expand(args.audio) if p.suffix.lower() in AUDIO_SUFFIXES and p.name not in excluded]
     if not audio_files:
         raise SystemExit("no audio")
+    # A resume must continue the same experiment, rather than silently changing its data or selection pairs.
+    manifest = {
+        "avatars": {aid: hashlib.sha256(lat.numpy().tobytes()).hexdigest() for aid, lat in avatars.items()},
+        "train_ids": train_ids, "val_ids": val_ids,
+        "audio": [[p.name, file_digest(p)] for p in audio_files],
+        "hyperparameters": {k: getattr(args, k) for k in
+                            ("variant", "seed", "val_pairs", "batch", "lr", "warmup", "feat_weight", "steps")},
+    }
     auds = audio_windows(audio_files, args.out / "audio_windows.pt", dev).to(dev)
     print(f"{len(audio_files)} clips, {len(auds)} audio windows", flush=True)
 
@@ -314,10 +375,10 @@ def main() -> None:
 
     budget = args.max_minutes * 60
     step, elapsed0, best = 0, 0.0, math.inf
-    t_start = time.time()
+    t_start = time.monotonic()
 
     def clock() -> float:
-        return elapsed0 + time.time() - t_start
+        return elapsed0 + time.monotonic() - t_start
 
     def lr_scale(s: int) -> float:
         warm = min(1.0, (s + 1) / args.warmup) if args.warmup else 1.0
@@ -332,6 +393,11 @@ def main() -> None:
         ck = torch.load(ckpt_path, map_location="cpu", weights_only=True)
         if ck["variant"] != args.variant or ck["val_avatars"] != val_ids:
             raise SystemExit(f"{ckpt_path} is {ck['variant']} with val {ck['val_avatars']}, not {args.variant} with {val_ids}")
+        if ck.get("manifest") != manifest:
+            raise SystemExit(f"{ckpt_path}: resume data/hyperparameters differ or checkpoint predates the data guard")
+        previous_budget = ck.get("budget_seconds", 0)
+        if previous_budget and (not budget or budget > previous_budget + 1e-6):
+            raise SystemExit(f"{ckpt_path}: --max-minutes cannot extend the saved training budget")
         unet.load_state_dict(ck["student"])
         opt.load_state_dict(ck["opt"])
         sched.load_state_dict(ck["sched"])
@@ -340,7 +406,7 @@ def main() -> None:
         if cuda and ck["cuda_rng"] is not None:
             torch.cuda.set_rng_state_all(ck["cuda_rng"])
         step, elapsed0, best = ck["step"], ck["train_seconds"], ck["best_val"]
-        t_start = time.time()
+        t_start = time.monotonic()
         print(f"resumed from {ckpt_path} at step {step}, {elapsed0 / 60:.1f} min trained, best val mae {best:.5f}", flush=True)
     elif args.resume:
         print(f"no {ckpt_path}: starting at step 0", flush=True)
@@ -353,7 +419,8 @@ def main() -> None:
         return {k: v.detach().cpu() for k, v in unet.state_dict().items()}
 
     def checkpoint() -> None:
-        save({"variant": args.variant, "val_avatars": val_ids, "step": step, "train_seconds": clock(), "best_val": best,
+        save({"variant": args.variant, "val_avatars": val_ids, "manifest": manifest, "budget_seconds": budget,
+              "step": step, "train_seconds": clock(), "best_val": best,
               "student": weights(), "opt": opt.state_dict(),
               "sched": sched.state_dict(), "gen": gen.get_state(), "torch_rng": torch.get_rng_state(),
               "cuda_rng": torch.cuda.get_rng_state_all() if cuda else None}, ckpt_path)
@@ -362,7 +429,7 @@ def main() -> None:
          "train_avatars": train_ids, "val_avatars": val_ids, "train_frames": len(train_lat), "val_pairs": len(v_lat),
          "audio_clips": [p.name for p in audio_files], "audio_windows": len(auds), "gate_frames": len(g_lat),
          "gate_overlap": overlap, "teacher_dtype": str(t_dtype), **{f"teacher_{k}": v for k, v in teacher_gate.items()},
-         "args": {k: str(v) for k, v in vars(args).items()}})
+         "manifest": manifest, "args": {k: str(v) for k, v in vars(args).items()}})
 
     def report(rec: dict) -> None:
         print(f"eval {rec['step']}: val mae {rec['val_mae']:.5f} (blend {rec['val_blend_mae']:.5f}) | gate mae "
@@ -399,7 +466,7 @@ def main() -> None:
         loss = loss_out + args.feat_weight * loss_feat
         opt.zero_grad(set_to_none=True)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(train_params, 1.0)
+        torch.nn.utils.clip_grad_norm_(train_params, 1.0, error_if_nonfinite=True)
         opt.step()
         sched.step()
         run += torch.stack([loss.detach(), loss_out.detach(), loss_feat.detach()])

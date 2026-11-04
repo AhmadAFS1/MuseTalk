@@ -40,11 +40,60 @@ mkdir -p "$OUT"; SUM=$OUT/summary.txt; : > "$SUM"; : > "$OUT/results.jsonl"
 BENCH=(--autorun --sustained 0 --chain 0 --no-gpu --no-b4 --no-whisper --no-plan --no-reload --units CPU_AND_NE --exit)
 disk=""
 
-soulx() { xcrun devicectl device info processes --device "$UDID" 2>/dev/null | grep -qi soulx; }
+process_query() {
+  # A failed query is unknown, never evidence that the shared phone is free.
+  xcrun devicectl device info processes --device "$UDID" --timeout 15 --json-output "$OUT/processes.json" \
+    > "$OUT/process-query.log" 2>&1
+}
+process_state() {  # free/busy; nonzero for a failed query or an unfamiliar/malformed process list
+  process_query || return 2
+  python3 -I - "$OUT/processes.json" <<'PY_STATE'
+import json, sys
+try:
+    rows = json.load(open(sys.argv[1]))["result"]["runningProcesses"]
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("no process inventory")
+    for r in rows:
+        if not isinstance(r, dict) or not isinstance(r.get("executable"), str) or type(r.get("processIdentifier")) is not int or r["processIdentifier"] <= 0:
+            raise ValueError("invalid process record")
+    print("busy" if any("soulx" in r["executable"].lower() for r in rows) else "free")
+except (OSError, ValueError, TypeError, KeyError):
+    sys.exit(2)
+PY_STATE
+}
+musetalk_pids() {  # exact harness executable only; never SoulX or another MuseTalk service
+  process_query || return 2
+  python3 -I - "$OUT/processes.json" <<'PY_PIDS'
+import json, sys
+from urllib.parse import unquote, urlparse
+try:
+    rows = json.load(open(sys.argv[1]))["result"]["runningProcesses"]
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("no process inventory")
+    for r in rows:
+        exe, pid = r["executable"], r["processIdentifier"]
+        if not isinstance(exe, str) or type(pid) is not int or pid <= 0:
+            raise ValueError("invalid process record")
+        if unquote(urlparse(exe).path).endswith("/MuseTalkBench.app/MuseTalkBench"):
+            print(pid)
+except (OSError, ValueError, TypeError, KeyError):
+    sys.exit(2)
+PY_PIDS
+}
+stop_musetalk() {
+  local pids device_pid
+  pids=$(musetalk_pids) || return 1
+  for device_pid in ${=pids}; do
+    xcrun devicectl device process terminate --device "$UDID" --pid "$device_pid" --kill --timeout 10 \
+      >> "$OUT/terminate.log" 2>&1 || true  # a racing normal app exit is harmless; verify below
+  done
+  pids=$(musetalk_pids) || return 1
+  [[ -z $pids ]]
+}
 ready() {
   xcrun devicectl list devices 2>/dev/null | grep "$UDID" | grep -qv unavailable || return 1
   xcrun devicectl device info lockState --device "$UDID" 2>/dev/null | grep -q "passcodeRequired: false" || return 1
-  ! soulx
+  [[ $(process_state) == free ]]
 }
 wait_ready() {
   local dl=$(( $(date +%s) + WAIT_MIN * 60 ))
@@ -61,15 +110,21 @@ launch() {  # <log> <app args...>: the app with its console attached; the exit s
 guarded() {  # <log> <limit s> <app args...>: launch under the watchdog; 1 when it had to stop the app
   local log=$1 limit=$2; shift 2
   launch "$log" "$@" &
-  local pid=$! start=$(date +%s) why=""
+  local pid=$! start=$(date +%s) why="" phone_state=""
   while kill -0 $pid 2>/dev/null; do
     sleep 5
-    if soulx; then why="SoulX app appeared"; elif (( $(date +%s) - start > limit )); then why="ran past $limit s"; fi
+    phone_state=$(process_state)
+    if [[ $phone_state == busy ]]; then why="SoulX app appeared"
+    elif [[ $phone_state != free ]]; then why="phone process inventory unavailable"
+    elif (( $(date +%s) - start > limit )); then why="ran past $limit s"; fi
     if [[ -n $why ]]; then
       pkill -P $pid 2>/dev/null; kill $pid 2>/dev/null
-      # only this app's launch: the SoulX scripts launch theirs on the same phone
-      pkill -f "devicectl device process launch --device $UDID .*$BUNDLE" 2>/dev/null
       wait $pid 2>/dev/null
+      # --console forwards SIGTERM, but explicitly stop and verify only this exact harness executable too.
+      if ! stop_musetalk; then
+        echo "== cannot verify MuseTalkBench stopped after $why; stopping the script" >> "$SUM"
+        exit 7
+      fi
       echo "== $(date '+%H:%M:%S') stopped ${log:t}: $why" >> "$SUM"
       return 1
     fi
@@ -92,13 +147,24 @@ off_ane() {  # <what> <ms per frame>: stop the script when a UNet frame took mor
 }
 run_ms() {  # <log>: the run's Neural Engine stage per worker
   grep -h '^LIPSYNC_RESULT ' "$1" | head -1 | sed 's/^LIPSYNC_RESULT //' \
-    | python3 -I -c 'import sys, json; d = json.load(sys.stdin); print("%.1f" % (d["stage_infer_ms"] / max(1, d.get("infer_workers") or 1)))' 2>/dev/null
+    | python3 -I -c 'import sys, json, math; d = json.load(sys.stdin); t = d["stage_infer_ms"]; assert math.isfinite(t) and t > 0; print("%.1f" % (t / max(1, d.get("infer_workers") or 1)))' 2>/dev/null
 }
 summarize() {  # <log> <n> <arm>; fails when the result does not parse
   grep -h '^LIPSYNC_RESULT ' "$1" | head -1 | sed 's/^LIPSYNC_RESULT //' | python3 -I -c '
 import sys, json
-n, k, out = sys.argv[1:4]
+import math, shlex
+n, k, out, arm_args = sys.argv[1:5]
+words = shlex.split(arm_args)
+def option(name, default=None):
+    found = [words[i + 1] for i, w in enumerate(words[:-1]) if w == name]
+    return found[-1] if found else default
 d = {"run": "%s_%s" % (n, k), **json.loads(sys.stdin.read())}
+if d["unet"] != option("--unet") or d["infer_workers"] != int(option("--infer-workers", "1")):
+    raise ValueError("result model/workers do not match the requested arm")
+if not (d["frames"] > 0 and d["fps"] > 0 and 0 <= d["generated"] <= d["frames"] and 0 <= d["shown"] <= d["frames"]
+        and math.isfinite(d["seconds"]) and d["seconds"] > 0 and math.isfinite(d["generated_fps"])
+        and d["generated_fps"] >= 0 and math.isfinite(d["stage_infer_ms"]) and d["stage_infer_ms"] > 0):
+    raise ValueError("invalid frame/timing result")
 changes = ", ".join("%s at %.1f s" % (c["state"], c["t_s"]) for c in d.get("thermal_changes", []))
 gpu = ", GPU %d frames at %.0f ms" % (d["gpu_generated"], d["gpu_ms"]) if d.get("gpu_workers") else ""
 line = "[%s %s] %.2f fps (%d of %d generated, %d shown), ANE stage %.1f ms, %s workers%s, skipped %d, late %d, stalls %d, thermal %s -> %s%s" % (
@@ -108,7 +174,7 @@ line = "[%s %s] %.2f fps (%d of %d generated, %d shown), ANE stage %.1f ms, %s w
 with open(out, "a") as f:
     f.write(json.dumps(d, sort_keys=True) + "\n")
 print(line)
-' "$2" "$3" "$OUT/results.jsonl" >> "$SUM" 2>> "$OUT/summarize_errors.txt"
+' "$2" "$3" "$OUT/results.jsonl" "${ARGS[$3]}" >> "$SUM" 2>> "$OUT/summarize_errors.txt"
 }
 
 echo "== $(date '+%H:%M:%S') order $ORDER; UNets ${(j:, :)unets}" >> "$SUM"
@@ -156,18 +222,30 @@ n=0
 for k in $ORDER; do
   n=$((n + 1))
   limit=$RUN_TIMEOUT; [[ ${ARGS[$k]} == *--gpu-unet* ]] && limit=$(( RUN_TIMEOUT * 2 ))
+  success=0
   for attempt in 1 2 3; do
     wait_ready
     log=$OUT/${n}_${k}_a$attempt.log
     if guarded "$log" $limit --lipsync --exit --silent ${=ARGS[$k]} && grep -q '^LIPSYNC_RESULT ' "$log"; then
       ms=$(run_ms "$log"); [[ -n $ms ]] && off_ane "run $n $k" $ms
-      summarize "$log" $n $k && break
+      if summarize "$log" $n $k; then success=1; break; fi
       echo "[$n $k] attempt $attempt: the result did not parse (summarize_errors.txt)" >> "$SUM"
     else
       echo "[$n $k] attempt $attempt gave no result at $(date '+%H:%M:%S')" >> "$SUM"
     fi
     failure "$log"; sleep 30
   done
+  (( success )) || { echo "== run $n $k failed after 3 attempts; stopping" >> "$SUM"; exit 6; }
   sleep 10
 done
+python3 -I - "$OUT/results.jsonl" "${ORDER[@]}" <<'PY_COMPLETE' >> "$SUM" 2>&1 || exit 6
+import json, sys
+rows = [json.loads(line) for line in open(sys.argv[1]) if line.strip()]
+expected = [f"{i}_{arm}" for i, arm in enumerate(sys.argv[2:], 1)]
+if [r["run"] for r in rows] != expected:
+    sys.exit("== incomplete run count/order")
+if len({(r["avatar"], r["fps"], r["frames"]) for r in rows}) != 1:
+    sys.exit("== arms did not use the same avatar/fps/frame count")
+print(f"== verified {len(rows)} ordered results with matched inputs")
+PY_COMPLETE
 echo "== $(date '+%H:%M:%S') done" >> "$SUM"

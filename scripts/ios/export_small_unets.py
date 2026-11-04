@@ -11,7 +11,7 @@ full model, starting from the full model's weights for every block it keeps:
   bk_base   one resnet (+ attention) per down stage instead of two, two per up stage instead of three
   bk_small  bk_base without the mid block
   bk_tiny   bk_small without the innermost (4x4, 1280-channel) stage
-Kept blocks get the full model's weights wherever the shapes match (BK-SDM's initialisation); the rest stay random.
+Kept blocks get the full model's weights using BK-SDM's explicit block mapping; every tensor must match.
 
 Plain layout (diffusers, explicit attention), int8 weights, fp16 compute: the same export as
 `export_coreml.py`'s unet_int8w_b1, which is the full model's reference here, so the ratio between them carries to
@@ -73,6 +73,20 @@ def load_full(unet_dir: Path):
     return model.eval().requires_grad_(False)
 
 
+def teacher_key(key: str, up_shift: int) -> str:
+    """BK-SDM keeps up-stage blocks 0 and 2 (the middle block is removed).
+
+    The tiny model also removes the first teacher up stage. Mapping student keys to teacher keys avoids
+    accidentally copying block 1 attention, or leaving its differently shaped residual convolutions random.
+    Reference: Nota-NetsPresso/BK-SDM src/kd_train_text_to_image.py:copy_weight_from_teacher.
+    """
+    m = re.match(r"up_blocks\.(\d+)\.(.*)", key)
+    if not m:
+        return key
+    tail = re.sub(r"^(resnets|attentions)\.1\.", r"\g<1>.2.", m.group(2))
+    return f"up_blocks.{int(m.group(1)) + up_shift}.{tail}"
+
+
 def build(variant: str, unet_dir: Path, processor: str = "export", full=None, weights: Path | None = None):
     """UNetStep around `variant`, from a trained state_dict (`weights`, loaded strictly) or else BK-SDM's
     initialisation from the full model (`full`, loaded if not given). processor "export": explicit attention, the
@@ -87,26 +101,24 @@ def build(variant: str, unet_dir: Path, processor: str = "export", full=None, we
     if weights is None and variant == "full":
         model, source = full, "the full model"
     else:
-        model = UNet2DConditionModel(**variant_config(variant, unet_dir)).eval().requires_grad_(False)
         if weights is not None:
-            model.load_state_dict(torch.load(weights, map_location="cpu", weights_only=True))
+            with torch.device("meta"):
+                model = UNet2DConditionModel(**variant_config(variant, unet_dir))
+            model.load_state_dict(torch.load(weights, map_location="cpu", mmap=True, weights_only=True), assign=True)
+            model.eval().requires_grad_(False)
             source = f"trained, {weights}"
         else:
+            model = UNet2DConditionModel(**variant_config(variant, unet_dir)).eval().requires_grad_(False)
             want, have = model.state_dict(), full.state_dict()
-            # a variant without the innermost stage: its up block i is the full model's up block i + shift
+            # BK-SDM's two kept up-stage blocks are teacher blocks 0 and 2, including attention.
             shift = len(full.up_blocks) - len(model.up_blocks)
-            if shift:
-                moved = {}
-                for k, v in have.items():
-                    m = re.match(r"up_blocks\.(\d+)\.(.*)", k)
-                    if m:
-                        if int(m.group(1)) < shift:
-                            continue
-                        k = f"up_blocks.{int(m.group(1)) - shift}.{m.group(2)}"
-                    moved[k] = v
-                have = moved
-            keep = {k: v for k, v in have.items() if k in want and want[k].shape == v.shape}
-            model.load_state_dict(keep, strict=False)
+            keep = {}
+            for k, tensor in want.items():
+                source_key = teacher_key(k, shift)
+                if source_key not in have or tensor.shape != have[source_key].shape:
+                    raise ValueError(f"BK-SDM initialization cannot copy {source_key} to {k} ({tuple(tensor.shape)})")
+                keep[k] = have[source_key]
+            model.load_state_dict(keep)
             source = f"{len(keep)} of {len(want)} tensors from the full model"
     params = sum(p.numel() for p in model.parameters())
     print(f"{variant}: {params / 1e6:.0f}M parameters ({source})", flush=True)
@@ -173,12 +185,16 @@ def main() -> None:
         ap.error("--weights needs exactly one variant in --variants and a --tag of letters, digits, _ or -")
     args.out_dir.mkdir(parents=True, exist_ok=True)
     results = json.loads(args.results.read_text()) if args.results.exists() else {}
-    full = load_full(args.unet_dir)
-    for v in ["full"] + variants:
+    # A trained export needs only its student. Loading/profiling the full 3.4 GB model here makes an otherwise
+    # bounded export needlessly expensive on the memory-starved Mac used for the phone benchmark.
+    full = None if args.weights is not None else load_full(args.unet_dir)
+    for v in variants if args.weights is not None else ["full"] + variants:
         trained = args.weights is not None and v != "full"
         step, params = build(v, args.unet_dir, full=full, weights=args.weights if trained else None)
         key, name = (f"{v}_{args.tag}", f"unet_{v}_{args.tag}_int8w_b1") if trained else (v, f"unet_{v}_int8w_b1")
-        r = {"params_m": round(params / 1e6, 1), "gflops": round(gflops(step), 1), **{k: v2 for k, v2 in VARIANTS[v].items()}}
+        r = {"params_m": round(params / 1e6, 1), **{k: v2 for k, v2 in VARIANTS[v].items()}}
+        if not trained:
+            r["gflops"] = round(gflops(step), 1)
         if trained:
             r["weights"] = str(args.weights)
         if v == "full":
@@ -200,7 +216,8 @@ def main() -> None:
             if "mac_ane_ms" not in r:
                 continue
             ratio = r["mac_ane_ms"] / f["mac_ane_ms"]
-            print(f"{v:10s} {r['params_m']:6.0f}M {r['gflops']:7.1f} {r['mac_ane_ms']:10.2f} {ratio:8.2f}x  {53.8 * ratio:6.1f} ms")
+            flops = f"{r['gflops']:7.1f}" if "gflops" in r else "      -"
+            print(f"{v:10s} {r['params_m']:6.0f}M {flops} {r['mac_ane_ms']:10.2f} {ratio:8.2f}x  {53.8 * ratio:6.1f} ms")
 
 
 if __name__ == "__main__":
