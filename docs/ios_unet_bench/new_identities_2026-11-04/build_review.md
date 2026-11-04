@@ -23,8 +23,8 @@ metrics, independent arm verdicts and legacy D behavior. Shell/Python syntax, me
 dry-runs and offline relay quoting/guard/archive mocks passed. No full model was allocated on the Mac.
 
 All 30 generated sources passed a lightweight local input check: exactly one 468-landmark face after
-normalization. This is not a lipsync quality pass. GPU preparation and 60-clip inference follow on the one
-additional validation-only rental explicitly approved by the user.
+normalization. This is not a lipsync quality pass. GPU preparation and 60-clip inference subsequently completed on the one
+additional validation-only rental explicitly approved by the user; the final results are in README.md.
 
 Before any inference, slow checkout/package transport required setup recovery on the same rental. The
 delivery-encoding allowance was reduced from 15 to five minutes; the 20-minute pull/cleanup reserve and
@@ -33,3 +33,10 @@ original four-hour expiry remain fixed. The exact two-thread CRF26 command encod
 the allowance but does not guarantee worker CPU timing. The earlier frozen request is preserved, and the
 wrapper, checkout revision and replacement request must change together. Model weights, portraits, audio,
 preparation/scoring code and thresholds remain unchanged; no model inference preceded this adjustment.
+
+Final artifact verification passed: all 30 identities, 60 A | S comparisons, 60 unchanged original S16 files,
+60 unchanged per-clip metrics and 60 curve JSONs have verified coverage/provenance. All 180 aperture
+aggregate recomputations exactly matched the original scores. Public media uses 768px H.264 CRF30 with
+32 kbps AAC presentation audio; original test audio and raw-frame metrics are unchanged. The combined
+old/new report package is approximately 48.9 MB, below 50 MB. Six representative original stills received
+independent visual inspection; this is not an all-video temporal review. See visual_review.md.

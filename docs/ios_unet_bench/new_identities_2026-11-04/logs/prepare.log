@@ -1,0 +1,737 @@
+/workspace/new_identity_review/MuseTalk/scripts/api_avatar.py:892: FutureWarning: Decorating classes is deprecated and will be disabled in future versions. You should only decorate functions or methods. To preserve the current behavior of class decoration, you can directly decorate the `__init__` method and nothing else.
+  class APIAvatar:
+An error occurred while trying to fetch /workspace/new_identity_review/MuseTalk/models/sd-vae: Error no file named diffusion_pytorch_model.safetensors found in directory /workspace/new_identity_review/MuseTalk/models/sd-vae.
+Defaulting to unsafe serialization. Pass `allow_pickle=False` to raise an error instead.
+/workspace/new_identity_review/MuseTalk/musetalk/utils/face_parsing/resnet.py:83: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(model_path) #modelzoo.load_url(resnet18_url)
+/workspace/new_identity_review/MuseTalk/musetalk/utils/face_parsing/__init__.py:65: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  net.load_state_dict(torch.load(model_pth))
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmengine/optim/optimizer/zero_optimizer.py:11: DeprecationWarning: `TorchScript` support for functional optimizers is deprecated and will be removed in a future PyTorch release. Consider using the `torch.compile` optimizer instead.
+  from torch.distributed.optim import \
+Loads checkpoint by local backend from path: ./models/dwpose/dw-ll_ucoco_384.pth
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmengine/runner/checkpoint.py:347: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  checkpoint = torch.load(filename, map_location=map_location)
+cuda start
+/workspace/new_identity_review/MuseTalk/musetalk/utils/face_detection/detection/sfd/sfd_detector.py:67: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  model_weights = torch.load(detector_path, map_location="cpu")
+🆕 Creating new avatar ni30_01
+🔨 Preparing avatar materials for ni30_01...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_01/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_01/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_01
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 65.33it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:01<00:00,  1.04s/it]100%|██████████| 1/1 [00:01<00:00,  1.04s/it]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -14~15 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks:  50%|█████     | 1/2 [00:00<00:00,  3.92it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00,  5.68it/s]
+✅ Avatar ni30_01 preparation complete
+prepared 1/30: ni30_01
+🆕 Creating new avatar ni30_02
+🔨 Preparing avatar materials for ni30_02...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_02/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_02/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_02
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 55.31it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 10.84it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -21~20 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.40it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.36it/s]
+✅ Avatar ni30_02 preparation complete
+prepared 2/30: ni30_02
+🆕 Creating new avatar ni30_03
+🔨 Preparing avatar materials for ni30_03...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_03/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_03/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_03
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 74.15it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 11.22it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -21~19 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 10.41it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 10.39it/s]
+✅ Avatar ni30_03 preparation complete
+prepared 3/30: ni30_03
+🆕 Creating new avatar ni30_04
+🔨 Preparing avatar materials for ni30_04...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_04/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_04/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_04
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 97.29it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 14.12it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -18~17 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.18it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.14it/s]
+✅ Avatar ni30_04 preparation complete
+prepared 4/30: ni30_04
+🆕 Creating new avatar ni30_05
+🔨 Preparing avatar materials for ni30_05...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_05/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_05/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_05
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 59.60it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 12.64it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -18~16 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.70it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.65it/s]
+✅ Avatar ni30_05 preparation complete
+prepared 5/30: ni30_05
+🆕 Creating new avatar ni30_06
+🔨 Preparing avatar materials for ni30_06...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_06/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_06/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_06
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 65.19it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 12.90it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -17~18 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 12.79it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 12.76it/s]
+✅ Avatar ni30_06 preparation complete
+prepared 6/30: ni30_06
+🆕 Creating new avatar ni30_07
+🔨 Preparing avatar materials for ni30_07...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_07/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_07/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_07
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 101.88it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 14.49it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -22~22 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.92it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.88it/s]
+✅ Avatar ni30_07 preparation complete
+prepared 7/30: ni30_07
+🆕 Creating new avatar ni30_08
+🔨 Preparing avatar materials for ni30_08...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_08/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_08/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_08
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 66.40it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 12.82it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -18~16 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.20it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.18it/s]
+✅ Avatar ni30_08 preparation complete
+prepared 8/30: ni30_08
+🆕 Creating new avatar ni30_09
+🔨 Preparing avatar materials for ni30_09...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_09/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_09/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_09
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 98.51it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 14.49it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -19~18 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.52it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.47it/s]
+✅ Avatar ni30_09 preparation complete
+prepared 9/30: ni30_09
+🆕 Creating new avatar ni30_10
+🔨 Preparing avatar materials for ni30_10...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_10/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_10/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_10
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 79.39it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 11.51it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -20~21 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 10.46it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 10.44it/s]
+✅ Avatar ni30_10 preparation complete
+prepared 10/30: ni30_10
+🆕 Creating new avatar ni30_11
+🔨 Preparing avatar materials for ni30_11...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_11/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_11/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_11
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 98.74it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 14.32it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -16~16 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.31it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.28it/s]
+✅ Avatar ni30_11 preparation complete
+prepared 11/30: ni30_11
+🆕 Creating new avatar ni30_12
+🔨 Preparing avatar materials for ni30_12...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_12/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_12/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_12
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 64.56it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 13.04it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -17~18 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.88it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.85it/s]
+✅ Avatar ni30_12 preparation complete
+prepared 12/30: ni30_12
+🆕 Creating new avatar ni30_13
+🔨 Preparing avatar materials for ni30_13...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_13/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_13/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_13
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 78.69it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 13.52it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -21~19 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.35it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.31it/s]
+✅ Avatar ni30_13 preparation complete
+prepared 13/30: ni30_13
+🆕 Creating new avatar ni30_14
+🔨 Preparing avatar materials for ni30_14...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_14/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_14/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_14
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 55.24it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 11.41it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -22~21 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 10.71it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 10.69it/s]
+✅ Avatar ni30_14 preparation complete
+prepared 14/30: ni30_14
+🆕 Creating new avatar ni30_15
+🔨 Preparing avatar materials for ni30_15...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_15/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_15/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_15
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 92.53it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 14.80it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -16~16 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.03it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.00it/s]
+✅ Avatar ni30_15 preparation complete
+prepared 15/30: ni30_15
+🆕 Creating new avatar ni30_16
+🔨 Preparing avatar materials for ni30_16...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_16/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_16/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_16
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 51.62it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 11.40it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -16~16 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.18it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.15it/s]
+✅ Avatar ni30_16 preparation complete
+prepared 16/30: ni30_16
+🆕 Creating new avatar ni30_17
+🔨 Preparing avatar materials for ni30_17...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_17/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_17/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_17
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 75.27it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 13.47it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -21~22 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.67it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.65it/s]
+✅ Avatar ni30_17 preparation complete
+prepared 17/30: ni30_17
+🆕 Creating new avatar ni30_18
+🔨 Preparing avatar materials for ni30_18...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_18/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_18/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_18
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 67.55it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 12.13it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -16~16 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 10.63it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 10.61it/s]
+✅ Avatar ni30_18 preparation complete
+prepared 18/30: ni30_18
+🆕 Creating new avatar ni30_19
+🔨 Preparing avatar materials for ni30_19...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_19/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_19/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_19
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 56.35it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 11.54it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -16~14 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 10.69it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 10.66it/s]
+✅ Avatar ni30_19 preparation complete
+prepared 19/30: ni30_19
+🆕 Creating new avatar ni30_20
+🔨 Preparing avatar materials for ni30_20...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_20/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_20/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_20
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 66.36it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 11.50it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -18~16 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.14it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.11it/s]
+✅ Avatar ni30_20 preparation complete
+prepared 20/30: ni30_20
+🆕 Creating new avatar ni30_21
+🔨 Preparing avatar materials for ni30_21...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_21/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_21/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_21
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 76.60it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 12.65it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -18~17 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 12.01it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 11.99it/s]
+✅ Avatar ni30_21 preparation complete
+prepared 21/30: ni30_21
+🆕 Creating new avatar ni30_22
+🔨 Preparing avatar materials for ni30_22...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_22/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_22/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_22
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 76.43it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 12.56it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -17~16 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 10.70it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 10.69it/s]
+✅ Avatar ni30_22 preparation complete
+prepared 22/30: ni30_22
+🆕 Creating new avatar ni30_23
+🔨 Preparing avatar materials for ni30_23...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_23/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_23/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_23
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 47.79it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 12.53it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -19~20 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.24it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.20it/s]
+✅ Avatar ni30_23 preparation complete
+prepared 23/30: ni30_23
+🆕 Creating new avatar ni30_24
+🔨 Preparing avatar materials for ni30_24...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_24/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_24/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_24
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 82.47it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 11.53it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -19~19 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 12.14it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 12.11it/s]
+✅ Avatar ni30_24 preparation complete
+prepared 24/30: ni30_24
+🆕 Creating new avatar ni30_25
+🔨 Preparing avatar materials for ni30_25...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_25/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_25/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_25
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 78.53it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 12.57it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -19~19 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 11.09it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 11.07it/s]
+✅ Avatar ni30_25 preparation complete
+prepared 25/30: ni30_25
+🆕 Creating new avatar ni30_26
+🔨 Preparing avatar materials for ni30_26...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_26/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_26/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_26
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 72.13it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 12.99it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -19~20 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.34it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.32it/s]
+✅ Avatar ni30_26 preparation complete
+prepared 26/30: ni30_26
+🆕 Creating new avatar ni30_27
+🔨 Preparing avatar materials for ni30_27...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_27/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_27/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_27
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 58.18it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 12.72it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -17~16 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.40it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.38it/s]
+✅ Avatar ni30_27 preparation complete
+prepared 27/30: ni30_27
+🆕 Creating new avatar ni30_28
+🔨 Preparing avatar materials for ni30_28...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_28/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_28/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_28
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 66.77it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 13.72it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -22~22 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.75it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 13.72it/s]
+✅ Avatar ni30_28 preparation complete
+prepared 28/30: ni30_28
+🆕 Creating new avatar ni30_29
+🔨 Preparing avatar materials for ni30_29...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_29/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_29/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_29
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 66.99it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 13.95it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -18~17 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.67it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.63it/s]
+✅ Avatar ni30_29 preparation complete
+prepared 29/30: ni30_29
+🆕 Creating new avatar ni30_30
+🔨 Preparing avatar materials for ni30_30...
+📹 Converting talking image directory to video...
+✅ Created video from images: ./results/v15/avatars/ni30_30/input_video.mp4
+📹 Using talking source for idle playback: ./results/v15/avatars/ni30_30/input_video.mp4
+📂 Copying frames from directory: /workspace/new_identity_review/out/prepared/normalized/ni30_30
+   Copied 1 frames
+🔍 Detecting faces and landmarks...
+reading images...
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 76.45it/s]
+get key_landmark and face bounding boxes with the default value
+  0%|          | 0/1 [00:00<?, ?it/s]/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/layers/se_layer.py:158: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+/workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/lib/python3.10/site-packages/mmdet/models/backbones/csp_darknet.py:118: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(enabled=False):
+100%|██████████| 1/1 [00:00<00:00, 14.24it/s]
+********************************************bbox_shift parameter adjustment**********************************************************
+Total frame:「1」 Manually adjust range : [ -18~17 ] , the current value: 0
+*************************************************************************************************************************************
+🧠 Encoding latents...
+🎭 Creating masks...
+Processing masks:   0%|          | 0/2 [00:00<?, ?it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.23it/s]Processing masks: 100%|██████████| 2/2 [00:00<00:00, 14.21it/s]
+✅ Avatar ni30_30 preparation complete
+prepared 30/30: ni30_30
+{"audio": 2, "characters": 30, "checkpoint_sha256": "a05d2d98f69b431252458d3b25f72e395d557ba693821baee91d11f5fe5a96cd", "manifest": "/workspace/new_identity_review/out/prepared/new_avatar_manifest.json", "request_sha256": "9027f1c97cc2266fede6da57163a5f80d78777f6317472873a7f9d6a38988af8", "static_pose_only": true, "status": "complete"}

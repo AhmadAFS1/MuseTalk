@@ -1,0 +1,2347 @@
+{
+  "archive_sha256": "6b794b6da0223b09580fefd18d80b82f4bf55dad368de7869166dfe84eae10cc",
+  "audit": {
+    "protocol": "new_static_avatars_r5_v1",
+    "checkpoint_sha256": "a05d2d98f69b431252458d3b25f72e395d557ba693821baee91d11f5fe5a96cd",
+    "teacher_sha256": "7ebf6c98c181e20838e4c0054e96e944ac60d5d692cc01db42839fe11b787007",
+    "clips": 60,
+    "sources": 30,
+    "AS_videos": 60,
+    "S16_videos": 60,
+    "r5_pass_clips": {
+      "N": 60,
+      "S": 0,
+      "S16": 0
+    },
+    "verdicts": {
+      "N": "PASS",
+      "S": "FAIL",
+      "S16": "FAIL"
+    },
+    "incomplete_clips": {
+      "N": [],
+      "S": [],
+      "S16": []
+    },
+    "AS_original_note": "Raw directory retains exact worker-delivery AS files (already CRF26 presentation copies), not the discarded pre-transcode renderer AS files.",
+    "S16_original_note": "Raw directory retains byte-for-byte original renderer S16 files, validated against review_outputs hashes."
+  },
+  "presentation": {
+    "width": 768,
+    "crf": 30,
+    "threads": 2,
+    "fps": 25,
+    "frames": 250,
+    "seconds": 10,
+    "audio": "AAC 32 kbps mono, original sample rate; presentation-only encoding",
+    "metrics": "unchanged original-frame metrics"
+  },
+  "videos": {
+    "review/ni30_01__ai-assistant/ni30_01__ai-assistant_AS.mp4": {
+      "sha256": "fe48e7ac5ddd396b3b24de46911decc8423c6b5fbe1908e0861839ce60aa20e1",
+      "source_sha256": "ac913b5850cd7d5741c4ff16e8ca7f6e86a6de98d95c84ac57dec9b6e1198ba2",
+      "bytes": 354711,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_01__eng/ni30_01__eng_AS.mp4": {
+      "sha256": "33d48992fa2cf0b2684b9460e9fde9b84dbb6680114ec3855ce82c5312c27e88",
+      "source_sha256": "14ca032dd99cc5a948e61f34a5e1c5b98b6e802348022769a414c72b90446329",
+      "bytes": 317870,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_02__ai-assistant/ni30_02__ai-assistant_AS.mp4": {
+      "sha256": "8883fdb428b8ba5d3e355d2a5bda189ea61ae13e6635a0bfa6f7484358d35836",
+      "source_sha256": "26cbbd7592d33b7252b0f4d9127811218ff6fcb47c9ab79887aab87873d3c9c6",
+      "bytes": 287118,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_02__eng/ni30_02__eng_AS.mp4": {
+      "sha256": "59855e4a1ef1b2f2a82b36303dac2b39911d0a8790aa0ca82905aa0b333df1c9",
+      "source_sha256": "1d260550f1aa81d2f09af0cf7f595117145f0a3d61132f352ffb38e568185cd6",
+      "bytes": 260870,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_03__ai-assistant/ni30_03__ai-assistant_AS.mp4": {
+      "sha256": "ca01e54eb88672f991cbd144d39dd9974f7dabc9780d170c2f678681a3585639",
+      "source_sha256": "a010e20337448b20aa1d107690763e65f72209d8ddd4a5363cd59dd699485ee6",
+      "bytes": 309477,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_03__eng/ni30_03__eng_AS.mp4": {
+      "sha256": "b5592dd428e7783436cd6b8b17d62e71cbae963e12bfcb185b4d042535faaa4a",
+      "source_sha256": "d88261c8e628348894b93791aa53b537539a281c444daa87a16ef70bec0089af",
+      "bytes": 282141,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_04__ai-assistant/ni30_04__ai-assistant_AS.mp4": {
+      "sha256": "d0a7650f455a1af557937a701c20a07850c79c060b4f16cb6cf31ee1ff94b755",
+      "source_sha256": "25887eb434b0878b87636cd79beb1453231f3a2fbdd42c4cae78e57d991273db",
+      "bytes": 325612,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_04__eng/ni30_04__eng_AS.mp4": {
+      "sha256": "c0aeaae9b811b95136c225ca2130bac2c0ffa984a4d5e4b7eb8ca87c43097023",
+      "source_sha256": "653678eafb11315aace901633ee53d1da71bc1ca932306070bc1ffd556bd8b17",
+      "bytes": 285518,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_05__ai-assistant/ni30_05__ai-assistant_AS.mp4": {
+      "sha256": "a64d35ce8c29d9cb883e29782f1b8d3ca6757e63aa46734e0daa339a8da2bbef",
+      "source_sha256": "9a0efcd28f6befdebe79f80bd82ab7387d661ee031fdd72ae22ed53e9d0eba7b",
+      "bytes": 318811,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_05__eng/ni30_05__eng_AS.mp4": {
+      "sha256": "21fd95eec50f2db765df9039c50105d3a3fa7f294fa4306a399e1588a0e6e665",
+      "source_sha256": "3d251516003f392011d7d8ba9e9df746f2700351eb3833ab062810f0782403f0",
+      "bytes": 281394,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_06__ai-assistant/ni30_06__ai-assistant_AS.mp4": {
+      "sha256": "49cbc5787aea7f4187c541b94587134473287c28f5a78dd527be7c1745825777",
+      "source_sha256": "5080f4a3fb538f74254e7c3f91a0382422c6727069e4b6b5e1cb5c20d7473030",
+      "bytes": 348880,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_06__eng/ni30_06__eng_AS.mp4": {
+      "sha256": "01d34eb23f0ac02c7f44030ab5e189fa015a2d5bc27f792970c96ffefa922f15",
+      "source_sha256": "df263d9431446c210a6418e6434a885b2cdd30e9148ff852640735cfabcb26b3",
+      "bytes": 310055,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_07__ai-assistant/ni30_07__ai-assistant_AS.mp4": {
+      "sha256": "83d61ba0ae7cf8f7bbab2aeaeb6fe3a94789ca6f2291182ff06fb387ec9269e1",
+      "source_sha256": "40e897adb3754e154a039d25a985c6352eb7552f3334ff269ff3145d442d56d3",
+      "bytes": 350941,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_07__eng/ni30_07__eng_AS.mp4": {
+      "sha256": "cbacb50ab1dc2f14b094e1974787a16bc61e91605c15c298a71bbb02c0274875",
+      "source_sha256": "66a29383c05b51c62fcdc09709b73ec088facea379ab6a668b411c52f39e6080",
+      "bytes": 309634,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_08__ai-assistant/ni30_08__ai-assistant_AS.mp4": {
+      "sha256": "3ff024ac5d34b145a3ca1b926e9ee473387a7864e13469fde5cb1357d862afac",
+      "source_sha256": "c82bf5a45a0856116f0800d95b867e55f949efeb906732b3471055618cfbcfa2",
+      "bytes": 403101,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_08__eng/ni30_08__eng_AS.mp4": {
+      "sha256": "1812aecc1f3f5651496ca3d48f2597a0116e3654105fa9842dd8a26cf918bc93",
+      "source_sha256": "b9d6ae9779f1506e7d2f2b1e2ddc5b6832a2293073eb9b3a2a1199e29b3fc87a",
+      "bytes": 367023,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_09__ai-assistant/ni30_09__ai-assistant_AS.mp4": {
+      "sha256": "0c133fa4b2b2979068c79c37920747fcc33f8705e98aba9b736e1798d7450f17",
+      "source_sha256": "0182b07924cf1320525e5dca3240d858730515e91101af6c60f3f051414600ec",
+      "bytes": 309463,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_09__eng/ni30_09__eng_AS.mp4": {
+      "sha256": "c512a619dd3a9f54ed7c99ed6afaccc78813581f61aaa346fed1f0a4385ab189",
+      "source_sha256": "35307b96869184f598768c87f1c216d006a9e741a877651411906d7adfae33ac",
+      "bytes": 276159,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_10__ai-assistant/ni30_10__ai-assistant_AS.mp4": {
+      "sha256": "25a3411230d12bfa38a6293e0084067d8cdb2a944a8e16ac65480e7a42465ce8",
+      "source_sha256": "2714e6b4b9fb27bdb81a14372155cd0eee542978a93ab092a008de2b0869827f",
+      "bytes": 369439,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_10__eng/ni30_10__eng_AS.mp4": {
+      "sha256": "f2915fd3093af4f92310195aac56fe4b6a5c560689e93a018e2db71fed1c1439",
+      "source_sha256": "ca78f0e5463f6d321258fddf13085a2ec3673b623d0d2b2c109263b5d34363b6",
+      "bytes": 338771,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_11__ai-assistant/ni30_11__ai-assistant_AS.mp4": {
+      "sha256": "95460a6e84260d9a39101d2e8565751ccd341d6bf73020cdce4dab38fac40104",
+      "source_sha256": "2fd6b3acdf64a239657ddc05aefd41b8171dd458de1d42ed6d711a3b1a46beaa",
+      "bytes": 331703,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_11__eng/ni30_11__eng_AS.mp4": {
+      "sha256": "0dbb1be4e593e8e9507461268403fc17f9184e01f4440a0c467ecb30c1aa6b0a",
+      "source_sha256": "3f767ce6034897666442acd4b602ad85995ce4e5d005074349a0277b21b69ff5",
+      "bytes": 298212,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_12__ai-assistant/ni30_12__ai-assistant_AS.mp4": {
+      "sha256": "1adf7bedb2ffc9b3fa19c151e9100148873dda5bbea9f4ef80302b949f8413e7",
+      "source_sha256": "013a556c6f2953f262895c8001f94a3e860d2bb7600bce7caf86416194ebc31c",
+      "bytes": 335054,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_12__eng/ni30_12__eng_AS.mp4": {
+      "sha256": "36c38b659cc4017aeb9e7db411c22bf76649ab1f47f95f1615a15d2df5b637b1",
+      "source_sha256": "dce2998eeba3bc5eaa1425658cfe8fcccf1fec6bae1f4f5ea63e0846d6f42aa1",
+      "bytes": 296904,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_13__ai-assistant/ni30_13__ai-assistant_AS.mp4": {
+      "sha256": "633cf00dba3daad799fc766abec7425a1e65acc345f415f78b46337d86cb83f7",
+      "source_sha256": "812d07ca5cbcedee8bfc02ad5a8cc7c804811f10b57b468d03bfe397c1c9ca5d",
+      "bytes": 320648,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_13__eng/ni30_13__eng_AS.mp4": {
+      "sha256": "a6286a01256686cbbb238e60382bb9436289d1138f851912f62d9122003d20a6",
+      "source_sha256": "62b736fc4818512703ef6018e849a263f1206b271cd240cd6031ad540f212ffd",
+      "bytes": 289830,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_14__ai-assistant/ni30_14__ai-assistant_AS.mp4": {
+      "sha256": "743c5a81c446a33efb6e354c3a792a0729c5a978efe229abadfbbf08a85c9ea7",
+      "source_sha256": "cacb8ed86d6219bfaa1f904620e611d505d52ac5f7dc22a8f5243ad9cc205edf",
+      "bytes": 338051,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_14__eng/ni30_14__eng_AS.mp4": {
+      "sha256": "17257ec28dea984ff64b02f3c693842ebdee5a5e0d30aa649c64947231a76a6c",
+      "source_sha256": "ef6a75e79c793fb382b96abee14960ea6b4f95ea215c204e788c535607134c8c",
+      "bytes": 306923,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_15__ai-assistant/ni30_15__ai-assistant_AS.mp4": {
+      "sha256": "eff7a3df6c59fb7bc9784b3514e5f935ec1af554716a0e2257910319b79b9675",
+      "source_sha256": "e8ffcce89cc9fda6fffedf7100dd087f5b1780b5e3cbd8207b97a28a2e215418",
+      "bytes": 358426,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_15__eng/ni30_15__eng_AS.mp4": {
+      "sha256": "365ead25ba59f8a67df98b0a27ad09d91e1d98189657488eba8d08aee727a253",
+      "source_sha256": "41f158fc6dd6917432e1eb2ba6396b033c38f25e5c7e6019b19514f0af784e82",
+      "bytes": 321774,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_16__ai-assistant/ni30_16__ai-assistant_AS.mp4": {
+      "sha256": "e18e77d85ef17db3fb993556bbbb7dde00c34e5f2fafbe227683b4c072577b9a",
+      "source_sha256": "3358333287a529169e27da3d116b42a0a28cf2606f78de2432df37d6612f7f8c",
+      "bytes": 332510,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_16__eng/ni30_16__eng_AS.mp4": {
+      "sha256": "9f4eb829fefc2898e8b954bb9b67e023be41eb933d9232186bfb88df75664b5c",
+      "source_sha256": "e8f50fab9d448f078609b35e4620765724350d5378187a8718d48655e5aaa6ed",
+      "bytes": 298344,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_17__ai-assistant/ni30_17__ai-assistant_AS.mp4": {
+      "sha256": "2398426425b0c991b0e4a40861461deed7f10931c1974fab1739c0a377bf155c",
+      "source_sha256": "267f5a2a0ea1ac09681b3d60860675f5668859de5c4f737f07c858d4e2babac8",
+      "bytes": 315221,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_17__eng/ni30_17__eng_AS.mp4": {
+      "sha256": "888701333604ad7289f7e8938fd0f5ba453a295580338c1c32c3f661f701c399",
+      "source_sha256": "25589f24f7f8c2ef4dee1db2f7e4244d492d3e9c04a22b496810a44849ed526a",
+      "bytes": 284448,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_18__ai-assistant/ni30_18__ai-assistant_AS.mp4": {
+      "sha256": "582a5ed492830fa02a17af2e68056e6fce92fc791bb3250a14f99ddfab2ce437",
+      "source_sha256": "9356ecad37060e557e0762ae123fb36a037d9e44485c5c9fc73f21f99d54737e",
+      "bytes": 323857,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_18__eng/ni30_18__eng_AS.mp4": {
+      "sha256": "f9ff9c90a80b7bfffa786df40bbb093f70dadf8133f1a8771440606ecddb17d3",
+      "source_sha256": "568dd3f5c049a8cad2142d6db65df2adccca546fdc14db8cd541e7f39b382003",
+      "bytes": 293081,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_19__ai-assistant/ni30_19__ai-assistant_AS.mp4": {
+      "sha256": "8b861af6c2059e219b28462185b07c28b4f13e061a80433c951a54110d9f4ce7",
+      "source_sha256": "f9a4de011ae42f92ba799085c80fd83527168eb7fba1da5ce8611431bf9eb143",
+      "bytes": 372832,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_19__eng/ni30_19__eng_AS.mp4": {
+      "sha256": "41977ebbf2762d7fd7878970f0d4aeadc304c3ead5fc0bc022a8c35902a5bdef",
+      "source_sha256": "17a65e8898ac3c2b5d64ae5f880deb850426390fb500efd8222d53e60fd7b0ed",
+      "bytes": 335595,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_20__ai-assistant/ni30_20__ai-assistant_AS.mp4": {
+      "sha256": "56761cd7caba8bd5a8e244ec00862e6c9bc6b634b86d0a63e4eb0ac75a6c34a9",
+      "source_sha256": "06bc2782b58555f5c30775555a73cb6d7570a8780bd19fbc4579d95cfdd7c82f",
+      "bytes": 297467,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_20__eng/ni30_20__eng_AS.mp4": {
+      "sha256": "b5414914663d5246d85ce6a5863e471c7cf96886c4d1c83611a7fc63ab0c719d",
+      "source_sha256": "09e78c52c350af83b019b505544bc2de635e01516629e1fd9cb8656cc4020f92",
+      "bytes": 263047,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_21__ai-assistant/ni30_21__ai-assistant_AS.mp4": {
+      "sha256": "a1820f63790e8fb9c00fd61ce7cf906394f1f2044f5c558606c9fc0ed6a51e38",
+      "source_sha256": "36d51d274bcfdb30a6e41100807ca1889b67e9a26a5d1fc0c9a5767bfafcdc5a",
+      "bytes": 327203,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_21__eng/ni30_21__eng_AS.mp4": {
+      "sha256": "bc101289ea0b0335686612ab5c3b1a6e4daf05b66c02ff547e6bd55a716332b0",
+      "source_sha256": "57af273d839df964e044e5a1dbd4b8edae3345887da5dbc29959c3a2e8b39245",
+      "bytes": 296570,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_22__ai-assistant/ni30_22__ai-assistant_AS.mp4": {
+      "sha256": "c775162f274dd8d3b129e2f6eeca10a7ffbfbd767bb29eecb314ca583c1b3734",
+      "source_sha256": "629ea058c6376c9d293a37512d8e54d8e6beab40ca123a8b8a7c758f24ac5507",
+      "bytes": 285551,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_22__eng/ni30_22__eng_AS.mp4": {
+      "sha256": "9d199b3ba83fc20c76b1e086ae7e8c58785aab56b2d022b63ae0220381498791",
+      "source_sha256": "2540d4cc4970f7eb8a8395a54cadc711503893857f794f131ebaea7e45c9455e",
+      "bytes": 256693,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_23__ai-assistant/ni30_23__ai-assistant_AS.mp4": {
+      "sha256": "0ba32c110701b0a261bea0fae3428b33773f29b7c0deb1d18e8a09147b7fe110",
+      "source_sha256": "6ba3811a815938edd2850d49be4680ddfd3207d666c2d281bb2f389491367c36",
+      "bytes": 335600,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_23__eng/ni30_23__eng_AS.mp4": {
+      "sha256": "08d39f71839358eb22b3d56f5847e702a967ae738ac55bc440e8a4c93311964b",
+      "source_sha256": "166006ca8ad9cb0fab0a85d44a17f3edae578e1ecdb912d4bd10e29e88b45009",
+      "bytes": 304255,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_24__ai-assistant/ni30_24__ai-assistant_AS.mp4": {
+      "sha256": "c45fdd4693f318c7bfd714d04f220db589e944c3c5a91ba6a156ff094e1aea32",
+      "source_sha256": "9489e398e90c47d52e4aee664252c693dceed1135c2dbbc0aad5c28953e55b85",
+      "bytes": 328360,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 976,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_24__eng/ni30_24__eng_AS.mp4": {
+      "sha256": "5e0f019ac6b3dd4fdd9351a3ba32098759e87b9e150a20ca94f4f0c2f2334382",
+      "source_sha256": "6958bd66fd9dbab9e4ef1b526da369c95ec5dcb8fb9afc4d4c75ad61b503a99f",
+      "bytes": 293642,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 976,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_25__ai-assistant/ni30_25__ai-assistant_AS.mp4": {
+      "sha256": "007c62c9d87f353bee95759b668163afb73be4b76cfc0f42bfd9b4db096e4487",
+      "source_sha256": "a0f7649e1fdda9b5da7e1b7087c9d9c16908ceef5943db03a9a0e8265718aac3",
+      "bytes": 299779,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_25__eng/ni30_25__eng_AS.mp4": {
+      "sha256": "9dfb78e743bfe55e305d70c289f344cc2598577360fbfc752d12bfd18205522b",
+      "source_sha256": "d00a66854741528019f33f142d6487ffc2ac6ab4f6afde7385c1bd57cf410e85",
+      "bytes": 271566,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_26__ai-assistant/ni30_26__ai-assistant_AS.mp4": {
+      "sha256": "a446de7d8d6a8f3c2f24e3b38972ed04fd47a3dc6015441ba0adfd730dbbabee",
+      "source_sha256": "c78ddb6ecaa0c583fe14808f121272312a71c668c33295eb7a00fa3641f329e8",
+      "bytes": 315151,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_26__eng/ni30_26__eng_AS.mp4": {
+      "sha256": "ed58f90aa571c0376e7f1c91e0f373204ad6fafe5bc51217c3b602b36a917801",
+      "source_sha256": "07f85cf80576742d529fb836def93101739510ab0b9f54f114a55a7f9fd818cc",
+      "bytes": 283022,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_27__ai-assistant/ni30_27__ai-assistant_AS.mp4": {
+      "sha256": "0333b7468dc4b1d619ec49ffbcb3523bb08517dc97f86dd1b2df43287c9c42b2",
+      "source_sha256": "92d6f7d51d0118954f26312530a3edc88450fa90cc6b010c4b0df8494f026110",
+      "bytes": 345061,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_27__eng/ni30_27__eng_AS.mp4": {
+      "sha256": "4e040e54c20b21c5ce4663565b399d93c8ef44aca61e7cd1de20e42d622dbd2e",
+      "source_sha256": "2669a77fa2fbbcd576d0d2423db91e860376ea16574ae4443006d34429c96521",
+      "bytes": 307907,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_28__ai-assistant/ni30_28__ai-assistant_AS.mp4": {
+      "sha256": "2c5f5499e0d16884ee3ba7e6bf61ee9724acccbe80654c9941062ab016637e96",
+      "source_sha256": "9b29d04f2d6611d568280b462a3ec658bdad76d7e21a73f80de82cf57af0e620",
+      "bytes": 352617,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_28__eng/ni30_28__eng_AS.mp4": {
+      "sha256": "e2c58ccf5b44cf8afdda5017222edfec020be38fe80d4f2fb61d53d16154ae1f",
+      "source_sha256": "38b6ecfa9349584b287c4d0c1074e46e6d0751e4841a26eb972419afadfb0ecb",
+      "bytes": 316968,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_29__ai-assistant/ni30_29__ai-assistant_AS.mp4": {
+      "sha256": "695bb8631f7d4e2f102a80e3ab768ed3005db43d1e51ef6b998ce60fa7605ba9",
+      "source_sha256": "5c495a55a1c81140a1748af2d0419baa874ecf0951c8b68eefb935e6e479fa7e",
+      "bytes": 351462,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_29__eng/ni30_29__eng_AS.mp4": {
+      "sha256": "37c913d380b2dd047687473499a0b63f49046425b08701cd40a8ff19577aa78d",
+      "source_sha256": "9bc811cf348c88b599af7f0dbb82aa4eb24fa650db24a052b8f1357287871280",
+      "bytes": 313894,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 972,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    },
+    "review/ni30_30__ai-assistant/ni30_30__ai-assistant_AS.mp4": {
+      "sha256": "f8f54551240d1251f28f1b026495abb8abfac6feffa2ccf089d54f5494efbd82",
+      "source_sha256": "8e42a497f5b29b756601a433067e747646538b0fc84824ce3ea52249ddb9ac76",
+      "bytes": 366612,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 976,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "24000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "235"
+          }
+        ]
+      }
+    },
+    "review/ni30_30__eng/ni30_30__eng_AS.mp4": {
+      "sha256": "bf7a7d5e7f97590d8d74b29bfe1536a2f8dcecd0730025974ff674b071ed995c",
+      "source_sha256": "ee0241d6c8e3c71d6257d43519e80e5841d9f2381bf6aaaab30ff5de22ba2318",
+      "bytes": 330068,
+      "probe": {
+        "video": {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 768,
+          "height": 974,
+          "avg_frame_rate": "25/1",
+          "duration": "10.000000",
+          "nb_read_frames": "250"
+        },
+        "audio": [
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "16000",
+            "channels": 1,
+            "avg_frame_rate": "0/0",
+            "duration": "10.000000",
+            "nb_read_frames": "157"
+          }
+        ]
+      }
+    }
+  },
+  "files": {
+    "logs/job.log": {
+      "sha256": "dfcae58a3846898cef19eab4588619f90ad2f79c1a0c49df60c4845701d8af96",
+      "bytes": 121827
+    },
+    "logs/review.log": {
+      "sha256": "01b4374a2c4fa0751622d79de4f92d1d7302c3f87f6c48eac1e102126caf46e4",
+      "bytes": 49984
+    },
+    "logs/prepare.log": {
+      "sha256": "917defe67b9a5010b45e30fd3db8f36e9734bf99de9d81e6d1ac1dc7a957b762",
+      "bytes": 68904
+    },
+    "logs/facemesh_install.log": {
+      "sha256": "0c58a44ab296568e26a6df4b76ad01a2ed56c9ab63fe17d9cbb148361b92e1ca",
+      "bytes": 3435
+    },
+    "review/summary.json": {
+      "sha256": "507744ba8651060d919f3bae5f7378b5862d0261b0498fc18422b3d1868f3394",
+      "bytes": 338040
+    },
+    "review/summary.md": {
+      "sha256": "70a2d21642cc1866b8de5786a72235bce2a69a919af27bf1788cbc881203d2bf",
+      "bytes": 40974
+    },
+    "run/scorer_freeze.txt": {
+      "sha256": "b7f5b828d90cfed270c62789ff9b07a05195ee7bbbefd7a721512a3b4084f286",
+      "bytes": 440
+    },
+    "run/job.env": {
+      "sha256": "b3f0c7142accad4f52b4c7853ae9e9141e523cc6d0fc35f6564cec92ec55d14a",
+      "bytes": 91
+    },
+    "run/provenance.json": {
+      "sha256": "58906cc8b690ac1e5bc9d35ad149996ef2377e95d8d98c7d6ba8b1ef9abb81af",
+      "bytes": 7882
+    },
+    "run/review_outputs.json": {
+      "sha256": "8543b9937ecdcb2499d00750f37ca83bad01e4e383a381b929e2d0011d6d44a6",
+      "bytes": 21403
+    },
+    "run/delivery_manifest.json": {
+      "sha256": "f05b436054519979b1430d5e5bfbab31a847115316f14f6f8a5528481280077b",
+      "bytes": 129933
+    },
+    "run/model_inputs.json": {
+      "sha256": "edde9bb6314e463b80addaeab4d2e799571a6a3830e10a39d5b027b169ad981f",
+      "bytes": 1316
+    },
+    "run/source_characters.json": {
+      "sha256": "6d31579d382fa1f3e0313d188e85b484ed31a62fec78cd4ebe3a86fa5e3d90a9",
+      "bytes": 101236
+    },
+    "run/prep_inputs.json": {
+      "sha256": "ec0b8ee831286d2a6fed8261db1e412b23421155d232bca322943dfba1a68334",
+      "bytes": 112763
+    },
+    "run/scorer_wheel_manifest.json": {
+      "sha256": "0291bc2edba6a8d36504fbe36cada40e53beeaee9892cbeeb081995d9ede659d",
+      "bytes": 9512
+    },
+    "run/STATUS": {
+      "sha256": "3dc53bad88615113e5d029f79720d4e94b6f5e0cd874f661f8fb8bda7debcf2a",
+      "bytes": 55
+    },
+    "run/new_avatar_manifest.json": {
+      "sha256": "3f1fbdb0b7e8a6e6ae0433aad84a0b679d580441d5f7af47c5e69dc684578e8a",
+      "bytes": 162944
+    },
+    "run/DONE": {
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+      "bytes": 3
+    },
+    "run/student_config.json": {
+      "sha256": "6e52967e54c07a0d6871608ff0625da8fba00ef655f3b7a3f50aea2e06f91c2d",
+      "bytes": 728
+    },
+    "run/pre_inference_recovery.json": {
+      "sha256": "e5f6806a99eda0b5930358fda24125e46d69b7029b9f77f0a638cad7a3fe393d",
+      "bytes": 1012
+    },
+    "run/source_request.json": {
+      "sha256": "91275dba8563c182fee32b0cc6417930bb3e6453a7a6b12487908e7ce427c2f5",
+      "bytes": 5774
+    },
+    "review/ni30_02__eng/metrics.json": {
+      "sha256": "ffb467ef0755591a221ab71f557b814ad4e4d3f34c0a87007ec762434c007bf3",
+      "bytes": 5484
+    },
+    "review/ni30_02__eng/ni30_02__eng_AS.mp4": {
+      "sha256": "59855e4a1ef1b2f2a82b36303dac2b39911d0a8790aa0ca82905aa0b333df1c9",
+      "bytes": 260870
+    },
+    "review/ni30_13__ai-assistant/metrics.json": {
+      "sha256": "3e6addbebd84452ca88fccfbcb4e450764c9d59b5ce025d58983696a1a2a8ba2",
+      "bytes": 5521
+    },
+    "review/ni30_13__ai-assistant/ni30_13__ai-assistant_AS.mp4": {
+      "sha256": "633cf00dba3daad799fc766abec7425a1e65acc345f415f78b46337d86cb83f7",
+      "bytes": 320648
+    },
+    "review/ni30_14__eng/metrics.json": {
+      "sha256": "adf624792f73fafb66592288491e6b0cdb4c8c3352e1f9ff496296dc2b9e3658",
+      "bytes": 5484
+    },
+    "review/ni30_14__eng/ni30_14__eng_AS.mp4": {
+      "sha256": "17257ec28dea984ff64b02f3c693842ebdee5a5e0d30aa649c64947231a76a6c",
+      "bytes": 306923
+    },
+    "review/ni30_04__ai-assistant/metrics.json": {
+      "sha256": "3e2fcd60bcc79de194243334ecc0a65e191d555392e9ecba2854c40c0d796bd7",
+      "bytes": 5522
+    },
+    "review/ni30_04__ai-assistant/ni30_04__ai-assistant_AS.mp4": {
+      "sha256": "d0a7650f455a1af557937a701c20a07850c79c060b4f16cb6cf31ee1ff94b755",
+      "bytes": 325612
+    },
+    "review/ni30_17__ai-assistant/metrics.json": {
+      "sha256": "8288d12d0f178aacf506e82fd4f64e3eb28d73749e63a7fcec947740f1a4a96c",
+      "bytes": 5518
+    },
+    "review/ni30_17__ai-assistant/ni30_17__ai-assistant_AS.mp4": {
+      "sha256": "2398426425b0c991b0e4a40861461deed7f10931c1974fab1739c0a377bf155c",
+      "bytes": 315221
+    },
+    "review/ni30_18__eng/metrics.json": {
+      "sha256": "808f60f5495169770c98842e32ce7f9d316b85240ea5d8b6a1bd1d5dcbafacd1",
+      "bytes": 5476
+    },
+    "review/ni30_18__eng/ni30_18__eng_AS.mp4": {
+      "sha256": "f9ff9c90a80b7bfffa786df40bbb093f70dadf8133f1a8771440606ecddb17d3",
+      "bytes": 293081
+    },
+    "review/ni30_22__eng/metrics.json": {
+      "sha256": "6b6035fcd98b4157f69fe43cc49e71ae8cfb71ac31230796df18723032550bd6",
+      "bytes": 5478
+    },
+    "review/ni30_22__eng/ni30_22__eng_AS.mp4": {
+      "sha256": "9d199b3ba83fc20c76b1e086ae7e8c58785aab56b2d022b63ae0220381498791",
+      "bytes": 256693
+    },
+    "review/ni30_23__eng/metrics.json": {
+      "sha256": "fbdbdd005053a86c1917106166dea485cd6c49d78d42bb4c9b0141e82292f065",
+      "bytes": 5479
+    },
+    "review/ni30_23__eng/ni30_23__eng_AS.mp4": {
+      "sha256": "08d39f71839358eb22b3d56f5847e702a967ae738ac55bc440e8a4c93311964b",
+      "bytes": 304255
+    },
+    "review/ni30_19__eng/metrics.json": {
+      "sha256": "4df168f3304911fad70950ed1491a8baed7d14fa037eae376ab38d832a68bb7a",
+      "bytes": 5485
+    },
+    "review/ni30_19__eng/ni30_19__eng_AS.mp4": {
+      "sha256": "41977ebbf2762d7fd7878970f0d4aeadc304c3ead5fc0bc022a8c35902a5bdef",
+      "bytes": 335595
+    },
+    "review/ni30_29__ai-assistant/ni30_29__ai-assistant_AS.mp4": {
+      "sha256": "695bb8631f7d4e2f102a80e3ab768ed3005db43d1e51ef6b998ce60fa7605ba9",
+      "bytes": 351462
+    },
+    "review/ni30_29__ai-assistant/metrics.json": {
+      "sha256": "19c064be20597e36c23feffaf18986f855fbba8a6b70554b6315c633ffd0aa2e",
+      "bytes": 5519
+    },
+    "review/ni30_07__ai-assistant/metrics.json": {
+      "sha256": "98155d3e592b672c440e0c923fab88f02f9c10480570a47c5fca3edb6a228ead",
+      "bytes": 5524
+    },
+    "review/ni30_07__ai-assistant/ni30_07__ai-assistant_AS.mp4": {
+      "sha256": "83d61ba0ae7cf8f7bbab2aeaeb6fe3a94789ca6f2291182ff06fb387ec9269e1",
+      "bytes": 350941
+    },
+    "review/ni30_10__ai-assistant/metrics.json": {
+      "sha256": "f3b3b74412b58128fd29b6794f7e81624ed18dc2551a40a52822abec44e48df1",
+      "bytes": 5530
+    },
+    "review/ni30_10__ai-assistant/ni30_10__ai-assistant_AS.mp4": {
+      "sha256": "25a3411230d12bfa38a6293e0084067d8cdb2a944a8e16ac65480e7a42465ce8",
+      "bytes": 369439
+    },
+    "review/ni30_15__eng/metrics.json": {
+      "sha256": "24850be84d8eb92ab7130e5d3772cbaa02d26543f81fe610803cb79732cdbea1",
+      "bytes": 5479
+    },
+    "review/ni30_15__eng/ni30_15__eng_AS.mp4": {
+      "sha256": "365ead25ba59f8a67df98b0a27ad09d91e1d98189657488eba8d08aee727a253",
+      "bytes": 321774
+    },
+    "review/ni30_14__ai-assistant/metrics.json": {
+      "sha256": "6e33c0e6b0a399a454e07ebdc4304d1695ad2749cee6569f9555da43346203c6",
+      "bytes": 5514
+    },
+    "review/ni30_14__ai-assistant/ni30_14__ai-assistant_AS.mp4": {
+      "sha256": "743c5a81c446a33efb6e354c3a792a0729c5a978efe229abadfbbf08a85c9ea7",
+      "bytes": 338051
+    },
+    "review/ni30_03__eng/metrics.json": {
+      "sha256": "60226ed6fee6394b683a9bb6d1b9db38d9396956c5320c04a28562a11d9c01b4",
+      "bytes": 5490
+    },
+    "review/ni30_03__eng/ni30_03__eng_AS.mp4": {
+      "sha256": "b5592dd428e7783436cd6b8b17d62e71cbae963e12bfcb185b4d042535faaa4a",
+      "bytes": 282141
+    },
+    "review/ni30_03__ai-assistant/metrics.json": {
+      "sha256": "5efcab54d2897df9b012cfa52d6cd654c515298a45191b5fa1aa9bf18f776c62",
+      "bytes": 5522
+    },
+    "review/ni30_03__ai-assistant/ni30_03__ai-assistant_AS.mp4": {
+      "sha256": "ca01e54eb88672f991cbd144d39dd9974f7dabc9780d170c2f678681a3585639",
+      "bytes": 309477
+    },
+    "review/ni30_30__ai-assistant/metrics.json": {
+      "sha256": "c3ffbc31dda29e8ec22e4d683a8aee26d0fc3734be2462768f678b33d3817593",
+      "bytes": 5527
+    },
+    "review/ni30_30__ai-assistant/ni30_30__ai-assistant_AS.mp4": {
+      "sha256": "f8f54551240d1251f28f1b026495abb8abfac6feffa2ccf089d54f5494efbd82",
+      "bytes": 366612
+    },
+    "review/ni30_08__eng/metrics.json": {
+      "sha256": "2180da7e0cad1701070525a787fed020e89bf0523155dc4226f9e937e70bfb2f",
+      "bytes": 5484
+    },
+    "review/ni30_08__eng/ni30_08__eng_AS.mp4": {
+      "sha256": "1812aecc1f3f5651496ca3d48f2597a0116e3654105fa9842dd8a26cf918bc93",
+      "bytes": 367023
+    },
+    "review/ni30_27__ai-assistant/metrics.json": {
+      "sha256": "5f559d209180f7436901a7bc6ff97bc0825649af881292778eb09f3f0bf72fab",
+      "bytes": 5528
+    },
+    "review/ni30_27__ai-assistant/ni30_27__ai-assistant_AS.mp4": {
+      "sha256": "0333b7468dc4b1d619ec49ffbcb3523bb08517dc97f86dd1b2df43287c9c42b2",
+      "bytes": 345061
+    },
+    "review/ni30_09__ai-assistant/metrics.json": {
+      "sha256": "b1c72572c258311fc967effba3e5b91805de4c9c5ea0c8749a0c57c231ecc93a",
+      "bytes": 5524
+    },
+    "review/ni30_09__ai-assistant/ni30_09__ai-assistant_AS.mp4": {
+      "sha256": "0c133fa4b2b2979068c79c37920747fcc33f8705e98aba9b736e1798d7450f17",
+      "bytes": 309463
+    },
+    "review/ni30_23__ai-assistant/metrics.json": {
+      "sha256": "3b6d109c1913a9a3f03696d99673fdaec4825761fef9e0058ed5dfe2c3902369",
+      "bytes": 5503
+    },
+    "review/ni30_23__ai-assistant/ni30_23__ai-assistant_AS.mp4": {
+      "sha256": "0ba32c110701b0a261bea0fae3428b33773f29b7c0deb1d18e8a09147b7fe110",
+      "bytes": 335600
+    },
+    "review/ni30_24__eng/metrics.json": {
+      "sha256": "00315279d6780c2d0164257dc637a53afb897d7ba1451a23bf18ab5586dea42f",
+      "bytes": 5482
+    },
+    "review/ni30_24__eng/ni30_24__eng_AS.mp4": {
+      "sha256": "5e0f019ac6b3dd4fdd9351a3ba32098759e87b9e150a20ca94f4f0c2f2334382",
+      "bytes": 293642
+    },
+    "review/ni30_04__eng/metrics.json": {
+      "sha256": "dbebe6e2d05b94dcfa1ba0e40ce36ad62e8f3375b0b5f34deb327de3b6f1056e",
+      "bytes": 5479
+    },
+    "review/ni30_04__eng/ni30_04__eng_AS.mp4": {
+      "sha256": "c0aeaae9b811b95136c225ca2130bac2c0ffa984a4d5e4b7eb8ca87c43097023",
+      "bytes": 285518
+    },
+    "review/ni30_12__eng/metrics.json": {
+      "sha256": "d34172fefcfe627c2ccc2cbb0c365788465fa289d4d7468066ef3697e4f4f44a",
+      "bytes": 5481
+    },
+    "review/ni30_12__eng/ni30_12__eng_AS.mp4": {
+      "sha256": "36c38b659cc4017aeb9e7db411c22bf76649ab1f47f95f1615a15d2df5b637b1",
+      "bytes": 296904
+    },
+    "review/ni30_28__eng/metrics.json": {
+      "sha256": "4186749cfec4df5e1d16d1f688122de1e3a3ce68d61d4d06231c34ca05252761",
+      "bytes": 5485
+    },
+    "review/ni30_28__eng/ni30_28__eng_AS.mp4": {
+      "sha256": "e2c58ccf5b44cf8afdda5017222edfec020be38fe80d4f2fb61d53d16154ae1f",
+      "bytes": 316968
+    },
+    "review/ni30_29__eng/metrics.json": {
+      "sha256": "7b778a6ee04f66966aa14ff65f19ca531164d8f2d3d56f7095af8887def4414b",
+      "bytes": 5481
+    },
+    "review/ni30_29__eng/ni30_29__eng_AS.mp4": {
+      "sha256": "37c913d380b2dd047687473499a0b63f49046425b08701cd40a8ff19577aa78d",
+      "bytes": 313894
+    },
+    "review/ni30_13__eng/metrics.json": {
+      "sha256": "bd327946dc9e497208148b4d6180cfaeaf5fc230aa4359b3e87979faf12cf090",
+      "bytes": 5482
+    },
+    "review/ni30_13__eng/ni30_13__eng_AS.mp4": {
+      "sha256": "a6286a01256686cbbb238e60382bb9436289d1138f851912f62d9122003d20a6",
+      "bytes": 289830
+    },
+    "review/ni30_05__eng/metrics.json": {
+      "sha256": "9b415161f0d35e001ccef4fe6779f558f97714ce77c4a25516ed21b667767639",
+      "bytes": 5478
+    },
+    "review/ni30_05__eng/ni30_05__eng_AS.mp4": {
+      "sha256": "21fd95eec50f2db765df9039c50105d3a3fa7f294fa4306a399e1588a0e6e665",
+      "bytes": 281394
+    },
+    "review/ni30_24__ai-assistant/metrics.json": {
+      "sha256": "82bf4d4c7de05480d9b53f4d64d0631a223147d5aa2bb2bcc857875ae4e20e59",
+      "bytes": 5516
+    },
+    "review/ni30_24__ai-assistant/ni30_24__ai-assistant_AS.mp4": {
+      "sha256": "c45fdd4693f318c7bfd714d04f220db589e944c3c5a91ba6a156ff094e1aea32",
+      "bytes": 328360
+    },
+    "review/ni30_25__eng/metrics.json": {
+      "sha256": "3202c8f25c3a131a1ed42805dcfe24d5792229406aab33f29f96a97cf4655372",
+      "bytes": 5483
+    },
+    "review/ni30_25__eng/ni30_25__eng_AS.mp4": {
+      "sha256": "9dfb78e743bfe55e305d70c289f344cc2598577360fbfc752d12bfd18205522b",
+      "bytes": 271566
+    },
+    "review/ni30_20__ai-assistant/metrics.json": {
+      "sha256": "717c7f2af34e181df8b47991d5a9bb1b8a2f4e4a1b896795e8721b1c800da595",
+      "bytes": 5522
+    },
+    "review/ni30_20__ai-assistant/ni30_20__ai-assistant_AS.mp4": {
+      "sha256": "56761cd7caba8bd5a8e244ec00862e6c9bc6b634b86d0a63e4eb0ac75a6c34a9",
+      "bytes": 297467
+    },
+    "review/ni30_09__eng/metrics.json": {
+      "sha256": "2deb362df60079b12021ead6c9b2af8a190d2b9f95ff950fd5016a6ef530adfb",
+      "bytes": 5489
+    },
+    "review/ni30_09__eng/ni30_09__eng_AS.mp4": {
+      "sha256": "c512a619dd3a9f54ed7c99ed6afaccc78813581f61aaa346fed1f0a4385ab189",
+      "bytes": 276159
+    },
+    "review/ni30_19__ai-assistant/metrics.json": {
+      "sha256": "0c1f52f9a00eb290905c6fed36bd95319b7d63e70877241a202668604b047430",
+      "bytes": 5525
+    },
+    "review/ni30_19__ai-assistant/ni30_19__ai-assistant_AS.mp4": {
+      "sha256": "8b861af6c2059e219b28462185b07c28b4f13e061a80433c951a54110d9f4ce7",
+      "bytes": 372832
+    },
+    "review/ni30_26__eng/ni30_26__eng_AS.mp4": {
+      "sha256": "ed58f90aa571c0376e7f1c91e0f373204ad6fafe5bc51217c3b602b36a917801",
+      "bytes": 283022
+    },
+    "review/ni30_26__eng/metrics.json": {
+      "sha256": "a17039b695acba0b138bda9dab7c01be3ffcf928efd758b19d2239a6cc72d29c",
+      "bytes": 5467
+    },
+    "review/ni30_30__eng/metrics.json": {
+      "sha256": "fe6d7c542d56292bf3f63432f5056bd874fbd0c47cc74621a3f3498cca18ae16",
+      "bytes": 5485
+    },
+    "review/ni30_30__eng/ni30_30__eng_AS.mp4": {
+      "sha256": "bf7a7d5e7f97590d8d74b29bfe1536a2f8dcecd0730025974ff674b071ed995c",
+      "bytes": 330068
+    },
+    "review/ni30_18__ai-assistant/metrics.json": {
+      "sha256": "2f73b25190b4deec21adcf4321bce558d11d6d96e60a7300e637c5142442b27d",
+      "bytes": 5515
+    },
+    "review/ni30_18__ai-assistant/ni30_18__ai-assistant_AS.mp4": {
+      "sha256": "582a5ed492830fa02a17af2e68056e6fce92fc791bb3250a14f99ddfab2ce437",
+      "bytes": 323857
+    },
+    "review/ni30_21__ai-assistant/metrics.json": {
+      "sha256": "68d2b332bab6d25a462632a3c7a9c1ae8ae30d64d3817489f4627993f3c3787e",
+      "bytes": 5515
+    },
+    "review/ni30_21__ai-assistant/ni30_21__ai-assistant_AS.mp4": {
+      "sha256": "a1820f63790e8fb9c00fd61ce7cf906394f1f2044f5c558606c9fc0ed6a51e38",
+      "bytes": 327203
+    },
+    "review/ni30_10__eng/metrics.json": {
+      "sha256": "52b07b39dd16018bf62586f4e2c7bf3bb4154009835610550919645906a65d6c",
+      "bytes": 5487
+    },
+    "review/ni30_10__eng/ni30_10__eng_AS.mp4": {
+      "sha256": "f2915fd3093af4f92310195aac56fe4b6a5c560689e93a018e2db71fed1c1439",
+      "bytes": 338771
+    },
+    "review/ni30_25__ai-assistant/metrics.json": {
+      "sha256": "fb6682296221fb5211d660a11e005487ccd644515d8147ab62011ff296cc362b",
+      "bytes": 5516
+    },
+    "review/ni30_25__ai-assistant/ni30_25__ai-assistant_AS.mp4": {
+      "sha256": "007c62c9d87f353bee95759b668163afb73be4b76cfc0f42bfd9b4db096e4487",
+      "bytes": 299779
+    },
+    "review/ni30_06__eng/metrics.json": {
+      "sha256": "f904c7478dc8af474db3720ab496e1ecd500ce920905aab0419381bfa186c42e",
+      "bytes": 5492
+    },
+    "review/ni30_06__eng/ni30_06__eng_AS.mp4": {
+      "sha256": "01d34eb23f0ac02c7f44030ab5e189fa015a2d5bc27f792970c96ffefa922f15",
+      "bytes": 310055
+    },
+    "review/ni30_07__eng/metrics.json": {
+      "sha256": "141ea90f9ee0ed9f6571033b72b2bb88f4d6601d50c845f7d959ec62706a3f81",
+      "bytes": 5488
+    },
+    "review/ni30_07__eng/ni30_07__eng_AS.mp4": {
+      "sha256": "cbacb50ab1dc2f14b094e1974787a16bc61e91605c15c298a71bbb02c0274875",
+      "bytes": 309634
+    },
+    "review/ni30_22__ai-assistant/metrics.json": {
+      "sha256": "706cc8d612f2b32be597c8228ed13a10f3d7272fc48b5b8dd7064b5629c9caf9",
+      "bytes": 5525
+    },
+    "review/ni30_22__ai-assistant/ni30_22__ai-assistant_AS.mp4": {
+      "sha256": "c775162f274dd8d3b129e2f6eeca10a7ffbfbd767bb29eecb314ca583c1b3734",
+      "bytes": 285551
+    },
+    "review/ni30_11__eng/metrics.json": {
+      "sha256": "a068f29fe9778db2abc3aa41511df1c718d74c0185b52271314987daef8b7074",
+      "bytes": 5492
+    },
+    "review/ni30_11__eng/ni30_11__eng_AS.mp4": {
+      "sha256": "0dbb1be4e593e8e9507461268403fc17f9184e01f4440a0c467ecb30c1aa6b0a",
+      "bytes": 298212
+    },
+    "review/ni30_08__ai-assistant/metrics.json": {
+      "sha256": "3eb5d2914539b3aaa2c051ebc5a5e258366464f6f6b7669f55ca9320f3368aa2",
+      "bytes": 5525
+    },
+    "review/ni30_08__ai-assistant/ni30_08__ai-assistant_AS.mp4": {
+      "sha256": "3ff024ac5d34b145a3ca1b926e9ee473387a7864e13469fde5cb1357d862afac",
+      "bytes": 403101
+    },
+    "review/ni30_26__ai-assistant/metrics.json": {
+      "sha256": "59e0caed0b36118ef9c6361afba366511b174c6b79edb0b7920c5f62ab067a43",
+      "bytes": 5520
+    },
+    "review/ni30_26__ai-assistant/ni30_26__ai-assistant_AS.mp4": {
+      "sha256": "a446de7d8d6a8f3c2f24e3b38972ed04fd47a3dc6015441ba0adfd730dbbabee",
+      "bytes": 315151
+    },
+    "review/ni30_27__eng/metrics.json": {
+      "sha256": "7c4674fb8f8854918b823af0e2d8a4ef0eb916a9147f952d3c956207afbee428",
+      "bytes": 5478
+    },
+    "review/ni30_27__eng/ni30_27__eng_AS.mp4": {
+      "sha256": "4e040e54c20b21c5ce4663565b399d93c8ef44aca61e7cd1de20e42d622dbd2e",
+      "bytes": 307907
+    },
+    "review/ni30_16__eng/metrics.json": {
+      "sha256": "1a81bd352759117a89f5d8fb493d0d8c70e7ecfbea88d3185aa7b9588b0a734f",
+      "bytes": 5484
+    },
+    "review/ni30_16__eng/ni30_16__eng_AS.mp4": {
+      "sha256": "9f4eb829fefc2898e8b954bb9b67e023be41eb933d9232186bfb88df75664b5c",
+      "bytes": 298344
+    },
+    "review/ni30_02__ai-assistant/metrics.json": {
+      "sha256": "2e13128ba1f4bf935e7a8e0c3e8b828813d95ea86f63fb0551a23ec497968bf3",
+      "bytes": 5522
+    },
+    "review/ni30_02__ai-assistant/ni30_02__ai-assistant_AS.mp4": {
+      "sha256": "8883fdb428b8ba5d3e355d2a5bda189ea61ae13e6635a0bfa6f7484358d35836",
+      "bytes": 287118
+    },
+    "review/ni30_15__ai-assistant/metrics.json": {
+      "sha256": "a6407af9a46a727dccfbb188aa771c8c5bcdf7c0eaca4c988c2fd5a3f3598357",
+      "bytes": 5521
+    },
+    "review/ni30_15__ai-assistant/ni30_15__ai-assistant_AS.mp4": {
+      "sha256": "eff7a3df6c59fb7bc9784b3514e5f935ec1af554716a0e2257910319b79b9675",
+      "bytes": 358426
+    },
+    "review/ni30_20__eng/metrics.json": {
+      "sha256": "075e4d327d6b6f242c0577b1a91c6db41c3721a59b621d8e094ed05791fe04ec",
+      "bytes": 5485
+    },
+    "review/ni30_20__eng/ni30_20__eng_AS.mp4": {
+      "sha256": "b5414914663d5246d85ce6a5863e471c7cf96886c4d1c83611a7fc63ab0c719d",
+      "bytes": 263047
+    },
+    "review/ni30_11__ai-assistant/ni30_11__ai-assistant_AS.mp4": {
+      "sha256": "95460a6e84260d9a39101d2e8565751ccd341d6bf73020cdce4dab38fac40104",
+      "bytes": 331703
+    },
+    "review/ni30_11__ai-assistant/metrics.json": {
+      "sha256": "f2aa1258735fd4abcee61401d3a9bc8745538fc7e1ab8351819bbe4ac6274ed1",
+      "bytes": 5527
+    },
+    "review/ni30_06__ai-assistant/metrics.json": {
+      "sha256": "173a47ba8efeb12aeb08ae62462fb11121b8e8afc8b0e20501f7a697cc75fcdd",
+      "bytes": 5520
+    },
+    "review/ni30_06__ai-assistant/ni30_06__ai-assistant_AS.mp4": {
+      "sha256": "49cbc5787aea7f4187c541b94587134473287c28f5a78dd527be7c1745825777",
+      "bytes": 348880
+    },
+    "review/ni30_28__ai-assistant/metrics.json": {
+      "sha256": "d394df7f53df78aa4c1f00a286e605f37e7457f44d0dda8d87986445c8c20194",
+      "bytes": 5525
+    },
+    "review/ni30_28__ai-assistant/ni30_28__ai-assistant_AS.mp4": {
+      "sha256": "2c5f5499e0d16884ee3ba7e6bf61ee9724acccbe80654c9941062ab016637e96",
+      "bytes": 352617
+    },
+    "review/ni30_16__ai-assistant/metrics.json": {
+      "sha256": "ce64b17180b4fbd256f2c102cda34beeea2b266ef549866eeeddce425fc99a50",
+      "bytes": 5520
+    },
+    "review/ni30_16__ai-assistant/ni30_16__ai-assistant_AS.mp4": {
+      "sha256": "e18e77d85ef17db3fb993556bbbb7dde00c34e5f2fafbe227683b4c072577b9a",
+      "bytes": 332510
+    },
+    "review/ni30_01__ai-assistant/metrics.json": {
+      "sha256": "2325f3af0afd09533df8e32633ce07c219d7347bf44b42ea6797e9046f62ba02",
+      "bytes": 5522
+    },
+    "review/ni30_01__ai-assistant/ni30_01__ai-assistant_AS.mp4": {
+      "sha256": "fe48e7ac5ddd396b3b24de46911decc8423c6b5fbe1908e0861839ce60aa20e1",
+      "bytes": 354711
+    },
+    "review/ni30_05__ai-assistant/metrics.json": {
+      "sha256": "ec728d26596b5b27694a0d0e7179b81f4c42471aad8a35690e082d9888daaa05",
+      "bytes": 5516
+    },
+    "review/ni30_05__ai-assistant/ni30_05__ai-assistant_AS.mp4": {
+      "sha256": "a64d35ce8c29d9cb883e29782f1b8d3ca6757e63aa46734e0daa339a8da2bbef",
+      "bytes": 318811
+    },
+    "review/ni30_12__ai-assistant/metrics.json": {
+      "sha256": "da56e19db07c4331104930e23abdbeb93729b34e18c479963b8a9d7db35a1500",
+      "bytes": 5521
+    },
+    "review/ni30_12__ai-assistant/ni30_12__ai-assistant_AS.mp4": {
+      "sha256": "1adf7bedb2ffc9b3fa19c151e9100148873dda5bbea9f4ef80302b949f8413e7",
+      "bytes": 335054
+    },
+    "review/ni30_21__eng/metrics.json": {
+      "sha256": "45c7695efb51da15bf01d64de1971bd6d45b18876c9b266e803ea9e2d6e88f5a",
+      "bytes": 5484
+    },
+    "review/ni30_21__eng/ni30_21__eng_AS.mp4": {
+      "sha256": "bc101289ea0b0335686612ab5c3b1a6e4daf05b66c02ff547e6bd55a716332b0",
+      "bytes": 296570
+    },
+    "review/ni30_01__eng/metrics.json": {
+      "sha256": "0a706ef94116f7537cc69f656286f7ea4d3afb511ff2da7ee0ff03636101755e",
+      "bytes": 5481
+    },
+    "review/ni30_01__eng/ni30_01__eng_AS.mp4": {
+      "sha256": "33d48992fa2cf0b2684b9460e9fde9b84dbb6680114ec3855ce82c5312c27e88",
+      "bytes": 317870
+    },
+    "review/ni30_17__eng/metrics.json": {
+      "sha256": "9c0c155fdf339474345e0a0507c6003ec1bfb62a103b42a4c5ec0622d57d3390",
+      "bytes": 5482
+    },
+    "review/ni30_17__eng/ni30_17__eng_AS.mp4": {
+      "sha256": "888701333604ad7289f7e8938fd0f5ba453a295580338c1c32c3f661f701c399",
+      "bytes": 284448
+    }
+  }
+}
