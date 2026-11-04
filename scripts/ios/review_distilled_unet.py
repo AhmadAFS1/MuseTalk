@@ -37,6 +37,12 @@ Usage (repo root; on the CUDA box the server venv, which has diffusers 0.30: mid
       --student-json <run>/bk_tiny.json --student-weights <run>/bk_tiny_best.pt \\
       --out experiments/video_validation/distilled_unet --facemesh-python <venv with mediapipe 0.10.14>/bin/python
 A tiny Mac test (the verdict is then INCOMPLETE at best, or FAIL): add --device cpu --fp16-device mps --frames 12.
+
+New identities use an explicitly separate protocol: --protocol new-static-r5 --new-avatar-manifest <frozen.json>.
+The manifest binds 30 static portraits/caches, two clips and a checkpoint SHA256 (validate_new_manifest documents
+paths). All 60 clips require 250 frames at 25 fps and full finite FaceMesh coverage. N/S/S16 get independent r5-only
+verdicts; no old D metrics are read. Static head/body inputs do not establish moving-pose or universal quality,
+and CUDA fp16 is not evidence of iPhone ANE/Core ML quantization quality. The original default protocol is unchanged.
 """
 from __future__ import annotations
 
@@ -81,6 +87,154 @@ FLICKER_RATIO_MARGIN = 0.0
 CHECKS = (("lip_corr", True, LIP_CORR_MARGIN), ("lip_mean_abs_delta_px", False, LIP_DELTA_MARGIN_PX),
           ("mouth_psnr_db", True, MOUTH_PSNR_MARGIN_DB), ("mouth_sharpness_ratio", True, MOUTH_SHARPNESS_MARGIN),
           ("error_flicker_mouth", False, ERROR_FLICKER_MARGIN), ("mouth_flicker_ratio", False, FLICKER_RATIO_MARGIN))
+
+
+NEW_PROTOCOL = "new_static_avatars_r5_v1"
+NEW_R5_GATE_KEYS = ("flicker_mouth_ratio_le_1.05", "flicker_face_ratio_le_1.05",
+                    "mouth_sharpness_ratio_ge_0.95", "aperture_corr_ge_0.97", "aperture_lag_0",
+                    "aperture_mean_abs_delta_le_0.5px")
+
+
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def validate_new_manifest(path: Path, avatars: list[Path], audios: list[Path], weights: Path,
+                          fps: int, seconds: float, frame_limit: int | None) -> dict:
+    """Bind the opt-in static-portrait experiment to its frozen inputs before any model is loaded.
+
+    Paths in portrait/audio entries are relative to the manifest, or absolute. cache_files keys are relative
+    to the corresponding --avatars directory and cover every file load_avatar consumes. Additional provenance
+    fields are retained. The manifest is evidence of evaluation inputs, never a training/checkpoint selector.
+    """
+    m = json.loads(path.read_text())
+    if (m.get("schema_version"), m.get("protocol"), m.get("avatar_kind"), m.get("fps"), m.get("frames")) != (
+            1, NEW_PROTOCOL, "static_portrait", 25, 250):
+        raise ValueError("new-avatar manifest must declare schema 1, static_portrait, 250 frames at 25 fps")
+    if fps != 25 or seconds != 10 or frame_limit not in (None, 250):
+        raise ValueError("new-static-r5 requires the complete 250-frame/10-second, 25-fps protocol")
+    av_rows, au_rows = m.get("avatars"), m.get("audio")
+    if not isinstance(av_rows, list) or len(av_rows) != 30 or not isinstance(au_rows, list) or len(au_rows) != 2:
+        raise ValueError("new-avatar manifest requires exactly 30 avatars and two audio files")
+
+    def resolve(value):
+        p = Path(value)
+        return (p if p.is_absolute() else path.parent / p).resolve()
+
+    def verify(file, expected):
+        if not isinstance(expected, str) or len(expected) != 64 or any(c not in "0123456789abcdef" for c in expected):
+            raise ValueError(f"invalid SHA256 for {file}")
+        if sha256_file(file) != expected:
+            raise ValueError(f"SHA256 mismatch: {file}")
+
+    if any(not isinstance(row, dict) for row in av_rows + au_rows):
+        raise ValueError("avatar and audio manifest entries must be objects")
+    av_by_id = {a.name: a.resolve() for a in avatars}
+    ids = [r["id"] for r in av_rows]
+    if any(not isinstance(ident, str) or not ident for ident in ids):
+        raise ValueError("avatar manifest IDs must be nonempty strings")
+    if len(av_by_id) != 30 or len(set(ids)) != 30 or set(ids) != set(av_by_id):
+        raise ValueError("--avatars must match the 30 unique manifest IDs exactly")
+    portrait_hashes, image_hashes, latent_hashes = [], [], []
+    for row in av_rows:
+        av = av_by_id[row["id"]]
+        if row.get("cache_dir") is not None and resolve(row["cache_dir"]) != av:
+            raise ValueError(f"cache_dir mismatch: {row['id']}")
+        portrait = resolve(row["portrait"])
+        verify(portrait, row["portrait_sha256"])
+        portrait_hashes.append(row["portrait_sha256"])
+        files = row["cache_files"]
+        if not isinstance(files, dict):
+            raise ValueError(f"cache_files must be a relative-path/hash mapping: {row['id']}")
+        images = sorted((av / "full_imgs").glob("*.[jpJP][pnPN]*[gG]"))
+        masks = sorted((av / "mask").glob("*.[jpJP][pnPN]*[gG]"))
+        expected_files = {"coords.pkl", "mask_coords.pkl", "latents.pt"} | {
+            f.relative_to(av).as_posix() for f in images + masks}
+        if not images or len(images) != len(masks) or set(files) != expected_files:
+            raise ValueError(f"cache_files must cover all reviewed frames/masks and three cache tensors: {row['id']}")
+        for relative, digest in files.items():
+            f = av / relative
+            if not f.resolve().is_relative_to(av):
+                raise ValueError(f"cache file escapes avatar directory: {relative}")
+            verify(f, digest)
+        if len({files[f.relative_to(av).as_posix()] for f in images}) != 1 or len({
+                files[f.relative_to(av).as_posix()] for f in masks}) != 1:
+            raise ValueError(f"static-portrait frames and masks must be repeated unchanged: {row['id']}")
+        image_hashes.append(files[images[0].relative_to(av).as_posix()])
+        latent_hashes.append(files["latents.pt"])
+    if len(set(portrait_hashes)) != 30 or len(set(image_hashes)) != 30 or len(set(latent_hashes)) != 30:
+        raise ValueError("new-avatar identities must have 30 distinct portrait, frame and latent-cache hashes")
+    manifest_audio = [resolve(row["file"]) for row in au_rows]
+    if (len(set(manifest_audio)) != 2 or len({row["sha256"] for row in au_rows}) != 2
+            or set(manifest_audio) != {a.resolve() for a in audios}):
+        raise ValueError("--audio must match the two manifest audio files exactly")
+    if len({a.stem for a in manifest_audio}) != 2:
+        raise ValueError("new-avatar audio stems must be unique")
+    for row, audio in zip(au_rows, manifest_audio):
+        verify(audio, row["sha256"])
+    verify(weights, m["checkpoint_sha256"])
+    return {"manifest": str(path.resolve()), "manifest_sha256": sha256_file(path), "inputs": m,
+            "expected_clips": sorted(f"{ident}__{a.stem}" for ident in ids for a in manifest_audio)}
+
+
+def protocol_inputs(args, avatars: list[Path], audios: list[Path]) -> tuple[dict, dict | None]:
+    """Keep baseline selection explicit: the opt-in identity test never even opens legacy D metrics."""
+    if args.protocol == "new-static-r5":
+        if args.new_avatar_manifest is None or args.facemesh_python is None:
+            raise ValueError("new-static-r5 requires --new-avatar-manifest and --facemesh-python")
+        info = validate_new_manifest(args.new_avatar_manifest, avatars, audios, args.student_weights,
+                                     args.fps, args.seconds, args.frames)
+        return {}, info
+    if args.new_avatar_manifest is not None:
+        raise ValueError("--new-avatar-manifest requires --protocol new-static-r5")
+    rows = json.loads(args.mixed_metrics.read_text())["clips"]
+    clips = {row["clip"]: row for row in rows}
+    if not clips or len(clips) != len(rows):
+        raise ValueError("D metrics must have unique, nonempty clips")
+    return clips, None
+
+
+def finite_metric_tree(value) -> bool:
+    if isinstance(value, dict):
+        return bool(value) and all(finite_metric_tree(v) for v in value.values())
+    if isinstance(value, (list, tuple)):
+        return bool(value) and all(finite_metric_tree(v) for v in value)
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def new_r5_verdict(clips: list[dict], expected: list[str], arm: str) -> tuple[str, list[str]]:
+    """Independent r5 verdict for the frozen new-identity set; no shipped-chain D comparison is implied."""
+    seen = [m["clip"] for m in clips]
+    incomplete, failed = [], []
+    if len(expected) != 60 or len(set(expected)) != 60 or len(seen) != len(set(seen)) or set(seen) != set(expected):
+        incomplete.append("the complete, unique manifest set of 60 clips was not scored")
+    for m in clips:
+        tag = m["clip"]
+        if (m.get("frames"), m.get("fps")) != (250, 25):
+            incomplete.append(f"{tag}: requires 250 frames at 25 fps")
+        coverage = m.get("landmark_coverage") or {}
+        if coverage.get("A") != 250 or coverage.get(arm) != 250:
+            incomplete.append(f"{tag}: incomplete finite FaceMesh coverage for A or {arm}")
+        g = m.get(f"r5_gates_{arm}") or {}
+        if any(type(g.get(k)) is not bool for k in NEW_R5_GATE_KEYS):
+            incomplete.append(f"{tag}: not all six r5 gates were scored")
+        else:
+            failed.extend(f"{tag}: r5 {key}" for key in NEW_R5_GATE_KEYS if not g[key])
+        try:
+            ap = m["aperture"][f"{arm}_vs_A"]
+            trees = (m["latent_vs_A"][arm], m[f"{arm}_vs_A"], m["error_flicker_mouth"][arm],
+                     m["error_flicker_face"][arm], ap)
+            if ap.get("frames") != 250 or not all(finite_metric_tree(v) for v in trees):
+                incomplete.append(f"{tag}: missing/nonfinite metric or incomplete aperture coverage")
+        except (KeyError, TypeError):
+            incomplete.append(f"{tag}: required metric missing")
+    if incomplete:
+        return "INCOMPLETE", incomplete + failed
+    return ("FAIL", failed) if failed else ("PASS", [])
 
 
 # ------------------------------------------------------------------------------- arms
@@ -223,6 +377,9 @@ def main() -> None:
     ap.add_argument("--fps", type=int, default=25)
     ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--facemesh-python", type=Path, default=None, help="interpreter with mediapipe<=0.10.14 for scripts/quality_ab_facemesh.py")
+    ap.add_argument("--protocol", choices=("legacy-r5-d", "new-static-r5"), default="legacy-r5-d",
+                    help="default retains the original r5 + shipped-chain D acceptance; new-static-r5 is separate held-out identity evidence")
+    ap.add_argument("--new-avatar-manifest", type=Path, help="frozen 30-portrait/two-audio SHA256 manifest; required for new-static-r5")
     ap.add_argument("--mixed-metrics", type=Path, default=MIXED_METRICS, help="review_mixed_units metrics.json: arm D's per-clip numbers")
     ap.add_argument("--unet-dir", type=Path, default=REPO_ROOT / "models" / "musetalkV15")
     ap.add_argument("--whisper-dir", type=Path, default=REPO_ROOT / "models" / "whisper")
@@ -243,17 +400,30 @@ def main() -> None:
 
     avatars = [Path(p) for a in args.avatars for p in a.split(",") if p]
     audios = [Path(p) if Path(p).is_absolute() else REPO_ROOT / p for a in args.audio for p in a.split(",") if p]
-    d_list = json.loads(args.mixed_metrics.read_text())["clips"]
-    d_clips = {c["clip"]: c for c in d_list}
-    if not d_clips or len(d_clips) != len(d_list):
-        ap.error("D metrics must have unique, nonempty clips")
+    try:
+        d_clips, args.new_manifest_info = protocol_inputs(args, avatars, audios)
+    except (OSError, ValueError, TypeError, KeyError) as e:
+        ap.error(str(e))
     if len(avatars) != len(set(avatars)) or len(audios) != len(set(audios)):
         ap.error("duplicate avatars or audio inputs")
 
     windows = {a: audio_windows(a, args.whisper_dir, args.fps) for a in audios}
     clips = []
     for avatar in avatars:
-        av_latents = load_avatar(avatar)[4]  # cycled as load_avatar truncates it, like the earlier reviews
+        if args.new_manifest_info is not None:
+            cache = load_avatar(avatar)
+            av_latents = cache[4]
+            expected_frames = len(list((avatar / "full_imgs").glob("*.[jpJP][pnPN]*[gG]")))
+            if (len(cache[0]) != expected_frames or not torch.isfinite(av_latents).all()
+                    or any(not np.array_equal(f, cache[0][0]) for f in cache[0])
+                    or any(not np.array_equal(f, cache[1][0]) for f in cache[1])
+                    or any(not np.array_equal(c, cache[2][0]) for c in cache[2])
+                    or any(not np.array_equal(c, cache[3][0]) for c in cache[3])
+                    or not torch.equal(av_latents, av_latents[:1].expand_as(av_latents))):
+                ap.error(f"{avatar.name}: cache is not a complete, finite static-portrait cache")
+            del cache
+        else:
+            av_latents = load_avatar(avatar)[4]  # preserve the original legacy cache lifetime
         for audio in audios:
             n = min(int(round(args.seconds * args.fps)), windows[audio].shape[0], args.frames or 1 << 30)
             clips.append({"clip": f"{avatar.name}__{audio.stem}", "avatar": avatar, "audio": audio, "n": n,
@@ -263,6 +433,11 @@ def main() -> None:
         ap.error("avatar names and audio stems must form unique clip identifiers")
     if any(c["n"] < 10 for c in clips):
         ap.error("every clip needs at least 10 frames for aperture/flicker scoring")
+    if args.new_manifest_info is not None:
+        if sorted(c["clip"] for c in clips) != args.new_manifest_info["expected_clips"] or any(c["n"] != 250 for c in clips):
+            ap.error("new-static-r5 requires every manifest clip at exactly 250 frames")
+        if any(not torch.isfinite(c["aud"]).all() for c in clips):
+            ap.error("new-static-r5 audio inputs contain nonfinite values")
     print(f"{len(clips)} clips, {sum(c['n'] for c in clips)} frames per arm, on {dev_name}", flush=True)
 
     nets = [("teacher", args.unet_dir / "musetalk.json", args.unet_dir / "unet.pth",
@@ -273,6 +448,8 @@ def main() -> None:
     with args.student_weights.open("rb") as fh:
         for block in iter(lambda: fh.read(1 << 24), b""):
             sha.update(block)
+    if args.new_manifest_info is not None and sha.hexdigest() != args.new_manifest_info["inputs"]["checkpoint_sha256"]:
+        raise ValueError("student weights changed after frozen-manifest validation")
     student = {"json": rel(args.student_json), "weights": rel(args.student_weights), "sha256": sha.hexdigest(), "sha256_12": sha.hexdigest()[:12],
                "params_m": round(params["student"] / 1e6, 1), "teacher_params_m": round(params["teacher"] / 1e6, 1)}
     dec = taesd_torch(dev, torch.float32)
@@ -287,6 +464,8 @@ def main() -> None:
             clip_dir = args.out / clip
             clip_dir.mkdir(parents=True, exist_ok=True)
             pred = {arm: preds[clip][arm][0] for arm in ARMS}
+            if args.new_manifest_info is not None and any(not torch.isfinite(p).all() for p in pred.values()):
+                raise ValueError(f"{clip}: nonfinite UNet predictions; new-identity review cannot be scored")
             faces = {arm: decode(dec, pred[arm], dev) for arm in ARMS}
             full = {arm: np.stack(compose(faces[arm], frames, masks, coords, mask_coords)) for arm in ARMS}
             for arm in ARMS:
@@ -329,10 +508,18 @@ def main() -> None:
                                  for arm in SCORED if lms.get(arm) is not None}
             d_num = numbers(dm, "D") if dm is not None else None
             m["D"] = d_num
+            if args.new_manifest_info is not None:
+                m["protocol"] = NEW_PROTOCOL
+                m["avatar_kind"] = "static_portrait; head/body frozen"
+                m["landmark_coverage"] = {arm: int(np.isfinite(lms[arm]).all(axis=(1, 2)).sum())
+                                          if lms.get(arm) is not None and lms[arm].ndim == 3 and lms[arm].shape[0] == n
+                                          and lms[arm].shape[1] >= 416 and lms[arm].shape[2] == 2 else 0 for arm in ARMS}
             m["vs_D"] = {}
             for arm in SCORED:
                 m[f"r5_gates_{arm}"] = gates(m, f"{arm}_vs_A")
-                m["vs_D"][arm] = non_inferiority(numbers(m, arm), d_num)
+                m["vs_D"][arm] = ({"status": "not_evaluated", "checks": {},
+                                    "incomplete_because": ["new identities: no shipped-chain D baseline was measured"]}
+                                   if args.new_manifest_info is not None else non_inferiority(numbers(m, arm), d_num))
 
             seconds = n / args.fps
             for arm in ARMS:
@@ -343,6 +530,8 @@ def main() -> None:
             bar_d = (f"shipped Neural Engine chain D on this clip: mouth PSNR {d_num['mouth_psnr_db']:.1f} dB, error flicker "
                      f"{d_num['error_flicker_mouth']:.3f}, lip corr {fmt(d_num['lip_corr'], '.4f')} |d| "
                      f"{fmt(d_num['lip_mean_abs_delta_px'], '.2f')} px" if d_num else "clip not in the D set")
+            if args.new_manifest_info is not None:
+                bar_d = "STATIC portrait; head/body frozen | r5 vs full fp32 only; D not evaluated; no ANE quality claim"
             ml = wrap(f"{bar_d} | fp16 noise arm {summary_line(m, 'N')}")
             lab = [even(labelled_frame(full["A"][i], full["S"][i], faces["A"][i], faces["S"][i], mouth_box, la, lb, ml)) for i in range(n)]
             write_video(lab, clip_dir / f"{clip}_AS.mp4", args.fps, audio, seconds)
@@ -387,6 +576,9 @@ HEADER = ["clip", "arm", "latent mae", "lip corr", "lip mean abs delta px", "lag
 
 
 def summarize(results: list[dict], d_clips: dict, student: dict, env: dict, args) -> None:
+    if args.new_manifest_info is not None:
+        summarize_new(results, student, env, args)
+        return
     v, reasons = verdict(results, d_clips, "S")
     v16, reasons16 = verdict(results, d_clips, "S16")
     n_r5 = {arm: sum(r5_status(m[f"r5_gates_{arm}"]) == "pass" for m in results) for arm in SCORED}
@@ -448,6 +640,64 @@ S16 (informational): {v16}. r5 passes on {n_r5['N']} (N), {n_r5['S']} (S), {n_r5
 """
     (args.out / "summary.md").write_text(md)
     print(f"wrote {args.out / 'summary.json'} and {args.out / 'summary.md'}", flush=True)
+
+
+
+def summarize_new(results: list[dict], student: dict, env: dict, args) -> None:
+    info = args.new_manifest_info
+    assessments = {arm: new_r5_verdict(results, info["expected_clips"], arm) for arm in SCORED}
+    limitations = ["Static generated portraits: source head/body remain frozen; this does not test moving-source poses.",
+                   "Results characterize these 30 identities and two clips; they cannot prove quality for all future characters.",
+                   "No shipped-chain D baseline was measured for these identities; D non-inferiority is not evaluated.",
+                   "S16 is PyTorch fp16 on the reported device, not Core ML quantization or iPhone ANE quality evidence."]
+    n_r5 = {arm: sum(r5_status(m[f"r5_gates_{arm}"]) == "pass" for m in results) for arm in SCORED}
+    summary = {"protocol": NEW_PROTOCOL, "avatar_kind": "static_portrait", "verdict": assessments["S"][0],
+               "reasons": assessments["S"][1], "verdicts": {arm: {"verdict": v, "reasons": reasons}
+                                                            for arm, (v, reasons) in assessments.items()},
+               "acceptance": {"r5_only_against": "A: full UNet fp32, TF32 off", "expected_clips": 60,
+                              "frames_per_clip": 250, "fps": 25, "full_finite_facemesh_coverage_required": True,
+                              "all_numeric_metrics_finite_required": True, "D_comparison": "not_evaluated",
+                              "each_arm_reported_independently": list(SCORED)},
+               "student": student, "env": env, "provenance": info, "limitations": limitations,
+               "teacher": {"weights_sha256": sha256_file(args.unet_dir / "unet.pth"),
+                           "config_sha256": sha256_file(args.unet_dir / "musetalk.json")},
+               "student_config_sha256": sha256_file(args.student_json), "r5_gates": R5_GATES,
+               "r5_pass_clips": n_r5, "clips_run": len(results),
+               "clips": [{"clip": m["clip"], "files": m["files"], "landmark_coverage": m.get("landmark_coverage"),
+                          **{arm: numbers(m, arm) for arm in SCORED}} for m in results]}
+    (args.out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    rows = table(results)
+    md = f"""# New static-avatar r5 review: {summary['verdict']}
+
+Thirty held-out generated portraits × two audio clips, 250 frames at 25 fps per clip. Source head and body are
+frozen; only generated lips/face regions change. Manifest SHA256: `{info['manifest_sha256']}`.
+Student checkpoint SHA256: `{student['sha256']}`. All arms share the source cache, audio windows, blend and fp32 TAESD.
+A is full fp32 with TF32 off; N is full fp16; S is student fp32; S16 is student fp16 on {env['fp16_device']}.
+
+Acceptance uses the unchanged r5 thresholds against A: aperture correlation ≥ {R5_GATES['aperture_corr_min']},
+lag {R5_GATES['aperture_lag_frames']}, mean aperture error ≤ {R5_GATES['aperture_mean_abs_delta_px_max']} px, mouth/face
+flicker ratios ≤ {R5_GATES['flicker_ratio_max']}, mouth sharpness ratio ≥ {R5_GATES['sharpness_ratio_min']}.
+The complete manifest set, finite metrics and all 250 finite FaceMesh frames are required independently for each arm.
+
+| Arm | Independent verdict | r5 clips passing |
+|---|---|---|
+{chr(10).join(f'| {arm} | {assessments[arm][0]} | {n_r5[arm]}/{len(results)} |' for arm in SCORED)}
+
+{chr(10).join('- ' + item for item in limitations)}
+
+## Reasons by arm
+
+{chr(10).join(f'### {arm}: {v}' + chr(10) + chr(10) + (chr(10).join('- ' + r for r in reasons) or '- Every expected clip passes.') + chr(10) for arm, (v, reasons) in assessments.items())}
+
+## Per clip (D is not evaluated)
+
+| {' | '.join(HEADER)} |
+|{'---|' * len(HEADER)}
+{chr(10).join('| ' + ' | '.join(r) + ' |' for r in rows)}
+"""
+    (args.out / "summary.md").write_text(md)
+    print(f"\nNEW_STATIC_R5 verdicts: " + ", ".join(f"{a} {assessments[a][0]} ({n_r5[a]}/{len(results)} r5)" for a in SCORED), flush=True)
+    print("D not evaluated; static portraits; no universal or on-device ANE quality claim.", flush=True)
 
 
 if __name__ == "__main__":
