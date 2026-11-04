@@ -25,3 +25,11 @@ dry-runs and offline relay quoting/guard/archive mocks passed. No full model was
 All 30 generated sources passed a lightweight local input check: exactly one 468-landmark face after
 normalization. This is not a lipsync quality pass. GPU preparation and 60-clip inference follow on the one
 additional validation-only rental explicitly approved by the user.
+
+Before any inference, slow checkout/package transport required setup recovery on the same rental. The
+delivery-encoding allowance was reduced from 15 to five minutes; the 20-minute pull/cleanup reserve and
+original four-hour expiry remain fixed. The exact two-thread CRF26 command encoded one existing 250-frame
+1024×1298 comparison in 2.41 seconds on the Mac (about 144 seconds for 60 sequential encodes). This supports
+the allowance but does not guarantee worker CPU timing. The earlier frozen request is preserved, and the
+wrapper, checkout revision and replacement request must change together. Model weights, portraits, audio,
+preparation/scoring code and thresholds remain unchanged; no model inference preceded this adjustment.
