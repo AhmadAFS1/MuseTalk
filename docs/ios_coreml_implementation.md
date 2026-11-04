@@ -55,6 +55,7 @@ frame by 3.8 %), so this phone stays below the 20 fps line and newer phones are 
 | 21 | The motion-bank body policy on the phone's three caches (`docs/MULTIPOSE_LTX_MUSETALK_IMPLEMENTATION.md` "Runtime algorithm"): idle body under the lipsync for replies under `short_reply_seconds` (10 here), else 0.3 s of idle → bridge into talking at frame 0 → smile cues after a cooldown → return into idle 0.5 s before the end on the continued idle phase; forward-only clips; the bank's optical-flow bridge is the cosine crossfade over the same 0.3 s | **built 2026-11-02** (`Poses.swift` `FramePlan.compile`, `LipsyncSession` idle track + seams, `LipsyncPipeline` blends; `currentFrame()` returns a `DisplayFrame`). A first version replicated the six-pose cue router instead and was replaced the same day at the user's correction. Simulator-validated through the Lingua bench; phone run pending | Lingua build plan §3.12 "design as built" |
 | 22 | Toward 25 fps on the A14 (§5.6): SPLIT_EINSUM_V2 attention, the constant time embedding folded out of the UNet, TAESD decoded on the GPU in the compose stage, two Neural Engine workers | **measured on the Mac 2026-11-02: full pipeline 21.0 → 15.5 ms/frame (1.34×), gate unchanged (mae 0.01309 vs 0.01311), composed frames unchanged**. **iPhone 12 Pro (hot, thermal "serious"): the UNet changes give only 3–4 %, and TAESD on the A14 GPU is a regression (67 ms per decode)**. **Second matrix: two workers carry over (+20 % on the shipped chunks), folded V2 + two workers = 1.26× (14.8 → 18.6 fps, hot), TAESD stays in the ANE stage; 25 fps not reached**. **Rerun cool (thermal "nominal") 2026-11-03: 15.7 → 19.1 fps (1.22×); three workers 19.0, no gain (the Neural Engine is saturated with two)** | §5.6; `fps25_mac_2026-11-02/`, `fps25_iphone12pro_2026-11-02/`; branch `claude/ios-25fps` |
 | 23 | A GPU worker next to the Neural Engine workers (§5.7): whole frames, UNet + TAESD, on the GPU, taken far enough ahead that the in-order compose stage never waits for them | **measured on the Mac 2026-11-03: 15.5 → 9.8 ms/frame with one GPU worker on a plain fp16 UNet (1.58×), 8.3 with two (1.87×), 11.4 on the same chunks with no new model files (1.36×)**; every frame bit-identical to one of the two engines' sequential loops; **video review (12 clips): the mixed output is closer to fp32 than the all-Neural-Engine one on every clip, r5 pass 11/12 vs 10/12, mouth flicker +0.7–1.9 % (limit 5 %)**. **iPhone 12 Pro 2026-11-03 (thermal "nominal"): a regression, 18.9 → 15.1 fps (0.80×). A GPU frame takes ~500 ms, and the Neural Engine slows from ~109 to ~164 ms per frame while it runs. Off by default; not for the A14** | §5.7; `review_mixed_units/`, `fps30_2026-11-03/` |
+| 24 | A smaller UNet for the A14 (§5.8): BK-SDM block removal, then distillation from the full UNet | **Finished 2026-11-04: usable-25-fps FAIL.** Both training trials: student 0/12 r5 passes, full fp16 12/12. Additional **30 new static identities × 2 clips: N 60/60, S 0/60, S16 0/60**, no incomplete coverage; no new training. Trained R2 on iPhone 12 Pro: **25.045 generated / 24.961 shown fps**, vs D **18.450 / 18.394** on the 25-fps clip (+35.75% generated); all student frames generated, zero skips/late/stalls. **All three rentals destroyed/verified, timers inactive; $2.96148 estimated total**, including $0.29 AWS transport allowance, not invoice-confirmed and excluding tax. Quality rejected; Lingua unchanged | §5.8; `small_unets_2026-11-03/round2/summary.md`; `new_identities_2026-11-04/summary.md`, `gallery.html`, `rental_receipt.json`; branch `25fps-training-lip-network` |
 
 ---
 
@@ -785,6 +786,178 @@ So the GPU worker stays off by default (`gpuWorkers` is 0 unless asked for), and
 A plain fp16 UNet on the GPU would be faster than the chunks (19.6 against 32.3 ms on the Mac), but it costs 1.6 GB
 more and would still have to make up the Neural Engine slowdown. Newer phones' GPUs are much stronger than the A14's
 and remain unmeasured.
+
+### 5.8 A smaller UNet: speed, distillation and the 25 fps target (2026-11-03–04)
+
+Every lever that keeps the network the same is spent on the A14 (§3.5, §5.6, §5.7): its Neural Engine does about
+53 ms of real compute per frame, and 25 fps needs about 40 ms. So the network has to shrink. The initial speed sweep
+below measured, before training, how much smaller it has to be. The shapes are BK-SDM's (Kim et al., 2023), which removes whole
+blocks of the same SD 1.x layout and recovers quality by distilling from the full model, starting from the full
+model's weights for every block it keeps (`scripts/ios/export_small_unets.py`; plain layout, int8 weights, fp16
+compute, untrained, so only the speed means anything):
+
+| Variant | What is removed | Parameters | GFLOPs | Mac Neural Engine (plain) | iPhone 12 Pro Neural Engine, UNet alone |
+|---|---|---|---|---|---|
+| full | — | 850M | 177.8 | 23.8 ms | 52.0–53.9 ms (Apple-layout chunks, today's phone model) |
+| bk_base | one resnet + attention per down stage, one per up stage | 573M | 117.0 (−34 %) | 15.2 ms | did not reach the Neural Engine as one plain program (492 ms on the CPU) |
+| bk_small | bk_base and the mid block | 477M | 113.9 (−36 %) | 14.2 ms | **37.5–37.9 ms** |
+| bk_tiny | bk_small and the innermost (4×4, 1,280-channel) stage | 318M | 107.6 (−39 %) | 13.1 ms | **32.5–33.0 ms** |
+
+The full model and bk_base do not run as one plain program on the 12 Pro: the full one ran out of memory (2.46 GB,
+the app killed), bk_base fell back to the CPU. Both need the two-chunk Apple layout the phone already ships (§2.2),
+which was not built here. bk_small and bk_tiny run as one plain program, without the Apple layout's −20 % (§3.1).
+
+**The lipsync pipeline on the phone** (`run_phone_ab.sh`, the Lipsync tab's 17.8 s clip at 24 fps, two Neural
+Engine workers, D S T T S D, thermal "fair" at the start and "serious" from run 2; `small_unets_2026-11-03/`):
+
+| UNet | Runs (generated fps) | Frames generated | Skipped |
+|---|---|---|---|
+| today's phone model (folded V2 chunks) | 17.33, 17.32 | 308, 307 of 426 | 118, 119 |
+| bk_small | 21.45, 18.22 | 380, 323 | 46, 103 |
+| **bk_tiny** | **24.04, 24.05** | **426, 426: every frame** | **0, 0** |
+
+0 stalls and 0 late drops in every run. **bk_tiny keeps up with the clip's 24 fps with frames to spare, even at
+"serious"**: the generated rate is capped by the clip, and the Neural Engine stage (72–77 ms per call with two
+workers, so 36–38 ms per frame) puts its capacity at 26–28 fps. bk_small's two runs differ by 15 %: the second ran
+after minutes at "serious". In the pipeline TAESD adds 5–10 ms per frame on the Neural Engine, which the full
+UNet's second worker had hidden. The Apple layout and the fold would add margin on top.
+
+**Initial quality limit:** the untrained speed sweep did not establish a usable model. Untrained, bk_small
+scores MAE 0.73 against the server reference (the full model 0.0004 in fp32, 0.013 on the Neural Engine).
+The distillation runs below use the full UNet as teacher, retained teacher weights for initialization, and
+output/per-up-block feature losses (`scripts/ios/distill_small_unet.py`). Their data comes from the phone-bundle
+latents and training speech, with the identities and audio exclusions described below. A preliminary 30-step
+smoke run on the Mac's GPU had not finished after 8 minutes (over 15 s a step, with the Mac swapping 30 GB),
+so the actual training used a CUDA GPU.
+
+#### Distillation round 1 (2026-11-04): quality FAIL
+
+The reviewed workflow is on `25fps-training-lip-network` (code `d882644`, including the BK-SDM up-block mapping
+fix and strict held-out data guards). One stock RTX 3090, instance **59051256**, trained bk_tiny for **30,000
+steps / 116.7 minutes**, batch 8, gradient checkpointing, LR 1e-4 with warmup/cosine. Ten roster characters train,
+two validate; all 14 gate identities, six review identities and both review audios remain excluded.
+
+Validation selected **step 28,250**, MAE **0.07585432**. Its 128-frame gate MAE is **0.09673169**, max_abs
+**4.85269** (initial tiny 0.30561; full fp16 teacher 0.00027554). Gate scores are reported at every evaluation,
+never used to select the checkpoint. The full 12-clip video review gives **N 12/12, S 0/12, S16 0/12 r5 passes**.
+Student lip correlation spans **0.53769–0.96255** (required ≥0.97), mean aperture error **1.3441–3.2919 px**
+(required ≤0.5), with 1–2-frame lag on Japanese and several sharpness failures. It also fails the D comparisons
+on every clip; the r5 failures independently reject it. This is not a usable 25-fps model yet.
+
+[Round-1 report](ios_unet_bench/small_unets_2026-11-03/round1/summary.md) includes logs, all 12 clip metrics,
+four side-by-side videos and checkpoint provenance. Videos are compressed for sharing; metrics use the original
+raw frames. Weights/config remain untracked in `models/ios_bench/distilled/round1_bk_tiny_*`.
+The rental used stock launch (null production template hash), worker revision 4e2b02e, $0.2747743/h, a pre-create
+four-hour expiry timer and exactly one provider create. It is **destroyed and verified absent; timer inactive**.
+Estimated time plus metered-transfer spend is **$0.76295**, not invoice-confirmed; receipt is in the report folder.
+
+#### Distillation round 2 (2026-11-04): quality FAIL
+
+The final permitted training attempt changed only the step cap to 100k, starting fresh with the same bk_tiny, code,
+teacher initialization, seed, data and other settings. The 150-minute budget stopped updates at **37,807 steps**;
+the final console reports 150.1 minutes including the last evaluation/save. Validation selected **step 35,750**,
+MAE **0.07568650** (0.22% below round 1), with gate MAE **0.09698398**, max_abs **5.01862**. All 153 evaluations,
+including step 0, report the gate score; selection uses validation alone.
+
+The full 12-clip review again gives **N 12/12, S 0/12, S16 0/12 r5 passes**, and every student clip fails the D
+comparison. Student lip correlation spans **0.54558–0.95953** and mean aperture error **1.3809–3.2821 px**;
+both fail the required bounds on every clip. More training did not recover acceptable lip motion.
+[The round-2 report](ios_unet_bench/small_unets_2026-11-03/round2/summary.md) compares both trials and retains
+logs, metrics, four side-by-side videos and checkpoint provenance. The selected weights remain untracked in
+`models/ios_bench/distilled/round2_bk_tiny_best.pt` (SHA256 `a05d2d98f69b431252458d3b25f72e395d557ba693821baee91d11f5fe5a96cd`).
+
+Rental **59067440** is also **destroyed and verified absent; expiry timer inactive**. It used the same stock
+launch, pinned worker revision, hourly rate, pre-create four-hour timer and exactly one provider create.
+Estimated round-2 spend is **$0.95973**; **both rentals total $1.72268 estimated**, including quoted-rate metered
+transfer. The receipts disclose that the invoice API is unavailable and container counters may omit host/image
+traffic. Those two training rentals were closed before phone inference. The user subsequently authorized one
+separate validation-only rental for the 30 new identities below; no additional training was authorized.
+
+#### Trained iPhone 12 Pro inference (2026-11-04): faster, quality rejected
+
+The round-2 candidate was selected only by lower validation MAE and exported as
+`unet_bk_tiny_r2_selected_int8w_b1`. Both rentals were destroyed before local phone inference. The physical
+iPhone 12 Pro (iPhone13,3, iOS 26.2) ran the existing D and trained student S with two inference workers,
+zero GPU workers and order **D S S D** at each workload. The identical 17.76-second waveform generates
+426 frames at 24 fps or 444 at 25 fps.
+
+| Workload | D generated / shown fps | Trained S generated / shown fps | Generated gain | S generated / skipped |
+|---|---|---|---|---|
+| 24 fps | 18.20493 / 18.12025 | **24.04221 / 23.92933** | **32.06%** | 426/426 twice; 0 skipped |
+| 25 fps | 18.45007 / 18.39365 | **25.04537 / 24.96075** | **35.75%** | 444/444 twice; 0 skipped |
+
+All student runs have zero late drops and stalls. At 25 fps, 442 and 443 generated frames were shown, so
+displayed throughput is slightly below 25 fps. Both student 25-fps runs remain thermally fair; both at 24 fps
+are nominal. D's accepted runs span nominal/fair. The final 25-fps D attempt was rejected by the SoulX watchdog
+after emitting a result; SoulX was closed under explicit user authorization and the accepted retry is used.
+The rejected attempt is retained in the logs and excluded from aggregates.
+
+Single-worker UNet checks under `CPU_AND_NE` measured D → S at **53.19 → 33.18 ms** and **54.33 → 33.31 ms**,
+consistent with the healthy Neural Engine path; compute-plan inspection was disabled. Free phone storage was
+26,695/25,594 MB. These are short-clip measurements, not a prolonged hot-session guarantee. At 25 fps the
+runtime regenerates audio windows; bundled 24-fps references are not used as 25-fps quality evidence.
+[Phone results, logs and provenance](ios_unet_bench/small_unets_2026-11-03/round2/phone/phone_comparison.json)
+are retained with the round-2 report. The original Mac avatar JSON is restored byte for byte to 24 fps;
+the last installed benchmark app retains the 25-fps workload and existing model variants remain available.
+
+#### Thirty new identities (2026-11-04): quality FAIL on all 60 clips
+
+Thirty new fictional portraits were generated after the selected round-2 weights were frozen, with varied
+authored skin tones, facial geometry, ages and presentations. Personality concepts are fictional descriptions,
+not inferred traits. All 30 remain excluded from training and checkpoint selection. The unchanged production
+avatar-preparation code produces static source caches: head/body motion is frozen, while the model generates
+the lips and face region. This tests unseen static identities, not moving-source poses or every future avatar.
+
+The full teacher and frozen round-2 checkpoint (`a05d2d98f69b…`, selected only by the earlier validation MAE)
+rendered both held-out audios for every identity: **60 clips, 250 frames each at 25 fps**. A is full fp32 with
+TF32 off; N is full fp16; S and S16 are student fp32 and fp16. All arms share the source caches, Whisper windows,
+blend and fp32 TAESD decoder. Code **604ffac** retains the preparation/scoring code of 6cdc8ca; before inference,
+only the wrapper's delivery-encoding allowance changed from 15 to five minutes, with the old request preserved.
+The 20-minute pull/cleanup reserve, four-hour expiry, weights, inputs and r5 thresholds remained fixed.
+
+| Arm against full fp32 A | Independent verdict | r5 clips passing | Identities with both clips passing |
+|---|---|---:|---:|
+| N: full fp16 control | **PASS** | **60/60** | **30/30** |
+| S: student fp32 | **FAIL** | **0/60** | **0/30** |
+| S16: student fp16 | **FAIL** | **0/60** | **0/30** |
+
+Every clip has all 250 finite FaceMesh frames in all four arms; **none is incomplete**. N lip correlation
+spans **0.99764–0.99999**, mean aperture error **0.0161–0.1680 px**, and lag is zero throughout. S correlation
+spans **0.78306–0.96502** (mean 0.90899), and mean aperture error **0.7846–4.5852 px** (mean 1.71441): every clip
+fails both bounds, ≥0.97 and ≤0.5 px. S16 is similar: correlation **0.78241–0.96513**, aperture error
+**0.7867–4.5869 px**. Both student arms also fail sharpness on 52 clips, zero-lag on 13, and mouth/face flicker
+on two. The largest S aperture error is `ni30_10__eng`; its lowest correlation is `ni30_11__ai-assistant`.
+All 60 student failures therefore occur with a passing full fp16 control.
+
+There is **no historical D baseline for these identities**; this is an independent r5 review against A.
+CUDA fp16 does not establish quantized Core ML or iPhone ANE quality on these faces. Authored-group summaries
+are descriptive small samples, not inferred ethnicity or a fairness proof. The original 12-clip quality
+rejection remains unchanged; these identities did not trigger retraining or checkpoint reselection.
+
+[Profiles and source provenance](ios_unet_bench/new_identities_2026-11-04/README.md),
+[the 60-clip report](ios_unet_bench/new_identities_2026-11-04/summary.md) and
+[the searchable comparison gallery](ios_unet_bench/new_identities_2026-11-04/gallery.html) collect the evidence.
+All **60 A | S comparisons and 60 original S16 renders** were retrieved in the verified 291,880,960-byte archive.
+Shared comparisons are compressed for presentation; numerical metrics use original raw frames. The original
+S16 files remain in the ignored local archive rather than the public report.
+
+The separately approved validation-only rental **59107834** (`mtboot-ni30-r1-20261104a`) used one stock RTX 3090,
+worker revision 4e2b02e, one provider create and a pre-create four-hour expiry timer, at $0.2614409722/hour.
+The fixed lease began **13:07:23 UTC** with an expiry deadline of **17:07:23 UTC** on 2026-11-04. The cleanup
+record is timestamped **16:42:03.892 UTC**; the audit at **16:42:34.405 UTC** confirms **instance absent and timer
+inactive**, before that deadline. The elapsed-time upper estimate is **3.57801 hours**. Task-owned temporary
+input/result object versions were deleted and their absence verified.
+
+[The final receipt](ios_unet_bench/new_identities_2026-11-04/rental_receipt.json) records **$0.94880** estimated
+validation rental time/transfer plus a **$0.29 AWS transport allowance**. Combined with the two training
+rentals, the total is **$2.96148 estimated**, below $10. This includes the AWS allowance once, is **not
+invoice-confirmed**, excludes tax, and retains the disclosed container-counter/transport limitations.
+**All three rentals are destroyed and verified absent; all expiry timers are inactive.**
+
+**Final verdict: usable 25-fps lipsync FAIL.** The trained student meets the measured phone generation rate,
+but both original training attempts fail every held-out quality clip, and the additional 30-identity review
+fails all 60 clips in both student precisions. The experiment is finished; no further rental or training is
+authorized. Results remain on the existing branch/PR for review; no merge has been performed. Lingua is unchanged.
 
 ## 6. The harness app (`ios/MuseTalkBench/`)
 

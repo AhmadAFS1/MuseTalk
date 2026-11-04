@@ -1,0 +1,192 @@
+12 clips, 3000 frames per arm, on NVIDIA GeForce RTX 3090
+loading teacher UNet unet.pth...
+/workspace/distill/MuseTalk/musetalk/models/unet.py:44: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  weights = torch.load(model_path) if torch.cuda.is_available() else torch.load(model_path, map_location=self.device)
+  A en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant: 16.0 ms/frame on cuda
+  A en_01_maya_abe451d3_talking_f6cf8be7fb__eng: 15.8 ms/frame on cuda
+  A en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant: 15.7 ms/frame on cuda
+  A en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng: 15.8 ms/frame on cuda
+  A es_01_valeria_aed74c50_talking_003d585d96__ai-assistant: 15.8 ms/frame on cuda
+  A es_01_valeria_aed74c50_talking_003d585d96__eng: 15.8 ms/frame on cuda
+  A es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant: 15.8 ms/frame on cuda
+  A es_03_mateo_884600e1_talking_75d88cda6c__eng: 15.8 ms/frame on cuda
+  A japanese_realtime_talking_7d94520b7f__ai-assistant: 15.9 ms/frame on cuda
+  A japanese_realtime_talking_7d94520b7f__eng: 15.9 ms/frame on cuda
+  A latina_guided_20260925_talking_84c5bc80b8__ai-assistant: 15.9 ms/frame on cuda
+  A latina_guided_20260925_talking_84c5bc80b8__eng: 15.9 ms/frame on cuda
+  N en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant: 6.4 ms/frame on cuda
+  N en_01_maya_abe451d3_talking_f6cf8be7fb__eng: 6.0 ms/frame on cuda
+  N en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant: 6.0 ms/frame on cuda
+  N en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng: 6.0 ms/frame on cuda
+  N es_01_valeria_aed74c50_talking_003d585d96__ai-assistant: 6.1 ms/frame on cuda
+  N es_01_valeria_aed74c50_talking_003d585d96__eng: 6.2 ms/frame on cuda
+  N es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant: 6.1 ms/frame on cuda
+  N es_03_mateo_884600e1_talking_75d88cda6c__eng: 6.1 ms/frame on cuda
+  N japanese_realtime_talking_7d94520b7f__ai-assistant: 6.0 ms/frame on cuda
+  N japanese_realtime_talking_7d94520b7f__eng: 6.1 ms/frame on cuda
+  N latina_guided_20260925_talking_84c5bc80b8__ai-assistant: 6.0 ms/frame on cuda
+  N latina_guided_20260925_talking_84c5bc80b8__eng: 6.0 ms/frame on cuda
+loading student UNet bk_tiny_best.pt...
+  S en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant: 8.0 ms/frame on cuda
+  S en_01_maya_abe451d3_talking_f6cf8be7fb__eng: 8.0 ms/frame on cuda
+  S en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant: 8.0 ms/frame on cuda
+  S en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng: 8.0 ms/frame on cuda
+  S es_01_valeria_aed74c50_talking_003d585d96__ai-assistant: 8.0 ms/frame on cuda
+  S es_01_valeria_aed74c50_talking_003d585d96__eng: 8.0 ms/frame on cuda
+  S es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant: 8.0 ms/frame on cuda
+  S es_03_mateo_884600e1_talking_75d88cda6c__eng: 8.0 ms/frame on cuda
+  S japanese_realtime_talking_7d94520b7f__ai-assistant: 8.0 ms/frame on cuda
+  S japanese_realtime_talking_7d94520b7f__eng: 8.0 ms/frame on cuda
+  S latina_guided_20260925_talking_84c5bc80b8__ai-assistant: 8.1 ms/frame on cuda
+  S latina_guided_20260925_talking_84c5bc80b8__eng: 8.1 ms/frame on cuda
+  S16 en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant: 3.4 ms/frame on cuda
+  S16 en_01_maya_abe451d3_talking_f6cf8be7fb__eng: 3.4 ms/frame on cuda
+  S16 en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant: 3.4 ms/frame on cuda
+  S16 en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng: 3.4 ms/frame on cuda
+  S16 es_01_valeria_aed74c50_talking_003d585d96__ai-assistant: 3.4 ms/frame on cuda
+  S16 es_01_valeria_aed74c50_talking_003d585d96__eng: 3.4 ms/frame on cuda
+  S16 es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant: 3.4 ms/frame on cuda
+  S16 es_03_mateo_884600e1_talking_75d88cda6c__eng: 3.4 ms/frame on cuda
+  S16 japanese_realtime_talking_7d94520b7f__ai-assistant: 3.4 ms/frame on cuda
+  S16 japanese_realtime_talking_7d94520b7f__eng: 3.4 ms/frame on cuda
+  S16 latina_guided_20260925_talking_84c5bc80b8__ai-assistant: 3.4 ms/frame on cuda
+  S16 latina_guided_20260925_talking_84c5bc80b8__eng: 3.4 ms/frame on cuda
+
+[en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.4 dB, flicker ratio mouth 1.000, error flicker 0.029, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D FAIL
+  S: latent mae 0.1103, mouth PSNR 26.9 dB, flicker ratio mouth 0.936, error flicker 3.664, sharpness 0.963, lip corr 0.9626 lag 0 |d| 1.34 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.1103, mouth PSNR 26.9 dB, flicker ratio mouth 0.936, error flicker 3.664, sharpness 0.963, lip corr 0.9625 lag 0 |d| 1.35 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant in 99.5 s
+
+[en_01_maya_abe451d3_talking_f6cf8be7fb__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.4 dB, flicker ratio mouth 1.000, error flicker 0.029, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D FAIL
+  S: latent mae 0.1071, mouth PSNR 27.1 dB, flicker ratio mouth 0.931, error flicker 3.505, sharpness 0.991, lip corr 0.7835 lag 0 |d| 2.78 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.1071, mouth PSNR 27.1 dB, flicker ratio mouth 0.931, error flicker 3.505, sharpness 0.991, lip corr 0.7828 lag 0 |d| 2.79 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/en_01_maya_abe451d3_talking_f6cf8be7fb__eng in 95.4 s
+
+[en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.2 dB, flicker ratio mouth 1.000, error flicker 0.049, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.04 px | r5 pass | vs D FAIL
+  S: latent mae 0.1040, mouth PSNR 27.6 dB, flicker ratio mouth 0.979, error flicker 4.517, sharpness 0.754, lip corr 0.9426 lag 0 |d| 1.62 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.1040, mouth PSNR 27.6 dB, flicker ratio mouth 0.979, error flicker 4.517, sharpness 0.754, lip corr 0.9425 lag 0 |d| 1.62 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant in 86.4 s
+
+[en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 63.9 dB, flicker ratio mouth 1.000, error flicker 0.052, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.04 px | r5 pass | vs D FAIL
+  S: latent mae 0.1008, mouth PSNR 28.1 dB, flicker ratio mouth 0.966, error flicker 4.387, sharpness 0.783, lip corr 0.9163 lag 0 |d| 1.81 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.1008, mouth PSNR 28.1 dB, flicker ratio mouth 0.966, error flicker 4.387, sharpness 0.783, lip corr 0.9163 lag 0 |d| 1.82 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng in 94.7 s
+
+[es_01_valeria_aed74c50_talking_003d585d96__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.8 dB, flicker ratio mouth 1.000, error flicker 0.027, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D pass
+  S: latent mae 0.0698, mouth PSNR 31.4 dB, flicker ratio mouth 0.944, error flicker 2.413, sharpness 1.009, lip corr 0.9513 lag 0 |d| 1.36 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.0698, mouth PSNR 31.4 dB, flicker ratio mouth 0.944, error flicker 2.413, sharpness 1.009, lip corr 0.9514 lag 0 |d| 1.35 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/es_01_valeria_aed74c50_talking_003d585d96__ai-assistant in 78.7 s
+
+[es_01_valeria_aed74c50_talking_003d585d96__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.9 dB, flicker ratio mouth 1.000, error flicker 0.026, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D pass
+  S: latent mae 0.0722, mouth PSNR 30.7 dB, flicker ratio mouth 0.949, error flicker 2.369, sharpness 1.043, lip corr 0.8052 lag 0 |d| 2.31 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.0722, mouth PSNR 30.7 dB, flicker ratio mouth 0.949, error flicker 2.369, sharpness 1.043, lip corr 0.8052 lag 0 |d| 2.31 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/es_01_valeria_aed74c50_talking_003d585d96__eng in 76.5 s
+
+[es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.5 dB, flicker ratio mouth 1.000, error flicker 0.045, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.04 px | r5 pass | vs D FAIL
+  S: latent mae 0.0765, mouth PSNR 30.5 dB, flicker ratio mouth 0.941, error flicker 3.591, sharpness 0.947, lip corr 0.9112 lag 0 |d| 1.41 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.0765, mouth PSNR 30.5 dB, flicker ratio mouth 0.941, error flicker 3.591, sharpness 0.947, lip corr 0.9106 lag 0 |d| 1.41 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant in 75.9 s
+
+[es_03_mateo_884600e1_talking_75d88cda6c__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.4 dB, flicker ratio mouth 1.000, error flicker 0.047, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.04 px | r5 pass | vs D FAIL
+  S: latent mae 0.0771, mouth PSNR 30.0 dB, flicker ratio mouth 0.928, error flicker 3.794, sharpness 0.921, lip corr 0.8978 lag 0 |d| 1.62 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.0771, mouth PSNR 30.0 dB, flicker ratio mouth 0.928, error flicker 3.794, sharpness 0.921, lip corr 0.8972 lag 0 |d| 1.62 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/es_03_mateo_884600e1_talking_75d88cda6c__eng in 76.1 s
+
+[japanese_realtime_talking_7d94520b7f__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.2 dB, flicker ratio mouth 1.000, error flicker 0.031, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.04 px | r5 pass | vs D pass
+  S: latent mae 0.1048, mouth PSNR 26.6 dB, flicker ratio mouth 1.000, error flicker 3.876, sharpness 0.870, lip corr 0.6419 lag -1 |d| 3.29 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.1048, mouth PSNR 26.6 dB, flicker ratio mouth 1.000, error flicker 3.876, sharpness 0.870, lip corr 0.6421 lag -1 |d| 3.29 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/japanese_realtime_talking_7d94520b7f__ai-assistant in 71.5 s
+
+[japanese_realtime_talking_7d94520b7f__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.3 dB, flicker ratio mouth 1.000, error flicker 0.030, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.04 px | r5 pass | vs D pass
+  S: latent mae 0.1039, mouth PSNR 26.8 dB, flicker ratio mouth 0.968, error flicker 3.459, sharpness 0.915, lip corr 0.5377 lag -2 |d| 3.16 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.1039, mouth PSNR 26.8 dB, flicker ratio mouth 0.968, error flicker 3.460, sharpness 0.915, lip corr 0.5375 lag -2 |d| 3.16 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/japanese_realtime_talking_7d94520b7f__eng in 70.9 s
+
+[latina_guided_20260925_talking_84c5bc80b8__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.1 dB, flicker ratio mouth 1.000, error flicker 0.031, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D FAIL
+  S: latent mae 0.0901, mouth PSNR 29.3 dB, flicker ratio mouth 0.941, error flicker 2.838, sharpness 0.934, lip corr 0.9536 lag 0 |d| 1.53 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.0901, mouth PSNR 29.3 dB, flicker ratio mouth 0.942, error flicker 2.838, sharpness 0.934, lip corr 0.9536 lag 0 |d| 1.52 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/latina_guided_20260925_talking_84c5bc80b8__ai-assistant in 72.6 s
+
+[latina_guided_20260925_talking_84c5bc80b8__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.1 dB, flicker ratio mouth 1.000, error flicker 0.031, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D FAIL
+  S: latent mae 0.0899, mouth PSNR 29.5 dB, flicker ratio mouth 0.926, error flicker 2.638, sharpness 0.922, lip corr 0.9332 lag 0 |d| 1.86 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.0899, mouth PSNR 29.5 dB, flicker ratio mouth 0.926, error flicker 2.638, sharpness 0.922, lip corr 0.9331 lag 0 |d| 1.86 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/latina_guided_20260925_talking_84c5bc80b8__eng in 72.2 s
+
+clip                                                     arm  latent mae  lip corr  lip mean abs delta px  lag  mouth PSNR dB  mouth flicker ratio  error flicker mouth  mouth sharpness  r5    vs D
+en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant     D    0.0125      0.9982    0.246                  0    46.95          0.995                0.615                1.000            pass  bar 
+en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant     N    0.0004      1.0000    0.030                  0    66.44          1.000                0.029                1.000            pass  FAIL
+en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant     S    0.1103      0.9626    1.344                  0    26.89          0.936                3.664                0.963            FAIL  FAIL
+en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant     S16  0.1103      0.9625    1.346                  0    26.89          0.936                3.664                0.963            FAIL  FAIL
+en_01_maya_abe451d3_talking_f6cf8be7fb__eng              D    0.0122      0.9989    0.202                  0    47.69          0.995                0.585                0.999            pass  bar 
+en_01_maya_abe451d3_talking_f6cf8be7fb__eng              N    0.0004      1.0000    0.031                  0    66.38          1.000                0.029                1.000            pass  FAIL
+en_01_maya_abe451d3_talking_f6cf8be7fb__eng              S    0.1071      0.7835    2.784                  0    27.08          0.931                3.505                0.991            FAIL  FAIL
+en_01_maya_abe451d3_talking_f6cf8be7fb__eng              S16  0.1071      0.7828    2.789                  0    27.08          0.931                3.505                0.991            FAIL  FAIL
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant   D    0.0118      0.9989    0.208                  0    47.31          0.992                0.750                0.975            pass  bar 
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant   N    0.0004      1.0000    0.038                  0    64.16          1.000                0.049                1.000            pass  FAIL
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant   S    0.1040      0.9426    1.623                  0    27.60          0.979                4.517                0.754            FAIL  FAIL
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant   S16  0.1040      0.9425    1.624                  0    27.60          0.979                4.517                0.754            FAIL  FAIL
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng            D    0.0115      0.9986    0.236                  0    47.19          0.992                0.768                0.978            pass  bar 
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng            N    0.0004      1.0000    0.041                  0    63.88          1.000                0.052                1.000            pass  FAIL
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng            S    0.1008      0.9163    1.814                  0    28.11          0.966                4.387                0.783            FAIL  FAIL
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng            S16  0.1008      0.9163    1.816                  0    28.11          0.966                4.387                0.783            FAIL  FAIL
+es_01_valeria_aed74c50_talking_003d585d96__ai-assistant  D    0.0132      0.9986    0.211                  0    47.44          1.003                0.554                0.994            pass  bar 
+es_01_valeria_aed74c50_talking_003d585d96__ai-assistant  N    0.0004      1.0000    0.027                  0    66.76          1.000                0.027                1.000            pass  pass
+es_01_valeria_aed74c50_talking_003d585d96__ai-assistant  S    0.0698      0.9513    1.356                  0    31.35          0.944                2.413                1.009            FAIL  FAIL
+es_01_valeria_aed74c50_talking_003d585d96__ai-assistant  S16  0.0698      0.9514    1.353                  0    31.35          0.944                2.413                1.009            FAIL  FAIL
+es_01_valeria_aed74c50_talking_003d585d96__eng           D    0.0130      0.9976    0.236                  0    47.77          1.003                0.527                0.993            pass  bar 
+es_01_valeria_aed74c50_talking_003d585d96__eng           N    0.0004      1.0000    0.029                  0    66.90          1.000                0.026                1.000            pass  pass
+es_01_valeria_aed74c50_talking_003d585d96__eng           S    0.0722      0.8052    2.308                  0    30.66          0.949                2.369                1.043            FAIL  FAIL
+es_01_valeria_aed74c50_talking_003d585d96__eng           S16  0.0722      0.8052    2.307                  0    30.66          0.949                2.369                1.043            FAIL  FAIL
+es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant    D    0.0132      0.9953    0.282                  0    45.92          0.995                0.859                0.986            pass  bar 
+es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant    N    0.0004      0.9999    0.038                  0    64.52          1.000                0.045                1.000            pass  FAIL
+es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant    S    0.0765      0.9112    1.406                  0    30.53          0.941                3.591                0.947            FAIL  FAIL
+es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant    S16  0.0765      0.9106    1.408                  0    30.53          0.941                3.591                0.947            FAIL  FAIL
+es_03_mateo_884600e1_talking_75d88cda6c__eng             D    0.0132      0.9968    0.249                  0    45.53          0.995                0.895                0.983            pass  bar 
+es_03_mateo_884600e1_talking_75d88cda6c__eng             N    0.0004      0.9999    0.036                  0    64.37          1.000                0.047                1.000            pass  FAIL
+es_03_mateo_884600e1_talking_75d88cda6c__eng             S    0.0771      0.8978    1.617                  0    29.97          0.928                3.794                0.921            FAIL  FAIL
+es_03_mateo_884600e1_talking_75d88cda6c__eng             S16  0.0771      0.8972    1.620                  0    29.97          0.928                3.794                0.921            FAIL  FAIL
+japanese_realtime_talking_7d94520b7f__ai-assistant       D    0.0168      0.9629    0.905                  0    39.48          1.001                1.184                0.983            FAIL  bar 
+japanese_realtime_talking_7d94520b7f__ai-assistant       N    0.0004      1.0000    0.040                  0    66.15          1.000                0.031                1.000            pass  pass
+japanese_realtime_talking_7d94520b7f__ai-assistant       S    0.1048      0.6419    3.292                  -1   26.62          1.000                3.876                0.870            FAIL  FAIL
+japanese_realtime_talking_7d94520b7f__ai-assistant       S16  0.1048      0.6421    3.292                  -1   26.62          1.000                3.876                0.870            FAIL  FAIL
+japanese_realtime_talking_7d94520b7f__eng                D    0.0159      0.9560    0.776                  0    40.54          1.006                1.047                0.990            FAIL  bar 
+japanese_realtime_talking_7d94520b7f__eng                N    0.0004      1.0000    0.037                  0    66.29          1.000                0.030                1.000            pass  pass
+japanese_realtime_talking_7d94520b7f__eng                S    0.1039      0.5377    3.160                  -2   26.84          0.968                3.459                0.915            FAIL  FAIL
+japanese_realtime_talking_7d94520b7f__eng                S16  0.1039      0.5375    3.161                  -2   26.84          0.968                3.460                0.915            FAIL  FAIL
+latina_guided_20260925_talking_84c5bc80b8__ai-assistant  D    0.0114      0.9992    0.190                  0    48.59          0.996                0.571                0.993            pass  bar 
+latina_guided_20260925_talking_84c5bc80b8__ai-assistant  N    0.0004      1.0000    0.024                  0    66.10          1.000                0.031                1.000            pass  FAIL
+latina_guided_20260925_talking_84c5bc80b8__ai-assistant  S    0.0901      0.9536    1.527                  0    29.31          0.941                2.838                0.934            FAIL  FAIL
+latina_guided_20260925_talking_84c5bc80b8__ai-assistant  S16  0.0901      0.9536    1.522                  0    29.31          0.942                2.838                0.934            FAIL  FAIL
+latina_guided_20260925_talking_84c5bc80b8__eng           D    0.0114      0.9992    0.207                  0    48.80          0.995                0.560                0.998            pass  bar 
+latina_guided_20260925_talking_84c5bc80b8__eng           N    0.0004      1.0000    0.030                  0    66.14          1.000                0.031                1.000            pass  FAIL
+latina_guided_20260925_talking_84c5bc80b8__eng           S    0.0899      0.9332    1.865                  0    29.49          0.926                2.638                0.922            FAIL  FAIL
+latina_guided_20260925_talking_84c5bc80b8__eng           S16  0.0899      0.9331    1.864                  0    29.49          0.926                2.638                0.922            FAIL  FAIL
+
+VERDICT S: FAIL
+  en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.96255 (bound 0.99817, D 0.99817); vs D lip_mean_abs_delta_px 1.3441 (bound 0.2457, D 0.2457); vs D mouth_psnr_db 26.89 (bound 46.95, D 46.95); vs D mouth_sharpness_ratio 0.9627 (bound 0.9999, D 0.9999); vs D error_flicker_mouth 3.6639 (bound 0.6146, D 0.6146)
+  en_01_maya_abe451d3_talking_f6cf8be7fb__eng: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.78354 (bound 0.99891, D 0.99891); vs D lip_mean_abs_delta_px 2.7844 (bound 0.202, D 0.202); vs D mouth_psnr_db 27.08 (bound 47.69, D 47.69); vs D mouth_sharpness_ratio 0.9909 (bound 0.9986, D 0.9986); vs D error_flicker_mouth 3.5051 (bound 0.5845, D 0.5845)
+  en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.94258 (bound 0.99893, D 0.99893); vs D lip_mean_abs_delta_px 1.6229 (bound 0.2081, D 0.2081); vs D mouth_psnr_db 27.6 (bound 47.31, D 47.31); vs D mouth_sharpness_ratio 0.7542 (bound 0.9751, D 0.9751); vs D error_flicker_mouth 4.5168 (bound 0.7498, D 0.7498)
+  en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.91632 (bound 0.9986, D 0.9986); vs D lip_mean_abs_delta_px 1.8142 (bound 0.2362, D 0.2362); vs D mouth_psnr_db 28.11 (bound 47.19, D 47.19); vs D mouth_sharpness_ratio 0.7826 (bound 0.9776, D 0.9776); vs D error_flicker_mouth 4.3873 (bound 0.7681, D 0.7681)
+  es_01_valeria_aed74c50_talking_003d585d96__ai-assistant: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.95127 (bound 0.99856, D 0.99856); vs D lip_mean_abs_delta_px 1.3557 (bound 0.2111, D 0.2111); vs D mouth_psnr_db 31.35 (bound 47.44, D 47.44); vs D error_flicker_mouth 2.4126 (bound 0.5537, D 0.5537)
+  es_01_valeria_aed74c50_talking_003d585d96__eng: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.80517 (bound 0.99757, D 0.99757); vs D lip_mean_abs_delta_px 2.3083 (bound 0.2364, D 0.2364); vs D mouth_psnr_db 30.66 (bound 47.77, D 47.77); vs D error_flicker_mouth 2.3689 (bound 0.5267, D 0.5267)
+  es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.91118 (bound 0.99527, D 0.99527); vs D lip_mean_abs_delta_px 1.4059 (bound 0.2818, D 0.2818); vs D mouth_psnr_db 30.53 (bound 45.92, D 45.92); vs D mouth_sharpness_ratio 0.9472 (bound 0.9858, D 0.9858); vs D error_flicker_mouth 3.5906 (bound 0.8589, D 0.8589)
+  es_03_mateo_884600e1_talking_75d88cda6c__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.89782 (bound 0.99681, D 0.99681); vs D lip_mean_abs_delta_px 1.6168 (bound 0.2488, D 0.2488); vs D mouth_psnr_db 29.97 (bound 45.53, D 45.53); vs D mouth_sharpness_ratio 0.9209 (bound 0.9831, D 0.9831); vs D error_flicker_mouth 3.7936 (bound 0.895, D 0.895)
+  japanese_realtime_talking_7d94520b7f__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_lag_0; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.64187 (bound 0.96293, D 0.96293); vs D lip_mean_abs_delta_px 3.2919 (bound 0.9047, D 0.9047); vs D mouth_psnr_db 26.62 (bound 39.48, D 39.48); vs D mouth_sharpness_ratio 0.8696 (bound 0.983, D 0.983); vs D error_flicker_mouth 3.8757 (bound 1.1836, D 1.1836)
+  japanese_realtime_talking_7d94520b7f__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_lag_0; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.53769 (bound 0.956, D 0.956); vs D lip_mean_abs_delta_px 3.1598 (bound 0.7765, D 0.7765); vs D mouth_psnr_db 26.84 (bound 40.54, D 40.54); vs D mouth_sharpness_ratio 0.9149 (bound 0.9896, D 0.9896); vs D error_flicker_mouth 3.4595 (bound 1.0473, D 1.0473)
+  latina_guided_20260925_talking_84c5bc80b8__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.95355 (bound 0.99921, D 0.99921); vs D lip_mean_abs_delta_px 1.5268 (bound 0.1896, D 0.1896); vs D mouth_psnr_db 29.31 (bound 48.59, D 48.59); vs D mouth_sharpness_ratio 0.9337 (bound 0.9933, D 0.9933); vs D error_flicker_mouth 2.8377 (bound 0.5705, D 0.5705)
+  latina_guided_20260925_talking_84c5bc80b8__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.93318 (bound 0.99923, D 0.99923); vs D lip_mean_abs_delta_px 1.8648 (bound 0.2066, D 0.2066); vs D mouth_psnr_db 29.49 (bound 48.8, D 48.8); vs D mouth_sharpness_ratio 0.922 (bound 0.9977, D 0.9977); vs D error_flicker_mouth 2.638 (bound 0.5599, D 0.5599)
+S16 (informational): FAIL; r5 pass clips N 12, S 0, S16 0 of 12
+wrote /workspace/distill/out/review/summary.json and /workspace/distill/out/review/summary.md
+REVIEW_DONE
