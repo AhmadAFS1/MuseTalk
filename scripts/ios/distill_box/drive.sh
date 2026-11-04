@@ -39,7 +39,7 @@
 #   DISTILL_MACHINE (pin a Vast machine id)  the transfer cap is fixed at $0.0015/GB, --launch stock and
 #                                --revision 4e2b02e5cb72cce94f415bce8099222fb25b8156 are fixed, and the box is created
 #                                with MUSETALK_SKIP_EAGER_UNET=0 so the bootstrap fetches unet.pth (the teacher)
-#   DISTILL_LOCAL_DIR=$HOME/.local/state/mtboot-distill   (per run: urls.tsv, create.requested, results.tar)
+#   DISTILL_LOCAL_DIR=<repo>/.runtime/mtboot-distill   (gitignored; per run: urls.tsv, create.requested, results.tar)
 #   DISTILL_S3_BUCKET=lingua-musetalk-s3-storage, region us-east-1, AWS_PROFILE as set. The URLs live only as long as
 #                                the credentials that signed them: presign with long-lived keys, not a short session.
 #   TRAIN_AVATARS=roster12       phone bundles s3://<bucket>/avatars/ios/v1/<id>.tar (+ <id>.json sidecar, checked on
@@ -75,7 +75,7 @@ MAX_PRICE="${DISTILL_MAX_PRICE:-0.30}"
 MAX_TRANSFER=0.0015
 DISK="${DISTILL_DISK:-100}"
 MACHINE="${DISTILL_MACHINE:-}"
-LOCAL="${DISTILL_LOCAL_DIR:-$HOME/.local/state/mtboot-distill}"
+LOCAL="${DISTILL_LOCAL_DIR:-$BENCH_REPO/.runtime/mtboot-distill}"
 BUCKET="${DISTILL_S3_BUCKET:-lingua-musetalk-s3-storage}"
 REGION=us-east-1
 BUNDLE_PREFIX=avatars/ios/v1
