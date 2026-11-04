@@ -1,0 +1,3217 @@
+{
+  "acceptance": {
+    "arm": "S",
+    "all_clips_required": true,
+    "all_r5_gates_required": true,
+    "no_worse_visual_metrics_vs_D": [
+      "lip_corr",
+      "lip_mean_abs_delta_px",
+      "mouth_psnr_db",
+      "mouth_sharpness_ratio",
+      "error_flicker_mouth",
+      "mouth_flicker_ratio"
+    ],
+    "deterioration_margins": "zero",
+    "latent_mae_is_informational": true,
+    "matching_frames_fps_rois_and_full_D_aperture_coverage_required": true
+  },
+  "verdict": "FAIL",
+  "reasons": [
+    "en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.96255 (bound 0.99817, D 0.99817); vs D lip_mean_abs_delta_px 1.3441 (bound 0.2457, D 0.2457); vs D mouth_psnr_db 26.89 (bound 46.95, D 46.95); vs D mouth_sharpness_ratio 0.9627 (bound 0.9999, D 0.9999); vs D error_flicker_mouth 3.6639 (bound 0.6146, D 0.6146)",
+    "en_01_maya_abe451d3_talking_f6cf8be7fb__eng: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.78354 (bound 0.99891, D 0.99891); vs D lip_mean_abs_delta_px 2.7844 (bound 0.202, D 0.202); vs D mouth_psnr_db 27.08 (bound 47.69, D 47.69); vs D mouth_sharpness_ratio 0.9909 (bound 0.9986, D 0.9986); vs D error_flicker_mouth 3.5051 (bound 0.5845, D 0.5845)",
+    "en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.94258 (bound 0.99893, D 0.99893); vs D lip_mean_abs_delta_px 1.6229 (bound 0.2081, D 0.2081); vs D mouth_psnr_db 27.6 (bound 47.31, D 47.31); vs D mouth_sharpness_ratio 0.7542 (bound 0.9751, D 0.9751); vs D error_flicker_mouth 4.5168 (bound 0.7498, D 0.7498)",
+    "en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.91632 (bound 0.9986, D 0.9986); vs D lip_mean_abs_delta_px 1.8142 (bound 0.2362, D 0.2362); vs D mouth_psnr_db 28.11 (bound 47.19, D 47.19); vs D mouth_sharpness_ratio 0.7826 (bound 0.9776, D 0.9776); vs D error_flicker_mouth 4.3873 (bound 0.7681, D 0.7681)",
+    "es_01_valeria_aed74c50_talking_003d585d96__ai-assistant: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.95127 (bound 0.99856, D 0.99856); vs D lip_mean_abs_delta_px 1.3557 (bound 0.2111, D 0.2111); vs D mouth_psnr_db 31.35 (bound 47.44, D 47.44); vs D error_flicker_mouth 2.4126 (bound 0.5537, D 0.5537)",
+    "es_01_valeria_aed74c50_talking_003d585d96__eng: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.80517 (bound 0.99757, D 0.99757); vs D lip_mean_abs_delta_px 2.3083 (bound 0.2364, D 0.2364); vs D mouth_psnr_db 30.66 (bound 47.77, D 47.77); vs D error_flicker_mouth 2.3689 (bound 0.5267, D 0.5267)",
+    "es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.91118 (bound 0.99527, D 0.99527); vs D lip_mean_abs_delta_px 1.4059 (bound 0.2818, D 0.2818); vs D mouth_psnr_db 30.53 (bound 45.92, D 45.92); vs D mouth_sharpness_ratio 0.9472 (bound 0.9858, D 0.9858); vs D error_flicker_mouth 3.5906 (bound 0.8589, D 0.8589)",
+    "es_03_mateo_884600e1_talking_75d88cda6c__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.89782 (bound 0.99681, D 0.99681); vs D lip_mean_abs_delta_px 1.6168 (bound 0.2488, D 0.2488); vs D mouth_psnr_db 29.97 (bound 45.53, D 45.53); vs D mouth_sharpness_ratio 0.9209 (bound 0.9831, D 0.9831); vs D error_flicker_mouth 3.7936 (bound 0.895, D 0.895)",
+    "japanese_realtime_talking_7d94520b7f__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_lag_0; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.64187 (bound 0.96293, D 0.96293); vs D lip_mean_abs_delta_px 3.2919 (bound 0.9047, D 0.9047); vs D mouth_psnr_db 26.62 (bound 39.48, D 39.48); vs D mouth_sharpness_ratio 0.8696 (bound 0.983, D 0.983); vs D error_flicker_mouth 3.8757 (bound 1.1836, D 1.1836)",
+    "japanese_realtime_talking_7d94520b7f__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_lag_0; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.53769 (bound 0.956, D 0.956); vs D lip_mean_abs_delta_px 3.1598 (bound 0.7765, D 0.7765); vs D mouth_psnr_db 26.84 (bound 40.54, D 40.54); vs D mouth_sharpness_ratio 0.9149 (bound 0.9896, D 0.9896); vs D error_flicker_mouth 3.4595 (bound 1.0473, D 1.0473)",
+    "latina_guided_20260925_talking_84c5bc80b8__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.95355 (bound 0.99921, D 0.99921); vs D lip_mean_abs_delta_px 1.5268 (bound 0.1896, D 0.1896); vs D mouth_psnr_db 29.31 (bound 48.59, D 48.59); vs D mouth_sharpness_ratio 0.9337 (bound 0.9933, D 0.9933); vs D error_flicker_mouth 2.8377 (bound 0.5705, D 0.5705)",
+    "latina_guided_20260925_talking_84c5bc80b8__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.93318 (bound 0.99923, D 0.99923); vs D lip_mean_abs_delta_px 1.8648 (bound 0.2066, D 0.2066); vs D mouth_psnr_db 29.49 (bound 48.8, D 48.8); vs D mouth_sharpness_ratio 0.922 (bound 0.9977, D 0.9977); vs D error_flicker_mouth 2.638 (bound 0.5599, D 0.5599)"
+  ],
+  "verdict_S16_informational": "FAIL",
+  "reasons_S16": [
+    "en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.96248 (bound 0.99817, D 0.99817); vs D lip_mean_abs_delta_px 1.3458 (bound 0.2457, D 0.2457); vs D mouth_psnr_db 26.89 (bound 46.95, D 46.95); vs D mouth_sharpness_ratio 0.9627 (bound 0.9999, D 0.9999); vs D error_flicker_mouth 3.6643 (bound 0.6146, D 0.6146)",
+    "en_01_maya_abe451d3_talking_f6cf8be7fb__eng: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.78281 (bound 0.99891, D 0.99891); vs D lip_mean_abs_delta_px 2.7886 (bound 0.202, D 0.202); vs D mouth_psnr_db 27.08 (bound 47.69, D 47.69); vs D mouth_sharpness_ratio 0.9909 (bound 0.9986, D 0.9986); vs D error_flicker_mouth 3.5054 (bound 0.5845, D 0.5845)",
+    "en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.94252 (bound 0.99893, D 0.99893); vs D lip_mean_abs_delta_px 1.6243 (bound 0.2081, D 0.2081); vs D mouth_psnr_db 27.6 (bound 47.31, D 47.31); vs D mouth_sharpness_ratio 0.7544 (bound 0.9751, D 0.9751); vs D error_flicker_mouth 4.5172 (bound 0.7498, D 0.7498)",
+    "en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.91625 (bound 0.9986, D 0.9986); vs D lip_mean_abs_delta_px 1.8163 (bound 0.2362, D 0.2362); vs D mouth_psnr_db 28.11 (bound 47.19, D 47.19); vs D mouth_sharpness_ratio 0.7828 (bound 0.9776, D 0.9776); vs D error_flicker_mouth 4.3873 (bound 0.7681, D 0.7681)",
+    "es_01_valeria_aed74c50_talking_003d585d96__ai-assistant: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.95142 (bound 0.99856, D 0.99856); vs D lip_mean_abs_delta_px 1.3535 (bound 0.2111, D 0.2111); vs D mouth_psnr_db 31.35 (bound 47.44, D 47.44); vs D error_flicker_mouth 2.4128 (bound 0.5537, D 0.5537)",
+    "es_01_valeria_aed74c50_talking_003d585d96__eng: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.80521 (bound 0.99757, D 0.99757); vs D lip_mean_abs_delta_px 2.3073 (bound 0.2364, D 0.2364); vs D mouth_psnr_db 30.66 (bound 47.77, D 47.77); vs D error_flicker_mouth 2.369 (bound 0.5267, D 0.5267)",
+    "es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.91063 (bound 0.99527, D 0.99527); vs D lip_mean_abs_delta_px 1.4076 (bound 0.2818, D 0.2818); vs D mouth_psnr_db 30.53 (bound 45.92, D 45.92); vs D mouth_sharpness_ratio 0.9474 (bound 0.9858, D 0.9858); vs D error_flicker_mouth 3.5909 (bound 0.8589, D 0.8589)",
+    "es_03_mateo_884600e1_talking_75d88cda6c__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.89717 (bound 0.99681, D 0.99681); vs D lip_mean_abs_delta_px 1.6201 (bound 0.2488, D 0.2488); vs D mouth_psnr_db 29.97 (bound 45.53, D 45.53); vs D mouth_sharpness_ratio 0.921 (bound 0.9831, D 0.9831); vs D error_flicker_mouth 3.7938 (bound 0.895, D 0.895)",
+    "japanese_realtime_talking_7d94520b7f__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_lag_0; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.64208 (bound 0.96293, D 0.96293); vs D lip_mean_abs_delta_px 3.2921 (bound 0.9047, D 0.9047); vs D mouth_psnr_db 26.62 (bound 39.48, D 39.48); vs D mouth_sharpness_ratio 0.8695 (bound 0.983, D 0.983); vs D error_flicker_mouth 3.8758 (bound 1.1836, D 1.1836)",
+    "japanese_realtime_talking_7d94520b7f__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_lag_0; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.53755 (bound 0.956, D 0.956); vs D lip_mean_abs_delta_px 3.1612 (bound 0.7765, D 0.7765); vs D mouth_psnr_db 26.84 (bound 40.54, D 40.54); vs D mouth_sharpness_ratio 0.915 (bound 0.9896, D 0.9896); vs D error_flicker_mouth 3.4598 (bound 1.0473, D 1.0473)",
+    "latina_guided_20260925_talking_84c5bc80b8__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.95357 (bound 0.99921, D 0.99921); vs D lip_mean_abs_delta_px 1.5219 (bound 0.1896, D 0.1896); vs D mouth_psnr_db 29.31 (bound 48.59, D 48.59); vs D mouth_sharpness_ratio 0.9338 (bound 0.9933, D 0.9933); vs D error_flicker_mouth 2.8376 (bound 0.5705, D 0.5705)",
+    "latina_guided_20260925_talking_84c5bc80b8__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.93314 (bound 0.99923, D 0.99923); vs D lip_mean_abs_delta_px 1.864 (bound 0.2066, D 0.2066); vs D mouth_psnr_db 29.49 (bound 48.8, D 48.8); vs D mouth_sharpness_ratio 0.922 (bound 0.9977, D 0.9977); vs D error_flicker_mouth 2.638 (bound 0.5599, D 0.5599)"
+  ],
+  "student": {
+    "json": "/workspace/distill/out/train/bk_tiny.json",
+    "weights": "/workspace/distill/out/train/bk_tiny_best.pt",
+    "sha256": "9bce3e82144b65d20cdb5b022c290ac0ebe34dcefae8beccad64054c7473e724",
+    "sha256_12": "9bce3e82144b",
+    "params_m": 318.2,
+    "teacher_params_m": 849.9
+  },
+  "env": {
+    "device": "NVIDIA GeForce RTX 3090",
+    "fp16_device": "NVIDIA GeForce RTX 3090",
+    "torch": "2.5.1+cu121",
+    "diffusers": "0.30.2"
+  },
+  "frames_per_clip": [
+    250
+  ],
+  "fps": 25,
+  "r5_gates": {
+    "aperture_corr_min": 0.97,
+    "aperture_lag_frames": 0,
+    "aperture_mean_abs_delta_px_max": 0.5,
+    "flicker_ratio_max": 1.05,
+    "sharpness_ratio_min": 0.95
+  },
+  "r5_pass_clips": {
+    "N": 12,
+    "S": 0,
+    "S16": 0
+  },
+  "clips_run": 12,
+  "d_set": "docs/ios_unet_bench/review_mixed_units/metrics.json",
+  "d_clips": 12,
+  "margins_vs_D": {
+    "lip_corr": {
+      "higher_is_better": true,
+      "margin": 0.0
+    },
+    "lip_mean_abs_delta_px": {
+      "higher_is_better": false,
+      "margin": 0.0
+    },
+    "mouth_psnr_db": {
+      "higher_is_better": true,
+      "margin": 0.0
+    },
+    "mouth_sharpness_ratio": {
+      "higher_is_better": true,
+      "margin": 0.0
+    },
+    "error_flicker_mouth": {
+      "higher_is_better": false,
+      "margin": 0.0
+    },
+    "mouth_flicker_ratio": {
+      "higher_is_better": false,
+      "margin": 0.0
+    }
+  },
+  "clips": [
+    {
+      "clip": "en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant",
+      "files": {
+        "dir": "/workspace/distill/out/review/en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant",
+        "labelled": "en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant_AS.mp4",
+        "A": "A.mp4",
+        "N": "N.mp4",
+        "S": "S.mp4",
+        "S16": "S16.mp4"
+      },
+      "D": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          169,
+          262,
+          432
+        ],
+        "mouth_box": [
+          154,
+          429,
+          204,
+          126
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.01251,
+        "lip_corr": 0.99817,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.2457,
+        "mouth_psnr_db": 46.95,
+        "mouth_flicker_ratio": 0.995,
+        "error_flicker_mouth": 0.6146,
+        "mouth_sharpness_ratio": 0.9999,
+        "r5": "pass"
+      },
+      "N": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          169,
+          262,
+          432
+        ],
+        "mouth_box": [
+          154,
+          429,
+          204,
+          126
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.00039,
+        "lip_corr": 0.99998,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.0298,
+        "mouth_psnr_db": 66.44,
+        "mouth_flicker_ratio": 1.0001,
+        "error_flicker_mouth": 0.029,
+        "mouth_sharpness_ratio": 1.0001,
+        "r5": "pass",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.99998,
+              "D": 0.99817,
+              "delta_vs_D": 0.0018099999999999783,
+              "bound": 0.99817,
+              "pass": true
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 0.0298,
+              "D": 0.2457,
+              "delta_vs_D": -0.2159,
+              "bound": 0.2457,
+              "pass": true
+            },
+            "mouth_psnr_db": {
+              "value": 66.44,
+              "D": 46.95,
+              "delta_vs_D": 19.489999999999995,
+              "bound": 46.95,
+              "pass": true
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0001,
+              "D": 0.9999,
+              "delta_vs_D": 0.00019999999999997797,
+              "bound": 0.9999,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 0.029,
+              "D": 0.6146,
+              "delta_vs_D": -0.5856,
+              "bound": 0.6146,
+              "pass": true
+            },
+            "mouth_flicker_ratio": {
+              "value": 1.0001,
+              "D": 0.995,
+              "delta_vs_D": 0.005099999999999993,
+              "bound": 0.995,
+              "pass": false
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          169,
+          262,
+          432
+        ],
+        "mouth_box": [
+          154,
+          429,
+          204,
+          126
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.11031,
+        "lip_corr": 0.96255,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.3441,
+        "mouth_psnr_db": 26.89,
+        "mouth_flicker_ratio": 0.9359,
+        "error_flicker_mouth": 3.6639,
+        "mouth_sharpness_ratio": 0.9627,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.96255,
+              "D": 0.99817,
+              "delta_vs_D": -0.035619999999999985,
+              "bound": 0.99817,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.3441,
+              "D": 0.2457,
+              "delta_vs_D": 1.0984,
+              "bound": 0.2457,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 26.89,
+              "D": 46.95,
+              "delta_vs_D": -20.060000000000002,
+              "bound": 46.95,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.9627,
+              "D": 0.9999,
+              "delta_vs_D": -0.03720000000000001,
+              "bound": 0.9999,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 3.6639,
+              "D": 0.6146,
+              "delta_vs_D": 3.0492999999999997,
+              "bound": 0.6146,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9359,
+              "D": 0.995,
+              "delta_vs_D": -0.05910000000000004,
+              "bound": 0.995,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S16": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          169,
+          262,
+          432
+        ],
+        "mouth_box": [
+          154,
+          429,
+          204,
+          126
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.11031,
+        "lip_corr": 0.96248,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.3458,
+        "mouth_psnr_db": 26.89,
+        "mouth_flicker_ratio": 0.9361,
+        "error_flicker_mouth": 3.6643,
+        "mouth_sharpness_ratio": 0.9627,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.96248,
+              "D": 0.99817,
+              "delta_vs_D": -0.03569,
+              "bound": 0.99817,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.3458,
+              "D": 0.2457,
+              "delta_vs_D": 1.1001,
+              "bound": 0.2457,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 26.89,
+              "D": 46.95,
+              "delta_vs_D": -20.060000000000002,
+              "bound": 46.95,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.9627,
+              "D": 0.9999,
+              "delta_vs_D": -0.03720000000000001,
+              "bound": 0.9999,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 3.6643,
+              "D": 0.6146,
+              "delta_vs_D": 3.0496999999999996,
+              "bound": 0.6146,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9361,
+              "D": 0.995,
+              "delta_vs_D": -0.05889999999999995,
+              "bound": 0.995,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      }
+    },
+    {
+      "clip": "en_01_maya_abe451d3_talking_f6cf8be7fb__eng",
+      "files": {
+        "dir": "/workspace/distill/out/review/en_01_maya_abe451d3_talking_f6cf8be7fb__eng",
+        "labelled": "en_01_maya_abe451d3_talking_f6cf8be7fb__eng_AS.mp4",
+        "A": "A.mp4",
+        "N": "N.mp4",
+        "S": "S.mp4",
+        "S16": "S16.mp4"
+      },
+      "D": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          169,
+          262,
+          432
+        ],
+        "mouth_box": [
+          155,
+          432,
+          202,
+          124
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.01221,
+        "lip_corr": 0.99891,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.202,
+        "mouth_psnr_db": 47.69,
+        "mouth_flicker_ratio": 0.995,
+        "error_flicker_mouth": 0.5845,
+        "mouth_sharpness_ratio": 0.9986,
+        "r5": "pass"
+      },
+      "N": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          169,
+          262,
+          432
+        ],
+        "mouth_box": [
+          155,
+          432,
+          202,
+          124
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.0004,
+        "lip_corr": 0.99997,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.0311,
+        "mouth_psnr_db": 66.38,
+        "mouth_flicker_ratio": 1.0001,
+        "error_flicker_mouth": 0.0294,
+        "mouth_sharpness_ratio": 1.0,
+        "r5": "pass",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.99997,
+              "D": 0.99891,
+              "delta_vs_D": 0.001060000000000061,
+              "bound": 0.99891,
+              "pass": true
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 0.0311,
+              "D": 0.202,
+              "delta_vs_D": -0.17090000000000002,
+              "bound": 0.202,
+              "pass": true
+            },
+            "mouth_psnr_db": {
+              "value": 66.38,
+              "D": 47.69,
+              "delta_vs_D": 18.689999999999998,
+              "bound": 47.69,
+              "pass": true
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0,
+              "D": 0.9986,
+              "delta_vs_D": 0.0013999999999999568,
+              "bound": 0.9986,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 0.0294,
+              "D": 0.5845,
+              "delta_vs_D": -0.5551,
+              "bound": 0.5845,
+              "pass": true
+            },
+            "mouth_flicker_ratio": {
+              "value": 1.0001,
+              "D": 0.995,
+              "delta_vs_D": 0.005099999999999993,
+              "bound": 0.995,
+              "pass": false
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          169,
+          262,
+          432
+        ],
+        "mouth_box": [
+          155,
+          432,
+          202,
+          124
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.10711,
+        "lip_corr": 0.78354,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 2.7844,
+        "mouth_psnr_db": 27.08,
+        "mouth_flicker_ratio": 0.9308,
+        "error_flicker_mouth": 3.5051,
+        "mouth_sharpness_ratio": 0.9909,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.78354,
+              "D": 0.99891,
+              "delta_vs_D": -0.21536999999999995,
+              "bound": 0.99891,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 2.7844,
+              "D": 0.202,
+              "delta_vs_D": 2.5824000000000003,
+              "bound": 0.202,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 27.08,
+              "D": 47.69,
+              "delta_vs_D": -20.61,
+              "bound": 47.69,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.9909,
+              "D": 0.9986,
+              "delta_vs_D": -0.00770000000000004,
+              "bound": 0.9986,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 3.5051,
+              "D": 0.5845,
+              "delta_vs_D": 2.9206000000000003,
+              "bound": 0.5845,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9308,
+              "D": 0.995,
+              "delta_vs_D": -0.06420000000000003,
+              "bound": 0.995,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S16": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          169,
+          262,
+          432
+        ],
+        "mouth_box": [
+          155,
+          432,
+          202,
+          124
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.10711,
+        "lip_corr": 0.78281,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 2.7886,
+        "mouth_psnr_db": 27.08,
+        "mouth_flicker_ratio": 0.931,
+        "error_flicker_mouth": 3.5054,
+        "mouth_sharpness_ratio": 0.9909,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.78281,
+              "D": 0.99891,
+              "delta_vs_D": -0.21609999999999996,
+              "bound": 0.99891,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 2.7886,
+              "D": 0.202,
+              "delta_vs_D": 2.5866000000000002,
+              "bound": 0.202,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 27.08,
+              "D": 47.69,
+              "delta_vs_D": -20.61,
+              "bound": 47.69,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.9909,
+              "D": 0.9986,
+              "delta_vs_D": -0.00770000000000004,
+              "bound": 0.9986,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 3.5054,
+              "D": 0.5845,
+              "delta_vs_D": 2.9208999999999996,
+              "bound": 0.5845,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.931,
+              "D": 0.995,
+              "delta_vs_D": -0.06399999999999995,
+              "bound": 0.995,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      }
+    },
+    {
+      "clip": "en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant",
+      "files": {
+        "dir": "/workspace/distill/out/review/en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant",
+        "labelled": "en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant_AS.mp4",
+        "A": "A.mp4",
+        "N": "N.mp4",
+        "S": "S.mp4",
+        "S16": "S16.mp4"
+      },
+      "D": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          92,
+          276,
+          478
+        ],
+        "mouth_box": [
+          173,
+          391,
+          180,
+          110
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.01179,
+        "lip_corr": 0.99893,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.2081,
+        "mouth_psnr_db": 47.31,
+        "mouth_flicker_ratio": 0.9916,
+        "error_flicker_mouth": 0.7498,
+        "mouth_sharpness_ratio": 0.9751,
+        "r5": "pass"
+      },
+      "N": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          92,
+          276,
+          478
+        ],
+        "mouth_box": [
+          173,
+          391,
+          180,
+          110
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.00045,
+        "lip_corr": 0.99997,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.038,
+        "mouth_psnr_db": 64.16,
+        "mouth_flicker_ratio": 1.0001,
+        "error_flicker_mouth": 0.0488,
+        "mouth_sharpness_ratio": 1.0003,
+        "r5": "pass",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.99997,
+              "D": 0.99893,
+              "delta_vs_D": 0.001040000000000041,
+              "bound": 0.99893,
+              "pass": true
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 0.038,
+              "D": 0.2081,
+              "delta_vs_D": -0.1701,
+              "bound": 0.2081,
+              "pass": true
+            },
+            "mouth_psnr_db": {
+              "value": 64.16,
+              "D": 47.31,
+              "delta_vs_D": 16.849999999999994,
+              "bound": 47.31,
+              "pass": true
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0003,
+              "D": 0.9751,
+              "delta_vs_D": 0.0252,
+              "bound": 0.9751,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 0.0488,
+              "D": 0.7498,
+              "delta_vs_D": -0.7010000000000001,
+              "bound": 0.7498,
+              "pass": true
+            },
+            "mouth_flicker_ratio": {
+              "value": 1.0001,
+              "D": 0.9916,
+              "delta_vs_D": 0.008499999999999952,
+              "bound": 0.9916,
+              "pass": false
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          92,
+          276,
+          478
+        ],
+        "mouth_box": [
+          173,
+          391,
+          180,
+          110
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.10401,
+        "lip_corr": 0.94258,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.6229,
+        "mouth_psnr_db": 27.6,
+        "mouth_flicker_ratio": 0.9786,
+        "error_flicker_mouth": 4.5168,
+        "mouth_sharpness_ratio": 0.7542,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.94258,
+              "D": 0.99893,
+              "delta_vs_D": -0.05635000000000001,
+              "bound": 0.99893,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.6229,
+              "D": 0.2081,
+              "delta_vs_D": 1.4148,
+              "bound": 0.2081,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 27.6,
+              "D": 47.31,
+              "delta_vs_D": -19.71,
+              "bound": 47.31,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.7542,
+              "D": 0.9751,
+              "delta_vs_D": -0.22089999999999999,
+              "bound": 0.9751,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 4.5168,
+              "D": 0.7498,
+              "delta_vs_D": 3.767,
+              "bound": 0.7498,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9786,
+              "D": 0.9916,
+              "delta_vs_D": -0.013000000000000012,
+              "bound": 0.9916,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S16": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          92,
+          276,
+          478
+        ],
+        "mouth_box": [
+          173,
+          391,
+          180,
+          110
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.10402,
+        "lip_corr": 0.94252,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.6243,
+        "mouth_psnr_db": 27.6,
+        "mouth_flicker_ratio": 0.9789,
+        "error_flicker_mouth": 4.5172,
+        "mouth_sharpness_ratio": 0.7544,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.94252,
+              "D": 0.99893,
+              "delta_vs_D": -0.05640999999999996,
+              "bound": 0.99893,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.6243,
+              "D": 0.2081,
+              "delta_vs_D": 1.4162000000000001,
+              "bound": 0.2081,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 27.6,
+              "D": 47.31,
+              "delta_vs_D": -19.71,
+              "bound": 47.31,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.7544,
+              "D": 0.9751,
+              "delta_vs_D": -0.2207,
+              "bound": 0.9751,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 4.5172,
+              "D": 0.7498,
+              "delta_vs_D": 3.7674,
+              "bound": 0.7498,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9789,
+              "D": 0.9916,
+              "delta_vs_D": -0.012700000000000045,
+              "bound": 0.9916,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      }
+    },
+    {
+      "clip": "en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng",
+      "files": {
+        "dir": "/workspace/distill/out/review/en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng",
+        "labelled": "en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng_AS.mp4",
+        "A": "A.mp4",
+        "N": "N.mp4",
+        "S": "S.mp4",
+        "S16": "S16.mp4"
+      },
+      "D": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          92,
+          276,
+          478
+        ],
+        "mouth_box": [
+          173,
+          395,
+          176,
+          108
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.01149,
+        "lip_corr": 0.9986,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.2362,
+        "mouth_psnr_db": 47.19,
+        "mouth_flicker_ratio": 0.9922,
+        "error_flicker_mouth": 0.7681,
+        "mouth_sharpness_ratio": 0.9776,
+        "r5": "pass"
+      },
+      "N": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          92,
+          276,
+          478
+        ],
+        "mouth_box": [
+          173,
+          395,
+          176,
+          108
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.00044,
+        "lip_corr": 0.99996,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.0412,
+        "mouth_psnr_db": 63.88,
+        "mouth_flicker_ratio": 1.0001,
+        "error_flicker_mouth": 0.0519,
+        "mouth_sharpness_ratio": 1.0005,
+        "r5": "pass",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.99996,
+              "D": 0.9986,
+              "delta_vs_D": 0.0013599999999999168,
+              "bound": 0.9986,
+              "pass": true
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 0.0412,
+              "D": 0.2362,
+              "delta_vs_D": -0.195,
+              "bound": 0.2362,
+              "pass": true
+            },
+            "mouth_psnr_db": {
+              "value": 63.88,
+              "D": 47.19,
+              "delta_vs_D": 16.690000000000005,
+              "bound": 47.19,
+              "pass": true
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0005,
+              "D": 0.9776,
+              "delta_vs_D": 0.02289999999999992,
+              "bound": 0.9776,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 0.0519,
+              "D": 0.7681,
+              "delta_vs_D": -0.7162,
+              "bound": 0.7681,
+              "pass": true
+            },
+            "mouth_flicker_ratio": {
+              "value": 1.0001,
+              "D": 0.9922,
+              "delta_vs_D": 0.007900000000000018,
+              "bound": 0.9922,
+              "pass": false
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          92,
+          276,
+          478
+        ],
+        "mouth_box": [
+          173,
+          395,
+          176,
+          108
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.1008,
+        "lip_corr": 0.91632,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.8142,
+        "mouth_psnr_db": 28.11,
+        "mouth_flicker_ratio": 0.9659,
+        "error_flicker_mouth": 4.3873,
+        "mouth_sharpness_ratio": 0.7826,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.91632,
+              "D": 0.9986,
+              "delta_vs_D": -0.08228000000000002,
+              "bound": 0.9986,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.8142,
+              "D": 0.2362,
+              "delta_vs_D": 1.578,
+              "bound": 0.2362,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 28.11,
+              "D": 47.19,
+              "delta_vs_D": -19.08,
+              "bound": 47.19,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.7826,
+              "D": 0.9776,
+              "delta_vs_D": -0.19500000000000006,
+              "bound": 0.9776,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 4.3873,
+              "D": 0.7681,
+              "delta_vs_D": 3.6191999999999998,
+              "bound": 0.7681,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9659,
+              "D": 0.9922,
+              "delta_vs_D": -0.02629999999999999,
+              "bound": 0.9922,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S16": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          124,
+          92,
+          276,
+          478
+        ],
+        "mouth_box": [
+          173,
+          395,
+          176,
+          108
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.1008,
+        "lip_corr": 0.91625,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.8163,
+        "mouth_psnr_db": 28.11,
+        "mouth_flicker_ratio": 0.9662,
+        "error_flicker_mouth": 4.3873,
+        "mouth_sharpness_ratio": 0.7828,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.91625,
+              "D": 0.9986,
+              "delta_vs_D": -0.08235000000000003,
+              "bound": 0.9986,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.8163,
+              "D": 0.2362,
+              "delta_vs_D": 1.5801,
+              "bound": 0.2362,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 28.11,
+              "D": 47.19,
+              "delta_vs_D": -19.08,
+              "bound": 47.19,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.7828,
+              "D": 0.9776,
+              "delta_vs_D": -0.19479999999999997,
+              "bound": 0.9776,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 4.3873,
+              "D": 0.7681,
+              "delta_vs_D": 3.6191999999999998,
+              "bound": 0.7681,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9662,
+              "D": 0.9922,
+              "delta_vs_D": -0.026000000000000023,
+              "bound": 0.9922,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      }
+    },
+    {
+      "clip": "es_01_valeria_aed74c50_talking_003d585d96__ai-assistant",
+      "files": {
+        "dir": "/workspace/distill/out/review/es_01_valeria_aed74c50_talking_003d585d96__ai-assistant",
+        "labelled": "es_01_valeria_aed74c50_talking_003d585d96__ai-assistant_AS.mp4",
+        "A": "A.mp4",
+        "N": "N.mp4",
+        "S": "S.mp4",
+        "S16": "S16.mp4"
+      },
+      "D": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          137,
+          81,
+          236,
+          394
+        ],
+        "mouth_box": [
+          155,
+          311,
+          190,
+          116
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.01316,
+        "lip_corr": 0.99856,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.2111,
+        "mouth_psnr_db": 47.44,
+        "mouth_flicker_ratio": 1.0034,
+        "error_flicker_mouth": 0.5537,
+        "mouth_sharpness_ratio": 0.9937,
+        "r5": "pass"
+      },
+      "N": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          137,
+          81,
+          236,
+          394
+        ],
+        "mouth_box": [
+          155,
+          311,
+          190,
+          116
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.00038,
+        "lip_corr": 0.99998,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.0266,
+        "mouth_psnr_db": 66.76,
+        "mouth_flicker_ratio": 1.0001,
+        "error_flicker_mouth": 0.027,
+        "mouth_sharpness_ratio": 1.0001,
+        "r5": "pass",
+        "vs_D": {
+          "status": "pass",
+          "checks": {
+            "lip_corr": {
+              "value": 0.99998,
+              "D": 0.99856,
+              "delta_vs_D": 0.0014199999999999768,
+              "bound": 0.99856,
+              "pass": true
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 0.0266,
+              "D": 0.2111,
+              "delta_vs_D": -0.1845,
+              "bound": 0.2111,
+              "pass": true
+            },
+            "mouth_psnr_db": {
+              "value": 66.76,
+              "D": 47.44,
+              "delta_vs_D": 19.320000000000007,
+              "bound": 47.44,
+              "pass": true
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0001,
+              "D": 0.9937,
+              "delta_vs_D": 0.006399999999999961,
+              "bound": 0.9937,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 0.027,
+              "D": 0.5537,
+              "delta_vs_D": -0.5267,
+              "bound": 0.5537,
+              "pass": true
+            },
+            "mouth_flicker_ratio": {
+              "value": 1.0001,
+              "D": 1.0034,
+              "delta_vs_D": -0.0033000000000000806,
+              "bound": 1.0034,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          137,
+          81,
+          236,
+          394
+        ],
+        "mouth_box": [
+          155,
+          311,
+          190,
+          116
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.06978,
+        "lip_corr": 0.95127,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.3557,
+        "mouth_psnr_db": 31.35,
+        "mouth_flicker_ratio": 0.9442,
+        "error_flicker_mouth": 2.4126,
+        "mouth_sharpness_ratio": 1.009,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.95127,
+              "D": 0.99856,
+              "delta_vs_D": -0.047290000000000054,
+              "bound": 0.99856,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.3557,
+              "D": 0.2111,
+              "delta_vs_D": 1.1445999999999998,
+              "bound": 0.2111,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 31.35,
+              "D": 47.44,
+              "delta_vs_D": -16.089999999999996,
+              "bound": 47.44,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.009,
+              "D": 0.9937,
+              "delta_vs_D": 0.01529999999999987,
+              "bound": 0.9937,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 2.4126,
+              "D": 0.5537,
+              "delta_vs_D": 1.8588999999999998,
+              "bound": 0.5537,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9442,
+              "D": 1.0034,
+              "delta_vs_D": -0.05920000000000003,
+              "bound": 1.0034,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S16": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          137,
+          81,
+          236,
+          394
+        ],
+        "mouth_box": [
+          155,
+          311,
+          190,
+          116
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.06978,
+        "lip_corr": 0.95142,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.3535,
+        "mouth_psnr_db": 31.35,
+        "mouth_flicker_ratio": 0.9444,
+        "error_flicker_mouth": 2.4128,
+        "mouth_sharpness_ratio": 1.009,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.95142,
+              "D": 0.99856,
+              "delta_vs_D": -0.04713999999999996,
+              "bound": 0.99856,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.3535,
+              "D": 0.2111,
+              "delta_vs_D": 1.1423999999999999,
+              "bound": 0.2111,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 31.35,
+              "D": 47.44,
+              "delta_vs_D": -16.089999999999996,
+              "bound": 47.44,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.009,
+              "D": 0.9937,
+              "delta_vs_D": 0.01529999999999987,
+              "bound": 0.9937,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 2.4128,
+              "D": 0.5537,
+              "delta_vs_D": 1.8590999999999998,
+              "bound": 0.5537,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9444,
+              "D": 1.0034,
+              "delta_vs_D": -0.05900000000000005,
+              "bound": 1.0034,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      }
+    },
+    {
+      "clip": "es_01_valeria_aed74c50_talking_003d585d96__eng",
+      "files": {
+        "dir": "/workspace/distill/out/review/es_01_valeria_aed74c50_talking_003d585d96__eng",
+        "labelled": "es_01_valeria_aed74c50_talking_003d585d96__eng_AS.mp4",
+        "A": "A.mp4",
+        "N": "N.mp4",
+        "S": "S.mp4",
+        "S16": "S16.mp4"
+      },
+      "D": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          137,
+          81,
+          236,
+          394
+        ],
+        "mouth_box": [
+          154,
+          311,
+          192,
+          118
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.01302,
+        "lip_corr": 0.99757,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.2364,
+        "mouth_psnr_db": 47.77,
+        "mouth_flicker_ratio": 1.0034,
+        "error_flicker_mouth": 0.5267,
+        "mouth_sharpness_ratio": 0.9927,
+        "r5": "pass"
+      },
+      "N": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          137,
+          81,
+          236,
+          394
+        ],
+        "mouth_box": [
+          154,
+          311,
+          192,
+          118
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.00038,
+        "lip_corr": 0.99997,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.0288,
+        "mouth_psnr_db": 66.9,
+        "mouth_flicker_ratio": 1.0,
+        "error_flicker_mouth": 0.0261,
+        "mouth_sharpness_ratio": 1.0001,
+        "r5": "pass",
+        "vs_D": {
+          "status": "pass",
+          "checks": {
+            "lip_corr": {
+              "value": 0.99997,
+              "D": 0.99757,
+              "delta_vs_D": 0.0024000000000000687,
+              "bound": 0.99757,
+              "pass": true
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 0.0288,
+              "D": 0.2364,
+              "delta_vs_D": -0.2076,
+              "bound": 0.2364,
+              "pass": true
+            },
+            "mouth_psnr_db": {
+              "value": 66.9,
+              "D": 47.77,
+              "delta_vs_D": 19.130000000000003,
+              "bound": 47.77,
+              "pass": true
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0001,
+              "D": 0.9927,
+              "delta_vs_D": 0.007399999999999962,
+              "bound": 0.9927,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 0.0261,
+              "D": 0.5267,
+              "delta_vs_D": -0.5005999999999999,
+              "bound": 0.5267,
+              "pass": true
+            },
+            "mouth_flicker_ratio": {
+              "value": 1.0,
+              "D": 1.0034,
+              "delta_vs_D": -0.0034000000000000696,
+              "bound": 1.0034,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          137,
+          81,
+          236,
+          394
+        ],
+        "mouth_box": [
+          154,
+          311,
+          192,
+          118
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.07217,
+        "lip_corr": 0.80517,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 2.3083,
+        "mouth_psnr_db": 30.66,
+        "mouth_flicker_ratio": 0.9489,
+        "error_flicker_mouth": 2.3689,
+        "mouth_sharpness_ratio": 1.0427,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.80517,
+              "D": 0.99757,
+              "delta_vs_D": -0.1923999999999999,
+              "bound": 0.99757,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 2.3083,
+              "D": 0.2364,
+              "delta_vs_D": 2.0719,
+              "bound": 0.2364,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 30.66,
+              "D": 47.77,
+              "delta_vs_D": -17.110000000000003,
+              "bound": 47.77,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0427,
+              "D": 0.9927,
+              "delta_vs_D": 0.04999999999999993,
+              "bound": 0.9927,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 2.3689,
+              "D": 0.5267,
+              "delta_vs_D": 1.8422,
+              "bound": 0.5267,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9489,
+              "D": 1.0034,
+              "delta_vs_D": -0.054500000000000104,
+              "bound": 1.0034,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S16": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          137,
+          81,
+          236,
+          394
+        ],
+        "mouth_box": [
+          154,
+          311,
+          192,
+          118
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.07217,
+        "lip_corr": 0.80521,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 2.3073,
+        "mouth_psnr_db": 30.66,
+        "mouth_flicker_ratio": 0.949,
+        "error_flicker_mouth": 2.369,
+        "mouth_sharpness_ratio": 1.0426,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.80521,
+              "D": 0.99757,
+              "delta_vs_D": -0.19235999999999998,
+              "bound": 0.99757,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 2.3073,
+              "D": 0.2364,
+              "delta_vs_D": 2.0709,
+              "bound": 0.2364,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 30.66,
+              "D": 47.77,
+              "delta_vs_D": -17.110000000000003,
+              "bound": 47.77,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0426,
+              "D": 0.9927,
+              "delta_vs_D": 0.049899999999999944,
+              "bound": 0.9927,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 2.369,
+              "D": 0.5267,
+              "delta_vs_D": 1.8423000000000003,
+              "bound": 0.5267,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.949,
+              "D": 1.0034,
+              "delta_vs_D": -0.054400000000000115,
+              "bound": 1.0034,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      }
+    },
+    {
+      "clip": "es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant",
+      "files": {
+        "dir": "/workspace/distill/out/review/es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant",
+        "labelled": "es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant_AS.mp4",
+        "A": "A.mp4",
+        "N": "N.mp4",
+        "S": "S.mp4",
+        "S16": "S16.mp4"
+      },
+      "D": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          121,
+          244,
+          406
+        ],
+        "mouth_box": [
+          183,
+          376,
+          160,
+          98
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.01322,
+        "lip_corr": 0.99527,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.2818,
+        "mouth_psnr_db": 45.92,
+        "mouth_flicker_ratio": 0.995,
+        "error_flicker_mouth": 0.8589,
+        "mouth_sharpness_ratio": 0.9858,
+        "r5": "pass"
+      },
+      "N": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          121,
+          244,
+          406
+        ],
+        "mouth_box": [
+          183,
+          376,
+          160,
+          98
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.00043,
+        "lip_corr": 0.99991,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.0381,
+        "mouth_psnr_db": 64.52,
+        "mouth_flicker_ratio": 1.0,
+        "error_flicker_mouth": 0.045,
+        "mouth_sharpness_ratio": 1.0001,
+        "r5": "pass",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.99991,
+              "D": 0.99527,
+              "delta_vs_D": 0.0046399999999999775,
+              "bound": 0.99527,
+              "pass": true
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 0.0381,
+              "D": 0.2818,
+              "delta_vs_D": -0.2437,
+              "bound": 0.2818,
+              "pass": true
+            },
+            "mouth_psnr_db": {
+              "value": 64.52,
+              "D": 45.92,
+              "delta_vs_D": 18.599999999999994,
+              "bound": 45.92,
+              "pass": true
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0001,
+              "D": 0.9858,
+              "delta_vs_D": 0.01429999999999998,
+              "bound": 0.9858,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 0.045,
+              "D": 0.8589,
+              "delta_vs_D": -0.8139,
+              "bound": 0.8589,
+              "pass": true
+            },
+            "mouth_flicker_ratio": {
+              "value": 1.0,
+              "D": 0.995,
+              "delta_vs_D": 0.0050000000000000044,
+              "bound": 0.995,
+              "pass": false
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          121,
+          244,
+          406
+        ],
+        "mouth_box": [
+          183,
+          376,
+          160,
+          98
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.07647,
+        "lip_corr": 0.91118,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.4059,
+        "mouth_psnr_db": 30.53,
+        "mouth_flicker_ratio": 0.9407,
+        "error_flicker_mouth": 3.5906,
+        "mouth_sharpness_ratio": 0.9472,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.91118,
+              "D": 0.99527,
+              "delta_vs_D": -0.08409,
+              "bound": 0.99527,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.4059,
+              "D": 0.2818,
+              "delta_vs_D": 1.1240999999999999,
+              "bound": 0.2818,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 30.53,
+              "D": 45.92,
+              "delta_vs_D": -15.39,
+              "bound": 45.92,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.9472,
+              "D": 0.9858,
+              "delta_vs_D": -0.03859999999999997,
+              "bound": 0.9858,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 3.5906,
+              "D": 0.8589,
+              "delta_vs_D": 2.7317,
+              "bound": 0.8589,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9407,
+              "D": 0.995,
+              "delta_vs_D": -0.054300000000000015,
+              "bound": 0.995,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S16": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          121,
+          244,
+          406
+        ],
+        "mouth_box": [
+          183,
+          376,
+          160,
+          98
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.07646,
+        "lip_corr": 0.91063,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.4076,
+        "mouth_psnr_db": 30.53,
+        "mouth_flicker_ratio": 0.9409,
+        "error_flicker_mouth": 3.5909,
+        "mouth_sharpness_ratio": 0.9474,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.91063,
+              "D": 0.99527,
+              "delta_vs_D": -0.08463999999999994,
+              "bound": 0.99527,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.4076,
+              "D": 0.2818,
+              "delta_vs_D": 1.1258,
+              "bound": 0.2818,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 30.53,
+              "D": 45.92,
+              "delta_vs_D": -15.39,
+              "bound": 45.92,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.9474,
+              "D": 0.9858,
+              "delta_vs_D": -0.03839999999999999,
+              "bound": 0.9858,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 3.5909,
+              "D": 0.8589,
+              "delta_vs_D": 2.732,
+              "bound": 0.8589,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9409,
+              "D": 0.995,
+              "delta_vs_D": -0.05410000000000004,
+              "bound": 0.995,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      }
+    },
+    {
+      "clip": "es_03_mateo_884600e1_talking_75d88cda6c__eng",
+      "files": {
+        "dir": "/workspace/distill/out/review/es_03_mateo_884600e1_talking_75d88cda6c__eng",
+        "labelled": "es_03_mateo_884600e1_talking_75d88cda6c__eng_AS.mp4",
+        "A": "A.mp4",
+        "N": "N.mp4",
+        "S": "S.mp4",
+        "S16": "S16.mp4"
+      },
+      "D": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          121,
+          244,
+          406
+        ],
+        "mouth_box": [
+          186,
+          379,
+          154,
+          94
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.01318,
+        "lip_corr": 0.99681,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.2488,
+        "mouth_psnr_db": 45.53,
+        "mouth_flicker_ratio": 0.995,
+        "error_flicker_mouth": 0.895,
+        "mouth_sharpness_ratio": 0.9831,
+        "r5": "pass"
+      },
+      "N": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          121,
+          244,
+          406
+        ],
+        "mouth_box": [
+          186,
+          379,
+          154,
+          94
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.00042,
+        "lip_corr": 0.99994,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.0361,
+        "mouth_psnr_db": 64.37,
+        "mouth_flicker_ratio": 1.0,
+        "error_flicker_mouth": 0.0466,
+        "mouth_sharpness_ratio": 1.0003,
+        "r5": "pass",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.99994,
+              "D": 0.99681,
+              "delta_vs_D": 0.003130000000000077,
+              "bound": 0.99681,
+              "pass": true
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 0.0361,
+              "D": 0.2488,
+              "delta_vs_D": -0.2127,
+              "bound": 0.2488,
+              "pass": true
+            },
+            "mouth_psnr_db": {
+              "value": 64.37,
+              "D": 45.53,
+              "delta_vs_D": 18.840000000000003,
+              "bound": 45.53,
+              "pass": true
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0003,
+              "D": 0.9831,
+              "delta_vs_D": 0.017199999999999993,
+              "bound": 0.9831,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 0.0466,
+              "D": 0.895,
+              "delta_vs_D": -0.8484,
+              "bound": 0.895,
+              "pass": true
+            },
+            "mouth_flicker_ratio": {
+              "value": 1.0,
+              "D": 0.995,
+              "delta_vs_D": 0.0050000000000000044,
+              "bound": 0.995,
+              "pass": false
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          121,
+          244,
+          406
+        ],
+        "mouth_box": [
+          186,
+          379,
+          154,
+          94
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.07709,
+        "lip_corr": 0.89782,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.6168,
+        "mouth_psnr_db": 29.97,
+        "mouth_flicker_ratio": 0.9281,
+        "error_flicker_mouth": 3.7936,
+        "mouth_sharpness_ratio": 0.9209,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.89782,
+              "D": 0.99681,
+              "delta_vs_D": -0.09899000000000002,
+              "bound": 0.99681,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.6168,
+              "D": 0.2488,
+              "delta_vs_D": 1.368,
+              "bound": 0.2488,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 29.97,
+              "D": 45.53,
+              "delta_vs_D": -15.560000000000002,
+              "bound": 45.53,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.9209,
+              "D": 0.9831,
+              "delta_vs_D": -0.06219999999999992,
+              "bound": 0.9831,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 3.7936,
+              "D": 0.895,
+              "delta_vs_D": 2.8986,
+              "bound": 0.895,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9281,
+              "D": 0.995,
+              "delta_vs_D": -0.06689999999999996,
+              "bound": 0.995,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S16": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          121,
+          244,
+          406
+        ],
+        "mouth_box": [
+          186,
+          379,
+          154,
+          94
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.07708,
+        "lip_corr": 0.89717,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.6201,
+        "mouth_psnr_db": 29.97,
+        "mouth_flicker_ratio": 0.9283,
+        "error_flicker_mouth": 3.7938,
+        "mouth_sharpness_ratio": 0.921,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.89717,
+              "D": 0.99681,
+              "delta_vs_D": -0.09963999999999995,
+              "bound": 0.99681,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.6201,
+              "D": 0.2488,
+              "delta_vs_D": 1.3713000000000002,
+              "bound": 0.2488,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 29.97,
+              "D": 45.53,
+              "delta_vs_D": -15.560000000000002,
+              "bound": 45.53,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.921,
+              "D": 0.9831,
+              "delta_vs_D": -0.06209999999999993,
+              "bound": 0.9831,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 3.7938,
+              "D": 0.895,
+              "delta_vs_D": 2.8988,
+              "bound": 0.895,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9283,
+              "D": 0.995,
+              "delta_vs_D": -0.06669999999999998,
+              "bound": 0.995,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      }
+    },
+    {
+      "clip": "japanese_realtime_talking_7d94520b7f__ai-assistant",
+      "files": {
+        "dir": "/workspace/distill/out/review/japanese_realtime_talking_7d94520b7f__ai-assistant",
+        "labelled": "japanese_realtime_talking_7d94520b7f__ai-assistant_AS.mp4",
+        "A": "A.mp4",
+        "N": "N.mp4",
+        "S": "S.mp4",
+        "S16": "S16.mp4"
+      },
+      "D": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          108,
+          250,
+          388
+        ],
+        "mouth_box": [
+          178,
+          349,
+          160,
+          98
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.01684,
+        "lip_corr": 0.96293,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.9047,
+        "mouth_psnr_db": 39.48,
+        "mouth_flicker_ratio": 1.0009,
+        "error_flicker_mouth": 1.1836,
+        "mouth_sharpness_ratio": 0.983,
+        "r5": "FAIL"
+      },
+      "N": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          108,
+          250,
+          388
+        ],
+        "mouth_box": [
+          178,
+          349,
+          160,
+          98
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.00038,
+        "lip_corr": 0.99996,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.0402,
+        "mouth_psnr_db": 66.15,
+        "mouth_flicker_ratio": 1.0,
+        "error_flicker_mouth": 0.031,
+        "mouth_sharpness_ratio": 1.0002,
+        "r5": "pass",
+        "vs_D": {
+          "status": "pass",
+          "checks": {
+            "lip_corr": {
+              "value": 0.99996,
+              "D": 0.96293,
+              "delta_vs_D": 0.03703000000000001,
+              "bound": 0.96293,
+              "pass": true
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 0.0402,
+              "D": 0.9047,
+              "delta_vs_D": -0.8644999999999999,
+              "bound": 0.9047,
+              "pass": true
+            },
+            "mouth_psnr_db": {
+              "value": 66.15,
+              "D": 39.48,
+              "delta_vs_D": 26.67000000000001,
+              "bound": 39.48,
+              "pass": true
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0002,
+              "D": 0.983,
+              "delta_vs_D": 0.017199999999999993,
+              "bound": 0.983,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 0.031,
+              "D": 1.1836,
+              "delta_vs_D": -1.1526,
+              "bound": 1.1836,
+              "pass": true
+            },
+            "mouth_flicker_ratio": {
+              "value": 1.0,
+              "D": 1.0009,
+              "delta_vs_D": -0.0008999999999999009,
+              "bound": 1.0009,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          108,
+          250,
+          388
+        ],
+        "mouth_box": [
+          178,
+          349,
+          160,
+          98
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.10481,
+        "lip_corr": 0.64187,
+        "lip_lag_frames": -1,
+        "lip_mean_abs_delta_px": 3.2919,
+        "mouth_psnr_db": 26.62,
+        "mouth_flicker_ratio": 0.9997,
+        "error_flicker_mouth": 3.8757,
+        "mouth_sharpness_ratio": 0.8696,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.64187,
+              "D": 0.96293,
+              "delta_vs_D": -0.3210599999999999,
+              "bound": 0.96293,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 3.2919,
+              "D": 0.9047,
+              "delta_vs_D": 2.3872,
+              "bound": 0.9047,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 26.62,
+              "D": 39.48,
+              "delta_vs_D": -12.859999999999996,
+              "bound": 39.48,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.8696,
+              "D": 0.983,
+              "delta_vs_D": -0.11339999999999995,
+              "bound": 0.983,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 3.8757,
+              "D": 1.1836,
+              "delta_vs_D": 2.6921,
+              "bound": 1.1836,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9997,
+              "D": 1.0009,
+              "delta_vs_D": -0.0011999999999998678,
+              "bound": 1.0009,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S16": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          108,
+          250,
+          388
+        ],
+        "mouth_box": [
+          178,
+          349,
+          160,
+          98
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.10482,
+        "lip_corr": 0.64208,
+        "lip_lag_frames": -1,
+        "lip_mean_abs_delta_px": 3.2921,
+        "mouth_psnr_db": 26.62,
+        "mouth_flicker_ratio": 0.9999,
+        "error_flicker_mouth": 3.8758,
+        "mouth_sharpness_ratio": 0.8695,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.64208,
+              "D": 0.96293,
+              "delta_vs_D": -0.32084999999999997,
+              "bound": 0.96293,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 3.2921,
+              "D": 0.9047,
+              "delta_vs_D": 2.3874,
+              "bound": 0.9047,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 26.62,
+              "D": 39.48,
+              "delta_vs_D": -12.859999999999996,
+              "bound": 39.48,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.8695,
+              "D": 0.983,
+              "delta_vs_D": -0.11349999999999993,
+              "bound": 0.983,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 3.8758,
+              "D": 1.1836,
+              "delta_vs_D": 2.6921999999999997,
+              "bound": 1.1836,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9999,
+              "D": 1.0009,
+              "delta_vs_D": -0.0009999999999998899,
+              "bound": 1.0009,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      }
+    },
+    {
+      "clip": "japanese_realtime_talking_7d94520b7f__eng",
+      "files": {
+        "dir": "/workspace/distill/out/review/japanese_realtime_talking_7d94520b7f__eng",
+        "labelled": "japanese_realtime_talking_7d94520b7f__eng_AS.mp4",
+        "A": "A.mp4",
+        "N": "N.mp4",
+        "S": "S.mp4",
+        "S16": "S16.mp4"
+      },
+      "D": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          108,
+          250,
+          388
+        ],
+        "mouth_box": [
+          181,
+          348,
+          158,
+          96
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.01593,
+        "lip_corr": 0.956,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.7765,
+        "mouth_psnr_db": 40.54,
+        "mouth_flicker_ratio": 1.0065,
+        "error_flicker_mouth": 1.0473,
+        "mouth_sharpness_ratio": 0.9896,
+        "r5": "FAIL"
+      },
+      "N": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          108,
+          250,
+          388
+        ],
+        "mouth_box": [
+          181,
+          348,
+          158,
+          96
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.00037,
+        "lip_corr": 0.99995,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.037,
+        "mouth_psnr_db": 66.29,
+        "mouth_flicker_ratio": 1.0001,
+        "error_flicker_mouth": 0.03,
+        "mouth_sharpness_ratio": 1.0002,
+        "r5": "pass",
+        "vs_D": {
+          "status": "pass",
+          "checks": {
+            "lip_corr": {
+              "value": 0.99995,
+              "D": 0.956,
+              "delta_vs_D": 0.043950000000000045,
+              "bound": 0.956,
+              "pass": true
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 0.037,
+              "D": 0.7765,
+              "delta_vs_D": -0.7394999999999999,
+              "bound": 0.7765,
+              "pass": true
+            },
+            "mouth_psnr_db": {
+              "value": 66.29,
+              "D": 40.54,
+              "delta_vs_D": 25.750000000000007,
+              "bound": 40.54,
+              "pass": true
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0002,
+              "D": 0.9896,
+              "delta_vs_D": 0.010599999999999943,
+              "bound": 0.9896,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 0.03,
+              "D": 1.0473,
+              "delta_vs_D": -1.0172999999999999,
+              "bound": 1.0473,
+              "pass": true
+            },
+            "mouth_flicker_ratio": {
+              "value": 1.0001,
+              "D": 1.0065,
+              "delta_vs_D": -0.006399999999999961,
+              "bound": 1.0065,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          108,
+          250,
+          388
+        ],
+        "mouth_box": [
+          181,
+          348,
+          158,
+          96
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.10386,
+        "lip_corr": 0.53769,
+        "lip_lag_frames": -2,
+        "lip_mean_abs_delta_px": 3.1598,
+        "mouth_psnr_db": 26.84,
+        "mouth_flicker_ratio": 0.9681,
+        "error_flicker_mouth": 3.4595,
+        "mouth_sharpness_ratio": 0.9149,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.53769,
+              "D": 0.956,
+              "delta_vs_D": -0.41830999999999996,
+              "bound": 0.956,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 3.1598,
+              "D": 0.7765,
+              "delta_vs_D": 2.3833,
+              "bound": 0.7765,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 26.84,
+              "D": 40.54,
+              "delta_vs_D": -13.7,
+              "bound": 40.54,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.9149,
+              "D": 0.9896,
+              "delta_vs_D": -0.07469999999999999,
+              "bound": 0.9896,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 3.4595,
+              "D": 1.0473,
+              "delta_vs_D": 2.4122,
+              "bound": 1.0473,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9681,
+              "D": 1.0065,
+              "delta_vs_D": -0.03839999999999999,
+              "bound": 1.0065,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S16": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          132,
+          108,
+          250,
+          388
+        ],
+        "mouth_box": [
+          181,
+          348,
+          158,
+          96
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.10387,
+        "lip_corr": 0.53755,
+        "lip_lag_frames": -2,
+        "lip_mean_abs_delta_px": 3.1612,
+        "mouth_psnr_db": 26.84,
+        "mouth_flicker_ratio": 0.9683,
+        "error_flicker_mouth": 3.4598,
+        "mouth_sharpness_ratio": 0.915,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.53755,
+              "D": 0.956,
+              "delta_vs_D": -0.41845,
+              "bound": 0.956,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 3.1612,
+              "D": 0.7765,
+              "delta_vs_D": 2.3847,
+              "bound": 0.7765,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 26.84,
+              "D": 40.54,
+              "delta_vs_D": -13.7,
+              "bound": 40.54,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.915,
+              "D": 0.9896,
+              "delta_vs_D": -0.0746,
+              "bound": 0.9896,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 3.4598,
+              "D": 1.0473,
+              "delta_vs_D": 2.4125,
+              "bound": 1.0473,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9683,
+              "D": 1.0065,
+              "delta_vs_D": -0.0381999999999999,
+              "bound": 1.0065,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      }
+    },
+    {
+      "clip": "latina_guided_20260925_talking_84c5bc80b8__ai-assistant",
+      "files": {
+        "dir": "/workspace/distill/out/review/latina_guided_20260925_talking_84c5bc80b8__ai-assistant",
+        "labelled": "latina_guided_20260925_talking_84c5bc80b8__ai-assistant_AS.mp4",
+        "A": "A.mp4",
+        "N": "N.mp4",
+        "S": "S.mp4",
+        "S16": "S16.mp4"
+      },
+      "D": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          141,
+          96,
+          234,
+          406
+        ],
+        "mouth_box": [
+          186,
+          349,
+          152,
+          94
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.01144,
+        "lip_corr": 0.99921,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.1896,
+        "mouth_psnr_db": 48.59,
+        "mouth_flicker_ratio": 0.9959,
+        "error_flicker_mouth": 0.5705,
+        "mouth_sharpness_ratio": 0.9933,
+        "r5": "pass"
+      },
+      "N": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          141,
+          96,
+          234,
+          406
+        ],
+        "mouth_box": [
+          186,
+          349,
+          152,
+          94
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.00036,
+        "lip_corr": 0.99999,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.024,
+        "mouth_psnr_db": 66.1,
+        "mouth_flicker_ratio": 1.0001,
+        "error_flicker_mouth": 0.0313,
+        "mouth_sharpness_ratio": 1.0004,
+        "r5": "pass",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.99999,
+              "D": 0.99921,
+              "delta_vs_D": 0.0007800000000000029,
+              "bound": 0.99921,
+              "pass": true
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 0.024,
+              "D": 0.1896,
+              "delta_vs_D": -0.1656,
+              "bound": 0.1896,
+              "pass": true
+            },
+            "mouth_psnr_db": {
+              "value": 66.1,
+              "D": 48.59,
+              "delta_vs_D": 17.50999999999999,
+              "bound": 48.59,
+              "pass": true
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0004,
+              "D": 0.9933,
+              "delta_vs_D": 0.007099999999999995,
+              "bound": 0.9933,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 0.0313,
+              "D": 0.5705,
+              "delta_vs_D": -0.5392,
+              "bound": 0.5705,
+              "pass": true
+            },
+            "mouth_flicker_ratio": {
+              "value": 1.0001,
+              "D": 0.9959,
+              "delta_vs_D": 0.0041999999999999815,
+              "bound": 0.9959,
+              "pass": false
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          141,
+          96,
+          234,
+          406
+        ],
+        "mouth_box": [
+          186,
+          349,
+          152,
+          94
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.09005,
+        "lip_corr": 0.95355,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.5268,
+        "mouth_psnr_db": 29.31,
+        "mouth_flicker_ratio": 0.9412,
+        "error_flicker_mouth": 2.8377,
+        "mouth_sharpness_ratio": 0.9337,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.95355,
+              "D": 0.99921,
+              "delta_vs_D": -0.045660000000000034,
+              "bound": 0.99921,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.5268,
+              "D": 0.1896,
+              "delta_vs_D": 1.3372,
+              "bound": 0.1896,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 29.31,
+              "D": 48.59,
+              "delta_vs_D": -19.280000000000005,
+              "bound": 48.59,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.9337,
+              "D": 0.9933,
+              "delta_vs_D": -0.059599999999999986,
+              "bound": 0.9933,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 2.8377,
+              "D": 0.5705,
+              "delta_vs_D": 2.2672,
+              "bound": 0.5705,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9412,
+              "D": 0.9959,
+              "delta_vs_D": -0.05469999999999997,
+              "bound": 0.9959,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S16": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          141,
+          96,
+          234,
+          406
+        ],
+        "mouth_box": [
+          186,
+          349,
+          152,
+          94
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.09006,
+        "lip_corr": 0.95357,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.5219,
+        "mouth_psnr_db": 29.31,
+        "mouth_flicker_ratio": 0.9415,
+        "error_flicker_mouth": 2.8376,
+        "mouth_sharpness_ratio": 0.9338,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.95357,
+              "D": 0.99921,
+              "delta_vs_D": -0.045640000000000014,
+              "bound": 0.99921,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.5219,
+              "D": 0.1896,
+              "delta_vs_D": 1.3323,
+              "bound": 0.1896,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 29.31,
+              "D": 48.59,
+              "delta_vs_D": -19.280000000000005,
+              "bound": 48.59,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.9338,
+              "D": 0.9933,
+              "delta_vs_D": -0.0595,
+              "bound": 0.9933,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 2.8376,
+              "D": 0.5705,
+              "delta_vs_D": 2.2671,
+              "bound": 0.5705,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9415,
+              "D": 0.9959,
+              "delta_vs_D": -0.054400000000000004,
+              "bound": 0.9959,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      }
+    },
+    {
+      "clip": "latina_guided_20260925_talking_84c5bc80b8__eng",
+      "files": {
+        "dir": "/workspace/distill/out/review/latina_guided_20260925_talking_84c5bc80b8__eng",
+        "labelled": "latina_guided_20260925_talking_84c5bc80b8__eng_AS.mp4",
+        "A": "A.mp4",
+        "N": "N.mp4",
+        "S": "S.mp4",
+        "S16": "S16.mp4"
+      },
+      "D": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          141,
+          96,
+          234,
+          406
+        ],
+        "mouth_box": [
+          184,
+          349,
+          152,
+          94
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.01142,
+        "lip_corr": 0.99923,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.2066,
+        "mouth_psnr_db": 48.8,
+        "mouth_flicker_ratio": 0.995,
+        "error_flicker_mouth": 0.5599,
+        "mouth_sharpness_ratio": 0.9977,
+        "r5": "pass"
+      },
+      "N": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          141,
+          96,
+          234,
+          406
+        ],
+        "mouth_box": [
+          184,
+          349,
+          152,
+          94
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.00036,
+        "lip_corr": 0.99998,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 0.0299,
+        "mouth_psnr_db": 66.14,
+        "mouth_flicker_ratio": 1.0,
+        "error_flicker_mouth": 0.031,
+        "mouth_sharpness_ratio": 1.0002,
+        "r5": "pass",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.99998,
+              "D": 0.99923,
+              "delta_vs_D": 0.0007500000000000284,
+              "bound": 0.99923,
+              "pass": true
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 0.0299,
+              "D": 0.2066,
+              "delta_vs_D": -0.1767,
+              "bound": 0.2066,
+              "pass": true
+            },
+            "mouth_psnr_db": {
+              "value": 66.14,
+              "D": 48.8,
+              "delta_vs_D": 17.340000000000003,
+              "bound": 48.8,
+              "pass": true
+            },
+            "mouth_sharpness_ratio": {
+              "value": 1.0002,
+              "D": 0.9977,
+              "delta_vs_D": 0.0024999999999999467,
+              "bound": 0.9977,
+              "pass": true
+            },
+            "error_flicker_mouth": {
+              "value": 0.031,
+              "D": 0.5599,
+              "delta_vs_D": -0.5288999999999999,
+              "bound": 0.5599,
+              "pass": true
+            },
+            "mouth_flicker_ratio": {
+              "value": 1.0,
+              "D": 0.995,
+              "delta_vs_D": 0.0050000000000000044,
+              "bound": 0.995,
+              "pass": false
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          141,
+          96,
+          234,
+          406
+        ],
+        "mouth_box": [
+          184,
+          349,
+          152,
+          94
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.08986,
+        "lip_corr": 0.93318,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.8648,
+        "mouth_psnr_db": 29.49,
+        "mouth_flicker_ratio": 0.9256,
+        "error_flicker_mouth": 2.638,
+        "mouth_sharpness_ratio": 0.922,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.93318,
+              "D": 0.99923,
+              "delta_vs_D": -0.06604999999999994,
+              "bound": 0.99923,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.8648,
+              "D": 0.2066,
+              "delta_vs_D": 1.6582,
+              "bound": 0.2066,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 29.49,
+              "D": 48.8,
+              "delta_vs_D": -19.31,
+              "bound": 48.8,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.922,
+              "D": 0.9977,
+              "delta_vs_D": -0.07569999999999999,
+              "bound": 0.9977,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 2.638,
+              "D": 0.5599,
+              "delta_vs_D": 2.0781,
+              "bound": 0.5599,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9256,
+              "D": 0.995,
+              "delta_vs_D": -0.06940000000000002,
+              "bound": 0.995,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      },
+      "S16": {
+        "frames": 250,
+        "fps": 25,
+        "face_box": [
+          141,
+          96,
+          234,
+          406
+        ],
+        "mouth_box": [
+          184,
+          349,
+          152,
+          94
+        ],
+        "aperture_frames": 250,
+        "latent_mae": 0.08987,
+        "lip_corr": 0.93314,
+        "lip_lag_frames": 0,
+        "lip_mean_abs_delta_px": 1.864,
+        "mouth_psnr_db": 29.49,
+        "mouth_flicker_ratio": 0.9258,
+        "error_flicker_mouth": 2.638,
+        "mouth_sharpness_ratio": 0.922,
+        "r5": "FAIL",
+        "vs_D": {
+          "status": "FAIL",
+          "checks": {
+            "lip_corr": {
+              "value": 0.93314,
+              "D": 0.99923,
+              "delta_vs_D": -0.06608999999999998,
+              "bound": 0.99923,
+              "pass": false
+            },
+            "lip_mean_abs_delta_px": {
+              "value": 1.864,
+              "D": 0.2066,
+              "delta_vs_D": 1.6574,
+              "bound": 0.2066,
+              "pass": false
+            },
+            "mouth_psnr_db": {
+              "value": 29.49,
+              "D": 48.8,
+              "delta_vs_D": -19.31,
+              "bound": 48.8,
+              "pass": false
+            },
+            "mouth_sharpness_ratio": {
+              "value": 0.922,
+              "D": 0.9977,
+              "delta_vs_D": -0.07569999999999999,
+              "bound": 0.9977,
+              "pass": false
+            },
+            "error_flicker_mouth": {
+              "value": 2.638,
+              "D": 0.5599,
+              "delta_vs_D": 2.0781,
+              "bound": 0.5599,
+              "pass": false
+            },
+            "mouth_flicker_ratio": {
+              "value": 0.9258,
+              "D": 0.995,
+              "delta_vs_D": -0.06920000000000004,
+              "bound": 0.995,
+              "pass": true
+            }
+          },
+          "incomplete_because": []
+        }
+      }
+    }
+  ]
+}
