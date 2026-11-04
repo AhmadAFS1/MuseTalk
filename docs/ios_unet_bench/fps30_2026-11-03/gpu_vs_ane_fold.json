@@ -1,0 +1,492 @@
+{
+  "bundle_created" : "2026-10-31T17:46:14",
+  "chains" : [
+    {
+      "compute_units" : "ALL",
+      "frames" : 100,
+      "taesd_load_s" : 0.0613,
+      "taesd_model" : "taesd_fp16_b1",
+      "taesd_ms" : {
+        "count" : 100,
+        "max_ms" : 8.38041608221829,
+        "mean_ms" : 4.105567026417702,
+        "min_ms" : 1.8365830183029175,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 3.8187294267117977,
+        "p90_ms" : 6.214949581772093,
+        "p99_ms" : 8.189635982271286
+      },
+      "taesd_units" : "ALL",
+      "total_ms" : {
+        "count" : 100,
+        "max_ms" : 24.680834030732512,
+        "mean_ms" : 20.199649173300713,
+        "min_ms" : 17.782290931791067,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 19.849020638503134,
+        "p90_ms" : 22.396861901506785,
+        "p99_ms" : 24.423186355270445
+      },
+      "unet_model" : "unet_anev2fc0_int8w_b1_chunked",
+      "unet_ms" : {
+        "count" : 100,
+        "max_ms" : 16.97770901955664,
+        "mean_ms" : 16.09408214688301,
+        "min_ms" : 15.919083962216973,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 16.04135404340923,
+        "p90_ms" : 16.28810006659478,
+        "p99_ms" : 16.828630710951984
+      }
+    }
+  ],
+  "device" : {
+    "chip" : "Apple M5 Pro",
+    "cpu_count" : 18,
+    "low_power_mode" : false,
+    "machine" : "arm64",
+    "memory_gb" : 24,
+    "model" : "Mac17,8",
+    "os" : "macOS",
+    "os_version" : "Version 27.0.1 (Build 26A434)",
+    "runtime" : "macOS CLI",
+    "thermal_state" : "nominal"
+  },
+  "finished" : "2026-11-03T20:07:10Z",
+  "gate" : {
+    "mae" : 0.01,
+    "max_abs" : 0.5,
+    "source" : "scripts\/validate_unet_backend.py per-file thresholds"
+  },
+  "harness_version" : "1",
+  "log" : [
+    "free disk 712902 MB (mem 4 MB)",
+    "device: arm64 Mac17,8 macOS Version 27.0.1 (Build 26A434), 24.0 GB, thermal nominal, runtime macOS CLI",
+    "UNets: unet_anev2fc0_int8w_b1_chunked (2 stages)",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_GPU]: loading 2 stage(s) (mem 5 MB)",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_GPU]: loaded in 2.95 s [\"1.13\", \"1.83\"] (mem 17 MB)",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_GPU]: first prediction 17600.82 ms (mem 735 MB)",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_GPU]: gate mae mean 0.00318 \/ max 0.00355; max_abs max 0.1494; 32 frames; PASS",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_GPU]: 32.25 ms\/frame mean, p99 33.13, max 33.25 over 60 calls of 1 (mem 259 MB)",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: loading 2 stage(s) (mem 119 MB)",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: loaded in 10.03 s [\"4.41\", \"5.62\"] (mem 126 MB)",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: first prediction 25.27 ms (mem 139 MB)",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01362 \/ max 0.01675; max_abs max 1.0303; 32 frames; FAIL",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 16.07 ms\/frame mean, p99 16.47, max 16.49 over 60 calls of 1 (mem 139 MB)",
+    "unet_anev2fc0_int8w_b1_chunked sustained 30 s [ALL]: starting (mem 139 MB)",
+    "unet_anev2fc0_int8w_b1_chunked sustained 30 s [ALL]: 1879 frames, 15.97 ms\/frame mean; first bucket 15.98 → last 15.98 ms; thermal nominal → nominal (mem 54 MB)",
+    "chain unet_anev2fc0_int8w_b1_chunked [ALL] → taesd_fp16_b1 [ALL]: starting (mem 54 MB)",
+    "chain unet_anev2fc0_int8w_b1_chunked [ALL] → taesd_fp16_b1 [ALL]: 20.20 ms\/frame (UNet 16.09 + TAESD 4.11), faces [1, 3, 256, 256] (mem 144 MB)"
+  ],
+  "mac_reference" : {
+    "ane_layout_bench" : {
+      "host" : {
+        "chip" : "Apple M5 Pro",
+        "macos" : "27.0.1"
+      },
+      "measured_at" : "2026-10-30T17:59:04-0500",
+      "results" : [
+        {
+          "ane_load_s" : 11.6,
+          "ane_ms_per_call" : 22.63,
+          "ane_ms_per_frame" : 22.626,
+          "ane_p90_ms_per_frame" : 22.69,
+          "batch" : 1,
+          "bytes" : 1703013161,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.4336286187171936,
+          "face_max_abs_255" : 12.75041389465332,
+          "fps_single_stream_unet_only" : 44.2,
+          "kind" : "unet",
+          "latent_mae" : 0.012313341721892357,
+          "latent_max_abs" : 0.3589463233947754,
+          "mb" : 1624,
+          "name" : "unet_ane_fp16_b1",
+          "rss_mb_after" : 548,
+          "variant" : "ane_fp16",
+          "weight_bytes_per_frame_mb" : 1624.1
+        },
+        {
+          "ane_load_s" : 8.9,
+          "ane_ms_per_call" : 18.87,
+          "ane_ms_per_frame" : 18.867,
+          "ane_p90_ms_per_frame" : 18.974,
+          "batch" : 1,
+          "bytes" : 852743287,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.482073575258255,
+          "face_max_abs_255" : 15.357020378112793,
+          "fps_single_stream_unet_only" : 53,
+          "kind" : "unet",
+          "latent_mae" : 0.012812141329050064,
+          "latent_max_abs" : 0.3892197608947754,
+          "mb" : 813,
+          "name" : "unet_ane_int8w_b1",
+          "rss_mb_after" : 1638,
+          "variant" : "ane_int8w",
+          "weight_bytes_per_frame_mb" : 813.2
+        },
+        {
+          "ane_load_s" : 16.2,
+          "ane_ms_per_call" : 100.56,
+          "ane_ms_per_frame" : 25.141,
+          "ane_p90_ms_per_frame" : 25.247,
+          "batch" : 4,
+          "bytes" : 1703013161,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.4336286187171936,
+          "face_max_abs_255" : 12.75041389465332,
+          "fps_single_stream_unet_only" : 39.8,
+          "kind" : "unet",
+          "latent_mae" : 0.012313341721892357,
+          "latent_max_abs" : 0.3589463233947754,
+          "mb" : 1624,
+          "name" : "unet_ane_fp16_b4",
+          "rss_mb_after" : 1592,
+          "variant" : "ane_fp16",
+          "weight_bytes_per_frame_mb" : 406
+        },
+        {
+          "ane_load_s" : 13.4,
+          "ane_ms_per_call" : 80.29,
+          "ane_ms_per_frame" : 20.074,
+          "ane_p90_ms_per_frame" : 20.142,
+          "batch" : 4,
+          "bytes" : 852743287,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.482073575258255,
+          "face_max_abs_255" : 15.357020378112793,
+          "fps_single_stream_unet_only" : 49.8,
+          "kind" : "unet",
+          "latent_mae" : 0.012812141329050064,
+          "latent_max_abs" : 0.3892197608947754,
+          "mb" : 813,
+          "name" : "unet_ane_int8w_b4",
+          "rss_mb_after" : 1596,
+          "variant" : "ane_int8w",
+          "weight_bytes_per_frame_mb" : 203.3
+        }
+      ],
+      "units" : "CPU_AND_NE"
+    },
+    "gate" : {
+      "pytorch_fp32" : {
+        "mae_max" : 0.00048121900181286037,
+        "mae_mean" : 0.0003826273441518424,
+        "max_abs_max" : 0.04686196148395538,
+        "max_abs_mean" : 0.014692156575620174,
+        "pass" : true
+      },
+      "unet_fp16_b1" : {
+        "mae_max" : 0.01835004612803459,
+        "mae_mean" : 0.01278440683381632,
+        "max_abs_max" : 1.0009765625,
+        "max_abs_mean" : 0.5215401649475098,
+        "pass" : false
+      }
+    },
+    "host" : "arm64",
+    "note" : "M5 Pro Neural Engine, coremltools 9 Python bench",
+    "server_engines" : {
+      "trt_fp16" : {
+        "mae_max" : 0.0025,
+        "mae_mean" : 0.0018,
+        "max_abs_max" : 0.414
+      },
+      "trt_int8_srcg50_shipping" : {
+        "mae_max" : 0.0044,
+        "mae_mean" : 0.0032,
+        "max_abs_max" : 0.777
+      }
+    }
+  },
+  "options" : {
+    "chain_frames" : 100,
+    "compute_plan" : false,
+    "gpu_check" : false,
+    "gpu_check_frames" : 64,
+    "include_batch4" : false,
+    "phase_units" : "ALL",
+    "reload" : false,
+    "settle_seconds" : 0,
+    "sustained_seconds" : 30,
+    "unet_frames" : 60,
+    "unet_units" : [
+      "CPU_AND_GPU",
+      "CPU_AND_NE"
+    ],
+    "whisper" : false
+  },
+  "repo_commit" : "79e3535",
+  "started" : "2026-11-03T20:05:53Z",
+  "sustained" : {
+    "buckets" : [
+      {
+        "frames" : 313,
+        "mean_ms" : 15.98,
+        "p99_ms" : 16.5,
+        "t0_s" : 0,
+        "t1_s" : 5,
+        "thermal" : "nominal"
+      },
+      {
+        "frames" : 313,
+        "mean_ms" : 16,
+        "p99_ms" : 16.68,
+        "t0_s" : 5,
+        "t1_s" : 10,
+        "thermal" : "nominal"
+      },
+      {
+        "frames" : 313,
+        "mean_ms" : 15.96,
+        "p99_ms" : 16.28,
+        "t0_s" : 10,
+        "t1_s" : 15,
+        "thermal" : "nominal"
+      },
+      {
+        "frames" : 313,
+        "mean_ms" : 15.97,
+        "p99_ms" : 16.54,
+        "t0_s" : 15,
+        "t1_s" : 20,
+        "thermal" : "nominal"
+      },
+      {
+        "frames" : 314,
+        "mean_ms" : 15.96,
+        "p99_ms" : 16.35,
+        "t0_s" : 20,
+        "t1_s" : 25,
+        "thermal" : "nominal"
+      },
+      {
+        "frames" : 313,
+        "mean_ms" : 15.98,
+        "p99_ms" : 16.5,
+        "t0_s" : 25,
+        "t1_s" : 30,
+        "thermal" : "nominal"
+      }
+    ],
+    "compute_units" : "ALL",
+    "model" : "unet_anev2fc0_int8w_b1_chunked",
+    "overall" : {
+      "count" : 1879,
+      "max_ms" : 16.927999909967184,
+      "mean_ms" : 15.973560130540847,
+      "min_ms" : 15.792625024914742,
+      "over_40ms" : 0,
+      "over_50ms" : 0,
+      "p50_ms" : 15.941499965265393,
+      "p90_ms" : 16.118433279916644,
+      "p99_ms" : 16.52847558259964
+    },
+    "seconds" : 30,
+    "thermal_end" : "nominal",
+    "thermal_start" : "nominal",
+    "total_frames" : 1879
+  },
+  "unet_runs" : [
+    {
+      "accuracy" : {
+        "files" : 4,
+        "frames" : 32,
+        "mae_max" : 0.0035494409185048426,
+        "mae_mean" : 0.003176120276293659,
+        "max_abs_max" : 0.1494140625,
+        "max_abs_mean" : 0.11565351486206055,
+        "p95_abs_max" : 0.011666107177734142,
+        "pass" : true,
+        "per_file" : [
+          {
+            "avatar" : "chin_h3_japanese_new",
+            "frames" : 8,
+            "mae" : 0.0031178040353552205,
+            "max_abs" : 0.1107177734375,
+            "name" : "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs" : 0.009765625,
+            "pass" : true,
+            "rmse" : 0.005041921872270178
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.0029927887917438056,
+            "max_abs" : 0.1297283172607422,
+            "name" : "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs" : 0.009205627441406183,
+            "pass" : true,
+            "rmse" : 0.004651710085916157
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.0030444473595707677,
+            "max_abs" : 0.07275390625,
+            "name" : "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs" : 0.009521484375,
+            "pass" : true,
+            "rmse" : 0.004666848570665208
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f",
+            "frames" : 8,
+            "mae" : 0.0035494409185048426,
+            "max_abs" : 0.1494140625,
+            "name" : "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs" : 0.011666107177734142,
+            "pass" : true,
+            "rmse" : 0.006207275944261304
+          }
+        ]
+      },
+      "batch" : 1,
+      "compute_units" : "CPU_AND_GPU",
+      "first_predict_ms" : 17600.82,
+      "frames_timed" : 60,
+      "layout" : "apple-ane",
+      "load_first_s" : 2.951,
+      "model" : "unet_anev2fc0_int8w_b1_chunked",
+      "stage_files" : [
+        "unet_anev2fc0_int8w_b1_chunk1.mlmodelc",
+        "unet_anev2fc0_int8w_b1_chunk2.mlmodelc"
+      ],
+      "stage_load_s" : [
+        1.1253,
+        1.8256
+      ],
+      "stages" : 2,
+      "thermal_after" : "nominal",
+      "timing_per_call" : {
+        "count" : 60,
+        "max_ms" : 33.247790997847915,
+        "mean_ms" : 32.2527026796403,
+        "min_ms" : 31.624542083591223,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 32.2461249306798,
+        "p90_ms" : 32.6302329543978,
+        "p99_ms" : 33.12848824309185
+      },
+      "timing_per_frame" : {
+        "count" : 60,
+        "max_ms" : 33.247790997847915,
+        "mean_ms" : 32.2527026796403,
+        "min_ms" : 31.624542083591223,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 32.2461249306798,
+        "p90_ms" : 32.6302329543978,
+        "p99_ms" : 33.12848824309185
+      },
+      "variant" : "anev2fc0_int8w"
+    },
+    {
+      "accuracy" : {
+        "files" : 4,
+        "frames" : 32,
+        "mae_max" : 0.016746414867157,
+        "mae_mean" : 0.013615926868169481,
+        "max_abs_max" : 1.0302734375,
+        "max_abs_mean" : 0.8192615509033203,
+        "p95_abs_max" : 0.05419921875,
+        "pass" : false,
+        "per_file" : [
+          {
+            "avatar" : "chin_h3_japanese_new",
+            "frames" : 8,
+            "mae" : 0.014435029353990103,
+            "max_abs" : 0.8469924926757812,
+            "name" : "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs" : 0.04248046875,
+            "pass" : false,
+            "rmse" : 0.028866796691999326
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.011881603182700928,
+            "max_abs" : 0.4781494140625,
+            "name" : "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs" : 0.034423828125,
+            "pass" : false,
+            "rmse" : 0.01872265602019448
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.011400660068829893,
+            "max_abs" : 0.921630859375,
+            "name" : "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.01853250043820897
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f",
+            "frames" : 8,
+            "mae" : 0.016746414867157,
+            "max_abs" : 1.0302734375,
+            "name" : "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs" : 0.05419921875,
+            "pass" : false,
+            "rmse" : 0.03547710967874931
+          }
+        ]
+      },
+      "batch" : 1,
+      "compute_units" : "CPU_AND_NE",
+      "first_predict_ms" : 25.27,
+      "frames_timed" : 60,
+      "layout" : "apple-ane",
+      "load_first_s" : 10.0339,
+      "model" : "unet_anev2fc0_int8w_b1_chunked",
+      "stage_files" : [
+        "unet_anev2fc0_int8w_b1_chunk1.mlmodelc",
+        "unet_anev2fc0_int8w_b1_chunk2.mlmodelc"
+      ],
+      "stage_load_s" : [
+        4.4099,
+        5.624
+      ],
+      "stages" : 2,
+      "thermal_after" : "nominal",
+      "timing_per_call" : {
+        "count" : 60,
+        "max_ms" : 16.48666593246162,
+        "mean_ms" : 16.072684014216065,
+        "min_ms" : 15.829625073820353,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 16.027875477448106,
+        "p90_ms" : 16.363065992482007,
+        "p99_ms" : 16.470490468200296
+      },
+      "timing_per_frame" : {
+        "count" : 60,
+        "max_ms" : 16.48666593246162,
+        "mean_ms" : 16.072684014216065,
+        "min_ms" : 15.829625073820353,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 16.027875477448106,
+        "p90_ms" : 16.363065992482007,
+        "p99_ms" : 16.470490468200296
+      },
+      "variant" : "anev2fc0_int8w"
+    }
+  ]
+}

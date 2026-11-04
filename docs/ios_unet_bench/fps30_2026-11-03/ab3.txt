@@ -1,0 +1,38 @@
+--- F r1: fold + TAESD GPU compose + 2 ANE workers (2026-11-02 best)
+pipelined over 400 frames: 15.5 ms/frame wall (ANE stage 31.0, CPU stage 5.4 + CGImage, in parallel; TAESD 4.0 in the compose stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+--- H r1: + 1 GPU worker, plain fp16
+pipelined over 400 frames: 9.8 ms/frame wall (ANE stage 33.3, CPU stage 1.6 + CGImage, in parallel; TAESD 5.3 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 1: 165 of 400 frames (41 %), 23.7 ms per frame on the GPU; 39 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- H2 r1: + 2 GPU workers, plain fp16
+pipelined over 400 frames: 8.2 ms/frame wall (ANE stage 33.4, CPU stage 1.6 + CGImage, in parallel; TAESD 5.0 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 2: 204 of 400 frames (51 %), 32.2 ms per frame on the GPU; 48 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- H8 r1: + 1 GPU worker, plain int8w
+pipelined over 400 frames: 10.3 ms/frame wall (ANE stage 33.3, CPU stage 1.6 + CGImage, in parallel; TAESD 5.4 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 1: 154 of 400 frames (38 %), 26.7 ms per frame on the GPU; 36 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- Hc r1: + 1 GPU worker on the same chunks
+pipelined over 400 frames: 11.3 ms/frame wall (ANE stage 33.4, CPU stage 1.6 + CGImage, in parallel; TAESD 5.7 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 1: 129 of 400 frames (32 %), 35.2 ms per frame on the GPU; 30 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- F r2: fold + TAESD GPU compose + 2 ANE workers (2026-11-02 best)
+pipelined over 400 frames: 15.6 ms/frame wall (ANE stage 31.0, CPU stage 8.0 + CGImage, in parallel; TAESD 6.1 in the compose stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+--- H r2: + 1 GPU worker, plain fp16
+pipelined over 400 frames: 9.9 ms/frame wall (ANE stage 34.1, CPU stage 1.5 + CGImage, in parallel; TAESD 5.2 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 1: 168 of 400 frames (42 %), 23.5 ms per frame on the GPU; 40 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- H2 r2: + 2 GPU workers, plain fp16
+pipelined over 400 frames: 8.2 ms/frame wall (ANE stage 33.5, CPU stage 1.7 + CGImage, in parallel; TAESD 4.9 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 2: 205 of 400 frames (51 %), 32.1 ms per frame on the GPU; 48 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- H8 r2: + 1 GPU worker, plain int8w
+pipelined over 400 frames: 10.3 ms/frame wall (ANE stage 33.3, CPU stage 1.6 + CGImage, in parallel; TAESD 5.4 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 1: 154 of 400 frames (38 %), 26.7 ms per frame on the GPU; 36 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- Hc r2: + 1 GPU worker on the same chunks
+pipelined over 400 frames: 11.4 ms/frame wall (ANE stage 33.4, CPU stage 1.6 + CGImage, in parallel; TAESD 5.7 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 1: 128 of 400 frames (32 %), 35.7 ms per frame on the GPU; 30 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's

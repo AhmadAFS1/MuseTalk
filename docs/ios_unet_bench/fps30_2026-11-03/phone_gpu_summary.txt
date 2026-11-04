@@ -1,0 +1,12 @@
+== 16:34:25 SoulX closed and phone unlocked; cooling 300 s
+== 16:39:26 phone ready
+[compile] [bench] device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal nominal, runtime iOS
+[compile] [bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 53.39 ms/frame mean, p99 55.29, max 55.47 over 20 calls of 1 (mem 52 MB, 3019 MB left)
+[compile]     "thermal_state" : "nominal"
+[1 D] gen 339/426 = 19.13 fps, shown 338, ANE stage 107.3 ms, GPU 0 frames at 0.0 ms, compose 8.2 ms, decode 23.1 ms, skipped 87, late 0, stalls 0, lead 4, workers 2+0 gpu
+[2 H] gen 270/426 = 15.24 fps, shown 269, ANE stage 166.4 ms, GPU 36 frames at 508.4 ms, compose 11.5 ms, decode 33.3 ms, skipped 156, late 0, stalls 0, lead 6, workers 2+1 gpu
+[2 H] [lipsync] lipsync: GPU worker warm-up 38.6 s, then 625.7 ms per frame
+[3 H] gen 267/426 = 15.02 fps, shown 266, ANE stage 161.3 ms, GPU 36 frames at 494.1 ms, compose 11.0 ms, decode 33.7 ms, skipped 159, late 0, stalls 0, lead 6, workers 2+1 gpu
+[3 H] [lipsync] lipsync: GPU worker warm-up 35.2 s, then 965.7 ms per frame
+[4 D] gen 329/426 = 18.57 fps, shown 323, ANE stage 110.6 ms, GPU 0 frames at 0.0 ms, compose 6.8 ms, decode 23.9 ms, skipped 97, late 0, stalls 0, lead 4, workers 2+0 gpu
+== 16:48:29 done

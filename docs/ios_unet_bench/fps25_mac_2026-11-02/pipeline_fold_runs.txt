@@ -1,0 +1,24 @@
+--- A r1 shipped
+   lipsync-check: UNet unet_anec0_int8w_b1_chunked
+   frame 96 vs Python composed: mean |diff| 0.175/255 (face box 0.243), max 18
+   pipelined over 400 frames: 21.0 ms/frame wall (ANE stage 21.0, CPU stage 1.5 + CGImage, in parallel; TAESD 1.8 in the ANE stage)
+--- D r1 V2 fold + TAESD GPU in compose
+   lipsync-check: UNet unet_anev2fc0_int8w_b1_chunked
+   frame 96 vs Python composed: mean |diff| 0.176/255 (face box 0.245), max 18
+   pipelined over 400 frames: 16.6 ms/frame wall (ANE stage 16.6, CPU stage 7.9 + CGImage, in parallel; TAESD 6.3 in the compose stage)
+--- A r2 shipped
+   lipsync-check: UNet unet_anec0_int8w_b1_chunked
+   frame 96 vs Python composed: mean |diff| 0.175/255 (face box 0.243), max 18
+   pipelined over 400 frames: 21.3 ms/frame wall (ANE stage 21.3, CPU stage 1.5 + CGImage, in parallel; TAESD 1.9 in the ANE stage)
+--- D r2 V2 fold + TAESD GPU in compose
+   lipsync-check: UNet unet_anev2fc0_int8w_b1_chunked
+   frame 96 vs Python composed: mean |diff| 0.176/255 (face box 0.245), max 18
+   pipelined over 400 frames: 16.8 ms/frame wall (ANE stage 16.8, CPU stage 7.8 + CGImage, in parallel; TAESD 6.2 in the compose stage)
+--- A r3 shipped
+   lipsync-check: UNet unet_anec0_int8w_b1_chunked
+   frame 96 vs Python composed: mean |diff| 0.175/255 (face box 0.243), max 18
+   pipelined over 400 frames: 21.8 ms/frame wall (ANE stage 21.8, CPU stage 1.6 + CGImage, in parallel; TAESD 2.0 in the ANE stage)
+--- D r3 V2 fold + TAESD GPU in compose
+   lipsync-check: UNet unet_anev2fc0_int8w_b1_chunked
+   frame 96 vs Python composed: mean |diff| 0.176/255 (face box 0.245), max 18
+   pipelined over 400 frames: 16.5 ms/frame wall (ANE stage 16.5, CPU stage 6.6 + CGImage, in parallel; TAESD 5.0 in the compose stage)

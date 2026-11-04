@@ -1,0 +1,374 @@
+{
+  "bundle_created" : "2026-10-31T17:46:14",
+  "chains" : [
+
+  ],
+  "device" : {
+    "chip" : "Apple M5 Pro",
+    "cpu_count" : 18,
+    "low_power_mode" : false,
+    "machine" : "arm64",
+    "memory_gb" : 24,
+    "model" : "Mac17,8",
+    "os" : "macOS",
+    "os_version" : "Version 27.0.1 (Build 26A434)",
+    "runtime" : "macOS CLI",
+    "thermal_state" : "nominal"
+  },
+  "finished" : "2026-11-03T20:11:16Z",
+  "gate" : {
+    "mae" : 0.01,
+    "max_abs" : 0.5,
+    "source" : "scripts\/validate_unet_backend.py per-file thresholds"
+  },
+  "harness_version" : "1",
+  "log" : [
+    "free disk 438385 MB (mem 5 MB)",
+    "device: arm64 Mac17,8 macOS Version 27.0.1 (Build 26A434), 24.0 GB, thermal nominal, runtime macOS CLI",
+    "UNets: unet_fp16_b1 (1 stage), unet_int8w_b1 (1 stage)",
+    "unet_fp16_b1 [CPU_AND_GPU]: loading 1 stage(s) (mem 5 MB)",
+    "unet_fp16_b1 [CPU_AND_GPU]: loaded in 2.66 s [\"2.66\"] (mem 23 MB)",
+    "unet_fp16_b1 [CPU_AND_GPU]: first prediction 2239.93 ms (mem 1856 MB)",
+    "unet_fp16_b1 [CPU_AND_GPU]: gate mae mean 0.00039 \/ max 0.00041; max_abs max 0.0137; 32 frames; PASS",
+    "unet_fp16_b1 [CPU_AND_GPU]: 19.63 ms\/frame mean, p99 20.13, max 20.13 over 60 calls of 1 (mem 1866 MB)",
+    "unet_int8w_b1 [CPU_AND_GPU]: loading 1 stage(s) (mem 1121 MB)",
+    "unet_int8w_b1 [CPU_AND_GPU]: loaded in 1.22 s [\"1.22\"] (mem 34 MB)",
+    "unet_int8w_b1 [CPU_AND_GPU]: first prediction 17364.18 ms (mem 2797 MB)",
+    "unet_int8w_b1 [CPU_AND_GPU]: gate mae mean 0.00317 \/ max 0.00355; max_abs max 0.1504; 32 frames; PASS",
+    "unet_int8w_b1 [CPU_AND_GPU]: 23.19 ms\/frame mean, p99 24.55, max 24.77 over 60 calls of 1 (mem 1841 MB)"
+  ],
+  "mac_reference" : {
+    "ane_layout_bench" : {
+      "host" : {
+        "chip" : "Apple M5 Pro",
+        "macos" : "27.0.1"
+      },
+      "measured_at" : "2026-10-30T17:59:04-0500",
+      "results" : [
+        {
+          "ane_load_s" : 11.6,
+          "ane_ms_per_call" : 22.63,
+          "ane_ms_per_frame" : 22.626,
+          "ane_p90_ms_per_frame" : 22.69,
+          "batch" : 1,
+          "bytes" : 1703013161,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.4336286187171936,
+          "face_max_abs_255" : 12.75041389465332,
+          "fps_single_stream_unet_only" : 44.2,
+          "kind" : "unet",
+          "latent_mae" : 0.012313341721892357,
+          "latent_max_abs" : 0.3589463233947754,
+          "mb" : 1624,
+          "name" : "unet_ane_fp16_b1",
+          "rss_mb_after" : 548,
+          "variant" : "ane_fp16",
+          "weight_bytes_per_frame_mb" : 1624.1
+        },
+        {
+          "ane_load_s" : 8.9,
+          "ane_ms_per_call" : 18.87,
+          "ane_ms_per_frame" : 18.867,
+          "ane_p90_ms_per_frame" : 18.974,
+          "batch" : 1,
+          "bytes" : 852743287,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.482073575258255,
+          "face_max_abs_255" : 15.357020378112793,
+          "fps_single_stream_unet_only" : 53,
+          "kind" : "unet",
+          "latent_mae" : 0.012812141329050064,
+          "latent_max_abs" : 0.3892197608947754,
+          "mb" : 813,
+          "name" : "unet_ane_int8w_b1",
+          "rss_mb_after" : 1638,
+          "variant" : "ane_int8w",
+          "weight_bytes_per_frame_mb" : 813.2
+        },
+        {
+          "ane_load_s" : 16.2,
+          "ane_ms_per_call" : 100.56,
+          "ane_ms_per_frame" : 25.141,
+          "ane_p90_ms_per_frame" : 25.247,
+          "batch" : 4,
+          "bytes" : 1703013161,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.4336286187171936,
+          "face_max_abs_255" : 12.75041389465332,
+          "fps_single_stream_unet_only" : 39.8,
+          "kind" : "unet",
+          "latent_mae" : 0.012313341721892357,
+          "latent_max_abs" : 0.3589463233947754,
+          "mb" : 1624,
+          "name" : "unet_ane_fp16_b4",
+          "rss_mb_after" : 1592,
+          "variant" : "ane_fp16",
+          "weight_bytes_per_frame_mb" : 406
+        },
+        {
+          "ane_load_s" : 13.4,
+          "ane_ms_per_call" : 80.29,
+          "ane_ms_per_frame" : 20.074,
+          "ane_p90_ms_per_frame" : 20.142,
+          "batch" : 4,
+          "bytes" : 852743287,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.482073575258255,
+          "face_max_abs_255" : 15.357020378112793,
+          "fps_single_stream_unet_only" : 49.8,
+          "kind" : "unet",
+          "latent_mae" : 0.012812141329050064,
+          "latent_max_abs" : 0.3892197608947754,
+          "mb" : 813,
+          "name" : "unet_ane_int8w_b4",
+          "rss_mb_after" : 1596,
+          "variant" : "ane_int8w",
+          "weight_bytes_per_frame_mb" : 203.3
+        }
+      ],
+      "units" : "CPU_AND_NE"
+    },
+    "gate" : {
+      "pytorch_fp32" : {
+        "mae_max" : 0.00048121900181286037,
+        "mae_mean" : 0.0003826273441518424,
+        "max_abs_max" : 0.04686196148395538,
+        "max_abs_mean" : 0.014692156575620174,
+        "pass" : true
+      },
+      "unet_fp16_b1" : {
+        "mae_max" : 0.01835004612803459,
+        "mae_mean" : 0.01278440683381632,
+        "max_abs_max" : 1.0009765625,
+        "max_abs_mean" : 0.5215401649475098,
+        "pass" : false
+      }
+    },
+    "host" : "arm64",
+    "note" : "M5 Pro Neural Engine, coremltools 9 Python bench",
+    "server_engines" : {
+      "trt_fp16" : {
+        "mae_max" : 0.0025,
+        "mae_mean" : 0.0018,
+        "max_abs_max" : 0.414
+      },
+      "trt_int8_srcg50_shipping" : {
+        "mae_max" : 0.0044,
+        "mae_mean" : 0.0032,
+        "max_abs_max" : 0.777
+      }
+    }
+  },
+  "options" : {
+    "chain_frames" : 0,
+    "compute_plan" : false,
+    "gpu_check" : false,
+    "gpu_check_frames" : 64,
+    "include_batch4" : false,
+    "phase_units" : "ALL",
+    "reload" : false,
+    "settle_seconds" : 0,
+    "sustained_seconds" : 0,
+    "unet_frames" : 60,
+    "unet_units" : [
+      "CPU_AND_GPU"
+    ],
+    "whisper" : false
+  },
+  "repo_commit" : "79e3535",
+  "started" : "2026-11-03T20:10:48Z",
+  "unet_runs" : [
+    {
+      "accuracy" : {
+        "files" : 4,
+        "frames" : 32,
+        "mae_max" : 0.00040812298175296746,
+        "mae_mean" : 0.00039005269172776025,
+        "max_abs_max" : 0.013671875,
+        "max_abs_mean" : 0.01263427734375,
+        "p95_abs_max" : 0.0013427734375,
+        "pass" : true,
+        "per_file" : [
+          {
+            "avatar" : "chin_h3_japanese_new",
+            "frames" : 8,
+            "mae" : 0.00039084602940420154,
+            "max_abs" : 0.013671875,
+            "name" : "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs" : 0.001220703125,
+            "pass" : true,
+            "rmse" : 0.0006833849976154986
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.00038312614196911454,
+            "max_abs" : 0.013671875,
+            "name" : "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs" : 0.0012180328369140458,
+            "pass" : true,
+            "rmse" : 0.0006540868964289129
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.00037811561378475744,
+            "max_abs" : 0.01025390625,
+            "name" : "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs" : 0.00103759765625,
+            "pass" : true,
+            "rmse" : 0.0006405428126766971
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f",
+            "frames" : 8,
+            "mae" : 0.00040812298175296746,
+            "max_abs" : 0.012939453125,
+            "name" : "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs" : 0.0013427734375,
+            "pass" : true,
+            "rmse" : 0.0007398714168354278
+          }
+        ]
+      },
+      "batch" : 1,
+      "compute_units" : "CPU_AND_GPU",
+      "first_predict_ms" : 2239.93,
+      "frames_timed" : 60,
+      "layout" : "diffusers",
+      "load_first_s" : 2.6571,
+      "model" : "unet_fp16_b1",
+      "stage_files" : [
+        "unet_fp16_b1.mlmodelc"
+      ],
+      "stage_load_s" : [
+        2.6571
+      ],
+      "stages" : 1,
+      "thermal_after" : "nominal",
+      "timing_per_call" : {
+        "count" : 60,
+        "max_ms" : 20.12895792722702,
+        "mean_ms" : 19.632586076234777,
+        "min_ms" : 19.180832896381617,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 19.616750185377896,
+        "p90_ms" : 19.901299965567887,
+        "p99_ms" : 20.128270115237683
+      },
+      "timing_per_frame" : {
+        "count" : 60,
+        "max_ms" : 20.12895792722702,
+        "mean_ms" : 19.632586076234777,
+        "min_ms" : 19.180832896381617,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 19.616750185377896,
+        "p90_ms" : 19.901299965567887,
+        "p99_ms" : 20.128270115237683
+      },
+      "variant" : "fp16"
+    },
+    {
+      "accuracy" : {
+        "files" : 4,
+        "frames" : 32,
+        "mae_max" : 0.003545853916875785,
+        "mae_mean" : 0.003173860259266803,
+        "max_abs_max" : 0.150390625,
+        "max_abs_mean" : 0.11431312561035156,
+        "p95_abs_max" : 0.011474609375,
+        "pass" : true,
+        "per_file" : [
+          {
+            "avatar" : "chin_h3_japanese_new",
+            "frames" : 8,
+            "mae" : 0.003112841626716545,
+            "max_abs" : 0.109375,
+            "name" : "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs" : 0.009765625,
+            "pass" : true,
+            "rmse" : 0.005033501427672844
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.002993286743731005,
+            "max_abs" : 0.12473297119140625,
+            "name" : "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs" : 0.00927734375,
+            "pass" : true,
+            "rmse" : 0.0046382402286827
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.003043458749743877,
+            "max_abs" : 0.07275390625,
+            "name" : "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs" : 0.009521484375,
+            "pass" : true,
+            "rmse" : 0.0046647081394605395
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f",
+            "frames" : 8,
+            "mae" : 0.003545853916875785,
+            "max_abs" : 0.150390625,
+            "name" : "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs" : 0.011474609375,
+            "pass" : true,
+            "rmse" : 0.0061947115669619985
+          }
+        ]
+      },
+      "batch" : 1,
+      "compute_units" : "CPU_AND_GPU",
+      "first_predict_ms" : 17364.18,
+      "frames_timed" : 60,
+      "layout" : "diffusers",
+      "load_first_s" : 1.22,
+      "model" : "unet_int8w_b1",
+      "stage_files" : [
+        "unet_int8w_b1.mlmodelc"
+      ],
+      "stage_load_s" : [
+        1.22
+      ],
+      "stages" : 1,
+      "thermal_after" : "nominal",
+      "timing_per_call" : {
+        "count" : 60,
+        "max_ms" : 24.773166980594397,
+        "mean_ms" : 23.188532690983266,
+        "min_ms" : 22.676208056509495,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 23.045958019793034,
+        "p90_ms" : 23.763945885002613,
+        "p99_ms" : 24.551400158088654
+      },
+      "timing_per_frame" : {
+        "count" : 60,
+        "max_ms" : 24.773166980594397,
+        "mean_ms" : 23.188532690983266,
+        "min_ms" : 22.676208056509495,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 23.045958019793034,
+        "p90_ms" : 23.763945885002613,
+        "p99_ms" : 24.551400158088654
+      },
+      "variant" : "int8w"
+    }
+  ]
+}

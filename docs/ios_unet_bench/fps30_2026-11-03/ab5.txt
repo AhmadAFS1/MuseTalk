@@ -1,0 +1,22 @@
+--- F: fold + TAESD GPU compose + 2 ANE workers (2026-11-02 best)
+pipelined over 400 frames: 15.6 ms/frame wall (ANE stage 31.1, CPU stage 8.3 + CGImage, in parallel; TAESD 6.4 in the compose stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+--- H: + 1 GPU worker, plain fp16
+pipelined over 400 frames: 9.9 ms/frame wall (ANE stage 33.3, CPU stage 1.6 + CGImage, in parallel; TAESD 7.3 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 1: 164 of 400 frames (41 %), 23.7 ms per frame on the GPU; 39 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- H2: + 2 GPU workers, plain fp16
+pipelined over 400 frames: 8.4 ms/frame wall (ANE stage 34.1, CPU stage 1.6 + CGImage, in parallel; TAESD 7.2 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 2: 203 of 400 frames (51 %), 32.5 ms per frame on the GPU; 48 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- H8: + 1 GPU worker, plain int8w
+pipelined over 400 frames: 10.3 ms/frame wall (ANE stage 33.3, CPU stage 1.6 + CGImage, in parallel; TAESD 7.3 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 1: 152 of 400 frames (38 %), 26.8 ms per frame on the GPU; 35 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- Hc: + 1 GPU worker on the same chunks
+pipelined over 400 frames: 11.4 ms/frame wall (ANE stage 33.4, CPU stage 1.6 + CGImage, in parallel; TAESD 7.3 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 1: 127 of 400 frames (32 %), 35.4 ms per frame on the GPU; 30 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- flag order: --gpu-workers 0 before --gpu-unet (expect no GPU worker)
+pipelined over 400 frames: 16.6 ms/frame wall (ANE stage 33.2, CPU stage 1.4 + CGImage, in parallel; TAESD 7.3 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0

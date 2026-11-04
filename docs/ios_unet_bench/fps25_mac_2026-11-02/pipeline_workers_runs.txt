@@ -1,0 +1,18 @@
+--- A r1 shipped, 1 worker
+   frame 96 vs Python composed: mean |diff| 0.175/255 (face box 0.243), max 18
+   pipelined over 400 frames: 21.0 ms/frame wall (ANE stage 21.0, CPU stage 1.4 + CGImage, in parallel; TAESD 1.8 in the ANE stage)
+--- D r1 fold + GPU decode, 1 worker
+   frame 96 vs Python composed: mean |diff| 0.176/255 (face box 0.245), max 18
+   pipelined over 400 frames: 16.2 ms/frame wall (ANE stage 16.1, CPU stage 5.5 + CGImage, in parallel; TAESD 4.1 in the compose stage)
+--- F r1 fold + GPU decode, 2 workers
+   frame 96 vs Python composed: mean |diff| 0.176/255 (face box 0.245), max 18
+   pipelined over 400 frames: 15.5 ms/frame wall (ANE stage 31.0, CPU stage 6.0 + CGImage, in parallel; TAESD 4.5 in the compose stage)
+--- A r2 shipped, 1 worker
+   frame 96 vs Python composed: mean |diff| 0.175/255 (face box 0.243), max 18
+   pipelined over 400 frames: 20.8 ms/frame wall (ANE stage 20.8, CPU stage 1.4 + CGImage, in parallel; TAESD 1.8 in the ANE stage)
+--- D r2 fold + GPU decode, 1 worker
+   frame 96 vs Python composed: mean |diff| 0.176/255 (face box 0.245), max 18
+   pipelined over 400 frames: 16.3 ms/frame wall (ANE stage 16.3, CPU stage 6.1 + CGImage, in parallel; TAESD 4.6 in the compose stage)
+--- F r2 fold + GPU decode, 2 workers
+   frame 96 vs Python composed: mean |diff| 0.176/255 (face box 0.245), max 18
+   pipelined over 400 frames: 15.6 ms/frame wall (ANE stage 31.1, CPU stage 6.9 + CGImage, in parallel; TAESD 5.1 in the compose stage)

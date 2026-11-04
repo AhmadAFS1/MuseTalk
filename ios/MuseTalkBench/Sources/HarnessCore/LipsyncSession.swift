@@ -108,6 +108,10 @@ public final class LipsyncSession {
         public var aheadSeconds = 1.0
         /// Play `playbackURL` through AVAudioPlayer. Off, the clock is a free-running timer (Mac checks).
         public var playAudio = true
+        /// Neural Engine stage threads (`LipsyncPipeline.inferWorkers`); 2 keeps the engine fed between chunk calls.
+        public var inferWorkers = 1
+        /// GPU threads next to them (`LipsyncPipeline.gpuWorkers`; the engine needs `gpuUNetName` before `load()`).
+        public var gpuWorkers = 0
         /// The router's drift limit and crossfade lengths (Poses.swift).
         public var poses = FramePlan.Settings()
         public init() {}
@@ -120,11 +124,17 @@ public final class LipsyncSession {
         public var avatar = "", unet = "", fps = 0, frames = 0, seconds = 0.0
         public var generated = 0, shown = 0, skipped = 0, droppedLate = 0, stalls = 0, leadFrames = 1
         public var stageInferMs = 0.0, stageComposeMs = 0.0
+        public var decodeMs = 0.0, deferDecode = false   // TAESD + RGB alone; whether it ran in the compose stage
+        public var inferWorkers = 1
+        public var gpuWorkers = 0, gpuGenerated = 0, gpuMs = 0.0  // GPU workers, the faces they made, UNet + TAESD per face
         public var prerollSeconds = 0.0, prerollFrames = 0, startLatencySeconds = 0.0  // speak() → clock start
         public var audioPrepSeconds = 0.0, loadSeconds = 0.0
         public var audioPlayed = false, audioRoute = "", systemVolume = 0.0
         public var poseSwitches = 0, crossfaded = 0
         public var plan = ""
+        /// iOS's thermal level at speak(), at the result, and each change in between (seconds after speak()).
+        public var thermalStart = "", thermalEnd = ""
+        public var thermalChanges: [(seconds: Double, state: String)] = []
         public var generatedFps: Double { seconds > 0 ? Double(generated) / seconds : 0 }
         public var shownFps: Double { seconds > 0 ? Double(shown) / seconds : 0 }
 
@@ -133,10 +143,14 @@ public final class LipsyncSession {
              "generated": generated, "generated_fps": generatedFps, "shown": shown, "shown_fps": shownFps,
              "skipped": skipped, "dropped_late": droppedLate, "stalls": stalls, "lead_frames": leadFrames,
              "gen_ms_per_frame": stageInferMs + stageComposeMs, "stage_infer_ms": stageInferMs, "stage_compose_ms": stageComposeMs,
+             "decode_ms": decodeMs, "defer_decode": deferDecode, "infer_workers": inferWorkers,
+             "gpu_workers": gpuWorkers, "gpu_generated": gpuGenerated, "gpu_ms": gpuMs,
              "pipelined": true, "preroll_s": prerollSeconds, "preroll_frames": prerollFrames, "start_latency_s": startLatencySeconds,
              "audio_prep_s": audioPrepSeconds, "load_s": loadSeconds,
              "audio_played": audioPlayed, "audio_route": audioRoute, "system_volume": systemVolume,
-             "pose_switches": poseSwitches, "crossfaded": crossfaded, "plan": plan]
+             "pose_switches": poseSwitches, "crossfaded": crossfaded, "plan": plan,
+             "thermal_start": thermalStart, "thermal_end": thermalEnd,
+             "thermal_changes": thermalChanges.map { ["t_s": $0.seconds, "state": $0.state] }]
         }
 
         public var json: String {
@@ -167,6 +181,9 @@ public final class LipsyncSession {
     private var audioRoute = "", systemVolume = 0.0, audioPlayed = false
     private var finished = false
     private var plan: FramePlan? = nil
+    private var thermalStart = ""                                  // under `lock`
+    private var thermalChanges: [(seconds: Double, state: String)] = []
+    private var thermalObserver: NSObjectProtocol? = nil
 
     // the idle track (all under `lock`, read on the display thread)
     private var idleStart: Double? = nil          // monotonic seconds the idle clock started; nil = not running
@@ -188,6 +205,21 @@ public final class LipsyncSession {
         self.config = config
         fps = engine.avatar.fps
         idleSlot = FramePlan.resolve(.idle, available: engine.availableSlots)
+        // a turn's thermal changes go into its result (a throttled turn explains its own frame rate)
+        thermalObserver = NotificationCenter.default.addObserver(forName: ProcessInfo.thermalStateDidChangeNotification,
+                                                                 object: nil, queue: nil) { [weak self] _ in
+            guard let self = self else { return }
+            let name = thermalName(ProcessInfo.processInfo.thermalState)
+            self.lock.lock()
+            let inTurn = self.stateValue == .preparing || self.stateValue == .preroll || self.stateValue == .playing
+            if inTurn { self.thermalChanges.append((now() - self.speakAt, name)) }
+            self.lock.unlock()
+            if inTurn { self.log("thermal state -> \(name)") }
+        }
+    }
+
+    deinit {
+        if let o = thermalObserver { NotificationCenter.default.removeObserver(o) }
     }
 
     public var state: State { lock.lock(); defer { lock.unlock() }; return stateValue }
@@ -297,7 +329,10 @@ public final class LipsyncSession {
     public func speak(waveform: [Float], playbackURL: URL?, cues: [PoseCue]) throws {
         let s = state
         guard s == .idle || s == .finished || s == .failed else { throw BundleError.busy("session is \(s.rawValue)") }
+        lock.lock()
         speakAt = now()
+        thermalStart = thermalName(ProcessInfo.processInfo.thermalState); thermalChanges = []
+        lock.unlock()
         setState(.preparing)
         // the worker's idle sync hold: the idle track freezes at its phase, the first live segment starts there
         lock.lock()
@@ -350,6 +385,9 @@ public final class LipsyncSession {
         log("poses: \(compiled.description) (idle phase \(phase), \(total) frames)")
         let pipe = LipsyncPipeline(engine: engine, aheadFrames: max(preroll, Int(config.aheadSeconds * Double(fps))))
         pipe.frameMs = 1000.0 / Double(fps)
+        pipe.inferWorkers = config.inferWorkers
+        pipe.gpuWorkers = config.gpuWorkers
+        pipe.prerollFrames = preroll
         pipe.log = log
         pipe.plan = compiled
         pipe.seamAnchor = anchor
@@ -451,6 +489,8 @@ public final class LipsyncSession {
         r.avatar = engine.avatar.meta.avatar_id; r.unet = engine.spec.name; r.fps = fps; r.frames = total; r.seconds = seconds
         r.generated = s.generated; r.shown = shown; r.skipped = s.skipped; r.droppedLate = s.droppedLate; r.stalls = stalls
         r.leadFrames = s.leadFrames; r.stageInferMs = s.inferMs; r.stageComposeMs = s.composeMs
+        r.decodeMs = s.decodeMs; r.deferDecode = engine.deferDecode; r.inferWorkers = config.inferWorkers
+        r.gpuWorkers = engine.gpuSpec != nil ? config.gpuWorkers : 0; r.gpuGenerated = s.gpuGenerated; r.gpuMs = s.gpuMs
         r.prerollSeconds = config.prerollSeconds; r.prerollFrames = preroll
         r.startLatencySeconds = (buffer.audioStart ?? now()) - speakAt
         r.audioPrepSeconds = engine.audioSeconds; r.loadSeconds = engine.loadSeconds
@@ -458,7 +498,9 @@ public final class LipsyncSession {
         lock.lock()
         r.poseSwitches = plan?.switches ?? 0
         r.plan = plan?.description ?? ""
+        r.thermalStart = thermalStart; r.thermalChanges = thermalChanges
         lock.unlock()
+        r.thermalEnd = thermalName(ProcessInfo.processInfo.thermalState)
         r.crossfaded = s.crossfaded
         return r
     }

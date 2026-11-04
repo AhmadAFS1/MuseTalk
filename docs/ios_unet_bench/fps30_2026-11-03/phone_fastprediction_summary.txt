@@ -1,0 +1,13 @@
+== 19:35:10 order D F F D; UNets unet_anev2fc0_int8w_b1_chunked
+   D: --unet unet_anev2fc0_int8w_b1_chunked --infer-workers 2
+   F: --unet unet_anev2fc0_int8w_b1_chunked --infer-workers 2 --fast-prediction
+== 19:35:56 installed /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/Build/Products/Release-iphoneos/MuseTalkBench.app
+[check] [bench] free disk 20394 MB (mem 14 MB, 3057 MB left)
+[check] [bench] device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal nominal, runtime iOS
+[check] [bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 53.80 ms/frame mean, p99 54.84, max 54.88 over 20 calls of 1 (mem 52 MB, 3019 MB left)
+== 19:36:39 thermal nominal: starting the runs
+[1 D] 18.34 fps (325 of 426 generated, 324 shown), ANE stage 111.6 ms, 2 workers, skipped 101, late 0, stalls 0, thermal nominal -> nominal
+[2 F] 17.05 fps (303 of 426 generated, 302 shown), ANE stage 119.7 ms, 2 workers, skipped 123, late 0, stalls 0, thermal nominal -> nominal
+[3 F] 17.43 fps (310 of 426 generated, 309 shown), ANE stage 116.9 ms, 2 workers, skipped 116, late 0, stalls 0, thermal fair -> fair
+[4 D] 17.72 fps (314 of 426 generated, 313 shown), ANE stage 115.5 ms, 2 workers, skipped 112, late 0, stalls 0, thermal fair -> fair
+== 19:39:21 done

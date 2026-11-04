@@ -1,0 +1,30 @@
+--- F base: fold + TAESD GPU compose + 2 ANE workers
+pipelined over 400 frames: 15.5 ms/frame wall (ANE stage 31.0, CPU stage 5.4 + CGImage, in parallel; TAESD 3.9 in the compose stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+--- H: fold + 2 ANE workers + GPU worker fp16 plain
+lipsync: GPU worker UNet unet_fp16_b1 (1 stage(s)) + TAESD on CPU_AND_GPU
+GPU worker warm-up 0.6 s, then 23.7 ms per frame (UNet + TAESD)
+frame 0 vs Python composed, GPU models: mean |diff| 0.194/255 (face box 0.405), max 20
+frame 24 vs Python composed, GPU models: mean |diff| 0.198/255 (face box 0.365), max 14
+frame 48 vs Python composed, GPU models: mean |diff| 0.199/255 (face box 0.387), max 22
+frame 96 vs Python composed, GPU models: mean |diff| 0.194/255 (face box 0.356), max 18
+GPU frame loop over 96 frames: UNet + TAESD 22.5 ms/frame (sequential)
+lipsync: GPU worker 0 ready (23.5 ms per frame warm)
+pipelined over 400 frames: 9.8 ms/frame wall (ANE stage 33.3, CPU stage 1.6 + CGImage, in parallel; TAESD 5.2 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 1: 165 of 400 frames (41 %), 23.5 ms per frame on the GPU; 39 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's
+--- F base again
+pipelined over 400 frames: 15.5 ms/frame wall (ANE stage 31.0, CPU stage 6.0 + CGImage, in parallel; TAESD 4.4 in the compose stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+--- H again
+lipsync: GPU worker UNet unet_fp16_b1 (1 stage(s)) + TAESD on CPU_AND_GPU
+GPU worker warm-up 0.4 s, then 22.4 ms per frame (UNet + TAESD)
+frame 0 vs Python composed, GPU models: mean |diff| 0.194/255 (face box 0.405), max 20
+frame 24 vs Python composed, GPU models: mean |diff| 0.198/255 (face box 0.365), max 14
+frame 48 vs Python composed, GPU models: mean |diff| 0.199/255 (face box 0.387), max 22
+frame 96 vs Python composed, GPU models: mean |diff| 0.194/255 (face box 0.356), max 18
+GPU frame loop over 96 frames: UNet + TAESD 22.1 ms/frame (sequential)
+lipsync: GPU worker 0 ready (24.0 ms per frame warm)
+pipelined over 400 frames: 9.8 ms/frame wall (ANE stage 33.3, CPU stage 1.6 + CGImage, in parallel; TAESD 5.2 in the ANE stage)
+pipelined frames vs sequential (2 workers, first 96 frames): max |diff| 0, mean 0.0000/255, out of order 0
+GPU workers 1: 165 of 400 frames (41 %), 23.5 ms per frame on the GPU; 38 of the first 96 equal the GPU loop's, the rest the Neural Engine loop's

@@ -1,0 +1,24 @@
+--- A r1 shipped
+   lipsync-check: UNet unet_anec0_int8w_b1_chunked
+   pipelined over 400 frames: 21.0 ms/frame wall (ANE stage 20.9, CPU stage 1.4 + CGImage, in parallel; TAESD 1.8 in the ANE stage)
+--- G r1 shipped chunks + GPU decode + 2 workers
+   lipsync-check: UNet unet_anec0_int8w_b1_chunked
+   pipelined over 400 frames: 18.6 ms/frame wall (ANE stage 37.1, CPU stage 7.2 + CGImage, in parallel; TAESD 5.4 in the compose stage)
+--- F r1 fold + GPU decode + 2 workers
+   lipsync-check: UNet unet_anev2fc0_int8w_b1_chunked
+   pipelined over 400 frames: 15.6 ms/frame wall (ANE stage 31.0, CPU stage 5.8 + CGImage, in parallel; TAESD 4.4 in the compose stage)
+--- F3 r1 fold + GPU decode + 3 workers
+   lipsync-check: UNet unet_anev2fc0_int8w_b1_chunked
+   pipelined over 400 frames: 15.3 ms/frame wall (ANE stage 45.8, CPU stage 6.6 + CGImage, in parallel; TAESD 5.0 in the compose stage)
+--- A r2 shipped
+   lipsync-check: UNet unet_anec0_int8w_b1_chunked
+   pipelined over 400 frames: 21.3 ms/frame wall (ANE stage 21.3, CPU stage 1.6 + CGImage, in parallel; TAESD 1.9 in the ANE stage)
+--- G r2 shipped chunks + GPU decode + 2 workers
+   lipsync-check: UNet unet_anec0_int8w_b1_chunked
+   pipelined over 400 frames: 18.7 ms/frame wall (ANE stage 37.3, CPU stage 8.0 + CGImage, in parallel; TAESD 6.3 in the compose stage)
+--- F r2 fold + GPU decode + 2 workers
+   lipsync-check: UNet unet_anev2fc0_int8w_b1_chunked
+   pipelined over 400 frames: 15.7 ms/frame wall (ANE stage 31.4, CPU stage 7.2 + CGImage, in parallel; TAESD 5.6 in the compose stage)
+--- F3 r2 fold + GPU decode + 3 workers
+   lipsync-check: UNet unet_anev2fc0_int8w_b1_chunked
+   pipelined over 400 frames: 15.5 ms/frame wall (ANE stage 46.2, CPU stage 7.5 + CGImage, in parallel; TAESD 5.9 in the compose stage)
