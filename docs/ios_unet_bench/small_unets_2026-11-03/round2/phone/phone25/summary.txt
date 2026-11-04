@@ -1,0 +1,17 @@
+== 03:57:21 order D S S D; UNets unet_anev2fc0_int8w_b1_chunked, unet_bk_tiny_r2_selected_int8w_b1
+   D: --unet unet_anev2fc0_int8w_b1_chunked --infer-workers 2
+   S: --unet unet_bk_tiny_r2_selected_int8w_b1 --infer-workers 2
+== 03:59:08 installed /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/Build/Products/Release-iphoneos/MuseTalkBench.app
+[check] [bench] free disk 25594 MB (mem 15 MB, 3056 MB left)
+[check] [bench] device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal nominal, runtime iOS
+[check] [bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 54.33 ms/frame mean, p99 56.81, max 57.22 over 20 calls of 1 (mem 56 MB, 3015 MB left)
+[check] [bench] unet_bk_tiny_r2_selected_int8w_b1 [CPU_AND_NE]: 33.31 ms/frame mean, p99 34.25, max 34.30 over 20 calls of 1 (mem 40 MB, 3031 MB left)
+== 04:00:12 thermal nominal: starting the runs
+[1 D] 17.77 fps (315 of 444 generated, 314 shown), ANE stage 115.5 ms, 2 workers, skipped 129, late 0, stalls 0, thermal nominal -> fair (fair at 13.1 s)
+[2 S] 25.06 fps (444 of 444 generated, 442 shown), ANE stage 78.6 ms, 2 workers, skipped 0, late 0, stalls 0, thermal fair -> fair
+[3 S] 25.04 fps (444 of 444 generated, 443 shown), ANE stage 78.7 ms, 2 workers, skipped 0, late 0, stalls 0, thermal fair -> fair
+== 04:02:13 stopped 4_D_a1.log: SoulX app appeared
+[4 D] attempt 1 gave no result at 04:02:13
+[4 D] 19.13 fps (339 of 444 generated, 338 shown), ANE stage 107.3 ms, 2 workers, skipped 105, late 0, stalls 0, thermal nominal -> nominal
+== verified 4 ordered results with matched inputs
+== 04:04:16 done

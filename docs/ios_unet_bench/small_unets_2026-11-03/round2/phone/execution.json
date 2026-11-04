@@ -1,0 +1,161 @@
+{
+  "completed": true,
+  "phone": "iPhone 12 Pro / iPhone13,3",
+  "device_os": "iOS 26.2 (23C55)",
+  "training_code_sha": "d8826442c5d1bd8772185a7fc564eddd98faf19f",
+  "benchmark_code_commit": "fa4f612",
+  "checkpoint_sha256": "a05d2d98f69b431252458d3b25f72e395d557ba693821baee91d11f5fe5a96cd",
+  "export_command": "scripts/ios/export_small_unets.py --variants bk_tiny --weights models/ios_bench/distilled/round2_bk_tiny_best.pt --tag r2_selected --results <output>/export.json",
+  "benchmark_driver": "scripts/ios/run_phone_ab.sh",
+  "order": [
+    "D",
+    "S",
+    "S",
+    "D"
+  ],
+  "inference_workers": 2,
+  "gpu_workers": 0,
+  "waveform_samples": 284160,
+  "sample_rate": 16000,
+  "waveform_seconds": 17.76,
+  "workloads": {
+    "24": {
+      "frames": 426
+    },
+    "25": {
+      "frames": 444
+    }
+  },
+  "source_avatar_json_restored_byte_for_byte": true,
+  "source_avatar_json_sha256": "761800fc8d9462975b63c96aed20e6ed01df10ee9a2fc0de6f02af3d79e22b91",
+  "source_fps_after_test": 24,
+  "last_installed_benchmark_app_fps": 25,
+  "source_video_fps": 24,
+  "lingua_modified": false,
+  "quality_verdict": "FAIL",
+  "speed_only_25fps": true,
+  "compute_units": "CPU_AND_NE",
+  "compute_plan_checked": false,
+  "interrupted_attempt": "phone25/4_D_a1.log emitted a complete LIPSYNC_RESULT before the SoulX watchdog rejected that attempt. It is retained as rejected evidence and excluded from all aggregates. Exact SoulX app was closed under user authorization; 4_D_a2.log completed and supplies the accepted final D result.",
+  "storage_free_mb_at_checks": {
+    "24": 26695,
+    "25": 25594
+  },
+  "retained_files": [
+    {
+      "path": "phone_comparison.json",
+      "bytes": 2824,
+      "sha256": "3a89baa1ad63e71b7592052b3fb6e612938c2ddb1ff5145058da6bad038e2907"
+    },
+    {
+      "path": "student_provenance.json",
+      "bytes": 1019,
+      "sha256": "97617f373b98f89798a7dfc637f5856e487c1b39b258df19a0176487bfc52b8c"
+    },
+    {
+      "path": "export.json",
+      "bytes": 566,
+      "sha256": "62a24640118388ac9b3b79eb515e157ce6fa7dfa1444d1954c99ba48ba056c3e"
+    },
+    {
+      "path": "export.log",
+      "bytes": 6058,
+      "sha256": "726cecd78be5537f3a3f74848bb70127e282bdfdfb766c45e3e9e41a1f749cf0"
+    },
+    {
+      "path": "compile.log",
+      "bytes": 134,
+      "sha256": "3ed32e04ffb9d8fec045e9ad14a27ed3d19bd16df717faf37f8707f8cbdebf4b"
+    },
+    {
+      "path": "build24.log",
+      "bytes": 22359,
+      "sha256": "0ffe120c0410916a78fdf1d4347e2c836b1a870a4aa03a0aa5fa0b3a7119d929"
+    },
+    {
+      "path": "build25.log",
+      "bytes": 5363,
+      "sha256": "c5668caa275fc29d8f3d518d7fd840bd42f7b69ff50d6c8277898de3fbf055f3"
+    },
+    {
+      "path": "phone25_speed_only.md",
+      "bytes": 525,
+      "sha256": "60ada07c8602519e38db4ba3ed10b35830885c2b2ad8d5c97061bf020a0c509c"
+    },
+    {
+      "path": "phone24/results.jsonl",
+      "bytes": 3899,
+      "sha256": "0d44551db802da84b8f12e408a5dcb4e4e1ba1d5e17ed16ab0b5e148de1a05d0"
+    },
+    {
+      "path": "phone24/summary.txt",
+      "bytes": 1514,
+      "sha256": "3aaebb4fd80c119652c9fe956231384ebe5666078edf421637e54140a9f9625e"
+    },
+    {
+      "path": "phone24/1_D_a1.log",
+      "bytes": 1689,
+      "sha256": "27adf430ef8e645ff0c462b30648c8ad1bcd795b00563b4c4a1987b4ebc03daf"
+    },
+    {
+      "path": "phone24/3_S_a1.log",
+      "bytes": 1700,
+      "sha256": "9e1d65e60dde454a22ac10c9c778dad3bac4564c17de6f215544b4127293a8dd"
+    },
+    {
+      "path": "phone24/2_S_a1.log",
+      "bytes": 1702,
+      "sha256": "92696c6f081e82f641982912413fbbf5180b5232fe7495b739aee9b65f98a5f8"
+    },
+    {
+      "path": "phone24/check_a1.log",
+      "bytes": 23518,
+      "sha256": "84182d3de1bcf5423cd8e9002ad9d8b6b24623a03a555643af75593c914a3329"
+    },
+    {
+      "path": "phone24/4_D_a1.log",
+      "bytes": 1687,
+      "sha256": "7b82057dc8a1b4f5b56220c507377f12e1bdb5aac44d46155413c00d0000ab84"
+    },
+    {
+      "path": "phone25/results.jsonl",
+      "bytes": 3931,
+      "sha256": "9d944d4cb5606680abad8eb252118a8514608f2292fd1f30bdf629f3c4fe33b7"
+    },
+    {
+      "path": "phone25/summary.txt",
+      "bytes": 1616,
+      "sha256": "eadb2cc6ce90fe98ebd31de95a4c205f504e23543bc2cf67caa56658e06fcfb4"
+    },
+    {
+      "path": "phone25/1_D_a1.log",
+      "bytes": 1762,
+      "sha256": "ef061ad23b7d05e12f26a91569c1cd4b5825255419dd0e22877c7ba7799e6663"
+    },
+    {
+      "path": "phone25/3_S_a1.log",
+      "bytes": 1696,
+      "sha256": "ac78c3f64a7fcb0841fff67f7c9aac243f4d3810d55f43b26edce6e08c3cec80"
+    },
+    {
+      "path": "phone25/2_S_a1.log",
+      "bytes": 1696,
+      "sha256": "766a667ac57d0f8bffb0d7a51eeaa8bec8031697c227b902b2536e1089114ac4"
+    },
+    {
+      "path": "phone25/check_a1.log",
+      "bytes": 23512,
+      "sha256": "10e960e1517dde8da8135a8d9b92daadd884f846024bd04b2e8d90b90a95d230"
+    },
+    {
+      "path": "phone25/4_D_a2.log",
+      "bytes": 1695,
+      "sha256": "e40a93c87a85441313b927927cfd35fbceaf2574190cf5271ff98a61d07d3551"
+    },
+    {
+      "path": "phone25/4_D_a1.log",
+      "bytes": 1689,
+      "sha256": "ea56b70e7c031596c28047d37cd06c1c9de8f637d5ea424fc6bb39ab6d3392b8"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+== 04:03:45 --lipsync --exit --silent --unet unet_anev2fc0_int8w_b1_chunked --infer-workers 2
+Launched application with com.lingua.musetalkbench bundle identifier.
+Waiting for the application to terminate…
+[lipsync] lipsync: loading unet_anev2fc0_int8w_b1_chunked (2 stage(s)) on CPU_AND_NE (mem 11 MB, 3060 MB left)
+[lipsync] lipsync: models loaded in 0.35 s, 241 frame latents ready for talking (mem 41 MB, 3030 MB left)
+[lipsync] lipsync: audio windows for 444 frames at 25 fps (17.8 s of audio) in 0.15 s
+[lipsync] poses: neutral_resting@0(talking, offset 0, fade 0) (idle phase 0, 444 frames)
+[lipsync] clock started after pre-roll: play() false, route , system volume 0.00, 10 frames buffered, 0.71 s after speak()
+LIPSYNC_RESULT {"audio_played":false,"audio_prep_s":0.15011929208412766,"audio_route":"","avatar":"latina_guided_20260925_talking_84c5bc80b8","crossfaded":0,"decode_ms":23.099388436834634,"defer_decode":false,"dropped_late":0,"fps":25,"frames":444,"gen_ms_per_frame":113.70703726965704,"generated":339,"generated_fps":19.126228771132705,"gpu_generated":0,"gpu_ms":0,"gpu_workers":0,"infer_workers":2,"lead_frames":4,"load_s":0.34576166700571775,"pipelined":true,"plan":"neutral_resting@0(talking, offset 0, fade 0)","pose_switches":0,"preroll_frames":10,"preroll_s":0.40000000000000002,"seconds":17.724351415876299,"shown":338,"shown_fps":19.069809217235559,"skipped":105,"stage_compose_ms":6.3874381683645964,"stage_infer_ms":107.31959910129244,"stalls":0,"start_latency_s":0.70967312506400049,"system_volume":0,"thermal_changes":[],"thermal_end":"nominal","thermal_start":"nominal","unet":"unet_anev2fc0_int8w_b1_chunked"}
+The app terminated with the exit code 0.

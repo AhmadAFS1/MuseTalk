@@ -1,0 +1,66 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/MuseTalkBench.xcodeproj -scheme MuseTalkBench -configuration Release -destination generic/platform=iOS -derivedDataPath /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData -allowProvisioningUpdates -jobs 1 build
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  MuseTalkBench: /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench
+
+2026-11-04 03:57:13.043 xcodebuild[74224:50125038] [MT] IDERunDestination: Supported platforms for the buildables in the current scheme is empty.
+Build Preparation
+Build task concurrency set to 1 via user default IDEBuildOperationMaxNumberOfConcurrentCompileTasks
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (3 targets)
+    Target 'MuseTalkBench' in project 'MuseTalkBench'
+        ➜ Explicit dependency on target 'HarnessCore-product' in project 'MuseTalkBench'
+    Target 'HarnessCore-product' in project 'MuseTalkBench'
+        ➜ Explicit dependency on target 'HarnessCore' in project 'MuseTalkBench'
+    Target 'HarnessCore' in project 'MuseTalkBench' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS27.0.sdk /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/SDKStatCaches.noindex/iphoneos27.0-24A430-6c78b3cbc238196c85e1bf6c792c5915.sdkstatcache
+    cd /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/MuseTalkBench.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS27.0.sdk -o /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/SDKStatCaches.noindex/iphoneos27.0-24A430-6c78b3cbc238196c85e1bf6c792c5915.sdkstatcache
+
+CpResource /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/Build/Products/Release-iphoneos/MuseTalkBench.app/HarnessBundle /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/HarnessBundle (in target 'MuseTalkBench' from project 'MuseTalkBench' at path '/Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/MuseTalkBench.xcodeproj')
+    cd /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/HarnessBundle /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/Build/Products/Release-iphoneos/MuseTalkBench.app
+
+CodeSign /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/Build/Products/Release-iphoneos/MuseTalkBench.app (in target 'MuseTalkBench' from project 'MuseTalkBench' at path '/Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/MuseTalkBench.xcodeproj')
+    cd /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App
+    
+    Signing Identity:     "Apple Development: ahmadafs1@icloud.com (FUZ4M7V6F8)"
+    Provisioning Profile: "iOS Team Provisioning Profile: *"
+                          (2495e012-7d32-4bc8-9ad7-89f2ee848ffb)
+    
+    /usr/bin/codesign --force --sign 3732465BD28E87FC89BE72360E6932B5851544AB --entitlements /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/Build/Intermediates.noindex/MuseTalkBench.build/Release-iphoneos/MuseTalkBench.build/MuseTalkBench.app.xcent --timestamp\=none --generate-entitlement-der /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/Build/Products/Release-iphoneos/MuseTalkBench.app
+/Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/Build/Products/Release-iphoneos/MuseTalkBench.app: replacing existing signature
+
+Validate /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/Build/Products/Release-iphoneos/MuseTalkBench.app (in target 'MuseTalkBench' from project 'MuseTalkBench' at path '/Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/MuseTalkBench.xcodeproj')
+    cd /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App
+    builtin-validationUtility /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/Build/Products/Release-iphoneos/MuseTalkBench.app -shallow-bundle -infoplist-subpath Info.plist
+
+PruneExplicitPrecompiledModules /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/ahmadsmacair/code/musetalk-ios-bench/ios/MuseTalkBench/App/DerivedData/SDKExplicitPrecompiledModules
+
+** BUILD SUCCEEDED **
+

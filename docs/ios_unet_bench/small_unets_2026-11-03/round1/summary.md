@@ -54,7 +54,7 @@ for compact sharing. Numerical metrics were measured from the original raw frame
 The complete source archive remains local under `.runtime/mtboot-distill/dt-r1-20261103a/results.tar`.
 [The curation manifest](curation_manifest.json) records source/delivery hashes and the unchanged checkpoint hash.
 
-## Rental and next step
+## Rental closed and final outcome
 
 Instance **59051256** (`mtboot-dt-r1-20261103a`) used stock launch, worker revision 4e2b02e, one RTX 3090,
 $0.2747743056/h, and a pre-create four-hour expiry timer. Create requests: **1**. Results and weights were
@@ -62,8 +62,10 @@ pulled before cleanup. The provider reports **absent** and the timer **inactive*
 [rental_receipt.json](rental_receipt.json). Estimated spend: **$0.7629**
 (time plus quoted-rate container transfer; not invoice-confirmed).
 
-The permitted second attempt changes only the step cap to 100,000, keeping bk_tiny and the 150-minute limit.
-It starts fresh from the same initialization and seed; it does not alter or reset the round-1 resume manifest.
-Expected actual training is about 38,000–40,000 steps. See [the round-2 plan](../round2/plan.md).
-Phone inference is measured after the final training attempt. The historical untrained 24-fps sweep is not
-claimed as a trained 25-fps result. Lingua remains unchanged.
+The permitted second attempt changed only the step cap to 100,000, retaining bk_tiny and the 150-minute limit.
+It completed 37,807 steps from the same fresh initialization/seed, then also failed all 12 review clips.
+Round 2 was selected for phone timing only by its slightly lower validation MAE. It reached **25.045 generated /
+24.961 shown fps**, versus D's **18.450 / 18.394**, on the matched 25-fps test clip, with no student skips,
+late drops or stalls. This speed result does not overcome the quality failure. See [the final round-2 report](../round2/summary.md).
+Both rentals are destroyed with inactive expiry timers; combined estimated spend is **$1.72268**, not
+invoice-confirmed. The overall usable-25-fps verdict is **FAIL**. Lingua remains unchanged; no merge or PR.
