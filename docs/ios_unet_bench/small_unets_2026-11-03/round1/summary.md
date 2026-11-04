@@ -68,4 +68,5 @@ Round 2 was selected for phone timing only by its slightly lower validation MAE.
 24.961 shown fps**, versus D's **18.450 / 18.394**, on the matched 25-fps test clip, with no student skips,
 late drops or stalls. This speed result does not overcome the quality failure. See [the final round-2 report](../round2/summary.md).
 Both rentals are destroyed with inactive expiry timers; combined estimated spend is **$1.72268**, not
-invoice-confirmed. The overall usable-25-fps verdict is **FAIL**. Lingua remains unchanged; no merge or PR.
+invoice-confirmed. The overall usable-25-fps verdict is **FAIL**. Lingua remains unchanged; the tooling and
+results are submitted for PR review, with no merge performed.

@@ -900,8 +900,8 @@ are retained with the round-2 report. The original Mac avatar JSON is restored b
 the last installed benchmark app retains the 25-fps workload and existing model variants remain available.
 
 **Final verdict: usable 25-fps lipsync FAIL.** The trained student meets the generation rate on this clip,
-but both training attempts fail every held-out quality clip. The experiment is finished; no further rental,
-merge or PR. Lingua is unchanged.
+but both training attempts fail every held-out quality clip. The experiment is finished; no further rental
+is authorized. The tooling and results are submitted for PR review; no merge has been performed. Lingua is unchanged.
 
 ## 6. The harness app (`ios/MuseTalkBench/`)
 

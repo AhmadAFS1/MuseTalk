@@ -119,7 +119,8 @@ windows at 25 fps; bundled reference/check artifacts remain from 24 fps and are 
 Quality is determined by the separate 12-clip review above, which fails. The usable-25-fps verdict is therefore
 **FAIL**, despite the generation-speed improvement. See [the speed-only protocol note](phone/phone25_speed_only.md).
 The Mac's original avatar JSON is restored byte for byte to 24 fps; the last installed benchmark app retains
-the 25-fps workload. Existing model variants remain available. Lingua is unchanged, with no merge or PR.
+the 25-fps workload. Existing model variants remain available. Lingua is unchanged. The tooling and results
+are submitted for PR review; the rejected student has not been integrated and no merge has been performed.
 
 ## Rental closed; no further rental
 
