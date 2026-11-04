@@ -77,7 +77,8 @@ Lingua:
      - **bk_tiny renders every frame of the 24 fps clip on the iPhone 12 Pro: 24.0 fps, 0 skipped, even at
        thermal "serious".** Capacity is about 26-28 fps.
      - Today's model gives 17.3 fps in the same run.
-     - Untrained, its output is garbage (mae 0.73), so it needs **distillation**.
+     - Untrained, its output is garbage, so it needs **distillation**. (The one untrained score taken was bk_small's:
+       mae 0.73. bk_tiny was not scored; it keeps fewer of the full model's weights.)
    - Started building the distillation round-1 tooling (§6). It was stopped by the user's request before review.
 
 ## 4. Key numbers (all measured; sources in the implementation doc)
