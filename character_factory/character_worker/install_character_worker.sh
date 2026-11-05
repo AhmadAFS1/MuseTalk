@@ -242,7 +242,10 @@ def gpu():
     except Exception: return None
 data = {"installed_utc": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), "recipe": recipe, "musetalk_commit": rev(repo),
         "h3_workflows_commit": rev(h3) if skip_h3 != "1" else None, "qc_face_backend": qc_backend, "musetalk_venv": venv,
-        "h3_venv": h3_venv, "gpu": gpu(), "instance_id": os.environ.get("VAST_INSTANCE_ID"), "hostname": os.uname().nodename}
+        "h3_venv": h3_venv, "runtime_mode": os.environ.get("CHARACTER_WORKER_RUNTIME_MODE", "source"),
+        "image_digest": os.environ.get("CHARACTER_WORKER_IMAGE_DIGEST"),
+        "runtime_manifest_sha256": os.environ.get("CHARACTER_WORKER_RUNTIME_MANIFEST_SHA256"),
+        "gpu": gpu(), "instance_id": os.environ.get("VAST_INSTANCE_ID"), "hostname": os.uname().nodename}
 profile = os.path.join(os.path.dirname(out), 'hardware_profile.json')
 if os.path.isfile(profile):
     data['hardware_profile'] = json.load(open(profile))

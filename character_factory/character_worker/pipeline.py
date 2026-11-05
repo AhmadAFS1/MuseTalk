@@ -265,6 +265,8 @@ def terminate(proc: subprocess.Popen, grace: int = 10) -> None:
     except ProcessLookupError:
         proc.wait()
         return
+    except PermissionError:
+        if proc.poll() is None: proc.terminate()
     deadline = time.monotonic() + grace
     while time.monotonic() < deadline:
         proc.poll()  # reap the direct child so its zombie cannot keep the group alive
@@ -272,11 +274,12 @@ def terminate(proc: subprocess.Popen, grace: int = 10) -> None:
         except ProcessLookupError: break
         except PermissionError:
             if proc.poll() is not None: break
-            raise
         time.sleep(0.05)
     else:
         try: os.killpg(proc.pid, signal.SIGKILL)
         except ProcessLookupError: pass
+        except PermissionError:
+            if proc.poll() is None: proc.kill()
     proc.wait()
 
 
@@ -777,6 +780,8 @@ def run_job(rt: Runtime, job: Job) -> dict:
         problems = rt.preflight()
         if problems:
             raise StageFailed('preflight', '; '.join(problems))
+        if (rt.root / 'versions.json').is_file():
+            result['worker']['runtime_versions'] = read_json(rt.root / 'versions.json')
         if (rt.root / 'hardware_profile.json').is_file():
             result['worker']['hardware_profile'] = read_json(rt.root / 'hardware_profile.json')
         portrait = ingest_portrait(rt, job)
