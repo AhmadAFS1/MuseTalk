@@ -5,6 +5,10 @@ REPO_ROOT="${REPO_ROOT:-/opt/character-runtime/app}"
 WORKSPACE="${WORKSPACE:-/workspace}"
 [[ -e "$WORKSPACE/MuseTalk" ]] || ln -s "$REPO_ROOT" "$WORKSPACE/MuseTalk"
 mkdir -p "$WORKSPACE/.venvs" "$WORKSPACE/character_worker/logs"
+# The dependency diagnostic pruned openmim's download/index dependencies after
+# compiling MMCV. Remove the build-only CLI too: runtime mmpose uses mmengine,
+# mmcv and mmdet directly, and the complete runtime must pass pip check.
+/opt/musetalk/venv/bin/python -m pip uninstall -y openmim
 # Keep the dependency base's venv at its original absolute prefix.
 [[ -e "$WORKSPACE/.venvs/musetalk_trt_stagewise" ]] || ln -s /opt/musetalk/venv "$WORKSPACE/.venvs/musetalk_trt_stagewise"
 python3.10 -m venv "$WORKSPACE/.venvs/musetalk_chin_tools"
