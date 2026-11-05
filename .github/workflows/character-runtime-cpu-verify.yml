@@ -28,22 +28,28 @@ jobs:
           python3 - <<'PY'
           import json,os,re
           d=json.load(open('.github/character-runtime-cpu-request.json'))
-          assert set(d)=={'image','runtime_manifest_sha256'}
+          assert set(d) in ({'image','runtime_manifest_sha256'},{'image','runtime_manifest_sha256','inspect_only'})
+          assert isinstance(d.get('inspect_only',False),bool)
           assert re.fullmatch('ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:[0-9a-f]{64}',d['image'])
           assert re.fullmatch('[0-9a-f]{64}',d['runtime_manifest_sha256'])
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
-              f.write('image='+d['image']+'\nmanifest='+d['runtime_manifest_sha256']+'\n')
+              f.write('image='+d['image']+'\nmanifest='+d['runtime_manifest_sha256']+'\ninspect_only='+str(d.get('inspect_only',False)).lower()+'\n')
           PY
       - name: Pull exact private image and check startup offline
         env:
           GH_TOKEN: ${{ github.token }}
           IMAGE: ${{ steps.request.outputs.image }}
           MANIFEST_SHA: ${{ steps.request.outputs.manifest }}
+          INSPECT_ONLY: ${{ steps.request.outputs.inspect_only }}
         run: |
           printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           docker pull "$IMAGE"
-          docker run --rm --network none --entrypoint python3 "$IMAGE" character_factory/character_worker/runtime_manifest.py verify --repo /opt/character-runtime/app --models docker/character-runtime/preparation-models.json --expected-sha256 "$MANIFEST_SHA"
-          docker run --rm --network none --entrypoint python3 -v "$GITHUB_WORKSPACE/docker/character-runtime/cpu_startup_check.py:/cpu_startup_check.py:ro" -v "$RUNNER_TEMP/character-cpu-reports:/reports" "$IMAGE" /cpu_startup_check.py --report /reports/cpu-qualification.json
+          docker image inspect "$IMAGE" | python3 -c 'import json,sys; d=json.load(sys.stdin)[0]; print(json.dumps({"schema":"lingua-character-image-inspect/1","image":d["RepoDigests"],"image_id":d["Id"],"size_bytes":d["Size"],"os":d["Os"],"architecture":d["Architecture"],"layers":len(d["RootFS"]["Layers"])}))' > "$RUNNER_TEMP/character-cpu-reports/image-inspection.json"
+          docker run --rm --network none --entrypoint python3 -v "$GITHUB_WORKSPACE/docker/character-runtime/container_footprint.py:/container_footprint.py:ro" "$IMAGE" /container_footprint.py > "$RUNNER_TEMP/character-cpu-reports/container-footprint.json"
+          if [[ "$INSPECT_ONLY" != true ]]; then
+            docker run --rm --network none --entrypoint python3 "$IMAGE" character_factory/character_worker/runtime_manifest.py verify --repo /opt/character-runtime/app --models docker/character-runtime/preparation-models.json --expected-sha256 "$MANIFEST_SHA"
+            docker run --rm --network none --entrypoint python3 -v "$GITHUB_WORKSPACE/docker/character-runtime/cpu_startup_check.py:/cpu_startup_check.py:ro" -v "$RUNNER_TEMP/character-cpu-reports:/reports" "$IMAGE" /cpu_startup_check.py --report /reports/cpu-qualification.json
+          fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
