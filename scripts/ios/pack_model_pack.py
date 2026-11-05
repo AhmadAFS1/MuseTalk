@@ -50,27 +50,41 @@ def tar_dir(root: Path, arc_root: str) -> bytes:
     return buf.getvalue()
 
 
+def select_models(models: list, unet: str) -> list:
+    """Keep exactly the declared plain UNet or its chunked equivalent, plus its runtime helpers."""
+    keep = []
+    for model in models:
+        kind = model.get('kind')
+        if kind == 'unet_chunk' and model.get('chunk_of') == unet:
+            keep.append(model)
+        elif kind == 'unet' and model.get('name') in (unet, f'{unet}_chunked'):
+            keep.append(model)
+        elif kind == 'taesd' and model.get('batch') == 1:
+            keep.append(model)
+        elif kind in ('whisper_logmel', 'whisper_encoder'):
+            keep.append(model)
+    selected = [m for m in keep if m.get('kind') == 'unet']
+    if len(selected) != 1:
+        raise ValueError(f'expected exactly one selected UNet, found {len(selected)} for {unet}')
+    if selected[0].get('name') == f'{unet}_chunked' and not any(m.get('kind') == 'unet_chunk' for m in keep):
+        raise ValueError('chunked UNet has no chunk models')
+    return keep
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--bundle", type=Path, default=REPO_ROOT / "ios" / "MuseTalkBench" / "HarnessBundle")
     ap.add_argument("--unet", default="unet_anec0_int8w_b1", help="chunk parent of the UNet to ship")
     ap.add_argument("--version", default="v1")
+    ap.add_argument('--render-fps', type=int, choices=range(1, 61))
+    ap.add_argument('--quality-profile')
+    ap.add_argument('--checkpoint-sha256')
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args()
 
     meta = json.loads((args.bundle / "meta.json").read_text())
     models = meta["models"]
-    keep = []
-    for m in models:
-        kind = m.get("kind")
-        if kind == "unet_chunk" and m.get("chunk_of") == args.unet:
-            keep.append(m)
-        elif kind == "unet" and m.get("name") == f"{args.unet}_chunked":
-            keep.append(m)
-        elif kind == "taesd" and m.get("batch") == 1:
-            keep.append(m)
-        elif kind in ("whisper_logmel", "whisper_encoder"):
-            keep.append(m)
+    keep = select_models(models, args.unet)
     files = sorted({m["file"] for m in keep if m.get("file")})
     if not files:
         print("no models matched; check --unet and meta.json", file=sys.stderr)
@@ -116,6 +130,10 @@ def main() -> int:
         "files": entries,
         "total_bytes": sum(e["bytes"] for e in entries),
     }
+    for name, value in (('render_fps', args.render_fps), ('quality_profile', args.quality_profile),
+                         ('checkpoint_sha256', args.checkpoint_sha256)):
+        if value is not None:
+            manifest[name] = value
     (args.out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"manifest: {len(entries)} files, {manifest['total_bytes'] / 1e6:.0f} MB, export {manifest['export_commit'][:10]}")
     return 0
