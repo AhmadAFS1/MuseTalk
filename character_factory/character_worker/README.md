@@ -72,6 +72,11 @@ POST /worker/drain | /worker/undrain
 The six metadata fields `label, age, gender, hair, tone, facial_hair` select the exact accepted talking prompt
 builder; without them the generic identity prompt is used and the response says so in `warnings`.
 
+The controller may provide `external_id` and `options.submission_id`. Repeating that pair returns the
+original remote job, including after a lost response or worker API restart. Different normalized
+character inputs with the same pair return HTTP 409. Callback tokens and renewable S3 signing parameters
+do not change input identity. A real retry after a lost worker uses a new submission token.
+
 ### Required mobile release
 
 Workers advertise `capabilities: ["device_release/1"]`. A device-first caller supplies

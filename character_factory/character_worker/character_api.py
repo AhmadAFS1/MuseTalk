@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import base64
 import collections
+import hashlib
 import json
 import mimetypes
 import os
@@ -47,7 +48,7 @@ import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -64,12 +65,35 @@ OPTION_TYPES = {'seed': int, 'max_attempts': int, 'qc_profile': str, 'smoke_rend
                 'release_local': bool, 'release_failed_attempts': bool, 'publish_records': bool, 'batch_size': int,
                 'generate_timeout_seconds': int, 'prepare_timeout_seconds': int, 'smoke_timeout_seconds': int,
                 'smoke_seconds': (int, float), 'fake_outcome': str, 'fake_seconds': (int, float),
-                'device_release': dict, 'source_checkpoint': dict}
+                'device_release': dict, 'source_checkpoint': dict, 'submission_id': str}
 ACCEPTED_PROMPT_FIELDS = ('label', 'age', 'gender', 'hair', 'tone', 'facial_hair')
 
 
 class BadRequest(ValueError):
     pass
+
+
+class SubmissionConflict(ValueError):
+    pass
+
+
+def submission_identity(request: dict):
+    external = (request.get('client') or {}).get('external_id')
+    submission = (request.get('options') or {}).get('submission_id')
+    if not external or not submission:
+        return None, None
+    value = json.loads(json.dumps(request))
+    # Callback credentials and renewable S3 authorization do not change the work.
+    value.pop('callback_token', None)
+    value.pop('callback_url', None)
+    portrait = value.get('portrait') or {}
+    if portrait.get('url'):
+        url = urlparse(portrait['url'])
+        query = [(k, v) for k, v in parse_qsl(url.query, keep_blank_values=True)
+                 if not k.lower().startswith('x-amz-') and k.lower() not in ('awsaccesskeyid', 'signature', 'expires')]
+        portrait['url'] = urlunparse(url._replace(query=urlencode(sorted(query)), fragment=''))
+    digest = hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    return [str(external), submission], digest
 
 
 def safe_character_id(raw: str | None, fallback: str | None) -> str:
@@ -159,6 +183,9 @@ def validate_request(body, allow_local_paths: bool = False, fake: bool = False) 
                 or not isinstance(ref.get('bytes'), int) or isinstance(ref.get('bytes'), bool)
                 or not 0 < ref['bytes'] <= 4 * 1024 ** 2):
             raise BadRequest('source_checkpoint requires a device release and bucket/key/sha256/bytes descriptor')
+    if 'submission_id' in clean and (not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', clean['submission_id'])
+                                    or not isinstance(body.get('external_id'), str) or not body['external_id']):
+        raise BadRequest('submission_id requires a safe token and external_id')
     if 'qc_profile' in clean and clean['qc_profile'] not in QC_PROFILES:
         raise BadRequest(f'qc_profile must be one of {QC_PROFILES}')
     if 'max_attempts' in clean and not 1 <= clean['max_attempts'] <= 4:
@@ -225,6 +252,13 @@ class JobManager:
     # -- public ------------------------------------------------------------------
     def submit(self, request: dict) -> tuple[dict, int]:
         with self.lock:
+            submission_key, submission_hash = submission_identity(request)
+            if submission_key:
+                for prior in self.jobs.values():
+                    if prior.data.get('submission_key') == submission_key:
+                        if prior.data.get('submission_hash') != submission_hash:
+                            raise SubmissionConflict('submission_id already identifies different character inputs')
+                        return prior.data, self.position(prior.id)
             if self.draining:
                 raise PermissionError('worker is draining')
             if len(self.queue) >= self.max_queue:
@@ -244,6 +278,8 @@ class JobManager:
             record = {'job_id': job_id, 'character_id': request['character_id'], 'status': 'queued', 'stage': 'queued',
                       'created_utc': pipeline.stamp(), 'updated_utc': pipeline.stamp(), 'request': persisted,
                       'progress': {}, 'result': None, 'error': None, 'api_version': API_VERSION}
+            if submission_key:
+                record.update(submission_key=submission_key, submission_hash=submission_hash)
             pipeline.write_json(job_dir / 'job.json', record)
             job = pipeline.Job(job_dir)
             self.jobs[job_id] = job
@@ -515,6 +551,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send_json(503, {'error': str(exc)})
                 except OverflowError as exc:
                     return self.send_json(429, {'error': str(exc)})
+                except SubmissionConflict as exc:
+                    return self.send_json(409, {'error': str(exc), 'code': 'submission_conflict'})
                 return self.send_json(202, {'job_id': record['job_id'], 'character_id': record['character_id'], 'status': record['status'],
                                             'position': position, 'warnings': warnings, 'poll': f"/characters/{record['job_id']}"})
             if len(parts) == 3 and parts[0] == 'characters' and parts[2] == 'cancel':

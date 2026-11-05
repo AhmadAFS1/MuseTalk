@@ -140,6 +140,35 @@ class WorkerApiTest(unittest.TestCase):
         self.assertEqual(manifest['character_id'], 'lingua-id')
         self.assertTrue(manifest['fake'])
 
+    def test_lost_response_replay_returns_same_job_and_rejects_changed_inputs(self):
+        body = self.body(external_id='lingua_job_1', options={'submission_id': 'attempt_1', 'fake_seconds': 0.3})
+        first_code, first = http('POST', f'{self.base}/createCharacter', body, token=self.token)
+        second_code, second = http('POST', f'{self.base}/createCharacter', body, token=self.token)
+        self.assertEqual((first_code, second_code), (202, 202))
+        self.assertEqual(first['job_id'], second['job_id'])
+        altered = {**body, 'metadata': {**body['metadata'], 'hair': 'different hairstyle'}}
+        code, response = http('POST', f'{self.base}/createCharacter', altered, token=self.token)
+        self.assertEqual(code, 409)
+        self.assertEqual(response['code'], 'submission_conflict')
+        self.assertEqual(self.wait_terminal(first['job_id'])['status'], 'done')
+        # A renewed dispatch after a lost worker is a new attempt even for the same logical job.
+        retry = {**body, 'options': {**body['options'], 'submission_id': 'attempt_2'}}
+        code, second_attempt = http('POST', f'{self.base}/createCharacter', retry, token=self.token)
+        self.assertEqual(code, 202)
+        self.assertNotEqual(second_attempt['job_id'], first['job_id'])
+        self.wait_terminal(second_attempt['job_id'])
+
+    def test_submission_identity_ignores_only_renewable_authorization(self):
+        req, _ = character_api.validate_request(self.body(external_id='job', options={'submission_id': 'attempt'},
+            portrait={'url': 'https://bucket.s3.amazonaws.com/portrait.png?X-Amz-Date=old&X-Amz-Signature=old&versionId=v1'},
+            callback_token='old'))
+        renewed = json.loads(json.dumps(req))
+        renewed['portrait']['url'] = 'https://bucket.s3.amazonaws.com/portrait.png?versionId=v1&X-Amz-Date=new&X-Amz-Signature=new'
+        renewed['callback_token'] = 'new'
+        self.assertEqual(character_api.submission_identity(req), character_api.submission_identity(renewed))
+        renewed['portrait']['url'] = renewed['portrait']['url'].replace('versionId=v1', 'versionId=v2')
+        self.assertNotEqual(character_api.submission_identity(req), character_api.submission_identity(renewed))
+
     def test_cancel_queued_job_and_queue_order(self):
         first = http('POST', f'{self.base}/createCharacter', self.body(options={'fake_seconds': 1.5}), token=self.token)[1]
         second = http('POST', f'{self.base}/createCharacter', self.body(character_id='second_person'), token=self.token)[1]
