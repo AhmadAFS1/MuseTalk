@@ -31,6 +31,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         var taesdUnits: String? = nil    // --taesd-units CPU_ONLY|CPU_AND_GPU|CPU_AND_NE|ALL (overrides --taesd-gpu)
         var deferDecode = false          // --defer-decode: TAESD in the compose stage, the ANE stage runs the UNet alone
         var fastPrediction = false       // --fast-prediction: MLOptimizationHints.specializationStrategy = .fastPrediction
+        var studentSelfTest = false      // --student-self-test: own-reference execution check before warmup
         var inferWorkers = 1             // --infer-workers N: Neural Engine stage threads
         var gpuUNet: String? = nil       // --gpu-unet <spec name>: a GPU worker's UNet (the same chunks, or a plain-layout one)
         var gpuWorkers = 0               // --gpu-workers N (default 1 with --gpu-unet, else 0)
@@ -58,6 +59,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                 case "--taesd-units": o.taesdUnits = value(); i += 1
                 case "--defer-decode": o.deferDecode = true
                 case "--fast-prediction": o.fastPrediction = true
+                case "--student-self-test": o.studentSelfTest = true
                 case "--infer-workers": o.inferWorkers = value().flatMap(Int.init) ?? 1; i += 1
                 case "--gpu-unet": o.gpuUNet = value(); i += 1
                 case "--gpu-workers": workers = value().flatMap(Int.init) ?? 0; i += 1
@@ -132,6 +134,35 @@ final class LipsyncPlayer: NSObject, ObservableObject {
                     avatarDir = resources.appendingPathComponent("avatar")
                 }
                 ModelTuning.fastPrediction = opts.fastPrediction
+                if opts.studentSelfTest {
+                    let harness = try Harness(resources: resources)
+                    guard harness.meta.unet.ref.file.contains("student") else {
+                        throw BundleError.format("student integrity check requires its own reference")
+                    }
+                    harness.log = log
+                    var check = BenchOptions()
+                    check.unetFrames = 24
+                    check.accuracyFrames = 32
+                    check.unetUnits = [.cpuAndNeuralEngine]
+                    check.modelNames = [opts.unet ?? "unet_bk_tiny_r2_selected_int8w_b1"]
+                    check.gpuCheck = false; check.includeBatch4 = false
+                    check.sustainedSeconds = 0; check.chainFrames = 0
+                    check.whisper = false; check.reload = false; check.computePlan = false
+                    let report = await harness.run(options: check)
+                    guard report.unet_runs.count == 1, let run = report.unet_runs.first,
+                          run.error == nil, let accuracy = run.accuracy, let timing = run.timing_per_frame else {
+                        throw BundleError.format("student execution check did not produce accuracy and timing")
+                    }
+                    let passed = accuracy.frames == 32 && accuracy.mae_mean.isFinite && accuracy.max_abs_max.isFinite
+                        && accuracy.mae_mean <= 0.02 && accuracy.max_abs_max <= 1.2 && timing.mean_ms <= 100
+                    let record: [String: Any] = ["model": run.model, "reference_file": harness.meta.unet.ref.file,
+                        "purpose": "approved student execution integrity", "frames": accuracy.frames,
+                        "mae": accuracy.mae_mean, "max_abs": accuracy.max_abs_max, "ms_per_frame": timing.mean_ms,
+                        "thresholds": ["mae": 0.02, "max_abs": 1.2, "ms_per_frame": 100],
+                        "fast_prediction": opts.fastPrediction, "passed": passed]
+                    print("STUDENT_INTEGRITY_RESULT " + String(decoding: try JSONSerialization.data(withJSONObject: record, options: .sortedKeys), as: UTF8.self))
+                    guard passed else { throw BundleError.format("student execution integrity check failed") }
+                }
                 let engine = try LipsyncEngine(resources: resources, avatarDir: avatarDir, unetName: opts.unet, renderFPS: opts.renderFPS)
                 engine.log = log
                 if opts.taesdGPU { engine.taesdUnits = .cpuAndGPU }
@@ -202,7 +233,7 @@ final class LipsyncPlayer: NSObject, ObservableObject {
         case .playing:
             state = .playing
             let r = session?.lastResult
-            status = "streaming \(avatarName) at \(engine?.avatar.fps ?? 0) fps · \(engine?.frameCount ?? 0) frames" + (r == nil ? "" : "")
+            status = "streaming \(avatarName) at \(engine?.renderFPS ?? 0) fps · \(engine?.frameCount ?? 0) frames" + (r == nil ? "" : "")
         case .failed:
             state = .failed
         default:

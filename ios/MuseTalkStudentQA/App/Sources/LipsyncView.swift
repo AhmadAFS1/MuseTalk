@@ -14,7 +14,7 @@ struct LipsyncView: View {
                 } else {
                     VStack(spacing: 8) {
                         Image(systemName: "person.wave.2").font(.system(size: 44)).foregroundStyle(.secondary)
-                        Text(player.hasAvatar ? "Latina · MuseTalk on the Neural Engine" : "no avatar in the bundle")
+                        Text(player.hasAvatar ? "Character · MuseTalk on the Neural Engine" : "no avatar in the bundle")
                             .foregroundStyle(.secondary)
                     }
                 }
