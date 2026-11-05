@@ -553,6 +553,8 @@ def smoke_render(rt: Runtime, job: Job, server: MuseTalkServer, published: dict)
     report = read_json(out) if out.is_file() else {'pass': False, 'hard_failures': [f'video_qc exit {rc}']}
     report.pop('series', None)
     summary = {'avatar_id': avatar_id, 'request_id': request_id, 'video': str(video), 'audio': str(audio), 'audio_seconds': seconds,
+               'scope': 'asset-cache-qc', 'renderer': 'musetalk-v15-cuda-worker', 'model_role': 'teacher',
+               'phone_student_acceptance': False,
                'pass': bool(report.get('pass')), 'hard_failures': report.get('hard_failures', []), 'warnings': report.get('warnings', []),
                'frames': report.get('frames'), 'mouth': report.get('mouth'), 'face': report.get('face'), 'qc_report': str(out)}
     write_json(smoke_dir / 'summary.json', summary)

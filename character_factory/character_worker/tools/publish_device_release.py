@@ -169,10 +169,14 @@ def publish(spec, s3, exporter=export, check_cancel=lambda: None, image_decoder=
         manifest['poses'][pose] = {'avatar_id': avatar_id, 'bundle': bundle, 'sidecar': sidecar_ref, 'source': source_ref}
     check_cancel()
     qc_path = out / 'qc.json'
-    write_json(qc_path, {'pass': True, 'poses': spec['qc'], 'smoke': spec['smoke']})
+    # The worker's CUDA smoke checks cache usability. It does not execute or qualify the
+    # shared phone student; that evidence comes from its separate native device run.
+    smoke_scope = {'scope': 'asset-cache-qc', 'renderer': 'musetalk-v15-cuda-worker', 'model_role': 'teacher',
+                   'phone_student_acceptance': False}
+    write_json(qc_path, {'pass': True, 'poses': spec['qc'], 'smoke': {**spec['smoke'], **smoke_scope}})
     manifest['qc']['report'] = upload(s3, bucket, f'{prefix}/qc/report.json', qc_path)
     provenance = out / 'provenance.json'
-    write_json(provenance, spec['provenance'])
+    write_json(provenance, {**spec['provenance'], 'asset_smoke': smoke_scope})
     manifest['provenance'] = upload(s3, bucket, f'{prefix}/provenance.json', provenance)
     for name in ('portrait', 'anchor'):
         path = Path(spec[name])

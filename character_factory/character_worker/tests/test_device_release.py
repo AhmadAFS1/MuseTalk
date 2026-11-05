@@ -128,6 +128,13 @@ class DeviceReleaseTest(unittest.TestCase):
             self.assertIn(row['source']['key'], s3.rows)
         self.assertIn(manifest['qc']['report']['key'], s3.rows)
         self.assertIn(manifest['provenance']['key'], s3.rows)
+        qc = json.loads(s3.rows[manifest['qc']['report']['key']]['Body'])
+        provenance = json.loads(s3.rows[manifest['provenance']['key']]['Body'])
+        self.assertEqual(qc['smoke']['scope'], 'asset-cache-qc')
+        self.assertEqual(qc['smoke']['renderer'], 'musetalk-v15-cuda-worker')
+        self.assertFalse(qc['smoke']['phone_student_acceptance'])
+        self.assertEqual(provenance['asset_smoke']['model_role'], 'teacher')
+        self.assertFalse(provenance['asset_smoke']['phone_student_acceptance'])
         self.assertEqual(self.publish(spec, s3, self.exporter), ref)
 
     def test_failed_required_upload_never_commits_manifest(self):
