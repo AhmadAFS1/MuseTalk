@@ -13,7 +13,7 @@ NAME="${TEMPLATE_NAME:-charfactory-h3-worker}"
 IMAGE="${TEMPLATE_IMAGE:-vastai/pytorch:cuda-12.1.1-auto}"
 DISK="${TEMPLATE_DISK_GB:-200}"
 PORT="${CHARACTER_WORKER_PORT:-8010}"
-SEARCH="${TEMPLATE_SEARCH:-num_gpus=1 gpu_ram>=12 cpu_ram>=30 disk_space>=200 driver_version>=580.65.6 cuda_vers>=13.0 inet_down>=500 reliability>0.98 compute_cap>=890 compute_cap<1000 rented=False}"
+SEARCH="${TEMPLATE_SEARCH:-num_gpus=1 gpu_name=RTX_3090 gpu_ram>=24 cpu_ram>=128 disk_space>=200 driver_version>=580.65.6 cuda_vers>=13.0 inet_down>=500 reliability>0.98 compute_cap=860 rented=False}"
 for v in CHARACTER_WORKER_TOKEN MUSETALK_AWS_SECRET_ID AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
   [[ -n "${!v:-}" ]] || { echo "set $v in the environment first" >&2; exit 2; }
 done

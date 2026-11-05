@@ -729,6 +729,8 @@ def run_job(rt: Runtime, job: Job) -> dict:
         problems = rt.preflight()
         if problems:
             raise StageFailed('preflight', '; '.join(problems))
+        if (rt.root / 'hardware_profile.json').is_file():
+            result['worker']['hardware_profile'] = read_json(rt.root / 'hardware_profile.json')
         portrait = ingest_portrait(rt, job)
         result['portrait_sha256'] = sha256_file(portrait)
         restored = restore_device_sources(rt, job, portrait) if options.get('source_checkpoint') else None

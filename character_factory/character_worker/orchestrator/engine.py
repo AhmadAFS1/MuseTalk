@@ -29,8 +29,33 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from job_store import JOB_TERMINAL, WORKER_ACTIVE, JobStore, stamp  # noqa: E402
 from vast_client import VastClient, VastError, driver_at_least, mapped_port, parse_query  # noqa: E402
 
-DEFAULT_QUERY = ('num_gpus=1 gpu_ram>=12 cpu_ram>=30 disk_space>=200 driver_version>=580.65.6 cuda_vers>=13.0 '
-                 'inet_down>=500 reliability>0.98 compute_cap>=890 compute_cap<1000 rented=False')
+ADA_QUERY = ('num_gpus=1 gpu_ram>=12 cpu_ram>=30 disk_space>=200 driver_version>=580.65.6 cuda_vers>=13.0 '
+             'inet_down>=500 reliability>0.98 compute_cap>=890 compute_cap<1000 rented=False')
+DEFAULT_QUERY = ('num_gpus=1 gpu_name=RTX_3090 gpu_ram>=24 cpu_ram>=128 disk_space>=200 driver_version>=580.65.6 cuda_vers>=13.0 '
+                 'inet_down>=500 reliability>0.98 compute_cap=860 rented=False')
+
+
+def matches_hardware_query(offer: dict, query: dict) -> bool:
+    """Recheck qualification fields locally even if a provider returns an out-of-query row."""
+    for field in ('gpu_name', 'compute_cap', 'gpu_ram', 'cpu_ram'):
+        for op, expected in query.get(field, {}).items():
+            actual = offer.get(field)
+            if actual is None:
+                return False
+            if field != 'gpu_name':
+                try:
+                    actual = float(actual)
+                except (ValueError, TypeError):
+                    return False
+            if op == 'eq' and actual != expected: return False
+            if op == 'neq' and actual == expected: return False
+            if op == 'gte' and not actual >= expected: return False
+            if op == 'gt' and not actual > expected: return False
+            if op == 'lte' and not actual <= expected: return False
+            if op == 'lt' and not actual < expected: return False
+            if op == 'in' and actual not in expected: return False
+            if op == 'notin' and actual in expected: return False
+    return True
 
 
 def _cast(kind, value: str):
@@ -351,7 +376,8 @@ class Orchestrator:
         return str(instance_id)
 
     def offer_ok(self, offer: dict) -> bool:
-        return (float(offer.get('dph_total') or 1e9) <= self.cfg.max_dph and float(offer.get('disk_space') or 0) >= self.cfg.disk_gb
+        return (matches_hardware_query(offer, parse_query(self.cfg.offer_query))
+                and float(offer.get('dph_total') or 1e9) <= self.cfg.max_dph and float(offer.get('disk_space') or 0) >= self.cfg.disk_gb
                 and driver_at_least(offer.get('driver_version'), self.cfg.min_driver_version)
                 and float(offer.get('cpu_ram') or 0) >= self.cfg.min_cpu_ram_mb and float(offer.get('gpu_ram') or 0) >= self.cfg.min_gpu_ram_mb
                 and not offer.get('rented'))

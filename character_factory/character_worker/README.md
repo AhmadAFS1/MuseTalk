@@ -33,7 +33,7 @@ the worker contract, the pool settings, a test ladder and troubleshooting for te
 | --- | --- |
 | `vast_onstart_character.sh` | Vast on-start entry (run from the MuseTalk checkout). Preflight, start API, install, verify. Prints one `CHARACTER_WORKER_ONSTART COMPLETE`/`FAILED` marker; keeps `status.json` current. `--plan` prints what it would do. |
 | `install_character_worker.sh` | Idempotent installer: apt prerequisites, `scripts/install_musetalk.sh --with-avatar-prep --with-chin-tools`, runtime secret from AWS Secrets Manager -> `runtime.env`, pinned `minimax-h3-workflows` checkout + `./install.sh` at the absolute paths the batch code expects (`/workspace/minimax-h3`, `/workspace/ComfyUI`, `/workspace/.venvs/comfy-h3`), `lib/h3` helper copies, `versions.json`. `--check` is read-only, `--plan` prints. |
-| `locks/character_worker.lock.json` | The pins: H3 workflows commit `168f143c`, model-lock hash, recipe name, install paths, host requirements (12 GB VRAM, 29 GB RAM, driver >= 580.65, compute 8.9-9.x). Change pins here only. |
+| `locks/character_worker.lock.json` | The pins: H3 workflows commit `168f143c`, model-lock hash, recipe name, install paths, host requirements (existing Ada8.9–9.x at 12 GB / 29 GB, plus separately qualified exact RTX 3090 at 24,500 MiB actual VRAM/128,000 MiB effective RAM; driver>=580.65). Change pins here only. |
 | `character_api.py` | Standard-library HTTP API + one-at-a-time job queue. Starts on the system python before any venv exists. Persists every job under `/workspace/character_worker/jobs/<job_id>/`. |
 | `pipeline.py` | The per-job stages (below). Subprocesses only; the H3 and MuseTalk venvs are never imported into the API process. |
 | `qc/video_qc.py`, `qc/profiles.json` | The glitch/technical gate; thresholds per pose and profile. `qc/calibrate.py` re-measures margins on known-good clips; `qc/calibration/` holds the 2026-10-25 record. |
@@ -168,8 +168,8 @@ they do not replace the visual review the recipe docs still call for before a ch
    Vast CLI from your shell environment and prints the hash. The template's on-start is `template/onstart_cmd.sh`.
 2. On the EC2 box: copy `orchestrator/config.example.env`, set `CHARFACTORY_TEMPLATE_HASH`, `CHARFACTORY_WORKER_TOKEN`
    (same value as the worker's `CHARACTER_WORKER_TOKEN`), `VAST_API_KEY`, optionally `CHARFACTORY_RESULT_WEBHOOK`.
-3. `python3 orchestrator/charfactory.py offers` shows what the offer query matches right now (read-only).
-   On 2026-10-25 the default query matched 25 Ada offers from $0.19/h (RTX 4060 Ti 16 GB) to $0.58/h (RTX 4090).
+3. `python3 orchestrator/charfactory.py offers` shows what the offer query matches right now (read-only). The default now selects exact RTX 3090/24GB/128 GB host after the 2026-11-05 Reina qualification; `engine.ADA_QUERY` preserves the old alternative.
+   Historically, on 2026-10-25 the old query matched25Ada offers from $0.19/h (RTX 4060 Ti 16 GB) to $0.58/h (RTX 4090).
 4. `python3 orchestrator/charfactory.py serve --port 8020` runs the HTTP API for the Lingua backend
    (`POST /createCharacter`, `GET /characters/<id>`, `GET /workers`) and the orchestration loop in one process;
    `queue`, `list`, `workers`, `events`, `tick`, `run`, `cancel`, `destroy-worker`, `destroy-all --yes` are the CLI equivalents.
@@ -206,3 +206,16 @@ a live read-only Vast offer query. Not yet run: a real Vast instance booting fro
 end-to-end GPU path (H3 -> QC -> prepare -> S3 -> smoke) under `pipeline.py`. Every GPU stage calls the same scripts
 the 16-character batch used, but the first fresh-instance boot should be watched (`charfactory.py events`,
 `/health` on the mapped port, `/workspace/character_worker/onstart.log` over SSH).
+
+
+## Device release and hardware qualification
+
+Lingua requests `options.device_release={character_id:<actual Lingua ID>,job_id:<logical job>,release_id:<same logical release>}`. The worker uploads a verified accepted-H3 source checkpoint before MuseTalk preparation, then all three phone-only pose archives, their sidecars, source clips, QC and provenance. `result.device_release={bucket,key,sha256,bytes,release_id}` points to the final `lingua-character-release/1` manifest under `avatars/releases/<release_id>/<remote_job_id>/`; that manifest is uploaded last. Legacy v15 cache uploads remain available. `options.source_checkpoint` accepts the returned checkpoint descriptor for the same identity/recipe/portrait; it verifies all hashes, decodes videos and reruns QC before skipping H3. `external_id` plus `options.submission_id` makes accepted-but-response-lost submission replays idempotent; a new attempt uses a new submission ID.
+
+The 2026-11-05 RTX 3090 run created requested fictional adult Reina (`char_8ef13e81-d84e-5cce-bb16-d1ce38f12373`, release `charfactory_b3a60391c6914758886f9642e5de0266`). It passed three H3 sources and endpoints, MuseTalk cache preparation, teacher CUDA asset smoke, S3 publication, backend ownership/model-profile checks and 638-frame shipping-native validation. The observed 23,944 MiB peak fits actual 24,576 MiB VRAM. Initial deployment policy requires exact `NVIDIA GeForce RTX 3090`, compute8.6, actual total VRAM>=24,500 MiB and effective RAM>=128,000 MiB. Effective RAM is min(host MemTotal, finite cgroupv2/v1 limit). Other Ampere cards are not promoted; lower-RAM hosts need separate qualification. Existing8.9–9.x requirements are retained. Keep one active job and run H3 then MuseTalk sequentially.
+
+The actual3090 worker profile is resolver recipe `r5`, eager teacher UNet and compiled TAESD, with TRT_FALLBACK=0. The engine group was normally dropped because the 4070 bundle is GPU-specific and AMPERE_PLUS was not restored. This does not qualify AMPERE_PLUS execution. CUDA smoke is explicitly `scope=asset-cache-qc`, `model_role=teacher`, `phone_student_acceptance=false`; it is separate from phone student validation. The phone uses one shared approved student pack (`student-r2-a05d2d98-v1`), not per-character training. Source bundles stay at 24 fps; shipping timing maps to 25 render ticks. Actual Reina student phone/RN short-turn checks reproduce 25 fps; uninterrupted 60 s phone tests are approximately 24.25 fps and must not be described as sustained 25 fps qualification.
+
+`host_requirements.py` writes `hardware_profile.json`; onstart enforces it and versions/job provenance retain it. `CHARACTER_WORKER_ALLOW_UNTESTED_GPU=1` remains an explicit experimental capability override, not a bypass for a qualified3090's resource limits. The default provider offer filter uses 24000 for rounded provider VRAM, while the post-rental nvidia-smi guard requires 24500 MiB. Orchestration rechecks GPU name/capability/RAM locally in case a provider returns an out-of-query row.
+
+Set `MUSETALK_REF` to the final immutable reviewed commit. The repository template bootstrap supports raw SHAs with atomic fetch/detached checkout; fresh/branch/existing/failed-fetch cases have offline git integration coverage. The existing private factory template c4de4d1ca7e553a5129d9e3027a4ccef was independently read and already uses a SHA-compatible gitinit/fetch bootstrap, so it can reach the final code pin without a new template. It does not fetch an old-main/raw bootstrap.

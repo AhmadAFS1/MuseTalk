@@ -117,16 +117,12 @@ GPU_DRIVER="$(echo "$GPU_LINE" | cut -d, -f3 | xargs)"; GPU_CAP="$(echo "$GPU_LI
 RAM_MIB="$(awk '/MemTotal/ {printf "%d", $2/1024}' /proc/meminfo)"
 FREE_GIB="$(df -Pk "$WORKSPACE" | awk 'NR==2 {printf "%d", $4/1024/1024}')"
 log "GPU: $GPU_NAME ${GPU_VRAM} MiB, driver $GPU_DRIVER, compute $GPU_CAP; RAM ${RAM_MIB} MiB; free disk ${FREE_GIB} GiB"
-(( ${GPU_VRAM%.*} >= MIN_VRAM )) || die "GPU has ${GPU_VRAM} MiB; the H3 recipe needs >= ${MIN_VRAM} MiB"
-(( RAM_MIB >= MIN_RAM )) || die "host RAM ${RAM_MIB} MiB < ${MIN_RAM} MiB (H3 peaked at 27.6 GiB on the reference run)"
 dpkg --compare-versions "$GPU_DRIVER" ge "$MIN_DRIVER" || die "driver $GPU_DRIVER < $MIN_DRIVER (the pinned H3 stack is torch cu130)"
-if ! python3 -c "import sys; cap=float('$GPU_CAP'); sys.exit(0 if $CAP_MIN <= cap < $CAP_MAX else 1)"; then
-  if [[ "${CHARACTER_WORKER_ALLOW_UNTESTED_GPU:-0}" == 1 ]]; then
-    log "WARNING: compute capability $GPU_CAP is outside the tested range [$CAP_MIN, $CAP_MAX); continuing because CHARACTER_WORKER_ALLOW_UNTESTED_GPU=1"
-  else
-    die "compute capability $GPU_CAP is outside the tested range [$CAP_MIN, $CAP_MAX); set CHARACTER_WORKER_ALLOW_UNTESTED_GPU=1 to try anyway"
-  fi
-fi
+profile_args=(--lock "$LOCK_JSON" --gpu-name "$GPU_NAME" --compute-capability "$GPU_CAP" --vram-mib "$GPU_VRAM"
+              --output "$ROOT/hardware_profile.json")
+[[ "${CHARACTER_WORKER_ALLOW_UNTESTED_GPU:-0}" == 1 ]] && profile_args+=(--allow-untested)
+profile_result="$(python3 "$SCRIPT_DIR/host_requirements.py" "${profile_args[@]}" 2>&1)" || die "$profile_result"
+log "$profile_result"
 NEED_DISK="$MIN_DISK_FRESH"
 [[ -f "$ROOT/h3_install.stamp" && -x "$WORKSPACE/.venvs/musetalk_trt_stagewise/bin/python" ]] && NEED_DISK="$MIN_DISK_RESUME"
 (( FREE_GIB >= NEED_DISK )) || die "only ${FREE_GIB} GiB free on $WORKSPACE; need ${NEED_DISK} GiB (61 GB H3 weights + two venvs + working space)"

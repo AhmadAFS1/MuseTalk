@@ -95,12 +95,11 @@ The template's fields, in case you create it in the console instead ([template/R
 | On-start | contents of [`orchestrator/template/onstart_cmd.sh`](orchestrator/template/onstart_cmd.sh) |
 | Docker options | `-p 8010:8010 -p 22:22 -e CHARACTER_WORKER_PORT=8010 -e CHARACTER_WORKER_TOKEN=… -e MUSETALK_AWS_SECRET_ID=… -e MUSETALK_AWS_SECRET_REGION=us-east-1 -e MUSETALK_SECRETS_STRICT=true -e MUSETALK_SECRETS_VERIFY_S3=1 -e AWS_DEFAULT_REGION=us-east-1 -e AWS_ACCESS_KEY_ID=<secret-reader> -e AWS_SECRET_ACCESS_KEY=<secret-reader> -e H3_WORKFLOWS_GIT_TOKEN=…` |
 | Disk | 200 GB |
-| Search filters | `num_gpus=1 gpu_ram>=12 cpu_ram>=30 disk_space>=200 driver_version>=580.65.6 cuda_vers>=13.0 inet_down>=500 reliability>0.98 compute_cap>=890 compute_cap<1000 rented=False` |
+| Search filters | `num_gpus=1 gpu_name=RTX_3090 gpu_ram>=24 cpu_ram>=128 disk_space>=200 driver_version>=580.65.6 cuda_vers>=13.0 inet_down>=500 reliability>0.98 compute_cap=860 rented=False` |
 
-Why the filters: the pinned H3 stack is torch 2.14 with CUDA 13.0, so it needs host driver 580.65 or newer. The
-reference H3 run peaked at 11.5 GB VRAM and 27.6 GiB host RAM. The weights are 61 GB. The accepted recipe was made on
-an Ada GPU (compute capability 8.9). Ampere is untested for H3's NVFP4 text encoder, and Blackwell has no MuseTalk
-avatar-prep build. The on-start preflight enforces the same limits and fails fast with a readable message.
+Why the filters: after the 2026-11-05 Reina end-to-end source/cache/release qualification, the default selects exact RTX 3090 compute860, providerVRAM>=24000 and advertisedhost RAM>=128000. Worker preflight separately requires exact `NVIDIA GeForce RTX 3090`, actual VRAM>=24,500 MiB and effective host/containerRAM>=128,000 MiB. Driver>=580.65 and disk requirements remain. The existing Ada8.9–9.x profile retains12 GB / 29 GB; other Ampere and Blackwell are not promoted. Lower-RAM3090 hosts are not qualified. The observed73 GB total cgroup memory includes about70 GB reclaimable file cache, so it is not a hard anonymous RAM requirement.
+
+The observed MuseTalk prep/smoke profile was recipe r5 with eager teacher UNet and compiled TAESD. Its engine group was dropped normally because AMPERE_PLUS was not restored; do not claim3090 TensorRT qualification. Teacher CUDA smoke is asset QC. Phone acceptance uses the shared approved student with original24fps sources mapped to 25 render ticks. Keep one active character job and sequential GPU phases. Use the final immutable `MUSETALK_REF`; the existing private factory template's actual bootstrap supports SHA fetches (verified against provider and instance sources).
 
 **Add a disk-speed filter: `disk_bw>=2000`.** Vast reports each host's disk read bandwidth in MB/s. Among the 40
 matching offers on 2026-10-25 it ranged from 182 to 9,932 (median 2,819), and 26 offers had 2,000 or more. Section 1
@@ -309,7 +308,7 @@ characters on one instance spreads the install cost across them.
 
 | Symptom (`boot.message`, `error`, or a log) | Cause | Fix |
 | --- | --- | --- |
-| `compute capability X is outside the tested range` | Rented a GPU outside 8.9-9.x | Tighten the offer query. Set `CHARACTER_WORKER_ALLOW_UNTESTED_GPU=1` only for a deliberate test |
+| `compute capability X is outside the tested range` | Rented a GPU outside the existing8.9–9.x range and the exact RTX 3090 qualified exception | Tighten the offer query. Set `CHARACTER_WORKER_ALLOW_UNTESTED_GPU=1` only for a deliberate test |
 | `driver X < 580.65` | Old host driver | The offer query needs `driver_version>=580.65.6` |
 | `only N GiB free` | Disk below 150 GB on a fresh boot | Rent with `disk: 200` |
 | `AVATAR_S3_BUCKET is not set` | Runtime secret not loaded or incomplete | Check `MUSETALK_AWS_SECRET_ID` and the secret-reader key in the template, and the secret contents |
@@ -333,7 +332,7 @@ characters on one instance spreads the install cost across them.
 - **H3 speed on slow disks.** The committed launch keeps `--fast-disk --disable-pinned-memory`, which a 30 GB RAM
   host needs. Removing them failed in the one trial. Until H3 can keep weights in RAM safely, the disk filter is the
   mitigation.
-- **GPU range.** Widening to Ampere (an RTX 3090 at about $0.20/h) needs one validated end-to-end run first.
+- **GPU range.** Exact RTX 3090 sm86/24GB/128 GB host was qualified2026-11-05; other Ampere and smaller hosts still need separate end-to-end qualification.
 - **Fresh boot.** A fresh boot is untested. Expect to fix something on the first instance, and keep it alive (do not
   auto-destroy) until the logs have been read.
 

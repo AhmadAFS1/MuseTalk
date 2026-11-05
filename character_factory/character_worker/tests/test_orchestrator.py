@@ -41,6 +41,11 @@ class FakeVast:
         self.fail_create: VastError | None = None
 
     def search_offers(self, query, limit=50, storage_gb=5.0, **_):
+        if query.get('gpu_name', {}).get('eq') == 'RTX 3090':
+            assert query['gpu_ram']['gte'] == 24000.0 and query['cpu_ram']['gte'] == 128000.0, query
+            return [dict(id=1, gpu_name='RTX 3090', gpu_ram=24576, cpu_ram=128802, disk_space=400, driver_version='595.91.07', cuda_max_good=13.0, inet_down=900, reliability2=0.99, dph_total=0.45, geolocation='US', rented=False, compute_cap=860),
+                    dict(id=2, gpu_name='RTX 3090', gpu_ram=24576, cpu_ram=128802, disk_space=400, driver_version='550.54', cuda_max_good=12.4, inet_down=900, reliability2=0.99, dph_total=0.30, geolocation='US', rented=False, compute_cap=860),
+                    dict(id=3, gpu_name='RTX 3090', gpu_ram=24576, cpu_ram=64000, disk_space=400, driver_version='595.91.07', cuda_max_good=13.0, inet_down=900, reliability2=0.99, dph_total=0.20, geolocation='US', rented=False, compute_cap=860)]
         assert query['gpu_ram']['gte'] == 12000.0, query
         return [dict(id=1, gpu_name='RTX 4090', gpu_ram=24564, cpu_ram=64000, disk_space=400, driver_version='580.82', cuda_max_good=13.0,
                      inet_down=900, reliability2=0.99, dph_total=0.45, geolocation='US', rented=False, compute_cap=890),

@@ -14,7 +14,13 @@
       "H3_VENV": "/workspace/.venvs/comfy-h3",
       "H3_MODEL_DIR": "/workspace/minimax-h3/models"
     },
-    "lib_copies": ["run_h3_lowvram.py", "make_exact_10s.py", "package_spoken_transition_bank.py", "certify_endpoints.py", "motion_metrics.py"],
+    "lib_copies": [
+      "run_h3_lowvram.py",
+      "make_exact_10s.py",
+      "package_spoken_transition_bank.py",
+      "certify_endpoints.py",
+      "motion_metrics.py"
+    ],
     "models_lock_sha256_prefix": "206eb9865dabe7da",
     "wheels_lock_sha256_prefix": "db243944e8285d9b",
     "weights_bytes": 61044221775
@@ -30,8 +36,31 @@
     "min_free_disk_gib_fresh": 150,
     "min_free_disk_gib_resume": 20,
     "min_driver_version": "580.65",
-    "compute_capability": {"min": 8.9, "max_exclusive": 10.0, "note": "H3 was accepted on an RTX 4070 SUPER (sm89). Ampere (8.6) is untested for the NVFP4 text encoder; Blackwell (>= 10.0) has no MuseTalk avatar-prep (cu121) build."},
-    "python": "3.10"
+    "compute_capability": {
+      "min": 8.9,
+      "max_exclusive": 10.0,
+      "note": "Existing 8.9\u20139.x range retained. Exact RTX 3090 sm86 is separately qualified by qualified_gpu_profiles; other Ampere and Blackwell are not admitted by that exception."
+    },
+    "python": "3.10",
+    "qualified_gpu_profiles": [
+      {
+        "id": "rtx3090-sm86-24gb-128gb-v1",
+        "gpu_names": [
+          "NVIDIA GeForce RTX 3090"
+        ],
+        "compute_capability": "8.6",
+        "min_vram_mib": 24500,
+        "min_ram_mib": 128000,
+        "qualification": {
+          "date": "2026-11-05",
+          "character_id": "char_8ef13e81-d84e-5cce-bb16-d1ce38f12373",
+          "release_id": "charfactory_b3a60391c6914758886f9642e5de0266",
+          "worker_profile": "H3 v2 + eager MuseTalk teacher asset QC, TAESD compiled; not AMPERE_PLUS execution",
+          "ram_policy": "Initial provisioned128GB host policy; lower RAM hosts are not qualified",
+          "execution": "one active job; sequential H3 then MuseTalk; phone uses separate shared CoreML student"
+        }
+      }
+    ]
   },
   "worker": {
     "port": 8010,
