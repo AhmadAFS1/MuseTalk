@@ -86,7 +86,8 @@ def restore(spec, s3, planner=build_plan, anchor_validator=validate_anchor, vide
     ref = spec['descriptor']
     if ref.get('bucket') != spec['bucket']:
         raise ValueError('checkpoint bucket mismatch')
-    root = f'avatars/releases/{identity["release_id"]}'
+    origin_release = component(ref.get('release_id') or identity['release_id'])
+    root = f'avatars/releases/{origin_release}'
     parts = str(ref.get('key') or '').split('/')
     if len(parts) != 5 or '/'.join(parts[:3]) != root or parts[-1] != 'source-checkpoint.json':
         raise ValueError('checkpoint is outside the expected release')
@@ -96,10 +97,16 @@ def restore(spec, s3, planner=build_plan, anchor_validator=validate_anchor, vide
     receipt_path = download(s3, spec['bucket'], ref, prefix, staging / 'receipt.json', 4 * 1024 ** 2)
     receipt = json.loads(receipt_path.read_text())
     if (receipt.get('schema') != 'lingua-character-source-checkpoint/1'
-            or any(receipt.get(k) != v for k, v in identity.items())
+            or receipt.get('character_id') != identity['character_id']
+            or receipt.get('release_id') != origin_release
             or receipt.get('recipe_id') != spec['recipe_id'] or set(receipt.get('poses') or {}) != set(POSES)
             or receipt.get('qc', {}).get('status') != 'passed' or receipt.get('worker_job_id') != parts[3]):
         raise ValueError('checkpoint identity/recipe/QC mismatch')
+    same_job = receipt.get('job_id') == identity['job_id'] and origin_release == identity['release_id']
+    checkpoint_logical_id = receipt.get('logical_job_id') or receipt.get('job_id')
+    if ((spec.get('logical_job_id') and checkpoint_logical_id != spec['logical_job_id']) or
+            (not same_job and not spec.get('logical_job_id'))):
+        raise ValueError('checkpoint logical job mismatch')
     portrait_hash = file_hash(Path(spec['portrait']))
     if receipt.get('portrait', {}).get('sha256') != portrait_hash:
         raise ValueError('checkpoint portrait mismatch')
@@ -107,7 +114,8 @@ def restore(spec, s3, planner=build_plan, anchor_validator=validate_anchor, vide
                                staging / 'provenance.json', 16 * 1024 ** 2)
     provenance = json.loads(provenance_path.read_text())
     if (provenance.get('portrait_sha256') != portrait_hash or
-            provenance.get('lock', {}).get('h3_workflows', {}).get('commit') != spec['h3_commit']):
+            provenance.get('lock', {}).get('h3_workflows', {}).get('commit') not in
+            [spec['h3_commit'], *spec.get('h3_compatible_commits', [])]):
         raise ValueError('checkpoint model/portrait provenance mismatch')
     h3 = provenance.get('h3') or {}
     if set(h3) != set(POSES) or any(h3[p].get('status') != 'complete' for p in POSES):

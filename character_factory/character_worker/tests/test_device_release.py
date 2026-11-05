@@ -191,10 +191,17 @@ class DeviceReleaseTest(unittest.TestCase):
                 'options': {'device_release': {'character_id': 'abc', 'job_id': 'job_1', 'release_id': 'job_1'}}}
         req, _ = character_api.validate_request(body)
         self.assertEqual(req['options']['device_release']['job_id'], 'job_1')
+        req, _ = character_api.validate_request({**body, 'options': {**body['options'], 'release_schema': 2, 'smoke_render': False}})
+        self.assertFalse(req['options']['smoke_render'])
         for extra in ({'poses': ['talking']}, {'options': {'device_release': {'character_id': '../x'}}},
-                      {'options': {**body['options'], 'smoke_render': False}}):
+                      {'options': {**body['options'], 'release_schema': 3}},
+                      {'options': {**body['options'], 'max_attempts': 0}}):
             with self.assertRaises(character_api.BadRequest):
                 character_api.validate_request({**body, **extra})
+
+        req, _ = character_api.validate_request({**body, 'options': {**body['options'], 'max_attempts': 0,
+            'source_checkpoint': {'bucket': 'private', 'key': 'source-checkpoint.json', 'sha256': 'a' * 64, 'bytes': 100}}})
+        self.assertEqual(req['options']['max_attempts'], 0)
 
     def test_source_checkpoint_survives_without_final_release(self):
         s3 = S3()

@@ -24,6 +24,7 @@ import hashlib
 import json
 import os
 import re
+import queue
 import shutil
 import signal
 import subprocess
@@ -191,11 +192,18 @@ class Job:
     def check_cancel(self) -> None:
         if self.cancel_event.is_set():
             raise JobCancelled()
+        deadline = (self.request.get('options') or {}).get('deadline_epoch')
+        if deadline is not None and time.time() >= deadline:
+            raise StageFailed('deadline', 'absolute job deadline reached')
 
     def set_stage(self, stage: str, **extra) -> None:
         progress = dict(self.data.get('progress') or {})
         progress.update(extra)
-        self.update(stage=stage, progress=progress)
+        now = stamp()
+        fields = {'stage': stage, 'progress': progress, 'heartbeat_at': now, 'progress_at': now}
+        if self.data.get('stage') != stage:
+            fields['stage_started_at'] = now
+        self.update(**fields)
         self.log(f'stage={stage} {json.dumps(extra) if extra else ""}')
 
 
@@ -212,29 +220,40 @@ def run_logged(job: Job, cmd: list, *, cwd: Path, env: dict, timeout: int, log_n
                                 stderr=subprocess.STDOUT, text=True, bufsize=1, start_new_session=True)
         job.process = proc
         deadline = time.monotonic() + timeout
-        timed_out = False
+        lines = queue.Queue()
+        def read_output():
+            try:
+                for line in proc.stdout: lines.put(line)
+            finally: lines.put(None)
+        reader = threading.Thread(target=read_output, daemon=True)
+        reader.start()
+        eof = False
+        heartbeat, progress = time.monotonic(), 0.0
         try:
-            assert proc.stdout is not None
-            for line in proc.stdout:
-                log.write(line)
-                log.flush()
-                if on_line:
-                    try:
-                        on_line(line.rstrip('\n'))
-                    except Exception:
-                        pass
-                if job.cancel_event.is_set() or time.monotonic() > deadline:
-                    timed_out = time.monotonic() > deadline
-                    break
-            if proc.poll() is None and (job.cancel_event.is_set() or timed_out):
-                terminate(proc)
+            while not (eof and proc.poll() is not None):
+                job.check_cancel()
+                if time.monotonic() >= deadline:
+                    raise StageFailed(log_name, f'subprocess deadline reached after {timeout}s')
+                try: line = lines.get(timeout=0.25)
+                except queue.Empty: line = ''
+                if line is None:
+                    eof = True
+                elif line:
+                    log.write(line); log.flush()
+                    if on_line: on_line(line.rstrip('\n'))
+                    if time.monotonic() - progress >= 1:
+                        job.update(progress_at=stamp())
+                        progress = time.monotonic()
+                if time.monotonic() - heartbeat >= 15:
+                    job.update(heartbeat_at=stamp())
+                    heartbeat = time.monotonic()
             proc.wait()
         finally:
+            if proc.poll() is None: terminate(proc)
+            reader.join(timeout=2)
+            if proc.stdout is not None: proc.stdout.close()
             job.process = None
-    if job.cancel_event.is_set():
-        raise JobCancelled()
-    if timed_out:
-        raise StageFailed(log_name, f'timed out after {timeout}s')
+    job.check_cancel()
     return proc.returncode
 
 
@@ -384,8 +403,9 @@ def qc_poses(rt: Runtime, job: Job, attempt: int, ident: Path, poses: list) -> d
 class MuseTalkServer:
     """An owned MuseTalk API on a private port, alive only for the prepare + smoke stages."""
 
-    def __init__(self, rt: Runtime, job: Job):
+    def __init__(self, rt: Runtime, job: Job, diagnostic: bool = False):
         self.rt, self.job = rt, job
+        self.diagnostic = diagnostic
         self.port = rt.musetalk_port
         self.base = f'http://127.0.0.1:{self.port}'
         self.proc: subprocess.Popen | None = None
@@ -411,8 +431,20 @@ class MuseTalkServer:
         env.setdefault('MUSETALK_TAESD_COMPILE_MODE', 'max-autotune-no-cudagraphs')
         if not env.get('AVATAR_S3_BUCKET'):
             raise StageFailed('prepare', 'AVATAR_S3_BUCKET is not set; refusing to prepare caches that cannot be published')
-        cmd = ['bash', self.rt.repo / 'scripts' / 'run_musetalk_server.sh', '--host', '127.0.0.1', '--port', str(self.port),
-               '--repo-root', self.rt.repo, '--venv-path', self.rt.musetalk_python.parents[1]]
+        if self.diagnostic:
+            cmd = ['bash', self.rt.repo / 'scripts/run_musetalk_server.sh', '--host', '127.0.0.1', '--port', str(self.port),
+                   '--repo-root', self.rt.repo, '--venv-path', self.rt.musetalk_python.parents[1]]
+        else:
+            cmd = [self.rt.musetalk_python, self.rt.repo / 'scripts/avatar_prepare_server.py',
+                   '--host', '127.0.0.1', '--port', str(self.port)]
+        import socket
+        with socket.socket() as probe:
+            probe.bind(('127.0.0.1', self.port))
+        if not self.diagnostic:
+            try:
+                with socket.create_connection(('127.0.0.1', LOCK['worker']['h3_private_port']), timeout=0.2):
+                    raise StageFailed('prepare', 'H3 process still listens on its owned port')
+            except (ConnectionRefusedError, TimeoutError): pass
         self.job.log(f'starting MuseTalk API on {self.base}')
         with self.log_path.open('a') as log:
             log.write(f'\n# {stamp()} start\n')
@@ -422,9 +454,13 @@ class MuseTalkServer:
         last = None
         while time.monotonic() < deadline:
             self.job.check_cancel()
+            self.job.update(heartbeat_at=stamp())
             if self.proc.poll() is not None:
                 raise StageFailed('prepare', f'MuseTalk API exited with {self.proc.returncode}; see musetalk_api.log', self.tail())
             try:
+                state = self.stats()
+                if not self.diagnostic and (state.get('mode') != 'avatar-preparation/1' or state.get('teacher_loaded') is not False):
+                    raise StageFailed('prepare', 'preparation-only process reported incompatible capabilities')
                 return self.s3()
             except (OSError, urllib.error.URLError, RuntimeError, ValueError) as exc:
                 last = exc
@@ -602,12 +638,14 @@ def publish_device_release(rt: Runtime, job: Job, ident: Path, portrait: Path, p
     root = job.dir / 'device_release'
     root.mkdir(exist_ok=True)
     spec = {
-        'identity': identity, 'worker_job_id': job.id, 'repo': str(rt.repo), 'out': str(root / 'artifacts'),
+        'identity': identity, 'logical_job_id': job.request['options'].get('logical_job_id') or identity['job_id'],
+        'release_schema': job.request['options'].get('release_schema', 2),
+        'diagnostic_teacher_smoke': result.get('diagnostic_teacher_smoke'), 'worker_job_id': job.id, 'repo': str(rt.repo), 'out': str(root / 'artifacts'),
         'bucket': rt.s3_bucket(), 'recipe_id': LOCK['recipe']['name'], 'portrait': str(portrait),
         'anchor': str(ident / 'anchor.png'),
         'qc': {**result['qc'], 'reports': {p: read_json(ident.parent / 'qc' / f'{p}.json') for p in POSES}},
-        'smoke': ({**(result.get('smoke_render') or {}), 'report': read_json(job.dir / 'smoke/qc.json')}
-                  if not checkpoint else {}),
+        'smoke': ({**(result.get('diagnostic_teacher_smoke') or {}), 'report': read_json(job.dir / 'smoke/qc.json')}
+                  if not checkpoint and result.get('diagnostic_teacher_smoke') and (job.dir / 'smoke/qc.json').is_file() else {}),
         'provenance': {'worker_job_id': job.id, 'request': {'character_id': job.request['character_id'],
                        'metadata': job.request.get('metadata') or {}, 'options': {k: v for k, v in job.request['options'].items()
                                                                              if not k.startswith('fake_')}},
@@ -638,6 +676,8 @@ def restore_device_sources(rt: Runtime, job: Job, portrait: Path) -> dict:
     spec = {'identity': job.request['options']['device_release'],
             'descriptor': job.request['options']['source_checkpoint'], 'bucket': rt.s3_bucket(),
             'recipe_id': LOCK['recipe']['name'], 'h3_commit': LOCK['h3_workflows']['commit'],
+            'h3_compatible_commits': LOCK['h3_workflows'].get('source_compatible_commits', []),
+            'logical_job_id': job.request['options'].get('logical_job_id'),
             'repo': str(rt.repo), 'workspace': str(rt.workspace), 'h3_lib': str(rt.h3_dir),
             'portrait': str(portrait), 'metadata': str(job.dir / 'metadata.json'), 'out': str(out)}
     spec_path, result_path = job.dir / 'restore-spec.json', job.dir / 'restore-result.json'
@@ -718,7 +758,7 @@ def run_job(rt: Runtime, job: Job) -> dict:
     options = request.get('options') or {}
     poses = list(request.get('poses') or POSES)
     base_seed = int(options.get('seed', 42))
-    max_attempts = max(1, int(options.get('max_attempts', 2)))
+    max_attempts = max(0, min(2, int(options.get('max_attempts', 2))))
     started = time.monotonic()
     result = {'job_id': job.id, 'character_id': request['character_id'], 'recipe': LOCK['recipe']['name'], 'poses_requested': poses,
               'worker': host_facts(), 'started_utc': stamp(), 'attempts': [], 'status': 'running'}
@@ -739,26 +779,29 @@ def run_job(rt: Runtime, job: Job) -> dict:
             result['resumed_from'] = restored['source_checkpoint']
         ident = None
         qc_summary = None
-        for attempt in range(1, max_attempts + 1):
-            seed = base_seed + attempt - 1
-            if attempt == 1 and restored:
-                ident = Path(restored['identity_dir'])
-                job.set_stage('qc', attempt=attempt, seed=seed, resumed=True)
-            else:
+        job.update(generation_attempts_used=0)
+        if restored:
+            ident = Path(restored['identity_dir'])
+            job.set_stage('qc', attempt=0, seed=base_seed, resumed=True, generation_attempts_used=0)
+            qc_summary = qc_poses(rt, job, 1, ident, poses)
+        else:
+            for attempt in range(1, max_attempts + 1):
+                seed = base_seed + attempt - 1
+                row = {'attempt': attempt, 'seed': seed, 'status': 'started'}
+                result['attempts'].append(row)
+                job.update(generation_attempts_used=attempt)
+                job.set_stage('generate', generation_attempts_used=attempt)
                 ident = generate(rt, job, attempt, seed, poses)
-            qc_summary = qc_poses(rt, job, attempt, ident, poses)
-            h3 = {p: read_json(ident / p / 'h3.json') for p in poses}
-            result['attempts'].append({'attempt': attempt, 'seed': seed, 'identity': ident.name, 'qc': qc_summary,
-                                       'h3_seconds': {p: h3[p].get('generation_seconds') for p in poses},
-                                       'source_sha256': {p: sha256_file(ident / p / 'source.mp4') for p in poses}})
-            if qc_summary['pass']:
-                break
-            job.log(f'attempt {attempt} failed QC; {"rerolling with a new seed" if attempt < max_attempts else "no attempts left"}')
-            if attempt < max_attempts:
-                release_local(rt, job, None) if options.get('release_failed_attempts', True) else None
-        assert ident is not None and qc_summary is not None
-        if not qc_summary['pass']:
-            result.update(status='qc_failed', error='generated clips failed QC on every attempt', qc=qc_summary)
+                qc_summary = qc_poses(rt, job, attempt, ident, poses)
+                h3 = {p: read_json(ident / p / 'h3.json') for p in poses}
+                row.update(status='complete', identity=ident.name, qc=qc_summary,
+                           h3_seconds={p: h3[p].get('generation_seconds') for p in poses},
+                           source_sha256={p: sha256_file(ident / p / 'source.mp4') for p in poses})
+                if qc_summary['pass']: break
+                if attempt < max_attempts and options.get('release_failed_attempts', True): release_local(rt, job, None)
+        result['generation_attempts_used'] = len(result['attempts'])
+        if ident is None or qc_summary is None or not qc_summary['pass']:
+            result.update(status='qc_failed', error='no accepted sources within the remaining generation budget', qc=qc_summary)
             return finish(rt, job, result, started, published, options)
         result['identity'] = ident.name
         result['qc'] = qc_summary
@@ -772,20 +815,27 @@ def run_job(rt: Runtime, job: Job) -> dict:
         with open(rt.gpu_lock, 'a') as lock_file:
             import fcntl
             job.log('waiting for the GPU lock')
-            fcntl.flock(lock_file, fcntl.LOCK_EX)
+            while True:
+                job.check_cancel()
+                try:
+                    fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError: time.sleep(0.25)
             s3 = server.start()
             result['musetalk_s3'] = {k: s3.get(k) for k in ('bucket', 'prefix', 'version')}
-            published = prepare(rt, job, len(result['attempts']), ident, server)
+            published = prepare(rt, job, max(1, len(result['attempts'])), ident, server)
             result['published'] = {'endpoint_rgb_sha256': published.get('endpoint_rgb_sha256'), 'poses': published['poses'],
                                    'finished_utc': published.get('finished_utc')}
-            if options.get('smoke_render', True):
-                result['smoke_render'] = smoke_render(rt, job, server, published)
             server.stop()
+            if options.get('diagnostic_teacher_smoke', False):
+                server = MuseTalkServer(rt, job, diagnostic=True)
+                try:
+                    server.start()
+                    result['diagnostic_teacher_smoke'] = smoke_render(rt, job, server, published)
+                except Exception as exc:
+                    result['diagnostic_teacher_smoke'] = {'pass': False, 'scope': 'diagnostic-only', 'error_type': type(exc).__name__}
+                finally: server.stop()
         result['s3_verification'] = verify_s3(rt, job, published)
-        smoke = result.get('smoke_render')
-        if smoke and not smoke['pass'] and options.get('smoke_render_required', True):
-            result.update(status='qc_failed', error='the published caches rendered but the smoke render failed QC; caches remain in S3 for inspection')
-            return finish(rt, job, result, started, published, options)
         if options.get('device_release'):
             result['device_release'] = publish_device_release(rt, job, ident, portrait, published, result)
         if options.get('publish_records', True):
@@ -811,6 +861,7 @@ def run_job(rt: Runtime, job: Job) -> dict:
 
 def finish(rt: Runtime, job: Job, result: dict, started: float, published, options: dict) -> dict:
     result['finished_utc'] = stamp()
+    result['generation_attempts_used'] = len(result.get('attempts') or [])
     result['seconds'] = round(time.monotonic() - started, 1)
     try:
         if options.get('release_local', True) and result['status'] in ('done', 'qc_failed'):
@@ -838,7 +889,7 @@ class FakePipeline:
         result = {'job_id': job.id, 'character_id': request['character_id'], 'recipe': LOCK['recipe']['name'], 'fake': True,
                   'started_utc': stamp(), 'attempts': [], 'status': 'running', 'worker': host_facts()}
         try:
-            for stage in ('ingest', 'generate', 'qc', 'prepare', 'verify', 'smoke', 'records'):
+            for stage in ('ingest', 'generate', 'qc', 'prepare', 'verify', 'exporting_device_bundles', 'records'):
                 job.check_cancel()
                 job.set_stage(stage, attempt=1)
                 time.sleep(float(options.get('fake_seconds', self.seconds)) / 7)
@@ -859,7 +910,7 @@ class FakePipeline:
                 job.set_stage('exporting_device_bundles')
                 # Fake runs deliberately do not invent S3 readiness. The local manifest exercises
                 # artifact discovery; backend verification must reject a fake remote descriptor.
-                release = {'schema': 'lingua-character-release/1', **options['device_release'],
+                release = {'schema': f'lingua-character-release/{options.get("release_schema", 2)}', **options['device_release'],
                            'worker_job_id': job.id, 'renderer_abi': 'musetalk-v15-phone-v1',
                            'fake': True, 'poses': result['published']['poses']}
                 write_json(job.dir / 'device_release' / 'release.json', release)

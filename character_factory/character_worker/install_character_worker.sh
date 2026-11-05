@@ -28,8 +28,9 @@ MODE=install
 case "${1:-}" in
   --plan) MODE=plan ;;
   --check) MODE=check ;;
+  --build-runtime) MODE=build ;;
   "") ;;
-  *) echo "usage: $0 [--plan|--check]" >&2; exit 2 ;;
+  *) echo "usage: $0 [--plan|--check|--build-runtime]" >&2; exit 2 ;;
 esac
 mkdir -p "$ROOT" "$LOG_DIR"
 
@@ -49,12 +50,13 @@ mapfile -t LOCKV < <(python3 - "$LOCK_JSON" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1])); h = d["h3_workflows"]; p = h["install_paths"]
 print(h["repo"]); print(h["commit"]); print(p["H3_RUNTIME"]); print(p["H3_COMFY"]); print(p["H3_VENV"]); print(p["H3_MODEL_DIR"])
-print(" ".join(h["lib_copies"])); print(d["recipe"]["name"]); print(h["models_lock_sha256_prefix"])
+print(" ".join(h["lib_copies"])); print(d["recipe"]["name"]); print(h["models_lock_sha256_prefix"]); print(h.get("model_profile", "full"))
 PY
 )
 H3_REPO="${LOCKV[0]}"; H3_COMMIT="${LOCKV[1]}"
 export H3_RUNTIME="${H3_RUNTIME:-${LOCKV[2]}}" H3_COMFY="${H3_COMFY:-${LOCKV[3]}}" H3_VENV="${H3_VENV:-${LOCKV[4]}}" H3_MODEL_DIR="${H3_MODEL_DIR:-${LOCKV[5]}}"
 H3_LIBS="${LOCKV[6]}"; RECIPE="${LOCKV[7]}"; MODELS_LOCK_PREFIX="${LOCKV[8]}"
+H3_PROFILE="${LOCKV[9]}"
 H3_CHECKOUT="${H3_WORKFLOWS_DIR:-$WORKSPACE/minimax-h3-workflows}"
 H3_STAMP="$ROOT/h3_install.stamp"
 
@@ -70,8 +72,25 @@ PLAN
   exit 0
 fi
 
+if [[ "$MODE" == build ]]; then
+  [[ -x /opt/musetalk/venv/bin/python ]] || die "--build-runtime requires the pinned dependency image base"
+  CUDA_VISIBLE_DEVICES="" bash "$REPO_ROOT/docker/character-runtime/build-environments.sh"
+fi
+
+# Immutable images verify before any package/model work; mismatches are fatal.
+PREBUILT=0
+if [[ "${CHARACTER_WORKER_RUNTIME_MODE:-source}" == prebuilt && "$MODE" != build ]]; then
+  PREBUILT=1
+  step_status "verifying immutable prebuilt runtime"
+  manifest_args=(verify --repo "$REPO_ROOT" --workspace "$WORKSPACE"
+    --manifest "${CHARACTER_WORKER_RUNTIME_MANIFEST:-/opt/character-runtime/manifest.json}"
+    --models "$REPO_ROOT/docker/character-runtime/preparation-models.json")
+  [[ -n "${CHARACTER_WORKER_RUNTIME_MANIFEST_SHA256:-}" ]] && manifest_args+=(--expected-sha256 "$CHARACTER_WORKER_RUNTIME_MANIFEST_SHA256")
+  CUDA_VISIBLE_DEVICES="" python3 "$SCRIPT_DIR/runtime_manifest.py" "${manifest_args[@]}" || die "prebuilt runtime verification failed; build a new pinned image (no automatic source repair)"
+fi
+
 # ---------------------------------------------------------------- 1. apt
-if [[ "$MODE" == install && "$(id -u)" == 0 ]] && command -v apt-get >/dev/null; then
+if [[ "$MODE" == install && "$PREBUILT" != 1 && "$(id -u)" == 0 ]] && command -v apt-get >/dev/null; then
   missing=0
   for tool in git curl ffmpeg ffprobe python3.10 jq; do command -v "$tool" >/dev/null || missing=1; done
   python3.10 -c 'import ensurepip' 2>/dev/null || missing=1
@@ -88,7 +107,7 @@ for tool in git curl ffmpeg ffprobe python3.10; do command -v "$tool" >/dev/null
 # ---------------------------------------------------------------- 2. MuseTalk
 mt_args=(--venv "$VENV_PATH" --with-avatar-prep)
 if [[ "$CHIN_TOOLS" == 1 ]]; then mt_args+=(--with-chin-tools --chin-venv "$CHIN_VENV"); fi
-if [[ "$SKIP_MUSETALK" != 1 ]]; then
+if [[ "$SKIP_MUSETALK" != 1 && "$PREBUILT" != 1 && "$MODE" != build ]]; then
   rc=0
   bash "$REPO_ROOT/scripts/install_musetalk.sh" --check "${mt_args[@]}" > "$LOG_DIR/musetalk_check.log" 2>&1 || rc=$?
   case "$rc" in
@@ -125,7 +144,7 @@ if [[ -f "$RUNTIME_ENV" ]]; then
   set -a; # shellcheck disable=SC1090
   source "$RUNTIME_ENV"; set +a
 fi
-if [[ -z "${AVATAR_S3_BUCKET:-}" && "${CHARACTER_WORKER_ALLOW_NO_S3:-0}" != 1 ]]; then
+if [[ "$MODE" != build && -z "${AVATAR_S3_BUCKET:-}" && "${CHARACTER_WORKER_ALLOW_NO_S3:-0}" != 1 ]]; then
   die "AVATAR_S3_BUCKET is not set (template env or runtime secret); the worker cannot publish caches. Set CHARACTER_WORKER_ALLOW_NO_S3=1 for a dry install."
 fi
 
@@ -158,26 +177,29 @@ clone_exact() {  # clone_exact <url> <commit> <dest>; token-authenticated withou
 
 h3_fast_check() {  # sizes + CUDA + package pins, no 61 GB hashing
   [[ -x "$H3_VENV/bin/python" && -f "$H3_CHECKOUT/scripts/doctor.py" ]] || return 1
-  ( cd "$H3_CHECKOUT" && H3_RUNTIME="$H3_RUNTIME" H3_COMFY="$H3_COMFY" H3_VENV="$H3_VENV" H3_MODEL_DIR="$H3_MODEL_DIR" "$H3_VENV/bin/python" scripts/doctor.py ) > "$LOG_DIR/h3_doctor.log" 2>&1
+  ( cd "$H3_CHECKOUT" && H3_RUNTIME="$H3_RUNTIME" H3_COMFY="$H3_COMFY" H3_VENV="$H3_VENV" H3_MODEL_DIR="$H3_MODEL_DIR" "$H3_VENV/bin/python" scripts/doctor.py --profile "$H3_PROFILE" ) > "$LOG_DIR/h3_doctor.log" 2>&1
 }
 
 if [[ "$SKIP_H3" != 1 ]]; then
-  if [[ "$MODE" == install ]]; then
+  if [[ "$MODE" == install && "$PREBUILT" != 1 ]]; then
     step_status "fetching minimax-h3-workflows @ ${H3_COMMIT:0:12}"
     clone_exact "$H3_REPO" "$H3_COMMIT" "$H3_CHECKOUT"
   fi
   [[ -d "$H3_CHECKOUT" ]] || die "H3 workflows checkout missing: $H3_CHECKOUT"
   [[ "$(git -C "$H3_CHECKOUT" rev-parse HEAD)" == "$H3_COMMIT" ]] || die "H3 workflows checkout is not at the pinned commit $H3_COMMIT"
   [[ "$(sha256sum "$H3_CHECKOUT/locks/models.lock.json" | cut -c1-16)" == "$MODELS_LOCK_PREFIX" ]] || die "models.lock.json differs from the pinned lock; refusing to install unverified weights"
-  want_stamp="$H3_COMMIT:$MODELS_LOCK_PREFIX"
-  if [[ "$(cat "$H3_STAMP" 2>/dev/null || true)" == "$want_stamp" ]] && h3_fast_check; then
+  want_stamp="$H3_COMMIT:$MODELS_LOCK_PREFIX:$H3_PROFILE"
+  if [[ "$MODE" == build ]]; then
+    (cd "$H3_CHECKOUT" && "$H3_VENV/bin/python" scripts/doctor.py --profile "$H3_PROFILE" --environment-only) || die "H3 image environment check failed"
+  elif [[ "$(cat "$H3_STAMP" 2>/dev/null || true)" == "$want_stamp" ]] && h3_fast_check; then
     log "H3 runtime present and verified (stamp matches; doctor OK)"
   else
     [[ "$MODE" == install ]] || die "H3 runtime not installed/verified (stamp or doctor failed); see $LOG_DIR/h3_doctor.log"
-    step_status "installing the pinned H3 runtime (ComfyUI, venv, 61 GB of weights with SHA-256 checks) - this is the long step"
+    step_status "installing the pinned H3 runtime (ComfyUI, venv, 40.1 GB character profile with SHA-256 checks) - this is the long step"
     log "H3 install: $H3_CHECKOUT/install.sh (H3_RUNTIME=$H3_RUNTIME H3_COMFY=$H3_COMFY H3_VENV=$H3_VENV H3_MODEL_DIR=$H3_MODEL_DIR)"
     mkdir -p "$H3_RUNTIME"
-    ( cd "$H3_CHECKOUT" && H3_PYTHON="${H3_PYTHON:-python3.10}" ./install.sh ) 2>&1 | tee "$LOG_DIR/h3_install.log" | grep -vE "^(DOWNLOAD|VERIFIED) " || true
+    h3_args=(--profile "$H3_PROFILE"); [[ "$PREBUILT" == 1 ]] && h3_args+=(--models-only)
+    ( cd "$H3_CHECKOUT" && H3_PYTHON="${H3_PYTHON:-python3.10}" ./install.sh "${h3_args[@]}" ) 2>&1 | tee "$LOG_DIR/h3_install.log"
     h3_fast_check || die "H3 doctor failed after install; see $LOG_DIR/h3_doctor.log and $LOG_DIR/h3_install.log"
     printf '%s\n' "$want_stamp" > "$H3_STAMP"
   fi
@@ -185,11 +207,12 @@ if [[ "$SKIP_H3" != 1 ]]; then
   for name in $H3_LIBS; do
     src="$H3_CHECKOUT/lib/h3/$name"; dst="$H3_RUNTIME/$name"
     if [[ ! -f "$dst" ]] || ! cmp -s "$src" "$dst"; then
-      [[ "$MODE" == install ]] || die "H3 helper $dst missing or stale"
+      [[ "$PREBUILT" != 1 ]] || die "prebuilt H3 helper differs: $dst"
+      [[ "$MODE" == install || "$MODE" == build ]] || die "H3 helper $dst missing or stale"
       cp "$src" "$dst"
     fi
   done
-  if [[ ! -f "$H3_RUNTIME/extra_model_paths_h3.yaml" || "$MODE" == install ]]; then
+  if [[ ! -f "$H3_RUNTIME/extra_model_paths_h3.yaml" || "$MODE" == install || "$MODE" == build ]]; then
     "$H3_VENV/bin/python" - "$H3_MODEL_DIR" "$H3_RUNTIME/extra_model_paths_h3.yaml" <<'PY'
 import sys, yaml
 from pathlib import Path

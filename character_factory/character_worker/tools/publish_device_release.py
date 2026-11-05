@@ -23,6 +23,8 @@ sys.path.insert(0, str(REPO / 'scripts' / 'ios'))
 from validate_phone_bundle import validate
 
 POSES = ('idle', 'talking', 'smiling')
+QC_CONTRACT = 'lingua-preprocessing-qc/1'
+QC_CHECKS = ('source_endpoint_set', 'cache_complete', 'phone_archive_structure', 'finite_latents', 'pose_geometry', 'image_decode')
 SAFE_COMPONENT = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,199}$')
 
 
@@ -98,6 +100,7 @@ def checkpoint(spec, s3, check_cancel=lambda: None):
     out = Path(spec['out'])
     out.mkdir(parents=True, exist_ok=True)
     receipt = {'schema': 'lingua-character-source-checkpoint/1', **identity,
+               'logical_job_id': spec.get('logical_job_id') or identity['job_id'],
                'worker_job_id': spec['worker_job_id'], 'recipe_id': spec['recipe_id'], 'poses': {}}
     for pose in POSES:
         check_cancel()
@@ -127,16 +130,28 @@ def publish(spec, s3, exporter=export, check_cancel=lambda: None, image_decoder=
     for field in ('character_id', 'job_id', 'release_id'):
         component(identity[field])
     component(spec['worker_job_id'])
-    if set(spec['poses']) != set(POSES) or not spec.get('qc', {}).get('pass') or not spec.get('smoke', {}).get('pass'):
-        raise ValueError('device release requires all three poses and passing QC/smoke')
+    version = int(spec.get('release_schema', 1))
+    if version not in (1, 2): raise ValueError('Unsupported release schema')
+    if set(spec['poses']) != set(POSES) or not spec.get('qc', {}).get('pass'):
+        raise ValueError('device release requires all three poses and passing source QC')
+    if version == 1 and not spec.get('smoke', {}).get('pass'):
+        raise ValueError('historical release/1 requires its actual teacher smoke')
+    if version == 2 and (not spec['qc'].get('endpoint_set', {}).get('pass') or
+            set(spec['qc'].get('reports') or {}) != set(POSES) or
+            any(not spec['qc']['reports'][p].get('pass') for p in POSES)):
+        raise ValueError('release/2 requires actual passing source and endpoint reports')
     repo = Path(spec['repo'])
     out = Path(spec['out'])
     out.mkdir(parents=True, exist_ok=True)
     bucket = spec['bucket']
     prefix = f'avatars/releases/{identity["release_id"]}/{spec["worker_job_id"]}'
-    manifest = {'schema': 'lingua-character-release/1', **identity, 'worker_job_id': spec['worker_job_id'],
+    manifest = {'schema': f'lingua-character-release/{version}', **identity, 'worker_job_id': spec['worker_job_id'],
                 'renderer_abi': 'musetalk-v15-phone-v1', 'recipe_id': spec['recipe_id'], 'source_fps': 24,
                 'preprocess_version': 'musetalk-v15-phone-v1', 'poses': {}, 'qc': {'status': 'passed'}}
+    if version == 2:
+        manifest['logical_job_id'] = spec.get('logical_job_id') or identity['job_id']
+        manifest['qc']['contract'] = QC_CONTRACT
+    measured = {}
     endpoint = None
     for pose in POSES:
         check_cancel()
@@ -150,6 +165,14 @@ def publish(spec, s3, exporter=export, check_cancel=lambda: None, image_decoder=
         write_json(sidecar_path, sidecar)
         meta = validate(tar, sidecar, avatar_id)
         image_decoder(tar)
+        if version == 2 and (meta['fps'] != 24 or meta['unique_frames'] != spec['qc']['reports'][pose].get('frames')):
+            raise ValueError('cache/source timing or frame count differs')
+        measured[pose] = {'avatar_id': avatar_id, 'frames': meta['unique_frames'], 'fps': meta['fps'],
+                          'width': meta['frame_width'], 'height': meta['frame_height'],
+                          'cycle_length': meta['cycle_length'], 'latents': {'dtype': 'float16',
+                          'shape': meta['latents']['shape'], 'finite': True},
+                          'images_decoded': 2 * meta['unique_frames'], 'geometry_valid': True,
+                          'source_sha256': row['source_sha256'], 'bundle_sha256': sidecar['sha256']}
         dims = (meta['frame_width'], meta['frame_height'])
         if endpoint is not None and endpoint != dims:
             raise ValueError('pose geometries do not agree')
@@ -163,8 +186,8 @@ def publish(spec, s3, exporter=export, check_cancel=lambda: None, image_decoder=
         bundle.update({k: sidecar[k] for k in ('frames', 'fps', 'width', 'height', 'format', 'cycle_length', 'exporter_commit')})
         sidecar_ref = upload(s3, bucket, f'{prefix}/phone/{pose}-{sidecar["sha256"]}.json', sidecar_path)
         source_ref = upload(s3, bucket, f'{prefix}/sources/{pose}-{row["source_sha256"]}.mp4', source)
-        source_ref.update(fps=24, frame_count=240 if pose != 'smiling' else 158,
-                          duration_seconds=(240 if pose != 'smiling' else 158) / 24,
+        source_frames = meta['unique_frames'] if version == 2 else (240 if pose != 'smiling' else 158)
+        source_ref.update(fps=24, frame_count=source_frames, duration_seconds=source_frames / 24,
                           width=meta['frame_width'], height=meta['frame_height'])
         manifest['poses'][pose] = {'avatar_id': avatar_id, 'bundle': bundle, 'sidecar': sidecar_ref, 'source': source_ref}
     check_cancel()
@@ -173,10 +196,22 @@ def publish(spec, s3, exporter=export, check_cancel=lambda: None, image_decoder=
     # shared phone student; that evidence comes from its separate native device run.
     smoke_scope = {'scope': 'asset-cache-qc', 'renderer': 'musetalk-v15-cuda-worker', 'model_role': 'teacher',
                    'phone_student_acceptance': False}
-    write_json(qc_path, {'pass': True, 'poses': spec['qc'], 'smoke': {**spec['smoke'], **smoke_scope}})
+    if version == 1:
+        qc_report = {'pass': True, 'poses': spec['qc'], 'smoke': {**spec['smoke'], **smoke_scope}}
+        provenance_data = {**spec['provenance'], 'asset_smoke': smoke_scope}
+    else:
+        qc_report = {'schema': QC_CONTRACT, 'status': 'passed',
+                     'source': {'status': 'passed', 'report': spec['qc']},
+                     'checks': {name: 'passed' for name in QC_CHECKS}, 'poses': measured,
+                     'phone_student_acceptance': 'not_run_on_linux'}
+        if spec.get('diagnostic_teacher_smoke'):
+            qc_report['diagnostic_teacher_smoke'] = spec['diagnostic_teacher_smoke']
+        provenance_data = {**spec['provenance'], 'preprocessing_qc_contract': QC_CONTRACT,
+                           'teacher_render_required': False, 'phone_student_acceptance': 'not_run_on_linux'}
+    write_json(qc_path, qc_report)
     manifest['qc']['report'] = upload(s3, bucket, f'{prefix}/qc/report.json', qc_path)
     provenance = out / 'provenance.json'
-    write_json(provenance, {**spec['provenance'], 'asset_smoke': smoke_scope})
+    write_json(provenance, provenance_data)
     manifest['provenance'] = upload(s3, bucket, f'{prefix}/provenance.json', provenance)
     for name in ('portrait', 'anchor'):
         path = Path(spec[name])

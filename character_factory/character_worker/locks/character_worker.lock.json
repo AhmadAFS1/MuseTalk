@@ -7,7 +7,7 @@
   },
   "h3_workflows": {
     "repo": "https://github.com/AhmadAFS1/minimax-h3-workflows.git",
-    "commit": "168f143c2f09c0343a8ac97af3922544556789ff",
+    "commit": "e3b9b442ccb5efcdade72ba689920b11d2ddc580",
     "install_paths": {
       "H3_RUNTIME": "/workspace/minimax-h3",
       "H3_COMFY": "/workspace/ComfyUI",
@@ -23,12 +23,17 @@
     ],
     "models_lock_sha256_prefix": "206eb9865dabe7da",
     "wheels_lock_sha256_prefix": "db243944e8285d9b",
-    "weights_bytes": 61044221775
+    "weights_bytes": 40073842159,
+    "model_profile": "character-fl2va",
+    "source_compatible_commits": [
+      "168f143c2f09c0343a8ac97af3922544556789ff"
+    ]
   },
   "musetalk": {
     "install": "scripts/install_musetalk.sh --with-avatar-prep --with-chin-tools",
     "avatar_cache_version": "v15",
-    "prepare_batch_size": 8
+    "prepare_batch_size": 8,
+    "preparation_mode": "avatar-preparation/1"
   },
   "host_requirements": {
     "min_vram_mib": 12000,
@@ -68,5 +73,10 @@
     "h3_private_port": 8197,
     "status_file": "/workspace/character_worker/status.json",
     "runtime_env_file": "/workspace/character_worker/runtime.env"
+  },
+  "publication": {
+    "release_schema": "lingua-character-release/2",
+    "qc_contract": "lingua-preprocessing-qc/1",
+    "phone_student_acceptance": "not_run_on_linux"
   }
 }

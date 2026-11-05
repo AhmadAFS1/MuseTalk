@@ -125,7 +125,7 @@ profile_result="$(python3 "$SCRIPT_DIR/host_requirements.py" "${profile_args[@]}
 log "$profile_result"
 NEED_DISK="$MIN_DISK_FRESH"
 [[ -f "$ROOT/h3_install.stamp" && -x "$WORKSPACE/.venvs/musetalk_trt_stagewise/bin/python" ]] && NEED_DISK="$MIN_DISK_RESUME"
-(( FREE_GIB >= NEED_DISK )) || die "only ${FREE_GIB} GiB free on $WORKSPACE; need ${NEED_DISK} GiB (61 GB H3 weights + two venvs + working space)"
+(( FREE_GIB >= NEED_DISK )) || die "only ${FREE_GIB} GiB free on $WORKSPACE; need ${NEED_DISK} GiB (40.1 GB H3 character weights + working space)"
 
 # ---------------------------------------------------------------- worker API first
 CURRENT_PHASE=api

@@ -65,7 +65,8 @@ OPTION_TYPES = {'seed': int, 'max_attempts': int, 'qc_profile': str, 'smoke_rend
                 'release_local': bool, 'release_failed_attempts': bool, 'publish_records': bool, 'batch_size': int,
                 'generate_timeout_seconds': int, 'prepare_timeout_seconds': int, 'smoke_timeout_seconds': int,
                 'smoke_seconds': (int, float), 'fake_outcome': str, 'fake_seconds': (int, float),
-                'device_release': dict, 'source_checkpoint': dict, 'submission_id': str}
+                'device_release': dict, 'source_checkpoint': dict, 'submission_id': str, 'logical_job_id': str, 'release_schema': int, 'diagnostic_teacher_smoke': bool,
+                'deadline_epoch': (int, float)}
 ACCEPTED_PROMPT_FIELDS = ('label', 'age', 'gender', 'hair', 'tone', 'facial_hair')
 
 
@@ -174,8 +175,8 @@ def validate_request(body, allow_local_paths: bool = False, fake: bool = False) 
                 not isinstance(v, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,199}', v) or '..' in v
                 for v in release.values()):
             raise BadRequest('device_release needs safe character_id, job_id and release_id strings')
-        if set(poses) != set(pipeline.POSES) or clean.get('smoke_render') is False or clean.get('smoke_render_required') is False:
-            raise BadRequest('device_release requires all three poses and mandatory smoke render')
+        if set(poses) != set(pipeline.POSES):
+            raise BadRequest('device_release requires all three poses')
     if 'source_checkpoint' in clean:
         ref = clean['source_checkpoint']
         if ('device_release' not in clean or not isinstance(ref.get('bucket'), str)
@@ -188,8 +189,16 @@ def validate_request(body, allow_local_paths: bool = False, fake: bool = False) 
         raise BadRequest('submission_id requires a safe token and external_id')
     if 'qc_profile' in clean and clean['qc_profile'] not in QC_PROFILES:
         raise BadRequest(f'qc_profile must be one of {QC_PROFILES}')
-    if 'max_attempts' in clean and not 1 <= clean['max_attempts'] <= 4:
-        raise BadRequest('max_attempts must be between 1 and 4')
+    if 'max_attempts' in clean and not 0 <= clean['max_attempts'] <= 2:
+        raise BadRequest('max_attempts must be between 0 and 2')
+    if clean.get('max_attempts') == 0 and 'source_checkpoint' not in clean:
+        raise BadRequest('zero H3 budget requires an accepted source checkpoint')
+    if 'logical_job_id' in clean and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,199}', clean['logical_job_id']):
+        raise BadRequest('logical_job_id must be a safe identity')
+    if 'release_schema' in clean and clean['release_schema'] not in (1, 2):
+        raise BadRequest('release_schema must be 1 or 2')
+    if 'deadline_epoch' in clean and (not __import__('math').isfinite(clean['deadline_epoch']) or clean['deadline_epoch'] <= time.time()):
+        raise BadRequest('deadline_epoch must be a finite future Unix timestamp')
     if 'batch_size' in clean and not 1 <= clean['batch_size'] <= 32:
         raise BadRequest('batch_size must be between 1 and 32')
     if 'seed' in clean and not 0 <= clean['seed'] < 2 ** 63:
@@ -403,7 +412,7 @@ class JobManager:
         except (OSError, ValueError):
             pass
         return {'service': SERVICE, 'api_version': API_VERSION, 'status': 'failed' if boot.get('failed') else ('ready' if ready else 'booting'),
-                'capabilities': ['device_release/1'],
+                'capabilities': ['device_release/1', 'device_release/2', 'preprocessing_qc/1'],
                 'ready': ready, 'accepting': ready and not draining and queue_depth < self.max_queue, 'draining': draining,
                 'boot': boot, 'busy': current is not None, 'current_job': current, 'queue_depth': queue_depth,
                 'idle_seconds': 0 if current else round(time.time() - self.last_finished, 1), 'uptime_seconds': round(time.time() - self.started, 1),
