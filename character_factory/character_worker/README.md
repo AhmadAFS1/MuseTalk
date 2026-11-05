@@ -72,6 +72,31 @@ POST /worker/drain | /worker/undrain
 The six metadata fields `label, age, gender, hair, tone, facial_hair` select the exact accepted talking prompt
 builder; without them the generic identity prompt is used and the response says so in `warnings`.
 
+### Required mobile release
+
+Workers advertise `capabilities: ["device_release/1"]`. A device-first caller supplies
+`options.device_release` with `character_id` (the Lingua character ID), `job_id` and `release_id`
+(the Lingua creation job ID). These jobs require all three poses and the smoke-render quality check.
+
+After H3 quality checks, the worker uploads accepted sources, portrait, anchor, complete QC and generation
+provenance under `avatars/releases/<release_id>/<worker_job_id>/`, then commits
+`source-checkpoint.json`. Its descriptor is persisted on the worker job as `source_checkpoint` before
+MuseTalk starts. The sources survive a preparation failure; automatic restoration on another worker is
+not yet implemented.
+
+After preparation and the smoke render, the worker runs `prepare_avatar_bundle.py --phone-only` and
+`pack_phone_bundle.py` against each local cache. It checks the entire archive (paths, counts, finite
+float16 latents, crop geometry and all image decoding), then uploads mobile tar/sidecars and required
+records. Every immutable upload uses SHA-256, conditional creation and a verified HEAD. `release.json`
+is uploaded last; a failed mandatory artifact cannot produce a successful device release.
+
+The result includes `device_release: {bucket, key, sha256, bytes, release_id}` pointing to a
+`lingua-character-release/1` manifest with `renderer_abi: "musetalk-v15-phone-v1"`, explicit caller/job
+identity, three pose bundle/source descriptors, and QC/provenance descriptors. The controller must
+verify and activate this manifest before exposing ready status. Legacy jobs retain the existing output
+contract. The fake worker exposes an explicitly fake local manifest for protocol tests; it never claims
+verified S3 readiness.
+
 ### Result shape (`result.json`, also delivered to `callback_url`)
 
 ```json

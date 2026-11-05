@@ -126,6 +126,20 @@ class WorkerApiTest(unittest.TestCase):
             self.assertEqual(final['status'], outcome)
             self.assertTrue(final['error'])
 
+    def test_device_release_capability_and_fake_artifact(self):
+        health = http('GET', f'{self.base}/health')[1]
+        self.assertIn('device_release/1', health['capabilities'])
+        options = {'device_release': {'character_id': 'lingua-id', 'job_id': 'charfactory_test', 'release_id': 'charfactory_test'}}
+        code, data = http('POST', f'{self.base}/createCharacter', self.body(options=options), token=self.token)
+        self.assertEqual(code, 202, data)
+        final = self.wait_terminal(data['job_id'])
+        self.assertEqual(final['status'], 'done')
+        self.assertTrue(final['result']['device_release']['fake'])
+        code, manifest = http('GET', f'{self.base}/characters/{data["job_id"]}/artifacts/device_release/release.json', token=self.token)
+        self.assertEqual(code, 200)
+        self.assertEqual(manifest['character_id'], 'lingua-id')
+        self.assertTrue(manifest['fake'])
+
     def test_cancel_queued_job_and_queue_order(self):
         first = http('POST', f'{self.base}/createCharacter', self.body(options={'fake_seconds': 1.5}), token=self.token)[1]
         second = http('POST', f'{self.base}/createCharacter', self.body(character_id='second_person'), token=self.token)[1]

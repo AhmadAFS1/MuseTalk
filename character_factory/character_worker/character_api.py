@@ -63,7 +63,7 @@ QC_PROFILES = sorted(k for k in json.loads((HERE / 'qc' / 'profiles.json').read_
 OPTION_TYPES = {'seed': int, 'max_attempts': int, 'qc_profile': str, 'smoke_render': bool, 'smoke_render_required': bool,
                 'release_local': bool, 'release_failed_attempts': bool, 'publish_records': bool, 'batch_size': int,
                 'generate_timeout_seconds': int, 'prepare_timeout_seconds': int, 'smoke_timeout_seconds': int,
-                'smoke_seconds': (int, float), 'fake_outcome': str, 'fake_seconds': (int, float)}
+                'smoke_seconds': (int, float), 'fake_outcome': str, 'fake_seconds': (int, float), 'device_release': dict}
 ACCEPTED_PROMPT_FIELDS = ('label', 'age', 'gender', 'hair', 'tone', 'facial_hair')
 
 
@@ -138,9 +138,19 @@ def validate_request(body, allow_local_paths: bool = False, fake: bool = False) 
             raise BadRequest(f'option {key} must be an integer')
         if expected is str and not isinstance(value, str):
             raise BadRequest(f'option {key} must be a string')
+        if expected is dict and not isinstance(value, dict):
+            raise BadRequest(f'option {key} must be an object')
         if isinstance(expected, tuple) and not isinstance(value, expected):
             raise BadRequest(f'option {key} must be a number')
         clean[key] = value
+    if 'device_release' in clean:
+        release = clean['device_release']
+        if set(release) != {'character_id', 'job_id', 'release_id'} or any(
+                not isinstance(v, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,199}', v) or '..' in v
+                for v in release.values()):
+            raise BadRequest('device_release needs safe character_id, job_id and release_id strings')
+        if set(poses) != set(pipeline.POSES) or clean.get('smoke_render') is False or clean.get('smoke_render_required') is False:
+            raise BadRequest('device_release requires all three poses and mandatory smoke render')
     if 'qc_profile' in clean and clean['qc_profile'] not in QC_PROFILES:
         raise BadRequest(f'qc_profile must be one of {QC_PROFILES}')
     if 'max_attempts' in clean and not 1 <= clean['max_attempts'] <= 4:
@@ -349,6 +359,7 @@ class JobManager:
         except (OSError, ValueError):
             pass
         return {'service': SERVICE, 'api_version': API_VERSION, 'status': 'failed' if boot.get('failed') else ('ready' if ready else 'booting'),
+                'capabilities': ['device_release/1'],
                 'ready': ready, 'accepting': ready and not draining and queue_depth < self.max_queue, 'draining': draining,
                 'boot': boot, 'busy': current is not None, 'current_job': current, 'queue_depth': queue_depth,
                 'idle_seconds': 0 if current else round(time.time() - self.last_finished, 1), 'uptime_seconds': round(time.time() - self.started, 1),

@@ -38,17 +38,34 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "ios"))
 
-from musetalk.utils.audio_processor import AudioProcessor  # noqa: E402
-from musetalk.utils.blending import get_image_blending  # noqa: E402
-from render_evidence import load_avatar, to_bgr_u8  # noqa: E402
-
 MANIFEST = REPO_ROOT / "models" / "ios_bench" / "coreml" / "manifest.json"
 
 
-def main() -> None:
-    import librosa
-    from transformers import WhisperModel
+def load_avatar(avatar_dir: Path):
+    """Read a complete cache; never silently truncate mismatching arrays."""
+    def images(folder):
+        paths = sorted((p for p in folder.iterdir() if p.suffix.lower() in ('.jpg', '.jpeg', '.png')),
+                       key=lambda p: int(p.stem))
+        result = [cv2.imread(str(p)) for p in paths]
+        if any(value is None for value in result):
+            raise ValueError(f'undecodable images in {folder}')
+        return result
+    frames, masks = images(avatar_dir / 'full_imgs'), images(avatar_dir / 'mask')
+    with (avatar_dir / 'coords.pkl').open('rb') as f:
+        coords = pickle.load(f)
+    with (avatar_dir / 'mask_coords.pkl').open('rb') as f:
+        mask_coords = pickle.load(f)
+    latents = torch.load(avatar_dir / 'latents.pt', map_location='cpu', weights_only=True)
+    latents = torch.cat([t.float() for t in latents], dim=0)
+    counts = [len(frames), len(masks), len(coords), len(mask_coords), latents.shape[0]]
+    if not counts[0] or len(set(counts)) != 1 or list(latents.shape[1:]) != [8, 32, 32]:
+        raise ValueError(f'incomplete avatar cache: {counts}, latents {latents.shape}')
+    if not torch.isfinite(latents).all():
+        raise ValueError('avatar cache has non-finite latents')
+    return frames, masks, coords, mask_coords, latents
 
+
+def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--avatar", type=Path, required=True)
     ap.add_argument("--audio", type=Path, default=REPO_ROOT / "data" / "audio" / "ai-assistant.mpga")
@@ -80,7 +97,7 @@ def main() -> None:
         and [int(v) for v in coords[i]] == [int(v) for v in coords[total - 1 - i]]
         and [int(v) for v in mask_coords[i]] == [int(v) for v in mask_coords[total - 1 - i]]
         and torch.equal(latents[i], latents[total - 1 - i])
-        for i in range(0, total // 2, max(1, total // 40)))
+        for i in range(total // 2))
     if not symmetric:
         n = total
     print(f"avatar {args.avatar.name}: {total} cache entries, {'ping-pong, ' if symmetric else 'NOT symmetric, '}{n} unique; "
@@ -127,6 +144,11 @@ def main() -> None:
         return
 
     # audio: 16 kHz float32 for the log-mel model, and a playable cut of the same seconds
+    import librosa
+    from transformers import WhisperModel
+    from musetalk.utils.audio_processor import AudioProcessor
+    from musetalk.utils.blending import get_image_blending
+    from render_evidence import to_bgr_u8
     wav, _ = librosa.load(str(args.audio), sr=16000)
     seconds = min(args.seconds, 30.0, len(wav) / 16000)
     samples = int(round(seconds * 16000))

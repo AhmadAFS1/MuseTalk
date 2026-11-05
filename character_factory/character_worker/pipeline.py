@@ -590,6 +590,44 @@ def publish_records(rt: Runtime, job: Job) -> dict:
     return result
 
 
+def publish_device_release(rt: Runtime, job: Job, ident: Path, portrait: Path, published: dict, result: dict,
+                           *, checkpoint: bool = False) -> dict:
+    """Accepted-source checkpoint or mandatory mobile output, before local release."""
+    identity = job.request['options']['device_release']
+    job.check_cancel()
+    stage = 'checkpointing_sources' if checkpoint else 'exporting_device_bundles'
+    job.set_stage(stage)
+    root = job.dir / 'device_release'
+    root.mkdir(exist_ok=True)
+    spec = {
+        'identity': identity, 'worker_job_id': job.id, 'repo': str(rt.repo), 'out': str(root / 'artifacts'),
+        'bucket': rt.s3_bucket(), 'recipe_id': LOCK['recipe']['name'], 'portrait': str(portrait),
+        'anchor': str(ident / 'anchor.png'),
+        'qc': {**result['qc'], 'reports': {p: read_json(ident.parent / 'qc' / f'{p}.json') for p in POSES}},
+        'smoke': ({**(result.get('smoke_render') or {}), 'report': read_json(job.dir / 'smoke/qc.json')}
+                  if not checkpoint else {}),
+        'provenance': {'worker_job_id': job.id, 'request': {'character_id': job.request['character_id'],
+                       'metadata': job.request.get('metadata') or {}, 'options': {k: v for k, v in job.request['options'].items()
+                                                                             if not k.startswith('fake_')}},
+                       'lock': LOCK, 'portrait_sha256': result['portrait_sha256'], 'attempts': result['attempts'],
+                       'published': published, 'worker': result['worker'],
+                       'h3': {p: read_json(ident / p / 'h3.json') for p in POSES}},
+        'poses': {pose: {'avatar_id': info['avatar_id'], 'cache': str(rt.repo / 'results' / LOCK['musetalk']['avatar_cache_version']
+                      / 'avatars' / info['avatar_id']), 'source': str(ident / pose / 'source.mp4'),
+                      'source_sha256': info['source_sha256']} for pose, info in published['poses'].items()},
+    }
+    spec_path, result_path = root / f'{stage}-spec.json', root / f'{stage}-publication.json'
+    write_json(spec_path, spec)
+    extra = ['--checkpoint'] if checkpoint else []
+    rc = run_logged(job, [rt.musetalk_python, HERE / 'tools' / 'publish_device_release.py', '--spec', spec_path,
+                          '--result', result_path, *extra], cwd=rt.repo, env=rt.env(), timeout=1800,
+                    log_name='device_release/publication.log')
+    if rc or not result_path.is_file():
+        raise StageFailed(stage, 'mobile release export/publication failed; see device_release/publication.log')
+    job.check_cancel()
+    return read_json(result_path)
+
+
 def release_local(rt: Runtime, job: Job, published: dict | None) -> dict:
     job.set_stage('release')
     removed = []
@@ -688,6 +726,12 @@ def run_job(rt: Runtime, job: Job) -> dict:
             return finish(rt, job, result, started, published, options)
         result['identity'] = ident.name
         result['qc'] = qc_summary
+        if options.get('device_release'):
+            source_published = {'poses': {p: {'avatar_id': f'pending_{p}',
+                                   'source_sha256': sha256_file(ident / p / 'source.mp4')} for p in POSES}}
+            result['source_checkpoint'] = publish_device_release(rt, job, ident, portrait, source_published,
+                                                                 result, checkpoint=True)
+            job.update(source_checkpoint=result['source_checkpoint'])
         server = MuseTalkServer(rt, job)
         with open(rt.gpu_lock, 'a') as lock_file:
             import fcntl
@@ -706,6 +750,8 @@ def run_job(rt: Runtime, job: Job) -> dict:
         if smoke and not smoke['pass'] and options.get('smoke_render_required', True):
             result.update(status='qc_failed', error='the published caches rendered but the smoke render failed QC; caches remain in S3 for inspection')
             return finish(rt, job, result, started, published, options)
+        if options.get('device_release'):
+            result['device_release'] = publish_device_release(rt, job, ident, portrait, published, result)
         if options.get('publish_records', True):
             result['records'] = publish_records(rt, job)
         result['status'] = 'done'
@@ -773,6 +819,16 @@ class FakePipeline:
                     'source_sha256': '0' * 64} for p in poses}}
             result['qc'] = {'pass': True, 'attempt': 1, 'profile': options.get('qc_profile', 'strict')}
             result['smoke_render'] = {'pass': True, 'fake': True}
+            if options.get('device_release'):
+                job.set_stage('exporting_device_bundles')
+                # Fake runs deliberately do not invent S3 readiness. The local manifest exercises
+                # artifact discovery; backend verification must reject a fake remote descriptor.
+                release = {'schema': 'lingua-character-release/1', **options['device_release'],
+                           'worker_job_id': job.id, 'renderer_abi': 'musetalk-v15-phone-v1',
+                           'fake': True, 'poses': result['published']['poses']}
+                write_json(job.dir / 'device_release' / 'release.json', release)
+                result['device_release'] = {'fake': True, 'release_id': release['release_id'],
+                                           'artifact_path': 'device_release/release.json'}
             result['status'] = 'done'
             return finish(rt, job, result, started, None, {'release_local': False})
         except JobCancelled:
