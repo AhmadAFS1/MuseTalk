@@ -611,6 +611,7 @@ def publish_device_release(rt: Runtime, job: Job, ident: Path, portrait: Path, p
                                                                              if not k.startswith('fake_')}},
                        'lock': LOCK, 'portrait_sha256': result['portrait_sha256'], 'attempts': result['attempts'],
                        'published': published, 'worker': result['worker'],
+                       'plan': read_json(ident / 'plan.json'),
                        'h3': {p: read_json(ident / p / 'h3.json') for p in POSES}},
         'poses': {pose: {'avatar_id': info['avatar_id'], 'cache': str(rt.repo / 'results' / LOCK['musetalk']['avatar_cache_version']
                       / 'avatars' / info['avatar_id']), 'source': str(ident / pose / 'source.mp4'),
@@ -626,6 +627,29 @@ def publish_device_release(rt: Runtime, job: Job, ident: Path, portrait: Path, p
         raise StageFailed(stage, 'mobile release export/publication failed; see device_release/publication.log')
     job.check_cancel()
     return read_json(result_path)
+
+
+def restore_device_sources(rt: Runtime, job: Job, portrait: Path) -> dict:
+    job.set_stage('restoring_sources')
+    out = job.dir / 'attempts' / '01'
+    out.mkdir(parents=True, exist_ok=True)
+    spec = {'identity': job.request['options']['device_release'],
+            'descriptor': job.request['options']['source_checkpoint'], 'bucket': rt.s3_bucket(),
+            'recipe_id': LOCK['recipe']['name'], 'h3_commit': LOCK['h3_workflows']['commit'],
+            'repo': str(rt.repo), 'workspace': str(rt.workspace), 'h3_lib': str(rt.h3_dir),
+            'portrait': str(portrait), 'metadata': str(job.dir / 'metadata.json'), 'out': str(out)}
+    spec_path, result_path = job.dir / 'restore-spec.json', job.dir / 'restore-result.json'
+    write_json(spec_path, spec)
+    rc = run_logged(job, [rt.musetalk_python, HERE / 'tools/restore_device_sources.py', '--spec', spec_path,
+                         '--result', result_path], cwd=rt.repo, env=rt.env(), timeout=1800, log_name='restore.log')
+    if rc or not result_path.is_file():
+        raise StageFailed('restoring_sources', 'source checkpoint restoration failed; see restore.log')
+    job.check_cancel()
+    restored = read_json(result_path)
+    ident = Path(restored['identity_dir']).resolve()
+    if not ident.is_relative_to(out.resolve()):
+        raise StageFailed('restoring_sources', 'restored identity is outside the job')
+    return restored
 
 
 def release_local(rt: Runtime, job: Job, published: dict | None) -> dict:
@@ -705,11 +729,19 @@ def run_job(rt: Runtime, job: Job) -> dict:
             raise StageFailed('preflight', '; '.join(problems))
         portrait = ingest_portrait(rt, job)
         result['portrait_sha256'] = sha256_file(portrait)
+        restored = restore_device_sources(rt, job, portrait) if options.get('source_checkpoint') else None
+        if restored:
+            base_seed = restored['seed']
+            result['resumed_from'] = restored['source_checkpoint']
         ident = None
         qc_summary = None
         for attempt in range(1, max_attempts + 1):
             seed = base_seed + attempt - 1
-            ident = generate(rt, job, attempt, seed, poses)
+            if attempt == 1 and restored:
+                ident = Path(restored['identity_dir'])
+                job.set_stage('qc', attempt=attempt, seed=seed, resumed=True)
+            else:
+                ident = generate(rt, job, attempt, seed, poses)
             qc_summary = qc_poses(rt, job, attempt, ident, poses)
             h3 = {p: read_json(ident / p / 'h3.json') for p in poses}
             result['attempts'].append({'attempt': attempt, 'seed': seed, 'identity': ident.name, 'qc': qc_summary,

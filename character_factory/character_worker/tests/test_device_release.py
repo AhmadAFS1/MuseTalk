@@ -1,7 +1,6 @@
 """Publication must never advertise a partial or corrupt character release."""
 import base64
 import hashlib
-import importlib.util
 import io
 import json
 from pathlib import Path
@@ -19,6 +18,7 @@ sys.path.insert(0, str(HERE / 'tools'))
 import character_api
 import pipeline
 import publish_device_release as release
+import restore_device_sources as resume
 
 
 def png(width=8, height=8):
@@ -82,6 +82,9 @@ class S3:
 
     def head_object(self, **kwargs):
         return self.rows[kwargs['Key']]
+
+    def get_object(self, **kwargs):
+        return {'Body': io.BytesIO(self.rows[kwargs['Key']]['Body'])}
 
 
 class DeviceReleaseTest(unittest.TestCase):
@@ -203,6 +206,84 @@ class DeviceReleaseTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             release.checkpoint(self.spec(), s3)
         self.assertFalse(any(k.endswith('/source-checkpoint.json') for k in s3.rows))
+
+    def checkpoint_fixture(self):
+        s3 = S3()
+        spec = self.spec()
+        spec['provenance'] = {'portrait_sha256': release.file_hash(Path(spec['portrait'])),
+                              'lock': {'h3_workflows': {'commit': 'h3-pinned'}},
+                              'plan': {'signature': 'fixed-inputs'},
+                              'h3': {p: {'status': 'complete', 'seed': 42, 'generation_seconds': 1} for p in release.POSES}}
+        ref = release.checkpoint(spec, s3)
+        target = self.root / 'new-worker' / 'new_identity'
+        restore_spec = {'identity': spec['identity'], 'descriptor': ref, 'bucket': spec['bucket'],
+                        'recipe_id': spec['recipe_id'], 'portrait': spec['portrait'], 'h3_commit': 'h3-pinned',
+                        'out': str(target.parent)}
+        planner = lambda spec, seed: {'signature': 'fixed-inputs', 'output': str(target)}
+        return s3, spec, restore_spec, planner
+
+    def restore(self, spec, s3, planner):
+        return resume.restore(spec, s3, planner=planner, anchor_validator=lambda s, a: None,
+                              video_validator=lambda s, v, p: {'first_last_exact': True, 'first_rgb_sha256': 'shared-anchor'})
+
+    def test_resume_from_previous_worker_checks_hashes_and_remaps_artifacts(self):
+        s3, original, spec, planner = self.checkpoint_fixture()
+        result = self.restore(spec, s3, planner)
+        self.assertEqual(result['seed'], 42)
+        for pose in release.POSES:
+            target = Path(result['identity_dir']) / pose
+            self.assertEqual(release.file_hash(target / 'source.mp4'), original['poses'][pose]['source_sha256'])
+            record = json.loads((target / 'h3.json').read_text())
+            self.assertEqual(record['artifacts'][str((target / 'source.mp4').resolve())], original['poses'][pose]['source_sha256'])
+
+    def test_resume_refuses_foreign_bucket_job_recipe_inputs_and_corrupt_object(self):
+        for kind in ('bucket', 'job', 'recipe', 'inputs', 'object'):
+            with self.subTest(kind=kind):
+                s3, original, spec, planner = self.checkpoint_fixture()
+                if kind == 'bucket':
+                    spec['descriptor']['bucket'] = 'foreign'
+                elif kind == 'job':
+                    spec['identity'] = {**spec['identity'], 'job_id': 'new-job'}
+                elif kind == 'recipe':
+                    spec['recipe_id'] = 'new-recipe'
+                elif kind == 'inputs':
+                    planner = lambda s, seed: {'signature': 'changed-prompt', 'output': str(self.root / 'new-target')}
+                else:
+                    key = next(k for k in s3.rows if '/sources/idle-' in k)
+                    s3.rows[key]['Body'] = b'changed source'
+                with self.assertRaises(ValueError):
+                    self.restore(spec, s3, planner)
+
+    def test_driver_resumes_then_reruns_qc_without_h3_generation(self):
+        s3, original, spec, planner = self.checkpoint_fixture()
+        restored = self.restore(spec, s3, planner)
+        ident = Path(restored['identity_dir'])
+        rt = pipeline.Runtime(workspace=self.root / 'workspace', root=self.root / 'worker')
+        rt.workspace.mkdir(parents=True)
+        job_dir = self.root / 'worker/jobs/new_worker_job'
+        job_dir.mkdir(parents=True)
+        pipeline.write_json(job_dir / 'job.json', {'job_id': 'new_worker_job', 'request': {
+            'character_id': 'new_person', 'options': {'source_checkpoint': spec['descriptor'],
+                'device_release': spec['identity'], 'release_local': False, 'publish_records': False}}})
+        job = pipeline.Job(job_dir)
+        published = {'poses': {p: {'avatar_id': 'new_' + p, 'source_sha256': original['poses'][p]['source_sha256']}
+                               for p in release.POSES}}
+        with (patch.object(rt, 'preflight', return_value=[]), patch.object(pipeline, 'host_facts', return_value={}),
+              patch.object(pipeline, 'ingest_portrait', return_value=Path(spec['portrait'])),
+              patch.object(pipeline, 'restore_device_sources', return_value=restored),
+              patch.object(pipeline, 'generate') as generate,
+              patch.object(pipeline, 'qc_poses', return_value={'pass': True}) as qc,
+              patch.object(pipeline, 'MuseTalkServer') as server,
+              patch.object(pipeline, 'prepare', return_value=published),
+              patch.object(pipeline, 'smoke_render', return_value={'pass': True}),
+              patch.object(pipeline, 'verify_s3', return_value={'pass': True}),
+              patch.object(pipeline, 'publish_device_release', return_value={'key': 'verified-release'})):
+            server.return_value.start.return_value = {'bucket': 'b', 'prefix': 'avatars', 'version': 'v15'}
+            result = pipeline.run_job(rt, job)
+        self.assertEqual(result['status'], 'done', result.get('error'))
+        generate.assert_not_called()
+        qc.assert_called_once()
+        self.assertEqual(result['resumed_from'], spec['descriptor'])
 
 
 if __name__ == '__main__':

@@ -81,8 +81,12 @@ Workers advertise `capabilities: ["device_release/1"]`. A device-first caller su
 After H3 quality checks, the worker uploads accepted sources, portrait, anchor, complete QC and generation
 provenance under `avatars/releases/<release_id>/<worker_job_id>/`, then commits
 `source-checkpoint.json`. Its descriptor is persisted on the worker job as `source_checkpoint` before
-MuseTalk starts. The sources survive a preparation failure; automatic restoration on another worker is
-not yet implemented.
+MuseTalk starts. A retry can pass this descriptor in `options.source_checkpoint`. The worker checks the
+bucket and release identity, every downloaded hash, portrait, pinned model revision and recreated
+batch-plan signature, restores the original sampler seed and remaps source records to the new host.
+It fully decodes the restored clips, checks exact shared endpoints and reruns QC before skipping H3.
+Changing the portrait, prompts, graph or model recipe rejects reuse. No unvalidated checkpoint falls
+back silently to generation.
 
 After preparation and the smoke render, the worker runs `prepare_avatar_bundle.py --phone-only` and
 `pack_phone_bundle.py` against each local cache. It checks the entire archive (paths, counts, finite

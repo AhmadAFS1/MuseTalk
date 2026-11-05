@@ -63,7 +63,8 @@ QC_PROFILES = sorted(k for k in json.loads((HERE / 'qc' / 'profiles.json').read_
 OPTION_TYPES = {'seed': int, 'max_attempts': int, 'qc_profile': str, 'smoke_render': bool, 'smoke_render_required': bool,
                 'release_local': bool, 'release_failed_attempts': bool, 'publish_records': bool, 'batch_size': int,
                 'generate_timeout_seconds': int, 'prepare_timeout_seconds': int, 'smoke_timeout_seconds': int,
-                'smoke_seconds': (int, float), 'fake_outcome': str, 'fake_seconds': (int, float), 'device_release': dict}
+                'smoke_seconds': (int, float), 'fake_outcome': str, 'fake_seconds': (int, float),
+                'device_release': dict, 'source_checkpoint': dict}
 ACCEPTED_PROMPT_FIELDS = ('label', 'age', 'gender', 'hair', 'tone', 'facial_hair')
 
 
@@ -151,6 +152,13 @@ def validate_request(body, allow_local_paths: bool = False, fake: bool = False) 
             raise BadRequest('device_release needs safe character_id, job_id and release_id strings')
         if set(poses) != set(pipeline.POSES) or clean.get('smoke_render') is False or clean.get('smoke_render_required') is False:
             raise BadRequest('device_release requires all three poses and mandatory smoke render')
+    if 'source_checkpoint' in clean:
+        ref = clean['source_checkpoint']
+        if ('device_release' not in clean or not isinstance(ref.get('bucket'), str)
+                or not isinstance(ref.get('key'), str) or not re.fullmatch(r'[0-9a-f]{64}', str(ref.get('sha256', '')))
+                or not isinstance(ref.get('bytes'), int) or isinstance(ref.get('bytes'), bool)
+                or not 0 < ref['bytes'] <= 4 * 1024 ** 2):
+            raise BadRequest('source_checkpoint requires a device release and bucket/key/sha256/bytes descriptor')
     if 'qc_profile' in clean and clean['qc_profile'] not in QC_PROFILES:
         raise BadRequest(f'qc_profile must be one of {QC_PROFILES}')
     if 'max_attempts' in clean and not 1 <= clean['max_attempts'] <= 4:
