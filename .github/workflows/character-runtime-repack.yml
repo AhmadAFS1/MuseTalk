@@ -1,0 +1,103 @@
+name: Private character runtime bounded-layer candidate
+on:
+  push:
+    branches: [codex/character-device-release]
+    paths: [.github/character-runtime-repack-request.json]
+permissions:
+  contents: read
+concurrency:
+  group: character-runtime-private-image
+  cancel-in-progress: false
+jobs:
+  candidate:
+    if: github.repository == 'AhmadAFS1/MuseTalk'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 100
+    permissions:
+      contents: read
+      packages: write
+    env:
+      APPROVED_IMAGE: ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:a9c4b30471bbd03865aa51494440bdef05761ceddff4997f4f7a65bde3453793
+      APPROVED_MANIFEST: fdebdebde26107a4ff461b2aaad768d82cb5921a3bed86d97b2e6bc4ccbf904d
+      APPROVED_REVISION: d2927c27e7fc6d4547b97409802a341279ade7ef
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Validate request and test Linux layer semantics
+        run: |
+          python3 - <<'PY'
+          import json, os
+          with open('.github/character-runtime-repack-request.json') as stream:
+              request = json.load(stream)
+          assert request == {
+              'source_image': os.environ['APPROVED_IMAGE'],
+              'runtime_manifest_sha256': os.environ['APPROVED_MANIFEST'],
+          }, 'unapproved re-layer source'
+          PY
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends umoci skopeo acl libcap2-bin
+          sudo python3 -m unittest discover -s docker/character-runtime -p test_repack_oci.py -v
+      - name: Re-layer and verify final filesystem and Docker startup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          umask 077
+          scratch="$(mktemp -d "$RUNNER_TEMP/character-repack.XXXXXXXX")"
+          reports="$RUNNER_TEMP/character-repack-reports"
+          mkdir "$reports"
+          export REGISTRY_AUTH_FILE="$scratch/auth.json"
+          trap 'rm -f "$REGISTRY_AUTH_FILE"' EXIT
+          free="$(df --output=avail -B1 "$scratch" | tail -n 1)"
+          test "$free" -ge "$((90 * 1024 * 1024 * 1024))"
+          printf '%s' "$GH_TOKEN" | skopeo login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          unset GH_TOKEN
+          skopeo copy --retry-times 1 "docker://$APPROVED_IMAGE" "dir:$scratch/source-image"
+          sudo python3 docker/character-runtime/repack_oci.py \
+            --source "$scratch/source-image" --source-digest "${APPROVED_IMAGE##*@}" \
+            --consume-source --work "$scratch/staged" --report "$reports/repack.json" \
+            --docker-fixture "$scratch/docker-metadata.json"
+          sudo chmod 644 "$reports/repack.json"
+          docker_image_dir="$scratch/staged/docker-image"
+          local_image=lingua-character-repack:ci
+          skopeo copy "dir:$docker_image_dir" "docker-daemon:$local_image"
+          test "$(docker image inspect "$local_image" -f '{{.Id}}')" = "$(jq -r .config_digest "$reports/repack.json")"
+          test "$(docker image inspect "$local_image" -f '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$APPROVED_REVISION"
+          docker run --rm --read-only --network none --entrypoint python3 \
+            --mount "type=bind,source=$GITHUB_WORKSPACE/docker/character-runtime/repack_oci.py,target=/repack_oci.py,readonly" \
+            --mount "type=bind,source=$scratch/docker-metadata.json,target=/docker-metadata.json,readonly" \
+            "$local_image" /repack_oci.py --verify-docker-metadata /docker-metadata.json > "$reports/docker-metadata.json"
+          docker run --rm --network none --entrypoint python3 "$local_image" \
+            character_factory/character_worker/runtime_manifest.py verify --repo /opt/character-runtime/app \
+            --models docker/character-runtime/preparation-models.json --expected-sha256 "$APPROVED_MANIFEST"
+          docker run --rm --network none --entrypoint python3 \
+            --mount "type=bind,source=$GITHUB_WORKSPACE/docker/character-runtime/cpu_startup_check.py,target=/cpu_startup_check.py,readonly" \
+            --mount "type=bind,source=$reports,target=/reports" \
+            "$local_image" /cpu_startup_check.py --report /reports/cpu-qualification.json
+          set +e
+          docker run --rm --network none "$local_image" > "$reports/default-entrypoint-no-pins.txt" 2>&1
+          code=$?
+          set -e
+          test "$code" -eq 64
+          grep -q 'immutable deployment pins are missing or invalid' "$reports/default-entrypoint-no-pins.txt"
+          image_repo="${APPROVED_IMAGE%@*}"
+          tag="candidate-repack-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          expected="$(jq -r .docker_manifest "$reports/repack.json")"
+          skopeo copy --digestfile "$scratch/pushed-digest" "dir:$docker_image_dir" "docker://$image_repo:$tag"
+          test "$(cat "$scratch/pushed-digest")" = "$expected"
+          skopeo inspect --raw "docker://$image_repo@$expected" > "$scratch/registry-manifest.json"
+          test "sha256:$(sha256sum "$scratch/registry-manifest.json" | cut -d' ' -f1)" = "$expected"
+          jq -n --arg image "$image_repo@$expected" --arg tag "$tag" \
+            --arg source "$APPROVED_IMAGE" --arg revision "$APPROVED_REVISION" --arg manifest "$APPROVED_MANIFEST" \
+            '{schema:"lingua-character-runtime-repack-candidate/1", image:$image, tag:$tag, source_image:$source,
+              source_revision:$revision, runtime_manifest_sha256:$manifest, cpu_offline_verification:"passed",
+              independent_entrypoint_lifecycle:"required", gpu_qualification:"not_run", promotion_eligible:false}' > "$reports/candidate.json"
+          cat "$reports/candidate.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: character-runtime-repack-candidate
+          path: ${{ runner.temp }}/character-repack-reports/
+          retention-days: 7
+          if-no-files-found: warn
