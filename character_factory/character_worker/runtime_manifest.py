@@ -62,6 +62,7 @@ def snapshot(repo, workspace, model_lock):
             'preparation_models':models['files'],'environments':environments,
             'os_packages':command(['dpkg-query','-W','-f=${Package}=${Version}\n']).splitlines(),
             'preparation_mode':'avatar-preparation/1','teacher_renderer_included':False,
+            'control_transport':'per-rental-pinned-tls/1',
             'publication_schema':'lingua-character-release/2','qc_contract':'lingua-preprocessing-qc/1',
             'phone_student_unet':'unet_bk_tiny_r2_selected_int8w_b1',
             'phone_student_checkpoint_sha256':'a05d2d98f69b431252458d3b25f72e395d557ba693821baee91d11f5fe5a96cd',

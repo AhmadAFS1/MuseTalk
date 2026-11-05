@@ -124,6 +124,7 @@ class Runtime:
     def env(self, strip_control_plane: bool = False) -> dict:
         env = dict(os.environ)
         env.update(parse_env_file(self.runtime_env_file))
+        env.pop('CHARACTER_WORKER_TLS_KEY_B64', None)
         env.setdefault('HF_HUB_OFFLINE', '1')
         env.setdefault('TRANSFORMERS_OFFLINE', '1')
         env.setdefault('PYTHONUNBUFFERED', '1')

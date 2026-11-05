@@ -128,6 +128,9 @@ NEED_DISK="$MIN_DISK_FRESH"
 (( FREE_GIB >= NEED_DISK )) || die "only ${FREE_GIB} GiB free on $WORKSPACE; need ${NEED_DISK} GiB (40.1 GB H3 character weights + working space)"
 
 # ---------------------------------------------------------------- worker API first
+if [[ "${CHARACTER_WORKER_REQUIRE_TLS:-0}" == 1 ]]; then
+  [[ -n "${CHARACTER_WORKER_TLS_CERT_B64:-}" && -n "${CHARACTER_WORKER_TLS_KEY_B64:-}" && -n "${CHARACTER_WORKER_TOKEN:-}" ]] || die "protected control requires per-rental TLS certificate/key and bearer token"
+fi
 CURRENT_PHASE=api
 write_status api 0 0 "starting the worker API on port $PORT"
 api_listening() { python3 - "$PORT" <<'PY'
@@ -149,6 +152,9 @@ else
   log "worker API up (pid $(cat "$ROOT/character_api.pid")); /health reports the install phase from now on"
 fi
 
+# API loaded its private key; no installer or generation child needs it.
+unset CHARACTER_WORKER_TLS_KEY_B64
+
 # ---------------------------------------------------------------- install
 CURRENT_PHASE=install
 write_status install 0 0 "installing MuseTalk (avatar prep), runtime secret and the pinned H3 runtime"
@@ -162,7 +168,12 @@ write_status verify 0 0 "verifying the pipeline preflight"
 problems="$(python3 "$SCRIPT_DIR/pipeline.py" --preflight 2>&1 || true)"
 if [[ -n "$problems" ]]; then die "pipeline preflight failed: $problems"; fi
 [[ "$(api_listening)" == yes ]] || die "worker API is no longer listening on :$PORT"
-curl -fsS --max-time 10 "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 || log "WARNING: /health did not answer within 10 s (curl missing?)"
+health_url="http://127.0.0.1:$PORT/health"; health_tls=()
+if [[ -n "${CHARACTER_WORKER_TLS_CERT_B64:-}" || "${CHARACTER_WORKER_REQUIRE_TLS:-0}" == 1 ]]; then
+  health_url="https://127.0.0.1:$PORT/health"
+  health_tls=(--cacert "$ROOT/control-tls/server.crt")
+fi
+curl -fsS --max-time 10 "${health_tls[@]}" "$health_url" >/dev/null || die "local authenticated-transport /health verification failed"
 
 CURRENT_PHASE=ready
 write_status ready 1 0 "ready: POST /createCharacter on port $PORT"
@@ -171,6 +182,6 @@ MARKER_PRINTED=1
 trap - ERR EXIT
 echo "========================================"
 echo "CHARACTER_WORKER_ONSTART COMPLETE: $(date -u '+%Y-%m-%d %H:%M:%S UTC')  (elapsed $(elapsed))"
-echo "WORKER API: http://0.0.0.0:$PORT  (mapped port: ${VAST_TCP_PORT_8010:-unknown}, public ip: ${PUBLIC_IPADDR:-unknown})"
+echo "WORKER API: ${health_url%/health}  (mapped port: ${VAST_TCP_PORT_8010:-unknown}, public ip: ${PUBLIC_IPADDR:-unknown})"
 echo "LOG FILE: $ONSTART_LOG"
 echo "========================================"

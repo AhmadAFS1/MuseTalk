@@ -41,6 +41,8 @@ import os
 import re
 import signal
 import socket
+import ssl
+import tempfile
 import subprocess
 import sys
 import threading
@@ -578,11 +580,70 @@ class Handler(BaseHTTPRequestHandler):
         return self.send_json(404, {'error': 'not found', 'path': path})
 
 
-def make_server(host: str, port: int, manager: JobManager, token_sources: list, allow_local_paths: bool, fake: bool) -> ThreadingHTTPServer:
+def tls_context_for(root: Path, env=None):
+    """Load per-rental control TLS without persisting a private key or logging PEMs."""
+    env = os.environ if env is None else env
+    cert_value = env.get('CHARACTER_WORKER_TLS_CERT_B64')
+    key_value = env.get('CHARACTER_WORKER_TLS_KEY_B64')
+    required = env.get('CHARACTER_WORKER_REQUIRE_TLS') == '1'
+    if not cert_value and not key_value:
+        if required: raise ValueError('protected control transport requires TLS certificate and key')
+        return None
+    if not cert_value or not key_value:
+        raise ValueError('TLS certificate and key must both be supplied')
+    if max(len(cert_value), len(key_value)) > 65536:
+        raise ValueError('TLS material is too large')
+    try:
+        cert, key = base64.b64decode(cert_value, validate=True), base64.b64decode(key_value, validate=True)
+    except Exception:
+        raise ValueError('TLS material is not valid base64') from None
+    folder = root / 'control-tls';folder.mkdir(mode=0o700,parents=True,exist_ok=True);folder.chmod(0o700)
+    def write_private(data, name):
+        fd, temporary = tempfile.mkstemp(prefix='.' + name, dir=folder)
+        try:
+            os.fchmod(fd, 0o600)
+            with os.fdopen(fd, 'wb') as out: out.write(data)
+            target = folder / name;os.replace(temporary, target);return target
+        finally:
+            if os.path.exists(temporary):os.unlink(temporary)
+    cert_path = write_private(cert, 'server.crt')
+    key_path = write_private(key, 'server.key')
+    try:
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
+        context.load_cert_chain(str(cert_path), str(key_path))
+    except Exception:
+        raise ValueError('TLS certificate/key could not be loaded') from None
+    finally:
+        key_path.unlink(missing_ok=True)
+        # Children need no control-plane private key. The parent startup also unsets it.
+        env.pop('CHARACTER_WORKER_TLS_KEY_B64', None)
+    return context
+
+
+class ControlHTTPServer(ThreadingHTTPServer):
+    tls_context = None
+    def handle_error(self, request, client_address):
+        if isinstance(sys.exc_info()[1], ssl.SSLError): return
+        super().handle_error(request, client_address)
+    def get_request(self):
+        connection, address = super().get_request()
+        connection.settimeout(30)
+        if self.tls_context is not None:
+            try:
+                # Handshake happens in the bounded request thread, never the accept loop.
+                connection = self.tls_context.wrap_socket(connection,server_side=True,do_handshake_on_connect=False)
+            except Exception:
+                connection.close();raise
+        return connection, address
+
+
+def make_server(host: str, port: int, manager: JobManager, token_sources: list, allow_local_paths: bool, fake: bool, tls_context=None) -> ThreadingHTTPServer:
     handler = type('BoundHandler', (Handler,), {'manager': manager, 'token_sources': token_sources,
                                                  'allow_local_paths': allow_local_paths, 'fake': fake})
-    ThreadingHTTPServer.allow_reuse_address = True
-    server = ThreadingHTTPServer((host, port), handler)
+    ControlHTTPServer.allow_reuse_address = True
+    server = ControlHTTPServer((host, port), handler)
+    server.tls_context = tls_context
     server.daemon_threads = True
     return server
 
@@ -606,6 +667,9 @@ def main() -> int:
     args = p.parse_args()
     runtime = pipeline.Runtime(workspace=args.workspace, root=args.root)
     runtime.root.mkdir(parents=True, exist_ok=True)
+    tls_context = tls_context_for(runtime.root)
+    if os.environ.get('CHARACTER_WORKER_REQUIRE_TLS') == '1' and not os.environ.get('CHARACTER_WORKER_TOKEN'):
+        raise ValueError('protected control API requires a per-rental bearer token')
     runner = pipeline.FakePipeline(args.fake_seconds).run_job if args.fake else pipeline.run_job
     if args.fake:
         os.environ.setdefault('CHARACTER_WORKER_READY_OVERRIDE', '1')
@@ -613,7 +677,7 @@ def main() -> int:
     sources = token_sources_for(runtime)
     if not any(s() for s in sources):
         sys.stderr.write('WARNING: no CHARACTER_WORKER_TOKEN configured; the API accepts unauthenticated requests\n')
-    server = make_server(args.host, args.port, manager, sources, args.allow_local_paths, args.fake)
+    server = make_server(args.host, args.port, manager, sources, args.allow_local_paths, args.fake, tls_context=tls_context)
     sys.stderr.write(f'[{pipeline.stamp()}] {SERVICE} listening on {args.host}:{args.port} root={runtime.root} fake={args.fake}\n')
 
     def stop(signum, _frame):
