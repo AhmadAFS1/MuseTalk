@@ -58,8 +58,10 @@ jobs:
             --source "$scratch/source-image" --source-digest "${APPROVED_IMAGE##*@}" \
             --consume-source --work "$scratch/staged" --report "$reports/repack.json" \
             --docker-fixture "$scratch/docker-metadata.json"
-          sudo chmod 644 "$reports/repack.json"
           docker_image_dir="$scratch/staged/docker-image"
+          owner="$(id -u):$(id -g)"
+          sudo chown -- "$owner" "$scratch/staged" "$scratch/docker-metadata.json" "$reports/repack.json"
+          sudo chown -R -- "$owner" "$docker_image_dir"
           local_image=lingua-character-repack:ci
           skopeo copy "dir:$docker_image_dir" "docker-daemon:$local_image"
           test "$(docker image inspect "$local_image" -f '{{.Id}}')" = "$(jq -r .config_digest "$reports/repack.json")"
@@ -84,7 +86,11 @@ jobs:
           image_repo="${APPROVED_IMAGE%@*}"
           tag="candidate-repack-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           expected="$(jq -r .docker_manifest "$reports/repack.json")"
-          skopeo copy --digestfile "$scratch/pushed-digest" "dir:$docker_image_dir" "docker://$image_repo:$tag"
+          copy_flags=()
+          if skopeo copy --help | grep -q -- --preserve-digests; then
+            copy_flags+=(--preserve-digests)
+          fi
+          skopeo copy "${copy_flags[@]}" --digestfile "$scratch/pushed-digest" "dir:$docker_image_dir" "docker://$image_repo:$tag"
           test "$(cat "$scratch/pushed-digest")" = "$expected"
           skopeo inspect --raw "docker://$image_repo@$expected" > "$scratch/registry-manifest.json"
           test "sha256:$(sha256sum "$scratch/registry-manifest.json" | cut -d' ' -f1)" = "$expected"
